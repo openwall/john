@@ -24,11 +24,13 @@ argument (if supported for a given option).
 The supported options are as follows, square brackets denote optional
 arguments:
 
---single[=SECTION]		"single crack" mode
+--single[=(SECTION|:rule)]	"single crack" mode
 
 Enables the "single crack" mode, using rules from the configuration
 file section [List.Rules:Single].  If --single=Single_2 then the rules
-from [List.Rules:Single_2] section would be used.
+from [List.Rules:Single_2] section would be used. A rule or set of rules
+(including with pre-processor) can also be provided directly on the
+command line. See --rules for more details.
 
 --wordlist[=FILE]		wordlist mode, read words from FILE,
 --stdin				or from stdin
@@ -59,21 +61,23 @@ attacked. Note that by default, some rules are applied too (see john.conf
 Input data in a character encoding other than the default 'raw'. See also
 doc/ENCODINGS.   --list=encodings gives a list of all handled encodings.
 
---rules[=(SECTION|:rule)]		enable word mangling rules for wordlist mode
+--rules[=(SECTION|:rule)]	enable word mangling rules for wordlist mode
 
 Enables word mangling rules that are read from the specified section, which
 defaults to [List.Rules:Wordlist] if not given.
-Note, a rule, or set of rules can also be provided ON the command line. To do
-so, first letter following the = must be : then the rest of the command argument
-is interpreted as the literal data for the rule(s) itself.  Multiple rules can
-be provided. Each rule should be separated with a semicolon (;) character.
-So --rules=:'$[a-z]$[0-9];u' will use the 2 rule lines:  $[a-z]$[0-9]  and u
+
+A rule or set of rules (including with pre-processor) can also be provided
+directly on the command line. To do so, first letter following the = must be
+: then the rest of the command argument is interpreted as the literal data
+for the rule(s) itself.  Multiple rules can be provided. Each rule should be
+separated with a semicolon (;) character. So --rules=:'$[a-z]$[0-9];u' will
+use the 2 rule lines: $[a-z]$[0-9]  and u
+
 When rules are entered on the command line, any time a semicolon is used IN
 a rule, then it must be preceded by a \ character, to escape it.
 So --rules::'$\;$[0-9]' is just one rule, while --rules=:'$\;$[0-9];Az"tst"'
 is two rules, and --rules=:'$;$[0-9]' would 'try' to generate 2 rules, BUT
-the first will be invalid, and not be usable, since it is just the $
-character.
+the first will be invalid since it is just the $ character.
 
 --incremental[=MODE]		"incremental" mode [using section MODE]
 

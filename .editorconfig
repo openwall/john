@@ -18,6 +18,9 @@ indent_style = tab
 # We don't enforce this for Jumbo, let user decide (that's the beauty of tabs)
 #indent_size = 8
 
+[doc/*]
+indent_size = 8
+
 # Hashcat guys don't understand the beauty of tabs
 [pp.[ch]]
 indent_style = space
