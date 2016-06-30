@@ -79,11 +79,17 @@ struct fmt_params {
 /* Maximum length of a plaintext password */
 	int plaintext_length;
 
-/* Size of binary ciphertext used for fast comparison, in bytes */
+/* Size and alignment of binary ciphertext, in bytes */
 	int binary_size;
+#if FMT_MAIN_VERSION > 9
+	int binary_align;
+#endif
 
-/* Size of internal salt representation, in bytes */
+/* Size and alignment of internal salt representation, in bytes */
 	int salt_size;
+#if FMT_MAIN_VERSION > 9
+	int salt_align;
+#endif
 
 /* Number of plaintexts hashed by a single crypt_all() method call */
 	int min_keys_per_crypt;
