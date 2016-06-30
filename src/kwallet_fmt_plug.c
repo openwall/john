@@ -68,6 +68,11 @@ static int *cracked;
 static struct custom_salt {
 	unsigned char ct[0x10000];
 	unsigned int ctlen;
+	// following fields are required to support KWallet 5 files
+	int kwallet_minor_version;
+	unsigned char salt[256];
+	int saltlen;
+	int iterations;
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -111,6 +116,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlenl(p) != res*2)
 		goto err;
+
+	if ((p = strtokm(NULL, "$")) != NULL) {
+		res = atoi(p); /* minor version */
+		if (res != 0 && res != 1) {
+			fprintf(stderr, "[kwallet] KWallet 5 files aren't supported yet!\n");
+			goto err;
+		}
+		if ((p = strtokm(NULL, "$")) == NULL)	/* saltlen */
+			goto err;
+		res = atoi(p); /* saltlen */
+		if (res > 256)
+			goto err;
+		if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
+			goto err;
+		if (hexlenl(p) != res * 2)
+			goto err;
+		if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
+			goto err;
+	}
+
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -135,6 +160,21 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < salt->ctlen; i++)
 		salt->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
+	if ((p = strtokm(NULL, "$")) != NULL) { // KWallet 5 file
+		salt->kwallet_minor_version = atoi(p);
+		p = strtokm(NULL, "$");
+		salt->saltlen = atoi(p);
+		p = strtokm(NULL, "$");
+		for (i = 0; i < salt->saltlen; i++)
+			salt->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "$");
+		salt->iterations = atoi(p);
+	} else {
+		salt->kwallet_minor_version = 0; // old KWallet files
+	}
+
 	MEM_FREE(keeptr);
 	return (void *)salt;
 }
@@ -260,11 +300,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 	{
 		int ret;
-		ret = verify_passphrase(saved_key[index]);
-		if(ret == 0)
-			cracked[index] = 1;
-		else
+		if (cur_salt->kwallet_minor_version == 0) {
+			ret = verify_passphrase(saved_key[index]);
+			if(ret == 0)
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		} else if (cur_salt->kwallet_minor_version == 1) {
 			cracked[index] = 0;
+
+		}
 	}
 	return count;
 }
