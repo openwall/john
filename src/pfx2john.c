@@ -70,7 +70,7 @@ static void process_file(const char *filename)
 {
 	FILE *pfxfile;
 	int i, count;
-	unsigned char buffer[LINE_BUFFER_SIZE];
+	unsigned char buffer[0x30000]; // was LINE_BUFFER_SIZE, fixme!
 	BIO* in = NULL;
 	PKCS12 *p12 = NULL;
 	const char *ext[] = {".p12",".pfx"};
@@ -96,7 +96,7 @@ static void process_file(const char *filename)
 		fclose(pfxfile);
 		return;
 	}
-	count = fread(buffer, 1, LINE_BUFFER_SIZE, pfxfile);
+	count = fread(buffer, 1, sizeof(buffer), pfxfile);
 	fname = strip_suffixes(basename(filename), ext, 2);
 	printf("%s:$pfx$*%d*", fname, count);
 	for (i = 0; i < count; i++) {
