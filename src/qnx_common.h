@@ -38,6 +38,8 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 		goto Exit;
 	ct = strtokm(&ct[1], "@");
 	// Only allow @m @s or @S signatures.
+	if (!ct || *ct == '\0')
+		goto Exit;
 	if (*ct == 'm') len = 32;
 	else if (*ct == 's') len = 64;
 	else if (*ct == 'S') len = 128;
