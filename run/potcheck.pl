@@ -14,6 +14,10 @@
 
 use strict;
 use Getopt::Long;
+use Digest::MD5 qw(md5_hex);
+
+# NOTE, if this is changed in params.h, we need to update it here!
+my $LINE_BUFFER_SIZE = 4096;
 
 # options:
 my $help = 0; my $quiet = 1; my $verbosity = 0; my $stop_on_error = 0;
@@ -40,7 +44,7 @@ while (my $line = <STDIN>) {
 	if (length($line) > $max_ciphertext_size) { $cato = 1; }
 	minimize($line);
 }
-exit ($cato);
+exit (!!$cato);
 
 
 sub usage {
@@ -51,8 +55,8 @@ sub usage {
 #	print "\t -verbose      Higher output (counteracts -q)\n";
 	print "\t -validate     Returns 0 if .pot valid, or 1 if any lines are problems\n";
 #	print "\t -stoponerror  If there is any fatal problem, stop\n";
-	print "\t -canonize_fix Apply canonizaton rules to convert formats\n";
-	print "\t -encode_fix   Fix encoding issues (cannonize to utf8)\n";
+#	print "\t -canonize_fix Apply canonizaton rules to convert formats\n";
+#	print "\t -encode_fix   Fix encoding issues (cannonize to utf8)\n";
 	print "\t -longline_fix Overlong lines are converted to short .pot format\n";
 	print "\nThe program is a filter. stdin/stdout are used for input and output\n";
 	exit (0);
@@ -93,9 +97,18 @@ sub fixcanon {
 	return 'canon '.$_[0];
 }
 sub fixencode {
+	require Encode;
 	return 'encode '.$_[0];
 }
 sub fixlongline {
-	return 'long '.$_[0];
+	my $pos = index($_[0], ':');
+	if ($pos < $LINE_BUFFER_SIZE) { return $_[0]; }
+	$cato++;
+	my $line = $_[0];
+	my $pass = substr($line, $pos);
+	my $hash = substr($line, 0, $pos);
+	$line = substr($line, 0, $LINE_BUFFER_SIZE-(13+32)) . '$SOURCE_HASH$';
+	$line .= md5_hex($hash).$pass;
+	return $line;
 }
 
