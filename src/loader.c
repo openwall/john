@@ -176,7 +176,8 @@ static void read_file(struct db_main *db, char *name, int flags,
 {
 	struct stat file_stat;
 	FILE *file;
-	char line_buf[LINE_BUFFER_SIZE], *line, *ex_size_line;
+	/* line_buf also contains password (max 125 bytes), a colon, \n NULL */
+	char line_buf[LINE_BUFFER_SIZE + 125 + 1 + 1 + 1], *line, *ex_size_line;
 	int warn_enc;
 
 	warn_enc = john_main_process && (options.target_enc != ASCII) &&
