@@ -17,8 +17,10 @@ use Getopt::Long;
 use Digest::MD5 qw(md5_hex);
 
 # NOTE, if this is changed in params.h, we need to update it here!
-my $LINE_BUFFER_SIZE = 1024;
-my $OUR_LINE_BUFFER_SIZE = 256;
+my $LINE_BUFFER_SIZE = 0x400;
+my $PLAINTEXT_BUFFER_SIZE = 0x80;
+my $MAX_CIPHERTEXT_SIZE = ($LINE_BUFFER_SIZE - $PLAINTEXT_BUFFER_SIZE);
+my $POT_BUFFER_CT_TRIM_SIZE = ($MAX_CIPHERTEXT_SIZE - 13 - 32);
 
 # options:
 my $help = 0; my $quiet = 1; my $verbosity = 0; my $stop_on_error = 0;
@@ -103,12 +105,12 @@ sub fixencode {
 }
 sub fixlongline {
 	my $pos = index($_[0], ':');
-	if ($pos < $OUR_LINE_BUFFER_SIZE) { return $_[0]; }
-	if ($pos > $LINE_BUFFER_SIZE) { $cato++; }
+	if ($pos <= $MAX_CIPHERTEXT_SIZE) { return $_[0]; }
+	$cato++;
 	my $line = $_[0];
 	my $pass = substr($line, $pos);
 	my $hash = substr($line, 0, $pos);
-	$line = substr($line, 0, $OUR_LINE_BUFFER_SIZE-(13+32)) . '$SOURCE_HASH$';
+	$line = substr($line, 0, $POT_BUFFER_CT_TRIM_SIZE) . '$SOURCE_HASH$';
 	$line .= md5_hex($hash).$pass;
 	return $line;
 }
