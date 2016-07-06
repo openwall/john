@@ -125,13 +125,13 @@ int ishexlc_oddOK(const char *q);
 /* provide a length field, so return true if 'n' bytes of the string are hex */
 /* the n is length q, so there is no need for a 'odd' field. If checking for */
 /* a 49 byte string, simply specify 49 */
-int ishexn(const char *q, int n);
-int ishexucn(const char *q, int n);
-int ishexlcn(const char *q, int n);
+int ishexn(const char *q, size_t n);
+int ishexucn(const char *q, size_t n);
+int ishexlcn(const char *q, size_t n);
 /* length of hex. if non-hex chars found, then negative length of valid hex */
-int hexlen(const char *q);
-int hexlenl(const char *q); /* lower cased only */
-int hexlenu(const char *q); /* upper cased only */
+size_t hexlen(const char *q);
+size_t hexlenl(const char *q); /* lower cased only */
+size_t hexlenu(const char *q); /* upper cased only */
 /* is this a valid string for atoi() ONLY positive numbers are valid */
 int isdec(const char *q);
 /* is this a valid string for atoi() */
@@ -140,9 +140,9 @@ int isdec_negok(const char *q);
 int isdecu(const char *q);
 /* provides the length of the base64 string.  See base64_convert.c for that
  * function. If the string is not 'pure', then the return is -1*length */
-int base64_mime_len(const char *q);
-int base64_crypt_len(const char *q);
-int base64_mime_du_len(const char *q);  /* mime, -_ instead of +/ */
+size_t base64_mime_len(const char *q);
+size_t base64_crypt_len(const char *q);
+size_t base64_mime_du_len(const char *q);  /* mime, -_ instead of +/ */
 
 #endif
 
