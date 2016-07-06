@@ -276,6 +276,34 @@ fi
 # size_t and off_t are post-poned to after feature macros are set
 # *****************************************************************
 
+#
+# Here, we use perl (if it was found!) and if there is a ../run/john.pot
+# file, to find out if there are any .pot lines that will be TOO long
+# for this version of JtR.  WE have reduced the max pot line length to
+# 1k (it was 30000 or 300000 bytes long before).  So we now need to make
+# sure that all lines are approprate.  We use ../run/potcheck.pl to validate
+# the .pot file here.  IF there are problems, we simply inform the user to
+# fix his .pot file (with ../run/potcheck.pl) and do NOT allow configure
+# to succeeed.
+#
+if ( test -e ../run/john.pot ) ; then
+AC_MSG_CHECKING([if potcheck.pl succeeds])
+if test "x$PERL" == x ; then
+   AC_MSG_RESULT([no Perl (unable to check)])
+else
+   $PERL ../run/potcheck.pl -validate < ../run/john.pot
+   ret=$?
+   if ( test $ret -ne 0 ) ; then
+      AC_MSG_RESULT([no])
+      echo ""
+      echo "   NOTE, john will not run properly until you fix your ../run/john.pot"
+      echo "   file using the ../run/potcheck.pl with the -long command line"
+      exit 1;
+   fi
+   AC_MSG_RESULT([yes])
+fi
+fi
+
 dnl *** AC_CHECK_SIZEOF([char])
 dnl *** AC_CHECK_SIZEOF([unsigned char])
 AC_CHECK_SIZEOF([short])

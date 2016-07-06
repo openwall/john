@@ -7431,6 +7431,38 @@ fi
 # size_t and off_t are post-poned to after feature macros are set
 # *****************************************************************
 
+#
+# Here, we use perl (if it was found!) and if there is a ../run/john.pot
+# file, to find out if there are any .pot lines that will be TOO long
+# for this version of JtR.  WE have reduced the max pot line length to
+# 1k (it was 30000 or 300000 bytes long before).  So we now need to make
+# sure that all lines are approprate.  We use ../run/potcheck.pl to validate
+# the .pot file here.  IF there are problems, we simply inform the user to
+# fix his .pot file (with ../run/potcheck.pl) and do NOT allow configure
+# to succeeed.
+#
+if ( test -e ../run/john.pot ) ; then
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if potcheck.pl succeeds" >&5
+$as_echo_n "checking if potcheck.pl succeeds... " >&6; }
+if test "x$PERL" == x ; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no Perl (unable to check)" >&5
+$as_echo "no Perl (unable to check)" >&6; }
+else
+   $PERL ../run/potcheck.pl -validate < ../run/john.pot
+   ret=$?
+   if ( test $ret -ne 0 ) ; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+      echo ""
+      echo "   NOTE, john will not run properly until you fix your ../run/john.pot"
+      echo "   file using the ../run/potcheck.pl with the -long command line"
+      exit 1;
+   fi
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+fi
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for egrep" >&5
 $as_echo_n "checking for egrep... " >&6; }
