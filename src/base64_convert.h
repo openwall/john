@@ -78,7 +78,7 @@ char *base64_convert_cp(const void *from,
                         b64_convert_type to_t,
                         size_t to_len,
                         unsigned flags);
-size_t base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags);
+int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags);
 void base64_convert_error_exit(int err);
 char *base64_convert_error(int err);  /* allocates buffer, caller must free */
 

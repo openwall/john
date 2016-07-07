@@ -858,7 +858,7 @@ char *base64_convert_error(int err) {
 	return p;
 }
 
-size_t base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags) {
+int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags) {
 	int len=0;
 	if (!mime_setup)
 		setup_mime();
