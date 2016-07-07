@@ -538,7 +538,7 @@ void mime_dash_under(char *to) {
  *
  ******************************************************************************************
  ******************************************************************************************/
-char *base64_convert_cp(const void *from, b64_convert_type from_t, size_t from_len, void *to, b64_convert_type to_t, size_t to_len, unsigned flags)
+char *base64_convert_cp(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags)
 {
 	int err = base64_convert(from, from_t, from_len, to, to_t, to_len, flags);
 	if (err < 0) {
@@ -546,7 +546,7 @@ char *base64_convert_cp(const void *from, b64_convert_type from_t, size_t from_l
 	}
 	return (char*)to;
 }
-int base64_convert(const void *from, b64_convert_type from_t, size_t from_len, void *to, b64_convert_type to_t, size_t to_len, unsigned flags)
+int base64_convert(const void *from, b64_convert_type from_t, int from_len, void *to, b64_convert_type to_t, int to_len, unsigned flags)
 {
 	if (!mime_setup)
 		setup_mime();

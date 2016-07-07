@@ -65,18 +65,18 @@ typedef enum {
  */
 int base64_convert(const void *from,          // input data.
                    b64_convert_type from_t,   // b64_convert_type of input data
-                   size_t from_len,           // length of input to use
+                   int from_len,              // length of input to use
                    void *to,                  // output buf (large enough + x)
                    b64_convert_type to_t,     // b64_convert_type to convert to
-                   size_t to_len,
+                   int to_len,
                    unsigned flags);
 /* same function as base64_convert(), but returns the *to as a char* */
 char *base64_convert_cp(const void *from,
                         b64_convert_type from_t,
-                        size_t from_len,
+                        int from_len,
                         void *to,
                         b64_convert_type to_t,
-                        size_t to_len,
+                        int to_len,
                         unsigned flags);
 int base64_valid_length(const char *from, b64_convert_type from_t, unsigned flags);
 void base64_convert_error_exit(int err);
