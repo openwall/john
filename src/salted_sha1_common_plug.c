@@ -55,7 +55,7 @@ int salted_sha1_common_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 
-	len = base64_valid_length(ciphertext, e_b64_mime, 0);
+	len = base64_valid_length(ciphertext, e_b64_mime, 0, 0);
 	if (len > CIPHERTEXT_LENGTH)
 		return 0;
 	if (len < CIPHERTEXT_LEN_MIN)

@@ -121,7 +121,7 @@ static void *get_salt(char *ciphertext)
 		salt.rounds = rounds;
 		return (void*)&salt;
 	}
-	salt.length = base64_convert(c, e_b64_mime, p-c, salt.salt, e_b64_raw, sizeof(salt.salt), flg_Base64_MIME_PLUS_TO_DOT);
+	salt.length = base64_convert(c, e_b64_mime, p-c, salt.salt, e_b64_raw, sizeof(salt.salt), flg_Base64_MIME_PLUS_TO_DOT, 0);
 	salt.rounds = rounds;
 	return (void *)&salt;
 }

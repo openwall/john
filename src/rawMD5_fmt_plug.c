@@ -158,7 +158,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 
 		res = base64_convert(&fields[1][5], e_b64_mime, 24,
 		                     out, e_b64_hex, sizeof(out),
-		                     flg_Base64_HEX_LOCASE);
+		                     flg_Base64_HEX_LOCASE, 0);
 		if (res >= 0)
 			return out;
 	}

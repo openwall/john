@@ -191,14 +191,14 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		len = base64_convert(p, e_b64_mime, (int)(d - p - 1),
 		                     o, e_b64_raw,
 		                     sizeof(out),
-		                     flg_Base64_MIME_TRAIL_EQ);
+		                     flg_Base64_MIME_TRAIL_EQ, 0);
 		o += len;
 		*o++ = '#';
 		d++;
 		len = base64_convert(d, e_b64_mime, strlen(d),
 		                     o, e_b64_raw,
 		                     sizeof(out) - len - 2,
-		                     flg_Base64_MIME_TRAIL_EQ);
+		                     flg_Base64_MIME_TRAIL_EQ, 0);
 		if (!(p = strchr(o, ' ')))
 			return split_fields[1];
 		p++;

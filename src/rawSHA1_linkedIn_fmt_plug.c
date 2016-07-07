@@ -107,7 +107,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	// 'normalize' these hashes to all 'appear' to be 00000xxxxxx hashes.
 	// on the source() function, we later 'fix' these up.
 	ciphertext += 5;
-	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), out, e_b64_hex, sizeof(out), 0);
+	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), out, e_b64_hex, sizeof(out), 0, 0);
 	memcpy(out, "00000", 5);
 
 	return rawsha1_common_split(out, index, self);
@@ -313,7 +313,7 @@ static char *source(char *source, void *binary)
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
 	strcpy(Buf, FORMAT_TAG);
-	base64_convert(realcipher, e_b64_raw, 20, &Buf[TAG_LENGTH], e_b64_mime, sizeof(Buf)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ);
+	base64_convert(realcipher, e_b64_raw, 20, &Buf[TAG_LENGTH], e_b64_mime, sizeof(Buf)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ, 0);
 	return Buf;
 }
 

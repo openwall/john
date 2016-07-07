@@ -1216,7 +1216,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 		bin = format->methods.binary(ret_copy);
 		if (format->params.binary_size>4) {
 			bin_hex = mem_alloc(format->params.binary_size*2+1);
-			base64_convert(bin, e_b64_raw, format->params.binary_size, bin_hex, e_b64_hex, format->params.binary_size*2+1, 0);
+			base64_convert(bin, e_b64_raw, format->params.binary_size, bin_hex, e_b64_hex, format->params.binary_size*2+1, 0, 0);
 			cp = strstr(ret_copy, bin_hex);
 			strupr(bin_hex);
 			if (cp) {
@@ -1242,7 +1242,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 			bin_hex = mem_alloc(format->params.salt_size*2+1);
 			bin = format->methods.salt(ret_copy);
 			dyna_salt_create(bin);
-			base64_convert(bin, e_b64_raw, format->params.salt_size, bin_hex, e_b64_hex, format->params.salt_size*2+1, 0);
+			base64_convert(bin, e_b64_raw, format->params.salt_size, bin_hex, e_b64_hex, format->params.salt_size*2+1, 0, 0);
 			dyna_salt_remove(bin);
 			cp = strstr(ret_copy, bin_hex);
 			strupr(bin_hex);
