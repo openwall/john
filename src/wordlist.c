@@ -456,12 +456,15 @@ static MAYBE_INLINE char *convert(char *line)
 {
 	char *p;
 
-	if ((options.flags & FLG_LOOPBACK_CHK) &&
-	    (p = strchr(line, options.loader.field_sep_char)))
-		line = p + 1;
+	if (options.flags & FLG_LOOPBACK_CHK) {
+		if ((p = strchr(line, options.loader.field_sep_char)))
+			line = p + 1;
+		else
+			line += strlen(line);
+	}
 
 	if (options.input_enc != options.target_enc) {
-		UTF16 u16[PLAINTEXT_BUFFER_SIZE + 1];
+		UTF16 u16[LINE_BUFFER_SIZE + 1];
 		char *cp, *s, *d;
 		char e;
 		int len;
@@ -469,7 +472,7 @@ static MAYBE_INLINE char *convert(char *line)
 		len = strcspn(line, "\n\r");
 		e = line[len];
 		line[len] = 0;
-		utf8_to_utf16(u16, PLAINTEXT_BUFFER_SIZE, (UTF8*)line, len);
+		utf8_to_utf16(u16, LINE_BUFFER_SIZE, (UTF8*)line, len);
 		line[len] = e;
 		cp = utf16_to_cp(u16);
 		d = &line[len];
