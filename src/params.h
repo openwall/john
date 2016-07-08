@@ -26,7 +26,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.8-jumbo-1-bleeding"
+#define JOHN_VERSION			"1.8.0.9-jumbo-1-bleeding"
 
 /*
  * Define this for release tarballs after updating the string above.

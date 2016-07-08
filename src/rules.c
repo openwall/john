@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2005,2009,2010,2015 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005,2009,2010,2015,2016 by Solar Designer
  *
  * With heavy changes in Jumbo, by JimF and magnum
  */
@@ -1271,7 +1271,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 		in = buffer[2];
 
 	length = 0;
-	while (length < RULE_WORD_SIZE - 1) {
+	while (length < RULE_WORD_SIZE) {
 		if (!(in[length] = word[length]))
 			break;
 		length++;
@@ -1300,7 +1300,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	which = 0;
 
 	while (RULE) {
-		in[RULE_WORD_SIZE - 1] = 0;
+		if (length >= RULE_WORD_SIZE)
+			in[length = RULE_WORD_SIZE - 1] = 0;
 
 		switch (LAST) {
 /* Crack 4.1 rules */
