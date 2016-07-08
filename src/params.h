@@ -371,7 +371,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * We trim ciphertext being stored into the .pot file for all CTs >
  * MAX_CIPHERTEXT_SIZE.  We truncate, and then append a hash of the
- * full ciphertext.
+ * full ciphertext. 13 is length of tag, 32 is length of MD5 hex hash.
  */
 #define POT_BUFFER_CT_TRIM_SIZE		(MAX_CIPHERTEXT_SIZE - 13 - 32)
 

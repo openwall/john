@@ -148,9 +148,7 @@ const char *ldr_pot_source(const char *full_source,
 	 * We create a .pot record that is MAX_CIPHERTEXT_SIZE long
 	 * but that has a hash of the full source
 	 */
-
-	/* 13=len sig1, 32=len hash */
-	len = MAX_CIPHERTEXT_SIZE - 13 - 32;
+	len = POT_BUFFER_CT_TRIM_SIZE;
 	memcpy(p, full_source, len);
 	p += len;
 	memcpy(p, "$SOURCE_HASH$", 13);
