@@ -42,7 +42,7 @@ int AzureAD_common_valid(char *ciphertext, struct fmt_main *self) {
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
 	ciphertext += TAG_LENGTH;
-	if (base64_valid_length(ciphertext, e_b64_hex, 0) != SALT_HASH_LEN)
+	if (base64_valid_length(ciphertext, e_b64_hex, 0, 0) != SALT_HASH_LEN)
 		return 0;
 	ciphertext += SALT_HASH_LEN;
 	if (*ciphertext != ',')
@@ -51,7 +51,7 @@ int AzureAD_common_valid(char *ciphertext, struct fmt_main *self) {
 	if (strncmp(ciphertext, "100,", 4))
 		return 0;
 	ciphertext += 4;
-	if (base64_valid_length(ciphertext, e_b64_hex, 0) != HASH_LENGTH || strlen(ciphertext) != HASH_LENGTH+1)
+	if (base64_valid_length(ciphertext, e_b64_hex, 0, 0) != HASH_LENGTH || strlen(ciphertext) != HASH_LENGTH+1)
 		return 0;
 	return ciphertext[HASH_LENGTH] == ';';
 }
@@ -69,6 +69,6 @@ void *AzureAD_common_get_binary(char *ciphertext) {
 	unsigned char *realcipher = (unsigned char*)full;
 
 	ciphertext += (TAG_LENGTH + SALT_HASH_LEN + ROUNDS_LEN + 2);
-	base64_convert(ciphertext, e_b64_hex, 64, realcipher, e_b64_raw, sizeof(full), 0);
+	base64_convert(ciphertext, e_b64_hex, 64, realcipher, e_b64_raw, sizeof(full), 0, 0);
 	return (void*)realcipher;
 }

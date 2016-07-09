@@ -68,7 +68,7 @@ static void *get_binary(char *ciphertext) {
 	unsigned char *out = (unsigned char*)outbuf;
 	memset(outbuf, 0, sizeof(outbuf));
 	ciphertext = strchr(&ciphertext[1], '@') + 1;
-	base64_convert(ciphertext, e_b64_hex, strchr(ciphertext, '@')-ciphertext, out, e_b64_raw, BINARY_SIZE, 0);
+	base64_convert(ciphertext, e_b64_hex, strchr(ciphertext, '@')-ciphertext, out, e_b64_raw, BINARY_SIZE, 0, 0);
 	return (void *)outbuf;
 }
 

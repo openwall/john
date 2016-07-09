@@ -403,7 +403,7 @@ char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 		if (strlen(fields[1]) > 75) return fields[1];
 		//{"{PKCS5S2}DQIXJU038u4P7FdsuFTY/+35bm41kfjZa57UrdxHp2Mu3qF2uy+ooD+jF5t1tb8J", "password"},
 		//{"$pbkdf2-hmac-sha1$10000$0d0217254d37f2ee0fec576cb854d8ff$edf96e6e3591f8d96b9ed4addc47a7632edea176bb2fa8a03fa3179b75b5bf09", "password"},
-		base64_convert(&(fields[1][9]), e_b64_mime, strlen(&(fields[1][9])), tmp, e_b64_hex, sizeof(tmp), 0);
+		base64_convert(&(fields[1][9]), e_b64_mime, strlen(&(fields[1][9])), tmp, e_b64_hex, sizeof(tmp), 0, 0);
 		sprintf(Buf, "$pbkdf2-hmac-sha1$10000$%32.32s$%s", tmp, &tmp[32]);
 		return Buf;
 	}
@@ -426,10 +426,10 @@ char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 		++cp;
 		cp2 = strchr(cp, '$');
 		if (!cp2) return fields[1];
-		base64_convert(cp, e_b64_mime, cp2-cp, tmps, e_b64_hex, sizeof(tmps), flg_Base64_MIME_DASH_UNDER);
+		base64_convert(cp, e_b64_mime, cp2-cp, tmps, e_b64_hex, sizeof(tmps), flg_Base64_MIME_DASH_UNDER, 0);
 		if (strlen(tmps) > 115) return fields[1];
 		++cp2;
-		base64_convert(cp2, e_b64_mime, strlen(cp2), tmph, e_b64_hex, sizeof(tmph), flg_Base64_MIME_DASH_UNDER);
+		base64_convert(cp2, e_b64_mime, strlen(cp2), tmph, e_b64_hex, sizeof(tmph), flg_Base64_MIME_DASH_UNDER, 0);
 		if (strlen(tmph) != 40) return fields[1];
 		sprintf(Buf, "$pbkdf2-hmac-sha1$%d$%s$%s", iter, tmps, tmph);
 		return Buf;
@@ -573,14 +573,14 @@ int pbkdf2_hmac_sha256_valid(char *ciphertext, struct fmt_main *self) {
 	p = strchr(c, '$');
 	if (p == NULL)
 		return 0;
-	saltlen = base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT);
+	saltlen = base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT, 0);
 	c += saltlen;
 	saltlen = B64_TO_RAW_LEN(saltlen);
 	if (saltlen > PBKDF2_32_MAX_SALT_SIZE)
 		return 0;
 	if (*c != '$') return 0;
 	c++;
-	if (base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT) != 43)
+	if (base64_valid_length(c, e_b64_mime, flg_Base64_MIME_PLUS_TO_DOT, 0) != 43)
 		return 0;
 	return 1;
 }
@@ -594,7 +594,7 @@ char *pbkdf2_hmac_sha256_prepare(char *fields[10], struct fmt_main *self) {
 	if (strlen(fields[1]) != 4+14+43)
 		return fields[1];
 	sprintf (Buf, "%s20000$%14.14s$%s", PBKDF2_SHA256_FORMAT_TAG, &(fields[1][3]),
-		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_mime, sizeof(tmp), flg_Base64_NO_FLAGS));
+		base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_mime, sizeof(tmp), flg_Base64_NO_FLAGS, 0));
 	cp = strchr(Buf, '+');
 	while (cp) {
 		*cp = '.';
@@ -616,7 +616,7 @@ void *pbkdf2_hmac_sha256_binary(char *ciphertext) {
 #ifdef DEBUG
 	assert(strlen(c) == 43);
 #endif
-	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT);
+	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT, 0);
 	return ret;
 }
 

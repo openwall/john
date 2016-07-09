@@ -140,9 +140,9 @@ int isdec_negok(const char *q);
 int isdecu(const char *q);
 /* provides the length of the base64 string.  See base64_convert.c for that
  * function. If the string is not 'pure', then the return is -1*length */
-int base64_mime_len(const char *q);
-int base64_crypt_len(const char *q);
-int base64_mime_du_len(const char *q);  /* mime, -_ instead of +/ */
+long base64_mime_len(const char *q);
+long base64_crypt_len(const char *q);
+long base64_mime_du_len(const char *q);  /* mime, -_ instead of +/ */
 
 #endif
 

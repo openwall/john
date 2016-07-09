@@ -225,11 +225,11 @@ static void* get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");	/* salt length */
 	s->saltlen = atoi(p);
 	p = strtokm(NULL, "$");	/* salt1 */
-	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt1, e_b64_raw, s->saltlen, 0);
+	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt1, e_b64_raw, s->saltlen, 0, 0);
 	p = strtokm(NULL, "$");	/* salt2 */
-	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt2, e_b64_raw, s->saltlen, 0);
+	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt2, e_b64_raw, s->saltlen, 0, 0);
 	p = strtokm(NULL, "$");	/* encr_key */
-	base64_convert(p, e_b64_hex, s->keylen*2, s->encr, e_b64_raw, s->keylen, 0);
+	base64_convert(p, e_b64_hex, s->keylen*2, s->encr, e_b64_raw, s->keylen, 0, 0);
 
 	MEM_FREE(keeptr);
 	return s;
@@ -343,7 +343,7 @@ static void *binary(char *ciphertext) {
 	unsigned char *realcipher = (unsigned char*)full;
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
-	base64_convert(ciphertext, e_b64_hex, strlen(ciphertext), realcipher, e_b64_raw, MAX_SALT_LEN, 0);
+	base64_convert(ciphertext, e_b64_hex, strlen(ciphertext), realcipher, e_b64_raw, MAX_SALT_LEN, 0, 0);
 	return (void*)realcipher;
 }
 

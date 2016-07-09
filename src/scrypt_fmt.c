@@ -134,7 +134,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		encode64_uint32((uint8_t*)tmp6, sizeof(tmp6), p, 30);
 		tmp6[5]=0;
 		sprintf (Buf, "$7$%c%s%s%14.14s$%s", N_to_c(N), tmp5, tmp6, &(fields[1][3]),
-			base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_cryptBS, sizeof(tmp), flg_Base64_NO_FLAGS));
+			base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_cryptBS, sizeof(tmp), flg_Base64_NO_FLAGS, 0));
 	}
 	else if (!strncmp(fields[1], FMT_SCRYPTKDF, sizeof(FMT_SCRYPTKDF)-1))
 	{
@@ -163,18 +163,18 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		cp2 = strtokm(NULL, "*");
 		if (!cp2)
 			return fields[1];
-		if (base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT) != strlen(cp))
+		if (base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0) != strlen(cp))
 			return fields[1];
-		if (base64_valid_length(cp2, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT) != strlen(cp2))
+		if (base64_valid_length(cp2, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0) != strlen(cp2))
 			return fields[1];
 		encode64_uint32((uint8_t*)tmp5, sizeof(tmp5), r, 30);
 		tmp5[5]=0;
 		encode64_uint32((uint8_t*)tmp6, sizeof(tmp6), p, 30);
 		tmp6[5]=0;
 		memset(tmp4, 0, sizeof(tmp4));
-		base64_convert_cp(cp, e_b64_mime, strlen(cp), tmp4, e_b64_raw, sizeof(tmp4), flg_Base64_NO_FLAGS);
+		base64_convert_cp(cp, e_b64_mime, strlen(cp), tmp4, e_b64_raw, sizeof(tmp4), flg_Base64_NO_FLAGS, 0);
 		memset(tmp2, 0, sizeof(tmp2));
-		base64_convert_cp(cp2, e_b64_mime, strlen(cp2), tmp2, e_b64_cryptBS, sizeof(tmp2),flg_Base64_NO_FLAGS);
+		base64_convert_cp(cp2, e_b64_mime, strlen(cp2), tmp2, e_b64_cryptBS, sizeof(tmp2),flg_Base64_NO_FLAGS, 0);
 		cp = &tmp2[strlen(tmp2)-1];
 		while (cp > tmp2 && *cp == '.') *cp-- = 0;
 		cp = &tmp4[strlen(tmp)-1];
@@ -217,7 +217,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	++p;
-	length = base64_valid_length(p, e_b64_cryptBS, flg_Base64_NO_FLAGS);
+	length = base64_valid_length(p, e_b64_cryptBS, flg_Base64_NO_FLAGS, 0);
 
 	decode64_one(&tmp, ciphertext[3]);
 	if (!tmp)

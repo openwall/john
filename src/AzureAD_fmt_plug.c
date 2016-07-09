@@ -112,7 +112,7 @@ static void *salt(char *ciphertext) {
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, ",");
 	cs.salt_len = strlen(p)/2;
-	base64_convert(p, e_b64_hex, cs.salt_len*2, cs.salt, e_b64_raw, cs.salt_len, 0);
+	base64_convert(p, e_b64_hex, cs.salt_len*2, cs.salt, e_b64_raw, cs.salt_len, 0, 0);
 	p = strtokm(NULL, ",");
 	cs.iterations = atoi(p);
 	p = strtokm(Buf, ",");
@@ -177,7 +177,7 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 			MD4_Init(&ctx);
 			MD4_Update(&ctx, Buf, len*2);
 			MD4_Final(hash, &ctx);
-			base64_convert(hash, e_b64_raw, 16, hex, e_b64_hex, sizeof(hex), flg_Base64_HEX_UPCASE);
+			base64_convert(hash, e_b64_raw, 16, hex, e_b64_hex, sizeof(hex), flg_Base64_HEX_UPCASE, 0);
 			for (len = 0; len < 32; ++len)
 				saved_nt[index+i][len<<1] = hex[len];
 		}

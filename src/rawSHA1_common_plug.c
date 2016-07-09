@@ -71,7 +71,7 @@ char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
 		return ciphertext;
 	memset(out, 0, sizeof(out));
 	strncpy(out, FORMAT_TAG, sizeof(out));
-	base64_convert(ciphertext, e_b64_hex, DIGEST_SIZE*2, &out[TAG_LENGTH], e_b64_mime, sizeof(out)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ);
+	base64_convert(ciphertext, e_b64_hex, DIGEST_SIZE*2, &out[TAG_LENGTH], e_b64_mime, sizeof(out)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ, 0);
 
 	return out;
 }
@@ -82,7 +82,7 @@ int rawsha1_common_valid(char *ciphertext, struct fmt_main *self)
 		ciphertext=rawsha1_common_split(ciphertext,1,self);
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH)) {
 		ciphertext += TAG_LENGTH;
-		if (base64_valid_length(ciphertext, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT) == HASH_LENGTH)
+		if (base64_valid_length(ciphertext, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0) == HASH_LENGTH)
 			return 1;
 	}
 	return 0;
@@ -103,7 +103,7 @@ char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self)
 		return split_fields[1];
 	memset(out, 0, sizeof(out));
 	strncpy(out, FORMAT_TAG, sizeof(out));
-	base64_convert(ciphertext, e_b64_hex, DIGEST_SIZE*2, &out[TAG_LENGTH], e_b64_mime, sizeof(out)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ);
+	base64_convert(ciphertext, e_b64_hex, DIGEST_SIZE*2, &out[TAG_LENGTH], e_b64_mime, sizeof(out)-TAG_LENGTH, flg_Base64_MIME_TRAIL_EQ, 0);
 
 	return out;
 }
@@ -133,6 +133,6 @@ void *rawsha1_common_get_binary(char *ciphertext)
 	unsigned char *realcipher = (unsigned char*)out;
 
 	ciphertext += TAG_LENGTH;
-	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, sizeof(out), flg_Base64_MIME_TRAIL_EQ);
+	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, sizeof(out), flg_Base64_MIME_TRAIL_EQ, 0);
 	return (void*)realcipher;
 }

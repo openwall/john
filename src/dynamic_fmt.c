@@ -416,7 +416,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	{
 		// jgypwqm.JsMssPLiS8YQ00$BaaaaaSX
 		unsigned int len;
-		len = base64_valid_length(cp, pPriv->dynamic_base64_inout==3?e_b64_mime:e_b64_crypt, flg_Base64_MIME_TRAIL_EQ_CNT);
+		len = base64_valid_length(cp, pPriv->dynamic_base64_inout==3?e_b64_mime:e_b64_crypt, flg_Base64_MIME_TRAIL_EQ_CNT, 0);
 		if (len < 20 || len > pPriv->dynamic_SALT_OFFSET+4) return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
 			return !cp[len];
@@ -940,7 +940,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 		if (!cp) return cpBuilding;
 		++cp;
-		len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT);
+		len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0);
 		if (len && cp[len-1] == '=') {
 			strnzcpy(ct, cpBuilding, cp-cpBuilding+len+1);
 			cp2 = &ct[strlen(ct)-1];
@@ -1091,7 +1091,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		char *cp = strchr(&ciphertext[9], '$'), *cp2;
 		if (cp) {
 			++cp;
-			len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT);
+			len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0);
 			if (len && cp[len-1] == '=') {
 				strnzcpy(ct, ciphertext, cp-ciphertext+len+1);
 				cp2 = &ct[strlen(ct)-1];
@@ -2302,11 +2302,11 @@ static void *get_salt(char *ciphertext)
 			//  TODO:  Come up with some way to put these into a CASE(HASH) #define
 
 #define SPH_CASE(H,F,S)  case MGF__##H: {sph_##F##_context c;sph_##F##_init(&c);sph_##F(&c,(const unsigned char*)Salt,slen);sph_##F##_close(&c,Buf); \
-				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0);break; }
+				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0, 0);break; }
 #define OSSL_CASE(H,C,S)  case MGF__##H: {C##_CTX c;H##_Init(&c);H##_Update(&c,Salt,slen);H##_Final(Buf,&c); \
-				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0);break; }
+				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0, 0);break; }
 #define KECCAK_CASE(H,S)  case MGF__##H: {KECCAK_CTX c;H##_Init(&c);KECCAK_Update(&c,(BitSequence*)Salt,slen);KECCAK_Final(Buf,&c); \
-				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0);break; }
+				memset(Salt,0,SALT_SIZE+1);base64_convert(Buf,e_b64_raw,S,Salt,e_b64_hex,SALT_SIZE, 0, 0);break; }
 
 			case MGF__MD5:
 			{
@@ -2338,7 +2338,7 @@ static void *get_salt(char *ciphertext)
 					cpo = Salt;
 					memset(Salt, 0, SALT_SIZE+1);
 				}
-				base64_convert(Buf, e_b64_raw, 16, cpo, e_b64_hex, SALT_SIZE, 0);
+				base64_convert(Buf, e_b64_raw, 16, cpo, e_b64_hex, SALT_SIZE, 0, 0);
 				break;
 			}
 			OSSL_CASE(MD4,MD4,16)
@@ -2355,7 +2355,7 @@ static void *get_salt(char *ciphertext)
 				john_gost_update(&ctx, (const unsigned char*)Salt, slen);
 				john_gost_final(&ctx, (unsigned char*)Buf);
 				memset(Salt, 0, SALT_SIZE+1);
-				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0);
+				base64_convert(Buf, e_b64_raw, 32, Salt, e_b64_hex, SALT_SIZE, 0, 0);
 				break;
 			}
 			SPH_CASE(Tiger,tiger,24)
@@ -2665,8 +2665,8 @@ static void * binary_b64m(char *ciphertext)
 		while (*pos++ != '$')
 			;
 	}
-	i = base64_valid_length(pos, e_b64_mime, 0);
-	base64_convert(pos, e_b64_mime, i, b, e_b64_raw, 64+3, 0);
+	i = base64_valid_length(pos, e_b64_mime, 0, 0);
+	base64_convert(pos, e_b64_mime, i, b, e_b64_raw, 64+3, 0, 0);
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
 	return b;
@@ -2685,8 +2685,8 @@ static void * binary_b64(char *ciphertext)
 		while (*pos++ != '$')
 			;
 	}
-	i = base64_valid_length(pos, e_b64_crypt, 0);
-	base64_convert(pos, e_b64_cryptBS, i, b, e_b64_raw, 64+3, 0);
+	i = base64_valid_length(pos, e_b64_crypt, 0, 0);
+	base64_convert(pos, e_b64_cryptBS, i, b, e_b64_raw, 64+3, 0, 0);
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
 	return b;
@@ -2705,8 +2705,8 @@ static void * binary_b64b(char *ciphertext)
 		while (*pos++ != '$')
 			;
 	}
-	i = base64_valid_length(pos, e_b64_crypt, 0);
-	base64_convert(pos, e_b64_crypt, i, b, e_b64_raw, 64+3, 0);
+	i = base64_valid_length(pos, e_b64_crypt, 0, 0);
+	base64_convert(pos, e_b64_crypt, i, b, e_b64_raw, 64+3, 0, 0);
 	//printf("\nciphertext=%s\n", ciphertext);
 	//dump_stuff_msg("binary", b, 16);
 	return b;
@@ -7832,7 +7832,7 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	if (curdat.dynamic_base64_inout == 1 || curdat.dynamic_base64_inout == 3) {
 		// we have to compute 'proper' offset
 		const char *cp = pFmt->params.tests[0].ciphertext;
-		int len = base64_valid_length(&cp[curdat.dynamic_HASH_OFFSET], curdat.dynamic_base64_inout == 1 ? e_b64_crypt : e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT);
+		size_t len = base64_valid_length(&cp[curdat.dynamic_HASH_OFFSET], curdat.dynamic_base64_inout == 1 ? e_b64_crypt : e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0);
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + len + 1;
 	}
 	else if (curdat.dynamic_base64_inout == 2)

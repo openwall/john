@@ -502,9 +502,9 @@ static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc
  * set of properly working functions.
  */
 #define OSSL_FUNC(N,TT,T,L) \
-static void N##_hex()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
-static void N##_base64() {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
-static void N##_base64c(){TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void N##_hex()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64() {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64c(){TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
 static void N##_raw()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); }
 OSSL_FUNC(md5,MD5,MD5,16)
 OSSL_FUNC(md4,MD4,MD4,16)
@@ -518,9 +518,9 @@ OSSL_FUNC(whirlpool,WHIRLPOOL,WHIRLPOOL,64)
 
 
 #define KECCAK_FUNC(N,T,L) \
-static void N##_hex()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
-static void N##_base64() {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
-static void N##_base64c(){KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void N##_hex()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64() {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64c(){KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
 static void N##_raw()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); }
 KECCAK_FUNC(sha3_224,SHA3_224,28)
 KECCAK_FUNC(sha3_256,SHA3_256,32)
@@ -530,14 +530,14 @@ KECCAK_FUNC(keccak_256,KECCAK_256,32)
 KECCAK_FUNC(keccak_512,KECCAK_512,64)
 // LARGE_HASH_EDIT_POINT
 
-static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); }
+static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); }
+static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); }
 static void gost_raw()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); }
 #define SPH_FUNC(T,L) \
-static void T##_hex()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
-static void T##_base64() { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
-static void T##_base64c(){ sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void T##_hex()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
+static void T##_base64() { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
+static void T##_base64c(){ sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
 static void T##_raw()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); }
 SPH_FUNC(tiger,24)
 SPH_FUNC(ripemd128,16)  SPH_FUNC(ripemd160,20)  SPH_FUNC(ripemd256,32) SPH_FUNC(ripemd320,40)
@@ -2200,7 +2200,7 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 
 int looks_like_bare_hash(const char *fld1) {
 	// look for hex string with 'optional' '$' for salt.
-	int len = base64_valid_length(fld1, e_b64_hex, 0);
+	int len = base64_valid_length(fld1, e_b64_hex, 0, 0);
 	if (len == (outer_hash_len<<1)) {
 		// check salt flag
 		return 1;

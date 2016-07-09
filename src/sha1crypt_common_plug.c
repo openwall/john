@@ -42,13 +42,13 @@ int sha1crypt_common_valid(char * ciphertext, struct fmt_main * self) {
 	// validate salt
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) > SALT_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
+	if (strlen(p) > SALT_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0, 0))
 		goto err;
 
 	// validate checksum
 	if ((p = strtokm(NULL, "$")) == NULL)	/* checksum */
 		goto err;
-	if (strlen(p) > CHECKSUM_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0))
+	if (strlen(p) > CHECKSUM_LENGTH || strlen(p) != base64_valid_length(p, e_b64_crypt, 0, 0))
 		goto err;
 
 	if (strtokm(NULL, "$"))

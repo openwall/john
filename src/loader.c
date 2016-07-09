@@ -121,7 +121,7 @@ int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
 	MD5_Update(&ctx, full_source, strlen(full_source));
 	MD5_Final(srcH, &ctx);
 	p += 13;
-	base64_convert(p, e_b64_hex, 32, potH, e_b64_raw, 16, 0);
+	base64_convert(p, e_b64_hex, 32, potH, e_b64_raw, 16, 0, 0);
 
 	return memcmp(srcH, potH, 16);
 }
@@ -158,7 +158,7 @@ const char *ldr_pot_source(const char *full_source,
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, full_source, strlen(full_source));
 	MD5_Final(mbuf, &ctx);
-	base64_convert(mbuf, e_b64_raw, 16, p, e_b64_hex, 33, 0);
+	base64_convert(mbuf, e_b64_raw, 16, p, e_b64_hex, 33, 0, 0);
 	p += 32;
 	*p = 0;
 	return buffer;
@@ -1846,12 +1846,12 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 			char out[40+1];
 			static char tmp[40+5+1]; // larger than needed, but we know its big enough.
 			base64_convert(ciphertext + 5, e_b64_mime,
-			    strlen(ciphertext) - 5, out, e_b64_hex, sizeof(out), 0);
+			    strlen(ciphertext) - 5, out, e_b64_hex, sizeof(out), 0, 0);
 			memcpy(out, "00000", 5);
 			ciphertext = tmp;
 			strcpy(tmp, "{SHA}");
 			base64_convert(out, e_b64_hex, 40, ciphertext + 5,
-			    e_b64_mime, sizeof(tmp)-5, flg_Base64_MIME_TRAIL_EQ);
+			    e_b64_mime, sizeof(tmp)-5, flg_Base64_MIME_TRAIL_EQ, 0);
 		}
 	}
 #ifndef DYNAMIC_DISABLED

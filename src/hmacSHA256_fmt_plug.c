@@ -208,7 +208,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self, const int
 		*cpi++ = 0;
 		memset(buf, 0, sizeof(buf));
 		base64_convert(cpi, e_b64_mime, strlen(cpi), buf, e_b64_hex,
-		               sizeof(buf), flg_Base64_NO_FLAGS);
+		               sizeof(buf), flg_Base64_NO_FLAGS, 0);
 		if (strlen(buf) != B_LEN * 2)
 			return ciphertext;
 		sprintf(out, "%s#%s", tmp, buf);
