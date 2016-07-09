@@ -42,7 +42,9 @@
 #define CHAR_FROM -128
 #define CHAR_TO 127
 
-static char fuzz_hash[LINE_BUFFER_SIZE];
+// old value from params.h
+#define FUZZ_LINE_BUFFER_SIZE 0x30000
+static char fuzz_hash[FUZZ_LINE_BUFFER_SIZE];
 static char status_file_path[PATH_BUFFER_SIZE + 1];
 
 struct FuzzDic {
@@ -234,10 +236,10 @@ static char * append_last_char(char *origin_ctext, int *is_append_finish)
 		return NULL;
 	}
 
-	if (origin_ctext_len + times < LINE_BUFFER_SIZE)
+	if (origin_ctext_len + times < FUZZ_LINE_BUFFER_SIZE)
 		append_len = times;
 	else
-		append_len = LINE_BUFFER_SIZE - origin_ctext_len - 1;
+		append_len = FUZZ_LINE_BUFFER_SIZE - origin_ctext_len - 1;
 
 	memset(fuzz_hash + origin_ctext_len, origin_ctext[origin_ctext_len - 1], append_len);
 	fuzz_hash[origin_ctext_len + append_len] = 0;
@@ -307,8 +309,8 @@ static void insert_str(char *origin_ctext, int pos, char *str, char *out)
 	const int origin_ctext_len = strlen(origin_ctext);
 	int str_len = strlen(str);
 
-	if (str_len + origin_ctext_len >= LINE_BUFFER_SIZE)
-		str_len = LINE_BUFFER_SIZE - origin_ctext_len - 1;
+	if (str_len + origin_ctext_len >= FUZZ_LINE_BUFFER_SIZE)
+		str_len = FUZZ_LINE_BUFFER_SIZE - origin_ctext_len - 1;
 
 	strncpy(out, origin_ctext, pos);
 	strncpy(out + pos, str, str_len);
@@ -382,8 +384,8 @@ static void insert_char(char *origin_ctext, int pos, char c, int size, char *out
 {
 	const int origin_ctext_len = strlen(origin_ctext);
 
-	if (size + origin_ctext_len >= LINE_BUFFER_SIZE)
-		size = LINE_BUFFER_SIZE - origin_ctext_len - 1;
+	if (size + origin_ctext_len >= FUZZ_LINE_BUFFER_SIZE)
+		size = FUZZ_LINE_BUFFER_SIZE- origin_ctext_len - 1;
 
 	strncpy(out, origin_ctext, pos);
 	memset(out + pos, c, size);
@@ -465,9 +467,9 @@ static char * get_next_fuzz_case(char *label, char *ciphertext)
 	static int is_insertchars_finish = 0; // is_insertchars_finish = 1 if all the chars from -128 to 127 cases have been generated
 	static char *last_label = NULL, *last_ciphertext = NULL;
 
-	if (strlen(ciphertext) > LINE_BUFFER_SIZE) {
-		fprintf(stderr, "ciphertext='%s' is bigger than the LINE_BUFFER_SIZE=%d\n",
-			ciphertext, LINE_BUFFER_SIZE);
+	if (strlen(ciphertext) > FUZZ_LINE_BUFFER_SIZE) {
+		fprintf(stderr, "ciphertext='%s' is bigger than the FUZZ_LINE_BUFFER_SIZE=%d\n",
+			ciphertext, FUZZ_LINE_BUFFER_SIZE);
 		error();
 	}
 	strcpy(fuzz_hash, ciphertext);
