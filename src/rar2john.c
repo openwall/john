@@ -332,20 +332,30 @@ next_file_header:
 
 		file_header_head_size =
 		    file_header_block[6] << 8 | file_header_block[5];
-		file_header_pack_size = file_header_block[7] +
-			(file_header_block[8] << 8) +
-			(file_header_block[9] << 16) +
-			(file_header_block[10] << 24);
-		file_header_unp_size = file_header_block[11] +
-			(file_header_block[12] << 8) +
-			(file_header_block[13] << 16) +
-			(file_header_block[14] << 24);
+
+		/* low 32 bits.  If header_flags & 0x100 set, then there are additional
+		   32 bits of length data later in the header. FIXME! */
+		file_header_pack_size = file_header_block[10];
+		file_header_pack_size <<= 8; file_header_pack_size += file_header_block[9];
+		file_header_pack_size <<= 8; file_header_pack_size += file_header_block[8];
+		file_header_pack_size <<= 8; file_header_pack_size += file_header_block[7];
+
+		file_header_unp_size = file_header_block[14];
+		file_header_unp_size <<= 8; file_header_unp_size += file_header_block[13];
+		file_header_unp_size <<= 8; file_header_unp_size += file_header_block[12];
+		file_header_unp_size <<= 8; file_header_unp_size += file_header_block[11];
+
 		if (verbose) {
+			int i;
 			fprintf(stderr,
 			        "! HEAD_SIZE: %d, PACK_SIZE: "LLu", UNP_SIZE: "LLu"\n",
 			        file_header_head_size,
 			        (unsigned long long)file_header_pack_size,
 			        (unsigned long long)file_header_unp_size);
+			fprintf(stderr, "! file_header_block: ");
+			for (i = 0; i < 15; ++i)
+				fprintf(stderr, " %02x", file_header_block[i]);
+			fprintf(stderr, "\n");
 		}
 		/* calculate EXT_TIME size */
 		ext_time_size = file_header_head_size - 32;
