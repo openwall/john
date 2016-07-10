@@ -321,7 +321,7 @@ next_file_header:
 		uint16_t file_header_head_size, file_name_size;
 		unsigned char file_name[256], file_crc[4];
 		unsigned char salt[8] = { 0 };
-		char rejbuf[32];
+		unsigned char rejbuf[32];
 		char *p;
 		unsigned char s;
 
@@ -346,14 +346,13 @@ next_file_header:
 		file_header_unp_size <<= 8; file_header_unp_size += file_header_block[11];
 
 		if (verbose) {
-			int i;
 			fprintf(stderr,
 			        "! HEAD_SIZE: %d, PACK_SIZE: "LLu", UNP_SIZE: "LLu"\n",
 			        file_header_head_size,
 			        (unsigned long long)file_header_pack_size,
 			        (unsigned long long)file_header_unp_size);
-			fprintf(stderr, "! file_header_block: ");
-			for (i = 0; i < 15; ++i)
+			fprintf(stderr, "! file_header_block:\n!  ");
+			for (i = 0; i < 32; ++i)
 				fprintf(stderr, " %02x", file_header_block[i]);
 			fprintf(stderr, "\n");
 		}
@@ -361,41 +360,61 @@ next_file_header:
 		ext_time_size = file_header_head_size - 32;
 
 		if (file_header_head_flags & 0x100) {
-			if (verbose) {
-				fprintf(stderr, "! HIGH_PACK_SIZE present\n");
-			}
+			size_t ex;
 			if (fread(rejbuf, 4, 1, fp) != 1) {
-				fprintf(stderr, "%s: Error: read failed: %s.\n",
+				fprintf(stderr, "\n! %s: Error: read failed: %s.\n",
 					archive_name, strerror(errno));
 				goto err;
 			}
-
-			ext_time_size -= 4;
-		}
-		if (file_header_head_flags & 0x100) {
 			if (verbose) {
+				fprintf(stderr, "!  ");
+				for (i = 0; i < 4; ++i)
+					fprintf(stderr, " %02x", rejbuf[i]);
+			}
+			ex = rejbuf[3];
+			ex <<= 8; ex += rejbuf[2];
+			ex <<= 8; ex += rejbuf[1];
+			ex <<= 8; ex += rejbuf[0];
+			ex <<= 32;
+			file_header_pack_size += ex;
+			ext_time_size -= 4;
+
+			if (fread(rejbuf, 4, 1, fp) != 1) {
+				fprintf(stderr, "\n! %s: Error: read failed: %s.\n",
+					archive_name, strerror(errno));
+				goto err;
+			}
+			if (verbose) {
+				for (i = 0; i < 4; ++i)
+					fprintf(stderr, " %02x", rejbuf[i]);
+				fprintf(stderr, "   (High Pack/Unp extra header data)\n");
+			}
+			ex = rejbuf[3];
+			ex <<= 8; ex += rejbuf[2];
+			ex <<= 8; ex += rejbuf[1];
+			ex <<= 8; ex += rejbuf[0];
+			ex <<= 32;
+			file_header_unp_size += ex;
+			ext_time_size -= 4;
+			if (verbose) {
+				/* note, we should warn (or bail) if sizeof(size_t) < 8) FIXME! */
+				fprintf(stderr, "! HIGH_PACK_SIZE present\n");
 				fprintf(stderr, "! HIGH_UNP_SIZE present\n");
 			}
-			if (fread(rejbuf, 4, 1, fp) != 1) {
-				fprintf(stderr, "%s: Error: read failed: %s.\n",
-					archive_name, strerror(errno));
-				goto err;
-			}
-
-			ext_time_size -= 4;
-		}
+		} else
+			fprintf(stderr, "\n");
 		/* file name processing */
 		file_name_size =
 		    file_header_block[27] << 8 | file_header_block[26];
 		if (verbose) {
-			fprintf(stderr, "file name size: %d bytes\n", file_name_size);
+			fprintf(stderr, "! file name size: %d bytes\n", file_name_size);
 		}
 		memset(file_name, 0, sizeof(file_name));
 
 		if (!check_fread(sizeof(file_name), file_name_size, 1))
 			goto err;
 		if (fread(file_name, file_name_size, 1, fp) != 1) {
-			fprintf(stderr, "%s: Error: read failed: %s.\n",
+			fprintf(stderr, "! %s: Error: read failed: %s.\n",
 				archive_name, strerror(errno));
 			goto err;
 		}
@@ -410,24 +429,24 @@ next_file_header:
 			int Length = strlen((char*)file_name);
 
 			if (verbose) {
-				dump_stuff_msg("Encoded filenames", file_name, file_name_size);
+				dump_stuff_msg("! Encoded filenames", file_name, file_name_size);
 			}
 			DecodeFileName(file_name, file_name + Length + 1,
 			               file_name_size, FileNameW, 256);
 
 			if (*FileNameW) {
 				if (verbose) {
-					dump_stuff_msg("UTF16 filename", FileNameW,
+					dump_stuff_msg("! UTF16 filename", FileNameW,
 					               strlen16(FileNameW) << 1);
 					fprintf(stderr, "OEM name:  %s\n", file_name);
 				}
 				utf16_to_utf8_r(file_name, 256, FileNameW);
-				fprintf(stderr, "Unicode:   %s\n", file_name);
+				fprintf(stderr, "! Unicode:   %s\n", file_name);
 			} else
-				fprintf(stderr, "UTF8 name: %s\n", file_name);
+				fprintf(stderr, "! UTF8 name: %s\n", file_name);
 		}
         else
-			fprintf(stderr, "file name: %s\n", file_name);
+			fprintf(stderr, "! file name: %s\n", file_name);
 
 		/* We duplicate file name to the GECOS field, for single mode */
 		gecos_len += snprintf(&gecos[gecos_len], PATH_BUFFER_SIZE - 1, "%s ", (char*)file_name);
@@ -436,7 +455,7 @@ next_file_header:
 		if (file_header_head_flags & 0x400) {
 			ext_time_size -= 8;
 			if (fread(salt, 8, 1, fp) != 1) {
-				fprintf(stderr, "%s: Error: read failed: %s.\n",
+				fprintf(stderr, "! %s: Error: read failed: %s.\n",
 					archive_name, strerror(errno));
 				goto err;
 			}
@@ -454,7 +473,7 @@ next_file_header:
 				goto err;
 
 			if (fread(rejbuf, ext_time_size, 1, fp) != 1) {
-				fprintf(stderr, "%s: Error: read failed: %s.\n",
+				fprintf(stderr, "! %s: Error: read failed: %s.\n",
 					archive_name, strerror(errno));
 				goto err;
 			}
@@ -504,7 +523,7 @@ next_file_header:
 			best_len += sprintf(&best[best_len], "%c%c", itoa16[ARCH_INDEX(salt[i] >> 4)], itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 		}
 		if (verbose) {
-			fprintf(stderr, "salt: '%s'\n", best);
+			fprintf(stderr, "! salt: '%s'\n", best);
 		}
 		best_len += sprintf(&best[best_len], "*");
 		memcpy(file_crc, file_header_block + 16, 4);
@@ -540,7 +559,7 @@ next_file_header:
 		p = &best[best_len];
 		for (i = 0; i < file_header_pack_size; i++) {
 			if (fread(&s, 1, 1, fp) != 1)
-				fprintf(stderr, "Error while reading archive: %s\n", strerror(errno));
+				fprintf(stderr, "! Error while reading archive: %s\n", strerror(errno));
 			*p++ = itoa16[s >> 4];
 			*p++ = itoa16[s & 0xf];
 		}
@@ -553,12 +572,12 @@ next_file_header:
 BailOut:
 		if (best && *best) {
 			if (verbose) {
-				fprintf(stderr, "Found a valid -p mode candidate in %s\n", base_aname);
+				fprintf(stderr, "! Found a valid -p mode candidate in %s\n", base_aname);
 			}
 			strncat(best, gecos, LINE_BUFFER_SIZE - best_len - 1);
 			puts(best);
 		} else
-			fprintf(stderr, "Did not find a valid encrypted candidate in %s\n", base_aname);
+			fprintf(stderr, "! Did not find a valid encrypted candidate in %s\n", base_aname);
 	}
 
 err:
