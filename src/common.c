@@ -179,32 +179,3 @@ int isdecu(const char *q)
 	sprintf(buf, "%u", x);
 	return !strcmp(q,buf);
 }
-
-#ifndef BENCH_BUILD
-/* provides the length of the base64 string.  See base64_convert.c for that
- * function. If the string is not 'pure', then the return is -1*length */
-long base64_mime_len(const char *q) {
-	size_t len = base64_valid_length(q, e_b64_mime, 0, 0);
-	if (len < strlen(q)) {
-		long L = (long) len;
-		return -L;
-	}
-	return (long)len;
-}
-long base64_crypt_len(const char *q) {
-	size_t len = base64_valid_length(q, e_b64_crypt, 0, 0);
-	if (len < strlen(q)) {
-		long L = (long) len;
-		return -L;
-	}
-	return (long)len;
-}
-long base64_mime_du_len(const char *q) {
-	size_t len = base64_valid_length(q, e_b64_mime, 0, 0);
-	if (len < strlen(q)) {
-		long L = (long) len;
-		return -L;
-	}
-	return (long)len;
-}
-#endif
