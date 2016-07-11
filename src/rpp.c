@@ -9,8 +9,11 @@
 #include "params.h"
 #include "config.h"
 #include "rpp.h"
+#include "logger.h"
 #include "common.h" /* for atoi16 */
 #include "memdbg.h"
+
+int rpp_real_run = 0;
 
 int rpp_init(struct rpp_context *ctx, char *subsection)
 {
@@ -259,6 +262,27 @@ char *rpp_next(struct rpp_context *ctx)
 	if (done) {
 		ctx->input = ctx->input->next;
 		ctx->count = -1;
+
+		if (ctx->output[0] == '.' &&
+		    !strncmp(ctx->output, ".log ", 5)) {
+			char *cp = strchr(ctx->output, '\"');
+			int len;
+			if (!rpp_real_run)
+				return rpp_next(ctx);
+			if (!cp) {
+				// warn about unknown/invalid .log directive
+				return rpp_next(ctx);
+			}
+			++cp;
+			len = strlen(cp)-1;
+			if (!strncmp(ctx->output, ".log both ", 10) ||
+			    !strncmp(ctx->output, ".log screen ", 11))
+				fprintf (stderr, "%*.*s\n", len,len, cp);
+			if (strncmp(ctx->output, ".log screen ", 11))
+				log_event ("%*.*s\n", len, len, cp);
+			return rpp_next(ctx);
+		}
+
 	}
 
 	return ctx->output;

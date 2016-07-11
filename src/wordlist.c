@@ -116,6 +116,8 @@ static char *mem_map, *map_pos, *map_end, *map_scan_end;
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
 
+extern int rpp_real_run; /* set to 1 when we really get into wordlist mode */
+
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n" LLd "\n" LLd "\n",
@@ -1088,6 +1090,7 @@ REDO_AFTER_LMLOOP:
 
 	if (init_once) {
 		init_once = 0;
+		rpp_real_run = 1;
 
 		status_init(get_progress, 0);
 
