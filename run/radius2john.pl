@@ -184,7 +184,9 @@ sub dump_response {
     #replace Response Authenticator with the Request Authenticator
     substr($salt, 4, 16)=$req_ra ;
 
-    print $ip . ':$dynamic_1009$' .
+    my $type = '1009';
+    if (length($salt) > 16) { $type = '2009'; }
+    print $ip . ':$dynamic_' . $type . '$' .
         unpack('H*', $hash) .
         '$HEX$' . unpack('H*', $salt) .
         "\n" ;
