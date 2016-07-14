@@ -185,7 +185,7 @@ sub dump_response {
     substr($salt, 4, 16)=$req_ra ;
 
     my $type = '1009';
-    if (length($salt) > 16) { $type = '2009'; }
+    if (length($salt) > 16) { $type = '1017'; }
     print $ip . ':$dynamic_' . $type . '$' .
         unpack('H*', $hash) .
         '$HEX$' . unpack('H*', $salt) .
