@@ -3,8 +3,8 @@
  *
  * Based on https://github.com/cyberpunkych/attacking_mongodb
  *
- * Hash format for MongoDB system hashes: user:$mongodb$0$hash
- * Hash format for MongoDB network hashes: user:$mongodb$1$salt$hash
+ * Hash format for MongoDB system hashes: user:$mongodb$0$user$hash
+ * Hash format for MongoDB network hashes: user:$mongodb$1$user$salt$hash
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
