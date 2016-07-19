@@ -705,12 +705,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				}
 				if (!two_values)
 					sscanf(range[i], "%u", &options.loader.min_cost[i]);
-					if (negative && options.loader.min_cost[i] == 0) {
-						if (john_main_process)
-							fprintf(stderr, "Usage of negative --cost is not valid"
-							                " for value 0\n");
-						error();
-					}
+				if (negative && options.loader.min_cost[i] == 0) {
+					if (john_main_process)
+						fprintf(stderr, "Usage of negative --cost is not valid"
+								" for value 0\n");
+					error();
+				}
 				if (!two_values) {
 					if (negative) {
 						options.loader.max_cost[i] = options.loader.min_cost[i] - 1;
