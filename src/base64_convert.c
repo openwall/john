@@ -297,7 +297,7 @@ static size_t actual_base64_to_base64_conv(const char *cpi, char *cpo, size_t to
 			if (len_left < 4)
 				len_left = 0;
 			else
-			len_left -= 4;
+				len_left -= 4;
 		}
 	}
 	if ((flags&flg_Base64_DONOT_NULL_TERMINATE) == 0)
@@ -336,7 +336,7 @@ static size_t actual_hex_to_base64_conv(const char *cpi, char *cpo, size_t to_le
 			if (len_left < 6)
 				len_left = 0;
 			else
-			len_left -= 6;
+				len_left -= 6;
 			to_len -= 4;
 		}
 	}
@@ -371,7 +371,7 @@ static size_t actual_base64_to_hex_conv(const char *cpi, size_t len_left, char *
 			if (len_left < 4)
 				len_left = 0;
 			else
-			len_left -= 4;
+				len_left -= 4;
 			to_len -= 6;
 		}
 	}
@@ -406,7 +406,7 @@ static size_t actual_base64_to_raw_conv(const char *cpi, size_t len_left, char *
 			if (len_left < 4)
 				len_left = 0;
 			else
-			len_left -= 4;
+				len_left -= 4;
 			to_len -= 3;
 		}
 	}
@@ -436,7 +436,7 @@ static size_t actual_raw_to_base64_conv(const char *cpi, size_t len_left, char *
 			if (len_left < 3)
 				len_left = 0;
 			else
-			len_left -= 3;
+				len_left -= 3;
 			to_len -= 4;
 		}
 
