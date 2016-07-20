@@ -145,6 +145,8 @@ int prince_wl_max;
 char *prince_skip_str;
 char *prince_limit_str;
 
+extern int rpp_real_run; /* set to 1 when we really get into prince mode */
+
 static char *mem_map, *map_pos, *map_end;
 #if HAVE_REXGEN
 static char *regex_alpha;
@@ -1316,6 +1318,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
     list_init(&rule_list);
 
+    rpp_real_run = 1;
     if ((prerule = rpp_next(&ctx)))
     do {
       char *rule;

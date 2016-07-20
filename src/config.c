@@ -568,6 +568,8 @@ static int cfg_process_directive(char *line, int number, int in_hc_mode)
 		return cfg_process_directive_include_section(line, number);
 	if (in_hc_mode)
 		return -1;
+	if (!strncmp(line, ".log ", 5))
+		return -1;
 	fprintf (stderr, "Unknown directive in the .conf file:  '%s'\n", line);
 #ifndef BENCH_BUILD
 	log_event("! Unknown directive in the .conf file:  %s", line);

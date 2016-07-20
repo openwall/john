@@ -40,6 +40,9 @@ static struct rpp_context *rule_ctx;
 static int words_pair_max;
 static int retest_guessed;
 
+extern int rpp_real_run; /* set to 1 when we really get into single mode */
+
+
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n", rec_rule);
@@ -436,6 +439,7 @@ static void single_run(void)
 	int have_words;
 
 	saved_min = rec_rule;
+	rpp_real_run = 1;
 	while ((prerule = rpp_next(rule_ctx))) {
 		if (options.node_count) {
 			int for_node = rule_number % options.node_count + 1;
