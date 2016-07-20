@@ -20,7 +20,7 @@ try {
 
 		if (c['credentials']['SCRAM-SHA-1']) {
 			s = c['credentials']['SCRAM-SHA-1'];
-			shash = '$scram$' + c['user'] + '$' + s['iterationCount'] + '$' + s['salt'].replace(/=/g, '') + '$' + s['storedKey'].replace(/=/g, '');
+			shash = '$scram$' + c['user'] + '$' + s['iterationCount'] + '$' + s['salt'] + '$' + s['storedKey'];
 			print(c['user'] + '-' + c['db'] + ':' + shash);
 		}
 	}
