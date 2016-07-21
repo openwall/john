@@ -25,24 +25,30 @@ john_register_one(&fmt_pfx_ng);
 #define OMP_SCALE               1
 #endif
 #endif
-#include "pkcs12.h"
 #include "twofish.h"
 #include "sha.h"
 #include "loader.h"
+#include "simd-intrinsics.h"
+#include "pkcs12.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "pfx-ng"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "PKCS12 PBE (.pfx, .p12) (SHA-1 to SHA-512) 32/" ARCH_BITS_STR
-#define PLAINTEXT_LENGTH        125
+#define ALGORITHM_NAME          "PKCS12 PBE (.pfx, .p12) (SHA-1 to SHA-512) " SHA1_ALGORITHM_NAME
+#define PLAINTEXT_LENGTH        31
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(ARCH_WORD_32)
 #define BINARY_SIZE             20
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#if !defined(SIMD_COEF_32)
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
+#else
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#endif
 #define FORMAT_TAG              "$pfxng$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 
@@ -90,6 +96,7 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	MEM_FREE(crypt_out);
+	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
 }
 
@@ -240,8 +247,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
+#if !defined(SIMD_COEF_32)
+
 		if (cur_salt->mac_algo == 1) {
-			unsigned char mackey[20] = { 0 };
+			unsigned char mackey[20];
 			int mackeylen = cur_salt->key_length;
 
 			pkcs12_pbe_derive_key(0, cur_salt->iteration_count,
@@ -255,6 +264,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					(unsigned char*)crypt_out[index],
 					BINARY_SIZE);
 		}
+#else
+		if (cur_salt->mac_algo == 1) {
+			unsigned char *mackey[SSE_GROUP_SZ_SHA1], real_keys[SSE_GROUP_SZ_SHA1][20];
+			const unsigned char *keys[SSE_GROUP_SZ_SHA1];
+			int mackeylen = cur_salt->key_length, j;
+			size_t lens[SSE_GROUP_SZ_SHA1];
+
+			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+				mackey[j] = real_keys[j];
+				lens[j] = saved_len[index+j];
+				keys[j] = (const unsigned char*)(saved_key[index+j]);
+			}
+			pkcs12_pbe_derive_key_simd(0, cur_salt->iteration_count,
+					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
+					lens, cur_salt->salt,
+					cur_salt->saltlen, mackey, mackeylen);
+
+			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+				hmac_sha1(mackey[j], mackeylen, cur_salt->data,
+						cur_salt->data_length,
+						(unsigned char*)crypt_out[index+j],
+						BINARY_SIZE);
+			}
+		}
+#endif
 	}
 
 	return count;

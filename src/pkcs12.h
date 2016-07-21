@@ -20,6 +20,12 @@
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
+
+/*
+ *  Enhanced with SIMD code, JimF, July 2016
+ *  JtR changes placed in public domain.
+ */
+
 #ifndef MBEDTLS_PKCS12_H
 #define MBEDTLS_PKCS12_H
 
@@ -31,14 +37,28 @@
 #include <stdio.h>
 #include "sha.h"
 
-#define PKCS12_MAX_PWDLEN 128
+// set next line to #if 1 to test non-SIMD logic
+#if 0
+#undef SIMD_COEF_32
+#undef SHA1_ALGORITHM_NAME
+#define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 
-int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
-		unsigned char *pwd, size_t pwdlen, const unsigned char *salt,
-		size_t saltlen, int md_type, int id, int iterations );
+#if !defined(SIMD_COEF_32)
 
 int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 		char *pwd,  size_t pwdlen, const unsigned char *salt, size_t saltlen,
 		unsigned char *key, size_t keylen);
+
+#else
+// SIMD method
+
+#define SSE_GROUP_SZ_SHA1 (SIMD_COEF_32*SIMD_PARA_SHA1)
+
+int pkcs12_pbe_derive_key_simd( int md_type, int iterations, int id, const unsigned
+		char *pwd[SSE_GROUP_SZ_SHA1],  size_t pwdlen[SSE_GROUP_SZ_SHA1], const unsigned char *salt, size_t saltlen,
+		unsigned char *key[SSE_GROUP_SZ_SHA1], size_t keylen);
+
+#endif
 
 #endif /* pkcs12.h */

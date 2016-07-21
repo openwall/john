@@ -25,24 +25,30 @@ john_register_one(&fmt_bks);
 #define OMP_SCALE               1
 #endif
 #endif
-#include "pkcs12.h"
 #include "twofish.h"
 #include "sha.h"
 #include "loader.h"
+#include "simd-intrinsics.h"
+#include "pkcs12.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"BKS"
 #define FORMAT_NAME		""
-#define ALGORITHM_NAME		"PKCS12 PBE SHA-1 32/" ARCH_BITS_STR
-#define PLAINTEXT_LENGTH	125
+#define ALGORITHM_NAME		"PKCS12 PBE " SHA1_ALGORITHM_NAME
+#define PLAINTEXT_LENGTH	31
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		sizeof(ARCH_WORD_32)
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
+#if !defined(SIMD_COEF_32)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#else
+#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#endif
 #define FORMAT_TAG		"$bks$"
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 
@@ -59,6 +65,11 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+#ifdef _MSC_VER
+#define custom_salt bks_custom_salt
+#define cur_salt    bks_cur_salt
+#endif
+
 static struct custom_salt {
 	int format; // 0 -> BKS keystore
 	int version; // BKS version
@@ -72,7 +83,7 @@ static struct custom_salt {
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *saved_len;
+static size_t *saved_len;
 static int *cracked, any_cracked;  // "cracked array" approach is required for UBER keystores
 
 static void init(struct fmt_main *self)
@@ -235,8 +246,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
+#if !defined(SIMD_COEF_32)
 		if (cur_salt->format == 0) {
-			unsigned char mackey[20] = { 0 };
+			unsigned char mackey[20];
 			int mackeylen = cur_salt->hmac_key_size / 8;
 			// mackeylen is only 2 bytes, and this results in lot
 			// of collisions (which work just fine)
@@ -264,7 +276,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				any_cracked |= 1;
 			}
 		} else if (cur_salt->format == 1) {
-			unsigned char store_checkum[20];
+			unsigned char compute_checkum[20];
 			unsigned char iv[16];
 			unsigned char key[32];
 			Twofish_key tkey;
@@ -288,9 +300,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				continue;
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, store_data_decrypted, datalen - 20);
-			SHA1_Final(store_checkum, &ctx);
+			SHA1_Final(compute_checkum, &ctx);
 
-			if (!memcmp(store_checkum, store_data_decrypted + datalen - 20, 20))
+			if (!memcmp(compute_checkum, store_data_decrypted + datalen - 20, 20))
 			{
 				cracked[index] = 1;
 #ifdef _OPENMP
@@ -299,6 +311,92 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				any_cracked |= 1;
 			}
 		}
+#else
+		size_t lens[SSE_GROUP_SZ_SHA1], j;
+		const unsigned char *keys[SSE_GROUP_SZ_SHA1];
+		// Load keys, and lengths
+		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+			lens[j] = saved_len[index+j];
+			keys[j] = (const unsigned char*)(saved_key[index+j]);
+		}
+
+		if (cur_salt->format == 0) {
+			unsigned char *mackey[SSE_GROUP_SZ_SHA1], real_keys[SSE_GROUP_SZ_SHA1][20];
+			int mackeylen = cur_salt->hmac_key_size / 8;
+			// mackeylen is only 2 bytes, and this results in lot
+			// of collisions (which work just fine)
+			//
+			// FMT_NOT_EXACT can be turned on for BKS keystores
+			// for finding more possible passwords
+			unsigned char store_hmac_calculated[20];
+
+			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j)
+				mackey[j] = real_keys[j];
+			pkcs12_pbe_derive_key_simd( 0, cur_salt->iteration_count,
+					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
+					keys, lens, cur_salt->salt,
+					cur_salt->saltlen, mackey, mackeylen);
+
+			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+				hmac_sha1(mackey[j], mackeylen, cur_salt->store_data,
+						cur_salt->store_data_length,
+						store_hmac_calculated, 20);
+
+				if (!memcmp(store_hmac_calculated, cur_salt->store_hmac, 20))
+				{
+					cracked[index+j] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+					any_cracked |= 1;
+				}
+			}
+		} else if (cur_salt->format == 1) {
+			unsigned char iv_[SSE_GROUP_SZ_SHA1][16], *iv[SSE_GROUP_SZ_SHA1];
+			unsigned char ckey_[SSE_GROUP_SZ_SHA1][32], *ckey[SSE_GROUP_SZ_SHA1];
+			Twofish_key tkey;
+			int datalen = 0;
+			unsigned char store_data_decrypted[MAX_STORE_DATA_LENGTH];
+			SHA_CTX ctx;
+
+			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+				iv[j] = iv_[j];
+				ckey[j] = ckey_[j];
+			}
+			pkcs12_pbe_derive_key_simd(0, cur_salt->iteration_count,
+					MBEDTLS_PKCS12_DERIVE_IV,
+					keys,
+					lens, cur_salt->salt,
+					cur_salt->saltlen, iv, 16);
+			// lengths get tromped on, so re-load them for the load keys call.
+			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j)
+				lens[j] = saved_len[index+j];
+			pkcs12_pbe_derive_key_simd(0, cur_salt->iteration_count,
+					MBEDTLS_PKCS12_DERIVE_KEY,
+					keys,
+					lens, cur_salt->salt,
+					cur_salt->saltlen, ckey, 32);
+			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+				unsigned char compute_checkum[20];
+				Twofish_prepare_key(ckey[j], 32, &tkey);
+				datalen = Twofish_Decrypt(&tkey, cur_salt->store_data, store_data_decrypted, cur_salt->store_data_length, iv[j]);
+				if (datalen < 0)
+					continue;
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, store_data_decrypted, datalen - 20);
+				SHA1_Final(compute_checkum, &ctx);
+
+				if (!memcmp(compute_checkum, store_data_decrypted + datalen - 20, 20))
+				{
+					cracked[index+j] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+					any_cracked |= 1;
+				}
+			}
+		}
+#endif
 	}
 
 	return count;
