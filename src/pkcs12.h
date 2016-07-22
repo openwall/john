@@ -51,11 +51,16 @@ int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 #if defined(SIMD_COEF_32)
 // SIMD method
 
-#define SSE_GROUP_SZ_SHA1 (SIMD_COEF_32*SIMD_PARA_SHA1)
+#define SSE_GROUP_SZ_SHA1		(SIMD_COEF_32*SIMD_PARA_SHA1)
+#define SSE_GROUP_SZ_SHA256		(SIMD_COEF_32*SIMD_PARA_SHA256)
 
-int pkcs12_pbe_derive_key_simd( int md_type, int iterations, int id, const unsigned
-		char *pwd[SSE_GROUP_SZ_SHA1],  size_t pwdlen[SSE_GROUP_SZ_SHA1], const unsigned char *salt, size_t saltlen,
+int pkcs12_pbe_derive_key_simd(int iterations, int id, const unsigned char *pwd[SSE_GROUP_SZ_SHA1],
+		size_t pwdlen[SSE_GROUP_SZ_SHA1], const unsigned char *salt, size_t saltlen,
 		unsigned char *key[SSE_GROUP_SZ_SHA1], size_t keylen);
+
+int pkcs12_pbe_derive_key_simd_sha256(int iterations, int id, const unsigned char *pwd[SSE_GROUP_SZ_SHA256],
+		size_t pwdlen[SSE_GROUP_SZ_SHA256], const unsigned char *salt, size_t saltlen,
+		unsigned char *key[SSE_GROUP_SZ_SHA256], size_t keylen);
 
 #endif
 

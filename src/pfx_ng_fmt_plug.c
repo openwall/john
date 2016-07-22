@@ -70,7 +70,7 @@ static struct custom_salt {
 	unsigned char salt[20];
 	int data_length;
 	unsigned char data[MAX_DATA_LENGTH];
-	unsigned char stored_hmac[20];
+	unsigned char stored_hmac[20];		// we chop hashes down to first 20 bytes.
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -104,7 +104,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *ctcopy, *keeptr;
-	int mac_algo, saltlen;
+	int mac_algo, saltlen, hashhex;
 
 	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
@@ -119,11 +119,23 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto bail;
 	mac_algo = atoi(p);
-	if (mac_algo != 1 && mac_algo != 256) // 1 -> SHA1, 256 -> SHA256
+	if (mac_algo == 1)	 // 1 -> SHA1, 256 -> SHA256
+		hashhex = 40;		// hashhex is length of hex string of hash.
+//	else if (mac_algo == 224)
+//		hashhex = 48;
+	else if (mac_algo == 256)
+		hashhex = 64;
+//	else if (mac_algo == 384)
+//		hashhex = 96;
+//	else if (mac_algo == 512)
+//		hashhex = 128;
+	else
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // key_length
 		goto bail;
 	if (!isdec(p))
+		goto bail;
+	if (atoi(p) != (hashhex>>1))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // iteration_count
 		goto bail;
@@ -150,9 +162,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // stored_hmac
 		goto bail;
-	if (hexlenl(p) != 20*2 && hexlenl(p) != 32*2)
-		goto bail;
-	if (!ishexlc(p))
+	if (hexlenl(p) != hashhex)
 		goto bail;
 
 	p = strrchr(ciphertext, '$');
@@ -202,6 +212,8 @@ static void *get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
+// we only grab first 20 bytes of the hash, but that is 'good enough'.
+// it makes a lot of other coding more simple.
 static void *get_binary(char *ciphertext)
 {
 	static union {
@@ -278,7 +290,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					(unsigned char*)crypt_out[index],
 					BINARY_SIZE);
 		}
-
 #else
 		if (cur_salt->mac_algo == 1) {
 			unsigned char *mackey[SSE_GROUP_SZ_SHA1], real_keys[SSE_GROUP_SZ_SHA1][20];
@@ -291,7 +302,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index+j];
 				keys[j] = (const unsigned char*)(saved_key[index+j]);
 			}
-			pkcs12_pbe_derive_key_simd(0, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd(cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 					lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
@@ -303,18 +314,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						BINARY_SIZE);
 			}
 		} else if (cur_salt->mac_algo == 256) {
-			int j;
+			unsigned char *mackey[SSE_GROUP_SZ_SHA256], real_keys[SSE_GROUP_SZ_SHA256][32];
+			const unsigned char *keys[SSE_GROUP_SZ_SHA256];
+			int mackeylen = cur_salt->key_length, j;
+			size_t lens[SSE_GROUP_SZ_SHA256];
 
-			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
-				unsigned char mackey[32];
-				int mackeylen = cur_salt->key_length;
-				pkcs12_pbe_derive_key(256, cur_salt->iteration_count,
-						MBEDTLS_PKCS12_DERIVE_MAC_KEY,
-						(unsigned char*)saved_key[index+j],
-						saved_len[index+j], cur_salt->salt,
-						cur_salt->saltlen, mackey, mackeylen);
+			for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
+				mackey[j] = real_keys[j];
+				lens[j] = saved_len[index+j];
+				keys[j] = (const unsigned char*)(saved_key[index+j]);
+			}
+			pkcs12_pbe_derive_key_simd_sha256(cur_salt->iteration_count,
+					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
+					lens, cur_salt->salt,
+					cur_salt->saltlen, mackey, mackeylen);
 
-				hmac_sha256(mackey, mackeylen, cur_salt->data,
+			for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
+				hmac_sha256(mackey[j], mackeylen, cur_salt->data,
 						cur_salt->data_length,
 						(unsigned char*)crypt_out[index+j],
 						BINARY_SIZE);
@@ -358,6 +374,16 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+/* report iteration count as tunable cost value */
+static unsigned int get_mac_type(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->mac_algo;
+}
+
+
 struct fmt_main fmt_pfx_ng = {
 	{
 		FORMAT_LABEL,
@@ -374,7 +400,9 @@ struct fmt_main fmt_pfx_ng = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{
+			"mac-type",
+		},
 		tests
 	}, {
 		init,
@@ -385,7 +413,9 @@ struct fmt_main fmt_pfx_ng = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{
+			get_mac_type,
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
