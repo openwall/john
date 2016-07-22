@@ -44,13 +44,11 @@
 #define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
-#if !defined(SIMD_COEF_32)
-
 int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 		char *pwd,  size_t pwdlen, const unsigned char *salt, size_t saltlen,
 		unsigned char *key, size_t keylen);
 
-#else
+#if defined(SIMD_COEF_32)
 // SIMD method
 
 #define SSE_GROUP_SZ_SHA1 (SIMD_COEF_32*SIMD_PARA_SHA1)

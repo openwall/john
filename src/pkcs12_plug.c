@@ -34,18 +34,19 @@
 
 #define PKCS12_MAX_PWDLEN 128
 
-#if !defined(SIMD_COEF_32)
 
 extern int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 		unsigned char *pwd, size_t pwdlen, const unsigned char *salt,
 		size_t saltlen, int md_type, int id, int iterations );
 
+extern int mbedtls_pkcs12_derivation_sha256( unsigned char *data, size_t datalen, const
+		unsigned char *pwd, size_t pwdlen, const unsigned char *salt,
+		size_t saltlen, int md_type, int id, int iterations );
 
 int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 		char *pwd,  size_t pwdlen, const unsigned char *salt, size_t
 		saltlen, unsigned char *key, size_t keylen)
 {
-    int ret;
     size_t i;
     unsigned char unipwd[PKCS12_MAX_PWDLEN * 2 + 2], *cp=unipwd;
 
@@ -59,9 +60,12 @@ int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
     *cp++ = 0;
     *cp = 0;
 
-    if((ret = mbedtls_pkcs12_derivation( key, keylen, unipwd, pwdlen * 2 + 2,
-                              salt, saltlen, md_type, id, iterations)) != 0 )
-        return ret;
+    if (md_type == 0)
+	mbedtls_pkcs12_derivation(key, keylen, unipwd, pwdlen * 2 + 2, salt,
+			saltlen, md_type, id, iterations);
+    else if (md_type == 256)
+	mbedtls_pkcs12_derivation_sha256(key, keylen, unipwd, pwdlen * 2 + 2, salt,
+			saltlen, md_type, id, iterations);
 
     return 0;
 }
@@ -170,7 +174,96 @@ int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
     return 0;
 }
 
-#else
+int mbedtls_pkcs12_derivation_sha256( unsigned char *data, size_t datalen, const
+		unsigned char *pwd, size_t pwdlen, const unsigned char *salt,
+		size_t saltlen, int md_type, int id, int iterations )
+{
+    unsigned int j;
+
+    unsigned char diversifier[128];
+    unsigned char salt_block[128], pwd_block[128], hash_block[128];
+    unsigned char hash_output[1024];
+    unsigned char *p;
+    unsigned char c;
+
+    size_t hlen, use_len, v, i;
+
+    SHA256_CTX md_ctx;
+
+    // This version only allows max of 64 bytes of password or salt
+    if( datalen > 128 || pwdlen > 64 || saltlen > 64 )
+        return -1; // MBEDTLS_ERR_PKCS12_BAD_INPUT_DATA
+
+    hlen = 32; // for SHA-256
+
+    if( hlen <= 32 )
+        v = 64;
+    else
+        v = 128;
+
+    memset( diversifier, (unsigned char) id, v );
+
+    pkcs12_fill_buffer( salt_block, v, salt, saltlen );
+    pkcs12_fill_buffer( pwd_block,  v, pwd,  pwdlen  );
+
+    p = data;
+    while( datalen > 0 )
+    {
+        // Calculate hash( diversifier || salt_block || pwd_block )
+        SHA256_Init( &md_ctx );
+
+        SHA256_Update( &md_ctx, diversifier, v );
+        SHA256_Update( &md_ctx, salt_block, v );
+        SHA256_Update( &md_ctx, pwd_block, v );
+        SHA256_Final( hash_output, &md_ctx );
+
+        // Perform remaining ( iterations - 1 ) recursive hash calculations
+        for( i = 1; i < (size_t) iterations; i++ )
+        {
+            SHA256_Init(&md_ctx);
+            SHA256_Update(&md_ctx, hash_output, hlen);
+            SHA256_Final(hash_output, &md_ctx);
+        }
+
+        use_len = ( datalen > hlen ) ? hlen : datalen;
+        memcpy( p, hash_output, use_len );
+        datalen -= use_len;
+        p += use_len;
+
+        if( datalen == 0 )
+            break;
+
+        // Concatenating copies of hash_output into hash_block (B)
+        pkcs12_fill_buffer( hash_block, v, hash_output, hlen );
+
+        // B += 1
+        for( i = v; i > 0; i-- )
+            if( ++hash_block[i - 1] != 0 )
+                break;
+
+        // salt_block += B
+        c = 0;
+        for( i = v; i > 0; i-- )
+        {
+            j = salt_block[i - 1] + hash_block[i - 1] + c;
+            c = (unsigned char) (j >> 8);
+            salt_block[i - 1] = j & 0xFF;
+        }
+
+        // pwd_block  += B
+        c = 0;
+        for( i = v; i > 0; i-- )
+        {
+            j = pwd_block[i - 1] + hash_block[i - 1] + c;
+            c = (unsigned char) (j >> 8);
+            pwd_block[i - 1] = j & 0xFF;
+        }
+    }
+
+    return 0;
+}
+
+#if defined(SIMD_COEF_32)
 // SIMD method
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 
