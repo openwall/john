@@ -131,8 +131,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		hashhex = 64;
 //	else if (mac_algo == 384)
 //		hashhex = 96;
-//	else if (mac_algo == 512)
-//		hashhex = 128;
+	else if (mac_algo == 512)
+		hashhex = 128;
 	else
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // key_length
@@ -263,6 +263,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		inc = SSE_GROUP_SZ_SHA1;
 	else if (cur_salt->mac_algo == 256)
 		inc = SSE_GROUP_SZ_SHA256;
+	else if (cur_salt->mac_algo == 512)
+		inc = SSE_GROUP_SZ_SHA256; // FIXME
 #endif
 
 #ifdef _OPENMP
@@ -299,7 +301,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					cur_salt->data_length,
 					(unsigned char*)crypt_out[index],
 					BINARY_SIZE);
+		} else if (cur_salt->mac_algo == 512) {
+			unsigned char mackey[64];
+			int mackeylen = cur_salt->key_length;
+			pkcs12_pbe_derive_key(512, cur_salt->iteration_count,
+					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
+					(unsigned char*)saved_key[index],
+					saved_len[index], cur_salt->salt,
+					cur_salt->saltlen, mackey, mackeylen);
+
+			hmac_sha512(mackey, mackeylen, cur_salt->data,
+					cur_salt->data_length,
+					(unsigned char*)crypt_out[index],
+					BINARY_SIZE);
 		}
+
 #else
 		if (cur_salt->mac_algo == 1) {
 			unsigned char *mackey[SSE_GROUP_SZ_SHA1], real_keys[SSE_GROUP_SZ_SHA1][20];
@@ -359,6 +375,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 				hmac_sha256(mackey[j], mackeylen, cur_salt->data,
+						cur_salt->data_length,
+						(unsigned char*)crypt_out[index+j],
+						BINARY_SIZE);
+			}
+		} else if (cur_salt->mac_algo == 512) {
+			int j;
+
+			for (j = 0; j < inc; ++j) {
+				unsigned char mackey[64];
+				int mackeylen = cur_salt->key_length;
+				pkcs12_pbe_derive_key(512, cur_salt->iteration_count,
+						MBEDTLS_PKCS12_DERIVE_MAC_KEY,
+						(unsigned char*)saved_key[index+j],
+						saved_len[index+j], cur_salt->salt,
+						cur_salt->saltlen, mackey, mackeylen);
+
+				hmac_sha512(mackey, mackeylen, cur_salt->data,
 						cur_salt->data_length,
 						(unsigned char*)crypt_out[index+j],
 						BINARY_SIZE);

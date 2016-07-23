@@ -67,6 +67,8 @@ def parse_pkcs12(filename):
             mac_algo_numeric = 1
         elif mac_algo == "sha256":
             mac_algo_numeric = 256
+        elif mac_algo == "sha512":
+            mac_algo_numeric = 512
         else:
             sys.stderr.write("mac_algo %s is not supported yet!\n" % mac_algo)
             return
