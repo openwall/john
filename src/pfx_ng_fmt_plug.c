@@ -324,6 +324,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						BINARY_SIZE);
 			}
 		} else if (cur_salt->mac_algo == 256) {
+			// for now, disable SIMD on sha256, til I can figure out the crashing problems.
+			int j;
+
+			for (j = 0; j < inc; ++j) {
+				unsigned char mackey[32];
+				int mackeylen = cur_salt->key_length;
+				pkcs12_pbe_derive_key(256, cur_salt->iteration_count,
+						MBEDTLS_PKCS12_DERIVE_MAC_KEY,
+						(unsigned char*)saved_key[index+j],
+						saved_len[index+j], cur_salt->salt,
+						cur_salt->saltlen, mackey, mackeylen);
+
+				hmac_sha256(mackey, mackeylen, cur_salt->data,
+						cur_salt->data_length,
+						(unsigned char*)crypt_out[index+j],
+						BINARY_SIZE);
+			}
+		} else if (cur_salt->mac_algo == 256) {
 			unsigned char *mackey[SSE_GROUP_SZ_SHA256], real_keys[SSE_GROUP_SZ_SHA256][32];
 			const unsigned char *keys[SSE_GROUP_SZ_SHA256];
 			int mackeylen = cur_salt->key_length, j;
