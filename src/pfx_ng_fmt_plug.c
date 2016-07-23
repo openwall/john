@@ -46,6 +46,10 @@ john_register_one(&fmt_pfx_ng);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #else
+// FIXME.  We have to handle this in some other manner (in init).  We need to
+// find the LCM of all possible 'groups'.  So if we have 2 8 and 24 as our
+// groups, this count needs to be 24.  If it was 2 8 24 and 32, then we would
+// need min/max keys to be 96
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
 #endif
@@ -252,13 +256,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int index;
 	const int count = *pcount;
+	int inc = 1;
+
+#if defined(SIMD_COEF_32)
+	if (cur_salt->mac_algo == 1)
+		inc = SSE_GROUP_SZ_SHA1;
+	else if (cur_salt->mac_algo == 256)
+		inc = SSE_GROUP_SZ_SHA256;
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-#endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < count; index += inc)
 	{
 #if !defined(SIMD_COEF_32)
 
