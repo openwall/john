@@ -1,9 +1,11 @@
 /* This format is reverse engineered from InsidePro Hash Manager!
  *
- * This software is Copyright (c) 2015, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2016, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
+ *
+ * improved speed, JimF.  Reduced amount of hex encoding.
  */
 
 #if FMT_EXTERNS_H
@@ -21,10 +23,11 @@ john_register_one(&fmt_palshop);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "base64_convert.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               64
+#define OMP_SCALE               1024
 #endif
 #endif
 #include "memdbg.h"
@@ -35,7 +38,7 @@ john_register_one(&fmt_palshop);
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        125
-#define BINARY_SIZE             20  /* 20 chracters of "m2" */
+#define BINARY_SIZE             10  /* 20 chracters of "m2", now 10 binary bytes. */
 #define SALT_SIZE               0
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_ALIGN              sizeof(int)
@@ -54,18 +57,8 @@ static struct fmt_tests palshop_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[ (BINARY_SIZE+sizeof(ARCH_WORD_32)-1) / sizeof(ARCH_WORD_32)];
 static size_t *saved_len;
-
-static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
-{
-	int i;
-	for (i = 0; i < len; ++i) {
-		out[0] = itoa16[str[i]>>4];
-		out[1] = itoa16[str[i]&0xF];
-		out += 2;
-	}
-}
 
 static void init(struct fmt_main *self)
 {
@@ -86,6 +79,7 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	MEM_FREE(saved_len);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
@@ -118,8 +112,8 @@ static void *get_binary(char *ciphertext)
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		p = ciphertext + TAG_LENGTH;
-
-	memcpy(out, p, BINARY_SIZE);
+	++p; // skip the first 'nibble'.  Take next 10 bytes.
+	base64_convert(p, e_b64_hex, 20, out, e_b64_raw, 10, 0, 0);
 
 	return out;
 }
@@ -141,12 +135,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++)
 	{
-		unsigned char m1[32];
-		unsigned char s1[40];
-		unsigned char m2[32];
-		// unsigned char s2[40];
-		unsigned char data[51 + 1] = {0};
-		unsigned char buffer[20];
+		unsigned char m1[53], buffer[16+20], *cp;
+		int i;
 		MD5_CTX mctx;
 		SHA_CTX sctx;
 
@@ -154,24 +144,27 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Init(&mctx);
 		MD5_Update(&mctx, saved_key[index], saved_len[index]);
 		MD5_Final(buffer, &mctx);
-		hex_encode(buffer, 16, m1);
 
 		// s1 = sha1($p)
 		SHA1_Init(&sctx);
 		SHA1_Update(&sctx, saved_key[index], saved_len[index]);
-		SHA1_Final((unsigned char*)crypt_out[index], &sctx);
-		hex_encode((unsigned char*)crypt_out[index], 20, s1);
+		SHA1_Final(buffer+16, &sctx);
 
 		// data = m1[11:] + s1[:29] + m1[0:1]  // 51 bytes!
-		memcpy(data, m1 + 11, 32 - 11);
-		memcpy(data + 21, s1, 29);
-		data[50] = m1[0];
+		cp = m1;
+		*cp++ = itoa16[buffer[5]&0xF];
+		for (i = 6; i < 25+6; ++i) {
+			cp[0] = itoa16[buffer[i]>>4];
+			cp[1] = itoa16[buffer[i]&0xF];
+			cp += 2;
+		}
+		cp[-1] = itoa16[buffer[0]>>4];
 
-		// m2 = md5(data)
+
+		// m2
 		MD5_Init(&mctx);
-		MD5_Update(&mctx, data, 51);
+		MD5_Update(&mctx, m1, 51);
 		MD5_Final(buffer, &mctx);
-		hex_encode(buffer, 16, m2);
 
 		// s2 = sha1(data)
 		// SHA1_Init(&sctx);
@@ -180,7 +173,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// hex_encode((unsigned char*)crypt_out[index], 20, s1);
 
 		// hash =  m2[11:] + s2[:29] + m2[0], but starting 20 bytes should be enough!
-		memcpy((unsigned char*)crypt_out[index], m2 + 11, 20);
+		//memcpy((unsigned char*)crypt_out[index], m2 + 11, 20);
+
+		// we actually take m2[12:32] (skipping that first 'odd' byte.0
+		// in binary now, skipping the unneeded hex conversion.
+		memcpy((unsigned char*)crypt_out[index], buffer+6, 10);
 	}
 	return count;
 }
