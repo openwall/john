@@ -75,7 +75,6 @@ static struct custom_salt {
 	unsigned char salt[20];
 	int data_length;
 	unsigned char data[MAX_DATA_LENGTH];
-	unsigned char stored_hmac[20];		// we chop hashes down to first 20 bytes.
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -108,7 +107,7 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p = ciphertext, *ctcopy, *keeptr;
+	char *p = ciphertext, *ctcopy, *keeptr, *p2;
 	int mac_algo, saltlen, hashhex;
 
 	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
@@ -124,8 +123,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto bail;
 	mac_algo = atoi(p);
+	//if (mac_algo == 0)
+	//	hashhex = 40;	// for sha0  (Note, not handled by ans1crypt.py)
 	if (mac_algo == 1)	 // 1 -> SHA1, 256 -> SHA256
 		hashhex = 40;		// hashhex is length of hex string of hash.
+//	else if (mac_algo == 2)	// mdc2  (Note, not handled by ans1crypt.py)
+//		hashhex = 32;
+//	else if (mac_algo == 4)	// md4  (Note, not handled by ans1crypt.py)
+//		hashhex = 32;
+//	else if (mac_algo == 5)	//md5  (Note, not handled by ans1crypt.py)
+//		hashhex = 32;
+//	else if (mac_algo == 160)	//ripemd160  (Note, not handled by ans1crypt.py)
+//		hashhex = 40;
 //	else if (mac_algo == 224)
 //		hashhex = 48;
 	else if (mac_algo == 256)
@@ -165,16 +174,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // stored_hmac
+	if ((p = strtokm(NULL, "$")) == NULL) // stored_hmac (not stored in salt)
 		goto bail;
 	if (hexlenl(p) != hashhex)
 		goto bail;
 
-	p = strrchr(ciphertext, '$');
-	if (!p)
+	p2 = strrchr(ciphertext, '$');
+	if (!p2)
 		goto bail;
-	p = p + 1;
-	if (!ishexlc(p))
+	++p2;
+	if (strcmp(p, p2))
 		goto bail;
 
 	MEM_FREE(keeptr);
@@ -264,8 +273,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		inc = SSE_GROUP_SZ_SHA1;
 	else if (cur_salt->mac_algo == 256)
 		inc = SSE_GROUP_SZ_SHA256;
+#if defined(SIMD_COEF_64)
 	else if (cur_salt->mac_algo == 512)
-		inc = SSE_GROUP_SZ_SHA256; // FIXME
+		inc = SSE_GROUP_SZ_SHA512;
+#endif
 #endif
 
 #ifdef _OPENMP
@@ -279,7 +290,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char mackey[20];
 			int mackeylen = cur_salt->key_length;
 
-			pkcs12_pbe_derive_key(0, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key(cur_salt->mac_algo, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
 					(unsigned char*)saved_key[index],
 					saved_len[index], cur_salt->salt,
@@ -292,7 +303,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		} else if (cur_salt->mac_algo == 256) {
 			unsigned char mackey[32];
 			int mackeylen = cur_salt->key_length;
-			pkcs12_pbe_derive_key(256, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key(cur_salt->mac_algo, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
 					(unsigned char*)saved_key[index],
 					saved_len[index], cur_salt->salt,
@@ -305,7 +316,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		} else if (cur_salt->mac_algo == 512) {
 			unsigned char mackey[64];
 			int mackeylen = cur_salt->key_length;
-			pkcs12_pbe_derive_key(512, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key(cur_salt->mac_algo, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
 					(unsigned char*)saved_key[index],
 					saved_len[index], cur_salt->salt,
@@ -329,31 +340,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index+j];
 				keys[j] = (const unsigned char*)(saved_key[index+j]);
 			}
-			pkcs12_pbe_derive_key_simd(cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd(cur_salt->mac_algo, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 					lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
 
 			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 				hmac_sha1(mackey[j], mackeylen, cur_salt->data,
-						cur_salt->data_length,
-						(unsigned char*)crypt_out[index+j],
-						BINARY_SIZE);
-			}
-		} else if (cur_salt->mac_algo == 256) {
-			// for now, disable SIMD on sha256, til I can figure out the crashing problems.
-			int j;
-
-			for (j = 0; j < inc; ++j) {
-				unsigned char mackey[32];
-				int mackeylen = cur_salt->key_length;
-				pkcs12_pbe_derive_key(256, cur_salt->iteration_count,
-						MBEDTLS_PKCS12_DERIVE_MAC_KEY,
-						(unsigned char*)saved_key[index+j],
-						saved_len[index+j], cur_salt->salt,
-						cur_salt->saltlen, mackey, mackeylen);
-
-				hmac_sha256(mackey, mackeylen, cur_salt->data,
 						cur_salt->data_length,
 						(unsigned char*)crypt_out[index+j],
 						BINARY_SIZE);
@@ -369,7 +362,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index+j];
 				keys[j] = (const unsigned char*)(saved_key[index+j]);
 			}
-			pkcs12_pbe_derive_key_simd_sha256(cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd(cur_salt->mac_algo, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 					lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
@@ -381,6 +374,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						BINARY_SIZE);
 			}
 		} else if (cur_salt->mac_algo == 512) {
+#if defined(SIMD_COEF_64)
+			unsigned char *mackey[SSE_GROUP_SZ_SHA512], real_keys[SSE_GROUP_SZ_SHA512][64];
+			const unsigned char *keys[SSE_GROUP_SZ_SHA512];
+			int mackeylen = cur_salt->key_length, j;
+			size_t lens[SSE_GROUP_SZ_SHA512];
+
+			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
+				mackey[j] = real_keys[j];
+				lens[j] = saved_len[index+j];
+				keys[j] = (const unsigned char*)(saved_key[index+j]);
+			}
+			pkcs12_pbe_derive_key_simd(cur_salt->mac_algo, cur_salt->iteration_count,
+					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
+					lens, cur_salt->salt,
+					cur_salt->saltlen, mackey, mackeylen);
+
+			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
+				hmac_sha512(mackey[j], mackeylen, cur_salt->data,
+						cur_salt->data_length,
+						(unsigned char*)crypt_out[index+j],
+						BINARY_SIZE);
+			}
+#else
 			int j;
 
 			for (j = 0; j < inc; ++j) {
@@ -397,6 +413,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						(unsigned char*)crypt_out[index+j],
 						BINARY_SIZE);
 			}
+#endif
 		}
 #endif
 	}

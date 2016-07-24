@@ -44,6 +44,8 @@
 #define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
+//#undef SIMD_COEF_64
+
 int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 		char *pwd,  size_t pwdlen, const unsigned char *salt, size_t saltlen,
 		unsigned char *key, size_t keylen);
@@ -51,16 +53,20 @@ int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 #if defined(SIMD_COEF_32)
 // SIMD method
 
+#define SIMD_MAX_GROUP_PFX		(2*2*2*2*2*3*5*7)
+
 #define SSE_GROUP_SZ_SHA1		(SIMD_COEF_32*SIMD_PARA_SHA1)
 #define SSE_GROUP_SZ_SHA256		(SIMD_COEF_32*SIMD_PARA_SHA256)
 
-int pkcs12_pbe_derive_key_simd(int iterations, int id, const unsigned char *pwd[SSE_GROUP_SZ_SHA1],
-		size_t pwdlen[SSE_GROUP_SZ_SHA1], const unsigned char *salt, size_t saltlen,
-		unsigned char *key[SSE_GROUP_SZ_SHA1], size_t keylen);
+int pkcs12_pbe_derive_key_simd( int md_type, int iterations, int id, const unsigned char *pwd[SIMD_MAX_GROUP_PFX],
+		size_t pwdlen[SIMD_MAX_GROUP_PFX], const unsigned char *salt, size_t saltlen,
+		unsigned char *key[SIMD_MAX_GROUP_PFX], size_t keylen);
 
-int pkcs12_pbe_derive_key_simd_sha256(int iterations, int id, const unsigned char *pwd[SSE_GROUP_SZ_SHA256],
-		size_t pwdlen[SSE_GROUP_SZ_SHA256], const unsigned char *salt, size_t saltlen,
-		unsigned char *key[SSE_GROUP_SZ_SHA256], size_t keylen);
+#if defined(SIMD_COEF_64)
+
+#define SSE_GROUP_SZ_SHA512		(SIMD_COEF_64*SIMD_PARA_SHA512)
+
+#endif
 
 #endif
 
