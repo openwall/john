@@ -23,9 +23,10 @@ john_register_one(&fmt_mongodb_scram);
 #include "sha.h"
 #include "base64.h"
 #include "base64_convert.h"
-#include "pbkdf2_hmac_sha1.h"
 #include "hmac_sha.h"
 #include "simd-intrinsics.h"
+//#undef SIMD_COEF_32
+#include "pbkdf2_hmac_sha1.h"
 #include "md5.h"
 #ifdef _OPENMP
 #include <omp.h>
