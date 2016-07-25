@@ -196,12 +196,14 @@ void * sha512_common_binary(char *ciphertext)
 
 void *sha512_common_binary_rev(char *ciphertext)
 {
-	static unsigned char * out;
+	static union {
+		unsigned char out[DIGEST_SIZE];
+		uint64_t x;
+	} x;
+	unsigned char *out = x.out;
 	char *p;
 	int i;
 	uint64_t *b;
-
-	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	p = ciphertext + TAG_LENGTH;
 	for (i = 0; i < DIGEST_SIZE; i++) {
@@ -221,11 +223,13 @@ void *sha512_common_binary_rev(char *ciphertext)
 
 void * sha512_common_binary_xsha512(char *ciphertext)
 {
-	static unsigned char * out;
+	static union {
+		unsigned char out[DIGEST_SIZE];
+		uint64_t x;
+	} x;
+	unsigned char *out = x.out;
 	char *p;
 	int i;
-
-	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += 6;
 	p = ciphertext + 8;
@@ -244,12 +248,14 @@ void * sha512_common_binary_xsha512(char *ciphertext)
 
 void * sha512_common_binary_xsha512_rev(char *ciphertext)
 {
-	static unsigned char * out;
+	static union {
+		unsigned char out[DIGEST_SIZE];
+		uint64_t x;
+	} x;
+	unsigned char *out = x.out;
 	char *p;
 	int i;
 	uint64_t *b;
-
-	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += 6;
 	p = ciphertext + 8;
@@ -268,9 +274,11 @@ void * sha512_common_binary_xsha512_rev(char *ciphertext)
 }
 
 void *sha512_common_binary_nsldap(char *ciphertext) {
-	static char *realcipher;
-
-	if (!realcipher) realcipher = mem_alloc_tiny(DIGEST_SIZE + 1 + NSLDAP_SALT_SIZE, 8);
+	static union {
+		unsigned char out[DIGEST_SIZE];
+		uint64_t x;
+	} x;
+	unsigned char *realcipher = x.out;
 
 	ciphertext += NSLDAP_TAG_LENGTH;
 	memset(realcipher, 0, DIGEST_SIZE);
