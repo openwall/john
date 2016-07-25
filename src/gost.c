@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "gost.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 extern unsigned rhash_gost_sbox[4][256];
@@ -606,6 +607,6 @@ void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length) {
 	pI = (unsigned int *)from;
 	length>>=2;
 	for (i = 0; i < length; ++i) {
-		*pO++ = bswap_32(*pI++);
+		*pO++ = JOHNSWAP(*pI++);
 	}
 }

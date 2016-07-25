@@ -6,6 +6,7 @@
 
 #include "arch.h"
 #include "stdint.h"
+#include "johnswap.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,66 +60,19 @@ void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length);
 void rhash_u64_swap_copy(void* to, int index, const void* from, size_t length);
 void rhash_u32_memswap(unsigned *p, int length_in_u32);
 
-/* define bswap_32 */
-#if defined(__GNUC__) && defined(CPU_IA32) && !defined(__i386__)
-/* for intel x86 CPU */
-static inline uint32_t bswap_32(uint32_t x) {
-	__asm("bswap\t%0" : "=r" (x) : "0" (x));
-	return x;
-}
-#elif defined(__GNUC__)  && (__GNUC__ >= 4) && (__GNUC__ > 4 || __GNUC_MINOR__ >= 3)
-/* for GCC >= 4.3 */
-# define bswap_32(x) __builtin_bswap32(x)
-#elif (_MSC_VER > 1300) && (defined(CPU_IA32) || defined(CPU_X64)) /* MS VC */
-# define bswap_32(x) _byteswap_ulong((unsigned long)x)
-#elif !defined(__STRICT_ANSI__)
-/* general bswap_32 definition.  Note, bswap_32 already defined as inline in GCC 3.4.4, but it sux. */
-static inline uint32_t _JtR_Swap_32(uint32_t x) {
-	x = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
-	return (x >> 16) | (x << 16);
-}
-#undef bswap_32
-# define bswap_32(x) _JtR_Swap_32(x)
-#else
-#define bswap_32(x) ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
-	(((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
-#endif /* bswap_32 */
-
-#if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC__ > 4 || __GNUC_MINOR__ >= 3)
-# define bswap_64(x) __builtin_bswap64(x)
-#elif (_MSC_VER > 1300) && (defined(CPU_IA32) || defined(CPU_X64)) /* MS VC */
-# define bswap_64(x) _byteswap_uint64((__int64)x)
-#elif !defined(__STRICT_ANSI__)
-/* general bswap_64 definition.  Note, bswap_64 already defined as inline in GCC 3.4.4, but it sux. */
-static inline uint64_t _JtR_Swap_64(uint64_t x) {
-	union {
-		uint64_t ll;
-		uint32_t l[2];
-	} w, r;
-	w.ll = x;
-	r.l[0] = bswap_32(w.l[1]);
-	r.l[1] = bswap_32(w.l[0]);
-	return r.ll;
-}
-#undef bswap_64
-# define bswap_64(x) _JtR_Swap_64(x)
-#else
-#error "bswap_64 unsupported"
-#endif
-
 #if !ARCH_LITTLE_ENDIAN
 # define be2me_32(x) (x)
 # define be2me_64(x) (x)
-# define le2me_32(x) bswap_32(x)
-# define le2me_64(x) bswap_64(x)
+# define le2me_32(x) JOHNSWAP(x)
+# define le2me_64(x) JOHNSWAP64(x)
 
 # define be32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
 # define le32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
 # define be64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
 # define le64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
 #else /* !ARCH_LITTLE_ENDIAN */
-# define be2me_32(x) bswap_32(x)
-# define be2me_64(x) bswap_64(x)
+# define be2me_32(x) JOHNSWAP(x)
+# define be2me_64(x) JOHNSWAP64(x)
 # define le2me_32(x) (x)
 # define le2me_64(x) (x)
 
