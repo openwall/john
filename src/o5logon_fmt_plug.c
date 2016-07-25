@@ -53,7 +53,7 @@ static int omp_t = 1;
 #define SALT_LENGTH		10
 #define BINARY_SIZE		0
 #define BINARY_ALIGN	1
-#define SALT_ALIGN		1
+#define SALT_ALIGN		sizeof(int)
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
