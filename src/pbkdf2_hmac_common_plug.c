@@ -476,11 +476,6 @@ int pbkdf2_hmac_sha1_cmp_exact(char *key, char *source, unsigned char *salt, int
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-#if !ARCH_LITTLE_ENDIAN
-	for (i = 0; i < len/sizeof(uint32_t); ++i) {
-		((uint32_t*)binary)[i] = JOHNSWAP(((uint32_t*)binary)[i]);
-	}
-#endif
 	pbkdf2_sha1((const unsigned char*)key,
 	            strlen(key),
 	            salt, salt_len,
