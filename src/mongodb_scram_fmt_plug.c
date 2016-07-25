@@ -15,7 +15,6 @@ john_register_one(&fmt_mongodb_scram);
 #include <openssl/sha.h>
 #include <string.h>
 #include "arch.h"
-#undef SIMD_COEF_32
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
@@ -26,6 +25,7 @@ john_register_one(&fmt_mongodb_scram);
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "hmac_sha.h"
+#include "simd-intrinsics.h"
 #include "md5.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -35,9 +35,13 @@ john_register_one(&fmt_mongodb_scram);
 #endif
 #include "memdbg.h"
 
+#if defined SIMD_COEF_32
+#define SIMD_KEYS		(SIMD_COEF_32 * SIMD_PARA_SHA1)
+#endif
+
 #define FORMAT_LABEL            "scram"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "SCRAM PBKDF2-SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "SCRAM PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH        125
 #define HASH_LENGTH             28
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -46,8 +50,13 @@ john_register_one(&fmt_mongodb_scram);
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
+#if !defined(SIMD_COEF_32)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#else
+#define MIN_KEYS_PER_CRYPT	SIMD_KEYS
+#define MAX_KEYS_PER_CRYPT	SIMD_KEYS
+#endif
 #define FORMAT_TAG              "$scram$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 #define MAX_USERNAME_LENGTH     128
@@ -192,9 +201,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
+#if !defined (SIMD_COEF_32)
 		SHA_CTX ctx;
 		MD5_CTX mctx;
-		unsigned char hexhash[32] = { 0 };
+		unsigned char hexhash[32];
 		unsigned char hash[16];
 		unsigned char out[BINARY_SIZE];
 
@@ -205,13 +215,44 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Final(hash, &mctx);
 		hex_encode(hash, 16, hexhash);
 
-		pbkdf2_sha1(hexhash, 32, cur_salt->salt, 16, 
+		pbkdf2_sha1(hexhash, 32, cur_salt->salt, 16,
 				cur_salt->iterations, out, BINARY_SIZE, 0);
 
 		hmac_sha1(out, BINARY_SIZE, (unsigned char*)"Client Key", 10, out, BINARY_SIZE);
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, out, BINARY_SIZE);
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
+#else
+		SHA_CTX ctx;
+		MD5_CTX mctx;
+		int i;
+		unsigned char hexhash_[SIMD_KEYS][32], *hexhash[SIMD_KEYS];
+		unsigned char hash[16];
+		int lens[SIMD_KEYS];
+		unsigned char out_[SIMD_KEYS][BINARY_SIZE], *out[SIMD_KEYS];
+
+		for (i = 0; i < SIMD_KEYS; ++i) {
+			MD5_Init(&mctx);
+			MD5_Update(&mctx, cur_salt->username, strlen((char*)cur_salt->username));
+			MD5_Update(&mctx, ":mongo:", 7);
+			MD5_Update(&mctx, saved_key[index+i], strlen(saved_key[index+i]));
+			MD5_Final(hash, &mctx);
+			hexhash[i] = hexhash_[i];
+			hex_encode(hash, 16, hexhash[i]);
+			lens[i] = 32;
+			out[i] = out_[i];
+		}
+
+		pbkdf2_sha1_sse((const unsigned char **)hexhash, lens, cur_salt->salt, 16,
+				cur_salt->iterations, out, BINARY_SIZE, 0);
+
+		for (i = 0; i < SIMD_KEYS; ++i) {
+			hmac_sha1(out[i], BINARY_SIZE, (unsigned char*)"Client Key", 10, out[i], BINARY_SIZE);
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, out[i], BINARY_SIZE);
+			SHA1_Final((unsigned char*)crypt_out[index+i], &ctx);
+		}
+#endif
 	}
 	return count;
 }
