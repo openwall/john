@@ -18,7 +18,7 @@
 #define PHPASS_CPU_PLAINTEXT_LENGTH    39
 #define PHPASS_CIPHERTEXT_LENGTH       34
 #define PHPASS_BINARY_SIZE             16
-#define PHPASS_SALT_ALIGN              1
+#define PHPASS_SALT_ALIGN              4
 #define PHPASS_BINARY_ALIGN            4
 
 extern int phpass_common_valid(char *ciphertext, struct fmt_main *self);

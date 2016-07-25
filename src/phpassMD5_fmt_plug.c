@@ -300,7 +300,11 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 
 static void * salt(char *ciphertext)
 {
-	static unsigned char salt[SALT_SIZE+2];
+	static union {
+		unsigned char salt[SALT_SIZE+2];
+		ARCH_WORD_32 x;
+	} x;
+	unsigned char *salt = x.salt;
 	// store off the 'real' 8 bytes of salt
 	memcpy(salt, &ciphertext[4], 8);
 	// append the 1 byte of loop count information.
