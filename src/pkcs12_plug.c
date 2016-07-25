@@ -28,7 +28,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "sha.h"
+#include "sha2.h"
 #include "simd-intrinsics.h"
 #include "pkcs12.h"
 
