@@ -360,7 +360,7 @@ next_file_header:
 		ext_time_size = file_header_head_size - 32;
 
 		if (file_header_head_flags & 0x100) {
-			size_t ex;
+			uint64_t ex;
 			if (fread(rejbuf, 4, 1, fp) != 1) {
 				fprintf(stderr, "\n! %s: Error: read failed: %s.\n",
 					archive_name, strerror(errno));
