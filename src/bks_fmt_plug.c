@@ -257,7 +257,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// for finding more possible passwords
 			unsigned char store_hmac_calculated[20];
 
-			pkcs12_pbe_derive_key( 0, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key(1, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
 					(unsigned char*)saved_key[index],
 					saved_len[index], cur_salt->salt,
@@ -284,12 +284,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char store_data_decrypted[MAX_STORE_DATA_LENGTH];
 			SHA_CTX ctx;
 
-			pkcs12_pbe_derive_key(0, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key(1, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_IV,
 					(unsigned char*)saved_key[index],
 					saved_len[index], cur_salt->salt,
 					cur_salt->saltlen, iv, 16);
-			pkcs12_pbe_derive_key(0, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key(1, cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_KEY,
 					(unsigned char*)saved_key[index],
 					saved_len[index], cur_salt->salt,
