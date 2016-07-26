@@ -133,13 +133,18 @@ int ldr_pot_source_cmp(const char *pot_entry, const char *full_source) {
  * line with a hash tacked on. However, it will always be shorter or equal
  * to (LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE)
  */
-const char *ldr_pot_source(const char *full_source,
+const char *ldr_pot_source(struct fmt_main *format, const char *full_source,
                            char buffer[LINE_BUFFER_SIZE + 1])
 {
 	MD5_CTX ctx;
-	int len;
+	int len = POT_BUFFER_CT_TRIM_SIZE;
 	char *p = buffer;
 	unsigned char mbuf[16];
+
+	if (format->params.binary_size) {
+		len -= format->params.binary_size*2;
+		len -= 10;  // length of $BIN_HASH$
+	}
 
 	if (strnlen(full_source, MAX_CIPHERTEXT_SIZE + 1) <= MAX_CIPHERTEXT_SIZE)
 		return full_source;
@@ -148,7 +153,6 @@ const char *ldr_pot_source(const char *full_source,
 	 * We create a .pot record that is MAX_CIPHERTEXT_SIZE long
 	 * but that has a hash of the full source
 	 */
-	len = POT_BUFFER_CT_TRIM_SIZE;
 	memcpy(p, full_source, len);
 	p += len;
 	memcpy(p, "$SOURCE_HASH$", 13);
@@ -158,6 +162,14 @@ const char *ldr_pot_source(const char *full_source,
 	MD5_Final(mbuf, &ctx);
 	base64_convert(mbuf, e_b64_raw, 16, p, e_b64_hex, 33, 0, 0);
 	p += 32;
+	if (format->params.binary_size) {
+		void *bin;
+		memcpy(p, "$BIN_HASH$", 10);
+		p += 10;
+		bin = format->methods.binary((char*)full_source);
+		base64_convert(bin, e_b64_raw, format->params.binary_size, p, e_b64_hex, (format->params.binary_size<<1)+1, 0, 0);
+		p += (format->params.binary_size<<1);
+	}
 	*p = 0;
 	return buffer;
 }

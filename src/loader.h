@@ -324,7 +324,8 @@ extern int ldr_pot_source_cmp(const char *pot_entry, const char *full_source);
  * This returns the line to write to a .pot file. It may be shorter than the
  * original source (with some extra tags added).
  */
-extern const char *ldr_pot_source(const char *full_source,
+extern const char *ldr_pot_source(struct fmt_main *format,
+                                  const char *full_source,
                                   char buffer[LINE_BUFFER_SIZE+1]);
 
 /*
