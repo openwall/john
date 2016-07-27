@@ -135,12 +135,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 //		hashhex = 32;
 //	else if (mac_algo == 160)	//ripemd160  (Note, not handled by ans1crypt.py)
 //		hashhex = 40;
-	else if (mac_algo == 224)
-		hashhex = 48;
+//	else if (mac_algo == 224)
+//		hashhex = 48;
 	else if (mac_algo == 256)
 		hashhex = 64;
-	else if (mac_algo == 384)
-		hashhex = 96;
+//	else if (mac_algo == 384)
+//		hashhex = 96;
 	else if (mac_algo == 512)
 		hashhex = 128;
 	else
@@ -271,10 +271,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if defined(SIMD_COEF_32)
 	if (cur_salt->mac_algo == 1)
 		inc = SSE_GROUP_SZ_SHA1;
-	else if (cur_salt->mac_algo == 256 || cur_salt->mac_algo == 224)
+	else if (cur_salt->mac_algo == 256)
 		inc = SSE_GROUP_SZ_SHA256;
 #if defined(SIMD_COEF_64)
-	else if (cur_salt->mac_algo == 512 || cur_salt->mac_algo == 384)
+	else if (cur_salt->mac_algo == 512)
 		inc = SSE_GROUP_SZ_SHA512;
 #endif
 #endif
@@ -300,7 +300,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					cur_salt->data_length,
 					(unsigned char*)crypt_out[index],
 					BINARY_SIZE);
-		} else if (cur_salt->mac_algo == 256 || cur_salt->mac_algo == 224) {
+		} else if (cur_salt->mac_algo == 256) {
 			unsigned char mackey[32];
 			int mackeylen = cur_salt->key_length;
 			pkcs12_pbe_derive_key(cur_salt->mac_algo, cur_salt->iteration_count,
@@ -309,11 +309,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					saved_len[index], cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
 
-			JTR_hmac_sha256(mackey, mackeylen, cur_salt->data,
+			hmac_sha256(mackey, mackeylen, cur_salt->data,
 					cur_salt->data_length,
 					(unsigned char*)crypt_out[index],
-					BINARY_SIZE, cur_salt->mac_algo==224);
-		} else if (cur_salt->mac_algo == 512 || cur_salt->mac_algo == 384) {
+					BINARY_SIZE);
+		} else if (cur_salt->mac_algo == 512) {
 			unsigned char mackey[64];
 			int mackeylen = cur_salt->key_length;
 			pkcs12_pbe_derive_key(cur_salt->mac_algo, cur_salt->iteration_count,
@@ -322,10 +322,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					saved_len[index], cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
 
-			JTR_hmac_sha512(mackey, mackeylen, cur_salt->data,
+			hmac_sha512(mackey, mackeylen, cur_salt->data,
 					cur_salt->data_length,
 					(unsigned char*)crypt_out[index],
-					BINARY_SIZE, cur_salt->mac_algo==384);
+					BINARY_SIZE);
 		}
 
 #else
@@ -414,33 +414,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						BINARY_SIZE);
 			}
 #endif
-		}
-		else if (cur_salt->mac_algo == 256 || cur_salt->mac_algo == 224) {
-			unsigned char mackey[32];
-			int mackeylen = cur_salt->key_length;
-			pkcs12_pbe_derive_key(cur_salt->mac_algo, cur_salt->iteration_count,
-					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
-					(unsigned char*)saved_key[index],
-					saved_len[index], cur_salt->salt,
-					cur_salt->saltlen, mackey, mackeylen);
-
-			JTR_hmac_sha256(mackey, mackeylen, cur_salt->data,
-					cur_salt->data_length,
-					(unsigned char*)crypt_out[index],
-					BINARY_SIZE, cur_salt->mac_algo==224);
-		} else if (cur_salt->mac_algo == 512 || cur_salt->mac_algo == 384) {
-			unsigned char mackey[64];
-			int mackeylen = cur_salt->key_length;
-			pkcs12_pbe_derive_key(cur_salt->mac_algo, cur_salt->iteration_count,
-					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
-					(unsigned char*)saved_key[index],
-					saved_len[index], cur_salt->salt,
-					cur_salt->saltlen, mackey, mackeylen);
-
-			JTR_hmac_sha512(mackey, mackeylen, cur_salt->data,
-					cur_salt->data_length,
-					(unsigned char*)crypt_out[index],
-					BINARY_SIZE, cur_salt->mac_algo==384);
 		}
 #endif
 	}
