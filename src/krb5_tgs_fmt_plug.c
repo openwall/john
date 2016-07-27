@@ -92,6 +92,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char *ptr, *keeptr;
 	int i;
 
+	if (strstr(ciphertext, "$SOURCE_HASH$"))
+		return ciphertext;
 	ptr = mem_alloc_tiny(strlen(ciphertext) + 12 + 1, MEM_ALIGN_NONE);
 	keeptr = ptr;
 
