@@ -65,8 +65,12 @@ def parse_pkcs12(filename):
         mac_algo_numeric = -1
         if mac_algo == "sha1":
             mac_algo_numeric = 1
+        elif mac_algo == "sha224":
+            mac_algo_numeric = 224
         elif mac_algo == "sha256":
             mac_algo_numeric = 256
+        elif mac_algo == "sha384":
+            mac_algo_numeric = 384
         elif mac_algo == "sha512":
             mac_algo_numeric = 512
         else:

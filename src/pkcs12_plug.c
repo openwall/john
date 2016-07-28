@@ -56,7 +56,7 @@ int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 	*cp++ = 0;
 	*cp = 0;
 
-	if (md_type == 1 || md_type == 256 || md_type == 512)
+	if (md_type == 1 || md_type == 256 || md_type == 512 || md_type == 224 || md_type == 384)
 		mbedtls_pkcs12_derivation(key, keylen, unipwd, pwdlen * 2 + 2, salt,
 				saltlen, md_type, id, iterations);
     return 0;
@@ -123,18 +123,18 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 //		hlen = 20;
 //		v = 64;
 //		break;
-//	case 224:
-//		hlen = 28;	// for SHA224
-//		v = 64;
-//		break;
+	case 224:
+		hlen = 28;	// for SHA224
+		v = 64;
+		break;
 	case 256:
 		hlen = 32;	// for SHA256
 		v = 64;
 		break;
-//	case 384:
-//		hlen = 48;	// for SHA384
-//		v = 128;
-//		break;
+	case 384:
+		hlen = 48;	// for SHA384
+		v = 128;
+		break;
 	case 512:
 		hlen = 64;	// for SHA512
 		v = 128;
@@ -166,6 +166,19 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
                     SHA1_Final(hash_output, &md_ctx);
                 }
 		break;
+	    case 224:
+	    	SHA224_Init(&md_ctx256);
+                SHA224_Update(&md_ctx256, diversifier, v);
+                SHA224_Update(&md_ctx256, salt_block, v);
+                SHA224_Update(&md_ctx256, pwd_block, v);
+                SHA224_Final(hash_output, &md_ctx256);
+                // Perform remaining ( iterations - 1 ) recursive hash calculations
+                for( i = 1; i < (size_t) iterations; i++ ) {
+                    SHA224_Init(&md_ctx256);
+                    SHA224_Update(&md_ctx256, hash_output, hlen);
+                    SHA224_Final(hash_output, &md_ctx256);
+                }
+		break;
     	    case 256:
 	    	SHA256_Init(&md_ctx256);
                 SHA256_Update(&md_ctx256, diversifier, v);
@@ -177,6 +190,19 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
                     SHA256_Init(&md_ctx256);
                     SHA256_Update(&md_ctx256, hash_output, hlen);
                     SHA256_Final(hash_output, &md_ctx256);
+                }
+		break;
+	    case 384:
+	    	SHA384_Init(&md_ctx512);
+                SHA384_Update(&md_ctx512, diversifier, v);
+                SHA384_Update(&md_ctx512, salt_block, v);
+                SHA384_Update(&md_ctx512, pwd_block, v);
+                SHA384_Final(hash_output, &md_ctx512);
+                // Perform remaining ( iterations - 1 ) recursive hash calculations
+                for( i = 1; i < (size_t) iterations; i++ ) {
+                    SHA384_Init(&md_ctx512);
+                    SHA384_Update(&md_ctx512, hash_output, hlen);
+                    SHA384_Final(hash_output, &md_ctx512);
                 }
 		break;
 	    case 512:
