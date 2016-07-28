@@ -89,14 +89,14 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
     unsigned char *p;
     unsigned char c;
 
-    size_t hlen, use_len, v, i;
+    size_t hlen, use_len, v, i, v2;
 
     SHA_CTX md_ctx;
     SHA256_CTX md_ctx256;
     SHA512_CTX md_ctx512;
 
-    // This version only allows max of 64 bytes of password or salt
-    if( datalen > 128 || pwdlen > 64 || saltlen > 64 )
+    // This version only allows max of 48 bytes of password or salt
+    if( datalen > 128 || pwdlen > 48*2+2 || saltlen > 64 )
         return -1; // MBEDTLS_ERR_PKCS12_BAD_INPUT_DATA
 
     switch (md_type) {
@@ -107,6 +107,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	case 1:
 		hlen = 20;	// for SHA1
 		v = 64;
+		v2 = ((pwdlen+64)/64)*64;
 		break;
 
 //	case 2:			// for mdc2  (Note, not handled by ans1crypt.py)
@@ -126,18 +127,20 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	case 224:
 		hlen = 28;	// for SHA224
 		v = 64;
+		v2 = ((pwdlen+64)/64)*64;
 		break;
 	case 256:
 		hlen = 32;	// for SHA256
 		v = 64;
+		v2 = ((pwdlen+64)/64)*64;
 		break;
 	case 384:
 		hlen = 48;	// for SHA384
-		v = 128;
+		v2 = v = 128;
 		break;
 	case 512:
 		hlen = 64;	// for SHA512
-		v = 128;
+		v2 = v = 128;
 		break;
 	default:
 		return -1;
@@ -146,7 +149,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
     memset( diversifier, (unsigned char) id, v );
 
     pkcs12_fill_buffer( salt_block, v, salt, saltlen );
-    pkcs12_fill_buffer( pwd_block,  v, pwd,  pwdlen  );
+    pkcs12_fill_buffer( pwd_block,  v2, pwd,  pwdlen  );
 
     p = data;
     while( datalen > 0 )
@@ -157,7 +160,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
     	        SHA1_Init(&md_ctx);
                 SHA1_Update(&md_ctx, diversifier, v);
                 SHA1_Update(&md_ctx, salt_block, v);
-                SHA1_Update(&md_ctx, pwd_block, v);
+                SHA1_Update(&md_ctx, pwd_block, v2);
                 SHA1_Final(hash_output, &md_ctx);
                 // Perform remaining ( iterations - 1 ) recursive hash calculations
                 for( i = 1; i < (size_t) iterations; i++ ) {
@@ -170,7 +173,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	    	SHA224_Init(&md_ctx256);
                 SHA224_Update(&md_ctx256, diversifier, v);
                 SHA224_Update(&md_ctx256, salt_block, v);
-                SHA224_Update(&md_ctx256, pwd_block, v);
+                SHA224_Update(&md_ctx256, pwd_block, v2);
                 SHA224_Final(hash_output, &md_ctx256);
                 // Perform remaining ( iterations - 1 ) recursive hash calculations
                 for( i = 1; i < (size_t) iterations; i++ ) {
@@ -183,7 +186,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	    	SHA256_Init(&md_ctx256);
                 SHA256_Update(&md_ctx256, diversifier, v);
                 SHA256_Update(&md_ctx256, salt_block, v);
-                SHA256_Update(&md_ctx256, pwd_block, v);
+                SHA256_Update(&md_ctx256, pwd_block, v2);
                 SHA256_Final(hash_output, &md_ctx256);
                 // Perform remaining ( iterations - 1 ) recursive hash calculations
                 for( i = 1; i < (size_t) iterations; i++ ) {
@@ -379,6 +382,8 @@ static void pkcs12_fill_buffer_simd(unsigned char *data[SIMD_MAX_GROUP_PFX], siz
 	for (j = 0; j < fill_count; ++j) {
 		size_t len = data_len;
 		p = data[j];
+		if (data_len == 64)
+			len = ((fill_len[j]+64)/64)*64;
 		while( len > 0 )
 		{
 			use_len = ( len > fill_len[j] ) ? fill_len[j] : len;
@@ -403,28 +408,19 @@ int mbedtls_pkcs12_derivation_simd1( unsigned char *data[SSE_GROUP_SZ_SHA1], siz
 	unsigned char c;
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_buf[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA1];
 
-	size_t hlen, use_len, v, i;
+	size_t hlen, use_len, v, v2, i;
 
 	SHA_CTX md_ctx;
 
-	// This version only allows max of 64 bytes of password or salt
-	if( datalen > 128 || saltlen > 64 )
-		return -1;
 	for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		pwd_block[j] = pwd_block_[j];
 		salt_block[j] = salt_block_[j];
 		pwdlen[j] <<= 1;
 		pwdlen[j] += 2;
-		//if(pwdlen[j] > 64)
-		//	return -1; // MBEDTLS_ERR_PKCS12_BAD_INPUT_DATA
 	}
 
 	hlen = 20; // for SHA1
-
-	if( hlen <= 32 )
-		v = 64;
-	else
-		v = 128;
+	v = 64;
 
 	memset(diversifier, (unsigned char) id, v);
 	memset(sse_buf, 0, sizeof(sse_buf));
@@ -440,7 +436,8 @@ int mbedtls_pkcs12_derivation_simd1( unsigned char *data[SSE_GROUP_SZ_SHA1], siz
 
 			SHA1_Update( &md_ctx, diversifier, v );
 			SHA1_Update( &md_ctx, salt_block[k], v );
-			SHA1_Update( &md_ctx, pwd_block[k], v );
+			v2 = ((pwdlen[k]+64)/64)*64;
+			SHA1_Update( &md_ctx, pwd_block[k], v2 );
 			SHA1_Final( hash, &md_ctx );
 			for (i = 0; i < SHA_DIGEST_LENGTH; ++i) {
 				sse_buf[GETPOS1(i, k)] = hash[i];
@@ -521,13 +518,10 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 	unsigned char c;
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_buf[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA256];
 
-	size_t hlen, use_len, v, i;
+	size_t hlen, use_len, v, v2, i;
 
 	SHA256_CTX md_ctx;
 
-	// This version only allows max of 64 bytes of password or salt
-	if( datalen > 128 || saltlen > 64 )
-		return -1;
 	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 		pwd_block[j] = pwd_block_[j];
 		salt_block[j] = salt_block_[j];
@@ -536,11 +530,7 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 	}
 
 	hlen = 32; // for SHA256
-
-	if( hlen <= 32 )
-		v = 64;
-	else
-		v = 128;
+	v = 64;
 
 	memset(diversifier, (unsigned char) id, v);
 	memset(sse_buf, 0, sizeof(sse_buf));
@@ -556,7 +546,8 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 
 			SHA256_Update( &md_ctx, diversifier, v );
 			SHA256_Update( &md_ctx, salt_block[k], v );
-			SHA256_Update( &md_ctx, pwd_block[k], v );
+			v2 = ((pwdlen[k]+64)/64)*64;
+			SHA256_Update( &md_ctx, pwd_block[k], v2 );
 			SHA256_Final( hash, &md_ctx );
 			for (i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
 				sse_buf[GETPOS1(i, k)] = hash[i];
