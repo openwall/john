@@ -275,7 +275,7 @@ void * sha512_common_binary_xsha512_rev(char *ciphertext)
 
 void *sha512_common_binary_nsldap(char *ciphertext) {
 	static union {
-		char out[DIGEST_SIZE];
+		char out[DIGEST_SIZE+4];
 		uint64_t x;
 	} x;
 	char *realcipher = x.out;
