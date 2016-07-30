@@ -21,17 +21,21 @@ john_register_one(&fmt_zipmonster);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "simd-intrinsics.h"
+
+//#undef SIMD_COEF_32
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               8
+#define OMP_SCALE               1
 #endif
 #endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "ZipMonster"
 #define FORMAT_NAME             "MD5(ZipMonster)"
-#define ALGORITHM_NAME          "MD5 x 50000"
+#define ALGORITHM_NAME          "MD5-" MD5_ALGORITHM_NAME " x 50000"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        125
@@ -53,6 +57,10 @@ static struct fmt_tests zipmonster_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+
+#ifdef SIMD_COEF_32
+#define GETPOS(i,index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#endif
 
 static void init(struct fmt_main *self)
 {
@@ -140,30 +148,89 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+	int inc = 1;
+#ifdef SIMD_COEF_32
+	inc = SIMD_COEF_32*SIMD_PARA_MD5;
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += inc)
 	{
 		unsigned char buffer[BINARY_SIZE];
-		unsigned char hex_buffer[BINARY_SIZE * 2 + 1] = { 0 };
 		MD5_CTX ctx;
 		int n = 49999;
+#ifdef SIMD_COEF_32
+		int j, k;
+		uint32_t *p, t;
+		JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char md5[2*64*SIMD_COEF_32*SIMD_PARA_MD5];
+		JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t crypt_buf[2*4*SIMD_COEF_32*SIMD_PARA_MD5];
+		memset(md5,0,sizeof(md5));
+
+		for (j = 0; j < SIMD_COEF_32*SIMD_PARA_MD5; ++j) {
+			MD5_Init(&ctx);
+			MD5_Update(&ctx, saved_key[index+j], strlen(saved_key[index+j]));
+			MD5_Final(buffer, &ctx);
+
+			for (k = 0; k < 16; ++k) {
+				md5[GETPOS((k<<1), j)] = itoa16u[buffer[k]>>4];
+				md5[GETPOS((k<<1)+1, j)] = itoa16u[buffer[k]&0xF];
+			}
+			md5[GETPOS(32,j)] = 0x80;
+			md5[GETPOS(57,j)] = 1;
+		}
+#else
+		unsigned char hex_buffer[BINARY_SIZE * 2];
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		MD5_Final(buffer, &ctx);
 		hex_encode_uppercase(buffer, BINARY_SIZE, hex_buffer);
+#endif
 
 		do {
+#ifdef SIMD_COEF_32
+			SIMDmd5body(md5, crypt_buf, NULL, SSEi_MIXED_IN);
+			p = crypt_buf;
+			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; j += SIMD_COEF_32) {
+				for (k = 0; k < SIMD_COEF_32*4; ++k) {
+					unsigned char c;
+					uint32_t J = j+(k&(SIMD_COEF_32-1)), K = (k/SIMD_COEF_32)<<3;
+					t = *p++;
+					c = t;
+					md5[GETPOS(K, J)] = itoa16u[c>>4]; ++K;
+					md5[GETPOS(K, J)] = itoa16u[c&0xF]; ++K;
+					c = t>>8;
+					md5[GETPOS(K, J)] = itoa16u[c>>4];  ++K;
+					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
+					c = t>>16;
+					md5[GETPOS(K, J)] = itoa16u[c>>4];  ++K;
+					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
+					c = t>>24;
+					md5[GETPOS(K, J)] = itoa16u[c>>4];  ++K;
+					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
+				}
+			}
+#else
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hex_buffer, BINARY_SIZE * 2);
 			MD5_Final(buffer, &ctx);
 			hex_encode_uppercase(buffer, BINARY_SIZE, hex_buffer);
+#endif
 			--n;
 		} while (n);
-
+#ifdef SIMD_COEF_32
+		p = crypt_buf;
+		for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; j+=SIMD_COEF_32) {
+			for (k = 0; k < SIMD_COEF_32*4; ++k) {
+				uint32_t J = j+(k&(SIMD_COEF_32-1)), K = (k/SIMD_COEF_32);
+				crypt_out[index+J][K] = *p++;
+			}
+		}
+#else
 		memcpy((unsigned char*)crypt_out[index], buffer, BINARY_SIZE);
+#endif
 	}
 
 	return count;
