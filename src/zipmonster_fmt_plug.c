@@ -174,8 +174,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 		int j, k;
 		uint32_t *p, t;
-		JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char md5[2*64*SIMD_COEF_32*SIMD_PARA_MD5];
-		JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t crypt_buf[2*4*SIMD_COEF_32*SIMD_PARA_MD5];
+		JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char md5[64*SIMD_COEF_32*SIMD_PARA_MD5];
+		JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t crypt_buf[4*SIMD_COEF_32*SIMD_PARA_MD5];
 		memset(md5,0,sizeof(md5));
 
 		for (j = 0; j < SIMD_COEF_32*SIMD_PARA_MD5; ++j) {
