@@ -64,6 +64,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 #ifdef SIMD_COEF_32
 #define GETPOS(i,index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+static unsigned short itoa16u_w[256];
 #endif
 
 static void init(struct fmt_main *self)
@@ -81,6 +82,16 @@ static void init(struct fmt_main *self)
 			sizeof(*saved_len));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*crypt_out));
+#ifdef SIMD_COEF_32
+	{
+		int i;
+		char buf[3];
+		for (i = 0; i < 256; ++i) {
+			sprintf(buf, "%X%X", i>>4, i&0xF);
+			memcpy(&(itoa16u_w[i]), buf, 2);
+		}
+	}
+#endif
 }
 
 static void done(void)
@@ -217,7 +228,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
 				}
 			}
-#else
+#elif 0
 			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; ++j) {
 				int i;
 				uint32_t *op = (uint32_t*)&md5[GETPOS(0, j)];
@@ -239,6 +250,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					t1 |= itoa16u[(t>>4)&0xF];
 					*op = t1;
 					op += SIMD_COEF_32;
+				}
+			}
+#else
+			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; ++j) {
+				int i;
+				uint16_t *op = (uint16_t*)&md5[GETPOS(0, j)];
+				p = &crypt_buf[(j&(SIMD_COEF_32-1))+(4*SIMD_COEF_32*(j/SIMD_COEF_32))];
+				for (i = 0; i < 4; ++i) {
+					t = *p;
+					p += SIMD_COEF_32;
+					*op++ = itoa16u_w[t&0xFF];
+					*op++ = itoa16u_w[(t>>8)&0xFF];
+					t >>= 16;
+					op += ((SIMD_COEF_32-1) << 1);
+					*op++ = itoa16u_w[t&0xFF];
+					*op++ = itoa16u_w[(t>>8)&0xFF];
+					op += ((SIMD_COEF_32-1) << 1);
 				}
 			}
 #endif
