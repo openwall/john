@@ -100,8 +100,8 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
-	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt,
-	                       sizeof(*crypt_out), ARCH_WORD_64);
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
 #endif
 }
 
