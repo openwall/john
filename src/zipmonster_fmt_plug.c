@@ -44,7 +44,11 @@ john_register_one(&fmt_zipmonster);
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      64
+#ifdef SIMD_COEF_32
+#define MAX_KEYS_PER_CRYPT      (SIMD_PARA_MD5*SIMD_COEF_32)
+#else
+#define MAX_KEYS_PER_CRYPT      1
+#endif
 #define FORMAT_TAG              "$zipmonster$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
