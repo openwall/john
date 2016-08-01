@@ -117,7 +117,7 @@ JOHN_OBJS = \
 	undrop.o \
 	regex.o pp.o \
 	c3_fmt.o \
-	unique.o putty2john.o gpg2john.o memdbg.o
+	unique.o rulez.o putty2john.o gpg2john.o memdbg.o
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
@@ -133,7 +133,7 @@ GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
 
 PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../run/unique@EXE_EXT@ ../run/undrop@EXE_EXT@ \
-	../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
+	../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ ../run/rulez@EXE_EXT@  \
 	../run/genmkvpwd@EXE_EXT@ ../run/mkvcalcproba@EXE_EXT@ ../run/calc_stat@EXE_EXT@ \
 	../run/tgtsnarf@EXE_EXT@ ../run/racf2john@EXE_EXT@ ../run/hccap2john@EXE_EXT@ \
 	../run/raw2dyna@EXE_EXT@ ../run/keepass2john@EXE_EXT@ \
@@ -494,6 +494,8 @@ rpp.o:	rpp.c arch.h params.h config.h rpp.h common.h memory.h memdbg.h os.h os-a
 
 rules.o:	rules.c arch.h misc.h jumbo.h stdint.h autoconfig.h params.h common.h memory.h formats.h loader.h list.h logger.h rpp.h config.h rules.h options.h getopt.h john.h os.h os-autoconf.h unicode.h encoding_data.h memdbg.h
 
+rulez.o:	rulez.c arch.h misc.h params.h memory.h jumbo.h rpp.h rules.h memdbg.h
+
 sboxes.o:	sboxes.c nonstd.c
 
 sboxes-s.o:	sboxes-s.c
@@ -681,6 +683,10 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/unique
 	$(LN) john ../run/unique
 
+../run/rulez: ../run/john
+	$(RM) ../run/rulez
+	$(LN) john ../run/rulez
+
 #####################################################################
 # These targets MUST match ALL of the john targets that use ln -s
 # These are built for Win32, so that we have a 'native' symlink back
@@ -748,6 +754,10 @@ kernels: @KERNEL_OBJS@
 ../run/unique.exe: symlink.c
 	$(CC) symlink.c -o ../run/unique.exe
 	$(STRIP) ../run/unique.exe
+
+../run/rulez.exe: symlink.c
+	$(CC) symlink.c -o ../run/rulez.exe
+	$(STRIP) ../run/rulez.exe
 
 ########################################################
 # Not linked to symlink for a .exe file, so simply make

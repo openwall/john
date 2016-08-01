@@ -61,14 +61,16 @@ static struct fmt_tests zipmonster_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static unsigned short itoa16u_w[256];
 
 #ifdef SIMD_COEF_32
 #define GETPOS(i,index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
-static unsigned short itoa16u_w[256];
 #endif
 
 static void init(struct fmt_main *self)
 {
+	int i;
+	char buf[3];
 #ifdef _OPENMP
 	static int omp_t = 1;
 	omp_t = omp_get_max_threads();
@@ -82,16 +84,10 @@ static void init(struct fmt_main *self)
 			sizeof(*saved_len));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*crypt_out));
-#ifdef SIMD_COEF_32
-	{
-		int i;
-		char buf[3];
-		for (i = 0; i < 256; ++i) {
-			sprintf(buf, "%X%X", i>>4, i&0xF);
-			memcpy(&(itoa16u_w[i]), buf, 2);
-		}
+	for (i = 0; i < 256; ++i) {
+		sprintf(buf, "%X%X", i>>4, i&0xF);
+		memcpy(&(itoa16u_w[i]), buf, 2);
 	}
-#endif
 }
 
 static void done(void)
@@ -148,14 +144,13 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-static inline void hex_encode_uppercase(unsigned char *str, int len, unsigned char *out)
+static inline void hex_encode_uppercase(unsigned char *str, unsigned char *_out)
 {
 	int i;
+	unsigned short *out = (unsigned short*)_out;
 
-	for (i = 0; i < len; ++i) {
-		out[0] = itoa16u[str[i]>>4];
-		out[1] = itoa16u[str[i]&0xF];
-		out += 2;
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		out[i] = itoa16u_w[str[i]];
 	}
 }
 
@@ -184,13 +179,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memset(md5,0,sizeof(md5));
 
 		for (j = 0; j < SIMD_COEF_32*SIMD_PARA_MD5; ++j) {
+			uint16_t *op = (uint16_t*)&md5[GETPOS(0, j)];
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, saved_key[index+j], strlen(saved_key[index+j]));
 			MD5_Final(buffer, &ctx);
 
 			for (k = 0; k < 16; ++k) {
-				md5[GETPOS((k<<1), j)] = itoa16u[buffer[k]>>4];
-				md5[GETPOS((k<<1)+1, j)] = itoa16u[buffer[k]&0xF];
+				op[0] = itoa16u_w[buffer[k++]];
+				op[1] = itoa16u_w[buffer[k]];
+				op += ((SIMD_COEF_32) << 1);
 			}
 			md5[GETPOS(32,j)] = 0x80;
 			md5[GETPOS(57,j)] = 1;
@@ -201,58 +198,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		MD5_Final(buffer, &ctx);
-		hex_encode_uppercase(buffer, BINARY_SIZE, hex_buffer);
+		hex_encode_uppercase(buffer, hex_buffer);
 #endif
 
 		do {
 #ifdef SIMD_COEF_32
 			SIMDmd5body(md5, crypt_buf, NULL, SSEi_MIXED_IN);
-#if 0
-			p = crypt_buf;
-			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; j += SIMD_COEF_32) {
-				for (k = 0; k < SIMD_COEF_32*4; ++k) {
-					unsigned char c;
-					uint32_t J = j+(k&(SIMD_COEF_32-1)), K = (k/SIMD_COEF_32)<<3;
-					t = *p++;
-					c = t;
-					md5[GETPOS(K, J)] = itoa16u[c>>4]; ++K;
-					md5[GETPOS(K, J)] = itoa16u[c&0xF]; ++K;
-					c = t>>8;
-					md5[GETPOS(K, J)] = itoa16u[c>>4];  ++K;
-					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
-					c = t>>16;
-					md5[GETPOS(K, J)] = itoa16u[c>>4];  ++K;
-					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
-					c = t>>24;
-					md5[GETPOS(K, J)] = itoa16u[c>>4];  ++K;
-					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
-				}
-			}
-#elif 0
-			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; ++j) {
-				int i;
-				uint32_t *op = (uint32_t*)&md5[GETPOS(0, j)];
-				p = &crypt_buf[(j&(SIMD_COEF_32-1))+(4*SIMD_COEF_32*(j/SIMD_COEF_32))];
-				for (i = 0; i < 4; ++i) {
-					uint32_t t1;
-					t = *p;
-					p += SIMD_COEF_32;
-					t1 = itoa16u[(t>>8)&0xF];   t1 <<= 8;
-					t1 |= itoa16u[(t>>12)&0xF]; t1 <<= 8;
-					t1 |= itoa16u[t&0xF];       t1 <<= 8;
-					t1 |= itoa16u[(t>>4)&0xF];
-					*op = t1;
-					op += SIMD_COEF_32;
-					t >>= 16;
-					t1 = itoa16u[(t>>8)&0xF];   t1 <<= 8;
-					t1 |= itoa16u[(t>>12)&0xF]; t1 <<= 8;
-					t1 |= itoa16u[t&0xF];       t1 <<= 8;
-					t1 |= itoa16u[(t>>4)&0xF];
-					*op = t1;
-					op += SIMD_COEF_32;
-				}
-			}
-#else
+			// upper case hex encode into the next input buffer.
 			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; ++j) {
 				int i;
 				uint16_t *op = (uint16_t*)&md5[GETPOS(0, j)];
@@ -260,21 +212,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (i = 0; i < 4; ++i) {
 					t = *p;
 					p += SIMD_COEF_32;
-					*op++ = itoa16u_w[t&0xFF];
-					*op++ = itoa16u_w[(t>>8)&0xFF];
+					op[0] = itoa16u_w[t&0xFF];
+					op[1] = itoa16u_w[(t>>8)&0xFF];
 					t >>= 16;
-					op += ((SIMD_COEF_32-1) << 1);
-					*op++ = itoa16u_w[t&0xFF];
-					*op++ = itoa16u_w[(t>>8)&0xFF];
-					op += ((SIMD_COEF_32-1) << 1);
+					op += ((SIMD_COEF_32) << 1);
+					op[0] = itoa16u_w[t&0xFF];
+					op[1] = itoa16u_w[(t>>8)&0xFF];
+					op += ((SIMD_COEF_32) << 1);
 				}
 			}
-#endif
 #else
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hex_buffer, BINARY_SIZE * 2);
 			MD5_Final(buffer, &ctx);
-			hex_encode_uppercase(buffer, BINARY_SIZE, hex_buffer);
+			hex_encode_uppercase(buffer, hex_buffer);
 #endif
 			--n;
 		} while (n);

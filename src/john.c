@@ -169,6 +169,7 @@ extern struct fmt_main fmt_cuda_rawsha256;
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
 extern int unique(int argc, char **argv);
+extern int rulez(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 
 extern int base64conv(int argc, char **argv);
@@ -1895,6 +1896,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "undrop")) {
 		CPU_detect_or_fallback(argv, 0);
 		return undrop(argc, argv);
+	}
+
+	if (!strcmp(name, "rulez")) {
+		CPU_detect_or_fallback(argv, 0);
+		return rulez(argc, argv);
 	}
 
 	if (!strcmp(name, "unique")) {

@@ -1165,7 +1165,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 {
 	static char out_rule[RULE_BUFFER_SIZE];
 
-	if (hc_logic && !strncmp(rule, "!! hashcat logic", 13))
+	if (hc_logic && !strncmp(rule, "!! hashcat logic", 16))
 		return NULL;
 
 	while (RULE)
