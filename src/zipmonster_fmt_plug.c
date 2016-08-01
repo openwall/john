@@ -196,6 +196,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		do {
 #ifdef SIMD_COEF_32
 			SIMDmd5body(md5, crypt_buf, NULL, SSEi_MIXED_IN);
+#if 0
 			p = crypt_buf;
 			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; j += SIMD_COEF_32) {
 				for (k = 0; k < SIMD_COEF_32*4; ++k) {
@@ -216,6 +217,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					md5[GETPOS(K, J)] = itoa16u[c&0xF];  ++K;
 				}
 			}
+#else
+			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; ++j) {
+				int i;
+				uint32_t *op = (uint32_t*)&md5[GETPOS(0, j)];
+				p = &crypt_buf[(j&(SIMD_COEF_32-1))+(4*SIMD_COEF_32*(j/SIMD_COEF_32))];
+				for (i = 0; i < 4; ++i) {
+					uint32_t t1;
+					t = *p;
+					p += SIMD_COEF_32;
+					t1 = itoa16u[(t>>8)&0xF];   t1 <<= 8;
+					t1 |= itoa16u[(t>>12)&0xF]; t1 <<= 8;
+					t1 |= itoa16u[t&0xF];       t1 <<= 8;
+					t1 |= itoa16u[(t>>4)&0xF];
+					*op = t1;
+					op += SIMD_COEF_32;
+					t >>= 16;
+					t1 = itoa16u[(t>>8)&0xF];   t1 <<= 8;
+					t1 |= itoa16u[(t>>12)&0xF]; t1 <<= 8;
+					t1 |= itoa16u[t&0xF];       t1 <<= 8;
+					t1 |= itoa16u[(t>>4)&0xF];
+					*op = t1;
+					op += SIMD_COEF_32;
+				}
+			}
+#endif
 #else
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hex_buffer, BINARY_SIZE * 2);
