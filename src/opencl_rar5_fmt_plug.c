@@ -329,6 +329,7 @@ struct fmt_main fmt_ocl_rar5 = {
 	{
 		"iteration count",
 	},
+	{ "$rar5$" },
 	tests
 }, {
 	init,

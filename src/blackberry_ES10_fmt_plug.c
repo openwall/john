@@ -293,6 +293,7 @@ struct fmt_main fmt_blackberry1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		blackberry_tests
 	}, {
 		init,

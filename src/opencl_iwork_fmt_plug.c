@@ -362,6 +362,7 @@ struct fmt_main fmt_opencl_iwork = {
 		{
 			"iteration count",
 		},
+		{ "$iwork$" },
 		iwork_tests
 	}, {
 		init,

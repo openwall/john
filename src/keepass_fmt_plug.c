@@ -197,9 +197,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$keepass$*", 10))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 10;
@@ -567,6 +564,7 @@ struct fmt_main fmt_KeePass = {
 			"iteration count",
 			"version",
 		},
+		{ "$keepass$*" },
 		KeePass_tests
 	}, {
 		init,

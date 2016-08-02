@@ -276,6 +276,7 @@ struct fmt_main fmt_snefru_256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		snefru_256_tests
 	}, {
 		init,
@@ -336,7 +337,9 @@ struct fmt_main fmt_snefru_128 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },snefru_128_tests
+		{ NULL },
+		{ NULL },
+		snefru_128_tests
 	}, {
 		init,
 		done,

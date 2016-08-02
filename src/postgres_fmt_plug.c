@@ -290,6 +290,7 @@ struct fmt_main fmt_postgres = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ NULL },
 		postgres_tests
 	}, {
 		init,

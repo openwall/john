@@ -402,6 +402,7 @@ struct fmt_main fmt_opencl_office2013 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

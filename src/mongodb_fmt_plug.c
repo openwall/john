@@ -309,6 +309,7 @@ struct fmt_main fmt_mongodb = {
 			"salt type",
 			/* FIXME: report user name length as 2nd cost? */
 		},
+		{ NULL },
 		mongodb_tests
 	}, {
 		init,

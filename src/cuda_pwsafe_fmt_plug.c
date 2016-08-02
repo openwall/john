@@ -227,6 +227,7 @@ struct fmt_main fmt_cuda_pwsafe = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		pwsafe_tests
 	}, {
 		init,

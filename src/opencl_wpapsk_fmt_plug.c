@@ -323,6 +323,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE,
 		{ NULL },
+		{ "$WPAPSK$" },
 		tests
 	}, {
 		init,

@@ -239,6 +239,7 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		{
 			NULL, //"iteration count",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

@@ -364,6 +364,7 @@ struct fmt_main fmt_vdi = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

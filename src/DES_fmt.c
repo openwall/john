@@ -380,6 +380,7 @@ struct fmt_main fmt_DES = {
 #endif
 		FMT_TRUNC | FMT_CASE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

@@ -390,6 +390,7 @@ struct fmt_main fmt_keyring = {
 		{
 			"iteration count",
 		},
+		{ "$keyring$" },
 		keyring_tests
 	}, {
 		init,

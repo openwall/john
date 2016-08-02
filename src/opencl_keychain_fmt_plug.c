@@ -404,6 +404,7 @@ struct fmt_main fmt_opencl_keychain = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		{ NULL },
+		{ NULL },
 		keychain_tests
 	}, {
 		init,

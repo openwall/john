@@ -437,6 +437,7 @@ struct fmt_main fmt_opencl_keyring = {
 		{
 			"iteration count",
 		},
+		{ "$keyring$" },
 		keyring_tests
 	}, {
 		init,

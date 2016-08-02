@@ -607,6 +607,7 @@ struct fmt_main fmt_opencl_NT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8 | FMT_REMOVE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

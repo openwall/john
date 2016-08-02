@@ -19,8 +19,9 @@
  * For now, you can just revert FMT_MAIN_VERSION to 11
  * in case of any problem with the new additions
  * (tunable cost parameters)
+ * (format signatures, #14)
  */
-#define FMT_MAIN_VERSION 13	/* change if structure fmt_main changes */
+#define FMT_MAIN_VERSION 14	/* change if structure fmt_main changes */
 
 /*
  * fmt_main is declared for real further down this file, but we refer to it in
@@ -33,6 +34,12 @@ struct fmt_main;
  * that can be reported for a single format
  */
 #define FMT_TUNABLE_COSTS	3
+
+/*
+ * Maximum number of different signatures
+ * that can be reported for a single format
+ */
+#define FMT_SIGNATURES	3
 
 /*
  * Some format methods accept pointers to these, yet we can't just include
@@ -162,8 +169,18 @@ struct fmt_params {
  */
 	char *tunable_cost_name[FMT_TUNABLE_COSTS];
 
-/* Some passwords to test the methods for correct operation (or NULL for no
- * self test, and no benchmark), terminated with a NULL ciphertext. */
+/*
+ * format signatures (such as $NT$, etc).
+ *
+ * This is used in loader to see if a line read from a .pot file is a
+ * 'chopped' line, that was shortened before being written to .pot.
+ */
+	char *signature[FMT_SIGNATURES];
+
+/*
+ * Some passwords to test the methods for correct operation (or NULL for no
+ * self test, and no benchmark), terminated with a NULL ciphertext.
+ */
 	struct fmt_tests *tests;
 };
 

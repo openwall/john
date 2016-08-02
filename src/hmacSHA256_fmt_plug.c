@@ -637,6 +637,7 @@ struct fmt_main fmt_hmacSHA256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init_256,
@@ -700,6 +701,7 @@ struct fmt_main fmt_hmacSHA224 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		{ NULL },
 		{ NULL },
 		tests_224
 	}, {

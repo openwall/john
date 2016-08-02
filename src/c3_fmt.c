@@ -734,6 +734,7 @@ struct fmt_main fmt_crypt = {
 			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
 			"algorithm specific iterations",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

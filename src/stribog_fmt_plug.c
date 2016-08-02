@@ -387,6 +387,7 @@ struct fmt_main fmt_stribog_256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		stribog_256_tests
 	}, {
 		init,
@@ -446,6 +447,7 @@ struct fmt_main fmt_stribog_512 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		{ NULL },
 		{ NULL },
 		stribog_512_tests
 	}, {

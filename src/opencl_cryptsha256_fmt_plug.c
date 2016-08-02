@@ -695,6 +695,7 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

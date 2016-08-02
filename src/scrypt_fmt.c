@@ -525,6 +525,7 @@ struct fmt_main fmt_scrypt = {
 			"r",
 			"p"
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

@@ -244,6 +244,7 @@ struct fmt_main fmt_rawKeccak_256 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

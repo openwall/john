@@ -342,11 +342,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	unsigned int bestiter = 0xFFFFFFFF;
 
 	out = (unsigned char*)&cs.myphdr;
-	if (strncmp(ciphertext, "$luks$", 6) != 0)
+	if (strncmp(ciphertext, "$luks$", 6))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
@@ -666,6 +663,7 @@ struct fmt_main fmt_luks = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{ NULL },
+		{ "$luks$" },
 		luks_tests
 	}, {
 		init,

@@ -610,6 +610,7 @@ struct fmt_main fmt_episerver = {
 		{
 			"hash type [1: SHA1 2:SHA256]",
 		},
+		{ NULL },
 		episerver_tests
 	}, {
 		init,

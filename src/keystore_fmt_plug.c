@@ -516,6 +516,7 @@ struct fmt_main fmt_keystore = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		/* FIXME: report keystore_cur_salt->data_length as tunable cost? */
 		{ NULL },
+		{ "$keystore$" },
 		keystore_common_tests
 	}, {
 		init,

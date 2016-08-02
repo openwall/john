@@ -368,6 +368,7 @@ struct fmt_main fmt_oracle = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

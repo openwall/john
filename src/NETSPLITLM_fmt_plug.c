@@ -336,6 +336,7 @@ struct fmt_main fmt_NETHALFLM = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_TRUNC | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

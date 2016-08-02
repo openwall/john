@@ -244,6 +244,7 @@ struct fmt_main fmt_tiger = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		tiger_tests
 	}, {
 		init,

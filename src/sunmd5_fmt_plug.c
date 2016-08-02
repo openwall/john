@@ -899,6 +899,7 @@ struct fmt_main fmt_sunmd5 = {
 			 */
 			"iteration count",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

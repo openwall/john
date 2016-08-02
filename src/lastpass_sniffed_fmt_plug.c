@@ -282,6 +282,7 @@ struct fmt_main fmt_sniffed_lastpass = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		lastpass_tests
 	}, {
 		init,

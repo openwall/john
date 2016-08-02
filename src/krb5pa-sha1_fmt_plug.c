@@ -628,6 +628,7 @@ struct fmt_main fmt_krb5pa = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

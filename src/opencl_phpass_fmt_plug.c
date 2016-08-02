@@ -348,6 +348,7 @@ struct fmt_main fmt_opencl_phpass = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		phpass_common_tests_15
 	}, {
 		init,

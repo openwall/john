@@ -295,6 +295,7 @@ struct fmt_main fmt_django = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		django_tests
 	}, {
 		init,

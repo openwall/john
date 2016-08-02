@@ -143,9 +143,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int len, i;
 	if (strncmp(ciphertext, "$pfx$*", 6))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
@@ -328,6 +325,7 @@ struct fmt_main fmt_pfx = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT,
 		{ NULL },
+		{ "$pfx$*" },
 		pfx_tests
 	}, {
 		init,

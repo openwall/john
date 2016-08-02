@@ -443,6 +443,7 @@ struct fmt_main fmt_NETNTLM_old = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

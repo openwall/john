@@ -144,9 +144,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int res;
 	if (strncmp(ciphertext, "$bitcoin$", 9))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -418,6 +415,7 @@ struct fmt_main fmt_bitcoin = {
 		{
 			"iteration count",
 		},
+		{ "$bitcoin$" },
 		bitcoin_tests
 	}, {
 		init,

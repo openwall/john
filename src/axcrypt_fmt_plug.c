@@ -318,6 +318,7 @@ struct fmt_main fmt_axcrypt =
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{ NULL },
+		{ "$axcrypt$" },
 		axcrypt_tests
 	}, {
 		init,

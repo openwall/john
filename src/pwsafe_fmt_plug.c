@@ -650,6 +650,7 @@ struct fmt_main fmt_pwsafe = {
 		{
 			"iteration count",
 		},
+		{ "$pwsafe$" },
 		pwsafe_tests
 	}, {
 		init,

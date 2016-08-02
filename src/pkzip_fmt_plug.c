@@ -202,9 +202,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		else
 			return ret;
 	}
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 
 	cpkeep = strdup(ciphertext);
 	cp = cpkeep;
@@ -1667,6 +1664,7 @@ struct fmt_main fmt_pkzip = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{ NULL },
+		{ "$pkzip$", "$pkzip2$" },
 		tests
 	}, {
 		init,

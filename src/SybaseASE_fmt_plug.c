@@ -414,7 +414,8 @@ struct fmt_main fmt_SybaseASE = {
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
-		{ NULL },
+	{ NULL },
+	{ NULL },
         SybaseASE_tests
     }, {
         init,

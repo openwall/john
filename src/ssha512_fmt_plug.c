@@ -373,6 +373,7 @@ struct fmt_main fmt_saltedsha2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		sha512_common_tests_ssha512
 	}, {
 		init,

@@ -295,6 +295,7 @@ struct fmt_main fmt_zipmonster = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
+		{ NULL },
 #endif
 		zipmonster_tests
 	}, {

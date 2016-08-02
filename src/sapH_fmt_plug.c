@@ -667,6 +667,7 @@ struct fmt_main fmt_sapH = {
 			"hash type [1:sha1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

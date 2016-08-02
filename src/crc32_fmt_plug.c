@@ -291,6 +291,7 @@ struct fmt_main fmt_crc32 = {
 		{
 			"version: 0 = CRC-32, 1 = CRC-32C",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

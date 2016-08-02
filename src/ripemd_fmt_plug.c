@@ -315,6 +315,7 @@ struct fmt_main fmt_ripemd_160 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		ripemd_160_tests
 	}, {
 		init,
@@ -378,6 +379,7 @@ struct fmt_main fmt_ripemd_128 = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ NULL },
 		ripemd_128_tests
 	}, {

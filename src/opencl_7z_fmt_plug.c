@@ -652,6 +652,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 		{
 			"iteration count",
 		},
+		{ "$7z$" },
 		sevenzip_tests
 	}, {
 		init,

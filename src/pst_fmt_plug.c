@@ -185,6 +185,7 @@ struct fmt_main fmt_pst = {
 #endif
 		FMT_CASE | FMT_TRUNC | FMT_8_BIT | FMT_NOT_EXACT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

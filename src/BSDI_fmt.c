@@ -429,6 +429,7 @@ struct fmt_main fmt_BSDI = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

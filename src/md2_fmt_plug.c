@@ -223,6 +223,7 @@ struct fmt_main fmt_md2_ = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		md2__tests
 	}, {
 		init,

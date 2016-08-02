@@ -30,9 +30,6 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	int v;
 	if (strncmp(ciphertext, "$keystore$", 10) != 0)
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 10;

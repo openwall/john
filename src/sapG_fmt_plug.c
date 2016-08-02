@@ -769,6 +769,7 @@ struct fmt_main fmt_sapG = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_UTF8,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

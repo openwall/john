@@ -279,6 +279,7 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		fmt_default_init,

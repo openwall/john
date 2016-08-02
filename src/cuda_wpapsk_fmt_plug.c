@@ -103,6 +103,7 @@ struct fmt_main fmt_cuda_wpapsk = {
 		get_binary,
 		get_salt,
 		{ NULL },
+		{ "$WPAPSK$" },
 		fmt_default_source,
 		{
 			binary_hash_0,

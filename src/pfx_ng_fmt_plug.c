@@ -121,9 +121,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
@@ -551,6 +548,7 @@ struct fmt_main fmt_pfx_ng = {
 		{
 			"mac-type",
 		},
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

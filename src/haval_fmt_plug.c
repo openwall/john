@@ -317,6 +317,7 @@ struct fmt_main fmt_haval_256_3 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		haval_256_3_tests
 	}, {
 		init,
@@ -380,6 +381,7 @@ struct fmt_main fmt_haval_128_4 = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ NULL },
 		haval_128_4_tests
 	}, {

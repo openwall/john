@@ -402,6 +402,7 @@ struct fmt_main fmt_MD5 = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

@@ -280,6 +280,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL
 		},
+		{ NULL },
 		whirlpool_0_tests
 	}, {
 		init,
@@ -344,6 +345,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL
 		},
+		{ NULL },
 		whirlpool_1_tests
 	}, {
 		init,
@@ -405,6 +407,7 @@ struct fmt_main fmt_whirlpool = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ NULL },
 		whirlpool_tests
 	}, {

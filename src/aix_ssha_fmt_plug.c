@@ -426,6 +426,7 @@ struct fmt_main fmt_aixssha1 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		aixssha_tests1
 	}, {
 		init,
@@ -495,6 +496,7 @@ struct fmt_main fmt_aixssha256 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		aixssha_tests256
 	}, {
 		init,
@@ -564,6 +566,7 @@ struct fmt_main fmt_aixssha512 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		aixssha_tests512
 	}, {
 		init,

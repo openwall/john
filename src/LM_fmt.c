@@ -221,6 +221,7 @@ struct fmt_main fmt_LM = {
 #endif
 		FMT_8_BIT | FMT_TRUNC | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

@@ -288,6 +288,7 @@ struct fmt_main fmt_django_scrypt = {
 			"r",
 			"p"
 		},
+		{ NULL },
 		scrypt_tests
 	}, {
 		init,

@@ -406,6 +406,7 @@ struct fmt_main fmt_mssql = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

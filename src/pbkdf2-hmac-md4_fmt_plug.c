@@ -218,6 +218,7 @@ struct fmt_main fmt_pbkdf2_hmac_md4 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		pbkdf2_hmac_md4_common_tests
 	}, {
 		init,

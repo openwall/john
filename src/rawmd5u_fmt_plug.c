@@ -617,6 +617,7 @@ struct fmt_main fmt_rawmd5uthick = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

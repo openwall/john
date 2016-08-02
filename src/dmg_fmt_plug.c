@@ -255,9 +255,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$dmg$", 5) != 0)
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 5;	/* skip over "$dmg$" marker */
@@ -805,6 +802,7 @@ struct fmt_main fmt_dmg = {
 		{
 			"iteration count",
 		},
+		{ "$dmg$" },
 		dmg_tests
 	}, {
 		init,

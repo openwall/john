@@ -386,6 +386,7 @@ struct fmt_main fmt_opencl_pwsafe = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		pwsafe_tests
 	}, {
 		init,

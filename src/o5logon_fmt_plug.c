@@ -342,6 +342,7 @@ struct fmt_main fmt_o5logon = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ NULL },
 		o5logon_tests
 	}, {
 		init,

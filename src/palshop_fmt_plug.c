@@ -231,6 +231,7 @@ struct fmt_main fmt_palshop = {
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
+		{ NULL },
 		palshop_tests
 	}, {
 		init,

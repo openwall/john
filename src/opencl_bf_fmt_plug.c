@@ -174,6 +174,7 @@ struct fmt_main fmt_opencl_bf = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		BF_common_tests
 	}, {
 		init,

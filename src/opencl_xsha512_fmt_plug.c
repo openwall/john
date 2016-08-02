@@ -441,6 +441,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
+		{ NULL },
 #endif
 	    sha512_common_tests_xsha512_20
 	}, {

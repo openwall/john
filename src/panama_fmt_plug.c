@@ -216,6 +216,7 @@ struct fmt_main fmt_panama_ = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		panama__tests
 	}, {
 		init,

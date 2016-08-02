@@ -378,6 +378,7 @@ struct fmt_main fmt_ocl_pbkdf2_md4 = {
 		{
 			"iterations",
 		},
+		{ NULL },
 		pbkdf2_hmac_md4_common_tests
 	}, {
 		init,

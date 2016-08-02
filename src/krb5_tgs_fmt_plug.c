@@ -119,10 +119,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$krb5tgs$23$", 12) == 0) {
 		/* handle 'chopped' .pot lines (they always have the tag!) */
-		if (ldr_isa_pot_source(ciphertext)) {
-			MEM_FREE(keeptr);
-			return 1;
-		}
 
 		ctcopy += 12;
 		if (ctcopy[0] == '*') {			/* assume account's info provided */
@@ -377,6 +373,7 @@ struct fmt_main fmt_krb5tgs = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP | FMT_DYNA_SALT,
 		{NULL},
+		{ "$krb5tgs$23$" },
 		tests
 	}, {
 		init,

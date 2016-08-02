@@ -247,6 +247,7 @@ struct fmt_main fmt_cryptsha1 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		sha1crypt_common_tests
 	}, {
 		init,

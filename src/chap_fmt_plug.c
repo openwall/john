@@ -250,6 +250,7 @@ struct fmt_main fmt_chap = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		chap_tests
 	}, {
 		init,

@@ -197,6 +197,7 @@ struct fmt_main fmt_BF = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		BF_common_tests
 	}, {
 		init,

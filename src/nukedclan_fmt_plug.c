@@ -282,6 +282,7 @@ struct fmt_main fmt_nk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		nk_tests
 	}, {
 		init,

@@ -191,6 +191,7 @@ struct fmt_main fmt_iwork = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		iwork_tests
 	}, {
 		init,

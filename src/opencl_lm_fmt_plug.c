@@ -193,6 +193,7 @@ struct fmt_main fmt_opencl_lm = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_BS | FMT_TRUNC | FMT_SPLIT_UNIFIES_CASE | FMT_REMOVE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

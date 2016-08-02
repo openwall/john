@@ -314,6 +314,7 @@ struct fmt_main fmt_vnc = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_TRUNC | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ NULL },
 		vnc_tests
 	}, {
 		init,

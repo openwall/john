@@ -339,6 +339,7 @@ struct fmt_main fmt_SKEY = {
 			"hash type [1:MD4 2:MD5 3:SHA1 4:RMD160]",
 			"iteration count",
 		},
+		{ NULL },
 		skey_tests
 	}, {
 		fmt_default_init,

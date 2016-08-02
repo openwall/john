@@ -236,6 +236,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha256 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		pbkdf2_hmac_sha256_common_tests
 	}, {
 		init,

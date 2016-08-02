@@ -116,9 +116,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int res;
 	if (strncmp(ciphertext, "$odf$*", 6))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 6;
@@ -431,6 +428,7 @@ struct fmt_main fmt_odf = {
 		{
 			"iteration count",
 		},
+		{ "$odf$*" },
 		odf_tests
 	}, {
 		init,

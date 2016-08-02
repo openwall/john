@@ -1323,6 +1323,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ NULL },
 		chap_tests
 	}, {
 		init,
@@ -1385,6 +1386,7 @@ struct fmt_main fmt_NETNTLM_new = {
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
+		{ NULL },
 		{ NULL },
 		ntlm_tests
 	}, {

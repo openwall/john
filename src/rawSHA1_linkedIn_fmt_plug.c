@@ -334,6 +334,7 @@ struct fmt_main fmt_rawSHA1_LI = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		fmt_default_init,

@@ -434,6 +434,7 @@ struct fmt_main fmt_opencl_keystore = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		/* FIXME: report cur_salt->length as tunable cost? */
 		{ NULL },
+		{ "$keystore$" },
 		keystore_common_tests
 	}, {
 		init,

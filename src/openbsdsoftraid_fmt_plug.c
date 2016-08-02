@@ -95,9 +95,6 @@ static int valid(char* ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, "$openbsd-softraid$", 18) != 0)
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -308,6 +305,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		{
 			"iteration count",
 		},
+		{ "$openbsd-softraid$" },
 		tests_openbsdsoftraid
 	}, {
 		init,

@@ -323,6 +323,7 @@ struct fmt_main fmt_drupal7 = {
 		{
 			"iteration count",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

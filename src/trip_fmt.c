@@ -618,6 +618,7 @@ struct fmt_main fmt_trip = {
 #endif
 		FMT_TRUNC | FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

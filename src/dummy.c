@@ -329,6 +329,7 @@ struct fmt_main fmt_dummy = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		fmt_default_init,
