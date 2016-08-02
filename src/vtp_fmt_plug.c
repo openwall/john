@@ -126,6 +126,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = ciphertext;
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 
 	ptrkeep = strdup(ciphertext);
 	p = &ptrkeep[TAG_LENGTH];

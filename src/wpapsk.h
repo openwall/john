@@ -14,6 +14,7 @@
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
+#include "loader.h"
 #include "stdint.h"
 
 #include <assert.h>
@@ -175,6 +176,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 
 	hash = strrchr(ciphertext, '#');
 	if (hash == NULL || hash - (ciphertext + strlen(wpapsk_prefix)) > 32)

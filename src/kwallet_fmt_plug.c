@@ -97,6 +97,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int res;
 	if (strncmp(ciphertext,  "$kwallet$", 9) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
+
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 9;

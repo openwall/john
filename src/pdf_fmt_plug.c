@@ -25,6 +25,7 @@ john_register_one(&fmt_pdf);
 #include "pdfcrack_md5.h"
 #include "aes.h"
 #include "sha2.h"
+#include "loader.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -123,6 +124,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext,  "$pdf$", 5) != 0)
 		return 0;
+	/* handle 'chopped' .pot lines */
+	if (ldr_isa_pot_source(ciphertext))
+		return 1;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
