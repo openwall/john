@@ -64,6 +64,10 @@ static struct fmt_tests mongodb_tests[] = {
 	{"$mongodb$1$Herman$9b90cf265f3194d7$a5ca2c517c06fdfb773144d53fb26f56", "123456789"},
 	{"$mongodb$1$sz110$be8fa52f0e64c250$441d6ece7356c67dcc69dd26e7e0501f", "passWOrd"},
 	{"$mongodb$1$jack$304b81adddfb4d6f$c95e106f1d9952c88044a0b21a6bd3fd", ""},
+	// https://jira.mongodb.org/browse/SERVER-9476
+	{"$mongodb$1$z$ce88504553b16752$6deb79af26ebcdd2b2c40438008cb7b0", "g"},
+	// https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst
+	{"$mongodb$1$user$2375531c32080ae8$21742f26431831d5cfca035a08c5bdf6", "pencil"},
 	{NULL}
 };
 
