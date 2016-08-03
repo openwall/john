@@ -382,7 +382,7 @@ struct fmt_main fmt_opencl_pbkdf2_hmac_sha256 = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ PBKDF2_SHA256_FORMAT_TAG, FORMAT_TAG_CISCO8 },
 	pbkdf2_hmac_sha256_common_tests
 }, {
 	init,

@@ -569,7 +569,7 @@ struct fmt_main fmt_oldoffice = {
 		{
 			"hash type",
 		},
-		{ NULL },
+		{ FORMAT_TAG },
 		oo_tests
 	}, {
 		init,

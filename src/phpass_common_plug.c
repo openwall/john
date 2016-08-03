@@ -66,13 +66,13 @@ int phpass_common_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	// Handle both the phpass signature, and the phpBB v3 signature (same formula)
 	// NOTE we are only dealing with the 'portable' encryption method
-	if (strncmp(ciphertext, "$P$", 3) != 0 && strncmp(ciphertext, "$H$", 3) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0 && strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN) != 0)
 		return 0;
-	for (i = 3; i < PHPASS_CIPHERTEXT_LENGTH; ++i)
+	for (i = FORMAT_TAG_LEN; i < PHPASS_CIPHERTEXT_LENGTH; ++i)
 		if (atoi64[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
 
-	count_log2 = atoi64[ARCH_INDEX(ciphertext[3])];
+	count_log2 = atoi64[ARCH_INDEX(ciphertext[FORMAT_TAG_LEN])];
 	if (count_log2 < 7 || count_log2 > 31)
 		return 0;
 
@@ -88,7 +88,7 @@ void *phpass_common_binary(char *ciphertext)
 	char *pos;
 
 	if (!b) b = mem_alloc_tiny(16,4);
-	pos = &ciphertext[3+1+8];
+	pos = &ciphertext[FORMAT_TAG_LEN+1+8];
 	for (i = 0; i < 5; ++i)
 	{
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
@@ -120,7 +120,7 @@ char *phpass_common_split(char *ciphertext, int index, struct fmt_main *self)
 	if (strncmp(ciphertext, "$dynamic_17$", 12))
 		return ciphertext;
 	cpH = ciphertext + 12;
-	strcpy(out, "$P$");
+	strcpy(out, FORMAT_TAG);
 	cpS = strchr(cpH, '$');
 	if (!cpS)
 		return ciphertext;

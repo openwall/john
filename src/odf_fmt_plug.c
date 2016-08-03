@@ -37,6 +37,8 @@ john_register_one(&fmt_odf);
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"ODF"
+#define FORMAT_TAG		"$odf$*"
+#define FORAMT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define FORMAT_NAME		""
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"SHA1/SHA256 " SHA1_ALGORITHM_NAME " BF/AES"
@@ -114,11 +116,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$odf$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORAMT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORAMT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
 		goto err;
 	if (strlen(p) != 1)
@@ -193,7 +195,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 6;	/* skip over "$odf$*" */
+	ctcopy += FORAMT_TAG_LEN;	/* skip over "$odf$*" */
 	p = strtokm(ctcopy, "*");
 	cs.cipher_type = atoi(p);
 	p = strtokm(NULL, "*");
@@ -239,7 +241,7 @@ static void *get_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 
-	ctcopy += 6;	/* skip over "$odf$*" */
+	ctcopy += FORAMT_TAG_LEN;	/* skip over "$odf$*" */
 	strtokm(ctcopy, "*");
 	strtokm(NULL, "*");
 	strtokm(NULL, "*");
@@ -428,7 +430,7 @@ struct fmt_main fmt_odf = {
 		{
 			"iteration count",
 		},
-		{ "$odf$*" },
+		{ FORMAT_TAG },
 		odf_tests
 	}, {
 		init,

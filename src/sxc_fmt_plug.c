@@ -35,6 +35,8 @@ john_register_one(&fmt_sxc);
 
 #define FORMAT_LABEL		"sxc"
 #define FORMAT_NAME		"StarOffice .sxc"
+#define FORMAT_TAG          "$sxc$*"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " Blowfish"
 #else
@@ -109,11 +111,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$sxc$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
 		goto err;
 	res = atoi(p);
@@ -190,7 +192,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 
-	ctcopy += 6;	/* skip over "$sxc$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$sxc$*" */
 	p = strtokm(ctcopy, "*");
 	cs.cipher_type = atoi(p);
 	p = strtokm(NULL, "*");
@@ -383,7 +385,7 @@ struct fmt_main fmt_sxc = {
 		{
 			"iteration count",
 		},
-		{ "$sxc$*" },
+		{ FORMAT_TAG },
 		sxc_tests
 	}, {
 		init,
