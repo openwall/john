@@ -73,26 +73,29 @@ john_register_one(&fmt_luks);
 #define LUKS_SALTSIZE 32
 #define LUKS_NUMKEYS 8
 
-#define FORMAT_LABEL		"LUKS"
-#define FORMAT_NAME		""
+#define FORMAT_LABEL        "LUKS"
+#define FORMAT_NAME         ""
+#define FORMAT_TAG          "$luks$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define PLAINTEXT_LENGTH  	125
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		LUKS_DIGESTSIZE
-#define BINARY_ALIGN		4
-#define SALT_SIZE		sizeof(struct custom_salt_LUKS*)
-#define SALT_ALIGN			sizeof(struct custom_salt_LUKS*)
+#define BENCHMARK_COMMENT   ""
+#define PLAINTEXT_LENGTH    125
+#define BENCHMARK_LENGTH    -1
+#define BINARY_SIZE         LUKS_DIGESTSIZE
+#define BINARY_ALIGN        4
+#define SALT_SIZE           sizeof(struct custom_salt_LUKS*)
+#define SALT_ALIGN          sizeof(struct custom_salt_LUKS*)
 #if SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
 #endif
 
 #if ARCH_LITTLE_ENDIAN
@@ -342,11 +345,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	unsigned int bestiter = 0xFFFFFFFF;
 
 	out = (unsigned char*)&cs.myphdr;
-	if (strncmp(ciphertext, "$luks$", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* is_inlined */
 		goto err;
 	if (!isdec(p))
@@ -445,7 +448,7 @@ static void *get_salt(char *ciphertext)
 	unsigned int bestiter = 0xFFFFFFFF;
 	size_t size = 0;
 
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
@@ -663,7 +666,7 @@ struct fmt_main fmt_luks = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{ NULL },
-		{ "$luks$" },
+		{ FORMAT_TAG },
 		luks_tests
 	}, {
 		init,

@@ -402,7 +402,11 @@ struct fmt_main fmt_MD5 = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
-		{ NULL },
+		{
+			md5_salt_prefix,
+			apr1_salt_prefix,
+			smd5_salt_prefix
+		},
 		tests
 	}, {
 		init,

@@ -375,7 +375,11 @@ struct fmt_main fmt_raw0_SHA512 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{
+			FORMAT_TAG,
+			XSHA512_FORMAT_TAG,
+			NSLDAP_FORMAT_TAG
+		},
 		sha512_common_tests_rawsha512_111
 	}, {
 		init,

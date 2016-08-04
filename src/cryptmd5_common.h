@@ -4,9 +4,13 @@
  * and the GPU formats, and places it into one common location
  */
 
-static const char md5_salt_prefix[] = "$1$";
-static const char apr1_salt_prefix[] = "$apr1$";
-static const char smd5_salt_prefix[] = "{smd5}";
+#define md5_salt_prefix "$1$"
+#define apr1_salt_prefix "$apr1$"
+#define smd5_salt_prefix "{smd5}"
+
+#define md5_salt_prefix_len  (sizeof(md5_salt_prefix)-1)
+#define apr1_salt_prefix_len (sizeof(apr1_salt_prefix)-1)
+#define smd5_salt_prefix_len (sizeof(smd5_salt_prefix)-1)
 
 int cryptmd5_common_valid(char *ciphertext, struct fmt_main *self);
 

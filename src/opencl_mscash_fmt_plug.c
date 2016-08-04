@@ -60,8 +60,6 @@ static unsigned int set_new_keys = 1;
 static struct fmt_main *self;
 static cl_uint *zero_buffer;
 
-static char mscash_prefix[] = "M$";
-
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
@@ -356,7 +354,7 @@ static void *salt(char *ciphertext)
 	UTF16 *login = usalt;
 	UTF8 csalt[3 * MSCASH1_MAX_SALT_LENGTH + 1];
 	int i, length = 0;
-	char *pos = ciphertext + strlen(mscash_prefix);
+	char *pos = ciphertext + FORMAT_TAG_LEN;
 
 	memset(nt_buffer.w, 0, sizeof(nt_buffer.w));
 	memset(usalt, 0, sizeof(usalt));
@@ -803,7 +801,7 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8 | FMT_REMOVE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		mscash1_common_tests
 	}, {
 		init,

@@ -192,7 +192,7 @@ struct fmt_main fmt_cuda_mscash = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		mscash1_common_tests
 	}, {
 		init,

@@ -17,11 +17,11 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$encfs$", 7))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* key size */
 		goto err;
 	if (!isdec(p))
@@ -77,7 +77,7 @@ void *encfs_common_get_salt(char *ciphertext)
 	static encfs_common_custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.keySize = atoi(p);
 	switch(cs.keySize)

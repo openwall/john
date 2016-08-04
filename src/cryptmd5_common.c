@@ -14,15 +14,17 @@ int cryptmd5_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos, *start;
 
-	if (strncmp(ciphertext, md5_salt_prefix, sizeof(md5_salt_prefix)-1)) {
-		if (strncmp(ciphertext, apr1_salt_prefix, sizeof(apr1_salt_prefix)-1) &&
-		    strncmp(ciphertext, smd5_salt_prefix, sizeof(smd5_salt_prefix)-1))
-			return 0;
-		ciphertext += 3;
-	}
+	if (!strncmp(ciphertext, md5_salt_prefix, md5_salt_prefix_len))
+		ciphertext += md5_salt_prefix_len;
+	else if (!strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len))
+		ciphertext += apr1_salt_prefix_len;
+	else if(!strncmp(ciphertext, smd5_salt_prefix, smd5_salt_prefix_len))
+		ciphertext += smd5_salt_prefix_len;
+	else
+		return 0;
 
-	for (pos = &ciphertext[3]; *pos && *pos != '$'; pos++);
-	if (!*pos || pos < &ciphertext[3] || pos > &ciphertext[11]) return 0;
+	for (pos = ciphertext; *pos && *pos != '$'; pos++);
+	if (!*pos || pos < ciphertext || pos > &ciphertext[11]) return 0;
 
 	start = ++pos;
 	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;

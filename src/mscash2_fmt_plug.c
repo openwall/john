@@ -195,7 +195,7 @@ static void *get_salt(char *_ciphertext)
 
 	memset(out, 0, sizeof(out));
 
-	ciphertext += 6;
+	ciphertext += FORMAT_TAG2_LEN;
 
 	while (*ciphertext && *ciphertext != '#') ++ciphertext;
 	++ciphertext;
@@ -619,7 +619,7 @@ struct fmt_main fmt_mscash2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG2 },
 		mscash2_common_tests
 	}, {
 		init,

@@ -391,7 +391,11 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
-		{ NULL },
+		{
+			FORMAT_TAG,
+			XSHA512_FORMAT_TAG,
+			NSLDAP_FORMAT_TAG
+		},
 #endif
 		sha512_common_tests_rawsha512_20
 	}, {

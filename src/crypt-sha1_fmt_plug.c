@@ -80,7 +80,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static struct saltstruct {
 	unsigned int length;
 	unsigned int rounds;
-	unsigned char salt[SALT_BUFFER_LENGTH+sizeof(SHA1_MAGIC)+7+1]; // allows up to 9999999 sized rounds with 64 byte salt.
+	unsigned char salt[SALT_BUFFER_LENGTH+SHA1_MAGIC_LEN+7]; // allows up to 9999999 sized rounds with 64 byte salt.
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -179,7 +179,7 @@ static void *get_salt(char *ciphertext)
 	memset(&out, 0, sizeof(out));
 	p = strrchr(ciphertext, '$') + 1;
 	strnzcpy(tmp, ciphertext, p - ciphertext);
-	out.rounds = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);
+	out.rounds = strtoul(&ciphertext[SHA1_MAGIC_LEN], NULL, 10);
 	// point p to the salt value, BUT we have to decorate the salt for this hash.
 	p = strrchr(tmp, '$') + 1;
 	// real salt used is: <salt><magic><iterations>
@@ -247,7 +247,7 @@ struct fmt_main fmt_cryptsha1 = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ SHA1_MAGIC },
 		sha1crypt_common_tests
 	}, {
 		init,

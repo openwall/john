@@ -223,7 +223,7 @@ struct fmt_main fmt_encfs = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ FORMAT_TAG },
 		encfs_tests
 	}, {
 		init,

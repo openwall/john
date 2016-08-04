@@ -20,8 +20,10 @@ typedef struct encfs_common_custom_salt_t {
 	const EVP_CIPHER *blockCipher;
 } encfs_common_custom_salt;
 
-#define MAX_KEYLENGTH 32 // in bytes (256 bit)
-#define MAX_IVLENGTH 20
+#define MAX_KEYLENGTH    32 // in bytes (256 bit)
+#define MAX_IVLENGTH     20
+#define FORMAT_TAG       "$encfs$"
+#define FORMAT_TAG_LEN   (sizeof(FORMAT_TAG) - 1)
 
 int encfs_common_valid(char *ciphertext, struct fmt_main *self);
 void *encfs_common_get_salt(char *ciphertext);
