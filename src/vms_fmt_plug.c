@@ -54,6 +54,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL			"OpenVMS"
 #define FORMAT_NAME			"Purdy"
+#define FORMAT_TAG           "$V$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define FORMAT_NAME_NOPWDMIX		"Purdy (nopwdmix)"
 
 #define BENCHMARK_COMMENT		""
@@ -99,7 +101,7 @@ static int valid(char *ciphertext, struct fmt_main *self )
 		initialized = 1;
 	}
 
-	if (strncmp(ciphertext, "$V$", 3))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;	/* no match */
 
 	if ( strlen ( ciphertext ) < (UAF_ENCODE_SIZE-1) )
@@ -275,7 +277,7 @@ struct fmt_main fmt_VMS = {
  */
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		fmt_vms_init,			/* changed for jumbo */

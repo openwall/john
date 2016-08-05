@@ -29,6 +29,8 @@
 #define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
+#define FORMAT_TAG           "$WPAPSK$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
 /** if you want to change hccap_t structure is also defined in hccap2john.c **/
 typedef struct
@@ -90,7 +92,6 @@ static mic_t *mic;			///table for MIC keys
 static wpapsk_password *inbuffer;	///table for candidate passwords
 static wpapsk_hash *outbuffer;		///table for PMK calculated by GPU
 #endif
-static const char wpapsk_prefix[] = "$WPAPSK$";
 
 static int new_keys = 1;
 static char last_ssid[sizeof(hccap.essid)];
@@ -100,7 +101,7 @@ static char last_ssid[sizeof(hccap.essid)];
 static hccap_t *decode_hccap(char *ciphertext)
 {
 	static hccap_t hccap;
-	char *essid = ciphertext + strlen(wpapsk_prefix);
+	char *essid = ciphertext + FORMAT_TAG_LEN;
 	char *hash = strrchr(ciphertext, '#');
 	char *d = hccap.essid;
 	char *cap = hash + 1;
@@ -174,11 +175,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int hashlength = 0;
 	hccap_t *hccap;
 
-	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	hash = strrchr(ciphertext, '#');
-	if (hash == NULL || hash - (ciphertext + strlen(wpapsk_prefix)) > 32)
+	if (hash == NULL || hash - (ciphertext + FORMAT_TAG_LEN) > 32)
 		return 0;
 	hash++;
 	while (hash < ciphertext + strlen(ciphertext)) {

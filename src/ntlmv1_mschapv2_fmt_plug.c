@@ -112,6 +112,10 @@ extern volatile int bench_running;
 
 #define CHAP_FORMAT_LABEL       "MSCHAPv2"
 #define CHAP_FORMAT_NAME        "C/R"
+#define FORMAT_TAG              "$MSCHAPv2$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAGN             "$NETNTLM$"
+#define FORMAT_TAGN_LEN         (sizeof(FORMAT_TAGN)-1)
 #define CHAP_USERNAME_LENGTH    256
 #define CHAP_CHALLENGE_LENGTH   64
 #define CHAP_TOTAL_LENGTH       13 + CHAP_USERNAME_LENGTH + CHAP_CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
@@ -233,13 +237,13 @@ static int chap_valid_long(char *ciphertext)
 	char *pos, *pos2;
 
 	if (ciphertext == NULL) return 0;
-	else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
+	else if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
 
 	if (strlen(ciphertext) > CHAP_TOTAL_LENGTH)
 		return 0;
 
 	/* Validate Authenticator/Server Challenge Length */
-	pos = &ciphertext[10];
+	pos = &ciphertext[FORMAT_TAG_LEN];
 	for (pos2 = pos; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
@@ -277,13 +281,13 @@ static int chap_valid_short(char *ciphertext)
 	char *pos, *pos2;
 
 	if (ciphertext == NULL) return 0;
-	else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
+	else if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
 
 	if (strlen(ciphertext) > CHAP_TOTAL_LENGTH)
 		return 0;
 
 	/* Validate MSCHAPv2 Challenge Length */
-	pos = &ciphertext[10];
+	pos = &ciphertext[FORMAT_TAG_LEN];
 	for (pos2 = pos; *pos2 != '$'; pos2++)
 		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
 			return 0;
@@ -307,7 +311,7 @@ static void chap_get_challenge(const char *ciphertext,
                                unsigned char *binary_salt)
 {
 	int i;
-	const char *pos = ciphertext + 10;
+	const char *pos = ciphertext + FORMAT_TAG_LEN;
 
 	for (i = 0; i < SALT_SIZE; i++)
 		binary_salt[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) +
@@ -361,7 +365,7 @@ static char *chap_long_to_short(char *ciphertext) {
 	SHA1_Init(&ctx);
 
 	/* Peer Challenge */
-	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1; /* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
+	pos = ciphertext + FORMAT_TAG_LEN + 16*2 + 1 + 24*2 + 1; /* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
 
 	memset(tmp, 0, 16);
 	for (i = 0; i < 16; i++)
@@ -370,7 +374,7 @@ static char *chap_long_to_short(char *ciphertext) {
 	SHA1_Update(&ctx, tmp, 16);
 
 	/* Authenticator Challenge */
-	pos = ciphertext + 10; /* Skip $MSCHAPv2$ */
+	pos = ciphertext + FORMAT_TAG_LEN; /* Skip $MSCHAPv2$ */
 
 	memset(tmp, 0, 16);
 	for (i = 0; i < 16; i++)
@@ -381,14 +385,14 @@ static char *chap_long_to_short(char *ciphertext) {
 	/* Username - Only the user name (as presented by the peer and
 	   excluding any prepended domain name) is used as input to SHAUpdate()
 	*/
-	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1 + 16*2 + 1; /* Skip $MSCHAPv2$, Authenticator, Response and Peer */
+	pos = ciphertext + FORMAT_TAG_LEN + 16*2 + 1 + 24*2 + 1 + 16*2 + 1; /* Skip $MSCHAPv2$, Authenticator, Response and Peer */
 	SHA1_Update(&ctx, pos, strlen(pos));
 
 	SHA1_Final(digest, &ctx);
 
 	// Ok, now we re-make our ciphertext buffer, into the short cannonical form.
-	strcpy(Buf, "$MSCHAPv2$");
-	pos = Buf + 10;
+	strcpy(Buf, FORMAT_TAG);
+	pos = Buf + FORMAT_TAG_LEN;
 	for (i = 0; i < SALT_SIZE; i++) {
 		//binary_salt.u8[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 		pos[(i<<1)] = itoa16[digest[i]>>4];
@@ -406,9 +410,9 @@ static int chap_valid(char *ciphertext, struct fmt_main *pFmt)
 	char *cp = NULL;
 
 	if (chap_valid_short(ciphertext))
-		cp = ciphertext + 10 + CHAP_CHALLENGE_LENGTH / 4 + 1;
+		cp = ciphertext + FORMAT_TAG_LEN + CHAP_CHALLENGE_LENGTH / 4 + 1;
 	else if (chap_valid_long(ciphertext))
-		cp = ciphertext + 10 + CHAP_CHALLENGE_LENGTH / 2 + 1;
+		cp = ciphertext + FORMAT_TAG_LEN + CHAP_CHALLENGE_LENGTH / 2 + 1;
 
 	if (cp) {
 		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
@@ -461,9 +465,9 @@ static char *chap_prepare_long(char *split_fields[10])
 	else
 		username++;
 
-	cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+
+	cp = mem_alloc(FORMAT_TAG_LEN+strlen(split_fields[3])+1+strlen(split_fields[4])+
 	               1+strlen(split_fields[5])+1+strlen(username)+1);
-	sprintf(cp, "$MSCHAPv2$%s$%s$%s$%s", split_fields[3], split_fields[4],
+	sprintf(cp, "%s%s$%s$%s$%s", FORMAT_TAG, split_fields[3], split_fields[4],
 	        split_fields[5], username);
 	if (chap_valid_long(cp)) {
 		char *cp2 = str_alloc_copy(cp);
@@ -478,9 +482,9 @@ static char *chap_prepare_short(char *split_fields[10])
 {
 	char *cp;
 
-	cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+
+	cp = mem_alloc(FORMAT_TAG_LEN+strlen(split_fields[3])+1+strlen(split_fields[4])+
 	               1+1+1);
-	sprintf(cp, "$MSCHAPv2$%s$%s$$", split_fields[3], split_fields[4]);
+	sprintf(cp, "%s%s$%s$$", FORMAT_TAG, split_fields[3], split_fields[4]);
 	if (chap_valid_short(cp)) {
 		char *cp2 = str_alloc_copy(cp);
 		MEM_FREE(cp);
@@ -494,11 +498,11 @@ static char *chap_prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	char *ret;
 
-	if (!strncmp(split_fields[1], "$MSCHAPv2$", 10)) {
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN)) {
 		// check for a short format that has any extra trash fields, and if so remove them.
 		char *cp1, *cp2, *cp3;
 		cp1 = split_fields[1];
-		cp1 += 10;
+		cp1 += FORMAT_TAG_LEN;
 		cp2 = strchr(cp1, '$');
 		ret = NULL;
 		if (cp2 && cp2-cp1 == CHAP_CHALLENGE_LENGTH/4) {
@@ -542,7 +546,7 @@ static char *chap_split(char *ciphertext, int index, struct fmt_main *self)
 	memcpy(out, ciphertext, strlen(ciphertext));
 
 	/* convert hashes to lower-case - exclude $MSCHAPv2 and USERNAME */
-	for (i = 10; i < CHAP_TOTAL_LENGTH + 1 && j < 3; i++) {
+	for (i = FORMAT_TAG_LEN; i < CHAP_TOTAL_LENGTH + 1 && j < 3; i++) {
 		if (out[i] >= 'A' && out[i] <= 'Z')
 			out[i] |= 0x20;
 		else if (out[i] == '$')
@@ -565,7 +569,7 @@ static void *ntlm_get_salt(char *ciphertext)
 
 	if (ciphertext[25] == '$') {
 		// Server challenge
-		ciphertext += 9;
+		ciphertext += FORMAT_TAGN_LEN;
 		for (i = 0; i < SALT_SIZE; ++i)
 		   binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) +
 			   atoi16[ARCH_INDEX(ciphertext[i*2+1])];
@@ -573,7 +577,7 @@ static void *ntlm_get_salt(char *ciphertext)
 		uchar es_salt[2*SALT_SIZE], k1[2*SALT_SIZE];
 		MD5_CTX ctx;
 
-		ciphertext += 9;
+		ciphertext += FORMAT_TAGN_LEN;
 		// Extended Session Security,
 		// Concatenate Server & Client challenges
 		for (i = 0;i < 2 * SALT_SIZE; ++i)
@@ -593,13 +597,13 @@ static int ntlm_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (strncmp(ciphertext, "$NETNTLM$", 9)!=0) return 0;
+	if (strncmp(ciphertext, FORMAT_TAGN, FORMAT_TAGN_LEN)!=0) return 0;
 
 	if ((strlen(ciphertext) != 74) && (strlen(ciphertext) != 90)) return 0;
 
 	if ((ciphertext[25] != '$') && (ciphertext[41] != '$')) return 0;
 
-	for (pos = &ciphertext[9]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = &ciphertext[FORMAT_TAGN_LEN]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos != '$') return 0;
 
 	for (pos++; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
@@ -649,7 +653,7 @@ static char *ntlm_prepare(char *split_fields[10], struct fmt_main *self)
 	char *cp;
 	char clientChal[17];
 
-	if (!strncmp(split_fields[1], "$NETNTLM$", 9))
+	if (!strncmp(split_fields[1], FORMAT_TAGN, FORMAT_TAGN_LEN))
 		return split_fields[1];
 	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
 		return split_fields[1];
@@ -678,9 +682,9 @@ static char *ntlm_prepare(char *split_fields[10], struct fmt_main *self)
 	}
 	else
 		clientChal[0] = 0;
-	cp = mem_alloc(9+strlen(split_fields[5])+strlen(clientChal)+1+
+	cp = mem_alloc(FORMAT_TAGN_LEN+strlen(split_fields[5])+strlen(clientChal)+1+
 	               strlen(split_fields[4])+1);
-	sprintf(cp, "$NETNTLM$%s%s$%s", split_fields[5], clientChal,
+	sprintf(cp, "%s%s%s$%s", FORMAT_TAGN, split_fields[5], clientChal,
 	        split_fields[4]);
 
 	if (ntlm_valid(cp,self)) {
@@ -698,7 +702,7 @@ static char *ntlm_split(char *ciphertext, int index, struct fmt_main *self)
 
 	memset(out, 0, NTLM_TOTAL_LENGTH + 1);
 	strcpy(out, ciphertext);
-	strlwr(&out[8]); /* Exclude: $NETNTLM$ */
+	strlwr(&out[FORMAT_TAGN_LEN]); /* Exclude: $NETNTLM$ */
 
 	return out;
 }
@@ -1054,9 +1058,9 @@ static void *get_binary(char *ciphertext)
 	}
 
 	if (chap_valid_short(ciphertext))
-		ciphertext += 10 + CHAP_CHALLENGE_LENGTH / 4 + 1;
+		ciphertext += FORMAT_TAG_LEN + CHAP_CHALLENGE_LENGTH / 4 + 1;
 	else if (chap_valid_long(ciphertext))
-		ciphertext += 10 + CHAP_CHALLENGE_LENGTH / 2 + 1;
+		ciphertext += FORMAT_TAG_LEN + CHAP_CHALLENGE_LENGTH / 2 + 1;
 	else /* ntlmv1 */
 		ciphertext = strrchr(ciphertext, '$') + 1;
 
@@ -1323,7 +1327,7 @@ struct fmt_main fmt_MSCHAPv2_new = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		chap_tests
 	}, {
 		init,
@@ -1387,7 +1391,7 @@ struct fmt_main fmt_NETNTLM_new = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAGN },
 		ntlm_tests
 	}, {
 		init,

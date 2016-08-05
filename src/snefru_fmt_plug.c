@@ -44,7 +44,7 @@ static int omp_t = 1;
 // Snefru-128 and Snefru-256 are the real format labels
 #define FORMAT_LABEL		"Snefru"
 #define FORMAT_TAG		"$snefru$"
-#define TAG_LENGTH		8
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -276,7 +276,7 @@ struct fmt_main fmt_snefru_256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		snefru_256_tests
 	}, {
 		init,
@@ -338,7 +338,7 @@ struct fmt_main fmt_snefru_128 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		snefru_128_tests
 	}, {
 		init,

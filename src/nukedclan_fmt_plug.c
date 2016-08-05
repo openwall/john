@@ -50,6 +50,8 @@ john_register_one(&fmt_nk);
 
 #define FORMAT_LABEL		"nk"
 #define FORMAT_NAME		"Nuked-Klan CMS"
+#define FORMAT_TAG		"$nk$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
@@ -125,12 +127,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
 
-	if (strncmp(ciphertext, "$nk$*", 5))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 5;	/* skip leading "$nk$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip leading "$nk$*" */
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	/* HASHKEY is of fixed length 40 */
@@ -162,7 +164,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	strnzcpy(ctcopy, ciphertext, 255);
-	ctcopy += 5;	/* skip over "$nk$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$nk$*" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 20; i++)
 		cs.HASHKEY[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -282,7 +284,7 @@ struct fmt_main fmt_nk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		nk_tests
 	}, {
 		init,

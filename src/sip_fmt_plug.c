@@ -51,6 +51,8 @@ static sip_salt *pSalt;
 
 #define FORMAT_LABEL		"SIP"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$sip$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -103,7 +105,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *q;
 	int i,res = 0;
-	if (strncmp(ciphertext, "$sip$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
 		return 0;
@@ -113,7 +115,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if(res != 14)
 		goto err;
 	res = 0;
-	p += 6;
+	p += FORMAT_TAG_LEN;
 	if ((q = strchr(p, '*')) == NULL)
 		goto err;
 	if ((q - p) > HOST_MAXLEN) /* host */
@@ -205,7 +207,7 @@ static void *get_salt(char *ciphertext)
 	memset(&salt, 0, sizeof(salt));
 
 	strcpy(saltBuf, ciphertext);
-	saltcopy += 6;	/* skip over "$sip$*" */
+	saltcopy += FORMAT_TAG_LEN;	/* skip over "$sip$*" */
 	memset(&login, 0, sizeof(login_t));
 	num_lines = stringtoarray(lines, saltcopy, '*');
 	assert(num_lines == 14);
@@ -383,7 +385,7 @@ struct fmt_main fmt_sip = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		sip_tests
 	}, {
 		init,

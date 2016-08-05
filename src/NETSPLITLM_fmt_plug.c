@@ -48,6 +48,8 @@ john_register_one(&fmt_NETHALFLM);
 
 #define FORMAT_LABEL         "nethalflm"
 #define FORMAT_NAME          "HalfLM C/R"
+#define FORMAT_TAG           "$NETHALFLM$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME       "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
@@ -110,7 +112,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
-  if (strncmp(ciphertext, "$NETHALFLM$", 11)!=0) return 0;
+  if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
   if (strlen(ciphertext) < TOTAL_LENGTH) return 0;
   if (ciphertext[27] != '$') return 0;
 
@@ -131,7 +133,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *tmp;
 
-	if (!strncmp(split_fields[1], "$NETHALFLM$", 11))
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
 		return split_fields[1];
@@ -149,8 +151,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 			return split_fields[1];
 	}
 
-	tmp = (char *) mem_alloc(12 + strlen(split_fields[3]) + strlen(split_fields[5]) + 1);
-	sprintf(tmp, "$NETHALFLM$%s$%s", split_fields[5], split_fields[3]);
+	tmp = (char *) mem_alloc(FORMAT_TAG_LEN + strlen(split_fields[3]) + 1 + strlen(split_fields[5]) + 1);
+	sprintf(tmp, "%s%s$%s", FORMAT_TAG, split_fields[5], split_fields[3]);
 
 	if (valid(tmp,self)) {
 		char *cp2 = str_alloc_copy(tmp);
@@ -166,7 +168,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
   static char out[TOTAL_LENGTH + 1] = {0};
 
   memcpy(out, ciphertext, TOTAL_LENGTH);
-  strlwr(&out[10]); /* Exclude: $NETHALFLM$ */
+  strlwr(&out[FORMAT_TAG_LEN]); /* Exclude: $NETHALFLM$ */
   return out;
 }
 
@@ -247,7 +249,7 @@ static void *get_salt(char *ciphertext)
 	} out;
 	int i;
 
-	ciphertext += 11;
+	ciphertext += FORMAT_TAG_LEN;
 	for (i = 0; i < SALT_SIZE; ++i) {
 		out.c[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
@@ -336,7 +338,7 @@ struct fmt_main fmt_NETHALFLM = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_TRUNC | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

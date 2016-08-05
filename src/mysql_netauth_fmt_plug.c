@@ -33,6 +33,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"mysqlna"
 #define FORMAT_NAME		"MySQL Network Authentication"
+#define FORMAT_TAG		"$mysqlna$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -83,9 +85,9 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
-	if (strncmp(ciphertext, "$mysqlna$", 9))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	p = ciphertext + 9;
+	p = ciphertext + FORMAT_TAG_LEN;
 	q = strstr(ciphertext, "*");
 	if(!q)
 		return 0;
@@ -120,7 +122,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
-	ctcopy += 9;	/* skip over "$mysqlna$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$mysqlna$" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 20; i++)
 		cs.scramble[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -247,7 +249,7 @@ struct fmt_main fmt_mysqlna = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		mysqlna_tests
 	}, {
 		init,

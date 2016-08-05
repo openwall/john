@@ -54,7 +54,7 @@ static int omp_t = 1;
 #define FORMAT_LABEL		"Tiger"
 #define FORMAT_NAME		""
 #define FORMAT_TAG		"$tiger$"
-#define TAG_LENGTH		7
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"Tiger 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -244,7 +244,7 @@ struct fmt_main fmt_tiger = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tiger_tests
 	}, {
 		init,

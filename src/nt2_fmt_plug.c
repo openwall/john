@@ -237,18 +237,15 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext,FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
-	out[0] = '$';
-	out[1] = 'N';
-	out[2] = 'T';
-	out[3] = '$';
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 
-	memcpy(&out[4], ciphertext, 32);
+	memcpy(&out[TAG_LENGTH], ciphertext, 32);
 	out[36] = 0;
 
-	strlwr(&out[4]);
+	strlwr(&out[TAG_LENGTH]);
 
 	return out;
 }
@@ -257,8 +254,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
 	for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
@@ -272,11 +269,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // Note, we address the user id inside loader.
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static char out[33+5];
+	static char out[33+TAG_LENGTH+1];
 
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
-			sprintf(out, "$NT$%s", split_fields[3]);
+			sprintf(out, "%s%s", FORMAT_TAG, split_fields[3]);
 			if (valid(out,self))
 				return out;
 		}
@@ -294,7 +291,7 @@ static void *get_binary(char *ciphertext)
 	unsigned int i;
 	unsigned int temp;
 
-	ciphertext+=4;
+	ciphertext += TAG_LENGTH;
 	for (i=0; i<4; i++)
 	{
 		temp  = ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+0])]))<<4;
@@ -720,7 +717,7 @@ struct fmt_main fmt_NT2 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

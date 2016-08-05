@@ -44,6 +44,8 @@ john_register_one(&fmt_wbb3);
 
 #define FORMAT_LABEL		"wbb3"
 #define FORMAT_NAME		"WoltLab BB3"
+#define FORMAT_TAG           "$wbb3$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -116,10 +118,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char _ctcopy[256], *ctcopy = _ctcopy;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$wbb3$*", 7))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	strnzcpy(ctcopy, ciphertext, 255);
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*"); /* type */
 	if(!p)
 		goto err;
@@ -152,7 +154,7 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, sizeof(cs));
 	strnzcpy(ctcopy, ciphertext, 255);
-	ctcopy += 7;	/* skip over "$wbb3$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$wbb3$*" */
 	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
 	p = strtokm(NULL, "*");
@@ -277,7 +279,7 @@ struct fmt_main fmt_wbb3 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		wbb3_tests
 	}, {
 		init,

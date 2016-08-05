@@ -54,7 +54,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$ripemd$"
-#define TAG_LENGTH		8
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -315,7 +315,7 @@ struct fmt_main fmt_ripemd_160 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		ripemd_160_tests
 	}, {
 		init,
@@ -380,7 +380,7 @@ struct fmt_main fmt_ripemd_128 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		ripemd_128_tests
 	}, {
 		init,

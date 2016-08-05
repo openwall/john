@@ -67,6 +67,8 @@ john_register_one(&fmt_NETLM);
 
 #define FORMAT_LABEL         "netlm"
 #define FORMAT_NAME          "LM C/R"
+#define FORMAT_TAG           "$NETLM$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME       "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
@@ -128,7 +130,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
-  if (strncmp(ciphertext, "$NETLM$", 7)!=0) return 0;
+  if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
   if (strlen(ciphertext) < TOTAL_LENGTH) return 0;
   if (ciphertext[23] != '$') return 0;
 
@@ -147,7 +149,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
-	if (!strncmp(split_fields[1], "$NETLM$", 7))
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
 		return split_fields[1];
@@ -165,7 +167,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	}
 
 	cp = mem_alloc(7+strlen(split_fields[3])+1+strlen(split_fields[5])+1);
-	sprintf(cp, "$NETLM$%s$%s", split_fields[5], split_fields[3]);
+	sprintf(cp, "%s%s$%s", FORMAT_TAG, split_fields[5], split_fields[3]);
 
 	if (valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
@@ -183,7 +185,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
   memset(out, 0, TOTAL_LENGTH + 1);
   memcpy(out, ciphertext, TOTAL_LENGTH);
-  strlwr(&out[6]); /* Exclude: $NETLM$ */
+  strlwr(&out[FORMAT_TAG_LEN]); /* Exclude: $NETLM$ */
 
   return out;
 }
@@ -286,7 +288,7 @@ static void *get_salt(char *ciphertext)
 
   if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
-  ciphertext += 7;
+  ciphertext += FORMAT_TAG_LEN;
   for (i = 0; i < SALT_SIZE; ++i)
     binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
@@ -380,7 +382,7 @@ struct fmt_main fmt_NETLM = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_TRUNC | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
