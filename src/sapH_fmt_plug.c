@@ -189,13 +189,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int len, hash_len=0;
 	char tmp[MAX_BINARY_SIZE+SALT_LENGTH];
 	/* first check for 'simple' signatures before allocation other stuff. */
-	if (strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN))
+	if (!strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN))
 		hash_len = SHA1_BINARY_SIZE;
-	else if (strncmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN))
+	else if (!strncmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN))
 		hash_len = SHA256_BINARY_SIZE;
-	else if (strncmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN))
+	else if (!strncmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN))
 		hash_len = SHA384_BINARY_SIZE;
-	else if (strncmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN))
+	else if (!strncmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN))
 		hash_len = SHA512_BINARY_SIZE;
 	else
 		return 0;

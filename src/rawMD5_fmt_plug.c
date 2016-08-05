@@ -76,7 +76,7 @@ john_register_one(&fmt_rawMD5);
 
 #define FORMAT_TAG				"$dynamic_0$"
 #define TAG_LENGTH				(sizeof(FORMAT_TAG) - 1)
-#define FORMAT_TAG2				"{md5}"
+#define FORMAT_TAG2				"{MD5}"
 #define FORMAT_TAG2_LEN			(sizeof(FORMAT_TAG2) - 1)
 
 static struct fmt_tests tests[] = {

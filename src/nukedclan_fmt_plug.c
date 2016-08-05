@@ -50,7 +50,7 @@ john_register_one(&fmt_nk);
 
 #define FORMAT_LABEL		"nk"
 #define FORMAT_NAME		"Nuked-Klan CMS"
-#define FORMAT_TAG		"$nk$"
+#define FORMAT_TAG		"$nk$*"
 #define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
