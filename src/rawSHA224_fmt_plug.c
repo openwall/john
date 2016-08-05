@@ -55,7 +55,7 @@ john_register_one(&fmt_rawSHA224);
 #define FORMAT_LABEL            "Raw-SHA224"
 #define FORMAT_NAME             ""
 #define FORMAT_TAG              "$SHA224$"
-#define TAG_LENGTH              8
+#define TAG_LENGTH              (sizeof(FORMAT_TAG)-1)
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME			SHA256_ALGORITHM_NAME
@@ -149,7 +149,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += 8;
+		p += TAG_LENGTH;
 
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -395,7 +395,7 @@ struct fmt_main fmt_rawSHA224 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

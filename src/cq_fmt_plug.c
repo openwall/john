@@ -502,7 +502,7 @@ struct fmt_main fmt_cq = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_NOT_EXACT,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		cq_tests
 	}, {
 		init,

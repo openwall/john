@@ -58,6 +58,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"Django"
 #define FORMAT_NAME		""
+#define FORMAT_TAG		"$django$*"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
@@ -121,11 +123,11 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext, "$django$*", 9) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* type */
 		goto err;
 	/* type must be 1 */
@@ -166,7 +168,7 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 	strncpy(Buf, ciphertext, 119);
 	Buf[119] = 0;
-	ctcopy += 9;	/* skip over "$django$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$django$*" */
 	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
 	strtokm(NULL, "$");
@@ -295,7 +297,7 @@ struct fmt_main fmt_django = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ FORMAT_TAG },
 		django_tests
 	}, {
 		init,

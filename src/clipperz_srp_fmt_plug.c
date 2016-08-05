@@ -95,7 +95,7 @@ john_register_one(&fmt_clipperz);
 #define BENCHMARK_LENGTH	-1
 
 #define CLIPPERZSIG		"$clipperz$"
-#define CLIPPERZSIGLEN		10
+#define CLIPPERZSIGLEN		(sizeof(CLIPPERZSIG)-1)
 #define PLAINTEXT_LENGTH	16
 #define CIPHERTEXT_LENGTH	65
 
@@ -473,7 +473,7 @@ struct fmt_main fmt_clipperz = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ CLIPPERZSIG },
 		tests
 	}, {
 		init,

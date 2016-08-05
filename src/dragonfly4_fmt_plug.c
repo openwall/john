@@ -38,6 +38,8 @@ john_register_one(&fmt_dragonfly4_64);
 #define FORMAT_LABEL_64			"dragonfly4-64"
 #define FORMAT_NAME_32			"DragonFly BSD $4$ w/ bugs, 32-bit"
 #define FORMAT_NAME_64			"DragonFly BSD $4$ w/ bugs, 64-bit"
+#define FORMAT_TAG				"$4$"
+#define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
@@ -114,10 +116,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos, *start;
 
-	if (strncmp(ciphertext, "$4$", 3))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
-	ciphertext += 3;
+	ciphertext += FORMAT_TAG_LEN;
 
 	for (pos = ciphertext; *pos && *pos != '$'; pos++);
 	if (!*pos || pos < ciphertext || pos > &ciphertext[8]) return 0;
@@ -227,8 +229,8 @@ static void *get_salt_32(char *ciphertext)
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_32, MEM_ALIGN_WORD);
 
 	memset(out, 0, SALT_SIZE_32);
-	ciphertext += 3;
-	strcpy(&out[1], "$4$");
+	ciphertext += FORMAT_TAG_LEN;
+	strcpy(&out[1], FORMAT_TAG);
 	for (len = 0; ciphertext[len] != '$'; len++);
 
 	memcpy(&out[5], ciphertext, len);
@@ -246,7 +248,7 @@ static void *get_salt_64(char *ciphertext)
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_64, MEM_ALIGN_WORD);
 
 	memset(out, 0, SALT_SIZE_64);
-	ciphertext += 3;
+	ciphertext += FORMAT_TAG_LEN;
 	memcpy(&out[1], "$4$\0/etc", 8);
 	for (len = 0; ciphertext[len] != '$'; len++);
 
@@ -307,7 +309,7 @@ struct fmt_main fmt_dragonfly4_32 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests_32
 	}, {
 		init,

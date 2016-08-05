@@ -40,7 +40,6 @@ john_register_one(&fmt_pdf);
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define FORMAT_TAG_OLD      "$pdf$Standard*"
 #define FORMAT_TAG_OLD_LEN  (sizeof(FORMAT_TAG_OLD)-1)
-#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "MD5 SHA2 RC4/AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1000

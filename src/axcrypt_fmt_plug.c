@@ -35,6 +35,8 @@ john_register_one(&fmt_axcrypt);
 
 #define FORMAT_LABEL		"axcrypt"
 #define FORMAT_NAME		"AxCrypt"
+#define FORMAT_TAG		"$axcrypt$*"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -111,12 +113,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 
-	if (strncmp(ciphertext, "$axcrypt$*", 10) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 10;		/* skip over "$axcrypt$*" */
+	ctcopy += FORMAT_TAG_LEN;		/* skip over "$axcrypt$*" */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
 	if (!isdec(p))
@@ -156,7 +158,7 @@ static void *get_salt(char *ciphertext)
 	static void *ptr;
 
 	cs.keyfile = NULL;
-	ctcopy += 10;	/* skip over "$axcrypt$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$axcrypt$*" */
 	p = strtokm(ctcopy, "*");
 	cs.version = atoi(p);
 
@@ -318,7 +320,7 @@ struct fmt_main fmt_axcrypt =
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{ NULL },
-		{ "$axcrypt$" },
+		{ FORMAT_TAG },
 		axcrypt_tests
 	}, {
 		init,

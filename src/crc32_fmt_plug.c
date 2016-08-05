@@ -55,6 +55,10 @@ john_register_one(&fmt_crc32);
 
 #define FORMAT_LABEL			"CRC32"
 #define FORMAT_NAME			""
+#define FORMAT_TAG			"$crc32$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAGc			"$crc32c$"
+#define FORMAT_TAGc_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C " CRC32_C_ALGORITHM_NAME
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -119,7 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 	int i;
 
-	if (strncmp(ciphertext, "$crc32$", 7) && strncmp(ciphertext, "$crc32c$", 8))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) && strncmp(ciphertext, FORMAT_TAGc, FORMAT_TAGc_LEN))
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -175,7 +179,7 @@ static void *get_salt(char *ciphertext)
 	// since we ask for the crc of a file, or zero, we need to complement here,
 	// to get it into 'proper' working order.
 	*out = ~(*out);
-	if (!strncmp(ciphertext, "$crc32$", 7))
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		((char*)out)[4] = 0;
 	else
 		((char*)out)[4] = 1;
@@ -291,7 +295,7 @@ struct fmt_main fmt_crc32 = {
 		{
 			"version: 0 = CRC-32, 1 = CRC-32C",
 		},
-		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAGc },
 		tests
 	}, {
 		init,

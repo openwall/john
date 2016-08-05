@@ -97,10 +97,10 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[40+1];
 
-	if (strncmp(ciphertext, "{SHA}", 5)) {
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH)) {
 		ciphertext = rawsha1_common_split(ciphertext, index, self);
 
-		if (strncmp(ciphertext, "{SHA}", 5))
+		if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 			return ciphertext;
 	}
 
@@ -334,7 +334,7 @@ struct fmt_main fmt_rawSHA1_LI = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG_OLD },
 		tests
 	}, {
 		fmt_default_init,

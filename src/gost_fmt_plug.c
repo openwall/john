@@ -42,9 +42,9 @@ john_register_one(&fmt_gost);
 #define FORMAT_NAME		"GOST R 34.11-94"
 
 #define FORMAT_TAG		"$gost$"
-#define TAG_LENGTH		6
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define FORMAT_TAG_CP		"$gost-cp$"
-#define TAG_CP_LENGTH		9
+#define TAG_CP_LENGTH		(sizeof(FORMAT_TAG_CP)-1)
 
 #if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
 #define ALGORITHM_NAME		"64/64"
@@ -262,7 +262,7 @@ struct fmt_main fmt_gost = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG_CP },
 		gost_tests
 	}, {
 		init,

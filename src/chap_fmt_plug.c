@@ -47,6 +47,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"chap"
 #define FORMAT_NAME		"iSCSI CHAP authentication"
+#define FORMAT_TAG		"$chap$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -98,11 +100,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int len;
-	if (strncmp(ciphertext,  "$chap$", 6) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* id */
 		goto err;
 	if (!isdec(p))
@@ -134,7 +136,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
-	ctcopy += 6; /* skip over "$chap$" */
+	ctcopy += FORMAT_TAG_LEN; /* skip over "$chap$" */
 	p = strtokm(ctcopy, "*");
 	cs.id = atoi(p);
 	p = strtokm(NULL, "*");
@@ -250,7 +252,7 @@ struct fmt_main fmt_chap = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		chap_tests
 	}, {
 		init,

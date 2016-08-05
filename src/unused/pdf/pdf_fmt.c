@@ -47,6 +47,8 @@
 
 #define FORMAT_LABEL        "PDF"
 #define FORMAT_NAME         ""
+#define FORMAT_TAG          "$pdf$Standard*"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "MD5 RC4 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1000
@@ -101,12 +103,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *ptr, *keeptr;
 	int res;
 
-	if (strncmp(ciphertext, "$pdf$Standard*", 14))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 14;
+	ctcopy += FORMAT_TAG_LEN;
 	if (!(ptr = strtok(ctcopy, "*"))) /* o_string */
 		goto error;
 	if (!ishex(ptr))
@@ -292,6 +294,8 @@ struct fmt_main fmt_pdf = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		{NULL},
+		{FORMAT_TAG},
 		pdf_tests
 	},
 	{

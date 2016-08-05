@@ -11,9 +11,9 @@
 #include "formats.h"
 
 #define FORMAT_TAG_OLD			"$dynamic_26$"
-#define TAG_LENGTH_OLD			12
+#define TAG_LENGTH_OLD			(sizeof(FORMAT_TAG_OLD)-1)
 #define FORMAT_TAG				"{SHA}"
-#define TAG_LENGTH				5
+#define TAG_LENGTH				(sizeof(FORMAT_TAG)-1)
 
 #define HASH_LENGTH_OLD			40
 #define HASH_LENGTH				28

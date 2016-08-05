@@ -29,7 +29,7 @@ john_register_one(&fmt_rawSHA_0);
 #define BENCHMARK_LENGTH		-1
 
 #define FORMAT_TAG			"$SHA$"
-#define TAG_LENGTH			5
+#define TAG_LENGTH			(sizeof(FORMAT_TAG)-1)
 
 #define PLAINTEXT_LENGTH		125
 #define HASH_LENGTH			40
@@ -163,7 +163,7 @@ struct fmt_main fmt_rawSHA_0 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		fmt_default_init,

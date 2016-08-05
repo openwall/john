@@ -762,7 +762,10 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{NULL},
-		{ NULL },
+		{
+			HEX_TAG,
+			CISCO_TAG
+		},
 		sha256_common_tests
 	}, {
 		init,
