@@ -865,7 +865,7 @@ struct fmt_main fmt_opencl_ng_rawsha512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{NULL},
-		{ NULL },
+		{FORMAT_TAG},
 		sha512_common_tests_rawsha512_20
 	}, {
 		init_raw,

@@ -197,7 +197,12 @@ struct fmt_main fmt_BF = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{
+			FORMAT_TAG,
+			FORMAT_TAG2,
+			FORMAT_TAG3,
+			FORMAT_TAG4
+		},
 		BF_common_tests
 	}, {
 		init,

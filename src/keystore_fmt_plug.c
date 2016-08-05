@@ -287,7 +287,7 @@ static void *get_salt(char *ciphertext)
 	keystore_salt cs;
 
 	memset(&cs, 0, sizeof(keystore_salt));
-	ctcopy += 10; /* skip over "$keystore$" */
+	ctcopy += FORMAT_TAG_LEN; /* skip over "$keystore$" */
 	p = strtokm(ctcopy, "$");
 	cs.target = atoi(p);
 	p = strtokm(NULL, "$");
@@ -516,7 +516,7 @@ struct fmt_main fmt_keystore = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		/* FIXME: report keystore_cur_salt->data_length as tunable cost? */
 		{ NULL },
-		{ "$keystore$" },
+		{ FORMAT_TAG },
 		keystore_common_tests
 	}, {
 		init,

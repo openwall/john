@@ -36,6 +36,8 @@ john_register_one(&fmt_lastpass);
 
 #define FORMAT_LABEL		"lp"
 #define FORMAT_NAME		"LastPass offline"
+#define FORMAT_TAG		"$lp$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
@@ -99,11 +101,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext, "$lp$", 4))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 4;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* email */
 		goto err;
 	if (strlen(p) > 32)
@@ -128,7 +130,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 4;	/* skip over "$lp$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$lp$" */
 	p = strtokm(ctcopy, "$");
 	strncpy((char*)cs.salt, p, 32);
 	cs.salt_length = strlen((char*)p);
@@ -258,7 +260,7 @@ struct fmt_main fmt_lastpass = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		lastpass_tests
 	}, {
 		init,

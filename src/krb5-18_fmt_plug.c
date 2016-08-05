@@ -60,7 +60,7 @@ john_register_one(&fmt_krb5_18);
 #define FORMAT_NAME		"Kerberos 5 db etype 18"
 
 #define FORMAT_TAG		"$krb18$"
-#define TAG_LENGTH		7
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 
 #if SIMD_COEF_32
 #define ALGORITHM_NAME    "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " AES"
@@ -304,7 +304,7 @@ struct fmt_main fmt_krb5_18 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		kinit_tests
 	}, {
 		init,

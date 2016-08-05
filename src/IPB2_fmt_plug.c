@@ -46,6 +46,8 @@ static unsigned int omp_t = 1;
 
 #define FORMAT_LABEL			"ipb2"
 #define FORMAT_NAME			"Invision Power Board 2.x"
+#define FORMAT_TAG			"$IPB2$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
@@ -189,7 +191,7 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, "$IPB2$", 6) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
@@ -230,7 +232,7 @@ static void *get_salt(char *ciphertext)
 	static MD5_CTX ctx;
 	int i;
 
-	ciphertext += 6;
+	ciphertext += FORMAT_TAG_LEN;
 	for (i = 0; i < SALT_LENGTH; ++i)
 		binary_salt[i] =
 			(atoi16[ARCH_INDEX(ciphertext[i*2])] << 4)
@@ -492,7 +494,7 @@ struct fmt_main fmt_IPB2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	},
 	{

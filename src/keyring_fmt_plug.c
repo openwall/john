@@ -45,6 +45,8 @@ john_register_one(&fmt_keyring);
 
 #define FORMAT_LABEL		"keyring"
 #define FORMAT_NAME		"GNOME Keyring"
+#define FORMAT_TAG			"$keyring$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA256 AES " SHA256_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -124,13 +126,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int ctlen;
-	if (strncmp(ciphertext, "$keyring$", 9) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	if (keeptr == NULL)
 		goto err;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
 	if (hexlenl(p) != SALTLEN * 2)
@@ -177,7 +179,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 9;	/* skip over "$keyring$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keyring$" */
 	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
@@ -390,7 +392,7 @@ struct fmt_main fmt_keyring = {
 		{
 			"iteration count",
 		},
-		{ "$keyring$" },
+		{ FORMAT_TAG },
 		keyring_tests
 	}, {
 		init,

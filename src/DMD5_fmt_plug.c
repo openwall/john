@@ -40,6 +40,8 @@ john_register_one(&fmt_DMD5);
 #define FORMAT_LABEL		"dmd5"
 #define FORMAT_NAME		"DIGEST-MD5 C/R"
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
+#define FORMAT_TAG			"$DIGEST-MD5$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -135,9 +137,9 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *data = ciphertext + 12;
+	char *p, *data = ciphertext + FORMAT_TAG_LEN;
 
-	if (strncmp(ciphertext, "$DIGEST-MD5$", 12) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
@@ -185,7 +187,7 @@ static void *get_binary(char *ciphertext)
 	static ARCH_WORD_32 out[BINARY_SIZE/4];
 	char response[MD5_HEX_SIZE + 1];
 	unsigned int i;
-	char *p, *data = ciphertext + 12;
+	char *p, *data = ciphertext + FORMAT_TAG_LEN;
 
 	p = strchr(data, '$'); data = p + 1;
 	p = strchr(data, '$'); data = p + 1;
@@ -221,7 +223,7 @@ static void *get_salt(char *ciphertext)
 	char authzid[8];
 	unsigned char *ptr_src, *ptr_dst, v, i;
 	char *ccopy = strdup(ciphertext);
-	char *p, *data = ccopy + 12;
+	char *p, *data = ccopy + FORMAT_TAG_LEN;
 	MD5_CTX ctx;
 	char A2[DSIZE];
 	unsigned char hash[BINARY_SIZE];
@@ -417,7 +419,7 @@ struct fmt_main fmt_DMD5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	},
 	{

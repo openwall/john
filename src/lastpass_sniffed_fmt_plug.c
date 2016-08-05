@@ -40,6 +40,8 @@ john_register_one(&fmt_sniffed_lastpass);
 
 #define FORMAT_LABEL		"LastPass"
 #define FORMAT_NAME		"sniffed sessions"
+#define FORMAT_TAG			"$lastpass$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 AES " SHA256_ALGORITHM_NAME
 #else
@@ -108,11 +110,11 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext, "$lastpass$", 10) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 10;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* username */
 		goto err;
 	if (strlen(p) > 128)
@@ -141,7 +143,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 10;	/* skip over "$lastpass$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$lastpass$" */
 	p = strtokm(ctcopy, "$");
 	i = strlen(p);
 	if (i > 16)
@@ -159,7 +161,7 @@ static void *get_binary(char *ciphertext)
 	static unsigned int out[4];
 	char Tmp[48];
 	char *p;
-	ciphertext += 10;
+	ciphertext += FORMAT_TAG_LEN;
 	p = strchr(ciphertext, '$')+1;
 	p = strchr(p, '$')+1;
 	base64_convert(p, e_b64_mime, strlen(p), Tmp, e_b64_raw, sizeof(Tmp), 0, 0);
@@ -282,7 +284,7 @@ struct fmt_main fmt_sniffed_lastpass = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ FORMAT_TAG },
 		lastpass_tests
 	}, {
 		init,

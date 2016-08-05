@@ -222,7 +222,7 @@ static void *get_salt(char *ciphertext)
 	if (!cs) cs = mem_alloc_tiny(sizeof(struct custom_salt),16);
 	memset(cs, 0, sizeof(struct custom_salt));
 
-	ctcopy += 10; 				// skip over "$keystore$"
+	ctcopy += FORMAT_TAG_LEN; 				// skip over "$keystore$"
 	p = strtokm(ctcopy, "$");   // skip target
 	p = strtokm(NULL, "$");
 	cs->length = atoi(p);
@@ -434,7 +434,7 @@ struct fmt_main fmt_opencl_keystore = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		/* FIXME: report cur_salt->length as tunable cost? */
 		{ NULL },
-		{ "$keystore$" },
+		{ FORMAT_TAG },
 		keystore_common_tests
 	}, {
 		init,

@@ -32,6 +32,8 @@ john_register_one(&fmt_opencl_keyring);
 
 #define FORMAT_LABEL		"keyring-opencl"
 #define FORMAT_NAME		"GNOME Keyring"
+#define FORMAT_TAG			"$keyring$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA256 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -212,13 +214,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int ctlen;
-	if (strncmp(ciphertext, "$keyring$", 9) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	if (keeptr == NULL)
 		goto err;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
 	if (hexlenl(p) != SALTLEN * 2)
@@ -274,7 +276,7 @@ static void *get_salt(char *ciphertext)
 	if (!cur_salt)
 		cur_salt = mem_alloc_tiny(sizeof(struct custom_salt),
 		                          MEM_ALIGN_WORD);
-	ctcopy += 9;	/* skip over "$keyring$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keyring$" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -437,7 +439,7 @@ struct fmt_main fmt_opencl_keyring = {
 		{
 			"iteration count",
 		},
-		{ "$keyring$" },
+		{ FORMAT_TAG },
 		keyring_tests
 	}, {
 		init,

@@ -39,7 +39,7 @@ struct fmt_main;
  * Maximum number of different signatures
  * that can be reported for a single format
  */
-#define FMT_SIGNATURES	3
+#define FMT_SIGNATURES	4
 
 /*
  * Some format methods accept pointers to these, yet we can't just include

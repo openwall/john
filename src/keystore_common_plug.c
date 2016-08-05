@@ -28,11 +28,11 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	char *keeptr;
 	int target;
 	int v;
-	if (strncmp(ciphertext, "$keystore$", 10) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 10;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto bail;
 	if (!isdec(p))
@@ -99,7 +99,7 @@ void *keystore_common_get_binary(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 
-	ctcopy += 10; /* skip over "$keystore$" */
+	ctcopy += FORMAT_TAG_LEN; /* skip over "$keystore$" */
 	p = strtokm(ctcopy, "$");
 	p = strtokm(NULL, "$");
 	p = strtokm(NULL, "$");
