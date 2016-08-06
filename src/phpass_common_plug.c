@@ -117,9 +117,9 @@ char *phpass_common_split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[PHPASS_CIPHERTEXT_LENGTH + 1];
 	char *cpH, *cpS;
 
-	if (strncmp(ciphertext, "$dynamic_17$", 12))
+	if (strncmp(ciphertext, FORMAT_TAG3, FORMAT_TAG3_LEN))
 		return ciphertext;
-	cpH = ciphertext + 12;
+	cpH = ciphertext + FORMAT_TAG3_LEN;
 	strcpy(out, FORMAT_TAG);
 	cpS = strchr(cpH, '$');
 	if (!cpS)

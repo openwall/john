@@ -359,7 +359,7 @@ struct fmt_main fmt_phpassmd5 = {
 		{
 			"iteration count",
 		},
-		{ FORMAT_TAG, FORMAT_TAG2 },
+		{ FORMAT_TAG, FORMAT_TAG2, FORMAT_TAG3 },
 		phpass_common_tests_39
 	}, {
 		init,

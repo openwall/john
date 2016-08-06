@@ -31,6 +31,9 @@ john_register_one(&fmt_rawKeccak);
 
 #define FORMAT_LABEL		"Raw-Keccak"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$keccak$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
+
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -94,8 +97,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$keccak$", 8))
-		p += 8;
+	if (!strncmp(p, FORMAT_TAG, FORMAT_TAG_LEN))
+		p += FORMAT_TAG_LEN;
 
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -105,14 +108,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 {
-	static char out[8 + CIPHERTEXT_LENGTH + 1];
+	static char out[FORMAT_TAG_LEN + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$keccak$", 8))
-		ciphertext += 8;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
-	memcpy(out, "$keccak$", 8);
-	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + 8);
+	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
+	memcpy(out + FORMAT_TAG_LEN, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(out + FORMAT_TAG_LEN);
 	return out;
 }
 
@@ -124,7 +127,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	p = ciphertext + 8;
+	p = ciphertext + FORMAT_TAG_LEN;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
@@ -238,7 +241,7 @@ struct fmt_main fmt_rawKeccak = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

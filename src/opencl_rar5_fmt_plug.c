@@ -39,8 +39,6 @@ john_register_one(&fmt_ocl_rar5);
 
 #define FORMAT_LABEL		"RAR5-opencl"
 #define FORMAT_NAME		""
-#define FORMAT_TAG  		"$rar5$"
-#define TAG_LENGTH  		6
 #define ALGORITHM_NAME		"PBKDF2-SHA256 OpenCL"
 
 #define BENCHMARK_COMMENT	""
@@ -329,7 +327,7 @@ struct fmt_main fmt_ocl_rar5 = {
 	{
 		"iteration count",
 	},
-	{ "$rar5$" },
+	{ FORMAT_TAG },
 	tests
 }, {
 	init,

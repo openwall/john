@@ -47,8 +47,10 @@ john_register_one(&FMT_STRUCT);
 #define SALT_SIZE           0
 #define SALT_ALIGN          1
 
-#define FORMAT_TAG          "$dynamic_0$"
-#define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG				"$dynamic_0$"
+#define TAG_LENGTH				(sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG2				"{MD5}"
+#define FORMAT_TAG2_LEN			(sizeof(FORMAT_TAG2) - 1)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
 static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
@@ -253,10 +255,10 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(fields[1], "{MD5}", 5) && strlen(fields[1]) == 29) {
+	if (!strncmp(fields[1], FORMAT_TAG2, FORMAT_TAG2_LEN) && strlen(fields[1]) == FORMAT_TAG2_LEN+24) {
 		int res;
 
-		res = base64_convert(&fields[1][5], e_b64_mime, 24,
+		res = base64_convert(&fields[1][FORMAT_TAG2_LEN], e_b64_mime, 24,
 		                     out, e_b64_hex, sizeof(out),
 		                     flg_Base64_HEX_LOCASE, 0);
 		if (res >= 0)
@@ -645,7 +647,7 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_REMOVE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		init,

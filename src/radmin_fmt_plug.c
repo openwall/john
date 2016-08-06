@@ -40,6 +40,8 @@ john_register_one(&fmt_radmin);
 
 #define FORMAT_LABEL		"RAdmin"
 #define FORMAT_NAME		"v2.x"
+#define FORMAT_TAG           "$radmin2$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -89,8 +91,8 @@ static void done(void)
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self) {
-	static char buf[CIPHERTEXT_LENGTH + 10];   // $radmin2$ is 9 bytes
-	strnzcpy(buf, ciphertext, CIPHERTEXT_LENGTH + 10);
+	static char buf[CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1];   // $radmin2$ is 9 bytes
+	strnzcpy(buf, ciphertext, CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1);
 	strlwr(buf);
 	return buf;
 }
@@ -98,9 +100,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *self) {
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
-	if (strncmp(ciphertext, "$radmin2$", 9))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	p = ciphertext + 9;
+	p = ciphertext + FORMAT_TAG_LEN;
 	if (hexlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 	return 1;
@@ -203,7 +205,7 @@ struct fmt_main fmt_radmin = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		radmin_tests
 	}, {
 		init,

@@ -175,7 +175,7 @@ struct fmt_main fmt_rar5 = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

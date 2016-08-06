@@ -50,8 +50,6 @@ typedef struct {
 
 static phpass_password *inbuffer;		/** plaintext ciphertexts **/
 static phpass_hash *outbuffer;			/** calculated hashes **/
-static const char phpassP_prefix[] = "$P$";
-static const char phpassH_prefix[] = "$H$";
 static char currentsalt[SALT_SIZE];
 
 // OpenCL variables:
@@ -183,8 +181,8 @@ static void *get_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
 
-	memcpy(salt, &ciphertext[4], ACTUAL_SALT_SIZE);
-	salt[ACTUAL_SALT_SIZE] = ciphertext[3];
+	memcpy(salt, &ciphertext[FORMAT_TAG_LEN+1], ACTUAL_SALT_SIZE);
+	salt[ACTUAL_SALT_SIZE] = ciphertext[FORMAT_TAG_LEN];
 	return salt;
 }
 
@@ -197,7 +195,7 @@ static void set_salt(void *salt)
 
 	// Prepare setting format: salt+prefix+count_log2
 	memcpy(setting, currentsalt, ACTUAL_SALT_SIZE);
-	strcpy(setting + ACTUAL_SALT_SIZE, phpassP_prefix);
+	strcpy(setting + ACTUAL_SALT_SIZE, FORMAT_TAG);
 	setting[ACTUAL_SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
@@ -348,7 +346,7 @@ struct fmt_main fmt_opencl_phpass = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2, FORMAT_TAG3 },
 		phpass_common_tests_15
 	}, {
 		init,

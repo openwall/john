@@ -61,6 +61,8 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 
 #define FORMAT_LABEL		"krb5pa-sha1-opencl"
 #define FORMAT_NAME		"Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
+#define FORMAT_TAG           "$krb5pa$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1001
@@ -379,9 +381,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int type, saltlen = 0;
 
 	// tag is mandatory
-	if (strncmp(ciphertext, "$krb5pa$", 8) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	data += 8;
+	data += FORMAT_TAG_LEN;
 
 	// etype field, 17 or 18
 	p = strchr(data, '$');
@@ -445,7 +447,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 8;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "$");
 	cs.etype = atoi(p);
 	p = strtokm(NULL, "$");
@@ -524,7 +526,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		snprintf(salt, sizeof(salt), "%s%s", r, u);
 		s = salt;
 	}
-	snprintf(out, sizeof(out), "$krb5pa$%s$%s$%s$%s$%s", e, u, r, s, tc);
+	snprintf(out, sizeof(out), "%s%s$%s$%s$%s$%s", FORMAT_TAG, e, u, r, s, tc);
 
 	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
 	strlwr(data);
@@ -796,7 +798,7 @@ struct fmt_main fmt_opencl_krb5pa_sha1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

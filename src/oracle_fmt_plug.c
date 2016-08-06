@@ -27,6 +27,8 @@ john_register_one(&fmt_oracle);
 
 #define FORMAT_LABEL			"oracle"
 #define FORMAT_NAME			"Oracle 10"
+#define FORMAT_TAG           "O$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"DES 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -109,7 +111,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(ciphertext) > CIPHERTEXT_LENGTH + MAX_USERNAME_LEN + 3)
 		return 0;
 
-	if (!memcmp(ciphertext, "O$", 2))
+	if (!memcmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 	{
 		l = strlen(ciphertext) - CIPHERTEXT_LENGTH;
 		if (l <= 0)
@@ -137,12 +139,12 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 
-	if (!strncmp(split_fields[1], "O$", 2))
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 	if (!split_fields[0])
 		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
-	sprintf (cp, "O$%s#%s", split_fields[0], split_fields[1]);
+	sprintf (cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
 	if (valid(cp, self))
 	{
 		UTF8 tmp8[30*3+1];
@@ -166,7 +168,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 			return split_fields[1];
 
 		cp = mem_alloc_tiny(utf8len + strlen(split_fields[1]) + 4, MEM_ALIGN_NONE);
-		sprintf (cp, "O$%s#%s", tmp8, split_fields[1]);
+		sprintf (cp, "%s%s#%s", FORMAT_TAG, tmp8, split_fields[1]);
 #ifdef DEBUG_ORACLE
 		printf ("tmp8         : %s\n", tmp8);
 #endif
@@ -178,10 +180,10 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[2 + sizeof(cur_salt) + 1 + CIPHERTEXT_LENGTH];
+	static char out[FORMAT_TAG_LEN + sizeof(cur_salt) + 1 + CIPHERTEXT_LENGTH];
 	char *cp;
 	strnzcpy(out, ciphertext, sizeof(out));
-	enc_strupper(&out[2]);
+	enc_strupper(&out[FORMAT_TAG_LEN]);
 	cp = strrchr(out, '#');
 	if (cp)
 		strlwr(cp);
@@ -368,7 +370,7 @@ struct fmt_main fmt_oracle = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

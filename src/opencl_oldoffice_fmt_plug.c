@@ -630,7 +630,7 @@ struct fmt_main FORMAT_STRUCT = {
 		{
 			"hash type",
 		},
-		{ NULL },
+		{ FORMAT_TAG },
 		oo_tests
 	}, {
 		init,
