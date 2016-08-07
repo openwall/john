@@ -1144,7 +1144,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 		for (;i < FMT_SIGNATURES && format->params.signature[i] && !valid; ++i) {
 			if (!strncmp(ciphertext, format->params.signature[i],
 			             strlen(format->params.signature[i])) &&
-			             strnlen(ciphertext, MAX_CIPHERTEXT_SIZE + 2) > MAX_CIPHERTEXT_SIZE &&
+			             strnlen(ciphertext, MAX_CIPHERTEXT_SIZE + 2) > (MAX_CIPHERTEXT_SIZE>>1) &&
 			             ldr_isa_pot_source(ciphertext)) {
 					     valid = 1;
 			}
