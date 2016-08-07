@@ -33,12 +33,6 @@
 #include "memdbg.h"
 #include "mask_ext.h"
 
-extern void wordlist_hybrid_fix_state(void);
-extern void mkv_hybrid_fix_state(void);
-extern void inc_hybrid_fix_state(void);
-extern void pp_hybrid_fix_state(void);
-extern void ext_hybrid_fix_state(void);
-
 static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
@@ -47,7 +41,6 @@ static int max_keylen, fmt_maxlen, rec_len, restored_len, restored;
 static unsigned long long rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
-static int parent_fix_state_pending;
 int mask_add_len, mask_num_qw, mask_cur_len;
 
 /*
@@ -1878,10 +1871,6 @@ void mask_fix_state(void)
 {
 	int i;
 
-	if (parent_fix_state_pending) {
-		crk_fix_state();
-		parent_fix_state_pending = 0;
-	}
 	rec_cand = cand;
 	rec_ctx.count = cpu_mask_ctx.count;
 	rec_ctx.offset = cpu_mask_ctx.offset;
@@ -2275,10 +2264,24 @@ void mask_done()
 	mask_int_cand_target = 0;
 }
 
+extern void(*crk_fix_state)(void);
+static void(*saved_crk_fix_state)(void);
+static void save_fix_state(void(*new_crk_fix_state)(void))
+{
+	saved_crk_fix_state = crk_fix_state;
+	crk_fix_state = new_crk_fix_state;
+}
+static void restore_fix_state(void)
+{
+	crk_fix_state = saved_crk_fix_state;
+}
+
 int do_mask_crack(const char *extern_key)
 {
 	int key_len = extern_key ? strlen(extern_key) : 0;
 	int i;
+
+	save_fix_state(mask_fix_state);
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s)\n", __FUNCTION__, extern_key);
@@ -2298,8 +2301,10 @@ int do_mask_crack(const char *extern_key)
 		restored_len = 0;
 
 		if (mask_cur_len == 0) {
-			if (crk_process_key(fmt_null_key))
+			if (crk_process_key(fmt_null_key)) {
+				restore_fix_state();
 				return 1;
+			}
 			mask_cur_len++;
 		}
 
@@ -2334,11 +2339,15 @@ int do_mask_crack(const char *extern_key)
 			template_key_len = strlen(template_key);
 
 			if (options.flags & FLG_TEST_CHK) {
-				if (bench_generate_keys(&cpu_mask_ctx, &cand))
+				if (bench_generate_keys(&cpu_mask_ctx, &cand)) {
+					restore_fix_state();
 					return 1;
+				}
 			} else {
-				if (generate_keys(&cpu_mask_ctx, &cand))
+				if (generate_keys(&cpu_mask_ctx, &cand)) {
+					restore_fix_state();
 					return 1;
+				}
 			}
 
 			if (i < max_len && cfg_get_bool("Mask", NULL,
@@ -2377,29 +2386,17 @@ int do_mask_crack(const char *extern_key)
 			}
 		}
 		if (options.flags & FLG_TEST_CHK) {
-			if (bench_generate_keys(&cpu_mask_ctx, &cand))
+			if (bench_generate_keys(&cpu_mask_ctx, &cand)) {
+				restore_fix_state();
 				return 1;
+			}
 		} else {
-			if (generate_keys(&cpu_mask_ctx, &cand))
+			if (generate_keys(&cpu_mask_ctx, &cand)) {
+				restore_fix_state();
 				return 1;
+			}
 		}
 	}
-
-	if (options.flags & FLG_MASK_STACKED) {
-		if (options.flags & FLG_WORDLIST_CHK)
-			wordlist_hybrid_fix_state();
-		else if (options.flags & FLG_MKV_CHK)
-			mkv_hybrid_fix_state();
-		else if (options.flags & FLG_INC_CHK)
-			inc_hybrid_fix_state();
-#if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
-		else if (options.flags & FLG_PRINCE_CHK)
-			pp_hybrid_fix_state();
-#endif
-		else if (options.flags & FLG_EXTERNAL_CHK)
-			ext_hybrid_fix_state();
-		parent_fix_state_pending = 1;
-	}
-
+	restore_fix_state();
 	return event_abort;
 }

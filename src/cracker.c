@@ -760,7 +760,6 @@ static int crk_process_event(void)
 
 static int crk_password_loop(struct db_salt *salt)
 {
-	void ext_hybrid_fix_state(void);
 	int count;
 	unsigned int match, index;
 #if CRK_PREFETCH
@@ -775,8 +774,6 @@ static int crk_password_loop(struct db_salt *salt)
 
 	if (event_pending && crk_process_event())
 		return -1;
-
-	ext_hybrid_fix_state();
 
 	count = crk_key_index;
 	match = crk_methods.crypt_all(&count, salt);
@@ -968,9 +965,6 @@ static int crk_salt_loop(void)
 
 	crk_key_index = 0;
 	crk_last_salt = NULL;
-	if (options.flags & FLG_MASK_STACKED)
-		mask_fix_state();
-	else
 	crk_fix_state();
 
 	if (ext_abort)
@@ -1014,9 +1008,6 @@ int crk_process_key(char *key)
 
 	status_update_cands(1);
 
-	if (options.flags & FLG_MASK_STACKED)
-		mask_fix_state();
-	else
 	crk_fix_state();
 
 	if (ext_abort)
