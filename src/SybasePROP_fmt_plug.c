@@ -218,6 +218,7 @@ struct fmt_main fmt_sybaseprop = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ PREFIX_VALUE },
 		SybasePROP_tests
 	}, {
 		init,

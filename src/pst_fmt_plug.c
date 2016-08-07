@@ -44,6 +44,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL			"PST"
 #define FORMAT_NAME			"custom CRC-32"
+#define FORMAT_TAG           "$pst$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -95,9 +97,9 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
-	if (strncmp(ciphertext, "$pst$", 5))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	p = ciphertext + 5;
+	p = ciphertext + FORMAT_TAG_LEN;
 	if (hexlenl(p) != BINARY_SIZE * 2)
 		return 0;
 	return 1;
@@ -185,6 +187,7 @@ struct fmt_main fmt_pst = {
 #endif
 		FMT_CASE | FMT_TRUNC | FMT_8_BIT | FMT_NOT_EXACT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

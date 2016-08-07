@@ -20,6 +20,10 @@ john_register_one(&fmt_sha1_gen);
 
 #define FORMAT_LABEL			"sha1-gen"
 #define FORMAT_NAME			"Generic salted SHA-1"
+#define FORMAT_TAG          "$SHA1p$"
+#define FORMAT_TAGs         "$SHA1s$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG) - 1)
+
 #define ALGORITHM_NAME			"SHA1 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -53,9 +57,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
-	if (strncmp(ciphertext, "$SHA1", 5) ||
-	    (ciphertext[5] != 'p' && ciphertext[5] != 's') ||
-	    ciphertext[6] != '$')
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN-2) ||
+	    (ciphertext[FORMAT_TAG_LEN-2] != 'p' && ciphertext[FORMAT_TAG_LEN-2] != 's') ||
+	    ciphertext[FORMAT_TAG_LEN-1] != '$')
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -99,7 +103,7 @@ static void *get_salt(char *ciphertext)
 	int length;
 
 	memset(out, 0, SALT_SIZE);
-	p = ciphertext + 7;
+	p = ciphertext + FORMAT_TAG_LEN;
 	length = strrchr(ciphertext, '$') - p;
 	out[0] = length;
 	out[1] = ciphertext[5];
@@ -225,7 +229,10 @@ struct fmt_main fmt_sha1_gen = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		{ NULL },
+		{
+			FORMAT_TAG,
+			FORMAT_TAGs
+		},
 		tests
 	}, {
 		fmt_default_init,

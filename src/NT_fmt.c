@@ -42,6 +42,8 @@
 
 #define FORMAT_LABEL			"NT-old"
 #define FORMAT_NAME			""
+#define FORMAT_TAG			"$NT$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -287,18 +289,15 @@ static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
-	out[0] = '$';
-	out[1] = 'N';
-	out[2] = 'T';
-	out[3] = '$';
+	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
 
-	memcpy(&out[4], ciphertext, 32);
+	memcpy(&out[FORMAT_TAG_LEN], ciphertext, 32);
 	out[36] = 0;
 
-	strlwr(&out[4]);
+	strlwr(&out[FORMAT_TAG_LEN]);
 
 	return out;
 }
@@ -307,8 +306,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
         for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
@@ -326,7 +325,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
-			sprintf(out, "$NT$%s", split_fields[3]);
+			sprintf(out, "%s%s", FORMAT_TAG, split_fields[3]);
 			if (valid(out,self))
 				return out;
 		}
@@ -340,8 +339,8 @@ static void *get_binary(char *ciphertext)
 	unsigned int i=0;
 	unsigned int temp;
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
 	for (; i<4; i++)
 	{
@@ -635,8 +634,8 @@ static char *source(char *source, void *binary)
 	char *cpo;
 	int i;
 
-	strcpy(Buf, "$NT$");
-	cpo = &Buf[4];
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[FORMAT_TAG_LEN];
 
 	// we have to 'undo' the stuff done in the get_binary() function, to get back to the 'original' hash value.
 	memcpy(out, binary, 16);
@@ -1024,6 +1023,7 @@ struct fmt_main fmt_NT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		fmt_NT_init,

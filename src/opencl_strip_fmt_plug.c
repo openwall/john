@@ -32,6 +32,8 @@ john_register_one(&fmt_opencl_strip);
 
 #define FORMAT_LABEL		"strip-opencl"
 #define FORMAT_NAME		"STRIP Password Manager"
+#define FORMAT_TAG           "$strip$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -204,14 +206,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext, "$strip$*", 8))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$strip$" and first '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt + data */
 		goto err;
 	if (hexlenl(p) != 2048)
@@ -237,7 +236,7 @@ static void *get_salt(char *ciphertext)
 		cs = mem_alloc_tiny(sizeof(struct custom_salt), 4);
 
 	memset(cs, 0, sizeof(struct custom_salt));
-	ctcopy += 7+1;	/* skip over "$strip$" and first '*' */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$strip$" and first '*' */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 16; i++)
 			cs->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -411,6 +410,7 @@ struct fmt_main fmt_opencl_strip = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		{ NULL },
+		{ FORMAT_TAG },
 		strip_tests
 	}, {
 		init,

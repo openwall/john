@@ -60,7 +60,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_TAG          "$fde$"
-#define TAG_LENGTH          5
+#define TAG_LENGTH          (sizeof(FORMAT_TAG)-1)
 #define FORMAT_LABEL        "fde"
 #define FORMAT_NAME         "Android FDE"
 #ifdef SIMD_COEF_32
@@ -135,9 +135,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
@@ -370,6 +367,7 @@ struct fmt_main fmt_fde = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		fde_tests
 	}, {
 		init,

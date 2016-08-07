@@ -7,7 +7,7 @@
 #define SIZE_INITV 16
 
 #define FORMAT_TAG  		"$rar5$"
-#define TAG_LENGTH  		6
+#define TAG_LENGTH  		(sizeof(FORMAT_TAG)-1)
 
 #define BINARY_SIZE		SIZE_PSWCHECK
 

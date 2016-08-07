@@ -346,8 +346,7 @@ static void *get_salt(char *ciphertext)
 	} out;
 	char *p;
 	int i;
-
-	ciphertext += 6;
+	ciphertext += TAG_LENGTH;
 	p = ciphertext;
 	for (i = 0; i < sizeof(out.c); i++) {
 		out.c[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
@@ -866,6 +865,7 @@ struct fmt_main fmt_opencl_ng_rawsha512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{NULL},
+		{FORMAT_TAG},
 		sha512_common_tests_rawsha512_20
 	}, {
 		init_raw,
@@ -926,6 +926,11 @@ struct fmt_main fmt_opencl_ng_xsha512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{NULL},
+		{
+			FORMAT_TAG,
+			XSHA512_FORMAT_TAG,
+			NSLDAP_FORMAT_TAG
+		},
 		sha512_common_tests_xsha512
 	}, {
 		init_x,

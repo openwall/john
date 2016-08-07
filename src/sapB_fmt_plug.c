@@ -717,6 +717,7 @@ struct fmt_main fmt_sapB = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_TRUNC | FMT_OMP | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

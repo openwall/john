@@ -23,7 +23,7 @@ void *ms_office_common_get_salt(char *ciphertext)
 
 	if (!cur_salt) cur_salt = mem_alloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
 	memset(cur_salt, 0, sizeof(*cur_salt));
-	ctcopy += 9;	/* skip over "$office$*" */
+	ctcopy += FORMAT_TAG_OFFICE_LEN;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
 	cur_salt->version = atoi(p);
 	p = strtokm(NULL, "*");
@@ -63,7 +63,7 @@ void *ms_office_common_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p, Tmp[16];
 
-	ctcopy += 9;	/* skip over "$office$*" */
+	ctcopy += FORMAT_TAG_OFFICE_LEN;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
 	if (atoi(p) != 2007) {
 		memset(out, 0, sizeof(out));
@@ -92,14 +92,14 @@ static int valid(char *ciphertext, struct fmt_main *self, char *which)
 	char *ctcopy, *ptr, *keeptr;
 	int res;
 
-	if (strncmp(ciphertext, "$office$*", 9))
+	if (strncmp(ciphertext, FORMAT_TAG_OFFICE, FORMAT_TAG_OFFICE_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext))) {
 		fprintf(stderr, "Memory allocation failed in office format, unable to check if hash is valid!");
 		return 0;
 	}
 	keeptr = ctcopy;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_OFFICE_LEN;
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	if (strncmp(ptr, "2007", 4) && strncmp(ptr, "2010", 4) && strncmp(ptr, "2013", 4))

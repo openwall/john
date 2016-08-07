@@ -49,6 +49,8 @@ john_register_one(&fmt_ssh);
 
 #define FORMAT_LABEL        "SSH"
 #define FORMAT_NAME         ""
+#define FORMAT_TAG          "$ssh2$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "RSA/DSA/PEM 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   " (one 2048-bit RSA and one 1024-bit DSA key)"
 #define BENCHMARK_LENGTH    -1001
@@ -259,7 +261,7 @@ static void *get_salt(char *ciphertext)
 	t = strtokm(NULL, "*");
 	if (t)
 		psalt->type = atou(t);
-	encoded_data += 6;	/* skip over "$ssh2$ marker */
+	encoded_data += FORMAT_TAG_LEN;	/* skip over "$ssh2$ marker */
 	decoded_data = (char *) mem_alloc(filelength + 1);
 	for (i = 0; i < filelength; i++)
 		decoded_data[i] =
@@ -350,14 +352,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *dummy_salt;
 	int res;
 	int length;
-	if (strncmp(ciphertext, "$ssh2$", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* data */
 		goto err;
 	if (!ishexlc(p))
@@ -514,6 +513,7 @@ struct fmt_main fmt_ssh = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT,
 		{ NULL },
+		{ FORMAT_TAG },
 		ssh_tests
 	}, {
 		init,

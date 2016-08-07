@@ -48,6 +48,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL        "SSH-ng"
 #define FORMAT_NAME         ""
+#define FORMAT_TAG          "$sshng$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "RSA/DSA/EC/OPENSSH (SSH private keys) 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
@@ -127,14 +129,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int len, cipher;
-	if (strncmp(ciphertext, "$sshng$", 7) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* cipher */
 		goto err;
 	if (!isdec(p))
@@ -187,7 +186,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(struct custom_salt));
-	ctcopy += 7;	/* skip over "$sshng$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$sshng$" */
 	p = strtokm(ctcopy, "$");
 	cs.cipher = atoi(p);
 	p = strtokm(NULL, "$");
@@ -600,6 +599,7 @@ struct fmt_main fmt_sshng = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		sshng_tests
 	}, {
 		init,

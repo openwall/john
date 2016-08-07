@@ -47,6 +47,8 @@ john_register_one(&fmt_rawBLAKE2);
 #else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 #endif
+#define FORMAT_TAG           "$BLAKE2$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -111,8 +113,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$BLAKE2$", 8))
-		p += 8;
+	if (!strncmp(p, FORMAT_TAG, FORMAT_TAG_LEN))
+		p += FORMAT_TAG_LEN;
 
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -122,14 +124,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 {
-	static char out[8 + CIPHERTEXT_LENGTH + 1];
+	static char out[FORMAT_TAG_LEN + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$BLAKE2$", 8))
-		ciphertext += 8;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
-	memcpy(out, "$BLAKE2$", 8);
-	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + 8);
+	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
+	memcpy(out + FORMAT_TAG_LEN, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(out + FORMAT_TAG_LEN);
 	return out;
 }
 
@@ -141,7 +143,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	p = ciphertext + 8;
+	p = ciphertext + FORMAT_TAG_LEN;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
@@ -258,6 +260,7 @@ struct fmt_main fmt_rawBLAKE2 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

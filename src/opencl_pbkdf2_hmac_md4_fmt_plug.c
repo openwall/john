@@ -200,8 +200,8 @@ static void *get_salt(char *ciphertext)
 	char delim;
 
 	memset(&cs, 0, sizeof(cs));
-	if (!strncmp(ciphertext, PBKDF2_MD4_FORMAT_TAG, sizeof(PBKDF2_MD4_FORMAT_TAG) - 1))
-		ciphertext += sizeof(PBKDF2_MD4_FORMAT_TAG) - 1;
+	if (!strncmp(ciphertext, PBKDF2_MD4_FORMAT_TAG, PBKDF2_MD4_TAG_LEN))
+		ciphertext += PBKDF2_MD4_TAG_LEN;
 	cs.iterations = atoi(ciphertext);
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	ciphertext = strchr(ciphertext, delim) + 1;
@@ -378,6 +378,7 @@ struct fmt_main fmt_ocl_pbkdf2_md4 = {
 		{
 			"iterations",
 		},
+		{ PBKDF2_MD4_FORMAT_TAG },
 		pbkdf2_hmac_md4_common_tests
 	}, {
 		init,

@@ -36,17 +36,30 @@
 #define PBKDF2_SHA1_MAX_BINARY_SIZE         (4 * PBKDF2_SHA1_BINARY_SIZE)
 #define PBKDF2_SHA1_FORMAT_TAG              "$pbkdf2-hmac-sha1$"
 #define PBKDF2_SHA1_TAG_LEN                 (sizeof(PBKDF2_SHA1_FORMAT_TAG) - 1)
+/* additional signatures handled, but converted in prepare */
+#define PKCS5S2_TAG                         "{PKCS5S2}"
+#define PKCS5S2_TAG_LEN                     (sizeof(PKCS5S2_TAG)-1)
+#define PK5K2_TAG                           "$p5k2$"
+#define PK5K2_TAG_LEN                       (sizeof(PK5K2_TAG)-1)
 #define PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH   (PBKDF2_SHA1_TAG_LEN + 6 + 1 + 2*PBKDF2_32_MAX_SALT_SIZE + 1 + 2*PBKDF2_SHA1_MAX_BINARY_SIZE)
 
 #define PBKDF2_SHA256_BINARY_SIZE           32
 #define PBKDF2_SHA256_FORMAT_TAG            "$pbkdf2-sha256$"
 #define PBKDF2_SHA256_TAG_LEN               (sizeof(PBKDF2_SHA256_FORMAT_TAG) - 1)
+/* other signature handled within prepare */
+#define FORMAT_TAG_CISCO8                   "$8$"
+#define FORMAT_TAG_CISCO8_LEN               (sizeof(FORMAT_TAG_CISCO8) - 1)
 #define PBKDF2_SHA256_MAX_BINARY_SIZE       (4 * PBKDF2_SHA256_BINARY_SIZE)
 #define PBKDF2_SHA256_MAX_CIPHERTEXT_LENGTH (PBKDF2_SHA256_TAG_LEN + 6 + 1 + (PBKDF2_32_MAX_SALT_SIZE*4+2)/3 + 1 + (PBKDF2_SHA256_MAX_BINARY_SIZE*4+2)/3)
 
 #define PBKDF2_SHA512_BINARY_SIZE           64
 #define PBKDF2_SHA512_FORMAT_TAG            "$pbkdf2-hmac-sha512$"
 #define PBKDF2_SHA512_TAG_LEN               (sizeof(PBKDF2_SHA512_FORMAT_TAG) - 1)
+/* other signatures handled within prepare */
+#define FORMAT_TAG_ML               "$ml$"
+#define FORMAT_TAG_ML_LEN           (sizeof(FORMAT_TAG_ML) - 1)
+#define FORMAT_TAG_GRUB             "grub.pbkdf2.sha512."
+#define FORMAT_TAG_GRUB_LEN         (sizeof(FORMAT_TAG_GRUB) - 1)
 #define PBKDF2_SHA512_MAX_BINARY_SIZE       (4 * PBKDF2_SHA512_BINARY_SIZE)
 #define PBKDF2_SHA512_MAX_CIPHERTEXT_LENGTH (PBKDF2_SHA512_TAG_LEN + 6 + 1 + 2*PBKDF2_64_MAX_SALT_SIZE + 1 + 2*PBKDF2_SHA512_MAX_BINARY_SIZE)
 

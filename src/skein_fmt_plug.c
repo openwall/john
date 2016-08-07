@@ -51,7 +51,7 @@ static int omp_t = 1;
 #define FORMAT_LABEL		"Skein"
 #define FORMAT_NAME		""
 #define FORMAT_TAG		"$skein$"
-#define TAG_LENGTH		7
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"Skein 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -305,6 +305,7 @@ struct fmt_main fmt_skein_256 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		skein_256_tests
 	}, {
 		init,
@@ -367,6 +368,7 @@ struct fmt_main fmt_skein_512 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		skein_512_tests
 	}, {
 		init,

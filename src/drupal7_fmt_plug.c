@@ -40,6 +40,9 @@ john_register_one(&fmt_drupal7);
 
 #define FORMAT_LABEL			"Drupal7"
 #define FORMAT_NAME			"$S$"
+#define FORMAT_TAG			"$S$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+
 #define ALGORITHM_NAME			"SHA512 " SHA512_ALGORITHM_NAME
 
 
@@ -118,9 +121,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
-	if (strncmp(ciphertext, "$S$", 3) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	for (i = 3; i < CIPHERTEXT_LENGTH; ++i)
+	for (i = FORMAT_TAG_LEN; i < CIPHERTEXT_LENGTH; ++i)
 		if (atoi64[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
 
@@ -247,7 +250,7 @@ static void * get_binary(char *ciphertext)
 	int bidx=0;
 	char *pos;
 
-	pos = &ciphertext[3 + 1 + 8];
+	pos = &ciphertext[FORMAT_TAG_LEN + 1 + 8];
 	for (i = 0; i < 10; ++i) {
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
 		out.u8[bidx] = sixbits;
@@ -280,9 +283,9 @@ static void * get_salt(char *ciphertext)
 		ARCH_WORD_32 u32;
 	} salt;
 	// store off the 'real' 8 bytes of salt
-	memcpy(salt.u8, &ciphertext[4], 8);
+	memcpy(salt.u8, &ciphertext[FORMAT_TAG_LEN+1], 8);
 	// append the 1 byte of loop count information.
-	salt.u8[8] = ciphertext[3];
+	salt.u8[8] = ciphertext[FORMAT_TAG_LEN];
 	return salt.u8;
 }
 
@@ -323,6 +326,7 @@ struct fmt_main fmt_drupal7 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

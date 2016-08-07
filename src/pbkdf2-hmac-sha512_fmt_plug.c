@@ -226,6 +226,11 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		{
 			"iteration count",
 		},
+		{
+			PBKDF2_SHA512_FORMAT_TAG,
+			FORMAT_TAG_ML,
+			FORMAT_TAG_GRUB
+		},
 		pbkdf2_hmac_sha512_common_tests
 	}, {
 		init,

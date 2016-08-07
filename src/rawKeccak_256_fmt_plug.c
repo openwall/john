@@ -34,10 +34,11 @@ john_register_one(&fmt_rawKeccak_256);
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$keccak256$"
-#define TAG_LENGTH		11
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 
 #define FORMAT_LABEL		"Raw-Keccak-256"
 #define FORMAT_NAME		""
+
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -244,6 +245,7 @@ struct fmt_main fmt_rawKeccak_256 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

@@ -467,6 +467,7 @@ struct fmt_main fmt_mssql12 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

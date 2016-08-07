@@ -42,6 +42,8 @@ john_register_one(&fmt_opencl_o5logon);
 
 #define FORMAT_LABEL		"o5logon-opencl"
 #define FORMAT_NAME		"Oracle O5LOGON protocol"
+#define FORMAT_TAG           "$o5logon$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 OpenCL AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -220,11 +222,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext,  "$o5logon$", 9))
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL) /* ciphertext */
 		goto err;
 	if(hexlenu(p) != CIPHERTEXT_LENGTH * 2)
@@ -248,7 +250,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
-	ctcopy += 9;	/* skip over "$o5logon$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$o5logon$" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -405,6 +407,7 @@ struct fmt_main fmt_opencl_o5logon = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT, // Changed for OpenCL
 		{ NULL },
+		{ FORMAT_TAG },
 		o5logon_tests
 	}, {
 		init,

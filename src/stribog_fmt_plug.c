@@ -39,13 +39,23 @@ john_register_one(&fmt_stribog_512);
 #define FORMAT_LABEL		"stribog"
 #define FORMAT_NAME		""
 
+#define TAG256 "$stribog256$"
+#define TAG256_LENGTH (sizeof(TAG256)-1)
+
+#define TAG512 "$stribog512$"
+#define TAG512_LENGTH (sizeof(TAG512)-1)
+
+#define TAG_LENGTH TAG256_LENGTH
+#define FORMAT_TAG TAG256
+
 #define ALGORITHM_NAME		"GOST R 34.11-2012 128/128 SSE4.1 1x"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64 - 1
 #define CIPHERTEXT256_LENGTH	64
-#define CIPHERTEXT512_LENGTH	64
+#define CIPHERTEXT512_LENGTH	128
+#define CIPHERTEXT_LENGTH CIPHERTEXT256_LENGTH
 #define BINARY_SIZE_256		32
 #define BINARY_SIZE_512		64
 #define SALT_SIZE		0
@@ -108,15 +118,6 @@ static void done(void)
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
-#define TAG256 "$stribog256$"
-#define TAG256_LENGTH strlen(TAG256)
-
-#define TAG512 "$stribog512$"
-#define TAG512_LENGTH strlen(TAG512)
-
-#define TAG_LENGTH TAG256_LENGTH
-#define FORMAT_TAG TAG256
-#define CIPHERTEXT_LENGTH 64
 
 static char *split_256(char *ciphertext, int index, struct fmt_main *self)
 {
@@ -170,7 +171,7 @@ static void *get_binary_256(char *ciphertext)
 
 #define TAG_LENGTH TAG512_LENGTH
 #define FORMAT_TAG TAG512
-#define CIPHERTEXT_LENGTH 128
+#define CIPHERTEXT_LENGTH CIPHERTEXT512_LENGTH
 
 static char *split_512(char *ciphertext, int index, struct fmt_main *self)
 {
@@ -387,6 +388,7 @@ struct fmt_main fmt_stribog_256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ TAG256 },
 		stribog_256_tests
 	}, {
 		init,
@@ -447,6 +449,7 @@ struct fmt_main fmt_stribog_512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ TAG512 },
 		stribog_512_tests
 	}, {
 		init,

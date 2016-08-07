@@ -51,7 +51,7 @@ john_register_one(&fmt_blackberry1);
 #include "memdbg.h"
 
 #define FORMAT_TAG 		"$bbes10$"
-#define FORMAT_TAG_LENGTH	8
+#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG)-1)
 #define FORMAT_LABEL 		"Blackberry-ES10"
 #define FORMAT_NAME 		""
 #define ALGORITHM_NAME 		"SHA-512 " SHA512_ALGORITHM_NAME
@@ -293,6 +293,7 @@ struct fmt_main fmt_blackberry1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		blackberry_tests
 	}, {
 		init,

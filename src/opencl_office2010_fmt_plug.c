@@ -396,6 +396,7 @@ struct fmt_main fmt_opencl_office2010 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG_OFFICE_2010 },
 		tests
 	}, {
 		init,

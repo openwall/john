@@ -463,6 +463,7 @@ struct fmt_main fmt_XSHA = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_OMP | FMT_OMP_BAD | FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

@@ -278,8 +278,8 @@ struct fmt_main fmt_whirlpool_0 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
-		{ NULL
-		},
+		{ NULL },
+		{ FORMAT_TAG },
 		whirlpool_0_tests
 	}, {
 		init,
@@ -290,8 +290,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		split,
 		get_binary,
 		fmt_default_salt,
-		{ NULL
-		},
+		{ NULL },
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
@@ -342,8 +341,8 @@ struct fmt_main fmt_whirlpool_1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
-		{ NULL
-		},
+		{ NULL },
+		{ FORMAT_TAG },
 		whirlpool_1_tests
 	}, {
 		init,
@@ -406,6 +405,7 @@ struct fmt_main fmt_whirlpool = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		whirlpool_tests
 	}, {
 		init,

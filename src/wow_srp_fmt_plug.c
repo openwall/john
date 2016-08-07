@@ -90,7 +90,7 @@ john_register_one(&fmt_blizzard);
 #define BENCHMARK_LENGTH	-1
 
 #define WOWSIG			"$WoWSRP$"
-#define WOWSIGLEN		8
+#define WOWSIGLEN		(sizeof(WOWSIG)-1)
 // min plaintext len is 8  PW's are only alpha-num uppercase
 #define PLAINTEXT_LENGTH	16
 #define CIPHERTEXT_LENGTH	64
@@ -526,6 +526,7 @@ struct fmt_main fmt_blizzard = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ WOWSIG },
 		tests
 	}, {
 		init,

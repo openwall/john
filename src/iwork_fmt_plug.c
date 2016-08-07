@@ -43,8 +43,6 @@ john_register_one(&fmt_iwork);
 
 #define FORMAT_LABEL            "iwork"
 #define FORMAT_NAME             "Apple iWork '09 / '13 / '14"
-#define FORMAT_TAG              "$iwork$"
-#define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
@@ -191,6 +189,7 @@ struct fmt_main fmt_iwork = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		iwork_tests
 	}, {
 		init,

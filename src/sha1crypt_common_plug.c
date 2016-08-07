@@ -26,12 +26,12 @@ int sha1crypt_common_valid(char * ciphertext, struct fmt_main * self) {
 	char *p, *keeptr, tst[24];
 	unsigned rounds;
 
-	if (strncmp(ciphertext, SHA1_MAGIC, sizeof(SHA1_MAGIC) - 1))
+	if (strncmp(ciphertext, SHA1_MAGIC, SHA1_MAGIC_LEN))
 		return 0;
 
 	// validate rounds
 	keeptr = strdup(ciphertext);
-	p = &keeptr[sizeof(SHA1_MAGIC)-1];
+	p = &keeptr[SHA1_MAGIC_LEN];
 	if ((p = strtokm(p, "$")) == NULL)	/* rounds */
 		goto err;
 	rounds = strtoul(p, NULL, 10);

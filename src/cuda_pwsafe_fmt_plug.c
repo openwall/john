@@ -33,6 +33,8 @@ john_register_one(&fmt_cuda_pwsafe);
 
 #define FORMAT_LABEL            "pwsafe-cuda"
 #define FORMAT_NAME             "Password Safe"
+#define FORMAT_TAG              "$pwsafe$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "SHA256 CUDA"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
@@ -85,11 +87,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
-	if (strncmp(ciphertext, "$pwsafe$*", 9) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 9;		/* skip over "$pwsafe$*" */
+	ctcopy += FORMAT_TAG_LEN;		/* skip over "$pwsafe$*" */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
 	if (!isdec(p))
@@ -133,7 +135,7 @@ static void *get_salt(char *ciphertext)
 		salt_struct = mem_alloc(sizeof(pwsafe_salt));
 
 	memset(salt_struct, 0, sizeof(pwsafe_salt));
-	ctcopy += 9;            /* skip over "$pwsafe$*" */
+	ctcopy += FORMAT_TAG_LEN;            /* skip over "$pwsafe$*" */
 	p = strtokm(ctcopy, "*");
 	salt_struct->version = atoi(p);
 	p = strtokm(NULL, "*");
@@ -227,6 +229,7 @@ struct fmt_main fmt_cuda_pwsafe = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		pwsafe_tests
 	}, {
 		init,

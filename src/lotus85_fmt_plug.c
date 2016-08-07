@@ -453,6 +453,7 @@ struct fmt_main fmt_lotus_85 =
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ NULL },
 		lotus85_tests
 	}, {
 		lotus85_init,

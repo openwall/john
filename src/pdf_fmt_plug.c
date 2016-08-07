@@ -36,6 +36,10 @@ john_register_one(&fmt_pdf);
 
 #define FORMAT_LABEL        "PDF"
 #define FORMAT_NAME         ""
+#define FORMAT_TAG          "$pdf$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG_OLD      "$pdf$Standard*"
+#define FORMAT_TAG_OLD_LEN  (sizeof(FORMAT_TAG_OLD)-1)
 #define ALGORITHM_NAME      "MD5 SHA2 RC4/AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1000
@@ -122,15 +126,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	int res;
 
-	if (strncmp(ciphertext,  "$pdf$", 5) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 5;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* V */
 		goto err;
 	if (!isdec(p)) goto err;
@@ -197,12 +198,12 @@ static int old_valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *ptr, *keeptr;
 	int res;
 
-	if (strncmp(ciphertext, "$pdf$Standard*", 14))
+	if (strncmp(ciphertext, FORMAT_TAG_OLD, FORMAT_TAG_OLD_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 14;
+	ctcopy += FORMAT_TAG_OLD_LEN;
 	if (!(ptr = strtokm(ctcopy, "*"))) /* o_string */
 		goto error;
 	if (!ishexlc(ptr))
@@ -269,7 +270,7 @@ char * convert_old_to_new(char ciphertext[])
 		fields[c] = p;
 		p = strtokm(NULL, "*");
 	}
-	strcpy(out,"$pdf$");
+	strcpy(out,FORMAT_TAG);
 	strcat(out,fields[13]);
 	strcat(out,"*");
 	strcat(out,fields[12]);
@@ -294,7 +295,7 @@ char * convert_old_to_new(char ciphertext[])
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	// if it is the old format
-	if (strncmp(split_fields[1], "$pdf$Standard*", 14) == 0){
+	if (strncmp(split_fields[1], FORMAT_TAG_OLD, FORMAT_TAG_OLD_LEN) == 0){
 		if(old_valid(split_fields[1], self)) {
 			char * in_new_format = convert_old_to_new(split_fields[1]);
 			// following line segfaults!
@@ -316,7 +317,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 5;	/* skip over "$pdf$" marker */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$pdf$" marker */
 	p = strtokm(ctcopy, "*");
 	cs.V = atoi(p);
 	p = strtokm(NULL, "*");
@@ -688,6 +689,7 @@ struct fmt_main fmt_pdf = {
 		{
 			"revision",
 		},
+		{ FORMAT_TAG, FORMAT_TAG_OLD },
 		pdf_tests
 	},
 	{

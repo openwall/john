@@ -841,7 +841,7 @@ static void *get_salt(char *ciphertext)
 
 	memset(&out, 0, sizeof(out));
 	out.rounds = ROUNDS_DEFAULT;
-	ciphertext += 3;
+	ciphertext += FORMAT_TAG_LEN;
 	if (!strncmp(ciphertext, ROUNDS_PREFIX,
 	             sizeof(ROUNDS_PREFIX) - 1)) {
 		const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
@@ -927,6 +927,7 @@ struct fmt_main fmt_cryptsha256 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

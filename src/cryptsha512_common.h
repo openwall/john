@@ -24,15 +24,17 @@
 #define FORMAT_NAME		"crypt(3) $6$"
 #define BENCHMARK_COMMENT	" (rounds=5000)"
 #define BENCHMARK_LENGTH	-1
+#define FORMAT_TAG			"$6$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
 	char *pos, *start;
 
-	if (strncmp(ciphertext, "$6$", 3))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
-	ciphertext += 3;
+	ciphertext += FORMAT_TAG_LEN;
 
 	if (!strncmp(ciphertext, ROUNDS_PREFIX, sizeof(ROUNDS_PREFIX) - 1)) {
 		const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;

@@ -246,6 +246,7 @@ struct fmt_main fmt_tcpmd5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

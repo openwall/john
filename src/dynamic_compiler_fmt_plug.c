@@ -161,6 +161,7 @@ struct fmt_main fmt_CompiledDynamic =
 			/* for now, turn off FMT_SPLIT_UNIFIES_CASE until we get the code right */
 		0, 0, 16, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC /*| FMT_SPLIT_UNIFIES_CASE */ ,
 		{ NULL },
+		{ NULL },
 		tests
 	},
 	{

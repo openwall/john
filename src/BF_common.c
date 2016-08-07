@@ -79,10 +79,10 @@ int BF_common_valid(char *ciphertext, struct fmt_main *self)
 	int rounds;
 	char *pos;
 
-	if (strncmp(ciphertext, "$2a$", 4) &&
-	    strncmp(ciphertext, "$2b$", 4) &&
-	    strncmp(ciphertext, "$2x$", 4) &&
-	    strncmp(ciphertext, "$2y$", 4))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) &&
+	    strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN) &&
+	    strncmp(ciphertext, FORMAT_TAG3, FORMAT_TAG_LEN) &&
+	    strncmp(ciphertext, FORMAT_TAG4, FORMAT_TAG_LEN))
 		return 0;
 
 	if (ciphertext[4] < '0' || ciphertext[4] > '9') return 0;

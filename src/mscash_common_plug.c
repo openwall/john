@@ -74,7 +74,7 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 	UTF16 realsalt[MSCASH1_MAX_SALT_LENGTH+2];
 	int saltlen;
 
-	if (strncmp(ciphertext, "M$", 2))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
 	l = strlen(ciphertext);
@@ -90,7 +90,7 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 
 	// This is tricky: Max supported salt length is 19 characters of Unicode
-	saltlen = enc_to_utf16(realsalt, MSCASH1_MAX_SALT_LENGTH+1, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
+	saltlen = enc_to_utf16(realsalt, MSCASH1_MAX_SALT_LENGTH+1, (UTF8*)strnzcpy(insalt, &ciphertext[FORMAT_TAG2_LEN], l - FORMAT_TAG2_LEN), l - 3);
 	if (saltlen < 0 || saltlen > MSCASH1_MAX_SALT_LENGTH) {
 		static int warned = 0;
 
@@ -120,7 +120,7 @@ char *mscash1_common_prepare(char *split_fields[10], struct fmt_main *self)
 	char *cp;
 	int i;
 
-	if (!strncmp(split_fields[1], "M$", 2) || !split_fields[0])
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN) || !split_fields[0])
 		return split_fields[1];
 
 	if (!split_fields[0])
@@ -132,7 +132,7 @@ char *mscash1_common_prepare(char *split_fields[10], struct fmt_main *self)
 			return split_fields[1];
 
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
-	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
+	sprintf (cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
 	if (mscash1_common_valid(cp, self))
 	{
 		char *cipher = str_alloc_copy(cp);
@@ -265,7 +265,7 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 	UTF16 realsalt[129];
 	int saltlen;
 
-	if (strncmp(ciphertext, "$DCC2$", 6))
+	if (strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG2_LEN))
 		return 0;
 
 	/* We demand an iteration count (after prepare()) */
@@ -285,7 +285,7 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 			return 0;
 
 	// This is tricky: Max supported salt length is 128 characters of Unicode
-	i = 6;
+	i = FORMAT_TAG2_LEN;
 	while (ciphertext[i] && ciphertext[i] != '#') ++i;
 	++i;
 	saltlen = enc_to_utf16(realsalt, max_salt_length, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
@@ -328,13 +328,13 @@ char *mscash2_common_prepare(char *split_fields[10], struct fmt_main *self)
 	char *cp;
 	int i;
 
-	if (!strncmp(split_fields[1], "$DCC2$", 6) &&
+	if (!strncmp(split_fields[1], FORMAT_TAG2, FORMAT_TAG2_LEN) &&
 	    strchr(split_fields[1], '#') == strrchr(split_fields[1], '#')) {
 		if (mscash2_common_valid(split_fields[1], 128, self))
 			return split_fields[1];
 		// see if this is a form $DCC2$salt#hash.  If so, make it $DCC2$10240#salt#hash and retest (insert 10240# into the line).
 		cp = mem_alloc(strlen(split_fields[1]) + 7);
-		sprintf(cp, "$DCC2$10240#%s", &(split_fields[1][6]));
+		sprintf(cp, "%s10240#%s", FORMAT_TAG2, &(split_fields[1][6]));
 		if (mscash2_common_valid(cp, 128, self)) {
 			char *cipher = str_alloc_copy(cp);
 			MEM_FREE(cp);
@@ -350,7 +350,7 @@ char *mscash2_common_prepare(char *split_fields[10], struct fmt_main *self)
 		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
 			return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]);
+	sprintf (cp, "%s10240#%s#%s", FORMAT_TAG2, split_fields[0], split_fields[1]);
 	if (mscash2_common_valid(cp, 128, self))
 	{
 		char *cipher = str_alloc_copy(cp);

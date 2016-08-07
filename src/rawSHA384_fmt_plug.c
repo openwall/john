@@ -150,7 +150,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += 8;
+		p += TAG_LENGTH;
 
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -417,6 +417,7 @@ struct fmt_main fmt_rawSHA384 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

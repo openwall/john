@@ -31,6 +31,8 @@ john_register_one(&fmt_opencl_keychain);
 
 #define FORMAT_LABEL		"keychain-opencl"
 #define FORMAT_NAME		"Mac OS X Keychain"
+#define FORMAT_TAG			"$keychain$*"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL 3DES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -203,11 +205,11 @@ static void reset(struct db_main *db)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext,  "$keychain$*", 11) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 11;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
 	if(hexlenl(p) != SALTLEN * 2)
@@ -240,7 +242,7 @@ static void *get_salt(char *ciphertext)
 	if (!salt_struct)
 		salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
 	                              MEM_ALIGN_WORD);
-	ctcopy += 11;	/* skip over "$keychain$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keychain$*" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -404,6 +406,7 @@ struct fmt_main fmt_opencl_keychain = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		{ NULL },
+		{ FORMAT_TAG },
 		keychain_tests
 	}, {
 		init,

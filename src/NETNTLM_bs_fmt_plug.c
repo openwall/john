@@ -70,6 +70,8 @@ john_register_one(&fmt_NETNTLM_old);
 
 #define FORMAT_LABEL         "netntlm-naive"
 #define FORMAT_NAME          "NTLMv1 C/R"
+#define FORMAT_TAG           "$NETNTLM$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME       "MD4 DES (ESS MD5) " DES_BS_ALGORITHM_NAME " naive"
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
@@ -139,13 +141,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (strncmp(ciphertext, "$NETNTLM$", 9)!=0) return 0;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
 
 	if ((strlen(ciphertext) != 74) && (strlen(ciphertext) != 90)) return 0;
 
 	if ((ciphertext[25] != '$') && (ciphertext[41] != '$')) return 0;
 
-	for (pos = &ciphertext[9]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = &ciphertext[FORMAT_TAG_LEN]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos != '$') return 0;
 
 	for (pos++;atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
@@ -161,7 +163,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	char *cp;
 	char clientChal[17];
 
-	if (!strncmp(split_fields[1], "$NETNTLM$", 9))
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
 		return split_fields[1];
@@ -181,8 +183,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	}
 	else
 		clientChal[0] = 0;
-	cp = mem_alloc(9+strlen(split_fields[5])+strlen(clientChal)+1+strlen(split_fields[4])+1);
-	sprintf(cp, "$NETNTLM$%s%s$%s", split_fields[5], clientChal, split_fields[4]);
+	cp = mem_alloc(FORMAT_TAG_LEN+strlen(split_fields[5])+strlen(clientChal)+1+strlen(split_fields[4])+1);
+	sprintf(cp, "%s%s%s$%s", FORMAT_TAG, split_fields[5], clientChal, split_fields[4]);
 
 	if (valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
@@ -199,7 +201,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	memset(out, 0, TOTAL_LENGTH + 1);
 	strcpy(out, ciphertext);
-	strlwr(&out[8]); /* Exclude: $NETNTLM$ */
+	strlwr(&out[FORMAT_TAG_LEN]); /* Exclude: $NETNTLM$ */
 
 	return out;
 }
@@ -365,14 +367,14 @@ static void *get_salt(char *ciphertext)
 
 	if (ciphertext[25] == '$') {
 		// Server challenge
-		ciphertext += 9;
+		ciphertext += FORMAT_TAG_LEN;
 		for (i = 0; i < SALT_SIZE; ++i)
 			binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	} else {
 		uchar es_salt[2*SALT_SIZE], k1[2*SALT_SIZE];
 		MD5_CTX ctx;
 
-		ciphertext += 9;
+		ciphertext += FORMAT_TAG_LEN;
 		// Extended Session Security,
 		// Concatenate Server & Client challenges
 		for (i = 0;i < 2 * SALT_SIZE; ++i)
@@ -443,6 +445,7 @@ struct fmt_main fmt_NETNTLM_old = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

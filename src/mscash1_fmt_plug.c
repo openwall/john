@@ -141,7 +141,7 @@ static void *get_salt(char *_ciphertext)
 	if (!out) out = mem_alloc_tiny(11*sizeof(unsigned int), MEM_ALIGN_WORD);
 	memset(out,0,11*sizeof(unsigned int));
 
-	ciphertext+=2;
+	ciphertext+=FORMAT_TAG_LEN;
 
 	for(md4_size = 0 ;; md4_size++)
 		if(md4_size < 19 && ciphertext[md4_size]!='#')
@@ -175,7 +175,7 @@ static void *get_salt_encoding(char *_ciphertext) {
 	if (!out) out = mem_alloc_tiny(22*sizeof(UTF16), MEM_ALIGN_WORD);
 	memset(out, 0, 22*sizeof(UTF16));
 
-	ciphertext += 2;
+	ciphertext += FORMAT_TAG_LEN;
 
 	for (md4_size=0;md4_size<sizeof(input)-1;md4_size++) {
 		if (ciphertext[md4_size] == '#')
@@ -214,7 +214,7 @@ static void * get_salt_utf8(char *_ciphertext)
 	if (!out) out = mem_alloc_tiny(11*sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
 	memset(out, 0, 11*sizeof(ARCH_WORD_32));
 
-	ciphertext+=2;
+	ciphertext+=FORMAT_TAG_LEN;
 	len = ((unsigned char*)strchr((char*)ciphertext, '#')) - ciphertext;
 	utf8_to_utf16(ciphertext_utf16, 20, ciphertext, len+1);
 
@@ -828,6 +828,7 @@ struct fmt_main fmt_mscash = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		mscash1_common_tests
 	}, {
 		init,

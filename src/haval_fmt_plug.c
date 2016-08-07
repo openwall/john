@@ -53,7 +53,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$haval$"
-#define TAG_LENGTH		7
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -317,6 +317,7 @@ struct fmt_main fmt_haval_256_3 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		haval_256_3_tests
 	}, {
 		init,
@@ -380,6 +381,7 @@ struct fmt_main fmt_haval_128_4 = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ NULL },
 		haval_128_4_tests
 	}, {

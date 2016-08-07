@@ -371,6 +371,7 @@ struct fmt_main fmt_ocl_rar = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP | FMT_DYNA_SALT,
 		{ NULL },
+		{ FORMAT_TAG },
 		cpu_tests // Changed in init if GPU
 	},{
 		init,

@@ -237,6 +237,7 @@ struct fmt_main fmt_known_hosts = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ FORMAT_TAG },
 		known_hosts_tests
 	}, {
 		init,

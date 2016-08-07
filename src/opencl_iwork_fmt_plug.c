@@ -42,8 +42,6 @@ john_register_one(&fmt_opencl_iwork);
 
 #define FORMAT_LABEL            "iwork-opencl"
 #define FORMAT_NAME             "Apple iWork '09 / '13 / '14"
-#define FORMAT_TAG              "$iwork$"
-#define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define OCL_ALGORITHM_NAME      "PBKDF2-SHA1 OpenCL"
 #define CPU_ALGORITHM_NAME      " AES"
 #define ALGORITHM_NAME          OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
@@ -362,6 +360,7 @@ struct fmt_main fmt_opencl_iwork = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		iwork_tests
 	}, {
 		init,

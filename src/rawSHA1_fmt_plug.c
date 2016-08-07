@@ -410,6 +410,7 @@ struct fmt_main fmt_rawSHA1 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG_OLD },
 		rawsha1_common_tests
 	}, {
 		init_raw,
@@ -472,6 +473,7 @@ struct fmt_main fmt_rawSHA1_axcrypt = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ NULL },
 		axcrypt_common_tests
 	}, {

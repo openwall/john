@@ -38,6 +38,8 @@ john_register_one(&fmt_opencl_agilekeychain);
 
 #define FORMAT_LABEL		"agilekeychain-opencl"
 #define FORMAT_NAME		"1Password Agile Keychain"
+#define FORMAT_TAG           "$agilekeychain$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -210,14 +212,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int saltlen;
 	char *p;
 
-	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 15;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;
 	if (!isdec(p))
@@ -269,7 +268,7 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, sizeof(cs));
 
-	ctcopy += 15;	/* skip over "$agilekeychain$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$agilekeychain$" */
 	p = strtokm(ctcopy, "*");
 	cs.nkeys = atoi(p);
 	p = strtokm(NULL, "*");
@@ -437,6 +436,7 @@ struct fmt_main fmt_opencl_agilekeychain = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		keychain_tests
 	}, {
 		init,

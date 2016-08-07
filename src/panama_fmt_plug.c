@@ -45,7 +45,7 @@ static int omp_t = 1;
 #define FORMAT_LABEL		"Panama"
 #define FORMAT_NAME		""
 #define FORMAT_TAG		"$panama$"
-#define TAG_LENGTH		8
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"Panama 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -216,6 +216,7 @@ struct fmt_main fmt_panama_ = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		panama__tests
 	}, {
 		init,

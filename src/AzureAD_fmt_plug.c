@@ -237,6 +237,7 @@ struct fmt_main fmt_AzureAD = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		AzureAD_common_tests
 	}, {
 		init,

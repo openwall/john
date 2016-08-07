@@ -239,6 +239,7 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG },
 		sha512_common_tests_rawsha512_20
 	}, {
 		init,

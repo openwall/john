@@ -54,6 +54,7 @@ john_register_one(&fmt_KRB5);
 
 // defines
 #define MAGIC_PREFIX        "$krb5$"
+#define MAGIC_PREFIX_LEN    (sizeof(MAGIC_PREFIX)-1)
 #define MAX_REALM_LEN       64
 #define TGT_SIZE            228
 #define MAX_USER_LEN        64
@@ -188,7 +189,7 @@ static void * get_salt(char *ciphertext) {
 
 	memset(&salt, 0, sizeof(salt));
     // advance past the $krb5$ string - it was checked for in valid()
-    data += strlen(MAGIC_PREFIX);
+    data += MAGIC_PREFIX_LEN;
 
     // find and copy the user field
     p = strchr(data, '$');
@@ -224,7 +225,7 @@ static void * get_salt(char *ciphertext) {
  */
 static int valid(char *ciphertext, struct fmt_main *self) {
 
-    if (strncmp(ciphertext, MAGIC_PREFIX, sizeof(MAGIC_PREFIX) - 1) != 0)
+    if (strncmp(ciphertext, MAGIC_PREFIX, MAGIC_PREFIX_LEN) != 0)
         return 0;
 
     return get_salt(ciphertext) ? 1 : 0;
@@ -337,6 +338,7 @@ struct fmt_main fmt_KRB5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ MAGIC_PREFIX },
 		fmt_tests
 	}, {
 		init,

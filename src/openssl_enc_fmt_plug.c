@@ -433,6 +433,7 @@ struct fmt_main fmt_openssl = {
  *        it would be useful to report some tunable costs
  */
 		{ NULL },
+		{ FORMAT_TAG },
 		openssl_tests
 	}, {
 		init,

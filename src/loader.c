@@ -1133,11 +1133,25 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	char *ciphertext;
 	void *binary;
 	int hash;
+	int valid=0;
 	int need_removal;
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
-	if (format->methods.valid(ciphertext, format) != 1) return;
+	/* common code for determining valid when loading a .pot line */
+	if (format->params.signature[0]) {
+		int i = 0;
+		for (;i < FMT_SIGNATURES && format->params.signature[i] && !valid; ++i) {
+			if (!strncmp(ciphertext, format->params.signature[i],
+			             strlen(format->params.signature[i])) &&
+			             strnlen(ciphertext, MAX_CIPHERTEXT_SIZE + 2) > (MAX_CIPHERTEXT_SIZE>>1) &&
+			             ldr_isa_pot_source(ciphertext)) {
+					     valid = 1;
+			}
+		}
+	}
+
+	if (!valid && format->methods.valid(ciphertext, format) != 1) return;
 	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);

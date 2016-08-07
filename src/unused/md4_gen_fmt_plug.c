@@ -20,6 +20,9 @@ john_register_one(&fmt_md4_gen);
 
 #define FORMAT_LABEL			"md4-gen"
 #define FORMAT_NAME			"Generic salted MD4"
+#define FORMAT_TAG			"$MD4p$"
+#define FORMAT_TAGs			"$MD4s$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"MD4 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -52,9 +55,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
-	if (strncmp(ciphertext, "$MD4", 4) ||
-	    (ciphertext[4] != 'p' && ciphertext[4] != 's') ||
-	    ciphertext[5] != '$')
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN-2) ||
+	    (ciphertext[FORMAT_TAG_LEN-2] != 'p' && ciphertext[FORMAT_TAG_LEN-2] != 's') ||
+	    ciphertext[FORMAT_TAG_LEN-1] != '$')
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -96,10 +99,10 @@ static void *get_salt(char *ciphertext)
 	int length;
 
 	memset(out, 0, sizeof(out));
-	p = ciphertext + 6;
+	p = ciphertext + FORMAT_TAG_LEN;
 	length = strrchr(ciphertext, '$') - p;
 	out[0] = length;
-	out[1] = ciphertext[4];
+	out[1] = ciphertext[FORMAT_TAG_LEN-4];
 	memcpy(out + 2, p, length);
 
 	return out;
@@ -222,6 +225,7 @@ struct fmt_main fmt_md4_gen = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAGs },
 		tests
 	}, {
 		fmt_default_init,

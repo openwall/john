@@ -79,6 +79,10 @@ john_register_one(&fmt_mskrb5);
 
 #define FORMAT_LABEL       "krb5pa-md5"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23" /* md4 rc4-hmac-md5 */
+#define FORMAT_TAG         "$krb5pa$"
+#define FORMAT_TAG2        "$mskrb5$"
+#define FORMAT_TAG_LEN     (sizeof(FORMAT_TAG)-1)
+
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   -1000
@@ -207,7 +211,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[TOTAL_LENGTH + 1];
 	char *data;
 
-	if (!strncmp(ciphertext, "$mskrb5$", 8)) {
+	if (!strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN)) {
 		char in[TOTAL_LENGTH + 1];
 		char *c, *t;
 
@@ -216,13 +220,13 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		t = strrchr(in, '$'); *t++ = 0;
 		c = strrchr(in, '$'); *c++ = 0;
 
-		snprintf(out, sizeof(out), "$krb5pa$23$$$$%s%s", t, c);
+		snprintf(out, sizeof(out), "%s23$$$$%s%s", FORMAT_TAG, t, c);
 	} else {
 		char *tc;
 
 		tc = strrchr(ciphertext, '$');
 
-		snprintf(out, sizeof(out), "$krb5pa$23$$$$%s", ++tc);
+		snprintf(out, sizeof(out), "%s23$$$$%s", FORMAT_TAG, ++tc);
 	}
 
 	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
@@ -255,8 +259,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *data = ciphertext, *p;
 
-	if (!strncmp(ciphertext, "$mskrb5$", 8)) {
-		data += 8;
+	if (!strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN)) {
+		data += FORMAT_TAG_LEN;
 
 		// user field
 		p = strchr(data, '$');
@@ -284,9 +288,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 
 		return 1;
-	} else if (!strncmp(ciphertext, "$krb5pa$23$", 11)) {
-		data += 11;
-
+	} else if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
+		data += FORMAT_TAG_LEN;
+		if (strncmp(data, "23$", 3)) return 0;
+		data += 3;
 		// user field
 		p = strchr(data, '$');
 		if (!p || p - data > MAX_USERLEN)
@@ -446,6 +451,7 @@ struct fmt_main fmt_mskrb5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

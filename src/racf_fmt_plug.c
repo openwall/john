@@ -43,6 +43,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"RACF"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$racf$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -175,11 +177,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext, "$racf$*", 7))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*"); /* username */
 	if(!p)
 		goto err;
@@ -201,7 +203,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy, *username;
 	static struct custom_salt cs;
 
-	ctcopy += 7;	/* skip over "$racf$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$racf$*" */
 	username = strtokm(ctcopy, "*");
 	/* process username */
 	strncpy((char*)cs.userid, username, 8);
@@ -334,6 +336,7 @@ struct fmt_main fmt_racf = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_TRUNC | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ FORMAT_TAG },
 		racf_tests
 	}, {
 		init,

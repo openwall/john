@@ -43,25 +43,29 @@ john_register_one(&fmt_pkzip);
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"PKZIP"
-#define FORMAT_NAME			""
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define FORMAT_LABEL        "PKZIP"
+#define FORMAT_NAME         ""
+#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define FORMAT_TAG          "$pkzip$"
+#define FORMAT_TAG2         "$pkzip2$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG2_LEN     (sizeof(FORMAT_TAG2)-1)
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1000
+#define BENCHMARK_COMMENT   ""
+#define BENCHMARK_LENGTH    -1000
 
-#define PLAINTEXT_LENGTH		31
+#define PLAINTEXT_LENGTH    31
 
-#define BINARY_SIZE			0
-#define BINARY_ALIGN			1
+#define BINARY_SIZE         0
+#define BINARY_ALIGN        1
 
-#define SALT_SIZE			(sizeof(PKZ_SALT*))
-#define SALT_ALIGN			(sizeof(ARCH_WORD_32))
+#define SALT_SIZE           (sizeof(PKZ_SALT*))
+#define SALT_ALIGN          (sizeof(ARCH_WORD_32))
 
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		64
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  64
 #ifndef OMP_SCALE
-#define OMP_SCALE			64
+#define OMP_SCALE           64
 #endif
 
 //#define ZIP_DEBUG 1
@@ -196,20 +200,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int complen = 0;
 	int type2 = 0;
 
-	if (strncmp(ciphertext, "$pkzip$", 7)) {
-		if (!strncmp(ciphertext, "$pkzip2$", 8))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
+		if (!strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG2_LEN))
 			type2 = 1;
 		else
 			return ret;
 	}
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 
 	cpkeep = strdup(ciphertext);
 	cp = cpkeep;
 
-	p = &cp[7];
+	p = &cp[FORMAT_TAG_LEN];
 	if (type2)
 		++p;
 	if ((cp = strtokm(p, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
@@ -514,10 +515,10 @@ static void *get_salt(char *ciphertext)
 
 	cp = cpalloc;
 	strcpy(cp, ciphertext);
-	if (!strncmp(cp, "$pkzip$", 7))
-	p = &cp[7];
+	if (!strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN))
+		p = &cp[FORMAT_TAG_LEN];
 	else {
-		p = &cp[8];
+		p = &cp[FORMAT_TAG2_LEN];
 		type2 = 1;
 	}
 	cp = strtokm(p, "*");
@@ -1667,6 +1668,7 @@ struct fmt_main fmt_pkzip = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		init,

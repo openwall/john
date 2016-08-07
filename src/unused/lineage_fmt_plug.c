@@ -49,6 +49,9 @@ john_register_one(&FMT_STRUCT_NAME);
 #define FORMAT_TAG              "$lineage$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
+#define FORMAT_TAG2             "$6$rounds=5000$"
+#define TAG_LENGTH2             (sizeof(FORMAT_TAG2) - 1)
+
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 
@@ -137,15 +140,11 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
-	if (strncmp(ciphertext, "$6$", 3))
-		return 0;
 
-#define const_salt "$6$rounds=5000$"
-
-	if (strncmp(ciphertext, const_salt, sizeof(const_salt) - 1))
+	if (strncmp(ciphertext, FORMAT_TAG2, TAG_LENGTH2)
 		return 0;
 	else
-		ciphertext += sizeof(const_salt) - 1;
+		ciphertext += TAG_LENGTH2;
 
 	for (pos = ciphertext; *pos && *pos != '$'; pos++)
 		;
@@ -381,6 +380,7 @@ struct fmt_main FMT_STRUCT_NAME = {
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2 }
 #endif
 		fmt_default_source,
 		{

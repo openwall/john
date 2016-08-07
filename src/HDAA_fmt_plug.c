@@ -84,6 +84,7 @@ static unsigned int omp_t = 1;
 #define SEPARATOR			'$'
 
 #define MAGIC				"$response$"
+#define MAGIC_LEN			(sizeof(MAGIC)-1)
 #define SIZE_TAB			12
 
 // This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
@@ -194,11 +195,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 
-	if (strncmp(ciphertext, MAGIC, sizeof(MAGIC) - 1) != 0)
+	if (strncmp(ciphertext, MAGIC, MAGIC_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += sizeof(MAGIC)-1;
+	ctcopy += MAGIC_LEN;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
@@ -729,6 +730,7 @@ struct fmt_main fmt_HDAA = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ MAGIC },
 		tests
 	}, {
 		init,

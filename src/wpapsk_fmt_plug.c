@@ -401,6 +401,7 @@ struct fmt_main fmt_wpapsk = {
 		    MAX_KEYS_PER_CRYPT,
 		    FMT_CASE | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		    tests
 	},
 	{

@@ -183,10 +183,6 @@ static int valid(char* ciphertext, int pos)
 	char *p, *q;
 	int nkeyfiles = -1;
 
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
-
 	p = ciphertext + pos;
 	q = strchr(p, '$');
 
@@ -604,6 +600,11 @@ struct fmt_main fmt_truecrypt = {
 		{
 			"hash algorithm [1:SHA512 2:RIPEMD160 3:Whirlpool]",
 		},
+		{
+			TAG_WHIRLPOOL,
+			TAG_SHA512,
+			TAG_RIPEMD160
+		},
 		tests_all
 	}, {
 		init,
@@ -654,6 +655,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ TAG_RIPEMD160 },
 		tests_ripemd160
 	}, {
 		init,
@@ -715,6 +717,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ TAG_SHA512 },
 		tests_sha512
 	}, {
 		init,
@@ -767,6 +770,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ TAG_WHIRLPOOL },
 		tests_whirlpool
 	}, {
 		init,

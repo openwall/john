@@ -371,6 +371,7 @@ struct fmt_main fmt_ocl_pbkdf2_md5 = {
 		{
 			"iterations",
 		},
+		{ PBKDF2_MD5_FORMAT_TAG },
 		pbkdf2_hmac_md5_common_tests
 	}, {
 		init,

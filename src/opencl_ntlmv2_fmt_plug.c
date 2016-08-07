@@ -41,6 +41,8 @@ john_register_one(&fmt_opencl_NTLMv2);
 
 #define FORMAT_LABEL            "ntlmv2-opencl"
 #define FORMAT_NAME             "NTLMv2 C/R"
+#define FORMAT_TAG           "$NETNTLMv2$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "MD4 HMAC-MD5 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
@@ -217,12 +219,12 @@ static void *get_salt(char *ciphertext)
 	memset(binary_salt, 0, SALT_SIZE_MAX);
 
 	/* Calculate identity length */
-	for (pos = ciphertext + 11; *pos != '$'; pos++);
+	for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
 
 	/* Convert identity (username + domain) string to NT unicode */
 	identity_length = enc_to_utf16((UTF16*)binary_salt, SALT_MAX_LENGTH,
-	                               (unsigned char *)ciphertext + 11,
-	                               pos - (ciphertext + 11)) * sizeof(UTF16);
+	                               (unsigned char *)ciphertext + FORMAT_TAG_LEN,
+	                               pos - (ciphertext + FORMAT_TAG_LEN)) * sizeof(UTF16);
 	binary_salt[identity_length] = 0x80;
 
 	/* Set length of last MD5 block */
@@ -317,7 +319,7 @@ static void reset(struct db_main *db)
 		                       2 * ocl_v_width * max_len, gws_limit, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, 11, gws_limit, 500);
+		autotune_run(self, FORMAT_TAG_LEN, gws_limit, 500);
 	}
 }
 
@@ -329,12 +331,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int saltlen;
 
 	if (ciphertext == NULL) return 0;
-	else if (strncmp(ciphertext, "$NETNTLMv2$", 11)!=0) return 0;
+	else if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
 
 	if (strlen(ciphertext) > TOTAL_LENGTH)
 		return 0;
 
-	pos = &ciphertext[11];
+	pos = &ciphertext[FORMAT_TAG_LEN];
 
 	/* Validate Username and Domain Length */
 	for (pos2 = pos; *pos2 != '$'; pos2++)
@@ -399,7 +401,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	char *uid = split_fields[2];
 	char *identity = NULL, *tmp;
 
-	if (!strncmp(split_fields[1], "$NETNTLMv2$", 11))
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 	if (!split_fields[0]||!split_fields[2]||!split_fields[3]||!split_fields[4]||!split_fields[5])
 		return split_fields[1];
@@ -423,7 +425,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		strcat(identity, uid);
 	}
 	tmp = (char *) mem_alloc(11 + strlen(identity) + 1 + strlen(srv_challenge) + 1 + strlen(nethashv2) + 1 + strlen(cli_challenge) + 1);
-	sprintf(tmp, "$NETNTLMv2$%s$%s$%s$%s", identity, srv_challenge, nethashv2, cli_challenge);
+	sprintf(tmp, "%s%s$%s$%s$%s", FORMAT_TAG, identity, srv_challenge, nethashv2, cli_challenge);
 	MEM_FREE(identity);
 
 	if (valid(tmp, self)) {
@@ -442,12 +444,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	int identity_length = 0;
 
 	/* Calculate identity length */
-	for (pos = ciphertext + 11; *pos != '$'; pos++);
-	identity_length = pos - (ciphertext + 11);
+	for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
+	identity_length = pos - (ciphertext + FORMAT_TAG_LEN);
 
 	memset(out, 0, sizeof(out));
 	memcpy(out, ciphertext, strlen(ciphertext));
-	strlwr(&out[12 + identity_length]); /* Exclude: $NETNTLMv2$USERDOMAIN$ */
+	strlwr(&out[FORMAT_TAG_LEN + identity_length + 1]); /* Exclude: $NETNTLMv2$USERDOMAIN$ */
 
 	return out;
 }
@@ -460,10 +462,10 @@ static void *get_binary(char *ciphertext)
 
 	if (!binary) binary = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
-	for (pos = ciphertext + 11; *pos != '$'; pos++);
-	identity_length = pos - (ciphertext + 11);
+	for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
+	identity_length = pos - (ciphertext + FORMAT_TAG_LEN);
 
-	ciphertext += 11 + identity_length + 1 + SERVER_CHALL_LENGTH + 1;
+	ciphertext += FORMAT_TAG_LEN + identity_length + 1 + SERVER_CHALL_LENGTH + 1;
 	for (i=0; i<DIGEST_SIZE; i++)
 	{
 		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
@@ -613,6 +615,7 @@ struct fmt_main fmt_opencl_NTLMv2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

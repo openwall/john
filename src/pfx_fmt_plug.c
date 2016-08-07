@@ -49,6 +49,8 @@ john_register_one(&fmt_pfx);
 
 #define FORMAT_LABEL        "PFX"
 #define FORMAT_NAME         "PKCS12 (.pfx, .p12)"
+#define FORMAT_TAG          "$pfx$*"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
@@ -141,14 +143,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	PKCS12 *p12 = NULL;
 	BIO *bp = NULL;
 	int len, i;
-	if (strncmp(ciphertext, "$pfx$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* length */
 		goto err;
 	if (!isdec(p))
@@ -200,7 +199,7 @@ static void *get_salt(char *ciphertext)
 	psalt = (struct custom_salt*)mem_calloc(1, sizeof(struct custom_salt) + strlen(ciphertext) + 1);
 	strcpy(psalt->orig_hash, ciphertext);
 	psalt->hash_len = strlen(ciphertext);
-	ctcopy += 6;	/* skip over "$pfx$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$pfx$*" */
 	p = strtokm(ctcopy, "*");
 	psalt->len = atoi(p);
 	decoded_data = (char *) mem_alloc(psalt->len + 1);
@@ -328,6 +327,7 @@ struct fmt_main fmt_pfx = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT,
 		{ NULL },
+		{ FORMAT_TAG },
 		pfx_tests
 	}, {
 		init,

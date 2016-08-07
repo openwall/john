@@ -40,6 +40,10 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL            "postgres"
 #define FORMAT_NAME             "PostgreSQL C/R"
+#define FORMAT_TAG              "$postgres$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG2             "$postgre$"
+#define FORMAT_TAG2_LEN         (sizeof(FORMAT_TAG2)-1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
@@ -106,7 +110,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	const char *p;
 
-	if (strncmp(ciphertext, "$postgres$", 10))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
 	/* Check hash */
@@ -123,7 +127,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	/* Check username length */
-	if (p - ciphertext - 10 > MAX_USERNAME_LEN)
+	if (p - ciphertext - FORMAT_TAG_LEN > MAX_USERNAME_LEN)
 		return 0;
 
 	return 1;
@@ -131,12 +135,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static char out[10 + sizeof(struct custom_salt) + 2*BINARY_SIZE +2+1];
+	static char out[FORMAT_TAG_LEN + sizeof(struct custom_salt) + 2*BINARY_SIZE +2+1];
 
 	/* Replace deprecated tag */
-	if (*split_fields[1] && !strncmp(split_fields[1], "$postgre$", 9)) {
+	if (*split_fields[1] && !strncmp(split_fields[1], FORMAT_TAG2, FORMAT_TAG2_LEN)) {
 		snprintf(out, sizeof(out), "%s%s",
-		         "$postgres$", &split_fields[1][9]);
+		         FORMAT_TAG, &split_fields[1][FORMAT_TAG2_LEN]);
 		if (valid(out, self))
 			return out;
 	}
@@ -151,7 +155,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static struct custom_salt cs;
 
-	ctcopy += 10;   /* skip over "$postgres$" */
+	ctcopy += FORMAT_TAG_LEN;   /* skip over "$postgres$" */
 	p = strtokm(ctcopy, "*");
 	memset(&cs, 0, sizeof(cs));
 	strnzcpy((char*)cs.user, p, MAX_USERNAME_LEN + 1);
@@ -290,6 +294,7 @@ struct fmt_main fmt_postgres = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		postgres_tests
 	}, {
 		init,

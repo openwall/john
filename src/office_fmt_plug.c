@@ -691,6 +691,7 @@ struct fmt_main fmt_office = {
 			"MS Office version",
 			"iteration count",
 		},
+		{ FORMAT_TAG_OFFICE },
 		office_tests
 	}, {
 		init,

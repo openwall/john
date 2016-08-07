@@ -88,6 +88,9 @@ john_register_one(&fmt_sunmd5);
 
 #define FORMAT_LABEL			"SunMD5"
 #define FORMAT_NAME			""
+#define FORMAT_TAG           "$md5$"
+#define FORMAT_TAG2          "$md5,"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
@@ -280,9 +283,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *pos;
 
 	/* Common prefix. */
-	if (strncmp(ciphertext, "$md5", 4))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) &&
+		strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN))
 		return 0;
-	ciphertext += 4;
+	ciphertext += FORMAT_TAG_LEN-1;
 
 	/* Optional rounds. */
 	if (!strncmp(ciphertext, ",rounds=", 8) ||
@@ -899,6 +903,7 @@ struct fmt_main fmt_sunmd5 = {
 			 */
 			"iteration count",
 		},
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		init,

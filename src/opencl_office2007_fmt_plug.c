@@ -384,6 +384,7 @@ struct fmt_main fmt_opencl_office2007 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG_OFFICE_2007 },
 		tests
 	}, {
 		init,

@@ -1025,6 +1025,7 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_REMOVE,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG_OLD },
 		rawsha1_common_tests
 	}, {
 		init,

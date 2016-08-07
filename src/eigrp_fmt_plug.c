@@ -369,6 +369,7 @@ struct fmt_main fmt_eigrp = {
 		{
 			"algorithm [2:MD5 3:HMAC-SHA-256]",
 		},
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

@@ -2813,6 +2813,7 @@ static struct fmt_main fmt_Dynamic =
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		dynamic_tests
 	}, {
 		init,

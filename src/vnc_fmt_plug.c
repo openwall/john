@@ -53,6 +53,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"VNC"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$vnc$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -158,12 +160,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
 
-	if (strncmp(ciphertext, "$vnc$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 6;	/* skip leading $vnc$* */
+	ctcopy += FORMAT_TAG_LEN;	/* skip leading $vnc$* */
 
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
@@ -187,7 +189,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	char *ctcopy = strdup(ciphertext);
 	char *p, *keeptr = ctcopy;
-	ctcopy += 6;	/* skip over "$vnc$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$vnc$*" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 16; i++)
 		cs.challenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -314,6 +316,7 @@ struct fmt_main fmt_vnc = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_TRUNC | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ FORMAT_TAG },
 		vnc_tests
 	}, {
 		init,

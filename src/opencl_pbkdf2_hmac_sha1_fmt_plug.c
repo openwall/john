@@ -385,6 +385,7 @@ struct fmt_main fmt_ocl_pbkdf2_sha1 = {
 		{
 			"iterations",
 		},
+		{ PBKDF2_SHA1_FORMAT_TAG, PKCS5S2_TAG },
 		pbkdf2_hmac_sha1_common_tests
 	}, {
 		init,

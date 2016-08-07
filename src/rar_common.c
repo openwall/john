@@ -18,6 +18,9 @@ static unsigned int *saved_len;
 static unsigned char *aes_key;
 static unsigned char *aes_iv;
 
+#define FORMAT_TAG          "$RAR3$*"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+
 /* cRARk use 4-char passwords for CPU benchmark */
 static struct fmt_tests cpu_tests[] = {
 	{"$RAR3$*0*b109105f5fe0b899*d4f96690b1a8fe1f120b0290a85a2121", "test"},
@@ -160,7 +163,7 @@ static void *get_salt(char *ciphertext)
 	SHA_CTX ctx;
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(rarfile*),sizeof(rarfile*));
-	saltcopy += 7;		/* skip over "$RAR3$*" */
+	saltcopy += FORMAT_TAG_LEN;		/* skip over "$RAR3$*" */
 	type = atoi(strtokm(saltcopy, "*"));
 	encoded_salt = strtokm(NULL, "*");
 	for (i = 0; i < 8; i++)
@@ -288,7 +291,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *ptr, *keeptr;
 	int mode;
 
-	if (strncmp(ciphertext, "$RAR3$*", 7))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	/* handle 'chopped' .pot lines */
 	if (ldr_isa_pot_source(ciphertext))
@@ -298,7 +301,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	}
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	if (!(ptr = strtokm(ctcopy, "*"))) /* -p or -h mode */
 		goto error;
 	if (strlen(ptr) != 1 || !isdec(ptr))

@@ -227,6 +227,7 @@ struct fmt_main fmt__HAS160 = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

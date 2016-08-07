@@ -40,6 +40,9 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"MongoDB"
 #define FORMAT_NAME		"system / network"
+#define FORMAT_TAG			"$mongodb$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -105,12 +108,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ptr, *ctcopy, *keeptr;
 	int type;
 
-	if (strncmp(ciphertext, "$mongodb$", 9))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 
 	if (!(ptr = strtokm(ctcopy, "$"))) /* type */
 		goto error;
@@ -154,7 +157,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 9;	/* skip over "$mongodb$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$mongodb$" */
 	p = strtokm(ctcopy, "$");
 	cs.type = atoi(p);
 	p = strtokm(NULL, "$");
@@ -313,6 +316,7 @@ struct fmt_main fmt_mongodb = {
 			"salt type",
 			/* FIXME: report user name length as 2nd cost? */
 		},
+		{ FORMAT_TAG },
 		mongodb_tests
 	}, {
 		init,

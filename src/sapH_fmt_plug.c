@@ -89,6 +89,14 @@ john_register_one(&fmt_sapH);
 
 #define FORMAT_LABEL            "saph"
 #define FORMAT_NAME             "SAP CODVN H (PWDSALTEDHASH)"
+#define FORMAT_TAG              "{x-issha, "
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG256           "{x-isSHA256, "
+#define FORMAT_TAG256_LEN       (sizeof(FORMAT_TAG256)-1)
+#define FORMAT_TAG384           "{x-isSHA384, "
+#define FORMAT_TAG384_LEN       (sizeof(FORMAT_TAG384)-1)
+#define FORMAT_TAG512           "{x-isSHA512, "
+#define FORMAT_TAG512_LEN       (sizeof(FORMAT_TAG512)-1)
 
 #define ALGORITHM_NAME          "SHA-1/SHA-2 " SHA1_ALGORITHM_NAME
 
@@ -181,17 +189,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int len, hash_len=0;
 	char tmp[MAX_BINARY_SIZE+SALT_LENGTH];
 	/* first check for 'simple' signatures before allocation other stuff. */
-	if (strncmp(cp, "{x-is", 5) || !strchr(cp, '}'))
-		return 0;
-	if (!strncmp(&cp[5], "sha, ", 5))
+	if (!strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN))
 		hash_len = SHA1_BINARY_SIZE;
-	if (!hash_len && !strncmp(&cp[5], "SHA256, ", 8))
+	else if (!strncmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN))
 		hash_len = SHA256_BINARY_SIZE;
-	if (!hash_len && !strncmp(&cp[5], "SHA384, ", 8))
+	else if (!strncmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN))
 		hash_len = SHA384_BINARY_SIZE;
-	if (!hash_len && !strncmp(&cp[5], "SHA512, ", 8))
+	else if (!strncmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN))
 		hash_len = SHA512_BINARY_SIZE;
-	if (!hash_len)
+	else
 		return 0;
 	keeptr = strdup(cp);
 	cp = keeptr;
@@ -569,11 +575,10 @@ static void *get_binary(char *ciphertext)
 	char *cp = ciphertext;
 
 	memset(b.cp, 0, sizeof(b.cp));
-	cp += 5; /* skip the {x-is */
-	if (!strncasecmp(cp, "sha, ", 5)) { cp += 5; }
-	else if (!strncasecmp(cp, "sha256, ", 8)) { cp += 8; }
-	else if (!strncasecmp(cp, "sha384, ", 8)) { cp += 8; }
-	else if (!strncasecmp(cp, "sha512, ", 8)) { cp += 8; }
+	if (!strncasecmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { cp += FORMAT_TAG_LEN; }
+	else if (!strncasecmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { cp += FORMAT_TAG256_LEN; }
+	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { cp += FORMAT_TAG384_LEN; }
+	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { cp += FORMAT_TAG512_LEN; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	while (*cp != '}') ++cp;
 	++cp;
@@ -591,11 +596,10 @@ static void *get_salt(char *ciphertext)
 	int total_len, hash_len = 0;
 
 	memset(&s, 0, sizeof(s));
-	cp += 5; /* skip the {x-is */
-	if (!strncasecmp(cp, "sha, ", 5)) { s.type = 1; cp += 5; hash_len = SHA1_BINARY_SIZE; }
-	else if (!strncasecmp(cp, "sha256, ", 8)) { s.type = 2; cp += 8; hash_len = SHA256_BINARY_SIZE; }
-	else if (!strncasecmp(cp, "sha384, ", 8)) { s.type = 3; cp += 8; hash_len = SHA384_BINARY_SIZE; }
-	else if (!strncasecmp(cp, "sha512, ", 8)) { s.type = 4; cp += 8; hash_len = SHA512_BINARY_SIZE; }
+	if (!strncasecmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { s.type = 1; cp += FORMAT_TAG_LEN; hash_len = SHA1_BINARY_SIZE; }
+	else if (!strncasecmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { s.type = 2; cp += FORMAT_TAG256_LEN; hash_len = SHA256_BINARY_SIZE; }
+	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { s.type = 3; cp += FORMAT_TAG384_LEN; hash_len = SHA384_BINARY_SIZE; }
+	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { s.type = 4; cp += FORMAT_TAG512_LEN; hash_len = SHA512_BINARY_SIZE; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	sscanf (cp, "%u", &s.iter);
 	while (*cp != '}') ++cp;
@@ -667,6 +671,7 @@ struct fmt_main fmt_sapH = {
 			"hash type [1:sha1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
 		},
+		{ FORMAT_TAG, FORMAT_TAG256, FORMAT_TAG384, FORMAT_TAG512 },
 		tests
 	}, {
 		init,

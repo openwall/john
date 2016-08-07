@@ -46,6 +46,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"Bitcoin"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$bitcoin$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME		"SHA512 AES " SHA512_ALGORITHM_NAME
@@ -142,15 +144,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p = NULL;
 	int res;
-	if (strncmp(ciphertext, "$bitcoin$", 9))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* cry_master_length (of the hex string) */
 		goto err;
@@ -217,7 +216,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "$");
 	cs.cry_master_length = atoi(p) / 2;
 	p = strtokm(NULL, "$");
@@ -418,6 +417,7 @@ struct fmt_main fmt_bitcoin = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		bitcoin_tests
 	}, {
 		init,

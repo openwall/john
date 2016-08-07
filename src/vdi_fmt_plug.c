@@ -56,6 +56,8 @@ john_register_one(&fmt_vdi);
 
 #define FORMAT_LABEL		"vdi"
 #define FORMAT_NAME		"VirtualBox-VDI AES_XTS"
+#define FORMAT_TAG           "$vdi$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "PBKDF2-SHA256 " SHA256_ALGORITHM_NAME " + AES_XTS"
 
 #if SSE_GROUP_SZ_SHA256
@@ -68,9 +70,6 @@ john_register_one(&fmt_vdi);
 
 static unsigned char (*key_buffer)[PLAINTEXT_LENGTH + 1];
 static unsigned char (*crypt_out)[MAX_SALT_LEN];
-
-#define FORMAT_TAG      "$vdi$"
-#define FORMAT_TAG_LEN  (sizeof(FORMAT_TAG)-1)
 
 static struct fmt_tests tests[] = {
 	// The 'jtr' test hashed were made with VirtualBox. The others were made with pass_gen.pl
@@ -364,6 +363,7 @@ struct fmt_main fmt_vdi = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

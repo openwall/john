@@ -20,6 +20,8 @@
 
 #define FORMAT_LABEL			"AFS"
 #define FORMAT_NAME			"Kerberos AFS"
+#define FORMAT_TAG			"$K4$"
+#define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		8
@@ -127,9 +129,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int index, count;
 	unsigned int value;
 
-	if (strncmp(ciphertext, "$K4$", 4)) return 0;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) return 0;
 
-	for (pos = &ciphertext[4]; atoi16l[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = &ciphertext[FORMAT_TAG_LEN]; atoi16l[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos != ',' || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;
 
 	for (index = 0; index < 16; index += 2) {
@@ -159,10 +161,11 @@ static void *get_binary(char *ciphertext)
 	out[0] = out[1] = 0;
 	strcpy(base64, AFS_SALT);
 	known_long = 0;
+	ciphertext += FORMAT_TAG_LEN;
 
 	for (index = 0; index < 16; index += 2) {
-		value = atoi16[ARCH_INDEX(ciphertext[index + 4])] << 4;
-		value |= atoi16[ARCH_INDEX(ciphertext[index + 5])];
+		value = atoi16[ARCH_INDEX(ciphertext[index])] << 4;
+		value |= atoi16[ARCH_INDEX(ciphertext[index+1])];
 
 		out[index >> 3] |= (value | 1) << ((index << 2) & 0x18);
 
@@ -457,6 +460,7 @@ struct fmt_main fmt_AFS = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

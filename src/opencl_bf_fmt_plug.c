@@ -174,6 +174,12 @@ struct fmt_main fmt_opencl_bf = {
 		{
 			"iteration count",
 		},
+		{
+			FORMAT_TAG,
+			FORMAT_TAG2,
+			FORMAT_TAG3,
+			FORMAT_TAG4
+		},
 		BF_common_tests
 	}, {
 		init,

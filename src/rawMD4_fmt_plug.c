@@ -451,6 +451,7 @@ struct fmt_main fmt_rawMD4 = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

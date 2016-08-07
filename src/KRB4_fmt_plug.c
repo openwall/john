@@ -54,6 +54,10 @@ john_register_one(&fmt_KRB4);
 
 #define FORMAT_LABEL		"krb4"
 #define FORMAT_NAME		"Kerberos v4 TGT"
+#define FORMAT_TAG		"$af$"
+#define FORMAT_TAG2		"$k4$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
+
 #define ALGORITHM_NAME		"DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -114,10 +118,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *tgt;
 
-	if (strncmp(ciphertext, "$k4$", 4) != 0 &&
-	    strncmp(ciphertext, "$af$", 4) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0 &&
+	    strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN) != 0)
 		return 0;
-	ciphertext += 4;
+	ciphertext += FORMAT_TAG_LEN;
 	tgt = strchr(ciphertext, '$');
 
 	if (!tgt)
@@ -163,8 +167,8 @@ static void *get_salt(char *ciphertext)
 	char *p;
 
 	memset(&salt, 0, sizeof(salt));
-	if (strncmp(ciphertext, "$af$", 4) == 0) {
-		ciphertext += 4;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) == 0) {
+		ciphertext += FORMAT_TAG_LEN;
 		p = strchr(ciphertext, '$');
 		strnzcpy(salt.realm, ciphertext, (p - ciphertext) + 1);
 		ciphertext = p + 1;
@@ -265,6 +269,7 @@ struct fmt_main fmt_KRB4 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		fmt_default_init,

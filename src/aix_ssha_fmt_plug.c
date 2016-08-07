@@ -48,6 +48,14 @@ static int omp_t = 1;
 #define FORMAT_NAME_SHA1	"AIX LPA {ssha1}"
 #define FORMAT_NAME_SHA256	"AIX LPA {ssha256}"
 #define FORMAT_NAME_SHA512	"AIX LPA {ssha512}"
+
+#define FORMAT_TAG1			"{ssha1}"
+#define FORMAT_TAG256		"{ssha256}"
+#define FORMAT_TAG512		"{ssha512}"
+#define FORMAT_TAG1_LEN		(sizeof(FORMAT_TAG1)-1)
+#define FORMAT_TAG256_LEN	(sizeof(FORMAT_TAG256)-1)
+#define FORMAT_TAG512_LEN	(sizeof(FORMAT_TAG512)-1)
+
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME_SHA1	"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #else
@@ -165,13 +173,13 @@ static int inline valid_common(char *ciphertext, struct fmt_main *self, int b64l
 }
 
 static int valid_sha1(char *ciphertext, struct fmt_main *self) {
-	return valid_common(ciphertext, self, 27, "{ssha1}", 7);
+	return valid_common(ciphertext, self, 27, FORMAT_TAG1, FORMAT_TAG1_LEN);
 }
 static int valid_sha256(char *ciphertext, struct fmt_main *self) {
-	return valid_common(ciphertext, self, 43, "{ssha256}", 9);
+	return valid_common(ciphertext, self, 43, FORMAT_TAG256, FORMAT_TAG256_LEN);
 }
 static int valid_sha512(char *ciphertext, struct fmt_main *self) {
-	return valid_common(ciphertext, self, 86, "{ssha512}", 9);
+	return valid_common(ciphertext, self, 86, FORMAT_TAG512, FORMAT_TAG512_LEN);
 }
 
 static void *get_salt(char *ciphertext)
@@ -183,17 +191,16 @@ static void *get_salt(char *ciphertext)
 	keeptr = ctcopy;
 
 	memset(&cs, 0, sizeof(cs));
-	if ((strncmp(ciphertext, "{ssha1}", 7) == 0))
+	if ((strncmp(ciphertext, FORMAT_TAG1, FORMAT_TAG1_LEN) == 0)) {
 		cs.type = 1;
-	else if ((strncmp(ciphertext, "{ssha256}", 9) == 0))
+		ctcopy += FORMAT_TAG1_LEN;
+	} else if ((strncmp(ciphertext, FORMAT_TAG256, FORMAT_TAG256_LEN) == 0)) {
 		cs.type = 256;
-	else
+		ctcopy += FORMAT_TAG256_LEN;
+	} else {
 		cs.type = 512;
-
-	if (cs.type == 1)
-		ctcopy += 7;
-	else
-		ctcopy += 9;
+		ctcopy += FORMAT_TAG512_LEN;
+	}
 
 	p = strtokm(ctcopy, "$");
 	cs.iterations = 1 << atoi(p);
@@ -426,6 +433,7 @@ struct fmt_main fmt_aixssha1 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG1 },
 		aixssha_tests1
 	}, {
 		init,
@@ -495,6 +503,7 @@ struct fmt_main fmt_aixssha256 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG256 },
 		aixssha_tests256
 	}, {
 		init,
@@ -564,6 +573,7 @@ struct fmt_main fmt_aixssha512 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG512 },
 		aixssha_tests512
 	}, {
 		init,

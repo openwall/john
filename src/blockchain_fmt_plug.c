@@ -41,7 +41,7 @@ john_register_one(&fmt_blockchain);
 #define FORMAT_LABEL		"Blockchain"
 #define FORMAT_NAME		"My Wallet"
 #define FORMAT_TAG		"$blockchain$"
-#define TAG_LENGTH		12
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
@@ -117,9 +117,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
@@ -308,6 +305,7 @@ struct fmt_main fmt_blockchain = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		agile_keychain_tests
 	}, {
 		init,

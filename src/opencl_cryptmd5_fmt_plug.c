@@ -296,13 +296,12 @@ static void *get_salt(char *ciphertext)
 
 	memset(ret, 0, SALT_SIZE);
 
-	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0) {
-		pos += strlen(md5_salt_prefix);
+	if (strncmp(ciphertext, md5_salt_prefix, md5_salt_prefix_len) == 0) {
+		pos += md5_salt_prefix_len;
 		ret[8] = '1';
 	}
-	if (strncmp(ciphertext, apr1_salt_prefix,
-		strlen(apr1_salt_prefix)) == 0) {
-		pos += strlen(apr1_salt_prefix);
+	if (strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len) == 0) {
+		pos += apr1_salt_prefix_len;
 		ret[8] = 'a';
 	}
 	// note for {smd5}, ret[8] is left as null.
@@ -460,6 +459,11 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{
+			md5_salt_prefix,
+			apr1_salt_prefix,
+			smd5_salt_prefix
+		},
 		tests
 	}, {
 		init,

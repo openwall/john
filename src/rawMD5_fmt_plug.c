@@ -76,6 +76,8 @@ john_register_one(&fmt_rawMD5);
 
 #define FORMAT_TAG				"$dynamic_0$"
 #define TAG_LENGTH				(sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG2				"{MD5}"
+#define FORMAT_TAG2_LEN			(sizeof(FORMAT_TAG2) - 1)
 
 static struct fmt_tests tests[] = {
 	{"5a105e8b9d40e1329780d62ea2265d8a", "test1"},
@@ -153,10 +155,10 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(fields[1], "{MD5}", 5) && strlen(fields[1]) == 29) {
+	if (!strncmp(fields[1], FORMAT_TAG2, FORMAT_TAG2_LEN) && strlen(fields[1]) == FORMAT_TAG2_LEN+24) {
 		int res;
 
-		res = base64_convert(&fields[1][5], e_b64_mime, 24,
+		res = base64_convert(&fields[1][FORMAT_TAG2_LEN], e_b64_mime, 24,
 		                     out, e_b64_hex, sizeof(out),
 		                     flg_Base64_HEX_LOCASE, 0);
 		if (res >= 0)
@@ -470,6 +472,7 @@ struct fmt_main fmt_rawMD5 = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		init,

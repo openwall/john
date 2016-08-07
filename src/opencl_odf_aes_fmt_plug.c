@@ -32,6 +32,8 @@ john_register_one(&fmt_opencl_odf_aes);
 
 #define FORMAT_LABEL		"ODF-AES-opencl"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$odf$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA256 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -209,16 +211,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	int res;
 
-	if (strncmp(ciphertext, "$odf$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
 		goto err;
 	res = atoi(p);
@@ -284,7 +282,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static odf_cpu_salt cs;
-	ctcopy += 6;	/* skip over "$odf$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$odf$*" */
 	p = strtokm(ctcopy, "*");
 	cs.cipher_type = atoi(p);
 	p = strtokm(NULL, "*");
@@ -329,7 +327,7 @@ static void *get_binary(char *ciphertext)
 	int i;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
-	ctcopy += 6;	/* skip over "$odf$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$odf$*" */
 	p = strtokm(ctcopy, "*");
 	p = strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
@@ -492,6 +490,7 @@ struct fmt_main fmt_opencl_odf_aes = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

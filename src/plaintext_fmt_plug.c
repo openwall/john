@@ -96,7 +96,7 @@ static MAYBE_INLINE ARCH_WORD_32 string_hash(char *s)
 	ARCH_WORD_32 hash, extra;
 	char *p;
 
-	p = s + 2;
+	p = s + FORMAT_TAG_LEN;
 	hash = (unsigned char)s[0];
 	if (!hash)
 		goto out;
@@ -279,6 +279,7 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		fmt_default_init,

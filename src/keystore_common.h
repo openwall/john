@@ -10,6 +10,8 @@
 #define SALT_LENGTH_CPU			819200
 #define BINARY_SIZE				20
 #define BINARY_ALIGN			4
+#define FORMAT_TAG			"$keystore$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
 
 void *keystore_common_get_binary(char *ciphertext);

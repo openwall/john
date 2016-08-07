@@ -20,6 +20,8 @@
 
 #define FORMAT_LABEL			"LM"
 #define FORMAT_NAME			""
+#define FORMAT_TAG			"$LM$"
+#define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -89,9 +91,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 1;
 	}
 
-	if (strncmp(ciphertext, "$LM$", 4)) return 0;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) return 0;
 
-	for (pos = &ciphertext[4]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = &ciphertext[FORMAT_TAG_LEN]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos || pos - ciphertext != 20) return 0;
 
 	return 1;
@@ -103,29 +105,26 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 /* We don't just "return ciphertext" for already split hashes since we may
  * need to convert hashes stored by older versions of John to all-lowercase. */
-	if (!strncmp(ciphertext, "$LM$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
-	out[0] = '$';
-	out[1] = 'L';
-	out[2] = 'M';
-	out[3] = '$';
+	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
 
 	if (index)
-		memcpy(&out[4], &ciphertext[16], 16);
+		memcpy(&out[FORMAT_TAG_LEN], &ciphertext[16], 16);
 	else
-		memcpy(&out[4], ciphertext, 16);
+		memcpy(&out[FORMAT_TAG_LEN], ciphertext, 16);
 
 	out[20] = 0;
 
-	strlwr(&out[4]);
+	strlwr(&out[FORMAT_TAG_LEN]);
 
 	return out;
 }
 
 static void *binary(char *ciphertext)
 {
-	return DES_bs_get_binary_LM(ciphertext + 4);
+	return DES_bs_get_binary_LM(ciphertext + FORMAT_TAG_LEN);
 }
 
 static char *source(char *source, void *binary)
@@ -221,6 +220,7 @@ struct fmt_main fmt_LM = {
 #endif
 		FMT_8_BIT | FMT_TRUNC | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

@@ -825,6 +825,7 @@ struct fmt_main fmt_sha1_ng = {
 #endif
 		                      FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		.tunable_cost_name  = { NULL },
+		.signature          = { FORMAT_TAG, FORMAT_TAG_OLD },
 		.tests              = rawsha1_common_tests,
 	},
 	.methods                = {

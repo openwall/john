@@ -128,7 +128,7 @@ int sha512_common_valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += 8;
+		p += TAG_LENGTH;
 
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -144,7 +144,7 @@ int sha512_common_valid_xsha512(char *ciphertext, struct fmt_main *self)
 	pos = ciphertext;
 	if (strncmp(pos, XSHA512_FORMAT_TAG, XSHA512_TAG_LENGTH))
 		return 0;
-	pos += 6;
+	pos += XSHA512_TAG_LENGTH;
 	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
 		pos++;
 	return !*pos && pos - ciphertext == XSHA512_CIPHERTEXT_LENGTH+6;
@@ -231,7 +231,7 @@ void * sha512_common_binary_xsha512(char *ciphertext)
 	char *p;
 	int i;
 
-	ciphertext += 6;
+	ciphertext += XSHA512_TAG_LENGTH;
 	p = ciphertext + 8;
 	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
@@ -257,7 +257,7 @@ void * sha512_common_binary_xsha512_rev(char *ciphertext)
 	int i;
 	uint64_t *b;
 
-	ciphertext += 6;
+	ciphertext += XSHA512_TAG_LENGTH;
 	p = ciphertext + 8;
 	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =

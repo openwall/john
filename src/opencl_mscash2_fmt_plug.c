@@ -41,7 +41,6 @@ john_register_one(&fmt_opencl_mscash2);
 #define FORMAT_NAME		   "MS Cache Hash 2 (DCC2)"
 #define KERNEL_NAME		   "PBKDF2"
 #define ALGORITHM_NAME		   "PBKDF2-SHA1 OpenCL"
-#define MSCASH2_PREFIX            "$DCC2$"
 #define MAX_PLAINTEXT_LENGTH      125
 
 #define MAX_KEYS_PER_CRYPT        1
@@ -173,7 +172,7 @@ static void *get_salt(char *ciphertext)
 	salt.length = length;
 
 	end = strchr(ciphertext, '#');
-	salt.iter_cnt = strtol(ciphertext + strlen(MSCASH2_PREFIX), &end, 10);
+	salt.iter_cnt = strtol(ciphertext + FORMAT_TAG2_LEN, &end, 10);
 
 	return &salt;
 }
@@ -378,6 +377,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG2 },
 		mscash2_common_tests
 	},{
 		init,

@@ -298,7 +298,7 @@ static void *get_salt(char *ciphertext)
 	p = strrchr(ciphertext, '$') + 1;
 	strncpy(tmp, ciphertext, p - ciphertext -1);
 	tmp[p-ciphertext-1] = 0;
-	out.iterations = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);
+	out.iterations = strtoul(&ciphertext[SHA1_MAGIC_LEN], NULL, 10);
 	p = strrchr(tmp, '$') + 1;
 	// real salt used is: <salt><magic><iterations>
 	out.length = snprintf((char*)out.salt, sizeof(out.salt), "%.*s%s%u",
@@ -398,6 +398,7 @@ struct fmt_main fmt_ocl_cryptsha1 = {
 		{
 			"iteration count",
 		},
+		{ SHA1_MAGIC },
 		sha1crypt_common_tests
 	}, {
 		init,

@@ -235,6 +235,7 @@ struct fmt_main fmt_rawSHA3 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP | FMT_OMP_BAD | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

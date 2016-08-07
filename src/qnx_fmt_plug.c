@@ -369,6 +369,7 @@ struct fmt_main fmt_qnx = {
 			"iteration count",
 			"algorithm (5=md5 256=sha256 512=sha512)",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

@@ -42,6 +42,8 @@ john_register_one(&fmt_KeePass);
 
 #define FORMAT_LABEL		"KeePass"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$keepass$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -195,14 +197,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	int version, res, contentsize;
 
-	if (strncmp(ciphertext, "$keepass$*", 10))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	/* handle 'chopped' .pot lines */
-	if (ldr_isa_pot_source(ciphertext))
-		return 1;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 10;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
 	if (!isdec(p))
@@ -311,7 +310,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 10;	/* skip over "$keepass$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keepass$*" */
 	p = strtokm(ctcopy, "*");
 	cs.version = atoi(p);
 	if(cs.version == 1) {
@@ -567,6 +566,7 @@ struct fmt_main fmt_KeePass = {
 			"iteration count",
 			"version",
 		},
+		{ FORMAT_TAG },
 		KeePass_tests
 	}, {
 		init,

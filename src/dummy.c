@@ -17,7 +17,7 @@
 
 #define FORMAT_LABEL			"dummy"
 #define FORMAT_TAG			"$dummy$"
-#define FORMAT_TAG_LEN			7
+#define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"N/A"
 
@@ -57,7 +57,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, c;
 
-	if (strncmp(ciphertext, "$dummy$", 7))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -329,6 +329,7 @@ struct fmt_main fmt_dummy = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		fmt_default_init,
