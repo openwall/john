@@ -92,6 +92,8 @@ extern volatile int bench_running;
 
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG"
+#define FORMAT_TAG           "$dmg$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " 3DES/AES"
 #else
@@ -253,11 +255,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int headerver;
 	int res;
 
-	if (strncmp(ciphertext, "$dmg$", 5) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 5;	/* skip over "$dmg$" marker */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$dmg$" marker */
 	if ((p = strtokm(ctcopy, "*")) == NULL)
 		goto err;
 	headerver = atoi(p);
@@ -375,7 +377,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 5;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);
 	if (cs.headerver == 2) {
@@ -802,7 +804,7 @@ struct fmt_main fmt_dmg = {
 		{
 			"iteration count",
 		},
-		{ "$dmg$" },
+		{ FORMAT_TAG },
 		dmg_tests
 	}, {
 		init,

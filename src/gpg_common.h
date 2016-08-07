@@ -13,6 +13,8 @@
 
 #define BENCHMARK_COMMENT		   ""
 #define BENCHMARK_LENGTH		   -1001
+#define FORMAT_TAG           "$gpg$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define BINARY_SIZE                        0
 #define BINARY_ALIGN                       MEM_ALIGN_WORD
 #define SALT_LENGTH                        8

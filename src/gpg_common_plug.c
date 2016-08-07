@@ -164,11 +164,11 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 	int res,j,spec,usage,algorithm,ex_flds=0;
 	int symmetric_mode = 0;
 
-	if (strncmp(ciphertext, "$gpg$*", 6) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;	/* skip over "$gpg$" marker and '*' */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$gpg$" marker and '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
 	if (!isdec(p))
@@ -687,7 +687,7 @@ void *gpg_common_get_salt(char *ciphertext)
 	static struct gpg_common_custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 6;	/* skip over "$gpg$" marker and first '*' */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$gpg$" marker and first '*' */
 	p = strtokm(ctcopy, "*");
 	cs.pk_algorithm = atoi(p);
 	if (cs.pk_algorithm == 0) {

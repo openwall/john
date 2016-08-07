@@ -34,6 +34,8 @@ john_register_one(&fmt_opencl_sxc);
 
 #define FORMAT_LABEL		"sxc-opencl"
 #define FORMAT_NAME		"StarOffice .sxc"
+#define FORMAT_TAG           "$sxc$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL Blowfish"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -212,11 +214,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res;
-	if (strncmp(ciphertext, "$sxc$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
 		goto err;
 	res = atoi(p);
@@ -347,7 +349,7 @@ static void *get_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 
-	ctcopy += 6;	/* skip over "$sxc$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$sxc$*" */
 	strtokm(ctcopy, "*");
 	strtokm(NULL, "*");
 	strtokm(NULL, "*");
@@ -508,7 +510,7 @@ struct fmt_main fmt_opencl_sxc = {
 		{
 			"iteration count",
 		},
-		{ "$sxc$" },
+		{ FORMAT_TAG },
 		sxc_tests
 	}, {
 		init,

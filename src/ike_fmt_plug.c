@@ -73,6 +73,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"IKE"
 #define FORMAT_NAME		"PSK"
+#define FORMAT_TAG           "$ike$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"HMAC MD5/SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -117,13 +119,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
 
-	if (strncmp(ciphertext, "$ike$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 6;	/* skip leading '$ike$*' */
+	ctcopy += FORMAT_TAG_LEN;	/* skip leading '$ike$*' */
 	if (*ctcopy != '0' && *ctcopy != '1')
 		goto error;
 	/* skip '*0' */
@@ -196,8 +198,8 @@ error:
 static void *get_salt(char *ciphertext)
 {
 	static psk_entry cs;
-	cs.isnortel = atoi(&ciphertext[6]);
-	load_psk_params(&ciphertext[8], NULL, &cs);
+	cs.isnortel = atoi(&ciphertext[FORMAT_TAG_LEN]);
+	load_psk_params(&ciphertext[FORMAT_TAG_LEN+2], NULL, &cs);
 	return (void *)&cs;
 }
 
@@ -324,7 +326,7 @@ struct fmt_main fmt_ike = {
 			NULL
 #endif
 		},
-		{ "$ike$*" },
+		{ FORMAT_TAG },
 		ike_tests
 	}, {
 		init,

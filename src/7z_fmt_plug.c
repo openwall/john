@@ -37,7 +37,7 @@ john_register_one(&fmt_sevenzip);
 #define FORMAT_LABEL		"7z"
 #define FORMAT_NAME		"7-Zip"
 #define FORMAT_TAG		"$7z$"
-#define TAG_LENGTH		4
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT	" (512K iterations)"
 #define BENCHMARK_LENGTH	0
 #define BINARY_SIZE		0
@@ -269,7 +269,7 @@ static void *get_salt(char *ciphertext)
 
 	memset(cs, 0, SALT_SIZE);
 
-	ctcopy += 4;
+	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
 	cs->type = atoi(p);
 	p = strtokm(NULL, "$");
@@ -653,7 +653,7 @@ struct fmt_main fmt_sevenzip = {
 		{
 			"iteration count",
 		},
-		{ "$7z$" },
+		{ FORMAT_TAG },
 		sevenzip_tests
 	}, {
 		init,

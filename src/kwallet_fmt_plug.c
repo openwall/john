@@ -38,6 +38,8 @@ john_register_one(&fmt_kwallet);
 
 #define FORMAT_LABEL		"kwallet"
 #define FORMAT_NAME		"KDE KWallet"
+#define FORMAT_TAG           "$kwallet$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -95,12 +97,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int res;
-	if (strncmp(ciphertext,  "$kwallet$", 9) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* ctlen */
 		goto err;
 	if (!isdec(p))
@@ -127,7 +129,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
-	ctcopy += 9;	/* skip over "$kwallet$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$kwallet$" */
 	if (!salt) salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	memset(salt, 0, sizeof(*salt));
 	p = strtokm(ctcopy, "$");
@@ -320,7 +322,7 @@ struct fmt_main fmt_kwallet = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		{ NULL },
-		{ "$kwallet$" },
+		{ FORMAT_TAG },
 		kwallet_tests
 	}, {
 		init,

@@ -43,6 +43,8 @@ john_register_one(&fmt_cloud_keychain);
 
 #define FORMAT_LABEL		"cloudkeychain"
 #define FORMAT_NAME		"1Password Cloud Keychain"
+#define FORMAT_TAG           "$cloudkeychain$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME		"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
 #else
@@ -124,12 +126,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *keeptr, *p;
 	int len;
 
-	if (strncmp(ciphertext,  "$cloudkeychain$", 15) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 15;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt length */
 		goto err;
 	if (!isdec(p))
@@ -217,7 +219,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 15;	/* skip over "$cloudkeychain$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$cloudkeychain$" */
 	p = strtokm(ctcopy, "$");
 	cs.saltlen = atoi(p);
 	p = strtokm(NULL, "$");
@@ -406,7 +408,7 @@ struct fmt_main fmt_cloud_keychain = {
 		{
 			"iteration count",
 		},
-		{ "$cloudkeychain$" },
+		{ FORMAT_TAG },
 		cloud_keychain_tests
 	}, {
 		init,

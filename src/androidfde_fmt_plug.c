@@ -60,7 +60,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_TAG          "$fde$"
-#define TAG_LENGTH          5
+#define TAG_LENGTH          (sizeof(FORMAT_TAG)-1)
 #define FORMAT_LABEL        "fde"
 #define FORMAT_NAME         "Android FDE"
 #ifdef SIMD_COEF_32

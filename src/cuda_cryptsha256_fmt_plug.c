@@ -78,8 +78,8 @@ static void *get_salt(char *ciphertext)
 
 		}
 
-	if (end > SALT_LENGTH + 3) /* +3 for $5$ */
-		end = SALT_LENGTH + 3;
+	if (end > SALT_LENGTH + FORMAT_TAG_LEN) /* +3 for $5$ */
+		end = SALT_LENGTH + FORMAT_TAG_LEN;
 
 	for (i = 0; i < end; i++)
 		ret[i] = ciphertext[i];
@@ -95,12 +95,12 @@ static void set_salt(void *salt)
 	memcpy(currentsalt,s,len+1);
 	host_salt.rounds = ROUNDS_DEFAULT;
 
-	if (strncmp((char *) "$5$", (char *) currentsalt, 3) == 0)
-		offset += 3;
+	if (strncmp((char *) FORMAT_TAG, (char *) currentsalt, FORMAT_TAG_LEN) == 0)
+		offset += FORMAT_TAG_LEN;
 
-	if (strncmp((char *) currentsalt + offset, (char *) "rounds=", 7) == 0)
+	if (strncmp((char *) currentsalt + offset, (char *) ROUNDS_PREFIX, sizeof(ROUNDS_PREFIX)-1) == 0)
 	{
-		const char *num = currentsalt + offset + 7;
+		const char *num = currentsalt + offset + sizeof(ROUNDS_PREFIX)-1;
 		char *endp;
 		unsigned long int srounds = strtoul(num, &endp, 10);
 
@@ -239,7 +239,7 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		{
 			NULL, //"iteration count",
 		},
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

@@ -65,8 +65,8 @@ static void init(struct fmt_main *self)
 static void *get_salt(char *ciphertext)
 {
 	static phpass_salt salt;
-	salt.rounds = 1 << atoi64[ARCH_INDEX(ciphertext[3])];
-	memcpy(salt.salt, &ciphertext[4], 8);
+	salt.rounds = 1 << atoi64[ARCH_INDEX(ciphertext[FORMAT_TAG_LEN])];
+	memcpy(salt.salt, &ciphertext[FORMAT_TAG_LEN+1], 8);
 	return &salt;
 }
 
@@ -152,7 +152,7 @@ struct fmt_main fmt_cuda_phpass = {
 		{
 			"iteration count",
 		},
-		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG2, FORMAT_TAG3 },
 		phpass_common_tests_15
 	}, {
 		init,

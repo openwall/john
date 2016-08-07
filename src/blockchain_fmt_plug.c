@@ -41,7 +41,7 @@ john_register_one(&fmt_blockchain);
 #define FORMAT_LABEL		"Blockchain"
 #define FORMAT_NAME		"My Wallet"
 #define FORMAT_TAG		"$blockchain$"
-#define TAG_LENGTH		12
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
