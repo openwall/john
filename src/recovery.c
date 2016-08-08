@@ -55,6 +55,7 @@
 #include "status.h"
 #include "recovery.h"
 #include "external.h"
+#include "regex.h"
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
@@ -652,12 +653,12 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 			if (ext_restore_state_hybrid(buf, rec_file))
 				rec_format_error("external-hybrid");
 		}
-		/*
+#if HAVE_REXGEN
 		else if (!strncmp(buf, "rex-v", 5)) {
 			if (rexgen_restore_state_hybrid(buf, rec_file))
 				rec_format_error("rexgen-hybrid");
 		}
-		*/
+#endif
 		if (!strcmp(buf, "slt-v1")) {
 			restore_salt_state();
 		}

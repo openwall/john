@@ -52,6 +52,7 @@
 #include "mask_ext.h"
 #include "mask.h"
 #include "unicode.h"
+#include "cracker.h"
 #include "john.h"
 #include "fake_salts.h"
 #include "sha.h"
@@ -77,6 +78,7 @@
 static clock_t salt_time = 0;
 #endif
 
+static fix_state_fp fp_fix_state;
 static struct db_main *crk_db;
 static struct fmt_params crk_params;
 static struct fmt_methods crk_methods;
@@ -758,6 +760,11 @@ static int crk_process_event(void)
 	return event_abort;
 }
 
+void crk_set_hybrid_fix_state_func_ptr(fix_state_fp fp)
+{
+	fp_fix_state = fp;
+}
+
 static int crk_password_loop(struct db_salt *salt)
 {
 	void ext_hybrid_fix_state(void);
@@ -776,7 +783,8 @@ static int crk_password_loop(struct db_salt *salt)
 	if (event_pending && crk_process_event())
 		return -1;
 
-	ext_hybrid_fix_state();
+	if (fp_fix_state)
+		fp_fix_state();
 
 	count = crk_key_index;
 	match = crk_methods.crypt_all(&count, salt);

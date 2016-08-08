@@ -35,7 +35,20 @@
 #define UNICODE
 #define _UNICODE
 
+#ifdef _MSC_VER
+char *stpcpy(char *dst, const char *src) {
+	strcpy(dst, src);
+	return dst + strlen(dst);
+}
+#endif
+
 char *rexgen_alphabets[256];
+static c_iterator_ptr iter = NULL;
+static c_regex_ptr regex_ptr = NULL;
+static char *save_str;
+static const char *cur_regex, *save_regex;
+static char *restore_str, *restore_regex;
+static int save_str_len;
 
 static void fix_state(void)
 {
@@ -48,6 +61,52 @@ static double get_progress(void)
 
 static void save_state(FILE *file)
 {
+}
+
+int rexgen_restore_state_hybrid(const char *sig, FILE *file)
+{
+	if (!strncmp(sig, "rex-v1", 6))
+	{
+		int len, ret;
+		ret = fscanf(file, "%d\n", &len);
+		if (ret != 1) return 1;
+		restore_regex = mem_alloc_tiny(len+2, 8);
+		fgetl(restore_regex, len+1, file);
+		ret = fscanf(file, "%d\n", &len);
+		if (ret != 1) return 1;
+		restore_str = mem_alloc_tiny(len+2, 8);
+		fgetl(restore_str, len+1, file);
+		log_event("resuming a regex expr or %s and state of %s\n", restore_regex, restore_str);
+		return 0;
+	}
+	return 1;
+}
+
+static void save_state_hybrid(FILE *file)
+{
+	if (save_str && strlen(save_str)) {
+		fprintf(file, "rex-v1\n");
+		fprintf(file, "%d\n", (int)strlen(save_regex));
+		fprintf(file, "%s\n", save_regex);
+		fprintf(file, "%d\n", (int)strlen(save_str));
+		fprintf(file, "%s\n", save_str);
+	}
+}
+
+static void rex_hybrid_fix_state()
+{
+	char *dstptr=0;
+	if (iter)
+		c_iterator_get_state(iter, &dstptr);
+	if (dstptr) {
+		if (strlen(dstptr) > save_str_len) {
+			save_str_len = strlen(dstptr)+256;
+			MEM_FREE(save_str);
+			save_str = mem_alloc(save_str_len+1);
+		}
+		strcpy(save_str, dstptr);
+		save_regex = cur_regex;
+	}
 }
 
 static int restore_state(FILE *file)
@@ -76,6 +135,7 @@ static void rexgen_setlocale()
 	}
 }
 
+// Would be nice to have SOME way to be thread safe!!!
 static char BaseWord[1024];
 
 size_t callback(char* dst, const size_t buffer_size)
@@ -134,17 +194,17 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
                           const char *base_word, int regex_case, const char *regex_alpha)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
-	c_iterator_ptr iter = NULL;
-	c_regex_ptr regex_ptr = NULL;
 	char word[PLAINTEXT_BUFFER_SIZE];
 	static int bFirst = 1;
 	static int bALPHA = 0;
 	int max_len = db->format->params.plaintext_length;
 	int retval;
 
+	cur_regex = regex;
 	if (options.req_maxlength)
 		max_len = options.req_maxlength;
 
+	strcpy(BaseWord, base_word);
 	if (bFirst) {
 		bFirst = 0;
 		rexgen_setlocale();
@@ -152,6 +212,21 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 			bALPHA = 1;
 			SetupAlpha(regex_alpha);
 		}
+		rec_init_hybrid(save_state_hybrid);
+		crk_set_hybrid_fix_state_func_ptr(rex_hybrid_fix_state);
+
+		regex_ptr = c_regex_cb(regex, callback);
+		if (!regex_ptr) {
+			c_simplestring_delete(buffer);
+			fprintf(stderr,
+				"Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n",
+				base_word, regex);
+			error();
+		}
+		iter = c_regex_iterator(regex_ptr);
+
+		if (restore_str)
+			c_iterator_set_state(iter, restore_str);
 	}
 
 	if (bALPHA) {
@@ -190,7 +265,6 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		}
 	}
 
-	strcpy(BaseWord, base_word);
 	if (!regex[0]) {
 		if (options.mask) {
 			if (do_mask_crack(fmt_null_key)) {
@@ -208,15 +282,6 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		goto out;
 	}
 
-	regex_ptr = c_regex_cb(regex, callback);
-	if (!regex_ptr) {
-		c_simplestring_delete(buffer);
-		fprintf(stderr,
-		        "Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n",
-		        base_word, regex);
-		error();
-	}
-	iter = c_regex_iterator(regex_ptr);
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
@@ -240,31 +305,26 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 
 out:
 	c_simplestring_delete(buffer);
-	c_regex_delete(regex_ptr);
-	c_iterator_delete(iter);
 	return retval;
 }
 
 void do_regex_crack(struct db_main *db, const char *regex)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
-	c_iterator_ptr iter = NULL;
-	c_regex_ptr regex_ptr = NULL;
 	char word[PLAINTEXT_BUFFER_SIZE];
 	int max_len = db->format->params.plaintext_length;
 
 	if (options.req_maxlength)
 		max_len = options.req_maxlength;
 
-	if (john_main_process)
-		fprintf(stderr, "Warning: regex mode currently can't be "
-		        "resumed if aborted\n");
-
+	cur_regex = regex;
 	rexgen_setlocale();
 	status_init(&get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 	crk_init(db, fix_state, NULL);
+	rec_init_hybrid(save_state_hybrid);
+
 	regex_ptr = c_regex_cb(regex, callback);
 	if (!regex_ptr) {
 		fprintf(stderr,
@@ -272,6 +332,10 @@ void do_regex_crack(struct db_main *db, const char *regex)
 		error();
 	}
 	iter = c_regex_iterator(regex_ptr);
+	if (restore_str) {
+		c_iterator_set_state(iter, restore_str);
+		restore_str = 0;
+	}
 	while (c_iterator_next(iter)) {
 		c_iterator_value(iter, buffer);
 		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
