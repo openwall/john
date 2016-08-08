@@ -318,6 +318,7 @@ next_file_header:
 	} else {
 		size_t file_header_pack_size = 0, file_header_unp_size = 0;
 		int ext_time_size;
+		uint64_t bytes_left;
 		uint16_t file_header_head_size, file_name_size;
 		unsigned char file_name[256], file_crc[4];
 		unsigned char salt[8] = { 0 };
@@ -557,11 +558,20 @@ next_file_header:
 
 		best_len += sprintf(&best[best_len], "1*");
 		p = &best[best_len];
+		bytes_left = file_header_pack_size;
 		for (i = 0; i < file_header_pack_size; i++) {
-			if (fread(&s, 1, 1, fp) != 1)
+			unsigned char bytes[64*1024];
+			unsigned x, to_read = 64*1024;
+			if (bytes_left < 64*1024)
+				to_read = bytes_left;
+			bytes_left -= to_read;
+			if (fread(bytes, 1, to_read, fp) != to_read)
 				fprintf(stderr, "! Error while reading archive: %s\n", strerror(errno));
-			*p++ = itoa16[s >> 4];
-			*p++ = itoa16[s & 0xf];
+			for (x = 0; x < to_read; ++x) {
+				s = bytes[x];
+				*p++ = itoa16[s >> 4];
+				*p++ = itoa16[s & 0xf];
+			}
 		}
 		best_len += file_header_pack_size;
 		best_len += sprintf(p, "*%c%c:%d::", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
