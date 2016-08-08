@@ -125,16 +125,7 @@ int ishexlc_oddOK(const char *q) {
 	return !*q ;
 }
 
-/*
- * if full string is HEX, then return is positive. If there is something
- * other than hex characters, then the return is negative but is the length
- * of 'valid' hex characters that start the string.
- *
- * NOTE, if the length is odd, then the 'full' length will not be returned.
- * the length returned will be length-1 since it would not be proper to try
- * to hex convert the last odd byte.
- */
-static MAYBE_INLINE int _hexlen(const char *q, unsigned char dic[0x100])
+static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100])
 {
 	const char *s = q;
 	size_t len = strlen(q);
@@ -143,17 +134,17 @@ static MAYBE_INLINE int _hexlen(const char *q, unsigned char dic[0x100])
 	while (dic[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	if ((size_t)(q - s)&1) --q;
-	return (len == (size_t)(q - s)) ? (int)(q - s) : 0 - (int)(q - s);
+	return (q - s);
 }
-int hexlen(const char *q)
+size_t hexlen(const char *q)
 {
 	return _hexlen(q, atoi16);
 }
-int hexlenu(const char *q)
+size_t hexlenu(const char *q)
 {
 	return _hexlen(q, atoi16u);
 }
-int hexlenl(const char *q)
+size_t hexlenl(const char *q)
 {
 	return _hexlen(q, atoi16l);
 }

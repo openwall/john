@@ -128,10 +128,10 @@ int ishexlc_oddOK(const char *q);
 int ishexn(const char *q, int n);
 int ishexucn(const char *q, int n);
 int ishexlcn(const char *q, int n);
-/* length of hex. if non-hex chars found, then negative length of valid hex */
-int hexlen(const char *q);
-int hexlenl(const char *q); /* lower cased only */
-int hexlenu(const char *q); /* upper cased only */
+/* length of hex. */
+size_t hexlen(const char *q);
+size_t hexlenl(const char *q); /* lower cased only */
+size_t hexlenu(const char *q); /* upper cased only */
 /* is this a valid string for atoi() ONLY positive numbers are valid */
 int isdec(const char *q);
 /* is this a valid string for atoi() */
