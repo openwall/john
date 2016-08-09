@@ -19,6 +19,7 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 {
 	struct cfg_list *list;
 
+	ctx->refs_count = 0;
 	if (*subsection == ':') {
 		char *p, *buf;
 		const int sz = sizeof(struct cfg_line);
