@@ -19,8 +19,6 @@ john_register_one(&fmt_XSHA512);
 #include "simd-intrinsics.h"
 #include "rawSHA512_common.h"
 
-//#undef SIMD_COEF_64
-
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef SIMD_COEF_64
@@ -70,7 +68,7 @@ static int max_keys;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int (*saved_len);
-static ARCH_WORD_32 (*crypt_out)[16];
+static ARCH_WORD_32 (*crypt_out)[DIGEST_SIZE/sizeof(ARCH_WORD_32)];
 #ifdef PRECOMPUTE_CTX_FOR_SALT
 static SHA512_CTX ctx_salt;
 #else

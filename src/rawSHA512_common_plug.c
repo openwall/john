@@ -294,28 +294,16 @@ void *sha512_common_binary_nsldap(char *ciphertext) {
 /* Convert Cisco hashes to hex ones, so .pot entries are compatible */
 char * sha512_common_prepare_xsha512(char *split_fields[10], struct fmt_main *self)
 {
-	char Buf[200];
+	static char Buf[XSHA512_TAG_LENGTH + XSHA512_CIPHERTEXT_LENGTH + 1];
 	if (!strncmp(split_fields[1], XSHA512_FORMAT_TAG, XSHA512_TAG_LENGTH))
 		return split_fields[1];
-	if (split_fields[0] && strlen(split_fields[0]) == XSHA512_CIPHERTEXT_LENGTH) {
+	if (split_fields[0] && ishex(split_fields[0]) && strlen(split_fields[0]) == XSHA512_CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[0]);
-
-		if (sha512_common_valid_xsha512(Buf, self)) {
-			static char *cp;
-			if (!cp) cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7, 1);
-			strcpy(cp, Buf);
-			return cp;
-		}
+		return Buf;
 	}
-	if (strlen(split_fields[1]) == XSHA512_CIPHERTEXT_LENGTH) {
+	if (ishex(split_fields[1]) && strlen(split_fields[1]) == XSHA512_CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[1]);
-
-		if (sha512_common_valid_xsha512(Buf, self)) {
-			static char *cp;
-			if (!cp) cp = mem_calloc_tiny(XSHA512_CIPHERTEXT_LENGTH+7, 1);
-			strcpy(cp, Buf);
-			return cp;
-		}
+		return Buf;
 	}
 	return split_fields[1];
 }
@@ -336,9 +324,7 @@ char * sha512_common_split(char *ciphertext, int index, struct fmt_main *self)
 
 char * sha512_common_split_xsha512(char *ciphertext, int index, struct fmt_main *pFmt)
 {
-	static char * out;
-
-	if (!out) out = mem_calloc_tiny(8 + XSHA512_CIPHERTEXT_LENGTH + 1, MEM_ALIGN_WORD);
+	static char out[XSHA512_TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, XSHA512_FORMAT_TAG, XSHA512_TAG_LENGTH))
 		return ciphertext;
