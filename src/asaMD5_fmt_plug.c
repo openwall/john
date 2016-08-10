@@ -41,6 +41,7 @@ john_register_one(&fmt_asaMD5);
 
 static struct fmt_tests tests[] = {
 	{"$dynamic_20$h3mJrcH0901pqX/m$alex","ripper"},
+	{"$dynamic_20$ICzzhPWXScHWElEK$e","ripper"},
 	{"$dynamic_20$3USUcOPFUiMCO4Jk$cisc","cisco"},
 	{"$dynamic_20$lZt7HSIXw3.QP7.R$admc","CscFw-ITC!"},
 	{"$dynamic_20$hN7LzeyYjw12FSIU$john","cisco"},
