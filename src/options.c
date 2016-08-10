@@ -239,6 +239,10 @@ static struct opt_entry opt_list[] = {
 	{"reject-printable", FLG_REJECT_PRINTABLE, FLG_REJECT_PRINTABLE},
 	{"verbosity", FLG_VERBOSITY, FLG_VERBOSITY, 0, OPT_REQ_PARAM,
 		"%u", &options.verbosity},
+	{"skip", FLG_ZERO, 0, FLG_WORDLIST_CHK, 0,
+		"%ul", &options.skip},
+	{"limit", FLG_ZERO, 0, FLG_WORDLIST_CHK, 0,
+		"%ul", &options.limit},
 #ifdef HAVE_OPENCL
 	{"force-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTOR},
 	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0,
@@ -414,6 +418,9 @@ void opt_print_hidden_usage(void)
 	puts("--force-scalar             (OpenCL) force scalar mode");
 	puts("--force-vector-width=N     (OpenCL) force vector width N");
 #endif
+	puts("");
+	puts("--skip=N                   skip N lines from the input wordlist");
+	puts("--limit=N                  read N lines from the input wordlist");
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	puts("\nPRINCE mode options:");
 	puts("--prince-loopback[=FILE]   fetch words from a .pot file");
@@ -429,7 +436,6 @@ void opt_print_hidden_usage(void)
 	puts("--prince-keyspace          just show total keyspace that would be produced");
 	puts("                           (disregarding skip and limit)");
 #endif
-	puts("");
 }
 
 void opt_init(char *name, int argc, char **argv, int show_usage)

@@ -372,6 +372,10 @@ struct options_main {
 	char *regex;
 /* Custom masks */
 	char *custom_mask[MAX_NUM_CUST_PLHDR];
+
+/* hashcat like skip/limit keyspace split */
+	unsigned long skip;
+	unsigned long limit;
 };
 
 extern struct options_main options;

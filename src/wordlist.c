@@ -106,6 +106,7 @@ static int64_t hybrid_rec_line;
 
 static int rule_number, rule_count;
 static int64_t line_number, loop_line_no;
+static unsigned long wl_input_skip, wl_input_limit;
 static int length;
 static struct rpp_context *rule_ctx;
 
@@ -149,6 +150,9 @@ static MAYBE_INLINE char *mgetl(char *res)
 	const vtype vnl = vset1_epi8('\n');
 
 	if (map_pos >= map_end)
+		return NULL;
+
+	if ((wl_input_limit > 0) && (line_number + 1 > wl_input_skip + wl_input_limit))
 		return NULL;
 
 	while (map_pos < map_scan_end &&
@@ -566,7 +570,7 @@ static MAYBE_INLINE int wbuf_unique(char *line)
 	return 1;
 }
 
-void do_wordlist_crack(struct db_main *db, char *name, int rules)
+void do_wordlist_crack(struct db_main *db, char *name, int rules, unsigned long input_skip, unsigned long input_limit)
 {
 	union {
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
@@ -601,6 +605,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int regex_case = 0;
 	char *regex = 0;
 #endif
+
+	wl_input_skip = input_skip;
+	wl_input_limit = input_limit;
 
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
@@ -1158,6 +1165,7 @@ REDO_AFTER_LMLOOP:
 				prerule = NULL;
 		}
 	}
+	skip_lines(input_skip, line);
 
 	if (prerule)
 	do {
