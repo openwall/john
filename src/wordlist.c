@@ -570,7 +570,7 @@ static MAYBE_INLINE int wbuf_unique(char *line)
 	return 1;
 }
 
-void do_wordlist_crack(struct db_main *db, char *name, int rules, unsigned long input_skip, unsigned long input_limit)
+void do_wordlist_crack(struct db_main *db, char *name, int rules)
 {
 	union {
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
@@ -606,8 +606,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules, unsigned long 
 	char *regex = 0;
 #endif
 
-	wl_input_skip = input_skip;
-	wl_input_limit = input_limit;
+	wl_input_skip = options.skip;
+	wl_input_limit = options.limit;
 
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
@@ -1165,7 +1165,7 @@ REDO_AFTER_LMLOOP:
 				prerule = NULL;
 		}
 	}
-	skip_lines(input_skip, line);
+	skip_lines(wl_input_skip, line);
 
 	if (prerule)
 	do {
