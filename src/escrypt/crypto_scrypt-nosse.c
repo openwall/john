@@ -314,9 +314,9 @@ escrypt_kdf(escrypt_local_t * local,
 		return -1;
 	}
 	if (local->size < need) {
-		if (free_region(local))
+		if (escrypt_free_region(local))
 			return -1;
-		if (!alloc_region(local, need))
+		if (!escrypt_alloc_region(local, need))
 			return -1;
 	}
 	B = (uint8_t *)local->aligned;

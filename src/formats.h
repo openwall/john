@@ -33,7 +33,7 @@ struct fmt_main;
  * Maximum number of different tunable cost parameters
  * that can be reported for a single format
  */
-#define FMT_TUNABLE_COSTS	3
+#define FMT_TUNABLE_COSTS	5
 
 /*
  * Maximum number of different signatures
