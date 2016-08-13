@@ -24,7 +24,7 @@ before_install:
   - sudo apt-get install fglrx-dev opencl-headers || true
   - export OMP_NUM_THREADS=4
 script:
-  - cd src && ./configure && make -sj4 && echo -e '[Disabled:Formats]\nRaw-SHA512-opencl = Y\nXSHA512-opencl = Y\nmscash2-opencl = Y\nXSHA512-ng-opencl = Y\ngpg-opencl = Y' > john-local.conf && ../run/john -test-full=0
+  - cd src && ./configure && make -sj4 && echo -e '[Disabled:Formats]\nRaw-SHA512-opencl = Y\nXSHA512-opencl = Y\nmscash2-opencl = Y\ngpg-opencl = Y' > john-local.conf && ../run/john -test-full=0
 
 addons:
   coverity_scan:
