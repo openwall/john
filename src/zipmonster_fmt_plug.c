@@ -144,6 +144,7 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
+#ifndef SIMD_COEF_32
 static inline void hex_encode_uppercase(unsigned char *str, unsigned char *_out)
 {
 	int i;
@@ -153,6 +154,7 @@ static inline void hex_encode_uppercase(unsigned char *str, unsigned char *_out)
 		out[i] = itoa16u_w[str[i]];
 	}
 }
+#endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
