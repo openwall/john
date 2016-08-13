@@ -324,7 +324,7 @@ char * sha512_common_split(char *ciphertext, int index, struct fmt_main *self)
 
 char * sha512_common_split_xsha512(char *ciphertext, int index, struct fmt_main *pFmt)
 {
-	static char out[XSHA512_TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+	static char out[XSHA512_TAG_LENGTH + XSHA512_CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, XSHA512_FORMAT_TAG, XSHA512_TAG_LENGTH))
 		return ciphertext;
