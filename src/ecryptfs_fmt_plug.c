@@ -139,7 +139,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (*p == '1' && *(p + 1) == '$') {
 		// handle salted variety
 		p += 2;
-		if ( abs(hexlenl(p)) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
+		if (hexlenl(p) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
 			return 0;
 		p += (HEX_BINARY_SIZE+1);
 	}

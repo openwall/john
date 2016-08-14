@@ -159,7 +159,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	data = p + 1; // cnonce
 	if (!(p = strchr(data, '$')) || (int)(p-data) > MD5_HEX_SIZE)
 		return 0;
-	if ( abs(hexlenl(data)) != p-data)
+	if (hexlenl(data) != p-data)
 		return 0;
 	data = p + 1; // nc
 	if (!(p = strchr(data, '$')) || (int)(p-data) >= 9)

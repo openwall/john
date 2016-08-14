@@ -123,7 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p -= 9;
 	if (*p != '*')
 		return 0;
-	if (abs(hexlenl(&p[1])) != 8)
+	if (hexlenl(&p[1]) != 8)
 		return 0;
 
 	/* Check username length */
