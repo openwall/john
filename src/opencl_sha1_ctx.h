@@ -55,7 +55,10 @@ typedef struct {
 	uchar buffer[64];  /* data block being processed */
 } SHA_CTX;
 
-inline void SHA1_Init(SHA_CTX *ctx) {
+#ifndef __MESA__
+inline
+#endif
+void SHA1_Init(SHA_CTX *ctx) {
 	ctx->total = 0;
 
 	ctx->state[0] = 0x67452301;
@@ -65,7 +68,10 @@ inline void SHA1_Init(SHA_CTX *ctx) {
 	ctx->state[4] = 0xC3D2E1F0;
 }
 
-inline void _sha1_process( SHA_CTX *ctx, const uchar data[64] ) {
+#ifndef __MESA__
+inline
+#endif
+void _sha1_process( SHA_CTX *ctx, const uchar data[64] ) {
 	uint temp, W[16], A, B, C, D, E;
 
 	GET_UINT32BE( W[ 0], data,  0 );
@@ -236,7 +242,10 @@ inline void _sha1_process( SHA_CTX *ctx, const uchar data[64] ) {
 /*
  * SHA-1 process buffer
  */
-inline void SHA1_Update( SHA_CTX *ctx, const uchar *input, uint ilen ) {
+#ifndef __MESA__
+inline
+#endif
+void SHA1_Update( SHA_CTX *ctx, const uchar *input, uint ilen ) {
 	uint fill;
 	uint left;
 
@@ -273,7 +282,10 @@ inline void SHA1_Update( SHA_CTX *ctx, const uchar *input, uint ilen ) {
 /*
  * SHA-1 final digest
  */
-inline void SHA1_Final( uchar output[20], SHA_CTX *ctx ) {
+#ifndef __MESA__
+inline
+#endif
+void SHA1_Final( uchar output[20], SHA_CTX *ctx ) {
 	uint last, padn;
 	uint bits;
 	uchar msglen[8];

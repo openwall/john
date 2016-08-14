@@ -52,7 +52,10 @@ typedef struct {
 #define LEAN
 #endif
 
-inline void S2KItSaltedSHA1Generator(__global const uchar *password,
+#ifndef __MESA__
+inline
+#endif
+void S2KItSaltedSHA1Generator(__global const uchar *password,
                                      uint password_length,
                                      __global const uchar *salt,
                                      uint _count,
