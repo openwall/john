@@ -1952,7 +1952,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	orig_line = mem_alloc(line_size);
 
 	if (db->options->showinvalid)
-		strnzcpy(orig_line, line, sizeof(orig_line));
+		strnzcpy(orig_line, line, line_size);
 	format = NULL;
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		source, &format, db->options, line);
@@ -1962,7 +1962,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	if (db->options->showinvalid) {
 		if (count == -1) {
 			db->password_count++;
-			printf ("%s", orig_line);
+			printf ("%s\n", orig_line);
 		} else
 			db->guess_count += count;
 		goto free_and_return;

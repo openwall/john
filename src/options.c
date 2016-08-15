@@ -399,7 +399,8 @@ void opt_print_hidden_usage(void)
 	puts("--verbosity=N              change verbosity (1-5, default 3)");
 	puts("--show=types               show some information about hashes in file (machine");
 	puts("                           readable)");
-	puts("--show=invalid             show the hashes which valid fails.");
+	puts("--show=invalid             show any lines from input that are not valid for");
+	puts("                           selected format(s)");
 	puts("--skip-self-tests          skip self tests");
 	puts("--test-full[=LEVEL]        run more thorough self-tests");
 	puts("--stress-test[=TIME]       loop self tests forever");
