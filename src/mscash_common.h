@@ -16,7 +16,7 @@
 #define FORMAT_TAG                        "M$"
 #define FORMAT_TAG_LEN                   (sizeof(FORMAT_TAG)-1)
 #define FORMAT_TAG2                       "$DCC2$"
-#define FORMAT_TAG2_LEN                  (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG2_LEN                  (sizeof(FORMAT_TAG2)-1)
 #define BINARY_SIZE                       16
 #define BINARY_ALIGN                      sizeof(uint32_t)
 #define SALT_ALIGN                        sizeof(uint32_t)
