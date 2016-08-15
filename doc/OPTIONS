@@ -339,7 +339,11 @@ option to make John crack hashes of types other than the one it would
 autodetect by default. Mainly for test and list purposes (see --list=WHAT),
 you can use group aliases "dynamic", "cpu", "gpu", "opencl" and "cuda"
 as a format name, or use one wildcard, as in "--format=mysql-*",
-"--format=raw*ng" or "--format=*office".
+"--format=raw*ng" or "--format=*office".  There's also a special way
+to match any substring within the "algorithm name" (the string shown
+within brackets, eg. "[DES 128/128 AVX-16]" using @tag syntax as in
+eg. "--format=@DES" or "--format=@AVX".  Regardless of method, the
+matching ignores case.
 
 "--format=crypt" may or may not be supported in a given build of John.
 In default builds of John, this support is currently only included on
