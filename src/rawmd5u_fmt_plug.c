@@ -35,7 +35,7 @@ john_register_one(&fmt_rawmd5uthick);
 #define FORMAT_LABEL			"Raw-MD5u"
 #define FORMAT_NAME			""
 
-#define ALGORITHM_NAME			"md5(unicode($p)) " MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME			"md5(utf16($p)) " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
