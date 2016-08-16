@@ -214,51 +214,80 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (type2)
 		++p;
 	if ((cp = strtokm(p, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-		sFailStr = "Out of data, reading count of hashes field"; goto Bail; }
+		sFailStr = "Out of data, reading count of hashes field";
+		goto Bail;
+	}
 	sscanf(cp, "%x", &cnt);
 	if (cnt < 1 || cnt > MAX_PKZ_FILES) {
-		sFailStr = "Count of hashes field out of range"; goto Bail; }
+		sFailStr = "Count of hashes field out of range";
+		goto Bail;
+	}
 	if ((cp = strtokm(NULL, "*")) == NULL || cp[0] < '0' || cp[0] > '2' || cp[1]) {
-		sFailStr = "Number of valid hash bytes empty or out of range"; goto Bail; }
+		sFailStr = "Number of valid hash bytes empty or out of range";
+		goto Bail;
+	}
 
 	while (cnt--) {
 		if ((cp = strtokm(NULL, "*")) == NULL || cp[0]<'1' || cp[0]>'3' || cp[1]) {
-			sFailStr = "Invalid data enumeration type"; goto Bail; }
+			sFailStr = "Invalid data enumeration type";
+			goto Bail;
+		}
 		type = cp[0] - '0';
 		if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-			sFailStr = "Invalid type enumeration"; goto Bail; }
+			sFailStr = "Invalid type enumeration";
+			goto Bail;
+		}
 		if (type > 1) {
 			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-				sFailStr = "Invalid compressed length"; goto Bail; }
+				sFailStr = "Invalid compressed length";
+				goto Bail;
+			}
 			sscanf(cp, "%x", &complen);
 			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-				sFailStr = "Invalid data length value"; goto Bail; }
+				sFailStr = "Invalid data length value";
+				goto Bail;
+			}
 			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-				sFailStr = "Invalid CRC value"; goto Bail; }
+				sFailStr = "Invalid CRC value";
+				goto Bail;
+			}
 			sscanf(cp, "%x", &crc);
 			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-				sFailStr = "Invalid offset length"; goto Bail; }
+				sFailStr = "Invalid offset length";
+				goto Bail;
+			}
 			sscanf(cp, "%lx", &offset);
 			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-				sFailStr = "Invalid offset length"; goto Bail; }
+				sFailStr = "Invalid offset length";
+				goto Bail;
+			}
 			sscanf(cp, "%x", &offex);
 		}
 		if ((cp = strtokm(NULL, "*")) == NULL || (cp[0] != '0' && cp[0] != '8') || cp[1]) {
-			sFailStr = "Compression type enumeration"; goto Bail; }
+			sFailStr = "Compression type enumeration";
+			goto Bail;
+		}
 		if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
-			sFailStr = "Invalid data length value"; goto Bail; }
+			sFailStr = "Invalid data length value";
+			goto Bail;
+		}
 		sscanf(cp, "%x", &data_len);
 		if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen(cp) != 4) {
-			sFailStr = "invalid checksum value"; goto Bail; }
+			sFailStr = "invalid checksum value";
+			goto Bail;
+		}
 		if (type2) {
 			if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen(cp) != 4) {
-				sFailStr = "invalid checksum2 value"; goto Bail;}
+				sFailStr = "invalid checksum2 value";
+				goto Bail;}
 		}
 		if ((cp = strtokm(NULL, "*")) == NULL) goto Bail;
 		if (type > 1) {
 			if (type == 3) {
 				if ( strlen(cp) != data_len) {
-					sFailStr = "invalid checksum value"; goto Bail; }
+					sFailStr = "invalid checksum value";
+					goto Bail;
+				}
 				in = fopen(cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
 				if (!in) {
 					/* this error is listed, even if not in pkzip debugging mode. */
@@ -290,14 +319,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			} else {
 				/* 'inline' data. */
 				if (complen != data_len) {
-					sFailStr = "length of full data does not match the salt len"; goto Bail; }
+					sFailStr = "length of full data does not match the salt len";
+					goto Bail;
+				}
 				if (!ishexlc(cp) || strlen(cp) != data_len<<1) {
-					sFailStr = "invalid inline data"; goto Bail; }
+					sFailStr = "invalid inline data";
+					goto Bail;
+				}
 			}
 		} else {
 			if (!ishexlc(cp) || strlen(cp) != data_len<<1) {
-				sFailStr = "invalid partial data"; goto Bail; }
-                }
+				sFailStr = "invalid partial data";
+				goto Bail;
+			}
+		}
 	}
 	if ((cp = strtokm(NULL, "*")) == NULL) goto Bail;
 	if (strtokm(NULL, "") != NULL) goto Bail;
@@ -312,7 +347,8 @@ Bail:;
 	return ret;
 }
 
-static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _len, u32 _crc) {
+static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _len, u32 _crc)
+{
 	u32 id;
 	u16 version, flags, method, modtm, moddt, namelen, exlen;
 	u32 crc, complen, uncomplen;
@@ -347,11 +383,14 @@ static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _le
 		return "";
 	return "We could NOT find the internal zip data in this ZIP file";
 }
-static u8 *buf_copy (char *p, int len) {
+
+static u8 *buf_copy (char *p, int len)
+{
 	u8 *op = mem_alloc_tiny(len, MEM_ALIGN_NONE);
 	memcpy(op, p, len);
 	return op;
 }
+
 static void init(struct fmt_main *self)
 {
 #ifdef PKZIP_USE_MULT_TABLE
@@ -483,7 +522,8 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static void set_salt(void *_salt) {
+static void set_salt(void *_salt)
+{
 	salt = *((PKZ_SALT**)_salt);
 	if (salt->H[0].h && salt->H[1].h && salt->H[2].h)
 		return;
@@ -714,7 +754,8 @@ static int cmp_all(void *binary, int count)
  *
  * This function is 'similar' to an fread().  However, it also decrypts data
  */
-static int get_next_decrypted_block(u8 *in, int sizeof_n, FILE *fp, u32 *inp_used, MY_WORD *pkey0, MY_WORD *pkey1, MY_WORD *pkey2) {
+static int get_next_decrypted_block(u8 *in, int sizeof_n, FILE *fp, u32 *inp_used, MY_WORD *pkey0, MY_WORD *pkey1, MY_WORD *pkey2)
+{
 	u32 new_bytes = sizeof_n, k;
 	u8 C;
 
@@ -756,12 +797,11 @@ static int get_next_decrypted_block(u8 *in, int sizeof_n, FILE *fp, u32 *inp_use
 #define CHUNK (64*1024)
 static int cmp_exact_loadfile(int index)
 {
-
-    int ret;
-    u32 have, k;
-    z_stream strm;
-    unsigned char in[CHUNK];
-    unsigned char out[CHUNK];
+	int ret;
+	u32 have, k;
+	z_stream strm;
+	unsigned char in[CHUNK];
+	unsigned char out[CHUNK];
 	FILE *fp;
 	MY_WORD key0, key1, key2;
 	u8 *b, C;
@@ -807,7 +847,7 @@ static int cmp_exact_loadfile(int index)
 		// handle a stored blob (we do not have to decrypt it.
 		int avail_in;
 		crc = 0xFFFFFFFF;
-        avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
+		avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
 		while (avail_in) {
 			for (k = 0; k < avail_in; ++k)
 				crc = jtr_crc32(crc,in[k]);
@@ -817,58 +857,57 @@ static int cmp_exact_loadfile(int index)
 		return ~crc == salt->crc32;
 	}
 
-    /* allocate inflate state */
-    strm.zalloc = Z_NULL;
-    strm.zfree = Z_NULL;
-    strm.opaque = Z_NULL;
-    strm.avail_in = 0;
-    strm.next_in = Z_NULL;
-    ret = inflateInit2(&strm, -15);
+	/* allocate inflate state */
+	strm.zalloc = Z_NULL;
+	strm.zfree = Z_NULL;
+	strm.opaque = Z_NULL;
+	strm.avail_in = 0;
+	strm.next_in = Z_NULL;
+	ret = inflateInit2(&strm, -15);
 	if (ret != Z_OK) /* if zlib is hosed, then likely there is no reason at all to continue.  Better to exit, and let the user 'fix' the system */
 		perror("Error, initializing the libz inflateInit2() system\n");
 
-    /* decompress until deflate stream ends or end of file */
-    do {
-        strm.avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
-        if (ferror(fp)) {
-            inflateEnd(&strm);
+	/* decompress until deflate stream ends or end of file */
+	do {
+		strm.avail_in = get_next_decrypted_block(in, CHUNK, fp, &inp_used, &key0, &key1, &key2);
+		if (ferror(fp)) {
+			inflateEnd(&strm);
 			fclose(fp);
 			fprintf (stderr, "\nERROR, the zip file: %s fread() failed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
-            return 1;
-        }
-        if (strm.avail_in == 0)
-            break;
-        strm.next_in = in;
+			return 1;
+		}
+		if (strm.avail_in == 0)
+			break;
+		strm.next_in = in;
 
-        /* run inflate() on input until output buffer not full */
-        do {
-            strm.avail_out = CHUNK;
-            strm.next_out = out;
-            ret = inflate(&strm, Z_NO_FLUSH);
-            switch (ret) {
-	            case Z_NEED_DICT:
-			    case Z_DATA_ERROR:
-				case Z_MEM_ERROR:
-					inflateEnd(&strm);
-					fclose(fp);
-					return 0;
-            }
-            have = CHUNK - strm.avail_out;
+		/* run inflate() on input until output buffer not full */
+		do {
+			strm.avail_out = CHUNK;
+			strm.next_out = out;
+			ret = inflate(&strm, Z_NO_FLUSH);
+			switch (ret) {
+			case Z_NEED_DICT:
+			case Z_DATA_ERROR:
+			case Z_MEM_ERROR:
+				inflateEnd(&strm);
+				fclose(fp);
+				return 0;
+			}
+			have = CHUNK - strm.avail_out;
 			/* now update our crc value */
 			for (k = 0; k < have; ++k)
 				crc = jtr_crc32(crc,out[k]);
 			decomp_len += have;
-        } while (strm.avail_out == 0);
+		} while (strm.avail_out == 0);
 
-        /* done when inflate() says it's done */
-    } while (ret != Z_STREAM_END);
+		/* done when inflate() says it's done */
+	} while (ret != Z_STREAM_END);
 
-    /* clean up and return */
-    inflateEnd(&strm);
+	/* clean up and return */
+	inflateEnd(&strm);
 	fclose(fp);
 	return ret == Z_STREAM_END && inp_used == salt->compLen && decomp_len == salt->deCompLen && salt->crc32 == ~crc;
 }
-
 
 static int cmp_exact(char *source, int index)
 {
@@ -925,11 +964,15 @@ static int cmp_exact(char *source, int index)
 			return ~crc == salt->crc32;
 		}
 
-		strm.zalloc = Z_NULL; strm.zfree = Z_NULL; strm.opaque = Z_NULL; strm.next_in = Z_NULL; strm.avail_in = 0;
+		strm.zalloc = Z_NULL;
+		strm.zfree = Z_NULL;
+		strm.opaque = Z_NULL;
+		strm.next_in = Z_NULL;
+		strm.avail_in = 0;
 
 		ret = inflateInit2(&strm, -15); /* 'raw', since we do not have gzip header, or gzip crc. .ZIP files are 'raw' implode data. */
 		if (ret != Z_OK)
-		   perror("Error, initializing the libz inflateInit2() system\n");
+			perror("Error, initializing the libz inflateInit2() system\n");
 
 		decompBuf = mem_alloc(salt->deCompLen);
 
@@ -964,10 +1007,12 @@ const char exBytesUTF8[64] = {
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 	2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,4,4,4,4,5,5,5,5
 };
-static int isLegalUTF8_char(const u8 *source, int length) {
-    u8 a;
+
+static int isLegalUTF8_char(const u8 *source, int length)
+{
+	u8 a;
 	int len;
-    const u8 *srcptr;
+	const u8 *srcptr;
 
 	if (*source < 0xC0)
 		return 1;
@@ -976,27 +1021,32 @@ static int isLegalUTF8_char(const u8 *source, int length) {
 	if (len+1 > length)
 		return -1;
 
-    switch (len) {
-		default: return -1;
+	switch (len) {
+	default: return -1;
 		/* Everything else falls through when "true"... */
-		case 4: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
-		case 3: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
-		case 2: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
+	case 4: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
+	case 3: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
+	case 2: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
 
 		switch (*source) {
 			/* no fall-through in this inner switch */
-			case 0xE0: if (a < 0xA0) return -1; break;
-			case 0xED: if (a > 0x9F) return -1; break;
-			case 0xF0: if (a < 0x90) return -1; break;
-			case 0xF4: if (a > 0x8F) return -1;
+		case 0xE0: if (a < 0xA0) return -1;
+			break;
+		case 0xED: if (a > 0x9F) return -1;
+			break;
+		case 0xF0: if (a < 0x90) return -1;
+			break;
+		case 0xF4: if (a > 0x8F) return -1;
 		}
 
-	    case 1: if (*source >= 0x80 && *source < 0xC2) return -1;
-    }
-    if (*source > 0xF4) return -1;
-    return len+1;
+	case 1: if (*source >= 0x80 && *source < 0xC2) return -1;
+	}
+	if (*source > 0xF4) return -1;
+	return len+1;
 }
-static int validate_ascii(const u8 *out, int inplen) {
+
+static int validate_ascii(const u8 *out, int inplen)
+{
 	int i;
 	int unicode=0;
 
@@ -1064,7 +1114,9 @@ static int validate_ascii(const u8 *out, int inplen) {
 	}
 	return 1;
 }
-static int CheckSigs(const u8 *p, int len, ZIP_SIGS *pSig) {
+
+static int CheckSigs(const u8 *p, int len, ZIP_SIGS *pSig)
+{
 	int i, j;
 
 	for (i = 0; i < pSig->magic_count; ++i) {
@@ -1090,7 +1142,8 @@ static int CheckSigs(const u8 *p, int len, ZIP_SIGS *pSig) {
  *
  * In testing, this function catches ALL bad decryptions, except about 1/300 to 1/350. So, it is not too bad.
  */
-MAYBE_INLINE static int check_inflate_CODE2(u8 *next) {
+MAYBE_INLINE static int check_inflate_CODE2(u8 *next)
+{
 	u32 bits, hold, thisget, have, i;
 	int left;
 	u32 ncode;
@@ -1106,11 +1159,13 @@ MAYBE_INLINE static int check_inflate_CODE2(u8 *next) {
 	hold >>= 3;	// we already processed 3 bits
 	count = (u8*)ncount;
 
-	if (257+(hold&0x1F) > 286) return 0;	// nlen, but we do not use it.
+	if (257+(hold&0x1F) > 286)
+		return 0;	// nlen, but we do not use it.
 	hold >>= 5;
-	if(1+(hold&0x1F) > 30) return 0;		// ndist, but we do not use it.
+	if(1+(hold&0x1F) > 30)
+		return 0;		// ndist, but we do not use it.
 	hold >>= 5;
-    ncode = 4+(hold&0xF);
+	ncode = 4+(hold&0xF);
 	hold >>= 4;
 
 	// we have 15 bits left.
@@ -1143,22 +1198,23 @@ MAYBE_INLINE static int check_inflate_CODE2(u8 *next) {
 		bits += 8;
 	}
 	count[0] = 0;
-	if (!ncount[0] && !ncount[1]) return 0; /* if no codes at all, then simply bail, that is invalid */
+	if (!ncount[0] && !ncount[1])
+		return 0; /* if no codes at all, then simply bail, that is invalid */
 
-    /* check for an over-subscribed or incomplete set of lengths */
+	/* check for an over-subscribed or incomplete set of lengths */
 	/* this will catch about 319 out of 320 'bad' passwords that */
 	/* have made it into this function. Note, only 1/4 of the    */
 	/* passwords which pass the checksum, can make it here.  Of  */
 	/* those, we drop 319/320 or about that many (a good check!) */
-    left = 1;
-    for (i = 1; i <= 7; ++i) {
-        left <<= 1;
-        left -= count[i];
-        if (left < 0)
+	left = 1;
+	for (i = 1; i <= 7; ++i) {
+		left <<= 1;
+		left -= count[i];
+		if (left < 0)
 			return 0;	/* over-subscribed */
-    }
-    if (left > 0)
-        return 0;		/* incomplete set */
+	}
+	if (left > 0)
+		return 0;		/* incomplete set */
 
 	return 1;			/* Passed this check! */
 }
@@ -1170,7 +1226,8 @@ MAYBE_INLINE static int check_inflate_CODE2(u8 *next) {
 /* and then inflate some data (without writing anything.  If we find any BAD lookback data, we can   */
 /* return a failure.  We have 24 bytes of inflate data, and this almost always is more than enough   */
 /* to turn up an error.  If we find we need more, we will do more than 24                            */
-MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left) {
+MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
+{
 	u32 whave = 0, op, bits, hold,len;
 	code here;
 
@@ -1189,75 +1246,75 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left) {
 			if (left < 2)
 				return 1;	// we are out of bytes.  Return we had no error.
 			left -= 2;
-            hold += (u32)(*++next) << bits;
-            bits += 8;
-            hold += (u32)(*++next) << bits;
-            bits += 8;
+			hold += (u32)(*++next) << bits;
+			bits += 8;
+			hold += (u32)(*++next) << bits;
+			bits += 8;
 		}
 		here=lenfix[hold & 0x1FF];
-        op = (unsigned)(here.bits);
-        hold >>= op;
-        bits -= op;
-        op = (unsigned)(here.op);
-        if (op == 0)							/* literal */
+		op = (unsigned)(here.bits);
+		hold >>= op;
+		bits -= op;
+		op = (unsigned)(here.op);
+		if (op == 0)							/* literal */
 			++whave;
-        else if (op & 16) {						/* length base */
-            len = (unsigned)(here.val);
-            op &= 15;							/* number of extra bits */
-            if (op) {
-                if (bits < op) {
+		else if (op & 16) {						/* length base */
+			len = (unsigned)(here.val);
+			op &= 15;							/* number of extra bits */
+			if (op) {
+				if (bits < op) {
 					if (!left)
 						return 1;	/*we are out of bytes.  Return we had no error.*/
 					--left;
-                    hold += (u32)(*++next) << bits;
-                    bits += 8;
-                }
-                len += (unsigned)hold & ((1U << op) - 1);
-                hold >>= op;
-                bits -= op;
-            }
-            if (bits < 15) {
+					hold += (u32)(*++next) << bits;
+					bits += 8;
+				}
+				len += (unsigned)hold & ((1U << op) - 1);
+				hold >>= op;
+				bits -= op;
+			}
+			if (bits < 15) {
 				if (left < 2)
 					return 1;	/*we are out of bytes.  Return we had no error.*/
 				left -= 2;
-                hold += (u32)(*++next) << bits;
-                bits += 8;
-                hold += (u32)(*++next) << bits;
-                bits += 8;
-            }
-            here = distfix[hold & 0x1F];
+				hold += (u32)(*++next) << bits;
+				bits += 8;
+				hold += (u32)(*++next) << bits;
+				bits += 8;
+			}
+			here = distfix[hold & 0x1F];
 //          dodist:
-            op = (unsigned)(here.bits);
-            hold >>= op;
-            bits -= op;
-            op = (unsigned)(here.op);
-            if (op & 16) {                      /* distance base */
-                u32 dist = (unsigned)(here.val);
-                op &= 15;                       /* number of extra bits */
-                if (bits < op) {
+			op = (unsigned)(here.bits);
+			hold >>= op;
+			bits -= op;
+			op = (unsigned)(here.op);
+			if (op & 16) {                      /* distance base */
+				u32 dist = (unsigned)(here.val);
+				op &= 15;                       /* number of extra bits */
+				if (bits < op) {
 					if (!left)
 						return 1;	/*we are out of bytes.  Return we had no error.*/
 					--left;
-                    hold += (u32)(*++next) << bits;
-                    bits += 8;
-                    if (bits < op) {
+					hold += (u32)(*++next) << bits;
+					bits += 8;
+					if (bits < op) {
 						if (!left)
 							return 1;	/*we are out of bytes.  Return we had no error.*/
 						--left;
-                        hold += (u32)(*++next) << bits;
-                        bits += 8;
-                    }
-                }
-                dist += (unsigned)hold & ((1U << op) - 1);
-                if (dist > whave)
+						hold += (u32)(*++next) << bits;
+						bits += 8;
+					}
+				}
+				dist += (unsigned)hold & ((1U << op) - 1);
+				if (dist > whave)
 					return 0;  /*invalid distance too far back*/
-                hold >>= op;
-                bits -= op;
+				hold >>= op;
+				bits -= op;
 
 				//***** start of patched code from Pavel Semjanov (see original code below)
 				whave += len;
-            }
-            else
+			}
+			else
 				return 0;		/*invalid distance code*/
 		}
 		else if (op & 32) {
@@ -1376,7 +1433,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			// key data from the array.
 			key0.u = K12[idx*3], key1.u = K12[idx*3+1], key2.u = K12[idx*3+2];
 
-SkipKeyLoadInit:;
+		SkipKeyLoadInit:;
 			b = salt->H[++cur_hash_idx].h;
 			k=11;
 			e = salt->H[cur_hash_idx].c;
@@ -1559,12 +1616,15 @@ SkipKeyLoadInit:;
 					key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 					curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 				}
-				strm.zalloc = Z_NULL; strm.zfree = Z_NULL; strm.opaque = Z_NULL; strm.next_in = Z_NULL;
+				strm.zalloc = Z_NULL;
+				strm.zfree = Z_NULL;
+				strm.opaque = Z_NULL;
+				strm.next_in = Z_NULL;
 				strm.avail_in = til;
 
 				ret = inflateInit2(&strm, -15); /* 'raw', since we do not have gzip header, or gzip crc. .ZIP files are 'raw' implode data. */
 				if (ret != Z_OK)
-				   perror("Error, initializing the libz inflateInit2() system\n");
+					perror("Error, initializing the libz inflateInit2() system\n");
 
 				strm.next_in = curDecryBuf;
 				strm.avail_out = sizeof(curInfBuf);
@@ -1579,7 +1639,7 @@ SkipKeyLoadInit:;
 					if (ret == Z_STREAM_END && salt->deCompLen == strm.total_out)
 						; // things are ok.
 					else
-					goto Failed_Bailout;
+						goto Failed_Bailout;
 				}
 				if (!strm.total_out)
 					goto Failed_Bailout;
@@ -1606,12 +1666,15 @@ SkipKeyLoadInit:;
 						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
-					strm.zalloc = Z_NULL; strm.zfree = Z_NULL; strm.opaque = Z_NULL; strm.next_in = Z_NULL;
+					strm.zalloc = Z_NULL;
+					strm.zfree = Z_NULL;
+					strm.opaque = Z_NULL;
+					strm.next_in = Z_NULL;
 					strm.avail_in = e;
 
 					ret = inflateInit2(&strm, -15); /* 'raw', since we do not have gzip header, or gzip crc. .ZIP files are 'raw' implode data. */
 					if (ret != Z_OK)
-					   perror("Error, initializing the libz inflateInit2() system\n");
+						perror("Error, initializing the libz inflateInit2() system\n");
 
 					strm.next_in = curDecryBuf;
 					strm.avail_out = sizeof(inflateBufTmp);
@@ -1634,12 +1697,12 @@ SkipKeyLoadInit:;
 
 		/* We got a checksum HIT!!!! All hash checksums matched. */
 		/* We load the proper checksum value for the gethash */
-KnownSuccess: ;
+	KnownSuccess: ;
 		chk[idx] = 1;
 
 		continue;
 
-Failed_Bailout: ;
+	Failed_Bailout: ;
 		/* We load the wrong checksum value for the gethash */
 		chk[idx] = 0;
 	}
