@@ -160,6 +160,8 @@ inline void sha512_block(sha512_ctx * ctx) {
     #pragma unroll 2
 #elif defined(NVIDIA_STUPID_BUG_1) && DEV_VER_MAJOR == 361 && DEV_VER_MINOR == 28
     #pragma unroll 16
+#else
+	#pragma unroll
 #endif
     for (uint i = 16U; i < 80U; i++) {
 	w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
@@ -467,6 +469,7 @@ void kernel_preprocess(
 	uint32_t total = 0;
 	uint32_t j = generator_index[i];
 
+	#pragma unroll
 	for (uint32_t k = 0; k < 8; k++)
 	   work_memory[OFFSET(i, k)] = 0;
 
