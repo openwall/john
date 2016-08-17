@@ -138,14 +138,12 @@ __kernel void DES_bs_25_b(constant uint *key_map
                           __global vtype *unchecked_hashes)
 {
 	int section = get_global_id(0);
+#if WORK_GROUP_SIZE || USE_LOCAL_MEM
 	int lid = get_local_id(0);
+#endif
 	int gws = get_global_size(0);
-	int lws = get_local_size(0);
-
 	vtype B[64];
-
 	int iterations;
-
 	int k, i;
 
 #if WORK_GROUP_SIZE > 0
@@ -157,6 +155,8 @@ __kernel void DES_bs_25_b(constant uint *key_map
 
 #if USE_LOCAL_MEM
 	__local ushort s_key_map[768];
+	int lws = get_local_size(0);
+
 	for (i = 0; i < 768; i += lws)
 		s_key_map[(lid + i) % 768] = key_map[(lid + i) % 768];
 #endif

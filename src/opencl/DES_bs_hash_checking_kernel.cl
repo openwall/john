@@ -113,7 +113,7 @@ __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
 			mask |= B[bit + 1] ^ -((value[1] >> ((bit + 1) & 0x1F)) & 1);
 		}
 
-		if (mask != ~(int)0) {
+		if (mask != ~0U) {
 			for (mask = 0; mask < 32; mask++) {
 				value[0] = value[1] = 0;
 				cmp_final(B, value, offset_table, hash_table, hash_chk_params, hash_ids, bitmap_dupe, section, mask, 0);
