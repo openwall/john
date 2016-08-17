@@ -127,7 +127,7 @@ private bz_stream bz;
 
 #define NULL_VER -1
 
-#define BIG_ENOUGH 8192
+#define BIG_ENOUGH 0x10000
 
 /* Global Stuff */
 
@@ -142,14 +142,14 @@ static unsigned char e[BIG_ENOUGH];
 // static unsigned char x[BIG_ENOUGH];
 static unsigned char m_data[BIG_ENOUGH];
 static char gecos[BIG_ENOUGH];
-static char last_hash[BIG_ENOUGH] = {0};
+static char last_hash[2 * BIG_ENOUGH];
 static unsigned char m_salt[64];
 static unsigned char iv[16];
 static char *filename;
-static int offset = 0;
-static int gpg_dbg = 0;
-static int dump_subkeys = 0;
-static int is_subkey = 0;
+static int offset;
+static int gpg_dbg;
+static int dump_subkeys;
+static int is_subkey;
 
 static int m_spec;
 static int m_algorithm;
@@ -916,7 +916,7 @@ public void
 Symmetrically_Encrypted_Data_Packet(int len)
 {
 	int mode = get_sym_alg_mode();
-	char hash[LINE_BUFFER_SIZE] = {0};
+	char hash[2 * BIG_ENOUGH] = {0};
 	char *cp = hash;
 
 	switch (mode) {
@@ -944,7 +944,7 @@ Symmetrically_Encrypted_Data_Packet(int len)
 	// let's hijack it for specifying tag values.
 	m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
 	give(len, m_data, sizeof(m_data));
-	if (len * 2 > LINE_BUFFER_SIZE - 128) {
+	if (len * 2 > BIG_ENOUGH - 128) {
 		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
 	} else {
 		fprintf(stderr, "[gpg2john] MDC is misssing, expect false positives!\n");
@@ -1042,7 +1042,7 @@ Symmetrically_Encrypted_and_MDC_Packet(int len)
 {
 	int mode = get_sym_alg_mode();
 	// printf("\tVer %d\n", Getc());
-	char hash[LINE_BUFFER_SIZE] = {0};
+	char hash[BIG_ENOUGH * 2] = {0};
 	char *cp = hash;
 
 	Getc(); // version
@@ -1056,7 +1056,7 @@ Symmetrically_Encrypted_and_MDC_Packet(int len)
 		break;
 	}
 	give(len - 1, m_data, sizeof(m_data));
-	if (len * 2 > LINE_BUFFER_SIZE - 128) {
+	if (len * 2 > BIG_ENOUGH - 128) {
 		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
 	} else {
 		cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len - 1); // m_algorithm == 0 for symmetric encryption?
