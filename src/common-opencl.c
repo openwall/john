@@ -2274,14 +2274,14 @@ int get_vendor_id(int sequential_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_VENDOR,
 	                               sizeof(dname), dname, NULL), "Error querying CL_DEVICE_VENDOR");
 
-	if (strstr(dname, "NVIDIA") != NULL)
+	if (strstr(dname, "NVIDIA"))
 		return DEV_NVIDIA;
 
-	if (strstr(dname, "Intel") != NULL)
+	if (strstr(dname, "Intel"))
 		return DEV_INTEL;
 
-	if (strstr(dname, "Advanced Micro") != NULL ||
-	        strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
+	if (strstr(dname, "Advanced Micro") ||
+	        strstr(dname, "AMD") || strstr(dname, "ATI"))
 		return DEV_AMD;
 
 	return DEV_UNKNOWN;
@@ -2299,20 +2299,20 @@ int get_platform_vendor_id(int platform_id)
 	HANDLE_CLERROR(clGetPlatformInfo(platform[platform_id], CL_PLATFORM_NAME,
 	                                 sizeof(dname), dname, NULL), "Error querying CL_PLATFORM_NAME");
 
-	if (strstr(dname, "NVIDIA") != NULL)
+	if (strstr(dname, "NVIDIA"))
 		return DEV_NVIDIA;
 
-	if (strstr(dname, "Apple") != NULL)
+	if (strstr(dname, "Apple"))
 		return PLATFORM_APPLE;
 
-	if (strstr(dname, "Intel") != NULL)
+	if (strstr(dname, "Intel"))
 		return DEV_INTEL;
 
-	if (strstr(dname, "Advanced Micro") != NULL ||
-	        strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
+	if (strstr(dname, "Advanced Micro") ||
+	        strstr(dname, "AMD") || strstr(dname, "ATI"))
 		return DEV_AMD;
 
-	if ((strstr(dname, "MESA") != NULL) || (strstr(dname, "Mesa") != NULL))
+	if ((strstr(dname, "MESA")) || (strstr(dname, "Mesa")))
 		return DEV_MESA;
 
 	return DEV_UNKNOWN;
