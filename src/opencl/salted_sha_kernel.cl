@@ -159,7 +159,6 @@ __kernel void sha1(__global uint *keys,
 	uint temp, A, B, C, D, E;
 	uint len = base & 63;
 	uint hash[5];
-	uint r[16] = {0};
 	unsigned int salt_len = salt[16];
 
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
