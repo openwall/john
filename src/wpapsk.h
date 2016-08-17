@@ -14,7 +14,6 @@
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
-#include "loader.h"
 #include "stdint.h"
 
 #include <assert.h>

@@ -92,6 +92,7 @@ struct fmt_main fmt_cuda_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
@@ -103,7 +104,6 @@ struct fmt_main fmt_cuda_wpapsk = {
 		get_binary,
 		get_salt,
 		{ NULL },
-		{ FORMAT_TAG },
 		fmt_default_source,
 		{
 			binary_hash_0,
