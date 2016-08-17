@@ -359,9 +359,47 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 	p->offex = 30 + filename_length + extrafield_length;
 
+	// If bit 3 of flags is set, we need to find CRC and sizes AFTER file data
+	// (because archive was created in a non-seekable stream) which means we're
+	// in a hen-and-egg situation since we don't know the size... I think the
+	// below is enough but there may be edge cases where we need to also
+	// recognize some other kind of end-of-whatever and seek back 12 bytes.
+	if (flags & (1 << 3)) {
+		long saved_pos = ftell(fp);
+
+		// Find data descriptor 0x08074b50UL or next local header 0x04034b50UL
+		while (!feof(fp)) {
+			if (fgetc(fp) == 0x50) {
+				if (fgetc(fp) == 0x4b) {
+					if (fgetc(fp) == 0x07) {
+						if (fgetc(fp) == 0x08) {
+							p->crc = fget32LE(fp);
+							p->cmp_len= fget32LE(fp);
+							p->decomp_len = fget32LE(fp);
+							//puts("FOUND desc");
+							break;
+						}
+					}
+					else if (fgetc(fp) == 0x03) {
+						if (fgetc(fp) == 0x04) {
+							fseek(fp, -12, SEEK_CUR);
+							p->crc = fget32LE(fp);
+							p->cmp_len= fget32LE(fp);
+							p->decomp_len = fget32LE(fp);
+							//puts("FOUND lcl");
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		fseek(fp, saved_pos, SEEK_SET);
+	}
+
 	// we only handle implode or store.
 	// 0x314 was seen at 2012 CMIYC ?? I have to look into that one.
-	fprintf(stderr, "ver %0x  ", version);
+	fprintf(stderr, "ver %d.%d ", version / 10, version % 10);
 	if ( !(only_fname && strcmp(only_fname, (char*)filename)) && (version == 0x14||version==0xA||version == 0x314) && (flags & 1)) {
 		uint16_t extra_len_used = 0;
 		if (flags & 8) {
@@ -370,7 +408,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 				uint16_t efh_datasize = fget16LE(fp);
 				extra_len_used += 4 + efh_datasize;
 				fseek(fp, efh_datasize, SEEK_CUR);
-				fprintf(stderr, "efh %04x  ", efh_id);
+				fprintf(stderr, "efh %04x ", efh_id);
 				//http://svn.assembla.com/svn/os2utils/unzip60f/proginfo/extrafld.txt
 				//http://emerge.hg.sourceforge.net/hgweb/emerge/emerge/diff/c2f208617d32/Source/unzip/proginfo/extrafld.txt
 				if (efh_id == 0x07c8 ||  // Info-ZIP Macintosh (old, J. Lee)
@@ -409,12 +447,12 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		}
 
 		// Ok, now set checksum bytes.  This will depend upon if from crc, or from timestamp
-			sprintf (p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
+		sprintf (p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
 		sprintf (p->chksum2, "%02x%02x", lastmod_time>>8, lastmod_time&0xFF);
 
 		return 1;
-
 	}
+
 	fprintf(stderr, "%s->%s is not encrypted, or stored with non-handled compression type\n", zip_fname, filename);
 	fseek(fp, extrafield_length, SEEK_CUR);
 	fseek(fp, p->cmp_len, SEEK_CUR);
