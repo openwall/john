@@ -199,7 +199,7 @@ BENCH_OBJS = \
 	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
 GENMKVPWD_OBJS = \
-	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
+	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o jumbo.o
 
 PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/rar2john ../run/zip2john \
