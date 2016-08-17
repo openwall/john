@@ -130,7 +130,7 @@ CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
 FUZZ_OBJS = fuzz.o
 
 GENMKVPWD_OBJS = \
-	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o
+	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o jumbo.o
 
 PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../run/unique@EXE_EXT@ ../run/undrop@EXE_EXT@ \
 	../run/rar2john@EXE_EXT@ ../run/zip2john@EXE_EXT@ \
