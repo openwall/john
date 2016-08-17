@@ -34,6 +34,7 @@
 #include "byteorder.h"
 #include "unicode.h"
 #include "UnicodeData.h"
+#define JTR_UNICODE_C	1
 #include "encoding_data.h"
 #include "misc.h"
 #include "config.h"
