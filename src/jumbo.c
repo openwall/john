@@ -316,7 +316,7 @@ char *strupr(char *s)
 #endif
 
 #if NEED_ATOLL_NATIVE
-long long atoll(const char *s) {
+long long jtr_atoll(const char *s) {
 	long long l;
 	sscanf(s, LLd, &l);
 	return l;

@@ -279,7 +279,7 @@ extern char *strupr(char *s);
 #define NEED_ATOLL_NATIVE 1
 #undef atoll
 #define atoll jtr_atoll
-extern long long atoll(const char *);
+extern long long jtr_atoll(const char *);
 #endif
 #endif
 
