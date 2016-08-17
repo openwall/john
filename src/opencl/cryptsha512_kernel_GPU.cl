@@ -38,6 +38,32 @@
     #define VECTOR_USAGE    1
 #endif
 
+#if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
+/* 
+   Needed (at least) in 14.9 and 15.7.
+   kernel prepare fails if no unroll hint is offered.
+   - the workaround is not needed on GCN (tested on Tahiti, Bonaire and Capeverde)
+   - amd_vliw4() is a guess, no hardware available to test.
+   - can't remove the [unroll] (at least) on Radeon HD 6770.
+   - R9 290X w/ 1800.11 works fine with or without explicit unroll.
+*/
+#define AMD_UNROLL_BUG_1    1
+#endif
+
+#if gpu_nvidia(DEVICE_INFO) && DEV_VER_MAJOR > 352
+/* 
+   Needed for OpenCL NVIDIA driver version 361 (CUDA 7.5+).
+   kernel prepare fails if no unroll hint is offered.
+   Over-using for safe for any version above 352. 
+   Notice: not tested using in-between drivers: e.g. 353.62 WHQL, 358.91 WHQL, ...
+   - can't remove the [unroll] (at least) on Titan X and GTX 980.
+     - failing (at least) on 361.28, 361.42, 368.81
+   - Titan X w/ 361.42 fails without the explicit unroll.
+   - Titan X w/ 352.63 works fine with or without explicit unroll.
+*/
+#define NVIDIA_UNROLL_BUG_1    1
+#endif
+
 /************************** helper **************************/
 inline void init_H(sha512_ctx * ctx) {
     ctx->H[0] = H0;
@@ -156,12 +182,10 @@ inline void sha512_block(sha512_ctx * ctx) {
         a = t;
     }
 
-#if defined(AMD_STUPID_BUG_1)
+#if defined(AMD_UNROLL_BUG_1)
     #pragma unroll 2
-#elif defined(NVIDIA_STUPID_BUG_1) && DEV_VER_MAJOR == 361 && DEV_VER_MINOR == 28
+#elif defined(NVIDIA_UNROLL_BUG_1)
     #pragma unroll 16
-#else
-	#pragma unroll
 #endif
     for (uint i = 16U; i < 80U; i++) {
 	w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
