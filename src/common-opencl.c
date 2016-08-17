@@ -2312,7 +2312,7 @@ int get_platform_vendor_id(int platform_id)
 	        strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
 		return DEV_AMD;
 
-	if (strstr(dname, "MESA") != NULL)
+	if ((strstr(dname, "MESA") != NULL) || (strstr(dname, "Mesa") != NULL))
 		return DEV_MESA;
 
 	return DEV_UNKNOWN;
