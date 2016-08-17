@@ -34,6 +34,10 @@
 #include <string.h>
 #endif
 
+#if !AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__)
+#define HAVE__ATOI64 1
+#endif
+
 #include "stdint.h"
 
 /******************************************/

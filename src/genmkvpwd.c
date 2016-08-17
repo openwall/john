@@ -11,9 +11,6 @@
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
-#if !AC_BUILT && _MSC_VER
-#define atoll _atoi64
-#endif
 #include <math.h>
 #include <string.h>
 
