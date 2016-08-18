@@ -82,10 +82,13 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
-		pbkdf2-hmac-md5 racf
+		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
+		palshop snefru_128 snefru_256
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring krb4 krb5 krb5pa-sha1 kwallet luks pfx mdc2 sevenz afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty snefru-128 snefru-256 ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
+# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring krb4 krb5 krb5pa-sha1 kwallet luks pfx mdc2 afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
+#       _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg sha3_512 stribog
+
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -1878,8 +1881,6 @@ sub ike {
 }
 sub mdc2 {
 }
-sub sevenz {
-}
 sub afs {
 }
 sub cq {
@@ -1946,10 +1947,6 @@ sub panama {
 }
 sub putty {
 }
-sub snefru_128 {
-}
-sub snefru_256 {
-}
 sub ssh_ng {
 }
 sub sybase_prop {
@@ -1960,10 +1957,116 @@ sub whirlpool0 {
 }
 sub whirlpool1 {
 }
+# New ones.
+sub _7z {
+}
+sub axcrypt {
+#formats can be:
+#$axcrypt$*version*iterations*salt*wrappedkey
+#$axcrypt$*version*iterations*salt*wrappedkey*key-file
+#$axcrypt$*1*1337*0fd9e7e2f907f480f8af162564f8f94b*af10c88878ba4e2c89b12586f93b7802453121ee702bc362   :  Bab00nmoNCo|\|2$inge
+#$axcrypt$*1*38574*ce4f58c1e85df1ea921df6d6c05439b4*3278c3c730f7887b1008e852e59997e2196710a5c6bc1813*66664a6b2074434a4520374d73592055626979204a6b755520736d6b4b20394e694a205548444320524578562065674b33202f42593d : 0v3rgo2|<fc!
+#return "\$axcrypt\$*1*$iter*$salt*$h";
+}
+sub bks {
+}
+sub dmd5 {
+}
+sub dominosec8 {
+}
+sub krb5_tgs {
+}
+sub lotus5 {
+}
+sub lotus85 {
+}
+sub net_md5 {
+}
+sub net_sha1 {
+}
+sub netsplitlm {
+}
+sub oracle12c {
+}
+sub pem {
+}
+sub pomelo {
+}
+sub sapb {
+}
+sub sapg {
+}
+sub sha3_512 {
+}
+sub stribog {
+}
+
 ##############################################################################
 # stub functions.  When completed, move the function out of this section
 ##############################################################################
 
+sub snefru_128 {
+	require Crypt::Rhash;
+	my $r = Crypt::Rhash->new(Crypt::Rhash::RHASH_SNEFRU128());
+	return "\$snefru\$" . $r->update($_[0])->hash();
+}
+sub snefru_256 {
+	require Crypt::Rhash;
+	my $r = Crypt::Rhash->new(Crypt::Rhash::RHASH_SNEFRU256());
+	return "\$snefru\$" . $r->update($_[0])->hash();
+}
+sub palshop {
+	my $m1 = md5($_[0]);
+	my $s1 = sha1($_[0]);
+	my $s = unpack("H*", $m1.$s1);
+	$s = substr($s, 11, 50) . substr($s, 0, 1);
+	print ("$s\n");
+	my $m2 = md5($s);
+	my $s2 = sha1($s);
+	return "\$palshop\$". substr(unpack("H*",$m2),11) . substr(unpack("H*",$s2), 0, 29) . substr(unpack("H*",$m2),0,1);
+}
+sub iwork {
+	my $s = get_salt(16);
+	my $iv = get_iv(16);
+	my $iter = 100000;
+	my $blob_dat = randstr(32);
+	#$blob_dat = pack("H*", "c6ef9b77af9e4d356e3dc977910b8cb3c3c1f2db89430ec36232078c2cefdec7");
+	$blob_dat .= sha256($blob_dat);
+	$h = pp_pbkdf2($_[0], $s, $iter, "sha1", 16, 64);
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $h, -keysize => 16, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	my $output = $crypt->encrypt($blob_dat);
+	return "\$iwork\$1\$2\$1\$$iter\$".unpack("H*",$s)."\$".unpack("H*",$iv)."\$".unpack("H*",$output);
+}
+sub fgt {
+	my $s = get_salt(12);
+	my $magic = "\xa3\x88\xba\x2e\x42\x4c\xb0\x4a\x53\x79\x30\xc1\x31\x07\xcc\x3f\xa1\x32\x90\x29\xa9\x81\x5b\x70";
+	$h = sha1($s.$_[0].$magic);
+	return "AK1".base64($s.$h);
+}
+sub has160 {
+	require Crypt::Rhash;
+	my $r = Crypt::Rhash->new(Crypt::Rhash::RHASH_HAS160());
+	return $r->update($_[0])->hash();
+}
+sub mongodb_scram {
+	my $u = get_username(-16);
+	my $s = get_salt(16);
+	my $iter = 10000;
+	my $h = md5_hex($u . ':mongo:' . $_[0]);
+	$h = pp_pbkdf2($h, $s, $iter, "sha1", 20, 64);
+	$h = Digest::SHA::hmac_sha1("Client Key", $h);
+	$h = sha1($h);
+	return "\$scram\$$u\$$iter\$" . base64($s) . '$' . base64($h);
+}
+sub zipmonster {
+	my $s = uc md5_hex($_[0]);
+	for (my $i = 0; $i < 49999; ++$i) {
+		$s = uc md5_hex($s);
+	}
+	return "\$zipmonster\$".lc $s;
+}
 sub cloudkeychain {
 	$salt = get_salt(16);
 	my $iv = get_iv(16);
@@ -2852,6 +2955,24 @@ sub pixmd5 {
 		$h .= $i64[($n>>18) & 0x3f];
 	}
 	return $h;
+}
+# salted pix
+sub asamd5 {
+	my $pass = $_[1];
+	$salt = get_salt(-4);
+	if (length($pass)>12) { $pass = substr($pass,0,12); }
+	my $pass_padd = $pass.$salt;
+	while (length($pass_padd) < 16) { $pass_padd .= "\x0"; }
+	my $c = md5($pass_padd);
+	$h = "";
+	for ($i = 0; $i < 16; $i+=4) {
+		my $n = ord(substr($c,$i,1))|(ord(substr($c,$i+1,1))<<8)|(ord(substr($c,$i+2,1))<<16);
+		$h .= $i64[$n       & 0x3f];
+		$h .= $i64[($n>>6)  & 0x3f];
+		$h .= $i64[($n>>12) & 0x3f];
+		$h .= $i64[($n>>18) & 0x3f];
+	}
+	return "\$dynamic_20\$$h\$$salt";
 }
 sub mssql12 {
 	$salt = get_salt(4);
