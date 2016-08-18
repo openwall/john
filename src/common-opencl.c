@@ -951,6 +951,27 @@ static void dev_init(int sequential_id)
 	}
 }
 
+/*
+ * Given a string, return a newly allocated string that is a copy of
+ * the original but quoted. The old string is freed.
+ */
+static char *quote_str(char *orig)
+{
+	char *new = mem_alloc(strlen(orig) + 3);
+	char *s = orig;
+	char *d = new;
+
+	*d++ = '"';
+	while (*s)
+		*d++ = *s++;
+	*d++ = '"';
+	*d = 0;
+
+	MEM_FREE(orig);
+
+	return new;
+}
+
 static char *include_source(char *pathname, int sequential_id, char *opts)
 {
 	char *include, *full_path;
@@ -973,6 +994,10 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
 		    SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
+
+	if (strchr(full_path, ' ')) {
+		full_path = quote_str(full_path);
+	}
 
 	sprintf(include, "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        full_path,
