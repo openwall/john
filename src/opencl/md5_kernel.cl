@@ -44,6 +44,12 @@
 	    (a) = rotate((a), (uint)(s)); \
 	    (a) += (b)
 
+#if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
+#define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
+#else
+/*undefined, cause error.*/
+#endif
+
 inline void md5_encrypt(__private uint *hash, __private uint *W, uint len)
 {
 	hash[0] = 0x67452301;
@@ -123,12 +129,6 @@ inline void md5_encrypt(__private uint *hash, __private uint *W, uint len)
 	STEP(I, hash[2], hash[3], hash[0], hash[1], W[2], 0x2ad7d2bb, 15);
 	STEP(I, hash[1], hash[2], hash[3], hash[0], W[9], 0xeb86d391, 21);
 }
-
-#if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
-#define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
-#else
-/*undefined, cause error.*/
-#endif
 
 inline void cmp_final(uint gid,
 		uint iter,
@@ -239,9 +239,6 @@ inline void cmp(uint gid,
 
 #define USE_CONST_CACHE \
 	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
-
-/* some constants used below are passed with -D */
-//#define KEY_LENGTH (MD5_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)

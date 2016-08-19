@@ -218,8 +218,6 @@ inline void cmp(uint gid,
 
 #define USE_CONST_CACHE \
 	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
-/* some constants used below are passed with -D */
-//#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
@@ -297,7 +295,6 @@ __kernel void md4(__global uint *keys,
 
 	for (i = 0; i < (len+3)/4; i++)
 		W[i] = *keys++;
-
 
 	PUTCHAR(W, len, 0x80);
 	W[14] = len << 3;

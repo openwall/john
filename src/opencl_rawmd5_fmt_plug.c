@@ -184,7 +184,6 @@ static void done(void)
 
 		crypt_kernel = NULL;
 	}
-
 }
 
 static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
