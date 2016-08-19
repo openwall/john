@@ -153,7 +153,8 @@ static void print_memory(double memory)
 static void reset(struct db_main *db)
 {
 	static int printed=0;
-	if(!printed)
+
+	if (!printed && options.verbosity > VERB_DEFAULT)
 	{
 		int i;
 		uint32_t m_cost, prev_m_cost;
