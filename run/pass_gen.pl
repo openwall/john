@@ -83,11 +83,11 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
-		palshop snefru_128 snefru_256
+		palshop snefru_128 snefru_256 keyring efs mdc2
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec efs eigrp encfs fde gpg haval-128 Haval-256 keyring krb4 krb5 krb5pa-sha1 kwallet luks pfx mdc2 afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
-#       _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg sha3_512 stribog
+# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec eigrp encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
+#       _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
 
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0;
@@ -445,7 +445,7 @@ sub hmac_pad {
 	return $pad;
 }
 sub pp_pbkdf2 {
-	my ($pass, $orig_salt, $iter, $algo, $bytes, $pad_len, $pbkdf1) = @_;
+	my ($pass, $orig_salt, $iter, $algo, $bytes, $pad_len, $pbkdf1, $efscrap) = @_;
 	my $ipad = hmac_pad($pass, '6', $algo, $pad_len);  # 6 is \x36 for an ipad
 	my $opad = hmac_pad($pass, '\\', $algo, $pad_len); # \ is \x5c for an opad
 	my $final_out=""; my $i=1;
@@ -459,7 +459,12 @@ sub pp_pbkdf2 {
 		if (!defined($pbkdf1) || !$pbkdf1) { $out = $slt; }
 		for (my $x = 1; $x < $iter; $x += 1) {
 			$slt = &$algo($opad.&$algo($ipad.$slt));
-			if (!defined($pbkdf1) || !$pbkdf1) {  $out ^= $slt; }
+			if (!defined($pbkdf1) || !$pbkdf1) {
+				$out ^= $slt;
+				if (defined($efscrap) && $efscrap) {
+					$slt = $out;
+				}
+			}
 		}
 		use strict;
 		if (defined($pbkdf1) && $pbkdf1) {  $out = $slt; }
@@ -1879,8 +1884,6 @@ sub keepass {
 }
 sub ike {
 }
-sub mdc2 {
-}
 sub afs {
 }
 sub cq {
@@ -1888,8 +1891,6 @@ sub cq {
 sub dmg {
 }
 sub dominosec {
-}
-sub efs {
 }
 sub eigrp {
 }
@@ -1904,8 +1905,6 @@ sub haval_128 {
 sub haval_256 {
 	# NOTE, haval is busted in perl at this time.
 	#print "u$u-haval256_3:".haval256_hex($_[0]).":$u:0:$_[0]::\n";
-}
-sub keyring {
 }
 sub krb4 {
 }
@@ -1996,8 +1995,6 @@ sub sapb {
 }
 sub sapg {
 }
-sub sha3_512 {
-}
 sub stribog {
 }
 
@@ -2005,6 +2002,58 @@ sub stribog {
 # stub functions.  When completed, move the function out of this section
 ##############################################################################
 
+sub mdc2 {
+	# we should be able to optimize this, but for now this 'works'
+	my $s = `echo -n "$_[0]" | openssl dgst -mdc2`;
+	$s = substr($s, 9);
+	return "\$mdc2\$$s";
+}
+sub efs {
+	my $sid = sprintf("S-1-5-21-1482476501-1659004503-725345%03d-%04d", int(rand(999)), int(rand(9999)));
+	my $sid_u = encode("UTF-16LE", $sid."\0");
+	my $iter = 4000;
+	my $iv = get_iv(16);
+	my $pw_u = encode("UTF-16LE", $_[0]);
+	my $out = sha1($pw_u);
+	my $out2 = Digest::SHA::hmac_sha1($sid_u, $out);
+	# NOTE, efs has a busted pbkdf2 function.  The last param (1) tells pbkdf2 to use the busted extra step.
+	my $p = pp_pbkdf2($out2,$iv,$iter,"sha1",32, 64, 0, 1);
+	#create the ct here. We just build a 104 byte random string, then perform the computations that
+	#sets bytes [16..36] to the proper computed hmac value of the password hash and the other parts of ct.
+	$out2 .= "\0\0\0\0\0\0\0\0\0\0\0\0";
+	my $ct = randstr(104);
+	my $ourKey = substr($ct, length($ct)-64);
+	my $hmacSalt = substr($ct, 0, 16);
+	my $encKey = Digest::SHA::hmac_sha1($hmacSalt, $out2);
+	my $hmacComputed = Digest::SHA::hmac_sha1($ourKey, $encKey);
+	substr($ct, 16, 20) = $hmacComputed;
+	# now crypt the ct.  This crypted value is stored in the hash line.
+	require Crypt::DES_EDE3; require Crypt::CBC;
+	my $cbc = Crypt::CBC->new(-key => substr($p,0,24), -cipher => "DES_EDE3", -iv => substr($p,24,8), -literal_key => 1, -header => "none");
+	my $enc = $cbc->encrypt($ct);
+	$enc = substr($enc, 0, length($enc)-8);
+	return "\$efs\$0\$$sid\$".unpack("H*",$iv)."\$$iter\$".unpack("H*",$enc);
+}
+sub keyring {
+	my $s = get_salt(8);
+	my $iter = int(2000 + rand(2000));
+	my $data = randstr(16);
+	$data = md5($data) . $data;
+	my $h = sha256($_[0].$s);
+	for (my $i = 1; $i < $iter; ++$i) {
+		$h = sha256($h);
+	}
+	my $key = substr($h, 0, 16);
+	my $iv = substr($h, 16, 16);
+	require Crypt::OpenSSL::AES;
+	require Crypt::CBC;
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	$h = $crypt->encrypt($data);
+	$h = unpack("H*", $h);
+	$s = unpack("H*", $s);
+	my $l = length($data);
+	return "\$keyring\$$s*$iter*$l*0*$h";
+}
 sub snefru_128 {
 	require Crypt::Rhash;
 	my $r = Crypt::Rhash->new(Crypt::Rhash::RHASH_SNEFRU128());
@@ -2288,9 +2337,9 @@ sub racf {
 	import Convert::EBCDIC qw (ascii2ebcdic);
 	require Crypt::DES;
 	my $user = uc get_username(12);
-	$_[0] = uc $_[0];
+	my $pw = uc $_[0];
 	my $pad_user = substr ($user . " " x 8, 0, 8);
-	my $pad_pass = substr ($_[0] . " " x 8, 0, 8);
+	my $pad_pass = substr ($pw . " " x 8, 0, 8);
 	my $usr_ebc = ascii2ebcdic ($pad_user);
 	my $pass_ebc = ascii2ebcdic ($pad_pass);
 	my @pw = split ("", $pass_ebc);
