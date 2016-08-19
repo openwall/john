@@ -89,7 +89,6 @@ JOHN_OBJS = \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
-	ssh2john.o \
 	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
@@ -143,7 +142,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 
 WITH_BIO_NEW = @HAVE_BIO_NEW@
 ifdef WITH_BIO_NEW
-PROJ += ../run/pfx2john@EXE_EXT@ ../run/ssh2john@EXE_EXT@
+PROJ += ../run/pfx2john@EXE_EXT@
 endif
 
 WITH_PCAP = @HAVE_PCAP@
@@ -512,8 +511,6 @@ SIPdump.o:	SIPdump.c autoconfig.h tcphdr.h arch.h stdint.h SIPdump.h memdbg.h os
 
 skein.o:	skein.c sph_skein.h sph_types.h autoconfig.h arch.h stdint.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
-ssh2john.o:	ssh2john.c arch.h jumbo.h stdint.h common.h memory.h params.h memdbg.h os.h os-autoconf.h autoconfig.h
-
 status.o:	status.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h times.h misc.h math.h params.h cracker.h loader.h list.h formats.h options.h getopt.h common.h memory.h status.h bench.h config.h unicode.h signals.h mask.h john-mpi.h common-gpu.h gpu_sensors.h memdbg.h
 
 symlink.o:	symlink.c
@@ -633,10 +630,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/undrop
 	$(LN) john ../run/undrop
 
-../run/ssh2john: ../run/john
-	$(RM) ../run/ssh2john
-	$(LN) john ../run/ssh2john
-
 ../run/putty2john: ../run/john
 	$(RM) ../run/putty2john
 	$(LN) john ../run/putty2john
@@ -700,10 +693,6 @@ kernels: @KERNEL_OBJS@
 ../run/undrop.exe: symlink.c
 	$(CC) symlink.c -o ../run/undrop.exe
 	$(STRIP) ../run/undrop.exe
-
-../run/ssh2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/ssh2john.exe
-	$(STRIP) ../run/ssh2john.exe
 
 ../run/putty2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/putty2john.exe

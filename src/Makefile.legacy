@@ -136,7 +136,6 @@ JOHN_OBJS = \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
-	ssh2john.o \
 	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
@@ -202,7 +201,7 @@ GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o jumbo.o
 
 PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
-	../run/ssh2john ../run/rar2john ../run/zip2john \
+	../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
 	../run/raw2dyna ../run/keepass2john ../run/pfx2john \
@@ -212,7 +211,7 @@ PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../ru
 PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
-	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
+	../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/hccap2john.com \
 	../run/keepass2john.com ../run/pfx2john.com \
 	../run/dmg2john.com ../run/putty2john.com john.local.conf \
@@ -220,7 +219,7 @@ PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 PROJ_WIN32 = find_version ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
-	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
+	../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/raw2dyna.exe ../run/keepass2john.exe \
@@ -230,7 +229,7 @@ PROJ_WIN32 = find_version ../run/john.exe \
 PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
-	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
+	../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/raw2dyna.exe ../run/keepass2john.exe \
@@ -1877,10 +1876,6 @@ $(SUBDIRS):
 	$(RM) ../run/undrop
 	ln -s john ../run/undrop
 
-../run/ssh2john: ../run/john
-	$(RM) ../run/ssh2john
-	ln -s john ../run/ssh2john
-
 ../run/putty2john: ../run/john
 	$(RM) ../run/putty2john
 	ln -s john ../run/putty2john
@@ -1941,9 +1936,6 @@ $(SUBDIRS):
 
 ../run/undrop.com: john.com
 	copy john.com ..\run\undrop.com
-
-../run/ssh2john.com: john.com
-	copy john.com ..\run\ssh2john.com
 
 ../run/putty2john.com: john.com
 	copy john.com ..\run\putty2john.com
@@ -2013,10 +2005,6 @@ john.com: john.asm
 ../run/undrop.exe: symlink.c
 	$(CC) symlink.c -o ../run/undrop.exe
 	$(STRIP) ../run/undrop.exe
-
-../run/ssh2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/ssh2john.exe
-	$(STRIP) ../run/ssh2john.exe
 
 ../run/putty2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/putty2john.exe
