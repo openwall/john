@@ -78,13 +78,13 @@ __constant int generator_index[] = {
 #endif
 
 // Start documenting NVIDIA OpenCL bugs.
-#if gpu_nvidia(DEVICE_INFO)
-#define NVIDIA_STUPID_BUG_1    1
-#endif
+///#if gpu_nvidia(DEVICE_INFO)
+///#define NVIDIA_STUPID_BUG_1    1
+///#endif
 
 // Start documenting AMD OpenCL bugs.
-#if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
-//amd_vliw4() is a guess.
+///#if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
+///amd_vliw4() is a guess.
 
 ///Needed (at least) in 14.9 and 15.7
 ///TODO: can't remove the [unroll]. (At least) HD 6770.
@@ -92,7 +92,7 @@ __constant int generator_index[] = {
 ///  #pragma unroll 2
 ///#endif
 ///for (uint i = 16U; i < 80U; i++) {
-#define AMD_STUPID_BUG_1    1
+///#define AMD_STUPID_BUG_1    1
 
 ///TODO: can't use a valid command twice on sha256crypt. (At least) HD 6770.
 ///Fixed (back in 14.12). Kept for future reference.
@@ -101,7 +101,7 @@ __constant int generator_index[] = {
 ///  #ifdef AMD_STUPID_BUG_2
 ///    #define SWAP_V(n)    bitselect(rotate(n, 24U), rotate(n, 8U), 0x00FF00FFU)
 /// ----------------------
-//#define AMD_STUPID_BUG_2
+///#define AMD_STUPID_BUG_2
 
 ///TODO: can't use constant. (At least) HD 6770.
 ///Fixed. Kept for future reference.
@@ -109,7 +109,7 @@ __constant int generator_index[] = {
 ///inline void sha512_prepare(__constant   sha512_salt     * salt_data,
 /// ----------------------
 ///#define AMD_STUPID_BUG_3
-#endif
+///#endif
 
 //Functions.
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
