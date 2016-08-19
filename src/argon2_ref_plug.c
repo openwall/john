@@ -9,7 +9,7 @@
  * with
  * this software. If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
- * 
+ *
  */
 
 #ifndef __SSE2__
@@ -20,11 +20,10 @@
 
 #include "argon2.h"
 #include "argon2_ref.h"
-
 #include "blamka-round-ref.h"
 #include "blake2-impl.h"
 #include "blake2.h"
-
+#include "memdbg.h"
 
 void fill_block(const block *prev_block, const block *ref_block,
     block *next_block) {

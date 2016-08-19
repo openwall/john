@@ -31,6 +31,7 @@
 //#include "argon2_thread.h"
 #include "blake2.h"
 #include "blake2-impl.h"
+#include "memdbg.h"
 
 #if defined(__clang__)
 #if __has_attribute(optnone)
@@ -233,9 +234,9 @@ int fill_memory_blocks(argon2_instance_t *instance) {
                        sizeof(argon2_position_t));
                 /*rc = argon2_thread_create(&thread[l], &fill_segment_thr,
                                           (void *)&thr_data[l]);*/
-		
+
 		fill_segment_thr((void *)&thr_data[l]);
-		
+
                 /*if (rc) {
                     free(thr_data);
                     //free(thread);

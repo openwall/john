@@ -12,21 +12,19 @@ john_register_one(&fmt_argon2i);
 #else
 
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-
 #include "argon2.h"
 #include "argon2_core.h"
 #include "argon2_encoding.h"
-
 #include "memdbg.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #define FORMAT_LABEL			"argon2i"
 #define FORMAT_NAME			""
@@ -45,7 +43,7 @@ john_register_one(&fmt_argon2i);
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
-#define PLAINTEXT_LENGTH		100 //only in john 
+#define PLAINTEXT_LENGTH		100 //only in john
 #define BINARY_SIZE			256 //only in john
 #define BINARY_ALIGN			1
 #define SALT_SIZE			64  //only in john
@@ -113,7 +111,7 @@ static void init(struct fmt_main *self)
 
 	memory=malloc(threads*sizeof(region_t));
 	pseudo_rands=malloc(threads*sizeof(void*));
-	
+
 	for(i=0;i<threads;i++)
 	{
 		init_region_t(&memory[i]);
@@ -197,14 +195,14 @@ static void ctx_init(argon2_context *ctx)
 	//size_t maxadlen = ctx->adlen;
         //size_t maxsaltlen = ctx->saltlen;
         //size_t maxoutlen = ctx->outlen;
-  
+
 	static uint8_t out[BINARY_SIZE];
 	static uint8_t salt[SALT_SIZE];
-  
+
 	ctx->adlen=0;
 	ctx->saltlen=SALT_SIZE;
 	ctx->outlen=BINARY_SIZE;
-	
+
 	ctx->out=out;
 	ctx->salt=salt;
 }
@@ -213,9 +211,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	argon2_context ctx;
 	int res;
-	
+
 	ctx_init(&ctx);
-	
+
 	res=argon2_decode_string(&ctx, ciphertext, Argon2_i);
 
 	if(res!=ARGON2_OK)
@@ -244,12 +242,12 @@ static void *get_binary(char *ciphertext)
 {
 	static char out[BINARY_SIZE];
 	argon2_context ctx;
-	
+
 	ctx_init(&ctx);
 	argon2_decode_string(&ctx, ciphertext, Argon2_i);
 	memset(out, 0, BINARY_SIZE);
 	memcpy(out, ctx.out, ctx.outlen);
-	
+
 	return out;
 }
 
@@ -257,13 +255,13 @@ static void *get_salt(char *ciphertext)
 {
 	static struct argon2i_salt salt;
 	argon2_context ctx;
-	
+
 	memset(&salt,0,sizeof(salt));
-	
+
 	ctx_init(&ctx);
-	
+
 	argon2_decode_string(&ctx, ciphertext, Argon2_i);
-	
+
 	salt.salt_length = ctx.saltlen;
 	salt.m_cost = ctx.m_cost;
 	salt.t_cost = ctx.t_cost;
@@ -281,18 +279,18 @@ static void set_salt(void *salt)
 	size_t mem_size;
 	uint32_t segment_length, memory_blocks;
 	memcpy(&saved_salt,salt,sizeof(struct argon2i_salt));
-	
-	
+
+
 	mem_size=sizeof(block)*saved_salt.m_cost;
-	
+
 	memory_blocks = saved_salt.m_cost;
 
         if (memory_blocks < 2 * ARGON2_SYNC_POINTS * saved_salt.lanes) {
            memory_blocks = 2 * ARGON2_SYNC_POINTS * saved_salt.lanes;
         }
-    
+
 	segment_length = memory_blocks / (saved_salt.lanes * ARGON2_SYNC_POINTS);
-	
+
 	if(mem_size>saved_mem_size)
 	{
 		if(saved_mem_size>0)
@@ -303,7 +301,7 @@ static void set_salt(void *salt)
 
 		saved_mem_size=mem_size;
 	}
-	
+
 	if(segment_length>saved_segment_length)
 	{
 		if(saved_segment_length>0)
@@ -348,7 +346,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		argon2_hash(saved_salt.t_cost, saved_salt.m_cost, saved_salt.lanes, saved_key + i * (PLAINTEXT_LENGTH + 1), strlen(saved_key + i * (PLAINTEXT_LENGTH + 1)), saved_salt.salt,
 		    saved_salt.salt_length, crypted + i * BINARY_SIZE, saved_salt.hash_size, 0, 0, Argon2_i, ARGON2_VERSION_NUMBER, memory[THREAD_NUMBER%threads].aligned, pseudo_rands[THREAD_NUMBER%threads]);
 	}
-	
+
 	return count;
 }
 

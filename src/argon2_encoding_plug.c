@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+
 #include "argon2_encoding.h"
 #include "argon2_core.h"
+#include "memdbg.h"
 
 /*
  * Example code for a decoder and encoder of "hash strings", with Argon2
@@ -329,7 +331,7 @@ int argon2_decode_string(argon2_context *ctx, const char *str, argon2_type type)
     if (validation_result != ARGON2_OK) {
         return validation_result;
     }
-    
+
     if (*str == 0) {
         return ARGON2_OK;
     } else {
@@ -424,4 +426,3 @@ size_t argon2_numlen(uint32_t num) {
     }
     return len;
 }
-
