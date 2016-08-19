@@ -2000,6 +2000,7 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
  */
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
+	static char test_mask[] = "?a?a?l?u?d?d?s?s";
 	int i, max_static_range;
 
 	mask_fmt = db->format;
@@ -2032,14 +2033,20 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		log_event("Proceeding with mask mode");
 
 	/* Load defaults from john.conf */
-	if (options.flags & FLG_MASK_STACKED) {
-		if (!options.mask && !(options.mask =
-		   cfg_get_param("Mask", NULL, "DefaultHybridMask")))
+	if (!options.mask) {
+		if (options.flags & FLG_TEST_CHK)
+			options.mask = test_mask;
+		else if (options.flags & FLG_MASK_STACKED)
+			options.mask = cfg_get_param("Mask", NULL, "DefaultHybridMask");
+		else
+			options.mask = cfg_get_param("Mask", NULL, "DefaultMask");
+
+		if (!options.mask)
 			options.mask = "";
-	} else
-		if (!options.mask && !(options.mask =
-		   cfg_get_param("Mask", NULL, "DefaultMask")))
-			options.mask = "";
+
+		if (2 * max_keylen < strlen(options.mask))
+			options.mask[2 * max_keylen] = 0;
+	}
 
 	/* Load defaults for custom placeholders ?1..?9 from john.conf */
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
