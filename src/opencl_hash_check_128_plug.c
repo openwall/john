@@ -451,7 +451,7 @@ int ocl_hc_128_extract_info(struct db_salt *salt, void (*set_kernel_args)(void),
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), zero_buffer, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_ids.");
 	}
 
-	*pcount *=  mask_int_cand.num_int_cand;
+	*pcount *= mask_int_cand.num_int_cand;
 	return hash_ids[0];
 }
 

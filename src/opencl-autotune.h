@@ -104,6 +104,12 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 
 	ocl_autotune_running = 1;
 
+#if SIZEOF_SIZE_T > 4
+	/* We can't process more than 4G keys per crypt() */
+	while (gws_limit * mask_int_cand.num_int_cand > 0xffffffffUL)
+		gws_limit >>= 1;
+#endif
+
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
 

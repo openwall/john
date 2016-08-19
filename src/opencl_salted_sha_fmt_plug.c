@@ -819,6 +819,12 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		get_max_mem_alloc_size(gpu_id) / BUFSIZE))
 		gws_limit >>= 1;
 
+#if SIZEOF_SIZE_T > 4
+	/* We can't process more than 4G keys per crypt() */
+	while (gws_limit * mask_int_cand.num_int_cand > 0xffffffffUL)
+		gws_limit >>= 1;
+#endif
+
 	lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	lws_init = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
