@@ -589,7 +589,8 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 				static char Buf[1024];
 				pSetup->pPreloads[nPreloadCnt].ciphertext = Thin_Convert(Buf, pSetup->pPreloads[nPreloadCnt].ciphertext, 1);
 		}
-		if (!strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_6xxx$", 14)) {
+		if (pSetup->pPreloads[nPreloadCnt].ciphertext &&
+		    !strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_6xxx$", 14)) {
 			memmove(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName));
 		}
 		if (!pSetup->pPreloads[nPreloadCnt].ciphertext ||
