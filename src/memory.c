@@ -713,7 +713,7 @@ alloc_region_t(region_t * region, size_t size)
 	base = aligned = NULL;
 	if (size + 63 < size) {
 		errno = ENOMEM;
-	} else if ((base = malloc(size + 63)) != NULL) {
+	} else if ((base = libc_malloc(size + 63)) != NULL) {
 		aligned = base + 63;
 		aligned -= (uintptr_t)aligned & 63;
 	}
@@ -738,7 +738,7 @@ int free_region_t(region_t * region)
 		if (munmap(region->base, region->base_size))
 			return -1;
 #else
-		free(region->base);
+		libc_free(region->base);
 #endif
 	}
 	init_region_t(region);
