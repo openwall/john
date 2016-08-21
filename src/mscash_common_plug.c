@@ -90,7 +90,7 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 
 	// This is tricky: Max supported salt length is 19 characters of Unicode
-	saltlen = enc_to_utf16(realsalt, MSCASH1_MAX_SALT_LENGTH+1, (UTF8*)strnzcpy(insalt, &ciphertext[FORMAT_TAG2_LEN], l - FORMAT_TAG2_LEN), l - 3);
+	saltlen = enc_to_utf16(realsalt, MSCASH1_MAX_SALT_LENGTH+1, (UTF8*)strnzcpy(insalt, &ciphertext[FORMAT_TAG_LEN], l - FORMAT_TAG_LEN), l - 3);
 	if (saltlen < 0 || saltlen > MSCASH1_MAX_SALT_LENGTH) {
 		static int warned = 0;
 
