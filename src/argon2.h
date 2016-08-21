@@ -14,7 +14,7 @@
 #ifndef ARGON2_H
 #define ARGON2_H
 
-#include <stdint.h>
+#include "stdint.h"
 #include <stddef.h>
 #include <limits.h>
 
@@ -201,7 +201,7 @@ typedef struct Argon2_Context {
     uint32_t version; /* version number */
 
     uint32_t flags; /* array of bool options */
-    
+
     void *memory;
     void *pseudo_rands;
 } argon2_context;

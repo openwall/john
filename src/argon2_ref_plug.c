@@ -14,11 +14,12 @@
 
 #ifndef __SSE2__
 
-#include <stdint.h>
+#include "stdint.h"
 #include <string.h>
 #include <stdlib.h>
 
 #include "argon2.h"
+#include "argon2_core.h"
 #include "argon2_ref.h"
 #include "blamka-round-ref.h"
 #include "blake2-impl.h"

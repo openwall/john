@@ -13,7 +13,7 @@
 
 #ifdef __SSE2__
 
-#include <stdint.h>
+#include "stdint.h"
 #include <string.h>
 #include <stdlib.h>
 
