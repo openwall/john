@@ -1804,7 +1804,10 @@ static int ldr_cracked_hash(char *ciphertext)
 	len = strnlen(ciphertext, MAX_CIPHERTEXT_SIZE);
 	if (len >= MAX_CIPHERTEXT_SIZE || strstr(ciphertext, "$SOURCE_HASH$")) {
 		memcpy(tmp, ciphertext, POT_BUFFER_CT_TRIM_SIZE);
-		tmp[POT_BUFFER_CT_TRIM_SIZE] = 0;
+		// NOTE, POT_BUFFER_CT_TRIM_SIZE will not cut it. We also have to skip
+		// any $BIN_HASH$ and the associated hash string.  a 64 byte binary()
+		// return means we need to skip an additional 128 + 10 bytes.
+		tmp[POT_BUFFER_CT_TRIM_SIZE-138] = 0;
 		p = tmp;
 	}
 
@@ -1897,9 +1900,19 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 #endif
 	if (line) {
 /* If just one format was forced on the command line, insist on it */
-		if (!fmt_list->next &&
-		    !fmt_list->methods.valid(ciphertext, fmt_list))
-			return;
+		if (!fmt_list->next) {
+			if (strstr(ciphertext, "$SOURCE_HASH$")) {
+				int fnd = 0, i;
+				for (i = 0;  !fnd && fmt_list->params.signature[i]; ++i) {
+					if (!strncmp(ciphertext, fmt_list->params.signature[i], strlen(fmt_list->params.signature[i])))
+						fnd = 1;
+				}
+				if (!fnd)
+					return;
+			}
+			else if (!fmt_list->methods.valid(ciphertext, fmt_list))
+				return;
+		}
 
 		pos = line;
 		do {
