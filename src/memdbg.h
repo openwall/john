@@ -177,6 +177,7 @@ extern void *MEMDBG_libc_calloc(size_t count, size_t size);
 
 #define libc_alloc alloc
 #define libc_calloc calloc
+#define libc_malloc malloc
 #define libc_free free
 
 #define MemDbg_Used(a) 0
