@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_rawsha512);
 #include "sha2.h"
 #include "rawSHA512_common.h"
 
-#define FORMAT_LABEL			"Raw-SHA512-opencl"
+#define FORMAT_LABEL			"Raw-SHA512-free-opencl"
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
 

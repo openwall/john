@@ -16,11 +16,11 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_ng_rawsha512;
-extern struct fmt_main fmt_opencl_ng_xsha512;
+extern struct fmt_main fmt_opencl_rawsha512_gpl;
+extern struct fmt_main fmt_opencl_xsha512_gpl;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_ng_rawsha512);
-john_register_one(&fmt_opencl_ng_xsha512);
+john_register_one(&fmt_opencl_rawsha512_gpl);
+john_register_one(&fmt_opencl_xsha512_gpl);
 #else
 
 #include <string.h>
@@ -37,10 +37,10 @@ john_register_one(&fmt_opencl_ng_xsha512);
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
-#define FORMAT_LABEL            "Raw-SHA512-ng-opencl"
+#define FORMAT_LABEL            "Raw-SHA512-opencl"
 #define FORMAT_NAME         ""
 
-#define X_FORMAT_LABEL          "XSHA512-ng-opencl"
+#define X_FORMAT_LABEL          "XSHA512-opencl"
 #define X_FORMAT_NAME           "Mac OS X 10.7 salted"
 
 #define ALGORITHM_NAME          "SHA512 OpenCL"
@@ -556,7 +556,7 @@ static void build_kernel()
 {
 	static int previous_size, num_int_cand;
 
-	char *task = "$JOHN/kernels/sha512_ng_kernel.cl";
+	char *task = "$JOHN/kernels/sha512_gpl_kernel.cl";
 	char opt[MAX_OCLINFO_STRING_LEN];
 
 	bitmap_size = get_bitmap_size_bits(num_loaded_hashes, gpu_id);
@@ -848,7 +848,7 @@ static int get_hash_6(int index)
 }
 
 /* ------- Format structure ------- */
-struct fmt_main fmt_opencl_ng_rawsha512 = {
+struct fmt_main fmt_opencl_rawsha512_gpl = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -909,7 +909,7 @@ struct fmt_main fmt_opencl_ng_rawsha512 = {
 	}
 };
 
-struct fmt_main fmt_opencl_ng_xsha512 = {
+struct fmt_main fmt_opencl_xsha512_gpl = {
 	{
 		X_FORMAT_LABEL,
 		X_FORMAT_NAME,
