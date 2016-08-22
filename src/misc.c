@@ -246,7 +246,7 @@ int strnzcpyn(char *dst, const char *src, int size)
 		if (!(*dptr++ = *src++)) return (dptr-dst)-1;
 	*dptr = 0;
 
-	return (dptr-dst)-1;
+	return (dptr-dst);
 }
 
 char *strnzcat(char *dst, const char *src, int size)
