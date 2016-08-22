@@ -612,7 +612,7 @@ int crk_reload_pot(void)
 
 		fields[1] = ciphertext;
 		ciphertext = crk_methods.prepare(fields, crk_db->format);
-		if (crk_methods.valid(ciphertext, crk_db->format)) {
+		if (ldr_trunc_valid(ciphertext, crk_db->format)) {
 			ciphertext = crk_methods.split(ciphertext, 0,
 			                               crk_db->format);
 			if (crk_remove_pot_entry(ciphertext))

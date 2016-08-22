@@ -332,4 +332,7 @@ extern const char *ldr_pot_source(const char *full_source,
  */
 extern int ldr_isa_pot_source(const char *ciphertext);
 
+/* Common code for determining valid when loading a chopped .pot line */
+extern int ldr_trunc_valid(char *ciphertext, struct fmt_main *format);
+
 #endif

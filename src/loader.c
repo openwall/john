@@ -1115,31 +1115,37 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 	read_file(db, name, RF_ALLOW_DIR, ldr_load_pw_line);
 }
 
+int ldr_trunc_valid(char *ciphertext, struct fmt_main *format)
+{
+	int i;
+
+	if (!format->params.signature[0] || !ldr_in_pot)
+		goto plain_valid;
+
+	for (i = 0; i < FMT_SIGNATURES && format->params.signature[i]; ++i) {
+		if (!strncmp(ciphertext, format->params.signature[i],
+		    strlen(format->params.signature[i])) &&
+		    strnlen(ciphertext, MAX_CIPHERTEXT_SIZE + 1) <=
+		    MAX_CIPHERTEXT_SIZE &&
+		    ldr_isa_pot_source(ciphertext))
+			return 1;
+	}
+
+plain_valid:
+	return format->methods.valid(ciphertext, format);
+}
+
 static void ldr_load_pot_line(struct db_main *db, char *line)
 {
 	struct fmt_main *format = db->format;
 	char *ciphertext;
 	void *binary;
 	int hash;
-	int valid=0;
 	int need_removal;
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
-	/* common code for determining valid when loading a .pot line */
-	if (format->params.signature[0]) {
-		int i = 0;
-		for (;i < FMT_SIGNATURES && format->params.signature[i] && !valid; ++i) {
-			if (!strncmp(ciphertext, format->params.signature[i],
-			             strlen(format->params.signature[i])) &&
-			             strnlen(ciphertext, MAX_CIPHERTEXT_SIZE + 2) > (MAX_CIPHERTEXT_SIZE>>1) &&
-			             ldr_isa_pot_source(ciphertext)) {
-					     valid = 1;
-			}
-		}
-	}
-
-	if (!valid && format->methods.valid(ciphertext, format) != 1) return;
+	if (ldr_trunc_valid(ciphertext, format) != 1) return;
 	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
