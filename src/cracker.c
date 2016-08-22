@@ -403,7 +403,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		if (dupe)
 			ct = NULL;
 		else
-			ct = ldr_pot_source(crk_db->format,
+			ct = ldr_pot_source(
 				crk_methods.source(pw->source, pw->binary),
 				buffer);
 		log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
