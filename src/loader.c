@@ -1152,6 +1152,11 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 			                            ciphertext);
 		if (!current->binary) /* already marked for removal */
 			continue;
+		/*
+		 * If hash is zero, this may be a $SOURCE_HASH$ line that we
+		 * can't treat with memcmp().
+		 */
+		if (hash || !ldr_isa_pot_source(ciphertext))
 		if (memcmp(binary, current->binary, format->params.binary_size))
 			continue;
 		if (ldr_pot_source_cmp(ciphertext,
