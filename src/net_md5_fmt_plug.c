@@ -58,7 +58,7 @@ john_register_one(&fmt_netmd5);
 #define SALT_ALIGN              MEM_ALIGN_WORD
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define MAX_SALT_LEN			1024
+#define MAX_SALT_LEN			1500
 
 static struct fmt_tests tests[] = {
 	/* RIPv2 MD5 authentication hashes */
@@ -198,14 +198,6 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[0](index); return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[1](index); return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[2](index); return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[3](index); return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[4](index); return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[5](index); return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { if (cur_salt->magic != MAGIC) return pDynamicFmt->methods.get_hash[6](index); return crypt_out[index][0] & PH_MASK_6; }
-
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
@@ -320,13 +312,7 @@ struct fmt_main fmt_netmd5 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -336,13 +322,7 @@ struct fmt_main fmt_netmd5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one,

@@ -202,6 +202,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *self, const int
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
+	if (strstr(ciphertext, "$SOURCE_HASH$"))
+		return ciphertext;
+
 	if (!strchr(ciphertext, '#') && strchr(ciphertext, '.') &&
 	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
 		// Treat this like a JWT hash. Convert into 'normal' hmac-sha512 format.
@@ -621,26 +624,6 @@ static void *get_salt(char *ciphertext)
 #endif
 }
 
-#ifdef SIMD_COEF_64
-// NOTE crypt_key is in input format (PAD_SIZE * SIMD_COEF_64)
-#define HASH_OFFSET (index & (SIMD_COEF_64 - 1)) + ((unsigned int)index / SIMD_COEF_64) * SIMD_COEF_64 * PAD_SIZE_W
-static int get_hash_0(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_64*)crypt_key)[HASH_OFFSET] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return crypt_key[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_key[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_key[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
-#endif
-
 struct fmt_main fmt_hmacSHA512 = {
 	{
 		FORMAT_LABEL,
@@ -672,13 +655,7 @@ struct fmt_main fmt_hmacSHA512 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -692,13 +669,7 @@ struct fmt_main fmt_hmacSHA512 = {
 #endif
 		crypt_all_512,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one_512,
@@ -737,13 +708,7 @@ struct fmt_main fmt_hmacSHA384 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -757,13 +722,7 @@ struct fmt_main fmt_hmacSHA384 = {
 #endif
 		crypt_all_384,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one_384,

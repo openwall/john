@@ -46,11 +46,11 @@ static int omp_t = 1;
 #define FORMAT_NAME                 ""
 #define FORMAT_TAG                  "$openbsd-softraid$"
 #define FORMAT_TAG_LEN              (sizeof(FORMAT_TAG)-1)
-#ifdef SIMD_COEF_32                 
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME              "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
-#else                               
+#else
 #define ALGORITHM_NAME              "PBKDF2-SHA1 32/" ARCH_BITS_STR
-#endif                              
+#endif
 #define BENCHMARK_COMMENT           " (8192 iterations)"
 #define BENCHMARK_LENGTH            -1
 #define PLAINTEXT_LENGTH            125
@@ -190,7 +190,6 @@ static void *get_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	/* should work just fine for redeced lengtth .pot format lines as is */
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |
@@ -327,7 +326,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -337,7 +336,7 @@ struct fmt_main fmt_openbsd_softraid = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-		fmt_default_get_hash
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one,

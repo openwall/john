@@ -120,8 +120,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) == 0) {
-		/* handle 'chopped' .pot lines (they always have the tag!) */
-
 		ctcopy += FORMAT_TAG_LEN;
 		if (ctcopy[0] == '*') {			/* assume account's info provided */
 			ctcopy++;

@@ -443,6 +443,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	char *pos = NULL;
 	int identity_length = 0;
 
+	if (strstr(ciphertext, "$SOURCE_HASH$"))
+		return ciphertext;
+
 	/* Calculate identity length */
 	for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
 	identity_length = pos - (ciphertext + FORMAT_TAG_LEN);
