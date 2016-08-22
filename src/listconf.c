@@ -532,6 +532,7 @@ void listconf_parse_late(void)
 		format = fmt_list;
 		do {
 			int ntests = 0;
+			char buf[LINE_BUFFER_SIZE + 1];
 
 /* Some encodings change max plaintext length when
    encoding is used, or KPC when under OMP */
@@ -559,10 +560,10 @@ void listconf_parse_late(void)
 /* salts are handled internally within the format. We want to know the
    'real' salt size. Dynamic will always set params.salt_size to 0 or sizeof
    a pointer. */
-   dynamic_real_salt_length(format) : format->params.salt_size);
+			       dynamic_real_salt_length(format) : format->params.salt_size);
 			printf("\t");
 			list_tunable_cost_names(format, ",");
-			printf("\t%d\t%.256s\n",
+			printf("\t%d\t%s\n",
 			       format->params.plaintext_min_length,
 /*
  * Since the example ciphertext should be the last line in the
@@ -572,11 +573,10 @@ void listconf_parse_late(void)
  * have to check the number of columns if they want to use the example
  * ciphertext.
  *
- * ciphertext example will be silently truncated
- * to 256 characters here
+ * ciphertext example will be silently $SOURCE_HASH$'ed if needed.
  */
 			       ntests ?
-			       get_test(format, 0) : "");
+			       ldr_pot_source(get_test(format, 0), buf) : "");
 
 			fmt_done(format);
 
@@ -681,15 +681,16 @@ void listconf_parse_late(void)
  * The below should probably stay as last line of output if adding more
  * information.
  *
- * ciphertext example will be truncated to 512 characters here, with a notice.
+ * ciphertext example will be $SOURCE_HASH$'ed if needed, with a notice.
  */
 			if (ntests) {
 				char *ciphertext = get_test(format, 0);
+				char buf[LINE_BUFFER_SIZE + 1];
 
-				printf("Example ciphertext%s  %.512s\n",
-				       strlen(ciphertext) > 512 ?
+				printf("Example ciphertext%s  %s\n",
+				       strlen(ciphertext) > MAX_CIPHERTEXT_SIZE ?
 				       " (truncated here)" :
-				       "                 ", ciphertext);
+				       "                 ", ldr_pot_source(ciphertext, buf));
 			}
 			printf("\n");
 
