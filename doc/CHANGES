@@ -126,7 +126,7 @@ generating the code from the supplied C source files (with intrinsics where
 relevant).  The S-box expressions that we were using before had a 21% larger
 gate count, so theoretically this could provide a 21% speedup.  In practice,
 though, a 12% to 14% speedup at DES-based crypt(3) hashes is typical.
-This effort has been sponsored by Rapid7: http://www.rapid7.com
+This effort has been sponsored by Rapid7: https://www.rapid7.com
 * Corrected support for bcrypt (OpenBSD Blowfish) hashes of passwords
 containing non-ASCII characters (that is, characters with the 8th bit set).
 Added support for such hashes produced by crypt_blowfish up to 1.0.4, which
