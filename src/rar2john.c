@@ -829,7 +829,7 @@ static int process_file5(const char *archive_name) {
 	if (memcmp(Magic, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8)) { /* handle SFX archives */
 		if (memcmp(Magic, "MZ", 2) == 0) {
 			/* jump to "Rar!" signature */
-			while (!feof(fp)) {
+			while (1) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
 				if( (pos = (char*)memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8))) {
 					diff = count - (pos - buf);
@@ -838,6 +838,8 @@ static int process_file5(const char *archive_name) {
 					found = 1;
 					break;
 				}
+                if (feof(fp)) //We shold examine the EOF before seek back
+                    break;
 				jtr_fseek64(fp, -7, SEEK_CUR);
 			}
             if (!found)
