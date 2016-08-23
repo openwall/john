@@ -114,4 +114,3 @@ sub fixlongline {
 	$line .= md5_hex($hash).$pass;
 	return $line;
 }
-
