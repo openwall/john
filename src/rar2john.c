@@ -838,6 +838,8 @@ static int process_file5(const char *archive_name) {
 					found = 1;
 					break;
 				}
+				if (feof(fp)) //We shold examine the EOF before seek back
+					break;
 				jtr_fseek64(fp, -7, SEEK_CUR);
 			}
             if (!found)
