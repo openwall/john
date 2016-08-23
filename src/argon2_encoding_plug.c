@@ -327,7 +327,7 @@ int argon2_decode_string(argon2_context *ctx, const char *str, argon2_type type)
     }
     CC("$");
     BIN(ctx->out, maxoutlen, ctx->outlen);
-    validation_result = validate_inputs(ctx);
+    validation_result = argon2_validate_inputs(ctx);
     if (validation_result != ARGON2_OK) {
         return validation_result;
     }
@@ -380,8 +380,8 @@ int argon2_encode_string(char *dst, size_t dst_len, argon2_context *ctx,
     else
         return ARGON2_ENCODING_FAIL;
 
-    if (validate_inputs(ctx) != ARGON2_OK) {
-        return validate_inputs(ctx);
+    if (argon2_validate_inputs(ctx) != ARGON2_OK) {
+        return argon2_validate_inputs(ctx);
     }
     SX(ctx->version);
     SS("$m=");

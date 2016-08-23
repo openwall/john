@@ -23,7 +23,7 @@
 
 int argon2_ctx(argon2_context *context, argon2_type type) {
     /* 1. Validate all inputs */
-    int result = validate_inputs(context);
+    int result = argon2_validate_inputs(context);
     uint32_t memory_blocks, segment_length;
     argon2_instance_t instance;
 
@@ -62,20 +62,20 @@ int argon2_ctx(argon2_context *context, argon2_type type) {
     /* 3. Initialization: Hashing inputs, allocating memory, filling first
      * blocks
      */
-    result = initialize(&instance, context);
+    result = argon2_initialize(&instance, context);
 
     if (ARGON2_OK != result) {
         return result;
     }
 
     /* 4. Filling memory */
-    result = fill_memory_blocks(&instance);
+    result = argon2_fill_memory_blocks(&instance);
 
     if (ARGON2_OK != result) {
         return result;
     }
     /* 5. Finalization */
-    finalize(context, &instance);
+    argon2_finalize(context, &instance);
 
     return ARGON2_OK;
 }

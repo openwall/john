@@ -23,7 +23,14 @@
 #include "blamka-round-opt.h"
 #include "memdbg.h"
 
-void fill_block(__m128i *state, const uint8_t *ref_block, uint8_t *next_block) {
+/* LEGACY CODE: version 1.2.1 and earlier
+* Function fills a new memory block by overwriting @next_block.
+* @param state Pointer to the just produced block. Content will be updated(!)
+* @param ref_block Pointer to the reference block
+* @param next_block Pointer to the block to be XORed over. May coincide with @ref_block
+* @pre all block pointers must be valid
+*/
+static void fill_block(__m128i *state, const uint8_t *ref_block, uint8_t *next_block) {
     __m128i block_XY[ARGON2_OWORDS_IN_BLOCK];
     uint32_t i;
 
@@ -50,7 +57,15 @@ void fill_block(__m128i *state, const uint8_t *ref_block, uint8_t *next_block) {
     }
 }
 
-void fill_block_with_xor(__m128i *state, const uint8_t *ref_block,
+/*
+ * Function fills a new memory block by XORing the new block over the old one. Memory must be initialized.
+ * After finishing, @state is identical to @next_block
+ * @param state Pointer to the just produced block. Content will be updated(!)
+ * @param ref_block Pointer to the reference block
+ * @param next_block Pointer to the block to be XORed over. May coincide with @ref_block
+ * @pre all block pointers must be valid
+ */
+static void fill_block_with_xor(__m128i *state, const uint8_t *ref_block,
                          uint8_t *next_block) {
     __m128i block_XY[ARGON2_OWORDS_IN_BLOCK];
     uint32_t i;
@@ -80,14 +95,22 @@ void fill_block_with_xor(__m128i *state, const uint8_t *ref_block,
     }
 }
 
-void generate_addresses(const argon2_instance_t *instance,
+/*
+ * Generate pseudo-random values to reference blocks in the segment and puts
+ * them into the array
+ * @param instance Pointer to the current instance
+ * @param position Pointer to the current position
+ * @param pseudo_rands Pointer to the array of 64-bit values
+ * @pre pseudo_rands must point to @a instance->segment_length allocated values
+ */
+static void generate_addresses(const argon2_instance_t *instance,
                         const argon2_position_t *position,
                         uint64_t *pseudo_rands) {
     block address_block, input_block, tmp_block;
     uint32_t i;
 
-    init_block_value(&address_block, 0);
-    init_block_value(&input_block, 0);
+    argon2_init_block_value(&address_block, 0);
+    argon2_init_block_value(&input_block, 0);
 
     if (instance != NULL && position != NULL) {
         input_block.v[0] = position->pass;
@@ -104,8 +127,8 @@ void generate_addresses(const argon2_instance_t *instance,
                 __m128i zero2_block[ARGON2_OWORDS_IN_BLOCK];
                 memset(zero_block, 0, sizeof(zero_block));
                 memset(zero2_block, 0, sizeof(zero2_block));
-                init_block_value(&address_block, 0);
-                init_block_value(&tmp_block, 0);
+                argon2_init_block_value(&address_block, 0);
+                argon2_init_block_value(&tmp_block, 0);
                 /*Increasing index counter*/
                 input_block.v[6]++;
                 /*First iteration of G*/
@@ -121,7 +144,7 @@ void generate_addresses(const argon2_instance_t *instance,
     }
 }
 
-void fill_segment(const argon2_instance_t *instance,
+void argon2_fill_segment(const argon2_instance_t *instance,
                   argon2_position_t position) {
     block *ref_block = NULL, *curr_block = NULL;
     uint64_t pseudo_rand, ref_index, ref_lane;
@@ -192,7 +215,7 @@ void fill_segment(const argon2_instance_t *instance,
          * lane.
          */
         position.index = i;
-        ref_index = index_alpha(instance, &position, pseudo_rand & 0xFFFFFFFF,
+        ref_index = argon2_index_alpha(instance, &position, pseudo_rand & 0xFFFFFFFF,
                                 ref_lane == position.lane);
 
         /* 2 Creating a new block */

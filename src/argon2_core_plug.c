@@ -49,14 +49,18 @@
 #define NOT_OPTIMIZED
 #endif
 
-/***************Instance and Position constructors**********/
-void init_block_value(block *b, uint8_t in) { memset(b->v, in, sizeof(b->v)); }
+static int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen);
 
-void copy_block(block *dst, const block *src) {
+/***************Instance and Position constructors**********/
+void argon2_init_block_value(block *b, uint8_t in) {
+	memset(b->v, in, sizeof(b->v));
+}
+
+void argon2_copy_block(block *dst, const block *src) {
     memcpy(dst->v, src->v, sizeof(uint64_t) * ARGON2_QWORDS_IN_BLOCK);
 }
 
-void xor_block(block *dst, const block *src) {
+void argon2_xor_block(block *dst, const block *src) {
     int i;
     for (i = 0; i < ARGON2_QWORDS_IN_BLOCK; ++i) {
         dst->v[i] ^= src->v[i];
@@ -77,18 +81,18 @@ static void store_block(void *output, const block *src) {
     }
 }
 
-void finalize(const argon2_context *context, argon2_instance_t *instance) {
+void argon2_finalize(const argon2_context *context, argon2_instance_t *instance) {
     if (context != NULL && instance != NULL) {
         block blockhash;
         uint32_t l;
 
-        copy_block(&blockhash, instance->memory + instance->lane_length - 1);
+        argon2_copy_block(&blockhash, instance->memory + instance->lane_length - 1);
 
         /* XOR the last blocks */
         for (l = 1; l < instance->lanes; ++l) {
             uint32_t last_block_in_lane =
                 l * instance->lane_length + (instance->lane_length - 1);
-            xor_block(&blockhash, instance->memory + last_block_in_lane);
+            argon2_xor_block(&blockhash, instance->memory + last_block_in_lane);
         }
 
         /* Hash the result */
@@ -102,7 +106,7 @@ void finalize(const argon2_context *context, argon2_instance_t *instance) {
     }
 }
 
-uint32_t index_alpha(const argon2_instance_t *instance,
+uint32_t argon2_index_alpha(const argon2_instance_t *instance,
                      const argon2_position_t *position, uint32_t pseudo_rand,
                      int same_lane) {
     /*
@@ -179,12 +183,12 @@ static void *fill_segment_thr(void *thread_data)
 #endif
 {
     argon2_thread_data *my_data = (argon2_thread_data *)thread_data;
-    fill_segment(my_data->instance_ptr, my_data->pos);
+    argon2_fill_segment(my_data->instance_ptr, my_data->pos);
     //argon2_thread_exit();
     return 0;
 }
 
-int fill_memory_blocks(argon2_instance_t *instance) {
+int argon2_fill_memory_blocks(argon2_instance_t *instance) {
     uint32_t r, s;
     //argon2_thread_handle_t *thread = NULL;
     argon2_thread_data *thr_data = NULL;
@@ -236,7 +240,7 @@ int fill_memory_blocks(argon2_instance_t *instance) {
                 /*rc = argon2_thread_create(&thread[l], &fill_segment_thr,
                                           (void *)&thr_data[l]);*/
 
-		fill_segment_thr((void *)&thr_data[l]);
+                fill_segment_thr((void *)&thr_data[l]);
 
                 /*if (rc) {
                     free(thr_data);
@@ -244,7 +248,7 @@ int fill_memory_blocks(argon2_instance_t *instance) {
                     return ARGON2_THREAD_FAIL;
                 }*/
 
-                /* fill_segment(instance, position); */
+                /* argon2_fill_segment(instance, position); */
                 /*Non-thread equivalent of the lines above */
             }
 
@@ -270,7 +274,7 @@ int fill_memory_blocks(argon2_instance_t *instance) {
     return ARGON2_OK;
 }
 
-int validate_inputs(const argon2_context *context) {
+int argon2_validate_inputs(const argon2_context *context) {
     if (NULL == context) {
         return ARGON2_INCORRECT_PARAMETER;
     }
@@ -361,7 +365,13 @@ int validate_inputs(const argon2_context *context) {
     return ARGON2_OK;
 }
 
-void fill_first_blocks(uint8_t *blockhash, const argon2_instance_t *instance) {
+/*
+ * Function creates first 2 blocks per lane
+ * @param instance Pointer to the current instance
+ * @param blockhash Pointer to the pre-hashing digest
+ * @pre blockhash must point to @a PREHASH_SEED_LENGTH allocated values
+ */
+static void fill_first_blocks(uint8_t *blockhash, const argon2_instance_t *instance) {
     uint32_t l;
     /* Make the first and second block in each lane as G(H0||i||0) or
        G(H0||i||1) */
@@ -383,7 +393,17 @@ void fill_first_blocks(uint8_t *blockhash, const argon2_instance_t *instance) {
     }
 }
 
-void initial_hash(uint8_t *blockhash, argon2_context *context,
+/*
+ * Hashes all the inputs into @a blockhash[PREHASH_DIGEST_LENGTH], clears
+ * password and secret if needed
+ * @param  context  Pointer to the Argon2 internal structure containing memory
+ * pointer, and parameters for time and space requirements.
+ * @param  blockhash Buffer for pre-hashing digest
+ * @param  type Argon2 type
+ * @pre    @a blockhash must have at least @a PREHASH_DIGEST_LENGTH bytes
+ * allocated
+ */
+static void argon2_initial_hash(uint8_t *blockhash, argon2_context *context,
                   argon2_type type) {
     blake2b_state BlakeHash;
     uint8_t value[sizeof(uint32_t)];
@@ -447,7 +467,7 @@ void initial_hash(uint8_t *blockhash, argon2_context *context,
     blake2b_final(&BlakeHash, blockhash, ARGON2_PREHASH_DIGEST_LENGTH);
 }
 
-int initialize(argon2_instance_t *instance, argon2_context *context) {
+int argon2_initialize(argon2_instance_t *instance, argon2_context *context) {
     uint8_t blockhash[ARGON2_PREHASH_SEED_LENGTH];
 
     if (instance == NULL || context == NULL)
@@ -458,7 +478,7 @@ int initialize(argon2_instance_t *instance, argon2_context *context) {
     /* H_0 + 8 extra bytes to produce the first blocks */
     /* uint8_t blockhash[ARGON2_PREHASH_SEED_LENGTH]; */
     /* Hashing all inputs */
-    initial_hash(blockhash, context, instance->type);
+    argon2_initial_hash(blockhash, context, instance->type);
 
     /* 3. Creating first blocks, we always have at least two blocks in a slice
      */
@@ -468,7 +488,7 @@ int initialize(argon2_instance_t *instance, argon2_context *context) {
 }
 
 
-int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
+static int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
     uint8_t *out = (uint8_t *)pout;
     blake2b_state blake_state;
     uint8_t outlen_bytes[sizeof(uint32_t)] = {0};
@@ -509,7 +529,7 @@ int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
         while (toproduce > BLAKE2B_OUTBYTES) {
             memcpy(in_buffer, out_buffer, BLAKE2B_OUTBYTES);
             TRY(blake2b(out_buffer, in_buffer, NULL,
-			BLAKE2B_OUTBYTES , BLAKE2B_OUTBYTES, 0));
+                BLAKE2B_OUTBYTES , BLAKE2B_OUTBYTES, 0));
             memcpy(out, out_buffer, BLAKE2B_OUTBYTES / 2);
             out += BLAKE2B_OUTBYTES / 2;
             toproduce -= BLAKE2B_OUTBYTES / 2;
@@ -517,7 +537,7 @@ int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
 
         memcpy(in_buffer, out_buffer, BLAKE2B_OUTBYTES);
         TRY(blake2b(out_buffer, in_buffer, NULL, toproduce,
-			   BLAKE2B_OUTBYTES, 0));
+            BLAKE2B_OUTBYTES, 0));
         memcpy(out, out_buffer, toproduce);
     }
 fail:

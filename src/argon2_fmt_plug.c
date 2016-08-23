@@ -3,12 +3,14 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * merged argon2d and argon2i into a single format file.  JimF.
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_argon2d;
+extern struct fmt_main fmt_argon2;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_argon2d);
+john_register_one(&fmt_argon2);
 #else
 
 #include <string.h>
@@ -26,33 +28,36 @@ john_register_one(&fmt_argon2d);
 #include "argon2_encoding.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"argon2d"
-#define FORMAT_NAME			""
+#define FORMAT_LABEL            "argon2"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG_d            "$argon2d$"
+#define FORMAT_TAG_i            "$argon2i$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG_d)-1)
 
 #if defined(__XOP__)
-#define ALGORITHM_NAME			"Blake2 XOP"
+#define ALGORITHM_NAME          "Blake2 XOP"
 #elif defined(__AVX__)
-#define ALGORITHM_NAME			"Blake2 AVX"
+#define ALGORITHM_NAME          "Blake2 AVX"
 #elif defined(__SSSE3__)
-#define ALGORITHM_NAME			"Blake2 SSSE3"
+#define ALGORITHM_NAME          "Blake2 SSSE3"
 #elif defined(__SSE2__)
-#define ALGORITHM_NAME			"Blake2 SSE2"
+#define ALGORITHM_NAME          "Blake2 SSE2"
 #else
-#define ALGORITHM_NAME			"Blake2"
+#define ALGORITHM_NAME          "Blake2"
 #endif
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
-#define PLAINTEXT_LENGTH		100 //only in john
-#define BINARY_SIZE			256 //only in john
-#define BINARY_ALIGN			1
-#define SALT_SIZE			64  //only in john
-#define SALT_ALIGN			1
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        100 //only in john
+#define BINARY_SIZE             256 //only in john
+#define BINARY_ALIGN            1
+#define SALT_SIZE               64  //only in john
+#define SALT_ALIGN              1
 
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
-#define OMP_SCALE			16
+#define OMP_SCALE               16
 
 #ifdef _OPENMP
 #define THREAD_NUMBER omp_get_thread_num()
@@ -62,29 +67,32 @@ john_register_one(&fmt_argon2d);
 
 static struct fmt_tests tests[] = {
 	{"$argon2d$v=19$m=4096,t=3,p=1$ZGFtYWdlX2RvbmU$w9w3s5/zV8+PcAZlJhnTCOE+vBkZssmZf6jOq3dKv50","password"},
+	{"$argon2i$v=19$m=4096,t=3,p=1$ZGFtYWdlX2RvbmU$N59QwnpxDQZRj1/cO6bqm408dD6Z2Z9LKYpwFJSPVKA","password"},
 	{"$argon2d$v=19$m=4096,t=3,p=1$c2hvcnRfc2FsdA$zMrTcOAOUje6UqObRVh84Pe1K6gumcDqqGzRM0ILzYmj","sacrificed"},
+	{"$argon2i$v=19$m=4096,t=3,p=1$c2hvcnRfc2FsdA$1l4kAwUdAApoCbFH7ghBEf7bsdrOQzE4axIJ3PV0Ncrd","sacrificed"},
 	{"$argon2d$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$TLSTPihIo+5F67Y1vJdfWdB9","blessed_dead"},
+	{"$argon2i$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$vvjDVog22A5x9eljmB+2yC8y","blessed_dead"},
 	{"$argon2d$v=19$m=16384,t=4,p=3$YW5vdGhlcl9zYWx0$yw93eMxC8REPAwbQ0e/q43jR9+RI9HI/DHP75uzm7tQfjU734oaI3dzcMWjYjHzVQD+J4+MG+7oyD8dN/PtnmPCZs+UZ67E+rkXJ/wTvY4WgXgAdGtJRrAGxhy4rD7d5G+dCpqhrog","death_dying"},
+	{"$argon2i$v=19$m=16384,t=4,p=3$YW5vdGhlcl9zYWx0$K7unxwO5aeuZCpnIJ06FMCRKod3eRg8oIRzQrK3E6mGbyqlTvvl47jeDWq/5drF1COJkEF9Ty7FWXJZHa+vqlf2YZGp/4qSlAvKmdtJ/6JZU32iQItzMRwcfujHE+PBjbL5uz4966A","death_dying"},
 	{NULL}
 };
 
-struct argon2d_salt {
+struct argon2_salt {
 	uint32_t t_cost, m_cost, lanes;
 	uint32_t hash_size;
 	uint32_t salt_length;
 	char salt[SALT_SIZE];
+	argon2_type type;
 };
 
-struct argon2d_salt saved_salt;
+static struct argon2_salt saved_salt;
 static region_t * memory;
-void **pseudo_rands;
+static void **pseudo_rands;
 
 static char *saved_key;
 static int threads;
 static size_t saved_mem_size;
 static uint32_t saved_segment_length;
-
-int prev_m_cost;
 
 static unsigned char *crypted;
 
@@ -160,7 +168,7 @@ static void reset(struct db_main *db)
 		if (!db) {
 			for (i = 0; tests[i].ciphertext; i++)
 			{
-				struct argon2d_salt *salt;
+				struct argon2_salt *salt;
 				salt=get_salt(tests[i].ciphertext);
 				m_cost = MAX(m_cost, salt->m_cost);
 				if(i==0)
@@ -179,7 +187,7 @@ static void reset(struct db_main *db)
 		} else {
 			struct db_salt *salts = db->salts;
 			while (salts != NULL) {
-				struct argon2d_salt * salt=salts->salt;
+				struct argon2_salt * salt=salts->salt;
 				m_cost = MAX(m_cost, salt->m_cost);
 				salts = salts->next;
 			}
@@ -214,7 +222,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	ctx_init(&ctx);
 
-	res=argon2_decode_string(&ctx, ciphertext, Argon2_d);
+	if (!strncmp(ciphertext, FORMAT_TAG_d, FORMAT_TAG_LEN))
+		res=argon2_decode_string(&ctx, ciphertext, Argon2_d);
+	else if (!strncmp(ciphertext, FORMAT_TAG_i, FORMAT_TAG_LEN))
+		res=argon2_decode_string(&ctx, ciphertext, Argon2_i);
+	else
+		return 0;
 
 	if(res!=ARGON2_OK)
 	  return 0;
@@ -244,7 +257,10 @@ static void *get_binary(char *ciphertext)
 	argon2_context ctx;
 
 	ctx_init(&ctx);
-	argon2_decode_string(&ctx, ciphertext, Argon2_d);
+	if (!strncmp(ciphertext, FORMAT_TAG_d, FORMAT_TAG_LEN))
+		argon2_decode_string(&ctx, ciphertext, Argon2_d);
+	else
+		argon2_decode_string(&ctx, ciphertext, Argon2_i);
 	memset(out, 0, BINARY_SIZE);
 	memcpy(out, ctx.out, ctx.outlen);
 
@@ -253,14 +269,19 @@ static void *get_binary(char *ciphertext)
 
 static void *get_salt(char *ciphertext)
 {
-	static struct argon2d_salt salt;
+	static struct argon2_salt salt;
 	argon2_context ctx;
 
 	memset(&salt,0,sizeof(salt));
 
 	ctx_init(&ctx);
-
-	argon2_decode_string(&ctx, ciphertext, Argon2_d);
+	if (!strncmp(ciphertext, FORMAT_TAG_d, FORMAT_TAG_LEN)) {
+		argon2_decode_string(&ctx, ciphertext, Argon2_d);
+		salt.type = Argon2_d;
+	} else {
+		argon2_decode_string(&ctx, ciphertext, Argon2_i);
+		salt.type = Argon2_i;
+	}
 
 	salt.salt_length = ctx.saltlen;
 	salt.m_cost = ctx.m_cost;
@@ -278,7 +299,7 @@ static void set_salt(void *salt)
 	uint32_t i;
 	size_t mem_size;
 	uint32_t segment_length, memory_blocks;
-	memcpy(&saved_salt,salt,sizeof(struct argon2d_salt));
+	memcpy(&saved_salt,salt,sizeof(struct argon2_salt));
 
 
 	mem_size=sizeof(block)*saved_salt.m_cost;
@@ -344,7 +365,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (i = 0; i < count; i++) {
 		argon2_hash(saved_salt.t_cost, saved_salt.m_cost, saved_salt.lanes, saved_key + i * (PLAINTEXT_LENGTH + 1), strlen(saved_key + i * (PLAINTEXT_LENGTH + 1)), saved_salt.salt,
-		    saved_salt.salt_length, crypted + i * BINARY_SIZE, saved_salt.hash_size, 0, 0, Argon2_d, ARGON2_VERSION_NUMBER, memory[THREAD_NUMBER%threads].aligned, pseudo_rands[THREAD_NUMBER%threads]);
+		    saved_salt.salt_length, crypted + i * BINARY_SIZE, saved_salt.hash_size, 0, 0, saved_salt.type, ARGON2_VERSION_NUMBER, memory[THREAD_NUMBER%threads].aligned, pseudo_rands[THREAD_NUMBER%threads]);
 	}
 
 	return count;
@@ -395,7 +416,7 @@ static int get_hash_6(int index)
 static int salt_hash(void *_salt)
 {
 	int i;
-	struct argon2d_salt *salt = (struct argon2d_salt*)_salt;
+	struct argon2_salt *salt = (struct argon2_salt*)_salt;
 	unsigned int hash = 0;
 	char *p = salt->salt;
 
@@ -419,25 +440,25 @@ static int salt_hash(void *_salt)
 
 static unsigned int tunable_cost_t(void *_salt)
 {
-	struct argon2d_salt *salt=(struct argon2d_salt *)_salt;
+	struct argon2_salt *salt=(struct argon2_salt *)_salt;
 	return salt->t_cost;
 }
 
 static unsigned int tunable_cost_m(void *_salt)
 {
-	struct argon2d_salt *salt=(struct argon2d_salt *)_salt;
+	struct argon2_salt *salt=(struct argon2_salt *)_salt;
 	return salt->m_cost;
 }
 
 static unsigned int tunable_cost_l(void *_salt)
 {
-	struct argon2d_salt *salt=(struct argon2d_salt *)_salt;
+	struct argon2_salt *salt=(struct argon2_salt *)_salt;
 	return salt->lanes;
 }
 
 #endif
 
-struct fmt_main fmt_argon2d = {
+struct fmt_main fmt_argon2 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -448,7 +469,7 @@ struct fmt_main fmt_argon2d = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
-		sizeof(struct argon2d_salt),
+		sizeof(struct argon2_salt),
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
