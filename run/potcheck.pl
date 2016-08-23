@@ -23,7 +23,7 @@ my $MAX_CIPHERTEXT_SIZE = ($LINE_BUFFER_SIZE - $PLAINTEXT_BUFFER_SIZE);
 my $POT_BUFFER_CT_TRIM_SIZE = ($MAX_CIPHERTEXT_SIZE - 13 - 32);
 
 # options:
-my $help = 0; my $quiet = 1; my $verbosity = 0; my $stop_on_error = 0;
+my $help = 0; my $quiet = 0; my $verbosity = 0; my $stop_on_error = 0;
 my $canonize_fix = 0;   # canonize .pot lines, (i.e. $dyna_33$ -> $NT$ type stuff)
 my $encode_fix  = 0;    # normalize to utf8 ?  (NOTE, this may be harder than hell)
 my $longline_fix = 0;   # this will be done by default is ANY other 'fix' is selected.
@@ -39,12 +39,13 @@ my $cato = 0;       # cato error.  If seen, return 1 and print explanation.
                     # 'fix' his .pot file.
 my $fix = 0;        # this will cause output in .pot format, fixing lines.
                     # if ANY of the *_fix vars get set, then we set this to true
+my $line_no = 0;
 
 parseArgs();
 
 while (my $line = <STDIN>) {
+	$line_no++;
 	chomp $line;
-	if (length($line) > $max_ciphertext_size) { $cato = 1; }
 	minimize($line);
 }
 exit (!!$cato);
@@ -55,7 +56,7 @@ sub usage {
 	print "\targs:\n";
 	print "\t -? | -help    Provide this help screen\n";
 #	print "\t -quiet        Less output (multiple -q allowed)\n";
-#	print "\t -verbose      Higher output (counteracts -q)\n";
+	print "\t -verbose      More output\n";
 	print "\t -validate     Returns 0 if .pot valid, or 1 if any lines are problems\n";
 #	print "\t -stoponerror  If there is any fatal problem, stop\n";
 #	print "\t -canonize_fix Apply canonizaton rules to convert formats\n";
@@ -70,12 +71,12 @@ sub parseArgs {
 	my $help = 0;
 	my $err = GetOptions(
 		'help|?'            => \$help,
-		'quiet+'            => \$quiet,
+	#	'quiet+'            => \$quiet,
 		'verbose+'          => \$verbosity,
-		'stoponerror!'      => \$stop_on_error,
+	#	'stoponerror!'      => \$stop_on_error,
 		'validate!'         => \$validate,
-		'canonize_fix!'     => \$canonize_fix,
-		'encode_fix!'       => \$encode_fix,
+	#	'canonize_fix!'     => \$canonize_fix,
+	#	'encode_fix!'       => \$encode_fix,
 		'longline_fix!'     => \$longline_fix,
 		);
 	if ($err == 0) { usage("exiting, due to invalid option"); }
@@ -106,6 +107,9 @@ sub fixencode {
 sub fixlongline {
 	my $pos = index($_[0], ':');
 	if ($pos <= $MAX_CIPHERTEXT_SIZE) { return $_[0]; }
+	if ($verbosity > 1) {
+		print STDERR sprintf("Long line %d: '%.50s(...)'\n", $line_no, $_[0])
+	}
 	$cato++;
 	my $line = $_[0];
 	my $pass = substr($line, $pos);
