@@ -231,10 +231,10 @@ void opencl_process_event(void);
 #define BENCH_CLERROR(cl_error, message)	  \
 	do { cl_int __err = (cl_error); \
 		if (__err != CL_SUCCESS) { \
-			if (!ocl_autotune_running || options.verbosity > 4) \
+			if (!ocl_autotune_running || options.verbosity == VERB_MAX) \
 				fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
 			        get_error_name(__err), __FILE__, __LINE__, message); \
-			else if (options.verbosity == 4) \
+			else if (options.verbosity > VERB_LEGACY) \
 				fprintf(stderr, " %s\n", get_error_name(__err)); \
 			if (!ocl_autotune_running) \
 				error(); \

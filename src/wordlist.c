@@ -849,7 +849,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					hash_log++;
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
-				if (options.verbosity > VERB_DEFAULT)
 				log_event("- dupe suppression: hash size %u, "
 					"temporarily allocating "LLd" bytes",
 					hash_size,
@@ -975,7 +974,7 @@ GRAB_NEXT_PIPE_LOAD:
 			{
 				char *cpi, *cpe;
 
-				if (options.verbosity > VERB_DEFAULT)
+				if (options.verbosity == VERB_MAX)
 				log_event("- Reading next block of candidate passwords from stdin pipe");
 
 				rules = rules_keep;
@@ -1020,7 +1019,7 @@ GRAB_NEXT_PIPE_LOAD:
 						}
 					}
 				}
-				if (options.verbosity > VERB_DEFAULT) {
+				if (options.verbosity == VERB_MAX) {
 					sprintf(msg_buf, "- Read block of "LLd" "
 					        "candidate passwords from pipe",
 					        (long long)nWordFileLines);
@@ -1032,7 +1031,7 @@ GRAB_NEXT_PIPE_LOAD:
 MEM_MAP_LOAD:
 			rules = rules_keep;
 			nWordFileLines = 0;
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity == VERB_MAX)
 				log_event("- Reading next block of candidate from the memory mapped file");
 			release_sharedmem_object(pIPC);
 			pIPC = next_sharedmem_object();

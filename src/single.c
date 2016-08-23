@@ -451,24 +451,24 @@ static void single_run(void)
 		}
 
 		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
 			continue;
 		}
 
 		if (strcmp(prerule, rule)) {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
 				rule_number + 1, prerule, rule);
 		} else {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Rule #%d: '%.100s' accepted",
 				rule_number + 1, prerule);
 		}
 
 		if (saved_min != rec_rule) {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Oldest still in use is now rule #%d",
 				rec_rule + 1);
 			saved_min = rec_rule;

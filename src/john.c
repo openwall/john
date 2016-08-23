@@ -487,7 +487,7 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 
 static void john_omp_show_info(void)
 {
-	if (options.verbosity >= VERB_DEFAULT)
+	if (options.verbosity >= VERB_LEGACY)
 #if HAVE_MPI
 	if (mpi_p == 1)
 #endif
@@ -819,8 +819,8 @@ static void john_load_conf(void)
 
 		if (options.verbosity < 1 || options.verbosity > VERB_MAX) {
 			if (john_main_process)
-				fprintf(stderr, "Invalid verbosity "
-				        "level in config file, use 1-5\n");
+				fprintf(stderr, "Invalid verbosity level in "
+				        "config file, use 1-%u\n", VERB_MAX);
 			error();
 		}
 	}
@@ -1241,7 +1241,7 @@ static void john_load(void)
 				log_event("Cost %d (%s) is %u for all loaded hashes",
 				          i+1, database.format->params.tunable_cost_name[i],
 				          database.min_cost[i]);
-				if (options.verbosity > VERB_DEFAULT &&
+				if (options.verbosity >= VERB_LEGACY &&
 				    john_main_process)
 				printf("Cost %d (%s) is %u for all loaded "
 				       "hashes\n", i+1,
@@ -1291,7 +1291,7 @@ static void john_load(void)
 			log_event("- Reassembled %d split passwords for "
 			          "loopback", loop_db.plaintexts->count);
 			if (john_main_process &&
-			    options.verbosity > VERB_DEFAULT)
+			    options.verbosity >= VERB_LEGACY)
 				fprintf(stderr,
 				        "Reassembled %d split passwords for "
 				        "loopback\n",

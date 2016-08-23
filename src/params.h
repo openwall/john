@@ -400,8 +400,9 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /* Number of custom Mask placeholders */
 #define MAX_NUM_CUST_PLHDR		9
 
-/* Verbosity level */
+/* Verbosity level. Higher is more chatty. */
 #define VERB_MAX			5
-#define VERB_DEFAULT			3
+#define VERB_LEGACY			3
+#define VERB_DEFAULT			2
 
 #endif

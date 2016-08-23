@@ -641,7 +641,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	if (lws_tune_flag)
 		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, *forced_global_keys);
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
 		global_work_size, local_work_size);
 }

@@ -244,7 +244,7 @@ static void crk_remove_salt(struct db_salt *salt)
 		}
 	}
 #ifdef POTSYNC_DEBUG
-	if (options.verbosity >= 2 && crk_params.binary_size &&
+	if (options.verbosity > 1 && crk_params.binary_size &&
 	    crk_db->salt_count < crk_db->password_count)
 		log_event("- got rid of a salt, %d left", crk_db->salt_count);
 #endif
@@ -633,7 +633,7 @@ int crk_reload_pot(void)
 		log_event("+ pot sync removed %d hashes; %s",
 		          others, crk_loaded_counts());
 
-	if (others && options.verbosity > VERB_DEFAULT) {
+	if (others && options.verbosity > VERB_LEGACY) {
 		if (options.node_count)
 			fprintf(stderr, "%u: %s\n",
 			        options.node_min, crk_loaded_counts());

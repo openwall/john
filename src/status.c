@@ -442,7 +442,7 @@ void status_print(void)
 				dev_get_temp[dev](temp_dev_id[dev],
 				                  &temp, &fan, &util, &cl, &ml);
 				if (temp >= 0 &&
-				    (options.verbosity > VERB_DEFAULT ||
+				    (options.verbosity > VERB_LEGACY ||
 				    cfg_get_bool(SECTION_OPTIONS,
 				                 SUBSECTION_GPU,
 				                 "TempStatus", 1))) {
@@ -458,14 +458,14 @@ void status_print(void)
 						             gpu_degree_sign);
 				}
 				if (util > 0 &&
-				    (options.verbosity > VERB_DEFAULT ||
+				    (options.verbosity > VERB_LEGACY ||
 				    cfg_get_bool(SECTION_OPTIONS,
 				                 SUBSECTION_GPU,
 				                 "UtilStatus", 0)))
 					n += sprintf(s_gpu + n,
 					             " util:%u%%", util);
 				if (fan >= 0 &&
-				    (options.verbosity > VERB_DEFAULT ||
+				    (options.verbosity > VERB_LEGACY ||
 				    cfg_get_bool(SECTION_OPTIONS,
 				                 SUBSECTION_GPU,
 				                 "FanStatus", 0)))

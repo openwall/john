@@ -252,7 +252,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	} else
 		find_best_gws(fmt);
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 

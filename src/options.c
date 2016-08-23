@@ -396,7 +396,8 @@ void opt_print_hidden_usage(void)
 	puts("--regen-lost-salts=N       brute force unknown salts (see doc/OPTIONS)");
 	puts("--mkv-stats=FILE           \"Markov\" stats file (see doc/MARKOV)");
 	puts("--reject-printable         reject printable binaries");
-	puts("--verbosity=N              change verbosity (1-5, default 3)");
+	printf("--verbosity=N              change verbosity (1-%u, default %u)\n",
+	       VERB_MAX, VERB_DEFAULT);
 	puts("--show=types               show some information about hashes in file (machine");
 	puts("                           readable)");
 	puts("--show=invalid             show any lines from input that are not valid for");
@@ -767,10 +768,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 
-	if (options.flags & FLG_VERBOSITY &&
+	if (john_main_process && options.flags & FLG_VERBOSITY &&
 	    (options.verbosity < 1 || options.verbosity > VERB_MAX)) {
-		if (john_main_process)
-			fprintf(stderr, "Invalid --verbosity level, use 1-5\n");
+		fprintf(stderr, "Invalid --verbosity level, use 1-%u\n",
+		        VERB_MAX);
 		error();
 	}
 	if (options.length < 0)

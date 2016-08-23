@@ -914,9 +914,9 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		}
 	}
-	if (options.verbosity > VERB_DEFAULT)
-	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
-		global_work_size, local_work_size);
+	if (options.verbosity > VERB_LEGACY)
+		fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
+		        global_work_size, local_work_size);
 }
 
 /* Use only for smaller bitmaps < 16MB */

@@ -152,7 +152,7 @@ static void reset(struct db_main *db)
 {
 	static int printed=0;
 
-	if (!printed && options.verbosity > VERB_DEFAULT)
+	if (!printed && options.verbosity > VERB_LEGACY)
 	{
 		int i;
 		uint32_t m_cost, prev_m_cost;

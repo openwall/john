@@ -69,7 +69,7 @@
 // If we are a release build, only output OpenCL build log if
 // there was a fatal error (or --verbosity was increased).
 #ifdef JTR_RELEASE_BUILD
-#define LOG_VERB (VERB_DEFAULT + 1)
+#define LOG_VERB VERB_LEGACY
 #else
 #define LOG_VERB VERB_DEFAULT
 #endif
@@ -934,7 +934,7 @@ static void dev_init(int sequential_id)
 			len--;
 		opencl_log[len] = '\0';
 
-		if (options.verbosity >= 2 && !printed[sequential_id]++)
+		if (options.verbosity > 1 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s [%s]\n",
 			        sequential_id, device_name, opencl_log);
 		log_event("Device %d: %s [%s]", sequential_id, device_name, opencl_log);
@@ -945,7 +945,7 @@ static void dev_init(int sequential_id)
 		while (*dname == ' ')
 			dname++;
 
-		if (options.verbosity >= 2 && !printed[sequential_id]++)
+		if (options.verbosity > 1 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d: %s\n", sequential_id, dname);
 		log_event("Device %d: %s", sequential_id, dname);
 	}
@@ -1050,7 +1050,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	// include source is thread safe.
 	build_opts = include_source("$JOHN/kernels", sequential_id, opts);
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 		fprintf(stderr, "Options used: %s %s\n", build_opts, kernel_source_file);
 
 	build_code = clBuildProgram(*program, 0, NULL,
@@ -1070,7 +1070,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	// Report build errors and warnings
 	if ((build_code != CL_SUCCESS)) {
 		// Give us much info about error and exit
-		if (options.verbosity <= VERB_DEFAULT)
+		if (options.verbosity <= VERB_LEGACY)
 			fprintf(stderr, "Options used: %s %s\n", build_opts, kernel_source_file);
 		fprintf(stderr, "Build log: %s\n", build_log);
 		fprintf(stderr, "Error %d building kernel %s. DEVICE_INFO=%d\n",
@@ -1252,7 +1252,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	if (self->methods.crypt_all(&count, autotune_salts) < 0) {
 		runtime = looptime = 0;
 
-		if (options.verbosity > VERB_DEFAULT)
+		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, " (error occurred)");
 		clear_profiling_events();
 		release_clobj();
@@ -1385,7 +1385,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	gws = global_work_size;
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 		fprintf(stderr, "Calculating best LWS for GWS="Zu"\n", gws);
 
 	if (get_device_version(sequential_id) < 110) {
@@ -1502,7 +1502,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			global_work_size = GET_EXACT_MULTIPLE(gws, my_work_group);
 		}
 
-		if (options.verbosity > VERB_DEFAULT)
+		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, "Testing LWS=" Zu " GWS=" Zu " ...", my_work_group, global_work_size);
 
 		sumStartTime = 0;
@@ -1541,7 +1541,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		}
 		if (!endTime)
 			break;
-		if (options.verbosity > VERB_DEFAULT)
+		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, " %s%s\n", ns2string(sumEndTime - sumStartTime),
 			    ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997)
 			        ? "+" : "");
@@ -1682,7 +1682,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		max_run_time = 0;
 	}
 
-	if (options.verbosity > VERB_DEFAULT) {
+	if (options.verbosity > VERB_LEGACY) {
 		if (!printed_mask++ && mask_int_cand.num_int_cand > 1)
 			fprintf(stderr, "Internal mask, multiplier: %u (target: %u)\n",
 			        mask_int_cand.num_int_cand, mask_int_cand_target);
@@ -1730,7 +1730,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (!(run_time = gws_test(num, rounds, sequential_id)))
 			break;
 
-		if (options.verbosity <= VERB_DEFAULT)
+		if (options.verbosity <= VERB_LEGACY)
 			advance_cursor();
 
 		raw_speed = (kpc / (run_time / 1E9)) * mask_int_cand.num_int_cand;
@@ -1739,7 +1739,7 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (run_time < min_time)
 			min_time = run_time;
 
-		if (options.verbosity > VERB_DEFAULT)
+		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, "gws: %9zu\t%10s%12llu "
 			        "rounds/s%10s per crypt_all()",
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
@@ -1749,19 +1749,19 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			if (!optimal_gws)
 				optimal_gws = num;
 
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity > VERB_LEGACY)
 				fprintf(stderr, " - too slow\n");
 			break;
 		}
 
 		if (speed > (1.01 * best_speed)) {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity > VERB_LEGACY)
 				fprintf(stderr, (speed > 2 * best_speed) ? "!" : "+");
 			best_speed = speed;
 			global_speed = raw_speed;
 			optimal_gws = num;
 		}
-		if (options.verbosity > VERB_DEFAULT)
+		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, "\n");
 	}
 	// Release profiling queue and create new with profiling disabled
@@ -1986,7 +1986,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 			size_t program_size = opencl_read_source(bin_name, &kernel_source);
 			opencl_build_from_binary(sequential_id, &program[sequential_id], kernel_source, program_size);
 		} else {
-			if (warn && options.verbosity >= VERB_DEFAULT) {
+			if (warn && options.verbosity > VERB_DEFAULT) {
 				fprintf(stderr, "Building the kernel, this "
 				        "could take a while\n");
 				fflush(stdout);
@@ -1994,7 +1994,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 			opencl_read_source(kernel_filename, &kernel_source);
 			opencl_build(sequential_id, opts, 1, bin_name, &program[sequential_id], kernel_filename, kernel_source);
 		}
-		if (warn && options.verbosity >= VERB_DEFAULT) {
+		if (warn && options.verbosity > VERB_DEFAULT) {
 			if ((runtime = (unsigned long)(time(NULL) - startTime))
 			        > 2UL)
 				fprintf(stderr, "Build time: %lu seconds\n",
@@ -2495,7 +2495,7 @@ void opencl_list_devices(void)
 
 				clGetPlatformInfo(platforms[i].platform,
 				                  CL_PLATFORM_EXTENSIONS, sizeof(dname), dname, NULL);
-				if (options.verbosity > VERB_DEFAULT)
+				if (options.verbosity > VERB_LEGACY)
 					printf("    Platform extensions:    %s\n", dname);
 
 				/* Obtain a list of devices available */
@@ -2601,7 +2601,7 @@ void opencl_list_devices(void)
 
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_EXTENSIONS, sizeof(dname), dname, NULL);
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity > VERB_LEGACY)
 				printf("    Device extensions:      %s\n", dname);
 
 			clGetDeviceInfo(devices[sequence_nr],
