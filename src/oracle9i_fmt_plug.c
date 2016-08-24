@@ -188,47 +188,28 @@ static char *get_key(int index) {
 	return plain_key;
 }
 
-int ORACLE_TNS_Create_Key_SHA1 (unsigned char* input, int input_len, const unsigned char* Entropy, int EntropyLen, int desired_keylen, unsigned char* out_key)
+int ORACLE_TNS_Create_Key_SHA1 (unsigned char *input, int input_len, const unsigned char *Entropy, int EntropyLen, int desired_keylen, unsigned char *out_key)
 {
-	const unsigned char fixed23 [] = {0xF2,0xFF,0x97,0x87,0x15,0x37,0x07,0x76,0x07,0x27,0xE2,0x7F,0xA3,0xB1,0xD6,0x73,0x3F,0x2F,0xD1,0x52,0xAB,0xAC,0xC0};
-	unsigned char sha_hash[20];
-	unsigned char sha_hash2[20];
 	SHA_CTX ctx;
-	int i;
 
-	if (Entropy == NULL)
-	{
-		Entropy = fixed23;
-		EntropyLen = 23;
-	}
+	SHA1_Init (&ctx);
+	SHA1_Update (&ctx, input, input_len);
+	SHA1_Update (&ctx, Entropy, EntropyLen);
+	SHA1_Final (out_key, &ctx);
 
-	for (i = 0; i < desired_keylen; i += 20)
-	{
-		SHA1_Init (&ctx);
-		SHA1_Update (&ctx, input, input_len);
-		if (i != 0)
-		{
-			sha_hash2[0]=2;
-			SHA1_Update (&ctx, sha_hash2, i);
-		}
-		SHA1_Update (&ctx, Entropy, EntropyLen);
-		SHA1_Final (sha_hash, &ctx);
-
-		memcpy (sha_hash2, sha_hash, 20);
-		if (desired_keylen-i < 20)
-			memcpy (out_key+i, sha_hash, desired_keylen-i);
-		else
-			memcpy (out_key+i, sha_hash, 20);
-	}
-
+	SHA1_Init (&ctx);
+	SHA1_Update (&ctx, input, input_len);
+	SHA1_Update (&ctx, "\x2", 1);
+	SHA1_Update (&ctx, &out_key[1], 19);
+	SHA1_Update (&ctx, Entropy, EntropyLen);
+	SHA1_Final (out_key+20, &ctx);
 	return 0;
-
 }
 
-int ORACLE_TNS_Decrypt_3DES_CBC (unsigned char* input, int input_len, const unsigned char key[24], unsigned char* decrypted)
+int ORACLE_TNS_Decrypt_3DES_CBC (unsigned char* input, int input_len, const unsigned char key[24], unsigned char *decrypted)
 {
 	DES_key_schedule ks1,ks2,ks3;
-	const unsigned char iv[] = {0x80,0x20,0x40,0x04,0x08,0x02,0x10,0x01};
+	unsigned char iv[] = {0x80,0x20,0x40,0x04,0x08,0x02,0x10,0x01};
 
 	DES_set_key((DES_cblock*) &key[0], &ks1);
 	DES_set_key((DES_cblock*) &key[8], &ks2);
@@ -239,18 +220,24 @@ int ORACLE_TNS_Decrypt_3DES_CBC (unsigned char* input, int input_len, const unsi
 	return 0;
 }
 
+static unsigned char fixed31 [] = {0xA2,0xFB,0xE6,0xAD,0x4C,0x7D,0x1E,0x3D,
+                                   0x6E,0xB0,0xB7,0x6C,0x97,0xEF,0xFF,0x84,
+                                   0x44,0x71,0x02,0x84,0xAC,0xF1,0x3B,0x29,
+                                   0x5C,0x0F,0x0C,0xB1,0x87,0x75,0xEF};
+static unsigned char fixed23 [] = {0xF2,0xFF,0x97,0x87,0x15,0x37,0x07,0x76,
+                                   0x07,0x27,0xE2,0x7F,0xA3,0xB1,0xD6,0x73,
+                                   0x3F,0x2F,0xD1,0x52,0xAB,0xAC,0xC0};
 
-static int ORACLE_TNS_Decrypt_Password_9i (unsigned char OracleHash[8], unsigned char* auth_sesskey, int auto_sesskeylen, unsigned char *auth_password, int auth_passwordlen, unsigned char* decrypted)
+static int ORACLE_TNS_Decrypt_Password_9i (unsigned char OracleHash[8], unsigned char *auth_sesskey, int auto_sesskeylen, unsigned char *auth_password, int auth_passwordlen, unsigned char *decrypted)
 {
-	const unsigned char fixed31 [] = {0xA2,0xFB,0xE6,0xAD,0x4C,0x7D,0x1E,0x3D,0x6E,0xB0,0xB7,0x6C,0x97,0xEF,0xFF,0x84,0x44,0x71,0x02,0x84,0xAC,0xF1,0x3B,0x29,0x5C,0x0F,0x0C,0xB1,0x87,0x75,0xEF};
 	unsigned char triple_des_key[64];
-	unsigned char sesskey[16];
+	unsigned char sesskey[24];
 	unsigned char obfuscated[256];
 	int PassLen = auth_passwordlen;
 
 	ORACLE_TNS_Create_Key_SHA1 (OracleHash, 8, fixed31, sizeof(fixed31), 24, triple_des_key);
 	ORACLE_TNS_Decrypt_3DES_CBC (auth_sesskey, 16, triple_des_key, sesskey);
-	ORACLE_TNS_Create_Key_SHA1 (sesskey, 16, NULL, 0, 40, triple_des_key);
+	ORACLE_TNS_Create_Key_SHA1 (sesskey, 16, fixed23, sizeof(fixed23), 24, triple_des_key);
 	ORACLE_TNS_Decrypt_3DES_CBC (auth_password, PassLen, triple_des_key, obfuscated);
 
 	//ORACLE_TNS_DeObfuscate (triple_des_key, obfuscated, &PassLen);
