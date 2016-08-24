@@ -88,6 +88,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	UTF16 cur_key_mixedcase[MAX_USERNAME_LEN+2];
 	int len;
 
+	if (strlen(ciphertext) < FORMAT_TAG_LEN)
+		return 0;
 	if (memcmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ciphertext += FORMAT_TAG_LEN;
@@ -213,7 +215,10 @@ int ORACLE_TNS_Create_Key_SHA1 (unsigned char* input, int input_len, const unsig
 		SHA1_Final (sha_hash, &ctx);
 
 		memcpy (sha_hash2, sha_hash, 20);
-		memcpy (out_key+i, sha_hash, desired_keylen-i);
+		if (desired_keylen-i < 20)
+			memcpy (out_key+i, sha_hash, desired_keylen-i);
+		else
+			memcpy (out_key+i, sha_hash, 20);
 	}
 
 	return 0;
@@ -362,7 +367,7 @@ struct fmt_main fmt_oracle9i = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		NULL,
