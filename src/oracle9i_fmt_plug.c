@@ -45,7 +45,7 @@ john_register_one(&fmt_oracle9i);
 #define BINARY_ALIGN                    1
 #define MAX_USERNAME_LEN                30
 #define SALT_SIZE                       (sizeof(ora9_salt))
-#define SALT_ALIGN                      2
+#define SALT_ALIGN                      (sizeof(unsigned int))
 #define CIPHERTEXT_LENGTH               16
 
 #define MIN_KEYS_PER_CRYPT		1
@@ -65,10 +65,10 @@ static struct fmt_tests tests[] = {
 };
 
 typedef struct ora9_salt_t {
+	unsigned int userlen, auth_pass_len;
 	UTF16 user[MAX_USERNAME_LEN+1];
 	unsigned char auth_sesskey[16];
 	unsigned char auth_pass[40];
-	int userlen, auth_pass_len;
 } ora9_salt;
 
 static ora9_salt *cur_salt;
