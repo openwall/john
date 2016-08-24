@@ -70,7 +70,7 @@ static const char AS400_BASE16_CHARSET[] = "0123456789ABCDEFabcdef";
 
 // Definition of structure to hold data to pass between functions (we abuse the salt functions for this)
 static struct custom_salt {
-	char username_utf16be[(AS400_USERID_LENGTH*2)];     // holds the userid of this user converted to UTF-16BE
+	char username_utf16be[(AS400_USERID_LENGTH*2)+1];   // holds the userid of this user converted to UTF-16BE
 	uint8_t storedbinaryhash[BINARY_LENGTH];			// holds the binary representation of the hash for this user
 } *cur_salt;
 
@@ -201,7 +201,7 @@ static void *get_salt(char *ciphertext)
 	
 	for(i = 0; i < CIPHERTEXT_LENGTH; i++)
 		hash[i] = ciphertext[i+AS400_USERID_LENGTH];
-	hash[i] = '\0';
+	hash[CIPHERTEXT_LENGTH] = '\0';
 	
 	// convert ciphertext to binary and store for later use 
 	len = strlen(hash) >> 1;
@@ -255,7 +255,7 @@ static char *as400_get_key(int index)
 static void as400_password_hash(const char *userid_utf16be, const char *password, uint8_t *hash)
 { 
     int i;
-	char password_utf16be[PLAINTEXT_LENGTH*2];
+	char password_utf16be[(PLAINTEXT_LENGTH*2)+1];
 	
 	SHA_CTX s_ctx;
 	uint8_t digest[SHA_DIGEST_LENGTH];
