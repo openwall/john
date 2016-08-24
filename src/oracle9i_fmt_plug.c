@@ -56,10 +56,11 @@ john_register_one(&fmt_oracle9i);
 //
 //  The keys are $ora9i$  user  $  auth_sess_key $ auth_pass_key     These can be found in sniffed network traffic.
 static struct fmt_tests tests[] = {
-	{"$ora9i$password9$8CF28B36E4F3D2095729CF59510003BF$3078D7DE44385654CC952A9C56E2659B", "password9"},
+	{"$ora9i$PASSWORD9$8CF28B36E4F3D2095729CF59510003BF$3078D7DE44385654CC952A9C56E2659B", "password9"},
 	{"$ora9i$scott$819D062FE5D93F79FF19BDAFE2F9872A$C6D1ED7E6F4D3A6D94F1E49460122D39A3832CC792AD7137", "scottscottscott1"},
-	{"$ora9i$scott$8E9E3E07864D99BB602C443F45E4AFC1$3591851B327BB85A114BD73D51B80AF58E942002B9612F82", "scottscottscott1234"},
+	{"$ora9i$SCOTT$8E9E3E07864D99BB602C443F45E4AFC1$3591851B327BB85A114BD73D51B80AF58E942002B9612F82", "scottscottscott1234"},
 	{"$ora9i$scott$4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345"},
+	{"4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345",      {"scott"} },
 	{NULL}
 };
 
@@ -182,12 +183,7 @@ static void oracle_set_key(char *key, int index) {
 }
 
 static char *get_key(int index) {
-	static UTF8 UC_Key[PLAINTEXT_LENGTH*3*3+1];
-	// Calling this will ONLY upcase characters 'valid' in the code page. There are MANY
-	// code pages which mssql WILL upcase the letter (in UCS-2), but there is no upper case value
-	// in the code page.  Thus we MUST keep the lower cased letter in this case.
-	enc_uc(UC_Key, sizeof(UC_Key), (UTF8*)plain_key, strlen(plain_key));
-	return (char*)UC_Key;
+	return plain_key;
 }
 
 int ORACLE_TNS_Create_Key_SHA1 (unsigned char* input, int input_len, const unsigned char* Entropy, int EntropyLen, int desired_keylen, unsigned char* out_key)
@@ -196,7 +192,7 @@ int ORACLE_TNS_Create_Key_SHA1 (unsigned char* input, int input_len, const unsig
 	unsigned char sha_hash[20];
 	unsigned char sha_hash2[20];
 	SHA_CTX ctx;
-	int EntropyLen, i;
+	int i;
 
 	if (Entropy == NULL)
 	{
@@ -350,7 +346,7 @@ struct fmt_main fmt_oracle9i = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
+		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE | FMT_CASE,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
