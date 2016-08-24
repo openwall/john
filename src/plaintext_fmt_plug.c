@@ -96,7 +96,7 @@ static MAYBE_INLINE ARCH_WORD_32 string_hash(char *s)
 	ARCH_WORD_32 hash, extra;
 	char *p;
 
-	p = s + FORMAT_TAG_LEN;
+	p = s + 2;
 	hash = (unsigned char)s[0];
 	if (!hash)
 		goto out;
