@@ -705,7 +705,6 @@ void listconf_parse_late(void)
 		do {
 			int ShowIt = 1, i;
 
-/* required for thin formats, these adjust their methods here */
 			fmt_init(format);
 
 			if (options.listconf[14] == '=' || options.listconf[14] == ':') {
@@ -874,8 +873,7 @@ void listconf_parse_late(void)
 				printf("\tcmp_exact()\n");
 				printf("\n\n");
 			}
-			if (format->params.flags & FMT_DYNAMIC)
-				fmt_done(format); // required for thin formats
+			fmt_done(format);
 		} while ((format = format->next));
 		exit(EXIT_SUCCESS);
 	}
