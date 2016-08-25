@@ -28,11 +28,20 @@ john_register_one(&fmt_oracle9i);
 #include "sha.h"
 #include "unicode.h"
 #include "base64_convert.h"
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               512 // tuned on core i7
+//#define OMP_SCALE                8192 // tuned on K8-Dual HT
+#endif
+#endif
+
 #include "memdbg.h"
 
-#define FORMAT_LABEL                    "oracle9i"
-#define FORMAT_NAME                     "Oracle 9i (sniffed)"
-#define FORMAT_TAG                      "$ora9i$"
+#define FORMAT_LABEL                    "o3logon"
+#define FORMAT_NAME                     "Oracle O3LOGON protocol"
+#define FORMAT_TAG                      "$o3logon$"
 #define FORMAT_TAG_LEN                  (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME                  "DES 32/" ARCH_BITS_STR
 
@@ -56,10 +65,10 @@ john_register_one(&fmt_oracle9i);
 //
 //  The keys are $ora9i$  user  $  auth_sess_key $ auth_pass_key     These can be found in sniffed network traffic.
 static struct fmt_tests tests[] = {
-	{"$ora9i$PASSWORD9$8CF28B36E4F3D2095729CF59510003BF$3078D7DE44385654CC952A9C56E2659B", "password9"},
-	{"$ora9i$scott$819D062FE5D93F79FF19BDAFE2F9872A$C6D1ED7E6F4D3A6D94F1E49460122D39A3832CC792AD7137", "scottscottscott1"},
-	{"$ora9i$SCOTT$8E9E3E07864D99BB602C443F45E4AFC1$3591851B327BB85A114BD73D51B80AF58E942002B9612F82", "scottscottscott1234"},
-	{"$ora9i$scott$4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345"},
+	{"$o3logon$PASSWORD9$8CF28B36E4F3D2095729CF59510003BF$3078D7DE44385654CC952A9C56E2659B", "password9"},
+	{"$o3logon$scott$819D062FE5D93F79FF19BDAFE2F9872A$C6D1ED7E6F4D3A6D94F1E49460122D39A3832CC792AD7137", "scottscottscott1"},
+	{"$o3logon$SCOTT$8E9E3E07864D99BB602C443F45E4AFC1$3591851B327BB85A114BD73D51B80AF58E942002B9612F82", "scottscottscott1234"},
+	{"$o3logon$scott$4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345"},
 	{"4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345",      {"scott"} },
 	{NULL}
 };
@@ -72,14 +81,41 @@ typedef struct ora9_salt_t {
 } ora9_salt;
 
 static ora9_salt *cur_salt;
-static UTF16 cur_key[PLAINTEXT_LENGTH + 1];
+
+static UTF16 (*cur_key)[PLAINTEXT_LENGTH + 1];
+static char (*plain_key)[PLAINTEXT_LENGTH + 1];
+static int *cur_key_len;
+static int *cracked, any_cracked;
 
 static DES_key_schedule desschedule1;	// key 0x0123456789abcdef
 
+static void init(struct fmt_main *self)
+{
+	DES_set_key((DES_cblock *)"\x01\x23\x45\x67\x89\xab\xcd\xef", &desschedule1);
 
-static int key_length;
-static char *plain_key;
-static int cracked;
+#ifdef _OPENMP
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	cur_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*cur_key));
+	plain_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*plain_key));
+	cur_key_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*cur_key_len));
+	cracked = mem_calloc(self->params.max_keys_per_crypt,
+	                     sizeof(*cracked));
+}
+
+static void done(void)
+{
+	MEM_FREE(cracked);
+	MEM_FREE(cur_key_len);
+	MEM_FREE(plain_key);
+	MEM_FREE(cur_key);
+}
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -117,11 +153,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static char cp[512];
+	static char cp[128];
 
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 	if (!split_fields[0])
+		return split_fields[1];
+	if (strlen(split_fields[1]) + strlen(split_fields[0]) > sizeof(cp)-(2+FORMAT_TAG_LEN))
 		return split_fields[1];
 	sprintf (cp, "%s%s$%s", FORMAT_TAG, split_fields[0], split_fields[1]);
 	return cp;
@@ -129,28 +167,11 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[512];
+	static char out[128];
 	strnzcpy(out, ciphertext, sizeof(out));
 	enc_strupper(&out[FORMAT_TAG_LEN]);
 	return out;
 }
-
-static void init(struct fmt_main *self)
-{
-	unsigned char deskey[8];
-
-	deskey[0] = 0x01;
-	deskey[1] = 0x23;
-	deskey[2] = 0x45;
-	deskey[3] = 0x67;
-	deskey[4] = 0x89;
-	deskey[5] = 0xab;
-	deskey[6] = 0xcd;
-	deskey[7] = 0xef;
-
-	DES_set_key((DES_cblock *)deskey, &desschedule1);
-}
-
 static void set_salt(void *salt) {
 	cur_salt = (ora9_salt *)salt;
 }
@@ -158,34 +179,34 @@ static void set_salt(void *salt) {
 static void oracle_set_key(char *key, int index) {
 	UTF16 cur_key_mixedcase[PLAINTEXT_LENGTH+1];
 	UTF16 *c;
+	int key_length;
 
-	plain_key = key;
+	strcpy(plain_key[index], key);
 	// Can't use enc_to_utf16_be() because we need to do utf16_uc later
-	key_length = enc_to_utf16((UTF16 *)cur_key_mixedcase, PLAINTEXT_LENGTH, (unsigned char*)key, strlen(key));
+	key_length = enc_to_utf16(cur_key_mixedcase, PLAINTEXT_LENGTH, (unsigned char*)key, strlen(key));
 
 	if (key_length < 0)
 		key_length = strlen16(cur_key_mixedcase);
 
 	// We convert and uppercase in one shot
-	key_length = utf16_uc((UTF16 *)cur_key, PLAINTEXT_LENGTH, cur_key_mixedcase, key_length);
+	key_length = utf16_uc(cur_key[index], PLAINTEXT_LENGTH, cur_key_mixedcase, key_length);
 	// we have no way to 'undo' here, since the expansion is due to single-2-multi expansion in the upcase,
 	// and we can not 'fix' our password.  We simply have to 'not' properly decrypt this one, but protect ourselves.
 	if (key_length < 0)
 		key_length *= -1;
-
+	cur_key_len[index] = key_length * sizeof(UTF16);
 	// Now byte-swap to UTF16-BE
-	c = cur_key;
+	c = cur_key[index];
 	while((*c = *c << 8 | *c >> 8))
 		c++;
-	key_length *= sizeof(UTF16);
 
 #ifdef DEBUG_ORACLE
-	dump_stuff_msg("cur_key    ", (unsigned char*)&cur_key[0], key_length);
+	dump_stuff_msg("cur_key    ", (unsigned char*)cur_key[index], cur_key_len[index]);
 #endif
 }
 
 static char *get_key(int index) {
-	return plain_key;
+	return plain_key[index];
 }
 
 int ORACLE_TNS_Create_Key_SHA1 (unsigned char *input, int input_len, const unsigned char *Entropy, int EntropyLen, int desired_keylen, unsigned char *out_key)
@@ -250,34 +271,50 @@ static int ORACLE_TNS_Decrypt_Password_9i (unsigned char OracleHash[8], unsigned
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	unsigned char buf[256], buf1[256];
-	unsigned int l;
-	ARCH_WORD_32 iv[2];
-	DES_key_schedule desschedule2;
-
-	cracked = 0;
-	l = cur_salt->userlen + key_length;
-	memcpy(buf, cur_salt->user, cur_salt->userlen);
-	memcpy(buf + cur_salt->userlen, cur_key, key_length);
+	int idx = 0;
+	if (any_cracked) {
+		memset(cracked, 0, sizeof(*cracked) * count);
+		any_cracked = 0;
+	}
 
 #ifdef DEBUG_ORACLE
-	dump_stuff_msg("cur_salt    ", buf,  cur_salt->userlen+key_length);
+		dump_stuff_msg("cur_salt    ", buf,  cur_salt->userlen+key_length);
 #endif
 
-	iv[0] = iv[1] = 0;
-	DES_ncbc_encrypt((unsigned char *)buf, buf1, l, &desschedule1, (DES_cblock *) iv, DES_ENCRYPT);
-	DES_set_key((DES_cblock *)iv, &desschedule2);
-	iv[0] = iv[1] = 0;
-	DES_ncbc_encrypt((unsigned char *)buf, buf1, l, &desschedule2, (DES_cblock *) iv, DES_ENCRYPT);
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (idx = 0; idx < count; idx++)
+#endif
+	{
+		unsigned char buf[256], buf1[256];
+		unsigned int l;
+		ARCH_WORD_32 iv[2];
+		DES_key_schedule desschedule2;
+
+		l = cur_salt->userlen + cur_key_len[idx];
+		memcpy(buf, cur_salt->user, cur_salt->userlen);
+		memcpy(buf + cur_salt->userlen, cur_key[idx], cur_key_len[idx]);
+
+		iv[0] = iv[1] = 0;
+		DES_ncbc_encrypt((unsigned char *)buf, buf1, l, &desschedule1, (DES_cblock *) iv, DES_ENCRYPT);
+		DES_set_key((DES_cblock *)iv, &desschedule2);
+		iv[0] = iv[1] = 0;
+		DES_ncbc_encrypt((unsigned char *)buf, buf1, l, &desschedule2, (DES_cblock *) iv, DES_ENCRYPT);
 
 #ifdef DEBUG_ORACLE
-	dump_stuff_msg("  iv (the hash key) ", (unsigned char*)&iv[0], 8);
+		dump_stuff_msg("  iv (the hash key) ", (unsigned char*)&iv[0], 8);
 #endif
 
-	ORACLE_TNS_Decrypt_Password_9i ((unsigned char*)iv, cur_salt->auth_sesskey, 16, cur_salt->auth_pass, cur_salt->auth_pass_len, buf);
-	if (!strncmp((char*)buf, plain_key, strlen(plain_key)))
-		cracked = 1;
-
+		ORACLE_TNS_Decrypt_Password_9i ((unsigned char*)iv, cur_salt->auth_sesskey, 16, cur_salt->auth_pass, cur_salt->auth_pass_len, buf);
+		if (!strncmp((char*)buf, plain_key[idx], strlen(plain_key[idx])))
+		{
+			cracked[idx] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+			any_cracked |= 1;
+		}
+	}
 	return count;
 }
 
@@ -315,7 +352,12 @@ static int salt_hash(void *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return cracked;
+	return any_cracked;
+}
+
+static int cmp_one(void *binary, int count)
+{
+	return cracked[count];
 }
 
 static int cmp_exact(char *source, int index)
@@ -338,13 +380,13 @@ struct fmt_main fmt_oracle9i = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE | FMT_CASE,
+		FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE | FMT_CASE | FMT_OMP,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		prepare,
 		valid,
@@ -367,7 +409,7 @@ struct fmt_main fmt_oracle9i = {
 			fmt_default_get_hash
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
