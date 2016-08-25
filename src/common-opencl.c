@@ -2226,6 +2226,10 @@ cl_uint get_processor_family(int sequential_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 	                               sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
+	/* Workaround for MESA. */
+	if (*dname)
+		strlwr(&dname[1]);
+
 	if gpu_amd
 	(device_info[sequential_id]) {
 
@@ -2236,7 +2240,7 @@ cl_uint get_processor_family(int sequential_id)
 		        strstr(dname, "Turks") || strstr(dname, "Barts") ||
 		        strstr(dname, "Wrestler")
 		        || strstr(dname, "Ontario") || strstr(dname, "Zacate")
-		        || strstr(dname, "WinterPark") || strstr(dname, "BeaverCreek")
+		        || strstr(dname, "Winterpark") || strstr(dname, "Beavercreek")
 		        || strstr(dname, "Cayman") ||   //AMD Radeon VLIW4
 		        strstr(dname, "Antilles") || strstr(dname, "Devastator")
 		        || strstr(dname, "R7")  //AMD Radeon VLIW4
