@@ -14,20 +14,14 @@
 #include "opencl_md4.h"
 #include "opencl_md5.h"
 
-#define VEC_IN(INPUT, OUTPUT, INDEX, LEN)	  \
-	OUTPUT[(gid / V_WIDTH) * (LEN) * V_WIDTH + (gid % V_WIDTH) + (INDEX) * V_WIDTH] = INPUT[(INDEX)]
-
 #ifdef UTF_8
 
-__kernel void ntlmv2_nthash(const __global uchar *source,
-                            __global const uint *index,
-                            __global uint *nthash)
+inline void prepare_keys(const __global uchar *source,
+                         __global const uint *index,
+                         uint *block)
 {
 	uint i;
 	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
 	uint base = index[gid];
 	const __global UTF8 *sourceEnd;
 	UTF16 *target = (UTF16*)block;
@@ -103,60 +97,16 @@ __kernel void ntlmv2_nthash(const __global uchar *source,
 #endif
 
 	block[14] = (uint)(target - targetStart) << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		VEC_IN(output, nthash, i, 4);
-}
-
-#elif !defined(ISO_8859_1) && !defined(ASCII)
-
-__kernel void ntlmv2_nthash(const __global uchar *password,
-                            __global const uint *index,
-                            __global uint *nthash)
-{
-	uint i;
-	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
-	uint base = index[gid];
-	uint len = index[gid + 1] - base;
-
-	password += base;
-
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
-
-	/* Input buffer is in a 'codepage' encoding, without zero-termination */
-	for (i = 0; i < len; i++)
-		PUTSHORT(block, i, (password[i] < 0x80) ?
-		        password[i] : cp[password[i] & 0x7f]);
-	PUTCHAR(block, 2 * i, 0x80);
-	block[14] = i << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		VEC_IN(output, nthash, i, 4);
 }
 
 #else
 
-__kernel void ntlmv2_nthash(const __global uchar *password,
-                            __global const uint *index,
-                            __global uint *nthash)
+inline void prepare_keys(const __global uchar *password,
+                         __global const uint *index,
+                         uint *block)
 {
 	uint i;
 	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
 	uint base = index[gid];
 	uint len = index[gid + 1] - base;
 
@@ -165,40 +115,41 @@ __kernel void ntlmv2_nthash(const __global uchar *password,
 	/* Work-around for self-tests not always calling set_key() like IRL */
 	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
 
+#if defined(ISO_8859_1) || defined(ASCII)
 	/* Input buffer is in ISO-8859-1 encoding, without zero-termination.
 	   we can just type-cast this to UTF16 */
 	for (i = 0; i < len; i++)
 		PUTCHAR(block, 2 * i, password[i]);
+#else
+	/* Input buffer is in a 'codepage' encoding, without zero-termination */
+	for (i = 0; i < len; i++)
+		PUTSHORT(block, i, (password[i] < 0x80) ?
+		        password[i] : cp[password[i] & 0x7f]);
+#endif
+
 	PUTCHAR(block, 2 * i, 0x80);
 	block[14] = i << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		VEC_IN(output, nthash, i, 4);
 }
 
 #endif /* encodings */
 
-__kernel
-__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
-void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONSTANT uint *challenge, __global uint *result)
+inline void ntlmv2(uint *nthash,
+                   MAYBE_CONSTANT uint *challenge,
+                   uint *output)
 {
-	uint i;
+	uint block[16];
+	uint hash[4];
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
-	MAYBE_VECTOR_UINT block[16];
-	MAYBE_VECTOR_UINT output[4], hash[4];
-	MAYBE_VECTOR_UINT a, b, c, d;
 	uint challenge_size;
+	uint a, b, c, d;
+	uint i;
 
 	/* 1st HMAC */
 	md5_init(output);
 
 	for (i = 0; i < 4; i++)
-		block[i] = 0x36363636 ^ nthash[gid * 4 + i];
+		block[i] = 0x36363636 ^ nthash[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
 	md5_block(block, output); /* md5_update(ipad, 64) */
@@ -220,7 +171,7 @@ void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONSTANT uint 
 	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
 	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ nthash[gid * 4 + i];
+		block[i] = 0x5c5c5c5c ^ nthash[i];
 
 	md5_init(output);
 	for (i = 4; i < 16; i++)
@@ -277,41 +228,31 @@ void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONSTANT uint 
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
+}
+
+__kernel void ntlmv2_nthash(const __global uchar *source,
+                            __global const uint *index,
+                            MAYBE_CONSTANT uint *challenge,
+                            __global uint *result)
+{
+	uint block[16] = { 0 };
+	uint nthash[4];
+	uint output[4];
+	uint gid = get_global_id(0);
+	uint gws = get_global_size(0);
+	uint a, b, c, d;
+	uint i;
+
+	/* Parse keys input buffer and re-encode to UTF-16LE */
+	prepare_keys(source, index, block);
+
+	/* Initial NT hash of password */
+	md4_init(nthash);
+	md4_block(block, nthash);
+
+	/* Final hashing */
+	ntlmv2(nthash, challenge, output);
 
 	for (i = 0; i < 4; i++)
-#ifdef SCALAR
 		result[i * gws + gid] = output[i];
-#else
-
-#define VEC_OUT(NUM)	  \
-	result[i * gws * V_WIDTH + gid * V_WIDTH + 0x##NUM] = output[i].s##NUM
-
-	{
-
-		VEC_OUT(0);
-		VEC_OUT(1);
-#if V_WIDTH > 2
-		VEC_OUT(2);
-#if V_WIDTH > 3
-		VEC_OUT(3);
-#if V_WIDTH > 4
-		VEC_OUT(4);
-		VEC_OUT(5);
-		VEC_OUT(6);
-		VEC_OUT(7);
-#if V_WIDTH > 8
-		VEC_OUT(8);
-		VEC_OUT(9);
-		VEC_OUT(a);
-		VEC_OUT(b);
-		VEC_OUT(c);
-		VEC_OUT(d);
-		VEC_OUT(e);
-		VEC_OUT(f);
-#endif
-#endif
-#endif
-#endif
-	}
-#endif
 }

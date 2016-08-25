@@ -91,9 +91,8 @@ static int new_keys, partial_output;
 static int max_len = PLAINTEXT_LENGTH;
 static struct fmt_main *self;
 
-static cl_mem cl_saved_key, cl_saved_idx, cl_challenge, cl_nthash, cl_result;
+static cl_mem cl_saved_key, cl_saved_idx, cl_challenge, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
-static cl_kernel ntlmv2_nthash;
 
 #define STEP 0
 #define SEED 256
@@ -103,23 +102,17 @@ static cl_kernel ntlmv2_nthash;
 #include "memdbg.h"
 
 static const char * warn[] = {
-	"xfer: ",  ", xfer: ",  ", init: ",  ", crypt: ",  ", xfer: "
+	"xfer: ",  ", xfer: ",  ", crypt: ",  ", xfer: "
 };
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	size_t s;
-
-	s = autotune_get_task_max_work_group_size(FALSE, 0, ntlmv2_nthash);
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
-	return s;
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	gws *= ocl_v_width;
-
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, max_len * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
 	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, max_len * gws, NULL, &ret_code);
@@ -148,21 +141,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	challenge = clEnqueueMapBuffer(queue[gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping challenge");
 
-	cl_nthash = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device-only buffer");
-
-	HANDLE_CLERROR(clSetKernelArg(ntlmv2_nthash, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(ntlmv2_nthash, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(ntlmv2_nthash, 2, sizeof(cl_mem), (void*)&cl_nthash), "Error setting argument 2");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_nthash), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_challenge), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_challenge), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 3");
 }
 
 static void release_clobj(void)
 {
-	if (cl_nthash) {
+	if (cl_challenge) {
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, challenge, 0, NULL, NULL), "Error Unmapping challenge");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, output, 0, NULL, NULL), "Error Unmapping output");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
@@ -177,9 +164,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
-		HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
-
-		cl_nthash = NULL;
+		cl_challenge = NULL;
 	}
 }
 
@@ -189,7 +174,6 @@ static void done(void)
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(ntlmv2_nthash), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
@@ -269,23 +253,9 @@ static void set_salt(void *salt)
 
 static void init(struct fmt_main *_self)
 {
-	static char valgo[32] = "";
-
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
-	/* Nvidia Kepler benefits from 2x interleaved code */
-	if (!options.v_width && nvidia_sm_3x(device_info[gpu_id]))
-		ocl_v_width = 2;
-	else
-		ocl_v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
-
-	if (ocl_v_width > 1) {
-		/* Run vectorized kernel */
-		snprintf(valgo, sizeof(valgo),
-		         ALGORITHM_NAME " %ux", ocl_v_width);
-		self->params.algorithm_name = valgo;
-	}
 
 	if (options.target_enc == UTF_8)
 		max_len = self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
@@ -301,22 +271,20 @@ static void reset(struct db_main *db)
 #if !NT_FULL_UNICODE
 		         "-DUCS_2 "
 #endif
-		         "-D%s -DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-		         cp_id2macro(options.target_enc), PLAINTEXT_LENGTH, ocl_v_width);
+		         "-D%s -DPLAINTEXT_LENGTH=%u",
+		         cp_id2macro(options.target_enc), PLAINTEXT_LENGTH);
 		opencl_init("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */
-		ntlmv2_nthash = clCreateKernel(program[gpu_id], "ntlmv2_nthash", &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-		crypt_kernel = clCreateKernel(program[gpu_id], "ntlmv2_final", &ret_code);
+		crypt_kernel = clCreateKernel(program[gpu_id], "ntlmv2_nthash", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-		gws_limit = (4 << 20) / ocl_v_width;
+		gws_limit = 4 << 20;
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 3, self,
 		                       create_clobj, release_clobj,
-		                       2 * ocl_v_width * max_len, gws_limit, db);
+		                       2 * max_len, gws_limit, db);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, 11, gws_limit, 500);
@@ -487,26 +455,23 @@ static void *get_binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	/* Don't do more than requested */
-	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
-	scalar_gws = global_work_size * ocl_v_width;
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	/* Self-test cludge */
-	if (idx_offset > 4 * (scalar_gws + 1))
+	if (idx_offset > 4 * (global_work_size + 1))
 		idx_offset = 0;
 
 	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (scalar_gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ntlmv2_nthash, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
 
 		new_keys = 0;
 	}
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Failed running second kernel");
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Failed running second kernel");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, 4 * global_work_size, output, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
 
 	partial_output = 1;
 
