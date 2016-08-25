@@ -319,7 +319,7 @@ static void reset(struct db_main *db)
 		                       2 * ocl_v_width * max_len, gws_limit, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, FORMAT_TAG_LEN, gws_limit, 500);
+		autotune_run(self, 11, gws_limit, 500);
 	}
 }
 
