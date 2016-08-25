@@ -1809,7 +1809,8 @@ static char* opencl_get_dev_info(int sequential_id)
 		    (major == 3 && minor == 2 ? DEV_NV_C32 : 0);
 		device_info[sequential_id] +=
 		    (major == 3 && minor == 5 ? DEV_NV_C35 : 0);
-		device_info[sequential_id] += (major == 5 ? DEV_NV_C5X : 0);
+		device_info[sequential_id] += (major == 5 ? DEV_NV_MAXWELL : 0);
+		device_info[sequential_id] += (major == 6 ? DEV_NV_PASCAL : 0);
 	}
 
 	return ret;
