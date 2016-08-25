@@ -2340,6 +2340,12 @@ int get_platform_vendor_id(int platform_id)
 	if ((strstr(dname, "MESA")) || (strstr(dname, "Mesa")))
 		return DEV_MESA;
 
+	HANDLE_CLERROR(clGetPlatformInfo(platform[platform_id], CL_PLATFORM_VERSION,
+	                                 sizeof(dname), dname, NULL), "Error querying CL_PLATFORM_VERSION");
+
+	if ((strstr(dname, "MESA")) || (strstr(dname, "Mesa")))
+		return DEV_MESA;
+
 	return DEV_UNKNOWN;
 }
 
