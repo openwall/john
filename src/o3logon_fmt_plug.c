@@ -13,9 +13,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_oracle9i;
+extern struct fmt_main fmt_o3logon;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_oracle9i);
+john_register_one(&fmt_o3logon);
 #else
 
 #include <string.h>
@@ -124,9 +124,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	UTF16 cur_key_mixedcase[MAX_USERNAME_LEN+2];
 	int len;
 
-	if (strlen(ciphertext) < FORMAT_TAG_LEN)
-		return 0;
-	if (memcmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ciphertext += FORMAT_TAG_LEN;
 	cp = strchr(ciphertext, '$');
@@ -365,7 +363,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_oracle9i = {
+struct fmt_main fmt_o3logon = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
