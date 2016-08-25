@@ -124,6 +124,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	out[TAG_LENGTH + CIPHERTEXT_LENGTH] = 0;
 	strupr(out + TAG_LENGTH);
 	return out;
 }
