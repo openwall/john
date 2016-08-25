@@ -269,12 +269,6 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 	hash[3] = d + INIT_D;
 }
 
-#if ISO_8859_1 || ASCII
-#define LUT(c) (c)
-#else
-#define LUT(c) (((c) < 0x80) ? (c) : cp[(c) & 0x7f])
-#endif
-
 #if UTF_8
 
 inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
@@ -362,8 +356,8 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 	nt_index = 0;
 	for (i = 0; i < (length + 3)/ 4; i++) {
 		keychars = key[i];
-		nt_buffer[nt_index++] = LUT(keychars & 0xFF) | (LUT((keychars >> 8) & 0xFF) << 16);
-		nt_buffer[nt_index++] = LUT((keychars >> 16) & 0xFF) | (LUT(keychars >> 24) << 16);
+		nt_buffer[nt_index++] = CP_LUT(keychars & 0xFF) | (CP_LUT((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = CP_LUT((keychars >> 16) & 0xFF) | (CP_LUT(keychars >> 24) << 16);
 	}
 	nt_index = length >> 1;
 	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
@@ -518,20 +512,20 @@ __kernel void mscash(__global uint *keys,
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
-		PUTSHORT(nt_buffer, GPU_LOC_0, LUT(int_keys[i] & 0xff));
+		PUTSHORT(nt_buffer, GPU_LOC_0, CP_LUT(int_keys[i] & 0xff));
 #if 1 < MASK_FMT_INT_PLHDR
 #if LOC_1 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_1, LUT((int_keys[i] & 0xff00) >> 8));
+		PUTSHORT(nt_buffer, GPU_LOC_1, CP_LUT((int_keys[i] & 0xff00) >> 8));
 #endif
 #endif
 #if 2 < MASK_FMT_INT_PLHDR
 #if LOC_2 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_2, LUT((int_keys[i] & 0xff0000) >> 16));
+		PUTSHORT(nt_buffer, GPU_LOC_2, CP_LUT((int_keys[i] & 0xff0000) >> 16));
 #endif
 #endif
 #if 3 < MASK_FMT_INT_PLHDR
 #if LOC_3 >= 0
-		PUTSHORT(nt_buffer, GPU_LOC_3, LUT((int_keys[i] & 0xff000000) >> 24));
+		PUTSHORT(nt_buffer, GPU_LOC_3, CP_LUT((int_keys[i] & 0xff000000) >> 24));
 #endif
 #endif
 #endif

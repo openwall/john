@@ -111,7 +111,7 @@ __kernel void krb5pa_md5_nthash(const __global uchar *source,
 		nthash[gid * 4 + i] = output[i];
 }
 
-#elif !defined(ISO_8859_1) && !defined(ASCII)
+#else
 
 __kernel void krb5pa_md5_nthash(const __global uchar *password,
                                 __global const uint *index,
@@ -132,42 +132,7 @@ __kernel void krb5pa_md5_nthash(const __global uchar *password,
 
 	/* Input buffer is in a 'codepage' encoding, without zero-termination */
 	for (i = 0; i < len; i++)
-		PUTSHORT(block, i, (password[i] < 0x80) ?
-		        password[i] : cp[password[i] & 0x7f]);
-	PUTCHAR(block, 2 * i, 0x80);
-	block[14] = i << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
-}
-
-#else
-
-__kernel void krb5pa_md5_nthash(const __global uchar *password,
-                            __global const uint *index,
-                            __global uint *nthash)
-{
-	uint i;
-	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
-	uint base = index[gid];
-	uint len = index[gid + 1] - base;
-
-	password += base;
-
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
-
-	/* Input buffer is in ISO-8859-1 encoding, without zero-termination.
-	   we can just type-cast this to UTF16 */
-	for (i = 0; i < len; i++)
-		PUTCHAR(block, 2 * i, password[i]);
+		PUTSHORT(block, i, CP_LUT(password[i]));
 	PUTCHAR(block, 2 * i, 0x80);
 	block[14] = i << 4;
 

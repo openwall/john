@@ -111,7 +111,7 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 	mid[gid].len = (uint)(target - targetStart);
 }
 
-#elif !defined(ISO_8859_1) && !defined(ASCII)
+#else
 
 __kernel void oldoffice_utf16(__global const uchar *password,
                               __global const uint *index,
@@ -129,33 +129,7 @@ __kernel void oldoffice_utf16(__global const uchar *password,
 
 	/* Input buffer is in a 'codepage' encoding, without zero-termination */
 	for (i = 0; i < len; i++)
-		mid[gid].password[i] = (password[i] < 0x80) ?
-			password[i] : cp[password[i] & 0x7f];
-
-	mid[gid].password[i] = 0;
-	mid[gid].len = len;
-}
-
-#else
-
-__kernel void oldoffice_utf16(__global const uchar *password,
-                              __global const uint *index,
-                              __global mid_t *mid)
-{
-	uint i;
-	uint gid = get_global_id(0);
-	uint base = index[gid];
-	uint len = index[gid + 1] - base;
-
-	password += base;
-
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
-
-	/* Input buffer is in ISO-8859-1 encoding, without zero-termination.
-	   we just type-cast it to UTF16 */
-	for (i = 0; i < len; i++)
-		mid[gid].password[i] = password[i];
+		mid[gid].password[i] = CP_LUT(password[i]);
 
 	mid[gid].password[i] = 0;
 	mid[gid].len = len;
