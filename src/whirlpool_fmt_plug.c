@@ -109,7 +109,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (hexlen(p) != CIPHERTEXT_LENGTH)
+	if (hexlen(p) != CIPHERTEXT_LENGTH || p[CIPHERTEXT_LENGTH])
 		return 0;
 
 	return 1;
@@ -124,7 +124,6 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
-	out[TAG_LENGTH + CIPHERTEXT_LENGTH] = 0;
 	strupr(out + TAG_LENGTH);
 	return out;
 }
