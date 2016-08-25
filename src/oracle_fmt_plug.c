@@ -303,19 +303,20 @@ static void * get_salt(char * ciphertext)
 
 	if (!out) out = mem_alloc_tiny(SALT_SIZE+2, MEM_ALIGN_WORD);
 	memset(out, 0, SALT_SIZE+2);
-	l = 2;
+	ciphertext += FORMAT_TAG_LEN;
+	l = 0;
 	while( ciphertext[l] && (ciphertext[l]!='#') )
 	{
-		salt[l-2] = ciphertext[l];
+		salt[l] = ciphertext[l];
 		l++;
-		if (l-2 >= SALT_SIZE-2) break;
+		if (l >= SALT_SIZE-2) break;
 	}
-	salt[l-2] = 0;
+	salt[l] = 0;
 
 	// Encoding-aware shift to upper-case
 	enc_strupper((char*)salt);
 
-	l = enc_to_utf16_be(&out[1], MAX_USERNAME_LEN, (UTF8 *)salt, l-2);
+	l = enc_to_utf16_be(&out[1], MAX_USERNAME_LEN, (UTF8 *)salt, l);
 	if (l < 0)
 		l = strlen16(&out[1]);
 
