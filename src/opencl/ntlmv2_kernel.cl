@@ -1,37 +1,33 @@
 /*
  * NTLMv2
  * MD4 + 2 x HMAC-MD5, with Unicode conversion on GPU
+ * Now also featuring GPU-side mask and compare
  *
- * Copyright (c) 2012, magnum
+ * Copyright (c) 2012-2016, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
  */
 
 #include "opencl_device_info.h"
-#include "opencl_unicode.h"
+#define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
 #include "opencl_md4.h"
 #include "opencl_md5.h"
+#include "opencl_unicode.h"
+#include "opencl_mask.h"
 
 #ifdef UTF_8
 
-inline void prepare_keys(const __global uchar *source,
-                         __global const uint *index,
-                         uint *block)
+inline
+void prepare_key(const __global uint *key, uint length, uint *nt_buffer)
 {
-	uint i;
-	uint gid = get_global_id(0);
-	uint base = index[gid];
-	const __global UTF8 *sourceEnd;
-	UTF16 *target = (UTF16*)block;
-	UTF16 *targetStart = target;
+	const __global UTF8 *source = (const __global uchar*)key;
+	const __global UTF8 *sourceEnd = &source[length];
+	UTF16 *target = (UTF16*)nt_buffer;
 	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
-
-	sourceEnd = source + index[gid + 1];
-	source += base;
 
 	/* Input buffer is UTF-8 without zero-termination */
 	while (source < sourceEnd) {
@@ -86,6 +82,7 @@ inline void prepare_keys(const __global uchar *source,
 		if (source >= sourceEnd || target >= targetEnd)
 			break;
 	}
+
 	*target = 0x80;	// Terminate
 
 #if __OS_X__ && gpu_nvidia(DEVICE_INFO)
@@ -96,51 +93,35 @@ inline void prepare_keys(const __global uchar *source,
 	barrier(CLK_GLOBAL_MEM_FENCE);
 #endif
 
-	block[14] = (uint)(target - targetStart) << 4;
+	nt_buffer[14] = (uint)(target - (UTF16*)nt_buffer) << 4;
 }
 
 #else
 
-inline void prepare_keys(const __global uchar *password,
-                         __global const uint *index,
-                         uint *block)
+inline
+void prepare_key(const __global uint *key, uint length, uint *nt_buffer)
 {
-	uint i;
-	uint gid = get_global_id(0);
-	uint base = index[gid];
-	uint len = index[gid + 1] - base;
+	uint i, nt_index, keychars;
 
-	password += base;
-
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
-
-#if defined(ISO_8859_1) || defined(ASCII)
-	/* Input buffer is in ISO-8859-1 encoding, without zero-termination.
-	   we can just type-cast this to UTF16 */
-	for (i = 0; i < len; i++)
-		PUTCHAR(block, 2 * i, password[i]);
-#else
-	/* Input buffer is in a 'codepage' encoding, without zero-termination */
-	for (i = 0; i < len; i++)
-		PUTSHORT(block, i, (password[i] < 0x80) ?
-		        password[i] : cp[password[i] & 0x7f]);
-#endif
-
-	PUTCHAR(block, 2 * i, 0x80);
-	block[14] = i << 4;
+	nt_index = 0;
+	for (i = 0; i < (length + 3)/ 4; i++) {
+		keychars = key[i];
+		nt_buffer[nt_index++] = CP_LUT(keychars & 0xFF) | (CP_LUT((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = CP_LUT((keychars >> 16) & 0xFF) | (CP_LUT(keychars >> 24) << 16);
+	}
+	nt_index = length >> 1;
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
+	nt_buffer[14] = length << 4;
 }
 
 #endif /* encodings */
 
-inline void ntlmv2(uint *nthash,
-                   MAYBE_CONSTANT uint *challenge,
-                   uint *output)
+inline
+void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 {
 	uint block[16];
 	uint hash[4];
-	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
 	uint challenge_size;
 	uint a, b, c, d;
 	uint i;
@@ -230,29 +211,174 @@ inline void ntlmv2(uint *nthash,
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
 }
 
-__kernel void ntlmv2_nthash(const __global uchar *source,
-                            __global const uint *index,
-                            MAYBE_CONSTANT uint *challenge,
-                            __global uint *result)
+inline
+void cmp_final(uint gid,
+               uint iter,
+               __private uint *hash,
+               __global uint *offset_table,
+               __global uint *hash_table,
+               MAYBE_CONSTANT uint *salt,
+               __global uint *return_hashes,
+               volatile __global uint *output,
+               volatile __global uint *bitmap_dupe)
 {
-	uint block[16] = { 0 };
+	uint t, offset_table_index, hash_table_index;
+	unsigned long LO, HI;
+	unsigned long p;
+
+	HI = ((unsigned long)hash[3] << 32) | (unsigned long)hash[2];
+	LO = ((unsigned long)hash[1] << 32) | (unsigned long)hash[0];
+
+	p = (HI % salt[SALT_PARAM_BASE + 1]) * salt[SALT_PARAM_BASE + 3];
+	p += LO % salt[SALT_PARAM_BASE + 1];
+	p %= salt[SALT_PARAM_BASE + 1];
+	offset_table_index = (unsigned int)p;
+
+	//error: chances of overflow is extremely low.
+	LO += (unsigned long)offset_table[offset_table_index];
+
+	p = (HI % salt[SALT_PARAM_BASE + 2]) * salt[SALT_PARAM_BASE + 4];
+	p += LO % salt[SALT_PARAM_BASE + 2];
+	p %= salt[SALT_PARAM_BASE + 2];
+	hash_table_index = (unsigned int)p;
+
+	if (hash_table[hash_table_index] == hash[0])
+	if (hash_table[salt[SALT_PARAM_BASE + 2] + hash_table_index] == hash[1])
+	{
+/*
+ * Prevent duplicate keys from cracking same hash
+ */
+		if (!(atomic_or(&bitmap_dupe[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+			t = atomic_inc(&output[0]);
+			output[1 + 3 * t] = gid;
+			output[2 + 3 * t] = iter;
+			output[3 + 3 * t] = hash_table_index;
+			return_hashes[2 * t] = hash[2];
+			return_hashes[2 * t + 1] = hash[3];
+		}
+	}
+}
+
+inline
+void cmp(uint gid,
+         uint iter,
+         __private uint *hash,
+         __global uint *bitmaps,
+         uint bitmap_sz_bits,
+         __global uint *offset_table,
+         __global uint *hash_table,
+         MAYBE_CONSTANT uint *salt,
+         __global uint *return_hashes,
+         volatile __global uint *output,
+         volatile __global uint *bitmap_dupe)
+{
+	uint bitmap_index, tmp = 1;
+
+	bitmap_index = hash[3] & salt[SALT_PARAM_BASE];
+	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & salt[SALT_PARAM_BASE];
+	tmp &= (bitmaps[(bitmap_sz_bits >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+
+	if (tmp)
+		cmp_final(gid, iter, hash, offset_table, hash_table, salt, return_hashes, output, bitmap_dupe);
+}
+
+__kernel void
+ntlmv2(const __global uint *keys,
+       __global const uint *index,
+       MAYBE_CONSTANT uint *challenge,
+       __global uint *int_key_loc,
+#if USE_CONST_CACHE
+       __constant
+#else
+       __global
+#endif
+       uint *int_keys
+#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
+       __attribute__((max_constant_size (NUM_INT_KEYS * 4)))
+#endif
+       , __global uint *bitmaps,
+       __global uint *offset_table,
+       __global uint *hash_table,
+       __global uint *return_hashes,
+       volatile __global uint *out_hash_ids,
+       volatile __global uint *bitmap_dupe)
+{
+	uint nt_buffer[16] = { 0 };
 	uint nthash[4];
-	uint output[4];
+	uint hash[4];
 	uint gid = get_global_id(0);
-	uint gws = get_global_size(0);
+	uint base = index[gid];
+	uint len = base & 127;
 	uint a, b, c, d;
 	uint i;
+	uint bitmap_sz_bits = challenge[SALT_PARAM_BASE] + 1;
+#if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
+	uint ikl = int_key_loc[gid];
+	uint loc0 = ikl & 0xff;
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+	uint loc1 = (ikl & 0xff00) >> 8;
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+	uint loc2 = (ikl & 0xff0000) >> 16;
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+	uint loc3 = (ikl & 0xff000000) >> 24;
+#endif
+#endif
+#endif
+
+#if !IS_STATIC_GPU_MASK
+#define GPU_LOC_0 loc0
+#define GPU_LOC_1 loc1
+#define GPU_LOC_2 loc2
+#define GPU_LOC_3 loc3
+#else
+#define GPU_LOC_0 LOC_0
+#define GPU_LOC_1 LOC_1
+#define GPU_LOC_2 LOC_2
+#define GPU_LOC_3 LOC_3
+#endif
 
 	/* Parse keys input buffer and re-encode to UTF-16LE */
-	prepare_keys(source, index, block);
+	keys += base >> 7;
+	prepare_key(keys, len, nt_buffer);
 
-	/* Initial NT hash of password */
-	md4_init(nthash);
-	md4_block(block, nthash);
+	/* Appply GPU-side mask */
+	for (i = 0; i < NUM_INT_KEYS; i++) {
+#if NUM_INT_KEYS > 1
+		PUTSHORT(nt_buffer, GPU_LOC_0, CP_LUT(int_keys[i] & 0xff));
+#if 1 < MASK_FMT_INT_PLHDR
+#if LOC_1 >= 0
+		PUTSHORT(nt_buffer, GPU_LOC_1, CP_LUT((int_keys[i] & 0xff00) >> 8));
+#endif
+#endif
+#if 2 < MASK_FMT_INT_PLHDR
+#if LOC_2 >= 0
+		PUTSHORT(nt_buffer, GPU_LOC_2, CP_LUT((int_keys[i] & 0xff0000) >> 16));
+#endif
+#endif
+#if 3 < MASK_FMT_INT_PLHDR
+#if LOC_3 >= 0
+		PUTSHORT(nt_buffer, GPU_LOC_3, CP_LUT((int_keys[i] & 0xff000000) >> 24));
+#endif
+#endif
+#endif
 
-	/* Final hashing */
-	ntlmv2(nthash, challenge, output);
+		/* Initial NT hash of password */
+		md4_init(nthash);
+		md4_block(nt_buffer, nthash);
 
-	for (i = 0; i < 4; i++)
-		result[i * gws + gid] = output[i];
+		/* Final hashing */
+		ntlmv2_final(nthash, challenge, hash);
+
+		/* GPU-side compare */
+		cmp(gid, i, hash, bitmaps, bitmap_sz_bits, offset_table, hash_table,
+		    challenge, return_hashes, out_hash_ids, bitmap_dupe);
+	}
 }
