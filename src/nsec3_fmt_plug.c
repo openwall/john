@@ -172,11 +172,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			q = p;
 			while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 				++q;
+			if (*q != '$' || q-p > N3_MAX_SALT_SIZE*2 || (q-p) % 2)
+				return 0;
 			strncpy(salt, p, q - p);
 			salt[q - p] = 0;
 			if (!ishexlc(salt))
-				return 0;
-			if (*q != '$' || q-p > N3_MAX_SALT_SIZE*2 || (q-p) % 2)
 				return 0;
 			break;
 		case 3:
@@ -184,11 +184,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			q = p;
 			while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 				++q;
+			if (*q != '$' || q-p > HASH_LENGTH*2 || (q-p) % 2)
+				return 0;
 			strncpy(hash, p, q - p);
 			hash[q - p] = 0;
 			if (!ishexlc(hash))
-				return 0;
-			if (*q != '$' || q-p > HASH_LENGTH*2)
 				return 0;
 			p = q+1;
 			break;

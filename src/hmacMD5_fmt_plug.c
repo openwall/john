@@ -181,7 +181,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 	if (!strncmp(p, "$cram_md5$", 10)) {
 		static char out[256];
-		int len;
+		int len, len2;
 		char *d, *o = out;
 
 		p += 10;
@@ -192,13 +192,18 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		                     o, e_b64_raw,
 		                     sizeof(out),
 		                     flg_Base64_MIME_TRAIL_EQ, 0);
+		if (len > sizeof(out)-2)
+			return split_fields[1];
 		o += len;
 		*o++ = '#';
 		d++;
-		len = base64_convert(d, e_b64_mime, strlen(d),
+		len2 = base64_convert(d, e_b64_mime, strlen(d),
 		                     o, e_b64_raw,
 		                     sizeof(out) - len - 2,
 		                     flg_Base64_MIME_TRAIL_EQ, 0);
+		if (len2 > sizeof(out) - len - 3)
+			return split_fields[1];
+		len = len2;
 		if (!(p = strchr(o, ' ')))
 			return split_fields[1];
 		p++;

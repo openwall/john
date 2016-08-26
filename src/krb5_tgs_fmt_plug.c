@@ -115,6 +115,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
+	int extra;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -124,7 +125,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (ctcopy[0] == '*') {			/* assume account's info provided */
 			ctcopy++;
 			p = strtokm(ctcopy, "*");
-			ctcopy += strlen(p) + 2;	/* set after '$' */
+			ctcopy  = strtokm(NULL, "");
+			if (!ctcopy || *ctcopy != '$')
+				goto err;
+			++ctcopy;	/* set after '$' */
 			goto edata;
 		}
 		if (ctcopy[0] == '$')
@@ -135,8 +139,15 @@ edata:
 	/* assume checksum */
 	if (((p = strtokm(ctcopy, "$")) == NULL) || strlen(p) != 32)
 		goto err;
-		/* assume edata2 following */
 
+	/* assume edata2 following */
+	if (((p = strtokm(NULL, "$")) == NULL))
+		goto err;
+	if (!ishex(p) && (hexlen(p, &extra) < 64 || extra))
+		goto err;
+
+	if ((strtokm(NULL, "$") != NULL))
+		goto err;
 	MEM_FREE(keeptr);
 	return 1;
 

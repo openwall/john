@@ -132,6 +132,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	// make sure username fits in MAX_USERNAME_LEN UTF16
+	if (cp-ciphertext > sizeof(tmp)-1)
+		return 0;
 	memcpy(tmp, ciphertext, cp-ciphertext);
 	tmp[cp-ciphertext] = 0;
 	len = enc_to_utf16((UTF16 *)cur_key_mixedcase, MAX_USERNAME_LEN+1, (unsigned char*)tmp, strlen(tmp));
