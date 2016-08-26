@@ -4,7 +4,7 @@
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted.
 //
-// This plugin is loosely based on the lotus85 plugin by SÃ©bastien Kaczmarek <skaczmarek@quarkslab.com>
+// This plugin is loosely based on the lotus85 plugin by Sebastien Kaczmarek <skaczmarek@quarkslab.com>
 //
 // AS/400 SHA1 hash is calculated as follows:
 // - userid is padded with spaces to be 10 characters long, 
@@ -55,7 +55,7 @@ static int omp_t = 1;
 #define BINARY_LENGTH         20                                 // Binary length of hashes
 #define BINARY_ALIGN          1
 #define SALT_SIZE             sizeof(struct custom_salt)
-#define SALT_ALIGN            4
+#define SALT_ALIGN            1
 #define MIN_KEYS_PER_CRYPT    1
 #define MAX_KEYS_PER_CRYPT    1
 
@@ -95,7 +95,7 @@ static void as400_init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
-    // Allocate menory to store candidate passwords that are provided by main program of JtR
+	// Allocate menory to store candidate passwords that are provided by main program of JtR
 	as400_saved_passwords = mem_calloc_tiny(
 		(PLAINTEXT_LENGTH + 1) * self->params.max_keys_per_crypt,
 		MEM_ALIGN_CACHE);
@@ -121,11 +121,11 @@ static int as400_valid(char *ciphertext,struct fmt_main *self)
 
 	// Check if length of ciphertext is correct 
 	//(note: userid is added to ciphertext in prepare function --> take in consideration for check!)
-   	len = strlen(ciphertext);
+	len = strlen(ciphertext);
 	if(len!=CIPHERTEXT_LENGTH+AS400_USERID_LENGTH)
 		return 0;
 	
-    // Check if ciphertext only contains hexadecimal characters
+	// Check if ciphertext only contains hexadecimal characters
 	// (note: discard first 10 characters that contain username!!!)
 	for (i=AS400_USERID_LENGTH;i<len;i++)
 		if(!strchr(AS400_BASE16_CHARSET,ciphertext[i]))
@@ -155,25 +155,25 @@ static char *as400_prepare(char *fields[10], struct fmt_main *self)
 	static char retval[AS400_USERID_LENGTH+CIPHERTEXT_LENGTH+1] = "";
 	
 	// Truncate field[0] to AS400_USERID_LENGTH characters and store as username (just in case a longer id was provided)
-    strncat(username, fields[0], AS400_USERID_LENGTH);
+	strncat(username, fields[0], AS400_USERID_LENGTH);
 
-    // In further processing, userid needs to be in uppercase. We do this already here for efficiency reasons
-    for(i=0;i<AS400_USERID_LENGTH;i++)
+	// In further processing, userid needs to be in uppercase. We do this already here for efficiency reasons
+	for(i=0;i<AS400_USERID_LENGTH;i++)
 	{
-	     if (username[i] >= 'a' && username[i] <= 'z') 
-		 {
-           username[i] = username[i] - 32;
-         }	
+		if (username[i] >= 'a' && username[i] <= 'z') 
+		{
+			username[i] = username[i] - 32;
+		}
 	}
 	
 	// In further processing, the AS400 userid needs to be exactly AS400_USERID_LENGTH characters long. Pad userid with spaces to get correct length
 	// We do this here for efficiency, so that we do not need to pad the userid in other places. Also, makes splitting of internal representation easier
-    while(strlen(username)<AS400_USERID_LENGTH)
-    {
-        strcat(username," ");
-    }		
+	while(strlen(username)<AS400_USERID_LENGTH)
+	{
+		strcat(username," ");
+	}		
 	
-    // Store username in first 10 characters of return value so that we can access username in get_salt
+	// Store username in first 10 characters of return value so that we can access username in get_salt
 	strcpy(retval,username);
 	// Concatenate hash from inputfile to return value
 	strcat(retval,fields[1]);
@@ -235,7 +235,6 @@ static void set_salt(void *salt)
 static void as400_set_key(char *key,int index)
 {
 	strnzcpy(as400_saved_passwords[index],key,strlen(key)+1);
-
 }
 
 
@@ -254,7 +253,7 @@ static char *as400_get_key(int index)
 
 static void as400_password_hash(const char *userid_utf16be, const char *password, uint8_t *hash)
 { 
-    int i;
+	int i;
 	char password_utf16be[(PLAINTEXT_LENGTH*2)+1];
 	
 	SHA_CTX s_ctx;
@@ -298,7 +297,7 @@ static int as400_crypt_all(int *pcount, struct db_salt *salt)
 		memset(as400_computed_binary_hash[index], 0, BINARY_LENGTH);
 		memset(as400_retrieved_binary_hash[index], 0, BINARY_LENGTH);
 		
-        as400_password_hash(cur_salt->username_utf16be, as400_saved_passwords[index], as400_computed_binary_hash[index]);
+		as400_password_hash(cur_salt->username_utf16be, as400_saved_passwords[index], as400_computed_binary_hash[index]);
 		
 		// Store the binary hash as retrieved from the file (to be used by compare functions)
 		memcpy(as400_retrieved_binary_hash[index], cur_salt->storedbinaryhash, BINARY_LENGTH);
@@ -374,7 +373,7 @@ struct fmt_main fmt_as400 =
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
-        0,
+		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -383,8 +382,8 @@ struct fmt_main fmt_as400 =
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-        { NULL },
-        { NULL },
+		{ NULL },
+		{ NULL },
 		as400_tests
 	}, {
 		as400_init,
@@ -401,7 +400,7 @@ struct fmt_main fmt_as400 =
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
-        NULL, 
+		NULL, 
 		set_salt,
 		as400_set_key,          
 		as400_get_key,          
