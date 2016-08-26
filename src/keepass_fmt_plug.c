@@ -260,14 +260,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p = strtokm(NULL, "*");
 		// keyfile handling
 		if (p) {
+			if(!isdec(p))
+				goto err;
 			res = atoi(p);
 			if (res == 1) {
 				if ((p = strtokm(NULL, "*")) == NULL)
 					goto err;
+				if(!isdec(p))
+					goto err;
 				res = atoi(p);
 				if ((p = strtokm(NULL, "*")) == NULL)
 					goto err;
-				if (res != 64 &&  strlen(p) != 64)
+				if (res != 64 || strlen(p) != 64)
 					goto err;
 			}
 		}
@@ -281,14 +285,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p = strtokm(NULL, "*");
 		// keyfile handling
 		if (p) {
+			if (!isdec(p))
+				goto err;
 			res = atoi(p);
 			if (res == 1) {
 				if ((p = strtokm(NULL, "*")) == NULL)
 					goto err;
+				if (!isdec(p))
+					goto err;
 				res = atoi(p);
 				if ((p = strtokm(NULL, "*")) == NULL)
 					goto err;
-				if (res != 64 &&  strlen(p) != 64)
+				if (res != 64 || strlen(p) != 64)
 					goto err;
 			}
 		}
