@@ -163,7 +163,8 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return hexlenu(ciphertext)==CIPHERTEXT_LENGTH;
+	int extra;
+	return hexlenu(ciphertext, &extra)==CIPHERTEXT_LENGTH && !extra;
 }
 
 static void *get_salt(char *ciphertext)

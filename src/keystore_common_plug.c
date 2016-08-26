@@ -27,7 +27,7 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	char *ctcopy;
 	char *keeptr;
 	int target;
-	int v;
+	int v, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -47,11 +47,11 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	v = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto bail;
-	if (hexlenl(p) != v*2)
+	if (hexlenl(p, &extra) != v*2 || extra)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* hash */
 		goto bail;
-	if (hexlenl(p) != BINARY_SIZE*2)
+	if (hexlenl(p, &extra) != BINARY_SIZE*2 || extra)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* number of keys */
 		goto bail;
@@ -69,7 +69,7 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* key data */
 		goto bail;
-	if (hexlenl(p) != v*2)
+	if (hexlenl(p, &extra) != v*2 || extra)
 		goto bail;
 	MEM_FREE(keeptr);
 	return 1;

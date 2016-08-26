@@ -125,7 +125,7 @@ int ishexlc_oddOK(const char *q) {
 	return !*q ;
 }
 
-static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100])
+static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100], int *extra_chars)
 {
 	const char *s = q;
 	size_t len = strlen(q);
@@ -134,19 +134,21 @@ static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100])
 	while (dic[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	if ((size_t)(q - s)&1) --q;
+	if (extra_chars)
+		*extra_chars = (len == (size_t)(q - s)) ? 0 : 1;
 	return (q - s);
 }
-size_t hexlen(const char *q)
+size_t hexlen(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16);
+	return _hexlen(q, atoi16, extra_chars);
 }
-size_t hexlenu(const char *q)
+size_t hexlenu(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16u);
+	return _hexlen(q, atoi16u, extra_chars);
 }
-size_t hexlenl(const char *q)
+size_t hexlenl(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16l);
+	return _hexlen(q, atoi16l, extra_chars);
 }
 
 int isdec(const char *q)

@@ -109,6 +109,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	const char *p;
+	int extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -116,14 +117,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	/* Check hash */
 	if (!(p = strrchr(ciphertext, '*')))
 		return 0;
-	if (hexlenl(&p[1]) != 2*BINARY_SIZE)
+	if (hexlenl(&p[1], &extra) != 2*BINARY_SIZE || extra)
 		return 0;
 
 	/* Check salt */
 	p -= 9;
 	if (*p != '*')
 		return 0;
-	if (hexlenl(&p[1]) != 8)
+	if (hexlenl(&p[1], 0) != 8)
 		return 0;
 
 	/* Check username length */

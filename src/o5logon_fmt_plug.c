@@ -127,6 +127,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+	int extra;
 
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -136,21 +137,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strtokm(ctcopy, "*"); /* server's sesskey */
 	if (!p)
 		goto err;
-	if (hexlenu(p) != CIPHERTEXT_LENGTH * 2)
+	if (hexlenu(p, &extra) != CIPHERTEXT_LENGTH * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (hexlenu(p) != SALT_LENGTH * 2)
+	if (hexlenu(p, &extra) != SALT_LENGTH * 2 || extra)
 		goto err;
 	/* optional fields follow */
 	if ((p = strtokm(NULL, "*"))) {	/* client's encrypted password */
-		int len = hexlenu(p);
+		int len = hexlenu(p, &extra);
 
-		if (len < 64 || len % 32 || len > 2 * PLAINTEXT_LENGTH + 16)
+		if (extra || len < 64 || len % 32 || len > 2 * PLAINTEXT_LENGTH + 16)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* client's sesskey */
 			goto err;
-		if (hexlenu(p) != CIPHERTEXT_LENGTH * 2)
+		if (hexlenu(p, &extra) != CIPHERTEXT_LENGTH * 2 || extra)
 			goto err;
 	}
 	MEM_FREE(keeptr);
@@ -182,7 +183,7 @@ static void *get_salt(char *ciphertext)
 
 	/* Oracle 12 hashes may have more fields (optional for older ver) */
 	if ((p = strtokm(NULL, "*"))) {
-		cs.pw_len = hexlenu(p) / 2 / 16 - 1;
+		cs.pw_len = hexlenu(p, 0) / 2 / 16 - 1;
 		for (i = 0; p[i * 2]; i++)
 			cs.pw[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];

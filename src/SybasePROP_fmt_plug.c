@@ -100,11 +100,12 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext + PREFIX_LENGTH;
+	int extra;
 
 	if (strncmp(ciphertext, PREFIX_VALUE, PREFIX_LENGTH))
 		return 0;
 
-	if (hexlenl(p) != CIPHERTEXT_LENGTH-PREFIX_LENGTH)
+	if (hexlenl(p, &extra) != CIPHERTEXT_LENGTH-PREFIX_LENGTH || extra)
 		return 0;
 
 	return 1;

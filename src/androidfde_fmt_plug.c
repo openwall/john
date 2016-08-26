@@ -129,7 +129,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr;
-	int saltlen, keysize;
+	int saltlen, keysize, extra;
 	char *p;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
@@ -147,7 +147,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p) != saltlen * 2)
+	if (hexlenl(p, &extra) != saltlen * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* keysize */
 		goto err;
@@ -158,11 +158,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* key */
 		goto err;
-	if (hexlenl(p) != keysize * 2)
+	if (hexlenl(p, &extra) != keysize * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* data */
 		goto err;
-	if (hexlenl(p) != 512 * 3 * 2)
+	if (hexlenl(p, &extra) != 512 * 3 * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

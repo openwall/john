@@ -99,7 +99,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
+	int len, extra;
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -114,11 +114,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = strlen(p);
 	if (len > 64 || (len&1))
 		goto err;
-	if (hexlenl(p) != len)
+	if (hexlenl(p, &extra) != len || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* binary */
 		goto err;
-	if (hexlenl(p) != BINARY_SIZE*2)
+	if (hexlenl(p, &extra) != BINARY_SIZE*2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

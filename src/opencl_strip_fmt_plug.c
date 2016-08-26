@@ -206,6 +206,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+	int extra;
+	
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -213,7 +215,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$strip$" and first '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt + data */
 		goto err;
-	if (hexlenl(p) != 2048)
+	if (hexlenl(p, &extra) != 2048 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

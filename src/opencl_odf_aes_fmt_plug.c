@@ -209,7 +209,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	int res;
+	int res, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -237,7 +237,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
-	if (hexlenl(p) != res * 2)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv length */
 		goto err;
@@ -246,7 +246,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if (hexlenl(p) != res * 2)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
 		goto err;
@@ -255,7 +255,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p) != res * 2)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* something */
 		goto err;

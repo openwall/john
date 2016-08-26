@@ -12,7 +12,7 @@
 int iwork_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int value;
+	int value, extra;
 	int file_version;
 	int salt_length; // this is "someSalt" for iWork '09 files
 
@@ -54,15 +54,15 @@ int iwork_common_valid(char *ciphertext, struct fmt_main *self)
 		salt_length = 8;
 	else
 		salt_length = SALTLEN;
-	if (hexlenl(p) != salt_length * 2)
+	if (hexlenl(p, &extra) != salt_length * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iv
 		goto err;
-	if (hexlenl(p) != IVLEN * 2)
+	if (hexlenl(p, &extra) != IVLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // blob
 		goto err;
-	if (hexlenl(p) != BLOBLEN * 2)
+	if (hexlenl(p, &extra) != BLOBLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) != NULL)
 		goto err;

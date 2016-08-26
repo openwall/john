@@ -90,7 +90,7 @@ void *ms_office_common_binary(char *ciphertext)
 static int valid(char *ciphertext, struct fmt_main *self, char *which)
 {
 	char *ctcopy, *ptr, *keeptr;
-	int res;
+	int res, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG_OFFICE, FORMAT_TAG_OFFICE_LEN))
 		return 0;
@@ -121,11 +121,11 @@ static int valid(char *ciphertext, struct fmt_main *self, char *which)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
-	if (hexlenl(ptr) != res * 2)
+	if (hexlenl(ptr, &extra) != res * 2 || extra)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* encrypted verifier */
 		goto error;
-	if (hexlenl(ptr) != 32)
+	if (hexlenl(ptr, &extra) != 32 || extra)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* encrypted verifier hash */
 		goto error;

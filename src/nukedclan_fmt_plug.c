@@ -126,6 +126,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
+	int extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -136,7 +137,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	/* HASHKEY is of fixed length 40 */
-	if(hexlenl(ptr) != 40)
+	if(hexlenl(ptr, &extra) != 40 || extra)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
@@ -146,7 +147,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	ptr += 2;
 	/* hash is of fixed length 32 */
-	if(hexlenl(ptr) != 32)
+	if(hexlenl(ptr, &extra) != 32 || extra)
 		goto error;
 
 	MEM_FREE(keeptr);

@@ -85,10 +85,11 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext;
+	int extra;
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (hexlenl(p) != BINARY_SIZE*2)
+	if (hexlenl(p, &extra) != BINARY_SIZE*2 || extra)
 		return 0;
 
 	return 1;

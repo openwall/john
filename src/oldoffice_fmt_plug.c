@@ -185,7 +185,7 @@ out:
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *ptr, *keeptr;
-	int type;
+	int type, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LEN))
 		return 0;
@@ -202,24 +202,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
-	if (hexlen(ptr) != 32)
+	if (hexlen(ptr, &extra) != 32 || extra)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* verifier */
 		goto error;
-	if (hexlen(ptr) != 32)
+	if (hexlen(ptr, &extra) != 32 || extra)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* verifier hash */
 		goto error;
-	if (type < 3 && hexlen(ptr) != 32)
+	if (type < 3 && hexlen(ptr, &extra) != 32 || extra)
 		goto error;
-	else if (type >= 3 && hexlen(ptr) != 40)
+	else if (type >= 3 && hexlen(ptr, &extra) != 40 || extra)
 		goto error;
 /*
  * Deprecated field: mitm hash (40-bit RC4). The new way to put it is in the
  * uid field, like hashcat's example hash.
  */
 	if (type <= 3 && (ptr = strtokm(NULL, "*"))) {
-		if (hexlen(ptr) != 10)
+		if (hexlen(ptr, &extra) != 10 || extra)
 			goto error;
 	}
 	MEM_FREE(keeptr);
@@ -233,13 +233,13 @@ error:
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	if (split_fields[0] && valid(split_fields[0], self) && split_fields[1] &&
-	    hexlen(split_fields[1]) == 10) {
+	    hexlen(split_fields[1], 0) == 10) {
 		mitm_catcher.ct_hash = hex_hash(split_fields[0]);
 		memcpy(mitm_catcher.mitm, split_fields[1], 10);
 		return split_fields[0];
 	}
 	else if (valid(split_fields[1], self) && split_fields[2] &&
-	         hexlen(split_fields[2]) == 10) {
+	         hexlen(split_fields[2], 0) == 10) {
 		mitm_catcher.ct_hash = hex_hash(split_fields[1]);
 		memcpy(mitm_catcher.mitm, split_fields[2], 10);
 	}
@@ -250,12 +250,13 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH];
 	char *p;
+	int extra;
 
 	strnzcpy(out, ciphertext, sizeof(out));
 	strlwr(out);
 
 	/* Drop legacy embedded MITM hash */
-	if ((p = strrchr(out, '*')) && hexlen(&p[1]) == 10)
+	if ((p = strrchr(out, '*')) && (hexlen(&p[1], &extra) == 10 || extra))
 		*p = 0;
 	return out;
 }

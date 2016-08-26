@@ -289,7 +289,7 @@ static void set_salt(void *salt)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *ptr, *keeptr;
-	int mode;
+	int mode, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -308,12 +308,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
-	if (hexlenl(ptr) != 16) /* 8 bytes of salt */
+	if (hexlenl(ptr, &extra) != 16 || extra) /* 8 bytes of salt */
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (mode == 0) {
-		if (hexlenl(ptr) != 32) /* 16 bytes of encrypted known plain */
+		if (hexlenl(ptr, &extra) != 32 || extra) /* 16 bytes of encrypted known plain */
 			goto error;
 		MEM_FREE(keeptr);
 		return 1;
@@ -321,7 +321,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		int inlined;
 		long long plen, ulen;
 
-		if (hexlenl(ptr) != 8) /* 4 bytes of CRC */
+		if (hexlenl(ptr, &extra) != 8 || extra) /* 4 bytes of CRC */
 			goto error;
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size */
 			goto error;
@@ -357,7 +357,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size / archive_name */
 			goto error;
 		if (inlined) {
-			if (hexlenl(ptr) != plen * 2)
+			if (hexlenl(ptr, &extra) != plen * 2 || extra)
 				goto error;
 		} else {
 			FILE *fp;

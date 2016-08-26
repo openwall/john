@@ -101,6 +101,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+	int extra;
+
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -112,7 +114,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	if (hexlenl(p) != 32)
+	if (hexlenl(p, &extra) != 32 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

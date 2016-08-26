@@ -119,7 +119,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *ctcopy, *keeptr, *p2;
-	int mac_algo, saltlen, hashhex;
+	int mac_algo, saltlen, hashhex, extra;
 
 	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
@@ -172,19 +172,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto bail;
-	if (hexlenl(p) > saltlen * 2)
+	if (hexlenl(p, &extra) > saltlen * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // data
 		goto bail;
-	if (hexlenl(p) > MAX_DATA_LENGTH * 2)
+	if (hexlenl(p, &extra) > MAX_DATA_LENGTH * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // stored_hmac (not stored in salt)
 		goto bail;
-	if (hexlenl(p) != hashhex)
+	if (hexlenl(p, &extra) != hashhex || extra)
 		goto bail;
 
 	p2 = strrchr(ciphertext, '$');
@@ -224,7 +224,7 @@ static void *get_salt(char *ciphertext)
 	for(i = 0; i < cs.saltlen; i++)
 		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	p = strtokm(NULL, "$");
-	cs.data_length = hexlenl(p) / 2;
+	cs.data_length = hexlenl(p, 0) / 2;
 	for(i = 0; i < cs.data_length; i++)
 		cs.data[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	p = strtokm(NULL, "$");

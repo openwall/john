@@ -61,7 +61,7 @@ static int get_integer(char *int_str, int *output) // FIXME: replace by isdec() 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
+	int len, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -77,7 +77,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto err;
-	if (hexlenl(p) != len * 2)
+	if (hexlenl(p, &extra) != len * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // iterations (in log2)
 		goto err;
@@ -89,7 +89,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // AES IV
 		goto err;
-	if (hexlenl(p) != SIZE_INITV * 2)
+	if (hexlenl(p, &extra) != SIZE_INITV * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck len (redundant)
 		goto err;
@@ -99,7 +99,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck
 		goto err;
-	if (hexlenl(p) != BINARY_SIZE * 2)
+	if (hexlenl(p, &extra) != BINARY_SIZE * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

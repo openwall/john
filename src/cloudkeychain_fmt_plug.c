@@ -124,7 +124,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
+	int len, extra;
 
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
@@ -139,7 +139,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p)/2 != len)
+	if (hexlenl(p, &extra)/2 != len || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
 		goto err;
@@ -152,7 +152,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey */
 		goto err;
-	if (hexlenl(p)/2 != len)
+	if (hexlenl(p, &extra)/2 != len || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* plaintext length */
 		goto err;
@@ -167,7 +167,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* iv */
 		goto err;
-	if (hexlenl(p) / 2 != len)
+	if (hexlenl(p, &extra) / 2 != len || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext length */
 		goto err;
@@ -178,7 +178,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* cryptext */
 		goto err;
-	if (hexlenl(p)/2 != len)
+	if (hexlenl(p, &extra)/2 != len || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac length */
 		goto err;
@@ -189,7 +189,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* expectedhmac */
 		goto err;
-	if (hexlenl(p)/2 != len)
+	if (hexlenl(p, &extra)/2 != len || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata length */
 		goto err;
@@ -200,7 +200,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hmacdata */
 		goto err;
-	if (hexlenl(p)/2 != len)
+	if (hexlenl(p, &extra)/2 != len || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

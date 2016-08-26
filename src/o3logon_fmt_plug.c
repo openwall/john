@@ -122,7 +122,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *cp;
 	char tmp[32*5+1];
 	UTF16 cur_key_mixedcase[MAX_USERNAME_LEN+2];
-	int len;
+	int len, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -140,11 +140,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	ciphertext = cp+1;
 	cp = strchr(ciphertext, '$');
-	if (!cp || cp-ciphertext != 32 || hexlenu(ciphertext) != 32)
+	if (!cp || cp-ciphertext != 32 || hexlenu(ciphertext, 0) != 32)
 		return 0;
 	ciphertext = cp+1;
 	cp = strchr(ciphertext, '$');
-	if (cp || strlen(ciphertext)%16 || hexlenu(ciphertext) != strlen(ciphertext))
+	len = strlen(ciphertext);
+	if (cp || len%16 || hexlenu(ciphertext, &extra) != len || extra)
 		return 0;
 	return 1;
 }

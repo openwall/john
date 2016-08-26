@@ -125,7 +125,7 @@ static int looks_like_nice_int(char *p)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int ctlen;
+	int ctlen, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -135,7 +135,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p) != SALTLEN * 2)
+	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
 		goto err;
 	while (*p)
 		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
@@ -159,7 +159,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (ctlen > LINE_BUFFER_SIZE)
 		goto err;
-	if (hexlenl(p) != ctlen * 2)
+	if (hexlenl(p, &extra) != ctlen * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

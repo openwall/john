@@ -159,6 +159,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
+	int extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -169,11 +170,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
-	if (hexlenu(ptr) != 32)
+	if (hexlenu(ptr, &extra) != 32 || extra)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
-	if (hexlenu(ptr) != 32)
+	if (hexlenu(ptr, &extra) != 32 || extra)
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;

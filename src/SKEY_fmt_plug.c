@@ -99,6 +99,7 @@ static int
 skey_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, buf[128];
+	int extra;
 
 	if (*ciphertext == '#')
 		return 0;
@@ -125,7 +126,7 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if ((p = strtok(NULL, " \t")) == NULL)
 		return 0;
-	if (hexlenl(p) != (2 * SKEY_BINKEY_SIZE))
+	if (hexlenl(p, &extra) != (2 * SKEY_BINKEY_SIZE) || extra)
 		return 0;
 
 	if (!skey_salt(ciphertext))

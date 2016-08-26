@@ -138,6 +138,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *data = ciphertext + FORMAT_TAG_LEN;
+	int extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
@@ -159,7 +160,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	data = p + 1; // cnonce
 	if (!(p = strchr(data, '$')) || (int)(p-data) > MD5_HEX_SIZE)
 		return 0;
-	if (hexlenl(data) != p-data)
+	if (hexlenl(data, 0) != p-data)
 		return 0;
 	data = p + 1; // nc
 	if (!(p = strchr(data, '$')) || (int)(p-data) >= 9)
@@ -176,7 +177,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 	} else if (strlen(data) > MD5_HEX_SIZE)
 		return 0;
-	if (hexlenl(data) !=strlen(data))
+	if (hexlenl(data, &extra) != MD5_HEX_SIZE || extra)
 		return 0;
 
 	return 1;

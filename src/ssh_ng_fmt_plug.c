@@ -128,7 +128,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len, cipher;
+	int len, cipher, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -148,7 +148,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (hexlen(p) != len * 2)
+	if (hexlen(p, &extra) != len * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext length */
 		goto err;
@@ -157,7 +157,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext */
 		goto err;
-	if (hexlen(p) / 2 != len)
+	if (hexlen(p, &extra) / 2 != len || extra)
 		goto err;
 	if (cipher == 2) {
 		if ((p = strtokm(NULL, "$")) == NULL)	/* rounds */

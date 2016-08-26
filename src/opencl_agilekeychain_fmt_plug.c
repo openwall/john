@@ -208,7 +208,7 @@ static void reset(struct db_main *db)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr;
-	int ctlen;
+	int ctlen, extra;
 	int saltlen;
 	char *p;
 
@@ -236,7 +236,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenl(p) != saltlen * 2)
+	if(hexlenl(p, &extra) != saltlen * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ct length */
 		goto err;
@@ -247,7 +247,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
-	if(hexlenl(p) != ctlen * 2)
+	if(hexlenl(p, &extra) != ctlen * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

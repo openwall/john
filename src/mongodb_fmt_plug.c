@@ -106,7 +106,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
-	int type;
+	int type, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -129,16 +129,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (type == 0) {
 		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
-		if (hexlenl(ptr) != 32)
+		if (hexlenl(ptr, &extra) != 32 || extra)
 			goto error;
 	} else {
 		if (!(ptr = strtokm(NULL, "$"))) /* salt */
 			goto error;
-		if (hexlenl(ptr) != 16)
+		if (hexlenl(ptr, &extra) != 16 || extra)
 			goto error;
 		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
-		if (hexlenl(ptr) != 32)
+		if (hexlenl(ptr, &extra) != 32 || extra)
 			goto error;
 	}
 

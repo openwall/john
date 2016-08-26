@@ -117,7 +117,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char _ctcopy[256], *ctcopy = _ctcopy;
 	char *p;
-	int res;
+	int res, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	strnzcpy(ctcopy, ciphertext, 255);
@@ -133,11 +133,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	res = strlen(p);
-	if (hexlenl(p) != res)
+	if (hexlenl(p, &extra) != res || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	if (hexlenl(p) != BINARY_SIZE * 2)
+	if (hexlenl(p, &extra) != BINARY_SIZE * 2 || extra)
 		goto err;
 
 	return 1;

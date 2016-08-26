@@ -165,9 +165,10 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
+    int extra;
     if(strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0)
         return 0;
-    if(hexlen(&ciphertext[FORMAT_TAG_LEN]) != CIPHERTEXT_LENGTH - FORMAT_TAG_LEN)
+    if(hexlen(&ciphertext[FORMAT_TAG_LEN], &extra) != CIPHERTEXT_LENGTH - FORMAT_TAG_LEN || extra)
         return 0;
     return 1;
 }

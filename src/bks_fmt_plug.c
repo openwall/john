@@ -114,7 +114,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *ctcopy, *keeptr;
-	int format, version, saltlen;
+	int format, version, saltlen, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH) != 0)
 		return 0;
@@ -152,19 +152,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto bail;
-	if (hexlenl(p) > saltlen * 2)
+	if (hexlenl(p, &extra) > saltlen * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // store_data
 		goto bail;
-	if (hexlenl(p) > MAX_STORE_DATA_LENGTH * 2)
+	if (hexlenl(p, &extra) > MAX_STORE_DATA_LENGTH * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // store_hmac
 		goto bail;
-	if (hexlenl(p) != 20*2)
+	if (hexlenl(p, &extra) != 20*2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -208,7 +208,7 @@ static void *get_salt(char *ciphertext)
 	for(i = 0; i < cs.saltlen; i++)
 		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	p = strtokm(NULL, "$");
-	cs.store_data_length = hexlenl(p) / 2;
+	cs.store_data_length = hexlenl(p, 0) / 2;
 	for(i = 0; i < cs.store_data_length; i++)
 		cs.store_data[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	p = strtokm(NULL, "$");

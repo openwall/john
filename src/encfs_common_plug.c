@@ -16,7 +16,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	int res;
+	int res, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -46,7 +46,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p)/2 != res)
+	if (hexlenl(p, &extra)/2 != res || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data length */
 		goto err;
@@ -57,7 +57,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (hexlenl(p)/2 != res)
+	if (hexlenl(p, &extra)/2 != res || extra)
 		goto err;
 
 	MEM_FREE(keeptr);

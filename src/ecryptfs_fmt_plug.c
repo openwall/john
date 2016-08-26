@@ -127,6 +127,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
+	int extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH) != 0)
 		return 0;
@@ -139,12 +140,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (*p == '1' && *(p + 1) == '$') {
 		// handle salted variety
 		p += 2;
-		if (hexlenl(p) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
+		if (hexlenl(p, 0) != HEX_BINARY_SIZE || p[HEX_BINARY_SIZE] != '$')
 			return 0;
 		p += (HEX_BINARY_SIZE+1);
 	}
 
-	return hexlenl(p) == HEX_BINARY_SIZE && !p[HEX_BINARY_SIZE];
+	return hexlenl(p, &extra) == HEX_BINARY_SIZE && !extra;
 }
 
 static void *get_salt(char *ciphertext)

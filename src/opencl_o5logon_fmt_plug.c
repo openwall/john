@@ -222,6 +222,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+	int extra;
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -229,11 +230,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL) /* ciphertext */
 		goto err;
-	if(hexlenu(p) != CIPHERTEXT_LENGTH * 2)
+	if(hexlenu(p, &extra) != CIPHERTEXT_LENGTH * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenu(p) != SALT_LENGTH * 2)
+	if(hexlenu(p, &extra) != SALT_LENGTH * 2 || extra)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

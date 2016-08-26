@@ -104,12 +104,13 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
+	int extra;
 
 	p = ciphertext;
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (hexlen(p) != CIPHERTEXT_LENGTH || p[CIPHERTEXT_LENGTH])
+	if (hexlen(p, &extra) != CIPHERTEXT_LENGTH || extra)
 		return 0;
 
 	return 1;

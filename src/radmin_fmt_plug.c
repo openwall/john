@@ -100,10 +100,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *self) {
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
+	int extra;
+
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	p = ciphertext + FORMAT_TAG_LEN;
-	if (hexlen(p) != CIPHERTEXT_LENGTH)
+	if (hexlen(p, &extra) != CIPHERTEXT_LENGTH || extra)
 		return 0;
 	return 1;
 }
