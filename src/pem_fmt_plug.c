@@ -131,10 +131,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // type
 		goto err;
+	if (!isdec(p))
+		goto err;
 	value = atoi(p);
 	if (value != 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // cipher
+		goto err;
+	if (!isdec(p))
 		goto err;
 	value = atoi(p);
 	if (value != 1)
