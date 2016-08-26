@@ -276,6 +276,18 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 			(dst)[_i] = (src)[_i]; \
 	} while (0)
 
+/* requires char/uchar */
+#define dump_stuff8_msg(msg, x, size) do {	  \
+		uint ii; \
+		printf("%s : ", msg); \
+		for (ii = 0; ii < size; ii++) { \
+			printf("%02x", x[ii]); \
+			if (ii % 4 == 3) \
+				printf(" "); \
+		} \
+		printf("\n"); \
+	} while (0)
+
 /* requires int/uint */
 #define dump_stuff_msg(msg, x, size) do {	  \
 		uint ii; \
