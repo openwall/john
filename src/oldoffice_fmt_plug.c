@@ -210,9 +210,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* verifier hash */
 		goto error;
-	if (type < 3 && hexlen(ptr, &extra) != 32 || extra)
+	if (type < 3 && (hexlen(ptr, &extra) != 32 || extra))
 		goto error;
-	else if (type >= 3 && hexlen(ptr, &extra) != 40 || extra)
+	else if (type >= 3 && (hexlen(ptr, &extra) != 40 || extra))
 		goto error;
 /*
  * Deprecated field: mitm hash (40-bit RC4). The new way to put it is in the
