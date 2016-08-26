@@ -149,6 +149,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iterations
 		goto err;
+	if (!isdec(p))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iv
 		goto err;
 	if(hexlenl(p, &extra) != 16 || extra)
