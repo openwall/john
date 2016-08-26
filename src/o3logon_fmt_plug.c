@@ -43,7 +43,7 @@ static int omp_t = 1;
 #define FORMAT_NAME                     "Oracle O3LOGON protocol"
 #define FORMAT_TAG                      "$o3logon$"
 #define FORMAT_TAG_LEN                  (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME                  "DES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME                  "SHA1 DES 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT               ""
 #define BENCHMARK_LENGTH                -1
@@ -251,7 +251,7 @@ static unsigned char fixed23 [] = {0xF2,0xFF,0x97,0x87,0x15,0x37,0x07,0x76,
 static int ORACLE_TNS_Decrypt_Password_9i (unsigned char OracleHash[8], unsigned char *auth_sesskey, int auto_sesskeylen, unsigned char *auth_password, int auth_passwordlen, unsigned char *decrypted)
 {
 	unsigned char triple_des_key[64];
-	unsigned char sesskey[24];
+	unsigned char sesskey[16];
 	unsigned char obfuscated[256];
 	int PassLen = auth_passwordlen;
 
