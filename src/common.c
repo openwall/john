@@ -135,7 +135,7 @@ static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100], int 
 		++q;
 	if ((size_t)(q - s)&1) --q;
 	if (extra_chars)
-		*extra_chars = (len == (size_t)(q - s)) ? 0 : 1;
+		*extra_chars = (*q != 0);
 	return (q - s);
 }
 size_t hexlen(const char *q, int *extra_chars)
