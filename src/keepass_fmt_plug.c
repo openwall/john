@@ -237,10 +237,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		res = atoi(p);
 		if (res != 1 && res != 2) {
-			fprintf(stderr, "[!] Support for non-inlined data is currently missing from the " \
-					FORMAT_LABEL " format.\n");
-			fprintf(stderr, "See https://github.com/magnumripper/JohnTheRipper/issues/1026\n");
-			error();
+			/*
+			 * issue https://github.com/magnumripper/JohnTheRipper/issues/1026
+			 * has been closed, because since commit 0ed240a data is now always
+			 * inlined, so apparently there's no need to support res > 2 or res < 1.
+			 */
+			goto err;
 		}
 		if (res == 1) {
 			if ((p = strtokm(NULL, "*")) == NULL)	/* content size */
