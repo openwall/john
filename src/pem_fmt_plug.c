@@ -151,6 +151,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // ciphertext length
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
 	if(hexlenl(p, &extra) != len || extra)
