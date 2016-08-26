@@ -159,7 +159,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	len = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
-	if(hexlenl(p, &extra) != len || extra)
+		goto err;
+	if(hexlenl(p, &extra) != len*2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
