@@ -255,6 +255,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__ToSSE", DynamicFunc__ToSSE },
 	{ "DynamicFunc__ToX86", DynamicFunc__ToX86 },
 	{ "DynamicFunc__setmode_unicode", DynamicFunc__setmode_unicode },
+	{ "DynamicFunc__setmode_unicodeBE", DynamicFunc__setmode_unicodeBE },
 	{ "DynamicFunc__setmode_normal", DynamicFunc__setmode_normal },
 	{ "DynamicFunc__base16_convert_locase", DynamicFunc__base16_convert_locase },
 	{ "DynamicFunc__base16_convert_upcase", DynamicFunc__base16_convert_upcase },

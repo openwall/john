@@ -551,12 +551,10 @@ SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein
 // LARGE_HASH_EDIT_POINT
 
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
+static int encode_be()         { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
 static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); return gen_conv; }
 static char *pad100()          { memset(gen_conv, 0, 100); strncpy(gen_conv, gen_pw, 100); return gen_conv; }
-
-// TODO:
-//int encode_be() { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len); return len; }
 
 /*
  * helper functions, to reduce the size of our dynamic_*() functions
@@ -627,7 +625,7 @@ LEXI_FUNC(keccak_256,keccak_256,32)  LEXI_FUNC(keccak_512,keccak_512,64)
 // LARGE_HASH_EDIT_POINT
 
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
-//static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
+static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
 static void dynamic_exp() {
 	int i, j;
 	j = atoi(&pCode[nCurCode][1]);
@@ -842,7 +840,7 @@ static const char *comp_get_symbol(const char *pInput) {
 	if (!strncmp(pInput, "lc($p)", 6)) { if (bNeedPC&&bNeedPC!=1) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=1; return comp_push_sym("p_lc", fpNull, pInput+6, 0); }
 	if (!strncmp(pInput, "uc($p)", 6)) { if (bNeedPC&&bNeedPC!=2) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=2; return comp_push_sym("p_uc", fpNull, pInput+6, 0); }
 	LastTokIsFunc = 2;
-	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7);
+	if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7, 0);
 	if (!strncmp(pInput, "utf16(", 6))   return comp_push_sym("futf16", dynamic_futf16, pInput+5, 0);
 	LastTokIsFunc = 0;
 	return comp_push_sym("X", fpNull, pInput, 0);
@@ -1735,7 +1733,16 @@ static int parse_expression(DC_struct *p) {
 					inp_cnt = ex_cnt = salt_cnt = 0;
 					len_comp = 0;
 				}
-				//if (!strcasecmp(pCode[i], "futf16be") || !strcasecmp(pCode[i], "futf16")) {
+				if (!strcasecmp(pCode[i], "futf16be")) {
+					if (!in_unicode) {
+						in_unicode = 1;
+						comp_add_script_line("Func=DynamicFunc__setmode_unicodeBE\n");
+					}
+					if (!flag_utf16) {
+						comp_add_script_line("Flag=MGF_UTF8\n");
+						flag_utf16 = 1;
+					}
+				}
 				if (!strcasecmp(pCode[i], "futf16")) {
 					if (!in_unicode) {
 						in_unicode = 1;

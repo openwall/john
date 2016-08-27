@@ -3220,6 +3220,7 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 {
 	unsigned int j;
 	unsigned int til;
+	int utf16 = md5_unicode_convert_get(tid);
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3229,7 +3230,7 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		if (!md5_unicode_convert_get(tid)) {
+		if (!utf16) {
 			for (; j < til; ++j) {
 				unsigned int idx = j/SIMD_COEF_32;
 				unsigned int idx_mod = j&(SIMD_COEF_32-1);
@@ -3238,11 +3239,14 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,Str,len,bf_ptr,1);
 			}
 		} else {
-			if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+			if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 
-				outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
+				if (utf16 == 1)
+					outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
+				else
+					outlen = enc_to_utf16_be(utf16Str, 27, Str, len) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
@@ -3266,11 +3270,14 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 		return;
 	}
 #endif
-	if (md5_unicode_convert_get(tid)) {
-		if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+	if (utf16) {
+		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+			if (utf16 == 1)
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+			else
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (; j < til; ++j) {
@@ -3323,6 +3330,7 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 {
 	unsigned int j;
 	unsigned int til;
+	int utf16 = md5_unicode_convert_get(tid);
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3332,7 +3340,7 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		if (!md5_unicode_convert_get(tid)) {
+		if (!utf16) {
 			for (; j < til; ++j) {
 				unsigned int idx = j/SIMD_COEF_32;
 				unsigned int idx_mod = j&(SIMD_COEF_32-1);
@@ -3345,7 +3353,10 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 
-				outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
+				if (utf16 == 1)
+					outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
+				else
+					outlen = enc_to_utf16_be(utf16Str, 27, Str, len) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
@@ -3369,11 +3380,14 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 		return;
 	}
 #endif
-	if (md5_unicode_convert_get(tid)) {
-		if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+	if (utf16) {
+		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+			if (utf16 == 1)
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+			else
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (; j < til; ++j) {
@@ -3420,6 +3434,11 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 			total_len2_X86[j] += len;
 		}
 	}
+}
+
+void DynamicFunc__setmode_unicodeBE(DYNA_OMP_PARAMS) // DYNA_OMP_PARAMS not used. We use omp_thread_num() instead.
+{
+	md5_unicode_convert_set(2,tid);
 }
 
 void DynamicFunc__setmode_unicode(DYNA_OMP_PARAMS) // DYNA_OMP_PARAMS not used. We use omp_thread_num() instead.
@@ -3621,6 +3640,7 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 {
 	unsigned int j;
 	unsigned int til;
+	int utf16 = md5_unicode_convert_get(tid);
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3634,14 +3654,17 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 			unsigned int idx = j/SIMD_COEF_32;
 			unsigned int idx_mod = j&(SIMD_COEF_32-1);
 			unsigned int bf_ptr = total_len[idx][idx_mod];
-			if (md5_unicode_convert_get(tid)) {
-				if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+			if (utf16) {
+				if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 					int outlen;
 					int maxlen=27;
 					if (curdat.pSetup->MaxInputLen < maxlen)
 						maxlen = curdat.pSetup->MaxInputLen;
-					outlen = enc_to_utf16(utf16Str, maxlen, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					if (utf16 == 1)
+						outlen = enc_to_utf16(utf16Str, maxlen, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					else
+						outlen = enc_to_utf16_be(utf16Str, maxlen, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 					if (outlen <= 0) {
 						saved_key_len[j] = -outlen / sizeof(UTF16);
 						if (outlen < 0)
@@ -3661,14 +3684,17 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 		return;
 	}
 #endif
-	if (md5_unicode_convert_get(tid)) {
-		if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+	if (utf16) {
+		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
 				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 				int outlen;
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+				if (utf16 == 1)
+					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+				else
+					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
@@ -3811,6 +3837,7 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 {
 	unsigned int j, til;
+	int utf16 = md5_unicode_convert_get(tid);
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3824,14 +3851,17 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 			unsigned int idx = j/SIMD_COEF_32;
 			unsigned int idx_mod = j&(SIMD_COEF_32-1);
 			unsigned int bf_ptr = total_len2[idx][idx_mod];
-			if (md5_unicode_convert_get(tid)) {
-				if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+			if (utf16) {
+				if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 					int outlen;
 					int maxlen=27;
 					if (curdat.pSetup->MaxInputLen < maxlen)
 						maxlen = curdat.pSetup->MaxInputLen;
-					outlen = enc_to_utf16(utf16Str, maxlen, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					if (utf16 == 1)
+						outlen = enc_to_utf16(utf16Str, maxlen, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					else
+						outlen = enc_to_utf16_be(utf16Str, maxlen, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 					if (outlen <= 0) {
 						saved_key_len[j] = -outlen / sizeof(UTF16);
 						if (outlen < 0)
@@ -3851,14 +3881,17 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 		return;
 	}
 #endif
-	if (md5_unicode_convert_get(tid)) {
-		if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+	if (utf16) {
+		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
 				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 				int outlen;
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+				if (utf16 == 1)
+					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+				else
+					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
@@ -5510,6 +5543,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen(DYNA_OMP_PARAMS)
 void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 {
 	unsigned int j, til;
+	int utf16 = md5_unicode_convert_get(tid);
 #ifdef _OPENMP
 	j = first;
 	til = last;
@@ -5519,11 +5553,14 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		if (md5_unicode_convert_get(tid)) {
-			if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+		if (utf16) {
+			if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
-				outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				if (utf16 == 1)
+					outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				else
+					outlen = enc_to_utf16_be(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
@@ -5540,11 +5577,14 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 		return;
 	}
 #endif
-	if (md5_unicode_convert_get(tid)) {
-		if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+	if (utf16) {
+		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+			if (utf16 == 1)
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+			else
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
@@ -5591,6 +5631,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 {
 	unsigned int j, til;
+	int utf16 = md5_unicode_convert_get(tid);
 #ifdef _OPENMP
 	j = first;
 	til = last;
@@ -5600,11 +5641,14 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 #endif
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
-		if (md5_unicode_convert_get(tid)) {
-			if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+		if (utf16) {
+			if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
-				outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				if (utf16 == 1)
+					outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				else
+					outlen = enc_to_utf16_be(utf16Str, 27, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (; j < til; ++j) {
@@ -5621,11 +5665,14 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 		return;
 	}
 #endif
-	if (md5_unicode_convert_get(tid)) {
-		if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+	if (utf16) {
+		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+			if (utf16 == 1)
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+			else
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
@@ -7674,7 +7721,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 			for (x = 0; x < cnt2; ++x) {
 				curdat.dynamic_FUNCTIONS[j++] = pFuncs[x];
-				if (pFuncs[x] == DynamicFunc__setmode_unicode)
+				if (pFuncs[x] == DynamicFunc__setmode_unicode || pFuncs[x] == DynamicFunc__setmode_unicodeBE)
 					pFmt->params.flags |= FMT_UNICODE;
 				IS_FUNC_NAME(SHA1,S)
 				if (isSHA2_256Func(pFuncs[x])) {

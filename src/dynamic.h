@@ -549,6 +549,7 @@ extern void DynamicFunc__ToSSE(DYNA_OMP_PARAMS);
 extern void DynamicFunc__ToX86(DYNA_OMP_PARAMS);
 // set unicode mode.
 extern void DynamicFunc__setmode_unicode(DYNA_OMP_PARAMS);
+extern void DynamicFunc__setmode_unicodeBE(DYNA_OMP_PARAMS);
 extern void DynamicFunc__setmode_normal(DYNA_OMP_PARAMS);
 // Changing upper case and lower case base-16 conversion routines
 extern void DynamicFunc__base16_convert_locase(DYNA_OMP_PARAMS);
