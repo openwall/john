@@ -510,7 +510,7 @@ sub ms_word_encode_uc {
 }
 sub word_encode {
     my $s = $_[0];
-	if ($arg_codepage) {
+	if ($arg_codepage && !$arg_utf8) {
         $s = encode($arg_codepage, $_[0]);
     }
     return $s;
