@@ -168,6 +168,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (cipher != 0 && cipher != 1 && cipher != 2 && cipher != 3) {
 		fprintf(stderr, "[ssh-ng] cipher value of %d is not supported!\n", cipher);
+		goto err;
 	}
 
 	MEM_FREE(keeptr);
