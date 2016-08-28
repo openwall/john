@@ -486,7 +486,7 @@ sub pp_pbkdf2_hex {
 #############################################################################
 sub ms_word_encode_uc {
     my $s = uc($_[0]);
-    if ($arg_utf8) {
+    if ($arg_codepage eq "UTF-8") {
         eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
         if (!$@) { goto MS_enc_Found; }
         eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
@@ -510,7 +510,7 @@ sub ms_word_encode_uc {
 }
 sub word_encode {
     my $s = $_[0];
-	if ($arg_codepage && !$arg_utf8) {
+	if ($arg_codepage && $arg_codepage ne "UTF-8") {
         $s = encode($arg_codepage, $_[0]);
     }
     return $s;
