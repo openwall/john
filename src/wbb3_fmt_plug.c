@@ -134,9 +134,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	res = strlen(p);
-	if (res > MAX_SALT_LEN * 2)
-		goto err;
-	if (hexlenl(p, &extra) != res || extra)
+	if (res > MAX_SALT_LEN || !ishexlc_oddOK(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
