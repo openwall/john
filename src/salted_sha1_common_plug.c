@@ -58,7 +58,7 @@ int salted_sha1_common_valid(char *ciphertext, struct fmt_main *self)
 	len = base64_valid_length(ciphertext, e_b64_mime, 0, 0);
 	if (len > CIPHERTEXT_LENGTH)
 		return 0;
-	if (len < CIPHERTEXT_LEN_MIN)
+	if (len <= CIPHERTEXT_LEN_MIN)
 		return 0;
 	// there should be NOTHING following the base64 string.
 	while (ciphertext[len] == '=')
