@@ -38,16 +38,17 @@ typedef struct {
 
 #ifdef UTF_8
 
-__kernel void oldoffice_utf16(__global const uchar *source,
-                              __global const uint *index,
-                              __global mid_t *mid)
+inline
+void oldoffice_utf16(__global const uchar *source,
+                     __global const uint *index,
+                     mid_t *mid)
 {
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	__global const UTF8 *sourceEnd;
-	__global UTF16 *target = mid[gid].password;
-	__global UTF16 *targetStart = target;
-	__global const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
+	UTF16 *target = mid->password;
+	UTF16 *targetStart = target;
+	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
 
@@ -109,14 +110,15 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 	}
 
 	*target = 0;
-	mid[gid].len = (uint)(target - targetStart);
+	mid->len = (uint)(target - targetStart);
 }
 
 #else
 
-__kernel void oldoffice_utf16(__global const uchar *password,
-                              __global const uint *index,
-                              __global mid_t *mid)
+inline
+void oldoffice_utf16(__global const uchar *password,
+                     __global const uint *index,
+                     mid_t *mid)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -130,21 +132,22 @@ __kernel void oldoffice_utf16(__global const uchar *password,
 
 	/* Input buffer is in a 'codepage' encoding, without zero-termination */
 	for (i = 0; i < len; i++)
-		mid[gid].password[i] = CP_LUT(password[i]);
+		mid->password[i] = CP_LUT(password[i]);
 
-	mid[gid].password[i] = 0;
-	mid[gid].len = len;
+	mid->password[i] = 0;
+	mid->len = len;
 }
 
 #endif /* encodings */
 
+inline
+void oldoffice_md5(const mid_t *mid,
+                   __global salt_t *cs,
+                   __global uint *result,
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+                   __local uint *state_l,
 #endif
-__kernel void oldoffice_md5(__global const mid_t *mid,
-                            __global salt_t *cs,
-                            __global uint *result,
-                            __global uint *benchmark)
+                   __global uint *benchmark)
 {
 	uint i;
 	uint a, b, c, d;
@@ -153,16 +156,9 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	uint verifier[32/4];
 	uint md5[16/4];
 	uint key[16/4];
-	uint len = mid[gid].len;
+	uint len = mid->len;
 	uint salt[16/4];
-	__global const ushort *p = mid[gid].password;
-#ifdef RC4_USE_LOCAL
-	/*
-	 * The "+ 1" extra element (actually never touched) give a huge boost
-	 * on Maxwell and GCN due to access patters or whatever.
-	 */
-	__local uint state_l[64][256/4 + 1];
-#endif
+	const ushort *p = mid->password;
 
 	/* Initial hash of password */
 #if PLAINTEXT_LENGTH > 27
@@ -332,7 +328,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
 #ifdef RC4_USE_LOCAL
-		rc4(state_l[get_local_id(0)], md5, verifier);
+		rc4(state_l, md5, verifier);
 #else
 		rc4(md5, verifier);
 #endif
@@ -363,13 +359,14 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	}
 }
 
+inline
+void oldoffice_sha1(const mid_t *mid,
+                    __global salt_t *cs,
+                    __global uint *result,
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+                    __local uint *state_l,
 #endif
-__kernel void oldoffice_sha1(__global const mid_t *mid,
-                             __global salt_t *cs,
-                             __global uint *result,
-                             __global uint *benchmark)
+                    __global uint *benchmark)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -382,15 +379,8 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	uint verifier[32/4];
 	uint sha1[20/4];
 	uint key[20/4];
-	uint len = mid[gid].len + 8;
-	__global const ushort *p = mid[gid].password;
-#ifdef RC4_USE_LOCAL
-	/*
-	 * The "+ 1" extra element (actually never touched) give a huge boost
-	 * on Maxwell and GCN due to access patters or whatever.
-	 */
-	__local uint state_l[64][256/4 + 1];
-#endif
+	uint len = mid->len + 8;
+	const ushort *p = mid->password;
 
 	/* Initial hash of salt.password */
 #if PLAINTEXT_LENGTH > (27 - 8)
@@ -484,7 +474,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
 #ifdef RC4_USE_LOCAL
-		rc4(state_l[get_local_id(0)], key, verifier);
+		rc4(state_l, key, verifier);
 #else
 		rc4(key, verifier);
 #endif
@@ -517,4 +507,40 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 			result[gid] = 0;
 		}
 	}
+}
+
+#ifdef RC4_USE_LOCAL
+#warning RC4 using local memory
+__attribute__((work_group_size_hint(64,1,1)))
+#endif
+__kernel
+void oldoffice(__global const uchar *password,
+               __global const uint *index,
+               __global salt_t *cs,
+               __global uint *result,
+               __global uint *benchmark)
+{
+#ifdef RC4_USE_LOCAL
+	/*
+	 * The "+ 1" extra element (actually never touched) give a huge boost
+	 * on Maxwell and GCN due to access patters or whatever.
+	 */
+	__local uint state_l[64][256/4 + 1];
+#endif
+	mid_t mid;
+
+	oldoffice_utf16(password, index, &mid);
+
+	if (cs->type < 3)
+		oldoffice_md5(&mid, cs, result,
+#ifdef RC4_USE_LOCAL
+		              state_l[get_local_id(0)],
+#endif
+		              benchmark);
+	else
+		oldoffice_sha1(&mid, cs, result,
+#ifdef RC4_USE_LOCAL
+		               state_l[get_local_id(0)],
+#endif
+		               benchmark);
 }

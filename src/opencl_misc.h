@@ -288,6 +288,18 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		printf("\n"); \
 	} while (0)
 
+/* requires short/ushort */
+#define dump_stuff16_msg(msg, x, size) do {	  \
+		uint ii; \
+		printf("%s : ", msg); \
+		for (ii = 0; ii < (size)/2; ii++) { \
+			printf("%04x", x[ii]); \
+			if (ii % 2 == 1) \
+				printf(" "); \
+		} \
+		printf("\n"); \
+	} while (0)
+
 /* requires int/uint */
 #define dump_stuff_msg(msg, x, size) do {	  \
 		uint ii; \

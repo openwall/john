@@ -95,11 +95,6 @@ static struct {
 static custom_salt cs;
 static custom_salt *cur_salt = &cs;
 
-typedef struct {
-	uint len;
-	ushort password[PLAINTEXT_LENGTH + 1];
-} mid_t;
-
 static char *saved_key;
 static int any_cracked;
 static int new_keys;
@@ -109,9 +104,8 @@ static int max_len = PLAINTEXT_LENGTH;
 static unsigned int *saved_idx, key_idx;
 static unsigned int *cracked;
 static size_t key_offset, idx_offset;
-static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_mid_key, cl_result;
+static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, cl_benchmark;
-static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
 static struct fmt_main *self;
 
 #define STEP			0
@@ -122,21 +116,14 @@ static struct fmt_main *self;
 #include "memdbg.h"
 
 static const char *warn[] = {
-	"xP: ",  ", xI: ",  ", enc: ",  ", md5+rc4: ",  ", xR: "
+	"xP: ",  ", xI: ",  ", crypt: ",  ", xR: "
 };
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	size_t s;
-
-	s = autotune_get_task_max_work_group_size(FALSE, 0, oldoffice_utf16);
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
-	                                                 oldoffice_md5));
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
-	                                                 oldoffice_sha1));
-	s = MIN(s, 64);
-	return s;
+	return MIN(autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel),
+	           64);
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -167,27 +154,16 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cs), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
 
-	cl_mid_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(mid_t) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device-only buffer");
-
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_utf16, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_utf16, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_utf16, 2, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 2");
-
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
-
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 4");
 }
 
 static void release_clobj(void)
 {
-	if (cl_mid_key) {
+	if (cl_salt) {
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, cracked, 0, NULL, NULL), "Error Unmapping cracked");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
@@ -200,9 +176,8 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
-		HANDLE_CLERROR(clReleaseMemObject(cl_mid_key), "Release state buffer");
 
-		cl_mid_key = NULL;
+		cl_salt = NULL;
 	}
 }
 
@@ -211,9 +186,7 @@ static void done(void)
 	if (autotuned) {
 		release_clobj();
 
-		HANDLE_CLERROR(clReleaseKernel(oldoffice_utf16), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(oldoffice_md5), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(oldoffice_sha1), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
@@ -246,18 +219,14 @@ static void reset(struct db_main *db)
 		opencl_init("$JOHN/kernels/oldoffice_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */
-		oldoffice_utf16 = clCreateKernel(program[gpu_id], "oldoffice_utf16", &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-		crypt_kernel = oldoffice_md5 =
-			clCreateKernel(program[gpu_id], "oldoffice_md5", &ret_code);
-		oldoffice_sha1 =
-			clCreateKernel(program[gpu_id], "oldoffice_sha1", &ret_code);
+		crypt_kernel =
+			clCreateKernel(program[gpu_id], "oldoffice", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL, warn, 3,
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
 		                       self, create_clobj, release_clobj,
-		                       2 * sizeof(mid_t), gws_limit, db);
+		                       2 * PLAINTEXT_LENGTH, gws_limit, db);
 
 		// Auto tune execution from shared/included code.
 		autotune_run(self, 1, gws_limit, 1000000000);
@@ -517,18 +486,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_utf16, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
 
 		new_keys = 0;
 	}
 
-	if (cur_salt->type < 3) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running md5 kernel");
-	} else {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running sha1 kernel");
-	}
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running md5 kernel");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[4]), "Failed transferring salt");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[3]), "Failed transferring salt");
 
 	if ((any_cracked = cur_salt->cracked)) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, NULL), "failed reading results back");
