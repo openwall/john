@@ -55,7 +55,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 		goto Exit;
 	if (!ishexlc(ct) || strlen(ct) != len)
 		goto Exit;
-	if (!(ct = strtokm(NULL, "@")))
+	if (!(ct = strtokm(NULL, "")))
 		goto Exit;
 	if (!ishexlc(ct) || strlen(ct) > SALT_LENGTH)
 		goto Exit;
