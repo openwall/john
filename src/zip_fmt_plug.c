@@ -146,6 +146,32 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
+
+char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static int len;
+	static char *buf = NULL;
+	char *cp, *cp2;
+
+	if (strncmp(ciphertext, WINZIP_FORMAT_TAG, WINZIP_TAG_LENGTH) || ciphertext[WINZIP_TAG_LENGTH] != '*')
+		return ciphertext;
+	cp = ciphertext + WINZIP_TAG_LENGTH + 1;
+	cp = strchr(cp, '*');
+	if (!cp) return ciphertext;
+	cp = strchr(cp+1, '*');
+	if (!cp) return ciphertext;
+	if (!strncmp(cp, "*0*", 3)) return ciphertext;
+	if (!buf || len < strlen(ciphertext)+1) {
+		MEM_FREE(buf);
+		len = strlen(ciphertext)+1;
+		buf = mem_alloc_tiny(len, 1);
+	}
+	++cp;
+	cp2 = strchr(cp, '*');
+	sprintf(buf, "%*.*s0%s", (int)(cp-ciphertext), (int)(cp-ciphertext), ciphertext, cp2);
+	return buf;
+}
+
 static void *get_salt(char *ciphertext)
 {
 	int i;
@@ -389,7 +415,7 @@ struct fmt_main fmt_zip = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		winzip_common_valid,
-		fmt_default_split,
+		split,
 		winzip_common_binary,
 		get_salt,
 		{ NULL },

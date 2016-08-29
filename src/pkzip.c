@@ -84,6 +84,8 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if ((cp = strtokm(NULL, "*")) == NULL)		// file_magic enum (ignored for now, just a place holder)
 		goto Bail;
+	if (!isdec(cp) || atoi(cp) < 0 || atoi(cp) > 11)
+		goto Bail;
 
 	// salt
 	if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen((char*)cp) != SALT_LENGTH(val)<<1)  {
