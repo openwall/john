@@ -253,7 +253,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			if (!contentsize || hexlenl(p, &extra) / 2 != contentsize || extra)
 				goto err;
 		}
-		p = strtokm(NULL, "*");
+		if ((p = strtokm(NULL, "*")) == NULL)
+			goto err;
 		// keyfile handling
 		if (p) {
 			res = atoi(p);
@@ -276,7 +277,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if (hexlenl(p, &extra) != 64 || extra)
 			goto err;
-		p = strtokm(NULL, "*");
+		if ((p = strtokm(NULL, "*")) == NULL)
+			goto err;
 		// keyfile handling
 		if (p) {
 			res = atoi(p);
