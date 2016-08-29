@@ -193,7 +193,7 @@ if test "x$asan" = xyes ; then
    if test "x${CFLAGS_EX}" = x ; then
       JTR_FLAG_CHECK_LINK([-faddress-sanitizer], 1)
       if test "x${CFLAGS_EX}" = x ; then
-         asan=no
+         AC_MSG_FAILURE([Could not find all required ASAN components])
       else
          LDFLAGS="-faddress-sanitizer $LDFLAGS"
       fi
@@ -210,7 +210,7 @@ if test "x$ubsan" = xyes ; then
    LDFLAGS_BAK=${LDFLAGS}
    JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error], 1)
    if test "x${CFLAGS_EX}" = x ; then
-      ubsan=no
+      AC_MSG_FAILURE([Could not find all required UBSAN components])
    else
       LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
    fi
@@ -267,7 +267,7 @@ AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip])])
 PKG_PROG_PKG_CONFIG
 AC_MSG_CHECKING([if pkg-config will be used])
 if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" == xno ; then
-	AC_MSG_RESULT([no])
+	JTR_MSG_RESULT_FAILIF_FORCED([xno], [x$enable_pkg_config], [pkg-config is NOT available])
 	PKG_CONFIG=no
 else
 	AC_MSG_RESULT([yes])
@@ -302,6 +302,19 @@ else
    fi
    AC_MSG_RESULT([yes])
 fi
+fi
+
+if test "x$enable_int128" = xno; then
+   have_int128=disabled
+elif test "x$ac_cv_type_int128" = xyes ||
+   test "x$ac_cv_type___int128" = xyes ||
+   test "x$ac_cv_type___int128_t" = xyes; then
+   have_int128=yes
+else
+   if test "x$enable_int128" = xyes; then
+      AC_MSG_FAILURE([int128 is not capable on this build])
+   fi
+   have_int128=no
 fi
 
 dnl *** AC_CHECK_SIZEOF([char])
@@ -514,6 +527,10 @@ if test "x$enable_rexgen" != xno ; then
   )
   if test "x$using_rexgen" == "xyes" ; then
     AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])
+  else
+    if test "x$enable_rexgen" == "xyes" ; then
+      AC_MSG_FAILURE([rexgen not installed, or unusable version])	
+    fi
   fi
   AC_SUBST(REXGEN_LIBS, [$LIBS])
 else
@@ -539,6 +556,13 @@ if test "x$enable_pcap" != xno ; then
   AC_CHECK_HEADERS([pcap.h pcap/pcap.h],[AC_CHECK_LIB([wpcap],[pcap_compile],
         [AC_SUBST(HAVE_PCAP,[-DHAVE_PCAP])] [AC_SUBST(PCAP_LIBS, [-lwpcap])])]
         [break])
+  if test x"$enable_pcap" = xyes ; then
+    if test x"$ac_cv_lib_pcap_pcap_compile" != xyes ; then
+      if test x"$ac_cv_lib_wpcap_pcap_compile" != xyes; then
+        AC_MSG_FAILURE([PCAP not installed/usable])
+	  fi
+    fi
+  fi
 else
   AC_MSG_NOTICE([PCAP check disabled])
 fi
@@ -965,6 +989,9 @@ if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a dnl
       using_omp="yes (not for fast formats)"
    fi
 else
+   if test "x$ompfast" = "xyes"; then
+	AC_MSG_FAILURE([OMP for fast formats requested, but no OMP on this system])
+   fi
    using_omp=no
 fi
 
@@ -1043,16 +1070,6 @@ if test "x$ubsan" = xyes ; then
    ubsan="enabled"
 else
    ubsan="disabled"
-fi
-
-if test "x$enable_int128" = xno; then
-   have_int128=disabled
-elif test "x$ac_cv_type_int128" = xyes ||
-   test "x$ac_cv_type___int128" = xyes ||
-   test "x$ac_cv_type___int128_t" = xyes; then
-   have_int128=yes
-else
-   have_int128=no
 fi
 
 if test x$using_cuda = xyes && test x$using_cl = xno; then

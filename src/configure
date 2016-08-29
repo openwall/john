@@ -3433,6 +3433,17 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # @summary check and set many normal include paths
 
 
+# JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
+# success and forced should be xvar data, "x$enable_foobar", so they
+# will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
+# will be output, and the script will abort, IF forced is xyes which
+# means the user used --enable-foobar
+
+
+# JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED(chk_msg, success, forced, forced_fail_msg)
+# will output a checking 'chk_msg', then calls JTR_MSG_RESULT_FAILIF_FORCED
+
+
 
 
 # @synopsis JTR_SET_OPENCL_INCLUDES
@@ -4802,6 +4813,12 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+	if test x"$_ax_prog_cc_mpi_mpi_wanted" = xyes -a x"$_ax_prog_cc_mpi_mpi_found" = xno; then
+		{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "MPI not buildable
+See \`config.log' for more details" "$LINENO" 5; }
+	fi
 
 fi
 
@@ -5905,7 +5922,10 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
       if test "x${CFLAGS_EX}" = x ; then
-         asan=no
+         { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find all required ASAN components
+See \`config.log' for more details" "$LINENO" 5; }
       else
          LDFLAGS="-faddress-sanitizer $LDFLAGS"
       fi
@@ -5968,7 +5988,10 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    if test "x${CFLAGS_EX}" = x ; then
-      ubsan=no
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find all required UBSAN components
+See \`config.log' for more details" "$LINENO" 5; }
    else
       LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
    fi
@@ -7420,8 +7443,21 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if pkg-config will be used" >&5
 $as_echo_n "checking if pkg-config will be used... " >&6; }
 if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" == xno ; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+
+  if test "xno" == xyes; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+    if test "x$enable_pkg_config" == xyes; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "pkg-config is NOT available
+See \`config.log' for more details" "$LINENO" 5; }
+    fi
+  fi
+
 	PKG_CONFIG=no
 else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -7461,6 +7497,22 @@ $as_echo "no" >&6; }
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
+fi
+
+if test "x$enable_int128" = xno; then
+   have_int128=disabled
+elif test "x$ac_cv_type_int128" = xyes ||
+   test "x$ac_cv_type___int128" = xyes ||
+   test "x$ac_cv_type___int128_t" = xyes; then
+   have_int128=yes
+else
+   if test "x$enable_int128" = xyes; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "int128 is not capable on this build
+See \`config.log' for more details" "$LINENO" 5; }
+   fi
+   have_int128=no
 fi
 
 
@@ -10235,6 +10287,13 @@ fi
 
 $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
 
+  else
+    if test "x$enable_rexgen" == "xyes" ; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "rexgen not installed, or unusable version
+See \`config.log' for more details" "$LINENO" 5; }
+    fi
   fi
   REXGEN_LIBS=$LIBS
 
@@ -10369,6 +10428,16 @@ fi
 
 done
 
+  if test x"$enable_pcap" = xyes ; then
+    if test x"$ac_cv_lib_pcap_pcap_compile" != xyes ; then
+      if test x"$ac_cv_lib_wpcap_pcap_compile" != xyes; then
+        { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "PCAP not installed/usable
+See \`config.log' for more details" "$LINENO" 5; }
+	  fi
+    fi
+  fi
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
 $as_echo "$as_me: PCAP check disabled" >&6;}
@@ -11639,12 +11708,25 @@ fi
 
 
 fi
-     if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
-	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CUDA usable" >&5
+$as_echo_n "checking whether CUDA usable... " >&6; }
+
+  if test "x$using_cuda" == xyes; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+    if test "x$enable_cuda" == xyes; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "Could not find all required CUDA components
 See \`config.log' for more details" "$LINENO" 5; }
-     fi
+    fi
+  fi
+
+
   fi
 
 
@@ -15316,6 +15398,12 @@ if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a         "x$
       using_omp="yes (not for fast formats)"
    fi
 else
+   if test "x$ompfast" = "xyes"; then
+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "OMP for fast formats requested, but no OMP on this system
+See \`config.log' for more details" "$LINENO" 5; }
+   fi
    using_omp=no
 fi
 
@@ -15395,16 +15483,6 @@ if test "x$ubsan" = xyes ; then
    ubsan="enabled"
 else
    ubsan="disabled"
-fi
-
-if test "x$enable_int128" = xno; then
-   have_int128=disabled
-elif test "x$ac_cv_type_int128" = xyes ||
-   test "x$ac_cv_type___int128" = xyes ||
-   test "x$ac_cv_type___int128_t" = xyes; then
-   have_int128=yes
-else
-   have_int128=no
 fi
 
 if test x$using_cuda = xyes && test x$using_cl = xno; then

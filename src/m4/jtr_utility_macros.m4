@@ -140,6 +140,29 @@ AC_DEFUN([JTR_SET_CUDA_INCLUDES],
    JTR_LIST_ADD_RESULT
 ])
 
+# JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
+# success and forced should be xvar data, "x$enable_foobar", so they
+# will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
+# will be output, and the script will abort, IF forced is xyes which
+# means the user used --enable-foobar
+AC_DEFUN([JTR_MSG_RESULT_FAILIF_FORCED], [
+  if test "$1" == xyes; then
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+    if test "$2" == xyes; then
+      AC_MSG_FAILURE([$3])
+    fi
+  fi
+])
+
+# JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED(chk_msg, success, forced, forced_fail_msg)
+# will output a checking 'chk_msg', then calls JTR_MSG_RESULT_FAILIF_FORCED
+AC_DEFUN([JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED], [
+  AC_MSG_CHECKING([$1])
+  JTR_MSG_RESULT_FAILIF_FORCED($2,$3,$4)
+])
+
 AC_DEFUN([JTR_CUDA],
 [
   AC_ARG_VAR([NVCC], [full pathname of CUDA compiler])
@@ -156,9 +179,7 @@ AC_DEFUN([JTR_CUDA],
 				   [AC_SUBST(CUDA_LIBS, [-lcudart])])
 				   ])]
      )
-     if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
-	AC_MSG_FAILURE([Could not find all required CUDA components])
-     fi
+     JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED([whether CUDA usable], [x$using_cuda], [x$enable_cuda], [Could not find all required CUDA components])
   fi
 ])
 
