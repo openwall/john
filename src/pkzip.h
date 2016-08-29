@@ -83,6 +83,7 @@ typedef union MY_WORD {
 
 
 extern int winzip_common_valid(char *ciphertext, struct fmt_main *self);
+extern char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self);
 extern void *winzip_common_binary(char *ciphertext);
 
 extern struct fmt_tests winzip_common_tests[];

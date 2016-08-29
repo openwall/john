@@ -443,7 +443,7 @@ struct fmt_main fmt_opencl_zip = {
 		reset,
 		fmt_default_prepare,
 		winzip_common_valid,
-		fmt_default_split,
+		winzip_common_split,
 		winzip_common_binary,
 		get_salt,
 		{ NULL },
