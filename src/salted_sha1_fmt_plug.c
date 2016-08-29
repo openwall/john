@@ -74,7 +74,7 @@ struct s_salt
 {
 	unsigned int len;
 	union {
-		unsigned char c[MAX_SALT_LEN];
+		unsigned char c[MAX_SALT_LEN+1];
 		ARCH_WORD_32 w32;
 	} data;
 };
