@@ -146,6 +146,7 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
+
 static void *get_salt(char *ciphertext)
 {
 	int i;
@@ -389,7 +390,7 @@ struct fmt_main fmt_zip = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		winzip_common_valid,
-		fmt_default_split,
+		winzip_common_split,
 		winzip_common_binary,
 		get_salt,
 		{ NULL },

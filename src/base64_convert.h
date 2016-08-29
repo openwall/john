@@ -54,14 +54,15 @@ typedef enum {
 
 /*
  * return will be number of bytes converted and placed into *to (can be less
- * than to_len).  A negative return is an error, which can be passed to one
- * of the error processing functions.
+ * than to_len).
  *
  * the length of the to, MUST be at least max len + 1 (for the null byte), for
  * types, e_b64_hex, e_b64_mime, e_b64_crypt and e_b64_cryptBS. Each of those
  * 'to' types will get a null byte added.  The exception is if flag
  * flg_Base64_DONOT_NULL_TERMINATE is used.  In that case, the code will NOT
  * add a null terminator. The output type e_b64_raw NEVER null terminates.
+ *
+ * NOTE, the buffer should be max len + 4 for any base-64 conversion.
  */
 size_t base64_convert(const void *from,       // input data.
                    b64_convert_type from_t,   // b64_convert_type of input data

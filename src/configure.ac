@@ -304,19 +304,6 @@ else
 fi
 fi
 
-if test "x$enable_int128" = xno; then
-   have_int128=disabled
-elif test "x$ac_cv_type_int128" = xyes ||
-   test "x$ac_cv_type___int128" = xyes ||
-   test "x$ac_cv_type___int128_t" = xyes; then
-   have_int128=yes
-else
-   if test "x$enable_int128" = xyes; then
-      AC_MSG_FAILURE([int128 is not capable on this build])
-   fi
-   have_int128=no
-fi
-
 dnl *** AC_CHECK_SIZEOF([char])
 dnl *** AC_CHECK_SIZEOF([unsigned char])
 AC_CHECK_SIZEOF([short])
@@ -529,7 +516,7 @@ if test "x$enable_rexgen" != xno ; then
     AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])
   else
     if test "x$enable_rexgen" == "xyes" ; then
-      AC_MSG_FAILURE([rexgen not installed, or unusable version])	
+      AC_MSG_FAILURE([rexgen not installed, or unusable version])
     fi
   fi
   AC_SUBST(REXGEN_LIBS, [$LIBS])
@@ -691,6 +678,19 @@ AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 AC_CHECK_TYPES([ptrdiff_t])
 AS_IF([test $CPU_BIT_STR -ge 64], [AS_IF([test "x$enable_int128" != xno], [AC_CHECK_TYPES([int128, __int128, __int128_t])])])
+
+if test "x$enable_int128" = xno; then
+   have_int128=disabled
+elif test "x$ac_cv_type_int128" = xyes ||
+   test "x$ac_cv_type___int128" = xyes ||
+   test "x$ac_cv_type___int128_t" = xyes; then
+   have_int128=yes
+else
+   if test "x$enable_int128" = xyes; then
+      AC_MSG_FAILURE([int128 is not capable on this build])
+   fi
+   have_int128=no
+fi
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE

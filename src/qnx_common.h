@@ -51,10 +51,12 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 		if (ct[1] != ',' || !isdec(&ct[2]))
 			goto Exit;
 	}
-	ct = strtokm(NULL, "@");
+	if (!(ct = strtokm(NULL, "@")))
+		goto Exit;
 	if (!ishexlc(ct) || strlen(ct) != len)
 		goto Exit;
-	ct = strtokm(NULL, "@");
+	if (!(ct = strtokm(NULL, "")))
+		goto Exit;
 	if (!ishexlc(ct) || strlen(ct) > SALT_LENGTH)
 		goto Exit;
 	ret = 1;

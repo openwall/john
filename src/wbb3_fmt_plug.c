@@ -51,6 +51,7 @@ john_register_one(&fmt_wbb3);
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		20
+#define MAX_SALT_LEN            40
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN	sizeof(ARCH_WORD_32)
 #define SALT_ALIGN		sizeof(int)
@@ -76,7 +77,7 @@ static int dirty;
 
 static struct custom_salt {
 	int type;
-	unsigned char salt[41];
+	unsigned char salt[MAX_SALT_LEN+1];
 } *cur_salt;
 
 static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
@@ -133,7 +134,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	res = strlen(p);
-	if (hexlenl(p, &extra) != res || extra)
+	if (res > MAX_SALT_LEN || !ishexlc_oddOK(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
