@@ -95,9 +95,12 @@ static void log_file_init(struct log_file *f, char *name, int size)
 	if (f == &log && (options.flags & FLG_NOLOG)) return;
 	f->name = name;
 
-	if (chmod(path_expand(name), S_IRUSR | S_IWUSR))
-	if (errno != ENOENT)
-		pexit("chmod: %s", path_expand(name));
+        if (!(access(path_expand(name), R_OK) == 0) || !(access(path_expand(name), W_OK) == 0))
+        {
+                if (chmod(path_expand(name), S_IRUSR | S_IWUSR))
+                if (errno != ENOENT)
+                        pexit("chmod: %s", path_expand(name));
+        }
 
 	if ((f->fd = open(path_expand(name),
 	    O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0)
