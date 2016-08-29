@@ -65,8 +65,10 @@ static int omp_t = 1;
 // ==================================================================================================
 // Structures and global variables
 
-// Charset used for testing if ciphertext string is hexadecimal
-static const char AS400_BASE16_CHARSET[] = "0123456789ABCDEFabcdef";
+// Charset used for testing if ciphertext string is hexadecimal. 
+// AS/400 hashes are stored in uppercase and also we get an error in the JtR CI if we allow mixed case hexadecimal, 
+// so therefore we only allow uppercase characters for hash
+static const char AS400_BASE16_CHARSET[] = "0123456789ABCDEF";
 
 // Definition of structure to hold data to pass between functions (we abuse the salt functions for this)
 static struct custom_salt {
@@ -388,7 +390,7 @@ struct fmt_main fmt_as400 =
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		(FMT_CASE | FMT_8_BIT | FMT_OMP) & ~FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
 		{ NULL },
 		as400_tests
