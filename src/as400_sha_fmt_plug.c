@@ -153,6 +153,10 @@ static char *as400_prepare(char *fields[10], struct fmt_main *self)
 	
 	// temporary variable to hold username + hash
 	static char retval[AS400_USERID_LENGTH+CIPHERTEXT_LENGTH+1] = "";
+
+	// fix suggested by jfoug: if hash (fields[1]) in inputfile is incorrect length, just return without adding password
+	if (strlen(fields[1]) != CIPHERTEXT_LENGTH)
+		return fields[1];
 	
 	// Truncate field[0] to AS400_USERID_LENGTH characters and store as username (just in case a longer id was provided)
 	strncat(username, fields[0], AS400_USERID_LENGTH);
@@ -193,6 +197,9 @@ static void *get_salt(char *ciphertext)
 	// Temporary variables to hold username and hash
 	char username[AS400_USERID_LENGTH+1];
 	char hash[CIPHERTEXT_LENGTH+1];
+
+	// Fix suggested by jfoug: initialize cs structure
+	memset (&cs, 0, sizeof(cs));
 	
 	// Split ciphertext into username and hash (because these were concatenated in prepare())
 	for(i = 0; i < AS400_USERID_LENGTH; i++)
