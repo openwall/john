@@ -83,10 +83,10 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
-		palshop snefru_128 snefru_256 keyring efs mdc2
+		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec eigrp encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
+# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
 #       _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
 
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
@@ -1892,8 +1892,6 @@ sub dmg {
 }
 sub dominosec {
 }
-sub eigrp {
-}
 sub encfs {
 }
 sub fde {
@@ -2002,6 +2000,28 @@ sub stribog {
 # stub functions.  When completed, move the function out of this section
 ##############################################################################
 
+sub eigrp {
+	my $algo = int(rand(120) > 100) + 2;
+	#$algo = 2;
+	if ($algo == 2) {
+		# md5 version
+		my $salt = pack("H*","020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000");
+		substr($salt, 12,3) = randstr(3);
+		my $pw = $_[0];
+		while (length($pw) < 16) { $pw .= "\0"; }
+		my $salt2 = int(rand(120) > 110) ? randstr(30) : "";
+		my $h = md5($salt . $pw . $salt2);
+		if ($salt2 ne "") { $salt2 = "\$1\$".unpack("H*",$salt2)."\$"; } else { $salt2 = '$0$x$'; }
+		return "\$eigrp\$2\$" . unpack("H*",$salt) . $salt2 . unpack("H*",$h);
+	}
+	#hmac-256 version.
+	my $ip = int(rand(240)+10).".".int(rand(256)).".".int(rand(256)).".".int(rand(256));
+	my $pw = "\n$_[0]$ip";
+	my $salt = pack("H*","020500000000000000000000000000000000000a00020038000300200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000c010001000000000f000400080f00020000f5000a000000020000");
+	substr($salt, 12,3) = randstr(3);
+	my $h = Digest::SHA::hmac_sha256($salt, $pw);
+	return "\$eigrp\$3\$" . unpack("H*",$salt) . "\$0\$x\$1\$$ip\$" . unpack("H*",$h);
+}
 sub mdc2 {
 	# we should be able to optimize this, but for now this 'works'
 	my $s = `echo -n "$_[0]" | openssl dgst -mdc2`;
@@ -3389,11 +3409,11 @@ sub epi {
 }
 sub episerver_sha1 {
 	$salt=get_salt(16);
-	return "\$episerver\$\*0\*".base64($salt)."\*".sha1_base64($salt, Encode::encode("UTF-16LE", $_[0]));
+	return "\$episerver\$\*0\*".base64($salt)."\*".sha1_base64($salt, Encode::encode("UTF-16LE", $_[1]));
 }
 sub episerver_sha256 {
 	$salt=get_salt(16);
-	return "\$episerver\$\*1\*".base64($salt)."\*".sha256_base64($salt, Encode::encode("UTF-16LE", $_[0]));
+	return "\$episerver\$\*1\*".base64($salt)."\*".sha256_base64($salt, Encode::encode("UTF-16LE", $_[1]));
 }
 sub hmailserver {
 	$salt=get_salt(6,6,\@chrHexLo);
