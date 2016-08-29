@@ -1,0 +1,217 @@
+/*
+ * as400_sha1_fmt_plug.c
+ *
+ * Salted sha1, as seen in IBM AS-400.  This is $dynamic_1590$ format, with a 20
+ * byte salt (10 utf16be space padded chars of userid).
+ * The format is:  sha1(utf16be((space_pad_10($s).uc($p)))
+ *
+ * By JimF, 2016.  Released to public domain.  All usage, in source or binary allowed.
+ *
+ */
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#ifndef DYNAMIC_DISABLED
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_AS400_sha1;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_AS400_sha1);
+#else
+
+#include <string.h>
+
+#include "common.h"
+#include "formats.h"
+#include "dynamic.h"
+#include "options.h"
+#include "unicode.h"
+#include "base64_convert.h"
+#include "memdbg.h"
+
+#define FORMAT_LABEL		"as400_sha1"
+#define FORMAT_NAME		"AS400/SHA1"
+
+#define ALGORITHM_NAME		"?"
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	0
+
+#define BINARY_SIZE		20
+#define BINARY_ALIGN		MEM_ALIGN_WORD
+
+#define SALT_SIZE		20
+#define DYNA_SALT_SIZE		(sizeof(char*))
+#define SALT_ALIGN		MEM_ALIGN_WORD
+#define FORMAT_TAG              "$as400ssha1$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+
+// set PLAINTEXT_LENGTH to 0, so dyna will set this
+#define PLAINTEXT_LENGTH	0
+
+static struct fmt_tests as400_sha1_tests[] = {
+	{"$as400ssha1$4C106E52CA196986E1C52C7FCD02AF046B76C73C$ROB", "banaan"},
+	{"$as400ssha1$CED8050C275A5005D101051FF5BCCADF693E8AB7$BART", "Kulach007"},
+	{"$as400ssha1$1BA6C7D54E9696ED33F4DF201E348CA8CA815F75$SYSOPR", "T0Psecret!"},
+	{"$as400ssha1$A1284B4F1BDD7ED598D4B5060D861D6D614620D3$SYSTEM", "P@ssword01"},
+	{"$as400ssha1$94C55BC7EDF1996AC62E8145CDBFA285CA79ED2E$QSYSDBA", "qsysdba"},
+	{"$as400ssha1$CDF4063E283B51EDB7B9A8E6E542042000BD9AE9$QSECOFR", "qsecofr!"},
+	{"$as400ssha1$44D43148CFE5CC3372AFD2610BEE3D226B2B50C5$TEST1", "password1"},
+	{"$as400ssha1$349B12D6588843A1632649A501ABC353EBF409E4$TEST2", "secret"},
+	{"$as400ssha1$A97F2F9ED9977A8A628F8727E2851415B06DC540$TEST3", "test3"},
+	// same hashes, but in dynamic format.
+	{"$dynamic_1590$4C106E52CA196986E1C52C7FCD02AF046B76C73C$HEX$0052004F00420020002000200020002000200020", "banaan"},
+	{"$dynamic_1590$CED8050C275A5005D101051FF5BCCADF693E8AB7$HEX$0042004100520054002000200020002000200020", "Kulach007"},
+	{"$dynamic_1590$1BA6C7D54E9696ED33F4DF201E348CA8CA815F75$HEX$005300590053004F005000520020002000200020", "T0Psecret!"},
+	{"$dynamic_1590$A1284B4F1BDD7ED598D4B5060D861D6D614620D3$HEX$00530059005300540045004D0020002000200020", "P@ssword01"},
+	{"$dynamic_1590$94C55BC7EDF1996AC62E8145CDBFA285CA79ED2E$HEX$0051005300590053004400420041002000200020", "qsysdba"},
+	{"$dynamic_1590$CDF4063E283B51EDB7B9A8E6E542042000BD9AE9$HEX$0051005300450043004F00460052002000200020", "qsecofr!"},
+	{"$dynamic_1590$44D43148CFE5CC3372AFD2610BEE3D226B2B50C5$HEX$0054004500530054003100200020002000200020", "password1"},
+	{"$dynamic_1590$349B12D6588843A1632649A501ABC353EBF409E4$HEX$0054004500530054003200200020002000200020", "secret"},
+	{"$dynamic_1590$A97F2F9ED9977A8A628F8727E2851415B06DC540$HEX$0054004500530054003300200020002000200020", "test3"},
+	{NULL}
+};
+
+extern struct options_main options;
+
+static char Conv_Buf[160];
+static struct fmt_main *pDynamic;
+static void our_init(struct fmt_main *self);
+static void get_ptr();
+
+/* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
+static char *Convert(char *Buf, char *ciphertext)
+{
+	size_t len, i;
+	char *cp, salt[11];
+	unsigned char *ucp;
+	UTF16 sBuf[10+1], sBUF[10+1];
+
+	if (text_in_dynamic_format_already(pDynamic, ciphertext))
+		return ciphertext;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		return ciphertext;
+
+	len = snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "$dynamic_1590$%40.40s$HEX$", &ciphertext[FORMAT_TAG_LEN]);
+	cp = strchr(&ciphertext[FORMAT_TAG_LEN+1], '$') + 1;
+	// space pad salt to 10 bytes
+	strcpy(salt, cp);
+	while (strlen(salt) < 10)
+		strcat(salt, " ");
+	// convert to up case utf16be. NOTE, we do the upcase in le, then hand convert to be.
+	enc_to_utf16(sBuf, 11, (UTF8*)salt, 10);
+	utf16_uc(sBUF, 11, sBuf, 10);
+	// now turn into BE by hand.
+	ucp = (unsigned char*)sBUF;
+	for (i = 0; i < 10; ++i) {
+		unsigned char c = ucp[i<<1];
+		ucp[i<<1] = ucp[(i<<1)+1];
+		ucp[(i<<1)+1] = c;
+	}
+	base64_convert(sBUF, e_b64_raw, 20, &Buf[len], e_b64_hex, 41, 0, 0);
+	return Buf;
+}
+
+static char *our_split(char *ciphertext, int index, struct fmt_main *self)
+{
+	get_ptr();
+	return pDynamic->methods.split(Convert(Conv_Buf, ciphertext), index, self);
+}
+
+static char *our_prepare(char *split_fields[10], struct fmt_main *self)
+{
+	get_ptr();
+	return pDynamic->methods.prepare(split_fields, self);
+}
+
+static int our_valid(char *ciphertext, struct fmt_main *self)
+{
+	int i;
+	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
+		return 0;
+
+	get_ptr();
+	i = strlen(ciphertext);
+
+	if (!strncmp(ciphertext, "$dynamic_1590$", 14))
+		return pDynamic->methods.valid(ciphertext, pDynamic);
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
+		return 0;
+	if (hexlenu(&ciphertext[FORMAT_TAG_LEN], 0) != BINARY_SIZE*2)
+		return 0;
+	if (strlen(&ciphertext[FORMAT_TAG_LEN+2*BINARY_SIZE]) > 10)
+		return 0;
+	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic);
+}
+
+
+static void * our_salt(char *ciphertext)
+{
+	get_ptr();
+	return pDynamic->methods.salt(Convert(Conv_Buf, ciphertext));
+}
+static void * our_binary(char *ciphertext)
+{
+	get_ptr();
+	return pDynamic->methods.binary(Convert(Conv_Buf, ciphertext));
+}
+
+struct fmt_main fmt_AS400_sha1 =
+{
+	{
+		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
+		// here, but will be reset within our init() function.
+		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
+		0, PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_UNICODE | FMT_DYNAMIC,
+		{ NULL },
+		{ NULL },
+		as400_sha1_tests
+	},
+	{
+		/*  All we setup here, is the pointer to valid, and the pointer to init */
+		/*  within the call to init, we will properly set this full object      */
+		our_init,
+		fmt_default_done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		our_valid,
+		our_split
+	}
+};
+
+static void link_funcs() {
+	fmt_AS400_sha1.methods.salt   = our_salt;
+	fmt_AS400_sha1.methods.binary = our_binary;
+	fmt_AS400_sha1.methods.split = our_split;
+	fmt_AS400_sha1.methods.prepare = our_prepare;
+}
+
+static void our_init(struct fmt_main *self)
+{
+	if (self->private.initialized == 0) {
+		get_ptr();
+		pDynamic->methods.init(pDynamic);
+		self->private.initialized = 1;
+	}
+}
+
+static void get_ptr() {
+	if (!pDynamic) {
+		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_AS400_sha1, Convert(Conv_Buf, as400_sha1_tests[0].ciphertext), "as400_sha1", 0);
+		link_funcs();
+	}
+}
+
+/**
+ * GNU Emacs settings: K&R with 1 tab indent.
+ * Local Variables:
+ * c-file-style: "k&r"
+ * c-basic-offset: 8
+ * indent-tabs-mode: t
+ * End:
+ */
+
+#endif /* plugin stanza */
+
+#endif /* DYNAMIC_DISABLED */
