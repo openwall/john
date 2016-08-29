@@ -30,19 +30,19 @@ john_register_one(&fmt_AS400_sha1);
 #include "base64_convert.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"as400_sha1"
-#define FORMAT_NAME		"AS400/SHA1"
+#define FORMAT_LABEL            "as400_sha1"
+#define FORMAT_NAME             "AS400/SHA1"
 
-#define ALGORITHM_NAME		"?"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define ALGORITHM_NAME          "?"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
 
-#define BINARY_SIZE		20
-#define BINARY_ALIGN		MEM_ALIGN_WORD
-
-#define SALT_SIZE		20
-#define DYNA_SALT_SIZE		(sizeof(char*))
-#define SALT_ALIGN		MEM_ALIGN_WORD
+#define BINARY_SIZE             20
+#define BINARY_FOR_DYNA         16
+#define BINARY_ALIGN            MEM_ALIGN_WORD
+#define SALT_SIZE               20
+#define DYNA_SALT_SIZE          (sizeof(char*))
+#define SALT_ALIGN              MEM_ALIGN_WORD
 #define FORMAT_TAG              "$as400ssha1$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 
@@ -126,12 +126,10 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 
 static int our_valid(char *ciphertext, struct fmt_main *self)
 {
-	int i;
 	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
 
 	get_ptr();
-	i = strlen(ciphertext);
 
 	if (!strncmp(ciphertext, "$dynamic_1590$", 14))
 		return pDynamic->methods.valid(ciphertext, pDynamic);
@@ -163,7 +161,7 @@ struct fmt_main fmt_AS400_sha1 =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		0, PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_UNICODE | FMT_DYNAMIC,
+		0, PLAINTEXT_LENGTH, BINARY_FOR_DYNA, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_UNICODE | FMT_DYNAMIC,
 		{ NULL },
 		{ NULL },
 		as400_sha1_tests
