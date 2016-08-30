@@ -26,8 +26,6 @@ use Encode;
 use POSIX;
 use Getopt::Long;
 use MIME::Base64;
-use File::Basename;
-use Term::ReadKey;
 
 #############################################################################
 #
@@ -171,6 +169,7 @@ if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
 }
 
 sub pretty_print_hash_names {
+	require Term::ReadKey;
 	my ($wchar, $hchar, $wpixels, $hpixels) = GetTerminalSize();
 	#if ($wchar > 120) {$wchar = 121;}
 	--$wchar;
@@ -188,6 +187,7 @@ sub pretty_print_hash_names {
 }
 
 sub usage {
+	require File::Basename;
 	my $hash_str = pretty_print_hash_names();
 	my $name = basename($0);
 	my $hidden_opts = "    -help         shows this screen (-help -help shows hidden options)";
