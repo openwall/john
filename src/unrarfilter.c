@@ -73,12 +73,13 @@ struct UnpackFilter *rar_filter_new(void)
 	filter->exec_count = 0;
 	filter->next_window = 0;
 
-	rar_cmd_array_init(&filter->prg.cmd);
-	filter->prg.global_data = NULL;
-	filter->prg.static_data = NULL;
-	filter->prg.global_size = filter->prg.static_size = 0;
-	filter->prg.filtered_data = NULL;
-	filter->prg.filtered_data_size = 0;
+	memset(&filter->prg, 0, sizeof(filter->prg));
+	//rar_cmd_array_init(&filter->prg.cmd);
+	//filter->prg.global_data = NULL;
+	//filter->prg.static_data = NULL;
+	//filter->prg.global_size = filter->prg.static_size = 0;
+	//filter->prg.filtered_data = NULL;
+	//filter->prg.filtered_data_size = 0;
 	return filter;
 }
 
@@ -88,7 +89,9 @@ void rar_filter_delete(struct UnpackFilter *filter)
 		return;
 	}
 	MEM_FREE(filter->prg.global_data);
+	filter->prg.global_data = 0;
 	MEM_FREE(filter->prg.static_data);
+	filter->prg.static_data = 0;
 	rar_cmd_array_reset(&filter->prg.cmd);
 	MEM_FREE(filter);
 }

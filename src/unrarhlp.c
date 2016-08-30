@@ -20,6 +20,7 @@
 
 #include "jumbo.h"
 #include "unrarhlp.h"
+#include "memory.h"
 #include "memdbg.h"
 
 #ifdef RAR_HIGH_DEBUG

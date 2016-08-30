@@ -35,12 +35,14 @@ void rar_cmd_array_init(rar_cmd_array_t *cmd_a)
 
 void rar_cmd_array_reset(rar_cmd_array_t *cmd_a)
 {
+	void *p;
 	if (!cmd_a) {
 		return;
 	}
-	MEM_FREE(cmd_a->array);
+	p = cmd_a->array;
 	cmd_a->array = NULL;
 	cmd_a->num_items = 0;
+	MEM_FREE(p);
 }
 
 int rar_cmd_array_add(rar_cmd_array_t *cmd_a, int num)
@@ -51,6 +53,6 @@ int rar_cmd_array_add(rar_cmd_array_t *cmd_a, int num)
 	if (cmd_a->array == NULL) {
 		return 0;
 	}
-	memset(&cmd_a->array[cmd_a->num_items-1], 0, sizeof(struct rarvm_prepared_command));
+	memset(&cmd_a->array[cmd_a->num_items-num], 0, num*sizeof(struct rarvm_prepared_command));
 	return 1;
 }

@@ -1,11 +1,29 @@
 /*
- * as400_sha1_fmt_plug.c
+ * as400_ssha1_fmt_plug.c
+ *
+ * AS/400 SaltedSHA1 plugin for JtR
+ * This software is Copyright (c) 2016 Bart Kulach (@bartholozz) and Rob Schoemaker (@5up3rUs3r)
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * This plugin is loosely based on the lotus85 plugin by Sébastien Kaczmarek <skaczmarek@quarkslab.com>
+ *
+ * AS/400 SHA1 hash is calculated as follows:
+ * - userid is padded with spaces to be 10 characters long,
+ *   converted to uppercase and UTF-16BE
+ * - password is converted to UTF-16BE
+ * - Hash is calculated from SHA1(userid+password)
+ *
+ * See http://www.hackthelegacy.org for details and tooling to retrieve hashes from AS/400 systems
+ *
  *
  * Salted sha1, as seen in IBM AS-400.  This is $dynamic_1590$ format, with a 20
  * byte salt (10 utf16be space padded chars of userid).
  * The format is:  sha1(utf16be((space_pad_10($s).uc($p)))
  *
- * By JimF, 2016.  Released to public domain.  All usage, in source or binary allowed.
+ * Converted to thin dynamic format by JimF, 2016.  Released to public domain.
+ * All usage, in source or binary allowed.
  *
  */
 
@@ -15,9 +33,9 @@
 #ifndef DYNAMIC_DISABLED
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_AS400_sha1;
+extern struct fmt_main fmt_AS400_ssha1;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_AS400_sha1);
+john_register_one(&fmt_AS400_ssha1);
 #else
 
 #include <string.h>
@@ -30,8 +48,8 @@ john_register_one(&fmt_AS400_sha1);
 #include "base64_convert.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL            "as400_sha1"
-#define FORMAT_NAME             "AS400/SHA1"
+#define FORMAT_LABEL            "as400-ssha1"
+#define FORMAT_NAME             "AS400-SaltedSHA1"
 
 #define ALGORITHM_NAME          "?"
 #define BENCHMARK_COMMENT       ""
@@ -49,7 +67,7 @@ john_register_one(&fmt_AS400_sha1);
 // set PLAINTEXT_LENGTH to 0, so dyna will set this
 #define PLAINTEXT_LENGTH	0
 
-static struct fmt_tests as400_sha1_tests[] = {
+static struct fmt_tests as400_ssha1_tests[] = {
 	{"$as400ssha1$4C106E52CA196986E1C52C7FCD02AF046B76C73C$ROB", "banaan"},
 	{"$as400ssha1$CED8050C275A5005D101051FF5BCCADF693E8AB7$BART", "Kulach007"},
 	{"$as400ssha1$1BA6C7D54E9696ED33F4DF201E348CA8CA815F75$SYSOPR", "T0Psecret!"},
@@ -79,7 +97,7 @@ static struct fmt_main *pDynamic;
 static void our_init(struct fmt_main *self);
 static void get_ptr();
 
-/* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
+/* this function converts a 'native' AS400 signature string into a $dynamic_1590$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {
 	size_t len, i;
@@ -155,7 +173,7 @@ static void * our_binary(char *ciphertext)
 	return pDynamic->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
-struct fmt_main fmt_AS400_sha1 =
+struct fmt_main fmt_AS400_ssha1 =
 {
 	{
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
@@ -164,7 +182,7 @@ struct fmt_main fmt_AS400_sha1 =
 		0, PLAINTEXT_LENGTH, BINARY_FOR_DYNA, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_UNICODE | FMT_DYNAMIC,
 		{ NULL },
 		{ NULL },
-		as400_sha1_tests
+		as400_ssha1_tests
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
@@ -179,10 +197,10 @@ struct fmt_main fmt_AS400_sha1 =
 };
 
 static void link_funcs() {
-	fmt_AS400_sha1.methods.salt   = our_salt;
-	fmt_AS400_sha1.methods.binary = our_binary;
-	fmt_AS400_sha1.methods.split = our_split;
-	fmt_AS400_sha1.methods.prepare = our_prepare;
+	fmt_AS400_ssha1.methods.salt   = our_salt;
+	fmt_AS400_ssha1.methods.binary = our_binary;
+	fmt_AS400_ssha1.methods.split = our_split;
+	fmt_AS400_ssha1.methods.prepare = our_prepare;
 }
 
 static void our_init(struct fmt_main *self)
@@ -196,7 +214,7 @@ static void our_init(struct fmt_main *self)
 
 static void get_ptr() {
 	if (!pDynamic) {
-		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_AS400_sha1, Convert(Conv_Buf, as400_sha1_tests[0].ciphertext), "as400_sha1", 0);
+		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_AS400_ssha1, Convert(Conv_Buf, as400_ssha1_tests[0].ciphertext), "as400-ssha1", 0);
 		link_funcs();
 	}
 }
