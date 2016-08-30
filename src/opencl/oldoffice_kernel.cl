@@ -27,6 +27,7 @@ typedef struct {
 	uint verifier[16/4]; /* or encryptedVerifier */
 	uint verifierHash[20/4];  /* or encryptedVerifierHash */
 	uint has_mitm;
+	uint cracked;
 	uint mitm[8/4]; /* Meet-in-the-middle hint, if we have one */
 } salt_t;
 
@@ -309,8 +310,10 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	key[1] &= 0xff;
 
 	if (cs->has_mitm) {
-		result[gid] = (key[0] == cs->mitm[0] &&
-		               key[1] == cs->mitm[1]);
+		if ((key[0] == cs->mitm[0] && key[1] == cs->mitm[1])) {
+			result[gid] = 1;
+			atomic_xchg(&cs->cracked, 1);
+		}
 	} else {
 		W[0] = key[0];
 		W[1] = key[1];
@@ -345,6 +348,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		    verifier[2] == verifier[6] &&
 		    verifier[3] == verifier[7]) {
 			result[gid] = 1;
+			atomic_xchg(&cs->cracked, 1);
 			if (!*benchmark && !atomic_xchg(&cs->has_mitm, 1)) {
 				cs->mitm[0] = key[0];
 				cs->mitm[1] = key[1];
@@ -453,8 +457,10 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	sha1[1] = SWAP32(sha1[1]);
 
 	if (cs->type == 3 && cs->has_mitm) {
-		result[gid] = (sha1[0] == cs->mitm[0] &&
-		               (sha1[1] & 0xff) == cs->mitm[1]);
+		if ((sha1[0] == cs->mitm[0] && (sha1[1] & 0xff) == cs->mitm[1])) {
+			result[gid] = 1;
+			atomic_xchg(&cs->cracked, 1);
+		}
 	} else {
 		key[0] = sha1[0];
 		if (cs->type == 3) {
@@ -493,6 +499,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		    verifier[2] == verifier[6] &&
 		    verifier[3] == verifier[7]) {
 			result[gid] = 1;
+			atomic_xchg(&cs->cracked, 1);
 			if (!*benchmark && cs->type == 3 &&
 			    !atomic_xchg(&cs->has_mitm, 1)) {
 				cs->mitm[0] = sha1[0];

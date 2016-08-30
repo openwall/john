@@ -236,25 +236,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtokm(NULL, "*")) == NULL)	/* inline flag */
 			goto err;
 		res = atoi(p);
-		if (res != 1 && res != 2) {
-			/*
-			 * issue https://github.com/magnumripper/JohnTheRipper/issues/1026
-			 * has been closed, because since commit 0ed240a data is now always
-			 * inlined, so apparently there's no need to support res > 2 or res < 1.
-			 */
+		if (res != 1)
 			goto err;
-		}
-		if (res == 1) {
-			if ((p = strtokm(NULL, "*")) == NULL)	/* content size */
-				goto err;
-			contentsize = atoi(p);
-			if ((p = strtokm(NULL, "*")) == NULL)	/* content */
-				goto err;
-			if (!contentsize || hexlenl(p, &extra) / 2 != contentsize || extra)
-				goto err;
-		}
-		if ((p = strtokm(NULL, "*")) == NULL)
+		if ((p = strtokm(NULL, "*")) == NULL)	/* content size */
 			goto err;
+		contentsize = atoi(p);
+		if ((p = strtokm(NULL, "*")) == NULL)	/* content */
+			goto err;
+		if (!contentsize || hexlenl(p, &extra) / 2 != contentsize || extra)
+			goto err;
+		p = strtokm(NULL, "*");
 		// keyfile handling
 		if (p) {
 			res = atoi(p);
@@ -264,7 +255,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				res = atoi(p);
 				if ((p = strtokm(NULL, "*")) == NULL)
 					goto err;
-				if (res != 64 || strlen(p) != 64)
+				if (res != 64 || strlen(p) != 64 || !ishexlc(p))
 					goto err;
 			}
 			else
@@ -277,8 +268,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if (hexlenl(p, &extra) != 64 || extra)
 			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)
-			goto err;
+		p = strtokm(NULL, "*");
 		// keyfile handling
 		if (p) {
 			res = atoi(p);
@@ -288,7 +278,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				res = atoi(p);
 				if ((p = strtokm(NULL, "*")) == NULL)
 					goto err;
-				if (res != 64 || strlen(p) != 64)
+				if (res != 64 || strlen(p) != 64 || !ishexlc(p))
 					goto err;
 			}
 			else

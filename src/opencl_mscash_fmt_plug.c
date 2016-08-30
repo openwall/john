@@ -438,7 +438,7 @@ static char *get_key(int index)
 
 	}
 
-	if (t > global_work_size) {
+	if (t >= global_work_size) {
 		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
@@ -766,10 +766,6 @@ static void reset(struct db_main *db)
 
 	current_salt = 0;
 	hash_ids[0] = 0;
-
-	// Forget the previous auto-tune
-	local_work_size = o_lws;
-	global_work_size = o_gws;
 
 	// If real crack run, don't auto-tune for self-tests
 	if (db->real && db != db->real)

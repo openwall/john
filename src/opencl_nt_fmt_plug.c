@@ -500,7 +500,7 @@ static char *get_key(int index)
 
 	}
 
-	if (t > global_work_size) {
+	if (t >= global_work_size) {
 		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}

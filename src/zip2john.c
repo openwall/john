@@ -614,7 +614,7 @@ int zip2john(int argc, char **argv)
 	int c;
 
 	/* Parse command line */
-	while ((c = getopt(argc, argv, "a:o:cn2")) != -1) {
+	while ((c = getopt(argc, argv, "a:o:cm2")) != -1) {
 		switch (c) {
 		case 'a':
 			ascii_fname = optarg;
