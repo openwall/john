@@ -83,6 +83,7 @@ typedef struct {
 	unsigned char verifier[16]; /* or encryptedVerifier */
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
+	unsigned int cracked;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
 } custom_salt;
 
@@ -120,7 +121,7 @@ static struct fmt_main *self;
 #include "opencl-autotune.h"
 #include "memdbg.h"
 
-static const char * warn[] = {
+static const char *warn[] = {
 	"xP: ",  ", xI: ",  ", enc: ",  ", md5+rc4: ",  ", xR: "
 };
 
@@ -498,8 +499,7 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int index;
-	const int count = *pcount;
+	int count = *pcount;
 	size_t lws;
 
 	/* kernel is made for lws 64, using local memory */
@@ -528,23 +528,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running sha1 kernel");
 	}
 
-	if (cur_salt->has_mitm || cur_salt->type > 3 || bench_running) {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[4]), "Failed transferring salt");
 
-		any_cracked = 0;
+	if ((any_cracked = cur_salt->cracked)) {
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, NULL), "failed reading results back");
 
-		for (index = 0; index < count; index++)
-		if (cracked[index]) {
-			any_cracked = 1;
-			break;
+		if (cur_salt->has_mitm || cur_salt->type > 3 || bench_running) {
+			while (count--)
+				if (cracked[count])
+					return count + 1;
+		} else {
+			return *pcount;
 		}
-	} else {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, NULL), "Failed transferring salt");
-		if ((any_cracked = cur_salt->has_mitm))
-			BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, multi_profilingEvent[4]), "failed reading results back");
 	}
 
-	return count;
+	return 0;
 }
 
 static int cmp_all(void *binary, int count)
