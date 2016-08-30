@@ -996,10 +996,6 @@ static void reset(struct db_main *db)
 	current_salt = 0;
 	hash_ids[0] = 0;
 
-	// Forget the previous auto-tune
-	local_work_size = o_lws;
-	global_work_size = o_gws;
-
 	// If real crack run, don't auto-tune for self-tests
 	if (db->real && db != db->real)
 		opencl_get_sane_lws_gws_values();
