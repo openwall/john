@@ -461,7 +461,7 @@ static char *get_key(int index)
 	}
 
 	//Mask Mode plaintext recovery.
-	if (t > global_work_size)
+	if (t >= global_work_size)
 		t = 0;
 
 	memcpy(ret, ((char *)&plaintext[saved_idx[t] >> 6]), PLAINTEXT_LENGTH);
