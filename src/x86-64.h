@@ -394,7 +394,7 @@
  */
 #ifndef BF_X2
 #if __AVX__ && HAVE_HT && _OPENMP
-#define BF_X2				3
+#define BF_X2				1
 #else
 #define BF_X2				3
 #endif
