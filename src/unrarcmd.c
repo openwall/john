@@ -51,6 +51,6 @@ int rar_cmd_array_add(rar_cmd_array_t *cmd_a, int num)
 	if (cmd_a->array == NULL) {
 		return 0;
 	}
-	memset(&cmd_a->array[cmd_a->num_items-1], 0, 1*sizeof(struct rarvm_prepared_command));
+	memset(&cmd_a->array[cmd_a->num_items-num], 0, num*sizeof(struct rarvm_prepared_command));
 	return 1;
 }
