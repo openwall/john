@@ -188,11 +188,15 @@ sub pretty_print_hash_names {
 }
 
 sub usage {
-	require File::Basename;
-	import File::Basename qw(basename);
 	my $hash_str = pretty_print_hash_names();
-	my $name = basename($0);
 	my $hidden_opts = "    -help         shows this screen (-help -help shows hidden options)";
+	my $name = $0;
+	my $pos = rindex($name, "/");
+	if ($pos != -1) {
+		$name = substr($name, $pos+1);
+	} elsif (($pos = rindex($name, "\\")) != -1) {
+		$name = substr($name, $pos+1);
+	}
 	if ($arg_help > 1) { $hidden_opts =
 "    -dictfile <s> Put name of dict file into the first line comment
     -nocomment    eliminate the first line comment
