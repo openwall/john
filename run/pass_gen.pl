@@ -170,6 +170,7 @@ if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
 
 sub pretty_print_hash_names {
 	require Term::ReadKey;
+	import Term::ReadKey qw(GetTerminalSize);
 	my ($wchar, $hchar, $wpixels, $hpixels) = GetTerminalSize();
 	#if ($wchar > 120) {$wchar = 121;}
 	--$wchar;
@@ -188,6 +189,7 @@ sub pretty_print_hash_names {
 
 sub usage {
 	require File::Basename;
+	import File::Basename qw(basename);
 	my $hash_str = pretty_print_hash_names();
 	my $name = basename($0);
 	my $hidden_opts = "    -help         shows this screen (-help -help shows hidden options)";
@@ -1892,7 +1894,58 @@ sub dmg {
 }
 sub dominosec {
 }
+#{"$encfs$192*181474*0*20*f1c413d9a20f7fdbc068c5a41524137a6e3fb231*44*9c0d4e2b990fac0fd78d62c3d2661272efa7d6c1744ee836a702a11525958f5f557b7a973aaad2fd14387b4f", "openwall"},
+#{"$encfs$128*181317*0*20*e9a6d328b4c75293d07b093e8ec9846d04e22798*36*b9e83adb462ac8904695a60de2f3e6d57018ccac2227251d3f8fc6a8dd0cd7178ce7dc3f", "Jupiter"},
+#{"$encfs$256*714949*0*20*472a967d35760775baca6aefd1278f026c0e520b*52*ac3b7ee4f774b4db17336058186ab78d209504f8a58a4272b5ebb25e868a50eaf73bcbc5e3ffd50846071c882feebf87b5a231b6", "Valient Gough"},
+#{"$encfs$256*120918*0*20*e6eb9a85ee1c348bc2b507b07680f4f220caa763*52*9f75473ade3887bca7a7bb113fbc518ffffba631326a19c1e7823b4564ae5c0d1e4c7e4aec66d16924fa4c341cd52903cc75eec4", "Alo3San1t@nats"},
+#unsigned int keySize;
+#unsigned int iterations;
+#unsigned int cipher;
+#unsigned int saltLen;
+#unsigned char salt[40];
+#unsigned int dataLen;
+#unsigned char data[128];
+#unsigned int ivLength;
 sub encfs {
+	# this format sux. Skipping it :(
+	my $salt = get_salt(20);
+	$salt = pack("H*","f1c413d9a20f7fdbc068c5a41524137a6e3fb231");
+	my $iter = 180000 + int(rand(50000));
+	$iter = 181474;
+	my $key_sz = 128 + 64*int(rand(3));   # 128, 192, 256
+	my $data = pack("H*", "9c0d4e2b990fac0fd78d62c3d2661272efa7d6c1744ee836a702a11525958f5f557b7a973aaad2fd14387b4f");
+	my $iv_len = 16;
+	my $datlen = length($data);
+	$key_sz = 192;
+	my $chksum1 = 0;
+	for (my $i = 0; $i < 4; ++$i) {
+		$chksum1 = ($chksum1<<8) + ord(substr($data, $i, 1));
+	}
+	my $h = pp_pbkdf2($_[0], $salt,$iter,"sha1",$key_sz/8+$iv_len, 64);
+
+	# setup iv and seed
+	my $seed = $chksum1 + 1;
+	my $iv = substr($h, $key_sz/8);
+	for (my $i = 0; $i < 8; ++$i) {
+		$iv .= chr($seed & 0xFF);
+		$seed >>= 8;
+	}
+	$iv = substr(Digest::SHA::hmac_sha1(substr($iv,0,24), substr($h,0,$key_sz/8)), 0, 16);
+
+	require Crypt::OpenSSL::AES;
+	require Crypt::CFB;
+	#my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => $key_sz, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	#my $crypt = Crypt::CFB->new(-literal_key => 1, -key => $h, -keysize => $key_sz, -iv => $iv, -algo => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'zero');
+	$h = substr($h, 0, 24);
+	print "key=".unpack("H*",$h)."\n";
+	print "iv=".unpack("H*",$iv)."\n";
+	my $crypt = Crypt::CFB->new($h, "Crypt::OpenSSL::AES", $iv);
+	my $h2 = $crypt->decrypt(substr($data,4), $h, $iv);
+	print unpack("H*", substr($data,4))."  ".unpack("H*", $h2)."\n";
+
+
+	$salt = unpack("H*",$salt); $data = unpack("H*",$data);
+	return "\$encfs\$$key_sz*$iter*0*20*$salt*$datlen*$data";
 }
 sub fde {
 }
