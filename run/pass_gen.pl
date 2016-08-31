@@ -492,6 +492,47 @@ sub pp_pbkdf2_hex {
 }
 
 #############################################################################
+# pure perl crc32 using table lookup, and 'restart' values.
+#    crc32("test this") == crc32(" this", crc32("test"));
+#############################################################################
+my @crc32_tab = ();
+my $crc32_tab_init = 0;
+
+sub init_crc32_tab {
+	if (defined($crc32_tab_init) &&  $crc32_tab_init == 1) { return; }
+	$crc32_tab_init = 1;
+	my $i; my $j; my $byte; my $crc; my $mask;
+
+	for ($byte = 0; $byte <= 255; $byte++) {
+		$crc = $byte;
+		for ($j = 7; $j >= 0; $j--) {
+			$mask = -($crc & 1);
+			$crc = ($crc >> 1) ^ (0xEDB88320 & $mask);
+		}
+		$crc32_tab[$byte] = $crc & 0xffffffff;
+	}
+}
+
+sub crc32 {
+	my $msg = $_[0];
+	my $i; my $j; my $byte; my $crc; my $mask;
+
+	init_crc32_tab();	# note, only init's 1 time.
+	if (defined($_[1])) {
+		$crc = $_[1]^0xFFFFFFFF;
+	} else {
+		$crc = 0xFFFFFFFF;
+	}
+	$i = 0;
+	while ($i < length($msg)) {
+		$byte = ord(substr($msg, $i, 1));
+		$crc = ($crc >> 8) ^ $crc32_tab[($crc ^ $byte) & 0xFF];
+		++$i;
+	}
+	return ~ $crc;
+}
+
+#############################################################################
 # these functions will encode words 'properly', or at least try to, based upon
 # things like -utf8 mode, and possible MS code pages understood by JtR.
 #############################################################################
@@ -1477,8 +1518,6 @@ sub postgres {
 	return "\$postgres\$$user*$salt*$h";
 }
 sub pst {
-	require String::CRC32;
-	import String::CRC32 qw(crc32);
 	my $pw = $_[0];
 	if (length($pw)>8) {$pw = substr($pw, 0, 8); }
 	return "\$pst\$".unpack("H*", Uint32BERaw(crc32($pw, 0xffffffff)^0xffffffff));
@@ -1566,8 +1605,6 @@ sub strip {
 sub _tc_build_buffer {
 	# build a special TC buffer.  448 bytes, 2 spots have CRC32.  Lots of null, etc.
 	my $buf = 'TRUE'."\x00\x05\x07\x00". "\x00"x184 . randstr(64) . "\x00"x192;
-	require String::CRC32;
-	import String::CRC32 qw(crc32);
 	my $crc1 = crc32(substr($buf, 192, 256));
 	substr($buf, 8, 4) = Uint32BERaw($crc1);
 	my $crc2 = crc32(substr($buf, 0, 188));
@@ -1834,8 +1871,6 @@ sub rar {
 		$type = "30";
 		$content = randstr(int(rand(32))+int(rand(32))+16);
 		$contentlen=length($content);
-		require String::CRC32;
-		import String::CRC32 qw(crc32);
 		my $crcs = sprintf("%08x", crc32($content));  # note, rar_fmt/rar2john F's up the byte order!! so we have to match what it expects.
 		$crc = substr($crcs,6).substr($crcs,4,2).substr($crcs,2,2).substr($crcs,0,2);
 		@ar = ($crc, $contentlen, unpack("H*", $content));
@@ -3346,8 +3381,6 @@ sub mschapv2 {
 	return "$user".":::".unpack("H*",$a_challenge).":".unpack("H*",$response).":".unpack("H*",$p_challenge);
 }
 sub crc_32 {
-	require String::CRC32;
-	import String::CRC32 qw(crc32);
 	my $pwd = $_[1];
 	if (rand(256) > 245) {
 		my $init = rand(2000000000);
