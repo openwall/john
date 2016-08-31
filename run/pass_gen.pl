@@ -169,9 +169,14 @@ if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
 }
 
 sub pretty_print_hash_names {
-	require Term::ReadKey;
-	import Term::ReadKey qw(GetTerminalSize);
-	my ($wchar, $hchar, $wpixels, $hpixels) = GetTerminalSize();
+	my ($wchar, $hchar, $wpixels, $hpixels);
+	$wchar = 80;	# default IF Term::ReadKey lib not found.
+	if (eval "require Term::ReadKey") {
+		# note, if Term::ReadKey is not installed, the script
+		# does not abort, but uses 80 columns for width of terminal.
+		import Term::ReadKey qw(GetTerminalSize);
+		($wchar, $hchar, $wpixels, $hpixels) = GetTerminalSize();
+	}
 	#if ($wchar > 120) {$wchar = 121;}
 	--$wchar;
 	my $s; my $s2; my $i;
