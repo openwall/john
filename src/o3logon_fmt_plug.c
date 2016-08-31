@@ -74,7 +74,7 @@ static struct fmt_tests tests[] = {
 };
 
 typedef struct ora9_salt_t {
-	unsigned int userlen, auth_pass_len;
+	int userlen, auth_pass_len;
 	UTF16 user[MAX_USERNAME_LEN+1];
 	unsigned char auth_sesskey[16];
 	unsigned char auth_pass[40];
@@ -331,6 +331,8 @@ static void *get_salt(char *ciphertext)
 	strncpy((char*)tmp, ciphertext, cp-ciphertext);
 	tmp[cp-ciphertext] = 0;
 	salt.userlen = enc_to_utf16_be(salt.user, MAX_USERNAME_LEN, tmp, cp-ciphertext);
+	if (salt.userlen < 0)
+		salt.userlen = strlen16(salt.user);
 	salt.userlen *= 2;
 	base64_convert(cp+1,e_b64_hex,32,salt.auth_sesskey,e_b64_raw,16,0,0);
 	cp = strchr(cp+1, '$') + 1;
