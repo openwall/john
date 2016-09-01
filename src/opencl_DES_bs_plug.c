@@ -834,15 +834,15 @@ static void des_finalize_int_keys()
 	for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++) {
 		j = i >> DES_LOG_DEPTH;
 		int_key_page[0][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[0] & 0xFF;
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		if (mask_skip_ranges[1] != -1)
 			int_key_page[1][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[1] & 0xFF;
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		if (mask_skip_ranges[2] != -1)
 			int_key_page[2][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[2] & 0xFF;
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		if (mask_skip_ranges[3] != -1)
 			int_key_page[3][j].c[(i & (DES_BS_DEPTH - 1)) & 7][(i & (DES_BS_DEPTH - 1)) >> 3] = mask_int_cand.int_cand[i].x[3] & 0xFF;
 #endif
@@ -1169,24 +1169,24 @@ size_t create_keys_kernel_set_args(int mask_mode)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	sprintf(build_opts, "-D ITER_COUNT=%u -D MASK_ENABLED=%d -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		" -D LOC_1=%d "
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		"-D LOC_2=%d "
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		"-D LOC_3=%d"
 #endif
 		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu"
 		, ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH), mask_mode, static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		, static_gpu_locations[1]
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		, static_gpu_locations[2]
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		, static_gpu_locations[3]
 #endif
 		, mask_gpu_is_static, (unsigned long long)const_cache_size);

@@ -164,17 +164,17 @@ __kernel void sha1(__global uint *keys,
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
 	uint loc0 = ikl & 0xff;
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
 	uint loc1 = (ikl & 0xff00) >> 8;
 #endif
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
 	uint loc2 = (ikl & 0xff0000) >> 16;
 #endif
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
 	uint loc3 = (ikl & 0xff000000) >> 24;
 #endif
@@ -247,17 +247,17 @@ __kernel void sha1(__global uint *keys,
 #if NUM_INT_KEYS > 1
 		PUTCHAR_BE(W, GPU_LOC_0, (int_keys[i] & 0xff));
 
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
 		PUTCHAR_BE(W, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
 #endif
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
 		PUTCHAR_BE(W, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
 #endif
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
 		PUTCHAR_BE(W, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
 #endif

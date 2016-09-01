@@ -266,26 +266,26 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		" -D SHIFT128_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
 		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	" -D LOC_1=%d "
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	"-D LOC_2=%d "
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	"-D LOC_3=%d"
 #endif
 	, offset_table_size, hash_table_size, shift64_ot_sz, shift64_ht_sz,
 	shift128_ot_sz, shift128_ht_sz, num_ld_hashes,
 	mask_int_cand.num_int_cand, bitmap_para, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	, static_gpu_locations[1]
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	, static_gpu_locations[2]
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	, static_gpu_locations[3]
 #endif
 	);
