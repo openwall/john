@@ -532,14 +532,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if ((any_cracked = cur_salt->cracked)) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, NULL), "failed reading results back");
-
-		if (cur_salt->has_mitm || cur_salt->type > 3 || bench_running) {
-			while (count--)
-				if (cracked[count])
-					return count + 1;
-		} else {
-			return *pcount;
-		}
+		return *pcount;
 	}
 
 	return 0;
