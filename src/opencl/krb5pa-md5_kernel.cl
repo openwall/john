@@ -159,7 +159,11 @@ __kernel void krb5pa_md5_final(const __global uint *nthash,
 	uint output[4], hash[4];
 	uint a, b, c, d;
 #ifdef RC4_USE_LOCAL
-	__local uint state_l[64][256/4];
+	/*
+	 * The "+ 1" extra element (actually never touched) give a huge boost
+	 * on Maxwell and GCN due to access patters or whatever.
+	 */
+	__local uint state_l[64][256/4 + 1];
 #endif
 
 	/* 1st HMAC */

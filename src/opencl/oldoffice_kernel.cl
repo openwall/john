@@ -157,7 +157,11 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	uint salt[16/4];
 	__global const ushort *p = mid[gid].password;
 #ifdef RC4_USE_LOCAL
-	__local uint state_l[64][256/4];
+	/*
+	 * The "+ 1" extra element (actually never touched) give a huge boost
+	 * on Maxwell and GCN due to access patters or whatever.
+	 */
+	__local uint state_l[64][256/4 + 1];
 #endif
 
 	/* Initial hash of password */
@@ -381,7 +385,11 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	uint len = mid[gid].len + 8;
 	__global const ushort *p = mid[gid].password;
 #ifdef RC4_USE_LOCAL
-	__local uint state_l[64][256/4];
+	/*
+	 * The "+ 1" extra element (actually never touched) give a huge boost
+	 * on Maxwell and GCN due to access patters or whatever.
+	 */
+	__local uint state_l[64][256/4 + 1];
 #endif
 
 	/* Initial hash of salt.password */
