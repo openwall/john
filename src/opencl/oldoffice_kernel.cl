@@ -310,10 +310,9 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 	key[1] &= 0xff;
 
 	if (cs->has_mitm) {
-		if ((key[0] == cs->mitm[0] && key[1] == cs->mitm[1])) {
-			*result = 1;
+		*result = (key[0] == cs->mitm[0] && key[1] == cs->mitm[1]);
+		if (*result)
 			atomic_xchg(&cs->cracked, 1);
-		}
 	} else {
 		W[0] = key[0];
 		W[1] = key[1];
@@ -454,10 +453,9 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 	sha1[1] = SWAP32(sha1[1]);
 
 	if (cs->type == 3 && cs->has_mitm) {
-		if ((sha1[0] == cs->mitm[0] && (sha1[1] & 0xff) == cs->mitm[1])) {
-			*result = 1;
+		*result = (sha1[0] == cs->mitm[0] && (sha1[1] & 0xff) == cs->mitm[1]);
+		if (*result)
 			atomic_xchg(&cs->cracked, 1);
-		}
 	} else {
 		key[0] = sha1[0];
 		if (cs->type == 3) {
