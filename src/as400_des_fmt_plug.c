@@ -43,8 +43,8 @@ john_register_one(&fmt_as400des);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_ALIGN              1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static const unsigned char a2e[256] = {
 	0,  1,  2,  3, 55, 45, 46, 47, 22,  5, 37, 11, 12, 13, 14, 15,
@@ -290,7 +290,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			/* replace missing characters in password by (EBCDIC space (0x40) XOR 0x55) << 1 */
 			while(i < 8)
-                des_key2[i++] = 0x2a;
+				des_key2[i++] = 0x2a;
 
 			DES_set_key_unchecked(&des_key1, &schedule1);
 			DES_ecb_encrypt((const_DES_cblock*)cur_salt->userid, &hash_1, &schedule1, DES_ENCRYPT);
