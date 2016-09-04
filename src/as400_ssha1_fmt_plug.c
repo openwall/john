@@ -152,6 +152,10 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 	if (!strncmp(ciphertext, "$dynamic_1590$", 14))
 		return pDynamic->methods.valid(ciphertext, pDynamic);
 
+	if (options.input_enc == UTF_8 && !valid_utf8((UTF8*)ciphertext)) {
+		fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
+		error();
+	}
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	if (hexlenu(&ciphertext[FORMAT_TAG_LEN], 0) != BINARY_SIZE*2)
