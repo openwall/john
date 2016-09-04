@@ -137,7 +137,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	memcpy(tmp, ciphertext, cp-ciphertext);
 	tmp[cp-ciphertext] = 0;
 	len = enc_to_utf16((UTF16 *)cur_key_mixedcase, MAX_USERNAME_LEN+1, (unsigned char*)tmp, strlen(tmp));
-	if (len < 0 || len > MAX_USERNAME_LEN)
+	if (len < 0) {
+		fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
+		error();
+	}
+	if (len > MAX_USERNAME_LEN)
 		return 0;
 
 	ciphertext = cp+1;
