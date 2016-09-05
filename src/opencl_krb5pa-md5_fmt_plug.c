@@ -102,9 +102,8 @@ static int new_keys;
 static int max_len = PLAINTEXT_LENGTH;
 static struct fmt_main *self;
 
-static cl_mem cl_saved_key, cl_saved_idx, cl_saltblob, cl_nthash, cl_result;
+static cl_mem cl_saved_key, cl_saved_idx, cl_saltblob, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, pinned_salt;
-static cl_kernel krb5pa_md5_nthash;
 
 #define STEP 0
 #define SEED 256
@@ -114,18 +113,14 @@ static cl_kernel krb5pa_md5_nthash;
 #include "memdbg.h"
 
 static const char * warn[] = {
-	"xfer: ",  ", init: ",  ", crypt: ",  ", xfer: "
+	"xfer: ",  ", crypt: ",  ", xfer: "
 };
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	size_t s;
-
-	s = autotune_get_task_max_work_group_size(FALSE, 0, krb5pa_md5_nthash);
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
-	s = MIN(s, 64);
-	return s;
+	return MIN(64,
+	           autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -158,21 +153,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	saltblob = clEnqueueMapBuffer(queue[gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_SIZE, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping saltblob");
 
-	cl_nthash = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device-only buffer");
-
-	HANDLE_CLERROR(clSetKernelArg(krb5pa_md5_nthash, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(krb5pa_md5_nthash, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(krb5pa_md5_nthash, 2, sizeof(cl_mem), (void*)&cl_nthash), "Error setting argument 2");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_nthash), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saltblob), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_saltblob), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 3");
 }
 
 static void release_clobj(void)
 {
-	if (cl_nthash) {
+	if (cl_result) {
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saltblob, 0, NULL, NULL), "Error Unmapping saltblob");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, output, 0, NULL, NULL), "Error Unmapping output");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
@@ -187,9 +176,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
-		HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
-
-		cl_nthash = NULL;
+		cl_result = NULL;
 	}
 }
 
@@ -199,7 +186,6 @@ static void done(void)
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(krb5pa_md5_nthash), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
@@ -247,13 +233,11 @@ static void reset(struct db_main *db)
 		opencl_init("$JOHN/kernels/krb5pa-md5_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */
-		krb5pa_md5_nthash = clCreateKernel(program[gpu_id], "krb5pa_md5_nthash", &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-		crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5_final", &ret_code);
+		crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL, warn, 2, self,
+		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
 		                       2 * PLAINTEXT_LENGTH, 0, db);
 
@@ -346,12 +330,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (key_idx > key_offset)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[0]), "Failed transferring index");
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], krb5pa_md5_nthash, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[1]), "Failed running first kernel");
 
 		new_keys = 0;
 	}
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running second kernel");
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, BINARY_SIZE * global_work_size, output, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[1]), "Failed running second kernel");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, BINARY_SIZE * global_work_size, output, 0, NULL, multi_profilingEvent[2]), "failed reading results back");
 
 	if (ocl_autotune_running)
 		return count;

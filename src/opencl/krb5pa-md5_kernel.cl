@@ -18,25 +18,15 @@
 
 #ifdef UTF_8
 
-__kernel void krb5pa_md5_nthash(const __global uchar *source,
-                                __global const uint *index,
-                                __global uint *nthash)
+inline
+void prepare(__global const uchar *source, const uint len, uint *nt_buffer)
 {
-	uint i;
-	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
-	uint base = index[gid];
-	const __global UTF8 *sourceEnd;
-	UTF16 *target = (UTF16*)block;
+	__global const UTF8 *sourceEnd = source + len;
+	UTF16 *target = (UTF16*)nt_buffer;
 	UTF16 *targetStart = target;
 	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
-
-	sourceEnd = source + index[gid + 1];
-	source += base;
 
 	/* Input buffer is UTF-8 without zero-termination */
 	while (source < sourceEnd) {
@@ -101,76 +91,43 @@ __kernel void krb5pa_md5_nthash(const __global uchar *source,
 	barrier(CLK_GLOBAL_MEM_FENCE);
 #endif
 
-	block[14] = (uint)(target - targetStart) << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
+	nt_buffer[14] = (uint)(target - targetStart) << 4;
 }
 
 #else
 
-__kernel void krb5pa_md5_nthash(const __global uchar *password,
-                                __global const uint *index,
-                                __global uint *nthash)
+inline
+void prepare(__global const uchar *password, const uint len, uint *nt_buffer)
 {
 	uint i;
-	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
-	uint base = index[gid];
-	uint len = index[gid + 1] - base;
-
-	password += base;
-
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
 
 	/* Input buffer is in a 'codepage' encoding, without zero-termination */
 	for (i = 0; i < len; i++)
-		PUTSHORT(block, i, CP_LUT(password[i]));
-	PUTCHAR(block, 2 * i, 0x80);
-	block[14] = i << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
+		PUTSHORT(nt_buffer, i, CP_LUT(password[i]));
+	PUTCHAR(nt_buffer, 2 * i, 0x80);
+	nt_buffer[14] = len << 4;
 }
 
 #endif /* encodings */
 
+inline
+void krb5pa_md5_final(const uint *nt_hash,
+                      MAYBE_CONSTANT uint *salts,
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+                      __local uint *state_l,
 #endif
-__kernel void krb5pa_md5_final(const __global uint *nthash,
-                               MAYBE_CONSTANT uint *salts,
-                               __global uint *result)
+                      __global uint *result)
 {
 	uint i;
-	uint gid = get_global_id(0);
 	uint block[16];
 	uint output[4], hash[4];
 	uint a, b, c, d;
-#ifdef RC4_USE_LOCAL
-	/*
-	 * The "+ 1" extra element (actually never touched) give a huge boost
-	 * on Maxwell and GCN due to access patters or whatever.
-	 */
-	__local uint state_l[64][256/4 + 1];
-#endif
 
 	/* 1st HMAC */
 	md5_init(output);
 
 	for (i = 0; i < 4; i++)
-		block[i] = 0x36363636 ^ nthash[gid * 4 + i];
+		block[i] = 0x36363636 ^ nt_hash[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
 	md5_block(block, output); /* md5_update(ipad, 64) */
@@ -186,7 +143,7 @@ __kernel void krb5pa_md5_final(const __global uint *nthash,
 	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
 	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ nthash[gid * 4 + i];
+		block[i] = 0x5c5c5c5c ^ nt_hash[i];
 
 	md5_init(output);
 	for (i = 4; i < 16; i++)
@@ -243,8 +200,46 @@ __kernel void krb5pa_md5_final(const __global uint *nthash,
 
 	/* output is our RC4 key. salts now point to encrypted timestamp. */
 #ifdef RC4_USE_LOCAL
-	rc4(state_l[get_local_id(0)], output, salts, &result[gid * 4]);
+	rc4(state_l, output, salts, result);
 #else
-	rc4(output, salts, &result[gid * 4]);
+	rc4(output, salts, result);
 #endif
+}
+
+#ifdef RC4_USE_LOCAL
+__attribute__((work_group_size_hint(64,1,1)))
+#endif
+__kernel void krb5pa_md5(__global const uchar *source,
+                         __global const uint *index,
+                         MAYBE_CONSTANT uint *salts,
+                         __global uint *result)
+{
+	uint gid = get_global_id(0);
+	uint nt_buffer[16] = { 0 };
+	uint nt_hash[4];
+	uint a, b, c, d;
+	__global const uchar *password = &source[index[gid]];
+	uint len = index[gid + 1] - index[gid];
+#ifdef RC4_USE_LOCAL
+	/*
+	 * The "+ 1" extra element (actually never touched) give a huge boost
+	 * on Maxwell and GCN due to access patterns or whatever.
+	 */
+	__local uint state_l[64][256/4 + 1];
+#endif
+
+	/* Work-around for self-tests not always calling set_key() like IRL */
+	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
+
+	prepare(password, len, nt_buffer);
+
+	/* Initial hash of password */
+	md4_init(nt_hash);
+	md4_block(nt_buffer, nt_hash);
+
+	krb5pa_md5_final(nt_hash, salts,
+#ifdef RC4_USE_LOCAL
+	                 state_l[get_local_id(0)],
+#endif
+	                 &result[4 * gid]);
 }
