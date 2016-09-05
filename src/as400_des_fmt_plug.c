@@ -32,7 +32,7 @@ john_register_one(&fmt_as400des);
 
 #define FORMAT_LABEL            "as400-des"
 #define FORMAT_NAME             "AS/400 DES"
-#define FORMAT_TAG              "$as400des$*"
+#define FORMAT_TAG              "$as400des$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
@@ -131,21 +131,21 @@ static void process_userid(unsigned char *str)
 
 
 static struct fmt_tests as400_des_tests[] = {
-	{"$as400des$*AAAAAAA*CA2E330B2FD1820E", "AAAAAAAA"},
-	{"$as400des$*AAAAAAAA*062314297C496E0E", "AAAAAAAA"},
-	{"$as400des$*JJJJJJJJ*8B5F0B1D0826D927", "TESTTEST"},
-	{"$as400des$*TTTTTTTT*424B258AF8B9061B", "TESTTEST"},
-	{"$as400des$*A*0F7DE80335E8ED68", "A"},
-	{"$as400des$*OPEN3*EC76FC0DEF5B0A83", "SYS1"},
-	{"$as400des$*TESTTEST*0FF48804F759193F", "TESTTEST"},
-	{"$as400des$*SYSOPR*83845F8EEC7C20D8", "SYSOPR"},
-	{"$as400des$*TCPIP*657889CD0F5D40DF", "SYS1"},
-	{"$as400des$*TESTER*E05AB770EA048421", "TEST"},
-	{"$as400des$*USERNAME*48E3704CF54B79B2", "PASSWORD10"},
-	{"$as400des$*USERNAME*760FECC695DF4E27", "PASSWORD"},
-	{"$as400des$*USERID*AB171E6EE8E98037", "PASSWORD9"},
-	{"$as400des$*ROB*D09E49EB96A1BE45", "SCHOEMAKER"},
-	{"$as400des$*BART*25C0729AA18D1929", "KULACH"},
+	{"$as400des$AAAAAAA*CA2E330B2FD1820E", "AAAAAAAA"},
+	{"$as400des$AAAAAAAA*062314297C496E0E", "AAAAAAAA"},
+	{"$as400des$JJJJJJJJ*8B5F0B1D0826D927", "TESTTEST"},
+	{"$as400des$TTTTTTTT*424B258AF8B9061B", "TESTTEST"},
+	{"$as400des$A*0F7DE80335E8ED68", "A"},
+	{"$as400des$OPEN3*EC76FC0DEF5B0A83", "SYS1"},
+	{"$as400des$TESTTEST*0FF48804F759193F", "TESTTEST"},
+	{"$as400des$SYSOPR*83845F8EEC7C20D8", "SYSOPR"},
+	{"$as400des$TCPIP*657889CD0F5D40DF", "SYS1"},
+	{"$as400des$TESTER*E05AB770EA048421", "TEST"},
+	{"$as400des$USERNAME*48E3704CF54B79B2", "PASSWORD10"},
+	{"$as400des$USERNAME*760FECC695DF4E27", "PASSWORD"},
+	{"$as400des$USERID*AB171E6EE8E98037", "PASSWORD9"},
+	{"$as400des$ROB*D09E49EB96A1BE45", "SCHOEMAKER"},
+	{"$as400des$BART*25C0729AA18D1929", "KULACH"},
 	{NULL}
 };
 
@@ -202,7 +202,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy, *username;
 	static struct custom_salt cs;
 
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$as400des$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$as400des$" */
 	username = strtokm(ctcopy, "*");
 	/* process username */
 	strncpy((char*)cs.userid, username, 10);
