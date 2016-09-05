@@ -349,7 +349,7 @@ ntlmv2(const __global uint *keys,
 	keys += base >> 7;
 	prepare_key(keys, len, nt_buffer);
 
-	/* Appply GPU-side mask */
+	/* Apply GPU-side mask */
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
 		PUTSHORT(nt_buffer, GPU_LOC_0, CP_LUT(int_keys[i] & 0xff));

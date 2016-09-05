@@ -530,7 +530,7 @@ void oldoffice(__global const uchar *password,
 #ifdef RC4_USE_LOCAL
 	/*
 	 * The "+ 1" extra element (actually never touched) give a huge boost
-	 * on Maxwell and GCN due to access patters or whatever.
+	 * on Maxwell and GCN due to access patterns or whatever.
 	 */
 	__local uint state_l[64][256/4 + 1];
 #endif
