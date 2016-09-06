@@ -17,7 +17,7 @@ __kernel void mysqlsha1_crypt_kernel(__global const uchar *key,
 	uint gws = get_global_size(0);
 	uint W[16] = { 0 };
 	uint output[5];
-	uint A, B, C, D, E, temp;
+	uint A, B, C, D, E, temp, r[16];
 	uint i;
 	uint base = index[gid];
 	uint len = index[gid + 1] - base;

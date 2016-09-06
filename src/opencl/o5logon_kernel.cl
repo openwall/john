@@ -24,7 +24,7 @@
 __kernel void o5logon_kernel(__global uint* keys, __constant uint* salt, __global const uint *index, __global uint* digest)
 {
 	uint W[16] = { 0 }, salt_s[3], output[5];
-	uint temp, A, B, C, D, E;
+	uint A, B, C, D, E, temp, r[16];
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint len = base & 63;

@@ -39,7 +39,8 @@ inline void preproc(__global const uchar *key, uint keylen,
     __private uint *state, uint padding)
 {
 	uint i;
-	uint W[16], temp;
+	uint W[16];
+	uint A, B, C, D, E, temp, r[16];
 
 	for (i = 0; i < 16; i++)
 		W[i] = padding;
@@ -47,11 +48,11 @@ inline void preproc(__global const uchar *key, uint keylen,
 	for (i = 0; i < keylen; i++)
 		XORCHAR_BE(W, i, key[i]);
 
-	uint A = INIT_A;
-	uint B = INIT_B;
-	uint C = INIT_C;
-	uint D = INIT_D;
-	uint E = INIT_E;
+	A = INIT_A;
+	B = INIT_B;
+	C = INIT_C;
+	D = INIT_D;
+	E = INIT_E;
 
 	SHA1(A, B, C, D, E, W);
 
@@ -78,8 +79,8 @@ inline void hmac_sha1(__private uint *output,
     __global const uchar *salt, int saltlen, uchar add)
 {
 	int i;
-	uint temp, W[16];
-	uint A, B, C, D, E;
+	uint W[16];
+	uint A, B, C, D, E, temp, r[16];
 	uchar buf[64];
 	uint *src = (uint *) buf;
 	i = 64 / 4;
@@ -144,7 +145,7 @@ inline void big_hmac_sha1(__private uint *input, uint inputlen,
 		W[i] = input[i];
 
 	for (i = 1; i < iterations; i++) {
-		uint A, B, C, D, E, temp;
+		uint A, B, C, D, E, temp, r[16];
 
 		A = ipad_state[0];
 		B = ipad_state[1];

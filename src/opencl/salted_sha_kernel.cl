@@ -156,7 +156,7 @@ __kernel void sha1(__global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint W[16] = { 0 };
-	uint temp, A, B, C, D, E;
+	uint A, B, C, D, E, temp, r[16];
 	uint len = base & 63;
 	uint hash[5];
 	unsigned int salt_len = salt[16];

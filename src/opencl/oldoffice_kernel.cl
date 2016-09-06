@@ -367,7 +367,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
                     __global uint *benchmark)
 {
 	uint i;
-	uint A, B, C, D, E, temp;
+	uint A, B, C, D, E, temp, r[16];
 #if PLAINTEXT_LENGTH > (27 - 8)
 	/* Silly AMD bug workaround */
 	uint a, b, c, d, e;

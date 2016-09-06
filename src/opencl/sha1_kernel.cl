@@ -9,225 +9,14 @@
 #include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
+#include "opencl_sha1.h"
 #include "opencl_mask.h"
-
-#define INIT_A			0x67452301
-#define INIT_B			0xefcdab89
-#define INIT_C			0x98badcfe
-#define INIT_D			0x10325476
-#define INIT_E			0xc3d2e1f0
-
-#define SQRT_2			0x5a827999
-#define SQRT_3			0x6ed9eba1
-
-#define K1			0x5a827999
-#define K2			0x6ed9eba1
-#define K3			0x8f1bbcdc
-#define K4			0xca62c1d6
-
-#ifdef USE_BITSELECT
-#define F1(x, y, z)	bitselect(z, y, x)
-#else
-#if HAVE_ANDNOT
-#define F1(x, y, z) ((x & y) ^ ((~x) & z))
-#else
-#define F1(x, y, z) (z ^ (x & (y ^ z)))
-#endif
-#endif
-
-#define F2(x, y, z)		(x ^ y ^ z)
-
-#ifdef USE_BITSELECT
-#define F3(x, y, z)	bitselect(x, y, (z) ^ (x))
-#else
-#define F3(x, y, z)	((x & y) | (z & (x | y)))
-#endif
-
-#define F4(x, y, z)		(x ^ y ^ z)
-
-#if 1 // Significantly faster, at least on nvidia
-#define S(x, n)	rotate((x), (uint)(n))
-#else
-#define S(x, n)	((x << n) | ((x) >> (32 - n)))
-#endif
 
 #if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
 #define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
 #else
 /*undefined, cause error.*/
 #endif
-
-#define R(t)	  \
-	( \
-		temp = W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
-		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
-		( r[t & 0x0F] = S(temp, 1) ) \
-		)
-
-#define Ro1(t)	  \
-	( \
-		temp = r[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
-		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
-		( r[t & 0x0F] = S(temp, 1) ) \
-		)
-#define Ro2(t)	  \
-	( \
-		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
-		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
-		( r[t & 0x0F] = S(temp, 1) ) \
-		)
-
-#define Ro3(t)	  \
-	( \
-		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
-		r[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
-		( r[t & 0x0F] = S(temp, 1) ) \
-		)
-
-#define Rr(t)	  \
-	( \
-		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
-		r[(t - 14) & 0x0F] ^ r[ t      & 0x0F], \
-		( r[t & 0x0F] = S(temp, 1) ) \
-		)
-
-
-
-#define R2(t)	  \
-	( \
-		S((W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
-		   W[(t - 14) & 0x0F] ^ W[ t      & 0x0F]), 1) \
-		)
-
-#define P1(a, b, c, d, e, x)	  \
-	{ \
-		e += S(a, 5) + F1(b, c, d) + K1 + x; b = S(b, 30); \
-	}
-
-#define P2(a, b, c, d, e, x)	  \
-	{ \
-		e += S(a, 5) + F2(b, c, d) + K2 + x; b = S(b, 30); \
-	}
-
-#define P3(a, b, c, d, e, x)	  \
-	{ \
-		e += S(a, 5) + F3(b, c, d) + K3 + x; b = S(b, 30); \
-	}
-
-#define P4(a, b, c, d, e, x)	  \
-	{ \
-		e += S(a, 5) + F4(b, c, d) + K4 + x; b = S(b, 30); \
-	}
-
-#define PZ(a, b, c, d, e)	  \
-	{ \
-		e += S(a, 5) + F1(b, c, d) + K1 ; b = S(b, 30); \
-	}
-
-#define SHA1(A, B, C, D, E, W)	  \
-	P1(A, B, C, D, E, W[0] ); \
-	P1(E, A, B, C, D, W[1] ); \
-	P1(D, E, A, B, C, W[2] ); \
-	P1(C, D, E, A, B, W[3] ); \
-	P1(B, C, D, E, A, W[4] ); \
-	P1(A, B, C, D, E, W[5] ); \
-	P1(E, A, B, C, D, W[6] ); \
-	P1(D, E, A, B, C, W[7] ); \
-	P1(C, D, E, A, B, W[8] ); \
-	P1(B, C, D, E, A, W[9] ); \
-	P1(A, B, C, D, E, W[10]); \
-	P1(E, A, B, C, D, W[11]); \
-	P1(D, E, A, B, C, W[12]); \
-	P1(C, D, E, A, B, W[13]); \
-	P1(B, C, D, E, A, W[14]); \
-	P1(A, B, C, D, E, W[15]); \
-	P1(E, A, B, C, D, R(16)); \
-	P1(D, E, A, B, C, R(17)); \
-	P1(C, D, E, A, B, R(18)); \
-	P1(B, C, D, E, A, Ro1(19)); \
-	P2(A, B, C, D, E, Ro1(20)); \
-	P2(E, A, B, C, D, Ro1(21)); \
-	P2(D, E, A, B, C, Ro1(22)); \
-	P2(C, D, E, A, B, Ro1(23)); \
-	P2(B, C, D, E, A, Ro2(24)); \
-	P2(A, B, C, D, E, Ro2(25)); \
-	P2(E, A, B, C, D, Ro2(26)); \
-	P2(D, E, A, B, C, Ro2(27)); \
-	P2(C, D, E, A, B, Ro2(28)); \
-	P2(B, C, D, E, A, Ro2(29)); \
-	P2(A, B, C, D, E, Ro3(30)); \
-	P2(E, A, B, C, D, Ro3(31)); \
-	P2(D, E, A, B, C, Rr(32)); \
-	P2(C, D, E, A, B, Rr(33)); \
-	P2(B, C, D, E, A, Rr(34)); \
-	P2(A, B, C, D, E, Rr(35)); \
-	P2(E, A, B, C, D, Rr(36)); \
-	P2(D, E, A, B, C, Rr(37)); \
-	P2(C, D, E, A, B, Rr(38)); \
-	P2(B, C, D, E, A, Rr(39)); \
-	P3(A, B, C, D, E, Rr(40)); \
-	P3(E, A, B, C, D, Rr(41)); \
-	P3(D, E, A, B, C, Rr(42)); \
-	P3(C, D, E, A, B, Rr(43)); \
-	P3(B, C, D, E, A, Rr(44)); \
-	P3(A, B, C, D, E, Rr(45)); \
-	P3(E, A, B, C, D, Rr(46)); \
-	P3(D, E, A, B, C, Rr(47)); \
-	P3(C, D, E, A, B, Rr(48)); \
-	P3(B, C, D, E, A, Rr(49)); \
-	P3(A, B, C, D, E, Rr(50)); \
-	P3(E, A, B, C, D, Rr(51)); \
-	P3(D, E, A, B, C, Rr(52)); \
-	P3(C, D, E, A, B, Rr(53)); \
-	P3(B, C, D, E, A, Rr(54)); \
-	P3(A, B, C, D, E, Rr(55)); \
-	P3(E, A, B, C, D, Rr(56)); \
-	P3(D, E, A, B, C, Rr(57)); \
-	P3(C, D, E, A, B, Rr(58)); \
-	P3(B, C, D, E, A, Rr(59)); \
-	P4(A, B, C, D, E, Rr(60)); \
-	P4(E, A, B, C, D, Rr(61)); \
-	P4(D, E, A, B, C, Rr(62)); \
-	P4(C, D, E, A, B, Rr(63)); \
-	P4(B, C, D, E, A, Rr(64)); \
-	P4(A, B, C, D, E, Rr(65)); \
-	P4(E, A, B, C, D, Rr(66)); \
-	P4(D, E, A, B, C, Rr(67)); \
-	P4(C, D, E, A, B, Rr(68)); \
-	P4(B, C, D, E, A, Rr(69)); \
-	P4(A, B, C, D, E, Rr(70)); \
-	P4(E, A, B, C, D, Rr(71)); \
-	P4(D, E, A, B, C, Rr(72)); \
-	P4(C, D, E, A, B, Rr(73)); \
-	P4(B, C, D, E, A, Rr(74)); \
-	P4(A, B, C, D, E, Rr(75)); \
-	P4(E, A, B, C, D, Rr(76)); \
-	P4(D, E, A, B, C, Rr(77)); \
-	P4(C, D, E, A, B, Rr(78)); \
-	P4(B, C, D, E, A, Rr(79));
-
-#define sha1_init(o) {	  \
-		o[0] = INIT_A; \
-		o[1] = INIT_B; \
-		o[2] = INIT_C; \
-		o[3] = INIT_D; \
-		o[4] = INIT_E; \
-	}
-
-#define sha1_block(b, o) {	\
-		A = o[0]; \
-		B = o[1]; \
-		C = o[2]; \
-		D = o[3]; \
-		E = o[4]; \
-		SHA1(A, B, C, D, E, b); \
-		o[0] += A; \
-		o[1] += B; \
-		o[2] += C; \
-		o[3] += D; \
-		o[4] += E; \
-	}
-
 
 inline void cmp_final(uint gid,
 		uint iter,
@@ -293,12 +82,6 @@ inline void cmp(uint gid,
 		volatile __global uint *output,
 		volatile __global uint *bitmap_dupe) {
 	uint bitmap_index, tmp = 1;
-
-	hash[0] = SWAP32(hash[0]);
-	hash[1] = SWAP32(hash[1]);
-	hash[2] = SWAP32(hash[2]);
-	hash[3] = SWAP32(hash[3]);
-	hash[4] = SWAP32(hash[4]);
 
 #if SELECT_CMP_STEPS > 4
 	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
@@ -366,10 +149,9 @@ __kernel void sha1(__global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint W[16] = { 0 };
-	uint temp, A, B, C, D, E;
+	uint temp, A, B, C, D, E, r[16];
 	uint len = base & 63;
 	uint hash[5];
-	uint r[16] = {0};
 
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -442,8 +224,7 @@ __kernel void sha1(__global uint *keys,
 #endif
 #endif
 #endif
-		sha1_init(hash);
-		sha1_block(W, hash);
+		sha1_single(W, hash);
 
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS
