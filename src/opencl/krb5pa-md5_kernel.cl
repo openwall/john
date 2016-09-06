@@ -12,7 +12,6 @@
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
 #include "opencl_unicode.h"
-#define RC4_BUFLEN 36
 #define RC4_IN_PLACE
 #include "opencl_rc4.h"
 #include "opencl_md4.h"
@@ -130,6 +129,7 @@ void krb5pa_md5_final(const uint *K,
 	uint i;
 	uint block[16];
 	uint plain[36/4];
+	uchar *cleartext = (uchar*)plain;
 	uint K1[4], K3[4], ihash[4];
 	uint a, b, c, d;
 
@@ -205,53 +205,69 @@ void krb5pa_md5_final(const uint *K,
 	md5_block(block, K3); /* md5_update(ihash, 16), md5_final() */
 
 	/* Salts now point to encrypted timestamp. */
-	for (i = 0; i < 9; i++)
-		plain[i] = *salts++;
+	for (i = 0; i < 4; i++)
+		plain[i] = salts[i];
 
-	/* K3 is our RC4 key. */
+	/* K3 is our RC4 key. First decrypt just one block for early rejection */
 #ifdef RC4_USE_LOCAL
-	rc4(state_l, K3, plain);
+	rc4(state_l, K3, plain, 16);
 #else
-	rc4(K3, plain);
+	rc4(K3, plain, 16);
 #endif
 
-	/* Known-plain early reject possible at this point */
+	/* Known-plain UTC timestamp */
+	if (cleartext[14] == '2' && cleartext[15] == '0') {
+		for (i = 0; i < 9; i++)
+			plain[i] = salts[i];
 
-	/*
-	 * 3rd HMAC K2 = HMAC-MD5(K1, plaintext)
-	 */
-	md5_init(ihash);
-	for (i = 0; i < 4; i++)
-		block[i] = 0x36363636 ^ K1[i];
-	for (i = 4; i < 16; i++)
-		block[i] = 0x36363636;
-	md5_block(block, ihash); /* md5_update(ipad, 64) */
+#ifdef RC4_USE_LOCAL
+		rc4(state_l, K3, plain, 36);
+#else
+		rc4(K3, plain, 36);
+#endif
+		if (cleartext[28] == 'Z') {
+			/*
+			 * 3rd HMAC K2 = HMAC-MD5(K1, plaintext)
+			 */
+			md5_init(ihash);
+			for (i = 0; i < 4; i++)
+				block[i] = 0x36363636 ^ K1[i];
+			for (i = 4; i < 16; i++)
+				block[i] = 0x36363636;
+			md5_block(block, ihash); /* md5_update(ipad, 64) */
 
-	for (i = 0; i < 9; i++)
-		block[i] = plain[i]; /* plaintext, 36 bytes */
-	block[9] = 0x80;
-	for (i = 10; i < 14; i++)
-		block[i] = 0;
-	block[14] = (64 + 36) << 3;
-	block[15] = 0;
-	md5_block(block, ihash); /* md5_update(cs, 16), md5_final() */
+			for (i = 0; i < 9; i++)
+				block[i] = plain[i]; /* plaintext, 36 bytes */
+			block[9] = 0x80;
+			for (i = 10; i < 14; i++)
+				block[i] = 0;
+			block[14] = (64 + 36) << 3;
+			block[15] = 0;
+			md5_block(block, ihash); /* md5_update(cs, 16), md5_final() */
 
-	md5_init(K2);
-	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ K1[i];
-	for (i = 4; i < 16; i++)
-		block[i] = 0x5c5c5c5c;
-	md5_block(block, K2); /* md5_update(opad, 64) */
+			md5_init(K2);
+			for (i = 0; i < 4; i++)
+				block[i] = 0x5c5c5c5c ^ K1[i];
+			for (i = 4; i < 16; i++)
+				block[i] = 0x5c5c5c5c;
+			md5_block(block, K2); /* md5_update(opad, 64) */
 
-	for (i = 0; i < 4; i++)
-		block[i] = ihash[i];
-	block[4] = 0x80;
-	for (i = 5; i < 14; i++)
-		block[i] = 0;
-	block[14] = (64 + 16) << 3;
-	block[15] = 0;
-	md5_block(block, K2); /* md5_update(ihash, 16), md5_final() */
-
+			for (i = 0; i < 4; i++)
+				block[i] = ihash[i];
+			block[4] = 0x80;
+			for (i = 5; i < 14; i++)
+				block[i] = 0;
+			block[14] = (64 + 16) << 3;
+			block[15] = 0;
+			md5_block(block, K2); /* md5_update(ihash, 16), md5_final() */
+		}
+		else {
+			K2[0] = 0;
+		}
+	}
+	else {
+		K2[0] = 0;
+	}
 }
 
 inline

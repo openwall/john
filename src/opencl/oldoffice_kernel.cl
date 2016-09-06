@@ -14,7 +14,6 @@
 #define AMD_PUTCHAR_NOCAST /* AMD bug workaround */
 #endif
 #include "opencl_misc.h"
-#define RC4_BUFLEN 32
 #define RC4_IN_PLACE
 #include "opencl_rc4.h"
 #include "opencl_md5.h"
@@ -327,9 +326,9 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
 #ifdef RC4_USE_LOCAL
-		rc4(state_l, md5, verifier);
+		rc4(state_l, md5, verifier, 32);
 #else
-		rc4(md5, verifier);
+		rc4(md5, verifier, 32);
 #endif
 
 		for (i = 0; i < 4; i++)
@@ -471,9 +470,9 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
 #ifdef RC4_USE_LOCAL
-		rc4(state_l, key, verifier);
+		rc4(state_l, key, verifier, 32);
 #else
-		rc4(key, verifier);
+		rc4(key, verifier, 32);
 #endif
 
 		for (i = 0; i < 4; i++)

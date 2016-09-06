@@ -16,10 +16,6 @@
 
 #include "opencl_misc.h"
 
-#ifndef RC4_BUFLEN
-#error RC4_BUFLEN must be defined prior to including opencl_rc4.h
-#endif
-
 #define RC4_IV32
 
 #if !gpu_amd(DEVICE_INFO) || DEV_VER_MAJOR < 1445
@@ -89,12 +85,12 @@ inline void rc4(
 #endif
                 const uint *restrict key,
 #ifdef RC4_IN_PLACE
-                uint *buf
+                uint *buf,
 #else
                 MAYBE_CONSTANT uint *restrict in,
-                __global uint *restrict out
+                __global uint *restrict out,
 #endif
-	)
+                uint len)
 {
 	uint x;
 	uint y = 0;
@@ -143,7 +139,7 @@ inline void rc4(
 	/* RC4() */
 #ifdef RC4_UNROLLED
 	/* Unrolled to 32-bit xor */
-	for (x = 1; x <= RC4_BUFLEN; x++) {
+	for (x = 1; x <= len; x++) {
 		uint xor_word;
 
 		y = (GETCHAR_L(state, x) + y) & 255;
@@ -173,7 +169,7 @@ inline void rc4(
 	}
 #else /* RC4_UNROLLED */
 #pragma unroll
-	for (x = 1; x <= RC4_BUFLEN; x++) {
+	for (x = 1; x <= len; x++) {
 		y = (GETCHAR_L(state, x) + y) & 255;
 		swap_byte(x, y);
 #ifdef RC4_IN_PLACE
