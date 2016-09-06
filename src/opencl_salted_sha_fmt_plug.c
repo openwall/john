@@ -1,13 +1,9 @@
 /*
- * Copyright (c) 2011 Samuele Giovanni Tonon
- * samu at linuxasylum dot net
- * Copyright (c) 2012, magnum
+ * Copyright (c) 2012-2016, magnum
  * and Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
- * This program comes with ABSOLUTELY NO WARRANTY; express or
- * implied .
- * This is free software, and you are welcome to redistribute it
- * under certain conditions; as expressed here
- * http://www.gnu.org/licenses/gpl-2.0.html
+ * This software is hereby released to the general public under
+ * the following terms: Redistribution and use in source and binary
+ * forms, with or without modification, are permitted.
  */
 
 #ifdef HAVE_OPENCL

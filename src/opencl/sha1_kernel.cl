@@ -1,17 +1,10 @@
 /*
-   This code was largely inspired by
-   pyrit opencl kernel sha1 routines, royger's sha1 sample,
-   and md5_opencl_kernel.cl inside jtr.
-   Copyright 2011 by Samuele Giovanni Tonon
-   samu at linuxasylum dot net
-   Copyright (c) 2012, magnum
-   and Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
-   This program comes with ABSOLUTELY NO WARRANTY; express or
-   implied .
-   This is free software, and you are welcome to redistribute it
-   under certain conditions; as expressed here
-   http://www.gnu.org/licenses/gpl-2.0.html
-*/
+ * Copyright (c) 2012-2016, magnum
+ * and Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
+ * This software is hereby released to the general public under
+ * the following terms: Redistribution and use in source and binary
+ * forms, with or without modification, are permitted.
+ */
 
 #include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST
