@@ -72,7 +72,7 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
 #undef swap_state
 #define swap_state(n) {	  \
 		swap_no_inc(n); \
-		index1 = (index1 + 1) & 15; \
+		index1 = (index1 + 1) & 15; /* WARNING: &15 == %keylen */ \
 	}
 #undef swap_anc_inc
 #define swap_and_inc(n) {	  \
