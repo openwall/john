@@ -69,7 +69,6 @@ static struct fmt_tests tests[] = {
 	{"$o3logon$scott$819D062FE5D93F79FF19BDAFE2F9872A$C6D1ED7E6F4D3A6D94F1E49460122D39A3832CC792AD7137", "scottscottscott1"},
 	{"$o3logon$SCOTT$8E9E3E07864D99BB602C443F45E4AFC1$3591851B327BB85A114BD73D51B80AF58E942002B9612F82", "scottscottscott1234"},
 	{"$o3logon$scott$4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345"},
-	{"4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345",      {"scott"} },
 	{NULL}
 };
 
@@ -154,20 +153,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!len || cp || len%16 || hexlenu(ciphertext, &extra) != len || extra)
 		return 0;
 	return 1;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	static char cp[128];
-
-	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
-		return split_fields[1];
-	if (!split_fields[0])
-		return split_fields[1];
-	if (strlen(split_fields[1]) + strlen(split_fields[0]) > sizeof(cp)-(2+FORMAT_TAG_LEN))
-		return split_fields[1];
-	sprintf (cp, "%s%s$%s", FORMAT_TAG, split_fields[0], split_fields[1]);
-	return cp;
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -395,7 +380,7 @@ struct fmt_main fmt_o3logon = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		split,
 		fmt_default_binary,
