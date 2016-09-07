@@ -106,13 +106,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 
 	for (i = 0; i < 5; i++)
 		output[i] = opad[i];
-#ifdef USE_SHA1_SHORT
 	sha1_block_160Z(W, output);
-#else
-	for (i = 6; i < 15; i++)
-		W[i] = 0;
-	sha1_block(W, output);
-#endif
 
 	for (i = 0; i < 5; i++)
 		state[i] = output[i];
@@ -188,13 +182,7 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 			output[i] = ipad[i];
 		W[5] = 0x80000000;
 		W[15] = (64 + 20) << 3;
-#ifdef USE_SHA1_SHORT
 		sha1_block_160Z(W, output);
-#else
-		for (i = 6; i < 15; i++)
-			W[i] = 0;
-		sha1_block(W, output);
-#endif
 
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];
@@ -202,13 +190,7 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 		W[15] = (64 + 20) << 3;
 		for (i = 0; i < 5; i++)
 			output[i] = opad[i];
-#ifdef USE_SHA1_SHORT
 		sha1_block_160Z(W, output);
-#else
-		for (i = 6; i < 15; i++)
-			W[i] = 0;
-		sha1_block(W, output);
-#endif
 
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];

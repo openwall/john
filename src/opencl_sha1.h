@@ -16,8 +16,6 @@
 
 #include "opencl_misc.h"
 
-#define USE_SHA1_SHORT 1
-
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
 #define INIT_C			0x98badcfe
