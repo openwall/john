@@ -36,7 +36,6 @@ void rakp_kernel(__constant      uint* salt,
                  __global        uint* digest)
 {
 	MAYBE_VECTOR_UINT W[16], K[16] = { 0 }, stage1[5], stage2[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 	uint gid = get_global_id(0);
 	uint gws = get_global_size(0);
 	uint i;
@@ -77,25 +76,25 @@ void rakp_kernel(__constant      uint* salt,
 #endif
 	for (i = 0; i < 16; i++)
 		W[i] = K[i] ^ 0x36363636U;
-	sha1_single(W, stage1);
+	sha1_single(MAYBE_VECTOR_UINT, W, stage1);
 
 	for (i = 0; i < 16; i++)
 		W[i] = *salt++;
-	sha1_block(W, stage1);
+	sha1_block(MAYBE_VECTOR_UINT, W, stage1);
 
 	for (i = 0; i < 16; i++)
 		W[i] = *salt++;
-	sha1_block(W, stage1);
+	sha1_block(MAYBE_VECTOR_UINT, W, stage1);
 
 	for (i = 0; i < 16; i++)
 		W[i] = K[i] ^ 0x5C5C5C5CU;
-	sha1_single(W, stage2);
+	sha1_single(MAYBE_VECTOR_UINT, W, stage2);
 
 	for (i = 0; i < 5; i++)
 		W[i] = stage1[i];
 	W[5] = 0x80000000;
 	W[15] = 672; // (64 + 20) * 8
-	sha1_block_160Z(W, stage2);
+	sha1_block_160Z(MAYBE_VECTOR_UINT, W, stage2);
 
 	for (i = 0; i < 5; i++)
 #ifdef SCALAR

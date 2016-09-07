@@ -63,7 +63,6 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       MAYBE_CONSTANT uchar *salt, uint saltlen)
 {
 	uint i;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 
@@ -78,7 +77,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 			PUTCHAR_BE(W, i, salt[i]);
 		PUTCHAR_BE(W, saltlen, 0x80);
 		W[15] = (64 + saltlen) << 3;
-		sha1_block(W, output);
+		sha1_block(MAYBE_VECTOR_UINT, W, output);
 	} else {
 		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
 		uint j;
@@ -87,7 +86,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 			PUTCHAR_BE(W, i, salt[i]);
 		if (saltlen < 64)
 			PUTCHAR_BE(W, saltlen, 0x80);
-		sha1_block(W, output);
+		sha1_block(MAYBE_VECTOR_UINT, W, output);
 
 		// build and process 2nd limb
 		for (j = 0; j < 15; j++)
@@ -97,7 +96,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 		if (saltlen >= 64)
 			PUTCHAR_BE(W, saltlen-64, 0x80);
 		W[15] = (64 + saltlen) << 3;
-		sha1_block(W, output);
+		sha1_block(MAYBE_VECTOR_UINT, W, output);
 	}
 	for (i = 0; i < 5; i++)
 		W[i] = output[i];
@@ -106,7 +105,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 
 	for (i = 0; i < 5; i++)
 		output[i] = opad[i];
-	sha1_block_160Z(W, output);
+	sha1_block_160Z(MAYBE_VECTOR_UINT, W, output);
 
 	for (i = 0; i < 5; i++)
 		state[i] = output[i];
@@ -116,14 +115,13 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
                     __global MAYBE_VECTOR_UINT *state, uint padding)
 {
 	uint i;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 
 	for (i = 0; i < 16; i++)
 		W[i] = key[i] ^ padding;
 
-	sha1_single(W, output);
+	sha1_single(MAYBE_VECTOR_UINT, W, output);
 
 	for (i = 0; i < 5; i++)
 		state[i] = output[i];
@@ -159,7 +157,6 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
@@ -182,7 +179,7 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 			output[i] = ipad[i];
 		W[5] = 0x80000000;
 		W[15] = (64 + 20) << 3;
-		sha1_block_160Z(W, output);
+		sha1_block_160Z(MAYBE_VECTOR_UINT, W, output);
 
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];
@@ -190,7 +187,7 @@ void pbkdf1_loop(__global pbkdf1_state *state)
 		W[15] = (64 + 20) << 3;
 		for (i = 0; i < 5; i++)
 			output[i] = opad[i];
-		sha1_block_160Z(W, output);
+		sha1_block_160Z(MAYBE_VECTOR_UINT, W, output);
 
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];

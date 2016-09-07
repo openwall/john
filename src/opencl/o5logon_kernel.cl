@@ -24,7 +24,6 @@
 __kernel void o5logon_kernel(__global uint* keys, __constant uint* salt, __global const uint *index, __global uint* digest)
 {
 	uint W[16] = { 0 }, salt_s[3], output[5];
-	uint A, B, C, D, E, temp, r[16];
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint len = base & 63;
@@ -55,7 +54,7 @@ __kernel void o5logon_kernel(__global uint* keys, __constant uint* salt, __globa
 
 	W[15] = (len+10) << 3;
 
-	sha1_single(W, output);
+	sha1_single(uint, W, output);
 
 	// Because the receiving program will need the entire hash immediately
 	// (as opposed to receiving part of it, and only receiving the rest if

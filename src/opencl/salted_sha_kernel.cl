@@ -156,7 +156,6 @@ __kernel void sha1(__global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint W[16] = { 0 };
-	uint A, B, C, D, E, temp, r[16];
 	uint len = base & 63;
 	uint hash[5];
 	unsigned int salt_len = salt[16];
@@ -264,7 +263,7 @@ __kernel void sha1(__global uint *keys,
 #endif
 #endif
 		sha1_init(hash);
-		sha1_block(W, hash);
+		sha1_block(uint, W, hash);
 
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS

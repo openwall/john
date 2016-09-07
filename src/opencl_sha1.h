@@ -450,12 +450,10 @@
  * AMD bug (seen in eg. Catalyst 14.9). We should really do without them
  * but somehow we get thrashed output without them.
  * On the other hand, they also seem to work as an optimization for nvidia!
- *
- * Intel doesn't support typeof() but also doesn't need the workaround.
  */
-#if !(DEVICE_INFO & DEV_INTEL)
-#define sha1_block(W, ctx) {	\
-		typeof(A) a, b, c, d, e; \
+#define sha1_block(itype, W, ctx) {	  \
+		itype A, B, C, D, E, temp, r[16]; \
+		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
 		C = ctx[2]; \
@@ -469,23 +467,9 @@
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
 	}
-#else
-#define sha1_block(W, ctx) {	\
-		A = ctx[0]; \
-		B = ctx[1]; \
-		C = ctx[2]; \
-		D = ctx[3]; \
-		E = ctx[4]; \
-		SHA1(A, B, C, D, E, W); \
-		ctx[0] += A; \
-		ctx[1] += B; \
-		ctx[2] += C; \
-		ctx[3] += D; \
-		ctx[4] += E; \
-	}
-#endif
 
-#define sha1_single(W, out) {	\
+#define sha1_single(itype, W, out) {	\
+		itype A, B, C, D, E, temp, r[16]; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
@@ -499,9 +483,9 @@
 		out[4] = E + INIT_E; \
 	}
 
-#if 1 /* DEV_VER_MAJOR == 1573 && DEV_VER_MINOR == 4 */
-#define sha1_block_160Z(W, ctx) {	\
-		MAYBE_VECTOR_UINT a, b, c, d, e; \
+#define sha1_block_160Z(itype, W, ctx) {	  \
+		itype A, B, C, D, E, temp, r[16]; \
+		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
 		C = ctx[2]; \
@@ -515,23 +499,9 @@
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
 	}
-#else
-#define sha1_block_160Z(W, ctx) {	\
-		A = ctx[0]; \
-		B = ctx[1]; \
-		C = ctx[2]; \
-		D = ctx[3]; \
-		E = ctx[4]; \
-		SHA1_160Z(A, B, C, D, E, W); \
-		ctx[0] += A; \
-		ctx[1] += B; \
-		ctx[2] += C; \
-		ctx[3] += D; \
-		ctx[4] += E; \
-	}
-#endif
 
-#define sha1_single_160Z(W, out) {	\
+#define sha1_single_160Z(itype, W, out) {	  \
+		itype A, B, C, D, E, temp, r[16]; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
@@ -545,9 +515,9 @@
 		out[4] = E + INIT_E; \
 	}
 
-#if 1 /* DEV_VER_MAJOR == 1573 && DEV_VER_MINOR == 4 */
-#define sha1_block_192Z(W, ctx) {	\
-		MAYBE_VECTOR_UINT a, b, c, d, e; \
+#define sha1_block_192Z(itype, W, ctx) {	  \
+		itype A, B, C, D, E, temp, r[16]; \
+		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
 		C = ctx[2]; \
@@ -561,23 +531,9 @@
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
 	}
-#else
-#define sha1_block_192Z(W, ctx) {	\
-		A = ctx[0]; \
-		B = ctx[1]; \
-		C = ctx[2]; \
-		D = ctx[3]; \
-		E = ctx[4]; \
-		SHA1_192Z(A, B, C, D, E, W); \
-		ctx[0] += A; \
-		ctx[1] += B; \
-		ctx[2] += C; \
-		ctx[3] += D; \
-		ctx[4] += E; \
-	}
-#endif
 
-#define sha1_single_192Z(W, out) {	\
+#define sha1_single_192Z(itype, W, out) {	  \
+		itype A, B, C, D, E, temp, r[16]; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \

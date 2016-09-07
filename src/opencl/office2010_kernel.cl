@@ -27,7 +27,6 @@ __kernel void GenerateSHA1pwhash(
 	uint W[16];
 	uint output[5];
 	uint gid = get_global_id(0);
-	uint A, B, C, D, E, temp, r[16];
 
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
@@ -39,14 +38,14 @@ __kernel void GenerateSHA1pwhash(
 		W[14] = 0;
 		W[15] = (pw_len[gid] + 16) << 3;
 	}
-	sha1_single(W, output);
+	sha1_single(uint, W, output);
 
 	if (pw_len[gid] >= 40) {
 		for (i = 0; i < 14; i++)
 			W[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i + 12]);
 		W[14] = 0;
 		W[15] = (pw_len[gid] + 16) << 3;
-		sha1_block(W, output);
+		sha1_block(uint, W, output);
 	}
 
 #ifdef SCALAR
@@ -84,14 +83,13 @@ void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 	for (j = 0; j < HASH_LOOPS; j++)
 	{
 		MAYBE_VECTOR_UINT W[16];
-		MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 
 		W[0] = SWAP32(base + j);
 		for (i = 1; i < 6; i++)
 			W[i] = output[i - 1];
 		W[6] = 0x80000000;
 		W[15] = 24 << 3;
-		sha1_single_192Z(W, output);
+		sha1_single_192Z(MAYBE_VECTOR_UINT, W, output);
 	}
 	for (i = 0; i < 5; i++)
 		pwhash[gid * 6 + i] = output[i];
@@ -107,7 +105,6 @@ void Generate2010key(
 {
 	uint i, j;
 	MAYBE_VECTOR_UINT W[16], output[5], hash[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 	uint gid = get_global_id(0);
 #ifdef SCALAR
 	uint base = pwhash[gid * 6 + 5];
@@ -127,7 +124,7 @@ void Generate2010key(
 			W[i] = output[i - 1];
 		W[6] = 0x80000000;
 		W[15] = 24 << 3;
-		sha1_single_192Z(W, output);
+		sha1_single_192Z(MAYBE_VECTOR_UINT, W, output);
 	}
 
 	/* Our sha1 destroys input so we store it in hash[] */
@@ -141,7 +138,7 @@ void Generate2010key(
 	for (i = 8; i < 15; i++)
 		W[i] = 0;
 	W[15] = 28 << 3;
-	sha1_single(W, output);
+	sha1_single(MAYBE_VECTOR_UINT, W, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)
@@ -189,7 +186,7 @@ void Generate2010key(
 	for (i = 8; i < 15; i++)
 		W[i] = 0;
 	W[15] = 28 << 3;
-	sha1_single(W, output);
+	sha1_single(MAYBE_VECTOR_UINT, W, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)

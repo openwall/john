@@ -39,7 +39,6 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 
 	for (i = 0; i < 5; i++)
 		output[i] = ipad[i];
@@ -52,7 +51,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	PUTCHAR_BE(W, saltlen + 3, add);
 	PUTCHAR_BE(W, saltlen + 4, 0x80);
 	W[15] = (64 + saltlen + 4) << 3;
-	sha1_block(W, output);
+	sha1_block(MAYBE_VECTOR_UINT, W, output);
 
 	for (i = 0; i < 5; i++)
 		W[i] = output[i];
@@ -61,7 +60,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	for (i = 0; i < 5; i++)
 		output[i] = opad[i];
 	W[15] = (64 + 20) << 3;
-	sha1_block_160Z(W, output);
+	sha1_block_160Z(MAYBE_VECTOR_UINT, W, output);
 	for (i = 0; i < 5; i++)
 		state[i] = output[i];
 }
@@ -72,12 +71,11 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 
 	for (i = 0; i < 16; i++)
 		W[i] = key[i] ^ padding;
 
-	sha1_single(W, output);
+	sha1_single(MAYBE_VECTOR_UINT, W, output);
 
 	for (i = 0; i < 5; i++)
 		state[i] = output[i];
@@ -124,20 +122,18 @@ void wpapsk_loop(__global wpapsk_state *state)
 		state_out[i] = state[gid].out[i];
 
 	for (j = 0; j < HASH_LOOPS; j++) {
-		MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
-
 		for (i = 0; i < 5; i++)
 			output[i] = ipad[i];
 		W[5] = 0x80000000;
 		W[15] = (64 + 20) << 3;
-		sha1_block_160Z(W, output);
+		sha1_block_160Z(MAYBE_VECTOR_UINT, W, output);
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];
 		W[5] = 0x80000000;
 		for (i = 0; i < 5; i++)
 			output[i] = opad[i];
 		W[15] = (64 + 20) << 3;
-		sha1_block_160Z(W, output);
+		sha1_block_160Z(MAYBE_VECTOR_UINT, W, output);
 		for (i = 0; i < 5; i++)
 			W[i] = output[i];
 
@@ -182,7 +178,6 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 
 	// HMAC(EVP_sha1(), key, 32, (text.data), 100, ret, NULL);
 
@@ -191,7 +186,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 		W[i] = 0x36363636 ^ key[i]; // key is already swapped
 	for (i = 8; i < 16; i++)
 		W[i] = 0x36363636;
-	sha1_single(W, ipad); // update(ipad)
+	sha1_single(MAYBE_VECTOR_UINT, W, ipad); // update(ipad)
 
 	/* 64 first bytes */
 	for (i = 0; i < 6; i++)
@@ -201,7 +196,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 		W[i + 1] = *data++ << 8;
 	}
 	W[15] |= *data >> 24;
-	sha1_block(W, ipad); // update(data)
+	sha1_block(MAYBE_VECTOR_UINT, W, ipad); // update(data)
 
 	/* 36 remaining bytes */
 	W[0] = *data++ << 8;
@@ -213,20 +208,20 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 	for (i = 10; i < 15; i++)
 		W[i] = 0;
 	W[15] = (64 + 100) << 3;
-	sha1_block(W, ipad); // update(data) + final
+	sha1_block(MAYBE_VECTOR_UINT, W, ipad); // update(data) + final
 
 	/* opad */
 	for (i = 0; i < 8; i++)
 		W[i] = 0x5c5c5c5c ^ key[i];
 	for (i = 8; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
-	sha1_single(W, opad); // update(opad)
+	sha1_single(MAYBE_VECTOR_UINT, W, opad); // update(opad)
 
 	for (i = 0; i < 5; i++)
 		W[i] = ipad[i];
 	W[5] = 0x80000000;
 	W[15] = (64 + 20) << 3;
-	sha1_block_160Z(W, opad);
+	sha1_block_160Z(MAYBE_VECTOR_UINT, W, opad);
 	/* Only 16 bits used */
 	for (i = 0; i < 4; i++)
 		ret[i] = opad[i];
@@ -343,7 +338,6 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 	MAYBE_VECTOR_UINT opad[5];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
-	MAYBE_VECTOR_UINT A, B, C, D, E, temp, r[16];
 
 	for (i = 0; i < 5; i++)
 		outbuffer[i] = state[gid].partial[i];
@@ -360,7 +354,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 		W[i] = 0x36363636 ^ prf[i];
 	for (i = 4; i < 16; i++)
 		W[i] = 0x36363636;
-	sha1_single(W, ipad);
+	sha1_single(MAYBE_VECTOR_UINT, W, ipad);
 
 	/* eapol_blocks (of SHA1),
 	 * eapol data + 0x80, null padded and len set in set_salt() */
@@ -371,7 +365,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 		for (i = 0; i < 16; i++)
 			W[i] = *cp++;
 
-		sha1_block(W, ipad);
+		sha1_block(MAYBE_VECTOR_UINT, W, ipad);
 	}
 
 	for (i = 0; i < 4; i++)
@@ -379,13 +373,13 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 	for (i = 4; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
 
-	sha1_single(W, opad);
+	sha1_single(MAYBE_VECTOR_UINT, W, opad);
 
 	for (i = 0; i < 5; i++)
 		W[i] = ipad[i];
 	W[5] = 0x80000000;
 	W[15] = (64 + 20) << 3;
-	sha1_block_160Z(W, opad);
+	sha1_block_160Z(MAYBE_VECTOR_UINT, W, opad);
 	/* We only use 16 bytes */
 	for (i = 0; i < 4; i++)
 #ifdef SCALAR

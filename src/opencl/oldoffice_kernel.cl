@@ -367,7 +367,6 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
                     __global uint *benchmark)
 {
 	uint i;
-	uint A, B, C, D, E, temp, r[16];
 #if PLAINTEXT_LENGTH > (27 - 8)
 	/* Silly AMD bug workaround */
 	uint a, b, c, d, e;
@@ -392,7 +391,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 			u |= (*p++ << 16U);
 			W[i >> 1] = SWAP32(u);
 		}
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 		for (i = 0; i < len - 32; i += 2) {
 			uint u = *p++;
 			u |= (*p++ << 16U);
@@ -402,7 +401,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 		for (i = len - 32 + 1; i < 30; i++)
 			PUTSHORT_BE(W, i, 0);
 		W[15] = len << 4;
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 	} else
 #endif
 #if PLAINTEXT_LENGTH > (27 - 8)
@@ -415,11 +414,11 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 		PUTSHORT_BE(W, len, 0x8000);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT_BE(W, i, 0);
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 		for (i = 0; i < 15; i++)
 			W[i] = 0;
 		W[15] = len << 4;
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 	} else
 #endif
 	{
@@ -433,9 +432,9 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 			PUTSHORT_BE(W, i, 0);
 		W[15] = len << 4;
 #if PLAINTEXT_LENGTH > (27 - 8)
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 #else
-		sha1_single(W, key);
+		sha1_single(uint, W, key);
 #endif
 	}
 
@@ -446,7 +445,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 	for (i = 7; i < 15; i++)
 		W[i] = 0;
 	W[15] = 24 << 3;
-	sha1_single(W, sha1);
+	sha1_single(uint, W, sha1);
 
 	sha1[0] = SWAP32(sha1[0]);
 	sha1[1] = SWAP32(sha1[1]);
@@ -481,7 +480,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 		for (i = 5; i < 15; i++)
 			W[i] = 0;
 		W[15] = 16 << 3;
-		sha1_single(W, key);
+		sha1_single(uint, W, key);
 
 		verifier[0] = SWAP32(key[0]);
 		verifier[1] = SWAP32(key[1]);
