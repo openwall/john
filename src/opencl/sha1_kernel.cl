@@ -152,7 +152,6 @@ __kernel void sha1(__global uint *keys,
 	uint temp, A, B, C, D, E, r[16];
 	uint len = base & 63;
 	uint hash[5];
-
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
 	uint loc0 = ikl & 0xff;
@@ -225,6 +224,16 @@ __kernel void sha1(__global uint *keys,
 #endif
 #endif
 		sha1_single(W, hash);
+#ifdef TWICE
+		W[0] = hash[0];
+		W[1] = hash[1];
+		W[2] = hash[2];
+		W[3] = hash[3];
+		W[4] = hash[4];
+		W[5] = 0x80000000;
+		W[15] = 20 << 3;
+		sha1_single_160Z(W, hash);
+#endif
 
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS
