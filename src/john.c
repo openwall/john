@@ -1805,8 +1805,8 @@ static void john_done(void)
  * can be freed much earlier, but it works here
  */
 	db_main_free(&database);
-	check_abort(0);
 	cleanup_tiny_memory();
+	check_abort(0);
 }
 
 //#define TEST_MEMDBG_LOGIC
