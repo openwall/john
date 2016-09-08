@@ -116,6 +116,14 @@ static void done(void)
 	MEM_FREE(cur_key);
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[128];
+	strnzcpy(out, ciphertext, sizeof(out));
+	enc_strupper(&out[FORMAT_TAG_LEN]);
+	return out;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *cp;
@@ -125,6 +133,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
+	ciphertext = split(ciphertext, 0, self);
 	ciphertext += FORMAT_TAG_LEN;
 	cp = strchr(ciphertext, '$');
 	if (!cp)
@@ -137,8 +146,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	tmp[cp-ciphertext] = 0;
 	len = enc_to_utf16((UTF16 *)cur_key_mixedcase, MAX_USERNAME_LEN+1, (unsigned char*)tmp, strlen(tmp));
 	if (len < 0) {
+#ifdef HAVE_FUZZ
+		if (!(options.flags & FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK))
+#endif
+		{
 		fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
 		error();
+		}
 	}
 	if (len > MAX_USERNAME_LEN)
 		return 0;
@@ -155,13 +169,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[128];
-	strnzcpy(out, ciphertext, sizeof(out));
-	enc_strupper(&out[FORMAT_TAG_LEN]);
-	return out;
-}
 static void set_salt(void *salt) {
 	cur_salt = (ora9_salt *)salt;
 }
