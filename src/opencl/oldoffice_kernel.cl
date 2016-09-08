@@ -150,7 +150,6 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
                    __global uint *benchmark)
 {
 	uint i;
-	uint a, b, c, d;
 	uint W[64/4];
 	uint verifier[32/4];
 	uint md5[16/4];
@@ -169,7 +168,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 			W[i >> 1] = (uint)*p++;
 			W[i >> 1] |= (*p++ << 16U);
 		}
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 		for (i = 0; i < len - 32; i += 2) {
 			W[i >> 1] = (uint)*p++;
 			W[i >> 1] |= (*p++ << 16U);
@@ -180,7 +179,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 			PUTSHORT(W, i, 0);
 		W[14] = len << 4;
 		W[15] = 0;
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 	} else
 #endif
 #if PLAINTEXT_LENGTH > 27
@@ -192,12 +191,12 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		PUTSHORT(W, i, 0x80);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT(W, i, 0);
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 		for (i = 0; i < 14; i++)
 			W[i] = 0;
 		W[14] = len << 4;
 		W[15] = 0;
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 	} else
 #endif
 	{
@@ -211,9 +210,9 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		W[14] = len << 4;
 		W[15] = 0;
 #if PLAINTEXT_LENGTH > 27
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 #else
-		md5_single(W, md5);
+		md5_single(uint, W, md5);
 #endif
 	}
 
@@ -234,7 +233,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 	for (i = 0; i < 16; i++)
 		PUTCHAR(W, i + 47, GETCHAR(salt, i));
 	PUTCHAR(W, 63, GETCHAR(md5, 0));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 1; i < 5; i++)
 		PUTCHAR(W, i - 1, GETCHAR(md5, i));
 	for (i = 0; i < 16; i++)
@@ -249,7 +248,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		PUTCHAR(W, i + 46, GETCHAR(salt, i));
 	PUTCHAR(W, 62, GETCHAR(md5, 0));
 	PUTCHAR(W, 63, GETCHAR(md5, 1));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 2; i < 5; i++)
 		PUTCHAR(W, i - 2, GETCHAR(md5, i));
 	for (i = 0; i < 16; i++)
@@ -265,7 +264,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 	PUTCHAR(W, 61, GETCHAR(md5, 0));
 	PUTCHAR(W, 62, GETCHAR(md5, 1));
 	PUTCHAR(W, 63, GETCHAR(md5, 2));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 3; i < 5; i++)
 		PUTCHAR(W, i - 3, GETCHAR(md5, i));
 	for (i = 0; i < 16; i++)
@@ -282,7 +281,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 	PUTCHAR(W, 61, GETCHAR(md5, 1));
 	PUTCHAR(W, 62, GETCHAR(md5, 2));
 	PUTCHAR(W, 63, GETCHAR(md5, 3));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	PUTCHAR(W, 0, GETCHAR(md5, 4));
 	for (i = 0; i < 16; i++)
 		PUTCHAR(W, i + 1, GETCHAR(salt, i));
@@ -296,7 +295,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		PUTCHAR(W, i + 43, GETCHAR(salt, i));
 	for (i = 0; i < 5; i++)
 		PUTCHAR(W, i + 59, GETCHAR(md5, i));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 0; i < 4; i++)
 		W[i] = cs->salt[i];
 	W[4] = 0x80;
@@ -304,7 +303,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		W[i] = 0;
 	W[14] = (16 * (5 + 16)) << 3;
 	W[15] = 0;
-	md5_block(W, key);
+	md5_block(uint, W, key);
 
 	key[1] &= 0xff;
 
@@ -321,7 +320,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		W[14] = 9 << 3;
 		W[15] = 0;
 		md5_init(md5);
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
@@ -339,7 +338,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 		W[14] = 16 << 3;
 		W[15] = 0;
 		md5_init(verifier);
-		md5_block(W, verifier);
+		md5_block(uint, W, verifier);
 
 		if (verifier[0] == verifier[4] &&
 		    verifier[1] == verifier[5] &&
@@ -367,10 +366,6 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
                     __global uint *benchmark)
 {
 	uint i;
-#if PLAINTEXT_LENGTH > (27 - 8)
-	/* Silly AMD bug workaround */
-	uint a, b, c, d, e;
-#endif
 	uint W[64/4];
 	uint verifier[32/4];
 	uint sha1[20/4];

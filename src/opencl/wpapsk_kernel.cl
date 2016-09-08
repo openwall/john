@@ -237,7 +237,6 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 	MAYBE_VECTOR_UINT outbuffer[8];
 	MAYBE_VECTOR_UINT prf[4];
 	MAYBE_VECTOR_UINT W[16];
-	MAYBE_VECTOR_UINT a, b, c, d;
 	MAYBE_VECTOR_UINT ipad[4], opad[4];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
@@ -258,7 +257,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 	for (i = 4; i < 16; i++)
 		W[i] = 0x36363636;
 	md5_init(ipad);
-	md5_block(W, ipad); /* md5_update(ipad, 64) */
+	md5_block(MAYBE_VECTOR_UINT, W, ipad); /* md5_update(ipad, 64) */
 
 	/* eapol_blocks (of MD5),
 	 * eapol data + 0x80, null padded and len set in set_salt() */
@@ -268,7 +267,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 	while (eapol_blocks--) {
 		for (i = 0; i < 16; i++)
 			W[i] = *cp++;
-		md5_block(W, ipad); /* md5_update(), md5_final() */
+		md5_block(MAYBE_VECTOR_UINT, W, ipad); /* md5_update(), md5_final() */
 	}
 
 	for (i = 0; i < 4; i++)
@@ -276,7 +275,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 	for (i = 4; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
 	md5_init(opad);
-	md5_block(W, opad); /* md5_update(opad, 64) */
+	md5_block(MAYBE_VECTOR_UINT, W, opad); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
 		W[i] = ipad[i];
@@ -285,7 +284,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 		W[i] = 0;
 	W[14] = (64 + 16) << 3;
 	W[15] = 0;
-	md5_block(W, opad); /* md5_update(ipad, 16), md5_final() */
+	md5_block(MAYBE_VECTOR_UINT, W, opad); /* md5_update(ipad, 16), md5_final() */
 
 	for (i = 0; i < 4; i++)
 #ifdef SCALAR

@@ -63,7 +63,6 @@ inline void hmac_md5(__global MAYBE_VECTOR_UINT *state,
                      MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
-	MAYBE_VECTOR_UINT a, b, c, d;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[4];
 
@@ -80,7 +79,7 @@ inline void hmac_md5(__global MAYBE_VECTOR_UINT *state,
 		PUTCHAR(W, saltlen + 4, 0x80);
 		W[14] = (64 + saltlen + 4) << 3;
 		W[15] = 0;
-		md5_block(W, output);
+		md5_block(MAYBE_VECTOR_UINT, W, output);
 	} else {
 		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
 		uint j;
@@ -93,7 +92,7 @@ inline void hmac_md5(__global MAYBE_VECTOR_UINT *state,
 			PUTCHAR(W, saltlen + 3, add);
 		if (saltlen < 60)
 			PUTCHAR(W, saltlen + 4, 0x80);
-		md5_block(W, output);
+		md5_block(MAYBE_VECTOR_UINT, W, output);
 
 		// now build and process 2nd limb
 		for (j = 0; j < 14; j++)  // do not fuk with i!
@@ -106,7 +105,7 @@ inline void hmac_md5(__global MAYBE_VECTOR_UINT *state,
 			PUTCHAR(W, saltlen + 4 - 64, 0x80);
 		W[14] = (64 + saltlen + 4) << 3;
 		W[15] = 0;
-		md5_block(W, output);
+		md5_block(MAYBE_VECTOR_UINT, W, output);
 	}
 
 	for (i = 0; i < 4; i++)
@@ -119,7 +118,7 @@ inline void hmac_md5(__global MAYBE_VECTOR_UINT *state,
 
 	for (i = 0; i < 4; i++)
 		output[i] = opad[i];
-	md5_block(W, output);
+	md5_block(MAYBE_VECTOR_UINT, W, output);
 
 	for (i = 0; i < 4; i++)
 		state[i] = output[i];
@@ -129,14 +128,13 @@ inline void preproc(__global const MAYBE_VECTOR_UINT *key,
                     __global MAYBE_VECTOR_UINT *state, uint padding)
 {
 	uint i;
-	MAYBE_VECTOR_UINT a, b, c, d;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[4];
 
 	for (i = 0; i < 16; i++)
 		W[i] = key[i] ^ padding;
 
-	md5_single(W, output);
+	md5_single(MAYBE_VECTOR_UINT, W, output);
 
 	for (i = 0; i < 4; i++)
 		state[i] = output[i];
@@ -193,8 +191,6 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 		state_out[i] = state[gid].out[i];
 
 	for (j = 0; j < iterations; j++) {
-		MAYBE_VECTOR_UINT a, b, c, d;
-
 		for (i = 0; i < 4; i++)
 			output[i] = ipad[i];
 		W[4] = 0x80;
@@ -202,7 +198,7 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 			W[i] = 0;
 		W[14] = (64 + 16) << 3;
 		W[15] = 0;
-		md5_block(W, output);
+		md5_block(MAYBE_VECTOR_UINT, W, output);
 
 		for (i = 0; i < 4; i++)
 			W[i] = output[i];
@@ -213,7 +209,7 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 		W[15] = 0;
 		for (i = 0; i < 4; i++)
 			output[i] = opad[i];
-		md5_block(W, output);
+		md5_block(MAYBE_VECTOR_UINT, W, output);
 
 		for (i = 0; i < 4; i++)
 			W[i] = output[i];

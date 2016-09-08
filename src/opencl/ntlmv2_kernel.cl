@@ -123,7 +123,6 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 	uint block[16];
 	uint hash[4];
 	uint challenge_size;
-	uint a, b, c, d;
 	uint i;
 
 	/* 1st HMAC */
@@ -133,19 +132,19 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 		block[i] = 0x36363636 ^ nthash[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(block, output); /* md5_update(ipad, 64) */
+	md5_block(uint, block, output); /* md5_update(ipad, 64) */
 
 	/* challenge == identity[32].len,server_chal.client_chal[len] */
 	/* Salt buffer is prepared with 0x80, zero-padding and length,
 	 * it can be one or two blocks */
 	for (i = 0; i < 16; i++)
 		block[i] = *challenge++;
-	md5_block(block, output); /* md5_update(salt, saltlen), md5_final() */
+	md5_block(uint, block, output); /* md5_update(salt, saltlen), md5_final() */
 
 	if (challenge[14]) { /* salt longer than 27 characters */
 		for (i = 0; i < 16; i++)
 			block[i] = *challenge++;
-		md5_block(block, output); /* alternate final */
+		md5_block(uint, block, output); /* alternate final */
 	} else
 		challenge += 16;
 
@@ -157,7 +156,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 	md5_init(output);
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
-	md5_block(block, output); /* md5_update(opad, 64) */
+	md5_block(uint, block, output); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
 		block[i] = hash[i];
@@ -166,7 +165,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
+	md5_block(uint, block, output); /* md5_update(hash, 16), md5_final() */
 
 	/* 2nd HMAC */
 	for (i = 0; i < 4; i++)
@@ -177,7 +176,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 	md5_init(output);
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(block, output); /* md5_update(ipad, 64) */
+	md5_block(uint, block, output); /* md5_update(ipad, 64) */
 
 	/* Challenge:  blocks (of MD5),
 	 * Server Challenge + Client Challenge (Blob) +
@@ -188,7 +187,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 	while (challenge_size--) {
 		for (i = 0; i < 16; i++)
 			block[i] = *challenge++;
-		md5_block(block, output); /* md5_update(challenge, len), md5_final() */
+		md5_block(uint, block, output); /* md5_update(challenge, len), md5_final() */
 	}
 
 	for (i = 0; i < 4; i++)
@@ -199,7 +198,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 	md5_init(output);
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
-	md5_block(block, output); /* md5_update(opad, 64) */
+	md5_block(uint, block, output); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
 		block[i] = hash[i];
@@ -208,7 +207,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
+	md5_block(uint, block, output); /* md5_update(hash, 16), md5_final() */
 }
 
 inline
@@ -310,7 +309,6 @@ ntlmv2(const __global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint len = base & 127;
-	uint a, b, c, d;
 	uint i;
 	uint bitmap_sz_bits = challenge[SALT_PARAM_BASE] + 1;
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
@@ -372,7 +370,7 @@ ntlmv2(const __global uint *keys,
 
 		/* Initial NT hash of password */
 		md4_init(nthash);
-		md4_block(nt_buffer, nthash);
+		md4_block(uint, nt_buffer, nthash);
 
 		/* Final hashing */
 		ntlmv2_final(nthash, challenge, hash);
