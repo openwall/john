@@ -29,19 +29,19 @@
  */
 inline void sha1_mblock(uint *W, uint *out, uint blocks)
 {
+	uint i;
 	uint output[5];
-	uint A, B, C, D, E, temp, r[16];
 
-	for (temp = 0; temp < 5; temp++)
-		output[temp] = out[temp];
+	for (i = 0; i < 5; i++)
+		output[i] = out[i];
 
 	while (blocks--) {
 		sha1_block(uint, W, output);
 		W += 16;
 	}
 
-	for (temp = 0; temp < 5; temp++)
-		out[temp] = output[temp];
+	for (i = 0; i < 5; i++)
+		out[i] = output[i];
 }
 
 inline void sha1_empty_final(uint *W, uint *output, const uint tot_len)
@@ -104,27 +104,27 @@ __kernel void RarHashLoop(
 	if ((round % (ROUNDS / 16)) == 0)
 #endif
 	{
-		uint tempin[16], tempout[5];
+		uint W[16], tempout[5];
 
 		for (i = 0; i < 5; i++)
 			tempout[i] = output[i];
 		for (i = 0; i < (UNICODE_LENGTH + 8) / 4; i++)
-			tempin[i] = block[i];
+			W[i] = block[i];
 
-		PUTCHAR_BE(tempin, pwlen + 8, round & 255);
-		PUTCHAR_BE(tempin, pwlen + 9, (round >> 8) & 255);
+		PUTCHAR_BE(W, pwlen + 8, round & 255);
+		PUTCHAR_BE(W, pwlen + 9, (round >> 8) & 255);
 
 #ifdef __OS_X__
 		/* This is the weirdest workaround. Using sha1_empty_final()
 		   works perfectly fine in the RarFinal() subkernel below. */
-		PUTCHAR_BE(tempin, pwlen + 11, 0x80);
+		PUTCHAR_BE(W, pwlen + 11, 0x80);
 		for (i = pwlen + 12; i < 56; i++)
-			PUTCHAR_BE(tempin, i, 0);
-		tempin[14] = 0;
-		tempin[15] = (blocklen * (round + 1)) << 3;
-		sha1_block(uint, tempin, tempout);
+			PUTCHAR_BE(W, i, 0);
+		W[14] = 0;
+		W[15] = (blocklen * (round + 1)) << 3;
+		sha1_block(uint, W, tempout);
 #else
-		sha1_empty_final(tempin, tempout, blocklen * (round + 1));
+		sha1_empty_final(W, tempout, blocklen * (round + 1));
 #endif
 		PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
 	}
