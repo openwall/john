@@ -1286,6 +1286,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   if (!(wordlist = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
     wordlist = options.wordlist = WORDLIST_NAME;
 
+	if (rec_restored && john_main_process)
+    fprintf(stderr, "Proceeding with prince%c%s\n",
+            loopback ? '-' : ':',
+            loopback ? "loopback" : path_expand(wordlist));
+
   log_event("- Wordlist file: %.100s", path_expand(wordlist));
   log_event("- Will generate candidates of length %d - %d", pw_min, pw_max);
   log_event("- Using chains with %d - %d elements.", elem_cnt_min,
