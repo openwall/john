@@ -123,6 +123,7 @@ static struct fmt_tests tests[] = {
 	{"$response$679066476e67b5c7c4e88f04be567f8b$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$00000001$4b61913cec32e2c9$auth", "nocode"},
 	{"$response$faa6cb7d676e5b7c17fcbf966436aa0c$moi$myrealm$GET$/$af32592775d27b1cd06356b3a0db9ddf$00000001$8e1d49754a25aea7$auth", "kikou"},
 	{"$response$56940f87f1f53ade8b7d3c5a102c2bf3$usrx$teN__chars$GET$/4TLHS1TMN9cfsbqSUAdTG3CRq7qtXMptnYfn7mIIi3HRKOMhOks56e$2c0366dcbc$00000001$0153$auth", "passWOrd"},
+	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$", "pass"},
 	{NULL}
 };
 
@@ -215,10 +216,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* nonce */
 		goto err;
-	if (!ishexlc(p) )
-		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL) /* noncecount */
-		goto err;
+	if ((p = strtokm(NULL, "$")) == NULL) /* End of legacy HDAA or noncecount */
+		goto end_hdaa_legacy;
 	if ((p = strtokm(NULL, "$")) == NULL) /* clientnonce */
 		goto err;
 	if (!ishexlc(p) )
@@ -228,6 +227,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "$")) != NULL)
 		goto err;
 
+end_hdaa_legacy:
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -664,9 +664,13 @@ static void *get_salt(char *ciphertext)
 	snprintf(r->h1tmp, HTMP - PLAINTEXT_LENGTH, "%s:%s:", request[R_USER], request[R_REALM]);
 
 	/* create a part of h3 (h3tmp = nonce:noncecount:clientnonce:qop:h2)*/
-	snprintf(&r->h3tmp[CIPHERTEXT_LENGTH], HTMP - CIPHERTEXT_LENGTH, ":%s:%s:%s:%s:%s",
-	         request[R_NONCE], request[R_NONCECOUNT], request[R_CLIENTNONCE],
-	         request[R_QOP], (char*)conv);
+	if (request[R_CLIENTNONCE] == NULL)
+		snprintf(&r->h3tmp[CIPHERTEXT_LENGTH], HTMP - CIPHERTEXT_LENGTH, ":%s:%s",
+		         request[R_NONCE], (char*)conv);
+	else
+		snprintf(&r->h3tmp[CIPHERTEXT_LENGTH], HTMP - CIPHERTEXT_LENGTH, ":%s:%s:%s:%s:%s",
+		         request[R_NONCE], request[R_NONCECOUNT], request[R_CLIENTNONCE],
+		         request[R_QOP], (char*)conv);
 
 	r->h1tmplen = strlen(r->h1tmp);
 	r->h3tmplen = strlen(&r->h3tmp[CIPHERTEXT_LENGTH]) + CIPHERTEXT_LENGTH;
