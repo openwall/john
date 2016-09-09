@@ -145,7 +145,7 @@ inline void big_hmac_sha1(__private uint *input, uint inputlen,
 		W[i] = input[i];
 
 	for (i = 1; i < iterations; i++) {
-		uint A, B, C, D, E, temp, r[16];
+		uint A, B, C, D, E, temp;
 
 		A = ipad_state[0];
 		B = ipad_state[1];

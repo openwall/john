@@ -484,7 +484,7 @@
 	}
 
 #define sha1_block_160Z(itype, W, ctx) {	  \
-		itype A, B, C, D, E, temp, r[16]; \
+		itype A, B, C, D, E, temp; \
 		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
@@ -501,7 +501,7 @@
 	}
 
 #define sha1_single_160Z(itype, W, out) {	  \
-		itype A, B, C, D, E, temp, r[16]; \
+		itype A, B, C, D, E, temp; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
@@ -516,7 +516,7 @@
 	}
 
 #define sha1_block_192Z(itype, W, ctx) {	  \
-		itype A, B, C, D, E, temp, r[16]; \
+		itype A, B, C, D, E, temp; \
 		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
@@ -533,7 +533,7 @@
 	}
 
 #define sha1_single_192Z(itype, W, out) {	  \
-		itype A, B, C, D, E, temp, r[16]; \
+		itype A, B, C, D, E, temp; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
