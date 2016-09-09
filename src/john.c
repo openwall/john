@@ -198,7 +198,7 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
-	if (options.format) {
+	if (options.format && strcasecmp(options.format, "all")) {
 		char *pos = strchr(options.format, '*');
 
 		if (!strncasecmp(options.format, "dynamic=", 8))
@@ -328,6 +328,9 @@ static void john_register_one(struct fmt_main *format)
 	/* Format disabled in john.conf */
 	if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 	                 format->params.label, 0)) {
+		if (options.format && !strcasecmp(options.format, "all")) {
+			// --format=all overrides this
+		} else
 #ifdef DEBUG
 		if (format->params.flags & FMT_DYNAMIC) {
 			// in debug mode, we 'allow' dyna
