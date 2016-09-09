@@ -59,7 +59,7 @@ static int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
-#define MAX_HASH_LEN                    (FORMAT_TAG_LEN+MAX_USERNAME_LEN+1+16+1+40)
+#define MAX_HASH_LEN                    (FORMAT_TAG_LEN+MAX_USERNAME_LEN+1+16+1+64)
 
 
 //#define DEBUG_ORACLE
@@ -72,6 +72,7 @@ static struct fmt_tests tests[] = {
 	{"$o3logon$scott$4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345"},
 	{NULL}
 };
+
 
 typedef struct ora9_salt_t {
 	int userlen, auth_pass_len;
@@ -139,7 +140,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = enc_to_utf16((UTF16 *)cur_key_mixedcase, MAX_USERNAME_LEN+1, (unsigned char*)tmp, strlen(tmp));
 	if (len < 0 || (len == 0 && cp-ciphertext)) {
 #ifdef HAVE_FUZZ
-		if (options.flags & FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK)
+		if (options.flags & (FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK))
 			return 0;
 #endif
 		fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
