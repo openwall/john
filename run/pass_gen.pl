@@ -88,7 +88,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 #       _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
 
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
-my $qnx_sha512_warning=0;
+my $qnx_sha512_warning=0; my $is_mdc2_valid = -1;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
 my @chrAsciiTextHi=('A'..'Z');
@@ -2120,9 +2120,27 @@ sub eigrp {
 	return "\$eigrp\$3\$" . unpack("H*",$salt) . "\$0\$x\$1\$$ip\$" . unpack("H*",$h);
 }
 sub mdc2 {
-	# we should be able to optimize this, but for now this 'works'
-	my $s = `echo -n "$_[0]" | openssl dgst -mdc2`;
+	# we should be able to optimize this, but for now this 'works'.  NOTE, mdc2 is
+	# note in v1.01 but was introduced somewhere in v1.02  I have it on cygwin, but
+	# not on my fedora 22, so a 1 time check has been added.
+	if ($is_mdc2_valid == 0) { return undef; }
+	if ($is_mdc2_valid == -1) {
+		my $s = `echo -n '' | openssl dgst -mdc2 2> /dev/null`;
+		chomp $s;
+		if (length($s) > 10) { $s = substr($s, 9); }
+		if ($s eq "52525252525252522525252525252525") {
+			$is_mdc2_valid = 1;
+		} else {
+			print "\nmdc2 requires an updated openssl for pass_gen.pl to produce hashes\n\n";
+			$is_mdc2_valid = 0;
+			return undef;
+		}
+	}
+	if (index($_[0], "'") != -1) { return undef; }
+	my $s = `echo -n '$_[0]' | openssl dgst -mdc2`;
+	chomp $s;
 	$s = substr($s, 9);
+	if ($s eq "") { print "_[0] = $_[0]\n"; }
 	return "\$mdc2\$$s";
 }
 sub efs {
