@@ -124,6 +124,7 @@ static struct fmt_tests tests[] = {
 	{"$response$faa6cb7d676e5b7c17fcbf966436aa0c$moi$myrealm$GET$/$af32592775d27b1cd06356b3a0db9ddf$00000001$8e1d49754a25aea7$auth", "kikou"},
 	{"$response$56940f87f1f53ade8b7d3c5a102c2bf3$usrx$teN__chars$GET$/4TLHS1TMN9cfsbqSUAdTG3CRq7qtXMptnYfn7mIIi3HRKOMhOks56e$2c0366dcbc$00000001$0153$auth", "passWOrd"},
 	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$", "pass"},
+	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a", "pass"},
 	{NULL}
 };
 
@@ -234,6 +235,28 @@ end_hdaa_legacy:
 err:
 	MEM_FREE(keeptr);
 	return 0;
+}
+
+// Normalize shorter hashes, to allow with or without trailing '$' character.
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	char *cp;
+	if (strncmp(ciphertext, MAGIC, MAGIC_LEN))
+		return ciphertext;
+	cp = ciphertext + MAGIC_LEN;
+	cp = strchr(cp, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	// now if we have $binary_hash$ then we remove the last '$' char
+	if (strlen(cp) == 1 + BINARY_SIZE*2 + 1) {
+		static char out[256];
+		strnzcpy(out, ciphertext, sizeof(out));
+		out[strlen(out)-1] = 0;
+		return out;
+	}
+	return ciphertext;
 }
 
 static void set_salt(void *salt)
@@ -744,7 +767,7 @@ struct fmt_main fmt_HDAA = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 		{ NULL },
