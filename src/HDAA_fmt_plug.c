@@ -123,7 +123,7 @@ static struct fmt_tests tests[] = {
 	{"$response$679066476e67b5c7c4e88f04be567f8b$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$00000001$4b61913cec32e2c9$auth", "nocode"},
 	{"$response$faa6cb7d676e5b7c17fcbf966436aa0c$moi$myrealm$GET$/$af32592775d27b1cd06356b3a0db9ddf$00000001$8e1d49754a25aea7$auth", "kikou"},
 	{"$response$56940f87f1f53ade8b7d3c5a102c2bf3$usrx$teN__chars$GET$/4TLHS1TMN9cfsbqSUAdTG3CRq7qtXMptnYfn7mIIi3HRKOMhOks56e$2c0366dcbc$00000001$0153$auth", "passWOrd"},
-	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$\0", "pass"}, // the \0 avoids reading past end of buffer for test string.
+	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$", "pass"},
 	{NULL}
 };
 
@@ -643,6 +643,8 @@ static void *get_salt(char *ciphertext)
 			i++;
 			request[nb] = mystrndup(&ciphertext[i], reqlen(&ciphertext[i]));
 			nb++;
+			if (!ciphertext[i])
+				break;
 		}
 	}
 	while (nb < SIZE_TAB) {
