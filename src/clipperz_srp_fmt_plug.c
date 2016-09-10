@@ -142,9 +142,8 @@ static struct custom_salt {
 	unsigned char user_id[SZ];
 } *cur_salt;
 
-#ifdef HAVE_LIBGMP
 static int max_keys_per_crypt;
-#endif
+
 static void init(struct fmt_main *self)
 {
 	int i;
@@ -158,10 +157,8 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_align(sizeof(*crypt_out), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	pSRP_CTX = mem_calloc_align(sizeof(*pSRP_CTX), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-
-#ifdef HAVE_LIBGMP
 	max_keys_per_crypt =  self->params.max_keys_per_crypt;
-#endif
+
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 #ifdef HAVE_LIBGMP
 		mpz_init_set_str(pSRP_CTX[i].z_mod, "125617018995153554710546479714086468244499594888726646874671447258204721048803", 10);
@@ -186,15 +183,21 @@ static void init(struct fmt_main *self)
 
 void done(void)
 {
-#ifdef HAVE_LIBGMP
 	int i;
 	for (i = 0; i < max_keys_per_crypt; ++i) {
+#ifdef HAVE_LIBGMP
 		mpz_clear(pSRP_CTX[i].z_mod);
 		mpz_clear(pSRP_CTX[i].z_base);
 		mpz_clear(pSRP_CTX[i].z_exp);
 		mpz_clear(pSRP_CTX[i].z_rop);
-	}
+#else
+		BN_clear_free(pSRP_CTX[i].z_mod);
+		BN_clear_free(pSRP_CTX[i].z_base);
+		BN_clear_free(pSRP_CTX[i].z_exp);
+		BN_clear_free(pSRP_CTX[i].z_rop);
+		BN_CTX_free(pSRP_CTX[i].BN_ctx);
 #endif
+	}
 	MEM_FREE(pSRP_CTX);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);

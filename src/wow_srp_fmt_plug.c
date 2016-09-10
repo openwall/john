@@ -175,15 +175,21 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
-#ifdef HAVE_LIBGMP
 	int i;
 	for (i = 0; i < max_keys_per_crypt; ++i) {
+#ifdef HAVE_LIBGMP
 		mpz_clear(pSRP_CTX[i].z_mod);
 		mpz_clear(pSRP_CTX[i].z_base);
 		mpz_clear(pSRP_CTX[i].z_exp);
 		mpz_clear(pSRP_CTX[i].z_rop);
-	}
+#else
+		BN_clear_free(pSRP_CTX[i].z_mod);
+		BN_clear_free(pSRP_CTX[i].z_base);
+		BN_clear_free(pSRP_CTX[i].z_exp);
+		BN_clear_free(pSRP_CTX[i].z_rop);
+		BN_CTX_free(pSRP_CTX[i].BN_ctx);
 #endif
+	}
 	MEM_FREE(pSRP_CTX);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
