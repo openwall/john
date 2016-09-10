@@ -94,7 +94,7 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 	if (saltlen < 0) {
 		static int error_shown = 0;
 #ifdef HAVE_FUZZ
-		if (options.flags & (FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK))
+		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
 			return 0;
 #endif
 		if (!error_shown)
@@ -303,7 +303,7 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 	if (saltlen < 0) {
 		static int error_shown = 0;
 #ifdef HAVE_FUZZ
-		if (options.flags & (FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK))
+		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
 			return 0;
 #endif
 		if (!error_shown)

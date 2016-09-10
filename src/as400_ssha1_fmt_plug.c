@@ -155,7 +155,7 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 	if (options.input_enc == UTF_8 && !valid_utf8((UTF8*)ciphertext)) {
 		static int error_shown = 0;
 #ifdef HAVE_FUZZ
-		if (options.flags & (FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK))
+		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
 			return 0;
 #endif
 		if (!error_shown)
