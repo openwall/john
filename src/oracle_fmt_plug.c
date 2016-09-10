@@ -128,8 +128,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		len = enc_to_utf16(name16, MAX_USERNAME_LEN + 1,
 		                   (UTF8*)name, strlen(name));
 		if (len < 0) {
-			fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
-			error();
+			static int error_shown = 0;
+#ifdef HAVE_FUZZ
+			if (options.flags & (FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK))
+				return 0;
+#endif
+			if (!error_shown)
+				fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
+			error_shown = 1;
+			return 0;
 		}
 		if (len > MAX_USERNAME_LEN)
 			return 0;

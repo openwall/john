@@ -153,8 +153,15 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 		return pDynamic->methods.valid(ciphertext, pDynamic);
 
 	if (options.input_enc == UTF_8 && !valid_utf8((UTF8*)ciphertext)) {
-		fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
-		error();
+		static int error_shown = 0;
+#ifdef HAVE_FUZZ
+		if (options.flags & (FLG_FUZZ_CHK || options.flags & FLG_FUZZ_DUMP_CHK))
+			return 0;
+#endif
+		if (!error_shown)
+			fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
+		error_shown = 1;
+		return 0;
 	}
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
