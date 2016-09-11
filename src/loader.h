@@ -17,6 +17,7 @@
 #include "list.h"
 #include "formats.h"
 #endif
+#include "stdint.h"
 
 /*
  * Password hash list entry (with a fixed salt).
