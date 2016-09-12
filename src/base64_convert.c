@@ -1043,6 +1043,7 @@ static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type i
 		return;
 	in_str = (char*)mem_calloc(1, in_len+4);
 	if (fread(in_str, 1, in_len, fp) != in_len) {
+		MEM_FREE(in_str);
 		fprintf (stderr, "Error, reading file [%s]\n", fname);
 		fclose(fp);
 		exit(-1);
@@ -1077,6 +1078,7 @@ static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type i
 			}
 		}
 	}
+	MEM_FREE(in_str);
 	MEM_FREE(po);
 }
 

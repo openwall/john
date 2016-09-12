@@ -51,13 +51,6 @@ typedef struct dyna_salt_t {
 #endif
 
 /*
- * I wish they'd make typeof() an OpenCL requirement. The only devices I've
- * seen not supporting it is recent Intel. We do use typeof() in a few places
- * where a function (macro) can be vectorized or not, but avoid it for Intel.
- */
-#define typeof __typeof__
-
-/*
  * Host code may pass -DV_WIDTH=2 or some other width.
  */
 #if V_WIDTH > 1
@@ -283,6 +276,18 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		for (ii = 0; ii < size; ii++) { \
 			printf("%02x", x[ii]); \
 			if (ii % 4 == 3) \
+				printf(" "); \
+		} \
+		printf("\n"); \
+	} while (0)
+
+/* requires short/ushort */
+#define dump_stuff16_msg(msg, x, size) do {	  \
+		uint ii; \
+		printf("%s : ", msg); \
+		for (ii = 0; ii < (size)/2; ii++) { \
+			printf("%04x", x[ii]); \
+			if (ii % 2 == 1) \
 				printf(" "); \
 		} \
 		printf("\n"); \

@@ -1676,9 +1676,10 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 	 */
 
 	/* Does format specify max. single duration? */
-	if (max_run_time <= 1000 &&
-	        (!duration_time || duration_time > max_run_time * 1000000)) {
-		duration_time = max_run_time * 1000000;
+	if (max_run_time <= 1000) {
+		max_run_time *= 1000000;
+		if (!duration_time || duration_time > max_run_time)
+			duration_time = max_run_time;
 		max_run_time = 0;
 	}
 

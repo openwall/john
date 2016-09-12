@@ -2029,9 +2029,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
 	        max_keylen);
 #endif
-	if (!(options.flags & FLG_MASK_STACKED))
-		log_event("Proceeding with mask mode");
-
 	/* Load defaults from john.conf */
 	if (!options.mask) {
 		if (options.flags & FLG_TEST_CHK)
@@ -2046,6 +2043,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 		if (2 * max_keylen < strlen(options.mask))
 			options.mask[2 * max_keylen] = 0;
+	}
+
+	if (!(options.flags & FLG_MASK_STACKED)) {
+		log_event("Proceeding with mask mode");
+		if (rec_restored && john_main_process)
+			fprintf(stderr, "Proceeding with mask:%s\n", options.mask);
 	}
 
 	/* Load defaults for custom placeholders ?1..?9 from john.conf */

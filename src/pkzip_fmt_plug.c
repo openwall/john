@@ -502,9 +502,13 @@ static void init(struct fmt_main *self)
 	SIGS[9].max_len = 4;
 //case 10: // SWF
 	SIGS[10].magic_signature[0] = (u8*)str_alloc_copy("FWS");
-	SIGS[10].magic_sig_len[0] = 5;
-	SIGS[10].magic_count = 1;
-	SIGS[10].max_len = 5;
+	SIGS[10].magic_sig_len[0] = 3;
+	SIGS[10].magic_signature[1] = (u8*)str_alloc_copy("CWS");
+	SIGS[10].magic_sig_len[1] = 3;
+	SIGS[10].magic_signature[2] = (u8*)str_alloc_copy("ZWS");
+	SIGS[10].magic_sig_len[2] = 3;
+	SIGS[10].magic_count = 3;
+	SIGS[10].max_len = 3;
 //case 11: // MP3
 	SIGS[11].magic_signature[0] = (u8*)str_alloc_copy("ID3");
 	SIGS[11].magic_sig_len[0] = 3;
@@ -1745,7 +1749,7 @@ struct fmt_main fmt_pkzip = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		fmt_default_dyna_salt_hash,
 		NULL,
@@ -1755,7 +1759,7 @@ struct fmt_main fmt_pkzip = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one,

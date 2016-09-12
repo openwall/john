@@ -77,18 +77,18 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
 		clipperz-srp dahua fortigate lp lastpass rawmd2 mongodb mysqlna
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
-		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
+		ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
-		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
+		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
 		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp
 		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
-#       _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
+#       raw-skein-256 raw-skein-512 _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
 
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
-my $qnx_sha512_warning=0;
+my $qnx_sha512_warning=0; my $is_mdc2_valid = -1;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
 my @chrAsciiTextHi=('A'..'Z');
@@ -169,8 +169,14 @@ if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
 }
 
 sub pretty_print_hash_names {
-	require Term::ReadKey;
-	my ($wchar, $hchar, $wpixels, $hpixels) = GetTerminalSize();
+	my ($wchar, $hchar, $wpixels, $hpixels);
+	$wchar = 80;	# default IF Term::ReadKey lib not found.
+	if (eval "require Term::ReadKey") {
+		# note, if Term::ReadKey is not installed, the script
+		# does not abort, but uses 80 columns for width of terminal.
+		import Term::ReadKey qw(GetTerminalSize);
+		($wchar, $hchar, $wpixels, $hpixels) = GetTerminalSize();
+	}
 	#if ($wchar > 120) {$wchar = 121;}
 	--$wchar;
 	my $s; my $s2; my $i;
@@ -187,10 +193,15 @@ sub pretty_print_hash_names {
 }
 
 sub usage {
-	require File::Basename;
 	my $hash_str = pretty_print_hash_names();
-	my $name = basename($0);
 	my $hidden_opts = "    -help         shows this screen (-help -help shows hidden options)";
+	my $name = $0;
+	my $pos = rindex($name, "/");
+	if ($pos != -1) {
+		$name = substr($name, $pos+1);
+	} elsif (($pos = rindex($name, "\\")) != -1) {
+		$name = substr($name, $pos+1);
+	}
 	if ($arg_help > 1) { $hidden_opts =
 "    -dictfile <s> Put name of dict file into the first line comment
     -nocomment    eliminate the first line comment
@@ -256,7 +267,7 @@ if (defined $arg_codepage and length($arg_codepage)) {
 }
 
 if ($bVectors == 1 && (@ARGV != 1 || $arg_genall != 0)) {
-	print "\n\nNOTE, if using --outformat=vector you must ONLY be processing for a single format\n\n";
+	print STDERR "\n\nNOTE, if using --outformat=vector you must ONLY be processing for a single format\n\n";
 	die usage();
 }
 
@@ -481,39 +492,90 @@ sub pp_pbkdf2_hex {
 }
 
 #############################################################################
+# pure perl crc32 using table lookup, and 'restart' values.
+#    crc32("test this") == crc32(" this", crc32("test"));
+#############################################################################
+my @crc32_tab = ();
+my $crc32_tab_init = 0;
+
+sub init_crc32_tab {
+	if (defined($crc32_tab_init) &&  $crc32_tab_init == 1) { return; }
+	$crc32_tab_init = 1;
+	my $i; my $j; my $byte; my $crc; my $mask;
+
+	for ($byte = 0; $byte <= 255; $byte++) {
+		$crc = $byte;
+		for ($j = 7; $j >= 0; $j--) {
+			$mask = -($crc & 1);
+			$crc = ($crc >> 1) ^ (0xEDB88320 & $mask);
+		}
+		$crc32_tab[$byte] = $crc & 0xffffffff;
+	}
+}
+
+sub crc32 {
+	my $msg = $_[0];
+	my $i; my $j; my $byte; my $crc; my $mask;
+
+	init_crc32_tab();	# note, only init's 1 time.
+	if (defined($_[1])) {
+		$crc = $_[1]^0xFFFFFFFF;
+	} else {
+		$crc = 0xFFFFFFFF;
+	}
+	$i = 0;
+	while ($i < length($msg)) {
+		$byte = ord(substr($msg, $i, 1));
+		$crc = ($crc >> 8) ^ $crc32_tab[($crc ^ $byte) & 0xFF];
+		++$i;
+	}
+	return ~ $crc;
+}
+#############################################################################
+# the Crypt::ECB padding interface changed at v2.00 and is not compatible.
+# we have to handle this correctly by detecting version, and returning
+# proper data for the version being used
+#############################################################################
+sub ecb_padding_none {
+	require Crypt::ECB;
+	if (Crypt::ECB->VERSION*1.0 >= 2.00) { return 'none'; }
+	import Crypt::ECB qw(PADDING_NONE);
+	return PADDING_NONE();
+}
+#############################################################################
 # these functions will encode words 'properly', or at least try to, based upon
 # things like -utf8 mode, and possible MS code pages understood by JtR.
 #############################################################################
 sub ms_word_encode_uc {
-    my $s = uc($_[0]);
-    if ($arg_codepage eq "UTF-8") {
-        eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
-        if ($@) {
-            print STDERR "UTF-8 input for LM must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.  Use non-UTF8 input with --codepage=xx instead   Word was:  $_[0]\n";
-            $s = uc($_[0]);
-        }
-        MS_enc_Found:;
-    } elsif ($arg_codepage) {
-        $s = encode($arg_codepage, uc($_[0]));
-    }
-    return $s;
+	my $s = uc($_[0]);
+	if ($arg_codepage eq "UTF-8") {
+		eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
+		if ($@) {
+			print STDERR "UTF-8 input for LM must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.  Use non-UTF8 input with --codepage=xx instead   Word was:  $_[0]\n";
+			$s = uc($_[0]);
+		}
+		MS_enc_Found:;
+	} elsif ($arg_codepage) {
+		$s = encode($arg_codepage, uc($_[0]));
+	}
+	return $s;
 }
 sub word_encode {
-    my $s = $_[0];
+	my $s = $_[0];
 	if ($arg_codepage && $arg_codepage ne "UTF-8") {
-        $s = encode($arg_codepage, $_[0]);
-    }
-    return $s;
+		$s = encode($arg_codepage, $_[0]);
+	}
+	return $s;
 }
 # sets parity bit to odd. 'truncates' chars to 7 bit before computing odd parity.
 sub str_odd_parity {
@@ -1440,7 +1502,7 @@ sub mongodb {
 sub mysqlna {
 	$salt = get_salt(20);
 	$h = sha1($salt.sha1(sha1($_[1]))) ^ sha1($_[1]);
-	print "u$u:\$mysqlna\$".unpack("H*",$salt)."*".unpack("H*",$h).":$u:0:$_[0]::\n";
+	return "\$mysqlna\$".unpack("H*",$salt)."*".unpack("H*",$h);
 }
 sub o5logon {
 	$salt = get_salt(10);
@@ -1466,8 +1528,6 @@ sub postgres {
 	return "\$postgres\$$user*$salt*$h";
 }
 sub pst {
-	require String::CRC32;
-	import String::CRC32 qw(crc32);
 	my $pw = $_[0];
 	if (length($pw)>8) {$pw = substr($pw, 0, 8); }
 	return "\$pst\$".unpack("H*", Uint32BERaw(crc32($pw, 0xffffffff)^0xffffffff));
@@ -1555,8 +1615,6 @@ sub strip {
 sub _tc_build_buffer {
 	# build a special TC buffer.  448 bytes, 2 spots have CRC32.  Lots of null, etc.
 	my $buf = 'TRUE'."\x00\x05\x07\x00". "\x00"x184 . randstr(64) . "\x00"x192;
-	require String::CRC32;
-	import String::CRC32 qw(crc32);
 	my $crc1 = crc32(substr($buf, 192, 256));
 	substr($buf, 8, 4) = Uint32BERaw($crc1);
 	my $crc2 = crc32(substr($buf, 0, 188));
@@ -1688,16 +1746,15 @@ sub ripemd_160 {
 	return "\$ripemd\$".ripemd160_hex($_[0]);
 }
 sub rsvp {
-	require Digest::HMAC_MD5;
 	$salt = get_salt(16, -8192);
 	my $mode = 1;
 	my $h;
 	if (defined $argmode) {$mode=$argmode;} # 1 or 2
 	# note, password and salt are 'reversed' in the hmac.
 	if ($mode == 1) {
-		$h = Digest::HMAC_MD5::hmac_md5($salt, $_[0]);
+		$h = _hmacmd5($_[0], $salt);
 	} else {
-		$h = Digest::SHA::hmac_sha1($salt, $_[0]);
+		$h = _hmacsha1($_[0], $salt);
 	}
 	return "\$rsvp\$$mode\$".unpack("H*",$salt).'$'.unpack("H*",$h);
 }
@@ -1711,7 +1768,7 @@ sub sap_h {
 	elsif ($mode eq "sha256") { $modestr = "SHA256"; }
 	elsif ($mode eq "sha384") { $modestr = "SHA384"; }
 	elsif ($mode eq "sha512") { $modestr = "SHA512"; }
-	else { print "invalid mode used for SAP-H  [$mode] is not valid\n"; exit 0; }
+	else { print STDERR "invalid mode used for SAP-H  [$mode] is not valid\n"; exit 0; }
 	no strict 'refs';
 	my $h = &$mode($_[0].$salt);
 	for (my $i = 1; $i < $iter; $i++) {
@@ -1823,8 +1880,6 @@ sub rar {
 		$type = "30";
 		$content = randstr(int(rand(32))+int(rand(32))+16);
 		$contentlen=length($content);
-		require String::CRC32;
-		import String::CRC32 qw(crc32);
 		my $crcs = sprintf("%08x", crc32($content));  # note, rar_fmt/rar2john F's up the byte order!! so we have to match what it expects.
 		$crc = substr($crcs,6).substr($crcs,4,2).substr($crcs,2,2).substr($crcs,0,2);
 		@ar = ($crc, $contentlen, unpack("H*", $content));
@@ -1892,7 +1947,58 @@ sub dmg {
 }
 sub dominosec {
 }
+#{"$encfs$192*181474*0*20*f1c413d9a20f7fdbc068c5a41524137a6e3fb231*44*9c0d4e2b990fac0fd78d62c3d2661272efa7d6c1744ee836a702a11525958f5f557b7a973aaad2fd14387b4f", "openwall"},
+#{"$encfs$128*181317*0*20*e9a6d328b4c75293d07b093e8ec9846d04e22798*36*b9e83adb462ac8904695a60de2f3e6d57018ccac2227251d3f8fc6a8dd0cd7178ce7dc3f", "Jupiter"},
+#{"$encfs$256*714949*0*20*472a967d35760775baca6aefd1278f026c0e520b*52*ac3b7ee4f774b4db17336058186ab78d209504f8a58a4272b5ebb25e868a50eaf73bcbc5e3ffd50846071c882feebf87b5a231b6", "Valient Gough"},
+#{"$encfs$256*120918*0*20*e6eb9a85ee1c348bc2b507b07680f4f220caa763*52*9f75473ade3887bca7a7bb113fbc518ffffba631326a19c1e7823b4564ae5c0d1e4c7e4aec66d16924fa4c341cd52903cc75eec4", "Alo3San1t@nats"},
+#unsigned int keySize;
+#unsigned int iterations;
+#unsigned int cipher;
+#unsigned int saltLen;
+#unsigned char salt[40];
+#unsigned int dataLen;
+#unsigned char data[128];
+#unsigned int ivLength;
 sub encfs {
+	# this format sux. Skipping it :(
+	my $salt = get_salt(20);
+	$salt = pack("H*","f1c413d9a20f7fdbc068c5a41524137a6e3fb231");
+	my $iter = 180000 + int(rand(50000));
+	$iter = 181474;
+	my $key_sz = 128 + 64*int(rand(3));   # 128, 192, 256
+	my $data = pack("H*", "9c0d4e2b990fac0fd78d62c3d2661272efa7d6c1744ee836a702a11525958f5f557b7a973aaad2fd14387b4f");
+	my $iv_len = 16;
+	my $datlen = length($data);
+	$key_sz = 192;
+	my $chksum1 = 0;
+	for (my $i = 0; $i < 4; ++$i) {
+		$chksum1 = ($chksum1<<8) + ord(substr($data, $i, 1));
+	}
+	my $h = pp_pbkdf2($_[0], $salt,$iter,"sha1",$key_sz/8+$iv_len, 64);
+
+	# setup iv and seed
+	my $seed = $chksum1 + 1;
+	my $iv = substr($h, $key_sz/8);
+	for (my $i = 0; $i < 8; ++$i) {
+		$iv .= chr($seed & 0xFF);
+		$seed >>= 8;
+	}
+	$iv = substr(Digest::SHA::hmac_sha1(substr($iv,0,24), substr($h,0,$key_sz/8)), 0, 16);
+
+	require Crypt::OpenSSL::AES;
+	require Crypt::CFB;
+	#my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => $key_sz, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	#my $crypt = Crypt::CFB->new(-literal_key => 1, -key => $h, -keysize => $key_sz, -iv => $iv, -algo => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'zero');
+	$h = substr($h, 0, 24);
+	print "key=".unpack("H*",$h)."\n";
+	print "iv=".unpack("H*",$iv)."\n";
+	my $crypt = Crypt::CFB->new($h, "Crypt::OpenSSL::AES", $iv);
+	my $h2 = $crypt->decrypt(substr($data,4), $h, $iv);
+	print unpack("H*", substr($data,4))."  ".unpack("H*", $h2)."\n";
+
+
+	$salt = unpack("H*",$salt); $data = unpack("H*",$data);
+	return "\$encfs\$$key_sz*$iter*0*20*$salt*$datlen*$data";
 }
 sub fde {
 }
@@ -2023,9 +2129,27 @@ sub eigrp {
 	return "\$eigrp\$3\$" . unpack("H*",$salt) . "\$0\$x\$1\$$ip\$" . unpack("H*",$h);
 }
 sub mdc2 {
-	# we should be able to optimize this, but for now this 'works'
-	my $s = `echo -n "$_[0]" | openssl dgst -mdc2`;
+	# we should be able to optimize this, but for now this 'works'.
+	# note, mdc2 is not in v1.01 but was introduced somewhere in v1.02
+	# so a 1 time check has been added.
+	if ($is_mdc2_valid == 0) { return undef; }
+	if ($is_mdc2_valid == -1) {
+		my $s = `echo -n '' | openssl dgst -mdc2 2> /dev/null`;
+		chomp $s;
+		if (length($s) > 10) { $s = substr($s, 9); }
+		if ($s eq "52525252525252522525252525252525") {
+			$is_mdc2_valid = 1;
+		} else {
+			print STDERR "\nmdc2 requires an updated openssl for pass_gen.pl to produce hashes\n\n";
+			$is_mdc2_valid = 0;
+			return undef;
+		}
+	}
+	if (index($_[0], "'") != -1) { return undef; }
+	my $s = `echo -n '$_[0]' | openssl dgst -mdc2`;
+	chomp $s;
 	$s = substr($s, 9);
+	if ($s eq "") { print "_[0] = $_[0]\n"; }
 	return "\$mdc2\$$s";
 }
 sub efs {
@@ -2089,7 +2213,7 @@ sub palshop {
 	my $s1 = sha1($_[0]);
 	my $s = unpack("H*", $m1.$s1);
 	$s = substr($s, 11, 50) . substr($s, 0, 1);
-	print ("$s\n");
+	#print ("$s\n");
 	my $m2 = md5($s);
 	my $s2 = sha1($s);
 	return "\$palshop\$". substr(unpack("H*",$m2),11) . substr(unpack("H*",$s2), 0, 29) . substr(unpack("H*",$m2),0,1);
@@ -2282,7 +2406,7 @@ sub vnc {
 	$key = str_odd_parity($key);
 	$key = str_reverse_bits_in_bytes($key);
 	my $cr = Crypt::ECB->new;
-	$cr->padding(Crypt::ECB->PADDING_NONE);
+	$cr->padding(ecb_padding_none);
 	$cr->cipher("DES");
 	$cr->key($key);
 	my $hash = $cr->encrypt($chal);
@@ -2419,7 +2543,6 @@ sub keychain {
 	return "\$keychain\$*".unpack("H*",$salt)."*".unpack("H*",$iv)."*".substr(unpack("H*",$h),0,48*2);
 }
 sub wpapsk {
-	require Digest::HMAC_MD5;
 	# max ssid is 32 bytes
 	# min password is 8 bytes.  Max is 63 bytes
 	if (length($_[1]) < 8 || length($_[1]) > 63) { return; }
@@ -2451,14 +2574,14 @@ sub wpapsk {
 
 	# in JtR prf_512($wpaH, $data, $prf), but we simply do it inline.
 	$data = "Pairwise key expansion" . chr(0) . $data . chr(0);
-	$prf = Digest::SHA::hmac_sha1($data, $wpaH);
+	$prf = _hmacsha1($wpaH, $data);
 
 	if ($keyver == 1) {
 		$prf = substr($prf, 0, 16);
-		$keymic = Digest::HMAC_MD5::hmac_md5($eapol, $prf);
+		$keymic = _hmacmd5($prf, $eapol);
 	} else {
 		$prf = substr($prf, 0, 16);
-		$keymic = Digest::SHA::hmac_sha1($eapol, $prf);
+		$keymic = _hmacsha1($prf, $eapol);
 		$keymic = substr($keymic, 0, 16);
 	}
 	# ok, now we have the keymic.
@@ -2726,7 +2849,6 @@ sub sunmd5 {
 	$salt = "\$md5\$rounds=904\$".$salt;
 	my $c = _sunmd5_hash($_[1], $salt);
 	my $h = _md5_crypt_to_64($c);
-	print "u$u-sunmd5:$salt\$$h:$u:0:$_[0]::\n";
 	return "$salt\$$h";
 }
 sub wowsrp {
@@ -2776,7 +2898,7 @@ sub _hmacmd5 {
 	my ($key, $data) = @_;
 	my $ipad; my $opad;
 	if (length($key) > 64) {
-	    $key = md5($key);
+		$key = md5($key);
 	}
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
@@ -2788,6 +2910,22 @@ sub _hmacmd5 {
 	}
 	return md5($opad,md5($ipad,$data));
 }
+sub _hmacsha1 {
+	my ($key, $data) = @_;
+	my $ipad; my $opad;
+	if (length($key) > 64) {
+		$key = sha1($key);
+	}
+	for ($i = 0; $i < length($key); ++$i) {
+		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
+		$opad .= chr(ord(substr($key, $i, 1)) ^ 0x5C);
+	}
+	while ($i++ < 64) {
+		$ipad .= chr(0x36);
+		$opad .= chr(0x5C);
+	}
+	return sha1($opad,sha1($ipad,$data));
+}
 sub hmac_md5 {
 	$salt = get_salt(-183);
 	my $bin = _hmacmd5($_[1], $salt);
@@ -2797,7 +2935,7 @@ sub _hmac_shas {
 	my ($func, $pad_sz, $key, $data) = @_;
 	my $ipad; my $opad;
 	if (length($key) > $pad_sz) {
-	    $key = $func->($key);
+		$key = $func->($key);
 	}
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
@@ -3119,7 +3257,6 @@ sub oracle {
 	my $key2 = substr($cr1->encrypt($userpass), length($userpass)-8, 8);
 	my $cr2 = new Crypt::CBC( -literal_key => 1, -cipher => "DES", -key => $key2, -iv => $iv, -header => "none" );
 	my $hash = substr($cr2->encrypt($userpass), length($userpass)-8, 8);
-	print "$out_username:", uc(unpack('H*', $hash)), ":$u:0:$_[0]:oracle_des_hash:\n";
 	return uc(unpack('H*', $hash));
 }
 sub oracle_no_upcase_change {
@@ -3178,7 +3315,7 @@ sub setup_des_key {
 # This produces only NETNTLM ESS hashes, in L0phtcrack format
 sub netntlm_ess {
 	require Crypt::ECB;
-	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	import Crypt::ECB qw(encrypt);
 	my $password = $_[1];
 	my $domain = get_salt(15, -15);
 	my $nthash = md4(encode("UTF-16LE", $password));
@@ -3186,9 +3323,9 @@ sub netntlm_ess {
 	my $s_challenge = get_iv(8);
 	my $c_challenge = get_content(8);
 	my $challenge = substr(md5($s_challenge.$c_challenge), 0, 8);
-	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
+	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	my $type = "ntlm ESS";
 	my $lmresp = $c_challenge . "\0"x16;
 	#printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$s_challenge), $_[0], $type);
@@ -3202,16 +3339,16 @@ sub netntlm {
 # This produces NETHALFLM, NETLM and non-ESS NETNTLM hashes in L0pthcrack format
 sub l0phtcrack {
 	require Crypt::ECB;
-	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	import Crypt::ECB qw(encrypt);
 	my $password = $_[1];
 	my $domain = get_salt(15);
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
 	my $lmhash; my $lmresp;
 	my $challenge = get_iv(8);
-	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
+	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	my $type;
 	if (length($password) > 14) {
 		$type = "ntlm only";
@@ -3220,9 +3357,9 @@ sub l0phtcrack {
 		$type = "lm and ntlm";
 		$lmhash = LANMan($password);
 		$lmhash .= "\x00"x5;
-		$lmresp = Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 14, 7)), 'DES', $challenge, PADDING_NONE());
+		$lmresp = Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	}
 	#printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$challenge), $_[0], $type);
 	$l0pht_fmt = 1;
@@ -3265,7 +3402,7 @@ sub netntlmv2 {
 }
 sub mschapv2 {
 	require Crypt::ECB;
-	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	import Crypt::ECB qw(encrypt);
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $user = get_username(20);
@@ -3276,16 +3413,14 @@ sub mschapv2 {
 	$ctx->add($a_challenge);
 	$ctx->add($user);
 	my $challenge = substr($ctx->digest, 0, 8);
-	my $response = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash . "\x00" x 5, 14, 7)), 'DES', $challenge, PADDING_NONE());
+	my $response = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash . "\x00" x 5, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	#printf("%s:::%s:%s:%s::%s:mschapv2\n", $user, unpack("H*",$a_challenge), unpack("H*",$response), unpack("H*",$p_challenge), $_[0]);
 	$l0pht_fmt = 1;
 	return "$user".":::".unpack("H*",$a_challenge).":".unpack("H*",$response).":".unpack("H*",$p_challenge);
 }
 sub crc_32 {
-	require String::CRC32;
-	import String::CRC32 qw(crc32);
 	my $pwd = $_[1];
 	if (rand(256) > 245) {
 		my $init = rand(2000000000);
@@ -3295,7 +3430,6 @@ sub crc_32 {
 	}
 }
 sub dummy {
-    print "$u-dummy:", '$dummy$', unpack('H*', $_[1]),":$u:0:", $_[0], "::\n";
 	return '$dummy$'.unpack('H*', $_[1]);
 }
 sub raw_gost {
@@ -3435,7 +3569,7 @@ sub nukedclan {
 	return "\$nk\$\*".unpack("H*", $salt)."\*#$decal".md5_hex($out);
 }
 sub skey_fold {
-    my $a; my $b;
+	my $a; my $b;
 	if ($_[1] == 4) {
 		my( $f0, $f1, $f2, $f3) = unpack('I4', $_[0]);
 		$a = pack('I', $f0) ^ pack('I', $f2);

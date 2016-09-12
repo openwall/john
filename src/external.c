@@ -477,6 +477,10 @@ void do_external_crack(struct db_main *db)
 
 	log_event("Proceeding with external mode: %.100s", ext_mode);
 
+	if (rec_restored && john_main_process)
+		fprintf(stderr, "Proceeding with external:%s\n",
+		        ext_mode);
+
 	internal = (unsigned char *)int_word;
 	external = ext_word;
 	while (*external)

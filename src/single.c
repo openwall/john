@@ -98,6 +98,10 @@ static void single_init(void)
 
 	log_event("Proceeding with \"single crack\" mode");
 
+	if (rec_restored && john_main_process)
+		fprintf(stderr, "Proceeding with single, rules:%s\n",
+		        options.activesinglerules);
+
 	retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                              "SingleRetestGuessed", 1);
 

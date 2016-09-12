@@ -147,7 +147,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	char *p, *q;
 	int i;
 	unsigned char zone[N3_MAX_ZONE_SIZE];
-	unsigned int iter;
+	int iter;
 	char salt[N3_MAX_SALT_SIZE + 1];
 	char hash[HASH_LENGTH * 2 + 1];
 
@@ -296,8 +296,6 @@ static  char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-
-	int i = 0;
 	uint16_t iterations = saved_salt.iterations;
 	size_t salt_length =  saved_salt.salt_length;
 
@@ -307,7 +305,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	SHA1_Update(&sha_ctx, saved_salt.zone_wf, saved_salt.zone_length);
 	SHA1_Update(&sha_ctx, saved_salt.salt, salt_length);
 	SHA1_Final((unsigned char *)crypt_out, &sha_ctx);
-	while (i++ < iterations) {
+	while (iterations--) {
 		SHA1_Init(&sha_ctx);
 		SHA1_Update(&sha_ctx, crypt_out, BINARY_SIZE);
 		SHA1_Update(&sha_ctx, saved_salt.salt, salt_length);

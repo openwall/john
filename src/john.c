@@ -198,6 +198,17 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
+	static int override_disable = 0;
+
+	if (options.format && !strcasecmp(options.format, "all")) {
+		override_disable = 1;
+		options.format = NULL;
+	} else
+	if (options.format && !strncasecmp(options.format, "all-", 4)) {
+		override_disable = 1;
+		options.format += 4;
+	}
+
 	if (options.format) {
 		char *pos = strchr(options.format, '*');
 
@@ -326,7 +337,8 @@ static void john_register_one(struct fmt_main *format)
 	}
 
 	/* Format disabled in john.conf */
-	if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
+	if (!override_disable &&
+	    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 	                 format->params.label, 0)) {
 #ifdef DEBUG
 		if (format->params.flags & FMT_DYNAMIC) {
@@ -1608,9 +1620,8 @@ static void john_run(void)
 			struct db_main *test_db = 0;
 			char *where;
 
-			if (!(options.flags & FLG_NOTESTS))
-				test_db = ldr_init_test_db(database.format,
-				                           &database);
+			test_db = ldr_init_test_db(database.format,
+			                           &database);
 			where = fmt_self_test(database.format, test_db);
 			ldr_free_test_db(test_db);
 			if (where) {
@@ -1806,8 +1817,8 @@ static void john_done(void)
  * can be freed much earlier, but it works here
  */
 	db_main_free(&database);
-	check_abort(0);
 	cleanup_tiny_memory();
+	check_abort(0);
 }
 
 //#define TEST_MEMDBG_LOGIC

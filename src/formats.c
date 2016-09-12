@@ -210,9 +210,11 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	if ((match && !format->methods.cmp_all(binary, match)) ||
 	    (!match && format->methods.cmp_all(binary, match))) {
+#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 			snprintf(err_buf, sizeof(err_buf), "cmp_all(%d) %s", match, ciphertext);
 		else
+#endif
 			sprintf(err_buf, "cmp_all(%d)", match);
 		return err_buf;
 	}
@@ -223,9 +225,11 @@ static char* is_key_right(struct fmt_main *format, int index,
 	}
 
 	if (i == -1) {
+#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 			snprintf(err_buf, sizeof(err_buf), "cmp_one(%d) %s", match, ciphertext);
 		else
+#endif
 			sprintf(err_buf, "cmp_one(%d)", match);
 		return err_buf;
 	}
@@ -234,6 +238,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (format->methods.binary_hash[size] &&
 	    format->methods.get_hash[size](i) !=
 	    format->methods.binary_hash[size](binary)) {
+#ifndef BENCH_BUILD
     		if (options.verbosity > VERB_LEGACY) {
 			// Dump out as much as possible (up to 3 full bytes). This can
 			// help in trying to track down problems, like needing to SWAP
@@ -257,7 +262,9 @@ static char* is_key_right(struct fmt_main *format, int index,
 					index, format->methods.get_hash[size](index),
 					format->methods.binary_hash[size](binary),
 					ciphertext);
-		} else {
+		} else
+#endif
+		{
 			sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size,
 				index, format->methods.get_hash[size](index),
 				format->methods.binary_hash[size](binary));
@@ -266,9 +273,11 @@ static char* is_key_right(struct fmt_main *format, int index,
 	}
 
 	if (!format->methods.cmp_exact(ciphertext, i)) {
+#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 			snprintf(err_buf, sizeof(err_buf), "cmp_exact(%d) %s", match, ciphertext);
 		else
+#endif
 			sprintf(err_buf, "cmp_exact(%d)", i);
 		return err_buf;
 	}
@@ -278,12 +287,14 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	if (len < format->params.plaintext_min_length ||
 		len > format->params.plaintext_length) {
+#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 		snprintf(err_buf, sizeof(err_buf), "The length of string returned by get_key() is %d"
 			"which should be between plaintext_min_length=%d and plaintext_length=%d %s",
 			len, format->params.plaintext_min_length,
 			format->params.plaintext_length, key);
 		else
+#endif
 		sprintf(err_buf, "The length of string returned by get_key() is %d"
 			"which should be between plaintext_min_length=%d and plaintext_length=%d",
 			len, format->params.plaintext_min_length,
@@ -297,9 +308,11 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (format->params.flags & FMT_CASE) {
 		// Case-sensitive passwords
 		if (strncmp(key, plaintext, format->params.plaintext_length)) {
+#ifndef BENCH_BUILD
 			if (options.verbosity > VERB_LEGACY)
 				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (case) %s %s", i, key, plaintext);
 			else
+#endif
 				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
 		}
@@ -307,9 +320,11 @@ static char* is_key_right(struct fmt_main *format, int index,
 		// Case-insensitive passwords
 		if (strncasecmp(key, plaintext,
 			format->params.plaintext_length)) {
+#ifndef BENCH_BUILD
 			if (options.verbosity > VERB_LEGACY)
 				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (no case) %s %s", i, key, plaintext);
 			else
+#endif
 				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
 		}
@@ -378,7 +393,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (options.flags & FLG_NOTESTS) {
 		fmt_init(format);
 		dyna_salt_init(format);
-		if (db)
+		if (db->real)
+			format->methods.reset(db->real);
+		else
 			format->methods.reset(db);
 		format->private.initialized = 2;
 		format->methods.clear_keys();
@@ -738,6 +755,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "source";
 		}
 #ifndef BENCH_BUILD
+		if ((format->methods.get_hash[0] != fmt_default_get_hash) &&
+		    strlen(ciphertext) > MAX_CIPHERTEXT_SIZE)
+			return "Huge ciphertext format can't use get_hash()";
+
 		if ((dbsalt = db->salts))
 		do {
 			if (!dyna_salt_cmp(salt, dbsalt->salt,

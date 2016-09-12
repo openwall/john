@@ -163,9 +163,9 @@ static char * replace_each_chars(char *ciphertext, int *is_replace_finish)
 {
 	static int replaced_chars_index = 0;
 	static int cipher_index = 0;
-	static char replaced_chars[4] = "9$*#";
+	static char replaced_chars[5] = "\xFF" "9$*#";
 
-	while (replaced_chars_index < 4) {
+	while (replaced_chars_index < sizeof(replaced_chars)) {
 		if (ciphertext[cipher_index] != replaced_chars[replaced_chars_index]) {
 			fuzz_hash[cipher_index] = replaced_chars[replaced_chars_index];
 			replaced_chars_index++;
@@ -173,7 +173,7 @@ static char * replace_each_chars(char *ciphertext, int *is_replace_finish)
 		}
 		replaced_chars_index++;
 	}
-	if (replaced_chars_index == 4) {
+	if (replaced_chars_index == sizeof(replaced_chars)) {
 		replaced_chars_index = 0;
 		cipher_index++;
 	}
@@ -183,7 +183,7 @@ static char * replace_each_chars(char *ciphertext, int *is_replace_finish)
 		replaced_chars_index = 0;
 		return NULL;
 	} else {
-		while (replaced_chars_index < 4) {
+		while (replaced_chars_index < sizeof(replaced_chars)) {
 			if (ciphertext[cipher_index] != replaced_chars[replaced_chars_index]) {
 				fuzz_hash[cipher_index] = replaced_chars[replaced_chars_index];
 				replaced_chars_index++;
@@ -347,7 +347,7 @@ static char * insert_dic(char *origin_ctext, int *is_insertdic_finish)
 			pfd = pfd->next;
 		}
 	} else {
-		// Insert strings before and after these chars: ",.:#$*"
+		// Insert strings before and after these chars: ",.:#$*@"
 		while (index < strlen(origin_ctext)) {
 			switch (origin_ctext[index]) {
 			case ',':
@@ -356,6 +356,7 @@ static char * insert_dic(char *origin_ctext, int *is_insertdic_finish)
 			case '#':
 			case '$':
 			case '*':
+			case '@':
 				if (!flag_long) {
 					insert_str(origin_ctext, index, pfd->value, fuzz_hash);
 					flag_long = 1;
@@ -560,7 +561,7 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 #else
 	       "");
 #endif
-	printf("\n");
+	fflush(stdout);
 
 
 	// validate that there are no NULL function pointers
@@ -588,6 +589,8 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 		}
 	}
 	if (fclose(s_file)) pexit("fclose");
+	remove(status_file_path);
+	printf ("   Completed\n");
 }
 
 // Dump fuzzed hashes which index is between from and to, including from and excluding to

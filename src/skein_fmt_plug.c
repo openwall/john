@@ -276,17 +276,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[128+TAG_LENGTH+1];
-	char *hash = fields[1];
-	int len = strlen(hash);
-	if ( (len == 64 || len == 128) && valid(hash, self, len) ) {
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;
-}
-
 struct fmt_main fmt_skein_256 = {
 	{
 		"skein-256",
@@ -311,7 +300,7 @@ struct fmt_main fmt_skein_256 = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid256,
 		split,
 		get_binary_256,
@@ -374,7 +363,7 @@ struct fmt_main fmt_skein_512 = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid512,
 		split,
 		get_binary_512,

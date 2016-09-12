@@ -123,16 +123,10 @@
 /*
  * Raw'n'lean MD5 with context in output buffer
  * NOTE: This version thrashes the input block!
- *
- * Needs caller to have these defined:
- *	uint a, b, c, d;
- *
- * or perhaps:
- *	MAYBE_VECTOR_UINT a, b, c, d;
- *
  */
-#define md5_block(W, ctx)	  \
+#define md5_block(itype, W, ctx)	  \
 	{ \
+		itype a, b, c, d; \
 		a = ctx[0]; \
 		b = ctx[1]; \
 		c = ctx[2]; \
@@ -152,7 +146,8 @@
 		ctx[3] = 0x10325476; \
 	}
 
-#define	md5_single(W, out) { \
+#define	md5_single(itype, W, out) { \
+		itype a, b, c, d; \
 		a = 0x67452301; \
 		b = 0xefcdab89; \
 		c = 0x98badcfe; \

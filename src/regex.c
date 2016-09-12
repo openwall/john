@@ -331,6 +331,10 @@ void do_regex_crack(struct db_main *db, const char *regex)
 		        "Error, invalid regex expression.  John exiting now\n");
 		error();
 	}
+
+	if (rec_restored && john_main_process)
+		fprintf(stderr, "Proceeding with regex:%s\n", regex);
+
 	iter = c_regex_iterator(regex_ptr);
 	if (restore_str) {
 		c_iterator_set_state(iter, restore_str);

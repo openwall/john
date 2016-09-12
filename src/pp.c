@@ -33,6 +33,9 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #define __USE_MINGW_ANSI_STDIO 1
+#ifdef __SIZEOF_INT128__
+#define HAVE___INT128 1
+#endif
 #endif
 
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
@@ -1285,6 +1288,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   if (!(wordlist = cfg_get_param(SECTION_PRINCE, NULL, "Wordlist")))
   if (!(wordlist = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
     wordlist = options.wordlist = WORDLIST_NAME;
+
+	if (rec_restored && john_main_process)
+    fprintf(stderr, "Proceeding with prince%c%s\n",
+            loopback ? '-' : ':',
+            loopback ? "loopback" : path_expand(wordlist));
 
   log_event("- Wordlist file: %.100s", path_expand(wordlist));
   log_event("- Will generate candidates of length %d - %d", pw_min, pw_max);

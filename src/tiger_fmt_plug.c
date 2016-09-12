@@ -214,16 +214,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[BINARY_SIZE*2+TAG_LENGTH+1];
-	char *hash = fields[1];
-	if (strlen(hash) == BINARY_SIZE*2 && valid(hash, self)) {
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;
-}
-
 struct fmt_main fmt_tiger = {
 	{
 		FORMAT_LABEL,
@@ -250,7 +240,7 @@ struct fmt_main fmt_tiger = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,

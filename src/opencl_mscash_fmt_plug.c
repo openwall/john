@@ -298,13 +298,13 @@ static void init_kernel(void)
 		" -DUCS_2"
 #endif
 		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	" -D LOC_1=%d "
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	"-D LOC_2=%d "
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	"-D LOC_3=%d"
 #endif
 	, mask_int_cand.num_int_cand, mask_gpu_is_static,
@@ -312,13 +312,13 @@ static void init_kernel(void)
 	options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
 	cp_id2macro(options.internal_cp), PLAINTEXT_LENGTH,
 	static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	, static_gpu_locations[1]
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	, static_gpu_locations[2]
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	, static_gpu_locations[3]
 #endif
 	);

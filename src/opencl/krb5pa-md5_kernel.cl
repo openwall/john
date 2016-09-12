@@ -9,34 +9,26 @@
  */
 
 #include "opencl_device_info.h"
-#include "opencl_unicode.h"
+#define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
-#define RC4_BUFLEN 16
+#include "opencl_unicode.h"
+#define RC4_IN_PLACE
 #include "opencl_rc4.h"
 #include "opencl_md4.h"
 #include "opencl_md5.h"
+#include "opencl_mask.h"
 
 #ifdef UTF_8
 
-__kernel void krb5pa_md5_nthash(const __global uchar *source,
-                                __global const uint *index,
-                                __global uint *nthash)
+inline
+void prepare(const __global uint *key, uint length, uint *nt_buffer)
 {
-	uint i;
-	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
-	uint base = index[gid];
-	const __global UTF8 *sourceEnd;
-	UTF16 *target = (UTF16*)block;
-	UTF16 *targetStart = target;
+	const __global UTF8 *source = (const __global uchar*)key;
+	const __global UTF8 *sourceEnd = &source[length];
+	UTF16 *target = (UTF16*)nt_buffer;
 	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
-
-	sourceEnd = source + index[gid + 1];
-	source += base;
 
 	/* Input buffer is UTF-8 without zero-termination */
 	while (source < sourceEnd) {
@@ -91,6 +83,7 @@ __kernel void krb5pa_md5_nthash(const __global uchar *source,
 		if (source >= sourceEnd || target >= targetEnd)
 			break;
 	}
+
 	*target = 0x80;	// Terminate
 
 #if __OS_X__ && gpu_nvidia(DEVICE_INFO)
@@ -101,75 +94,54 @@ __kernel void krb5pa_md5_nthash(const __global uchar *source,
 	barrier(CLK_GLOBAL_MEM_FENCE);
 #endif
 
-	block[14] = (uint)(target - targetStart) << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
+	nt_buffer[14] = (uint)(target - (UTF16*)nt_buffer) << 4;
 }
 
 #else
 
-__kernel void krb5pa_md5_nthash(const __global uchar *password,
-                                __global const uint *index,
-                                __global uint *nthash)
+inline
+void prepare(const __global uint *key, uint length, uint *nt_buffer)
 {
-	uint i;
-	uint gid = get_global_id(0);
-	uint block[16] = { 0 };
-	uint a, b, c, d;
-	uint output[4];
-	uint base = index[gid];
-	uint len = index[gid + 1] - base;
+	uint i, nt_index, keychars;
 
-	password += base;
-
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	len = (len > PLAINTEXT_LENGTH) ? 0 : len;
-
-	/* Input buffer is in a 'codepage' encoding, without zero-termination */
-	for (i = 0; i < len; i++)
-		PUTSHORT(block, i, CP_LUT(password[i]));
-	PUTCHAR(block, 2 * i, 0x80);
-	block[14] = i << 4;
-
-	/* Initial hash of password */
-	md4_init(output);
-	md4_block(block, output);
-
-	for (i = 0; i < 4; i++)
-		nthash[gid * 4 + i] = output[i];
+	nt_index = 0;
+	for (i = 0; i < (length + 3)/ 4; i++) {
+		keychars = key[i];
+		nt_buffer[nt_index++] = CP_LUT(keychars & 0xFF) | (CP_LUT((keychars >> 8) & 0xFF) << 16);
+		nt_buffer[nt_index++] = CP_LUT((keychars >> 16) & 0xFF) | (CP_LUT(keychars >> 24) << 16);
+	}
+	nt_index = length >> 1;
+	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
+	nt_buffer[nt_index + 1] = 0;
+	nt_buffer[14] = length << 4;
 }
 
 #endif /* encodings */
 
+inline
+void krb5pa_md5_final(const uint *K,
+                      MAYBE_CONSTANT uint *salts,
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+                      __local uint *state_l,
 #endif
-__kernel void krb5pa_md5_final(const __global uint *nthash,
-                               MAYBE_CONSTANT uint *salts,
-                               __global uint *result)
+                      uint *K2)
 {
 	uint i;
-	uint gid = get_global_id(0);
 	uint block[16];
-	uint output[4], hash[4];
-	uint a, b, c, d;
-#ifdef RC4_USE_LOCAL
-	__local uint state_l[64][256/4];
-#endif
+	uint plain[36/4];
+	uchar *cleartext = (uchar*)plain;
+	uint K1[4], K3[4], ihash[4];
 
-	/* 1st HMAC */
-	md5_init(output);
-
+	/*
+	 * K = MD4(UTF-16LE(password)), ordinary 16-byte NTLM hash
+	 * 1st HMAC K1 = HMAC-MD5(K, 1LE)
+	 */
+	md5_init(ihash);
 	for (i = 0; i < 4; i++)
-		block[i] = 0x36363636 ^ nthash[gid * 4 + i];
+		block[i] = 0x36363636 ^ K[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(block, output); /* md5_update(ipad, 64) */
+	md5_block(uint, block, ihash); /* md5_update(ipad, 64) */
 
 	block[0] = 0x01;    /* little endian "one", 4 bytes */
 	block[1] = 0x80;
@@ -177,37 +149,34 @@ __kernel void krb5pa_md5_final(const __global uint *nthash,
 		block[i] = 0;
 	block[14] = (64 + 4) << 3;
 	block[15] = 0;
-	md5_block(block, output); /* md5_update(one, 4), md5_final() */
+	md5_block(uint, block, ihash); /* md5_update(one, 4), md5_final() */
 
+	md5_init(K1);
 	for (i = 0; i < 4; i++)
-		hash[i] = output[i];
-	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ nthash[gid * 4 + i];
-
-	md5_init(output);
+		block[i] = 0x5c5c5c5c ^ K[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
-	md5_block(block, output); /* md5_update(opad, 64) */
+	md5_block(uint, block, K1); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
-		block[i] = hash[i];
+		block[i] = ihash[i];
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
+	md5_block(uint, block, K1); /* md5_update(ihash, 16), md5_final() */
 
-	/* 2nd HMAC */
-	for (i = 0; i < 4; i++)
-		hash[i] = output[i];
-	for (i = 0; i < 4; i++)
-		block[i] = 0x36363636 ^ output[i];
 
-	md5_init(output);
+	/*
+	 * 2nd HMAC K3 = HMAC-MD5(K1, CHECKSUM)
+	 */
+	md5_init(ihash);
+	for (i = 0; i < 4; i++)
+		block[i] = 0x36363636 ^ K1[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(block, output); /* md5_update(ipad, 64) */
+	md5_block(uint, block, ihash); /* md5_update(ipad, 64) */
 
 	for (i = 0; i < 4; i++)
 		block[i] = *salts++; /* checksum, 16 bytes */
@@ -216,31 +185,271 @@ __kernel void krb5pa_md5_final(const __global uint *nthash,
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(block, output); /* md5_update(cs, 16), md5_final() */
+	md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
 
+	md5_init(K3);
 	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ hash[i];
-	for (i = 0; i < 4; i++)
-		hash[i] = output[i];
-
-	md5_init(output);
+		block[i] = 0x5c5c5c5c ^ K1[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
-	md5_block(block, output); /* md5_update(opad, 64) */
+	md5_block(uint, block, K3); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
-		block[i] = hash[i];
+		block[i] = ihash[i];
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
+	md5_block(uint, block, K3); /* md5_update(ihash, 16), md5_final() */
 
-	/* output is our RC4 key. salts now point to encrypted timestamp. */
+	/* Salts now point to encrypted timestamp. */
+	for (i = 0; i < 4; i++)
+		plain[i] = salts[i];
+
+	/* K3 is our RC4 key. First decrypt just one block for early rejection */
 #ifdef RC4_USE_LOCAL
-	rc4(state_l[get_local_id(0)], output, salts, &result[gid * 4]);
+	rc4(state_l, K3, plain, 16);
 #else
-	rc4(output, salts, &result[gid * 4]);
+	rc4(K3, plain, 16);
 #endif
+
+	/* Known-plain UTC timestamp */
+	if (cleartext[14] == '2' && cleartext[15] == '0') {
+		for (i = 0; i < 9; i++)
+			plain[i] = salts[i];
+
+#ifdef RC4_USE_LOCAL
+		rc4(state_l, K3, plain, 36);
+#else
+		rc4(K3, plain, 36);
+#endif
+		if (cleartext[28] == 'Z') {
+			/*
+			 * 3rd HMAC K2 = HMAC-MD5(K1, plaintext)
+			 */
+			md5_init(ihash);
+			for (i = 0; i < 4; i++)
+				block[i] = 0x36363636 ^ K1[i];
+			for (i = 4; i < 16; i++)
+				block[i] = 0x36363636;
+			md5_block(uint, block, ihash); /* md5_update(ipad, 64) */
+
+			for (i = 0; i < 9; i++)
+				block[i] = plain[i]; /* plaintext, 36 bytes */
+			block[9] = 0x80;
+			for (i = 10; i < 14; i++)
+				block[i] = 0;
+			block[14] = (64 + 36) << 3;
+			block[15] = 0;
+			md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
+
+			md5_init(K2);
+			for (i = 0; i < 4; i++)
+				block[i] = 0x5c5c5c5c ^ K1[i];
+			for (i = 4; i < 16; i++)
+				block[i] = 0x5c5c5c5c;
+			md5_block(uint, block, K2); /* md5_update(opad, 64) */
+
+			for (i = 0; i < 4; i++)
+				block[i] = ihash[i];
+			block[4] = 0x80;
+			for (i = 5; i < 14; i++)
+				block[i] = 0;
+			block[14] = (64 + 16) << 3;
+			block[15] = 0;
+			md5_block(uint, block, K2); /* md5_update(ihash, 16), md5_final() */
+		}
+		else {
+			K2[0] = 0;
+		}
+	}
+	else {
+		K2[0] = 0;
+	}
+}
+
+inline
+void cmp_final(uint gid,
+               uint iter,
+               __private uint *hash,
+               __global uint *offset_table,
+               __global uint *hash_table,
+               MAYBE_CONSTANT uint *salt,
+               __global uint *return_hashes,
+               volatile __global uint *output,
+               volatile __global uint *bitmap_dupe)
+{
+	uint t, offset_table_index, hash_table_index;
+	unsigned long LO, HI;
+	unsigned long p;
+
+	HI = ((unsigned long)hash[3] << 32) | (unsigned long)hash[2];
+	LO = ((unsigned long)hash[1] << 32) | (unsigned long)hash[0];
+
+	p = (HI % salt[SALT_PARAM_BASE + 1]) * salt[SALT_PARAM_BASE + 3];
+	p += LO % salt[SALT_PARAM_BASE + 1];
+	p %= salt[SALT_PARAM_BASE + 1];
+	offset_table_index = (unsigned int)p;
+
+	//error: chances of overflow is extremely low.
+	LO += (unsigned long)offset_table[offset_table_index];
+
+	p = (HI % salt[SALT_PARAM_BASE + 2]) * salt[SALT_PARAM_BASE + 4];
+	p += LO % salt[SALT_PARAM_BASE + 2];
+	p %= salt[SALT_PARAM_BASE + 2];
+	hash_table_index = (unsigned int)p;
+
+	if (hash_table[hash_table_index] == hash[0])
+	if (hash_table[salt[SALT_PARAM_BASE + 2] + hash_table_index] == hash[1])
+	{
+/*
+ * Prevent duplicate keys from cracking same hash
+ */
+		if (!(atomic_or(&bitmap_dupe[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+			t = atomic_inc(&output[0]);
+			output[1 + 3 * t] = gid;
+			output[2 + 3 * t] = iter;
+			output[3 + 3 * t] = hash_table_index;
+			return_hashes[2 * t] = hash[2];
+			return_hashes[2 * t + 1] = hash[3];
+		}
+	}
+}
+
+inline
+void cmp(uint gid,
+         uint iter,
+         __private uint *hash,
+         __global uint *bitmaps,
+         uint bitmap_sz_bits,
+         __global uint *offset_table,
+         __global uint *hash_table,
+         MAYBE_CONSTANT uint *salt,
+         __global uint *return_hashes,
+         volatile __global uint *output,
+         volatile __global uint *bitmap_dupe)
+{
+	uint bitmap_index, tmp = 1;
+
+	bitmap_index = hash[3] & salt[SALT_PARAM_BASE];
+	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & salt[SALT_PARAM_BASE];
+	tmp &= (bitmaps[(bitmap_sz_bits >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+
+	if (tmp)
+		cmp_final(gid, iter, hash, offset_table, hash_table, salt, return_hashes, output, bitmap_dupe);
+}
+
+#ifdef RC4_USE_LOCAL
+__attribute__((work_group_size_hint(64,1,1)))
+#endif
+__kernel
+void krb5pa_md5(__global const uint *keys,
+                __global const uint *index,
+                MAYBE_CONSTANT uint *salts,
+                __global uint *int_key_loc,
+#if USE_CONST_CACHE
+                __constant
+#else
+                __global
+#endif
+                uint *int_keys
+#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
+                __attribute__((max_constant_size (NUM_INT_KEYS * 4)))
+#endif
+                , __global uint *bitmaps,
+                __global uint *offset_table,
+                __global uint *hash_table,
+                __global uint *return_hashes,
+                volatile __global uint *out_hash_ids,
+                volatile __global uint *bitmap_dupe)
+{
+	uint gid = get_global_id(0);
+	uint base = index[gid];
+	uint len = base & 127;
+	uint nt_buffer[16] = { 0 };
+	uint nt_hash[4];
+	uint final_hash[4];
+	uint i;
+#ifdef RC4_USE_LOCAL
+	/*
+	 * The "+ 1" extra element (actually never touched) give a huge boost
+	 * on Maxwell and GCN due to access patterns or whatever.
+	 */
+	__local uint state_l[64][256/4 + 1];
+#endif
+	uint bitmap_sz_bits = salts[SALT_PARAM_BASE] + 1;
+#if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
+	uint ikl = int_key_loc[gid];
+	uint loc0 = ikl & 0xff;
+#if MASK_FMT_INT_PLHDR > 1
+#if LOC_1 >= 0
+	uint loc1 = (ikl & 0xff00) >> 8;
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+#if LOC_2 >= 0
+	uint loc2 = (ikl & 0xff0000) >> 16;
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+#if LOC_3 >= 0
+	uint loc3 = (ikl & 0xff000000) >> 24;
+#endif
+#endif
+#endif
+
+#if !IS_STATIC_GPU_MASK
+#define GPU_LOC_0 loc0
+#define GPU_LOC_1 loc1
+#define GPU_LOC_2 loc2
+#define GPU_LOC_3 loc3
+#else
+#define GPU_LOC_0 LOC_0
+#define GPU_LOC_1 LOC_1
+#define GPU_LOC_2 LOC_2
+#define GPU_LOC_3 LOC_3
+#endif
+
+	keys += base >> 7;
+
+	/* Parse keys input buffer and re-encode to UTF-16LE */
+	prepare(keys, len, nt_buffer);
+
+	/* Apply GPU-side mask */
+	for (i = 0; i < NUM_INT_KEYS; i++) {
+#if NUM_INT_KEYS > 1
+		PUTSHORT(nt_buffer, GPU_LOC_0, CP_LUT(int_keys[i] & 0xff));
+#if MASK_FMT_INT_PLHDR > 1
+#if LOC_1 >= 0
+		PUTSHORT(nt_buffer, GPU_LOC_1, CP_LUT((int_keys[i] & 0xff00) >> 8));
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+#if LOC_2 >= 0
+		PUTSHORT(nt_buffer, GPU_LOC_2, CP_LUT((int_keys[i] & 0xff0000) >> 16));
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+#if LOC_3 >= 0
+		PUTSHORT(nt_buffer, GPU_LOC_3, CP_LUT((int_keys[i] & 0xff000000) >> 24));
+#endif
+#endif
+#endif
+		/* Initial hash of password */
+		md4_init(nt_hash);
+		md4_block(uint, nt_buffer, nt_hash);
+
+		/* Final krb5pa-md5 hash */
+		krb5pa_md5_final(nt_hash, salts,
+#ifdef RC4_USE_LOCAL
+		                 state_l[get_local_id(0)],
+#endif
+		                 final_hash);
+
+		/* GPU-side compare */
+		cmp(gid, i, final_hash, bitmaps, bitmap_sz_bits, offset_table,
+		    hash_table, salts, return_hashes, out_hash_ids, bitmap_dupe);
+	}
 }

@@ -43,8 +43,6 @@ __kernel void keystore(__global const keystore_password *inbuffer,
                        __global keystore_hash *outbuffer,
                        __global const keystore_salt *salt)
 {
-	uint A, B, C, D, E, temp;
-
 	uint gid = get_global_id(0);
 	uint W[16], o[5];
 	uint block;		// block index
@@ -131,7 +129,7 @@ __kernel void keystore(__global const keystore_password *inbuffer,
 				}
 			}
 		}
-		sha1_block(W, o);
+		sha1_block(uint, W, o);
 	}
 	outbuffer[gid].key = SWAP32(o[0]);
 }

@@ -30,12 +30,13 @@ john_register_one(&FORMAT_STRUCT);
 #include "options.h"
 #include "unicode.h"
 #include "dyna_salt.h"
+#include "mask_ext.h"
 
 #define FORMAT_LABEL		"oldoffice-opencl"
 #define FORMAT_NAME		"MS Office <= 2003"
 #define ALGORITHM_NAME		"MD5/SHA1 RC4 OpenCL"
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1000 /* Use 0 for benchmarking w/ mitm */
+#define BENCHMARK_LENGTH	-1001 /* Use -1 for benchmarking w/ mitm */
 #define PLAINTEXT_LENGTH	19 //* 19 is leanest, 24, 28, 31, max. 51 */
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
@@ -95,11 +96,6 @@ static struct {
 static custom_salt cs;
 static custom_salt *cur_salt = &cs;
 
-typedef struct {
-	uint len;
-	ushort password[PLAINTEXT_LENGTH + 1];
-} mid_t;
-
 static char *saved_key;
 static int any_cracked;
 static int new_keys;
@@ -109,9 +105,11 @@ static int max_len = PLAINTEXT_LENGTH;
 static unsigned int *saved_idx, key_idx;
 static unsigned int *cracked;
 static size_t key_offset, idx_offset;
-static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_mid_key, cl_result;
+static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_result;
 static cl_mem pinned_key, pinned_idx, pinned_result, cl_benchmark;
-static cl_kernel oldoffice_utf16, oldoffice_md5, oldoffice_sha1;
+static cl_mem pinned_int_key_loc, buffer_int_keys, buffer_int_key_loc;
+static cl_uint *saved_int_key_loc;
+static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 static struct fmt_main *self;
 
 #define STEP			0
@@ -122,25 +120,20 @@ static struct fmt_main *self;
 #include "memdbg.h"
 
 static const char *warn[] = {
-	"xP: ",  ", xI: ",  ", enc: ",  ", md5+rc4: ",  ", xR: "
+	"xP: ",  ", xI: ",  ", crypt: ",  ", xR: "
 };
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	size_t s;
-
-	s = autotune_get_task_max_work_group_size(FALSE, 0, oldoffice_utf16);
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
-	                                                 oldoffice_md5));
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0,
-	                                                 oldoffice_sha1));
-	s = MIN(s, 64);
-	return s;
+	return MIN(autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel),
+	           64);
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	unsigned int dummy = 0;
+
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, max_len * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
 	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, max_len * gws, NULL, &ret_code);
@@ -155,11 +148,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * (gws + 1), 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
 
-	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(unsigned int) * gws, NULL, &ret_code);
+	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
-	cl_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(unsigned int) * gws, NULL, &ret_code);
+	cl_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	cracked = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(unsigned int) * gws, 0, NULL, NULL, &ret_code);
+	cracked = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping cracked");
 
 	cl_benchmark = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(bench_running), NULL, &ret_code);
@@ -167,30 +160,33 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cs), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
 
-	cl_mid_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(mid_t) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device-only buffer");
+	pinned_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_int_key_loc.");
+	saved_int_key_loc = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_int_key_loc, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_int_key_loc.");
 
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_utf16, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_utf16, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_utf16, 2, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 2");
+	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer_int_key_loc.");
 
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_md5, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
+	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
 
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 0, sizeof(cl_mem), (void*)&cl_mid_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 1, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 2, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(oldoffice_sha1, 3, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_benchmark), "Error setting argument 4");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 5.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 6.");
 }
 
 static void release_clobj(void)
 {
-	if (cl_mid_key) {
+	if (cl_salt) {
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, cracked, 0, NULL, NULL), "Error Unmapping cracked");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc, saved_int_key_loc, 0, NULL, NULL), "Error Unmapping saved_int_key_loc.");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
 		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
@@ -200,9 +196,10 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
-		HANDLE_CLERROR(clReleaseMemObject(cl_mid_key), "Release state buffer");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc.");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc.");
 
-		cl_mid_key = NULL;
+		cl_salt = NULL;
 	}
 }
 
@@ -211,9 +208,7 @@ static void done(void)
 	if (autotuned) {
 		release_clobj();
 
-		HANDLE_CLERROR(clReleaseKernel(oldoffice_utf16), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(oldoffice_md5), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(oldoffice_sha1), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
@@ -226,6 +221,8 @@ static void init(struct fmt_main *_self)
 
 	opencl_prepare_dev(gpu_id);
 
+	mask_int_cand_target = 95;
+
 	if (options.target_enc == UTF_8)
 		max_len = self->params.plaintext_length =
 			MIN(125, 3 * PLAINTEXT_LENGTH);
@@ -233,35 +230,84 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
-		size_t gws_limit = 4 << 20;
-		char build_opts[96];
+	static size_t o_lws, o_gws;
+	static int initialized;
+	size_t gws_limit = 4 << 20;
+	cl_ulong const_cache_size;
+	char build_opts[1024];
+	int i;
 
-		snprintf(build_opts, sizeof(build_opts),
-#if !NT_FULL_UNICODE
-		         "-DUCS_2 "
-#endif
-		         "-D%s -DPLAINTEXT_LENGTH=%u",
-		         cp_id2macro(options.target_enc), PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/oldoffice_kernel.cl", gpu_id, build_opts);
-
-		/* create kernels to execute */
-		oldoffice_utf16 = clCreateKernel(program[gpu_id], "oldoffice_utf16", &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-		crypt_kernel = oldoffice_md5 =
-			clCreateKernel(program[gpu_id], "oldoffice_md5", &ret_code);
-		oldoffice_sha1 =
-			clCreateKernel(program[gpu_id], "oldoffice_sha1", &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL, warn, 3,
-		                       self, create_clobj, release_clobj,
-		                       2 * sizeof(mid_t), gws_limit, db);
-
-		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, gws_limit, 1000000000);
+	if (initialized) {
+		// Forget the previous auto-tune
+		local_work_size = o_lws;
+		global_work_size = o_gws;
+		release_clobj();
+	} else {
+		o_lws = local_work_size;
+		o_gws = global_work_size;
+		initialized = 1;
 	}
+
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
+		if (mask_skip_ranges != NULL && mask_skip_ranges[i] != -1)
+			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
+				ranges[mask_skip_ranges[i]].pos;
+		else
+			static_gpu_locations[i] = -1;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DPLAINTEXT_LENGTH=%u"
+#if !NT_FULL_UNICODE
+	         " -DUCS_2"
+#endif
+	         " -DCONST_CACHE_SIZE=%llu -D%s -D%s -DLOC_0=%d"
+#if MASK_FMT_INT_PLHDR > 1
+	         " -DLOC_1=%d"
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+	         " -DLOC_2=%d"
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+	         " -DLOC_3=%d"
+#endif
+	         " -DNUM_INT_KEYS=%u -DIS_STATIC_GPU_MASK=%d",
+	         PLAINTEXT_LENGTH,
+	         (unsigned long long)const_cache_size,
+	         cp_id2macro(options.internal_cp),
+	         options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+	         cp_id2macro(options.internal_cp), static_gpu_locations[0],
+#if MASK_FMT_INT_PLHDR > 1
+	         static_gpu_locations[1],
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+	         static_gpu_locations[2],
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+	         static_gpu_locations[3],
+#endif
+	         mask_int_cand.num_int_cand, mask_gpu_is_static
+		);
+
+	opencl_init("$JOHN/kernels/oldoffice_kernel.cl", gpu_id, build_opts);
+
+	/* create kernels to execute */
+	crypt_kernel =
+		clCreateKernel(program[gpu_id], "oldoffice", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+	// If real crack run, don't auto-tune for self-tests
+	if (db->real && db != db->real)
+		opencl_get_sane_lws_gws_values();
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
+	                       self, create_clobj, release_clobj,
+	                       2 * PLAINTEXT_LENGTH, gws_limit, db);
+
+	// Auto tune execution from shared/included code.
+	autotune_run(self, 1, gws_limit, 300);
 }
 
 /* Based on ldr_cracked_hash from loader.c */
@@ -497,49 +543,44 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, sizeof(cs), cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
 
+/* Returns the last output index for which there might be a match (against the
+ * supplied salt's hashes) plus 1.  A return value of zero indicates no match.*/
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	size_t lws;
+	size_t lws, gws;
+
+	*pcount *= mask_int_cand.num_int_cand;
 
 	/* kernel is made for lws 64, using local memory */
 	lws = local_work_size ? local_work_size : 64;
 
 	/* Don't do more than requested */
-	global_work_size = (count + lws - 1) / lws * lws;
+	global_work_size = //count;
+	gws = (count + lws - 1) / lws * lws;
 
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" kidx %u m %d k %d\n", __FUNCTION__, count, lws, global_work_size, key_idx, m, new_keys);
+	//printf("%s(%d) lws "Zu" gws "Zu" kidx %u k %d mult %u\n", __FUNCTION__, count, lws, gws, key_idx, new_keys, mask_int_cand.num_int_cand);
 
 	if (new_keys || ocl_autotune_running) {
 		/* Self-test kludge */
-		if (idx_offset > 4 * (global_work_size + 1))
+		if (idx_offset > 4 * (gws + 1))
 			idx_offset = 0;
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_utf16, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running first kernel");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
+		if (!mask_gpu_is_static)
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
 
 		new_keys = 0;
 	}
 
-	if (cur_salt->type < 3) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_md5, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running md5 kernel");
-	} else {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], oldoffice_sha1, 1, NULL, &global_work_size, &lws, 0, NULL, multi_profilingEvent[3]), "Failed running sha1 kernel");
-	}
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[4]), "Failed transferring salt");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[3]), "Failed transferring salt");
 
 	if ((any_cracked = cur_salt->cracked)) {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * global_work_size, cracked, 0, NULL, NULL), "failed reading results back");
-
-		if (cur_salt->has_mitm || cur_salt->type > 3 || bench_running) {
-			while (count--)
-				if (cracked[count])
-					return count + 1;
-		} else {
-			return *pcount;
-		}
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * *pcount, cracked, 0, NULL, NULL), "failed reading results back");
+		return *pcount;
 	}
 
 	return 0;
@@ -570,6 +611,22 @@ static void clear_keys(void)
 
 static void set_key(char *key, int index)
 {
+	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {
+		int i;
+
+		saved_int_key_loc[index] = 0;
+		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+			if (mask_skip_ranges[i] != -1)  {
+				saved_int_key_loc[index] |= ((mask_int_cand.
+				int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
+				mask_int_cand.int_cpu_mask_ctx->
+				ranges[mask_skip_ranges[i]].pos) & 0xff) << (i << 3);
+			}
+			else
+				saved_int_key_loc[index] |= 0x80 << (i << 3);
+		}
+	}
+
 	while (*key)
 		saved_key[key_idx++] = *key++;
 
@@ -591,8 +648,21 @@ static char *get_key(int index)
 {
 	static UTF16 u16[PLAINTEXT_LENGTH + 1];
 	static UTF8 out[3 * PLAINTEXT_LENGTH + 1];
-	int i, len = saved_idx[index + 1] - saved_idx[index];
-	UTF8 *key = (UTF8*)&saved_key[saved_idx[index]];
+	UTF8 *ret;
+	int i, len;
+	UTF8 *key;
+	int t = index;
+	int int_index = 0;
+
+	if (mask_int_cand.num_int_cand) {
+		t = index / mask_int_cand.num_int_cand;
+		int_index = index % mask_int_cand.num_int_cand;
+	}
+	else if (t >= global_work_size)
+		t = 0;
+
+	len = saved_idx[t + 1] - saved_idx[t];
+	key = (UTF8*)&saved_key[saved_idx[t]];
 
 	for (i = 0; i < len; i++)
 		out[i] = *key++;
@@ -600,7 +670,20 @@ static char *get_key(int index)
 
 	/* Ensure we truncate just like the GPU conversion does */
 	enc_to_utf16(u16, PLAINTEXT_LENGTH, (UTF8*)out, len);
-	return (char*)utf16_to_enc(u16);
+	ret = utf16_to_enc(u16);
+
+	/* Apply GPU-side mask */
+	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
+			if (mask_gpu_is_static)
+				ret[static_gpu_locations[i]] =
+					mask_int_cand.int_cand[int_index].x[i];
+			else
+				ret[(saved_int_key_loc[t] & (0xff << (i * 8))) >> (i * 8)] =
+					mask_int_cand.int_cand[int_index].x[i];
+	}
+
+	return (char*)ret;
 }
 
 static unsigned int oo_hash_type(void *salt)

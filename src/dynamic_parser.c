@@ -417,6 +417,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_PASSWORD_UPCASE",              MGF_PASSWORD_UPCASE },
 	{ "MGF_PASSWORD_LOCASE",              MGF_PASSWORD_LOCASE },
 	{ "MGF_FULL_CLEAN_REQUIRED",          MGF_FULL_CLEAN_REQUIRED },
+	{ "MGF_FULL_CLEAN_REQUIRED2",         MGF_FULL_CLEAN_REQUIRED2 },
 	{ NULL, 0 }};
 
 #define SALT_AS_HEX_FLAG2(HASH) \

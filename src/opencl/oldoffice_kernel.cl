@@ -14,11 +14,11 @@
 #define AMD_PUTCHAR_NOCAST /* AMD bug workaround */
 #endif
 #include "opencl_misc.h"
-#define RC4_BUFLEN 32
 #define RC4_IN_PLACE
 #include "opencl_rc4.h"
 #include "opencl_md5.h"
 #include "opencl_sha1.h"
+#include "opencl_mask.h"
 
 typedef struct {
 	dyna_salt dsalt;
@@ -34,20 +34,21 @@ typedef struct {
 typedef struct {
 	uint len;
 	ushort password[PLAINTEXT_LENGTH + 1];
-} mid_t;
+} nt_buffer_t;
 
 #ifdef UTF_8
 
-__kernel void oldoffice_utf16(__global const uchar *source,
-                              __global const uint *index,
-                              __global mid_t *mid)
+inline
+void oldoffice_utf16(__global const uchar *source,
+                     __global const uint *index,
+                     nt_buffer_t *nt_buffer)
 {
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	__global const UTF8 *sourceEnd;
-	__global UTF16 *target = mid[gid].password;
-	__global UTF16 *targetStart = target;
-	__global const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
+	UTF16 *target = nt_buffer->password;
+	UTF16 *targetStart = target;
+	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
 
@@ -109,14 +110,15 @@ __kernel void oldoffice_utf16(__global const uchar *source,
 	}
 
 	*target = 0;
-	mid[gid].len = (uint)(target - targetStart);
+	nt_buffer->len = (uint)(target - targetStart);
 }
 
 #else
 
-__kernel void oldoffice_utf16(__global const uchar *password,
-                              __global const uint *index,
-                              __global mid_t *mid)
+inline
+void oldoffice_utf16(__global const uchar *password,
+                     __global const uint *index,
+                     nt_buffer_t *nt_buffer)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -130,35 +132,31 @@ __kernel void oldoffice_utf16(__global const uchar *password,
 
 	/* Input buffer is in a 'codepage' encoding, without zero-termination */
 	for (i = 0; i < len; i++)
-		mid[gid].password[i] = CP_LUT(password[i]);
+		nt_buffer->password[i] = CP_LUT(password[i]);
 
-	mid[gid].password[i] = 0;
-	mid[gid].len = len;
+	nt_buffer->password[i] = 0;
+	nt_buffer->len = len;
 }
 
 #endif /* encodings */
 
+inline
+void oldoffice_md5(const nt_buffer_t *nt_buffer,
+                   __global salt_t *cs,
+                   __global uint *result,
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+                   __local uint *state_l,
 #endif
-__kernel void oldoffice_md5(__global const mid_t *mid,
-                            __global salt_t *cs,
-                            __global uint *result,
-                            __global uint *benchmark)
+                   __global uint *benchmark)
 {
 	uint i;
-	uint a, b, c, d;
-	uint gid = get_global_id(0);
 	uint W[64/4];
 	uint verifier[32/4];
 	uint md5[16/4];
 	uint key[16/4];
-	uint len = mid[gid].len;
+	uint len = nt_buffer->len;
 	uint salt[16/4];
-	__global const ushort *p = mid[gid].password;
-#ifdef RC4_USE_LOCAL
-	__local uint state_l[64][256/4];
-#endif
+	const ushort *p = nt_buffer->password;
 
 	/* Initial hash of password */
 #if PLAINTEXT_LENGTH > 27
@@ -170,7 +168,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 			W[i >> 1] = (uint)*p++;
 			W[i >> 1] |= (*p++ << 16U);
 		}
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 		for (i = 0; i < len - 32; i += 2) {
 			W[i >> 1] = (uint)*p++;
 			W[i >> 1] |= (*p++ << 16U);
@@ -181,7 +179,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 			PUTSHORT(W, i, 0);
 		W[14] = len << 4;
 		W[15] = 0;
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 	} else
 #endif
 #if PLAINTEXT_LENGTH > 27
@@ -193,12 +191,12 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		PUTSHORT(W, i, 0x80);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT(W, i, 0);
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 		for (i = 0; i < 14; i++)
 			W[i] = 0;
 		W[14] = len << 4;
 		W[15] = 0;
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 	} else
 #endif
 	{
@@ -212,9 +210,9 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		W[14] = len << 4;
 		W[15] = 0;
 #if PLAINTEXT_LENGTH > 27
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 #else
-		md5_single(W, md5);
+		md5_single(uint, W, md5);
 #endif
 	}
 
@@ -235,7 +233,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	for (i = 0; i < 16; i++)
 		PUTCHAR(W, i + 47, GETCHAR(salt, i));
 	PUTCHAR(W, 63, GETCHAR(md5, 0));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 1; i < 5; i++)
 		PUTCHAR(W, i - 1, GETCHAR(md5, i));
 	for (i = 0; i < 16; i++)
@@ -250,7 +248,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		PUTCHAR(W, i + 46, GETCHAR(salt, i));
 	PUTCHAR(W, 62, GETCHAR(md5, 0));
 	PUTCHAR(W, 63, GETCHAR(md5, 1));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 2; i < 5; i++)
 		PUTCHAR(W, i - 2, GETCHAR(md5, i));
 	for (i = 0; i < 16; i++)
@@ -266,7 +264,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	PUTCHAR(W, 61, GETCHAR(md5, 0));
 	PUTCHAR(W, 62, GETCHAR(md5, 1));
 	PUTCHAR(W, 63, GETCHAR(md5, 2));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 3; i < 5; i++)
 		PUTCHAR(W, i - 3, GETCHAR(md5, i));
 	for (i = 0; i < 16; i++)
@@ -283,7 +281,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 	PUTCHAR(W, 61, GETCHAR(md5, 1));
 	PUTCHAR(W, 62, GETCHAR(md5, 2));
 	PUTCHAR(W, 63, GETCHAR(md5, 3));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	PUTCHAR(W, 0, GETCHAR(md5, 4));
 	for (i = 0; i < 16; i++)
 		PUTCHAR(W, i + 1, GETCHAR(salt, i));
@@ -297,7 +295,7 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		PUTCHAR(W, i + 43, GETCHAR(salt, i));
 	for (i = 0; i < 5; i++)
 		PUTCHAR(W, i + 59, GETCHAR(md5, i));
-	md5_block(W, key);
+	md5_block(uint, W, key);
 	for (i = 0; i < 4; i++)
 		W[i] = cs->salt[i];
 	W[4] = 0x80;
@@ -305,15 +303,14 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		W[i] = 0;
 	W[14] = (16 * (5 + 16)) << 3;
 	W[15] = 0;
-	md5_block(W, key);
+	md5_block(uint, W, key);
 
 	key[1] &= 0xff;
 
 	if (cs->has_mitm) {
-		if ((key[0] == cs->mitm[0] && key[1] == cs->mitm[1])) {
-			result[gid] = 1;
+		*result = (key[0] == cs->mitm[0] && key[1] == cs->mitm[1]);
+		if (*result)
 			atomic_xchg(&cs->cracked, 1);
-		}
 	} else {
 		W[0] = key[0];
 		W[1] = key[1];
@@ -323,14 +320,14 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		W[14] = 9 << 3;
 		W[15] = 0;
 		md5_init(md5);
-		md5_block(W, md5);
+		md5_block(uint, W, md5);
 
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
 #ifdef RC4_USE_LOCAL
-		rc4(state_l[get_local_id(0)], md5, verifier);
+		rc4(state_l, md5, verifier, 32);
 #else
-		rc4(md5, verifier);
+		rc4(md5, verifier, 32);
 #endif
 
 		for (i = 0; i < 4; i++)
@@ -341,48 +338,40 @@ __kernel void oldoffice_md5(__global const mid_t *mid,
 		W[14] = 16 << 3;
 		W[15] = 0;
 		md5_init(verifier);
-		md5_block(W, verifier);
+		md5_block(uint, W, verifier);
 
 		if (verifier[0] == verifier[4] &&
 		    verifier[1] == verifier[5] &&
 		    verifier[2] == verifier[6] &&
 		    verifier[3] == verifier[7]) {
-			result[gid] = 1;
-			atomic_xchg(&cs->cracked, 1);
-			if (!*benchmark && !atomic_xchg(&cs->has_mitm, 1)) {
+			*result = 1;
+			if (!atomic_xchg(&cs->cracked, 1) &&
+			    !*benchmark && !atomic_xchg(&cs->has_mitm, 1)) {
 				cs->mitm[0] = key[0];
 				cs->mitm[1] = key[1];
 			}
 		} else {
-			result[gid] = 0;
+			*result = 0;
 		}
 	}
 }
 
+inline
+void oldoffice_sha1(const nt_buffer_t *nt_buffer,
+                    __global salt_t *cs,
+                    __global uint *result,
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+                    __local uint *state_l,
 #endif
-__kernel void oldoffice_sha1(__global const mid_t *mid,
-                             __global salt_t *cs,
-                             __global uint *result,
-                             __global uint *benchmark)
+                    __global uint *benchmark)
 {
 	uint i;
-	uint gid = get_global_id(0);
-	uint A, B, C, D, E, temp;
-#if PLAINTEXT_LENGTH > (27 - 8)
-	/* Silly AMD bug workaround */
-	uint a, b, c, d, e;
-#endif
 	uint W[64/4];
 	uint verifier[32/4];
 	uint sha1[20/4];
 	uint key[20/4];
-	uint len = mid[gid].len + 8;
-	__global const ushort *p = mid[gid].password;
-#ifdef RC4_USE_LOCAL
-	__local uint state_l[64][256/4];
-#endif
+	uint len = nt_buffer->len + 8;
+	const ushort *p = nt_buffer->password;
 
 	/* Initial hash of salt.password */
 #if PLAINTEXT_LENGTH > (27 - 8)
@@ -397,7 +386,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 			u |= (*p++ << 16U);
 			W[i >> 1] = SWAP32(u);
 		}
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 		for (i = 0; i < len - 32; i += 2) {
 			uint u = *p++;
 			u |= (*p++ << 16U);
@@ -407,7 +396,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		for (i = len - 32 + 1; i < 30; i++)
 			PUTSHORT_BE(W, i, 0);
 		W[15] = len << 4;
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 	} else
 #endif
 #if PLAINTEXT_LENGTH > (27 - 8)
@@ -420,11 +409,11 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		PUTSHORT_BE(W, len, 0x8000);
 		for (i = len + 1; i < 32; i++)
 			PUTSHORT_BE(W, i, 0);
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 		for (i = 0; i < 15; i++)
 			W[i] = 0;
 		W[15] = len << 4;
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 	} else
 #endif
 	{
@@ -438,9 +427,9 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 			PUTSHORT_BE(W, i, 0);
 		W[15] = len << 4;
 #if PLAINTEXT_LENGTH > (27 - 8)
-		sha1_block(W, key);
+		sha1_block(uint, W, key);
 #else
-		sha1_single(W, key);
+		sha1_single(uint, W, key);
 #endif
 	}
 
@@ -451,16 +440,15 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 	for (i = 7; i < 15; i++)
 		W[i] = 0;
 	W[15] = 24 << 3;
-	sha1_single(W, sha1);
+	sha1_single(uint, W, sha1);
 
 	sha1[0] = SWAP32(sha1[0]);
 	sha1[1] = SWAP32(sha1[1]);
 
 	if (cs->type == 3 && cs->has_mitm) {
-		if ((sha1[0] == cs->mitm[0] && (sha1[1] & 0xff) == cs->mitm[1])) {
-			result[gid] = 1;
+		*result = (sha1[0] == cs->mitm[0] && (sha1[1] & 0xff) == cs->mitm[1]);
+		if (*result)
 			atomic_xchg(&cs->cracked, 1);
-		}
 	} else {
 		key[0] = sha1[0];
 		if (cs->type == 3) {
@@ -476,9 +464,9 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
 #ifdef RC4_USE_LOCAL
-		rc4(state_l[get_local_id(0)], key, verifier);
+		rc4(state_l, key, verifier, 32);
 #else
-		rc4(key, verifier);
+		rc4(key, verifier, 32);
 #endif
 
 		for (i = 0; i < 4; i++)
@@ -487,7 +475,7 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		for (i = 5; i < 15; i++)
 			W[i] = 0;
 		W[15] = 16 << 3;
-		sha1_single(W, key);
+		sha1_single(uint, W, key);
 
 		verifier[0] = SWAP32(key[0]);
 		verifier[1] = SWAP32(key[1]);
@@ -498,15 +486,117 @@ __kernel void oldoffice_sha1(__global const mid_t *mid,
 		    verifier[1] == verifier[5] &&
 		    verifier[2] == verifier[6] &&
 		    verifier[3] == verifier[7]) {
-			result[gid] = 1;
-			atomic_xchg(&cs->cracked, 1);
-			if (!*benchmark && cs->type == 3 &&
+			*result = 1;
+			if (!atomic_xchg(&cs->cracked, 1) &&
+			    !*benchmark && cs->type == 3 &&
 			    !atomic_xchg(&cs->has_mitm, 1)) {
 				cs->mitm[0] = sha1[0];
 				cs->mitm[1] = sha1[1];
 			}
 		} else {
-			result[gid] = 0;
+			*result = 0;
 		}
+	}
+}
+
+#ifdef RC4_USE_LOCAL
+__attribute__((work_group_size_hint(64,1,1)))
+#endif
+__kernel
+void oldoffice(__global const uchar *password,
+               __global const uint *index,
+               __global salt_t *cs,
+               __global uint *result,
+               __global uint *benchmark,
+               __global uint *int_key_loc,
+#if USE_CONST_CACHE
+               __constant
+#else
+               __global
+#endif
+               uint *int_keys
+#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
+               __attribute__((max_constant_size (NUM_INT_KEYS * 4)))
+#endif
+               )
+{
+#ifdef RC4_USE_LOCAL
+	/*
+	 * The "+ 1" extra element (actually never touched) give a huge boost
+	 * on Maxwell and GCN due to access patterns or whatever.
+	 */
+	__local uint state_l[64][256/4 + 1];
+#endif
+	nt_buffer_t nt_buffer;
+	uint i;
+	uint gid = get_global_id(0);
+#if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
+	uint ikl = int_key_loc[gid];
+	uint loc0 = ikl & 0xff;
+#if MASK_FMT_INT_PLHDR > 1
+#if LOC_1 >= 0
+	uint loc1 = (ikl & 0xff00) >> 8;
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+#if LOC_2 >= 0
+	uint loc2 = (ikl & 0xff0000) >> 16;
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+#if LOC_3 >= 0
+	uint loc3 = (ikl & 0xff000000) >> 24;
+#endif
+#endif
+#endif
+
+#if !IS_STATIC_GPU_MASK
+#define GPU_LOC_0 loc0
+#define GPU_LOC_1 loc1
+#define GPU_LOC_2 loc2
+#define GPU_LOC_3 loc3
+#else
+#define GPU_LOC_0 LOC_0
+#define GPU_LOC_1 LOC_1
+#define GPU_LOC_2 LOC_2
+#define GPU_LOC_3 LOC_3
+#endif
+
+	/* Prepare base word */
+	oldoffice_utf16(password, index, &nt_buffer);
+
+	/* Apply GPU-side mask */
+	for (i = 0; i < NUM_INT_KEYS; i++) {
+#if NUM_INT_KEYS > 1
+		nt_buffer.password[GPU_LOC_0] = CP_LUT(int_keys[i] & 0xff);
+#if MASK_FMT_INT_PLHDR > 1
+#if LOC_1 >= 0
+		nt_buffer.password[GPU_LOC_1] = CP_LUT((int_keys[i] & 0xff00) >> 8);
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+#if LOC_2 >= 0
+		nt_buffer.password[GPU_LOC_2] = CP_LUT((int_keys[i] & 0xff0000) >> 16);
+#endif
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+#if LOC_3 >= 0
+		nt_buffer.password[GPU_LOC_3] = CP_LUT((int_keys[i] & 0xff000000) >> 24);
+#endif
+#endif
+#endif
+
+		if (cs->type < 3)
+			oldoffice_md5(&nt_buffer, cs, &result[gid * NUM_INT_KEYS + i],
+#ifdef RC4_USE_LOCAL
+			              state_l[get_local_id(0)],
+#endif
+			              benchmark);
+		else
+			oldoffice_sha1(&nt_buffer, cs, &result[gid * NUM_INT_KEYS + i],
+#ifdef RC4_USE_LOCAL
+			               state_l[get_local_id(0)],
+#endif
+			               benchmark);
 	}
 }

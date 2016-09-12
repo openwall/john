@@ -1589,7 +1589,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (curdat.store_keys_normal_but_precompute_hash_to_output2)
 		{
 			keys_dirty = 0;
-			__nonMP_DynamicFunc__clean_input2();
+			if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED2)
+				__nonMP_DynamicFunc__clean_input2_full();
+			else
+				__nonMP_DynamicFunc__clean_input2();
 			if (curdat.store_keys_in_input_unicode_convert)
 				__nonMP_md5_unicode_convert(1);
 			__nonMP_DynamicFunc__append_keys2();

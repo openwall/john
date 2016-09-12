@@ -620,7 +620,7 @@ struct fmt_main fmt_truecrypt = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		salt_hash,
 		NULL,
@@ -630,7 +630,7 @@ struct fmt_main fmt_truecrypt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one,
@@ -669,7 +669,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		salt_hash,
 		NULL,
@@ -679,7 +679,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one,
@@ -731,7 +731,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		salt_hash,
 		NULL,
@@ -741,7 +741,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one,
@@ -784,7 +784,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash
+			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		salt_hash,
 		NULL,
@@ -794,7 +794,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
 		},
 		cmp_all,
 		cmp_one,

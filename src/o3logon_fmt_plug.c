@@ -59,6 +59,7 @@ static int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+#define MAX_HASH_LEN                    (FORMAT_TAG_LEN+MAX_USERNAME_LEN+1+16+1+64)
 
 
 //#define DEBUG_ORACLE
@@ -69,12 +70,12 @@ static struct fmt_tests tests[] = {
 	{"$o3logon$scott$819D062FE5D93F79FF19BDAFE2F9872A$C6D1ED7E6F4D3A6D94F1E49460122D39A3832CC792AD7137", "scottscottscott1"},
 	{"$o3logon$SCOTT$8E9E3E07864D99BB602C443F45E4AFC1$3591851B327BB85A114BD73D51B80AF58E942002B9612F82", "scottscottscott1234"},
 	{"$o3logon$scott$4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345"},
-	{"4488AFD7905E9966912CA680A3C0A23E$628FBAC5CF0E5548743E16123BF027B9314D7EE8B4E30DB213F683F8D7E786EA", "scottscottscott12345",      {"scott"} },
 	{NULL}
 };
 
+
 typedef struct ora9_salt_t {
-	unsigned int userlen, auth_pass_len;
+	int userlen, auth_pass_len;
 	UTF16 user[MAX_USERNAME_LEN+1];
 	unsigned char auth_sesskey[16];
 	unsigned char auth_pass[40];
@@ -137,7 +138,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	memcpy(tmp, ciphertext, cp-ciphertext);
 	tmp[cp-ciphertext] = 0;
 	len = enc_to_utf16((UTF16 *)cur_key_mixedcase, MAX_USERNAME_LEN+1, (unsigned char*)tmp, strlen(tmp));
-	if (len < 0 || len > MAX_USERNAME_LEN)
+	if (len < 0 || (len == 0 && cp-ciphertext)) {
+		static int error_shown = 0;
+#ifdef HAVE_FUZZ
+		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
+			return 0;
+#endif
+		if (!error_shown)
+			fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
+		error_shown = 1;
+		return 0;
+	}
+	if (len > MAX_USERNAME_LEN)
 		return 0;
 
 	ciphertext = cp+1;
@@ -152,27 +164,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	static char cp[128];
-
-	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
-		return split_fields[1];
-	if (!split_fields[0])
-		return split_fields[1];
-	if (strlen(split_fields[1]) + strlen(split_fields[0]) > sizeof(cp)-(2+FORMAT_TAG_LEN))
-		return split_fields[1];
-	sprintf (cp, "%s%s$%s", FORMAT_TAG, split_fields[0], split_fields[1]);
-	return cp;
-}
-
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[128];
-	strnzcpy(out, ciphertext, sizeof(out));
+	static char out[MAX_HASH_LEN*5+1];
+	strnzcpy(out, ciphertext, MAX_HASH_LEN+1);
 	enc_strupper(&out[FORMAT_TAG_LEN]);
 	return out;
 }
+
 static void set_salt(void *salt) {
 	cur_salt = (ora9_salt *)salt;
 }
@@ -331,6 +330,8 @@ static void *get_salt(char *ciphertext)
 	strncpy((char*)tmp, ciphertext, cp-ciphertext);
 	tmp[cp-ciphertext] = 0;
 	salt.userlen = enc_to_utf16_be(salt.user, MAX_USERNAME_LEN, tmp, cp-ciphertext);
+	if (salt.userlen < 0)
+		salt.userlen = strlen16(salt.user);
 	salt.userlen *= 2;
 	base64_convert(cp+1,e_b64_hex,32,salt.auth_sesskey,e_b64_raw,16,0,0);
 	cp = strchr(cp+1, '$') + 1;
@@ -389,7 +390,7 @@ struct fmt_main fmt_o3logon = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		split,
 		fmt_default_binary,

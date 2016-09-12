@@ -16,8 +16,6 @@
 
 #include "opencl_misc.h"
 
-#define USE_SHA1_SHORT 1
-
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
 #define INIT_C			0x98badcfe
@@ -63,6 +61,40 @@
 #endif
 
 #define R(t)	  \
+	( \
+		temp = W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
+		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( r[t & 0x0F] = rotate(temp, 1U) ) \
+		)
+
+#define Ro1(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
+		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( r[t & 0x0F] = rotate(temp, 1U) ) \
+		)
+#define Ro2(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
+		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( r[t & 0x0F] = rotate(temp, 1U) ) \
+		)
+
+#define Ro3(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
+		r[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
+		( r[t & 0x0F] = rotate(temp, 1U) ) \
+		)
+
+#define Rr(t)	  \
+	( \
+		temp = r[(t -  3) & 0x0F] ^ r[(t - 8) & 0x0F] ^ \
+		r[(t - 14) & 0x0F] ^ r[ t      & 0x0F], \
+		( r[t & 0x0F] = rotate(temp, 1U) ) \
+		)
+
+#define R1(t)	  \
 	( \
 		temp = W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ \
 		W[(t - 14) & 0x0F] ^ W[ t      & 0x0F], \
@@ -120,67 +152,67 @@
 	P1(E, A, B, C, D, R(16)); \
 	P1(D, E, A, B, C, R(17)); \
 	P1(C, D, E, A, B, R(18)); \
-	P1(B, C, D, E, A, R(19)); \
-	P2(A, B, C, D, E, R(20)); \
-	P2(E, A, B, C, D, R(21)); \
-	P2(D, E, A, B, C, R(22)); \
-	P2(C, D, E, A, B, R(23)); \
-	P2(B, C, D, E, A, R(24)); \
-	P2(A, B, C, D, E, R(25)); \
-	P2(E, A, B, C, D, R(26)); \
-	P2(D, E, A, B, C, R(27)); \
-	P2(C, D, E, A, B, R(28)); \
-	P2(B, C, D, E, A, R(29)); \
-	P2(A, B, C, D, E, R(30)); \
-	P2(E, A, B, C, D, R(31)); \
-	P2(D, E, A, B, C, R(32)); \
-	P2(C, D, E, A, B, R(33)); \
-	P2(B, C, D, E, A, R(34)); \
-	P2(A, B, C, D, E, R(35)); \
-	P2(E, A, B, C, D, R(36)); \
-	P2(D, E, A, B, C, R(37)); \
-	P2(C, D, E, A, B, R(38)); \
-	P2(B, C, D, E, A, R(39)); \
-	P3(A, B, C, D, E, R(40)); \
-	P3(E, A, B, C, D, R(41)); \
-	P3(D, E, A, B, C, R(42)); \
-	P3(C, D, E, A, B, R(43)); \
-	P3(B, C, D, E, A, R(44)); \
-	P3(A, B, C, D, E, R(45)); \
-	P3(E, A, B, C, D, R(46)); \
-	P3(D, E, A, B, C, R(47)); \
-	P3(C, D, E, A, B, R(48)); \
-	P3(B, C, D, E, A, R(49)); \
-	P3(A, B, C, D, E, R(50)); \
-	P3(E, A, B, C, D, R(51)); \
-	P3(D, E, A, B, C, R(52)); \
-	P3(C, D, E, A, B, R(53)); \
-	P3(B, C, D, E, A, R(54)); \
-	P3(A, B, C, D, E, R(55)); \
-	P3(E, A, B, C, D, R(56)); \
-	P3(D, E, A, B, C, R(57)); \
-	P3(C, D, E, A, B, R(58)); \
-	P3(B, C, D, E, A, R(59)); \
-	P4(A, B, C, D, E, R(60)); \
-	P4(E, A, B, C, D, R(61)); \
-	P4(D, E, A, B, C, R(62)); \
-	P4(C, D, E, A, B, R(63)); \
-	P4(B, C, D, E, A, R(64)); \
-	P4(A, B, C, D, E, R(65)); \
-	P4(E, A, B, C, D, R(66)); \
-	P4(D, E, A, B, C, R(67)); \
-	P4(C, D, E, A, B, R(68)); \
-	P4(B, C, D, E, A, R(69)); \
-	P4(A, B, C, D, E, R(70)); \
-	P4(E, A, B, C, D, R(71)); \
-	P4(D, E, A, B, C, R(72)); \
-	P4(C, D, E, A, B, R(73)); \
-	P4(B, C, D, E, A, R(74)); \
-	P4(A, B, C, D, E, R(75)); \
-	P4(E, A, B, C, D, R(76)); \
-	P4(D, E, A, B, C, R(77)); \
-	P4(C, D, E, A, B, R(78)); \
-	P4(B, C, D, E, A, R(79));
+	P1(B, C, D, E, A, Ro1(19)); \
+	P2(A, B, C, D, E, Ro1(20)); \
+	P2(E, A, B, C, D, Ro1(21)); \
+	P2(D, E, A, B, C, Ro1(22)); \
+	P2(C, D, E, A, B, Ro1(23)); \
+	P2(B, C, D, E, A, Ro2(24)); \
+	P2(A, B, C, D, E, Ro2(25)); \
+	P2(E, A, B, C, D, Ro2(26)); \
+	P2(D, E, A, B, C, Ro2(27)); \
+	P2(C, D, E, A, B, Ro2(28)); \
+	P2(B, C, D, E, A, Ro2(29)); \
+	P2(A, B, C, D, E, Ro3(30)); \
+	P2(E, A, B, C, D, Ro3(31)); \
+	P2(D, E, A, B, C, Rr(32)); \
+	P2(C, D, E, A, B, Rr(33)); \
+	P2(B, C, D, E, A, Rr(34)); \
+	P2(A, B, C, D, E, Rr(35)); \
+	P2(E, A, B, C, D, Rr(36)); \
+	P2(D, E, A, B, C, Rr(37)); \
+	P2(C, D, E, A, B, Rr(38)); \
+	P2(B, C, D, E, A, Rr(39)); \
+	P3(A, B, C, D, E, Rr(40)); \
+	P3(E, A, B, C, D, Rr(41)); \
+	P3(D, E, A, B, C, Rr(42)); \
+	P3(C, D, E, A, B, Rr(43)); \
+	P3(B, C, D, E, A, Rr(44)); \
+	P3(A, B, C, D, E, Rr(45)); \
+	P3(E, A, B, C, D, Rr(46)); \
+	P3(D, E, A, B, C, Rr(47)); \
+	P3(C, D, E, A, B, Rr(48)); \
+	P3(B, C, D, E, A, Rr(49)); \
+	P3(A, B, C, D, E, Rr(50)); \
+	P3(E, A, B, C, D, Rr(51)); \
+	P3(D, E, A, B, C, Rr(52)); \
+	P3(C, D, E, A, B, Rr(53)); \
+	P3(B, C, D, E, A, Rr(54)); \
+	P3(A, B, C, D, E, Rr(55)); \
+	P3(E, A, B, C, D, Rr(56)); \
+	P3(D, E, A, B, C, Rr(57)); \
+	P3(C, D, E, A, B, Rr(58)); \
+	P3(B, C, D, E, A, Rr(59)); \
+	P4(A, B, C, D, E, Rr(60)); \
+	P4(E, A, B, C, D, Rr(61)); \
+	P4(D, E, A, B, C, Rr(62)); \
+	P4(C, D, E, A, B, Rr(63)); \
+	P4(B, C, D, E, A, Rr(64)); \
+	P4(A, B, C, D, E, Rr(65)); \
+	P4(E, A, B, C, D, Rr(66)); \
+	P4(D, E, A, B, C, Rr(67)); \
+	P4(C, D, E, A, B, Rr(68)); \
+	P4(B, C, D, E, A, Rr(69)); \
+	P4(A, B, C, D, E, Rr(70)); \
+	P4(E, A, B, C, D, Rr(71)); \
+	P4(D, E, A, B, C, Rr(72)); \
+	P4(C, D, E, A, B, Rr(73)); \
+	P4(B, C, D, E, A, Rr(74)); \
+	P4(A, B, C, D, E, Rr(75)); \
+	P4(E, A, B, C, D, Rr(76)); \
+	P4(D, E, A, B, C, Rr(77)); \
+	P4(C, D, E, A, B, Rr(78)); \
+	P4(B, C, D, E, A, Rr(79));
 
 #define SHA1_192Z_BEG(A, B, C, D, E, W)	  \
 	P1(A, B, C, D, E, W[0]); \
@@ -248,52 +280,52 @@
 	P2(C, D, E, A, B, Q28); \
 	P2(B, C, D, E, A, Q29); \
 	P2(A, B, C, D, E, Q30); \
-	P2(E, A, B, C, D, R(31)); \
-	P2(D, E, A, B, C, R(32)); \
-	P2(C, D, E, A, B, R(33)); \
-	P2(B, C, D, E, A, R(34)); \
-	P2(A, B, C, D, E, R(35)); \
-	P2(E, A, B, C, D, R(36)); \
-	P2(D, E, A, B, C, R(37)); \
-	P2(C, D, E, A, B, R(38)); \
-	P2(B, C, D, E, A, R(39)); \
-	P3(A, B, C, D, E, R(40)); \
-	P3(E, A, B, C, D, R(41)); \
-	P3(D, E, A, B, C, R(42)); \
-	P3(C, D, E, A, B, R(43)); \
-	P3(B, C, D, E, A, R(44)); \
-	P3(A, B, C, D, E, R(45)); \
-	P3(E, A, B, C, D, R(46)); \
-	P3(D, E, A, B, C, R(47)); \
-	P3(C, D, E, A, B, R(48)); \
-	P3(B, C, D, E, A, R(49)); \
-	P3(A, B, C, D, E, R(50)); \
-	P3(E, A, B, C, D, R(51)); \
-	P3(D, E, A, B, C, R(52)); \
-	P3(C, D, E, A, B, R(53)); \
-	P3(B, C, D, E, A, R(54)); \
-	P3(A, B, C, D, E, R(55)); \
-	P3(E, A, B, C, D, R(56)); \
-	P3(D, E, A, B, C, R(57)); \
-	P3(C, D, E, A, B, R(58)); \
-	P3(B, C, D, E, A, R(59)); \
-	P4(A, B, C, D, E, R(60)); \
-	P4(E, A, B, C, D, R(61)); \
-	P4(D, E, A, B, C, R(62)); \
-	P4(C, D, E, A, B, R(63)); \
-	P4(B, C, D, E, A, R(64)); \
-	P4(A, B, C, D, E, R(65)); \
-	P4(E, A, B, C, D, R(66)); \
-	P4(D, E, A, B, C, R(67)); \
-	P4(C, D, E, A, B, R(68)); \
-	P4(B, C, D, E, A, R(69)); \
-	P4(A, B, C, D, E, R(70)); \
-	P4(E, A, B, C, D, R(71)); \
-	P4(D, E, A, B, C, R(72)); \
-	P4(C, D, E, A, B, R(73)); \
-	P4(B, C, D, E, A, R(74)); \
-	P4(A, B, C, D, E, R(75)); \
-	P4(E, A, B, C, D, R(76)); \
+	P2(E, A, B, C, D, R1(31)); \
+	P2(D, E, A, B, C, R1(32)); \
+	P2(C, D, E, A, B, R1(33)); \
+	P2(B, C, D, E, A, R1(34)); \
+	P2(A, B, C, D, E, R1(35)); \
+	P2(E, A, B, C, D, R1(36)); \
+	P2(D, E, A, B, C, R1(37)); \
+	P2(C, D, E, A, B, R1(38)); \
+	P2(B, C, D, E, A, R1(39)); \
+	P3(A, B, C, D, E, R1(40)); \
+	P3(E, A, B, C, D, R1(41)); \
+	P3(D, E, A, B, C, R1(42)); \
+	P3(C, D, E, A, B, R1(43)); \
+	P3(B, C, D, E, A, R1(44)); \
+	P3(A, B, C, D, E, R1(45)); \
+	P3(E, A, B, C, D, R1(46)); \
+	P3(D, E, A, B, C, R1(47)); \
+	P3(C, D, E, A, B, R1(48)); \
+	P3(B, C, D, E, A, R1(49)); \
+	P3(A, B, C, D, E, R1(50)); \
+	P3(E, A, B, C, D, R1(51)); \
+	P3(D, E, A, B, C, R1(52)); \
+	P3(C, D, E, A, B, R1(53)); \
+	P3(B, C, D, E, A, R1(54)); \
+	P3(A, B, C, D, E, R1(55)); \
+	P3(E, A, B, C, D, R1(56)); \
+	P3(D, E, A, B, C, R1(57)); \
+	P3(C, D, E, A, B, R1(58)); \
+	P3(B, C, D, E, A, R1(59)); \
+	P4(A, B, C, D, E, R1(60)); \
+	P4(E, A, B, C, D, R1(61)); \
+	P4(D, E, A, B, C, R1(62)); \
+	P4(C, D, E, A, B, R1(63)); \
+	P4(B, C, D, E, A, R1(64)); \
+	P4(A, B, C, D, E, R1(65)); \
+	P4(E, A, B, C, D, R1(66)); \
+	P4(D, E, A, B, C, R1(67)); \
+	P4(C, D, E, A, B, R1(68)); \
+	P4(B, C, D, E, A, R1(69)); \
+	P4(A, B, C, D, E, R1(70)); \
+	P4(E, A, B, C, D, R1(71)); \
+	P4(D, E, A, B, C, R1(72)); \
+	P4(C, D, E, A, B, R1(73)); \
+	P4(B, C, D, E, A, R1(74)); \
+	P4(A, B, C, D, E, R1(75)); \
+	P4(E, A, B, C, D, R1(76)); \
 	P4(D, E, A, B, C, R2(77)); \
 	P4(C, D, E, A, B, R2(78)); \
 	P4(B, C, D, E, A, R2(79));
@@ -351,52 +383,52 @@
 	P2(C, D, E, A, B, Q28); \
 	P2(B, C, D, E, A, Q29); \
 	P2(A, B, C, D, E, Q30); \
-	P2(E, A, B, C, D, R(31)); \
-	P2(D, E, A, B, C, R(32)); \
-	P2(C, D, E, A, B, R(33)); \
-	P2(B, C, D, E, A, R(34)); \
-	P2(A, B, C, D, E, R(35)); \
-	P2(E, A, B, C, D, R(36)); \
-	P2(D, E, A, B, C, R(37)); \
-	P2(C, D, E, A, B, R(38)); \
-	P2(B, C, D, E, A, R(39)); \
-	P3(A, B, C, D, E, R(40)); \
-	P3(E, A, B, C, D, R(41)); \
-	P3(D, E, A, B, C, R(42)); \
-	P3(C, D, E, A, B, R(43)); \
-	P3(B, C, D, E, A, R(44)); \
-	P3(A, B, C, D, E, R(45)); \
-	P3(E, A, B, C, D, R(46)); \
-	P3(D, E, A, B, C, R(47)); \
-	P3(C, D, E, A, B, R(48)); \
-	P3(B, C, D, E, A, R(49)); \
-	P3(A, B, C, D, E, R(50)); \
-	P3(E, A, B, C, D, R(51)); \
-	P3(D, E, A, B, C, R(52)); \
-	P3(C, D, E, A, B, R(53)); \
-	P3(B, C, D, E, A, R(54)); \
-	P3(A, B, C, D, E, R(55)); \
-	P3(E, A, B, C, D, R(56)); \
-	P3(D, E, A, B, C, R(57)); \
-	P3(C, D, E, A, B, R(58)); \
-	P3(B, C, D, E, A, R(59)); \
-	P4(A, B, C, D, E, R(60)); \
-	P4(E, A, B, C, D, R(61)); \
-	P4(D, E, A, B, C, R(62)); \
-	P4(C, D, E, A, B, R(63)); \
-	P4(B, C, D, E, A, R(64)); \
-	P4(A, B, C, D, E, R(65)); \
-	P4(E, A, B, C, D, R(66)); \
-	P4(D, E, A, B, C, R(67)); \
-	P4(C, D, E, A, B, R(68)); \
-	P4(B, C, D, E, A, R(69)); \
-	P4(A, B, C, D, E, R(70)); \
-	P4(E, A, B, C, D, R(71)); \
-	P4(D, E, A, B, C, R(72)); \
-	P4(C, D, E, A, B, R(73)); \
-	P4(B, C, D, E, A, R(74)); \
-	P4(A, B, C, D, E, R(75)); \
-	P4(E, A, B, C, D, R(76)); \
+	P2(E, A, B, C, D, R1(31)); \
+	P2(D, E, A, B, C, R1(32)); \
+	P2(C, D, E, A, B, R1(33)); \
+	P2(B, C, D, E, A, R1(34)); \
+	P2(A, B, C, D, E, R1(35)); \
+	P2(E, A, B, C, D, R1(36)); \
+	P2(D, E, A, B, C, R1(37)); \
+	P2(C, D, E, A, B, R1(38)); \
+	P2(B, C, D, E, A, R1(39)); \
+	P3(A, B, C, D, E, R1(40)); \
+	P3(E, A, B, C, D, R1(41)); \
+	P3(D, E, A, B, C, R1(42)); \
+	P3(C, D, E, A, B, R1(43)); \
+	P3(B, C, D, E, A, R1(44)); \
+	P3(A, B, C, D, E, R1(45)); \
+	P3(E, A, B, C, D, R1(46)); \
+	P3(D, E, A, B, C, R1(47)); \
+	P3(C, D, E, A, B, R1(48)); \
+	P3(B, C, D, E, A, R1(49)); \
+	P3(A, B, C, D, E, R1(50)); \
+	P3(E, A, B, C, D, R1(51)); \
+	P3(D, E, A, B, C, R1(52)); \
+	P3(C, D, E, A, B, R1(53)); \
+	P3(B, C, D, E, A, R1(54)); \
+	P3(A, B, C, D, E, R1(55)); \
+	P3(E, A, B, C, D, R1(56)); \
+	P3(D, E, A, B, C, R1(57)); \
+	P3(C, D, E, A, B, R1(58)); \
+	P3(B, C, D, E, A, R1(59)); \
+	P4(A, B, C, D, E, R1(60)); \
+	P4(E, A, B, C, D, R1(61)); \
+	P4(D, E, A, B, C, R1(62)); \
+	P4(C, D, E, A, B, R1(63)); \
+	P4(B, C, D, E, A, R1(64)); \
+	P4(A, B, C, D, E, R1(65)); \
+	P4(E, A, B, C, D, R1(66)); \
+	P4(D, E, A, B, C, R1(67)); \
+	P4(C, D, E, A, B, R1(68)); \
+	P4(B, C, D, E, A, R1(69)); \
+	P4(A, B, C, D, E, R1(70)); \
+	P4(E, A, B, C, D, R1(71)); \
+	P4(D, E, A, B, C, R1(72)); \
+	P4(C, D, E, A, B, R1(73)); \
+	P4(B, C, D, E, A, R1(74)); \
+	P4(A, B, C, D, E, R1(75)); \
+	P4(E, A, B, C, D, R1(76)); \
 	P4(D, E, A, B, C, R2(77)); \
 	P4(C, D, E, A, B, R2(78)); \
 	P4(B, C, D, E, A, R2(79));
@@ -418,12 +450,10 @@
  * AMD bug (seen in eg. Catalyst 14.9). We should really do without them
  * but somehow we get thrashed output without them.
  * On the other hand, they also seem to work as an optimization for nvidia!
- *
- * Intel doesn't support typeof() but also doesn't need the workaround.
  */
-#if !(DEVICE_INFO & DEV_INTEL)
-#define sha1_block(W, ctx) {	\
-		typeof(A) a, b, c, d, e; \
+#define sha1_block(itype, W, ctx) {	  \
+		itype A, B, C, D, E, temp, r[16]; \
+		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
 		C = ctx[2]; \
@@ -437,23 +467,9 @@
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
 	}
-#else
-#define sha1_block(W, ctx) {	\
-		A = ctx[0]; \
-		B = ctx[1]; \
-		C = ctx[2]; \
-		D = ctx[3]; \
-		E = ctx[4]; \
-		SHA1(A, B, C, D, E, W); \
-		ctx[0] += A; \
-		ctx[1] += B; \
-		ctx[2] += C; \
-		ctx[3] += D; \
-		ctx[4] += E; \
-	}
-#endif
 
-#define sha1_single(W, out) {	\
+#define sha1_single(itype, W, out) {	\
+		itype A, B, C, D, E, temp, r[16]; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
@@ -467,9 +483,9 @@
 		out[4] = E + INIT_E; \
 	}
 
-#if 1 /* DEV_VER_MAJOR == 1573 && DEV_VER_MINOR == 4 */
-#define sha1_block_160Z(W, ctx) {	\
-		MAYBE_VECTOR_UINT a, b, c, d, e; \
+#define sha1_block_160Z(itype, W, ctx) {	  \
+		itype A, B, C, D, E, temp; \
+		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
 		C = ctx[2]; \
@@ -483,23 +499,9 @@
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
 	}
-#else
-#define sha1_block_160Z(W, ctx) {	\
-		A = ctx[0]; \
-		B = ctx[1]; \
-		C = ctx[2]; \
-		D = ctx[3]; \
-		E = ctx[4]; \
-		SHA1_160Z(A, B, C, D, E, W); \
-		ctx[0] += A; \
-		ctx[1] += B; \
-		ctx[2] += C; \
-		ctx[3] += D; \
-		ctx[4] += E; \
-	}
-#endif
 
-#define sha1_single_160Z(W, out) {	\
+#define sha1_single_160Z(itype, W, out) {	  \
+		itype A, B, C, D, E, temp; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \
@@ -513,9 +515,9 @@
 		out[4] = E + INIT_E; \
 	}
 
-#if 1 /* DEV_VER_MAJOR == 1573 && DEV_VER_MINOR == 4 */
-#define sha1_block_192Z(W, ctx) {	\
-		MAYBE_VECTOR_UINT a, b, c, d, e; \
+#define sha1_block_192Z(itype, W, ctx) {	  \
+		itype A, B, C, D, E, temp; \
+		itype a, b, c, d, e; \
 		A = ctx[0]; \
 		B = ctx[1]; \
 		C = ctx[2]; \
@@ -529,23 +531,9 @@
 		ctx[3] = d + D; \
 		ctx[4] = e + E; \
 	}
-#else
-#define sha1_block_192Z(W, ctx) {	\
-		A = ctx[0]; \
-		B = ctx[1]; \
-		C = ctx[2]; \
-		D = ctx[3]; \
-		E = ctx[4]; \
-		SHA1_192Z(A, B, C, D, E, W); \
-		ctx[0] += A; \
-		ctx[1] += B; \
-		ctx[2] += C; \
-		ctx[3] += D; \
-		ctx[4] += E; \
-	}
-#endif
 
-#define sha1_single_192Z(W, out) {	\
+#define sha1_single_192Z(itype, W, out) {	  \
+		itype A, B, C, D, E, temp; \
 		A = INIT_A; \
 		B = INIT_B; \
 		C = INIT_C; \

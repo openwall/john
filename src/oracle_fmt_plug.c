@@ -108,15 +108,37 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	 * 2 - it comes from memory, and has got O$ + salt + # + blah
 	 */
 
-	if (strlen(ciphertext) > CIPHERTEXT_LENGTH + MAX_USERNAME_LEN + 3)
+	if (strlen(ciphertext) > CIPHERTEXT_LENGTH + 3 +
+	    MAX_USERNAME_LEN * (options.input_enc == UTF_8 ? 3 : 1))
 		return 0;
 
 	if (!memcmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 	{
+		int len;
+		char name[MAX_USERNAME_LEN + 1];
+		UTF16 name16[MAX_USERNAME_LEN + 1 + 1];
+
+		ciphertext += FORMAT_TAG_LEN;
 		l = strlen(ciphertext) - CIPHERTEXT_LENGTH;
 		if (l <= 0)
 			return 0;
-		if(ciphertext[l-1]!='#')
+		if (ciphertext[l-1] != '#')
+			return 0;
+		strnzcpy(name, ciphertext, sizeof(name));
+		len = enc_to_utf16(name16, MAX_USERNAME_LEN + 1,
+		                   (UTF8*)name, strlen(name));
+		if (len < 0) {
+			static int error_shown = 0;
+#ifdef HAVE_FUZZ
+			if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
+				return 0;
+#endif
+			if (!error_shown)
+				fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
+			error_shown = 1;
+			return 0;
+		}
+		if (len > MAX_USERNAME_LEN)
 			return 0;
 	}
 	else
@@ -147,9 +169,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	sprintf (cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
 	if (valid(cp, self))
 	{
-		UTF8 tmp8[30*3+1];
-		UTF16 tmp16[31];
-		int utf8len, utf16len;
+		UTF8 tmp8[MAX_USERNAME_LEN * 3 + 1];
+		int utf8len;
 
 		// we no longer need this.  It was just used for valid().   We will recompute
 		// all lengths, after we do an upcase, since upcase can change the length of the
@@ -158,14 +179,6 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 		// Upcase user name, --encoding aware
 		utf8len = enc_uc(tmp8, sizeof(tmp8), (unsigned char*)split_fields[0], strlen(split_fields[0]));
-
-		if (utf8len <= 0 && split_fields[0][0])
-			return split_fields[1];
-
-		// make sure this 'fits' into 30 unicode's
-		utf16len = enc_to_utf16(tmp16, 30, tmp8, utf8len);
-		if (utf16len <= 0)
-			return split_fields[1];
 
 		cp = mem_alloc_tiny(utf8len + strlen(split_fields[1]) + 4, MEM_ALIGN_NONE);
 		sprintf (cp, "%s%s#%s", FORMAT_TAG, tmp8, split_fields[1]);
@@ -317,8 +330,6 @@ static void * get_salt(char * ciphertext)
 	enc_strupper((char*)salt);
 
 	l = enc_to_utf16_be(&out[1], MAX_USERNAME_LEN, (UTF8 *)salt, l);
-	if (l < 0)
-		l = strlen16(&out[1]);
 
 	out[0] = (l<<1);
 	return out;

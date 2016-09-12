@@ -170,6 +170,8 @@ void check_abort(int be_async_signal_safe)
 
 	tty_done();
 
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
+
 	if (be_async_signal_safe) {
 		if (john_main_process) {
 			if (aborted_by_timer)

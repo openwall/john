@@ -152,12 +152,23 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 	if (!strncmp(ciphertext, "$dynamic_1590$", 14))
 		return pDynamic->methods.valid(ciphertext, pDynamic);
 
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (hexlenu(&ciphertext[FORMAT_TAG_LEN], 0) != BINARY_SIZE*2)
 		return 0;
 	if (strlen(&ciphertext[FORMAT_TAG_LEN+2*BINARY_SIZE]) > 10)
 		return 0;
+	if (options.input_enc == UTF_8 && !valid_utf8((UTF8*)ciphertext)) {
+		static int error_shown = 0;
+#ifdef HAVE_FUZZ
+		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
+			return 0;
+#endif
+		if (!error_shown)
+			fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
+		error_shown = 1;
+		return 0;
+	}
 	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic);
 }
 
