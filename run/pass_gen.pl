@@ -79,7 +79,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
 		ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
-		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
+		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
 		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp
 		));
@@ -547,35 +547,35 @@ sub ecb_padding_none {
 # things like -utf8 mode, and possible MS code pages understood by JtR.
 #############################################################################
 sub ms_word_encode_uc {
-    my $s = uc($_[0]);
-    if ($arg_codepage eq "UTF-8") {
-        eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
-        if (!$@) { goto MS_enc_Found; }
-        eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
-        if ($@) {
-            print STDERR "UTF-8 input for LM must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.  Use non-UTF8 input with --codepage=xx instead   Word was:  $_[0]\n";
-            $s = uc($_[0]);
-        }
-        MS_enc_Found:;
-    } elsif ($arg_codepage) {
-        $s = encode($arg_codepage, uc($_[0]));
-    }
-    return $s;
+	my $s = uc($_[0]);
+	if ($arg_codepage eq "UTF-8") {
+		eval { $s = encode("CP850", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP437", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP852", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP858", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP866", uc($_[0]), Encode::FB_CROAK); };
+		if (!$@) { goto MS_enc_Found; }
+		eval { $s = encode("CP737", uc($_[0]), Encode::FB_CROAK); };
+		if ($@) {
+			print STDERR "UTF-8 input for LM must be encodable in CP850/CP437/CP852/CP858/CP866/CP737.  Use non-UTF8 input with --codepage=xx instead   Word was:  $_[0]\n";
+			$s = uc($_[0]);
+		}
+		MS_enc_Found:;
+	} elsif ($arg_codepage) {
+		$s = encode($arg_codepage, uc($_[0]));
+	}
+	return $s;
 }
 sub word_encode {
-    my $s = $_[0];
+	my $s = $_[0];
 	if ($arg_codepage && $arg_codepage ne "UTF-8") {
-        $s = encode($arg_codepage, $_[0]);
-    }
-    return $s;
+		$s = encode($arg_codepage, $_[0]);
+	}
+	return $s;
 }
 # sets parity bit to odd. 'truncates' chars to 7 bit before computing odd parity.
 sub str_odd_parity {
@@ -2898,7 +2898,7 @@ sub _hmacmd5 {
 	my ($key, $data) = @_;
 	my $ipad; my $opad;
 	if (length($key) > 64) {
-	    $key = md5($key);
+		$key = md5($key);
 	}
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
@@ -2914,7 +2914,7 @@ sub _hmacsha1 {
 	my ($key, $data) = @_;
 	my $ipad; my $opad;
 	if (length($key) > 64) {
-	    $key = sha1($key);
+		$key = sha1($key);
 	}
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
@@ -2935,7 +2935,7 @@ sub _hmac_shas {
 	my ($func, $pad_sz, $key, $data) = @_;
 	my $ipad; my $opad;
 	if (length($key) > $pad_sz) {
-	    $key = $func->($key);
+		$key = $func->($key);
 	}
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
@@ -3569,7 +3569,7 @@ sub nukedclan {
 	return "\$nk\$\*".unpack("H*", $salt)."\*#$decal".md5_hex($out);
 }
 sub skey_fold {
-    my $a; my $b;
+	my $a; my $b;
 	if ($_[1] == 4) {
 		my( $f0, $f1, $f2, $f3) = unpack('I4', $_[0]);
 		$a = pack('I', $f0) ^ pack('I', $f2);
