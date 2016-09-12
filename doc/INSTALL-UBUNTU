@@ -1,4 +1,4 @@
-== How to install on Ubuntu
+== How to install on Ubuntu (also works on Ubuntu for Windows)
 
 === Install pre-requisites
 
@@ -8,7 +8,7 @@
 
 ==== Recommended (extra formats and performance)
 
-    sudo apt-get install yasm libgmp-dev libpcap-dev pkg-config
+    sudo apt-get install yasm libgmp-dev libpcap-dev pkg-config libbz2-dev
 
 ==== If you have an NVIDIA GPU (CUDA and OpenCL support)
 
