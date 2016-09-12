@@ -1502,7 +1502,7 @@ sub mongodb {
 sub mysqlna {
 	$salt = get_salt(20);
 	$h = sha1($salt.sha1(sha1($_[1]))) ^ sha1($_[1]);
-	print "u$u:\$mysqlna\$".unpack("H*",$salt)."*".unpack("H*",$h).":$u:0:$_[0]::\n";
+	return "\$mysqlna\$".unpack("H*",$salt)."*".unpack("H*",$h);
 }
 sub o5logon {
 	$salt = get_salt(10);
@@ -2213,7 +2213,7 @@ sub palshop {
 	my $s1 = sha1($_[0]);
 	my $s = unpack("H*", $m1.$s1);
 	$s = substr($s, 11, 50) . substr($s, 0, 1);
-	print ("$s\n");
+	#print ("$s\n");
 	my $m2 = md5($s);
 	my $s2 = sha1($s);
 	return "\$palshop\$". substr(unpack("H*",$m2),11) . substr(unpack("H*",$s2), 0, 29) . substr(unpack("H*",$m2),0,1);
@@ -2849,7 +2849,6 @@ sub sunmd5 {
 	$salt = "\$md5\$rounds=904\$".$salt;
 	my $c = _sunmd5_hash($_[1], $salt);
 	my $h = _md5_crypt_to_64($c);
-	print "u$u-sunmd5:$salt\$$h:$u:0:$_[0]::\n";
 	return "$salt\$$h";
 }
 sub wowsrp {
@@ -3258,7 +3257,6 @@ sub oracle {
 	my $key2 = substr($cr1->encrypt($userpass), length($userpass)-8, 8);
 	my $cr2 = new Crypt::CBC( -literal_key => 1, -cipher => "DES", -key => $key2, -iv => $iv, -header => "none" );
 	my $hash = substr($cr2->encrypt($userpass), length($userpass)-8, 8);
-	print "$out_username:", uc(unpack('H*', $hash)), ":$u:0:$_[0]:oracle_des_hash:\n";
 	return uc(unpack('H*', $hash));
 }
 sub oracle_no_upcase_change {
@@ -3432,7 +3430,6 @@ sub crc_32 {
 	}
 }
 sub dummy {
-    print "$u-dummy:", '$dummy$', unpack('H*', $_[1]),":$u:0:", $_[0], "::\n";
 	return '$dummy$'.unpack('H*', $_[1]);
 }
 sub raw_gost {
