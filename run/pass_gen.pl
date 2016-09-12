@@ -267,7 +267,7 @@ if (defined $arg_codepage and length($arg_codepage)) {
 }
 
 if ($bVectors == 1 && (@ARGV != 1 || $arg_genall != 0)) {
-	print "\n\nNOTE, if using --outformat=vector you must ONLY be processing for a single format\n\n";
+	print STDERR "\n\nNOTE, if using --outformat=vector you must ONLY be processing for a single format\n\n";
 	die usage();
 }
 
@@ -1768,7 +1768,7 @@ sub sap_h {
 	elsif ($mode eq "sha256") { $modestr = "SHA256"; }
 	elsif ($mode eq "sha384") { $modestr = "SHA384"; }
 	elsif ($mode eq "sha512") { $modestr = "SHA512"; }
-	else { print "invalid mode used for SAP-H  [$mode] is not valid\n"; exit 0; }
+	else { print STDERR "invalid mode used for SAP-H  [$mode] is not valid\n"; exit 0; }
 	no strict 'refs';
 	my $h = &$mode($_[0].$salt);
 	for (my $i = 1; $i < $iter; $i++) {
@@ -2140,7 +2140,7 @@ sub mdc2 {
 		if ($s eq "52525252525252522525252525252525") {
 			$is_mdc2_valid = 1;
 		} else {
-			print "\nmdc2 requires an updated openssl for pass_gen.pl to produce hashes\n\n";
+			print STDERR "\nmdc2 requires an updated openssl for pass_gen.pl to produce hashes\n\n";
 			$is_mdc2_valid = 0;
 			return undef;
 		}
