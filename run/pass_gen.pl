@@ -77,7 +77,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		raw-tiger raw-whirlpool hsrp known-hosts chap bb-es10 citrix-ns10
 		clipperz-srp dahua fortigate lp lastpass rawmd2 mongodb mysqlna
 		o5logon postgres pst raw-blake2 raw-keccak raw-keccak256 siemens-s7
-		raw-skein-256 raw-skein-512 ssha512 tcp-md5 strip bitcoin blockchain
+		ssha512 tcp-md5 strip bitcoin blockchain
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4 
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
@@ -85,7 +85,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
-#       _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
+#       raw-skein-256 raw-skein-512 _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
 
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0; my $is_mdc2_valid = -1;
@@ -531,7 +531,17 @@ sub crc32 {
 	}
 	return ~ $crc;
 }
-
+#############################################################################
+# the Crypt::ECB padding interface changed at v2.00 and is not compatible.
+# we have to handle this correctly by detecting version, and returning
+# proper data for the version being used
+#############################################################################
+sub ecb_padding_none {
+	require Crypt::ECB;
+	if (Crypt::ECB->VERSION*1.0 >= 2.00) { return 'none'; }
+	import Crypt::ECB qw(PADDING_NONE);
+	return PADDING_NONE();
+}
 #############################################################################
 # these functions will encode words 'properly', or at least try to, based upon
 # things like -utf8 mode, and possible MS code pages understood by JtR.
@@ -1736,16 +1746,15 @@ sub ripemd_160 {
 	return "\$ripemd\$".ripemd160_hex($_[0]);
 }
 sub rsvp {
-	require Digest::HMAC_MD5;
 	$salt = get_salt(16, -8192);
 	my $mode = 1;
 	my $h;
 	if (defined $argmode) {$mode=$argmode;} # 1 or 2
 	# note, password and salt are 'reversed' in the hmac.
 	if ($mode == 1) {
-		$h = Digest::HMAC_MD5::hmac_md5($salt, $_[0]);
+		$h = _hmacmd5($_[0], $salt);
 	} else {
-		$h = Digest::SHA::hmac_sha1($salt, $_[0]);
+		$h = _hmacsha1($_[0], $salt);
 	}
 	return "\$rsvp\$$mode\$".unpack("H*",$salt).'$'.unpack("H*",$h);
 }
@@ -2120,9 +2129,9 @@ sub eigrp {
 	return "\$eigrp\$3\$" . unpack("H*",$salt) . "\$0\$x\$1\$$ip\$" . unpack("H*",$h);
 }
 sub mdc2 {
-	# we should be able to optimize this, but for now this 'works'.  NOTE, mdc2 is
-	# note in v1.01 but was introduced somewhere in v1.02  I have it on cygwin, but
-	# not on my fedora 22, so a 1 time check has been added.
+	# we should be able to optimize this, but for now this 'works'.
+	# note, mdc2 is not in v1.01 but was introduced somewhere in v1.02
+	# so a 1 time check has been added.
 	if ($is_mdc2_valid == 0) { return undef; }
 	if ($is_mdc2_valid == -1) {
 		my $s = `echo -n '' | openssl dgst -mdc2 2> /dev/null`;
@@ -2397,7 +2406,7 @@ sub vnc {
 	$key = str_odd_parity($key);
 	$key = str_reverse_bits_in_bytes($key);
 	my $cr = Crypt::ECB->new;
-	$cr->padding(Crypt::ECB->PADDING_NONE);
+	$cr->padding(ecb_padding_none);
 	$cr->cipher("DES");
 	$cr->key($key);
 	my $hash = $cr->encrypt($chal);
@@ -2534,7 +2543,6 @@ sub keychain {
 	return "\$keychain\$*".unpack("H*",$salt)."*".unpack("H*",$iv)."*".substr(unpack("H*",$h),0,48*2);
 }
 sub wpapsk {
-	require Digest::HMAC_MD5;
 	# max ssid is 32 bytes
 	# min password is 8 bytes.  Max is 63 bytes
 	if (length($_[1]) < 8 || length($_[1]) > 63) { return; }
@@ -2566,14 +2574,14 @@ sub wpapsk {
 
 	# in JtR prf_512($wpaH, $data, $prf), but we simply do it inline.
 	$data = "Pairwise key expansion" . chr(0) . $data . chr(0);
-	$prf = Digest::SHA::hmac_sha1($data, $wpaH);
+	$prf = _hmacsha1($wpaH, $data);
 
 	if ($keyver == 1) {
 		$prf = substr($prf, 0, 16);
-		$keymic = Digest::HMAC_MD5::hmac_md5($eapol, $prf);
+		$keymic = _hmacmd5($prf, $eapol);
 	} else {
 		$prf = substr($prf, 0, 16);
-		$keymic = Digest::SHA::hmac_sha1($eapol, $prf);
+		$keymic = _hmacsha1($prf, $eapol);
 		$keymic = substr($keymic, 0, 16);
 	}
 	# ok, now we have the keymic.
@@ -2902,6 +2910,22 @@ sub _hmacmd5 {
 		$opad .= chr(0x5C);
 	}
 	return md5($opad,md5($ipad,$data));
+}
+sub _hmacsha1 {
+	my ($key, $data) = @_;
+	my $ipad; my $opad;
+	if (length($key) > 64) {
+	    $key = sha1($key);
+	}
+	for ($i = 0; $i < length($key); ++$i) {
+		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
+		$opad .= chr(ord(substr($key, $i, 1)) ^ 0x5C);
+	}
+	while ($i++ < 64) {
+		$ipad .= chr(0x36);
+		$opad .= chr(0x5C);
+	}
+	return sha1($opad,sha1($ipad,$data));
 }
 sub hmac_md5 {
 	$salt = get_salt(-183);
@@ -3293,7 +3317,7 @@ sub setup_des_key {
 # This produces only NETNTLM ESS hashes, in L0phtcrack format
 sub netntlm_ess {
 	require Crypt::ECB;
-	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	import Crypt::ECB qw(encrypt);
 	my $password = $_[1];
 	my $domain = get_salt(15, -15);
 	my $nthash = md4(encode("UTF-16LE", $password));
@@ -3301,9 +3325,9 @@ sub netntlm_ess {
 	my $s_challenge = get_iv(8);
 	my $c_challenge = get_content(8);
 	my $challenge = substr(md5($s_challenge.$c_challenge), 0, 8);
-	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
+	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	my $type = "ntlm ESS";
 	my $lmresp = $c_challenge . "\0"x16;
 	#printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$s_challenge), $_[0], $type);
@@ -3317,16 +3341,16 @@ sub netntlm {
 # This produces NETHALFLM, NETLM and non-ESS NETNTLM hashes in L0pthcrack format
 sub l0phtcrack {
 	require Crypt::ECB;
-	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	import Crypt::ECB qw(encrypt);
 	my $password = $_[1];
 	my $domain = get_salt(15);
 	my $nthash = md4(encode("UTF-16LE", $password));
 	$nthash .= "\x00"x5;
 	my $lmhash; my $lmresp;
 	my $challenge = get_iv(8);
-	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, PADDING_NONE());
+	my $ntresp = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+	$ntresp .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	my $type;
 	if (length($password) > 14) {
 		$type = "ntlm only";
@@ -3335,9 +3359,9 @@ sub l0phtcrack {
 		$type = "lm and ntlm";
 		$lmhash = LANMan($password);
 		$lmhash .= "\x00"x5;
-		$lmresp = Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 14, 7)), 'DES', $challenge, PADDING_NONE());
+		$lmresp = Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+		$lmresp .= Crypt::ECB::encrypt(setup_des_key(substr($lmhash, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	}
 	#printf("%s\\%s:::%s:%s:%s::%s:%s\n", $domain, "u$u-netntlm", unpack("H*",$lmresp), unpack("H*",$ntresp), unpack("H*",$challenge), $_[0], $type);
 	$l0pht_fmt = 1;
@@ -3380,7 +3404,7 @@ sub netntlmv2 {
 }
 sub mschapv2 {
 	require Crypt::ECB;
-	import Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
+	import Crypt::ECB qw(encrypt);
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $user = get_username(20);
@@ -3391,9 +3415,9 @@ sub mschapv2 {
 	$ctx->add($a_challenge);
 	$ctx->add($user);
 	my $challenge = substr($ctx->digest, 0, 8);
-	my $response = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, PADDING_NONE());
-	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, PADDING_NONE());
-	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash . "\x00" x 5, 14, 7)), 'DES', $challenge, PADDING_NONE());
+	my $response = Crypt::ECB::encrypt(setup_des_key(substr($nthash, 0, 7)), 'DES', $challenge, ecb_padding_none);
+	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash, 7, 7)), 'DES', $challenge, ecb_padding_none);
+	$response .= Crypt::ECB::encrypt(setup_des_key(substr($nthash . "\x00" x 5, 14, 7)), 'DES', $challenge, ecb_padding_none);
 	#printf("%s:::%s:%s:%s::%s:mschapv2\n", $user, unpack("H*",$a_challenge), unpack("H*",$response), unpack("H*",$p_challenge), $_[0]);
 	$l0pht_fmt = 1;
 	return "$user".":::".unpack("H*",$a_challenge).":".unpack("H*",$response).":".unpack("H*",$p_challenge);
