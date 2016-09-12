@@ -2583,7 +2583,11 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
 	stream.read(4)  # unused
 	while i < encryptSessionPersistIdRef:
 		i += 1
-		persistOffset = unpack("<L", stream.read(4))[0]
+		try:
+			persistOffset = unpack("<L", stream.read(4))[0]
+		except:
+			sys.stderr.write("%s : Document is corrupt, or %s has a bug\n" % (filename, sys.argv[0]))
+			return
 	# print persistOffset
 	# go to the offset of encryption header
 	stream.seek(persistOffset, 0)
