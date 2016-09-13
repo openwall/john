@@ -68,9 +68,6 @@ static char *LogDateStderrFormat;
 static int LogDateFormatUTC=0;
 static char *log_perms;
 static char *pot_perms;
-static char *p_u;
-static char *p_ug;
-static char *p_ugo;
 mode_t perms_t;
 
 /*
@@ -96,17 +93,8 @@ static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
 static int in_logger = 0;
 
-static void log_file_init(struct log_file *f, char *name, char *perms, int size)
+static void log_file_chmod(char *name, mode_t perms_t)
 {
-	p_u = "0600";
-	p_ug = "0660";
-	p_ugo = "0666";
-	if (!((strcmp(perms, p_u) == 0) || (strcmp(perms, p_ug) == 0) || (strcmp(perms, p_ugo) == 0)))
-		pexit("PotFilePerms or LogFilePerms %s invalid, valid values: %s, %s, %s\n\n", perms, p_u, p_ug, p_ugo);
-	perms_t = strtoul(perms, NULL, 8);
-	if (f == &log && (options.flags & FLG_NOLOG)) return;
-	f->name = name;
-
 	if (chmod(path_expand(name), perms_t))
 	{
 		if (cfg_get_bool(SECTION_OPTIONS, NULL, "IgnoreLogChmodErrors", 0))
@@ -119,9 +107,33 @@ static void log_file_init(struct log_file *f, char *name, char *perms, int size)
 				pexit("chmod: %s", path_expand(name));
 	}
 	
+}
+
+static void log_file_init(struct log_file *f, char *name, char *perms, int size)
+{
+	perms_t = strtoul(perms, NULL, 8);
+	if ((perms_t & 0x49) || !(perms_t & 0x92))
+	{
+		fprintf(stderr, "PotFilePerms or LogFilePerms %s invalid\n", perms);
+		error();
+	}
+	
+	if (f == &log && (options.flags & FLG_NOLOG)) return;
+	f->name = name;
+
+	log_file_chmod(name, perms_t);
+	
+#ifndef _MSC_VER
+    umask(000);
+#endif
+
 	if ((f->fd = open(path_expand(name),
 	    O_WRONLY | O_CREAT | O_APPEND, perms_t)) < 0)
 		pexit("open: %s", path_expand(name));
+
+#ifndef _MSC_VER
+    umask(077);
+#endif
 
 	/*
 	 * plain will now always be < LINE_BUFFER_SIZE. We add some extra bytes
