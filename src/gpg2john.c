@@ -198,7 +198,7 @@ public void Getc_resetlen(void);
  *  packet.c
  */
 
-public void parse_packet(void);
+public void parse_packet(char *);
 public void parse_signature_subpacket(string, int);
 public void parse_userattr_subpacket(string, int);
 
@@ -229,13 +229,13 @@ public void multi_precision_integer(string);
 public void Reserved(int);
 public void Public_Key_Encrypted_Session_Key_Packet(int);
 public void Symmetric_Key_Encrypted_Session_Key_Packet(int);
-public void Symmetrically_Encrypted_Data_Packet(int,int,int);
+public void Symmetrically_Encrypted_Data_Packet(int,int,int,char*);
 public void Marker_Packet(int);
 public void Literal_Data_Packet(int);
 public void Trust_Packet(int);
 public void User_ID_Packet(int);
 public void User_Attribute_Packet(int);
-public void Symmetrically_Encrypted_and_MDC_Packet(int,int,int);
+public void Symmetrically_Encrypted_and_MDC_Packet(int,int,int,char*);
 public void Modification_Detection_Code_Packet(int);
 public void Private_Packet(int);
 
@@ -357,14 +357,16 @@ int gpg2john(int argc, char **argv)
 
 	for (i = 1; i < argc; ++i) {
 		FILE *fp;
+		char *hash;
 		filename = argv[i];
 		fp = fopen(filename, "rb");
 		jtr_fseek64(fp, 0, SEEK_END);
 		m_flen = (size_t)jtr_ftell64(fp);
 		fclose(fp);
+		hash = mem_alloc( (m_flen+256) << 1);
 		if (freopen(filename, "rb", stdin) == NULL)
 			warn_exit("can't open %s.", filename);
-		parse_packet();
+		parse_packet(hash);
 		if (*last_hash) {
 			char login[4096], *cp;
 			char *gecos_remains = gecos;
@@ -382,6 +384,7 @@ int gpg2john(int argc, char **argv)
 			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 			*last_hash = 0;
 		}
+		MEM_FREE(hash);
 	}
 
 	exit(EXIT_SUCCESS);
@@ -920,15 +923,12 @@ Symmetric_Key_Encrypted_Session_Key_Packet(int len)
 }
 
 public void
-Symmetrically_Encrypted_Data_Packet(int len, int first, int partial)
+Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 {
 	int mode = get_sym_alg_mode();
-	static char *hash = NULL;
 	static char *cp;
 	static uint64_t totlen;
 
-	if (!hash)
-		hash = mem_alloc_tiny(m_flen+256, 2);
 	if (first) {
 		cp = hash;
 		totlen = 0;
@@ -1055,15 +1055,12 @@ User_Attribute_Packet(int len)
 }
 
 public void
-Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial)
+Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial, char *hash)
 {
 	int mode = get_sym_alg_mode();
-	static char *hash = NULL;
 	static char *cp;
 	static uint64_t totlen;
 
-	if (!hash)
-		hash = mem_alloc_tiny(m_flen+256, 2);
 	if (first) {
 		cp = hash;
 		totlen = 0;
@@ -1467,7 +1464,7 @@ is_partial(int c)
 }
 
 public void
-parse_packet()
+parse_packet(char *hash)
 {
 	int c, tag, len = 0;
 	int partial = NO;
@@ -1547,7 +1544,7 @@ parse_packet()
 		if (tag < TAG_NUM && tag_func[tag] != NULL) {
 			if (gpg_dbg)
 				fprintf(stderr, "Packet type %d, len %d at offset %d  (Processing) (pkt-type %s) (Partial %s)\n", tag, len, offset, pkt_type(tag), partial?"yes":"no");
-			(*tag_func[tag])(len, 1, partial);	// first packet (possibly only one if partial is false).
+			(*tag_func[tag])(len, 1, partial, hash);	// first packet (possibly only one if partial is false).
 		} else {
 			if (gpg_dbg)
 				fprintf(stderr, "Packet type %d, len %d at offset %d  (Skipping) (Partial %s)\n", tag, len, offset, partial?"yes":"no");
@@ -1569,7 +1566,7 @@ parse_packet()
 			if (tag < TAG_NUM && tag_func[tag] != NULL) {
 				if (gpg_dbg)
 					fprintf(stderr, "Packet type %d, len %d at offset %d  (Processing) (pkt-type %s) (Partial %s)\n", tag, len, offset, pkt_type(tag), partial?"yes":"no");
-				(*tag_func[tag])(len, 0, partial);	// subsquent packets.
+				(*tag_func[tag])(len, 0, partial, hash);	// subsquent packets.
 			} else
 				skip(len);
 		}
