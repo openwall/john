@@ -128,22 +128,19 @@ private bz_stream bz;
 
 #define NULL_VER -1
 
-#define BIG_ENOUGH 0x10000
-
 /* Global Stuff */
 
-static unsigned char d[BIG_ENOUGH];
-static unsigned char u[BIG_ENOUGH];
-static unsigned char p[BIG_ENOUGH];
-static unsigned char q[BIG_ENOUGH];
-static unsigned char g[BIG_ENOUGH];
-static unsigned char y[BIG_ENOUGH];
-static unsigned char n[BIG_ENOUGH];
-static unsigned char e[BIG_ENOUGH];
-// static unsigned char x[BIG_ENOUGH];
-static unsigned char m_data[BIG_ENOUGH];
-static char gecos[BIG_ENOUGH];
-static char last_hash[2 * BIG_ENOUGH];
+static unsigned char d[16384]; // used for RSA, more than big enough
+static unsigned char u[16384]; // used for RSA, more than big enough
+static unsigned char p[16384];
+static unsigned char q[16384];
+static unsigned char g[16384];
+static unsigned char y[16384];
+static unsigned char n[16384];
+static unsigned char e[16384];
+static unsigned char m_data[90000];  // FIXME: I think 8192 is biggest data per block ???
+static char gecos[1024];
+static char *last_hash;
 static unsigned char m_salt[64];
 static unsigned char iv[16];
 static char *filename;
@@ -367,7 +364,7 @@ int gpg2john(int argc, char **argv)
 		if (freopen(filename, "rb", stdin) == NULL)
 			warn_exit("can't open %s.", filename);
 		parse_packet(hash);
-		if (*last_hash) {
+		if (last_hash && *last_hash) {
 			char login[4096], *cp;
 			char *gecos_remains = gecos;
 			const char *ext[] = {".gpg", ".pgp"};
@@ -382,7 +379,7 @@ int gpg2john(int argc, char **argv)
 			cp = &login[strlen(login) - 1];
 			while (cp > login && *cp == ' ') *cp-- = 0;
 			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-			*last_hash = 0;
+			MEM_FREE(last_hash);
 		}
 		MEM_FREE(hash);
 	}
@@ -2447,11 +2444,13 @@ encrypted_Secret_Key(int len, int sha1)
 		used += len;
 
 		m_algorithm = PUBLIC;
-		if (*last_hash) {
+		if (last_hash && *last_hash) {
 			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-			*last_hash = 0;
+			MEM_FREE(last_hash);
 		}
 		if (dump_subkeys || !is_subkey) {
+			MEM_FREE(last_hash);
+			last_hash = mem_alloc(len*2 + 256);
 			cp = last_hash;
 			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
 			cp += print_hex(m_data, len, cp);
@@ -2475,11 +2474,13 @@ encrypted_Secret_Key(int len, int sha1)
 			give(len, m_data, sizeof(m_data)); // we can't break down the "data" further into fields
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
-			if (*last_hash) {
+			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-				*last_hash = 0;
+				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
+				MEM_FREE(last_hash);
+				last_hash = mem_alloc(len*2 + 256);
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
 				cp += print_hex(m_data, len, cp);
@@ -2500,11 +2501,13 @@ encrypted_Secret_Key(int len, int sha1)
 			m_algorithm = PUBLIC;  // Encrypted ElGamal
 			give(len, m_data, sizeof(m_data));
 			used += len;
-			if (*last_hash) {
+			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-				*last_hash = 0;
+				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
+				MEM_FREE(last_hash);
+				last_hash = mem_alloc(len*2 + 256);
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
 				cp += print_hex(m_data, len, cp);
@@ -2527,11 +2530,13 @@ encrypted_Secret_Key(int len, int sha1)
 			m_algorithm = PUBLIC;  // Encrypted DSA
 			give(len, m_data, sizeof(m_data));
 			used += len;
-			if (*last_hash) {
+			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-				*last_hash = 0;
+				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
+				MEM_FREE(last_hash);
+				last_hash = mem_alloc(len*2 + 256);
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
 				cp += print_hex(m_data, len, cp);

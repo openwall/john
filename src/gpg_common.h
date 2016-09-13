@@ -11,6 +11,8 @@
  *  (CPU, OpenCL)
  */
 
+#include "dyna_salt.h"
+
 #define BENCHMARK_COMMENT		   ""
 #define BENCHMARK_LENGTH		   -1001
 #define FORMAT_TAG           "$gpg$*"
@@ -23,7 +25,6 @@
 
 // Minimum number of bits when checking the first BN
 #define MIN_BN_BITS 64
-#define BIG_ENOUGH 8192
 
 extern struct fmt_tests gpg_common_gpg_tests[];
 
@@ -91,8 +92,8 @@ enum {
 #endif
 
 struct gpg_common_custom_salt {
+	dyna_salt dsalt;
 	int datalen;
-	unsigned char data[BIG_ENOUGH * 2];
 	char spec;
 	char pk_algorithm;
 	char hash_algorithm;
@@ -104,13 +105,14 @@ struct gpg_common_custom_salt {
 	int ivlen;
 	int count;
 	void (*s2kfun)(char *, unsigned char*, int);
-	unsigned char p[BIG_ENOUGH];
-	unsigned char q[BIG_ENOUGH];
-	unsigned char g[BIG_ENOUGH];
-	unsigned char y[BIG_ENOUGH];
-	unsigned char x[BIG_ENOUGH];
-	unsigned char n[BIG_ENOUGH];
-	unsigned char d[BIG_ENOUGH];
+	// these 'might' need to be in dyna data???
+	unsigned char p[16384];
+	unsigned char q[16384];
+	unsigned char g[16384];
+	unsigned char y[16384];
+	unsigned char x[16384];
+	unsigned char n[16384];
+	unsigned char d[16384];
 	int pl;
 	int ql;
 	int gl;
@@ -119,6 +121,7 @@ struct gpg_common_custom_salt {
 	int nl;
 	int dl;
 	int symmetric_mode;
+	unsigned char data[1];
 };
 
 extern struct gpg_common_custom_salt *gpg_common_cur_salt;
