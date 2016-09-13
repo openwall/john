@@ -9,14 +9,15 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 
 # Unix-style newlines with a newline ending every file
-[*.{c,h,in,pl,py,sh,pm,cl}]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-trim_trailing_whitespace = true
+[*.{c,h,in,pl,sh,pm,cl}]
 indent_style = tab
 # We don't enforce this for Jumbo, let user decide (that's the beauty of tabs)
 #indent_size = 8
+
+[*.py]
+# Python is a really strange language
+indent_style = space
+indent_size = 4
 
 [doc/*]
 indent_size = 8
