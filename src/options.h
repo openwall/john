@@ -362,7 +362,7 @@ struct options_main {
 #endif
 /* -list=WHAT Get a config list (eg. a list of incremental modes available) */
 	char *listconf;
-/* Verbosity level, 1-5. Two is normal, three is "legacy". */
+/* Verbosity level, 1-5. Three is normal for jumbo, four is "legacy". */
 	int verbosity;
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;

@@ -1303,7 +1303,7 @@ static void john_load(void)
 			log_event("- Reassembled %d split passwords for "
 			          "loopback", loop_db.plaintexts->count);
 			if (john_main_process &&
-			    options.verbosity >= VERB_LEGACY)
+			    options.verbosity >= VERB_DEFAULT)
 				fprintf(stderr,
 				        "Reassembled %d split passwords for "
 				        "loopback\n",

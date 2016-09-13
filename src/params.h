@@ -402,7 +402,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /* Verbosity level. Higher is more chatty. */
 #define VERB_MAX			5
-#define VERB_LEGACY			3
-#define VERB_DEFAULT			2
+#define VERB_LEGACY			4
+#define VERB_DEFAULT			3
 
 #endif
