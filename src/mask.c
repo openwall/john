@@ -1402,6 +1402,11 @@ static void truncate_mask(mask_cpu_context *cpu_mask_ctx, int range_idx)
 			if (cpu_mask_ctx->ranges[i].next == MAX_NUM_MASK_PLHDR)
 				break;
 		}
+
+	if (options.node_count && !(options.flags & FLG_MASK_STACKED))
+		mask_tot_cand = mask_tot_cand *
+			(options.node_max + 1 - options.node_min) /
+			options.node_count;
 }
 
 /*
@@ -1794,6 +1799,11 @@ static double get_progress(void)
 
 	if (!mask_tot_cand)
 		return -1;
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s() try %.0f candlen %llu tot %llu\n", __FUNCTION__,
+	        try, cand_length, total);
+#endif
 
 	if (cand_length)
 		total += cand_length;
@@ -2328,9 +2338,6 @@ int do_mask_crack(const char *extern_key)
 
 			if (options.node_count && !(options.flags & FLG_MASK_STACKED)) {
 				if (restored) {
-					mask_tot_cand = mask_tot_cand *
-						(options.node_max + 1 - options.node_min) /
-						options.node_count;
 					restored = 0;
 				}
 				else {
