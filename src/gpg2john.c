@@ -120,6 +120,7 @@ private bz_stream bz;
 #include "jumbo.h"
 #include "misc.h"
 #include "params.h"
+#include "memory.h"
 #include "memdbg.h"	// Must be last included header
 
 #define YES 1
@@ -150,6 +151,7 @@ static int offset;
 static int gpg_dbg;
 static int dump_subkeys;
 static int is_subkey;
+static size_t m_flen;
 
 static int m_spec;
 static int m_algorithm;
@@ -227,13 +229,13 @@ public void multi_precision_integer(string);
 public void Reserved(int);
 public void Public_Key_Encrypted_Session_Key_Packet(int);
 public void Symmetric_Key_Encrypted_Session_Key_Packet(int);
-public void Symmetrically_Encrypted_Data_Packet(int);
+public void Symmetrically_Encrypted_Data_Packet(int,int,int);
 public void Marker_Packet(int);
 public void Literal_Data_Packet(int);
 public void Trust_Packet(int);
 public void User_ID_Packet(int);
 public void User_Attribute_Packet(int);
-public void Symmetrically_Encrypted_and_MDC_Packet(int);
+public void Symmetrically_Encrypted_and_MDC_Packet(int,int,int);
 public void Modification_Detection_Code_Packet(int);
 public void Private_Packet(int);
 
@@ -354,7 +356,12 @@ int gpg2john(int argc, char **argv)
 	}
 
 	for (i = 1; i < argc; ++i) {
+		FILE *fp;
 		filename = argv[i];
+		fp = fopen(filename, "rb");
+		jtr_fseek64(fp, 0, SEEK_END);
+		m_flen = (size_t)jtr_ftell64(fp);
+		fclose(fp);
 		if (freopen(filename, "rb", stdin) == NULL)
 			warn_exit("can't open %s.", filename);
 		parse_packet();
@@ -913,11 +920,23 @@ Symmetric_Key_Encrypted_Session_Key_Packet(int len)
 }
 
 public void
-Symmetrically_Encrypted_Data_Packet(int len)
+Symmetrically_Encrypted_Data_Packet(int len, int first, int partial)
 {
 	int mode = get_sym_alg_mode();
-	char hash[2 * BIG_ENOUGH] = {0};
-	char *cp = hash;
+	static char *hash = NULL;
+	static char *cp;
+	static uint64_t totlen;
+
+	if (!hash)
+		hash = mem_alloc_tiny(m_flen+256, 2);
+	if (first) {
+		cp = hash;
+		totlen = 0;
+		// printf("\tVer %d\n", Getc());
+		Getc(); // version (we only read this from the first packet. Not read from rest of the 'partial' packets.
+	} else
+		++len;  // we want the 'full' length for subsquent partial packets, since the logic is len-1 we simply fake it out.
+	totlen += (len-1);
 
 	switch (mode) {
 	case SYM_ALG_MODE_NOT_SPECIFIED:
@@ -940,24 +959,22 @@ Symmetrically_Encrypted_Data_Packet(int len)
 	// The decrypted data will typically contain other packets (often
 	// literal data packets or compressed data packets).
 
-	// m_usage is not really used in gpg_fmt_plug.c for symmetric hashes,
-	// let's hijack it for specifying tag values.
-	m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
 	give(len, m_data, sizeof(m_data));
-	if (len * 2 > BIG_ENOUGH - 128) {
-		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
-	} else {
-		fprintf(stderr, "[gpg2john] MDC is misssing, expect false positives!\n");
-		cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len); // m_algorithm == 0 for symmetric encryption?
-		cp += print_hex(m_data, len, cp);
-		cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
-		cp += sprintf(cp, "*%d*", m_count);
-		cp += print_hex(m_salt, 8, cp);
-		puts(hash);
-	}
+	cp += print_hex(m_data, len - 1, cp);
 
-	// skip(len);
-	reset_sym_alg_mode();
+	if (!partial) {
+		// we only dump the packet out when we get the 'non-partial' packet (i.e. last one).
+
+		// m_usage is not really used in gpg_fmt_plug.c for symmetric hashes,
+		// let's hijack it for specifying tag values.
+		m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
+		fprintf(stderr, "[gpg2john] MDC is misssing, expect false positives!\n");
+		printf("$gpg$*%d*"LLd"*%s*%d*%d*%d*%d*%d*", m_algorithm, (long long)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
+		cp = hash;
+		cp += print_hex(m_salt, 8, cp);
+		printf("%s\n", hash);
+		reset_sym_alg_mode();
+	}
 }
 
 public void
@@ -1038,14 +1055,23 @@ User_Attribute_Packet(int len)
 }
 
 public void
-Symmetrically_Encrypted_and_MDC_Packet(int len)
+Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial)
 {
 	int mode = get_sym_alg_mode();
-	// printf("\tVer %d\n", Getc());
-	char hash[BIG_ENOUGH * 2] = {0};
-	char *cp = hash;
+	static char *hash = NULL;
+	static char *cp;
+	static uint64_t totlen;
 
-	Getc(); // version
+	if (!hash)
+		hash = mem_alloc_tiny(m_flen+256, 2);
+	if (first) {
+		cp = hash;
+		totlen = 0;
+		// printf("\tVer %d\n", Getc());
+		Getc(); // version (we only read this from the first packet. Not read from rest of the 'partial' packets.
+	} else
+		++len;  // we want the 'full' length for subsquent partial packets, since the logic is len-1 we simply fake it out.
+	totlen += (len-1);
 	switch (mode) {
 	case SYM_ALG_MODE_SYM_ENC:
 		// printf("\tEncrypted data [sym alg is specified in sym-key encrypted session key]\n");
@@ -1056,24 +1082,17 @@ Symmetrically_Encrypted_and_MDC_Packet(int len)
 		break;
 	}
 	give(len - 1, m_data, sizeof(m_data));
-	if (len * 2 > BIG_ENOUGH - 128) {
-		fprintf(stderr, "[gpg2john] data is too large to be inlined, please file a bug!\n");
-	} else {
-		cp += sprintf(cp, "$gpg$*%d*%d*", m_algorithm, len - 1); // m_algorithm == 0 for symmetric encryption?
-		cp += print_hex(m_data, len - 1, cp);
-		m_usage = 18; // Sym. Encrypted Integrity Protected Data Packet (Tag 18)
-		cp += sprintf(cp, "*%d*%d*%d*%d", m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm);
-		cp += sprintf(cp, "*%d*", m_count);
-		cp += print_hex(m_salt, 8, cp);
-		if (m_usage == 1) { /* handle 2 byte checksum */
-			fprintf(stderr, "Symmetrically_Encrypted_and_MDC_Packet doesn't handle 2 bytes checksums yet!\n");
-		}
-		puts(hash);
-	}
+	cp += print_hex(m_data, len - 1, cp);
 
-	// printf("\t\t(plain text + MDC SHA1(20 bytes))\n");
-	// skip(len - 1); // we did "give()" already
-	reset_sym_alg_mode();
+	if (!partial) {
+		// we only dump the packet out when we get the 'non-partial' packet (i.e. last one).
+		m_usage = 18; // Sym. Encrypted Integrity Protected Data Packet (Tag 18)
+		printf("$gpg$*%d*"LLd"*%s*%d*%d*%d*%d*%d*", m_algorithm, (long long)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
+		cp = hash;
+		cp += print_hex(m_salt, 8, cp);
+		printf("%s\n", hash);
+		reset_sym_alg_mode();
+	}
 }
 
 /* this function is not used because this packet appears only
@@ -1448,7 +1467,7 @@ is_partial(int c)
 }
 
 public void
-parse_packet(void)
+parse_packet()
 {
 	int c, tag, len = 0;
 	int partial = NO;
@@ -1527,11 +1546,11 @@ parse_packet(void)
 
 		if (tag < TAG_NUM && tag_func[tag] != NULL) {
 			if (gpg_dbg)
-				fprintf(stderr, "Packet type %d, len %d at offset %d  (Processing) (pkt-type %s)\n", tag, len, offset, pkt_type(tag));
-			(*tag_func[tag])(len);
+				fprintf(stderr, "Packet type %d, len %d at offset %d  (Processing) (pkt-type %s) (Partial %s)\n", tag, len, offset, pkt_type(tag), partial?"yes":"no");
+			(*tag_func[tag])(len, 1, partial);	// first packet (possibly only one if partial is false).
 		} else {
 			if (gpg_dbg)
-				fprintf(stderr, "Packet type %d, len %d at offset %d  (Skipping)\n", tag, len, offset);
+				fprintf(stderr, "Packet type %d, len %d at offset %d  (Skipping) (Partial %s)\n", tag, len, offset, partial?"yes":"no");
 			skip(len);
 		}
 		while (partial == YES) {
@@ -1539,13 +1558,20 @@ parse_packet(void)
 			c = Getc();
 			len = get_new_len(c);
 			partial = is_partial(c);
-			if (partial == YES)
-				;
-				// fprintf(stderr, "\t(%d bytes) partial continue\n", len);
-			else
-				;
-				// fprintf(stderr, "\t(%d bytes) partial end\n", len);
-			skip(len);
+			if (partial == YES) {
+				if (gpg_dbg)
+					fprintf(stderr, "\t(%d bytes) partial continue\n", len);
+			}
+			else {
+				if (gpg_dbg)
+					fprintf(stderr, "\t(%d bytes) partial end\n", len);
+			}
+			if (tag < TAG_NUM && tag_func[tag] != NULL) {
+				if (gpg_dbg)
+					fprintf(stderr, "Packet type %d, len %d at offset %d  (Processing) (pkt-type %s) (Partial %s)\n", tag, len, offset, pkt_type(tag), partial?"yes":"no");
+				(*tag_func[tag])(len, 0, partial);	// subsquent packets.
+			} else
+				skip(len);
 		}
 		if (len == EOF) return;
 	}
