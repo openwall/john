@@ -106,13 +106,13 @@ struct gpg_common_custom_salt {
 	int count;
 	void (*s2kfun)(char *, unsigned char*, int);
 	// these 'might' need to be in dyna data???
-	unsigned char p[16384];
-	unsigned char q[16384];
-	unsigned char g[16384];
-	unsigned char y[16384];
-	unsigned char x[16384];
-	unsigned char n[16384];
-	unsigned char d[16384];
+	unsigned char p[0x10000];
+	unsigned char q[0x10000];
+	unsigned char g[0x10000];
+	unsigned char y[0x10000];
+	unsigned char x[0x10000];
+	unsigned char n[0x10000];
+	unsigned char d[0x10000];
 	int pl;
 	int ql;
 	int gl;

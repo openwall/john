@@ -389,7 +389,7 @@ static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int key
 #ifdef LEAN
 	uint8_t keybuf[128 + 64+1 + PLAINTEXT_LENGTH + SALT_LENGTH];
 #else
-	unsigned char keybuf[KEYBUFFER_LENGTH + 128];
+	unsigned char keybuf[KEYBUFFER_LENGTH + 256];
 	uint32_t bs;
 #endif
 
@@ -569,7 +569,7 @@ static void S2KItSaltedSHA512Generator(char *password, unsigned char *key, int l
 
 static void S2KItSaltedRIPEMD160Generator(char *password, unsigned char *key, int length)
 {
-	unsigned char keybuf[KEYBUFFER_LENGTH + 128];
+	unsigned char keybuf[KEYBUFFER_LENGTH + 256];
 	RIPEMD160_CTX ctx;
 	int i, j;
 	int32_t tl;
@@ -695,7 +695,8 @@ void *gpg_common_get_salt(char *ciphertext)
 	cs.datalen = atoi(p);
 
 	/* Ok, now we 'know' the size of the dyna salt, so we can allocate */
-	psalt = mem_calloc(sizeof(struct gpg_common_custom_salt) + cs.datalen, 1);
+	/* note the +64 is due to certain algo's reading dirty data, up to 64 bytes past end */
+	psalt = mem_calloc(sizeof(struct gpg_common_custom_salt) + cs.datalen + 64, 1);
 	psalt->pk_algorithm = cs.pk_algorithm;
 	psalt->symmetric_mode = cs.symmetric_mode;
 	psalt->datalen = cs.datalen;
@@ -1013,7 +1014,10 @@ int gpg_common_check(unsigned char *keydata, int ks)
 	uint8_t checksum[SHA_DIGEST_LENGTH];
 	SHA_CTX ctx;
 
-	out = mem_alloc((gpg_common_cur_salt->datalen));
+	// out is used for more than just data. So if datalen is 'small', but
+	// other things (like mpz integer creation) are needed, we know that
+	// our sizes will not overflow.
+	out = mem_alloc((gpg_common_cur_salt->datalen) + 0x10000);
 	// Quick Hack
 	if (!gpg_common_cur_salt->symmetric_mode)
 		memcpy(ivec, gpg_common_cur_salt->iv, gpg_common_blockSize(gpg_common_cur_salt->cipher_algorithm));
