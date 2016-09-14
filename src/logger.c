@@ -69,13 +69,13 @@ static int LogDateFormatUTC=0;
 static char *log_perms;
 static char *pot_perms;
 
-#if _MSC_VER || __MINGW32__ || __MINGW64__
+#if _MSC_VER
 // I am not sure if there would be other systems which do know know about mode_t
 typedef unsigned mode_t;
+#endif
 
 #ifndef S_ISUID
 #define S_ISUID 0004000
-#endif
 #endif
 
 static mode_t perms_t;
