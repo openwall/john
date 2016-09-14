@@ -81,7 +81,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
-		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp
+		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1
 		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
@@ -2105,7 +2105,13 @@ sub stribog {
 ##############################################################################
 # stub functions.  When completed, move the function out of this section
 ##############################################################################
-
+sub as400ssha1 {
+	# note, dynamic_1590 is used. this is a 'thin' format.
+	$out_username = get_username(10);
+	my $uname = uc $out_username;
+	while (length($uname) < 10) { $uname .= ' '; }
+	return '$as400ssha1$'.uc unpack("H*",sha1(encode("UTF-16BE", $uname.$_[1]))) . '$' . uc $out_username;
+}
 sub eigrp {
 	my $algo = int(rand(120) > 100) + 2;
 	#$algo = 2;
@@ -3756,6 +3762,13 @@ sub dynamic_28 { # Apache MD5
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(8); }
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	return "\$dynamic_28\$".substr($h,15)."\$$salt";
+}
+sub dynamic_1590 {
+	# as400-ssha1
+	$out_username = get_username(10);
+	my $uname = uc $out_username;
+	while (length($uname) < 10) { $uname .= ' '; }
+	return '$dynamic_1590$'.uc unpack("H*",sha1(encode("UTF-16BE", $uname.$_[1]))) . '$HEX$' . uc unpack("H*",encode("UTF-16BE", $uname));
 }
 sub dynamic_compile {
 	my $dynamic_args = $_[0];
