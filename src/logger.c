@@ -69,13 +69,23 @@ static int LogDateFormatUTC=0;
 static char *log_perms;
 static char *pot_perms;
 
-#if _MSC_VER
+#ifdef _MSC_VER
 // I am not sure if there would be other systems which do know know about mode_t
 typedef unsigned mode_t;
 #endif
 
+// windows does not have these unix specific constants.
 #ifndef S_ISUID
 #define S_ISUID 0004000
+#endif
+#ifndef S_IXUSR
+#define S_IXUSR 0000100
+#endif
+#ifndef S_IXGRP
+#define S_IXGRP 0000010
+#endif
+#ifndef S_IXOTH
+#define S_IXOTH 0000001
 #endif
 
 static mode_t perms_t;
