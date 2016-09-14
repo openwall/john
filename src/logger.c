@@ -140,7 +140,8 @@ static void log_file_init(struct log_file *f, char *name, char *perms, int size)
 	 * longer have to check length before a write (.pot or .log file).
 	 * The "64" comes from core.
 	 */
-	f->ptr = f->buffer = mem_alloc(size + LINE_BUFFER_SIZE + PLAINTEXT_BUFFER_SIZE + 64);
+	f->ptr = f->buffer =
+		mem_alloc(size + LINE_BUFFER_SIZE + PLAINTEXT_BUFFER_SIZE + 64);
 	f->size = size;
 }
 
@@ -159,7 +160,8 @@ static void log_file_flush(struct log_file *f)
 
 #if OS_FLOCK || FCNTL_LOCKS
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locking %s...\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Locking %s...\n",
+	        __FUNCTION__, options.node_min, f->name);
 #endif
 #if FCNTL_LOCKS
 	memset(&lock, 0, sizeof(lock));
@@ -175,14 +177,18 @@ static void log_file_flush(struct log_file *f)
 	}
 #endif
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locked %s exclusively\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Locked %s exclusively\n",
+	        __FUNCTION__, options.node_min, f->name);
 #endif
 #endif
 
 	if (f == &pot) {
 		pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
 #if defined(LOCK_DEBUG)
-		fprintf(stderr, "%s(%u): writing %d at %ld, ending at %ld to file %s\n", __FUNCTION__, options.node_min, count, pos_b4, pos_b4+count, f->name);
+		fprintf(stderr,
+		        "%s(%u): writing %d at %ld, ending at %ld to file %s\n",
+		        __FUNCTION__, options.node_min, count, pos_b4,
+		        pos_b4+count, f->name);
 #endif
 	}
 
@@ -194,7 +200,8 @@ static void log_file_flush(struct log_file *f)
 
 #if OS_FLOCK || FCNTL_LOCKS
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocking %s\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Unlocking %s\n",
+	        __FUNCTION__, options.node_min, f->name);
 #endif
 #if FCNTL_LOCKS
 	lock.l_type = F_UNLCK;
@@ -300,7 +307,8 @@ static int log_time(void)
 #else
 	if (options.fork || mpi_p > 1) {
 #endif
-		count2 = (int)sprintf(log.ptr + count1, "%u ", options.node_min);
+		count2 = (int)sprintf(log.ptr + count1,
+		                      "%u ", options.node_min);
 		if (count2 < 0)
 			return count2;
 		count1 += count2;
@@ -322,7 +330,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 	if (log_name && log.fd < 0) {
 		if (session)
 			log_name = path_session(session, LOG_SUFFIX);
-		if(!rec_restored && !(options.flags & FLG_NOLOG)) {
+		if (!rec_restored && !(options.flags & FLG_NOLOG)) {
 			const char *protect;
 			if (!(protect = cfg_get_param(SECTION_OPTIONS, NULL,
 			                              "LogFileProtect")))
@@ -460,7 +468,8 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 		count1 = log_time();
 		if (count1 > 0) {
 			log.ptr += count1;
-			count2 = (int)sprintf(log.ptr, "+ Cracked %s%s%s", login, uid_sep, uid_out);
+			count2 = (int)sprintf(log.ptr, "+ Cracked %s%s%s",
+			                      login, uid_sep, uid_out);
 
 			if (options.secure) {
 				secret = components(rep_plain, len);
@@ -475,7 +484,8 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 				                       " as candidate #"LLu"",
 				                       ((unsigned long long)
 				                       status.cands.hi << 32) +
-				                       status.cands.lo + index + 1);
+				                       status.cands.lo +
+				                       index + 1);
 			count2 += (int)sprintf(log.ptr + count2, "\n");
 
 			if (count2 > 0)
