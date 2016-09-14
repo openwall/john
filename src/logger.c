@@ -66,6 +66,9 @@ static int cfg_showcand;
 static char *LogDateFormat;
 static char *LogDateStderrFormat;
 static int LogDateFormatUTC=0;
+static char *log_perms;
+static char *pot_perms;
+mode_t perms_t;
 
 /*
  * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
@@ -90,18 +93,47 @@ static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
 static int in_logger = 0;
 
-static void log_file_init(struct log_file *f, char *name, int size)
+static void log_file_chmod(char *name, mode_t perms_t)
 {
+	if (chmod(path_expand(name), perms_t))
+	{
+		if (cfg_get_bool(SECTION_OPTIONS, NULL, "IgnoreLogChmodErrors", 0))
+		{
+	        	if (errno == EPERM)
+				fprintf(stdout, "chmod: %s failed, but IgnoreChmodError is set, moving on..\n\n", path_expand(name));
+		}
+		else
+	        	if (errno != ENOENT)
+				pexit("chmod: %s", path_expand(name));
+	}
+	
+}
+
+static void log_file_init(struct log_file *f, char *name, char *perms, int size)
+{
+	perms_t = strtoul(perms, NULL, 8);
+	if ((perms_t & 0x49) || !(perms_t & 0x92))
+	{
+		fprintf(stderr, "PotFilePerms or LogFilePerms %s invalid\n", perms);
+		error();
+	}
+	
 	if (f == &log && (options.flags & FLG_NOLOG)) return;
 	f->name = name;
 
-	if (chmod(path_expand(name), S_IRUSR | S_IWUSR))
-	if (errno != ENOENT)
-		pexit("chmod: %s", path_expand(name));
+	log_file_chmod(name, perms_t);
+	
+#ifndef _MSC_VER
+    umask(000);
+#endif
 
 	if ((f->fd = open(path_expand(name),
-	    O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0)
+	    O_WRONLY | O_CREAT | O_APPEND, perms_t)) < 0)
 		pexit("open: %s", path_expand(name));
+
+#ifndef _MSC_VER
+    umask(077);
+#endif
 
 	/*
 	 * plain will now always be < LINE_BUFFER_SIZE. We add some extra bytes
@@ -308,12 +340,19 @@ void log_init(char *log_name, char *pot_name, char *session)
 				}
 			}
 		}
-
-		log_file_init(&log, log_name, LOG_BUFFER_SIZE);
+		if (!(log_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+						"LogFilePermissions")))
+			log_perms = "0600";
+			
+		log_file_init(&log, log_name, log_perms , LOG_BUFFER_SIZE);
 	}
 
 	if (pot_name && pot.fd < 0) {
-		log_file_init(&pot, pot_name, POT_BUFFER_SIZE);
+                if (!(pot_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+						"PotFilePermissions")))
+			pot_perms = "0600";
+
+		log_file_init(&pot, pot_name, pot_perms, POT_BUFFER_SIZE);
 
 		cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep", 0);
 	}
