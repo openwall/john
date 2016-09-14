@@ -834,7 +834,7 @@ static void init(struct fmt_main *pFmt)
 	fmt_Dynamic.params.algorithm_name     = pFmt->params.algorithm_name;
 	fmt_Dynamic.params.benchmark_comment  = pFmt->params.benchmark_comment;
 	fmt_Dynamic.params.benchmark_length   = pFmt->params.benchmark_length;
- // we allow for 3 bytes of utf8 data to make up the number of plaintext_length unicode chars.
+// we allow for 3 bytes of utf8 data to make up the number of plaintext_length unicode chars.
 	if ( (pFmt->params.flags&FMT_UNICODE) && options.target_enc == UTF_8 ) {
 		//printf ("Here pFmt->params.plaintext_length=%d pPriv->pSetup->MaxInputLen=%d\n", pFmt->params.plaintext_length, pPriv->pSetup->MaxInputLen);
 		pFmt->params.plaintext_length = MIN(125, pFmt->params.plaintext_length * 3);
@@ -3275,12 +3275,12 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (; j < til; ++j) {
@@ -3385,12 +3385,12 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (; j < til; ++j) {
@@ -3692,12 +3692,12 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
-				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
+				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
 				int outlen;
 				if (utf16 == 1)
-					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				else
-					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
@@ -3889,12 +3889,12 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
-				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
+				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
 				int outlen;
 				if (utf16 == 1)
-					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				else
-					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
@@ -5582,12 +5582,12 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
@@ -5670,12 +5670,12 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
