@@ -99,35 +99,28 @@ static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
 static int in_logger = 0;
 
-static void log_file_chmod(char *name, mode_t perms_t)
-{
-	if (chmod(path_expand(name), perms_t))
-	{
-		if (cfg_get_bool(SECTION_OPTIONS, NULL, "IgnoreLogChmodErrors", 0))
-		{
-	        	if (errno == EPERM)
-				fprintf(stdout, "chmod: %s failed, but IgnoreChmodError is set, moving on..\n\n", path_expand(name));
-		}
-		else
-	        	if (errno != ENOENT)
-				pexit("chmod: %s", path_expand(name));
-	}
-
-}
-
 static void log_file_init(struct log_file *f, char *name, char *perms, int size)
 {
 	perms_t = strtoul(perms, NULL, 8);
-	if ((perms_t & 0x49) || !(perms_t & 0x92))
-	{
-		fprintf(stderr, "PotFilePerms or LogFilePerms %s invalid\n", perms);
+
+	if ((perms_t & (S_IXUSR | S_IXGRP | S_IXOTH | S_ISUID)) ||
+	    ((perms_t & (S_IRUSR | S_IWUSR)) != (S_IRUSR | S_IWUSR))) {
+		fprintf(stderr, "%sFilePerms %s invalid\n",
+		        (f == &log) ? "Log" : "Pot", perms);
 		error();
 	}
 
 	if (f == &log && (options.flags & FLG_NOLOG)) return;
 	f->name = name;
 
-	log_file_chmod(name, perms_t);
+	if (chmod(path_expand(name), perms_t) && (errno != ENOENT)) {
+		if (errno == EPERM && cfg_get_bool(SECTION_OPTIONS, NULL,
+		                                   "IgnoreChmodErrors", 0))
+			fprintf(stdout, "Note: chmod of %s to %s failed\n",
+			        path_expand(name), perms);
+		else
+			pexit("chmod: %s", path_expand(name));
+	}
 
 #ifndef _MSC_VER
     umask(000);
