@@ -293,11 +293,19 @@ unsigned short *itoa16_w2=itoa16_w2_l;
 // over, plus 1 byte for the 0x80
 #define COMPUTE_EX_LEN(a) ( (a) > (sizeof(input_buf_X86[0].x1.b)-8) ) ? sizeof(input_buf_X86[0].x1.b) : ((a)+8)
 
-static char saved_key[EFFECTIVE_MKPC][EFFECTIVE_MAX_LENGTH + 1];
+// this new 'ENCODED_EFFECTIVE_MAX_LENGTH' needed, since we grab up to 125 bytes of data WHEN in -encode:utf8 mode for a unicode format.
+#define ENCODED_EFFECTIVE_MAX_LENGTH (EFFECTIVE_MAX_LENGTH > 125 ? EFFECTIVE_MAX_LENGTH : 125)
+static char saved_key[EFFECTIVE_MKPC][ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 static int saved_key_len[EFFECTIVE_MKPC];
 
+// this is the max generic location we should target. This keeps us from having blown MD buffers or overwrite
+// when in utf8->utf16 mode, where we are handling data that likely is larger than we should handle.  We have to
+// handle this larger data, so that we get as many strings with 1 byte utf8 that would convert to data that would
+// blow our buffers.  But we want as many as possible for the 2 and 3 byte utf data.
+#define MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE (256-17)
+
 // Used in 'get_key' if we are running in store_keys_in_input mode
-static char out[EFFECTIVE_MAX_LENGTH + 1];
+static char out[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 
 // This is the GLOBAL count of keys. ALL of the primitives which deal with a count
 // will read from this variable.
@@ -3275,45 +3283,51 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
+			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp;
 				unsigned char *cpi = (unsigned char*)utf16Str;
+
+				if (total_len_X86[j] + outlen <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE) {
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
+					else
 #endif
-				cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
-				for (z = 0; z < outlen; ++z) {
-					*cp++ = *cpi++;
+					cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
+					for (z = 0; z < outlen; ++z) {
+						*cp++ = *cpi++;
+					}
+					total_len_X86[j] += outlen;
 				}
-				total_len_X86[j] += outlen;
 			}
 		} else {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp;
 				unsigned char *cpi = Str;
+
+				if (total_len_X86[j] + (len<<1) <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE) {
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
+					else
 #endif
-				cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
-				for (z = 0; z < len; ++z) {
-					*cp++ = *cpi++;
-					*cp++ = 0;
+					cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
+					for (z = 0; z < len; ++z) {
+						*cp++ = *cpi++;
+						*cp++ = 0;
+					}
+					total_len_X86[j] += (len<<1);
 				}
-				total_len_X86[j] += (len<<1);
 			}
 		}
 	} else {
@@ -3385,45 +3399,51 @@ static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
+			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp;
 				unsigned char *cpi = (unsigned char*)utf16Str;
+
+				if (total_len2_X86[j] + outlen <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE) {
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
+					else
 #endif
-				cp = &(input_buf2_X86[j>>MD5_X2].x1.B[total_len2_X86[j]]);
-				for (z = 0; z < outlen; ++z) {
-					*cp++ = *cpi++;
+					cp = &(input_buf2_X86[j>>MD5_X2].x1.B[total_len2_X86[j]]);
+					for (z = 0; z < outlen; ++z) {
+						*cp++ = *cpi++;
+					}
+					total_len2_X86[j] += outlen;
 				}
-				total_len2_X86[j] += outlen;
 			}
 		} else {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp;
 				unsigned char *cpi = Str;
+
+				if (total_len2_X86[j] + (len<<1) <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE) {
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
+					else
 #endif
-				cp = &(input_buf2_X86[j>>MD5_X2].x1.B[total_len2_X86[j]]);
-				for (z = 0; z < len; ++z) {
-					*cp++ = *cpi++;
-					*cp++ = 0;
+					cp = &(input_buf2_X86[j>>MD5_X2].x1.B[total_len2_X86[j]]);
+					for (z = 0; z < len; ++z) {
+						*cp++ = *cpi++;
+						*cp++ = 0;
+					}
+					total_len2_X86[j] += (len<<1);
 				}
-				total_len2_X86[j] += (len<<1);
 			}
 		}
 	} else {
@@ -3692,42 +3712,50 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
-				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
+				UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 				int outlen;
 				if (utf16 == 1)
-					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				else
-					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16_be(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
 						outlen = strlen16(utf16Str) * sizeof(UTF16);
 				}
+
+				// only copy data if it will NOT trash the buffer
+				if (total_len_X86[j] + outlen <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE)
+				{
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
+					else
 #endif
-				cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
-				for (cpi = (unsigned char*)utf16Str, z = 0; z < outlen; ++z)
-					*cp++ = *cpi++;
-				total_len_X86[j] += outlen;
+					cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
+					for (cpi = (unsigned char*)utf16Str, z = 0; z < outlen; ++z)
+						*cp++ = *cpi++;
+					total_len_X86[j] += outlen;
+				}
 			}
 		} else {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi = (unsigned char*)saved_key[j];
+
+				if (total_len_X86[j] + (saved_key_len[j]<<1) <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE) {
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
+					else
 #endif
-				cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
-				for (z = 0; z < saved_key_len[j]; ++z) {
-					*cp++ = *cpi++;
-					*cp++ = 0;
+					cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]]);
+					for (z = 0; z < saved_key_len[j]; ++z) {
+						*cp++ = *cpi++;
+						*cp++ = 0;
+					}
+					total_len_X86[j] += (saved_key_len[j]<<1);
 				}
-				total_len_X86[j] += (saved_key_len[j]<<1);
 			}
 		}
 	} else {
@@ -3889,42 +3917,49 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
-				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
+				UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 				int outlen;
 				if (utf16 == 1)
-					outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				else
-					outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+					outlen = enc_to_utf16_be(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
 						outlen = strlen16(utf16Str) * sizeof(UTF16);
 				}
+
+				// only copy data if it will NOT trash the buffer
+				if (total_len_X86[j] + outlen <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE) {
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
+					else
 #endif
-				cp = &(input_buf2_X86[j>>MD5_X2].x1.B[total_len2_X86[j]]);
-				for (cpi = (unsigned char*)utf16Str, z = 0; z < outlen; ++z)
-					*cp++ = *cpi++;
-				total_len2_X86[j] += outlen;
+					cp = &(input_buf2_X86[j>>MD5_X2].x1.B[total_len2_X86[j]]);
+					for (cpi = (unsigned char*)utf16Str, z = 0; z < outlen; ++z)
+						*cp++ = *cpi++;
+					total_len2_X86[j] += outlen;
+				}
 			}
 		} else {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi = (unsigned char*)saved_key[j];
+
+				if (total_len2_X86[j] + (saved_key_len[j]<<1) <= MAX_BUFFER_OFFSET_AVOIDING_OVERWRITE) {
 #if MD5_X2
-				if (j&1)
-					cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
-				else
+					if (j&1)
+						cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
+					else
 #endif
 					cp = &(input_buf2_X86[j>>MD5_X2].x1.B[total_len2_X86[j]]);
-				for (z = 0; z < saved_key_len[j]; ++z) {
-					*cp++ = *cpi++;
-					*cp++ = 0;
+					for (z = 0; z < saved_key_len[j]; ++z) {
+						*cp++ = *cpi++;
+						*cp++ = 0;
+					}
+					total_len2_X86[j] += (saved_key_len[j]<<1);
 				}
-				total_len2_X86[j] += (saved_key_len[j]<<1);
 			}
 		}
 	} else {
@@ -5582,12 +5617,12 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
+			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
@@ -5670,12 +5705,12 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 #endif
 	if (utf16) {
 		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
-			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH + 1];
+			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
-				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			else
-				outlen = enc_to_utf16_be(utf16Str, EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+				outlen = enc_to_utf16_be(utf16Str, ENCODED_EFFECTIVE_MAX_LENGTH, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
