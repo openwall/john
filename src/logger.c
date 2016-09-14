@@ -68,7 +68,13 @@ static char *LogDateStderrFormat;
 static int LogDateFormatUTC=0;
 static char *log_perms;
 static char *pot_perms;
-mode_t perms_t;
+
+#ifdef _MSC_VER
+// I am not sure if there would be other systems which do know know about mode_t
+typedef unsigned mode_t;
+#endif
+
+static mode_t perms_t;
 
 /*
  * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
@@ -106,7 +112,7 @@ static void log_file_chmod(char *name, mode_t perms_t)
 	        	if (errno != ENOENT)
 				pexit("chmod: %s", path_expand(name));
 	}
-	
+
 }
 
 static void log_file_init(struct log_file *f, char *name, char *perms, int size)
@@ -117,12 +123,12 @@ static void log_file_init(struct log_file *f, char *name, char *perms, int size)
 		fprintf(stderr, "PotFilePerms or LogFilePerms %s invalid\n", perms);
 		error();
 	}
-	
+
 	if (f == &log && (options.flags & FLG_NOLOG)) return;
 	f->name = name;
 
 	log_file_chmod(name, perms_t);
-	
+
 #ifndef _MSC_VER
     umask(000);
 #endif
@@ -343,7 +349,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 		if (!(log_perms = cfg_get_param(SECTION_OPTIONS, NULL,
 						"LogFilePermissions")))
 			log_perms = "0600";
-			
+
 		log_file_init(&log, log_name, log_perms , LOG_BUFFER_SIZE);
 	}
 
