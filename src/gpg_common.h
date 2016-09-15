@@ -49,7 +49,7 @@ enum {
 	PKA_UNKNOWN = 0,
 	PKA_RSA_ENCSIGN = 1,
 	PKA_DSA = 17,
-	PKA_EG = 20,
+	PKA_EG = 20,  // TODO???  wtf is this one???
 	PKA_ELGAMAL = 16
 };
 
@@ -62,6 +62,10 @@ enum {
 	CIPHER_AES256 = 9,
 	CIPHER_IDEA = 1,
 	CIPHER_3DES = 2,
+	CIPHER_TWOFISH = 10,
+	CIPHER_CAMELLIA128 = 11,
+	CIPHER_CAMELLIA192 = 12,
+	CIPHER_CAMELLIA256 = 13,
 };
 
 enum {
@@ -105,9 +109,8 @@ struct gpg_common_custom_salt {
 	int ivlen;
 	int count;
 	void (*s2kfun)(char *, unsigned char*, int);
-	// these 'might' need to be in dyna data???
-	unsigned char p[0x10000];
-	unsigned char q[0x10000];
+	unsigned char p[0x10000]; // gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key
+	unsigned char q[0x10000]; // those can have larger p and q values.
 	unsigned char g[0x10000];
 	unsigned char y[0x10000];
 	unsigned char x[0x10000];

@@ -205,10 +205,10 @@ public void parse_userattr_subpacket(string, int);
 
 public void pub_algs(unsigned int);
 public void sym_algs(unsigned int);
-public void sym_algs2(unsigned int);
+public char *sym_algs2(unsigned int);
 public int  iv_len(unsigned int);
 public void comp_algs(unsigned int);
-public void hash_algs(unsigned int);
+public char *hash_algs(unsigned int);
 public void key_id(void);
 public void fingerprint(void);
 public void time4(string);
@@ -520,17 +520,17 @@ sym_algs(unsigned int type)
 {
 	// printf("\tSym alg - ");
 	m_cipherAlgorithm = type;
-	// sym_algs2(type);
-	// printf("\n");
+	// printf("%s\n", sym_algs2(type));
 }
 
-public void
+public char *
 sym_algs2(unsigned int type)
 {
-	/* if (type < SYM_ALGS_NUM)
-		fprintf(stderr, "%s", SYM_ALGS[type]);
-	else
-		printf("unknown(sym %d)", type); */
+	static char S[48];
+	if (type < SYM_ALGS_NUM)
+		return SYM_ALGS[type];
+	sprintf(S, "unknown(sym %d)", type);
+	return S;
 }
 
 private int
@@ -583,7 +583,7 @@ comp_algs(unsigned int type)
 	printf("\n"); */
 }
 
-/* private string
+private string
 HASH_ALGS[] = {
 	"unknown(hash 0)",
 	"MD5(hash 1)",
@@ -597,19 +597,18 @@ HASH_ALGS[] = {
 	"SHA384(hash 9)",
 	"SHA512(hash 10)",
 	"SHA224(hash 11)",
-}; */
+};
 
 #define HASH_ALGS_NUM (sizeof(HASH_ALGS) / sizeof(string))
 
-public void
+public char *
 hash_algs(unsigned int type)
 {
-	/* printf("\tHash alg - ");
+	static char S[48];
 	if (type < HASH_ALGS_NUM)
-		printf("%s", HASH_ALGS[type]);
-	else
-		printf("unknown(hash %d)", type);
-	printf("\n"); */
+		return HASH_ALGS[type];
+	sprintf(S, "unknown(hash %d)", type);
+	return S;
 }
 
 public void
@@ -971,6 +970,8 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
 		printf("%s\n", hash);
+		if (gpg_dbg)
+			fprintf(stderr, "  Key being dumped: Symmetrically_Encrypted_and_MDC_Packet.   hashAlgo=%s cipherAlgo=%s\n", hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 		reset_sym_alg_mode();
 	}
 }
@@ -1086,6 +1087,8 @@ Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial, char *ha
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
 		printf("%s\n", hash);
+		if (gpg_dbg)
+			fprintf(stderr, "  Key being dumped: Symmetrically_Encrypted_and_MDC_Packet.   hashAlgo=%s cipherAlgo=%s\n", hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 		reset_sym_alg_mode();
 	}
 }
@@ -2464,6 +2467,9 @@ encrypted_Secret_Key(int len, int sha1)
 				cp += print_hex(n, (n_bits + 7) / 8, cp);
 			}
 			*cp = 0;
+			if (gpg_dbg)
+				fprintf(stderr, "  Key being dumped: encrypted_Secret_Key (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
+
 		}
 		break;
 	case 4:
@@ -2495,6 +2501,8 @@ encrypted_Secret_Key(int len, int sha1)
 					cp += print_hex(n, (n_bits + 7) / 8, cp);
 				}
 				*cp = 0;
+				if (gpg_dbg)
+					fprintf(stderr, "  Key being dumped: encrypted_Secret_Key-RSA (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 			}
 			break;
 		case 16:
@@ -2525,6 +2533,8 @@ encrypted_Secret_Key(int len, int sha1)
 					cp += print_hex(y, (y_bits + 7) / 8, cp);
 				}
 				*cp = 0;
+				if (gpg_dbg)
+					fprintf(stderr, "  Key being dumped: encrypted_Secret_Key-ElGam (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 			}
 			break;
 		case 17:
@@ -2556,6 +2566,8 @@ encrypted_Secret_Key(int len, int sha1)
 					cp += print_hex(y, (y_bits + 7) / 8, cp);
 				}
 				*cp = 0;
+				if (gpg_dbg)
+					fprintf(stderr, "  Key being dumped: encrypted_Secret_Key-DSA (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 			}
 			break;
 		default:

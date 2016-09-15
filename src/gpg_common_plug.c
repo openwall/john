@@ -18,13 +18,13 @@
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
+#include <openssl/camellia.h>
 #include "idea-JtR.h"
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #include <openssl/des.h>
 #include "sha2.h"
 #include "md5.h"
-
 #include "formats.h"
 #include "memory.h"
 #include "common.h"
@@ -87,6 +87,12 @@ uint32_t gpg_common_blockSize(char algorithm)
 		case CIPHER_AES192:
 		case CIPHER_AES256:
 			return AES_BLOCK_SIZE;
+		case CIPHER_CAMELLIA128:
+		case CIPHER_CAMELLIA192:
+		case CIPHER_CAMELLIA256:
+			return CAMELLIA_BLOCK_SIZE;
+		case CIPHER_TWOFISH:
+			return 16;
 		case CIPHER_3DES:
 			return 8;
 		default:
@@ -113,6 +119,14 @@ uint32_t gpg_common_keySize(char algorithm)
 			return 16;
 		case CIPHER_3DES:
 			return 24;
+//		case CIPHER_TWOFISH:
+//			return 32;
+		case CIPHER_CAMELLIA128:
+			return 16;
+		case CIPHER_CAMELLIA192:
+			return 24;
+		case CIPHER_CAMELLIA256:
+			return 32;
 		default: break;
 	}
 	assert(0);
@@ -129,6 +143,10 @@ static int gpg_common_valid_cipher_algorithm(int cipher_algorithm)
 		case CIPHER_AES256: return 1;
 		case CIPHER_IDEA: return 1;
 		case CIPHER_3DES: return 1;
+//		case CIPHER_TWOFISH: return 1;
+		case CIPHER_CAMELLIA128: return 1;
+		case CIPHER_CAMELLIA192: return 1;
+		case CIPHER_CAMELLIA256: return 1;
 	}
 
 	return 0;
@@ -150,9 +168,11 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec)
 		{
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
-			case HASH_SHA256: return 1;
 			case HASH_RIPEMD160: return 1;
+			case HASH_SHA256: return 1;
+			case HASH_SHA384: return 1;
 			case HASH_SHA512: return 1;
+			case HASH_SHA224: return 1;
 		}
 	}
 	return 0;
@@ -267,7 +287,16 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 		ex_flds = 1; /* handle p */
 	} else if (usage == 255 && spec == 3 && algorithm == 1) {
 		/* gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key */
+		// PKA_RSA_ENCSIGN
 		ex_flds = 1; /* handle p */
+	} else if (usage == 255 && spec == 3 && algorithm == 17) {
+		// NEW stuff
+		// PKA_DSA
+		ex_flds = 4; /* handle p, q, g, y */
+	} else if (usage == 255 && spec == 3 && algorithm == 16) {
+		// NEW stuff
+		// PKA_ELGAMAL
+		ex_flds = 3; /* handle p, g, y */
 	} else {
 		/* NOT sure what to do here, probably nothing */
 	}
@@ -520,6 +549,52 @@ static void S2KItSaltedSHA256Generator(char *password, unsigned char *key, int l
 	}
 }
 
+static void S2KItSaltedSHA224Generator(char *password, unsigned char *key, int length)
+{
+	unsigned char keybuf[KEYBUFFER_LENGTH];
+	SHA256_CTX ctx;
+	int i, j;
+	int32_t tl;
+	int32_t mul;
+	int32_t bs;
+	uint8_t *bptr;
+	int32_t n;
+
+	uint32_t numHashes = (length + SHA224_DIGEST_LENGTH - 1) / SHA224_DIGEST_LENGTH;
+	memcpy(keybuf, gpg_common_cur_salt->salt, SALT_LENGTH);
+
+	// TODO: This is not very efficient with multiple hashes
+	// NOTE, with 32 bit hash digest, we should never have numHashes > 1 if
+	// all keys being requested are 32 bytes or less.
+	for (i = 0; i < numHashes; i++) {
+		SHA224_Init(&ctx);
+		for (j = 0; j < i; j++) {
+			SHA224_Update(&ctx, "\0", 1);
+		}
+		// Find multiplicator
+		tl = strlen(password) + SALT_LENGTH;
+		mul = 1;
+		while (mul < tl && ((64 * mul) % tl)) {
+			++mul;
+		}
+		// Try to feed the hash function with 64-byte blocks
+		bs = mul * 64;
+		bptr = keybuf + tl;
+		n = bs / tl;
+		memcpy(keybuf + SALT_LENGTH, password, strlen(password));
+		while (n-- > 1) {
+			memcpy(bptr, keybuf, tl);
+			bptr += tl;
+		}
+		n = gpg_common_cur_salt->count / bs;
+		while (n-- > 0) {
+			SHA224_Update(&ctx, keybuf, bs);
+		}
+		SHA224_Update(&ctx, keybuf, gpg_common_cur_salt->count % bs);
+		SHA224_Final(key + (i * SHA224_DIGEST_LENGTH), &ctx);
+	}
+}
+
 static void S2KItSaltedSHA512Generator(char *password, unsigned char *key, int length)
 {
 	// keybuf needs to be twice as large, since we group to 128 byte blocks.
@@ -564,6 +639,53 @@ static void S2KItSaltedSHA512Generator(char *password, unsigned char *key, int l
 		}
 		SHA512_Update(&ctx, keybuf, gpg_common_cur_salt->count % bs);
 		SHA512_Final(key + (i * SHA512_DIGEST_LENGTH), &ctx);
+	}
+}
+
+static void S2KItSaltedSHA384Generator(char *password, unsigned char *key, int length)
+{
+	// keybuf needs to be twice as large, since we group to 128 byte blocks.
+	unsigned char keybuf[KEYBUFFER_LENGTH*2];
+	SHA512_CTX ctx;
+	int i, j;
+	int32_t tl;
+	int32_t mul;
+	int32_t bs;
+	uint8_t *bptr;
+	int32_t n;
+
+	uint32_t numHashes = (length + SHA384_DIGEST_LENGTH - 1) / SHA384_DIGEST_LENGTH;
+	memcpy(keybuf, gpg_common_cur_salt->salt, SALT_LENGTH);
+
+	// TODO: This is not very efficient with multiple hashes
+	// NOTE, with 64 bit hash digest, we should never have numHashes > 1 if
+	// all keys being requested are 32 bytes or less.
+	for (i = 0; i < numHashes; i++) {
+		SHA384_Init(&ctx);
+		for (j = 0; j < i; j++) {
+			SHA384_Update(&ctx, "\0", 1);
+		}
+		// Find multiplicator
+		tl = strlen(password) + SALT_LENGTH;
+		mul = 1;
+		while (mul < tl && ((128 * mul) % tl)) {
+			++mul;
+		}
+		// Try to feed the hash function with 128-byte blocks
+		bs = mul * 128;
+		bptr = keybuf + tl;
+		n = bs / tl;
+		memcpy(keybuf + SALT_LENGTH, password, strlen(password));
+		while (n-- > 1) {
+			memcpy(bptr, keybuf, tl);
+			bptr += tl;
+		}
+		n = gpg_common_cur_salt->count / bs;
+		while (n-- > 0) {
+			SHA384_Update(&ctx, keybuf, bs);
+		}
+		SHA384_Update(&ctx, keybuf, gpg_common_cur_salt->count % bs);
+		SHA384_Final(key + (i * SHA384_DIGEST_LENGTH), &ctx);
 	}
 }
 
@@ -739,7 +861,7 @@ void *gpg_common_get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-	if (psalt->usage == 255 && psalt->spec == SPEC_SALTED && psalt->pk_algorithm == PKA_DSA) {
+	if (psalt->usage == 255 && (psalt->spec == SPEC_SALTED || psalt->spec == SPEC_ITERATED_SALTED) && psalt->pk_algorithm == PKA_DSA) {
 		/* old hashes will crash!, "gpg --s2k-mode 1 --gen-key" */
 		p = strtokm(NULL, "*");
 		psalt->pl = atoi(p);
@@ -766,7 +888,7 @@ void *gpg_common_get_salt(char *ciphertext)
 			psalt->y[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-	if (psalt->usage == 255 && psalt->spec == SPEC_SALTED && (psalt->pk_algorithm == PKA_ELGAMAL || psalt->pk_algorithm == PKA_EG)) {
+	if (psalt->usage == 255 && (psalt->spec == SPEC_SALTED || psalt->spec == SPEC_ITERATED_SALTED) && (psalt->pk_algorithm == PKA_ELGAMAL || psalt->pk_algorithm == PKA_EG)) {
 		/* ElGamal */
 		p = strtokm(NULL, "*");
 		psalt->pl = atoi(p);
@@ -818,6 +940,12 @@ void *gpg_common_get_salt(char *ciphertext)
 						break;
 					case HASH_SHA512:
 						psalt->s2kfun = S2KItSaltedSHA512Generator;
+						break;
+					case HASH_SHA384:
+						psalt->s2kfun = S2KItSaltedSHA384Generator;
+						break;
+					case HASH_SHA224:
+						psalt->s2kfun = S2KItSaltedSHA224Generator;
 						break;
 					default: break;
 				}
@@ -1067,6 +1195,21 @@ int gpg_common_check(unsigned char *keydata, int ks)
 				    }
 				    break;
 
+		// TODO:  Support for twofish camellia128 camellia192 camellia256
+		case CIPHER_CAMELLIA128:
+		case CIPHER_CAMELLIA192:
+		case CIPHER_CAMELLIA256: {
+					    CAMELLIA_KEY ck;
+					    Camellia_set_key(keydata, ks * 8, &ck);
+					    Camellia_cfb128_encrypt(gpg_common_cur_salt->data, out, CAMELLIA_BLOCK_SIZE, &ck, ivec, &tmp, CAMELLIA_DECRYPT);
+				    }
+				    break;
+//		case CIPHER_TWOFISH: {
+//					      BF_KEY ck;
+//					      BF_set_key(&ck, ks, keydata);
+//					      BF_cfb64_encrypt(gpg_common_cur_salt->data, out, BF_BLOCK, &ck, ivec, &tmp, BF_DECRYPT);
+//				      }
+//				      break;
 		default:
 				    printf("(check) Unknown Cipher Algorithm %d ;(\n", gpg_common_cur_salt->cipher_algorithm);
 				    break;
@@ -1127,6 +1270,22 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
+		// TODO:  Support for twofish camellia128 camellia192 camellia256
+		case CIPHER_CAMELLIA128:
+		case CIPHER_CAMELLIA192:
+		case CIPHER_CAMELLIA256: {
+					    CAMELLIA_KEY ck;
+					    Camellia_set_key(keydata, ks * 8, &ck);
+					    Camellia_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, CAMELLIA_DECRYPT);
+				    }
+				    break;
+//		case CIPHER_TWOFISH: {
+//					      BF_KEY ck;
+//					      BF_set_key(&ck, ks, keydata);
+//					      BF_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, BF_DECRYPT);
+//				      }
+//				      break;
+
 		default:
 				    break;
 	}
@@ -1272,7 +1431,7 @@ unsigned int gpg_common_gpg_s2k_count(void *salt)
 {
 	struct gpg_common_custom_salt *my_salt;
 
-	my_salt = salt;
+	my_salt = *(struct gpg_common_custom_salt **)salt;
 	if (my_salt->spec == SPEC_ITERATED_SALTED)
 		/*
 		 * gpg --s2k-count is only meaningful
@@ -1289,13 +1448,13 @@ unsigned int gpg_common_gpg_hash_algorithm(void *salt)
 {
 	struct gpg_common_custom_salt *my_salt;
 
-	my_salt = salt;
+	my_salt = *(struct gpg_common_custom_salt **)salt;
 	return (unsigned int) my_salt->hash_algorithm;
 }
 unsigned int gpg_common_gpg_cipher_algorithm(void *salt)
 {
 	struct gpg_common_custom_salt *my_salt;
 
-	my_salt = salt;
+	my_salt = *(struct gpg_common_custom_salt **)salt;
 	return (unsigned int) my_salt->cipher_algorithm;
 }
