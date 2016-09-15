@@ -336,7 +336,7 @@ static int print_hex(unsigned char *str, int len, char *cp)
 int gpg2john(int argc, char **argv)
 {
 	int i;
-	if (argc > 2 && (!strcmp(argv[1], "-d") || !strcmp(argv[1], "-S"))) {
+	while (argc > 2 && (!strcmp(argv[1], "-d") || !strcmp(argv[1], "-S"))) {
 		if (!strcmp(argv[1], "-d"))
 			gpg_dbg = 1;
 		else
@@ -357,6 +357,7 @@ int gpg2john(int argc, char **argv)
 		char *hash;
 		filename = argv[i];
 		fp = fopen(filename, "rb");
+		if (!fp) continue;
 		jtr_fseek64(fp, 0, SEEK_END);
 		m_flen = (size_t)jtr_ftell64(fp);
 		fclose(fp);
@@ -2450,7 +2451,7 @@ encrypted_Secret_Key(int len, int sha1)
 		}
 		if (dump_subkeys || !is_subkey) {
 			MEM_FREE(last_hash);
-			last_hash = mem_alloc(len*2 + 256);
+			last_hash = mem_alloc(len*2 + 512 + (n_bits + 7) / 4);
 			cp = last_hash;
 			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
 			cp += print_hex(m_data, len, cp);
@@ -2480,7 +2481,7 @@ encrypted_Secret_Key(int len, int sha1)
 			}
 			if (dump_subkeys || !is_subkey) {
 				MEM_FREE(last_hash);
-				last_hash = mem_alloc(len*2 + 256);
+				last_hash = mem_alloc(len*2 + 512 + (n_bits + 7) / 4 );
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
 				cp += print_hex(m_data, len, cp);
@@ -2507,7 +2508,7 @@ encrypted_Secret_Key(int len, int sha1)
 			}
 			if (dump_subkeys || !is_subkey) {
 				MEM_FREE(last_hash);
-				last_hash = mem_alloc(len*2 + 256);
+				last_hash = mem_alloc(len*2 + 512 + (p_bits+g_bits+y_bits) / 4);
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
 				cp += print_hex(m_data, len, cp);
@@ -2536,7 +2537,7 @@ encrypted_Secret_Key(int len, int sha1)
 			}
 			if (dump_subkeys || !is_subkey) {
 				MEM_FREE(last_hash);
-				last_hash = mem_alloc(len*2 + 256);
+				last_hash = mem_alloc(len*2 + 512 + (key_bits+q_bits+g_bits+y_bits) / 4);
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
 				cp += print_hex(m_data, len, cp);
