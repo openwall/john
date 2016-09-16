@@ -153,15 +153,15 @@ static size_t m_flen;
 static int m_spec;
 static int m_algorithm;
 //static int m_datalen;
-static int key_bits;
-static int d_bits;
-static int p_bits;
-static int q_bits;
-static int g_bits;
-static int y_bits;
-static int n_bits;
-static int u_bits;
-static int e_bits;
+static unsigned key_bits;
+static unsigned d_bits;
+static unsigned p_bits;
+static unsigned q_bits;
+static unsigned g_bits;
+static unsigned y_bits;
+static unsigned n_bits;
+static unsigned u_bits;
+static unsigned e_bits;
 static int m_usage, m_hashAlgorithm, m_cipherAlgorithm, bs;
 static int m_count;
 
@@ -171,11 +171,11 @@ static int m_count;
 
 public void warning(const string, ...);
 public void warn_exit(const string, ...);
-public void skip(int);
-public void dump(int);
-public void pdump(int);
-public void kdump(int);
-public void give(const int, unsigned char *, const int);
+public void skip(unsigned);
+public void dump(unsigned);
+public void pdump(unsigned);
+public void kdump(unsigned);
+public int give(const unsigned, unsigned char *, const unsigned);
 
 /*
  * buffer.c
@@ -389,7 +389,7 @@ int gpg2john(int argc, char **argv)
 }
 
 public void
-skip(int len)
+skip(unsigned len)
 {
 	int i;
 	for (i = 0; i < len; i++)
@@ -397,28 +397,32 @@ skip(int len)
 }
 
 public void
-dump(int len)
+dump(unsigned len)
 {
 	int i;
 	for (i = 0; i < len; i++)
 		fprintf(stderr, "%02x", Getc());
 }
 
-public void
-give(const int len, unsigned char *buf, const int buf_size)
+public int
+give(const unsigned len, unsigned char *buf, const unsigned buf_size)
 {
 	int i;
 
 	if (len > buf_size)
-		warn_exit("Bad parameter: give(len=%d, buf=%p, buf_size=%d), len can not be bigger than buf_size.",
+		warn_exit("Bad parameter: give(len=%u, buf=%p, buf_size=%u), len can not be bigger than buf_size.",
 			len, buf, buf_size);
 
-	for (i = 0; i < len; i++)
+	for (i = 0; i < len; i++) {
 		buf[i] = Getc();
+		if (buf[i] == EOF)
+			return -1;
+	}
+	return len;
 }
 
 public void
-pdump(int len)
+pdump(unsigned len)
 {
 	int i;
 	for (i = 0; i < len; i++)
@@ -426,12 +430,12 @@ pdump(int len)
 }
 
 public void
-give_pdump(int len)
+give_pdump(unsigned len)
 {
 	int i;
 
 	if (len > sizeof(gecos))
-		warn_exit("Bad parameter: give_pdump(len=%d), len can not be bigger than sizeof(gecos)=%d.",
+		warn_exit("Bad parameter: give_pdump(len=%u), len can not be bigger than sizeof(gecos)=%u.",
 			len, sizeof(gecos));
 
 	for (i = 0; i < len; i++)
@@ -440,7 +444,7 @@ give_pdump(int len)
 }
 
 public void
-kdump(int len)
+kdump(unsigned len)
 {
         int i;
         fprintf(stderr, "0x");
@@ -491,7 +495,7 @@ pub_algs(unsigned int type)
 	if (type < PUB_ALGS_NUM)
 		printf("%s", PUB_ALGS[type]);
 	else
-		printf("unknown(pub %d)", type);
+		printf("unknown(pub %u)", type);
 	printf("\n"); */
 }
 
@@ -529,7 +533,7 @@ sym_algs2(unsigned int type)
 	static char S[48];
 	if (type < SYM_ALGS_NUM)
 		return SYM_ALGS[type];
-	sprintf(S, "unknown(sym %d)", type);
+	sprintf(S, "unknown(sym %u)", type);
 	return S;
 }
 
@@ -579,7 +583,7 @@ comp_algs(unsigned int type)
 	if (type < COMP_ALGS_NUM)
 		fprintf(stderr, "%s", COMP_ALGS[type]);
 	else
-		fprintf(stderr, "unknown(comp %d)", type);
+		fprintf(stderr, "unknown(comp %u)", type);
 	printf("\n"); */
 }
 
@@ -607,7 +611,7 @@ hash_algs(unsigned int type)
 	static char S[48];
 	if (type < HASH_ALGS_NUM)
 		return HASH_ALGS[type];
-	sprintf(S, "unknown(hash %d)", type);
+	sprintf(S, "unknown(hash %u)", type);
 	return S;
 }
 
@@ -817,11 +821,11 @@ skip_multi_precision_integer(string str)
 	skip(bytes);
 }
 
-public int
-give_multi_precision_integer(unsigned char *buf, const int buf_size, int *key_bits)
+public unsigned
+give_multi_precision_integer(unsigned char *buf, const unsigned buf_size, unsigned *key_bits)
 {
-	int bytes;
-	int bits = Getc() * 256;
+	unsigned bytes;
+	unsigned bits = Getc() * 256;
 	bits += Getc();
 	bytes = (bits + 7) / 8;
 	*key_bits = bits;
@@ -956,7 +960,8 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 	// The decrypted data will typically contain other packets (often
 	// literal data packets or compressed data packets).
 
-	give(len, m_data, sizeof(m_data));
+	if (give(len, m_data, sizeof(m_data)) != len)
+		return;
 	cp += print_hex(m_data, len - 1, cp);
 
 	if (!partial) {
@@ -1077,7 +1082,8 @@ Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial, char *ha
 		fprintf(stderr, "SYM_ALG_MODE_PUB_ENC is not supported yet!\n");
 		break;
 	}
-	give(len - 1, m_data, sizeof(m_data));
+	if (give(len - 1, m_data, sizeof(m_data)) != len-1)
+		return;
 	cp += print_hex(m_data, len - 1, cp);
 
 	if (!partial) {
@@ -2444,7 +2450,8 @@ encrypted_Secret_Key(int len, int sha1)
 		// give_multi_precision_integer(p, &p_bits);
 		// give_multi_precision_integer(q, &p_bits);
 		// give_multi_precision_integer(u, &u_bits);
-		give(len, m_data, sizeof(m_data)); // we can't break down the "data" further into fields
+		if (give(len, m_data, sizeof(m_data)) != len) // we can't break down the "data" further into fields
+			return;
 		used += len;
 
 		m_algorithm = PUBLIC;
@@ -2478,7 +2485,8 @@ encrypted_Secret_Key(int len, int sha1)
 		case 2:
 		case 3:
 			/* Encrypted RSA stuff */
-			give(len, m_data, sizeof(m_data)); // we can't break down the "data" further into fields
+			if (give(len, m_data, sizeof(m_data)) != len)   // we can't break down the "data" further into fields
+				return;
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
 			if (last_hash && *last_hash) {
@@ -2508,7 +2516,8 @@ encrypted_Secret_Key(int len, int sha1)
 		case 16:
 		case 20:
 			m_algorithm = PUBLIC;  // Encrypted ElGamal
-			give(len, m_data, sizeof(m_data));
+			if (give(len, m_data, sizeof(m_data)) != len)
+				return;
 			used += len;
 			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
@@ -2539,7 +2548,8 @@ encrypted_Secret_Key(int len, int sha1)
 			break;
 		case 17:
 			m_algorithm = PUBLIC;  // Encrypted DSA
-			give(len, m_data, sizeof(m_data));
+			if(give(len, m_data, sizeof(m_data)) != len)
+				return;
 			used += len;
 			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
