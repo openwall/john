@@ -175,8 +175,10 @@ void ldr_free_test_db(struct db_main *db)
 #endif /* _OPENMP */
 #include "memdbg.h"
 
+#define MAX_COST_MSG_LEN 256
 #ifndef BENCH_BUILD
-static char cost_msg[128 * FMT_TUNABLE_COSTS];
+/* the + 24 is for a little 'extra' text wrapping each line */
+static char cost_msg[ (MAX_COST_MSG_LEN+24) * FMT_TUNABLE_COSTS];
 #endif
 
 long clk_tck = 0;
@@ -410,14 +412,14 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	*cost_msg = 0;
 	for (i = 0; i < FMT_TUNABLE_COSTS &&
 		     format->methods.tunable_cost_value[i] != NULL; i++) {
-		char msg[256];
+		char msg[MAX_COST_MSG_LEN];
 
 		if (t_cost[0][i] == t_cost[1][i])
-			sprintf(msg, "cost %d (%s) of %u", i + 1,
+			snprintf(msg, sizeof(msg), "cost %d (%s) of %u", i + 1,
 			        format->params.tunable_cost_name[i],
 			        t_cost[0][i]);
 		else
-			sprintf(msg, "cost %d (%s) of %u and %u",
+			snprintf(msg, sizeof(msg), "cost %d (%s) of %u and %u",
 			        i + 1, format->params.tunable_cost_name[i],
 			        t_cost[0][i], t_cost[1][i]);
 
