@@ -410,7 +410,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	*cost_msg = 0;
 	for (i = 0; i < FMT_TUNABLE_COSTS &&
 		     format->methods.tunable_cost_value[i] != NULL; i++) {
-		char msg[128];
+		char msg[256];
 
 		if (t_cost[0][i] == t_cost[1][i])
 			sprintf(msg, "cost %d (%s) of %u", i + 1,
