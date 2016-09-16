@@ -19,6 +19,7 @@
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
 #include <openssl/camellia.h>
+#include "twofish.h"
 #include "idea-JtR.h"
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
@@ -119,8 +120,8 @@ uint32_t gpg_common_keySize(char algorithm)
 			return 16;
 		case CIPHER_3DES:
 			return 24;
-//		case CIPHER_TWOFISH:
-//			return 32;
+		case CIPHER_TWOFISH:
+			return 32;
 		case CIPHER_CAMELLIA128:
 			return 16;
 		case CIPHER_CAMELLIA192:
@@ -143,7 +144,7 @@ static int gpg_common_valid_cipher_algorithm(int cipher_algorithm)
 		case CIPHER_AES256: return 1;
 		case CIPHER_IDEA: return 1;
 		case CIPHER_3DES: return 1;
-//		case CIPHER_TWOFISH: return 1;
+		case CIPHER_TWOFISH: return 1;
 		case CIPHER_CAMELLIA128: return 1;
 		case CIPHER_CAMELLIA192: return 1;
 		case CIPHER_CAMELLIA256: return 1;
@@ -1194,8 +1195,6 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, SALT_LENGTH, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
-
-		// TODO:  Support for twofish camellia128 camellia192 camellia256
 		case CIPHER_CAMELLIA128:
 		case CIPHER_CAMELLIA192:
 		case CIPHER_CAMELLIA256: {
@@ -1204,12 +1203,12 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					    Camellia_cfb128_encrypt(gpg_common_cur_salt->data, out, CAMELLIA_BLOCK_SIZE, &ck, ivec, &tmp, CAMELLIA_DECRYPT);
 				    }
 				    break;
-//		case CIPHER_TWOFISH: {
-//					      BF_KEY ck;
-//					      BF_set_key(&ck, ks, keydata);
-//					      BF_cfb64_encrypt(gpg_common_cur_salt->data, out, BF_BLOCK, &ck, ivec, &tmp, BF_DECRYPT);
-//				      }
-//				      break;
+		case CIPHER_TWOFISH: {
+					      Twofish_key ck;
+					      Twofish_prepare_key(keydata, ks, &ck);
+					      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, 16, ivec);
+				      }
+				      break;
 		default:
 				    printf("(check) Unknown Cipher Algorithm %d ;(\n", gpg_common_cur_salt->cipher_algorithm);
 				    break;
@@ -1270,7 +1269,6 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
-		// TODO:  Support for twofish camellia128 camellia192 camellia256
 		case CIPHER_CAMELLIA128:
 		case CIPHER_CAMELLIA192:
 		case CIPHER_CAMELLIA256: {
@@ -1279,13 +1277,12 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					    Camellia_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, CAMELLIA_DECRYPT);
 				    }
 				    break;
-//		case CIPHER_TWOFISH: {
-//					      BF_KEY ck;
-//					      BF_set_key(&ck, ks, keydata);
-//					      BF_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, BF_DECRYPT);
-//				      }
-//				      break;
-
+		case CIPHER_TWOFISH: {
+					      Twofish_key ck;
+					      Twofish_prepare_key(keydata, ks, &ck);
+					      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, ivec);
+				      }
+				      break;
 		default:
 				    break;
 	}

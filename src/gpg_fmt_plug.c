@@ -30,15 +30,8 @@ john_register_one(&fmt_gpg);
 #else
 
 #include <string.h>
-#include <openssl/aes.h>
 #include <assert.h>
-#include <openssl/blowfish.h>
-#include <openssl/ripemd.h>
-#include <openssl/cast.h>
-#include "idea-JtR.h"
-#include <openssl/bn.h>
-#include <openssl/dsa.h>
-#include <openssl/des.h>
+#include "twofish.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -91,6 +84,7 @@ static void init(struct fmt_main *self)
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_align(sizeof(*cracked), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	Twofish_initialise();
 }
 
 static void done(void)
