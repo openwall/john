@@ -128,22 +128,19 @@ private bz_stream bz;
 
 #define NULL_VER -1
 
-#define BIG_ENOUGH 0x10000
-
 /* Global Stuff */
 
-static unsigned char d[BIG_ENOUGH];
-static unsigned char u[BIG_ENOUGH];
-static unsigned char p[BIG_ENOUGH];
-static unsigned char q[BIG_ENOUGH];
-static unsigned char g[BIG_ENOUGH];
-static unsigned char y[BIG_ENOUGH];
-static unsigned char n[BIG_ENOUGH];
-static unsigned char e[BIG_ENOUGH];
-// static unsigned char x[BIG_ENOUGH];
-static unsigned char m_data[BIG_ENOUGH];
-static char gecos[BIG_ENOUGH];
-static char last_hash[2 * BIG_ENOUGH];
+static unsigned char d[16384]; // used for RSA, more than big enough
+static unsigned char u[16384]; // used for RSA, more than big enough
+static unsigned char p[16384];
+static unsigned char q[16384];
+static unsigned char g[16384];
+static unsigned char y[16384];
+static unsigned char n[16384];
+static unsigned char e[16384];
+static unsigned char m_data[90000];  // FIXME: I think 8192 is biggest data per block ???
+static char gecos[1024];
+static char *last_hash;
 static unsigned char m_salt[64];
 static unsigned char iv[16];
 static char *filename;
@@ -208,10 +205,10 @@ public void parse_userattr_subpacket(string, int);
 
 public void pub_algs(unsigned int);
 public void sym_algs(unsigned int);
-public void sym_algs2(unsigned int);
+public char *sym_algs2(unsigned int);
 public int  iv_len(unsigned int);
 public void comp_algs(unsigned int);
-public void hash_algs(unsigned int);
+public char *hash_algs(unsigned int);
 public void key_id(void);
 public void fingerprint(void);
 public void time4(string);
@@ -339,7 +336,7 @@ static int print_hex(unsigned char *str, int len, char *cp)
 int gpg2john(int argc, char **argv)
 {
 	int i;
-	if (argc > 2 && (!strcmp(argv[1], "-d") || !strcmp(argv[1], "-S"))) {
+	while (argc > 2 && (!strcmp(argv[1], "-d") || !strcmp(argv[1], "-S"))) {
 		if (!strcmp(argv[1], "-d"))
 			gpg_dbg = 1;
 		else
@@ -360,6 +357,7 @@ int gpg2john(int argc, char **argv)
 		char *hash;
 		filename = argv[i];
 		fp = fopen(filename, "rb");
+		if (!fp) continue;
 		jtr_fseek64(fp, 0, SEEK_END);
 		m_flen = (size_t)jtr_ftell64(fp);
 		fclose(fp);
@@ -367,7 +365,7 @@ int gpg2john(int argc, char **argv)
 		if (freopen(filename, "rb", stdin) == NULL)
 			warn_exit("can't open %s.", filename);
 		parse_packet(hash);
-		if (*last_hash) {
+		if (last_hash && *last_hash) {
 			char login[4096], *cp;
 			char *gecos_remains = gecos;
 			const char *ext[] = {".gpg", ".pgp"};
@@ -382,7 +380,7 @@ int gpg2john(int argc, char **argv)
 			cp = &login[strlen(login) - 1];
 			while (cp > login && *cp == ' ') *cp-- = 0;
 			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-			*last_hash = 0;
+			MEM_FREE(last_hash);
 		}
 		MEM_FREE(hash);
 	}
@@ -522,17 +520,17 @@ sym_algs(unsigned int type)
 {
 	// printf("\tSym alg - ");
 	m_cipherAlgorithm = type;
-	// sym_algs2(type);
-	// printf("\n");
+	// printf("%s\n", sym_algs2(type));
 }
 
-public void
+public char *
 sym_algs2(unsigned int type)
 {
-	/* if (type < SYM_ALGS_NUM)
-		fprintf(stderr, "%s", SYM_ALGS[type]);
-	else
-		printf("unknown(sym %d)", type); */
+	static char S[48];
+	if (type < SYM_ALGS_NUM)
+		return SYM_ALGS[type];
+	sprintf(S, "unknown(sym %d)", type);
+	return S;
 }
 
 private int
@@ -585,7 +583,7 @@ comp_algs(unsigned int type)
 	printf("\n"); */
 }
 
-/* private string
+private string
 HASH_ALGS[] = {
 	"unknown(hash 0)",
 	"MD5(hash 1)",
@@ -599,19 +597,18 @@ HASH_ALGS[] = {
 	"SHA384(hash 9)",
 	"SHA512(hash 10)",
 	"SHA224(hash 11)",
-}; */
+};
 
 #define HASH_ALGS_NUM (sizeof(HASH_ALGS) / sizeof(string))
 
-public void
+public char *
 hash_algs(unsigned int type)
 {
-	/* printf("\tHash alg - ");
+	static char S[48];
 	if (type < HASH_ALGS_NUM)
-		printf("%s", HASH_ALGS[type]);
-	else
-		printf("unknown(hash %d)", type);
-	printf("\n"); */
+		return HASH_ALGS[type];
+	sprintf(S, "unknown(hash %d)", type);
+	return S;
 }
 
 public void
@@ -973,6 +970,8 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
 		printf("%s\n", hash);
+		if (gpg_dbg)
+			fprintf(stderr, "  Key being dumped: Symmetrically_Encrypted_and_MDC_Packet.   hashAlgo=%s cipherAlgo=%s\n", hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 		reset_sym_alg_mode();
 	}
 }
@@ -1088,6 +1087,8 @@ Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial, char *ha
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
 		printf("%s\n", hash);
+		if (gpg_dbg)
+			fprintf(stderr, "  Key being dumped: Symmetrically_Encrypted_and_MDC_Packet.   hashAlgo=%s cipherAlgo=%s\n", hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 		reset_sym_alg_mode();
 	}
 }
@@ -2447,11 +2448,13 @@ encrypted_Secret_Key(int len, int sha1)
 		used += len;
 
 		m_algorithm = PUBLIC;
-		if (*last_hash) {
+		if (last_hash && *last_hash) {
 			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-			*last_hash = 0;
+			MEM_FREE(last_hash);
 		}
 		if (dump_subkeys || !is_subkey) {
+			MEM_FREE(last_hash);
+			last_hash = mem_alloc(len*2 + 512 + (n_bits + 7) / 4);
 			cp = last_hash;
 			cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
 			cp += print_hex(m_data, len, cp);
@@ -2464,6 +2467,9 @@ encrypted_Secret_Key(int len, int sha1)
 				cp += print_hex(n, (n_bits + 7) / 8, cp);
 			}
 			*cp = 0;
+			if (gpg_dbg)
+				fprintf(stderr, "  Key being dumped: encrypted_Secret_Key (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
+
 		}
 		break;
 	case 4:
@@ -2475,11 +2481,13 @@ encrypted_Secret_Key(int len, int sha1)
 			give(len, m_data, sizeof(m_data)); // we can't break down the "data" further into fields
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
-			if (*last_hash) {
+			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-				*last_hash = 0;
+				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
+				MEM_FREE(last_hash);
+				last_hash = mem_alloc(len*2 + 512 + (n_bits + 7) / 4 );
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, n_bits);
 				cp += print_hex(m_data, len, cp);
@@ -2493,6 +2501,8 @@ encrypted_Secret_Key(int len, int sha1)
 					cp += print_hex(n, (n_bits + 7) / 8, cp);
 				}
 				*cp = 0;
+				if (gpg_dbg)
+					fprintf(stderr, "  Key being dumped: encrypted_Secret_Key-RSA (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 			}
 			break;
 		case 16:
@@ -2500,11 +2510,13 @@ encrypted_Secret_Key(int len, int sha1)
 			m_algorithm = PUBLIC;  // Encrypted ElGamal
 			give(len, m_data, sizeof(m_data));
 			used += len;
-			if (*last_hash) {
+			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-				*last_hash = 0;
+				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
+				MEM_FREE(last_hash);
+				last_hash = mem_alloc(len*2 + 512 + (p_bits+g_bits+y_bits) / 4);
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
 				cp += print_hex(m_data, len, cp);
@@ -2521,17 +2533,21 @@ encrypted_Secret_Key(int len, int sha1)
 					cp += print_hex(y, (y_bits + 7) / 8, cp);
 				}
 				*cp = 0;
+				if (gpg_dbg)
+					fprintf(stderr, "  Key being dumped: encrypted_Secret_Key-ElGam (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 			}
 			break;
 		case 17:
 			m_algorithm = PUBLIC;  // Encrypted DSA
 			give(len, m_data, sizeof(m_data));
 			used += len;
-			if (*last_hash) {
+			if (last_hash && *last_hash) {
 				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
-				*last_hash = 0;
+				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
+				MEM_FREE(last_hash);
+				last_hash = mem_alloc(len*2 + 512 + (key_bits+q_bits+g_bits+y_bits) / 4);
 				cp = last_hash;
 				cp += sprintf(cp, "$gpg$*%d*%d*%d*", m_algorithm, len, key_bits);
 				cp += print_hex(m_data, len, cp);
@@ -2550,6 +2566,8 @@ encrypted_Secret_Key(int len, int sha1)
 					cp += print_hex(y, (y_bits + 7) / 8, cp);
 				}
 				*cp = 0;
+				if (gpg_dbg)
+					fprintf(stderr, "  Key being dumped: encrypted_Secret_Key-DSA (VERSION=%d/algo=%d/spec=%d).   hashAlgo=%s cipherAlgo=%s\n", VERSION, m_algorithm, m_spec, hash_algs(m_hashAlgorithm), sym_algs2(m_cipherAlgorithm));
 			}
 			break;
 		default:

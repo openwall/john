@@ -30,15 +30,8 @@ john_register_one(&fmt_gpg);
 #else
 
 #include <string.h>
-#include <openssl/aes.h>
 #include <assert.h>
-#include <openssl/blowfish.h>
-#include <openssl/ripemd.h>
-#include <openssl/cast.h>
-#include "idea-JtR.h"
-#include <openssl/bn.h>
-#include <openssl/dsa.h>
-#include <openssl/des.h>
+#include "twofish.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -64,7 +57,7 @@ john_register_one(&fmt_gpg);
 #define FORMAT_LABEL        "gpg"
 #define FORMAT_NAME         "OpenPGP / GnuPG Secret Key"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
-#define SALT_SIZE           sizeof(struct gpg_common_custom_salt)
+#define SALT_SIZE           sizeof(struct gpg_common_custom_salt*)
 
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
@@ -91,6 +84,7 @@ static void init(struct fmt_main *self)
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_align(sizeof(*cracked), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	Twofish_initialise();
 }
 
 static void done(void)
@@ -101,7 +95,7 @@ static void done(void)
 
 static void set_salt(void *salt)
 {
-	gpg_common_cur_salt = (struct gpg_common_custom_salt *)salt;
+	gpg_common_cur_salt = *(struct gpg_common_custom_salt **)salt;
 }
 
 static void gpg_set_key(char *key, int index)
@@ -181,11 +175,11 @@ struct fmt_main fmt_gpg = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{
 			"s2k-count", /* only for gpg --s2k-mode 3, see man gpg, option --s2k-count n */
 			"hash algorithm [1:MD5 2:SHA1 3:RIPEMD160 8:SHA256 9:SHA384 10:SHA512 11:SHA224]",
-			"cipher algorithm [1:IDEA 2:3DES 3:CAST5 4:Blowfish 7:AES128 8:AES192 9:AES256]",
+			"cipher algorithm [1:IDEA 2:3DES 3:CAST5 4:Blowfish 7:AES128 8:AES192 9:AES256 10:Twofish 11:Camellia128 12:Camellia192 13:Camellia256]",
 		},
 		{ FORMAT_TAG },
 		gpg_common_gpg_tests

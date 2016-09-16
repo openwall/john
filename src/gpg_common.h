@@ -11,6 +11,8 @@
  *  (CPU, OpenCL)
  */
 
+#include "dyna_salt.h"
+
 #define BENCHMARK_COMMENT		   ""
 #define BENCHMARK_LENGTH		   -1001
 #define FORMAT_TAG           "$gpg$*"
@@ -23,7 +25,6 @@
 
 // Minimum number of bits when checking the first BN
 #define MIN_BN_BITS 64
-#define BIG_ENOUGH 8192
 
 extern struct fmt_tests gpg_common_gpg_tests[];
 
@@ -48,7 +49,7 @@ enum {
 	PKA_UNKNOWN = 0,
 	PKA_RSA_ENCSIGN = 1,
 	PKA_DSA = 17,
-	PKA_EG = 20,
+	PKA_EG = 20,  // TODO???  wtf is this one???
 	PKA_ELGAMAL = 16
 };
 
@@ -61,6 +62,10 @@ enum {
 	CIPHER_AES256 = 9,
 	CIPHER_IDEA = 1,
 	CIPHER_3DES = 2,
+	CIPHER_TWOFISH = 10,
+	CIPHER_CAMELLIA128 = 11,
+	CIPHER_CAMELLIA192 = 12,
+	CIPHER_CAMELLIA256 = 13,
 };
 
 enum {
@@ -91,8 +96,8 @@ enum {
 #endif
 
 struct gpg_common_custom_salt {
+	dyna_salt dsalt;
 	int datalen;
-	unsigned char data[BIG_ENOUGH * 2];
 	char spec;
 	char pk_algorithm;
 	char hash_algorithm;
@@ -104,13 +109,13 @@ struct gpg_common_custom_salt {
 	int ivlen;
 	int count;
 	void (*s2kfun)(char *, unsigned char*, int);
-	unsigned char p[BIG_ENOUGH];
-	unsigned char q[BIG_ENOUGH];
-	unsigned char g[BIG_ENOUGH];
-	unsigned char y[BIG_ENOUGH];
-	unsigned char x[BIG_ENOUGH];
-	unsigned char n[BIG_ENOUGH];
-	unsigned char d[BIG_ENOUGH];
+	unsigned char p[0x2000]; // gpg --homedir . --s2k-cipher-algo 3des --simple-sk-checksum --gen-key
+	unsigned char q[0x2000]; // those can have larger p and q values.
+	unsigned char g[0x200];
+	unsigned char y[0x200];
+	unsigned char x[0x200];
+	unsigned char n[0x200];
+	unsigned char d[0x200];
 	int pl;
 	int ql;
 	int gl;
@@ -119,6 +124,7 @@ struct gpg_common_custom_salt {
 	int nl;
 	int dl;
 	int symmetric_mode;
+	unsigned char data[1];
 };
 
 extern struct gpg_common_custom_salt *gpg_common_cur_salt;

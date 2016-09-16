@@ -50,7 +50,7 @@ john_register_one(&fmt_opencl_gpg);
 #define FORMAT_LABEL		"gpg-opencl"
 #define FORMAT_NAME		"OpenPGP / GnuPG Secret Key"
 #define ALGORITHM_NAME		"SHA1 OpenCL"
-#define SALT_SIZE		sizeof(struct gpg_common_custom_salt)
+#define SALT_SIZE		sizeof(struct gpg_common_custom_salt*)
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -192,7 +192,7 @@ static void done(void)
 
 static void set_salt(void *salt)
 {
-	gpg_common_cur_salt = (struct gpg_common_custom_salt *)salt;
+	gpg_common_cur_salt = *(struct gpg_common_custom_salt **)salt;
 	currentsalt.length = SALT_LENGTH;
 	memcpy((char*)currentsalt.salt, gpg_common_cur_salt->salt, currentsalt.length);
 	currentsalt.count = gpg_common_cur_salt->count;
@@ -354,7 +354,7 @@ struct fmt_main fmt_opencl_gpg = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
 		{
 			"s2k-count", /* only for gpg --s2k-mode 3, see man gpg, option --s2k-count n */
 			"hash algorithm [1:MD5 2:SHA1 3:RIPEMD160 8:SHA256 9:SHA384 10:SHA512 11:SHA224]",
