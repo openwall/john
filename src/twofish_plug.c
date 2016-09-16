@@ -1815,7 +1815,7 @@ int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer, int nInp
 
 int Twofish_Decrypt_cfb128(Twofish_key *m_key, Twofish_Byte *pInput, Twofish_Byte *pOutBuffer, int nInputOctets, Twofish_Byte *m_pInitVector)
 {
-	int i, numBlocks;
+	int i, numBlocks, ex;
 	UInt32 iv[4];
 	union {
 		Byte block[16];
@@ -1828,9 +1828,8 @@ int Twofish_Decrypt_cfb128(Twofish_key *m_key, Twofish_Byte *pInput, Twofish_Byt
 	block = x.block;
 	if((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
 
-//	if((nInputOctets % 16) != 0) { return -1; }
-
-	numBlocks = (nInputOctets+15) / 16;
+	numBlocks = nInputOctets / 16;
+	ex = nInputOctets % 16;
 
 	memcpy(iv, m_pInitVector, 16);
 
@@ -1846,6 +1845,12 @@ int Twofish_Decrypt_cfb128(Twofish_key *m_key, Twofish_Byte *pInput, Twofish_Byt
 		pInput += 16;
 		pOutBuffer += 16;
 	}
+	/* less than full block for last block. Only put in that many bytes */
+	if (ex) {
+		Twofish_encrypt(m_key, (Twofish_Byte *)iv, (Twofish_Byte *)block);
+		for (i = 0; i < ex; ++i)
+			pOutBuffer[i] = pInput[i] ^ block[i];
+	}
 
-	return 16*numBlocks;
+	return nInputOctets;
 }
