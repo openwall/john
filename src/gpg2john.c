@@ -2853,6 +2853,8 @@ inflate_bzip2(byte *p, unsigned int max)
 			size = (*d_func2)(d_buf2, sizeof(d_buf2));
 			bz.next_in  = (cast_t)d_buf2;
 			bz.avail_in = size;
+			if (bz.avail_in == 0)
+				break;
 		}
 
 		old = bz.avail_out;
