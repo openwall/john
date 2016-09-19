@@ -1408,7 +1408,6 @@ static void john_init(char *name, int argc, char **argv)
 	if (make_check)
 		argv[1] = "--test=0";
 
-	path_init(argv);
 	CPU_detect_or_fallback(argv, make_check);
 
 #if HAVE_MPI
@@ -1891,6 +1890,9 @@ int main(int argc, char **argv)
 
 	/* put the crc table init here, so that tables are fully setup for any ancillary program */
 	CRC32_Init_tab();
+        
+        /* Needed before CPU fallback */
+	path_init(argv);
 
 	if (!strcmp(name, "unshadow")) {
 		CPU_detect_or_fallback(argv, 0);
