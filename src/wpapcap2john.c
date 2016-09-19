@@ -251,7 +251,7 @@ static int convert_ivs(FILE *f_in)
 static void dump_any_unver() {
 	if (nunVer) {
 		int i;
-		fprintf(stderr, "Dumping %d unverified keys, which were not verified\n", nunVer);
+		fprintf(stderr, "Dumping %d unverified keys\n", nunVer);
 		for (i = 0; i < nunVer; ++i) {
 			printf("%s\n", unVerified[i]);
 			MEM_FREE(unVerified[i]);
@@ -340,7 +340,7 @@ static int GetNextPacket(FILE *in)
 	MEM_FREE(full_packet);
 	full_packet = NULL;
 	full_packet = (uint8 *)malloc(pkt_hdr.incl_len);
-	if (NULL == full_packet) {
+	if (!full_packet) {
 		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
@@ -418,11 +418,15 @@ static int ProcessPacket()
 	pkt = (ether_frame_hdr_t*)packet;
 	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 
-	if (ctl->type == 0 && ctl->subtype == 8) { // beacon  Type 0 is management, subtype 8 is beacon
+	//fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
+
+	// Beacon is type 0, subtype 8
+	// Probe response is type 0 subtype 5
+	if (ctl->type == 0 && (ctl->subtype == 5 || ctl->subtype == 8)) {
 		HandleBeacon();
 		return 1;
 	}
-	// if not beacon, then only look data, looking for EAPOL 'type'
+	// if not beacon or probe response, then only for EAPOL 'type'
 	if (ctl->type == 2) { // type 2 is data
 		uint8 *p = packet;
 		int bQOS = (ctl->subtype & 8) != 0;
@@ -484,7 +488,7 @@ static void HandleBeacon()
 	char essid[36] = { 0 };
 	char bssid[18];
 
-	// addr1 should be broadcast
+	// addr1 should be broadcast for beacon, unicast for probe response
 	// addr2 is source addr (should be same as BSSID)
 	// addr3 is BSSID (routers MAC)
 
@@ -539,7 +543,7 @@ static void Handle4Way(int bIsQOS)
 		goto out;  // no reason to go on.
 
 	orig_2 = (uint8 *)malloc(pkt_hdr.incl_len);
-	if (NULL == orig_2) {
+	if (!orig_2) {
 		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
@@ -550,13 +554,15 @@ static void Handle4Way(int bIsQOS)
 	if (bIsQOS)
 		p += 2;
 	// we are now at Logical-Link Control. (8 bytes long).
-	// LLC check not needed here any more.  We do it in the packet cracker section, b4
-	// calling this function.  We just need to skip the 8 byte LLC.
+	// LLC check not needed here any more.  We do it in the packet cracker
+	// section, before calling this function.  We just need to skip the 8 byte
+	// LLC.
 	//if (memcmp(p, "\xaa\xaa\x3\0\0\0\x88\x8e", 8)) return; // not a 4way
 	p += 8;
 	// p now points to the 802.1X Authentication structure.
 	auth = (ether_auto_802_1x_t*)p;
-	auth->length = swap16u(auth->length);
+	if ((auth->length = swap16u(auth->length)) == 0)
+		goto out;
 	//*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
 	auth->key_info_u16 = swap16u(auth->key_info_u16);
 	auth->key_len  = swap16u(auth->key_len);
