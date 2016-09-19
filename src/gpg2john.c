@@ -2810,6 +2810,8 @@ inflate_gzip(byte *p, unsigned int max)
 			size = (*d_func2)(d_buf2, sizeof(d_buf2));
 			z.next_in  = d_buf2;
 			z.avail_in = size;
+			if (z.avail_in == 0)
+				warn_exit("zlib error, truncated file?");
 		}
 
 		old = z.avail_out;
@@ -2821,7 +2823,7 @@ inflate_gzip(byte *p, unsigned int max)
 		inflated = max - z.avail_out;
 
 		if (old == z.avail_out && z.avail_in != 0)
-			break;
+			break;	// is this return valid ?
 
 		if (err == Z_STREAM_END) {
 			done = YES;
@@ -2854,7 +2856,7 @@ inflate_bzip2(byte *p, unsigned int max)
 			bz.next_in  = (cast_t)d_buf2;
 			bz.avail_in = size;
 			if (bz.avail_in == 0)
-				break;
+				warn_exit("bzip2 error, truncated file?");
 		}
 
 		old = bz.avail_out;
@@ -2866,7 +2868,7 @@ inflate_bzip2(byte *p, unsigned int max)
 		inflated = max - bz.avail_out;
 
 		if (old == bz.avail_out && bz.avail_in != 0)
-			break;
+			break; // is this return 'valid' ?
 
 		if (err == BZ_STREAM_END) {
 			done = YES;
