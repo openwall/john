@@ -23,7 +23,7 @@
 
 static int GetNextPacket(FILE *in);
 static int ProcessPacket();
-static void HandleBeacon();
+static void HandleBeacon(uint16 subtype);
 static void Handle4Way(int bIsQOS);
 static void DumpKey(int idx, int one_three, int bIsQOS);
 
@@ -292,15 +292,15 @@ static int Process(FILE *in)
 	}
 	link_type = main_hdr.network;
 	if (link_type == LINKTYPE_IEEE802_11)
-		fprintf(stderr, "%s: raw 802.11\n", filename);
+		fprintf(stderr, "\n%s: raw 802.11\n", filename);
 	else if (link_type == LINKTYPE_PRISM_HEADER)
-		fprintf(stderr, "%s: Prism headers stripped\n", filename);
+		fprintf(stderr, "\n%s: Prism headers stripped\n", filename);
 	else if (link_type == LINKTYPE_RADIOTAP_HDR)
-		fprintf(stderr, "%s: Radiotap headers stripped\n", filename);
+		fprintf(stderr, "\n%s: Radiotap headers stripped\n", filename);
 	else if (link_type == LINKTYPE_PPI_HDR)
-		fprintf(stderr, "%s: PPI headers stripped\n", filename);
+		fprintf(stderr, "\n%s: PPI headers stripped\n", filename);
 	else {
-		fprintf(stderr, "%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
+		fprintf(stderr, "\n%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
 	}
 
@@ -420,13 +420,13 @@ static int ProcessPacket()
 
 	//fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
 
-	// Beacon is type 0, subtype 8
-	// Probe response is type 0 subtype 5
+	// Type 0 is management,
+	// Beacon is subtype 8 and probe response is subtype 5
 	if (ctl->type == 0 && (ctl->subtype == 5 || ctl->subtype == 8)) {
-		HandleBeacon();
+		HandleBeacon(ctl->subtype);
 		return 1;
 	}
-	// if not beacon or probe response, then only for EAPOL 'type'
+	// if not beacon or probe response, then look only for EAPOL 'type'
 	if (ctl->type == 2) { // type 2 is data
 		uint8 *p = packet;
 		int bQOS = (ctl->subtype & 8) != 0;
@@ -468,7 +468,8 @@ static void ManualBeacon(char *essid_bssid)
 		e_fail();
 
 	bssid = strupr(bssid);
-	fprintf(stderr, "Manually adding ESSID '%s' BSSID '%s'\n", essid, bssid);
+	fprintf(stderr, "Learned BSSID %s ESSID '%s' from command-line option\n",
+	        bssid, essid);
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
 	if (++nwpa >= MAX_ESSIDS) {
@@ -477,7 +478,7 @@ static void ManualBeacon(char *essid_bssid)
 	}
 }
 
-static void HandleBeacon()
+static void HandleBeacon(uint16 subtype)
 {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	int i;
@@ -509,7 +510,8 @@ static void HandleBeacon()
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
 
-	fprintf(stderr, "Learned ESSID '%s' with BSSID '%s'\n", essid, bssid);
+	fprintf(stderr, "Learned BSSID %s ESSID '%s' from %s\n",
+	        bssid, essid, subtype == 5 ? "probe response" : "beacon");
 
 	if (++nwpa >= MAX_ESSIDS) {
 		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
@@ -721,7 +723,8 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	char TmpKey[2048], *cp = TmpKey;
 	int search_len;
 
-	fprintf (stderr, "Dumping key %d at time:  %d.%d BSSID %s  ESSID=%s\n", one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
+	fprintf (stderr, "Dumping key %d at time: %d.%d BSSID %s ESSID '%s'\n",
+	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
@@ -771,11 +774,10 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
 	search_len = cp-TmpKey;
-	cp += sprintf(cp, ":password %sverified:%s", (one_three == 1) ? "not " : "", filename);
+	cp += sprintf(cp, ":%sverified:%s", (one_three == 1) ? "not " : "", filename);
 	if (one_three == 1) {
-		fprintf (stderr, "unVerified key stored, pending verification");
+		fprintf (stderr, "unverified key stored, pending verification\n");
 		unVerified[nunVer++] = strdup(TmpKey);
-		fprintf(stderr, "\n");
 		return;
 	} else {
 		for (i = 0; i < nunVer; ++i) {
