@@ -130,7 +130,7 @@ extern char *strnzcat(char *dst, const char *src, int size);
 extern unsigned atou(const char *src);
 
 /*
- * Similar to strtok(), but properly handles adjacent delmiters as
+ * Similar to strtok(), but properly handles adjacent delimiters as
  * empty strings.  strtok() in the CRTL merges adjacent delimiters
  * and sort of 'skips' them. This one also returns 'empty' tokens
  * for any leading or trailing delims. strtok() strips those off

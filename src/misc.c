@@ -272,7 +272,7 @@ char *strnzcat(char *dst, const char *src, int size)
 }
 
 /*
- * strtok code, BUT returns empty token "" for adjacent delmiters. It also
+ * strtok code, BUT returns empty token "" for adjacent delimiters. It also
  * returns leading and trailing tokens for leading and trailing delimiters
  * (strtok strips them away and does not return them). Several other issues
  * in strtok also impact this code
