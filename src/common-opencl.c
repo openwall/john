@@ -935,8 +935,14 @@ static void dev_init(int sequential_id)
 		opencl_log[len] = '\0';
 
 		if (options.verbosity > 1 && !printed[sequential_id]++)
-			fprintf(stderr, "Device %d: %s [%s]\n",
-			        sequential_id, device_name, opencl_log);
+			fprintf(stderr, "Device %d%s%s: %s [%s]\n",
+			        sequential_id,
+#if HAVE_MPI
+			        "@", mpi_name,
+#else
+			        "", "",
+#endif
+			        device_name, opencl_log);
 		log_event("Device %d: %s [%s]", sequential_id, device_name, opencl_log);
 	} else {
 		char *dname = device_name;
@@ -946,7 +952,13 @@ static void dev_init(int sequential_id)
 			dname++;
 
 		if (options.verbosity > 1 && !printed[sequential_id]++)
-			fprintf(stderr, "Device %d: %s\n", sequential_id, dname);
+			fprintf(stderr, "Device %d%s%s: %s\n", sequential_id,
+#if HAVE_MPI
+			        "@", mpi_name,
+#else
+			        "", "",
+#endif
+			        dname);
 		log_event("Device %d: %s", sequential_id, dname);
 	}
 }
