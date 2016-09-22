@@ -272,21 +272,21 @@ static struct opt_entry opt_list[] = {
 
 #if OS_FORK
 #define JOHN_USAGE_FORK \
-"--fork=N                  fork N processes\n"
+"--fork=N                   fork N processes\n"
 #else
 #define JOHN_USAGE_FORK ""
 #endif
 
 #if HAVE_REXGEN
 #define JOHN_USAGE_REGEX \
-	"--regex=REGEXPR           regular expression mode (see doc/README.librexgen)\n"
+"--regex=REGEXPR            regular expression mode (see doc/README.librexgen)\n"
 #else
 #define JOHN_USAGE_REGEX ""
 #endif
 
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #define PRINCE_USAGE \
-	"--prince[=FILE]           PRINCE mode, read words from FILE\n"
+"--prince[=FILE]            PRINCE mode, read words from FILE\n"
 #else
 #define PRINCE_USAGE ""
 #endif
