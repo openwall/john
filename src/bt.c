@@ -247,7 +247,7 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 #if _OPENMP
 #pragma omp barrier
 #endif
-	/* Build Auxilliary data structure for offset_table. */
+	/* Build Auxiliary data structure for offset_table. */
 #if _OPENMP
 #pragma omp for
 #endif

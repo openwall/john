@@ -19,7 +19,7 @@
  * to make that code 'appear' like OpenSSL  It was done this
  * way, just in case there are versions of OSSL that have some
  * of this code, older than what we 'know' about. If we do not
- * use differnt names, (and #defines to map), we run the risk
+ * use different names, (and #defines to map), we run the risk
  * of having multiple defined functions/data.
  *
  * NOTE, if FORCE_GENERIC_SHA2 is defined before this header is

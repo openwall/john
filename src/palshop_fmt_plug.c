@@ -38,7 +38,7 @@ john_register_one(&fmt_palshop);
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        125
-#define BINARY_SIZE             10  /* 20 chracters of "m2", now 10 binary bytes. */
+#define BINARY_SIZE             10  /* 20 characters of "m2", now 10 binary bytes. */
 #define SALT_SIZE               0
 #define BINARY_ALIGN            sizeof(ARCH_WORD_32)
 #define SALT_ALIGN              sizeof(int)

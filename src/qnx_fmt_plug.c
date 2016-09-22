@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker. Written to crack
- * QNX shadow hash passwords.  algorith is func(salt . pass x rounds+1)
+ * QNX shadow hash passwords.  algorithm is func(salt . pass x rounds+1)
  * func is md5, sha256 or sha512. rounds defaults to 1000, BUT can be specified
  * in the hash string and thus is not fixed.
  *
