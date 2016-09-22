@@ -24,7 +24,7 @@ argument (if supported for a given option).
 The supported options are as follows, square brackets denote optional
 arguments:
 
---single[=(SECTION|:rule)]	"single crack" mode
+--single[=(SECTION[,SECTION2,....,SECTIONn]|:rule)] "single crack" mode
 
 Enables the "single crack" mode, using rules from the configuration
 file section [List.Rules:Single].  If --single=Single_2 then the rules
@@ -61,7 +61,8 @@ attacked. Note that by default, some rules are applied too (see john.conf
 Input data in a character encoding other than the default 'raw'. See also
 doc/ENCODINGS.   --list=encodings gives a list of all handled encodings.
 
---rules[=(SECTION|:rule)]	enable word mangling rules for wordlist mode
+--rules[=(SECTION[,SECTION2,....,SECTIONn]|:rule)]  enable word mangling rules
+   (available in wordlist and prince modes)
 
 Enables word mangling rules that are read from the specified section, which
 defaults to [List.Rules:Wordlist] if not given.

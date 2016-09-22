@@ -297,7 +297,7 @@ static struct opt_entry opt_list[] = {
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n" \
-"--single[=(SECTION|:rule)] \"single crack\" mode\n" \
+"--single[=(SECTION[,S2,..,Sn]|:rule)] \"single crack\" mode\n" \
 "--wordlist[=FILE] --stdin  wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe   like --stdin, but bulk reads, and allows rules\n" \
 "--loopback[=FILE]          like --wordlist, but extract words from a .pot file\n" \
@@ -305,7 +305,8 @@ static struct opt_entry opt_list[] = {
 PRINCE_USAGE \
 "--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                           doc/ENCODING and --list=hidden-options.\n" \
-"--rules[=(SECTION|:rule)]  enable word mangling rules for wordlist or PRINCE\n" \
+"--rules[=(SECTION[,S2,..,Sn]|:rule)]  enable word mangling rules for\n" \
+"                           wordlist or PRINCE modes\n" \
 "--incremental[=MODE]       \"incremental\" mode [using section MODE]\n" \
 "--mask[=MASK]              mask mode using MASK (or default from john.conf)\n" \
 "--markov[=OPTIONS]         \"Markov\" mode (see doc/MARKOV)\n" \

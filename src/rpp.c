@@ -11,6 +11,7 @@
 #include "rpp.h"
 #include "logger.h"
 #include "common.h" /* for atoi16 */
+#include "misc.h"   /* for strtokm */
 #include "memdbg.h"
 
 int rpp_real_run = 0;
@@ -22,8 +23,8 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 	ctx->refs_count = 0;
 	if (*subsection == ':') {
 		char *p, *buf;
-		const int sz = sizeof(struct cfg_line);
-		struct cfg_line *cfg_cur = mem_calloc_tiny(sz, 8);
+		const int sz = sizeof(struct cfg_line), al = sizeof(struct cfg_line *);
+		struct cfg_line *cfg_cur = mem_calloc_tiny(sz, al);
 
 		buf = str_alloc_copy(subsection+1);
 		cfg_cur->cfg_name = "Command Line Rule";
@@ -35,13 +36,41 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 		while (p && *p) {
 			*p++ = 0;
 			if (!p[0]) continue;
-			cfg_cur->next = mem_calloc_tiny(sz, 8);
+			cfg_cur->next = mem_calloc_tiny(sz, al);
 			cfg_cur = cfg_cur->next;
 			cfg_cur->cfg_name = "Command Line Rule";
 			cfg_cur->data = p;
 			p = strchr(p, ';');
 			while (p && p > buf && p[-1] == '\\')
 				p = strchr(p+1, ';');
+		}
+		ctx->count = -1;
+		return 0;
+	} else if (strchr(subsection, ',')) {
+		char *buf = str_alloc_copy(subsection), *cp;
+		const int sz = sizeof(struct cfg_line), al = sizeof(struct cfg_line *);
+		struct cfg_line *cfg_cur = mem_calloc_tiny(sz, al);
+		int first = 1;
+
+		ctx->input = cfg_cur;
+		cp = strtokm(buf, ",");
+		while (cp) {
+			struct cfg_line *lp;
+			if ((list = cfg_get_list(SECTION_RULES, cp))==NULL)
+				return 1;
+			lp = list->head;
+			while (lp) {
+				if (!first) {
+					cfg_cur->next = mem_calloc_tiny(sz, al);
+					cfg_cur = cfg_cur->next;
+				}
+				first = 0;
+				cfg_cur->cfg_name = cp;
+				cfg_cur->data = lp->data;
+				cfg_cur->number = lp->number;
+				lp = lp->next;
+			}
+			cp = strtokm(NULL, ",");
 		}
 		ctx->count = -1;
 		return 0;
