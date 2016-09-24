@@ -441,10 +441,14 @@ void *pbkdf2_hmac_sha1_binary(char *ciphertext) {
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
-	int i;
+	int i, len;
 
 	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < PBKDF2_SHA1_MAX_BINARY_SIZE; i++) {
+	len = strlen(p) >> 1;
+	if (len > PBKDF2_SHA1_MAX_BINARY_SIZE)
+		len = PBKDF2_SHA1_MAX_BINARY_SIZE;
+	memset(buf.c, 0, sizeof(buf.c));
+	for (i = 0; i < len; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
 			atoi16[ARCH_INDEX(p[1])];
