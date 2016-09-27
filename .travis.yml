@@ -20,7 +20,7 @@ matrix:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev libasan0 pkg-config debhelper libnet1-dev
+  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev libasan pkg-config debhelper libnet1-dev
   - sudo apt-get install fglrx-dev opencl-headers || true
   - export OMP_NUM_THREADS=4
 script:
