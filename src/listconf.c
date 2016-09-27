@@ -670,7 +670,7 @@ void listconf_parse_late(void)
 			printf("Salt size                            %d\n",
 			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
 /* salts are handled internally within the format. We want to know the
-   'real' salt size dynamic will alway set params.salt_size to 0 or
+   'real' salt size dynamic will always set params.salt_size to 0 or
    sizeof a pointer. */
 			       dynamic_real_salt_length(format) : format->params.salt_size);
 			printf("Tunable cost parameters              ");

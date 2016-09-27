@@ -822,7 +822,7 @@ skein_small_core(sph_skein_small_context *sc, const void *data, size_t len)
 
 	/*
 	 * Unrolling the loop yields a slight performance boost, while
-	 * keeping the code size aorund 24 kB on 32-bit x86.
+	 * keeping the code size around 24 kB on 32-bit x86.
 	 */
 	READ_STATE_SMALL(sc);
 	first = (bcount == 0) << 7;

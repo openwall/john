@@ -355,7 +355,7 @@ static int cmp_exact(char *source, int index)
 
 /*
  * The '0_' makes sure this format registers before others,
- * if ambigous.  Do not copy it for other formats.
+ * if ambiguous.  Do not copy it for other formats.
  */
 struct fmt_main fmt_raw0_SHA512 = {
 	{

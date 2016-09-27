@@ -551,7 +551,7 @@ static void PQEXP_pair (quad *U, int highbit, uaf_lword n0,
  * 4.6.3, "Evaluation of Powers."  This algorithm is for calculating U^n with
  * fewer than (n-1) multiplies.  The result is U^n MOD P only because the
  * multiplication routine is MOD P.  Knuth's example is from Pingala's Hindu
- * algorthim in the Chandah-sutra.
+ * algorithm in the Chandah-sutra.
  */
 
 {

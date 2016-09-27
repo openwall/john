@@ -328,7 +328,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		    This data was provided by the client during authentication and we can use it as is.
 		*/
 
-		/* --- HMAC #2 Caculations --- */
+		/* --- HMAC #2 Calculations --- */
 
 		/*
 		  The (server) challenge from the Type 2 message is concatenated with the blob. The

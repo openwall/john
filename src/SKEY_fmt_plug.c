@@ -282,7 +282,7 @@ static unsigned int skey_hash_type(void *salt)
 	my_salt = (struct skey_salt_st*)salt;
 	/*
 	 * An empty string (like in the first test hash) meaning MD4
-	 * is just my assumtion based on some googling.
+	 * is just my assumption based on some googling.
 	 * Older implementations apparently only supported MD4, MD5, and SHA1,
 	 * while newer only support MD5, SHA1, and RMD160.
 	 * If I am wrong, and "" means MD5, the cost difference
