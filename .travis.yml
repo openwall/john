@@ -20,11 +20,12 @@ matrix:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev libasan pkg-config debhelper libnet1-dev
+  - sudo apt-cache search libasan
+  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
   - sudo apt-get install fglrx-dev opencl-headers || true
   - export OMP_NUM_THREADS=4
 script:
-  - cd src && ./configure --enable-asan && make -sj4 && echo -e '[Disabled:Formats]\nRaw-SHA512-free-opencl = Y\nXSHA512-free-opencl = Y\ngpg-opencl = Y' > john-local.conf && ../run/john -test-full=0
+  - cd src && ./configure && make -sj4 && echo -e '[Disabled:Formats]\nRaw-SHA512-free-opencl = Y\nXSHA512-free-opencl = Y\ngpg-opencl = Y' > john-local.conf && ../run/john -test-full=0
 
 addons:
   coverity_scan:
