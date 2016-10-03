@@ -1,4 +1,5 @@
 language: c
+dist: trusty
 branches:
   except:
     gh-pages
@@ -20,12 +21,15 @@ matrix:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-cache search libasan
   - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
   - sudo apt-get install fglrx-dev opencl-headers || true
   - export OMP_NUM_THREADS=4
 script:
-  - cd src && ./configure && make -sj4 && echo -e '[Disabled:Formats]\nRaw-SHA512-free-opencl = Y\nXSHA512-free-opencl = Y\ngpg-opencl = Y' > john-local.conf && ../run/john -test-full=0
+  - cd src 
+  - if [[ "$CC" == "gcc" ]]; then ./configure --enable-asan; fi
+  - if [[ "$CC" == "clang" ]]; then ./configure; fi
+  - make -sj4 
+  - ../.travis/test.sh
 
 addons:
   coverity_scan:
