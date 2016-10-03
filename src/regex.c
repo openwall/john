@@ -138,7 +138,7 @@ static void rexgen_setlocale()
 // Would be nice to have SOME way to be thread safe!!!
 static char BaseWord[1024];
 
-size_t callback(char* dst, const size_t buffer_size)
+size_t callback(wchar_t* dst, const size_t buffer_size)
 {
 	int len;
 
