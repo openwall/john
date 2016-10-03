@@ -66,7 +66,7 @@ unsigned int CC_CACHE_ALIGN opencl_DES_bs_index768[0x300];
 
 struct fmt_main;
 
-struct fmt_main fmt_opencl_DES;
+extern struct fmt_main fmt_opencl_DES;
 extern unsigned char opencl_DES_E[48];
 
 extern void opencl_DES_bs_b_register_functions(struct fmt_main *);
