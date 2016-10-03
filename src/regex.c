@@ -145,7 +145,7 @@ size_t callback(wchar_t* dst, const size_t buffer_size)
 	if (!BaseWord[0]) {
 		*dst = 0;
 	}
-	len =  strnzcpyn(dst, BaseWord, 1024);
+	len = strnzcpyn((char*)dst, BaseWord, 1024);
 	*BaseWord = 0;
 	if (*dst) {
 		return len;
