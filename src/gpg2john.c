@@ -407,16 +407,17 @@ dump(unsigned len)
 public int
 give(const unsigned len, unsigned char *buf, const unsigned buf_size)
 {
-	int i;
+	int i, tmp;
 
 	if (len > buf_size)
 		warn_exit("Bad parameter: give(len=%u, buf=%p, buf_size=%u), len can not be bigger than buf_size.",
 			len, buf, buf_size);
 
 	for (i = 0; i < len; i++) {
-		buf[i] = Getc();
-		if (buf[i] == EOF)
+		tmp = Getc();
+		if (tmp == EOF)
 			return -1;
+		buf[i] = tmp;
 	}
 	return len;
 }
