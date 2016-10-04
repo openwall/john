@@ -439,6 +439,9 @@
 /* The size of `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P
 
+/* The size of `wchar_t', as computed by sizeof. */
+#undef SIZEOF_WCHAR_T
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
