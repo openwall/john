@@ -172,7 +172,7 @@ AC_DEFUN([JTR_CUDA],
      AS_IF([test "x$cross_compiling" = xno], [JTR_SET_CUDA_INCLUDES])
      AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATH_SEPARATOR$CUDAPATH])
      AS_IF([test "x$NVCC" != "x"],
-        [AC_PATH_PROGS([NVCC_GCC],[llvm-gcc-4.2 gcc-4.6 gcc-4.5 gcc-4.4 gcc-4.3 gcc-4.2], [], [$PATH$PATH_SEPARATOR$CUDAPATH])]
+        [AC_PATH_PROGS([NVCC_GCC],[clang-omp llvm-gcc-4.2 gcc-4.6 gcc-4.5 gcc-4.4 gcc-4.3 gcc-4.2], [], [$PATH$PATH_SEPARATOR$CUDAPATH])]
 	[AC_CHECK_HEADER([cuda.h], [AC_CHECK_LIB([cudart],[cudaGetDeviceCount],
 				   [using_cuda=yes]
 				   [AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA])]
