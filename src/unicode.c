@@ -876,6 +876,29 @@ UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source)
 #endif
 }
 
+char *wcs_to_enc(char *dest, size_t dst_sz, const wchar_t *src)
+{
+#if SIZEOF_WCHAR_T == 4
+	utf32_to_enc((UTF8*)dest, dst_sz, (UTF32*)src);
+#elif SIZEOF_WCHAR_T == 2 && ARCH_LITTLE_ENDIAN
+	utf16_to_enc_r((UTF8*)dest, dst_sz, (UTF16*)src);
+#else
+	wcstombs(dest, src, dst_sz);
+#endif
+	return dest;
+}
+
+int enc_to_wcs(wchar_t *dest, size_t dst_sz, const char *src)
+{
+#if SIZEOF_WCHAR_T == 4
+	return enc_to_utf32((UTF32*)dest, dst_sz, (UTF8*)src, strlen(src));
+#elif SIZEOF_WCHAR_T == 2 && ARCH_LITTLE_ENDIAN
+	return enc_to_utf16((UTF16*)dest, dst_sz, (UTF8*)src, strlen(src));
+#else
+	return mbstowcs(dest, src, dst_sz);
+#endif
+}
+
 void listEncodings(FILE *fd)
 {
 	fprintf(fd, "ASCII (or RAW), UTF-8, ISO-8859-1 (or Latin1 or ANSI),\n"

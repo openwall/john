@@ -13,6 +13,11 @@
 
 #if HAVE_REXGEN
 
+#if !AC_BUILT || HAVE_LOCALE_H
+#include <locale.h>
+#endif
+#include <ctype.h>
+
 #include "misc.h" // error()
 #include "loader.h"
 #include "logger.h"
@@ -26,10 +31,7 @@
 #include "john.h"
 #include "mask.h"
 #include "external.h"
-#if !AC_BUILT || HAVE_LOCALE_H
-#include <locale.h>
-#endif
-#include <ctype.h>
+#include "unicode.h"
 #include "memdbg.h"
 
 #define UNICODE
@@ -136,21 +138,15 @@ static void rexgen_setlocale()
 }
 
 // Would be nice to have SOME way to be thread safe!!!
-static char BaseWord[1024];
+static wchar_t BaseWord[LINE_BUFFER_SIZE];
 
 size_t callback(wchar_t* dst, const size_t buffer_size)
 {
-	int len;
+	size_t len = wcslen(BaseWord);
 
-	if (!BaseWord[0]) {
-		*dst = 0;
-	}
-	len = strnzcpyn((char*)dst, BaseWord, 1024);
+	memcpy(dst, BaseWord, (len + 1) * SIZEOF_WCHAR_T);
 	*BaseWord = 0;
-	if (*dst) {
-		return len;
-	}
-	return 0;
+	return len;
 }
 
 void SetupAlpha(const char *regex_alpha)
@@ -191,7 +187,8 @@ void SetupAlpha(const char *regex_alpha)
 }
 
 int do_regex_hybrid_crack(struct db_main *db, const char *regex,
-                          const char *base_word, int regex_case, const char *regex_alpha)
+                          const char *base_word, int regex_case,
+                          const char *regex_alpha)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
 	char word[PLAINTEXT_BUFFER_SIZE];
@@ -204,7 +201,8 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	if (options.req_maxlength)
 		max_len = options.req_maxlength;
 
-	strcpy(BaseWord, base_word);
+	enc_to_wcs(BaseWord, sizeof(BaseWord), base_word);
+
 	if (bFirst) {
 		bFirst = 0;
 		rexgen_setlocale();
