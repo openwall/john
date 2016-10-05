@@ -134,21 +134,21 @@ extern int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                            unsigned int srclen);
 
 /* Thread-safe conversion from codepage to UTF-8 */
-UTF8 * enc_to_utf8_r(char *src, UTF8* dst, int dstlen);
+UTF8 *enc_to_utf8_r(char *src, UTF8 *dst, int dstlen);
 
 /* Thread-safe conversion from UTF-8 to codepage */
-char * utf8_to_enc_r(UTF8 *src, char* dst, int dstlen);
+char *utf8_to_enc_r(UTF8 *src, char *dst, int dstlen);
 
 /* Convert back to UTF-8 (for get_key without a saved_plain) */
-extern UTF8 * utf16_to_utf8(const UTF16* source);
-extern UTF8 * utf16_to_utf8_r(UTF8 *dst, int dst_len, const UTF16* source);
+extern UTF8 *utf16_to_utf8(const UTF16* source);
+extern UTF8 *utf16_to_utf8_r(UTF8 *dst, int dst_len, const UTF16* source);
 
 /*
  * Convert back to UTF-8 or codepage (for get_key without a saved_plain)
  * from UTF-16LE (regardless of host architecture)
  */
-extern UTF8 * utf16_to_enc(const UTF16* source);
-extern UTF8 * utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16* source);
+extern UTF8 *utf16_to_enc(const UTF16* source);
+extern UTF8 *utf16_to_enc_r(UTF8 *dst, int dst_len, const UTF16* source);
 
 /* UTF-32 functions. No endianness problems! */
 extern UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source);
@@ -160,14 +160,14 @@ extern int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
  * we can opt to convert to/from.
  */
 extern char *utf16_to_cp(const UTF16* source);
-extern char *utf8_to_cp_r(char *src, char* dst, int dstlen);
-extern char *cp_to_utf8_r(char *src, char* dst, int dstlen);
+extern char *utf8_to_cp_r(char *src, char *dst, int dstlen);
+extern char *cp_to_utf8_r(char *src, char *dst, int dstlen);
 
 /*
  * Return length (in characters) of a UTF-16 string
  * Number of octets is the result * sizeof(UTF16)
  */
-extern unsigned int strlen16(const UTF16 * str);
+extern unsigned int strlen16(const UTF16* str);
 
 /*
  * Return length (in characters) of a UTF-8 string
@@ -197,7 +197,7 @@ extern unsigned int strlen8(const UTF8 *source);
 extern int valid_utf8(const UTF8 *source);
 
 /* Create an NT hash from a ISO-8859 or UTF-8 string (--encoding= aware) */
-extern int E_md4hash(const UTF8 * passwd, unsigned int len, unsigned char *p16);
+extern int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16);
 
 extern void listEncodings(FILE *stream);
 extern void initUnicode(int type);

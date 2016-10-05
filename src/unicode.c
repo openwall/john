@@ -547,7 +547,7 @@ int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 		len = trunclen;
 
 	MD4_Init(&ctx);
-	MD4_Update(&ctx, (unsigned char *)wpwd, len * sizeof(UTF16));
+	MD4_Update(&ctx, (unsigned char*)wpwd, len * sizeof(UTF16));
 	MD4_Final(p16, &ctx);
 
 	return trunclen;
@@ -633,7 +633,7 @@ UTF8 *enc_to_utf8_r(char *src, UTF8 *dst, int dstlen)
 }
 
 /* Thread-safe conversion from UTF-8 to codepage */
-char * utf8_to_enc_r(UTF8 *src, char* dst, int dstlen)
+char *utf8_to_enc_r(UTF8 *src, char *dst, int dstlen)
 {
 	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
 	utf8_to_utf16(tmp16, LINE_BUFFER_SIZE, (unsigned char*)src,
@@ -678,7 +678,7 @@ static inline UTF8 *utf16_to_cp_r(UTF8 *dst, int dst_len, const UTF16 *source)
 /*
  * Thread-safe conversion from UTF-8 to codepage
  */
-char *utf8_to_cp_r(char *src, char* dst, int dstlen)
+char *utf8_to_cp_r(char *src, char *dst, int dstlen)
 {
 	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
 
@@ -1726,7 +1726,7 @@ ucFallback:
 /* Encoding-aware strlwr(): Simple in-place lowercasing */
 char *enc_strlwr(char *s)
 {
-	unsigned char *ptr = (unsigned char *)s;
+	unsigned char *ptr = (unsigned char*)s;
 	int srclen = strlen(s);
 	enc_lc(ptr, srclen + 1, ptr, srclen);
 	return s;
@@ -1735,7 +1735,7 @@ char *enc_strlwr(char *s)
 /* Simple in-place uppercasing */
 char *enc_strupper(char *s)
 {
-	unsigned char *ptr = (unsigned char *)s;
+	unsigned char *ptr = (unsigned char*)s;
 	int srclen = strlen(s);
 	enc_uc(ptr, srclen + 1, ptr, srclen);
 	return s;
