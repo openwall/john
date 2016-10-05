@@ -30,6 +30,9 @@
 #ifndef _CONVERTUTF_H
 #define _CONVERTUTF_H
 
+#include <wchar.h>
+#include <stdlib.h>
+
 #include "options.h"
 #include "common.h"
 #include "jumbo.h"
@@ -138,6 +141,12 @@ UTF8 *enc_to_utf8_r(char *src, UTF8 *dst, int dstlen);
 
 /* Thread-safe conversion from UTF-8 to codepage */
 char *utf8_to_enc_r(UTF8 *src, char *dst, int dstlen);
+
+/*
+ * Conversions to/from system's wchar_t
+ */
+extern int enc_to_wcs(wchar_t *dest, size_t dst_sz, const char *src);
+extern char *wcs_to_enc(char *dest, size_t dst_sz, const wchar_t *src);
 
 /* Convert back to UTF-8 (for get_key without a saved_plain) */
 extern UTF8 *utf16_to_utf8(const UTF16* source);
