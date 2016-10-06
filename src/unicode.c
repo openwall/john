@@ -909,7 +909,7 @@ int cp_to_wcs(wchar_t *dest, size_t dst_sz, const char *src)
 #elif SIZEOF_WCHAR_T == 2 && ARCH_LITTLE_ENDIAN
 	return cp_to_utf16((UTF16*)dest, dst_sz, (UTF8*)src, strlen(src));
 #else
-	return mbstowcs(dest, cp_to_utf8(src), dst_sz);
+	return mbstowcs(dest, src, dst_sz);
 #endif
 }
 
