@@ -48,6 +48,7 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 		return 0;
 	} else if (strchr(subsection, ',')) {
 		char *buf = str_alloc_copy(subsection), *cp;
+		int id = 0;
 		const int sz = sizeof(struct cfg_line), al = sizeof(struct cfg_line *);
 		struct cfg_line *cfg_cur = mem_calloc_tiny(sz, al);
 		int first = 1;
@@ -68,6 +69,7 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 				cfg_cur->cfg_name = cp;
 				cfg_cur->data = lp->data;
 				cfg_cur->number = lp->number;
+				cfg_cur->id = ++id;
 				lp = lp->next;
 			}
 			cp = strtokm(NULL, ",");
