@@ -118,22 +118,21 @@ static int restore_state(FILE *file)
 
 static void rexgen_setlocale()
 {
-	const char *defaultLocale = "en_US.UTF8";
-	const char *sysLocale = NULL;
+	char *john_locale;
+	const char *ret;
 
-	if ((sysLocale = getenv("LC_CTYPE")) != NULL) {
-		setlocale(LC_CTYPE, sysLocale);
-	}
-#if !defined _MSC_VER
-	if ((sysLocale = getenv("LC_MESSAGES")) != NULL) {
-		setlocale(LC_MESSAGES, sysLocale);
-	}
-#endif
-	if ((sysLocale = getenv("LC_ALL")) != NULL) {
-		setlocale(LC_ALL, sysLocale);
-	}
-	if (sysLocale == NULL) {
-		setlocale(LC_ALL, defaultLocale);
+	if (options.internal_cp == UTF_8)
+		john_locale = "en_US.UTF-8";
+	else
+		john_locale = "C";
+
+	ret = setlocale(LC_CTYPE, john_locale);
+
+	if (options.verbosity == VERB_MAX) {
+		if (ret)
+			fprintf(stderr, "regex: Locale set to %s\n", ret);
+		else
+			fprintf(stderr, "regex: Failed to set locale \"%s\"\n", john_locale);
 	}
 }
 
@@ -201,11 +200,17 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	if (options.req_maxlength)
 		max_len = options.req_maxlength;
 
-	enc_to_wcs(BaseWord, sizeof(BaseWord), base_word);
+	if (bFirst)
+		rexgen_setlocale();
+
+	if (options.internal_cp != UTF_8)
+		cp_to_wcs(BaseWord, sizeof(BaseWord), base_word);
+	else
+		enc_to_wcs(BaseWord, sizeof(BaseWord), base_word);
 
 	if (bFirst) {
 		bFirst = 0;
-		rexgen_setlocale();
+
 		if (regex_alpha && !strncmp(regex_alpha, "alpha", 5)) {
 			bALPHA = 1;
 			SetupAlpha(regex_alpha);
@@ -284,6 +289,8 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		c_iterator_value(iter, buffer);
 		c_simplestring_to_utf8_string(buffer, &word[0], sizeof(word));
 		c_simplestring_clear(buffer);
+		if (options.internal_cp != UTF_8)
+			utf8_to_cp_r(word, word, sizeof(word));
 		if (options.mask) {
 			if (do_mask_crack(word)) {
 				retval = 1;

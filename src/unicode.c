@@ -840,28 +840,31 @@ static inline UTF8 *utf32_to_cp(UTF8 *dst, int dst_len, const UTF32 *source)
 	return dst;
 }
 
+static inline int cp_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
+                              unsigned int srclen)
+{
+	int i, trunclen = (int)srclen;
+	if (trunclen > maxdstlen)
+		trunclen = maxdstlen;
+
+	for (i = 0; i < trunclen; i++)
+		*dst++ = CP_to_Unicode[*src++];
+	*dst = 0;
+	if (i < srclen)
+		return -i;
+	else
+		return i;
+}
+
 int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc != UTF_8) {
-		int i, trunclen = (int)srclen;
-		if (trunclen > maxdstlen)
-			trunclen = maxdstlen;
-
-		for (i = 0; i < trunclen; i++)
-			*dst++ = CP_to_Unicode[*src++];
-		*dst = 0;
-		if (i < srclen)
-			return -i;
-		else
-			return i;
-	} else {
+	if (options.target_enc != UTF_8)
+		return cp_to_utf32(dst, maxdstlen, src, srclen);
+	else
 #endif
 		return utf8_to_utf32(dst, maxdstlen, src, srclen);
-#ifndef UNICODE_NO_OPTIONS
-	}
-#endif
 }
 
 UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source)
@@ -896,6 +899,17 @@ int enc_to_wcs(wchar_t *dest, size_t dst_sz, const char *src)
 	return enc_to_utf16((UTF16*)dest, dst_sz, (UTF8*)src, strlen(src));
 #else
 	return mbstowcs(dest, src, dst_sz);
+#endif
+}
+
+int cp_to_wcs(wchar_t *dest, size_t dst_sz, const char *src)
+{
+#if SIZEOF_WCHAR_T == 4
+	return cp_to_utf32((UTF32*)dest, dst_sz, (UTF8*)src, strlen(src));
+#elif SIZEOF_WCHAR_T == 2 && ARCH_LITTLE_ENDIAN
+	return cp_to_utf16((UTF16*)dest, dst_sz, (UTF8*)src, strlen(src));
+#else
+	return mbstowcs(dest, cp_to_utf8(src), dst_sz);
 #endif
 }
 

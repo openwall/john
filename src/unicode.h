@@ -145,6 +145,7 @@ char *utf8_to_enc_r(UTF8 *src, char *dst, int dstlen);
 /*
  * Conversions to/from system's wchar_t
  */
+extern int cp_to_wcs(wchar_t *dest, size_t dst_sz, const char *src);
 extern int enc_to_wcs(wchar_t *dest, size_t dst_sz, const char *src);
 extern char *wcs_to_enc(char *dest, size_t dst_sz, const wchar_t *src);
 
