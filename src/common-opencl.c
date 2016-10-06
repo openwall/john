@@ -421,7 +421,7 @@ static void start_opencl_environment()
 	cl_platform_id platform_list[MAX_PLATFORMS];
 	char opencl_data[LOG_SIZE];
 	cl_uint num_platforms, device_num, device_pos = 0;
-	int i;
+	int i, ret;
 
 	/* Find OpenCL enabled devices. We ignore error here, in case
 	 * there is no platform and we'd like to run a non-OpenCL format. */
@@ -433,9 +433,15 @@ static void start_opencl_environment()
 		HANDLE_CLERROR(clGetPlatformInfo(platforms[i].platform,
 		                                 CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
 		               "Error querying PLATFORM_NAME");
-		HANDLE_CLERROR(clGetDeviceIDs(platforms[i].platform,
-		                              CL_DEVICE_TYPE_ALL, MAX_GPU_DEVICES, &devices[device_pos],
-		                              &device_num), "No OpenCL device of that type exist");
+
+		// It is possible to have a platform without any devices
+		ret = clGetDeviceIDs(platforms[i].platform, CL_DEVICE_TYPE_ALL,
+		                     MAX_GPU_DEVICES, &devices[device_pos],
+		                     &device_num);
+
+		if ((ret != CL_SUCCESS || device_num < 1) &&
+		        options.verbosity > VERB_LEGACY)
+			fprintf(stderr, "No OpenCL devices was found on platform #%d\n", i);
 
 		// Save platform and devices information
 		platforms[i].num_devices = device_num;
