@@ -59,7 +59,7 @@ static int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
-#define MAX_HASH_LEN                    (FORMAT_TAG_LEN+MAX_USERNAME_LEN+1+16+1+64)
+#define MAX_HASH_LEN                    (FORMAT_TAG_LEN+MAX_USERNAME_LEN+1+32+1+80)
 
 
 //#define DEBUG_ORACLE
@@ -209,7 +209,7 @@ static char *get_key(int index) {
 	return plain_key[index];
 }
 
-int ORACLE_TNS_Create_Key_SHA1 (unsigned char *input, int input_len, const unsigned char *Entropy, int EntropyLen, int desired_keylen, unsigned char *out_key)
+static int ORACLE_TNS_Create_Key_SHA1 (unsigned char *input, int input_len, const unsigned char *Entropy, int EntropyLen, int desired_keylen, unsigned char *out_key)
 {
 	SHA_CTX ctx;
 
@@ -227,7 +227,7 @@ int ORACLE_TNS_Create_Key_SHA1 (unsigned char *input, int input_len, const unsig
 	return 0;
 }
 
-int ORACLE_TNS_Decrypt_3DES_CBC (unsigned char* input, int input_len, const unsigned char key[24], unsigned char *decrypted)
+static int ORACLE_TNS_Decrypt_3DES_CBC (unsigned char* input, int input_len, const unsigned char key[24], unsigned char *decrypted)
 {
 	DES_key_schedule ks1,ks2,ks3;
 	unsigned char iv[] = {0x80,0x20,0x40,0x04,0x08,0x02,0x10,0x01};
