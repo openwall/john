@@ -20,7 +20,7 @@
  *
  * Salted sha1, as seen in IBM AS-400.  This is $dynamic_1590$ format, with a 20
  * byte salt (10 utf16be space padded chars of userid).
- * The format is:  sha1(utf16be((space_pad_10($s).uc($p)))
+ * The format is:  sha1(utf16be((space_pad_10(uc($s)).$p))
  *
  * Converted to thin dynamic format by JimF, 2016.  Released to public domain.
  * All usage, in source or binary allowed.
