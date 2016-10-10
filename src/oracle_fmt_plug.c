@@ -292,7 +292,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		unsigned char buf[sizeof(cur_salt)];
-		unsigned char buf2[SALT_SIZE / 2 + PLAINTEXT_LENGTH];
+		unsigned char buf2[SALT_SIZE + PLAINTEXT_LENGTH*2];
 		DES_key_schedule sched_local;
 		unsigned int l;
 
