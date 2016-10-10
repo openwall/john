@@ -1,14 +1,5 @@
 language: c
 dist: trusty
-branches:
-  except:
-    gh-pages
-compiler:
-  - gcc
-  - clang
-env:
-  # Default build. Release.
-  # Debug build
 
 env:
   global:
@@ -17,7 +8,21 @@ env:
    - secure: "FJ1/E5vVttd4+cFLQVdFt4rHNX28aGIvAWXduy6ZqQgZbfa0omsHcZXAq0t1qFz14ryTxEtxqY/aXw6OSG+t6a8OyrOi9jEdTIUpEDCyPvdZ299injPt1SiJRxzoDNo1CquwUE20y2pFOnTpVp6bIkH49o0oAxBijtb5fDj54KY="
 
 matrix:
+  include:
+  - compiler: clang
+    env: ASAN="--enable-asan"
+
+  - compiler: gcc
+    env: ASAN="--enable-asan"
+
+  - compiler: clang
+    env: ASAN=""
+
   allow_failures:
+  - compiler: clang
+    env: ASAN="--enable-asan"
+
+  fast_finish: true
 
 before_install:
   - sudo apt-get update -qq
@@ -27,8 +32,7 @@ before_install:
 script:
   - cd src
   - export LOG=$(git log -n 1)
-  - export ASAN=""
-  - if [[ $LOG != *'[no asan]'* && "$CC" == "gcc" ]]; then export ASAN="--enable-asan"; fi
+  - if [[ $LOG == *'[no asan]'* ]]; then export ASAN=""; fi
   - ./configure $ASAN
   - make -sj4
   - ../.travis/test.sh
