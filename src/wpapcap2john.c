@@ -432,6 +432,8 @@ static int ProcessPacket()
 		int bQOS = (ctl->subtype & 8) != 0;
 		if ((ctl->toDS ^ ctl->fromDS) != 1)// eapol will ONLY be direct toDS or direct fromDS.
 			return 1;
+		if (sizeof(ether_frame_hdr_t)+6+2+(bQOS?2:0) >= pkt_hdr.incl_len)
+			return 1;
 		// Ok, find out if this is a EAPOL packet or not.
 
 		p += sizeof(ether_frame_hdr_t);
@@ -620,6 +622,8 @@ static void Handle4Way(int bIsQOS)
 
 		// see if we have a msg1 that 'matches'.
 		MEM_FREE(wpa[ess].packet3);
+		MEM_FREE(wpa[ess].packet2);
+		MEM_FREE(wpa[ess].orig_2);
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
