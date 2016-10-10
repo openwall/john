@@ -8,4 +8,7 @@ echo 'gpg-opencl = Y' >> john-local.conf
 
 # Proper testing. Trusty AMD GPU drivers on Travis are fragile
 ../run/john -test-full=0 --format=cpu
-../run/john -test-full=0 --format=opencl
+
+if [[ "$ASAN" == "" || "$CC" == "gcc" ]]; then
+    ../run/john -test-full=0 --format=opencl
+fi
