@@ -1,5 +1,6 @@
 language: c
 dist: trusty
+services: docker
 
 env:
   global:
@@ -9,18 +10,22 @@ env:
 
 matrix:
   include:
-  - compiler: clang
-    env: ASAN="--enable-asan"
-
   - compiler: gcc
-    env: ASAN="--enable-asan"
+    env: ASAN="--enable-asan" OPENCL="yes"
 
   - compiler: clang
-    env: ASAN=""
+    env: ASAN="" OPENCL="yes"
+
+  - compiler: clang
+    env: ASAN="--enable-asan"
+
+  - env: ASAN="--enable-asan" FRESH="yes"
 
   allow_failures:
   - compiler: clang
     env: ASAN="--enable-asan"
+
+  - env: ASAN="--enable-asan" FRESH="yes"
 
   fast_finish: true
 
@@ -29,13 +34,9 @@ before_install:
   - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
   - sudo apt-get install fglrx-dev opencl-headers || true
   - export OMP_NUM_THREADS=4
+
 script:
-  - cd src
-  - export LOG=$(git log -n 1)
-  - if [[ $LOG == *'[no asan]'* ]]; then export ASAN=""; fi
-  - ./configure $ASAN
-  - make -sj4
-  - ../.travis/test.sh
+  - .travis/check.sh
 
 addons:
   coverity_scan:
