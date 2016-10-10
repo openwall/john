@@ -37,8 +37,7 @@ john_register_one(&fmt_o10glogon);
 static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               512 // tuned on core i7
-//#define OMP_SCALE                8192 // tuned on K8-Dual HT
+#define OMP_SCALE               2048
 #endif
 #endif
 
