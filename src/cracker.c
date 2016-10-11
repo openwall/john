@@ -767,7 +767,6 @@ void crk_set_hybrid_fix_state_func_ptr(fix_state_fp fp)
 
 static int crk_password_loop(struct db_salt *salt)
 {
-	void ext_hybrid_fix_state(void);
 	int count;
 	unsigned int match, index;
 #if CRK_PREFETCH
