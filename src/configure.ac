@@ -43,6 +43,7 @@ m4_include([m4/jtr_arm_logic.m4])
 m4_include([m4/jtr_generic_logic.m4])
 m4_include([m4/jtr_systems_specific_logic.m4])
 m4_include([m4/jtr_utility_macros.m4])
+m4_include([m4/ax_ztex.m4])
 
 # Define precious variables. They get included in --help and need no AC_SUBST
 AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
@@ -597,6 +598,9 @@ else
    fi
 fi
 
+# ZTEX USB-FPGA module support (if --enable-ztex=yes)
+AX_ZTEX
+
 # Check for CUDA, including headers.
 JTR_CUDA
 
@@ -1105,6 +1109,7 @@ Z (pkzip format, gpg2john) ................. ${using_zlib}
 BZ2 (gpg2john extra decompression logic) ... ${using_bz2}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
 Memory map (share/page large files) ........ ${using_mmap}
+ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ........... ${memdbg_settings}

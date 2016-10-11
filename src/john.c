@@ -158,6 +158,9 @@ extern struct fmt_main fmt_crypt;
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 extern struct fmt_main fmt_NT;
+#ifdef HAVE_ZTEX
+extern struct fmt_main fmt_ztex_descrypt;
+#endif
 
 #include "fmt_externs.h"
 
@@ -374,6 +377,10 @@ static void john_register_all(void)
 			strlwr(options.format);
 	}
 
+// Let ZTEX format appear before CPU format
+#ifdef HAVE_ZTEX
+	john_register_one(&fmt_ztex_descrypt);
+#endif
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
 	john_register_one(&fmt_MD5);

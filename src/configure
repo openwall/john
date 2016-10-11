@@ -648,6 +648,8 @@ HAVE_CUDA
 NVIDIA_CUDA
 NVCC_GCC
 NVCC
+ZTEX_LIBS
+ZTEX_SUBDIRS
 CL_LIBS
 CL_CFLAGS
 PTHREAD_CFLAGS
@@ -776,6 +778,7 @@ enable_experimental_code
 enable_fuzz
 enable_openmp
 enable_opencl
+enable_ztex
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1418,6 +1421,7 @@ Optional Features:
   --enable-fuzz           Fuzzing prepare(), valid(), init(), etc
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
+  --enable-ztex           Support ZTEX USB-FPGA module 1.15y
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -3451,6 +3455,15 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
+
+#
+# AX_ZTEX
+#
+# If configured to support ZTEX USB-FPGA module with --enable-ztex=yes:
+# - check for headers and libraries
+# - add Makefiles
+# - set ZTEX_SUBDIRS, ZTEX_LIBS
+#
 
 
 # Define precious variables. They get included in --help and need no AC_SUBST
@@ -11501,6 +11514,97 @@ else
    fi
 fi
 
+# ZTEX USB-FPGA module support (if --enable-ztex=yes)
+
+
+# Check whether --enable-ztex was given.
+if test "${enable_ztex+set}" = set; then :
+  enableval=$enable_ztex; ztex=$enableval
+else
+  ztex=no
+fi
+
+
+ZTEX_SUBDIRS=""
+ZTEX_LIBS=""
+
+if test "x$ztex" = xyes; then
+
+ac_fn_c_check_header_mongrel "$LINENO" "libusb-1.0/libusb.h" "ac_cv_header_libusb_1_0_libusb_h" "$ac_includes_default"
+if test "x$ac_cv_header_libusb_1_0_libusb_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libusb_init in -lusb-1.0" >&5
+$as_echo_n "checking for libusb_init in -lusb-1.0... " >&6; }
+if ${ac_cv_lib_usb_1_0_libusb_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lusb-1.0  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char libusb_init ();
+int
+main ()
+{
+return libusb_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_usb_1_0_libusb_init=yes
+else
+  ac_cv_lib_usb_1_0_libusb_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_usb_1_0_libusb_init" >&5
+$as_echo "$ac_cv_lib_usb_1_0_libusb_init" >&6; }
+if test "x$ac_cv_lib_usb_1_0_libusb_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUSB_1_0 1
+_ACEOF
+
+  LIBS="-lusb-1.0 $LIBS"
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "ZTEX USB-FPGA module requires libusb-1.0.
+See \`config.log' for more details" "$LINENO" 5; }
+
+fi
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "ZTEX USB-FPGA module requires libusb-1.0.
+See \`config.log' for more details" "$LINENO" 5; }
+
+fi
+
+
+
+ac_config_files="$ac_config_files ztex/Makefile ztex/pkt_comm/Makefile"
+
+
+ZTEX_SUBDIRS="ztex"
+ZTEX_LIBS="ztex/*.o ztex/pkt_comm/*.o -lusb-1.0"
+
+fi
+
+
+
+
+
 # Check for CUDA, including headers.
 
 
@@ -14708,6 +14812,8 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "autoconfig.h") CONFIG_HEADERS="$CONFIG_HEADERS autoconfig.h" ;;
+    "ztex/Makefile") CONFIG_FILES="$CONFIG_FILES ztex/Makefile" ;;
+    "ztex/pkt_comm/Makefile") CONFIG_FILES="$CONFIG_FILES ztex/pkt_comm/Makefile" ;;
     "arch.h") CONFIG_LINKS="$CONFIG_LINKS arch.h:$ARCH_LINK" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "aes/Makefile") CONFIG_FILES="$CONFIG_FILES aes/Makefile" ;;
@@ -15549,6 +15655,7 @@ Z (pkzip format, gpg2john) ................. ${using_zlib}
 BZ2 (gpg2john extra decompression logic) ... ${using_bz2}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
 Memory map (share/page large files) ........ ${using_mmap}
+ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ........... ${memdbg_settings}
