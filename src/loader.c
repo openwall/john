@@ -344,7 +344,8 @@ static int ldr_check_list(struct list_main *list, char *s1, char *s2)
 	struct list_entry *current;
 	char *data;
 
-	if (!(current = list->head)) return 0;
+	if (!(current = list->head) || ldr_loading_testdb)
+		return 0;
 
 	if (*current->data == '-') {
 		data = current->data + 1;
@@ -1201,6 +1202,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	testdb->format = format;
 	ldr_init_password_hash(testdb);
 
+	ldr_loading_testdb = 1;
 	bench_running++;
 	while (current->ciphertext) {
 		char *ex_len_line = NULL, _line[LINE_BUFFER_SIZE], *line = _line;
@@ -1230,7 +1232,6 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	}
 	bench_running--;
 
-	ldr_loading_testdb = 1;
 	ldr_fix_database(testdb);
 	ldr_loading_testdb = 0;
 
