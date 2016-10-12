@@ -100,9 +100,6 @@ static double progress = 0;
 static int rec_rule;
 static int64_t rec_pos;
 static int64_t rec_line;
-static int hybrid_rec_rule;
-static int64_t hybrid_rec_pos;
-static int64_t hybrid_rec_line;
 
 static int rule_number, rule_count;
 static int64_t line_number, loop_line_no;
@@ -333,15 +330,6 @@ static int fix_state_delay;
 
 static void fix_state(void)
 {
-	if (hybrid_rec_rule || hybrid_rec_line || hybrid_rec_pos) {
-		rec_rule = hybrid_rec_rule;
-		rec_line = hybrid_rec_line;
-		rec_pos = hybrid_rec_pos;
-		hybrid_rec_rule = hybrid_rec_line = hybrid_rec_pos = 0;
-
-		return;
-	}
-
 	if (options.flags & FLG_REGEX_CHK)
 		return;
 
@@ -360,25 +348,6 @@ static void fix_state(void)
 #ifdef __DJGPP__
 		if (rec_pos != -1)
 			rec_pos = 0;
-		else
-#endif
-			pexit(STR_MACRO(jtr_ftell64));
-	}
-}
-
-void wordlist_hybrid_fix_state(void)
-{
-	hybrid_rec_rule = rule_number;
-	hybrid_rec_line = line_number;
-
-	if (word_file == stdin)
-		hybrid_rec_pos = line_number;
-	else
-	if (!mem_map && !nWordFileLines &&
-	    (hybrid_rec_pos = jtr_ftell64(word_file)) < 0) {
-#ifdef __DJGPP__
-		if (hybrid_rec_pos != -1)
-			hybrid_rec_pos = 0;
 		else
 #endif
 			pexit(STR_MACRO(jtr_ftell64));
@@ -1227,7 +1196,7 @@ REDO_AFTER_LMLOOP:
 						do_lmloop = 0;
 						break;
 					}
-					wordlist_hybrid_fix_state();
+					fix_state();
 				} else
 #endif
 				if (f_new) {
@@ -1239,7 +1208,7 @@ REDO_AFTER_LMLOOP:
 						do_lmloop = 0;
 						break;
 					}
-					wordlist_hybrid_fix_state();
+					fix_state();
 				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
@@ -1249,6 +1218,7 @@ REDO_AFTER_LMLOOP:
 						do_lmloop = 0;
 						break;
 					}
+					fix_state();
 				} else
 				if (ext_filter(word))
 				if (crk_process_key(word)) {
@@ -1297,7 +1267,7 @@ REDO_AFTER_LMLOOP:
 						pipe_input = 0;
 						break;
 					}
-					wordlist_hybrid_fix_state();
+					fix_state();
 				} else
 #endif
 				if (f_new) {
@@ -1308,7 +1278,7 @@ REDO_AFTER_LMLOOP:
 						pipe_input = 0;
 						break;
 					}
-					wordlist_hybrid_fix_state();
+					fix_state();
 				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
@@ -1317,6 +1287,7 @@ REDO_AFTER_LMLOOP:
 						pipe_input = 0;
 						break;
 					}
+					fix_state();
 				} else
 				if (ext_filter(word))
 				if (crk_process_key(word)) {
@@ -1374,7 +1345,7 @@ process_word:
 							pipe_input = 0;
 							break;
 						}
-						wordlist_hybrid_fix_state();
+						fix_state();
 					} else
 #endif
 					if (f_new) {
@@ -1385,7 +1356,7 @@ process_word:
 							pipe_input = 0;
 							break;
 						}
-						wordlist_hybrid_fix_state();
+						fix_state();
 					} else
 					if (options.mask) {
 						if (do_mask_crack(word)) {
@@ -1394,6 +1365,7 @@ process_word:
 							pipe_input = 0;
 							break;
 						}
+						fix_state();
 					} else
 					if (ext_filter(word))
 					if (crk_process_key(word)) {

@@ -564,12 +564,13 @@ void do_external_crack(struct db_main *db)
 			if (do_regex_hybrid_crack(db, regex, int_word,
 			                          regex_case, regex_alpha))
 				break;
-			ext_hybrid_fix_state();
+			fix_state();
 		} else
 #endif
 		if (options.flags & FLG_MASK_STACKED) {
 			if (do_mask_crack(int_word))
 				break;
+			fix_state();
 		} else
 		if (crk_process_key(int_word)) break;
 	} while (1);
@@ -590,13 +591,13 @@ void do_external_crack(struct db_main *db)
 
 
 extern void(*crk_fix_state)(void);
-void(*saved_crk_fix_state)(void);
-void save_fix_state(void(*new_crk_fix_state)(void))
+static void(*saved_crk_fix_state)(void);
+static void save_fix_state(void(*new_crk_fix_state)(void))
 {
 	saved_crk_fix_state = crk_fix_state;
 	crk_fix_state = new_crk_fix_state;
 }
-void restore_fix_state(void)
+static void restore_fix_state(void)
 {
 	crk_fix_state = saved_crk_fix_state;
 }
@@ -708,6 +709,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 				retval = 1;
 				goto out;
 			}
+			ext_hybrid_fix_state();
 		} else if (ext_filter((char*)int_word)) {
 			int_word[maxlen] = 0;
 			if (crk_process_key((char *)int_word)) {
