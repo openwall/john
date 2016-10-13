@@ -155,15 +155,11 @@ that probably work fine but these instructions are for "Homebrew":
 	http://mxcl.github.io/homebrew/
   2. Install Homebrew's gcc and openssl:
 	brew install gcc openssl
-	brew link --force openssl
-  3. Link whatever gcc version you got from Homebrew to just "gcc" in the
-     /usr/local/bin directory. This example is for gcc-4.9:
-        ln -s gcc-4.9 /usr/local/bin/gcc
-  4. Make sure /usr/local/bin precedes /usr/bin in your $PATH
-
-Instead of #3 and #4 you could obviously pass parameters to autoconf, such as:
-
-	./configure CC=gcc-4.9
+  3. Make sure /usr/local/bin precedes /usr/bin in your $PATH
+  4. Provide the path to GCC and the OpenSSL libraries to the configure script:
+        ./configure CC="gcc-6" CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
+  5. Clean old files and make:
+        make clean && make
 
 After the above, you should be able to get an optimal build with AVX and/or
 whatever extra features your CPU has got.
