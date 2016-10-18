@@ -37,7 +37,7 @@ STRIP = @STRIP@
 SHELL = /bin/sh
 VPATH = @srcdir@
 
-subdirs = aes escrypt
+subdirs = aes escrypt @ZTEX_SUBDIRS@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
@@ -120,6 +120,8 @@ JOHN_OBJS = \
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
+ZTEX_OBJS = ztex_descrypt.o
+
 CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
 	cuda_cryptsha256.o cuda_cryptsha512.o cuda_mscash2.o \
 	cuda_rawsha256.o cuda_rawsha224.o cuda_mscash.o \
@@ -165,6 +167,13 @@ ifdef WITH_OPENCL
 CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
 CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
 JOHN_OBJS += $(OCL_OBJS)
+endif
+
+WITH_ZTEX=@ZTEX_LIBS@
+ifdef WITH_ZTEX
+CFLAGS += -DHAVE_ZTEX
+CFLAGS_MAIN += -DHAVE_ZTEX
+JOHN_OBJS += $(ZTEX_OBJS)
 endif
 
 WITH_FUZZ=@HAVE_FUZZ@
@@ -583,7 +592,7 @@ find_version: kernels
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
-SUBDIRS = aes
+SUBDIRS = aes @ZTEX_SUBDIRS@
 
 .PHONY: subdirs $(SUBDIRS) find_version kernels
 
@@ -615,8 +624,8 @@ kernels: @KERNEL_OBJS@
 
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
-../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ aes/aes.a -o ../run/john
+../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a @ZTEX_SUBDIRS@
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
