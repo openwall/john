@@ -1818,7 +1818,7 @@ void mask_save_state(FILE *file)
 	fprintf(file, ""LLu"\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
-	if (options.req_minlength >= 0) {
+	if (!(options.flags & FLG_MASK_STACKED) && options.req_minlength >= 0) {
 		fprintf(file, "%d\n", rec_len);
 		fprintf(file, ""LLu"\n", cand_length + 1);
 	}
@@ -1848,7 +1848,7 @@ int mask_restore_state(FILE *file)
 	else
 		return fail;
 
-	if (options.req_minlength >= 0) {
+	if (!(options.flags & FLG_MASK_STACKED) && options.req_minlength >= 0) {
 		if (fscanf(file, "%d\n", &d) == 1)
 			restored_len = d;
 		else
@@ -1859,8 +1859,7 @@ int mask_restore_state(FILE *file)
 			return fail;
 	}
 
-	/* vc and mingw can not handle %hhu and blow the stack
-	   and fail to restart properly */
+	/* vc and mingw can not handle %hhu */
 	for (i = 0; i < cpu_mask_ctx.count; i++)
 	if (fscanf(file, "%u\n", &cu) == 1)
 		cpu_mask_ctx.ranges[i].iter = cu;
@@ -1881,7 +1880,7 @@ void mask_fix_state(void)
 	rec_cand = cand;
 	rec_ctx.count = cpu_mask_ctx.count;
 	rec_ctx.offset = cpu_mask_ctx.offset;
-	rec_len = max_keylen;
+	rec_len = mask_cur_len;
 	for (i = 0; i < rec_ctx.count; i++)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
 }
@@ -2293,8 +2292,7 @@ int do_mask_crack(const char *extern_key)
 	mask_parent_keys++;
 
 	/* If --min-len is used, we iterate max_keylen */
-	if (!(options.flags & FLG_MASK_STACKED) &&
-	    options.req_minlength >= 0) {
+	if (!(options.flags & FLG_MASK_STACKED) && options.req_minlength >= 0) {
 		int template_key_len = -1;
 		int max_len = max_keylen;
 
