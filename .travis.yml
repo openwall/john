@@ -16,17 +16,18 @@ matrix:
   - compiler: clang
     env: ASAN="" OPENCL="yes"
 
-  - env: ASAN="--enable-asan" FRESH="yes"
+  - env: ASAN="--enable-asan" TEST="fresh test"
+
+  - env: ASAN="" TEST="TS --restore"
 
   allow_failures:
-  - env: ASAN="--enable-asan" FRESH="yes"
+  - env: ASAN="--enable-asan" TEST="fresh test"
+
+  - env: ASAN="" TEST="TS --restore"
 
   fast_finish: true
 
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
-  - sudo apt-get install fglrx-dev opencl-headers || true
   - export OMP_NUM_THREADS=4
 
 script:
