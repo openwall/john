@@ -105,6 +105,7 @@
 #define sph_skein384_close(a,b) sph_skein384_close(b,a)
 #define sph_skein512_close(a,b) sph_skein512_close(b,a)
 
+#include <openssl/opensslv.h>
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 #include <openssl/whrlpool.h>
