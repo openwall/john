@@ -42,27 +42,56 @@ john_register_one(&fmt_leet);
 #include "params.h"
 #include "options.h"
 #include "johnswap.h"
+
+//#undef SIMD_COEF_64
+//#undef SIMD_PARA_SHA512
+
 #ifdef _OPENMP
-#include <omp.h>
+#ifdef SIMD_COEF_64
+#ifndef OMP_SCALE
+#define OMP_SCALE               256
+#endif
+#else
 #ifndef OMP_SCALE
 #define OMP_SCALE               128 // tuned on Core i7-6600U
 #endif
-static int omp_t = 1;
 #endif
+#include <omp.h>
+#endif
+
+#include "simd-intrinsics.h"
 #include "memdbg.h"
+
+#ifdef SIMD_COEF_64
+#define SHA512_TYPE          SHA512_ALGORITHM_NAME
+#else
+#define SHA512_TYPE          "32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
+
+#ifdef SIMD_COEF_64
+#define PLAINTEXT_LENGTH        (111-32)
+#define MAX_SALT_LEN            32
+#else
+#define PLAINTEXT_LENGTH        125
+#define MAX_SALT_LEN            256
+#endif
 
 #define FORMAT_LABEL            "leet"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "SHA-512 + Whirlpool(" WP_TYPE ")/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "SHA-512(" SHA512_TYPE ") + Whirlpool(" WP_TYPE "/" ARCH_BITS_STR ")"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             64
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define BINARY_ALIGN            sizeof(ARCH_WORD)
+#define BINARY_ALIGN            sizeof(ARCH_WORD_64)
 #define SALT_ALIGN              sizeof(int)
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#endif
 
 static struct fmt_tests leet_tests[] = {
 	{"salt$f86036a85e3ff84e73bf10769011ecdbccbf5aaed9df0240310776b42f5bb8776e612ab15a78bbfc39e867448a08337d97427e182e72922bbaa903ee75b2bfd4", "password"},
@@ -74,17 +103,17 @@ static struct fmt_tests leet_tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_64 (*crypt_out)[1];
 
 static struct custom_salt {
 	int saltlen;
-	unsigned char salt[256];
+	unsigned char salt[MAX_SALT_LEN];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
@@ -199,28 +228,45 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		int i;
-		SHA512_CTX sctx;
-		unsigned char *p;
 		sph_whirlpool_context wctx;
-		unsigned char output1[64], output2[64];
+		int i;
+		union {
+			unsigned char buf[BINARY_SIZE];
+			ARCH_WORD_64 p64[1];
+		} output1[MAX_KEYS_PER_CRYPT], output2;
+#ifdef SIMD_COEF_64
+		JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 out[8*MAX_KEYS_PER_CRYPT];
+		JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 in[16*MAX_KEYS_PER_CRYPT];
+
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			char *cp = &((char*)in)[128*i];
+			memcpy(cp, saved_key[index+i], saved_len[index+i]);
+			memcpy(&cp[saved_len[index+i]], cur_salt->salt, cur_salt->saltlen);
+			cp[saved_len[index+i]+cur_salt->saltlen] = 0x80;
+			in[i*16+15] = (saved_len[index+i]+cur_salt->saltlen)<<3;
+			memset(&cp[saved_len[index+i]+cur_salt->saltlen+1], 0, 120-(saved_len[index+i]+cur_salt->saltlen+1));
+		}
+		SIMDSHA512body(in, out, NULL, SSEi_FLAT_IN);
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			output1[i].p64[0] = JOHNSWAP64(out[((i/SIMD_COEF_64)*8*SIMD_COEF_64+i%SIMD_COEF_64)]);
+#else
+		SHA512_CTX sctx;
 
 		SHA512_Init(&sctx);
 		SHA512_Update(&sctx, saved_key[index], saved_len[index]);
 		SHA512_Update(&sctx, cur_salt->salt, cur_salt->saltlen);
-		SHA512_Final(output1, &sctx);
-
-		sph_whirlpool_init(&wctx);
-		sph_whirlpool(&wctx, cur_salt->salt, cur_salt->saltlen);
-		sph_whirlpool(&wctx, saved_key[index], saved_len[index]);
-		sph_whirlpool_close(&wctx, output2);
-
-		p = (unsigned char*)crypt_out[index];
-		for (i = 0; i < 16; i++)
-			p[i] = output1[i] ^ output2[i];
+		SHA512_Final(output1.buf, &sctx);
+#endif
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			sph_whirlpool_init(&wctx);
+			sph_whirlpool(&wctx, cur_salt->salt, cur_salt->saltlen);
+			sph_whirlpool(&wctx, saved_key[index+i], saved_len[index+i]);
+			sph_whirlpool_close(&wctx, output2.buf);
+			crypt_out[index+i][0] = output1[i].p64[0] ^ output2.p64[0];
+		}
 	}
 
 	return count;
@@ -230,19 +276,39 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+		if (((ARCH_WORD_64*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], 16); // comparing 16 bytes should be enough
+	return ((ARCH_WORD_64*)binary)[0] == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	// don't worry about SIMD here.
+	// we already are 64 bit 'sure'.  This extra check
+	// is not really needed, but does not hurt much
+	SHA512_CTX sctx;
+	int i;
+	void *bin = get_binary(source);
+	sph_whirlpool_context wctx;
+	unsigned char output1[BINARY_SIZE], output2[BINARY_SIZE];
+
+	SHA512_Init(&sctx);
+	SHA512_Update(&sctx, saved_key[index], saved_len[index]);
+	SHA512_Update(&sctx, cur_salt->salt, cur_salt->saltlen);
+	SHA512_Final(output1, &sctx);
+
+	sph_whirlpool_init(&wctx);
+	sph_whirlpool(&wctx, cur_salt->salt, cur_salt->saltlen);
+	sph_whirlpool(&wctx, saved_key[index], saved_len[index]);
+	sph_whirlpool_close(&wctx, output2);
+	for (i = 0; i < BINARY_SIZE; ++i)
+		output1[i] ^= output2[i];
+	return !memcmp(output1, bin, BINARY_SIZE);
 }
 
 static void leet_set_key(char *key, int index)
