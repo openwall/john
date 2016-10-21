@@ -238,8 +238,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			ARCH_WORD_64 p64[1];
 		} output1[MAX_KEYS_PER_CRYPT], output2;
 #ifdef SIMD_COEF_64
-		JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 out[8*MAX_KEYS_PER_CRYPT];
-		JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 in[16*MAX_KEYS_PER_CRYPT];
+		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 out[8*MAX_KEYS_PER_CRYPT];
+		//JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_64 in[16*MAX_KEYS_PER_CRYPT];
+		ARCH_WORD_64 *in, *out;
+		unsigned char _in[8*16*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], _out[8*8*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD];
+
+		in = mem_align(_in, MEM_ALIGN_SIMD);
+		out = mem_align(_out, MEM_ALIGN_SIMD);
 
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			char *cp = &((char*)in)[128*i];
