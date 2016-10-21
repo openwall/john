@@ -81,7 +81,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
-		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1
+		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1, leet
 		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
@@ -1566,6 +1566,12 @@ sub raw_keccak256 {
 	require Digest::Keccak;
 	import Digest::Keccak qw(keccak_256);
 	return "\$keccak256\$".unpack("H*",keccak_256($_[1]));
+}
+sub leet {
+	my $u = get_username(20);
+	my $h = unpack("H*", sha512($_[0].$u) ^ whirlpool($u.$_[0]));
+	$out_username = $u;
+	return "$u\$$h";
 }
 sub siemens_s7 {
 	$salt = get_salt(20);
