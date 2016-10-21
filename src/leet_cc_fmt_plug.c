@@ -17,9 +17,24 @@ extern struct fmt_main fmt_leet;
 john_register_one(&fmt_leet);
 #else
 
-#include <string.h>
-#include "sph_whirlpool.h"
 #include "arch.h"
+
+#include "openssl_local_overrides.h"
+#include <openssl/opensslv.h>
+#include <string.h>
+#if (AC_BUILT && HAVE_WHIRLPOOL) ||	  \
+   (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
+#include <openssl/whrlpool.h>
+#define WP_TYPE "OpenSSL"
+#define sph_whirlpool_context    WHIRLPOOL_CTX
+#define sph_whirlpool_init(a)	 WHIRLPOOL_Init(a)
+#define sph_whirlpool(a,b,c)	 WHIRLPOOL_Update(a,b,c)
+#define sph_whirlpool_close(b,a) WHIRLPOOL_Final(a,b)
+#else
+#define WP_TYPE "SPH"
+#include "sph_whirlpool.h"
+#endif
+
 #include "sha2.h"
 #include "misc.h"
 #include "common.h"
@@ -38,7 +53,7 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL            "leet"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "SHA-512 + Whirlpool/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "SHA-512 + Whirlpool(" WP_TYPE ")/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        125
