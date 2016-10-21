@@ -258,7 +258,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA512_Init(&sctx);
 		SHA512_Update(&sctx, saved_key[index], saved_len[index]);
 		SHA512_Update(&sctx, cur_salt->salt, cur_salt->saltlen);
-		SHA512_Final(output1.buf, &sctx);
+		SHA512_Final(output1[0].buf, &sctx);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			sph_whirlpool_init(&wctx);
