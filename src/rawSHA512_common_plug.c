@@ -275,13 +275,12 @@ void * sha512_common_binary_xsha512_rev(char *ciphertext)
 
 void *sha512_common_binary_nsldap(char *ciphertext) {
 	static union {
-		char out[DIGEST_SIZE+4];
+		char out[DIGEST_SIZE+8];
 		uint64_t x;
 	} x;
 	char *realcipher = x.out;
 
 	ciphertext += NSLDAP_TAG_LENGTH;
-	memset(realcipher, 0, DIGEST_SIZE);
 	base64_decode(ciphertext, strlen(ciphertext), realcipher);
 
 #ifdef SIMD_COEF_64
