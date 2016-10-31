@@ -4,9 +4,11 @@ use strict;
 use warnings;
 
 use Compress::Raw::Lzma;
+use File::Basename;
 
 # author:
 # philsmd (for hashcat)
+# magnum (adapt to JtR use)
 
 # version:
 # 0.4
@@ -75,7 +77,6 @@ my $SEVEN_ZIP_LZMA              = "\x03\x01\x01";
 
 my $SEVEN_ZIP_HASH_SIGNATURE    = "\$7z\$";
 my $SEVEN_ZIP_P_VALUE           = 0;
-my $SEVEN_ZIP_HASHCAT_MAX_DATA  = 768;
 my $SEVEN_ZIP_DEFAULT_POWER     = 19;
 my $SEVEN_ZIP_DEFAULT_IV        = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
 
@@ -453,7 +454,7 @@ sub lzma_generate_header
   # my $pb = 2;
   # my $lp = 0;
   # my $lc = 3;
-  # 
+  #
   # $out[5] = ($pb * 5 + $lp) * 9 + $lc;
 
   $out[5] = ord ($encoded_lclppb);
@@ -750,16 +751,8 @@ sub extract_hash_from_archive
 
   return undef unless (length ($data) == $data_len);
 
-  if ($data_len > $SEVEN_ZIP_HASHCAT_MAX_DATA)
-  {
-    print STDERR "WARNING: the file '". $file_path . "' unfortunately can't be used with oclHashcat ";
-    print STDERR "since the data length in this particular case is too long and it can't be truncated.\n";
-    print STDERR "This happens only in very rare cases\n";
-
-    return "";
-  }
-
-  $hash_buf = sprintf ("%s%i\$%i\$%i\$%s\$%i\$%s\$%i\$%i\$%i\$%s",
+  $hash_buf = sprintf ("%s:%s%i\$%i\$%i\$%s\$%i\$%s\$%i\$%i\$%i\$%s",
+    basename($file_path, ".7z"),
     $SEVEN_ZIP_HASH_SIGNATURE,
     $SEVEN_ZIP_P_VALUE,
     $number_cycles_power,
