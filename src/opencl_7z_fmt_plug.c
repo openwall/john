@@ -28,6 +28,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #include "crc32.h"
 #include "stdint.h"
 #include "unicode.h"
+#include "dyna_salt.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"7z-opencl"
@@ -43,10 +44,8 @@ john_register_one(&fmt_opencl_sevenzip);
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
-
-#define BIG_ENOUGH 		(8192 * 32)
+#define SALT_SIZE		sizeof(struct custom_salt*)
+#define SALT_ALIGN		sizeof(struct custom_salt*)
 
 typedef struct {
 	uint32_t length;
@@ -82,16 +81,17 @@ static int any_cracked;
 static int new_keys;
 
 static struct custom_salt {
+	dyna_salt dsalt;
+	size_t length;     /* used in decryption */
+	size_t unpacksize; /* used in CRC calculation */
 	int NumCyclesPower;
 	int SaltSize;
 	int ivSize;
 	int type;
-	unsigned char data[BIG_ENOUGH];
 	unsigned char iv[16];
 	unsigned char salt[16];
 	unsigned int crc;
-	int length;     /* used in decryption */
-	int unpacksize; /* used in CRC calculation */
+	unsigned char data[1];
 } *cur_salt;
 
 static struct fmt_tests sevenzip_tests[] = {
@@ -371,50 +371,56 @@ err:
 
 static void *get_salt(char *ciphertext)
 {
+	struct custom_salt cs;
+	struct custom_salt *psalt;
+	static void *ptr;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
 
-	static union {
-		struct custom_salt _cs;
-		ARCH_WORD_32 dummy;
-	} un;
-	struct custom_salt *cs = &(un._cs);
-
-	memset(cs, 0, SALT_SIZE);
-
+	if (!ptr)
+		ptr = mem_alloc_tiny(sizeof(struct custom_salt*),
+		                     sizeof(struct custom_salt*));
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
-	cs->type = atoi(p);
+	cs.type = atoi(p);
 	p = strtokm(NULL, "$");
-	cs->NumCyclesPower = atoi(p);
+	cs.NumCyclesPower = atoi(p);
 	p = strtokm(NULL, "$");
-	cs->SaltSize = atoi(p);
+	cs.SaltSize = atoi(p);
 	p = strtokm(NULL, "$"); /* salt */
 	p = strtokm(NULL, "$");
-	cs->ivSize = atoi(p);
+	cs.ivSize = atoi(p);
 	p = strtokm(NULL, "$"); /* iv */
-	for (i = 0; i < cs->ivSize; i++)
-		cs->iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < cs.ivSize; i++)
+		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtokm(NULL, "$"); /* crc */
-	cs->crc = atou(p); /* unsigned function */
+	cs.crc = atou(p); /* unsigned function */
 	p = strtokm(NULL, "$");
-	cs->length = atoi(p);
+	cs.length = atoll(p);
+	psalt = malloc(sizeof(struct custom_salt) + cs.length - 1);
+	memcpy(psalt, &cs, sizeof(cs));
 	p = strtokm(NULL, "$");
-	cs->unpacksize = atoi(p);
-	p = strtokm(NULL, "$"); /* crc */
-	for (i = 0; i < cs->length; i++)
-		cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	psalt->unpacksize = atoll(p);
+	p = strtokm(NULL, "$"); /* data */
+	for (i = 0; i < psalt->length; i++)
+		psalt->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
-	return (void *)cs;
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt, length);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(struct custom_salt, length, data, psalt->length);
+	psalt->dsalt.salt_alloc_needs_free = 1;
+
+	memcpy(ptr, &psalt, sizeof(void*));
+	return ptr;
 }
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
+	cur_salt = *((struct custom_salt **)salt);
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->SaltSize);
 
 	if (currentsalt.iterations != cur_salt->NumCyclesPower)
@@ -464,8 +470,8 @@ static char *get_key(int index)
 static int salt_compare(const void *x, const void *y)
 {
 	int c;
-	const struct custom_salt *s1 = x;
-	const struct custom_salt *s2 = y;
+	const struct custom_salt *s1 = *((struct custom_salt**)x);
+	const struct custom_salt *s2 = *((struct custom_salt**)y);
 
 	// we had to make the salt order deterministic, so that intersalt-restore works
 	if (s1->NumCyclesPower != s2->NumCyclesPower)
@@ -648,7 +654,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE | FMT_UTF8 | FMT_DYNA_SALT,
 		{
 			"iteration count",
 		},
