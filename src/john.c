@@ -1902,7 +1902,7 @@ int main(int argc, char **argv)
 
 	/* put the crc table init here, so that tables are fully setup for any ancillary program */
 	CRC32_Init_tab();
-        
+       
         /* Needed before CPU fallback */
 	path_init(argv);
 

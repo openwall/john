@@ -18,8 +18,10 @@ static char *hcmask_producemask(char *out, int outlen, char *inmask) {
 	char Vars[4][512], *cp, *cp1, *cpo=out;
 	int nVars[4], i = 0;
 
-	if (*inmask == 0 || *inmask == '#')  // handle comment or blank lines
-		return "";
+	if (*inmask == 0 || *inmask == '#') {  // handle comment or blank lines
+		*out = 0;
+		return out;
+	}
 	if (*inmask == '\\' && inmask[1] == '#')  // handle lines starting with \#
 		++inmask;
 	cp = strchr(inmask, ',');
@@ -93,7 +95,7 @@ static void convert_to_sub(char *out, int len, const char *in) {
 						break;
 					strcpy(cp, "a-z"); cp += 3; used += 3;
 					break;
-				case 'U':
+				case 'u':
 					if (used > len-5)
 						break;
 					strcpy(cp, "A-Z"); cp += 3; used += 3;
@@ -119,8 +121,10 @@ static void convert_to_sub(char *out, int len, const char *in) {
 		}
 		default:
 		{
-			if (*in == '-')
+			if (*in == '-') {
+				++used;
 				*cp++ = '\\';
+			}
 			else if (*in == '\\' && in[1] == ',')
 				++in;
 			*cp++ = *in++;
