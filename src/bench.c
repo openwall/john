@@ -255,7 +255,7 @@ static void bench_set_keys(struct fmt_main *format,
 		} while (1);
 
 #ifndef BENCH_BUILD
-		if (options.flags & FLG_MASK_CHK) {
+		if (options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK)) {
 			plaintext[len] = 0;
 			if (do_mask_crack(len ? plaintext : NULL))
 				return;
@@ -712,7 +712,7 @@ AGAIN:
 			fmt_init(format);
 
 		/* GPU-side mask mode benchmark */
-		if (options.flags & FLG_MASK_CHK) {
+		if (options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK)) {
 			static struct db_main fakedb;
 
 			fakedb.format = format;
@@ -919,7 +919,7 @@ next:
 		ldr_free_test_db(test_db);
 		fmt_done(format);
 #ifndef BENCH_BUILD
-		if (options.flags & FLG_MASK_CHK)
+		if (options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK))
 			mask_done();
 #endif
 		MEMDBG_checkSnapshot_possible_exit_on_error(memHand, 0);

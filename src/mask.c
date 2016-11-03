@@ -48,8 +48,10 @@ static unsigned long long rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
 static int parent_fix_state_pending;
+static int old_keylen = -1;
 int mask_add_len, mask_num_qw, mask_cur_len;
 
+void reset_old_keylen() { old_keylen = -1; }
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
  * If we do not, we can skip expensive encoding conversions
@@ -2059,6 +2061,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		unprocessed_mask = options.mask;
 
 	mask = unprocessed_mask;
+	MEM_FREE(template_key);
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
@@ -2203,6 +2206,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 #endif
 	}
 
+	MEM_FREE(template_key_offsets);
 	template_key_offsets = (int*)mem_alloc((mask_num_qw + 1) * sizeof(int));
 
 	for (i = 0; i < mask_num_qw + 1; i++)
@@ -2347,8 +2351,6 @@ int do_mask_crack(const char *extern_key)
 				event_pending = event_status = 1;
 		}
 	} else {
-		static int old_keylen = -1;
-
 		if (old_keylen != key_len) {
 			save_restore(&cpu_mask_ctx, 0, 1);
 			generate_template_key(mask, extern_key, key_len, &parsed_mask,

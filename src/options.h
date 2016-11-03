@@ -102,6 +102,11 @@
 #define FLG_FUZZ_DUMP_SET \
 	(FLG_FUZZ_DUMP_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #endif
+/* hc-maskfile mode enabled (might be hybrid) */
+#define FLG_HC_MASK_CHK			0x80000000
+#define FLG_HC_MASK_SET \
+	(FLG_HC_MASK_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
+
 /* Passwords per salt requested */
 #define FLG_SALTS			0x01000000
 /* Ciphertext format forced */
@@ -370,6 +375,8 @@ struct options_main {
 	int show_uid_in_cracks;
 /* regular expression */
 	char *regex;
+/* hc mask-mode file */
+	char *hc_mask_file;
 /* Custom masks */
 	char *custom_mask[MAX_NUM_CUST_PLHDR];
 };

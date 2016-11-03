@@ -661,7 +661,7 @@ static void reset(struct db_main *db)
 		release_clobj_kpc();
 		release_clobj();
 
-		if (options.flags & FLG_MASK_CHK && mask_int_cand.num_int_cand > 1)
+		if (options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK) && mask_int_cand.num_int_cand > 1)
 			mask_mode = 1;
 
 		create_clobj(db);
