@@ -1,9 +1,8 @@
 #include "arch.h"
 #include "misc.h"
 #include "mask.h"
+#include "memory.h"
 #include "options.h"
-
-static void convert_to_sub(char *out, int len, const char *in);
 
 // examples:
 // ?d?l,test?1?1?1
@@ -15,126 +14,51 @@ static void convert_to_sub(char *out, int len, const char *in);
 // ?l?l?l?l?d?d?d?d?d?d
 //   ?l?l?l?l?d?d?d?d?d?d
 static char *hcmask_producemask(char *out, int outlen, char *inmask) {
-	char Vars[4][512], *cp, *cp1, *cpo=out;
-	int nVars[4], i = 0;
+	char *cp, *cp1, *cp2;
+	int i = 0;
 
 	if (*inmask == 0 || *inmask == '#') {  // handle comment or blank lines
 		*out = 0;
 		return out;
 	}
+	for (i = 0; i < MAX_NUM_CUST_PLHDR; ++i)
+		options.custom_mask[i] = NULL;
 	if (*inmask == '\\' && inmask[1] == '#')  // handle lines starting with \#
 		++inmask;
 	cp = strchr(inmask, ',');
 	while (cp && cp[-1] == '\\')
 		cp = strchr(&cp[1], ',');
 	cp1 = inmask;
+	i = 0;
 	while (cp) {
-		char tmp_mask[256];
+		char tmp_mask[512];
 		int len;
 		if (cp-cp1 > sizeof(tmp_mask))
 			len = sizeof(tmp_mask)-1;
 		else
 			len = cp-cp1;
 		strnzcpy(tmp_mask, cp1, len+1);
-		convert_to_sub(Vars[i], sizeof(Vars[i]), tmp_mask);
-		nVars[i] = strlen(Vars[i]);
-		++i;
+		// we have to eat any escaped commas
+		cp2 = strstr(tmp_mask, "\\,");
+		while (cp2) {
+			memmove (cp2, cp2+1, strlen(cp2));
+			cp2 = strstr(cp2, "\\,");
+		}
+		options.custom_mask[i++] = str_alloc_copy(tmp_mask);
 		cp1 = cp+1;
 		cp = strchr(cp1, ',');
 		while (cp && cp[-1] == '\\')
 			cp = strchr(&cp[1], ',');
 	}
-	// Ok, now cp1 should point to the real mask.  Now we just have to replace ?1,?2,?3,?4 with proper values and return.
-	i = 0;
-	while (*cp1 && i < outlen-1) {
-		if (*cp1 != '?') {
-			if (*cp1 == '\\' && cp1[1] == ',')
-				++cp1;
-			*cpo++ = *cp1++;
-			++i;
-		} else {
-			if (cp1[1] >= '1' && cp1[1] <= '4') {
-				int which = cp1[1] - '0' -1;
-				if (i < outlen-1-nVars[which]) {
-					strcpy(cpo, Vars[which]);
-					cpo += nVars[which];
-					i += nVars[which];
-				}
-			} else if (i < outlen-3) {
-				memcpy(cpo, cp1, 2);
-				cpo += 2;
-			}
-			cp1 += 2;
-		}
+	// Ok, now cp1 should point to the real mask.
+	// simply eat any escaped commas
+	strnzcpy(out, cp1, outlen);
+	cp2 = strstr(out, "\\,");
+	while (cp2) {
+		memmove (cp2, cp2+1, strlen(cp2));
+		cp2 = strstr(cp2, "\\,");
 	}
-	*cpo = 0;
 	return out;
-}
-
-// This converts one of the first 4 comma separated items into a jtr mask
-// compatible range string.
-static void convert_to_sub(char *out, int len, const char *in) {
-	char *cp = out;
-	int used = 0;
-	*cp++ = '['; ++used;
-	while (*in && used < len-2)
-	switch (*in) {
-		case 0:
-			break;
-		case '?':
-		{
-			++in;
-			switch(*in++) {
-				case 'd':
-					if (used > len-5)
-						break;
-					strcpy(cp, "0-9"); cp += 3; used += 3;
-					break;
-				case 'l':
-					if (used > len-5)
-						break;
-					strcpy(cp, "a-z"); cp += 3; used += 3;
-					break;
-				case 'u':
-					if (used > len-5)
-						break;
-					strcpy(cp, "A-Z"); cp += 3; used += 3;
-					break;
-				case 'a':
-					if (used > len-5)
-						break;
-					strcpy(cp, " -~"); cp += 3; used += 3;
-					break;
-				case 's':
-					if (used > len-38)
-						break;
-					strcpy(cp, " !\"#$%&'()*+,\\-./:;<=>?@\\[\\]^_`{}|\\~"); cp += 36; used += 36;
-					break;
-				case 'b':
-					if (used > len-3)
-						break;
-					// hashcat includes null.  JTR can not do that.
-					strcpy(cp, "\x01-\xff"); cp += 3; used += 3;
-					break;
-			}
-			break;
-		}
-		default:
-		{
-			if (*in == '-') {
-				++used;
-				*cp++ = '\\';
-			}
-			else if (*in == '\\' && in[1] == ',')
-				++in;
-			*cp++ = *in++;
-			++used;
-		}
-
-	}
-	*cp++ = ']';
-	*cp = 0;
-	return;
 }
 
 // required a reset in mask.c to run multiple masks in a single run.
