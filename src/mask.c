@@ -28,6 +28,7 @@
 #include "cracker.h"
 #include "john.h"
 #include "mask.h"
+#include "hcmask.h"
 #include "unicode.h"
 #include "encoding_data.h"
 #include "memdbg.h"
@@ -51,7 +52,6 @@ static int parent_fix_state_pending;
 static int old_keylen = -1;
 int mask_add_len, mask_num_qw, mask_cur_len;
 
-void reset_old_keylen() { old_keylen = -1; }
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
  * If we do not, we can skip expensive encoding conversions
@@ -66,6 +66,16 @@ static unsigned long long cand, rec_cand;
 
 unsigned long long mask_tot_cand;
 unsigned long long mask_parent_keys;
+
+/*
+ * this reset was needed to allow .hcmask code to send more than
+ * one mask to the same 'running' john instance.  We had to reset
+ * the old_keylen, to force the mask code to reprocess.
+ */
+void mask_reset()
+{
+	old_keylen = -1;
+}
 
 #define BUILT_IN_CHARSET "ludsaLUDSAbhBH123456789"
 
@@ -2042,6 +2052,11 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			options.mask[2 * max_keylen] = 0;
 	}
 
+	if (options.flags & FLG_HC_MASK_CHK) {
+		log_event("Proceeding with hcmask-file mode");
+		if (rec_restored && john_main_process)
+			fprintf(stderr, "Proceeding with hcmask-file:%s mask:%s\n", options.hc_mask_file, unprocessed_mask);
+	} else
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		log_event("Proceeding with mask mode");
 		if (rec_restored && john_main_process)
@@ -2401,6 +2416,8 @@ int do_mask_crack(const char *extern_key)
 #endif
 		else if (options.flags & FLG_EXTERNAL_CHK)
 			ext_hybrid_fix_state();
+		else if (options.flags & FLG_HC_MASK_CHK)
+			hcmask_hybrid_fix_state();
 		parent_fix_state_pending = 1;
 	}
 

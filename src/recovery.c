@@ -56,6 +56,7 @@
 #include "recovery.h"
 #include "external.h"
 #include "regex.h"
+#include "hcmask.h"
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
@@ -652,6 +653,10 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 		if (!strncmp(buf, "ext-v", 5)) {
 			if (ext_restore_state_hybrid(buf, rec_file))
 				rec_format_error("external-hybrid");
+		}
+		if (!strncmp(buf, "HC-v", 4)) {
+			if (hcmask_restore_state_hybrid(buf, rec_file))
+				rec_format_error("hcmask-hybrid");
 		}
 #if HAVE_REXGEN
 		else if (!strncmp(buf, "rex-v", 5)) {

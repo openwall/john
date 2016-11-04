@@ -102,7 +102,7 @@ JOHN_OBJS = \
 	gost.o \
 	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o crc32.o external.o \
-	formats.o getopt.o idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o math.o \
+	formats.o getopt.o idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o hcmask.o math.o \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o  wordlist.o \
 	mkv.o mkvlib.o \
@@ -395,6 +395,8 @@ haval.o:	haval.c arch.h sph_haval.h sph_types.h autoconfig.h stdint.h memdbg.h o
 haval_helper.o:	haval_helper.c
 
 hccap2john.o:	hccap2john.c autoconfig.h jumbo.h arch.h stdint.h os.h os-autoconf.h common.h memory.h memdbg.h
+
+hcmask.o:	arch.h misc.h mask.h hcmask.h memory.h options.h recovery.h
 
 hmacmd5.o:	hmacmd5.c arch.h common.h memory.h md5.h hmacmd5.h aligned.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h
 

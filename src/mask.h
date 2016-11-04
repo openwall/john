@@ -92,6 +92,12 @@ extern int do_mask_crack(const char *key);
 extern void mask_done(void);
 
 /*
+ * required a reset in mask.c to run multiple masks in a single run.
+ */
+extern void mask_reset();
+
+
+/*
  * These are exported for stacked modes (eg. hybrid mask)
  */
 extern void mask_fix_state(void);

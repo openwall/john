@@ -101,6 +101,7 @@ static int john_omp_threads_new;
 #include "prince.h"
 #include "inc.h"
 #include "mask.h"
+#include "hcmask.h"
 #include "mkv.h"
 #include "external.h"
 #include "batch.h"
@@ -1734,10 +1735,8 @@ static void john_run(void)
 		    !(options.flags & FLG_MASK_STACKED))
 			do_mask_crack(NULL);
 		else
-		if (options.flags & FLG_HC_MASK_CHK) {
-			void do_hcmas_crack(struct db_main *database, const char *fname);
-			do_hcmas_crack(&database, options.hc_mask_file);
-		}
+		if (options.flags & FLG_HC_MASK_CHK)
+			do_hcmask_crack(&database, options.hc_mask_file);
 		else
 		if (options.flags & FLG_EXTERNAL_CHK)
 			do_external_crack(&database);
