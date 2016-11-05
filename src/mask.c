@@ -28,7 +28,7 @@
 #include "cracker.h"
 #include "john.h"
 #include "mask.h"
-#include "hcmask.h"
+#include "maskfile.h"
 #include "unicode.h"
 #include "encoding_data.h"
 #include "memdbg.h"
@@ -2052,11 +2052,11 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			options.mask[2 * max_keylen] = 0;
 	}
 
-	if (options.flags & FLG_HC_MASK_CHK) {
-		log_event("Proceeding with hcmask-file mode");
-		if (rec_restored && john_main_process)
-			fprintf(stderr, "Proceeding with hcmask-file:%s mask:%s\n", options.hc_mask_file, unprocessed_mask);
-	} else
+	//if (options.flags & FLG_MASKFILE_CHK) {
+	//	log_event("Proceeding with maskfile mode");
+	//	if (rec_restored && john_main_process)
+	//		fprintf(stderr, "Proceeding with maskfile:%s mask:%s\n", options.maskfile, unprocessed_mask);
+	//} else
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		log_event("Proceeding with mask mode");
 		if (rec_restored && john_main_process)
@@ -2416,8 +2416,8 @@ int do_mask_crack(const char *extern_key)
 #endif
 		else if (options.flags & FLG_EXTERNAL_CHK)
 			ext_hybrid_fix_state();
-		else if (options.flags & FLG_HC_MASK_CHK)
-			hcmask_hybrid_fix_state();
+		else if (options.flags & FLG_MASKFILE_CHK)
+			maskfile_hybrid_fix_state();
 		parent_fix_state_pending = 1;
 	}
 

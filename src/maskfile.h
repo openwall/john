@@ -18,6 +18,6 @@
  * chars from \x0 to \xff.
  */
 
-extern void do_hcmask_crack(struct db_main *database, const char *fname);
-extern int hcmask_restore_state_hybrid(const char *sig, FILE *fp);
-extern void hcmask_hybrid_fix_state();
+extern void do_maskfile_crack(struct db_main *database, const char *fname);
+extern int maskfile_restore_state_hybrid(const char *sig, FILE *fp);
+extern void maskfile_hybrid_fix_state();

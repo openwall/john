@@ -20,7 +20,7 @@
 #include "arch.h"
 #include "misc.h"
 #include "mask.h"
-#include "hcmask.h"
+#include "maskfile.h"
 #include "memory.h"
 #include "options.h"
 #include "recovery.h"
@@ -40,7 +40,7 @@ static int linenum=1;
 //   [#ab\-c,0123][ABC][#ab\-c,0123][ABC]password
 
 
-static char *hcmask_producemask(char *out, int outlen, char *inmask) {
+static char *maskfile_producemask(char *out, int outlen, char *inmask) {
 	char *cp, *cp1, *cp2;
 	int i = 0;
 
@@ -65,7 +65,7 @@ static char *hcmask_producemask(char *out, int outlen, char *inmask) {
 	// cp is used to walk the commas (params)
 	// cp1 is used to walk the masks (and ends up as the 'main' mask value.
 	// cp2 is used to convert \, back into plain , characters.
-	while (cp) {
+	while (cp && i < MAX_NUM_CUST_PLHDR) {
 		char mask_param[512];
 		int len;
 		if (cp-cp1 > sizeof(mask_param))
@@ -99,31 +99,31 @@ static char *hcmask_producemask(char *out, int outlen, char *inmask) {
 	return out;
 }
 
-void hcmask_hybrid_fix_state()
+void maskfile_hybrid_fix_state()
 {
-//	fprintf(stderr, "hcmask_hybrid_fix_state() linenum=%d local_linenum=%d\n", linenum, local_linenum);
+//	fprintf(stderr, "maskfile_hybrid_fix_state() linenum=%d local_linenum=%d\n", linenum, local_linenum);
 //	linenum = local_linenum;
 
-//	fprintf(stderr, "hcmask_hybrid_fix_state() linenum=%d\n", linenum);
+//	fprintf(stderr, "maskfile_hybrid_fix_state() linenum=%d\n", linenum);
 }
 
-int hcmask_restore_state_hybrid(const char *sig, FILE *fp) {
-	if (!strncmp(sig, "HC-v1", 5)) {
+int maskfile_restore_state_hybrid(const char *sig, FILE *fp) {
+	if (!strncmp(sig, "MSKF-v1", 7)) {
 		fscanf(fp, "%d\n", &linenum);
-//		fprintf(stderr, "hcmask_restore_state_hybrid() linenum=%d\n", linenum);
+//		fprintf(stderr, "maskfile_restore_state_hybrid() linenum=%d\n", linenum);
 	}
 	return 0;
 }
 
-static void hc_save_mode(FILE *fp) {
-//	fprintf(stderr, "hc_save_mode() linenum=%d\n", linenum);
+static void maskfile_save_mode(FILE *fp) {
+//	fprintf(stderr, "maskfile_save_mode() linenum=%d\n", linenum);
 	if (linenum)
-		fprintf(fp, "HC-v1\n%d\n", linenum-1);
+		fprintf(fp, "MSKF-v1\n%d\n", linenum-1);
 }
 
 // this is like a do_crack.  yes, it needs a lot of work, but this is
 // a PoC that gets the water warmed up.
-void do_hcmask_crack(struct db_main *database, const char *fname) {
+void do_maskfile_crack(struct db_main *database, const char *fname) {
 	FILE *in = fopen(fname, "r");
 	char hBuf[512], linebuf[512];
 	int i;
@@ -131,14 +131,14 @@ void do_hcmask_crack(struct db_main *database, const char *fname) {
 		fprintf (stderr, "Error opening hc-mask file %s\n", fname);
 		exit(0);
 	}
-	rec_init_hybrid(hc_save_mode);
+	rec_init_hybrid(maskfile_save_mode);
 	mask_crk_init(database);
 	for (i = 1; i < linenum; ++i)
 		fgetl(linebuf, sizeof(linebuf)-1, in);
 	fgetl(linebuf, sizeof(linebuf)-1, in);
 	++linenum;
 	while (!feof(in)) {
-		hcmask_producemask(hBuf, sizeof(hBuf), linebuf);
+		maskfile_producemask(hBuf, sizeof(hBuf), linebuf);
 		if (*hBuf == 0) {
 			fgetl(linebuf, sizeof(linebuf)-1, in);
 			continue;
@@ -155,17 +155,17 @@ void do_hcmask_crack(struct db_main *database, const char *fname) {
 #ifdef TEST
 int main() {
 	char outb[256];
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "x"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "?d?l,test?1?1?1"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "abcdef,0123,ABC,789,?3?3?3?1?1?1?1?2?2?4?4?4?4"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "company?d?d?d?d?d"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "?l?l?l?l?d?d?d?d?d?d"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "?l?d\\,,?1?1"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "?l?d\\,ab,?d,?1?2"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "?l?d\\,xyz,?d,?1\\,with_comma\\,?2"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "?l-?l\\,g,?d,?1\\,wi-th_comma\\,?2"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "#?l-?l\\,g,?d,?1\\,wi-th_comma\\,?2"));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), ""));
-	printf ("Mask = %s\n", hcmask_producemask(outb, sizeof(outb), "\\#?l-?l\\,g,?d,?1\\,wi-th_comma\\,?2"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "x"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "?d?l,test?1?1?1"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "abcdef,0123,ABC,789,?3?3?3?1?1?1?1?2?2?4?4?4?4"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "company?d?d?d?d?d"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "?l?l?l?l?d?d?d?d?d?d"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "?l?d\\,,?1?1"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "?l?d\\,ab,?d,?1?2"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "?l?d\\,xyz,?d,?1\\,with_comma\\,?2"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "?l-?l\\,g,?d,?1\\,wi-th_comma\\,?2"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "#?l-?l\\,g,?d,?1\\,wi-th_comma\\,?2"));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), ""));
+	printf ("Mask = %s\n", maskfile_producemask(outb, sizeof(outb), "\\#?l-?l\\,g,?d,?1\\,wi-th_comma\\,?2"));
 }
 #endif

@@ -81,9 +81,9 @@
 #define FLG_STATUS_CHK			0x00040000
 #define FLG_STATUS_SET			(FLG_STATUS_CHK | FLG_ACTION)
 /* hc-maskfile mode enabled (might be hybrid) */
-#define FLG_HC_MASK_CHK			0x00080000
-#define FLG_HC_MASK_SET \
-	(FLG_HC_MASK_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
+#define FLG_MASKFILE_CHK			0x00080000
+#define FLG_MASKFILE_SET \
+	(FLG_MASKFILE_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* Make a charset */
 #define FLG_MAKECHR_CHK			0x00100000
 #define FLG_MAKECHR_SET \
@@ -377,7 +377,7 @@ struct options_main {
 /* regular expression */
 	char *regex;
 /* hc mask-mode file */
-	char *hc_mask_file;
+	char *maskfile;
 /* Custom masks */
 	char *custom_mask[MAX_NUM_CUST_PLHDR];
 };

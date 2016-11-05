@@ -101,7 +101,7 @@ static int john_omp_threads_new;
 #include "prince.h"
 #include "inc.h"
 #include "mask.h"
-#include "hcmask.h"
+#include "maskfile.h"
 #include "mkv.h"
 #include "external.h"
 #include "batch.h"
@@ -931,7 +931,7 @@ static void john_load_conf_db(void)
 		/* john.conf alternative for --internal-codepage */
 		if (!options.internal_cp &&
 		    options.target_enc == UTF_8 && options.flags &
-		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK | FLG_HC_MASK_CHK))
+		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK | FLG_MASKFILE_CHK))
 			if (!(options.internal_cp =
 			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			    "DefaultInternalCodepage"))))
@@ -1735,8 +1735,8 @@ static void john_run(void)
 		    !(options.flags & FLG_MASK_STACKED))
 			do_mask_crack(NULL);
 		else
-		if (options.flags & FLG_HC_MASK_CHK)
-			do_hcmask_crack(&database, options.hc_mask_file);
+		if (options.flags & FLG_MASKFILE_CHK)
+			do_maskfile_crack(&database, options.maskfile);
 		else
 		if (options.flags & FLG_EXTERNAL_CHK)
 			do_external_crack(&database);
@@ -1744,7 +1744,7 @@ static void john_run(void)
 		if (options.flags & FLG_BATCH_CHK)
 			do_batch_crack(&database);
 
-		if (options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK))
+		if (options.flags & (FLG_MASK_CHK|FLG_MASKFILE_CHK))
 			mask_done();
 
 		status_print();
@@ -1901,7 +1901,7 @@ int main(int argc, char **argv)
 
 	/* put the crc table init here, so that tables are fully setup for any ancillary program */
 	CRC32_Init_tab();
-       
+
         /* Needed before CPU fallback */
 	path_init(argv);
 
