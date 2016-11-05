@@ -316,7 +316,7 @@ static void tune(struct db_main *db)
 	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,
 			get_max_mem_alloc_size(gpu_id) / BUFFER_SIZE);
 
-	if (options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK))
+	if (options.flags & (FLG_MASK_CHK|FLG_MASKFILE_CHK))
 		gws_limit = MIN(gws_limit,
 			get_max_mem_alloc_size(gpu_id) /
 			(mask_int_cand.num_int_cand  * 3 * sizeof(uint32_t)));
@@ -357,13 +357,13 @@ static void reset(struct db_main *db)
 
 		//GPU mask mode in use, do not auto tune for self test.
 		//Instead, use sane defauts. Real tune is going to be made below.
-		if ((options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK)) &&
+		if ((options.flags & (FLG_MASK_CHK|FLG_MASKFILE_CHK)) &&
 		   !((options.flags & FLG_TEST_CHK) || (options.flags & FLG_NOTESTS)))
 			opencl_get_sane_lws_gws_values();
 
 		tune(db);
 
-	} else if ((options.flags & (FLG_MASK_CHK|FLG_HC_MASK_CHK))) {
+	} else if ((options.flags & (FLG_MASK_CHK|FLG_MASKFILE_CHK))) {
 		//Tune for mask mode.
 		local_work_size = saved_lws;
 		global_work_size = saved_gws;
