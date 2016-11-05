@@ -11,7 +11,7 @@
  * purpose, in source and binary forms, with or without modification.
  *
  * JtR native support for Hashcat's .hcmask files. This 'mode' is
- * driven by option --hc_mask_file=hashfile.  The logic added to JtR
+ * driven by option --mask-file=hashfile.  The logic added to JtR
  * is just like HC.  No JtR extensions (like the ?w or using the
  * [Mask] placeholder is used.  The only minor difference is that the
  * ?b mask handles characters from \x1 to \xff while hashcat handles
@@ -21,6 +21,7 @@
 #include "misc.h"
 #include "mask.h"
 #include "maskfile.h"
+#include "logger.h"
 #include "memory.h"
 #include "options.h"
 #include "recovery.h"
@@ -133,9 +134,14 @@ void do_maskfile_crack(struct db_main *database, const char *fname) {
 	}
 	rec_init_hybrid(maskfile_save_mode);
 	mask_crk_init(database);
-	for (i = 1; i < linenum; ++i)
+	for (i = 1; i < linenum; ++i) {
 		fgetl(linebuf, sizeof(linebuf)-1, in);
+		log_event("Resuming, skipping already done line %s", linebuf);
+	}
 	fgetl(linebuf, sizeof(linebuf)-1, in);
+	if (options.verbosity > VERB_LEGACY && i > 1)
+		fprintf(stderr, "Resuming maskfile: %s line: %d  Mask: %s\n",
+		                 fname, i, linebuf);
 	++linenum;
 	while (!feof(in)) {
 		maskfile_producemask(hBuf, sizeof(hBuf), linebuf);
@@ -143,6 +149,10 @@ void do_maskfile_crack(struct db_main *database, const char *fname) {
 			fgetl(linebuf, sizeof(linebuf)-1, in);
 			continue;
 		}
+		log_event("Processing maskfile line: %s", linebuf);
+		if (options.verbosity > VERB_LEGACY)
+		fprintf(stderr, "Processing maskfile: %s line: %d  Mask: %s\n",
+		                 fname, linenum, linebuf);
 		mask_init(database, hBuf);
 		mask_reset();
 		if (do_mask_crack(NULL))

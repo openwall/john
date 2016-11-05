@@ -11,7 +11,7 @@
  * purpose, in source and binary forms, with or without modification.
  *
  * JtR native support for Hashcat's .hcmask files. This 'mode' is
- * driven by option --hc_mask_file=hashfile.  The logic added to JtR
+ * driven by option --mask-file=hashfile.  The logic added to JtR
  * is just like HC.  No JtR extensions (like the ?w or using the
  * [Mask] placeholder is used.  The only minor difference is that the
  * ?b mask handles characters from \x1 to \xff while hashcat handles
