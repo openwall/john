@@ -306,7 +306,9 @@ static void *get_binary(char *ciphertext)
 	unsigned char *realcipher = (unsigned char*)full;
 
 	ciphertext += TAG_LENGTH;
-	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, sizeof(full), flg_Base64_MIME_TRAIL_EQ, 0);
+	base64_convert(ciphertext, e_b64_hex, HASH_LENGTH,
+	               realcipher, e_b64_raw, sizeof(full),
+	               flg_Base64_NO_FLAGS, 0);
 	alter_endianity(realcipher, DIGEST_SIZE);
 
 	return (void*)realcipher;

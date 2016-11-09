@@ -262,7 +262,9 @@ static void *get_binary(char *ciphertext)
 
 	memset(full, 0, sizeof(full)); // since ax-crypt 'may' be short.
 	ciphertext += TAG_LENGTH;
-	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, sizeof(full), flg_Base64_MIME_TRAIL_EQ, 0);
+	base64_convert(ciphertext, e_b64_hex, HASH_LENGTH,
+	               realcipher, e_b64_raw, sizeof(full),
+	               flg_Base64_MIME_TRAIL_EQ, 0);
 
 #ifdef SIMD_COEF_32
 	alter_endianity(realcipher, DIGEST_SIZE);
@@ -279,9 +281,8 @@ static void *get_binary(char *ciphertext)
 
 static char *source(char *source, void *binary)
 {
+	static char hex[CIPHERTEXT_LENGTH + 1] = FORMAT_TAG;
 	ARCH_WORD_32 hash[DIGEST_SIZE / 4];
-	char hex[2 * DIGEST_SIZE + 1];
-	char *fields[10] = { 0 };
 	char *p;
 	int i, j;
 
@@ -308,15 +309,13 @@ static char *source(char *source, void *binary)
 #endif
 
 	/* Convert to hex string */
-	p = hex;
+	p = hex + TAG_LENGTH;
 	for (i = 0; i < 5; i++)
 		for (j = 0; j < 8; j++)
 			*p++ = itoa16[(hash[i] >> ((j ^ 1) * 4)) & 0xf];
 	*p = 0;
 
-	/* Let prepare() convert to a canonical hash (currently Base64) */
-	fields[1] = (void*)hex;
-	return rawsha1_common_prepare(fields, NULL);
+	return hex;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

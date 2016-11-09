@@ -1921,6 +1921,9 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 			return;
 		}
 
+		/* Jumbo-specific; needed for legacy pot entries */
+		ciphertext = fmt_list->methods.split(ciphertext, 0, fmt_list);
+
 		hash = ldr_cracked_hash(ciphertext);
 
 		last = db->cracked_hash[hash];

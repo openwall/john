@@ -10,17 +10,17 @@
 #include "arch.h"
 #include "formats.h"
 
-#define FORMAT_TAG_OLD			"$dynamic_26$"
-#define TAG_LENGTH_OLD			(sizeof(FORMAT_TAG_OLD)-1)
-#define FORMAT_TAG				"{SHA}"
+#define FORMAT_TAG				"$dynamic_26$"
 #define TAG_LENGTH				(sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG_OLD			"{SHA}"
+#define TAG_LENGTH_OLD			(sizeof(FORMAT_TAG_OLD)-1)
 
-#define HASH_LENGTH_OLD			40
-#define HASH_LENGTH				28
+#define HASH_LENGTH				40
+#define HASH_LENGTH_OLD			28
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define DIGEST_SIZE				20
-#define AX_DIGEST_SIZE				16
+#define AX_DIGEST_SIZE			16
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
 
