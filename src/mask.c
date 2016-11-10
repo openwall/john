@@ -641,14 +641,16 @@ static char* plhdr2string(char p, int fmt_case)
 
 	case 'B': /* All high-bit */
 
-	case 'h': /* deprecated alias for B */
-		add_range(0x80, 0xff);
-		break;
-
 	case 'b': /* All (except NULL which we can't handle) */
 
-	case 'H': /* deprecated alias for b */
-		add_range(0x01, 0xff);
+	case 'h': /* Lower-case hex */
+		add_range('0', '9');
+		add_range('a', 'f');
+		break;
+
+	case 'H': /* Upper-case hex */
+		add_range('0', '9');
+		add_range('A', 'F');
 		break;
 
 	case 'a': /* Printable ASCII */

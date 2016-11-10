@@ -17,6 +17,8 @@ A mask may consist of:
      reduction of keyspace for the win.
 - ?B all 8-bit (0x80-0xff)
 - ?b all (0x01-0xff) (the NULL character is currently not supported by core).
+- ?h lower-case HEX digits (0-9, a-f)
+- ?H upper-case HEX digits (0-9, A-F)
 - ?L lower-case non-ASCII letters
 - ?U upper-case non-ASCII letters
 - ?D non-ASCII "digits"
