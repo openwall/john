@@ -1,3 +1,11 @@
+/*
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +27,8 @@
 
 int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list, int *fw_upload_count)
 {
+	static int fw_3rd_party_warning = 0;
+	int fw_3rd_party_count = 0;
 	int count = 0;
 	(*fw_upload_count) = 0;
 
@@ -61,10 +71,19 @@ int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list
 		}
 		// device with some 3rd party firmware - skip it
 		else {
-			if (ZTEX_DEBUG) printf("SN %s: 3rd party firmware \"%s\", skipping\n",
-					dev->snString, dev->product_string);
+			if (!fw_3rd_party_warning) {
+				printf("SN %s: 3rd party firmware \"%s\", skipping\n",
+						dev->snString, dev->product_string);
+				fw_3rd_party_count ++;
+			}
 			ztex_dev_list_remove(new_dev_list, dev);
 		}
+	}
+	
+	if (!fw_3rd_party_warning && fw_3rd_party_count) {
+		printf("Total %d boards with 3rd party firmware skipped.\n",
+				fw_3rd_party_count);
+		fw_3rd_party_warning = 1;
 	}
 	return count;
 }

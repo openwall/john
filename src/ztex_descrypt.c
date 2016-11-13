@@ -1,3 +1,15 @@
+/*
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * Used functions from DES implementation, John the Ripper password cracker
+ * Copyright (c) 1996-2001,2005,2012 by Solar Designer
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ */
 #include <stdio.h>
 #include <string.h>
 
@@ -28,7 +40,7 @@
 #define BINARY_ALIGN			1
 #define BINARY_LAST_BYTE_MASK	0x07
 #define SALT_SIZE				2
-#define SALT_ALIGN				2
+#define SALT_ALIGN				1
 
 
 struct device_bitstream bitstream = {

@@ -1,3 +1,11 @@
+/*
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -93,6 +101,8 @@ void device_format_done()
 }
 
 
+extern volatile int bench_running;
+
 void device_format_reset()
 {
 	// Mask data is ready, calculate and set keys_per_crypt
@@ -105,10 +115,10 @@ void device_format_reset()
 	if (keys_per_crypt > jtr_bitstream->abs_max_keys_per_crypt) {
 		keys_per_crypt = jtr_bitstream->abs_max_keys_per_crypt;
 		
-		// TODO: don't display warning on self-test
-		// or let self-test use mask
-		fprintf(stderr, "Warning: Slow communication channel to the device. ");
-		fprintf(stderr, "Increase mask or expect performance degradation.\n");
+		if (!bench_running) // self-test or benchmark
+			fprintf(stderr, "Warning: Slow communication channel "\
+				"to the device. "\
+				"Increase mask or expect performance degradation.\n");
 	}
 
 	jtr_fmt_params->max_keys_per_crypt = keys_per_crypt;
