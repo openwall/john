@@ -1,6 +1,14 @@
-//
-// Top Level Hardware Operation Functions.
-//
+/*
+ *
+ * Top Level Hardware Operating Functions for Ztex Multi-FPGA board.
+ *
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ */
 #include "device_bitstream.h"
 
 

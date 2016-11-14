@@ -3,6 +3,13 @@
  *
  * Functions to access remote devices such as ZTEX FPGA board
  * for usage in JtR "formats"
+ *
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
  */
 
 // (re-)initializes hardware.

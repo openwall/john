@@ -1,9 +1,15 @@
-// ***************************************************************
-//
-// Functions for operating ZTEX Multi-FPGA board at High-Speed
-// Requires basic ZTEX functions (ztex.c)
-//
-// ***************************************************************
+/*
+ * Functions for operating ZTEX 1.15y Multi-FPGA board at High-Speed
+ * Require basic ZTEX functions (ztex.c)
+ * Assuming device has 'inouttraffic' firmware (inouttraffic.ihx)
+ *
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ */
 #define ERR_IO_STATE_TIMEOUT -3001
 #define ERR_IO_STATE_OVERFLOW -3002
 #define ERR_IO_STATE_LIMIT_NOT_DONE -3003

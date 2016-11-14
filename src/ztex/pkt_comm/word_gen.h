@@ -1,11 +1,15 @@
+/*
+ * Word Generator version 2
+ *
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ */
 
 #define PKT_TYPE_WORD_GEN	2
-
-// ***************************************************************
-//
-// Word Generator version 2
-//
-// ***************************************************************
 
 #define RANGES_MAX		4
 // Well. If on-device generator is built with CHAR_BITS==7

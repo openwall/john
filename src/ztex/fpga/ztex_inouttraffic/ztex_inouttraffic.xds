@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<DesignStrategy goal="Balanced" strategy="inouttraffic" version="12.1">
+
+  <Description>The Default strategy provides a balanced optimization of performance results vs. runtime. The default property values correspond to the default values of each of the underlying implementation tools. This strategy keeps all properties in an unlocked state so that you can modify the values as you wish.</Description>
+
+  <DeviceList devices="spartan6"/>
+
+  <Properties>
+    <property name="Synthesize - XST:Optimization Effort" value="High"/>
+    <property name="Map:Placer Extra Effort" value="Continue on Impossible"/>
+    <property name="Map:Starting Placer Cost Table (1-100)" value="6"/>
+    <property name="Map:Combinatorial Logic Optimization" value="true"/>
+    <property name="Map:Register Duplication" value="On"/>
+    <property name="Map:Register Ordering" value="Off"/>
+    <property name="Map:Allow Logic Optimization Across Hierarchy" value="true"/>
+    <property name="Map:Generate Detailed MAP Report" value="true"/>
+    <property name="Map:LUT Combining" value="Auto"/>
+    <property name="Place &amp; Route:Place And Route Mode" value="Route Only"/>
+    <property name="Place &amp; Route:Extra Effort (Highest PAR level only)" value="Continue on Impossible"/>
+    <property name="Place &amp; Route:Generate Clock Region Report" value="true"/>
+    <property name="Generate Programming File:Unused IOB Pins" value="Float"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Perform Advanced Analysis" value="true"/>
+  </Properties>
+
+</DesignStrategy>

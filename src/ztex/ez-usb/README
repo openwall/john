@@ -1,0 +1,18 @@
+Creation of firmware uploadable onto USB device controller.
+It might turn out that 'inouttraffic' firmware already has all the required functions and application developer would skip this step.
+
+Assuming ZTEX 1.15y board is connected, the developer is familiar with Ztex SDK and got tests from Ztex SDK working.
+
+- Get, unpack ZTEX SDK
+- Install SDCC (Small Devices C Compiler) as recommended in ZTEX SDK manual
+- Create ztex/examples/usb-fpga-1.15y/inouttraffic folder. Inside the folder:
+-- copy files from examples/usb-fpga-1.15y/intraffic
+-- place inouttraffic.c there
+-- edit Makefile replacing 'intraffic' with 'inouttraffic'
+- make
+
+Versions used:
+- ztex-140813b
+- SDCC 3.6.0 #9615 (MINGW32)
+
+There's already a built firmware file (inouttraffic.ihx).

@@ -1,3 +1,11 @@
+/*
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -756,7 +764,8 @@ int ztex_reset_cpu(struct ztex_device *dev, int r)
 {
 	unsigned char buf[1] = { r };
 	int result = vendor_command(dev->handle, 0xA0, 0xE600, 0, buf, 1);
-	if (result < 0) {
+	// Don't return error on r==0 && LIBUSB_ERR_NO_DEVICE
+	if (result < 0 && !(result == -4 && !r) ) {
 		ztex_error("SN %s: ztex_reset_cpu(%d) returns %d (%s)\n",
 				dev->snString, r, result, libusb_error_name(result));
 		return result;
