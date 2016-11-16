@@ -640,8 +640,12 @@ static char* plhdr2string(char p, int fmt_case)
 		break;
 
 	case 'B': /* All high-bit */
+		add_range(0x80, 0xff);
+		break;
 
 	case 'b': /* All (except NULL which we can't handle) */
+		add_range(0x01, 0xff);
+		break;
 
 	case 'h': /* Lower-case hex */
 		add_range('0', '9');
