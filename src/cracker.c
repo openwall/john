@@ -950,12 +950,13 @@ static int crk_salt_loop(void)
 	}
 	do {
 		crk_methods.set_salt(salt->salt);
-		status.resume_salt_md5 = salt->salt_md5;
+		status.resume_salt_md5 = (crk_db->salt_count > 1) ?
+			salt->salt_md5 : NULL;
 		if ((done = crk_password_loop(salt)))
 			break;
 	} while ((salt = salt->next));
-	if (!salt || salt->count < 2)
-		status.resume_salt_md5 = 0;
+	if (!salt || crk_db->salt_count < 2)
+		status.resume_salt_md5 = NULL;
 
 	if (done >= 0) {
 #if !HAVE_OPENCL
