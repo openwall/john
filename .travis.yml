@@ -25,10 +25,12 @@ before_install:
   - sudo apt-get install fglrx-dev opencl-headers || true
   - export OMP_NUM_THREADS=4
 script:
-  - cd src 
-  - if [[ "$CC" == "gcc" ]]; then ./configure --enable-asan; fi
-  - if [[ "$CC" == "clang" ]]; then ./configure; fi
-  - make -sj4 
+  - cd src
+  - export LOG=$(git log -n 1)
+  - export ASAN=""
+  - if [[ $LOG != *'[no asan]'* && "$CC" == "gcc" ]]; then export ASAN="--enable-asan"; fi
+  - ./configure $ASAN
+  - make -sj4
   - ../.travis/test.sh
 
 addons:
