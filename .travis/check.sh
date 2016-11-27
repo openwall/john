@@ -16,7 +16,7 @@ if [[ -z "$TEST" ]]; then
 
 elif [[ "$TEST" == "fresh test" ]]; then
     # ASAN using a 'recent' compiler
-    docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:latest sh -c " \
+    docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:16.10 sh -c " \
       cd /cwd/src; \
       apt-get update -qq; \
       apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev; \
