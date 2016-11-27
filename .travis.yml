@@ -20,10 +20,14 @@ matrix:
 
   - env: ASAN="" TEST="TS --restore"
 
+  - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+
   allow_failures:
   - env: ASAN="--enable-asan" TEST="fresh test"
 
   - env: ASAN="" TEST="TS --restore"
+
+  - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
 
   fast_finish: true
 
