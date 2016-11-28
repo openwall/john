@@ -11,23 +11,25 @@ env:
 matrix:
   include:
   - compiler: gcc
-    env: ASAN="--enable-asan" OPENCL="yes"
+    env: TEST="basic" ASAN="--enable-asan" OPENCL="yes" BUILD_OPTS=""
 
   - compiler: clang
-    env: ASAN="" OPENCL="yes"
+    env: TEST="basic" ASAN="" OPENCL="yes" BUILD_OPTS=""
 
-  - env: ASAN="--enable-asan" TEST="fresh test"
+  #Test a non OpenMP build
+  - env: TEST="basic" ASAN="" OPENCL="yes" BUILD_OPTS="--disable-native-tests --disable-openmp"
 
-  - env: ASAN="" TEST="TS --restore"
+  #Test JtR using a recent OS/compiler
+  - env: TEST="fresh test"   ASAN="--enable-asan"
 
-  - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+  - env: TEST="TS --restore" ASAN=""
 
   allow_failures:
-  - env: ASAN="--enable-asan" TEST="fresh test"
+  - env: TEST="basic" ASAN="" OPENCL="yes" BUILD_OPTS="--disable-native-tests --disable-openmp"
 
-  - env: ASAN="" TEST="TS --restore"
+  - env: TEST="fresh test"   ASAN="--enable-asan"
 
-  - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+  - env: TEST="TS --restore" ASAN=""
 
   fast_finish: true
 
