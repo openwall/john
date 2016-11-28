@@ -14,6 +14,20 @@ if [[ -z "$TEST" ]]; then
 
     ../.travis/test.sh
 
+elif [[ "$TEST" == "no OpenMP" ]]; then
+    cd src
+
+    # Prepare environment
+    sudo apt-get update -qq
+    sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
+    sudo apt-get install fglrx-dev opencl-headers || true
+
+    # Configure and build
+    ./configure $ASAN --disable-native-tests --disable-openmp
+    make -sj4
+
+    ../.travis/test.sh
+
 elif [[ "$TEST" == "fresh test" ]]; then
     # ASAN using a 'recent' compiler
     docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:latest sh -c " \
