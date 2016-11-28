@@ -115,6 +115,8 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
+	{"mask-file", FLG_MASKFILE_SET, FLG_MASKFILE_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.maskfile},
 	{"1", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
 	{"2", FLG_ZERO, 0, FLG_MASK_SET, OPT_REQ_PARAM,
@@ -165,7 +167,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~FLG_MASK_CHK & ~FLG_NOLOG & ~OPT_REQ_PARAM,
+		~FLG_MASK_CHK & ~FLG_NOLOG & ~OPT_REQ_PARAM & ~FLG_MASKFILE_CHK,
 		"%d", &benchmark_time},
 	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
@@ -478,7 +480,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.flags |= (FLG_REGEX_STACKED | FLG_MASK_STACKED);
 	} else
 #endif
-	if (options.flags & FLG_MASK_CHK) {
+	if (options.flags & (FLG_MASK_CHK|FLG_MASKFILE_CHK)) {
 		if (options.flags & FLG_TEST_CHK) {
 			options.flags &= ~FLG_PWD_SUP;
 			options.flags |= FLG_NOTESTS;

@@ -358,6 +358,10 @@ static void rules_init_classes(void)
 	rules_init_class('?', "?");
 	rules_init_class('b', (char *)&eightbitchars);
 	rules_init_class('Z', "");
+	// new hex classes added in jumbo 11/11/2016
+	rules_init_class('h', "0123456789abcdef");
+	rules_init_class('i', "0123456789ABCDEF");
+	rules_init_class('j', "0123456789abcdefABCDEF");
 
 	// Load user-defined character classes ?0 .. ?9 from john.conf
 	for(i='0'; i <= '9'; i++) {

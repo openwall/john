@@ -1157,7 +1157,7 @@ static void reset(struct db_main *db)
 		bitmap_params = prepare_table(salt, &offset_table, &bitmap_size_bits, &bitmaps);
 		create_buffer(num_loaded_hashes, offset_table, offset_table_size, hash_table_size, bitmaps, bitmap_size_bits);
 
-		if (options.flags & FLG_MASK_CHK) {
+		if (options.flags & (FLG_MASK_CHK|FLG_MASKFILE_CHK)) {
 			mask_mode = 1;
 			fmt_opencl_lm.methods.set_key = opencl_lm_set_key_mm;
 			fmt_opencl_lm.methods.get_key = get_key_mm;

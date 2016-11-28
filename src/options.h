@@ -80,6 +80,10 @@
 /* Print status of a session */
 #define FLG_STATUS_CHK			0x00040000
 #define FLG_STATUS_SET			(FLG_STATUS_CHK | FLG_ACTION)
+/* hc-maskfile mode enabled (might be hybrid) */
+#define FLG_MASKFILE_CHK			0x00080000
+#define FLG_MASKFILE_SET \
+	(FLG_MASKFILE_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* Make a charset */
 #define FLG_MAKECHR_CHK			0x00100000
 #define FLG_MAKECHR_SET \
@@ -92,26 +96,28 @@
 #define FLG_TEST_CHK			0x00400000
 #define FLG_TEST_SET \
 	(FLG_TEST_CHK | FLG_CRACKING_SUP | FLG_ACTION)
+
+/* Passwords per salt requested */
+#define FLG_SALTS			0x00800000
+/* Ciphertext format forced */
+#define FLG_FORMAT			0x01000000
+/* Memory saving enabled */
+#define FLG_SAVEMEM			0x02000000
+/* Node number(s) specified */
+#define FLG_NODE			0x04000000
+/* fork() requested, and process count specified */
+#define FLG_FORK			0x08000000
 #ifdef HAVE_FUZZ
 /* Perform a fuzzing */
-#define FLG_FUZZ_CHK			0x08000000
+#define FLG_FUZZ_CHK			0x10000000
 #define FLG_FUZZ_SET \
 	(FLG_FUZZ_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 /* Dump fuzzed hashes */
-#define FLG_FUZZ_DUMP_CHK		0x40000000
+#define FLG_FUZZ_DUMP_CHK		0x20000000
 #define FLG_FUZZ_DUMP_SET \
 	(FLG_FUZZ_DUMP_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #endif
-/* Passwords per salt requested */
-#define FLG_SALTS			0x01000000
-/* Ciphertext format forced */
-#define FLG_FORMAT			0x02000000
-/* Memory saving enabled */
-#define FLG_SAVEMEM			0x04000000
-/* Node number(s) specified */
-#define FLG_NODE			0x10000000
-/* fork() requested, and process count specified */
-#define FLG_FORK			0x20000000
+
 
 /* Note that 0x80000000 is taken for OPT_REQ_PARAM, see getopt.h */
 
@@ -370,6 +376,8 @@ struct options_main {
 	int show_uid_in_cracks;
 /* regular expression */
 	char *regex;
+/* hc mask-mode file */
+	char *maskfile;
 /* Custom masks */
 	char *custom_mask[MAX_NUM_CUST_PLHDR];
 };
