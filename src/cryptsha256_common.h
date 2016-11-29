@@ -91,11 +91,10 @@ static void * get_binary(char * ciphertext) {
 	return (void *)out;
 }
 
-// here are the 'current' lengths supported by the 3 different cryptsha256
+// here are the 'current' lengths supported by the different cryptsha256
 // implementations:
 //    opencl:  #define PLAINTEXT_LENGTH        35
 //    CPU:     #define PLAINTEXT_LENGTH        24
-//    cuda:    #define PLAINTEXT_LENGTH        23 (should be 24, bug somewhere)
 
 /* here is our 'unified' tests array. */
 #ifdef __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__

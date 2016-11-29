@@ -66,10 +66,6 @@ int idle_requested(struct fmt_main *format)
 	if (strstr(format->params.label, "-opencl"))
 		return 0;
 #endif
-#ifdef HAVE_CUDA
-	if (strstr(format->params.label, "-cuda"))
-		return 0;
-#endif
 
 	return 1;
 }

@@ -244,7 +244,7 @@ static struct opt_entry opt_list[] = {
 	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0,
 		(FLG_SCALAR | OPT_REQ_PARAM), "%u", &options.v_width},
 #endif
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	{"devices", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
@@ -334,15 +334,9 @@ JOHN_USAGE_FORK \
 #define JOHN_USAGE_FORMAT \
 "--format=NAME              force hash of type NAME. The supported formats can\n" \
 "                           be seen with --list=formats and --list=subformats\n\n"
-#if defined(HAVE_OPENCL) && defined(HAVE_CUDA)
-#define JOHN_USAGE_GPU \
-"--devices=N[,..]           set OpenCL or CUDA device(s)\n"
-#elif defined(HAVE_OPENCL)
+#if defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
 "--devices=N[,..]           set OpenCL device(s) (see --list=opencl-devices)\n"
-#elif defined (HAVE_CUDA)
-#define JOHN_USAGE_GPU \
-"--device=N                 set CUDA device (see --list=cuda-devices)\n"
 #endif
 
 static void print_usage(char *name)
@@ -351,7 +345,7 @@ static void print_usage(char *name)
 		exit(0);
 
 	printf(JOHN_USAGE, name);
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	printf("%s", JOHN_USAGE_GPU);
 #endif
 	printf("%s", JOHN_USAGE_FORMAT);
@@ -365,14 +359,8 @@ void opt_print_hidden_usage(void)
 	puts("--config=FILE              use FILE instead of john.conf or john.ini");
 	puts("--mem-file-size=SIZE       size threshold for wordlist preload (default 5 MB)");
 	printf("--format=CLASS             valid classes: dynamic, cpu");
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-	printf(", gpu");
-#ifdef HAVE_CUDA
-	printf(", cuda");
-#endif
 #ifdef HAVE_OPENCL
 	printf(", opencl");
-#endif
 #endif
 #ifdef _OPENMP
 	printf(", omp");
@@ -461,7 +449,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	list_init(&options.loader.users);
 	list_init(&options.loader.groups);
 	list_init(&options.loader.shells);
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	list_init(&options.gpu_devices);
 #endif
 

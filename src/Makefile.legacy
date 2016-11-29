@@ -69,16 +69,6 @@ endif
 #HAVE_LIBGMP = -DHAVE_LIBGMP
 #GMP_LDFLAGS = -lgmp
 
-# CUDA settings. Instead of "-arch sm_10" you could use sm_20 or sm_30 or
-# -gencode arch=compute_10,code=sm_10 -gencode arch=compute_20,code=sm_21
-# but that leads to problems on GTX Titan.
-# You could add "-gencode arch=compute_30,code=sm_30" too but that just
-# leads to regressions for Kepler cards, when it works at all.
-NVCC_FLAGS = -c -Xptxas -v -fmad=true -arch sm_10
-CUDAPATH = /usr/local/cuda
-NVCC = PATH=$(PATH):$(CUDAPATH)/bin/ nvcc
-CCBIN_OSX = -ccbin=/usr/bin/llvm-gcc-4.2
-
 ifdef NVIDIA_CUDA
 OCLROOT = $(NVIDIA_CUDA)
 else
@@ -167,12 +157,6 @@ JOHN_OBJS = \
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
-CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
-	cuda_cryptsha256.o cuda_cryptsha512.o cuda_mscash2.o \
-	cuda_rawsha256.o cuda_rawsha224.o cuda_mscash.o \
-	cuda_xsha512.o cuda_wpapsk.o cuda_rawsha512.o cuda_pwsafe.o \
-	cuda_rawsha224_fmt.o cuda_rawsha256_fmt.o
-
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
 
@@ -248,9 +232,7 @@ default:
 	@echo "linux-x86-64-native      Linux, x86-64 (enabling all CPU features you've got)"
 	@echo "linux-X32-native         Linux, X32-ABI"
 #	@echo "linux-X32                Linux, X32-ABI SSE2 (for testing)"
-	@echo "linux-x86-64-gpu         Linux, x86-64 CUDA and OpenCL"
 	@echo "linux-x86-64-opencl      Linux, x86-64 OpenCL"
-	@echo "linux-x86-64-cuda        Linux, x86-64 CUDA"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
 	@echo "linux-x86-64             Linux, x86-64 with SSE2 (any x86-64 CPU)"
@@ -262,9 +244,7 @@ default:
 #	@echo "linux-x86-64-32-sse2     Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
-	@echo "linux-x86-gpu            Linux, x86 32-bit with SSE2, CUDA and OpenCL"
 	@echo "linux-x86-opencl         Linux, x86 32-bit with SSE2 and OpenCL"
-	@echo "linux-x86-cuda           Linux, x86 32-bit with SSE2 and CUDA"
 	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (most common, 32-bit)"
 	@echo "linux-x86-native         Linux, x86 32-bit, with all CPU features you've got (not necessarily best)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
@@ -317,9 +297,7 @@ default:
 	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2"
 	@echo "macosx-x86-64-native     Mac OS X 10.8+, real gcc, x86-64, see doc/INSTALL (best)"
 #	@echo "macosx-x86-64-clang-debug Mac OS X 10.5+, Xcode 3.0+, x86-64 compiled with clang (with debugging options)
-	@echo "macosx-x86-64-gpu        Mac OS X 10.6+, x86-64 with SSE2, CUDA and OpenCL support"
 	@echo "macosx-x86-64-opencl     Mac OS X 10.6+, x86-64 with SSE2, OpenCL support"
-	@echo "macosx-x86-64-cuda       Mac OS X 10.6+, x86-64 with SSE2, CUDA support"
 	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
 	@echo "macosx-x86-sse2-opencl   Mac OS X, x86 with SSE2 and OpenCL"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
@@ -377,22 +355,6 @@ linux-x86-64-xop:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-x86-64-gpu:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_LIBDL -march=native" \
-		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDAPATH)/lib64 -lcrypt -lOpenCL -ldl -lcudart -march=native" \
-		AESNI_ARCH=64 YASM_FORMAT="elf64"
-	$(MKDIR) ../run/kernels/
-	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
-	$(CP_PRESERVE) opencl_*.h ../run/kernels/
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
 linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -405,19 +367,6 @@ linux-x86-64-opencl:
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-linux-x86-64-cuda:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_LIBDL -DHAVE_CUDA -march=native" \
-		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcrypt -ldl -lcudart -march=native" \
-		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -624,22 +573,6 @@ linux-x86-xop:
 	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
 	@echo "All done"
 
-linux-x86-gpu:
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_LIBDL -D_LARGEFILE64_SOURCE -march=native" \
-		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lcrypt -lOpenCL -ldl -lcudart -march=native" \
-		AESNI_ARCH=86 YASM_FORMAT="elf32"
-	$(MKDIR) ../run/kernels/
-	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
-	$(CP_PRESERVE) opencl_*.h ../run/kernels/
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
 linux-x86-opencl:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -652,19 +585,6 @@ linux-x86-opencl:
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-linux-x86-cuda:
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_LIBDL -DHAVE_CUDA -D_LARGEFILE64_SOURCE -march=native" \
-		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart -march=native" \
-		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -1276,42 +1196,6 @@ macosx-x86-64:
 	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
 
-macosx-x86-64-gpu:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
-		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 $(CCBIN_OSX)"
-	$(MKDIR) ../run/kernels/
-	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
-	$(CP_PRESERVE) opencl_*.h ../run/kernels/
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-# This target needs a real gcc and a wrapper for using clang's assembler:
-# Copy osx_as_wrapper.sh to /usr/local/bin/as or some other directory at your
-# choice (but the file MUST be named 'as') and be sure this directory is
-# first in your $PATH.
-macosx-x86-64-native-gpu:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
-		ASFLAGS="$(ASFLAGS) -march=native -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -march=native -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -march=native -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 $(CCBIN_OSX)"
-	$(MKDIR) ../run/kernels/
-	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
-	$(CP_PRESERVE) opencl_*.h ../run/kernels/
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -march=native"
-	@echo "All done"
-
 # This target needs a real gcc and a wrapper for using clang's assembler:
 # Copy osx_as_wrapper.sh to /usr/local/bin/as or some other directory at your
 # choice (but the file MUST be named 'as') and be sure this directory is
@@ -1342,19 +1226,6 @@ macosx-x86-64-opencl:
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
-	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP)
-	@echo "All done"
-
-macosx-x86-64-cuda:
-	$(LN) x86-64.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE_ORIG) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
-		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64 $(CCBIN_OSX)"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -1790,51 +1661,6 @@ generic.h:
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
 
-cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
-
-cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptmd5.cu -o ../cuda_cryptmd5.o
-
-cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) phpass.cu -o ../cuda_phpass.o
-
-cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha256.cu -o ../cuda_cryptsha256.o
-
-cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha512.cu -o ../cuda_cryptsha512.o
-
-cuda_mscash2.o:  cuda_mscash2.h cuda/mscash2.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash2.cu -o ../cuda_mscash2.o
-
-cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash.cu -o ../cuda_mscash.o
-
-cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
-
-cuda_rawsha256_fmt.o: cuda_rawsha256.o cuda_rawsha256_fmt.c
-	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c -o cuda_rawsha256_fmt.o
-
-cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o ../cuda_rawsha224.o
-
-cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c
-	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
-
-cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) xsha512.cu -o ../cuda_xsha512.o
-
-cuda_wpapsk.o:  cuda_wpapsk.h cuda/wpapsk.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
-
-cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) rawsha512.cu -o ../cuda_rawsha512.o
-
-cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
-
 listconf.o: version.h listconf.h listconf.c
 
 dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl unused/dynamic_big_crypt.c
@@ -2206,7 +2032,7 @@ clean:
 	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) detect bench generic.h arch.h tmp.s
-	$(RM) cuda/*.o cuda/*~ *~
+	$(RM) *~
 	$(RM) dynamic_big_crypt.c fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 	$(CP) $(NULL) Makefile.dep
 	+$(MAKE_ORIG) -C aes clean

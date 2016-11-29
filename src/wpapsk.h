@@ -82,7 +82,7 @@ static struct fmt_tests tests[] = {
 };
 #endif
 
-/** Below are common variables used by wpapsk_fmt.c cuda_wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
+/** Below are common variables used by wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
 
 static hccap_t hccap;			///structure with hccap data
 static wpapsk_salt currentsalt;		///structure for essid
@@ -95,7 +95,7 @@ static wpapsk_hash *outbuffer;		///table for PMK calculated by GPU
 static int new_keys = 1;
 static char last_ssid[sizeof(hccap.essid)];
 
-/** Below are common functions used by wpapsk_fmt.c cuda_wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
+/** Below are common functions used by wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
 
 static hccap_t *decode_hccap(char *ciphertext)
 {

@@ -357,7 +357,7 @@ struct options_main {
 /* Vector width of OpenCL kernel */
 	unsigned int v_width;
 #endif
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	struct list_main *gpu_devices;
 #endif
 /* -list=WHAT Get a config list (eg. a list of incremental modes available) */

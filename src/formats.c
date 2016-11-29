@@ -27,8 +27,6 @@ typedef unsigned int ARCH_WORD_32;
 /* this is just for advance_cursor() */
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
-#elif HAVE_CUDA
-#include "cuda_common.h"
 #endif
 #include "jumbo.h"
 #include "bench.h"
@@ -815,14 +813,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			}
 
 #if 0
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 			advance_cursor();
 #endif
 			/* 2. Perform a limited crypt (in case it matters) */
 			if (format->methods.crypt_all(&min, db->salts) != min)
 				return "crypt_all";
 #endif
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 			advance_cursor();
 #endif
 			/* 3. Now read them back and verify they are intact */
@@ -873,7 +871,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				format->methods.clear_keys();
 			fmt_set_key(current->plaintext, index);
 		}
-#if !defined(BENCH_BUILD) && (defined(HAVE_OPENCL) || defined(HAVE_CUDA))
+#if !defined(BENCH_BUILD) && defined(HAVE_OPENCL)
 		advance_cursor();
 #endif
 		if (full_lvl >= 0) {
@@ -923,10 +921,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 
 		if (!(++current)->ciphertext) {
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 /* Jump straight to last index for GPU formats but always call set_key() */
-			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda")) {
+			if (strstr(format->params.label, "-opencl")) {
 				for (i = index + 1; i < max - 1; i++)
 				    fmt_set_key(longcand(format, i, sl), i);
 				index = max - 1;

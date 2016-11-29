@@ -67,10 +67,6 @@
 #include "john_build_rule.h"
 #endif
 
-#if HAVE_CUDA
-extern char *get_cuda_header_version();
-extern void cuda_device_list();
-#endif
 #if HAVE_OPENCL
 #include "common-opencl.h"
 #endif
@@ -93,9 +89,6 @@ static void listconf_list_options()
 	puts("format-tests, sections, parameters:SECTION, list-data:SECTION,");
 #if HAVE_OPENCL
 	printf("opencl-devices, ");
-#endif
-#if HAVE_CUDA
-	printf("cuda-devices, ");
 #endif
 	/* NOTE: The following must end the list. Anything listed after
 	   <conf section name> will be ignored by current
@@ -193,9 +186,6 @@ static void listconf_list_build_info(void)
 #endif
 #endif
 
-#if HAVE_CUDA
-	printf("CUDA headers version: %s\n",get_cuda_header_version());
-#endif
 #if HAVE_OPENCL
 	printf("OpenCL headers version: %s\n",get_opencl_header_version());
 #endif
@@ -334,13 +324,6 @@ void listconf_parse_early(void)
 		listEncodings(stdout);
 		exit(EXIT_SUCCESS);
 	}
-#if HAVE_CUDA
-	if (!strcasecmp(options.listconf, "cuda-devices"))
-	{
-		cuda_device_list();
-		exit(EXIT_SUCCESS);
-	}
-#endif
 }
 
 /*
