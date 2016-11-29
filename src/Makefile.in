@@ -102,7 +102,7 @@ JOHN_OBJS = \
 	gost.o \
 	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o crc32.o external.o \
-	formats.o getopt.o idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o math.o \
+	formats.o getopt.o idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o maskfile.o math.o \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o  wordlist.o \
 	mkv.o mkvlib.o \
@@ -396,6 +396,8 @@ haval_helper.o:	haval_helper.c
 
 hccap2john.o:	hccap2john.c autoconfig.h jumbo.h arch.h stdint.h os.h os-autoconf.h common.h memory.h memdbg.h
 
+maskfile.o:	arch.h misc.h mask.h maskfile.h memory.h options.h recovery.h
+
 hmacmd5.o:	hmacmd5.c arch.h common.h memory.h md5.h hmacmd5.h aligned.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h
 
 idle.o:	idle.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h params.h config.h options.h list.h loader.h formats.h misc.h getopt.h common.h memory.h signals.h bench.h math.h memdbg.h
@@ -428,7 +430,7 @@ loader.o:	loader.c autoconfig.h jumbo.h arch.h stdint.h os.h os-autoconf.h misc.
 
 logger.o:	logger.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h misc.h params.h path.h memory.h status.h math.h options.h list.h loader.h formats.h getopt.h common.h config.h recovery.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h john-mpi.h cracker.h signals.h memdbg.h
 
-mask.o:	mask.c misc.h jumbo.h arch.h stdint.h autoconfig.h logger.h recovery.h loader.h params.h list.h formats.h os.h os-autoconf.h signals.h status.h math.h options.h getopt.h common.h memory.h config.h external.h compiler.h cracker.h john.h mask.h unicode.h encoding_data.h memdbg.h mask_ext.h opencl_mask.h
+mask.o:	mask.c misc.h jumbo.h arch.h stdint.h autoconfig.h logger.h recovery.h loader.h params.h list.h formats.h os.h os-autoconf.h signals.h status.h math.h options.h getopt.h common.h memory.h config.h external.h maskfile.h compiler.h cracker.h john.h mask.h unicode.h encoding_data.h memdbg.h mask_ext.h opencl_mask.h
 
 mask_ext.o:	mask_ext.c mask_ext.h mask.h loader.h params.h arch.h list.h formats.h misc.h jumbo.h stdint.h autoconfig.h opencl_mask.h options.h getopt.h common.h memory.h memdbg.h os.h os-autoconf.h
 
@@ -492,7 +494,7 @@ raw2dyna.o:	raw2dyna.c autoconfig.h memdbg.h os.h os-autoconf.h jumbo.h arch.h s
 
 rc4.o:	rc4.c rc4.h arch.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h memory.h
 
-recovery.o:	recovery.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h misc.h params.h path.h memory.h config.h options.h list.h loader.h formats.h getopt.h common.h logger.h status.h math.h recovery.h john.h mask.h unicode.h john-mpi.h signals.h memdbg.h
+recovery.o:	recovery.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h misc.h params.h path.h memory.h config.h options.h list.h loader.h formats.h getopt.h common.h logger.h status.h math.h recovery.h john.h mask.h maskfile.h unicode.h john-mpi.h signals.h memdbg.h
 
 regex.o:	regex.c regex.h autoconfig.h loader.h params.h arch.h list.h formats.h misc.h jumbo.h stdint.h logger.h status.h math.h os.h os-autoconf.h signals.h recovery.h options.h getopt.h common.h memory.h config.h cracker.h john.h external.h compiler.h memdbg.h
 
@@ -786,7 +788,7 @@ kernels: @KERNEL_OBJS@
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
-john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h cuda_common.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
+john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h maskfile.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h cuda_common.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)

@@ -28,6 +28,7 @@
 #include "cracker.h"
 #include "john.h"
 #include "mask.h"
+#include "maskfile.h"
 #include "unicode.h"
 #include "encoding_data.h"
 #include "memdbg.h"
@@ -48,6 +49,7 @@ static unsigned long long rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
 static int parent_fix_state_pending;
+static int old_keylen = -1;
 int mask_add_len, mask_num_qw, mask_cur_len;
 
 /*
@@ -64,6 +66,16 @@ static unsigned long long cand, rec_cand;
 
 unsigned long long mask_tot_cand;
 unsigned long long mask_parent_keys;
+
+/*
+ * this reset was needed to allow .hcmask code to send more than
+ * one mask to the same 'running' john instance.  We had to reset
+ * the old_keylen, to force the mask code to reprocess.
+ */
+void mask_reset()
+{
+	old_keylen = -1;
+}
 
 #define BUILT_IN_CHARSET "ludsaLUDSAbhBH123456789"
 
@@ -2046,6 +2058,11 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			options.mask[2 * max_keylen] = 0;
 	}
 
+	//if (options.flags & FLG_MASKFILE_CHK) {
+	//	log_event("Proceeding with maskfile mode");
+	//	if (rec_restored && john_main_process)
+	//		fprintf(stderr, "Proceeding with maskfile:%s mask:%s\n", options.maskfile, unprocessed_mask);
+	//} else
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		log_event("Proceeding with mask mode");
 		if (rec_restored && john_main_process)
@@ -2065,6 +2082,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		unprocessed_mask = options.mask;
 
 	mask = unprocessed_mask;
+	MEM_FREE(template_key);
 	template_key = (char*)mem_alloc(0x400);
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
@@ -2209,6 +2227,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 #endif
 	}
 
+	MEM_FREE(template_key_offsets);
 	template_key_offsets = (int*)mem_alloc((mask_num_qw + 1) * sizeof(int));
 
 	for (i = 0; i < mask_num_qw + 1; i++)
@@ -2353,8 +2372,6 @@ int do_mask_crack(const char *extern_key)
 				event_pending = event_status = 1;
 		}
 	} else {
-		static int old_keylen = -1;
-
 		if (old_keylen != key_len) {
 			save_restore(&cpu_mask_ctx, 0, 1);
 			generate_template_key(mask, extern_key, key_len, &parsed_mask,
@@ -2405,6 +2422,8 @@ int do_mask_crack(const char *extern_key)
 #endif
 		else if (options.flags & FLG_EXTERNAL_CHK)
 			ext_hybrid_fix_state();
+		else if (options.flags & FLG_MASKFILE_CHK)
+			maskfile_hybrid_fix_state();
 		parent_fix_state_pending = 1;
 	}
 

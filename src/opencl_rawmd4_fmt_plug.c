@@ -596,7 +596,7 @@ static void reset(struct db_main *db)
 		auto_tune(db, 300);
 	}
 	else {
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
+		int tune_time = (options.flags & (FLG_MASK_CHK|FLG_MASKFILE_CHK)) ? 300 : 50;
 
 		ocl_hc_128_prepare_table_test();
 
