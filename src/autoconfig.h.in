@@ -141,6 +141,9 @@
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #undef HAVE_LIBSSL
 
+/* Define to 1 if you have the `usb-1.0' library (-lusb-1.0). */
+#undef HAVE_LIBUSB_1_0
+
 /* Define to 1 if you have the `ws2_32' library (-lws2_32). */
 #undef HAVE_LIBWS2_32
 
