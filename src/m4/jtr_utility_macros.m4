@@ -111,35 +111,6 @@ JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
 JTR_LIST_ADD_RESULT
 ])
 
-# @synopsis JTR_SET_CUDA_INCLUDES
-# @summary check and set many normal include paths
-AC_DEFUN([JTR_SET_CUDA_INCLUDES],
-[
-   AC_ARG_VAR([NVIDIA_CUDA], [base path of CUDA installation])
-   AC_MSG_CHECKING([additional paths for CUDA])
-   ADD_LDFLAGS=""
-   ADD_CFLAGS=""
-   if test -n "$NVIDIA_CUDA"; then
-      CUDAPATH="$NVIDIA_CUDA"
-   else
-      CUDAPATH=/usr/local/cuda
-   fi
-   AC_SUBST([NVIDIA_CUDA],["$CUDAPATH"])
-   if test -d "$CUDAPATH/include"; then
-      ADD_CFLAGS="$ADD_CFLAGS -I$CUDAPATH/include"
-   fi
-   if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
-      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib64"
-   elif test -d "$CUDAPATH/lib"; then
-      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib"
-   fi
-   JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
-   jtr_list_add_result=""
-   JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
-   JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
-   JTR_LIST_ADD_RESULT
-])
-
 # JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
 # success and forced should be xvar data, "x$enable_foobar", so they
 # will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
@@ -161,26 +132,6 @@ AC_DEFUN([JTR_MSG_RESULT_FAILIF_FORCED], [
 AC_DEFUN([JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED], [
   AC_MSG_CHECKING([$1])
   JTR_MSG_RESULT_FAILIF_FORCED($2,$3,$4)
-])
-
-AC_DEFUN([JTR_CUDA],
-[
-  AC_ARG_VAR([NVCC], [full pathname of CUDA compiler])
-  AC_ARG_VAR([NVCC_GCC], [full pathname of CUDA compiler's gcc backend])
-  using_cuda=no
-  if test "x$enable_cuda" != xno; then
-     AS_IF([test "x$cross_compiling" = xno], [JTR_SET_CUDA_INCLUDES])
-     AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATH_SEPARATOR$CUDAPATH])
-     AS_IF([test "x$NVCC" != "x"],
-        [AC_PATH_PROGS([NVCC_GCC],[clang-omp llvm-gcc-4.2 gcc-4.6 gcc-4.5 gcc-4.4 gcc-4.3 gcc-4.2], [], [$PATH$PATH_SEPARATOR$CUDAPATH])]
-	[AC_CHECK_HEADER([cuda.h], [AC_CHECK_LIB([cudart],[cudaGetDeviceCount],
-				   [using_cuda=yes]
-				   [AC_SUBST([HAVE_CUDA],[-DHAVE_CUDA])]
-				   [AC_SUBST(CUDA_LIBS, [-lcudart])])
-				   ])]
-     )
-     JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED([whether CUDA usable], [x$using_cuda], [x$enable_cuda], [Could not find all required CUDA components])
-  fi
 ])
 
 # @synopsis JTR_SET_OPENCL_INCLUDES

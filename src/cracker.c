@@ -61,7 +61,7 @@
 #endif
 #include "path.h"
 #include "jumbo.h"
-#if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+#if HAVE_LIBDL && defined(HAVE_OPENCL)
 #include "common-gpu.h"
 #endif
 #include "memdbg.h"
@@ -162,7 +162,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		error();
 	}
 
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	/* This erases the 'spinning wheel' cursor from self-test */
 	if (john_main_process)
 		fprintf(stderr, " \b");
@@ -751,7 +751,7 @@ static int crk_process_event(void)
 
 	if (event_poll_files) {
 		event_poll_files = 0;
-#if HAVE_LIBDL && defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+#if HAVE_LIBDL && defined(HAVE_OPENCL)
 		gpu_check_temp();
 #endif
 		crk_poll_files();

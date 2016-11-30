@@ -643,11 +643,6 @@ CC_ASM_OBJS
 CC_MAIN_CPU
 CC_CPU
 LIBOBJS
-CUDA_LIBS
-HAVE_CUDA
-NVIDIA_CUDA
-NVCC_GCC
-NVCC
 ZTEX_LIBS
 ZTEX_SUBDIRS
 CL_LIBS
@@ -732,6 +727,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -766,7 +762,6 @@ enable_plugin_dependencies
 enable_openmp_for_fast_formats
 enable_mpi
 enable_rexgen
-enable_cuda
 enable_pcap
 enable_native_tests
 enable_native_march
@@ -800,10 +795,7 @@ PKG_CONFIG
 PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 OPENSSL_CFLAGS
-OPENSSL_LIBS
-NVCC
-NVCC_GCC
-NVIDIA_CUDA'
+OPENSSL_LIBS'
 
 
 # Initialize some variables set by options.
@@ -842,6 +834,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1094,6 +1087,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1231,7 +1233,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1404,7 +1406,6 @@ Optional Features:
                           use fork instead)
   --enable-mpi            Use OpenMPI
   --disable-rexgen        Disable use of rexgen library
-  --enable-cuda           Use CUDA even if OpenCL was found too
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not test build system for target features.
                           Implies --disable-native-march.
@@ -1461,9 +1462,6 @@ Some influential environment variables:
               C compiler flags for OPENSSL, overriding pkg-config
   OPENSSL_LIBS
               linker flags for OPENSSL, overriding pkg-config
-  NVCC        full pathname of CUDA compiler
-  NVCC_GCC    full pathname of CUDA compiler's gcc backend
-  NVIDIA_CUDA base path of CUDA installation
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -3433,10 +3431,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # This might be a Bad Idea[tm] if cross compiling.
 
 
-# @synopsis JTR_SET_CUDA_INCLUDES
-# @summary check and set many normal include paths
-
-
 # JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
 # success and forced should be xvar data, "x$enable_foobar", so they
 # will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
@@ -3448,8 +3442,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # will output a checking 'chk_msg', then calls JTR_MSG_RESULT_FAILIF_FORCED
 
 
-
-
 # @synopsis JTR_SET_OPENCL_INCLUDES
 # @summary check and set many normal include paths
 
@@ -3458,6 +3450,12 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 #
 # AX_ZTEX
+#
+# This software is Copyright (c) 2016 Denis Burykin
+# [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+# and it is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 #
 # If configured to support ZTEX USB-FPGA module with --enable-ztex=yes:
 # - check for headers and libraries
@@ -3571,13 +3569,6 @@ if test "${enable_rexgen+set}" = set; then :
   enableval=$enable_rexgen; enable_rexgen=$enableval
 else
   enable_rexgen=auto
-fi
-
-# Check whether --enable-cuda was given.
-if test "${enable_cuda+set}" = set; then :
-  enableval=$enable_cuda; enable_cuda=$enableval
-else
-  enable_cuda=auto
 fi
 
 # Check whether --enable-pcap was given.
@@ -11509,9 +11500,6 @@ if test "x$CL_LIBS" = x; then
 else
    using_cl=yes
    HAVE_OPENCL=-DHAVE_OPENCL
-   if test x$enable_cuda = xauto; then
-      enable_cuda=no
-   fi
 fi
 
 # ZTEX USB-FPGA module support (if --enable-ztex=yes)
@@ -11603,252 +11591,6 @@ fi
 
 
 
-
-
-# Check for CUDA, including headers.
-
-
-
-  using_cuda=no
-  if test "x$enable_cuda" != xno; then
-     if test "x$cross_compiling" = xno; then :
-
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
-$as_echo_n "checking additional paths for CUDA... " >&6; }
-   ADD_LDFLAGS=""
-   ADD_CFLAGS=""
-   if test -n "$NVIDIA_CUDA"; then
-      CUDAPATH="$NVIDIA_CUDA"
-   else
-      CUDAPATH=/usr/local/cuda
-   fi
-   NVIDIA_CUDA="$CUDAPATH"
-
-   if test -d "$CUDAPATH/include"; then
-      ADD_CFLAGS="$ADD_CFLAGS -I$CUDAPATH/include"
-   fi
-   if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
-      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib64"
-   elif test -d "$CUDAPATH/lib"; then
-      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib"
-   fi
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CPPFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CPPFLAGS="$CPPFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
- # no typo here
-   jtr_list_add_result=""
-
-   for i in $ADD_LDFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $LDFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   if test -z "$jtr_list_add_result"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
-$as_echo "none" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
-$as_echo "$jtr_list_add_result" >&6; }
-fi
-   jtr_list_add_result=""
-
-
-fi
-     # Extract the first word of "nvcc", so it can be a program name with args.
-set dummy nvcc; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_NVCC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $NVCC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_NVCC="$NVCC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH$PATH_SEPARATOR$CUDAPATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_NVCC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-NVCC=$ac_cv_path_NVCC
-if test -n "$NVCC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NVCC" >&5
-$as_echo "$NVCC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-     if test "x$NVCC" != "x"; then :
-  for ac_prog in clang-omp llvm-gcc-4.2 gcc-4.6 gcc-4.5 gcc-4.4 gcc-4.3 gcc-4.2
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_NVCC_GCC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $NVCC_GCC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_NVCC_GCC="$NVCC_GCC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH$PATH_SEPARATOR$CUDAPATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_NVCC_GCC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-NVCC_GCC=$ac_cv_path_NVCC_GCC
-if test -n "$NVCC_GCC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NVCC_GCC" >&5
-$as_echo "$NVCC_GCC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$NVCC_GCC" && break
-done
-
-	ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
-if test "x$ac_cv_header_cuda_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
-$as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
-if ${ac_cv_lib_cudart_cudaGetDeviceCount+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcudart  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char cudaGetDeviceCount ();
-int
-main ()
-{
-return cudaGetDeviceCount ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_cudart_cudaGetDeviceCount=yes
-else
-  ac_cv_lib_cudart_cudaGetDeviceCount=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
-$as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
-if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
-  using_cuda=yes
-				   HAVE_CUDA=-DHAVE_CUDA
-
-				   CUDA_LIBS=-lcudart
-
-fi
-
-
-fi
-
-
-
-fi
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CUDA usable" >&5
-$as_echo_n "checking whether CUDA usable... " >&6; }
-
-  if test "x$using_cuda" == xyes; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-  else
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-    if test "x$enable_cuda" == xyes; then
-      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find all required CUDA components
-See \`config.log' for more details" "$LINENO" 5; }
-    fi
-  fi
-
-
-  fi
 
 
 # Checks for header files.
@@ -15491,7 +15233,7 @@ fi
 echo "configure: creating ./fmt_externs.h"
 rm -f fmt_externs.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 fi
 # if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
@@ -15518,10 +15260,7 @@ if test ! -f fmt_registers.h; then
 fi
 
 if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
-fi
-if test "`echo cuda_*_fmt_plug.c`" != "cuda_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 
 ########################################################
@@ -15624,11 +15363,6 @@ else
    ubsan="disabled"
 fi
 
-if test x$using_cuda = xyes && test x$using_cl = xno; then
-   using_cuda="yes * NOTE: OpenCL is superior, *"
-   using_cl="no  *       even for NVIDIA     *"
-fi
-
 cat <<EOF
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
@@ -15645,7 +15379,6 @@ Experimental code .......................... ${experimental}
 OpenMPI support (default disabled) ......... ${using_mpi}
 Fork support ............................... ${ac_cv_func_fork_works}
 OpenMP support ............................. ${using_omp}
-CUDA support (default disabled by OpenCL) .. ${using_cuda}
 OpenCL support ............................. ${using_cl}
 Generic crypt(3) format .................... ${using_crypt}
 Rexgen (extra cracking mode) ............... ${using_rexgen}

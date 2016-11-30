@@ -1,7 +1,7 @@
 /* ***
  * This file is part of John the Ripper password cracker.
  *
- * Functions common to CUDA and OpenCL go in this file.
+ * Functions common to OpenCL and other accelerators (eg. FPGA) go in this file.
  *
  *
  * Copyright (c) 2013-2015 Claudio André <claudioandre.br at gmail.com>,
@@ -15,7 +15,7 @@
 #ifndef _COMMON_GPU_H
 #define _COMMON_GPU_H
 
-#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
+#if defined (HAVE_OPENCL)
 
 #if (__cplusplus)
 extern "C" {
@@ -35,7 +35,6 @@ typedef struct {
 	char busId[100];
 } hw_bus;
 
-/* These are shared between CUDA and OpenCL */
 #define MAX_GPU_DEVICES         128
 extern int gpu_id;
 extern int gpu_device_list[MAX_GPU_DEVICES];
@@ -91,6 +90,6 @@ extern void gpu_log_temp(void);
 }
 #endif
 
-#endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */
+#endif /* defined (HAVE_OPENCL) */
 
 #endif /* _COMMON_GPU_H */

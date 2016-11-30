@@ -2192,8 +2192,7 @@ cl_uint get_processors_count(int sequential_id)
  * so we need this crap - which is incomplete.
  * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
  *
- * This will produce a *guessed* figure: Note that --list=cuda-devices will
- * often show a better guess, even under OSX.
+ * This will produce a *guessed* figure
  */
 
 		// Pascal

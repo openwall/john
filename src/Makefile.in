@@ -47,11 +47,8 @@ ifeq ($(JTR_GIT_VERSION), \"\")
 JTR_GIT_VERSION = JOHN_VERSION
 endif
 
-# CUDA settings. See output of "nvcc -h"
-NVCC_FLAGS = -c -Xptxas -v -fmad=true @OPENSSL_CFLAGS@ @CPPFLAGS@
-
 CPPFLAGS = @CPPFLAGS@
-CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @HAVE_CUDA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ @HT@ $(RELEASE_BLD) $(CPPFLAGS)
+CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ @HT@ $(RELEASE_BLD) $(CPPFLAGS)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
 CFLAGS = -DAC_BUILT @CC_CPU@ @CC_MAIN_CPU@ $(CFLAGSX)
@@ -122,12 +119,6 @@ OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type
 
 ZTEX_OBJS = ztex_descrypt.o
 
-CUDA_OBJS = common-cuda.o cuda_common.o cuda_cryptmd5.o cuda_phpass.o \
-	cuda_cryptsha256.o cuda_cryptsha512.o cuda_mscash2.o \
-	cuda_rawsha256.o cuda_rawsha224.o cuda_mscash.o \
-	cuda_xsha512.o cuda_wpapsk.o cuda_rawsha512.o cuda_pwsafe.o \
-	cuda_rawsha224_fmt.o cuda_rawsha256_fmt.o
-
 FUZZ_OBJS = fuzz.o
 
 GENMKVPWD_OBJS = \
@@ -150,16 +141,6 @@ endif
 WITH_PCAP = @HAVE_PCAP@
 ifdef WITH_PCAP
 PROJ += ../run/SIPdump@EXE_EXT@ ../run/vncpcap2john@EXE_EXT@
-endif
-
-WITH_CUDA = @HAVE_CUDA@
-ifdef WITH_CUDA
-NVCC = @NVCC@
-CCBIN = @NVCC_GCC@
-ifdef CCBIN
-NVCC_FLAGS += @CPU_BITS@ -ccbin=$(CCBIN)
-endif
-JOHN_OBJS += $(CUDA_OBJS)
 endif
 
 WITH_OPENCL=@CL_LIBS@
@@ -228,51 +209,6 @@ digipaq-alpha.o: alpha.S
 	$(AS) $(ASFLAGS) tmp.s -o digipaq-alpha.o
 	$(RM) tmp.s
 
-cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cuda_common.cu -o ../cuda_common.o
-
-cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptmd5.cu -o ../cuda_cryptmd5.o
-
-cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) phpass.cu -o ../cuda_phpass.o
-
-cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu cuda_common.o cryptsha256_common.h
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha256.cu -o ../cuda_cryptsha256.o
-
-cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) cryptsha512.cu -o ../cuda_cryptsha512.o
-
-cuda_mscash2.o:  cuda_mscash2.h cuda/mscash2.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash2.cu -o ../cuda_mscash2.o
-
-cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) mscash.cu -o ../cuda_mscash.o
-
-cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o ../cuda_rawsha256.o
-
-cuda_rawsha256_fmt.o:	cuda_rawsha256_fmt.c arch.h formats.h params.h misc.h jumbo.h stdint.h autoconfig.h common.h memory.h cuda_common.h common-gpu.h gpu_sensors.h cuda_rawsha256.h memdbg.h os.h os-autoconf.h
-	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c -o cuda_rawsha256_fmt.o
-
-cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o ../cuda_rawsha224.o
-
-cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c
-	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
-
-cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) xsha512.cu -o ../cuda_xsha512.o
-
-cuda_wpapsk.o:  cuda_wpapsk.h cuda/wpapsk.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
-
-cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) rawsha512.cu -o ../cuda_rawsha512.o
-
-cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
-	cd cuda; $(NVCC) $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
-
 @PLUGFORMATS_DEPS@
 
 opencl_%.h:	| ../run/kernels
@@ -328,8 +264,6 @@ charset.o:	charset.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h mis
 
 common.o:	common.c arch.h common.h memory.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h stdint.h misc.h base64_convert.h
 
-common-cuda.o:	common-cuda.c cuda_common.h common-gpu.h gpu_sensors.h options.h autoconfig.h list.h loader.h params.h arch.h formats.h misc.h jumbo.h stdint.h getopt.h common.h memory.h john.h os.h os-autoconf.h memdbg.h
-
 common-gpu.o:	common-gpu.c autoconfig.h Win32-dlfcn-port.h common-gpu.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h stdint.h memory.h params.h logger.h config.h signals.h memdbg.h
 
 common-opencl.o:	common-opencl.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h common-opencl.h common-gpu.h gpu_sensors.h path.h opencl_device_info.h mask_ext.h mask.h opencl_mask.h dyna_salt.h signals.h recovery.h status.h math.h john.h md5.h john-mpi.h memdbg.h
@@ -378,7 +312,7 @@ external.o:	external.c misc.h jumbo.h arch.h stdint.h autoconfig.h params.h os.h
 
 fake_salts.o:	fake_salts.c config.h john.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h memory.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h fake_salts.h memdbg.h
 
-formats.o:	formats.c params.h arch.h memory.h formats.h misc.h jumbo.h stdint.h autoconfig.h dyna_salt.h unicode.h options.h list.h loader.h getopt.h common.h base64_convert.h common-opencl.h common-gpu.h gpu_sensors.h path.h opencl_device_info.h cuda_common.h bench.h math.h memdbg.h os.h os-autoconf.h
+formats.o:	formats.c params.h arch.h memory.h formats.h misc.h jumbo.h stdint.h autoconfig.h dyna_salt.h unicode.h options.h list.h loader.h getopt.h common.h base64_convert.h common-opencl.h common-gpu.h gpu_sensors.h path.h opencl_device_info.h bench.h math.h memdbg.h os.h os-autoconf.h
 
 fuzz.o:	fuzz.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h win32_memmap.h mmap-windows.c memdbg.h memory.h config.h john.h params.h signals.h unicode.h options.h list.h loader.h formats.h misc.h getopt.h common.h
 
@@ -625,7 +559,7 @@ kernels: @KERNEL_OBJS@
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
 ../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a @ZTEX_SUBDIRS@
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CUDA_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a -o ../run/john
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -786,7 +720,7 @@ kernels: @KERNEL_OBJS@
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
-john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h cuda_common.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
+john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h stdint.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
@@ -854,7 +788,7 @@ clean:
 	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*
 	$(RM) detect bench generic.h tmp.s
-	$(RM) cuda/*.o cuda/*~ *~
+	$(RM) *~
 	$(CP) $(NULL) Makefile.dep
 	@for dir in ${subdirs}; do \
 	  (cd $$dir && $(MAKE) clean) \

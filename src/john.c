@@ -115,14 +115,11 @@ static int john_omp_threads_new;
 #include "regex.h"
 
 #include "unicode.h"
-#if HAVE_OPENCL || HAVE_CUDA
+#if HAVE_OPENCL
 #include "common-gpu.h"
 #endif
 #if HAVE_OPENCL
 #include "common-opencl.h"
-#endif
-#if HAVE_CUDA
-#include "cuda_common.h"
 #endif
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
@@ -163,11 +160,6 @@ extern struct fmt_main fmt_ztex_descrypt;
 #endif
 
 #include "fmt_externs.h"
-
-#if HAVE_CUDA
-extern struct fmt_main fmt_cuda_rawsha224;
-extern struct fmt_main fmt_cuda_rawsha256;
-#endif
 
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
@@ -276,28 +268,17 @@ static void john_register_one(struct fmt_main *format)
 				return;
 		}
 		else if (!strcasecmp(options.format, "cpu")) {
-			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda"))
+			if (strstr(format->params.label, "-opencl"))
 				return;
 		}
 		else if (!strcasecmp(options.format, "cpu-dynamic")) {
-			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda"))
+			if (strstr(format->params.label, "-opencl"))
 				return;
 			if (format->params.flags & FMT_DYNAMIC)
 				return;
 		}
-		else if (!strcasecmp(options.format, "gpu")) {
-			if (!strstr(format->params.label, "-opencl") &&
-			    !strstr(format->params.label, "-cuda"))
-				return;
-		}
 		else if (!strcasecmp(options.format, "opencl")) {
 			if (!strstr(format->params.label, "-opencl"))
-				return;
-		}
-		else if (!strcasecmp(options.format, "cuda")) {
-			if (!strstr(format->params.label, "-cuda"))
 				return;
 		}
 #ifdef _OPENMP
@@ -308,15 +289,13 @@ static void john_register_one(struct fmt_main *format)
 		else if (!strcasecmp(options.format, "cpu+omp")) {
 			if ((format->params.flags & FMT_OMP) != FMT_OMP)
 				return;
-			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda"))
+			if (strstr(format->params.label, "-opencl"))
 				return;
 		}
 		else if (!strcasecmp(options.format, "cpu+omp-dynamic")) {
 			if ((format->params.flags & FMT_OMP) != FMT_OMP)
 				return;
-			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-cuda"))
+			if (strstr(format->params.label, "-opencl"))
 				return;
 			if (format->params.flags & FMT_DYNAMIC)
 				return;
@@ -405,11 +384,6 @@ static void john_register_all(void)
 
 	// This format is deprecated so now registers after plug-in NT format.
 	john_register_one(&fmt_NT);
-
-#if HAVE_CUDA
-	john_register_one(&fmt_cuda_rawsha224);
-	john_register_one(&fmt_cuda_rawsha256);
-#endif
 
 	john_register_one(&fmt_dummy);
 #if HAVE_CRYPT
@@ -511,8 +485,7 @@ static void john_omp_show_info(void)
 	if (mpi_p == 1)
 #endif
 	if (database.format && database.format->params.label &&
-	        (!strstr(database.format->params.label, "-opencl") &&
-	         !strstr(database.format->params.label, "-cuda")))
+	        !strstr(database.format->params.label, "-opencl"))
 	if (!options.fork && john_omp_threads_orig > 1 &&
 	    database.format && database.format != &dummy_format &&
 	    !rec_restoring_now) {
@@ -1440,7 +1413,7 @@ static void john_init(char *name, int argc, char **argv)
 #if (!AC_BUILT || HAVE_LOCALE_H)
 	if (setlocale(LC_ALL, "")) {
 		john_terminal_locale = str_alloc_copy(setlocale(LC_ALL, NULL));
-#if HAVE_OPENCL || HAVE_CUDA
+#if HAVE_OPENCL
 		if (strchr(john_terminal_locale, '.'))
 			sprintf(gpu_degree_sign, "%ls", DEGREE_SIGN);
 #endif
@@ -1486,7 +1459,7 @@ static void john_init(char *name, int argc, char **argv)
 #if HAVE_OPENCL
 	gpu_id = -1;
 #endif
-#if HAVE_OPENCL || HAVE_CUDA
+#if HAVE_OPENCL
 	gpu_device_list[0] = gpu_device_list[1] = -1;
 #endif
 	/* Process configuration options that depend on cfg_init() */
@@ -1558,7 +1531,7 @@ static void john_init(char *name, int argc, char **argv)
 		log_event("- MPI: Node %u/%u running on %s",
 		          mpi_id + 1, mpi_p, mpi_name);
 #endif
-#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+#if defined(HAVE_OPENCL)
 	gpu_log_temp();
 #endif
 
@@ -1803,17 +1776,13 @@ static void john_done(void)
 		}
 		fmt_done(database.format);
 	}
-#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+#if defined(HAVE_OPENCL)
 	gpu_log_temp();
 #endif
 	log_done();
 #if HAVE_OPENCL
 	if (!(options.flags & FLG_FORK) || john_main_process)
 		opencl_done();
-#endif
-#if HAVE_CUDA
-	if (!(options.flags & FLG_FORK) || john_main_process)
-		cuda_done();
 #endif
 
 	path_done();
@@ -1897,7 +1866,7 @@ int main(int argc, char **argv)
 
 	/* put the crc table init here, so that tables are fully setup for any ancillary program */
 	CRC32_Init_tab();
-        
+
         /* Needed before CPU fallback */
 	path_init(argv);
 
