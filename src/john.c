@@ -1648,9 +1648,16 @@ static void john_run(void)
 				  "bytes" : "characters");
 
 		/* Some formats have a minimum plaintext length */
-		if (database.format->params.plaintext_min_length &&
-		    options.req_minlength <
+		if (options.req_minlength >= 0 && options.req_minlength <
 		    database.format->params.plaintext_min_length) {
+			if (john_main_process)
+				fprintf(stderr, "Invalid option: "
+				        "--min-length smaller than "
+				        "minimum length for format\n");
+			error();
+		}
+		if (database.format->params.plaintext_min_length &&
+		    options.req_minlength == -1) {
 			options.req_minlength =
 				database.format->params.plaintext_min_length;
 			if (john_main_process)
