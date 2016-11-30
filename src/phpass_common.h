@@ -8,7 +8,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  *
  *  Functions and data which is common among the phpass-md5 crackers
- *  (CPU, OpenCL and Cuda)
+ *  (CPU, OpenCL)
  */
 
 
