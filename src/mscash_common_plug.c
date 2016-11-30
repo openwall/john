@@ -8,7 +8,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  *
  *  Functions and data which is common among the mscash and mscash2 crackers
- *  (CPU, OpenCL, Cuda)
+ *  (CPU, OpenCL)
  */
 
 #include <stdio.h>
