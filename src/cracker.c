@@ -1093,6 +1093,7 @@ int crk_process_salt(struct db_salt *salt)
 			if (!salt->list)
 				return 0;
 			index = 0;
+			crk_methods.clear_keys();
 		}
 	}
 

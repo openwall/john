@@ -323,6 +323,7 @@ static void set_key(char *key, int index)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
+	new_keys = 1;
 }
 
 static char *get_key(int index)
