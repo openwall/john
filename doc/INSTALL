@@ -72,7 +72,7 @@ use that, do it separately:
 	./configure && make -s clean && make -sj4
 
 ./configure should find and enable any extra stuff you have, including OMP,
-OpenCL, CUDA and extra libraries mentioned above. The only exception is MPI
+OpenCL, and extra libraries mentioned above. The only exception is MPI
 which needs the "--enable-mpi" option to be supplied to configure. If something
 is missing, it's likely installed in a non-standard location so you'd need to
 pass parameters:
@@ -180,14 +180,3 @@ everything as it were originally:
   sudo mv -vi object.h.orig object.h
   sudo mv -vi queue.h.orig queue.h
   cd -
-
-
-	CUDA on OS X
-
-Download CUDA from Nvidia and install it. If build errors out complaining
-about llvm-gcc not found, try this (Homebrew example):
-
-  brew install llvm-gcc-28
-  sudo ln -s /usr/local/Cellar/llvm-gcc28/2.8/bin/llvm-gcc /usr/bin/llvm-gcc-4.2
-
-After that you should be able to build with the default Makefile.
