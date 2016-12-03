@@ -275,6 +275,7 @@ static void process_file(const char *fname)
 cleanup:
 	if (cur)
 		printf ("%s\n",cur);
+	MEM_FREE(cur);
 	fclose(fp);
 }
 
@@ -315,6 +316,7 @@ static int magic_type(const char *filename) {
 			return MagicToEnum[i];
 	return 0;
 }
+
 static char *toHex(unsigned char *p, int len) {
 	static char *Buf;
 	static size_t BufSz = 4096;
@@ -585,6 +587,9 @@ print_and_cleanup:;
 			printf("%x*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
 		}
 		printf("$/pkzip2$:::::%s\n", fname);
+
+		for (i = 0; i < count_of_hashes; ++i)
+			MEM_FREE(hashes[i].hash_data);
 	}
 	fclose(fp);
 }
