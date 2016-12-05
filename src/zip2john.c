@@ -514,18 +514,22 @@ static void process_old_zip(const char *fname)
 							// the size.
 							if (hashes[1].magic_type == 0) {
 								if (hashes[2].cmp_len < curzip.cmp_len) {
+									MEM_FREE(hashes[1].hash_data);
 									memcpy(&(hashes[1]), &(hashes[2]), sizeof(curzip));
 									memcpy(&(hashes[2]), &curzip, sizeof(curzip));
 									done=1;
 								} else {
+									MEM_FREE(hashes[1].hash_data);
 									memcpy(&(hashes[1]), &curzip, sizeof(curzip));
 									done=1;
 								}
 							} else if (hashes[2].magic_type == 0) {
 								if (hashes[1].cmp_len < curzip.cmp_len) {
+									MEM_FREE(hashes[2].hash_data);
 									memcpy(&(hashes[2]), &curzip, sizeof(curzip));
 									done=1;
 								} else {
+									MEM_FREE(hashes[2].hash_data);
 									memcpy(&(hashes[2]), &(hashes[1]), sizeof(curzip));
 									memcpy(&(hashes[1]), &curzip, sizeof(curzip));
 									done=1;
@@ -534,19 +538,23 @@ static void process_old_zip(const char *fname)
 						}
 						if (!done && curzip.cmp_len < hashes[0].cmp_len) {
 							// we 'only' replace the smallest zip, and always keep as many any other magic as possible.
-							if (hashes[0].magic_type == 0)
+							if (hashes[0].magic_type == 0) {
+								MEM_FREE(hashes[0].hash_data);
 								memcpy(&(hashes[0]), &curzip, sizeof(curzip));
-							else {
+							} else {
 								// Ok, the 1st is a magic, we WILL keep it.
 								if (hashes[1].magic_type) {  // Ok, we found our 2
+									MEM_FREE(hashes[2].hash_data);
 									memcpy(&(hashes[2]), &(hashes[1]), sizeof(curzip));
 									memcpy(&(hashes[1]), &(hashes[0]), sizeof(curzip));
 									memcpy(&(hashes[0]), &curzip, sizeof(curzip));
 								} else if (hashes[2].magic_type) {  // Ok, we found our 2
+									MEM_FREE(hashes[1].hash_data);
 									memcpy(&(hashes[1]), &(hashes[0]), sizeof(curzip));
 									memcpy(&(hashes[0]), &curzip, sizeof(curzip));
 								} else {
 									// found none.  So we will simply roll them down (like when #1 was a magic also).
+									MEM_FREE(hashes[2].hash_data);
 									memcpy(&(hashes[2]), &(hashes[1]), sizeof(curzip));
 									memcpy(&(hashes[1]), &(hashes[0]), sizeof(curzip));
 									memcpy(&(hashes[0]), &curzip, sizeof(curzip));
