@@ -285,12 +285,13 @@ cleanup:
  */
 typedef struct _zip_ptr
 {
-	uint16_t      magic_type, cmptype;
+	char         *hash_data;
 	uint32_t      offset, offex, crc, cmp_len, decomp_len;
+	uint16_t      magic_type, cmptype;
 	char          chksum[5];
 	char          chksum2[5];
-	char         *hash_data;
 } zip_ptr;
+
 typedef struct _zip_file
 {
 	int unix_made;
@@ -330,6 +331,7 @@ static char *toHex(unsigned char *p, int len) {
 		cp += sprintf(cp, "%02x", p[i]);
 	return Buf;
 }
+
 static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fname)
 {
 	uint16_t version,flags,lastmod_time,lastmod_date,filename_length,extrafield_length;
@@ -348,6 +350,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 	p->decomp_len = fget32LE(fp);
 	filename_length = fget16LE(fp);
 	extrafield_length = fget16LE(fp);
+	p->hash_data = NULL;
 	/* unused variables */
 	(void) lastmod_date;
 
@@ -442,7 +445,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 			"%s->%s PKZIP Encr:%s%s cmplen=%d, decmplen=%d, crc=%X\n",
 			jtr_basename(zip_fname), filename, zfp->check_bytes==2?" 2b chk,":"", zfp->check_in_crc?"":" TS_chk,", p->cmp_len, p->decomp_len, p->crc);
 
-		p->hash_data = mem_alloc_tiny(p->cmp_len+1, MEM_ALIGN_WORD);
+		MEM_FREE(p->hash_data);
+		p->hash_data = mem_alloc(p->cmp_len + 1);
 		if (fread(p->hash_data, 1, p->cmp_len, fp) != p->cmp_len) {
 			fprintf(stderr, "Error, fread could not read the data from the file:  %s\n", zip_fname);
 			return 0;
@@ -465,12 +469,12 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 static void process_old_zip(const char *fname)
 {
 	FILE *fp;
-
 	int count_of_hashes = 0;
 	zip_ptr hashes[3], curzip;
 	zip_file zfp;
-
 	char path[LARGE_ENOUGH];
+
+	memset(hashes, 0, sizeof(hashes));
 
 	zfp.check_in_crc = 1;
 	zfp.check_bytes = 1;
