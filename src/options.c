@@ -368,7 +368,7 @@ void opt_print_hidden_usage(void)
 	printf(", omp");
 #endif
 	printf("\n");
-	puts("--single-seed=WORD         add a static seed word for all salts in single mode");
+	puts("--single-seed=WORD[,WORD]  add static seed word(s) for all salts in single mode");
 	puts("--subformat=FORMAT         pick a benchmark format for --format=crypt");
 	puts("--mkpc=N                   request a lower max. keys per crypt");
 	puts("--min-length=N             request a minimum candidate length in bytes");

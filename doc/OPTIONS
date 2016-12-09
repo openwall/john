@@ -32,6 +32,12 @@ from [List.Rules:Single_2] section would be used. A rule or set of rules
 (including with pre-processor) can also be provided directly on the
 command line. See --rules for more details.
 
+--single-seed=WORD[,WORD][,...]
+
+Add static word(s) for all salts in single mode.  Adding eg. "Rockyou"
+will have the same effect as having that word in all gecos fields in the
+whole input file.
+
 --wordlist[=FILE]		wordlist mode, read words from FILE,
 --stdin				or from stdin
 
