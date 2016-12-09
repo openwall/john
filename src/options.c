@@ -65,6 +65,8 @@ static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_STACKING,
 		OPT_FMT_STR_ALLOC, &options.activesinglerules},
+	{"single-seed", FLG_ZERO, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.seed_word},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
@@ -366,6 +368,7 @@ void opt_print_hidden_usage(void)
 	printf(", omp");
 #endif
 	printf("\n");
+	puts("--single-seed=WORD         add a static seed word for all salts in single mode");
 	puts("--subformat=FORMAT         pick a benchmark format for --format=crypt");
 	puts("--mkpc=N                   request a lower max. keys per crypt");
 	puts("--min-length=N             request a minimum candidate length in bytes");

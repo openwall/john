@@ -230,6 +230,9 @@ struct options_main {
 /* Ciphertext subformat name */
 	char *subformat;
 
+/* Single mode seed word (--single-seed) */
+	char *seed_word;
+
 /* Configuration file name */
 	char *config;
 
