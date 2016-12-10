@@ -209,26 +209,26 @@ int encfs_common_streamDecode(encfs_common_custom_salt *cur_salt, unsigned char 
 {
 	unsigned char ivec[ MAX_IVLENGTH ];
 	int dstLen=0, tmpLen=0;
-	EVP_CIPHER_CTX stream_dec;
+	EVP_CIPHER_CTX *stream_dec = EVP_CIPHER_CTX_new();
 
 	encfs_common_setIVec(cur_salt, ivec, iv64 + 1, key);
-	EVP_CIPHER_CTX_init(&stream_dec);
-	EVP_DecryptInit_ex( &stream_dec, cur_salt->streamCipher, NULL, NULL, NULL);
-	EVP_CIPHER_CTX_set_key_length( &stream_dec, cur_salt->keySize );
-	EVP_CIPHER_CTX_set_padding( &stream_dec, 0 );
-	EVP_DecryptInit_ex( &stream_dec, NULL, NULL, key, NULL);
+	EVP_CIPHER_CTX_init(stream_dec);
+	EVP_DecryptInit_ex( stream_dec, cur_salt->streamCipher, NULL, NULL, NULL);
+	EVP_CIPHER_CTX_set_key_length( stream_dec, cur_salt->keySize );
+	EVP_CIPHER_CTX_set_padding( stream_dec, 0 );
+	EVP_DecryptInit_ex( stream_dec, NULL, NULL, key, NULL);
 
-	EVP_DecryptInit_ex( &stream_dec, NULL, NULL, NULL, ivec);
-	EVP_DecryptUpdate( &stream_dec, buf, &dstLen, buf, size );
-	EVP_DecryptFinal_ex( &stream_dec, buf+dstLen, &tmpLen );
+	EVP_DecryptInit_ex( stream_dec, NULL, NULL, NULL, ivec);
+	EVP_DecryptUpdate( stream_dec, buf, &dstLen, buf, size );
+	EVP_DecryptFinal_ex( stream_dec, buf+dstLen, &tmpLen );
 	unshuffleBytes( buf, size );
 	flipBytes( buf, size );
 
 	encfs_common_setIVec(cur_salt, ivec, iv64, key );
-	EVP_DecryptInit_ex( &stream_dec, NULL, NULL, NULL, ivec);
-	EVP_DecryptUpdate( &stream_dec, buf, &dstLen, buf, size );
-	EVP_DecryptFinal_ex( &stream_dec, buf+dstLen, &tmpLen );
-	EVP_CIPHER_CTX_cleanup(&stream_dec);
+	EVP_DecryptInit_ex( stream_dec, NULL, NULL, NULL, ivec);
+	EVP_DecryptUpdate( stream_dec, buf, &dstLen, buf, size );
+	EVP_DecryptFinal_ex( stream_dec, buf+dstLen, &tmpLen );
+	EVP_CIPHER_CTX_cleanup(stream_dec);
 
 	unshuffleBytes( buf, size );
 	dstLen += tmpLen;
