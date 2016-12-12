@@ -881,7 +881,7 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	if (*login && login != no_username && !single_skip_login)
 		list_add(words, ldr_conv(login));
 	if (options.seed_word)
-		ldr_split_string(words, options.seed_word);
+		ldr_split_string(words, ldr_conv(options.seed_word));
 	ldr_split_string(words, ldr_conv(gecos));
 	if (login != no_username && !single_skip_login)
 		ldr_split_string(words, ldr_conv(login));
