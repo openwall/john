@@ -1260,7 +1260,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	int length;
 	int which;
 
-	if (options.internal_cp != UTF_8 && options.target_enc == UTF_8)
+	if (!(options.flags & FLG_SINGLE_CHK) &&
+	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
 		memory = word = utf8_to_cp_r(word_in, cpword,
 		                             PLAINTEXT_BUFFER_SIZE);
 	else

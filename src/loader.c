@@ -843,7 +843,7 @@ find_format:
 
 static char* ldr_conv(char *word)
 {
-	if (options.input_enc == UTF_8 && options.target_enc != UTF_8) {
+	if (options.input_enc == UTF_8 && options.internal_cp != UTF_8) {
 		static char u8[PLAINTEXT_BUFFER_SIZE + 1];
 
 		word = utf8_to_cp_r(word, u8, PLAINTEXT_BUFFER_SIZE);

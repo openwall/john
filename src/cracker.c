@@ -375,7 +375,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		}
 		if (options.report_utf8) {
 			repkey = utf8key;
-			if (options.target_enc != UTF_8)
+			if (options.internal_cp != UTF_8)
 				replogin = cp_to_utf8_r(replogin,
 					      utf8login, PLAINTEXT_BUFFER_SIZE);
 		}
