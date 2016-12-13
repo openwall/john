@@ -28,6 +28,8 @@
 #include "config.h"
 #include "memdbg.h"
 
+struct list_main *single_seed;
+
 static double progress = 0;
 static int rec_rule;
 
@@ -318,6 +320,8 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	char *rule)
 {
 	struct list_entry *first, *second;
+	struct list_entry *global_head = single_seed->head;
+	int first_global, second_global;
 	int first_number, second_number;
 	char pair[RULE_WORD_SIZE];
 	int split;
@@ -326,8 +330,10 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	if (!(first = pw->words->head))
 		return -1;
 
-	first_number = 0;
+	first_number = first_global = 0;
 	do {
+		if (first == global_head)
+			first_global = 1;
 		if ((key = rules_apply(first->data, rule, 0, NULL)))
 		if (ext_filter(key))
 		if (single_add_key(salt, key, 0))
@@ -343,11 +349,14 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 		if (!CP_isLetter[(unsigned char)first->data[0]])
 			continue;
 
-		second_number = 0;
+		second_number = second_global = 0;
 		second = pw->words->head;
 
-		do
-		if (first != second) {
+		do {
+			if (second == global_head)
+				second_global = 1;
+			if (first == second || (first_global && second_global))
+				continue;
 			if ((split = strlen(first->data)) < length) {
 				strnzcpy(pair, first->data, RULE_WORD_SIZE);
 				strnzcat(pair, second->data, RULE_WORD_SIZE);
@@ -362,7 +371,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 					return 0;
 			}
 
-			if (first->data[1]) {
+			if (!first_global && first->data[1]) {
 				pair[0] = first->data[0];
 				pair[1] = 0;
 				strnzcat(pair, second->data, RULE_WORD_SIZE);

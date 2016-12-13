@@ -13,6 +13,11 @@
 #include "loader.h"
 
 /*
+ * Global list of single mode words, from --single-seed or --single-wordlist.
+ */
+extern struct list_main *single_seed;
+
+/*
  * Runs the cracker.
  */
 extern void do_single_crack(struct db_main *db);

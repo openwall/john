@@ -46,6 +46,7 @@
 #include "logger.h" /* Beware: log_init() happens after most functions here */
 #include "base64_convert.h"
 #include "md5.h"
+#include "single.h"
 #include "memdbg.h"
 
 #ifdef HAVE_CRYPT
@@ -866,7 +867,7 @@ static void ldr_split_string(struct list_main *dst, char *src)
 		while (!CP_isSeparator[ARCH_INDEX(*pos)]) pos++;
 		c = *pos;
 		*pos = 0;
-		list_add_unique(dst, word);
+		list_add_global_unique(dst, single_seed, word);
 		*pos++ = c;
 	} while (c && dst->count < LDR_WORDS_MAX);
 }
@@ -880,16 +881,15 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 
 	if (*login && login != no_username && !single_skip_login)
 		list_add(words, ldr_conv(login));
-	if (options.seed_word)
-		ldr_split_string(words, ldr_conv(options.seed_word));
 	ldr_split_string(words, ldr_conv(gecos));
 	if (login != no_username && !single_skip_login)
 		ldr_split_string(words, ldr_conv(login));
 	if (pristine_gecos && *gecos)
-		list_add_unique(words, ldr_conv(gecos));
-
+		list_add_global_unique(words, single_seed, ldr_conv(gecos));
 	if ((pos = strrchr(home, '/')) && pos[1])
-		list_add_unique(words, ldr_conv(&pos[1]));
+		list_add_global_unique(words, single_seed, ldr_conv(&pos[1]));
+
+	list_add_list(words, single_seed);
 
 	return words;
 }
@@ -1110,10 +1110,21 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 void ldr_load_pw_file(struct db_main *db, char *name)
 {
-	pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
-	        "PristineGecos", 0);
-	single_skip_login = cfg_get_bool(SECTION_OPTIONS, NULL,
-	        "SingleSkipLogin", 0);
+	static int init;
+
+	if (!init) {
+		list_init(&single_seed);
+
+		if (options.seed_word)
+			ldr_split_string(single_seed,
+			                 ldr_conv(options.seed_word));
+
+		pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
+		                              "PristineGecos", 0);
+		single_skip_login = cfg_get_bool(SECTION_OPTIONS, NULL,
+		                                 "SingleSkipLogin", 0);
+		init = 1;
+	}
 
 	read_file(db, name, RF_ALLOW_DIR, ldr_load_pw_line);
 }
