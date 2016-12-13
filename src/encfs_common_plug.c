@@ -229,7 +229,7 @@ int encfs_common_streamDecode(encfs_common_custom_salt *cur_salt, unsigned char 
 	EVP_DecryptUpdate( stream_dec, buf, &dstLen, buf, size );
 	EVP_DecryptFinal_ex( stream_dec, buf+dstLen, &tmpLen );
 	EVP_CIPHER_CTX_cleanup(stream_dec);
-
+	EVP_CIPHER_CTX_free(stream_dec);
 	unshuffleBytes( buf, size );
 	dstLen += tmpLen;
 	if(dstLen != size) {
