@@ -98,6 +98,17 @@ int rawsha1_common_valid(char *ciphertext, struct fmt_main *self)
 	return 0;
 }
 
+int rawsha1_axcrypt_valid(char *ciphertext, struct fmt_main *self)
+{
+	char out[41];
+	int extra;
+
+	if (hexlen(ciphertext, &extra) != 32 || extra)
+		return rawsha1_common_valid(ciphertext, self);
+	sprintf(out, "%s00000000", ciphertext);
+	return rawsha1_common_valid(out, self);
+}
+
 char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
@@ -118,18 +129,6 @@ char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
 	strlwr(out);
 
 	return out;
-}
-
-char *rawsha1_axcrypt_prepare(char *split_fields[10], struct fmt_main *self)
-{
-	static char out[41];
-	int extra;
-
-	if (hexlen(split_fields[1], &extra) != 32 || extra)
-		return rawsha1_common_prepare(split_fields, self);
-	sprintf(out, "%s00000000", split_fields[1]);
-	split_fields[1] = out;
-	return rawsha1_common_prepare(split_fields, self);
 }
 
 char *rawsha1_axcrypt_split(char *ciphertext, int index, struct fmt_main *self)

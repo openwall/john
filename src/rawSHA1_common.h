@@ -32,7 +32,7 @@ char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self);
 char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self);
 void *rawsha1_common_get_rev_binary(char *ciphertext);
 void *rawsha1_common_get_binary(char *ciphertext);
+int rawsha1_axcrypt_valid(char *ciphertext, struct fmt_main *self);
 char *rawsha1_axcrypt_split(char *ciphertext, int index, struct fmt_main *self);
-char *rawsha1_axcrypt_prepare(char *split_fields[10], struct fmt_main *self);
 
 #endif // #define rawsha1_common_h__
