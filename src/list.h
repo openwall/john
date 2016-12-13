@@ -72,6 +72,13 @@ extern void list_add_unique(struct list_main *list, char *data);
 extern void list_add_global_unique(struct list_main *list,
                                    struct list_main *list2, char *data);
 
+#if DEBUG
+/*
+ * print list to stderr preceded by message.
+ */
+extern void list_dump(char *message, struct list_main *list);
+#endif
+
 #if 0
 /*
  * Deletes the entry following prev from the list.

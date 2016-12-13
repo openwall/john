@@ -233,6 +233,9 @@ struct options_main {
 /* Single mode seed word (--single-seed) */
 	char *seed_word;
 
+/* Single mode seed wordlist file name (--single-wordlist) */
+	char *seed_file;
+
 /* Configuration file name */
 	char *config;
 

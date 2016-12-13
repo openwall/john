@@ -42,7 +42,6 @@
 #include "fake_salts.h"
 #include "john.h"
 #include "cracker.h"
-#include "config.h"
 #include "logger.h" /* Beware: log_init() happens after most functions here */
 #include "base64_convert.h"
 #include "md5.h"
@@ -1113,11 +1112,36 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 	static int init;
 
 	if (!init) {
+		struct cfg_list *conf_seeds;
+
 		list_init(&single_seed);
 
 		if (options.seed_word)
 			ldr_split_string(single_seed,
 			                 ldr_conv(options.seed_word));
+
+		if (options.seed_file) {
+			FILE *file;
+			char *name = path_expand(options.seed_file);
+			char line[LINE_BUFFER_SIZE];
+
+			if (!(file = fopen(name, "r")))
+				pexit("fopen: %s", name);
+			while (fgetl(line, sizeof(line), file))
+				list_add_unique(single_seed, ldr_conv(line));
+			if (fclose(file))
+				pexit("fclose");
+		}
+
+		if ((conf_seeds = cfg_get_list("List.Single:", "SeedWords"))) {
+			struct cfg_line *word;
+
+			if ((word = conf_seeds->head))
+			do {
+				list_add_unique(single_seed,
+				                ldr_conv(word->data));
+			} while ((word = word->next));
+		}
 
 		pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
 		                              "PristineGecos", 0);

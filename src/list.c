@@ -100,6 +100,20 @@ void list_add_global_unique(struct list_main *list, struct list_main *list2,
 	list_add(list, data);
 }
 
+#if DEBUG
+void list_dump(char *message, struct list_main *list)
+{
+	struct list_entry *current;
+
+	fprintf(stderr, "%s:\n", message);
+
+	if ((current = list->head))
+	do {
+		fprintf(stderr, "%s\n", current->data);
+	} while ((current = current->next));
+}
+#endif
+
 #if 0
 void list_del_next(struct list_main *list, struct list_entry *prev)
 {
