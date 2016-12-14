@@ -14,7 +14,7 @@ if [[ "$TEST" == "basic" ]]; then
 
     ../.travis/test.sh
 
-elif [[ "$TEST" == "fresh test" ]]; then
+elif [[ "$TEST" == "fresh" ]]; then
     # ASAN using a 'recent' compiler
     docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:16.10 sh -c " \
       cd /cwd/src; \
@@ -61,6 +61,9 @@ elif [[ "$TEST" == "TS docker" ]]; then
       ./jtrts.pl --restore
     '
 else
+    echo
+    echo  -----------------
     echo  "Nothing to do!!"
+    echo  -----------------
 fi
 

@@ -20,14 +20,20 @@ matrix:
   - env: TEST="basic" ASAN="" OPENCL="yes" BUILD_OPTS="--disable-native-tests --disable-openmp"
 
   #Test JtR using a recent OS/compiler
-  - env: TEST="fresh test"   ASAN="--enable-asan"
+  - env: TEST="fresh" ASAN="--enable-asan"
 
+  #Test a non SIMD build
+  - env: TEST="basic" ASAN="--enable-asan" BUILD_OPTS="--disable-native-tests CPPFLAGS=-mno-sse2"
+
+  #Test --restore using TS
   - env: TEST="TS --restore" ASAN=""
 
   allow_failures:
   - env: TEST="basic" ASAN="" OPENCL="yes" BUILD_OPTS="--disable-native-tests --disable-openmp"
 
-  - env: TEST="fresh test"   ASAN="--enable-asan"
+  - env: TEST="fresh" ASAN="--enable-asan"
+
+  - env: TEST="basic" ASAN="--enable-asan" BUILD_OPTS="--disable-native-tests CPPFLAGS=-mno-sse2"
 
   - env: TEST="TS --restore" ASAN=""
 
