@@ -38,6 +38,10 @@ Add static word(s) for all salts in single mode.  Adding eg. "Rockyou"
 will have the same effect as having that word in all gecos fields in the
 whole input file.
 
+--single-wordlist=FILE
+
+Same as --single-seed except words are read from a wordlist file.
+
 --wordlist[=FILE]		wordlist mode, read words from FILE,
 --stdin				or from stdin
 

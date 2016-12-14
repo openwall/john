@@ -68,7 +68,10 @@ You can add one or several static words with --single-seed=WORD[,WORD]
 in case some word or name is very common in the passwords (eg. for the
 legendary Gawker dump, you'd use "--single-seed=Gawker,Gizmodo".  This
 will result in combinations of those words and the login/GECOS data and
-has proven very effective.
+has proven very effective.  For more words, the --single-wordlist=FILE
+option works the same except it reads words from a wordlist file. When
+using either option, SingleWordsPairMax will be automatically bumped if
+needed - this can increase run time (and success) dramatically.
 
 Note that running this mode on many password files simultaneously may
 sometimes get more passwords cracked than it would if you ran it on

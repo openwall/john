@@ -111,6 +111,11 @@ static void single_init(void)
 	                                  "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;
 
+	if (single_seed->count) {
+		log_event("- SingleWordsPairMax bumped for %d seed words",
+		          single_seed->count);
+		words_pair_max += single_seed->count;
+	}
 	log_event("- SingleWordsPairMax used is %d", words_pair_max);
 	log_event("- SingleRetestGuessed = %s",retest_guessed?"true":"false");
 
