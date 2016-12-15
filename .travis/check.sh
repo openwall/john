@@ -19,11 +19,11 @@ elif [[ "$TEST" == "fresh" ]]; then
     docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:16.10 sh -c " \
       cd /cwd/src; \
       apt-get update -qq; \
-      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev; \
+      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev wget; \
       ./configure --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
-      PROBLEM='slow' ../.travis/test.sh
+      PROBLEM='slow' EXTRAS='yes' ../.travis/test.sh
    "
 
 elif [[ "$TEST" == "TS --restore" ]]; then
