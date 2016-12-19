@@ -663,7 +663,7 @@ int mbedtls_pkcs12_derivation_simd_sha512( unsigned char *data[SSE_GROUP_SZ_SHA5
 	unsigned char hash_output_[SSE_GROUP_SZ_SHA512][128], *hash_output[SSE_GROUP_SZ_SHA512], hash[128];
 	unsigned char *p;
 	unsigned char c;
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_buf[SHA_BUF_SIZ*sizeof(ARCH_WORD_64)*SSE_GROUP_SZ_SHA512];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_buf[SHA_BUF_SIZ*sizeof(uint64_t)*SSE_GROUP_SZ_SHA512];
 
 	size_t hlen, use_len, v, i;
 
@@ -707,7 +707,7 @@ int mbedtls_pkcs12_derivation_simd_sha512( unsigned char *data[SSE_GROUP_SZ_SHA5
 
 		// Perform remaining ( iterations - 1 ) recursive hash calculations
 		for( i = 1; i < (size_t) iterations; i++ )
-			SIMDSHA512body(sse_buf, (ARCH_WORD_64*)sse_buf, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(sse_buf, (uint64_t*)sse_buf, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 		// Now unmarshall the data from sse_buf
 		use_len = ( datalen > hlen ) ? hlen : datalen;

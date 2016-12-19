@@ -11,7 +11,7 @@
 static const uint32_t #{HASH}_inc = #{HASH}_LOOPS;
 
 static void Do#{HASH}_crypt_f_sse(void *in, uint32_t len[#{HASH}_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
+	JTR_ALIGN(MEM_ALIGN_SIMD) uint#{BITS}_t a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(uint#{BITS}_t)];
 	uint32_t i, j, loops[#{HASH}_LOOPS], bMore, cnt;
 #ifndef TRUNC_TO16
 //	uint32_t max_cnt=0;
@@ -35,12 +35,12 @@ static void Do#{HASH}_crypt_f_sse(void *in, uint32_t len[#{HASH}_LOOPS], void *o
 		bMore = 0;
 		for (i = 0; i < #{HASH}_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				uint32_t offx = ((i/SIMD_COEF_#{BITS})*(#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}))*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
+				uint32_t offx = ((i/SIMD_COEF_#{BITS})*(#{BIN_SZ}/sizeof(uint#{BITS}_t))*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
 #ifdef TRUNC_TO16
 				// only 16 bytes in the 'final'
 #endif  // defined TRUNC_TO16
-				for (j = 0; j < 16/sizeof(ARCH_WORD_#{BITS}); ++j) {
-					((ARCH_WORD_#{BITS}*)out)[(i*#{SSE_LIMBS})+j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
+				for (j = 0; j < 16/sizeof(uint#{BITS}_t); ++j) {
+					((uint#{BITS}_t*)out)[(i*#{SSE_LIMBS})+j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
 				}
 			} else if (cnt < loops[i]) bMore = 1;
 		}
@@ -49,8 +49,8 @@ static void Do#{HASH}_crypt_f_sse(void *in, uint32_t len[#{HASH}_LOOPS], void *o
 }
 
 static void Do#{HASH}_crypt_sse(void *in, uint32_t ilen[#{HASH}_LOOPS], void *out[#{HASH}_LOOPS], uint32_t *tot_len, uint32_t tid) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
-	union yy { unsigned char u[#{BIN_SZ}]; ARCH_WORD_#{BITS} a[#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS})]; } y;
+	JTR_ALIGN(MEM_ALIGN_SIMD) uint#{BITS}_t a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(uint#{BITS}_t)];
+	union yy { unsigned char u[#{BIN_SZ}]; uint#{BITS}_t a[#{BIN_SZ}/sizeof(uint#{BITS}_t)]; } y;
 	uint32_t i, j, loops[#{HASH}_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < #{HASH}_LOOPS; ++i) {
@@ -63,8 +63,8 @@ static void Do#{HASH}_crypt_sse(void *in, uint32_t ilen[#{HASH}_LOOPS], void *ou
 		bMore = 0;
 		for (i = 0; i < #{HASH}_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				uint32_t offx = ((i/SIMD_COEF_#{BITS})*#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS})*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
-				for (j = 0; j < #{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}); ++j) {
+				uint32_t offx = ((i/SIMD_COEF_#{BITS})*#{BIN_SZ}/sizeof(uint#{BITS}_t)*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
+				for (j = 0; j < #{BIN_SZ}/sizeof(uint#{BITS}_t); ++j) {
 					y.a[j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
 				}
 				*(tot_len+i) += large_hash_output(y.u, &(((unsigned char*)out[i])[*(tot_len+i)]), #{BIN_REAL_SZ}, tid);
@@ -75,7 +75,7 @@ static void Do#{HASH}_crypt_sse(void *in, uint32_t ilen[#{HASH}_LOOPS], void *ou
 }
 
 static void inline Do#{HASH}_sse_crypt_only(void *in, uint32_t len[#{HASH}_LOOPS], void *out) {
-	JTR_ALIGN(MEM_ALIGN_SIMD) ARCH_WORD_#{BITS} a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(ARCH_WORD_#{BITS})];
+	JTR_ALIGN(MEM_ALIGN_SIMD) uint#{BITS}_t a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(uint#{BITS}_t)];
 	uint32_t i, j, loops[#{HASH}_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
 	for (i = 0; i < #{HASH}_LOOPS; ++i) {
@@ -88,9 +88,9 @@ static void inline Do#{HASH}_sse_crypt_only(void *in, uint32_t len[#{HASH}_LOOPS
 		bMore = 0;
 		for (i = 0; i < #{HASH}_LOOPS; ++i) {
 			if (cnt == loops[i]) {
-				uint32_t offx = ((i/SIMD_COEF_#{BITS})*(#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}))*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
-				for (j = 0; j < #{BIN_SZ}/sizeof(ARCH_WORD_#{BITS}); ++j) {
-					((ARCH_WORD_#{BITS}*)out)[(i*#{SSE_LIMBS})+j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
+				uint32_t offx = ((i/SIMD_COEF_#{BITS})*(#{BIN_SZ}/sizeof(uint#{BITS}_t))*SIMD_COEF_#{BITS})+(i&(SIMD_COEF_#{BITS}-1));
+				for (j = 0; j < #{BIN_SZ}/sizeof(uint#{BITS}_t); ++j) {
+					((uint#{BITS}_t*)out)[(i*#{SSE_LIMBS})+j] = #{JSWAPH}a[(j*SIMD_COEF_#{BITS})+offx]#{JSWAPT}
 				}
 			} else if (cnt < loops[i])
 				bMore = 1;
@@ -106,7 +106,7 @@ static const uint32_t #{HASH}_inc = 1;
 
 static void inline Do#{HASH}_crypt_f(void *in, uint32_t len, void *out) {
 #ifdef TRUNC_TO16
-	union xx { unsigned char u[#{BIN_SZ}]; ARCH_WORD_#{BITS} a[#{BIN_SZ}/sizeof(ARCH_WORD_#{BITS})]; } u;
+	union xx { unsigned char u[#{BIN_SZ}]; uint#{BITS}_t a[#{BIN_SZ}/sizeof(uint#{BITS}_t)]; } u;
 	unsigned char *crypt_out=u.u;
 #else  // defined TRUNC_TO16
 	unsigned char *crypt_out=(unsigned char*)out;

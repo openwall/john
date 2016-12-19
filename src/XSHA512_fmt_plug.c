@@ -62,8 +62,8 @@ john_register_one(&fmt_XSHA512);
 
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
-static ARCH_WORD_64 (*crypt_out);
+static uint64_t (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
+static uint64_t (*crypt_out);
 static int max_keys;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -91,7 +91,7 @@ static void init(struct fmt_main *self)
 #endif
 	saved_key = mem_calloc_align(omp_t, sizeof(*saved_key), MEM_ALIGN_SIMD);
 	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt,
-	                             8 * sizeof(ARCH_WORD_64), MEM_ALIGN_SIMD);
+	                             8 * sizeof(uint64_t), MEM_ALIGN_SIMD);
 	max_keys = self->params.max_keys_per_crypt;
 #else
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -188,21 +188,21 @@ static void set_key(char *key, int index)
 	saved_len[index] = length;
 	memcpy(saved_key[index], key, length);
 #else
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	ARCH_WORD_64 *keybuf_word = keybuffer;
+	uint64_t *keybuffer = &((uint64_t *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	uint64_t *keybuf_word = keybuffer;
 	unsigned int len;
-	ARCH_WORD_64 temp;
+	uint64_t temp;
 	unsigned char *wucp = (unsigned char*)saved_key;
 
 	// ok, first 4 bytes (if there are that many or more), we handle one offs.
 	// this is because we already have 4 byte salt loaded into our saved_key.
 	// IF there are more bytes of password, we drop into the multi loader.
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)&(key[4]);
+	const uint64_t *wkey = (uint64_t*)&(key[4]);
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const ARCH_WORD_64 *wkey = is_aligned(key + 4, sizeof(uint64_t)) ?
-		(ARCH_WORD_64*)(key + 4) : (ARCH_WORD_64*)buf_aligned;
+	const uint64_t *wkey = is_aligned(key + 4, sizeof(uint64_t)) ?
+		(uint64_t*)(key + 4) : (uint64_t*)buf_aligned;
 	if ((char *)wkey == buf_aligned && strlen(key) >= 4)
 		strcpy(buf_aligned, key + 4);
 #endif
@@ -287,7 +287,7 @@ static char *get_key(int index)
 	static unsigned char key[PLAINTEXT_LENGTH+1];
 	int i;
 	unsigned char *wucp = (unsigned char*)saved_key;
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	uint64_t *keybuffer = &((uint64_t*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	int len = (keybuffer[15*SIMD_COEF_64] >> 3) - SALT_SIZE;
 
 	for (i = 0; i < len; ++i)
@@ -336,7 +336,7 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_64
-        if (((ARCH_WORD_64 *) binary)[0] == crypt_out[HASH_IDX])
+        if (((uint64_t *) binary)[0] == crypt_out[HASH_IDX])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -348,8 +348,8 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_64
     int i;
-	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
-        if (((ARCH_WORD_64*) binary)[i] != crypt_out[HASH_IDX + i*SIMD_COEF_64])
+	for (i = 0; i < BINARY_SIZE/sizeof(uint64_t); i++)
+        if (((uint64_t*) binary)[i] != crypt_out[HASH_IDX + i*SIMD_COEF_64])
             return 0;
 	return 1;
 #else

@@ -116,11 +116,11 @@ void sha256_unreverse(uint32_t *hash);
 
 #ifdef SIMD_COEF_64
 #define SHA512_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA512_N_STR
-void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state, unsigned SSEi_flags);
-void sha384_reverse(ARCH_WORD_64 *hash);
-void sha384_unreverse(ARCH_WORD_64 *hash);
-void sha512_reverse(ARCH_WORD_64 *hash);
-void sha512_unreverse(ARCH_WORD_64 *hash);
+void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags);
+void sha384_reverse(uint64_t *hash);
+void sha384_unreverse(uint64_t *hash);
+void sha512_reverse(uint64_t *hash);
+void sha512_unreverse(uint64_t *hash);
 #endif
 
 #else

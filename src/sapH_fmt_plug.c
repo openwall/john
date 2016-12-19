@@ -431,12 +431,12 @@ static void crypt_all_384(int count) {
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
 		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
-		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
+		uint64_t j, *crypt64, offs[NBKEYS512];
 		uint32_t len;
 
 		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
-		crypt64 = (ARCH_WORD_64*)crypt;
+		crypt64 = (uint64_t*)crypt;
 		memset(keys, 0, 128*NBKEYS512);
 
 		for (i = 0; i < NBKEYS512; ++i) {
@@ -457,8 +457,8 @@ static void crypt_all_384(int count) {
 			uint32_t k;
 			SIMDSHA512body(keys, crypt64, NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA384);
 			for (k = 0; k < NBKEYS512; ++k) {
-				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
-				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
+				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
+				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 6; ++j) {
 					Icp64[j] = JOHNSWAP64(*pcrypt);
 					pcrypt += SIMD_COEF_64;
@@ -467,8 +467,8 @@ static void crypt_all_384(int count) {
 		}
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS512; ++i) {
-			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
-			ARCH_WORD_64 *Iptr64 = &crypt64[ ((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
+			uint64_t *Optr64 = (uint64_t*)(crypt_key[idx+i]);
+			uint64_t *Iptr64 = &crypt64[ ((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 48
 			for (j = 0; j < 2; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);
@@ -503,12 +503,12 @@ static void crypt_all_512(int count) {
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
 		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
-		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
+		uint64_t j, *crypt64, offs[NBKEYS512];
 		uint32_t len;
 
 		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
-		crypt64 = (ARCH_WORD_64*)crypt;
+		crypt64 = (uint64_t*)crypt;
 		memset(keys, 0, 128*NBKEYS512);
 
 		for (i = 0; i < NBKEYS512; ++i) {
@@ -529,8 +529,8 @@ static void crypt_all_512(int count) {
 			uint32_t k;
 			SIMDSHA512body(keys, crypt64, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS512; ++k) {
-				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
-				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
+				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
+				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
 					Icp64[j] = JOHNSWAP64(*pcrypt);
 					pcrypt += SIMD_COEF_64;
@@ -539,8 +539,8 @@ static void crypt_all_512(int count) {
 		}
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS512; ++i) {
-			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
-			ARCH_WORD_64 *Iptr64 = &crypt64[((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
+			uint64_t *Optr64 = (uint64_t*)(crypt_key[idx+i]);
+			uint64_t *Iptr64 = &crypt64[((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 64
 			for (j = 0; j < 2; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);

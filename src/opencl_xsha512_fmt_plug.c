@@ -410,7 +410,7 @@ static int cmp_exact(char *source, int index)
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
 	SHA512_Final((unsigned char *) (crypt_out), &ctx);
 #ifdef SIMD_COEF_64
-	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE / sizeof(ARCH_WORD_64));
+	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE / sizeof(uint64_t));
 #endif
 
 	b = (uint64_t *) sha512_common_binary_xsha512(source);

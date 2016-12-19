@@ -44,10 +44,8 @@
 
 #if ARCH_INT_GT_32
 typedef unsigned short ARCH_WORD_32;
-typedef unsigned int ARCH_WORD_64;
 #else
 typedef unsigned int ARCH_WORD_32;
-typedef unsigned long long ARCH_WORD_64;
 #endif
 
 /* ONLY use this to check alignments of even power of 2 (2, 4, 8, 16, etc) byte counts (CNT).

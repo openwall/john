@@ -225,7 +225,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[LARGEST_BINARY_SIZE+3];
-		ARCH_WORD_64 dummy;
+		uint64_t dummy;
 	} out;
 	ARCH_WORD_32 value;
 	char *pos = strrchr(ciphertext, '$') + 1;

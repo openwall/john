@@ -315,7 +315,7 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 		d += tmp; \
 	} while(0)
 
-static const ARCH_WORD_64 K[80] =
+static const uint64_t K[80] =
 {
 	0x428A2F98D728AE22ULL,  0x7137449123EF65CDULL,
 	0xB5C0FBCFEC4D3B2FULL,  0xE9B5DBA58189DBBCULL,
@@ -361,13 +361,13 @@ static const ARCH_WORD_64 K[80] =
 
 void jtr_sha512_hash_block(jtr_sha512_ctx *ctx, const unsigned char data[128], int perform_endian_swap)
 {
-	ARCH_WORD_64 A, B, C, D, E, F, G, H, tmp, W[80];
+	uint64_t A, B, C, D, E, F, G, H, tmp, W[80];
 	int i;
 
 #if ARCH_LITTLE_ENDIAN
 	if (perform_endian_swap) {
 		for(i = 0; i < 16; i++) {
-			W[i] = JOHNSWAP64(*((ARCH_WORD_64 *)&(data[i<<3])));
+			W[i] = JOHNSWAP64(*((uint64_t *)&(data[i<<3])));
 		}
 	} else
 #endif
@@ -545,9 +545,9 @@ void jtr_sha512_update(jtr_sha512_ctx *ctx, const void *_input, int ilenlft)
 void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 {
 	ARCH_WORD_32 last, padcnt;
-	ARCH_WORD_64 bits;
+	uint64_t bits;
 	union {
-		ARCH_WORD_64 wlen[2];
+		uint64_t wlen[2];
 		unsigned char mlen[16];  // need aligned on sparc
 	} m;
 	unsigned char *output = (unsigned char *)_output;
@@ -599,7 +599,7 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 		OUTBE64( ctx->h[7], output, 56 );
 	}
 #else
-	if (is_aligned(output,sizeof(ARCH_WORD_64))) {
+	if (is_aligned(output,sizeof(uint64_t))) {
 		OUTBE64(ctx->h[0], output,  0);
 		OUTBE64(ctx->h[1], output,  8);
 		OUTBE64(ctx->h[2], output, 16);
@@ -612,7 +612,7 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 		}
 	} else {
 		union {
-			ARCH_WORD_64 x[8];
+			uint64_t x[8];
 			unsigned char c[64];
 		} m;
 		unsigned char *tmp = m.c;

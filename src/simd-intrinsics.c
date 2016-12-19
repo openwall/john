@@ -2324,19 +2324,19 @@ void sha512_unreverse(uint64_t *hash)
 
 #define INIT_D 0x152fecd8f70e5939ULL
 
-void sha384_reverse(ARCH_WORD_64 *hash)
+void sha384_reverse(uint64_t *hash)
 {
 	hash[3] -= INIT_D;
 }
 
-void sha384_unreverse(ARCH_WORD_64 *hash)
+void sha384_unreverse(uint64_t *hash)
 {
 	hash[3] += INIT_D;
 }
 
 #undef INIT_D
 
-void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
+void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
                    unsigned SSEi_flags)
 {
 	unsigned int i, k;
@@ -2353,11 +2353,11 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		ARCH_WORD_64 *_data = (ARCH_WORD_64*)data;
+		uint64_t *_data = (uint64_t*)data;
 		SHA512_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_2BUF_INPUT) {
-				ARCH_WORD_64 (*saved_key)[32] = (ARCH_WORD_64(*)[32])_data;
+				uint64_t (*saved_key)[32] = (uint64_t(*)[32])_data;
 				for (i = 0; i < 14; i += 2) {
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);
@@ -2370,7 +2370,7 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				GATHER64(tmp2[k], saved_key, 15);
 				_data += (VS64<<5);
 			} else {
-				ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])_data;
+				uint64_t (*saved_key)[16] = (uint64_t(*)[16])_data;
 				for (i = 0; i < 14; i += 2) {
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);

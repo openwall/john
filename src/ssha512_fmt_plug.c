@@ -76,13 +76,13 @@ static struct s_salt *saved_salt;
 
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64];
-static ARCH_WORD_64 (*crypt_out)[8*SIMD_COEF_64];
-static ARCH_WORD_64 (**len_ptr64);
+static uint64_t (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64];
+static uint64_t (*crypt_out)[8*SIMD_COEF_64];
+static uint64_t (**len_ptr64);
 static int max_count;
 #else
 static ARCH_WORD_32 (*crypt_out)[DIGEST_SIZE / 4];
-static ARCH_WORD_64 (*saved_key)[PLAINTEXT_LENGTH + 1];
+static uint64_t (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif
 static int *saved_len;
 
@@ -114,7 +114,7 @@ static void init(struct fmt_main *self)
 	                             SIMD_COEF_64,
 	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; i += SIMD_COEF_64) {
-		ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(i&(SIMD_COEF_64-1)) + (i/SIMD_COEF_64)*SHA_BUF_SIZ*SIMD_COEF_64];
+		uint64_t *keybuffer = &((uint64_t *)saved_key)[(i&(SIMD_COEF_64-1)) + (i/SIMD_COEF_64)*SHA_BUF_SIZ*SIMD_COEF_64];
 		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len_ptr64[i+j] = &keybuffer[15*SIMD_COEF_64];
 			++keybuffer;
@@ -137,16 +137,16 @@ static void done(void)
 #ifdef SIMD_COEF_64
 static void set_key(char *key, int index) {
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
+	const uint64_t *wkey = (uint64_t*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const ARCH_WORD_64 *wkey = is_aligned(key, sizeof(uint64_t)) ?
-			(ARCH_WORD_64*)key : (ARCH_WORD_64*)strcpy(buf_aligned, key);
+	const uint64_t *wkey = is_aligned(key, sizeof(uint64_t)) ?
+			(uint64_t*)key : (uint64_t*)strcpy(buf_aligned, key);
 #endif
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	ARCH_WORD_64 *keybuf_word = keybuffer;
+	uint64_t *keybuffer = &((uint64_t *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	uint64_t *keybuf_word = keybuffer;
 	unsigned int len;
-	ARCH_WORD_64 temp;
+	uint64_t temp;
 
 	len = 0;
 	while((unsigned char)(temp = *wkey++)) {
@@ -241,7 +241,7 @@ static void * get_salt(char * ciphertext)
 #ifdef SIMD_COEF_64
 static char *get_key(int index) {
 	unsigned i;
-	ARCH_WORD_64 s;
+	uint64_t s;
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
@@ -262,7 +262,7 @@ static int cmp_all(void *binary, int count) {
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_64
-        if (((ARCH_WORD_64 *) binary)[0] == crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)])
+        if (((uint64_t *) binary)[0] == crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)])
 #else
 		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
 #endif
@@ -274,8 +274,8 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_64
     int i;
-	for (i = 0; i < DIGEST_SIZE/sizeof(ARCH_WORD_64); i++)
-        if (((ARCH_WORD_64 *) binary)[i] != crypt_out[index/SIMD_COEF_64][(index&(SIMD_COEF_64-1))+i*SIMD_COEF_64])
+	for (i = 0; i < DIGEST_SIZE/sizeof(uint64_t); i++)
+        if (((uint64_t *) binary)[i] != crypt_out[index/SIMD_COEF_64][(index&(SIMD_COEF_64-1))+i*SIMD_COEF_64])
             return 0;
 	return 1;
 #else

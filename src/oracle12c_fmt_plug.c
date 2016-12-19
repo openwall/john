@@ -74,7 +74,7 @@ static struct custom_salt {
 } *cur_salt;
 
 #ifdef SIMD_COEF_64
-static char (*saved_key)[SHA_BUF_SIZ*sizeof(ARCH_WORD_64)];
+static char (*saved_key)[SHA_BUF_SIZ*sizeof(uint64_t)];
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif

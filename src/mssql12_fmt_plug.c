@@ -114,13 +114,13 @@ static struct fmt_tests tests[] = {
 
 static unsigned char cursalt[SALT_SIZE];
 #ifdef SIMD_COEF_64
-static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ];
-static ARCH_WORD_64 (*crypt_out);
+static uint64_t (*saved_key)[SHA_BUF_SIZ];
+static uint64_t (*crypt_out);
 static int max_keys;
 static int new_keys;
 #else
 static char (*saved_key)[(PLAINTEXT_LENGTH + 1) * 2 + SALT_SIZE];
-static ARCH_WORD_64 (*crypt_out)[DIGEST_SIZE / 8];
+static uint64_t (*crypt_out)[DIGEST_SIZE / 8];
 static int *saved_len;
 #endif
 
@@ -180,7 +180,7 @@ static void init(struct fmt_main *self)
 	                             sizeof(*saved_key),
 	                             MEM_ALIGN_SIMD);
 	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt,
-	                             8 * sizeof(ARCH_WORD_64),
+	                             8 * sizeof(uint64_t),
 	                             MEM_ALIGN_SIMD);
 	max_keys = self->params.max_keys_per_crypt;
 #else
@@ -231,7 +231,7 @@ static void set_key(char *_key, int index)
 	d[saved_len[index]] = 0;
 	saved_len[index] <<= 1;
 #else
-	ARCH_WORD_64 *keybuffer = saved_key[index];
+	uint64_t *keybuffer = saved_key[index];
 	unsigned short *w16 = (unsigned short*)keybuffer;
 	UTF8 *key = (UTF8*)_key;
 	int len = 0;
@@ -256,7 +256,7 @@ static void set_key_enc(char *_key, int index)
 		saved_len[index] = strlen16((UTF16*)saved_key[index]);
 	saved_len[index] <<= 1;
 #else
-	ARCH_WORD_64 *keybuffer = saved_key[index];
+	uint64_t *keybuffer = saved_key[index];
 	UTF16 *w16 = (UTF16*)keybuffer;
 	UTF8 *key = (UTF8*)_key;
 	int len;
@@ -278,7 +278,7 @@ static char *get_key(int index)
 	((UTF16*)saved_key[index])[saved_len[index]>>1] = 0;
 	return (char*)utf16_to_enc((UTF16*)saved_key[index]);
 #else
-	ARCH_WORD_64 *keybuffer = saved_key[index];
+	uint64_t *keybuffer = saved_key[index];
 	UTF16 *w16 = (UTF16*)keybuffer;
 	static UTF16 out[PLAINTEXT_LENGTH + 1];
 	unsigned int i, len;
@@ -296,7 +296,7 @@ static char *get_key(int index)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_64 out[SHA_BUF_SIZ];
+	static uint64_t out[SHA_BUF_SIZ];
 	char *realcipher = (char*)out;
 	int i;
 
@@ -336,7 +336,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (new_keys) {
 			int i;
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
-				ARCH_WORD_64 *keybuffer = saved_key[index + i];
+				uint64_t *keybuffer = saved_key[index + i];
 				unsigned char *wucp = (unsigned char*)keybuffer;
 				int j, len = (keybuffer[15] >> 3) - SALT_SIZE;
 
@@ -382,23 +382,23 @@ static int get_hash_5(int index) { return (crypt_out[index])[0] & PH_MASK_5; }
 static int get_hash_6(int index) { return (crypt_out[index])[0] & PH_MASK_6; }
 #endif
 
-static int binary_hash_0(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_0; }
-static int binary_hash_1(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_1; }
-static int binary_hash_2(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_2; }
-static int binary_hash_3(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_3; }
-static int binary_hash_4(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_4; }
-static int binary_hash_5(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_5; }
-static int binary_hash_6(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_6; }
+static int binary_hash_0(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_5; }
+static int binary_hash_6(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_6; }
 
 static int cmp_all(void *binary, int count)
 {
 	unsigned int index;
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_64
-		if (((ARCH_WORD_64*)binary)[0] == crypt_out[HASH_IDX])
+		if (((uint64_t*)binary)[0] == crypt_out[HASH_IDX])
 			return 1;
 #else
-		if ( ((ARCH_WORD_64*)binary)[0] == crypt_out[index][0] )
+		if ( ((uint64_t*)binary)[0] == crypt_out[index][0] )
 			return 1;
 #endif
 	return 0;
@@ -407,7 +407,7 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_64
-	return (((ARCH_WORD_64*)binary)[0] == crypt_out[HASH_IDX]);
+	return (((uint64_t*)binary)[0] == crypt_out[HASH_IDX]);
 #else
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 #endif
@@ -415,12 +415,12 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	ARCH_WORD_64 *binary = get_binary(source);
+	uint64_t *binary = get_binary(source);
 #if SIMD_COEF_64
 	char *key = get_key(index);
 	UTF16 wkey[PLAINTEXT_LENGTH];
 	SHA512_CTX ctx;
-	ARCH_WORD_64 crypt_out[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
+	uint64_t crypt_out[DIGEST_SIZE / sizeof(uint64_t)];
 	int len;
 
 	len = enc_to_utf16(wkey, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));

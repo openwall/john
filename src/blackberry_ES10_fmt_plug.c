@@ -204,9 +204,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int i;
 		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE],
 		              *keys, tmpBuf[128];
-		ARCH_WORD_64 *keys64, *tmpBuf64=(ARCH_WORD_64*)tmpBuf, *p64;
+		uint64_t *keys64, *tmpBuf64=(uint64_t*)tmpBuf, *p64;
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
-		keys64 = (ARCH_WORD_64*)keys;
+		keys64 = (uint64_t*)keys;
 		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -223,7 +223,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (j = 0; j < 98; j++)
 			SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 		// Last one with FLAT_OUT
-		SIMDSHA512body(keys, (ARCH_WORD_64*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
+		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, saved_key[index], strlen(saved_key[index]));

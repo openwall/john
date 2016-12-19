@@ -643,8 +643,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_64
 		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*8+MEM_ALIGN_SIMD];
-		ARCH_WORD_64 *sse_out;
-		sse_out = (ARCH_WORD_64 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
+		uint64_t *sse_out;
+		sse_out = (uint64_t *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
 		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,MEM_ALIGN_SIMD);
 
@@ -748,7 +748,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			{
 				int j, k;
 				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
-					ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_struct->cptr[k][idx];
+					uint64_t *o = (uint64_t *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
 						*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
 				}
@@ -759,7 +759,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		{
 			int j, k;
 			for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
-				ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_out[MixOrder[index+k]];
+				uint64_t *o = (uint64_t *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
 					*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
 			}
@@ -778,7 +778,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if ARCH_LITTLE_ENDIAN
 			{
 				int j;
-				ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_struct->cptr[0][idx];
+				uint64_t *o = (uint64_t *)crypt_struct->cptr[0][idx];
 				for (j = 0; j < 8; ++j)
 					*o++ = JOHNSWAP64(ctx.h[j]);
 			}
@@ -802,7 +802,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if ARCH_LITTLE_ENDIAN
 		{
 			int j;
-			ARCH_WORD_64 *o = (ARCH_WORD_64 *)crypt_out[MixOrder[index]];
+			uint64_t *o = (uint64_t *)crypt_out[MixOrder[index]];
 			for (j = 0; j < 8; ++j)
 				*o++ = JOHNSWAP64(ctx.h[j]);
 		}

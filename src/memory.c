@@ -625,14 +625,14 @@ void alter_endianity_w(void *_x, unsigned int count) {
 
 void alter_endianity_w64(void *_x, unsigned int count) {
 	int i = -1;
-	ARCH_WORD_64 *x = (ARCH_WORD_64*)_x;
+	uint64_t *x = (uint64_t*)_x;
 #if ARCH_ALLOWS_UNALIGNED
 	while (++i < count) {
 		x[i] = JOHNSWAP64(x[i]);
 	}
 #else
 	unsigned char *cpX, c;
-	if (is_aligned(x,sizeof(ARCH_WORD_64))) {
+	if (is_aligned(x,sizeof(uint64_t))) {
 		// we are in alignment.
 		while (++i < count) {
 			x[i] = JOHNSWAP64(x[i]);
