@@ -1896,6 +1896,7 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	char *ciphertext, *pos;
 	int hash;
 	struct db_cracked *current, *last;
+	struct fmt_main *fmt_tmp;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
@@ -1959,8 +1960,15 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 		}
 
 		/* Jumbo-specific; needed for legacy pot entries */
-		ciphertext = fmt_list->methods.split(ciphertext, 0, fmt_list);
+		fmt_tmp = fmt_list;
 
+		do {
+			if (fmt_tmp->methods.valid(ciphertext, fmt_tmp))
+				break;
+		} while((fmt_tmp = fmt_tmp->next));
+
+		if (fmt_tmp)
+			ciphertext = fmt_tmp->methods.split(ciphertext, 0, fmt_tmp);
 		hash = ldr_cracked_hash(ciphertext);
 
 		last = db->cracked_hash[hash];
