@@ -1157,7 +1157,8 @@ int ldr_trunc_valid(char *ciphertext, struct fmt_main *format)
 {
 	int i;
 
-	if (!format->params.signature[0] || !ldr_in_pot)
+	if (!ldr_in_pot || !format->params.signature[0] ||
+	    !strstr(ciphertext, "$SOURCE_HASH$"))
 		goto plain_valid;
 
 	for (i = 0; i < FMT_SIGNATURES && format->params.signature[i]; ++i) {
@@ -1896,58 +1897,23 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	char *ciphertext, *pos;
 	int hash;
 	struct db_cracked *current, *last;
-	struct fmt_main *fmt_tmp;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
-	if (options.format &&
-	    !strcasecmp(options.format, "raw-sha1-linkedin")) {
-		if (!strncmp(ciphertext, "$dynamic_26$", 12))
-			memset(ciphertext + 12, '0', 5);
-		else if (!strncmp(ciphertext, "{SHA}", 5)) {
-			char out[40+1];
-			static char tmp[40+5+1]; // larger than needed, but we know its big enough.
-			base64_convert(ciphertext + 5, e_b64_mime,
-			    strlen(ciphertext) - 5, out, e_b64_hex, sizeof(out), 0, 0);
-			memcpy(out, "00000", 5);
-			ciphertext = tmp;
-			strcpy(tmp, "{SHA}");
-			base64_convert(out, e_b64_hex, 40, ciphertext + 5,
-			    e_b64_mime, sizeof(tmp)-5, flg_Base64_MIME_TRAIL_EQ, 0);
-		}
-	}
-#ifndef DYNAMIC_DISABLED
-	else
-	if (!strncmp(ciphertext, "$dynamic_", 9) && strstr(ciphertext, "$HEX$"))
-	{
-		char Tmp[512], *cp=Tmp;
-		int alloced=0;
-		if (strlen(ciphertext)>sizeof(Tmp)) {
-			cp = (char*)mem_alloc(strlen(ciphertext)+1);
-			alloced = 1;
-		}
-		RemoveHEX(Tmp, ciphertext);
-			// tmp will always be 'shorter' or equal length to ciphertext
-			strcpy(ciphertext, Tmp);
-		if (alloced)
-			MEM_FREE(cp);
-	}
-#endif
 	if (line) {
-/* If just one format was forced on the command line, insist on it */
-		if (!fmt_list->next) {
-			if (strstr(ciphertext, "$SOURCE_HASH$")) {
-				int fnd = 0, i;
-				for (i = 0;  !fnd && fmt_list->params.signature[i]; ++i) {
-					if (!strncmp(ciphertext, fmt_list->params.signature[i], strlen(fmt_list->params.signature[i])))
-						fnd = 1;
-				}
-				if (!fnd)
-					return;
-			}
-			else if (!fmt_list->methods.valid(ciphertext, fmt_list))
-				return;
-		}
+		struct fmt_main *format = fmt_list;
+/*
+ * Jumbo-specific; split() needed for legacy pot entries so we need to
+ * enumerate formats and call valid(). This also takes care of the situation
+ * where a specific format was requested.
+ */
+		do {
+			if (ldr_trunc_valid(ciphertext, format) == 1)
+				break;
+		} while((format = format->next));
+
+		if (!format)
+			return;
 
 		pos = line;
 		do {
@@ -1959,16 +1925,7 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 			return;
 		}
 
-		/* Jumbo-specific; needed for legacy pot entries */
-		fmt_tmp = fmt_list;
-
-		do {
-			if (fmt_tmp->methods.valid(ciphertext, fmt_tmp))
-				break;
-		} while((fmt_tmp = fmt_tmp->next));
-
-		if (fmt_tmp)
-			ciphertext = fmt_tmp->methods.split(ciphertext, 0, fmt_tmp);
+		ciphertext = format->methods.split(ciphertext, 0, format);
 		hash = ldr_cracked_hash(ciphertext);
 
 		last = db->cracked_hash[hash];
