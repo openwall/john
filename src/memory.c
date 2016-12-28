@@ -390,13 +390,13 @@ void dump_stuff_be_msg_sepline(const void *msg, void *x, unsigned int size) {
 }
 
 void alter_endianity(void *_x, unsigned int size) {
-	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
+	uint32_t *x = (uint32_t*)_x;
 
 	// size is in octets
 	size>>=2;
 
 #if !ARCH_ALLOWS_UNALIGNED
-	if (is_aligned(x, sizeof(ARCH_WORD_32))) {
+	if (is_aligned(x, sizeof(uint32_t))) {
 #endif
 		while (size--) {
 			*x = JOHNSWAP(*x);
@@ -595,14 +595,14 @@ void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsign
 
 void alter_endianity_w(void *_x, unsigned int count) {
 	int i = -1;
-	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
+	uint32_t *x = (uint32_t*)_x;
 #if ARCH_ALLOWS_UNALIGNED
 	while (++i < count) {
 		x[i] = JOHNSWAP(x[i]);
 	}
 #else
 	unsigned char *cpX, c;
-	if (is_aligned(x,sizeof(ARCH_WORD_32))) {
+	if (is_aligned(x,sizeof(uint32_t))) {
 		// we are in alignment.
 		while (++i < count) {
 			x[i] = JOHNSWAP(x[i]);

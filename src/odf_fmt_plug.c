@@ -50,7 +50,7 @@ john_register_one(&fmt_odf);
 #define BINARY_SIZE		20
 #define PLAINTEXT_LENGTH	125
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			sizeof(int)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
@@ -75,7 +75,7 @@ static struct fmt_tests odf_tests[] = {
 static int omp_t = 1;
 #endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[32 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int cipher_type;

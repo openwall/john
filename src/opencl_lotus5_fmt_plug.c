@@ -214,14 +214,14 @@ static int cmp_all (void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_key + index * BINARY_SIZE_IN_ARCH_WORD_32, BINARY_SIZE))
+		if (!memcmp(binary, crypt_key + index * BINARY_SIZE_IN_uint32_t, BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one (void *binary, int index)
 {
-	return !memcmp(binary, crypt_key + index * BINARY_SIZE_IN_ARCH_WORD_32, BINARY_SIZE);
+	return !memcmp(binary, crypt_key + index * BINARY_SIZE_IN_uint32_t, BINARY_SIZE);
 }
 
 static int cmp_exact (char *source, int index)
@@ -262,13 +262,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int get_hash_0(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] & PH_MASK_6; }
+static int get_hash_0(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_6; }
 
 /* C's version of a class specifier */
 struct fmt_main fmt_opencl_1otus5 = {

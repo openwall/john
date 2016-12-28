@@ -90,7 +90,7 @@ static struct skey_salt_st {
 	char	seed[SKEY_MAX_SEED_LEN + 1];
 	unsigned char	hash[SKEY_BINKEY_SIZE];
 } saved_salt;
-static ARCH_WORD_32 saved_key[SKEY_BINKEY_SIZE/4];
+static uint32_t saved_key[SKEY_BINKEY_SIZE/4];
 static char	saved_pass[PLAINTEXT_LENGTH + 1];
 
 static void *skey_salt(char *ciphertext);

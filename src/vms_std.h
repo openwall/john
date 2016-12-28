@@ -12,7 +12,7 @@
 #include "arch.h"
 #include "common.h"
 
-typedef ARCH_WORD_32 VMS_word;
+typedef uint32_t VMS_word;
 
 /*
  * Include defnitions for uaf_encode.c functions.

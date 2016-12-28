@@ -155,10 +155,10 @@ static int get_hash_6(int index) { return crcs[index] & PH_MASK_6; }
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 *out;
+	static uint32_t *out;
 	char *p;
 	if (!out)
-		out = mem_alloc_tiny(sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
+		out = mem_alloc_tiny(sizeof(uint32_t), MEM_ALIGN_WORD);
 	p = strchr(ciphertext, '.');
 	sscanf(&p[1], "%x", out);
 	// Performing the complement here, allows us to not have to complement
@@ -169,11 +169,11 @@ static void *get_binary(char *ciphertext)
 
 static void *get_salt(char *ciphertext)
 {
-	static ARCH_WORD_32 *out;
+	static uint32_t *out;
 	char *cp;
 
 	if (!out)
-		out = mem_alloc_tiny(sizeof(ARCH_WORD_32)*2, MEM_ALIGN_WORD);
+		out = mem_alloc_tiny(sizeof(uint32_t)*2, MEM_ALIGN_WORD);
 	cp = strrchr(ciphertext, '$');
 	sscanf(&cp[1], "%x", out);
 	// since we ask for the crc of a file, or zero, we need to complement here,
@@ -239,13 +239,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void set_salt(void *salt)
 {
-	crcsalt = *((ARCH_WORD_32 *)salt);
+	crcsalt = *((uint32_t *)salt);
 	crctype = ((char*)salt)[4];
 }
 
 static int cmp_all(void *binary, int count)
 {
-	ARCH_WORD_32 crc=*((ARCH_WORD_32*)binary), i;
+	uint32_t crc=*((uint32_t*)binary), i;
 	for (i = 0; i < count; ++i)
 		if (crc == crcs[i]) return 1;
 	return 0;
@@ -253,7 +253,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == crcs[index];
+	return *((uint32_t*)binary) == crcs[index];
 }
 
 static int cmp_exact(char *source, int index)
@@ -263,7 +263,7 @@ static int cmp_exact(char *source, int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 static unsigned int crc32_ver(void *salt)

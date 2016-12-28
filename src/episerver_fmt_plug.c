@@ -122,7 +122,7 @@ static uint32_t *saved_key;
 static uint32_t *crypt_out;
 #else
 static char (*saved_key)[3 * PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 #endif
 
 static struct custom_salt {
@@ -333,7 +333,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 		if (*((uint32_t*)binary) == crypt_out[HASH_IDX_OUT])
 #else
-		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
+		if (*((uint32_t*)binary) == crypt_out[index][0])
 #endif
 			return 1;
 	}
@@ -345,7 +345,7 @@ static int cmp_one(void *binary, int index)
 #if SIMD_COEF_32
 	return *((uint32_t*)binary) == crypt_out[HASH_IDX_OUT];
 #else
-	return (*((ARCH_WORD_32*)binary) == crypt_out[index][0]);
+	return (*((uint32_t*)binary) == crypt_out[index][0]);
 #endif
 }
 

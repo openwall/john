@@ -129,14 +129,14 @@ static unsigned char *saved_key;
 static unsigned char *key_buf;
 static unsigned char *empty_key;
 static unsigned char *crypt_key;
-static ARCH_WORD_32 *cur_salt;
+static uint32_t *cur_salt;
 static int new_salt;
 static int new_key;
 
 #else
 
 static char (*saved_key)[2*MD5_HEX_SIZE];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE / sizeof(uint32_t)];
 
 #endif
 
@@ -211,7 +211,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[BINARY_SIZE/4];
+	static uint32_t out[BINARY_SIZE/4];
 	unsigned char *binary_cipher = (unsigned char*)out;
 	int i;
 
@@ -226,7 +226,7 @@ static void *get_binary(char *ciphertext)
 
 static void *get_salt(char *ciphertext)
 {
-	static ARCH_WORD_32 hex_salt[MD5_HEX_SIZE/4];
+	static uint32_t hex_salt[MD5_HEX_SIZE/4];
 	unsigned char binary_salt[SALT_LENGTH];
 	unsigned char salt_hash[BINARY_SIZE];
 	static MD5_CTX ctx;
@@ -326,8 +326,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		if (new_salt)
 		for (index = 0; index < NBKEYS; index++) {
-			const ARCH_WORD_32 *sp = cur_salt;
-			ARCH_WORD_32 *kb = (ARCH_WORD_32*)&saved_key[GETPOS(0, ti)];
+			const uint32_t *sp = cur_salt;
+			uint32_t *kb = (uint32_t*)&saved_key[GETPOS(0, ti)];
 
 			for (i = 0; i < MD5_HEX_SIZE / 4; i++, kb += SIMD_COEF_32)
 				*kb = *sp++;
@@ -335,9 +335,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		if (new_key)
 		for (index = 0; index < NBKEYS; index++) {
-			const ARCH_WORD_32 *key = (ARCH_WORD_32*)saved_plain[ti];
-			ARCH_WORD_32 *kb = (ARCH_WORD_32*)&key_buf[GETPOS(0, ti)];
-			ARCH_WORD_32 *keybuffer = kb;
+			const uint32_t *key = (uint32_t*)saved_plain[ti];
+			uint32_t *kb = (uint32_t*)&key_buf[GETPOS(0, ti)];
+			uint32_t *keybuffer = kb;
 			int len, temp;
 
 			len = 0;
@@ -420,7 +420,7 @@ static int cmp_all(void *binary, int count) {
 #endif
 		for(x = 0; x < SIMD_COEF_32; x++)
 		{
-			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+x] )
+			if( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
 		}
 	return 0;
@@ -445,7 +445,7 @@ static int cmp_one(void * binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
+		if ( ((uint32_t*)binary)[i] != ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
 			return 0;
 	return 1;
 #else
@@ -455,26 +455,26 @@ static int cmp_one(void * binary, int index)
 
 #ifdef SIMD_COEF_32
 #define HASH_OFFSET (index&(SIMD_COEF_32-1))+((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*4
-static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_6; }
 #endif
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_IPB2 = {

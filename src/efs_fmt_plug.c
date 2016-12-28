@@ -270,7 +270,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 #endif
@@ -299,7 +299,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 			lens[i] = 20;
 			pin[i] = (unsigned char*)out2[i];
-			x.pout[i] = (ARCH_WORD_32*)(out[i]);
+			x.pout[i] = (uint32_t*)(out[i]);
 #endif
 		}
 #ifdef SIMD_COEF_32

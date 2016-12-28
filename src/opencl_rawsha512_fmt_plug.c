@@ -215,37 +215,37 @@ static char *get_key(int index)
 
 static int binary_hash_0(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & PH_MASK_0;
+	return *((uint32_t *)binary+6) & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & PH_MASK_1;
+	return *((uint32_t *)binary+6) & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & PH_MASK_2;
+	return *((uint32_t *)binary+6) & PH_MASK_2;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & PH_MASK_3;
+	return *((uint32_t *)binary+6) & PH_MASK_3;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & PH_MASK_4;
+	return *((uint32_t *)binary+6) & PH_MASK_4;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & PH_MASK_5;
+	return *((uint32_t *)binary+6) & PH_MASK_5;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & PH_MASK_6;
+	return *((uint32_t *)binary+6) & PH_MASK_6;
 }
 
 static int get_hash_0(int index)

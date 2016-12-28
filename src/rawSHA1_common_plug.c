@@ -144,7 +144,7 @@ char *rawsha1_axcrypt_split(char *ciphertext, int index, struct fmt_main *self)
 
 void *rawsha1_common_get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[DIGEST_SIZE / 4];
+	static uint32_t out[DIGEST_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)out;
 
 	ciphertext += TAG_LENGTH;

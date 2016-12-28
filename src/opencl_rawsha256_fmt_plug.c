@@ -117,9 +117,9 @@ static uint32_t get_num_loaded_hashes()
 	return num_hashes;
 }
 
-static ARCH_WORD_32 *crypt_one(int index) {
+static uint32_t *crypt_one(int index) {
 	SHA256_CTX ctx;
-	static ARCH_WORD_32 hash[DIGEST_SIZE / sizeof(ARCH_WORD_32)];
+	static uint32_t hash[DIGEST_SIZE / sizeof(uint32_t)];
 
 	char * key = get_key(index);
 	int len = strlen(key);
@@ -129,7 +129,7 @@ static ARCH_WORD_32 *crypt_one(int index) {
 	SHA256_Final((unsigned char *) (hash), &ctx);
 
 #ifdef SIMD_COEF_32
-	alter_endianity_to_BE(hash, DIGEST_SIZE / sizeof(ARCH_WORD_32));
+	alter_endianity_to_BE(hash, DIGEST_SIZE / sizeof(uint32_t));
 #endif
 	return hash;
 }
@@ -391,7 +391,7 @@ static void clear_keys(void)
 static void set_key(char *_key, int index)
 {
 
-	const ARCH_WORD_32 *key = (ARCH_WORD_32 *) _key;
+	const uint32_t *key = (uint32_t *) _key;
 	int len = strlen(_key);
 
 	saved_idx[index] = (key_idx << 6) | len;
@@ -697,7 +697,7 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	uint32_t *binary;
-	ARCH_WORD_32 *full_hash;
+	uint32_t *full_hash;
 
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");

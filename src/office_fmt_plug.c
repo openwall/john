@@ -113,7 +113,7 @@ static int omp_t = 1;
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 /* UCS-2 password length, in octets */
 static int *saved_len;
-static ARCH_WORD_32 (*crypt_key)[4];
+static uint32_t (*crypt_key)[4];
 static int *cracked;
 
 /* Office 2010/2013 */
@@ -321,7 +321,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		// 28 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 224;
 	}
-	SIMDSHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i)
 		memcpy(hashBuf[i], crypt[i], 20);
 
@@ -330,7 +330,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		for (j = 0; j < 8; ++j)
 			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-	SIMDSHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i)
 		memcpy(&hashBuf[i][32], crypt[i], 20);
 
@@ -615,7 +615,7 @@ static int cmp_all(void *binary, int count)
 	int index;
 	if (cur_salt->version == 2007) {
 		for (index = 0; index < count; index++) {
-			if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+			if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
 				return 1;
 		}
 		return 0;

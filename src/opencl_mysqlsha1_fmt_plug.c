@@ -349,7 +349,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[BINARY_SIZE / 4];
+	static uint32_t out[BINARY_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)out;
 	int i;
 
@@ -377,7 +377,7 @@ static void clear_keys(void)
 
 static void set_key(char *_key, int index)
 {
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	const uint32_t *key = (uint32_t*)_key;
 	int len = strlen(_key);
 
 	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {

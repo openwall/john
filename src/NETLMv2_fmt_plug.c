@@ -395,42 +395,42 @@ static char *get_key(int index)
 static int salt_hash(void *salt)
 {
 	// Hash the client challenge (in case server salt was spoofed)
-	return (*(ARCH_WORD_32 *)salt+8) & (SALT_HASH_SIZE - 1);
+	return (*(uint32_t *)salt+8) & (SALT_HASH_SIZE - 1);
 }
 
 static int get_hash_0(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_0;
+	return *(uint32_t *)output[index] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_1;
+	return *(uint32_t *)output[index] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_2;
+	return *(uint32_t *)output[index] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_3;
+	return *(uint32_t *)output[index] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_4;
+	return *(uint32_t *)output[index] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_5;
+	return *(uint32_t *)output[index] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_6;
+	return *(uint32_t *)output[index] & PH_MASK_6;
 }
 
 struct fmt_main fmt_NETLMv2 = {

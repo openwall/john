@@ -48,8 +48,8 @@
 // JtR this is MORE than enough.
 typedef struct
 {
-	ARCH_WORD_32 h[8];          // SHA256 state
-	ARCH_WORD_32 Nl,Nh;         // UNUSED but here to be compatible with oSSL
+	uint32_t h[8];          // SHA256 state
+	uint32_t Nl,Nh;         // UNUSED but here to be compatible with oSSL
 	unsigned char buffer[64];   // current/building data 'block'. It IS in alignment
 	unsigned int num,md_len;    // UNUSED but here to be compatible with oSSL
 	unsigned int total;         // number of bytes processed
@@ -126,7 +126,7 @@ extern void jtr_sha512_hash_block(jtr_sha512_ctx *ctx, const unsigned char data[
 	} while(0)
 
 #else
-#define OUTBE32(n,b,i) *((ARCH_WORD_32*)&(b[i]))=n
+#define OUTBE32(n,b,i) *((uint32_t*)&(b[i]))=n
 #define OUTBE64(n,b,i) *((uint64_t*)&(b[i]))=n
 #endif
 

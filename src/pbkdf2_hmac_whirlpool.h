@@ -74,7 +74,7 @@ static void _pbkdf2_whirlpool_load_hmac(const unsigned char *K, int KL, WHIRLPOO
 	WHIRLPOOL_Update(pOpad, opad, WHIRLPOOL_CBLOCK);
 }
 
-static void _pbkdf2_whirlpool(const unsigned char *S, int SL, int R, ARCH_WORD_32 *out,
+static void _pbkdf2_whirlpool(const unsigned char *S, int SL, int R, uint32_t *out,
 	                     unsigned char loop, const WHIRLPOOL_CTX *pIpad, const WHIRLPOOL_CTX *pOpad) {
 	WHIRLPOOL_CTX ctx;
 	unsigned char tmp_hash[WHIRLPOOL_DIGEST_LENGTH];
@@ -101,15 +101,15 @@ static void _pbkdf2_whirlpool(const unsigned char *S, int SL, int R, ARCH_WORD_3
 		memcpy(&ctx, pOpad, sizeof(WHIRLPOOL_CTX));
 		WHIRLPOOL_Update(&ctx, tmp_hash, WHIRLPOOL_DIGEST_LENGTH);
 		WHIRLPOOL_Final(tmp_hash, &ctx);
-		for(j = 0; j < WHIRLPOOL_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++) {
-			out[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
+		for(j = 0; j < WHIRLPOOL_DIGEST_LENGTH/sizeof(uint32_t); j++) {
+			out[j] ^= ((uint32_t*)tmp_hash)[j];
 		}
 	}
 }
 static void pbkdf2_whirlpool(const unsigned char *K, int KL, const unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
 {
 	union {
-		ARCH_WORD_32 x32[WHIRLPOOL_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
+		uint32_t x32[WHIRLPOOL_DIGEST_LENGTH/sizeof(uint32_t)];
 		unsigned char out[WHIRLPOOL_DIGEST_LENGTH];
 	} tmp;
 	int loop, loops, i, accum=0;

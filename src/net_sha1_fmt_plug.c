@@ -53,7 +53,7 @@ john_register_one(&fmt_netsha1);
 
 #define PLAINTEXT_LENGTH        20  // get this right ;)
 #define BINARY_SIZE             20
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              MEM_ALIGN_WORD
 #define MIN_KEYS_PER_CRYPT      1
@@ -68,7 +68,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static void get_ptr();
 static void init(struct fmt_main *self);
 static void done(void);
@@ -76,7 +76,7 @@ static void done(void);
 #define MAGIC 0xfe5aa5ef
 
 static struct custom_salt {
-	ARCH_WORD_32 magic;
+	uint32_t magic;
 	int length;
 	unsigned char salt[MAX_SALT_LEN]; // fixed size, but should be OK
 } *cur_salt;
@@ -229,7 +229,7 @@ static int cmp_all(void *binary, int count)
 		return pDynamicFmt->methods.cmp_all(binary, count);
 	}
 	for (; index < count; index++)
-		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
+		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }

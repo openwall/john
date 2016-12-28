@@ -195,7 +195,7 @@ typedef struct cryptloopstruct_t {
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA512_Init() calls, in the inner loop */
 static const unsigned char padding[256] = { 0x80, 0 /* 0,0,0,0.... */ };

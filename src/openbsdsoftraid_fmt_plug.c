@@ -69,7 +69,7 @@ static int omp_t = 1;
 #define OPENBSD_SOFTRAID_KEYLENGTH  64  /* AES-XTS-256 keys are 512 bits long */
 #define OPENBSD_SOFTRAID_MACLENGTH  20
 #define BINARY_SIZE                 OPENBSD_SOFTRAID_MACLENGTH
-#define BINARY_ALIGN                sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN                sizeof(uint32_t)
 
 static struct fmt_tests tests_openbsdsoftraid[] = {
 	// too long of line was causing my Sparc box to fail to compile this code
@@ -81,7 +81,7 @@ $openbsd-softraid$8192$c2891132ca5305d1189a7da94d32de29182abc2f56dc641d685e47193
 };
 
 static char (*key_buffer)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	unsigned int  num_iterations;
@@ -260,14 +260,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (*(ARCH_WORD_32*)binary == *(ARCH_WORD_32*)(crypt_out[index]))
+		if (*(uint32_t*)binary == *(uint32_t*)(crypt_out[index]))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (*(ARCH_WORD_32*)binary == *(ARCH_WORD_32*)(crypt_out[index]));
+	return (*(uint32_t*)binary == *(uint32_t*)(crypt_out[index]));
 }
 
 static int cmp_exact(char *source, int index)

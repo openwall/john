@@ -250,13 +250,13 @@ void hash_plugin_check_hash(int index)
 	int lens[SSE_GROUP_SZ_SHA1], i;
 	unsigned char *pin[SSE_GROUP_SZ_SHA1];
 	union {
-		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+		uint32_t *pout[SSE_GROUP_SZ_SHA1];
 		unsigned char *poutc;
 	} x;
 	for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
 		lens[i] = strlen(saved_key[index+i]);
 		pin[i] = (unsigned char*)saved_key[index+i];
-		x.pout[i] = (ARCH_WORD_32*)(Keycandidate[i]);
+		x.pout[i] = (uint32_t*)(Keycandidate[i]);
 	}
 	pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, 16,
 		2000, &(x.poutc), cur_salt->keysize + 16, 0);

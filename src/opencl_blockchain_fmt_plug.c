@@ -252,7 +252,7 @@ static void *get_salt(char *ciphertext)
 
 	static union {
 		struct custom_salt _cs;
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} un;
 	struct custom_salt *cs = &(un._cs);
 

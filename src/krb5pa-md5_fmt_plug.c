@@ -125,13 +125,13 @@ static struct fmt_tests tests[] = {
 };
 
 static struct salt_t {
-	ARCH_WORD_32 checksum[CHECKSUM_SIZE / sizeof(ARCH_WORD_32)];
+	uint32_t checksum[CHECKSUM_SIZE / sizeof(uint32_t)];
 	unsigned char timestamp[TIMESTAMP_SIZE];
 } *cur_salt;
 
 static char (*saved_plain)[(PLAINTEXT_LENGTH+4)];
 static int (*saved_len);
-static ARCH_WORD_32 (*output)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*output)[BINARY_SIZE / sizeof(uint32_t)];
 static HMACMD5Context (*saved_ctx);
 
 static int keys_prepared;
@@ -406,7 +406,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (index = 0; index < count; index++)
 #endif
-		if (*(ARCH_WORD_32*)binary == output[index][0])
+		if (*(uint32_t*)binary == output[index][0])
 			return 1;
 	return 0;
 }

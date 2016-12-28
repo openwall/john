@@ -81,7 +81,7 @@ static struct custom_salt {
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[PBKDF2_SHA256_BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[PBKDF2_SHA256_BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -153,7 +153,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[SSE_GROUP_SZ_SHA256], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA256];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+			uint32_t *pout[SSE_GROUP_SZ_SHA256];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {

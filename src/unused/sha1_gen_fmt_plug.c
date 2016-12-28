@@ -51,7 +51,7 @@ static char saved_salt[SALT_SIZE];
 static int saved_len;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static SHA_CTX ctx;
-static ARCH_WORD_32 crypt_out[5];
+static uint32_t crypt_out[5];
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -78,7 +78,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;

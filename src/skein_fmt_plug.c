@@ -88,7 +88,7 @@ static struct fmt_tests skein_512_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE512 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE512 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {

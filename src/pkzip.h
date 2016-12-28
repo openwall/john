@@ -6,7 +6,7 @@
 typedef unsigned short u16;
 typedef unsigned char u8;
 typedef          char c8;
-typedef ARCH_WORD_32 u32;
+typedef uint32_t u32;
 
 #include "crc32.h"
 

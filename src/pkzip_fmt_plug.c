@@ -60,7 +60,7 @@ john_register_one(&fmt_pkzip);
 #define BINARY_ALIGN        1
 
 #define SALT_SIZE           (sizeof(PKZ_SALT*))
-#define SALT_ALIGN          (sizeof(ARCH_WORD_32))
+#define SALT_ALIGN          (sizeof(uint32_t))
 
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  64
@@ -542,7 +542,7 @@ static void *get_salt(char *ciphertext)
 	/* NOTE, almost NO error checking at all in this function.  Proper error checking done in valid() */
 	static union alignment {
 		unsigned char c[8];
-		ARCH_WORD_32 a[1];
+		uint32_t a[1];
 	} a;
 	unsigned char *salt_p = a.c;
 	PKZ_SALT *salt, *psalt;

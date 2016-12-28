@@ -41,7 +41,7 @@ john_register_one(&fmt_as400des);
 #define CIPHERTEXT_LENGTH       16
 #define BINARY_SIZE             8
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -153,7 +153,7 @@ static struct custom_salt {
 	unsigned char userid[10 + 1];
 } *cur_salt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {

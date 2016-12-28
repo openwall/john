@@ -82,8 +82,8 @@ static struct fmt_tests tests_64[] = {
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)
-    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)
+    [(BINARY_SIZE + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 static char *cur_salt;
 static int salt_len;
 
@@ -132,10 +132,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 #define TO_BINARY(b1, b2, b3) \
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+	value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
 	pos += 4; \
 	out[b1] = value >> 16; \
 	out[b2] = value >> 8; \
@@ -145,8 +145,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // We are actually missing the last 16 bits with this implementation.
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
-	ARCH_WORD_32 value;
+	static uint32_t outbuf[BINARY_SIZE/4];
+	uint32_t value;
 	char *pos;
 	unsigned char *out = (unsigned char*)outbuf;
 	int i;
@@ -157,10 +157,10 @@ static void *get_binary(char *ciphertext)
 	for (i = 0; i < 20; i++) {
 		TO_BINARY(i, i + 21, i + 42);
 	}
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18);
+	value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] |
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) |
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18);
 	out[20] = value >> 16;
 	out[41] = value >> 8;
 

@@ -206,9 +206,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static ARCH_WORD_32 *generate_des_format(uchar* binary)
+static uint32_t *generate_des_format(uchar* binary)
 {
-	static ARCH_WORD_32 out[6];
+	static uint32_t out[6];
 	ARCH_WORD block[6];
 	int chr, src,dst,i;
 	uchar value, mask;
@@ -248,7 +248,7 @@ static void *get_binary(char *ciphertext)
 {
 	uchar binary[BINARY_SIZE];
 	int i;
-	ARCH_WORD_32 *ptr;
+	uint32_t *ptr;
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
 	for (i=0; i<BINARY_SIZE; i++) {
@@ -316,17 +316,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return DES_bs_cmp_all((ARCH_WORD_32 *)binary, count);
+	return DES_bs_cmp_all((uint32_t *)binary, count);
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, index);
+	return DES_bs_cmp_one((uint32_t *)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	ARCH_WORD_32 *binary = get_binary(source);
+	uint32_t *binary = get_binary(source);
 
 	if (!DES_bs_cmp_one(binary, 64, index))
 		return 0;
@@ -419,7 +419,7 @@ static char *get_key(int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t *)salt & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_NETNTLM_old = {

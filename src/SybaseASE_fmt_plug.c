@@ -102,12 +102,12 @@ static struct fmt_tests SybaseASE_tests[] = {
 static UTF16 (*prep_key)[4][MAX_KEYS_PER_CRYPT][64 / sizeof(UTF16)];
 static unsigned char *NULL_LIMB;
 static int (*last_len);
-static ARCH_WORD_32 (*crypt_cache)[BINARY_SIZE/4];
+static uint32_t (*crypt_cache)[BINARY_SIZE/4];
 #else
 static UTF16 (*prep_key)[518 / sizeof(UTF16)];
 static SHA256_CTX (*prep_ctx);
 #endif
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE/4];
+static uint32_t (*crypt_out)[BINARY_SIZE/4];
 static int kpc, dirty;
 
 extern struct fmt_main fmt_SybaseASE;
@@ -200,7 +200,7 @@ static void *get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char u8[SALT_SIZE];
-		ARCH_WORD_32 u32;
+		uint32_t u32;
 	} out;
 	int i;
 	char *p = ciphertext + FORMAT_TAG_LEN;
@@ -380,7 +380,7 @@ static int cmp_all(void *binary, int count)
     int index = 0;
 
     for (index = 0; index < count; index++)
-        if (*(ARCH_WORD_32 *)binary == *(ARCH_WORD_32 *)crypt_out[index])
+        if (*(uint32_t *)binary == *(uint32_t *)crypt_out[index])
             return 1;
     return 0;
 }
@@ -397,7 +397,7 @@ static int cmp_exact(char *source, int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_SybaseASE = {

@@ -48,7 +48,7 @@ john_register_one(&fmt_nsec3);
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT              1
 #define BINARY_SIZE                     20
-#define BINARY_ALIGN                    sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN                    sizeof(uint32_t)
 #define N3_MAX_SALT_SIZE                255
 #define N3_MAX_ZONE_SIZE                255
 #define HASH_LENGTH                     20
@@ -79,7 +79,7 @@ static unsigned char saved_key[PLAINTEXT_LENGTH + 1];
 static unsigned char saved_wf_label[PLAINTEXT_LENGTH + 2];
 
 static SHA_CTX sha_ctx;
-static ARCH_WORD_32 crypt_out[5];
+static uint32_t crypt_out[5];
 
 static void convert_label_wf(void)
 {

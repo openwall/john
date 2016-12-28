@@ -51,12 +51,12 @@ john_register_one(&FMT_STRUCT);
 #define CIPHERTEXT_LENGTH		(PLAINTEXT_LENGTH + FORMAT_TAG_LEN)
 
 typedef struct {
-	ARCH_WORD_32 hash;
+	uint32_t hash;
 	char c0;
 } plaintext_binary;
 
 #define BINARY_SIZE			sizeof(plaintext_binary)
-#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN			sizeof(uint32_t)
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 
@@ -91,9 +91,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static MAYBE_INLINE ARCH_WORD_32 string_hash(char *s)
+static MAYBE_INLINE uint32_t string_hash(char *s)
 {
-	ARCH_WORD_32 hash, extra;
+	uint32_t hash, extra;
 	char *p;
 
 	p = s + 2;
@@ -140,20 +140,20 @@ static void *get_binary(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	ARCH_WORD_32 hash = ((plaintext_binary *)binary)->hash;
+	uint32_t hash = ((plaintext_binary *)binary)->hash;
 	hash ^= hash >> 8;
 	return (hash ^ (hash >> 4)) & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	ARCH_WORD_32 hash = ((plaintext_binary *)binary)->hash;
+	uint32_t hash = ((plaintext_binary *)binary)->hash;
 	return (hash ^ (hash >> 8)) & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	ARCH_WORD_32 hash = ((plaintext_binary *)binary)->hash;
+	uint32_t hash = ((plaintext_binary *)binary)->hash;
 	return (hash ^ (hash >> 12)) & PH_MASK_2;
 }
 
@@ -179,20 +179,20 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	uint32_t hash = string_hash(saved_key[index]);
 	hash ^= hash >> 8;
 	return (hash ^ (hash >> 4)) & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	uint32_t hash = string_hash(saved_key[index]);
 	return (hash ^ (hash >> 8)) & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	uint32_t hash = string_hash(saved_key[index]);
 	return (hash ^ (hash >> 12)) & PH_MASK_2;
 }
 

@@ -21,7 +21,7 @@ extern struct fmt_tests BF_common_tests[];
 #define FORMAT_TAG3			"$2x$"
 #define FORMAT_TAG4			"$2b$"
 
-typedef ARCH_WORD_32 BF_word;
+typedef uint32_t BF_word;
 
 /*
  * Binary salt type, also keeps the number of rounds and hash sub-type.

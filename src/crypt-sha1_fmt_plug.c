@@ -75,7 +75,7 @@ john_register_one(&fmt_cryptsha1);
 // static struct fmt_tests sha1crypt_common_tests[] = {  // located in sha1crypt_common.c
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct saltstruct {
 	unsigned int length;
@@ -143,7 +143,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[SSE_GROUP_SZ_SHA1], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			uint32_t *pout[SSE_GROUP_SZ_SHA1];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {

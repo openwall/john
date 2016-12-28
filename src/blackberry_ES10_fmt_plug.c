@@ -80,7 +80,7 @@ static struct fmt_tests blackberry_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int iterations;
@@ -159,7 +159,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	int i;

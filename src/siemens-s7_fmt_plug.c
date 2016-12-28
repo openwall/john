@@ -43,7 +43,7 @@ john_register_one(&fmt_s7);
 #define CIPHERTEXT_LENGTH	(1 + 10 + 1 + 1 + 1 + 40 + 1 + 40)
 #define BINARY_SIZE		20
 #define SALT_SIZE		20
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	8
@@ -55,7 +55,7 @@ static struct fmt_tests s7_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static int new_keys;
 static SHA_CTX *ipad_ctx;
 static SHA_CTX *opad_ctx;
@@ -236,7 +236,7 @@ static int cmp_all(void *binary, int count)
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
-		if (*(ARCH_WORD_32*)binary == crypt_out[index][0])
+		if (*(uint32_t*)binary == crypt_out[index][0])
 			return 1;
 	return 0;
 }

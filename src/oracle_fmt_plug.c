@@ -97,7 +97,7 @@ static UTF16 cur_salt[SALT_SIZE / 2 + PLAINTEXT_LENGTH];
 static UTF16 (*cur_key)[PLAINTEXT_LENGTH + 1];
 static char (*plain_key)[PLAINTEXT_LENGTH + 1];
 static int (*key_length);
-static ARCH_WORD_32 (*crypt_key)[2];
+static uint32_t (*crypt_key)[2];
 
 static DES_key_schedule desschedule_static;
 
@@ -386,9 +386,9 @@ static int get_hash_6(int idx) { return crypt_key[idx][0] & PH_MASK_6; }
 static int cmp_all(void *binary, int count)
 {
 	int i;
-	ARCH_WORD_32 b = *(ARCH_WORD_32*)binary;
+	uint32_t b = *(uint32_t*)binary;
 	for (i = 0; i < count; ++i)
-		if (b == *((ARCH_WORD_32*)(crypt_key[i])) )
+		if (b == *((uint32_t*)(crypt_key[i])) )
 			return 1;
 	return 0;
 }

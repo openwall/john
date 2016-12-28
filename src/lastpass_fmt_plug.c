@@ -48,7 +48,7 @@ john_register_one(&fmt_lastpass);
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			sizeof(int)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
@@ -70,7 +70,7 @@ static struct fmt_tests lastpass_tests[] = {
 static int omp_t = 1;
 #endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[32 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int iterations;
@@ -184,9 +184,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
-		ARCH_WORD_32 key[MAX_KEYS_PER_CRYPT][8];
+		uint32_t key[MAX_KEYS_PER_CRYPT][8];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {

@@ -90,7 +90,7 @@ typedef struct my_salt_t {
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 #define PLAINTEXT_LENGTH	125
-#define BINARY_ALIGN        sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN        sizeof(uint32_t)
 #define SALT_SIZE           sizeof(my_salt*)
 #define SALT_ALIGN          sizeof(my_salt*)
 #ifdef SIMD_COEF_32
@@ -320,7 +320,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		union {
 			unsigned char pwd_ver[64];
-			ARCH_WORD_32 w;
+			uint32_t w;
 		} x;
 		unsigned char *pwd_ver = x.pwd_ver;
 		pbkdf2_sha1((unsigned char *)saved_key[index], strlen(saved_key[index]),
@@ -350,14 +350,14 @@ static int cmp_all(void *binary, int count)
 	int i;
 
 	for (i = 0; i < count; i++)
-		if (((ARCH_WORD_32*)&(crypt_key[i]))[0] == ((ARCH_WORD_32*)binary)[0])
+		if (((uint32_t*)&(crypt_key[i]))[0] == ((uint32_t*)binary)[0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (((ARCH_WORD_32*)&(crypt_key[index]))[0] == ((ARCH_WORD_32*)binary)[0]);
+	return (((uint32_t*)&(crypt_key[index]))[0] == ((uint32_t*)binary)[0]);
 }
 
 static int cmp_exact(char *source, int index)

@@ -66,7 +66,7 @@ Exit:;
 }
 
 static void *get_binary(char *ciphertext) {
-	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
+	static uint32_t outbuf[BINARY_SIZE/4];
 	unsigned char *out = (unsigned char*)outbuf;
 	memset(outbuf, 0, sizeof(outbuf));
 	ciphertext = strchr(&ciphertext[1], '@') + 1;

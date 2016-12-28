@@ -176,7 +176,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} binary;
 	int i;
 
@@ -245,7 +245,7 @@ static void *get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char c[SALT_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} out;
 	int i;
 
@@ -283,42 +283,42 @@ static char *get_key(int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t *)salt & (SALT_HASH_SIZE - 1);
 }
 
 static int get_hash_0(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_0;
+	return *(uint32_t *)output[index] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_1;
+	return *(uint32_t *)output[index] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_2;
+	return *(uint32_t *)output[index] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_3;
+	return *(uint32_t *)output[index] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_4;
+	return *(uint32_t *)output[index] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_5;
+	return *(uint32_t *)output[index] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_6;
+	return *(uint32_t *)output[index] & PH_MASK_6;
 }
 
 struct fmt_main fmt_NETHALFLM = {

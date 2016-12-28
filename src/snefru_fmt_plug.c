@@ -71,7 +71,7 @@ static struct fmt_tests snefru_256_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE256 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE256 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {

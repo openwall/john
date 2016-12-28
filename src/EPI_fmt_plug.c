@@ -44,7 +44,7 @@ john_register_one(&fmt_EPI);
 
 #define PLAINTEXT_LENGTH   125
 #define BINARY_LENGTH      20
-#define BINARY_ALIGN       sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN       sizeof(uint32_t)
 #define SALT_LENGTH        30
 #define SALT_ALIGN         4
 #define MIN_KEYS_PER_CRYPT		1
@@ -52,7 +52,7 @@ john_register_one(&fmt_EPI);
 
 static int (*key_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_LENGTH / 4];
+static uint32_t (*crypt_out)[BINARY_LENGTH / 4];
 static char global_salt[SALT_LENGTH+1];
 
 static struct fmt_tests global_tests[] =
@@ -187,7 +187,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++)
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_out[index][0] )
 			return 1;
 	return 0;
 }
@@ -212,7 +212,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 // Define john integration

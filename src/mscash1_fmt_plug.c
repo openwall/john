@@ -209,10 +209,10 @@ static void * get_salt_utf8(char *_ciphertext)
 	unsigned int md4_size;
 	UTF16 ciphertext_utf16[21];
 	int len;
-	static ARCH_WORD_32 *out=0;
+	static uint32_t *out=0;
 
-	if (!out) out = mem_alloc_tiny(11*sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
-	memset(out, 0, 11*sizeof(ARCH_WORD_32));
+	if (!out) out = mem_alloc_tiny(11*sizeof(uint32_t), MEM_ALIGN_WORD);
+	memset(out, 0, 11*sizeof(uint32_t));
 
 	ciphertext+=FORMAT_TAG_LEN;
 	len = ((unsigned char*)strchr((char*)ciphertext, '#')) - ciphertext;

@@ -285,7 +285,7 @@ void alter_endianity_w64(void *x, unsigned int count);
 #define alter_endianity_to_LE(ptr,word32_cnt) do{ \
     int i; \
     for (i=0;i<word32_cnt; i++) \
-        ((ARCH_WORD_32*)ptr)[i] = JOHNSWAP(((ARCH_WORD_32*)ptr)[i]); \
+        ((uint32_t*)ptr)[i] = JOHNSWAP(((uint32_t*)ptr)[i]); \
 }while(0)
 #define alter_endianity_to_LE64(ptr,word64_cnt) do{ \
     int i; \
@@ -298,7 +298,7 @@ void alter_endianity_w64(void *x, unsigned int count);
 #define alter_endianity_to_BE(ptr,word32_cnt) do{ \
     int i; \
     for (i=0;i<word32_cnt; i++) \
-        ((ARCH_WORD_32*)ptr)[i] = JOHNSWAP(((ARCH_WORD_32*)ptr)[i]); \
+        ((uint32_t*)ptr)[i] = JOHNSWAP(((uint32_t*)ptr)[i]); \
 }while(0)
 #define alter_endianity_to_BE64(ptr,word64_cnt) do{ \
     int i; \

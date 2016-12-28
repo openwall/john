@@ -60,7 +60,7 @@ john_register_one(&fmt_stribog_512);
 #define BINARY_SIZE_512		64
 #define SALT_SIZE		0
 #define SALT_ALIGN		1
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -96,7 +96,7 @@ static struct fmt_tests stribog_512_tests[] = {
 
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE_512 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE_512 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {

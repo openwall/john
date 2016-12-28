@@ -366,7 +366,7 @@ static void clear_keys(void)
 
 static void set_key(char *_key, int index)
 {
-        const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+        const uint32_t *key = (uint32_t*)_key;
         int len = strlen(_key);
 
         saved_idx[index] = (key_idx << 6) | len;

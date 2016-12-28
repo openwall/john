@@ -91,12 +91,12 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef SIMD_COEF_32
-static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
-static ARCH_WORD_32 (*saved_key)[64/4];
+static uint32_t (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
+static uint32_t (*saved_key)[64/4];
 static int sz;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4];
+static uint32_t (*crypt_key)[DIGEST_SIZE/4];
 #endif
 
 static void init(struct fmt_main *self)
@@ -247,9 +247,9 @@ static int cmp_all(void *binary, int count) {
 	int index;
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32])
+        if (((uint32_t *) binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
 #endif
 			return 1;
 	return 0;
@@ -259,8 +259,8 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
     int i;
-	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
-        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32+i*SIMD_COEF_32])
+	for (i = 0; i < BINARY_SIZE/sizeof(uint32_t); i++)
+        if (((uint32_t *) binary)[i] != ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32+i*SIMD_COEF_32])
             return 0;
 	return 1;
 #else

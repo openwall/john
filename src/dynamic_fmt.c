@@ -216,11 +216,11 @@ static struct fmt_tests dynamic_tests[] = {
 // SSE2 works only with 54 byte keys. Thus, md5(md5($p).md5($s)) can NOT be used
 // with the SSE2, since that final md5 will be over a 64 byte block of data.
 static union SIMD_inpup {
-	ARCH_WORD_32 w[(64*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
+	uint32_t w[(64*SIMD_COEF_32)/sizeof(uint32_t)];
 	unsigned char c[64*SIMD_COEF_32];
 } *input_buf, *input_buf2;
 static union SIMD_crypt {
-	ARCH_WORD_32 w[(BINARY_SIZE*SIMD_COEF_32)/sizeof(ARCH_WORD_32)];
+	uint32_t w[(BINARY_SIZE*SIMD_COEF_32)/sizeof(uint32_t)];
 	unsigned char c[BINARY_SIZE*SIMD_COEF_32];
 } *crypt_key, *crypt_key2;
 static unsigned int (*total_len)[SIMD_COEF_32];
@@ -1180,7 +1180,7 @@ static void set_salt(void *salt)
 	saltlen <<= 3;
 	saltlen += *cpsalt++ - '0';
 #if ARCH_ALLOWS_UNALIGNED
-	if (*((ARCH_WORD_32*)cpsalt) != 0x30303030)
+	if (*((uint32_t*)cpsalt) != 0x30303030)
 #else
 	if (memcmp(cpsalt, "0000", 4))
 #endif
@@ -1259,17 +1259,17 @@ static void set_key(char *key, int index)
 		if (dynamic_use_sse==1) {
 			// code derived from rawMD5_fmt_plug.c code from magnum
 #if ARCH_ALLOWS_UNALIGNED
-			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
+			const uint32_t *key32 = (uint32_t*)key;
 #else
 			char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-			const ARCH_WORD_32 *key32 = is_aligned(key, sizeof(uint32_t)) ?
+			const uint32_t *key32 = is_aligned(key, sizeof(uint32_t)) ?
 					(uint32_t*)key : (uint32_t*)strcpy(buf_aligned, key);
 #endif
 			unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
-			ARCH_WORD_32 *keybuf_word = keybuffer;
+			uint32_t *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
+			uint32_t *keybuf_word = keybuffer;
 			unsigned int len;
-			ARCH_WORD_32 temp;
+			uint32_t temp;
 
 			len = 0;
 			while((temp = *key32++) & 0xff) {
@@ -1379,7 +1379,7 @@ static char *get_key(int index)
 //if (curdat.store_keys_in_input && dynamic_use_sse==1)
 
 //			s = saved_key_len[index];  // NOTE, we now have to get the length from the buffer, we do NOT store it into a saved_key_len buffer.
-			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
+			uint32_t *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
 			s = keybuffer[14*SIMD_COEF_32] >> 3;
 			for(i=0;i<s;i++)
 				out[i] = input_buf[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
@@ -1419,7 +1419,7 @@ static int cmp_all(void *binary, int count)
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
-				if( *((ARCH_WORD_32 *)binary) == crypt_key[i].w[j])
+				if( *((uint32_t *)binary) == crypt_key[i].w[j])
 					return 1;
 		}
 		return 0;
@@ -1428,12 +1428,12 @@ static int cmp_all(void *binary, int count)
 	for (i = 0; i < count; i++) {
 #if MD5_X2
 		if (i&1) {
-			if (!(((ARCH_WORD_32 *)binary)[0] - crypt_key_X86[i>>MD5_X2].x2.w2[0]))
+			if (!(((uint32_t *)binary)[0] - crypt_key_X86[i>>MD5_X2].x2.w2[0]))
 				return 1;
 		}
 		else
 #endif
-		if (!(((ARCH_WORD_32 *)binary)[0] - crypt_key_X86[i>>MD5_X2].x1.w[0]))
+		if (!(((uint32_t *)binary)[0] - crypt_key_X86[i>>MD5_X2].x1.w[0]))
 			return 1;
 	}
 	return 0;
@@ -1454,7 +1454,7 @@ static int cmp_all_64_4x6(void *binary, int count)
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
-				if( *((ARCH_WORD_32 *)binary) == (crypt_key[i].w[j] & MASK_4x6))
+				if( *((uint32_t *)binary) == (crypt_key[i].w[j] & MASK_4x6))
 					return 1;
 		}
 		return 0;
@@ -1463,12 +1463,12 @@ static int cmp_all_64_4x6(void *binary, int count)
 	for (i = 0; i < count; i++) {
 #if MD5_X2
 		if (i&1) {
-			if (!(((ARCH_WORD_32 *)binary)[0] - (crypt_key_X86[i>>MD5_X2].x2.w2[0]&MASK_4x6)))
+			if (!(((uint32_t *)binary)[0] - (crypt_key_X86[i>>MD5_X2].x2.w2[0]&MASK_4x6)))
 				return 1;
 		}
 		else
 #endif
-		if (!(((ARCH_WORD_32 *)binary)[0] - (crypt_key_X86[i>>MD5_X2].x1.w[0]&MASK_4x6)))
+		if (!(((uint32_t *)binary)[0] - (crypt_key_X86[i>>MD5_X2].x1.w[0]&MASK_4x6)))
 			return 1;
 	}
 	return 0;
@@ -1492,10 +1492,10 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		if( (((ARCH_WORD_32 *)binary)[0] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
-			(((ARCH_WORD_32 *)binary)[1] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
-			(((ARCH_WORD_32 *)binary)[2] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
-			(((ARCH_WORD_32 *)binary)[3] == ((ARCH_WORD_32 *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]))
+		if( (((uint32_t *)binary)[0] == ((uint32_t *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
+			(((uint32_t *)binary)[1] == ((uint32_t *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
+			(((uint32_t *)binary)[2] == ((uint32_t *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
+			(((uint32_t *)binary)[3] == ((uint32_t *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]))
 			return 1;
 		return 0;
 	}
@@ -1503,18 +1503,18 @@ static int cmp_one(void *binary, int index)
 
 #if MD5_X2
 	if (index & 1) {
-		if ( (((ARCH_WORD_32 *)binary)[0] == crypt_key_X86[index>>MD5_X2].x2.w2[0] ) &&
-             (((ARCH_WORD_32 *)binary)[1] == crypt_key_X86[index>>MD5_X2].x2.w2[1] ) &&
-             (((ARCH_WORD_32 *)binary)[2] == crypt_key_X86[index>>MD5_X2].x2.w2[2] ) &&
-             (((ARCH_WORD_32 *)binary)[3] == crypt_key_X86[index>>MD5_X2].x2.w2[3] ) )
+		if ( (((uint32_t *)binary)[0] == crypt_key_X86[index>>MD5_X2].x2.w2[0] ) &&
+             (((uint32_t *)binary)[1] == crypt_key_X86[index>>MD5_X2].x2.w2[1] ) &&
+             (((uint32_t *)binary)[2] == crypt_key_X86[index>>MD5_X2].x2.w2[2] ) &&
+             (((uint32_t *)binary)[3] == crypt_key_X86[index>>MD5_X2].x2.w2[3] ) )
 			 return 1;
 		return 0;
 	}
 #endif
-	if ( (((ARCH_WORD_32 *)binary)[0] == crypt_key_X86[index>>MD5_X2].x1.w[0] ) &&
-		 (((ARCH_WORD_32 *)binary)[1] == crypt_key_X86[index>>MD5_X2].x1.w[1] ) &&
-		 (((ARCH_WORD_32 *)binary)[2] == crypt_key_X86[index>>MD5_X2].x1.w[2] ) &&
-		 (((ARCH_WORD_32 *)binary)[3] == crypt_key_X86[index>>MD5_X2].x1.w[3] ) )
+	if ( (((uint32_t *)binary)[0] == crypt_key_X86[index>>MD5_X2].x1.w[0] ) &&
+		 (((uint32_t *)binary)[1] == crypt_key_X86[index>>MD5_X2].x1.w[1] ) &&
+		 (((uint32_t *)binary)[2] == crypt_key_X86[index>>MD5_X2].x1.w[2] ) &&
+		 (((uint32_t *)binary)[3] == crypt_key_X86[index>>MD5_X2].x1.w[3] ) )
 		 return 1;
 	return 0;
 }
@@ -1524,28 +1524,28 @@ static int cmp_one_64_4x6(void *binary, int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		if( (((ARCH_WORD_32 *)binary)[0] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
-			(((ARCH_WORD_32 *)binary)[1] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
-			(((ARCH_WORD_32 *)binary)[2] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
-			(((ARCH_WORD_32 *)binary)[3] == (((ARCH_WORD_32 *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)))
+		if( (((uint32_t *)binary)[0] == (((uint32_t *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
+			(((uint32_t *)binary)[1] == (((uint32_t *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
+			(((uint32_t *)binary)[2] == (((uint32_t *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
+			(((uint32_t *)binary)[3] == (((uint32_t *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)))
 			return 1;
 		return 0;
 	}
 #endif
 #if MD5_X2
 	if (index & 1) {
-		if ( (((ARCH_WORD_32*)binary)[0] == (crypt_key_X86[index>>MD5_X2].x2.w2[0] & MASK_4x6)) &&
-			 (((ARCH_WORD_32*)binary)[1] == (crypt_key_X86[index>>MD5_X2].x2.w2[1] & MASK_4x6)) &&
-			 (((ARCH_WORD_32*)binary)[2] == (crypt_key_X86[index>>MD5_X2].x2.w2[2] & MASK_4x6)) &&
-			 (((ARCH_WORD_32*)binary)[3] == (crypt_key_X86[index>>MD5_X2].x2.w2[3] & MASK_4x6)) )
+		if ( (((uint32_t*)binary)[0] == (crypt_key_X86[index>>MD5_X2].x2.w2[0] & MASK_4x6)) &&
+			 (((uint32_t*)binary)[1] == (crypt_key_X86[index>>MD5_X2].x2.w2[1] & MASK_4x6)) &&
+			 (((uint32_t*)binary)[2] == (crypt_key_X86[index>>MD5_X2].x2.w2[2] & MASK_4x6)) &&
+			 (((uint32_t*)binary)[3] == (crypt_key_X86[index>>MD5_X2].x2.w2[3] & MASK_4x6)) )
 			return 1;
 		return 0;
 	}
 #endif
-	if ( (((ARCH_WORD_32*)binary)[0] == (crypt_key_X86[index>>MD5_X2].x1.w[0] & MASK_4x6)) &&
-		 (((ARCH_WORD_32*)binary)[1] == (crypt_key_X86[index>>MD5_X2].x1.w[1] & MASK_4x6)) &&
-		 (((ARCH_WORD_32*)binary)[2] == (crypt_key_X86[index>>MD5_X2].x1.w[2] & MASK_4x6)) &&
-		 (((ARCH_WORD_32*)binary)[3] == (crypt_key_X86[index>>MD5_X2].x1.w[3] & MASK_4x6)) )
+	if ( (((uint32_t*)binary)[0] == (crypt_key_X86[index>>MD5_X2].x1.w[0] & MASK_4x6)) &&
+		 (((uint32_t*)binary)[1] == (crypt_key_X86[index>>MD5_X2].x1.w[1] & MASK_4x6)) &&
+		 (((uint32_t*)binary)[2] == (crypt_key_X86[index>>MD5_X2].x1.w[2] & MASK_4x6)) &&
+		 (((uint32_t*)binary)[3] == (crypt_key_X86[index>>MD5_X2].x1.w[3] & MASK_4x6)) )
 		return 1;
 	return 0;
 }
@@ -1845,12 +1845,12 @@ extern char *MD5_DumpHexStr(void *p);
 
 #if !ARCH_LITTLE_ENDIAN
 // the lower 8 bits is zero on the binary (but filled in on the hash).  We need to dump the low 8
-static int binary_hash_0_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_0; }
-static int binary_hash_1_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_1; }
-static int binary_hash_2_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_2; }
-static int binary_hash_3_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_3; }
-static int binary_hash_4_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_4; }
-static int binary_hash_5_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & PH_MASK_5; }
+static int binary_hash_0_64x4(void * binary) { return (((uint32_t *)binary)[0]>>8) & PH_MASK_0; }
+static int binary_hash_1_64x4(void * binary) { return (((uint32_t *)binary)[0]>>8) & PH_MASK_1; }
+static int binary_hash_2_64x4(void * binary) { return (((uint32_t *)binary)[0]>>8) & PH_MASK_2; }
+static int binary_hash_3_64x4(void * binary) { return (((uint32_t *)binary)[0]>>8) & PH_MASK_3; }
+static int binary_hash_4_64x4(void * binary) { return (((uint32_t *)binary)[0]>>8) & PH_MASK_4; }
+static int binary_hash_5_64x4(void * binary) { return (((uint32_t *)binary)[0]>>8) & PH_MASK_5; }
 static int get_hash_0_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & PH_MASK_0;
@@ -1890,7 +1890,7 @@ static int get_hash_0(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_0;
+		return ((uint32_t *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_0;
 	}
 #endif
 #if MD5_X2
@@ -1905,7 +1905,7 @@ static int get_hash_1(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_1;
+		return ((uint32_t *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_1;
 	}
 #endif
 #if MD5_X2
@@ -1920,7 +1920,7 @@ static int get_hash_2(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_2;
+		return ((uint32_t *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_2;
 	}
 #endif
 #if MD5_X2
@@ -1935,7 +1935,7 @@ static int get_hash_3(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_3;
+		return ((uint32_t *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_3;
 	}
 #endif
 #if MD5_X2
@@ -1950,7 +1950,7 @@ static int get_hash_4(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_4;
+		return ((uint32_t *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_4;
 	}
 #endif
 #if MD5_X2
@@ -1965,7 +1965,7 @@ static int get_hash_5(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_5;
+		return ((uint32_t *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_5;
 	}
 #endif
 #if MD5_X2
@@ -1980,7 +1980,7 @@ static int get_hash_6(int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		return ((ARCH_WORD_32 *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_6;
+		return ((uint32_t *)&(crypt_key[idx].c))[index&(SIMD_COEF_32-1)] & PH_MASK_6;
 	}
 #endif
 #if MD5_X2
@@ -2443,7 +2443,7 @@ static unsigned dynamic_this_salt_length(const void *v) {
 	l <<= 3;
 	l += *s++ - '0';
 #if ARCH_ALLOWS_UNALIGNED
-	if (*((ARCH_WORD_32*)s) == 0x30303030)
+	if (*((uint32_t*)s) == 0x30303030)
 #else
 	if (!memcmp(s, "0000", 4))
 #endif
@@ -2764,7 +2764,7 @@ static void * binary_b64a(char *ciphertext)
  *********************************************************************************/
 static void * binary_b64_4x6(char *ciphertext)
 {
-	static ARCH_WORD_32 *b;
+	static uint32_t *b;
 	unsigned int i;
 	char *pos;
 
@@ -2910,7 +2910,7 @@ static void Dynamic_Load_itoa16_w2()
  **************************************************************
  *************************************************************/
 
-static void __SSE_append_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned char *CRY, unsigned int idx_mod)
+static void __SSE_append_output_base16_to_input(uint32_t *IPBdw, unsigned char *CRY, unsigned int idx_mod)
 {
 	// #3
     // 5955K  (core2, $dynamic_2$)
@@ -2958,7 +2958,7 @@ static void __SSE_append_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned ch
 #undef inc
 }
 
-static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned char *CRY, unsigned int idx_mod)
+static void __SSE_overwrite_output_base16_to_input(uint32_t *IPBdw, unsigned char *CRY, unsigned int idx_mod)
 {
 	// #3
     // 5955K  (core2, $dynamic_2$)
@@ -3004,7 +3004,7 @@ static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned
 #undef inc
 }
 
-static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned int ip, ARCH_WORD_32 *IPBdw, unsigned char *CRY, unsigned int idx_mod)
+static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned int ip, uint32_t *IPBdw, unsigned char *CRY, unsigned int idx_mod)
 {
 	// #1
     // 9586k/4740k  (core2, $dynamic_9$)
@@ -3024,35 +3024,35 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned int ip, 
 
 	// first byte handled here.
 	*IPBdw &= 0xFFFF;
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 
 	*IPBdw = (itoa16_w2[*CRY++]);
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 	*IPBdw = (itoa16_w2[*CRY++]);
 	CRY += incCRY;
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 
 	*IPBdw = (itoa16_w2[*CRY++]);
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 	*IPBdw = (itoa16_w2[*CRY++]);
 	CRY += incCRY;
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 
 	*IPBdw = (itoa16_w2[*CRY++]);
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 	*IPBdw = (itoa16_w2[*CRY++]);
 	CRY += incCRY;
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 
 	*IPBdw = (itoa16_w2[*CRY++]);
-	*IPBdw |= (((ARCH_WORD_32)(itoa16_w2[*CRY++]))<<16);
+	*IPBdw |= (((uint32_t)(itoa16_w2[*CRY++]))<<16);
 	IPBdw += inc;
 	*IPBdw = (itoa16_w2[*CRY++]);
 
@@ -3063,7 +3063,7 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned int ip, 
 #undef incCRY
 }
 
-static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned int ip, ARCH_WORD_32 *IPBdw, unsigned char *CRY, unsigned int idx_mod)
+static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned int ip, uint32_t *IPBdw, unsigned char *CRY, unsigned int idx_mod)
 {
 	// #2
     // 6083k  (core2, $dynamic_2$)
@@ -3079,34 +3079,34 @@ static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned int ip, 
 	IPBdw += (ip>>2)*SIMD_COEF_32;
 	CRY += (idx_mod<<2);
 
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 	IPBdw += inc;
 	CRY += 2;
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 	IPBdw += inc;
 //	CRY += (inc*3)+2;
 	CRY += incCRY;
 
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 	IPBdw += inc;
 	CRY += 2;
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 	IPBdw += inc;
 //	CRY += (inc*3)+2;
 	CRY += incCRY;
 
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 	IPBdw += inc;
 	CRY += 2;
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 	IPBdw += inc;
 //	CRY += (inc*3)+2;
 	CRY += incCRY;
 
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 	IPBdw += inc;
 	CRY += 2;
-	*IPBdw = (((ARCH_WORD_32)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
+	*IPBdw = (((uint32_t)(itoa16_w2[*(CRY+1)]))<<16)|(itoa16_w2[*CRY]);
 
 	// Add the 0x80 at the proper location (offset 0x21)
 	IPBdw += inc;
@@ -3133,13 +3133,13 @@ static void __SSE_append_string_to_input_unicode(unsigned char *IPB, unsigned in
 		w32_cnt = len>>1;
         if (w32_cnt)
         {
-            ARCH_WORD_32 *wpO;
-            wpO = (ARCH_WORD_32*)&IPB[GETPOS(bf_ptr, idx_mod)];
+            uint32_t *wpO;
+            wpO = (uint32_t*)&IPB[GETPOS(bf_ptr, idx_mod)];
             len -= (w32_cnt<<1);
             bf_ptr += (w32_cnt<<2);
             do
             {
-				ARCH_WORD_32 x = 0;
+				uint32_t x = 0;
                 x = cp[1];
 				x <<= 16;
 				x += cp[0];
@@ -3193,13 +3193,13 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned int idx_mo
         unsigned int w32_cnt = len>>2;
         if (w32_cnt)
         {
-            ARCH_WORD_32 *wpO;
-            wpO = (ARCH_WORD_32*)&IPB[GETPOS(bf_ptr, idx_mod)];
+            uint32_t *wpO;
+            wpO = (uint32_t*)&IPB[GETPOS(bf_ptr, idx_mod)];
             len -= (w32_cnt<<2);
             bf_ptr += (w32_cnt<<2);
             do
             {
-                *wpO = *((ARCH_WORD_32*)cp);
+                *wpO = *((uint32_t*)cp);
                 cp += 4;
                 wpO += SIMD_COEF_32;
             }
@@ -4994,7 +4994,7 @@ void DynamicFunc__append_input2_from_input2(DYNA_OMP_PARAMS)
 #ifdef SIMD_PARA_MD5
 static void SSE_Intrinsics_LoadLens_md5(int side, int i)
 {
-	ARCH_WORD_32 *p;
+	uint32_t *p;
 	unsigned int j, k;
 	if (side == 0)
 	{
@@ -5019,7 +5019,7 @@ static void SSE_Intrinsics_LoadLens_md5(int side, int i)
 #ifdef SIMD_PARA_MD4
 static void SSE_Intrinsics_LoadLens_md4(int side, int i)
 {
-	ARCH_WORD_32 *p;
+	uint32_t *p;
 	unsigned int j, k;
 	if (side == 0)
 	{
@@ -6293,8 +6293,8 @@ void DynamicFunc__append_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 			ip = total_len[idx][index&(SIMD_COEF_32-1)];
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = input_buf[idx].w;
-				ARCH_WORD_32 *pi = crypt_key2[idx].w;
+				uint32_t *po = input_buf[idx].w;
+				uint32_t *pi = crypt_key2[idx].w;
 				po += (index&(SIMD_COEF_32-1));
 				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
@@ -6356,8 +6356,8 @@ void DynamicFunc__append2_from_last_output2_as_raw(DYNA_OMP_PARAMS)
 			ip = total_len2[idx][index&(SIMD_COEF_32-1)];
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = input_buf2[idx].w;
-				ARCH_WORD_32 *pi = crypt_key2[idx].w;
+				uint32_t *po = input_buf2[idx].w;
+				uint32_t *pi = crypt_key2[idx].w;
 				po += (index&(SIMD_COEF_32-1));
 				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
@@ -6419,8 +6419,8 @@ void DynamicFunc__append_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 			ip = total_len[idx][index&(SIMD_COEF_32-1)];
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = input_buf[idx].w;
-				ARCH_WORD_32 *pi = crypt_key[idx].w;
+				uint32_t *po = input_buf[idx].w;
+				uint32_t *pi = crypt_key[idx].w;
 				po += (index&(SIMD_COEF_32-1));
 				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
@@ -6482,8 +6482,8 @@ void DynamicFunc__append2_from_last_output1_as_raw(DYNA_OMP_PARAMS)
 			ip = total_len2[idx][index&(SIMD_COEF_32-1)];
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = input_buf2[idx].w;
-				ARCH_WORD_32 *pi = crypt_key[idx].w;
+				uint32_t *po = input_buf2[idx].w;
+				uint32_t *pi = crypt_key[idx].w;
 				po += (index&(SIMD_COEF_32-1));
 				pi += (index&(SIMD_COEF_32-1));
 				for (i = 0; i < 4; i++)
@@ -6751,8 +6751,8 @@ void DynamicFunc__SSEtoX86_switch_input1(DYNA_OMP_PARAMS)
 
 	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
-		ARCH_WORD_32 *cpi;
-		ARCH_WORD_32 *cpo[SIMD_COEF_32];
+		uint32_t *cpi;
+		uint32_t *cpo[SIMD_COEF_32];
 #if (MD5_X2)
 		for (i = 0; i < SIMD_COEF_32; i += 2) {
 			cpo[i  ] = input_buf_X86[(j>>1)+(i>>1)].x1.w;
@@ -6801,8 +6801,8 @@ void DynamicFunc__SSEtoX86_switch_input2(DYNA_OMP_PARAMS)
 
 	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
-		ARCH_WORD_32 *cpi;
-		ARCH_WORD_32 *cpo[SIMD_COEF_32];
+		uint32_t *cpi;
+		uint32_t *cpo[SIMD_COEF_32];
 #if (MD5_X2)
 		for (i = 0; i < SIMD_COEF_32; i += 2) {
 			cpo[i  ] = input_buf2_X86[(j>>1)+(i>>1)].x1.w;
@@ -6852,8 +6852,8 @@ void DynamicFunc__SSEtoX86_switch_output1(DYNA_OMP_PARAMS)
 
 	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
-		ARCH_WORD_32 *cpi;
-		ARCH_WORD_32 *cpo[SIMD_COEF_32];
+		uint32_t *cpi;
+		uint32_t *cpo[SIMD_COEF_32];
 #if MD5_X2
 		for (i = 0; i < SIMD_COEF_32; i += 2) {
 			cpo[i  ] = crypt_key_X86[(j>>1)+(i>>1)].x1.w;
@@ -6885,8 +6885,8 @@ void DynamicFunc__SSEtoX86_switch_output2(DYNA_OMP_PARAMS)
 
 	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
-		ARCH_WORD_32 *cpi;
-		ARCH_WORD_32 *cpo[SIMD_COEF_32];
+		uint32_t *cpi;
+		uint32_t *cpo[SIMD_COEF_32];
 #if (MD5_X2)
 		for (i = 0; i < SIMD_COEF_32; i += 2) {
 			cpo[i  ] = crypt_key2_X86[(j>>1)+(i>>1)].x1.w;
@@ -6963,8 +6963,8 @@ void DynamicFunc__X86toSSE_switch_output1(DYNA_OMP_PARAMS)
 
 	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
-		ARCH_WORD_32 *cpi;
-		ARCH_WORD_32 *cpo[SIMD_COEF_32];
+		uint32_t *cpi;
+		uint32_t *cpo[SIMD_COEF_32];
 #if (MD5_X2)
 		for (i = 0; i < SIMD_COEF_32; i += 2) {
 			cpo[i  ] = crypt_key_X86[(j>>1)+(i>>1)].x1.w;
@@ -6996,8 +6996,8 @@ void DynamicFunc__X86toSSE_switch_output2(DYNA_OMP_PARAMS)
 
 	for (j = 0; j < m_count; j += SIMD_COEF_32)
 	{
-		ARCH_WORD_32 *cpi;
-		ARCH_WORD_32 *cpo[SIMD_COEF_32];
+		uint32_t *cpi;
+		uint32_t *cpo[SIMD_COEF_32];
 #if (MD5_X2)
 		for (i = 0; i < SIMD_COEF_32; i += 2) {
 			cpo[i  ] = crypt_key2_X86[(j>>1)+(i>>1)].x1.w;

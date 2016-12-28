@@ -53,7 +53,7 @@ john_register_one(&fmt_vtp);
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        55 // keep under 1 MD5 block AND this is now tied into logic in vtp_secret_derive()
 #define BINARY_SIZE             16
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
@@ -69,7 +69,7 @@ static struct fmt_tests tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static unsigned char (*secret)[16];
 static int *saved_len, dirty;
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 /* VTP summary advertisement packet, partially based on original Yersinia code */
 typedef struct {
@@ -366,7 +366,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
+		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }

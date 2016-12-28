@@ -75,7 +75,7 @@ struct s_salt
 	unsigned int len;
 	union {
 		unsigned char c[MAX_SALT_LEN+1];
-		ARCH_WORD_32 w32;
+		uint32_t w32;
 	} data;
 };
 
@@ -83,14 +83,14 @@ static struct s_salt *saved_salt;
 
 
 #ifdef SIMD_COEF_32
-static ARCH_WORD_32 (*saved_key)[SHA_BUF_SIZ*NBKEYS];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/4*NBKEYS];
+static uint32_t (*saved_key)[SHA_BUF_SIZ*NBKEYS];
+static uint32_t (*crypt_key)[BINARY_SIZE/4*NBKEYS];
 static unsigned int *saved_len;
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 static int last_salt_size;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
+static uint32_t (*crypt_key)[BINARY_SIZE / 4];
 #endif
 
 static void init(struct fmt_main *self)
@@ -145,16 +145,16 @@ static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	const uint32_t *wkey = (uint32_t*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const ARCH_WORD_32 *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
+	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
 	                                       key : strcpy(buf_aligned, key));
 #endif
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
-	ARCH_WORD_32 *keybuf_word = keybuffer;
+	uint32_t *keybuffer = &((uint32_t*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
+	uint32_t *keybuf_word = keybuffer;
 	unsigned int len;
-	ARCH_WORD_32 temp;
+	uint32_t temp;
 
 	len = 0;
 	while((unsigned char)(temp = *wkey++)) {
@@ -229,9 +229,9 @@ static int cmp_all(void *binary, int count) {
 	unsigned int index;
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32])
+        if (((uint32_t *) binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)&(crypt_key[index][0]))[0] )
+		if ( ((uint32_t*)binary)[0] == ((uint32_t*)&(crypt_key[index][0]))[0] )
 #endif
 			return 1;
 	return 0;
@@ -246,8 +246,8 @@ static int cmp_one(void * binary, int index)
 {
 #ifdef SIMD_COEF_32
     int i;
-	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
-        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32+i*SIMD_COEF_32])
+	for (i = 0; i < BINARY_SIZE/sizeof(uint32_t); i++)
+        if (((uint32_t *) binary)[i] != ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32+i*SIMD_COEF_32])
             return 0;
 	return 1;
 #else

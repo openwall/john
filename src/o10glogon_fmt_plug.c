@@ -313,7 +313,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char buf[256], buf1[256];
 		unsigned int l;
-		ARCH_WORD_32 iv[2];
+		uint32_t iv[2];
 		DES_key_schedule desschedule2;
 
 		l = cur_salt->userlen + cur_key_len[idx];

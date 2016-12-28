@@ -241,7 +241,7 @@ static int binary_hash_0(void *binary)
 		printf("%08x ", b[i]);
 	puts("");
 #endif
-	return (((ARCH_WORD_32 *) binary)[0] & PH_MASK_0);
+	return (((uint32_t *) binary)[0] & PH_MASK_0);
 }
 
 static int get_hash_0(int index)

@@ -37,7 +37,7 @@ john_register_one(&fmt_bks);
 #define ALGORITHM_NAME		"PKCS12 PBE " SHA1_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH	31
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		sizeof(ARCH_WORD_32)
+#define SALT_ALIGN		sizeof(uint32_t)
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
 #define BENCHMARK_COMMENT	""

@@ -39,7 +39,7 @@ john_register_one(&fmt_cq);
 #define SALT_SIZE           64  // XXX double check this
 #define SALT_ALIGN          MEM_ALIGN_NONE
 #define BINARY_SIZE         4
-#define BINARY_ALIGN        sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN        sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  512
 
@@ -52,7 +52,7 @@ static struct fmt_tests cq_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE / sizeof(uint32_t)];
 static char saved_salt[SALT_SIZE];
 
 unsigned int AdRandomNumbers[2048] = {

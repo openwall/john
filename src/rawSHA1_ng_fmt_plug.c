@@ -178,7 +178,7 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
 {
 	register uint32_t result;
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
-	result = _rotl(value, count); //((value<<count)|((ARCH_WORD_32)value>>(32-count)));
+	result = _rotl(value, count); //((value<<count)|((uint32_t)value>>(32-count)));
 #elif __i386__ || __x86_64__
 	asm("rol    %%cl, %0"
 	    : "=r" (result)

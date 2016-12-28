@@ -40,7 +40,7 @@ john_register_one(&fmt_palshop);
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             10  /* 20 characters of "m2", now 10 binary bytes. */
 #define SALT_SIZE               0
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -57,7 +57,7 @@ static struct fmt_tests palshop_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[ (BINARY_SIZE+sizeof(ARCH_WORD_32)-1) / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[ (BINARY_SIZE+sizeof(uint32_t)-1) / sizeof(uint32_t)];
 static size_t *saved_len;
 
 static void init(struct fmt_main *self)
@@ -186,7 +186,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
+		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;
 }

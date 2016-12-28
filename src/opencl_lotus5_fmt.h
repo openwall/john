@@ -3,7 +3,7 @@
 
 #define PLAINTEXT_LENGTH               16
 #define BINARY_SIZE                    16
-#define BINARY_SIZE_IN_ARCH_WORD_32    (BINARY_SIZE >> 2)
+#define BINARY_SIZE_IN_uint32_t    (BINARY_SIZE >> 2)
 
 typedef struct {
 	union {

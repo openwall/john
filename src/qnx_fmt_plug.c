@@ -77,7 +77,7 @@ john_register_one(&fmt_qnx);
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 #ifdef SIMD_COEF_32
 static int *(sk_by_len[PLAINTEXT_LENGTH+1]);

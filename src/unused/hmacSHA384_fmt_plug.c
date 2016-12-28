@@ -94,7 +94,7 @@ static cur_salt_t *cur_salt;
 static int bufsize;
 #define SALT_SIZE               sizeof(cur_salt_t)
 #else
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE / sizeof(uint32_t)];
 static unsigned char (*opad)[PAD_SIZE];
 static unsigned char (*ipad)[PAD_SIZE];
 static unsigned char cur_salt[SALT_LENGTH+1];
@@ -279,18 +279,18 @@ static void set_key(char *key, int index)
 		}
 		if (!(temp & 0x00ff00000000ULL) || !(temp & 0x0000ff000000ULL))
 		{
-			((ARCH_WORD_32*)ipadp)[1] ^=
-				(ARCH_WORD_32)(temp >> 32);
-			((ARCH_WORD_32*)opadp)[1] ^=
-				(ARCH_WORD_32)(temp >> 32);
+			((uint32_t*)ipadp)[1] ^=
+				(uint32_t)(temp >> 32);
+			((uint32_t*)opadp)[1] ^=
+				(uint32_t)(temp >> 32);
 			break;
 		}
 		if (!(temp & 0x00ff0000) || !(temp & 0x0000ff00))
 		{
-			((ARCH_WORD_32*)ipadp)[1] ^=
-				(ARCH_WORD_32)(temp >> 32);
-			((ARCH_WORD_32*)opadp)[1] ^=
-				(ARCH_WORD_32)(temp >> 32);
+			((uint32_t*)ipadp)[1] ^=
+				(uint32_t)(temp >> 32);
+			((uint32_t*)opadp)[1] ^=
+				(uint32_t)(temp >> 32);
 			((unsigned short*)ipadp)[1] ^=
 				(unsigned short)(temp >> 16);
 			((unsigned short*)opadp)[1] ^=
@@ -362,7 +362,7 @@ static int cmp_all(void *binary, int count)
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 	for (; index < count; index++)
 #endif
-		if (((ARCH_WORD_32*)binary)[0] == crypt_key[index][0])
+		if (((uint32_t*)binary)[0] == crypt_key[index][0])
 			return 1;
 	return 0;
 #endif

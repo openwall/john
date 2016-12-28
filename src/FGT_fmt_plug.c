@@ -85,7 +85,7 @@ static SHA_CTX ctx_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int (*saved_key_len);
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -126,7 +126,7 @@ static void * get_salt(char *ciphertext)
 {
 	static union {
 		char b[SALT_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} out;
 	char buf[SALT_SIZE+BINARY_SIZE+1];
 
@@ -157,7 +157,7 @@ static void * get_binary(char *ciphertext)
 {
 	static union {
 		char b[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} bin;
 	char buf[SALT_SIZE+BINARY_SIZE+1];
 
@@ -172,11 +172,11 @@ static void * get_binary(char *ciphertext)
 
 static int cmp_all(void *binary, int count)
 {
-	ARCH_WORD_32 b0 = *(ARCH_WORD_32 *)binary;
+	uint32_t b0 = *(uint32_t *)binary;
 	int i;
 
 	for (i = 0; i < count; i++) {
-		if (b0 != *(ARCH_WORD_32 *)crypt_key[i])
+		if (b0 != *(uint32_t *)crypt_key[i])
 			continue;
 		if (!memcmp(binary, crypt_key[i], BINARY_SIZE))
 			return 1;
@@ -223,18 +223,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 
 
-static int get_hash_0(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t *)(crypt_key[index]))[0] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t *)(crypt_key[index]))[0] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t *)(crypt_key[index]))[0] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t *)(crypt_key[index]))[0] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t *)(crypt_key[index]))[0] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t *)(crypt_key[index]))[0] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t *)(crypt_key[index]))[0] & PH_MASK_6; }
 
 
 static int salt_hash(void *salt)
 {
-	ARCH_WORD_32 mysalt = *(ARCH_WORD_32 *)salt;
+	uint32_t mysalt = *(uint32_t *)salt;
 	return mysalt & (SALT_HASH_SIZE - 1);
 }
 

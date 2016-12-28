@@ -73,7 +73,7 @@
 
 #ifdef SIMD_PARA_MD5
 void md5cryptsse(unsigned char *buf, unsigned char *salt, char *out, unsigned int md5_type);
-void SIMDmd5body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SIMDmd5body(vtype* data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags);
 void md5_reverse(uint32_t *hash);
 void md5_unreverse(uint32_t *hash);
 #define MD5_ALGORITHM_NAME		BITS " " SIMD_TYPE " " MD5_N_STR
@@ -83,7 +83,7 @@ void md5_unreverse(uint32_t *hash);
 
 #ifdef SIMD_PARA_MD4
 //void SIMDmd4body(__m128i* data, unsigned int *out, int init);
-void SIMDmd4body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SIMDmd4body(vtype* data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags);
 void md4_reverse(uint32_t *hash);
 void md4_unreverse(uint32_t *hash);
 #define MD4_ALGORITHM_NAME		BITS " " SIMD_TYPE " " MD4_N_STR
@@ -92,7 +92,7 @@ void md4_unreverse(uint32_t *hash);
 #endif
 
 #ifdef SIMD_PARA_SHA1
-void SIMDSHA1body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SIMDSHA1body(vtype* data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags);
 void sha1_reverse(uint32_t *hash);
 void sha1_unreverse(uint32_t *hash);
 void sha1_reverse3(uint32_t *hash);
@@ -107,7 +107,7 @@ void sha1_unreverse3(uint32_t *hash);
 
 #ifdef SIMD_COEF_32
 #define SHA256_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA256_N_STR
-void SIMDSHA256body(vtype* data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags);
+void SIMDSHA256body(vtype* data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags);
 void sha224_reverse(uint32_t *hash);
 void sha224_unreverse(uint32_t *hash);
 void sha256_reverse(uint32_t *hash);

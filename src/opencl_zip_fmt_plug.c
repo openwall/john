@@ -394,14 +394,14 @@ static int cmp_all(void *binary, int count)
 	int i;
 
 	for (i = 0; i < count; i++)
-		if (((ARCH_WORD_32*)&(crypt_key[i]))[0] == ((ARCH_WORD_32*)binary)[0])
+		if (((uint32_t*)&(crypt_key[i]))[0] == ((uint32_t*)binary)[0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (((ARCH_WORD_32*)&(crypt_key[index]))[0] == ((ARCH_WORD_32*)binary)[0]);
+	return (((uint32_t*)&(crypt_key[index]))[0] == ((uint32_t*)binary)[0]);
 }
 
 static int cmp_exact(char *source, int index)

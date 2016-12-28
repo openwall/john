@@ -369,7 +369,7 @@ printf("----------------------------------------\n");
 
 static int cmp_all(void *binary, int count)
 {
-	uint32_t i, b = ((ARCH_WORD_32 *)binary)[0];
+	uint32_t i, b = ((uint32_t *)binary)[0];
 
 	for (i = 0; i < count; ++i) {
 		if (b == outbuffer[i].gpu_out) {
@@ -381,7 +381,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	if (((ARCH_WORD_32*)binary)[0] != outbuffer[index].gpu_out) {
+	if (((uint32_t*)binary)[0] != outbuffer[index].gpu_out) {
 		return 0;
 	}
 	return 1;

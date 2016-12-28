@@ -48,9 +48,9 @@ john_register_one(&fmt_oracle12c);
 #define PLAINTEXT_LENGTH	125 // XXX
 #define CIPHERTEXT_LENGTH	160
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		sizeof(ARCH_WORD_32)
+#define SALT_ALIGN		sizeof(uint32_t)
 #define BINARY_SIZE		64
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #ifdef SIMD_COEF_64
@@ -78,7 +78,7 @@ static char (*saved_key)[SHA_BUF_SIZ*sizeof(uint64_t)];
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -199,13 +199,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[SSE_GROUP_SZ_SHA512];
 		unsigned char *pin[SSE_GROUP_SZ_SHA512];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+			uint32_t *pout[SSE_GROUP_SZ_SHA512];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
-			x.pout[i] = (ARCH_WORD_32*)(crypt_out[index+i]);
+			x.pout[i] = (uint32_t*)(crypt_out[index+i]);
 		}
 		pbkdf2_sha512_sse((const unsigned char **)pin, lens, cur_salt->salt,
 		                  cur_salt->saltlen, 4096, &(x.poutc), BINARY_SIZE, 0);

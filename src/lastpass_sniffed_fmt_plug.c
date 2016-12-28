@@ -78,7 +78,7 @@ static struct fmt_tests lastpass_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[4];
+static uint32_t (*crypt_key)[4];
 
 static struct custom_salt {
 	unsigned int iterations;
@@ -183,13 +183,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		ARCH_WORD_32 key[MAX_KEYS_PER_CRYPT][8];
+		uint32_t key[MAX_KEYS_PER_CRYPT][8];
 		unsigned i;
 #ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -228,7 +228,7 @@ static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
 static int cmp_all(void *binary, int count) {
 	int index;
 	for (index = 0; index < count; index++)
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
 			return 1;
 	return 0;
 }

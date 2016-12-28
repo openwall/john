@@ -67,7 +67,7 @@ static unsigned int (**buf_ptr);
 static MD5_CTX ctx;
 static int saved_len;
 static UTF16 saved_key[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
+static uint32_t crypt_key[BINARY_SIZE / 4];
 #endif
 
 /* Note some plaintexts will be replaced in init() if running UTF-8 */
@@ -477,7 +477,7 @@ static int cmp_all(void *binary, int count) {
 	for(;y<SIMD_PARA_MD5*BLOCK_LOOPS;y++)
 		for(x=0;x<SIMD_COEF_32;x++)
 		{
-			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] )
+			if( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] )
 				return 1;
 		}
 	return 0;
@@ -498,13 +498,13 @@ static int cmp_one(void *binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 
-	if( ((ARCH_WORD_32*)binary)[0] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] )
+	if( ((uint32_t*)binary)[0] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] )
 		return 0;
-	if( ((ARCH_WORD_32*)binary)[1] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4+SIMD_COEF_32] )
+	if( ((uint32_t*)binary)[1] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+SIMD_COEF_32] )
 		return 0;
-	if( ((ARCH_WORD_32*)binary)[2] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4+2*SIMD_COEF_32] )
+	if( ((uint32_t*)binary)[2] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+2*SIMD_COEF_32] )
 		return 0;
-	if( ((ARCH_WORD_32*)binary)[3] != ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4+3*SIMD_COEF_32] )
+	if( ((uint32_t*)binary)[3] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+3*SIMD_COEF_32] )
 		return 0;
 	return 1;
 #else
@@ -543,58 +543,58 @@ static int get_hash_0(int index)
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_0;
+	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_0;
 }
 static int get_hash_1(int index)
 {
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_1;
+	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_1;
 }
 static int get_hash_2(int index)
 {
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_2;
+	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_2;
 }
 static int get_hash_3(int index)
 {
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_3;
+	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_3;
 }
 static int get_hash_4(int index)
 {
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_4;
+	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_4;
 }
 static int get_hash_5(int index)
 {
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_5;
+	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_5;
 }
 static int get_hash_6(int index)
 {
 	unsigned int x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_6;
+	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] & PH_MASK_6;
 }
 #else
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t*)crypt_key)[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t*)crypt_key)[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t*)crypt_key)[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t*)crypt_key)[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t*)crypt_key)[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t*)crypt_key)[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t*)crypt_key)[index] & PH_MASK_6; }
 #endif
 
 struct fmt_main fmt_rawmd5uthick = {

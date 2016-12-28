@@ -30,7 +30,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	//int version;
@@ -149,7 +149,7 @@ static void *get_binary(char *ciphertext)
 	static union {
 		unsigned char c[BINARY_SIZE];
 		ARCH_WORD dummy;
-		ARCH_WORD_32 swap[1];
+		uint32_t swap[1];
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;

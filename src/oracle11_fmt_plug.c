@@ -131,7 +131,7 @@ unsigned char *crypt_key;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static int saved_len;
 static SHA_CTX ctx;
-static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
+static uint32_t crypt_key[BINARY_SIZE / 4];
 
 #endif
 
@@ -205,13 +205,13 @@ static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	const uint32_t *wkey = (uint32_t*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const ARCH_WORD_32 *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
+	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
 	                                       key : strcpy(buf_aligned, key));
 #endif
-	ARCH_WORD_32 *keybuf_word = (unsigned int*)&saved_key[GETPOS_WORD(0, index)];
+	uint32_t *keybuf_word = (unsigned int*)&saved_key[GETPOS_WORD(0, index)];
 	unsigned int len;
 
 	len = SALT_SIZE;
@@ -322,11 +322,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		switch (len & 3)
 		{
 		case 0:
-			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
-				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			*(uint32_t*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(uint32_t*)&saved_salt[i]);
 			i += 4;
-			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
-				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			*(uint32_t*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(uint32_t*)&saved_salt[i]);
 			i += 4;
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			i++;
@@ -339,8 +339,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			i++;
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			i++;
-			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
-				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			*(uint32_t*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(uint32_t*)&saved_salt[i]);
 			i += 4;
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			i++;
@@ -353,20 +353,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			i++;
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			i++;
-			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
-				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			*(uint32_t*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(uint32_t*)&saved_salt[i]);
 			i += 4;
-			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
-				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			*(uint32_t*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(uint32_t*)&saved_salt[i]);
 			break;
 		case 3:
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			i++;
-			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
-				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			*(uint32_t*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(uint32_t*)&saved_salt[i]);
 			i += 4;
-			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
-				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			*(uint32_t*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(uint32_t*)&saved_salt[i]);
 			i += 4;
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			break;
@@ -403,26 +403,26 @@ static void * get_binary(char *ciphertext)
 
 #ifdef SIMD_COEF_32
 #define KEY_OFF (((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
-static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_6; }
 #endif
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_oracle11 = {

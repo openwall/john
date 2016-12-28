@@ -59,7 +59,7 @@ john_register_one(&fmt_gost);
 #define BINARY_SIZE		32
 #define SALT_SIZE		1
 #define SALT_ALIGN		1
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -81,7 +81,7 @@ static struct fmt_tests gost_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[8];
+static uint32_t (*crypt_out)[8];
 static int is_cryptopro; /* non 0 for CryptoPro hashes */
 
 static void init(struct fmt_main *self)
@@ -215,7 +215,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (crypt_out[index][0] == *(ARCH_WORD_32*)binary)
+		if (crypt_out[index][0] == *(uint32_t*)binary)
 			return 1;
 
 	return 0;

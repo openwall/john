@@ -70,7 +70,7 @@ john_register_one(&fmt_NS);
 #define BINARY_SIZE			16
 #define SALT_SIZE			32
 #define DYNA_SALT_SIZE		(sizeof(char*))
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			4
 
 static struct fmt_tests tests[] = {
@@ -91,7 +91,7 @@ static struct fmt_main *pDynamic;
 static void our_init(struct fmt_main *self);
 static void get_ptr();
 
-static ARCH_WORD_32 *get_binary(char *ciphertext);
+static uint32_t *get_binary(char *ciphertext);
 static int NS_valid(char *ciphertext, struct fmt_main *self);
 
 /* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
@@ -233,13 +233,13 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
 }
 
 /* original binary for the original hash. We use this also in convert() */
-static ARCH_WORD_32 *get_binary(char *ciphertext)
+static uint32_t *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned long dummy;
-		ARCH_WORD_32 i[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+		uint32_t i[BINARY_SIZE/sizeof(uint32_t)];
 	} _out;
-	ARCH_WORD_32 *out = _out.i;
+	uint32_t *out = _out.i;
 	char unscrambled[24];
 	int i;
 	MD5_u32plus a, b, c;

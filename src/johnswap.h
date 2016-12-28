@@ -1,7 +1,6 @@
 #if !defined __JOHN_SWAP_H__
 #define __JOHN_SWAP_H__
 
-/* reqired for the john_bswap_32 ARCH_WORD_32 declaration */
 #include "common.h"
 
 /* if x86 compatible cpu */
@@ -41,19 +40,19 @@
 #elif !defined(__STRICT_ANSI__)
 #	define JOHNSWAP(x)	john_bswap_32((x))
 #	define JOHNSWAP64(x)	john_bswap_64((x))
-#	define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((ARCH_WORD_32)(x)>>(32-(n))))
+#	define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((uint32_t)(x)>>(32-(n))))
 #	define ROTATE_LEFT64(x, n) (x) = (((x)<<(n))|((unsigned long long)(x)>>(64-(n))))
 #if defined(__GNUC__) && defined(CPU_IA32) && !defined(__i386__)
 	/* for intel x86 CPU */
-	static inline ARCH_WORD_32 __attribute__((const)) john_bswap_32(ARCH_WORD_32 val) {
-		register ARCH_WORD_32 res;
+	static inline uint32_t __attribute__((const)) john_bswap_32(uint32_t val) {
+		register uint32_t res;
 		__asm("bswap\t%0" : "=r" (res) : "0" (val));
 		return res;
 	}
 #else
 	/* Note, the name bswap_32 clashed with a less efficient bswap_32 in gcc 3.4. */
 	/* Thus, we now call it john_bswap_32 to take 'ownership' */
-	static inline ARCH_WORD_32 john_bswap_32(ARCH_WORD_32 x)
+	static inline uint32_t john_bswap_32(uint32_t x)
 	{
 		/* Since this is an inline function, we do not have to worry about */
 		/* multiple reference of x.  Even though we are called from a macro */
@@ -62,12 +61,12 @@
 		return ((x & 0x00FF00FF) << 8) | ((x >> 8) & 0x00FF00FF);
 	}
 #endif
-	static inline unsigned long long john_bswap_64(unsigned long long x)
+	static inline uint64_t john_bswap_64(uint64_t x)
 	{
 #if ARCH_BITS == 32
 		union {
-			unsigned long long ll;
-			ARCH_WORD_32 l[2];
+			uint64_t ll;
+			uint32_t l[2];
 			} w, r;
 		w.ll = x;
 		r.l[0] = john_bswap_32(w.l[1]);
@@ -77,8 +76,8 @@
 		// Someone should write a 'proper' 64 bit bswap, for 64 bit arch
 		// for now, I am using the '32 bit' version I wrote above.
 		union {
-			unsigned long long ll;
-			ARCH_WORD_32 l[2];
+			uint64_t ll;
+			uint32_t l[2];
 			} w, r;
 		w.ll = x;
 		r.l[0] = john_bswap_32(w.l[1]);

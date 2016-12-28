@@ -282,7 +282,7 @@ bad:
 
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -553,13 +553,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char *af_decrypted = (unsigned char *)mem_alloc(cur_salt->afsize + 20);
 		int i, iterations = cur_salt->bestiter;
 		int dklen = john_ntohl(cur_salt->myphdr.keyBytes);
-		ARCH_WORD_32 keycandidate[MAX_KEYS_PER_CRYPT][256/4];
-		ARCH_WORD_32 masterkeycandidate[MAX_KEYS_PER_CRYPT][256/4];
+		uint32_t keycandidate[MAX_KEYS_PER_CRYPT][256/4];
+		uint32_t masterkeycandidate[MAX_KEYS_PER_CRYPT][256/4];
 #ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 

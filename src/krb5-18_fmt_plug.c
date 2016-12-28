@@ -93,7 +93,7 @@ static struct fmt_tests kinit_tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char saved_salt[SALT_SIZE+1];
-static ARCH_WORD_32 (*crypt_out)[16];
+static uint32_t (*crypt_out)[16];
 
 static void init(struct fmt_main *self)
 {
@@ -211,11 +211,11 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		unsigned char key[32], i;
 		AES_KEY aeskey;
 #ifdef SSE_GROUP_SZ_SHA1
-		ARCH_WORD_32 Key[SSE_GROUP_SZ_SHA1][32/4];
+		uint32_t Key[SSE_GROUP_SZ_SHA1][32/4];
 		int lens[SSE_GROUP_SZ_SHA1];
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			uint32_t *pout[SSE_GROUP_SZ_SHA1];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
@@ -249,7 +249,7 @@ static int cmp_all(void *binary, int count)
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
-	        if (crypt_out[index][0] == *(ARCH_WORD_32*)binary)
+	        if (crypt_out[index][0] == *(uint32_t*)binary)
 			return 1;
 
 	return 0;

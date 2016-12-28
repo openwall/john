@@ -135,7 +135,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 // BN_bn2bin sometimes tries to write 33 bytes, hence allow some padding!
 // that is because these are mod 0x115B8B692E0E045692CF280B436735C77A5A9E8A9E7ED56C965F87DB5B2A2ECE3
 // which is a 65 hex digit number (33 bytes long).
-static ARCH_WORD_32 (*crypt_out)[(FULL_BINARY_SIZE/4) + 1];
+static uint32_t (*crypt_out)[(FULL_BINARY_SIZE/4) + 1];
 
 static struct custom_salt {
 	unsigned char saved_salt[SZ];
@@ -265,7 +265,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[FULL_BINARY_SIZE];
-		ARCH_WORD_32 dummy[1];
+		uint32_t dummy[1];
 	} buf;
 	unsigned char *out = buf.c;
 	char *p, *q;
@@ -444,14 +444,14 @@ static int cmp_all(void *binary, int count)
 {
 	int i;
 	for (i = 0; i < count; ++i) {
-		if (*((ARCH_WORD_32*)binary) == *((ARCH_WORD_32*)(crypt_out[i])))
+		if (*((uint32_t*)binary) == *((uint32_t*)(crypt_out[i])))
 			return 1;
 	}
 	return 0;
 }
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == *((ARCH_WORD_32*)(crypt_out[index]));
+	return *((uint32_t*)binary) == *((uint32_t*)(crypt_out[index]));
 }
 
 static int cmp_exact(char *source, int index)

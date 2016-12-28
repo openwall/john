@@ -38,7 +38,7 @@ john_register_one(&fmt_lotus5);
 #define CIPHERTEXT_LENGTH              32
 #define BINARY_SIZE                    16
 #define SALT_SIZE                      0
-#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN			sizeof(uint32_t)
 #define SALT_ALIGN				1
 #define MIN_KEYS_PER_CRYPT             LOTUS_N
 /* Must be divisible by any LOTUS_N (thus, by 2 and 3) */
@@ -96,7 +96,7 @@ static const unsigned char lotus_magic_table[] = {
 };
 
 /*Some more JTR variables*/
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
+static uint32_t (*crypt_key)[BINARY_SIZE / 4];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static void init(struct fmt_main *self)
@@ -126,7 +126,7 @@ static void done(void)
 /*Utility function to convert hex to bin */
 static void * get_binary(char *ciphertext)
 {
-  static ARCH_WORD_32 out[BINARY_SIZE/4];
+  static uint32_t out[BINARY_SIZE/4];
   char *realcipher = (char*)out;
   int i;
 
@@ -356,13 +356,13 @@ static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
 static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
 static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
-static int binary_hash_0(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_0; }
-static int binary_hash_1(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_1; }
-static int binary_hash_2(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_2; }
-static int binary_hash_3(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_3; }
-static int binary_hash_4(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_4; }
-static int binary_hash_5(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_5; }
-static int binary_hash_6(void * binary) { return *(ARCH_WORD_32 *)binary & PH_MASK_6; }
+static int binary_hash_0(void * binary) { return *(uint32_t *)binary & PH_MASK_0; }
+static int binary_hash_1(void * binary) { return *(uint32_t *)binary & PH_MASK_1; }
+static int binary_hash_2(void * binary) { return *(uint32_t *)binary & PH_MASK_2; }
+static int binary_hash_3(void * binary) { return *(uint32_t *)binary & PH_MASK_3; }
+static int binary_hash_4(void * binary) { return *(uint32_t *)binary & PH_MASK_4; }
+static int binary_hash_5(void * binary) { return *(uint32_t *)binary & PH_MASK_5; }
+static int binary_hash_6(void * binary) { return *(uint32_t *)binary & PH_MASK_6; }
 
 /* C's version of a class specifier */
 struct fmt_main fmt_lotus5 = {

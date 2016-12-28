@@ -245,7 +245,7 @@ static void * get_binary(char *ciphertext)
 	unsigned sixbits;
 	static union {
 		unsigned char u8[BINARY_SIZE + 1];
-		ARCH_WORD_32 u32;
+		uint32_t u32;
 	} out;
 	int bidx=0;
 	char *pos;
@@ -280,7 +280,7 @@ static void * get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char u8[SALT_SIZE + 1];
-		ARCH_WORD_32 u32;
+		uint32_t u32;
 	} salt;
 	// store off the 'real' 8 bytes of salt
 	memcpy(salt.u8, &ciphertext[FORMAT_TAG_LEN+1], 8);
@@ -289,17 +289,17 @@ static void * get_salt(char *ciphertext)
 	return salt.u8;
 }
 
-static int get_hash_0(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_0; }
-static int get_hash_1(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_1; }
-static int get_hash_2(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_2; }
-static int get_hash_3(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_3; }
-static int get_hash_4(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_4; }
-static int get_hash_5(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_5; }
-static int get_hash_6(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_6; }
+static int get_hash_0(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_0; }
+static int get_hash_1(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_1; }
+static int get_hash_2(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_2; }
+static int get_hash_3(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_3; }
+static int get_hash_4(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_4; }
+static int get_hash_5(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_5; }
+static int get_hash_6(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
-	return *((ARCH_WORD_32 *)salt) & 0x3FF;
+	return *((uint32_t *)salt) & 0x3FF;
 }
 
 static unsigned int iteration_count(void *salt)

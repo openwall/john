@@ -74,7 +74,7 @@ static struct fmt_tests tests[] = {
 
 static ms_office_custom_salt *cur_salt;
 
-static ARCH_WORD_32 (*crypt_key)[4];
+static uint32_t (*crypt_key)[4];
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
@@ -334,7 +334,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++) {
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
 			return 1;
 	}
 	return 0;

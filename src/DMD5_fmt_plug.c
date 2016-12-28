@@ -107,7 +107,7 @@ static struct {
 	unsigned int  prehash_KD_len;
 } cur_salt;
 
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/4];
+static uint32_t (*crypt_key)[BINARY_SIZE/4];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static struct fmt_tests tests[] = {
@@ -185,7 +185,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[BINARY_SIZE/4];
+	static uint32_t out[BINARY_SIZE/4];
 	char response[MD5_HEX_SIZE + 1];
 	unsigned int i;
 	char *p, *data = ciphertext + FORMAT_TAG_LEN;
@@ -374,14 +374,14 @@ static int cmp_all(void *binary, int count)
 {
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 	int index;
-	ARCH_WORD_32 b = ((ARCH_WORD_32*)binary)[0];
+	uint32_t b = ((uint32_t*)binary)[0];
 
 	for (index = 0; index < count; index++)
 		if (crypt_key[index][0] == b)
 			return 1;
 	return 0;
 #else
-	return ((ARCH_WORD_32*)binary)[0] == crypt_key[0][0];
+	return ((uint32_t*)binary)[0] == crypt_key[0][0];
 #endif
 }
 

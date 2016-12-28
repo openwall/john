@@ -64,15 +64,15 @@ static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
 
 void jtr_sha256_hash_block(jtr_sha256_ctx *ctx, const unsigned char data[64], int perform_endian_swap)
 {
-	ARCH_WORD_32 A, B, C, D, E, F, G, H, tmp, W[16];
+	uint32_t A, B, C, D, E, F, G, H, tmp, W[16];
 #if ARCH_LITTLE_ENDIAN
 	int i;
 	if (perform_endian_swap) {
 		for (i = 0; i < 16; ++i)
-			W[i] = JOHNSWAP(*((ARCH_WORD_32*)&(data[i<<2])));
+			W[i] = JOHNSWAP(*((uint32_t*)&(data[i<<2])));
 	} else
 #endif
-		memcpy(W, data, 16*sizeof(ARCH_WORD_32));
+		memcpy(W, data, 16*sizeof(uint32_t));
 
 	// Load state from all prior blocks (or init state)
 	A = ctx->h[0];
@@ -221,10 +221,10 @@ void jtr_sha256_update(jtr_sha256_ctx *ctx, const void *_input, int ilenlft)
 
 void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 {
-	ARCH_WORD_32 last, padcnt;
-	ARCH_WORD_32 bits;
+	uint32_t last, padcnt;
+	uint32_t bits;
 	union {
-		ARCH_WORD_32 wlen[2];
+		uint32_t wlen[2];
 		unsigned char mlen[8];  // need aligned on sparc
 	} m;
 	unsigned char *output = (unsigned char*)_output;
@@ -254,7 +254,7 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 	if(ctx->bIs256)
 		OUTBE32(ctx->h[7], output, 28);
 #else
-	if (is_aligned(output,sizeof(ARCH_WORD_32))) {
+	if (is_aligned(output,sizeof(uint32_t))) {
 		OUTBE32(ctx->h[0], output,  0);
 		OUTBE32(ctx->h[1], output,  4);
 		OUTBE32(ctx->h[2], output,  8);
@@ -266,7 +266,7 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 			OUTBE32(ctx->h[7], output, 28);
 	} else {
 		union {
-			ARCH_WORD_32 x[8];
+			uint32_t x[8];
 			unsigned char c[64];
 		} m;
 		unsigned char *tmp = m.c;
@@ -544,7 +544,7 @@ void jtr_sha512_update(jtr_sha512_ctx *ctx, const void *_input, int ilenlft)
 
 void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 {
-	ARCH_WORD_32 last, padcnt;
+	uint32_t last, padcnt;
 	uint64_t bits;
 	union {
 		uint64_t wlen[2];

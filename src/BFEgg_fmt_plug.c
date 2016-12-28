@@ -73,7 +73,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[(BINARY_SIZE + 1) / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[(BINARY_SIZE + 1) / sizeof(uint32_t)];
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
 // in VC, _atoi64 is a function.
@@ -125,28 +125,28 @@ static void *get_binary(char *ciphertext)
 {
 	static union toalign {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 a[1];
+		uint32_t a[1];
 	} a;
 	unsigned char *out = a.c;
-	ARCH_WORD_32 value;
+	uint32_t value;
 	char *pos;
 
 	pos = ciphertext + 1;
 
-	value = (ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[2])] << 12) |
-		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[3])] << 18);
+	value = (uint32_t)_atoi64[ARCH_INDEX(pos[0])] |
+		((uint32_t)_atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((uint32_t)_atoi64[ARCH_INDEX(pos[2])] << 12) |
+		((uint32_t)_atoi64[ARCH_INDEX(pos[3])] << 18);
 	out[0] = value;
 	out[1] = value >> 8;
 	out[2] = value >> 16;
 	out[3] = _atoi64[ARCH_INDEX(pos[4])] |
 		(_atoi64[ARCH_INDEX(pos[5])] << 6);
 	pos += 6;
-	value = (ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[2])] << 12) |
-		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[3])] << 18);
+	value = (uint32_t)_atoi64[ARCH_INDEX(pos[0])] |
+		((uint32_t)_atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((uint32_t)_atoi64[ARCH_INDEX(pos[2])] << 12) |
+		((uint32_t)_atoi64[ARCH_INDEX(pos[3])] << 18);
 	out[4] = value;
 	out[5] = value >> 8;
 	out[6] = value >> 16;

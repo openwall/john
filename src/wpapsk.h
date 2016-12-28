@@ -150,7 +150,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} binary;
 	hccap_t *hccap = decode_hccap(ciphertext);
 

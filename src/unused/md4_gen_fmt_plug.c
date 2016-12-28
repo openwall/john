@@ -49,7 +49,7 @@ static char saved_salt[SALT_SIZE];
 static int saved_len;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static MD4_CTX ctx;
-static ARCH_WORD_32 crypt_out[4];
+static uint32_t crypt_out[4];
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -76,7 +76,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char u8[BINARY_SIZE];
-		ARCH_WORD_32 u32[BINARY_SIZE/4];
+		uint32_t u32[BINARY_SIZE/4];
 	} out;
 	char *p;
 	int i;

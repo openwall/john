@@ -61,7 +61,7 @@ typedef struct {
 } odf_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[32 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
 
 typedef struct {
 	int cipher_type;

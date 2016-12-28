@@ -46,9 +46,9 @@ john_register_one(&fmt_mongodb_scram);
 #define PLAINTEXT_LENGTH        125
 #define HASH_LENGTH             28
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              sizeof(ARCH_WORD_32)
+#define SALT_ALIGN              sizeof(uint32_t)
 #define BINARY_SIZE             20
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #if !defined(SIMD_COEF_32)
@@ -76,7 +76,7 @@ static struct custom_salt {
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {

@@ -338,7 +338,7 @@ static int salt_hash(void *salt)
 }
 
 static void *binary(char *ciphertext) {
-	static ARCH_WORD_32 full[MAX_SALT_LEN / 4];
+	static uint32_t full[MAX_SALT_LEN / 4];
 	unsigned char *realcipher = (unsigned char*)full;
 
 	ciphertext = strrchr(ciphertext, '$') + 1;

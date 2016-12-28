@@ -208,7 +208,7 @@ void ms_office_common_DecryptUsingSymmetricKeyAlgorithm(ms_office_custom_salt *c
 // doing this in hopes of figuring out some way to salt-dupe correct the
 // office 2010-2013 formats. I do not think they can be done, but I may be
 // wrong, so I will keep this code in an "easy to see what changed" layout.
-int ms_office_common_PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key, ARCH_WORD_32 *out)
+int ms_office_common_PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key, uint32_t *out)
 {
 	unsigned char decryptedVerifier[16];
 	//unsigned char decryptedVerifierHash[16];

@@ -76,7 +76,7 @@ static struct fmt_tests sip_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE/sizeof(uint32_t)];
 static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
 
 static void init(struct fmt_main *self)
@@ -332,7 +332,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++)
-		if ( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)&(crypt_key[index][0]))[0] )
+		if ( ((uint32_t*)binary)[0] == ((uint32_t*)&(crypt_key[index][0]))[0] )
 			return 1;
 	return 0;
 

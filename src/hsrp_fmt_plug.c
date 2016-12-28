@@ -60,7 +60,7 @@ john_register_one(&fmt_hsrp);
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        55 // Must fit in a single MD5 block
 #define BINARY_SIZE             16
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define REAL_SALT_SIZE          50
 #define SALT_ALIGN              sizeof(int)
@@ -80,7 +80,7 @@ static struct fmt_tests tests[] = {
 static char (*saved_key)[64];	// 1 full limb of MD5, we do out work IN this buffer.
 static MD5_CTX (*saved_ctx);
 static int *saved_len, dirty;
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int length;
@@ -235,7 +235,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
+		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }

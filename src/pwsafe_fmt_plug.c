@@ -53,7 +53,7 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		sizeof(int)
 
 #ifdef SIMD_COEF_32
@@ -77,7 +77,7 @@ static struct fmt_tests pwsafe_tests[] = {
 
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int version;

@@ -41,7 +41,7 @@ john_register_one(&fmt_zipmonster);
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             16
 #define SALT_SIZE               0
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
 #ifdef SIMD_COEF_32
@@ -60,7 +60,7 @@ static struct fmt_tests zipmonster_tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static unsigned short itoa16u_w[256];
 
 #ifdef SIMD_COEF_32

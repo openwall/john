@@ -40,11 +40,11 @@
 #define MD5_out MD5_out_eq
 #define MD5_bitswapped_out MD5_bitswapped_out_eq
 
-ARCH_WORD_32 MD5_out[MAX_KEYS_PER_CRYPT];
+uint32_t MD5_out[MAX_KEYS_PER_CRYPT];
 char MD5_tmp[MAX_KEYS_PER_CRYPT][CIPHERTEXT_LENGTH + 1];
-ARCH_WORD_32 MD5_bitswapped_out2[4];
+uint32_t MD5_bitswapped_out2[4];
 #if !ARCH_LITTLE_ENDIAN
-	ARCH_WORD_32 MD5_bitswapped_out[MAX_KEYS_PER_CRYPT];
+	uint32_t MD5_bitswapped_out[MAX_KEYS_PER_CRYPT];
 #endif
 
 /* Bit-swapped output words */

@@ -17,9 +17,9 @@
 #include "options.h"
 #else
 #if ARCH_INT_GT_32
-typedef unsigned short ARCH_WORD_32;
+typedef unsigned short uint32_t;
 #else
-typedef unsigned int ARCH_WORD_32;
+typedef unsigned int uint32_t;
 #endif
 #include "loader.h"
 #endif
@@ -1693,37 +1693,37 @@ int fmt_default_binary_hash(void *binary)
 
 int fmt_default_binary_hash_0(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & PH_MASK_0;
+	return *(uint32_t *) binary & PH_MASK_0;
 }
 
 int fmt_default_binary_hash_1(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & PH_MASK_1;
+	return *(uint32_t *) binary & PH_MASK_1;
 }
 
 int fmt_default_binary_hash_2(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & PH_MASK_2;
+	return *(uint32_t *) binary & PH_MASK_2;
 }
 
 int fmt_default_binary_hash_3(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & PH_MASK_3;
+	return *(uint32_t *) binary & PH_MASK_3;
 }
 
 int fmt_default_binary_hash_4(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & PH_MASK_4;
+	return *(uint32_t *) binary & PH_MASK_4;
 }
 
 int fmt_default_binary_hash_5(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & PH_MASK_5;
+	return *(uint32_t *) binary & PH_MASK_5;
 }
 
 int fmt_default_binary_hash_6(void * binary)
 {
-	return *(ARCH_WORD_32 *) binary & PH_MASK_6;
+	return *(uint32_t *) binary & PH_MASK_6;
 }
 
 int fmt_default_salt_hash(void *salt)

@@ -64,7 +64,7 @@ static struct fmt_tests smd5_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int is_standard;
@@ -148,10 +148,10 @@ static void *get_salt(char *ciphertext)
 
 #define TO_BINARY(b1, b2, b3) \
 	value = \
-		(ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+		(uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
 	pos += 4; \
 	out.b[b1] = value >> 16; \
 	out.b[b2] = value >> 8; \
@@ -164,7 +164,7 @@ static void* get_binary(char *ciphertext)
 		ARCH_WORD w;
 	} out;
 	char *pos;
-	ARCH_WORD_32 value;
+	uint32_t value;
 
 	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		pos = ciphertext + FORMAT_TAG_LEN;
@@ -179,8 +179,8 @@ static void* get_binary(char *ciphertext)
 	TO_BINARY(3, 9, 15);
 	TO_BINARY(4, 10, 5);
 	out.b[11] =
-		(ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6);
+		(uint32_t)atoi64[ARCH_INDEX(pos[0])] |
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6);
 
 	return out.b;
 }

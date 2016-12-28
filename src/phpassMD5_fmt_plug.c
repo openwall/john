@@ -85,10 +85,10 @@ john_register_one(&fmt_phpassmd5);
 
 #ifdef SIMD_COEF_32
 // hash with key appended (used on all steps other than first)
-static ARCH_WORD_32 (*hash_key)[MD5_BUF_SIZ*NBKEYS];
+static uint32_t (*hash_key)[MD5_BUF_SIZ*NBKEYS];
 // salt with key appended (only used in 1st step).
-static ARCH_WORD_32 (*cursalt)[MD5_BUF_SIZ*NBKEYS];
-static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
+static uint32_t (*cursalt)[MD5_BUF_SIZ*NBKEYS];
+static uint32_t (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 static unsigned max_keys;
 #else
 static char (*crypt_key)[PHPASS_CPU_PLAINTEXT_LENGTH+1+PHPASS_BINARY_SIZE];
@@ -139,14 +139,14 @@ static void set_salt(void *salt)
 {
 #ifdef SIMD_COEF_32
 	int i;
-	ARCH_WORD_32 *p;
+	uint32_t *p;
 
 	p = cursalt[0];
 	for (i = 0; i < max_keys; ++i) {
 		if (i && (i&(SIMD_COEF_32-1)) == 0)
 			p += 15*SIMD_COEF_32;
-		p[0] = ((ARCH_WORD_32 *)salt)[0];
-		p[SIMD_COEF_32] = ((ARCH_WORD_32 *)salt)[1];
+		p[0] = ((uint32_t *)salt)[0];
+		p[SIMD_COEF_32] = ((uint32_t *)salt)[1];
 		++p;
 	}
 #else	// !SIMD_COEF_32
@@ -219,8 +219,8 @@ static int cmp_all(void *binary, int count) {
 	unsigned i = 0;
 
 #ifdef SIMD_COEF_32
-	ARCH_WORD_32 *p;
-	ARCH_WORD_32 bin = *(ARCH_WORD_32 *)binary;
+	uint32_t *p;
+	uint32_t bin = *(uint32_t *)binary;
 
 	p = crypt_key[0];
 	for (i = 0; i < count; ++i) {
@@ -248,10 +248,10 @@ static int cmp_one(void * binary, int index)
 #ifdef SIMD_COEF_32
 	int idx = index&(SIMD_COEF_32-1);
 	int off = (index/SIMD_COEF_32)*(4*SIMD_COEF_32);
-	return((((ARCH_WORD_32 *)binary)[0] == ((ARCH_WORD_32 *)crypt_key)[off+0*SIMD_COEF_32+idx]) &&
-	       (((ARCH_WORD_32 *)binary)[1] == ((ARCH_WORD_32 *)crypt_key)[off+1*SIMD_COEF_32+idx]) &&
-	       (((ARCH_WORD_32 *)binary)[2] == ((ARCH_WORD_32 *)crypt_key)[off+2*SIMD_COEF_32+idx]) &&
-	       (((ARCH_WORD_32 *)binary)[3] == ((ARCH_WORD_32 *)crypt_key)[off+3*SIMD_COEF_32+idx]));
+	return((((uint32_t *)binary)[0] == ((uint32_t *)crypt_key)[off+0*SIMD_COEF_32+idx]) &&
+	       (((uint32_t *)binary)[1] == ((uint32_t *)crypt_key)[off+1*SIMD_COEF_32+idx]) &&
+	       (((uint32_t *)binary)[2] == ((uint32_t *)crypt_key)[off+2*SIMD_COEF_32+idx]) &&
+	       (((uint32_t *)binary)[3] == ((uint32_t *)crypt_key)[off+3*SIMD_COEF_32+idx]));
 #else
 	return !memcmp(binary, crypt_key[index], PHPASS_BINARY_SIZE);
 #endif
@@ -302,7 +302,7 @@ static void * salt(char *ciphertext)
 {
 	static union {
 		unsigned char salt[SALT_SIZE+2];
-		ARCH_WORD_32 x;
+		uint32_t x;
 	} x;
 	unsigned char *salt = x.salt;
 	// store off the 'real' 8 bytes of salt
@@ -315,21 +315,21 @@ static void * salt(char *ciphertext)
 
 #ifdef SIMD_COEF_32
 #define SIMD_INDEX (index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*SIMD_COEF_32*4
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[SIMD_INDEX] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)(crypt_key[index]))[0] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)(crypt_key[index]))[0] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)(crypt_key[index]))[0] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)(crypt_key[index]))[0] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)(crypt_key[index]))[0] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)(crypt_key[index]))[0] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)(crypt_key[index]))[0] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_6; }
 #endif
 
 static int salt_hash(void *salt)

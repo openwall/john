@@ -63,10 +63,10 @@ err:;
 }
 
 #define TO_BINARY(b1, b2, b3) \
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+	value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
 	pos += 4; \
 	out[b1] = value >> 16; \
 	out[b2] = value >> 8; \
@@ -76,10 +76,10 @@ void * sha1crypt_common_get_binary(char * ciphertext) {
 	static union {
                 unsigned char c[BINARY_SIZE + 16];
                 ARCH_WORD dummy;
-				ARCH_WORD_32 swap[1];
+				uint32_t swap[1];
         } buf;
         unsigned char *out = buf.c;
-	ARCH_WORD_32 value;
+	uint32_t value;
 
 	char *pos = strrchr(ciphertext, '$') + 1;
 	int i = 0;

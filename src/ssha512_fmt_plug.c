@@ -68,7 +68,7 @@ struct s_salt
 	unsigned int len;
 	union {
 		unsigned char c[NSLDAP_SALT_LEN];
-		ARCH_WORD_32 w32;
+		uint32_t w32;
 	} data;
 };
 
@@ -81,7 +81,7 @@ static uint64_t (*crypt_out)[8*SIMD_COEF_64];
 static uint64_t (**len_ptr64);
 static int max_count;
 #else
-static ARCH_WORD_32 (*crypt_out)[DIGEST_SIZE / 4];
+static uint32_t (*crypt_out)[DIGEST_SIZE / 4];
 static uint64_t (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif
 static int *saved_len;
@@ -264,7 +264,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_64
         if (((uint64_t *) binary)[0] == crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;

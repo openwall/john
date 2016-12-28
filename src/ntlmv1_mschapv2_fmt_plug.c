@@ -161,7 +161,7 @@ static int (*saved_len);
 
 static unsigned short (*crypt_key);
 static unsigned char *nthash;
-static ARCH_WORD_32 *bitmap;
+static uint32_t *bitmap;
 static int cmps_per_crypt, use_bitmap;
 static int valid_i, valid_j;
 
@@ -1143,14 +1143,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
 				unsigned int value;
 
-				value = *(ARCH_WORD_32*)
+				value = *(uint32_t*)
 					&nthash[GETOUTPOS(12, i)] >> 16;
 				crypt_key[i] = value;
 				bitmap[value >> 5] |= 1U << (value & 0x1f);
 			}
 		else
 			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
-				crypt_key[i] = *(ARCH_WORD_32*)
+				crypt_key[i] = *(uint32_t*)
 					&nthash[GETOUTPOS(12, i)] >> 16;
 			}
 #else
@@ -1189,7 +1189,7 @@ static int cmp_one(void *binary, int index)
 		int i;
 
 		for (i = 0; i < 2; i++)
-			key[i] = *(ARCH_WORD_32*)
+			key[i] = *(uint32_t*)
 				&nthash[GETOUTPOS(4 * i, index)];
 #else
 		memcpy(key, &nthash[index * 16], 8);
@@ -1258,7 +1258,7 @@ static int cmp_exact(char *source, int index)
 
 #ifdef SIMD_COEF_32
 	for (i = 0; i < 4; i++)
-		((ARCH_WORD_32*)key)[i] = *(ARCH_WORD_32*)
+		((uint32_t*)key)[i] = *(uint32_t*)
 			&nthash[GETOUTPOS(4 * i, index)];
 #else
 	memcpy(key, &nthash[index * 16], 16);
@@ -1295,7 +1295,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int salt_hash(void *salt) { return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1); }
+static int salt_hash(void *salt) { return *(uint32_t*)salt & (SALT_HASH_SIZE - 1); }
 
 static int binary_hash_0(void *binary) { return *(unsigned short*)binary & PH_MASK_0; }
 static int binary_hash_1(void *binary) { return *(unsigned short*)binary & PH_MASK_1; }

@@ -38,5 +38,5 @@ int ms_office_common_valid_2013(char *ciphertext, struct fmt_main *self);
 /* other 'common' functions for MSOffice */
 unsigned int ms_office_common_iteration_count(void *salt);
 void ms_office_common_DecryptUsingSymmetricKeyAlgorithm(ms_office_custom_salt *cur_salt, unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length);
-int ms_office_common_PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key, ARCH_WORD_32 *out);
+int ms_office_common_PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key, uint32_t *out);
 

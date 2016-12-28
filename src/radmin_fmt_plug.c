@@ -68,7 +68,7 @@ static struct fmt_tests radmin_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH+1];
-static ARCH_WORD_32 (*crypt_out)[8];
+static uint32_t (*crypt_out)[8];
 
 static void init(struct fmt_main *self)
 {
@@ -160,14 +160,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++)
-		if (*(ARCH_WORD_32 *)binary == crypt_out[index][0])
+		if (*(uint32_t *)binary == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return *(ARCH_WORD_32 *)binary == crypt_out[index][0];
+	return *(uint32_t *)binary == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)

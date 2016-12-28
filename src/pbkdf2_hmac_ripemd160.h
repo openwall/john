@@ -58,7 +58,7 @@ static void _pbkdf2_ripemd160_load_hmac(const unsigned char *K, int KL, sph_ripe
 	sph_ripemd160(pOpad, opad, RIPEMD160_CBLOCK);
 }
 
-static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, ARCH_WORD_32 *out,
+static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, uint32_t *out,
 	                     unsigned char loop, const sph_ripemd160_context *pIpad, const sph_ripemd160_context *pOpad) {
 	sph_ripemd160_context ctx;
 	unsigned char tmp_hash[RIPEMD160_DIGEST_LENGTH];
@@ -85,15 +85,15 @@ static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, ARCH_WORD_3
 		memcpy(&ctx, pOpad, sizeof(sph_ripemd160_context));
 		sph_ripemd160(&ctx, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 		sph_ripemd160_close(&ctx, tmp_hash);
-		for(j = 0; j < RIPEMD160_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++) {
-			out[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
+		for(j = 0; j < RIPEMD160_DIGEST_LENGTH/sizeof(uint32_t); j++) {
+			out[j] ^= ((uint32_t*)tmp_hash)[j];
 		}
 	}
 }
 static void pbkdf2_ripemd160(const unsigned char *K, int KL, const unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
 {
 	union {
-		ARCH_WORD_32 x32[RIPEMD160_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
+		uint32_t x32[RIPEMD160_DIGEST_LENGTH/sizeof(uint32_t)];
 		unsigned char out[RIPEMD160_DIGEST_LENGTH];
 	} tmp;
 	int loop, loops, i, accum=0;

@@ -447,7 +447,7 @@ static int salt_hash(void *salt)
 {
 	// The >> 8 gave much better distribution on a huge set I analysed
 	// although that was mssql05
-	return (*((ARCH_WORD_32 *)salt) >> 8) & (SALT_HASH_SIZE - 1);
+	return (*((uint32_t *)salt) >> 8) & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_mssql12 = {

@@ -117,9 +117,9 @@ typedef struct _hdr {
 /* points to just 'right' after allocated memory, for overflow catching */
 	MEMDBG_HDR2 *mdbg_hdr2;
 	const char  *mdbg_file;
-	ARCH_WORD_32 mdbg_line;
-	ARCH_WORD_32 mdbg_cnt;
-	ARCH_WORD_32 mdbg_size;
+	uint32_t mdbg_line;
+	uint32_t mdbg_cnt;
+	uint32_t mdbg_size;
 } MEMDBG_HDR;
 
 static size_t   mem_size = 0;

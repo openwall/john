@@ -26,7 +26,7 @@
  * is not SOOOOO huge.
  */
 
-typedef ARCH_WORD_32 MD5_word;
+typedef uint32_t MD5_word;
 
 // NOTE, we will HAVE to increase this at some time.  sha512 has 128 byte hash all in itself. So you try
 // to do sha512($s.sha512($p)), or even sha512(sha512($p)) we are blowing past our buffers, BAD
@@ -303,9 +303,9 @@ typedef struct private_subformat_data
 #if MD5_X2 && (!MD5_ASM)
 #if defined(_OPENMP) || defined (FORCE_THREAD_MD5_body)
 #define MD5_body(x0,x1,out0,out1) MD5_body_for_thread(0, x0, x1, out0, out1)
-extern void MD5_body_for_thread(int t, ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1[4], ARCH_WORD_32 out2[4]);
+extern void MD5_body_for_thread(int t, uint32_t x1[15], uint32_t x2[15], uint32_t out1[4], uint32_t out2[4]);
 #else
-extern void MD5_body(ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1[4], ARCH_WORD_32 out2[4]);
+extern void MD5_body(uint32_t x1[15], uint32_t x2[15], uint32_t out1[4], uint32_t out2[4]);
 #endif
 #define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " x2"
 #if defined(_OPENMP) || defined (FORCE_THREAD_MD5_body)

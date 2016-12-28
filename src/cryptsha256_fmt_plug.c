@@ -207,12 +207,12 @@ typedef struct cryptloopstruct_t {
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA256_Init() calls, in the inner loop */
 static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
 #if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_32)
-static const ARCH_WORD_32 ctx_init[8] =
+static const uint32_t ctx_init[8] =
 	{0x6A09E667,0xBB67AE85,0x3C6EF372,0xA54FF53A,0x510E527F,0x9B05688C,0x1F83D9AB,0x5BE0CD19};
 #endif
 
@@ -655,8 +655,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_32
 		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*4+MEM_ALIGN_SIMD];
-		ARCH_WORD_32 *sse_out;
-		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
+		uint32_t *sse_out;
+		sse_out = (uint32_t *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
 		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,MEM_ALIGN_SIMD);
 
@@ -760,7 +760,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			{
 				unsigned int j, k;
 				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
-					ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[k][idx];
+					uint32_t *o = (uint32_t *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
 						*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+(k&(SIMD_COEF_32-1))+k/SIMD_COEF_32*8*SIMD_COEF_32]);
 				}
@@ -771,7 +771,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		{
 			unsigned int j, k;
 			for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
-				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_out[MixOrder[index+k]];
+				uint32_t *o = (uint32_t *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
 					*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+(k&(SIMD_COEF_32-1))+k/SIMD_COEF_32*8*SIMD_COEF_32]);
 			}
@@ -790,7 +790,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if ARCH_LITTLE_ENDIAN
 			{
 				int j;
-				ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_struct->cptr[0][idx];
+				uint32_t *o = (uint32_t *)crypt_struct->cptr[0][idx];
 				for (j = 0; j < 8; ++j)
 					*o++ = JOHNSWAP(ctx.h[j]);
 			}
@@ -814,7 +814,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if ARCH_LITTLE_ENDIAN
 		{
 			int j;
-			ARCH_WORD_32 *o = (ARCH_WORD_32 *)crypt_out[MixOrder[index]];
+			uint32_t *o = (uint32_t *)crypt_out[MixOrder[index]];
 			for (j = 0; j < 8; ++j)
 				*o++ = JOHNSWAP(ctx.h[j]);
 		}

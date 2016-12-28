@@ -83,7 +83,7 @@
 /* Rexgen library header might have defined this (empty) */
 #undef UTF32
 
-typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
+typedef uint32_t UTF32;	/* at least 32 bits */
 typedef unsigned short UTF16;	/* at least 16 bits */
 typedef unsigned char UTF8;	/* typically 8 bits */
 

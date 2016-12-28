@@ -38,9 +38,9 @@ john_register_one(&fmt_pfx_ng);
 // I could not get openssl to use passwords > 48 bytes, so we will cut support at this length.
 #define PLAINTEXT_LENGTH        48
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              sizeof(ARCH_WORD_32)
+#define SALT_ALIGN              sizeof(uint32_t)
 #define BINARY_SIZE             20
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #if !defined(SIMD_COEF_32)
@@ -90,7 +90,7 @@ static struct custom_salt {
 /* not quite sure why this has to be PTL+2, but if it is not it will only find max_lengh-1 passwords! */
 static char (*saved_key)[PLAINTEXT_LENGTH + 2];
 static int *saved_len;
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {

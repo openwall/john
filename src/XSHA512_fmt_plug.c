@@ -41,7 +41,7 @@ john_register_one(&fmt_XSHA512);
 #define PLAINTEXT_LENGTH		107
 
 #define SALT_SIZE			4
-#define SALT_ALIGN			sizeof(ARCH_WORD_32)
+#define SALT_ALIGN			sizeof(uint32_t)
 
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
@@ -68,11 +68,11 @@ static int max_keys;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int (*saved_len);
-static ARCH_WORD_32 (*crypt_out)[DIGEST_SIZE/sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[DIGEST_SIZE/sizeof(uint32_t)];
 #ifdef PRECOMPUTE_CTX_FOR_SALT
 static SHA512_CTX ctx_salt;
 #else
-static ARCH_WORD_32 saved_salt;
+static uint32_t saved_salt;
 #endif
 #endif
 
@@ -116,7 +116,7 @@ static void *get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char c[SALT_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -155,7 +155,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t *)salt & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
@@ -165,7 +165,7 @@ static void set_salt(void *salt)
 	SHA512_Init(&ctx_salt);
 	SHA512_Update(&ctx_salt, salt, SALT_SIZE);
 #else
-	saved_salt = *(ARCH_WORD_32 *)salt;
+	saved_salt = *(uint32_t *)salt;
 #endif
 #else
 	int i;
@@ -338,7 +338,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_64
         if (((uint64_t *) binary)[0] == crypt_out[HASH_IDX])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;

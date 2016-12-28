@@ -63,7 +63,7 @@ static void _pbkdf2_sha1_load_hmac(const unsigned char *K, int KL, SHA_CTX *pIpa
 	SHA1_Update(pOpad, opad, SHA_CBLOCK);
 }
 
-static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *out,
+static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, uint32_t *out,
 	                     unsigned char loop, const SHA_CTX *pIpad, const SHA_CTX *pOpad) {
 	SHA_CTX ctx;
 	unsigned char tmp_hash[SHA_DIGEST_LENGTH];
@@ -96,24 +96,24 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, ARCH_WORD_32 *ou
 #ifdef __MIC__
 #pragma novector
 #endif
-		for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++) {
-			out[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
+		for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(uint32_t); j++) {
+			out[j] ^= ((uint32_t*)tmp_hash)[j];
 #if defined (EFS_CRAP_LOGIC)
-			((ARCH_WORD_32*)tmp_hash)[j] = out[j];
+			((uint32_t*)tmp_hash)[j] = out[j];
 #endif
 		}
 #endif
 	}
 #if defined (PBKDF1_LOGIC)
 	// PBKDF1 simply uses end result of all of the HMAC iterations
-	for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++)
-			out[j] = ((ARCH_WORD_32*)tmp_hash)[j];
+	for(j = 0; j < SHA_DIGEST_LENGTH/sizeof(uint32_t); j++)
+			out[j] = ((uint32_t*)tmp_hash)[j];
 #endif
 }
 static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, int SL, int R, unsigned char *out, int outlen, int skip_bytes)
 {
 	union {
-		ARCH_WORD_32 x32[SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
+		uint32_t x32[SHA_DIGEST_LENGTH/sizeof(uint32_t)];
 		unsigned char out[SHA_DIGEST_LENGTH];
 	} tmp;
 	int loop, loops, i, accum=0;
@@ -173,20 +173,20 @@ static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA1]
 static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SSE_GROUP_SZ_SHA1], const unsigned char *S, int SL, int R, unsigned char *out[SSE_GROUP_SZ_SHA1], int outlen, int skip_bytes)
 {
 	unsigned char tmp_hash[SHA_DIGEST_LENGTH];
-	ARCH_WORD_32 *i1, *i2, *o1, *ptmp;
+	uint32_t *i1, *i2, *o1, *ptmp;
 	unsigned int i, j;
-	ARCH_WORD_32 dgst[SSE_GROUP_SZ_SHA1][SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)];
+	uint32_t dgst[SSE_GROUP_SZ_SHA1][SHA_DIGEST_LENGTH/sizeof(uint32_t)];
 	int loops, accum=0;
 	unsigned char loop;
 	SHA_CTX ipad[SSE_GROUP_SZ_SHA1], opad[SSE_GROUP_SZ_SHA1], ctx;
 
 	// sse_hash1 would need to be 'adjusted' for SHA1_PARA
-	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(ARCH_WORD_32)*SSE_GROUP_SZ_SHA1];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(uint32_t)*SSE_GROUP_SZ_SHA1];
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[SHA_DIGEST_LENGTH*SSE_GROUP_SZ_SHA1];
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[SHA_DIGEST_LENGTH*SSE_GROUP_SZ_SHA1];
-	i1 = (ARCH_WORD_32*)sse_crypt1;
-	i2 = (ARCH_WORD_32*)sse_crypt2;
-	o1 = (ARCH_WORD_32*)sse_hash1;
+	i1 = (uint32_t*)sse_crypt1;
+	i2 = (uint32_t*)sse_crypt2;
+	o1 = (uint32_t*)sse_hash1;
 
 	// we need to set ONE time, the upper half of the data buffer.  We put the 0x80 byte (in BE format), at offset 20,
 	// then zero out the rest of the buffer, putting 0x2A0 (#bits), into the proper location in the buffer.  Once this
@@ -195,8 +195,8 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	for (j = 0; j < SSE_GROUP_SZ_SHA1/SIMD_COEF_32; ++j) {
 		ptmp = &o1[j*SIMD_COEF_32*SHA_BUF_SIZ];
 		for (i = 0; i < SIMD_COEF_32; ++i)
-			ptmp[ (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80000000;
-		for (i = (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)+1)*SIMD_COEF_32; i < 15*SIMD_COEF_32; ++i)
+			ptmp[ (SHA_DIGEST_LENGTH/sizeof(uint32_t))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80000000;
+		for (i = (SHA_DIGEST_LENGTH/sizeof(uint32_t)+1)*SIMD_COEF_32; i < 15*SIMD_COEF_32; ++i)
 			ptmp[i] = 0;
 		for (i = 0; i < SIMD_COEF_32; ++i)
 			ptmp[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = ((64+SHA_DIGEST_LENGTH)<<3); // all encrypts are 64+20 bytes.
@@ -207,14 +207,14 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	// the 2 first halves, to load the sha256 2nd part of each crypt, in each loop.
 	_pbkdf2_sha1_sse_load_hmac(K, KL, ipad, opad);
 	for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
-		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
+		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
 		ptmp[0]          = ipad[j].h0;
 		ptmp[SIMD_COEF_32]   = ipad[j].h1;
 		ptmp[SIMD_COEF_32*2] = ipad[j].h2;
 		ptmp[SIMD_COEF_32*3] = ipad[j].h3;
 		ptmp[SIMD_COEF_32*4] = ipad[j].h4;
 
-		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32))+(j&(SIMD_COEF_32-1))];
+		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
 		ptmp[0]          = opad[j].h0;
 		ptmp[SIMD_COEF_32]   = opad[j].h1;
 		ptmp[SIMD_COEF_32*2] = opad[j].h2;
@@ -263,7 +263,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 #if !defined (PBKDF1_LOGIC)
 			for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
 				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
-				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++) {
+				for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(uint32_t)); j++) {
 					dgst[k][j] ^= p[(j*SIMD_COEF_32)];
 #if defined (EFS_CRAP_LOGIC)
 					p[(j*SIMD_COEF_32)] = dgst[k][j];
@@ -276,7 +276,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 		// PBKDF1 simply uses the end 'result' of all of the HMAC iterations.
 		for (k = 0; k < SSE_GROUP_SZ_SHA1; k++) {
 			unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
-			for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(ARCH_WORD_32)); j++)
+			for(j = 0; j < (SHA_DIGEST_LENGTH/sizeof(uint32_t)); j++)
 				dgst[k][j] = p[(j*SIMD_COEF_32)];
 		}
 #endif
