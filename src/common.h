@@ -18,6 +18,7 @@
 #if !defined(_OPENCL_COMPILER)
 #include "arch.h"
 #include "memory.h"
+#include "stdint.h"
 #endif
 
 #ifndef MAX
