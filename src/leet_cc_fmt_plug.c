@@ -145,6 +145,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (q - p > 256)
 		return 0;
 
+	if (q - p == 0)
+		return 0;
+
 	q = strrchr(ciphertext, '$') + 1;
 	if (strlen(q) != BINARY_SIZE * 2)
 		goto err;
