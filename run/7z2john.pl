@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Compress::Raw::Lzma;
+use Compress::Raw::Lzma qw (LZMA_STREAM_END LZMA_DICT_SIZE_MIN);
 use File::Basename;
 
 # author:
@@ -11,25 +11,30 @@ use File::Basename;
 # magnum (adapt to JtR use)
 
 # version:
-# 0.4
+# 0.6
 
 # date released:
-# april 2015
+# April 2015
 
 # date last updated:
-# 20th June 2015
+# 12th January 2017
 
 # dependencies:
 # Compress::Raw::Lzma
 
 # install dependencies like this:
-# perl -MCPAN -e 'install Compress::Raw::Lzma'
+#    sudo cpan Compress::Raw::Lzma
 # or sudo apt-get install libcompress-raw-lzma-perl
-# or cpan -i Compress::Raw::Lzma
+# or sudo perl -MCPAN -e 'install Compress::Raw::Lzma'
 
 #
 # Constants
 #
+
+my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
+
+my $LZMA2_MIN_COMPRESSED_LEN = 16; # the raw data (decrypted) needs to be at least: 3 + 1 + 1, header (start + size) + at least one byte of data + end
+                                   # therefore we need to have at least one AES BLOCK (128 bits = 16 bytes)
 
 # header
 
@@ -190,6 +195,32 @@ sub get_uint64
   }
 
   return $value;
+}
+
+sub read_id
+{
+  my $fp = shift;
+
+  my $id;
+
+  my $num = get_uint64 ($fp);
+
+  return "\x00" if ($num == 0);
+
+  $id = "";
+
+  # convert number to their ASCII code correspondent byte
+
+  while ($num > 0)
+  {
+    my $temp = $num & 0xff;
+
+    $id = chr ($temp) . $id;
+
+    $num >>= 8;
+  }
+
+  return $id;
 }
 
 sub get_boolean_vector
@@ -417,54 +448,56 @@ sub lzma_properties_decode
 {
   my $attributes = shift;
 
-  my $byte;
+  my $lclppb;
 
-  $byte = substr ($attributes, 0, 1);
+  $lclppb = substr ($attributes, 0, 1);
 
-  return $byte;
-}
+  my @data;
 
-sub lzma_generate_header
-{
-  my $compressed_size = shift;
-  my $uncompressed_size = shift;
-  my $encoded_lclppb = shift;
+  #data[0] is the lclppb value
 
-  my $header;
+  $data[1] = ord (substr ($attributes, 1, 1));
+  $data[2] = ord (substr ($attributes, 2, 1));
+  $data[3] = ord (substr ($attributes, 3, 1));
+  $data[4] = ord (substr ($attributes, 4, 1));
 
-  # generate the header (first 6 bytes)
+  my $dict_size = $data[1] | $data[2] << 8 | $data[3] << 16 | $data[4] << 24;
 
-  $uncompressed_size--;
-
-  my @out = ();
-  $out[0]  = 0x80 + (3 << 5);
-  $out[0] += ($uncompressed_size >> 16) & 0xff;
-  $out[1]  = ($uncompressed_size >>  8) & 0xff;
-  $out[2]  = ($uncompressed_size      ) & 0xff;
-
-  $compressed_size--;
-
-  $out[3]  = ($compressed_size >> 8) & 0xff;
-  $out[4]  = ($compressed_size     ) & 0xff;
-
-  # lclppb_encode (lc lp pb)
-
-  # this is how it would be calculated (if not provided by the 7zip header itself):
-  #
-  # my $pb = 2;
-  # my $lp = 0;
-  # my $lc = 3;
-  #
-  # $out[5] = ($pb * 5 + $lp) * 9 + $lc;
-
-  $out[5] = ord ($encoded_lclppb);
-
-  for my $byte (@out)
+  if ($dict_size < LZMA_DICT_SIZE_MIN)
   {
-    $header .= chr ($byte);
+    $dict_size = LZMA_DICT_SIZE_MIN;
   }
 
-  return $header;
+  my $d = ord ($lclppb);
+
+  my $lc = int ($d % 9);
+     $d  = int ($d / 9);
+  my $pb = int ($d / 5);
+  my $lp = int ($d % 5);
+
+  return ($lclppb, $dict_size, $lc, $pb, $lp);
+}
+
+sub lzma_alone_header_field_encode
+{
+  my $num = shift;
+  my $length = shift;
+
+  my $value;
+
+  my $length_doubled = $length * 2;
+  my $big_endian_val = pack ("H*", sprintf ("%0${length_doubled}x", $num));
+
+  # what follows is just some easy way to convert endianess (there might be better ways of course)
+
+  $value = "";
+
+  for (my $i = $length - 1; $i >= 0; $i--)
+  {
+    $value .= substr ($big_endian_val, $i, 1);
+  }
+
+  return $value;
 }
 
 sub extract_hash_from_archive
@@ -567,29 +600,87 @@ sub extract_hash_from_archive
 
     my $attributes = $coder->{'attributes'};
 
-    my $property_lclppb = lzma_properties_decode ($attributes);
+    my ($property_lclppb, $dict_size, $lc, $pb, $lp) = lzma_properties_decode ($attributes);
 
     return undef unless (length ($property_lclppb) == 1);
 
-    my $pack_size = $data_len;
-
-    my $compressed_header = lzma_generate_header ($pack_size, $unpack_size, $property_lclppb);
-
-    my $lzma_header = $compressed_header . $data . $SEVEN_ZIP_END;
-
-    # lzma decompress the header
+    # the alone-format header is defined like this:
+    #
+    #   +------------+----+----+----+----+--+--+--+--+--+--+--+--+
+    #   | Properties |  Dictionary Size  |   Uncompressed Size   |
+    #   +------------+----+----+----+----+--+--+--+--+--+--+--+--+
+    #
 
     my $decompressed_header = "";
 
-    my $lz = new Compress::Raw::Lzma::RawDecoder;
+    # we loop over this code section max. 2 times to try two variants of headers (with the correct/specific values and with default values)
 
-    $lz->code ($lzma_header, $decompressed_header);
+    for (my $try_number = 1; $try_number <= 2; $try_number++)
+    {
+      my ($dict_size_encoded, $uncompressed_size_encoded);
+      my $lz = new Compress::Raw::Lzma::AloneDecoder (AppendOutput => 1);
+
+      if ($try_number == 1)
+      {
+        $dict_size_encoded         = lzma_alone_header_field_encode ($dict_size,   4); # 4 bytes (the "Dictionary Size" field), little endian
+        $uncompressed_size_encoded = lzma_alone_header_field_encode ($unpack_size, 8); # 8 bytes (the "Uncompressed Size" field), little endian
+      }
+      else
+      {
+        # this is the fallback case (using some default values):
+
+        $dict_size_encoded         = pack ("H*", "00008000");         # "default" dictionary size (2^23 = 0x00800000)
+        $uncompressed_size_encoded = pack ("H*", "ffffffffffffffff"); # means: unknown uncompressed size
+      }
+
+      my $lzma_alone_format_header = $property_lclppb . $dict_size_encoded . $uncompressed_size_encoded;
+
+      my $lzma_header = $lzma_alone_format_header . $data;
+
+      my $status = $lz->code ($lzma_header, $decompressed_header);
+
+      if (length ($status) > 0)
+      {
+        if ($try_number == 2)
+        {
+          if ($status != LZMA_STREAM_END)
+          {
+            print STDERR "WARNING: the LZMA header decompression for the file '" . $file_path . "' failed with status: '" . $status . "'\n";
+
+            if ($status eq "Data is corrupt")
+            {
+              print STDERR "\n";
+              print STDERR "INFO: for some reasons, for large LZMA buffers, we sometimes get a 'Data is corrupt' error.\n";
+              print STDERR "      This is a known issue of this tool and needs to be investigated.\n";
+
+              print STDERR "\n";
+              print STDERR "      The problem might have to do with this small paragraph hidden in the 7z documentation (quote):\n";
+              print STDERR "      'The reference LZMA Decoder ignores the value of the \"Corrupted\" variable.\n";
+              print STDERR "       So it continues to decode the stream, even if the corruption can be detected\n";
+              print STDERR "       in the Range Decoder. To provide the full compatibility with output of the\n";
+              print STDERR "       reference LZMA Decoder, another LZMA Decoder implementation must also\n";
+              print STDERR "       ignore the value of the \"Corrupted\" variable.'\n";
+              print STDERR "\n";
+              print STDERR "      (taken from the DOC/lzma-specification.txt file of the 7z-SDK: see for instance:\n";
+              print STDERR "       https://github.com/jljusten/LZMA-SDK/blob/master/DOC/lzma-specification.txt#L343-L347)\n";
+            }
+
+            return undef;
+          }
+        }
+      }
+
+      last if (length ($decompressed_header) > 0); # if we got some output it seems that it worked just fine
+    }
 
     return undef unless (length ($decompressed_header) > 0);
 
+    # in theory we should also check that the length is correct
+    # return undef unless (length ($decompressed_header) == $unpack_size);
+
     # check the decompressed 7zip header
 
-    my $id = my_read (\$decompressed_header, 1);
+    my $id = read_id (\$decompressed_header);
 
     return undef unless ($id eq $SEVEN_ZIP_HEADER);
 
@@ -610,7 +701,13 @@ sub extract_hash_from_archive
     # return undef unless (defined ($signature_header));
 
     $streams_info = $parsed_header->{'streams_info'};
-    return "" unless (defined ($streams_info));
+
+    if (! defined ($streams_info))
+    {
+      print STDERR "WARNING: the file '" . $file_path . "' does not contain any meaningful data (the so-called streams info), it might only contain a list of empty files\n";
+
+      return "";
+    }
 
     $unpack_info = $streams_info->{'unpack_info'};
     return "" unless (defined ($unpack_info));
@@ -642,8 +739,10 @@ sub extract_hash_from_archive
 
       for (my $coder_pos = 0; $coder_pos < $number_coders; $coder_pos++)
       {
-        $coder = $folder->{'coders'}[$coder_id];
+        $coder = $folder->{'coders'}[$coder_pos];
         last unless (defined ($coder));
+
+        $coder_id = $coder_pos; # Attention: coder_id != codec_id !
 
         $codec_id = $coder->{'codec_id'};
 
@@ -721,6 +820,8 @@ sub extract_hash_from_archive
 
   # special case: we can truncate the data_len and use 32 bytes in total for both iv + data (last 32 bytes of data)
 
+  my $special_attack_possible = 0;
+
   my $data;
 
   if ($has_encrypted_header == 0)
@@ -741,6 +842,8 @@ sub extract_hash_from_archive
 
         $unpack_size %= 16;
       }
+
+      $special_attack_possible = 1;
     }
   }
 
@@ -750,6 +853,54 @@ sub extract_hash_from_archive
   }
 
   return undef unless (length ($data) == $data_len);
+
+  if ($SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING == 1)
+  {
+    if ($special_attack_possible == 0)
+    {
+      for (my $coder_pos = $coder_id; $coder_pos < $number_coders; $coder_pos++)
+      {
+        $coder = $folder->{'coders'}[$coder_pos];
+        last unless (defined ($coder));
+
+        $codec_id = $coder->{'codec_id'};
+
+        my $lzma1_or_lzma2_compression_found = 0;
+
+        if ($codec_id eq $SEVEN_ZIP_LZMA)
+        {
+          print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
+          print STDERR "the data must be decompressed using LZMA after the decryption step.\n";
+          print STDERR "\n";
+
+          $lzma1_or_lzma2_compression_found = 1;
+        }
+        elsif ($codec_id eq $SEVEN_ZIP_LZMA2)
+        {
+          print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
+          print STDERR "the data must be decompressed using LZMA2 after the decryption step.\n";
+          print STDERR "\n";
+
+          $lzma1_or_lzma2_compression_found = 1;
+        }
+
+        if ($lzma1_or_lzma2_compression_found == 1)
+        {
+          print STDERR "Some cracking tools currently do not support the decompression step after decrypting the data.\n";
+          print STDERR "\n";
+
+          if ($data_len <= $LZMA2_MIN_COMPRESSED_LEN)
+          {
+            print STDERR "INFO: it might still be possible to crack the password of this archive since the data part seems\n";
+            print STDERR "to be very short and therefore it might use the LZMA2 uncompressed chunk feature\n";
+            print STDERR "\n";
+          }
+
+          last;
+        }
+      }
+    }
+  }
 
   $hash_buf = sprintf ("%s:%s%i\$%i\$%i\$%s\$%i\$%s\$%i\$%i\$%i\$%s",
     basename($file_path, ".7z"),
@@ -831,7 +982,7 @@ sub wait_for_seven_zip_id
 
   while (1)
   {
-    my $new_id = my_read ($fp, 1);
+    my $new_id = read_id ($fp);
 
     if (length ($new_id) != 1)
     {
@@ -937,7 +1088,7 @@ sub read_seven_zip_pack_info
 
   while (1)
   {
-    my $id = my_read ($fp, 1);
+    my $id = read_id ($fp);
 
     if (length ($id) != 1)
     {
@@ -1206,7 +1357,7 @@ sub read_seven_zip_unpack_info
 
   while (1)
   {
-    my $id = my_read ($fp, 1);
+    my $id = read_id ($fp);
 
     if (length ($id) != 1)
     {
@@ -1305,7 +1456,7 @@ sub read_seven_zip_substreams_info
 
   while (1)
   {
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
 
     if (length ($id) != 1)
     {
@@ -1373,7 +1524,7 @@ sub read_seven_zip_substreams_info
       push (@unpack_sizes, $size);
     }
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
   else
   {
@@ -1471,7 +1622,7 @@ sub read_seven_zip_substreams_info
       skip_seven_zip_data ($fp);
     }
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
 
   my $len_defined = scalar (@digests);
@@ -1527,7 +1678,7 @@ sub read_seven_zip_streams_info
 
   # get the type of streams info (id)
 
-  my $id = my_read ($fp, 1);
+  my $id = read_id ($fp);
 
   if ($id eq $SEVEN_ZIP_PACK_INFO)
   {
@@ -1535,7 +1686,7 @@ sub read_seven_zip_streams_info
 
     return undef unless (defined ($pack_info));
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
 
   if ($id eq $SEVEN_ZIP_UNPACK_INFO)
@@ -1544,7 +1695,7 @@ sub read_seven_zip_streams_info
 
     return undef unless (defined ($unpack_info));
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
 
   if ($id eq $SEVEN_ZIP_SUBSTREAMS_INFO)
@@ -1553,7 +1704,7 @@ sub read_seven_zip_streams_info
 
     return undef unless (defined ($substreams_info));
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
   else
   {
@@ -1617,7 +1768,7 @@ sub read_seven_zip_archive_properties
 
   while (1)
   {
-    my $id = my_read ($fp, 1);
+    my $id = read_id ($fp);
 
     if (length ($id) != 1)
     {
@@ -1685,7 +1836,7 @@ sub read_seven_zip_files_info
 
   # NumFiles
 
-  my $number_files = my_read ($fp, 1);
+  my $number_files = read_id ($fp);
 
   $number_files = ord ($number_files);
 
@@ -1720,7 +1871,7 @@ sub read_seven_zip_files_info
 
   while (1)
   {
-    $property_type = my_read ($fp, 1);
+    $property_type = read_id ($fp);
 
     if (length ($property_type) != 1)
     {
@@ -1756,7 +1907,7 @@ sub read_seven_zip_files_info
 
         if ($external eq $SEVEN_ZIP_EXTERNAL)
         {
-          # not implemented yet
+          # TODO: not implemented yet
 
           return undef;
         }
@@ -1794,7 +1945,7 @@ sub read_seven_zip_files_info
 
         if ($external eq $SEVEN_ZIP_EXTERNAL)
         {
-          # not implemented yet
+          # TODO: not implemented yet
 
           return undef;
         }
@@ -1915,7 +2066,7 @@ sub read_seven_zip_files_info
 
   # next id should be SEVEN_ZIP_END, but we (and 7-ZIP source code too) do not care
 
-  my $id = my_read ($fp, 1);
+  my $id = read_id ($fp);
 
   # check anti files
 
@@ -2030,7 +2181,7 @@ sub read_seven_zip_header
 
   # get the type of header
 
-  my $id = my_read ($fp, 1);
+  my $id = read_id ($fp);
 
   if ($id eq $SEVEN_ZIP_ARCHIVE_PROPERTIES)
   {
@@ -2041,7 +2192,7 @@ sub read_seven_zip_header
       return undef;
     }
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
 
   if ($id eq $SEVEN_ZIP_ADD_STREAMS_INFO)
@@ -2052,7 +2203,7 @@ sub read_seven_zip_header
 
     # do we need to change the start position here ?
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
 
   if ($id eq $SEVEN_ZIP_MAIN_STREAMS_INFO)
@@ -2061,7 +2212,7 @@ sub read_seven_zip_header
 
     return undef unless (defined ($streams_info));
 
-    $id = my_read ($fp, 1);
+    $id = read_id ($fp);
   }
 
   if ($id eq $SEVEN_ZIP_FILES_INFO)
@@ -2103,7 +2254,7 @@ sub parse_seven_zip_header
 
   # get the type of the header (id)
 
-  my $id = my_read ($fp, 1);
+  my $id = read_id ($fp);
 
   # check if either encoded/packed or encrypted: to get the details we need to check the method
 
