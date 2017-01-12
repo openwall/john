@@ -27,6 +27,37 @@ use File::Basename;
 # or sudo apt-get install libcompress-raw-lzma-perl
 # or sudo perl -MCPAN -e 'install Compress::Raw::Lzma'
 
+
+#
+# Explanation of the "hash" format:
+#
+
+# the fields of this format are separate by the dollar ("$") sign:
+# ("xyz" means that the string xyz is used literally, brackets indicate variables)
+#
+# "$"
+# "7z"
+# "$"
+# [indicator of data compression] # either 0 = uncompressed, 1 = LZMA, 2 = LZMA2
+# "$"
+# [cost factor]                   # means: 2 ^ [cost factor] iterations
+# "$"
+# [length of salt]
+# "$"
+# [salt]
+# "$"
+# [length of iv]                  # the initialization vector length
+# "$"
+# [iv]                            # the initialization vector itself
+# "$"
+# [CRC32]                         # the actual "hash"
+# "$"
+# [length of encrypted data]      # the encrypted data length in bytes
+# "$"
+# [length of decompressed data]   # the decompressed data length in bytes
+# "$"
+# [encrypted data]                # the encrypted (and possibly also compressed data)
+
 #
 # Constants
 #
@@ -81,7 +112,6 @@ my $SEVEN_ZIP_LZMA              = "\x03\x01\x01";
 # hash format
 
 my $SEVEN_ZIP_HASH_SIGNATURE    = "\$7z\$";
-my $SEVEN_ZIP_P_VALUE           = 0;
 my $SEVEN_ZIP_DEFAULT_POWER     = 19;
 my $SEVEN_ZIP_DEFAULT_IV        = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
 
@@ -854,49 +884,56 @@ sub extract_hash_from_archive
 
   return undef unless (length ($data) == $data_len);
 
+  my $compression_indicator = 0; # 0 = uncompressed, 1 = LZMA, 2 = LZMA2
+
+  for (my $coder_pos = $coder_id; $coder_pos < $number_coders; $coder_pos++)
+  {
+    $coder = $folder->{'coders'}[$coder_pos];
+    last unless (defined ($coder));
+
+    $codec_id = $coder->{'codec_id'};
+
+    if ($codec_id eq $SEVEN_ZIP_LZMA)
+    {
+      $compression_indicator = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_LZMA2)
+    {
+      $compression_indicator = 2;
+    }
+  }
+
+  # show a warning if LZMA/LZMA2 decompression is currently not supported by the cracker
+
   if ($SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING == 1)
   {
     if ($special_attack_possible == 0)
     {
-      for (my $coder_pos = $coder_id; $coder_pos < $number_coders; $coder_pos++)
+      if ($compression_indicator > 0)
       {
-        $coder = $folder->{'coders'}[$coder_pos];
-        last unless (defined ($coder));
+        print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
+        print STDERR "the data must be decompressed using ";
 
-        $codec_id = $coder->{'codec_id'};
-
-        my $lzma1_or_lzma2_compression_found = 0;
-
-        if ($codec_id eq $SEVEN_ZIP_LZMA)
+        if ($compression_indicator == 1)
         {
-          print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
-          print STDERR "the data must be decompressed using LZMA after the decryption step.\n";
-          print STDERR "\n";
-
-          $lzma1_or_lzma2_compression_found = 1;
+          print STDERR "LZMA";
         }
-        elsif ($codec_id eq $SEVEN_ZIP_LZMA2)
+        else
         {
-          print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
-          print STDERR "the data must be decompressed using LZMA2 after the decryption step.\n";
-          print STDERR "\n";
-
-          $lzma1_or_lzma2_compression_found = 1;
+          print STDERR "LZMA2";
         }
 
-        if ($lzma1_or_lzma2_compression_found == 1)
+        print STDERR " after the decryption step.\n";
+        print STDERR "\n";
+
+        print STDERR "Some cracking tools currently do not support the decompression step after decrypting the data.\n";
+        print STDERR "\n";
+
+        if ($data_len <= $LZMA2_MIN_COMPRESSED_LEN)
         {
-          print STDERR "Some cracking tools currently do not support the decompression step after decrypting the data.\n";
+          print STDERR "INFO: it might still be possible to crack the password of this archive since the data part seems\n";
+          print STDERR "to be very short and therefore it might use the LZMA2 uncompressed chunk feature\n";
           print STDERR "\n";
-
-          if ($data_len <= $LZMA2_MIN_COMPRESSED_LEN)
-          {
-            print STDERR "INFO: it might still be possible to crack the password of this archive since the data part seems\n";
-            print STDERR "to be very short and therefore it might use the LZMA2 uncompressed chunk feature\n";
-            print STDERR "\n";
-          }
-
-          last;
         }
       }
     }
@@ -905,7 +942,7 @@ sub extract_hash_from_archive
   $hash_buf = sprintf ("%s:%s%i\$%i\$%i\$%s\$%i\$%s\$%i\$%i\$%i\$%s",
     basename($file_path, ".7z"),
     $SEVEN_ZIP_HASH_SIGNATURE,
-    $SEVEN_ZIP_P_VALUE,
+    $compression_indicator,
     $number_cycles_power,
     $salt_len,
     unpack ("H*", $salt_buf),
