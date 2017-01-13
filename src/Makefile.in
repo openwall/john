@@ -113,6 +113,7 @@ JOHN_OBJS = \
 	undrop.o \
 	regex.o pp.o \
 	c3_fmt.o \
+	lzma/LzmaDec.o lzma/Lzma2Dec.o \
 	unique.o putty2john.o gpg2john.o memdbg.o
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
@@ -225,6 +226,10 @@ opencl_%.h:	| ../run/kernels
 ######## auto-generated, best-effort
 
 AFS_fmt.o:	AFS_fmt.c arch.h misc.h jumbo.h stdint.h autoconfig.h params.h DES_std.h common.h memory.h formats.h memdbg.h os.h os-autoconf.h
+
+lzma/Lzma2Dec.o:	lzma/Lzma2Dec.c lzma/Precomp.h lzma/Compiler.h lzma/Lzma2Dec.h lzma/LzmaDec.h lzma/7zTypes.h
+
+lzma/LzmaDec.o:	lzma/LzmaDec.c lzma/Precomp.h lzma/Compiler.h lzma/LzmaDec.h lzma/7zTypes.h
 
 base64.o:	base64.c memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h stdint.h memory.h
 
