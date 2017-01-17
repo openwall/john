@@ -34,6 +34,8 @@ john_register_one(&fmt_sevenzip);
 #include "crc32.h"
 #include "unicode.h"
 #include "dyna_salt.h"
+#include "lzma/LzmaDec.h"
+#include "lzma/Lzma2Dec.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"7z"
@@ -70,13 +72,15 @@ john_register_one(&fmt_sevenzip);
 #endif
 
 static struct fmt_tests sevenzip_tests[] = {
-	/* CRC checks passes for these hashes */
+	/* CRC checks passes for this hash (no padding) */
 	{"$7z$0$19$0$1122$8$d1f50227759415890000000000000000$1412385885$112$112$5e5b8b734adf52a64c541a5a5369023d7cccb78bd910c0092535dfb013a5df84ac692c5311d2e7bbdc580f5b867f7b5dd43830f7b4f37e41c7277e228fb92a6dd854a31646ad117654182253706dae0c069d3f4ce46121d52b6f20741a0bb39fc61113ce14d22f9184adafd6b5333fb1", "password"},
+	/* CRC checks passes for this hash (4 bytes of padding) */
 	{"$7z$0$19$0$1122$8$a264c94f2cd72bec0000000000000000$725883103$112$108$64749c0963e20c74602379ca740165b9511204619859d1914819bc427b7e5f0f8fc67f53a0b53c114f6fcf4542a28e4a9d3914b4bc76baaa616d6a7ec9efc3f051cb330b682691193e6fa48159208329460c3025fb273232b82450645f2c12a9ea38b53a2331a1d0858813c8bf25a831", "openwall"},
-	/* padding check passes for these hashes */
-	{"$7z$0$19$0$1122$8$732b59fd26896e410000000000000000$2955316379$192$183$7544a3a7ec3eb99a33d80e57907e28fb8d0e140ec85123cf90740900429136dcc8ba0692b7e356a4d4e30062da546a66b92ec04c64c0e85b22e3c9a823abef0b57e8d7b8564760611442ecceb2ca723033766d9f7c848e5d234ca6c7863a2683f38d4605322320765938049305655f7fb0ad44d8781fec1bf7a2cb3843f269c6aca757e509577b5592b60b8977577c20aef4f990d2cb665de948004f16da9bf5507bf27b60805f16a9fcc4983208297d3affc4455ca44f9947221216f58c337f", "password"},
-	/* not supported hashes, will require validFolder check */
-	// {"$7z$0$19$0$1122$8$5fdbec1569ff58060000000000000000$2465353234$112$112$58ba7606aafc7918e3db7f6e0920f410f61f01e9c1533c40850992fee4c5e5215bc6b4ea145313d0ac065b8ec5b47d9fb895bb7f97609be46107d71e219544cfd24b52c2ecd65477f72c466915dcd71b80782b1ac46678ab7f437fd9f7b8e9d9fad54281d252de2a7ae386a65fc69eda", "password"},
+	/* padding check (9 bytes) passes for this hash, then LZMA */
+	{"$7z$1$19$0$1122$8$732b59fd26896e410000000000000000$2955316379$192$183$7544a3a7ec3eb99a33d80e57907e28fb8d0e140ec85123cf90740900429136dcc8ba0692b7e356a4d4e30062da546a66b92ec04c64c0e85b22e3c9a823abef0b57e8d7b8564760611442ecceb2ca723033766d9f7c848e5d234ca6c7863a2683f38d4605322320765938049305655f7fb0ad44d8781fec1bf7a2cb3843f269c6aca757e509577b5592b60b8977577c20aef4f990d2cb665de948004f16da9bf5507bf27b60805f16a9fcc4983208297d3affc4455ca44f9947221216f58c337f$232$5d00000100", "password"},
+	/* This requires LZMA (no padding) */
+	{"$7z$1$19$0$1122$8$5fdbec1569ff58060000000000000000$2465353234$112$112$58ba7606aafc7918e3db7f6e0920f410f61f01e9c1533c40850992fee4c5e5215bc6b4ea145313d0ac065b8ec5b47d9fb895bb7f97609be46107d71e219544cfd24b52c2ecd65477f72c466915dcd71b80782b1ac46678ab7f437fd9f7b8e9d9fad54281d252de2a7ae386a65fc69eda$176$5d00000100", "password"},
+	/* Length checks */
 	{"$7z$0$19$0$1122$8$94fb9024fdd3e6c40000000000000000$3965424295$112$99$1127828817ff126bc45ff3c5225d9d0c5d00a52094909674e6ed3dc431546d9a672738f2fa07556340d604d2efd2901b9d2ac2c0686c25af9c520c137b16c50c54df8703fd0b0606fa721ad70aafb9c4e3b288ef49864e6034021969b4ce11e3b8e269a92090ccf593c6a0da06262116", ""},
 	{"$7z$0$19$0$1122$8$6fd059d516d5490f0000000000000000$460747259$112$99$af163eb5532c557efca78fbb448aa04f348cd258c94233e6669f4e5025f220274c244d4f2347a7512571d9b6015a1e1a90e281983b743da957437b33092eddb55a5bc76f3ab6c7dbabb001578d1043285f5fa791fd94dd9779b461e44cbfe869f891007335b766774ccee3813ec8cd57", "&"},
 	{"$7z$0$19$0$1122$8$6d4a12af68d83bfe0000000000000000$993697592$112$99$7c308faa36b667599ee4418435ab621884c5c115ee3b70be454fe99236422f4f2d5cd9c8fcfbe6b6b0805ee602ce8488a08f7ea14a4f5c0c060fc685bff187720a402b23a5cfe3c9c5a5ae07f91209031b8f9804ac10459e15a0158031f6c58e507401ec6e1e6de8f64d94201159432b", "&'"},
@@ -126,7 +130,8 @@ static int *indices;
 static struct custom_salt {
 	dyna_salt dsalt;
 	size_t length;     /* used in decryption */
-	size_t unpacksize; /* used in CRC calculation */
+	size_t unpacksize; /* used in padding check */
+	size_t crc_len;    /* used in CRC calculation */
 	int NumCyclesPower;
 	int SaltSize;
 	int ivSize;
@@ -134,6 +139,7 @@ static struct custom_salt {
 	unsigned char iv[16];
 	unsigned char salt[16];
 	unsigned int crc;
+	unsigned char props[LZMA_PROPS_SIZE];
 	unsigned char data[1];
 } *cur_salt;
 
@@ -182,7 +188,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len, NumCyclesPower;
+	int type, len, NumCyclesPower;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -192,7 +198,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL)
 		goto err;
-	if (strlen(p) != 1 || '0' != *p)     /* p must be "0" */
+	if (strlen(p) > 3 || !isdec(p))
+		goto err;
+	type = atoi(p);
+	if (strlen(p) == 0 || type < 0 || type > 128) /* Compression type */
+		goto err;
+	if ((type & ~0x80) > 2) /* We currently only support none, LZMA or LZMA2 */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
@@ -201,7 +212,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	NumCyclesPower = atoi(p);
-	if (NumCyclesPower > 24)
+	if (NumCyclesPower > 24 || NumCyclesPower < 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt length */
 		goto err;
@@ -233,7 +244,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* data length */
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	len = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* unpacksize */
@@ -246,6 +257,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
+	if (type && type != 128) {
+		if ((p = strtokm(NULL, "$")) == NULL) /* CRC len */
+			goto err;
+		if (!isdec(p))
+			goto err;
+		if ((p = strtokm(NULL, "$")) == NULL) /* Coder props */
+			goto err;
+		if (!ishexlc(p))
+			goto err;
+		if (type == 1 && strlen(p) != 10)
+			goto err;
+		else if (type == 2 && strlen(p) != 2)
+			goto err;
+	}
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -295,6 +320,15 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < psalt->length; i++)
 		psalt->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	if (cs.type && cs.type != 128) {
+		p = strtokm(NULL, "$"); /* CRC length */
+		psalt->crc_len = atoi(p);
+		p = strtokm(NULL, "$"); /* Coder properties */
+		for (i = 0; *p; i++)
+			psalt->props[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
+
 	MEM_FREE(keeptr);
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt, length);
 	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(struct custom_salt, length, data, psalt->length);
@@ -330,20 +364,12 @@ static int salt_compare(const void *x, const void *y)
 	return memcmp(s1->iv, s2->iv, 16);
 }
 
-// XXX port Python code to C *OR* use code from LZMA SDK
-static int validFolder(unsigned char *data)
-{
-	// int numcoders = self._read64Bit(file)
-	return 0;
-}
+static void *SzAlloc(void *p, size_t size) { return mem_alloc(size); }
+static void SzFree(void *p, void *address) { MEM_FREE(address) };
 
 static int sevenzip_decrypt(unsigned char *derived_key)
 {
-#ifdef _MSC_VER
-	unsigned char *out;
-#else
-	unsigned char out[cur_salt->length];
-#endif
+	unsigned char *out = NULL;
 	AES_KEY akey;
 	unsigned char iv[16];
 	union {
@@ -354,70 +380,110 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 	unsigned int ccrc;
 	CRC32_t crc;
 	int i;
-	int nbytes, margin;
+	int nbytes, pad_size;
+	size_t crc_len = cur_salt->unpacksize;
+	size_t aes_len;
 
-#ifdef _MSC_VER
-	out = mem_alloc(cur_salt->length);
-#endif
-	memcpy(iv, cur_salt->iv, 16);
+	pad_size = nbytes = cur_salt->length - cur_salt->unpacksize;
 
-	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
+	/* Early rejection if possible (only decrypt last 16 bytes) */
+	if (pad_size > 0 && cur_salt->length >= 32) {
+		uint8_t buf[16];
+
+		memcpy(iv, cur_salt->data + cur_salt->length - 32, 16);
+		AES_set_decrypt_key(derived_key, 256, &akey);
+		AES_cbc_encrypt(cur_salt->data + cur_salt->length - 16, buf,
+		                16, &akey, iv, AES_DECRYPT);
+		i = 15;
+		while (nbytes > 0) {
+			if (buf[i] != 0)
+				return 0;
+			nbytes--;
+			i--;
+		}
 	}
-	AES_cbc_encrypt(cur_salt->data, out, cur_salt->length, &akey, iv, AES_DECRYPT);
 
-	/* various verifications tests */
+	/* Complete decryption, or partial if possible */
+	aes_len = nbytes ? cur_salt->length : MIN(crc_len * 1.1, cur_salt->length);
+	out = mem_alloc(aes_len);
+	memcpy(iv, cur_salt->iv, 16);
+	AES_set_decrypt_key(derived_key, 256, &akey);
+	AES_cbc_encrypt(cur_salt->data, out, aes_len, &akey, iv, AES_DECRYPT);
 
-	// test 0, padding check, bad hack :-(
-	margin = nbytes = cur_salt->length - cur_salt->unpacksize;
+	/* Padding check unless we already did the quick one */
 	i = cur_salt->length - 1;
 	while (nbytes > 0) {
-		if (out[i] != 0) {
-#ifdef _MSC_VER
-			MEM_FREE(out);
-#endif
-			return -1;
-		}
+		if (out[i] != 0)
+			goto exit_bad;
 		nbytes--;
 		i--;
 	}
-	if (margin > 7) {
-		// printf("valid padding test ;-)\n");
-		// print_hex(out, cur_salt->length);
-#ifdef _MSC_VER
+
+	if (cur_salt->type == 0x80) /* We only have truncated data */
+		goto exit_good;
+
+	/* Optional decompression before CRC */
+	if (cur_salt->type == 1) {
+		ISzAlloc st_alloc = {SzAlloc, SzFree};
+		ELzmaStatus status;
+		size_t in_size = aes_len;
+		uint8_t *new_out;
+		SRes rc;
+		size_t out_size = cur_salt->crc_len;
+
+		new_out = mem_alloc(out_size);
+		if ((rc = LzmaDecode(new_out, &out_size, out, &in_size,
+		                     cur_salt->props, LZMA_PROPS_SIZE,
+		                     LZMA_FINISH_ANY, &status,
+		                     &st_alloc)) == SZ_OK &&
+		    out_size == cur_salt->crc_len) {
 			MEM_FREE(out);
-#endif
-		return 0;
+			out = new_out;
+			crc_len = cur_salt->crc_len;
+		} else {
+			goto exit_bad;
+		}
+	}
+	else if (cur_salt->type == 2) {
+		Byte prop = cur_salt->props[0];
+		ISzAlloc st_alloc = {SzAlloc, SzFree};
+		ELzmaStatus status;
+		size_t in_size = aes_len;
+		uint8_t *new_out;
+		SRes rc;
+		size_t out_size = cur_salt->crc_len;
+
+		new_out = mem_alloc(out_size);
+		if ((rc = Lzma2Decode((Byte*)new_out, &out_size, out, &in_size,
+		                      prop, LZMA_FINISH_ANY, &status,
+		                      &st_alloc)) == SZ_OK &&
+		    out_size == cur_salt->crc_len) {
+			MEM_FREE(out);
+			out = new_out;
+			crc_len = cur_salt->crc_len;
+		} else {
+			goto exit_bad;
+		}
 	}
 
-	// test 1, CRC test
+	/* CRC test */
 	CRC32_Init(&crc);
-	CRC32_Update(&crc, out, cur_salt->unpacksize);
+	CRC32_Update(&crc, out, crc_len);
 	CRC32_Final(crc_out, crc);
-	ccrc =  _crc_out.crci; // computed CRC
+	ccrc =  _crc_out.crci; /* computed CRC */
 #if !ARCH_LITTLE_ENDIAN
 	ccrc = JOHNSWAP(ccrc);
 #endif
-	if (ccrc == cur_salt->crc) {
-#ifdef _MSC_VER
-		MEM_FREE(out);
-#endif
-		return 0;  // XXX don't be too eager!
-	}
+	if (ccrc == cur_salt->crc)
+		goto exit_good;
 
-	// XXX test 2, "well-formed folder" test
-	if (validFolder(out)) {
-		printf("validFolder check ;-)\n");
-#ifdef _MSC_VER
-		MEM_FREE(out);
-#endif
-		return 0;
-	}
-
-#ifdef _MSC_VER
+exit_bad:
 	MEM_FREE(out);
-#endif
-	return -1;
+	return 0;
+
+exit_good:
+	MEM_FREE(out);
+	return 1;
 }
 
 #ifdef SIMD_COEF_32
@@ -503,9 +569,10 @@ static void sevenzip_kdf(int index, unsigned char *master)
 	SHA256_CTX sha;
 
 	/* kdf */
-        SHA256_Init(&sha);
+	SHA256_Init(&sha);
 	for (round = 0; round < rounds; round++) {
-		//SHA256_Update(&sha, "", cur_salt->SaltSize);
+		if (cur_salt->SaltSize)
+			SHA256_Update(&sha, cur_salt->salt, cur_salt->SaltSize);
 		SHA256_Update(&sha, (char*)saved_key[index], saved_len[index]);
 #if ARCH_LITTLE_ENDIAN
 		SHA256_Update(&sha, (char*)&round, 8);
@@ -566,10 +633,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		/* do decryption and checks */
 		for (j = 0; j < NBKEYS; ++j) {
-			if (sevenzip_decrypt(master[index + j]) == 0)
-				cracked[indices[index + j]] = 1;
-			else
-				cracked[indices[index + j]] = 0;
+			cracked[indices[index + j]] = sevenzip_decrypt(master[index + j]);
 		}
 	}
 #else
@@ -583,10 +647,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			sevenzip_kdf(index, master[index]);
 
 		/* do decryption and checks */
-		if(sevenzip_decrypt(master[index]) == 0)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+		cracked[index] = sevenzip_decrypt(master[index]);
 	}
 #endif // SIMD_COEF_32
 	new_keys = 0;
@@ -637,7 +698,7 @@ static unsigned int iteration_count(void *salt)
 {
 	struct custom_salt *my_salt;
 
-	my_salt = salt;
+	my_salt = *((struct custom_salt **)salt);
 	return (unsigned int)(1 << my_salt->NumCyclesPower);
 }
 
@@ -656,7 +717,7 @@ struct fmt_main fmt_sevenzip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE | FMT_UTF8 | FMT_DYNA_SALT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_DYNA_SALT,
 		{
 			"iteration count",
 		},
