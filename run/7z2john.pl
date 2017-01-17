@@ -7,17 +7,17 @@ use Compress::Raw::Lzma qw (LZMA_STREAM_END LZMA_DICT_SIZE_MIN);
 use File::Basename;
 
 # author:
-# philsmd (for hashcat)
+# philsmd
 # magnum (adapt to JtR use)
 
 # version:
-# 0.6
+# 0.7
 
 # date released:
 # April 2015
 
 # date last updated:
-# 12th January 2017
+# 16th January 2017
 
 # dependencies:
 # Compress::Raw::Lzma
@@ -38,7 +38,7 @@ use File::Basename;
 # "$"
 # "7z"
 # "$"
-# [indicator of data compression] # either 0 = uncompressed, 1 = LZMA, 2 = LZMA2
+# [data type indicator]           # see "Explanation of the data type indicator" below
 # "$"
 # [cost factor]                   # means: 2 ^ [cost factor] iterations
 # "$"
@@ -54,15 +54,42 @@ use File::Basename;
 # "$"
 # [length of encrypted data]      # the encrypted data length in bytes
 # "$"
-# [length of decompressed data]   # the decompressed data length in bytes
+# [length of decrypted data]      # the decrypted data length in bytes
 # "$"
 # [encrypted data]                # the encrypted (and possibly also compressed data)
+
+# in case the data was not truncated and a decompression step is needed to verify the CRC32, these fields are appended:
+# "$"
+# [length of data for CRC32]      # the length of the first "file" needed to verify the CRC32 checksum
+# "$"
+# [coder attributes]              # most of the coders/decompressors need some attributes (e.g. encoded lc, pb, lp, dictSize values);
+
+#
+# Explanation of the data type indicator
+#
+
+# This field is the first field after the hash signature (i.e. after "$7z$).
+# Whenever the data was longer than the value of PASSWORD_RECOVERY_TOOL_DATA_LIMIT and the data could be truncated due to the padding attack,
+# the value of this field will be set to 128.
+#
+# If no truncation is used:
+# - the value will be 0 if the data doesn't need to be decompressed to check the CRC32 checksum
+# - all values different from 128, but greater than 0, indicate that the data must be decompressed as follows:
+#   - 1 means that the data must be decompressed using the LZMA1 decompressor
+#   - 2 means that the data must be decompressed using the LZMA2 decompressor
+#   - 3 means that the data must be decompressed using the PPMD decompressor
+#   - 4 means that the data must be decompressed using the BCJ decompressor
+#   - 5 means that the data must be decompressed using the BCJ2 decompressor
+#   - 6 means that the data must be decompressed using the BZIP2 decompressor
+#   - 7 means that the data must be decompressed using the DEFLATE decompressor
+
+# Truncated data can only be verified using the padding attack and therefore combinations between truncation + a compressor are not allowed.
+# Therefore, whenever the value is 128 or 0, neither coder attributes nor the length of the data for the CRC32 check is within the output.
+# On the other hand, for all values above or equal 1 and smaller than 128, both coder attributes and the length for CRC32 check is in the output.
 
 #
 # Constants
 #
-
-my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
 
 my $LZMA2_MIN_COMPRESSED_LEN = 16; # the raw data (decrypted) needs to be at least: 3 + 1 + 1, header (start + size) + at least one byte of data + end
                                    # therefore we need to have at least one AES BLOCK (128 bits = 16 bytes)
@@ -105,15 +132,43 @@ my $SEVEN_ZIP_FILE_NAME_END      = "\x00\x00";
 
 # codec
 
-my $SEVEN_ZIP_AES               = "\x06\xf1\x07\x01";
+my $SEVEN_ZIP_AES               = "\x06\xf1\x07\x01"; # all the following codec values are from CPP/7zip/Archive/7z/7zHeader.h
+
+my $SEVEN_ZIP_LZMA1             = "\x03\x01\x01";
 my $SEVEN_ZIP_LZMA2             = "\x21";
-my $SEVEN_ZIP_LZMA              = "\x03\x01\x01";
+my $SEVEN_ZIP_PPMD              = "\x03\x04\x01";
+my $SEVEN_ZIP_BCJ               = "\x03\x03\x01\x03";
+my $SEVEN_ZIP_BCJ2              = "\x03\x03\x01\x1b";
+my $SEVEN_ZIP_BZIP2             = "\x04\x02\x02";
+my $SEVEN_ZIP_DEFLATE           = "\x04\x01\x08";
 
 # hash format
 
 my $SEVEN_ZIP_HASH_SIGNATURE    = "\$7z\$";
 my $SEVEN_ZIP_DEFAULT_POWER     = 19;
 my $SEVEN_ZIP_DEFAULT_IV        = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+
+my $SEVEN_ZIP_UNCOMPRESSED       =   0;
+my $SEVEN_ZIP_LZMA1_COMPRESSED   =   1;
+my $SEVEN_ZIP_LZMA2_COMPRESSED   =   2;
+my $SEVEN_ZIP_PPMD_COMPRESSED    =   3;
+my $SEVEN_ZIP_BCJ_COMPRESSED     =   4;
+my $SEVEN_ZIP_BCJ2_COMPRESSED    =   5;
+my $SEVEN_ZIP_BZIP2_COMPRESSED   =   6;
+my $SEVEN_ZIP_DEFLATE_COMPRESSED =   7;
+my $SEVEN_ZIP_TRUNCATED          = 128; # (0x80 or 0b10000000)
+
+my %SEVEN_ZIP_COMPRESSOR_NAMES   = (1 => "LZMA1", 2 => "LZMA2", 3 => "PPMD", 4 => "BCJ", 5 => "BCJ2", 6 => "BZIP2",
+                                    7 => "DEFLATE");
+
+# cracker specific stuff
+
+my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
+
+my $PASSWORD_RECOVERY_TOOL_NAME = "john";
+my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;       # hexadecimal output value. This value should always be >= 64
+my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1,2);  # within this list we only need values ranging from 1 to 7
+                                                          # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
 
 #
 # Helper functions
@@ -125,6 +180,8 @@ sub usage
 
   print STDERR "Usage: $prog_name <7-Zip file>...\n";
 }
+
+my $memory_buffer_read_offset = 0;
 
 sub my_read
 {
@@ -141,11 +198,9 @@ sub my_read
   }
   else
   {
-    $output_buffer = substr ($$input, 0, $length);
+    $output_buffer = substr ($$input, $memory_buffer_read_offset, $length);
 
-    # remove the bytes we read here
-
-    $$input = substr ($$input, $length);
+    $memory_buffer_read_offset += $length;
   }
 
   return $output_buffer;
@@ -162,7 +217,7 @@ sub get_uint32
   return $num;
 }
 
-sub get_real_uint64
+sub get_uint64
 {
   my $fp = shift;
 
@@ -175,56 +230,62 @@ sub get_real_uint64
   return $bytes, $num;
 }
 
-sub get_uint64
+sub read_number
 {
   my $fp = shift;
 
-  my $first_byte = my_read ($fp, 1);
+  my $b = ord (my_read ($fp, 1));
 
-  my $bytes;
-  my $v = ord ($first_byte);
-  my $mask = 0b10000000;
-
-  for (my $i = 0; $i < 8; $i++)
+  if (($b & 0x80) == 0)
   {
-    if (($v & $mask) == 0)
-    {
-      my $value = 0;
-
-      if ($i != 0)
-      {
-        $bytes = my_read ($fp, $i);
-
-        for (my $j = 0; $j < $i; $j++)
-        {
-          my $next_byte = substr ($bytes, $j, 1);
-
-          $value |= ord ($next_byte) << (8 * $j);
-        }
-      }
-
-      my $upper_part = $v & ($mask - 1);
-
-      return $value + ($upper_part << ($i * 8));
-    }
-
-    $mask >>= 1
+    return $b;
   }
 
-  # special case, read 8 bytes and get the value (similar to case 7)
+  my $value = ord (my_read ($fp, 1));
 
-  $bytes = my_read ($fp, 8);
-
-  my $value = 0;
-
-  for (my $j = 0; $j < 8; $j++)
+  for (my $i = 1; $i < 8; $i++)
   {
-    my $next_byte = substr ($bytes, $j, 1);
+    my $mask = 0x80 >> $i;
 
-    $value |= ord ($next_byte) << (8 * $j);
+    if (($b & $mask) == 0)
+    {
+      my $high = $b & ($mask - 1);
+
+      $value |= ($high << ($i * 8));
+
+      return $value;
+    }
+
+    my $next = ord (my_read ($fp, 1));
+
+    $value |= ($next << ($i * 8));
   }
 
   return $value;
+}
+
+sub num_to_id
+{
+  my $num = shift;
+
+  # special case:
+
+  return "\x00" if ($num == 0);
+
+  # normal case:
+
+  my $id = "";
+
+  while ($num > 0)
+  {
+    my $value = $num & 0xff;
+
+    $id = chr ($value) . $id;
+
+    $num >>= 8;
+  }
+
+  return $id;
 }
 
 sub read_id
@@ -233,24 +294,11 @@ sub read_id
 
   my $id;
 
-  my $num = get_uint64 ($fp);
-
-  return "\x00" if ($num == 0);
-
-  $id = "";
+  my $num = read_number ($fp);
 
   # convert number to their ASCII code correspondent byte
 
-  while ($num > 0)
-  {
-    my $temp = $num & 0xff;
-
-    $id = chr ($temp) . $id;
-
-    $num >>= 8;
-  }
-
-  return $id;
+  return num_to_id ($num);
 }
 
 sub get_boolean_vector
@@ -530,6 +578,13 @@ sub lzma_alone_header_field_encode
   return $value;
 }
 
+sub show_empty_streams_info_warning
+{
+  my $file_path = shift;
+
+  print STDERR "WARNING: the file '" . $file_path . "' does not contain any meaningful data (the so-called streams info), it might only contain a list of empty files.\n";
+}
+
 sub extract_hash_from_archive
 {
   my $fp = shift;
@@ -550,7 +605,13 @@ sub extract_hash_from_archive
   return undef unless (defined ($signature_header));
 
   my $streams_info = $parsed_header->{'streams_info'};
-  return undef unless (defined ($streams_info));
+
+  if (! defined ($streams_info))
+  {
+    show_empty_streams_info_warning ($file_path);
+
+    return undef;
+  }
 
   my $unpack_info = $streams_info->{'unpack_info'};
   return undef unless (defined ($unpack_info));
@@ -614,7 +675,7 @@ sub extract_hash_from_archive
 
   # if it is lzma compressed, we need to decompress it first
 
-  if ($codec_id eq $SEVEN_ZIP_LZMA)
+  if ($codec_id eq $SEVEN_ZIP_LZMA1)
   {
     # get the sizes
 
@@ -710,6 +771,8 @@ sub extract_hash_from_archive
 
     # check the decompressed 7zip header
 
+    $memory_buffer_read_offset = 0; # decompressed_header is a new memory buffer (which uses a offset to speed things up)
+
     my $id = read_id (\$decompressed_header);
 
     return undef unless ($id eq $SEVEN_ZIP_HEADER);
@@ -734,7 +797,7 @@ sub extract_hash_from_archive
 
     if (! defined ($streams_info))
     {
-      print STDERR "WARNING: the file '" . $file_path . "' does not contain any meaningful data (the so-called streams info), it might only contain a list of empty files\n";
+      show_empty_streams_info_warning ($file_path);
 
       return "";
     }
@@ -795,7 +858,7 @@ sub extract_hash_from_archive
       last unless (defined ($coder));
     }
 
-    # if not AES we can't do anything
+    # we unfortunately can't do anything if no AES encrypted data was found
 
     if ($codec_id ne $SEVEN_ZIP_AES)
     {
@@ -850,7 +913,8 @@ sub extract_hash_from_archive
 
   # special case: we can truncate the data_len and use 32 bytes in total for both iv + data (last 32 bytes of data)
 
-  my $special_attack_possible = 0;
+  my $is_truncated = 0;
+  my $padding_attack_possible = 0;
 
   my $data;
 
@@ -860,7 +924,7 @@ sub extract_hash_from_archive
 
     if ($length_difference > 3)
     {
-      if ($data_len >= 32)
+      if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
       {
         seek $fp, $data_len - 32, 1;
 
@@ -871,9 +935,11 @@ sub extract_hash_from_archive
         $data_len = 16;
 
         $unpack_size %= 16;
+
+        $is_truncated = 1;
       }
 
-      $special_attack_possible = 1;
+      $padding_attack_possible = 1;
     }
   }
 
@@ -884,65 +950,117 @@ sub extract_hash_from_archive
 
   return undef unless (length ($data) == $data_len);
 
-  my $compression_indicator = 0; # 0 = uncompressed, 1 = LZMA, 2 = LZMA2
+  if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
+  {
+    print STDERR "WARNING: the file '". $file_path . "' unfortunately can't be used with $PASSWORD_RECOVERY_TOOL_NAME since the data length\n";
+    print STDERR "in this particular case is too long ($data_len of the maximum allowed " .($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2). " bytes) ";
+    print STDERR "and it can't be truncated.\n";
+    print STDERR "This should only happen in very rare cases.\n";
 
-  for (my $coder_pos = $coder_id; $coder_pos < $number_coders; $coder_pos++)
+    return "";
+  }
+
+  my $type_of_compression    = $SEVEN_ZIP_UNCOMPRESSED;
+  my $compression_attributes = "";
+
+  for (my $coder_pos = $coder_id + 1; $coder_pos < $number_coders; $coder_pos++)
   {
     $coder = $folder->{'coders'}[$coder_pos];
     last unless (defined ($coder));
 
     $codec_id = $coder->{'codec_id'};
 
-    if ($codec_id eq $SEVEN_ZIP_LZMA)
+    if ($codec_id eq $SEVEN_ZIP_LZMA1)
     {
-      $compression_indicator = 1;
+      $type_of_compression = $SEVEN_ZIP_LZMA1_COMPRESSED;
     }
     elsif ($codec_id eq $SEVEN_ZIP_LZMA2)
     {
-      $compression_indicator = 2;
+      $type_of_compression = $SEVEN_ZIP_LZMA2_COMPRESSED;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_PPMD)
+    {
+      $type_of_compression = $SEVEN_ZIP_PPMD_COMPRESSED;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_BCJ)
+    {
+      $type_of_compression = $SEVEN_ZIP_BCJ_COMPRESSED;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_BCJ2)
+    {
+      $type_of_compression = $SEVEN_ZIP_BCJ2_COMPRESSED;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_BZIP2)
+    {
+      $type_of_compression = $SEVEN_ZIP_BZIP2_COMPRESSED;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_DEFLATE)
+    {
+      $type_of_compression = $SEVEN_ZIP_DEFLATE_COMPRESSED;
+    }
+
+    if ($type_of_compression != $SEVEN_ZIP_UNCOMPRESSED)
+    {
+      $compression_attributes = unpack ("H*", $coder->{'attributes'});
+
+      last; # no need to continue looping, we found what we needed (and 2+ compressions are never combined by the 7z format)
     }
   }
 
-  # show a warning if LZMA/LZMA2 decompression is currently not supported by the cracker
+  # show a warning if the decompression algorithm is currently not supported by the cracker
 
   if ($SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING == 1)
   {
-    if ($special_attack_possible == 0)
+    if ($type_of_compression != $SEVEN_ZIP_UNCOMPRESSED)
     {
-      if ($compression_indicator > 0)
+      if ($is_truncated == 0)
       {
-        print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
-        print STDERR "the data must be decompressed using ";
-
-        if ($compression_indicator == 1)
+        if (grep ("/^$type_of_compression$/", @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS) == 0)
         {
-          print STDERR "LZMA";
-        }
-        else
-        {
-          print STDERR "LZMA2";
-        }
-
-        print STDERR " after the decryption step.\n";
-        print STDERR "\n";
-
-        print STDERR "Some cracking tools currently do not support the decompression step after decrypting the data.\n";
-        print STDERR "\n";
-
-        if ($data_len <= $LZMA2_MIN_COMPRESSED_LEN)
-        {
-          print STDERR "INFO: it might still be possible to crack the password of this archive since the data part seems\n";
-          print STDERR "to be very short and therefore it might use the LZMA2 uncompressed chunk feature\n";
+          print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
+          print STDERR "the data must be decompressed using " . $SEVEN_ZIP_COMPRESSOR_NAMES{$type_of_compression};
+          print STDERR " after the decryption step.\n";
           print STDERR "\n";
+          print STDERR "$PASSWORD_RECOVERY_TOOL_NAME currently does not support this particular decompression algorithm.\n";
+          print STDERR "\n";
+
+          if ($padding_attack_possible == 1)
+          {
+            print STDERR "INFO: However there is also some good news in this particular case.\n";
+            print STDERR "Since AES-CBC is used by the 7z algorithm and the data length of this file allows a padding attack,\n";
+            print STDERR "the password recovery tool might be able to use that to verify the correctness of password candidates.\n";
+            print STDERR "By using this attack there might of course be a higher probability of false positives.\n";
+            print STDERR "\n";
+          }
+          elsif ($type_of_compression == $SEVEN_ZIP_LZMA2_COMPRESSED) # this special case should only work for LZMA2
+          {
+            if ($data_len <= $LZMA2_MIN_COMPRESSED_LEN)
+            {
+              print STDERR "INFO: it might still be possible to crack the password of this archive since the data part seems\n";
+              print STDERR "to be very short and therefore it might use the LZMA2 uncompressed chunk feature\n";
+              print STDERR "\n";
+            }
+          }
         }
       }
     }
   }
 
+  my $type_of_data = $SEVEN_ZIP_UNCOMPRESSED; # this variable will hold the "number" after the "$7z$" hash signature
+
+  if ($is_truncated == 1)
+  {
+    $type_of_data = $SEVEN_ZIP_TRUNCATED; # note: this means that we neither need the crc_len, nor the coder attributes
+  }
+  else
+  {
+    $type_of_data = $type_of_compression;
+  }
+
   $hash_buf = sprintf ("%s:%s%i\$%i\$%i\$%s\$%i\$%s\$%i\$%i\$%i\$%s",
-    basename($file_path, ".7z"),
+    basename($file_path),
     $SEVEN_ZIP_HASH_SIGNATURE,
-    $compression_indicator,
+    $type_of_data,
     $number_cycles_power,
     $salt_len,
     unpack ("H*", $salt_buf),
@@ -952,6 +1070,16 @@ sub extract_hash_from_archive
     $data_len,
     $unpack_size,
     unpack ("H*", $data)
+  );
+
+  return $hash_buf if ($type_of_data == $SEVEN_ZIP_UNCOMPRESSED);
+  return $hash_buf if ($type_of_data == $SEVEN_ZIP_TRUNCATED);
+
+  my $crc_len = $substreams_info->{'unpack_sizes'}[0]; # we always stick to the first file here
+
+  $hash_buf .= sprintf ("\$%i\$%s",
+    $crc_len,
+    $compression_attributes
   );
 
   return $hash_buf;
@@ -979,8 +1107,8 @@ sub read_seven_zip_signature_header
 
   # StartHeader
 
-  my $next_header_offset = get_real_uint64 ($fp);
-  my $next_header_size   = get_real_uint64 ($fp);
+  my $next_header_offset = get_uint64 ($fp);
+  my $next_header_size   = get_uint64 ($fp);
 
   my_read ($fp, 4); # next header CRC
 
@@ -1020,11 +1148,6 @@ sub wait_for_seven_zip_id
   while (1)
   {
     my $new_id = read_id ($fp);
-
-    if (length ($new_id) != 1)
-    {
-      return 0;
-    }
 
     if ($new_id eq $id)
     {
@@ -1095,11 +1218,11 @@ sub read_seven_zip_pack_info
 
   # PackPos
 
-  my $pack_pos = get_uint64 ($fp);
+  my $pack_pos = read_number  ($fp);
 
   # NumPackStreams
 
-  my $number_pack_streams = get_uint64 ($fp);
+  my $number_pack_streams = read_number ($fp);
 
   # must be "size" id
 
@@ -1112,7 +1235,7 @@ sub read_seven_zip_pack_info
 
   for (my $i = 0; $i < $number_pack_streams; $i++)
   {
-    $pack_sizes[$i] = get_uint64 ($fp);
+    $pack_sizes[$i] = read_number ($fp);
   }
 
   $pack_info = {
@@ -1126,11 +1249,6 @@ sub read_seven_zip_pack_info
   while (1)
   {
     my $id = read_id ($fp);
-
-    if (length ($id) != 1)
-    {
-      return undef;
-    }
 
     if ($id eq $SEVEN_ZIP_END)
     {
@@ -1169,7 +1287,7 @@ sub read_seven_zip_folders
 
   # NumCoders
 
-  my $number_coders = get_uint64 ($fp);
+  my $number_coders = read_number ($fp);
 
   # loop
 
@@ -1208,8 +1326,8 @@ sub read_seven_zip_folders
 
     if (($main_byte & 0x10) != 0)
     {
-      $number_input_streams  = get_uint64 ($fp);
-      $number_output_streams = get_uint64 ($fp);
+      $number_input_streams  = read_number ($fp);
+      $number_output_streams = read_number ($fp);
     }
 
     $sum_input_streams  += $number_input_streams;
@@ -1221,7 +1339,7 @@ sub read_seven_zip_folders
 
     if (($main_byte & 0x020) != 0)
     {
-      my $property_size = get_uint64 ($fp);
+      my $property_size = read_number ($fp);
 
       $attributes = my_read ($fp, $property_size);
     }
@@ -1249,7 +1367,7 @@ sub read_seven_zip_folders
     {
       # input
 
-      my $index_input = get_uint64 ($fp);
+      my $index_input = read_number ($fp);
 
       if ($input_stream_used[$index_input] == 1)
       {
@@ -1260,7 +1378,7 @@ sub read_seven_zip_folders
 
       # output
 
-      my $index_output = get_uint64 ($fp);
+      my $index_output = read_number ($fp);
 
       if ($output_stream_used[$index_output] == 1)
       {
@@ -1284,7 +1402,7 @@ sub read_seven_zip_folders
       {
         # we can ignore this
 
-        get_uint64 ($fp); # my $index = get_uint64 ($fp);
+        read_number ($fp); # my $index = read_number ($fp);
       }
     }
 
@@ -1344,7 +1462,7 @@ sub read_seven_zip_unpack_info
 
   # NumFolders
 
-  $number_folders = get_uint64 ($fp);
+  $number_folders = read_number ($fp);
 
   # External
 
@@ -1372,7 +1490,7 @@ sub read_seven_zip_unpack_info
     }
     elsif ($external eq $SEVEN_ZIP_EXTERNAL)
     {
-      $datastream_indices[$i] = get_uint64 ($fp);
+      $datastream_indices[$i] = read_number ($fp);
     }
     else
     {
@@ -1387,7 +1505,7 @@ sub read_seven_zip_unpack_info
 
   for (my $i = 0; $i < $sum_coders_output_streams; $i++)
   {
-    $unpack_sizes[$i] = get_uint64 ($fp);
+    $unpack_sizes[$i] = read_number ($fp);
   }
 
   # read remaining data
@@ -1395,11 +1513,6 @@ sub read_seven_zip_unpack_info
   while (1)
   {
     my $id = read_id ($fp);
-
-    if (length ($id) != 1)
-    {
-      return undef;
-    }
 
     if ($id eq $SEVEN_ZIP_END)
     {
@@ -1495,16 +1608,11 @@ sub read_seven_zip_substreams_info
   {
     $id = read_id ($fp);
 
-    if (length ($id) != 1)
-    {
-      return undef;
-    }
-
     if ($id eq $SEVEN_ZIP_NUM_UNPACK_STREAM)
     {
       for (my $i = 0; $i < $number_folders; $i++)
       {
-        $number_unpack_streams[$i] = get_uint64 ($fp);
+        $number_unpack_streams[$i] = read_number ($fp);
       }
 
       next;
@@ -1540,7 +1648,7 @@ sub read_seven_zip_substreams_info
 
       for (my $j = 1; $j < $number_substreams; $j++)
       {
-        my $size = get_uint64 ($fp);
+        my $size = read_number ($fp);
 
         push (@unpack_sizes, $size);
 
@@ -1807,11 +1915,6 @@ sub read_seven_zip_archive_properties
   {
     my $id = read_id ($fp);
 
-    if (length ($id) != 1)
-    {
-      return 0;
-    }
-
     if ($id eq $SEVEN_ZIP_END)
     {
       return 1;
@@ -1852,7 +1955,7 @@ sub get_uint64_defined_vector
 
     if ($defined != 0)
     {
-      $value = get_real_uint64 ($fp);
+      $value = get_uint64 ($fp);
     }
 
     $values[$i] = $value;
@@ -1873,9 +1976,7 @@ sub read_seven_zip_files_info
 
   # NumFiles
 
-  my $number_files = read_id ($fp);
-
-  $number_files = ord ($number_files);
+  my $number_files = read_number ($fp);
 
   # init file
 
@@ -1904,27 +2005,20 @@ sub read_seven_zip_files_info
 
   # loop over all properties
 
-  my $property_type;
-
   while (1)
   {
-    $property_type = read_id ($fp);
+    my $property_type_val = read_number ($fp);
 
-    if (length ($property_type) != 1)
-    {
-      return undef;
-    }
+    my $property_type = num_to_id ($property_type_val);
 
     if ($property_type eq $SEVEN_ZIP_END)
     {
       last;
     }
 
-    my $property_type_val = ord ($property_type);
-
     # Size
 
-    my $size = get_uint64 ($fp);
+    my $size = read_number ($fp);
 
     # check and act according to the type of property found
 
