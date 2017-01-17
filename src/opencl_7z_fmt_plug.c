@@ -592,6 +592,7 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 			out = new_out;
 			crc_len = cur_salt->crc_len;
 		} else {
+			MEM_FREE(new_out);
 			goto exit_bad;
 		}
 	}
@@ -613,6 +614,7 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 			out = new_out;
 			crc_len = cur_salt->crc_len;
 		} else {
+			MEM_FREE(new_out);
 			goto exit_bad;
 		}
 	}
