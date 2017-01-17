@@ -1001,7 +1001,10 @@ sub extract_hash_from_archive
 
     if ($type_of_compression != $SEVEN_ZIP_UNCOMPRESSED)
     {
-      $compression_attributes = unpack ("H*", $coder->{'attributes'});
+      if (defined ($coder->{'attributes'}))
+      {
+        $compression_attributes = unpack ("H*", $coder->{'attributes'});
+      }
 
       last; # no need to continue looping, we found what we needed (and 2+ compressions are never combined by the 7z format)
     }
