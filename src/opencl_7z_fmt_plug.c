@@ -533,7 +533,8 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 	int i;
 	int nbytes, pad_size;
 	size_t crc_len = cur_salt->unpacksize;
-	size_t aes_len;
+	size_t aes_len = cur_salt->crc_len ?
+		(cur_salt->crc_len * 11 + 150) / 160 * 16 : crc_len;
 
 	pad_size = nbytes = cur_salt->length - cur_salt->unpacksize;
 
@@ -555,7 +556,8 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 	}
 
 	/* Complete decryption, or partial if possible */
-	aes_len = nbytes ? cur_salt->length : MIN(crc_len * 1.1, cur_salt->length);
+	aes_len = nbytes ?
+		cur_salt->length : MIN(aes_len, cur_salt->length);
 	out = mem_alloc(aes_len);
 	memcpy(iv, cur_salt->iv, 16);
 	AES_set_decrypt_key(derived_key, 256, &akey);
