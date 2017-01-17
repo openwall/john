@@ -324,7 +324,7 @@ static void *get_salt(char *ciphertext)
 		p = strtokm(NULL, "$"); /* CRC length */
 		psalt->crc_len = atoi(p);
 		p = strtokm(NULL, "$"); /* Coder properties */
-		for (i = 0; *p; i++)
+		for (i = 0; p[i * 2] ; i++)
 			psalt->props[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
