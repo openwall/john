@@ -792,6 +792,7 @@ clean:
 	done
 	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*
+	$(RM) lzma/*.o
 	$(RM) detect bench generic.h tmp.s
 	$(RM) *~
 	$(CP) $(NULL) Makefile.dep
