@@ -25,7 +25,7 @@
 #include "johnswap.h"
 #include "memdbg.h"
 
-#if defined (_MSC_VER) && !defined (MEMDBG_ON)
+#if (defined (_MSC_VER) || HAVE___MINGW_ALIGNED_MALLOC) && !defined (MEMDBG_ON)
 char *strdup_MSVC(const char *str)
 {
 	char * s;

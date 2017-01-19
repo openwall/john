@@ -156,6 +156,24 @@ char *strdup_MSVC(const char *str);
 }
 #endif
 
+#elif HAVE___MINGW_ALIGNED_MALLOC
+#if !defined (MEMDBG_ON)
+#define malloc(a) __mingw_aligned_malloc(a,(sizeof(long long)))
+#define realloc(a,b) __mingw_aligned_realloc(a,b,(sizeof(long long)))
+#define calloc(a,b) memset(__mingw_aligned_malloc(a*b,(sizeof(long long))),0,a*b)
+#define free(a) __mingw_aligned_free(a)
+#define strdup(a) strdup_MSVC(a)
+char *strdup_MSVC(const char *str);
+
+#define MEM_FREE(ptr) \
+{ \
+	if ((ptr)) { \
+		__mingw_aligned_free((ptr)); \
+		(ptr) = NULL; \
+	} \
+}
+#endif
+
 #else
 #define MEM_FREE(ptr) \
 { \
