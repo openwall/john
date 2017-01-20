@@ -2032,6 +2032,7 @@ clean:
 	$(RM) $(PROJ_PCAP)
 	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
+	$(RM) lzma/*.o
 	$(RM) detect bench generic.h arch.h tmp.s
 	$(RM) *~
 	$(RM) dynamic_big_crypt.c fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
