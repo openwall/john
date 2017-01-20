@@ -11,16 +11,20 @@ use File::Basename;
 # magnum (adapt to JtR use)
 
 # version:
-# 0.7
+# 0.8
 
 # date released:
 # April 2015
 
 # date last updated:
-# 16th January 2017
+# 20th January 2017
 
 # dependencies:
 # Compress::Raw::Lzma
+
+# supported file types:
+# - is able to identify and parse .7z files
+# - is able to identify and parse regular (non-packed) .sfx files
 
 # install dependencies like this:
 #    sudo cpan Compress::Raw::Lzma
@@ -97,6 +101,7 @@ my $LZMA2_MIN_COMPRESSED_LEN = 16; # the raw data (decrypted) needs to be at lea
 # header
 
 my $SEVEN_ZIP_MAGIC = "7z\xbc\xaf\x27\x1c";
+my $SEVEN_ZIP_MAGIC_LEN = 6;                # fixed length of $SEVEN_ZIP_MAGIC
 
 my $SEVEN_ZIP_END                = "\x00";
 my $SEVEN_ZIP_HEADER             = "\x01";
@@ -212,6 +217,9 @@ sub get_uint32
 
   my $bytes = my_read ($fp, 4);
 
+  return (0, 0) if (! defined ($bytes));
+  return (0, 0) if (length ($bytes) != 4);
+
   my $num = unpack ("L", $bytes);
 
   return $num;
@@ -222,6 +230,9 @@ sub get_uint64
   my $fp = shift;
 
   my $bytes = my_read ($fp, 8);
+
+  return (0, 0) if (! defined ($bytes));
+  return (0, 0) if (length ($bytes) != 8);
 
   my ($uint1, $uint2) = unpack ("LL<", $bytes);
 
@@ -2396,7 +2407,8 @@ sub parse_seven_zip_header
   {
     if ($id ne $SEVEN_ZIP_ENCODED_HEADER)
     {
-      print STDERR "WARNING: only encoded headers are allowed if no raw header is present\n";
+      # when we reach this code section we probably found an invalid 7z file (just ignore it!)
+      # print STDERR "WARNING: only encoded headers are allowed if no raw header is present\n";
 
       return undef;
     }
@@ -2492,9 +2504,7 @@ sub seven_zip_get_hash
 
   if (! is_supported_seven_zip_file ($seven_zip_file))
   {
-    print STDERR "WARNING: the file '$file_path' is not a supported 7-Zip file\n";
-
-    return $hash_buf;
+    return sfx_get_hash ($seven_zip_file, $file_path);
   }
 
   my $archive = read_seven_zip_archive ($seven_zip_file);
@@ -2504,6 +2514,360 @@ sub seven_zip_get_hash
   # cleanup
 
   close ($seven_zip_file);
+
+  return $hash_buf;
+}
+
+#
+# SFX related helper functions
+#
+
+# The strategy here is as follows:
+# 1. only use sfx-checks whenever the 7z header is not at start (i.e. if parsing of a "regular" 7z failed)
+# 2. try to read PE
+# 3. try to search for $SEVEN_ZIP_MAGIC within the 512 bytes bounderies
+# 4. try to do a full scan ($SEVEN_ZIP_MAGIC_LEN bytes at a time)
+
+# sfx_7z_pe_search () searches for the 7z signature by seeking to the correct offset in the PE file
+# (e.g. after the PE stub aka the executable part)
+
+sub sfx_7z_pe_search
+{
+  my $fp = shift;
+
+  my $found = 0;
+
+
+  # 1. DOS header (e_lfanew)
+  # 2. Portable executable (PE) headers (NumberOfSections)
+  # 3. Section headers (PointerToRawData + SizeOfRawData)
+
+  # we assume that the file is a common/standard PE executable, we will do some checks:
+
+  # DOS header
+
+  # we should have a MS-DOS MZ executable
+
+  my $bytes = my_read ($fp, 2);
+
+  return 0 if (! defined ($bytes));
+  return 0 if (length ($bytes) != 2);
+  return 0 if ($bytes ne "MZ"); # 0x5a4d
+  return 0 if (length (my_read ($fp, 58)) != 58);
+
+  $bytes = my_read ($fp, 4);
+
+  return 0 if (! defined ($bytes));
+  return 0 if (length ($bytes) != 4);
+
+  my $e_lfanew = unpack ("L", $bytes);
+
+  seek ($fp, $e_lfanew, 0);
+
+  # PE header
+
+  $bytes = my_read ($fp, 4); # PE0000 signature after DOS part
+
+  return 0 if (! defined ($bytes));
+  return 0 if (length ($bytes) != 4);
+  return 0 if ($bytes ne "PE\x00\x00");
+  return 0 if (length (my_read ($fp, 2)) != 2); # skip FileHeader.Machine
+
+  $bytes = my_read ($fp, 2);
+
+  return 0 if (! defined ($bytes));
+  return 0 if (length ($bytes) != 2);
+
+  my $num_sections = unpack ("S", $bytes);
+
+  return 0 if ($num_sections < 1);
+
+  return 0 if (length (my_read ($fp,  16)) !=  16); # skip rest of FileHeader
+  return 0 if (length (my_read ($fp, 224)) != 224); # skip OptionalHeader
+
+  my $section_farthest = 0;
+  my $pos_after_farthest_section = 0;
+
+  for (my $i = 0; $i < $num_sections; $i++)
+  {
+    # we loop through all the section headers
+
+    #my $name = my_read ($fp, 8); return 0 if (length (my_read ($fp, 8)) != 8);
+    return 0 if (length (my_read ($fp, 16)) != 16); # skip Name, Misc, VirtualAddress, SizeOfRawData
+
+    # SizeOfRawData
+
+    $bytes = my_read ($fp, 4);
+
+    return 0 if (! defined ($bytes));
+    return 0 if (length ($bytes) != 4);
+
+    my $size_of_raw_data = unpack ("L", $bytes);
+
+    # PointerToRawData
+
+    $bytes = my_read ($fp, 4);
+
+    return 0 if (! defined ($bytes));
+    return 0 if (length ($bytes) != 4);
+
+    my $pointer_to_raw_data = unpack ("L", $bytes);
+
+    # the sections are not quaranteed to be ordered (=> compare all of them!)
+
+    if ($pointer_to_raw_data > $section_farthest)
+    {
+      $section_farthest = $pointer_to_raw_data;
+
+      $pos_after_farthest_section = $pointer_to_raw_data + $size_of_raw_data;
+    }
+
+
+    # loop to next SectionTable entry
+
+    return 0 if (length (my_read ($fp, 16)) != 16); # skip rest of SectionHeader
+  }
+
+  # check if 7z signature found (after stub)
+
+  seek ($fp, $pos_after_farthest_section, 0);
+
+  $bytes = my_read ($fp, $SEVEN_ZIP_MAGIC_LEN);
+
+  return 0 if (! defined ($bytes));
+  return 0 if (length ($bytes) != $SEVEN_ZIP_MAGIC_LEN);
+
+  if ($bytes eq $SEVEN_ZIP_MAGIC)
+  {
+    $found = 1;
+  }
+
+  return $found;
+}
+
+# sfx_7z_512_search () searches for the 7z signature by only looking at every 512 byte boundery
+
+sub sfx_7z_512_search
+{
+  my $fp = shift;
+
+  my $found = 0;
+
+
+  my $seek_skip = 512 - $SEVEN_ZIP_MAGIC_LEN;
+
+  my $bytes = my_read ($fp, $SEVEN_ZIP_MAGIC_LEN);
+
+  my $len_bytes = length ($bytes);
+
+  while ($len_bytes == $SEVEN_ZIP_MAGIC_LEN)
+  {
+    if ($bytes eq $SEVEN_ZIP_MAGIC)
+    {
+      $found = 1;
+
+      last;
+    }
+
+    seek ($fp, $seek_skip, 1);
+
+    $bytes = my_read ($fp, $SEVEN_ZIP_MAGIC_LEN);
+
+    $len_bytes = length ($bytes);
+  }
+
+  return $found;
+}
+
+# sfx_7z_full_search () searches for the 7z signature by looking at every byte in the file
+# (this type of search should only be performed if no other variant worked)
+
+sub sfx_7z_full_search
+{
+  my $fp = shift;
+
+  my $found = 0;
+
+  my $idx_into_magic = 0;
+  my $prev_idx_into_magic = 0;
+
+  my $len_bytes = $SEVEN_ZIP_MAGIC_LEN;
+
+  while ($len_bytes == $SEVEN_ZIP_MAGIC_LEN)
+  {
+    my $bytes = my_read ($fp, $SEVEN_ZIP_MAGIC_LEN);
+
+    last if (! defined ($bytes));
+    last if (length  ($bytes) == 0);
+
+    $prev_idx_into_magic = $idx_into_magic;
+
+    if ($bytes eq $SEVEN_ZIP_MAGIC)
+    {
+      $found = 1;
+
+      last;
+    }
+
+    for (my $i = 0; $i < length ($bytes); $i++)
+    {
+      my $c = substr ($bytes, $i, 1);
+
+      if ($c ne substr ($SEVEN_ZIP_MAGIC, $idx_into_magic, 1))
+      {
+        $idx_into_magic = 0; #reset
+      }
+      else
+      {
+        $idx_into_magic++;
+
+        if ($idx_into_magic == $SEVEN_ZIP_MAGIC_LEN)
+        {
+          $found = 1;
+
+          last;
+        }
+      }
+    }
+
+    last if ($found == 1);
+
+    $len_bytes = length ($bytes);
+  }
+
+  return ($found, $prev_idx_into_magic);
+}
+
+sub sfx_get_hash
+{
+  my $fp = shift;
+  my $file_path = shift;
+
+  my $hash_buf = "";
+
+
+  my %db_positions_analysed = (); # holds a list of offsets that we already tried to parse
+
+  # we make the assumption that there is max one .7z file within the .sfx!
+
+  # Variant 1 (PE file structure parsing)
+
+  seek ($fp, 0, 0);
+
+  if (sfx_7z_pe_search ($fp))
+  {
+    my $cur_pos = tell ($fp);
+
+    $db_positions_analysed{$cur_pos} = 1; # mark it as analyzed
+
+    my $archive = read_seven_zip_archive ($fp);
+
+    $hash_buf = extract_hash_from_archive ($fp, $archive, $file_path);
+
+    if (defined ($hash_buf))
+    {
+      if (length ($hash_buf) > 0)
+      {
+        return $hash_buf;
+      }
+    }
+  }
+
+  # Variant 2 (search only at the 512 bytes bounderies)
+
+  seek ($fp, 512, 0);
+
+  while (sfx_7z_512_search ($fp) != 0)
+  {
+    my $cur_pos = tell ($fp);
+
+    if (! exists ($db_positions_analysed{$cur_pos}))
+    {
+      $db_positions_analysed{$cur_pos} = 1; # mark it as analyzed
+
+      my $archive = read_seven_zip_archive ($fp);
+
+      $hash_buf = extract_hash_from_archive ($fp, $archive, $file_path);
+
+      if (defined ($hash_buf))
+      {
+        if (length ($hash_buf) > 0)
+        {
+          return $hash_buf;
+        }
+      }
+    }
+
+    last if (seek ($fp, $cur_pos + 512 - $SEVEN_ZIP_MAGIC_LEN, 0) != 1);
+  }
+
+  # Variant 3 (full search - worst case - shouldn't happen at all with a standard .sfx)
+
+  seek ($fp, 0, 2);
+
+  my $file_size = tell ($fp);
+
+  if ($file_size > 8 * 1024 * 1024) # let's say that 8 MiB is already a huge file
+  {
+    print STDERR "WARNING: searching for the 7z signature in a $file_size bytes long file ('";
+    print STDERR $file_path . "') might take some time\n";
+  }
+
+  seek ($fp, 1, 0); # we do no that the signature is not at position 0, so we start at 1
+
+  my ($full_search_found, $full_search_idx) = sfx_7z_full_search ($fp);
+
+  while ($full_search_found != 0)
+  {
+    my $cur_pos = tell ($fp);
+
+    $cur_pos -= $full_search_idx;
+
+    seek ($fp, $cur_pos, 0); # we might not be there yet (depends if $full_search_idx != 0)
+
+    if (! exists ($db_positions_analysed{$cur_pos}))
+    {
+      # we can skip the database updates because it's our last try to find the 7z file
+      # $db_positions_analysed{$cur_pos} = 1;
+
+      my $archive = read_seven_zip_archive ($fp);
+
+      $hash_buf = extract_hash_from_archive ($fp, $archive, $file_path);
+
+      if (defined ($hash_buf))
+      {
+        if (length ($hash_buf) > 0)
+        {
+          return $hash_buf;
+        }
+      }
+    }
+
+    seek ($fp, $cur_pos, 0); # seek back to position JUST AFTER the previously found signature
+
+    ($full_search_found, $full_search_idx) = sfx_7z_full_search ($fp);
+  }
+
+  # in theory if we reach this code section we already know that parsing the file failed (but let's confirm it)
+
+  my $sfx_successfully_parsed = 0;
+
+  if (defined ($hash_buf))
+  {
+    if (length ($hash_buf) > 0)
+    {
+      $sfx_successfully_parsed = 1;
+    }
+  }
+
+  if ($sfx_successfully_parsed == 0)
+  {
+    print STDERR "WARNING: the file '$file_path' is neither a supported 7-Zip file nor a supported SFX file\n";
+  }
+
+  # cleanup
+
+  close ($fp);
 
   return $hash_buf;
 }
