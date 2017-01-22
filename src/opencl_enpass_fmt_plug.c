@@ -268,12 +268,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	unsigned char data[1024];
-	unsigned char *iv_in;
-	unsigned char iv_out[16];
-	int size;
-	AES_KEY akey;
-
 	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
 
@@ -309,6 +303,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 		for (index = 0; index < count; index++) {
+			unsigned char data[1024];
+			unsigned char *iv_in;
+			unsigned char iv_out[16];
+			AES_KEY akey;
+			int size;
+
 			// See "sqlcipher_page_cipher" and "sqlite3Codec" functions
 			size = page_sz - reserve_sz;
 			iv_in = cur_salt->data + 16 + size;  // initial 16 bytes are salt
