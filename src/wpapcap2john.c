@@ -714,6 +714,17 @@ out:
 	MEM_FREE(orig_2);
 }
 
+#if HAVE___MINGW_ALIGNED_MALLOC && !defined (MEMDBG_ON)
+char *strdup_MSVC(const char *str)
+{
+	char * s;
+	s = (char*)__mingw_aligned_malloc(strlen(str)+1, (sizeof(long long)));
+	if (s != NULL)
+		strcpy(s, str);
+	return s;
+}
+#endif
+
 static void DumpKey(int ess, int one_three, int bIsQOS)
 {
 	ether_auto_802_1x_t *auth13, *auth2;
