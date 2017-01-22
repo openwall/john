@@ -172,6 +172,14 @@ char *strdup_MSVC(const char *str);
 		(ptr) = NULL; \
 	} \
 }
+#else
+#define MEM_FREE(ptr) \
+{ \
+	if ((ptr)) { \
+		MEMDBG_free(((const void*)ptr),__FILE__,__LINE__); \
+		(ptr) = NULL; \
+	} \
+}
 #endif
 
 #else
