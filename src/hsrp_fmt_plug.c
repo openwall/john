@@ -188,8 +188,6 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-// this place would normally contain "print_hex" but I do not want to piss of magnum (yet again)
-
 #define PUTCHAR(buf, index, val) ((unsigned char*)(buf))[index] = (val)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
