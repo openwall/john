@@ -303,7 +303,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 		for (index = 0; index < count; index++) {
-			unsigned char data[1024];
+			unsigned char data[24];
 			unsigned char *iv_in;
 			unsigned char iv_out[16];
 			AES_KEY akey;
@@ -313,11 +313,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			size = page_sz - reserve_sz;
 			iv_in = cur_salt->data + 16 + size;  // initial 16 bytes are salt
 			memcpy(iv_out, iv_in, 16);
-			if (AES_set_decrypt_key((unsigned char*)output[index].dk, 256, &akey) < 0) {
-				fprintf(stderr, "AES_set_decrypt_key failed!\n");
-			}
-			/* decrypting 24 bytes is enough */
-			AES_cbc_encrypt(cur_salt->data + 16, data + 16, 24, &akey, iv_out, AES_DECRYPT);
+			AES_set_decrypt_key((unsigned char*)output[index].dk, 256, &akey);
+			/*
+			 * decrypting 8 bytes from offset 16 is enough since the
+			 * verify_page function looks at data[16..23] only.
+			 */
+			AES_cbc_encrypt(cur_salt->data + 16, data + 16, 8, &akey, iv_out, AES_DECRYPT);
 			if (enpass_common_verify_page(data) == 0) {
 				cracked[index] = 1;
 #ifdef _OPENMP

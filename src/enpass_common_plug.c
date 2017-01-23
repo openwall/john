@@ -65,6 +65,7 @@ int enpass_common_verify_page(unsigned char *page1)
 {
 	uint32_t pageSize;
 	uint32_t usableSize;
+
 	/* if (memcmp(page1, SQLITE_FILE_HEADER, 16) != 0) {
 		return -1;
 	} */
