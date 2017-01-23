@@ -841,6 +841,8 @@ sub extract_hash_from_archive
 
       $number_coders = $folder->{'number_coders'};
 
+      my $num_pack_sizes = scalar (@{$pack_info->{'pack_sizes'}});
+
       for (my $coder_pos = 0; $coder_pos < $number_coders; $coder_pos++)
       {
         $coder = $folder->{'coders'}[$coder_pos];
@@ -858,8 +860,12 @@ sub extract_hash_from_archive
 
         # ELSE: update seek position and index:
 
-        my $pack_size = $pack_info->{'pack_sizes'}[$current_index];
-        $current_seek_position += $pack_size;
+        if ($current_index < $num_pack_sizes) # not all pack_sizes always need to be known (final ones can be skipped)
+        {
+          my $pack_size = $pack_info->{'pack_sizes'}[$current_index];
+
+          $current_seek_position += $pack_size;
+        }
 
         $current_index++;
       }
