@@ -14,12 +14,7 @@
 #include "jumbo.h"
 #include "memdbg.h"
 
-/*
- * Max. number of ESSID's we can collect from all files combined.
- * Just bump this if you need more. We should use a linked list instead
- * and drop this limitation
- */
-#define MAX_ESSIDS	10000
+static size_t max_essids = 1024; /* Will grow automagically */
 
 static int GetNextPacket(FILE *in);
 static int ProcessPacket();
@@ -32,9 +27,9 @@ static pcaprec_hdr_t pkt_hdr;
 static uint8 *full_packet;
 static uint8 *packet;
 static int bROT;
-static WPA4way_t wpa[MAX_ESSIDS];
+static WPA4way_t *wpa;    /* alloced/realloced to max_essids*/
+static char **unVerified; /* alloced/realloced to max_essids*/
 static int nwpa = 0;
-static char *unVerified[MAX_ESSIDS];
 static int nunVer = 0;
 static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -457,6 +452,12 @@ static void e_fail(void)
 	exit(EXIT_FAILURE);
 }
 
+static void alloc_error()
+{
+	fprintf(stderr, "ERROR: Too many ESSIDs seen (%d), out of memory\n", nwpa);
+	exit(EXIT_FAILURE);
+}
+
 static void ManualBeacon(char *essid_bssid)
 {
 	char *essid = essid_bssid;
@@ -474,9 +475,12 @@ static void ManualBeacon(char *essid_bssid)
 	        bssid, essid);
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
-	if (++nwpa >= MAX_ESSIDS) {
-		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
-		exit(EXIT_FAILURE);
+	if (++nwpa >= max_essids) {
+		max_essids *= 2;
+		wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
+		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
+		if (!wpa || !unVerified)
+			alloc_error();
 	}
 }
 
@@ -505,7 +509,7 @@ static void HandleBeacon(uint16 subtype)
 		tag = (ether_beacon_tag_t *)x;
 	}
 	to_bssid(bssid, pkt->addr3);
-	for (i = 0; i < nwpa; ++i) {
+	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid))
 			return;
 	}
@@ -515,9 +519,12 @@ static void HandleBeacon(uint16 subtype)
 	fprintf(stderr, "Learned BSSID %s ESSID '%s' from %s\n",
 	        bssid, essid, subtype == 5 ? "probe response" : "beacon");
 
-	if (++nwpa >= MAX_ESSIDS) {
-		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
-		exit(EXIT_FAILURE);
+	if (++nwpa >= max_essids) {
+		max_essids *= 2;
+		wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
+		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
+		if (!wpa || !unVerified)
+			alloc_error();
 	}
 }
 
@@ -536,7 +543,7 @@ static void Handle4Way(int bIsQOS)
 	// we already HAVE fully cracked this
 
 	to_bssid(bssid, pkt->addr3);
-	for (i = 0; i < nwpa; ++i) {
+	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid)) {
 			ess=i;
 			break;
@@ -815,6 +822,9 @@ int main(int argc, char **argv)
 	int i;
 	char *base;
 
+	wpa = malloc(sizeof(WPA4way_t) * max_essids);
+	unVerified = malloc(sizeof(char*) * max_essids);
+
 	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
 	    sizeof(struct ivs2_WPA_hdsk) != 356 || sizeof(hccap_t) != 356+36) {
 		fprintf(stderr, "Internal error: struct sizes wrong.\n");
@@ -855,5 +865,6 @@ int main(int argc, char **argv)
 		} else
 			fprintf(stderr, "Error, file %s not found\n", argv[i]);
 	}
+	fprintf(stderr, "\n%d ESSIDS processed\n", nwpa);
 	return 0;
 }
