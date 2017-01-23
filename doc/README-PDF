@@ -9,6 +9,7 @@ E.g. $ ../run/pdf2john.py test.pdf > hashes
 
 E.g. $ ../run/john hashes
 
-In case of problems with the pdf2john.py tool, you may use the "npdf2john"
-program (https://github.com/kholia/npdf2john) instead. Please report such
-problems on the https://github.com/magnumripper/JohnTheRipper/issues page.
+In case of problems with the pdf2john.py tool, you may use the "pdf2john.pl"
+program instead. Please report such problems on the following page,
+
+https://github.com/magnumripper/JohnTheRipper/issues

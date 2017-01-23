@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# In case of problems, give https://github.com/kholia/npdf2john a try.
+# In case of problems, give "pdf2john.pl" program a try.
 
 import re
 import sys
