@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
- * and Copyright (c) 2012 magnum
+ * and Copyright (c) 2012-2017 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -10,27 +10,43 @@
  * KEYLEN  should be PLAINTEXT_LENGTH for passwords or 20 for hash
  * OUTLEN  should be sizeof(outbuffer->v)
  * SALTLEN should be sizeof(currentsalt.salt)
+ *
+ * If also passed -DWITH_AES, you get AES CBC decryption of salt.aes_ct
+ * (with the output of the PBKDF2 used as key) and result in out.aes_pt.
+ * AESLEN should then be set to (max) size of that data.
  */
 
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha1.h"
+#ifdef WITH_AES
+#include "opencl_aes.h"
+#endif
 
 #define SHA1_DIGEST_LENGTH     20
 
 typedef struct {
-	uint length;
+	uint  length;
 	uchar v[KEYLEN];
 } pbkdf2_password;
 
 typedef struct {
-	uint v[(OUTLEN+3)/4];
+	uint  v[(OUTLEN+3)/4]; /* output of PBKDF2 */
+#ifdef WITH_AES
+	uchar aes_pt[AESLEN];  /* plaintext after AES decryption */
+#endif
 } pbkdf2_hash;
 
 typedef struct {
-	uint iterations;
-	uint outlen;
-	uint skip_bytes;
+	uint  iterations;
+	uint  outlen;
+	uint  skip_bytes;
+#ifdef WITH_AES
+	uchar aes_ct[AESLEN];  /* ciphertext */
+	uint  aes_len;         /* actual data length (up to AESLEN) */
+	uint  aes_sz;          /* AES size, ie. 128/192/256 */
+	uchar iv[16];
+#endif
 	uchar length;
 	uchar salt[SALTLEN];
 } pbkdf2_salt;
@@ -231,6 +247,27 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 	}
 }
 
+#ifdef WITH_AES
+__kernel void dk_decrypt(__global const pbkdf2_password *inbuffer,
+                         __global pbkdf2_hash *outbuffer,
+                         __global const pbkdf2_salt *salt)
+{
+	uint idx = get_global_id(0);
+	AES_KEY akey;
+	uchar iv[16];
+	uint i;
+
+	for (i = 0; i < 16; i++)
+		iv[i] = salt->iv[i];
+
+	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, salt->length,
+	       salt->iterations, outbuffer[idx].v, salt->outlen, salt->skip_bytes);
+
+	AES_set_decrypt_key((__global uchar*)outbuffer[idx].v, salt->aes_sz, &akey);
+	AES_cbc_decrypt(salt->aes_ct, outbuffer[idx].aes_pt,
+	                salt->aes_len, &akey, iv);
+}
+#else
 __kernel void derive_key(__global const pbkdf2_password *inbuffer,
                          __global pbkdf2_hash *outbuffer,
                          __global const pbkdf2_salt *salt)
@@ -241,3 +278,4 @@ __kernel void derive_key(__global const pbkdf2_password *inbuffer,
 	       salt->salt, salt->length, salt->iterations,
 	       outbuffer[idx].v, salt->outlen, salt->skip_bytes);
 }
+#endif

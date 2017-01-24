@@ -1,9 +1,12 @@
-/*  Modified by Dhiru Kholia <dhiru at openwall.com> for ODF AES format.
+/*
+ *  Modified by Dhiru Kholia <dhiru at openwall.com> for ODF AES format.
  *
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+ * and Copyright (c) 2017 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted. */
+ * modification, are permitted.
+ */
 
 #ifdef HAVE_OPENCL
 
@@ -34,7 +37,7 @@ john_register_one(&fmt_opencl_odf_aes);
 #define FORMAT_NAME		""
 #define FORMAT_TAG           "$odf$*"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA256 OpenCL AES"
+#define ALGORITHM_NAME		"SHA256 AES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1
@@ -42,6 +45,7 @@ john_register_one(&fmt_opencl_odf_aes);
 #define BINARY_SIZE		20
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(odf_cpu_salt)
+#define AES_MAX_LEN		1024
 
 typedef struct {
 	uint32_t length;
@@ -50,12 +54,17 @@ typedef struct {
 
 typedef struct {
 	uint32_t v[32/4];
+	uint8_t  aes_pt[AES_MAX_LEN];
 } odf_hash;
 
 typedef struct {
 	uint32_t iterations;
 	uint32_t outlen;
 	uint32_t skip_bytes;
+	uint8_t  aes_ct[AES_MAX_LEN];
+	uint32_t aes_len;
+	uint32_t aes_sz;
+	uint8_t  iv[16];
 	uint8_t  length;
 	uint8_t  salt[64];
 } odf_salt;
@@ -73,7 +82,7 @@ typedef struct {
 	int content_length;
 	unsigned char iv[16];
 	unsigned char salt[32];
-	unsigned char content[1024];
+	unsigned char content[AES_MAX_LEN];
 } odf_cpu_salt;
 
 static odf_cpu_salt *cur_salt;
@@ -143,7 +152,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-
 }
 
 static void release_clobj(void)
@@ -181,17 +189,18 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
-		char build_opts[64];
+		char build_opts[128];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
+		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d -DWITH_AES -DAESLEN=%d",
 		         (int)sizeof(inbuffer->v),
 		         (int)sizeof(currentsalt.salt),
-		         (int)sizeof(outbuffer->v));
+		         (int)sizeof(outbuffer->v),
+		         AES_MAX_LEN);
 		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
 		            gpu_id, build_opts);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "derive_key", &cl_error);
+		crypt_kernel = clCreateKernel(program[gpu_id], "dk_decrypt", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -262,7 +271,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 		goto err;
 	res = strlen(p);
-	if (res > 2048 || res & 1)
+	if (res > 2 * AES_MAX_LEN || res & 1)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
@@ -282,6 +291,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static odf_cpu_salt cs;
+
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$odf$*" */
 	p = strtokm(ctcopy, "*");
 	cs.cipher_type = atoi(p);
@@ -308,7 +318,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
 	memset(cs.content, 0, sizeof(cs.content));
-	for (i = 0; p[i * 2] && i < 1024; i++)
+	for (i = 0; p[i * 2] && i < AES_MAX_LEN; i++)
 		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	cs.content_length = i;
@@ -346,7 +356,11 @@ static void *get_binary(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (odf_cpu_salt*)salt;
-	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
+	memcpy(currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
+	memcpy(currentsalt.aes_ct, cur_salt->content, cur_salt->content_length);
+	memcpy(currentsalt.iv, cur_salt->iv, 16);
+	currentsalt.aes_len = cur_salt->content_length;
+	currentsalt.aes_sz = 256;
 	currentsalt.length = cur_salt->salt_length;
 	currentsalt.iterations = cur_salt->iterations;
 	currentsalt.outlen = cur_salt->key_size;
@@ -417,16 +431,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for(index = 0; index < count; index++)
 	{
-		AES_KEY akey;
-		unsigned char iv[32];
 		SHA256_CTX ctx;
-		unsigned char pt[1024];
-		memcpy(iv, cur_salt->iv, 32);
-		memset(&akey, 0, sizeof(AES_KEY));
-		AES_set_decrypt_key((unsigned char*)outbuffer[index].v, 256, &akey);
-		AES_cbc_encrypt(cur_salt->content, pt, cur_salt->content_length, &akey, iv, AES_DECRYPT);
+
 		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, pt, cur_salt->content_length);
+		SHA256_Update(&ctx, (unsigned char*)outbuffer[index].aes_pt,
+		              cur_salt->content_length);
 		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 	return count;
@@ -457,7 +466,7 @@ static int cmp_exact(char *source, int index)
  */
 static unsigned int iteration_count(void *salt)
 {
-	odf_salt *my_salt;
+	odf_cpu_salt *my_salt;
 
 	my_salt = salt;
 	return (unsigned int) my_salt->iterations;
