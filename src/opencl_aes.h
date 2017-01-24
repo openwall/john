@@ -1138,6 +1138,7 @@ static void AES_decrypt(__global const uchar *in, uchar *out,
 	PUTU32(out + 12, s3);
 }
 
+#ifdef AES_ENCRYPT
 static void
 AES_cbc_encrypt(__global const uchar *in, __global uchar *out,
                 uint len, const AES_KEY *key,
@@ -1169,6 +1170,7 @@ AES_cbc_encrypt(__global const uchar *in, __global uchar *out,
 	for (i = 0; i < 16; i++)
 		ivec[i] = iv[i];
 }
+#endif
 
 static void
 AES_cbc_decrypt(__global const uchar *in, __global uchar *out,
