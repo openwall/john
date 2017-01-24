@@ -11,13 +11,13 @@ use File::Basename;
 # magnum (adapt to JtR use)
 
 # version:
-# 0.8
+# 0.9
 
 # date released:
 # April 2015
 
 # date last updated:
-# 20th January 2017
+# 24th January 2017
 
 # dependencies:
 # Compress::Raw::Lzma
@@ -171,9 +171,9 @@ my %SEVEN_ZIP_COMPRESSOR_NAMES   = (1 => "LZMA1", 2 => "LZMA2", 3 => "PPMD", 4 =
 my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
 
 my $PASSWORD_RECOVERY_TOOL_NAME = "john";
-my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;       # hexadecimal output value. This value should always be >= 64
-my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1,2);  # within this list we only need values ranging from 1 to 7
-                                                          # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
+my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;          # hexadecimal output value. This value should always be >= 64
+my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1, 2); # within this list we only need values ranging from 1 to 7
+                                                             # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
 
 #
 # Helper functions
@@ -1035,7 +1035,7 @@ sub extract_hash_from_archive
     {
       if ($is_truncated == 0)
       {
-        if (grep ("/^$type_of_compression$/", @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS) == 0)
+        if (grep (/^$type_of_compression$/, @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS) == 0)
         {
           print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
           print STDERR "the data must be decompressed using " . $SEVEN_ZIP_COMPRESSOR_NAMES{$type_of_compression};
