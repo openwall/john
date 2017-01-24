@@ -2024,7 +2024,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		utf8source = mem_alloc(line_size + 3 * login_size);
 		login = cp_to_utf8_r(login, utf8login, 4 * login_size);
 		line_size += 3 * login_size;
-		source = realloc(source, line_size);
+		source = mem_realloc(source, line_size);
 		cp_to_utf8_r(source, utf8source, line_size);
 		strnzcpy(source, utf8source, line_size);
 		MEM_FREE(utf8source);

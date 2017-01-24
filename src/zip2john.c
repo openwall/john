@@ -107,6 +107,7 @@
 #include "jumbo.h"
 #include "formats.h"
 #include "stdint.h"
+#include "memory.h"
 #include "pkzip.h"
 #ifdef _MSC_VER
 #include "missing_getopt.h"
@@ -325,7 +326,7 @@ static char *toHex(unsigned char *p, int len) {
 	int i;
 
 	BufSz = MAX(BufSz, 2 * len + 1);
-	Buf = realloc(Buf, BufSz);
+	Buf = mem_realloc(Buf, BufSz);
 	cp = Buf;
 	for (i = 0; i < len; ++i)
 		cp += sprintf(cp, "%02x", p[i]);

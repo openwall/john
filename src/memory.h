@@ -81,6 +81,7 @@ extern void *mem_alloc_func(size_t size
 	, char *file, int line
 #endif
 	);
+
 /*
  * Allocates nmemb*size bytes using calloc(3) and returns a pointer to the
  * allocated memory, or NULL if nmemb or/and size are 0.
@@ -92,9 +93,22 @@ extern void *mem_calloc_func(size_t nmemb, size_t size
 #endif
 	);
 
+/*
+ * Change an existing allocated block to size bytes and return a pointer to
+ * the new block, or NULL if size is 0. Content is preserved to the extent
+ * possible.
+ * If an error occurs, the function does not return.
+ */
+extern void *mem_realloc_func(void *old_ptr, size_t size
+#if defined (MEMDBG_ON)
+	, char *file, int line
+#endif
+	);
+
 #if defined (MEMDBG_ON)
 #define mem_alloc(a) mem_alloc_func(a,__FILE__,__LINE__)
 #define mem_calloc(a,b) mem_calloc_func(a,b,__FILE__,__LINE__)
+#define mem_realloc(a,b) mem_realloc_func(a,b,__FILE__,__LINE__)
 #define mem_alloc_tiny(a,b) mem_alloc_tiny_func(a,b,__FILE__,__LINE__)
 #define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b,__FILE__,__LINE__)
 #define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c,__FILE__,__LINE__)
@@ -104,6 +118,7 @@ extern void *mem_calloc_func(size_t nmemb, size_t size
 #else
 #define mem_alloc(a) mem_alloc_func(a)
 #define mem_calloc(a,b) mem_calloc_func(a,b)
+#define mem_realloc(a,b) mem_realloc_func(a,b)
 #define mem_alloc_tiny(a,b) mem_alloc_tiny_func(a,b)
 #define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b)
 #define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c)

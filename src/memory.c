@@ -122,6 +122,30 @@ void *mem_calloc_func(size_t nmemb, size_t size
 	return res;
 }
 
+void *mem_realloc_func(void *old_ptr, size_t size
+#if defined (MEMDBG_ON)
+	, char *file, int line
+#endif
+	)
+{
+	void *res;
+
+	if (!size)
+		return NULL;
+#if defined (MEMDBG_ON)
+	res = (char*) MEMDBG_realloc(old_ptr, size, file, line);
+#else
+	res = realloc(old_ptr, size);
+#endif
+	if (!res) {
+		fprintf(stderr, "mem_realloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), size);
+		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
+		error();
+	}
+
+	return res;
+}
+
 /*
  * if -DDEBUG we turn mem_alloc_tiny() to essentially be just a malloc()
  * with additional alignment. The reason for this is it's way easier to

@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
-#define __MEMDBG__
+#define __MEMDBG_C_FILE__
 #include "memdbg.h"
 #include "pseudo_intrinsics.h"
 #include "jumbo.h"

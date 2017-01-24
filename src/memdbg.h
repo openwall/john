@@ -99,7 +99,7 @@ extern void *MEMDBG_realloc(void *, size_t, char *, int);
 extern void MEMDBG_free(const void *, char *, int);
 extern char *MEMDBG_strdup(const char *, char *, int);
 
-#if !defined(__MEMDBG__)
+#if !defined(__MEMDBG_C_FILE__)
 /* we get here on every file compiled EXCEPT memdbg.c */
 #undef malloc
 #undef realloc
@@ -117,7 +117,7 @@ extern char *MEMDBG_strdup(const char *, char *, int);
 #define free(a)       MEMDBG_free((a),__FILE__,__LINE__)
 #define strdup(a)     MEMDBG_strdup((a),__FILE__,__LINE__)
 
-#endif /* !defined __MEMDBG__ */
+#endif /* !defined __MEMDBG_C_FILE__ */
 
 /* pass the file handle to write to (normally stderr) */
 #define MEMDBG_PROGRAM_EXIT_CHECKS(a) do { \
