@@ -25,7 +25,7 @@
 #define AES_BLOCK_SIZE 16
 
 typedef struct aes_key_st {
-	uint rd_key[4 *(AES_MAXNR + 1)];
+	uint rd_key[4 * (AES_MAXNR + 1)];
 	int rounds;
 } AES_KEY;
 
@@ -40,7 +40,10 @@ typedef uchar u8;
 #define MAXKB   (256/8)
 #define MAXNR   14
 
-/* This controls loop-unrolling in aes_core.c */
+/*
+ * This controls loop-unrolling. Only effect I've seen is it ruins
+ * Intel auto-vectorizing.
+ */
 #undef FULL_UNROLL
 
 static __constant u32 Te0[256] = {
@@ -609,23 +612,19 @@ static __constant u8 Td4[256] = {
 static __constant u32 rcon[] = {
 	0x01000000, 0x02000000, 0x04000000, 0x08000000,
 	0x10000000, 0x20000000, 0x40000000, 0x80000000,
-	0x1B000000, 0x36000000, /* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
+	0x1B000000, 0x36000000,
+	/* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
 };
 
 /**
  * Expand the cipher key into the encryption key schedule.
  */
-static int AES_set_encrypt_key(const uchar *userKey, const int bits,
-                               AES_KEY *key) {
-
+static void AES_set_encrypt_key(__global const uchar *userKey, const int bits,
+                               AES_KEY *key)
+{
 	u32 *rk;
 	int i = 0;
 	u32 temp;
-
-	if (!userKey || !key)
-		return -1;
-	if (bits != 128 && bits != 192 && bits != 256)
-		return -2;
 
 	rk = key->rd_key;
 
@@ -653,7 +652,7 @@ static int AES_set_encrypt_key(const uchar *userKey, const int bits,
 			rk[6] = rk[2] ^ rk[5];
 			rk[7] = rk[3] ^ rk[6];
 			if (++i == 10) {
-				return 0;
+				return;
 			}
 			rk += 4;
 		}
@@ -673,7 +672,7 @@ static int AES_set_encrypt_key(const uchar *userKey, const int bits,
 			rk[ 8] = rk[ 2] ^ rk[ 7];
 			rk[ 9] = rk[ 3] ^ rk[ 8];
 			if (++i == 8) {
-				return 0;
+				return;
 			}
 			rk[10] = rk[ 4] ^ rk[ 9];
 			rk[11] = rk[ 5] ^ rk[10];
@@ -695,7 +694,7 @@ static int AES_set_encrypt_key(const uchar *userKey, const int bits,
 			rk[10] = rk[ 2] ^ rk[ 9];
 			rk[11] = rk[ 3] ^ rk[10];
 			if (++i == 7) {
-				return 0;
+				return;
 			}
 			temp = rk[11];
 			rk[12] = rk[ 4] ^
@@ -710,22 +709,20 @@ static int AES_set_encrypt_key(const uchar *userKey, const int bits,
 			rk += 8;
 		}
 	}
-	return 0;
 }
 
 /**
  * Expand the cipher key into the decryption key schedule.
  */
-static int AES_set_decrypt_key(const uchar *userKey, const int bits,
-                               AES_KEY *key) {
+static void AES_set_decrypt_key(__global const uchar *userKey, const int bits,
+                               AES_KEY *key)
+{
 	u32 *rk;
-	int i, j, status;
+	int i, j;
 	u32 temp;
 
 	/* first, start with an encryption schedule */
-	status = AES_set_encrypt_key(userKey, bits, key);
-	if (status < 0)
-		return status;
+	AES_set_encrypt_key(userKey, bits, key);
 
 	rk = key->rd_key;
 
@@ -760,23 +757,20 @@ static int AES_set_decrypt_key(const uchar *userKey, const int bits,
 			Td2[Te1[(rk[3] >>  8) & 0xff] & 0xff] ^
 			Td3[Te1[(rk[3]      ) & 0xff] & 0xff];
 	}
-	return 0;
 }
 
 /*
- * Encrypt a single block
- * in and out can overlap
+ * Encrypt a single block.
  */
-static void AES_encrypt(const uchar *in, uchar *out,
-                        const AES_KEY *key) {
-
+static void AES_encrypt(__global const uchar *in, uchar *out,
+                        const AES_KEY *key)
+{
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
 #ifndef FULL_UNROLL
 	int r;
 #endif /* ?FULL_UNROLL */
 
-//	assert(in && out && key);
 	rk = key->rd_key;
 
 	/*
@@ -955,12 +949,11 @@ static void AES_encrypt(const uchar *in, uchar *out,
 }
 
 /*
- * Decrypt a single block
- * in and out can overlap
+ * Decrypt a single block.
  */
-static void AES_decrypt(const uchar *in, uchar *out,
-                        const AES_KEY *key) {
-
+static void AES_decrypt(__global const uchar *in, uchar *out,
+                        const AES_KEY *key)
+{
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
 #ifndef FULL_UNROLL
@@ -1146,22 +1139,26 @@ static void AES_decrypt(const uchar *in, uchar *out,
 }
 
 static void
-AES_cbc_encrypt(const uchar *in, uchar *out,
-                uint len, const void *key,
-                private uchar ivec[16])
+AES_cbc_encrypt(__global const uchar *in, __global uchar *out,
+                uint len, const AES_KEY *key,
+                __private uchar ivec[16])
 {
-	const private uchar *iv = ivec;
+	__private const uchar *iv = ivec;
 	uint i;
 
 	while (len) {
 		uint n;
+		union {
+			uint t[16 / sizeof(uint)];
+			uchar c[16];
+		} tmp;
 
 		for(n = 0; n < 16 && n < len; ++n)
 			out[n] = in[n] ^ iv[n];
 		for(; n < 16; ++n)
 			out[n] = iv[n];
-		AES_encrypt(out, out, key);
-		iv = out;
+		AES_encrypt(out, tmp.c, key);
+		iv = tmp.c;
 		if (len <= 16)
 			break;
 		len -= 16;
@@ -1174,9 +1171,9 @@ AES_cbc_encrypt(const uchar *in, uchar *out,
 }
 
 static void
-AES_cbc_decrypt(const uchar *in, uchar *out,
-                uint len, const void *key,
-                uchar ivec[16])
+AES_cbc_decrypt(__global const uchar *in, __global uchar *out,
+                uint len, const AES_KEY *key,
+                __private uchar ivec[16])
 {
 	while (len) {
 		uint n;
