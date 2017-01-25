@@ -95,7 +95,7 @@ if __name__ == "__main__":
         blob = open(filename, "rb").read()
         if b'-----BEGIN ENCRYPTED PRIVATE KEY-----' not in blob:
             if b'PRIVATE KEY-----' in blob:
-                sys.stderr.write("[%s] try using sshng2john.py or ssh2john on this file instead!\n" % sys.argv[0])
+                sys.stderr.write("[%s] try using sshng2john.py on this file instead!\n" % sys.argv[0])
             else:
                 sys.stderr.write("[%s] is this really a private key in PKCS #8 format?\n" % sys.argv[0])
 

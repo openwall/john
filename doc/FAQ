@@ -87,13 +87,13 @@ A: John only loads properly formatted text files directly.  It can load
 can also load text files containing one password hash per line (and
 nothing else on that line).  Some other file formats are supported via
 extra tools (supplied with John): unafs (Kerberos AFS database files),
-undrop (Eggdrop IRC bot userfiles), ssh2john (OpenSSH private keys),
+undrop (Eggdrop IRC bot userfiles), ssh2sshng.py (OpenSSH private keys),
 pdf2john (some password-protected PDF files), rar2john (some
 password-protected RAR archives), zip2john (some password-protected
 PKZIP and WinZip archives).  You need -jumbo for most of these.  To use
 the proper one of these (for your file format), run it on your file(s)
 and redirect the output to a new file (using your shell's output
-redirection feature - e.g., "./ssh2john ~/.ssh/id_rsa > sshpasswd").
+redirection feature - e.g., "./ssh2sshng.py ~/.ssh/id_rsa > sshpasswd").
 Then run John on the resulting file (e.g., "./john sshpasswd").
 A: The file you're trying to run John on might in fact not be a password
 file at all.
