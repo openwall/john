@@ -1905,7 +1905,7 @@ john.com: john.asm
 	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -lpcap $(OMPFLAGS) -o ../run/SIPdump
 
 ../run/vncpcap2john: vncpcap2john.o
-	$(CC) -Wall vncpcap2john.o memdbg.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
+	$(CC) $(JOHN_CFLAGS) -Wall vncpcap2john.o memdbg.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
 
 ../run/uaf2john: uaf2john.o uaf_encode.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode.o memdbg.o $(OMPFLAGS) -o ../run/uaf2john
