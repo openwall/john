@@ -762,6 +762,7 @@ static void AES_set_decrypt_key(__global const uchar *userKey, const int bits,
 /*
  * Encrypt a single block.
  */
+#ifdef OCL_AES_ENCRYPT
 static void AES_encrypt(__global const uchar *in, uchar *out,
                         const AES_KEY *key)
 {
@@ -947,6 +948,7 @@ static void AES_encrypt(__global const uchar *in, uchar *out,
 		rk[3];
 	PUTU32(out + 12, s3);
 }
+#endif
 
 /*
  * Decrypt a single block.
@@ -1138,9 +1140,9 @@ static void AES_decrypt(__global const uchar *in, uchar *out,
 	PUTU32(out + 12, s3);
 }
 
-#ifdef AES_ENCRYPT
+#ifdef OCL_AES_ENCRYPT
 static void
-AES_cbc_encrypt(__global const uchar *in, __global uchar *out,
+AES_cbc_encrypt(__global const uchar *in, uchar *out,
                 uint len, const AES_KEY *key,
                 __private uchar ivec[16])
 {
@@ -1173,7 +1175,7 @@ AES_cbc_encrypt(__global const uchar *in, __global uchar *out,
 #endif
 
 static void
-AES_cbc_decrypt(__global const uchar *in, __global uchar *out,
+AES_cbc_decrypt(__global const uchar *in, uchar *out,
                 uint len, const AES_KEY *key,
                 __private uchar ivec[16])
 {

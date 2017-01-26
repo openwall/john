@@ -18,9 +18,6 @@ john_register_one(&fmt_opencl_odf_aes);
 
 #include <string.h>
 #include "aes.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
 #include "formats.h"
@@ -31,46 +28,51 @@ john_register_one(&fmt_opencl_odf_aes);
 #include "common.h"
 #include "formats.h"
 #include "common-opencl.h"
-#include "sha2.h"
 
-#define FORMAT_LABEL		"ODF-AES-opencl"
-#define FORMAT_NAME		""
+#define FORMAT_LABEL        "ODF-AES-opencl"
+#define FORMAT_NAME         ""
 #define FORMAT_TAG           "$odf$*"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA256 AES OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BINARY_SIZE		20
-#define PLAINTEXT_LENGTH	64
-#define SALT_SIZE		sizeof(odf_cpu_salt)
-#define AES_MAX_LEN		1024
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME      "SHA256 PBKDF2-SHA1 AES OpenCL"
+#define BENCHMARK_COMMENT   ""
+#define BENCHMARK_LENGTH    -1
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
+#define BINARY_SIZE         (256/8)
+#define PLAINTEXT_LENGTH    63
+#define SALT_SIZE           sizeof(odf_cpu_salt)
+#define AES_LEN             1024
 
 typedef struct {
-	uint32_t length;
-	uint8_t v[32];	// hash of password
+	char    v[PLAINTEXT_LENGTH + 1];
 } odf_password;
 
 typedef struct {
-	uint32_t v[32/4];
-	uint8_t  aes_pt[AES_MAX_LEN];
-} odf_hash;
+	uint8_t v[256/8];
+} odf_sha_key;
 
 typedef struct {
 	uint32_t iterations;
 	uint32_t outlen;
 	uint32_t skip_bytes;
-	uint8_t  aes_ct[AES_MAX_LEN];
-	uint32_t aes_len;
-	uint32_t aes_sz;
+	uint8_t  aes_ct[AES_LEN]; /* ciphertext */
+	uint32_t aes_len;         /* actual data length (up to AES_LEN) */
 	uint8_t  iv[16];
-	uint8_t  length;
 	uint8_t  salt[64];
+	uint8_t  length;
 } odf_salt;
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
+typedef struct {
+	uint v[BINARY_SIZE / sizeof(uint)]; /* output from final SHA-256 */
+} odf_out;
+
+static cl_int cl_error;
+static cl_mem mem_in, mem_out, mem_setting, mem_key;
+static odf_password *saved_key;
+static odf_out *crypt_out;
+static odf_salt currentsalt;
+
+size_t insize, outsize, settingsize, cracked_size, sha_size;
 
 typedef struct {
 	int cipher_type;
@@ -82,7 +84,7 @@ typedef struct {
 	int content_length;
 	unsigned char iv[16];
 	unsigned char salt[32];
-	unsigned char content[AES_MAX_LEN];
+	unsigned char content[AES_LEN];
 } odf_cpu_salt;
 
 static odf_cpu_salt *cur_salt;
@@ -94,17 +96,10 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static cl_int cl_error;
-static odf_password *inbuffer;
-static odf_hash *outbuffer;
-static odf_salt currentsalt;
-static cl_mem mem_in, mem_out, mem_setting;
-static struct fmt_main *self;
-
-size_t insize, outsize, settingsize, cracked_size;
-
 #define STEP			0
 #define SEED			256
+
+static struct fmt_main *self;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl-autotune.h"
@@ -123,20 +118,22 @@ static size_t get_task_max_work_group_size()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	insize = sizeof(odf_password) * gws;
-	outsize = sizeof(odf_hash) * gws;
 	settingsize = sizeof(odf_salt);
-	cracked_size = sizeof(*crypt_out) * gws;
+	sha_size = sizeof(odf_sha_key) * gws;
+	outsize = sizeof(odf_out) * gws;
 
-	inbuffer = mem_calloc(1, insize);
-	outbuffer = mem_alloc(outsize);
-	saved_key = mem_calloc(gws, sizeof(*saved_key));
-	crypt_out = mem_calloc(1, cracked_size);
+	saved_key = mem_calloc(1, insize);
+	crypt_out = mem_alloc(outsize);
 
 	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem in");
+	mem_key =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sha_size, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem key");
 	mem_setting =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
 	    NULL, &cl_error);
@@ -148,10 +145,12 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_key),
+		&mem_key), "Error while setting mem_key kernel argument");
 }
 
 static void release_clobj(void)
@@ -160,9 +159,8 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_key), "Release mem key");
 
-		MEM_FREE(inbuffer);
-		MEM_FREE(outbuffer);
 		MEM_FREE(saved_key);
 		MEM_FREE(crypt_out);
 	}
@@ -192,12 +190,13 @@ static void reset(struct db_main *db)
 		char build_opts[128];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d -DWITH_AES -DAESLEN=%d",
-		         (int)sizeof(inbuffer->v),
+		         "-DPLAINTEXT_LENGTH=%d -DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d -DAES_LEN=%d",
+		         PLAINTEXT_LENGTH,
+		         (int)sizeof(odf_sha_key),
 		         (int)sizeof(currentsalt.salt),
-		         (int)sizeof(outbuffer->v),
-		         AES_MAX_LEN);
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+		         (int)sizeof(odf_out),
+		         AES_LEN);
+		opencl_init("$JOHN/kernels/odf_aes_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "dk_decrypt", &cl_error);
@@ -271,7 +270,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 		goto err;
 	res = strlen(p);
-	if (res > 2 * AES_MAX_LEN || res & 1)
+	if (res > 2 * AES_LEN || res & 1)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
@@ -318,7 +317,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
 	memset(cs.content, 0, sizeof(cs.content));
-	for (i = 0; p[i * 2] && i < AES_MAX_LEN; i++)
+	for (i = 0; p[i * 2] && i < AES_LEN; i++)
 		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	cs.content_length = i;
@@ -329,7 +328,7 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE+1];
+		unsigned char c[BINARY_SIZE];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
@@ -337,6 +336,7 @@ static void *get_binary(char *ciphertext)
 	int i;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
+
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$odf$*" */
 	p = strtokm(ctcopy, "*");
 	p = strtokm(NULL, "*");
@@ -360,7 +360,6 @@ static void set_salt(void *salt)
 	memcpy(currentsalt.aes_ct, cur_salt->content, cur_salt->content_length);
 	memcpy(currentsalt.iv, cur_salt->iv, 16);
 	currentsalt.aes_len = cur_salt->content_length;
-	currentsalt.aes_sz = 256;
 	currentsalt.length = cur_salt->salt_length;
 	currentsalt.iterations = cur_salt->iterations;
 	currentsalt.outlen = cur_salt->key_size;
@@ -374,70 +373,36 @@ static void set_salt(void *salt)
 #undef set_key
 static void set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index].v, key, sizeof(saved_key[index].v));
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return saved_key[index].v;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for(index = 0; index < count; index++)
-	{
-		unsigned char hash[32];
-		SHA256_CTX ctx;
-
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
-		SHA256_Final((unsigned char *)hash, &ctx);
-		memcpy(inbuffer[index].v, hash, 32);
-		inbuffer[index].length = 32;
-	}
-
 	/// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-	        "Copy data to gpu");
+		insize, saved_key, 0, NULL, multi_profilingEvent[0]),
+		"Copy data to gpu");
 
 	/// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, lws, 0, NULL,
-	        multi_profilingEvent[1]), "Run kernel");
+		multi_profilingEvent[1]), "Run kernel");
 
 	/// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
+		outsize, crypt_out, 0, NULL, multi_profilingEvent[2]),
+		"Copy result back");
 
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for(index = 0; index < count; index++)
-	{
-		SHA256_CTX ctx;
-
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, (unsigned char*)outbuffer[index].aes_pt,
-		              cur_salt->content_length);
-		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
-	}
 	return count;
 }
 
@@ -445,14 +410,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+		if (!memcmp(binary, crypt_out[index].v, ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index].v, BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -487,7 +452,7 @@ struct fmt_main fmt_opencl_odf_aes = {
 		4,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
 		},
