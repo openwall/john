@@ -53,7 +53,7 @@ inline void preproc(__global const uchar * key, uint keylen,
 	for (j = 0; j < keylen; j++)
 		XORCHAR_BE(W, j, key[j]);
 
-	SHA256(A, B, C, D, E, F, G, H);
+	SHA256(A, B, C, D, E, F, G, H, W);
 
 	state[0] = A + h[0];
 	state[1] = B + h[1];
@@ -100,7 +100,7 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 //	if (saltlen < 52) {
 //		PUT_UINT32BE((uint) ((64 + saltlen + 4) << 3), buf, 60);
 //		GET_UINT32BE(W[15], buf, 60);
-//		SHA256(A, B, C, D, E, F, G, H);
+//		SHA256(A, B, C, D, E, F, G, H, W);
 //		W[0] = A + ipad_state[0];
 //		W[1] = B + ipad_state[1];
 //		W[2] = C + ipad_state[2];
@@ -112,7 +112,7 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 //	} else {
 //		uint a, b, c, d, e, f, g, h;
 //		GET_UINT32BE(W[15], buf, 60);
-//		SHA256(A, B, C, D, E, F, G, H);
+//		SHA256(A, B, C, D, E, F, G, H, W);
 //		PUT_UINT32BE((uint) ((64 + saltlen + 4) << 3), buf, 60+64);
 //		for (i = 0; i < 16; i++)
 //			GET_UINT32BE(W[i], buf, 64 + i * 4);
@@ -124,7 +124,7 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 //		f = (F += ipad_state[5]);
 //		g = (G += ipad_state[6]);
 //		h = (H += ipad_state[7]);
-//		SHA256(A, B, C, D, E, F, G, H);
+//		SHA256(A, B, C, D, E, F, G, H, W);
 //		W[0] = A + a;
 //		W[1] = B + b;
 //		W[2] = C + c;
@@ -153,7 +153,7 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 		PUTCHAR_BE(W, saltlen + 3, 1);
 		PUTCHAR_BE(W, saltlen + 4, 0x80);
 		W[15] = (64 + saltlen + 4) << 3;
-		SHA256(A, B, C, D, E, F, G, H);
+		SHA256(A, B, C, D, E, F, G, H, W);
 		W[0] = A + ipad_state[0];
 		W[1] = B + ipad_state[1];
 		W[2] = C + ipad_state[2];
@@ -174,7 +174,7 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 			PUTCHAR_BE(W, saltlen + 3, 1);
 		if (saltlen < 60)
 			PUTCHAR_BE(W, saltlen + 4, 0x80);
-		SHA256(A, B, C, D, E, F, G, H);
+		SHA256(A, B, C, D, E, F, G, H, W);
 
 		// now build and process 2nd limb
 		for (i = 0; i < 15; i++)  // do not fuk with i!
@@ -195,7 +195,7 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 			f = (F += ipad_state[5]);
 			g = (G += ipad_state[6]);
 			i = (H += ipad_state[7]);
-			SHA256(A, B, C, D, E, F, G, H);
+			SHA256(A, B, C, D, E, F, G, H, W);
 			W[0] = A + a;
 			W[1] = B + b;
 			W[2] = C + c;
@@ -219,7 +219,7 @@ inline void hmac_sha256(uint * output, uint * ipad_state,
 	G = opad_state[6];
 	H = opad_state[7];
 
-	SHA256_ZEROS(A, B, C, D, E, F, G, H);
+	SHA256_ZEROS(A, B, C, D, E, F, G, H, W);
 
 	output[0] = A + opad_state[0];
 	output[1] = B + opad_state[1];
@@ -263,7 +263,7 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state,
 		W[8] = 0x80000000;
 		W[15] = 0x300;
 
-		SHA256_ZEROS(A, B, C, D, E, F, G, H);
+		SHA256_ZEROS(A, B, C, D, E, F, G, H, W);
 
 		W[0] = A + ipad_state[0];
 		W[1] = B + ipad_state[1];
@@ -285,7 +285,7 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state,
 		G = opad_state[6];
 		H = opad_state[7];
 
-		SHA256_ZEROS(A, B, C, D, E, F, G, H);
+		SHA256_ZEROS(A, B, C, D, E, F, G, H, W);
 
 		W[0] = A += opad_state[0];
 		W[1] = B += opad_state[1];

@@ -42,14 +42,14 @@ inline void preproc(__global const ulong *key, uint keylen,
 	ulong W[16];
 	ulong A, B, C, D, E, F, G, H, t;
 
-	A = INIT_A;
-	B = INIT_B;
-	C = INIT_C;
-	D = INIT_D;
-	E = INIT_E;
-	F = INIT_F;
-	G = INIT_G;
-	H = INIT_H;
+	A = SHA2_INIT_A;
+	B = SHA2_INIT_B;
+	C = SHA2_INIT_C;
+	D = SHA2_INIT_D;
+	E = SHA2_INIT_E;
+	F = SHA2_INIT_F;
+	G = SHA2_INIT_G;
+	H = SHA2_INIT_H;
 
 	j = ((keylen+7)/8);
 	for (i = 0; i < j; i++)
@@ -58,16 +58,16 @@ inline void preproc(__global const ulong *key, uint keylen,
 	for (; i < 16; i++)
 		W[i] = mask;
 
-	SHA512(A, B, C, D, E, F, G, H);
+	SHA512(A, B, C, D, E, F, G, H, W);
 
-	state[0] = A + INIT_A;
-	state[1] = B + INIT_B;
-	state[2] = C + INIT_C;
-	state[3] = D + INIT_D;
-	state[4] = E + INIT_E;
-	state[5] = F + INIT_F;
-	state[6] = G + INIT_G;
-	state[7] = H + INIT_H;
+	state[0] = A + SHA2_INIT_A;
+	state[1] = B + SHA2_INIT_B;
+	state[2] = C + SHA2_INIT_C;
+	state[3] = D + SHA2_INIT_D;
+	state[4] = E + SHA2_INIT_E;
+	state[5] = F + SHA2_INIT_F;
+	state[6] = G + SHA2_INIT_G;
+	state[7] = H + SHA2_INIT_H;
 }
 
 inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state,
@@ -96,7 +96,7 @@ inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state,
 	G = ipad_state[6];
 	H = ipad_state[7];
 
-	SHA512(A, B, C, D, E, F, G, H);
+	SHA512(A, B, C, D, E, F, G, H, W);
 
 	W[0] = A + ipad_state[0];
 	W[1] = B + ipad_state[1];
@@ -117,7 +117,7 @@ inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state,
 	G = opad_state[6];
 	H = opad_state[7];
 
-	SHA512_ZEROS(A, B, C, D, E, F, G, H);
+	SHA512_ZEROS(A, B, C, D, E, F, G, H, W);
 
 	A += opad_state[0];
 	B += opad_state[1];
@@ -171,7 +171,7 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
 		W[8] = 0x8000000000000000UL;
 		W[15] = 0x600;
 
-		SHA512_ZEROS(A, B, C, D, E, F, G, H);
+		SHA512_ZEROS(A, B, C, D, E, F, G, H, W);
 
 		W[0] = A + ipad_state[0];
 		W[1] = B + ipad_state[1];
@@ -193,7 +193,7 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
 		G = opad_state[6];
 		H = opad_state[7];
 
-		SHA512_ZEROS(A, B, C, D, E, F, G, H);
+		SHA512_ZEROS(A, B, C, D, E, F, G, H, W);
 
 		W[0] = A += opad_state[0];
 		W[1] = B += opad_state[1];
