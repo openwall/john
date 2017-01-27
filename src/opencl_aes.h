@@ -23,6 +23,9 @@
 #define AES_DECRYPT	0
 #define AES_MAXNR 14
 #define AES_BLOCK_SIZE 16
+#ifndef AES_KEY_TYPE
+#define AES_KEY_TYPE
+#endif
 
 typedef struct aes_key_st {
 	uint rd_key[4 * (AES_MAXNR + 1)];
@@ -619,8 +622,8 @@ static __constant u32 rcon[] = {
 /**
  * Expand the cipher key into the encryption key schedule.
  */
-static void AES_set_encrypt_key(__global const uchar *userKey, const int bits,
-                               AES_KEY *key)
+static void AES_set_encrypt_key(AES_KEY_TYPE const uchar *userKey,
+                                const int bits, AES_KEY *key)
 {
 	u32 *rk;
 	int i = 0;
@@ -714,8 +717,8 @@ static void AES_set_encrypt_key(__global const uchar *userKey, const int bits,
 /**
  * Expand the cipher key into the decryption key schedule.
  */
-static void AES_set_decrypt_key(__global const uchar *userKey, const int bits,
-                               AES_KEY *key)
+static void AES_set_decrypt_key(AES_KEY_TYPE const uchar *userKey,
+                                const int bits, AES_KEY *key)
 {
 	u32 *rk;
 	int i, j;

@@ -9,6 +9,7 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
+#include "opencl_aes.h"
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 
@@ -61,14 +62,17 @@ typedef struct {
 } sevenzip_password;
 
 typedef struct {
-	uint round;
 	uint key[32/4];
+	uint round;
 } sevenzip_hash;
 
 typedef struct {
-	uint length;
+	host_size_t length;
+	host_size_t unpacksize;
 	uint iterations;
-	uchar salt[16];
+	//uint salt_size;
+	//uchar salt[16];
+	uchar data[32];
 } sevenzip_salt;
 
 __kernel void sevenzip_init(__global sevenzip_hash *outbuffer)
@@ -130,16 +134,45 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
                              __global sevenzip_hash *outbuffer)
 {
 	uint gid = get_global_id(0);
-	uint block[16], output[8];
+	uint block[16], aes_key[8];
 	uint i;
 	uint pwlen = inbuffer[gid].length;
+	uint pad;
 
 	for (i = 0; i < 8; i++)
-		output[i] = outbuffer[gid].key[i];
+		aes_key[i] = outbuffer[gid].key[i];
 
 	/* This is always an empty block (except length) */
-	sha256_zerofinal(block, output, (pwlen + 8) * (1U << salt->iterations));
+	sha256_zerofinal(block, aes_key, (pwlen + 8) * (1U << salt->iterations));
 
 	for (i = 0; i < 8; i++)
-		outbuffer[gid].key[i] = SWAP32(output[i]);
+		aes_key[i] = SWAP32(aes_key[i]);
+
+	pad = salt->length - salt->unpacksize;
+
+	/* Early rejection if possible (only decrypt last 16 bytes) */
+	if (pad > 0 && salt->length >= 32) {
+		uint8_t buf[16];
+		AES_KEY akey;
+		unsigned char iv[16];
+
+		for (i = 0; i < 16; i++)
+			iv[i] = salt->data[i];
+		AES_set_decrypt_key((uchar*)aes_key, 256, &akey);
+		AES_cbc_decrypt(&salt->data[16], buf, 16, &akey, iv);
+
+		i = 15;
+		while (pad > 0) {
+			if (buf[i] != 0) {
+				for (i = 0; i < 8; i++)
+					outbuffer[gid].key[i] = 0; /* all zeros == reject */
+				return;
+			}
+			pad--;
+			i--;
+		}
+	}
+
+	for (i = 0; i < 8; i++)
+		outbuffer[gid].key[i] = aes_key[i];
 }
