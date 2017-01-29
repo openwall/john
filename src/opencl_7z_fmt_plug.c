@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #define FORMAT_NAME		"7-Zip"
 #define FORMAT_TAG		"$7z$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA256 OPENCL AES"
+#define ALGORITHM_NAME		"SHA256 AES OPENCL"
 #define BENCHMARK_COMMENT	" (512K iterations)"
 #define BENCHMARK_LENGTH	-1000
 #define MIN_KEYS_PER_CRYPT	1
@@ -530,7 +530,7 @@ static void SzFree(void *p, void *address) { MEM_FREE(address) };
 
 static int sevenzip_decrypt(uint32_t *derived_key)
 {
-	const uint32_t zeros[32] = { 0 };
+	const uint32_t zeros[32 / 4] = { 0 };
 	unsigned char *out = NULL;
 	AES_KEY akey;
 	unsigned char iv[16];
