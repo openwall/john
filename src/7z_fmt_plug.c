@@ -706,6 +706,22 @@ static unsigned int iteration_count(void *salt)
 	return (unsigned int)(1 << my_salt->NumCyclesPower);
 }
 
+static unsigned int padding_size(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = *((struct custom_salt **)salt);
+	return my_salt->length - my_salt->unpacksize;
+}
+
+static unsigned int compression_type(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = *((struct custom_salt **)salt);
+	return my_salt->type;
+}
+
 struct fmt_main fmt_sevenzip = {
 	{
 		FORMAT_LABEL,
@@ -724,6 +740,8 @@ struct fmt_main fmt_sevenzip = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_DYNA_SALT,
 		{
 			"iteration count",
+			"padding size",
+			"compression type",
 		},
 		{ FORMAT_TAG },
 		sevenzip_tests
@@ -738,6 +756,8 @@ struct fmt_main fmt_sevenzip = {
 		get_salt,
 		{
 			iteration_count,
+			padding_size,
+			compression_type,
 		},
 		fmt_default_source,
 		{
