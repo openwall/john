@@ -1,0 +1,235 @@
+/* JtR format to crack encrypted iTunes Backup passwords.
+ *
+ * This software is Copyright (c) 2017, Dhiru Kholia <dhiru at openwall.com>
+ * and it is hereby released to the general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * All credit goes to Jean-Baptiste Bédrune, Jean Sigwald, DinoSec, philsmd,
+ * and Andrew Neitsch.
+ */
+
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_itunes;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_itunes);
+#else
+
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <openssl/des.h>
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               4
+#endif
+#endif
+
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
+#include "johnswap.h"
+#define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX 1 // hack to get pbkdf2_sha1
+#include "pbkdf2_hmac_sha1.h"
+#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX 1 // hack to get pbkdf2_sha256
+#define OPENCL_FORMAT 1 // hack to avoid warnings
+#include "pbkdf2_hmac_sha256.h"
+#include "jumbo.h"
+#include "memdbg.h"
+#include "itunes_common.h"
+
+#define FORMAT_LABEL            "itunes-backup"
+#ifdef SIMD_COEF_32
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
+#endif
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define BINARY_SIZE             0
+#define PLAINTEXT_LENGTH        125
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            1
+#define SALT_ALIGN              sizeof(int)
+#ifdef SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#else
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+#endif
+
+static struct fmt_tests itunes_tests[] = {
+	{"$itunes_backup$*9*bc707ac0151660426c8114d04caad9d9ee2678a7b7ab05c18ee50cafb2613c31c8978e8b1e9cad2a*10000*266343aaf99102ba7f6af64a3a2d62637793f753**", "123456"},
+	{"$itunes_backup$*9*06dc04bca4eeea2fbc1bc7356fa758243bead479673640a668db285c8f48c402cc435539d935509e*10000*37d2bd7caefbb24a9729e41a3257ef06188dc01e**", "test123"},
+	// {"$itunes_backup$*10*deff6d646eb1fa2b6741efee8b70eda84341a838cef2bb10e582669759d7e33c399a0ba2a52cb9ec*10000*f09cfa82cc1695657cb2c347ee127c2523795fda*10000000*66f159e15f3ddbbdd4057f8babef7ad4472fac10", "test123"}, // this is very very slow!
+	{NULL}
+};
+
+#if defined (_OPENMP)
+static int omp_t = 1;
+#endif
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *cracked, cracked_count;
+static struct custom_salt *cur_salt;
+
+static void init(struct fmt_main *self)
+{
+
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
+	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
+	cracked_count = self->params.max_keys_per_crypt;
+}
+
+static void done(void)
+{
+	MEM_FREE(cracked);
+	MEM_FREE(saved_key);
+}
+
+static void set_salt(void *salt)
+{
+	cur_salt = (struct custom_salt *)salt;
+}
+
+static void itunes_set_key(char *key, int index)
+{
+	int saved_len = strlen(key);
+	if (saved_len > PLAINTEXT_LENGTH)
+		saved_len = PLAINTEXT_LENGTH;
+	memcpy(saved_key[index], key, saved_len);
+	saved_key[index][saved_len] = 0;
+}
+
+static char *get_key(int index)
+{
+	return saved_key[index];
+}
+
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	const int count = *pcount;
+	int index = 0;
+
+	memset(cracked, 0, sizeof(cracked[0])*cracked_count);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
+#endif
+	{
+		unsigned char master[MAX_KEYS_PER_CRYPT][32];
+		int i;
+
+		if (cur_salt->version == 9) { // iTunes Backup < 10
+#ifdef SIMD_COEF_32
+			int lens[MAX_KEYS_PER_CRYPT];
+			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				lens[i] = strlen(saved_key[index+i]);
+				pin[i] = (unsigned char*)saved_key[index+i];
+				pout[i] = master[i];
+			}
+			pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt, SALTLEN, cur_salt->iterations, pout, 32, 0);
+#else
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+				pbkdf2_sha1((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, SALTLEN, cur_salt->iterations, master[i], 32, 0);
+#endif
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				cracked[index+i] = itunes_common_decrypt(cur_salt, master[i]);
+			}
+		} else { // iTunes Backup 10.x
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->dpsl, SALTLEN, cur_salt->dpic, master[i], 32, 0);
+				pbkdf2_sha1(master[i], 32, cur_salt->salt, SALTLEN, cur_salt->iterations, master[i], 32, 0);
+				cracked[index+i] = itunes_common_decrypt(cur_salt, master[i]);
+			}
+		}
+	}
+		return count;
+}
+
+static int cmp_all(void *binary, int count)
+{
+	int index;
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return cracked[index];
+}
+
+static int cmp_exact(char *source, int index)
+{
+	return 1;
+}
+
+struct fmt_main fmt_itunes = {
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		{
+			"iteration count",
+		},
+		{ FORMAT_TAG },
+		itunes_tests
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		itunes_common_valid,
+		fmt_default_split,
+		fmt_default_binary,
+		itunes_common_get_salt,
+		{
+			itunes_common_iteration_count,
+		},
+		fmt_default_source,
+		{
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		NULL,
+		set_salt,
+		itunes_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+#endif /* plugin stanza */
