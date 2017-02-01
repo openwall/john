@@ -142,7 +142,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		pbkdf2_sha1_sse((const unsigned char**)pin, lens, fctx->salt, fctx->salt_length, fctx->iterations, pout, 16, 0);
 #else
-		pbkdf2_sha1((unsigned char *)saved_key[index], strlen(saved_key[index]), fctx->salt, fctx->salt_length, fctx->iterations, master[0], 16, 0);
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			pbkdf2_sha1((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), fctx->salt, fctx->salt_length, fctx->iterations, master[i], 16, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			cracked[index+i] = iwork_common_decrypt(fctx, master[i], fctx->iv, fctx->blob);
