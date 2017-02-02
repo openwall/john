@@ -122,9 +122,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, len, cur_salt->salt, 16, cur_salt->iterations, pout, 32, 0);
 #else
-		pbkdf2_sha1((unsigned char *)saved_key[index],
-		       strlen(saved_key[index]), cur_salt->salt,
-		       16, cur_salt->iterations, master[0], 32, 0);
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			pbkdf2_sha1((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]),
+				cur_salt->salt, 16, cur_salt->iterations, master[i], 32, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			// memcpy(output, SQLITE_FILE_HEADER, FILE_HEADER_SZ);
