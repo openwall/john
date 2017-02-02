@@ -274,7 +274,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < size; ii++) { \
-			printf("%02x", x[ii]); \
+			printf("%02x", (x)[ii]); \
 			if (ii % 4 == 3) \
 				printf(" "); \
 		} \
@@ -286,7 +286,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (size)/2; ii++) { \
-			printf("%04x", x[ii]); \
+			printf("%04x", (x)[ii]); \
 			if (ii % 2 == 1) \
 				printf(" "); \
 		} \
@@ -298,7 +298,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", SWAP32(x[ii])); \
+			printf("%08x ", SWAP32((x)[ii])); \
 		printf("\n"); \
 	} while (0)
 
@@ -307,7 +307,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", x[ii]); \
+			printf("%08x ", (x)[ii]); \
 		printf("\n"); \
 	} while (0)
 
