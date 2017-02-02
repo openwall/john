@@ -28,7 +28,6 @@ john_register_one(&fmt_kwallet);
 #include "options.h"
 #include <openssl/blowfish.h>
 #include "sha.h"
-#undef SIMD_COEF_64  // XXX
 #include "pbkdf2_hmac_sha512.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -42,7 +41,11 @@ john_register_one(&fmt_kwallet);
 #define FORMAT_NAME             "KDE KWallet"
 #define FORMAT_TAG              "$kwallet$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
+#ifdef SIMD_COEF_64
+#define ALGORITHM_NAME          "SHA1 / PBKDF2-SHA512 " SHA1_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME          "SHA1 / PBKDF2-SHA512 32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define BINARY_SIZE             0
@@ -50,8 +53,13 @@ john_register_one(&fmt_kwallet);
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
+#else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#endif
 // #define BENCH_LARGE_PASSWORDS   1
 
 static struct fmt_tests kwallet_tests[] = {
@@ -241,14 +249,12 @@ static void set_salt(void *salt)
 }
 
 // Based on "BlowfishPersistHandler::read" in backendpersisthandler.cpp
-static int verify_passphrase(char *passphrase)
+static int verify_key(unsigned char *key, int key_size)
 {
-	unsigned char key[56]; /* 56 seems to be the max. key size */
 	SHA_CTX ctx;
 	BF_KEY bf_key;
 	int sz;
 	int i;
-	int key_size = 0;
 	unsigned char testhash[20];
 	unsigned char buffer[0x10000]; // XXX respect the stack limits!
 	const char *t;
@@ -261,7 +267,6 @@ static int verify_passphrase(char *passphrase)
 	alter_endianity(buffer, cur_salt->ctlen);
 
 	if (cur_salt->kwallet_minor_version == 0) {
-		password2hash(passphrase, key, &key_size);
 		BF_set_key(&bf_key, key_size, key);
 		for(i = 0; i < cur_salt->ctlen; i += 8) {
 			BF_ecb_encrypt(buffer + i, buffer + i, &bf_key, 0);
@@ -270,9 +275,6 @@ static int verify_passphrase(char *passphrase)
 	} else if (cur_salt->kwallet_minor_version == 1) {
 		unsigned char ivec[8] = { 0 };
 		key_size = 56;
-		pbkdf2_sha512((const unsigned char*)(passphrase), strlen(passphrase),
-				cur_salt->salt, cur_salt->saltlen,
-				cur_salt->iterations, key, key_size, 0);
 		BF_set_key(&bf_key, key_size, key);
 		BF_cbc_encrypt(buffer, buffer, cur_salt->ctlen, &bf_key, ivec, 0);
 	}
@@ -317,17 +319,42 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		int ret;
-		ret = verify_passphrase(saved_key[index]);
-		if(ret == 0)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+		unsigned char key[MAX_KEYS_PER_CRYPT][56]; /* 56 seems to be the max. key size */
+		int key_size[MAX_KEYS_PER_CRYPT];
+		int i;
+
+		if (cur_salt->kwallet_minor_version == 0) {
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				password2hash(saved_key[index+i], key[i], &key_size[i]);
+				cracked[index+i] = !verify_key(key[i], key_size[i]);
+			}
+		} else if (cur_salt->kwallet_minor_version == 1) {
+#ifdef SIMD_COEF_64
+			int len[MAX_KEYS_PER_CRYPT];
+			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				len[i] = strlen(saved_key[i+index]);
+				pin[i] = (unsigned char*)saved_key[i+index];
+				pout[i] = key[i];
+			}
+			pbkdf2_sha512_sse((const unsigned char **)pin, len, cur_salt->salt, cur_salt->saltlen, cur_salt->iterations, pout, 56, 0);
+#else
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				pbkdf2_sha512((const unsigned char*)(saved_key[index+i]),
+					strlen(saved_key[index+i]), cur_salt->salt,
+					cur_salt->saltlen, cur_salt->iterations,
+					key[i], 56, 0);
+			}
+#endif
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+				cracked[index+i] = !verify_key(key[i], 56);
+		}
 	}
 
 	return count;
