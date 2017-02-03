@@ -78,7 +78,7 @@
 //dynamic_10 --> md5($s.md5($s.$p))
 //dynamic_11 --> md5($s.md5($p.$s))
 //dynamic_12 --> md5(md5($s).md5($p)) (IPB)
-//dynamic_13 --> md5(md5($p).md5($s))
+//dynamic_13 --> md5(md5($p).md5($s)) (phpFox v3)
 //dynamic_14 --> md5($s.md5($p).$s)
 //dynamic_15 --> md5($u.md5($p).$s)
 //dynamic_16 --> md5(md5(md5($p).$s).$s2)
