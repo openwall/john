@@ -315,6 +315,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	int salts_done = 0;
 	int wait = 0;
+	int dyna_copied = 0;
 
 	clk_tck_init();
 
@@ -379,7 +380,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	}
 
 	for (index = 0; index < 2; index++) {
-		two_salts[index] = mem_alloc_align(format->params.salt_size, format->params.salt_align);
+		two_salts[index] = mem_alloc_align(format->params.salt_size,
+		                                   format->params.salt_align);
 
 		if ((ciphertext = format->params.tests[index].ciphertext)) {
 			char **fields = format->params.tests[index].fields;
@@ -393,6 +395,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			assert(index > 0);
 /* If we have exactly one test vector, reuse its salt in two_salts[1] */
 			salt = two_salts[0];
+			dyna_copied = 1;
 		}
 
 /* mem_alloc()'ed two_salts[index] may be NULL if salt_size is 0 */
@@ -565,7 +568,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 
 	for (index = 0; index < 2; index++) {
-		dyna_salt_remove(two_salts[index]);
+		if (index == 0 || !dyna_copied)
+			dyna_salt_remove(two_salts[index]);
 		MEM_FREE(two_salts[index]);
 	}
 
