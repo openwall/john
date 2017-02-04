@@ -102,7 +102,6 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 		uchar data[16];
 		uchar iv[16];
 		AES_KEY akey;
-		uint size;
 
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->iv[i];
