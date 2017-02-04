@@ -34,10 +34,7 @@ john_register_one(&fmt_itunes);
 #include "params.h"
 #include "options.h"
 #include "johnswap.h"
-#define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX 1 // hack to get pbkdf2_sha1
 #include "pbkdf2_hmac_sha1.h"
-#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX 1 // hack to get pbkdf2_sha256
-#define OPENCL_FORMAT 1 // hack to avoid warnings
 #include "pbkdf2_hmac_sha256.h"
 #include "jumbo.h"
 #include "memdbg.h"
@@ -57,7 +54,7 @@ john_register_one(&fmt_itunes);
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1  // assumed to be same as SSE_GROUP_SZ_SHA256!
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT      1
@@ -150,9 +147,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cracked[index+i] = itunes_common_decrypt(cur_salt, master[i]);
 			}
 		} else { // iTunes Backup 10.x
+#if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
+			int lens[MAX_KEYS_PER_CRYPT];
+			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				lens[i] = strlen(saved_key[index+i]);
+				pin[i] = (unsigned char*)saved_key[index+i];
+				pout[i] = master[i];
+			}
+			pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->dpsl, SALTLEN, cur_salt->dpic, pout, 32, 0);
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				lens[i] = 32;
+				pin[i] = (unsigned char*)master[i];
+				pout[i] = master[i];
+			}
+			pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt, SALTLEN, cur_salt->iterations, pout, 32, 0);
+
+#else
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->dpsl, SALTLEN, cur_salt->dpic, master[i], 32, 0);
 				pbkdf2_sha1(master[i], 32, cur_salt->salt, SALTLEN, cur_salt->iterations, master[i], 32, 0);
+			}
+#endif
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				cracked[index+i] = itunes_common_decrypt(cur_salt, master[i]);
 			}
 		}
