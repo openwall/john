@@ -54,8 +54,8 @@ john_register_one(&fmt_itunes);
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1  // assumed to be same as SSE_GROUP_SZ_SHA256!
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA1 * SSE_GROUP_SZ_SHA256)
+#define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA1 * SSE_GROUP_SZ_SHA256)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -136,12 +136,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 			int lens[MAX_KEYS_PER_CRYPT];
 			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			int loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				lens[i] = strlen(saved_key[index+i]);
 				pin[i] = (unsigned char*)saved_key[index+i];
 				pout[i] = master[i];
 			}
-			pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt, SALTLEN, cur_salt->iterations, pout, 32, 0);
+			for (i = 0; i < loops; i++)
+				pbkdf2_sha1_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA1), &lens[i * SSE_GROUP_SZ_SHA1], cur_salt->salt, SALTLEN, cur_salt->iterations, pout + (i * SSE_GROUP_SZ_SHA1), 32, 0);
 #else
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
 				pbkdf2_sha1((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, SALTLEN, cur_salt->iterations, master[i], 32, 0);
@@ -153,19 +155,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
 			int lens[MAX_KEYS_PER_CRYPT];
 			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			int loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA256;
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				lens[i] = strlen(saved_key[index+i]);
 				pin[i] = (unsigned char*)saved_key[index+i];
 				pout[i] = master[i];
 			}
-			pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->dpsl, SALTLEN, cur_salt->dpic, pout, 32, 0);
+			for (i = 0; i < loops; i++)
+				pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], cur_salt->dpsl, SALTLEN, cur_salt->dpic, pout + (i * SSE_GROUP_SZ_SHA256), 32, 0);
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 32;
 				pin[i] = (unsigned char*)master[i];
 				pout[i] = master[i];
 			}
-			pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt, SALTLEN, cur_salt->iterations, pout, 32, 0);
-
+			loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
+			for (i = 0; i < loops; i++)
+				pbkdf2_sha1_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA1), &lens[i * SSE_GROUP_SZ_SHA1], cur_salt->salt, SALTLEN, cur_salt->iterations, pout + (i * SSE_GROUP_SZ_SHA1), 32, 0);
 #else
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->dpsl, SALTLEN, cur_salt->dpic, master[i], 32, 0);
