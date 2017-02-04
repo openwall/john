@@ -610,6 +610,7 @@ int crk_reload_pot(void)
 			continue;
 		*p = 0;
 
+		fields[0] = "";
 		fields[1] = ciphertext;
 		ciphertext = crk_methods.prepare(fields, crk_db->format);
 		if (ldr_trunc_valid(ciphertext, crk_db->format)) {
