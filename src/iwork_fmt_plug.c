@@ -64,14 +64,6 @@ john_register_one(&fmt_iwork);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
-static struct fmt_tests iwork_tests[] = {
-	{"$iwork$1$2$1$100000$d77ce46a68697e08b76ac91de9117541$e7b72b2848dc27efed883963b00b1ac7$e794144cd2f04bd50e23957b30affb2898554a99a3accb7506c17132654e09c04bbeff45dc4f8a8a1db5fd1592f699eeff2f9a8c31b503e9631a25a344b517f7" ,"12345678"},
-	{FORMAT_TAG "1$2$1$100000$c773f06bcd580e4afa35618a7d0bee39$8b241504af92416f226d0eea4bf26443$18358e736a0401061f2dca103fceb29e88606d3ec80d09841360cbb8b9dc1d2908c270d3ff4c05cf7a46591e02ff3c9d75f4582f631721a3257dc087f98f523e", "password"},
-	// iWork '09 Keynote file
-	{"$iwork$2$1$1$4000$736f6d6553616c74$a9d975f8b3e1bf0c388944b457127df4$09eb5d093584376001d4c94e9d0a41eb8a2993132849c5aed8e56e7bd0e8ed50ba38aced793e3480675990c828c01d25fe245cc6aa603c6cb1a0425988f1d3dc", "openwall"},
-	{NULL}
-};
-
 #if defined (_OPENMP)
 static int omp_t = 1;
 #endif
