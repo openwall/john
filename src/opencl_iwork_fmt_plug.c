@@ -61,10 +61,10 @@ typedef struct {
 
 typedef struct {
     int salt_length;
+    int outlen;
+    int iterations;
     unsigned char salt[SALTLEN];
     unsigned char iv[IVLEN];
-    int iterations;
-    int outlen;
     unsigned char blob[BLOBLEN];
 } iwork_salt;
 

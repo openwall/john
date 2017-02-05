@@ -26,14 +26,13 @@ typedef struct {
 } iwork_out;
 
 typedef struct {
-	int salt_length;
-	unsigned char salt[SALTLEN];
-	unsigned char iv[IVLEN];
-	int iterations;
-	int outlen;
-	unsigned char blob[BLOBLEN];
+	uint salt_length;
+	uint outlen;
+	uint iterations;
+	uchar salt[SALTLEN];
+	uchar iv[IVLEN];
+	uchar blob[BLOBLEN];
 } iwork_salt;
-
 
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
@@ -130,9 +129,9 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
 		for (i = 0; i < 16; i++)
 			md.w[i] = 0;
 
-		// SHA256(plaintext + 32)
+		// SHA256(plaintext)
 		for (i = 0; i < 32; i++)
-			md.c[i ^ 3] = plaintext[32 + i];
+			md.c[i ^ 3] = plaintext[i];
 		md.c[i ^ 3] = 0x80;
 		md.w[15] = i << 3;
 
@@ -143,18 +142,18 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
 			hash.w[i] = SWAP32(hash.w[i]);
 
 		for (i = 0; i < 32; i++) {
-			if (hash.c[i] != hash.c[32+i]) {
+			if (hash.c[i] != plaintext[32 + i]) {
 				success = 0;
 				break;
 			}
 		}
 
-		if (success == 0)
-			out[gid].cracked = 0;
-		else {
-			out[gid].cracked = 1;
+		out[gid].cracked = success;
+
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		if (success)
 			atomic_or(&out[0].cracked, 2);
-		}
+
 #else
 #error no vector support yet
 #endif

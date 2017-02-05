@@ -125,26 +125,6 @@ void *iwork_common_get_salt(char *ciphertext)
 	return (void *)fctx;
 }
 
-int iwork_common_decrypt(struct format_context *fctx, unsigned char *key, unsigned char *iv, unsigned char *data)
-{
-	unsigned char out[BLOBLEN] = {0};
-	unsigned char ivec[IVLEN];
-	uint8_t hash[32];
-	SHA256_CTX ctx;
-	AES_KEY aes_decrypt_key;
-
-	AES_set_decrypt_key(key, 128, &aes_decrypt_key);
-	memcpy(ivec, iv, 16);
-	AES_cbc_encrypt(fctx->blob, out, BLOBLEN, &aes_decrypt_key, ivec, AES_DECRYPT);
-
-	// The last 32 bytes should be equal to the SHA256 of the first 32 bytes (IWPasswordVerifier.m)
-	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, out, 32);
-	SHA256_Final(hash, &ctx);
-
-	return memcmp(hash, &out[32], 32) == 0;
-}
-
 unsigned int iwork_common_iteration_count(void *salt)
 {
 	struct format_context *my_fctx;

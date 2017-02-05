@@ -110,6 +110,26 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int iwork_decrypt(struct format_context *fctx, unsigned char *key, unsigned char *iv, unsigned char *data)
+{
+	unsigned char out[BLOBLEN];
+	unsigned char ivec[IVLEN];
+	uint8_t hash[32];
+	SHA256_CTX ctx;
+	AES_KEY aes_decrypt_key;
+
+	AES_set_decrypt_key(key, 128, &aes_decrypt_key);
+	memcpy(ivec, iv, 16);
+	AES_cbc_encrypt(fctx->blob, out, BLOBLEN, &aes_decrypt_key, ivec, AES_DECRYPT);
+
+	// The last 32 bytes should be equal to the SHA256 of the first 32 bytes (IWPasswordVerifier.m)
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, out, 32);
+	SHA256_Final(hash, &ctx);
+
+	return memcmp(hash, &out[32], 32) == 0;
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -138,7 +158,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_sha1((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), fctx->salt, fctx->salt_length, fctx->iterations, master[i], 16, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			cracked[index+i] = iwork_common_decrypt(fctx, master[i], fctx->iv, fctx->blob);
+			cracked[index+i] = iwork_decrypt(fctx, master[i], fctx->iv, fctx->blob);
 		}
 	}
 	return count;
