@@ -102,6 +102,7 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 		uchar data[16];
 		uchar iv[16];
 		AES_KEY akey;
+		int success = 0;
 
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->iv[i];
@@ -117,11 +118,15 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 		     pageSize <= SQLITE_MAX_PAGE_SIZE && pageSize > 256) &&
 		    ((pageSize & 7) == 0) &&
 		    (usableSize >= 480)) {
-			out[gid].cracked = 1;
-			atomic_or(&out[0].cracked, 2);
-		} else {
-			out[gid].cracked = 0;
+			success = 1;
 		}
+
+		out[gid].cracked = success;
+
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		if (success)
+			atomic_or(&out[0].cracked, 2);
+
 #else
 #error no vector support yet
 #endif
