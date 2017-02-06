@@ -26,9 +26,9 @@ typedef struct format_context {
 	unsigned char blob[BLOBLEN];
 } iwork_common_custom_salt;
 
+extern struct fmt_tests iwork_tests[];
+
+// exported 'common' functions
 int iwork_common_valid(char *ciphertext, struct fmt_main *self);
 void *iwork_common_get_salt(char *ciphertext);
 unsigned int iwork_common_iteration_count(void *salt);
-
-// exported 'common' functions
-int iwork_common_decrypt(struct format_context *fctx, unsigned char *key, unsigned char *iv, unsigned char *data);
