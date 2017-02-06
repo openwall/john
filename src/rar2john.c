@@ -202,7 +202,7 @@ static void process_file(const char *archive_name)
 			/* jump to "Rar!" signature */
 			while (!feof(fp)) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
-				if( (pos = memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x00", 7))) {
+				if ( (pos = memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x00", 7))) {
 					diff = count - (pos - buf);
 					jtr_fseek64(fp, - diff, SEEK_CUR);
 					jtr_fseek64(fp, 7, SEEK_CUR);
@@ -832,7 +832,7 @@ static int process_file5(const char *archive_name) {
 			/* jump to "Rar!" signature */
 			while (!feof(fp)) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
-				if( (pos = (char*)memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8))) {
+				if ( (pos = (char*)memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8))) {
 					diff = count - (pos - buf);
 					jtr_fseek64(fp, - diff, SEEK_CUR);
 					jtr_fseek64(fp, 8, SEEK_CUR);

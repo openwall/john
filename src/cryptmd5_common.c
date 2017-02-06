@@ -18,7 +18,7 @@ int cryptmd5_common_valid(char *ciphertext, struct fmt_main *self)
 		ciphertext += md5_salt_prefix_len;
 	else if (!strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len))
 		ciphertext += apr1_salt_prefix_len;
-	else if(!strncmp(ciphertext, smd5_salt_prefix, smd5_salt_prefix_len))
+	else if (!strncmp(ciphertext, smd5_salt_prefix, smd5_salt_prefix_len))
 		ciphertext += smd5_salt_prefix_len;
 	else
 		return 0;

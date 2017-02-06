@@ -284,13 +284,13 @@ static int cmp_all(void *binary, int count) {
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
-	for(;y<SIMD_PARA_MD5*omp_t;y++)
+	for (;y<SIMD_PARA_MD5*omp_t;y++)
 #else
-	for(;y<SIMD_PARA_MD5;y++)
+	for (;y<SIMD_PARA_MD5;y++)
 #endif
-		for(x = 0; x < SIMD_COEF_32; x++)
+		for (x = 0; x < SIMD_COEF_32; x++)
 		{
-			if( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
+			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
 		}
 	return 0;
@@ -314,7 +314,7 @@ static int cmp_one(void * binary, int index)
 	unsigned int i,x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	for(i=0;i<(BINARY_SIZE/4);i++)
+	for (i=0;i<(BINARY_SIZE/4);i++)
 		if ( ((uint32_t*)binary)[i] != ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
 			return 0;
 	return 1;
@@ -354,9 +354,9 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 	destArray[I2] = bcodeArr[I2-2];
 	destArray[++I2] = 0; I2++;
 
-	if( len >= 6) {
+	if ( len >= 6) {
 		I1 = 6;
-		if( cur_salt->l >= 4 ) {
+		if ( cur_salt->l >= 4 ) {
 			// key >= 6 bytes, salt >= 4 bytes
 			if (temp_key[14] & 0x01)
 				destArray[I2++] = bcodeArr[46];
@@ -617,7 +617,7 @@ static void *get_binary(char *ciphertext)
 
 	newCiphertextPointer = strrchr(ciphertext, '$') + 1;
 
-	for(i=0;i<BINARY_SIZE;i++)
+	for (i=0;i<BINARY_SIZE;i++)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(newCiphertextPointer[i*2])]*16 + atoi16[ARCH_INDEX(newCiphertextPointer[i*2+1])];
 	}

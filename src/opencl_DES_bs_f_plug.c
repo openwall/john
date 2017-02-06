@@ -94,7 +94,7 @@ static void clean_all_buffers()
 	release_clobj();
 	release_clobj_kpc();
 
-	for( i = 0; i < 4096; i++)
+	for ( i = 0; i < 4096; i++)
 		if (kernels[gpu_id][i])
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
 
@@ -386,7 +386,7 @@ static void release_kernels()
 	int i;
 
 	for (i = 0; i < 4096; i++)
-	if(marked_salts[i] == i) {
+	if (marked_salts[i] == i) {
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Release kernel(crypt(i)) failed.\n");
 		kernels[gpu_id][i] = 0;
 		marked_salts[i] = 0x7fffffff;

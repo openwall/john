@@ -157,7 +157,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-	if(strlen(p) != len * 2)
+	if (strlen(p) != len * 2)
 		goto err;
 	decoded = (char *) mem_alloc(len + 1);
 	for (i = 0; i < len; i++)
@@ -168,7 +168,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!bp)
 		goto err;
 	BIO_write(bp, decoded, len);
-	if(!(p12 = d2i_PKCS12_bio(bp, NULL)))
+	if (!(p12 = d2i_PKCS12_bio(bp, NULL)))
 		goto err;
 	PKCS12_free(p12);
 	if (bp)	BIO_free(bp);
@@ -215,7 +215,7 @@ static void *get_salt(char *ciphertext)
 		error();
 	}
 	BIO_write(bp, decoded_data, psalt->len);
-	if(!(p12 = d2i_PKCS12_bio(bp, NULL))) {
+	if (!(p12 = d2i_PKCS12_bio(bp, NULL))) {
 		perror("Unable to create PKCS12 object from bio\n");
 		error();
 	}
@@ -281,7 +281,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		if(PKCS12_verify_mac(&cur_salt->pfx, saved_key[index], -1)) {
+		if (PKCS12_verify_mac(&cur_salt->pfx, saved_key[index], -1)) {
 			cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic

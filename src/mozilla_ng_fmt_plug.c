@@ -113,14 +113,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	++p;
 	if ((p = strtokm(p, "*")) == NULL) /* version */
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res != 3)  /* we only know about this particular version */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* local_salt_length */
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > 20)
@@ -135,7 +135,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* oidDatalen */
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > 20)
@@ -148,7 +148,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* password_check_length */
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > 20)
@@ -161,7 +161,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) /* global_salt_length */
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > 20)

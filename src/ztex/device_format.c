@@ -196,7 +196,7 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 		// Some tasks could be unable to complete for too long.
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
-		for(;;) {
+		for (;;) {
 			struct task *task = task_find_by_mtime(task_list,
 					tv.tv_sec - DEVICE_TASK_TIMEOUT);
 			if (!task)

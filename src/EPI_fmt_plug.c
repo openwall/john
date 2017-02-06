@@ -95,22 +95,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
   unsigned int len, n;
 
-  if(!ciphertext) return 0;
+  if (!ciphertext) return 0;
   len = strlen(ciphertext);
 
-  if(len != 105)
+  if (len != 105)
     return 0;
 
   // check fixed positions
-  if(ciphertext[0]  != '0' || ciphertext[1]  != 'x' ||
+  if (ciphertext[0]  != '0' || ciphertext[1]  != 'x' ||
      ciphertext[62] != ' ' ||
      ciphertext[63] != '0' || ciphertext[64] != 'x')
     return 0;
 
-  for(n = 2; n < 62 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for (n = 2; n < 62 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
   if (n < 62)
 	  return 0;
-  for(n = 65; n < 105 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for (n = 65; n < 105 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
 
   return n == len;
 }
@@ -119,10 +119,10 @@ static void _tobin(char* dst, char *src, unsigned int len)
 {
   unsigned int n;
 
-  if(src[0] == '0' && src[1] == 'x')
+  if (src[0] == '0' && src[1] == 'x')
     src += sizeof(char)*2;
 
-  for(n = 0; n < len; ++n)
+  for (n = 0; n < len; ++n)
     dst[n] = atoi16[ARCH_INDEX(src[n*2])]<<4 |
              atoi16[ARCH_INDEX(src[n*2+1])];
 }
@@ -152,7 +152,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-  if(!key) return;
+  if (!key) return;
   key_len[index] = strlen(key) + 1;
   strcpy(saved_key[index], key);
 }

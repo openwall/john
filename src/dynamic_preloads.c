@@ -3306,7 +3306,7 @@ int dynamic_IS_VALID(int i, int single_lookup_only)
 		// if only loading a single dyna format, then do NOT load the valid array
 		if (i < 1000) {
 			for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
-				if(atoi(&Setups[j].szFORMAT_NAME[8]) == i)
+				if (atoi(&Setups[j].szFORMAT_NAME[8]) == i)
 					return 1;
 			}
 			return 0;

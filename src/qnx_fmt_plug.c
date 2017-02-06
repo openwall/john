@@ -313,9 +313,9 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	if(cur_salt->type == 5)
+	if (cur_salt->type == 5)
 		return !memcmp(binary, crypt_out[index], BINARY_SIZE_MD5);
-	if(cur_salt->type == 256)
+	if (cur_salt->type == 256)
 		return !memcmp(binary, crypt_out[index], BINARY_SIZE_SHA256);
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }

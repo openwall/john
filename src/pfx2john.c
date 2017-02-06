@@ -86,12 +86,12 @@ static void process_file(const char *filename)
 		fclose(pfxfile);
 		return;
 	}
-	if(!(p12 = d2i_PKCS12_bio (in, NULL))) {
+	if (!(p12 = d2i_PKCS12_bio (in, NULL))) {
 		perror("Unable to create PKCS12 object\n");
 		fclose(pfxfile);
 	    	return;
 	}
-	if(PKCS12_verify_mac(p12, "", -1)) {
+	if (PKCS12_verify_mac(p12, "", -1)) {
 		fprintf(stderr, "%s has no password!\n", filename);
 		fclose(pfxfile);
 		return;
@@ -105,7 +105,7 @@ static void process_file(const char *filename)
 	}
 	printf("\n");
 	fclose(pfxfile);
-	if(in)
+	if (in)
 		BIO_free(in);
 }
 

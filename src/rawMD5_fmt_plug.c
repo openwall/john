@@ -333,7 +333,7 @@ static char *get_key(int index)
 	unsigned int i;
 	uint32_t len = ((uint32_t*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*SIMD_COEF_32] >> 3;
 
-	for(i=0;i<len;i++)
+	for (i=0;i<len;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
 	out[i] = 0;
 	return (char*)out;
@@ -382,10 +382,10 @@ static int cmp_all(void *binary, int count) {
 #else
 	const unsigned int c = SIMD_PARA_MD5;
 #endif
-	for(y = 0; y < c; y++)
-		for(x = 0; x < SIMD_COEF_32; x++)
+	for (y = 0; y < c; y++)
+		for (x = 0; x < SIMD_COEF_32; x++)
 		{
-			if( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
+			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
 		}
 	return 0;

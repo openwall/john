@@ -1241,9 +1241,9 @@ static void CRYPTO_cbc128_encrypt(const unsigned char *in, unsigned char *out,
 	const unsigned char *iv = ivec;
 //	assert(in && out && key && ivec);
 	while (len) {
-		for(n=0; n<16 && n<len; ++n)
+		for (n=0; n<16 && n<len; ++n)
 			out[n] = in[n] ^ iv[n];
-		for(; n<16; ++n)
+		for (; n<16; ++n)
 			out[n] = iv[n];
 		(*block)(out, out, key);
 		iv = out;
@@ -1266,7 +1266,7 @@ static void CRYPTO_cbc128_decrypt(const unsigned char *in, unsigned char *out,
 	while (len) {
 		unsigned char c;
 		(*block)(in, tmp.c, key);
-		for(n=0; n<16 && n<len; ++n) {
+		for (n=0; n<16 && n<len; ++n) {
 			c = in[n];
 			out[n] = tmp.c[n] ^ ivec[n];
 			ivec[n] = c;

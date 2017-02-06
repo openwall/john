@@ -50,7 +50,7 @@ int stringtoarray(char **array, char *string, char delimiter)
 	int count;
 	int size = 0;
 	ptr = string;
-	for(count=0 ; flag ; count++) {
+	for (count=0 ; flag ; count++) {
 		for (oldptr=ptr;*ptr&&*ptr!=delimiter;(void)*ptr++)
 			;
 		if (!*ptr) flag = 0;
@@ -65,7 +65,7 @@ int stringtoarray(char **array, char *string, char delimiter)
 void init_bin2hex(char bin2hex_table[256][2])
 {
 	unsigned i=0;
-	for(i=0;i<256;i++) {
+	for (i=0;i<256;i++) {
 		bin2hex_table[i][0] = ( ((i >> 4) & 0x0F) <= 0x09) ? (((i >> 4) & 0x0F) + '0') : (((i >> 4) & 0x0F) + 'a' - 10);
 		bin2hex_table[i][1] = ( ((i)      & 0x0F) <= 0x09) ? (((i)      & 0x0F) + '0') : (((i)      & 0x0F) + 'a' - 10);
 	}
@@ -80,7 +80,7 @@ void bin_to_hex(char bin2hex_table[256][2],
 		size_t hex_buffer_size)
 {
 	unsigned i;
-	for(i=0;i<bin_buffer_size; ++i) {
+	for (i=0;i<bin_buffer_size; ++i) {
 		hex_buffer[i*2  ] = bin2hex_table[bin_buffer[i]][0];
 		hex_buffer[i*2+1] = bin2hex_table[bin_buffer[i]][1];
 	}

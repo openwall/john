@@ -149,7 +149,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	else
 	{
-		if(strlen(ciphertext)!=CIPHERTEXT_LENGTH)
+		if (strlen(ciphertext)!=CIPHERTEXT_LENGTH)
 			return 0;
 		l = 0;
 	}
@@ -328,7 +328,7 @@ static void * get_binary(char *ciphertext)
 	if (!out3) out3 = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	l = strlen(ciphertext) - CIPHERTEXT_LENGTH;
-	for(i=0;i<BINARY_SIZE;i++)
+	for (i=0;i<BINARY_SIZE;i++)
 	{
 		out3[i] = atoi16[ARCH_INDEX(ciphertext[i*2+l])]*16
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+l+1])];

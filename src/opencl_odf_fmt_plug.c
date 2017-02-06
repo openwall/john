@@ -391,7 +391,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for(index = 0; index < count; index++)
+	for (index = 0; index < count; index++)
 	{
 		unsigned char hash[20];
 		SHA_CTX ctx;
@@ -423,7 +423,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for(index = 0; index < count; index++)
+	for (index = 0; index < count; index++)
 	{
 		BF_KEY bf_key;
 		SHA_CTX ctx;

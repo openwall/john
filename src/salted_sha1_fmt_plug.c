@@ -216,7 +216,7 @@ static char *get_key(int index) {
 	unsigned int i,s;
 
 	s = saved_len[index];
-	for(i=0;i<s;i++)
+	for (i=0;i<s;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
 	out[i] = 0;
 	return (char *) out;
@@ -265,7 +265,7 @@ static inline void set_onesalt(int index)
 	unsigned int i, idx=index%NBKEYS;
 	unsigned char *sk = (unsigned char*)&saved_key[index/NBKEYS];
 
-	for(i=0;i<saved_salt->len;++i)
+	for (i=0;i<saved_salt->len;++i)
 		sk[GETPOS(i+saved_len[index], idx)] = saved_salt->data.c[i];
 	sk[GETPOS(i+saved_len[index], idx)] = 0x80;
 
@@ -295,7 +295,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 		unsigned int i;
 
-		for(i=0;i<NBKEYS;i++)
+		for (i=0;i<NBKEYS;i++)
 			set_onesalt(i+index);
 		SIMDSHA1body(saved_key[index/NBKEYS], crypt_key[index/NBKEYS], NULL, SSEi_MIXED_IN);
 #else

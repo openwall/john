@@ -103,7 +103,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		p = ciphertext + TAG_LENGTH;
 
-	if(!p)
+	if (!p)
 		return 0;
 	if (!ishexlc(p))
 		return 0;

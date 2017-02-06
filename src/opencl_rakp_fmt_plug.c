@@ -366,7 +366,7 @@ static int cmp_exact(char *source, int index)
 	}
 	b = (uint32_t*)get_binary(source);
 
-	for(i = 0; i < BINARY_SIZE / 4; i++)
+	for (i = 0; i < BINARY_SIZE / 4; i++)
 		if (digest[i * global_work_size * ocl_v_width + index] != b[i])
 			return 0;
 	return 1;

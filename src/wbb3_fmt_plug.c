@@ -124,9 +124,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*"); /* type */
-	if(!p)
+	if (!p)
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res != 1)

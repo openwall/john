@@ -450,7 +450,7 @@ static char *get_key(int index)
 	unsigned int md5_size=0;
 	unsigned int i=0;
 
-	for(; md5_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md5_size++)
+	for (; md5_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md5_size++)
 	{
 		key[md5_size] = keybuffer[i];
 		key[md5_size+1] = keybuffer[i] >> 16;
@@ -474,10 +474,10 @@ static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
-	for(;y<SIMD_PARA_MD5*BLOCK_LOOPS;y++)
-		for(x=0;x<SIMD_COEF_32;x++)
+	for (;y<SIMD_PARA_MD5*BLOCK_LOOPS;y++)
+		for (x=0;x<SIMD_COEF_32;x++)
 		{
-			if( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] )
+			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] )
 				return 1;
 		}
 	return 0;
@@ -498,13 +498,13 @@ static int cmp_one(void *binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 
-	if( ((uint32_t*)binary)[0] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] )
+	if ( ((uint32_t*)binary)[0] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] )
 		return 0;
-	if( ((uint32_t*)binary)[1] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+SIMD_COEF_32] )
+	if ( ((uint32_t*)binary)[1] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t*)binary)[2] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+2*SIMD_COEF_32] )
+	if ( ((uint32_t*)binary)[2] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+2*SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t*)binary)[3] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+3*SIMD_COEF_32] )
+	if ( ((uint32_t*)binary)[3] != ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+3*SIMD_COEF_32] )
 		return 0;
 	return 1;
 #else

@@ -214,7 +214,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i, ks) shared(count, output, challenge, saved_pre)
 #endif
-	for(i=0; i<count; i++) {
+	for (i=0; i<count; i++) {
 		/* DES-encrypt challenge using the partial LM hash */
 		setup_des_key(saved_pre[i], &ks);
 		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i], &ks, DES_ENCRYPT);
@@ -225,7 +225,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
-	for(index=0; index<count; index++)
+	for (index=0; index<count; index++)
 		if (!memcmp(output[index], binary, BINARY_SIZE))
 			return 1;
 	return 0;

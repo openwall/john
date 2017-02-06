@@ -535,16 +535,16 @@ static void john_omp_show_info(void)
 	 * mpirun -x OMP_NUM_THREADS=4 -np 4 -host ...
 	 */
 	if (mpi_p > 1) {
-		if(getenv("OMP_NUM_THREADS") == NULL &&
+		if (getenv("OMP_NUM_THREADS") == NULL &&
 		   cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 		                "MPIOMPmutex", 1)) {
-			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
+			if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 			                "MPIOMPverbose", 1) && mpi_id == 0)
 				fprintf(stderr, "MPI in use, disabling OMP "
 				        "(see doc/README.mpi)\n");
 			omp_set_num_threads(1);
 			john_omp_threads_orig = 0; /* Mute later warning */
-		} else if(john_omp_threads_orig > 1 &&
+		} else if (john_omp_threads_orig > 1 &&
 		        cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 		                "MPIOMPverbose", 1) && mpi_id == 0)
 			fprintf(stderr, "Note: Running both MPI and OMP"
@@ -1468,7 +1468,7 @@ static void john_init(char *name, int argc, char **argv)
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
 #endif
-	if(!(options.flags & FLG_STDOUT))
+	if (!(options.flags & FLG_STDOUT))
 		john_register_all(); /* maybe restricted to one format by options */
 	common_init();
 	sig_init();

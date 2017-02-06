@@ -84,7 +84,7 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int iterations;
-	char unsigned salt[MAX_SALT_SIZE + 1];
+	unsigned char salt[MAX_SALT_SIZE + 1];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -123,13 +123,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
-	if(strlen(p) != BINARY_SIZE * 2)
+	if (strlen(p) != BINARY_SIZE * 2)
 		goto err;
 	if (!ishexuc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
-	if(strlen(p) > MAX_SALT_SIZE)
+	if (strlen(p) > MAX_SALT_SIZE)
 		goto err;
 	p = strtokm(NULL, "$");
 	if (p)

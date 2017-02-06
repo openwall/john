@@ -96,7 +96,7 @@ inline void cmp(__private unsigned DES_bs_vector *B,
 
 	int value[2] , mask, i, bit;
 
-	for(i = 0; i < num_uncracked_hashes; i++) {
+	for (i = 0; i < num_uncracked_hashes; i++) {
 
 		value[0] = uncracked_hashes[i];
 		value[1] = uncracked_hashes[i + num_uncracked_hashes];

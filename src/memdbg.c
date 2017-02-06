@@ -238,7 +238,7 @@ void MemDbg_Display(FILE *fp) {
 				cp = (char*)p->mdbg_hdr2->mdbg_fpst;
 				cp -= 16;
 				for (i = 0; i < 20; ++i) {
-					if(*cp < ' ' || *cp > '~')
+					if (*cp < ' ' || *cp > '~')
 						fprintf(fp, ".");
 					else
 						fprintf(fp, "%c", *cp);
@@ -252,7 +252,7 @@ void MemDbg_Display(FILE *fp) {
 			char *cp = ((char*)p)+RESERVE_SZ;
 			fprintf(fp, "  ");
 			for (i = 0; i < 20 && i < p->mdbg_size; ++i) {
-				if(*cp < ' ' || *cp > '~')
+				if (*cp < ' ' || *cp > '~')
 					fprintf(fp, ".");
 				else
 					fprintf(fp, "%c", *cp);

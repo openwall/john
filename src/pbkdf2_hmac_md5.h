@@ -44,7 +44,7 @@ static void _pbkdf2_md5_load_hmac(const unsigned char *K, int KL, MD5_CTX *pIpad
 		KL = MD5_DIGEST_LENGTH;
 		K = k0;
 	}
-	for(i = 0; i < KL; i++) {
+	for (i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
 	}
@@ -77,7 +77,7 @@ static void _pbkdf2_md5(const unsigned char *S, int SL, int R, uint32_t *out,
 #if !defined (PBKDF1_LOGIC)
 	memcpy(out, tmp_hash, MD5_DIGEST_LENGTH);
 #endif
-	for(i = 1; i < R; i++) {
+	for (i = 1; i < R; i++) {
 		memcpy(&ctx, pIpad, sizeof(MD5_CTX));
 		MD5_Update(&ctx, tmp_hash, MD5_DIGEST_LENGTH);
 		MD5_Final(tmp_hash, &ctx);
@@ -86,7 +86,7 @@ static void _pbkdf2_md5(const unsigned char *S, int SL, int R, uint32_t *out,
 		MD5_Update(&ctx, tmp_hash, MD5_DIGEST_LENGTH);
 		MD5_Final(tmp_hash, &ctx);
 #if !defined (PBKDF1_LOGIC)
-		for(j = 0; j < MD5_DIGEST_LENGTH/sizeof(uint32_t); j++) {
+		for (j = 0; j < MD5_DIGEST_LENGTH/sizeof(uint32_t); j++) {
 			out[j] ^= ((uint32_t*)tmp_hash)[j];
 #if defined (EFS_CRAP_LOGIC)
 			((uint32_t*)tmp_hash)[j] = out[j];
@@ -96,7 +96,7 @@ static void _pbkdf2_md5(const unsigned char *S, int SL, int R, uint32_t *out,
 	}
 #if defined (PBKDF1_LOGIC)
 	// PBKDF1 simply uses end result of all of the HMAC iterations
-	for(j = 0; j < MD5_DIGEST_LENGTH/sizeof(uint32_t); j++)
+	for (j = 0; j < MD5_DIGEST_LENGTH/sizeof(uint32_t); j++)
 			out[j] = ((uint32_t*)tmp_hash)[j];
 #endif
 }
@@ -147,7 +147,7 @@ static void _pbkdf2_md5_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_MD5], 
 			KL[j] = MD5_DIGEST_LENGTH;
 			K[j] = k0;
 		}
-		for(i = 0; i < KL[j]; i++) {
+		for (i = 0; i < KL[j]; i++) {
 			ipad[i] ^= K[j][i];
 			opad[i] ^= K[j][i];
 		}
@@ -244,13 +244,13 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
-		for(i = 1; i < R; i++) {
+		for (i = 1; i < R; i++) {
 			SIMDmd5body((unsigned char*)o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SIMDmd5body((unsigned char*)o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 #if !defined (PBKDF1_LOGIC)
 			for (k = 0; k < SSE_GROUP_SZ_MD5; k++) {
 				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*MD5_BUF_SIZ + (k&(SIMD_COEF_32-1))];
-				for(j = 0; j < (MD5_DIGEST_LENGTH/sizeof(uint32_t)); j++) {
+				for (j = 0; j < (MD5_DIGEST_LENGTH/sizeof(uint32_t)); j++) {
 					dgst[k][j] ^= p[(j*SIMD_COEF_32)];
 #if defined (EFS_CRAP_LOGIC)
 					p[(j*SIMD_COEF_32)] = dgst[k][j];
@@ -263,7 +263,7 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 		// PBKDF1 simply uses the end 'result' of all of the HMAC iterations.
 		for (k = 0; k < SSE_GROUP_SZ_MD5; k++) {
 			unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*MD5_BUF_SIZ + (k&(SIMD_COEF_32-1))];
-			for(j = 0; j < (MD5_DIGEST_LENGTH/sizeof(uint32_t)); j++)
+			for (j = 0; j < (MD5_DIGEST_LENGTH/sizeof(uint32_t)); j++)
 				dgst[k][j] = p[(j*SIMD_COEF_32)];
 		}
 #endif

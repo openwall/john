@@ -569,7 +569,7 @@ static void *get_salt(char *ciphertext)
 	sscanf(cp, "%x", &(salt->cnt));
 	cp = strtokm(NULL, "*");
 	sscanf(cp, "%x", &(salt->chk_bytes));
-	for(i = 0; i < salt->cnt; ++i) {
+	for (i = 0; i < salt->cnt; ++i) {
 		int data_enum;
 		cp = strtokm(NULL, "*");
 		data_enum = *cp - '0';
@@ -709,10 +709,10 @@ static void *get_salt(char *ciphertext)
 	memcpy(psalt, salt, sizeof(*salt));
 	memcpy(psalt->zip_data, H[0], ex_len[0]);
 	MEM_FREE(H[0]);
-	if(salt->cnt > 1)
+	if (salt->cnt > 1)
 		memcpy(psalt->zip_data+ex_len[0]+1, H[1], ex_len[1]);
 	MEM_FREE(H[1]);
-	if(salt->cnt > 2)
+	if (salt->cnt > 2)
 		memcpy(psalt->zip_data+ex_len[0]+ex_len[1]+2, H[2], ex_len[2]);
 	MEM_FREE(H[2]);
 	MEM_FREE(salt);
@@ -1062,7 +1062,7 @@ static int validate_ascii(const u8 *out, int inplen)
 
 			if (out[i] > 0xC0) {
 				int len;
-				if(i > inplen-4)
+				if (i > inplen-4)
 					return 1;
 				len = isLegalUTF8_char(&out[i], 5);
 				if (len < 0) return 0;
@@ -1166,7 +1166,7 @@ MAYBE_INLINE static int check_inflate_CODE2(u8 *next)
 	if (257+(hold&0x1F) > 286)
 		return 0;	// nlen, but we do not use it.
 	hold >>= 5;
-	if(1+(hold&0x1F) > 30)
+	if (1+(hold&0x1F) > 30)
 		return 0;		// ndist, but we do not use it.
 	hold >>= 5;
 	ncode = 4+(hold&0xF);

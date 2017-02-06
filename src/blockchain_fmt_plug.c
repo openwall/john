@@ -133,7 +133,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if(len > BIG_ENOUGH || !len)
+	if (len > BIG_ENOUGH || !len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
@@ -191,7 +191,7 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	unsigned char iv[16];
 	memcpy(iv, cur_salt->data, 16);
 
-	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
+	if (AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
 	AES_cbc_encrypt(data + 16, out, 16, &akey, iv, AES_DECRYPT);
@@ -234,7 +234,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
 			cur_salt->data, 16, cur_salt->iter, pout, 32, 0);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(blockchain_decrypt(master[i], cur_salt->data) == 0)
+			if (blockchain_decrypt(master[i], cur_salt->data) == 0)
 				cracked[i+index] = 1;
 			else
 				cracked[i+index] = 0;
@@ -245,7 +245,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			strlen(saved_key[index]),
 			cur_salt->data, 16,
 			cur_salt->iter, master, 32, 0);
-		if(blockchain_decrypt(master, cur_salt->data) == 0)
+		if (blockchain_decrypt(master, cur_salt->data) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;

@@ -58,7 +58,7 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	if (!isdec(p))
 		goto bail;
 	/* currently we support only 1 key */
-	if(atoi(p) != 1)
+	if (atoi(p) != 1)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* key length */
 		goto bail;

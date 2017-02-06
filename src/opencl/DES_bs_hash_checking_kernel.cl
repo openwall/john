@@ -98,7 +98,7 @@ __kernel void DES_bs_cmp(__global unsigned DES_bs_vector *unchecked_hashes,
 	for (i = 0; i < 64; i++)
 		B[i] = unchecked_hashes[section + i * gws];
 
-	for(i = 0; i < num_uncracked_hashes; i++) {
+	for (i = 0; i < num_uncracked_hashes; i++) {
 
 		value[0] = uncracked_hashes[i];
 		value[1] = uncracked_hashes[i + num_uncracked_hashes];

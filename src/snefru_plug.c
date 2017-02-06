@@ -778,7 +778,7 @@ static void rhash_snefru_process_block(snefru_ctx* ctx, unsigned *block)
 		W[0] = ctx->hash[0], W[1] = ctx->hash[1];
 		W[2] = ctx->hash[2], W[3] = ctx->hash[3];
 
-		if(ctx->digest_length == snefru256_hash_length) {
+		if (ctx->digest_length == snefru256_hash_length) {
 			W[4] = ctx->hash[4], W[5] = ctx->hash[5];
 			W[6] = ctx->hash[6], W[7] = ctx->hash[7];
 		} else {
@@ -794,17 +794,17 @@ static void rhash_snefru_process_block(snefru_ctx* ctx, unsigned *block)
 	}
 
 	/* do algorithm rounds using S-Box */
-	for(sbox = rhash_snefru_sbox; sbox < sbox_end; sbox += 512)
+	for (sbox = rhash_snefru_sbox; sbox < sbox_end; sbox += 512)
 	{
 		/* cycle 4 times */
-		for(rot = 0x18100810; rot; rot >>= 8)
+		for (rot = 0x18100810; rot; rot >>= 8)
 		{
 			unsigned x;
 
 #define SNEFERU_UPDATE_W(i) \
 	x = sbox[(i << 7 & 0x100) + (W[i] & 0xff)]; \
 	W[(i - 1) & 0x0f] ^= x; \
-	if(i >= 2) W[(i - 1) & 0x0f] = \
+	if (i >= 2) W[(i - 1) & 0x0f] = \
 	ROTR32(W[(i - 1) & 0x0f], (unsigned char)rot); \
 	W[(i + 1) & 0x0f] ^= x;
 
@@ -834,7 +834,7 @@ static void rhash_snefru_process_block(snefru_ctx* ctx, unsigned *block)
 	hash[1] ^= W[14];
 	hash[2] ^= W[13];
 	hash[3] ^= W[12];
-	if(ctx->digest_length == snefru256_hash_length) {
+	if (ctx->digest_length == snefru256_hash_length) {
 		hash[4] ^= W[11];
 		hash[5] ^= W[10];
 		hash[6] ^= W[ 9];
@@ -857,10 +857,10 @@ void rhash_snefru_update(snefru_ctx *ctx, const unsigned char* msg, size_t size)
 	ctx->length += size;
 
 	/* fill partial block */
-	if(ctx->index) {
+	if (ctx->index) {
 		unsigned left = data_block_size - ctx->index;
 		memcpy((char*)ctx->buffer + ctx->index, msg, (size < left ? size : left));
-		if(size < left) {
+		if (size < left) {
 			ctx->index += (unsigned)size;
 			return;
 		}
@@ -873,7 +873,7 @@ void rhash_snefru_update(snefru_ctx *ctx, const unsigned char* msg, size_t size)
 	while(size >= data_block_size) {
 		unsigned* aligned_message_block;
 
-		if(!ARCH_LITTLE_ENDIAN && IS_ALIGNED_32(msg)) {
+		if (!ARCH_LITTLE_ENDIAN && IS_ALIGNED_32(msg)) {
 			/* the most common case is processing of an already aligned message
 			on a little-endian CPU without copying it */
 			aligned_message_block = (unsigned*)msg;
@@ -888,7 +888,7 @@ void rhash_snefru_update(snefru_ctx *ctx, const unsigned char* msg, size_t size)
 	}
 
 	ctx->index = (unsigned)size;
-	if(size) {
+	if (size) {
 		/* save leftovers */
 		memcpy(ctx->buffer, msg, size);
 	}
@@ -907,7 +907,7 @@ void rhash_snefru_final(snefru_ctx *ctx, unsigned char *result)
 	const unsigned data_block_size = 64 - ctx->digest_length;
 
 	assert(ctx->index == (unsigned)(ctx->length % data_block_size));
-	if(ctx->index) {
+	if (ctx->index) {
 		/* pad the last data block if partially filled */
 		memset((char*)ctx->buffer + ctx->index, 0, data_block_size - ctx->index);
 		rhash_snefru_process_block(ctx, (unsigned*)ctx->buffer);

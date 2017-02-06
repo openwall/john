@@ -268,7 +268,7 @@ int strcasecmp(char *dst, char *src) {
 
 #if NEED_STRNCASECMP_NATIVE
 int strncasecmp(char *dst, char *src, size_t count) {
-	if(count) {
+	if (count) {
 		int f,l;
 		do {
 			if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )

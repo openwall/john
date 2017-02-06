@@ -190,7 +190,7 @@ void jtr_sha256_update(jtr_sha256_ctx *ctx, const void *_input, int ilenlft)
 	int left, fill;
 	const unsigned char *input;
 
-	if(ilenlft <= 0)
+	if (ilenlft <= 0)
 		return;
 
 	input = (const unsigned char*)_input;
@@ -199,7 +199,7 @@ void jtr_sha256_update(jtr_sha256_ctx *ctx, const void *_input, int ilenlft)
 
 	ctx->total += ilenlft;
 
-	if(left && ilenlft >= fill)
+	if (left && ilenlft >= fill)
 	{
 		memcpy(ctx->buffer + left, input, fill);
 		jtr_sha256_hash_block(ctx, ctx->buffer, 1);
@@ -215,7 +215,7 @@ void jtr_sha256_update(jtr_sha256_ctx *ctx, const void *_input, int ilenlft)
 		ilenlft  -= 0x40;
 	}
 
-	if(ilenlft > 0)
+	if (ilenlft > 0)
 		memcpy(ctx->buffer + left, input, ilenlft);
 }
 
@@ -251,7 +251,7 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 	OUTBE32(ctx->h[4], output, 16);
 	OUTBE32(ctx->h[5], output, 20);
 	OUTBE32(ctx->h[6], output, 24);
-	if(ctx->bIs256)
+	if (ctx->bIs256)
 		OUTBE32(ctx->h[7], output, 28);
 #else
 	if (is_aligned(output,sizeof(uint32_t))) {
@@ -262,7 +262,7 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 		OUTBE32(ctx->h[4], output, 16);
 		OUTBE32(ctx->h[5], output, 20);
 		OUTBE32(ctx->h[6], output, 24);
-		if(ctx->bIs256)
+		if (ctx->bIs256)
 			OUTBE32(ctx->h[7], output, 28);
 	} else {
 		union {
@@ -277,7 +277,7 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 		OUTBE32(ctx->h[4], tmp, 16);
 		OUTBE32(ctx->h[5], tmp, 20);
 		OUTBE32(ctx->h[6], tmp, 24);
-		if(ctx->bIs256) {
+		if (ctx->bIs256) {
 			OUTBE32(ctx->h[7], tmp, 28);
 			memcpy(output, tmp, 32);
 		} else
@@ -366,7 +366,7 @@ void jtr_sha512_hash_block(jtr_sha512_ctx *ctx, const unsigned char data[128], i
 
 #if ARCH_LITTLE_ENDIAN
 	if (perform_endian_swap) {
-		for(i = 0; i < 16; i++) {
+		for (i = 0; i < 16; i++) {
 			W[i] = JOHNSWAP64(*((uint64_t *)&(data[i<<3])));
 		}
 	} else
@@ -376,7 +376,7 @@ void jtr_sha512_hash_block(jtr_sha512_ctx *ctx, const unsigned char data[128], i
 		memcpy(W, data, 128);
 	}
 
-	for(; i < 80; i++)
+	for (; i < 80; i++)
 		W[i] = R1(W[i - 2]) + W[i - 7] + R0(W[i - 15]) + W[i - 16];
 
 	A = ctx->h[0];
@@ -483,7 +483,7 @@ void jtr_sha512_init(jtr_sha512_ctx *ctx, int bIs512)
 {
 	ctx->total = 0;
 	ctx->bIsQnxBuggy = 0;
-	if((ctx->bIs512 = bIs512))
+	if ((ctx->bIs512 = bIs512))
 	{
 		/* SHA-512 */
 		ctx->h[0] = 0x6A09E667F3BCC908ULL;
@@ -514,7 +514,7 @@ void jtr_sha512_update(jtr_sha512_ctx *ctx, const void *_input, int ilenlft)
 	int fill, left;
 	const unsigned char *input;
 
-	if(ilenlft <= 0)
+	if (ilenlft <= 0)
 		return;
 
 	input = (const unsigned char*)_input;
@@ -522,7 +522,7 @@ void jtr_sha512_update(jtr_sha512_ctx *ctx, const void *_input, int ilenlft)
 	fill = 128 - left;
 	ctx->total += ilenlft;
 
-	if(left && ilenlft >= fill)
+	if (left && ilenlft >= fill)
 	{
 		memcpy(ctx->buffer + left, input, fill);
 		jtr_sha512_hash_block(ctx, ctx->buffer, 1);
@@ -538,7 +538,7 @@ void jtr_sha512_update(jtr_sha512_ctx *ctx, const void *_input, int ilenlft)
 		ilenlft  -= 128;
 	}
 
-	if(ilenlft > 0)
+	if (ilenlft > 0)
 		memcpy(ctx->buffer + left, input, ilenlft);
 }
 
@@ -594,7 +594,7 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 	OUTBE64(ctx->h[3], output, 24);
 	OUTBE64(ctx->h[4], output, 32);
 	OUTBE64(ctx->h[5], output, 40);
-	if(ctx->bIs512) {
+	if (ctx->bIs512) {
 		OUTBE64( ctx->h[6], output, 48 );
 		OUTBE64( ctx->h[7], output, 56 );
 	}
@@ -606,7 +606,7 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 		OUTBE64(ctx->h[3], output, 24);
 		OUTBE64(ctx->h[4], output, 32);
 		OUTBE64(ctx->h[5], output, 40);
-		if(ctx->bIs512) {
+		if (ctx->bIs512) {
 			OUTBE64( ctx->h[6], output, 48 );
 			OUTBE64( ctx->h[7], output, 56 );
 		}
@@ -622,7 +622,7 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 		OUTBE64(ctx->h[3], tmp, 24);
 		OUTBE64(ctx->h[4], tmp, 32);
 		OUTBE64(ctx->h[5], tmp, 40);
-		if(ctx->bIs512) {
+		if (ctx->bIs512) {
 			OUTBE64(ctx->h[6], tmp, 48);
 			OUTBE64(ctx->h[7], tmp, 56);
 			memcpy(output, tmp, 64);

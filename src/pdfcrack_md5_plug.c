@@ -48,7 +48,7 @@
 #define CC 0x98badcfe
 #define DD 0x10325476
 
-/** fast version of "for(i=0; i<50; i++) { md5(msg, 16, msg); }" */
+/** fast version of "for (i=0; i<50; i++) { md5(msg, 16, msg); }" */
 void md5_50(uint8_t * msg)
 {
 	register uint32_t a, b, c, d;

@@ -162,7 +162,7 @@ inline void clear_ctx(__private uint8 * x)
                 x[i] = zero;
 }
 inline void clean_ctx(__private uint *x){
-        for(int i=0;i<8;i++)
+        for (int i=0;i<8;i++)
                 x[i]=0;
 }
 
@@ -240,9 +240,9 @@ __private uchar *buff = (uchar *) sx;
 
 #define K2(q)\
                 clean_ctx(sx);\
-                for(i=0;i<length.s##q;i++)\
+                for (i=0;i<length.s##q;i++)\
                         buff[i]=password##q[i];\
-                for(i=0;i<4;i++)\
+                for (i=0;i<4;i++)\
                         x[i+4].s##q=sx[i];
         K2(0);
         K2(1);

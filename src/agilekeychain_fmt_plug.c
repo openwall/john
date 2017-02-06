@@ -135,13 +135,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	saltlen = atoi(p);
-	if(saltlen > SALTLEN)
+	if (saltlen > SALTLEN)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ct length */
 		goto err;
@@ -152,9 +152,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
-	if(strlen(p) != ctlen * 2)
+	if (strlen(p) != ctlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -247,7 +247,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt[0], cur_salt->saltlen[0], cur_salt->iterations[0], pout, 16, 0);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(akcdecrypt(master[i], cur_salt->ct[0]) == 0)
+			if (akcdecrypt(master[i], cur_salt->ct[0]) == 0)
 				cracked[i+index] = 1;
 			else
 				cracked[i+index] = 0;
@@ -258,7 +258,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		       strlen(saved_key[index]),
 		       cur_salt->salt[0], cur_salt->saltlen[0],
 		       cur_salt->iterations[0], master, 16, 0);
-		if(akcdecrypt(master, cur_salt->ct[0]) == 0)
+		if (akcdecrypt(master, cur_salt->ct[0]) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;

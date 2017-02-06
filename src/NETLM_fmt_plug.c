@@ -233,7 +233,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for default(none) private(i, ks) shared(count, output, challenge, saved_key)
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for(i = 0; i < count; i++)
+	for (i = 0; i < count; i++)
 #endif
 	{
 		/* Just do a partial binary, the first DES operation */
@@ -248,7 +248,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for(index=0; index<count; index++)
+	for (index=0; index<count; index++)
 #endif
 		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
 			return 1;

@@ -269,8 +269,8 @@ static char *remove_spaces(char *str) {
 
 	char *out = str, *put = str;
 
-	for(; *str; str++) {
-		if(*str != ' ')
+	for (; *str; str++) {
+		if (*str != ' ')
 			*put++ = *str;
 	}
 	*put = '\0';
@@ -1918,7 +1918,7 @@ static char *replace_str(char *string, char *from, char *to)
 	char *p;
 	int len;
 
-	if(!(p = strstr(string, from)))
+	if (!(p = strstr(string, from)))
 		return string;
 
 	len = p - string;

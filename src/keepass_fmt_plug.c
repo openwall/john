@@ -111,13 +111,13 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	SHA256_Update(&ctx, masterkey, strlen(masterkey));
 	SHA256_Final(hash, &ctx);
 
-	if(csp->version == 2 && cur_salt->have_keyfile == 0) {
+	if (csp->version == 2 && cur_salt->have_keyfile == 0) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, hash, 32);
 		SHA256_Final(hash, &ctx);
 	}
 	memset(&akey, 0, sizeof(AES_KEY));
-	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
+	if (AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_encrypt_key failed!\n");
 	}
 
@@ -156,7 +156,7 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 
 	// ...and hash the result together with the randomseed
 	SHA256_Init(&ctx);
-	if(csp->version == 1) {
+	if (csp->version == 1) {
 		SHA256_Update(&ctx, csp->final_randomseed, 16);
 	}
 	else {
@@ -305,7 +305,7 @@ static void *get_salt(char *ciphertext)
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keepass$*" */
 	p = strtokm(ctcopy, "*");
 	cs.version = atoi(p);
-	if(cs.version == 1) {
+	if (cs.version == 1) {
 		p = strtokm(NULL, "*");
 		cs.key_transf_rounds = atoi(p);
 		p = strtokm(NULL, "*");
@@ -329,7 +329,7 @@ static void *get_salt(char *ciphertext)
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		p = strtokm(NULL, "*");
 		cs.isinline = atoi(p);
-		if(cs.isinline == 1) {
+		if (cs.isinline == 1) {
 			p = strtokm(NULL, "*");
 			cs.contentsize = atoi(p);
 			p = strtokm(NULL, "*");
@@ -430,7 +430,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			/* AES decrypt cur_salt->contents with final_key */
 			memcpy(iv, cur_salt->enc_iv, 16);
 			memset(&akey, 0, sizeof(AES_KEY));
-			if(AES_set_decrypt_key(final_key, 256, &akey) < 0) {
+			if (AES_set_decrypt_key(final_key, 256, &akey) < 0) {
 				fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 			}
 		} else if (cur_salt->algorithm == 1) {
@@ -446,7 +446,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, decrypted_content, datasize);
 			SHA256_Final(out, &ctx);
-			if(!memcmp(out, cur_salt->contents_hash, 32)) {
+			if (!memcmp(out, cur_salt->contents_hash, 32)) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -456,7 +456,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		else if (cur_salt->version == 2 && cur_salt->algorithm == 0) {
 			AES_cbc_encrypt(cur_salt->contents, decrypted_content, 32, &akey, iv, AES_DECRYPT);
-			if(!memcmp(decrypted_content, cur_salt->expected_bytes, 32)) {
+			if (!memcmp(decrypted_content, cur_salt->expected_bytes, 32)) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -473,7 +473,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA256_Init(&ctx);
 				SHA256_Update(&ctx, decrypted_content, datasize);
 				SHA256_Final(out, &ctx);
-				if(!memcmp(out, cur_salt->contents_hash, 32)) {
+				if (!memcmp(out, cur_salt->contents_hash, 32)) {
 					cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic

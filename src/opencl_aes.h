@@ -1159,9 +1159,9 @@ AES_cbc_encrypt(__global const uchar *in, uchar *out,
 			uchar c[16];
 		} tmp;
 
-		for(n = 0; n < 16 && n < len; ++n)
+		for (n = 0; n < 16 && n < len; ++n)
 			out[n] = in[n] ^ iv[n];
-		for(; n < 16; ++n)
+		for (; n < 16; ++n)
 			out[n] = iv[n];
 		AES_encrypt(out, tmp.c, key);
 		iv = tmp.c;
@@ -1190,7 +1190,7 @@ AES_cbc_decrypt(__global const uchar *in, uchar *out,
 		} tmp;
 
 		AES_decrypt(in, tmp.c, key);
-		for(n = 0; n < 16 && n < len; ++n) {
+		for (n = 0; n < 16 && n < len; ++n) {
 			uchar c;
 
 			c = in[n];

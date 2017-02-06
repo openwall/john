@@ -288,7 +288,7 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 		return 0;
 
 	l -= 32;
-	if(ciphertext[l-1]!='#')
+	if (ciphertext[l-1]!='#')
 		return 0;
 
 	for (i = l; i < l + 32; i++)
@@ -334,7 +334,7 @@ char *mscash2_common_split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[MSCASH2_MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
 
-	for(; ciphertext[i] && i < MSCASH2_MAX_CIPHERTEXT_LENGTH; i++)
+	for (; ciphertext[i] && i < MSCASH2_MAX_CIPHERTEXT_LENGTH; i++)
 		out[i] = ciphertext[i];
 
 	out[i] = 0;

@@ -1311,7 +1311,7 @@ key_cleaning:
 		if (len > 110) // we never do UTF-8 -> UTF-16 in this mode
 			len = 110;
 
-//		if(index==0) {
+//		if (index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
 //			__nonMP_DynamicFunc__clean_input_full();
 //		}
@@ -1328,7 +1328,7 @@ key_cleaning:
 		len = strlen(key);
 		if (len > 110 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
 			len = 110;
-//		if(index==0) {
+//		if (index==0) {
 //			__nonMP_DynamicFunc__clean_input_full();
 //		}
 		keys_dirty = 1;
@@ -1381,7 +1381,7 @@ static char *get_key(int index)
 //			s = saved_key_len[index];  // NOTE, we now have to get the length from the buffer, we do NOT store it into a saved_key_len buffer.
 			uint32_t *keybuffer = &input_buf[idx].w[index&(SIMD_COEF_32-1)];
 			s = keybuffer[14*SIMD_COEF_32] >> 3;
-			for(i=0;i<s;i++)
+			for (i=0;i<s;i++)
 				out[i] = input_buf[idx].c[GETPOS(i, index&(SIMD_COEF_32-1))];
 			out[i] = 0;
 			return (char*)out;
@@ -1394,7 +1394,7 @@ static char *get_key(int index)
 #endif
 			cp = input_buf_X86[index>>MD5_X2].x1.B;
 
-		for(i=0;i<saved_key_len[index];++i)
+		for (i=0;i<saved_key_len[index];++i)
 			out[i] = cp[i];
 		out[i] = 0;
 		return (char*)out;
@@ -1419,7 +1419,7 @@ static int cmp_all(void *binary, int count)
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
-				if( *((uint32_t *)binary) == crypt_key[i].w[j])
+				if ( *((uint32_t *)binary) == crypt_key[i].w[j])
 					return 1;
 		}
 		return 0;
@@ -1454,7 +1454,7 @@ static int cmp_all_64_4x6(void *binary, int count)
 		for (i = 0; i < cnt; ++i)
 		{
 			for (j = 0; j < SIMD_COEF_32; ++j)
-				if( *((uint32_t *)binary) == (crypt_key[i].w[j] & MASK_4x6))
+				if ( *((uint32_t *)binary) == (crypt_key[i].w[j] & MASK_4x6))
 					return 1;
 		}
 		return 0;
@@ -1492,7 +1492,7 @@ static int cmp_one(void *binary, int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse&1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		if( (((uint32_t *)binary)[0] == ((uint32_t *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
+		if ( (((uint32_t *)binary)[0] == ((uint32_t *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
 			(((uint32_t *)binary)[1] == ((uint32_t *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
 			(((uint32_t *)binary)[2] == ((uint32_t *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]) &&
 			(((uint32_t *)binary)[3] == ((uint32_t *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))]))
@@ -1524,7 +1524,7 @@ static int cmp_one_64_4x6(void *binary, int index)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		unsigned int idx = ( ((unsigned int)index)/SIMD_COEF_32);
-		if( (((uint32_t *)binary)[0] == (((uint32_t *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
+		if ( (((uint32_t *)binary)[0] == (((uint32_t *)&(crypt_key[idx].c))[0*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
 			(((uint32_t *)binary)[1] == (((uint32_t *)&(crypt_key[idx].c))[1*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
 			(((uint32_t *)binary)[2] == (((uint32_t *)&(crypt_key[idx].c))[2*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)) &&
 			(((uint32_t *)binary)[3] == (((uint32_t *)&(crypt_key[idx].c))[3*SIMD_COEF_32+(index&(SIMD_COEF_32-1))] & MASK_4x6)))
@@ -2530,7 +2530,7 @@ static void *get_binary(char *_ciphertext)
 			;
 	}
 
-	for(i=0;i<BINARY_SIZE;i++)
+	for (i=0;i<BINARY_SIZE;i++)
 	{
 		realcipher[i] =
 			atoi16[ARCH_INDEX(ciphertext[i*2])]*16 +
@@ -2775,7 +2775,7 @@ static void * binary_b64_4x6(char *ciphertext)
 		while (*pos++ != '$')
 			;
 	}
-	for(i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {
 		b[i] =
 			atoi64[ARCH_INDEX(pos[i*4 + 0])] +
 			(atoi64[ARCH_INDEX(pos[i*4 + 1])] << 6) +
@@ -3123,7 +3123,7 @@ static void __SSE_append_string_to_input_unicode(unsigned char *IPB, unsigned in
     if (len>1&&!(bf_ptr&1))
     {
         unsigned int w32_cnt;
-		if(bf_ptr&2) {
+		if (bf_ptr&2) {
 			cpO = &IPB[GETPOS(bf_ptr, idx_mod)];
 			bf_ptr += 2;
 			*cpO = *cp++;
@@ -7131,7 +7131,7 @@ static int isBadOMPFunc(DYNAMIC_primitive_funcp p)
 }
 #endif
 
-#define RETURN_TRUE_IF_BIG_FUNC(H) if(p==DynamicFunc__##H##_crypt_input1_append_input2 || \
+#define RETURN_TRUE_IF_BIG_FUNC(H) if (p==DynamicFunc__##H##_crypt_input1_append_input2 || \
 		p==DynamicFunc__##H##_crypt_input2_append_input1    || \
 		p==DynamicFunc__##H##_crypt_input1_overwrite_input1 || \
 		p==DynamicFunc__##H##_crypt_input2_overwrite_input2 || \
@@ -7754,7 +7754,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			// Ok, if we have made it here, the function is 'currently' still valid.  Load this pointer into our array of pointers.
 			pFuncs = ConvertFuncs(Setup->pFuncs[i], &cnt2);
 
-#define IS_FUNC_NAME(H,N) if(is##H##Func(pFuncs[x])){ if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME)) pFmt->params.algorithm_name = ALGORITHM_NAME_##N; \
+#define IS_FUNC_NAME(H,N) if (is##H##Func(pFuncs[x])){ if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME)) pFmt->params.algorithm_name = ALGORITHM_NAME_##N; \
 			else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86)) 	pFmt->params.algorithm_name = ALGORITHM_NAME_X86_##N; }
 
 			for (x = 0; x < cnt2; ++x) {

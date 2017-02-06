@@ -60,7 +60,7 @@ static void _pbkdf2_whirlpool_load_hmac(const unsigned char *K, int KL, WHIRLPOO
 		KL = WHIRLPOOL_DIGEST_LENGTH;
 		K = k0;
 	}
-	for(i = 0; i < KL; i++) {
+	for (i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
 	}
@@ -93,7 +93,7 @@ static void _pbkdf2_whirlpool(const unsigned char *S, int SL, int R, uint32_t *o
 
 	memcpy(out, tmp_hash, WHIRLPOOL_DIGEST_LENGTH);
 
-	for(i = 1; i < R; i++) {
+	for (i = 1; i < R; i++) {
 		memcpy(&ctx, pIpad, sizeof(WHIRLPOOL_CTX));
 		WHIRLPOOL_Update(&ctx, tmp_hash, WHIRLPOOL_DIGEST_LENGTH);
 		WHIRLPOOL_Final(tmp_hash, &ctx);
@@ -101,7 +101,7 @@ static void _pbkdf2_whirlpool(const unsigned char *S, int SL, int R, uint32_t *o
 		memcpy(&ctx, pOpad, sizeof(WHIRLPOOL_CTX));
 		WHIRLPOOL_Update(&ctx, tmp_hash, WHIRLPOOL_DIGEST_LENGTH);
 		WHIRLPOOL_Final(tmp_hash, &ctx);
-		for(j = 0; j < WHIRLPOOL_DIGEST_LENGTH/sizeof(uint32_t); j++) {
+		for (j = 0; j < WHIRLPOOL_DIGEST_LENGTH/sizeof(uint32_t); j++) {
 			out[j] ^= ((uint32_t*)tmp_hash)[j];
 		}
 	}

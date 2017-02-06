@@ -1016,7 +1016,7 @@ static char *get_key(int index)
 	unsigned int md4_size=0;
 	unsigned int i=0;
 
-	for(; md4_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md4_size++)
+	for (; md4_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md4_size++)
 	{
 		key[md4_size] = keybuf_word[i];
 		key[md4_size+1] = keybuf_word[i] >> 16;

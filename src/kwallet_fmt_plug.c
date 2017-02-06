@@ -268,7 +268,7 @@ static int verify_key(unsigned char *key, int key_size)
 
 	if (cur_salt->kwallet_minor_version == 0) {
 		BF_set_key(&bf_key, key_size, key);
-		for(i = 0; i < cur_salt->ctlen; i += 8) {
+		for (i = 0; i < cur_salt->ctlen; i += 8) {
 			BF_ecb_encrypt(buffer + i, buffer + i, &bf_key, 0);
 		}
 

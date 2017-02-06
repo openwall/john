@@ -187,7 +187,7 @@ static int valid(char* ciphertext, int pos)
 	q = strchr(p, '$');
 
 	if (!q) { /* no keyfiles */
-		if(pos + 512*2 != strlen(ciphertext))
+		if (pos + 512*2 != strlen(ciphertext))
 			return 0;
 	} else {
 		if (q - p != 512 * 2)
@@ -277,9 +277,9 @@ static void* get_salt(char *ciphertext)
 	}
 
 	// Convert the hexadecimal salt in binary
-	for(i = 0; i < 64; i++)
+	for (i = 0; i < 64; i++)
 		s->salt[i] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
-	for(; i < 512; i++)
+	for (; i < 512; i++)
 		s->bin[i-64] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
 
 	p = ciphertext;
@@ -381,7 +381,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for(i = 0; i < count; i+=psalt->loop_inc)
+	for (i = 0; i < count; i+=psalt->loop_inc)
 	{
 		unsigned char key[64];
 #if SSE_GROUP_SZ_SHA512

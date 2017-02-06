@@ -175,7 +175,7 @@ static void init(struct fmt_main *self)
 #ifdef SIMD_COEF_32
 	clean_pos = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*clean_pos));
-	for(i = 0; i < LIMB; i++)
+	for (i = 0; i < LIMB; i++)
 		saved_key[i] = mem_calloc_align(self->params.max_keys_per_crypt,
 		                                SHA_BUF_SIZ * 4,
 		                                MEM_ALIGN_SIMD);
@@ -198,7 +198,7 @@ static void done(void)
 	MEM_FREE(crypt_key);
 #ifdef SIMD_COEF_32
 	MEM_FREE(interm_crypt);
-	for(i = 0; i < LIMB; i++)
+	for (i = 0; i < LIMB; i++)
 		MEM_FREE(saved_key[i]);
 	MEM_FREE(clean_pos);
 #endif
@@ -296,13 +296,13 @@ static int cmp_all(void *binary, int count) {
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
-	for(;y<SIMD_PARA_SHA1*omp_t;y++)
+	for (;y<SIMD_PARA_SHA1*omp_t;y++)
 #else
-	for(;y<SIMD_PARA_SHA1;y++)
+	for (;y<SIMD_PARA_SHA1;y++)
 #endif
-	for(x=0;x<SIMD_COEF_32;x++)
+	for (x=0;x<SIMD_COEF_32;x++)
 	{
-		if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
+		if ( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
 			return 1;
 	}
 	return 0;
@@ -327,7 +327,7 @@ static int cmp_one(void *binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 
-	if( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5])   |
+	if ( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5])   |
 	    (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
 	    (((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32]) |
 	    (((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32])|
@@ -657,7 +657,7 @@ static void *get_binary(char *ciphertext)
 
 	newCiphertextPointer = strrchr(ciphertext, '$') + 1;
 
-	for(i=0;i<BINARY_SIZE;i++)
+	for (i=0;i<BINARY_SIZE;i++)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(newCiphertextPointer[i*2])]*16 + atoi16[ARCH_INDEX(newCiphertextPointer[i*2+1])];
 	}

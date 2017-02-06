@@ -77,7 +77,7 @@ void S2KItSaltedSHA1Generator(__global const uchar *password,
 		count = _count;
 		SHA1_Init(&ctx);
 #ifdef LEAN
-		for(j=0;j<i;++j)
+		for (j=0;j<i;++j)
 			keybuf[j] = 0;
 		n = j;
 		_memcpy(keybuf + j, salt, SALT_LENGTH);
@@ -147,7 +147,7 @@ void S2KItSaltedSHA1Generator(__global const uchar *password,
 		SHA1_Final(keybuf, &ctx);
 
 		j = i * SHA_DIGEST_LENGTH;
-		for(n = 0; j < key_len && n < SHA_DIGEST_LENGTH; ++j, ++n)
+		for (n = 0; j < key_len && n < SHA_DIGEST_LENGTH; ++j, ++n)
 			key[j] = keybuf[n];
 		if (j == key_len)
 			return;

@@ -311,7 +311,7 @@ static MAYBE_INLINE void set_key(char *key, int index, const int B_LEN)
 		}
 
 		keyp = (uint64_t*)k0;
-		for(i = 0; i < B_LEN / 8; i++, ipadp += SIMD_COEF_64, opadp += SIMD_COEF_64)
+		for (i = 0; i < B_LEN / 8; i++, ipadp += SIMD_COEF_64, opadp += SIMD_COEF_64)
 		{
 			temp = JOHNSWAP64(*keyp++);
 			*ipadp ^= temp;
@@ -381,14 +381,14 @@ static MAYBE_INLINE void set_key(char *key, int index, const int B_LEN)
 
 		len = B_LEN;
 
-		for(i=0;i<len;i++)
+		for (i=0;i<len;i++)
 		{
 			ipad[index][i] ^= k0[i];
 			opad[index][i] ^= k0[i];
 		}
 	}
 	else
-	for(i=0;i<len;i++)
+	for (i=0;i<len;i++)
 	{
 		ipad[index][i] ^= key[i];
 		opad[index][i] ^= key[i];
@@ -413,7 +413,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_64
 	unsigned int index;
 
-	for(index = 0; index < count; index++) {
+	for (index = 0; index < count; index++) {
 		// NOTE crypt_key is in input format (PAD_SIZE * SIMD_COEF_64)
 		if (((uint64_t*)binary)[0] == ((uint64_t*)crypt_key)[(index&(SIMD_COEF_64-1))+index/SIMD_COEF_64*PAD_SIZE_W*SIMD_COEF_64])
 			return 1;
@@ -435,7 +435,7 @@ static int cmp_one(void *binary, int index, int B_LEN)
 {
 #ifdef SIMD_COEF_64
 	int i;
-	for(i = 0; i < (B_LEN/8); i++)
+	for (i = 0; i < (B_LEN/8); i++)
 		// NOTE crypt_key is in input format (PAD_SIZE * SIMD_COEF_64)
 		if (((uint64_t*)binary)[i] != ((uint64_t*)crypt_key)[i * SIMD_COEF_64 + (index & (SIMD_COEF_64-1)) + (index/SIMD_COEF_64) * PAD_SIZE_W * SIMD_COEF_64])
 			return 0;
@@ -573,9 +573,9 @@ static void *get_binary(char *ciphertext, const int B_LEN)
 	JTR_ALIGN(BINARY_ALIGN) static unsigned char realcipher[BINARY_SIZE];
 	int i,pos;
 
-	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
+	for (i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
 	pos=i+1;
-	for(i=0;i<B_LEN;i++)
+	for (i=0;i<B_LEN;i++)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];
 
 #ifdef SIMD_COEF_64

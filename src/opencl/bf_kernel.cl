@@ -154,7 +154,7 @@ __kernel void blowfish(	constant uint *salt
 			BF_key_exp[i] = tmp0 ^ P_box[i] ;
 	        }
 
-		for(i = 0; i < 1024; i++) {
+		for (i = 0; i < 1024; i++) {
 			j = i >> 8 ;
 			S_Buffer[pos_S_local(j, (i & 0xff))] = S_box[i] ;
 		}
@@ -288,10 +288,10 @@ __kernel void blowfish(	constant uint *salt
 		BF_out[2 * index] = L0 ;
 		BF_out[2 * index + 1] = R0 ;
 
-	    for(i = 0; i < 18; i++)
+	    for (i = 0; i < 18; i++)
 		BF_current_P_global[pos_P(i)] = BF_current_P[i] ;
 
-	    for(i = 0; i < 1024; i++) {
+	    for (i = 0; i < 1024; i++) {
 			j = i >> 8 ;
 			BF_current_S[pos_S(j, (i & 0xff))] = S_Buffer[pos_S_local(j, (i & 0xff))] ;
 		}

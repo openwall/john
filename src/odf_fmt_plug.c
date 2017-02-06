@@ -287,7 +287,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
 #endif
-		if(cur_salt->checksum_type == 0 && cur_salt->cipher_type == 0) {
+		if (cur_salt->checksum_type == 0 && cur_salt->cipher_type == 0) {
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				SHA1_Init(&ctx);
 				SHA1_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
@@ -348,7 +348,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				memcpy(iv, cur_salt->iv, 16);
 				memset(&akey, 0, sizeof(AES_KEY));
-				if(AES_set_decrypt_key(key[i], 256, &akey) < 0) {
+				if (AES_set_decrypt_key(key[i], 256, &akey) < 0) {
 					fprintf(stderr, "AES_set_decrypt_key failed!\n");
 				}
 				AES_cbc_encrypt(cur_salt->content, output, cur_salt->content_length, &akey, iv, AES_DECRYPT);

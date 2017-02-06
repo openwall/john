@@ -2549,7 +2549,7 @@ encrypted_Secret_Key(int len, int sha1)
 			break;
 		case 17:
 			m_algorithm = PUBLIC;  // Encrypted DSA
-			if(give(len, m_data, sizeof(m_data)) != len)
+			if (give(len, m_data, sizeof(m_data)) != len)
 				return;
 			used += len;
 			if (last_hash && *last_hash) {

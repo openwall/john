@@ -406,7 +406,7 @@ static int restart_model_rare(ppm_data_t *ppm_data)
 	ppm_data->init_rl=-(ppm_data->max_order < 12 ? ppm_data->max_order:12)-1;
 	ppm_data->min_context = ppm_data->max_context =
 		(struct ppm_context *) sub_allocator_alloc_context(&ppm_data->sub_alloc);
-	if(!ppm_data->min_context) {
+	if (!ppm_data->min_context) {
 	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_context failed\n");
 	    return 0;
 	}
@@ -415,7 +415,7 @@ static int restart_model_rare(ppm_data_t *ppm_data)
 	ppm_data->min_context->con_ut.u.summ_freq = (ppm_data->min_context->num_stats=256)+1;
 	ppm_data->found_state = ppm_data->min_context->con_ut.u.stats=
 		(struct state_tag *)sub_allocator_alloc_units(&ppm_data->sub_alloc, 256/2);
-	if(!ppm_data->found_state) {
+	if (!ppm_data->found_state) {
 	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_units failed\n");
 	    return 0;
 	}
@@ -978,7 +978,7 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 			sub_allocator_stop_sub_allocator(&ppm_data->sub_alloc);
 			return 0;
 		}
-		if(!sub_allocator_start_sub_allocator(&ppm_data->sub_alloc, MaxMB+1)) {
+		if (!sub_allocator_start_sub_allocator(&ppm_data->sub_alloc, MaxMB+1)) {
 		    sub_allocator_stop_sub_allocator(&ppm_data->sub_alloc);
 		    return 0;
 		}
@@ -1035,7 +1035,7 @@ int ppm_decode_char(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 		ppm_data->min_context = ppm_data->max_context = ppm_data->found_state->successor;
 	} else {
 
-		if(!update_model(ppm_data)) {   // This line HANGS the compiler on sparc
+		if (!update_model(ppm_data)) {   // This line HANGS the compiler on sparc
 		    //rar_dbgmsg("unrar: ppm_decode_char: update_model failed\n");
 		    return -1;
 		}

@@ -257,7 +257,7 @@ static int cmp_exact(char *source, int index)
 
 static void netmd5_set_key(char *key, int index)
 {
-	if(dyna_salt_seen)
+	if (dyna_salt_seen)
 		pDynamicFmt->methods.set_key(key, index);
 	/* strncpy will pad with zeros, which is needed */
 	strncpy(saved_key[index], key, sizeof(saved_key[0]));

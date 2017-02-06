@@ -154,7 +154,7 @@ static int cmp_exact(char *source, int index)
         static char fullmd5[16];
         int i;
 
-        for(i=0;i<16;i++)
+        for (i=0;i<16;i++)
         {
                 fullmd5[i] = atoi16[ARCH_INDEX(source[i*2])]*16 + atoi16[ARCH_INDEX(source[i*2+1])];
         }
@@ -168,7 +168,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!binarycipher) binarycipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-        for(i=0;i<BINARY_SIZE;i++)
+        for (i=0;i<BINARY_SIZE;i++)
         {
                 binarycipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
         }

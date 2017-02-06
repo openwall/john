@@ -318,7 +318,7 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			SIMDSHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
 				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j/SIMD_COEF_32)*SHA_BUF_SIZ)*SIMD_COEF_32) + (j&(SIMD_COEF_32-1))];
-				for(k = 0; k < 5; k++)
+				for (k = 0; k < 5; k++)
 					outbuf[j].i[k] ^= p[(k*SIMD_COEF_32)];
 			}
 		}
@@ -350,7 +350,7 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			SIMDSHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
 				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j/SIMD_COEF_32)*SHA_BUF_SIZ)*SIMD_COEF_32) + (j&(SIMD_COEF_32-1))];
-				for(k = 5; k < 8; k++)
+				for (k = 5; k < 8; k++)
 					outbuf[j].i[k] ^= p[((k-5)*SIMD_COEF_32)];
 			}
 		}

@@ -68,7 +68,7 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
 {
 	uint i;
 	uint r = 0;
-	for(i = 0; i < sizeof(uint) * 8; i++)
+	for (i = 0; i < sizeof(uint) * 8; i++)
 		r |= (uint)((m >> ( (((x >> i) & 1) << 2) |
 		                    (((y >> i) & 1) << 1) |
 		                     ((z >> i) & 1) )) & 1) << i;

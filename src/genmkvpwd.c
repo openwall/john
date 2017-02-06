@@ -36,14 +36,14 @@ static void show_pwd_rnbs(struct s_pwd * pwd)
 		pwd->password[pwd->len-1] = charsorted[ pwd->password[pwd->len-2]*256 + k ];
 		pwd->level = lvl + proba2[ pwd->password[pwd->len-2]*256 + pwd->password[pwd->len-1] ];
 		i -= nbparts[ pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len ];
-		if(pwd->len<=gmax_len)
+		if (pwd->len<=gmax_len)
 		{
 			show_pwd_rnbs(pwd);
 		}
 		printf("%s\n", pwd->password);
 		gidx++;
 		k++;
-		if(gidx>gend)
+		if (gidx>gend)
 			return;
 	}
 	pwd->len--;
@@ -62,7 +62,7 @@ static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 	i = nbparts[pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len];
 	pwd->len++;
 	lvl = pwd->level;
-	if(bs)
+	if (bs)
 	{
 		while( (curchar=charsorted[ pwd->password[pwd->len-2]*256 + k ]) != pwd->password[pwd->len-1] )
 		{
@@ -70,7 +70,7 @@ static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 			k++;
 		}
 		pwd->level += proba2[ pwd->password[pwd->len-2]*256 + pwd->password[pwd->len-1] ];
-		if(pwd->password[pwd->len]!=0)
+		if (pwd->password[pwd->len]!=0)
 			show_pwd_r(pwd, 1);
 		i -= nbparts[ pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len ];
 		printf("%s\n", pwd->password);
@@ -83,14 +83,14 @@ static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 		pwd->password[pwd->len-1] = charsorted[ pwd->password[pwd->len-2]*256 + k ];
 		pwd->level = lvl + proba2[ pwd->password[pwd->len-2]*256 + pwd->password[pwd->len-1] ];
 		i -= nbparts[ pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len ];
-		if(pwd->len<=gmax_len)
+		if (pwd->len<=gmax_len)
 		{
 			show_pwd_r(pwd, 0);
 		}
 		printf("%s\n", pwd->password);
 		gidx++;
 		k++;
-		if(gidx>gend)
+		if (gidx>gend)
 			return;
 	}
 	pwd->len--;
@@ -110,9 +110,9 @@ static void show_pwd(unsigned long long start, unsigned long long end, unsigned 
 	gidx = start;
 	i=0;
 	bs = 0;
-	if(start>0)
+	if (start>0)
 		bs = 1;
-	if(bs)
+	if (bs)
 	{
 		print_pwd(start, &pwd, max_level, max_len);
 		while(charsorted[i] != pwd.password[0])
@@ -125,7 +125,7 @@ static void show_pwd(unsigned long long start, unsigned long long end, unsigned 
 	}
 	while(proba1[charsorted[i]]<=max_level)
 	{
-		if(gidx>gend)
+		if (gidx>gend)
 			return;
 		pwd.len = 1;
 		pwd.password[0] = charsorted[i];
@@ -147,27 +147,27 @@ static void stupidsort(unsigned char * result, unsigned int * source, unsigned i
 	unsigned char piv[256];
 	unsigned int i,m,l,p;
 
-	if(size<=1)
+	if (size<=1)
 		return;
 	i=0;
 	while( (source[result[i]]==1000) && (i<size))
 		i++;
-	if(i==size)
+	if (i==size)
 		return;
 	pivot = result[i];
-	if(size<=1)
+	if (size<=1)
 		return;
 	m=0;
 	l=0;
 	p=0;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
-		if(source[result[i]]==source[pivot])
+		if (source[result[i]]==source[pivot])
 		{
 			piv[p] = result[i];
 			p++;
 		}
-		else if(source[result[i]]<=source[pivot])
+		else if (source[result[i]]<=source[pivot])
 		{
 			less[l] = result[i];
 			l++;
@@ -198,7 +198,7 @@ int main(int argc, char * * argv)
 	start = 0;
 	end = 0;
 
-	if((argc<3) || (argc>6))
+	if ((argc<3) || (argc>6))
 	{
 		printf("Usage: %s statfile max_lvl [max_len] [start] [end]\n", argv[0]);
 		return -1;
@@ -206,28 +206,28 @@ int main(int argc, char * * argv)
 
 	max_lvl = atoi(argv[2]);
 
-	if(argc>3)
+	if (argc>3)
 		max_len = atoi(argv[3]);
-	if(argc>4)
+	if (argc>4)
 		start = atoll(argv[4]);
-	if(argc>5)
+	if (argc>5)
 		end = atoll(argv[5]);
 
 	init_probatables(argv[1]);
 
-	if(max_len==0)
+	if (max_len==0)
 	{
-		for(max_len=6;max_len<20;max_len++)
+		for (max_len=6;max_len<20;max_len++)
 		{
 			nbparts = mem_alloc(256*(max_lvl+1)*sizeof(long long)*(max_len+1));
 			printf("len=%u (%lu KB for nbparts) ", max_len, (unsigned long)(256UL*(max_lvl+1)*(max_len+1)*sizeof(long long)/1024));
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
-			if(nbparts[0] > 1000000000)
+			if (nbparts[0] > 1000000000)
 				printf(""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
-			else if(nbparts[0] > 10000000)
+			else if (nbparts[0] > 10000000)
 				printf(""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
-			else if(nbparts[0] > 10000)
+			else if (nbparts[0] > 10000)
 				printf(""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
 			else
 				printf(""LLu" possible passwords\n", nbparts[0] );
@@ -236,19 +236,19 @@ int main(int argc, char * * argv)
 		goto fin;
 	}
 
-	if(max_lvl==0)
+	if (max_lvl==0)
 	{
-		for(max_lvl=100;max_lvl<=MAX_MKV_LVL;max_lvl++)
+		for (max_lvl=100;max_lvl<=MAX_MKV_LVL;max_lvl++)
 		{
 			nbparts = mem_alloc(256*(max_lvl+1)*sizeof(long long)*(max_len+1));
 			printf("lvl=%u (%lu KB for nbparts) ", max_lvl, (unsigned long)(256UL*(max_lvl+1)*(max_len+1)*sizeof(long long)/1024));
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
-			if(nbparts[0] > 1000000000)
+			if (nbparts[0] > 1000000000)
 				printf(""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
-			else if(nbparts[0] > 10000000)
+			else if (nbparts[0] > 10000000)
 				printf(""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
-			else if(nbparts[0] > 10000)
+			else if (nbparts[0] > 10000)
 				printf(""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
 			else
 				printf(""LLu" possible passwords\n", nbparts[0] );
@@ -256,7 +256,7 @@ int main(int argc, char * * argv)
 		}
 		goto fin;
 	}
-	if(max_lvl>MAX_MKV_LVL) {
+	if (max_lvl>MAX_MKV_LVL) {
 		fprintf(stderr, "Warning: Level = %d is too large (max = %d)\n", max_lvl, MAX_MKV_LVL);
 		max_lvl = MAX_MKV_LVL;
 	}
@@ -266,16 +266,16 @@ int main(int argc, char * * argv)
 	memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 
 	nb_parts(0, 0, 0, max_lvl, max_len);
-	if(nbparts[0] > 1000000000)
+	if (nbparts[0] > 1000000000)
 		fprintf(stderr, ""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
-	else if(nbparts[0] > 10000000)
+	else if (nbparts[0] > 10000000)
 		fprintf(stderr, ""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
-	else if(nbparts[0] > 10000)
+	else if (nbparts[0] > 10000)
 		fprintf(stderr, ""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
 	else
 		fprintf(stderr, ""LLu" possible passwords\n", nbparts[0] );
 
-	if(end==0)
+	if (end==0)
 		end = nbparts[0];
 
 	pwd.level = 0;

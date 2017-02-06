@@ -84,7 +84,7 @@ void KeccakF1600_StateXORBytesInLane(void *state, unsigned int lanePosition, con
 #else
     UINT64 lane = 0;
     unsigned int i;
-    for(i=0; i<length; i++)
+    for (i=0; i<length; i++)
         lane |= ((UINT64)data[i]) << ((i+offset)*8);
 #endif
     ((UINT64*)state)[lanePosition] ^= lane;
@@ -96,7 +96,7 @@ void KeccakF1600_StateXORLanes(void *state, const unsigned char *data, unsigned 
 {
 #if (PLATFORM_BYTE_ORDER == IS_LITTLE_ENDIAN)
     unsigned int i = 0;
-    for( ; (i+8)<=laneCount; i+=8) {
+    for ( ; (i+8)<=laneCount; i+=8) {
         ((UINT64*)state)[i+0] ^= ((UINT64*)data)[i+0];
         ((UINT64*)state)[i+1] ^= ((UINT64*)data)[i+1];
         ((UINT64*)state)[i+2] ^= ((UINT64*)data)[i+2];
@@ -106,13 +106,13 @@ void KeccakF1600_StateXORLanes(void *state, const unsigned char *data, unsigned 
         ((UINT64*)state)[i+6] ^= ((UINT64*)data)[i+6];
         ((UINT64*)state)[i+7] ^= ((UINT64*)data)[i+7];
     }
-    for( ; (i+4)<=laneCount; i+=4) {
+    for ( ; (i+4)<=laneCount; i+=4) {
         ((UINT64*)state)[i+0] ^= ((UINT64*)data)[i+0];
         ((UINT64*)state)[i+1] ^= ((UINT64*)data)[i+1];
         ((UINT64*)state)[i+2] ^= ((UINT64*)data)[i+2];
         ((UINT64*)state)[i+3] ^= ((UINT64*)data)[i+3];
     }
-    for( ; (i+2)<=laneCount; i+=2) {
+    for ( ; (i+2)<=laneCount; i+=2) {
         ((UINT64*)state)[i+0] ^= ((UINT64*)data)[i+0];
         ((UINT64*)state)[i+1] ^= ((UINT64*)data)[i+1];
     }
@@ -121,7 +121,7 @@ void KeccakF1600_StateXORLanes(void *state, const unsigned char *data, unsigned 
 #else
     unsigned int i;
     UINT8 *curData = (UINT8*)data;
-    for(i=0; i<laneCount; i++, curData+=8) {
+    for (i=0; i<laneCount; i++, curData+=8) {
         UINT64 lane = (UINT64)curData[0]
             | ((UINT64)curData[1] << 8)
             | ((UINT64)curData[2] << 16)
@@ -169,7 +169,7 @@ void KeccakF1600_StateExtractBytesInLane(const void *state, unsigned int lanePos
     {
         unsigned int i;
         lane >>= offset*8;
-        for(i=0; i<length; i++) {
+        for (i=0; i<length; i++) {
             data[i] = lane & 0xFF;
             lane >>= 8;
         }
@@ -184,7 +184,7 @@ void fromWordToBytes(UINT8 *bytes, const UINT64 word)
 {
     unsigned int i;
 
-    for(i=0; i<(64/8); i++)
+    for (i=0; i<(64/8); i++)
         bytes[i] = (word >> (8*i)) & 0xFF;
 }
 #endif
@@ -196,7 +196,7 @@ void KeccakF1600_StateExtractLanes(const void *state, unsigned char *data, unsig
 #else
     unsigned int i;
 
-    for(i=0; i<laneCount; i++)
+    for (i=0; i<laneCount; i++)
         fromWordToBytes(data+(i*8), ((const UINT64*)state)[i]);
 #endif
 #ifdef UseLaneComplementing

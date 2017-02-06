@@ -660,7 +660,7 @@ int zip2john(int argc, char **argv)
 		}
 	}
 	argc -= optind;
-	if(argc == 0)
+	if (argc == 0)
 		return usage(argv[0]);
 	argv += optind;
 

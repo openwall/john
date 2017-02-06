@@ -109,10 +109,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
 		return 0;
-	for(i = 0; i < strlen(ciphertext); i++)
-		if(ciphertext[i] == '*')
+	for (i = 0; i < strlen(ciphertext); i++)
+		if (ciphertext[i] == '*')
 			res++;
-	if(res != 14)
+	if (res != 14)
 		goto err;
 	res = 0;
 	p += FORMAT_TAG_LEN;
@@ -228,7 +228,7 @@ static void *get_salt(char *ciphertext)
 	strncpy(login.qop,         lines[11], sizeof(login.qop)        - 1 );
 	strncpy(login.algorithm,   lines[12], sizeof(login.algorithm)  - 1 );
 	strncpy(login.hash,        lines[13], sizeof(login.hash)       - 1 );
-	if(strncmp(login.algorithm, "MD5", strlen(login.algorithm))) {
+	if (strncmp(login.algorithm, "MD5", strlen(login.algorithm))) {
 		printf("\n* Cannot crack '%s' hash, only MD5 supported so far...\n", login.algorithm);
 		error();
 	}
@@ -254,7 +254,7 @@ static void *get_salt(char *ciphertext)
 
 	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
 	/* no qop */
-	if(!strlen(login.qop))
+	if (!strlen(login.qop))
 		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
 	/* qop/conce/cnonce_count */
 	else

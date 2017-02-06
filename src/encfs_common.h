@@ -37,7 +37,7 @@ int encfs_common_streamDecode(encfs_common_custom_salt *cur_salt, unsigned char 
 #define unshuffleBytes(buf, size) do \
 {                                    \
 	int i;                           \
-	for(i=size-1; i; --i)            \
+	for (i=size-1; i; --i)            \
 		buf[i] ^= buf[i-1];          \
 } while(0)
 

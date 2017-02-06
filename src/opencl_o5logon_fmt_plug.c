@@ -71,8 +71,8 @@ static int *cracked, any_cracked;
 
 static struct custom_salt {
 	// Change the below to round up to the nearest uint boundary
-	char unsigned salt[((SALT_LENGTH + 3)/4)*4]; /* AUTH_VFR_DATA */
-	char unsigned ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
+	unsigned char salt[((SALT_LENGTH + 3)/4)*4]; /* AUTH_VFR_DATA */
+	unsigned char ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
 } cur_salt;
 
 // AESNI Modification: function pointer to OpenSSL or AES-NI function
@@ -230,11 +230,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL) /* ciphertext */
 		goto err;
-	if(hexlenu(p, &extra) != CIPHERTEXT_LENGTH * 2 || extra)
+	if (hexlenu(p, &extra) != CIPHERTEXT_LENGTH * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenu(p, &extra) != SALT_LENGTH * 2 || extra)
+	if (hexlenu(p, &extra) != SALT_LENGTH * 2 || extra)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

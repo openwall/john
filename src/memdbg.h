@@ -190,8 +190,8 @@ extern void *MEMDBG_libc_calloc(size_t count, size_t size);
 
 #define MEMDBG_HANDLE int
 #define MEMDBG_getSnapshot(a) 0
-#define MEMDBG_checkSnapshot(a) if(a) printf(" \b")
-#define MEMDBG_checkSnapshot_possible_exit_on_error(a, b) if(a) printf(" \b")
+#define MEMDBG_checkSnapshot(a) if (a) printf(" \b")
+#define MEMDBG_checkSnapshot_possible_exit_on_error(a, b) if (a) printf(" \b")
 
 #endif /* MEMDBG_ON */
 

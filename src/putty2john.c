@@ -370,7 +370,7 @@ static void LAME_ssh2_load_userkey(char *path, const char **errorstr)
 		print_hex(public_blob, public_blob_len);
 		printf("*%d*", private_blob_len);
 		print_hex(private_blob, private_blob_len);
-		if(!old_fmt) {
+		if (!old_fmt) {
 			printf("*%s*%s*%s\n", alg, encryption, comment);
 		}
 		else {

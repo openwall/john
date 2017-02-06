@@ -153,7 +153,7 @@ static void *get_binary(char *ciphertext)
 
 	ciphertext += len - 2 * BINARY_SIZE;
 
-	for(i = 0; i < BINARY_SIZE; i++)
+	for (i = 0; i < BINARY_SIZE; i++)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
@@ -244,7 +244,7 @@ static char *get_key(int index)
 	static char out[PLAINTEXT_LENGTH + 1];
 
 	s = (((unsigned int*)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE - 1;
-	for(i = 0; i < s; i++)
+	for (i = 0; i < s; i++)
 		out[i] = ((char*)saved_key)[GETPOS(SALT_SIZE + i, index)];
 	out[i] = 0;
 	return out;
@@ -285,10 +285,10 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	unsigned int x, y=0;
 
-	for(; y < kpc/SIMD_COEF_32; y++)
-		for(x = 0; x < SIMD_COEF_32; x++)
+	for (; y < kpc/SIMD_COEF_32; y++)
+		for (x = 0; x < SIMD_COEF_32; x++)
 		{
-			if(((uint32_t*)binary)[0] ==
+			if (((uint32_t*)binary)[0] ==
 			   ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5])
 				return 1;
 		}
@@ -312,15 +312,15 @@ static int cmp_one(void *binary, int index)
 	x = index & (SIMD_COEF_32-1);
 	y = (unsigned int)index / SIMD_COEF_32;
 
-	if(((uint32_t*)binary)[0] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5])
+	if (((uint32_t*)binary)[0] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5])
 		return 0;
-	if(((uint32_t*)binary)[1] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*1])
+	if (((uint32_t*)binary)[1] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*1])
 		return 0;
-	if(((uint32_t*)binary)[2] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*2])
+	if (((uint32_t*)binary)[2] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*2])
 		return 0;
-	if(((uint32_t*)binary)[3] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*3])
+	if (((uint32_t*)binary)[3] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*3])
 		return 0;
-	if(((uint32_t*)binary)[4] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*4])
+	if (((uint32_t*)binary)[4] != ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32*5+SIMD_COEF_32*4])
 		return 0;
 	return 1;
 #else

@@ -250,7 +250,7 @@ int jtr_device_list_rw(struct task_list *task_list)
 		// Physical device I/O error.
 		device_stop(device, task_list, NULL);
 
-	} // for(device_list)
+	} // for (device_list)
 	
 	return !device_count ? -1 : data_transfer;
 }
@@ -292,7 +292,7 @@ fprintf(stderr, "Deassigned: %d\n",num_deassigned);
 void jtr_device_list_process_inpkt(struct task_list *task_list)
 {
 	struct jtr_device *dev;
-	for(dev = jtr_device_list->device; dev; dev = dev->next) {
+	for (dev = jtr_device_list->device; dev; dev = dev->next) {
 		//int do_break = 0;
 	
 		// Fetch input packets from pkt_comm_queue

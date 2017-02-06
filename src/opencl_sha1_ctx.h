@@ -249,7 +249,7 @@ void SHA1_Update( SHA_CTX *ctx, const uchar *input, uint ilen ) {
 	uint fill;
 	uint left;
 
-	if( ilen <= 0 )
+	if ( ilen <= 0 )
 		return;
 
 	left = ctx->total & 0x3F;
@@ -257,7 +257,7 @@ void SHA1_Update( SHA_CTX *ctx, const uchar *input, uint ilen ) {
 
 	ctx->total += ilen;
 
-	if( left && ilen >= fill )
+	if ( left && ilen >= fill )
 	{
 		_memcpy(ctx->buffer + left, input, fill );
 		_sha1_process( ctx, ctx->buffer );
@@ -273,7 +273,7 @@ void SHA1_Update( SHA_CTX *ctx, const uchar *input, uint ilen ) {
 		ilen  -= 64;
 	}
 
-	if( ilen > 0 )
+	if ( ilen > 0 )
 	{
 		_memcpy(ctx->buffer + left, input, ilen );
 	}

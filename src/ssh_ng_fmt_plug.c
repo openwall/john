@@ -240,7 +240,7 @@ static void generate_key_bytes(int nbytes, unsigned char *password, unsigned cha
 		else
 			size = nbytes;
 		/* copy part of digest to keydata */
-		for(i = 0; i < size; i++)
+		for (i = 0; i < size; i++)
 			key[keyidx++] = digest[i];
 		nbytes -= size;
 	}
@@ -297,13 +297,13 @@ static inline int check_padding_only(unsigned char *out, int length)
 
 	// check padding
 	pad = out[length - 1];
-	if(pad > 16 || length < 16)
+	if (pad > 16 || length < 16)
 		return -1;
 	if (pad < 4) { // XXX is this possible? if yes, will killing this result in too many false positives?
 		return -1;
 	}
-	for(i = length - 1; i > pad; i--) // check for 0102030405060708090a like sequence
-		if(out[i] - 1 != out[i - 1])
+	for (i = length - 1; i > pad; i--) // check for 0102030405060708090a like sequence
+		if (out[i] - 1 != out[i - 1])
 			return -1;
 
 	return 0; // valid padding!

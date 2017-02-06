@@ -369,10 +369,10 @@ void dump_text(void *in, int len)
 void dump_stuff_noeol(void *x, unsigned int size)
 {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)x)[i]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 		printf(" ");
 	}
 }
@@ -392,10 +392,10 @@ void dump_stuff_msg_sepline(const void *msg, void *x, unsigned int size) {
 
 void dump_stuff_be_noeol(void *x, unsigned int size) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)x)[i^3]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 		printf(" ");
 	}
 }
@@ -470,10 +470,10 @@ void alter_endianity(void *_x, unsigned int size) {
 
 void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 }
@@ -491,10 +491,10 @@ void dump_stuff_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, u
 }
 void dump_out_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETOUTPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 }
@@ -516,10 +516,10 @@ void dump_out_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, uns
 // multiple para blocks
 void dump_stuff_mpara_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETPOSMPARA(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 }
@@ -530,7 +530,7 @@ void dump_stuff_mpara_mmx(void *buf, unsigned int size, unsigned int index) {
 // obuf has to be at lease size long.  This function will unwind the SSE-para buffers into a flat.
 void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 		*oBuf++ = ((unsigned char*)buf)[GETPOSMPARA(i, index)];
 }
 void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
@@ -545,10 +545,10 @@ void dump_stuff_mpara_mmx_msg_sepline(const void *msg, void *buf, unsigned int s
 
 void dump_stuff_shammx(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHAGETPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -559,10 +559,10 @@ void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size, unsign
 }
 void dump_out_shammx(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHAGETOUTPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -574,10 +574,10 @@ void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned
 
 void dump_stuff_shammx64(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -588,10 +588,10 @@ void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsi
 }
 void dump_stuff_mmx64(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -603,10 +603,10 @@ void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigne
 
 void dump_out_shammx64(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETOUTPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");

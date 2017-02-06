@@ -541,7 +541,7 @@ int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 
 	/* Password is converted to UTF-16LE */
 	trunclen = enc_to_utf16(wpwd, PLAINTEXT_BUFFER_SIZE, passwd, len);
-	if(trunclen < 0)
+	if (trunclen < 0)
 		len = strlen16(wpwd); /* From UTF-8 you can't know */
 	else
 		len = trunclen;

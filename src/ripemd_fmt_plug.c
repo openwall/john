@@ -132,7 +132,7 @@ static int valid(char *ciphertext, struct fmt_main *self, int len)
 		return 0;
 
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 
 	return 1;

@@ -266,7 +266,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (headerver == 2) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 20)
@@ -277,7 +277,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (atoi(p) > 32)
@@ -288,7 +288,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 128)
@@ -301,7 +301,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* data_size */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk */
@@ -312,7 +312,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* scp */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		/* FIXME: which values are allowed here? */
@@ -326,7 +326,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	else if (headerver == 1) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 20)
@@ -337,7 +337,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 296)
@@ -348,7 +348,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 300)
@@ -512,7 +512,7 @@ static void hash_plugin_check_hash(int index)
 #endif
 		j = 0;
 #ifdef SIMD_COEF_32
-		for(j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		derived_key = Derived_key[j];
 #endif
 		if (apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, cur_salt->len_wrapped_aes_key, derived_key) &&
@@ -557,7 +557,7 @@ static void hash_plugin_check_hash(int index)
 #endif
 		j = 0;
 #ifdef SIMD_COEF_32
-		for(j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		derived_key = Derived_key[j];
 #endif
 

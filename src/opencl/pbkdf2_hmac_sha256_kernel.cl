@@ -341,7 +341,7 @@ __kernel void pbkdf2_sha256_kernel(__global const pass_t * inbuffer,
 
 	hmac_sha256(tmp_out, ipad_state, opad_state, salt, saltlen);
 
-	for(i = 0; i < 8; i++) {
+	for (i = 0; i < 8; i++) {
 		state[idx].ipad[i] = ipad_state[i];
 		state[idx].opad[i] = opad_state[i];
 		state[idx].hash[i] = tmp_out[i];

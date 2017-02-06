@@ -41,7 +41,7 @@ inline void xsha512(__global const char *password, uint8_t pass_len,
 	}
 
 	uint32_t *buffer32 = b32+(length>>2);
-	for(uint32_t i = length; i < 128; i+=4) {// append 0 to 128
+	for (uint32_t i = length; i < 128; i+=4) {// append 0 to 128
 		*buffer32++=0;
 	}
 
@@ -121,7 +121,7 @@ __kernel void kernel_cmp(
 {
 	uint32_t idx = get_global_id(0);
 
-	if(idx == 0)
+	if (idx == 0)
 		*result = 0;
 
 	barrier(CLK_GLOBAL_MEM_FENCE);

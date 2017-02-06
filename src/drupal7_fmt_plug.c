@@ -158,7 +158,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
-	for(index = 0; index < count; index++)
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_key[index], ARCH_SIZE))
 			return 1;
 	return 0;

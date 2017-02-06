@@ -427,7 +427,7 @@ static void parse_payload(const conn_t * connection,
 			break;
 		}
 
-	}			/* for(i=0; i < MAX_SIP_CON; i++) */
+	}			/* for (i=0; i < MAX_SIP_CON; i++) */
 
 
 	/* Unrecorded connection */
@@ -515,7 +515,7 @@ static void parse_payload(const conn_t * connection,
 		}
 
 	}
-	/* if(!recorded) */
+	/* if (!recorded) */
 	return;
 }
 

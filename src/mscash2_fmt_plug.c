@@ -424,9 +424,9 @@ static void pbkdf2_sse2(int t)
 	i2 = (unsigned int*)t_sse_crypt2;
 	o1 = (unsigned int*)t_sse_hash1;
 
-	for(k = 0; k < MS_NUM_KEYS; ++k)
+	for (k = 0; k < MS_NUM_KEYS; ++k)
 	{
-		for(i = 0;i < 4;i++) {
+		for (i = 0;i < 4;i++) {
 			ipad[i] = t_crypt[k*4+i]^0x36363636;
 			opad[i] = t_crypt[k*4+i]^0x5C5C5C5C;
 		}
@@ -468,14 +468,14 @@ static void pbkdf2_sse2(int t)
 		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]                   = ctx2.h4;
 	}
 
-	for(i = 1; i < iteration_cnt; i++)
+	for (i = 1; i < iteration_cnt; i++)
 	{
 		SIMDSHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		SIMDSHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 		// only xor first 16 bytes, since that is ALL this format uses
 		for (k = 0; k < MS_NUM_KEYS; k++) {
 			unsigned *p = &((unsigned int*)t_sse_hash1)[k/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32 + (k&(SIMD_COEF_32-1))];
-			for(j = 0; j < 4; j++)
+			for (j = 0; j < 4; j++)
 				t_crypt[k*4+j] ^= p[(j*SIMD_COEF_32)];
 		}
 	}
@@ -495,7 +495,7 @@ static void pbkdf2(unsigned int _key[]) // key is also 'final' digest.
 	unsigned i, j;
 	unsigned char *key = (unsigned char*)_key;
 
-	for(i = 0; i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 		ipad[i] = key[i]^0x36;
 		opad[i] = key[i]^0x5C;
 	}
@@ -524,7 +524,7 @@ static void pbkdf2(unsigned int _key[]) // key is also 'final' digest.
 	// only copy first 16 bytes, since that is ALL this format uses
 	memcpy(_key, tmp_hash, 16);
 
-	for(i = 1; i < iteration_cnt; i++)
+	for (i = 1; i < iteration_cnt; i++)
 	{
 		// we only need to copy the accumulator data from the CTX, since
 		// the original encryption was a full block of 64 bytes.
@@ -537,7 +537,7 @@ static void pbkdf2(unsigned int _key[]) // key is also 'final' digest.
 		SHA1_Final((unsigned char*)tmp_hash, &ctx2);
 
 		// only xor first 16 bytes, since that is ALL this format uses
-		for(j = 0; j < 4; j++)
+		for (j = 0; j < 4; j++)
 			_key[j] ^= tmp_hash[j];
 	}
 }

@@ -171,7 +171,7 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 		cnt = 1;
 #endif
 		if (dirty)
-		for(i = 0; i < cnt; ++i) {
+		for (i = 0; i < cnt; ++i) {
 			len = enc_to_utf16(Buf, PLAINTEXT_LENGTH, (UTF8*)saved_key[index+i], strlen(saved_key[index+i]));
 			if (len < 0) len = 0;
 			MD4_Init(&ctx);

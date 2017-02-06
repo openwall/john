@@ -125,8 +125,8 @@ static struct fmt_tests vnc_tests[] = {
 };
 
 static struct custom_salt {
-	char unsigned challenge[16];
-	char unsigned response[16];
+	unsigned char challenge[16];
+	unsigned char response[16];
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -252,7 +252,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		DES_set_key_unchecked(&des_key[index], &schedule);
 		/* do encryption (switched to ECB crypting) */
 		DES_ecb_encrypt((const_DES_cblock *)cur_salt->challenge, (DES_cblock*)&encrypted_challenge[0], &schedule, DES_ENCRYPT);
-		if(memcmp(encrypted_challenge, cur_salt->response, 8) == 0) {
+		if (memcmp(encrypted_challenge, cur_salt->response, 8) == 0) {
 			DES_ecb_encrypt((const_DES_cblock *)&cur_salt->challenge[8], (DES_cblock*)&encrypted_challenge[8], &schedule, DES_ENCRYPT);
 			memcpy((unsigned char*)crypt_out[index], encrypted_challenge, 16);
 		} else {

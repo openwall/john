@@ -168,7 +168,7 @@ static int decrypt_compare() {
 /* Possible optimization: we might not have to decrypt the entire thing */
     des3_decrypt(krb5key, psalt->tgt_ebin, plain, TGT_SIZE);
 
-    for(i=0;i<TGT_SIZE;++i)
+    for (i=0;i<TGT_SIZE;++i)
         if (plain[i] == 'k')
             if (strncmp(plain + i, KRBTGT, strlen(KRBTGT)) == 0) {
 /* NUL padding is intentional */

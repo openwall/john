@@ -240,7 +240,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		/* decrypt sector keys */
 		AES_set_decrypt_key(mask_key[i], 256, &akey);
-		for(j = 0; j < (OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS) / 16;  j++) {
+		for (j = 0; j < (OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS) / 16;  j++) {
 			AES_decrypt(&cur_salt->masked_keys[16*j], &unmasked_keys[16*j], &akey);
 		}
 

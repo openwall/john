@@ -120,15 +120,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenl(p, &extra) != SALTLEN * 2 || extra)
+	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if(hexlenl(p, &extra) != IVLEN * 2 || extra)
+	if (hexlenl(p, &extra) != IVLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
-	if(hexlenl(p, &extra) != CTLEN * 2 || extra)
+	if (hexlenl(p, &extra) != CTLEN * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -218,7 +218,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master[0], 24, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(kcdecrypt(master[i], salt_struct->iv, salt_struct->ct) == 0)
+			if (kcdecrypt(master[i], salt_struct->iv, salt_struct->ct) == 0)
 				cracked[index+i] = 1;
 			else
 				cracked[index+i] = 0;

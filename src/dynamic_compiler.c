@@ -1534,10 +1534,10 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 #undef ELSEIF
 #define IF(C,L,F) if (!strncasecmp(pExpr, #C, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
 #define ELSEIF(C,L,F) else if (!strncasecmp(pExpr, #C, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
 
 	// now compute just what hash function was used.
 	IF(MD5,3,0) ELSEIF(MD4,3,0) ELSEIF(SHA1,4,20)
@@ -1820,11 +1820,11 @@ static int parse_expression(DC_struct *p) {
 							else if (!strncmp(pCode[x], "IN1", 3)) {
 								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); if (use_inp1) { len_comp<<=1; ex_cnt<<=1; inp_cnt<<=1; salt_cnt<<=1; } else { len_comp2+=len_comp; ex_cnt2+=ex_cnt; inp_cnt2+=inp_cnt; salt_cnt2+=salt_cnt; } }
 							else if (!strcmp(pCode[x], "pad16")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); if(use_inp1) len_comp += 16; else len_comp2 += 16; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); if (use_inp1) len_comp += 16; else len_comp2 += 16; }
 							else if (!strcmp(pCode[x], "pad20")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); if(use_inp1) len_comp += 20; else len_comp2 += 20; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); if (use_inp1) len_comp += 20; else len_comp2 += 20; }
 							else if (!strcmp(pCode[x], "pad100")) {
-								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); if(use_inp1) len_comp += 100; else len_comp2 += 100; }
+								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); if (use_inp1) len_comp += 100; else len_comp2 += 100; }
 
 							*pCode[x] = 'X';
 						}
@@ -1921,10 +1921,10 @@ static int parse_expression(DC_struct *p) {
 #undef ELSEIF
 #define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 #define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 
 							IF(SHA512,f512,4,64)
 							ELSEIF(MD5,f5,2,0)

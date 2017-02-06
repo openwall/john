@@ -59,7 +59,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
-	char unsigned scramble[20];
+	unsigned char scramble[20];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -89,7 +89,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	p = ciphertext + FORMAT_TAG_LEN;
 	q = strstr(ciphertext, "*");
-	if(!q)
+	if (!q)
 		return 0;
 	if (q - p != HEX_LENGTH)
 		return 0;
@@ -97,7 +97,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p++;
 	if (q - p != 0)
 		return 0;
-	if(strlen(p) < HEX_LENGTH)
+	if (strlen(p) < HEX_LENGTH)
 		return 0;
 	q = p + 1;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -190,7 +190,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Update(&ctx, cur_salt->scramble, 20);
 		SHA1_Update(&ctx, inner_hash, 20);
 		SHA1_Final(token, &ctx);
-		for(i = 0; i < 20; i++) {
+		for (i = 0; i < 20; i++) {
 			p[i] = token[i] ^ stage1_hash[i];
 		}
 	}

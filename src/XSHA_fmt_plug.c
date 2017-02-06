@@ -341,7 +341,7 @@ static char *get_key(int index)
 
 	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 
-	for(i = 0; i < (s - SALT_SIZE); i++)
+	for (i = 0; i < (s - SALT_SIZE); i++)
 		out[i] = ((char*)saved_key)[ GETPOS((i + SALT_SIZE), index) ];
 	out[i] = 0;
 
@@ -394,13 +394,13 @@ static int cmp_all(void *binary, int count)
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
-	for(;y<SIMD_PARA_SHA1*omp_t;y++)
+	for (;y<SIMD_PARA_SHA1*omp_t;y++)
 #else
-	for(;y<SIMD_PARA_SHA1;y++)
+	for (;y<SIMD_PARA_SHA1;y++)
 #endif
-	for(x=0;x<SIMD_COEF_32;x++)
+	for (x=0;x<SIMD_COEF_32;x++)
 	{
-		if( ((uint32_t *)binary)[0] == ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5] )
+		if ( ((uint32_t *)binary)[0] == ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5] )
 			return 1;
 	}
 	return 0;
@@ -425,15 +425,15 @@ static int cmp_one(void *binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 
-	if( ((uint32_t *)binary)[0] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5] )
+	if ( ((uint32_t *)binary)[0] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5] )
 		return 0;
-	if( ((uint32_t *)binary)[1] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
+	if ( ((uint32_t *)binary)[1] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t *)binary)[2] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32] )
+	if ( ((uint32_t *)binary)[2] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t *)binary)[3] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32] )
+	if ( ((uint32_t *)binary)[3] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t *)binary)[4] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32] )
+	if ( ((uint32_t *)binary)[4] != ((uint32_t *)crypt_key)[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32] )
 		return 0;
 	return 1;
 #else

@@ -65,13 +65,13 @@ static void base64_unmap_i(char *in_block) {
 	int i;
 	char *c;
 
-	for(i=0; i<4; i++) {
+	for (i=0; i<4; i++) {
 		c = in_block + i;
-		if(*c == '.') { *c = 0; continue; }
-		if(*c == '/') { *c = 1; continue; }
-		if(*c>='0' && *c<='9') { *c -= '0'; *c += 2; continue; }
-		if(*c>='A' && *c<='Z') { *c -= 'A'; *c += 12; continue; }
-		if(*c>='a' && *c<='z') { *c -= 'a'; *c += 38; continue; }
+		if (*c == '.') { *c = 0; continue; }
+		if (*c == '/') { *c = 1; continue; }
+		if (*c>='0' && *c<='9') { *c -= '0'; *c += 2; continue; }
+		if (*c>='A' && *c<='Z') { *c -= 'A'; *c += 12; continue; }
+		if (*c>='a' && *c<='z') { *c -= 'a'; *c += 38; continue; }
 		*c = 0;
 	}
 }
@@ -79,7 +79,7 @@ static void base64_decode_i(const char *in, size_t inlen, unsigned char *out) {
 	size_t i, done=0;
 	unsigned char temp[4];
 
-	for(i=0; i<inlen; i+=4) {
+	for (i=0; i<inlen; i+=4) {
 		memcpy(temp, in, 4);
 		base64_unmap_i((char*)temp);
 		out[0] = ((temp[0]<<2) & 0xfc) | ((temp[1]>>4) & 3);
@@ -101,7 +101,7 @@ static void base64_decode_iBS(const char *in, size_t inlen, unsigned char *out) 
 	size_t i, done=0;
 	unsigned char temp[4];
 
-	for(i=0; i<inlen; i+=4) {
+	for (i=0; i<inlen; i+=4) {
 		memcpy(temp, in, 4);
 		base64_unmap_i((char*)temp);
 		out[0] = ((temp[0]   ) & 0x3f) | ((temp[1]<<6) & 0xc0);
@@ -274,7 +274,7 @@ static size_t actual_base64_to_base64_conv(const char *cpi, char *cpo, size_t to
 		error_msg("ERROR, %s, output buffer not large enough\n", func_name);
 	while (len_left > 0) {
 		char tmp[4];
-		if(len_left<4) {
+		if (len_left<4) {
 			--use_bytes;
 			if (len_left < 3)
 				--use_bytes;
@@ -351,8 +351,8 @@ static size_t actual_base64_to_hex_conv(const char *cpi, size_t len_left, char *
 		--to_len;
 	while (len_left > 0) {
 		char tmp[4];
-		if(len_left<4) {
-			if(len_left<=2)this_len=1;else this_len=2;
+		if (len_left<4) {
+			if (len_left<=2)this_len=1;else this_len=2;
 			memset(tmp, 0, 4);
 			memcpy(tmp, cpi, len_left);
 			cpi = tmp;
@@ -386,8 +386,8 @@ static size_t actual_base64_to_raw_conv(const char *cpi, size_t len_left, char *
 	while (len_left > 0) {
 		char tmp[4];
 		unsigned char Tmp[3];
-		if(len_left<4) {
-			if(len_left<=2)this_len=1;else this_len=2;
+		if (len_left<4) {
+			if (len_left<=2)this_len=1;else this_len=2;
 			memset(tmp, 0, 4);
 			memcpy(tmp, cpi, len_left);
 			cpi = tmp;
@@ -418,7 +418,7 @@ static size_t actual_raw_to_base64_conv(const char *cpi, size_t len_left, char *
 	if ((flags&flg_Base64_DONOT_NULL_TERMINATE) == 0)
 		--to_len;
 	while (len_left > 0) {
-		if(len_left<3) {
+		if (len_left<3) {
 			memset(Tmp, 0, 3);
 			memcpy(Tmp, cpi, len_left);
 			cpi = Tmp;

@@ -141,7 +141,7 @@ static int valid_256(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 	return 1;
 }
@@ -195,7 +195,7 @@ static int valid_512(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 	return 1;
 }

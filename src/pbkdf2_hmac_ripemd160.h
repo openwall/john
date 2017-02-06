@@ -46,7 +46,7 @@ static void _pbkdf2_ripemd160_load_hmac(const unsigned char *K, int KL, sph_ripe
 		KL = RIPEMD160_DIGEST_LENGTH;
 		K = k0;
 	}
-	for(i = 0; i < KL; i++) {
+	for (i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
 	}
@@ -77,7 +77,7 @@ static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, uint32_t *o
 
 	memcpy(out, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 
-	for(i = 1; i < R; i++) {
+	for (i = 1; i < R; i++) {
 		memcpy(&ctx, pIpad, sizeof(sph_ripemd160_context));
 		sph_ripemd160(&ctx, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 		sph_ripemd160_close(&ctx, tmp_hash);
@@ -85,7 +85,7 @@ static void _pbkdf2_ripemd160(const unsigned char *S, int SL, int R, uint32_t *o
 		memcpy(&ctx, pOpad, sizeof(sph_ripemd160_context));
 		sph_ripemd160(&ctx, tmp_hash, RIPEMD160_DIGEST_LENGTH);
 		sph_ripemd160_close(&ctx, tmp_hash);
-		for(j = 0; j < RIPEMD160_DIGEST_LENGTH/sizeof(uint32_t); j++) {
+		for (j = 0; j < RIPEMD160_DIGEST_LENGTH/sizeof(uint32_t); j++) {
 			out[j] ^= ((uint32_t*)tmp_hash)[j];
 		}
 	}

@@ -337,7 +337,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	// Fix up the size per the spec
 	if (20 < hashSize) { // FIXME: Is this ever true?
 		for (i = 0; i < SHA1_LOOP_CNT; ++i) {
-			for(j = 20; j < hashSize; j++) {
+			for (j = 20; j < hashSize; j++) {
 				hashBuf[i][j] = 0x36;
 				hashBuf[i][32 + j] = 0x36;
 			}
@@ -394,7 +394,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 
 	// Fix up the size per the spec
 	if (20 < hashSize) { // FIXME: Is this ever true?
-		for(i = 20; i < hashSize; i++) {
+		for (i = 20; i < hashSize; i++) {
 			hashBuf[0][i] = 0x36;
 			hashBuf[0][32 + i] = 0x36;
 		}
@@ -572,7 +572,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index+=inc)
 	{
 		int i;
-		if(cur_salt->version == 2007) {
+		if (cur_salt->version == 2007) {
 			unsigned char encryptionKey[SHA1_LOOP_CNT][20];
 			GeneratePasswordHashUsingSHA1(index, encryptionKey);
 			for (i = 0; i < SHA1_LOOP_CNT; ++i)

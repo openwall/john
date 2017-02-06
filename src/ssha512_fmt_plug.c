@@ -246,7 +246,7 @@ static char *get_key(int index) {
 	unsigned char *wucp = (unsigned char*)saved_key;
 
 	s = saved_len[index];
-	for(i=0;i<(unsigned)s;i++)
+	for (i=0;i<(unsigned)s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
 	return (char*) out;

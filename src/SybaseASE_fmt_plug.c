@@ -166,9 +166,9 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
     int extra;
-    if(strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0)
+    if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0)
         return 0;
-    if(hexlen(&ciphertext[FORMAT_TAG_LEN], &extra) != CIPHERTEXT_LENGTH - FORMAT_TAG_LEN || extra)
+    if (hexlen(&ciphertext[FORMAT_TAG_LEN], &extra) != CIPHERTEXT_LENGTH - FORMAT_TAG_LEN || extra)
         return 0;
     return 1;
 }
@@ -251,7 +251,7 @@ static void set_salt(void *salt)
 {
 	int index;
 
-	for(index = 0; index < kpc; index++)
+	for (index = 0; index < kpc; index++)
 	{
 		/* append salt at offset 510 */
 #ifdef SIMD_COEF_32
@@ -340,7 +340,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for default(none) private(index) shared(dirty, count, crypt_cache, crypt_out, prep_key, NULL_LIMB)
 #endif
 #endif
-	for(index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
 #ifndef SIMD_COEF_32
 		SHA256_CTX ctx;

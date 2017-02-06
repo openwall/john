@@ -335,7 +335,7 @@ static uint32_t *generate_des_format(uchar* binary)
 	for (chr = 0; chr < 24; chr=chr + 8)
 	{
 		dst = 0;
-		for(i=0; i<8; i++)
+		for (i=0; i<8; i++)
 		{
 			value = binary[chr + i];
 			mask = 0x80;
@@ -350,7 +350,7 @@ static uint32_t *generate_des_format(uchar* binary)
 	}
 
 	/* Apply initial permutation on ciphertext blocks */
-	for(i=0; i<6; i=i+2)
+	for (i=0; i<6; i=i+2)
 	{
 		ptr = DES_do_IP(&block[i]);
 		out[i] = ptr[1];

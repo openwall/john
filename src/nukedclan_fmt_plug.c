@@ -137,7 +137,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtokm(ctcopy, "*")))
 		goto error;
 	/* HASHKEY is of fixed length 40 */
-	if(hexlenl(ptr, &extra) != 40 || extra)
+	if (hexlenl(ptr, &extra) != 40 || extra)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
@@ -147,7 +147,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	ptr += 2;
 	/* hash is of fixed length 32 */
-	if(hexlenl(ptr, &extra) != 32 || extra)
+	if (hexlenl(ptr, &extra) != 32 || extra)
 		goto error;
 
 	MEM_FREE(keeptr);
@@ -228,7 +228,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		hex_encode(out, 20, pass);
 		for (i = 0, k=cur_salt->decal; i < 40; ++i, ++k) {
 			out[idx++] = pass[i];
-			if(k>19) k = 0;
+			if (k>19) k = 0;
 			out[idx++] = cur_salt->HASHKEY[k];
 		}
 		MD5_Init(&c);

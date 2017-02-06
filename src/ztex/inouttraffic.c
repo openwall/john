@@ -606,7 +606,7 @@ int fpga_read(struct fpga *fpga)
 		else {
 			break;
 		}
-	} // for(;;)
+	} // for (;;)
 	rd->read_count++;
 	rd->rd_done = 1;
 	rd->len = rd->read_limit;
@@ -751,7 +751,7 @@ int fpga_pkt_read(struct fpga *fpga)
 		else {
 			break;
 		}
-	} // for(;;)
+	} // for (;;)
 	rd->read_count++;
 	rd->rd_done = 1;
 	rd->len = rd->read_limit;

@@ -228,7 +228,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if(len > BIG_ENOUGH || !len)
+	if (len > BIG_ENOUGH || !len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
@@ -315,7 +315,7 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	unsigned char iv[16];
 	memcpy(iv, cur_salt->data, 16);
 
-	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
+	if (AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
 	AES_cbc_encrypt(data + 16, out, 16, &akey, iv, AES_DECRYPT);

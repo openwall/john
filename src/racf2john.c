@@ -63,7 +63,7 @@ static void print_hex(unsigned char *str, int len)
 static void print_userid(unsigned char *s)
 {
 	int i;
-	for(i = 0; s[i] != 0x02; i++)
+	for (i = 0; s[i] != 0x02; i++)
 		printf("%c", e2a[s[i]]);
 }
 
@@ -78,7 +78,7 @@ static void process_file(const char *filename)
 	int i, j, count;
 	int offset;
 
-	if(stat(filename, &sb) == -1) {
+	if (stat(filename, &sb) == -1) {
 		perror("stat");
 		exit(EXIT_FAILURE);
 	}
@@ -88,7 +88,7 @@ static void process_file(const char *filename)
 	count = fread(buffer, size, 1, fp);
 	assert(count == 1);
 
-	for(i = 7; i < size - 62; i++) {
+	for (i = 7; i < size - 62; i++) {
 		if (buffer[i-7] == 0xc2 && buffer[i-6] == 0xc1 &&
 			buffer[i-5] == 0xe2 && buffer[i-4] == 0xc5 &&
 			buffer[i-3] == 0x40 && buffer[i-2] == 0x40 &&
@@ -100,7 +100,7 @@ static void process_file(const char *filename)
 			if (buffer[i+offset+44] == 8 && buffer[i+offset+53] == 0xd) {
 				/* userid begins at index i + 4 */
 				int index = 0;
-				for(j = i + 4; buffer[j] != 0x02 && index < 9; j++)
+				for (j = i + 4; buffer[j] != 0x02 && index < 9; j++)
 					userid[index++] = buffer[j];
 				userid[index] = 0x02;
 				print_userid(userid);

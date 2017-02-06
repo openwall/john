@@ -660,7 +660,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		char *range[FMT_TUNABLE_COSTS] = { 0 };
 		char *dummy;
 
-		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
+		for ( i = 0; i < FMT_TUNABLE_COSTS; i++) {
 			if (i)
 				range[i] = strtok(NULL, ",");
 			else
@@ -676,7 +676,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 				                " supported\n", FMT_TUNABLE_COSTS);
 			error();
 		}
-		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
+		for ( i = 0; i < FMT_TUNABLE_COSTS; i++) {
 			int negative;
 			int two_values;
 
@@ -728,7 +728,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	else {
 		int i;
 
-		for( i = 0; i < FMT_TUNABLE_COSTS; i++) {
+		for ( i = 0; i < FMT_TUNABLE_COSTS; i++) {
 			options.loader.min_cost[i] = 0;
 			options.loader.max_cost[i] = UINT_MAX;
 		}

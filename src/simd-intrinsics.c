@@ -33,7 +33,7 @@
 
 #if SIMD_PARA_MD5
 #define MD5_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD5)
-#define MD5_PARA_DO(x)	for((x)=0;(x)<SIMD_PARA_MD5;(x)++)
+#define MD5_PARA_DO(x)	for ((x)=0;(x)<SIMD_PARA_MD5;(x)++)
 
 #define MD5_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -136,7 +136,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	mask = vset1_epi32(0xffffffff);
 #endif
 
-	if(SSEi_flags & SSEi_FLAT_IN) {
+	if (SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
 		unsigned k;
@@ -187,7 +187,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	} else
 		data = _data;
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD5_PARA_DO(i)
 		{
@@ -303,7 +303,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	MD5_STEP(MD5_I, c, d, a, b, 2, 0x2ad7d2bb, 15)
 	MD5_STEP(MD5_I, b, c, d, a, 9, 0xeb86d391, 21)
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD5_PARA_DO(i)
 		{
@@ -420,7 +420,7 @@ static MAYBE_INLINE void mmxput(void *buf, unsigned int index, unsigned int bid,
 	unsigned int i;
 
 	nbuf = ((unsigned char*)buf) + index/VS32*64*VS32 + bid*64*MD5_SSE_NUM_KEYS;
-	for(i=0;i<len;i++)
+	for (i=0;i<len;i++)
 		nbuf[ GETPOS((offset+i), index) ] = src[i];
 
 }
@@ -597,7 +597,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned int F[4*MD5_SSE_NUM_KEYS];
 
 	saltlen = strlen((char*)salt);
-	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
+	for (i=0;i<MD5_SSE_NUM_KEYS;i++)
 	{
 		unsigned int length_i = strlen((char*)pwd[i]);
 		unsigned int *bt;
@@ -668,8 +668,8 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 		MD5_Final((unsigned char*)tf, &tctx);
 		MD5_Update(&ctx, tf, length_i);
 		length[i] = length_i;
-		for(j=length_i;j;j>>=1)
-			if(j&1)
+		for (j=length_i;j;j>>=1)
+			if (j&1)
 				MD5_Update(&ctx, "\0", 1);
 			else
 				MD5_Update(&ctx, pwd[i], 1);
@@ -687,7 +687,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 
 #if SIMD_PARA_MD4
 #define MD4_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD4)
-#define MD4_PARA_DO(x)	for((x)=0;(x)<SIMD_PARA_MD4;(x)++)
+#define MD4_PARA_DO(x)	for ((x)=0;(x)<SIMD_PARA_MD4;(x)++)
 
 #define MD4_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -798,7 +798,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	unsigned int i;
 	vtype *data;
 
-	if(SSEi_flags & SSEi_FLAT_IN) {
+	if (SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
 		unsigned k;
@@ -849,7 +849,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	} else
 		data = _data;
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD4_PARA_DO(i)
 		{
@@ -952,7 +952,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	MD4_STEP(MD4_H, c, d, a, b, 7, cst, 11)
 	MD4_STEP(MD4_H2, b, c, d, a, 15, cst, 15)
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD4_PARA_DO(i)
 		{
@@ -1064,7 +1064,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 
 #if SIMD_PARA_SHA1
 #define SHA1_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_SHA1)
-#define SHA1_PARA_DO(x)		for((x)=0;(x)<SIMD_PARA_SHA1;(x)++)
+#define SHA1_PARA_DO(x)		for ((x)=0;(x)<SIMD_PARA_SHA1;(x)++)
 
 #define SHA1_F(x,y,z)                           \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -1237,7 +1237,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 	unsigned int i;
 	vtype *data;
 
-	if(SSEi_flags & SSEi_FLAT_IN) {
+	if (SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
 		unsigned k;
@@ -1318,7 +1318,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 	} else
 		data = _data;
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -1463,7 +1463,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 78 );
 	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 79 );
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{

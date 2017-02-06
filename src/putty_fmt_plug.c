@@ -125,28 +125,28 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(res != 1) /* check cipher type */
+	if (res != 1) /* check cipher type */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher block length*/
 		goto err;
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(res != 16) /* check cipher block length */
+	if (res != 16) /* check cipher block length */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* is_mac */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(res != 0 && res != 1)
+	if (res != 0 && res != 1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* old_fmt */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	is_old_fmt = atoi(p);
-	if(is_old_fmt != 0 && is_old_fmt!= 1)
+	if (is_old_fmt != 0 && is_old_fmt!= 1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* mac */
 		goto err;
@@ -240,7 +240,7 @@ static void *get_salt(char *ciphertext)
 		cs->private_blob[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	if(!cs->old_fmt) {
+	if (!cs->old_fmt) {
 		p = strtokm(NULL, "*");
 		strcpy(cs->alg, p);
 		p = strtokm(NULL, "*");
@@ -303,7 +303,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 		SHA1_Final(key + 20, &s);
 		memset(iv, 0, 32);
 		memset(&akey, 0, sizeof(AES_KEY));
-		if(AES_set_decrypt_key(key, 256, &akey) < 0) {
+		if (AES_set_decrypt_key(key, 256, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		}
 		AES_cbc_encrypt(cur_salt->private_blob, out , cur_salt->private_blob_len, &akey, iv, AES_DECRYPT);

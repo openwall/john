@@ -278,7 +278,7 @@ int device_pkt_rw(struct device *device)
 			}
 			else
 				break;
-		} // for(;;)
+		} // for (;;)
 		
 		// Read completed.
 		if (DEBUG >= 2) {
@@ -373,7 +373,7 @@ int device_fpgas_pkt_rw(struct device *device)
 		//if (result > 0)
 		//	rd_byte_count += result;
 
-	} // for( ;num_of_fpgas ;)
+	} // for ( ;num_of_fpgas ;)
 	return 1;
 }
 

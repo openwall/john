@@ -147,9 +147,9 @@ int rar_unp_read_buf(const unsigned char **fd, unpack_data_t *unpack_data)
 	}
 
 	unpack_data->read_border = unpack_data->read_top - 30;
-	if(unpack_data->read_border < unpack_data->in_addr) {
+	if (unpack_data->read_border < unpack_data->in_addr) {
 		const ssize_t fill = ((unpack_data->read_top + 30) < MAX_BUF_SIZE) ? 30 : (MAX_BUF_SIZE - unpack_data->read_top);
-		if(fill)
+		if (fill)
 			memset(unpack_data->in_buf + unpack_data->read_top, 0, fill);
 	}
 #ifdef RAR_HIGH_DEBUG
@@ -176,11 +176,11 @@ static void unp_write_data(unpack_data_t *unpack_data, unsigned char *data, int 
 
 	unpack_data->true_size += size;
 	unpack_data->unp_crc = rar_crc(unpack_data->unp_crc, data, size);
-	if(unpack_data->max_size) {
-	    if(unpack_data->written_size >= unpack_data->max_size)
+	if (unpack_data->max_size) {
+	    if (unpack_data->written_size >= unpack_data->max_size)
 		return;
 
-	    if(unpack_data->written_size + size > unpack_data->max_size)
+	    if (unpack_data->written_size + size > unpack_data->max_size)
 		size = unpack_data->max_size - unpack_data->written_size;
 	}
 	unpack_data->written_size += size;
@@ -471,7 +471,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 	if (bit_field & 0x8000) { // very first bit: isPPM
 		unpack_data->unp_block_type = BLOCK_PPM;
 		//rar_dbgmsg("Calling ppm_decode_init\n");
-		if(!ppm_decode_init(&unpack_data->ppm_data, fd, unpack_data, &unpack_data->ppm_esc_char)) {
+		if (!ppm_decode_init(&unpack_data->ppm_data, fd, unpack_data, &unpack_data->ppm_esc_char)) {
 		    //rar_dbgmsg("unrar: read_tables: ppm_decode_init failed\n");
 		    return 0;
 		}
@@ -658,7 +658,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		unpack_data->old_filter_lengths_size++;
 		unpack_data->old_filter_lengths = (int *) rar_realloc2(unpack_data->old_filter_lengths,
 				sizeof(int) * unpack_data->old_filter_lengths_size);
-		if(!unpack_data->old_filter_lengths) {
+		if (!unpack_data->old_filter_lengths) {
 		    //rar_dbgmsg("unrar: add_vm_code: rar_realloc2 failed for unpack_data->old_filter_lengths\n");
 		    return 0;
 		}
@@ -739,7 +739,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			return 0;
 		}
 		vm_code = (unsigned char *) rar_malloc(vm_codesize);
-		if(!vm_code) {
+		if (!vm_code) {
 		    //rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for vm_code\n");
 		    return 0;
 		}
@@ -747,7 +747,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			vm_code[i] = rarvm_getbits(&rarvm_input) >> 8;
 			rarvm_addbits(&rarvm_input, 8);
 		}
-		if(!rarvm_prepare(&unpack_data->rarvm_data, &rarvm_input, &vm_code[0], vm_codesize, &filter->prg)) {
+		if (!rarvm_prepare(&unpack_data->rarvm_data, &rarvm_input, &vm_code[0], vm_codesize, &filter->prg)) {
 		    //rar_dbgmsg("unrar: add_vm_code: rarvm_prepare failed\n");
 		    MEM_FREE(vm_code);
 		    return 0;
@@ -761,7 +761,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	if (static_size > 0 && static_size < VM_GLOBALMEMSIZE) {
 		// read statically defined data contained in DB commands
 		stack_filter->prg.static_data = rar_malloc(static_size);
-		if(!stack_filter->prg.static_data) {
+		if (!stack_filter->prg.static_data) {
 		    //rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.static_data\n");
 		    return 0;
 		}
@@ -771,7 +771,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	if (stack_filter->prg.global_size < VM_FIXEDGLOBALSIZE) {
 		MEM_FREE(stack_filter->prg.global_data);
 		stack_filter->prg.global_data = rar_malloc(VM_FIXEDGLOBALSIZE);
-		if(!stack_filter->prg.global_data) {
+		if (!stack_filter->prg.global_data) {
 		    //rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.global_data\n");
 		    return 0;
 		}
@@ -801,7 +801,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			stack_filter->prg.global_size += data_size+VM_FIXEDGLOBALSIZE-cur_size;
 			stack_filter->prg.global_data = rar_realloc2(stack_filter->prg.global_data,
 				stack_filter->prg.global_size);
-			if(!stack_filter->prg.global_data) {
+			if (!stack_filter->prg.global_data) {
 			    //rar_dbgmsg("unrar: add_vm_code: rar_realloc2 failed for stack_filter->prg.global_data\n");
 			    return 0;
 			}

@@ -125,12 +125,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 
 	p = strstr(p, "$");
-	if(p == NULL)
+	if (p == NULL)
 		return 0;
 
 	q = ciphertext;
 
-	if(p - q > SALT_SIZE) /* check salt length */
+	if (p - q > SALT_SIZE) /* check salt length */
 		return 0;
 	q = ++p;
 

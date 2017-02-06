@@ -244,7 +244,7 @@ static char *get_key(int index)
 	unsigned int i;
 	uint32_t len = ((uint32_t*)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 
-	for(i=0;i<len;i++)
+	for (i=0;i<len;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
 	out[i] = 0;
 	return (char*)out;

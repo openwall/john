@@ -292,7 +292,7 @@ static char *get_key(int index) {
 	unsigned char *wucp = (unsigned char*)saved_key;
 
 	s = ((uint32_t *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
-	for(i=0;i<s;i++)
+	for (i=0;i<s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
 	return (char*) out;

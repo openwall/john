@@ -185,7 +185,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*"); /* username */
-	if(!p)
+	if (!p)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
@@ -269,7 +269,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			int i;
 
 			/* process key */
-			for(i = 0; saved_key[index][i]; i++)
+			for (i = 0; saved_key[index][i]; i++)
 				des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
 
 			/* replace missing characters in userid by (EBCDIC space (0x40) XOR 0x55) << 1 */

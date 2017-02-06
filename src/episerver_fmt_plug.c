@@ -292,9 +292,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		uint32_t *in = &saved_key[HASH_IDX_IN];
 		uint32_t *out = &crypt_out[HASH_IDX_OUT];
 
-		if(cur_salt->version == 0)
+		if (cur_salt->version == 0)
 			SIMDSHA1body(in, out, NULL, SSEi_MIXED_IN);
-		else if(cur_salt->version == 1)
+		else if (cur_salt->version == 1)
 			SIMDSHA256body(in, out, NULL, SSEi_MIXED_IN);
 	}
 #else
@@ -307,14 +307,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (len < 0)
 			len = strlen16((UTF16*)passwordBuf);
 		len <<= 1;
-		if(cur_salt->version == 0) {
+		if (cur_salt->version == 0) {
 			SHA_CTX ctx;
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, cur_salt->esalt, EFFECTIVE_SALT_SIZE);
 			SHA1_Update(&ctx, passwordBuf, len);
 			SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 		}
-		else if(cur_salt->version == 1) {
+		else if (cur_salt->version == 1) {
 			SHA256_CTX ctx;
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, cur_salt->esalt, EFFECTIVE_SALT_SIZE);
@@ -358,12 +358,12 @@ static int cmp_exact(char *source, int index)
 	for (i = 0; i < BINARY_SIZE/4; ++i)
 		out[i] = crypt_out[HASH_IDX_OUT + i*SIMD_COEF_32];
 
-	if(cur_salt->version == 0)
+	if (cur_salt->version == 0)
 		return !memcmp(binary, out, 20);
 	else
 		return !memcmp(binary, out, BINARY_SIZE);
 #else
-	if(cur_salt->version == 0)
+	if (cur_salt->version == 0)
 		return !memcmp(binary, crypt_out[index], 20);
 	else
 		return !memcmp(binary, crypt_out[index], BINARY_SIZE);
@@ -573,7 +573,7 @@ static char *get_key(int index)
 	unsigned int i,s;
 
 	s = ((saved_key[HASH_IDX_IN + 15*SIMD_COEF_32] >> 3) - 16) >> 1;
-	for(i = 0; i < s; i++)
+	for (i = 0; i < s; i++)
 		out[i] = ((unsigned char*)saved_key)[GETPOS(16 + (i<<1), index)] | (((unsigned char*)saved_key)[GETPOS(16 + (i<<1) + 1, index)] << 8);
 	out[i] = 0;
 

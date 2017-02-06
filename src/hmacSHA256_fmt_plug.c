@@ -305,7 +305,7 @@ static MAYBE_INLINE void set_key(char *key, int index, const int B_LEN)
 		}
 
 		keyp = (unsigned int*)k0;
-		for(i = 0; i < B_LEN / 4; i++, ipadp += SIMD_COEF_32, opadp += SIMD_COEF_32)
+		for (i = 0; i < B_LEN / 4; i++, ipadp += SIMD_COEF_32, opadp += SIMD_COEF_32)
 		{
 			temp = JOHNSWAP(*keyp++);
 			*ipadp ^= temp;
@@ -355,14 +355,14 @@ static MAYBE_INLINE void set_key(char *key, int index, const int B_LEN)
 
 		len = B_LEN;
 
-		for(i=0;i<len;i++)
+		for (i=0;i<len;i++)
 		{
 			ipad[index][i] ^= k0[i];
 			opad[index][i] ^= k0[i];
 		}
 	}
 	else
-	for(i=0;i<len;i++)
+	for (i=0;i<len;i++)
 	{
 		ipad[index][i] ^= key[i];
 		opad[index][i] ^= key[i];
@@ -388,9 +388,9 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	unsigned int index;
 
-	for(index = 0; index < count; index++) {
+	for (index = 0; index < count; index++) {
 		// NOTE crypt_key is in input format (PAD_SIZE * SIMD_COEF_32)
-		if(((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1))+index/SIMD_COEF_32*PAD_SIZE_W*SIMD_COEF_32])
+		if (((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1))+index/SIMD_COEF_32*PAD_SIZE_W*SIMD_COEF_32])
 			return 1;
 	}
 	return 0;
@@ -410,7 +410,7 @@ static MAYBE_INLINE int cmp_one(void *binary, int index, const int B_LEN)
 {
 #ifdef SIMD_COEF_32
 	int i;
-	for(i = 0; i < (B_LEN/4); i++)
+	for (i = 0; i < (B_LEN/4); i++)
 		// NOTE crypt_key is in input format (PAD_SIZE * SIMD_COEF_32)
 		if (((uint32_t*)binary)[i] != ((uint32_t*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32 * PAD_SIZE_W * SIMD_COEF_32])
 			return 0;
@@ -550,9 +550,9 @@ static void *get_binary(char *ciphertext, const int B_LEN)
 	unsigned char *realcipher = a.c;
 	int i,pos;
 
-	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
+	for (i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
 	pos=i+1;
-	for(i=0;i<B_LEN;i++)
+	for (i=0;i<B_LEN;i++)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];
 
 #ifdef SIMD_COEF_32

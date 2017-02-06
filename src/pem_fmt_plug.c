@@ -145,7 +145,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // salt
 		goto err;
-	if(hexlenl(p, &extra) != 16 || extra)
+	if (hexlenl(p, &extra) != 16 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iterations
 		goto err;
@@ -153,7 +153,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iv
 		goto err;
-	if(hexlenl(p, &extra) != 16 || extra)
+	if (hexlenl(p, &extra) != 16 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // ciphertext length
 		goto err;
@@ -162,7 +162,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
 		goto err;
-	if(hexlenl(p, &extra) != len*2 || extra)
+	if (hexlenl(p, &extra) != len*2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -344,7 +344,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), fctx->salt, SALTLEN, fctx->iterations, master[0], 24, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(pem_decrypt(master[i], fctx->iv, fctx->ciphertext) == 0)
+			if (pem_decrypt(master[i], fctx->iv, fctx->ciphertext) == 0)
 				cracked[index+i] = 1;
 			else
 				cracked[index+i] = 0;

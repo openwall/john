@@ -1808,10 +1808,10 @@ void DES_bs_crypt_plain(int keys_count)
 		int index;
 	#endif
 
-	for(i=0; i<64; i++)
+	for (i=0; i<64; i++)
 	{
 	#if DES_BS_VECTOR
-                for(index=0; index<DES_BS_VECTOR_SIZE; index++)
+                for (index=0; index<DES_BS_VECTOR_SIZE; index++)
 	#endif
 			DES_bs_all.B[i]INDX = DES_bs_P[i]INDX;
 	}
@@ -1917,10 +1917,10 @@ void DES_bs_generate_plaintext(unsigned char *plaintext)
 	/* Set same plaintext for all bit layers */
 	for (i = 0; i < 64; i++) {
 		j = (int) (plaintext[i/8] >> (7-(i%8))) & 0x01;
-		if(j==1)
+		if (j==1)
 				j = -1;
 #if DES_BS_VECTOR
-		for(k=0; k<DES_BS_VECTOR_SIZE; k++)
+		for (k=0; k<DES_BS_VECTOR_SIZE; k++)
 #endif
 			DES_bs_P[i]INDX = j;
 		}

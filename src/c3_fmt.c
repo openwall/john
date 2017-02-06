@@ -675,7 +675,7 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 	c3_salt = salt;
 	algorithm =  c3_subformat_algorithm(salt);
 
-	if(algorithm < 3)
+	if (algorithm < 3)
 		/* no tunable cost parameters */
 		return 1;
 

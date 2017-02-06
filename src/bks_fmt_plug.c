@@ -205,15 +205,15 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 	cs.saltlen = atoi(p);
 	p = strtokm(NULL, "$");
-	for(i = 0; i < cs.saltlen; i++)
+	for (i = 0; i < cs.saltlen; i++)
 		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	p = strtokm(NULL, "$");
 	cs.store_data_length = hexlenl(p, 0) / 2;
-	for(i = 0; i < cs.store_data_length; i++)
+	for (i = 0; i < cs.store_data_length; i++)
 		cs.store_data[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	p = strtokm(NULL, "$");
 	if (cs.format == 0) { // BKS keystore
-		for(i = 0; i < 20; i++)
+		for (i = 0; i < 20; i++)
 			cs.store_hmac[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	}
 	MEM_FREE(keeptr);

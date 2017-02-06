@@ -191,9 +191,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(hccap->essid) > 32) /* real life limit */
 		return 0;
 
-	if(hccap->eapol_size > 256)
+	if (hccap->eapol_size > 256)
 		return 0;
-	if(hccap->eapol_size < 0)
+	if (hccap->eapol_size < 0)
 		return 0;
 	return 1;
 }

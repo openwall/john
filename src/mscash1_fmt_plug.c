@@ -143,14 +143,14 @@ static void *get_salt(char *_ciphertext)
 
 	ciphertext+=FORMAT_TAG_LEN;
 
-	for(md4_size = 0 ;; md4_size++)
-		if(md4_size < 19 && ciphertext[md4_size]!='#')
+	for (md4_size = 0 ;; md4_size++)
+		if (md4_size < 19 && ciphertext[md4_size]!='#')
 		{
 			md4_size++;
 
 			out[md4_size>>1] = ciphertext[md4_size-1] | ((ciphertext[md4_size]!='#') ? (ciphertext[md4_size]<<16) : 0x800000);
 
-			if(ciphertext[md4_size]=='#')
+			if (ciphertext[md4_size]=='#')
 				break;
 		}
 		else
@@ -218,11 +218,11 @@ static void * get_salt_utf8(char *_ciphertext)
 	len = ((unsigned char*)strchr((char*)ciphertext, '#')) - ciphertext;
 	utf8_to_utf16(ciphertext_utf16, 20, ciphertext, len+1);
 
-	for(md4_size = 0 ;; md4_size++) {
+	for (md4_size = 0 ;; md4_size++) {
 #if !ARCH_LITTLE_ENDIAN
 		ciphertext_utf16[md4_size] = (ciphertext_utf16[md4_size]>>8)|(ciphertext_utf16[md4_size]<<8);
 #endif
-		if(md4_size < 19 && ciphertext_utf16[md4_size]!=(UTF16)'#') {
+		if (md4_size < 19 && ciphertext_utf16[md4_size]!=(UTF16)'#') {
 			md4_size++;
 #if !ARCH_LITTLE_ENDIAN
 			ciphertext_utf16[md4_size] = (ciphertext_utf16[md4_size]>>8)|(ciphertext_utf16[md4_size]<<8);
@@ -231,7 +231,7 @@ static void * get_salt_utf8(char *_ciphertext)
 				((ciphertext_utf16[md4_size]!=(UTF16)'#') ?
 				 (ciphertext_utf16[md4_size]<<16) : 0x800000);
 
-			if(ciphertext_utf16[md4_size]==(UTF16)'#')
+			if (ciphertext_utf16[md4_size]==(UTF16)'#')
 				break;
 		}
 		else {
@@ -252,11 +252,11 @@ static void *get_binary(char *ciphertext)
 	unsigned int temp;
 	unsigned int *salt=fmt_mscash.methods.salt(ciphertext);
 
-	for(;ciphertext[0]!='#';ciphertext++);
+	for (;ciphertext[0]!='#';ciphertext++);
 
 	ciphertext++;
 
-	for(; i<4 ;i++)
+	for (; i<4 ;i++)
 	{
 		temp  = ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+0])]))<<4;
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+1])]));
@@ -412,7 +412,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int i;
 
-	if(new_key)
+	if (new_key)
 	{
 		new_key=0;
 		nt_hash(count);
@@ -421,7 +421,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if MS_NUM_KEYS > 1 && defined(_OPENMP)
 #pragma omp parallel for default(none) private(i) shared(count, last, crypt_out, salt_buffer, output1x)
 #endif
-	for(i = 0; i < count; i++)
+	for (i = 0; i < count; i++)
 	{
 		unsigned int a;
 		unsigned int b;
@@ -496,8 +496,8 @@ static int cmp_all(void *binary, int count)
 	unsigned int i=0;
 	unsigned int d=((unsigned int *)binary)[3];
 
-	for(;i<count;i++)
-		if(d==output1x[i*4+3])
+	for (;i<count;i++)
+		if (d==output1x[i*4+3])
 			return 1;
 
 	return 0;
@@ -511,16 +511,16 @@ static int cmp_one(void * binary, int index)
 	unsigned int c=output1x[4*index+2];
 	unsigned int d=output1x[4*index+3];
 
-	if(d!=t[3])
+	if (d!=t[3])
 		return 0;
 	d+=SQRT_3;d = (d << 9 ) | (d >> 23);
 
 	c += (d ^ a ^ b) + salt_buffer[1]  +  SQRT_3; c = (c << 11) | (c >> 21);
-	if(c!=t[2])
+	if (c!=t[2])
 		return 0;
 
 	b += (c ^ d ^ a) + salt_buffer[9]  +  SQRT_3; b = (b << 15) | (b >> 17);
-	if(b!=t[1])
+	if (b!=t[1])
 		return 0;
 
 	a += (b ^ c ^ d) + crypt_out[4*index+3]+  SQRT_3; a = (a << 3 ) | (a >> 29);
@@ -533,8 +533,8 @@ static int cmp_exact(char *source, int index)
 	// It verifies that the salts are the same.
 	unsigned int *salt=fmt_mscash.methods.salt(source);
 	unsigned int i=0;
-	for(;i<11;i++)
-		if(salt[i]!=salt_buffer[i])
+	for (;i<11;i++)
+		if (salt[i]!=salt_buffer[i])
 			return 0;
 	return 1;
 }
@@ -548,7 +548,7 @@ static inline void set_key_helper(unsigned int * keybuffer,
 {
 	unsigned int i=0;
 	unsigned int md4_size=0;
-	for(; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+	for (; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
 		if ((temp = key[++md4_size]))
@@ -565,7 +565,7 @@ static inline void set_key_helper(unsigned int * keybuffer,
 
 key_cleaning:
 	i += xBuf;
-	for(;i <= *last_length; i += xBuf)
+	for (;i <= *last_length; i += xBuf)
 		keybuffer[i] = 0;
 
 	*last_length = (md4_size >> 1)+1;
@@ -748,7 +748,7 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 	i = md4_size>>1;
 
 	i += xBuf;
-	for(;i <= *last_length; i += xBuf)
+	for (;i <= *last_length; i += xBuf)
 		keybuffer[i] = 0;
 
 #if !ARCH_LITTLE_ENDIAN
@@ -781,7 +781,7 @@ static char *get_key(int index)
 	unsigned int i=0;
 	int len = keybuffer[14] >> 4;
 
-	for(md4_size = 0; md4_size < len; i++, md4_size += 2)
+	for (md4_size = 0; md4_size < len; i++, md4_size += 2)
 	{
 #if ARCH_LITTLE_ENDIAN
 		key.u16[md4_size] = keybuffer[i];

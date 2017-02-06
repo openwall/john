@@ -157,14 +157,14 @@ static int gpg_common_valid_cipher_algorithm(int cipher_algorithm)
 // so not ALL algo's are usable by both CPU and GPU.
 static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec)
 {
-	if(spec == SPEC_SIMPLE || spec == SPEC_SALTED) {
+	if (spec == SPEC_SIMPLE || spec == SPEC_SALTED) {
 		switch(hash_algorithm) {
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
 			case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
 		}
 	}
-	if(spec == SPEC_ITERATED_SALTED) {
+	if (spec == SPEC_ITERATED_SALTED) {
 		switch(hash_algorithm)
 		{
 			case HASH_SHA1: return 1;
@@ -224,10 +224,10 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	usage = atoi(p);
 	if (!symmetric_mode) {
-		if(usage != 0 && usage != 254 && usage != 255 && usage != 1)
+		if (usage != 0 && usage != 254 && usage != 255 && usage != 1)
 			goto err;
 	} else {
-		if(usage != 9 && usage != 18) // https://tools.ietf.org/html/rfc4880
+		if (usage != 9 && usage != 18) // https://tools.ietf.org/html/rfc4880
 			goto err;
 	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash_algorithm */
@@ -235,14 +235,14 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(!gpg_common_valid_hash_algorithm(res, spec))
+	if (!gpg_common_valid_hash_algorithm(res, spec))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(!gpg_common_valid_cipher_algorithm(res))
+	if (!gpg_common_valid_cipher_algorithm(res))
 		goto err;
 	if (!symmetric_mode) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
@@ -427,7 +427,7 @@ static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int key
 		count = _count;
 		SHA1_Init(&ctx);
 #ifdef LEAN
-		for(j=0;j<i;++j)
+		for (j=0;j<i;++j)
 			keybuf[j] = 0;
 		n = j;
 		memcpy(keybuf + j, salt, SALT_LENGTH);
@@ -496,7 +496,7 @@ static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int key
 #endif
 		SHA1_Final(keybuf, &ctx);
 		j = i * SHA_DIGEST_LENGTH;
-		for(n = 0; j < key_len && n < SHA_DIGEST_LENGTH; ++j, ++n)
+		for (n = 0; j < key_len && n < SHA_DIGEST_LENGTH; ++j, ++n)
 			key[j] = keybuf[n];
 		if (j == key_len)
 			return;

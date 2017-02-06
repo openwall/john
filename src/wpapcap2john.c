@@ -92,27 +92,27 @@ static int convert_ivs(FILE *f_in)
 	length = ftell(f_in);
 	fseek(f_in, 0, SEEK_SET);
 
-	if(fread(buffer, 1, 4, f_in) != 4) {
+	if (fread(buffer, 1, 4, f_in) != 4) {
 		fprintf(stderr, "%s: fread file header failed\n", filename);
 		return(1);
 	}
 
-	if(memcmp(buffer, IVSONLY_MAGIC, 4) == 0) {
+	if (memcmp(buffer, IVSONLY_MAGIC, 4) == 0) {
 		fprintf(stderr, "%s: old version .ivs file, no WPA2 handshakes\n", filename);
 		return(1);
 	}
 
-	if(memcmp(buffer, IVS2_MAGIC, 4) != 0) {
+	if (memcmp(buffer, IVS2_MAGIC, 4) != 0) {
 		fprintf(stderr, "%s: not an .%s file\n", filename, IVS2_EXTENSION);
 		return(1);
 	}
 
-	if(fread(&fivs2, 1, sizeof(struct ivs2_filehdr), f_in) != (size_t) sizeof(struct ivs2_filehdr)) {
+	if (fread(&fivs2, 1, sizeof(struct ivs2_filehdr), f_in) != (size_t) sizeof(struct ivs2_filehdr)) {
 		fprintf(stderr, "%s: fread file header failed", filename);
 		return(1);
 	}
 
-	if(fivs2.version > IVS2_VERSION) {
+	if (fivs2.version > IVS2_VERSION) {
 		fprintf(stderr, "%s: wrong %s version: %d. Supported up to version %d.\n", filename, IVS2_EXTENSION, fivs2.version, IVS2_VERSION);
 		return(1);
 	}
@@ -395,7 +395,7 @@ static int ProcessPacket()
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = JOHNSWAP(frame_skip);
 #endif
-		if(frame_skip <= 0 || frame_skip >= pkt_hdr.incl_len)
+		if (frame_skip <= 0 || frame_skip >= pkt_hdr.incl_len)
 			return 0;
 
 		// Kismet logged broken PPI frames for a period

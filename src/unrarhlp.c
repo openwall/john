@@ -32,7 +32,7 @@
 
 void *rar_malloc(size_t size)
 {
-	if(!size || size > (size_t)RAR_MAX_ALLOCATION) {
+	if (!size || size > (size_t)RAR_MAX_ALLOCATION) {
 		return NULL;
 	}
 	//rar_dbgmsg("%s() allocating "Zu" bytes\n", __FUNCTION__, size);
@@ -44,14 +44,14 @@ void *rar_realloc2(void *ptr, size_t size)
 {
 	void *alloc;
 
-    if(!size || size > RAR_MAX_ALLOCATION) {
+    if (!size || size > RAR_MAX_ALLOCATION) {
 	//rar_dbgmsg("UNRAR: rar_realloc2(): Attempt to allocate "Zu" bytes. Please report to http://bugs.clamav.net\n", size);
 	return NULL;
     }
 
     alloc = realloc(ptr, size);
 
-    if(!alloc) {
+    if (!alloc) {
 	fprintf(stderr, "UNRAR: rar_realloc2(): Can't allocate memory ("Zu" bytes).\n", size);
 	MEM_FREE(ptr);
 	return NULL;

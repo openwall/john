@@ -95,7 +95,7 @@ static void reset(struct db_main *db)
 		unsigned int i;
 		self->params.max_keys_per_crypt = 0;
 
-		for( i=0; i < get_number_of_devices_in_use(); i++)
+		for ( i=0; i < get_number_of_devices_in_use(); i++)
 			self->params.max_keys_per_crypt += selectDevice(gpu_device_list[i], self);
 
 		///Allocate memory
@@ -202,7 +202,7 @@ static void pbkdf2_iter0(unsigned int *input_dcc_hash,unsigned char *salt_buffer
 	memset(&ipad[4], 0x36, SHA_CBLOCK-16);
 	memset(&opad[4], 0x5C, SHA_CBLOCK-16);
 
-	for(k = 0; k < count; k++) {
+	for (k = 0; k < count; k++) {
 		i = k * 4;
 		ipad[0] = dcc_hash_host[i]^0x36363636;
 		opad[0] = dcc_hash_host[i++]^0x5C5C5C5C;
@@ -251,7 +251,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	DCC((unsigned char*)salt_host, salt_len, dcc_hash_host, count) ;
 
-	if(salt_len > 22)
+	if (salt_len > 22)
 		pbkdf2_iter0(dcc_hash_host,(unsigned char*)salt_host, (salt_len << 1) , count);
 
 #ifdef _DEBUG

@@ -151,38 +151,38 @@ static int valid(char* ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	keylen = atoi(p);
-	if(keylen > MAX_KEY_LEN)
+	if (keylen > MAX_KEY_LEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt length */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	saltlen = atoi(p);
-	if(saltlen > MAX_SALT_LEN)
+	if (saltlen > MAX_SALT_LEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt1 */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt2 */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* encr_key */
 		goto err;
-	if(strlen(p) != keylen * 2)
+	if (strlen(p) != keylen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* final_result */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) != NULL)
@@ -246,7 +246,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for(i = 0; i < count;  i += inc)
+	for (i = 0; i < count;  i += inc)
 	{
 		unsigned char key[MAX_KEY_LEN];
 #if SSE_GROUP_SZ_SHA256

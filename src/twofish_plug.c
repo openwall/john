@@ -498,11 +498,11 @@ static void test_platform()
      * The first check in each case is to make sure the size is correct.
      * The second check is to ensure that it is an unsigned type.
      */
-    if( ((UInt32) ((UInt32)1 << 31) == 0) || ((UInt32)-1 < 0) )
+    if ( ((UInt32) ((UInt32)1 << 31) == 0) || ((UInt32)-1 < 0) )
         {
         Twofish_fatal( "Twofish code: Twofish_UInt32 type not suitable" );
         }
-    if( (sizeof( Byte ) != 1) || ((Byte)-1 < 0) )
+    if ( (sizeof( Byte ) != 1) || ((Byte)-1 < 0) )
         {
         Twofish_fatal( "Twofish code: Twofish_Byte type not suitable" );
         }
@@ -530,7 +530,7 @@ static void test_platform()
      * do not allow non-aligned accesses which we would do if you used
      * the CONVERT_USING_CASTS option.
      */
-    if( GET32( buf ) != 0x78563412UL || GET32(buf+1) != 0x9a785634UL
+    if ( GET32( buf ) != 0x78563412UL || GET32(buf+1) != 0x9a785634UL
         || GET32( buf+2 ) != 0xbc9a7856UL || GET32(buf+3) != 0xdebc9a78UL )
         {
         Twofish_fatal( "Twofish code: GET32 not implemented properly" );
@@ -543,14 +543,14 @@ static void test_platform()
      */
     C = GET32( buf );
     PUT32( 3*C, buf );
-    if( GET32( buf ) != 0x69029c36UL )
+    if ( GET32( buf ) != 0x69029c36UL )
         {
         Twofish_fatal( "Twofish code: PUT32 not implemented properly" );
         }
 
 
     /* Test ROL and ROR */
-    for( i=1; i<32; i++ )
+    for ( i=1; i<32; i++ )
         {
         /* Just a simple test. */
         x = ROR32( C, i );
@@ -563,14 +563,14 @@ static void test_platform()
          * 32 bits. Using the UL suffix is safe here, as it doesn't matter
          * if we get a larger type.
          */
-        if( (x & 0xffffffffUL) != 0 )
+        if ( (x & 0xffffffffUL) != 0 )
             {
             Twofish_fatal( "Twofish ROL or ROR not properly defined." );
             }
         }
 
     /* Test the BSWAP macro */
-    if( (BSWAP(C)) != 0x12345678UL )
+    if ( (BSWAP(C)) != 0x12345678UL )
         {
         /*
          * The BSWAP macro should always work, even if you are not using it.
@@ -580,7 +580,7 @@ static void test_platform()
         }
 
     /* And we can test the b<i> macros which use SELECT_BYTE. */
-    if( (b0(C)!=0x12) || (b1(C) != 0x34) || (b2(C) != 0x56) || (b3(C) != 0x78) )
+    if ( (b0(C)!=0x12) || (b1(C) != 0x34) || (b2(C) != 0x56) || (b3(C) != 0x78) )
         {
         /*
          * There are many reasons why this could fail.
@@ -630,18 +630,18 @@ static void test_vector( Byte key[], int key_len, Byte p[16], Byte c[16] )
      * is not damaged by the first encryption.
      * Those are hideous bugs to find if you get them in an application.
      */
-    for( i=0; i<2; i++ )
+    for ( i=0; i<2; i++ )
         {
         /* Encrypt and test */
         Twofish_encrypt( &xkey, p, tmp );
-        if( memcmp( c, tmp, 16 ) != 0 )
+        if ( memcmp( c, tmp, 16 ) != 0 )
             {
             Twofish_fatal( "Twofish encryption failure" );
             }
 
         /* Decrypt and test */
         Twofish_decrypt( &xkey, c, tmp );
-        if( memcmp( p, tmp, 16 ) != 0 )
+        if ( memcmp( p, tmp, 16 ) != 0 )
             {
             Twofish_fatal( "Twofish decryption failure" );
             }
@@ -757,7 +757,7 @@ static void test_sequence( int key_len, Byte final_value[] )
 
     /* Pointer in buffer points to current plaintext. */
     p = &buf[50*16];
-    for( i=1; i<50; i++ )
+    for ( i=1; i<50; i++ )
         {
         /*
          * Prepare a key.
@@ -770,7 +770,7 @@ static void test_sequence( int key_len, Byte final_value[] )
 
         /* Check that the decryption is correct. */
         Twofish_decrypt( &xkey, p-16, tmp );
-        if( memcmp( tmp, p, 16 ) != 0 )
+        if ( memcmp( tmp, p, 16 ) != 0 )
             {
             Twofish_fatal( "Twofish decryption failure in sequence" );
             }
@@ -779,7 +779,7 @@ static void test_sequence( int key_len, Byte final_value[] )
         }
 
     /* And check the final value. */
-    if( memcmp( p, final_value, 16 ) != 0 )
+    if ( memcmp( p, final_value, 16 ) != 0 )
         {
         Twofish_fatal( "Twofish encryption failure in sequence" );
         }
@@ -850,7 +850,7 @@ static void test_odd_sized_keys()
     Twofish_encrypt( &xkey, buf, buf+16 );
 
     /* Create all possible shorter keys that are prefixes of the buffer. */
-    for( i=31; i>=0; i-- )
+    for ( i=31; i>=0; i-- )
         {
         /* Set a byte to zero. This is the new padding byte */
         buf[i] = 0;
@@ -862,7 +862,7 @@ static void test_odd_sized_keys()
         Twofish_prepare_key( buf, i<=16 ? 16 : (i<= 24 ? 24 : 32), &xkey_two );
 
         /* Compare the two */
-        if( memcmp( &xkey, &xkey_two, sizeof( xkey ) ) != 0 )
+        if ( memcmp( &xkey, &xkey_two, sizeof( xkey ) ) != 0 )
             {
             Twofish_fatal( "Odd sized keys do not expand properly" );
             }
@@ -977,7 +977,7 @@ static void make_q_table( Byte t[4][16], Qtype q[256] )
     int ae,be,ao,bo;        /* Some temporaries. */
     int i;
     /* Loop over all input values and compute the q-box result. */
-    for( i=0; i<256; i++ ) {
+    for ( i=0; i<256; i++ ) {
         /*
          * This is straight from the Twofish specifications.
          *
@@ -1049,7 +1049,7 @@ static void initialise_mds_tables()
     UInt32 q,qef,q5b;       /* Temporary variables. */
 
     /* Loop over all 8-bit input values */
-    for( i=0; i<256; i++ )
+    for ( i=0; i<256; i++ )
         {
         /*
          * To save some work during the key expansion we include the last
@@ -1189,7 +1189,7 @@ static void fill_keyed_sboxes( Byte S[], int kCycles, Twofish_key * xkey )
     switch( kCycles ) {
         /* We code all 3 cases separately for speed reasons. */
     case 2:
-        for( i=0; i<256; i++ )
+        for ( i=0; i<256; i++ )
             {
             xkey->s[0][i]= H02( i, S );
             xkey->s[1][i]= H12( i, S );
@@ -1198,7 +1198,7 @@ static void fill_keyed_sboxes( Byte S[], int kCycles, Twofish_key * xkey )
             }
         break;
     case 3:
-        for( i=0; i<256; i++ )
+        for ( i=0; i<256; i++ )
             {
             xkey->s[0][i]= H03( i, S );
             xkey->s[1][i]= H13( i, S );
@@ -1207,7 +1207,7 @@ static void fill_keyed_sboxes( Byte S[], int kCycles, Twofish_key * xkey )
             }
         break;
     case 4:
-        for( i=0; i<256; i++ )
+        for ( i=0; i<256; i++ )
             {
             xkey->s[0][i]= H04( i, S );
             xkey->s[1][i]= H14( i, S );
@@ -1314,7 +1314,7 @@ void Twofish_prepare_key( Byte key[], int key_len, Twofish_key * xkey )
     Byte b,bx,bxx;      /* Some more temporaries for the RS computation. */
 
     /* Check that the Twofish implementation was initialised. */
-    if( Twofish_initialised == 0 )
+    if ( Twofish_initialised == 0 )
         {
         /*
          * You didn't call Twofish_initialise before calling this routine.
@@ -1350,11 +1350,11 @@ void Twofish_prepare_key( Byte key[], int key_len, Twofish_key * xkey )
          * To stop such security disasters, we use blunt force.
          * If your program hangs here: fix the fatal routine!
          */
-        for(;;);        /* Infinite loop, which beats being insecure. */
+        for (;;);        /* Infinite loop, which beats being insecure. */
         }
 
     /* Check for valid key length. */
-    if( key_len < 0 || key_len > 32 )
+    if ( key_len < 0 || key_len > 32 )
         {
         /*
          * This can only happen if a programmer didn't read the limitations
@@ -1383,7 +1383,7 @@ void Twofish_prepare_key( Byte key[], int key_len, Twofish_key * xkey )
      */
     kCycles = (key_len + 7) >> 3;
     /* Handle the special case of very short keys: minimum 2 cycles. */
-    if( kCycles < 2 )
+    if ( kCycles < 2 )
         {
         kCycles = 2;
         }
@@ -1397,7 +1397,7 @@ void Twofish_prepare_key( Byte key[], int key_len, Twofish_key * xkey )
      * We first compute the 40 expanded key words,
      * formulas straight from the Twofish specifications.
      */
-    for( i=0; i<40; i+=2 )
+    for ( i=0; i<40; i+=2 )
         {
         /*
          * Due to the byte spacing expected by the h() function
@@ -1726,12 +1726,12 @@ int Twofish_Encrypt(Twofish_key *m_key, Byte *pInput,  Byte *pOutBuffer, int nIn
 
 	p = x.p32;
 	block = x.block;
-	if((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
+	if ((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
 
 	numBlocks = nInputOctets / 16;
 
 	iv = m_pInitVector;
-	for(i = numBlocks; i > 0; i--)
+	for (i = numBlocks; i > 0; i--)
 	{
 		p[0] = ((UInt32*)pInput)[0] ^ ((UInt32*)iv)[0];
 		p[1] = ((UInt32*)pInput)[1] ^ ((UInt32*)iv)[1];
@@ -1776,15 +1776,15 @@ int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer, int nInp
 
 	p = x.p32;
 	block = x.block;
-	if((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
+	if ((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
 
-	if((nInputOctets % 16) != 0) { return -1; }
+	if ((nInputOctets % 16) != 0) { return -1; }
 
 	numBlocks = nInputOctets / 16;
 
 	memcpy(iv, m_pInitVector, 16);
 
-	for(i = numBlocks - 1; i > 0; i--)
+	for (i = numBlocks - 1; i > 0; i--)
 	{
 		Twofish_decrypt(m_key, (Twofish_Byte *)pInput, (Twofish_Byte *)block);
 		p[0] ^= iv[0];
@@ -1803,10 +1803,10 @@ int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer, int nInp
 	p[2] ^= iv[2];
 	p[3] ^= iv[3];
 	padLen = block[15];
-	if(padLen <= 0 || padLen > 16) return -1;
-	for(i = 16 - padLen; i < 16; i++)
+	if (padLen <= 0 || padLen > 16) return -1;
+	for (i = 16 - padLen; i < 16; i++)
 	{
-		if(block[i] != padLen) return -1;
+		if (block[i] != padLen) return -1;
 	}
 	memcpy(pOutBuffer, block, 16 - padLen);
 
@@ -1826,14 +1826,14 @@ int Twofish_Decrypt_cfb128(Twofish_key *m_key, Twofish_Byte *pInput, Twofish_Byt
 
 	p = x.p32;
 	block = x.block;
-	if((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
+	if ((pInput == NULL) || (nInputOctets <= 0) || (pOutBuffer == NULL)) return 0;
 
 	numBlocks = nInputOctets / 16;
 	ex = nInputOctets % 16;
 
 	memcpy(iv, m_pInitVector, 16);
 
-	for(i = numBlocks; i > 0; i--)
+	for (i = numBlocks; i > 0; i--)
 	{
 		Twofish_encrypt(m_key, (Twofish_Byte *)iv, (Twofish_Byte *)block);
 		memcpy(iv, pInput, 16);

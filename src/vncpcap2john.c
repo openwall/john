@@ -209,7 +209,7 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 char* obtain(char** src) {
 	char *new;
 
-	if(!*src) return 0;
+	if (!*src) return 0;
 	new = *src;
 	*src = 0;
 	return new;
@@ -218,7 +218,7 @@ char* obtain(char** src) {
 int contains(const char* haystack, size_t len, const char* needle) {
 	size_t l = strlen(needle), i = 0;
 	while(i + l <= len) {
-		if(!memcmp(haystack + i, needle, l)) return 1;
+		if (!memcmp(haystack + i, needle, l)) return 1;
 		i++;
 	}
 	return 0;
@@ -226,7 +226,7 @@ int contains(const char* haystack, size_t len, const char* needle) {
 _Bool VNC_Auth_Reader_find_next(struct Packet_Reader* reader, char** id_out, char** challenge_out, char** response_out)
 {
 	while (Packet_Reader_kick(reader)) {
-		if(!reader->payload_len) continue;
+		if (!reader->payload_len) continue;
 		// This could be a lot smarter. It would be nice in particular
 		// to handle malformed streams and concurrent handshakes.
 		if (contains(reader->payload_str, reader->payload_len, "RFB")) {
@@ -279,7 +279,7 @@ void makehex(char* in16, char* out33) {
 	unsigned char* in = (void*)in16;
 	size_t i = 0, j = 0;
 	static const char *htab = "0123456789ABCDEF";
-	for(;i<16;i++,j+=2) {
+	for (;i<16;i++,j+=2) {
 		out33[j] = htab[in[i] >> 4];
 		out33[j+1] = htab[in[i] & 0xf];
 	}
@@ -306,9 +306,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: %s <pcapfiles>\n", argv[0]);
 		return 1;
 	}
-	for(; i < argc; i++) {
+	for (; i < argc; i++) {
 		struct Packet_Reader reader;
-		if(Packet_Reader_init(&reader, argv[i]))
+		if (Packet_Reader_init(&reader, argv[i]))
 			attempt_crack(&reader);
 		else {
 			char buf[512];

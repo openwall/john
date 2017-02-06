@@ -285,7 +285,7 @@ static char *get_key(int index)
 
 	len = ((keybuffer[15] >> 3) - SALT_SIZE) >> 1;
 
-	for(i = 0; i < len; i++)
+	for (i = 0; i < len; i++)
 		out[i] = w16[i];
 
 	out[i] = 0;

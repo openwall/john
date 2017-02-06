@@ -1930,7 +1930,7 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 			if (!k) j--;
 		}
 		if (mask[i] == '\\') {
-			if(!k) j++;
+			if (!k) j++;
 			strnzcpy(stretched_mask + j, mask + i, 3);
 			j += 2;
 		}

@@ -161,7 +161,7 @@ static char *get_key(int index) {
 	unsigned int i,s;
 
 	s = saved_key[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
-	for(i=0;i<s;i++)
+	for (i=0;i<s;i++)
 		out[i] = ((unsigned char*)saved_key)[ GETPOS(i, index) ];
 	out[i] = 0;
 	return (char *) out;
@@ -173,10 +173,10 @@ static char *get_key(int index) {
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
-	for(;y<SIMD_PARA_SHA1;y++)
-	for(x=0;x<SIMD_COEF_32;x++)
+	for (;y<SIMD_PARA_SHA1;y++)
+	for (x=0;x<SIMD_COEF_32;x++)
 	{
-		if( ((uint32_t*)binary)[1] == crypt_key[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
+		if ( ((uint32_t*)binary)[1] == crypt_key[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
 			return 1;
 	}
 	return 0;
@@ -197,25 +197,25 @@ static int cmp_one(void * binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 
-//	if( ((uint32_t*)binary)[0] != crypt_key[x+y*SIMD_COEF_32*5] )
+//	if ( ((uint32_t*)binary)[0] != crypt_key[x+y*SIMD_COEF_32*5] )
 //		return 0;
-	if( ((uint32_t*)binary)[1] != crypt_key[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
+	if ( ((uint32_t*)binary)[1] != crypt_key[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t*)binary)[2] != crypt_key[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32] )
+	if ( ((uint32_t*)binary)[2] != crypt_key[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t*)binary)[3] != crypt_key[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32] )
+	if ( ((uint32_t*)binary)[3] != crypt_key[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32] )
 		return 0;
-	if( ((uint32_t*)binary)[4] != crypt_key[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32] )
+	if ( ((uint32_t*)binary)[4] != crypt_key[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32] )
 		return 0;
 	return 1;
 #else
-	if( ((uint32_t*)binary)[1] != crypt_key[1] )
+	if ( ((uint32_t*)binary)[1] != crypt_key[1] )
 		return 0;
-	if( ((uint32_t*)binary)[2] != crypt_key[2] )
+	if ( ((uint32_t*)binary)[2] != crypt_key[2] )
 		return 0;
-	if( ((uint32_t*)binary)[3] != crypt_key[3] )
+	if ( ((uint32_t*)binary)[3] != crypt_key[3] )
 		return 0;
-	if( ((uint32_t*)binary)[4] != crypt_key[4] )
+	if ( ((uint32_t*)binary)[4] != crypt_key[4] )
 		return 0;
 	return 1;
 #endif

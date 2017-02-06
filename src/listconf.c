@@ -336,7 +336,7 @@ void list_tunable_cost_names(struct fmt_main *format, char *separator)
 	int i;
 
 	for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
-		if(format->params.tunable_cost_name[i]) {
+		if (format->params.tunable_cost_name[i]) {
 			if (i)
 				printf("%s", separator);
 			printf("%s", format->params.tunable_cost_name[i]);

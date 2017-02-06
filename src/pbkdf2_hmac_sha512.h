@@ -45,7 +45,7 @@ static void _pbkdf2_sha512_load_hmac(const unsigned char *K, int KL, SHA512_CTX 
 		KL = SHA512_DIGEST_LENGTH;
 		K = k0;
 	}
-	for(i = 0; i < KL; i++) {
+	for (i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
 	}
@@ -76,7 +76,7 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, uint64_t *out,
 
 	memcpy(out, tmp_hash, SHA512_DIGEST_LENGTH);
 
-	for(i = 1; i < R; i++) {
+	for (i = 1; i < R; i++) {
 #if !defined(COMMON_DIGEST_FOR_OPENSSL)
 		memcpy(&ctx, pIpad, 80);
 #if defined(__JTR_SHA2___H_)
@@ -107,7 +107,7 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, uint64_t *out,
 		SHA512_Update(&ctx, tmp_hash, SHA512_DIGEST_LENGTH);
 		SHA512_Final(tmp_hash, &ctx);
 
-		for(j = 0; j < SHA512_DIGEST_LENGTH/sizeof(uint64_t); j++)
+		for (j = 0; j < SHA512_DIGEST_LENGTH/sizeof(uint64_t); j++)
 			out[j] ^= ((uint64_t*)tmp_hash)[j];
 	}
 }
@@ -181,7 +181,7 @@ static void _pbkdf2_sha512_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA
 			KL[j] = SHA512_DIGEST_LENGTH;
 			K[j] = k0;
 		}
-		for(i = 0; i < KL[j]; i++) {
+		for (i = 0; i < KL[j]; i++) {
 			ipad[i] ^= K[j][i];
 			opad[i] ^= K[j][i];
 		}
@@ -286,14 +286,14 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SSE_GROUP_SZ_SHA512], int K
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
-		for(i = 1; i < R; i++) {
+		for (i = 1; i < R; i++) {
 			unsigned int k;
 			SIMDSHA512body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			SIMDSHA512body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			// only xor first 16 64-bit words
 			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
 				uint64_t *p = &o1[(k/SIMD_COEF_64)*SIMD_COEF_64*SHA_BUF_SIZ + (k&(SIMD_COEF_64-1))];
-				for(j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(uint64_t)); j++)
+				for (j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(uint64_t)); j++)
 					dgst[k][j] ^= p[j*SIMD_COEF_64];
 			}
 		}

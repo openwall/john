@@ -33,10 +33,10 @@ void dump_stuff_msg(const void *msg, void *x, unsigned int size)
 	unsigned int i;
 
 	printf("%s : ", (char *)msg);
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)x)[i]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 		printf(" ");
 	}
 	printf("\n");

@@ -120,7 +120,7 @@ static void init(struct fmt_main *self)
 	memory=malloc(threads*sizeof(region_t));
 	pseudo_rands=malloc(threads*sizeof(void*));
 
-	for(i=0;i<threads;i++)
+	for (i=0;i<threads;i++)
 	{
 		init_region_t(&memory[i]);
 		pseudo_rands[i]=NULL;
@@ -135,7 +135,7 @@ static void done(void)
 	int i;
 	free(saved_key);
 	free(crypted);
-	for(i=0;i<threads;i++)
+	for (i=0;i<threads;i++)
 	{
 		free_region_t(&memory[i]);
 		free(pseudo_rands[i]);
@@ -171,7 +171,7 @@ static void reset(struct db_main *db)
 				struct argon2_salt *salt;
 				salt=get_salt(tests[i].ciphertext);
 				m_cost = MAX(m_cost, salt->m_cost);
-				if(i==0)
+				if (i==0)
 				{
 					printf("\n");
 					prev_m_cost=m_cost;
@@ -179,7 +179,7 @@ static void reset(struct db_main *db)
 				}
 			}
 
-			if(prev_m_cost!=m_cost)
+			if (prev_m_cost!=m_cost)
 			{
 				printf("max ");
 				print_memory(sizeof(block)*m_cost);
@@ -229,7 +229,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	else
 		return 0;
 
-	if(res!=ARGON2_OK)
+	if (res!=ARGON2_OK)
 	  return 0;
 
 	return 1;
@@ -312,23 +312,23 @@ static void set_salt(void *salt)
 
 	segment_length = memory_blocks / (saved_salt.lanes * ARGON2_SYNC_POINTS);
 
-	if(mem_size>saved_mem_size)
+	if (mem_size>saved_mem_size)
 	{
-		if(saved_mem_size>0)
-			for(i=0;i<threads;i++)
+		if (saved_mem_size>0)
+			for (i=0;i<threads;i++)
 				free_region_t(&memory[i]);
-		for(i=0;i<threads;i++)
+		for (i=0;i<threads;i++)
 			alloc_region_t(&memory[i],mem_size);
 
 		saved_mem_size=mem_size;
 	}
 
-	if(segment_length>saved_segment_length)
+	if (segment_length>saved_segment_length)
 	{
-		if(saved_segment_length>0)
-			for(i=0;i<threads;i++)
+		if (saved_segment_length>0)
+			for (i=0;i<threads;i++)
 				free(pseudo_rands[i]);
-		for(i=0;i<threads;i++)
+		for (i=0;i<threads;i++)
 			pseudo_rands[i]=malloc(sizeof(uint64_t) * segment_length);
 
 		saved_segment_length=segment_length;
@@ -420,7 +420,7 @@ static int salt_hash(void *_salt)
 	unsigned int hash = 0;
 	char *p = salt->salt;
 
-	for(i=0;i<salt->salt_length;i++) {
+	for (i=0;i<salt->salt_length;i++) {
 		hash <<= 1;
 		hash += (unsigned char)*p++;
 		if (hash >> SALT_HASH_LOG) {

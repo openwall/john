@@ -310,10 +310,10 @@ int cfg_print_section_params(char *section, char *subsection)
 	int param_count = 0;
 
 	if ((current = cfg_get_section(section, subsection))) {
-		if((param = current->params))
+		if ((param = current->params))
 		do {
 			value = cfg_get_param(section, subsection, param->name);
-			if(!strcmp(param->value, value)) {
+			if (!strcmp(param->value, value)) {
 				printf("%s = %s\n", param->name, param->value);
 				param_count++;
 			}

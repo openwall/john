@@ -129,7 +129,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[CIPHERTEXT_LENGTH+1];
 
 	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH+1);
-	if( out[FORMAT_TAG_LEN] == '0')
+	if ( out[FORMAT_TAG_LEN] == '0')
 		out[FORMAT_TAG_LEN] = '1';
 	return out;
 }

@@ -181,7 +181,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	    amd_vliw5(device_info[gpu_id]) ||
 	    (get_local_memory_size(gpu_id) < local_work_size * lmem_per_th))
 	{
-	        if(CHANNEL_INTERLEAVE == 1)
+	        if (CHANNEL_INTERLEAVE == 1)
 		        opencl_init("$JOHN/kernels/bf_cpu_kernel.cl",
 			             gpu_id, NULL);
 	        else {

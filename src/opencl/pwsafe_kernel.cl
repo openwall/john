@@ -173,9 +173,9 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 	uint32_t w[32] = {0};
 	uint32_t tstate[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
-	if(pl < 24)
+	if (pl < 24)
 	{
-		for(i = 0; i < pl; i++)
+		for (i = 0; i < pl; i++)
 		{
 			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
 		}
@@ -189,7 +189,7 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 	}
 	else
 	{
-		for(i = 0; i < pl; i++)
+		for (i = 0; i < pl; i++)
 		{
 			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
 		}

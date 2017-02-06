@@ -136,7 +136,7 @@ static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *sta
 	memcpy(buffer, state, 16);
 	memcpy(buffer + 16, data, 16);
 
-	for(i=0;i<16;i+=4)
+	for (i=0;i<16;i+=4)
 	{
 		buffer[32+i] = data[i] ^ state[i];
 		buffer[32+i+1] = data[i+1] ^ state[i+1];
@@ -144,9 +144,9 @@ static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *sta
 		buffer[32+i+3] = data[i+3] ^ state[i+3];
 	}
 
-	for(j=c=0;j<18;j++)
+	for (j=c=0;j<18;j++)
 	{
-		for(i=0;i<sizeof(buffer);i+=6)
+		for (i=0;i<sizeof(buffer);i+=6)
 		{
 			buffer[i] ^= ebits_to_num[(c-i+48) & 0xFF];
 			buffer[i+1] ^= ebits_to_num[(buffer[i]-i+47) & 0xFF];
@@ -162,7 +162,7 @@ static void custom_password_hash_trans(uint8_t *data, uint8_t *out, uint8_t *sta
 
 	c = out[15];
 
-	for(i=0;i<16;i+=4)
+	for (i=0;i<16;i+=4)
 	{
 		out[i] ^= ebits_to_num[data[i] ^ c];
 		out[i+1] ^= ebits_to_num[data[i+1] ^ out[i]];
@@ -189,7 +189,7 @@ static void custom_password_hash(const char *password, uint8_t *out)
 		block_pos += 16;
 	}
 
-	if(block_pos != len)
+	if (block_pos != len)
 	{
 		rlen = len - block_pos;
 		memcpy(block1, password+block_pos, rlen);
@@ -229,11 +229,11 @@ static void compute_key_mac(uint8_t *key, size_t len, uint8_t *mac, size_t mac_l
 	size_t i, j, mlen=mac_len-1;
 	uint8_t k;
 
-	for(i=0;i<16;i++)
+	for (i=0;i<16;i++)
 	{
 		k = ebits_to_num[mac[0] ^ mac[1]];
 
-		for(j=0;j<mlen;j++)
+		for (j=0;j<mlen;j++)
 		{
 			mac[j] = mac[j+1];
 		}
@@ -248,9 +248,9 @@ static void compute_msg_mac(uint8_t *msg, size_t len, uint8_t *msg_mac)
 	size_t i, j;
 	uint8_t c;
 
-	for(i=j=0;i<len;i++)
+	for (i=j=0;i<len;i++)
 	{
-		if(j!=4)
+		if (j!=4)
 		{
 			msg_mac[j] = msg[i] ^ ebits_to_num[msg_mac[j] ^ msg_mac[j+1]];
 			j++;
@@ -263,7 +263,7 @@ static void compute_msg_mac(uint8_t *msg, size_t len, uint8_t *msg_mac)
 	}
 
 	c = msg_mac[0];
-	for(i=0;i<4;i++)
+	for (i=0;i<4;i++)
 	{
 		msg_mac[i] = msg_mac[i+1];
 	}
@@ -321,13 +321,13 @@ static int lotus85_valid(char *ciphertext,struct fmt_main *self)
 
 	len = strlen(ciphertext);
 
-	if(len % 2)
+	if (len % 2)
 		return 0;
 
-	if((len >> 1) > LOTUS85_MAX_BLOB_SIZE)
+	if ((len >> 1) > LOTUS85_MAX_BLOB_SIZE)
 		return 0;
 
-	if((len >> 1) < LOTUS85_MIN_BLOB_SIZE)
+	if ((len >> 1) < LOTUS85_MIN_BLOB_SIZE)
 		return 0;
 
 	if (hexlenu(ciphertext, &extra)  != len || extra)
@@ -406,9 +406,9 @@ static int lotus85_cmp_all(void *binary,int count)
 {
 	int i;
 
-	for(i = 0; i < count; i++)
+	for (i = 0; i < count; i++)
 	{
-		if(!memcmp(lotus85_last_binary_hash1[i],lotus85_last_binary_hash2[i],BINARY_LENGTH))
+		if (!memcmp(lotus85_last_binary_hash1[i],lotus85_last_binary_hash2[i],BINARY_LENGTH))
 			return 1;
 	}
 

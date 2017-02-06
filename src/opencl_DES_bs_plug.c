@@ -475,7 +475,7 @@ size_t create_checking_kernel_set_args()
 	memset(cmp_kernel[gpu_id], 0, 4096 * sizeof(cl_kernel));
 
 	for (i = 0; i < 4096; i++) {
-		if(num_uncracked_hashes(i) <= LOW_THRESHOLD)
+		if (num_uncracked_hashes(i) <= LOW_THRESHOLD)
 			cmp_kernel[gpu_id][i] = kernel_low;
 		else
 			cmp_kernel[gpu_id][i] = kernel_high;
@@ -485,7 +485,7 @@ size_t create_checking_kernel_set_args()
 
 	min_lws = get_kernel_max_lws(gpu_id, kernel_high);
 
-	if(min_lws > get_kernel_max_lws(gpu_id, kernel_low))
+	if (min_lws > get_kernel_max_lws(gpu_id, kernel_low))
 		return get_kernel_max_lws(gpu_id, kernel_low);
 
 	return min_lws;

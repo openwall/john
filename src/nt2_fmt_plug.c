@@ -568,7 +568,7 @@ static char *get_key(int index)
 	unsigned int md4_size=0;
 	unsigned int i=0;
 
-	for(; md4_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md4_size++)
+	for (; md4_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md4_size++)
 	{
 		key[md4_size] = keybuffer[i];
 		key[md4_size+1] = keybuffer[i] >> 16;
@@ -621,10 +621,10 @@ static int cmp_all(void *binary, int count) {
 #else
 	const unsigned int c = SIMD_PARA_MD4;
 #endif
-	for(y = 0; y < c; y++)
-		for(x = 0; x < SIMD_COEF_32; x++)
+	for (y = 0; y < c; y++)
+		for (x = 0; x < SIMD_COEF_32; x++)
 		{
-			if( ((uint32_t*)binary)[1] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x+SIMD_COEF_32] )
+			if ( ((uint32_t*)binary)[1] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x+SIMD_COEF_32] )
 				return 1;
 		}
 	return 0;

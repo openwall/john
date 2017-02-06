@@ -101,7 +101,7 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static struct custom_salt {
 	int iterations; // really really unused (even in the original code)
 	int salt_length;
-	char unsigned salt[ECRYPTFS_SALT_SIZE + 1];
+	unsigned char salt[ECRYPTFS_SALT_SIZE + 1];
 } *cur_salt;
 
 static void init(struct fmt_main *self)

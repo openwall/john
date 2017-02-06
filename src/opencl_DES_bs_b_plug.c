@@ -97,7 +97,7 @@ static void clean_all_buffers()
 	release_clobj();
 	release_clobj_kpc();
 
-	for( i = 0; i < 1; i++) {
+	for ( i = 0; i < 1; i++) {
 		if (kernels[gpu_id][i]) {
 			HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
 			kernels[gpu_id][i] = NULL;

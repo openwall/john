@@ -220,7 +220,7 @@ static void set_key(char *key, int index)
 		SHA1_Final(k0, &ctx);
 
 		keyp = (unsigned int*)k0;
-		for(i = 0; i < BINARY_SIZE / 4; i++, ipadp += SIMD_COEF_32, opadp += SIMD_COEF_32)
+		for (i = 0; i < BINARY_SIZE / 4; i++, ipadp += SIMD_COEF_32, opadp += SIMD_COEF_32)
 		{
 			temp = JOHNSWAP(*keyp++);
 			*ipadp ^= temp;
@@ -264,14 +264,14 @@ static void set_key(char *key, int index)
 
 		len = BINARY_SIZE;
 
-		for(i = 0; i < len; i++)
+		for (i = 0; i < len; i++)
 		{
 			ipad[index][i] ^= k0[i];
 			opad[index][i] ^= k0[i];
 		}
 	}
 	else
-	for(i = 0; i < len; i++)
+	for (i = 0; i < len; i++)
 	{
 		ipad[index][i] ^= key[i];
 		opad[index][i] ^= key[i];
@@ -290,11 +290,11 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	unsigned int x, y = 0;
 
-	for(;y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
-		for(x = 0; x < SIMD_COEF_32; x++)
+	for (;y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
+		for (x = 0; x < SIMD_COEF_32; x++)
 		{
 			// NOTE crypt_key is in input format (4*SHA_BUF_SIZ*SIMD_COEF_32)
-			if(((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32 * SHA_BUF_SIZ])
+			if (((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32 * SHA_BUF_SIZ])
 				return 1;
 		}
 	return 0;
@@ -314,7 +314,7 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
 	int i;
-	for(i = 0; i < (BINARY_SIZE/4); i++)
+	for (i = 0; i < (BINARY_SIZE/4); i++)
 		// NOTE crypt_key is in input format (4 * SHA_BUF_SIZ * SIMD_COEF_32)
 		if (((uint32_t*)binary)[i] != ((uint32_t*)crypt_key)[i * SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32 * SHA_BUF_SIZ * SIMD_COEF_32])
 			return 0;

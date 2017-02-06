@@ -194,7 +194,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 	key_transf_rounds = fget32(fp);
 	/* Check if the database is supported */
-	if((version & 0xFFFFFF00) != (0x00030002 & 0xFFFFFF00)) {
+	if ((version & 0xFFFFFF00) != (0x00030002 & 0xFFFFFF00)) {
 		fprintf(stderr, "! %s : Unsupported file version!\n", encryptedDatabase);
 		return;
 	}
@@ -262,7 +262,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		if (filesize_keyfile == 32)
 			print_hex(buffer, filesize_keyfile);
 		else if (filesize_keyfile == 64){
-			for(counter = 0; counter <64; counter++)
+			for (counter = 0; counter <64; counter++)
 				printf ("%c", buffer[counter]);
 		}
 		else{
@@ -374,7 +374,7 @@ static void process_database(char* encryptedDatabase)
 				break;
 
 			case TransformRounds:
-				if(!pbData) {
+				if (!pbData) {
 					fprintf(stderr, "! %s : parsing failed (pbData is NULL), please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 					goto bailout;
 				}
@@ -404,7 +404,7 @@ static void process_database(char* encryptedDatabase)
 		}
 	}
 	dataStartOffset = ftell(fp);
-	if(transformRounds == 0) {
+	if (transformRounds == 0) {
 		fprintf(stderr, "! %s : transformRounds can't be 0\n", encryptedDatabase);
 		goto bailout;
 	}
@@ -470,7 +470,7 @@ static void process_database(char* encryptedDatabase)
 			print_hex(buffer, filesize_keyfile);
 		else if (filesize_keyfile == 64)
 		{
-			for(counter = 0; counter <64; counter++)
+			for (counter = 0; counter <64; counter++)
 				printf ("%c", buffer[counter]);
 		}
 		else
@@ -519,7 +519,7 @@ int keepass2john(int argc, char **argv)
 		}
 	}
 	argc -= optind;
-	if(argc == 0)
+	if (argc == 0)
 		return usage(argv[0]);
 	argv += optind;
 

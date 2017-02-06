@@ -498,7 +498,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		fprintf(stderr, "Proceeding with incremental:%s\n", mode);
 
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
-		if(cfg_get_section(SECTION_INC, mode) == NULL) {
+		if (cfg_get_section(SECTION_INC, mode) == NULL) {
 			log_event("! Unknown incremental mode: %s", mode);
 			if (john_main_process)
 				fprintf(stderr, "Unknown incremental mode: %s\n",

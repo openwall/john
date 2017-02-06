@@ -138,7 +138,7 @@ static void *get_salt(char *ciphertext)
 
 	p = ciphertext + FORMAT_TAG_LENGTH + 2 * BINARY_SIZE;
 	// AUTH_VFR_DATA is variable, and 16 bytes in length
-	for(i = 0; i < 16; i++)
+	for (i = 0; i < 16; i++)
 		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 
 	strncpy((char*)cs.salt + 16, "AUTH_PBKDF2_SPEEDY_KEY", 22);  // add constant string to the salt
