@@ -11,19 +11,20 @@ use File::Basename;
 # magnum (adapt to JtR use)
 
 # version:
-# 0.9
+# 1.0
 
 # date released:
 # April 2015
 
 # date last updated:
-# 24th January 2017
+# 5th February 2017
 
 # dependencies:
 # Compress::Raw::Lzma
 
 # supported file types:
 # - is able to identify and parse .7z files
+# - is able to identify and parse splitted .7z files (.7z.001, .7z.002, ...)
 # - is able to identify and parse regular (non-packed) .sfx files
 
 # install dependencies like this:
@@ -195,11 +196,92 @@ sub my_read
 
   my $type_of_input = ref ($input);
 
-  my $output_buffer;
+  my $output_buffer = "";
 
   if ($type_of_input eq "GLOB")
   {
     read $input, $output_buffer, $length;
+  }
+  elsif ($type_of_input eq "HASH")
+  {
+    my $cur_file_handle = $$input{0}{'fh'};
+    my $cur_file_number = $$input{0}{'num'};
+
+    my $bytes_read = 0;
+
+    while ($bytes_read != $length)
+    {
+      my $name  = $$input{$cur_file_number}{'name'};
+      my $start = $$input{$cur_file_number}{'start'};
+      my $size  = $$input{$cur_file_number}{'size'};
+
+      my $cur_file_bytes_avail = ($start + $size) - $memory_buffer_read_offset;
+
+      if ($cur_file_bytes_avail < 1)
+      {
+        print STDERR "ERROR: failed to get the correct file offsets of splitted archive file '$name'\n";
+
+        exit (1);
+      }
+
+      my $total_bytes_to_read  = $length - $bytes_read;
+      my $bytes_to_read = $total_bytes_to_read;
+
+      if ($bytes_to_read > $cur_file_bytes_avail)
+      {
+        $bytes_to_read = $cur_file_bytes_avail;
+      }
+
+      # append the current bytes read from the file to the overall output buffer
+
+      my $temp_output_buffer = "";
+
+      my $bytes = read ($cur_file_handle, $temp_output_buffer, $bytes_to_read);
+
+      $output_buffer .= $temp_output_buffer;
+
+      if ($bytes != $bytes_to_read)
+      {
+        print STDERR "ERROR: could not read from splitted 7z file '$name'\n";
+
+        exit (1);
+      }
+
+      $bytes_read += $bytes_to_read;
+      $memory_buffer_read_offset += $bytes_to_read;
+
+      # the following case only happens if we need to read across 2 or more files
+
+      if ($bytes_read != $length)
+      {
+        # we exhausted the current file, move to the next one!
+
+        close ($cur_file_handle);
+
+        $cur_file_number++;
+
+        if (! exists ($$input{$cur_file_number}))
+        {
+          my $name_prefix = get_splitted_archive_raw_name ($name);
+
+          print STDERR "ERROR: could not open part #$cur_file_number of the splitted archive file '$name_prefix'\n";
+
+          exit (1);
+        }
+
+        my $name = $$input{$cur_file_number}{'name'};
+
+        if (! open ($cur_file_handle, "<$name"))
+        {
+          print STDERR "ERROR: could not open the splitted archive file '$name' for reading\n";
+
+          exit (1);
+        }
+
+        $$input{0}{'fh'}  = $cur_file_handle;
+        $$input{0}{'num'} = $cur_file_number;
+      }
+    }
   }
   else
   {
@@ -211,13 +293,161 @@ sub my_read
   return $output_buffer;
 }
 
+sub my_tell
+{
+  my $input = shift;
+
+  my $res = 0;
+
+  my $type_of_input = ref ($input);
+
+  if ($type_of_input eq "HASH")
+  {
+    $res = $memory_buffer_read_offset;
+  }
+  else
+  {
+    $res = tell ($input);
+  }
+
+  return $res;
+}
+
+sub my_seek
+{
+  my $input  = shift;
+  my $offset = shift;
+  my $whence = shift;
+
+  my $res = 0;
+
+  my $type_of_input = ref ($input);
+
+  if ($type_of_input eq "HASH")
+  {
+    # get total number of files and total/accumulated file size
+
+    my $number_of_files= 1;
+
+    # we assume that $$input{1} exists (we did already check that beforehand)
+
+    my $end = 0;
+
+    while (exists ($$input{$number_of_files}))
+    {
+      $end = $$input{$number_of_files}{'start'} + $$input{$number_of_files}{'size'};
+
+      $number_of_files++;
+    }
+
+    my $new_offset = 0;
+
+    # absolute (from start)
+    if ($whence == 0)
+    {
+      $new_offset = $offset;
+    }
+    # relative (depending on current position)
+    elsif ($whence == 1)
+    {
+      $new_offset = $memory_buffer_read_offset + $offset;
+    }
+    # offset from the end of the file
+    else
+    {
+      $new_offset = $end + $offset;
+    }
+
+    # sanity check
+
+    if (($new_offset < 0) || ($new_offset > $end))
+    {
+      my $name = get_splitted_archive_raw_name ($$input{1}{'name'});
+
+      print STDERR "ERROR: could not seek within the splitted archive '$name'\n";
+
+      exit (1);
+    }
+
+    $memory_buffer_read_offset = $new_offset;
+
+    # check if the correct file is open
+    # 1. determine the correct file
+    # 2. if the "incorrect" file is open, close it and open the correct one
+
+    my $cur_file_number = 1;
+    my $file_was_found  = 0;
+
+    my $start = 0;
+    my $size  = 0;
+
+    while (exists ($$input{$cur_file_number}))
+    {
+      $start = $$input{$cur_file_number}{'start'};
+      $size  = $$input{$cur_file_number}{'size'};
+
+      my $end = $start + $size;
+
+      if ($memory_buffer_read_offset >= $start)
+      {
+        if ($memory_buffer_read_offset < $end)
+        {
+          $file_was_found = 1;
+
+          last;
+        }
+      }
+
+      $cur_file_number++;
+    }
+
+    if ($file_was_found == 0)
+    {
+      my $name = get_splitted_archive_raw_name ($$input{1}{'name'});
+
+      print STDERR "ERROR: could not read the splitted archive '$name' (maybe some parts are missing?)\n";
+
+      exit (1);
+    }
+
+    if ($$input{0}{'num'} != $cur_file_number)
+    {
+      # if we enter this block, we definitely need to "change" to another file
+
+      close ($$input{0}{'fh'});
+
+      my $name = $$input{$cur_file_number}{'name'};
+
+      my $seven_zip_file;
+
+      if (! open ($seven_zip_file, "<$name"))
+      {
+        print STDERR "ERROR: could not open the file '$name' for reading\n";
+
+        exit (1);
+      }
+
+      $$input{0}{'fh'}  = $seven_zip_file;
+      $$input{0}{'num'} = $cur_file_number;
+    }
+
+    # always seek w/ absolute positions within the splitted part!
+    $res = seek ($$input{0}{'fh'}, $memory_buffer_read_offset - $start, 0);
+  }
+  else
+  {
+    $res = seek ($input, $offset, $whence);
+  }
+
+  return $res;
+}
+
 sub get_uint32
 {
   my $fp = shift;
 
   my $bytes = my_read ($fp, 4);
 
-  return (0, 0) if (! defined ($bytes));
   return (0, 0) if (length ($bytes) != 4);
 
   my $num = unpack ("L", $bytes);
@@ -231,7 +461,6 @@ sub get_uint64
 
   my $bytes = my_read ($fp, 8);
 
-  return (0, 0) if (! defined ($bytes));
   return (0, 0) if (length ($bytes) != 8);
 
   my ($uint1, $uint2) = unpack ("LL<", $bytes);
@@ -682,7 +911,7 @@ sub extract_hash_from_archive
 
   my $current_index = 0;
 
-  seek $fp, $current_seek_position, 0;
+  my_seek ($fp, $current_seek_position, 0);
 
   # if it is lzma compressed, we need to decompress it first
 
@@ -914,7 +1143,7 @@ sub extract_hash_from_archive
 
   # reset the file pointer to the position after signature header and get the data
 
-  seek $fp, $current_seek_position, 0;
+  my_seek ($fp, $current_seek_position, 0);
 
   # get remaining hash info (iv, number cycles power)
 
@@ -943,7 +1172,7 @@ sub extract_hash_from_archive
     {
       if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
       {
-        seek $fp, $data_len - 32, 1;
+        my_seek ($fp, $data_len - 32, 1);
 
         $iv_buf = my_read ($fp, 16);
         $iv_len = 16;
@@ -1132,7 +1361,7 @@ sub read_seven_zip_signature_header
 
   my_read ($fp, 4); # next header CRC
 
-  my $position_after_header = tell $fp;
+  my $position_after_header = my_tell ($fp);
 
   $signature = {
     "major_version" => $major_version,
@@ -2270,7 +2499,7 @@ sub read_seven_zip_files_info
 
         my $crc_item = $unpack_info->{'digests'}[$index_sizes];
 
-        $files[$i]->{'crc'} = $crc_item->{crc};
+        $files[$i]->{'crc'} = $crc_item->{'crc'};
       }
       else
       {
@@ -2284,7 +2513,7 @@ sub read_seven_zip_files_info
 
           my $crc_item = $substreams_info->{'digests'}[$index_sizes];
 
-          $files[$i]->{'crc'} = $crc_item->{crc};
+          $files[$i]->{'crc'} = $crc_item->{'crc'};
         }
       }
 
@@ -2452,7 +2681,7 @@ sub read_seven_zip_next_header
 
   # get the header of size header_size at relative position header_offset
 
-  seek $fp, $header_offset, 1;
+  my_seek ($fp, $header_offset, 1);
 
   # read the header
 
@@ -2556,32 +2785,28 @@ sub sfx_7z_pe_search
 
   my $bytes = my_read ($fp, 2);
 
-  return 0 if (! defined ($bytes));
   return 0 if (length ($bytes) != 2);
   return 0 if ($bytes ne "MZ"); # 0x5a4d
   return 0 if (length (my_read ($fp, 58)) != 58);
 
   $bytes = my_read ($fp, 4);
 
-  return 0 if (! defined ($bytes));
   return 0 if (length ($bytes) != 4);
 
   my $e_lfanew = unpack ("L", $bytes);
 
-  seek ($fp, $e_lfanew, 0);
+  my_seek ($fp, $e_lfanew, 0);
 
   # PE header
 
   $bytes = my_read ($fp, 4); # PE0000 signature after DOS part
 
-  return 0 if (! defined ($bytes));
   return 0 if (length ($bytes) != 4);
   return 0 if ($bytes ne "PE\x00\x00");
   return 0 if (length (my_read ($fp, 2)) != 2); # skip FileHeader.Machine
 
   $bytes = my_read ($fp, 2);
 
-  return 0 if (! defined ($bytes));
   return 0 if (length ($bytes) != 2);
 
   my $num_sections = unpack ("S", $bytes);
@@ -2605,7 +2830,6 @@ sub sfx_7z_pe_search
 
     $bytes = my_read ($fp, 4);
 
-    return 0 if (! defined ($bytes));
     return 0 if (length ($bytes) != 4);
 
     my $size_of_raw_data = unpack ("L", $bytes);
@@ -2614,7 +2838,6 @@ sub sfx_7z_pe_search
 
     $bytes = my_read ($fp, 4);
 
-    return 0 if (! defined ($bytes));
     return 0 if (length ($bytes) != 4);
 
     my $pointer_to_raw_data = unpack ("L", $bytes);
@@ -2636,11 +2859,10 @@ sub sfx_7z_pe_search
 
   # check if 7z signature found (after stub)
 
-  seek ($fp, $pos_after_farthest_section, 0);
+  my_seek ($fp, $pos_after_farthest_section, 0);
 
   $bytes = my_read ($fp, $SEVEN_ZIP_MAGIC_LEN);
 
-  return 0 if (! defined ($bytes));
   return 0 if (length ($bytes) != $SEVEN_ZIP_MAGIC_LEN);
 
   if ($bytes eq $SEVEN_ZIP_MAGIC)
@@ -2675,7 +2897,7 @@ sub sfx_7z_512_search
       last;
     }
 
-    seek ($fp, $seek_skip, 1);
+    my_seek ($fp, $seek_skip, 1);
 
     $bytes = my_read ($fp, $SEVEN_ZIP_MAGIC_LEN);
 
@@ -2703,7 +2925,6 @@ sub sfx_7z_full_search
   {
     my $bytes = my_read ($fp, $SEVEN_ZIP_MAGIC_LEN);
 
-    last if (! defined ($bytes));
     last if (length  ($bytes) == 0);
 
     $prev_idx_into_magic = $idx_into_magic;
@@ -2758,11 +2979,11 @@ sub sfx_get_hash
 
   # Variant 1 (PE file structure parsing)
 
-  seek ($fp, 0, 0);
+  my_seek ($fp, 0, 0);
 
   if (sfx_7z_pe_search ($fp))
   {
-    my $cur_pos = tell ($fp);
+    my $cur_pos = my_tell ($fp);
 
     $db_positions_analysed{$cur_pos} = 1; # mark it as analyzed
 
@@ -2781,11 +3002,11 @@ sub sfx_get_hash
 
   # Variant 2 (search only at the 512 bytes bounderies)
 
-  seek ($fp, 512, 0);
+  my_seek ($fp, 512, 0);
 
   while (sfx_7z_512_search ($fp) != 0)
   {
-    my $cur_pos = tell ($fp);
+    my $cur_pos = my_tell ($fp);
 
     if (! exists ($db_positions_analysed{$cur_pos}))
     {
@@ -2804,14 +3025,14 @@ sub sfx_get_hash
       }
     }
 
-    last if (seek ($fp, $cur_pos + 512 - $SEVEN_ZIP_MAGIC_LEN, 0) != 1);
+    last if (my_seek ($fp, $cur_pos + 512 - $SEVEN_ZIP_MAGIC_LEN, 0) != 1);
   }
 
   # Variant 3 (full search - worst case - shouldn't happen at all with a standard .sfx)
 
-  seek ($fp, 0, 2);
+  my_seek ($fp, 0, 2);
 
-  my $file_size = tell ($fp);
+  my $file_size = my_tell ($fp);
 
   if ($file_size > 8 * 1024 * 1024) # let's say that 8 MiB is already a huge file
   {
@@ -2819,17 +3040,17 @@ sub sfx_get_hash
     print STDERR $file_path . "') might take some time\n";
   }
 
-  seek ($fp, 1, 0); # we do no that the signature is not at position 0, so we start at 1
+  my_seek ($fp, 1, 0); # we do no that the signature is not at position 0, so we start at 1
 
   my ($full_search_found, $full_search_idx) = sfx_7z_full_search ($fp);
 
   while ($full_search_found != 0)
   {
-    my $cur_pos = tell ($fp);
+    my $cur_pos = my_tell ($fp);
 
     $cur_pos -= $full_search_idx;
 
-    seek ($fp, $cur_pos, 0); # we might not be there yet (depends if $full_search_idx != 0)
+    my_seek ($fp, $cur_pos, 0); # we might not be there yet (depends if $full_search_idx != 0)
 
     if (! exists ($db_positions_analysed{$cur_pos}))
     {
@@ -2849,7 +3070,7 @@ sub sfx_get_hash
       }
     }
 
-    seek ($fp, $cur_pos, 0); # seek back to position JUST AFTER the previously found signature
+    my_seek ($fp, $cur_pos, 0); # seek back to position JUST AFTER the previously found signature
 
     ($full_search_found, $full_search_idx) = sfx_7z_full_search ($fp);
   }
@@ -2878,6 +3099,243 @@ sub sfx_get_hash
   return $hash_buf;
 }
 
+sub globbing_on_windows
+{
+  my @file_list = @_;
+
+  my $os = $^O;
+
+  if (($os eq "MSWin32") || ($os eq "Win32"))
+  {
+    my $windows_globbing_module = "File::Glob";
+    my $windows_globbing = "bsd_glob";
+
+    if (eval "require $windows_globbing_module")
+    {
+      no strict 'refs';
+
+      $windows_globbing_module->import ($windows_globbing);
+
+      my @new_file_list = ();
+
+      foreach my $item (@file_list)
+      {
+        push (@new_file_list, $windows_globbing-> ($item));
+      }
+
+      @file_list = @new_file_list;
+    }
+  }
+
+  return @file_list;
+}
+
+sub get_splitted_archive_raw_name
+{
+  my $full_name = shift;
+
+  my $name_idx = rindex ($full_name, ".");
+
+  my $name = substr ($full_name, 0, $name_idx);
+
+  return $name;
+}
+
+sub get_ordered_splitted_file_list
+{
+  my @files = @_;
+
+  return () unless (scalar (@files) > 0); # never the case (already checked)
+
+  my $failed = 0;
+  my $num_probably_splitted_files = 0;
+
+  my $file_prefix = "";
+  my $extension_length = 0;
+
+  foreach my $file_name (@files)
+  {
+    my $idx_extension = rindex ($file_name, ".");
+
+    if ($idx_extension == -1)
+    {
+      $failed = 1;
+      last;
+    }
+
+    my $prefix    = substr ($file_name, 0, $idx_extension);
+    my $extension = substr ($file_name, $idx_extension + 1);
+
+    if (length ($prefix) == 0)
+    {
+      $failed = 1;
+      last;
+    }
+
+    # detect change in file prefix (the actual "name")
+
+    if (length ($file_prefix) == 0) #init
+    {
+      $file_prefix = $prefix;
+    }
+
+    if ($prefix ne $file_prefix)
+    {
+      $failed = 1;
+      last;
+    }
+
+    # check extensions (should be numbers only)
+
+    if ($extension !~ /^[0-9]*$/)
+    {
+      $failed = 1;
+      last;
+    }
+
+    if ($extension_length == 0) # init
+    {
+      $extension_length = length ($extension);
+    }
+
+    if (length ($extension) != $extension_length)
+    {
+      $failed = 1;
+      last;
+    }
+
+    $num_probably_splitted_files++;
+  }
+
+  return () unless (length ($file_prefix) > 0);
+  return () unless ($extension_length > 0);
+
+  if ($failed == 1)
+  {
+    if ($num_probably_splitted_files > 1)
+    {
+      print STDERR "WARNING: it seems that some files could be part of a splitted 7z archive named '$file_prefix'\n";
+      print STDERR "ATTENTION: make sure to only specify the files belonging to the splitted archive (do not combine them with other archives)\n";
+    }
+
+    return ();
+  }
+
+  # sort the list and check if there is no missing file
+  # (at this point in time we can't verify if the last file is really the last one)
+
+  my @sorted_file_list = sort (@files);
+
+  my $max = scalar (@sorted_file_list);
+
+  return () if ($max != scalar (@files));
+
+  for (my $count = 0; $count < $max; $count++)
+  {
+    my $current_extension = sprintf ("%0${extension_length}i", $count + 1); # the splits start with .001, .002, ...
+
+    return () if ($sorted_file_list[$count] ne "$file_prefix.$current_extension");
+  }
+
+  return @sorted_file_list;
+}
+
+sub get_file_sizes_list
+{
+  my @files = @_;
+
+  my %files_with_sizes = ();
+
+  my $accumulated_size = 0;
+
+  for (my $count = 0; $count < scalar (@files); $count++)
+  {
+    my $file = $files[$count];
+
+    my @file_stat = stat ($file);
+
+    if (scalar (@file_stat) < 1)
+    {
+      print STDERR "ERROR: could not get the file size of the file '$file'\n";
+
+      exit (1);
+    }
+
+    $files_with_sizes{0}{'fh'} = undef; # the file handle
+    $files_with_sizes{0}{'num'} = 0;
+
+    $files_with_sizes{$count + 1}{'name'}  = $file;
+    $files_with_sizes{$count + 1}{'size'}  = $file_stat[7];
+    $files_with_sizes{$count + 1}{'start'} = $accumulated_size;
+
+    $accumulated_size += $file_stat[7];
+  }
+
+  return %files_with_sizes;
+}
+
+sub splitted_seven_zip_open
+{
+  my @files = @_;
+
+  my @sorted_file_list = get_ordered_splitted_file_list (@files);
+
+  return 0 if (scalar (@sorted_file_list) < 1);
+
+  my %file_list_with_sizes = get_file_sizes_list (@sorted_file_list);
+
+  # start to parse the file list
+
+  $memory_buffer_read_offset = 0; # just to be safe
+
+  my $first_splitted_file = $file_list_with_sizes{1}{'name'};
+
+  my $hash_buf = "";
+
+  # open file for reading
+
+  my $seven_zip_file;
+
+  if (! open ($seven_zip_file, "<$first_splitted_file"))
+  {
+    print STDERR "ERROR: could not open the the splitted archive file '$first_splitted_file' for reading\n";
+
+    exit (1);
+  }
+
+  binmode ($seven_zip_file);
+
+  $file_list_with_sizes{0}{'fh'}  = $seven_zip_file;
+  $file_list_with_sizes{0}{'num'} = 1; # meaning is: "first file"
+
+  # check if valid and supported 7z file
+
+  if (! is_supported_seven_zip_file (\%file_list_with_sizes))
+  {
+    print STDERR "ERROR: the splitted archive file '$first_splitted_file' is not a valid 7z file\n";
+
+    exit (1);
+  }
+
+  my $archive = read_seven_zip_archive (\%file_list_with_sizes);
+
+  $hash_buf = extract_hash_from_archive (\%file_list_with_sizes, $archive, $first_splitted_file);
+
+  # cleanup
+
+  close ($seven_zip_file);
+
+  if (defined ($hash_buf))
+  {
+    if (length ($hash_buf) > 0)
+    {
+      print $hash_buf . "\n";
+    }
+  }
+
+  return 1;
+}
+
 #
 # Start
 #
@@ -2889,7 +3347,22 @@ if (scalar (@ARGV) lt 1)
   exit (1);
 }
 
-foreach my $file_name (@ARGV)
+my @file_list = globbing_on_windows (@ARGV);
+
+# try to handle this special case: splitted .7z files (.7z.001, .7z.002, .7z.003, ...)
+# ATTENTION: there is one restriction here: splitted archives shouldn't be combined with other
+# splitted or non-splitted archives
+
+my $was_splitted = splitted_seven_zip_open (@file_list);
+
+if ($was_splitted == 1)
+{
+  exit (0);
+}
+
+# "non-splitted" file list:
+
+foreach my $file_name (@file_list)
 {
   if (! -e $file_name)
   {
