@@ -69,6 +69,8 @@ AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSani
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
+AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as erros])], [werror=$enableval], [werror=no])
+
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
@@ -221,6 +223,10 @@ fi
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
+
+if test "x$werror" = xyes ; then
+   JTR_FLAG_CHECK([-Werror], 1)
+fi
 if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
    JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
 else
