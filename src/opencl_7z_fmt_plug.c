@@ -208,7 +208,7 @@ static void create_clobj(size_t global_work_size, struct fmt_main *self)
 	    NULL, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem salt");
 	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 

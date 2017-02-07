@@ -15,6 +15,7 @@
 
 typedef struct {
 	uint cracked;
+	uint any_cracked;
 	uint key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } enpass_out;
 
@@ -45,41 +46,7 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 
 	// First/next 20 bytes of output
 	for (i = 0; i < 5; i++)
-#ifdef SCALAR
 		out[gid].key[base + i] = SWAP32(state[gid].out[i]);
-#else
-
-#define VEC_OUT(NUM)	  \
-	out[gid * V_WIDTH + 0x##NUM].dk[base + i] = \
-		SWAP32(state[gid].out[i].s##NUM)
-
-	{
-		VEC_OUT(0);
-		VEC_OUT(1);
-#if V_WIDTH > 2
-		VEC_OUT(2);
-#if V_WIDTH > 3
-		VEC_OUT(3);
-#if V_WIDTH > 4
-		VEC_OUT(4);
-		VEC_OUT(5);
-		VEC_OUT(6);
-		VEC_OUT(7);
-#if V_WIDTH > 8
-		VEC_OUT(8);
-		VEC_OUT(9);
-		VEC_OUT(a);
-		VEC_OUT(b);
-		VEC_OUT(c);
-		VEC_OUT(d);
-		VEC_OUT(e);
-		VEC_OUT(f);
-#endif
-#endif
-#endif
-#endif
-	}
-#endif
 
 #ifndef OUTLEN
 #define OUTLEN salt->outlen
@@ -96,7 +63,6 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 		state[gid].iter_cnt = salt->iterations - 1;
 #endif
 	} else {
-#ifdef SCALAR
 		uint32_t pageSize;
 		uint32_t usableSize;
 		uchar data[16];
@@ -123,12 +89,7 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 
 		out[gid].cracked = success;
 
-		barrier(CLK_GLOBAL_MEM_FENCE);
 		if (success)
-			atomic_or(&out[0].cracked, 2);
-
-#else
-#error no vector support yet
-#endif
+			atomic_or(&out[0].any_cracked, 1);
 	}
 }

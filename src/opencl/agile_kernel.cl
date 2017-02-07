@@ -45,6 +45,7 @@ typedef struct {
 
 typedef struct {
 	uint cracked;
+	uint any_cracked;
 	uint key[16/4];
 } agile_out;
 
@@ -58,6 +59,7 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 	uchar plaintext[16];
 	uint i;
 	int n;
+	int success = 0;
 
 	pbkdf2(password[idx].v, password[idx].length, salt->salt, salt->length,
 	       salt->iterations, agile_out[idx].key, salt->outlen,
@@ -70,16 +72,15 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 	AES_cbc_decrypt(salt->aes_ct, plaintext, 16, &akey, iv);
 
 	n = check_pkcs_pad(plaintext, 16, 16);
-	if (n < 0)
-		agile_out[idx].cracked = 0;
-	else {
+	if (n >= 0) {
 		int key_size = (1024 + n) / 8;
 
-		if (key_size != 128 && key_size != 192 && key_size != 256)
-			agile_out[idx].cracked = 0;
-		else {
-			agile_out[idx].cracked = 1;
-			atomic_or(&agile_out[0].cracked, 2);
-		}
+		if (key_size == 128 || key_size == 192 || key_size == 256)
+			success = 1;
 	}
+
+	agile_out[idx].cracked = success;
+
+	if (success)
+		atomic_or(&agile_out[0].any_cracked, 1);
 }

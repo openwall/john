@@ -57,6 +57,7 @@ static struct fmt_tests enpass_tests[] = {
 
 typedef struct {
 	unsigned int cracked;
+	unsigned int any_cracked;
 	unsigned int key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } enpass_out;
 
@@ -127,7 +128,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
 	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(enpass_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
-	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(enpass_out) * gws, NULL, &ret_code);
+	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(enpass_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
 
 	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
@@ -292,12 +293,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return (output[0].cracked >> 1);
+	return (output[0].any_cracked);
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (output[index].cracked & 1);
+	return (output[index].cracked);
 }
 
 static int cmp_exact(char *source, int index)

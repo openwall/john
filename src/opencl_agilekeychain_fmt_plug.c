@@ -67,6 +67,7 @@ typedef struct {
 
 typedef struct {
 	uint32_t cracked;
+	uint32_t any_cracked;
 	uint32_t key[16/4];
 } agile_hash;
 
@@ -133,7 +134,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    NULL, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
 	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
@@ -353,12 +354,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return (outbuffer[0].cracked >> 1);
+	return (outbuffer[0].any_cracked);
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (outbuffer[index].cracked & 1);
+	return (outbuffer[index].cracked);
 }
 
 static int cmp_exact(char *source, int index)
