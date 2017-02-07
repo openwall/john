@@ -64,6 +64,7 @@ typedef struct {
 typedef struct {
 	uint key[32/4];
 	uint round;
+	uint reject;
 } sevenzip_hash;
 
 typedef struct {
@@ -88,7 +89,6 @@ __kernel void sevenzip_init(__global sevenzip_hash *outbuffer)
 }
 
 __kernel void sevenzip_loop(__global const sevenzip_password *inbuffer,
-                            __global const sevenzip_salt *salt,
                             __global sevenzip_hash *outbuffer)
 {
 	const uint gid = get_global_id(0);
@@ -134,19 +134,27 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
                              __global sevenzip_hash *outbuffer)
 {
 	uint gid = get_global_id(0);
-	uint block[16], aes_key[8];
+	uint block[16], hash[8];
 	uint i;
 	uint pwlen = inbuffer[gid].length;
 	uint pad;
 
 	for (i = 0; i < 8; i++)
-		aes_key[i] = outbuffer[gid].key[i];
+		hash[i] = outbuffer[gid].key[i];
 
 	/* This is always an empty block (except length) */
-	sha256_zerofinal(block, aes_key, (pwlen + 8) * (1U << salt->iterations));
+	sha256_zerofinal(block, hash, (pwlen + 8) * (1U << salt->iterations));
 
 	for (i = 0; i < 8; i++)
-		aes_key[i] = SWAP32(aes_key[i]);
+		outbuffer[gid].key[i] = SWAP32(hash[i]);
+}
+
+__kernel void sevenzip_aes(__global const sevenzip_salt *salt,
+                           __global sevenzip_hash *outbuffer)
+{
+	uint gid = get_global_id(0);
+	uint i;
+	uint pad;
 
 	pad = salt->length - salt->unpacksize;
 
@@ -154,8 +162,11 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
 	if (pad > 0 && salt->length >= 32) {
 		uint8_t buf[16];
 		AES_KEY akey;
+		uint aes_key[8];
 		unsigned char iv[16];
 
+		for (i = 0; i < 8; i++)
+			aes_key[i] = outbuffer[gid].key[i];
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->data[i];
 		AES_set_decrypt_key((uchar*)aes_key, 256, &akey);
@@ -164,8 +175,7 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
 		i = 15;
 		while (pad > 0) {
 			if (buf[i] != 0) {
-				for (i = 0; i < 8; i++)
-					outbuffer[gid].key[i] = 0; /* all zeros == reject */
+				outbuffer[gid].reject = 1;
 				return;
 			}
 			pad--;
@@ -173,6 +183,5 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
 		}
 	}
 
-	for (i = 0; i < 8; i++)
-		outbuffer[gid].key[i] = aes_key[i];
+	outbuffer[gid].reject = 0;
 }

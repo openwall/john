@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
 	uint32_t key[32/4];
 	uint32_t round;
+	uint32_t reject;
 } sevenzip_hash;
 
 typedef struct {
@@ -151,7 +152,7 @@ static sevenzip_password *inbuffer;
 static sevenzip_hash *outbuffer;
 static sevenzip_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_salt;
-static cl_kernel sevenzip_init, sevenzip_final;
+static cl_kernel sevenzip_init, sevenzip_final, sevenzip_aes;
 
 #define insize (sizeof(sevenzip_password) * global_work_size)
 #define outsize (sizeof(sevenzip_hash) * global_work_size)
@@ -169,7 +170,7 @@ static struct fmt_main *self;
 static int split_events[] = { 2, -1, -1 };
 
 static const char *warn[] = {
-	"xfer: ",  ", init: ",  ", crypt: ",  ", final: ",  ", xfer: "
+	"xfer: ",  ", init: ",  ", crypt: ",  ", final: ",  ", aes: ",  ", xfer: "
 };
 
 // This file contains auto-tuning routine(s). It has to be included after formats definitions.
@@ -184,6 +185,7 @@ static size_t get_task_max_work_group_size()
 	s = autotune_get_task_max_work_group_size(FALSE, 0, sevenzip_init);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, sevenzip_final));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, sevenzip_aes));
 	return s;
 }
 
@@ -215,9 +217,7 @@ static void create_clobj(size_t global_work_size, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_salt),
-		&mem_salt), "Error while setting mem_salt kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_out),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
 		&mem_out), "Error while setting mem_out kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(sevenzip_final, 0, sizeof(mem_in),
@@ -225,6 +225,11 @@ static void create_clobj(size_t global_work_size, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(sevenzip_final, 1, sizeof(mem_salt),
 		&mem_salt), "Error while setting mem_salt kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(sevenzip_final, 2, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(sevenzip_aes, 0, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(sevenzip_aes, 1, sizeof(mem_out),
 		&mem_out), "Error while setting mem_out kernel argument");
 }
 
@@ -249,6 +254,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(sevenzip_init), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(sevenzip_final), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(sevenzip_aes), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
@@ -290,6 +296,10 @@ static void reset(struct db_main *db)
 
 		sevenzip_final = clCreateKernel(program[gpu_id], "sevenzip_final",
 		                               &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
+		sevenzip_aes = clCreateKernel(program[gpu_id], "sevenzip_aes",
+		                              &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -528,9 +538,8 @@ static int salt_compare(const void *x, const void *y)
 static void *SzAlloc(void *p, size_t size) { return mem_alloc(size); }
 static void SzFree(void *p, void *address) { MEM_FREE(address) };
 
-static int sevenzip_decrypt(uint32_t *derived_key)
+static int sevenzip_decrypt(sevenzip_hash *derived)
 {
-	const uint32_t zeros[32 / 4] = { 0 };
 	unsigned char *out = NULL;
 	AES_KEY akey;
 	unsigned char iv[16];
@@ -546,7 +555,7 @@ static int sevenzip_decrypt(uint32_t *derived_key)
 		(cur_salt->crc_len * 11 + 150) / 160 * 16 : crc_len;
 
 	/* Early reject from GPU? */
-	if (!memcmp(derived_key, zeros, 32))
+	if (derived->reject)
 		return 0;
 
 	if (cur_salt->type == 0x80) /* We only have truncated data */
@@ -556,7 +565,7 @@ static int sevenzip_decrypt(uint32_t *derived_key)
 	aes_len = MIN(aes_len, cur_salt->length);
 	out = mem_alloc(aes_len);
 	memcpy(iv, cur_salt->iv, 16);
-	AES_set_decrypt_key((unsigned char*)derived_key, 256, &akey);
+	AES_set_decrypt_key((unsigned char*)derived->key, 256, &akey);
 	AES_cbc_encrypt(cur_salt->data, out, aes_len, &akey, iv, AES_DECRYPT);
 
 	/* Optional decompression before CRC */
@@ -629,6 +638,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	//fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
 
@@ -639,7 +649,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (ocl_autotune_running || new_keys) {
 		int i;
-		size_t *lws = local_work_size ? &local_work_size : NULL;
 
 		global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
@@ -667,15 +676,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// Run final kernel
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]),
-			"Run final kernel");
-
-		// Read the result back
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-			outsize, outbuffer, 0, NULL, multi_profilingEvent[4]),
-			"Copy result back");
+			"Run final loop kernel");
 	}
 
 	new_keys = 0;
+
+	// Run AES kernel (per salt)
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_aes, 1,
+		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
+		"Run AES kernel");
+
+	// Read the result back
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[5]),
+		"Copy result back");
 
 	if (!ocl_autotune_running) {
 #ifdef _OPENMP
@@ -683,7 +697,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		for (index = 0; index < count; index++) {
 			/* decrypt and check */
-			if ((cracked[index] = sevenzip_decrypt(outbuffer[index].key)))
+			if ((cracked[index] = sevenzip_decrypt(&outbuffer[index])))
 			{
 #ifdef _OPENMP
 #pragma omp atomic
