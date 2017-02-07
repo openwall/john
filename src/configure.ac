@@ -69,7 +69,7 @@ AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSani
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
-AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as erros])], [werror=$enableval], [werror=no])
+AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
 
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".

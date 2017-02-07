@@ -1402,7 +1402,7 @@ Optional Features:
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
-  --enable-werror         Treat warnings as erros
+  --enable-werror         Treat warnings as errors
   --enable-openmp-for-fast-formats
                           Enable OpenMP for fast formats (usually a bad idea -
                           use fork instead)
