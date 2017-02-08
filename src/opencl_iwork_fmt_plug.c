@@ -31,9 +31,9 @@ john_register_one(&fmt_opencl_iwork);
 #include "jumbo.h"
 #include "common-opencl.h"
 #include "misc.h"
-#define OUTLEN (16)
+#define OUTLEN                  16
+#define PLAINTEXT_LENGTH        28
 #include "opencl_pbkdf2_hmac_sha1.h"
-
 
 #define FORMAT_LABEL            "iwork-opencl"
 #define FORMAT_NAME             "Apple iWork '09 / '13 / '14"
@@ -45,7 +45,6 @@ john_register_one(&fmt_opencl_iwork);
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            MEM_ALIGN_WORD
-#define PLAINTEXT_LENGTH        64
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              MEM_ALIGN_WORD
 
@@ -56,7 +55,6 @@ static iwork_common_custom_salt *cur_salt;
 
 typedef struct {
 	unsigned int cracked;
-	unsigned int any_cracked;
 	unsigned int key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } iwork_out;
 
@@ -73,7 +71,7 @@ static unsigned int *inbuffer;
 static iwork_out *output;
 static iwork_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
-static size_t key_buf_size;
+static size_t key_buf_size, outsize;
 static int new_keys;
 static struct fmt_main *self;
 
@@ -113,16 +111,17 @@ static size_t get_task_max_work_group_size()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	key_buf_size = 64 * gws;
+	outsize = sizeof(iwork_out) * (gws + 1);
 
 	// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
-	output = mem_alloc(sizeof(iwork_out) * gws);
+	output = mem_alloc(outsize);
 
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
 	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(iwork_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
-	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(iwork_out) * gws, NULL, &ret_code);
+	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
 
 	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
@@ -278,19 +277,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(iwork_out) * global_work_size, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, outsize, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return (output[0].any_cracked);
+	return (output[0].cracked);
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (output[index].cracked);
+	return (output[index + 1].cracked);
 }
 
 static int cmp_exact(char *source, int index)

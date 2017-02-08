@@ -15,7 +15,6 @@
 
 typedef struct {
 	uint cracked;
-	uint any_cracked;
 	uint key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } enpass_out;
 
@@ -70,6 +69,9 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 		AES_KEY akey;
 		int success = 0;
 
+		if (gid == 0)
+			out[0].cracked = 0;
+
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->iv[i];
 		AES_set_decrypt_key((__global uchar*)(out[gid].key), 256, &akey);
@@ -87,9 +89,9 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 			success = 1;
 		}
 
-		out[gid].cracked = success;
+		out[gid + 1].cracked = success;
 
 		if (success)
-			atomic_or(&out[0].any_cracked, 1);
+			atomic_or(&out[0].cracked, 1);
 	}
 }

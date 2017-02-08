@@ -45,7 +45,7 @@ john_register_one(&fmt_opencl_agilekeychain);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #define BINARY_SIZE		0
-#define PLAINTEXT_LENGTH	64
+#define PLAINTEXT_LENGTH	28
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 #define SALT_ALIGN		4
@@ -67,7 +67,6 @@ typedef struct {
 
 typedef struct {
 	uint32_t cracked;
-	uint32_t any_cracked;
 	uint32_t key[16/4];
 } agile_hash;
 
@@ -118,7 +117,7 @@ static size_t get_task_max_work_group_size()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	insize = sizeof(agile_password) * gws;
-	outsize = sizeof(agile_hash) * gws;
+	outsize = sizeof(agile_hash) * (gws + 1);
 	settingsize = sizeof(agile_salt);
 
 	inbuffer = mem_calloc(1, insize);
@@ -354,12 +353,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return (outbuffer[0].any_cracked);
+	return outbuffer[0].cracked;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (outbuffer[index].cracked);
+	return outbuffer[index + 1].cracked;
 }
 
 static int cmp_exact(char *source, int index)

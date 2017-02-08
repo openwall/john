@@ -22,7 +22,6 @@
 
 typedef struct {
 	uint cracked;
-	uint any_cracked;
 	uint key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } iwork_out;
 
@@ -36,7 +35,6 @@ typedef struct {
 } iwork_salt;
 
 __kernel
-__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
                   __global iwork_out *out,
                   __global pbkdf2_state *state)
@@ -76,6 +74,9 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
 		uint i;
 		int success = 1; // hash was cracked
 
+		if (gid == 0)
+			out[0].cracked = 0;
+
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->iv[i];
 
@@ -114,9 +115,9 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
 			}
 		}
 
-		out[gid].cracked = success;
+		out[gid + 1].cracked = success;
 
 		if (success)
-			atomic_or(&out[0].any_cracked, 1);
+			atomic_or(&out[0].cracked, 1);
 	}
 }
