@@ -2488,18 +2488,41 @@ void opencl_list_devices(void)
 	cl_ulong long_entries;
 	int i, j, sequence_nr = 0, err_type = 0, platform_in_use = -1;
 	size_t p_size;
+	int available_devices = 0;
+	cl_int ret;
+	cl_platform_id platform_list[MAX_PLATFORMS];
+	cl_uint num_platforms, num_devices;
 
-	/* Obtain list of platforms available */
-	if (!platforms[0].platform) {
+	/* Obtain a list of available platforms */
+	clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
+
+	if (!num_platforms)
 		fprintf(stderr, "Error: No OpenCL-capable devices were detected"
 		        " by the installed OpenCL driver.\n\n");
+
+	for (i = 0; i < num_platforms; i++) {
+		platforms[i].platform = platform_list[i];
+		ret = clGetDeviceIDs(platforms[i].platform, CL_DEVICE_TYPE_ALL,
+		                     MAX_GPU_DEVICES, &devices[available_devices],
+		                     &num_devices);
+
+		if ((ret != CL_SUCCESS || num_devices < 1) &&
+		     options.verbosity > VERB_LEGACY)
+			fprintf(stderr, "No OpenCL devices was found on platform #%d"
+			                 ", clGetDeviceIDs() = %d\n", i, ret);
+
+		available_devices += num_devices;
+		platforms[i].num_devices = num_devices;
 	}
 
-	if (get_number_of_available_devices() == 0) {
+	if (!available_devices) {
 		fprintf(stderr, "Error: No OpenCL-capable devices were detected"
 		        " by the installed OpenCL driver.\n\n");
 		return;
 	}
+	/* Initialize OpenCL environment */
+	if (!getenv("_SKIP_OCL_INITIALIZATION"))
+		opencl_preinit();
 
 	for (i = 0; platforms[i].platform; i++) {
 
@@ -2511,7 +2534,8 @@ void opencl_list_devices(void)
 			int ret, cpu;
 			int fan, temp, util, cl, ml;
 
-			if (!default_gpu_selected && !get_if_device_is_in_use(sequence_nr))
+			if (!getenv("_SKIP_OCL_INITIALIZATION") &&
+			   (!default_gpu_selected && !get_if_device_is_in_use(sequence_nr)))
 				/* Nothing to do, skipping */
 				continue;
 
