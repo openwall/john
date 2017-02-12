@@ -45,7 +45,7 @@ typedef struct {
 } agile_salt;
 
 typedef struct {
-	uint cracked;
+	volatile uint cracked;
 	uint key[16/4];
 } agile_out;
 

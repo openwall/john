@@ -15,7 +15,7 @@
 #define SQLITE_MAX_PAGE_SIZE    65536
 
 typedef struct {
-	uint cracked;
+	volatile uint cracked;
 	uint key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } enpass_out;
 

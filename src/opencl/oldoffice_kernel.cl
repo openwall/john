@@ -26,8 +26,8 @@ typedef struct {
 	uint salt[16/4];
 	uint verifier[16/4]; /* or encryptedVerifier */
 	uint verifierHash[20/4];  /* or encryptedVerifierHash */
-	uint has_mitm;
-	uint cracked;
+	volatile uint has_mitm;
+	volatile uint cracked;
 	uint mitm[8/4]; /* Meet-in-the-middle hint, if we have one */
 } salt_t;
 
