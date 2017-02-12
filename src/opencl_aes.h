@@ -19,6 +19,14 @@
 
 #include "opencl_misc.h"
 
+#if !OCL_AES_ENCRYPT && (OCL_AES_CBC_ENCRYPT || OCL_AES_ECB_ENCRYPT)
+#define OCL_AES_ENCRYPT 1
+#endif
+
+#if !OCL_AES_DECRYPT && (OCL_AES_CBC_DECRYPT || OCL_AES_ECB_DECRYPT)
+#define OCL_AES_DECRYPT 1
+#endif
+
 #define AES_ENCRYPT	1
 #define AES_DECRYPT	0
 #define AES_MAXNR 14
@@ -765,7 +773,7 @@ static void AES_set_decrypt_key(AES_KEY_TYPE const uchar *userKey,
 /*
  * Encrypt a single block.
  */
-#ifdef OCL_AES_ENCRYPT
+#if OCL_AES_ENCRYPT
 static void AES_encrypt(__global const uchar *in, uchar *out,
                         const AES_KEY *key)
 {
@@ -1143,7 +1151,43 @@ static void AES_decrypt(__global const uchar *in, uchar *out,
 	PUTU32(out + 12, s3);
 }
 
-#ifdef OCL_AES_ENCRYPT
+#if OCL_AES_ECB_DECRYPT
+static void
+AES_ecb_decrypt(__global const uchar *in, uchar *out, const AES_KEY *key)
+{
+	uint n;
+	union {
+		uint t[16 / sizeof(uint)];
+		uchar c[16];
+	} tmp;
+
+	AES_decrypt(in, tmp.c, key);
+
+	for (n = 0; n < 16; ++n) {
+		out[n] = tmp.c[n];
+	}
+}
+#endif
+
+#if OCL_AES_ECB_ENCRYPT
+static void
+AES_ecb_encrypt(__global const uchar *in, uchar *out, const AES_KEY *key)
+{
+	uint n;
+	union {
+		uint t[16 / sizeof(uint)];
+		uchar c[16];
+	} tmp;
+
+	AES_encrypt(in, tmp.c, key);
+
+	for (n = 0; n < 16; ++n) {
+		out[n] = tmp.c[n];
+	}
+}
+#endif
+
+#if OCL_AES_CBC_ENCRYPT
 static void
 AES_cbc_encrypt(__global const uchar *in, uchar *out,
                 uint len, const AES_KEY *key,
@@ -1177,6 +1221,7 @@ AES_cbc_encrypt(__global const uchar *in, uchar *out,
 }
 #endif
 
+#if OCL_AES_CBC_DECRYPT
 static void
 AES_cbc_decrypt(__global const uchar *in, uchar *out,
                 uint len, const AES_KEY *key,
@@ -1207,5 +1252,6 @@ AES_cbc_decrypt(__global const uchar *in, uchar *out,
 		out += 16;
 	}
 }
+#endif
 
 #endif /* OPENCL_AES_H */

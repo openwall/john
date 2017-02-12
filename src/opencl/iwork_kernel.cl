@@ -13,6 +13,7 @@
 #include "opencl_sha2.h"
 #include "pbkdf2_hmac_sha1_kernel.cl"
 #define AES_KEY_TYPE __global
+#define OCL_AES_CBC_DECRYPT 1
 #include "opencl_aes.h"
 
 // this is shared between this file and "iwork_common.h" file
