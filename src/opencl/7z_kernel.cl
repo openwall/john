@@ -137,7 +137,6 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
 	uint block[16], hash[8];
 	uint i;
 	uint pwlen = inbuffer[gid].length;
-	uint pad;
 
 	for (i = 0; i < 8; i++)
 		hash[i] = outbuffer[gid].key[i];
