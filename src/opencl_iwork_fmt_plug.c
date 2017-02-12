@@ -279,7 +279,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, outsize, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
-	return count;
+	return (output[0].cracked);
 }
 
 static int cmp_all(void *binary, int count)

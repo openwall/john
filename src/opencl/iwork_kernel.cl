@@ -119,6 +119,6 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
 		out[gid + 1].cracked = success;
 
 		if (success)
-			atomic_or(&out[0].cracked, 1);
+			atomic_max(&out[0].cracked, gid + 1);
 	}
 }

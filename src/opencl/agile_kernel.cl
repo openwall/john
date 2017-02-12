@@ -85,5 +85,5 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 	agile_out[idx + 1].cracked = success;
 
 	if (success)
-		atomic_or(&agile_out[0].cracked, 1);
+		atomic_max(&agile_out[0].cracked, idx + 1);
 }
