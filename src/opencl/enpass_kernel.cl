@@ -93,6 +93,6 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 		out[gid + 1].cracked = success;
 
 		if (success)
-			atomic_max(&out[0].cracked, idx + 1);
+			atomic_max(&out[0].cracked, gid + 1);
 	}
 }
