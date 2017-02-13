@@ -75,9 +75,10 @@ __kernel void GenerateSHA1pwhash(__global const uint *unicode_pw,
 	sha1_single(uint, W, output);
 
 	if (pw_len[gid] >= 40) {
-		for (i = 0; i < 14; i++)
+		for (i = 0; i < (UNICODE_LENGTH / 4 - 12); i++)
 			W[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i + 12]);
-		W[14] = 0;
+		for ( ; i < 15; i++)
+			W[i] = 0;
 		W[15] = (pw_len[gid] + 16) << 3;
 		sha1_block(uint, W, output);
 	}
