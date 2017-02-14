@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ -z "$TEST" ]]; then
+if [[ "$TEST" == "basic" ]]; then
     cd src
 
     # Prepare environment
@@ -9,35 +9,21 @@ if [[ -z "$TEST" ]]; then
     sudo apt-get install fglrx-dev opencl-headers || true
 
     # Configure and build
-    ./configure $ASAN
+    ./configure $ASAN $BUILD_OPTS
     make -sj4
 
     ../.travis/test.sh
 
-elif [[ "$TEST" == "no OpenMP" ]]; then
-    cd src
-
-    # Prepare environment
-    sudo apt-get update -qq
-    sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
-    sudo apt-get install fglrx-dev opencl-headers || true
-
-    # Configure and build
-    ./configure $ASAN --disable-native-tests --disable-openmp
-    make -sj4
-
-    ../.travis/test.sh
-
-elif [[ "$TEST" == "fresh test" ]]; then
+elif [[ "$TEST" == "fresh" ]]; then
     # ASAN using a 'recent' compiler
     docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:16.10 sh -c " \
       cd /cwd/src; \
       apt-get update -qq; \
-      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev; \
+      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev wget; \
       ./configure --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
-      PROBLEM='slow' ../.travis/test.sh
+      PROBLEM='slow' EXTRAS='yes' ../.travis/test.sh
    "
 
 elif [[ "$TEST" == "TS --restore" ]]; then
@@ -75,6 +61,9 @@ elif [[ "$TEST" == "TS docker" ]]; then
       ./jtrts.pl --restore
     '
 else
+    echo
+    echo  -----------------
     echo  "Nothing to do!!"
+    echo  -----------------
 fi
 
