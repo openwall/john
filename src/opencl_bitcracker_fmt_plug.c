@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_bitcracker);
 #include "options.h"
 #include <time.h> 
 
-#define CIPHERTEXT_LENGTH	64	///256bit
+#define CIPHERTEXT_LENGTH	64
 #define BINARY_SIZE		32
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -39,9 +39,12 @@ john_register_one(&fmt_opencl_bitcracker);
 
 #define MAX_PASSWORD_THREAD 8
 #define MIN_KEYS_PER_CRYPT 1
-#define MAX_KEYS_PER_CRYPT 172032 //196608
-//On a GeForce Titan X: Assuming 896 threads for 24 SMs, 8 password for each thread -> 896x24x8
- 
+#define MAX_KEYS_PER_CRYPT 172032
+/* 
+ * On a GeForce Titan X: Assuming 896 threads for 24 SMs, 
+ * 8 password for each thread -> 896x24x8
+*/
+
 #define BITCRACKER_HASH_SIZE 8 //32
 #define BITCRACKER_ROUND_SHA_NUM 64
 #define BITCRACKER_SINGLE_BLOCK_SHA_SIZE 64
@@ -73,12 +76,11 @@ john_register_one(&fmt_opencl_bitcracker);
 #endif
 
 static cl_kernel prepare_kernel;
-//Reference to self
 static struct fmt_main *self;
 
-static cl_mem 			salt_d, padding_d, w_blocks_d, deviceEncryptedVMK, devicePassword, devicePasswordSize, deviceFound;     // OpenCL device buffer
-static cl_int           ciErr1;           // Error code var
-static size_t 			szGlobalWorkSize, szLocalWorkSize, maxDeviceWorkgroupSize;        // 1D var for Total # of work items
+static cl_mem 			salt_d, padding_d, w_blocks_d, deviceEncryptedVMK, devicePassword, devicePasswordSize, deviceFound;
+static cl_int           ciErr1;
+static size_t 			szGlobalWorkSize, szLocalWorkSize, maxDeviceWorkgroupSize;
 static unsigned int 	* w_blocks_h;
 static unsigned char 	salt_bitcracker[BITCRACKER_SALT_SIZE], mac[BITCRACKER_MAC_SIZE], nonce[BITCRACKER_NONCE_SIZE], encryptedVMK[BITCRACKER_VMK_SIZE];
 static uint8_t 			tmpIV[BITCRACKER_IV_SIZE], *inbuffer, *outbuffer;
@@ -92,7 +94,6 @@ void cpu_print_hex(unsigned char hash[], int size);
 void readData(FILE * diskImage);
 void fillBuffer(FILE *fp, unsigned char *buffer, int size);
 
-//This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl-autotune.h"
 
 static void reset(struct db_main *db)
@@ -107,7 +108,6 @@ static void init(struct fmt_main *_self)
 	long int globalmemRequires;
 	self = _self;
 	
-	//-------------- Prepare GPU device--------------
 	opencl_prepare_dev(gpu_id);
 	max_compute_units = get_max_compute_units(gpu_id);
 	maxDeviceWorkgroupSize = get_device_max_lws(gpu_id);
@@ -121,7 +121,6 @@ static void init(struct fmt_main *_self)
     	fprintf(stderr, "[BitCracker] -> Error global memory size! Required: %ld, Available: %ld GPU_ID: %d\n", globalmemRequires, deviceGlobalMem, gpu_id);
     	exit(1);
     }
-	// ----------------------------------------------
 
     inbuffer = NULL;
 	inbuffer_size = NULL;
@@ -130,27 +129,21 @@ static void init(struct fmt_main *_self)
     numPassword = (int) maxDeviceWorkgroupSize*max_compute_units*BITCRACKER_MAX_INPUT_PASSWORD_LEN;
     passwordBufferSize = (int) numPassword * BITCRACKER_MAX_INPUT_PASSWORD_LEN * sizeof(unsigned char);
 
-	//Allocate memory for hashes and passwords
 	inbuffer = (unsigned char *) calloc(passwordBufferSize, sizeof(unsigned char));
-	//Size in texture
 	inbuffer_size = (int *) calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
-    //Store if password found on host
     hostFound = (int *) calloc(1, sizeof(int));
-	//Store password output
 	outbuffer = (unsigned char *) calloc(BITCRACKER_MAX_INPUT_PASSWORD_LEN+2, sizeof(unsigned char));
 
 	memset(inbuffer, 0, (sizeof(uint8_t) * (BITCRACKER_MAX_INPUT_PASSWORD_LEN+2) * MAX_KEYS_PER_CRYPT));
 	memset(inbuffer_size, 0, (sizeof(int) * MAX_KEYS_PER_CRYPT));
 	memset(outbuffer, 0, (sizeof(uint8_t) * (BITCRACKER_MAX_INPUT_PASSWORD_LEN+2) * 1));
 
-	//****************** W block *******************
 	w_block_precomputed(salt_bitcracker);
 	if(!w_blocks_h)
 	{
 		fprintf(stderr, "[BitCracker] -> Error W blocks... Exit\n");
 		exit(1);
 	}
-	//**********************************************
 }
 
 void w_block_precomputed(unsigned char * salt)
@@ -160,11 +153,8 @@ void w_block_precomputed(unsigned char * salt)
 	unsigned char * padding;
 	uint64_t msgLen;
 	int iter_num = BITCRACKER_ITERATION_NUMBER;
-	//time_t start,end;
-    //double dif;
 
-	if(salt == NULL)
-		return;
+	if(salt == NULL) return;
 
     padding = (unsigned char *) calloc(BITCRACKER_PADDING_SIZE, sizeof(unsigned char));
 	padding[0] = 0x80;
@@ -173,8 +163,6 @@ void w_block_precomputed(unsigned char * salt)
 	for (i = 0; i < 8; i++)
 		padding[BITCRACKER_PADDING_SIZE-1-i] = (uint8_t)(msgLen >> (i * 8));
 
-    // ------------------------------- Data setup -------------------------------
-    // Allocate the OpenCL buffer memory objects for source and result on the device GMEM
     salt_d = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BITCRACKER_SALT_SIZE * sizeof(unsigned char), NULL, &ciErr1);
     HANDLE_CLERROR(ciErr1, "clCreateBuffer"); 
     
@@ -187,23 +175,16 @@ void w_block_precomputed(unsigned char * salt)
    	w_blocks_h = (unsigned int *) calloc((BITCRACKER_SINGLE_BLOCK_SHA_SIZE*BITCRACKER_ITERATION_NUMBER), sizeof(unsigned int));
    	if(!w_blocks_h)
    		goto out;
-    // --------------------------------------------------------------------------
 
-    // ------------------------------- Kernel setup -------------------------------
 	opencl_build_kernel(fileNameWBlocks, gpu_id, opt, 0);
-	// create kernel(s) to execute
 	prepare_kernel = clCreateKernel(program[gpu_id], "opencl_bitcracker_wblocks", &ciErr1);
 	HANDLE_CLERROR(ciErr1, "Error creating kernel_prepare. Double-check kernel name?");
-    // --------------------------------------------------------------------------
 
-    // ------------------------------- Write static buffers -------------------------------
     ciErr1 = clEnqueueWriteBuffer(queue[gpu_id], salt_d, CL_TRUE, 0, BITCRACKER_SALT_SIZE * sizeof(unsigned char), salt, 0, NULL, NULL);      
     HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer"); 
     ciErr1 = clEnqueueWriteBuffer(queue[gpu_id], padding_d, CL_TRUE, 0, BITCRACKER_PADDING_SIZE * sizeof(unsigned char), padding, 0, NULL, NULL);      
     HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer"); 
-    // --------------------------------------------------------------------------
 
-    // Set the Argument values
     ciErr1 = clSetKernelArg(prepare_kernel, 0, sizeof(cl_int), (void*)&iter_num);
     HANDLE_CLERROR(ciErr1, "clSetKernelArg"); 
     ciErr1 = clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem), (void*)&salt_d);
@@ -214,7 +195,7 @@ void w_block_precomputed(unsigned char * salt)
     HANDLE_CLERROR(ciErr1, "clSetKernelArg"); 
     
     szLocalWorkSize = get_kernel_max_lws(gpu_id, prepare_kernel);
-    szGlobalWorkSize = szLocalWorkSize*max_compute_units; //tot num di thread cuda 144 ... to be changed!
+    szGlobalWorkSize = szLocalWorkSize*max_compute_units;
 	
 	ciErr1 = clEnqueueNDRangeKernel(
 									queue[gpu_id], prepare_kernel, 1, NULL, &szGlobalWorkSize, 
@@ -222,7 +203,6 @@ void w_block_precomputed(unsigned char * salt)
 								);
     HANDLE_CLERROR(ciErr1, "clEnqueueNDRangeKernel"); 
 
-    /* Copy result to host */       
     ciErr1 = clEnqueueReadBuffer(	queue[gpu_id], w_blocks_d, CL_TRUE, 0, 
     								BITCRACKER_SINGLE_BLOCK_SHA_SIZE*BITCRACKER_ITERATION_NUMBER*sizeof(unsigned int), 
     								w_blocks_h, 0, NULL, NULL
@@ -246,16 +226,13 @@ out:
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {	
-	//printf("bitcracker_image: %s\n", options.bitcracker_image);
 	if(!ciphertext)
 	{
 		printf("\n[BitCracker] -> Error: target encrypted unit not found!\n");
 		return 0;
 	}
 
-	//-------------- Read Data from disk image --------------
 	printf("\n[BitCracker] -> **** Extracting metadata from disk image \"%s\" **** \n", ciphertext);
-	//How to take disk image from parameters?
 	diskImage = fopen(ciphertext, "r");
 	if (diskImage == NULL){
 		printf("[BitCracker] -> Failed to open memory area target, please check if device exists or if you have right permissions\n");
@@ -263,7 +240,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	readData(diskImage);
 	printf("[BitCracker] -> ********************************************* \n\n");
-	// ----------------------------------------------
 
 	return 1;
 }
@@ -271,13 +247,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	//BitCracker has ciphertext == disk image path 
 	return ciphertext;
 }
 
 static void *get_binary(char *ciphertext)
 {
-	//printf("get_binary: %s\n", ciphertext);
 	return (void *) ciphertext;
 }
 
@@ -288,7 +262,6 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	//-------- IV setup ------
 	memset(tmpIV, 0, BITCRACKER_IV_SIZE);
 	memcpy(tmpIV + 1, nonce, BITCRACKER_NONCE_SIZE);
 	if(BITCRACKER_IV_SIZE-1 - BITCRACKER_NONCE_SIZE - 1 < 0)
@@ -298,7 +271,6 @@ static void set_salt(void *salt)
 	}
 	*tmpIV = (unsigned char)(BITCRACKER_IV_SIZE - 1 - BITCRACKER_NONCE_SIZE - 1);
 	tmpIV[BITCRACKER_IV_SIZE-1] = 1; 
-	// -----------------------
 }
 
 void cpu_print_hex(unsigned char hash[], int size)
@@ -317,18 +289,11 @@ void fillBuffer(FILE *fp, unsigned char *buffer, int size){
 }
 
 void readData(FILE * diskImage){
-	//Exists a debug print?
-	//how to exit in the right way?
-	
 	int match = 0;
-	//Ricerca della firma -FVE-FS- seguita dal numero di versione
 	char signature[9] = "-FVE-FS-";
 	int version = 0;
-	//FVE metadata entry
 	unsigned char vmk_entry[4] = {0x02,0x00,0x08,0x00};
-	//0x2000 - VMK protected with user password
 	unsigned char key_protection_type[2] = {0x00, 0x20};
-	//0x0005 - FVE AES-CCM encrypted key
 	unsigned char value_type[2] = {0x00, 0x05};
 	char c;
 	int i = 0;
@@ -337,7 +302,6 @@ void readData(FILE * diskImage){
 	if(!diskImage)
 		exit(1);
 
-	//printf("\n==== Searching for Metadata ====\n");
 	fseek(diskImage, 0, SEEK_END);
     fileLen=ftell(diskImage);
     fseek(diskImage, 0, SEEK_SET);
@@ -371,27 +335,22 @@ void readData(FILE * diskImage){
 			fseek(diskImage, 27, SEEK_CUR);
 			if (((unsigned char)fgetc(diskImage) == key_protection_type[0]) && ((unsigned char)fgetc(diskImage) == key_protection_type[1])) {
 				printf("[BitCracker] -> Key protector with user password found\n");
-				//Get the salt
 				fseek(diskImage, 12, SEEK_CUR);
 				fillBuffer(diskImage, salt_bitcracker, 16);
 				printf("[BitCracker] -> Salt:");
 				cpu_print_hex(salt_bitcracker, 16);
-				//Check if vmk key is encrypted with AES-CCM
 				fseek(diskImage, 83, SEEK_CUR);
 				if (((unsigned char)fgetc(diskImage) != value_type[0]) || ((unsigned char)fgetc(diskImage) != value_type[1])){
 					printf("[BitCracker] -> Error: VMK not encrypted with AES-CCM\n");
 					exit(1);
 				}
-				//Get the nonce
 				fseek(diskImage, 3, SEEK_CUR);
 				fillBuffer(diskImage, nonce, 12);
 				printf("[BitCracker] -> Nonce:");
 				cpu_print_hex(nonce, 12);
-				//Get the MAC
 				fillBuffer(diskImage, mac, 16);
 				printf("[BitCracker] -> MAC:");
 				cpu_print_hex(mac, 16);
-				//Get the encrypted vmk
 				fillBuffer(diskImage, encryptedVMK, 44);
 				printf("[BitCracker] -> Encrypted VMK:");
 				cpu_print_hex(encryptedVMK, 44);
@@ -414,23 +373,16 @@ static void set_key(char *key, int index)
 	int size = strlen(key);
 
 	inbuffer_size[index] = size;
-	//printf("index password: %d, size: %d, password: %s\n", index, size, key);
 	memset(tmp, 0, BITCRACKER_MAX_INPUT_PASSWORD_LEN+2);
 	memcpy(tmp, key, size);
-	if(size < 16)
-		tmp[size] = 0x80;
-	//Useless if using inbuffer_size
+	if(size < 16) tmp[size] = 0x80;
 	memcpy((inbuffer+(index*BITCRACKER_MAX_INPUT_PASSWORD_LEN)), tmp, BITCRACKER_MAX_INPUT_PASSWORD_LEN);
 }
 
-//ritorna la password numero "index" dentro inbuffer
 static char *get_key(int index)
 {
 	static char ret[BITCRACKER_MAX_INPUT_PASSWORD_LEN + 1];
-	//memcpy(ret, inbuffer[index].v, inbuffer[index].length);
-	//ret[inbuffer[index].length] = 0;
-	memcpy(ret, inbuffer+(index*BITCRACKER_MAX_INPUT_PASSWORD_LEN), inbuffer_size[index]); //BITCRACKER_MAX_INPUT_PASSWORD_LEN);
-
+	memcpy(ret, inbuffer+(index*BITCRACKER_MAX_INPUT_PASSWORD_LEN), inbuffer_size[index]);
 	return ret;
 }
 
@@ -444,13 +396,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
     time_t start,end;
     double dif;
 
-  	// ---- Grid and memory size ----
 	numPassword = count;
 	passwordBufferSize = numPassword * BITCRACKER_MAX_INPUT_PASSWORD_LEN * sizeof(uint8_t);
-	// -------------------------------
 
-
- 	// ------------------------------- Kernel setup -------------------------------
 	if( gpu_nvidia(device_info[gpu_id]) )
 	{
 		if(nvidia_sm_5x(device_info[gpu_id]))
@@ -465,7 +413,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
     crypt_kernel = clCreateKernel(program[gpu_id], "opencl_bitcracker_attack", &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateKernel"); 
 
-    // ------------------------------- Data setup -------------------------------
     deviceEncryptedVMK = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, VMK_DECRYPT_SIZE*sizeof(unsigned char), NULL, &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateBuffer"); 
 
@@ -480,9 +427,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
     w_blocks_d = clCreateBuffer(context[gpu_id],  CL_MEM_READ_ONLY, BITCRACKER_SINGLE_BLOCK_SHA_SIZE * BITCRACKER_ITERATION_NUMBER * sizeof(unsigned int), NULL, &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateBuffer"); 
-    // --------------------------------------------------------------------------
 
-   	// ------------------------------- Write Data Buffers -------------------------------
     tmp_global = (unsigned int) ( ((unsigned int *)tmpIV)[0] );
     IV0=(unsigned int )(((unsigned int )(tmp_global & 0xff000000)) >> 24) | (unsigned int )((unsigned int )(tmp_global & 0x00ff0000) >> 8) | (unsigned int )((unsigned int )(tmp_global & 0x0000ff00) << 8) | (unsigned int )((unsigned int )(tmp_global & 0x000000ff) << 24); 
     
@@ -501,13 +446,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
     ciErr1 = clEnqueueWriteBuffer(queue[gpu_id], deviceEncryptedVMK, CL_TRUE, 0, VMK_DECRYPT_SIZE*sizeof(char), encryptedVMK, 0, NULL, NULL);      
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer"); 
 
-    szLocalWorkSize = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-    //get_kernel_max_lws(gpu_id, crypt_kernel);
+    szLocalWorkSize = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);  //get_kernel_max_lws(gpu_id, crypt_kernel);
 	szGlobalWorkSize = autotune_get_task_max_size(1, 0, MAX_PASSWORD_THREAD, crypt_kernel);
 
     printf("\n[BitCracker] -> Starting Attack, #Passwords: %d, Global Work Size: %zu, Local Work Size: %zu\n",  numPassword, szGlobalWorkSize, szLocalWorkSize);
 
-    /* Copy input data to memory buffer */      
     ciErr1 = clEnqueueWriteBuffer(queue[gpu_id], devicePassword, CL_TRUE, 0, passwordBufferSize * sizeof(char), inbuffer, 0, NULL, NULL);      
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer"); 
 
@@ -518,7 +461,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
     ciErr1 = clEnqueueWriteBuffer(queue[gpu_id], deviceFound, CL_TRUE, 0, sizeof(int), hostFound, 0, NULL, NULL);      
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer"); 
 
-    // Set the Argument values
     ciErr1 = clSetKernelArg(crypt_kernel, 0, sizeof(cl_int), (void*)&numPassword);
 	HANDLE_CLERROR(ciErr1, "clSetKernelArg"); 
 
@@ -548,20 +490,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
     ciErr1 |= clSetKernelArg(crypt_kernel, 9, sizeof(cl_int), (void*)&IV12);
 	HANDLE_CLERROR(ciErr1, "clSetKernelArg"); 
-    // --------------------------------------------------------
 
     time (&start);
     ciErr1 = clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &szGlobalWorkSize, &szLocalWorkSize, 0, NULL, NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueNDRangeKernel"); 
-    /* Copy result to host */       
+
     ciErr1 = clEnqueueReadBuffer(queue[gpu_id], deviceFound, CL_TRUE, 0, sizeof(unsigned int), hostFound, 0, NULL, NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueNDRangeKernel"); 
     HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush"); 
     time (&end);
     dif = difftime (end,start);
 
-    printf ("[BitCracker] -> Attack stats: %d passwords evaluated in %.2lf seconds => %.2f pwd/s\n", 
-    					numPassword, dif, (double)(numPassword/dif) );
+    printf ("[BitCracker] -> Attack stats: %d passwords evaluated in %.2lf seconds => %.2f pwd/s\n",  numPassword, dif, (double)(numPassword/dif) );
 
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish"); 
 
@@ -581,7 +521,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	//if(outbuffer[0] != 0) //non va bene 0!
 	if (hostFound[0] >= 0) {
         fprintf(stdout, "\n[BitCracker] -> Password found: #%d, %.*s\n",
         				hostFound[0]+1, BITCRACKER_MAX_INPUT_PASSWORD_LEN, (char *)(inbuffer+(hostFound[0]*BITCRACKER_MAX_INPUT_PASSWORD_LEN)));
@@ -593,35 +532,18 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	if(hostFound[0] == index)
-	{
-       // fprintf(stdout, "\n[BitCracker, cmp_one] -> Attack: Password found (%d): [%.*s]\n", hostFound[0]+1, BITCRACKER_MAX_INPUT_PASSWORD_LEN, (char *)(inbuffer+(hostFound[0]*BITCRACKER_MAX_INPUT_PASSWORD_LEN)));
-		return 1;
-	}
-	else
-		return 0;
+	if(hostFound[0] == index) return 1;
+	else return 0;
 }
 
 static int cmp_exact(char *source, int index)
 {
-	if(hostFound[0] == index)
-	{
-//        fprintf(stdout, "\n[BitCracker, cmp_exact] -> Attack: Password found (%d): [%.*s]\n",  hostFound[0]+1, BITCRACKER_MAX_INPUT_PASSWORD_LEN, (char *)(inbuffer+(hostFound[0]*BITCRACKER_MAX_INPUT_PASSWORD_LEN)));
-		return 1;
-	}
-	else
-		return 0;
+	if(hostFound[0] == index) return 1;
+	else return 0;
 }
 
-
-//ritorna hash numero 0 --> useless for bitcracker
 static int binary_hash_0(void *binary)
 {
-	/*
-	ARCH_WORD_32 hash = ((dummy_binary *)binary)->hash;
-	hash ^= hash >> 8;
-	return (hash ^ (hash >> 4)) & PH_MASK_0;
-*/
 	return 0;
 }
 
@@ -640,14 +562,9 @@ static void done(void)
 
 static int get_hash_0(int index)
 {
-	/*
-	uint32_t *out = outbuffer;
-	return out[hash_addr(0, index)] & PH_MASK_0;
-	*/
 	return 0;
 }
 
-/* ------- Format structure ------- */
 struct fmt_main fmt_opencl_bitcracker = {
 	{
 
