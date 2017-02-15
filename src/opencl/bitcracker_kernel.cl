@@ -1,18 +1,18 @@
- /*
- * BitCracker OpenCL version developed by Elenago 
- * <elena dot ago at gmail dot com> in 2015
- *
- * Copyright (c) 2015-2017 Elenago <elena dot ago at gmail dot com>
- * and Massimo Bernaschi <massimo dot bernaschi at gmail dot com>
- *
- * Licensed under GPLv2
- * This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor
- * implied. See the following for more information on the GPLv2 license:
- * http://www.gnu.org/licenses/gpl-2.0.html
- *
- * Please contact or cite if you want to use this source code.
- * More information at http://openwall.info/wiki/john/OpenCL-BitCracker
- */
+/*
+* BitCracker OpenCL version developed by Elenago 
+* <elena dot ago at gmail dot com> in 2015
+*
+* Copyright (c) 2015-2017 Elenago <elena dot ago at gmail dot com>
+* and Massimo Bernaschi <massimo dot bernaschi at gmail dot com>
+*
+* Licensed under GPLv2
+* This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor
+* implied. See the following for more information on the GPLv2 license:
+* http://www.gnu.org/licenses/gpl-2.0.html
+*
+* Please contact or cite if you want to use this source code.
+* More informations at http://openwall.info/wiki/john/OpenCL-BitCracker
+*/
  
  #include "opencl_bitcracker.h"
 

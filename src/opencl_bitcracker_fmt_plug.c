@@ -11,7 +11,7 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
  * Please contact or cite if you want to use this source code.
- * More information at http://openwall.info/wiki/john/OpenCL-BitCracker
+ * More informations at http://openwall.info/wiki/john/OpenCL-BitCracker
  */
 
 #ifdef HAVE_OPENCL
