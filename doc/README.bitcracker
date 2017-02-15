@@ -1,3 +1,19 @@
+/*
+* BitCracker OpenCL version developed by Elenago 
+* <elena dot ago at gmail dot com> in 2015
+*
+* Copyright (c) 2015-2017 Elenago <elena dot ago at gmail dot com>
+* and Massimo Bernaschi <massimo dot bernaschi at gmail dot com>
+*
+* Licensed under GPLv2
+* This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor
+* implied. See the following for more information on the GPLv2 license:
+* http://www.gnu.org/licenses/gpl-2.0.html
+*
+* Please contact or cite if you want to use this source code.
+* More informations at http://openwall.info/wiki/john/OpenCL-BitCracker
+*/
+
 ===== OpenCL BitCracker =====
 
 BitCracker is a password cracking tool for BitLocker, a full-disk encryption feature available in recent Windows versions (Vista, 7, 8.1 and 10) Pro and Enterprise.
@@ -23,7 +39,7 @@ For the moment, passwords will be evaluated only if their length is between 8 an
 We tested our final OpenCL solution on a GeForce Titan X, Maxwell architecture (Openwall). An output example is:
 
 ----------------------------------------------------------------------------------------------------------------------------
-[BitCracker] -> **** Extracting metadata from disk image "/PATH/TO/ENCRYPTED/IMAGE/usbWindows8Img" **** 
+[BitCracker] -> **** Extracting metadata from disk image "/PATH/TO/ENCRYPTED/IMAGE/usbWindows8Image" **** 
 [BitCracker] -> VMK entry found at 0x00deb618
 [BitCracker] -> Signature found at 0x02100000
 [BitCracker] -> Version: 2 (Windows 7 or later)
@@ -38,12 +54,13 @@ We tested our final OpenCL solution on a GeForce Titan X, Maxwell architecture (
 ....
 
 [BitCracker] -> Starting Attack, #Passwords: 172032, Global Work Size: 172032, Local Work Size: 896
-[BitCracker] -> Attack stats: 172032 passwords evaluated in 183,00 seconds => 940,07 pwd/s
+[BitCracker] -> Attack stats: 172032 passwords evaluated in 186,00 seconds => 924,90 pwd/s
 
 [BitCracker] -> Password found: #172030, donaldduck
 donaldduck         (?)
-1g 0:00:03:03 DONE (2017-02-07 20:55) 0.005462g/s 939.8p/s 939.8c/s 939.8C/s GPU:79°C aaaaaaaa..abdbedff
-Use the "--show" option to display all of the cracked passwords reliably
+1g 0:00:03:07 DONE (2017-02-15 19:47) 0.005324g/s 915.9p/s 915.9c/s 915.9C/s GPU:79°C aaaaaaaa..abdbedff
+
+...
 Session completed
 
 [BitCracker] -> Total passwords evaluated=172032
