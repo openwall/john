@@ -1,0 +1,71 @@
+===== OpenCL BitCracker =====
+
+BitCracker is a password cracking tool for BitLocker, a full-disk encryption feature available in recent Windows versions (Vista, 7, 8.1 and 10) Pro and Enterprise.
+We released the OpenCL version as a plugin for John The Ripper Jumbo version.
+BitCracker attacks memory units encrypted with the password authentication mode of BitLocker.
+Our attack has been tested on several USB pendrives encrypted with BitLocker running on Windows 7, Window 8.1 and Windows 10 (both compatible and non-compatible mode).
+
+===== Command line and parameters =====
+
+BitCracker takes as input a wordlist and the path of the target encrypted image. The command line is:
+<code C>
+./john --format=bitcracker-opencl --wordlist=wordlist.txt diskimg.txt 
+</code>
+
+Where:
+  * wordlist.txt: contains all the possible passwords
+  * diskimg.txt: the path to the target encrypted image
+
+For the moment, passwords will be evaluated only if their length is between 8 and 16 characters.
+
+===== Output and Benchmarks =====
+
+We tested our final OpenCL solution on a GeForce Titan X, Maxwell architecture (Openwall). An output example is:
+
+----------------------------------------------------------------------------------------------------------------------------
+[BitCracker] -> **** Extracting metadata from disk image "/PATH/TO/ENCRYPTED/IMAGE/usbWindows8Img" **** 
+[BitCracker] -> VMK entry found at 0x00deb618
+[BitCracker] -> Signature found at 0x02100000
+[BitCracker] -> Version: 2 (Windows 7 or later)
+[BitCracker] -> VMK entry found at 0x021000a8
+[BitCracker] -> Key protector with user password found
+[BitCracker] -> Salt:0x0a,0x8b,0x9d,0x06,0x55,0xd3,0x90,0x0e,0x9f,0x67,0x28,0x0a,0xdc,0x27,0xb5,0xd7,
+[BitCracker] -> Nonce:0xb0,0x59,0x9a,0xd6,0xc6,0xa1,0xcf,0x01,0x03,0x00,0x00,0x00,
+[BitCracker] -> MAC:0xc1,0x66,0x58,0xf5,0x41,0x40,0xb3,0xd9,0x0b,0xe6,0xde,0x9e,0x03,0xb1,0xfe,0x90,
+[BitCracker] -> Encrypted VMK:0x03,0x3a,0x2c,0x7d,0xf7,0x12,0x7b,0xcd,0x16,0xcb,0x01,0x3c,0xf7,0x78,0xc1,0x20,0x72,0x14,0x2c,0x48,0x4c,0x9c,0x29,0x1a,0x49,0x6f,0xc0,0xeb,0xd8,0xc2,0x1c,0x33,0xb5,0x95,0xa9,0xc1,0x58,0x7a,0xcf,0xc6,0xd8,0xbb,0x96,0x63,
+[BitCracker] -> ********************************************* 
+
+....
+
+[BitCracker] -> Starting Attack, #Passwords: 172032, Global Work Size: 172032, Local Work Size: 896
+[BitCracker] -> Attack stats: 172032 passwords evaluated in 183,00 seconds => 940,07 pwd/s
+
+[BitCracker] -> Password found: #172030, donaldduck
+donaldduck         (?)
+1g 0:00:03:03 DONE (2017-02-07 20:55) 0.005462g/s 939.8p/s 939.8c/s 939.8C/s GPU:79°C aaaaaaaa..abdbedff
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed
+
+[BitCracker] -> Total passwords evaluated=172032
+----------------------------------------------------------------------------------------------------------------------------
+
+===== Customize the run =====
+
+Local and global work sizes are autotuned, but you can change the number of passwords per thread and the max number of keys per crypt. We report below our standard configuration on a GPU Titan X (Maxwell arch) in the opencl_bicracker_fmt_plug.c file: 
+
+// ********* Compliant with GeForce Titan X, Maxwell architecture - Openwall ************
+#define MAX_PASSWORD_THREAD 8
+#define MIN_KEYS_PER_CRYPT 1
+#define MAX_KEYS_PER_CRYPT 172032
+// **************************************************************************************
+
+Assuming 896 threads for 24 compute units, 8 passwords for each thread → 896x24x8=172032
+
+===== References, license and contacts =====
+
+BitCracker OpenCL version developed by Elenago <elena dot ago at gmail dot com> in 2015
+Copyright (C) 2015-2017 Elenago and Massimo Bernaschi (National Research Council of Italy), <massimo dot bernaschi at gmail dot com>
+Licensed under GPLv2
+Please contact or cite if you want to use this source code.
+
+Please report any bug to <elena dot ago at gmail dot com> 
