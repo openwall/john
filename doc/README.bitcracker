@@ -64,8 +64,8 @@ Assuming 896 threads for 24 compute units, 8 passwords for each thread → 896x2
 ===== References, license and contacts =====
 
 BitCracker OpenCL version developed by Elenago <elena dot ago at gmail dot com> in 2015
-Copyright (C) 2015-2017 Elenago and Massimo Bernaschi (National Research Council of Italy), <massimo dot bernaschi at gmail dot com>
+Copyright (C) 2015-2017 Elenago <elena dot ago at gmail dot com> and Massimo Bernaschi (National Research Council of Italy), <massimo dot bernaschi at gmail dot com>
 Licensed under GPLv2
-Please contact or cite if you want to use this source code.
+Please contact us or cite us if you want to use this source code.
 
 Please report any bug to <elena dot ago at gmail dot com> 
