@@ -481,8 +481,8 @@ static void ManualBeacon(char *essid_bssid)
 		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
 		if (!wpa || !unVerified)
 			alloc_error();
-		memset(wpa + sizeof(WPA4way_t) * max_essids / 2, 0, sizeof(WPA4way_t) * max_essids / 2);
-		memset(unVerified + sizeof(char*) * max_essids / 2, 0, sizeof(char*) * max_essids / 2);
+		memset(wpa + max_essids / 2, 0, sizeof(WPA4way_t) * max_essids / 2);
+		memset(unVerified + max_essids / 2, 0, sizeof(char*) * max_essids / 2);
 	}
 }
 
@@ -527,8 +527,8 @@ static void HandleBeacon(uint16 subtype)
 		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
 		if (!wpa || !unVerified)
 			alloc_error();
-		memset(wpa + sizeof(WPA4way_t) * max_essids / 2, 0, sizeof(WPA4way_t) * max_essids / 2);
-		memset(unVerified + sizeof(char*) * max_essids / 2, 0, sizeof(char*) * max_essids / 2);
+		memset(wpa + max_essids / 2, 0, sizeof(WPA4way_t) * max_essids / 2);
+		memset(unVerified + max_essids / 2, 0, sizeof(char*) * max_essids / 2);
 	}
 }
 
