@@ -481,6 +481,8 @@ static void ManualBeacon(char *essid_bssid)
 		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
 		if (!wpa || !unVerified)
 			alloc_error();
+		memset(wpa + sizeof(WPA4way_t) * max_essids / 2, 0, max_essids / 2);
+		memset(unVerified + sizeof(char*) * max_essids / 2, 0, max_essids / 2);
 	}
 }
 
@@ -525,6 +527,8 @@ static void HandleBeacon(uint16 subtype)
 		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
 		if (!wpa || !unVerified)
 			alloc_error();
+		memset(wpa + sizeof(WPA4way_t) * max_essids / 2, 0, max_essids / 2);
+		memset(unVerified + sizeof(char*) * max_essids / 2, 0, max_essids / 2);
 	}
 }
 
@@ -822,8 +826,8 @@ int main(int argc, char **argv)
 	int i;
 	char *base;
 
-	wpa = malloc(sizeof(WPA4way_t) * max_essids);
-	unVerified = malloc(sizeof(char*) * max_essids);
+	wpa = calloc(max_essids, sizeof(WPA4way_t));
+	unVerified = calloc(max_essids, sizeof(char*));
 
 	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
 	    sizeof(struct ivs2_WPA_hdsk) != 356 || sizeof(hccap_t) != 356+36) {
