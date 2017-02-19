@@ -460,7 +460,7 @@ static void alloc_error()
 
 // Dynamically allocate more memory for input data.
 // Make sure newly allocated memory is initialized with zeros.
-static void allocate_more_mem(void)
+static void allocate_more_memory(void)
 {
 	size_t old_max = max_essids;
 
@@ -491,7 +491,7 @@ static void ManualBeacon(char *essid_bssid)
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
 	if (++nwpa >= max_essids)
-		allocate_more_mem();
+		allocate_more_memory();
 }
 
 static void HandleBeacon(uint16 subtype)
@@ -530,7 +530,7 @@ static void HandleBeacon(uint16 subtype)
 	        bssid, essid, subtype == 5 ? "probe response" : "beacon");
 
 	if (++nwpa >= max_essids)
-		allocate_more_mem();
+		allocate_more_memory();
 }
 
 static void Handle4Way(int bIsQOS)
