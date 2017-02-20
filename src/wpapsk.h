@@ -10,15 +10,14 @@
 #ifndef _WPAPSK_H
 #define _WPAPSK_H
 
-#include <openssl/opensslv.h>
-#if defined (JOHN_OCL_WPAPSK) || OPENSSL_VERSION_NUMBER < 0x10100000
-#include <openssl/hmac.h>
 #include <assert.h>
 
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
+#include "hmacmd5.h"
+#include "hmac_sha.h"
 #include "stdint.h"
 
 #define HCCAP_SIZE		sizeof(hccap_t)
@@ -203,7 +202,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 #ifndef JOHN_OCL_WPAPSK
 static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 {
-	HMAC_CTX ctx;
 	char *text = (char*)"Pairwise key expansion";
 	unsigned char buff[100];
 
@@ -211,10 +209,7 @@ static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 	memcpy(buff + 23, data, 76);
 	buff[22] = 0;
 	buff[76 + 23] = 0;
-	HMAC_Init(&ctx, key, 32, EVP_sha1());
-	HMAC_Update(&ctx, buff, 100);
-	HMAC_Final(&ctx, (unsigned char *) ret, NULL);
-	HMAC_CTX_cleanup(&ctx);
+	hmac_sha1((unsigned char*)key, 32, buff, 100, (unsigned char*)ret, 20);
 }
 #endif
 
@@ -350,9 +345,12 @@ static void wpapsk_postprocess(int keys)
 #endif
 		for (i = 0; i < keys; i++) {
 			uint32_t prf[20/4];
+			HMACMD5Context ctx;
+
 			prf_512(outbuffer[i].v, data, prf);
-			HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size,
-			    mic[i].keymic, NULL);
+			hmac_md5_init_K16((unsigned char*)prf, &ctx);
+			hmac_md5_update(hccap.eapol, hccap.eapol_size, &ctx);
+			hmac_md5_final(mic[i].keymic, &ctx);
 		}
 	} else {
 #ifdef _OPENMP
@@ -360,11 +358,10 @@ static void wpapsk_postprocess(int keys)
 #endif
 		for (i = 0; i < keys; i++) {
 			uint32_t prf[20/4];
-			unsigned char keymic[20];
+
 			prf_512(outbuffer[i].v, data, prf);
-			HMAC(EVP_sha1(), prf, 16, hccap.eapol,
-			    hccap.eapol_size, keymic, NULL);
-			memcpy(mic[i].keymic, keymic, 16);
+			hmac_sha1((unsigned char*)prf, 16, hccap.eapol,
+			          hccap.eapol_size, mic[i].keymic, 16);
 		}
 	}
 }
@@ -468,5 +465,3 @@ static int salt_compare(const void *x, const void *y)
 }
 
 #endif
-
-#endif /* defined (JOHN_OCL_WPAPSK) || OPENSSL_VERSION_NUMBER < 0x10100000 */

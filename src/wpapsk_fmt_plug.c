@@ -11,9 +11,6 @@
  * (which is simple), inline.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER < 0x10100000
-
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_wpapsk;
 #elif FMT_REGISTERS_H
@@ -21,10 +18,10 @@ john_register_one(&fmt_wpapsk);
 #else
 
 #include <string.h>
+#include <assert.h>
+
 #include "arch.h"
 #include "simd-intrinsics.h"
-
-#include <assert.h>
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
@@ -451,7 +448,3 @@ struct fmt_main fmt_wpapsk = {
 };
 
 #endif /* plugin stanza */
-
-#else
-#warning Notice: WPAPSK format (cpu version) disabled due to incompatibility with OpenSSL 1.1
-#endif /* OPENSSL_VERSION_NUMBER < 0x10100000 */
