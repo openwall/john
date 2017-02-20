@@ -458,6 +458,21 @@ static void alloc_error()
 	exit(EXIT_FAILURE);
 }
 
+// Dynamically allocate more memory for input data.
+// Make sure newly allocated memory is initialized with zeros.
+static void allocate_more_memory(void)
+{
+	size_t old_max = max_essids;
+
+	max_essids *= 2;
+	wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
+	unVerified = realloc(unVerified, sizeof(char*) * max_essids);
+	if (!wpa || !unVerified)
+		alloc_error();
+	memset(wpa + old_max, 0, sizeof(WPA4way_t) * old_max);
+	memset(unVerified + old_max, 0, sizeof(char*) * old_max);
+}
+
 static void ManualBeacon(char *essid_bssid)
 {
 	char *essid = essid_bssid;
@@ -475,13 +490,8 @@ static void ManualBeacon(char *essid_bssid)
 	        bssid, essid);
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
-	if (++nwpa >= max_essids) {
-		max_essids *= 2;
-		wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
-		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
-		if (!wpa || !unVerified)
-			alloc_error();
-	}
+	if (++nwpa >= max_essids)
+		allocate_more_memory();
 }
 
 static void HandleBeacon(uint16 subtype)
@@ -519,13 +529,8 @@ static void HandleBeacon(uint16 subtype)
 	fprintf(stderr, "Learned BSSID %s ESSID '%s' from %s\n",
 	        bssid, essid, subtype == 5 ? "probe response" : "beacon");
 
-	if (++nwpa >= max_essids) {
-		max_essids *= 2;
-		wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
-		unVerified = realloc(unVerified, sizeof(char*) * max_essids);
-		if (!wpa || !unVerified)
-			alloc_error();
-	}
+	if (++nwpa >= max_essids)
+		allocate_more_memory();
 }
 
 static void Handle4Way(int bIsQOS)
@@ -822,8 +827,8 @@ int main(int argc, char **argv)
 	int i;
 	char *base;
 
-	wpa = malloc(sizeof(WPA4way_t) * max_essids);
-	unVerified = malloc(sizeof(char*) * max_essids);
+	wpa = calloc(max_essids, sizeof(WPA4way_t));
+	unVerified = calloc(max_essids, sizeof(char*));
 
 	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
 	    sizeof(struct ivs2_WPA_hdsk) != 356 || sizeof(hccap_t) != 356+36) {
