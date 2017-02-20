@@ -86,7 +86,6 @@ JOHN_OBJS = \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
-	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
 	zip2john.o pkzip.o \
@@ -133,11 +132,6 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 	../run/dmg2john@EXE_EXT@ ../run/putty2john@EXE_EXT@ ../run/uaf2john@EXE_EXT@ \
 	../run/wpapcap2john@EXE_EXT@ \
 	../run/gpg2john@EXE_EXT@ ../run/cprepair@EXE_EXT@ ../run/base64conv@EXE_EXT@
-
-WITH_BIO_NEW = @HAVE_BIO_NEW@
-ifdef WITH_BIO_NEW
-PROJ += ../run/pfx2john@EXE_EXT@
-endif
 
 WITH_PCAP = @HAVE_PCAP@
 ifdef WITH_PCAP
@@ -415,8 +409,6 @@ params.o:	params.c params.h arch.h memdbg.h os.h os-autoconf.h autoconfig.h jumb
 
 path.o:	path.c autoconfig.h misc.h jumbo.h arch.h stdint.h params.h memory.h path.h memdbg.h os.h os-autoconf.h
 
-pfx2john.o:	pfx2john.c arch.h jumbo.h stdint.h common.h memory.h params.h memdbg.h os.h os-autoconf.h autoconfig.h
-
 pkzip.o:	pkzip.c arch.h misc.h jumbo.h stdint.h autoconfig.h common.h memory.h formats.h params.h pkzip.h dyna_salt.h crc32.h memdbg.h os.h os-autoconf.h
 
 putty2john.o:	putty2john.c autoconfig.h memory.h arch.h stdint.h jumbo.h memdbg.h os.h os-autoconf.h
@@ -582,10 +574,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/putty2john
 	$(LN) john ../run/putty2john
 
-../run/pfx2john: ../run/john
-	$(RM) ../run/pfx2john
-	$(LN) john ../run/pfx2john
-
 ../run/keepass2john: ../run/john
 	$(RM) ../run/keepass2john
 	$(LN) john ../run/keepass2john
@@ -645,10 +633,6 @@ kernels: @KERNEL_OBJS@
 ../run/putty2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/putty2john.exe
 	$(STRIP) ../run/putty2john.exe
-
-../run/pfx2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pfx2john.exe
-	$(STRIP) ../run/pfx2john.exe
 
 ../run/keepass2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keepass2john.exe

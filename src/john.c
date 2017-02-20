@@ -170,7 +170,6 @@ extern int base64conv(int argc, char **argv);
 extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
-extern int pfx2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
@@ -1901,13 +1900,6 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return putty2john(argc, argv);
 	}
-
-#if !AC_BUILT || HAVE_BIO_NEW
-	if (!strcmp(name, "pfx2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return pfx2john(argc, argv);
-	}
-#endif
 
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);

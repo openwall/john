@@ -126,7 +126,6 @@ JOHN_OBJS = \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
-	pfx2john.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
 	zip2john.o pkzip.o \
@@ -189,7 +188,7 @@ PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../ru
 	../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
-	../run/raw2dyna ../run/keepass2john ../run/pfx2john \
+	../run/raw2dyna ../run/keepass2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/wpapcap2john \
 	../run/gpg2john ../run/cprepair ../run/base64conv
@@ -198,7 +197,7 @@ PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/undrop.com \
 	../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/hccap2john.com \
-	../run/keepass2john.com ../run/pfx2john.com \
+	../run/keepass2john.com \
 	../run/dmg2john.com ../run/putty2john.com john.local.conf \
 	../run/gpg2john.com
 PROJ_WIN32 = find_version ../run/john.exe \
@@ -208,7 +207,6 @@ PROJ_WIN32 = find_version ../run/john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe \
 	../run/dmg2john.exe ../run/putty2john.exe \
 	john.local.conf ../run/gpg2john.exe ../run/base64conv.exe
 PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
@@ -218,7 +216,6 @@ PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe \
 	../run/putty2john.exe john.local.conf \
 	../run/gpg2john.exe ../run/base64conv.exe
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
@@ -1707,10 +1704,6 @@ $(SUBDIRS):
 	$(RM) ../run/putty2john
 	ln -s john ../run/putty2john
 
-../run/pfx2john: ../run/john
-	$(RM) ../run/pfx2john
-	ln -s john ../run/pfx2john
-
 ../run/keepass2john: ../run/john
 	$(RM) ../run/keepass2john
 	ln -s john ../run/keepass2john
@@ -1766,9 +1759,6 @@ $(SUBDIRS):
 
 ../run/putty2john.com: john.com
 	copy john.com ..\run\putty2john.com
-
-../run/pfx2john.com: john.com
-	copy john.com ..\run\pfx2john.com
 
 ../run/keepass2john.com: john.com
 	copy john.com ..\run\keepass2john.com
@@ -1836,10 +1826,6 @@ john.com: john.asm
 ../run/putty2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/putty2john.exe
 	$(STRIP) ../run/putty2john.exe
-
-../run/pfx2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pfx2john.exe
-	$(STRIP) ../run/pfx2john.exe
 
 ../run/keepass2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keepass2john.exe
