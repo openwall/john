@@ -452,4 +452,6 @@ struct fmt_main fmt_wpapsk = {
 
 #endif /* plugin stanza */
 
+#else
+#warning Notice: WPAPSK format (cpu version) disabled due to incompatibility with OpenSSL 1.1
 #endif /* OPENSSL_VERSION_NUMBER < 0x10100000 */

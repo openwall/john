@@ -223,4 +223,6 @@ struct fmt_main fmt_gpg = {
 
 #endif /* plugin stanza */
 
+#else
+#warning Notice: GPG format disabled due to incompatibility with OpenSSL 1.1
 #endif /* #if OPENSSL_VERSION_NUMBER < 0x10100000 */

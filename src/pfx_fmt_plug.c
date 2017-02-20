@@ -361,4 +361,7 @@ struct fmt_main fmt_pfx = {
 };
 
 #endif /* plugin stanza */
+
+#else
+#warning Notice: PFX format disabled due to incompatibility with OpenSSL 1.1
 #endif /*  (!AC_BUILT || HAVE_BIO_NEW) && OPENSSL_VERSION_NUMBER < 0x10100000 */

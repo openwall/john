@@ -402,6 +402,8 @@ struct fmt_main fmt_opencl_gpg = {
 
 #endif /* plugin stanza */
 
+#else
+#warning Notice: GPG-opencl format disabled due to incompatibility with OpenSSL 1.1
 #endif /* OPENSSL_VERSION_NUMBER < 0x10100000 */
 
 #endif /* HAVE_OPENCL */
