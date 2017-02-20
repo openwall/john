@@ -11,9 +11,6 @@
  *  (CPU, OpenCL)
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER < 0x10100000
-
 #include <stdio.h>
 #include <string.h>
 #include <openssl/aes.h>
@@ -22,11 +19,12 @@
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
 #include <openssl/camellia.h>
-#include "twofish.h"
-#include "idea-JtR.h"
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #include <openssl/des.h>
+
+#include "twofish.h"
+#include "idea-JtR.h"
 #include "sha2.h"
 #include "md5.h"
 #include "formats.h"
@@ -1019,8 +1017,12 @@ static int check_dsa_secret_key(DSA *dsa)
 {
 	int error;
 	int rc = -1;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+	const BIGNUM *p, *q, *g, *pub_key, *priv_key;
+#endif
 	BIGNUM *res = BN_new();
 	BN_CTX *ctx = BN_CTX_new();
+
 	if (!res) {
 		fprintf(stderr, "failed to allocate result BN in check_dsa_secret_key()\n");
 		error();
@@ -1030,23 +1032,35 @@ static int check_dsa_secret_key(DSA *dsa)
 		error();
 	}
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+	DSA_get0_pqg(dsa, &p, &q, &g);
+	DSA_get0_key(dsa, &pub_key, &priv_key);
+	error = BN_mod_exp(res, g, priv_key, p, ctx);
+#else
 	error = BN_mod_exp(res, dsa->g, dsa->priv_key, dsa->p, ctx);
+#endif
+
 	if ( error == 0 ) {
 		goto freestuff;
 	}
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+	rc = BN_cmp(res, pub_key);
+#else
 	rc = BN_cmp(res, dsa->pub_key);
+#endif
 
 freestuff:
 
 	BN_CTX_free(ctx);
 	BN_free(res);
+#if OPENSSL_VERSION_NUMBER < 0x10100000
 	BN_free(dsa->g);
 	BN_free(dsa->q);
 	BN_free(dsa->p);
 	BN_free(dsa->pub_key);
 	BN_free(dsa->priv_key);
-
+#endif
 	return rc;
 }
 
@@ -1352,9 +1366,7 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		}
 		if (blen < gpg_common_cur_salt->datalen && ((b = BN_bin2bn(out + 2, blen, NULL)) != NULL)) {
 			char *str = BN_bn2hex(b);
-			DSA dsa;
-			ElGamal_secret_key elg;
-			RSA_secret_key rsa;
+
 			if (strlen(str) != blen * 2) { /* verifier 2 */
 				OPENSSL_free(str);
 				BN_free(b);
@@ -1364,6 +1376,28 @@ int gpg_common_check(unsigned char *keydata, int ks)
 			OPENSSL_free(str);
 
 			if (gpg_common_cur_salt->pk_algorithm == PKA_DSA) { /* DSA check */
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+				DSA *dsa = DSA_new();
+				BIGNUM *p, *q, *g, *pub_key, *priv_key;
+
+				p = BN_bin2bn(gpg_common_cur_salt->p, gpg_common_cur_salt->pl, NULL);
+				// puts(BN_bn2hex(dsa.p));
+				q = BN_bin2bn(gpg_common_cur_salt->q, gpg_common_cur_salt->ql, NULL);
+				// puts(BN_bn2hex(dsa.q));
+				g = BN_bin2bn(gpg_common_cur_salt->g, gpg_common_cur_salt->gl, NULL);
+				// puts(BN_bn2hex(dsa.g));
+				priv_key = b;
+				pub_key = BN_bin2bn(gpg_common_cur_salt->y, gpg_common_cur_salt->yl, NULL);
+
+				DSA_set0_pqg(dsa, p, q, g);
+				DSA_set0_key(dsa, pub_key, priv_key);
+
+				// puts(BN_bn2hex(dsa.pub_key));
+				ret = check_dsa_secret_key(dsa); /* verifier 3 */
+				DSA_free(dsa);
+#else
+				DSA dsa;
+
 				dsa.p = BN_bin2bn(gpg_common_cur_salt->p, gpg_common_cur_salt->pl, NULL);
 				// puts(BN_bn2hex(dsa.p));
 				dsa.q = BN_bin2bn(gpg_common_cur_salt->q, gpg_common_cur_salt->ql, NULL);
@@ -1374,12 +1408,15 @@ int gpg_common_check(unsigned char *keydata, int ks)
 				dsa.pub_key = BN_bin2bn(gpg_common_cur_salt->y, gpg_common_cur_salt->yl, NULL);
 				// puts(BN_bn2hex(dsa.pub_key));
 				ret = check_dsa_secret_key(&dsa); /* verifier 3 */
+#endif
 				if (ret != 0) {
 					MEM_FREE(out);
 					return 0;
 				}
 			}
 			if (gpg_common_cur_salt->pk_algorithm == PKA_ELGAMAL || gpg_common_cur_salt->pk_algorithm == PKA_EG) { /* ElGamal check */
+				ElGamal_secret_key elg;
+
 				elg.p = BN_bin2bn(gpg_common_cur_salt->p, gpg_common_cur_salt->pl, NULL);
 				// puts(BN_bn2hex(elg.p));
 				elg.g = BN_bin2bn(gpg_common_cur_salt->g, gpg_common_cur_salt->gl, NULL);
@@ -1395,8 +1432,10 @@ int gpg_common_check(unsigned char *keydata, int ks)
 				}
 			}
 			if (gpg_common_cur_salt->pk_algorithm == PKA_RSA_ENCSIGN) { /* RSA check */
+				RSA_secret_key rsa;
 				// http://www.ietf.org/rfc/rfc4880.txt
 				int length = 0;
+
 				length += give_multi_precision_integer(out, length, &gpg_common_cur_salt->dl, gpg_common_cur_salt->d);
 				length += give_multi_precision_integer(out, length, &gpg_common_cur_salt->pl, gpg_common_cur_salt->p);
 				length += give_multi_precision_integer(out, length, &gpg_common_cur_salt->ql, gpg_common_cur_salt->q);
@@ -1458,5 +1497,3 @@ unsigned int gpg_common_gpg_cipher_algorithm(void *salt)
 	my_salt = *(struct gpg_common_custom_salt **)salt;
 	return (unsigned int) my_salt->cipher_algorithm;
 }
-
-#endif /* #if OPENSSL_VERSION_NUMBER < 0x10100000 */
