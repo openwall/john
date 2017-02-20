@@ -23,6 +23,9 @@
  * converted to use 'common' code, Feb29-Mar1 2016, JimF.
  */
 
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_gpg;
 #elif FMT_REGISTERS_H
@@ -219,3 +222,5 @@ struct fmt_main fmt_gpg = {
 };
 
 #endif /* plugin stanza */
+
+#endif /* #if OPENSSL_VERSION_NUMBER < 0x10100000 */

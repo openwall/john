@@ -12,7 +12,8 @@
  * my_password -validity 365 -keyalg RSA -keysize 2048 -storetype pkcs12 */
 
 #include "arch.h"
-#if !AC_BUILT || HAVE_BIO_NEW
+#include <openssl/opensslv.h>
+#if (!AC_BUILT || HAVE_BIO_NEW) && OPENSSL_VERSION_NUMBER < 0x10100000
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_pfx;
@@ -360,4 +361,4 @@ struct fmt_main fmt_pfx = {
 };
 
 #endif /* plugin stanza */
-#endif /* HAVE_BIO_NEW */
+#endif /*  (!AC_BUILT || HAVE_BIO_NEW) && OPENSSL_VERSION_NUMBER < 0x10100000 */

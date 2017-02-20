@@ -18,9 +18,13 @@
 #ifndef HEADER_RC4_H
 #define HEADER_RC4_H
 
+#undef RC4_KEY
 #define RC4_KEY JOHN_RC4_KEY
+#undef RC4_INT
 #define RC4_INT JOHN_RC4_INT
+#undef RC4_set_key
 #define RC4_set_key JOHN_RC4_set_key
+#undef RC4
 #define RC4 JOHN_RC4
 
 #include "arch.h"

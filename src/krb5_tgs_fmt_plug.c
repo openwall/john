@@ -33,9 +33,9 @@ john_register_one(&fmt_krb5tgs);
 #include "formats.h"
 #include "common.h"
 #include "dyna_salt.h"
-#include "rc4.h"
 #include "md4.h"
 #include "hmacmd5.h"
+#include "rc4.h"
 #include "unicode.h"
 #include "memdbg.h"
 

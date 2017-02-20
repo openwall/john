@@ -10,14 +10,16 @@
 #ifndef _WPAPSK_H
 #define _WPAPSK_H
 
+#include <openssl/opensslv.h>
+#if defined (JOHN_OCL_WPAPSK) || OPENSSL_VERSION_NUMBER < 0x10100000
+#include <openssl/hmac.h>
+#include <assert.h>
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
 #include "stdint.h"
-
-#include <assert.h>
-#include <openssl/hmac.h>
 
 #define HCCAP_SIZE		sizeof(hccap_t)
 
@@ -466,3 +468,5 @@ static int salt_compare(const void *x, const void *y)
 }
 
 #endif
+
+#endif /* defined (JOHN_OCL_WPAPSK) || OPENSSL_VERSION_NUMBER < 0x10100000 */

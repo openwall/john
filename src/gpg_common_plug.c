@@ -11,6 +11,9 @@
  *  (CPU, OpenCL)
  */
 
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+
 #include <stdio.h>
 #include <string.h>
 #include <openssl/aes.h>
@@ -1455,3 +1458,5 @@ unsigned int gpg_common_gpg_cipher_algorithm(void *salt)
 	my_salt = *(struct gpg_common_custom_salt **)salt;
 	return (unsigned int) my_salt->cipher_algorithm;
 }
+
+#endif /* #if OPENSSL_VERSION_NUMBER < 0x10100000 */

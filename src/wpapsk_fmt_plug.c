@@ -10,6 +10,10 @@
  *   Also removed oSSL code: HMAC(EVP_sha1(), ....), and coded what it does
  * (which is simple), inline.
  */
+
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_wpapsk;
 #elif FMT_REGISTERS_H
@@ -447,3 +451,5 @@ struct fmt_main fmt_wpapsk = {
 };
 
 #endif /* plugin stanza */
+
+#endif /* OPENSSL_VERSION_NUMBER < 0x10100000 */
