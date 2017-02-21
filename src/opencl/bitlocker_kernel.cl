@@ -1,20 +1,21 @@
 /*
-* BitCracker OpenCL version developed by Elenago 
-* <elena dot ago at gmail dot com> in 2015
-*
-* Copyright (c) 2015-2017 Elenago <elena dot ago at gmail dot com>
-* and Massimo Bernaschi <massimo dot bernaschi at gmail dot com>
-*
-* Licensed under GPLv2
-* This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor
-* implied. See the following for more information on the GPLv2 license:
-* http://www.gnu.org/licenses/gpl-2.0.html
-*
-* Please contact or cite if you want to use this source code.
-* More informations at http://openwall.info/wiki/john/OpenCL-BitCracker
-*/
- 
- #include "opencl_bitcracker.h"
+ * BitCracker OpenCL version developed by Elenago
+ * <elena dot ago at gmail dot com> in 2015
+ *
+ * Copyright (c) 2015-2017 Elenago <elena dot ago at gmail dot com>
+ * and Massimo Bernaschi <massimo dot bernaschi at gmail dot com>
+ *
+ * Licensed under GPLv2
+ * This program comes with ABSOLUTELY NO WARRANTY, neither expressed nor
+ * implied. See the following for more information on the GPLv2 license:
+ * http://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * This is a research project, therefore please contact or cite if 
+ * you want to use this source code.
+ * More informations at http://openwall.info/wiki/john/OpenCL-BitCracker
+ */
+
+#include "opencl_bitlocker.h"
 
 __constant unsigned int TS0[256] = {
         0xC66363A5U, 0xF87C7C84U, 0xEE777799U, 0xF67B7B8DU, 0xFFF2F20DU, 0xD66B6BBDU, 0xDE6F6FB1U, 0x91C5C554U, 
@@ -204,7 +205,7 @@ unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c) {
 
 #define END_STRING 0x80
 
-__kernel void opencl_bitcracker_attack( int numPassword, __global unsigned char *w_password,
+__kernel void opencl_bitlocker_attack( int numPassword, __global unsigned char *w_password,
                                         __global int *w_password_size,
             							__global int *found, __global unsigned char * vmkKey, 
             							__global unsigned int *w_blocks_d,
@@ -1149,7 +1150,11 @@ __kernel void opencl_bitcracker_attack( int numPassword, __global unsigned char 
 #define SINGLE_BLOCK_W_SIZE 64
 #define ITERATION_NUMBER 0x100000
 
-__kernel void opencl_bitcracker_wblocks(int totNumIteration, __global unsigned char * salt_d, __global unsigned char * padding_d, __global unsigned int * w_blocks_d) 
+__kernel void opencl_bitlocker_wblocks(
+                                        int totNumIteration,
+                                        __global unsigned char * salt_d, 
+                                        __global unsigned char * padding_d, 
+                                        __global unsigned int * w_blocks_d) 
 { 
         unsigned long loop = get_global_id(0);
         unsigned char block[SINGLE_BLOCK_W_SIZE];
