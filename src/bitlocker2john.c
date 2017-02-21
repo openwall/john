@@ -122,22 +122,6 @@ static void warn_exit(const char *fmt, ...)
 
 static void process_encrypted_image(char *encryptedImagePath)
 {
-	/*
-	    long dataStartOffset;
-	    unsigned long transformRounds = 0;
-	    unsigned char *masterSeed = NULL;
-	    int masterSeedLength = 0;
-	    unsigned char *transformSeed = NULL;
-	    int transformSeedLength = 0;
-	    unsigned char *initializationVectors = NULL;
-	    int initializationVectorsLength = 0;
-	    unsigned char *expectedStartBytes = NULL;
-	    int endReached, expectedStartBytesLength = 0;
-	    uint32_t uSig1, uSig2, uVersion;
-	    unsigned char out[32];
-	    char *dbname;
-	*/
-
 	FILE *encryptedImage, *ofp;
 
 	int match = 0;
@@ -187,19 +171,17 @@ static void process_encrypted_image(char *encryptedImagePath)
 			i++;
 		}
 		if (i == 4) {
-			printf("\nVMK entry found at 0x%08lx\n",
+			printf("VMK entry found at 0x%08lx\n",
 			       (ftell(encryptedImage) - i - 3));
 			fseek(encryptedImage, 27, SEEK_CUR);
 			if (((unsigned char)fgetc(encryptedImage) ==
 			        key_protection_type[0]) &&
 			        ((unsigned char)fgetc(encryptedImage) ==
 			         key_protection_type[1])) {
-				printf("\nKey protector with user password found\n");
+				printf("Key protector with user password found\n");
 				fseek(encryptedImage, 12, SEEK_CUR);
 				fillBuffer(encryptedImage, salt_bitlocker,
 				           BITLOCKER_SALT_SIZE);
-				printf("\nSalt:");
-				print_hex(salt_bitlocker, BITLOCKER_SALT_SIZE);
 				fseek(encryptedImage, 83, SEEK_CUR);
 				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) ||
 				        ((unsigned char)fgetc(encryptedImage) != value_type[1])) {
@@ -207,14 +189,7 @@ static void process_encrypted_image(char *encryptedImagePath)
 				}
 				fseek(encryptedImage, 3, SEEK_CUR);
 				fillBuffer(encryptedImage, nonce, BITLOCKER_NONCE_SIZE);
-				printf("Nonce:");
-				print_hex(nonce, BITLOCKER_NONCE_SIZE);
-				fillBuffer(encryptedImage, mac, BITLOCKER_MAC_SIZE);
-				printf("MAC:");
-				print_hex(mac, BITLOCKER_MAC_SIZE);
 				fillBuffer(encryptedImage, encryptedVMK, BITLOCKER_VMK_SIZE);
-				printf("Encrypted VMK:");
-				print_hex(encryptedVMK, BITLOCKER_VMK_SIZE);
 				break;
 			}
 		}
