@@ -14,6 +14,7 @@
  * you want to use this source code.
  * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
  */
+
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
@@ -38,6 +39,11 @@ john_register_one(&fmt_opencl_bitlocker);
 #define FORMAT_LABEL            "bitlocker-opencl"
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
+#define FORMAT_TAG				"$bitlocker$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
+
+#define BITLOCKER_JTR_HASH_SIZE 45
+#define BITLOCKER_JTR_HASH_SIZE_CHAR 77
 
 #define MAX_PASSWORD_THREAD 8
 #define MIN_KEYS_PER_CRYPT 1
@@ -79,11 +85,6 @@ john_register_one(&fmt_opencl_bitlocker);
 
 #define BITLOCKER_ENABLE_DEBUG 0
 
-#define BITLOCKER_JTR_HASH_SIZE 45
-#define BITLOCKER_JTR_HASH_SIZE_CHAR 77
-#define BITLOCKER_FORMAT_TAG           "$bitlocker$"
-#define BITLOCKER_FORMAT_TAG_LEN       (sizeof(BITLOCKER_FORMAT_TAG)-1)
-
 static cl_kernel prepare_kernel;
 static struct fmt_main *self;
 
@@ -105,7 +106,7 @@ static int num_pass_per_thread = 0;
 static int var_max_keys_per_crypt = MAX_KEYS_PER_CRYPT;
 
 static struct fmt_tests BitLocker_tests[] = {
-	{"$bitlocker$b0599ad6c6a1cf0103000000$0a8b9d0655d3900e9f67280adc27b5d7$033a16cb"},  // password --> "paperino"
+	{"$bitlocker$b0599ad6c6a1cf0103000000$0a8b9d0655d3900e9f67280adc27b5d7$033a16cb", "paperino"},
 	{NULL}
 };
 
@@ -358,11 +359,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(ciphertext) != BITLOCKER_JTR_HASH_SIZE_CHAR)
 		error_msg("Incorrect input hash format size");
 
-	if (strncmp(ciphertext, BITLOCKER_FORMAT_TAG, BITLOCKER_FORMAT_TAG_LEN))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		error_msg("Incorrect input hash format");
 
 	hash_format = strdup(ciphertext);
-	hash_format += BITLOCKER_FORMAT_TAG_LEN;
+	hash_format += FORMAT_TAG_LEN;
 
 	p = strtokm(hash_format, "$");
 	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
@@ -391,7 +392,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 
 	hash_format = strdup(ciphertext);
-	hash_format += BITLOCKER_FORMAT_TAG_LEN;
+	hash_format += FORMAT_TAG_LEN;
 
 	p = strtokm(hash_format, "$");
 	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
@@ -714,7 +715,9 @@ struct fmt_main fmt_opencl_bitlocker = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{NULL},
-		{NULL},
+		{
+			FORMAT_TAG
+		},
 		BitLocker_tests
 	}, {
 		init,

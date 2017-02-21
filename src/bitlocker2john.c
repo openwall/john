@@ -61,12 +61,14 @@
 #define BITLOCKER_NONCE_SIZE 12
 #define BITLOCKER_IV_SIZE 16
 #define BITLOCKER_VMK_SIZE 44
+#define BITLOCKER_MAC_SIZE 16
 #ifndef UINT32_C
 #define UINT32_C(c) c ## UL
 #endif
 
 static unsigned char salt[BITLOCKER_SALT_SIZE],
        nonce[BITLOCKER_NONCE_SIZE], 
+       mac[BITLOCKER_MAC_SIZE],
        encryptedVMK[BITLOCKER_VMK_SIZE];
 
 static void fillBuffer(FILE *fp, unsigned char *buffer, int size);
@@ -158,13 +160,16 @@ static void process_encrypted_image(char *encryptedImagePath)
 			printf("VMK entry found at 0x%08lx\n",
 			       (ftell(encryptedImage) - i - 3));
 			fseek(encryptedImage, 27, SEEK_CUR);
-			if (((unsigned char)fgetc(encryptedImage) ==
-			        key_protection_type[0]) &&
-			        ((unsigned char)fgetc(encryptedImage) ==
-			         key_protection_type[1])) {
+			if (
+				((unsigned char)fgetc(encryptedImage) == key_protection_type[0]) &&
+			    ((unsigned char)fgetc(encryptedImage) == key_protection_type[1])
+			)
+			{
 				printf("Key protector with user password found\n");
+				//SALT
 				fseek(encryptedImage, 12, SEEK_CUR);
 				fillBuffer(encryptedImage, salt, BITLOCKER_SALT_SIZE);
+
 				fseek(encryptedImage, 83, SEEK_CUR);
 				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) ||
 				        ((unsigned char)fgetc(encryptedImage) != value_type[1])) {
@@ -172,6 +177,7 @@ static void process_encrypted_image(char *encryptedImagePath)
 				}
 				fseek(encryptedImage, 3, SEEK_CUR);
 				fillBuffer(encryptedImage, nonce, BITLOCKER_NONCE_SIZE);
+				fillBuffer(encryptedImage, mac, BITLOCKER_MAC_SIZE);
 				fillBuffer(encryptedImage, encryptedVMK, BITLOCKER_VMK_SIZE);
 				break;
 			}
