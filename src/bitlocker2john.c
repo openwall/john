@@ -84,12 +84,12 @@ static unsigned char salt_bitlocker[BITLOCKER_SALT_SIZE],
        nonce[BITLOCKER_NONCE_SIZE],
        encryptedVMK[BITLOCKER_VMK_SIZE];
 
-void fillBuffer(FILE *fp, unsigned char *buffer, int size);
+static void fillBuffer(FILE *fp, unsigned char *buffer, int size);
 
 
 static char *keyfile = NULL;
 
-void fillBuffer(FILE *fp, unsigned char *buffer, int size)
+static void fillBuffer(FILE *fp, unsigned char *buffer, int size)
 {
 	int k;
 
