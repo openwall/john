@@ -79,12 +79,25 @@
 #define UINT32_C(c) c ## UL
 #endif
 
-static unsigned char salt_bitcracker[BITLOCKER_SALT_SIZE],
+static unsigned char salt_bitlocker[BITLOCKER_SALT_SIZE],
        mac[BITLOCKER_MAC_SIZE], 
        nonce[BITLOCKER_NONCE_SIZE],
        encryptedVMK[BITLOCKER_VMK_SIZE];
 
+void fillBuffer(FILE *fp, unsigned char *buffer, int size);
+
+
 static char *keyfile = NULL;
+
+void fillBuffer(FILE *fp, unsigned char *buffer, int size)
+{
+	int k;
+
+	for (k = 0; k < size; k++) {
+		buffer[k] = (unsigned char)fgetc(fp);
+	}
+}
+
 
 static off_t get_file_size(char * filename)
 {
@@ -190,9 +203,9 @@ static void process_encrypted_image(char* encryptedImagePath)
 				printf
 				("[BitCracker] -> Key protector with user password found\n");
 				fseek(encryptedImage, 12, SEEK_CUR);
-				fillBuffer(encryptedImage, salt_bitcracker, 16);
+				fillBuffer(encryptedImage, salt_bitlocker, 16);
 				printf("[BitCracker] -> Salt:");
-				print_hex(salt_bitcracker, 16);
+				print_hex(salt_bitlocker, 16);
 				fseek(encryptedImage, 83, SEEK_CUR);
 				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) ||
 				        ((unsigned char)fgetc(encryptedImage) != value_type[1])) {
@@ -223,7 +236,7 @@ static void process_encrypted_image(char* encryptedImagePath)
 		printf("BitLocker format hash: $bitlocker$");
 		print_hex(nonce, BITLOCKER_NONCE_SIZE);
 		printf("$");
-		print_hex(salt, BITLOCKER_SALT_SIZE);
+		print_hex(salt_bitlocker, BITLOCKER_SALT_SIZE);
 		printf("$");
 		print_hex(encryptedVMK, 1);
 		print_hex(encryptedVMK+1, 1);
