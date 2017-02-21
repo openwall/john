@@ -1,18 +1,9 @@
-/* bitlocker2john utility (modified KeeCracker) written in March of 2012
- * by Dhiru Kholia. keepass2john processes input KeePass 1.x and 2.x
- * database files into a format suitable for use with JtR. This software
- * is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com> and it
- * is hereby released under GPL license.
- *
- * KeePass 2.x support is based on KeeCracker - The KeePass 2 Database
- * Cracker, http://keecracker.mbw.name/
- *
- * KeePass 1.x support is based on kppy -  A Python-module to provide
- * an API to KeePass 1.x files. http://gitorious.org/kppy/kppy
- * Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
- *
- * Keyfile support for Keepass 1.x and Keepass 2.x was added by Fist0urs
- * <eddy.maaalou at gmail.com>
+/* bitlocker2john utility written in February of 2017 by Elenago <elena dot ago at gmail dot com>.
+ * bitlocker2john processes input memory images encrypted with BitLocker. by means of a password,
+ * into a format suitable for use with JtR. This software
+ * is Copyright (c) 2017, Elenago <elena dot ago at gmail dot com> and it
+ * is hereby released under GPLv2 license.
+ * This is a research project, therefore please cite or contact me if you want to use it
  *
  * kppy is free software: you can redistribute it and/or modify it under the terms
  * of the GNU General Public License as published by the Free Software Foundation,
@@ -22,8 +13,7 @@
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * kppy. If not, see <http://www.gnu.org/licenses/>. */
+ */
 
 #if AC_BUILT
 #include "autoconfig.h"
@@ -449,7 +439,7 @@ static int usage(char *name)
 	return EXIT_FAILURE;
 }
 
-int keepass2john(int argc, char **argv)
+int bitlocker2john(int argc, char **argv)
 {
 	int c;
 
