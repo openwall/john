@@ -714,11 +714,13 @@ struct fmt_main fmt_opencl_bitlocker = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		{NULL},
+		{NULL}
+/*		,
 		{
 			FORMAT_TAG
 		},
 		BitLocker_tests
+*/
 	}, {
 		init,
 		done,
