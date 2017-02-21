@@ -1,5 +1,5 @@
 /*
- * BitCracker OpenCL version developed by Elenago
+ * BitLocker-OpenCL format developed by Elenago
  * <elena dot ago at gmail dot com> in 2015
  *
  * Copyright (c) 2015-2017 Elenago <elena dot ago at gmail dot com>
@@ -10,9 +10,9 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, therefore please contact or cite if 
+ * This is a research project, therefore please contact or cite if
  * you want to use this source code.
- * More informations at http://openwall.info/wiki/john/OpenCL-BitCracker
+ * More informations at http://openwall.info/wiki/john/OpenCL-BitLocker
  */
 
 #ifndef _BITCRACKER_H
