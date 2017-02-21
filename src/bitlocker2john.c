@@ -77,7 +77,7 @@ static unsigned char salt_bitlocker[BITLOCKER_SALT_SIZE],
 static void fillBuffer(FILE *fp, unsigned char *buffer, int size);
 
 
-static char *keyfile = NULL;
+static char *outFile = NULL;
 
 static void fillBuffer(FILE *fp, unsigned char *buffer, int size)
 {
@@ -136,7 +136,7 @@ static void process_encrypted_image(char* encryptedImagePath)
 	char *dbname;
 */
 
-	FILE *encryptedImage;
+	FILE *encryptedImage,  *ofp;
 
 	int match = 0;
 	char signature[9] = "-FVE-FS-";
@@ -165,18 +165,17 @@ static void process_encrypted_image(char* encryptedImagePath)
 		}
 		if (i == 8) {
 			match = 1;
-			printf("[BitCracker] -> Signature found at 0x%08lx\n",
+			printf("Signature found at 0x%08lx\n",
 			       (ftell(encryptedImage) - i - 1));
 			fseek(encryptedImage, 1, SEEK_CUR);
 			version = fgetc(encryptedImage);
-			printf("[BitCracker] -> Version: %d ", version);
+			printf("Version: %d ", version);
 			if (version == 1)
 				printf("(Windows Vista)\n");
 			else if (version == 2)
 				printf("(Windows 7 or later)\n");
 			else {
-				printf
-				("\nBitCracker] -> Invalid version, looking for a signature with valid version..\n");
+				printf("\nInvalid version, looking for a signature with valid version..\n");
 			}
 		}
 		i = 0;
@@ -185,32 +184,32 @@ static void process_encrypted_image(char* encryptedImagePath)
 			i++;
 		}
 		if (i == 4) {
-			printf("[BitCracker] -> VMK entry found at 0x%08lx\n",
+			printf("\nVMK entry found at 0x%08lx\n",
 			       (ftell(encryptedImage) - i - 3));
 			fseek(encryptedImage, 27, SEEK_CUR);
 			if (((unsigned char)fgetc(encryptedImage) == key_protection_type[0]) &&
 			        ((unsigned char)fgetc(encryptedImage) == key_protection_type[1])) {
 				printf
-				("[BitCracker] -> Key protector with user password found\n");
+				("\nKey protector with user password found\n");
 				fseek(encryptedImage, 12, SEEK_CUR);
-				fillBuffer(encryptedImage, salt_bitlocker, 16);
-				printf("[BitCracker] -> Salt:");
-				print_hex(salt_bitlocker, 16);
+				fillBuffer(encryptedImage, salt_bitlocker, BITLOCKER_SALT_SIZE);
+				printf("\nSalt:");
+				print_hex(salt_bitlocker, BITLOCKER_SALT_SIZE);
 				fseek(encryptedImage, 83, SEEK_CUR);
 				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) ||
 				        ((unsigned char)fgetc(encryptedImage) != value_type[1])) {
 					warn_exit("Error: VMK not encrypted with AES-CCM\n");
 				}
 				fseek(encryptedImage, 3, SEEK_CUR);
-				fillBuffer(encryptedImage, nonce, 12);
-				printf("[BitCracker] -> Nonce:");
-				print_hex(nonce, 12);
-				fillBuffer(encryptedImage, mac, 16);
-				printf("[BitCracker] -> MAC:");
-				print_hex(mac, 16);
-				fillBuffer(encryptedImage, encryptedVMK, 44);
-				printf("[BitCracker] -> Encrypted VMK:");
-				print_hex(encryptedVMK, 44);
+				fillBuffer(encryptedImage, nonce, BITLOCKER_NONCE_SIZE);
+				printf("Nonce:");
+				print_hex(nonce, BITLOCKER_NONCE_SIZE);
+				fillBuffer(encryptedImage, mac, BITLOCKER_MAC_SIZE);
+				printf("MAC:");
+				print_hex(mac, BITLOCKER_MAC_SIZE);
+				fillBuffer(encryptedImage, encryptedVMK, BITLOCKER_VMK_SIZE);
+				printf("Encrypted VMK:");
+				print_hex(encryptedVMK, BITLOCKER_VMK_SIZE);
 				break;
 			}
 		}
@@ -223,7 +222,7 @@ static void process_encrypted_image(char* encryptedImagePath)
 	}
 	else
 	{
-		printf("BitLocker format hash: $bitlocker$");
+		printf("\n\nBitLocker-OpenCL format hash: $bitlocker$");
 		print_hex(nonce, BITLOCKER_NONCE_SIZE);
 		printf("$");
 		print_hex(salt_bitlocker, BITLOCKER_SALT_SIZE);
@@ -232,13 +231,28 @@ static void process_encrypted_image(char* encryptedImagePath)
 		print_hex(encryptedVMK+1, 1);
 		print_hex(encryptedVMK+8, 1);
 		print_hex(encryptedVMK+9, 1);
-		printf("$");
+		printf("\n\n");
+
+		if (outFile) {
+			ofp = fopen(outFile, "w");
+			if (!ofp) {
+				fprintf(stderr, "! %s : %s\n", outFile, strerror(errno));
+				return;
+			}
+			//This is super ugly...!
+			fprintf(ofp, "$bitlocker$%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x$%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x$%02x%02x%02x%02x\n", 
+				nonce[0], nonce[1], nonce[2], nonce[3], nonce[4], nonce[5], nonce[6], nonce[7], nonce[8], nonce[9], nonce[10], nonce[11],
+				salt_bitlocker[0], salt_bitlocker[1], salt_bitlocker[2], salt_bitlocker[3], salt_bitlocker[4], salt_bitlocker[5], salt_bitlocker[6], salt_bitlocker[7], salt_bitlocker[8], salt_bitlocker[9], salt_bitlocker[10], salt_bitlocker[11], salt_bitlocker[12], salt_bitlocker[13], salt_bitlocker[14], salt_bitlocker[15],
+				encryptedVMK[0], encryptedVMK[1], encryptedVMK[8], encryptedVMK[9]);
+
+			fclose(ofp);
+	 	}
 	}
 
 #if 0
-	/* specific to keyfile handling */
+	/* specific to outFile handling */
 	unsigned char *buffer;
-	long long filesize_keyfile = 0;
+	long long filesize_outFile = 0;
 	char *p;
 	char *data;
 	char b64_decoded[64];
@@ -353,13 +367,13 @@ static void process_encrypted_image(char* encryptedImagePath)
 		goto bailout;
 	}
 
-	if (keyfile) {
-		kfp = fopen(keyfile, "rb");
+	if (outFile) {
+		kfp = fopen(outFile, "rb");
 		if (!kfp) {
-			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
+			fprintf(stderr, "! %s : %s\n", outFile, strerror(errno));
 			return;
 		}
-		filesize_keyfile = (long long)get_file_size(keyfile);
+		filesize_outFile = (long long)get_file_size(outFile);
  	}
 
 	dbname = strip_suffixes(basename(encryptedImage),extension, 1);
@@ -378,18 +392,18 @@ static void process_encrypted_image(char* encryptedImagePath)
 	printf("*");
 	print_hex(out, 32);
 
-	if (keyfile) {
-		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
-		printf("*1*64*"); /* inline keyfile content */
-		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
+	if (outFile) {
+		buffer = (unsigned char*) mem_alloc (filesize_outFile * sizeof(char));
+		printf("*1*64*"); /* inline outFile content */
+		if (fread(buffer, filesize_outFile, 1, kfp) != 1)
 			warn_exit("%s: Error: read failed: %s.",
 				encryptedImage, strerror(errno));
 
 		/* as in Keepass 2.x implementation:
-		 *  if keyfile is an xml, get <Data> content
-		 *  if filesize_keyfile == 32 then assume byte_array
-		 *  if filesize_keyfile == 64 then assume hex(byte_array)
-		 *  else byte_array = sha256(keyfile_content)
+		 *  if outFile is an xml, get <Data> content
+		 *  if filesize_outFile == 32 then assume byte_array
+		 *  if filesize_outFile == 64 then assume hex(byte_array)
+		 *  else byte_array = sha256(outFile_content)
 		 */
 
 		if (!memcmp((char *) buffer, "<?xml", 5)
@@ -403,9 +417,9 @@ static void process_encrypted_image(char* encryptedImagePath)
 			base64_decode(data, p - data, b64_decoded);
 			print_hex((unsigned char *) b64_decoded, 32);
 		}
-		else if (filesize_keyfile == 32)
-			print_hex(buffer, filesize_keyfile);
-		else if (filesize_keyfile == 64)
+		else if (filesize_outFile == 32)
+			print_hex(buffer, filesize_outFile);
+		else if (filesize_outFile == 64)
 		{
 			for (counter = 0; counter <64; counter++)
 				printf ("%c", buffer[counter]);
@@ -415,7 +429,7 @@ static void process_encrypted_image(char* encryptedImagePath)
 		  /* precompute sha256 to speed-up cracking */
 
 		  SHA256_Init(&ctx);
-		  SHA256_Update(&ctx, buffer, filesize_keyfile);
+		  SHA256_Update(&ctx, buffer, filesize_outFile);
 		  SHA256_Final(hash, &ctx);
 		  print_hex(hash, 32);
 		}
@@ -434,7 +448,7 @@ bailout:
 
 static int usage(char *name)
 {
-	fprintf(stderr, "Usage: %s [-k <keyfile>] <BitLocker Encrypted Memory Image>\n", name);
+	fprintf(stderr, "Usage: %s [-o <output_file>] <BitLocker Encrypted Memory Image>\n", name);
 
 	return EXIT_FAILURE;
 }
@@ -444,12 +458,13 @@ int bitlocker2john(int argc, char **argv)
 	int c;
 
 	errno = 0;
+
 	/* Parse command line */
-	while ((c = getopt(argc, argv, "k:")) != -1) {
+	while ((c = getopt(argc, argv, "o:")) != -1) {
 		switch (c) {
-		case 'k':
-			keyfile = (char *)mem_alloc(strlen(optarg) + 1);
-			strcpy(keyfile, optarg);
+		case 'o':
+			outFile = (char *)mem_alloc(strlen(optarg) + 1);
+			strcpy(outFile, optarg);
 			break;
 		case '?':
 		default:

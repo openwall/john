@@ -314,6 +314,7 @@ __kernel void opencl_bitlocker_attack( int numPassword, __global unsigned char *
 		index_generic *= 2;
 		schedule15 = ((unsigned char)((index_generic << 3) >> 8)) << 8 | ((unsigned char)(index_generic << 3));
 		//-----------------------------------------------         
+
 /*
         if(globalIndexPassword == 0)
         {
@@ -328,8 +329,21 @@ __kernel void opencl_bitlocker_attack( int numPassword, __global unsigned char *
             printf("schedule7: %x\n", schedule7);
             printf("schedule8: %x\n", schedule8);
             printf("schedule9: %x\n", schedule9);
+            printf("schedule10: %x\n", schedule10);
+            printf("schedule11: %x\n", schedule11);
+            printf("schedule12: %x\n", schedule12);
+            printf("schedule13: %x\n", schedule13);
+            printf("schedule14: %x\n", schedule14);
+            printf("schedule15: %x\n", schedule15);
+
+            printf("index_generic: %d\n", index_generic);
+            printf("IV0: %x\n", IV0);
+            printf("IV4: %x\n", IV4);
+            printf("IV8: %x\n", IV8);
+            printf("IV12: %x\n", IV12);
         }
-*/
+        */
+
 		ALL_SCHEDULE_LAST16()
 
 		ROUND(a, b, c, d, e, f, g, h,  schedule0, 0x428A2F98)
@@ -928,7 +942,6 @@ __kernel void opencl_bitlocker_attack( int numPassword, __global unsigned char *
                 indexW += SINGLE_BLOCK_W_SIZE;
         }
 
-
         schedule0 = IV0  ^ hash0;
         schedule1 = IV4  ^ hash1;
         schedule2 = IV8  ^ hash2;
@@ -1128,12 +1141,15 @@ __kernel void opencl_bitlocker_attack( int numPassword, __global unsigned char *
                 schedule5 = (unsigned int )(((unsigned int )(schedule1 & 0xff000000)) >> 24) | (unsigned int )((unsigned int )(schedule1 & 0x00ff0000) >> 8) | (unsigned int )((unsigned int )(schedule1 & 0x0000ff00) << 8) | (unsigned int )((unsigned int )(schedule1 & 0x000000ff) << 24); 
                 schedule6 = (unsigned int )(((unsigned int )(schedule2 & 0xff000000)) >> 24) | (unsigned int )((unsigned int )(schedule2 & 0x00ff0000) >> 8) | (unsigned int )((unsigned int )(schedule2 & 0x0000ff00) << 8) | (unsigned int )((unsigned int )(schedule2 & 0x000000ff) << 24); 
                 schedule7 = (unsigned int )(((unsigned int )(schedule3 & 0xff000000)) >> 24) | (unsigned int )((unsigned int )(schedule3 & 0x00ff0000) >> 8) | (unsigned int )((unsigned int )(schedule3 & 0x0000ff00) << 8) | (unsigned int )((unsigned int )(schedule3 & 0x000000ff) << 24); 
-                
-		if (
+/*        
+        printf("vmkKey[0]: %02x, vmkKey[1]: %02x, vmkKey[2]: %02x, vmkKey[3]: %02x\n",
+         vmkKey[0], vmkKey[1], vmkKey[2], vmkKey[3]);
+*/		
+        if (
 			((vmkKey[0] ^ ((unsigned char) schedule4)) == VMK_SIZE) &&
 			((vmkKey[1] ^ ((unsigned char) (schedule4 >> 8))) == 0x00) &&
-			((vmkKey[8] ^ ((unsigned char) schedule6)) <= 0x05) &&
-			((vmkKey[9] ^ ((unsigned char) (schedule6 >> 8))) == 0x20)
+			((vmkKey[2] ^ ((unsigned char) schedule6)) <= 0x05) && 
+			((vmkKey[3] ^ ((unsigned char) (schedule6 >> 8))) == 0x20)
 		)
 		{
 			found[0] = globalIndexPassword;
