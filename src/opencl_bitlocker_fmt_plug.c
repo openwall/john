@@ -94,7 +94,7 @@ static size_t szGlobalWorkSize, szLocalWorkSize, maxDeviceWorkgroupSize;
 static unsigned int *w_blocks_h;
 static unsigned char salt[BITLOCKER_SALT_SIZE], nonce[BITLOCKER_NONCE_SIZE],
        encryptedVMK[BITLOCKER_VMK_SIZE];
-static uint8_t tmpIV[BITLOCKER_IV_SIZE], *inbuffer, *outbuffer;
+static unsigned char *tmpIV, *inbuffer, *outbuffer;
 static int *inbuffer_size;
 
 //static FILE *diskImage;
@@ -240,6 +240,8 @@ static void init(struct fmt_main *_self)
 	memset(inbuffer_size, 0, (sizeof(int) * MAX_KEYS_PER_CRYPT));
 	memset(outbuffer, 0,
 	       (sizeof(uint8_t) * (BITLOCKER_MAX_INPUT_PASSWORD_LEN + 2) * 1));
+
+	tmpIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
 
 }
 
@@ -497,7 +499,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	 numPassword, szGlobalWorkSize, szLocalWorkSize);
 #endif
 
-	tmp_global = (unsigned int)(((unsigned int *)tmpIV)[0]);
+	tmp_global = 
+	(((unsigned int *)(tmpIV)) [0]);
 	IV0 =
 	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
 	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
