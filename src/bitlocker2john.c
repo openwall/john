@@ -209,7 +209,7 @@ static void process_encrypted_image(char* encryptedImagePath)
 				fseek(encryptedImage, 83, SEEK_CUR);
 				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) ||
 				        ((unsigned char)fgetc(encryptedImage) != value_type[1])) {
-					error_msg("Error: VMK not encrypted with AES-CCM\n");
+					warn_exit("Error: VMK not encrypted with AES-CCM\n");
 				}
 				fseek(encryptedImage, 3, SEEK_CUR);
 				fillBuffer(encryptedImage, nonce, 12);
@@ -229,7 +229,7 @@ static void process_encrypted_image(char* encryptedImagePath)
 	}
 	fclose(encryptedImage);
 	if (match == 0) {
-		error_msg("Error while extracting data: No signature found!\n");
+		warn_exit("Error while extracting data: No signature found!\n");
 	}
 	else
 	{
