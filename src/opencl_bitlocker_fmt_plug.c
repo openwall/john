@@ -12,7 +12,7 @@
  *
  * This is a research project, therefore please contact or cite if
  * you want to use this source code.
- * More informations at http://openwall.info/wiki/john/OpenCL-BitLocker
+ * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
  */
 #ifdef HAVE_OPENCL
 
@@ -365,16 +365,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = strtokm(hash_format, "$");
 	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
-		error_msg("Incorrect input hash format, NONCE, %s, %d\n", p,
-		          strlen(p));
+		error_msg("Incorrect input hash format");
 
 	p = strtokm(NULL, "$");
 	if (strlen(p) != BITLOCKER_SALT_SIZE * 2)
-		error_msg("Incorrect input hash format, SALT, %s, %d\n", p, strlen(p));
+		error_msg("Incorrect input hash format");
 
 	p = strtokm(NULL, "");
 	if (strlen(p) != 8)
-		error_msg("Incorrect input hash format, VMK, %s, %d\n", p, strlen(p));
+		error_msg("Incorrect input hash format");
 
 	return 1;
 }
@@ -395,7 +394,7 @@ static void *get_salt(char *ciphertext)
 
 	p = strtokm(hash_format, "$");
 	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
-		error_msg("Incorrect input hash format, NONCE, %s, %d\n", p,
+		error_msg("Incorrect input hash format");
 		          strlen(p));
 	for (i = 0; i < BITLOCKER_NONCE_SIZE; i++) {
 		nonce[i] =
@@ -411,7 +410,7 @@ static void *get_salt(char *ciphertext)
 
 	p = strtokm(NULL, "$");
 	if (strlen(p) != BITLOCKER_SALT_SIZE * 2)
-		error_msg("Incorrect input hash format, SALT\n");
+		error_msg("Incorrect input hash format");
 	for (i = 0; i < BITLOCKER_SALT_SIZE; i++) {
 		salt[i] =
 		    (p[2 * i] <=
@@ -426,7 +425,7 @@ static void *get_salt(char *ciphertext)
 
 	p = strtokm(NULL, "");
 	if (strlen(p) != 8)
-		error_msg("Incorrect input hash format, VMK\n");
+		error_msg("Incorrect input hash format");
 	for (i = 0; i < 4; i++) {
 		encryptedVMK[i] =
 		    (p[2 * i] <=
@@ -453,11 +452,6 @@ static void *get_salt(char *ciphertext)
 	tmpIV[BITLOCKER_IV_SIZE - 1] = 1;
 
 	return tmpIV;
-}
-
-static void set_salt(void *salt)
-{
-	return;
 }
 
 static void set_key(char *key, int index)

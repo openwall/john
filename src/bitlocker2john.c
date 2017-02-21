@@ -9,6 +9,8 @@
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
+ * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
+ *
  */
 
 #if AC_BUILT
@@ -24,7 +26,6 @@
 #include "missing_getopt.h"
 #endif
 #include <errno.h>
-// needs to be above sys/types.h and sys/stat.h for mingw, if -std=c99 used.
 #include "jumbo.h"
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -65,7 +66,8 @@
 #endif
 
 static unsigned char salt[BITLOCKER_SALT_SIZE],
-       nonce[BITLOCKER_NONCE_SIZE], encryptedVMK[BITLOCKER_VMK_SIZE];
+       nonce[BITLOCKER_NONCE_SIZE], 
+       encryptedVMK[BITLOCKER_VMK_SIZE];
 
 static void fillBuffer(FILE *fp, unsigned char *buffer, int size);
 

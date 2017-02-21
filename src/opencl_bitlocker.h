@@ -12,7 +12,7 @@
  *
  * This is a research project, therefore please contact or cite if
  * you want to use this source code.
- * More informations at http://openwall.info/wiki/john/OpenCL-BitLocker
+ * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
  */
 
 #ifndef _BITCRACKER_H
