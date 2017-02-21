@@ -115,7 +115,7 @@ static void warn_exit(const char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-static void process_encrypted_image(char* encryptedImage)
+static void process_encrypted_image(char* encryptedImagePath)
 {
 /*
 	long dataStartOffset;
@@ -133,7 +133,7 @@ static void process_encrypted_image(char* encryptedImage)
 	char *dbname;
 */
 
-	FILE *fp;
+	FILE *encryptedImage;
 
 	int match = 0;
 	char signature[9] = "-FVE-FS-";
@@ -145,9 +145,9 @@ static void process_encrypted_image(char* encryptedImage)
 	int i = 0;
 	int j, fileLen;
 
-	fp = fopen(encryptedImage, "r");
-	if (!fp) {
-		fprintf(stderr, "! %s : %s\n", encryptedImage, strerror(errno));
+	encryptedImage = fopen(encryptedImagePath, "r");
+	if (!encryptedImage) {
+		fprintf(stderr, "! %s : %s\n", encryptedImagePath, strerror(errno));
 		return;
 	}
 	
