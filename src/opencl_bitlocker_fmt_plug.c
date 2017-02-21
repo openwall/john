@@ -344,7 +344,6 @@ out:
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int i = 0;
 	char *hash_format;
 	char *p;
 
@@ -395,7 +394,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(hash_format, "$");
 	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
 		error_msg("Incorrect input hash format");
-		          strlen(p));
+		          
 	for (i = 0; i < BITLOCKER_NONCE_SIZE; i++) {
 		nonce[i] =
 		    (p[2 * i] <=
