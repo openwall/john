@@ -57,7 +57,6 @@
 #define FALSE 0
 #define TRUE 1
 #define BITLOCKER_SALT_SIZE 16
-#define BITLOCKER_MAC_SIZE 16
 #define BITLOCKER_NONCE_SIZE 12
 #define BITLOCKER_IV_SIZE 16
 #define BITLOCKER_VMK_SIZE 44
@@ -65,12 +64,10 @@
 #define UINT32_C(c) c ## UL
 #endif
 
-static unsigned char salt_bitlocker[BITLOCKER_SALT_SIZE],
-       mac[BITLOCKER_MAC_SIZE],
+static unsigned char salt[BITLOCKER_SALT_SIZE],
        nonce[BITLOCKER_NONCE_SIZE], encryptedVMK[BITLOCKER_VMK_SIZE];
 
 static void fillBuffer(FILE *fp, unsigned char *buffer, int size);
-
 
 static char *outFile = NULL;
 
@@ -83,17 +80,6 @@ static void fillBuffer(FILE *fp, unsigned char *buffer, int size)
 	}
 }
 
-
-static off_t get_file_size(char *filename)
-{
-	struct stat sb;
-
-	if (stat(filename, &sb) != 0) {
-		fprintf(stderr, "! %s : stat failed, %s\n", filename, strerror(errno));
-		exit(-2);
-	}
-	return sb.st_size;
-}
 
 static void print_hex(unsigned char *str, int len)
 {
@@ -176,8 +162,7 @@ static void process_encrypted_image(char *encryptedImagePath)
 			         key_protection_type[1])) {
 				printf("Key protector with user password found\n");
 				fseek(encryptedImage, 12, SEEK_CUR);
-				fillBuffer(encryptedImage, salt_bitlocker,
-				           BITLOCKER_SALT_SIZE);
+				fillBuffer(encryptedImage, salt, BITLOCKER_SALT_SIZE);
 				fseek(encryptedImage, 83, SEEK_CUR);
 				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) ||
 				        ((unsigned char)fgetc(encryptedImage) != value_type[1])) {
@@ -199,7 +184,7 @@ static void process_encrypted_image(char *encryptedImagePath)
 		printf("\n\nBitLocker-OpenCL format hash: $bitlocker$");
 		print_hex(nonce, BITLOCKER_NONCE_SIZE);
 		printf("$");
-		print_hex(salt_bitlocker, BITLOCKER_SALT_SIZE);
+		print_hex(salt, BITLOCKER_SALT_SIZE);
 		printf("$");
 		print_hex(encryptedVMK, 1);
 		print_hex(encryptedVMK + 1, 1);
@@ -218,12 +203,12 @@ static void process_encrypted_image(char *encryptedImagePath)
 			        "$bitlocker$%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x$%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x$%02x%02x%02x%02x\n",
 			        nonce[0], nonce[1], nonce[2], nonce[3], nonce[4], nonce[5],
 			        nonce[6], nonce[7], nonce[8], nonce[9], nonce[10], nonce[11],
-			        salt_bitlocker[0], salt_bitlocker[1], salt_bitlocker[2],
-			        salt_bitlocker[3], salt_bitlocker[4], salt_bitlocker[5],
-			        salt_bitlocker[6], salt_bitlocker[7], salt_bitlocker[8],
-			        salt_bitlocker[9], salt_bitlocker[10], salt_bitlocker[11],
-			        salt_bitlocker[12], salt_bitlocker[13], salt_bitlocker[14],
-			        salt_bitlocker[15], encryptedVMK[0], encryptedVMK[1],
+			        salt[0], salt[1], salt[2],
+			        salt[3], salt[4], salt[5],
+			        salt[6], salt[7], salt[8],
+			        salt[9], salt[10], salt[11],
+			        salt[12], salt[13], salt[14],
+			        salt[15], encryptedVMK[0], encryptedVMK[1],
 			        encryptedVMK[8], encryptedVMK[9]);
 
 			fclose(ofp);
