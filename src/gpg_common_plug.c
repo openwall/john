@@ -13,7 +13,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/aes.h>
 #include <assert.h>
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>
@@ -23,6 +22,7 @@
 #include <openssl/dsa.h>
 #include <openssl/des.h>
 
+#include "aes.h"
 #include "twofish.h"
 #include "idea-JtR.h"
 #include "sha2.h"

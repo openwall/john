@@ -36,9 +36,15 @@ john_register_one(&fmt_fde);
 #include "stdint.h"
 #include <stdlib.h>
 #include <sys/types.h>
-#include "aes.h"
-
 #include <string.h>
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE           1
+#endif
+#endif
+
 #include "arch.h"
 #include "johnswap.h"
 #include "misc.h"
@@ -48,15 +54,8 @@ john_register_one(&fmt_fde);
 #include "options.h"
 #include "memory.h"
 #include "pbkdf2_hmac_sha1.h"
-// NOTE, this format FAILS for generic sha2.  It could be due to interaction between openssl/aes and generic sha2 code.
+#include "aes.h"
 #include "sha2.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           1
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_TAG          "$fde$"

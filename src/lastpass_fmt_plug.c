@@ -17,6 +17,13 @@ john_register_one(&fmt_lastpass);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               64
+#endif
+#endif
+
 #include "arch.h"
 #include "johnswap.h"
 #include "misc.h"
@@ -24,14 +31,8 @@ john_register_one(&fmt_lastpass);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #include "pbkdf2_hmac_sha256.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"lp"

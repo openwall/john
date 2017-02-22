@@ -19,12 +19,10 @@ john_register_one(&fmt_opencl_gpg);
 #else
 
 #include <string.h>
-#include <openssl/aes.h>
 #include <assert.h>
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
-#include "idea-JtR.h"
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #include <openssl/des.h>
@@ -37,6 +35,8 @@ john_register_one(&fmt_opencl_gpg);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
+#include "aes.h"
+#include "idea-JtR.h"
 #include "md5.h"
 #include "rc4.h"
 #include "pdfcrack_md5.h"
