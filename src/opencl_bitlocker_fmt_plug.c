@@ -353,29 +353,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ciphertext)
 		error_msg("No hash specified\n");
 
-	if (ciphertext[0] == '*' && strlen(ciphertext) == 1)
-		error_msg("Error ciphertext, '*' returned\n");
-
 	if (strlen(ciphertext) != BITLOCKER_JTR_HASH_SIZE_CHAR)
-		error_msg("Incorrect input hash format size");
+		return 0;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		error_msg("Incorrect input hash format");
+		return 0;
 
 	hash_format = strdup(ciphertext);
 	hash_format += FORMAT_TAG_LEN;
 
 	p = strtokm(hash_format, "$");
 	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
-		error_msg("Incorrect input hash format");
+		return 0;
 
 	p = strtokm(NULL, "$");
 	if (strlen(p) != BITLOCKER_SALT_SIZE * 2)
-		error_msg("Incorrect input hash format");
+		return 0;
 
 	p = strtokm(NULL, "");
 	if (strlen(p) != 8)
-		error_msg("Incorrect input hash format");
+		return 0;
 
 	return 1;
 }
