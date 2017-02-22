@@ -682,18 +682,6 @@ static void done(void)
 	return;
 }
 
-/*
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-    return ciphertext;
-}
-
-
-static int get_hash_0(int index)
-{
-    return 0;
-}
-*/
 struct fmt_main fmt_opencl_bitlocker = {
 	{
 
@@ -711,13 +699,11 @@ struct fmt_main fmt_opencl_bitlocker = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		{NULL}
-/*		,
+		{NULL},
 		{
 			FORMAT_TAG
 		},
 		BitLocker_tests
-*/
 	}, {
 		init,
 		done,
