@@ -21,8 +21,8 @@
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #include <openssl/des.h>
+#include <openssl/aes.h> /* AES_cfb128_encrypt() */
 
-#include "aes.h"
 #include "twofish.h"
 #include "idea-JtR.h"
 #include "sha2.h"
