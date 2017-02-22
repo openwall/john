@@ -45,12 +45,11 @@ john_register_one(&fmt_opencl_bitlocker);
 #define BITLOCKER_JTR_HASH_SIZE 45
 #define BITLOCKER_JTR_HASH_SIZE_CHAR 77
 
-#define MAX_PASSWORD_THREAD 8
+#define MAX_PASSWORD_THREAD 1
 #define MIN_KEYS_PER_CRYPT 1
-#define MAX_KEYS_PER_CRYPT 172032
+#define MAX_KEYS_PER_CRYPT 21504
 /*
  * On a GeForce Titan X: Assuming 896 threads for 24 SMs,
- * 8 password for each thread -> 896x24x8
 */
 
 #define BITLOCKER_HASH_SIZE 8   //32
@@ -379,7 +378,37 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	return ciphertext;
+	int i = 0;
+	char *hash_format;
+	char *p;
+
+	hash_format = strdup(ciphertext);
+	hash_format += FORMAT_TAG_LEN;
+
+	p = strtokm(hash_format, "$");
+	if(p == NULL)
+		return NULL;
+
+	p = strtokm(NULL, "$");
+	if(p == NULL)
+		return NULL;
+
+	p = strtokm(NULL, "");
+	if (strlen(p) != 8)
+		error_msg("Incorrect input hash format");
+	for (i = 0; i < 4; i++) {
+		encryptedVMK[i] =
+		    (p[2 * i] <=
+		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
+		encryptedVMK[i] |=
+		    p[(2 * i) + 1] <=
+		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
+#if BITLOCKER_ENABLE_DEBUG == 1
+		printf("encryptedVMK[%d]=%02x\n", i, encryptedVMK[i]);
+#endif
+	}
+
+	return encryptedVMK;
 }
 
 static void *get_salt(char *ciphertext)
@@ -419,21 +448,6 @@ static void *get_salt(char *ciphertext)
 		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
 #if BITLOCKER_ENABLE_DEBUG == 1
 		printf("salt[%d]=%02x\n", i, salt[i]);
-#endif
-	}
-
-	p = strtokm(NULL, "");
-	if (strlen(p) != 8)
-		error_msg("Incorrect input hash format");
-	for (i = 0; i < 4; i++) {
-		encryptedVMK[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		encryptedVMK[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("encryptedVMK[%d]=%02x\n", i, encryptedVMK[i]);
 #endif
 	}
 
