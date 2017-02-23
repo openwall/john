@@ -83,7 +83,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define UINT32_C(c) c ## UL
 #endif
 
-#define BITLOCKER_ENABLE_DEBUG 0
+#define BITLOCKER_ENABLE_DEBUG 1
 
 static cl_kernel prepare_kernel;
 static struct fmt_main *self;
@@ -113,15 +113,11 @@ static struct fmt_tests BitLocker_tests[] = {
 
 static void w_block_precomputed(unsigned char *salt);
 
-//void cpu_print_hex(unsigned char hash[], int size);
-//void readData(FILE *diskImage);
-//void fillBuffer(FILE *fp, unsigned char *buffer, int size);
-
 #include "opencl-autotune.h"
 
 static void reset(struct db_main *db)
 {
-	char fileNameAttack[] = "$JOHN/kernels/bitlocker_kernel.cl", opt[1024];
+	char opt[1024];
 	size_t deviceGlobalMem = 0;
 	long int globalMemRequired = 0;
 
@@ -135,7 +131,7 @@ static void reset(struct db_main *db)
 	} else
 		snprintf(opt, sizeof(opt), "-D DEV_NVIDIA_SM50=0");
 
-	opencl_build_kernel(fileNameAttack, gpu_id, opt, 0);
+	opencl_build_kernel("$JOHN/kernels/bitlocker_kernel.cl", gpu_id, opt, 0);
 	crypt_kernel =
 	    clCreateKernel(program[gpu_id], "opencl_bitlocker_attack", &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateKernel");
@@ -171,10 +167,9 @@ static void reset(struct db_main *db)
 		("Error global memory size! Required: %ld, Available: %ld GPU_ID: %d\n",
 		 globalMemRequired, deviceGlobalMem, gpu_id);
 
-	db->format->params.max_keys_per_crypt =
-	    szGlobalWorkSize;   //*num_pass_per_thread;
+	db->format->params.max_keys_per_crypt = szGlobalWorkSize;
 	var_max_keys_per_crypt = szGlobalWorkSize;
-	numPassword = szGlobalWorkSize; //num_pass_per_thread;
+	numPassword = szGlobalWorkSize;
 
 	deviceEncryptedVMK =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
@@ -235,17 +230,15 @@ static void init(struct fmt_main *_self)
 
 void w_block_precomputed(unsigned char *salt)
 {
-	char fileNameWBlocks[] = "$JOHN/kernels/bitlocker_kernel.cl";
 	char *opt = NULL;
 	unsigned char *padding;
 	uint64_t msgLen;
-	int iter_num = BITLOCKER_ITERATION_NUMBER;
+	cl_mem w_blocks_d_local;
 
 	if (salt == NULL)
 		return;
 
-	padding =
-	    (unsigned char *)calloc(BITLOCKER_PADDING_SIZE, sizeof(unsigned char));
+	padding = (unsigned char *)calloc(BITLOCKER_PADDING_SIZE, sizeof(unsigned char));
 	padding[0] = 0x80;
 	memset(padding + 1, 0, 31);
 	msgLen = (BITLOCKER_FIXED_PART_INPUT_CHAIN_HASH << 3);
@@ -263,7 +256,7 @@ void w_block_precomputed(unsigned char *salt)
 	                   BITLOCKER_PADDING_SIZE * sizeof(unsigned char), NULL, &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
 
-	w_blocks_d = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
+	w_blocks_d_local = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
 	                            BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
 	                            sizeof(int), NULL, &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
@@ -273,7 +266,7 @@ void w_block_precomputed(unsigned char *salt)
 	if (!w_blocks_h)
 		goto out;
 
-	opencl_build_kernel(fileNameWBlocks, gpu_id, opt, 0);
+	opencl_build_kernel("$JOHN/kernels/bitlocker_kernel.cl", gpu_id, opt, 0);
 	prepare_kernel =
 	    clCreateKernel(program[gpu_id], "opencl_bitlocker_wblocks", &ciErr1);
 	HANDLE_CLERROR(ciErr1,
@@ -289,17 +282,15 @@ void w_block_precomputed(unsigned char *salt)
 	                         NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
+
 	ciErr1 =
-	    clSetKernelArg(prepare_kernel, 0, sizeof(cl_int), (void *)&iter_num);
+	    clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem), (void *)&salt_d);
 	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
 	ciErr1 =
-	    clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem), (void *)&salt_d);
+	    clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem), (void *)&padding_d);
 	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
 	ciErr1 =
-	    clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem), (void *)&padding_d);
-	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
-	ciErr1 =
-	    clSetKernelArg(prepare_kernel, 3, sizeof(cl_mem), (void *)&w_blocks_d);
+	    clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem), (void *)&w_blocks_d_local);
 	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
 
 	szLocalWorkSize = get_kernel_max_lws(gpu_id, prepare_kernel);
@@ -310,7 +301,7 @@ void w_block_precomputed(unsigned char *salt)
 	                           &szGlobalWorkSize, &szLocalWorkSize, 0, NULL, NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueNDRangeKernel");
 
-	ciErr1 = clEnqueueReadBuffer(queue[gpu_id], w_blocks_d, CL_TRUE, 0,
+	ciErr1 = clEnqueueReadBuffer(queue[gpu_id], w_blocks_d_local, CL_TRUE, 0,
 	                             BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
 	                             sizeof(unsigned int), w_blocks_h, 0, NULL, NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueNDRangeKernel");
@@ -324,7 +315,7 @@ out:
 
 	clReleaseMemObject(salt_d);
 	clReleaseMemObject(padding_d);
-	clReleaseMemObject(w_blocks_d);
+	clReleaseMemObject(w_blocks_d_local);
 	free(padding);
 
 	return;
@@ -496,15 +487,13 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
-	int numPassword = count;
+	int numPassword = *pcount;
 
 #if BITLOCKER_ENABLE_DEBUG == 1
 	time_t start, end;
 	double dif;
 #endif
 
-	numPassword = count;
 
 #if BITLOCKER_ENABLE_DEBUG == 1
 	printf
@@ -610,7 +599,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	totPsw += numPassword;
 
-	return count;
+	return numPassword;
 }
 
 
