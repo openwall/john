@@ -45,9 +45,9 @@ john_register_one(&fmt_opencl_bitlocker);
 #define BITLOCKER_JTR_HASH_SIZE 45
 #define BITLOCKER_JTR_HASH_SIZE_CHAR 77
 
-#define MAX_PASSWORD_THREAD 1
+#define MAX_PASSWORD_THREAD 8
 #define MIN_KEYS_PER_CRYPT 1
-#define MAX_KEYS_PER_CRYPT 21504
+#define MAX_KEYS_PER_CRYPT 172032 //21504
 /*
  * On a GeForce Titan X: Assuming 896 threads for 24 SMs,
 */
@@ -134,8 +134,6 @@ static void reset(struct db_main *db)
 		szLocalWorkSize = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 		szGlobalWorkSize = autotune_get_task_max_size(1, 0, MAX_PASSWORD_THREAD, crypt_kernel); 
 
-		// num_pass_per_thread
-
 		deviceGlobalMem = get_max_mem_alloc_size(gpu_id);
 		globalMemRequired = (BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
 		                     BITLOCKER_ITERATION_NUMBER * sizeof(int))    //FIXED AMOUNT REQUIRED
@@ -155,7 +153,7 @@ static void reset(struct db_main *db)
 
 	inbuffer =
 	    (unsigned char *)calloc(numPassword * BITLOCKER_MAX_INPUT_PASSWORD_LEN, sizeof(unsigned char));
-	inbuffer_size = (int *)calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
+	inbuffer_size = (int *)calloc(numPassword, sizeof(int));
 	outbuffer =
 	    (unsigned char *)calloc(BITLOCKER_MAX_INPUT_PASSWORD_LEN + 2,
 	                            sizeof(unsigned char));
@@ -191,35 +189,9 @@ static void reset(struct db_main *db)
 	                   sizeof(unsigned int), NULL, &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
 
-	tmp_global = 
-	(((unsigned int *)(tmpIV)) [0]);
-	IV0 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
 
-	tmp_global = ((unsigned int *)(tmpIV + 4))[0];
-	IV4 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
 
-	tmp_global = ((unsigned int *)(tmpIV + 8))[0];
-	IV8 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
-	tmp_global = ((unsigned int *)(tmpIV + 12))[0];
-	IV12 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
+	printf("IV12: %lx\n", IV12);
 	return;
 }
 
@@ -454,6 +426,35 @@ static void *get_salt(char *ciphertext)
 	*tmpIV = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
 	tmpIV[BITLOCKER_IV_SIZE - 1] = 1;
 
+		tmp_global = 
+	(((unsigned int *)(tmpIV)) [0]);
+	IV0 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
+	tmp_global = ((unsigned int *)(tmpIV + 4))[0];
+	IV4 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
+	tmp_global = ((unsigned int *)(tmpIV + 8))[0];
+	IV8 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
+	tmp_global = ((unsigned int *)(tmpIV + 12))[0];
+	IV12 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
 	return tmpIV;
 }
 
@@ -499,8 +500,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	("\n[BitCracker] -> Starting Attack, #Passwords: %d, Global Work Size: %zu, Local Work Size: %zu\n",
 	 numPassword, szGlobalWorkSize, szLocalWorkSize);
 #endif
-
-	
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], w_blocks_d, CL_TRUE, 0,
@@ -572,7 +571,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if BITLOCKER_ENABLE_DEBUG == 1
 	time(&start);
 #endif
-
 
 	ciErr1 =
 	    clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
@@ -675,13 +673,12 @@ struct fmt_main fmt_opencl_bitlocker = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		{NULL}
-		/*,
+		{NULL},
 		{
 			FORMAT_TAG
-		},
-		BitLocker_tests
-*/	}, {
+		}//,
+	//	BitLocker_tests
+	}, {
 		init,
 		done,
 		reset,
