@@ -66,8 +66,6 @@ john_register_one(&fmt_opencl_bitlocker);
 #define BITLOCKER_MAX_INPUT_PASSWORD_LEN 16
 #define BITLOCKER_MIN_INPUT_PASSWORD_LEN 8
 
-#define AUTHENTICATOR_LENGTH 16
-#define AES_CTX_LENGTH 256
 #define FALSE 0
 #define TRUE 1
 #define BITLOCKER_SALT_SIZE 16
@@ -76,8 +74,6 @@ john_register_one(&fmt_opencl_bitlocker);
 #define BITLOCKER_IV_SIZE 16
 #define BITLOCKER_VMK_SIZE 44
 #define VMK_DECRYPT_SIZE 16
-#define DICT_BUFSIZE    (50*1024*1024)
-#define MAX_PLEN 32
 #ifndef UINT32_C
 #define UINT32_C(c) c ## UL
 #endif
@@ -102,7 +98,7 @@ static int *hostFound, passwordBufferSize, numPassword, totPsw, i;
 static int max_compute_units = 0;
 static int num_pass_per_thread = 0;
 
-static int var_max_keys_per_crypt = MAX_KEYS_PER_CRYPT;
+static unsigned int tmp_global, IV0, IV4, IV8, IV12;
 
 static struct fmt_tests BitLocker_tests[] = {
 	{"$bitlocker$b0599ad6c6a1cf0103000000$0a8b9d0655d3900e9f67280adc27b5d7$033a16cb", "paperino"},
@@ -111,19 +107,15 @@ static struct fmt_tests BitLocker_tests[] = {
 
 static void w_block_precomputed(unsigned char *salt);
 
-//void cpu_print_hex(unsigned char hash[], int size);
-//void readData(FILE *diskImage);
-//void fillBuffer(FILE *fp, unsigned char *buffer, int size);
-
 #include "opencl-autotune.h"
 
 static void reset(struct db_main *db)
 {
-	char fileNameAttack[] = "$JOHN/kernels/bitlocker_kernel.cl", opt[1024];
+	char opt[1024];
 	size_t deviceGlobalMem = 0;
 	long int globalMemRequired = 0;
 
-	num_pass_per_thread = MAX_PASSWORD_THREAD;
+	//num_pass_per_thread = MAX_PASSWORD_THREAD;
 
 	if (gpu_nvidia(device_info[gpu_id])) {
 		if (nvidia_sm_5x(device_info[gpu_id]))
@@ -133,16 +125,16 @@ static void reset(struct db_main *db)
 	} else
 		snprintf(opt, sizeof(opt), "-D DEV_NVIDIA_SM50=0");
 
-	opencl_build_kernel(fileNameAttack, gpu_id, opt, 0);
+	opencl_build_kernel("$JOHN/kernels/bitlocker_kernel.cl", gpu_id, opt, 0);
 	crypt_kernel =
 	    clCreateKernel(program[gpu_id], "opencl_bitlocker_attack", &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateKernel");
 
-	while (1) {
-		szLocalWorkSize =
-		    autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-		szGlobalWorkSize = autotune_get_task_max_size(1, 0, num_pass_per_thread,
-		                   crypt_kernel); // num_pass_per_thread
+//	while (1) {
+		szLocalWorkSize = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+		szGlobalWorkSize = autotune_get_task_max_size(1, 0, MAX_PASSWORD_THREAD, crypt_kernel); 
+
+		// num_pass_per_thread
 
 		deviceGlobalMem = get_max_mem_alloc_size(gpu_id);
 		globalMemRequired = (BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
@@ -153,30 +145,25 @@ static void reset(struct db_main *db)
 		                    * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(unsigned char);
 
 		if (globalMemRequired > deviceGlobalMem)
-			num_pass_per_thread--;
-		else
-			break;
-
-		if (num_pass_per_thread < 1) {
-			error_msg
-			("Error global memory size! Required: %ld, Available: %ld GPU_ID: %d\n",
-			 globalMemRequired, deviceGlobalMem, gpu_id);
-		}
-	}
-
-	if (num_pass_per_thread < 1)
-		error_msg
-		("Error global memory size! Required: %ld, Available: %ld GPU_ID: %d\n",
-		 globalMemRequired, deviceGlobalMem, gpu_id);
+			error_msg ("Error global memory size! Required: %ld, Available: %ld GPU_ID: %d\n", globalMemRequired, deviceGlobalMem, gpu_id);
+		
+//	}
 
 	db->format->params.max_keys_per_crypt =
 	    szGlobalWorkSize;   //*num_pass_per_thread;
-	var_max_keys_per_crypt = szGlobalWorkSize;
 	numPassword = szGlobalWorkSize; //num_pass_per_thread;
+
+	inbuffer =
+	    (unsigned char *)calloc(numPassword * BITLOCKER_MAX_INPUT_PASSWORD_LEN, sizeof(unsigned char));
+	inbuffer_size = (int *)calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
+	outbuffer =
+	    (unsigned char *)calloc(BITLOCKER_MAX_INPUT_PASSWORD_LEN + 2,
+	                            sizeof(unsigned char));
+	hostFound = (int *)calloc(1, sizeof(int));
 
 	deviceEncryptedVMK =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-	                   VMK_DECRYPT_SIZE * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(uint8_t),
+	                   VMK_DECRYPT_SIZE * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(unsigned char),
 	                   NULL, &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
 
@@ -203,6 +190,36 @@ static void reset(struct db_main *db)
 	                   BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
 	                   sizeof(unsigned int), NULL, &ciErr1);
 	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
+
+	tmp_global = 
+	(((unsigned int *)(tmpIV)) [0]);
+	IV0 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
+	tmp_global = ((unsigned int *)(tmpIV + 4))[0];
+	IV4 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
+	tmp_global = ((unsigned int *)(tmpIV + 8))[0];
+	IV8 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
+	tmp_global = ((unsigned int *)(tmpIV + 12))[0];
+	IV12 =
+	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
+	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+
 	return;
 }
 
@@ -212,37 +229,6 @@ static void init(struct fmt_main *_self)
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
-	max_compute_units = get_max_compute_units(gpu_id);
-	maxDeviceWorkgroupSize = get_device_max_lws(gpu_id);
-
-	inbuffer = NULL;
-	inbuffer_size = NULL;
-	outbuffer = NULL;
-
-	numPassword =
-	    (int)maxDeviceWorkgroupSize * max_compute_units *
-	    BITLOCKER_MAX_INPUT_PASSWORD_LEN;
-	passwordBufferSize =
-	    (int)numPassword * BITLOCKER_MAX_INPUT_PASSWORD_LEN *
-	    sizeof(unsigned char);
-
-	inbuffer =
-	    (unsigned char *)calloc(passwordBufferSize, sizeof(unsigned char));
-	inbuffer_size = (int *)calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
-	hostFound = (int *)calloc(1, sizeof(int));
-	outbuffer =
-	    (unsigned char *)calloc(BITLOCKER_MAX_INPUT_PASSWORD_LEN + 2,
-	                            sizeof(unsigned char));
-
-	memset(inbuffer, 0,
-	       (sizeof(uint8_t) * (BITLOCKER_MAX_INPUT_PASSWORD_LEN +
-	                           2) * MAX_KEYS_PER_CRYPT));
-	memset(inbuffer_size, 0, (sizeof(int) * MAX_KEYS_PER_CRYPT));
-	memset(outbuffer, 0,
-	       (sizeof(uint8_t) * (BITLOCKER_MAX_INPUT_PASSWORD_LEN + 2) * 1));
-
-	tmpIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
-
 }
 
 void w_block_precomputed(unsigned char *salt)
@@ -263,7 +249,7 @@ void w_block_precomputed(unsigned char *salt)
 	msgLen = (BITLOCKER_FIXED_PART_INPUT_CHAIN_HASH << 3);
 	for (i = 0; i < 8; i++)
 		padding[BITLOCKER_PADDING_SIZE - 1 - i] =
-		    (uint8_t)(msgLen >> (i * 8));
+		    (unsigned char)(msgLen >> (i * 8));
 
 	salt_d =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
@@ -350,7 +336,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 
 	if (!ciphertext)
-		error_msg("No hash specified\n");
+		return 0;
 
 	if (strlen(ciphertext) != BITLOCKER_JTR_HASH_SIZE_CHAR)
 		return 0;
@@ -395,7 +381,10 @@ static void *get_binary(char *ciphertext)
 
 	p = strtokm(NULL, "");
 	if (strlen(p) != 8)
-		error_msg("Incorrect input hash format");
+		return NULL;
+
+	memset(encryptedVMK, 0, BITLOCKER_VMK_SIZE);
+
 	for (i = 0; i < 4; i++) {
 		encryptedVMK[i] =
 		    (p[2 * i] <=
@@ -456,6 +445,7 @@ static void *get_salt(char *ciphertext)
 		error_msg("Error... Exit\n");
 	}
 
+	tmpIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
 	memset(tmpIV, 0, BITLOCKER_IV_SIZE);
 	memcpy(tmpIV + 1, nonce, BITLOCKER_NONCE_SIZE);
 	if (BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1 < 0)
@@ -494,7 +484,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int numPassword = count;
-	unsigned int tmp_global, IV0, IV4, IV8, IV12;
 
 #if BITLOCKER_ENABLE_DEBUG == 1
 	time_t start, end;
@@ -503,7 +492,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	numPassword = count;
 	passwordBufferSize =
-	    numPassword * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(uint8_t);
+	    numPassword * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(unsigned char);
 
 #if BITLOCKER_ENABLE_DEBUG == 1
 	printf
@@ -511,34 +500,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	 numPassword, szGlobalWorkSize, szLocalWorkSize);
 #endif
 
-	tmp_global = 
-	(((unsigned int *)(tmpIV)) [0]);
-	IV0 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
-	tmp_global = ((unsigned int *)(tmpIV + 4))[0];
-	IV4 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
-	tmp_global = ((unsigned int *)(tmpIV + 8))[0];
-	IV8 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
-	tmp_global = ((unsigned int *)(tmpIV + 12))[0];
-	IV12 =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+	
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], w_blocks_d, CL_TRUE, 0,
@@ -713,12 +675,13 @@ struct fmt_main fmt_opencl_bitlocker = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		{NULL},
+		{NULL}
+		/*,
 		{
 			FORMAT_TAG
 		},
 		BitLocker_tests
-	}, {
+*/	}, {
 		init,
 		done,
 		reset,
