@@ -38,6 +38,7 @@ john_register_one(&fmt_opencl_fvde);
 #define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
+#define AES_KERNEL_NAME         "fvde_decrypt"
 
 #define HASH_LOOPS              (13*71) // factors 13, 13, 71
 #define ITERATIONS              12000
@@ -55,6 +56,10 @@ typedef struct {
 	uint8_t length;
 	uint8_t salt[115];
 	uint32_t rounds;
+	union {  // wrapped kek
+		uint64_t qword[BLOBLEN/8];
+		uint8_t chr[BLOBLEN];
+	} blob;
 } salt_t;
 
 typedef struct {
@@ -67,21 +72,19 @@ typedef struct {
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/
-static crack_t *host_crack;			      /** hash**/
 static cl_int cl_error;
-static cl_mem mem_in, mem_out, mem_salt, mem_state;
-static cl_kernel split_kernel;
+static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_cracked;
+static cl_kernel split_kernel, decrypt_kernel;
 static struct fmt_main *self;
 
-static int *cracked, cracked_size;
-static int any_cracked;
+static unsigned int *cracked, cracked_size;
 static fvde_custom_salt *cur_salt;
 
 #define STEP			0
 #define SEED			1024
 
 static const char * warn[] = {
-        "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
+        "xfer: ",  ", init: " , ", crypt: ", ", decrypt: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -104,9 +107,8 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
-	host_crack = mem_calloc(kpc, sizeof(crack_t));
 	host_salt = mem_calloc(1, sizeof(salt_t));
-	cracked_size = kpc * sizeof(*cracked);
+	cracked_size = (kpc + 1) * sizeof(*cracked);
 	cracked = mem_calloc(cracked_size, 1);
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
@@ -117,6 +119,8 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	                         "Cannot allocate mem out");
 	mem_state = CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
 	                           "Cannot allocate mem state");
+	mem_cracked = CLCREATEBUFFER(CL_RW, cracked_size,
+	                           "Cannot allocate mem cracked");
 
 	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
 	CLKERNELARG(crypt_kernel, 1, mem_salt, "Error while setting mem_salt");
@@ -124,6 +128,10 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
 	CLKERNELARG(split_kernel, 1 ,mem_out, "Error while setting mem_out");
+
+	CLKERNELARG(decrypt_kernel, 0, mem_salt, "Error while setting mem_salt");
+	CLKERNELARG(decrypt_kernel, 1 ,mem_out, "Error while setting mem_out");
+	CLKERNELARG(decrypt_kernel, 2 ,mem_cracked, "Error setting mem_cracked");
 }
 
 /* ------- Helper functions ------- */
@@ -133,20 +141,22 @@ static size_t get_task_max_work_group_size()
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, split_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, decrypt_kernel));
 	return s;
 }
 
 static void release_clobj(void)
 {
-	if (host_crack) {
+	if (host_salt) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_cracked), "Release mem cracked");
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 
+		MEM_FREE(cracked);
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
-		MEM_FREE(host_crack);
 	}
 }
 
@@ -164,7 +174,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
 		         HASH_LOOPS, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
+		opencl_init("$JOHN/kernels/fvde_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =
@@ -174,6 +184,10 @@ static void reset(struct db_main *db)
 		split_kernel =
 			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
+
+		decrypt_kernel =
+			clCreateKernel(program[gpu_id], AES_KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating decrypt kernel");
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
@@ -193,6 +207,7 @@ static void done(void)
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
 		HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
+		HANDLE_CLERROR(clReleaseKernel(decrypt_kernel), "Release kernel 3");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
 
@@ -205,6 +220,7 @@ static void set_salt(void *salt)
 	cur_salt = (fvde_custom_salt*)salt;
 
 	memcpy(host_salt->salt, cur_salt->salt, cur_salt->salt_length);
+	memcpy(host_salt->blob.qword, cur_salt->blob.qword, BLOBLEN);
 	host_salt->length = cur_salt->salt_length;
 	host_salt->rounds = cur_salt->iterations;
 
@@ -217,16 +233,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
 	const int count = *pcount;
-	int index;
 	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
@@ -244,31 +254,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		opencl_process_event();
 	}
 
+	// Run FVDE decrypt/compare kernel
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], decrypt_kernel,
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run kernel");
+
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
-		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
-		NULL, multi_profilingEvent[3]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cracked,
+		CL_TRUE, 0, cracked_size, cracked, 0,
+		NULL, multi_profilingEvent[4]), "Copy result back");
 
-	if (!ocl_autotune_running) {
-		for (index = 0; index < count; index++)
-		if (fvde_common_decrypt(cur_salt, (unsigned char*)host_crack[index].hash))
-		{
-			cracked[index] = 1;
-			any_cracked |= 1;
-		}
-	}
-
-	return count;
+	return cracked[0];
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	return cracked[0];
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return cracked[index + 1];
 }
 
 static int cmp_exact(char *source, int index)

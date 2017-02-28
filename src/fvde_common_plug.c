@@ -9,7 +9,6 @@
 #include "hmac_sha.h"
 #include "memdbg.h"
 #include "johnswap.h"
-#include "aes.h"
 
 struct fmt_tests fvde_tests[] = {
 	// https://github.com/kholia/fvde2john/blob/master/fvde-1.raw.tar.xz
@@ -18,49 +17,6 @@ struct fmt_tests fvde_tests[] = {
 	{"$fvde$1$16$94c438acf87d68c2882d53aafaa4647d$70400$2deb811f803a68e5e1c4d63452f04e1cac4e5d259f2e2999", "password123"},
 	{NULL}
 };
-
-/*
- * Unwrap data using AES Key Wrap (RFC3394)
- *
- * Translated from "AESUnwrap" function in aeswrap.py from https://github.com/dinosec/iphone-dataprotection project.
- *
- * The C implementation "aes_key_unwrap" in ramdisk_tools/bsdcrypto/key_wrap.c doesn't look any better.
- *
- * "libfvde_encryption_aes_key_unwrap" isn't great to look at either.
- */
-int fvde_common_decrypt(fvde_custom_salt *cur_salt, unsigned char *key)
-{
-	uint64_t *C = cur_salt->blob.qword; // len(C) == 3
-	int n = 2;  // len(C) - 1
-	uint64_t R[3]; // n + 1 = 3
-	union {
-		uint64_t qword[2];
-		unsigned char stream[16];
-	} todecrypt;
-	int i, j;
-	AES_KEY akey;
-	uint64_t A = C[0];
-
-	AES_set_decrypt_key(key, 128, &akey);
-
-	for (i = 0; i < n + 1; i++)
-		R[i] = C[i];
-
-	for (j = 5; j >= 0; j--) { // 5 is fixed!
-		for (i = 2; i >=1; i--) { // i = n
-			todecrypt.qword[0] = JOHNSWAP64(A ^ (n*j+i));
-			todecrypt.qword[1] = JOHNSWAP64(R[i]);
-			AES_ecb_encrypt(todecrypt.stream, todecrypt.stream, &akey, AES_DECRYPT);
-			A = JOHNSWAP64(todecrypt.qword[0]);
-			R[i] = JOHNSWAP64(todecrypt.qword[1]);
-		}
-	}
-
-	if (A == 0xa6a6a6a6a6a6a6a6ULL)
-		return 1; // success!
-
-	return 0;
-}
 
 int fvde_common_valid(char *ciphertext, struct fmt_main *self)
 {

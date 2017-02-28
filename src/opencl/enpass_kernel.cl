@@ -10,6 +10,7 @@
 #include "pbkdf2_hmac_sha1_kernel.cl"
 #define OCL_AES_CBC_DECRYPT 1
 #define AES_KEY_TYPE __global
+#define AES_SRC_TYPE __global
 #include "opencl_aes.h"
 
 #define SQLITE_MAX_PAGE_SIZE    65536
