@@ -40,8 +40,8 @@ john_register_one(&fmt_opencl_fvde);
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
 #define AES_KERNEL_NAME         "fvde_decrypt"
 
-#define HASH_LOOPS              (13*71) // factors 13, 13, 71
-#define ITERATIONS              12000
+#define HASH_LOOPS              (7*113) // factors 7 89 113 (for 70400)
+#define ITERATIONS              70400
 
 typedef struct {
 	uint8_t length;
