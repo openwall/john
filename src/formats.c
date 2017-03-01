@@ -386,7 +386,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->private.initialized == 2)
 		return NULL;
 #endif
-
+#if defined(HAVE_OPENCL)
+	if (strcasestr(format->params.label, "-opencl") &&
+	    !strstr(format->params.label, "-opencl")) {
+		return "-opencl suffix must be lower case";
+	}
+#endif
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
 		fmt_init(format);
