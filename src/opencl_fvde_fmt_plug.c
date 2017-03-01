@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_fvde);
 #include "common-opencl.h"
 
 #define FORMAT_LABEL            "FVDE-opencl"
-#define ALGORITHM_NAME          "PBKDF2-SHA256 OpenCL AES"
+#define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1001
 #define MIN_KEYS_PER_CRYPT      1
