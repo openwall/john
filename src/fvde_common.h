@@ -26,4 +26,3 @@ extern struct fmt_tests fvde_tests[];
 int fvde_common_valid(char *ciphertext, struct fmt_main *self);
 void *fvde_common_get_salt(char *ciphertext);
 unsigned int fvde_common_iteration_count(void *salt);
-int fvde_common_decrypt(fvde_custom_salt *cur_salt, unsigned char *key);

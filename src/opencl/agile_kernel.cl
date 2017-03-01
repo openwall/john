@@ -9,6 +9,7 @@
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
 #define AES_KEY_TYPE __global
 #define OCL_AES_CBC_DECRYPT 1
+#define AES_SRC_TYPE __global
 #include "opencl_aes.h"
 
 inline int check_pkcs_pad(const uchar *data, size_t len, uint blocksize)

@@ -10,6 +10,7 @@
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
 #define OCL_AES_CBC_DECRYPT 1
+#define AES_SRC_TYPE __global
 #include "opencl_aes.h"
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)

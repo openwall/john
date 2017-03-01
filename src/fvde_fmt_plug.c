@@ -33,6 +33,7 @@ john_register_one(&fmt_fvde);
 #include "params.h"
 #include "options.h"
 #include "johnswap.h"
+#include "aes.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "jumbo.h"
 #include "memdbg.h"
@@ -110,6 +111,49 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+/*
+ * Unwrap data using AES Key Wrap (RFC3394)
+ *
+ * Translated from "AESUnwrap" function in aeswrap.py from https://github.com/dinosec/iphone-dataprotection project.
+ *
+ * The C implementation "aes_key_unwrap" in ramdisk_tools/bsdcrypto/key_wrap.c doesn't look any better.
+ *
+ * "libfvde_encryption_aes_key_unwrap" isn't great to look at either.
+ */
+static int fvde_decrypt(fvde_custom_salt *cur_salt, unsigned char *key)
+{
+	uint64_t *C = cur_salt->blob.qword; // len(C) == 3
+	int n = 2;  // len(C) - 1
+	uint64_t R[3]; // n + 1 = 3
+	union {
+		uint64_t qword[2];
+		unsigned char stream[16];
+	} todecrypt;
+	int i, j;
+	AES_KEY akey;
+	uint64_t A = C[0];
+
+	AES_set_decrypt_key(key, 128, &akey);
+
+	for (i = 0; i < n + 1; i++)
+		R[i] = C[i];
+
+	for (j = 5; j >= 0; j--) { // 5 is fixed!
+		for (i = 2; i >=1; i--) { // i = n
+			todecrypt.qword[0] = JOHNSWAP64(A ^ (n*j+i));
+			todecrypt.qword[1] = JOHNSWAP64(R[i]);
+			AES_ecb_encrypt(todecrypt.stream, todecrypt.stream, &akey, AES_DECRYPT);
+			A = JOHNSWAP64(todecrypt.qword[0]);
+			R[i] = JOHNSWAP64(todecrypt.qword[1]);
+		}
+	}
+
+	if (A == 0xa6a6a6a6a6a6a6a6ULL)
+		return 1; // success!
+
+	return 0;
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -138,7 +182,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, master[i], 16, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			cracked[index+i] = fvde_common_decrypt(cur_salt, master[i]);
+			cracked[index+i] = fvde_decrypt(cur_salt, master[i]);
 		}
 	}
 	return count;
