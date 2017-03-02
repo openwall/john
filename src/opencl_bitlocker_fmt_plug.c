@@ -45,17 +45,8 @@ john_register_one(&fmt_opencl_bitlocker);
 
 #define BITLOCKER_JTR_HASH_SIZE 45
 #define BITLOCKER_JTR_HASH_SIZE_CHAR 77
-/*
-#define MAX_PASSWORD_THREAD 8
-#define MIN_KEYS_PER_CRYPT 1
-#define MAX_KEYS_PER_CRYPT 172032
-*/
 #define MIN_KEYS_PER_CRYPT  1   /* These will change in init() */
 #define MAX_KEYS_PER_CRYPT  1
-/*
- * On a GeForce Titan X: Assuming 896 threads for 24 SMs,
- * 8 password for each thread -> 896x24x8
- */
 
 #define BITLOCKER_HASH_SIZE 8   //32
 #define BITLOCKER_ROUND_SHA_NUM 64
@@ -107,7 +98,6 @@ static unsigned char salt[BITLOCKER_SALT_SIZE], nonce[BITLOCKER_NONCE_SIZE],
 static unsigned char *tmpIV, *inbuffer;
 static int *inbuffer_size;
 
-//static FILE *diskImage;
 static int *hostFound, totPsw, i;
 static unsigned int tmp_global, IV0, IV4, IV8, IV12;
 
