@@ -40,7 +40,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define FORMAT_LABEL            "bitlocker-opencl"
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
-#define FORMAT_TAG				"$bitlocker$"
+#define FORMAT_TAG              "$bitlocker$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
 #define BITLOCKER_JTR_HASH_SIZE 45
@@ -50,8 +50,8 @@ john_register_one(&fmt_opencl_bitlocker);
 #define MIN_KEYS_PER_CRYPT 1
 #define MAX_KEYS_PER_CRYPT 172032
 */
-#define MIN_KEYS_PER_CRYPT	1 /* These will change in init() */
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT  1   /* These will change in init() */
+#define MAX_KEYS_PER_CRYPT  1
 /*
  * On a GeForce Titan X: Assuming 896 threads for 24 SMs,
  * 8 password for each thread -> 896x24x8
@@ -96,7 +96,7 @@ static cl_kernel block_kernel;
 static struct fmt_main *self;
 
 static cl_mem salt_d, padding_d, w_blocks_d, deviceEncryptedVMK,
-	devicePassword, devicePasswordSize, deviceFound;
+       devicePassword, devicePasswordSize, deviceFound;
 static cl_int numPasswordsKernelDev;
 static cl_int ciErr1;
 static cl_int cl_error;
@@ -109,7 +109,7 @@ static int *inbuffer_size;
 
 //static FILE *diskImage;
 static int *hostFound, totPsw, i;
-static 	unsigned int tmp_global, IV0, IV4, IV8, IV12;
+static unsigned int tmp_global, IV0, IV4, IV8, IV12;
 
 static int *numPasswordsKernel;
 
@@ -119,7 +119,8 @@ static struct fmt_tests tests[] = {
 };
 
 static const char *warn[] = {
-	"vmk xfer: ", "pw xfer: ", "pw_sz xfer: ", "found xfer: ", ", crypt: ", ", res xfer: "
+	"vmk xfer: ", "pw xfer: ", "pw_sz xfer: ", "found xfer: ", ", crypt: ",
+	", res xfer: "
 };
 
 static void w_block_precomputed(unsigned char *salt);
@@ -139,11 +140,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	fprintf(stderr, "%s(%zu)\n", __FUNCTION__, gws);
 #define CLCREATEBUFFER(_flags, _size, _string)\
-	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error);\
-	HANDLE_CLERROR(cl_error, _string);
+    clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error);\
+    HANDLE_CLERROR(cl_error, _string);
 
 #define CLKERNELARG(kernel, id, arg, msg)\
-	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
+    HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 
 	inbuffer = (unsigned char *)mem_calloc(in_size, sizeof(unsigned char));
@@ -152,49 +153,56 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	numPasswordsKernel = (int *)mem_calloc(1, sizeof(int));
 
 	w_blocks_h = (unsigned int *)mem_calloc((BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
-	                                     BITLOCKER_ITERATION_NUMBER), sizeof(unsigned int));
+	                                        BITLOCKER_ITERATION_NUMBER), sizeof(unsigned int));
 
 	deviceEncryptedVMK = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-	                   					VMK_DECRYPT_SIZE * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(unsigned char),
-	                   					"Cannot allocate vmk");
+	                                    VMK_DECRYPT_SIZE * BITLOCKER_MAX_INPUT_PASSWORD_LEN *
+	                                    sizeof(unsigned char), "Cannot allocate vmk");
 
 	devicePassword = CLCREATEBUFFER(CL_MEM_READ_ONLY,
-	                   					in_size * sizeof(unsigned char),
-	                   					"Cannot allocate inbuffer");
+	                                in_size * sizeof(unsigned char), "Cannot allocate inbuffer");
 
 	devicePasswordSize = CLCREATEBUFFER(CL_MEM_READ_ONLY,
-	                   					in_size * sizeof(unsigned char),
-	                   					"Cannot allocate inbuffer size");
+	                                    in_size * sizeof(unsigned char), "Cannot allocate inbuffer size");
 
 	deviceFound = CLCREATEBUFFER(CL_MEM_WRITE_ONLY,
-	                   					sizeof(int),
-	                   					"Cannot allocate device found");
+	                             sizeof(int), "Cannot allocate device found");
 
 	w_blocks_d = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-	                   					BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER * sizeof(unsigned int),
-	                   					"Cannot allocate w blocks");
+	                            BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
+	                            sizeof(unsigned int), "Cannot allocate w blocks");
 
 
 
 	salt_d = CLCREATEBUFFER(CL_MEM_READ_ONLY,
-           					BITLOCKER_SALT_SIZE * sizeof(char),
-           					"Cannot allocate salt_d");
+	                        BITLOCKER_SALT_SIZE * sizeof(char), "Cannot allocate salt_d");
 
-	printf("salt_d %p allocato %zu byte\n", salt_d, BITLOCKER_SALT_SIZE * sizeof(char));
-	padding_d = CLCREATEBUFFER(CL_MEM_READ_ONLY,
-           					BITLOCKER_PADDING_SIZE * sizeof(char),
-           					"Cannot allocate padding_d");
+	printf("salt_d %p allocato %zu byte\n", salt_d,
+	       BITLOCKER_SALT_SIZE * sizeof(char));
+	padding_d =
+	    CLCREATEBUFFER(CL_MEM_READ_ONLY, BITLOCKER_PADDING_SIZE * sizeof(char),
+	                   "Cannot allocate padding_d");
 
-	CLKERNELARG(crypt_kernel, 0, numPasswordsKernelDev, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 1, devicePassword, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 2, devicePasswordSize, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 3, deviceFound, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 4, deviceEncryptedVMK, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 5, w_blocks_d, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 6, IV0, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 7, IV4, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 8, IV8, "Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 9, IV12, "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 0, numPasswordsKernelDev,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 1, devicePassword,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 2, devicePasswordSize,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 3, deviceFound,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 4, deviceEncryptedVMK,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 5, w_blocks_d,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 6, IV0,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 7, IV4,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 8, IV8,
+	            "Error while setting numPasswordsKernelDev");
+	CLKERNELARG(crypt_kernel, 9, IV12,
+	            "Error while setting numPasswordsKernelDev");
 
 	memset(inbuffer, '\0', in_size);
 
@@ -212,9 +220,11 @@ static void release_clobj(void)
 		//HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_out, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
 		//HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-		HANDLE_CLERROR(clReleaseMemObject(deviceEncryptedVMK), "Release pinned_in");
+		HANDLE_CLERROR(clReleaseMemObject(deviceEncryptedVMK),
+		               "Release pinned_in");
 		HANDLE_CLERROR(clReleaseMemObject(devicePassword), "Release mem_in");
-		HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize), "Release mem_salt");
+		HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize),
+		               "Release mem_salt");
 		HANDLE_CLERROR(clReleaseMemObject(deviceFound), "Release pinned_out");
 		HANDLE_CLERROR(clReleaseMemObject(w_blocks_d), "Release mem_out");
 
@@ -249,16 +259,22 @@ static void reset(struct db_main *db)
 		//opencl_build_kernel("$JOHN/kernels/bitlocker_kernel.cl", gpu_id, build_opts, 0);
 
 		///Create Kernel
-		crypt_kernel = clCreateKernel(program[gpu_id], "opencl_bitlocker_attack", &ret_code);
+		crypt_kernel =
+		    clCreateKernel(program[gpu_id], "opencl_bitlocker_attack",
+		                   &ret_code);
 		HANDLE_CLERROR(ret_code, "Error while creating kernel");
 
-		block_kernel = clCreateKernel(program[gpu_id], "opencl_bitlocker_wblocks", &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
+		block_kernel =
+		    clCreateKernel(program[gpu_id], "opencl_bitlocker_wblocks",
+		                   &ret_code);
+		HANDLE_CLERROR(ret_code,
+		               "Error creating kernel_prepare. Double-check kernel name?");
 
 		//Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
-		                       BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER * sizeof(int), 0, db);
+		                       BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
+		                       sizeof(int), 0, db);
 
 		//Auto tune execution from shared/included code.
 		autotune_run(self, 1000, 0, 500);
@@ -291,29 +307,30 @@ void w_block_precomputed(unsigned char *salt)
 		padding[BITLOCKER_PADDING_SIZE - 1 - i] =
 		    (uint8_t)(msgLen >> (i * 8));
 
-/*
-	salt_d =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                   BITLOCKER_SALT_SIZE * sizeof(unsigned char), NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
+	/*
+	    salt_d =
+	        clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+	                       BITLOCKER_SALT_SIZE * sizeof(unsigned char), NULL, &ciErr1);
+	    HANDLE_CLERROR(ciErr1, "clCreateBuffer");
 
-	padding_d =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                   BITLOCKER_PADDING_SIZE * sizeof(unsigned char), NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
+	    padding_d =
+	        clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+	                       BITLOCKER_PADDING_SIZE * sizeof(unsigned char), NULL, &ciErr1);
+	    HANDLE_CLERROR(ciErr1, "clCreateBuffer");
 
-	w_blocks_d_local = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
-	                            BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
-	                            sizeof(int), NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
-*/
+	    w_blocks_d_local = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
+	                                BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
+	                                sizeof(int), NULL, &ciErr1);
+	    HANDLE_CLERROR(ciErr1, "clCreateBuffer");
+	*/
 
-//	opencl_build_kernel("$JOHN/kernels/wblock_kernel.cl", gpu_id, NULL, 0);
+//  opencl_build_kernel("$JOHN/kernels/wblock_kernel.cl", gpu_id, NULL, 0);
 
-		printf("w_block_precomputed 0, salt[0]_ %x\n", salt[0]);
+	printf("w_block_precomputed 0, salt[0]_ %x\n", salt[0]);
 
 
-	printf("salt_d %p write %zu byte\n", salt_d, BITLOCKER_SALT_SIZE * sizeof(char));
+	printf("salt_d %p write %zu byte\n", salt_d,
+	       BITLOCKER_SALT_SIZE * sizeof(char));
 
 
 	ciErr1 =
@@ -331,35 +348,34 @@ void w_block_precomputed(unsigned char *salt)
 
 	printf("w_block_precomputed 3\n");
 
-/*
-	ciErr1 =
-	    clSetKernelArg(block_kernel, 0, sizeof(cl_int), (void *)&iter_num);
-	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
-*/
 	/*
-	ciErr1 =
-	    clSetKernelArg(block_kernel, 0, sizeof(cl_mem), (void *)&salt_d);
-	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
-	ciErr1 =
-	    clSetKernelArg(block_kernel, 1, sizeof(cl_mem), (void *)&padding_d);
-	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
-	ciErr1 =
-	    clSetKernelArg(block_kernel, 2, sizeof(cl_mem), (void *)&w_blocks_d);
-	HANDLE_CLERROR(ciErr1, "clSetKernelArg");
+	    ciErr1 =
+	        clSetKernelArg(block_kernel, 0, sizeof(cl_int), (void *)&iter_num);
+	    HANDLE_CLERROR(ciErr1, "clSetKernelArg");
+	*/
+	/*
+	   ciErr1 =
+	   clSetKernelArg(block_kernel, 0, sizeof(cl_mem), (void *)&salt_d);
+	   HANDLE_CLERROR(ciErr1, "clSetKernelArg");
+	   ciErr1 =
+	   clSetKernelArg(block_kernel, 1, sizeof(cl_mem), (void *)&padding_d);
+	   HANDLE_CLERROR(ciErr1, "clSetKernelArg");
+	   ciErr1 =
+	   clSetKernelArg(block_kernel, 2, sizeof(cl_mem), (void *)&w_blocks_d);
+	   HANDLE_CLERROR(ciErr1, "clSetKernelArg");
 
-	max_compute_units = get_max_compute_units(gpu_id);
-	szLocalWorkSize = get_kernel_max_lws(gpu_id, block_kernel);
-	szGlobalWorkSize = szLocalWorkSize * max_compute_units;
+	   max_compute_units = get_max_compute_units(gpu_id);
+	   szLocalWorkSize = get_kernel_max_lws(gpu_id, block_kernel);
+	   szGlobalWorkSize = szLocalWorkSize * max_compute_units;
 
-printf("dopo di szLocalWorkSize: %zu, szGlobalWorkSize: %zu\n",
-	szLocalWorkSize, szGlobalWorkSize);
-*/
+	   printf("dopo di szLocalWorkSize: %zu, szGlobalWorkSize: %zu\n",
+	   szLocalWorkSize, szGlobalWorkSize);
+	 */
 
 	fprintf(stderr, "lws %zu gws %zu\n", local_work_size, global_work_size);
 	ciErr1 =
 	    clEnqueueNDRangeKernel(queue[gpu_id], block_kernel, 1, NULL,
-	                           &global_work_size, &local_work_size,
-	                           0, NULL, NULL);
+	                           &global_work_size, &local_work_size, 0, NULL, NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueNDRangeKernel");
 
 	ciErr1 = clEnqueueReadBuffer(queue[gpu_id], w_blocks_d, CL_TRUE, 0,
@@ -475,7 +491,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *psalt)
 {
-	unsigned char *local_salt = (unsigned char *) salt;
+	unsigned char *local_salt = (unsigned char *)salt;
 
 	printf("set local_salt: %x - %x\n", local_salt[0], local_salt[1]);
 	w_block_precomputed(local_salt);
@@ -494,8 +510,7 @@ static void set_salt(void *psalt)
 	*tmpIV = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
 	tmpIV[BITLOCKER_IV_SIZE - 1] = 1;
 
-	tmp_global =
-	(((unsigned int *)(tmpIV)) [0]);
+	tmp_global = (((unsigned int *)(tmpIV))[0]);
 	IV0 =
 	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
 	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
@@ -558,7 +573,9 @@ static int crypt_all(int *count, struct db_salt *salt)
 #if BITLOCKER_ENABLE_DEBUG == 1
 	time_t start, end;
 	double dif;
-	printf("\n[BitCracker] -> Starting Attack, #Passwords: %d\n", numPassword[0]);
+
+	printf("\n[BitCracker] -> Starting Attack, #Passwords: %d\n",
+	       numPassword[0]);
 	//, , Global Work Size: %zu, Local Work Size: %zu szGlobalWorkSize, szLocalWorkSize);
 #endif
 
@@ -566,28 +583,31 @@ static int crypt_all(int *count, struct db_salt *salt)
 
 	numPasswordsKernelDev = numPassword[0];
 
-/*
-	ciErr1 =
-	    clEnqueueWriteBuffer(queue[gpu_id], w_blocks_d, CL_TRUE, 0,
-	                         BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
-	                         sizeof(int), w_blocks_h, 0, NULL, multi_profilingEvent[1]);
-	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
-*/
+	/*
+	    ciErr1 =
+	        clEnqueueWriteBuffer(queue[gpu_id], w_blocks_d, CL_TRUE, 0,
+	                             BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
+	                             sizeof(int), w_blocks_h, 0, NULL, multi_profilingEvent[1]);
+	    HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
+	*/
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], deviceEncryptedVMK, CL_TRUE, 0,
-	                         BITLOCKER_VMK_SIZE * sizeof(char), encryptedVMK, 0, NULL, multi_profilingEvent[0]);
+	                         BITLOCKER_VMK_SIZE * sizeof(char), encryptedVMK, 0, NULL,
+	                         multi_profilingEvent[0]);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], devicePassword, CL_TRUE, 0,
-	                         numPassword[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN, inbuffer, 0, NULL, multi_profilingEvent[1]);
+	                         numPassword[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN, inbuffer, 0, NULL,
+	                         multi_profilingEvent[1]);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], devicePasswordSize, CL_TRUE, 0,
-	                         numPassword[0] * sizeof(int), inbuffer_size, 0, NULL, multi_profilingEvent[2]);
+	                         numPassword[0] * sizeof(int), inbuffer_size, 0, NULL,
+	                         multi_profilingEvent[2]);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
 	hostFound[0] = -1;
@@ -602,10 +622,11 @@ static int crypt_all(int *count, struct db_salt *salt)
 
 	//Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
-		"Set ND range");
+	                                     NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
+	              "Set ND range");
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], deviceFound, CL_TRUE, 0,
-					sizeof(int), hostFound, 0, NULL, multi_profilingEvent[5]), "Copy data back");
+	                                  sizeof(int), hostFound, 0, NULL, multi_profilingEvent[5]),
+	              "Copy data back");
 
 	//Await completion of all the above
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
@@ -614,7 +635,7 @@ static int crypt_all(int *count, struct db_salt *salt)
 
 #if 0
 
-		ciErr1 =
+	ciErr1 =
 	    clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 	                           &szGlobalWorkSize, &szLocalWorkSize, 0, NULL, NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueNDRangeKernel");
@@ -740,4 +761,4 @@ struct fmt_main fmt_opencl_bitlocker = {
 
 #endif                          /* plugin stanza */
 
-#endif /* HAVE_OPENCL */
+#endif                          /* HAVE_OPENCL */
