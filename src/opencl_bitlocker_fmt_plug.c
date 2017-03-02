@@ -112,7 +112,6 @@ static int *hostFound, totPsw, i;
 static 	unsigned int tmp_global, IV0, IV4, IV8, IV12;
 
 static int *numPasswordsKernel;
-static int salt_done=0;
 
 static struct fmt_tests tests[] = {
 	{"$bitlocker$b0599ad6c6a1cf0103000000$0a8b9d0655d3900e9f67280adc27b5d7$033a16cb", "paperino"},
@@ -138,6 +137,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t in_size = BITLOCKER_MAX_INPUT_PASSWORD_LEN * gws;
 
+	fprintf(stderr, "%s(%zu)\n", __FUNCTION__, gws);
 #define CLCREATEBUFFER(_flags, _size, _string)\
 	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error);\
 	HANDLE_CLERROR(cl_error, _string);
@@ -197,15 +197,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	CLKERNELARG(crypt_kernel, 9, IV12, "Error while setting numPasswordsKernelDev");
 
 	memset(inbuffer, '\0', in_size);
-/*
+
 	CLKERNELARG(block_kernel, 0, salt_d, "Error while setting salt_d");
 	CLKERNELARG(block_kernel, 1, padding_d, "Error while setting padding_d");
 	CLKERNELARG(block_kernel, 2, w_blocks_d, "Error while setting w_blocks_d");
-*/
 }
 
 static void release_clobj(void)
 {
+	fprintf(stderr, "%s()\n", __FUNCTION__);
 	if (deviceFound) {
 		printf("release_clobj\n");
 		//HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping inbuffer");
@@ -434,6 +434,7 @@ printf("dopo di szLocalWorkSize: %zu, szGlobalWorkSize: %zu\n",
 	szLocalWorkSize, szGlobalWorkSize);
 */
 
+	fprintf(stderr, "lws %zu gws %zu\n", local_work_size, global_work_size);
 	ciErr1 =
 	    clEnqueueNDRangeKernel(queue[gpu_id], block_kernel, 1, NULL,
 	                           &global_work_size, &local_work_size,
@@ -495,11 +496,6 @@ static void *get_salt(char *ciphertext)
 	char *p;
 
 	memset(salt, 0, sizeof(salt));
-	printf("get_salt, salt_done: %d\n", salt_done);
-	if (salt_done > 0)
-		return salt;
-
-	salt_done=1;
 
 	hash_format = strdup(ciphertext);
 	hash_format += FORMAT_TAG_LEN;
@@ -560,12 +556,7 @@ static void set_salt(void *psalt)
 {
 	unsigned char *local_salt = (unsigned char *) salt;
 
-	if (salt_done == 2)
-		return;
-
-	salt_done=2;
-
-	printf("salt_done: %d set local_salt: %x - %x\n", salt_done, local_salt[0], local_salt[1]);
+	printf("set local_salt: %x - %x\n", local_salt[0], local_salt[1]);
 	w_block_precomputed(local_salt);
 	if (!w_blocks_h) {
 		error_msg("Error... Exit\n");
