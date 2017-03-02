@@ -15,6 +15,7 @@
  * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
  */
 
+#include "opencl_misc.h"
 #include "opencl_bitlocker.h"
 
 __constant unsigned int TS0[256] = {
@@ -290,9 +291,9 @@ __constant unsigned int TS3[256] = {
 #define ITERATION_NUMBER 0x100000
 #define MAX_INPUT_PASSWORD_LEN 16
 
-unsigned int IADD3(unsigned int a, unsigned int b, unsigned int c)
+inline unsigned int IADD3(unsigned int a, unsigned int b, unsigned int c)
 {
-#if DEV_NVIDIA_SM50 == 1
+#if HAVE_LUT3
 	unsigned int d;
 
 	asm("iadd3 %0, %1, %2, %3;": "=r"(d):"r"(a), "r"(b), "r"(c));
@@ -302,9 +303,9 @@ unsigned int IADD3(unsigned int a, unsigned int b, unsigned int c)
 #endif
 }
 
-unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
+inline unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
 {
-#if DEV_NVIDIA_SM50 == 1
+#if HAVE_LUT3
 	unsigned int d;
 
 	asm("lop3.b32 %0, %1, %2, %3, 0x96;": "=r"(d):"r"(a), "r"(b), "r"(c));
@@ -314,9 +315,9 @@ unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
 #endif
 }
 
-unsigned int LOP3LUT_XORAND(unsigned int a, unsigned int b, unsigned int c)
+inline unsigned int LOP3LUT_XORAND(unsigned int a, unsigned int b, unsigned int c)
 {
-#if DEV_NVIDIA_SM50 == 1
+#if HAVE_LUT3
 	unsigned int d;
 
 	asm("lop3.b32 %0, %1, %2, %3, 0xb8;": "=r"(d):"r"(a), "r"(b), "r"(c));
@@ -326,9 +327,9 @@ unsigned int LOP3LUT_XORAND(unsigned int a, unsigned int b, unsigned int c)
 #endif
 }
 
-unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c)
+inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c)
 {
-#if DEV_NVIDIA_SM50 == 1
+#if HAVE_LUT3
 	unsigned int d;
 
 	asm("lop3.b32 %0, %1, %2, %3, 0xe8;": "=r"(d):"r"(a), "r"(b), "r"(c));
@@ -1603,20 +1604,20 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 #define SINGLE_BLOCK_W_SIZE 64
 #define ITERATION_NUMBER 0x100000
 
-__kernel void opencl_bitlocker_wblocks(__global unsigned char * salt_d, __global unsigned char * padding_d, __global unsigned int * w_blocks_d) 
-{ 
+__kernel void opencl_bitlocker_wblocks(__global unsigned char * salt_d, __global unsigned char * padding_d, __global unsigned int * w_blocks_d)
+{
         unsigned long loop = get_global_id(0);
         unsigned char block[SINGLE_BLOCK_W_SIZE];
         int i, j;
 
         for(i=0; i<SALT_SIZE; i++)
                 block[i] = salt_d[i];
-        
+
         i+=8;
-        
+
         for(j=0; j<40; i++, j++)
                 block[i] = padding_d[j];
-        
+
         while(loop < ITERATION_NUMBER)
         {
                 block[16] = (unsigned char) (loop >> (0*8));
