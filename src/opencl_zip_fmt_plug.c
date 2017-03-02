@@ -38,7 +38,7 @@ john_register_one(&fmt_opencl_zip);
 
 #define FORMAT_LABEL		"zip-opencl"
 #define FORMAT_NAME		"ZIP"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL AES"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 # define SWAP(n) \
