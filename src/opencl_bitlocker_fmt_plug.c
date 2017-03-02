@@ -55,7 +55,7 @@ john_register_one(&fmt_opencl_bitlocker);
 /*
  * On a GeForce Titan X: Assuming 896 threads for 24 SMs,
  * 8 password for each thread -> 896x24x8
-*/
+ */
 
 #define BITLOCKER_HASH_SIZE 8   //32
 #define BITLOCKER_ROUND_SHA_NUM 64
@@ -111,7 +111,7 @@ static int *inbuffer_size;
 static int *hostFound, totPsw, i;
 static 	unsigned int tmp_global, IV0, IV4, IV8, IV12;
 
-static int * numPasswordsKernel;
+static int *numPasswordsKernel;
 static int salt_done=0;
 
 static struct fmt_tests tests[] = {
@@ -119,7 +119,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static const char * warn[] = {
+static const char *warn[] = {
 	"vmk xfer: ", "pw xfer: ", "pw_sz xfer: ", "found xfer: ", ", crypt: ", ", res xfer: "
 };
 
@@ -558,7 +558,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *psalt)
 {
-	unsigned char * local_salt = (unsigned char *) salt;
+	unsigned char *local_salt = (unsigned char *) salt;
 
 	if (salt_done == 2)
 		return;

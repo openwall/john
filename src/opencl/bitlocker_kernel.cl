@@ -1604,7 +1604,7 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 #define SINGLE_BLOCK_W_SIZE 64
 #define ITERATION_NUMBER 0x100000
 
-__kernel void opencl_bitlocker_wblocks(__global unsigned char * salt_d, __global unsigned char * padding_d, __global unsigned int * w_blocks_d)
+__kernel void opencl_bitlocker_wblocks(__global unsigned char *salt_d, __global unsigned char *padding_d, __global unsigned int *w_blocks_d)
 {
         unsigned long loop = get_global_id(0);
         unsigned char block[SINGLE_BLOCK_W_SIZE];
