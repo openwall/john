@@ -96,7 +96,8 @@ static cl_kernel block_kernel;
 static struct fmt_main *self;
 
 static cl_mem salt_d, padding_d, w_blocks_d, deviceEncryptedVMK,
-       devicePassword, devicePasswordSize, deviceFound, numPasswordsKernelDev;
+	devicePassword, devicePasswordSize, deviceFound;
+static cl_int numPasswordsKernelDev;
 static cl_int ciErr1;
 static cl_int cl_error;
 
@@ -119,7 +120,7 @@ static struct fmt_tests tests[] = {
 };
 
 static const char * warn[] = {
-        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+	"vmk xfer: ", "pw xfer: ", "pw_sz xfer: ", "found xfer: ", ", crypt: ", ", res xfer: "
 };
 
 static void w_block_precomputed(unsigned char *salt);
@@ -173,9 +174,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	                   					BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER * sizeof(unsigned int),
 	                   					"Cannot allocate w blocks");
 
-	numPasswordsKernelDev = CLCREATEBUFFER(CL_MEM_READ_ONLY,
-	                   					sizeof(int),
-	                   					"Cannot allocate numPasswordsKernelDev");
 
 
 	salt_d = CLCREATEBUFFER(CL_MEM_READ_ONLY,
@@ -218,7 +216,6 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(devicePassword), "Release mem_in");
 		HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize), "Release mem_salt");
 		HANDLE_CLERROR(clReleaseMemObject(deviceFound), "Release pinned_out");
-		HANDLE_CLERROR(clReleaseMemObject(numPasswordsKernelDev), "Release mem_out");
 
 		//free(inbuffer);
 		//free(inbuffer_size);
@@ -653,12 +650,9 @@ static int crypt_all(int *count, struct db_salt *salt)
 	//, , Global Work Size: %zu, Local Work Size: %zu szGlobalWorkSize, szLocalWorkSize);
 #endif
 
-printf("crypt all, numPassword: %d\n", numPassword[0]);
-	ciErr1 =
-	    clEnqueueWriteBuffer(queue[gpu_id], numPasswordsKernelDev, CL_TRUE, 0,
-	                         sizeof(int), numPassword, 0, NULL, multi_profilingEvent[0]);
-	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
+	printf("crypt all, numPassword: %d\n", numPassword[0]);
 
+	numPasswordsKernelDev = numPassword[0];
 
 /*
 	ciErr1 =
@@ -670,24 +664,24 @@ printf("crypt all, numPassword: %d\n", numPassword[0]);
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], deviceEncryptedVMK, CL_TRUE, 0,
-	                         BITLOCKER_VMK_SIZE * sizeof(char), encryptedVMK, 0, NULL, multi_profilingEvent[2]);
+	                         BITLOCKER_VMK_SIZE * sizeof(char), encryptedVMK, 0, NULL, multi_profilingEvent[0]);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], devicePassword, CL_TRUE, 0,
-	                         numPassword[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN, inbuffer, 0, NULL, multi_profilingEvent[3]);
+	                         numPassword[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN, inbuffer, 0, NULL, multi_profilingEvent[1]);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], devicePasswordSize, CL_TRUE, 0,
-	                         numPassword[0] * sizeof(int), inbuffer_size, 0, NULL, multi_profilingEvent[4]);
+	                         numPassword[0] * sizeof(int), inbuffer_size, 0, NULL, multi_profilingEvent[2]);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
 	hostFound[0] = -1;
 	ciErr1 =
 	    clEnqueueWriteBuffer(queue[gpu_id], deviceFound, CL_TRUE, 0,
-	                         sizeof(int), hostFound, 0, NULL, multi_profilingEvent[5]);
+	                         sizeof(int), hostFound, 0, NULL, multi_profilingEvent[3]);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 
 #if BITLOCKER_ENABLE_DEBUG == 1
@@ -696,10 +690,10 @@ printf("crypt all, numPassword: %d\n", numPassword[0]);
 
 	//Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[6]),
+		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
 		"Set ND range");
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], deviceFound, CL_TRUE, 0,
-					sizeof(int), hostFound, 0, NULL, multi_profilingEvent[7]), "Copy data back");
+					sizeof(int), hostFound, 0, NULL, multi_profilingEvent[5]), "Copy data back");
 
 	//Await completion of all the above
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
