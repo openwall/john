@@ -84,7 +84,7 @@ static aes_fptr_cbc aesFunc;
 #define ROUNDS                  1
 
 static const char * warn[] = {
-        "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
+	"pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
 };
 
 // Maximum UINT32s used by plaintext being SHA1'd
@@ -104,46 +104,46 @@ static struct fmt_main *self;
 
 static size_t get_task_max_work_group_size()
 {
-        return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-        pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-        saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
+	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 
-        pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx");
-        saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * gws, 0, NULL, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
+	pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx");
+	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
-        res_hashes = mem_alloc(sizeof(cl_uint) * 4 * gws);
+	res_hashes = mem_alloc(sizeof(cl_uint) * 4 * gws);
 
-        pinned_sha1_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-        sha1_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_sha1_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * 5 * gws, 0, NULL, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error mapping page-locked memory sha1_hashes");
+	pinned_sha1_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	sha1_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_sha1_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * 5 * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory sha1_hashes");
 
-        buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
-        buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
+	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
+	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
 
 	// Modification to add salt buffer
 	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cur_salt.salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument salt");
 
-        buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
+	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
 
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(salt_buffer), (void *) &salt_buffer), "Error setting argument 1");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
 
-        cracked = mem_alloc(sizeof(*cracked) * gws);
+	cracked = mem_alloc(sizeof(*cracked) * gws);
 }
 
 static void release_clobj(void){
@@ -356,39 +356,39 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void clear_keys(void)
 {
-        key_idx = 0;
+	key_idx = 0;
 }
 
 static void set_key(char *_key, int index)
 {
-        const uint32_t *key = (uint32_t*)_key;
-        int len = strlen(_key);
+	const uint32_t *key = (uint32_t*)_key;
+	int len = strlen(_key);
 
-        saved_idx[index] = (key_idx << 6) | len;
+	saved_idx[index] = (key_idx << 6) | len;
 
-        while (len > 4) {
-                saved_plain[key_idx++] = *key++;
-                len -= 4;
-        }
-        if (len)
-                saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+	while (len > 4) {
+		saved_plain[key_idx++] = *key++;
+		len -= 4;
+	}
+	if (len)
+		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
 }
 
 static char *get_key(int index)
 {
-        static char out[PLAINTEXT_LENGTH + 1];
-        int i, len = saved_idx[index] & 63;
-        char *key = (char*)&saved_plain[saved_idx[index] >> 6];
+	static char out[PLAINTEXT_LENGTH + 1];
+	int i, len = saved_idx[index] & 63;
+	char *key = (char*)&saved_plain[saved_idx[index] >> 6];
 
-        for (i = 0; i < len; i++)
-                out[i] = key[i];
-        out[i] = 0;
-        return out;
+	for (i = 0; i < len; i++)
+		out[i] = key[i];
+	out[i] = 0;
+	return out;
 }
 
 struct fmt_main fmt_opencl_o5logon = {
