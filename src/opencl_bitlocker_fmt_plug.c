@@ -216,6 +216,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(devicePassword), "Release mem_in");
 		HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize), "Release mem_salt");
 		HANDLE_CLERROR(clReleaseMemObject(deviceFound), "Release pinned_out");
+		HANDLE_CLERROR(clReleaseMemObject(w_blocks_d), "Release mem_out");
 
 		//free(inbuffer);
 		//free(inbuffer_size);
@@ -230,7 +231,6 @@ static void done(void)
 {
 	if (autotuned) {
 		release_clobj();
-		HANDLE_CLERROR(clReleaseMemObject(w_blocks_d), "Release mem_out");
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
@@ -263,86 +263,7 @@ static void reset(struct db_main *db)
 		//Auto tune execution from shared/included code.
 		autotune_run(self, 1000, 0, 500);
 	}
-#if 0
-	char fileNameAttack[] = "$JOHN/kernels/bitlocker_kernel.cl", opt[1024];
-	size_t deviceGlobalMem = 0;
-	long int globalMemRequired = 0;
 
-	num_pass_per_thread = MAX_PASSWORD_THREAD;
-
-
-
-	opencl_build_kernel(fileNameAttack, gpu_id, opt, 0);
-	crypt_kernel =
-	    clCreateKernel(program[gpu_id], "opencl_bitlocker_attack", &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateKernel");
-
-	while (1) {
-		szLocalWorkSize =
-		    autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-		szGlobalWorkSize = autotune_get_task_max_size(1, 0, num_pass_per_thread,
-		                   crypt_kernel); // num_pass_per_thread
-
-		deviceGlobalMem = get_max_mem_alloc_size(gpu_id);
-		globalMemRequired = (BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
-		                     BITLOCKER_ITERATION_NUMBER * sizeof(int))    //FIXED AMOUNT REQUIRED
-		                    + 40 + 16 +
-		                    (szGlobalWorkSize /* * num_pass_per_thread */  *
-		                     BITLOCKER_MAX_INPUT_PASSWORD_LEN)
-		                    * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(unsigned char);
-
-		if (globalMemRequired > deviceGlobalMem)
-			num_pass_per_thread--;
-		else
-			break;
-
-		if (num_pass_per_thread < 1) {
-			error_msg
-			("Error global memory size! Required: %ld, Available: %ld GPU_ID: %d\n",
-			 globalMemRequired, deviceGlobalMem, gpu_id);
-		}
-	}
-
-	if (num_pass_per_thread < 1)
-		error_msg
-		("Error global memory size! Required: %ld, Available: %ld GPU_ID: %d\n",
-		 globalMemRequired, deviceGlobalMem, gpu_id);
-
-	db->format->params.max_keys_per_crypt =
-	    szGlobalWorkSize;   //*num_pass_per_thread;
-	var_max_keys_per_crypt = szGlobalWorkSize;
-	numPassword = szGlobalWorkSize; //num_pass_per_thread;
-
-	deviceEncryptedVMK =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-	                   VMK_DECRYPT_SIZE * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(uint8_t),
-	                   NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
-
-	devicePassword =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                   numPassword * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(unsigned char),
-	                   NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
-
-	devicePasswordSize =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                   numPassword * sizeof(int), NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
-
-
-	deviceFound =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
-	                   sizeof(unsigned int), NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
-
-
-	w_blocks_d =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                   BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
-	                   sizeof(unsigned int), NULL, &ciErr1);
-	HANDLE_CLERROR(ciErr1, "clCreateBuffer");
-#endif
 	return;
 }
 
