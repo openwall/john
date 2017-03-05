@@ -31,7 +31,7 @@ typedef struct {
 
 __kernel void
 o5logon_kernel(__global const uint *keys, __constant salt_t *salt,
-               __global const uint *index, __global volatile uint *result)
+               __global const uint *index, volatile __global uint *result)
 {
 	uint W[16] = { 0 }, salt_s[3], output[5];
 	uint gid = get_global_id(0);
@@ -53,9 +53,6 @@ o5logon_kernel(__global const uint *keys, __constant salt_t *salt,
 	} pt;
 	uchar iv[16];
 	AES_KEY akey;
-
-	if (gid == 0)
-		result[0] = 0;
 
 	keys += base >> 6;
 
@@ -89,5 +86,5 @@ o5logon_kernel(__global const uint *keys, __constant salt_t *salt,
 	AES_cbc_decrypt(&salt->ct[32], pt.c, 16, &akey, iv);
 
 	if ((result[gid + 1] = (pt.l[1] == 0x0808080808080808UL)))
-		atomic_max(&result[0], gid + 1);
+		atomic_max(result, gid + 1);
 }

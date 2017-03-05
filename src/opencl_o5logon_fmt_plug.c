@@ -269,6 +269,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	result[0] = 0;
 
 	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
@@ -278,6 +279,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(
 			clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer buffer_keys");
+
+	BENCH_CLERROR(
+		clEnqueueWriteBuffer(queue[gpu_id], buffer_out, CL_FALSE, 0, sizeof(cl_uint), result, 0, NULL, multi_profilingEvent[1]),
+		"failed in clEnqueueWriteBuffer buffer_idx");
 
 	BENCH_CLERROR(
 		clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
