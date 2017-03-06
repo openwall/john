@@ -23,7 +23,7 @@
 #define BLOBLEN  64
 
 typedef struct {
-	volatile uint cracked;
+	uint cracked;
 	uint key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } iwork_out;
 
@@ -76,9 +76,6 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
 		uint i;
 		int success = 1; // hash was cracked
 
-		if (gid == 0)
-			out[0].cracked = 0;
-
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->iv[i];
 
@@ -117,9 +114,6 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
 			}
 		}
 
-		out[gid + 1].cracked = success;
-
-		if (success)
-			atomic_max(&out[0].cracked, gid + 1);
+		out[gid].cracked = success;
 	}
 }

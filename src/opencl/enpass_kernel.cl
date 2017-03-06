@@ -16,7 +16,7 @@
 #define SQLITE_MAX_PAGE_SIZE    65536
 
 typedef struct {
-	volatile uint cracked;
+	uint cracked;
 	uint key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } enpass_out;
 
@@ -30,7 +30,6 @@ typedef struct {
 } enpass_salt;
 
 __kernel
-__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
                   __global enpass_out *out,
                   __global pbkdf2_state *state)
@@ -71,9 +70,6 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 		AES_KEY akey;
 		int success = 0;
 
-		if (gid == 0)
-			out[0].cracked = 0;
-
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->iv[i];
 		AES_set_decrypt_key((__global uchar*)(out[gid].key), 256, &akey);
@@ -91,9 +87,6 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 			success = 1;
 		}
 
-		out[gid + 1].cracked = success;
-
-		if (success)
-			atomic_max(&out[0].cracked, gid + 1);
+		out[gid].cracked = success;
 	}
 }

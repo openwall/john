@@ -108,7 +108,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
 	host_salt = mem_calloc(1, sizeof(salt_t));
-	cracked_size = (kpc + 1) * sizeof(*cracked);
+	cracked_size = kpc * sizeof(*cracked);
 	cracked = mem_calloc(cracked_size, 1);
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
@@ -263,17 +263,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		CL_TRUE, 0, cracked_size, cracked, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
 
-	return cracked[0];
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return cracked[0];
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (cracked[i])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index + 1];
+	return cracked[index];
 }
 
 static int cmp_exact(char *source, int index)

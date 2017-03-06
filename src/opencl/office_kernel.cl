@@ -44,7 +44,7 @@ typedef struct {
 } ms_office_state;
 
 typedef struct {
-	volatile uint cracked;
+	uint cracked;
 	uint dummy;
 	union {
 		uchar c[64];
@@ -138,9 +138,6 @@ void Final2007(__global ms_office_state *state,
 	AES_KEY akey;
 	uint result = 1;
 
-	if (gid == 0)
-		out[0].cracked = 0;
-
 #if (50000 % HASH_LOOPS0710)
 	int j;
 
@@ -209,8 +206,7 @@ void Final2007(__global ms_office_state *state,
 		}
 	}
 
-	if ( (out[gid + 1].cracked = result) )
-		atomic_max(&out[0].cracked, gid + 1);
+	out[gid].cracked = result;
 }
 
 inline void Decrypt(const __global ms_office_salt *salt,
@@ -253,9 +249,6 @@ void Generate2010key(__global ms_office_state *state,
 		unsigned char c[32];
 		uint w[8];
 	} decryptedVerifierHashBytes;
-
-	if (gid == 0)
-		out[0].cracked = 0;
 
 	for (i = 0; i < 5; i++)
 		output[i] = state[gid].ctx.w[i];
@@ -324,8 +317,7 @@ void Generate2010key(__global ms_office_state *state,
 		}
 	}
 
-	if ( (out[gid + 1].cracked = result) )
-		atomic_max(&out[0].cracked, gid + 1);
+	out[gid].cracked = result;
 }
 
 __kernel void GenerateSHA512pwhash(__global const ulong *unicode_pw,
@@ -405,9 +397,6 @@ void Generate2013key(__global ms_office_state *state,
 		ulong l[32/8];
 	} decryptedVerifierHashBytes;
 
-	if (gid == 0)
-		out[0].cracked = 0;
-
 	for (i = 0; i < 8; i++)
 		output[i] = state[gid].ctx.l[i];
 
@@ -477,6 +466,5 @@ void Generate2013key(__global ms_office_state *state,
 		}
 	}
 
-	if ( (out[gid + 1].cracked = result) )
-		atomic_max(&out[0].cracked, gid + 1);
+	out[gid].cracked = result;
 }

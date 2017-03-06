@@ -118,7 +118,7 @@ struct fmt_main *me;
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	key_buf_size = 64 * gws;
-	outsize = sizeof(enpass_out) * (gws + 1);
+	outsize = sizeof(enpass_out) * gws;
 
 	/// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
@@ -288,17 +288,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	/// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, outsize, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
-	return (output[0].cracked);
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return (output[0].cracked);
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (output[i].cracked)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (output[index + 1].cracked);
+	return (output[index].cracked);
 }
 
 static int cmp_exact(char *source, int index)

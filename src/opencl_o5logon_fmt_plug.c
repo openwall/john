@@ -112,9 +112,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
-	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * (gws + 1), NULL, &ret_code);
+	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	result = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * (gws + 1), 0, NULL, NULL, &ret_code);
+	result = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory result");
 
 	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
@@ -288,20 +288,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		"failed in clEnqueueNDRangeKernel");
 
 	BENCH_CLERROR(
-		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * (gws + 1), result, 0, NULL, multi_profilingEvent[3]),
+		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, result, 0, NULL, multi_profilingEvent[3]),
 		"failed in reading data back");
 
-	return result[0];
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return result[0];
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (result[i])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return result[index + 1];
+	return result[index];
 }
 
 static int cmp_exact(char *source, int index)

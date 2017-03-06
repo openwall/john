@@ -28,7 +28,7 @@ typedef struct {
 
 __kernel void fvde_decrypt(__global fvde_salt_t *salt,
                            __global crack_t *out,
-                           __global volatile uint32_t *cracked)
+                           __global uint32_t *cracked)
 {
 	uint32_t gid = get_global_id(0);
 	__global uint64_t *C = salt->blob.qword; // len(C) == 3
@@ -41,9 +41,6 @@ __kernel void fvde_decrypt(__global fvde_salt_t *salt,
 	int32_t i, j;
 	AES_KEY akey;
 	uint64_t A = C[0];
-
-	if (gid == 0)
-		cracked[0] = 0;
 
 	AES_set_decrypt_key((__global uchar*)out[gid].hash, 128, &akey);
 
@@ -60,6 +57,5 @@ __kernel void fvde_decrypt(__global fvde_salt_t *salt,
 		}
 	}
 
-	if ((cracked[gid + 1] = (A == 0xa6a6a6a6a6a6a6a6UL)))
-		atomic_max(&cracked[0], gid + 1);
+	cracked[gid] = (A == 0xa6a6a6a6a6a6a6a6UL);
 }

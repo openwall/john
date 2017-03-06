@@ -46,7 +46,7 @@ typedef struct {
 } agile_salt;
 
 typedef struct {
-	volatile uint cracked;
+	uint cracked;
 	uint key[16/4];
 } agile_out;
 
@@ -61,9 +61,6 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 	uint i;
 	int n;
 	int success = 0;
-
-	if (idx == 0)
-		agile_out[0].cracked = 0;
 
 	pbkdf2(password[idx].v, password[idx].length, salt->salt, salt->length,
 	       salt->iterations, agile_out[idx].key, salt->outlen,
@@ -83,8 +80,5 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 			success = 1;
 	}
 
-	agile_out[idx + 1].cracked = success;
-
-	if (success)
-		atomic_max(&agile_out[0].cracked, idx + 1);
+	agile_out[idx].cracked = success;
 }
