@@ -9,7 +9,7 @@
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
 #define AES_KEY_TYPE __global
 #define OCL_AES_CBC_DECRYPT 1
-#define AES_SRC_TYPE __global
+#define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
 inline int check_pkcs_pad(const uchar *data, size_t len, uint blocksize)
@@ -52,7 +52,7 @@ typedef struct {
 
 __kernel void dk_decrypt(__global pbkdf2_password *password,
                          __global agile_out *agile_out,
-                         __global const agile_salt *salt)
+                         __constant agile_salt *salt)
 {
 	uint idx = get_global_id(0);
 	AES_KEY akey;

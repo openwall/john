@@ -65,7 +65,10 @@ typedef struct {
 	unsigned int  outlen;
 	unsigned int  iterations;
 	unsigned char salt[115];
-	unsigned char iv[16];
+	union {
+		uint8_t  c[16];
+		uint32_t w[16 / 4];
+	} iv;
 	unsigned char data[16];
 } enpass_salt;
 
@@ -223,7 +226,7 @@ static void set_salt(void *salt)
 	currentsalt.outlen = 32; // AES 256-bit key only
 
 	/* AES */
-	memcpy(currentsalt.iv, &cur_salt->data[16 + size], 16);
+	memcpy(currentsalt.iv.c, &cur_salt->data[16 + size], 16);
 	memcpy(currentsalt.data, &cur_salt->data[16], 16);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0,
 		sizeof(enpass_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");

@@ -92,7 +92,7 @@ size_t insize, outsize, settingsize, cracked_size;
 #include "opencl-autotune.h"
 #include "memdbg.h"
 
-static const char * warn[] = {
+static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "
 };
 

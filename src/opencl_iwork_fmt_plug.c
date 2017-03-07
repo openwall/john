@@ -55,7 +55,6 @@ static iwork_common_custom_salt *cur_salt;
 
 typedef struct {
 	unsigned int cracked;
-	unsigned int key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
 } iwork_out;
 
 typedef struct {

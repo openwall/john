@@ -57,7 +57,7 @@ inline
 #endif
 void S2KItSaltedSHA1Generator(__global const uchar *password,
                                      uint password_length,
-                                     __global const uchar *salt,
+                                     __constant const uchar *salt,
                                      uint _count,
                                      __global uchar *key,
                                      uint key_len)
@@ -154,9 +154,9 @@ void S2KItSaltedSHA1Generator(__global const uchar *password,
 	}
 }
 
-__kernel void gpg(__global const gpg_password * inbuffer,
-                  __global gpg_hash * outbuffer,
-                  __global const gpg_salt * salt)
+__kernel void gpg(__global const gpg_password *inbuffer,
+                  __global gpg_hash *outbuffer,
+                  __constant gpg_salt *salt)
 {
 	uint idx = get_global_id(0);
 

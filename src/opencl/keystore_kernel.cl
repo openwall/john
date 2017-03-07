@@ -41,7 +41,7 @@ typedef struct {
 
 __kernel void keystore(__global const keystore_password *inbuffer,
                        __global keystore_hash *outbuffer,
-                       __global const keystore_salt *salt)
+                       __constant keystore_salt *salt)
 {
 	uint gid = get_global_id(0);
 	uint W[16], o[5];

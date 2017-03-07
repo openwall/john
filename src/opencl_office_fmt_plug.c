@@ -99,12 +99,6 @@ typedef struct {
 
 typedef struct {
         uint32_t cracked;
-        uint32_t dummy;
-        union {
-                uint8_t  c[64];
-                uint32_t w[64/4];
-                uint64_t l[64/8];
-        } key[2];
 } ms_office_out;
 
 static ms_office_custom_salt *cur_salt;

@@ -15,8 +15,8 @@
 #include "opencl_sha2.h"
 #define OCL_AES_ECB_DECRYPT 1
 #define OCL_AES_CBC_DECRYPT 1
-#define AES_KEY_TYPE __global
-#define AES_SRC_TYPE __global
+#define AES_KEY_TYPE __private
+#define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
 typedef struct ms_office_salt_t {
@@ -45,17 +45,11 @@ typedef struct {
 
 typedef struct {
 	uint cracked;
-	uint dummy;
-	union {
-		uchar c[64];
-		uint  w[64/4];
-		ulong l[64/8];
-	} key[2];
 } ms_office_out;
 
 __kernel void GenerateSHA1pwhash(__global const uint *unicode_pw,
                                  __global const uint *pw_len,
-                                 __global const ms_office_salt *salt,
+                                 __constant ms_office_salt *salt,
                                  __global ms_office_state *state)
 {
 	uint i;
@@ -121,11 +115,14 @@ void HashLoop0710(__global ms_office_state *state)
 __kernel
 void Final2007(__global ms_office_state *state,
                __global ms_office_out *out,
-               const __global ms_office_salt *salt)
+               __constant ms_office_salt *salt)
 {
 	uint i;
 	uint W[16];
-	uint output[5];
+	union {
+		uchar c[20];
+		uint  w[20/4];
+	} output;
 	uint gid = get_global_id(0);
 	union {
 		unsigned char c[16];
@@ -142,22 +139,22 @@ void Final2007(__global ms_office_state *state,
 	int j;
 
 	for (i = 0; i < 5; i++)
-		output[i] = state[gid].ctx.w[i];
+		output.w[i] = state[gid].ctx.w[i];
 
 	/* Remainder of sha1(serial.last hash) */
 	for (j = 50000 - (50000 % HASH_LOOPS0710); j < 50000; j++)
 	{
 		W[0] = SWAP32(j);
 		for (i = 1; i < 6; i++)
-			W[i] = output[i - 1];
+			W[i] = output.w[i - 1];
 		W[6] = 0x80000000;
 		W[15] = 24 << 3;
-		sha1_single_192Z(uint, W, output);
+		sha1_single_192Z(uint, W, output.w);
 	}
 
 	/* Final hash */
 	for (i = 0; i < 5; i++)
-		W[i] = output[i];
+		W[i] = output.w[i];
 #else
 	/* Final hash */
 	for (i = 0; i < 5; i++)
@@ -167,28 +164,28 @@ void Final2007(__global ms_office_state *state,
 	W[5] = 0;
 	W[6] = 0x80000000;
 	W[15] = 24 << 3;
-	sha1_single_192Z(uint, W, output);
+	sha1_single_192Z(uint, W, output.w);
 
 	/* DeriveKey */
 	for (i = 0; i < 5; i++)
-		W[i] = output[i] ^ 0x36363636;
+		W[i] = output.w[i] ^ 0x36363636;
 	for (i = 5; i < 16; i++)
 		W[i] = 0x36363636;
-	sha1_single(uint, W, output);
+	sha1_single(uint, W, output.w);
 	/* sha1_final (last block was 64 bytes) */
 	W[0] = 0x80000000;
 	for (i = 1; i < 6; i++)
 		W[i] = 0;
 	W[15] = 64 << 3;
-	sha1_block_160Z(uint, W, output);
+	sha1_block_160Z(uint, W, output.w);
 
 	/* Endian-swap to output (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)
-		out[gid].key[0].w[i] = SWAP32(output[i]);
+		output.w[i] = SWAP32(output.w[i]);
 
-	AES_set_decrypt_key(out[gid].key[0].c, 128, &akey);
+	AES_set_decrypt_key(output.c, 128, &akey);
 	AES_ecb_decrypt(salt->encryptedVerifier, decryptedVerifier.c, &akey);
-	AES_set_decrypt_key(out[gid].key[0].c, 128, &akey);
+	AES_set_decrypt_key(output.c, 128, &akey);
 	AES_ecb_decrypt(salt->encryptedVerifierHash, decryptedVerifierHash.c, &akey);
 
 	for (i = 0; i < 4; i++)
@@ -196,11 +193,10 @@ void Final2007(__global ms_office_state *state,
 	W[4] = 0x80000000;
 	W[5] = 0;
 	W[15] = 16 << 3;
-	sha1_init(output);
-	sha1_block_160Z(uint, W, output);
+	sha1_single_160Z(uint, W, output.w);
 
 	for (i = 0; i < 16/4; i++) {
-		if (decryptedVerifierHash.w[i] != SWAP32(output[i])) {
+		if (decryptedVerifierHash.w[i] != SWAP32(output.w[i])) {
 			result = 0;
 			break;
 		}
@@ -209,9 +205,9 @@ void Final2007(__global ms_office_state *state,
 	out[gid].cracked = result;
 }
 
-inline void Decrypt(const __global ms_office_salt *salt,
-                    const AES_KEY_TYPE uchar *verifierInputKey,
-                    const __global uchar *encryptedVerifier,
+inline void Decrypt(__constant ms_office_salt *salt,
+                    AES_KEY_TYPE uchar *verifierInputKey,
+                    __constant uchar *encryptedVerifier,
                     uchar *decryptedVerifier,
                     const int length)
 {
@@ -234,10 +230,14 @@ __constant uint ValueBlockKeyInt[] = { 0xd7aa0f6d, 0x3061344e };
 __kernel
 void Generate2010key(__global ms_office_state *state,
                      __global ms_office_out *out,
-                     const __global ms_office_salt *salt)
+                     __constant ms_office_salt *salt)
 {
 	uint i, j, result = 1;
-	uint W[16], output[5], temp[5];
+	uint W[16];
+	union {
+		uchar c[20];
+		uint  w[20/4];
+	} output[2];
 	const uint gid = get_global_id(0);
 	const uint base = state[gid].pass;
 	const uint iterations = salt->spinCount % HASH_LOOPS0710;
@@ -251,22 +251,22 @@ void Generate2010key(__global ms_office_state *state,
 	} decryptedVerifierHashBytes;
 
 	for (i = 0; i < 5; i++)
-		output[i] = state[gid].ctx.w[i];
+		output[1].w[i] = state[gid].ctx.w[i];
 	/* Remainder of sha1(serial.last hash)
 	 * We avoid byte-swapping back and forth */
 	for (j = 0; j < iterations; j++)
 	{
 		W[0] = SWAP32(base + j);
 		for (i = 1; i < 6; i++)
-			W[i] = output[i - 1];
+			W[i] = output[1].w[i - 1];
 		W[6] = 0x80000000;
 		W[15] = 24 << 3;
-		sha1_single_192Z(uint, W, output);
+		sha1_single_192Z(uint, W, output[1].w);
 	}
 
-	/* Our sha1 destroys input so we store it in temp[] */
+	/* We'll continue with output[1] later */
 	for (i = 0; i < 5; i++)
-		W[i] = temp[i] = output[i];
+		W[i] = output[1].w[i];
 
 	/* Final hash 1 */
 	W[5] = InputBlockKeyInt[0];
@@ -275,31 +275,31 @@ void Generate2010key(__global ms_office_state *state,
 	for (i = 8; i < 15; i++)
 		W[i] = 0;
 	W[15] = 28 << 3;
-	sha1_single(uint, W, output);
+	sha1_single(uint, W, output[0].w);
 
-	/* Endian-swap to output (we only use 16 bytes) */
+	/* Endian-swap to 1st hash (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)
-		out[gid].key[0].w[i] = SWAP32(output[i]);
+		output[0].w[i] = SWAP32(output[0].w[i]);
 
 	/* Final hash 2 */
 	for (i = 0; i < 5; i++)
-		W[i] = temp[i];
+		W[i] = output[1].w[i];
 	W[5] = ValueBlockKeyInt[0];
 	W[6] = ValueBlockKeyInt[1];
 	W[7] = 0x80000000;
 	for (i = 8; i < 15; i++)
 		W[i] = 0;
 	W[15] = 28 << 3;
-	sha1_single(uint, W, output);
+	sha1_single(uint, W, output[1].w);
 
-	/* Endian-swap to output (we only use 16 bytes) */
+	/* Endian-swap to 2nd hash (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)
-		out[gid].key[1].w[i] = SWAP32(output[i]);
+		output[1].w[i] = SWAP32(output[1].w[i]);
 
-	Decrypt(salt, out[gid].key[0].c, salt->encryptedVerifier,
+	Decrypt(salt, output[0].c, salt->encryptedVerifier,
 	        decryptedVerifierHashInputBytes.c, 16);
 
-	Decrypt(salt, out[gid].key[1].c, salt->encryptedVerifierHash,
+	Decrypt(salt, output[1].c, salt->encryptedVerifierHash,
 	        decryptedVerifierHashBytes.c, 32);
 
 	for (i = 0; i < 4; i++)
@@ -308,10 +308,10 @@ void Generate2010key(__global ms_office_state *state,
 	for (i = 5; i < 15; i++)
 		W[i] = 0;
 	W[15] = 16 << 3;
-	sha1_single(uint, W, output);
+	sha1_single(uint, W, output[0].w);
 
 	for (i = 0; i < 20/4; i++) {
-		if (decryptedVerifierHashBytes.w[i] != SWAP32(output[i])) {
+		if (decryptedVerifierHashBytes.w[i] != SWAP32(output[0].w[i])) {
 			result = 0;
 			break;
 		}
@@ -322,7 +322,7 @@ void Generate2010key(__global ms_office_state *state,
 
 __kernel void GenerateSHA512pwhash(__global const ulong *unicode_pw,
                                    __global const uint *pw_len,
-                                   __global const ms_office_salt *salt,
+                                   __constant ms_office_salt *salt,
                                    __global ms_office_state *state)
 {
 	uint i;
@@ -380,11 +380,14 @@ __constant ulong ValueBlockKeyLong = 0xd7aa0f6d3061344eUL;
 __kernel
 void Generate2013key(__global ms_office_state *state,
                      __global ms_office_out *out,
-                     const __global ms_office_salt *salt)
+                     __constant ms_office_salt *salt)
 {
 	uint i, j, result = 1;
-	ulong W[16], temp[8];
-	ulong output[8];
+	ulong W[16];
+	union {
+		uchar c[64];
+		ulong l [64/8];
+	} output[2];
 	const uint gid = get_global_id(0);
 	const uint base = state[gid].pass;
 	const uint iterations = salt->spinCount % HASH_LOOPS13;
@@ -398,22 +401,22 @@ void Generate2013key(__global ms_office_state *state,
 	} decryptedVerifierHashBytes;
 
 	for (i = 0; i < 8; i++)
-		output[i] = state[gid].ctx.l[i];
+		output[1].l[i] = state[gid].ctx.l[i];
 
 	/* Remainder of iterations */
 	for (j = 0; j < iterations; j++)
 	{
-		W[0] = ((ulong)SWAP32(base + j) << 32) | (output[0] >> 32);
+		W[0] = ((ulong)SWAP32(base + j) << 32) | (output[1].l[0] >> 32);
 		for (i = 1; i < 8; i++)
-			W[i] = (output[i - 1] << 32) | (output[i] >> 32);
-		W[8] = (output[7] << 32) | 0x80000000UL;
+			W[i] = (output[1].l[i - 1] << 32) | (output[1].l[i] >> 32);
+		W[8] = (output[1].l[7] << 32) | 0x80000000UL;
 		W[15] = 68 << 3;
-		sha512_single_zeros(W, output);
+		sha512_single_zeros(W, output[1].l);
 	}
 
-	/* Our sha512 destroys input so we store a needed portion in temp[] */
+	/* We'll continue with output[1] later */
 	for (i = 0; i < 8; i++)
-		W[i] = temp[i] = output[i];
+		W[i] = output[1].l[i];
 
 	/* Final hash 1 */
 	W[8] = InputBlockKeyLong;
@@ -421,15 +424,15 @@ void Generate2013key(__global ms_office_state *state,
 	for (i = 10; i < 15; i++)
 		W[i] = 0;
 	W[15] = 72 << 3;
-	sha512_single(W, output);
+	sha512_single(W, output[0].l);
 
-	/* Endian-swap to hash 1 output */
+	/* Endian-swap to 1st hash output */
 	for (i = 0; i < 8; i++)
-		out[gid].key[0].l[i] = SWAP64(output[i]);
+		output[0].l[i] = SWAP64(output[0].l[i]);
 
 	/* Final hash 2 */
 	for (i = 0; i < 8; i++)
-		W[i] = temp[i];
+		W[i] = output[1].l[i];
 	W[8] = ValueBlockKeyLong;
 	W[9] = 0x8000000000000000UL;
 	for (i = 10; i < 15; i++)
@@ -439,16 +442,16 @@ void Generate2013key(__global ms_office_state *state,
 	/* Workaround for Catalyst 14.4-14.6 driver bug */
 	barrier(CLK_GLOBAL_MEM_FENCE);
 #endif
-	sha512_single(W, output);
+	sha512_single(W, output[1].l);
 
-	/* Endian-swap to hash 2 output */
+	/* Endian-swap to 2nd hash output */
 	for (i = 0; i < 8; i++)
-		out[gid].key[1].l[i] = SWAP64(output[i]);
+		output[1].l[i] = SWAP64(output[1].l[i]);
 
-	Decrypt(salt, out[gid].key[0].c, salt->encryptedVerifier,
+	Decrypt(salt, output[0].c, salt->encryptedVerifier,
 	        decryptedVerifierHashInputBytes.c, 16);
 
-	Decrypt(salt, out[gid].key[1].c, salt->encryptedVerifierHash,
+	Decrypt(salt, output[1].c, salt->encryptedVerifierHash,
 	        decryptedVerifierHashBytes.c, 32);
 
 	for (i = 0; i < 2; i++)
@@ -457,10 +460,10 @@ void Generate2013key(__global ms_office_state *state,
 	for (i = 3; i < 15; i++)
 		W[i] = 0;
 	W[15] = 16 << 3;
-	sha512_single(W, output);
+	sha512_single(W, output[1].l);
 
 	for (i = 0; i < 32/8; i++) {
-		if (decryptedVerifierHashBytes.l[i] != SWAP64(output[i])) {
+		if (decryptedVerifierHashBytes.l[i] != SWAP64(output[1].l[i])) {
 			result = 0;
 			break;
 		}

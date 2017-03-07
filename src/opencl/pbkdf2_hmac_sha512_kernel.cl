@@ -71,7 +71,7 @@ inline void preproc(__global const ulong *key, uint keylen,
 }
 
 inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state,
-                        __global const ulong *salt, uint saltlen)
+                        __constant ulong *salt, uint saltlen)
 {
 	uint i, j;
 	ulong W[16] = { 0 };
@@ -227,9 +227,9 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
 	}
 }
 
-__kernel void pbkdf2_sha512_kernel(__global const pass_t * inbuffer,
-                                   __global const salt_t * gsalt,
-                                   __global state_t * state)
+__kernel void pbkdf2_sha512_kernel(__global const pass_t *inbuffer,
+                                   __constant salt_t *gsalt,
+                                   __global state_t *state)
 {
 	ulong ipad_state[8];
 	ulong opad_state[8];
@@ -237,7 +237,7 @@ __kernel void pbkdf2_sha512_kernel(__global const pass_t * inbuffer,
 	uint  i;
 	uint idx = get_global_id(0);
 	__global const ulong *pass = inbuffer[idx].v;
-	__global const ulong *salt = gsalt->salt;
+	__constant ulong *salt = gsalt->salt;
 	uint passlen = inbuffer[idx].length;
 	uint saltlen = gsalt->length;
 

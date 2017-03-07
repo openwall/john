@@ -29,11 +29,11 @@
 
 /* These default to __private but can be eg. __global */
 #ifndef AES_KEY_TYPE
-#define AES_KEY_TYPE
+#define AES_KEY_TYPE const
 #endif
 
 #ifndef AES_SRC_TYPE
-#define AES_SRC_TYPE
+#define AES_SRC_TYPE const
 #endif
 
 #ifndef AES_DST_TYPE
@@ -640,7 +640,7 @@ static __constant u32 rcon[] = {
 /**
  * Expand the cipher key into the encryption key schedule.
  */
-static void AES_set_encrypt_key(AES_KEY_TYPE const uchar *userKey,
+static void AES_set_encrypt_key(AES_KEY_TYPE uchar *userKey,
                                 const int bits, AES_KEY *key)
 {
 	u32 *rk;
@@ -735,7 +735,7 @@ static void AES_set_encrypt_key(AES_KEY_TYPE const uchar *userKey,
 /**
  * Expand the cipher key into the decryption key schedule.
  */
-static void AES_set_decrypt_key(AES_KEY_TYPE const uchar *userKey,
+static void AES_set_decrypt_key(AES_KEY_TYPE uchar *userKey,
                                 const int bits, AES_KEY *key)
 {
 	u32 *rk;
@@ -784,7 +784,7 @@ static void AES_set_decrypt_key(AES_KEY_TYPE const uchar *userKey,
  * Encrypt a single block.
  */
 #if OCL_AES_ENCRYPT
-static void AES_encrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
+static void AES_encrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                         const AES_KEY *key)
 {
 	const u32 *rk;
@@ -974,7 +974,7 @@ static void AES_encrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
 /*
  * Decrypt a single block.
  */
-static void AES_decrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
+static void AES_decrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                         const AES_KEY *key)
 {
 	const u32 *rk;
@@ -1163,7 +1163,7 @@ static void AES_decrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
 
 #if OCL_AES_ECB_DECRYPT
 static void
-AES_ecb_decrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
+AES_ecb_decrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                 const AES_KEY *key)
 {
 	uint n;
@@ -1182,7 +1182,7 @@ AES_ecb_decrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
 
 #if OCL_AES_ECB_ENCRYPT
 static void
-AES_ecb_encrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
+AES_ecb_encrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                 const AES_KEY *key)
 {
 	uint n;
@@ -1201,7 +1201,7 @@ AES_ecb_encrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
 
 #if OCL_AES_CBC_ENCRYPT
 static void
-AES_cbc_encrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
+AES_cbc_encrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                 uint len, const AES_KEY *key,
                 __private uchar ivec[16])
 {
@@ -1235,7 +1235,7 @@ AES_cbc_encrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
 
 #if OCL_AES_CBC_DECRYPT
 static void
-AES_cbc_decrypt(AES_SRC_TYPE const uchar *in, AES_DST_TYPE uchar *out,
+AES_cbc_decrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                 uint len, const AES_KEY *key,
                 __private uchar ivec[16])
 {
