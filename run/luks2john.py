@@ -77,7 +77,7 @@ def process_file(filename):
         mkDigest, mkDigestSalt, mkDigestIterations, uuid, slots) = data
 
     if magic != "LUKS\xba\xbe":
-        sys.stderr.write("%s : not a LUKS file / disk\n", filename)
+        sys.stderr.write("%s : not a LUKS file / disk\n" % filename)
         return -2
 
     cipherName = str(cipherName)
