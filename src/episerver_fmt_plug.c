@@ -52,6 +52,7 @@ john_register_one(&fmt_episerver);
 #include "params.h"
 #include "options.h"
 #include "base64.h"
+#include "base64_convert.h"
 #include "unicode.h"
 #include "memdbg.h"
 
@@ -182,6 +183,8 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
+	size_t res;
+	char tmp[128];
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -196,13 +199,27 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	/* check version, must be '0' or '1' */
 	if (*ptr != '0' && *ptr != '1')
 		goto error;
-	if (!(ptr = strtokm(NULL, "*")))	/* salt */
+	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
 	if (strlen(ptr) > 24)
+		goto error;
+	res = base64_valid_length(ptr, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0);
+	if (res < strlen(ptr))
+		goto error;
+	res = base64_convert(ptr, e_b64_mime, strlen(ptr), tmp, e_b64_raw,
+                             sizeof(tmp), flg_Base64_MIME_TRAIL_EQ, 0);
+	if (res != 16) /* decoded salt size should be 16 bytes */
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* hash */
 		goto error;
 	if (strlen(ptr) > 44)
+		goto error;
+	res = base64_valid_length(ptr, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0);
+	if (res < strlen(ptr))
+		goto error;
+	res = base64_convert(ptr, e_b64_mime, strlen(ptr), tmp, e_b64_raw,
+                             sizeof(tmp), flg_Base64_MIME_TRAIL_EQ, 0);
+	if (res != 20 && res != 32) /* SHA1 or SHA256 output size */
 		goto error;
 	if ((ptr = strtokm(NULL, "*"))) /* end */
 		goto error;
