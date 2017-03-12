@@ -2950,7 +2950,7 @@ Compressed_Data_Packet(int len)
 {
 #if HAVE_LIBZ || HAVE_LIBBZ2
 	unsigned int alg = Getc();
-	int err = Z_OK;
+	int err = 0; // both Z_OK and BZ_OK are 0
 	private int (*func)(byte *, unsigned int);
 
 	comp_algs(alg);
