@@ -13,6 +13,8 @@
  * bitcoin => https://github.com/bitcoin/bitcoin
  *
  * Thanks to Solar for asking to add support for bitcoin wallet files.
+ *
+ * Works fine with bitcoin-core-0.14.0 from March, 2017.
  */
 
 #if FMT_EXTERNS_H
@@ -45,7 +47,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Bitcoin"
-#define FORMAT_NAME		""
+#define FORMAT_NAME		"Bitcoin Core"
 #define FORMAT_TAG           "$bitcoin$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
@@ -87,6 +89,8 @@ static struct fmt_tests bitcoin_tests[] = {
 	{"$bitcoin$96$4eca412eeb04971428efec70c9e18fb9375be0aa105e7eec55e528d0ba33a07eb6302add36da86736054dee9140ec9b8$16$26049c64dda292d5$265155$96$62aee49c1967b5635b663fc3b047d8bc562f7000921453ab15b98e5a5f2d2adc74393e789fe15c5a3fbc4625536be98a$66$020027f255fbfa6d4c010a1a5984e487443c68e1b32869ccfde92e92005814fd27", "strongpassword"},
 	/* litecoin wallet hash */
 	{"$bitcoin$96$54401984b32448917b6d18b7a11debe91d62aaa343ab62ed98e1d3063f30817832c744360331df94cbf1dcececf6d00e$16$bfbc8ee2c07bbb4b$194787$96$07a206d5422640cfa65a8482298ad8e8598b94d99e2c4ce09c9d015b734632778cb46541b8c10284b9e14e5468b654b9$66$03fe6587bf580ee38b719f0b8689c80d300840bbc378707dce51e6f1fe20f49c20", "isyourpasswordstronger"},
+	/* bitcoin-core-0.14.0 wallet */
+	{"$bitcoin$96$8e7be42551c822c7e55a384e15b4fbfec69ceaed000925870dfb262d3381ed4405507f6c94defbae174a218eed0b5ce8$16$b469e6dbd76926cf$244139$96$ec03604094ada8a5d76bbdb455d260ac8b202ec475d5362d334314c4e7012a2f4b8f9cf8761c9862cd20892e138cd29e$66$03fdd0341a72d1a119ea1de51e477f0687a2bf601c07c032cc87ef82e0f8f49b19", "password@12345"},
 	{NULL}
 };
 
