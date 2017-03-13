@@ -140,6 +140,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdec(p))
 		goto err;
+	if (atoi(p) != 0)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* SID */
 		goto err;
 	if (strlen(p) > MAX_SID_LEN)
@@ -266,62 +268,66 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
+		if (cur_salt->version == 0) { // old style hashes, we only supported 3des with sha1
 #ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT];
-		union {
-			uint32_t *pout[MAX_KEYS_PER_CRYPT];
-			unsigned char *poutc;
-		} x;
+			int lens[MAX_KEYS_PER_CRYPT];
+			unsigned char *pin[MAX_KEYS_PER_CRYPT];
+			union {
+				uint32_t *pout[MAX_KEYS_PER_CRYPT];
+				unsigned char *poutc;
+			} x;
 #endif
 
-		// def derivePassword(userPwd, userSID, hashAlgo)
-		// Computes the encryption key from a user's password
-		// return derivePwdHash(hashlib.sha1(userPwd.encode("UTF-16LE")).digest()
-		unsigned char *passwordBuf;
-		int passwordBufSize;
-		unsigned char out[MAX_KEYS_PER_CRYPT][32];
-		unsigned char out2[MAX_KEYS_PER_CRYPT][32];
-		SHA_CTX ctx;
-		int i;
+			// def derivePassword(userPwd, userSID, hashAlgo)
+			// Computes the encryption key from a user's password
+			// return derivePwdHash(hashlib.sha1(userPwd.encode("UTF-16LE")).digest()
+			unsigned char *passwordBuf;
+			int passwordBufSize;
+			unsigned char out[MAX_KEYS_PER_CRYPT][32];
+			unsigned char out2[MAX_KEYS_PER_CRYPT][32];
+			SHA_CTX ctx;
+			int i;
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			passwordBuf = (unsigned char*)saved_key[index+i];
-			passwordBufSize = strlen16((UTF16*)passwordBuf) * 2;
-			/* hash the UTF-16LE encoded key */
-			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, passwordBuf, passwordBufSize);
-			SHA1_Final(out[i], &ctx);
-			// 2. use UTF-16LE encoded SID in HMAC
-			passwordBuf = (unsigned char*)cur_salt->SID;
-			passwordBufSize = (strlen16(cur_salt->SID) + 1) * 2;
-			hmac_sha1(out[i], 20, passwordBuf, passwordBufSize, out2[i], 20);
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				passwordBuf = (unsigned char*)saved_key[index+i];
+				passwordBufSize = strlen16((UTF16*)passwordBuf) * 2;
+				/* hash the UTF-16LE encoded key */
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, passwordBuf, passwordBufSize);
+				SHA1_Final(out[i], &ctx);
+				// 2. use UTF-16LE encoded SID in HMAC
+				passwordBuf = (unsigned char*)cur_salt->SID;
+				passwordBufSize = (strlen16(cur_salt->SID) + 1) * 2;
+				hmac_sha1(out[i], 20, passwordBuf, passwordBufSize, out2[i], 20);
 #ifdef SIMD_COEF_32
-			lens[i] = 20;
-			pin[i] = (unsigned char*)out2[i];
-			x.pout[i] = (uint32_t*)(out[i]);
+				lens[i] = 20;
+				pin[i] = (unsigned char*)out2[i];
+				x.pout[i] = (uint32_t*)(out[i]);
 #endif
-		}
+			}
 #ifdef SIMD_COEF_32
-		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->iv, 16, cur_salt->iterations, &(x.poutc), 32, 0);
+			pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->iv, 16, cur_salt->iterations, &(x.poutc), 32, 0);
 #else
-		pbkdf2_sha1(out2[0], 20, cur_salt->iv, 16, cur_salt->iterations, out[0], 32, 0);
+			pbkdf2_sha1(out2[0], 20, cur_salt->iv, 16, cur_salt->iterations, out[0], 32, 0);
 #endif
 
-		// kcdecrypt will use 32 bytes, we only initialized 20 so far
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			unsigned char iv[8];
-			memset(out2[i] + 20, 0, 32 - 20);
+			// kcdecrypt will use 32 bytes, we only initialized 20 so far
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				unsigned char iv[8];
+				memset(out2[i] + 20, 0, 32 - 20);
 
-			// split derived key into "key" and IV
-			memcpy(iv, out[i] + 24, 8);
+				// split derived key into "key" and IV
+				memcpy(iv, out[i] + 24, 8);
 
-			if (kcdecrypt(out[i], iv, out2[i], cur_salt->ct) == 0)
-				cracked[index+i] = 1;
-			else
-				cracked[index+i] = 0;
+				if (kcdecrypt(out[i], iv, out2[i], cur_salt->ct) == 0)
+					cracked[index+i] = 1;
+				else
+					cracked[index+i] = 0;
+			}
+		} else { // TODO
 		}
 	}
+
 	return count;
 }
 
