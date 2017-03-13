@@ -636,7 +636,7 @@ def parse_wallet(db, item_callback):
                                 d['comment'] = vds.read_string()
                         elif type == "bestblock":
                                 d['nVersion'] = vds.read_int32()
-                                d.update(parse_BlockLocator(vds))
+                                # d.update(parse_BlockLocator(vds))
                         elif type == "ckey":
                                 d['public_key'] = kds.read_bytes(kds.read_compact_size())
                                 d['encrypted_private_key'] = vds.read_bytes(vds.read_compact_size())
@@ -734,7 +734,8 @@ def read_wallet(json_db, walletfile, print_wallet, print_wallet_transactions, tr
                         json_db['acentry'] = (d['account'], d['nCreditDebit'], d['otherAccount'], time.ctime(d['nTime']), d['n'], d['comment'])
 
                 elif type == "bestblock":
-                        json_db['bestblock'] = d['hashes'][0][::-1].encode('hex_codec')
+                        pass
+                        # json_db['bestblock'] = d['hashes'][0][::-1].encode('hex_codec')
 
                 elif type == "ckey":
                         crypted = True
@@ -802,6 +803,13 @@ if __name__ == '__main__':
         filename = sys.argv[i]
         if read_wallet(json_db, filename, True, True, "", False) == -1:
             continue
+
+        # Use btcrecover/btcrpass.py -> "Bitcoin Core" logic in case of problems
+        # with the code in this file.
+        minversion = json_db["minversion"]
+        if minversion > max_version:
+            sys.stderr.write("WARNING: %s has previously unseen minversion '%s'!\n" %
+                             (os.path.basename(filename), minversion))
 
         cry_master = json_db['mkey']['encrypted_key'].decode('hex')
         cry_salt = json_db['mkey']['salt'].decode('hex')
