@@ -34,6 +34,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "stdint.h"
 #include "aes.h"
 #include "aes_ccm.h"
 
@@ -237,13 +238,7 @@ int aes_ccm_encrypt_and_tag(const unsigned char *key, int bits, size_t
 {
 	AES_KEY ctx;
 
-	if (bits == 256) {
-		AES_set_encrypt_key(key, 256, &ctx);
-	} else if (bits == 128) {
-		AES_set_encrypt_key(key, 128, &ctx);
-	} else if (bits == 192) {
-		AES_set_encrypt_key(key, 192, &ctx);
-	}
+	AES_set_encrypt_key(key, bits, &ctx);
 
 	return ccm_auth_crypt(&ctx, CCM_ENCRYPT, length, iv, iv_len, add,
 			add_len, input, output, tag, tag_len);
@@ -263,13 +258,7 @@ int aes_ccm_auth_decrypt(const unsigned char *key, int bits, size_t length,
 	int diff;
 	AES_KEY ctx;
 
-	if (bits == 256) {
-		AES_set_encrypt_key(key, 256, &ctx);
-	} else if (bits == 128) {
-		AES_set_encrypt_key(key, 128, &ctx);
-	} else if (bits == 192) {
-		AES_set_encrypt_key(key, 192, &ctx);
-	}
+	AES_set_encrypt_key(key, bits, &ctx);
 
 	if ((ret = ccm_auth_crypt(&ctx, CCM_DECRYPT, length, iv, iv_len, add,
 					add_len, input, output, check_tag,
@@ -286,6 +275,59 @@ int aes_ccm_auth_decrypt(const unsigned char *key, int bits, size_t length,
 	return 0 ;
 }
 
+/* De- or encrypts a block of data using AES-CCM (Counter with CBC-MAC)
+ * Note that the key must be set in encryption mode (LIBCAES_CRYPT_MODE_ENCRYPT) for both de- and encryption.
+ *
+ * This function is borrowed from libcaes which is under LGPLv3, https://github.com/libyal/libcaes.
+ *
+ * This function behaves differently than the standards-compliant functions in
+ * PolarSSL, OpenSSL and SJCL. However it behaves like the AES CCM implementation
+ * in Windows, and this is useful for us.
+ */
+int libcaes_crypt_ccm(unsigned char *key, int bits, int mode, const uint8_t
+		*nonce, size_t nonce_size, const uint8_t *input_data, size_t
+		input_data_size, uint8_t *output_data, size_t output_data_size)
+{
+	uint8_t block_data[16];
+	uint8_t iiv[16]; // internal_initialization_vector
+	size_t data_offset         = 0;
+	size_t remaining_data_size = 0;
+	uint8_t block_index        = 0;
+	AES_KEY ctx;
+
+	AES_set_encrypt_key(key, bits, &ctx);
+
+	/*
+	 * The IV consists of:
+	 * 1 byte size value formatted as: 15 - nonce size - 1
+	 * a maximum of 14 bytes containing nonce bytes
+	 * 1 byte counter
+	 */
+	memset(iiv, 0 , 16);
+	memcpy(&(iiv[1]), nonce, nonce_size);
+	iiv[0] = 15 - (uint8_t)nonce_size - 1;
+
+	memcpy(output_data, input_data, input_data_size);
+	while ((data_offset + 16 ) < input_data_size) {
+		AES_ecb_encrypt(iiv, block_data, &ctx, AES_ENCRYPT);
+		for (block_index = 0; block_index < 16; block_index++) {
+			output_data[data_offset++] ^= block_data[block_index];
+		}
+		iiv[15] += 1;
+	}
+	if (data_offset < input_data_size)
+	{
+		remaining_data_size = input_data_size - data_offset;
+
+		AES_ecb_encrypt(iiv, block_data, &ctx, AES_ENCRYPT);
+
+		for (block_index = 0; block_index < (uint8_t)remaining_data_size; block_index++ ) {
+			output_data[data_offset++] ^= block_data[block_index];
+		}
+	}
+
+	return 1;
+}
 
 #if defined(CCM_DEBUG)
 /*
