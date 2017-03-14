@@ -26,16 +26,49 @@ void AES_XTS_decrypt(const unsigned char *double_key, unsigned char *out,
 	unsigned char buf[16];
 	int i, j, cnt;
 	AES_KEY key1, key2;
-	if (bits == 256) {
-		AES_set_decrypt_key(double_key, 256, &key1);
-		AES_set_encrypt_key(&double_key[32], 256, &key2);
-	} else if (bits == 128) {
-		AES_set_decrypt_key(double_key, 128, &key1);
-		AES_set_encrypt_key(&double_key[16], 128, &key2);
-	}
-	// else 192 bits???
 
-	// first aes tweak (we do it right over tweak
+	AES_set_decrypt_key(double_key, bits, &key1);
+	AES_set_encrypt_key(&double_key[bits / 8], bits, &key2);
+
+	// first aes tweak, we do it right over tweak
+	AES_encrypt(tweak, tweak, &key2);
+
+	cnt = len/16;
+	for (j=0;;) {
+		for (i = 0; i < 16; ++i) buf[i] = data[i]^tweak[i];
+		AES_decrypt(buf, out, &key1);
+		for (i = 0; i < 16; ++i) out[i]^=tweak[i];
+		++j;
+		if (j == cnt)
+			break;
+		else {
+			unsigned char Cin, Cout;
+			unsigned x;
+			Cin = 0;
+			for (x = 0; x < 16; ++x) {
+				Cout = (tweak[x] >> 7) & 1;
+				tweak[x] = ((tweak[x] << 1) + Cin) & 0xFF;
+				Cin = Cout;
+			}
+			if (Cout)
+				tweak[0] ^= 135; //GF_128_FDBK;
+		}
+		data += 16;
+		out += 16;
+	}
+}
+
+void AES_XTS_decrypt_custom_tweak(const unsigned char *double_key, unsigned
+		char *tweak, unsigned char *out, const unsigned char *data,
+		unsigned len, int bits) {
+	unsigned char buf[16];
+	int i, j, cnt;
+	AES_KEY key1, key2;
+
+	AES_set_decrypt_key(double_key, bits, &key1);
+	AES_set_encrypt_key(&double_key[bits / 8], bits, &key2);
+
+	// first aes tweak, we do it right over tweak
 	AES_encrypt(tweak, tweak, &key2);
 
 	cnt = len/16;

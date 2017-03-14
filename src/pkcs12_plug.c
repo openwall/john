@@ -31,6 +31,7 @@
 #include "sha2.h"
 #include "simd-intrinsics.h"
 #include "pkcs12.h"
+#include "sph_whirlpool.h"
 
 #define PKCS12_MAX_PWDLEN 128
 
@@ -56,7 +57,9 @@ int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 	*cp++ = 0;
 	*cp = 0;
 
-	if (md_type == 1 || md_type == 256 || md_type == 512 || md_type == 224 || md_type == 384)
+	// 2  => BestCrypt specific PKCS12 Whirlpool-512, hack
+	// 10 => BestCrypt specific PKCS12 SHA-512, hack
+	if (md_type == 1 || md_type == 256 || md_type == 512 || md_type == 224 || md_type == 384 || md_type == 2 || md_type == 10)
 		mbedtls_pkcs12_derivation(key, keylen, unipwd, pwdlen * 2 + 2, salt,
 				saltlen, md_type, id, iterations);
     return 0;
@@ -94,6 +97,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
     SHA_CTX md_ctx;
     SHA256_CTX md_ctx256;
     SHA512_CTX md_ctx512;
+    sph_whirlpool_context md_ctx_whrl;
 
     // This version only allows max of 48 bytes of password or salt
     if ( datalen > 128 || pwdlen > 48*2+2 || saltlen > 64 )
@@ -141,6 +145,14 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	case 512:
 		hlen = 64;	// for SHA512
 		v2 = v = 128;
+		break;
+	case 2:
+		hlen = 64;	// for Whirlpool 512
+		v2 = v = 64;    // BestCrypt always sets this to 64 for all cases!
+		break;
+	case 10:
+		hlen = 64;	// for SHA512
+		v2 = v = 64;	// BestCrypt always sets this to 64 for all cases!
 		break;
 	default:
 		return -1;
@@ -208,6 +220,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
                     SHA384_Final(hash_output, &md_ctx512);
                 }
 		break;
+	    case 10: // fall through
 	    case 512:
 	    	SHA512_Init(&md_ctx512);
                 SHA512_Update(&md_ctx512, diversifier, v);
@@ -219,6 +232,19 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
                     SHA512_Init(&md_ctx512);
                     SHA512_Update(&md_ctx512, hash_output, hlen);
                     SHA512_Final(hash_output, &md_ctx512);
+                }
+		break;
+	    case 2:
+                sph_whirlpool_init(&md_ctx_whrl);
+                sph_whirlpool(&md_ctx_whrl, diversifier, v);
+                sph_whirlpool(&md_ctx_whrl, salt_block, v);
+                sph_whirlpool(&md_ctx_whrl, pwd_block, v);
+                sph_whirlpool_close(&md_ctx_whrl, hash_output);
+                // Perform remaining ( iterations - 1 ) recursive hash calculations
+                for ( i = 1; i < (size_t) iterations; i++ ) {
+                    sph_whirlpool_init(&md_ctx_whrl);
+                    sph_whirlpool(&md_ctx_whrl, hash_output, hlen);
+                    sph_whirlpool_close(&md_ctx_whrl, hash_output);
                 }
 		break;
 	}
