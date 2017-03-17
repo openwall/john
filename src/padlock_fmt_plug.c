@@ -111,6 +111,7 @@ static void done(void)
 {
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
+	MEM_FREE(saved_len);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
