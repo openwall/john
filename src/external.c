@@ -289,6 +289,12 @@ void ext_init(char *mode, struct db_main *db)
 			    "No filter() for external mode: %s\n", mode);
 		error();
 	}
+	if (f_new && options.flags & FLG_SINGLE_CHK) {
+		if (john_main_process)
+			fprintf(stderr,
+			        "Single mode can't be used with hybrid external mode\n");
+		error();
+	}
 	if (john_main_process &&
 	    (ext_flags & (EXT_USES_GENERATE | EXT_USES_FILTER)) ==
 	    EXT_USES_FILTER && f_generate)
