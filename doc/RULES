@@ -20,11 +20,11 @@ will have to escape that character (or the config file loader will bail
 out, listing a bugus . directive). At this time, it is not valid for a
 john rule to start with a period, so at this time, this is not a problem.
 
-See RULES-HashCat for information about additional rules added to
-1.8-jumbo-2 to allow john to utilize HashCat/InsidePro rules files
+See RULES-hashcat for information about additional rules added to
+1.8-jumbo-2 to allow john to utilize hashcat/InsidePro rules files
 natively. NOTE, there are additional rules commands added to allow
-HashCat rules to be utilized. These additional rules are documented in
-that RULES-HashCat file.
+hashcat rules to be utilized. These additional rules are documented in
+that RULES-hashcat file.
 
 
 	Rule reject flags.
