@@ -793,6 +793,18 @@ def process_hash(uid, nonce, sha1):
     print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
 
 
+"""
+GG_LOGIN105 stores uid as hex encoded ASCII. 16th byte is the number of digits in uid.
+uid begins at 17th byte. sha1 hash is separated from last digit of uid by two bytes.
+"""
+def handle_gg_login105(payload, nonce):
+    digits = int(payload[30:32], 16)
+    uid = payload[32 : 32 + 2*digits].decode("hex")
+    offset = 32 + 2*digits + 4
+    sha1 = payload[offset : offset + 40]
+    print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
+
+
 def pcap_parser_gadu(pcapfile):
     try:
         packets = rdpcap(pcapfile)
@@ -807,12 +819,14 @@ def pcap_parser_gadu(pcapfile):
             payload = str(pkt[TCP].payload).encode('hex')
             if payload[:8] == '01000000':  # GG_WELCOME
                 nonce = payload[16:]
-            if payload[:8] == '31000000':  # GG_LOGIN
+            if payload[:8] == '31000000':  # GG_LOGIN80
                 hashtype = payload[28:30]
                 if hashtype == "02":
                     uid = payload[16:24]
                     sha1 = payload[30:70]
                     process_hash(uid, nonce, sha1)
+            if payload[:8] == '83000000':  # GG_LOGIN105
+                handle_gg_login105(payload, nonce)
 
 
 def pcap_parser_eigrp(fname):
