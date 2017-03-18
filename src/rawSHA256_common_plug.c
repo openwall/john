@@ -70,6 +70,25 @@ void * sha256_common_binary(char *ciphertext)
 	return out;
 }
 
+void *sha256_common_binary_BE(char *ciphertext)
+{
+	static unsigned char * out;
+	char *p;
+	int i;
+
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
+
+	p = ciphertext + HEX_TAG_LEN;
+	for (i = 0; i < DIGEST_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	alter_endianity (out, DIGEST_SIZE);
+	return out;
+}
+
 /* ------- Prepare ------- */
 /* Convert Cisco hashes to hex ones, so .pot entries are compatible */
 char * sha256_common_prepare(char *split_fields[10], struct fmt_main *self)

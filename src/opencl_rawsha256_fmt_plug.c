@@ -128,9 +128,8 @@ static uint32_t *crypt_one(int index) {
 	SHA256_Update(&ctx, key, len);
 	SHA256_Final((unsigned char *) (hash), &ctx);
 
-#ifdef SIMD_COEF_32
 	alter_endianity_to_BE(hash, DIGEST_SIZE / sizeof(uint32_t));
-#endif
+
 	return hash;
 }
 
@@ -702,7 +701,7 @@ static int cmp_exact(char *source, int index)
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
-	binary = (uint32_t *) sha256_common_binary(source);
+	binary = (uint32_t *) sha256_common_binary_BE(source);
 
 	full_hash = crypt_one(index);
 	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
@@ -774,7 +773,7 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		sha256_common_prepare,
 		sha256_common_valid,
 		sha256_common_split,
-		sha256_common_binary,
+		sha256_common_binary_BE,
 		fmt_default_salt,
 		{NULL},
 		fmt_default_source,
