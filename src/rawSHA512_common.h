@@ -43,8 +43,10 @@ int sha512_common_valid_xsha512(char *ciphertext, struct fmt_main *self);
 int sha512_common_valid_nsldap(char *ciphertext, struct fmt_main *self);
 
 void * sha512_common_binary(char *ciphertext);
+void * sha512_common_binary_BE(char *ciphertext);
 void * sha512_common_binary_rev(char *ciphertext);
 void * sha512_common_binary_xsha512(char *ciphertext);
+void * sha512_common_binary_xsha512_BE(char *ciphertext);
 void * sha512_common_binary_xsha512_rev(char *ciphertext);
 void * sha512_common_binary_nsldap(char *ciphertext);
 

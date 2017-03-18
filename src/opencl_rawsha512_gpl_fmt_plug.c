@@ -137,9 +137,8 @@ static uint64_t *crypt_one(int index) {
 	SHA512_Update(&ctx, key, len);
 	SHA512_Final((unsigned char *) (hash), &ctx);
 
-#ifdef SIMD_COEF_64
 	alter_endianity_to_BE64(hash, DIGEST_SIZE / sizeof(uint64_t));
-#endif
+
 	return hash;
 }
 
@@ -155,9 +154,8 @@ static uint64_t *crypt_one_x(int index) {
 	SHA512_Update(&ctx, key, len);
 	SHA512_Final((unsigned char *) (hash), &ctx);
 
-#ifdef SIMD_COEF_64
 	alter_endianity_to_BE64(hash, DIGEST_SIZE / sizeof(uint64_t));
-#endif
+
 	return hash;
 }
 
@@ -791,7 +789,7 @@ static int cmp_exact_raw(char *source, int index)
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
-	binary = (uint64_t *) sha512_common_binary(source);
+	binary = (uint64_t *) sha512_common_binary_BE(source);
 
 	full_hash = crypt_one(index);
 	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
@@ -805,7 +803,7 @@ static int cmp_exact_x(char *source, int index)
 #ifdef DEBUG
 	fprintf(stderr, "Stressing CPU\n");
 #endif
-	binary = (uint64_t *) sha512_common_binary_xsha512(source);
+	binary = (uint64_t *) sha512_common_binary_xsha512_BE(source);
 
 	full_hash = crypt_one_x(index);
 	return !memcmp(binary, (void *) full_hash, BINARY_SIZE);
@@ -874,7 +872,7 @@ struct fmt_main fmt_opencl_rawsha512_gpl = {
 		fmt_default_prepare,
 		sha512_common_valid,
 		sha512_common_split,
-		sha512_common_binary,
+		sha512_common_binary_BE,
 		fmt_default_salt,
 		{NULL},
 		fmt_default_source,
@@ -937,7 +935,7 @@ struct fmt_main fmt_opencl_xsha512_gpl = {
 		sha512_common_prepare_xsha512,
 		sha512_common_valid_xsha512,
 		sha512_common_split_xsha512,
-		sha512_common_binary_xsha512,
+		sha512_common_binary_xsha512_BE,
 		get_salt,
 		{NULL},
 		fmt_default_source,

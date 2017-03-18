@@ -30,6 +30,7 @@
 
 int sha256_common_valid(char *ciphertext, struct fmt_main *self);
 void * sha256_common_binary(char *ciphertext);
+void * sha256_common_binary_BE(char *ciphertext);
 char * sha256_common_prepare(char *split_fields[10], struct fmt_main *self);
 char * sha256_common_split(char *ciphertext, int index, struct fmt_main *self);
 
