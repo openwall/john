@@ -14,12 +14,12 @@ import dpkt.ethernet as ethernet
 import dpkt.stp as stp
 import struct
 import socket
+from binascii import hexlify
 
 import os
 import logging
 l = logging.getLogger("scapy.runtime")
 l.setLevel(49)
-from binascii import hexlify
 try:
     from scapy.all import TCP, IP, UDP, rdpcap
 except ImportError:
@@ -793,15 +793,15 @@ def process_hash(uid, nonce, sha1):
     print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
 
 
-"""
-GG_LOGIN105 stores uid as hex encoded ASCII. 16th byte is the number of digits in uid.
-uid begins at 17th byte. sha1 hash is separated from last digit of uid by two bytes.
-"""
 def handle_gg_login105(payload, nonce):
+    """
+    GG_LOGIN105 stores uid as hex encoded ASCII. 16th byte is the number of digits in uid.
+    uid begins at 17th byte. sha1 hash is separated from last digit of uid by two bytes.
+    """
     digits = int(payload[30:32], 16)
-    uid = payload[32 : 32 + 2*digits].decode("hex")
+    uid = payload[32:32 + 2*digits].decode("hex")
     offset = 32 + 2*digits + 4
-    sha1 = payload[offset : offset + 40]
+    sha1 = payload[offset:offset + 40]
     print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
 
 
