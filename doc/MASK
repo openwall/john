@@ -59,7 +59,7 @@ word!
 You can define custom placeholders for ?1 .. ?9 using command line eg. -1=?l?u
 or in john.conf section [Mask].
 
-There is a default mask in john.conf too (defaulting to same as Hashcat).
+There is a default mask in john.conf too (defaulting to same as hashcat).
 This should be used with -max-len (and possibly -min-len) to do any good.
 
 The -max-len=N option will truncate the mask so no words longer than N are
