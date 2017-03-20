@@ -60,9 +60,6 @@ typedef char (*chars_table)
 static unsigned int rec_entry, rec_length;
 static unsigned char rec_numbers[CHARSET_LENGTH];
 
-static unsigned int hybrid_rec_entry, hybrid_rec_length;
-static unsigned char hybrid_rec_numbers[CHARSET_LENGTH];
-
 static unsigned int entry, length;
 static unsigned char numbers[CHARSET_LENGTH];
 static int counts[CHARSET_LENGTH][CHARSET_LENGTH];
@@ -111,23 +108,9 @@ static int restore_state(FILE *file)
 
 static void fix_state(void)
 {
-	if (hybrid_rec_entry || hybrid_rec_length) {
-		rec_entry = hybrid_rec_entry;
-		rec_length = hybrid_rec_length;
-		memcpy(rec_numbers, hybrid_rec_numbers, hybrid_rec_length);
-		hybrid_rec_entry = hybrid_rec_length = 0;
-		return;
-	}
 	rec_entry = entry;
 	rec_length = length;
 	memcpy(rec_numbers, numbers, length);
-}
-
-void inc_hybrid_fix_state(void)
-{
-	hybrid_rec_entry = entry;
-	hybrid_rec_length = length;
-	memcpy(hybrid_rec_numbers, numbers, length);
 }
 
 static void inc_format_error(char *charset)
@@ -410,17 +393,18 @@ update_last:
 		if (do_regex_hybrid_crack(db, regex, key,
 		                          regex_case, regex_alpha))
 			return 1;
-		inc_hybrid_fix_state();
+		fix_state();
 	} else
 #endif
 	if (f_new) {
 		if (do_external_hybrid_crack(db, key))
 			return 1;
-		inc_hybrid_fix_state();
+		fix_state();
 	} else
 	if (options.mask) {
 		if (do_mask_crack(key))
 			return 1;
+		fix_state();
 	} else
 	if (!f_filter || ext_filter_body(key_i, key = key_e))
 		if (crk_process_key(key))
@@ -828,17 +812,18 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				                                   regex_case,
 				                                   regex_alpha))
 					break;
-				inc_hybrid_fix_state();
+				fix_state();
 			} else
 #endif
 			if (f_new) {
 				if (!skip && do_external_hybrid_crack(db, fmt_null_key))
 					break;
-				inc_hybrid_fix_state();
+				fix_state();
 			} else
 			if (options.mask) {
 				if (!skip && do_mask_crack(fmt_null_key))
 					break;
+				fix_state();
 			} else
 			if (!skip && crk_process_key(fmt_null_key))
 				break;
