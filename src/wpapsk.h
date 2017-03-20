@@ -4,7 +4,8 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
- * hccap format was introduced by oclHashcat-plus, and it is described here: http://hashcat.net/wiki/hccap
+ * hccap format was introduced by oclHashcat-plus (now renamed to hashcat),
+ * and it is described here: http://hashcat.net/wiki/hccap
  * Code is based on  Aircrack-ng source
  */
 #ifndef _WPAPSK_H

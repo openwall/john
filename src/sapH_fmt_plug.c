@@ -4,7 +4,7 @@
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
  *
- * The internals of this algorithm were found on the HashCat forum, and
+ * The internals of this algorithm were found on the hashcat forum, and
  * implemented here, whether, it is right or wrong. A link to that post is:
  * http://hashcat.net/forum/thread-3804.html
  * There are some things which are unclear, BUT which have been coded as listed

@@ -5,7 +5,7 @@ Kerberom is a tool aimed to retrieve ARC4-HMAC'ed encrypted Tickets Granting Ser
 an Active Directory.
 
 These tickets are stored in a format supported by John The Ripper bleeding-jumbo (https://github.com/magnumripper/JohnTheRipper)
-and hashcat (https://github.com/hashcat/oclHashcat).
+and hashcat (https://github.com/hashcat/hashcat).
 
 Cracking these tickets gives you the associated accounts' password within the Active Directory.
 

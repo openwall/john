@@ -6,8 +6,8 @@
  * modification, are permitted.
  *
  * hccap2john processes hccap files into a format suitable for use with JtR.
- * hccap format was introduced by oclHashcat-plus, and it is described here:
- * http://hashcat.net/wiki/hccap
+ * hccap format was introduced by oclHashcat-plus (now renamed to hashcat),
+ * and it is described here: http://hashcat.net/wiki/hccap
  *
  * hccap format => $WPAPSK$essid#base64 encoded hccap_t
  */
