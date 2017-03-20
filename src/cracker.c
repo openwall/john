@@ -972,6 +972,13 @@ static int crk_salt_loop(void)
 #endif
 	}
 
+	if (options.max_cands && !event_abort) {
+		uint64_t cands =
+			((uint64_t)status.cands.hi << 32) + status.cands.lo;
+		if (cands >= options.max_cands)
+			event_abort = event_pending = 1;
+	}
+
 	if (salt)
 		return 1;
 
