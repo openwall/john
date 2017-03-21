@@ -1030,6 +1030,13 @@ int crk_process_key(char *key)
 
 	status_update_cands(1);
 
+	if (options.max_cands && !event_abort) {
+		uint64_t cands =
+			((uint64_t)status.cands.hi << 32) + status.cands.lo;
+		if (cands >= options.max_cands)
+			event_abort = event_pending = 1;
+	}
+
 	if (options.flags & FLG_MASK_STACKED)
 		mask_fix_state();
 	else
