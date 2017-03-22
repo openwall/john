@@ -233,7 +233,7 @@ static struct opt_entry opt_list[] = {
 	{"max-length", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		"%u", &options.req_maxlength},
 	{"max-candidates", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
-		"%lu", &options.max_cands},
+		"%llu", &options.max_cands},
 	{"max-run-time", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		"%d", &options.max_run_time},
 	{"progress-every", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,

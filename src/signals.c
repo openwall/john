@@ -166,26 +166,34 @@ static void sig_remove_reload(void)
 
 void check_abort(int be_async_signal_safe)
 {
+	char *abort_msg = (aborted_by_timer) ?
+		"Session stopped (max run-time reached)\n" :
+		"Session aborted\n";
+
 	if (!event_abort) return;
 
 	tty_done();
 
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
+	if (options.max_cands) {
+		unsigned long long cands =
+			((unsigned long long)status.cands.hi << 32) +
+			status.cands.lo;
+
+		if (cands >= options.max_cands)
+			abort_msg =
+				"Session stopped (max candidates reached)\n";
+	}
+
 	if (be_async_signal_safe) {
-		if (john_main_process) {
-			if (aborted_by_timer)
-				write_loop(2, "Session stopped (max run-time"
-				           " reached)\n", 39);
-			else
-				write_loop(2, "Session aborted\n", 16);
-		}
+		if (john_main_process)
+			write_loop(2, abort_msg, strlen(abort_msg));
 		_exit(1);
 	}
 
 	if (john_main_process)
-		fprintf(stderr, "Session %s\n", (aborted_by_timer) ?
-		        "stopped (max run-time reached)" : "aborted");
+		fprintf(stderr, "%s", abort_msg);
 	error();
 }
 

@@ -973,8 +973,9 @@ static int crk_salt_loop(void)
 	}
 
 	if (options.max_cands && !event_abort) {
-		uint64_t cands =
-			((uint64_t)status.cands.hi << 32) + status.cands.lo;
+		unsigned long long cands =
+			((unsigned long long)
+			 status.cands.hi << 32) + status.cands.lo;
 		if (cands >= options.max_cands)
 			event_abort = event_pending = 1;
 	}
@@ -1031,8 +1032,9 @@ int crk_process_key(char *key)
 	status_update_cands(1);
 
 	if (options.max_cands && !event_abort) {
-		uint64_t cands =
-			((uint64_t)status.cands.hi << 32) + status.cands.lo;
+		unsigned long long cands =
+			((unsigned long long)
+			 status.cands.hi << 32) + status.cands.lo;
 		if (cands >= options.max_cands)
 			event_abort = event_pending = 1;
 	}
