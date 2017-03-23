@@ -1,0 +1,148 @@
+#! /usr/bin/env python
+
+# Extracts hashes from "ejabberdctl dump output.txt" file(s).
+#
+# This software is Copyright (c) 2017, Dhiru Kholia <dhiru.kholia at gmail.com>
+# and it is hereby released under the same licensing terms as follows.
+#
+# Copyright (c) 2014, 2015  Machine Zone, Inc.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#  1. Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#  2. Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+import sys
+from base64 import b64decode
+from binascii import hexlify
+from functools import reduce
+
+# https://github.com/machinezone/python_etf starts, written by Renat Idrisov #
+
+import re
+try:
+    from parsimonious.grammar import Grammar
+    import parsimonious.exceptions
+except ImportError:
+    sys.stderr.write("Package parsimonious is missing, run 'pip install --user parsimonious'\n")
+    sys.exit(-1)
+
+
+class ParseError(Exception):
+    pass
+
+
+def readint(text):
+    if "#" in text:
+        (a, b) = text.split("#", 2)
+        return int(b, int(a))
+    else:
+        return int(text)
+
+
+def transform(ast):
+    if ast.expr_name == "number":
+        return [float(ast.text)] if "." in ast.text else [readint(ast.text)]
+    elif ast.expr_name == "boolean":
+        return [ast.text == "true"]
+    elif ast.expr_name == "string":
+        return [ast.text[1:-1].replace(r'\"', '"').replace(r'\\\\', '\\\\')]
+    elif ast.expr_name == "atom":
+        return [ast.text]
+    else:
+        lis = reduce(lambda a, x: a + transform(x), ast.children, [])
+        if ast.expr_name == "list":
+            return [lis]
+        elif ast.expr_name == "map":
+            return [dict(lis)]
+        elif ast.expr_name in ["tuple", "keyvalue"]:
+            return [tuple(lis)]
+        return lis
+
+
+def lex(text):
+    grammar = Grammar("""\
+    entry = (term _ "." _)* _
+    term = boolean / atom / list / tuple / map / string / binary / number
+    atom = ~"[a-z][0-9a-zA-Z_]*" / ("'" ~"[^']*" "'")
+    _ = ~"\s*"
+    list = ( _ "[" _ term (_ "," _ term)* _ "]" ) / ( _ "[" _ "]")
+    tuple = ( _ "{" _ term (_ "," _ term)* _ "}" ) / ( _ "{" _ "}")
+    map   = ( _ "#{" _ keyvalue (_ "," _ keyvalue)* _ "}" ) / ( _ "#{" _ "}")
+    keyvalue = term _ "=>" _ term _
+    string = '"' ~r'(\\\\.|[^"])*' '"'
+    binary = "<<" string ">>"
+    boolean = "true" / "false"
+    number = ~"\-?[0-9]+\#[0-9a-zA-Z]+" / ~"\-?[0-9]+(\.[0-9]+)?((e|E)(\-|\+)?[0-9]+)?"
+    """)
+    nocomments = re.sub("(?m)%.*?$", "", text)
+    try:
+        return grammar.parse(nocomments)
+    except parsimonious.exceptions.ParseError as e:
+        raise ParseError(e)
+
+
+def decode(text):
+    return transform(lex(text))
+
+# https://github.com/machinezone/python_etf ends #
+
+
+def chunks(iterable):  # this is hacky but it seems to work!
+    buf = []
+    for line in iterable:
+        if b"}}." in line:
+            buf.append(line)
+            yield buf
+            buf = []
+        elif b"passwd" in line:
+            buf = []
+            buf.append(line)
+        else:
+            buf.append(line)
+
+
+def process_file(name):
+    f = open(name, "rb")
+
+    for chunk in chunks(f):
+        # process chunk
+        chunk = b"".join(chunk).decode("utf-8")
+        chunk = chunk.replace(" ", "").replace("\n", "")
+        data = decode(chunk)
+        try:
+            _, who, scram = data[0]
+            user = "@".join(who)
+            _, stored_key, server_key, salt, iterations = scram
+            salt = hexlify(b64decode(salt)).decode("ascii")
+            stored_key = hexlify(b64decode(stored_key)).decode("ascii")
+            sys.stdout.write("%s:$xmpp-scram$0$%s$%s$%s$%s\n" % (user, iterations, len(salt) // 2, salt, stored_key))
+
+        except:
+            sys.stderr.write("Bad line? %s\n" % chunk)
+
+    f.close()
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        sys.stderr.write("Usage: %s [file(s) generated by 'ejabberdctl dump' command]\n" % sys.argv[0])
+        sys.exit(-1)
+
+    for i in range(1, len(sys.argv)):
+        process_file(sys.argv[i])
