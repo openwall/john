@@ -15,22 +15,6 @@ Not working on big-endian CPU architectures (disabled by autoconf):
 Intel's OCL SDK 1.5 CPU driver has problems with some formats. Use a
 newer version of the SDK.
 
-All CUDA formats substantially benefit from compile-time tuning.
-README-CUDA includes some info on this.  In short, on GTX 400 series and
-newer NVIDIA cards, you'll likely want to change "-arch sm_10" to "-arch
-sm_20" or greater (as appropriate for your GPU) on the NVCC_FLAGS line
-in Makefile.  You'll also want to tune BLOCKS and THREADS for the
-specific format you're interested in.  These are typically specified in
-cuda_*.h files.  README-CUDA includes a handful of pre-tuned settings.
-It is not unusual to obtain e.g. a 3x speedup (compared to the generic
-defaults) with this sort of tuning.
-
-Even though wpapsk-cuda primarily use the GPU, it also does a (small,
-but not negligible) portion of the computation on CPU and thus it
-substantially benefits from OpenMP-enabled builds.  We intend to reduce
-its use of CPU in a future version. The OpenCL version does all
-computation on GPU.
-
 With GPU-enabled formats (and sometimes with OpenMP on CPU as well), the
 number of candidate passwords being tested concurrently can be very
 large (thousands).  When the format is of a "slow" type (such as an
