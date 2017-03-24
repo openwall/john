@@ -93,7 +93,7 @@ hybrid_total should be set, AND hybrid_resume is the number of iterations
 which were done in the prior run. restore() should use this to change whatever
 is required within the script's global state, so that the next call to next()
 will produce the correct next word.  If the script can not easily know how
-many candidate a word produces, or adjust it's global state to start from
+many candidate a word produces, or adjust its global state to start from
 some random location, then within new() the script should NOT set 'hybrid_total'
 and within restore() the script should also not set 'hybrid_total'. In this
 case,  the cracker will call new() with the word, and then call next()
@@ -188,7 +188,7 @@ variables added to aid in session resuming.
 Hybrid Functions:
 
 * new() This function is called at the start of each NEW word to be worked on.
-The script should do whatever is needed to setup it's state. This may be
+The script should do whatever is needed to setup its state. This may be
 counting letters in the base word, saving off the base word, or many other
 things. The only time that new() is NOT called, is upon a restore() call
 when the script knows how to easily restore.  In that case restore() should

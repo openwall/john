@@ -34,7 +34,7 @@ command line.  See --rules for more details.
 
 --single-seed=WORD[,WORD][,...]
 
-Add static word(s) for all salts in single mode.  Adding eg. "Rockyou"
+Add static word(s) for all salts in single mode.  Adding e.g. "Rockyou"
 will have the same effect as having that word in all gecos fields in the
 whole input file (except the latter would eat memory).
 
@@ -367,8 +367,8 @@ you can use group aliases "dynamic", "cpu", "gpu", "opencl" and "cuda"
 as a format name, or use one wildcard, as in "--format=mysql-*",
 "--format=raw*ng" or "--format=*office".  There's also a special way
 to match any substring within the "algorithm name" (the string shown
-within brackets, eg. "[DES 128/128 AVX-16]" using @tag syntax as in
-eg. "--format=@DES" or "--format=@AVX".  Regardless of method, the
+within brackets, e.g. "[DES 128/128 AVX-16]" using @tag syntax as in
+e.g. "--format=@DES" or "--format=@AVX".  Regardless of method, the
 matching ignores case.
 
 "--format=crypt" may or may not be supported in a given build of John.
@@ -472,7 +472,7 @@ These options limit the length of candidates that will be tried.  In wordlist
 mode (after applying rules, if any), a word that is not within the requested
 limits will be rejected (as opposed to truncated).  Most other modes also
 honour these settings.  For example, you can fully exhaust a short keyspace
-with incremental mode with eg. --max-len=4 and then start a longer session
+with incremental mode with e.g. --max-len=4 and then start a longer session
 for the rest with --min-length=5, or use one core for lengths up to 8 and
 other cores for exact lengths of 9, 10 and so on.
 Note: With UTF-8 encoding and no internal codepage, non-ASCII characters will
@@ -506,7 +506,7 @@ further cracking, so you can use it to find alternative plaintexts.
 
 This esoteric option can be used to filter out many bogus hashes.  It only
 works well with not too small binary sizes.  Rejected hashes are printed (as
-text) to stderr.  It may fail to work with some formats that eg. reverses
+text) to stderr.  It may fail to work with some formats that e.g. reverse
 steps.  A good example of that is it does not work with raw-md5 format, but
 works fine with dynamic_0 (which is also raw MD5 but less optimized).  An
 example of hash that would be rejected is 6d61676e756d474747476d61676e756d

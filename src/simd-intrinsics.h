@@ -102,7 +102,7 @@ void sha1_unreverse3(uint32_t *hash);
 #define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
-// we use the 'outter' SIMD_COEF_32 wrapper, as the flag for SHA256/SHA512.  FIX_ME!!
+// we use the 'outer' SIMD_COEF_32 wrapper, as the flag for SHA256/SHA512.  FIX_ME!!
 #if SIMD_COEF_32 > 1
 
 #ifdef SIMD_COEF_32

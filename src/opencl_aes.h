@@ -27,7 +27,7 @@
 #define OCL_AES_DECRYPT 1
 #endif
 
-/* These default to __private but can be eg. __global */
+/* These default to __private but can be e.g. __global */
 #ifndef AES_KEY_TYPE
 #define AES_KEY_TYPE const
 #endif

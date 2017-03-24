@@ -103,7 +103,7 @@ static struct {
 	char *classes[0x100];
 } CC_CACHE_ALIGN rules_data;
 
-/* A null string that is safe to read past (for eg. ASan) */
+/* A null string that is safe to read past (e.g. for ASan) */
 static char safe_null_string[RULE_BUFFER_SIZE];
 
 #define rules_pass rules_data.pass
