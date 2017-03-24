@@ -119,7 +119,7 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 	if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen((char*)cp) != WINZIP_BINARY_SIZE<<1)  {
 		sFailStr = "Authentication data invalid (not hex number), or not 20 hex characters"; goto Bail; }
 
-	// Ok, now if we have to pull from .zip file, lets do so, and we can validate with the authentication bytes
+	// Ok, now if we have to pull from .zip file, let's do so, and we can validate with the authentication bytes
 	if (zip_file_validate) {
 		sFailStr = ValidateZipFileData(Fn, Oh, Ob, val, cp);
 		if (*sFailStr) {

@@ -26,7 +26,7 @@ for you to compile and you can start using John right away.
 
 The Jumbo versions requires OpenSSL 0.9.7 or later. To get all functionality
 you need 1.0.1. For building, not only the run-time libs are needed but also
-"devel" stuff like header files. This is often a separate package, so eg.
+"devel" stuff like header files. This is often a separate package, so, e.g.,
 for Ubuntu you need "libssl-dev" as well as "libssl".
 
 A few helper tools need C++. Some helper tools are written in Python. A couple
@@ -37,7 +37,7 @@ extra libraries in order to get included:
 	krb5-18/23	libkrb5
 	wowsrp		libgmp (will build without it, but is slower then)
 
-Again, you also need eg. libnss-dev, libkrb5-dev and libgmp-dev in order to
+Again, you also need e.g. libnss-dev, libkrb5-dev and libgmp-dev in order to
 build.
 
 
@@ -62,7 +62,7 @@ Note that whenever you pass CFLAGS like this, the default "-g -O2" will go
 away, so add that too (like was done above).
 
 You might want to add "-s" to make, for suppressing normal output and just
-print warnings and errors. For a multi-core host you can also add eg. "-j4"
+print warnings and errors. For a multi-core host you can also add e.g. "-j4"
 for using 4 cores in parallel when building. This can be written together,
 as in:
 	./configure && make -sj4

@@ -70,7 +70,7 @@ optional arguments:
   -v, --verbose         increase verbosity level
   --delta DELTA         set time delta in Kerberos tickets. Useful when DC is
                         not on the same timezone. Format is
-                        "(+/-)hours:minutes:seconds", eg. --delta="+00:05:00"
+                        "(+/-)hours:minutes:seconds", e.g. --delta="+00:05:00"
                         or --delta="-02:00:00"
   -k USER_SID, --user_sid USER_SID
                         force ldap SPN retrieval through kerberos, sid is

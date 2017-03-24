@@ -1,6 +1,6 @@
 /*
  * Glue for NVIDIA and AMD hardware sensors' libs. This is a subset of
- * typedefs and defines for eg. JtR and is distributed under the "fair use"
+ * typedefs and defines for e.g. JtR and is distributed under the "fair use"
  * doctrine. For complete headers and documentation, see respective vendor's
  * SDK.
  *

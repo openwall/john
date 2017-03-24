@@ -536,7 +536,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		}
 	}
 
-	/* Bodge for bash completion of eg. "john -stdout -list=..." */
+	/* Bodge for bash completion of e.g. "john -stdout -list=..." */
 	if (options.listconf != NULL && options.fork == 0)
 		options.flags |= (FLG_CRACKING_SUP | FLG_STDIN_SET);
 

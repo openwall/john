@@ -213,7 +213,7 @@ static char* plhdr2string(char p, int fmt_case)
 
 	/*
 	 * Force lowercase for case insignificant formats. Dupes will
-	 * be removed, so eg. ?l?u == ?l.
+	 * be removed, so e.g. ?l?u == ?l.
 	 */
 	if (!fmt_case) {
 		if (p == 'u')
@@ -937,7 +937,7 @@ static char* plhdr2string(char p, int fmt_case)
  * brackets are already given, as in [?d], output is still [0123456789]
  *
  * This function must pass any escaped characters on, as-is (still escaped).
- * It may also have to ADD escapes to ranges produced from eg. ?s.
+ * It may also have to ADD escapes to ranges produced from e.g. ?s.
  */
 static char* expand_plhdr(char *string, int fmt_case)
 {
@@ -1986,7 +1986,7 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
  * Note that de-hex comes after UTF-8 conversion so any 8-bit hex escaped
  * characters will be parsed as the *internal* encoding.
  *
- * Hex characters *can* compose ranges, eg. "\x80-\xff", but can not end up as
+ * Hex characters *can* compose ranges, e.g. "\x80-\xff", but can not end up as
  * placeholders. Eg. "\x3fd" ("?d" after de-hex) must be parsed literally as
  * "?d" and not a digits range.
  *

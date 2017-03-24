@@ -30,15 +30,15 @@ wordlist is encoded in ISO-8859-1, you need to use the "--encoding=iso-8859-1"
 option (unless you have set that as default in john.conf). But you also need to
 know what encoding the hashes were made from - for example, LM hashes are
 always made from a legacy MS-DOS codepage like CP437 or CP850. This can be
-specified by using the option eg. "--target-encoding=CP437". John will convert
+specified by using the option e.g. "--target-encoding=CP437". John will convert
 to/from Unicode as needed.
 
-Finally, there's the special case where both input (wordlist) and output (eg.
-hashes from a website) are UTF-8 but you want to use rules including eg. upper
+Finally, there's the special case where both input (wordlist) and output (e.g.
+hashes from a website) are UTF-8 but you want to use rules including e.g. upper
 or lower-casing non-ASCII characters. In this case you can use an intermediate
 encoding (--internal-codepage option) and pick some codepage that can
 shelter as much of the needed input as possible. For US/Western Europe, any
-"Latin-1" codepage will do fine, eg. CP850, ISO-8859-1 or CP1252 (if you do
+"Latin-1" codepage will do fine, e.g. CP850, ISO-8859-1 or CP1252 (if you do
 this with a Unicode format like NT, it will silently be treated in another
 way internally for performance reasons but the outcome will be the same).
 
