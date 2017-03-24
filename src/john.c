@@ -183,6 +183,8 @@ int *john_child_pids = NULL;
 #endif
 char *john_terminal_locale ="C";
 
+unsigned long long john_max_cands;
+
 static int children_ok = 1;
 
 static struct db_main database;
@@ -1768,13 +1770,13 @@ static void john_done(void)
 			          "Session stopped (max run-time reached)" :
 			          "Session aborted";
 
-			if (options.max_cands) {
+			if (john_max_cands) {
 				unsigned long long cands =
 					((unsigned long long)
 					 status.cands.hi << 32) +
 					status.cands.lo;
 
-				if (cands >= options.max_cands)
+				if (cands >= john_max_cands)
 					abort_msg =
 						"Session stopped (max candidates reached)";
 			}
@@ -1966,7 +1968,7 @@ int main(int argc, char **argv)
 		timer_status = time + options.status_interval;
 	if (options.max_cands) {
 		if (options.node_count) {
-			unsigned long long orig_max_cands = options.max_cands;
+			long long orig_max_cands = options.max_cands;
 
 			/* Split between nodes */
 			options.max_cands /= options.node_count;
@@ -1974,10 +1976,10 @@ int main(int argc, char **argv)
 				options.max_cands +=
 					orig_max_cands % options.node_count;
 		}
+
 		/* Allow resuming, for another set of N candidates */
-		options.max_cands +=
-			((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo;
+		john_max_cands = ((unsigned long long)status.cands.hi << 32) +
+			status.cands.lo + abs(options.max_cands);
 	}
 
 	john_run();

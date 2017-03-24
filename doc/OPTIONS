@@ -485,12 +485,14 @@ seconds and exit again.
 If a negative value is specified,  John will run for N seconds after the last
 crack, ie. each cracked password will reset the timer.
 
---max-candidates=N
+--max-candidates=[-]N
 
 Gracefully exit after N candidates were tried.  If you resume it, it will run
 for another set of N candidates and exit again.  Note that some formats will
 process candidates in "batches" of a few, or many, candidates so the number
 may well be overshot by some amount.
+If a negative value is specified,  John will process N candidates after the
+last crack, ie. each cracked password will reset the counter.
 
 --keep-guessing			search for alternative plaintexts
 

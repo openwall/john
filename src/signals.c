@@ -176,12 +176,12 @@ void check_abort(int be_async_signal_safe)
 
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
-	if (options.max_cands) {
+	if (john_max_cands) {
 		unsigned long long cands =
 			((unsigned long long)status.cands.hi << 32) +
 			status.cands.lo;
 
-		if (cands >= options.max_cands)
+		if (cands >= john_max_cands)
 			abort_msg =
 				"Session stopped (max candidates reached)\n";
 	}
