@@ -1979,7 +1979,7 @@ int main(int argc, char **argv)
 
 		/* Allow resuming, for another set of N candidates */
 		john_max_cands = ((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo + abs(options.max_cands);
+			status.cands.lo + llabs(options.max_cands);
 	}
 
 	john_run();
