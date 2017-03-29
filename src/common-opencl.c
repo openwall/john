@@ -2494,11 +2494,14 @@ void opencl_list_devices(void)
 	cl_uint num_platforms, num_devices;
 
 	/* Obtain a list of available platforms */
-	clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
+	ret = clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
 
 	if (!num_platforms)
-		fprintf(stderr, "Error: No OpenCL-capable devices were detected"
-		        " by the installed OpenCL driver.\n\n");
+		fprintf(stderr, "Error: No OpenCL-capable platforms were detected"
+		        " by the installed OpenCL driver.\n");
+
+        if (ret != CL_SUCCESS && options.verbosity > VERB_LEGACY)
+		fprintf(stderr, "Throw clError: clGetPlatformIDs() = %d\n", ret);
 
 	for (i = 0; i < num_platforms; i++) {
 		platforms[i].platform = platform_list[i];
