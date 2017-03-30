@@ -124,6 +124,10 @@ indent_size = 8
 [inc.[ch]]
 indent_size = 8
 
+[john.asm]
+indent_size = 8
+end_of_line = crlf
+
 [john.[ch]]
 indent_size = 8
 
