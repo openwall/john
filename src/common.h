@@ -18,12 +18,6 @@
 #include "arch.h"
 #include "memory.h"
 
-#if ARCH_INT_GT_32
-typedef unsigned short ARCH_WORD_32;
-#else
-typedef unsigned int ARCH_WORD_32;
-#endif
-
 #ifdef __GNUC__
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
 #define MAYBE_INLINE __attribute__((always_inline)) __inline__

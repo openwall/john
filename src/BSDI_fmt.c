@@ -8,6 +8,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include <stdint.h>
 #include <string.h>
 
 #include "arch.h"
@@ -50,8 +51,8 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			sizeof(ARCH_WORD_32)
-#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define BINARY_SIZE			sizeof(uint32_t)
+#define BINARY_ALIGN			sizeof(uint32_t)
 #define SALT_SIZE			(ARCH_SIZE * 2)
 #define SALT_ALIGN			ARCH_SIZE
 
@@ -143,37 +144,37 @@ static void *salt(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xF;
+	return *(uint32_t *)binary & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFF;
+	return *(uint32_t *)binary & 0xFF;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
+	return *(uint32_t *)binary & 0xFFF;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
+	return *(uint32_t *)binary & 0xFFFF;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
+	return *(uint32_t *)binary & 0xFFFFF;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
+	return *(uint32_t *)binary & 0xFFFFFF;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
+	return *(uint32_t *)binary & 0x7FFFFFF;
 }
 
 #define get_hash_0 DES_bs_get_hash_0
@@ -333,7 +334,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, index);
+	return DES_bs_cmp_one((uint32_t *)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)

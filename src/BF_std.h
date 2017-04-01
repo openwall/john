@@ -15,10 +15,11 @@
 #ifndef _JOHN_BF_STD_H
 #define _JOHN_BF_STD_H
 
-#include "arch.h"
-#include "common.h"
+#include <stdint.h>
 
-typedef ARCH_WORD_32 BF_word;
+#include "arch.h"
+
+typedef uint32_t BF_word;
 
 /*
  * Binary salt type, also keeps the number of rounds and hash sub-type.
