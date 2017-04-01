@@ -15,10 +15,11 @@
 #ifndef _JOHN_MD5_STD_H
 #define _JOHN_MD5_STD_H
 
-#include "arch.h"
-#include "common.h"
+#include <stdint.h>
 
-typedef ARCH_WORD_32 MD5_word;
+#include "arch.h"
+
+typedef uint32_t MD5_word;
 
 /*
  * Binary ciphertext type.
