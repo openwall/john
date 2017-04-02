@@ -31,7 +31,7 @@ john_register_one(&fmt_DOMINOSEC);
 //#define DOMINOSEC_32BIT
 
 #ifdef DOMINOSEC_32BIT
-#include "stdint.h"
+#include <stdint.h>
 #endif
 
 #include "misc.h"

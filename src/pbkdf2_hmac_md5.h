@@ -8,8 +8,9 @@
 #define JOHN_PBKDF2_HMAC_MD5_H
 
 #include <string.h>
+#include <stdint.h>
+
 #include "md5.h"
-#include "stdint.h"
 #include "simd-intrinsics.h"
 
 #ifndef MD5_DIGEST_LENGTH

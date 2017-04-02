@@ -12,12 +12,12 @@
 #ifndef _JOHN_LOADER_H
 #define _JOHN_LOADER_H
 
+#include <stdint.h>
 #include "params.h"
 #ifndef BENCH_BUILD
 #include "list.h"
 #include "formats.h"
 #endif
-#include "stdint.h"
 
 /*
  * Password hash list entry (with a fixed salt).

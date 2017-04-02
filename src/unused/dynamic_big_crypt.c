@@ -60,6 +60,8 @@
 #endif
 #ifndef DYNAMIC_DISABLED
 
+#include <stdint.h>
+
 #include "openssl_local_overrides.h"
 
 #include "arch.h"
@@ -78,7 +80,6 @@
 #include "sha2.h"
 #include "md5.h"
 #include "md4.h"
-#include "stdint.h"
 #include "dynamic.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"

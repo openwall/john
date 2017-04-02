@@ -25,8 +25,9 @@
 #if 1
 
 #include <string.h>
+#include <stdint.h>
+
 #include "sha.h"
-#include "stdint.h"
 #include "simd-intrinsics.h"
 
 #ifdef PBKDF1_LOGIC
@@ -304,7 +305,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted. */
 
-#include "stdint.h"
+#include <stdint.h>
 
 /* You can't bump this without changing preproc() */
 #ifdef PLAINTEXT_LENGTH

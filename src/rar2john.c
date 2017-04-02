@@ -41,6 +41,7 @@
  *
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #if !AC_BUILT || HAVE_LIMITS_H
@@ -58,7 +59,6 @@
 #include "params.h"
 #include "crc32.h"
 #include "unicode.h"
-#include "stdint.h"
 #include "jumbo.h"
 #include "base64_convert.h"
 #include "sha2.h"

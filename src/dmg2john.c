@@ -24,6 +24,7 @@
 #include "autoconfig.h"
 #endif
 
+#include <stdint.h>
 #include <stdio.h>
 #include <math.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -37,9 +38,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
-#include "aes.h"
 
-#include "stdint.h"
+#include "aes.h"
 #include "filevault.h"
 #include "misc.h"
 #include "jumbo.h"

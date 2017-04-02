@@ -8,7 +8,7 @@
 #ifndef _INT128_H
 #define _INT128_H
 
-#include "stdint.h"
+#include <stdint.h>
 
 #if HAVE___INT128 || HAVE_INT128 || HAVE___INT128_T
 #undef int128_t

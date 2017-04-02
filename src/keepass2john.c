@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "stdint.h"
+#include <stdint.h>
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif

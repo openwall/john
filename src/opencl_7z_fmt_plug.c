@@ -13,8 +13,8 @@ extern struct fmt_main fmt_opencl_sevenzip;
 john_register_one(&fmt_opencl_sevenzip);
 #else
 
+#include <stdint.h>
 #include <string.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -25,8 +25,8 @@ john_register_one(&fmt_opencl_sevenzip);
 #include "misc.h"
 #include "common-opencl.h"
 #include "options.h"
+#include "aes.h"
 #include "crc32.h"
-#include "stdint.h"
 #include "unicode.h"
 #include "dyna_salt.h"
 #include "lzma/LzmaDec.h"

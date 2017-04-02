@@ -11,6 +11,7 @@
 #ifndef _WPAPSK_H
 #define _WPAPSK_H
 
+#include <stdint.h>
 #include <assert.h>
 
 #include "arch.h"
@@ -19,7 +20,6 @@
 #include "johnswap.h"
 #include "hmacmd5.h"
 #include "hmac_sha.h"
-#include "stdint.h"
 
 #define HCCAP_SIZE		sizeof(hccap_t)
 

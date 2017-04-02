@@ -204,8 +204,8 @@ lotus5(__global lotus5_key *i_saved_key,
 #endif
 	);
 
-	crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32] = m32[0];
-	crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32 + 1] = m32[1];
-	crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32 + 2] = m32[2];
-	crypt_key[index * BINARY_SIZE_IN_ARCH_WORD_32 + 3] = m32[3];
+	crypt_key[index * BINARY_SIZE_IN_uint32_t] = m32[0];
+	crypt_key[index * BINARY_SIZE_IN_uint32_t + 1] = m32[1];
+	crypt_key[index * BINARY_SIZE_IN_uint32_t + 2] = m32[2];
+	crypt_key[index * BINARY_SIZE_IN_uint32_t + 3] = m32[3];
 }

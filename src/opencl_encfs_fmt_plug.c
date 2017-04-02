@@ -14,6 +14,7 @@ extern struct fmt_main fmt_opencl_encfs;
 john_register_one(&fmt_opencl_encfs);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
@@ -22,15 +23,14 @@ john_register_one(&fmt_opencl_encfs);
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/engine.h>
-#include "common-opencl.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+#include "common-opencl.h"
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "encfs_common.h"
 #include "options.h"
 #include "misc.h"

@@ -21,16 +21,16 @@ extern struct fmt_main fmt_opencl_blockchain;
 john_register_one(&fmt_opencl_blockchain);
 #else
 
+#include <stdint.h>
 #include <string.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #include "arch.h"
+#include "aes.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "jumbo.h"
 #include "common-opencl.h"
 #include "options.h"

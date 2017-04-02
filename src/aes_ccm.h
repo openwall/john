@@ -1,4 +1,4 @@
-#include "stdint.h"
+#include <stdint.h>
 
 #define MBEDTLS_ERR_CCM_BAD_INPUT      -0x000D /**< Bad input parameters to function. */
 #define MBEDTLS_ERR_CCM_AUTH_FAILED    -0x000F /**< Authenticated decryption failed. */

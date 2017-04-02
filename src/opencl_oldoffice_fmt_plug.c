@@ -17,11 +17,11 @@ extern struct fmt_main FORMAT_STRUCT;
 john_register_one(&FORMAT_STRUCT);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 
 #include "common-opencl.h"
-#include "stdint.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"

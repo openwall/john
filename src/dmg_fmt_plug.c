@@ -57,7 +57,7 @@ john_register_one(&fmt_dmg);
 #include <fcntl.h>
 #endif
 #include <stdlib.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <sys/types.h>
 #include <openssl/des.h>
 #include "aes.h"

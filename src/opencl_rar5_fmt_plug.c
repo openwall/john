@@ -20,13 +20,13 @@ john_register_one(&fmt_ocl_rar5);
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 //#define DEBUG
 
 #include "misc.h"
 #include "arch.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"

@@ -23,12 +23,12 @@ extern struct fmt_main fmt_opencl_agilekeychain;
 john_register_one(&fmt_opencl_agilekeychain);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "aes.h"
 #include "common-opencl.h"

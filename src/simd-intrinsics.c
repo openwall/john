@@ -14,13 +14,13 @@
  */
 
 #include <string.h>
+#include <stdint.h>
 
 #include "arch.h"
 #include "pseudo_intrinsics.h"
 #include "memory.h"
 #include "md5.h"
 #include "MD5_std.h"
-#include "stdint.h"
 #include "johnswap.h"
 #include "simd-intrinsics-load-flags.h"
 #include "aligned.h"

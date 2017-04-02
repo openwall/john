@@ -31,7 +31,7 @@
 
 #include <sys/types.h>
 
-#include "../stdint.h"
+#include <stdint.h>
 
 typedef struct SHA256Context {
 	uint32_t state[8];

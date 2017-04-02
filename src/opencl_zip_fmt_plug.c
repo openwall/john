@@ -18,6 +18,7 @@ john_register_one(&fmt_opencl_zip);
 #else
 
 #include <string.h>
+#include <stdint.h>
 #include <openssl/des.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -32,7 +33,6 @@ john_register_one(&fmt_opencl_zip);
 #include "dyna_salt.h"
 #include "hmac_sha.h"
 #include "options.h"
-#include "stdint.h"
 #define OPENCL_FORMAT 1
 #include "pbkdf2_hmac_sha1.h"
 

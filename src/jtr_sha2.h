@@ -30,9 +30,8 @@
 #ifndef __JTR_SHA2___H_
 #define __JTR_SHA2___H_
 
-#include "johnswap.h"
-#include "stdbool.h"
-#include "stdint.h"
+#include <stdint.h>
+
 #if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
 #endif
@@ -40,6 +39,9 @@
 #include <sys/param.h>
 #endif
 #include <sys/types.h>
+
+#include "johnswap.h"
+#include "stdbool.h"
 
 // Does sha256 AND sha224. Sha224 is same, but only returns
 // 224 bits, and has a different init IV. Other than that

@@ -12,12 +12,13 @@ extern struct fmt_main fmt_strip;
 john_register_one(&fmt_strip);
 #else
 
-#include "aes.h"
 #include <string.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <assert.h>
 #include <errno.h>
+
 #include "arch.h"
+#include "aes.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

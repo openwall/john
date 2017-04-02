@@ -16,13 +16,13 @@ extern struct fmt_main fmt_opencl_enpass;
 john_register_one(&fmt_opencl_enpass);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #include "aes.h"
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "enpass_common.h"
 #include "options.h"
 #include "jumbo.h"

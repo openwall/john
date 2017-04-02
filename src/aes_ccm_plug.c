@@ -31,10 +31,10 @@
  */
 
 
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
-#include "stdint.h"
 #include "aes.h"
 #include "aes_ccm.h"
 

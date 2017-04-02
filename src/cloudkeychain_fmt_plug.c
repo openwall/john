@@ -21,8 +21,10 @@ extern struct fmt_main fmt_cloud_keychain;
 john_register_one(&fmt_cloud_keychain);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -30,7 +32,6 @@ john_register_one(&fmt_cloud_keychain);
 #include "params.h"
 #include "options.h"
 #include "johnswap.h"
-#include "stdint.h"
 #include "sha2.h"
 #include "pbkdf2_hmac_sha512.h"
 #ifdef _OPENMP

@@ -13,6 +13,7 @@
 #include "autoconfig.h"
 #endif
 
+#include <stdint.h>
 #include <stddef.h>		       /* for size_t */
 #include <string.h>		       /* for memcpy() */
 #include <stdio.h>
@@ -26,7 +27,6 @@
 #include <fcntl.h>
 #endif
 #include "memory.h"
-#include "stdint.h"
 #include "jumbo.h"
 #include "memdbg.h"
 #if _MSC_VER

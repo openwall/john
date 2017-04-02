@@ -20,12 +20,12 @@ extern struct fmt_main fmt_opencl_iwork;
 john_register_one(&fmt_opencl_iwork);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "iwork_common.h"
 #include "options.h"
 #include "jumbo.h"

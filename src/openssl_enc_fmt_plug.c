@@ -43,9 +43,10 @@ john_register_one(&fmt_openssl);
 #include <fcntl.h>
 #endif
 #include <stdlib.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <sys/types.h>
 #include <openssl/evp.h>
+
 #include "aes.h"
 #include "md5.h"
 #include "arch.h"

@@ -16,7 +16,7 @@ john_register_one(&fmt_lotus_85);
 
 #include <stdio.h>
 #include <string.h>
-#include "stdint.h"
+#include <stdint.h>
 
 #include "sha.h"
 #include <openssl/rc2.h>

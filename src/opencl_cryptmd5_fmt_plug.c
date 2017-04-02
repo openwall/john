@@ -12,19 +12,19 @@ extern struct fmt_main fmt_opencl_cryptMD5;
 john_register_one(&fmt_opencl_cryptMD5);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
-
-#include "arch.h"
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
+
+#include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "path.h"
 #include "config.h"
-#include "stdint.h"
 #include "common-opencl.h"
 #include "options.h"
 #include "cryptmd5_common.h"

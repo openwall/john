@@ -15,17 +15,17 @@ john_register_one(&fmt_opencl_sxc);
 #else
 
 #include <string.h>
-#include "sha.h"
+#include <stdint.h>
 #include <openssl/blowfish.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #include "arch.h"
+#include "sha.h"
+#include "aes.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common.h"

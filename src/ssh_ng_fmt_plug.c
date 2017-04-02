@@ -20,7 +20,7 @@ john_register_one(&fmt_sshng);
 #else
 
 #include <string.h>
-#include "aes.h"
+#include <stdint.h>
 #include <openssl/des.h>
 #include <assert.h>
 #include <ctype.h>
@@ -34,12 +34,12 @@ static int omp_t = 1;
 #endif
 
 #include "arch.h"
+#include "aes.h"
 #include "jumbo.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "stdint.h"
 #include "md5.h"
 #include "memdbg.h"
 #include "asn1.h"

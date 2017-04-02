@@ -89,6 +89,7 @@
  *  Ob    Offset to the start of the blob data
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "arch.h"
@@ -106,7 +107,6 @@
 #include "common.h"
 #include "jumbo.h"
 #include "formats.h"
-#include "stdint.h"
 #include "memory.h"
 #include "pkzip.h"
 #ifdef _MSC_VER

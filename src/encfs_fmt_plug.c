@@ -12,6 +12,7 @@ extern struct fmt_main fmt_encfs;
 john_register_one(&fmt_encfs);
 #else
 
+#include <stdint.h>
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
@@ -19,7 +20,6 @@ john_register_one(&fmt_encfs);
 #include <string.h>
 
 #include "arch.h"
-#include "stdint.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "encfs_common.h"
 #include "options.h"

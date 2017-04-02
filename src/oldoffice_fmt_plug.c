@@ -15,6 +15,7 @@ extern struct fmt_main fmt_oldoffice;
 john_register_one(&fmt_oldoffice);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 #ifdef _OPENMP
@@ -23,7 +24,6 @@ john_register_one(&fmt_oldoffice);
 
 #include "md5.h"
 #include "rc4.h"
-#include "stdint.h"
 #include "sha.h"
 #include "arch.h"
 #include "misc.h"

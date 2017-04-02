@@ -33,7 +33,7 @@ john_register_one(&fmt_fde);
 #include <assert.h>
 #include <errno.h>
 #include "os.h"
-#include "stdint.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <string.h>

@@ -37,7 +37,7 @@ john_register_one(&fmt_rawSHA512_ng);
 #endif
 #endif
 
-#include "stdint.h"
+#include <stdint.h>
 #include <string.h>
 
 #include "pseudo_intrinsics.h"

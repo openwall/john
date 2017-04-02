@@ -2,7 +2,7 @@
 #define GOST3411_2012_SSE41_H_
 
 #include <stddef.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <string.h>
 
 #if defined _MSC_VER

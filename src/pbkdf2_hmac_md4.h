@@ -8,8 +8,9 @@
 #define JOHN_PBKDF2_HMAC_MD4_H
 
 #include <string.h>
+#include <stdint.h>
+
 #include "md4.h"
-#include "stdint.h"
 #include "simd-intrinsics.h"
 
 #ifndef MD4_DIGEST_LENGTH

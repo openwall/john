@@ -28,6 +28,7 @@
  */
 
 #include <string.h>
+#include <stdint.h>
 
 #include "common.h"
 #include "arch.h"
@@ -38,7 +39,6 @@
 #include "encoding_data.h"
 #include "misc.h"
 #include "config.h"
-#include "stdint.h"
 #include "md4.h"
 #include "john.h"
 #include "memdbg.h"

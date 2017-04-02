@@ -1665,7 +1665,7 @@ dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dyn
 	$(shell ./dynamic_big_crypt_generator.sh)
 	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
 
-dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h stdint.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h simd-intrinsics.h dynamic_types.h memdbg.h
+dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h simd-intrinsics.h dynamic_types.h memdbg.h
 
 
 options.o: version.h options.c

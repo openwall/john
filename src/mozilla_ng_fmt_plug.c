@@ -28,6 +28,9 @@ john_register_one(&fmt_mozilla);
 #endif
 #endif
 
+#include <stdint.h>
+#include <openssl/des.h>
+
 #include "arch.h"
 #include "md5.h"
 #include "misc.h"
@@ -37,8 +40,6 @@ john_register_one(&fmt_mozilla);
 #include "params.h"
 #include "options.h"
 #include "memdbg.h"
-#include "stdint.h"
-#include <openssl/des.h>
 #include "sha.h"
 
 #define FORMAT_LABEL            "Mozilla"

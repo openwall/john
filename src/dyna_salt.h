@@ -30,7 +30,7 @@
 #define _DYNA_SALT_H__
 
 #include <stddef.h>
-#include "stdint.h"
+#include <stdint.h>
 
 //#define DYNA_SALT_DEBUG
 

@@ -18,6 +18,7 @@ extern struct fmt_main fmt_opencl_gpg;
 john_register_one(&fmt_opencl_gpg);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 #include <openssl/blowfish.h>
@@ -44,7 +45,6 @@ john_register_one(&fmt_opencl_gpg);
 #include "common-opencl.h"
 #include "options.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "gpg_common.h"
 
 #define FORMAT_LABEL		"gpg-opencl"

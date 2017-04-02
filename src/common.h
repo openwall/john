@@ -16,9 +16,9 @@
 #define _JOHN_COMMON_H
 
 #if !defined(_OPENCL_COMPILER)
+#include <stdint.h>
 #include "arch.h"
 #include "memory.h"
-#include "stdint.h"
 #endif
 
 #ifndef MAX
@@ -44,9 +44,9 @@
 #if !defined(_OPENCL_COMPILER)
 
 #if ARCH_INT_GT_32
-typedef unsigned short ARCH_WORD_32;
+typedef unsigned short uint32_t;
 #else
-typedef unsigned int ARCH_WORD_32;
+typedef unsigned int uint32_t;
 #endif
 
 /* ONLY use this to check alignments of even power of 2 (2, 4, 8, 16, etc) byte counts (CNT).

@@ -23,6 +23,7 @@ extern struct fmt_main fmt_bitcoin;
 john_register_one(&fmt_bitcoin);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -40,7 +41,6 @@ static int omp_t = 1;
 #include "options.h"
 #include "sha2.h"
 #include "aes.h"
-#include "stdint.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "jumbo.h"

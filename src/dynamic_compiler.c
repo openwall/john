@@ -154,11 +154,12 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 #include "arch.h"
 
 #ifndef DYNAMIC_DISABLED
+#include <stdint.h>
 #include <ctype.h>
 #include <stdarg.h>
+
 #include "misc.h"	// error()
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "list.h"
 #include "crc32.h"

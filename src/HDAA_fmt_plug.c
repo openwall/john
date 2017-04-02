@@ -15,6 +15,7 @@ extern struct fmt_main fmt_HDAA;
 john_register_one(&fmt_HDAA);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #ifdef __MMX__
@@ -27,8 +28,6 @@ john_register_one(&fmt_HDAA);
 #include "common.h"
 #include "formats.h"
 #include "md5.h"
-
-#include "stdint.h"
 
 #include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME

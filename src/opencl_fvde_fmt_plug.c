@@ -14,13 +14,13 @@ extern struct fmt_main fmt_opencl_fvde;
 john_register_one(&fmt_opencl_fvde);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #include "misc.h"
 #include "arch.h"
 #include "fvde_common.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"

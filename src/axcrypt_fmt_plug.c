@@ -13,7 +13,7 @@ john_register_one(&fmt_axcrypt);
 #else
 
 #include <string.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <assert.h>
 #include <errno.h>
 #include "arch.h"

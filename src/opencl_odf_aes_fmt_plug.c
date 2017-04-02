@@ -16,17 +16,17 @@ extern struct fmt_main fmt_opencl_odf_aes;
 john_register_one(&fmt_opencl_odf_aes);
 #else
 
+#include <stdint.h>
 #include <string.h>
-#include "aes.h"
 
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common.h"
 #include "formats.h"
+#include "aes.h"
 #include "common-opencl.h"
 
 #define FORMAT_LABEL        "ODF-AES-opencl"

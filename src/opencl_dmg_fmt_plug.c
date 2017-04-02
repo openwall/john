@@ -27,10 +27,9 @@ extern struct fmt_main fmt_opencl_dmg;
 john_register_one(&fmt_opencl_dmg);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <openssl/des.h>
-#include "aes.h"
-#include "hmac_sha.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -40,9 +39,10 @@ john_register_one(&fmt_opencl_dmg);
 #include "os.h"
 #endif
 #include "arch.h"
+#include "aes.h"
+#include "hmac_sha.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "options.h"
 #include "jumbo.h"
 #include "loader.h"

@@ -13,6 +13,7 @@ extern struct fmt_main fmt_ocl_pbkdf2_sha1;
 john_register_one(&fmt_ocl_pbkdf2_sha1);
 #else
 
+#include <stdint.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -20,11 +21,9 @@ john_register_one(&fmt_ocl_pbkdf2_sha1);
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "johnswap.h"
 #include "base64_convert.h"
-#include "stdint.h"
 #include "options.h"
 #define OUTLEN 20
 #include "opencl_pbkdf2_hmac_sha1.h"

@@ -45,6 +45,7 @@ extern struct fmt_main fmt_NETLMv2;
 john_register_one(&fmt_NETLMv2);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -56,8 +57,6 @@ john_register_one(&fmt_NETLMv2);
 #include "formats.h"
 #include "options.h"
 #include "unicode.h"
-#include "stdint.h"
-
 #include "md5.h"
 #include "hmacmd5.h"
 #include "byteorder.h"
