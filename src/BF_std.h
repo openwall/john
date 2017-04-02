@@ -15,6 +15,8 @@
 #ifndef _JOHN_BF_STD_H
 #define _JOHN_BF_STD_H
 
+#include <stdint.h>
+
 #include "arch.h"
 #include "common.h"
 #include "formats.h"

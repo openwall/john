@@ -10,6 +10,8 @@
 #ifndef _JOHN_DES_BS_H
 #define _JOHN_DES_BS_H
 
+#include <stdint.h>
+
 #include "arch.h"
 #include "common.h"
 
@@ -163,17 +165,17 @@ extern int DES_bs_crypt_LM(int *keys_count, struct db_salt *salt);
  * Converts an ASCII ciphertext to binary to be used with one of the
  * comparison functions.
  */
-extern ARCH_WORD_32 *DES_bs_get_binary(char *ciphertext);
+extern uint32_t *DES_bs_get_binary(char *ciphertext);
 
 /*
  * Similarly, for LM hashes.
  */
-extern ARCH_WORD_32 *DES_bs_get_binary_LM(char *ciphertext);
+extern uint32_t *DES_bs_get_binary_LM(char *ciphertext);
 
 /*
  * The reverse of DES_bs_get_binary_LM().
  */
-extern char *DES_bs_get_source_LM(ARCH_WORD_32 *raw);
+extern char *DES_bs_get_source_LM(uint32_t *raw);
 
 /*
  * Calculate a hash for a DES_bs_crypt*() output.
@@ -201,12 +203,12 @@ extern int DES_bs_get_hash_6t(int index);
  * Compares 32 bits of a given ciphertext against at least the first count of
  * the DES_bs_crypt*() outputs and returns zero if no matches detected.
  */
-extern int DES_bs_cmp_all(ARCH_WORD_32 *binary, int count);
+extern int DES_bs_cmp_all(uint32_t *binary, int count);
 
 /*
  * Compares count bits of a given ciphertext against one of the outputs.
  */
-extern int DES_bs_cmp_one(ARCH_WORD_32 *binary, int count, int index);
+extern int DES_bs_cmp_one(uint32_t *binary, int count, int index);
 
 extern void DES_bs_crypt_plain(int keys_count);
 extern void DES_bs_generate_plaintext(unsigned char *plaintext);

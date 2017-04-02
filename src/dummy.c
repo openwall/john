@@ -8,6 +8,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include <stdint.h>
 #include <string.h>
 
 #include "common.h"
@@ -29,12 +30,12 @@
 #define MAX_PLAINTEXT_LENGTH		(PLAINTEXT_BUFFER_SIZE - 3) // 125
 
 typedef struct {
-	ARCH_WORD_32 hash;
+	uint32_t hash;
 	char c0;
 } dummy_binary;
 
 #define BINARY_SIZE			sizeof(dummy_binary)
-#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN			sizeof(uint32_t)
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 
@@ -142,9 +143,9 @@ static char *decode(char *ciphertext)
 	return out;
 }
 
-static MAYBE_INLINE ARCH_WORD_32 string_hash(char *s)
+static MAYBE_INLINE uint32_t string_hash(char *s)
 {
-	ARCH_WORD_32 hash, extra;
+	uint32_t hash, extra;
 	char *p;
 
 	p = s + 2;
@@ -193,20 +194,20 @@ static void *binary(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	ARCH_WORD_32 hash = ((dummy_binary *)binary)->hash;
+	uint32_t hash = ((dummy_binary *)binary)->hash;
 	hash ^= hash >> 8;
 	return (hash ^ (hash >> 4)) & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	ARCH_WORD_32 hash = ((dummy_binary *)binary)->hash;
+	uint32_t hash = ((dummy_binary *)binary)->hash;
 	return (hash ^ (hash >> 8)) & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	ARCH_WORD_32 hash = ((dummy_binary *)binary)->hash;
+	uint32_t hash = ((dummy_binary *)binary)->hash;
 	return (hash ^ (hash >> 12)) & PH_MASK_2;
 }
 
@@ -232,20 +233,20 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	uint32_t hash = string_hash(saved_key[index]);
 	hash ^= hash >> 8;
 	return (hash ^ (hash >> 4)) & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	uint32_t hash = string_hash(saved_key[index]);
 	return (hash ^ (hash >> 8)) & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	ARCH_WORD_32 hash = string_hash(saved_key[index]);
+	uint32_t hash = string_hash(saved_key[index]);
 	return (hash ^ (hash >> 12)) & PH_MASK_2;
 }
 
