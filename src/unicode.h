@@ -31,6 +31,7 @@
 #define _CONVERTUTF_H
 
 #include <wchar.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "options.h"
@@ -83,9 +84,9 @@
 /* Rexgen library header might have defined this (empty) */
 #undef UTF32
 
-typedef uint32_t UTF32;	/* at least 32 bits */
-typedef unsigned short UTF16;	/* at least 16 bits */
-typedef unsigned char UTF8;	/* typically 8 bits */
+typedef uint32_t UTF32;
+typedef uint16_t UTF16;
+typedef uint8_t UTF8;
 
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR (UTF32)0x0000FFFD
