@@ -344,9 +344,12 @@ inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c
 #define END_STRING 0x80
 
 __kernel void opencl_bitlocker_attack(int numPassword,
-                                      __global unsigned char *w_password, __global int *w_password_size,
-                                      __global int *found, __global unsigned char *vmkKey,
-                                      __global unsigned int *w_blocks_d, unsigned int IV0, unsigned int IV4,
+                                      __global unsigned char *w_password,
+                                      __global int *w_password_size,
+                                      __global int *found,
+                                      __global unsigned char *vmkKey,
+                                      __global unsigned int *w_blocks_d,
+                                      unsigned int IV0, unsigned int IV4,
                                       unsigned int IV8, unsigned int IV12)
 {
 	size_t globalIndexPassword = get_global_id(0);
@@ -681,6 +684,8 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 
 		indexW = 0;
 
+		printf("first_hash0: %llx\n", first_hash0);
+
 		for (index_generic = 0; index_generic < ITERATION_NUMBER / 2;
 		        index_generic++) {
 
@@ -938,6 +943,9 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 			indexW += SINGLE_BLOCK_W_SIZE;
 		}
 
+		printf("hash0 middle: %llx\n", hash0);
+		
+
 		//Need to split the main loop: OpenCL Titan X bug!
 		for (index_generic = ITERATION_NUMBER / 2;
 		        index_generic < ITERATION_NUMBER; index_generic++) {
@@ -1194,7 +1202,9 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 
 			indexW += SINGLE_BLOCK_W_SIZE;
 		}
-
+		//if(globalIndexPassword == 0)
+		printf("hash: %llx - %llx - %llx - %llx - %llx - %llx - %llx\n",  hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7);
+		
 		schedule0 = IV0 ^ hash0;
 		schedule1 = IV4 ^ hash1;
 		schedule2 = IV8 ^ hash2;
@@ -1600,11 +1610,10 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 #define SINGLE_BLOCK_W_SIZE 64
 #define ITERATION_NUMBER 0x100000
 
-#define SALT_SIZE 16
-#define SINGLE_BLOCK_W_SIZE 64
-#define ITERATION_NUMBER 0x100000
-
-__kernel void opencl_bitlocker_wblocks(__global unsigned char *salt_d, __global unsigned char *padding_d, __global unsigned int *w_blocks_d)
+__kernel void opencl_bitlocker_wblocks(
+	__global unsigned char *salt_d, 
+	__global unsigned char *padding_d, 
+	__global unsigned int *w_blocks_d)
 {
         unsigned long loop = get_global_id(0);
         unsigned char block[SINGLE_BLOCK_W_SIZE];
