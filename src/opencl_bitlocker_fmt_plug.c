@@ -84,7 +84,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define UINT32_C(c) c ## UL
 #endif
 
-#define BITLOCKER_ENABLE_DEBUG 0
+#define BITLOCKER_ENABLE_DEBUG 1
 #define WBLOCKS_KERNEL_NAME  		"opencl_bitlocker_wblocks"
 #define ATTACK_KERNEL_NAME			"opencl_bitlocker_attack"
 //#define ATTACK_SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
@@ -125,8 +125,8 @@ static struct fmt_tests bitlocker_tests[] = {
 };
 
 static cl_mem salt_d, padding_d, w_blocks_d, deviceEncryptedVMK,
-       devicePassword, devicePasswordSize, deviceFound;
-static cl_int numPasswordsKernelDev;
+       devicePassword, devicePasswordSize, deviceFound, numPasswordsKernelDev;
+//static cl_int numPasswordsKernelDev;
 static cl_int ciErr1;
 static cl_int cl_error;
 
@@ -186,9 +186,12 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	inbuffer = (unsigned char *)mem_calloc(in_size, sizeof(unsigned char));
 	inbuffer_size = (int *)mem_calloc(in_size, sizeof(int));
 	hostFound = (int *)mem_calloc(1, sizeof(int));
-	numPasswordsKernel = (int *)mem_calloc(1, sizeof(int));
 	w_blocks_h = (unsigned int *)mem_calloc((BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
 	                                        BITLOCKER_ITERATION_NUMBER), sizeof(unsigned int));
+
+	numPasswordsKernelDev = CLCREATEBUFFER(CL_MEM_READ_ONLY,
+	                                    sizeof(int), "Cannot allocate numPass");
+
 
 	deviceEncryptedVMK = CLCREATEBUFFER(CL_MEM_READ_WRITE,
 	                                    VMK_DECRYPT_SIZE * BITLOCKER_MAX_INPUT_PASSWORD_LEN *
@@ -207,7 +210,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	                            BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
 	                            sizeof(unsigned int), "Cannot allocate w blocks");
 
-	
 	CLKERNELARG(crypt_kernel, 0, numPasswordsKernelDev,
 	            "Error while setting numPasswordsKernelDev");
 	CLKERNELARG(crypt_kernel, 1, devicePassword,
@@ -444,10 +446,7 @@ int w_block_precomputed(unsigned char *salt)
 
 	printf("w_block_precomputed 0, salt[0]: %x, salt[1]: %x\n", salt[0], salt[1]);
 
-	printf("salt_d %p write %zu byte\n", salt_d,
-	       BITLOCKER_SALT_SIZE * sizeof(char));
-
-		// Copy data to gpu
+	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_d,
 		CL_TRUE, 0, BITLOCKER_SALT_SIZE * sizeof(char), salt, 0,
 		NULL, multi_profilingEvent[0]), "Copy data to gpu");
@@ -470,7 +469,7 @@ int w_block_precomputed(unsigned char *salt)
 	                         BITLOCKER_PADDING_SIZE * sizeof(char), padding, 0, NULL, NULL);
 	HANDLE_CLERROR(ciErr1, "clEnqueueWriteBuffer");
 */
-	printf("w_block_precomputed 3\n");
+	//printf("w_block_precomputed 3\n");
 
 	/*
 	    ciErr1 =
@@ -536,10 +535,10 @@ static void set_salt(void *salt)
 {
 	unsigned char *local_salt = (unsigned char *)salt;
 
-	if(salt_evaluated > 0)
-		return;
+//	if(salt_evaluated > 0)
+//		return;
 
-	salt_evaluated = 1;
+//	salt_evaluated = 1;
 
 // avoid repeat salt calculation??	
 	printf("set local_salt: %x - %x\n", local_salt[0], local_salt[1]);
@@ -548,7 +547,7 @@ static void set_salt(void *salt)
 		error_msg("Error... Exit\n");
 	}
 
-	printf("w_blocks_h: %x\n", w_blocks_h[0]);
+//	printf("w_blocks_h: %x\n", w_blocks_h[0]);
 	tmpIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
 
 	memset(tmpIV, 0, BITLOCKER_IV_SIZE);
@@ -565,7 +564,7 @@ static void set_salt(void *salt)
 	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
 	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
 	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-	printf("IV0: %x\n", IV0);
+//	printf("IV0: %x\n", IV0);
 
 	tmp_global = ((unsigned int *)(tmpIV + 4))[0];
 	IV4 =
@@ -596,48 +595,52 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	//int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-#if 0
-	printf("crypt_all(%d)\n", count);
-#endif
-	printf("LWS = %d, GWS = %d\n", (int)*lws, (int)global_work_size);
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);	
+	printf("crypt_all(%d), LWS = %d, GWS = %d w_blocks_h: %x\n", count, (int)*lws, (int)global_work_size, w_blocks_h[0]);
 
 	hostFound[0] = -1;
 
+	//for(i=0; i<count; i++)
+	//		printf("inbuffer[%d]: %s, inbuffer_size[%d]: %d, pcount=%d\n", i, inbuffer[i], i, inbuffer_size[i], count);
 
-printf("inbuffer[0]: %s\n", inbuffer);
-printf("inbuffer_size[0]: %d\n", inbuffer_size[0]);
-printf("encryptedVMK[0]: %x\n", encryptedVMK[0]);
-printf("encryptedVMK[1]: %x\n", encryptedVMK[1]);
-printf("encryptedVMK[2]: %x\n", encryptedVMK[2]);
-printf("encryptedVMK[3]: %x\n", encryptedVMK[3]);
-
+printf("encryptedVMK[0]: %x [1]: %x [2]: %x\n", encryptedVMK[0], encryptedVMK[1], encryptedVMK[2]);
 
 	// Copy data to gpu
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], numPasswordsKernelDev,
+		CL_FALSE, 0, sizeof(int), pcount, 0,
+		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], deviceEncryptedVMK,
 		CL_FALSE, 0, BITLOCKER_VMK_SIZE * sizeof(char), encryptedVMK, 0,
-		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+		NULL, multi_profilingEvent[1]), "Copy data to gpu");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], devicePassword,
 		CL_FALSE, 0, count * BITLOCKER_MAX_INPUT_PASSWORD_LEN * sizeof(char), inbuffer, 0,
-		NULL, multi_profilingEvent[1]), "Copy data to gpu");
+		NULL, multi_profilingEvent[2]), "Copy data to gpu");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], devicePasswordSize,
 		CL_FALSE, 0, count * sizeof(int), inbuffer_size, 0,
-		NULL, multi_profilingEvent[2]), "Copy data to gpu");
+		NULL, multi_profilingEvent[3]), "Copy data to gpu");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], deviceFound,
 		CL_FALSE, 0, sizeof(int), hostFound, 0,
-		NULL, multi_profilingEvent[3]), "Copy data to gpu");
+		NULL, multi_profilingEvent[4]), "Copy data to gpu");
 
-#if BITLOCKER_ENABLE_DEBUG == 1
-	time(&start);
-#endif
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], w_blocks_d,
+		CL_FALSE, 0, (BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
+	                                        BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int), 
+		w_blocks_h, 0,
+		NULL, multi_profilingEvent[5]), "Copy data to gpu");
+
+
+//#if BITLOCKER_ENABLE_DEBUG == 1
+//	time(&start);
+//#endif
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run kernel");
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[6]), "Run kernel");
 
 /*
 	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
@@ -650,10 +653,11 @@ printf("encryptedVMK[3]: %x\n", encryptedVMK[3]);
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], deviceFound,
 		CL_TRUE, 0, sizeof(int), hostFound, 0,
-		NULL, multi_profilingEvent[5]), "Copy result back");
+		NULL, multi_profilingEvent[7]), "Copy result back");
 
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
+/*
 #if BITLOCKER_ENABLE_DEBUG == 1
 
 	time(&end);
@@ -664,7 +668,7 @@ printf("encryptedVMK[3]: %x\n", encryptedVMK[3]);
 	 count, dif, (double)(count / dif));
 
 #endif
-
+*/
 	totPsw += count;
 
 	return count;
@@ -672,15 +676,15 @@ printf("encryptedVMK[3]: %x\n", encryptedVMK[3]);
 
 static int cmp_all(void *binary, int count)
 {
-	printf("hostFound[0]: %d, count: %d\n", hostFound[0], count);
+	//printf("hostFound[0]: %d, count: %d\n", hostFound[0], count);
 	if (hostFound[0] >= 0) {
-#if BITLOCKER_ENABLE_DEBUG == 1
+//#if BITLOCKER_ENABLE_DEBUG == 1
 
 		fprintf(stdout, "\n[BitCracker] -> Password found: #%d, %.*s\n",
 		        hostFound[0] + 1, BITLOCKER_MAX_INPUT_PASSWORD_LEN,
 		        (char *)(inbuffer +
 		                 (hostFound[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN)));
-#endif
+//#endif
 
 		return 1; //hostFound[0]+1;
 	} else
@@ -689,7 +693,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	printf("index: %d\n", index);
+	//printf("cmp_one, hostFound[0]: %d, index: %d, binary: %s\n", hostFound[0], index, binary);
 	if (hostFound[0] == index)
 		return 1;
 	else
@@ -711,6 +715,9 @@ static void set_key(char *key, int index)
 	memcpy(tmp, key, size);
 	if (size < 16)
 		tmp[size] = 0x80;
+
+	//printf("set_key, index=%d, key=%s\n", index, tmp);
+
 	memcpy((inbuffer + (index * BITLOCKER_MAX_INPUT_PASSWORD_LEN)), tmp,
 	       BITLOCKER_MAX_INPUT_PASSWORD_LEN);
 
@@ -720,8 +727,11 @@ static char *get_key(int index)
 {
 	static char ret[BITLOCKER_MAX_INPUT_PASSWORD_LEN + 1];
 
+	memset(ret, '\0', BITLOCKER_MAX_INPUT_PASSWORD_LEN + 1);
 	memcpy(ret, inbuffer + (index * BITLOCKER_MAX_INPUT_PASSWORD_LEN),
 	       inbuffer_size[index]);
+
+	//printf("get_key(%d), inbuffer_size[index]=%d, ret=%s", index, inbuffer_size[index], ret);
 
 	return ret;
 }
@@ -730,6 +740,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *hash_format;
 	char *p;
+	int i;
 
 	if (strlen(ciphertext) != BITLOCKER_JTR_HASH_SIZE_CHAR)
 		return 0;
@@ -744,6 +755,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
 		return 0;
 
+	for (i = 0; i < BITLOCKER_NONCE_SIZE; i++) {
+		nonce[i] =
+		    (p[2 * i] <=
+		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
+		nonce[i] |=
+		    p[(2 * i) + 1] <=
+		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
+#if BITLOCKER_ENABLE_DEBUG == 1
+		printf("nonce_valid[%d]=%02x\n", i, nonce[i]);
+#endif
+	}
+
 	p = strtokm(NULL, "$");
 	if (strlen(p) != BITLOCKER_SALT_SIZE * 2)
 		return 0;
@@ -752,9 +775,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != 8)
 		return 0;
 
+	for (i = 0; i < 4; i++) {
+		encryptedVMK[i] =
+		    (p[2 * i] <=
+		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
+		encryptedVMK[i] |=
+		    p[(2 * i) + 1] <=
+		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
+#if BITLOCKER_ENABLE_DEBUG == 1
+		printf("encryptedVMK_valid[%d]=%02x\n", i, encryptedVMK[i]);
+#endif
+	}
+
 	return 1;
 }
-
 
 #if 0
 	static int binary_hash_0(void *binary)
@@ -838,6 +872,7 @@ struct fmt_main fmt_opencl_bitlocker = {
 			"iteration count",
 		},
 		{ FORMAT_TAG },
+		//NULL
 	bitlocker_tests
 }, {
 	init,

@@ -286,10 +286,6 @@ __constant unsigned int TS3[256] = {
 	0x5454FCA8U, 0xBBBBD66DU, 0x16163A2CU
 };
 
-#define VMK_SIZE 44
-#define SINGLE_BLOCK_W_SIZE 64
-#define ITERATION_NUMBER 0x100000
-#define MAX_INPUT_PASSWORD_LEN 16
 
 inline unsigned int IADD3(unsigned int a, unsigned int b, unsigned int c)
 {
@@ -341,9 +337,13 @@ inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c
 }
 
 
+#define VMK_SIZE 44
+#define SINGLE_BLOCK_W_SIZE 64
+#define ITERATION_NUMBER 0x100000
+#define MAX_INPUT_PASSWORD_LEN 16
 #define END_STRING 0x80
 
-__kernel void opencl_bitlocker_attack(int numPassword,
+__kernel void opencl_bitlocker_attack(__global int * numPasswordMem,
                                       __global unsigned char *w_password,
                                       __global int *w_password_size,
                                       __global int *found,
@@ -353,6 +353,13 @@ __kernel void opencl_bitlocker_attack(int numPassword,
                                       unsigned int IV8, unsigned int IV12)
 {
 	size_t globalIndexPassword = get_global_id(0);
+
+
+
+#define VMK_SIZE 44
+#define SINGLE_BLOCK_W_SIZE 64
+#define ITERATION_NUMBER 0x100000
+#define MAX_INPUT_PASSWORD_LEN 16
 
 	unsigned int hash0;
 	unsigned int hash1;
@@ -406,10 +413,15 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 	unsigned int first_hash5;
 	unsigned int first_hash6;
 	unsigned int first_hash7;
+	int numPassword = numPasswordMem[0];
 
 	unsigned int indexW = (globalIndexPassword * MAX_INPUT_PASSWORD_LEN);
 
 	while (globalIndexPassword < numPassword) {
+//printf("numPassword: %d, indexW: %d, globalIndexPassword: %d, MAX_INPUT_PASSWORD_LEN: %d\n", 
+//	numPassword, indexW, globalIndexPassword, MAX_INPUT_PASSWORD_LEN);
+//printf("w_password=%s\n", w_password+indexW);
+
 		index_generic = w_password_size[globalIndexPassword];
 		first_hash0 = 0x6A09E667;
 		first_hash1 = 0xBB67AE85;
@@ -479,6 +491,35 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 		    ((unsigned char)((index_generic << 3) >> 8)) << 8 | ((unsigned
 		            char)(index_generic << 3));
 		//-----------------------------------------------
+/*
+		if(globalIndexPassword == 0)
+		{
+	        printf("schedule0: %x\n", schedule0);
+	        printf("schedule1: %x\n", schedule1);
+	        printf("schedule2: %x\n", schedule2);
+	        printf("schedule3: %x\n", schedule3);
+	        printf("schedule4: %x\n", schedule4);
+	        printf("schedule5: %x\n", schedule5);
+	        printf("schedule6: %x\n", schedule6);
+	        printf("schedule7: %x\n", schedule7);
+	        printf("schedule8: %x\n", schedule8);
+	        printf("schedule9: %x\n", schedule9);
+	        printf("schedule10: %x\n", schedule10);
+
+            printf("schedule11: %x\n", schedule11);
+            printf("schedule12: %x\n", schedule12);
+            printf("schedule13: %x\n", schedule13);
+            printf("schedule14: %x\n", schedule14);
+            printf("schedule15: %x\n", schedule15);
+            printf("w_blocks_d[indexW(%d)]: %x, IV0: %x, IV8: %x\n", indexW, w_blocks_d[indexW], IV0, IV8);
+
+	        printf("index_generic: %d\n", index_generic);
+	        printf("IV0: %x\n", IV0);
+	        printf("IV4: %x\n", IV4);
+	        printf("IV8: %x\n", IV8);
+	        printf("IV12: %x\n", IV12);
+	    }
+*/
 
 		ALL_SCHEDULE_LAST16()
 
@@ -684,7 +725,8 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 
 		indexW = 0;
 
-		printf("first_hash0: %llx\n", first_hash0);
+//		if(globalIndexPassword == 0)
+//			printf("first_hash0: %llx\n", first_hash0);
 
 		for (index_generic = 0; index_generic < ITERATION_NUMBER / 2;
 		        index_generic++) {
@@ -942,8 +984,9 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 
 			indexW += SINGLE_BLOCK_W_SIZE;
 		}
-
-		printf("hash0 middle: %llx\n", hash0);
+	
+//		if(globalIndexPassword == 0)
+//			printf("hash0 middle: %llx\n", hash0);
 		
 
 		//Need to split the main loop: OpenCL Titan X bug!
@@ -1202,8 +1245,8 @@ __kernel void opencl_bitlocker_attack(int numPassword,
 
 			indexW += SINGLE_BLOCK_W_SIZE;
 		}
-		//if(globalIndexPassword == 0)
-		printf("hash: %llx - %llx - %llx - %llx - %llx - %llx - %llx\n",  hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7);
+//		if(globalIndexPassword == 0)
+//			printf("hash: %llx - %llx - %llx - %llx - %llx - %llx - %llx\n",  hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7);
 		
 		schedule0 = IV0 ^ hash0;
 		schedule1 = IV4 ^ hash1;
