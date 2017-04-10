@@ -38,7 +38,7 @@ john_register_one(&fmt_tcpmd5);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "tcp-md5"
-#define FORMAT_NAME             "TCP MD5 Signatures, BGP"
+#define FORMAT_NAME             "TCP MD5 Signatures, BGP, MSDP"
 #define FORMAT_TAG              "$tcpmd5$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
