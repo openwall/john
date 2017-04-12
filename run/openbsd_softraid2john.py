@@ -39,7 +39,11 @@ SR_CRYPTOKDFT_BCRYPT_PBKDF = 3
 
 def process_file(filename):
 
-    headers = open(filename).read()[:0xaa0]
+    headers = open(filename).read()[:0xaa0 + 81920]
+    start = headers.find("marcCRAM")
+    if start != -1:
+        headers = headers[start:]
+
     if headers[:8] != "marcCRAM":
         sys.stderr.write(filename + " : Wrong magic\n")
         return
@@ -54,7 +58,8 @@ def process_file(filename):
         return
 
     sr_crypto_genkdf_type = struct.unpack("<I", headers[2416:2420])[0]
-    if sr_crypto_genkdf_type != SR_CRYPTOKDFT_PKCS5_PBKDF2:
+    if (sr_crypto_genkdf_type != SR_CRYPTOKDFT_PKCS5_PBKDF2 and
+            sr_crypto_genkdf_type != SR_CRYPTOKDFT_BCRYPT_PBKDF):
         sys.stderr.write("%s : kdf of type '%s' is not supported yet!\n" %
                          (os.path.basename(filename), sr_crypto_genkdf_type))
         return
@@ -70,7 +75,9 @@ def process_file(filename):
     sys.stdout.write(hexlify(headers[364:2412]) + "$")
 
     # HMAC, chk_hmac_sha1 field
-    sys.stdout.write(hexlify(headers[2676:2696]) + "\n")
+    sys.stdout.write(hexlify(headers[2676:2696]))
+
+    sys.stdout.write("$%s\n" % sr_crypto_genkdf_type)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

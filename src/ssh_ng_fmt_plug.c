@@ -41,6 +41,7 @@ static int omp_t = 1;
 #include "params.h"
 #include "options.h"
 #include "md5.h"
+#include "bcrypt_pbkdf.h"
 #include "memdbg.h"
 #include "asn1.h"
 
@@ -438,10 +439,6 @@ static inline int check_padding_and_structure(unsigned char *out, int length, in
 bad:
 	return -1;
 }
-
-int bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt, size_t saltlen,
-	uint8_t *key, size_t keylen, unsigned int rounds);
-
 
 static void common_crypt_code(char *password, unsigned char *out, int full_decrypt)
 {
