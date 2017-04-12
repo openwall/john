@@ -11,6 +11,7 @@
 import dpkt
 import sys
 import dpkt.ethernet as ethernet
+from dpkt import ip as dip
 import dpkt.stp as stp
 import struct
 import socket
@@ -994,6 +995,47 @@ def pcap_parser_tgsrep(fname):
         sys.stdout.write("%s:$tgsrep$%s\n" % (index, p.encode("hex")))
 
 
+def pcap_parser_ah(fname):
+    """
+    Extract Authentication Header (AH) hashes from packets.
+
+    VRRP v2 only supports IPv4 addresses. VRRP v3 protocol does not support
+    authentication. Use "Keepalived for Linux" for debugging this function.
+
+    https://fossies.org/linux/scapy/scapy/layers/ipsec.py mentions various HMAC
+    schemes which are possible in the Authentication Header (AH).
+    """
+
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+
+    for _, buf in pcap:
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP:
+            ip = eth.data
+
+            if ip.p != dip.IP_PROTO_AH:  # Authentication Header
+                continue
+
+            if ip.v == 4:
+                salt = bytearray(ip.pack())
+                iphdr_len = 20
+                # https://tools.ietf.org/html/rfc4302#section-2.2 (Payload Length)
+                ah_length = (salt[iphdr_len + 1] + 2) * 4
+                icv_length = ah_length - 12
+                # zero mutable fields (tos, flags, chksum)
+                salt[1] = 0  # tos
+                salt[6] = 0  # flags
+                salt[10:12] = "\x00\x00"  # checksum
+                icv_offset = iphdr_len + icv_length
+                h = salt[icv_offset:icv_offset+icv_length]
+                # zero ah icv
+                salt[icv_offset:icv_offset+icv_length] = "\x00" * icv_length
+                sys.stdout.write("$net-ah$0$%s$%s\n" % (hexlify(salt), hexlify(h)))
+
+    f.close()
+
+
 ############################################################
 # original main, but now calls multiple 2john routines, all
 # cut from the original independent convert programs.
@@ -1004,6 +1046,10 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
+        try:
+            pcap_parser_ah(sys.argv[i])
+        except:
+            pass
         pcap_parser_bfd(sys.argv[i])
         try:
             pcap_parser_vtp(sys.argv[i])
