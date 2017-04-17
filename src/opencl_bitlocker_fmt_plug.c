@@ -128,10 +128,13 @@ static struct fmt_main *self;
 #define SEED			1024
 
 static const char *warn[] = {
-        "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
+        "xfer: ",  ", ",  ", ",  ", ",  ", ",
+        ", ",  ", ",  ", ",  ", ",  ", ",
+        ", ",  ", ",  ", prepare: " ,  ", xfer: ",  ", crypt: ",
+        ", final: ",  ", res xfer: "
 };
 
-static int split_events[] = { 2, -1, -1 };
+static int split_events[] = { 14, 13, -1 };
 
 static int w_block_precomputed(unsigned char *salt);
 
@@ -327,7 +330,7 @@ static void reset(struct db_main *db)
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
-		                       2, self, create_clobj, release_clobj,
+		                       14, self, create_clobj, release_clobj,
 		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 		                       0, db);
 
@@ -358,69 +361,7 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-	int i = 0;
-	char *hash_format;
-	char *p;
-	char *local_salt;
-
-	local_salt = calloc(BITLOCKER_JTR_HASH_SIZE_CHAR, sizeof(char));
-	memcpy(local_salt, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR);
-	memset(salt, 0, BITLOCKER_SALT_SIZE);
-	memset(nonce, 0, BITLOCKER_NONCE_SIZE);
-	memset(encryptedVMK, 0, BITLOCKER_VMK_SIZE);
-
-	hash_format = strdup(local_salt);
-	hash_format += FORMAT_TAG_LEN;
-
-	p = strtokm(hash_format, "$");
-	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
-		return NULL;
-
-	for (i = 0; i < BITLOCKER_NONCE_SIZE; i++) {
-		nonce[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		nonce[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("nonce[%d]=%02x\n", i, nonce[i]);
-#endif
-	}
-
-	p = strtokm(NULL, "$");
-	if (strlen(p) != BITLOCKER_SALT_SIZE * 2)
-		return NULL;
-
-	for (i = 0; i < BITLOCKER_SALT_SIZE; i++) {
-		salt[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		salt[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("salt[%d]=%02x\n", i, salt[i]);
-#endif
-	}
-
-	p = strtokm(NULL, "");
-	if (strlen(p) != 8)
-		return NULL;
-
-	for (i = 0; i < 4; i++) {
-		encryptedVMK[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		encryptedVMK[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("encryptedVMK[%d]=%02x\n", i, encryptedVMK[i]);
-#endif
-	}
-
-	return local_salt;
+	return ciphertext;
 }
 
 static int w_block_precomputed(unsigned char *salt)
@@ -637,27 +578,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[6]), "Run kernel");
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[12]), "Run kernel");
 
 	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS); i++) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], currentIterPtr,
 		CL_FALSE, 0, sizeof(int), &i, 0,
-		NULL, NULL), "Copy iter num to gpu");
-		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-		opencl_process_event();
+		NULL, multi_profilingEvent[13]), "Copy iter num to gpu");
 
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[7]), "Run loop kernel");
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[14]), "Run loop kernel");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[8]), "Run kernel");
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[15]), "Run kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], deviceFound,
 		CL_TRUE, 0, sizeof(int), hostFound, 0,
-		NULL, multi_profilingEvent[12]), "Copy result back");
+		NULL, multi_profilingEvent[16]), "Copy result back");
 
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
