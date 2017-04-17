@@ -286,7 +286,7 @@ __constant unsigned int TS3[256] = {
 	0x5454FCA8U, 0xBBBBD66DU, 0x16163A2CU
 };
 
-
+#if 0 /* This is not used */
 inline unsigned int IADD3(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
@@ -298,6 +298,7 @@ inline unsigned int IADD3(unsigned int a, unsigned int b, unsigned int c)
 	return a + b + c;
 #endif
 }
+#endif
 
 inline unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
 {
@@ -347,8 +348,8 @@ inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c
 #define HASH_LOOPS					256
 
 __kernel void opencl_bitlocker_wblocks(
-	__global unsigned char *salt_d, 
-	__global unsigned char *padding_d, 
+	__global unsigned char *salt_d,
+	__global unsigned char *padding_d,
 	__global unsigned int *w_blocks_d)
 {
         unsigned long loop = get_global_id(0);
@@ -445,23 +446,14 @@ __kernel void opencl_bitlocker_wblocks(
 }
 
 
-__kernel void opencl_bitlocker_attack_init(__global int * numPasswordMem,
+__kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
                                       __global unsigned char *w_password,
                                       __global int *w_password_size,
-                                      __global int * first_hash,
-                                      __global int * output_hash
+                                      __global int *first_hash,
+                                      __global int *output_hash
                                       )
 {
-
-	size_t globalIndexPassword = get_global_id(0);
-	unsigned int hash0;
-	unsigned int hash1;
-	unsigned int hash2;
-	unsigned int hash3;
-	unsigned int hash4;
-	unsigned int hash5;
-	unsigned int hash6;
-	unsigned int hash7;
+	int globalIndexPassword = get_global_id(0);
 
 	unsigned int schedule0;
 	unsigned int schedule1;
@@ -607,7 +599,7 @@ __kernel void opencl_bitlocker_attack_init(__global int * numPasswordMem,
 			printf("schedule12: %x\n", schedule15);
 		}
 #endif
-		    
+
 		ALL_SCHEDULE_LAST16()
 
 		ROUND(a, b, c, d, e, f, g, h, schedule0, 0x428A2F98)
@@ -828,13 +820,13 @@ __kernel void opencl_bitlocker_attack_init(__global int * numPasswordMem,
 	}
 }
 
-__kernel void opencl_bitlocker_attack_loop(__global int * numPasswordMem,
+__kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
                                       __global unsigned int *w_blocks_d,
-                                      __global int * first_hash,
-                                      __global int * output_hash,
-                                      __global int * numIterPtr)
+                                      __global int *first_hash,
+                                      __global int *output_hash,
+                                      __global int *numIterPtr)
 {
-	size_t globalIndexPassword = get_global_id(0);
+	int globalIndexPassword = get_global_id(0);
 
 	unsigned int hash0;
 	unsigned int hash1;
@@ -889,8 +881,8 @@ __kernel void opencl_bitlocker_attack_loop(__global int * numPasswordMem,
 	unsigned int first_hash7;
 	int numPassword = numPasswordMem[0];
 	int numIter = numIterPtr[0];
-	unsigned int indexW=0;
-	int index=0;
+	unsigned int indexW = 0;
+	int index = 0;
 
 	//For each password
 	while (globalIndexPassword < numPassword)
@@ -1150,15 +1142,15 @@ __kernel void opencl_bitlocker_attack_loop(__global int * numPasswordMem,
 	}
 }
 
-__kernel void opencl_bitlocker_attack_final(__global int * numPasswordMem,
+__kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
                                       __global int *found,
                                       __global unsigned char *vmkKey,
                                       __global unsigned int *w_blocks_d,
-                                      __global unsigned int * IV0, __global unsigned int * IV4,
-                                      __global unsigned int * IV8, __global unsigned int * IV12,
-                                      __global int * output_hash)
+                                      __global unsigned int *IV0, __global unsigned int *IV4,
+                                      __global unsigned int *IV8, __global unsigned int *IV12,
+                                      __global int *output_hash)
 {
-	size_t globalIndexPassword = get_global_id(0);
+	int globalIndexPassword = get_global_id(0);
 
 	unsigned int hash0;
 	unsigned int hash1;
@@ -1177,11 +1169,8 @@ __kernel void opencl_bitlocker_attack_final(__global int * numPasswordMem,
 	unsigned int schedule5;
 	unsigned int schedule6;
 	unsigned int schedule7;
-	int index_generic; // must be input
+
 	int numPassword = numPasswordMem[0];
-
-
-
 
 #if 0
 		if(globalIndexPassword == 0)
@@ -1590,7 +1579,7 @@ __kernel void opencl_bitlocker_attack_final(__global int * numPasswordMem,
 		    (unsigned int)((unsigned int)(schedule2 & 0x00ff0000) >> 8) |
 		    (unsigned int)((unsigned int)(schedule2 & 0x0000ff00) << 8) |
 		    (unsigned int)((unsigned int)(schedule2 & 0x000000ff) << 24);
-		
+
 #if 0
 		    if(globalIndexPassword == 0)
 		    {

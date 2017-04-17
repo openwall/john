@@ -115,7 +115,7 @@ static int *inbuffer_size;
 
 static int *hostFound, i;
 static unsigned int tmp_global;
-static unsigned int * IV0, * IV4, * IV8, * IV12;
+static unsigned int *IV0, *IV4, *IV8, *IV12;
 static int *numPasswordsKernel;
 
 //#define DEBUG
@@ -127,7 +127,7 @@ static struct fmt_main *self;
 #define STEP			0
 #define SEED			1024
 
-static const char * warn[] = {
+static const char *warn[] = {
         "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
 };
 
@@ -152,7 +152,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 #define CLKERNELARG(kernel, id, arg, msg)\
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
-	
+
 	size_t input_password_number = BITLOCKER_MAX_INPUT_PASSWORD_LEN * gws;
 
 	// ---- MAIN ATTACK
@@ -163,7 +163,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	                                        BITLOCKER_ITERATION_NUMBER), sizeof(unsigned int));
 
 	hash_zero = (unsigned int *)mem_calloc(input_password_number * BITLOCKER_INT_HASH_SIZE, sizeof(unsigned int));
-	
+
 	IV0 = (unsigned int *)mem_calloc(1, sizeof(unsigned int));
 	IV4 = (unsigned int *)mem_calloc(1, sizeof(unsigned int));
 	IV8 = (unsigned int *)mem_calloc(1, sizeof(unsigned int));
@@ -196,15 +196,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	                            sizeof(unsigned int), "Cannot allocate w blocks");
 
 	first_hash = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-	                            input_password_number * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int), 
+	                            input_password_number * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 	                            "Cannot allocate first hash");
 
 	output_hash = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-	                            input_password_number * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int), 
+	                            input_password_number * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 	                            "Cannot allocate first hash");
 
 	currentIterPtr = CLCREATEBUFFER(CL_MEM_READ_ONLY,
-	                            sizeof(int), 
+	                            sizeof(int),
 	                            "Cannot allocate first hash");
 
 	//Prepare kernel
@@ -259,7 +259,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	CLKERNELARG(block_kernel, 0, salt_d, "Error while setting salt_d");
 	CLKERNELARG(block_kernel, 1, padding_d, "Error while setting padding_d");
-	CLKERNELARG(block_kernel, 2, w_blocks_d, "Error while setting w_blocks_d");		
+	CLKERNELARG(block_kernel, 2, w_blocks_d, "Error while setting w_blocks_d");
 }
 
 /* ------- Helper functions ------- */
@@ -285,7 +285,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(w_blocks_d), "Release encrypted VMK");
 		HANDLE_CLERROR(clReleaseMemObject(salt_d), "Release encrypted VMK");
 		HANDLE_CLERROR(clReleaseMemObject(padding_d), "Release encrypted VMK");
-		
+
 		MEM_FREE(hostFound);
 		MEM_FREE(w_blocks_h);
 		MEM_FREE(numPasswordsKernel);
@@ -328,13 +328,13 @@ static void reset(struct db_main *db)
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       2, self, create_clobj, release_clobj,
-		                       BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
-		                       sizeof(int) /*sizeof(state_t)*/, 0, db);
+		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
+		                       0, db);
 
 		// Auto tune execution from shared/included code.
 		autotune_run(self, ITERATIONS, 0,
 		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 10000000000ULL));
+		              1000000000 : 100));
 	}
 }
 
@@ -346,7 +346,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel A");
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel A");
 		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel A");
-		
+
 		//HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
@@ -423,15 +423,15 @@ static void *get_salt(char *ciphertext)
 	return local_salt;
 }
 
-int w_block_precomputed(unsigned char *salt)
+static int w_block_precomputed(unsigned char *salt)
 {
 	unsigned char *padding;
 	uint64_t msgLen;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	if (salt == NULL)
 		return 0;
 
-	size_t *lws = local_work_size ? &local_work_size : NULL;
 	global_work_size = GET_MULTIPLE_OR_BIGGER(1, local_work_size); //count
 
 
@@ -471,7 +471,7 @@ int w_block_precomputed(unsigned char *salt)
 
 static void set_salt(void *cipher_salt_input)
 {
-	unsigned char *cipher_salt = (unsigned char *)cipher_salt_input;
+	char *cipher_salt = (char*)cipher_salt_input;
 	int i = 0;
 	char *hash_format;
 	char *p;
@@ -484,8 +484,6 @@ static void set_salt(void *cipher_salt_input)
 	hash_format += FORMAT_TAG_LEN;
 
 	p = strtokm(hash_format, "$");
-	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
-		return NULL;
 
 	for (i = 0; i < BITLOCKER_NONCE_SIZE; i++) {
 		nonce[i] =
@@ -500,8 +498,6 @@ static void set_salt(void *cipher_salt_input)
 	}
 
 	p = strtokm(NULL, "$");
-	if (strlen(p) != BITLOCKER_SALT_SIZE * 2)
-		return NULL;
 
 	for (i = 0; i < BITLOCKER_SALT_SIZE; i++) {
 		salt[i] =
@@ -516,8 +512,6 @@ static void set_salt(void *cipher_salt_input)
 	}
 
 	p = strtokm(NULL, "");
-	if (strlen(p) != 8)
-		return NULL;
 
 	for (i = 0; i < 4; i++) {
 		encryptedVMK[i] =
@@ -582,7 +576,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	//int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);	
+	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 //	printf("crypt_all(%d), LWS = %d, GWS = %d w_blocks_h: %x, encryptedVMK[0]: %x [1]: %x [2]: %x\n", count, (int)*lws, (int)global_work_size, w_blocks_h[0], encryptedVMK[0], encryptedVMK[1], encryptedVMK[2]);
 
 	hostFound[0] = -1;
@@ -611,7 +605,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], w_blocks_d,
 		CL_FALSE, 0, (BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
-	                                        BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int), 
+	                                        BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int),
 		w_blocks_h, 0,
 		NULL, multi_profilingEvent[5]), "Copy data to gpu");
 
@@ -651,7 +645,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		NULL, NULL), "Copy iter num to gpu");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
-		
+
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[7]), "Run loop kernel");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
@@ -730,7 +724,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *hash_format;
 	char *p;
-	int i;
 
 	if (strlen(ciphertext) != BITLOCKER_JTR_HASH_SIZE_CHAR)
 		return 0;
