@@ -361,7 +361,11 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
+        char * local_salt;
+
+        local_salt = (char *) calloc(BITLOCKER_JTR_HASH_SIZE_CHAR, sizeof(char));
+        memcpy(local_salt, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR);
+        return local_salt;
 }
 
 static int w_block_precomputed(unsigned char *salt)
