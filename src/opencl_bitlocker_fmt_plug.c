@@ -280,19 +280,17 @@ static size_t get_task_max_work_group_size()
 
 static void release_clobj(void)
 {
-	if (hostFound) {
-		HANDLE_CLERROR(clReleaseMemObject(deviceEncryptedVMK), "Release encrypted VMK");
-		HANDLE_CLERROR(clReleaseMemObject(devicePassword), "Release encrypted VMK");
-		HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize), "Release encrypted VMK");
-		HANDLE_CLERROR(clReleaseMemObject(deviceFound), "Release encrypted VMK");
-		HANDLE_CLERROR(clReleaseMemObject(w_blocks_d), "Release encrypted VMK");
-		HANDLE_CLERROR(clReleaseMemObject(salt_d), "Release encrypted VMK");
-		HANDLE_CLERROR(clReleaseMemObject(padding_d), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(deviceEncryptedVMK), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(devicePassword), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(deviceFound), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(w_blocks_d), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(salt_d), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(padding_d), "Release encrypted VMK");
 
-		MEM_FREE(hostFound);
-		MEM_FREE(w_blocks_h);
-		MEM_FREE(numPasswordsKernel);
-	}
+	MEM_FREE(hostFound);
+	MEM_FREE(w_blocks_h);
+	MEM_FREE(numPasswordsKernel);
 }
 
 static void init(struct fmt_main *_self)
