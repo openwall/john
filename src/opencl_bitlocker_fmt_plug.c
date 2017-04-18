@@ -134,7 +134,7 @@ static const char *warn[] = {
         ", final: ",  ", res xfer: "
 };
 
-static int split_events[] = { 14, 13, -1 };
+static int split_events[] = { 14, -1, -1 };
 
 static int w_block_precomputed(unsigned char *salt);
 
@@ -280,7 +280,7 @@ static size_t get_task_max_work_group_size()
 
 static void release_clobj(void)
 {
-	if (hostFound[0] >= 0) {
+	if (hostFound) {
 		HANDLE_CLERROR(clReleaseMemObject(deviceEncryptedVMK), "Release encrypted VMK");
 		HANDLE_CLERROR(clReleaseMemObject(devicePassword), "Release encrypted VMK");
 		HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize), "Release encrypted VMK");
@@ -335,9 +335,9 @@ static void reset(struct db_main *db)
 		                       0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, ITERATIONS, 0,
+		autotune_run(self, HASH_LOOPS * ITERATIONS, 0,
 		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 100));
+		              1000000000 : 10000000000ULL));
 	}
 }
 
@@ -361,11 +361,9 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-        char * local_salt;
+	static char dummy[BITLOCKER_JTR_HASH_SIZE_CHAR + 1];
 
-        local_salt = (char *) calloc(BITLOCKER_JTR_HASH_SIZE_CHAR, sizeof(char));
-        memcpy(local_salt, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR);
-        return local_salt;
+	return strnzcpy(dummy, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR + 1);
 }
 
 static int w_block_precomputed(unsigned char *salt)
@@ -709,7 +707,7 @@ struct fmt_main fmt_opencl_bitlocker = {
 	BITLOCKER_MAX_INPUT_PASSWORD_LEN,
 	0, //BITLOCKER_JTR_HASH_SIZE_CHAR, //BINARY_SIZE,
 	MEM_ALIGN_WORD,     //BINARY_ALIGN,
-	BITLOCKER_JTR_HASH_SIZE_CHAR, // BITLOCKER_SALT_SIZE,
+	BITLOCKER_JTR_HASH_SIZE_CHAR + 1, // BITLOCKER_SALT_SIZE,
 	SALT_ALIGN,
 	1,
 	1,
