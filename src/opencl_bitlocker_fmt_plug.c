@@ -30,7 +30,6 @@ john_register_one(&fmt_opencl_bitlocker);
 #include "arch.h"
 #include "base64_convert.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
