@@ -340,6 +340,9 @@ struct options_main {
  */
 	int max_run_time;
 
+/* Graceful exit after this many candidates tried. */
+	long long max_cands;
+
 /* Emit a status line every N seconds */
 	int status_interval;
 

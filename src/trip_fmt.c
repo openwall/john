@@ -8,6 +8,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 
@@ -44,8 +45,8 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			sizeof(ARCH_WORD_32)
-#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define BINARY_SIZE			sizeof(uint32_t)
+#define BINARY_ALIGN			sizeof(uint32_t)
 
 #define TRIPCODE_SCALE			0x40
 
@@ -203,43 +204,43 @@ static void *get_binary(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xF;
+	return *(uint32_t *)binary & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	unsigned int w = *(ARCH_WORD_32 *)binary;
+	unsigned int w = *(uint32_t *)binary;
 	return ((w >> 1) & 0x80) | (w & 0x7F);
 }
 
 static int binary_hash_2(void *binary)
 {
-	unsigned int w = *(ARCH_WORD_32 *)binary;
+	unsigned int w = *(uint32_t *)binary;
 	return ((w >> 1) & 0xF80) | (w & 0x7F);
 }
 
 static int binary_hash_3(void *binary)
 {
-	unsigned int w = *(ARCH_WORD_32 *)binary;
+	unsigned int w = *(uint32_t *)binary;
 	return ((w >> 2) & 0xC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
 
 static int binary_hash_4(void *binary)
 {
-	unsigned int w = *(ARCH_WORD_32 *)binary;
+	unsigned int w = *(uint32_t *)binary;
 	return ((w >> 2) & 0xFC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
 
 static int binary_hash_5(void *binary)
 {
-	unsigned int w = *(ARCH_WORD_32 *)binary;
+	unsigned int w = *(uint32_t *)binary;
 	return ((w >> 3) & 0xE00000) |
 	    ((w >> 2) & 0x1FC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
 
 static int binary_hash_6(void *binary)
 {
-	unsigned int w = *(ARCH_WORD_32 *)binary;
+	unsigned int w = *(uint32_t *)binary;
 	return ((w >> 3) & 0x7E00000) |
 	    ((w >> 2) & 0x1FC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
@@ -529,7 +530,7 @@ static int cmp_one(void *binary, int index)
 	int block = buffer[index].block;
 	MAYBE_T0;
 	blkcpy(DES_bs_all.B, crypt_out[block], 32);
-	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, buffer[index].index);
+	return DES_bs_cmp_one((uint32_t *)binary, 32, buffer[index].index);
 }
 
 static int cmp_exact(char *source, int index)

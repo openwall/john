@@ -17,16 +17,16 @@ john_register_one(&fmt_opencl_strip);
 #else
 
 #include <string.h>
-#include "aes.h"
+#include <stdint.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #include "arch.h"
+#include "aes.h"
 #include "formats.h"
 #include "options.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "common-opencl.h"
 

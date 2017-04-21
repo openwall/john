@@ -40,7 +40,7 @@ john_register_one(&fmt_DOMINOSEC8);
 #include <string.h>
 
 #ifdef DOMINOSEC_32BIT
-#include "stdint.h"
+#include <stdint.h>
 #endif
 
 #include "misc.h"

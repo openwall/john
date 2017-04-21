@@ -8,6 +8,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include <stdint.h>
 #include <string.h>
 
 #include "arch.h"
@@ -102,9 +103,9 @@ static DES_binary AFS_long_IV_binary;
 
 static void init(struct fmt_main *self)
 {
-	ARCH_WORD_32 block[2];
+	uint32_t block[2];
 #if !ARCH_LITTLE_ENDIAN
-	ARCH_WORD_32 tmp;
+	uint32_t tmp;
 #endif
 
 	DES_std_init();
@@ -295,8 +296,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index, pos, length;
 	char xor[8];
-	ARCH_WORD_32 space[(PLAINTEXT_LENGTH + SALT_SIZE + 8) / 4 + 1];
-	ARCH_WORD_32 *ptr;
+	uint32_t space[(PLAINTEXT_LENGTH + SALT_SIZE + 8) / 4 + 1];
+	uint32_t *ptr;
 	ARCH_WORD space_binary[(PLAINTEXT_LENGTH + SALT_SIZE + 8) / 2 + 1];
 	ARCH_WORD *ptr_binary;
 	unsigned ARCH_WORD block[2];
@@ -304,9 +305,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		double dummy;
 		DES_binary data;
 	} binary;
-	ARCH_WORD_32 key[2];
+	uint32_t key[2];
 #if !ARCH_LITTLE_ENDIAN
-	ARCH_WORD_32 tmp;
+	uint32_t tmp;
 #endif
 
 	DES_std_set_salt(AFS_salt_binary);

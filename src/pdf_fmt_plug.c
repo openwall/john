@@ -15,23 +15,24 @@ john_register_one(&fmt_pdf);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "md5.h"
-#include "rc4.h"
-#include "pdfcrack_md5.h"
-#include "aes.h"
-#include "sha2.h"
-#include "loader.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               64
 #endif
 #endif
+
+#include "arch.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
+#include "misc.h"
+#include "md5.h"
+#include "aes.h"
+#include "sha2.h"
+#include "rc4.h"
+#include "pdfcrack_md5.h"
+#include "loader.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "PDF"

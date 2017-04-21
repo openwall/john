@@ -14,6 +14,7 @@ extern struct fmt_main fmt_opencl_keychain;
 john_register_one(&fmt_opencl_keychain);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <openssl/des.h>
 #ifdef _OPENMP
@@ -23,7 +24,6 @@ john_register_one(&fmt_opencl_keychain);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "jumbo.h"
@@ -206,7 +206,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int extra;
-	
+
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);

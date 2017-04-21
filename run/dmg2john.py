@@ -11,7 +11,10 @@ from binascii import hexlify
 # header structs are taken from vilefault and hashkill projects
 v1_header_fmt = '> 48s I I 48s 32s I 296s I 300s I 48s 484s'
 v1_header_size = struct.calcsize(v1_header_fmt)
-v2_header_fmt = '> 8s I I I I I I I 16s I Q Q 24s I I I I 32s I 32s I I I I I 48s'
+# v2_header_fmt = '> 8s I I I I I I I 16s I Q Q 24s I I I I 32s I 32s I I I I I 48s'
+# encrypted_blob_size can be 64, handle such cases properly too, a value of 48
+# is already handled well
+v2_header_fmt = '> 8s I I I I I I I 16s I Q Q 24s I I I I 32s I 32s I I I I I 64s'
 v2_header_size = struct.calcsize(v2_header_fmt)
 
 PY3 = sys.version_info[0] == 3
@@ -81,8 +84,6 @@ def process_file(filename):
              len_hmac_sha1_key,
              hexlify(wrapped_hmac_sha1_key)[0:len_hmac_sha1_key * 2].decode("ascii"),
              kdf_iteration_count, filename))
-
-
     else:
         fd.seek(0, 0)
         data = fd.read(v2_header_size)
@@ -139,6 +140,8 @@ def process_file(filename):
                 kdf_iteration_count, filename))
 
 if __name__ == "__main__":
+    sys.stderr.write("Using 'dmg2john' instead of this program (%s) is recommended!\n\n" % sys.argv[0])
+
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [DMG files]\n" % sys.argv[0])
         sys.exit(-1)

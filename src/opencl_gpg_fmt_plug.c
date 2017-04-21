@@ -18,13 +18,12 @@ extern struct fmt_main fmt_opencl_gpg;
 john_register_one(&fmt_opencl_gpg);
 #else
 
+#include <stdint.h>
 #include <string.h>
-#include <openssl/aes.h>
 #include <assert.h>
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
-#include "idea-JtR.h"
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #include <openssl/des.h>
@@ -37,6 +36,8 @@ john_register_one(&fmt_opencl_gpg);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
+#include "aes.h"
+#include "idea-JtR.h"
 #include "md5.h"
 #include "rc4.h"
 #include "pdfcrack_md5.h"
@@ -44,7 +45,6 @@ john_register_one(&fmt_opencl_gpg);
 #include "common-opencl.h"
 #include "options.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "gpg_common.h"
 
 #define FORMAT_LABEL		"gpg-opencl"
@@ -92,7 +92,7 @@ size_t insize, outsize, settingsize, cracked_size;
 #include "opencl-autotune.h"
 #include "memdbg.h"
 
-static const char * warn[] = {
+static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "
 };
 

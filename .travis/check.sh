@@ -3,6 +3,10 @@
 if [[ -z "$TEST" ]]; then
     cd src
 
+    # Build and run with the address sanitizer instrumented code
+    export ASAN_OPTIONS=symbolize=1
+    export ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer)
+
     # Prepare environment
     sudo apt-get update -qq
     sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
@@ -16,6 +20,10 @@ if [[ -z "$TEST" ]]; then
 
 elif [[ "$TEST" == "no OpenMP" ]]; then
     cd src
+
+    # Build and run with the address sanitizer instrumented code
+    export ASAN_OPTIONS=symbolize=1
+    export ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer)
 
     # Prepare environment
     sudo apt-get update -qq
@@ -77,4 +85,3 @@ elif [[ "$TEST" == "TS docker" ]]; then
 else
     echo  "Nothing to do!!"
 fi
-

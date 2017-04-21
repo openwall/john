@@ -13,11 +13,11 @@ john_register_one(&fmt_opencl_phpass);
 
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common-opencl.h"

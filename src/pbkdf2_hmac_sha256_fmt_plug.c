@@ -26,6 +26,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "misc.h"
 #include "arch.h"
@@ -34,7 +35,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #include "base64_convert.h"
 #include "sha2.h"
 #include "johnswap.h"
-#include "stdint.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "pbkdf2_hmac_common.h"
 

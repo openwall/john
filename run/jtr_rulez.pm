@@ -886,7 +886,7 @@ sub handle_backref { my ($gnum, $c, $s, $total, $idx) = (@_);
 	# find any \$gnum and replace with $c
 	$s =~ s/\\$gnum/$c/g;
 
-	# find any \p$gnum[] and replace with the $gnum from it's group
+	# find any \p$gnum[] and replace with the $gnum from its group
 	$i = index($s, "\\p$gnum"."[");
 	while ($i >= 0) {
 		my $chars = get_items($s, $i+3, $i2);
@@ -899,7 +899,7 @@ sub handle_backref { my ($gnum, $c, $s, $total, $idx) = (@_);
 		$i = index($s, "\\p$gnum"."[");
 	}
 
-	# find any \p$gnum\r[] and replace with the $gnum from it's non-dedup'd group
+	# find any \p$gnum\r[] and replace with the $gnum from its non-dedup'd group
 	$i = index($s, "\\p$gnum\\r[");
 	while ($i >= 0) {
 		my $chars = get_items($s, $i+5, $i2, 1);

@@ -20,11 +20,11 @@ john_register_one(&fmt_opencl_pwsafe);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdint.h>
 
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"

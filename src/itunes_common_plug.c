@@ -8,8 +8,7 @@
 #include "itunes_common.h"
 #include "memdbg.h"
 #include "johnswap.h"
-// #include "aes.h" is broken, JTR_AES_decrypt behaves differently between 32-bit builds and 64-bit builds
-#include <openssl/aes.h>
+#include "aes.h"
 
 int itunes_common_valid(char *ciphertext, struct fmt_main *self)
 {

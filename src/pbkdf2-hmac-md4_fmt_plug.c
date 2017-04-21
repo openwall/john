@@ -14,6 +14,7 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "arch.h"
 
@@ -22,7 +23,6 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "stdint.h"
 #include "pbkdf2_hmac_md4.h"
 #include "pbkdf2_hmac_common.h"
 #ifdef _OPENMP

@@ -15,6 +15,8 @@
 #ifndef _COMMON_OPENCL_H
 #define _COMMON_OPENCL_H
 
+#include <stdint.h>
+
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #include <OpenCL/cl_ext.h>
@@ -30,7 +32,6 @@
 #include "common.h"
 #include "formats.h"
 #include "path.h"
-#include "stdint.h"
 #include "opencl_device_info.h"
 
 #define MAX_PLATFORMS   8

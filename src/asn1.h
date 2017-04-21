@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "stdint.h"
+#include <stdint.h>
 
 #ifndef ASN1_H
 #define ASN1_H

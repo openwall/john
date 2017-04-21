@@ -21,12 +21,12 @@ john_register_one(&fmt_opencl_rakp);
 #else
 
 #include <string.h>
+#include <stdint.h>
 
 #include "path.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"

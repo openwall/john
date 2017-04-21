@@ -31,6 +31,7 @@
 #define _CONVERTUTF_H
 
 #include <wchar.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "options.h"
@@ -83,9 +84,9 @@
 /* Rexgen library header might have defined this (empty) */
 #undef UTF32
 
-typedef uint32_t UTF32;	/* at least 32 bits */
-typedef unsigned short UTF16;	/* at least 16 bits */
-typedef unsigned char UTF8;	/* typically 8 bits */
+typedef uint32_t UTF32;
+typedef uint16_t UTF16;
+typedef uint8_t UTF8;
 
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR (UTF32)0x0000FFFD
@@ -101,10 +102,10 @@ extern const char opt_trailingBytesUTF8[64];
 /*
  * Convert to UTF-16LE from UTF-8.
  * 'maxtargetlen' is max. number of characters (as opposed to bytes) in output,
- * eg. PLAINTEXT_LENGTH.
+ * e.g. PLAINTEXT_LENGTH.
  * 'sourcelen' can be strlen(source).
  * Returns number of UTF16 characters (as opposed to bytes) of resulting
- * output. If return is negative, eg. -32, it means 32 characters of INPUT were
+ * output. If return is negative, e.g. -32, it means 32 characters of INPUT were
  * used and then we had to truncate. Either because we ran out of maxtargetlen,
  * or because input was not valid after that point (eg. illegal UTF-8 sequence).
  * To get the length of output in that case, use strlen16(target).
@@ -119,10 +120,10 @@ extern int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
 /*
  * Convert to UTF-16LE from whatever encoding is used (--encoding aware).
  * 'maxdstlen' is max. number of characters (as opposed to bytes) in output,
- * eg. PLAINTEXT_LENGTH.
+ * e.g. PLAINTEXT_LENGTH.
  * 'srclen' can be strlen(src).
  * Returns number of UTF16 characters (as opposed to bytes) of resulting
- * output. If return is negative, eg. -32, it means 32 characters of INPUT were
+ * output. If return is negative, e.g. -32, it means 32 characters of INPUT were
  * used and then we had to truncate. Either because we ran out of maxdstlen, or
  * because input was not valid after that point (eg. illegal UTF-8 sequence).
  * To get the length of output in that case, use strlen16(dst).

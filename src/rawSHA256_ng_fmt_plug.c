@@ -42,8 +42,8 @@ john_register_one(&fmt_rawSHA256_ng);
 #endif
 
 #include <string.h>
+#include <stdint.h>
 
-#include "stdint.h"
 #include "pseudo_intrinsics.h"
 #include "common.h"
 #include "formats.h"

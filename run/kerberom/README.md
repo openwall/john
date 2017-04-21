@@ -5,7 +5,7 @@ Kerberom is a tool aimed to retrieve ARC4-HMAC'ed encrypted Tickets Granting Ser
 an Active Directory.
 
 These tickets are stored in a format supported by John The Ripper bleeding-jumbo (https://github.com/magnumripper/JohnTheRipper)
-and hashcat (https://github.com/hashcat/oclHashcat).
+and hashcat (https://github.com/hashcat/hashcat).
 
 Cracking these tickets gives you the associated accounts' password within the Active Directory.
 
@@ -70,7 +70,7 @@ optional arguments:
   -v, --verbose         increase verbosity level
   --delta DELTA         set time delta in Kerberos tickets. Useful when DC is
                         not on the same timezone. Format is
-                        "(+/-)hours:minutes:seconds", eg. --delta="+00:05:00"
+                        "(+/-)hours:minutes:seconds", e.g. --delta="+00:05:00"
                         or --delta="-02:00:00"
   -k USER_SID, --user_sid USER_SID
                         force ldap SPN retrieval through kerberos, sid is

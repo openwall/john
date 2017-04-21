@@ -8,12 +8,11 @@
  */
 
 #include "opencl_misc.h"
-#undef MAYBE_CONSTANT
-#define MAYBE_CONSTANT __global
 #include "opencl_sha2.h"
 #include "pbkdf2_hmac_sha1_kernel.cl"
-#define AES_KEY_TYPE __global
+#define AES_KEY_TYPE __private
 #define OCL_AES_CBC_DECRYPT 1
+#define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 
 // this is shared between this file and "iwork_common.h" file
@@ -22,8 +21,7 @@
 #define BLOBLEN  64
 
 typedef struct {
-	volatile uint cracked;
-	uint key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
+	uint cracked;
 } iwork_out;
 
 typedef struct {
@@ -31,94 +29,68 @@ typedef struct {
 	uint outlen;
 	uint iterations;
 	uchar salt[SALTLEN];
-	uchar iv[IVLEN];
+	union {
+		uchar c[IVLEN];
+		uint  w[IVLEN / 4];
+	} iv;
 	uchar blob[BLOBLEN];
 } iwork_salt;
 
 __kernel
 void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
-                  __global iwork_out *out,
-                  __global pbkdf2_state *state)
+                 __global iwork_out *result,
+                 __global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i;
-#if !OUTLEN || OUTLEN > 20
-	uint base = state[gid].pass++ * 5;
-	uint pass = state[gid].pass;
-#else
-#define base 0
-#define pass 1
-#endif
+	AES_KEY akey;
+	int success = 1; // hash was cracked
+	union {
+		uchar c[BLOBLEN];
+		uint  w[BLOBLEN / 4];
+	} plaintext;
+	union {
+		uchar c[64];
+		uint  w[64 / 4];
+	} in;
+	union {
+		uchar c[256 / 8];
+		uint  w[256 / 8 / 4];
+	} out;
+	union {
+		uchar c[16];
+		uint  w[16 / 4];
+	} iv;
 
-	// First/next 20 bytes of output
-	for (i = 0; i < 5; i++)
-		out[gid].key[base + i] = SWAP32(state[gid].out[i]);
+	for (i = 0; i < 128/8/4; i++)
+		out.w[i] = SWAP32(state[gid].out[i]);
 
-#ifndef OUTLEN
-#define OUTLEN salt->outlen
-#endif
-	/* Was this the last pass? If not, prepare for next one */
-	if (4 * base + 20 < OUTLEN) {
-		hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
-		          salt->salt, salt->salt_length, 1 + pass);
+	for (i = 0; i < 16/4; i++)
+		iv.w[i] = salt->iv.w[i];
 
-		for (i = 0; i < 5; i++)
-			state[gid].W[i] = state[gid].out[i];
+	AES_set_decrypt_key(out.c, 128, &akey);
+	AES_cbc_decrypt(salt->blob, plaintext.c, BLOBLEN, &akey, iv.c);
 
-#ifndef ITERATIONS
-		state[gid].iter_cnt = salt->iterations - 1;
-#endif
-	} else {
-		AES_KEY akey;
-		uchar iv[IVLEN];
-		uchar plaintext[BLOBLEN];
-		uint i;
-		int success = 1; // hash was cracked
+	// SHA256(plaintext)
+	for (i = 0; i < 32/4; i++)
+		in.w[i] = SWAP32(plaintext.w[i]);
+	in.w[8] = 0x80000000;
+	for (i = 9; i < 16; i++)
+		in.w[i] = 0;
+	in.w[15] = 32 << 3;
 
-		if (gid == 0)
-			out[0].cracked = 0;
+	sha256_init(out.w);
+	sha256_block(in.w, out.w);
 
-		for (i = 0; i < 16; i++)
-			iv[i] = salt->iv[i];
+	for (i = 0; i < 256/8/4; i++)
+		out.w[i] = SWAP32(out.w[i]);
 
-		AES_set_decrypt_key((__global uchar*)(out[gid].key), 128, &akey);
-		AES_cbc_decrypt(salt->blob, plaintext, BLOBLEN, &akey, iv);
-
-		union {
-			uint w[256 / 8 / 4];
-			uchar c[32];
-		} hash;
-
-		union {
-			uchar c[64];
-			uint  w[16];
-		} md;
-
-		for (i = 0; i < 16; i++)
-			md.w[i] = 0;
-
-		// SHA256(plaintext)
-		for (i = 0; i < 32; i++)
-			md.c[i ^ 3] = plaintext[i];
-		md.c[i ^ 3] = 0x80;
-		md.w[15] = i << 3;
-
-		sha256_init(hash.w);
-		sha256_block(md.w, hash.w);
-
-		for (i = 0; i < 256/8/4; i++)
-			hash.w[i] = SWAP32(hash.w[i]);
-
-		for (i = 0; i < 32; i++) {
-			if (hash.c[i] != plaintext[32 + i]) {
-				success = 0;
-				break;
-			}
+	for (i = 0; i < 32/4; i++) {
+		if (out.w[i] != plaintext.w[32/4 + i]) {
+			success = 0;
+			break;
 		}
-
-		out[gid + 1].cracked = success;
-
-		if (success)
-			atomic_max(&out[0].cracked, gid + 1);
 	}
+
+	result[gid].cracked = success;
 }

@@ -26,12 +26,13 @@
 #ifndef _SSE_PSEUDO_H
 #define _SSE_PSEUDO_H
 
+#include <stdint.h>
+
 #include "arch.h"
 
 #if SIMD_COEF_32
 
 #include "aligned.h"
-#include "stdint.h"
 #include "common.h" /* for is_aligned() */
 
 

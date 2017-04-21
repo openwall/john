@@ -99,12 +99,6 @@ typedef struct {
 
 typedef struct {
         uint32_t cracked;
-        uint32_t dummy;
-        union {
-                uint8_t  c[64];
-                uint32_t w[64/4];
-                uint64_t l[64/8];
-        } key[2];
 } ms_office_out;
 
 static ms_office_custom_salt *cur_salt;
@@ -159,7 +153,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	int i;
 	int bench_len = strlen(tests[0].plaintext) * 2;
 
-	outsize = sizeof(ms_office_out) * (gws + 1);
+	outsize = sizeof(ms_office_out) * gws;
 
 	pinned_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
@@ -393,17 +387,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// Get results
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_out, CL_TRUE, 0, outsize, out, 0, NULL, multi_profilingEvent[5]), "failed in reading results");
 
-	return out[0].cracked;
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return out[0].cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (out[i].cracked)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return out[index + 1].cracked;
+	return out[index].cracked;
 }
 
 static int cmp_exact(char *source, int index)

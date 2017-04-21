@@ -15,9 +15,10 @@
 
 
 #include <string.h>
+#include <stdint.h>
+
 #include "arch.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 

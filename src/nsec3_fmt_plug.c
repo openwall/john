@@ -30,9 +30,9 @@ john_register_one(&fmt_nsec3);
 
 #include <ctype.h>
 #include <string.h>
-#include "stdint.h"
-#include "sha.h"
+#include <stdint.h>
 
+#include "sha.h"
 #include "arch.h"
 #include "params.h"
 #include "common.h"

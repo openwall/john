@@ -76,7 +76,7 @@ inline void preproc(__global const uchar *key, uint keylen,
 inline void hmac_sha1(__private uint *output,
     __private uint *ipad_state,
     __private uint *opad_state,
-    __global const uchar *salt, int saltlen, uchar add)
+    __constant uchar *salt, int saltlen, uchar add)
 {
 	int i;
 	uint W[16];
@@ -195,7 +195,7 @@ inline void big_hmac_sha1(__private uint *input, uint inputlen,
 }
 
 inline void pbkdf2(__global const uchar *pass, uint passlen,
-                   __global const uchar *salt, uint saltlen, uint iterations,
+                   __constant uchar *salt, uint saltlen, uint iterations,
                    __global uint *out, uint outlen, uint skip_bytes)
 {
 	uint ipad_state[5];
@@ -233,7 +233,7 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 
 __kernel void derive_key(__global const pbkdf2_password *inbuffer,
                          __global pbkdf2_hash *outbuffer,
-                         __global const pbkdf2_salt *salt)
+                         __constant pbkdf2_salt *salt)
 {
 	uint idx = get_global_id(0);
 

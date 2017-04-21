@@ -33,8 +33,8 @@ typedef struct {
 	uint rounds;
 } state_t;
 
-inline void preproc(__global const uchar * key, uint keylen,
-                    uint * state, uint padding)
+inline void preproc(__global const uchar *key, uint keylen,
+                    uint *state, uint padding)
 {
 	uint j, t;
 	uint W[16];
@@ -66,8 +66,8 @@ inline void preproc(__global const uchar * key, uint keylen,
 }
 
 
-inline void hmac_sha256(uint * output, uint * ipad_state,
-                        uint * opad_state, __global const uchar * salt,
+inline void hmac_sha256(uint *output, uint *ipad_state,
+                        uint *opad_state, __constant uchar *salt,
                         uint saltlen)
 {
 	uint i, t;
@@ -319,9 +319,9 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state,
 	}
 }
 
-__kernel void pbkdf2_sha256_kernel(__global const pass_t * inbuffer,
-                                   __global const salt_t * gsalt,
-                                   __global state_t * state)
+__kernel void pbkdf2_sha256_kernel(__global const pass_t *inbuffer,
+                                   __constant salt_t *gsalt,
+                                   __global state_t *state)
 {
 
 	uint ipad_state[8];
@@ -330,7 +330,7 @@ __kernel void pbkdf2_sha256_kernel(__global const pass_t * inbuffer,
 	uint i, idx = get_global_id(0);
 
 	__global const uchar *pass = inbuffer[idx].v;
-	__global const uchar *salt = gsalt->salt;
+	__constant uchar *salt = gsalt->salt;
 	uint passlen = inbuffer[idx].length;
 	uint saltlen = gsalt->length;
 

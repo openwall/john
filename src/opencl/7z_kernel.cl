@@ -10,6 +10,7 @@
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
 #define OCL_AES_CBC_DECRYPT 1
+#define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
@@ -131,7 +132,7 @@ __kernel void sevenzip_loop(__global const sevenzip_password *inbuffer,
 }
 
 __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
-                             __global const sevenzip_salt *salt,
+                             __constant sevenzip_salt *salt,
                              __global sevenzip_hash *outbuffer)
 {
 	uint gid = get_global_id(0);
@@ -149,7 +150,7 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
 		outbuffer[gid].key[i] = SWAP32(hash[i]);
 }
 
-__kernel void sevenzip_aes(__global const sevenzip_salt *salt,
+__kernel void sevenzip_aes(__constant sevenzip_salt *salt,
                            __global sevenzip_hash *outbuffer)
 {
 	uint gid = get_global_id(0);

@@ -15,12 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "blf.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "memdbg.h"
 
 /*
@@ -88,11 +88,6 @@ bcrypt_hash(uint8_t *sha2pass, uint8_t *sha2salt, uint8_t *out)
 		out[4 * i + 1] = (cdata[i] >> 8) & 0xff;
 		out[4 * i + 0] = cdata[i] & 0xff;
 	}
-
-	/* zap */
-	// bzero(ciphertext, sizeof(ciphertext));
-	// bzero(cdata, sizeof(cdata));
-	// bzero(&state, sizeof(state));
 }
 
 int
@@ -122,7 +117,6 @@ bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt, size_t saltl
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, pass, passlen);
 	SHA512_Final(sha2pass, &ctx);
-
 
 	/* generate key, sizeof(out) at a time */
 	for (count = 1; keylen > 0; count++) {
@@ -161,10 +155,6 @@ bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt, size_t saltl
 		}
 		keylen -= i;
 	}
-
-	/* zap */
-	// bzero(&ctx, sizeof(ctx));
-	// bzero(out, sizeof(out));
 
 	return 0;
 }

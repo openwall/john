@@ -20,9 +20,10 @@ extern struct fmt_main fmt_rawSHA224;
 john_register_one(&fmt_rawSHA224);
 #else
 
+#include <stdint.h>
+
 #include "arch.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"

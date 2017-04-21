@@ -64,7 +64,8 @@ john_register_one(&fmt_oracle12c);
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 
 static struct fmt_tests tests[] = {
-{"$oracle12c$e3243b98974159cc24fd2c9a8b30ba62e0e83b6ca2fc7c55177c3a7f82602e3bdd17ceb9b9091cf9dad672b8be961a9eac4d344bdba878edc5dcb5899f689ebd8dd1be3f67bff9813a464382381ab36b", "epsilon"},
+	{"$oracle12c$e3243b98974159cc24fd2c9a8b30ba62e0e83b6ca2fc7c55177c3a7f82602e3bdd17ceb9b9091cf9dad672b8be961a9eac4d344bdba878edc5dcb5899f689ebd8dd1be3f67bff9813a464382381ab36b", "epsilon"},
+	{"$oracle12c$eda9535a516d5c7c75ef250f8b1b5fadc023ebfdad9b8d46f023b283cabc06f822e6db556a131d8f87fb427e6a7d592ca69b0e4eef22648aa7ba00afee786a8745057545117145650771143408825746", "18445407"},
 	{NULL}
 };
 

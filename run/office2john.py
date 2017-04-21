@@ -2786,6 +2786,7 @@ have_summary = False
 summary = []
 
 import re
+from binascii import unhexlify
 
 
 def remove_html_tags(data):
@@ -2819,6 +2820,17 @@ def process_file(filename):
             start = data.find(accdb_xml_start)
             trailer = data.find(accdb_xml_trailer)
             xml_metadata_parser(data[start:trailer+len(accdb_xml_trailer)], filename)
+            return
+
+        # OneNote handling hack for OneNote versions >= 2013, see [MS-ONESTORE].pdf
+        onenote_magic = unhexlify("e4525c7b8cd8")
+        onenote_xml_start = b'<?xml version="1.0"'
+        onenote_xml_trailer = b'</encryption>'
+        if data.startswith(onenote_magic) and onenote_xml_start in data:
+            # find start and the end of the XML metadata stream
+            start = data.find(onenote_xml_start)
+            trailer = data.find(onenote_xml_trailer)
+            xml_metadata_parser(data[start:trailer+len(onenote_xml_trailer)], filename)
             return
 
         if not isOleFile(filename):

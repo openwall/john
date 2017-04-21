@@ -13,9 +13,6 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
-#include "arch.h"
-#if !AC_BUILT || HAVE_BIO_NEW
-
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sshng;
 #elif FMT_REGISTERS_H
@@ -23,7 +20,7 @@ john_register_one(&fmt_sshng);
 #else
 
 #include <string.h>
-#include "aes.h"
+#include <stdint.h>
 #include <openssl/des.h>
 #include <assert.h>
 #include <ctype.h>
@@ -36,13 +33,15 @@ static int omp_t = 1;
 #endif
 #endif
 
+#include "arch.h"
+#include "aes.h"
 #include "jumbo.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "stdint.h"
 #include "md5.h"
+#include "bcrypt_pbkdf.h"
 #include "memdbg.h"
 #include "asn1.h"
 
@@ -82,6 +81,8 @@ static struct fmt_tests sshng_tests[] = {
 #endif
 	// EC private key
 	{"$sshng$3$16$00B535FBA963402F20C12648A59D7258$128$dfa09369ff38f33c9789d33760d16fdd47730311b41b51a0c7b1dd1dec850c5c2ff523710af12839f25a709f0076cdd3e3643fab2ea1d17c6fae52a797b55e752b71a1fdd46d5bd889b51ddc2a01922340e5be914a67dabf666aff1c88275bd8ec3529e26386279adeb480446ab869dc27c160bd8fe469d5f993b90aaffef8ce", "password123"},
+	// RSA key encrypted with 3DES, this caught the incorrect padding check bug
+	{"$sshng$0$8$F1621D1A561534C3$616$ab1925ec002675445db989f2591a5bf7a31a80e10131b6eebb20bc2d2b70e2a21f431bfc70228f3873b4e0bb902156a1cf829d50fa09bc035d5ddf04f2a403f4fd7bfe32b5219d6c74dd594d0babd07e28075be4eef6f015d1ce5be91fcd81a55f886d867995d4719bd8e0890e8fe4c8abc171d272442e1c6805b29e1cb996a2b2cd3e82e70df0270d98d88c8cd32a1164ebe6e1390e64ce15cc166054281619a125bf4776c7433cf653a87d40d3ae6b494d536c2d2974e697d34b8965239d976e9e1d8a3f1503c7bb6ebacd8f852f65b96e58e5a280411ea7737ba1410ec273722b1b3b91c83eba4c3a0c187be3bdb05d3fe9be55cfbde501adc8ff6ff257ecbd4efceb8d8e7a859af411565b3f3fb0fc3d9df056a265836ec18b234f7b6956a4202ae75e5ed2890d33e9abb355763cc56438509a199c4fe3e48e12fa3f6cc2e55f8f3b134ba2dec87b4d37d6209bbf84826d74cac0d96cf4303654c36476edc38f750d4d7d0a495aac5f6ec8ffc6fcceb482985b81636fb66f05502d00c00e5e8b39a17afe46faf18ac590cb4fd59cf88b62209378c47be74b902956b555bdeaba14f447a8b0e4522ea6d0f492045f3b14a49c3d7d9f6cd3f8782cb1fce3bacd57e71e918726a514a39a474661c6989796a9fab1d8f6cc684b4963ced9982a01ee50e076937dfccc4a1d00870b238f30fc4fa258dd6a62d3c7a79bb9f23b0be25261bf222681859058fc56660d59124d114d7528e98b8c2eb8d465514894a6796b07f244bb8334bb4a440245d5a942a05fd401634cbc6f32ee223b4ec49446fd0fc2b30ed05324837ba8a2415c23bc4fc526ee15766c6a29047ba5bb05f38a122160ed91c769ae", "albert"},
 	{NULL}
 };
 
@@ -120,6 +121,10 @@ static void done(void)
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char buf[sizeof(struct custom_salt)+100];
+
+	if (strstr(ciphertext, "$SOURCE_HASH$"))
+		return ciphertext;
+
 	strnzcpy(buf, ciphertext, sizeof(buf));
 	strlwr(buf);
 	return buf;
@@ -362,13 +367,13 @@ bad:
 	return -1;
 }
 
-static inline int check_padding_and_structure(unsigned char *out, int length, int strict_mode)
+static inline int check_padding_and_structure(unsigned char *out, int length, int strict_mode, int blocksize)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
 
 	// First check padding
-	if (check_pkcs_pad(out, length, 16) < 0)
+	if (check_pkcs_pad(out, length, blocksize) < 0)
 		return -1;
 
 	/* check BER decoding, private key file contains:
@@ -434,10 +439,6 @@ static inline int check_padding_and_structure(unsigned char *out, int length, in
 bad:
 	return -1;
 }
-
-int bcrypt_pbkdf(const char *pass, size_t passlen, const uint8_t *salt, size_t saltlen,
-	uint8_t *key, size_t keylen, unsigned int rounds);
-
 
 static void common_crypt_code(char *password, unsigned char *out, int full_decrypt)
 {
@@ -512,8 +513,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char out[N];
 		common_crypt_code(saved_key[index], out, 0); // don't do full decryption (except for EC keys)
 
-		if (cur_salt->cipher == 0 || cur_salt->cipher == 1) {
-			if (check_padding_and_structure(out, cur_salt->ctl, 0) == 0)
+		if (cur_salt->cipher == 0) { // 3DES
+			if (check_padding_and_structure(out, cur_salt->ctl, 0, 8) == 0)
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		} else if (cur_salt->cipher == 1) {
+			if (check_padding_and_structure(out, cur_salt->ctl, 0, 16) == 0)
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
@@ -552,16 +558,15 @@ static int cmp_exact(char *source, int index)
 	unsigned char out[N];
 	common_crypt_code(saved_key[index], out, 1); // do full decryption!
 
-	if (cur_salt->cipher == 0 || cur_salt->cipher == 1) {
-		if (check_padding_and_structure(out, cur_salt->ctl, 1) == 0)
+	if (cur_salt->cipher == 0) { // 3DES
+		if (check_padding_and_structure(out, cur_salt->ctl, 1, 8) == 0)
 			return 1;
-		else
-			return 0;
+	} else if (cur_salt->cipher == 1) {
+		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
+			return 1;
 	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling */
 		if (check_padding_only(out + 16, 16) == 0) /* always check the last block (16 bytes) */
 			return 1;
-		else
-			return 0;
 	} else if (cur_salt->cipher == 3) { // EC keys
 		return 1;
 	}
@@ -633,4 +638,3 @@ struct fmt_main fmt_sshng = {
 };
 
 #endif /* plugin stanza */
-#endif /* HAVE_BIO_NEW */

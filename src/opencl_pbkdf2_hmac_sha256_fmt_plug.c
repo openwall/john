@@ -12,14 +12,15 @@ extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha256;
 john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #else
 
+#include <stdint.h>
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+
 #include "misc.h"
 #include "arch.h"
 #include "base64_convert.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"

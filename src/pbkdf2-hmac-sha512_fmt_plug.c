@@ -23,6 +23,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "misc.h"
 #include "arch.h"
@@ -30,7 +31,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #include "formats.h"
 #include "sha2.h"
 #include "johnswap.h"
-#include "stdint.h"
 #include "pbkdf2_hmac_common.h"
 #include "pbkdf2_hmac_sha512.h"
 

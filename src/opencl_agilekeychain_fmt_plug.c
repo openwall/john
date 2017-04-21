@@ -23,12 +23,12 @@ extern struct fmt_main fmt_opencl_agilekeychain;
 john_register_one(&fmt_opencl_agilekeychain);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "aes.h"
 #include "common-opencl.h"
@@ -117,7 +117,7 @@ static size_t get_task_max_work_group_size()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	insize = sizeof(agile_password) * gws;
-	outsize = sizeof(agile_hash) * (gws + 1);
+	outsize = sizeof(agile_hash) * gws;
 	settingsize = sizeof(agile_salt);
 
 	inbuffer = mem_calloc(1, insize);
@@ -348,17 +348,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
 
-	return outbuffer[0].cracked;
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return outbuffer[0].cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (outbuffer[i].cracked)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return outbuffer[index + 1].cracked;
+	return outbuffer[index].cracked;
 }
 
 static int cmp_exact(char *source, int index)

@@ -400,7 +400,7 @@ if (@ARGV == 1) {
 
 #############################################################################
 # these variables modify outout in output_hash, for 'some' formats. We might
-# upcase the password. The hash may return multple fields in it's 'hash' that
+# upcase the password. The hash may return multple fields in its 'hash' that
 # is returned, so that means we add fewer 'extra' fields prior to the password.
 # also, we may have to insert the user name as field 1.  This function sets
 # 'proper' defaults, so if a hash function does not set anything, it will
@@ -624,7 +624,7 @@ sub str_force_length_pad {
 	$str = substr($str, 0, $_[1]);
 	return $str;
 }
-# every byte of the string has it's bits put into reverse order.
+# every byte of the string has its bits put into reverse order.
 # vnc does this for some reason. But I put into a function so if
 # needed again, we can do this.
 sub str_reverse_bits_in_bytes {

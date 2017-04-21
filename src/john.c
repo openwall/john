@@ -170,7 +170,6 @@ extern int base64conv(int argc, char **argv);
 extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
-extern int pfx2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
 extern int bitlocker2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
@@ -184,6 +183,8 @@ int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
 char *john_terminal_locale ="C";
+
+unsigned long long john_max_cands;
 
 static int children_ok = 1;
 
@@ -1766,10 +1767,23 @@ static void john_done(void)
 	if ((options.flags & (FLG_CRACKING_CHK | FLG_STDOUT)) ==
 	    FLG_CRACKING_CHK) {
 		if (event_abort) {
-			log_event((aborted_by_timer) ?
+			char *abort_msg = (aborted_by_timer) ?
 			          "Session stopped (max run-time reached)" :
-			          "Session aborted");
-			/* We have already printed to stderr from signals.c */
+			          "Session aborted";
+
+			if (john_max_cands) {
+				unsigned long long cands =
+					((unsigned long long)
+					 status.cands.hi << 32) +
+					status.cands.lo;
+
+				if (cands >= john_max_cands)
+					abort_msg =
+						"Session stopped (max candidates reached)";
+			}
+
+			/* We already printed to stderr from signals.c */
+			log_event("%s", abort_msg);
 		} else if (children_ok) {
 			log_event("Session completed");
 			if (john_main_process)
@@ -1903,13 +1917,6 @@ int main(int argc, char **argv)
 		return putty2john(argc, argv);
 	}
 
-#if !AC_BUILT || HAVE_BIO_NEW
-	if (!strcmp(name, "pfx2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return pfx2john(argc, argv);
-	}
-#endif
-
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return keepass2john(argc, argv);
@@ -1965,6 +1972,21 @@ int main(int argc, char **argv)
 		timer_abort = time + abs(options.max_run_time);
 	if (options.status_interval)
 		timer_status = time + options.status_interval;
+	if (options.max_cands) {
+		if (options.node_count) {
+			long long orig_max_cands = options.max_cands;
+
+			/* Split between nodes */
+			options.max_cands /= options.node_count;
+			if (options.node_min == 1)
+				options.max_cands +=
+					orig_max_cands % options.node_count;
+		}
+
+		/* Allow resuming, for another set of N candidates */
+		john_max_cands = ((unsigned long long)status.cands.hi << 32) +
+			status.cands.lo + llabs(options.max_cands);
+	}
 
 	john_run();
 	john_done();

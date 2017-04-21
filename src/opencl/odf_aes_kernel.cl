@@ -16,6 +16,7 @@
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
 #define OCL_AES_CBC_DECRYPT 1
 #define AES_KEY_TYPE __global
+#define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
 typedef struct {
@@ -42,7 +43,7 @@ typedef struct {
 } odf_out;
 
 __kernel void dk_decrypt(__global odf_password *password,
-                         __global const odf_salt *salt,
+                         __constant odf_salt *salt,
                          __global odf_out *odf_out,
                          __global odf_sha_key *sha_key)
 {

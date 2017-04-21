@@ -38,7 +38,7 @@
 #define HAVE__ATOI64 1
 #endif
 
-#include "stdint.h"
+#include <stdint.h>
 
 /******************************************/
 /* here we try to 'find' a usable fseek64 */

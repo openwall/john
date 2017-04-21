@@ -2,7 +2,7 @@
 #ifndef HAS160_H
 #define HAS160_H
 
-#include "stdint.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

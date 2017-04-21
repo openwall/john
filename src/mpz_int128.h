@@ -19,7 +19,7 @@
  * You have been warned.
  */
 
-#include "stdint.h"
+#include <stdint.h>
 #include "int128.h"
 #include <stdio.h>
 #if !AC_BUILT

@@ -18,6 +18,7 @@ john_register_one(&fmt_opencl_zip);
 #else
 
 #include <string.h>
+#include <stdint.h>
 #include <openssl/des.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -32,13 +33,12 @@ john_register_one(&fmt_opencl_zip);
 #include "dyna_salt.h"
 #include "hmac_sha.h"
 #include "options.h"
-#include "stdint.h"
 #define OPENCL_FORMAT 1
 #include "pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL		"zip-opencl"
 #define FORMAT_NAME		"ZIP"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL AES"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 # define SWAP(n) \

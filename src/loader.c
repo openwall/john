@@ -1901,20 +1901,6 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
 	if (line) {
-		struct fmt_main *format = fmt_list;
-/*
- * Jumbo-specific; split() needed for legacy pot entries so we need to
- * enumerate formats and call valid(). This also takes care of the situation
- * where a specific format was requested.
- */
-		do {
-			if (ldr_trunc_valid(ciphertext, format) == 1)
-				break;
-		} while((format = format->next));
-
-		if (!format)
-			return;
-
 		pos = line;
 		do {
 			if (*pos == '\r' || *pos == '\n') *pos = 0;
@@ -1924,8 +1910,25 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 			list_add(db->plaintexts, line);
 			return;
 		}
+/*
+ * Jumbo-specific; split() needed for legacy pot entries so we need to
+ * enumerate formats and call valid(). This also takes care of the situation
+ * where a specific format was requested.
+ */
+		if (!(options.flags & FLG_MAKECHR_CHK)) {
+			struct fmt_main *format = fmt_list;
 
-		ciphertext = format->methods.split(ciphertext, 0, format);
+			do {
+				if (ldr_trunc_valid(ciphertext, format) == 1)
+					break;
+			} while((format = format->next));
+
+			if (!format)
+				return;
+
+			ciphertext =
+				format->methods.split(ciphertext, 0, format);
+		}
 		hash = ldr_cracked_hash(ciphertext);
 
 		last = db->cracked_hash[hash];

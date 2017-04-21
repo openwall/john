@@ -24,15 +24,6 @@ john_register_one(&fmt_o10glogon);
 
 #include <string.h>
 #include <openssl/des.h>
-#include <openssl/aes.h>
-
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "md5.h"
-#include "unicode.h"
-#include "base64_convert.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -41,6 +32,14 @@ static int omp_t = 1;
 #endif
 #endif
 
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "aes.h"
+#include "md5.h"
+#include "unicode.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL                    "o10glogon"

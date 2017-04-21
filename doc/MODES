@@ -153,7 +153,7 @@ the same result as a rule adding two digits to the base word.
 	Multiple stacking of modes.
 
 The mask and regex modes can be stacked upon some other mode (any mode except
-single, but including eg. stdin and loopback modes).  Regex can be a parent
+single, but including e.g. stdin and loopback modes).  Regex can be a parent
 mode to mask mode even when regex itself runs stacked on some other mode.  In
 that case, mask is always last in chain  (by design, since it can accelerate
 fast GPU formats).  Basically, the first mode is any mode except single, and

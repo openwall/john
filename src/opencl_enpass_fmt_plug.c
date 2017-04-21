@@ -16,13 +16,13 @@ extern struct fmt_main fmt_opencl_enpass;
 john_register_one(&fmt_opencl_enpass);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #include "aes.h"
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "enpass_common.h"
 #include "options.h"
 #include "jumbo.h"
@@ -65,7 +65,10 @@ typedef struct {
 	unsigned int  outlen;
 	unsigned int  iterations;
 	unsigned char salt[115];
-	unsigned char iv[16];
+	union {
+		uint8_t  c[16];
+		uint32_t w[16 / 4];
+	} iv;
 	unsigned char data[16];
 } enpass_salt;
 
@@ -118,7 +121,7 @@ struct fmt_main *me;
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	key_buf_size = 64 * gws;
-	outsize = sizeof(enpass_out) * (gws + 1);
+	outsize = sizeof(enpass_out) * gws;
 
 	/// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
@@ -223,7 +226,7 @@ static void set_salt(void *salt)
 	currentsalt.outlen = 32; // AES 256-bit key only
 
 	/* AES */
-	memcpy(currentsalt.iv, &cur_salt->data[16 + size], 16);
+	memcpy(currentsalt.iv.c, &cur_salt->data[16 + size], 16);
 	memcpy(currentsalt.data, &cur_salt->data[16], 16);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0,
 		sizeof(enpass_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
@@ -288,17 +291,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	/// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, outsize, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
-	return (output[0].cracked);
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return (output[0].cracked);
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (output[i].cracked)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (output[index + 1].cracked);
+	return (output[index].cracked);
 }
 
 static int cmp_exact(char *source, int index)

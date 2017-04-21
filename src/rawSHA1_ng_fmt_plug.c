@@ -45,6 +45,7 @@ john_register_one(&fmt_sha1_ng);
 #endif
 
 #include <string.h>
+#include <stdint.h>
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -53,12 +54,10 @@ john_register_one(&fmt_sha1_ng);
 #endif
 
 #include "stdbool.h"
-#include "stdint.h"
 #if SIMD_COEF_32 > 8
 #include "int128.h"
 #endif
 #include "pseudo_intrinsics.h"
-#include "stdint.h"
 #include "params.h"
 #include "formats.h"
 #include "memory.h"

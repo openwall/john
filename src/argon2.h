@@ -14,7 +14,7 @@
 #ifndef ARGON2_H
 #define ARGON2_H
 
-#include "stdint.h"
+#include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
 

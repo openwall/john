@@ -3,6 +3,7 @@
  * Copyright (c) 1996-2001,2006,2008,2010-2013,2015 by Solar Designer
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -15,12 +16,6 @@
 #include "base64_convert.h"
 #ifndef BENCH_BUILD
 #include "options.h"
-#else
-#if ARCH_INT_GT_32
-typedef unsigned short uint32_t;
-#else
-typedef unsigned int uint32_t;
-#endif
 #include "loader.h"
 #endif
 
@@ -386,7 +381,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->private.initialized == 2)
 		return NULL;
 #endif
-
+#if defined(HAVE_OPENCL)
+	if (strcasestr(format->params.label, "-opencl") &&
+	    !strstr(format->params.label, "-opencl")) {
+		return "-opencl suffix must be lower case";
+	}
+#endif
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
 		fmt_init(format);

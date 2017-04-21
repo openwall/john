@@ -41,11 +41,7 @@
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 
 #include <stdio.h>
-#ifndef JTR_MODE
 #include <stdint.h>
-#else
-#include "stdint.h"
-#endif
 #include <stdlib.h>
 #if !AC_BUILT
 #include <string.h>

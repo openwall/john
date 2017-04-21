@@ -400,6 +400,12 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 #endif
 		}
 
+		if (options.max_cands < 0)
+			john_max_cands =
+				((unsigned long long)status.cands.hi << 32) +
+				status.cands.lo - options.max_cands +
+				crk_params.max_keys_per_crypt;
+
 		if (dupe)
 			ct = NULL;
 		else
@@ -972,6 +978,14 @@ static int crk_salt_loop(void)
 #endif
 	}
 
+	if (john_max_cands && !event_abort) {
+		unsigned long long cands =
+			((unsigned long long)
+			 status.cands.hi << 32) + status.cands.lo;
+		if (cands >= john_max_cands)
+			event_abort = event_pending = 1;
+	}
+
 	if (salt)
 		return 1;
 
@@ -1022,6 +1036,14 @@ int crk_process_key(char *key)
 		puts(crk_stdout_key);
 
 	status_update_cands(1);
+
+	if (john_max_cands && !event_abort) {
+		unsigned long long cands =
+			((unsigned long long)
+			 status.cands.hi << 32) + status.cands.lo;
+		if (cands >= john_max_cands)
+			event_abort = event_pending = 1;
+	}
 
 	if (options.flags & FLG_MASK_STACKED)
 		mask_fix_state();

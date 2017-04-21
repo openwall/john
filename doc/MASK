@@ -12,7 +12,7 @@ A mask may consist of:
 - ?u upper-case ASCII letters
 - ?d digits
 - ?s specials (all printable ASCII characters not in ?l, ?u or ?d)
-- ?a full 'printable' ASCII. Note that for formats that doesn't recognize case
+- ?a full 'printable' ASCII. Note that for formats that don't recognize case
      (eg. LM), this only includes lower-case characters which is a tremendous
      reduction of keyspace for the win.
 - ?B all 8-bit (0x80-0xff)
@@ -24,9 +24,9 @@ A mask may consist of:
 - ?D non-ASCII "digits"
 - ?S non-ASCII "specials"
 - ?A all valid characters in the current code page (including ASCII). Note
-     that for formats that doesn't recognize case (eg. LM), this only includes
+     that for formats that don't recognize case (eg. LM), this only includes
      lower-case characters which is a tremendous reduction of keyspace.
-- Placeholders that are custom defined, so we can eg. define ?1 to mean [?u?l]
+- Placeholders that are custom defined, so we can e.g. define ?1 to mean [?u?l]
   ?1 .. ?9 user-defined place-holder 1 .. 9
 - Placeholders for Hybrid Mask mode:
   ?w is a placeholder for the original word produced by the parent mode in
@@ -38,7 +38,7 @@ Mask Mode alone produces words from the mask, for example ?u?l?l will generate
 all possible three-letter words, with first character uppercased and the
 remaining in lowercase.
 
-Hybrid (a.k.a Stacked) Mask means we use eg. a wordlist with or without rules
+Hybrid (a.k.a Stacked) Mask means we use e.g. a wordlist with or without rules
 (or any other cracking mode), and then apply the mask to each word.  So with a
 mask of ?w?d?d and an input word (from the parent cracking mode) of "pass",
 it will produce "pass00", "pass01" and so on until "pass99".  Hybrid Mask can
@@ -56,10 +56,10 @@ external filters with "GPU side mask" will cause a somewhat undefined behavior
 though: The filter will be applied before the GPU-side mask has finished the
 word!
 
-You can define custom placeholders for ?1 .. ?9 using command line eg. -1=?l?u
+You can define custom placeholders for ?1 .. ?9 using command line e.g. -1=?l?u
 or in john.conf section [Mask].
 
-There is a default mask in john.conf too (defaulting to same as Hashcat).
+There is a default mask in john.conf too (defaulting to same as hashcat).
 This should be used with -max-len (and possibly -min-len) to do any good.
 
 The -max-len=N option will truncate the mask so no words longer than N are

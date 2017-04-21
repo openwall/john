@@ -14,12 +14,13 @@
  * purpose, in source and binary forms, with or without modification.
  */
 
+#include <stdint.h>
+
 #include "arch.h"
 #include "aligned.h"
 #include "sha.h"
 #include "sha2.h"
 #include "common.h"
-#include "stdint.h"
 
 #if ARCH_BITS==64
 #define HMAC_SHA32_COUNT  8

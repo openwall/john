@@ -10,6 +10,7 @@
  *   Also removed oSSL code: HMAC(EVP_sha1(), ....), and coded what it does
  * (which is simple), inline.
  */
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_wpapsk;
 #elif FMT_REGISTERS_H
@@ -17,10 +18,10 @@ john_register_one(&fmt_wpapsk);
 #else
 
 #include <string.h>
+#include <assert.h>
+
 #include "arch.h"
 #include "simd-intrinsics.h"
-
-#include <assert.h>
 #include "formats.h"
 #include "common.h"
 #include "misc.h"

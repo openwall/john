@@ -12,11 +12,12 @@ extern struct fmt_main fmt_enpass;
 john_register_one(&fmt_enpass);
 #else
 
-#include "aes.h"
 #include <string.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <assert.h>
 #include <errno.h>
+
+#include "aes.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"

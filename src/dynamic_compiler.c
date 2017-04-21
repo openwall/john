@@ -18,8 +18,8 @@
  *    This expression language will be very similar to the expression language in pass_gen.pl
  *
  *  Valid items in EXPR
- *     md5(EXPR)   Perform MD5.   Results in lowcase hex (unless it's the outter EXPR)
- *     sha1(EXPR)  Perform SHA1.  Results in lowcase hex (unless it's the outter EXPR)
+ *     md5(EXPR)   Perform MD5.   Results in lowcase hex (unless it's the outer EXPR)
+ *     sha1(EXPR)  Perform SHA1.  Results in lowcase hex (unless it's the outer EXPR)
  *     md4(EXPR), sha256(EXPR), sha224(EXPR), sha384(EXPR), sha512(EXPR), gost(EXPR),
  *     whirlpool(EXPR) tiger(EXPR), ripemd128(EXPR), ripemd160(EXPR), ripemd256(EXPR),
  *     ripemd320(EXPR) all act like md5() and sha1, but use the hash listed.
@@ -154,11 +154,12 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 #include "arch.h"
 
 #ifndef DYNAMIC_DISABLED
+#include <stdint.h>
 #include <ctype.h>
 #include <stdarg.h>
+
 #include "misc.h"	// error()
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "list.h"
 #include "crc32.h"
@@ -800,7 +801,7 @@ static const char *comp_get_symbol(const char *pInput) {
 					  return comp_push_sym(TmpBuf, fpNull, pInput+3, 0);
 		}
 	}
-	// these are functions, BUT can not be used for 'outter' function (i.e. not the final hash)
+	// these are functions, BUT can not be used for 'outer' function (i.e. not the final hash)
 	// Note this may 'look' small, but it is a large IF block, once the macro's expand
 	LastTokIsFunc = 1;
 	LOOKUP_IF_BLK(md5,MD5,5,5,3,16)
@@ -1849,7 +1850,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt) max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (239-len_comp);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1859,7 +1860,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt) max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (247-len_comp);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
@@ -1867,7 +1868,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt) max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (256-len_comp);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
 
 								}
 							}
@@ -1883,7 +1884,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-239+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (239-len_comp2);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1893,7 +1894,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-247+(inp_cnt2-1))/inp_cnt2;
 									else  max_inp_len = (247-len_comp2);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
@@ -1901,7 +1902,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-256+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (256-len_comp2);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
 								}
 							}
 							len_comp2 = 0;

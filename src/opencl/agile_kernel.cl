@@ -9,6 +9,7 @@
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
 #define AES_KEY_TYPE __global
 #define OCL_AES_CBC_DECRYPT 1
+#define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
 inline int check_pkcs_pad(const uchar *data, size_t len, uint blocksize)
@@ -45,13 +46,13 @@ typedef struct {
 } agile_salt;
 
 typedef struct {
-	volatile uint cracked;
+	uint cracked;
 	uint key[16/4];
 } agile_out;
 
 __kernel void dk_decrypt(__global pbkdf2_password *password,
                          __global agile_out *agile_out,
-                         __global const agile_salt *salt)
+                         __constant agile_salt *salt)
 {
 	uint idx = get_global_id(0);
 	AES_KEY akey;
@@ -60,9 +61,6 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 	uint i;
 	int n;
 	int success = 0;
-
-	if (idx == 0)
-		agile_out[0].cracked = 0;
 
 	pbkdf2(password[idx].v, password[idx].length, salt->salt, salt->length,
 	       salt->iterations, agile_out[idx].key, salt->outlen,
@@ -82,8 +80,5 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 			success = 1;
 	}
 
-	agile_out[idx + 1].cracked = success;
-
-	if (success)
-		atomic_max(&agile_out[0].cracked, idx + 1);
+	agile_out[idx].cracked = success;
 }

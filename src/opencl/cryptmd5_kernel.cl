@@ -132,7 +132,7 @@ __constant uchar g[] =
 	    1, 7, 3, 5, 2, 7, 1, 7, 3, 5, 3, 6, 1, 7, 3, 5, 3, 7 };
 
 #ifdef BUF_UPDATE_SWITCH
-inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
+inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
 {
 	uint i = offset >> 2;
 	switch (offset & 3) {
@@ -190,7 +190,7 @@ inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
 	}
 }
 #else
-inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
+inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
 {
 	uint i = offset >> 2;
 	uint j = offset & 3;
@@ -220,8 +220,8 @@ inline void buf_update(uint * buf, uint a, uint b, uint c, uint d, uint offset)
 }
 #endif
 
-inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
-    uint * ctx_buflen)
+inline void ctx_update(md5_ctx *ctx, uchar *string, uint len,
+    uint *ctx_buflen)
 {
 	uint i;
 
@@ -231,7 +231,7 @@ inline void ctx_update(md5_ctx * ctx, uchar * string, uint len,
 	*ctx_buflen += len;
 }
 
-inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
+inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uint *ctx_buflen)
 {
 	uint i;
 
@@ -249,7 +249,7 @@ inline void ctx_update_prefix(md5_ctx * ctx, uchar prefix, uint * ctx_buflen)
 	// else if (prefix == '\0') do nothing. for {smd5}
 }
 
-inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
+inline void init_ctx(md5_ctx *ctx, uint *ctx_buflen)
 {
 	uint i;
 	uint *buf = (uint *) ctx->buffer;
@@ -262,7 +262,7 @@ inline void init_ctx(md5_ctx * ctx, uint * ctx_buflen)
 	*ctx_buflen = 0;
 }
 
-inline void md5_digest(md5_ctx * ctx, uint * result, uint len,
+inline void md5_digest(md5_ctx *ctx, uint *result, uint len,
     uint res_offset)
 {
 	uint *x = ctx->buffer;
@@ -359,8 +359,8 @@ inline void md5_digest(md5_ctx * ctx, uint * result, uint len,
 	buf_update(result, a, b, c, d, res_offset);
 }
 
-__kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
-    __global crypt_md5_hash * outbuffer, __global const crypt_md5_salt * hsalt)
+__kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
+    __global crypt_md5_hash *outbuffer, __constant crypt_md5_salt *hsalt)
 {
 	uint idx = get_global_id(0);
 	uint pass_len = inbuffer[idx].length;
@@ -384,8 +384,8 @@ __kernel void cryptmd5(__global const crypt_md5_password * inbuffer,
 	for (i = 0; i < (PLAINTEXT_LENGTH + 3) / 4; i++)
 		pass.w[i] = ((__global uint *) & inbuffer[idx].v)[i];
 
-	salt.w[0] = ((__global uint *) & hsalt->salt)[0];
-	salt.w[1] = ((__global uint *) & hsalt->salt)[1];
+	salt.w[0] = ((__constant uint *) & hsalt->salt)[0];
+	salt.w[1] = ((__constant uint *) & hsalt->salt)[1];
 
 	init_ctx(&ctx[1], &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);

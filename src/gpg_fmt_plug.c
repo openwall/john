@@ -31,7 +31,7 @@ john_register_one(&fmt_gpg);
 
 #include <string.h>
 #include <assert.h>
-#include "twofish.h"
+#include <stdint.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -45,12 +45,12 @@ john_register_one(&fmt_gpg);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
+#include "twofish.h"
 #include "md5.h"
 #include "rc4.h"
 #include "pdfcrack_md5.h"
 #include "sha.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "gpg_common.h"
 #include "memdbg.h"
 

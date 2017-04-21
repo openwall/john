@@ -194,6 +194,25 @@ void * sha512_common_binary(char *ciphertext)
 	return out;
 }
 
+void *sha512_common_binary_BE(char *ciphertext)
+{
+	static unsigned char * out;
+	char *p;
+	int i;
+
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, BINARY_ALIGN);
+
+	p = ciphertext + TAG_LENGTH;
+	for (i = 0; i < DIGEST_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
+	return out;
+}
+
 void *sha512_common_binary_rev(char *ciphertext)
 {
 	static union {
@@ -243,6 +262,28 @@ void * sha512_common_binary_xsha512(char *ciphertext)
 #ifdef SIMD_COEF_64
 	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 #endif
+	return out;
+}
+
+void *sha512_common_binary_xsha512_BE(char *ciphertext)
+{
+	static union {
+		unsigned char out[DIGEST_SIZE];
+		uint64_t x;
+	} x;
+	unsigned char *out = x.out;
+	char *p;
+	int i;
+
+	ciphertext += XSHA512_TAG_LENGTH;
+	p = ciphertext + 8;
+	for (i = 0; i < DIGEST_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 	return out;
 }
 

@@ -173,7 +173,7 @@ foreach my $i (0x80..0xFF) {
 				if ($nfd =~ m/[aoueiyœæøɪʏɛɔαεηιοωυаэыуояеюиєіı]/i) {
 					$vowels .= sprintf("\\x%02X", $i);
 					$cvowels .= $c;
-					# Note eg. in English, y depends on situation
+					# Note, e.g., in English, y depends on situation
 					# (yellow, happy). We set latin yY variants as both!
 					if ($nfd =~ m/y/i) {
 						$consonants .= sprintf("\\x%02X", $i);

@@ -447,7 +447,7 @@
 
 /*
  * The extra a, b, c, d, e variables are a workaround for a really silly
- * AMD bug (seen in eg. Catalyst 14.9). We should really do without them
+ * AMD bug (seen in e.g. Catalyst 14.9). We should really do without them
  * but somehow we get thrashed output without them.
  * On the other hand, they also seem to work as an optimization for nvidia!
  */

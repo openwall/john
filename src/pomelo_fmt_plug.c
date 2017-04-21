@@ -52,6 +52,7 @@ john_register_one(&fmt_pomelo);
 
 static struct fmt_tests pomelo_tests[] = {
 	{"$pomelo$2$3$hash runner 2015$8333ad83e46e425872c5545741d6da105cd31ad58926e437d32247e59b26703e", "HashRunner2014"},
+	{"$pomelo$2$3$mysalt$b5bebcd9820de6a58dba52abf76aaf6eed4c5c672dbda64e69e3e3cbcc401314", "password"},
 	{NULL}
 };
 

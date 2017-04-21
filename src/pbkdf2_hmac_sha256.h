@@ -19,9 +19,10 @@
 
 
 #include <string.h>
+#include <stdint.h>
+
 #include "arch.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "simd-intrinsics.h"
 
 #ifndef SHA256_CBLOCK

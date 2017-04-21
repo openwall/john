@@ -37,14 +37,13 @@ john_register_one(&fmt_opencl_o5logon);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "aes.h"
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"o5logon-opencl"
 #define FORMAT_NAME		"Oracle O5LOGON protocol"
 #define FORMAT_TAG           "$o5logon$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA1 OpenCL AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"SHA1 AES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
@@ -67,16 +66,11 @@ static struct fmt_tests o5logon_tests[] = {
 	{NULL}
 };
 
-static int *cracked, any_cracked;
-
 static struct custom_salt {
 	// Change the below to round up to the nearest uint boundary
 	unsigned char salt[((SALT_LENGTH + 3)/4)*4]; /* AUTH_VFR_DATA */
 	unsigned char ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
 } cur_salt;
-
-// AESNI Modification: function pointer to OpenSSL or AES-NI function
-static aes_fptr_cbc aesFunc;
 
 // Shared auto-tune stuff
 #define STEP                    0
@@ -84,19 +78,18 @@ static aes_fptr_cbc aesFunc;
 #define ROUNDS                  1
 
 static const char * warn[] = {
-        "pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
+	"pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
 };
 
 // Maximum UINT32s used by plaintext being SHA1'd
 #define BUFSIZE                         ((PLAINTEXT_LENGTH+3)/4*4)
 
-static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_sha1_hashes, buffer_out;
+static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_result, buffer_out;
 static cl_mem buffer_keys, buffer_idx;
 static cl_mem salt_buffer;
-static cl_uint *sha1_hashes;
-static cl_uint *res_hashes;
+static cl_uint *result;
 static unsigned int *saved_plain, *saved_idx;
-static unsigned int key_idx = 0;
+static unsigned int key_idx;
 static struct fmt_main *self;
 
 #include "opencl-autotune.h" // Must come after auto-tune definitions
@@ -104,51 +97,47 @@ static struct fmt_main *self;
 
 static size_t get_task_max_work_group_size()
 {
-        return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-        pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-        saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
+	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 
-        pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx");
-        saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * gws, 0, NULL, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
+	pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx");
+	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
-        res_hashes = mem_alloc(sizeof(cl_uint) * 4 * gws);
+	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	result = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory result");
 
-        pinned_sha1_hashes = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-        sha1_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_sha1_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * 5 * gws, 0, NULL, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error mapping page-locked memory sha1_hashes");
-
-        buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
-        buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
+	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
+	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
 
 	// Modification to add salt buffer
-	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cur_salt.salt), NULL, &ret_code);
+	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cur_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument salt");
 
-        buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
+	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
 
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(salt_buffer), (void *) &salt_buffer), "Error setting argument 1");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
-
-        cracked = mem_alloc(sizeof(*cracked) * gws);
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
 }
 
 static void release_clobj(void){
-	if (cracked) {
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_sha1_hashes, sha1_hashes, 0,NULL,NULL), "Error Unmapping sha1_hashes");
+	if (pinned_result) {
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, result, 0,NULL,NULL), "Error Unmapping result");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
@@ -159,10 +148,7 @@ static void release_clobj(void){
 		HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error Releasing salt_buffer");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_sha1_hashes), "Error Releasing pinned_sha1_hashes");
-
-		MEM_FREE(res_hashes);
-		MEM_FREE(cracked);
+		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Error Releasing pinned_result");
 	}
 }
 
@@ -183,10 +169,6 @@ static void init(struct fmt_main *_self)
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
-
-	aesFunc = get_AES_dec192_CBC();
-
-	cracked = NULL;
 }
 
 static void reset(struct db_main *db)
@@ -273,7 +255,8 @@ static void set_salt(void *salt)
 	memcpy(&cur_salt, salt, sizeof(cur_salt));
 
 	HANDLE_CLERROR(
-		clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0, sizeof(cur_salt.salt), (void*) &cur_salt.salt, 0, NULL, NULL),
+		clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
+		                     sizeof(cur_salt), &cur_salt, 0, NULL, NULL),
 		"Error updating contents of salt_buffer");
 
 	HANDLE_CLERROR(
@@ -284,7 +267,6 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
@@ -294,11 +276,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (key_idx)
 		BENCH_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
+			clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer buffer_keys");
 
 	BENCH_CLERROR(
-		clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_TRUE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
+		clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
 		"failed in clEnqueueWriteBuffer buffer_idx");
 
 	BENCH_CLERROR(
@@ -306,89 +288,62 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		"failed in clEnqueueNDRangeKernel");
 
 	BENCH_CLERROR(
-		clFinish(queue[gpu_id]),
-		"failed in clFinish");
-
-	BENCH_CLERROR(
-		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * 5 * count, sha1_hashes, 0, NULL, multi_profilingEvent[3]),
+		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, result, 0, NULL, multi_profilingEvent[3]),
 		"failed in reading data back");
-
-	if (any_cracked) {
-		memset(cracked, 0, sizeof(*cracked) * count);
-		any_cracked = 0;
-	}
-
-	if (ocl_autotune_running)
-		return count;
-
-	for (index = 0; index < count; index++)
-	{
-		unsigned char key[24];
-		unsigned char pt[16];
-		unsigned char iv[16];
-		// AES removed (done below)
-		// SHA1 removed (done above)
-
-		memcpy(key, &sha1_hashes[index*5], 20);
-		memset(&key[20], 0, 4);
-
-		memcpy(iv, cur_salt.ct + 16, 16);
-
-		// Using AES function:
-		// in (cipher), out (plain), key, block count, iv
-		aesFunc(cur_salt.ct + 32, pt, key, 1, iv);
-		if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
-			any_cracked = cracked[index] = 1;
-	}
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (result[i])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return result[index];
 }
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void clear_keys(void)
 {
-        key_idx = 0;
+	key_idx = 0;
 }
 
 static void set_key(char *_key, int index)
 {
-        const uint32_t *key = (uint32_t*)_key;
-        int len = strlen(_key);
+	const uint32_t *key = (uint32_t*)_key;
+	int len = strlen(_key);
 
-        saved_idx[index] = (key_idx << 6) | len;
+	saved_idx[index] = (key_idx << 6) | len;
 
-        while (len > 4) {
-                saved_plain[key_idx++] = *key++;
-                len -= 4;
-        }
-        if (len)
-                saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+	while (len > 4) {
+		saved_plain[key_idx++] = *key++;
+		len -= 4;
+	}
+	if (len)
+		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
 }
 
 static char *get_key(int index)
 {
-        static char out[PLAINTEXT_LENGTH + 1];
-        int i, len = saved_idx[index] & 63;
-        char *key = (char*)&saved_plain[saved_idx[index] >> 6];
+	static char out[PLAINTEXT_LENGTH + 1];
+	int i, len = saved_idx[index] & 63;
+	char *key = (char*)&saved_plain[saved_idx[index] >> 6];
 
-        for (i = 0; i < len; i++)
-                out[i] = key[i];
-        out[i] = 0;
-        return out;
+	for (i = 0; i < len; i++)
+		out[i] = key[i];
+	out[i] = 0;
+	return out;
 }
 
 struct fmt_main fmt_opencl_o5logon = {

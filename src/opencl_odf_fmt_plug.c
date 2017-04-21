@@ -13,18 +13,18 @@ extern struct fmt_main fmt_opencl_odf;
 john_register_one(&fmt_opencl_odf);
 #else
 
+#include <stdint.h>
 #include <string.h>
-#include "sha.h"
 #include <openssl/blowfish.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #include "arch.h"
+#include "sha.h"
+#include "aes.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "common.h"

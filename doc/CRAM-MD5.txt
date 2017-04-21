@@ -10,7 +10,7 @@ The input format for JtR is:
 
 $cram_md5$<challenge>$<response>
 
-eg.
+e.g.
 
 $cram_md5$PG5vLXJlcGx5QGhhc2hjYXQubmV0Pg==$dXNlciA0NGVhZmQyMmZlNzY2NzBmNmIyODc5MDgxYTdmNWY3MQ==
 

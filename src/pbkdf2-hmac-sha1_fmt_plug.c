@@ -14,6 +14,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -21,7 +22,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #include "formats.h"
 #include "johnswap.h"
 #include "base64_convert.h"
-#include "stdint.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_common.h"
 

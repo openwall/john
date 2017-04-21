@@ -46,7 +46,7 @@ typedef struct {
 
 __kernel void keyring(__global const keyring_password *inbuffer,
                       __global keyring_hash *outbuffer,
-                      __global const keyring_salt *salt)
+                      __constant keyring_salt *salt)
 {
 	uint gid = get_global_id(0);
 	uint W[64/4] = { 0 };

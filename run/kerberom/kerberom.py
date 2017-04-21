@@ -451,7 +451,7 @@ def parse_arguments():
 
     parser.add_argument('--delta', required=False,
     help="set time delta in Kerberos tickets. Useful when DC is not on the same timezone.\
-    Format is \"(+/-)hours:minutes:seconds\", eg. --delta=\"+00:05:00\" or --delta=\"-02:00:00\"")
+    Format is \"(+/-)hours:minutes:seconds\", e.g. --delta=\"+00:05:00\" or --delta=\"-02:00:00\"")
 
     group2.add_argument('-k', '--user_sid', required=False, help="force ldap SPN\
     retrieval through kerberos, sid is mandatory. Cannot be used with '-i'")

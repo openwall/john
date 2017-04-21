@@ -15,7 +15,7 @@
 #define __BLAKE2_H__
 
 #include <stddef.h>
-#include "stdint.h"
+#include <stdint.h>
 #include "aligned.h"
 #include "jumbo.h"
 

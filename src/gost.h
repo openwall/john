@@ -2,10 +2,10 @@
 #ifndef GOST_H
 #define GOST_H
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "arch.h"
-#include "stdint.h"
 #include "johnswap.h"
 
 #ifdef __cplusplus
