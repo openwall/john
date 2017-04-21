@@ -171,6 +171,7 @@ extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
+extern int bitlocker2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int dmg2john(int argc, char **argv);
@@ -1919,6 +1920,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return keepass2john(argc, argv);
+	}
+
+	if (!strcmp(name, "bitlocker2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return bitlocker2john(argc, argv);
 	}
 
 	if (!strcmp(name, "rar2john")) {
