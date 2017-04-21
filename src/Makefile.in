@@ -352,7 +352,7 @@ KeccakSponge.o:	KeccakSponge.c KeccakSponge.h KeccakF-1600-interface.h memdbg.h 
 
 keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h
 
-bitlocker2john.o:	bitlocker2john.c autoconfig.h stdint.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h
+bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h
 
 list.o:	list.c memory.h arch.h list.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h
 
