@@ -46,9 +46,9 @@ john_register_one(&fmt_bitlocker);
 
 #define FORMAT_LABEL            "BitLocker"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME          "Iterated-SHA256 AES 64/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "SHA-256 AES 64/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME          "Iterated-SHA256 AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "SHA-256 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
