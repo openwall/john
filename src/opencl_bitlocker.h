@@ -10,10 +10,9 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, therefore please contact or cite if
- * you want to use this source code.
- * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
+ * This is a research project, for more informations: http://openwall.info/wiki/john/OpenCL-BitLocker
  */
+
 
 #ifndef _BITCRACKER_H
 #define _BITCRACKER_H

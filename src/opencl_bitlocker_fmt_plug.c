@@ -10,9 +10,7 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, therefore please contact or cite if
- * you want to use this source code.
- * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
+ * This is a research project, for more informations: http://openwall.info/wiki/john/OpenCL-BitLocker
  */
 
 #ifdef HAVE_OPENCL
@@ -33,25 +31,21 @@ john_register_one(&fmt_opencl_bitlocker);
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
+#include "bitlocker_common.h"
 
-#define FORMAT_LABEL            "bitlocker-opencl"
-#define FORMAT_NAME             ""
+#define FORMAT_LABEL		    "bitlocker-opencl"
+//#define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
-#define FORMAT_TAG              "$bitlocker$"
+//#define FORMAT_TAG              "$bitlocker$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define SALT_ALIGN		1
 #define BITLOCKER_JTR_HASH_SIZE 45
-#define BITLOCKER_JTR_HASH_SIZE_CHAR 77
-#define MIN_KEYS_PER_CRYPT  1   /* These will change in init() */
+#define PLAINTEXT_LENGTH 208
+#define MIN_KEYS_PER_CRYPT  1 
 #define MAX_KEYS_PER_CRYPT  1
 
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
-
-/*
-#define PLAINTEXT_LENGTH	55
-#define SALT_SIZE		sizeof(salt_t)
-*/
 
 #define BITLOCKER_HASH_SIZE 8   //32
 #define BITLOCKER_ROUND_SHA_NUM 64
@@ -76,7 +70,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define BITLOCKER_MAC_SIZE 16
 #define BITLOCKER_NONCE_SIZE 12
 #define BITLOCKER_IV_SIZE 16
-#define BITLOCKER_VMK_SIZE 44
+#define BITLOCKER_VMK_SIZE 60 //44
 #define VMK_DECRYPT_SIZE 16
 #define DICT_BUFSIZE    (50*1024*1024)
 #define MAX_PLEN 32
@@ -94,8 +88,10 @@ john_register_one(&fmt_opencl_bitlocker);
 #define ITERATIONS		4096 // 1048576 / 256
 
 //NEW VAR BITLOCKER
-static struct fmt_tests bitlocker_tests[] = {
-	{"$bitlocker$b0599ad6c6a1cf0103000000$0a8b9d0655d3900e9f67280adc27b5d7$033a16cb", "paperino"},
+//	{"$bitlocker$b0599ad6c6a1cf0103000000$0a8b9d0655d3900e9f67280adc27b5d7$033a16cb", "paperino"},
+
+static struct fmt_tests opencl_bitlocker_tests[] = {
+	{"$bitlocker$0$16$e221443f32c419b74504ed51b0d66dbf$1048576$12$704e12c6c319d00103000000$60$000000000000000000000000000000002d135e69646c157c15b4c273ad85b86513a1672ae3f531ce121889178c669d37f8e5e0100d331ce78484844c", "password@123"},
 	{NULL}
 };
 
@@ -181,8 +177,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	                                    sizeof(int), "Cannot allocate numPass");
 
 	deviceEncryptedVMK = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-	                                    VMK_DECRYPT_SIZE * BITLOCKER_MAX_INPUT_PASSWORD_LEN *
-	                                    sizeof(unsigned char), "Cannot allocate vmk");
+	                                    BITLOCKER_VMK_SIZE * sizeof(char), "Cannot allocate vmk");
 
 	devicePassword = CLCREATEBUFFER(CL_MEM_READ_ONLY,
 	                                input_password_number * sizeof(unsigned char), "Cannot allocate inbuffer");
@@ -358,9 +353,9 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-	static char dummy[BITLOCKER_JTR_HASH_SIZE_CHAR + 1];
+	static char dummy[PLAINTEXT_LENGTH + 1];
 
-	return strnzcpy(dummy, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR + 1);
+	return strnzcpy(dummy, ciphertext, PLAINTEXT_LENGTH + 1);
 }
 
 static int w_block_precomputed(unsigned char *salt)
@@ -423,7 +418,25 @@ static void set_salt(void *cipher_salt_input)
 	hash_format = strdup(cipher_salt);
 	hash_format += FORMAT_TAG_LEN;
 
-	p = strtokm(hash_format, "$");
+	p = strtokm(hash_format, "$"); // version
+	p = strtokm(NULL, "$"); // salt length
+	p = strtokm(NULL, "$"); // salt
+
+	for (i = 0; i < BITLOCKER_SALT_SIZE; i++) {
+		salt[i] =
+		    (p[2 * i] <=
+		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
+		salt[i] |=
+		    p[(2 * i) + 1] <=
+		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
+#if BITLOCKER_ENABLE_DEBUG == 1
+		printf("salt[%d]=%02x\n", i, salt[i]);
+#endif
+	}
+	
+	p = strtokm(NULL, "$"); // iterations
+	p = strtokm(NULL, "$"); // nonce length
+	p = strtokm(NULL, "$"); // nonce
 
 	for (i = 0; i < BITLOCKER_NONCE_SIZE; i++) {
 		nonce[i] =
@@ -437,23 +450,10 @@ static void set_salt(void *cipher_salt_input)
 #endif
 	}
 
-	p = strtokm(NULL, "$");
+	p = strtokm(NULL, "$"); // data_size
+	p = strtokm(NULL, "$"); // data
 
-	for (i = 0; i < BITLOCKER_SALT_SIZE; i++) {
-		salt[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		salt[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("salt[%d]=%02x\n", i, salt[i]);
-#endif
-	}
-
-	p = strtokm(NULL, "");
-
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < BITLOCKER_VMK_SIZE; i++) {
 		encryptedVMK[i] =
 		    (p[2 * i] <=
 		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
@@ -658,35 +658,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *hash_format;
-	char *p;
-
-	if (strlen(ciphertext) != BITLOCKER_JTR_HASH_SIZE_CHAR)
-		return 0;
-
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		return 0;
-
-	hash_format = strdup(ciphertext);
-	hash_format += FORMAT_TAG_LEN;
-
-	p = strtokm(hash_format, "$");
-	if (strlen(p) != BITLOCKER_NONCE_SIZE * 2)
-		return 0;
-
-	p = strtokm(NULL, "$");
-	if (strlen(p) != BITLOCKER_SALT_SIZE * 2)
-		return 0;
-
-	p = strtokm(NULL, "");
-	if (strlen(p) != 8)
-		return 0;
-
-	return 1;
-}
-
 static unsigned int iteration_count(void *salt)
 {
 	//return randoms num
@@ -702,49 +673,36 @@ struct fmt_main fmt_opencl_bitlocker = {
 	BENCHMARK_LENGTH,
 	BITLOCKER_MIN_INPUT_PASSWORD_LEN,
 	BITLOCKER_MAX_INPUT_PASSWORD_LEN,
-	0, //BITLOCKER_JTR_HASH_SIZE_CHAR, //BINARY_SIZE,
-	MEM_ALIGN_WORD,     //BINARY_ALIGN,
-	BITLOCKER_JTR_HASH_SIZE_CHAR + 1, // BITLOCKER_SALT_SIZE,
+	0,
+	MEM_ALIGN_WORD,
+	PLAINTEXT_LENGTH,
 	SALT_ALIGN,
-	1,
-	1,
+	MIN_KEYS_PER_CRYPT,
+	MAX_KEYS_PER_CRYPT,
 	FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
 		},
 		{ FORMAT_TAG },
 		//NULL
-	bitlocker_tests
+	opencl_bitlocker_tests
 }, {
 	init,
 	done,
 	reset,
 	fmt_default_prepare,
-	valid,
+	bitlocker_common_valid,
 	fmt_default_split,
 	fmt_default_binary,
+	//bitlocker_common_get_salt,
 	get_salt,
 		{
+			//bitlocker_common_iteration_count,
 			iteration_count,
 		},
 	fmt_default_source,
 	{
 		fmt_default_binary_hash,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-		/*
-		binary_hash_0,
-		fmt_default_binary_hash_1,
-		fmt_default_binary_hash_2,
-		fmt_default_binary_hash_3,
-		fmt_default_binary_hash_4,
-		fmt_default_binary_hash_5,
-		fmt_default_binary_hash_6
-*/
 	},
 	fmt_default_salt_hash,
 	NULL,
@@ -754,13 +712,7 @@ struct fmt_main fmt_opencl_bitlocker = {
 	fmt_default_clear_keys,
 	crypt_all,
 	{
-		fmt_default_get_hash,   //get_hash_0,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
+		fmt_default_get_hash,
 	},
 	cmp_all,
 	cmp_one,
