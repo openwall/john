@@ -10,9 +10,7 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, therefore please contact or cite if
- * you want to use this source code.
- * More informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
+ * This is a research project, for more informations: http://openwall.info/wiki/john/OpenCL-BitLocker
  */
 
 #include "opencl_misc.h"
@@ -1587,10 +1585,10 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		    	 schedule4, schedule6, vmkKey[0], vmkKey[1], vmkKey[2], vmkKey[3]);
 		    }
 #endif
-		if (((vmkKey[0] ^ ((unsigned char)schedule4)) == VMK_SIZE) &&
-		        ((vmkKey[1] ^ ((unsigned char)(schedule4 >> 8))) == 0x00) &&
-		        ((vmkKey[2] ^ ((unsigned char)schedule6)) <= 0x05) &&
-		        ((vmkKey[3] ^ ((unsigned char)(schedule6 >> 8))) == 0x20)
+		if (((vmkKey[16+0] ^ ((unsigned char)schedule4)) == VMK_SIZE) &&
+		        ((vmkKey[16+1] ^ ((unsigned char)(schedule4 >> 8))) == 0x00) &&
+		        ((vmkKey[16+8] ^ ((unsigned char)schedule6)) <= 0x05) &&
+		        ((vmkKey[16+9] ^ ((unsigned char)(schedule6 >> 8))) == 0x20)
 		   ) {
 			found[0] = globalIndexPassword;
 			break;
