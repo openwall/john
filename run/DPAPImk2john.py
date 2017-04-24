@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # Modified (for JtR) by Dhiru Kholia in December, 2014.
+# Modified (for JtR) by Jean-Christophe Delaunay
+# <jean-christophe.delaunay at synacktiv.com> in 2017
+# to support further options and JtR new hash format
 #
 # This file is part of DPAPIck
 # Windows DPAPI decryption & forensic toolkit
@@ -320,10 +323,20 @@ def DPAPIHmac(hashAlgo, pwdhash, hmacSalt, value):
     return rv.digest()
 
 
+def display_masterkey(Preferred):
+    GUID1 = Preferred.read(8)
+    GUID2 = Preferred.read(8)
+
+    GUID = struct.unpack("<LHH", GUID1)
+    GUID2 = struct.unpack(">HLH", GUID2)
+
+    print "%s-%s-%s-%s-%s%s" % (format(GUID[0], 'x'), format(GUID[1], 'x'), format(GUID[2], 'x'), format(GUID2[0], 'x'), format(GUID2[1], 'x'), format(GUID2[2], 'x'))
+
+
 class MasterKey(DataStruct):
     """This class represents a MasterKey block contained in a MasterKeyFile"""
 
-    def __init__(self, raw=None, SID=None):
+    def __init__(self, raw=None, SID=None, context=None):
         self.decrypted = False
         self.key = None
         self.key_hash = None
@@ -337,6 +350,7 @@ class MasterKey(DataStruct):
         self.version = None
         self.ciphertext = None
         self.SID = SID
+        self.context = context
         DataStruct.__init__(self, raw)
 
     def __getstate__(self):
@@ -371,15 +385,26 @@ class MasterKey(DataStruct):
 
     def jhash(self):
         version = -1
+        hmac_algo = None
+        cipher_algo = None
         if "des3" in str(self.cipherAlgo).lower() and "hmac" in str(self.hashAlgo).lower():
-            version = 0
-        elif "aes-256" in str(self.cipherAlgo).lower() and "sha512" in str(self.hashAlgo).lower():
             version = 1
-            print("WARNING: version 1 hashes are not supported yet, hold on!")
+            hmac_algo = "sha1"
+            cipher_algo = "des3"
+        elif "aes-256" in str(self.cipherAlgo).lower() and "sha512" in str(self.hashAlgo).lower():
+            version = 2
+            hmac_algo = "sha512"
+            cipher_algo = "aes256"
         else:
             return "Unsupported combination of cipher '%s' and hash algorithm '%s' found!" % (self.cipherAlgo, self.hashAlgo)
-        s = "$efs$%d$%s$%s$%s$%s" % (version, self.SID, self.iv.encode("hex"),
-                                     self.rounds, self.ciphertext.encode("hex"))
+        context = 0
+        if self.context == "domain":
+            context = 2
+        elif self.context == "local":
+            context = 1
+
+        s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
+                                     len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
         return s
 
     def setKeyHash(self, h):
@@ -442,7 +467,7 @@ class MasterKey(DataStruct):
 class MasterKeyFile(DataStruct):
     """This class represents a masterkey file."""
 
-    def __init__(self, raw=None, SID=None):
+    def __init__(self, raw=None, SID=None, context=None):
         self.masterkey = None
         self.backupkey = None
         self.credhist = None
@@ -453,6 +478,7 @@ class MasterKeyFile(DataStruct):
         self.policy = None
         self.masterkeyLen = self.backupkeyLen = self.credhistLen = self.domainkeyLen = 0
         self.SID = SID
+        self.context = context
         DataStruct.__init__(self, raw)
 
     def parse(self, data):
@@ -470,7 +496,7 @@ class MasterKeyFile(DataStruct):
         self.domainkeyLen = data.eat("Q")
 
         if self.masterkeyLen > 0:
-            self.masterkey = MasterKey(SID=self.SID)
+            self.masterkey = MasterKey(SID=self.SID, context=self.context)
             self.masterkey.parse(data.eat_sub(self.masterkeyLen))
         if self.backupkeyLen > 0:
             self.backupkey = MasterKey()
@@ -484,12 +510,14 @@ class MasterKeyFile(DataStruct):
             self.backupkey.decryptWithHash(userSID, h)
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
 
-    def decryptWithPassword(self, userSID, pwd):
+    def decryptWithPassword(self, userSID, pwd, context):
         """See MasterKey.decryptWithPassword()"""
-        for algo in ["sha1", "md4"]:
-            self.decryptWithHash(userSID, hashlib.new(algo, pwd.encode('UTF-16LE')).digest())
-            if self.decrypted:
-                break
+        algo = None
+        if context == "domain":
+            algo = "md4"
+        elif context == "local":
+            algo = "sha1"
+        self.decryptWithHash(userSID, hashlib.new(algo, pwd.encode('UTF-16LE')).digest())
 
     def __repr__(self):
         s = ["\n#### MasterKeyFile %s ####" % self.guid]
@@ -522,19 +550,19 @@ class MasterKeyPool(object):
         self.keys = defaultdict(lambda: [])
         self.passwords = set()
 
-    def addMasterKey(self, mkey, SID=None):
+    def addMasterKey(self, mkey, SID=None, context=None):
         """Add a MasterKeyFile is the pool.
 
         mkey is a string representing the content of the file to add.
 
         """
-        mkf = MasterKeyFile(mkey, SID=SID)
+        mkf = MasterKeyFile(mkey, SID=SID, context=context)
         self.keys[mkf.guid].append(mkf)
 
     def addMasterKeyHash(self, guid, h):
         self.keys[guid].append(MasterKeyFile().addKeyHash(guid, h))
 
-    def try_credential(self, userSID, password):
+    def try_credential(self, userSID, password, context):
         """This function tries to decrypt every masterkey contained in the pool
         that has not been successfully decrypted yet with the given password and
         SID.
@@ -553,7 +581,7 @@ class MasterKeyPool(object):
             for mk in mkl:
                 if not mk.decrypted:
                     if password is not None:
-                        mk.decryptWithPassword(userSID, password)
+                        mk.decryptWithPassword(userSID, password, context)
                     if mk.decrypted:
                         self.passwords.add(password)
                         n += 1
@@ -572,37 +600,37 @@ class MasterKeyPool(object):
             s.append(repr(self.creds[i]))
         return "\n".join(s)
 
-
-def usage():
-    print """Usage:
-
-efs2john.py --masterkey=samples/openwall.efs/92573301-74fa-4e55-bd38-86fc558fa25e \\
-    --sid="S-1-5-21-1482476501-1659004503-725345543-1003"
-
-efs2john.py --masterkey=samples/openwall.efs.2/21d67870-8257-49e0-b2de-c58324271c42 \\
-    --sid="S-1-5-21-1482476501-1659004503-725345543-1005"
-
-efs2john.py --masterkey=samples/Win-2012-non-DC/1b52eb4f-440f-479e-b84a-654fdccad797 \\
-    --sid="S-1-5-21-689418962-3671548705-686489014-1001" --password="openwall@123"
-"""
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--sid", metavar="SID", dest="sid")
-    parser.add_argument("--masterkey", metavar="path-to-masterkey", dest="masterkey")
-    parser.add_argument("-d", default=False, action='store_true', dest="debug")
-    parser.add_argument("--password", metavar="PASSWORD", dest="password",
-                        default=None)
+    parser.add_argument('-S', '--sid', required=False, help="SID of account owning the masterkey file.")
+    parser.add_argument('-mk', '--masterkey', required=False, help="masterkey file (usually in %%APPDATA%%\\Protect\\<SID>).")
+    parser.add_argument('-d', '--debug', default=False, action='store_true', dest="debug")
+    parser.add_argument('-c', '--context', required=False, help="context of user account. Only 'domain' and 'local' are possible.")
+    parser.add_argument('-P', '--preferred', required=False, help="'Preferred' file containing GUID of masterkey file in use (usually in %%APPDATA%%\\Protect\\<SID>). Cannot be used with any other command.")
+    parser.add_argument("--password", metavar="PASSWORD", dest="password", help="password to decrypt masterkey file.")
 
-    args = parser.parse_args()
-    debug = args.debug
+    options = parser.parse_args()
+    debug = options.debug
 
-    mkp = MasterKeyPool()
-    if not args.sid:
-        usage()
-        sys.exit(-1)
-
-    mkdata = open(args.masterkey, 'rb').read()
-    mkp.addMasterKey(mkdata, SID=args.sid)
-    if args.password:
-        print mkp.try_credential(args.sid, args.password)
+    if options.preferred and (options.masterkey or options.sid or options.context):
+        print "'Preferred' option cannot be used combined with any other, exiting."
+        sys.exit(1)
+    elif not options.preferred and not (options.masterkey and options.sid and options.context):
+        print "masterkey file, SID and context are mandatory in order to extract hash from masterkey file, exiting."
+        sys.exit(1)
+    elif options.preferred:
+        Preferred = open(options.preferred,'rb')
+        display_masterkey(Preferred)
+        Preferred.close()
+        sys.exit(1)
+    else:
+        if options.context != "local" and options.context != "domain":
+            "context must be whether 'local' or 'domain', exiting."
+            sys.exit(1)
+        mkp = MasterKeyPool()
+        masterkeyfile = open(options.masterkey,'rb')
+        mkdata = masterkeyfile.read()
+        masterkeyfile.close()
+        mkp.addMasterKey(mkdata, SID=options.sid, context=options.context)
+        if options.password:
+            print mkp.try_credential(options.sid, options.password, options.context)

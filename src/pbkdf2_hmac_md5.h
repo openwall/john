@@ -89,7 +89,7 @@ static void _pbkdf2_md5(const unsigned char *S, int SL, int R, uint32_t *out,
 #if !defined (PBKDF1_LOGIC)
 		for (j = 0; j < MD5_DIGEST_LENGTH/sizeof(uint32_t); j++) {
 			out[j] ^= ((uint32_t*)tmp_hash)[j];
-#if defined (EFS_CRAP_LOGIC)
+#if defined (DPAPI_CRAP_LOGIC)
 			((uint32_t*)tmp_hash)[j] = out[j];
 #endif
 		}
@@ -253,7 +253,7 @@ static void pbkdf2_md5_sse(const unsigned char *K[SSE_GROUP_SZ_MD5], int KL[SSE_
 				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*MD5_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 				for (j = 0; j < (MD5_DIGEST_LENGTH/sizeof(uint32_t)); j++) {
 					dgst[k][j] ^= p[(j*SIMD_COEF_32)];
-#if defined (EFS_CRAP_LOGIC)
+#if defined (DPAPI_CRAP_LOGIC)
 					p[(j*SIMD_COEF_32)] = dgst[k][j];
 #endif
 				}

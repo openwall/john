@@ -108,8 +108,12 @@ static void _pbkdf2_sha512(const unsigned char *S, int SL, int R, uint64_t *out,
 		SHA512_Update(&ctx, tmp_hash, SHA512_DIGEST_LENGTH);
 		SHA512_Final(tmp_hash, &ctx);
 
-		for (j = 0; j < SHA512_DIGEST_LENGTH/sizeof(uint64_t); j++)
+		for (j = 0; j < SHA512_DIGEST_LENGTH/sizeof(uint64_t); j++) {
 			out[j] ^= ((uint64_t*)tmp_hash)[j];
+#if defined (DPAPI_CRAP_LOGIC)
+			((uint64_t*)tmp_hash)[j] = out[j];
+#endif
+		}
 	}
 }
 
@@ -294,8 +298,12 @@ static void pbkdf2_sha512_sse(const unsigned char *K[SSE_GROUP_SZ_SHA512], int K
 			// only xor first 16 64-bit words
 			for (k = 0; k < SSE_GROUP_SZ_SHA512; k++) {
 				uint64_t *p = &o1[(k/SIMD_COEF_64)*SIMD_COEF_64*SHA_BUF_SIZ + (k&(SIMD_COEF_64-1))];
-				for (j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(uint64_t)); j++)
+				for (j = 0; j < (SHA512_DIGEST_LENGTH/sizeof(uint64_t)); j++) {
 					dgst[k][j] ^= p[j*SIMD_COEF_64];
+#if defined (DPAPI_CRAP_LOGIC)
+					p[(j*SIMD_COEF_64)] = dgst[k][j];
+#endif
+				}
 			}
 		}
 
