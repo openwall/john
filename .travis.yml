@@ -18,8 +18,6 @@ matrix:
 
   - env: ASAN="--enable-asan" TEST="fresh test"
 
-  - env: ASAN="" TEST="TS --restore"
-
   - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
 
   allow_failures:
@@ -28,8 +26,6 @@ matrix:
   - env: ASAN="" OPENCL="yes"
 
   - env: ASAN="--enable-asan" TEST="fresh test"
-
-  - env: ASAN="" TEST="TS --restore"
 
   - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
 
