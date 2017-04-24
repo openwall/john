@@ -40,7 +40,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define SALT_ALIGN		1
 #define BITLOCKER_JTR_HASH_SIZE 45
-#define PLAINTEXT_LENGTH 208
+#define BITLOCKER_JTR_HASH_SIZE_CHAR 208
 #define MIN_KEYS_PER_CRYPT  1 
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -87,13 +87,16 @@ john_register_one(&fmt_opencl_bitlocker);
 #define HASH_LOOPS		256
 #define ITERATIONS		4096 // 1048576 / 256
 
-//NEW VAR BITLOCKER
-//	{"$bitlocker$b0599ad6c6a1cf0103000000$0a8b9d0655d3900e9f67280adc27b5d7$033a16cb", "paperino"},
-
 static struct fmt_tests opencl_bitlocker_tests[] = {
-	{"$bitlocker$0$16$e221443f32c419b74504ed51b0d66dbf$1048576$12$704e12c6c319d00103000000$60$000000000000000000000000000000002d135e69646c157c15b4c273ad85b86513a1672ae3f531ce121889178c669d37f8e5e0100d331ce78484844c", "password@123"},
+	// Windows 10 generated BitLocker image
+	{"$bitlocker$0$16$134bd2634ba580adc3758ca5a84d8666$1048576$12$9080903a0d9dd20103000000$60$0c52fdd87f17ac55d4f4b82a00b264070f36a84ead6d4cd330368f7dddfde1bdc9f5d08fa526dae361b3d64875f76a077fe9c67f44e08d56f0131bb2", "openwall@123"},
+	// Windows 10
+	{"$bitlocker$0$16$73926f843bbb41ea2a89a28b114a1a24$1048576$12$30a81ef90c9dd20103000000$60$942f852f2dc4ba8a589f35e750f33a5838d3bdc1ed77893e02ae1ac866f396f8635301f36010e0fcef0949078338f549ddb70e15c9a598e80c905baa", "password@123"},
+	// Windows 8.1
+	{"$bitlocker$0$16$5e0686b4e7ce8a861b75bab3e8f1d424$1048576$12$90928da8c019d00103000000$60$ee5ce06cdc89b9fcdcd24bb854842fc8b715bb36c86c19e73ddb8a409718cac412f0416a51b1e0472fad8edb34d9208dd874dcadbf4779aaf01dfa74", "openwall@123"},
 	{NULL}
 };
+
 
 static cl_mem salt_d, padding_d, w_blocks_d, deviceEncryptedVMK,
        devicePassword, devicePasswordSize, deviceFound, numPasswordsKernelDev,
@@ -353,9 +356,9 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-	static char dummy[PLAINTEXT_LENGTH + 1];
+	static char dummy[BITLOCKER_JTR_HASH_SIZE_CHAR + 1];
 
-	return strnzcpy(dummy, ciphertext, PLAINTEXT_LENGTH + 1);
+	return strnzcpy(dummy, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR + 1);
 }
 
 static int w_block_precomputed(unsigned char *salt)
@@ -675,7 +678,7 @@ struct fmt_main fmt_opencl_bitlocker = {
 	BITLOCKER_MAX_INPUT_PASSWORD_LEN,
 	0,
 	MEM_ALIGN_WORD,
-	PLAINTEXT_LENGTH,
+	BITLOCKER_JTR_HASH_SIZE_CHAR,
 	SALT_ALIGN,
 	MIN_KEYS_PER_CRYPT,
 	MAX_KEYS_PER_CRYPT,
