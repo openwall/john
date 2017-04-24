@@ -35,7 +35,7 @@ john_register_one(&fmt_opencl_bitlocker);
 
 #define FORMAT_LABEL		    "bitlocker-opencl"
 //#define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
+#define ALGORITHM_NAME          "SHA256 AES OpenCL"
 //#define FORMAT_TAG              "$bitlocker$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define SALT_ALIGN		1
