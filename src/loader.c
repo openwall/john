@@ -1553,7 +1553,8 @@ static void ldr_remove_marked(struct db_main *db)
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
 
-	if (!(db->options->flags & DB_NEED_REMOVAL))
+	if (!options.loader.showuncracked &&
+	    !(db->options->flags & DB_NEED_REMOVAL))
 		return;
 
 	last_salt = NULL;
