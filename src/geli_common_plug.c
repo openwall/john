@@ -40,14 +40,14 @@ int geli_common_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 7)
+	if (value > 7)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // md_ealgo (encryption algorithm)
 		goto err;
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 22)                        // CRYPTO_AES_XTS
+	if (value != 22 && value != 11)         // CRYPTO_AES_XTS, CRYPTO_AES_CBC
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // md_keylen
 		goto err;
