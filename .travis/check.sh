@@ -1,6 +1,15 @@
 #!/bin/bash
 
-if [[ -z "$TEST" ]]; then
+if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    # brew install --force openssl
+    cd src
+
+    ./configure CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
+    make -sj4
+
+    ../.travis/test.sh
+
+elif [[ -z "$TEST" ]]; then
     cd src
 
     # Build and run with the address sanitizer instrumented code
