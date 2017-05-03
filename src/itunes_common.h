@@ -28,7 +28,8 @@ struct custom_salt {
 
 int itunes_common_valid(char *ciphertext, struct fmt_main *self);
 void *itunes_common_get_salt(char *ciphertext);
-unsigned int itunes_common_iteration_count(void *salt);
+unsigned int itunes_common_tunable_version(void *salt);
+unsigned int itunes_common_tunable_iterations(void *salt);
 
 // exported 'common' functions
 int itunes_common_decrypt(struct custom_salt *cur_salt, unsigned char *key);
