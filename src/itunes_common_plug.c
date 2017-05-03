@@ -137,10 +137,20 @@ int itunes_common_decrypt(struct custom_salt *cur_salt, unsigned char *key)
 	return 0;
 }
 
-unsigned int itunes_common_iteration_count(void *salt)
+unsigned int itunes_common_tunable_version(void *salt)
 {
-	struct custom_salt *my_cs;
+	struct custom_salt *cs = salt;
 
-	my_cs = salt;
-	return (unsigned int) my_cs->iterations;
+	return cs->version;
+}
+
+unsigned int itunes_common_tunable_iterations(void *salt)
+{
+	struct custom_salt *cs = salt;
+
+	// this is not a perfect
+	if (cs->iterations > cs->dpic)
+		return cs->iterations;
+	else
+		return cs->dpic;
 }
