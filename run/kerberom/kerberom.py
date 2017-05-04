@@ -12,7 +12,7 @@
 # by Fist0urs
 
 import sys, os
-sys.path.append(os.path.realpath(os.path.dirname(__file__)+"./modules"))
+sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), "modules")))
 
 import argparse
 from random import getrandbits
