@@ -18,6 +18,7 @@ john-local.conf
 
 run/SIPdump
 run/base64conv
+run/bitlocker2john
 run/calc_stat
 run/cprepair
 run/custom.chr
