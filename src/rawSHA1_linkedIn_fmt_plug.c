@@ -48,7 +48,6 @@ john_register_one(&fmt_rawSHA1_LI);
 #define BENCHMARK_LENGTH		-1
 
 
-#define PLAINTEXT_LENGTH		55
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define BINARY_SIZE			20
@@ -57,11 +56,13 @@ john_register_one(&fmt_rawSHA1_LI);
 #define SALT_ALIGN			1
 
 #ifdef SIMD_COEF_32
+#define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
 #else
+#define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
