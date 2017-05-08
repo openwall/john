@@ -190,14 +190,15 @@ static const char *ValidateZipContents(FILE *in, long offset, u32 offex, int len
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	c8 *p, *cp, *cpkeep;
-	int cnt, data_len, ret=0;
+	int cnt, ret=0;
+	u64 data_len;
 	u32 crc;
 	FILE *in;
 	const char *sFailStr;
 	long offset;
 	u32 offex;
 	int type;
-	int complen = 0;
+	u64 complen = 0;
 	int type2 = 0;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
@@ -242,7 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				sFailStr = "Invalid compressed length";
 				goto Bail;
 			}
-			sscanf(cp, "%x", &complen);
+			sscanf(cp, "%"PRIx64, &complen);
 			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 				sFailStr = "Invalid data length value";
 				goto Bail;
@@ -271,7 +272,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			sFailStr = "Invalid data length value";
 			goto Bail;
 		}
-		sscanf(cp, "%x", &data_len);
+		sscanf(cp, "%"PRIx64, &data_len);
 		if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen(cp) != 4) {
 			sFailStr = "invalid checksum value";
 			goto Bail;
@@ -341,7 +342,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 Bail:;
 #ifdef ZIP_DEBUG
-	if (!ret) fprintf (stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
+	if (!ret) fprintf (stderr, "pkzip validation failed [%s]  Hash is %.64s\n", sFailStr, ciphertext);
 #endif
 	MEM_FREE(cpkeep);
 	return ret;
@@ -586,9 +587,9 @@ static void *get_salt(char *ciphertext)
 
 		if (data_enum > 1) {
 			cp = strtokm(NULL, "*");
-			sscanf(cp, "%x", &(salt->compLen));
+			sscanf(cp, "%"PRIx64, &(salt->compLen));
 			cp = strtokm(NULL, "*");
-			sscanf(cp, "%x", &(salt->deCompLen));
+			sscanf(cp, "%"PRIx64, &(salt->deCompLen));
 			cp = strtokm(NULL, "*");
 			sscanf(cp, "%x", &(salt->crc32));
 			cp = strtokm(NULL, "*");
@@ -599,7 +600,7 @@ static void *get_salt(char *ciphertext)
 		cp = strtokm(NULL, "*");
 		sscanf(cp, "%x", &(salt->H[i].compType));
 		cp = strtokm(NULL, "*");
-		sscanf(cp, "%x", &(salt->H[i].datlen));
+		sscanf(cp, "%"PRIx64, &(salt->H[i].datlen));
 		cp = strtokm(NULL, "*");
 
 		for (j = 0; j < 4; ++j) {

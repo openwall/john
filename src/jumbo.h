@@ -39,6 +39,8 @@
 #endif
 
 #include <stdint.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 /******************************************/
 /* here we try to 'find' a usable fseek64 */

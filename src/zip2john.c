@@ -20,8 +20,6 @@
  * 7. http://www.pkware.com/documents/casestudies/APPNOTE.TXT
  * 8. http://gladman.plushost.co.uk/oldsite/cryptography_technology/fileencrypt/index.php
  *   (borrowed files have "gladman_" prepended to them). This gladman code has been removed from JtR source tree.
- * 9. http://svn.assembla.com/svn/os2utils/unzip60f/proginfo/extrafld.txt
- * 10. http://emerge.hg.sourceforge.net/hgweb/emerge/emerge/diff/c2f208617d32/Source/unzip/proginfo/extrafld.txt
  *
  * Usage:
  *
@@ -100,7 +98,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
 
@@ -131,7 +129,7 @@ static void process_file(const char *fname)
 	int i;
 	char path[LARGE_ENOUGH];
 	char *cur=0, *cp;
-	uint32_t best_len = 0xffffffff;
+	uint64_t best_len = 0xffffffff;
 
 
 	if (!(fp = fopen(fname, "rb"))) {
@@ -150,8 +148,8 @@ static void process_file(const char *fname)
 			uint16_t lastmod_time = fget16LE(fp);
 			uint16_t lastmod_date = fget16LE(fp);
 			uint32_t crc = fget32LE(fp);
-			uint32_t compressed_size = fget32LE(fp);
-			uint32_t uncompressed_size = fget32LE(fp);
+			uint64_t compressed_size = fget32LE(fp);
+			uint64_t uncompressed_size = fget32LE(fp);
 			uint16_t filename_length = fget16LE(fp);
 			uint16_t extrafield_length = fget16LE(fp);
 			/* unused variables */
@@ -172,7 +170,7 @@ static void process_file(const char *fname)
 			filename[filename_length] = 0;
 
 			if (compression_method == 99) {	/* AES encryption */
-				uint32_t real_cmpr_len;
+				uint64_t real_cmpr_len;
 				uint16_t efh_id = fget16LE(fp);
 				uint16_t efh_datasize = fget16LE(fp);
 				uint16_t efh_vendor_version = fget16LE(fp);
@@ -186,7 +184,7 @@ static void process_file(const char *fname)
 				strnzcpy(path, fname, sizeof(path));
 				bname = basename(path);
 				cp = cur;
-				if ((unsigned)best_len < compressed_size) {
+				if (best_len < compressed_size) {
 #if DEBUG
 					printf ("This buffer not used, it is not 'best' size\n");
 #endif
@@ -234,7 +232,8 @@ static void process_file(const char *fname)
 				real_cmpr_len = compressed_size-2-(4+4*efh_aes_strength)-extrafield_length;
 				// not quite sure why the real_cmpr_len is 'off by 1' ????
 				++real_cmpr_len;
-				if (store) cp += sprintf(cp, "*%x*", real_cmpr_len);
+				if (store)
+					cp += sprintf(cp, "*%"PRIx64"*", real_cmpr_len);
 
 				for (i = 0; i < real_cmpr_len; i++) {
 					d = fgetc(fp);
@@ -287,7 +286,9 @@ cleanup:
 typedef struct _zip_ptr
 {
 	char         *hash_data;
-	uint32_t      offset, offex, crc, cmp_len, decomp_len;
+	uint32_t      crc;
+	uint64_t      offset, offex;
+	uint64_t      cmp_len, decomp_len;
 	uint16_t      magic_type, cmptype;
 	char          chksum[5];
 	char          chksum2[5];
@@ -319,7 +320,7 @@ static int magic_type(const char *filename) {
 	return 0;
 }
 
-static char *toHex(unsigned char *p, int len) {
+static char *toHex(unsigned char *p, size_t len) {
 	static char *Buf;
 	static size_t BufSz = 4096;
 	char *cp;
@@ -333,10 +334,81 @@ static char *toHex(unsigned char *p, int len) {
 	return Buf;
 }
 
+// If archive was created from a non-seekable stream, we need to find CRC and
+// sizes AFTER file data which means we're in a hen-and-egg situation since we
+// don't know the size... I think the below is enough but there may be edge
+// cases where we need to also recognize some other kind of start-of-whatever
+// and seek back 16 bytes.
+static void scan_for_eod (FILE **fp, zip_ptr *p, int size64)
+{
+	long saved_pos = ftell(*fp);
+
+	fprintf(stderr, "Scanning for EOD... ");
+	while (!feof(*fp)) {
+		if (fgetc(*fp) == 0x50) {
+			if (fgetc(*fp) == 0x4b) {
+				if (fgetc(*fp) == 0x07) {
+					if (fgetc(*fp) == 0x08) {
+						fprintf(stderr, "FOUND Extended local header\n");
+						p->crc = fget32LE(*fp);
+						if (size64) {
+							p->cmp_len = fget64LE(*fp);
+							p->decomp_len = fget64LE(*fp);
+						} else {
+							p->cmp_len = fget32LE(*fp);
+							p->decomp_len = fget32LE(*fp);
+						}
+						break;
+					}
+				}
+				else if (fgetc(*fp) == 0x03) {
+					if (fgetc(*fp) == 0x04) {
+						fprintf(stderr, "FOUND next Local file header\n");
+						if (size64)
+							fseek(*fp, -24, SEEK_CUR);
+						else
+							fseek(*fp, -16, SEEK_CUR);
+						p->crc = fget32LE(*fp);
+						if (size64) {
+							p->cmp_len= fget64LE(*fp);
+							p->decomp_len = fget64LE(*fp);
+						} else {
+							p->cmp_len= fget32LE(*fp);
+							p->decomp_len = fget32LE(*fp);
+						}
+						break;
+					}
+				}
+				else if (fgetc(*fp) == 0x01) {
+					if (fgetc(*fp) == 0x02) {
+						fprintf(stderr, "FOUND Central directory\n");
+						if (size64)
+							fseek(*fp, -24, SEEK_CUR);
+						else
+							fseek(*fp, -16, SEEK_CUR);
+						p->crc = fget32LE(*fp);
+						if (size64) {
+							p->cmp_len= fget64LE(*fp);
+							p->decomp_len = fget64LE(*fp);
+						} else {
+							p->cmp_len= fget32LE(*fp);
+							p->decomp_len = fget32LE(*fp);
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	fseek(*fp, saved_pos, SEEK_SET);
+}
+
 static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fname)
 {
 	uint16_t version,flags,lastmod_time,lastmod_date,filename_length,extrafield_length;
 	unsigned char filename[1024];
+	int size64 = 0;
 
 	memset(p, 0, sizeof(*p));
 
@@ -357,7 +429,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 	if (sizeof(filename) < filename_length ||
 		fread(filename, 1, filename_length, fp) != filename_length) {
-		fprintf(stderr, "Error, fread could not read the data from the file:  %s\n", zip_fname);
+		fprintf(stderr, "Error, fread could not read the data from the file: %s\n", zip_fname);
 		return 0;
 	}
 	filename[filename_length] = 0;
@@ -365,58 +437,30 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 	p->offex = 30 + filename_length + extrafield_length;
 
-	// If bit 3 of flags is set, we need to find CRC and sizes AFTER file data
-	// (because archive was created in a non-seekable stream) which means we're
-	// in a hen-and-egg situation since we don't know the size... I think the
-	// below is enough but there may be edge cases where we need to also
-	// recognize some other kind of end-of-whatever and seek back 12 bytes.
-	if (flags & (1 << 3)) {
-		long saved_pos = ftell(fp);
-
-		// Find data descriptor 0x08074b50UL or next local header 0x04034b50UL
-		while (!feof(fp)) {
-			if (fgetc(fp) == 0x50) {
-				if (fgetc(fp) == 0x4b) {
-					if (fgetc(fp) == 0x07) {
-						if (fgetc(fp) == 0x08) {
-							p->crc = fget32LE(fp);
-							p->cmp_len= fget32LE(fp);
-							p->decomp_len = fget32LE(fp);
-							//puts("FOUND desc");
-							break;
-						}
-					}
-					else if (fgetc(fp) == 0x03) {
-						if (fgetc(fp) == 0x04) {
-							fseek(fp, -12, SEEK_CUR);
-							p->crc = fget32LE(fp);
-							p->cmp_len= fget32LE(fp);
-							p->decomp_len = fget32LE(fp);
-							//puts("FOUND lcl");
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		fseek(fp, saved_pos, SEEK_SET);
-	}
-
 	// we only handle implode or store.
-	// 0x314 was seen at 2012 CMIYC ?? I have to look into that one.
+	// 0x314 (788) was seen at 2012 CMIYC ?? I have to look into that one.
 	fprintf(stderr, "ver %d.%d ", version / 10, version % 10);
-	if ( !(only_fname && strcmp(only_fname, (char*)filename)) && (version == 0x14||version==0xA||version == 0x314) && (flags & 1)) {
+	if ( (flags & 1) &&
+	     (version == 10 || version == 20 || version == 45 || version == 788)) {
 		uint16_t extra_len_used = 0;
-		if (flags & 8) {
+
+		if (flags & (1 << 3)) {
 			while (extra_len_used < extrafield_length) {
 				uint16_t efh_id = fget16LE(fp);
 				uint16_t efh_datasize = fget16LE(fp);
-				extra_len_used += 4 + efh_datasize;
+
+				fprintf(stderr, "efh %04x (%hd) ", efh_id, efh_datasize);
+
+				if (efh_id == 0x0001) {
+					size64 = 1;
+					p->decomp_len = fget64LE(fp);
+					p->cmp_len= fget64LE(fp);
+					extra_len_used += 16;
+					efh_datasize -= 16;
+				}
 				fseek(fp, efh_datasize, SEEK_CUR);
-				fprintf(stderr, "efh %04x ", efh_id);
-				//http://svn.assembla.com/svn/os2utils/unzip60f/proginfo/extrafld.txt
-				//http://emerge.hg.sourceforge.net/hgweb/emerge/emerge/diff/c2f208617d32/Source/unzip/proginfo/extrafld.txt
+
+				extra_len_used += 4 + efh_datasize;
 				if (efh_id == 0x07c8 ||  // Info-ZIP Macintosh (old, J. Lee)
 					efh_id == 0x334d ||  // Info-ZIP Macintosh (new, D. Haase's 'Mac3' field)
 					efh_id == 0x4d49 ||  // Info-ZIP OpenVMS (obsolete)
@@ -439,17 +483,29 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		else if (extrafield_length)
 			fseek(fp, extrafield_length, SEEK_CUR);
 
+		if (p->cmp_len == 0 && p->decomp_len == 0)
+			scan_for_eod(&fp, p, size64);
+
+		if (only_fname && strcmp(only_fname, (char*)filename)) {
+			fseek(fp, p->cmp_len, SEEK_CUR);
+			return 0;
+		}
+
 		if (force_2_byte_checksum)
 			zfp->check_bytes = 2;
 
 		fprintf(stderr,
-			"%s->%s PKZIP Encr:%s%s cmplen=%d, decmplen=%d, crc=%X\n",
-			jtr_basename(zip_fname), filename, zfp->check_bytes==2?" 2b chk,":"", zfp->check_in_crc?"":" TS_chk,", p->cmp_len, p->decomp_len, p->crc);
+		        "%s->%s PKZIP%s Encr:%s%s cmplen=%"PRIu64", decmplen=%"PRIu64", crc=%X\n",
+		        jtr_basename(zip_fname), filename,
+		        size64 ? "64" : "",
+		        zfp->check_bytes == 2 ? " 2b chk," : "",
+		        zfp->check_in_crc ? "" : " TS_chk,",
+		        p->cmp_len, p->decomp_len, p->crc);
 
 		MEM_FREE(p->hash_data);
 		p->hash_data = mem_alloc(p->cmp_len + 1);
 		if (fread(p->hash_data, 1, p->cmp_len, fp) != p->cmp_len) {
-			fprintf(stderr, "Error, fread could not read the data from the file:  %s\n", zip_fname);
+			fprintf(stderr, "Error, fread could not read the data from the file: %s\n", zip_fname);
 			return 0;
 		}
 
@@ -459,6 +515,9 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 		return 1;
 	}
+
+	if (p->cmp_len == 0 && p->decomp_len == 0)
+		scan_for_eod(&fp, p, version >= 45);
 
 	fprintf(stderr, "%s->%s is not encrypted, or stored with non-handled compression type\n", zip_fname, filename);
 	fseek(fp, extrafield_length, SEEK_CUR);
@@ -587,17 +646,17 @@ print_and_cleanup:;
 		if (checksum_only)
 			i = 0;
 		for (; i < count_of_hashes; ++i) {
-			int len = 12+24;
+			size_t len = 12+24;
 			if (hashes[i].magic_type)
 				len = 12+180;
 			if (len > hashes[i].cmp_len)
 				len = hashes[i].cmp_len; // even though we 'could' output a '2', we do not.  We only need one full inflate CRC check file.
-			printf("1*%x*%x*%x*%s*%s*%s*", hashes[i].magic_type, hashes[i].cmptype, len, hashes[i].chksum, hashes[i].chksum2, toHex((unsigned char*)hashes[i].hash_data, len));
+			printf("1*%x*%x*%"PRIx64"*%s*%s*%s*", hashes[i].magic_type, hashes[i].cmptype, (uint64_t)len, hashes[i].chksum, hashes[i].chksum2, toHex((unsigned char*)hashes[i].hash_data, len));
 		}
 		// Ok, now output the 'little' one (the first).
 		if (!checksum_only) {
-			printf("%x*%x*%x*%x*%x*%x*%x*%x*", 2, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
-			printf("%x*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
+			printf("%x*%x*%"PRIx64"*%"PRIx64"*%x*%"PRIx64"*%"PRIx64"*%x*", 2, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
+			printf("%"PRIx64"*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
 		}
 		printf("$/pkzip2$:::::%s\n", fname);
 
