@@ -58,13 +58,13 @@ struct fmt_tests winzip_common_tests[] = {
 	{NULL}
 };
 
-static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, unsigned len, c8 *Auth);
+static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, uint64_t len, c8 *Auth);
 
 int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	c8 *ctcopy, *keeptr, *p, *cp, *Fn=0, *Oh=0, *Ob=0;
 	const char *sFailStr="Truncated hash, strtokm() returned NULL";
-	unsigned val;
+	uint64_t val;
 	int ret = 0;
 	int zip_file_validate=0;
 	static int old_warn = 1;
@@ -109,7 +109,7 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 	// Data len.
 	if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))  {
 		sFailStr = "Data length invalid (not hex number)"; goto Bail; }
-	sscanf((const char*)cp, "%x", &val);
+	sscanf((const char*)cp, "%"PRIx64, &val);
 
 	if ((cp = strtokm(NULL, "*")) == NULL)		// data blob, OR file structure
 		goto Bail;
@@ -158,7 +158,7 @@ Bail:;
 
 char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static size_t len;
+	static uint64_t len;
 	static char *buf = NULL;
 	char *cp, *cp2;
 
@@ -181,7 +181,8 @@ char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self)
 	return buf;
 }
 
-static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, unsigned len, c8 *Auth) {
+static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, uint64_t len, c8 *Auth)
+{
 	u32 id, i;
 	long off;
 	unsigned char bAuth[10], b;

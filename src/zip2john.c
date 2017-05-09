@@ -46,14 +46,14 @@
  *     CL  Compressed length of file blob data (includes 12 byte IV).
  *     UL  Uncompressed length of the file.
  *     CR  CRC32 of the 'final' file.
- *     OF  Offset to the PK\x3\x4 record for this file data. If DT==2, then this will be a 0, as it is not needed, all of the data is already included in the line.
+ *     OF  Offset to the PK\x3\x4 record for this file data. If DT == 2, then this will be a 0, as it is not needed, all of the data is already included in the line.
  *     OX  Additional offset (past OF), to get to the zip data within the file.
  *     END OF 'optional' fields.
  *   CT  Compression type  (0 or 8)  0 is stored, 8 is imploded.
  *   DL  Length of the DA data.
  *   CS  2 bytes of checksum data.
  *   TC  2 bytes of checksun data (fron timestamp)
- *   DA  This is the 'data'.  It will be hex data if DT==1 or 2. If DT==3, then it is a filename (name of the .zip file).
+ *   DA  This is the 'data'.  It will be hex data if DT == 1 or 2. If DT == 3, then it is a filename (name of the .zip file).
  * END of array item.  There will be C (count) array items.
  * The format string will end with $/pkzip$
  *
@@ -114,21 +114,21 @@
 
 #define LARGE_ENOUGH 8192
 
-static int checksum_only=0, use_magic=0;
+static int checksum_only = 0, use_magic = 0;
 static int force_2_byte_checksum = 0;
 static char *ascii_fname, *only_fname;
 
-static char *MagicTypes[]= { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
-static int  MagicToEnum[] = {0,  1,    1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
+static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
+static int  MagicToEnum[] = {  0,   1,     1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
 
 static void process_old_zip(const char *fname);
 static void process_file(const char *fname)
 {
 	unsigned char filename[1024];
 	FILE *fp;
-	int i;
+	uint64_t i;
 	char path[LARGE_ENOUGH];
-	char *cur=0, *cp;
+	char *cur = 0, *cp;
 	uint64_t best_len = 0xffffffff;
 
 
@@ -320,18 +320,10 @@ static int magic_type(const char *filename) {
 	return 0;
 }
 
-static char *toHex(unsigned char *p, size_t len) {
-	static char *Buf;
-	static size_t BufSz = 4096;
-	char *cp;
-	int i;
-
-	BufSz = MAX(BufSz, 2 * len + 1);
-	Buf = mem_realloc(Buf, BufSz);
-	cp = Buf;
-	for (i = 0; i < len; ++i)
-		cp += sprintf(cp, "%02x", p[i]);
-	return Buf;
+static void print_hex(unsigned char *p, uint64_t len) {
+	while (len--)
+		printf("%02x", *p++);
+	printf("*");
 }
 
 // If archive was created from a non-seekable stream, we need to find CRC and
@@ -370,10 +362,10 @@ static void scan_for_eod (FILE **fp, zip_ptr *p, int size64)
 							fseek(*fp, -16, SEEK_CUR);
 						p->crc = fget32LE(*fp);
 						if (size64) {
-							p->cmp_len= fget64LE(*fp);
+							p->cmp_len = fget64LE(*fp);
 							p->decomp_len = fget64LE(*fp);
 						} else {
-							p->cmp_len= fget32LE(*fp);
+							p->cmp_len = fget32LE(*fp);
 							p->decomp_len = fget32LE(*fp);
 						}
 						break;
@@ -388,10 +380,10 @@ static void scan_for_eod (FILE **fp, zip_ptr *p, int size64)
 							fseek(*fp, -16, SEEK_CUR);
 						p->crc = fget32LE(*fp);
 						if (size64) {
-							p->cmp_len= fget64LE(*fp);
+							p->cmp_len = fget64LE(*fp);
 							p->decomp_len = fget64LE(*fp);
 						} else {
-							p->cmp_len= fget32LE(*fp);
+							p->cmp_len = fget32LE(*fp);
 							p->decomp_len = fget32LE(*fp);
 						}
 						break;
@@ -419,7 +411,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 	lastmod_time = fget16LE(fp);
 	lastmod_date = fget16LE(fp);
 	p->crc = fget32LE(fp);
-	p->cmp_len= fget32LE(fp);
+	p->cmp_len = fget32LE(fp);
 	p->decomp_len = fget32LE(fp);
 	filename_length = fget16LE(fp);
 	extrafield_length = fget16LE(fp);
@@ -449,12 +441,12 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 				uint16_t efh_id = fget16LE(fp);
 				uint16_t efh_datasize = fget16LE(fp);
 
-				fprintf(stderr, "efh %04x (%hd) ", efh_id, efh_datasize);
+				fprintf(stderr, "efh %04x ", efh_id);
 
 				if (efh_id == 0x0001) {
 					size64 = 1;
 					p->decomp_len = fget64LE(fp);
-					p->cmp_len= fget64LE(fp);
+					p->cmp_len = fget64LE(fp);
 					extra_len_used += 16;
 					efh_datasize -= 16;
 				}
@@ -572,7 +564,7 @@ static void process_old_zip(const char *fname)
 							memcpy(&(hashes[count_of_hashes++]), &curzip, sizeof(curzip));
 					}
 					else {
-						int done=0;
+						int done = 0;
 						if (curzip.magic_type && curzip.cmp_len > hashes[0].cmp_len) {
 							// if we have a magic type, we will replace any NON magic type, for the 2nd and 3rd largest, without caring about
 							// the size.
@@ -581,22 +573,22 @@ static void process_old_zip(const char *fname)
 									MEM_FREE(hashes[1].hash_data);
 									memcpy(&(hashes[1]), &(hashes[2]), sizeof(curzip));
 									memcpy(&(hashes[2]), &curzip, sizeof(curzip));
-									done=1;
+									done = 1;
 								} else {
 									MEM_FREE(hashes[1].hash_data);
 									memcpy(&(hashes[1]), &curzip, sizeof(curzip));
-									done=1;
+									done = 1;
 								}
 							} else if (hashes[2].magic_type == 0) {
 								if (hashes[1].cmp_len < curzip.cmp_len) {
 									MEM_FREE(hashes[2].hash_data);
 									memcpy(&(hashes[2]), &curzip, sizeof(curzip));
-									done=1;
+									done = 1;
 								} else {
 									MEM_FREE(hashes[2].hash_data);
 									memcpy(&(hashes[2]), &(hashes[1]), sizeof(curzip));
 									memcpy(&(hashes[1]), &curzip, sizeof(curzip));
-									done=1;
+									done = 1;
 								}
 							}
 						}
@@ -637,7 +629,7 @@ static void process_old_zip(const char *fname)
 
 print_and_cleanup:;
 	if (count_of_hashes) {
-		int i=1;
+		int i = 1;
 		char *bname;
 		strnzcpy(path, fname, sizeof(path));
 		bname = basename(path);
@@ -646,17 +638,19 @@ print_and_cleanup:;
 		if (checksum_only)
 			i = 0;
 		for (; i < count_of_hashes; ++i) {
-			size_t len = 12+24;
+			uint64_t len = 12+24;
 			if (hashes[i].magic_type)
 				len = 12+180;
 			if (len > hashes[i].cmp_len)
 				len = hashes[i].cmp_len; // even though we 'could' output a '2', we do not.  We only need one full inflate CRC check file.
-			printf("1*%x*%x*%"PRIx64"*%s*%s*%s*", hashes[i].magic_type, hashes[i].cmptype, (uint64_t)len, hashes[i].chksum, hashes[i].chksum2, toHex((unsigned char*)hashes[i].hash_data, len));
+			printf("1*%x*%x*%"PRIx64"*%s*%s*", hashes[i].magic_type, hashes[i].cmptype, (uint64_t)len, hashes[i].chksum, hashes[i].chksum2);
+			print_hex((unsigned char*)hashes[i].hash_data, len);
 		}
 		// Ok, now output the 'little' one (the first).
 		if (!checksum_only) {
 			printf("%x*%x*%"PRIx64"*%"PRIx64"*%x*%"PRIx64"*%"PRIx64"*%x*", 2, hashes[0].magic_type, hashes[0].cmp_len, hashes[0].decomp_len, hashes[0].crc, hashes[0].offset, hashes[0].offex, hashes[0].cmptype);
-			printf("%"PRIx64"*%s*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2, toHex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len));
+			printf("%"PRIx64"*%s*%s*", hashes[0].cmp_len, hashes[0].chksum, hashes[0].chksum2);
+			print_hex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len);
 		}
 		printf("$/pkzip2$:::::%s\n", fname);
 

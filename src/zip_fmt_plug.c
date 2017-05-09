@@ -70,9 +70,9 @@ static int omp_t = 1;
 
 typedef struct my_salt_t {
 	dyna_salt dsalt;
-	uint32_t comp_len;
+	uint64_t comp_len;
 	struct {
-		uint16_t type     : 4;
+		uint16_t type : 4;
 		uint16_t mode : 4;
 	} v;
 	unsigned char passverify[2];
@@ -149,7 +149,7 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-	int i;
+	uint64_t i;
 	my_salt salt, *psalt;
 	static unsigned char *ptr;
 	/* extract data from "ciphertext" */
@@ -171,7 +171,7 @@ static void *get_salt(char *ciphertext)
 	salt.passverify[0] = (atoi16[ARCH_INDEX(cp[0])]<<4) | atoi16[ARCH_INDEX(cp[1])];
 	salt.passverify[1] = (atoi16[ARCH_INDEX(cp[2])]<<4) | atoi16[ARCH_INDEX(cp[3])];
 	cp = strtokm(NULL, "*");	// data len
-	sscanf((const char *)cp, "%x", &salt.comp_len);
+	sscanf((const char *)cp, "%"PRIx64, &salt.comp_len);
 
 	// later we will store the data blob in our own static data structure, and place the 64 bit LSB of the
 	// MD5 of the data blob into a field in the salt. For the first POC I store the entire blob and just
@@ -252,11 +252,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
@@ -285,6 +281,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		int something_hit = 0, hits[MAX_KEYS_PER_CRYPT] = {0};
 		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
@@ -323,6 +320,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			uint32_t w;
 		} x;
 		unsigned char *pwd_ver = x.pwd_ver;
+
 		pbkdf2_sha1((unsigned char *)saved_key[index], strlen(saved_key[index]),
 		            saved_salt->salt, SALT_LENGTH(saved_salt->v.mode),
 		            KEYING_ITERATIONS, pwd_ver, 2,
