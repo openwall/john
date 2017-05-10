@@ -551,7 +551,7 @@ static void *get_salt(char *ciphertext)
 	char *H[3] = {0,0,0};
 	long ex_len[3] = {0,0,0};
 	u32 offex;
-	int i, j;
+	size_t i, j;
 	c8 *p, *cp, *cpalloc = (char*)mem_alloc(strlen(ciphertext)+1);
 	int type2 = 0;
 
