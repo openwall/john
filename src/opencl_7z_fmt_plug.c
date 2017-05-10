@@ -554,12 +554,18 @@ static int sevenzip_decrypt(sevenzip_hash *derived)
 	size_t aes_len = cur_salt->crc_len ?
 		(cur_salt->crc_len * 11 + 150) / 160 * 16 : crc_len;
 
-	/* Early reject from GPU? */
-	if (derived->reject)
-		return 0;
+	if (cur_salt->type == 0x80) {
+		/*
+		 * Early rejection (only decrypt last 16 bytes). We don't seem to
+		 * be able to trust this, see #2532, so we only do it for truncated
+		 * hashes (it's the only thing we can do!).
+		 */
+		if (derived->reject) /* Early reject from GPU */
+			return 0;
 
-	if (cur_salt->type == 0x80) /* We only have truncated data */
+		/* We only have truncated data, this will emit some FP */
 		goto exit_good;
+	}
 
 	/* Complete decryption, or partial if possible */
 	aes_len = MIN(aes_len, cur_salt->length);
@@ -681,10 +687,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	new_keys = 0;
 
-	// Run AES kernel (per salt)
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_aes, 1,
-		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
-		"Run AES kernel");
+	if (cur_salt->type == 0x80) {
+		// Run AES kernel (only for truncated hashes)
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_aes, 1,
+			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
+			"Run AES kernel");
+	}
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
