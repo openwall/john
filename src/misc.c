@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "memory.h"
 #include "logger.h"
@@ -145,6 +146,9 @@ char *fgetll(char *s, size_t size, FILE *stream)
 	size_t len;
 	char *cp;
 
+	/* fgets' size arg is a signed int! */
+	assert(size <= INT32_MAX);
+
 	if (!fgets(s, size, stream))
 		return NULL;
 
@@ -175,7 +179,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 	cp = strdup(s);
 
 	while (1) {
-		size_t increase = MAX(len, 0x8000000);
+		int increase = MIN(len, 0x40000000);
 		void *new_cp;
 
 		new_cp = realloc(cp, len + increase);
