@@ -81,6 +81,9 @@ than that of "l" (length).
 ?d	matches digits [0-9]
 ?a	matches letters [a-zA-Z]
 ?x	matches letters and digits [a-zA-Z0-9]
+?h	matches hex lower case [0-9a-f]
+?i	matches hex upper case [0-9A-F]
+?j	matches hex cased [0-9a-fA-F]
 ?o	matches control characters
 ?y	matches valid characters
 ?z	matches all characters
