@@ -465,6 +465,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.valid("*", format))
 		return "valid";
 
+	if (format->methods.source != fmt_default_source &&
+	    format->params.salt_size != 0)
+		return "source method only allowed for unsalted formats";
 #ifndef JUMBO_JTR
 	fmt_init(format);
 #endif
@@ -736,11 +739,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
-#ifndef JUMBO_JTR
 		if (strcmp(ciphertext,
 		    format->methods.source(ciphertext, binary)))
 			return "source";
-#endif
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
@@ -748,10 +749,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		format->methods.set_salt(salt);
 #ifdef JUMBO_JTR
-		if (strcmp(ciphertext,
-		    format->methods.source(ciphertext, binary))) {
-			return "source";
-		}
 #ifndef BENCH_BUILD
 		if ((format->methods.get_hash[0] != fmt_default_get_hash) &&
 		    strlen(ciphertext) > MAX_CIPHERTEXT_SIZE)

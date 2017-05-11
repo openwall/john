@@ -482,59 +482,6 @@ static void *get_salt(char *ciphertext)
 	return &ptr;
 }
 
-static char *source(char *source, void *binary)
-{
-	static char Buf[CIPHERTEXT_LENGTH];
-	unsigned char *cpi, *cp = (unsigned char*)Buf;
-	int i, len;
-
-	cp += sprintf(Buf, "%s%d*", FORMAT_TAG, cur_salt->type);
-
-	cpi = cur_salt->salt;
-	for (i = 0; i < 16; i++) {
-		*cp++ = itoa16[*cpi >> 4];
-		*cp++ = itoa16[*cpi & 0xf];
-		cpi++;
-	}
-	*cp++ = '*';
-
-	cpi = cur_salt->verifier;
-	for (i = 0; i < 16; i++) {
-		*cp++ = itoa16[*cpi >> 4];
-		*cp++ = itoa16[*cpi & 0xf];
-		cpi++;
-	}
-	*cp++ = '*';
-
-	len = (cur_salt->type < 3) ? 16 : 20;
-	cpi = cur_salt->verifierHash;
-	for (i = 0; i < len; i++) {
-		*cp++ = itoa16[*cpi >> 4];
-		*cp++ = itoa16[*cpi & 0xf];
-		cpi++;
-	}
-	*cp = 0;
-
-	if (cur_salt->has_mitm && !bench_running) {
-		static int last;
-		char out[11];
-
-		if (last != hex_hash(Buf)) {
-			last = hex_hash(Buf);
-			cpi = cur_salt->mitm;
-			for (i = 0; i < 5; i++) {
-				out[2 * i + 0] = itoa16[*cpi >> 4];
-				out[2 * i + 1] = itoa16[*cpi & 0xf];
-				cpi++;
-			}
-			out[10] = 0;
-			fprintf(stderr, "MITM key: %s\n", out);
-		}
-	}
-
-	return Buf;
-}
-
 static void set_salt(void *salt)
 {
 	cur_salt = *(custom_salt**)salt;
@@ -598,6 +545,21 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
+	extern volatile int bench_running;
+
+	if (cur_salt->type < 4 && !bench_running) {
+		unsigned char *cp, out[11];
+		int i;
+
+		cp = cur_salt->mitm;
+		for (i = 0; i < 5; i++) {
+			out[2 * i + 0] = itoa16[*cp >> 4];
+			out[2 * i + 1] = itoa16[*cp & 0xf];
+			cp++;
+		}
+		out[10] = 0;
+		fprintf(stderr, "MITM key: %s\n", out);
+	}
 	return 1;
 }
 
@@ -727,7 +689,7 @@ struct fmt_main FORMAT_STRUCT = {
 		{
 			oo_hash_type,
 		},
-		source,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},
