@@ -1216,7 +1216,6 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	int number_of_events = 0;
 	void *salt;
 	int amd_bug;
-	char *ciphertext;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1252,13 +1251,24 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 	// Set salt
 	dyna_salt_init(self);
-	if (!self->params.tests[0].fields[1])
-		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
-	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
-	ciphertext = self->methods.split(ciphertext, 0, self);
-	salt = self->methods.salt(ciphertext);
-	if (salt)
-		dyna_salt_create(salt);
+	if (self->methods.tunable_cost_value[0] && autotune_db->real) {
+		struct db_main *db = autotune_db->real;
+		struct db_salt *s = db->salts;
+
+		while (s->next && s->cost[0] < db->max_cost[0])
+			s = s->next;
+		salt = s->salt;
+	} else {
+		char *ciphertext;
+
+		if (!self->params.tests[0].fields[1])
+			self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
+		ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+		ciphertext = self->methods.split(ciphertext, 0, self);
+		salt = self->methods.salt(ciphertext);
+		if (salt)
+			dyna_salt_create(salt);
+	}
 	self->methods.set_salt(salt);
 
 	// Activate events. Then clear them later.
@@ -1274,7 +1284,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			fprintf(stderr, " (error occurred)");
 		clear_profiling_events();
 		release_clobj();
-		dyna_salt_remove(salt);
+		if (self->methods.tunable_cost_value[0] && autotune_db->real)
+			dyna_salt_remove(salt);
 		return 0;
 	}
 
@@ -1348,7 +1359,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 	clear_profiling_events();
 	release_clobj();
-	dyna_salt_remove(salt);
+
+	if (self->methods.tunable_cost_value[0] && autotune_db->real)
+		dyna_salt_remove(salt);
+
 	return runtime;
 }
 
@@ -1396,7 +1410,6 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	cl_event benchEvent[MAX_EVENTS];
 	void *salt;
-	char *ciphertext;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1465,13 +1478,24 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	// Set salt
 	dyna_salt_init(self);
-	if (!self->params.tests[0].fields[1])
-		self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
-	ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
-	ciphertext = self->methods.split(ciphertext, 0, self);
-	salt = self->methods.salt(ciphertext);
-	if (salt)
-		dyna_salt_create(salt);
+	if (self->methods.tunable_cost_value[0] && autotune_db->real) {
+		struct db_main *db = autotune_db->real;
+		struct db_salt *s = db->salts;
+
+		while (s->next && s->cost[0] < db->max_cost[0])
+			s = s->next;
+		salt = s->salt;
+	} else {
+		char *ciphertext;
+
+		if (!self->params.tests[0].fields[1])
+			self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
+		ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
+		ciphertext = self->methods.split(ciphertext, 0, self);
+		salt = self->methods.salt(ciphertext);
+		if (salt)
+			dyna_salt_create(salt);
+	}
 	self->methods.set_salt(salt);
 
 	// Warm-up run
@@ -1592,7 +1616,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	local_work_size = optimal_work_group;
 	global_work_size = GET_EXACT_MULTIPLE(gws, local_work_size);
 
-	dyna_salt_remove(salt);
+	if (self->methods.tunable_cost_value[0] && autotune_db->real)
+		dyna_salt_remove(salt);
 }
 
 static char *human_speed(unsigned long long int speed)
