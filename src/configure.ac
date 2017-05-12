@@ -933,6 +933,7 @@ AC_CONFIG_FILES([Makefile
                  aes/Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
+                 secp256k1/Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
