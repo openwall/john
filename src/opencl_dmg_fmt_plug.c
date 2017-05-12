@@ -305,7 +305,7 @@ static void reset(struct db_main *db)
 		                       sizeof(dmg_password), 0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 1000);
+		autotune_run(self, 1, 0, 1000000000ULL);
 	}
 }
 
