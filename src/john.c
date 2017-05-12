@@ -402,6 +402,8 @@ static void john_register_all(void)
 static void john_log_format(void)
 {
 	int min_chunk, chunk;
+	int enc_len, utf8_len;
+	char max_len_s[128];
 
 	/* make sure the format is properly initialized */
 #if HAVE_OPENCL
@@ -410,11 +412,35 @@ static void john_log_format(void)
 #endif
 	fmt_init(database.format);
 
-	log_event("- Hash type: %.100s%s%.100s (lengths up to %d%s)",
+	utf8_len = enc_len = database.format->params.plaintext_length;
+	if (options.target_enc == UTF_8)
+		utf8_len /= 3;
+
+	if (!(database.format->params.flags & FMT_8_BIT) ||
+	    options.target_enc != UTF_8) {
+		/* Not using UTF-8 so length is not ambiguous */
+		snprintf(max_len_s, sizeof(max_len_s), "%d", fmt_raw_len);
+	} else if (fmt_raw_len == enc_len) {
+		/* Example: Office */
+		snprintf(max_len_s, sizeof(max_len_s),
+		         "%d [worst case UTF-8] to %d [ASCII]",
+		         utf8_len, enc_len);
+	} else if (enc_len == 3 * fmt_raw_len) {
+		/* Example: NT */
+		snprintf(max_len_s, sizeof(max_len_s), "%d", utf8_len);
+	} else {
+		/* Example: SybaseASE */
+		snprintf(max_len_s, sizeof(max_len_s),
+		         "%d [worst case UTF-8] to %d [ASCII]",
+		         utf8_len, fmt_raw_len);
+	}
+
+	log_event("- Hash type: %.100s%s%.100s (min-len %d, max-len %s%s)",
 	    database.format->params.label,
 	    database.format->params.format_name[0] ? ", " : "",
 	    database.format->params.format_name,
-	    database.format->params.plaintext_length,
+	    database.format->params.plaintext_min_length,
+	    max_len_s,
 	    (database.format == &fmt_DES || database.format == &fmt_LM) ?
 	    ", longer passwords split" : "");
 

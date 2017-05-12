@@ -35,6 +35,8 @@ static char *buf_key;
 
 extern volatile int bench_running;
 
+int fmt_raw_len;
+
 #ifndef BENCH_BUILD
 static int orig_min, orig_max, orig_len;
 
@@ -73,6 +75,8 @@ void fmt_init(struct fmt_main *format)
 			orig_len = format->params.plaintext_length;
 		}
 #endif
+		if (!fmt_raw_len)
+			fmt_raw_len = format->params.plaintext_length;
 		format->methods.init(format);
 #ifndef BENCH_BUILD
 		/* NOTE, we have to grab these values (the first time), from after
@@ -128,6 +132,7 @@ void fmt_done(struct fmt_main *format)
 #endif
 
 	}
+	fmt_raw_len = 0;
 }
 
 void fmt_all_done(void)

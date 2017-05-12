@@ -579,10 +579,15 @@ void listconf_parse_late(void)
 		format = fmt_list;
 		do {
 			int ntests = 0;
+			int enc_len, utf8_len;
 
 /* Some encodings change max plaintext length when encoding is used,
    or KPC when under OMP */
 			fmt_init(format);
+
+			utf8_len = enc_len = format->params.plaintext_length;
+			if (options.target_enc == UTF_8)
+				utf8_len /= 3;
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
@@ -602,15 +607,27 @@ void listconf_parse_late(void)
 			                    SUBSECTION_FORMATS,
 			                    format->params.label, 0)
 			       ? "yes" : "no");
-			printf("Min. password length in bytes        %d\n", format->params.plaintext_min_length);
-			printf("Max. password length in bytes        %d\n", format->params.plaintext_length);
+			printf("Min. password length                 %d\n", format->params.plaintext_min_length);
+			if (!(format->params.flags & FMT_8_BIT) || options.target_enc != UTF_8) {
+				/* Not using UTF-8 so length is not ambiguous */
+				printf("Max. password length                 %d\n", fmt_raw_len);
+			} else if (fmt_raw_len == enc_len) {
+				/* Example: Office */
+				printf("Max. password length                 %d [worst case UTF-8] to %d [ASCII]\n", utf8_len, enc_len);
+			} else if (enc_len == 3 * fmt_raw_len) {
+				/* Example: NT */
+				printf("Max. password length                 %d\n", utf8_len);
+			} else {
+				/* Example: SybaseASE */
+				printf("Max. password length                 %d [worst case UTF-8] to %d [ASCII]\n", utf8_len, fmt_raw_len);
+			}
 			printf("Min. keys per crypt                  %d\n", format->params.min_keys_per_crypt);
 			printf("Max. keys per crypt                  %d\n", format->params.max_keys_per_crypt);
 			printf("Flags\n");
 			printf(" Case sensitive                      %s\n", (format->params.flags & FMT_CASE) ? "yes" : "no");
 			printf(" Truncates at (our) max. length      %s\n", (format->params.flags & FMT_TRUNC) ? "yes" : "no");
 			printf(" Supports 8-bit characters           %s\n", (format->params.flags & FMT_8_BIT) ? "yes" : "no");
-			printf(" Converts 8859-1 to UTF-16/UCS-2     %s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
+			printf(" Converts internally to UTF-16/UCS-2 %s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
 			printf(" Honours --encoding=NAME             %s\n",
 			       (format->params.flags & FMT_UTF8) ? "yes" :
 			       (format->params.flags & FMT_UNICODE) ? "no" : "n/a");

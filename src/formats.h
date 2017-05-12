@@ -109,6 +109,9 @@ struct db_salt;
 /* We've already warned the user about hashes of this type being present */
 #define FMT_WARNED			0x80000000
 
+/* Format's length before calling init() */
+extern int fmt_raw_len;
+
 /*
  * A password to test the methods for correct operation.
  */
