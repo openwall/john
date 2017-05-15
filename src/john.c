@@ -419,9 +419,9 @@ static void john_log_format(void)
 	if (!(database.format->params.flags & FMT_8_BIT) ||
 	    options.target_enc != UTF_8) {
 		/* Not using UTF-8 so length is not ambiguous */
-		snprintf(max_len_s, sizeof(max_len_s), "%d", fmt_raw_len);
-	} else if (fmt_raw_len == enc_len) {
-		/* Example: Office */
+		snprintf(max_len_s, sizeof(max_len_s), "%d", enc_len);
+	} else if (!fmt_raw_len || fmt_raw_len == enc_len) {
+		/* Example: Office and thin dynamics */
 		snprintf(max_len_s, sizeof(max_len_s),
 		         "%d [worst case UTF-8] to %d [ASCII]",
 		         utf8_len, enc_len);

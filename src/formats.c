@@ -78,8 +78,6 @@ void fmt_init(struct fmt_main *format)
 		if (!fmt_raw_len)
 			fmt_raw_len = format->params.plaintext_length;
 		format->methods.init(format);
-		if (!fmt_raw_len)
-			fmt_raw_len = format->params.plaintext_length;
 #ifndef BENCH_BUILD
 		/* NOTE, we have to grab these values (the first time), from after
 		   the format has been initialized for thin dynamic formats */

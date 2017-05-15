@@ -610,9 +610,9 @@ void listconf_parse_late(void)
 			printf("Min. password length                 %d\n", format->params.plaintext_min_length);
 			if (!(format->params.flags & FMT_8_BIT) || options.target_enc != UTF_8) {
 				/* Not using UTF-8 so length is not ambiguous */
-				printf("Max. password length                 %d\n", fmt_raw_len);
-			} else if (fmt_raw_len == enc_len) {
-				/* Example: Office */
+				printf("Max. password length                 %d\n", enc_len);
+			} else if (!fmt_raw_len || fmt_raw_len == enc_len) {
+				/* Example: Office and thin dynamics */
 				printf("Max. password length                 %d [worst case UTF-8] to %d [ASCII]\n", utf8_len, enc_len);
 			} else if (enc_len == 3 * fmt_raw_len) {
 				/* Example: NT */
