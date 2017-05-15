@@ -700,8 +700,8 @@ struct fmt_main fmt_opencl_bitlocker = {
 	//bitlocker_common_get_salt,
 	get_salt,
 		{
-			//bitlocker_common_iteration_count,
-			iteration_count,
+			bitlocker_common_iteration_count,
+			//iteration_count,
 		},
 	fmt_default_source,
 	{
