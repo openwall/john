@@ -122,11 +122,11 @@ john_register_one(&fmt_sapH);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define PLAINTEXT_LENGTH        23
+#define PLAINTEXT_LENGTH        23 /* Real world max. is 40 */
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        40
 #endif
 
 static struct fmt_tests tests[] = {

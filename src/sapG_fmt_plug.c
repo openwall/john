@@ -59,7 +59,7 @@ static unsigned int omp_t = 1;
 #define USER_NAME_LENGTH		12 /* max. length of user name in characters */
 #define SALT_LENGTH				(USER_NAME_LENGTH * 4)	/* bytes of UTF-8 */
 #define PLAINTEXT_LENGTH		40 /* Characters */
-#define UTF8_PLAINTEXT_LENGTH	MIN(125, PLAINTEXT_LENGTH * 4) /* bytes */
+#define UTF8_PLAINTEXT_LENGTH	MIN(125, PLAINTEXT_LENGTH * 3) /* bytes */
 
 #define BINARY_SIZE				20
 #define BINARY_ALIGN			4
