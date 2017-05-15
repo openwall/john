@@ -1284,7 +1284,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			fprintf(stderr, " (error occurred)");
 		clear_profiling_events();
 		release_clobj();
-		if (self->methods.tunable_cost_value[0] && autotune_db->real)
+		if (!self->methods.tunable_cost_value[0] || !autotune_db->real)
 			dyna_salt_remove(salt);
 		return 0;
 	}
@@ -1360,7 +1360,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	clear_profiling_events();
 	release_clobj();
 
-	if (self->methods.tunable_cost_value[0] && autotune_db->real)
+	if (!self->methods.tunable_cost_value[0] || !autotune_db->real)
 		dyna_salt_remove(salt);
 
 	return runtime;
@@ -1616,7 +1616,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	local_work_size = optimal_work_group;
 	global_work_size = GET_EXACT_MULTIPLE(gws, local_work_size);
 
-	if (self->methods.tunable_cost_value[0] && autotune_db->real)
+	if (!self->methods.tunable_cost_value[0] || !autotune_db->real)
 		dyna_salt_remove(salt);
 }
 
