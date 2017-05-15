@@ -380,8 +380,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 {
 	if ((!options.target_enc || options.default_target_enc) &&
 	    !options.internal_cp) {
-		if (!strcasecmp(format->params.label, "LM") ||
-		    !strcasecmp(format->params.label, "lm-opencl") ||
+		if (!strncasecmp(format->params.label, "LM", 2) ||
 		    !strcasecmp(format->params.label, "netlm") ||
 		    !strcasecmp(format->params.label, "nethalflm")) {
 			options.target_enc =

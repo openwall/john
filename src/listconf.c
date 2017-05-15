@@ -608,7 +608,11 @@ void listconf_parse_late(void)
 			                    format->params.label, 0)
 			       ? "yes" : "no");
 			printf("Min. password length                 %d\n", format->params.plaintext_min_length);
-			if (!(format->params.flags & FMT_8_BIT) || options.target_enc != UTF_8) {
+			if (!(format->params.flags & FMT_8_BIT) ||
+			    options.target_enc != UTF_8 ||
+			    !strncasecmp(format->params.label, "LM", 2) ||
+			    !strcasecmp(format->params.label, "netlm") ||
+			    !strcasecmp(format->params.label, "nethalflm")) {
 				/* Not using UTF-8 so length is not ambiguous */
 				printf("Max. password length                 %d\n", enc_len);
 			} else if (!fmt_raw_len || fmt_raw_len == enc_len) {
