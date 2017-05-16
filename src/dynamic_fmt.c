@@ -414,7 +414,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	// this is now simply REMOVED totally, if we detect it.  Doing this solves MANY other problems
 	// of leaving it in there. The ONLY problem we still have is NULL bytes.
 	if (strstr(ciphertext, "$HEX$")) {
-		if (strlen(ciphertext) < sizeof(fixed_ciphertext))
+		if (strnlen(ciphertext, sizeof(fixed_ciphertext) + 1) < sizeof(fixed_ciphertext))
 			ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
 	}
 
@@ -936,7 +936,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	// ANY field[1] longer than 490 will simply be ignored, and returned 'as is'.
 	// the rest of this function makes this assumption.
-	if (!cpBuilding || strlen(cpBuilding) > 490)
+	if (!cpBuilding || strnlen(cpBuilding, 491) > 490)
 		return cpBuilding;
 
 	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them
@@ -982,7 +982,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	// At this point, max length of cpBuilding is 491 (if it was a md5_gen signature)
 
 	// allow a raw hash, if there is a $u but no salt
-	if (pPriv->nUserName && strlen(split_fields[0]) && !strchr(cpBuilding, '$') && strcmp(split_fields[0], "?")) {
+	if (pPriv->nUserName && split_fields[0][0] && !strchr(cpBuilding, '$') && strcmp(split_fields[0], "?")) {
 		static char ct[496];
 		strcpy(ct, cpBuilding);
 		strcat(ct, "$$U");
@@ -1053,7 +1053,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
 	if (pPriv->nUserName && !strstr(cpBuilding, "$$U")) {
-		if (split_fields[0] && strlen(split_fields[0]) && strcmp(split_fields[0], "?")) {
+		if (split_fields[0] && split_fields[0][0] && strcmp(split_fields[0], "?")) {
 			char *userName=split_fields[0], *cp;
 			static char ct[1024];
 			// assume field[0] is in format: username OR DOMAIN\\username  If we find a \\, then  use the username 'following' it.
@@ -1069,7 +1069,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		for (i = 0; i < 10; ++i) {
 			if (pPriv->FldMask&(MGF_FLDx_BIT<<i)) {
 				sprintf(Tmp, "$$F%d", i);
-				if (split_fields[i] && strlen(split_fields[i]) && strcmp(split_fields[i], "/") && !strstr(cpBuilding, Tmp)) {
+				if (split_fields[i] && split_fields[i][0] && strcmp(split_fields[i], "/") && !strstr(cpBuilding, Tmp)) {
 					static char ct[1024];
 					char ct2[1024];
 					snprintf (ct2, sizeof(ct2), "%s$$F%d%s", cpBuilding, i, split_fields[i]);
@@ -1088,7 +1088,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	static char out[1024];
 	private_subformat_data *pPriv = pFmt->private.data;
 
-	if (strlen(ciphertext) > 950)
+	if (strnlen(ciphertext, 951) > 950)
 		return ciphertext;
 
 	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them

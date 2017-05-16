@@ -2219,6 +2219,10 @@ int looks_like_bare_hash(const char *fld1) {
 char *dynamic_compile_prepare(char *fld0, char *fld1) {
 	static char Buf[1024], tmp1[64];
 	char *cpExpr=0;
+
+	if (strnlen(fld1, LINE_BUFFER_SIZE + 1) > LINE_BUFFER_SIZE)
+		return fld1;
+
 	if (!strncmp(fld1, "$dynamic_", 9)) {
 		int num;
 		if (strlen(fld1) > 490)

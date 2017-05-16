@@ -171,29 +171,30 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		return split_fields[1];
 	if (!split_fields[0])
 		return split_fields[1];
-	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
-	sprintf (cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
-	if (valid(cp, self))
-	{
-		UTF8 tmp8[MAX_USERNAME_LEN * 3 + 1];
-		int utf8len;
+	if (strnlen(split_fields[1], CIPHERTEXT_LENGTH + 1) == CIPHERTEXT_LENGTH) {
+		cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
+		sprintf (cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
+		if (valid(cp, self)) {
+			UTF8 tmp8[MAX_USERNAME_LEN * 3 + 1];
+			int utf8len;
 
-		// we no longer need this.  It was just used for valid().   We will recompute
-		// all lengths, after we do an upcase, since upcase can change the length of the
-		// utf8 string.
-		MEM_FREE(cp);
+			// we no longer need this.  It was just used for valid().   We will recompute
+			// all lengths, after we do an upcase, since upcase can change the length of the
+			// utf8 string.
+			MEM_FREE(cp);
 
-		// Upcase user name, --encoding aware
-		utf8len = enc_uc(tmp8, sizeof(tmp8), (unsigned char*)split_fields[0], strlen(split_fields[0]));
+			// Upcase user name, --encoding aware
+			utf8len = enc_uc(tmp8, sizeof(tmp8), (unsigned char*)split_fields[0], strlen(split_fields[0]));
 
-		cp = mem_alloc_tiny(utf8len + strlen(split_fields[1]) + 4, MEM_ALIGN_NONE);
-		sprintf (cp, "%s%s#%s", FORMAT_TAG, tmp8, split_fields[1]);
+			cp = mem_alloc_tiny(utf8len + strlen(split_fields[1]) + 4, MEM_ALIGN_NONE);
+			sprintf (cp, "%s%s#%s", FORMAT_TAG, tmp8, split_fields[1]);
 #ifdef DEBUG_ORACLE
-		printf ("tmp8         : %s\n", tmp8);
+			printf ("tmp8         : %s\n", tmp8);
 #endif
-		return cp;
+			return cp;
+		}
+		MEM_FREE(cp);
 	}
-	MEM_FREE(cp);
 	return split_fields[1];
 }
 
