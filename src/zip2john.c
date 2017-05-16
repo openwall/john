@@ -661,21 +661,23 @@ print_and_cleanup:;
 }
 
 static int usage(char *name) {
-	fprintf(stderr, "Usage: %s [options] [zip files]\n", name);
+	fprintf(stderr, "Usage: %s [options] [zip file(s)]\n", name);
 	fprintf(stderr, "Options for 'old' PKZIP encrypted files only:\n");
-	fprintf(stderr, " -a <filename>   This is a 'known' ASCII file\n");
-	fprintf(stderr, "    Using 'ascii' mode is a serious speedup, IF all files are larger, and\n");
-	fprintf(stderr, "    you KNOW that at least one of them starts out as 'pure' ASCII data\n");
-	fprintf(stderr, " -o <filename>   Only use this file from the .zip file\n");
+	fprintf(stderr, " -a <filename>   This is a 'known' ASCII file. This can be faster, IF all\n");
+	fprintf(stderr, "    files are larger, and you KNOW that at least one of them starts out as\n");
+	fprintf(stderr, "    'pure' ASCII data.\n");
+	fprintf(stderr, " -o <filename>   Only use this file from the .zip file.\n");
 	fprintf(stderr, " -c This will create a 'checksum only' hash.  If there are many encrypted\n");
 	fprintf(stderr, "    files in the .zip file, then this may be an option, and there will be\n");
 	fprintf(stderr, "    enough data that false possitives will not be seen.  If the .zip is 2\n");
 	fprintf(stderr, "    byte checksums, and there are 3 or more of them, then we have 48 bits\n");
 	fprintf(stderr, "    knowledge, which 'may' be enough to crack the password, without having\n");
-	fprintf(stderr, "    to force the user to have the .zip file present\n");
-	fprintf(stderr, " -m Use \"file magic\" as known-plain if applicable. This is slightly faster\n");
-	fprintf(stderr, "    but not 100%% safe in all situations.\n");
-	fprintf(stderr, " -2 Force 2 byte checksum computation\n");
+	fprintf(stderr, "    to force the user to have the .zip file present.\n");
+	fprintf(stderr, " -m Use \"file magic\" as known-plain if applicable. This can be faster but\n");
+	fprintf(stderr, "    not 100%% safe in all situations.\n");
+	fprintf(stderr, " -2 Force 2 byte checksum computation.\n");
+	fprintf(stderr, "\nNOTE: By default it is assumed that all files in each archive have the same\n");
+	fprintf(stderr, "password. To work around that, use -o option to pick a file at a time.\n");
 
 	return EXIT_FAILURE;
 }

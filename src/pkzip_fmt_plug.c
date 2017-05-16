@@ -1,4 +1,5 @@
-/* PKZIP patch for john to handle 'old' pkzip passwords (old 'native' format)
+/*
+ * PKZIP patch for john to handle 'old' pkzip passwords (old 'native' format)
  *
  * Written by Jim Fougeron <jfoug at cox.net> in 2011.  No copyright
  * is claimed, and the software is hereby placed in the public domain.
@@ -723,8 +724,8 @@ static void *get_salt(char *ciphertext)
 	// set the JtR core linkage stuff for this dyna_salt
 	memcpy(salt_p, &psalt, sizeof(psalt));
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(PKZ_SALT, cnt);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(PKZ_SALT, cnt, full_zip_idx, ex_len[0]+ex_len[1]+ex_len[2]+2);
-
+	psalt->dsalt.salt_cmp_size =
+		SALT_CMP_SIZE(PKZ_SALT, cnt, zip_data, ex_len[0]+ex_len[1]+ex_len[2]+2);
 	return salt_p;
 }
 
