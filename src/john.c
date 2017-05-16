@@ -1713,6 +1713,9 @@ static void john_run(void)
 		if (options.flags & FLG_MASK_CHK)
 			mask_crk_init(&database);
 
+		/* Placed here to disregard load time. */
+		sig_init_late();
+
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
 		else
@@ -1849,7 +1852,6 @@ static void john_done(void)
 int main(int argc, char **argv)
 {
 	char *name;
-	unsigned int time;
 
 #ifdef TEST_MEMDBG_LOGIC
 	int i,j;
@@ -1988,16 +1990,6 @@ int main(int argc, char **argv)
 	}
 	john_init(name, argc, argv);
 
-	/* Placed here to disregard load time. */
-#if OS_TIMER
-	time = 0;
-#else
-	time = status_get_time();
-#endif
-	if (options.max_run_time)
-		timer_abort = time + abs(options.max_run_time);
-	if (options.status_interval)
-		timer_status = time + options.status_interval;
 	if (options.max_cands) {
 		if (options.node_count) {
 			long long orig_max_cands = options.max_cands;

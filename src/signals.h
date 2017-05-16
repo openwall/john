@@ -73,6 +73,11 @@ void sig_preinit(void);
 extern void sig_init(void);
 
 /*
+ * Starts "the clock". Called after loading, auto-tuning, etc.
+ */
+extern void sig_init_late(void);
+
+/*
  * Performs additional (re-)initialization after fork().  Assumes that
  * sig_init() has already been called.
  */

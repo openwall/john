@@ -549,11 +549,7 @@ void sig_init(void)
 		abort_grace_time =
 			cfg_get_int(SECTION_OPTIONS, NULL, "AbortGraceTime");
 	}
-#if OS_TIMER
-	timer_save_value = timer_save_interval;
-#elif !defined(BENCH_BUILD)
-	timer_save_value = status_get_time() + timer_save_interval;
-#endif
+
 	timer_ticksafety_interval = (clock_t)1 << (sizeof(clock_t) * 8 - 4);
 	timer_ticksafety_interval /= clk_tck;
 	if ((timer_ticksafety_interval /= TIMER_INTERVAL) <= 0)
@@ -562,9 +558,28 @@ void sig_init(void)
 
 	atexit(sig_done);
 
-	sig_install(sig_handle_update, SIGHUP);
 	sig_install_abort();
+}
+
+void sig_init_late(void)
+{
+	unsigned int time;
+
+#if OS_TIMER
+	timer_save_value = timer_save_interval;
+	time = 0;
+#elif !defined(BENCH_BUILD)
+	timer_save_value = status_get_time() + timer_save_interval;
+	time = status_get_time();
+#endif
+
+	sig_install(sig_handle_update, SIGHUP);
 	sig_install_timer();
+
+	if (options.max_run_time)
+		timer_abort = time + abs(options.max_run_time);
+	if (options.status_interval)
+		timer_status = time + options.status_interval;
 }
 
 void sig_init_child(void)
