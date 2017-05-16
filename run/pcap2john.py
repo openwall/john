@@ -526,43 +526,69 @@ def pcap_parser_isis(fname):
         try:
             llc = LLC(data)
             data = llc.data
-            classification = llc.classification
             if isinstance(data, dpkt.cdp.CDP) or isinstance(data, dpkt.stp.STP):
                 continue
         except:
             continue
 
-        if not classification:
-            continue
-
+        data = data[3:]  # dirty hack to skip over LLC stuff
         discriminator = ord(data[0])
         if discriminator != 0x83:  # IS-IS
             continue
 
-        isis_data = data[8:]  # double check this!
-        offset = 19  # TLVs start after this
-        has_hash = False
+        # Check PDU type (HELLO, LSP, CSNP), LSP needs additional treatment
+        pdu_type = ord(data[4])
+        if pdu_type == 18 or pdu_type == 20:  # LSP PDU, L1 and L2
+            # zeroize the "lifetime" and "checksum" fields
+            data = data[:10] + "\x00\x00" + data[12:24] + "\x00\x00" + data[26:]
 
-        # process TLVs
-        while True:
+        isis_data = data[8:]  # double check this!
+
+        # find authentication TLV using brute-force
+        for offset in range(0, len(isis_data) - 3):
             tlv_type = ord(isis_data[offset])
             tlv_length = ord(isis_data[offset+1])
-            if tlv_length == 0:  # dirty
-                break
-            if tlv_type == 0x0a:  # authentication TLV
-                authentication_type = ord(isis_data[offset+2])
-                if tlv_length == 17 and authentication_type == 0x36:  # hmac-md5 is being used
-                    has_hash = True
-                    h = isis_data[offset+3:offset+3+16]
+            authentication_type = ord(isis_data[offset+2])
+
+            if tlv_type == 0x0a and tlv_length == 17 and authentication_type == 0x36:  # hmac-md5 is being used
+                    hash_length = 16
+                    h = isis_data[offset+3:offset+3+hash_length]
+                    # http://tools.ietf.org/html/rfc1195
+                    salt = data.replace(h, "\x00" * hash_length)  # zero out the hash
+                    sys.stdout.write("%s:$rsvp$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
                     break
-            offset = offset + tlv_length
-
-        if not has_hash:
-            continue
-
-        # http://tools.ietf.org/html/rfc1195
-        salt = data.replace(h, "\x00" * 16)  # zero out the hash
-        sys.stdout.write("%s:$rsvp$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+            # https://tools.ietf.org/html/rfc5310
+            if tlv_type == 0x0a and tlv_length == 23 and authentication_type == 0x3:  # hmac-sha1
+                    hash_length = 20
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]  # +2 is required to skip over "Key ID"
+                    # ospf format supports such hashes!
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
+            if tlv_type == 0x0a and tlv_length == 31 and authentication_type == 0x3:  # hmac-sha224
+                    hash_length = 28
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$5$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))  # yes, 5 is out-of-order
+                    break
+            if tlv_type == 0x0a and tlv_length == 35 and authentication_type == 0x3:  # hmac-sha256
+                    hash_length = 32
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$2$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
+            if tlv_type == 0x0a and tlv_length == 51 and authentication_type == 0x3:  # hmac-sha384
+                    hash_length = 48
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$3$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
+            if tlv_type == 0x0a and tlv_length == 67 and authentication_type == 0x3:  # hmac-sha512
+                    hash_length = 64
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$4$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
 
     f.close()
 
