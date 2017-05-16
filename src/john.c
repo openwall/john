@@ -417,10 +417,7 @@ static void john_log_format(void)
 		utf8_len /= 3;
 
 	if (!(database.format->params.flags & FMT_8_BIT) ||
-	    options.target_enc != UTF_8 ||
-	    !strncasecmp(database.format->params.label, "LM", 2) ||
-	    !strcasecmp(database.format->params.label, "netlm") ||
-	    !strcasecmp(database.format->params.label, "nethalflm")) {
+	    options.target_enc != UTF_8) {
 		/* Not using UTF-8 so length is not ambiguous */
 		snprintf(max_len_s, sizeof(max_len_s), "%d", enc_len);
 	} else if (!fmt_raw_len || fmt_raw_len == enc_len) {

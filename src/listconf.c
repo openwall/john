@@ -612,7 +612,8 @@ void listconf_parse_late(void)
 			    options.target_enc != UTF_8 ||
 			    !strncasecmp(format->params.label, "LM", 2) ||
 			    !strcasecmp(format->params.label, "netlm") ||
-			    !strcasecmp(format->params.label, "nethalflm")) {
+			    !strcasecmp(format->params.label, "nethalflm") ||
+			    !strcasecmp(format->params.label, "sapb")) {
 				/* Not using UTF-8 so length is not ambiguous */
 				printf("Max. password length                 %d\n", enc_len);
 			} else if (!fmt_raw_len || fmt_raw_len == enc_len) {
