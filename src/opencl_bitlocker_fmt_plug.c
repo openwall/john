@@ -37,6 +37,8 @@ john_register_one(&fmt_opencl_bitlocker);
 #define ALGORITHM_NAME          "SHA256 AES OpenCL"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define SALT_ALIGN		1
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
 #define BITLOCKER_JTR_HASH_SIZE 45
 #define BITLOCKER_JTR_HASH_SIZE_CHAR 208
 #define MIN_KEYS_PER_CRYPT  1 
@@ -66,6 +68,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define TRUE 1
 #define BITLOCKER_SALT_SIZE 16
 #define SALT_SIZE               sizeof(bitlocker_custom_salt)
+#define SALT_ALIGN              sizeof(int)
 
 #define BITLOCKER_MAC_SIZE 16
 #define BITLOCKER_NONCE_SIZE 12
@@ -353,27 +356,6 @@ static void done(void)
 
 		autotuned--;
 	}
-
-}
-
-static void *get_salt(char *ciphertext)
-{
-
-#if 0
-	printf("1 ciphertext: %s\n", ciphertext);
-	cur_salt = bitlocker_common_get_salt(ciphertext);
-
-    printf("1 salt %x %x %x %x\n", cur_salt->salt[0], cur_salt->salt[1], cur_salt->salt[2], cur_salt->salt[3]);
-    printf("1 nonce %x %x %x %x\n", cur_salt->iv[0], cur_salt->iv[1], cur_salt->iv[2], cur_salt->iv[3]);
-	printf("1 VMK %x %x %x %x\n", cur_salt->data[0], cur_salt->data[1], cur_salt->data[2], cur_salt->data[3]);
-	return cur_salt;
-#endif
-
-#if 1
-	char * tmpArray;
-	tmpArray = (char *) calloc(BITLOCKER_JTR_HASH_SIZE_CHAR + 1, sizeof(char));
-	return strnzcpy(tmpArray, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR + 1);
-#endif
 }
 
 static int w_block_precomputed(unsigned char *salt)
@@ -426,15 +408,7 @@ static void set_salt(void * cipher_salt_input)
 {
 	int i = 0;
 
-#if 0
 	cur_salt = (bitlocker_custom_salt *) cipher_salt_input;
-#endif
-
-#if 1
-	cur_salt = bitlocker_common_get_salt(cipher_salt_input);
-//	printf("salt %x %x %x %x\n", cur_salt->salt[0], cur_salt->salt[1], cur_salt->salt[2], cur_salt->salt[3]);
-//	printf("nonce %x %x %x %x\n", cur_salt->iv[0], cur_salt->iv[1], cur_salt->iv[2], cur_salt->iv[3]);
-#endif
 
 	w_block_precomputed(cur_salt->salt);
 	if (!w_blocks_h) {
@@ -442,6 +416,8 @@ static void set_salt(void * cipher_salt_input)
 	}
 
 #if 0
+	printf("salt %x %x %x %x\n", cur_salt->salt[0], cur_salt->salt[1], cur_salt->salt[2], cur_salt->salt[3]);
+	printf("nonce %x %x %x %x\n", cur_salt->iv[0], cur_salt->iv[1], cur_salt->iv[2], cur_salt->iv[3]);
 	printf("wblocks %x %x %x %x\n", w_blocks_h[0], w_blocks_h[1], w_blocks_h[2], w_blocks_h[3]);
 	printf("VMK %x %x %x %x\n", cur_salt->data[0], cur_salt->data[1], cur_salt->data[2], cur_salt->data[3]);
 #endif
@@ -489,7 +465,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
 	const int count = *pcount;
-	//int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -596,7 +571,7 @@ static int cmp_all(void *binary, int count)
 		                 (hostFound[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN)));
 #endif
 
-		return 1; //hostFound[0]+1;
+		return 1;
 	} else
 		return 0;
 }
@@ -641,26 +616,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-//------ NEW
-/*
-static void bitlocker_set_key(char *key, int index)
-{
-	// Convert key to UTF-16LE (--encoding aware)
-	enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
-}
-
-static char * bitlocker_get_key(int index)
-{
-	return (char*)utf16_to_enc(saved_key[index]);
-}
-*/
-
-static unsigned int iteration_count(void *salt)
-{
-	//return randoms num
-	return 10;
-}
-
 struct fmt_main fmt_opencl_bitlocker = {
 {
 	FORMAT_LABEL,
@@ -670,9 +625,9 @@ struct fmt_main fmt_opencl_bitlocker = {
 	BENCHMARK_LENGTH,
 	BITLOCKER_MIN_INPUT_PASSWORD_LEN,
 	BITLOCKER_MAX_INPUT_PASSWORD_LEN,
-	0,
-	MEM_ALIGN_WORD,
-	BITLOCKER_JTR_HASH_SIZE_CHAR,
+	BINARY_SIZE,
+	BINARY_ALIGN,
+	SALT_SIZE,
 	SALT_ALIGN,
 	MIN_KEYS_PER_CRYPT,
 	MAX_KEYS_PER_CRYPT,
@@ -691,12 +646,10 @@ struct fmt_main fmt_opencl_bitlocker = {
 	bitlocker_common_valid,
 	fmt_default_split,
 	fmt_default_binary,
-	//bitlocker_common_get_salt,
-	get_salt,
-		{
-			bitlocker_common_iteration_count,
-			//iteration_count,
-		},
+	bitlocker_common_get_salt,
+	{
+		bitlocker_common_iteration_count,
+	},
 	fmt_default_source,
 	{
 		fmt_default_binary_hash,
