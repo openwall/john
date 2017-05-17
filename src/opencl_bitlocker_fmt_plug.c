@@ -65,6 +65,8 @@ john_register_one(&fmt_opencl_bitlocker);
 #define FALSE 0
 #define TRUE 1
 #define BITLOCKER_SALT_SIZE 16
+#define SALT_SIZE               sizeof(bitlocker_custom_salt)
+
 #define BITLOCKER_MAC_SIZE 16
 #define BITLOCKER_NONCE_SIZE 12
 #define BITLOCKER_IV_SIZE 16
