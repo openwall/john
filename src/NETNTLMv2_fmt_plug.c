@@ -149,7 +149,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
   if (ciphertext == NULL) return 0;
   else if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
 
-  if (strlen(ciphertext) > TOTAL_LENGTH)
+  if (strnlen(ciphertext, TOTAL_LENGTH + 1) > TOTAL_LENGTH)
     return 0;
 
   pos = &ciphertext[FORMAT_TAG_LEN];
@@ -191,16 +191,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
+	char *login         = split_fields[0];
+	char *uid           = split_fields[2];
 	char *srv_challenge = split_fields[3];
 	char *nethashv2     = split_fields[4];
 	char *cli_challenge = split_fields[5];
-	char *login = split_fields[0];
-	char *uid = split_fields[2];
 	char *identity = NULL, *tmp;
 
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
-	if (!split_fields[0]||!split_fields[2]||!split_fields[3]||!split_fields[4]||!split_fields[5])
+	if (!login || !uid || !srv_challenge || !nethashv2 || !cli_challenge)
 		return split_fields[1];
 
 	/* DOMAIN\USER: -or- USER::DOMAIN: */
@@ -209,7 +209,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		strcpy(identity, tmp + 1);
 
 		/* Upper-Case Username - Not Domain */
-		enc_strupper((char *)identity);
+		enc_strupper(identity);
 
 		strncat(identity, login, tmp - login);
 	}
@@ -217,7 +217,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		identity = (char *) mem_alloc(strlen(login)*2 + strlen(uid) + 1);
 		strcpy(identity, login);
 
-		enc_strupper((char *)identity);
+		enc_strupper(identity);
 
 		strcat(identity, uid);
 	}
@@ -464,41 +464,6 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-static int get_hash_0(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_0;
-}
-
-static int get_hash_1(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_1;
-}
-
-static int get_hash_2(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_2;
-}
-
-static int get_hash_3(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_3;
-}
-
-static int get_hash_4(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_4;
-}
-
-static int get_hash_5(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_5;
-}
-
-static int get_hash_6(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_6;
-}
-
 struct fmt_main fmt_NETNTLMv2 = {
 	{
 		FORMAT_LABEL,
@@ -514,7 +479,7 @@ struct fmt_main fmt_NETNTLMv2 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
@@ -530,13 +495,7 @@ struct fmt_main fmt_NETNTLMv2 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		NULL,
@@ -546,13 +505,7 @@ struct fmt_main fmt_NETNTLMv2 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

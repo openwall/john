@@ -329,7 +329,7 @@ struct fmt_main fmt_opencl_enpass = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		enpass_tests

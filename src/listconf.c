@@ -640,6 +640,7 @@ void listconf_parse_late(void)
 			       (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
 			printf(" Uses a bitslice implementation      %s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
+			printf(" Supports very long hashes           %s\n", (format->params.flags & FMT_HUGE_INPUT) ? "yes" : "no");
 
 #ifndef DYNAMIC_DISABLED
 			if (format->params.flags & FMT_DYNAMIC) {

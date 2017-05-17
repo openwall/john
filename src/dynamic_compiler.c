@@ -2220,6 +2220,7 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 	static char Buf[1024], tmp1[64];
 	char *cpExpr=0;
 
+	/* Quick cancel of huge lines (eg. zip archives) */
 	if (strnlen(fld1, LINE_BUFFER_SIZE + 1) > LINE_BUFFER_SIZE)
 		return fld1;
 

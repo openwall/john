@@ -23,7 +23,7 @@ static int valid_cisco(char *ciphertext)
 		p += CISCO_TAG_LEN;
 
 	q = p;
-	while (atoi64[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi64[ARCH_INDEX(*q)] != 0x7F && q - p <= CISCO_CIPHERTEXT_LENGTH)
 		q++;
 	return !*q && q - p == CISCO_CIPHERTEXT_LENGTH;
 }
@@ -37,7 +37,7 @@ static int valid_hex(char *ciphertext)
 		p += HEX_TAG_LEN;
 
 	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F && q - p <= HEX_CIPHERTEXT_LENGTH)
 		q++;
 	return !*q && q - p == HEX_CIPHERTEXT_LENGTH;
 }

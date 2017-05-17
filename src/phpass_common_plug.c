@@ -62,7 +62,8 @@ int phpass_common_valid(char *ciphertext, struct fmt_main *self)
 	int i;
 	unsigned count_log2;
 
-	if (strlen(ciphertext) != PHPASS_CIPHERTEXT_LENGTH)
+	if (strnlen(ciphertext, PHPASS_CIPHERTEXT_LENGTH + 1) !=
+	    PHPASS_CIPHERTEXT_LENGTH)
 		return 0;
 	// Handle both the phpass signature, and the phpBB v3 signature (same formula)
 	// NOTE we are only dealing with the 'portable' encryption method

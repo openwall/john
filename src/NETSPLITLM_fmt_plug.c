@@ -132,27 +132,30 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *tmp;
+	char *srv_challenge = split_fields[3];
+	char *nethashv2     = split_fields[4];
+	char *cli_challenge = split_fields[5];
 
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
-	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
+	if (!srv_challenge || !nethashv2 || !cli_challenge)
 		return split_fields[1];
 
-	if (strlen(split_fields[3]) != CIPHERTEXT_LENGTH)
+	if (strlen(srv_challenge) != CIPHERTEXT_LENGTH)
 		return split_fields[1];
 
 	// if LMresp == NTresp then it's NTLM-only, not LM
-	if (!strncmp(split_fields[3], split_fields[4], 48))
+	if (!strncmp(srv_challenge, nethashv2, 48))
 		return split_fields[1];
 
 	// this string suggests we have an improperly formatted NTLMv2
-	if (strlen(split_fields[4]) > 31) {
-		if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
+	if (strlen(nethashv2) > 31) {
+		if (!strncmp(&nethashv2[32], "0101000000000000", 16))
 			return split_fields[1];
 	}
 
-	tmp = (char *) mem_alloc(FORMAT_TAG_LEN + strlen(split_fields[3]) + 1 + strlen(split_fields[5]) + 1);
-	sprintf(tmp, "%s%s$%s", FORMAT_TAG, split_fields[5], split_fields[3]);
+	tmp = (char *) mem_alloc(FORMAT_TAG_LEN + strlen(srv_challenge) + 1 + strlen(cli_challenge) + 1);
+	sprintf(tmp, "%s%s$%s", FORMAT_TAG, cli_challenge, srv_challenge);
 
 	if (valid(tmp,self)) {
 		char *cp2 = str_alloc_copy(tmp);

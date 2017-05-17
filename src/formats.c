@@ -473,6 +473,19 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.source != fmt_default_source &&
 	    format->params.salt_size != 0)
 		return "source method only allowed for unsalted formats";
+
+	if (format->params.flags & FMT_HUGE_INPUT) {
+		for (size = 0; size < PASSWORD_HASH_SIZES; size++) {
+			if (format->methods.binary_hash[size] &&
+			    format->methods.binary_hash[size] !=
+			    fmt_default_binary_hash)
+				return "binary_hash method not allowed for FMT_HUGE_INPUT";
+			if (format->methods.get_hash[size] &&
+			    format->methods.get_hash[size] !=
+			    fmt_default_get_hash)
+				return "get_hash method not allowed for FMT_HUGE_INPUT";
+		}
+	}
 #ifndef JUMBO_JTR
 	fmt_init(format);
 #endif
@@ -531,6 +544,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	index = 0; max = format->params.max_keys_per_crypt;
 
 	do {
+		if (strnlen(current->ciphertext, LINE_BUFFER_SIZE + 1) >
+		    LINE_BUFFER_SIZE &&
+		    !(format->params.flags & FMT_HUGE_INPUT))
+			return "Long test vector but not FMT_HUGE_INPUT";
+
 		if (!current->fields[1])
 			current->fields[1] = current->ciphertext;
 		ciphertext = format->methods.prepare(current->fields, format);

@@ -42,6 +42,7 @@ john_register_one(&fmt_EPI);
 #endif
 #include "memdbg.h"
 
+#define CIPHERTEXT_LENGTH  105
 #define PLAINTEXT_LENGTH   125
 #define BINARY_LENGTH      20
 #define BINARY_ALIGN       sizeof(uint32_t)
@@ -95,10 +96,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
   unsigned int len, n;
 
-  if (!ciphertext) return 0;
-  len = strlen(ciphertext);
+  if (!ciphertext)
+	  return 0;
 
-  if (len != 105)
+  len = strnlen(ciphertext, CIPHERTEXT_LENGTH + 1);
+
+  if (len != CIPHERTEXT_LENGTH)
     return 0;
 
   // check fixed positions
@@ -110,7 +113,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
   for (n = 2; n < 62 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
   if (n < 62)
 	  return 0;
-  for (n = 65; n < 105 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for (n = 65; n < CIPHERTEXT_LENGTH &&
+	       atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
 
   return n == len;
 }

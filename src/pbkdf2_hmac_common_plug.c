@@ -393,8 +393,11 @@ char *pbkdf2_hmac_sha1_split(char *ciphertext, int index, struct fmt_main *self)
 char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 {
 	static char Buf[PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH + 1];
-	if (strncmp(fields[1], PKCS5S2_TAG, PKCS5S2_TAG_LEN) != 0 && strncmp(fields[1], PK5K2_TAG, PK5K2_TAG_LEN))
+
+	if (strncmp(fields[1], PKCS5S2_TAG, PKCS5S2_TAG_LEN) &&
+	    strncmp(fields[1], PK5K2_TAG, PK5K2_TAG_LEN))
 		return fields[1];
+
 	if (!strncmp(fields[1], PKCS5S2_TAG, PKCS5S2_TAG_LEN)) {
 		char tmp[120+1];
 		if (strlen(fields[1]) > 75) return fields[1];
@@ -404,6 +407,7 @@ char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 		sprintf(Buf, "%s10000$%32.32s$%s", PBKDF2_SHA1_FORMAT_TAG, tmp, &tmp[32]);
 		return Buf;
 	}
+
 	if (!strncmp(fields[1], PK5K2_TAG, PK5K2_TAG_LEN)) {
 		char tmps[240+1], tmph[60+1], *cp, *cp2;
 		unsigned iter=0;

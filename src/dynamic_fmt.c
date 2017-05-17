@@ -411,6 +411,10 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (strncmp(ciphertext, pPriv->dynamic_WHICH_TYPE_SIG, strlen(pPriv->dynamic_WHICH_TYPE_SIG)))
 		return 0;
 
+	/* Quick cancel of huge lines (eg. zip archives) */
+	if (strnlen(ciphertext, LINE_BUFFER_SIZE + 1) > LINE_BUFFER_SIZE)
+		return 0;
+
 	// this is now simply REMOVED totally, if we detect it.  Doing this solves MANY other problems
 	// of leaving it in there. The ONLY problem we still have is NULL bytes.
 	if (strstr(ciphertext, "$HEX$")) {

@@ -596,7 +596,7 @@ struct fmt_main fmt_truecrypt = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"hash algorithm [1:SHA512 2:RIPEMD160 3:Whirlpool]",
 		},
@@ -620,7 +620,7 @@ struct fmt_main fmt_truecrypt = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		NULL,
@@ -630,7 +630,7 @@ struct fmt_main fmt_truecrypt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
@@ -653,7 +653,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ TAG_RIPEMD160 },
 		tests_ripemd160
@@ -669,7 +669,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		NULL,
@@ -679,7 +679,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
@@ -715,7 +715,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ TAG_SHA512 },
 		tests_sha512
@@ -731,7 +731,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		NULL,
@@ -741,7 +741,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
@@ -768,7 +768,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ TAG_WHIRLPOOL },
 		tests_whirlpool
@@ -784,7 +784,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		NULL,
@@ -794,7 +794,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

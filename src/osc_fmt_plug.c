@@ -118,11 +118,12 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 static int osc_valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
-	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
+
+	if (!ciphertext )
 		return 0;
 
 	get_ptr();
-	i = strlen(ciphertext);
+	i = strnlen(ciphertext, CIPHERTEXT_LENGTH + 1);
 
 	if (i != CIPHERTEXT_LENGTH) {
 		return pDynamic_4->methods.valid(ciphertext, pDynamic_4);
@@ -202,15 +203,6 @@ static void get_ptr() {
 		link_funcs();
 	}
 }
-
-/**
- * GNU Emacs settings: K&R with 1 tab indent.
- * Local Variables:
- * c-file-style: "k&r"
- * c-basic-offset: 8
- * indent-tabs-mode: t
- * End:
- */
 
 #endif /* plugin stanza */
 

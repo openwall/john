@@ -100,23 +100,22 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 
 static int formspring_valid(char *ciphertext, struct fmt_main *self)
 {
-	int i;
-	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
+	if (!ciphertext )
 		return 0;
 
 	get_ptr();
-	i = strlen(ciphertext);
 
-	if (i == CIPHERTEXT_LENGTH && strncmp(ciphertext, "$dynamic", 8))
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) == CIPHERTEXT_LENGTH &&
+	    strncmp(ciphertext, "$dynamic", 8))
 		ciphertext = Convert(Conv_Buf, ciphertext);
 	if (!pDynamic_61->methods.valid(ciphertext, pDynamic_61))
 		return 0;
 	// safe, since this has already passed dynamic valid. We know there is a '$'
 	// for the salt, otherwise it would fail valid before this point.
-	if (strlen(strrchr(ciphertext, '$')) != SALT_SIZE+1) {
+	if (strlen(strrchr(ciphertext, '$')) != SALT_SIZE + 1) {
 		// check for $HEX$ (such as re-reading from the .pot file
 		ciphertext = strstr(ciphertext, "$HEX$");
-		if (ciphertext && strlen(ciphertext) == 5+SALT_SIZE*2)
+		if (ciphertext && strlen(ciphertext) == 5 + SALT_SIZE * 2)
 			return 1;
 		return 0;
 	}
@@ -180,15 +179,6 @@ static void get_ptr() {
 		link_funcs();
 	}
 }
-
-/**
- * GNU Emacs settings: K&R with 1 tab indent.
- * Local Variables:
- * c-file-style: "k&r"
- * c-basic-offset: 8
- * indent-tabs-mode: t
- * End:
- */
 
 #endif /* plugin stanza */
 

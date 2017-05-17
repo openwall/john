@@ -326,7 +326,7 @@ static int valid(char *ciphertext, struct fmt_main *self){
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH) return 0;
 	for (i = 1; i < CIPHERTEXT_LENGTH; i++) {
 		if (!( (('0' <= ciphertext[i])&&(ciphertext[i] <= '9'))
 		       || (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))

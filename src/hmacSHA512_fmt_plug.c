@@ -639,7 +639,7 @@ struct fmt_main fmt_hmacSHA512 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ NULL },
 		tests
@@ -655,7 +655,7 @@ struct fmt_main fmt_hmacSHA512 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -669,7 +669,7 @@ struct fmt_main fmt_hmacSHA512 = {
 #endif
 		crypt_all_512,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one_512,
@@ -692,7 +692,7 @@ struct fmt_main fmt_hmacSHA384 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ NULL },
 		tests_384
@@ -708,7 +708,7 @@ struct fmt_main fmt_hmacSHA384 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -722,7 +722,7 @@ struct fmt_main fmt_hmacSHA384 = {
 #endif
 		crypt_all_384,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one_384,

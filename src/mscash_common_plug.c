@@ -131,7 +131,7 @@ char *mscash1_common_prepare(char *split_fields[10], struct fmt_main *self)
 	char *cp;
 	int i;
 
-	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN) || !split_fields[0])
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 
 	if (!split_fields[0])
@@ -140,6 +140,9 @@ char *mscash1_common_prepare(char *split_fields[10], struct fmt_main *self)
 	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
 	for (i = 0; i < 32; i++)
 		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
+			return split_fields[1];
+
+	if (split_fields[1][i])
 			return split_fields[1];
 
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
@@ -367,10 +370,14 @@ char *mscash2_common_prepare(char *split_fields[10], struct fmt_main *self)
 	}
 	if (!split_fields[0])
 		return split_fields[1];
+
 	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
 	for (i = 0; i < 32; i++)
 		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
 			return split_fields[1];
+	if (split_fields[1][i])
+			return split_fields[1];
+
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
 	sprintf (cp, "%s10240#%s#%s", FORMAT_TAG2, split_fields[0], split_fields[1]);
 	if (mscash2_common_valid(cp, 128, self))

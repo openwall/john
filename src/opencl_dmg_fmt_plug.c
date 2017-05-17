@@ -844,7 +844,7 @@ struct fmt_main fmt_opencl_dmg = {
 #ifdef _OPENMP
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 		},

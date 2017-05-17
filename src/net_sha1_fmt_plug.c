@@ -109,8 +109,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
+	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		return 0;
+
+	p += TAG_LENGTH;
 
 	q = strrchr(ciphertext, '$');
 	if (!q)
@@ -260,19 +262,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[sizeof(cur_salt->salt)*2+TAG_LENGTH+1];
-	char *hash = fields[1];
-	if (strncmp(hash, FORMAT_TAG, TAG_LENGTH) && valid(hash, self)) {
-		get_ptr();
-		if (text_in_dynamic_format_already(pDynamicFmt, hash))
-			return hash;
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;
-}
-
 struct fmt_main fmt_netsha1 = {
 	{
 		FORMAT_LABEL,
@@ -288,7 +277,7 @@ struct fmt_main fmt_netsha1 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
@@ -296,7 +285,7 @@ struct fmt_main fmt_netsha1 = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
@@ -304,7 +293,7 @@ struct fmt_main fmt_netsha1 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -314,7 +303,7 @@ struct fmt_main fmt_netsha1 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

@@ -105,8 +105,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
-	if (memcmp(ciphertext, "0x0100", 6))
+	if (strncmp(ciphertext, "0x0100", 6))
+		return 0;
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 	for (i = 6; i < CIPHERTEXT_LENGTH; i++){
 		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
@@ -123,11 +124,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // mssql05 with -ru:nt just like LM -> NT format
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH)
+	int len = strnlen(split_fields[1], 95);
+
+	if (len == CIPHERTEXT_LENGTH)
 		return split_fields[1];
 
-	if (!memcmp(split_fields[1], "0x0100", 6) && strlen(split_fields[1]) == 94) {
+	if (!strncmp(split_fields[1], "0x0100", 6) && len == 94) {
 		char cp[CIPHERTEXT_LENGTH + 1];
+
 		strnzcpy(cp, split_fields[1], CIPHERTEXT_LENGTH + 1);
 
 		if (valid(cp,self)) {
@@ -143,7 +147,7 @@ static void set_salt(void *salt)
 	memcpy(cursalt, salt, SALT_SIZE);
 }
 
-static void * get_salt(char * ciphertext)
+static void *get_salt(char * ciphertext)
 {
 	static unsigned char *out2;
 	int l;
