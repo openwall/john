@@ -106,8 +106,8 @@ void prepare_key(const __global uint *key, uint length, uint *nt_buffer)
 	nt_index = 0;
 	for (i = 0; i < (length + 3)/ 4; i++) {
 		keychars = key[i];
-		nt_buffer[nt_index++] = CP_LUT(keychars & 0xFF) | (CP_LUT((keychars >> 8) & 0xFF) << 16);
-		nt_buffer[nt_index++] = CP_LUT((keychars >> 16) & 0xFF) | (CP_LUT(keychars >> 24) << 16);
+		nt_buffer[nt_index++] = CP_LUT(keychars & 0x000000FF) | (CP_LUT((keychars & 0x0000FF00) >> 8) << 16);
+		nt_buffer[nt_index++] = CP_LUT((keychars & 0x00FF0000) >> 16) | (CP_LUT(keychars >> 24) << 16);
 	}
 	nt_index = length >> 1;
 	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
