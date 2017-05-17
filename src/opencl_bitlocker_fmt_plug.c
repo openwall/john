@@ -36,7 +36,6 @@ john_register_one(&fmt_opencl_bitlocker);
 #define FORMAT_LABEL		    "BitLocker-opencl"
 #define ALGORITHM_NAME          "SHA256 AES OpenCL"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define SALT_ALIGN		1
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define BITLOCKER_JTR_HASH_SIZE 45
@@ -107,8 +106,6 @@ static cl_mem salt_d, padding_d, w_blocks_d, deviceEncryptedVMK,
 static cl_int cl_error;
 
 static unsigned int *w_blocks_h, *hash_zero;
-static unsigned char salt[BITLOCKER_SALT_SIZE], nonce[BITLOCKER_NONCE_SIZE],
-       encryptedVMK[BITLOCKER_VMK_SIZE];
 static unsigned char *tmpIV, *inbuffer;
 static int *inbuffer_size;
 
@@ -406,8 +403,6 @@ static int w_block_precomputed(unsigned char *salt)
 
 static void set_salt(void * cipher_salt_input)
 {
-	int i = 0;
-
 	cur_salt = (bitlocker_custom_salt *) cipher_salt_input;
 
 	w_block_precomputed(cur_salt->salt);
