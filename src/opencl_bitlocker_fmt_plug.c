@@ -33,12 +33,11 @@ john_register_one(&fmt_opencl_bitlocker);
 #include "common-opencl.h"
 #include "bitlocker_common.h"
 
-#define FORMAT_LABEL		    "bitlocker-opencl"
-//#define FORMAT_NAME             ""
+#define FORMAT_LABEL		    "BitLocker-opencl"
 #define ALGORITHM_NAME          "SHA256 AES OpenCL"
-//#define FORMAT_TAG              "$bitlocker$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define SALT_ALIGN		1
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
 #define BITLOCKER_JTR_HASH_SIZE 45
 #define BITLOCKER_JTR_HASH_SIZE_CHAR 208
 #define MIN_KEYS_PER_CRYPT  1 
@@ -67,6 +66,9 @@ john_register_one(&fmt_opencl_bitlocker);
 #define FALSE 0
 #define TRUE 1
 #define BITLOCKER_SALT_SIZE 16
+#define SALT_SIZE               sizeof(bitlocker_custom_salt)
+#define SALT_ALIGN              sizeof(int)
+
 #define BITLOCKER_MAC_SIZE 16
 #define BITLOCKER_NONCE_SIZE 12
 #define BITLOCKER_IV_SIZE 16
@@ -104,8 +106,6 @@ static cl_mem salt_d, padding_d, w_blocks_d, deviceEncryptedVMK,
 static cl_int cl_error;
 
 static unsigned int *w_blocks_h, *hash_zero;
-static unsigned char salt[BITLOCKER_SALT_SIZE], nonce[BITLOCKER_NONCE_SIZE],
-       encryptedVMK[BITLOCKER_VMK_SIZE];
 static unsigned char *tmpIV, *inbuffer;
 static int *inbuffer_size;
 
@@ -121,6 +121,8 @@ static cl_int cl_error;
 static cl_kernel prepare_kernel, final_kernel;
 static cl_kernel block_kernel;
 static struct fmt_main *self;
+
+static bitlocker_custom_salt *cur_salt;
 
 #define STEP			0
 #define SEED			1024
@@ -351,14 +353,6 @@ static void done(void)
 
 		autotuned--;
 	}
-
-}
-
-static void *get_salt(char *ciphertext)
-{
-	static char dummy[BITLOCKER_JTR_HASH_SIZE_CHAR + 1];
-
-	return strnzcpy(dummy, ciphertext, BITLOCKER_JTR_HASH_SIZE_CHAR + 1);
 }
 
 static int w_block_precomputed(unsigned char *salt)
@@ -371,7 +365,6 @@ static int w_block_precomputed(unsigned char *salt)
 		return 0;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(1, local_work_size); //count
-
 
 	padding =
 	    (unsigned char *)calloc(BITLOCKER_PADDING_SIZE, sizeof(unsigned char));
@@ -407,78 +400,29 @@ static int w_block_precomputed(unsigned char *salt)
 }
 
 
-static void set_salt(void *cipher_salt_input)
+
+static void set_salt(void * cipher_salt_input)
 {
-	char *cipher_salt = (char*)cipher_salt_input;
-	int i = 0;
-	char *hash_format;
-	char *p;
+	cur_salt = (bitlocker_custom_salt *) cipher_salt_input;
 
-	memset(salt, 0, BITLOCKER_SALT_SIZE);
-	memset(nonce, 0, BITLOCKER_NONCE_SIZE);
-	memset(encryptedVMK, 0, BITLOCKER_VMK_SIZE);
-
-	hash_format = strdup(cipher_salt);
-	hash_format += FORMAT_TAG_LEN;
-
-	p = strtokm(hash_format, "$"); // version
-	p = strtokm(NULL, "$"); // salt length
-	p = strtokm(NULL, "$"); // salt
-
-	for (i = 0; i < BITLOCKER_SALT_SIZE; i++) {
-		salt[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		salt[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("salt[%d]=%02x\n", i, salt[i]);
-#endif
-	}
-	
-	p = strtokm(NULL, "$"); // iterations
-	p = strtokm(NULL, "$"); // nonce length
-	p = strtokm(NULL, "$"); // nonce
-
-	for (i = 0; i < BITLOCKER_NONCE_SIZE; i++) {
-		nonce[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		nonce[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("nonce[%d]=%02x\n", i, nonce[i]);
-#endif
-	}
-
-	p = strtokm(NULL, "$"); // data_size
-	p = strtokm(NULL, "$"); // data
-
-	for (i = 0; i < BITLOCKER_VMK_SIZE; i++) {
-		encryptedVMK[i] =
-		    (p[2 * i] <=
-		     '9' ? p[2 * i] - '0' : toupper(p[2 * i]) - 'A' + 10) << 4;
-		encryptedVMK[i] |=
-		    p[(2 * i) + 1] <=
-		    '9' ? p[(2 * i) + 1] - '0' : toupper(p[(2 * i) + 1]) - 'A' + 10;
-#if BITLOCKER_ENABLE_DEBUG == 1
-		printf("encryptedVMK[%d]=%02x\n", i, encryptedVMK[i]);
-#endif
-	}
-
-	w_block_precomputed(salt);
+	w_block_precomputed(cur_salt->salt);
 	if (!w_blocks_h) {
 		error_msg("Error... Exit\n");
 	}
 
+#if 0
+	printf("salt %x %x %x %x\n", cur_salt->salt[0], cur_salt->salt[1], cur_salt->salt[2], cur_salt->salt[3]);
+	printf("nonce %x %x %x %x\n", cur_salt->iv[0], cur_salt->iv[1], cur_salt->iv[2], cur_salt->iv[3]);
+	printf("wblocks %x %x %x %x\n", w_blocks_h[0], w_blocks_h[1], w_blocks_h[2], w_blocks_h[3]);
+	printf("VMK %x %x %x %x\n", cur_salt->data[0], cur_salt->data[1], cur_salt->data[2], cur_salt->data[3]);
+#endif
+
 	tmpIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
 
 	memset(tmpIV, 0, BITLOCKER_IV_SIZE);
-	memcpy(tmpIV + 1, nonce, BITLOCKER_NONCE_SIZE);
-	if (BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1 < 0)
-		error_msg("Nonce Error");
+	memcpy(tmpIV + 1, cur_salt->iv /* nonce */, BITLOCKER_NONCE_SIZE);
+//	if (BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1 < 0)
+//		error_msg("Nonce Error");
 
 	*tmpIV = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
 	tmpIV[BITLOCKER_IV_SIZE - 1] = 1;
@@ -516,11 +460,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
 	const int count = *pcount;
-	//int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-//	printf("crypt_all(%d), LWS = %d, GWS = %d w_blocks_h: %x, encryptedVMK[0]: %x [1]: %x [2]: %x\n", count, (int)*lws, (int)global_work_size, w_blocks_h[0], encryptedVMK[0], encryptedVMK[1], encryptedVMK[2]);
+
+#if 0
+printf("crypt_all(%d), LWS = %d, GWS = %d w_blocks_h: %x, encryptedVMK[0]: %x [1]: %x [2]: %x\n", count, (int)*lws, (int)global_work_size, w_blocks_h[0], encryptedVMK[0], encryptedVMK[1], encryptedVMK[2]);
+printf("crypt_all wblocks %x %x %x %x\n", w_blocks_h[0], w_blocks_h[1], w_blocks_h[2], w_blocks_h[3]);
+printf("crypt_all VMK %x %x %x %x\n", cur_salt->data[0], cur_salt->data[1], cur_salt->data[2], cur_salt->data[3]);
+printf("nonce %x %x %x %x\n", cur_salt->iv[0], cur_salt->iv[1], cur_salt->iv[2], cur_salt->iv[3]);
+printf("IV0 %x  IV4 %x IV8 %x IV12 %x\n", IV0[0], IV4[0], IV8[0], IV12[0]);
+#endif
 
 	hostFound[0] = -1;
 
@@ -531,7 +481,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], deviceEncryptedVMK,
-		CL_FALSE, 0, BITLOCKER_VMK_SIZE * sizeof(char), encryptedVMK, 0,
+		CL_FALSE, 0, BITLOCKER_VMK_SIZE * sizeof(char), cur_salt->data /* encryptedVMK */, 0,
 		NULL, multi_profilingEvent[1]), "Copy data to gpu");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], devicePassword,
@@ -616,7 +566,7 @@ static int cmp_all(void *binary, int count)
 		                 (hostFound[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN)));
 #endif
 
-		return 1; //hostFound[0]+1;
+		return 1;
 	} else
 		return 0;
 }
@@ -661,12 +611,6 @@ static char *get_key(int index)
 	return ret;
 }
 
-static unsigned int iteration_count(void *salt)
-{
-	//return randoms num
-	return 10;
-}
-
 struct fmt_main fmt_opencl_bitlocker = {
 {
 	FORMAT_LABEL,
@@ -676,9 +620,9 @@ struct fmt_main fmt_opencl_bitlocker = {
 	BENCHMARK_LENGTH,
 	BITLOCKER_MIN_INPUT_PASSWORD_LEN,
 	BITLOCKER_MAX_INPUT_PASSWORD_LEN,
-	0,
-	MEM_ALIGN_WORD,
-	BITLOCKER_JTR_HASH_SIZE_CHAR,
+	BINARY_SIZE,
+	BINARY_ALIGN,
+	SALT_SIZE,
 	SALT_ALIGN,
 	MIN_KEYS_PER_CRYPT,
 	MAX_KEYS_PER_CRYPT,
@@ -697,12 +641,10 @@ struct fmt_main fmt_opencl_bitlocker = {
 	bitlocker_common_valid,
 	fmt_default_split,
 	fmt_default_binary,
-	//bitlocker_common_get_salt,
-	get_salt,
-		{
-			//bitlocker_common_iteration_count,
-			iteration_count,
-		},
+	bitlocker_common_get_salt,
+	{
+		bitlocker_common_iteration_count,
+	},
 	fmt_default_source,
 	{
 		fmt_default_binary_hash,
