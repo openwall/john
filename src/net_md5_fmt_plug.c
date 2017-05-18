@@ -62,7 +62,7 @@ john_register_one(&fmt_netmd5);
 
 static struct fmt_tests tests[] = {
 	/* RIPv2 MD5 authentication hashes */
-	{FORMAT_TAG "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$1e372a8a233c6556253a0909bc3dcce6", "quagga"},
+	{           "02020000ffff0003002c01145267d48d000000000000000000020000ac100100ffffff000000000000000001ffff0001$1e372a8a233c6556253a0909bc3dcce6", "quagga"},
 	{FORMAT_TAG "02020000ffff0003002c01145267d48f000000000000000000020000ac100100ffffff000000000000000001ffff0001$ed9f940c3276afcc06d15babe8a1b61b", "quagga"},
 	{FORMAT_TAG "02020000ffff0003002c01145267d490000000000000000000020000ac100100ffffff000000000000000001ffff0001$c9f7763f80fcfcc2bbbca073be1f5df7", "quagga"},
 	{FORMAT_TAG "02020000ffff0003002c01145267d49a000000000000000000020000ac100200ffffff000000000000000001ffff0001$3f6a72deeda200806230298af0797997", "quagga"},
@@ -120,10 +120,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 
-	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		return 0;
-
-	p += TAG_LENGTH;
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		p += TAG_LENGTH;
 
 	q = strrchr(ciphertext, '$');
 	if (!q)
@@ -270,6 +268,19 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[sizeof(cur_salt->salt)*2+TAG_LENGTH+1];
+	char *hash = fields[1];
+	if (strncmp(hash, FORMAT_TAG, TAG_LENGTH) && valid(hash, self)) {
+		get_ptr();
+		if (text_in_dynamic_format_already(pDynamicFmt, hash))
+			return hash;
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;
+}
+
 struct fmt_main fmt_netmd5 = {
 	{
 		FORMAT_LABEL,
@@ -293,7 +304,7 @@ struct fmt_main fmt_netmd5 = {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
