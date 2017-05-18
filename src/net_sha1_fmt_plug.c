@@ -109,10 +109,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 
-	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		return 0;
-
-	p += TAG_LENGTH;
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		p += TAG_LENGTH;
 
 	q = strrchr(ciphertext, '$');
 	if (!q)
@@ -262,6 +260,19 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static char *prepare(char *fields[10], struct fmt_main *self) {
+	static char buf[sizeof(cur_salt->salt)*2+TAG_LENGTH+1];
+	char *hash = fields[1];
+	if (strncmp(hash, FORMAT_TAG, TAG_LENGTH) && valid(hash, self)) {
+		get_ptr();
+		if (text_in_dynamic_format_already(pDynamicFmt, hash))
+			return hash;
+		sprintf(buf, "%s%s", FORMAT_TAG, hash);
+		return buf;
+	}
+	return hash;
+}
+
 struct fmt_main fmt_netsha1 = {
 	{
 		FORMAT_LABEL,
@@ -285,7 +296,7 @@ struct fmt_main fmt_netsha1 = {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
