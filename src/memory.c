@@ -211,7 +211,7 @@ void *mem_alloc_tiny_func(size_t size, size_t align
 			}
 		}
 
-		if (size + mask > MEM_ALLOC_SIZE ||
+		if (size + mask >= MEM_ALLOC_SIZE ||
 		    bufree > MEM_ALLOC_MAX_WASTE)
 			break;
 #if defined (MEMDBG_ON)
