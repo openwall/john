@@ -133,6 +133,28 @@ static struct fmt_tests tests[] = {
 	// Trigger suspected over-run of sum20. We do behave like SAP so it's
 	// not a problem.
 	{"12850413$1470EF2F683C956D", "46813230"},
+
+	// document some known hash collisions:
+
+	// 4 different 8 character passwords for the same hash:
+	{"EARLYWATCH$E786D382B2C88932", "VXFNI07+"},
+	{"EARLYWATCH$E786D382B2C88932", "VXFNI07<"},
+	{"EARLYWATCH$E786D382B2C88932", "VXFNI07V"},
+	{"EARLYWATCH$E786D382B2C88932", "VXFNI07W"},
+
+	{"EARLYWATCH$C1490E1C2AC53FFB", "COCQP098"},
+	{"EARLYWATCH$C1490E1C2AC53FFB", "COCQP09E"},
+	{"EARLYWATCH$C1490E1C2AC53FFB", "COCQP09J"},
+	{"EARLYWATCH$C1490E1C2AC53FFB", "COCQP09V"},
+
+	// collision of a 7 character password and 2 8 character passwords:
+	{"EARLYWATCH$5BCDD8FB7B827A26", "VAUBS04"},
+	{"EARLYWATCH$5BCDD8FB7B827A26", "VAUBS04*"},
+	{"EARLYWATCH$5BCDD8FB7B827A26", "VAUBS04H"},
+
+	// collision even with a 4 character user name:
+	{"DDIC$74DB83791A028420", "DFQEX12"},
+	{"DDIC$74DB83791A028420", "DFQEX12."},
 	{NULL}
 };
 
