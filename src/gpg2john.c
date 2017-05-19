@@ -43,20 +43,20 @@
 
 #if !AC_BUILT
 #define HAVE_LIBZ 1
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# include "autoconfig.h"
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #include "autoconfig.h"
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 
 #include "arch.h"
@@ -90,14 +90,14 @@ private bz_stream bz;
 #endif  /* HAVE_LIBBZ2 */
 
 #if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
+ #include <sys/time.h>
+ #include <time.h>
 #else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
+ #if HAVE_SYS_TIME_H
+  #include <sys/time.h>
+ #else
+  #include <time.h>
+ #endif
 #endif
 
 #ifdef _MSC_VER
@@ -105,16 +105,16 @@ private bz_stream bz;
 #endif
 
 #if HAVE_STRUCT_TM_TM_ZONE
-# define tm_zone(tm) (tm->tm_zone)
+ #define tm_zone(tm) (tm->tm_zone)
 #elif HAVE_TZNAME
-# define tm_zone(tm) (tzname[tm->tm_isdst])
+ #define tm_zone(tm) (tzname[tm->tm_isdst])
 #elif __MINGW32__
-# define tm_zone(tm) (tzname[tm->tm_isdst])
+ #define tm_zone(tm) (tzname[tm->tm_isdst])
 #else
-# ifndef tzname  /* For SGI. */
+ #ifndef tzname  /* For SGI. */
   extern string tzname[]; /* RS6000 and others reject char **tzname. */
-# endif
-# define tm_zone(tm) (tzname[tm->tm_isdst])
+ #endif
+ #define tm_zone(tm) (tzname[tm->tm_isdst])
 #endif
 
 #include "jumbo.h"

@@ -25,19 +25,19 @@ extern "C" {
 	defined(__x86_64) || defined(__x86_64__) || defined(_M_IX86) || \
 	defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64)
 /* detect if x86-64 instruction set is supported */
-# if defined(_LP64) || defined(__LP64__) || defined(__x86_64) || \
+ #if defined(_LP64) || defined(__LP64__) || defined(__x86_64) || \
 	defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
-#  define CPU_X64
-# else
-#  define CPU_IA32
-# endif
+  #define CPU_X64
+ #else
+  #define CPU_IA32
+ #endif
 #endif
 #endif
 
 #if defined(__GNUC__) && defined(CPU_IA32) && !defined(RHASH_NO_ASM)
-# define USE_GCC_ASM_IA32
+ #define USE_GCC_ASM_IA32
 #elif defined(__GNUC__) && defined(CPU_X64) && !defined(RHASH_NO_ASM)
-# define USE_GCC_ASM_X64
+ #define USE_GCC_ASM_X64
 #endif
 
 #define IS_ALIGNED_32(p) (0 == (3 & ((const char*)(p) - (const char*)0)))
@@ -51,7 +51,7 @@ extern "C" {
 
 /* convert a hash flag to index */
 #if __GNUC__ >= 4 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) /* GCC < 3.4 */
-# define rhash_ctz(x) __builtin_ctz(x)
+ #define rhash_ctz(x) __builtin_ctz(x)
 #else
 unsigned rhash_ctz(unsigned); /* define as function */
 #endif
@@ -61,25 +61,25 @@ void rhash_u64_swap_copy(void* to, int index, const void* from, size_t length);
 void rhash_u32_memswap(unsigned *p, int length_in_u32);
 
 #if !ARCH_LITTLE_ENDIAN
-# define be2me_32(x) (x)
-# define be2me_64(x) (x)
-# define le2me_32(x) JOHNSWAP(x)
-# define le2me_64(x) JOHNSWAP64(x)
+ #define be2me_32(x) (x)
+ #define be2me_64(x) (x)
+ #define le2me_32(x) JOHNSWAP(x)
+ #define le2me_64(x) JOHNSWAP64(x)
 
-# define be32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
-# define le32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
-# define be64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
-# define le64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
+ #define be32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+ #define le32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
+ #define be64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+ #define le64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
 #else /* !ARCH_LITTLE_ENDIAN */
-# define be2me_32(x) JOHNSWAP(x)
-# define be2me_64(x) JOHNSWAP64(x)
-# define le2me_32(x) (x)
-# define le2me_64(x) (x)
+ #define be2me_32(x) JOHNSWAP(x)
+ #define be2me_64(x) JOHNSWAP64(x)
+ #define le2me_32(x) (x)
+ #define le2me_64(x) (x)
 
-# define be32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
-# define le32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
-# define be64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
-# define le64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+ #define be32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
+ #define le32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
+ #define be64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
+ #define le64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
 #endif /* !ARCH_LITTLE_ENDIAN */
 
 /* ROTL/ROTR macros rotate a 32/64-bit word left/right by n bits */

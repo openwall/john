@@ -49,7 +49,7 @@ john_register_one(&fmt_opencl_mscash2);
 #define GPU_BINARY_SIZE           4
 #define SALT_SIZE                 sizeof(ms_cash2_salt)
 
-# define SWAP(n) \
+ #define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 typedef struct {

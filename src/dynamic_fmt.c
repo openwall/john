@@ -62,7 +62,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
-#  define FORCE_THREAD_MD5_body
+  #define FORCE_THREAD_MD5_body
 #endif
 #undef _OPENMP
 #endif
@@ -181,8 +181,8 @@ static void MD5_swap2(MD5_word *x, MD5_word *x2, MD5_word *y, MD5_word *y2, int 
 #define FORMAT_NAME         "Generic MD5"
 
 #ifdef SIMD_COEF_32
-# define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
-# define SHAGETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) ) //for endianity conversion
+ #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
+ #define SHAGETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) ) //for endianity conversion
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -3015,8 +3015,8 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned int ip, 
     // 5113k/4382k  (core2,$dynamic_10$)
 	//  (ath64, $dynamic_9$)
 	//  (ath64, $dynamic_10$)
-# define inc SIMD_COEF_32
-# define incCRY ((SIMD_COEF_32 - 1) * 4)
+ #define inc SIMD_COEF_32
+ #define incCRY ((SIMD_COEF_32 - 1) * 4)
 	// Ok, here we are 1/2 off. We are starting in the 'middle' of a DWORD (and end
 	// in the middle of the last one).
 

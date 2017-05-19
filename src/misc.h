@@ -21,20 +21,20 @@
 #include "jumbo.h"
 
 #if !AC_BUILT
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# include "autoconfig.h"
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #include "autoconfig.h"
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 
 /*
@@ -139,7 +139,7 @@ extern unsigned atou(const char *src);
 char *strtokm(char *s1, const char *delimit);
 
 #ifndef __has_feature
-# define __has_feature(x) 0
+ #define __has_feature(x) 0
 #endif
 
 #if /* is ASAN enabled? */ \

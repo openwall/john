@@ -34,15 +34,15 @@ john_register_one(&fmt_wpapsk);
 //#undef SIMD_COEF_32
 
 #ifdef SIMD_COEF_32
-#  define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
-#  ifdef _OPENMP
-#    include <omp.h>
-#  endif
+  #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
+  #ifdef _OPENMP
+    #include <omp.h>
+  #endif
 #else
-#  define NBKEYS	1
-#  ifdef _OPENMP
-#    include <omp.h>
-#  endif
+  #define NBKEYS	1
+  #ifdef _OPENMP
+    #include <omp.h>
+  #endif
 #endif
 
 #include "memdbg.h"

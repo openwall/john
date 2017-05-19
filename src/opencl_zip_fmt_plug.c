@@ -41,7 +41,7 @@ john_register_one(&fmt_opencl_zip);
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
-# define SWAP(n) \
+ #define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 #define BINARY_ALIGN		MEM_ALIGN_NONE

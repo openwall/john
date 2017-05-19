@@ -13,35 +13,35 @@
 	defined(__x86_64) || defined(__x86_64__) || defined(_M_IX86) || \
 	defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64)
 /* detect if x86-64 instruction set is supported */
-# if defined(_LP64) || defined(__LP64__) || defined(__x86_64) || \
+ #if defined(_LP64) || defined(__LP64__) || defined(__x86_64) || \
 	defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
-#  undef CPU_X64
-#  define CPU_X64 1
-# else
-#  undef CPU_IA32
-#  define CPU_IA32 1
-# endif
-# undef CPU_INTEL_LE
-# define CPU_INTEL_LE 1
+  #undef CPU_X64
+  #define CPU_X64 1
+ #else
+  #undef CPU_IA32
+  #define CPU_IA32 1
+ #endif
+ #undef CPU_INTEL_LE
+ #define CPU_INTEL_LE 1
 #endif
 
 #if defined __GNUC__ && ((__GNUC__ == 4 && __GNUC_MINOR__ >= 3) || (__GNUC__ > 4))
-#	define JOHNSWAP(x)		__builtin_bswap32((x))
-#	define JOHNSWAP64(x)	__builtin_bswap64((x))
+	#define JOHNSWAP(x)		__builtin_bswap32((x))
+	#define JOHNSWAP64(x)	__builtin_bswap64((x))
 /* UNSAFE for things like JOHNSWAP64(*x++)
    #elif defined (__linux__)
-   #	include <byteswap.h>
-   #	define JOHNSWAP(x)		bswap_32((x))
-   #	define JOHNSWAP64(x)	bswap_64((x))
+	#include <byteswap.h>
+	#define JOHNSWAP(x)		bswap_32((x))
+	#define JOHNSWAP64(x)	bswap_64((x))
 */
 #elif (_MSC_VER > 1300) && (_M_IX86 >= 400 || defined(CPU_IA32) ||  defined(CPU_X64)) /* MS VC */
-#	define JOHNSWAP(x)		_byteswap_ulong((x))
-#	define JOHNSWAP64(x)	_byteswap_uint64 (((unsigned __int64)x))
+	#define JOHNSWAP(x)		_byteswap_ulong((x))
+	#define JOHNSWAP64(x)	_byteswap_uint64 (((unsigned __int64)x))
 #elif !defined(__STRICT_ANSI__)
-#	define JOHNSWAP(x)	john_bswap_32((x))
-#	define JOHNSWAP64(x)	john_bswap_64((x))
-#	define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((uint32_t)(x)>>(32-(n))))
-#	define ROTATE_LEFT64(x, n) (x) = (((x)<<(n))|((unsigned long long)(x)>>(64-(n))))
+	#define JOHNSWAP(x)	john_bswap_32((x))
+	#define JOHNSWAP64(x)	john_bswap_64((x))
+	#define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((uint32_t)(x)>>(32-(n))))
+	#define ROTATE_LEFT64(x, n) (x) = (((x)<<(n))|((unsigned long long)(x)>>(64-(n))))
 #if defined(__GNUC__) && defined(CPU_IA32) && !defined(__i386__)
 	/* for intel x86 CPU */
 	static inline uint32_t __attribute__((const)) john_bswap_32(uint32_t val) {

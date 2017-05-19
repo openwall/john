@@ -104,7 +104,7 @@ static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
 
 #else
-# define MS_NUM_KEYS			1
+ #define MS_NUM_KEYS			1
 #endif
 
 #define MIN_KEYS_PER_CRYPT		MS_NUM_KEYS

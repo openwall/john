@@ -6,9 +6,9 @@
 #include <string.h>
 
 #if defined _MSC_VER
-#	define ALIGN(x) __declspec(align(x))
+	#define ALIGN(x) __declspec(align(x))
 #else
-#	define ALIGN(x) __attribute__((__aligned__(x)))
+	#define ALIGN(x) __attribute__((__aligned__(x)))
 #endif
 
 union uint512_u {

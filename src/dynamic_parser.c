@@ -69,7 +69,7 @@
 
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
-# define FORCE_THREAD_MD5_body
+ #define FORCE_THREAD_MD5_body
 #endif
 #undef _OPENMP
 #endif

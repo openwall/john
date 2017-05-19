@@ -175,69 +175,69 @@ typedef struct private_subformat_data
 #define OMP_MAX       (NON_OMP_MAX*OMP_SCALE)
 
 #ifdef SIMD_COEF_32
-# define MIN_KEYS_PER_CRYPT	SIMD_COEF_32
-# ifdef _OPENMP
-#  if SIMD_COEF_32 >= 4
-#   define BLOCK_LOOPS		((OMP_MAX/SIMD_COEF_32)*OMP_SCALE)
-#  endif
-# else
-#  if SIMD_COEF_32 >= 4
-#   define BLOCK_LOOPS		(NON_OMP_MAX/SIMD_COEF_32)
-#  endif
-# endif
-# define LOOP_STR
-# if SIMD_COEF_32 >= 4
-#  if SIMD_COEF_32 == 16
-#   define BITS				"512/512"
-#  elif SIMD_COEF_32 == 8
-#   define BITS				"256/256"
-#  elif SIMD_COEF_32 == 4
-#   define BITS				"128/128"
-#  elif SIMD_COEF_32 == 2
-#   define BITS				"64/64"
-# endif
-#  ifdef SIMD_PARA_MD5
-#   define ALGORITHM_NAME		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_MD5)
-#   define BSD_BLKS (SIMD_PARA_MD5)
-#  else
-#   define ALGORITHM_NAME		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32)
-#   define BSD_BLKS 1
-#  endif
-#  ifdef SIMD_PARA_SHA1
-#   define ALGORITHM_NAME_S		BITS " " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_SHA1)
-#  else
-#   define ALGORITHM_NAME_S		BITS " " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32)
-#  endif
-#  ifdef SIMD_PARA_MD4
-#   define ALGORITHM_NAME_4		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_MD4)
-#  else
-#   define ALGORITHM_NAME_4		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32)
-#  endif
-#  define PLAINTEXT_LENGTH	(27*3+1) // for worst-case UTF-8
-#  ifdef SIMD_PARA_MD5
+ #define MIN_KEYS_PER_CRYPT	SIMD_COEF_32
+ #ifdef _OPENMP
+  #if SIMD_COEF_32 >= 4
+   #define BLOCK_LOOPS		((OMP_MAX/SIMD_COEF_32)*OMP_SCALE)
+  #endif
+ #else
+  #if SIMD_COEF_32 >= 4
+   #define BLOCK_LOOPS		(NON_OMP_MAX/SIMD_COEF_32)
+  #endif
+ #endif
+ #define LOOP_STR
+ #if SIMD_COEF_32 >= 4
+  #if SIMD_COEF_32 == 16
+   #define BITS				"512/512"
+  #elif SIMD_COEF_32 == 8
+   #define BITS				"256/256"
+  #elif SIMD_COEF_32 == 4
+   #define BITS				"128/128"
+  #elif SIMD_COEF_32 == 2
+   #define BITS				"64/64"
+ #endif
+  #ifdef SIMD_PARA_MD5
+   #define ALGORITHM_NAME		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_MD5)
+   #define BSD_BLKS (SIMD_PARA_MD5)
+  #else
+   #define ALGORITHM_NAME		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32)
+   #define BSD_BLKS 1
+  #endif
+  #ifdef SIMD_PARA_SHA1
+   #define ALGORITHM_NAME_S		BITS " " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_SHA1)
+  #else
+   #define ALGORITHM_NAME_S		BITS " " SIMD_TYPE " " STRINGIZE(SIMD_COEF_32)
+  #endif
+  #ifdef SIMD_PARA_MD4
+   #define ALGORITHM_NAME_4		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32) "x" STRINGIZE(SIMD_PARA_MD4)
+  #else
+   #define ALGORITHM_NAME_4		BITS " " SIMD_TYPE  " " STRINGIZE(SIMD_COEF_32)
+  #endif
+  #define PLAINTEXT_LENGTH	(27*3+1) // for worst-case UTF-8
+  #ifdef SIMD_PARA_MD5
 // gives us 16 'loops' for para=2 and 10 loops for para==3 (or max of 128 for 2 and 120 for 3)
-#   define MAX_KEYS_PER_CRYPT	(((SIMD_COEF_32*BLOCK_LOOPS)/(SIMD_PARA_MD5*4))*(SIMD_PARA_MD5*4))
-#  else
-#   define MAX_KEYS_PER_CRYPT	SIMD_COEF_32*BLOCK_LOOPS
-#  endif
-# endif
+   #define MAX_KEYS_PER_CRYPT	(((SIMD_COEF_32*BLOCK_LOOPS)/(SIMD_PARA_MD5*4))*(SIMD_PARA_MD5*4))
+  #else
+   #define MAX_KEYS_PER_CRYPT	SIMD_COEF_32*BLOCK_LOOPS
+  #endif
+ #endif
 #else // !SIMD_COEF_32
-# ifdef _OPENMP
-#  define BLOCK_LOOPS			(OMP_MAX*OMP_SCALE)
-# else
-#  define BLOCK_LOOPS			NON_OMP_MAX
-# endif
-# define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-# define ALGORITHM_NAME_S		"32/" ARCH_BITS_STR
-# define ALGORITHM_NAME_4		"32/" ARCH_BITS_STR
+ #ifdef _OPENMP
+  #define BLOCK_LOOPS			(OMP_MAX*OMP_SCALE)
+ #else
+  #define BLOCK_LOOPS			NON_OMP_MAX
+ #endif
+ #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+ #define ALGORITHM_NAME_S		"32/" ARCH_BITS_STR
+ #define ALGORITHM_NAME_4		"32/" ARCH_BITS_STR
 #endif
 
 #ifdef _OPENMP
-# define X86_BLOCK_LOOPS			(OMP_MAX*OMP_SCALE)
-# define X86_BLOCK_LOOPSx2			((OMP_MAX/2)*OMP_SCALE)
+ #define X86_BLOCK_LOOPS			(OMP_MAX*OMP_SCALE)
+ #define X86_BLOCK_LOOPSx2			((OMP_MAX/2)*OMP_SCALE)
 #else
-# define X86_BLOCK_LOOPS			NON_OMP_MAX
-# define X86_BLOCK_LOOPSx2			(NON_OMP_MAX/2)
+ #define X86_BLOCK_LOOPS			NON_OMP_MAX
+ #define X86_BLOCK_LOOPSx2			(NON_OMP_MAX/2)
 #endif
 
 #define ALGORITHM_NAME_X86_S	ARCH_BITS_STR"/"ARCH_BITS_STR

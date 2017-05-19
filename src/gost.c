@@ -49,7 +49,7 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
  *  blocks.
  */
 #ifndef USE_GCC_ASM_IA32
-# define GOST_ENCRYPT_ROUND(key1, key2, sbox) \
+ #define GOST_ENCRYPT_ROUND(key1, key2, sbox) \
 	tmp = (key1) + r; \
 	l ^= (sbox)[tmp & 0xff] ^ ((sbox) + 256)[(tmp >> 8) & 0xff] ^ \
 		((sbox) + 512)[(tmp >> 16) & 0xff] ^ ((sbox) + 768)[tmp >> 24]; \
@@ -58,7 +58,7 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
 		((sbox) + 512)[(tmp >> 16) & 0xff] ^ ((sbox) + 768)[tmp >> 24];
 
 /* encrypt a block with the given key */
-# define GOST_ENCRYPT(result, i, key, hash, sbox) \
+ #define GOST_ENCRYPT(result, i, key, hash, sbox) \
 	r = hash[i], l = hash[i + 1]; \
 	GOST_ENCRYPT_ROUND(key[0], key[1], sbox) \
 	GOST_ENCRYPT_ROUND(key[2], key[3], sbox) \
@@ -82,7 +82,7 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
 
 /* a faster x86 version of GOST_ENCRYPT() */
 /* it supposes edi=r, esi=l, edx=sbox ; */
-# define ENC_ROUND_ASMx86(key, reg1, reg2) \
+ #define ENC_ROUND_ASMx86(key, reg1, reg2) \
 	"movl %" #key ", %%eax\n\t" \
 	"addl %%" #reg1 ", %%eax\n\t" \
 	"movzx %%al, %%ebx\n\t" \
@@ -95,8 +95,8 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
 	"xorl 2048(%%edx, %%ebx, 4), %%" #reg2 "\n\t" \
 	"xorl 3072(%%edx, %%eax, 4), %%" #reg2 "\n\t"
 
-# define ENC_ASM(key1, key2) ENC_ROUND_ASMx86(key1, edi, esi) ENC_ROUND_ASMx86(key2, esi, edi)
-# define GOST_ENCRYPT_GCC_ASM_X86() \
+ #define ENC_ASM(key1, key2) ENC_ROUND_ASMx86(key1, edi, esi) ENC_ROUND_ASMx86(key2, esi, edi)
+ #define GOST_ENCRYPT_GCC_ASM_X86() \
 	ENC_ASM( 5,  6) ENC_ASM( 7,  8) ENC_ASM( 9, 10) ENC_ASM(11, 12) \
 	ENC_ASM( 5,  6) ENC_ASM( 7,  8) ENC_ASM( 9, 10) ENC_ASM(11, 12) \
 	ENC_ASM( 5,  6) ENC_ASM( 7,  8) ENC_ASM( 9, 10) ENC_ASM(11, 12) \
@@ -273,10 +273,10 @@ static void rhash_gost_compute_sum_and_hash(gost_ctx * ctx, const unsigned* bloc
 {
 #if !ARCH_LITTLE_ENDIAN
 	unsigned block_le[8]; /* tmp buffer for little endian number */
-# define LOAD_BLOCK_LE(i) (block_le[i] = le2me_32(block[i]))
+ #define LOAD_BLOCK_LE(i) (block_le[i] = le2me_32(block[i]))
 #else
-# define block_le block
-# define LOAD_BLOCK_LE(i)
+ #define block_le block
+ #define LOAD_BLOCK_LE(i)
 #endif
 
 	/* This optimization doesn't improve speed much,
