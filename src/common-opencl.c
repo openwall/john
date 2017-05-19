@@ -323,7 +323,7 @@ static char *opencl_driver_info(int sequential_id)
 		fprintf(stderr, "Driver: %i, %i -> %s , %s\n",
 			conf_major, conf_minor, name, recommendation);
 #endif
-    	} while ((line = line->next));
+	} while ((line = line->next));
 
 	if (gpu_amd(device_info[sequential_id])) {
 

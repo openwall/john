@@ -45,7 +45,7 @@
 
 struct device_bitstream bitstream = {
 	// bitstream ID (check is performed by querying operating bitstream)
-	0x0101, 
+	0x0101,
 	"ztex/ztex115y_descrypt.bit",
 	// parameters for high-speed packet communication (pkt_comm)
 	{ 2, 32768, 2046 },
@@ -70,7 +70,7 @@ static struct fmt_tests tests[] = {
 	{"..4Xmrg11Z3jU", "00000000"},
 	{"////////FevBg", "-/<0S]"},
 	{"35LSBeq/uVetI", "==*d2{^6"},
-	
+
 	// These cause self-test to fail:
 	// cmp_one() returns true and cmp_exact() returns false
 	// because of partial binaries in the comparator
@@ -155,14 +155,14 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 
 // Full "binary": used by cmp_exact()
 // Originally based on DES_raw_get_binary(), uses
-// bitswapped table that eliminates inner loop 
+// bitswapped table that eliminates inner loop
 static uint64_t get_binary_full(char *ciphertext)
 {
 	uint64_t binary;
 	int ofs, chr, c, dst_idx;
-	
+
 	if (ciphertext[13]) ofs = 9; else ofs = 2;
-	
+
 	binary = 0;
 	dst_idx = 0;
 	for (chr = 0; chr < 11; chr++) {
@@ -170,7 +170,7 @@ static uint64_t get_binary_full(char *ciphertext)
 		binary |= (uint64_t)c << dst_idx;
 		dst_idx += 6;
 	}
-	
+
 	return binary;
 }
 
@@ -197,7 +197,7 @@ static unsigned char *get_binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static unsigned char out[2];
-	
+
 	int salt = DES_raw_get_salt(ciphertext);
 	out[0] = salt;
 	out[1] = salt >> 8;
@@ -253,7 +253,7 @@ uint64_t DES_binary_std_to_raw(DES_binary binary, unsigned int salt)
 	ARCH_WORD b[4];
 	ARCH_WORD raw[2];
 	ARCH_WORD *out;
-	
+
 	b[0] = binary[0];
 #if ARCH_BITS >= 64
 	b[1] = binary[0] >> 32;
@@ -297,10 +297,10 @@ static uint64_t des_crypt(void *salt, char *key)
 
 	salt_std = DES_salt_raw_to_std(salt);
 	DES_std_set_salt(salt_std);
-	
+
 	DES_std_set_key(key);
 	DES_std_crypt(DES_KS_current, binary);
-	
+
 	result = DES_binary_std_to_raw(binary, salt_std);
 	//fprintf(stderr,"DES_binary_std_to_raw(%s): %016llx\n",key,result);
 	return result;
@@ -322,10 +322,10 @@ static void task_result_des_crypt(struct task_result *result)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int result_count = device_format_crypt_all(pcount, salt);
-	
+
 	if (result_count)
 		task_result_execute(task_list, task_result_des_crypt);
-	
+
 	return result_count;
 }
 
@@ -363,7 +363,7 @@ static int cmp_one(void *binary, int index)
 	}
 	if (memcmp(result->binary, binary, 4))
 		return 0;
-	
+
 	return (((unsigned char *)result->binary)[4] & BINARY_LAST_BYTE_MASK)
 			== ((unsigned char *)binary)[4];
 }
@@ -372,7 +372,7 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	struct task_result *result = task_result_by_index(task_list, index);
-	
+
 	return *(uint64_t *)result->binary == get_binary_full(source);
 }
 
@@ -432,7 +432,7 @@ struct fmt_main fmt_ztex_descrypt = {
 			get_hash_4,
 			get_hash_5,
 			get_hash_6
-		},		
+		},
 		device_format_cmp_all,
 		cmp_one, //device_format_cmp_one,
 		cmp_exact //device_format_cmp_exact

@@ -31,7 +31,7 @@ extern int DEBUG;
 // When not asserted FPGA's input buffer has space for data
 struct fpga_io_state {
 	unsigned char io_state;
- 	unsigned char timeout;
+	unsigned char timeout;
 	unsigned char app_status;
 	unsigned char pkt_comm_status;
 	unsigned char debug2;
@@ -44,7 +44,7 @@ struct fpga_io_state {
 #define IO_STATE_OUTPUT_ERR_OVERFLOW 0x04
 #define IO_STATE_SFIFO_NOT_EMPTY 0x08
 
-// used by VR 0x88, fpga_test_get_id() 
+// used by VR 0x88, fpga_test_get_id()
 struct fpga_echo_request {
 	unsigned short out[2];
 	struct {
@@ -116,7 +116,7 @@ struct fpga {
 	struct fpga_rd rd;
 	uint64_t cmd_count;
 	uint64_t data_out,data_in; // specific for advanced_test.c
-	
+
 	struct pkt_comm *comm;
 };
 

@@ -1,8 +1,8 @@
 /*!
  inouttraffic -- custom firmware for ZTEX USB-FPGA Module 1.15y and 1.15y2
- Together with HDL part and proper host software, it allows usage of 
+ Together with HDL part and proper host software, it allows usage of
  High-Speed interface (Slave FIFO) on a multi-FPGA board.
- 
+
  This software is Copyright (c) 2016 Denis Burykin
  [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
 
@@ -59,11 +59,11 @@ void fifo_reset() {
 	FIFORESET = 6; SYNCDELAY;
 	OUTPKTEND = 0x86; SYNCDELAY;  // skip uncommitted pkts in OUT endpoint
 	OUTPKTEND = 0x86; SYNCDELAY;
-	OUTPKTEND = 0x86; SYNCDELAY; 
+	OUTPKTEND = 0x86; SYNCDELAY;
 	OUTPKTEND = 0x86; SYNCDELAY;
 	EP6FIFOCFG = bmBIT4 | bmBIT0; SYNCDELAY;        // AUTOOUT, WORDWIDE
 	FIFORESET = 0x00; SYNCDELAY;  //Release NAKALL
-	
+
 	FIFORESET = 0x80; SYNCDELAY;
 	EP2FIFOCFG = 0x00; SYNCDELAY;
 	FIFORESET = 2; SYNCDELAY;
@@ -122,7 +122,7 @@ void ep0_write_data () {
     IOC = 0x71;//SETUPDAT[2];
     IOA0 = 1;
     IOA0 = 0;
-    
+
 	IOA7 = 0; //write
     IOA1 = 0;
 	for ( b=0; b<EP0BCL; b++ ) {
@@ -132,10 +132,10 @@ void ep0_write_data () {
 	}
 }
 
-ADD_EP0_VENDOR_COMMAND((0x71,,				
+ADD_EP0_VENDOR_COMMAND((0x71,,
 ,,
     ep0_write_data();
-));; 
+));;
 */
 //-----------------------------------------------
 void fpga_set_addr(BYTE addr) {

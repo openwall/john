@@ -423,7 +423,7 @@ static void process_database(char* encryptedDatabase)
 			return;
 		}
 		filesize_keyfile = (long long)get_file_size(keyfile);
- 	}
+	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
 	printf("%s:$keepass$*2*%ld*%ld*",dbname, transformRounds, dataStartOffset);

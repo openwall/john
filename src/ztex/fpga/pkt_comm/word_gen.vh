@@ -16,4 +16,3 @@ localparam	OP_STATE_READY = 0,
 				OP_STATE_NEXT_CHAR = 3,
 				OP_STATE_NEXT_WORD = 4,
 				OP_STATE_DONE = 5;
-				

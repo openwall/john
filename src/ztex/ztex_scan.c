@@ -79,7 +79,7 @@ int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list
 			ztex_dev_list_remove(new_dev_list, dev);
 		}
 	}
-	
+
 	if (!fw_3rd_party_warning && fw_3rd_party_count) {
 		printf("Total %d boards with 3rd party firmware skipped.\n",
 				fw_3rd_party_count);
@@ -122,7 +122,7 @@ int ztex_timely_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 		fprintf(stderr, "%d device(s) lost after firmware upload\n",
 				ztex_scan_fw_upload_count - count);
 	}
-	
+
 	ztex_scan_fw_upload_count = fw_upload_count;
 	gettimeofday(&ztex_scan_prev_time, NULL);
 	return count;
@@ -150,9 +150,9 @@ int ztex_init_scan(struct ztex_dev_list *new_dev_list)
 	if (!ztex_scan_fw_upload_count)
 		return 0;
 	// no devices ready right now and there're some devices
-	// in reset state after firmware upload 
+	// in reset state after firmware upload
 	usleep(ZTEX_FW_UPLOAD_DELAY* 1000*1000);
-	
+
 	int fw_upload_count_stage2;
 	count = ztex_scan(new_dev_list, NULL, &fw_upload_count_stage2);
 	//if (fw_upload_count_stage2) { // device just plugged in. wait for timely_scan
@@ -161,7 +161,7 @@ int ztex_init_scan(struct ztex_dev_list *new_dev_list)
 		fprintf(stderr, "%d device(s) lost after firmware upload\n",
 				ztex_scan_fw_upload_count - count);
 	}
-	
+
 	ztex_scan_fw_upload_count = fw_upload_count_stage2;
 	gettimeofday(&ztex_scan_prev_time, NULL);
 	return count;

@@ -30,9 +30,9 @@
 	#define JOHNSWAP64(x)	__builtin_bswap64((x))
 /* UNSAFE for things like JOHNSWAP64(*x++)
    #elif defined (__linux__)
-	#include <byteswap.h>
-	#define JOHNSWAP(x)		bswap_32((x))
-	#define JOHNSWAP64(x)	bswap_64((x))
+   #include <byteswap.h>
+   #define JOHNSWAP(x)		bswap_32((x))
+   #define JOHNSWAP64(x)	bswap_64((x))
 */
 #elif (_MSC_VER > 1300) && (_M_IX86 >= 400 || defined(CPU_IA32) ||  defined(CPU_X64)) /* MS VC */
 	#define JOHNSWAP(x)		_byteswap_ulong((x))

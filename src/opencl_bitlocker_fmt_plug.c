@@ -40,7 +40,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define BINARY_ALIGN            1
 #define BITLOCKER_JTR_HASH_SIZE 45
 #define BITLOCKER_JTR_HASH_SIZE_CHAR 208
-#define MIN_KEYS_PER_CRYPT  1 
+#define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
 #define BENCHMARK_COMMENT   ""

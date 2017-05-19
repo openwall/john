@@ -35,7 +35,7 @@
 `define PKT_BATCHES_MSB 31
 
 // Compare only first 35 bits of hash
-`define COMPARE_35_BIT 
+`define COMPARE_35_BIT
 `ifdef COMPARE_35_BIT
 	`define DIN_MSB 56
 	`define HASH_MSB 34

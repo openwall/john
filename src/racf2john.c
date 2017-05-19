@@ -170,7 +170,7 @@ static void process_file(const char *filename)
 	uint8_t profile_name_len = 0;
 	unsigned char *profile_name = 0;
 
-	if(stat(filename, &sb) == -1) {
+	if (stat(filename, &sb) == -1) {
 		perror("stat");
 		exit(EXIT_FAILURE);
 	}

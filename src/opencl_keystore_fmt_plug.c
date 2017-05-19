@@ -84,16 +84,12 @@ static struct custom_salt {
 
 static struct fmt_main   *self;
 
-static size_t insize,
-       	   	  outsize,
-			  saltsize;
+static size_t insize, outsize, saltsize;
 
 static keystore_password *inbuffer;
 static keystore_hash     *outbuffer;
 static keystore_salt      saltbuffer;
-static cl_mem mem_in,
-              mem_out,
-			  mem_salt;
+static cl_mem mem_in, mem_out, mem_salt;
 
 static cl_int cl_err;
 

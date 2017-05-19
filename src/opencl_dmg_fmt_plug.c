@@ -522,8 +522,8 @@ static void set_salt(void *salt)
 	currentsalt.skip_bytes = 0;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-        	CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-        	"Copy setting to gpu");
+			CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
+			"Copy setting to gpu");
 }
 
 #undef set_key

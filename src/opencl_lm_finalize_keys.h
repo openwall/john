@@ -190,7 +190,7 @@ inline void lm_bs_finalize_keys(__global opencl_lm_transfer *lm_raw_keys,
 #else
 				unsigned int gws
 #endif
- 			      ) {
+				) {
 
 #if WORK_GROUP_SIZE
 #define LM_KEYS_OFFSET  s_key_offset

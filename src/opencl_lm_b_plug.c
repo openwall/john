@@ -743,7 +743,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 #if 0
 	fprintf(stdout, "Limit_smem:"Zu", Full_unroll_flag:%u,"
 		"Use_local_mem:%u, Force_global_keys:%u\n",
- 		s_mem_limited_lws, full_unroll, use_local_mem,
+		s_mem_limited_lws, full_unroll, use_local_mem,
 		force_global_keys);
 #endif
 
@@ -800,7 +800,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
 		best_time_ms);
 #endif
@@ -886,7 +886,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
 		best_time_ms);
 #endif

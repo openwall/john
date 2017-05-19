@@ -520,7 +520,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
 		best_time_ms);
 #endif
@@ -609,7 +609,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
 		best_time_ms);
 #endif

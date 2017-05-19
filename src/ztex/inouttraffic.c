@@ -111,7 +111,7 @@ struct device *device_new(struct ztex_device *ztex_device)
 	//}
 	result = libusb_claim_interface(device->handle, 0);
 	if (result < 0) {
-		//if (DEBUG) 
+		//if (DEBUG)
 		printf("SN %s: usb_claim_interface error %d (%s)\n",
 			device->ztex_device->snString, result, libusb_error_name(result));
 		device_delete(device);
@@ -237,14 +237,14 @@ int device_list_merge(struct device_list *device_list, struct device_list *added
 		device_list_add(device_list, dev);
 		count++;
 	}
-	
+
 	int ztex_dev_count = ztex_dev_list_merge(device_list->ztex_dev_list,
 			added_list->ztex_dev_list);
 	if (ztex_dev_count != count) {
 		printf("device_list_merge: ztex count %d, device count %d\n",
 				ztex_dev_count, count);
 	}
-	
+
 	//added_list->dev = NULL;
 	free(added_list);
 	return count;
@@ -309,7 +309,7 @@ int device_check_bitstream_type(struct device *device, unsigned short bitstream_
 		if (result < 0)
 			return result;
 		result = fpga_test_get_id(&device->fpga[i]);
-		//if (DEBUG) 
+		//if (DEBUG)
 		//printf("device_check_bitstream_type: id=%d, result=%d\n",i,result);
 		if (result < 0)
 			return result;
@@ -372,7 +372,7 @@ int device_list_check_bitstreams(struct device_list *device_list, unsigned short
 			if ( !(fp = fopen(filename, "r")) ) {
 				printf("fopen(%s): %s\n", filename, strerror(errno));
 				return -1;
-			}	
+			}
 		printf("SN %s: uploading bitstreams.. ", device->ztex_device->snString);
 		fflush(stdout);
 
@@ -438,7 +438,7 @@ int device_list_fpga_reset(struct device_list *device_list)
 	for (device = device_list->device; device; device = device->next) {
 		if (!device_valid(device))
 			continue;
-			
+
 		int result = device_fpga_reset(device);
 		if (result < 0) {
 			device_invalidate(device);
@@ -666,7 +666,7 @@ int fpga_pkt_write(struct fpga *fpga)
 		if (DEBUG) printf("fpga_pkt_write(): no data for transmission\n");
 		return 0;
 	}
-	
+
 	if (DEBUG >= 2) {
 		int i;
 		for (i=0; i < data_len; i++) {
@@ -674,7 +674,7 @@ int fpga_pkt_write(struct fpga *fpga)
 		}
 		printf("\n");
 	}
-	
+
 	int transferred = 0;
 	result = libusb_bulk_transfer(fpga->device->handle, 0x06, data,
 			data_len, &transferred, USB_RW_TIMEOUT);
@@ -688,7 +688,7 @@ int fpga_pkt_write(struct fpga *fpga)
 	}
 
 	pkt_comm_output_completed(fpga->comm, data_len, 0);
-	
+
 	wr->wr_count++;
 	wr->wr_done = 1;
 	return transferred;
@@ -725,7 +725,7 @@ int fpga_pkt_read(struct fpga *fpga)
 		return -1;
 	if (!input_buf)
 		return 0;
-	
+
 	current_read_limit = rd->read_limit;
 	for ( ; ; ) {
 		int transferred = 0;
@@ -766,7 +766,7 @@ int fpga_pkt_read(struct fpga *fpga)
 			printf("%d ", input_buf[i]);
 	}
 	printf("\n");
-*/	
+*/
 	result = pkt_comm_input_completed(fpga->comm, rd->read_limit, 0);
 
 	if (result < 0)

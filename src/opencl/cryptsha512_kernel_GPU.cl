@@ -39,7 +39,7 @@
 #endif
 
 #if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
-/* 
+/*
    Needed (at least) in 14.9 and 15.7.
    kernel prepare fails if no unroll hint is offered.
    - the workaround is not needed on GCN (tested on Tahiti, Bonaire and Capeverde)
@@ -51,10 +51,10 @@
 #endif
 
 #if gpu_nvidia(DEVICE_INFO) && DEV_VER_MAJOR > 352
-/* 
+/*
    Needed for OpenCL NVIDIA driver version 361 (CUDA 7.5+).
    kernel prepare fails if no unroll hint is offered.
-   Over-using for safe for any version above 352. 
+   Over-using for safe for any version above 352.
    Notice: not tested using in-between drivers: e.g. 353.62 WHQL, 358.91 WHQL, ...
    - can't remove the [unroll] (at least) on Titan X and GTX 980.
      - failing (at least) on 361.28, 361.42, 368.81

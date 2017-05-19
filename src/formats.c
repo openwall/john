@@ -237,7 +237,7 @@ static char* is_key_right(struct fmt_main *format, int index,
 	    format->methods.get_hash[size](i) !=
 	    format->methods.binary_hash[size](binary)) {
 #ifndef BENCH_BUILD
-    		if (options.verbosity > VERB_LEGACY) {
+		if (options.verbosity > VERB_LEGACY) {
 			// Dump out as much as possible (up to 3 full bytes). This can
 			// help in trying to track down problems, like needing to SWAP
 			// the binary or other issues, when doing BE ports.  Here

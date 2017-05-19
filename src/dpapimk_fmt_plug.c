@@ -1,7 +1,7 @@
 /* DPAPI masterkey file version 1 and 2 cracker by
  * Fist0urs <jean-christophe.delaunay at synacktiv.com>
  *
- * This software is Copyright (c) 2017 
+ * This software is Copyright (c) 2017
  * Fist0urs <jean-christophe.delaunay at synacktiv.com>,
  * and it is hereby released to the general public under the following terms:
  *
@@ -219,7 +219,7 @@ static void *get_salt(char *ciphertext)
 	ptrSID[strlen(p)] = '\0';
 	SID_size = enc_to_utf16(cs.SID, PLAINTEXT_LENGTH, (UTF8 *) ptrSID, strlen(ptrSID) + 1);
 	free(ptrSID);
-	
+
 	if (SID_size < 0){
 		printf("SID_size < 0 !");
 		exit(1);
@@ -341,7 +341,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			passwordBuf = (unsigned char*)saved_key[index+i];
 			passwordBufSize = strlen16((UTF16*)passwordBuf) * 2;
-			
+
 			/* local credentials */
 			if (cur_salt->cred_type == 1) {
 				SHA1_Init(&ctx);

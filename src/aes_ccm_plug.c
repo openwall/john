@@ -46,7 +46,7 @@
  * (Always using b as the source helps the compiler optimise a bit better.)
  */
 #define UPDATE_CBC_MAC \
-	for( i = 0; i < 16; i++ ) \
+	for ( i = 0; i < 16; i++ ) \
 		y[i] ^= b[i]; \
 	AES_ecb_encrypt(y, y, ctx, AES_ENCRYPT);
 
@@ -57,7 +57,7 @@
  */
 #define CTR_CRYPT(dst, src, len) \
 	AES_ecb_encrypt(ctr, b, ctx, AES_ENCRYPT); \
-	for( i = 0; i < len; i++ ) \
+	for ( i = 0; i < len; i++ ) \
 		dst[i] = src[i] ^ b[i];
 
 /*

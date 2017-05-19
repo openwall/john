@@ -38,16 +38,16 @@ struct task_result {
 struct task {
 	struct task *next;
 	enum task_status status;
-	
+
 	// for now, all tasks have same comparator configuration
 	//int cmp_config_id;
 	// Global cmp_config
 	//struct cmp_config *cmp_config;
-	
+
 	int num_keys;
 	char *keys;
 	unsigned char *range_info; // NULL if no mask
-	
+
 	struct task_result *result_list;
 	struct jtr_device *jtr_device;
 	int id; // ID is 16-bit, unique within jtr_device
@@ -109,7 +109,7 @@ struct task_list *task_list_create(int num_keys,
 		char *keys, unsigned char *range_info,
 		struct db_salt *salt);
 
-// find task by ID and jtr_device * 
+// find task by ID and jtr_device *
 struct task *task_find(struct task_list *task_list,
 		struct jtr_device *jtr_device, int id);
 

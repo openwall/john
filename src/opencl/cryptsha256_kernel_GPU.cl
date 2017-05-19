@@ -629,7 +629,7 @@ inline void update_w_G(
 	for (uint i = 0U; i < 16; i++)
 	    w[i] = 0;
 
-   	{
+	{
 	    uint32_t tmp, pos;
 	    tmp = ((offset & 3U) << 3);
 	    pos = (offset >> 2);
@@ -674,7 +674,7 @@ inline void update_w(
 	for (uint i = 0U; i < 16; i++)
 	    w[i] = 0;
 
-   	{
+	{
 	    uint32_t tmp, pos;
 	    tmp = ((offset & 3U) << 3);
 	    pos = (offset >> 2);

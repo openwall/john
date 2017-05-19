@@ -50,14 +50,14 @@ if test "$disable_opencl" = 'yes'; then
   AX_LANG_COMPILER_MS
   AS_IF([test X$ax_compiler_ms = Xno],
         [CL_CFLAGS="${PTHREAD_CFLAGS}"; CL_LIBS="${PTHREAD_LIBS} -lm"])
-  
+
   ax_save_CPPFLAGS=$CPPFLAGS
   CPPFLAGS="$CL_CFLAGS $CPPFLAGS"
   AC_CHECK_HEADERS([CL/cl.h OpenCL/cl.h])
   CPPFLAGS=$ax_save_CPPFLAGS
-  
+
   AC_CHECK_HEADERS([windows.h])
-  
+
   m4_define([AX_OPENCL_PROGRAM],
             [AC_LANG_PROGRAM([[
   # if defined(HAVE_WINDOWS_H) && defined(_WIN32)
@@ -71,7 +71,7 @@ if test "$disable_opencl" = 'yes'; then
   #   error no CL.h
   # endif]],
                              [[clCreateContextFromType(0,0,0,0,0)]])])
-  
+
   AC_CACHE_CHECK([for OpenCL library], [ax_cv_check_cl_libcl],
   [ax_cv_check_cl_libcl=no
   case $host_cpu in
@@ -97,22 +97,22 @@ if test "$disable_opencl" = 'yes'; then
                                 AC_LINK_IFELSE([AX_OPENCL_PROGRAM],
                                                [ax_cv_check_cl_libcl="$ax_try_lib $ax_check_cl_dylib_flag"; break])])])
   done
-  
+
   AS_IF([test "X$ax_cv_check_cl_libcl" = Xno],
         [LIBS='-Wl,-framework,OpenCL'
         AC_LINK_IFELSE([AX_OPENCL_PROGRAM],
                        [ax_cv_check_cl_libcl=$LIBS])])
-  
+
   LIBS=$ax_save_LIBS
   CPPFLAGS=$ax_save_CPPFLAGS])
-  
+
   AS_IF([test "X$ax_cv_check_cl_libcl" = Xno],
         [no_cl=yes; CL_CFLAGS=""; CL_LIBS=""],
         [CL_LIBS="$ax_cv_check_cl_libcl $CL_LIBS"; AC_DEFINE([_OPENCL], [1],
       [Define this for the OpenCL Accelerator])])
   AC_LANG_POP([$1])
 fi
-  
+
 AC_SUBST([CL_CFLAGS])
 AC_SUBST([CL_LIBS])
 ])dnl

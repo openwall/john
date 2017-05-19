@@ -15,9 +15,9 @@ dnl
 AC_DEFUN([JTR_ARM_SPECIAL_LOGIC], [
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
-dnl 
+dnl
 #############################################################################
-# Arm-NEON Active CPU probe test.  We check for NEON instructions 
+# Arm-NEON Active CPU probe test.  We check for NEON instructions
 # At the very end of configure, we set gcc
 # back to whatever the 'best' was.  During running in configure, $CC gets reset
 # so the results of our tests must be remembered, and reset just before exit.
