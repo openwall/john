@@ -36,8 +36,8 @@ typedef struct {
 	char method[METHOD_MAXLEN];
 	char uri[URI_MAXLEN];
 	char nonce[NONCE_MAXLEN];
-	char cnonce[NONCE_MAXLEN];
-	char nonce_count[CNONCE_MAXLEN];
+	char cnonce[CNONCE_MAXLEN];
+	char nonce_count[NONCECOUNT_MAXLEN];
 	char qop[QOP_MAXLEN];
 	char algorithm[ALG_MAXLEN];
 	char hash[MD5_LEN_HEX+1];

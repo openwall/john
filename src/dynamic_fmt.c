@@ -538,7 +538,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (pPriv->FldMask) {
 		for (i = 0; i < 10; ++i) {
 			if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
-				char Fld[5];
+				char Fld[8];
 				sprintf(Fld, "$$F%d", i);
 				if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 					return 0;
@@ -8212,7 +8212,7 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 			int i;
 			for (i = 0; i < 10; ++i) {
 				if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
-					char Fld[5];
+					char Fld[8];
 					sprintf(Fld, "$$F%d", i);
 					if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 						return ciphertext;

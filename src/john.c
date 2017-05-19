@@ -1023,7 +1023,7 @@ static void load_extra_pots(struct db_main *db, void (*process_file)(struct db_m
 				struct dirent *ep;
 
 				while ((ep = readdir(dp))) {
-					char dname[PATH_BUFFER_SIZE];
+					char dname[2 * PATH_BUFFER_SIZE];
 					char *p;
 
 					if (!(p = strrchr(ep->d_name, '.')) ||
