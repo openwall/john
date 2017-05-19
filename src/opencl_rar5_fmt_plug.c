@@ -43,8 +43,6 @@ john_register_one(&fmt_ocl_rar5);
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define DEFAULT_LWS		64
-#define DEFAULT_GWS		1024
 #define STEP			0
 #define SEED			1024
 

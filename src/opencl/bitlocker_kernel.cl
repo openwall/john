@@ -340,7 +340,6 @@ inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c
 #define SINGLE_BLOCK_W_SIZE 		64
 #define ITERATION_NUMBER 			0x100000
 #define MAX_INPUT_PASSWORD_LEN 		16
-#define END_STRING 					0x80
 #define SALT_SIZE 					16
 #define INT_HASH_SIZE 				8
 #define HASH_LOOPS					256

@@ -110,7 +110,6 @@ static unsigned char (*sse_crypt2);
 #define MIN_KEYS_PER_CRYPT		MS_NUM_KEYS
 #define MAX_KEYS_PER_CRYPT		MS_NUM_KEYS
 
-#define U16_KEY_LEN			(2*PLAINTEXT_LENGTH)
 #define HASH_LEN			(16+48)
 
 static unsigned char *salt_buffer;

@@ -69,9 +69,7 @@ john_register_one(&fmt_sha1_ng);
 
 #define VWIDTH SIMD_COEF_32
 
-#define SHA1_BLOCK_SIZE         64
 #define SHA1_BLOCK_WORDS        16
-#define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
 #ifdef __MIC__

@@ -138,7 +138,6 @@ typedef struct Filename {
     char path[4096];
 } Filename;
 
-#define PASSPHRASE_MAXLEN 512
 
 static char header[40], *b, *encryption, *comment, *mac;
 static const char *putty_error = NULL;

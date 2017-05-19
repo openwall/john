@@ -128,8 +128,6 @@ static int split_events[] = { 3, -1, -1 };
 static int new_keys;
 static struct fmt_main *self;
 
-/* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
-#define CPU_GPU_RATIO		32
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_aes_key, pinned_aes_iv;
 static cl_kernel RarInit, RarFinal;

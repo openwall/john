@@ -49,9 +49,6 @@
         w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]); \
         w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
 
-#define PWSAFE_IN_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_pass))
-#define PWSAFE_OUT_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_hash))
-#define PWSAFE_SALT_SIZE (sizeof(pwsafe_salt))
 
 typedef struct {
         uint8_t v[87];

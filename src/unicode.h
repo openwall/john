@@ -91,9 +91,6 @@ typedef uint8_t UTF8;
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR (UTF32)0x0000FFFD
 #define UNI_MAX_BMP (UTF32)0x0000FFFF
-#define UNI_MAX_UTF16 (UTF32)0x0010FFFF
-#define UNI_MAX_UTF32 (UTF32)0x7FFFFFFF
-#define UNI_MAX_LEGAL_UTF32 (UTF32)0x0010FFFF
 
 /* These are used in NT_fmt.c */
 extern const UTF32 offsetsFromUTF8[];
