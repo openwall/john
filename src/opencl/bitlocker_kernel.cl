@@ -576,28 +576,6 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 		            char)(index_generic << 3));
 		//-----------------------------------------------
 
-#if 0
-		if(globalIndexPassword == 0)
-		{
-			printf("schedule0: %x\n", schedule0);
-			printf("schedule1: %x\n", schedule1);
-			printf("schedule2: %x\n", schedule2);
-			printf("schedule3: %x\n", schedule3);
-			printf("schedule4: %x\n", schedule4);
-			printf("schedule5: %x\n", schedule5);
-			printf("schedule6: %x\n", schedule6);
-			printf("schedule7: %x\n", schedule7);
-			printf("schedule8: %x\n", schedule8);
-			printf("schedule9: %x\n", schedule9);
-			printf("schedule10: %x\n", schedule10);
-			printf("schedule11: %x\n", schedule11);
-			printf("schedule12: %x\n", schedule12);
-			printf("schedule12: %x\n", schedule13);
-			printf("schedule12: %x\n", schedule14);
-			printf("schedule12: %x\n", schedule15);
-		}
-#endif
-
 		ALL_SCHEDULE_LAST16()
 
 		ROUND(a, b, c, d, e, f, g, h, schedule0, 0x428A2F98)
