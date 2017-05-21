@@ -165,6 +165,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 	}
 	if (s[len-1] == '\r') {
 		int c;
+
 		s[--len] = 0;
 		while (len && (s[len-1] == '\n' || s[len-1] == '\r'))
 			s[--len] = 0;
@@ -176,6 +177,14 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			ungetc(c, stream);
 		return s;
 	}
+	if (s[len] == 0) {
+		int c;
+
+		while (c != EOF && c != '\n')
+			c = getc(stream);
+		return s;
+	}
+
 	cp = strdup(s);
 
 	while (1) {
@@ -207,6 +216,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 		}
 		if (cp[len-1] == '\r') {
 			int c;
+
 			cp[--len] = 0;
 			while (len && (cp[len-1] == '\n' || cp[len-1] == '\r'))
 				cp[--len] = 0;
@@ -217,6 +227,13 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			if (c != '\n')
 				ungetc(c, stream);
 			return cp;
+		}
+		if (s[len] == 0) {
+			int c;
+
+			while (c != EOF && c != '\n')
+				c = getc(stream);
+			return s;
 		}
 	}
 }
