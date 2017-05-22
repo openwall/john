@@ -163,7 +163,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			s[--len] = 0;
 		return s;
 	}
-	if (s[len-1] == '\r') {
+	else if (s[len-1] == '\r') {
 		int c;
 
 		s[--len] = 0;
@@ -177,7 +177,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			ungetc(c, stream);
 		return s;
 	}
-	if (s[len] == 0) {
+	else if ((len + 1) < size) { /* We read a null byte */
 		int c;
 
 		while (c != EOF && c != '\n')
@@ -188,7 +188,8 @@ char *fgetll(char *s, size_t size, FILE *stream)
 	cp = strdup(s);
 
 	while (1) {
-		int increase = MIN(len, 0x40000000);
+		int increase = MIN((((len >> 12) + 1) << 12), 0x40000000);
+		size_t chunk_len;
 		void *new_cp;
 
 		new_cp = realloc(cp, len + increase);
@@ -206,7 +207,8 @@ char *fgetll(char *s, size_t size, FILE *stream)
 		if (!fgets(&cp[len], increase, stream))
 			return cp;
 
-		len += strlen(&cp[len]);
+		chunk_len = strlen(&cp[len]);
+		len += chunk_len;
 
 		if (cp[len-1] == '\n') {
 			cp[--len] = 0;
@@ -214,7 +216,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 				cp[--len] = 0;
 			return cp;
 		}
-		if (cp[len-1] == '\r') {
+		else if (cp[len-1] == '\r') {
 			int c;
 
 			cp[--len] = 0;
@@ -228,7 +230,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 				ungetc(c, stream);
 			return cp;
 		}
-		if (s[len] == 0) {
+		else if ((chunk_len + 1) < increase) { /* We read a null byte */
 			int c;
 
 			while (c != EOF && c != '\n')
