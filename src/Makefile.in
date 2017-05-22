@@ -761,6 +761,10 @@ test_full_verbose: default
 test_utf8_verbose: default
 	cd ../test && perl jtrts.pl -type utf-8
 
+testfiles:
+	../run/john --list=format-tests -format=cpu | LC_ALL=C cut -f3 > all_tests.in
+	../run/john --list=format-tests -format=cpu | LC_ALL=C cut -f4 > all_tests.lst
+
 bash-completion:
 	[ -d $(DESTDIR)/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/etc/bash_completion.d/ || true
 	[ -d $(DESTDIR)/usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/usr/local/etc/bash_completion.d/ || true
