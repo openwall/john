@@ -178,7 +178,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 		return s;
 	}
 	else if ((len + 1) < size) { /* We read a null byte */
-		int c;
+		int c = 0;
 
 		while (c != EOF && c != '\n')
 			c = getc(stream);
@@ -231,7 +231,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			return cp;
 		}
 		else if ((chunk_len + 1) < increase) { /* We read a null byte */
-			int c;
+			int c = 0;
 
 			while (c != EOF && c != '\n')
 				c = getc(stream);
