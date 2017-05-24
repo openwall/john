@@ -17,11 +17,11 @@ http://creativecommons.org/publicdomain/zero/1.0/
     UINT64 Aka, Ake, Aki, Ako, Aku; \
     UINT64 Ama, Ame, Ami, Amo, Amu; \
     UINT64 Asa, Ase, Asi, Aso, Asu; \
-    UINT64 Bba, Bbe, Bbi, Bbo, Bbu; \
-    UINT64 Bga, Bge, Bgi, Bgo, Bgu; \
-    UINT64 Bka, Bke, Bki, Bko, Bku; \
-    UINT64 Bma, Bme, Bmi, Bmo, Bmu; \
-    UINT64 Bsa, Bse, Bsi, Bso, Bsu; \
+    UINT64 Bba=0, Bbe=0, Bbi=0, Bbo=0, Bbu=0; \
+    UINT64 Bga=0, Bge=0, Bgi=0, Bgo=0, Bgu=0; \
+    UINT64 Bka=0, Bke=0, Bki=0, Bko=0, Bku=0; \
+    UINT64 Bma=0, Bme=0, Bmi=0, Bmo=0, Bmu=0; \
+    UINT64 Bsa=0, Bse=0, Bsi=0, Bso=0, Bsu=0; \
     UINT64 Ca, Ce, Ci, Co, Cu; \
     UINT64 Da, De, Di, Do, Du; \
     UINT64 Eba, Ebe, Ebi, Ebo, Ebu; \

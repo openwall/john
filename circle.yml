@@ -4,8 +4,8 @@ machine:
 
 dependencies:
   pre:
-    - docker pull dhiru/fedora
-    - docker run --name fedora -v /home/ubuntu:/base -i -t dhiru/fedora /base/JohnTheRipper/src/CircleCI-MinGW.sh
+    - docker pull dhiru/fedora:25
+    - docker run --name fedora -v /home/ubuntu:/base -i -t dhiru/fedora:25 /base/JohnTheRipper/src/CircleCI-MinGW.sh
 
 general:
   artifacts:

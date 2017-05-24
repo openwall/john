@@ -16,7 +16,7 @@
 #include "formats.h"
 
 #define FORMAT_TAG                      "v1;PPH1_MD4,"
-#define TAG_LENGTH                      12
+#define TAG_LENGTH                      (sizeof(FORMAT_TAG)-1)
 
 #define HASH_LENGTH                     64
 #define SALT_HASH_LEN                   20

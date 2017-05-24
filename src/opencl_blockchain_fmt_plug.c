@@ -21,16 +21,16 @@ extern struct fmt_main fmt_opencl_blockchain;
 john_register_one(&fmt_opencl_blockchain);
 #else
 
+#include <stdint.h>
 #include <string.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 #include "arch.h"
+#include "aes.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "jumbo.h"
 #include "common-opencl.h"
 #include "options.h"
@@ -63,10 +63,11 @@ typedef struct {
 } blockchain_hash;
 
 typedef struct {
-	int iterations;
-	int outlen;
-	uint8_t length;
-	uint8_t salt[16];
+	uint32_t iterations;
+	uint32_t outlen;
+	uint32_t skip_bytes;
+	uint8_t  length;
+	uint8_t  salt[64];
 } blockchain_salt;
 
 static int *cracked;
@@ -207,11 +208,10 @@ static void reset(struct db_main *db)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
+	int len, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
-
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
@@ -228,11 +228,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if(len > BIG_ENOUGH || !len)
+	if (len > BIG_ENOUGH || !len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
-	if (hexlenl(p) != len * 2)
+	if (hexlenl(p, &extra) != len * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -252,7 +252,7 @@ static void *get_salt(char *ciphertext)
 
 	static union {
 		struct custom_salt _cs;
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} un;
 	struct custom_salt *cs = &(un._cs);
 
@@ -282,6 +282,8 @@ static void set_salt(void *salt)
 	currentsalt.length = 16;
 	currentsalt.iterations = cur_salt->iter;
 	currentsalt.outlen = 32;
+	currentsalt.skip_bytes = 0;
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
 	    "Copy salt to gpu");
@@ -313,7 +315,7 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	unsigned char iv[16];
 	memcpy(iv, cur_salt->data, 16);
 
-	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
+	if (AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
 	AES_cbc_encrypt(data + 16, out, 16, &akey, iv, AES_DECRYPT);
@@ -412,8 +414,9 @@ struct fmt_main fmt_opencl_blockchain = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		blockchain_tests
 	}, {
 		init,

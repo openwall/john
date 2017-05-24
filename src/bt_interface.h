@@ -30,7 +30,7 @@ extern unsigned int *hash_table_192; // Hash Table for 192 bit hashes.
  * 'uint128_t *' for hashes <= 128bit and
  * 'uint192_t *' for hashes <=192bit.
  */
-extern unsigned int create_perfect_hash_table(int htype, // Hash type, currenty supported upto 192 bit hashes.
+extern unsigned int create_perfect_hash_table(int htype, // Hash type, currently supported upto 192 bit hashes.
 			       void *loaded_hashes_ptr, // Pass a pointer to an array containing hashes of type uint128_t or uint192_t.
 			       unsigned int num_ld_hashes, // Pass number of hashes in stored in the array.
 			       OFFSET_TABLE_WORD **offset_table_ptr, // Returns a pointer to the Offset Table.

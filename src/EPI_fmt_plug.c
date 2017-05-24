@@ -42,9 +42,10 @@ john_register_one(&fmt_EPI);
 #endif
 #include "memdbg.h"
 
+#define CIPHERTEXT_LENGTH  105
 #define PLAINTEXT_LENGTH   125
 #define BINARY_LENGTH      20
-#define BINARY_ALIGN       sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN       sizeof(uint32_t)
 #define SALT_LENGTH        30
 #define SALT_ALIGN         4
 #define MIN_KEYS_PER_CRYPT		1
@@ -52,7 +53,7 @@ john_register_one(&fmt_EPI);
 
 static int (*key_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_LENGTH / 4];
+static uint32_t (*crypt_out)[BINARY_LENGTH / 4];
 static char global_salt[SALT_LENGTH+1];
 
 static struct fmt_tests global_tests[] =
@@ -95,22 +96,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
   unsigned int len, n;
 
-  if(!ciphertext) return 0;
-  len = strlen(ciphertext);
+  if (!ciphertext)
+	  return 0;
 
-  if(len != 105)
+  len = strnlen(ciphertext, CIPHERTEXT_LENGTH + 1);
+
+  if (len != CIPHERTEXT_LENGTH)
     return 0;
 
   // check fixed positions
-  if(ciphertext[0]  != '0' || ciphertext[1]  != 'x' ||
+  if (ciphertext[0]  != '0' || ciphertext[1]  != 'x' ||
      ciphertext[62] != ' ' ||
      ciphertext[63] != '0' || ciphertext[64] != 'x')
     return 0;
 
-  for(n = 2; n < 62 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for (n = 2; n < 62 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
   if (n < 62)
 	  return 0;
-  for(n = 65; n < 105 && atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
+  for (n = 65; n < CIPHERTEXT_LENGTH &&
+	       atoi16u[ARCH_INDEX(ciphertext[n])] != 0x7F; ++n);
 
   return n == len;
 }
@@ -119,10 +123,10 @@ static void _tobin(char* dst, char *src, unsigned int len)
 {
   unsigned int n;
 
-  if(src[0] == '0' && src[1] == 'x')
+  if (src[0] == '0' && src[1] == 'x')
     src += sizeof(char)*2;
 
-  for(n = 0; n < len; ++n)
+  for (n = 0; n < len; ++n)
     dst[n] = atoi16[ARCH_INDEX(src[n*2])]<<4 |
              atoi16[ARCH_INDEX(src[n*2+1])];
 }
@@ -152,7 +156,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-  if(!key) return;
+  if (!key) return;
   key_len[index] = strlen(key) + 1;
   strcpy(saved_key[index], key);
 }
@@ -187,7 +191,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++)
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_out[index][0] )
 			return 1;
 	return 0;
 }
@@ -212,7 +216,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 // Define john integration
@@ -233,6 +237,7 @@ struct fmt_main fmt_EPI =
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		{ NULL },
 		{ NULL },
 		global_tests
 	},

@@ -4,7 +4,7 @@
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
  *
- * The internals of this algorithm were found on the HashCat forum, and
+ * The internals of this algorithm were found on the hashcat forum, and
  * implemented here, whether, it is right or wrong. A link to that post is:
  * http://hashcat.net/forum/thread-3804.html
  * There are some things which are unclear, BUT which have been coded as listed
@@ -89,6 +89,14 @@ john_register_one(&fmt_sapH);
 
 #define FORMAT_LABEL            "saph"
 #define FORMAT_NAME             "SAP CODVN H (PWDSALTEDHASH)"
+#define FORMAT_TAG              "{x-issha, "
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG256           "{x-isSHA256, "
+#define FORMAT_TAG256_LEN       (sizeof(FORMAT_TAG256)-1)
+#define FORMAT_TAG384           "{x-isSHA384, "
+#define FORMAT_TAG384_LEN       (sizeof(FORMAT_TAG384)-1)
+#define FORMAT_TAG512           "{x-isSHA512, "
+#define FORMAT_TAG512_LEN       (sizeof(FORMAT_TAG512)-1)
 
 #define ALGORITHM_NAME          "SHA-1/SHA-2 " SHA1_ALGORITHM_NAME
 
@@ -114,11 +122,11 @@ john_register_one(&fmt_sapH);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define PLAINTEXT_LENGTH        23
+#define PLAINTEXT_LENGTH        23 /* Real world max. is 40 */
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        40
 #endif
 
 static struct fmt_tests tests[] = {
@@ -145,7 +153,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE/sizeof(uint32_t)];
 
 static struct sapH_salt {
 	int slen;	/* actual length of salt ( 1 to 16 bytes) */
@@ -179,19 +187,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *cp = ciphertext;
 	char *keeptr;
 	int len, hash_len=0;
-	char tmp[MAX_BINARY_SIZE+SALT_LENGTH+4];
+	char tmp[MAX_BINARY_SIZE+SALT_LENGTH];
 	/* first check for 'simple' signatures before allocation other stuff. */
-	if (strncmp(cp, "{x-is", 5) || !strchr(cp, '}'))
-		return 0;
-	if (!strncmp(&cp[5], "sha, ", 5))
+	if (!strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN))
 		hash_len = SHA1_BINARY_SIZE;
-	if (!hash_len && !strncmp(&cp[5], "SHA256, ", 8))
+	else if (!strncmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN))
 		hash_len = SHA256_BINARY_SIZE;
-	if (!hash_len && !strncmp(&cp[5], "SHA384, ", 8))
+	else if (!strncmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN))
 		hash_len = SHA384_BINARY_SIZE;
-	if (!hash_len && !strncmp(&cp[5], "SHA512, ", 8))
+	else if (!strncmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN))
 		hash_len = SHA512_BINARY_SIZE;
-	if (!hash_len)
+	else
 		return 0;
 	keeptr = strdup(cp);
 	cp = keeptr;
@@ -205,10 +211,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	// we want the entire rest of the line here, to mime compare.
 	if ((cp = strtokm(NULL, "")) == NULL)
 		goto err;
-	if (strlen(cp) != base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ|flg_Base64_MIME_TRAIL_EQ_CNT))
+	if (strlen(cp) != base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ|flg_Base64_MIME_TRAIL_EQ_CNT, 0))
 		goto err;
 	len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	                     MAX_BINARY_SIZE+SALT_LENGTH, flg_Base64_MIME_TRAIL_EQ);
+	                     sizeof(tmp), flg_Base64_MIME_TRAIL_EQ, 0);
 	len -= hash_len;
 	if (len < 1 || len > SALT_LENGTH)
 		goto err;
@@ -238,7 +244,7 @@ static char *get_key(int index)
 static int cmp_all(void *binary, int count) {
 	int index;
 	for (index = 0; index < count; index++)
-		if (*(ARCH_WORD_32*)binary == *(ARCH_WORD_32*)crypt_key[index])
+		if (*(uint32_t*)binary == *(uint32_t*)crypt_key[index])
 			return 1;
 	return 0;
 }
@@ -425,12 +431,12 @@ static void crypt_all_384(int count) {
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
 		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
-		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
+		uint64_t j, *crypt64, offs[NBKEYS512];
 		uint32_t len;
 
 		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
-		crypt64 = (ARCH_WORD_64*)crypt;
+		crypt64 = (uint64_t*)crypt;
 		memset(keys, 0, 128*NBKEYS512);
 
 		for (i = 0; i < NBKEYS512; ++i) {
@@ -451,8 +457,8 @@ static void crypt_all_384(int count) {
 			uint32_t k;
 			SIMDSHA512body(keys, crypt64, NULL, SSEi_FLAT_IN|SSEi_CRYPT_SHA384);
 			for (k = 0; k < NBKEYS512; ++k) {
-				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
-				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
+				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
+				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 6; ++j) {
 					Icp64[j] = JOHNSWAP64(*pcrypt);
 					pcrypt += SIMD_COEF_64;
@@ -461,8 +467,8 @@ static void crypt_all_384(int count) {
 		}
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS512; ++i) {
-			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
-			ARCH_WORD_64 *Iptr64 = &crypt64[ ((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
+			uint64_t *Optr64 = (uint64_t*)(crypt_key[idx+i]);
+			uint64_t *Iptr64 = &crypt64[ ((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 48
 			for (j = 0; j < 2; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);
@@ -497,12 +503,12 @@ static void crypt_all_512(int count) {
 		memcpy(crypt_key[idx], cp, BINARY_SIZE);
 #else
 		unsigned char _IBuf[128*NBKEYS512+MEM_ALIGN_SIMD], *keys, tmpBuf[64], _OBuf[64*NBKEYS512+MEM_ALIGN_SIMD], *crypt;
-		ARCH_WORD_64 j, *crypt64, offs[NBKEYS512];
+		uint64_t j, *crypt64, offs[NBKEYS512];
 		uint32_t len;
 
 		keys  = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
 		crypt = (unsigned char*)mem_align(_OBuf, MEM_ALIGN_SIMD);
-		crypt64 = (ARCH_WORD_64*)crypt;
+		crypt64 = (uint64_t*)crypt;
 		memset(keys, 0, 128*NBKEYS512);
 
 		for (i = 0; i < NBKEYS512; ++i) {
@@ -523,8 +529,8 @@ static void crypt_all_512(int count) {
 			uint32_t k;
 			SIMDSHA512body(keys, crypt64, NULL, SSEi_FLAT_IN);
 			for (k = 0; k < NBKEYS512; ++k) {
-				ARCH_WORD_64 *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
-				ARCH_WORD_64 *Icp64 = (ARCH_WORD_64 *)(&keys[(k<<7)+offs[k]]);
+				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
+				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
 					Icp64[j] = JOHNSWAP64(*pcrypt);
 					pcrypt += SIMD_COEF_64;
@@ -533,8 +539,8 @@ static void crypt_all_512(int count) {
 		}
 		// now marshal into crypt_out;
 		for (i = 0; i < NBKEYS512; ++i) {
-			ARCH_WORD_64 *Optr64 = (ARCH_WORD_64*)(crypt_key[idx+i]);
-			ARCH_WORD_64 *Iptr64 = &crypt64[((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
+			uint64_t *Optr64 = (uint64_t*)(crypt_key[idx+i]);
+			uint64_t *Iptr64 = &crypt64[((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 64
 			for (j = 0; j < 2; ++j) {
 				Optr64[j] = JOHNSWAP64(*Iptr64);
@@ -564,22 +570,20 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char cp[BINARY_SIZE]; /* only stores part the size of each hash */
-		ARCH_WORD_32 jnk[BINARY_SIZE/4];
+		uint32_t jnk[BINARY_SIZE/4];
 	} b;
 	char *cp = ciphertext;
-	unsigned char tmp[MAX_BINARY_SIZE+SALT_LENGTH+4];
 
-	cp += 5; /* skip the {x-is */
-	if (!strncasecmp(cp, "sha, ", 5)) { cp += 5; }
-	else if (!strncasecmp(cp, "sha256, ", 8)) { cp += 8; }
-	else if (!strncasecmp(cp, "sha384, ", 8)) { cp += 8; }
-	else if (!strncasecmp(cp, "sha512, ", 8)) { cp += 8; }
+	memset(b.cp, 0, sizeof(b.cp));
+	if (!strncasecmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { cp += FORMAT_TAG_LEN; }
+	else if (!strncasecmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { cp += FORMAT_TAG256_LEN; }
+	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { cp += FORMAT_TAG384_LEN; }
+	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { cp += FORMAT_TAG512_LEN; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	while (*cp != '}') ++cp;
 	++cp;
-	base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	               MAX_BINARY_SIZE+SALT_LENGTH, flg_Base64_MIME_TRAIL_EQ);
-	memcpy(b.cp, tmp, BINARY_SIZE);
+	base64_convert(cp, e_b64_mime, strlen(cp), b.cp, e_b64_raw,
+	               sizeof(b.cp), flg_Base64_MIME_TRAIL_EQ, 0);
 	return b.cp;
 
 }
@@ -588,21 +592,20 @@ static void *get_salt(char *ciphertext)
 {
 	static struct sapH_salt s;
 	char *cp = ciphertext;
-	unsigned char tmp[MAX_BINARY_SIZE+SALT_LENGTH+4];
+	unsigned char tmp[MAX_BINARY_SIZE+SALT_LENGTH];
 	int total_len, hash_len = 0;
 
 	memset(&s, 0, sizeof(s));
-	cp += 5; /* skip the {x-is */
-	if (!strncasecmp(cp, "sha, ", 5)) { s.type = 1; cp += 5; hash_len = SHA1_BINARY_SIZE; }
-	else if (!strncasecmp(cp, "sha256, ", 8)) { s.type = 2; cp += 8; hash_len = SHA256_BINARY_SIZE; }
-	else if (!strncasecmp(cp, "sha384, ", 8)) { s.type = 3; cp += 8; hash_len = SHA384_BINARY_SIZE; }
-	else if (!strncasecmp(cp, "sha512, ", 8)) { s.type = 4; cp += 8; hash_len = SHA512_BINARY_SIZE; }
+	if (!strncasecmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { s.type = 1; cp += FORMAT_TAG_LEN; hash_len = SHA1_BINARY_SIZE; }
+	else if (!strncasecmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { s.type = 2; cp += FORMAT_TAG256_LEN; hash_len = SHA256_BINARY_SIZE; }
+	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { s.type = 3; cp += FORMAT_TAG384_LEN; hash_len = SHA384_BINARY_SIZE; }
+	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { s.type = 4; cp += FORMAT_TAG512_LEN; hash_len = SHA512_BINARY_SIZE; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	sscanf (cp, "%u", &s.iter);
 	while (*cp != '}') ++cp;
 	++cp;
 	total_len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	                           MAX_BINARY_SIZE+SALT_LENGTH, flg_Base64_MIME_TRAIL_EQ);
+	                           sizeof(tmp), flg_Base64_MIME_TRAIL_EQ, 0);
 	s.slen = total_len-hash_len;
 	memcpy(s.s, &tmp[hash_len], s.slen);
 	return &s;
@@ -614,13 +617,13 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return ciphertext;
 }
 
-static int get_hash_0(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
@@ -668,6 +671,7 @@ struct fmt_main fmt_sapH = {
 			"hash type [1:sha1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
 		},
+		{ FORMAT_TAG, FORMAT_TAG256, FORMAT_TAG384, FORMAT_TAG512 },
 		tests
 	}, {
 		init,

@@ -6,6 +6,8 @@
  * modification, are permitted.
  */
 
+#include "misc.h"	// error()
+
 static int omp_t = 1;
 static unsigned char *saved_salt;
 static unsigned char *saved_key;
@@ -15,6 +17,9 @@ static unpack_data_t (*unpack_data);
 static unsigned int *saved_len;
 static unsigned char *aes_key;
 static unsigned char *aes_iv;
+
+#define FORMAT_TAG          "$RAR3$*"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 
 /* cRARk use 4-char passwords for CPU benchmark */
 static struct fmt_tests cpu_tests[] = {
@@ -158,7 +163,7 @@ static void *get_salt(char *ciphertext)
 	SHA_CTX ctx;
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(rarfile*),sizeof(rarfile*));
-	saltcopy += 7;		/* skip over "$RAR3$*" */
+	saltcopy += FORMAT_TAG_LEN;		/* skip over "$RAR3$*" */
 	type = atoi(strtokm(saltcopy, "*"));
 	encoded_salt = strtokm(NULL, "*");
 	for (i = 0; i < 8; i++)
@@ -284,16 +289,16 @@ static void set_salt(void *salt)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *ptr, *keeptr;
-	int mode;
+	int mode, extra;
 
-	if (strncmp(ciphertext, "$RAR3$*", 7))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext))) {
 		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);
 		return 0;
 	}
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	if (!(ptr = strtokm(ctcopy, "*"))) /* -p or -h mode */
 		goto error;
 	if (strlen(ptr) != 1 || !isdec(ptr))
@@ -303,12 +308,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
-	if (hexlenl(ptr) != 16) /* 8 bytes of salt */
+	if (hexlenl(ptr, &extra) != 16 || extra) /* 8 bytes of salt */
 		goto error;
 	if (!(ptr = strtokm(NULL, "*")))
 		goto error;
 	if (mode == 0) {
-		if (hexlenl(ptr) != 32) /* 16 bytes of encrypted known plain */
+		if (hexlenl(ptr, &extra) != 32 || extra) /* 16 bytes of encrypted known plain */
 			goto error;
 		MEM_FREE(keeptr);
 		return 1;
@@ -316,7 +321,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		int inlined;
 		long long plen, ulen;
 
-		if (hexlenl(ptr) != 8) /* 4 bytes of CRC */
+		if (hexlenl(ptr, &extra) != 8 || extra) /* 4 bytes of CRC */
 			goto error;
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size */
 			goto error;
@@ -352,7 +357,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (!(ptr = strtokm(NULL, "*"))) /* pack_size / archive_name */
 			goto error;
 		if (inlined) {
-			if (hexlenl(ptr) != plen * 2)
+			if (hexlenl(ptr, &extra) != plen * 2 || extra)
 				goto error;
 		} else {
 			FILE *fp;

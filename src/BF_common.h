@@ -15,7 +15,13 @@ extern struct fmt_tests BF_common_tests[];
 /* Number of Blowfish rounds, this is also hardcoded into a few places */
 #define BF_ROUNDS			16
 
-typedef ARCH_WORD_32 BF_word;
+#define FORMAT_TAG			"$2a$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG2			"$2y$"
+#define FORMAT_TAG3			"$2x$"
+#define FORMAT_TAG4			"$2b$"
+
+typedef uint32_t BF_word;
 
 /*
  * Binary salt type, also keeps the number of rounds and hash sub-type.

@@ -30,15 +30,15 @@ wordlist is encoded in ISO-8859-1, you need to use the "--encoding=iso-8859-1"
 option (unless you have set that as default in john.conf). But you also need to
 know what encoding the hashes were made from - for example, LM hashes are
 always made from a legacy MS-DOS codepage like CP437 or CP850. This can be
-specified by using the option eg. "--target-encoding=CP437". John will convert
+specified by using the option e.g. "--target-encoding=CP437". John will convert
 to/from Unicode as needed.
 
-Finally, there's the special case where both input (wordlist) and output (eg.
-hashes from a website) are UTF-8 but you want to use rules including eg. upper
+Finally, there's the special case where both input (wordlist) and output (e.g.
+hashes from a website) are UTF-8 but you want to use rules including e.g. upper
 or lower-casing non-ASCII characters. In this case you can use an intermediate
 encoding (--internal-codepage option) and pick some codepage that can
 shelter as much of the needed input as possible. For US/Western Europe, any
-"Latin-1" codepage will do fine, eg. CP850, ISO-8859-1 or CP1252 (if you do
+"Latin-1" codepage will do fine, e.g. CP850, ISO-8859-1 or CP1252 (if you do
 this with a Unicode format like NT, it will silently be treated in another
 way internally for performance reasons but the outcome will be the same).
 
@@ -69,7 +69,7 @@ building if you need that support.
 
 Example using the now default john.conf settings:
 
-   $ ../run/john hashfile -form:lm -single
+   $ ../run/john hashfile --format=lm --single
    Using default input encoding: UTF-8
    Target encoding: CP850
    Loaded 3 password hashes with no different salts (LM [DES 128/128 AVX-16])
@@ -82,7 +82,7 @@ Example using the now default john.conf settings:
    Use the "--show" option to display all of the cracked passwords reliably
    Session completed
 
-   $ ../run/john hashfile -form:nt -loopback -internal-enc:cp850
+   $ ../run/john hashfile --format=nt --loopback --internal-codepage=cp850
    Rules engine using CP850 for Unicode
    Loaded 2 password hashes with no different salts (NT [MD4 128/128 SSE2-16])
    Assembling cracked LM halves for loopback

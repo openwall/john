@@ -7,7 +7,7 @@
 #define SIZE_INITV 16
 
 #define FORMAT_TAG  		"$rar5$"
-#define TAG_LENGTH  		6
+#define TAG_LENGTH  		(sizeof(FORMAT_TAG)-1)
 
 #define BINARY_SIZE		SIZE_PSWCHECK
 
@@ -30,7 +30,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	//int version;
@@ -61,7 +61,7 @@ static int get_integer(char *int_str, int *output) // FIXME: replace by isdec() 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
+	int len, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -77,7 +77,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto err;
-	if (hexlenl(p) != len * 2)
+	if (hexlenl(p, &extra) != len * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // iterations (in log2)
 		goto err;
@@ -89,7 +89,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // AES IV
 		goto err;
-	if (hexlenl(p) != SIZE_INITV * 2)
+	if (hexlenl(p, &extra) != SIZE_INITV * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck len (redundant)
 		goto err;
@@ -99,7 +99,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) // pswcheck
 		goto err;
-	if (hexlenl(p) != BINARY_SIZE * 2)
+	if (hexlenl(p, &extra) != BINARY_SIZE * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -149,7 +149,7 @@ static void *get_binary(char *ciphertext)
 	static union {
 		unsigned char c[BINARY_SIZE];
 		ARCH_WORD dummy;
-		ARCH_WORD_32 swap[1];
+		uint32_t swap[1];
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -162,11 +162,6 @@ static void *get_binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-#if (ARCH_LITTLE_ENDIAN==0)
-	for (i = 0; i < sizeof(buf.c)/4; ++i) {
-		buf.swap[i] = JOHNSWAP(buf.swap[i]);
-	}
-#endif
 	return out;
 }
 

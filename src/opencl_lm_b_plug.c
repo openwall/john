@@ -244,15 +244,15 @@ static void lm_finalize_int_keys()
 	for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++) {
 		j = i >> LM_LOG_DEPTH;
 		int_key_page[0][j].c[(i & (LM_DEPTH - 1)) & 7][(i & (LM_DEPTH - 1)) >> 3] = opencl_lm_u[mask_int_cand.int_cand[i].x[0] & 0xFF];
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		if (mask_skip_ranges[1] != -1)
 			int_key_page[1][j].c[(i & (LM_DEPTH - 1)) & 7][(i & (LM_DEPTH - 1)) >> 3] = opencl_lm_u[mask_int_cand.int_cand[i].x[1] & 0xFF];
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		if (mask_skip_ranges[2] != -1)
 			int_key_page[2][j].c[(i & (LM_DEPTH - 1)) & 7][(i & (LM_DEPTH - 1)) >> 3] = opencl_lm_u[mask_int_cand.int_cand[i].x[2] & 0xFF];
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		if (mask_skip_ranges[3] != -1)
 			int_key_page[3][j].c[(i & (LM_DEPTH - 1)) & 7][(i & (LM_DEPTH - 1)) >> 3] = opencl_lm_u[mask_int_cand.int_cand[i].x[3] & 0xFF];
 #endif
@@ -449,25 +449,25 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	if (!use_last_build_opt) {
 		sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
 		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		" -D LOC_1=%d "
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		"-D LOC_2=%d "
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		"-D LOC_3=%d"
 #endif
 		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu %s" ,
 		full_unroll, use_local_mem, s_mem_lws, offset_table_size,  hash_table_size, mask_mode,
 		((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		, static_gpu_locations[1]
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		, static_gpu_locations[2]
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		, static_gpu_locations[3]
 #endif
 		, mask_gpu_is_static, (unsigned long long)const_cache_size, bitmap_params);
@@ -479,25 +479,25 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	else {
 		sprintf (build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
 		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		" -D LOC_1=%d "
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		"-D LOC_2=%d "
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		"-D LOC_3=%d"
 #endif
 		" -D IS_STATIC_GPU_MASK=%d -D CONST_CACHE_SIZE=%llu %s" ,
 		last_build_opts[0], last_build_opts[1], (size_t)last_build_opts[2], offset_table_size,  hash_table_size, mask_mode,
 		((mask_int_cand.num_int_cand + LM_DEPTH - 1) >> LM_LOG_DEPTH), static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 		, static_gpu_locations[1]
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 		, static_gpu_locations[2]
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 		, static_gpu_locations[3]
 #endif
 		, mask_gpu_is_static, (unsigned long long)const_cache_size, bitmap_params);
@@ -626,6 +626,12 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		gws_limit >>= 1;
 	}
 
+#if SIZEOF_SIZE_T > 4
+	/* We can't process more than 4G keys per crypt() */
+	while (gws_limit * mask_int_cand.num_int_cand > 0xffffffffUL)
+		gws_limit >>= 1;
+#endif
+
 	assert(gws_limit > PADDING);
 	assert(!(gws_limit & (gws_limit - 1)));
 
@@ -737,7 +743,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 #if 0
 	fprintf(stdout, "Limit_smem:"Zu", Full_unroll_flag:%u,"
 		"Use_local_mem:%u, Force_global_keys:%u\n",
- 		s_mem_limited_lws, full_unroll, use_local_mem,
+		s_mem_limited_lws, full_unroll, use_local_mem,
 		force_global_keys);
 #endif
 
@@ -794,7 +800,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
 		best_time_ms);
 #endif
@@ -880,7 +886,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
 		best_time_ms);
 #endif
@@ -908,9 +914,9 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, mask_mode);
 		}
 	}
-	if (options.verbosity > VERB_DEFAULT)
-	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
-		global_work_size, local_work_size);
+	if (options.verbosity > VERB_LEGACY)
+		fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
+		        global_work_size, local_work_size);
 }
 
 /* Use only for smaller bitmaps < 16MB */

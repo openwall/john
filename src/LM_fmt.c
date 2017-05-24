@@ -8,6 +8,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include <stdint.h>
 #include <string.h>
 
 #include "arch.h"
@@ -20,6 +21,8 @@
 
 #define FORMAT_LABEL			"LM"
 #define FORMAT_NAME			""
+#define FORMAT_TAG			"$LM$"
+#define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -46,8 +49,8 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			(sizeof(ARCH_WORD_32) * 2)
-#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
+#define BINARY_SIZE			(sizeof(uint32_t) * 2)
+#define BINARY_ALIGN			sizeof(uint32_t)
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
 
@@ -89,9 +92,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 1;
 	}
 
-	if (strncmp(ciphertext, "$LM$", 4)) return 0;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) return 0;
 
-	for (pos = &ciphertext[4]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = &ciphertext[FORMAT_TAG_LEN]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos || pos - ciphertext != 20) return 0;
 
 	return 1;
@@ -103,29 +106,26 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 /* We don't just "return ciphertext" for already split hashes since we may
  * need to convert hashes stored by older versions of John to all-lowercase. */
-	if (!strncmp(ciphertext, "$LM$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
-	out[0] = '$';
-	out[1] = 'L';
-	out[2] = 'M';
-	out[3] = '$';
+	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
 
 	if (index)
-		memcpy(&out[4], &ciphertext[16], 16);
+		memcpy(&out[FORMAT_TAG_LEN], &ciphertext[16], 16);
 	else
-		memcpy(&out[4], ciphertext, 16);
+		memcpy(&out[FORMAT_TAG_LEN], ciphertext, 16);
 
 	out[20] = 0;
 
-	strlwr(&out[4]);
+	strlwr(&out[FORMAT_TAG_LEN]);
 
 	return out;
 }
 
 static void *binary(char *ciphertext)
 {
-	return DES_bs_get_binary_LM(ciphertext + 4);
+	return DES_bs_get_binary_LM(ciphertext + FORMAT_TAG_LEN);
 }
 
 static char *source(char *source, void *binary)
@@ -135,42 +135,42 @@ static char *source(char *source, void *binary)
 
 static int binary_hash_0(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & PH_MASK_0;
+	return *(uint32_t *)binary & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & PH_MASK_1;
+	return *(uint32_t *)binary & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & PH_MASK_2;
+	return *(uint32_t *)binary & PH_MASK_2;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & PH_MASK_3;
+	return *(uint32_t *)binary & PH_MASK_3;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & PH_MASK_4;
+	return *(uint32_t *)binary & PH_MASK_4;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & PH_MASK_5;
+	return *(uint32_t *)binary & PH_MASK_5;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & PH_MASK_6;
+	return *(uint32_t *)binary & PH_MASK_6;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 64, index);
+	return DES_bs_cmp_one((uint32_t *)binary, 64, index);
 }
 
 static int cmp_exact(char *source, int index)
@@ -221,6 +221,7 @@ struct fmt_main fmt_LM = {
 #endif
 		FMT_8_BIT | FMT_TRUNC | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

@@ -40,6 +40,9 @@ john_register_one(&fmt_drupal7);
 
 #define FORMAT_LABEL			"Drupal7"
 #define FORMAT_NAME			"$S$"
+#define FORMAT_TAG			"$S$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+
 #define ALGORITHM_NAME			"SHA512 " SHA512_ALGORITHM_NAME
 
 
@@ -116,11 +119,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int i;
 	unsigned count_log2;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
-	if (strncmp(ciphertext, "$S$", 3) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	for (i = 3; i < CIPHERTEXT_LENGTH; ++i)
+	for (i = FORMAT_TAG_LEN; i < CIPHERTEXT_LENGTH; ++i)
 		if (atoi64[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
 
@@ -155,7 +158,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
-	for(index = 0; index < count; index++)
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_key[index], ARCH_SIZE))
 			return 1;
 	return 0;
@@ -182,11 +185,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 #ifdef SIMD_COEF_64
 		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
-		ARCH_WORD_64 *keys64;
+		uint64_t *keys64;
 		unsigned i, j, len, Lcount = loopCnt;
 
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
-		keys64 = (ARCH_WORD_64*)keys;
+		keys64 = (uint64_t*)keys;
 		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			len = EncKeyLen[index+i];
@@ -209,7 +212,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 		// Last one with FLAT_OUT
-		SIMDSHA512body(keys, (ARCH_WORD_64*)crypt_key[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
+		SIMDSHA512body(keys, (uint64_t*)crypt_key[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA512_CTX ctx;
 		unsigned char tmp[DIGEST_SIZE + PLAINTEXT_LENGTH];
@@ -242,12 +245,12 @@ static void * get_binary(char *ciphertext)
 	unsigned sixbits;
 	static union {
 		unsigned char u8[BINARY_SIZE + 1];
-		ARCH_WORD_32 u32;
+		uint32_t u32;
 	} out;
 	int bidx=0;
 	char *pos;
 
-	pos = &ciphertext[3 + 1 + 8];
+	pos = &ciphertext[FORMAT_TAG_LEN + 1 + 8];
 	for (i = 0; i < 10; ++i) {
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
 		out.u8[bidx] = sixbits;
@@ -277,26 +280,26 @@ static void * get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char u8[SALT_SIZE + 1];
-		ARCH_WORD_32 u32;
+		uint32_t u32;
 	} salt;
 	// store off the 'real' 8 bytes of salt
-	memcpy(salt.u8, &ciphertext[4], 8);
+	memcpy(salt.u8, &ciphertext[FORMAT_TAG_LEN+1], 8);
 	// append the 1 byte of loop count information.
-	salt.u8[8] = ciphertext[3];
+	salt.u8[8] = ciphertext[FORMAT_TAG_LEN];
 	return salt.u8;
 }
 
-static int get_hash_0(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_0; }
-static int get_hash_1(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_1; }
-static int get_hash_2(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_2; }
-static int get_hash_3(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_3; }
-static int get_hash_4(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_4; }
-static int get_hash_5(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_5; }
-static int get_hash_6(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & PH_MASK_6; }
+static int get_hash_0(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_0; }
+static int get_hash_1(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_1; }
+static int get_hash_2(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_2; }
+static int get_hash_3(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_3; }
+static int get_hash_4(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_4; }
+static int get_hash_5(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_5; }
+static int get_hash_6(int index) { return *((uint32_t *)&crypt_key[index]) & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
-	return *((ARCH_WORD_32 *)salt) & 0x3FF;
+	return *((uint32_t *)salt) & 0x3FF;
 }
 
 static unsigned int iteration_count(void *salt)
@@ -323,6 +326,7 @@ struct fmt_main fmt_drupal7 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

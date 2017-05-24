@@ -67,6 +67,8 @@ john_register_one(&fmt_NETLM);
 
 #define FORMAT_LABEL         "netlm"
 #define FORMAT_NAME          "LM C/R"
+#define FORMAT_TAG           "$NETLM$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME       "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
@@ -128,7 +130,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
-  if (strncmp(ciphertext, "$NETLM$", 7)!=0) return 0;
+  if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
   if (strlen(ciphertext) < TOTAL_LENGTH) return 0;
   if (ciphertext[23] != '$') return 0;
 
@@ -147,25 +149,29 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
-	if (!strncmp(split_fields[1], "$NETLM$", 7))
+	char *srv_challenge = split_fields[3];
+	char *nethashv2     = split_fields[4];
+	char *cli_challenge = split_fields[5];
+
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
-	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
+	if (!srv_challenge || !nethashv2 || !cli_challenge)
 		return split_fields[1];
-	if (strlen(split_fields[3]) != CIPHERTEXT_LENGTH)
+	if (strlen(srv_challenge) != CIPHERTEXT_LENGTH)
 		return split_fields[1];
 
 	// if LMresp == NTresp then it's NTLM-only, not LM
-	if (!strncmp(split_fields[3], split_fields[4], 48))
+	if (!strncmp(srv_challenge, nethashv2, 48))
 		return split_fields[1];
 
 	// this string suggests we have an improperly formatted NTLMv2
-	if (strlen(split_fields[4]) > 31) {
-		if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
+	if (strlen(nethashv2) > 31) {
+		if (!strncmp(&nethashv2[32], "0101000000000000", 16))
 			return split_fields[1];
 	}
 
-	cp = mem_alloc(7+strlen(split_fields[3])+1+strlen(split_fields[5])+1);
-	sprintf(cp, "$NETLM$%s$%s", split_fields[5], split_fields[3]);
+	cp = mem_alloc(7+strlen(srv_challenge)+1+strlen(cli_challenge)+1);
+	sprintf(cp, "%s%s$%s", FORMAT_TAG, cli_challenge, srv_challenge);
 
 	if (valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
@@ -183,7 +189,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
   memset(out, 0, TOTAL_LENGTH + 1);
   memcpy(out, ciphertext, TOTAL_LENGTH);
-  strlwr(&out[6]); /* Exclude: $NETLM$ */
+  strlwr(&out[FORMAT_TAG_LEN]); /* Exclude: $NETLM$ */
 
   return out;
 }
@@ -231,7 +237,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for default(none) private(i, ks) shared(count, output, challenge, saved_key)
 #endif
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for(i = 0; i < count; i++)
+	for (i = 0; i < count; i++)
 #endif
 	{
 		/* Just do a partial binary, the first DES operation */
@@ -246,7 +252,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for(index=0; index<count; index++)
+	for (index=0; index<count; index++)
 #endif
 		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
 			return 1;
@@ -286,7 +292,7 @@ static void *get_salt(char *ciphertext)
 
   if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
-  ciphertext += 7;
+  ciphertext += FORMAT_TAG_LEN;
   for (i = 0; i < SALT_SIZE; ++i)
     binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
@@ -325,42 +331,42 @@ static char *get_key(int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t *)salt & (SALT_HASH_SIZE - 1);
 }
 
 static int get_hash_0(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_0;
+	return *(uint32_t *)output[index] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_1;
+	return *(uint32_t *)output[index] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_2;
+	return *(uint32_t *)output[index] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_3;
+	return *(uint32_t *)output[index] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_4;
+	return *(uint32_t *)output[index] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_5;
+	return *(uint32_t *)output[index] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)
 {
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_6;
+	return *(uint32_t *)output[index] & PH_MASK_6;
 }
 
 struct fmt_main fmt_NETLM = {
@@ -380,6 +386,7 @@ struct fmt_main fmt_NETLM = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_TRUNC | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

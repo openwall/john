@@ -13,6 +13,8 @@
  * bitcoin => https://github.com/bitcoin/bitcoin
  *
  * Thanks to Solar for asking to add support for bitcoin wallet files.
+ *
+ * Works fine with bitcoin-core-0.14.0 from March, 2017.
  */
 
 #if FMT_EXTERNS_H
@@ -21,6 +23,7 @@ extern struct fmt_main fmt_bitcoin;
 john_register_one(&fmt_bitcoin);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -38,14 +41,15 @@ static int omp_t = 1;
 #include "options.h"
 #include "sha2.h"
 #include "aes.h"
-#include "stdint.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "jumbo.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Bitcoin"
-#define FORMAT_NAME		""
+#define FORMAT_NAME		"Bitcoin Core"
+#define FORMAT_TAG           "$bitcoin$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME		"SHA512 AES " SHA512_ALGORITHM_NAME
@@ -63,7 +67,7 @@ static int omp_t = 1;
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	64
+#define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
 #define SALT_ALIGN			sizeof(int)
@@ -85,6 +89,10 @@ static struct fmt_tests bitcoin_tests[] = {
 	{"$bitcoin$96$4eca412eeb04971428efec70c9e18fb9375be0aa105e7eec55e528d0ba33a07eb6302add36da86736054dee9140ec9b8$16$26049c64dda292d5$265155$96$62aee49c1967b5635b663fc3b047d8bc562f7000921453ab15b98e5a5f2d2adc74393e789fe15c5a3fbc4625536be98a$66$020027f255fbfa6d4c010a1a5984e487443c68e1b32869ccfde92e92005814fd27", "strongpassword"},
 	/* litecoin wallet hash */
 	{"$bitcoin$96$54401984b32448917b6d18b7a11debe91d62aaa343ab62ed98e1d3063f30817832c744360331df94cbf1dcececf6d00e$16$bfbc8ee2c07bbb4b$194787$96$07a206d5422640cfa65a8482298ad8e8598b94d99e2c4ce09c9d015b734632778cb46541b8c10284b9e14e5468b654b9$66$03fe6587bf580ee38b719f0b8689c80d300840bbc378707dce51e6f1fe20f49c20", "isyourpasswordstronger"},
+	/* bitcoin-core-0.14.0 wallet */
+	{"$bitcoin$96$8e7be42551c822c7e55a384e15b4fbfec69ceaed000925870dfb262d3381ed4405507f6c94defbae174a218eed0b5ce8$16$b469e6dbd76926cf$244139$96$ec03604094ada8a5d76bbdb455d260ac8b202ec475d5362d334314c4e7012a2f4b8f9cf8761c9862cd20892e138cd29e$66$03fdd0341a72d1a119ea1de51e477f0687a2bf601c07c032cc87ef82e0f8f49b19", "password@12345"},
+	/* bitcoin-core-0.14.0 wallet */
+	{"$bitcoin$96$2559c50151aeec013a9820c571fbee02e5892a3ead07607ee8de9d0ff55798cff6fe60dbd71d7873cb794a03e0d63b70$16$672204f8ab168ff6$136157$96$a437e8bd884c928603ee00cf85eaaf9245a071efa763db03ab485cb757f155976edc7294a6a731734f383850fcac4316$66$03ff84bb48f454662b91a6e588af8752da0674efa5dae82e7340152afcc38f4ba4", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 	{NULL}
 };
 
@@ -142,11 +150,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p = NULL;
 	int res;
-	if (strncmp(ciphertext, "$bitcoin$", 9))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
+
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* cry_master_length (of the hex string) */
 		goto err;
@@ -213,7 +222,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "$");
 	cs.cry_master_length = atoi(p) / 2;
 	p = strtokm(NULL, "$");
@@ -272,8 +281,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int i;
 
 #ifdef SIMD_COEF_64
-		char unaligned_buf[MAX_KEYS_PER_CRYPT*SHA_BUF_SIZ*sizeof(ARCH_WORD_64)+MEM_ALIGN_SIMD];
-		ARCH_WORD_64 *key_iv = (ARCH_WORD_64*)mem_align(unaligned_buf, MEM_ALIGN_SIMD);
+		char unaligned_buf[MAX_KEYS_PER_CRYPT*SHA_BUF_SIZ*sizeof(uint64_t)+MEM_ALIGN_SIMD];
+		uint64_t *key_iv = (uint64_t*)mem_align(unaligned_buf, MEM_ALIGN_SIMD);
 		JTR_ALIGN(8)  unsigned char hash1[SHA512_DIGEST_LENGTH];            // 512 bits
 		int index2;
 
@@ -285,7 +294,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Final(hash1, &sha_ctx);
 
 			// Now copy and convert hash1 from flat into SIMD_COEF_64 buffers.
-			for (i = 0; i < SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64); ++i) {
+			for (i = 0; i < SHA512_DIGEST_LENGTH/sizeof(uint64_t); ++i) {
 #if COMMON_DIGEST_FOR_OPENSSL
 				key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = sha_ctx.hash[i];  // this is in BE format
 #else
@@ -298,8 +307,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// out the rest of the buffer, putting 512 (#bits) at the end.  Once this part of the buffer is set up, we never
 			// touch it again, for the rest of the crypt.  We simply overwrite the first half of this buffer, over and over
 			// again, with BE results of the prior hash.
-			key_iv[ SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64) * SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 ] = 0x8000000000000000ULL;
-			for (i = (SHA512_DIGEST_LENGTH/sizeof(ARCH_WORD_64)+1); i < 15; i++)
+			key_iv[ SHA512_DIGEST_LENGTH/sizeof(uint64_t) * SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 ] = 0x8000000000000000ULL;
+			for (i = (SHA512_DIGEST_LENGTH/sizeof(uint64_t)+1); i < 15; i++)
 				key_iv[i*SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = 0;
 			key_iv[15*SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = (SHA512_DIGEST_LENGTH << 3);
 		}
@@ -313,10 +322,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char iv[16];
 
 			// Copy and convert from SIMD_COEF_64 buffers back into flat buffers, in little-endian
-			for (i = 0; i < sizeof(key)/sizeof(ARCH_WORD_64); i++)  // the derived key
-				((ARCH_WORD_64 *)key)[i] = JOHNSWAP64(key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
-			for (i = 0; i < sizeof(iv)/sizeof(ARCH_WORD_64); i++)   // the derived iv
-				((ARCH_WORD_64 *)iv)[i]  = JOHNSWAP64(key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(ARCH_WORD_64) + i) + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
+			for (i = 0; i < sizeof(key)/sizeof(uint64_t); i++)  // the derived key
+				((uint64_t *)key)[i] = JOHNSWAP64(key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
+			for (i = 0; i < sizeof(iv)/sizeof(uint64_t); i++)   // the derived iv
+				((uint64_t *)iv)[i]  = JOHNSWAP64(key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(uint64_t) + i) + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
 
 			AES_set_decrypt_key(key, 256, &aes_key);
 			AES_cbc_encrypt(cur_salt->cry_master, output, cur_salt->cry_master_length, &aes_key, iv, AES_DECRYPT);
@@ -414,6 +423,7 @@ struct fmt_main fmt_bitcoin = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		bitcoin_tests
 	}, {
 		init,

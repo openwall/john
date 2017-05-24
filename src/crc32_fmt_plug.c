@@ -55,6 +55,10 @@ john_register_one(&fmt_crc32);
 
 #define FORMAT_LABEL			"CRC32"
 #define FORMAT_NAME			""
+#define FORMAT_TAG			"$crc32$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAGc			"$crc32c$"
+#define FORMAT_TAGc_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C " CRC32_C_ALGORITHM_NAME
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -119,7 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 	int i;
 
-	if (strncmp(ciphertext, "$crc32$", 7) && strncmp(ciphertext, "$crc32c$", 8))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) && strncmp(ciphertext, FORMAT_TAGc, FORMAT_TAGc_LEN))
 		return 0;
 
 	p = strrchr(ciphertext, '$');
@@ -151,10 +155,10 @@ static int get_hash_6(int index) { return crcs[index] & PH_MASK_6; }
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 *out;
+	static uint32_t *out;
 	char *p;
 	if (!out)
-		out = mem_alloc_tiny(sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
+		out = mem_alloc_tiny(sizeof(uint32_t), MEM_ALIGN_WORD);
 	p = strchr(ciphertext, '.');
 	sscanf(&p[1], "%x", out);
 	// Performing the complement here, allows us to not have to complement
@@ -165,17 +169,17 @@ static void *get_binary(char *ciphertext)
 
 static void *get_salt(char *ciphertext)
 {
-	static ARCH_WORD_32 *out;
+	static uint32_t *out;
 	char *cp;
 
 	if (!out)
-		out = mem_alloc_tiny(sizeof(ARCH_WORD_32)*2, MEM_ALIGN_WORD);
+		out = mem_alloc_tiny(sizeof(uint32_t)*2, MEM_ALIGN_WORD);
 	cp = strrchr(ciphertext, '$');
 	sscanf(&cp[1], "%x", out);
 	// since we ask for the crc of a file, or zero, we need to complement here,
 	// to get it into 'proper' working order.
 	*out = ~(*out);
-	if (!strncmp(ciphertext, "$crc32$", 7))
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		((char*)out)[4] = 0;
 	else
 		((char*)out)[4] = 1;
@@ -235,13 +239,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void set_salt(void *salt)
 {
-	crcsalt = *((ARCH_WORD_32 *)salt);
+	crcsalt = *((uint32_t *)salt);
 	crctype = ((char*)salt)[4];
 }
 
 static int cmp_all(void *binary, int count)
 {
-	ARCH_WORD_32 crc=*((ARCH_WORD_32*)binary), i;
+	uint32_t crc=*((uint32_t*)binary), i;
 	for (i = 0; i < count; ++i)
 		if (crc == crcs[i]) return 1;
 	return 0;
@@ -249,7 +253,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == crcs[index];
+	return *((uint32_t*)binary) == crcs[index];
 }
 
 static int cmp_exact(char *source, int index)
@@ -259,7 +263,7 @@ static int cmp_exact(char *source, int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 static unsigned int crc32_ver(void *salt)
@@ -291,6 +295,7 @@ struct fmt_main fmt_crc32 = {
 		{
 			"version: 0 = CRC-32, 1 = CRC-32C",
 		},
+		{ FORMAT_TAG, FORMAT_TAGc },
 		tests
 	}, {
 		init,

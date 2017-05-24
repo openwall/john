@@ -56,6 +56,8 @@ typedef struct aes_key_st {
 extern void JTR_AES_encrypt(const unsigned char *in, unsigned char *out, const AES_KEY *key);
 #define AES_encrypt(a,b,c) JTR_AES_encrypt(a,b,c)
 
+#define AES_ecb_encrypt(a,b,c,d) (d == AES_ENCRYPT) ? JTR_AES_encrypt(a,b,c) : JTR_AES_decrypt(a,b,c)
+
 extern void JTR_AES_decrypt(const unsigned char *in, unsigned char *out, const AES_KEY *key);
 #define AES_decrypt(a,b,c) JTR_AES_decrypt(a,b,c)
 

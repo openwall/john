@@ -29,6 +29,7 @@ john_register_one(&FMT_STRUCT);
 #include "johnswap.h"
 #include "aes.h"
 #include "pbkdf2_hmac_ripemd160.h"
+#include "loader.h"
 #include "common-opencl.h"
 
 #define FORMAT_LABEL            "truecrypt-opencl"
@@ -560,8 +561,9 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ TAG_RIPEMD160 },
 		tests_ripemd160
 	}, {
 		init,

@@ -74,8 +74,8 @@ john_register_one(&fmt_AzureAD);
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char (*saved_nt)[64];
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static int dirty;
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -112,7 +112,7 @@ static void *salt(char *ciphertext) {
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, ",");
 	cs.salt_len = strlen(p)/2;
-	base64_convert(p, e_b64_hex, cs.salt_len*2, cs.salt, e_b64_raw, cs.salt_len, 0);
+	base64_convert(p, e_b64_hex, cs.salt_len*2, cs.salt, e_b64_raw, cs.salt_len, 0, 0);
 	p = strtokm(NULL, ",");
 	cs.iterations = atoi(p);
 	p = strtokm(Buf, ",");
@@ -135,23 +135,9 @@ static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_key(char *key, int index) {
-	UTF16 Buf[PLAINTEXT_LENGTH+1];
-	unsigned char hash[16], hex[33];
-	int len;
-	MD4_CTX ctx;
 
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
-	// * PBKDF2(UTF-16(uc(hex(MD4(UTF-16(password))))), rnd_salt(10), 100, HMAC-SHA256, 32)
-
-	// Trivial for now.  Can optimized later.
-	len = enc_to_utf16(Buf, PLAINTEXT_LENGTH, (UTF8*)saved_key[index], strlen(saved_key[index]));
-	if (len < 0) len = 0;
-	MD4_Init(&ctx);
-	MD4_Update(&ctx, Buf, len*2);
-	MD4_Final(hash, &ctx);
-	base64_convert(hash, e_b64_raw, 16, hex, e_b64_hex, 32, flg_Base64_HEX_UPCASE);
-	for (len = 0; len < 32; ++len)
-		saved_nt[index][len<<1] = hex[len];
+	strcpy(saved_key[index], key);
+	dirty = 1;
 }
 
 static char *get_key(int index) {
@@ -166,13 +152,36 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
+		// * PBKDF2(UTF-16(uc(hex(MD4(UTF-16(password))))), rnd_salt(10), 100, HMAC-SHA256, 32)
+		// Trivial for now.  Can optimized later.
+		UTF16 Buf[PLAINTEXT_LENGTH+1];
+		unsigned char hash[16], hex[33];
+		int len, cnt, i;
+		MD4_CTX ctx;
+
 #ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT], i;
+		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
+		cnt = MAX_KEYS_PER_CRYPT;
+#else
+		cnt = 1;
+#endif
+		if (dirty)
+		for (i = 0; i < cnt; ++i) {
+			len = enc_to_utf16(Buf, PLAINTEXT_LENGTH, (UTF8*)saved_key[index+i], strlen(saved_key[index+i]));
+			if (len < 0) len = 0;
+			MD4_Init(&ctx);
+			MD4_Update(&ctx, Buf, len*2);
+			MD4_Final(hash, &ctx);
+			base64_convert(hash, e_b64_raw, 16, hex, e_b64_hex, sizeof(hex), flg_Base64_HEX_UPCASE, 0);
+			for (len = 0; len < 32; ++len)
+				saved_nt[index+i][len<<1] = hex[len];
+		}
+#ifdef SIMD_COEF_32
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			lens[i] = 64;
 			pin[i] = (unsigned char*)saved_nt[i+index];
@@ -183,15 +192,9 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 		pbkdf2_sha256((unsigned char *)saved_nt[index], 64,
 			AzureAD_cur_salt->salt, AzureAD_cur_salt->salt_len,
 			AzureAD_cur_salt->iterations, (unsigned char*)crypt_out[index], 32, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i)
-				((ARCH_WORD_32*)crypt_out[index])[i] = JOHNSWAP(((ARCH_WORD_32*)crypt_out[index])[i]);
-		}
-#endif
 #endif
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -234,6 +237,7 @@ struct fmt_main fmt_AzureAD = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		AzureAD_common_tests
 	}, {
 		init,

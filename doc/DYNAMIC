@@ -594,7 +594,7 @@ examples (this whole list is also found in dynamic.conf).
 #     The binary input hash data format of the FreeBSD_MD5 and Apache_MD5.
 #
 # MGF_UTF8
-#     This format 'allows' the --encoding=utf8 switch, and will perform
+#     This format 'allows' the --encoding=utf-8 switch, and will perform
 #     full UTF conversions, if the DynamicFunc__setmode_unicode()
 #     function has been issued (or one of the user name or preload
 #     password unicode flags were used).
@@ -848,15 +848,15 @@ examples (this whole list is also found in dynamic.conf).
 #    append_keys2, append_salt, append_salt2, overwrite_salt_to_input1_no_size_fix,
 #    overwrite_salt_to_input2_no_size_fix, append_2nd_salt, append_2nd_salt2,
 #    append_userid, append_userid2, append_input1_from_CONST1  (and ALL other const
-#    append functions)  If --encoding=utf8 switch is set, then a utf8-to-unicode
+#    append functions)  If --encoding=utf-8 switch is set, then a utf-8 to unicode
 #    conversion is done.  If that switch was not used on the command line, then a
-#    simple ascii-to-unicode (which is simply appending a null byte after each byte
-#    of string).  The --encoding=utf8 conversion is considerably slower, but is required for
-#    many Unicode or utf8 systems.  NOTE, to honor the --encoding=utf8 switch, the
+#    simple ascii to unicode (which is simply appending a null byte after each byte
+#    of string).  The --encoding=utf-8 conversion is considerably slower, but is required
+#    for many Unicode or UTF-8 systems.  NOTE, to honor the --encoding=utf-8 switch, the
 #    format MUST use the MGF_UTF8 flag.
 #
 #  DynamicFunc__setmode_normal
-#    This is the 'normal' run for john.  Back to ascii (or utf8, if --encoding=utf8
+#    This is the 'normal' run for john.  Back to ascii (or utf-8, if --encoding=utf-8
 #    command line switch was used).  But there will be NO Unicode conversions done.
 #
 #
@@ -1042,10 +1042,10 @@ examples (this whole list is also found in dynamic.conf).
 #    in certain situations.
 #
 #  TestU= allows placing a test case out, that will ONLY load if the encoding
-#    of utf8 is selected from command line.
+#    of utf-8 is selected from command line.
 #
 #  TestA= allows placing a test case will will NEVER be loaded if encoding of
-#    utf8 is selected at command line (ASCII test case).
+#    utf-8 is selected at command line (ASCII test case).
 #
 #  TestM= Allows placing a test case that will ONLY load if this is an MMX or
 #    SSE build.
@@ -2893,8 +2893,8 @@ Test=$dynamic_1070$55496ed9edcabdd2368e7cd22eaae633c6d6c40e$$UJOEBLOW:test3
 CONST1=:
 
 # this format is unicode raw-md5.  It shows the TestA= and TestU=. These will only
-# be loaded depending upon --encoding=utf8.  If that is not present, then the TestA=
-# lines are loaded.  If --encoding=utf8 IS set, then the TestU= lines are loaded.
+# be loaded depending upon --encoding=utf-8.  If that is not present, then the TestA=
+# lines are loaded.  If --encoding=utf-8 IS set, then the TestU= lines are loaded.
 # the Test= lines are always loaded.
 [List.Generic:dynamic_1100]
 Expression=md5(unicode($p))  [rawmd5-unicode utf-8 input)]

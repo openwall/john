@@ -16,12 +16,12 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	int res;
-	if (strncmp(ciphertext, "$encfs$", 7))
+	int res, extra;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* key size */
 		goto err;
 	if (!isdec(p))
@@ -46,7 +46,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p)/2 != res)
+	if (hexlenl(p, &extra)/2 != res || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data length */
 		goto err;
@@ -57,7 +57,7 @@ int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* data */
 		goto err;
-	if (hexlenl(p)/2 != res)
+	if (hexlenl(p, &extra)/2 != res || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -77,7 +77,7 @@ void *encfs_common_get_salt(char *ciphertext)
 	static encfs_common_custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.keySize = atoi(p);
 	switch(cs.keySize)
@@ -136,7 +136,7 @@ void encfs_common_setIVec(encfs_common_custom_salt *cur_salt, unsigned char *ive
 
 	// combine ivec and seed with HMAC
 	memcpy(iv_and_seed, &key[cur_salt->keySize], cur_salt->ivLength);
-	for(i=0; i<8; ++i) {
+	for (i=0; i<8; ++i) {
 		iv_and_seed[i+cur_salt->ivLength] = (unsigned char)(seed & 0xff);
 		seed >>= 8;
 	}
@@ -151,7 +151,7 @@ static void flipBytes(unsigned char *buf, int size)
 	int i;
 	while(bytesLeft) {
 		int toFlip = MIN_( sizeof(revBuf), bytesLeft );
-		for(i=0; i<toFlip; ++i)
+		for (i=0; i<toFlip; ++i)
 			revBuf[i] = buf[toFlip - (i+1)];
 		memcpy( buf, revBuf, toFlip );
 		bytesLeft -= toFlip;
@@ -168,11 +168,11 @@ static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *
 	uint64_t value;
 
 	memcpy(DataIV, data, dataLen);
-	if(chainedIV)
+	if (chainedIV)
 	{
 	  // toss in the chained IV as well
 		uint64_t tmp = *chainedIV;
-		for(i=0; i<8; ++i) {
+		for (i=0; i<8; ++i) {
 			DataIV[dataLen++] = (tmp & 0xff);
 			tmp >>= 8;
 		}
@@ -180,11 +180,11 @@ static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *
 	hmac_sha1(key, cur_salt->keySize, DataIV, dataLen, md, 20);
 
 	// chop this down to a 64bit value..
-	for(i=0; i < 19; ++i)
+	for (i=0; i < 19; ++i)
 		h[i%8] ^= (unsigned char)(md[i]);
 
 	value = (uint64_t)h[0];
-	for(i=1; i<8; ++i)
+	for (i=1; i<8; ++i)
 		value = (value << 8) | (uint64_t)h[i];
 	return value;
 }
@@ -192,7 +192,7 @@ static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *
 static uint64_t MAC_64(encfs_common_custom_salt *cur_salt,  const unsigned char *data, int len, unsigned char *key, uint64_t *chainedIV )
 {
 	uint64_t tmp = _checksum_64(cur_salt, key, data, len, chainedIV );
-	if(chainedIV)
+	if (chainedIV)
 		*chainedIV = tmp;
 	return tmp;
 }
@@ -209,30 +209,30 @@ int encfs_common_streamDecode(encfs_common_custom_salt *cur_salt, unsigned char 
 {
 	unsigned char ivec[ MAX_IVLENGTH ];
 	int dstLen=0, tmpLen=0;
-	EVP_CIPHER_CTX stream_dec;
+	EVP_CIPHER_CTX *stream_dec = EVP_CIPHER_CTX_new();
 
 	encfs_common_setIVec(cur_salt, ivec, iv64 + 1, key);
-	EVP_CIPHER_CTX_init(&stream_dec);
-	EVP_DecryptInit_ex( &stream_dec, cur_salt->streamCipher, NULL, NULL, NULL);
-	EVP_CIPHER_CTX_set_key_length( &stream_dec, cur_salt->keySize );
-	EVP_CIPHER_CTX_set_padding( &stream_dec, 0 );
-	EVP_DecryptInit_ex( &stream_dec, NULL, NULL, key, NULL);
+	EVP_CIPHER_CTX_init(stream_dec);
+	EVP_DecryptInit_ex( stream_dec, cur_salt->streamCipher, NULL, NULL, NULL);
+	EVP_CIPHER_CTX_set_key_length( stream_dec, cur_salt->keySize );
+	EVP_CIPHER_CTX_set_padding( stream_dec, 0 );
+	EVP_DecryptInit_ex( stream_dec, NULL, NULL, key, NULL);
 
-	EVP_DecryptInit_ex( &stream_dec, NULL, NULL, NULL, ivec);
-	EVP_DecryptUpdate( &stream_dec, buf, &dstLen, buf, size );
-	EVP_DecryptFinal_ex( &stream_dec, buf+dstLen, &tmpLen );
+	EVP_DecryptInit_ex( stream_dec, NULL, NULL, NULL, ivec);
+	EVP_DecryptUpdate( stream_dec, buf, &dstLen, buf, size );
+	EVP_DecryptFinal_ex( stream_dec, buf+dstLen, &tmpLen );
 	unshuffleBytes( buf, size );
 	flipBytes( buf, size );
 
 	encfs_common_setIVec(cur_salt, ivec, iv64, key );
-	EVP_DecryptInit_ex( &stream_dec, NULL, NULL, NULL, ivec);
-	EVP_DecryptUpdate( &stream_dec, buf, &dstLen, buf, size );
-	EVP_DecryptFinal_ex( &stream_dec, buf+dstLen, &tmpLen );
-	EVP_CIPHER_CTX_cleanup(&stream_dec);
-
+	EVP_DecryptInit_ex( stream_dec, NULL, NULL, NULL, ivec);
+	EVP_DecryptUpdate( stream_dec, buf, &dstLen, buf, size );
+	EVP_DecryptFinal_ex( stream_dec, buf+dstLen, &tmpLen );
+	EVP_CIPHER_CTX_cleanup(stream_dec);
+	EVP_CIPHER_CTX_free(stream_dec);
 	unshuffleBytes( buf, size );
 	dstLen += tmpLen;
-	if(dstLen != size) {
+	if (dstLen != size) {
 	}
 
 	return 1;

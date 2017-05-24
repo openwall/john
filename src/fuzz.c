@@ -20,7 +20,7 @@
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
 
-#ifndef __linux__
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 #include <io.h> /* mingW _mkdir */
 #endif
 
@@ -28,6 +28,8 @@
 #include <sys/mman.h>
 #endif
 
+#include "jumbo.h"
+#include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
 #include "params.h"
@@ -40,7 +42,9 @@
 #define CHAR_FROM -128
 #define CHAR_TO 127
 
-static char fuzz_hash[LINE_BUFFER_SIZE];
+// old value from params.h
+#define FUZZ_LINE_BUFFER_SIZE 0x30000
+static char fuzz_hash[FUZZ_LINE_BUFFER_SIZE];
 static char status_file_path[PATH_BUFFER_SIZE + 1];
 
 struct FuzzDic {
@@ -159,9 +163,9 @@ static char * replace_each_chars(char *ciphertext, int *is_replace_finish)
 {
 	static int replaced_chars_index = 0;
 	static int cipher_index = 0;
-	static char replaced_chars[4] = "9$*#";
+	static char replaced_chars[5] = "\xFF" "9$*#";
 
-	while (replaced_chars_index < 4) {
+	while (replaced_chars_index < sizeof(replaced_chars)) {
 		if (ciphertext[cipher_index] != replaced_chars[replaced_chars_index]) {
 			fuzz_hash[cipher_index] = replaced_chars[replaced_chars_index];
 			replaced_chars_index++;
@@ -169,7 +173,7 @@ static char * replace_each_chars(char *ciphertext, int *is_replace_finish)
 		}
 		replaced_chars_index++;
 	}
-	if (replaced_chars_index == 4) {
+	if (replaced_chars_index == sizeof(replaced_chars)) {
 		replaced_chars_index = 0;
 		cipher_index++;
 	}
@@ -179,7 +183,7 @@ static char * replace_each_chars(char *ciphertext, int *is_replace_finish)
 		replaced_chars_index = 0;
 		return NULL;
 	} else {
-		while (replaced_chars_index < 4) {
+		while (replaced_chars_index < sizeof(replaced_chars)) {
 			if (ciphertext[cipher_index] != replaced_chars[replaced_chars_index]) {
 				fuzz_hash[cipher_index] = replaced_chars[replaced_chars_index];
 				replaced_chars_index++;
@@ -232,10 +236,10 @@ static char * append_last_char(char *origin_ctext, int *is_append_finish)
 		return NULL;
 	}
 
-	if (origin_ctext_len + times < LINE_BUFFER_SIZE)
+	if (origin_ctext_len + times < FUZZ_LINE_BUFFER_SIZE)
 		append_len = times;
 	else
-		append_len = LINE_BUFFER_SIZE - origin_ctext_len - 1;
+		append_len = FUZZ_LINE_BUFFER_SIZE - origin_ctext_len - 1;
 
 	memset(fuzz_hash + origin_ctext_len, origin_ctext[origin_ctext_len - 1], append_len);
 	fuzz_hash[origin_ctext_len + append_len] = 0;
@@ -305,8 +309,8 @@ static void insert_str(char *origin_ctext, int pos, char *str, char *out)
 	const int origin_ctext_len = strlen(origin_ctext);
 	int str_len = strlen(str);
 
-	if (str_len + origin_ctext_len >= LINE_BUFFER_SIZE)
-		str_len = LINE_BUFFER_SIZE - origin_ctext_len - 1;
+	if (str_len + origin_ctext_len >= FUZZ_LINE_BUFFER_SIZE)
+		str_len = FUZZ_LINE_BUFFER_SIZE - origin_ctext_len - 1;
 
 	strncpy(out, origin_ctext, pos);
 	strncpy(out + pos, str, str_len);
@@ -343,7 +347,7 @@ static char * insert_dic(char *origin_ctext, int *is_insertdic_finish)
 			pfd = pfd->next;
 		}
 	} else {
-		// Insert strings before and after these chars: ",.:#$*"
+		// Insert strings before and after these chars: ",.:#$*@"
 		while (index < strlen(origin_ctext)) {
 			switch (origin_ctext[index]) {
 			case ',':
@@ -352,6 +356,7 @@ static char * insert_dic(char *origin_ctext, int *is_insertdic_finish)
 			case '#':
 			case '$':
 			case '*':
+			case '@':
 				if (!flag_long) {
 					insert_str(origin_ctext, index, pfd->value, fuzz_hash);
 					flag_long = 1;
@@ -380,8 +385,8 @@ static void insert_char(char *origin_ctext, int pos, char c, int size, char *out
 {
 	const int origin_ctext_len = strlen(origin_ctext);
 
-	if (size + origin_ctext_len >= LINE_BUFFER_SIZE)
-		size = LINE_BUFFER_SIZE - origin_ctext_len - 1;
+	if (size + origin_ctext_len >= FUZZ_LINE_BUFFER_SIZE)
+		size = FUZZ_LINE_BUFFER_SIZE- origin_ctext_len - 1;
 
 	strncpy(out, origin_ctext, pos);
 	memset(out + pos, c, size);
@@ -463,9 +468,9 @@ static char * get_next_fuzz_case(char *label, char *ciphertext)
 	static int is_insertchars_finish = 0; // is_insertchars_finish = 1 if all the chars from -128 to 127 cases have been generated
 	static char *last_label = NULL, *last_ciphertext = NULL;
 
-	if (strlen(ciphertext) > LINE_BUFFER_SIZE) {
-		fprintf(stderr, "ciphertext='%s' is bigger than the LINE_BUFFER_SIZE=%d\n",
-			ciphertext, LINE_BUFFER_SIZE);
+	if (strlen(ciphertext) > FUZZ_LINE_BUFFER_SIZE) {
+		fprintf(stderr, "ciphertext='%s' is bigger than the FUZZ_LINE_BUFFER_SIZE=%d\n",
+			ciphertext, FUZZ_LINE_BUFFER_SIZE);
 		error();
 	}
 	strcpy(fuzz_hash, ciphertext);
@@ -517,10 +522,10 @@ static char * get_next_fuzz_case(char *label, char *ciphertext)
 static void init_status(char *format_label)
 {
 	sprintf(status_file_path, "%s", "fuzz_status");
-#ifdef __linux__
-	if (mkdir(status_file_path, S_IRUSR | S_IWUSR | S_IXUSR)) {
-#else
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
 	if (_mkdir(status_file_path)) { // MingW
+#else
+	if (mkdir(status_file_path, S_IRUSR | S_IWUSR | S_IXUSR)) {
 #endif
 		if (errno != EEXIST) pexit("mkdir: %s", status_file_path);
 	} else
@@ -542,6 +547,22 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	int index;
 	char *ret, *line;
 	struct fmt_tests *current;
+
+	printf("Fuzzing: %s%s%s%s [%s]%s... ",
+	       format->params.label,
+	       format->params.format_name[0] ? ", " : "",
+	       format->params.format_name,
+	       format->params.benchmark_comment,
+	       format->params.algorithm_name,
+#ifndef BENCH_BUILD
+	       (options.target_enc == UTF_8 &&
+	       format->params.flags & FMT_UNICODE) ?
+	       " in UTF-8 mode" : "");
+#else
+	       "");
+#endif
+	fflush(stdout);
+
 
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return;
@@ -568,6 +589,8 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 		}
 	}
 	if (fclose(s_file)) pexit("fclose");
+	remove(status_file_path);
+	printf ("   Completed\n");
 }
 
 // Dump fuzzed hashes which index is between from and to, including from and excluding to
@@ -578,8 +601,18 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 	struct fmt_tests *current;
 	char file_name[PATH_BUFFER_SIZE];
 	FILE *file;
+	size_t len = 0;
 
 	sprintf(file_name, "pwfile.%s", format->params.label);
+
+	printf("Generating %s for %s%s%s%s ... ",
+	       file_name,
+	       format->params.label,
+	       format->params.format_name[0] ? ", " : "",
+	       format->params.format_name,
+	       format->params.benchmark_comment);
+	fflush(stdout);
+
 	if (!(file = fopen(file_name, "w")))
 		pexit("fopen: %s", file_name);
 
@@ -592,6 +625,7 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 			if (index == to)
 				break;
 			fprintf(file, "%s\n", fuzz_hash);
+			len += 1 + strlen(fuzz_hash);
 		}
 		index++;
 		if (!ret) {
@@ -599,6 +633,7 @@ static void fuzz_dump(struct fmt_main *format, const int from, const int to)
 				break;
 		}
 	}
+	printf(LLu" bytes\n", (unsigned long long) len);
 	if (fclose(file)) pexit("fclose");
 }
 
@@ -645,22 +680,6 @@ int fuzz(struct db_main *db)
 		if (!format->params.tests && format != fmt_list)
 			continue;
 
-		printf("%s: %s%s%s%s [%s]%s... ",
-		    "Fuzzing",
-		    format->params.label,
-		    format->params.format_name[0] ? ", " : "",
-		    format->params.format_name,
-		    format->params.benchmark_comment,
-		    format->params.algorithm_name,
-#ifndef BENCH_BUILD
-			(options.target_enc == UTF_8 &&
-			 format->params.flags & FMT_UNICODE) ?
-		        " in UTF-8 mode" : "");
-#else
-			"");
-#endif
-		printf("\n");
-
 		if (options.flags & FLG_FUZZ_DUMP_CHK)
 			fuzz_dump(format, from, to);
 		else
@@ -669,7 +688,10 @@ int fuzz(struct db_main *db)
 		total++;
 	} while ((format = format->next) && !event_abort);
 
-	printf("All %u formats passed fuzzing test!\n", total);
+	if (options.flags & FLG_FUZZ_DUMP_CHK)
+		printf("Generated pwfile.<format> for %u formats\n", total);
+	else
+		printf("All %u formats passed fuzzing test!\n", total);
 
 	return 0;
 }

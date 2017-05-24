@@ -42,7 +42,7 @@
 
 #else
 
-#include "../stdint.h"
+#include <stdint.h>
 #include "../misc.h"
 #include "../jumbo.h"
 

@@ -30,7 +30,7 @@ john_register_one(&fmt_saltedsha);
 #include "common.h"
 
 #include "sha.h"
-#include "base64.h"
+#include "base64_convert.h"
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64
@@ -74,8 +74,8 @@ struct s_salt
 {
 	unsigned int len;
 	union {
-		unsigned char c[MAX_SALT_LEN];
-		ARCH_WORD_32 w32;
+		unsigned char c[MAX_SALT_LEN+1];
+		uint32_t w32;
 	} data;
 };
 
@@ -83,14 +83,14 @@ static struct s_salt *saved_salt;
 
 
 #ifdef SIMD_COEF_32
-static ARCH_WORD_32 (*saved_key)[SHA_BUF_SIZ*NBKEYS];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/4*NBKEYS];
+static uint32_t (*saved_key)[SHA_BUF_SIZ*NBKEYS];
+static uint32_t (*crypt_key)[BINARY_SIZE/4*NBKEYS];
 static unsigned int *saved_len;
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 static int last_salt_size;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
+static uint32_t (*crypt_key)[BINARY_SIZE / 4];
 #endif
 
 static void init(struct fmt_main *self)
@@ -130,11 +130,11 @@ static void done(void)
 static void * get_binary(char *ciphertext) {
 	static char *realcipher;
 
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + 1 + SALT_SIZE, MEM_ALIGN_WORD);
+	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + MAX_SALT_LEN + 4, MEM_ALIGN_WORD);
 
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, BINARY_SIZE);
-	base64_decode(ciphertext, strlen(ciphertext), realcipher);
+	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), realcipher, e_b64_raw, BINARY_SIZE+MAX_SALT_LEN, 0, 0);
 #ifdef SIMD_COEF_32
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
@@ -145,16 +145,16 @@ static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	const uint32_t *wkey = (uint32_t*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const ARCH_WORD_32 *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
+	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
 	                                       key : strcpy(buf_aligned, key));
 #endif
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
-	ARCH_WORD_32 *keybuf_word = keybuffer;
+	uint32_t *keybuffer = &((uint32_t*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
+	uint32_t *keybuf_word = keybuffer;
 	unsigned int len;
-	ARCH_WORD_32 temp;
+	uint32_t temp;
 
 	len = 0;
 	while((unsigned char)(temp = *wkey++)) {
@@ -198,21 +198,14 @@ key_cleaning:
 static void * get_salt(char * ciphertext)
 {
 	static struct s_salt cursalt;
-	char *p;
-	char realcipher[CIPHERTEXT_LENGTH];
+	char realcipher[BINARY_SIZE + MAX_SALT_LEN + 4];
 	int len;
 
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, sizeof(realcipher));
 	memset(&cursalt, 0, sizeof(struct s_salt));
 	len = strlen(ciphertext);
-	base64_decode(ciphertext, len, realcipher);
-
-	// We now support any salt length up to SALT_SIZE
-	cursalt.len = (len + 3) / 4 * 3 - BINARY_SIZE;
-	p = &ciphertext[len];
-	while (*--p == '=')
-		cursalt.len--;
+	cursalt.len = base64_convert(ciphertext, e_b64_mime, len, realcipher, e_b64_raw, BINARY_SIZE+MAX_SALT_LEN, 0, 0) - BINARY_SIZE;
 
 	memcpy(cursalt.data.c, realcipher+BINARY_SIZE, cursalt.len);
 	return &cursalt;
@@ -223,7 +216,7 @@ static char *get_key(int index) {
 	unsigned int i,s;
 
 	s = saved_len[index];
-	for(i=0;i<s;i++)
+	for (i=0;i<s;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
 	out[i] = 0;
 	return (char *) out;
@@ -236,9 +229,9 @@ static int cmp_all(void *binary, int count) {
 	unsigned int index;
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-        if (((ARCH_WORD_32 *) binary)[0] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32])
+        if (((uint32_t *) binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)&(crypt_key[index][0]))[0] )
+		if ( ((uint32_t*)binary)[0] == ((uint32_t*)&(crypt_key[index][0]))[0] )
 #endif
 			return 1;
 	return 0;
@@ -253,8 +246,8 @@ static int cmp_one(void * binary, int index)
 {
 #ifdef SIMD_COEF_32
     int i;
-	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_32); i++)
-        if (((ARCH_WORD_32 *) binary)[i] != ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32+i*SIMD_COEF_32])
+	for (i = 0; i < BINARY_SIZE/sizeof(uint32_t); i++)
+        if (((uint32_t *) binary)[i] != ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32+i*SIMD_COEF_32])
             return 0;
 	return 1;
 #else
@@ -272,7 +265,7 @@ static inline void set_onesalt(int index)
 	unsigned int i, idx=index%NBKEYS;
 	unsigned char *sk = (unsigned char*)&saved_key[index/NBKEYS];
 
-	for(i=0;i<saved_salt->len;++i)
+	for (i=0;i<saved_salt->len;++i)
 		sk[GETPOS(i+saved_len[index], idx)] = saved_salt->data.c[i];
 	sk[GETPOS(i+saved_len[index], idx)] = 0x80;
 
@@ -302,7 +295,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 		unsigned int i;
 
-		for(i=0;i<NBKEYS;i++)
+		for (i=0;i<NBKEYS;i++)
 			set_onesalt(i+index);
 		SIMDSHA1body(saved_key[index/NBKEYS], crypt_key[index/NBKEYS], NULL, SSEi_MIXED_IN);
 #else
@@ -361,6 +354,7 @@ struct fmt_main fmt_saltedsha = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ NSLDAP_MAGIC },
 		salted_sha1_common_tests
 	}, {
 		init,

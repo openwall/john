@@ -54,7 +54,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$ripemd$"
-#define TAG_LENGTH		8
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -96,7 +96,7 @@ static struct fmt_tests ripemd_128_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE160 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE160 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -132,7 +132,7 @@ static int valid(char *ciphertext, struct fmt_main *self, int len)
 		return 0;
 
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 
 	return 1;
@@ -315,6 +315,7 @@ struct fmt_main fmt_ripemd_160 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		ripemd_160_tests
 	}, {
 		init,
@@ -379,6 +380,7 @@ struct fmt_main fmt_ripemd_128 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		ripemd_128_tests
 	}, {
 		init,

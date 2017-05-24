@@ -908,7 +908,7 @@ int rarvm_execute(rarvm_data_t *rarvm_data, struct rarvm_prepared_program *prg)
 	rarvm_data->Flags = 0;
 
 	prepared_code=prg->alt_cmd ? prg->alt_cmd : &prg->cmd.array[0];
-	if(!prepared_code) {
+	if (!prepared_code) {
 	    //rar_dbgmsg("unrar: rarvm_execute: prepared_code == NULL\n");
 	    return 0;
 	}
@@ -933,7 +933,7 @@ int rarvm_execute(rarvm_data_t *rarvm_data, struct rarvm_prepared_program *prg)
 	if (data_size != 0) {
 		prg->global_size += data_size+VM_FIXEDGLOBALSIZE;
 		prg->global_data = rar_realloc2(prg->global_data, prg->global_size);
-		if(!prg->global_data) {
+		if (!prg->global_data) {
 		    //rar_dbgmsg("unrar: rarvm_execute: rar_realloc2 failed for prg->global_data\n");
 		    return 0;
 		}
@@ -1090,14 +1090,14 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 			int data_size = rarvm_read_data(rarvm_input)+1;
 			//rar_dbgmsg("data_size=%d\n", data_size);
 			prg->static_data = rar_malloc(data_size);
-			if(!prg->static_data) {
+			if (!prg->static_data) {
 			    //rar_dbgmsg("unrar: rarvm_prepare: rar_malloc failed for prg->static_data\n");
 			    return 0;
 			}
 			for (i=0 ; rarvm_input->in_addr < code_size && i < data_size ; i++) {
 				prg->static_size++;
 				prg->static_data = rar_realloc2(prg->static_data, prg->static_size);
-				if(!prg->static_data) {
+				if (!prg->static_data) {
 				    //rar_dbgmsg("unrar: rarvm_prepare: rar_realloc2 failed for prg->static_data\n");
 				    return 0;
 				}

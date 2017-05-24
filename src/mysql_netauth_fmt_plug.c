@@ -33,6 +33,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"mysqlna"
 #define FORMAT_NAME		"MySQL Network Authentication"
+#define FORMAT_TAG		"$mysqlna$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -54,10 +56,10 @@ static struct fmt_tests mysqlna_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
-	char unsigned scramble[20];
+	unsigned char scramble[20];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -83,11 +85,11 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
-	if (strncmp(ciphertext, "$mysqlna$", 9))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	p = ciphertext + 9;
+	p = ciphertext + FORMAT_TAG_LEN;
 	q = strstr(ciphertext, "*");
-	if(!q)
+	if (!q)
 		return 0;
 	if (q - p != HEX_LENGTH)
 		return 0;
@@ -95,7 +97,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p++;
 	if (q - p != 0)
 		return 0;
-	if(strlen(p) < HEX_LENGTH)
+	if (strlen(p) < HEX_LENGTH)
 		return 0;
 	q = p + 1;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
@@ -120,7 +122,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
-	ctcopy += 9;	/* skip over "$mysqlna$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$mysqlna$" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 20; i++)
 		cs.scramble[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -188,7 +190,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Update(&ctx, cur_salt->scramble, 20);
 		SHA1_Update(&ctx, inner_hash, 20);
 		SHA1_Final(token, &ctx);
-		for(i = 0; i < 20; i++) {
+		for (i = 0; i < 20; i++) {
 			p[i] = token[i] ^ stage1_hash[i];
 		}
 	}
@@ -247,6 +249,7 @@ struct fmt_main fmt_mysqlna = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		mysqlna_tests
 	}, {
 		init,

@@ -179,7 +179,7 @@ static void inc_new_length(unsigned int length,
 	char *buffer;
 	int count;
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity >= VERB_LEGACY)
 	log_event("- Switching to length %d", length + 1);
 
 	char1[0] = 0;
@@ -321,7 +321,7 @@ static void inc_new_count(unsigned int length, int count, char *charset,
 	int size;
 	int error;
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity >= VERB_LEGACY)
 	log_event("- Expanding tables for length %d to character count %d",
 	    length + 1, count + 1);
 
@@ -413,6 +413,11 @@ update_last:
 		inc_hybrid_fix_state();
 	} else
 #endif
+	if (f_new) {
+		if (do_external_hybrid_crack(db, key))
+			return 1;
+		inc_hybrid_fix_state();
+	} else
 	if (options.mask) {
 		if (do_mask_crack(key))
 			return 1;
@@ -489,8 +494,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	log_event("Proceeding with \"incremental\" mode: %.100s", mode);
 
+	if (rec_restored && john_main_process)
+		fprintf(stderr, "Proceeding with incremental:%s\n", mode);
+
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
-		if(cfg_get_section(SECTION_INC, mode) == NULL) {
+		if (cfg_get_section(SECTION_INC, mode) == NULL) {
 			log_event("! Unknown incremental mode: %s", mode);
 			if (john_main_process)
 				fprintf(stderr, "Unknown incremental mode: %s\n",
@@ -536,10 +544,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	}
 #endif
 
-	/* Command-line can over-ride lengths from config file */
-	if (options.req_minlength >= 0)
+	/* Command-line can override (narrow) lengths from config file */
+	if (options.req_minlength > min_length)
 		min_length = options.req_minlength;
-	if (options.req_maxlength)
+	if (options.req_maxlength && options.req_maxlength < max_length)
 		max_length = options.req_maxlength;
 
 	if (min_length > max_length) {
@@ -823,6 +831,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 				inc_hybrid_fix_state();
 			} else
 #endif
+			if (f_new) {
+				if (!skip && do_external_hybrid_crack(db, fmt_null_key))
+					break;
+				inc_hybrid_fix_state();
+			} else
 			if (options.mask) {
 				if (!skip && do_mask_crack(fmt_null_key))
 					break;
@@ -845,7 +858,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		if (skip)
 			continue;
 
-		if (options.verbosity > VERB_DEFAULT)
+		if (options.verbosity >= VERB_LEGACY)
 		log_event("- Trying length %d, fixed @%d, character count %d",
 		    length + 1, fixed + 1, counts[length][fixed] + 1);
 

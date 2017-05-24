@@ -4,7 +4,7 @@
 #
 # NOTE: If you use NFS, there's more to it than running just this test script:
 # An NFS mount should be tested first by running this script on the server (on
-# it's real filesystem, eg. ext4) and then on a client, and lastly by locking
+# its real filesystem, e.g., ext4) and then on a client, and lastly by locking
 # a file on the server (eg. using "flock -x .lockfile sleep 300") and while
 # that lock is in place, run this script on a client in whatever mounted
 # directory is pointing to the *same* "physical" directory on the server.

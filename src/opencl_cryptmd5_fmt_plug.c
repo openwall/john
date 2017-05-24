@@ -12,19 +12,19 @@ extern struct fmt_main fmt_opencl_cryptMD5;
 john_register_one(&fmt_opencl_cryptMD5);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
-
-#include "arch.h"
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
+
+#include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "path.h"
 #include "config.h"
-#include "stdint.h"
 #include "common-opencl.h"
 #include "options.h"
 #include "cryptmd5_common.h"
@@ -296,13 +296,12 @@ static void *get_salt(char *ciphertext)
 
 	memset(ret, 0, SALT_SIZE);
 
-	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0) {
-		pos += strlen(md5_salt_prefix);
+	if (strncmp(ciphertext, md5_salt_prefix, md5_salt_prefix_len) == 0) {
+		pos += md5_salt_prefix_len;
 		ret[8] = '1';
 	}
-	if (strncmp(ciphertext, apr1_salt_prefix,
-		strlen(apr1_salt_prefix)) == 0) {
-		pos += strlen(apr1_salt_prefix);
+	if (strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len) == 0) {
+		pos += apr1_salt_prefix_len;
 		ret[8] = 'a';
 	}
 	// note for {smd5}, ret[8] is left as null.
@@ -387,37 +386,37 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int get_hash_0(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_0;
+	return ((uint32_t *) outbuffer[index].v)[0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_1;
+	return ((uint32_t *) outbuffer[index].v)[0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_2;
+	return ((uint32_t *) outbuffer[index].v)[0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_3;
+	return ((uint32_t *) outbuffer[index].v)[0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_4;
+	return ((uint32_t *) outbuffer[index].v)[0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_5;
+	return ((uint32_t *) outbuffer[index].v)[0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)
 {
-	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & PH_MASK_6;
+	return ((uint32_t *) outbuffer[index].v)[0] & PH_MASK_6;
 }
 
 static int cmp_all(void *binary, int count)
@@ -460,6 +459,11 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{
+			md5_salt_prefix,
+			apr1_salt_prefix,
+			smd5_salt_prefix
+		},
 		tests
 	}, {
 		init,

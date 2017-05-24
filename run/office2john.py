@@ -2393,7 +2393,7 @@ def find_rc4_passinfo_xls(filename, stream):
                 verifier = data[16:32]
                 verifierHash = data[32:48]
                 return (salt, verifier, verifierHash)
-            elif data[0:4] == b'\x01\x00\x02\x00' or data[0:4] == b'\x01\x00\x03\x00':
+            elif data[0:4] == b'\x01\x00\x02\x00' or data[0:4] == b'\x01\x00\x03\x00' or data[0:4] == b'\x01\x00\x04\x00':
                 # If RC4 CryptoAPI encryption is used, certain storages and streams are stored in Encryption Stream
                 stm = StringIO(data)
                 stm.read(2)  # unused
@@ -2440,7 +2440,7 @@ def find_rc4_passinfo_xls(filename, stream):
     return None
 
 
-def find_doc_type(filename, stream):
+def find_table(filename, stream):
     w_ident = stream.read(2)
     assert(w_ident == b"\xec\xa5")
     stream.read(9)  # unused
@@ -2449,6 +2449,10 @@ def find_doc_type(filename, stream):
         F = 1
     else:
         F = 0
+    if (flags & 2) != 0:
+        G = 1
+    else:
+        G = 0
     if (flags & 128) != 0:
         M = 1
     else:
@@ -2458,10 +2462,14 @@ def find_doc_type(filename, stream):
         i_key = stream.read(4)
         sys.stderr.write("%s : XOR obfuscation detected, Password Verifier : %s\n" % \
                 (filename, binascii.hexlify(i_key)))
-        return True
+        return "none"
     if F == 0:
         sys.stderr.write("%s : Document is not encrypted!\n" % (filename))
-        return True
+        return "none"
+    if G == 0:
+        return "0Table"
+    else:
+        return "1Table"
 
 
 def find_ppt_type(filename, stream):
@@ -2575,7 +2583,11 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
     stream.read(4)  # unused
     while i < encryptSessionPersistIdRef:
         i += 1
-        persistOffset = unpack("<L", stream.read(4))[0]
+        try:
+            persistOffset = unpack("<L", stream.read(4))[0]
+        except:
+            sys.stderr.write("%s : Document is corrupt, or %s has a bug\n" % (filename, sys.argv[0]))
+            return
     # print persistOffset
     # go to the offset of encryption header
     stream.seek(persistOffset, 0)
@@ -2774,6 +2786,7 @@ have_summary = False
 summary = []
 
 import re
+from binascii import unhexlify
 
 
 def remove_html_tags(data):
@@ -2807,6 +2820,17 @@ def process_file(filename):
             start = data.find(accdb_xml_start)
             trailer = data.find(accdb_xml_trailer)
             xml_metadata_parser(data[start:trailer+len(accdb_xml_trailer)], filename)
+            return
+
+        # OneNote handling hack for OneNote versions >= 2013, see [MS-ONESTORE].pdf
+        onenote_magic = unhexlify("e4525c7b8cd8")
+        onenote_xml_start = b'<?xml version="1.0"'
+        onenote_xml_trailer = b'</encryption>'
+        if data.startswith(onenote_magic) and onenote_xml_start in data:
+            # find start and the end of the XML metadata stream
+            start = data.find(onenote_xml_start)
+            trailer = data.find(onenote_xml_trailer)
+            xml_metadata_parser(data[start:trailer+len(onenote_xml_trailer)], filename)
             return
 
         if not isOleFile(filename):
@@ -2859,7 +2883,12 @@ def process_file(filename):
     if ["Workbook"] in ole.listdir():
         stream = "Workbook"
     elif ["WordDocument"] in ole.listdir():
-        stream = "1Table"
+        typ = 1
+        sdoc = ole.openstream("WordDocument")
+        stream = find_table(filename, sdoc)
+        if stream == "none":
+            return 5
+
     elif ["PowerPoint Document"] in ole.listdir():
         stream = "Current User"
     else:
@@ -2884,16 +2913,10 @@ def process_file(filename):
         passinfo = find_rc4_passinfo_xls(filename, workbookStream)
         if passinfo is None:
             return 4
-    elif stream == "1Table":
-        typ = 1
-        sdoc = ole.openstream("WordDocument")
-        ret = find_doc_type(filename, sdoc)
-        if not ret:
-            passinfo = find_rc4_passinfo_doc(filename, workbookStream)
-            if passinfo is None:
-                return 4
-        else:
-            return 5
+    elif stream == "0Table" or stream == "1Table":
+        passinfo = find_rc4_passinfo_doc(filename, workbookStream)
+        if passinfo is None:
+            return 4
     else:
         sppt = ole.openstream("Current User")
         offset = find_ppt_type(filename, sppt)

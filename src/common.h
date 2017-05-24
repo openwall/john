@@ -16,6 +16,7 @@
 #define _JOHN_COMMON_H
 
 #if !defined(_OPENCL_COMPILER)
+#include <stdint.h>
 #include "arch.h"
 #include "memory.h"
 #endif
@@ -27,15 +28,20 @@
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
 
-#if !defined(_OPENCL_COMPILER)
+/* sets v to the next higher even power of 2 */
+#define get_power_of_two(v)                     \
+{                                               \
+    v--;                                        \
+    v |= v >> 1;                                \
+    v |= v >> 2;                                \
+    v |= v >> 4;                                \
+    v |= v >> 8;                                \
+    v |= v >> 16;                               \
+    v |= (v >> 16) >> 16;                       \
+    v++;                                        \
+}
 
-#if ARCH_INT_GT_32
-typedef unsigned short ARCH_WORD_32;
-typedef unsigned int ARCH_WORD_64;
-#else
-typedef unsigned int ARCH_WORD_32;
-typedef unsigned long long ARCH_WORD_64;
-#endif
+#if !defined(_OPENCL_COMPILER)
 
 /* ONLY use this to check alignments of even power of 2 (2, 4, 8, 16, etc) byte counts (CNT).
    The cast to void* MUST be done, due to C spec. http://stackoverflow.com/a/1898487 */
@@ -115,21 +121,17 @@ int ishexlc_oddOK(const char *q);
 int ishexn(const char *q, int n);
 int ishexucn(const char *q, int n);
 int ishexlcn(const char *q, int n);
-/* length of hex. if non-hex chars found, then negative length of valid hex */
-int hexlen(const char *q);
-int hexlenl(const char *q); /* lower cased only */
-int hexlenu(const char *q); /* upper cased only */
+/* length of hex. if extra_chars not null, it will be 1 if there are more
+ * non-hex characters after the length of valid hex chars returned. */
+size_t hexlen(const char *q, int *extra_chars);
+size_t hexlenl(const char *q, int *extra_chars); /* lower cased only */
+size_t hexlenu(const char *q, int *extra_chars); /* upper cased only */
 /* is this a valid string for atoi() ONLY positive numbers are valid */
 int isdec(const char *q);
 /* is this a valid string for atoi() */
 int isdec_negok(const char *q);
 /* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
 int isdecu(const char *q);
-/* provides the length of the base64 string.  See base64_convert.c for that
- * function. If the string is not 'pure', then the return is -1*length */
-int base64_mime_len(const char *q);
-int base64_crypt_len(const char *q);
-int base64_mime_du_len(const char *q);  /* mime, -_ instead of +/ */
 
 #endif
 

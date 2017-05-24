@@ -41,14 +41,21 @@ static int omp_t = 1;
 #define OMP_SCALE               1024 // Tuned on K8-Dual HT
 #endif
 #endif
-#include "memdbg.h"
-#ifndef UAI$M_PWDMIX
-#define UAI$M_PWDMIX 0x2000000
+#ifdef VMS
+#include <ssdef.h>
+#define UAIsM_PWDMIX UAI$M_PWDMIX
+#else
+/*
+ * Emulate symbols defined for VMS services.
+ */
+#define UAIsM_PWDMIX 0x2000000
 #endif
+#include "memdbg.h"
 
 #define FORMAT_LABEL			"OpenVMS"
 #define FORMAT_NAME			"Purdy"
-#define FORMAT_NAME_NOPWDMIX		"Purdy (nopwdmix)"
+#define FORMAT_TAG           "$V$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -93,7 +100,7 @@ static int valid(char *ciphertext, struct fmt_main *self )
 		initialized = 1;
 	}
 
-	if (strncmp(ciphertext, "$V$", 3))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;	/* no match */
 
 	if ( strlen ( ciphertext ) < (UAF_ENCODE_SIZE-1) )
@@ -269,6 +276,7 @@ struct fmt_main fmt_VMS = {
  */
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		fmt_vms_init,			/* changed for jumbo */

@@ -60,8 +60,10 @@ def process_file(filename):
     if buf[0] != KWALLET_VERSION_MAJOR:
         sys.stderr.write("%s : Unknown major version!\n" % filename)
         return
-    #  0 has been the MINOR version until 4.13, from that point we use it to
-    #  upgrade the hash
+    # 0 has been the MINOR version until 4.13, from that point we use it to
+    # upgrade the hash
+    #
+    # See runtime/kwalletd/backend/backendpersisthandler.cpp for details
     if buf[1] != 0:  # Old KWALLET_VERSION_MINOR
         if buf[1] != 1:  # New KWALLET_VERSION_MINOR
             sys.stderr.write("%s : Unknown minor version!\n" % filename)
@@ -102,18 +104,20 @@ def process_file(filename):
         sys.exit(7)
 
     if new_version:
-        sys.stderr.write("%s <- KWallet 5 files aren't supported yet!\n" % filename)
-        """
         # read salt
         salt_filename = os.path.splitext(filename)[0] + ".salt"
-        salt = open(salt_filename).read()
+        try:
+            salt = open(salt_filename).read()
+        except:
+            sys.stderr.write("%s : unable to read salt from %s\n" % (filename, salt_filename))
+            sys.exit(8)
         salt_len = len(salt)
         iterations = PBKDF2_SHA512_ITERATIONS  # is this fixed?
         sys.stdout.write("%s:$kwallet$%ld$%s$%d$%d$%s$%s" %
                          (os.path.basename(filename), encrypted_size,
                           hexlify(encrypted), kwallet_minor_version, salt_len,
                           salt.encode("hex"), iterations))
-        """
+        sys.stdout.write(":::::%s\n" % filename)
     else:
         sys.stdout.write("%s:$kwallet$%ld$%s" % (os.path.basename(filename), encrypted_size, hexlify(encrypted)))
         sys.stdout.write(":::::%s\n" % filename)

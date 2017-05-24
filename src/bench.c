@@ -55,6 +55,115 @@
 
 #ifndef BENCH_BUILD
 #include "options.h"
+#else
+/*
+ * This code was copied from loader.c.  It has been stripped to bare bones
+ * to get what is 'needed' for the bench executable to run.
+ */
+
+static void _ldr_init_database(struct db_main *db) {
+	db->loaded = 0;
+	db->real = db;
+	db->pw_size = sizeof(struct db_password);
+	db->salt_size = sizeof(struct db_salt);
+	db->pw_size -= sizeof(struct list_main *);
+	db->pw_size -= sizeof(char *) * 2;
+	db->salt_size -= sizeof(struct db_keys *);
+	db->options = mem_calloc(sizeof(struct db_options), 1);
+	db->salts = NULL;
+	db->password_hash = NULL;
+	db->password_hash_func = NULL;
+	db->salt_hash = mem_alloc(
+		SALT_HASH_SIZE * sizeof(struct db_salt *));
+	memset(db->salt_hash, 0,
+		SALT_HASH_SIZE * sizeof(struct db_salt *));
+	db->cracked_hash = NULL;
+	db->salt_count = db->password_count = db->guess_count = 0;
+	db->format = NULL;
+}
+
+struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
+{
+	struct fmt_main *real_list = fmt_list;
+	struct fmt_main fake_list;
+	struct db_main *testdb;
+	struct fmt_tests *current;
+
+	if (!(current = format->params.tests))
+		return NULL;
+
+	memcpy(&fake_list, format, sizeof(struct fmt_main));
+	fake_list.next = NULL;
+	fmt_list = &fake_list;
+	testdb = mem_alloc(sizeof(struct db_main));
+	fmt_init(format);
+
+	//ldr_init_database(testdb, &options.loader);
+	_ldr_init_database(testdb);
+	testdb->options->field_sep_char = ':';
+	testdb->real = real;
+	testdb->format = format;
+
+	//ldr_init_password_hash(testdb);
+	testdb->password_hash_func = fmt_default_binary_hash;
+	testdb->password_hash = mem_alloc(password_hash_sizes[0] * sizeof(struct db_password *));
+	memset(testdb->password_hash, 0, password_hash_sizes[0] * sizeof(struct db_password *));
+	while (current->ciphertext) {
+		char line[LINE_BUFFER_SIZE];
+		int i, pos = 0;
+		char *piece;
+		void *salt;
+		struct db_salt *current_salt, *last_salt;
+		int salt_hash;
+		if (!current->fields[0])
+			current->fields[0] = "?";
+		if (!current->fields[1])
+			current->fields[1] = current->ciphertext;
+		for (i = 0; i < 10; i++)
+			if (current->fields[i])
+				pos += sprintf(&line[pos], "%s%c",
+				               current->fields[i],
+				               testdb->options->field_sep_char);
+
+		//ldr_load_pw_line(testdb, line);
+		piece = format->methods.split(line, 0, format);
+		salt = format->methods.salt(piece);
+		salt_hash = format->methods.salt_hash(salt);
+		if ((current_salt = testdb->salt_hash[salt_hash])) {
+			do {
+				if (!dyna_salt_cmp(current_salt->salt, salt, format->params.salt_size))
+					break;
+			}  while ((current_salt = current_salt->next));
+		}
+		if (!current_salt) {
+			last_salt = testdb->salt_hash[salt_hash];
+			current_salt = testdb->salt_hash[salt_hash] =
+				mem_alloc_tiny(testdb->salt_size, MEM_ALIGN_WORD);
+			current_salt->next = last_salt;
+			current_salt->salt = mem_alloc_copy(salt,
+				format->params.salt_size,
+				format->params.salt_align);
+			current_salt->index = fmt_dummy_hash;
+			current_salt->bitmap = NULL;
+			current_salt->list = NULL;
+			current_salt->hash = &current_salt->list;
+			current_salt->hash_size = -1;
+			current_salt->count = 0;
+			testdb->salt_count++;
+		}
+		current_salt->count++;
+		testdb->password_count++;
+		current++;
+	}
+	//ldr_fix_database(testdb);
+	fmt_list = real_list;
+	return testdb;
+}
+
+// lol, who cares about memory leaks here.  This is just the benchmark builder
+void ldr_free_test_db(struct db_main *db)
+{
+}
 #endif
 
 #ifdef HAVE_MPI
@@ -66,8 +175,10 @@
 #endif /* _OPENMP */
 #include "memdbg.h"
 
+#define MAX_COST_MSG_LEN 256
 #ifndef BENCH_BUILD
-static char cost_msg[128 * FMT_TUNABLE_COSTS];
+/* the + 24 is for a little 'extra' text wrapping each line */
+static char cost_msg[ (MAX_COST_MSG_LEN+24) * FMT_TUNABLE_COSTS];
 #endif
 
 long clk_tck = 0;
@@ -204,6 +315,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	int salts_done = 0;
 	int wait = 0;
+	int dyna_copied = 0;
 
 	clk_tck_init();
 
@@ -268,7 +380,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	}
 
 	for (index = 0; index < 2; index++) {
-		two_salts[index] = mem_alloc(format->params.salt_size);
+		two_salts[index] = mem_alloc_align(format->params.salt_size,
+		                                   format->params.salt_align);
 
 		if ((ciphertext = format->params.tests[index].ciphertext)) {
 			char **fields = format->params.tests[index].fields;
@@ -282,6 +395,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			assert(index > 0);
 /* If we have exactly one test vector, reuse its salt in two_salts[1] */
 			salt = two_salts[0];
+			dyna_copied = 1;
 		}
 
 /* mem_alloc()'ed two_salts[index] may be NULL if salt_size is 0 */
@@ -301,14 +415,14 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	*cost_msg = 0;
 	for (i = 0; i < FMT_TUNABLE_COSTS &&
 		     format->methods.tunable_cost_value[i] != NULL; i++) {
-		char msg[128];
+		char msg[MAX_COST_MSG_LEN];
 
 		if (t_cost[0][i] == t_cost[1][i])
-			sprintf(msg, "cost %d (%s) of %u", i + 1,
+			snprintf(msg, sizeof(msg), "cost %d (%s) of %u", i + 1,
 			        format->params.tunable_cost_name[i],
 			        t_cost[0][i]);
 		else
-			sprintf(msg, "cost %d (%s) of %u and %u",
+			snprintf(msg, sizeof(msg), "cost %d (%s) of %u and %u",
 			        i + 1, format->params.tunable_cost_name[i],
 			        t_cost[0][i], t_cost[1][i]);
 
@@ -400,7 +514,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	do {
 		int count = max;
 
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 		if (!bench_running)
 			advance_cursor();
 #endif
@@ -412,16 +526,23 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		}
 
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
+#ifndef BENCH_BUILD
 		format->methods.cmp_all(binary,
 		    format->methods.crypt_all(&count, test_db->salts));
+#else
+		format->methods.cmp_all(binary,
+		    format->methods.crypt_all(&count, 0));
+#endif
 
 		add32to64(&crypts, count);
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
 		salts_done++;
-	} while (((wait && salts_done < salts) ||
-	          bench_running) && !event_abort);
+	} while (benchmark_time &&
+		 (((wait && salts_done < salts) ||
+	          bench_running) && !event_abort));
+	//fprintf (stderr, "  salts_done=%d  ", salts_done);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();
@@ -447,7 +568,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 
 	for (index = 0; index < 2; index++) {
-		dyna_salt_remove(two_salts[index]);
+		if (index == 0 || !dyna_copied)
+			dyna_salt_remove(two_salts[index]);
 		MEM_FREE(two_salts[index]);
 	}
 
@@ -521,7 +643,7 @@ int benchmark_all(void)
 	char *result, *msg_1, *msg_m;
 	struct bench_results results_1, results_m;
 	char s_real[64], s_virtual[64];
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	char s_gpu[16 * MAX_GPU_DEVICES] = "";
 	int i;
 #else
@@ -535,7 +657,7 @@ int benchmark_all(void)
 	int ompt_start = omp_get_max_threads();
 #endif
 
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	if (!benchmark_time) {
 		/* This will make the majority of OpenCL formats
 		   also do "quick" benchmarking. But if LWS or
@@ -560,7 +682,7 @@ AGAIN:
 #endif
 	if ((format = fmt_list))
 	do {
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 		int n = 0;
 #endif
 		memHand = MEMDBG_getSnapshot(0);
@@ -700,18 +822,18 @@ AGAIN:
 			goto next;
 		}
 
-#if defined(HAVE_CUDA) || defined(HAVE_OPENCL)
+#if defined(HAVE_OPENCL)
 		if (benchmark_time > 1)
 		for (i = 0; i < MAX_GPU_DEVICES &&
 			     gpu_device_list[i] != -1; i++) {
 			int dev = gpu_device_list[i];
-			int fan, temp, util;
+			int fan, temp, util, cl, ml;
 
-			fan = temp = util = -1;
+			fan = temp = util = cl = ml = -1;
 
 			if (dev_get_temp[dev])
 				dev_get_temp[dev](temp_dev_id[dev],
-				                  &temp, &fan, &util);
+				                  &temp, &fan, &util, &cl, &ml);
 #if 1
 			if (util <= 0)
 				continue;

@@ -15,6 +15,8 @@
 #ifndef _COMMON_OPENCL_H
 #define _COMMON_OPENCL_H
 
+#include <stdint.h>
+
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #include <OpenCL/cl_ext.h>
@@ -30,7 +32,6 @@
 #include "common.h"
 #include "formats.h"
 #include "path.h"
-#include "stdint.h"
 #include "opencl_device_info.h"
 
 #define MAX_PLATFORMS   8
@@ -91,6 +92,10 @@ typedef union {
 #define CL_DEVICE_BOARD_NAME_AMD                    0x4038
 #endif
 
+#ifndef CL_DEVICE_SIMD_WIDTH_AMD
+#define CL_DEVICE_SIMD_WIDTH_AMD                    0x4041
+#endif
+
 #ifndef CL_DEVICE_WAVEFRONT_WIDTH_AMD
 #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 #endif
@@ -109,12 +114,6 @@ john_clCreateBuffer(int l, char *f, cl_context context, cl_mem_flags flags,
 #endif
 
 typedef struct {
-	cl_platform_id platform;
-	int num_devices;
-} cl_platform;
-cl_platform platforms[MAX_PLATFORMS];
-
-typedef struct {
 	int device_info;
 	int cores_per_MP;
 	hw_bus pci_info;
@@ -124,6 +123,7 @@ typedef struct {
 extern int platform_id;
 extern int default_gpu_selected;
 extern int ocl_autotune_running;
+extern int volatile bench_running;
 extern size_t ocl_max_lws;
 
 extern cl_device_id devices[MAX_GPU_DEVICES];
@@ -147,18 +147,6 @@ extern int device_info[MAX_GPU_DEVICES];
 #define GWS_CONFIG_NAME         "_GWS"
 #define DUR_CONFIG_NAME         "_MaxDuration"
 #define FALSE               0
-
-#define get_power_of_two(v)                     \
-{                                               \
-    v--;                                        \
-    v |= v >> 1;                                \
-    v |= v >> 2;                                \
-    v |= v >> 4;                                \
-    v |= v >> 8;                                \
-    v |= v >> 16;                               \
-    v |= (v >> 16) >> 16;                       \
-    v++;                                        \
-}
 
 size_t opencl_read_source(char *kernel_filename, char **kernel_source);
 
@@ -245,12 +233,12 @@ void opencl_process_event(void);
 #define BENCH_CLERROR(cl_error, message)	  \
 	do { cl_int __err = (cl_error); \
 		if (__err != CL_SUCCESS) { \
-			if (!ocl_autotune_running || options.verbosity > 4) \
+			if (!ocl_autotune_running || options.verbosity == VERB_MAX) \
 				fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
 			        get_error_name(__err), __FILE__, __LINE__, message); \
-			else if (options.verbosity == 4) \
+			else if (options.verbosity > VERB_LEGACY) \
 				fprintf(stderr, " %s\n", get_error_name(__err)); \
-			if (!ocl_autotune_running) \
+			if (!(ocl_autotune_running || bench_running)) \
 				error(); \
 			else \
 				return -1; \
@@ -264,6 +252,15 @@ void opencl_process_event(void);
 			fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
 			    get_error_name(__err), __FILE__, __LINE__, (message)); \
 			error(); \
+		} \
+	} while (0)
+
+/* Non-fatal alternative */
+#define SOFT_CLERROR(cl_error, message)	  \
+	do { cl_int __err = (cl_error); \
+		if (__err != CL_SUCCESS) { \
+			fprintf(stderr, "OpenCL %s error in %s:%d - %s\n", \
+			    get_error_name(__err), __FILE__, __LINE__, (message)); \
 		} \
 	} while (0)
 
@@ -362,4 +359,9 @@ void opencl_driver_value(int sequential_id, int *major, int *minor);
  * vector width for 'int' otherwise.
  */
 unsigned int opencl_speed_index(int sequential_id);
+
+/*
+ * Calculates the size of the bitmap used by the Bloom Filter buffer.
+ */
+uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id);
 #endif

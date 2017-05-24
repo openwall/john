@@ -35,6 +35,10 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"aix-smd5"
 #define FORMAT_NAME		"AIX LPA {smd5} (modified crypt-md5)"
+#define FORMAT_TAG		"{smd5}"
+#define FORMAT_TAG1		"$1$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG1_LEN	(sizeof(FORMAT_TAG1)-1)
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -60,7 +64,7 @@ static struct fmt_tests smd5_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int is_standard;
@@ -92,17 +96,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
-	if (strncmp(ciphertext, "{smd5}", 6) != 0 &&
-		strncmp(ciphertext, "$1$", 3))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0 &&
+		strncmp(ciphertext, FORMAT_TAG1, FORMAT_TAG1_LEN))
 		return 0;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 
-	if (!strncmp(ciphertext, "{smd5}", 6))
-		ctcopy += 6;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ctcopy += FORMAT_TAG_LEN;
 	else
-		ctcopy += 3;
+		ctcopy += FORMAT_TAG1_LEN;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt */
 		goto err;
@@ -125,12 +129,12 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
 	keeptr = ctcopy;
-	if (!strncmp(ciphertext, "{smd5}", 6)) {
-		ctcopy += 6;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
+		ctcopy += FORMAT_TAG_LEN;
 		cs.is_standard = 0;
 	}
 	else {
-		ctcopy += 3;
+		ctcopy += FORMAT_TAG1_LEN;
 		cs.is_standard = 1;
 	}
 
@@ -144,10 +148,10 @@ static void *get_salt(char *ciphertext)
 
 #define TO_BINARY(b1, b2, b3) \
 	value = \
-		(ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+		(uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
 	pos += 4; \
 	out.b[b1] = value >> 16; \
 	out.b[b2] = value >> 8; \
@@ -160,11 +164,12 @@ static void* get_binary(char *ciphertext)
 		ARCH_WORD w;
 	} out;
 	char *pos;
-	ARCH_WORD_32 value;
+	uint32_t value;
 
-	pos = ciphertext + 3;
-	if (!strncmp(ciphertext, "{smd5}", 6))
-		pos = ciphertext + 6;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		pos = ciphertext + FORMAT_TAG_LEN;
+	else
+		pos = ciphertext + FORMAT_TAG1_LEN;
 
 	while (*pos++ != '$');
 
@@ -174,8 +179,8 @@ static void* get_binary(char *ciphertext)
 	TO_BINARY(3, 9, 15);
 	TO_BINARY(4, 10, 5);
 	out.b[11] =
-		(ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6);
+		(uint32_t)atoi64[ARCH_INDEX(pos[0])] |
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6);
 
 	return out.b;
 }
@@ -379,6 +384,7 @@ struct fmt_main fmt_smd5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG1 },
 		smd5_tests
 	}, {
 		init,

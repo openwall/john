@@ -12,8 +12,6 @@ extern struct fmt_main fmt_saltedsha2;
 john_register_one(&fmt_saltedsha2);
 #else
 
-#define MAX_SALT_LEN    16      // bytes, the base64 representation is longer
-
 #include "arch.h"
 #include "misc.h"
 #include "formats.h"
@@ -24,6 +22,7 @@ john_register_one(&fmt_saltedsha2);
 #include "base64.h"
 #include "simd-intrinsics.h"
 #include <string.h>
+#include "rawSHA512_common.h"
 
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64
@@ -53,58 +52,37 @@ john_register_one(&fmt_saltedsha2);
 #endif
 #endif
 
-#define BENCHMARK_COMMENT               ""
-#define BENCHMARK_LENGTH                0
-
-#define PLAINTEXT_LENGTH                (111-MAX_SALT_LEN)
-
-#define BINARY_SIZE                     (512 / 8)
-#define BINARY_ALIGN                    8
-#define SALT_SIZE                       (MAX_SALT_LEN + sizeof(unsigned int))
+#define PLAINTEXT_LENGTH                (111-NSLDAP_SALT_LEN)
 #define SALT_ALIGN                      4
-
-#define CIPHERTEXT_LENGTH               ((BINARY_SIZE + 1 + MAX_SALT_LEN + 2) / 3 * 4)
 
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT              (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-#define NSLDAP_MAGIC "{SSHA512}"
-#define NSLDAP_MAGIC_LENGTH (sizeof(NSLDAP_MAGIC) - 1)
-#define BASE64_ALPHABET	  \
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-
 struct s_salt
 {
 	unsigned int len;
 	union {
-		unsigned char c[MAX_SALT_LEN];
-		ARCH_WORD_32 w32;
+		unsigned char c[NSLDAP_SALT_LEN];
+		uint32_t w32;
 	} data;
 };
 
 static struct s_salt *saved_salt;
 
-static struct fmt_tests tests[] = {
-	{"{SSHA512}SCMmLlStPIxVtJc8Y6REiGTMsgSEFF7xVQFoYZYg39H0nEeDuK/fWxxNZCdSYlRgJK3U3q0lYTka3Nre2CjXzeNUjbvHabYP", "password"},
-	{"{SSHA512}WucBQuH6NyeRYMz6gHQddkJLwzTUXaf8Ag0n9YM0drMFHG9XCO+FllvvwjXmo5/yFPvs+n1JVvJmdsvX5XHYvSUn9Xw=", "test123"},
-	{"{SSHA512}uURShqzuCx/8BKVrc4HkTpYnv2eVfwEzg+Zi2AbsTQaIV7Xo6pDhRAZnp70h5P8MC6XyotrB2f27aLhhRj4GYrkJSFmbKmuF", "testpass"},
-	{NULL}
-};
-
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-static ARCH_WORD_64 (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64];
-static ARCH_WORD_64 (*crypt_out)[8*SIMD_COEF_64];
-static ARCH_WORD_64 (**len_ptr64);
+static uint64_t (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64];
+static uint64_t (*crypt_out)[8*SIMD_COEF_64];
+static uint64_t (**len_ptr64);
 static int max_count;
 #else
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / 4];
-static ARCH_WORD_64 (*saved_key)[PLAINTEXT_LENGTH + 1];
+static uint32_t (*crypt_out)[DIGEST_SIZE / 4];
+static uint64_t (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif
 static int *saved_len;
 
@@ -136,7 +114,7 @@ static void init(struct fmt_main *self)
 	                             SIMD_COEF_64,
 	                             sizeof(*crypt_out), MEM_ALIGN_SIMD);
 	for (i = 0; i < self->params.max_keys_per_crypt; i += SIMD_COEF_64) {
-		ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(i&(SIMD_COEF_64-1)) + (i/SIMD_COEF_64)*SHA_BUF_SIZ*SIMD_COEF_64];
+		uint64_t *keybuffer = &((uint64_t *)saved_key)[(i&(SIMD_COEF_64-1)) + (i/SIMD_COEF_64)*SHA_BUF_SIZ*SIMD_COEF_64];
 		for (j = 0; j < SIMD_COEF_64; ++j) {
 			len_ptr64[i+j] = &keybuffer[15*SIMD_COEF_64];
 			++keybuffer;
@@ -156,54 +134,19 @@ static void done(void)
 	MEM_FREE(saved_len);
 }
 
-static void * get_binary(char *ciphertext) {
-	static char *realcipher;
-
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + 1 + SALT_SIZE, 8);
-
-	ciphertext += NSLDAP_MAGIC_LENGTH;
-	memset(realcipher, 0, BINARY_SIZE);
-	base64_decode(ciphertext, strlen(ciphertext), realcipher);
-#ifdef SIMD_COEF_64
-	alter_endianity_to_BE64 (realcipher, BINARY_SIZE/8);
-#endif
-	return (void*)realcipher;
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	int len;
-
-	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
-		return 0;
-	ciphertext += NSLDAP_MAGIC_LENGTH;
-
-	len = strspn(ciphertext, BASE64_ALPHABET);
-	if (len < (BINARY_SIZE+1+2)/3*4-2)
-		return 0;
-
-	len = strspn(ciphertext, BASE64_ALPHABET "=");
-	if (len != strlen(ciphertext))
-		return 0;
-	if (len & 3 || len > CIPHERTEXT_LENGTH)
-		return 0;
-
-	return 1;
-}
-
 #ifdef SIMD_COEF_64
 static void set_key(char *key, int index) {
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
+	const uint64_t *wkey = (uint64_t*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const ARCH_WORD_64 *wkey = is_aligned(key, sizeof(uint64_t)) ?
-			(ARCH_WORD_64*)key : (ARCH_WORD_64*)strcpy(buf_aligned, key);
+	const uint64_t *wkey = is_aligned(key, sizeof(uint64_t)) ?
+			(uint64_t*)key : (uint64_t*)strcpy(buf_aligned, key);
 #endif
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64 *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	ARCH_WORD_64 *keybuf_word = keybuffer;
+	uint64_t *keybuffer = &((uint64_t *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	uint64_t *keybuf_word = keybuffer;
 	unsigned int len;
-	ARCH_WORD_64 temp;
+	uint64_t temp;
 
 	len = 0;
 	while((unsigned char)(temp = *wkey++)) {
@@ -279,31 +222,31 @@ static void * get_salt(char * ciphertext)
 	char realcipher[CIPHERTEXT_LENGTH];
 	int len;
 
-	ciphertext += NSLDAP_MAGIC_LENGTH;
+	ciphertext += NSLDAP_TAG_LENGTH;
 	memset(realcipher, 0, sizeof(realcipher));
 	memset(&cursalt, 0, sizeof(struct s_salt));
 	len = strlen(ciphertext);
 	base64_decode(ciphertext, len, realcipher);
 
-	// We now support any salt length up to SALT_SIZE
-	cursalt.len = (len + 3) / 4 * 3 - BINARY_SIZE;
+	// We now support any salt length up to NSLDAP_SALT_SIZE
+	cursalt.len = (len + 3) / 4 * 3 - DIGEST_SIZE;
 	p = &ciphertext[len];
 	while (*--p == '=')
 		cursalt.len--;
 
-	memcpy(cursalt.data.c, realcipher+BINARY_SIZE, cursalt.len);
+	memcpy(cursalt.data.c, realcipher+DIGEST_SIZE, cursalt.len);
 	return &cursalt;
 }
 
 #ifdef SIMD_COEF_64
 static char *get_key(int index) {
 	unsigned i;
-	ARCH_WORD_64 s;
+	uint64_t s;
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
 	s = saved_len[index];
-	for(i=0;i<(unsigned)s;i++)
+	for (i=0;i<(unsigned)s;i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
 	return (char*) out;
@@ -319,9 +262,9 @@ static int cmp_all(void *binary, int count) {
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_64
-        if (((ARCH_WORD_64 *) binary)[0] == crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)])
+        if (((uint64_t *) binary)[0] == crypt_out[index/SIMD_COEF_64][index&(SIMD_COEF_64-1)])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_out[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;
@@ -331,12 +274,12 @@ static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_64
     int i;
-	for (i = 0; i < BINARY_SIZE/sizeof(ARCH_WORD_64); i++)
-        if (((ARCH_WORD_64 *) binary)[i] != crypt_out[index/SIMD_COEF_64][(index&(SIMD_COEF_64-1))+i*SIMD_COEF_64])
+	for (i = 0; i < DIGEST_SIZE/sizeof(uint64_t); i++)
+        if (((uint64_t *) binary)[i] != crypt_out[index/SIMD_COEF_64][(index&(SIMD_COEF_64-1))+i*SIMD_COEF_64])
             return 0;
 	return 1;
 #else
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index], DIGEST_SIZE);
 #endif
 }
 
@@ -419,26 +362,27 @@ struct fmt_main fmt_saltedsha2 = {
 		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
-		BENCHMARK_LENGTH,
+		NSLDAP_BENCHMARK_LENGTH,
 		0,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		DIGEST_SIZE,
 		BINARY_ALIGN,
-		SALT_SIZE,
+		NSLDAP_SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		tests
+		{ NSLDAP_FORMAT_TAG },
+		sha512_common_tests_ssha512
 	}, {
 		init,
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		sha512_common_valid_nsldap,
 		fmt_default_split,
-		get_binary,
+		sha512_common_binary_nsldap,
 		get_salt,
 		{ NULL },
 		fmt_default_source,

@@ -34,8 +34,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"django-scrypt"
 #define FORMAT_NAME		""
-#define FORMAT_TAG		"scrypt"
-#define TAG_LENGTH		6
+#define FORMAT_TAG		"scrypt$"
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #ifdef __XOP__
 #define ALGORITHM_NAME		"Salsa20/8 128/128 XOP"
 #elif defined(__AVX__)
@@ -66,7 +66,7 @@ static struct fmt_tests scrypt_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	/* int type; */ // not used (another type probably required a new JtR format)
@@ -109,8 +109,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *cp, *cp2;
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH)) return 0;
 	cp = ciphertext + TAG_LENGTH;
-	if (*cp != '$') return 0;
-	++cp;
 	cp2 = strchr(cp, '$');
 	if (!cp2) return 0;
 	if (cp2-cp > 32) return 0;
@@ -144,10 +142,10 @@ static void *get_salt(char *ciphertext)
 	/* ensure alignment */
 	static union {
 		struct custom_salt _cs;
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} un;
 	static struct custom_salt *cs = &(un._cs);
-	ctcopy += TAG_LENGTH + 1;
+	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
 	strncpy((char*)cs->salt, p, 32);
 	p = strtokm(NULL, "$");
@@ -288,6 +286,7 @@ struct fmt_main fmt_django_scrypt = {
 			"r",
 			"p"
 		},
+		{ FORMAT_TAG },
 		scrypt_tests
 	}, {
 		init,

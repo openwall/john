@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.8-0-jumbo-2:
 
-magnum (1282):
+magnum (1666):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe
 	  static buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but
 	  in other places with similar code.
@@ -2054,8 +2054,687 @@ magnum (1282):
 	  See #1613.
 	Drop nsldap-opencl and unify raw-sha1-opencl with shared code. Closes
 	  #1613.
+	Update CHANGES-jumbo.git and CREDITS-jumbo. See #1911.
+	Workaround for Intel for our use of typeof() in OpenCL.
+	Try not to fail if we can't install fglrx-dev.
+	Bump OMP_SCALE for PHPASS. See
+	  http://www.openwall.com/lists/john-dev/2015/12/06/1
+	Slight change in -list=format-all-details output to avoid
+	  confusion.
+	Use a "fake db" for self-test and benchmark.
+	NT-opencl: Drop all special code for self-test, and use the new "fake
+	  db".
+	Pass db to OpenCL auto-tune, use db->salts in all crypt_all() calls.
+	mscash-opencl: Drop special code for self-tests (using db from test
+	  vectors)
+	Fail self-test if we can't find a test vector salt in the test db.
+	Bugfix and problem workarounds for ldr_init_test_db() "fields"
+	  assembly.
+	Add a hack for muting messages from oldoffice-opencl's source()
+	  while loading test db.
+	Fix a (benign) memory leak in cryptsha256-opencl. Closes #1945.
+	[unrarfilter.c] free() -> MEM_FREE(), closes #1942.
+	Unicode/codepage improvements for letters that doesn't have any case.
+	If one of -min-len or -max-len is given to mask mode, give the
+	  other a default of format's min/max length. Closes #1947.
+	Add memdbg.o dependencies. Closes #1944.
+	Add a couple more memdbg.o dependencies. Closes #1944.
+	Correct fix for f3113f21
+	Tweak some macros in shared OpenCL code.
+	NT: Do not use local memory for OS X with nvidia. The actual
+	  criteria is unknown, but this was seen better on a Macbook with
+	  GT 650M.
+	Driver bug workaround for GPU-side UTF-8 conversion on OSX with
+	  nvidia. Unfortunately this halves the performance, but only when
+	  UTF-8 is used and no internal codepage is active. Closes #1857.
+	[common-gpu.c] Increase a couple of printf buffers, and drop some
+	  orphaned code. Closes #1950.
+	OpenCL sensor status: Increase another sprintf buffer, avoiding
+	  possible overruns. See #1950.
+	hmac-SHA256: Move a test from split() to valid(), and other minor
+	  fixes.
+	Add README-DISTROS for more detailed fallback build instructions.
+	  Also tweak strip and install targets as well as autoconf handling
+	  of --prefix option. Closes #1656, closes #982.
+	Usage blurb: Move -test-full to "hidden" options and update its
+	  wording. Move -costs from "hidden" to standard options (along
+	  with -salt et al).
+	wpapcap2john: Add option for manually specifying ESSID:BSSID pairs in
+	  case there are "hidden" networks or your sniff file lacks beacons
+	  for some other reason.
+	Wordlist: Speed up fix_state when memory buffered. See #1955.
+	Add some comments in unrar.c documenting a false positive from
+	  ASan. Closes #1962.
+	loader.c: Do not prune test_db from --cost. Closes #1961.
+	loader.c: Do not prune test_db from --salts. See #1961.
+	Increase verbosity level needed for testdb output.
+	Avoid undefined behavior for signed integer in rpp.c. See #1963.
+	Reduce chatter from descrypt-opencl and also introduce some macros for
+	  verbosity levels. Closes #1968.
+	Bugfix for some cases where self-test messages over-ran buffers.
+	HMAC-SHA384/512: Bump max salt length and support JWT hashes. Closes
+	  #1898.
+	Update INSTALL-UBUNTU document not to use an older rexgen version
+	  anymore.
+	Fix some whitespace that was thrashed by f3cd0e63
+	Allow $HOME to override the home directory (eg. ~/.john) in
+	  JOHN_SYSTEMWIDE builds. Closes 1901.
+	The length sorting in RAR3 was ineffective unless we bump mkpc a lot.
+	OpenCL: Turn an Apple-specific fallback into a generic one. Some
+	  clustering solutions may prohibit use of vendor-specific extensions.
+	--list=opencl-devices: Add AMD wavefront width.
+	Use realpath() for evaluating absolute path for OpenCL -I./kernels.
+	  This is needed for some cluster environments like VCL but might
+	  break other use cases. We may want a john.conf option for it.
+	Common OpenCL code: Decrease scope of platform struct, and some
+	  other minor tweaks.
+	Common OpenCL code: Bug fixes and tweaks for VCL. Closes #1989.
+	Fix bug in default GPU selection introduced by 0a026d5. Closes
+	  #1995.
+	Mask.c, fix multiple problems with progress/ETA. See #1996.
+	doc/MASK: Document the special ETA behavior when iterating over
+	  lengths. See #1996.
+	Conditionalize an AMD workaround. Closes #1994, see also #1497.
+	Change all use of __ARM_NEON__ to __ARM_NEON. See #1998.
+	RC4 bugfix for decrypting more than 256 bytes with RC4_single().
+	Unicode: Minor bugfix for detection of invalid UTF-8 sequences. Also
+	  drop some local copies of valid_utf8() in favor of the shared one.
+	leet.pl: chmod +x
+	cracker.c: Remove sourcing of SSE2 header obsoleted by recent
+	  merge of master branch.
+	loader.c: Unify ldr_init_password_hash() with John Proper (some
+	  variable names differed).
+	Drop pristine ADL SDK files from our source tree and provide our own
+	  header, supporting NVIDIA as well as AMD and free to distribute
+	  under the "fair use" doctrine.
+	Support ADL on Windows (untested).
+	undrop bug fix: hash length is length 13 including the '+'. Closes
+	  #2011, thanks to shrikus.
+	OpenCL: Generic workaround for OSX driver bug. Fixes many formats.
+	--list=opencl-devices, add SIMD width for AMD devices.
+	recovery.c: Avoid a race condition between closing a finished session
+	  file (which releases our lock on it) and unlinking it.
+	Some tweaks for 1be1841: Support $JOHN path, set execute bit on
+	  script, drop length limit and decrease score of variables.
+	Revert "Some tweaks for 1be1841: Support $JOHN path, set execute bit
+	  on"
+	Oldoffice formats: Fix for --show vs. legacy MITM data in input files.
+	pass_gen.pl incorrectly required Crypt::ECB to be installed even when
+	  not needed.
+	hmac-MD5: Bump max. salt length to 183.
+	Oldoffice: Optimization for dupe salts, similar to what we do for
+	  WPAPSK but with a lot less gain.
+	Don't try to use typeof() with Intel OpenCL.
+	office2john: Handle old Word "0Table" vs. "1Table" properly.
+	Fix a problem with sequential dupe suppression in rules, when internal
+	  codepage is used.
+	Fix for rules' consecutive dupe suppression of candidates containing
+	  non-ASCII characters when using --internal-codepage. See 4faaba9.
+	Do not delegate hashes to generic crypt format unless specifically
+	  requested. Closes #2069.
+	External mode filter: Support UTF-32.
+	External mode max-length fixes. See #2072.
+	External mode: Code style fixes and avoid unneeded differences from
+	  core.
+	Drop support for deprecated -internal-encoding option (replaced by
+	  -internal-codepage) except we still recognize it in restored
+	  sessions.
+	Bugfix for --skip-self-tests. See #1967 and closes #2090.
+	CUDA fixes for macro-redefinitions. Problem likely introduced in
+	  ad2e4727.
+	Pot sync performance fix: Use strnzcpy() instead of strncpy(). This
+	  was found by comparing a run with LINE_BUFFER_SIZE at 0x400
+	  instead of 0x30000.
+	PRINCE: Allow a negative max element count. This will make the
+	  effective max depend on each password length. For example, using
+	  -prince-elem-cnt-max=-2 the effective max will be 3 at length 5,
+	  and 4 at length 6.
+	Mask mode: Tweak mask-stretching. Hopefully addresses #1983 a little
+	  but does not fix all situations.
+	Wordlist mode: Ignore UTF-8 BOMs. Closes #2138.
+	Fix long standing bug in --pipe mode vs. encodings.
+	Implement --max-run-time-reset option that complements
+	  --max-run-time=N. The new option resets the timer on each crack
+	  so session aborts after N seconds of not cracking anything.
+	  Closes #2139.
+	Drop the --max-run-time-reset option and instead include that
+	  functionality in --max-run-time=N where N is a negative number.
+	  See #2139.
+	OpenCL: Recognize nvidia Pascal series (ie. the cores per MP count).
+	Drop some noise from dlopen definitions.
+	Add number of PCI lanes to --list=opencl-devices.
+	fgetll() needs to use size_t for size, not int.
+	Quick-hack for rar2john so it always inlines.
+	Temporary (?) hack to speed up fgetll() considerably. We switch to
+	  using realloc and we also double the chunk size each time. The con
+	  is we may end up allocating almost twice the needed memory, worst
+	  case. However, that's just virtual memory and the over allocated
+	  memory would never be touched.
+	Minor tweaks to logger.c and loader.c: Do not depend too heavily on
+	  LINE_BUFFER_SIZE and avoid undocumented arbitrary figures for
+	  margin.
+	More formats fixed for truncated pot lines. This includes OpenCL
+	  versions.
+	fgetll(): Safer realloc, and don't let the block size exceed 128 MB.
+	  Also WAY faster (incremental) strlen.
+	Get rid of $SOURCE_BIN$. Pot entries are now always shorter than
+	  LINE_BUFFER_SIZE (including the field separator and plaintext).
+	keepass2john & zip2john: Always inline. Also some clean-up of rar2john
+	  that had a quick hack earlier.
+	Bug fixes for handling oversized sources.
+	Bugfix for zip2john for arbitrary length files. This is somewhat of
+	  a hack but if the alloc fails we can't recover anyway. We'll just
+	  crash and burn.
+	rar2john bugfix
+	Replace the ZIP optimization that was lost in 528e6bc, for a 3x
+	  boost. Also implements the same for OpenCL (we never had it
+	  there). Closes #2141.
+	Apparently Pascal has 128 cores per SM, not 64. This explains why
+	  I couldn't get the figures to sum up. Still, I see many
+	  references to 64 when googling.
+	Potsync fixes for truncated pot entries.
+	Revert "crypt: problems with #defines and strdup"
+	Avoid warnings if re-defining feature macros.
+	Fix CUDA build after e78d6ef, closes #2157.
+	Fix a long standing bug with -< rule reject when -min-length is
+	  not used. This bug had little consequence until Jim implemented
+	  the Hashcat rules recently.
+	Recovery.c: ASan "read" bugfix.
+	rules.c: Do not opportunisticly enable Hashcat rules mode. Use a
+	  safe "nullstring" buffer for reading past (ASan "read"
+	  problems). And define out a whole section that handles
+	  pre-processor stuff (should never be encountered anyway!).
+	o5logon: Verify correct password, support Oracle 12 and
+	  early-reject wrong-length candidates where possible.
+	kerberom.py: Move shebang-line to top (otherwise it has no effect)
+	  and chmod +x.
+	Fix a silly bug affecting resumed sessions. A few values set from the
+	  config file (notably options.reload_at_crack) was zeroed on
+	  resuming. A similar bug was fixed in 6a543435 (reducing the
+	  memset size) and I should have spotted these extra resets at the
+	  time. Alas, I did not.
+	Re-enable some HC rules parsing without explicitly setting
+	  hc_logic, and drop an obsolete section of code. This is a
+	  partial reversion and partial continuation of e04c0c8.
+	VMS/UAF: Avoid portability problems with VMS macros containing
+	  '$'. Closes #2154.
+	Add usage blurb and docs for providing rules at command line for
+	  single mode. See #2105.
+	Revert "base64_convert.[ch] More work on size_t. commmon.[ch]
+	  reverted"
+	Revert "base64 (and common) changed int into size_t where needed"
+	Optimization for --loopback mode when hitting old, very long pot
+	  lines. See #2160. We now return a null string instead of a truly
+	  useless portion of truncated cipher text.
+	loader.c: Use an existing macro instead of mimicking it.
+	Don't use abs() on return from hexlenl(). The latter now returns
+	  size_t.
+	OpenCL: Don't try to enable cl_amd_media_ops unless it's actually
+	  supported by the driver (eg. MESA does not).
+	OpenCL: Avoid using 'inline' with MESA in some cases. See #2204
+	Change algorithm_name of raw-md5u from "unicode($p)" to "utf16($p)"
+	  so it matches other formats (eg. dynamic_29).
+	Briefly document the --format=@keyword syntax.
+	--show=invalid was no longer working correctly.
+	hmailserver and pkzip formats: Fix whitespace violations, some of
+	  which bad enough to result in compiler complaints. Supposedly
+	  closes #2217.
+	Recognize MESA even if it's written as Mesa. See #2204.
+	Drop some "tedious truths" from OpenCL common code.
+	WPAPSK format: Whitespace cleanup.
+	jumbo.h declared our own atoll() in a way that could clash with
+	  system's. See #2198, #2201.
+	CUDA wpapsk format had a borken adoption to new FMT_MAIN_VERSION
+	  in 9423af68. Even before that, the format was borken all the way
+	  since f024c0a6 due to loader.h being inadvertently sourced (the
+	  rest of the bogus changes were reverted but not the #include) and
+	  CUDA can't cope with loader.h for some reason or the other.
+	  Closes #2198, #2201.
+	zip2john: Add support for CRC and lengths only stored in the Data
+	  Descriptor following the file data.
+	Blind try to fix a MinGW problem in CircleCI.
+	Makefile.legacy: added jumbo.o to genmkvpwd for non-atoll systems.
+	  #2220
+	gpg2john: Drop dependency on LINE_BUFFER_SIZE. But we still have a
+	  hard deck defined as BIG_ENOUGH (@kholia[tm]) which was also
+	  bumped from 8192 to 64K. See #2218.
+	Ensure static unicode arrays are declared as external anywhere but
+	  in unicode.o. See #2086.
+	Don't use well-known name DECLSPEC for other purposes than people
+	  are used to. Changed to EXTATIC meaning either static or extern ;-I
+	DEScrypt-opencl: Get rid of a few compiler warnings from picky
+	  run-time compilers (eg. OSX).
+	Drop an unused variable from salted_sha_kernel.cl.
+	ZipMonster format: Tried to get an aligned auto variable. We know
+	  that isn't safe. Closes #2202.
+	OpenCL: Handle spaces in include path. Closes #2222.
+	Some no-op changes to unify raw MD4 and MD5 OpenCL formats for easier
+	  comparison (trying to nail #2181).
+	Ensure no format ever processes > 4G keys per crypt (including
+	  GPU-side mask) because the *pcount return can't hold it. Closes
+	  #2181.
+	Mask mode: Fixes for "-test -mask", closing #1828 and #1835. Also
+	  fixes some other glitches.
+	Argon2 formats: Do not print diagnostics unless verbosity was bumped.
+	argon2 files: Fix memdbg (plus whitespace violations that my emacs
+	  did automatically while at it).
+	Drop the borken idea of $BIN_HASH$ yet again. Do not add it again,
+	  it's NOT THE SOLUTION.
+	Use $SOURCE_HASH$ truncation of test vector's ciphertexts in
+	  --list=format-[all-]details. Prior to this commit, they were simply
+	  chopped to 256 or 512 bytes.
+	Fix for $SOURCE_HASH$ with formats having a binary that gets lost or
+	  truncated when "pot-chopped".
+	Fixes to formats that may get their binary chopped by $SOURCE_HASH$.
+	  See #2117. Note that some formats don't need fixes because their
+	  binary comes early enough that it won't get truncated - one
+	  example is the SXC format.
+	Fix pot sync for truncated pot lines. This code was missing from
+	  #2196.
+	Revise verbosity levels. Closes #2230.
+	Fix Redmond whitespace violations in potcheck.pl, for crying out
+	  loud...
+	potcheck.pl: Bugfix for long lines, enable verbose option, disable
+	  undocumented/unimplemented options, add verbose output.
+	rar2john edge case fix, for RAR3.
+	OpenCL formats using "perfect hash tables" can't be used with single
+	  mode cracking. Bail out with an error instead of potentially
+	  hanging indefinitely. Closes #2232.
+	Alternate hybrid external mode 'HybridLeet' by Christien Rioux (See
+	  #2099).
+	Revert a hideous bug Jim accidentally planted in my reference $0$
+	  format in 8c48877. This wasted hours of my life searching for
+	  apparent core bugs and the format is forever ruined for use with
+	  git bisect (which was its primary use). Bad_day.mpg
+	Fix for MESA trying to evade detection. See #2204.
+	OpenCL: Device-detection fix for MESA. It gives us upper-case
+	  device names. See #2204.
+	OpenCL: Refactor a reused codepage macro and move to opencl_unicode.h
+	OpenCL: Better shared-code support for nvidia Pascal.
+	Fix for another bug introduced in 8c48877.
+	Renamed oracle9i_fmt_plug.c to o3logon_fmt_plug.c (no other changes).
+	o3logon: Change format struct name. Fix some potentially expensive
+	  code in valid().
+	Add a 'dump_stuff' debug macro for *char to opencl_misc.h.
+	ntlmv2-opencl: Preparation for gpu side mask. Drop vectorization
+	  support. Reduce to a single kernel. Move the final hmacs to a
+	  separate function.
+	ntlmv2-opencl: Implement gpu side mask & compare. Speed now more or
+	  less on par with Hashcat, despite our format fully supports
+	  Unicode.
+	pass_gen.pl: Fix a UTF-8 bug introduced in 27ecb1d.
+	pass_gen.pl: Proper code for allowing user to say -codepage=UTF-8
+	  instead of the short-cut -utf8 (which worked).
+	Autoconf: Fix a bug introduced by Jim in 154314c causing int128 to
+	  be always disabled.
+	config.c: Avoid multiple warning/error output with fork/MPI
+	OpenCL: Minor tweak to GPU-side mask auto-tune output.
+	zip2john: Fix a bug introduced in 744cdb91 by yours truly: File
+	  magic could not be used.
+	oldoffice-opencl: Some optimizations for good measure. Not much
+	  difference.
+	GPU-side mask formats: Fix an edge-case bug.
+	pass_gen.pl: Again, don't require obscure libs unless actually needed.
+	  This is a quick fix, the real solution is not to depend on these
+	  at all. Problem introduced in 030e303.
+	OpenCL mscash & ntlmv2 formats: Drop a few redundant lines.
+	o3logon format: Use a truncated salt instead of segfaulting in case
+	  user runs a codepage-encoded input file with encoding set to UTF-8.
+	  See discussion in #2243. Closes #2243.
+	ntlmv2-opencl: Simplify code after recent change.
+	Many OpenCL formats: Change comparisons with constants according to
+	  coding style. Nothing effectively changed, just easier to read.
+	pkzip format: Bugfix and improvement of SWF file magic.
+	john.conf: Update AMD driver info. Apparently we can't tell 15.11
+	  (beta) from 15.12 (release) with just OpenCL queries. I presume
+	  the OpenCL part of them is identical.
+	OpenCL: Fix a bug with Global_MaxDuration. See #2204.
+	ZIP formats may have their binary truncated in pot file, so can't
+	  use hash funcs. Closes #2245.
+	Some more formats that may have their binary truncated in pot
+	  file, so can't use hash functions. See #2245 et al.
+	Add a self-test for catching formats that may get their pot
+	  entries truncated, but use get_hash(). See #2245, #2117 et al.
+	Last bunch of formats (that the self-test could detect) that may
+	  have their binary truncated in pot file, so can't use hash
+	  functions. See #2245, #2117 et al.
+	OpenCL RC4: Very odd way of gaining a 4x boost, nicked from Hashcat.
+	oldoffice-opencl: Prepare for GPU-side mask/compare.
+	oldoffice-opencl: Implement GPU-side mask. Speed now more or less
+	  on par with Hashcat, despite our format fully supports Unicode.
+	  #1845
+	oldoffice-opencl bugfix: result was not cleared after MITM hit.
+	NSEC3 bug fixes. An iteration count of zero is valid according to
+	  the RFC. Our crypt_all() would loop for ever if given zero.
+	  Closes #2258.
+	Ensure reset(realdb) is called with --skip-self-tests. Closes
+	  #2256. See also #2090 and #1967.
+	Fix some formats that used prepare() for things better done in
+	  split(). Some of them even had the functionality in both. See
+	  #2254.
+	SAP B format: Don't output encoding warning with --list=format-tests
+	Fixes for prepare/valid encoding checks/conversions. See #2252.
+	as400-ssha1 format: Add a UTF-8 check in valid() since Convert()
+	  depends on correct encoding being used.
+	Drop a spurious asterisk from AS400-DES format tag.
+	Add OPT_REQ_PARAM to a bunch of options that missed it. Closes
+	  #2260.
+	o3logon format: Drop the prepare. Closes #2254.
+	formats.c: Fix a problem with gpu-side mask formats, introduced in
+	  1a666cb. Tricky business.
+	Opencl formats: Typos in comments.
+	krb5pa-md5-opencl: Prepare for gpu-side mask/compare.
+	krb5pa-md5-opencl: GPU-side mask & compare.
+	More optimized early-reject for krb5pa-md5-opencl. This changes our
+	  shared RC4 to no longer hard-code length of decryption at compile
+	  time which also affects the oldoffice-opencl format, but this
+	  had no impact on performance.
+	Update copyright info in OpenCL SHA-1 formats (drop the GPLv2).
+	  There's nothing left of Samuele's initial work in them nor is
+	  there anything of significance from the projects he referred to.
+	OpenCL raw-sha1: Optimizations. Swap binary once before starting
+	  crack, instead of wasting time doing literally 25 billion swaps
+	  per second for the whole crack run. Also unify raw-sha1 with
+	  shared sha1.
+	mysql-sha1-opencl: GPU-side mask & compare.
+	OpenCL: Drop the option USE_SHA1_SHORT (we always use it).
+	lotus5-opencl: Assorted changes trying to nail problems. #1726, #2242.
+	Refactor shared OpenCL primitives functions.
+	RAR-opencl: Use shared SHA-1 code.
+	Bug fix for memdbg builds: The exit checks were never made if
+	  session ended with an abort or --max-run-time reached. This
+	  seriously limited its use when debugging. Closes #2264.
+	Refactor shared OpenCL primitives functions (MD4, MD5).
+	On resuming, print brief info from main cracking mode.
+	c5c1fd3a broke RAR-opencl for OSX.
+	OpenCL shared SHA1: drop unused variables.
+	Add yet another "format class" --format=all that overrides
+	  anything else (eg. [Formats.Disabled] in john.conf) so you know
+	  every single format will be tested/listed regardless of conf.
+	Make --format:all more versatile. It now also support things like
+	  all-gpu, all-@sha1 and so on.
+	as400-ssha1 Unicode test was made too early. No need to complain
+	  if we're not seeing "this" format. See #2252.
+	office2john.py: Pure whitespace commit (spaces -> tabs).
+	office2john: Add handling of a specific problem, so we can continue
+	  with other files instead of aborting with error. I'm not sure the
+	  problem is with corrupt files or a bug in office2john.
+	pass_gen.pl: Errors and warnings should go to stderr.
+	pass_gen.pl: Drop/change some spurious old "print" which should now
+	  be a return string to unified output function.
+	pass_gen.pl: Pure whitespace fixes (spaces -> tabs).
+	Mask mode: Correction for an ETA problem when running non-hybrid,
+	  fixed length, with node/fork AND with a mask that get truncated
+	  due to max length. And only then, whoa.
+	Tweak verbosity levels again. We lacked a level between "normal jumbo"
+	  and the lowest (1, which even suppress cracks). This new scheme
+	  is more future safe: There is currently no level "> VERB_LEGACY"
+	  and "< VERB_MAX" but we can easily just bump the max to 6 if we
+	  need one.
+	office2john: Revert 67d2d385 and also fix .editorconfig so any
+	  python files are specified as having silly spaces-indentation.
+	Some tweaks for recent chmod change. Simplify code, use POSIX macros,
+	  require rw for owner because eg. 0066 will make it unreadable by
+	  yourself. Rename IgnoreLogChmodErrors to IgnoreChmodErrors since
+	  it affects both.
+	logger.c: Code-style fixes, mainly over-long lines.
+	e50f748c missed related changes in john.conf.
+	logger.c: Portability workaround for Windows.
+	logger.c: Portability workaround for Windows, take 2.
+	wpapcap2john: Handle pcaps which lack beacons but do have probe
+	  responses. They look the same as a beacon (for our purposes) so
+	  very easy fix.
+	wpapcap2john: Minor cosmetic changes (diagnostics, comments).
+	MPI: Show node name with OpenCL device info.
+	misc.c: Fix a long-standing #ifdef-logic bug with MPI vs. fork causing
+	  pexit() to segfault due to a dangling 'else'.
+	Fix alignment in usage blob (problem introduced in 347702b).
+	regex.c: Fix a new warning introduced by be39643.
+	AC: Add a test for sizeof(wchar_t). Note: If that type isn't available
+	  at all, size will be defined as 0.
+	Unicode engine: Don't write *pointers as * multiplications, that
+	  sucks. This commit is whitespace-only, no real change.
+	Regex mode: Fix for recent changes in librexgen. We now properly
+	  convert to wchar_t. Closes #2296.
+	CUDA: Fix various problems with OSX/macOS.
+	Rexgen: Handle internal codepage correctly. See #2296.
+	Unicode/wcs bugfix for exotic systems.
+	Drop artifact from b64645f7.
+	When populating test_db, don't honor --user and --salt options. See
+	  #2305.
+	Revert a change in mask.c from 6fb81e0 that introduced a bug.
+	mask.c: Bug fix for resuming iterated length. See #2306.
+	Replace our 7z2john.py with 7z2john.pl (pristine 7z2hashcat.pl)
+	Adapt 7z2john from pristine 7z2hashcat
+	7zip formats: Allow any data size (drop the idea of BIG_ENOUGH). See
+	  #2314.
+	Bump SIMD max. salt length in HMAC-SHA256 format to accomodate for
+	  some JWT tokens. See #2318.
+	Minor fix to office2john. See
+	  https://hashcat.net/forum/thread-5739-post-32191.html#pid32191
+	Raw SHA-1 formats: Revert to unifying to hex, not Base-64. It had
+	  several problems (could not --show old entries, not compatible
+	  with dynamic_26, not compatible with Hashcat and so on).
+	Mask mode: Add ?h and ?H for hex digits (hashcat compatibility).
+	  Closes #2324.
+	mask.c: Fix a silly bug introduced by c19f75fb9
+	Fix for rar2john buffer overrun problems. Closes #2337.
+	Revert "OpenCL formats using "perfect hash tables" can't be used with
+	  single"
+	recovery.c: Re-position a comment that was pushed away from what
+	  it's referring to.
+	Fix weird bugs introduced in c79fce1, messing salt resume up. You
+	  can't look at salt->count, that's the number of hashes for
+	  *this* salt.
+	Drop the raw SHA-0 format. It's unlikely anyone will ever need it.
+	  Closes #2342.
+	Missing update in autoconfig.h.in related to FPGA support.
+	Drop CUDA support. Closes #2348.
+	Some more cleanup after dropping CUDA (mostly cosmetic).
+	Some tweaks to incremental mode vs. --min/max-length options. See
+	  #2316.
+	Fix a hideous bug in CPU version of WPAPSK format concerning new_keys
+	  flag. It was only set in clear_keys() but not in set_key(). This
+	  is not enough when running Single mode.
+	Fix two memory leaks in zip2john. See #2219.
+	Drop CUDA artefacts from doc/INSTALL*
+	Fix more memory leaks in zip2john. See #2219.
+	Fix more memory leaks in zip2john and stop using alloc_tiny. See
+	  #2219.
+	Add new option --single-seed=WORD. This is incredibly effective for
+	  eg. web dumps where some word/name is very common as part of the
+	  passwords. Eg. for the LinkedIn dump you'd use
+	  --single-seed=linkedin together with normal single mode.
+	Document the new --single-seed option.
+	encfs_common.c: Fixes for compatibility with OpenSSL 1.1. See #2355
+	Unicode/codepage fix for --single-seed option.
+	Bugfixes for Unicode/codepage support vs. single mode.
+	Change --single-seed option to only allocate global words once. Also,
+	  never create initials or word pairs from seed words. See #497 and
+	  #2357.
+	Add --single-wordlist option as well as a john.conf list entry for
+	  static single mode seed words. Closes #497 and #2357.
+	Automatically bump word pair limit for --single-wordlist and
+	  --single-seed options to accommodate the list of words. Also
+	  update documentation.
+	Fix a bug in leet.cc format: You can't free a "tiny alloc".
+	Drop all use of ARCH_WORD_64 (introduced in 61cea42 for no clear
+	  reason) in favor of uint64_t. Closes #2361.
+	Some code clean-up in loader.c, and fix potential issues with
+	  truncated pot lines. See #2366, #2367.
+	7z2john.pl: Upgrade from upstream 7z2hashcat.pl. See #2314
+	7z2john.pl: Update from upstream 7z2hashcat.pl. See #2314.
+	Drop a whole bunch of obsolete stuff from "unused" directory. We
+	  should be a bit more restrictive with archiving stuff there.
+	  Samples should not be placed in the repo at all, we have a wiki
+	  page for them. Docs should be in docs directory.
+	Add LZMA and LZMA2 decompression functions (from LZMA SDK).
+	7z formats: Add support for LZMA and LZMA2 decompression. Reduce false
+	  positives to nearly zero and drop FMT_NOT_EXACT. Despite this
+	  we've now got a number of optimizations for early rejection.
+	7z2john.pl: Update from upstream 7z2hashcat.pl.
+	7z: Bug fix for coder props parsing.
+	7z2john update from upstream.
+	Fix a recently introduced memory leak in 7z formats.
+	Memdbg fixes for new LZMA code.
+	7z formats: Avoid FP, ensure we round up to AES blocksize.
+	7z2john.pl: Update from upstream. Support added for SFX files. Closes
+	  #2120.
+	Fix non-thread-safe code in enpass-opencl. Closes #2393.
+	7z2john.pl: Update from upstream.
+	Add generic OpenCL code for AES. Not used yet.
+	Enpass and Strip formats tweaks. They had unnecessary large buffers
+	  and decrypted more than needed.
+	wpapsk2john: Drop hard-coded limit of ESSIDs supported in a batch
+	  (realloc on the fly instead). Also search the database in reverse
+	  order for quite some speedup on extremely large pcaps (eg. from
+	  war-driving where the related data to a packet is more likely to
+	  be near end). This was inspired by recent huge sample posted in a
+	  Hashcat issue (955).
+	OpenCL AES fixes.
+	ODF-AES OpenCL format: GPU-side AES decryption. This was mostly made
+	  just for testing and PoC but it turns out it made for a better
+	  than 4x boost on nvidia Maxwell (single CPU thread). AES code
+	  is still not optimized at all and there's a couple of SHA-256's
+	  we could move to GPU as well if we wanted to.
+	Add a mem_realloc() function just for good measure. Some uses of
+	  realloc can't use this because they are in external *2john tools
+	  that don't link memory.o. Others have their own special
+	  handling. Closes #2365.
+	OpenCL AES: #ifdef out AES_cbc_encrypt so we don't get complaints for
+	  unused functions.
+	7z2john.pl: Update from upstream.
+	Shared SHA-2 OpenCL code: Bugfixes. Protect macro arguments and ensure
+	  second-level macro gets its W variable correctly.
+	plugin_deps.pl: Support OpenCL kernel sourcing other kernel(s).
+	OpenCL ODF-AES format. Try a new approach for using several kernels,
+	  and now do *all* work on GPU (and drop OpenMP). This yielded
+	  another near 4x boost and including recent 4x boost we are now
+	  near 15x the original speed. Closes #2400.
+	7z-opencl: GPU-side early rejection (check AES padding). Closes #2398
+	7z-opencl: Minor fixes.
+	7z formats: Add padding size and compression type as "costs".
+	agilekeychain-opencl: Move all work to GPU. Closes #2403
+	Correction for agilekeychain algo name (missing in last commit).
+	bench.c: Bugfix for dyna salt when 1st salt is reused (would
+	  segfault).
+	Enpass OpenCL: GPU-side AES and verify. Closes #2404.
+	Drop an unused variable in enpass kernel.
+	Fix for a segfault in dynamic prepare() during pot reload. I'm not
+	  quite sure who's to blame but I fixed it in crk_reload_pot().
+	  Closes #2415.
+	Enpass kernel: Fix a race condition problem with the "any cracked"
+	  bit.
+	7z2john.pl update from upstream. Support for split archives added.
+	  Upstream c143795..fe800e0.
+	Globally fix about a thousand whitespace violations. Contrary to
+	  popular belief, omitting spaces doesn't make your code faster. It
+	  is actually a little harder than that. Also change a number of
+	  "char unsigned" to the more friendly "unsigned char".
+	7z-opencl: 62cec9d5 introduced a false negative bug for the "many
+	  salts" case. We did the early reject for all salts using data from
+	  just first salt. Add a separate kernel for the AES stage and
+	  run it per salt.
+	Fix race conditions and other bugs in recent AES OpenCL formats.
+	OpenCL agile/iwork/enpass formats tweaks / bugfixes.
+	7z-opencl: Drop an unused variable.
+	OpenCL AES: Add ECB interface.
+	Add volatile to variables handled with atomic functions.
+	OpenCL AES formats: Optimization just for good measure.
+	Enpass-opencl: Copy/paste bug
+	New Office OpenCL format joining the separate ones (#2424)
+	Allow building against OpenSSL >= 1.1. Formats that will be disabled
+	  are currently GPG, GPG-opencl, KRB5TGS, PDF, PFX and WPAPSK (CPU
+	  only). Closes #2355.
+	Add build-time warnings for disabled formats. See #2355.
+	Drop PFX format in favor of PFX-ng and rename the latter (but not its
+	  format tag). Closes #2431.
+	Drop OpenSSL dependencies from WPA-PSK format. Closes #2434.
+	GPG formats: Support OpenSSL 1.1. Closes #2430.
+	AES fixes for internal AESNI-aware code vs. OpenSSL.
+	GPG format needs OpenSSL for AES_cfb128_encrypt
+	Add a self-test for -opencl suffix in label being lower case as
+	  required. See #2436.
+	Zip-opencl: Drop AES from algorithm name, it's not used!
+	o5logon-opencl: White-space fixes (no-op).
+	o5logon-opencl: GPU-side AES and verify. This made a 7x boost.
+	OpenCL formats: Sod using atomics. There simply is no safe way to
+	  initialize the variable to 0 other than to do it in a separate
+	  kernel or transfer it from host side. These formats aren't fast
+	  enough that it matters anyway. See #2439.
+	Various minor OpenCL optimizations and bug fixes.
+	ssh-ng bugfix for truncated pot entries. See #2457.
+	AS400-ssha1 format: Don't use identical test vectors with different
+	  syntax. See #2457.
+	External HybridLeet mode: Case-toggle letters that lacks leet
+	  alternatives. Closes #2461.
+	Do not allow a hybrid external mode applied to single mode. Closes
+	  #2462.
+	Add a --max-candidates option.
+	Fix weird bugs introduced in 0ceedb2 including --make-charset not
+	  working at all.
+	Let new -max-cand option also affect -stdout
+	Followup work for new -max-cand=N option. Closes #2475. * Change
+	  the "Session aborted" message when session was stopped due to
+	  max. reached. * Allow resuming such stopped job (for processing
+	  next set of N cands). * Document the option. * Avoid silly
+	  portability problems with %lu vs. %llu for uint64_t.
+	Some updates and white-space consistency for doc/OPTIONS.
+	-max-cand=N option can now take a negative number. That means the
+	  "count" will reset on each crack (so it will terminate after N
+	  candidates are tried since last crack). See #2475.
+	Set CRLF line feeds for john.asm in .editorconfig. See #2484.
+	Drop our local stdint.h
+	Drop obsolete typedefs.
+	unicode.h: Use stdint.h types
+	Makefile.in: Drop a stray "stdint.h" dependency for bitlocker2john
+	  that probably got in when merging.
+	Travis CI: Allow OpenCL failures
+	Fix a bug where --show=left only showed statistics (but no hashes)
+	  unless at least one hash was already cracked. Closes #2506.
+	keepass format: Move sharable stuff to a separate file, in preparation
+	  for an OpenCL version.
+	zip2john: Support 64-bit sizes in zip version 4.5. See #2528.
+	Assorted 64-bit-size fixes for zip/pkzip formats. See #2528.
+	Fix a bug in fgetll. We somehow overlooked that fgets' size arg is an
+	  int!
+	Fix a pkzip problem with sizes exceeding 32-bit signed int.
+	Do not trust AES padding as early-reject for 7z (unless that's the
+	  only thing we can do due to truncated data). Closes #2532.
+	Oldoffice formats: Fix a bug caused by using source() in a salted
+	  format. This is simply not supported. Add a self-test to stop
+	  us from doing the same mistake in the future. Closes #2535.
+	Add some better information for password max-length in case of UTF-8.
+	  We now express it in characters, not bytes.
+	DMG-opencl: Change max. duration to be less strict.
+	Bug fix for new length reporting. See #2529.
+	Tweaks for new length reporting. See #2529.
+	OpenCL: Whenever format have a notion of "cost" and we're auto-tuning
+	  with (#2544)
+	SAP format fixes for max. length.
+	Bug fix for recent auto-tune-with-real-db.
+	Minor cleanup in 7z formats.
+	Length reporting tweaks for LM formats.
+	Hard code SAP/B length reporting for non-UTF-8 and set FLG_8_BIT
+	  again. Closes 2545.
+	Don't start "the clock" until all loading, auto-tune etc. are done.
+	  This ensures stable speed readings from start, and things like
+	  --progress-every and --max-run-time will work better.
+	NT-opencl: nvidia bug workaround. Closes #2335.
+	Add a separate .editorconfig for src/ztex subdirectory, reflecting the
+	  odd mix of line endings. Closes #2484.
+	pkzip format: Fix a bug in salt compare size and add a note about
+	  "same password assumed within one archive". Closes #2542.
+	Fix a couple of obscenely promiscuous or slow prepare() functions.
+	  There's many, many more to fix.
+	Apply nvidia bug workaround in three more formats. See #2335.
+	Add a format flag FMT_HUGE_INPUT telling us that a format supports
+	  huge input lines (ie. longer than LINE_BUFFER_SIZE) and thus
+	  may/will truncate its pot entries.
+	OpenBSDsoftRAID format: Drop a dupe test vector so we don't confuse
+	  the test suite.
 
-JimF (905):
+JimF (1395):
 	configure: removed many function checks (for #910)
 	phpass: non-OMP builds were no SIMD, fix #916
 	configure: Added arm-NEON instruction detection logic, #911
@@ -3269,6 +3948,701 @@ JimF (905):
 	hmac-SHA256: New larger salt logic was busted for salts of varied
 	  sizes
 	hmac-SHA256: changed the SIMD salt structure
+	added onlyhex salt type for dynamic. This will use salt dictionary
+	  with only low case hex
+	dynamic_generic_expressions: Got working with re-gen salts logic.
+	  #1463
+	makefile.in: memdbg.o this one should not have been added
+	hmac-SHA256: Added JWT hashes to format. #1904
+	hmac-SHA256: a little more safety in the JWT convert logic.
+	hmac-SHA256: still more validation checking in split.
+	rawsha1-linkedin: binary function not declared static
+	vdi added to pass_gen.pl (still have 128 bit to do)
+	aes-xts: moved to its own file, to make it easier to use by multiple
+	  formats
+	wrong create bits
+	VirtualBox .VDI encrypted disk format
+	VDI: added aes-128-xts code and vectors
+	VDI: compile problems on non SIMD systems.
+	vdi2john: new conversion program for Virtualbox encrypted disks
+	made AES-XTS into more generic function. Now there are params for
+	  128/256 bit AES, and a param to do decryption vs encryption
+	VDI: Ported properly to BE systems.
+	base64: hex2raw conversion was null terminating???. Caused buffer
+	  overflows. Raw data should never had this done to it.
+	verbose message removed \n char. Fixes #1958
+	dynamic (many formats), fixed problems with OMP runs
+	some porting issues for MSVC
+	dynamic: Fixed threading problem.
+	dyna: fixed other OMP failures
+	revert a7af331
+	fix build problem for CircleCI (mingw in general) after 0e235c7
+	last patch would not compile. malloc vs mem_all0c_tiny use different
+	  params :(
+	jumbo.c: removed memory.o dependancies
+	Many formats. Removed undefined shifting of signed ints. #1957
+	postgres: failure to load with user names of variable lengths. Problem
+	  found with Test Suite
+	postgres. Longer user name added to self test vectors. Without the
+	  salt cleaning, the ST will fail
+	john.c: avoid loading test db in -skip-self-test mode. Fix #1967
+	bt.c: switched setitimer to getitimer. Fix #1966
+	pass_gen.pl. Added QNX hashes
+	qnx: cpu, non-SIMD format. #1970
+	change mode bits
+	qnx: added fmt_split_case, founnd by the CI
+	qnx: moved split to common code
+	qnx: removed split, and valid() fail hashes with upper case
+	qnx. Bug in valid, and added max length sha512 hash that works
+	  currently
+	sha512: added QNX hashing bug to generic sha512 source
+	Fixed numerous warnings on my sparc system. Possible uninitialized,
+	  missing headers, etc
+	qnx: improved speed of sha512 (for 128%pwlen==0 passwords). Also fixed
+	  memory leaks in get_salt/valid
+	base64_convert: major overhaul. Now buffers adhere to max size
+	  requirements, INCLUDING null padding. NO extra bytes needed
+	opencl_rawmd5: ASAN overflow fix. Fixes #1979
+	pass_gen.pl Added special code to get SHA512-qnx hashes to work. The
+	  pod is in unused, and the code is currently commented out within
+	  pass_gen.pl
+	Found out a local perl mod does not need execute bit. Thought it did
+	pass_gen.pl: fixed bug in get_salt() where a charset would not be used
+	  unless there were 3 args. Changed qnx hashes to use get_salt with
+	  hex-low
+	.editorconfig ending \n missing from the new .pm file
+	axcrypt: fixed asan overread bug. Fix #1987
+	dynamic: added McAfee master unlock password
+	dynanmic-expressions. Handle NULL bytes in constants. Fix #1985
+	fuzz: cygwin port problems fixed
+	fuzz: remove files upon successful fuzzing test. #1969
+	bench: make -test=0 deterministic in the number of times things are
+	  run
+	bench: commented out debugging code was not right
+	fuzz: rolled back file removal code. That change was likely very wrong
+	  thing to do
+	legacy generic build fixed for usage with new test_db logic
+	config: emit warning when a List.*** section is replaced with another.
+	  #1988
+	bench.c: generic build. New ldr_* functions could not be static
+	stribog: #warning is not portable
+	config.c: warn for multiple List.* sections if -verb is > 3
+	gost3411-2012-sse41.h: use a john header, so systems without
+	  inttypes.h work
+	stribog: warn for __GNUC__ and _MSC_VER
+	hmac-sha384 and 512. Salt not aligned properly. Fix #2000
+	dynamic-compiler.c: ASAN error. #2004
+	dynamic-compiler.c: Possible buffer overflow cases. #2004
+	qnx-sha512. avoid div by 0
+	raw-sha1-axcrypt: handle raw 32 byte hex hashes
+	gpu_sensors.h: made adjusments to compile under cygwin (win32)
+	hmac-SHA*: Salt alignment was wrong
+	formats: ST failures. provide additional help when -verb>3 is used
+	  (failure hash, etc)
+	formats: bugs in new printf strings for debugging
+	QNX-sha512. Figured out some issues, and now all hashes should match
+	  the buggy QNX implementation
+	sha2, remove execute bit
+	formats: better self test failure verbage under higher verbosity
+	  settings
+	pass_gen: added SXC hash creation
+	raw-sha: common code was WAY too promiscuous in prepare/split
+	  converting any 40 byte line into an SHA1 hash
+	pass_gen.pl: added VNC protocol
+	vnc: moved key loading into get_key. Use ECB instead of CBC mode.
+	  About 20% improvement in speed
+	vtp: improved multi-salt speed tremendously
+	vtp: attempt to get OMP working on the CIs
+	VTP: Fixed OMP bug also improved speed some by not double buffer
+	  copying
+	pass_gen: added VTP hash
+	cloudkeychain. Fixed issues found with jtrts
+	pass_gen: added cloudkeychain
+	pbkdf2_hmac_sha256.h: muted compiler warning
+	AzureAD: moved MD4 code into OMP section of format
+	wowsrp: cache first SHA1 for multi-salts
+	wowsrp: rolled back 3a94817. It was busted even though ST passed
+	hsrp: doubled speed (or slightly better)
+	racf: simplify encryption. Speeds it up a bit
+	racf: improved multi-salt speeds by caching schedule setup. #2023
+	SybaseASE: improved multi-salt speed about 3.5x. #2023
+	wbb3: improved multi-salt speed some (about 20%)
+	dynamic: large update. Added ability to crypt to an offset in the
+	  buffer. Fixed several bugs
+	mask: problems expanding ?d inside groups. #2029
+	mask: replacement skipping in groups had to handle escaped [ and ]
+	mask: handle non set custom placeholders
+	mask: abort on undefined placeholders, and abort on empty groups.
+	  #2034
+	mask: proper abort logic
+	unicode: expose utf8_to_utf16_be to the world
+	keystore: cache password work. Setting up for SIMD conversion
+	keystore: added SIMD logic
+	keystore: fixed ASAN error, and hopefully ST failures on CIs
+	keystore: fix for overwrite, hopefully fixes CIs
+	keystore: disable SIMD until I can figure this out
+	formats: change to sprintf did not match params. Warning came from
+	  circle-CI build only?
+	AxCrypt-Auditing-HOWTO.md: removed UC2 and DOS eol problems. Fix #2041
+	configure: enable a couple of compiler warnings which were not being
+	  enabled
+	keystore: removed warning, changed cmp_all logic to do the real work
+	  for SIMD runs
+	remove clang warnings from john.c and cracker.c. Created new itoa
+	  functions
+	pass_gen: added keystore (not 100% sure it is correct, but I think so)
+	hopefully fix errors on MinGW build for CircleCI
+	krb5tgs: mute compiler warning
+	pass_gen.pl: made a tweak on keystore, to make it mimic ITW hashes
+	  better
+	keystore: got SIMD code corrected. buffer overwrites
+	keystore: hopefully working properly with PARA_SHA1 > 1
+	keystore. adjusted copywrite
+	ax-crypt: fixed ASAN overread. Fix #2042
+	pass_gen.pl: still a nit in keystore
+	editorconfig: set utf-8 to be default encoding for all edited files
+	gitignore. Added *.tmp to files to be ignored
+	keystore-opencl: Fixed bug for binary passwords. Improved performance
+	  about 2.5x. Created common code to share with CPU version
+	bug in bench.c. When testing multi-salts, the salts were NOT being
+	  allocated with approved alignment
+	bench.c: last checking had problems. Now simply using mem_alloc_tiny
+	remove -x bit from file
+	bench: reusing mem_alloc_aligned. Changed memory.c to handle
+	  alignments < sizeof(void*)
+	ssh: mem leak. #1247
+	dyna_salt: The init function now returns the format that was linked
+	  in, so we could undo if we need to
+	ssh: removed problem with dyna_salt leaking. Changed loader.c to call
+	  dyna_salt_init at an earlier time (prior to calling valid)
+	memdbg.c: added code (commented out) in checkShapShot_possible_exit()
+	  so that all memory in the list, even freed is shown
+	zip: emit 1 time warning when older hash signature seen. Fix #2061
+	logging: added optional date signature to start of log lines (default
+	  is NO date signature)
+	memdbg: would not build under Makefile.legacy
+	logger: give option to log datestamp in UTC
+	hmacMD5/SHA256. Found bug in computation of bit count. Still does not
+	  fix all problems
+	hmac-MD5/SHA256. Same bug as prior, but still does not fix things
+	hmac-md5: Possibly fixed.
+	hmac-SHA256: same corrects as provided by hmac-md5
+	pass_gen: hmac-md5 and hmac-sha256 now generate random length < 184
+	  byte salts
+	hmac-md5 and sha256: normalized buffer defines based around PAD_SIZE
+	  (and PAD_SIZE_W for when used as offset into ARCHWORD_32 arrays)
+	pass_gen: made long salts for hmac-sha224, 384 and 512
+	hmac_*: got long salts all working properly. Changed code so each
+	  format is much more similar to all others. We may merge files at
+	  some time
+	hmac-SHA224/256: Merged into a single format file
+	hmacsha224 file delete was missed
+	hmac-SHA384/512: merged into a single file. Some small changes to
+	  hmac-SHA256 also
+	hmac-sha384: bug in non-SIMD logic.
+	logger: place fork# after date. Also added date logging when using
+	  --log-stderr command line switch
+	memory.c: Failure allocating aligned 0 byte. Showed up on sparc
+	old_office: fixed memory leaks
+	pbkdf2_hmac_md5 and md4: These were not working on BE system. Now
+	  they do
+	removed BE swapping from pbkdf2 code. Greatly simplified BE stuff
+	last BE change missed a few files
+	dyna-compiler: fixed core when using constant data under certain
+	  situations. Fix #2067
+	zip: was not processing zip files with external linked files. Fixes
+	  #2063
+	opencl-zip: same bug as was in the CPU version
+	XSHA512: stop strcpy of data past end of buffer. #2065
+	memory.c: return null on 0 size, and added some asserts
+	memory.c: cosmetic changes
+	john.c: In cygwin, when using -fork, the tty is screwed upon exit (no
+	  echo). This simply fixes it for cygwin builds
+	cygwin: proper fix for screwed TTY after -fork mode run
+	SHA512 formats (cpu/opencl/cuda). Use more of the common code in
+	  rawSHA512_common_plug.c
+	zip/openclzip: created common code for tests, valid and binary
+	phpass. Made common code for CPU, Cuda and OpenCL. #978
+	phpass: common code failed on non-SIMD systems
+	pass_gen.pl: added pbkdf2-hmac-md[45] hashes
+	pbkdf2-hmac-md4: common code for CPU and OpenCL. Fixed bug in opencl
+	  and increased max salt length to 115 bytes for both CPU and GPU code
+	exe bits set, and cleared
+	opencl-pbkdf2-md4 kernel simplify code a bit
+	pbkdf2-hmac-md5: common code for CPU and OpenCL. #978. Saltlength set
+	  to 115 bytes
+	pass_gen: increased max salt length possible for other pbkdf2-hmac
+	  formats
+	editorconfig: added .cl to normal handled text file group
+	pbkdf2-hmac-md[45] opencl kernels. Reworked code to avoid 2nd limb
+	  array. When adding long salt to sha1, I was not able to get it
+	  working until I removed that 2nd array
+	sha1-crypt: added 115 byte max salt logic
+	pbkdf2-hmac-sha1: made common code for CPU/GPU. Extended salt length
+	  to 115 bytes
+	pass_gen: pbkdf2_hmac_sha256 was not putting out longer length salts
+	  properly
+	pbkdf2-hmac-sha256: created common code between CPU/GPU #978. Extended
+	  salt max length to 115
+	sha1crypt: reverted max salt length to 64 bytes. pbkdf1-hmac-sha1
+	  still allows 115 byte salt, this format simply validates 64 byte max
+	  salt length
+	some tweaks missed on common code for pbkdf2-sha1 and sha256
+	pbkdf2-sha512: common code added for CPU/GPU formats. #978
+	mscash/mscash2. Common code changes, cuda/openCL/cpu. #978
+	gpg: common code created for GPU/CPU formats. A LOT of common code.
+	  Still probably more to do
+	recent common code changes. Missed memdbg.h include in some files
+	gpg: improved performance on multi-hash for sha1/ripemd160 by
+	  properly aligning data in 64 byte blocks. There was about a
+	  10-20% improvment due to stopping of buffer copying. However, this
+	  change does not appear on the -test=x line, since none of 2 test
+	  hashes use multi-hash length. For sha256 and sha512, it should
+	  never end up in multi-hash mode, unless larger keys are needed
+	gpg/gpg-opencl. Improved sharing. Added all formats to openCL format
+	  (reverting to CPU code). Other improvements and bug fixes
+	SHA512 common code. Setting wrong alignment in binary. Only affected
+	  32 bit builds
+	gpg-opencl: issue warning when running and there are hashes which
+	  would use CPU code. Added some comments
+	opencl SHA1 CTX model. Code moved from gpg kernel code, into a header
+	  file so it can be used by other kernels
+	wrong exec bit set
+	gpg-opencl. Kernel code now handles > 16 byte keys. Also updated CPU
+	  code to better match GPU code for this function
+	added a .git pre-commit hook file. Everyone could use this local hook,
+	  but it has to be linked from JtR root to .git/hooks/pre-commit
+	  before it will do anything
+	pre-commit hook. Edit was missed
+	pre-commit hook. Added additional txt file checks
+	pre-commit. Was getting exit 1 on certain conditions
+	cleaned up a couple of file problems, mode and DOS lines
+	pbkdf2-hmac-sha2.h Missed adding git commit -m "pbkdf2-hmac-sha2.h
+	  Missed adding defined(OPENCL_FORMAT) in the opencl-pbkdf2-common.c
+	  file. This was triggering warning about static code not being used.
+	  Fixes #2070
+	pre-commit. Slight changes again.
+	pass_gen. removed -vector option, added -outformat=s option. options
+	  can be normal, raw, user, vector. Since we have a common output
+	  function, this was easygit add ../../run/pass_gen.pl !
+	pass_gen. updated usage screen (names now format to width of console).
+	  If -vector mode, then there must be only ONE hash listed
+	cuda builds: include johnswap.h. Fix #2076
+	typo in cuda_cryptmd5_fmt_plug.c
+	v1 changes for external-hybrid mode
+	recovery. File locking problems in cygwin worked around. #2068
+	external:hybrid documentation
+	fixed problems in external_hybrid_example script
+	external.c: fixed a bug in hybrid external mode. Now working
+	some edits to doc
+	external-hybrid. Changed some variables, and fixed bug in fix_state
+	  for hybrid runs
+	restore testing format added.
+	restore-tester, got OMP working for OMP_NUM_THREADS > 8
+	restore-tester format. A fake format that can be used to help fix
+	  issues in restore, or pause, making sure john misses no candidates,
+	  and does not rerun words
+	hybrid-external. Handle bug found by magnum, where a filter failure
+	  was also aborting the entire crack loop
+	recovery. Hack fix for cygwin, now done for all runs-over-win32
+	  systems
+	external-hybrid. Got restore working 100% correctly
+	external-hybrid. Added logic (I hope) for utf32 processing
+	external-hybrid. Changes for utf32 were not right
+	restore_tester format. Proper porting to VC. 20ms delay for each
+	  candidate check
+	restore_tester format. Proper porting to VC. 20ms delay for each
+	  candidate check
+	removed this file from the fork
+	external-hybrid. Corrected a couple issues pointed out in #2027
+	wordlist: Fixed restore problem if wordlist was fully preloaded in
+	  memory. #2082
+	wordlist: restore. Fixed issues between restoring mem_map and
+	  non-mem_map builds. #2082
+	unused/restore_tester format. Added multi-salt format
+	salted hashes, proper restore for the salt, #2082
+	Revert "salted hashes, proper restore for the salt, #2082"
+	multi-salt save-restore logic. Code added to validate salts are
+	  exactly the same upon recover as they were when the .rec file was
+	  saved
+	deterministic salt order within salt sorts
+	dynamic salt sorting. Wrong logic before
+	restore_tester format: added 3rd type, salted-hashed. Also casecmp in
+	  valid, so that multiple hashes can have same salt
+	salt-resume logic, using deterministic sort order salts and unique
+	  hash salt detection
+	dynamic md5 salt generation was using wrong data
+	loader: removed comment about experimental sorting, since now we
+	  always sort
+	restore-tester format: moved to TestSuite project
+	file added to gitignore, and .pre-commit.sh hook was incorrectly
+	  flagging a deleted file as not having an EOF
+	loader. Removed sort by salt count, so that salt sorting is
+	  deterministic
+	base64_convert. Problems in base64 to base64 convert if last block was
+	  not full length. Fixes #2088
+	pass_gen.pl: added racf
+	rar5-opencl. Recent common code changes broke this format. #2093
+	pbkdf2-hmac-sha1: small issues not properly common code converted.
+	common-opencl: split() was not being called during auto-tune running.
+	  Caused common code pbkdf2-sha1 to core
+	memdbg: removed tiny logic from realloc. Removed some strange code
+	  from header
+	memdbg: reworked MEMDBG_realloc. Fixed #2062
+	wpapsk: sort salts deterministically
+	oldoffice: assure full salt is used in salt-sorting
+	oldoffice: removed redundant calls to dyna_salt_init within
+	  salt_compare
+	korelogic.conf: updated Rules:ReplaceSpecial2Special go handle more
+	  characters. Fixed some bugs. Then replaced entire rule list with 2
+	  rules
+	korelogic.conf: merged more, using the rules PP
+	external: restore problems. #2099
+	external-hybrid restore: The ext-v1 record did not have proper \n
+	  ending the record
+	recovery.c: changes writing .rec file for cygwin/mingw/msvc. May
+	  relate to #1949
+	recovery.c. Improper mingw define used
+	common.h / common-opencl.h Moved the get_power_of_two macro into
+	  common.h. Fix #2091
+	command line rules. Fix #2105
+	elite external-hybrid mode added to john.conf
+	updated extern:leet script.
+	external:case mangler (hybrid external) added to john.conf
+	extern-leet: Removed some conversions which were pretty rare in real
+	  world test cracking
+	external-hybrid restore. Always chomp the line, not just on success
+	external-hybrid resume was not right
+	cracker.c: multi-salt restore records were often being written for
+	  non-salted hashes
+	rexgen: case alphabets. Renamed to cased, so it works, now that rexgen
+	  has removed the case option internally
+	single: fixed memory leak if externs are used
+	regex: port issues for VC
+	leet external-hybrid. Some additional max candidate checks
+	john.conf: external-leet, more adjustment to total work
+	dynamic: improved performance for single mode work. Does use more
+	  memory, but its at least 2x faster.
+	mask.c: vc and mingw can not handle %hhu
+	Changes required to incorporate PasswordPro/HashCat rules
+	rules: rules_count was not counting rules properly, nor doing dupe
+	  removal in HC mode
+	Rules Hashcat. Added documentation
+	exe bit removal
+	dynamic: allow valid() to not fail on salts with embedded null bytes
+	  (which can not have the $HEX$ removed from the salt string)
+	hash-cat-rules. Add some warnings about the git add
+	  doc/RULES-HashCat HashCat ON logic
+	symlink: remove warnings about undefined execv function
+	new hashcat rules, changed HashCat into hashcat (text strings users
+	  will see)
+	external. Allow enumeration of external hybrid words
+	config: recent change leaving trailing space on read lines impacted
+	  parameters. They were not being found properly
+	rules: Changed HashCat into hashcat.
+	rules: hashcat logic. Proper handling of code in rules_reject. Only
+	  skips the - reject code, and does all other
+	Rules: Added ONM which omits a range of characters
+	rules: added eC and e?C which are extended title case rule
+	make debug was failing to link (missing assert)
+	rule x rule stacking (perl script). Also john config processing in
+	  perl module. #2122
+	jtrconf.pm: removed experimental warning, by dereferencing the arrays
+	jtr_rulez.pm: Moved this common module here, was in test. I plan on
+	  using this for other john utils, so wanted it in a general location
+	jtrconf.pm: needed hard copy, or we were pulling back the reference
+	  later
+	perl config code, better default basepath
+	rulestack perl script. Improves finding the other modules
+	RULES-hashcat. pure white space change
+	sha2.h: updated for older oSSL, so that include of just sha2.h was
+	  enough. gpg_common and other code just includes that header
+	added HC p command. Added Onm command Fixed numerous bugs in
+	  new HC type rules. Fixed E and added 'e' command. Handle
+	  spaces properly interspersed in rules as valid character data.
+	unicode.c Would not compile if UNICODE_NO_OPTIONS was used
+	rules.c: removed undocumented McXyz handling in c and C rule
+	  operations
+	rules.c McXyy change for c was not correctly done
+	config: in HC mode, we were NOT processing [ leading rules. We were
+	  silently ignoring them but not using them
+	dynamic big crypt: Wrong years in copywrite notice
+	POC for generic code to handle VERY LARGE non-hash types
+	keepass was crashing after we set LINE_BUFFER_SIZE to small value.
+	  This is a hack fix, but gets things working for now
+	super long hashes now truncated in the .pot file
+	korelogic 1 line leet line had some issues
+	gost: sse4.1. changed code so it builds in 32 bit mode with or
+	  without -O2
+	potcheck.pl. Right now, just a skeleton script. #2161
+	potcheck.pl: -validate and -longline_fix should be working now
+	loader: increased file line buffer, to handle max sized value, AND the
+	  password
+	potcheck.pl: line buffer should have been 1k, not 4. Also, lines are
+	  trimmed to 256 bytes, not max size, BUT max size is used for
+	  -validate switch
+	potcheck.pl. Constant changes does at request of Magnum. This should
+	  now be done for -long and -validate switches
+	loader.c: revert commit 7856266
+	base64 (and common) changed int into size_t where needed
+	configure: added potcheck.pl logic to configure script. It will abort
+	  if there are any LONG lines in ../run/john.pot
+	base64_convert.[ch] More work on size_t. commmon.[ch] reverted
+	base64: changed int into size_t
+	fuzz.c: returned buffer size to 0x30000. Fix #2166
+	fuzz.c: permissions
+	rar2john. Fix for 31-32 bit size, and FIXME comment about getting 64
+	  bit length buffers
+	rar2john: Handle > 32 bit lengths. Fix #2170
+	added .log message directive code into rules scripts. #2140
+	common.ch: removed unused base64 functions. From comment in #2132
+	added .log processing to prince and single modes
+	radius2john better handling of very long salts
+	radius2john.pl: long salt was WRONG dynamic type
+	radius large salt documented
+	base64_convert.c: pure white space changes.
+	dynamic.conf: added mongodb, salted, MiTM
+	pkcs12: added SIMD logic. #2176
+	pfx: added SIMD sha256. improved validation. Added hmac-algo to
+	  formats cost
+	pfx-ng. Hopefully fixed problems with SIMD crashes for SHA256
+	pfx-ng. disable SIMD for SHA256 until the problem is found
+	palshop: improved performance
+	pfx-ng: added SIMD for sha512 and corrected SIMD for sha256
+	scam: added SIMD code. Fix #2186
+	bks: non-simd was failing
+	rar2john: size_t can not be used for 32 bit builds. Must be a 64 bit
+	  value
+	scram: adjusted header include order, so that we can turn off SIMD for
+	  speed testing
+	pkcs12: would not build properly on non-SIMD systems (sparc)
+	XSHA512: was still returning binary align warning for sparc-32. Now
+	  no warning returned
+	rawSHA512_common: quiet silly compiler warning
+	o5logon: fixed crash on requires alignment systems
+	phpass: fixed core on requires align CPU
+	pbkdf2-hmac-sha1. Fixed failure on BE systems
+	gost.h: some builds were having macro redefine problems for
+	  bswap_32/64 macros. Now gost.h uses johnswap.h macros instead of
+	  trying to recreate them
+	.pot hash trim. Added $ for any format with binary_size>0. #2188
+	pfx_ng can ONLY handle 30 byte passwords, at this time
+	pfxng. Some debugging code slipped in on last commit
+	krb5tgs: fixed already cracked hash removal logic. Fix #2188
+	hmac-sha: added hmac-sha224 and hmac-sha384 to the easy jtr interface
+	pfx-ng: added non-simd sha224 and sha384
+	pfx-ng: bumped PLAINTEXT_LENGTH to 48, which seems to be the max that
+	  openssl can generate
+	SSHA512: Fixed ASAN buffer overflow bug
+	zipmonster format: added SIMD logic. Could still be improved some
+	zipmonster: fixed crash in some SIMD builds
+	radius changes in dynamic conf, due to very large salt changes
+	zipmonster: 25% improvement in speed for SIMD code
+	zipmonster: another 25% improvement in speed for SIMD code
+	zipmonster: small improvements in ossl, a bit in SIMD, and removed
+	  original commented out SIMD hex-upper code
+	zipmonster: some changes when I was trying to track down the SIMD
+	  core problem was left in. Now removed
+	testing code was inadvertantly pushed
+	chopped hash .pot support added to certain questionable formats. #2117
+	.pot chopped file valid() processing moved into common code in
+	  loader.c
+	additional work normalizing FORMAT_TAG type defines
+	Additional normalization of FORMAT_TAG defines. #2196
+	Additional normalization of FORMAT_TAG defines. #2196
+	Additional normalization of FORMAT_TAG defines. #2196
+	Additional normalization of FORMAT_TAG defines. #2196
+	Bugs in last normalization push. #2196
+	Additional normalization of FORMAT_TAG defines. #2196
+	Additional normalization of FORMAT_TAG defines. #2196 (all completed)
+	loader.c: auto-pot chop logic. One condition was failing. Needed
+	  shorter length
+	regex 1.4 integration, and full restore logic
+	rar2john: improved performance quite a bit for large rar files
+	line endings
+	common: change hexlen*() functions to all be size_t
+	rpp: reset refs, so that rpp can be run more than 1 time (needed for
+	  rulez-toolz projects
+	improved XSHA512. Part of changes made tracking down core on sparc
+	  systems
+	cisco-asa: added a short salt
+	wrong format tag length used
+	atoll for systems without atoll. #2220
+	Makefile.in: added jumbo.o to genmkvpwd for non-atoll systems. #2220
+	pass_gen.pl: added zipmonster, asamd5, mongodb_scram, has160, fgt,
+	  iwork, palshop, snefru hashes
+	pass_gen: added mdc2, efs and keyring hashes
+	memory.c: fixed crash in argon in memdbg mode. #2226
+	argon: some changes to build properly on certain systems
+	memdbg.h: fix build problems for mingw on circleCI
+	loader changes needed for -show to work properly. chopped pot issues,
+	  and chopped pot with BIN_HASH data also.
+	mscash: wrong length used for signature check. #2225
+	off by one error in strnzcpyn() found with jtrts.pl, when adding
+	  palshop and eigrp hashes
+	radmin: avoid buffer overread (asan) bug
+	argon2: merged 2 formats into 1. Put tags on extern functions, and
+	  made many others static. #2229
+	argon2i: removed the older format file
+	oracle-9i sniffed hash (new format)
+	oracle9i. This one is actually CASE SENSITVEgit add
+	  oracle9i_fmt_plug.c even though oracle is not. This is due to the
+	  password being encrypted. I am not 100% sure it is case sensative,
+	  OR if the encryption is alway the lc of the password. We need more
+	  research on this onegit add oracle9i_fmt_plug.c
+	oracle9i-sniffed. Used asan to find some bugs causing CIs to fail in
+	  -test-full. Did not core on cygwin
+	oracle9i: fixed bus error on Sparc. Hopefully this will fix clang
+	  crash on TravisCI
+	oracle9i: removed const from iv (causing core on clang build), and
+	  simplified sha1 key building function
+	oracle9i (o3logon). Added OMP, fixed overflow in prepare. Changed
+	  format label to 03logon
+	oracle format: Some straggler FORMAT_TAG normalization
+	whirlpool. Fixed buffer write-overflow error in split. (found with
+	  ASAN) #2237
+	whirlpool. Improved valid, to keep certain non whirlpool hashes from
+	  passing. #2237
+	hexlen?() functions, added a return if the string was solid hex or
+	  not, for validations
+	oldoffice: remove warnings caused by hexlen change
+	o3logon: change buffer size to right size, and added SHA1 to algorithm
+	  name
+	hexlen?() functions had off by 1 bug detecting extra bytes.
+	pem: bug in valid, which recent changes to hexlen function made show
+	  up
+	pem: re-add proper validation
+	validation enhanced on several formats (some cores and ASAN errors).
+	  #2239
+	validation enhanced salted-sha1. #2239
+	validation overflows and cores. keepass and o3login. #2239
+	formats.c --test-full=0 was too agressive on salt-unifies. It was
+	  even calling the code for formats with salt being fmt_salt_default.
+	  That is now fixed
+	dynamic: added new dynamic string type: utf16-be with function
+	  DynamicFunc__setmode_unicodeBE
+	configure: fail-abort if --enable-foobar but foobar can not be
+	  loaded/used/found. #2241
+	salted-sha1 ASAN overflow. #2246
+	winzip: better valid, and split to canonize the magic field
+	salted_sha1: better validation, and fixed ASAN problems (salt buffer
+	  overwrite)
+	wbb3: fixed overflow error caused by sub par valid function
+	wbb3: valid was not quite right. The salt is used as is, and not
+	  converted back to raw from hex
+	base64_convert.h: adjusted header comment about negative return, since
+	  all returns are not size_t so the negative logic is no more
+	salted-sha1: More work to fix overflows. #2246
+	winzip: common split code for both opencl and CPU. #2245
+	dynamic_1590 created. This added to handle IBM AS/400 salted sha1
+	  hashes
+	keepass: improved valid, to avoid buffer overwrite. #2249
+	pass_gen.pl changed episerver to use ../run/pass_gen.pl[1] (the
+	  unicode ready buffer). Added eigrp hash
+	keepass: revert valid change, to get CIs working again
+	keepass: removed non-inline file code within valid. It was causing
+	  crash problems. #2249
+	as400-ssha1 thin dynamic format
+	as400-sha1: fixed compile warnings, and warning about not fully
+	  cleaning the binary buffer
+	local changes should not have been committed
+	pass_gen.pl: commit 4223342 was incomplete and broke the usage page
+	unrarcmd: we add num items, but were only clearing 1. If more than 1
+	  item added, undefined data would be present
+	pass_gen: Removed Basename lib requirement
+	pass_gen.pl: Removed Term::ReadKey as a required module to print the
+	  usage screen. If found it will be used, but the script does not carp
+	  if the module is not found. #2251
+	pass_gen: removed String::CRC32 and wrote my own pp crc32 function.
+	  #2251
+	fuzz: Some constants changed to sizeof. Output a completed after each
+	  format test during --fuzz run
+	o3logon: adjusted code to make --fuzz work with this format
+	o3logon: reworked changes to valid for fuzzing, as per @magnumripper
+	  suggestions
+	o3logon: fixed bug in last commit
+	mdc2 is not always available. It now has a 1 time check
+	hdaa: patched to fix ASAN read error in new short format
+	SRP formats had resource leaks for non GMP builds
+	HDAA: better fix for memory overread ASAN for the new short hashes
+	recent changes with work around for invalid UTF-8 during valid,
+	  changed to not error(), but to print a warning and ignore the
+	  hashes. error() call in valid is a bad-thing (tm) to do, especially
+	  exiting when no format specified, when jtr is searching for proper
+	  format to match the hash
+	Corrected if condition boolean logic when fuzzing
+	HDAA: added split to canonize the shorter hashes (trailing or no
+	  trailing $ char
+	wbb3: created a dynamic format compatible with wbb3. Can be much
+	  faster. No OMP (usually), but good with fork
+	dynamic: removed speed hit to several formats caused by changes needed
+	  for dynamic_1592. Added a new flag and only dyna_1592 uses it at
+	  this time, so it is the only format that takes the hit
+	legacy generic build was not working
+	prince: changes needed to match john.c, so that legacy builds work
+	pass_gen: removed requirement of Digest::MD5. Handle interface change
+	  introduced in v2.00 for Crypt::ECB. Fix #2266
+	gpg2john: allow multi-part message blobs (i.e. large file support).
+	  #2109 #2218
+	gpg2john: each file processed gets its own large enough hash buffer
+	  allocated. Prior code could crash on a multiple files run
+	gpg: full large file support. #2109 #2218
+	gpg: bugs found in -test-full=0 using ASAN
+	pass_gen: added as400-ssha1 and dynamic_1590
+	logger. Recent changes were not VC compatible
+	dynamic.conf. A tweak to 1598 and comments.
+	dynamic: work to improve utf8 handling
+	logger: Still issues with VC
+	gpg2john: buffer overflows fixed. gp fixed if bad file name given.
+	  changed code so both -d and -S can be used on same run
+	Handle almost all of GPG. Still missing twofish hash, but added:
+	  SHA224/384 hashes, crypts: Camellia-128,192,256
+	bench.c: message buffer not large enough. Bug when more gpg crypt
+	  types added
+	gpg: added twofish. Now gpg format (cpu) handles ALL types
+	gpg: after testing all type and all max bit sizes, these sizes are
+	  adequate for the big num variables to avoid overflow
+	bench: better fix for cost message buffer overflows
+	twofish: fixed new cfb mode to not output more bytes than requested
+	gpg2john: better error handling. #2255
+	gpg2john: fix hang problem in bz2 code. #2255
+	gpg2john: added warn_exit calls when truncated compressed files are
+	  seen
+	misc.c: fixed a speelling error in comment (pure no code change)
+	rules: now multiple rulesets can be specified on command line
+	pbkdf2-hmac-sha1: fix ASAN buffer read overflow
+	TravisCI: try to hook in libASAN into one of the build steps
+	TravisCI: try to hook in libASAN into one of the build steps, take 2
+	Travis. Trying to find the right package to install
+	rpp.c: rule dupe removal code was broken for new multi rule list
+	  handling
+	as400-ssha, commenting the hash format properly
+	o3logon: a couple functions needed static, and max buffer length was
+	  too small
+	New format: oracle 10g sniffed protocol
+	oracle: added OMP support
+	oracle: ASAN problem fixed. Needed buffer large enough for UTF-16
+	  data
+	o10glogon: adjustments to OMP_SCALE
+	wpapcap2john: fixed ASAN (and crash) problem, and found memory leak
+	zip: when there were multiple hits in the same SIMD block, later hits
+	  would not get properly found. #2281
+	dynamic_big_crypt: Was not using openSSL version of Whirlpool if it
+	  was present
+	leet: added compile time usage of openssl whirlpool if available. It
+	  usually is faster than the SPH
+	pass_gen: added leet hash
+	leet: added additional test hashes
+	leet: added SIMD code for the SHA512 part. About 1.3x faster
+	leet: the non-SIMD had a syntax error in it.
+	pass_gen: removed errant comma added to list of formats handled
+	leet: trying to pacify the CI failure. I can not replicate the
+	  problem, so sort of shooting in the dark
+	leet: that was problem found in travis-ci. Fixed in a documented way
+	  now
+	ssha512: fixed ASAN bug in 32 bit linux builds
+	#2363 sed s/ARCH_WORD_32/uint32_t/g In all source, other than core
+	  john files
 
 Sayantan Datta (266):
 	DEScrypt OpenCL: Use a "safer" kernel for some devices (drivers)
@@ -3555,7 +4929,7 @@ Sayantan Datta (266):
 	  checking.
 	bugfix for d2a0668
 
-Frank Dittrich (168):
+Frank Dittrich (220):
 	korelogic.conf: fix month name in [List.Rules:MonthsFullPreface]
 	korelogic.conf: split some rule definitions for dupe suppression
 	submodule update
@@ -3775,117 +5149,75 @@ Frank Dittrich (168):
 	blake2b-ref_plug.c: drop unused blake2b_clear_lastnode()
 	Fixes for legacy generic builds (make -f Makefile.legacy generic)
 	options.c: Fix compiler warning for legacy non-opencl builds
+	regex.c: fix a few remaining memleaks
+	include "misc.h" in several files using error()
+	skip john_register_all() for ./john --stdout
+	regex.h: check for rexgen version >= 1.3 instead of >= 1.1
+	doc/MARKOV: Don't abbreviate option names
+	doc/RULES: some minor adjustments
+	doc/DYNAMIC* and doc/MARKOV: use utf-8 instead of utf8 as encoding
+	  name
+	doc/EXTERNAL: don't abbreviate --max-length and --max-length
+	Document that --min-length and --max-length values mean bytes, not
+	  characters.
+	doc/DYNAMIC: Fix typos introduced in bec0a5
+	doc/ENCODINGS: avoid abbreviated option names and use = instead of :
+	  to separate option names and values Also, use
+	  --internal-codepage instead of the deprecated
+	  --internal-encoding.
+	doc/NETNTLM_README: use --format= instead of -format: and $ instead of
+	  % as a command prompt
+	doc/PRINCE: Don'r abbreviate option names and s/crash-cource/crash
+	  course/
+	doc/DYNAMIC_SCRIPTING: adjust format options
+	Fix configure breakage (UbSan) caused by commit 0fd8af10
+	Warn about disabled Stribog formats due to missing SSE 4.1
+	stribog_fmt_plug.c: One warning instead of three for missing SSE 4.1
+	Avoid clang wanrings for legacy builds
+	Bash completion: basic support for dynamic expressions
+	  (--format=dynamic=...)
+	Bash completon: support completion for --fuzz=
+	options.c: upper case placeholders (--fuzz-dump[=FROM,TO])
+	fuzz.c: adjust screen output for --fuzz-dump
+	fuzz.c: add file size to --fuzz-dump option's screen output
+	fuzz.c: flush stdout before generating file.
+	chmod a-x src/escrypt/scrypt_platform.c
+	HDAA_fmt_plug.c: s/mem_calloc_tiny/mem_alloc_tiny/ because of memset
+	office_common_plug.c: s/mem_calloc_tiny/mem_alloc_tiny/ because of
+	  memset
+	ssh_fmt_plug.c: drop memset after mem_calloc_tiny
+	Fix syntax error introduced in
+	  e75c71c4056c5cc2ebcbc8283604e5839045fa11 and avoid some warnings
+	  (-Wdeclaration-after-statement and "comparison of distinct
+	  pointer types")
+	Two more instances od s/equivelent/equivalent/
+	doc/DYNAMIC_EXPRESSIONS s/--format=/--format=dynamic=/
+	doc/OPTIONS: document the meaning of negative --max-run-time values
+	Fix my typo in doc/OPTIONS
+	/qnx_common.h: avoid segfault in hash validation, fixes #2165
+	dynamic_parser.c: Avoid segfault
+	./john --list=format-methods: call fmt_done() for all formats
+	Revert "pem: bug in valid, which recent changes to hexlen function
+	  made show up"
+	PEM format: avoid undefined behaviour of atoi()
+	PEM: There were some more atoi() calls which needed an isdec() check
+	KeePass: improve valid() to avoid ASan errors, see #2239
+	pem_fmt_plug.c: Add isdec() check for number of iterations
+	KeePass: Instead of error(), just tread non-inlined data as invalid
+	ssh-ng: reject unsupported ciphers as invalid
+	Bash completion: add completion for --fuzz-dump=
+	qnx: improve valid() to avoid segfaults
+	qnx: improve valid(), don't allow additional "fields" at end of hash
+	fuzz.c: add 8bit replacement character, add @ to list of separators
+	base64_convert.c: fix memory leak when using -r and -w options
+	Some more changes due to oclHashcat/HashCat being renamed to hashcat
+	Spelling and grammar fixes in documentation files, comments, and
+	  string literals
+	Remove all references of CUDA from doc/BUGS
+	Increase Raw-SHA1-Linkedin's PLAINTEXT_LENGTH for non-SIMD builds
+	  (#2530)
 
-Zhang Lei (107):
-	Resolve issues encountered when building for MIC.
-	Patches needed to build some libraries for MIC.
-	Update mpz_int128.c to refer to the bug of icc
-	Restore the lost two lines in config.sub
-	Use tab instead of spaces as indentation.
-	Put variable binding after './configure'
-	some fixes in the building system
-	syntax correction
-	OMP_SCALE tuned for MIC
-	Correct some indentations
-	some bug fixes
-	revert a mistaken fix
-	Add special compiler flags for MIC
-	use LibreSSL instead of OpenSSL for MIC
-	fix MIC intrinsics in sha256-ng & sha512-ng
-	distinguish the SIMD_TYPE name of MIC from AVX512
-	remove some trailing spaces
-	Add MIC support in raw-sha1-ng
-	Remove some trailing spaces
-	some minor fixes for MIC
-	fix sha256crypt & sha512crypt for MIC
-	fix other non-dynamic formats on MIC
-	minor error fix
-	further tune OMP_SCALE with MIC
-	Use gather instruction to optimize some code
-	Refactor code that uses __AVX512__
-	Some optimization with gather/scatter
-	append 'ULL' to some int64 literals
-	tune OMP_SCALE in SybaseASE
-	unify the interface of vcmpeq_epi8
-	fixing typos
-	some small fixes
-	several bug fixes for _mm512_cmpeq_epi8
-	remove the emulation of _mm512_cmp_epi8_mask
-	wordlist.c: a minor fix
-	mic.h: tune interleaving factors
-	add OpenMP support to sunmd5
-	sunmd5: simplify the OpenMP clause
-	sunmd5: rearrange code for OpenMP support
-	sunmd5: include <omp.h>
-	sunmd5: add OMP_SCALE
-	add interleaving to SHA512
-	Add interleaving to SHA256
-	fix interleaving in SHA512
-	set SIMD_PARA_SHA256/512 to 1
-	sse-intrinsics.c: fix a few indentations
-	mic.h: add missing help macros
-	fix interleaving bug in sapH
-	sse-intrinsics.c: use scatter instruction for AVX512 & MIC
-	sse-intrinsics.c: a few fixes for the use of scatter
-	README-MIC: add instructions for building OpenSSL
-	mic.h: conditionally define interleaving paras
-	configure: no need to set LIBS for MIC
-	tune a bunch of OMP_SCALEs for MIC
-	pbkdf2_hmac_sha1.h: disable vectorization of a loop
-	byteorder.h: replace strange int types with normal ones
-	fix configure.ac for 64-bit Power
-	Add AltiVec intrinsics support.
-	Add AltiVec intrinsics
-	ppc64.h: a few minor fixes
-	sse-intrinsics: clean up a few temporary changes
-	A few fixes for AltiVec intrinsics
-	pseudo-intrinsics: a few optimizations for AltiVec
-	pseudo_intrinsics.h: fix errors in last commit
-	pseudo_intrinsics.h: fix some indentations
-	fix an error introduced in commit 9783278
-	pseudo_intrinsics.h: optimize vtesteq & vtestz
-	dynamic: hopefully fixed MD4 problems on MIC. #1437
-	ignore *.dSYM files on OS X
-	rename sse-intrinsics to simd-intrinsics
-	mic.h: tune SIMD_PARA_MD4 & SIMD_PARA_MD5
-	Add ARM NEON intrinsics (untested).
-	Refactor pseudo_intrinsics.h
-	Add further support for NEON
-	Polish NEON's int64 intrinsics
-	Fix a few intrinsics for NEON
-	Include simd-intrinsics.o in a ARM build
-	Use NEON's vbsl to implement vcmov
-	Disable raw-sha1-ng for ARM due to a compiler bug
-	Optimize vroti implementation for NEON
-	mic.h: tune SIMD_PARA_MD4 & SIMD_PARA_MD5
-	Use SIMD SHA1/2 functions for episerver
-	Fix bugs in episerver
-	Add UTF8 support to episerver's SIMD build
-	Fix a bug in episerver
-	Add SIMD support to 7z
-	Revise ALGORITHM_NAME of episerver
-	7z: optimize SIMD performance
-	7z: optimize SIMD performance
-	7z: fix a bug that makes trouble when para > 1
-	7z: fix ALGORITHM_NAME
-	7z: cleanup after merging in magnum's code
-	7z: fix a bug introduced when merging code
-	Avoid unaligned access for some archs
-	7z: fix a bug in SIMD code
-	7z: alter PLAINTEXT_LENGTH for SIMD build
-	Avoid strcpy if key is already aligned in set_key()
-	Replace some `uint64_t`s with `ARCH_WORD_64`s
-	Add SIMD support to rar
-	7z & rar: use global array as vector buffer
-	Optimize MD5_I() for NEON and AVX512
-	Introduce more ternary logic instructions
-	Fix indentations in the previous commit
-	Fix a few untested code for AVX512
-	Use AVX512's ternlog instruction to emulate vcmov
-	Tune interleaving paras for ARM
-	Rename vtesteq_epi32 to vanyeq_epi32
-
-Dhiru Kholia (101):
+Dhiru Kholia (202):
 	Add jtrTestSuite as a submodule
 	Update MinGW stuff
 	Drop a couple of old formats from the unused/ folder
@@ -3987,8 +5319,110 @@ Dhiru Kholia (101):
 	Add support for iWork '09 files
 	GPU support for cracking Apple iWork files
 	Add partial support for KWallet 5 files
+	Fix out-of-bounds write in raw-md5 format, caught by ASan
+	ssh format is dead, use ssh-ng format instead
+	Fix bogus line endings in vdi2john.pl
+	Advertise npdf2john a bit
+	Update instructions for MinGW builds
+	[vnc] fix cracking of short passwords, fixes #2021
+	Add documentation for cracking PDF files
+	Add documentation for cracking PST files
+	[iwork-opencl] Remove unused identifier, noticed by Lei Zhang
+	Improve VTP packet parsing a bit
+	Add a comment in keystore2john.py
+	[keepass] KeePass 2 does not support Twofish by default
+	Warn instead of aborting when using keyfile with KeePass 2 databases
+	Document known formats built using the dynamic compiler
+	LUKS only supports sha1 as the hash function currently
+	Document support for cracking JBoss AS 7.1 hashes
+	enfcs: warn for unsupported ciphers
+	Minor fixes in DYNAMIC_COMPILER_FORMATS.md
+	Ugly hack to get pfx2john working again after LINE_BUFFER_SIZE changes
+	Add support for "BKS" (BouncyCastle) format keystore files
+	pfx-ng format
+	Document the correct hash format for MongoDB hashes
+	Add utility to extract MongoDB hashes in JtR format
+	Faster way to crack MONGODB-CR system hashes
+	Fix a misleading indentation compiler warning
+	Add support for cracking MongoDB SCRAM-SHA-1 system hashes
+	Rename MONGODB-MiTM system hashes to MONGODB-CR network hashes
+	Add support for sha256 in pfx-ng format
+	Add support for sha512 in pfx-ng format
+	Add support for MD5(Palshop) hashes
+	Add a sha512 test vector in pfx-ng format
+	Add a usage note for gpg2john utility
+	Add support for cracking SocialEngine hashes
+	Add support for cracking MD5(ZipMonster) hashes
+	Add some more MongoDB network authentication test vectors
+	Add a pfx-ng test vector from CMIYC 2013 contest
+	Fix TravisCI failures by disabling some OpenCL formats
+	Fix a buffer overflow warning at rawSHA512_common_plug.c:333
+	Fix a unused function warning in zipmonster format
+	Add support for cracking Poison Ivy "hashes"
+	krb5pa2john: Fix for broken user extraction due to field name change.
+	  Closes #2299.
+	New format for cracking leet.cc hashes
+	Add support for cracking FileZilla Server hashes
+	leet: avoid crash while processing dynamic_82 type hashes
+	Add dump-apex-hashes.sql script to README.apex
+	Add support for Enpass Password Manager (CPU + GPU)
+	Add support for modern KWallet databases
+	Add pdf2john.pl tool for extracting hashes from PDF files
+	Use Fedora 25 in CircleCI
+	HSRP: remove an old joke
+	Remove remaining traces of ssh2john
+	Fix rename-to-exe logic for the MinGW build
+	Fixes and improvements for iwork2john.py
+	Add support for Oracle PeopleSoft PS_TOKEN hashes
+	Fix the link to LICENSE file
+	Fix a typo in iwork format
+	Add SIMD support for cracking modern KWallet files
+	Fix a thinko in enpass format
+	phpFox v3 hashes can be cracked using dynamic_13
+	Add support for iTunes Backup (#2410)
+	iwork-opencl: move all work to GPU, v2 (#2417)
+	s/erros/errors (fix typos)
+	Add support for cracking FileVault 2 hashes
+	FVDE (FileVault 2) OpenCL support (#2436)
+	Fix error handling in luks2john.py
+	Remove now unnecessary BIO_ checks
+	Remove pdf2john.py, use pdf2john.pl instead
+	gpg2john.c: fix compilation error in case of missing zlib-dev
+	Improve salt and hash validation in EPiServer format
+	Support handling of modern Bitcoin Core wallet versions
+	Various efs2john.py enhancements
+	Add support for cracking Padlock databases
+	Initial support for Jetico BestCrypt 8.x / 9.x (#2448)
+	dmg2john.py: handle encrypted_blob_size with value 64 properly
+	Fix a minor memory leak in BestCrypt format (#2459)
+	Fix a minor memory leak in Padlock format
+	PEP 8 fixes for pcap2john.py
+	Fix a typo in spelling out "JWT"
+	Add support for cracking MS OneNote (.one) files
+	Add support for cracking Windows BitLocker passwords
+	Add support for auditing XMPP SCRAM-SHA-1 hashes
+	Increase PLAINTEXT_LENGTH in Bitcoin format
+	MSDP MD5 password hashes are also supported
+	Misc OpenBSD disk encryption related improvements
+	Fix padding checks in ssh-ng format
+	Add support for bcrypt PBKDF in OpenBSD-SoftRAID format
+	Various 1password2john.py cleanups
+	Add another test vector in Oracle12C format
+	Add another test vector in pomelo format
+	Add support for IPsec Authentication Header (AH) hashes
+	Add support for cracking FreeBSD GELI hashes
+	Add support for ArubaOS hashes
+	Add support for cracking SNMPv3 hashes
+	Fix ALGORITHM_NAME in BitLocker CPU format
+	Various bitlocker2john.c cleanups
+	Various BitLocker related documentation fixes
+	Use OS X support in Travis CI
+	All FreeBSD GELI versions (v0 to v7) are supported now
+	Be more informative when benchmarking itunes-backup format (#2527)
+	Fix import problems in kerberom.py
+	Add support for cracking Ethereum wallets (#2525)
 
-Claudio André (92):
+Claudio André (165):
 	OpenCL: AMD devices have some weird bug when using pinned buffers.
 	  Forgotten file: see ec080119f45ffef07f7f1dd36e120ee56d5d6734
 	OpenCL: Updates to get_processor_family().
@@ -4111,6 +5545,199 @@ Claudio André (92):
 	Fix the misformatted device identification/position message.
 	Remove the platform" notation in JtR.
 	Select the most powerful GPU as the default one.
+	Fix for singularis vs pluralis.
+	Fix a memory leak in sha[256/512]-opencl.
+	Fix raw-sha512 to follow the fakedb patterns.
+	Fix raw-sha256 to follow the fakedb patterns.
+	Merge AxCrypt in-memory secrets with Raw-SHA1.
+	Fix AxCrypt-SHA1 on non-SIMD. Closes #2008
+	Improve find_valid_opencl_device() detection.
+	Improve Raw-SHA2-opencl scalability.
+	Improve auto-tune controls.
+	Prepare MASK_KEYS_GENERATION macro to future improvements.
+	Fix a bug introduced in the scalability improvement.
+	Use shared code for NSLDAP.
+	Tune memory used by raw-SHA2-opencl.
+	Mute a compiler warning.
+	Shrink the hash/spread function. False positives < 0.05% (for 100,000
+	  and 3,000,000 test cases).
+	Tune OpenCL kernel.
+	Re-format a header file.
+	Fix a memory overread. Closes #2049.
+	NVIDIA driver is doing something really strange. This implements a
+	  workaround.
+	Do nothing if db is not set.
+	Tune SHA512crypt-opencl further. Improvement 1-2 kc/s.
+	Improve Raw-SHA256-opencl scalability.
+	Synchronize a debug message in raw-SHA512-opencl.
+	raw-SHA512: - Use the proper GWS size in prepare kernel. -
+	  Sync a comment.
+	Small tweaks for raw-SHA256-opencl.
+	Tune memory usage for non GPU mask mode.
+	Correct a misplaced label in --list:opencl-devices.
+	GWS should be multiple of processors count not multiple of CUs.
+	raw-SHA512 [OpenCL]: - Sync with raw-SHA256. - Use a k=2 Bloom
+	  Filter.
+	Do not use a #define as a function. - see #2091.
+	Improve the Ubuntu OpenCL documentation.
+	Always save the commit used to build JtR. - Nothing will change if
+	  the user has a regular git tree.
+	Improve OpenCL error handling.
+	Allow an OpenCL system wide build. - save compiled binary kernels
+	  inside JtR private home folder.
+	Fix XSHA512-ng-opencl (see #2208).
+	Tune gpg-opencl auto-tune max duration.
+	Re-enable mscash2-opencl format on Travis CI.
+	Fix and document sha512crypt-opencl problems with NVIDIA OpenCL driver
+	  361.
+	Rearrange [raw/x] sha512 formats
+	path_init() must be called prior to CPU fallback mechanism
+	Fix some typos
+	Fix an ld warning seen on CI
+	Fix a out-of-range compare bug in gpg2john
+	TravisCI: add ASAN into gcc build step
+	regex: fix for a warning seen when compiling against
+	OpenCL: a platform could have no devices
+	CI: test JtR (also) on a fresh environment
+	github: add guidelines to github users when they create an issue or a
+	  pull request
+	github: improve issue guidelines trying to avoid CUDA and OpenCL known
+	  issues
+	CI: Add a TS check
+	CI: test a non OpenMP build
+	CI: change the recent OS image to be used
+	CUDA: more cosmetic cleanups
+	OpenCL: make errors non-fatal for a "--test" run
+	encfs_common.c: fix a leak
+	axcrypt: fix prepare to keep input fields unchanged
+	loader: fix the --show
+	lotus: fix a macro name
+	fix: add a missing include in common.h
+	fix: change an "#include" in nsec3 format
+	circle: fix the build issue introduced in
+	  a63b819bfc8a1559ace20b2824eb7f2e9014b5ea
+	build: clean up some 7-zip tmp files (see #2383)
+	minGW: always use aligned allocs
+	minGW: workaround for (wpa/pcap)2john tool
+	minGW: fix for a memdbg bug introduced in b701bc0
+	build: add a configure option to treat build warnings as errors
+	OpenCL: be more resilient on --list=opencl-devices
+	OpenCL: fix for a non SIMD build
+	general: mute a warning and a possible truncation (#2486)
+	OpenCL: improve error handling in --list=opencl-devices (#2489)
+	readme: fix markudown (#2487)
+	racf2john: mute a compiler warning (#2519)
+	PO: fix a bad conversion in a signed char buffer (#2520)
+
+Zhang Lei (108):
+	Resolve issues encountered when building for MIC.
+	Patches needed to build some libraries for MIC.
+	Update mpz_int128.c to refer to the bug of icc
+	Restore the lost two lines in config.sub
+	Use tab instead of spaces as indentation.
+	Put variable binding after './configure'
+	some fixes in the building system
+	syntax correction
+	OMP_SCALE tuned for MIC
+	Correct some indentations
+	some bug fixes
+	revert a mistaken fix
+	Add special compiler flags for MIC
+	use LibreSSL instead of OpenSSL for MIC
+	fix MIC intrinsics in sha256-ng & sha512-ng
+	distinguish the SIMD_TYPE name of MIC from AVX512
+	remove some trailing spaces
+	Add MIC support in raw-sha1-ng
+	Remove some trailing spaces
+	some minor fixes for MIC
+	fix sha256crypt & sha512crypt for MIC
+	fix other non-dynamic formats on MIC
+	minor error fix
+	further tune OMP_SCALE with MIC
+	Use gather instruction to optimize some code
+	Refactor code that uses __AVX512__
+	Some optimization with gather/scatter
+	append 'ULL' to some int64 literals
+	tune OMP_SCALE in SybaseASE
+	unify the interface of vcmpeq_epi8
+	fixing typos
+	some small fixes
+	several bug fixes for _mm512_cmpeq_epi8
+	remove the emulation of _mm512_cmp_epi8_mask
+	wordlist.c: a minor fix
+	mic.h: tune interleaving factors
+	add OpenMP support to sunmd5
+	sunmd5: simplify the OpenMP clause
+	sunmd5: rearrange code for OpenMP support
+	sunmd5: include <omp.h>
+	sunmd5: add OMP_SCALE
+	add interleaving to SHA512
+	Add interleaving to SHA256
+	fix interleaving in SHA512
+	set SIMD_PARA_SHA256/512 to 1
+	sse-intrinsics.c: fix a few indentations
+	mic.h: add missing help macros
+	fix interleaving bug in sapH
+	sse-intrinsics.c: use scatter instruction for AVX512 & MIC
+	sse-intrinsics.c: a few fixes for the use of scatter
+	README-MIC: add instructions for building OpenSSL
+	mic.h: conditionally define interleaving paras
+	configure: no need to set LIBS for MIC
+	tune a bunch of OMP_SCALEs for MIC
+	pbkdf2_hmac_sha1.h: disable vectorization of a loop
+	byteorder.h: replace strange int types with normal ones
+	fix configure.ac for 64-bit Power
+	Add AltiVec intrinsics support.
+	Add AltiVec intrinsics
+	ppc64.h: a few minor fixes
+	sse-intrinsics: clean up a few temporary changes
+	A few fixes for AltiVec intrinsics
+	pseudo-intrinsics: a few optimizations for AltiVec
+	pseudo_intrinsics.h: fix errors in last commit
+	pseudo_intrinsics.h: fix some indentations
+	fix an error introduced in commit 9783278
+	pseudo_intrinsics.h: optimize vtesteq & vtestz
+	dynamic: hopefully fixed MD4 problems on MIC. #1437
+	ignore *.dSYM files on OS X
+	rename sse-intrinsics to simd-intrinsics
+	mic.h: tune SIMD_PARA_MD4 & SIMD_PARA_MD5
+	Add ARM NEON intrinsics (untested).
+	Refactor pseudo_intrinsics.h
+	Add further support for NEON
+	Polish NEON's int64 intrinsics
+	Fix a few intrinsics for NEON
+	Include simd-intrinsics.o in a ARM build
+	Use NEON's vbsl to implement vcmov
+	Disable raw-sha1-ng for ARM due to a compiler bug
+	Optimize vroti implementation for NEON
+	mic.h: tune SIMD_PARA_MD4 & SIMD_PARA_MD5
+	Use SIMD SHA1/2 functions for episerver
+	Fix bugs in episerver
+	Add UTF8 support to episerver's SIMD build
+	Fix a bug in episerver
+	Add SIMD support to 7z
+	Revise ALGORITHM_NAME of episerver
+	7z: optimize SIMD performance
+	7z: optimize SIMD performance
+	7z: fix a bug that makes trouble when para > 1
+	7z: fix ALGORITHM_NAME
+	7z: cleanup after merging in magnum's code
+	7z: fix a bug introduced when merging code
+	Avoid unaligned access for some archs
+	7z: fix a bug in SIMD code
+	7z: alter PLAINTEXT_LENGTH for SIMD build
+	Avoid strcpy if key is already aligned in set_key()
+	Replace some `uint64_t`s with `ARCH_WORD_64`s
+	Add SIMD support to rar
+	7z & rar: use global array as vector buffer
+	Optimize MD5_I() for NEON and AVX512
+	Introduce more ternary logic instructions
+	Fix indentations in the previous commit
+	Fix a few untested code for AVX512
+	Use AVX512's ternlog instruction to emulate vcmov
+	Tune interleaving paras for ARM
+	Rename vtesteq_epi32 to vanyeq_epi32
+	Unify the format of NEON and Altivec's intrinsics.
 
 Kai Zhao (84):
 	Update plugin.c
@@ -4205,7 +5832,7 @@ Kai Zhao (84):
 	Detect FMT_SPLIT_UNIFIES_CASE error
 	Change to 'FAILED' when there is a FMT_SPLIT warning or error
 
-Solar (28):
+Solar (32):
 	Fix a bug in truecrypt for non-x86 archs. Closes #912.
 	Early (contest) version of AVX2 support for DES.
 	Fix a compile error in dynamic_compiler_plug.c
@@ -4244,11 +5871,59 @@ Solar (28):
 	john-huge-show2.diff + errata from
 	  http://www.openwall.com/lists/john-dev/2015/09/20/3
 	john-huge-prefetch3.diff: Fix problems with prefetch. Closes #1771.
+	Spelling fix in a comment: equivelent to equivalent
+	Assorted spelling fixes
+	Updated the Rapid7 link (https)
+	Got rid of ARCH_WORD_32 in favor of uint32_t
 
-campeador (3):
-	Change optparse to argparse
-	Change optparse to argparse in efs2john.py and openssl2john.py
-	Delete comments in efs2john.py
+Fist0urs (26):
+	Initial commit.
+	Fixed bug in self-tests (thanks to @jfoug and @magnumripper)
+	Cosmetic changes
+	Added check while validating hash (thanks to @jfoug)
+	Added support to parse self-decrypting binary
+	Removed useless imports
+	Cosmetic changes
+	Added format for 16bytes-RawSHA1 AxCrypt in-memory secrets
+	Added doc to audit AxCrypt and its secrets
+	Added an important detail concerning cracking raw-sha1-axcrypt hashes
+	Removed unused variable
+	Fixed -mno-sse tests failure
+	Cosmetic changes in doc to fit .md style
+	Improvments of krb5tgs Add support to different ciphertexts input
+	  format Get rid of max data len concerning edata Get rid of
+	  RC4 rounds Get rid of last hmac-md5 Performances increase
+	Fix split salt Change "$krbtgs$23$" to "$krb5tgs$23$"
+	Add verification of checksum if potential pass were to be found
+	  Changed input format from edata1$edata2 to edata2$edata1 Thus
+	  had to use dyna_salt (and put back edata max len definition)
+	Changed input format to fit upcoming oclhashcat one Get rid of max
+	  edata2 Performance increases
+	Changed instructions to fit new format validation
+	Fix misnamed variable in parsing self-decrypting PE
+	keepass2john.c: incorrect parsing of keyfile within Keepass 1.*
+	Modified keepass2john and keepass_fmt_plug.c - keepass2john now
+	  handle all different kind of keyfile within Keepass 1.x and
+	  produces an unique type of output - keepass_fmt_plug.c was
+	  modified so that it could handle all kind of keyfiles within
+	  Keepass 1.x + removed a SHA256 of keyfile that is now
+	  pre-computed in keepass2john
+	Cosmetic changes in keepass2john and keepass_fmt_plug.c
+	Added support of keyfile for Keepass 2.x, both in keepass2john and
+	  keepass_fmt_plug.c. Remaining only support of xml' keyfile
+	Added support for xml keyfile within Keepass 2.x
+	Add tool "kerberom" to /run This tool is aimed to retrieve
+	  ARC4-HMAC encrypted tickets to be cracked with john
+	Add hash extractor + support for cracking DPAPI masterkey file from XP
+	  to Win10
+
+Jan Starke (4):
+	Update regex code for working with latest rexgen library from
+	  https://github.com/teeshop/rexgen. Older versions of the lib are
+	  no longer supported.
+	compiles cleanly with rexgen 1.3.1, contains version check for rexgen
+	removed error messages in case rexgen is not available
+	updated configure script
 
 Aleksey Cherepanov (3):
 	added --show=types option; renamed m_allow_rawhash_fixup into
@@ -4256,10 +5931,11 @@ Aleksey Cherepanov (3):
 	removed unused variable in --show=types code
 	Add support for "lineage" hashes
 
-Sylvain Pelissier (3):
-	Add new version of eCryptfs file
-	Copyright Date changed
-	New copyright
+Christien Rioux (3):
+	Bugfix for path_expand_safe() returning offset from allocated
+	  buffer (segfaulting when freed).
+	OpenCL: The HANDLE_CLERROR macros evaluated its input twice on error
+	fix for unroll bug
 
 Stuart Morgan (3):
 	Adapted the regex matching to cover the example /etc/security/passwd
@@ -4272,67 +5948,141 @@ Stuart Morgan (3):
 	  .strip())
 	Fixed command line arguments & added more informative help
 
-philsmd (2):
-	pdf2john.py problem, commit efc315e926f521cc41c002742a994776edbacc1d
-	  broke it
-	pdf2john /Encrypt /Length problem for PDF versions 1.1 - 1.3
+Sylvain Pelissier (3):
+	Add new version of eCryptfs file
+	Copyright Date changed
+	New copyright
+
+akos.sereg (3):
+	Adding extra config parameter: shell script to be executed on
+	  successful password crack
+	Concat safer with snprintf
+	Adding sample script to configuration file
+
+campeador (3):
+	Change optparse to argparse
+	Change optparse to argparse in efs2john.py and openssl2john.py
+	Delete comments in efs2john.py
+
+Alexander Cherepanov (2):
+	fake_salts.h: change cp1252 dash to '='
+	episerver: remove gratuitous memset in hash_type
 
 Catalin Patulea (2):
 	radius2john: support for LINUX_SSL (cooked capture) containing IP
 	radius2john: preserve unknown vendor extensions when constructing salt
 
-Christien Rioux (2):
-	Bugfix for path_expand_safe() returning offset from allocated
-	  buffer (segfaulting when freed).
-	OpenCL: The HANDLE_CLERROR macros evaluated its input twice on error
+Christian Mehlmauer (2):
+	update OSX compile instructions
+	Update .gitignore
+
+Denis Burykin (2):
+	descrypt-ztex format; includes library for operating ZTEX hardware and
+	  bitstream (4MB). Requires libusb-1.0. Autoconf support.
+	HDL sources; Copyright and license information; small corrections
+
+Michel Normand (2):
+	set ARCH_LITTLE_ENDIAN for powerpc64 little endian in src/ppc64.h
+	add src/escrypt/tests in .gitignore
+
+Rob Schoemaker (2):
+	Add support for cracking AS/400 DES hashes
+	Update information about AS/400 DES hashes
 
 Rémi Dubois (2):
 	Adding dynamic_1034 for PostgreSQL MD5 support
 	Additional comments for PostgreSQL
 
+Sanju Kholia (2):
+	Port luks2john.c to Python
+	Remove luks2john.c (replaced by luks2john.py)
+
 Shinnok (2):
 	Ignore .DS_Store files on OS X.
 	Properly format the .gitignore file.
 
-R. Brenton Strickler (1):
-	Explain DBError exception.
+arcctgx (2):
+	Make sure wpapcap2john initialises allocated memory with zeros.
+	  (#2429)
+	add support for more recent Gadu-Gadu login packets
+
+e-ago (2):
+	BitLocker (OpenCL version): BitLocker password cracking tool (#2427)
+	New hash format (#2516)
+
+philsmd (2):
+	pdf2john.py problem, commit efc315e926f521cc41c002742a994776edbacc1d
+	  broke it
+	pdf2john /Encrypt /Length problem for PDF versions 1.1 - 1.3
+
+walkerk1980 (2):
+	Added LogFilePermissions, PotFilePermissions, IgnoreLogChmodErrors
+	Made suggested changes to logger.c, add temporary umask change to
+	  allow log file creation perms, change to bitwise check from strcmp()
+	  on LogFilePerms and PotFilePerms
+
+Alexander Haase (1):
+	Added support for HDAA as defined in RFC 2069.
+
+Bernhard Spil (1):
+	Replace deprecated des_ methods and calls that were available in
+	  openssl/des_old.h with the DES_ counterparts.
+
+Bigendian Smalls (1):
+	racf2john update to dump KDFAES hashes (#2510)
+
+Dhirendra Kholia (1):
+	Make ssh-ng saner by using a tiny ASN.1 decoder
+
+Dmitri Lapin (1):
+	Fixed wrong header (was immintrin.h - AVX header)
+
+Eternal (1):
+	newest argon2 CPU version, no idea why virtual speed is 8 times slower
+	  than real
+
+Ivan Novikov (1):
+	Add support for cracking ColdFusion 11 hashes
+
+Liu Yihao (1):
+	rar2john edge case fix. See #2209.
+
+Lukas Odzioba (1):
+	Added salt length check
 
 Mathieu (1):
 	Fix crash when receiving CTRL_C_EVENT on Windows from parent like
 	  Johnny.
 
-Alexander Cherepanov (1):
-	fake_salts.h: change cp1252 dash to '='
-
-Lukas Odzioba (1):
-	Added salt length check
-
-Jan Starke (1):
-	Update regex code for working with latest rexgen library from
-	  https://github.com/teeshop/rexgen. Older versions of the lib are
-	  no longer supported.
-
-Ivan Novikov (1):
-	Add support for cracking ColdFusion 11 hashes
-
-Tonimir Kisasondi (1):
-	Added keyring2john.py
-
-Dmitri Lapin (1):
-	Fixed wrong header (was immintrin.h - AVX header)
-
-c0re (1):
-	pdf2john: Fix AttributeError
-
-Dhirendra Kholia (1):
-	Make ssh-ng saner by using a tiny ASN.1 decoder
+Matlink (1):
+	Rename HashCat to hashcat (#2463)
 
 Michael Kramer (1):
 	Kerberoast format added
 
-Bernhard Spil (1):
-	Replace deprecated des_ methods and calls that were available in
-	  openssl/des_old.h with the DES_ counterparts.
+R. Brenton Strickler (1):
+	Explain DBError exception.
+
+Ralf Sager (1):
+	Add support for cracking NSEC3 hashes
+
+Tonimir Kisasondi (1):
+	Added keyring2john.py
+
+c0re (1):
+	pdf2john: Fix AttributeError
+
+rofl0r (1):
+	use SHA1_Init() consistently with other SHA1_* functions
+
+rschoem (1):
+	as400. added docs, updated copyright, added python script
+
+smarteam (1):
+	Update INSTALL-UBUNTU (#1)
+
+terrybwest (1):
+	keystore-opencl format
 
 
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:

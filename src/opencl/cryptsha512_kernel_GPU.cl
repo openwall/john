@@ -38,6 +38,32 @@
     #define VECTOR_USAGE    1
 #endif
 
+#if amd_vliw5(DEVICE_INFO) || amd_vliw4(DEVICE_INFO)
+/*
+   Needed (at least) in 14.9 and 15.7.
+   kernel prepare fails if no unroll hint is offered.
+   - the workaround is not needed on GCN (tested on Tahiti, Bonaire and Capeverde)
+   - amd_vliw4() is a guess, no hardware available to test.
+   - can't remove the [unroll] (at least) on Radeon HD 6770.
+   - R9 290X w/ 1800.11 works fine with or without explicit unroll.
+*/
+#define AMD_UNROLL_BUG_1    1
+#endif
+
+#if gpu_nvidia(DEVICE_INFO) && DEV_VER_MAJOR > 352
+/*
+   Needed for OpenCL NVIDIA driver version 361 (CUDA 7.5+).
+   kernel prepare fails if no unroll hint is offered.
+   Over-using for safe for any version above 352.
+   Notice: not tested using in-between drivers: e.g. 353.62 WHQL, 358.91 WHQL, ...
+   - can't remove the [unroll] (at least) on Titan X and GTX 980.
+     - failing (at least) on 361.28, 361.42, 368.81
+   - Titan X w/ 361.42 fails without the explicit unroll.
+   - Titan X w/ 352.63 works fine with or without explicit unroll.
+*/
+#define NVIDIA_UNROLL_BUG_1    1
+#endif
+
 /************************** helper **************************/
 inline void init_H(sha512_ctx * ctx) {
     ctx->H[0] = H0;
@@ -156,8 +182,10 @@ inline void sha512_block(sha512_ctx * ctx) {
         a = t;
     }
 
-#ifdef AMD_STUPID_BUG_1
+#if defined(AMD_UNROLL_BUG_1)
     #pragma unroll 2
+#elif defined(NVIDIA_UNROLL_BUG_1)
+    #pragma unroll 16
 #endif
     for (uint i = 16U; i < 80U; i++) {
 	w[i & 15] = w[(i - 16) & 15] + w[(i - 7) & 15] + sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]);
@@ -465,6 +493,7 @@ void kernel_preprocess(
 	uint32_t total = 0;
 	uint32_t j = generator_index[i];
 
+	#pragma unroll
 	for (uint32_t k = 0; k < 8; k++)
 	   work_memory[OFFSET(i, k)] = 0;
 
@@ -581,7 +610,7 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
     H[7] += h;
 }
 
-inline void sha512_crypt(
+inline void sha512_crypt_full(
 	 __global buffer_64      * const __restrict alt_result,
 	 __global uint64_t       * const __restrict work_memory) {
 
@@ -679,6 +708,102 @@ inline void sha512_crypt(
 	       w[i] = 0;
 	    w[15] = (total * 8UL);
 	}
+	sha512_block_be(w, H);
+    }
+    //Push results back to global memory.
+    #pragma unroll
+    for (uint i = 0U; i < 8U; i++)
+        alt_result[i].mem_64[0] = H[i];
+}
+
+inline void sha512_crypt_fast(
+	 __global buffer_64      * const __restrict alt_result,
+	 __global uint64_t       * const __restrict work_memory) {
+
+    //To compute buffers.
+    uint32_t	    total;
+    uint64_t	    w[16];
+    uint64_t	    H[8];
+
+    //Transfer host global data to a faster memory space.
+    #pragma unroll
+    for (uint i = 0U; i < 8U; i++)
+        H[i] = alt_result[i].mem_64[0];
+
+    /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
+#if (UNROLL_LOOP & (1 << 17))
+    #pragma unroll 1
+#elif (UNROLL_LOOP & (1 << 18))
+    //Compiler, do the job.
+#elif (UNROLL_LOOP & (1 << 19))
+    #pragma unroll 2
+#endif
+    for (uint i = 0U; i < HASH_LOOPS; i++) {
+
+        if (i & 1) {
+	    #pragma unroll
+	    for (uint32_t j = 8U; j < 16U; j++)
+		w[j] = 0;
+
+            w[0] = work_memory[OFFSET(loop_index[i], 0)];
+            w[1] = work_memory[OFFSET(loop_index[i], 1)];
+            w[2] = work_memory[OFFSET(loop_index[i], 2)];
+            w[3] = work_memory[OFFSET(loop_index[i], 3)];
+            w[4] = work_memory[OFFSET(loop_index[i], 4)];
+            w[5] = work_memory[OFFSET(loop_index[i], 5)];
+            w[6] = work_memory[OFFSET(loop_index[i], 6)];
+            w[7] = work_memory[OFFSET(loop_index[i], 7)];
+            total = work_memory[OFFSET(loop_index[i], 8)];
+
+	    {
+		uint32_t tmp, pos;
+		tmp = ((total & 7U) << 3);
+		pos = (total >> 3);
+
+		APPEND_BE_BUFFER(w, H[0]);
+		APPEND_BE_BUFFER(w, H[1]);
+		APPEND_BE_BUFFER(w, H[2]);
+		APPEND_BE_BUFFER(w, H[3]);
+		APPEND_BE_BUFFER(w, H[4]);
+		APPEND_BE_BUFFER(w, H[5]);
+		APPEND_BE_BUFFER(w, H[6]);
+		APPEND_BE_BUFFER_F(w, H[7]);
+	    }
+            total += 64U;
+
+        } else {
+            w[0] = H[0];
+            w[1] = H[1];
+            w[2] = H[2];
+            w[3] = H[3];
+            w[4] = H[4];
+            w[5] = H[5];
+            w[6] = H[6];
+            w[7] = H[7];
+	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
+            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
+        }
+        //Initialize CTX.
+	H[0] = H0;
+	H[1] = H1;
+	H[2] = H2;
+	H[3] = H3;
+	H[4] = H4;
+	H[5] = H5;
+	H[6] = H6;
+	H[7] = H7;
+
+        //Do the sha512_digest(ctx);
+	APPEND_BE_SINGLE(w, 0x8000000000000000UL, total);
+        w[15] = (total * 8UL);
+
 	sha512_block_be(w, H);
     }
     //Push results back to global memory.
@@ -788,7 +913,7 @@ inline void sha512_crypt_f(
 }
 
 __kernel
-void kernel_crypt(
+void kernel_crypt_full(
 	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
         __global         sha512_hash     * const __restrict out_buffer,
         __global         sha512_buffers  * const __restrict tmp_buffers,
@@ -801,7 +926,24 @@ void kernel_crypt(
     __global buffer_64 * alt_result = tmp_buffers[gid].alt_result;
 
     //Do the job
-    sha512_crypt(alt_result, work_memory);
+    sha512_crypt_full(alt_result, work_memory);
+}
+
+__kernel
+void kernel_crypt_fast(
+	MAYBE_CONSTANT sha512_salt     * const __restrict salt,
+        __global         sha512_hash     * const __restrict out_buffer,
+        __global         sha512_buffers  * const __restrict tmp_buffers,
+	__global         uint64_t	 * const __restrict work_memory) {
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+
+    //Get temp alt_result pointer.
+    __global buffer_64 * alt_result = tmp_buffers[gid].alt_result;
+
+    //Do the job
+    sha512_crypt_fast(alt_result, work_memory);
 }
 
 __kernel

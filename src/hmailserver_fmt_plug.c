@@ -104,15 +104,15 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 
 static int hmailserver_valid(char *ciphertext, struct fmt_main *self)
 {
-    int i;
+	int i;
 
-    if ( ciphertext == NULL )
-        return 0;
+	if (!ciphertext)
+		return 0;
 
 	get_ptr();
-	i = strlen( ciphertext );
+	i = strnlen(ciphertext, CIPHERTEXT_LENGTH + SALT_SIZE + 1);
 
-	if (i != CIPHERTEXT_LENGTH+SALT_SIZE)
+	if (i != CIPHERTEXT_LENGTH + SALT_SIZE)
 		return pDynamic->methods.valid(ciphertext, pDynamic);
 	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic);
 }
@@ -122,6 +122,7 @@ static void * our_salt(char *ciphertext)
 	get_ptr();
 	return pDynamic->methods.salt(Convert(Conv_Buf, ciphertext));
 }
+
 static void * our_binary(char *ciphertext)
 {
 	get_ptr();
@@ -137,6 +138,7 @@ struct fmt_main fmt_hmailserver =
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
 		0, PLAINTEXT_LENGTH, DYNA_BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
 		{ NULL },
+		{ NULL },
 		hmailserver_tests
 	},
 	{
@@ -151,7 +153,8 @@ struct fmt_main fmt_hmailserver =
 	}
 };
 
-static void link_funcs() {
+static void link_funcs()
+{
 	fmt_hmailserver.methods.salt   = our_salt;
 	fmt_hmailserver.methods.binary = our_binary;
 	fmt_hmailserver.methods.split = our_split;
@@ -167,7 +170,8 @@ static void hmailserver_init(struct fmt_main *self)
 	}
 }
 
-static void get_ptr() {
+static void get_ptr()
+{
 	if (!pDynamic) {
 		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_hmailserver, Convert(Conv_Buf, hmailserver_tests[0].ciphertext), "hmailserver", 0);
 		link_funcs();

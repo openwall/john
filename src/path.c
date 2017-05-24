@@ -12,6 +12,7 @@
 #include "autoconfig.h"
 #endif
 #include <string.h>
+#include <stdlib.h>
 
 #include "misc.h"
 #include "params.h"
@@ -41,7 +42,7 @@ static int user_home_length;
 void path_init(char **argv)
 {
 #if JOHN_SYSTEMWIDE
-	struct passwd *pw;
+	char *home_dir;
 #ifdef JOHN_PRIVATE_HOME
 	char *private;
 #endif
@@ -55,15 +56,23 @@ void path_init(char **argv)
 	john_home_length = strlen(john_home_path);
 
 	if (user_home_path) return;
-	pw = getpwuid(getuid());
-	endpwent();
-	if (!pw) return;
 
-	user_home_length = strlen(pw->pw_dir) + 1;
+	/* $HOME may override user's home directory */
+	if (!(home_dir = getenv("HOME"))) {
+		struct passwd *pw;
+
+		pw = getpwuid(getuid());
+		endpwent();
+		if (!pw)
+			return;
+		home_dir = pw->pw_dir;
+	}
+
+	user_home_length = strlen(home_dir) + 1;
 	if (user_home_length >= PATH_BUFFER_SIZE) return;
 
 	user_home_path = mem_alloc(PATH_BUFFER_SIZE);
-	memcpy(user_home_path, pw->pw_dir, user_home_length - 1);
+	memcpy(user_home_path, home_dir, user_home_length - 1);
 	user_home_path[user_home_length - 1] = '/';
 
 #ifdef JOHN_PRIVATE_HOME

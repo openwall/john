@@ -51,6 +51,8 @@ static sip_salt *pSalt;
 
 #define FORMAT_LABEL		"SIP"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$sip$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -74,7 +76,7 @@ static struct fmt_tests sip_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE/sizeof(uint32_t)];
 static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
 
 static void init(struct fmt_main *self)
@@ -103,17 +105,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *q;
 	int i,res = 0;
-	if (strncmp(ciphertext, "$sip$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
 		return 0;
-	for(i = 0; i < strlen(ciphertext); i++)
-		if(ciphertext[i] == '*')
+	for (i = 0; i < strlen(ciphertext); i++)
+		if (ciphertext[i] == '*')
 			res++;
-	if(res != 14)
+	if (res != 14)
 		goto err;
 	res = 0;
-	p += 6;
+	p += FORMAT_TAG_LEN;
 	if ((q = strchr(p, '*')) == NULL)
 		goto err;
 	if ((q - p) > HOST_MAXLEN) /* host */
@@ -205,7 +207,7 @@ static void *get_salt(char *ciphertext)
 	memset(&salt, 0, sizeof(salt));
 
 	strcpy(saltBuf, ciphertext);
-	saltcopy += 6;	/* skip over "$sip$*" */
+	saltcopy += FORMAT_TAG_LEN;	/* skip over "$sip$*" */
 	memset(&login, 0, sizeof(login_t));
 	num_lines = stringtoarray(lines, saltcopy, '*');
 	assert(num_lines == 14);
@@ -226,7 +228,7 @@ static void *get_salt(char *ciphertext)
 	strncpy(login.qop,         lines[11], sizeof(login.qop)        - 1 );
 	strncpy(login.algorithm,   lines[12], sizeof(login.algorithm)  - 1 );
 	strncpy(login.hash,        lines[13], sizeof(login.hash)       - 1 );
-	if(strncmp(login.algorithm, "MD5", strlen(login.algorithm))) {
+	if (strncmp(login.algorithm, "MD5", strlen(login.algorithm))) {
 		printf("\n* Cannot crack '%s' hash, only MD5 supported so far...\n", login.algorithm);
 		error();
 	}
@@ -252,7 +254,7 @@ static void *get_salt(char *ciphertext)
 
 	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
 	/* no qop */
-	if(!strlen(login.qop))
+	if (!strlen(login.qop))
 		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
 	/* qop/conce/cnonce_count */
 	else
@@ -330,7 +332,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++)
-		if ( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)&(crypt_key[index][0]))[0] )
+		if ( ((uint32_t*)binary)[0] == ((uint32_t*)&(crypt_key[index][0]))[0] )
 			return 1;
 	return 0;
 
@@ -358,14 +360,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int get_hash_0(int index) { return crypt_key[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_key[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_key[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
-
 struct fmt_main fmt_sip = {
 	{
 		FORMAT_LABEL,
@@ -381,8 +375,9 @@ struct fmt_main fmt_sip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		sip_tests
 	}, {
 		init,
@@ -396,13 +391,7 @@ struct fmt_main fmt_sip = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -412,13 +401,7 @@ struct fmt_main fmt_sip = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

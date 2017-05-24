@@ -44,6 +44,7 @@ extern struct fmt_main fmt_NETNTLMv2;
 john_register_one(&fmt_NETNTLMv2);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -54,14 +55,10 @@ john_register_one(&fmt_NETNTLMv2);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "stdint.h"
-
 #include "md5.h"
 #include "hmacmd5.h"
-
 #include "unicode.h"
 #include "byteorder.h"
-
 #include "memdbg.h"
 
 #ifndef uchar
@@ -70,6 +67,8 @@ john_register_one(&fmt_NETNTLMv2);
 
 #define FORMAT_LABEL		"netntlmv2"
 #define FORMAT_NAME		"NTLMv2 C/R"
+#define FORMAT_TAG           "$NETNTLMv2$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD4 HMAC-MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -148,12 +147,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
   char *pos, *pos2;
 
   if (ciphertext == NULL) return 0;
-  else if (strncmp(ciphertext, "$NETNTLMv2$", 11)!=0) return 0;
+  else if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
 
-  if (strlen(ciphertext) > TOTAL_LENGTH)
+  if (strnlen(ciphertext, TOTAL_LENGTH + 1) > TOTAL_LENGTH)
     return 0;
 
-  pos = &ciphertext[11];
+  pos = &ciphertext[FORMAT_TAG_LEN];
 
   /* Validate Username and Domain Length */
   for (pos2 = pos; *pos2 != '$'; pos2++)
@@ -192,16 +191,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
+	char *login         = split_fields[0];
+	char *uid           = split_fields[2];
 	char *srv_challenge = split_fields[3];
 	char *nethashv2     = split_fields[4];
 	char *cli_challenge = split_fields[5];
-	char *login = split_fields[0];
-	char *uid = split_fields[2];
 	char *identity = NULL, *tmp;
 
-	if (!strncmp(split_fields[1], "$NETNTLMv2$", 11))
+	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
-	if (!split_fields[0]||!split_fields[2]||!split_fields[3]||!split_fields[4]||!split_fields[5])
+	if (!login || !uid || !srv_challenge || !nethashv2 || !cli_challenge)
 		return split_fields[1];
 
 	/* DOMAIN\USER: -or- USER::DOMAIN: */
@@ -210,7 +209,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		strcpy(identity, tmp + 1);
 
 		/* Upper-Case Username - Not Domain */
-		enc_strupper((char *)identity);
+		enc_strupper(identity);
 
 		strncat(identity, login, tmp - login);
 	}
@@ -218,12 +217,12 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		identity = (char *) mem_alloc(strlen(login)*2 + strlen(uid) + 1);
 		strcpy(identity, login);
 
-		enc_strupper((char *)identity);
+		enc_strupper(identity);
 
 		strcat(identity, uid);
 	}
-	tmp = (char *) mem_alloc(11 + strlen(identity) + 1 + strlen(srv_challenge) + 1 + strlen(nethashv2) + 1 + strlen(cli_challenge) + 1);
-	sprintf(tmp, "$NETNTLMv2$%s$%s$%s$%s", identity, srv_challenge, nethashv2, cli_challenge);
+	tmp = (char *) mem_alloc(FORMAT_TAG_LEN + strlen(identity) + 1 + strlen(srv_challenge) + 1 + strlen(nethashv2) + 1 + strlen(cli_challenge) + 1);
+	sprintf(tmp, "%s%s$%s$%s$%s", FORMAT_TAG, identity, srv_challenge, nethashv2, cli_challenge);
 	MEM_FREE(identity);
 
 	if (valid(tmp, self)) {
@@ -241,13 +240,16 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
   char *pos = NULL;
   int identity_length = 0;
 
+  if (strstr(ciphertext, "$SOURCE_HASH$"))
+	  return ciphertext;
+
   /* Calculate identity length */
-  for (pos = ciphertext + 11; *pos != '$'; pos++);
-  identity_length = pos - (ciphertext + 11);
+  for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
+  identity_length = pos - (ciphertext + FORMAT_TAG_LEN);
 
   memset(out, 0, TOTAL_LENGTH + 1);
   memcpy(out, ciphertext, strlen(ciphertext));
-  strlwr(&out[12 + identity_length]); /* Exclude: $NETNTLMv2$USERDOMAIN$ */
+  strlwr(&out[FORMAT_TAG_LEN + identity_length + 1]); /* Exclude: $NETNTLMv2$USERDOMAIN$ */
 
   return out;
 }
@@ -260,10 +262,10 @@ static void *get_binary(char *ciphertext)
 
   if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-  for (pos = ciphertext + 11; *pos != '$'; pos++);
-  identity_length = pos - (ciphertext + 11);
+  for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
+  identity_length = pos - (ciphertext + FORMAT_TAG_LEN);
 
-  ciphertext += 11 + identity_length + 1 + SERVER_CHALL_LENGTH + 1;
+  ciphertext += FORMAT_TAG_LEN + identity_length + 1 + SERVER_CHALL_LENGTH + 1;
   for (i=0; i<BINARY_SIZE; i++)
   {
     binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
@@ -291,7 +293,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for(i=0; i<count; i++)
+	for (i=0; i<count; i++)
 #endif
 	{
 		unsigned char ntlm_v2_hash[16];
@@ -323,7 +325,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		    This data was provided by the client during authentication and we can use it as is.
 		*/
 
-		/* --- HMAC #2 Caculations --- */
+		/* --- HMAC #2 Calculations --- */
 
 		/*
 		  The (server) challenge from the Type 2 message is concatenated with the blob. The
@@ -350,7 +352,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
-	for(index=0; index<count; index++)
+	for (index=0; index<count; index++)
 		if (!memcmp(output[index], binary, BINARY_SIZE))
 			return 1;
 	return 0;
@@ -390,16 +392,16 @@ static void *get_salt(char *ciphertext)
   memset(binary_salt, 0, SALT_SIZE);
 
   /* Calculate identity length */
-  for (pos = ciphertext + 11; *pos != '$'; pos++);
+  for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
 
   /* Convert identity (username + domain) string to NT unicode */
 #if !ARCH_ALLOWS_UNALIGNED
-  identity_length = enc_to_utf16((uint16_t *)bs2, 2 * (USERNAME_LENGTH + DOMAIN_LENGTH), (uchar *)ciphertext + 11, pos - (ciphertext + 11)) * sizeof(int16_t);
+  identity_length = enc_to_utf16((uint16_t *)bs2, 2 * (USERNAME_LENGTH + DOMAIN_LENGTH), (uchar *)ciphertext + FORMAT_TAG_LEN, pos - (ciphertext + FORMAT_TAG_LEN)) * sizeof(int16_t);
   if (identity_length < 0) // Truncated at Unicode conversion.
 	  identity_length = strlen16((UTF16 *)bs2) * sizeof(int16_t);
   memcpy(&binary_salt[1], bs2, identity_length);
 #else
-  identity_length = enc_to_utf16((uint16_t *)&binary_salt[1], 2 * (USERNAME_LENGTH + DOMAIN_LENGTH), (uchar *)ciphertext + 11, pos - (ciphertext + 11)) * sizeof(int16_t);
+  identity_length = enc_to_utf16((uint16_t *)&binary_salt[1], 2 * (USERNAME_LENGTH + DOMAIN_LENGTH), (uchar *)ciphertext + FORMAT_TAG_LEN, pos - (ciphertext + FORMAT_TAG_LEN)) * sizeof(int16_t);
   if (identity_length < 0) // Truncated at Unicode conversion.
 	  identity_length = strlen16((UTF16 *)&binary_salt[1]) * sizeof(int16_t);
 #endif
@@ -462,41 +464,6 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-static int get_hash_0(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_0;
-}
-
-static int get_hash_1(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_1;
-}
-
-static int get_hash_2(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_2;
-}
-
-static int get_hash_3(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_3;
-}
-
-static int get_hash_4(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_4;
-}
-
-static int get_hash_5(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_5;
-}
-
-static int get_hash_6(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & PH_MASK_6;
-}
-
 struct fmt_main fmt_NETNTLMv2 = {
 	{
 		FORMAT_LABEL,
@@ -512,8 +479,9 @@ struct fmt_main fmt_NETNTLMv2 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
@@ -527,13 +495,7 @@ struct fmt_main fmt_NETNTLMv2 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		salt_hash,
 		NULL,
@@ -543,13 +505,7 @@ struct fmt_main fmt_NETNTLMv2 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

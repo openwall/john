@@ -70,7 +70,7 @@ john_register_one(&fmt_NS);
 #define BINARY_SIZE			16
 #define SALT_SIZE			32
 #define DYNA_SALT_SIZE		(sizeof(char*))
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			4
 
 static struct fmt_tests tests[] = {
@@ -91,14 +91,14 @@ static struct fmt_main *pDynamic;
 static void our_init(struct fmt_main *self);
 static void get_ptr();
 
-static ARCH_WORD_32 *get_binary(char *ciphertext);
+static uint32_t *get_binary(char *ciphertext);
 static int NS_valid(char *ciphertext, struct fmt_main *self);
 
 /* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {
 	char *cp, *cpo;
-	unsigned char *bin, hash[32+3], salt_hex[(ADM_LEN+SALT_SIZE)*2+3], salt_raw[(ADM_LEN+SALT_SIZE)+1];
+	unsigned char *bin, hash[32+1], salt_hex[(ADM_LEN+SALT_SIZE)*2+1], salt_raw[(ADM_LEN+SALT_SIZE)+1];
 
 	if (text_in_dynamic_format_already(pDynamic, ciphertext))
 		return ciphertext;
@@ -107,12 +107,12 @@ static char *Convert(char *Buf, char *ciphertext)
 		return "*";
 
 	bin = (unsigned char*)get_binary(ciphertext);
-	base64_convert(bin, e_b64_raw, 16, hash, e_b64_hex, 32, 0);
+	base64_convert(bin, e_b64_raw, 16, hash, e_b64_hex, sizeof(hash), 0, 0);
 	cp = ciphertext; cpo = (char*)salt_raw;
 	while (*cp != '$')
 		*cpo++ = *cp++;
 	strcpy(cpo, adm);
-	base64_convert(salt_raw, e_b64_raw, strlen((char*)salt_raw), salt_hex, e_b64_hex, (ADM_LEN+SALT_SIZE)*2, 0);
+	base64_convert(salt_raw, e_b64_raw, strlen((char*)salt_raw), salt_hex, e_b64_hex, sizeof(salt_hex), 0, 0);
 	snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "$dynamic_2004$%s$HEX$%s", hash, salt_hex);
 	return Buf;
 }
@@ -152,6 +152,7 @@ struct fmt_main fmt_NS =
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
 		0, PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+		{ NULL },
 		{ NULL },
 		tests
 	},
@@ -200,24 +201,26 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *password;
 	static char *netscreen = "nrcstn" ;
-        static int  p[] = { 0, 6, 12, 17, 23, 29 };
+	static int  p[] = { 0, 6, 12, 17, 23, 29 };
 	int i;
 
-	password = ciphertext;
+	password = strchr(ciphertext, '$');
 
-	while ((*password != '$') && (*password != '\0' ))
-		password++;
-	if (*password == '\0') return 0;
+	if (!password)
+		return 0;
 
 	if ((int)(password - ciphertext) > SALT_SIZE)
 		return 0;
 
 	password++;
 
-	if (strlen(password) != 30) return 0;
-        if (strspn(password, b64) != 30) return 0;
+	if (strnlen(password, 31) != 30)
+		return 0;
+	if (strspn(password, b64) != 30)
+		return 0;
 	for (i = 0; i < 6 ; i++)
-		if (netscreen[i] != password[p[i]]) return 0;
+		if (netscreen[i] != password[p[i]])
+			return 0;
 
 	for (i = 0; i < 30 ; i++) {
 		char c = password[i];
@@ -232,13 +235,13 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
 }
 
 /* original binary for the original hash. We use this also in convert() */
-static ARCH_WORD_32 *get_binary(char *ciphertext)
+static uint32_t *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned long dummy;
-		ARCH_WORD_32 i[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+		uint32_t i[BINARY_SIZE/sizeof(uint32_t)];
 	} _out;
-	ARCH_WORD_32 *out = _out.i;
+	uint32_t *out = _out.i;
 	char unscrambled[24];
 	int i;
 	MD5_u32plus a, b, c;

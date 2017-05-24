@@ -73,7 +73,7 @@ static struct fmt_tests SybasePROP_tests[] = {
 
 static unsigned char saved_salt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -100,11 +100,12 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext + PREFIX_LENGTH;
+	int extra;
 
 	if (strncmp(ciphertext, PREFIX_VALUE, PREFIX_LENGTH))
 		return 0;
 
-	if (hexlenl(p) != CIPHERTEXT_LENGTH-PREFIX_LENGTH)
+	if (hexlenl(p, &extra) != CIPHERTEXT_LENGTH-PREFIX_LENGTH || extra)
 		return 0;
 
 	return 1;
@@ -218,6 +219,7 @@ struct fmt_main fmt_sybaseprop = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ PREFIX_VALUE },
 		SybasePROP_tests
 	}, {
 		init,

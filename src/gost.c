@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "gost.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 extern unsigned rhash_gost_sbox[4][256];
@@ -48,7 +49,7 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
  *  blocks.
  */
 #ifndef USE_GCC_ASM_IA32
-# define GOST_ENCRYPT_ROUND(key1, key2, sbox) \
+ #define GOST_ENCRYPT_ROUND(key1, key2, sbox) \
 	tmp = (key1) + r; \
 	l ^= (sbox)[tmp & 0xff] ^ ((sbox) + 256)[(tmp >> 8) & 0xff] ^ \
 		((sbox) + 512)[(tmp >> 16) & 0xff] ^ ((sbox) + 768)[tmp >> 24]; \
@@ -57,7 +58,7 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
 		((sbox) + 512)[(tmp >> 16) & 0xff] ^ ((sbox) + 768)[tmp >> 24];
 
 /* encrypt a block with the given key */
-# define GOST_ENCRYPT(result, i, key, hash, sbox) \
+ #define GOST_ENCRYPT(result, i, key, hash, sbox) \
 	r = hash[i], l = hash[i + 1]; \
 	GOST_ENCRYPT_ROUND(key[0], key[1], sbox) \
 	GOST_ENCRYPT_ROUND(key[2], key[3], sbox) \
@@ -81,7 +82,7 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
 
 /* a faster x86 version of GOST_ENCRYPT() */
 /* it supposes edi=r, esi=l, edx=sbox ; */
-# define ENC_ROUND_ASMx86(key, reg1, reg2) \
+ #define ENC_ROUND_ASMx86(key, reg1, reg2) \
 	"movl %" #key ", %%eax\n\t" \
 	"addl %%" #reg1 ", %%eax\n\t" \
 	"movzx %%al, %%ebx\n\t" \
@@ -94,8 +95,8 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
 	"xorl 2048(%%edx, %%ebx, 4), %%" #reg2 "\n\t" \
 	"xorl 3072(%%edx, %%eax, 4), %%" #reg2 "\n\t"
 
-# define ENC_ASM(key1, key2) ENC_ROUND_ASMx86(key1, edi, esi) ENC_ROUND_ASMx86(key2, esi, edi)
-# define GOST_ENCRYPT_GCC_ASM_X86() \
+ #define ENC_ASM(key1, key2) ENC_ROUND_ASMx86(key1, edi, esi) ENC_ROUND_ASMx86(key2, esi, edi)
+ #define GOST_ENCRYPT_GCC_ASM_X86() \
 	ENC_ASM( 5,  6) ENC_ASM( 7,  8) ENC_ASM( 9, 10) ENC_ASM(11, 12) \
 	ENC_ASM( 5,  6) ENC_ASM( 7,  8) ENC_ASM( 9, 10) ENC_ASM(11, 12) \
 	ENC_ASM( 5,  6) ENC_ASM( 7,  8) ENC_ASM( 9, 10) ENC_ASM(11, 12) \
@@ -125,7 +126,7 @@ static void rhash_gost_block_compress(gost_ctx *ctx, const unsigned* block)
 	w[6] = u[6] ^ v[6], w[7] = u[7] ^ v[7];
 
 	/* calculate keys, encrypt hash and store result to the s[] array */
-	for(i = 0;; i += 2) {
+	for (i = 0;; i += 2) {
 		/* key generation: key_i := P(w) */
 		key[0] = (w[0] & 0x000000ff) | ((w[2] & 0x000000ff) << 8) | ((w[4] & 0x000000ff) << 16) | ((w[6] & 0x000000ff) << 24);
 		key[1] = ((w[0] & 0x0000ff00) >> 8) | (w[2] & 0x0000ff00) | ((w[4] & 0x0000ff00) << 8)  | ((w[6] & 0x0000ff00) << 16);
@@ -156,7 +157,7 @@ static void rhash_gost_block_compress(gost_ctx *ctx, const unsigned* block)
 			: "cc", "eax", "ecx");
 #endif /* USE_GCC_ASM_IA32 */
 
-		if(i == 0) {
+		if (i == 0) {
 			/* w:= A(u) ^ A^2(v) */
 			w[0] = u[2] ^ v[4], w[1] = u[3] ^ v[5];
 			w[2] = u[4] ^ v[6], w[3] = u[5] ^ v[7];
@@ -164,8 +165,8 @@ static void rhash_gost_block_compress(gost_ctx *ctx, const unsigned* block)
 			w[5] = u[7] ^ (v[1] ^= v[3]);
 			w[6] = (u[0] ^= u[2]) ^ (v[2] ^= v[4]);
 			w[7] = (u[1] ^= u[3]) ^ (v[3] ^= v[5]);
-		} else if((i & 2) != 0) {
-			if(i == 6) break;
+		} else if ((i & 2) != 0) {
+			if (i == 6) break;
 
 			/* w := A^2(u) xor A^4(v) xor C_3; u := A(u) xor C_3 */
 			/* C_3=0xff00ffff000000ffff0000ff00ffff0000ff00ff00ff00ffff00ff00ff00ff00 */
@@ -272,10 +273,10 @@ static void rhash_gost_compute_sum_and_hash(gost_ctx * ctx, const unsigned* bloc
 {
 #if !ARCH_LITTLE_ENDIAN
 	unsigned block_le[8]; /* tmp buffer for little endian number */
-# define LOAD_BLOCK_LE(i) (block_le[i] = le2me_32(block[i]))
+ #define LOAD_BLOCK_LE(i) (block_le[i] = le2me_32(block[i]))
 #else
-# define block_le block
-# define LOAD_BLOCK_LE(i)
+ #define block_le block
+ #define LOAD_BLOCK_LE(i)
 #endif
 
 	/* This optimization doesn't improve speed much,
@@ -315,7 +316,7 @@ static void rhash_gost_compute_sum_and_hash(gost_ctx * ctx, const unsigned* bloc
 	unsigned i, carry = 0;
 
 	/* compute the 256-bit sum */
-	for(i = 0; i < 8; i++) {
+	for (i = 0; i < 8; i++) {
 		const unsigned old = ctx->sum[i];
 		LOAD_BLOCK_LE(i);
 		ctx->sum[i] += block_le[i] + carry;
@@ -341,10 +342,10 @@ void john_gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size)
 	ctx->length += size;
 
 	/* fill partial block */
-	if(index) {
+	if (index) {
 		unsigned left = gost_block_size - index;
 		memcpy(ctx->message + index, msg, (size < left ? size : left));
-		if(size < left) return;
+		if (size < left) return;
 
 		/* process partial block */
 		rhash_gost_compute_sum_and_hash(ctx, (unsigned*)ctx->message);
@@ -354,9 +355,9 @@ void john_gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size)
 	while(size >= gost_block_size) {
 		unsigned* aligned_message_block;
 #if (defined(__GNUC__) && defined(CPU_X64))
-		if(IS_ALIGNED_64(msg)) {
+		if (IS_ALIGNED_64(msg)) {
 #else
-		if(IS_ALIGNED_32(msg)) {
+		if (IS_ALIGNED_32(msg)) {
 #endif
 			/* the most common case is processing of an already aligned message
 			on little-endian CPU without copying it */
@@ -370,7 +371,7 @@ void john_gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size)
 		msg += gost_block_size;
 		size -= gost_block_size;
 	}
-	if(size) {
+	if (size) {
 		/* save leftovers */
 		memcpy(ctx->message, msg, size);
 	}
@@ -388,7 +389,7 @@ void john_gost_final(gost_ctx *ctx, unsigned char result[32])
 	unsigned* msg32 = (unsigned*)ctx->message;
 
 	/* pad the last block with zeroes and hash it */
-	if(index > 0) {
+	if (index > 0) {
 		memset(ctx->message + index, 0, 32 - index);
 		rhash_gost_compute_sum_and_hash(ctx, msg32);
 	}
@@ -420,13 +421,13 @@ static void rhash_gost_fill_sbox(unsigned out[4][256], const unsigned char src[8
 	int a, b, i;
 	unsigned long ax, bx, cx, dx;
 
-	for(i = 0, a = 0; a < 16; a++) {
+	for (i = 0, a = 0; a < 16; a++) {
 		ax = (unsigned)src[1][a] << 15;
 		bx = (unsigned)src[3][a] << 23;
 		cx = ROTL32((unsigned)src[5][a], 31);
 		dx = (unsigned)src[7][a] << 7;
 
-		for(b = 0; b < 16; b++, i++) {
+		for (b = 0; b < 16; b++, i++) {
 			out[0][i] = ax | ((unsigned)src[0][b] << 11);
 			out[1][i] = bx | ((unsigned)src[2][b] << 19);
 			out[2][i] = cx | ((unsigned)src[4][b] << 27);
@@ -488,7 +489,7 @@ void john_gost_hmac_starts( gost_hmac_ctx *ctx, const unsigned char *key, size_t
 	size_t i;
 	unsigned char sum[32];
 
-	if( keylen > 32 )
+	if ( keylen > 32 )
 	{
 		john_gost_init( &ctx->ctx );
 		john_gost_update( &ctx->ctx, key, keylen );
@@ -500,7 +501,7 @@ void john_gost_hmac_starts( gost_hmac_ctx *ctx, const unsigned char *key, size_t
 	memset( ctx->ipad, 0x36, 32 );
 	memset( ctx->opad, 0x5C, 32 );
 
-	for( i = 0; i < keylen; i++ )
+	for ( i = 0; i < keylen; i++ )
 	{
 		ctx->ipad[i] = (unsigned char)( ctx->ipad[i] ^ key[i] );
 		ctx->opad[i] = (unsigned char)( ctx->opad[i] ^ key[i] );
@@ -588,7 +589,7 @@ int main()
 	gost_ctx ctx;
 	int i;
 	gost_init_table();
-	for(i = 0; i < 3; i++) {
+	for (i = 0; i < 3; i++) {
 		gost_init(&ctx);
 		gost_update(&ctx, tests[i].text, strlen(tests[i].text));
 		gost_final(&ctx, hash);
@@ -606,6 +607,6 @@ void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length) {
 	pI = (unsigned int *)from;
 	length>>=2;
 	for (i = 0; i < length; ++i) {
-		*pO++ = bswap_32(*pI++);
+		*pO++ = JOHNSWAP(*pI++);
 	}
 }

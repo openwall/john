@@ -8,6 +8,7 @@
 #include "formats.h"
 #include "base64_convert.h"
 #include "salted_sha1_common.h"
+#include "memdbg.h"
 
 struct fmt_tests salted_sha1_common_tests[] = {
 // Test hashes originally(?) in OPENLDAPS_fmt (openssha) (salt length 4)
@@ -48,16 +49,26 @@ struct fmt_tests salted_sha1_common_tests[] = {
 
 int salted_sha1_common_valid(char *ciphertext, struct fmt_main *self)
 {
-	int len;
+	int len, real_len;
+	char buf[MAX_SALT_LEN+BINARY_SIZE+8];
 
 	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
 		return 0;
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 
-	len = base64_valid_length(ciphertext, e_b64_mime, 0);
+	len = base64_valid_length(ciphertext, e_b64_mime, 0, 0);
 	if (len > CIPHERTEXT_LENGTH)
 		return 0;
-	if (len < CIPHERTEXT_LEN_MIN)
+	if (len <= CIPHERTEXT_LEN_MIN)
+		return 0;
+	// Note, the +4 here allows us to decode something larger, so that we know the salt is too long.
+	real_len = base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), buf, e_b64_raw, MAX_SALT_LEN+BINARY_SIZE+4, 0, 0);
+	if (real_len <= BINARY_SIZE || real_len > MAX_SALT_LEN+BINARY_SIZE)
+		return 0;
+	// there should be NOTHING following the base64 string.
+	while (ciphertext[len] == '=')
+		++ len;
+	if (ciphertext[len])
 		return 0;
 
 	return 1;

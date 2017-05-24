@@ -79,7 +79,7 @@ static struct fmt_tests whirlpool_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -104,12 +104,13 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
+	int extra;
 
 	p = ciphertext;
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (hexlen(p) != CIPHERTEXT_LENGTH)
+	if (hexlen(p, &extra) != CIPHERTEXT_LENGTH || extra)
 		return 0;
 
 	return 1;
@@ -278,8 +279,8 @@ struct fmt_main fmt_whirlpool_0 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
-		{ NULL
-		},
+		{ NULL },
+		{ FORMAT_TAG },
 		whirlpool_0_tests
 	}, {
 		init,
@@ -290,8 +291,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		split,
 		get_binary,
 		fmt_default_salt,
-		{ NULL
-		},
+		{ NULL },
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
@@ -342,8 +342,8 @@ struct fmt_main fmt_whirlpool_1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
-		{ NULL
-		},
+		{ NULL },
+		{ FORMAT_TAG },
 		whirlpool_1_tests
 	}, {
 		init,
@@ -406,6 +406,7 @@ struct fmt_main fmt_whirlpool = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		whirlpool_tests
 	}, {
 		init,

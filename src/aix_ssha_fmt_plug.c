@@ -48,6 +48,14 @@ static int omp_t = 1;
 #define FORMAT_NAME_SHA1	"AIX LPA {ssha1}"
 #define FORMAT_NAME_SHA256	"AIX LPA {ssha256}"
 #define FORMAT_NAME_SHA512	"AIX LPA {ssha512}"
+
+#define FORMAT_TAG1			"{ssha1}"
+#define FORMAT_TAG256		"{ssha256}"
+#define FORMAT_TAG512		"{ssha512}"
+#define FORMAT_TAG1_LEN		(sizeof(FORMAT_TAG1)-1)
+#define FORMAT_TAG256_LEN	(sizeof(FORMAT_TAG256)-1)
+#define FORMAT_TAG512_LEN	(sizeof(FORMAT_TAG512)-1)
+
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME_SHA1	"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #else
@@ -105,12 +113,12 @@ static struct fmt_tests aixssha_tests512[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int iterations;
 	int type;
-	char unsigned salt[MAX_SALT_SIZE + 1];
+	unsigned char salt[MAX_SALT_SIZE + 1];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -165,13 +173,13 @@ static int inline valid_common(char *ciphertext, struct fmt_main *self, int b64l
 }
 
 static int valid_sha1(char *ciphertext, struct fmt_main *self) {
-	return valid_common(ciphertext, self, 27, "{ssha1}", 7);
+	return valid_common(ciphertext, self, 27, FORMAT_TAG1, FORMAT_TAG1_LEN);
 }
 static int valid_sha256(char *ciphertext, struct fmt_main *self) {
-	return valid_common(ciphertext, self, 43, "{ssha256}", 9);
+	return valid_common(ciphertext, self, 43, FORMAT_TAG256, FORMAT_TAG256_LEN);
 }
 static int valid_sha512(char *ciphertext, struct fmt_main *self) {
-	return valid_common(ciphertext, self, 86, "{ssha512}", 9);
+	return valid_common(ciphertext, self, 86, FORMAT_TAG512, FORMAT_TAG512_LEN);
 }
 
 static void *get_salt(char *ciphertext)
@@ -183,17 +191,16 @@ static void *get_salt(char *ciphertext)
 	keeptr = ctcopy;
 
 	memset(&cs, 0, sizeof(cs));
-	if ((strncmp(ciphertext, "{ssha1}", 7) == 0))
+	if ((strncmp(ciphertext, FORMAT_TAG1, FORMAT_TAG1_LEN) == 0)) {
 		cs.type = 1;
-	else if ((strncmp(ciphertext, "{ssha256}", 9) == 0))
+		ctcopy += FORMAT_TAG1_LEN;
+	} else if ((strncmp(ciphertext, FORMAT_TAG256, FORMAT_TAG256_LEN) == 0)) {
 		cs.type = 256;
-	else
+		ctcopy += FORMAT_TAG256_LEN;
+	} else {
 		cs.type = 512;
-
-	if (cs.type == 1)
-		ctcopy += 7;
-	else
-		ctcopy += 9;
+		ctcopy += FORMAT_TAG512_LEN;
+	}
 
 	p = strtokm(ctcopy, "$");
 	cs.iterations = 1 << atoi(p);
@@ -205,10 +212,10 @@ static void *get_salt(char *ciphertext)
 }
 
 #define TO_BINARY(b1, b2, b3) {	  \
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+	value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
 	pos += 4; \
 	out.c[b1] = value >> 16; \
 	out.c[b2] = value >> 8; \
@@ -218,9 +225,9 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[LARGEST_BINARY_SIZE+3];
-		ARCH_WORD_64 dummy;
+		uint64_t dummy;
 	} out;
-	ARCH_WORD_32 value;
+	uint32_t value;
 	char *pos = strrchr(ciphertext, '$') + 1;
 	int len = strlen(pos);
 	int i;
@@ -230,33 +237,16 @@ static void *get_binary(char *ciphertext)
 		TO_BINARY(i, i + 1, i + 2);
 
 	if (len % 3 == 1) {
-		value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-			((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6);
+		value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] |
+			((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6);
 		out.c[i] = value;
 	} else if (len % 3 == 2) { /* sha-1, sha-256 */
-		value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-			((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
-			((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
+		value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] |
+			((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) |
+			((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12);
 		out.c[i++] = value >> 8;
 		out.c[i++] = value;
 	}
-
-#if !ARCH_LITTLE_ENDIAN
-	{
-		// we need to know if we are using sha1 or sha256  OR a 64 bit (sha384/512)
-		int j;
-		if (!strncasecmp(ciphertext, "{ssha512}", 9)) {
-			for (j = 0; j < 3; ++j) { // we only need 20 bytes -2
-				((ARCH_WORD_64*)out.c)[j] = JOHNSWAP64(((ARCH_WORD_64*)out.c)[j]);
-			}
-		} else {
-			//for (j = 0; j*sizeof(ARCH_WORD_32) < i; ++j) {
-			for (j = 0; j < 5; ++j) {
-				((ARCH_WORD_32*)out.c)[j] = JOHNSWAP(((ARCH_WORD_32*)out.c)[j]);
-			}
-		}
-	}
-#endif
 	return (void *)out.c;
 }
 
@@ -308,7 +298,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				int lens[SSE_GROUP_SZ_SHA1], i;
 				unsigned char *pin[SSE_GROUP_SZ_SHA1];
 				union {
-					ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+					uint32_t *pout[SSE_GROUP_SZ_SHA1];
 					unsigned char *poutc;
 				} x;
 				for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
@@ -330,7 +320,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				int lens[SSE_GROUP_SZ_SHA256], i;
 				unsigned char *pin[SSE_GROUP_SZ_SHA256];
 				union {
-					ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+					uint32_t *pout[SSE_GROUP_SZ_SHA256];
 					unsigned char *poutc;
 				} x;
 				for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {
@@ -352,7 +342,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				int lens[SSE_GROUP_SZ_SHA512], i;
 				unsigned char *pin[SSE_GROUP_SZ_SHA512];
 				union {
-					ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA512];
+					uint32_t *pout[SSE_GROUP_SZ_SHA512];
 					unsigned char *poutc;
 				} x;
 				for (i = 0; i < SSE_GROUP_SZ_SHA512; ++i) {
@@ -443,6 +433,7 @@ struct fmt_main fmt_aixssha1 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG1 },
 		aixssha_tests1
 	}, {
 		init,
@@ -512,6 +503,7 @@ struct fmt_main fmt_aixssha256 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG256 },
 		aixssha_tests256
 	}, {
 		init,
@@ -581,6 +573,7 @@ struct fmt_main fmt_aixssha512 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG512 },
 		aixssha_tests512
 	}, {
 		init,

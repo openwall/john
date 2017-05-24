@@ -10,8 +10,8 @@
 #ifndef _JOHN_CRACKER_H
 #define _JOHN_CRACKER_H
 
+#include <stdint.h>
 #include "loader.h"
-#include "stdint.h"
 
 /* Our last read position in pot file (during crack) */
 extern int64_t crk_pot_pos;
@@ -60,4 +60,11 @@ extern int crk_reload_pot(void);
  * Exported for stacked modes
  */
 extern void (*crk_fix_state)(void);
+
+/*
+ * This needs set for 2nd level save/resume code to get proper
+ * information stashed away so resume is done properly.
+ */
+typedef void (*fix_state_fp)();
+extern void crk_set_hybrid_fix_state_func_ptr(fix_state_fp fp);
 #endif

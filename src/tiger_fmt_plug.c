@@ -54,7 +54,7 @@ static int omp_t = 1;
 #define FORMAT_LABEL		"Tiger"
 #define FORMAT_NAME		""
 #define FORMAT_TAG		"$tiger$"
-#define TAG_LENGTH		7
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"Tiger 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -76,7 +76,7 @@ static struct fmt_tests tiger_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -110,7 +110,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 	return 1;
 }
@@ -214,16 +214,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[BINARY_SIZE*2+TAG_LENGTH+1];
-	char *hash = fields[1];
-	if (strlen(hash) == BINARY_SIZE*2 && valid(hash, self)) {
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;
-}
-
 struct fmt_main fmt_tiger = {
 	{
 		FORMAT_LABEL,
@@ -244,12 +234,13 @@ struct fmt_main fmt_tiger = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		tiger_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,

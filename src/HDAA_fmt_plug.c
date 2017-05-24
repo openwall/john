@@ -15,6 +15,7 @@ extern struct fmt_main fmt_HDAA;
 john_register_one(&fmt_HDAA);
 #else
 
+#include <stdint.h>
 #include <string.h>
 
 #ifdef __MMX__
@@ -27,8 +28,6 @@ john_register_one(&fmt_HDAA);
 #include "common.h"
 #include "formats.h"
 #include "md5.h"
-
-#include "stdint.h"
 
 #include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
@@ -84,6 +83,7 @@ static unsigned int omp_t = 1;
 #define SEPARATOR			'$'
 
 #define MAGIC				"$response$"
+#define MAGIC_LEN			(sizeof(MAGIC)-1)
 #define SIZE_TAB			12
 
 // This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
@@ -122,6 +122,8 @@ static struct fmt_tests tests[] = {
 	{"$response$679066476e67b5c7c4e88f04be567f8b$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$00000001$4b61913cec32e2c9$auth", "nocode"},
 	{"$response$faa6cb7d676e5b7c17fcbf966436aa0c$moi$myrealm$GET$/$af32592775d27b1cd06356b3a0db9ddf$00000001$8e1d49754a25aea7$auth", "kikou"},
 	{"$response$56940f87f1f53ade8b7d3c5a102c2bf3$usrx$teN__chars$GET$/4TLHS1TMN9cfsbqSUAdTG3CRq7qtXMptnYfn7mIIi3HRKOMhOks56e$2c0366dcbc$00000001$0153$auth", "passWOrd"},
+	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$", "pass"},
+	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a", "pass"},
 	{NULL}
 };
 
@@ -194,11 +196,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 
-	if (strncmp(ciphertext, MAGIC, sizeof(MAGIC) - 1) != 0)
+	if (strncmp(ciphertext, MAGIC, MAGIC_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += sizeof(MAGIC)-1;
+	ctcopy += MAGIC_LEN;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
@@ -214,10 +216,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* nonce */
 		goto err;
-	if (!ishexlc(p) )
-		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL) /* noncecount */
-		goto err;
+	if ((p = strtokm(NULL, "$")) == NULL) /* End of legacy HDAA or noncecount */
+		goto end_hdaa_legacy;
 	if ((p = strtokm(NULL, "$")) == NULL) /* clientnonce */
 		goto err;
 	if (!ishexlc(p) )
@@ -227,12 +227,35 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "$")) != NULL)
 		goto err;
 
+end_hdaa_legacy:
 	MEM_FREE(keeptr);
 	return 1;
 
 err:
 	MEM_FREE(keeptr);
 	return 0;
+}
+
+// Normalize shorter hashes, to allow with or without trailing '$' character.
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	char *cp;
+	if (strncmp(ciphertext, MAGIC, MAGIC_LEN))
+		return ciphertext;
+	cp = ciphertext + MAGIC_LEN;
+	cp = strchr(cp, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
+	// now if we have $binary_hash$ then we remove the last '$' char
+	if (strlen(cp) == 1 + BINARY_SIZE*2 + 1) {
+		static char out[256];
+		strnzcpy(out, ciphertext, sizeof(out));
+		out[strlen(out)-1] = 0;
+		return out;
+	}
+	return ciphertext;
 }
 
 static void set_salt(void *salt)
@@ -258,13 +281,13 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 #ifdef _OPENMP
-	for(; y < SIMD_PARA_MD5 * omp_t; y++)
+	for (; y < SIMD_PARA_MD5 * omp_t; y++)
 #else
-	for(; y < SIMD_PARA_MD5; y++)
+	for (; y < SIMD_PARA_MD5; y++)
 #endif
-		for(x = 0; x < SIMD_COEF_32; x++)
+		for (x = 0; x < SIMD_COEF_32; x++)
 		{
-			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+x] )
+			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
 		}
 	return 0;
@@ -284,8 +307,8 @@ static int cmp_one(void *binary, int index)
 	unsigned int i,x,y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
-	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
+	for (i=0;i<(BINARY_SIZE/4);i++)
+		if ( ((uint32_t*)binary)[i] != ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
 			return 0;
 	return 1;
 #else
@@ -455,7 +478,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			key = rinfo->h1tmp;
 			for (len = 0; len < rinfo->h1tmplen; len += 4, key += 4)
-				*(ARCH_WORD_32*)&saved_key[len>>6][GETPOS(len, ti)] = *(ARCH_WORD_32*)key;
+				*(uint32_t*)&saved_key[len>>6][GETPOS(len, ti)] = *(uint32_t*)key;
 			len = rinfo->h1tmplen;
 			key = (char*)&saved_plain[ti];
 			while((temp = *key++)) {
@@ -469,7 +492,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (++i & 3)
 				saved_key[i>>6][GETPOS(i, ti)] = 0;
 			for (; i < (((len+8)>>6)+1)*64; i += 4)
-				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
+				*(uint32_t*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
 			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 		}
@@ -492,7 +515,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			// ...then a word at a time. This is a good boost, we are copying over 100 bytes.
 			for (;len < rinfo->h3tmplen; len += 4, key += 4)
-				*(ARCH_WORD_32*)&saved_key[len>>6][GETPOS(len, ti)] = *(ARCH_WORD_32*)key;
+				*(uint32_t*)&saved_key[len>>6][GETPOS(len, ti)] = *(uint32_t*)key;
 			len = rinfo->h3tmplen;
 			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
 
@@ -502,7 +525,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				saved_key[i>>6][GETPOS(i, ti)] = 0;
 			//for (; i < (((len+8)>>6)+1)*64; i += 4)
 			for (; i <= crypt_len[index]; i += 4)
-				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
+				*(uint32_t*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
 
 			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 			crypt_len[index] = len;
@@ -635,13 +658,15 @@ static void *get_salt(char *ciphertext)
 	MD5_CTX ctx;
 
 	/* parse the password string */
-	if (!r) r = mem_calloc_tiny(sizeof(*r), MEM_ALIGN_WORD);
+	if (!r) r = mem_alloc_tiny(sizeof(*r), MEM_ALIGN_WORD);
 	memset(r, 0, sizeof(*r));
 	for (nb = 0, i = 1; ciphertext[i] != 0; i++) {
 		if (ciphertext[i] == SEPARATOR) {
 			i++;
 			request[nb] = mystrndup(&ciphertext[i], reqlen(&ciphertext[i]));
 			nb++;
+			if (!ciphertext[i])
+				break;
 		}
 	}
 	while (nb < SIZE_TAB) {
@@ -663,9 +688,13 @@ static void *get_salt(char *ciphertext)
 	snprintf(r->h1tmp, HTMP - PLAINTEXT_LENGTH, "%s:%s:", request[R_USER], request[R_REALM]);
 
 	/* create a part of h3 (h3tmp = nonce:noncecount:clientnonce:qop:h2)*/
-	snprintf(&r->h3tmp[CIPHERTEXT_LENGTH], HTMP - CIPHERTEXT_LENGTH, ":%s:%s:%s:%s:%s",
-	         request[R_NONCE], request[R_NONCECOUNT], request[R_CLIENTNONCE],
-	         request[R_QOP], (char*)conv);
+	if (request[R_CLIENTNONCE] == NULL)
+		snprintf(&r->h3tmp[CIPHERTEXT_LENGTH], HTMP - CIPHERTEXT_LENGTH, ":%s:%s",
+		         request[R_NONCE], (char*)conv);
+	else
+		snprintf(&r->h3tmp[CIPHERTEXT_LENGTH], HTMP - CIPHERTEXT_LENGTH, ":%s:%s:%s:%s:%s",
+		         request[R_NONCE], request[R_NONCECOUNT], request[R_CLIENTNONCE],
+		         request[R_QOP], (char*)conv);
 
 	r->h1tmplen = strlen(r->h1tmp);
 	r->h3tmplen = strlen(&r->h3tmp[CIPHERTEXT_LENGTH]) + CIPHERTEXT_LENGTH;
@@ -692,21 +721,21 @@ static void *get_binary(char *ciphertext)
 
 #ifdef SIMD_COEF_32
 #define HASH_OFFSET (index&(SIMD_COEF_32-1))+((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*4
-static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_6; }
 #endif
 
 struct fmt_main fmt_HDAA = {
@@ -729,6 +758,7 @@ struct fmt_main fmt_HDAA = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
+		{ MAGIC },
 		tests
 	}, {
 		init,
@@ -736,7 +766,7 @@ struct fmt_main fmt_HDAA = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 		{ NULL },

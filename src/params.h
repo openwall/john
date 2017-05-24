@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2015 by Solar Designer
+ * Copyright (c) 1996-2016 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
  *
@@ -26,7 +26,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.6-jumbo-1-bleeding"
+#define JOHN_VERSION			"1.8.0.9-jumbo-1-bleeding"
 
 /*
  * Define this for release tarballs after updating the string above.
@@ -305,7 +305,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * How many bitmap entries should the cracker prefetch at once.  Set this to 0
  * to disable prefetching.
  */
-#ifdef __SSE2__
+#ifdef __SSE__
 #define CRK_PREFETCH			64
 #else
 #define CRK_PREFETCH			0
@@ -360,17 +360,20 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffer size for fgets().
  */
-#define LINE_BUFFER_SIZE		0x30000
+#define LINE_BUFFER_SIZE		0x400
 
 /*
- * Default threshold for inlining files in rar2john, zip2john, etc.
- * Data blobs larger than this will not be inlined. Note that this is
- * original data size, eg. encoded size will be twice this if hex encoding
- * is used, or 25% larger if using Base64. All tools should have an option
- * to override this default but has to take care not to ever produce lines
- * with a *total* length exceeding LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE.
+ * Max. ciphertext size that's sure to fit a line when cleartext field
+ * is added.
  */
-#define MAX_INLINE_SIZE			0x400
+#define MAX_CIPHERTEXT_SIZE	(LINE_BUFFER_SIZE - PLAINTEXT_BUFFER_SIZE)
+
+/*
+ * We trim ciphertext being stored into the .pot file for all CTs >
+ * MAX_CIPHERTEXT_SIZE.  We truncate, and then append a hash of the
+ * full ciphertext. 13 is length of tag, 32 is length of MD5 hex hash.
+ */
+#define POT_BUFFER_CT_TRIM_SIZE		(MAX_CIPHERTEXT_SIZE - 13 - 32)
 
 /*
  * john.pot and log file buffer sizes, can be zero.
@@ -397,8 +400,9 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /* Number of custom Mask placeholders */
 #define MAX_NUM_CUST_PLHDR		9
 
-/* Verbosity level */
+/* Verbosity level. Higher is more chatty. */
 #define VERB_MAX			5
-#define VERB_DEFAULT		3
+#define VERB_LEGACY			4
+#define VERB_DEFAULT			3
 
 #endif

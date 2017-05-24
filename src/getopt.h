@@ -20,7 +20,7 @@
 /*
  * Option flags bitmask type.
  */
-typedef ARCH_WORD_64 opt_flags;
+typedef uint64_t opt_flags;
 
 /*
  * Supported options list entry, the list ends with a NULL name field.

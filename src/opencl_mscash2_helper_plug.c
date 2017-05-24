@@ -169,14 +169,14 @@ static void execKernel(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint 
 	N = devParam[jtrUniqDevId].devLws ? (keyCount + devParam[jtrUniqDevId].devLws - 1) / devParam[jtrUniqDevId].devLws * devParam[jtrUniqDevId].devLws : keyCount;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdQueue, devBuffer[jtrUniqDevId].bufferDccHashes, CL_FALSE, 0, 4 * keyCount * sizeof(cl_uint), hostDccHashes, 0, NULL, NULL ), "Failed in clEnqueueWriteBuffer bufferDccHashes.");
-	if(saltlen > 22)
+	if (saltlen > 22)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdQueue, devBuffer[jtrUniqDevId].bufferSha1Hashes, CL_FALSE, 0, 5 * keyCount * sizeof(cl_uint), hostSha1Hashes, 0, NULL, NULL ), "Failed in clEnqueueWriteBuffer bufferSha1Hashes.");
 	else
 	      HANDLE_CLERROR(clSetKernelArg(devParam[jtrUniqDevId].devKernel[0], 2, sizeof(cl_uint), &saltlen), "Set Kernel 0 Arg 2 :FAILED");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdQueue, devBuffer[jtrUniqDevId].bufferSalt, CL_FALSE, 0, SALT_BUFFER_SIZE, hostSalt, 0, NULL, NULL ), "Failed in clEnqueueWriteBuffer bufferSalt.");
 
-	if(saltlen < 23)
+	if (saltlen < 23)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(cmdQueue, devParam[jtrUniqDevId].devKernel[0], 1, NULL, &N, M, 0, NULL, NULL), "Failed in clEnqueueNDRangeKernel devKernel[0].");
 	else
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(cmdQueue, devParam[jtrUniqDevId].devKernel[1], 1, NULL, &N, M, 0, NULL, NULL), "Failed in clEnqueueNDRangeKernel devKernel[1].");
@@ -440,7 +440,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	assert(devParam[jtrUniqDevId].devGws <= gwsLimit);
 	assert(devParam[jtrUniqDevId].devLws <= PADDING);
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 	fprintf(stdout, "Device %d  GWS: "Zu", LWS: "Zu"\n", jtrUniqDevId,
 			devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
 

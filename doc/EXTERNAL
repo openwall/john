@@ -3,7 +3,7 @@
 To define an external cracking mode you need to create a configuration
 file section called [List.External:MODE], where MODE is any name that
 you assign to the mode.  The section should contain some functions
-programmed in a subset of the C language.  John will compile and use the
+programmed in a C-like language.  John will compile and use the
 functions if you enable this cracking mode via the command line.
 
 
@@ -15,6 +15,8 @@ init()		called at startup, should initialize global variables
 filter()	called for each word to be tried, can filter some words out
 generate()	called to generate words, when no other cracking modes used
 restore()	called when restoring an interrupted session
+new()		called when starting each base word (hybrid cracking mode)
+next()		called to iterate during the hybrid cracking (see hybrid cracking)
 
 All of them are of type "void", with no arguments, and should use the
 global variable "word" (pre-defined as "int word[]"), except for init()
@@ -65,10 +67,11 @@ password length get larger than "cipher_limit".
 
 From 1.7.9-Jumbo-8 on, two new variables "req_minlen" (requested min.
 length), "req_maxlen" (requested max. length) were added, reflecting
-the --min-len=N and --max-len=N options. Also, a variable "session_start_time"
-was added that is equivalent of time(NULL) at start, ie. the current time
-expressed in seconds after Jan 1 1970. This variable is initialized once,
-not updated. Note: On a resume you will end up using a new value than was
+the --min-length=N and --max-length=N options.
+Also, a variable "session_start_time" was added that is equivalent of
+time(NULL) at start, ie. the current time expressed in seconds after
+Jan 1 1970. This variable is initialized once, not updated.
+Note: On a resume you will end up using a new value than was
 originally used.
 
 From 1.8.0-Jumbo-2, two new variables "utf32" and "target_utf8" were
@@ -79,37 +82,143 @@ mode and indicates whether the target encoding is UTF-8 or not (some modes
 may take that into account when considering output length). See eg.
 Repeats32 external mode (run/repeats32.conf) for examples.
 
+From 1.8.0-Jumbo-2, 2 new variables were added for usage by the hybrid
+scripts (which use the new() and next() functions).  These variables are
+"hybrid_total" and "hybrid_resume".  If it is easy for the script to
+compute total words which will be produced for a base-word, and to adjust
+itself at restore() call to get back to where things were left off, then
+these variables should be used. Within new() the total count should be
+assigned to 'hybrid_total' before the function returns.  Within restore(),
+hybrid_total should be set, AND hybrid_resume is the number of iterations
+which were done in the prior run. restore() should use this to change whatever
+is required within the script's global state, so that the next call to next()
+will produce the correct next word.  If the script can not easily know how
+many candidate a word produces, or adjust its global state to start from
+some random location, then within new() the script should NOT set 'hybrid_total'
+and within restore() the script should also not set 'hybrid_total'. In this
+case,  the cracker will call new() with the word, and then call next()
+hybrid_resume times (throwing away those words), and then start processing.
+The code was written this way, so that the entire code of new() and next()
+did not have to be put into restore() in this type of script.
 
 	The language.
 
-As it has been mentioned above, the compiler supports a subset of C.
-The supported keywords are: void, int, if, else, while, continue, break,
-and return.
+The compiler supports a C-like language, which includes only a basic
+subset of C and differs from C in multiple ways.  The supported keywords
+are: break, continue, else, if, int, return, void, while.
 
 You can define functions to be called by John (the ones described
-above), define global and local variables (including single dimensional
+above), define global and local variables (including one-dimensional
 arrays), use all the integer operations supported in C, and use C and
 C++ comments.
 
-The following C features are missing from John's compiler:
+The following C features or traits are missing from John's compiler:
 
-* function calls (any functions defined as a part of an external mode
-can only be called by John core, but not from within other external mode
-functions);
+* short-circuit evaluation (instead, full expressions are currently
+evaluated, with any side effects they might have);
 
-* only "while" loops are supported;
+* function calls (any functions defined as part of an external mode can
+only be called by John core, but not by other external mode functions);
 
-* only "int" and "void" data types are supported;
+* "do" and "for" loops (there's only "while");
 
-* only single dimensional arrays are supported;
+* data type declarations other than "int", one-dimensional arrays of
+"int", and "void";
 
-* structs/unions are not supported;
+* "static" local variables (as it happens, all local variables are
+currently static by default);
 
-* pointers are not supported (array name refers to the first element);
+* pointers (array name alone refers to the first element);
 
-* probably something else...
+* type casting (there's no use for it when we only have "int" anyway);
+
+* comma operator;
+
+* probably a lot more...
 
 You can find some external mode examples in the default configuration
 file supplied with John.
+
+
+	Limited portability, and undefined behavior.
+
+The "int" data type is currently implemented in John using the system's
+native C "int" data type.  Thus, its size can vary, but on systems
+supported by John it can be assumed to be at least 32 bits (and usually
+is exactly 32 bits).  Also, being a signed integer type, its behavior on
+overflow is undefined (but in practice will usually be two's complement
+wraparound).
+
+Starting with version 1.8.0, literal character constants (given in
+single quotes, such as 'a') are treated as "unsigned char" cast to
+"int", thus producing values in the range 0 to 255.  We intend to
+preserve this behavior in future versions.  However, in pre-1.8.0
+versions, literal character constants with the 8th bit set could appear
+as negative "int" values.
+
+While the current implementation and all older versions of John so far
+consistently lack short-circuit evaluation, treat local variables as
+"static", and treat array name alone as referring to the first element,
+these properties might change in the future.
+
+
+	Limited robustness, and insecurity.
+
+While the current implementation is meant to be reasonably robust for
+use, it lacks array bounds checking.  It is external mode authors' and
+users' responsibility to ensure array sizes and indices are correct.
+
+There's currently no compile-time checking that expressions being
+assigned to or modified are valid lvalues.  Attempting to assign to or
+modify an expression that isn't a valid lvalue results in John crashing.
+
+In general, external mode programs (and John configuration files in
+general) are treated as trusted input, much like you would treat a C
+file in John source tree.  A malicious external mode can use out of
+bounds array accesses to trigger arbitrary machine code execution.
+
+	External Hybrid Scripting.
+
+This is a newer additional mode. It is somewhat like generate, however
+instead of fully 'generating' words, the Hybrid mode is given a word
+and then called repeatedly to morph that original word. To do this,
+there were 2 additional functions created, and 2 additional ext_global
+variables added to aid in session resuming.
+
+Hybrid Functions:
+
+* new() This function is called at the start of each NEW word to be worked on.
+The script should do whatever is needed to setup its state. This may be
+counting letters in the base word, saving off the base word, or many other
+things. The only time that new() is NOT called, is upon a restore() call
+when the script knows how to easily restore.  In that case restore() should
+have things setup so that the call to next() returns the right morph of
+the base-word.  So new() is not called, which would setup the script to
+start over on the word.  If the format DOES know how to restore itself
+to an arbitrary location, then the 'hybrid_total' ext_global variable
+should be set before new() function returns.
+
+* next() This function is called 1 or more times. It should do whatever
+transformation is needed, and the word[] array should contain a null
+terminated representation of the transformed word.  When all iterations
+have been completed for a specific word, next() should set word[0]=0 as a
+signal to the cracker that this base-word has been completed.
+
+* restore() This function can be written to do nothing. This should ONLY be
+done, if there is no way to easily count total candidates or to 'seek' to an
+arbitrary location withing the morphing results of the base-word. The cracker
+code will run a brute force method to get to the restore location in this
+case.  However, if there is an easier way to know how many total candidates
+are created for a base-word, and to properly adjust global data so that the
+next call to next() produces the right word (as do all subsquent calls to
+next()), then this function must do that, AND set 'hybrid_total' to the
+total ORIGINAL number of candidates generated from the base-word (not just
+how many more are to come).  The cracker uses this value as a check that
+the script actually is setup correctly, and if so, cracker will not call
+new()/next()/next().... and know that the script restored itself properly.
+
+Following the above rules and functions, a external-hybrid script can do
+pretty much anything required to transform/morph/mangle words.
+
 
 $Owl$

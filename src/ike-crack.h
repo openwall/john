@@ -49,9 +49,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdarg.h>
-#include "stdint.h"
-#include "md5.h"
+#include <stdint.h>
 #include <openssl/sha.h>
+
+#include "misc.h"	// error()
+#include "md5.h"
 #include "memory.h"
 #include "memdbg.h"
 /* Defines */

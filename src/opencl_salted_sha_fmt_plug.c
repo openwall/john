@@ -1,13 +1,9 @@
 /*
- * Copyright (c) 2011 Samuele Giovanni Tonon
- * samu at linuxasylum dot net
- * Copyright (c) 2012, magnum
+ * Copyright (c) 2012-2016, magnum
  * and Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
- * This program comes with ABSOLUTELY NO WARRANTY; express or
- * implied .
- * This is free software, and you are welcome to redistribute it
- * under certain conditions; as expressed here
- * http://www.gnu.org/licenses/gpl-2.0.html
+ * This software is hereby released to the general public under
+ * the following terms: Redistribution and use in source and binary
+ * forms, with or without modification, are permitted.
  */
 
 #ifdef HAVE_OPENCL
@@ -85,7 +81,7 @@ struct s_salt
 {
 	union {
 		unsigned char c[MAX_SALT_LEN];
-		ARCH_WORD_32 w32;
+		uint32_t w32;
 	} data;
 	unsigned char len;
 };
@@ -290,26 +286,26 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		" -D SHIFT128_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
 		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	" -D LOC_1=%d "
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	"-D LOC_2=%d "
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	"-D LOC_3=%d"
 #endif
 	, offset_table_size, hash_table_size, shift64_ot_sz, shift64_ht_sz,
 	shift128_ot_sz, shift128_ht_sz, num_ld_hashes,
 	mask_int_cand.num_int_cand, bitmap_para, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	, static_gpu_locations[1]
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	, static_gpu_locations[2]
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	, static_gpu_locations[3]
 #endif
 	);
@@ -394,7 +390,7 @@ static void clear_keys(void)
 
 static void set_key(char *_key, int index)
 {
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	const uint32_t *key = (uint32_t*)_key;
 	int len = strlen(_key);
 
 	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {
@@ -441,7 +437,7 @@ static char *get_key(int index)
 
 	}
 
-	if (t > global_work_size) {
+	if (t >= global_work_size) {
 		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
@@ -819,6 +815,12 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		get_max_mem_alloc_size(gpu_id) / BUFSIZE))
 		gws_limit >>= 1;
 
+#if SIZEOF_SIZE_T > 4
+	/* We can't process more than 4G keys per crypt() */
+	while (gws_limit * mask_int_cand.num_int_cand > 0xffffffffUL)
+		gws_limit >>= 1;
+#endif
+
 	lws_limit = get_kernel_max_lws(gpu_id, crypt_kernel);
 
 	lws_init = get_kernel_preferred_multiple(gpu_id, crypt_kernel);
@@ -966,7 +968,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	assert(global_work_size <= gws_limit);
 
 	self->params.max_keys_per_crypt = global_work_size;
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 	fprintf(stdout, "%s GWS: "Zu", LWS: "Zu"\n", db ? "Cracking" : "Self test",
 			global_work_size, local_work_size);
 #undef calc_ms
@@ -1063,6 +1065,7 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_REMOVE,
 		{ NULL },
+		{ NSLDAP_MAGIC },
 		salted_sha1_common_tests
 	}, {
 		init,

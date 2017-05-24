@@ -14,6 +14,7 @@ extern struct fmt_main fmt_opencl_keychain;
 john_register_one(&fmt_opencl_keychain);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <openssl/des.h>
 #ifdef _OPENMP
@@ -23,7 +24,6 @@ john_register_one(&fmt_opencl_keychain);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "misc.h"
 #include "options.h"
 #include "jumbo.h"
@@ -31,6 +31,8 @@ john_register_one(&fmt_opencl_keychain);
 
 #define FORMAT_LABEL		"keychain-opencl"
 #define FORMAT_NAME		"Mac OS X Keychain"
+#define FORMAT_TAG			"$keychain$*"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL 3DES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -60,8 +62,9 @@ typedef struct {
 typedef struct {
 	uint32_t iterations;
 	uint32_t outlen;
+	uint32_t skip_bytes;
 	uint8_t  length;
-	uint8_t  salt[SALTLEN];
+	uint8_t  salt[64];
 } keychain_salt;
 
 static int *cracked;
@@ -202,22 +205,24 @@ static void reset(struct db_main *db)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext,  "$keychain$*", 11) != 0)
+	int extra;
+
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 11;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenl(p) != SALTLEN * 2)
+	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if(hexlenl(p) != IVLEN * 2)
+	if (hexlenl(p, &extra) != IVLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
-	if(hexlenl(p) != CTLEN * 2)
+	if (hexlenl(p, &extra) != CTLEN * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -239,7 +244,7 @@ static void *get_salt(char *ciphertext)
 	if (!salt_struct)
 		salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
 	                              MEM_ALIGN_WORD);
-	ctcopy += 11;	/* skip over "$keychain$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keychain$*" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -264,6 +269,8 @@ static void set_salt(void *salt)
 	currentsalt.length = 20;
 	currentsalt.iterations = 1000;
 	currentsalt.outlen = 24;
+	currentsalt.skip_bytes = 0;
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
 	    "Copy salt to gpu");
@@ -401,6 +408,7 @@ struct fmt_main fmt_opencl_keychain = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		{ NULL },
+		{ FORMAT_TAG },
 		keychain_tests
 	}, {
 		init,

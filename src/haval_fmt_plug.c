@@ -53,7 +53,7 @@ static int omp_t = 1;
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$haval$"
-#define TAG_LENGTH		7
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -93,7 +93,7 @@ static struct fmt_tests haval_128_4_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE256 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE256 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -125,11 +125,12 @@ static int valid(char *ciphertext, struct fmt_main *self, int len)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (strlen(p) != len)
+
+	if (strnlen(p, len + 1) != len)
 		return 0;
 
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
 			return 0;
 	return 1;
 }
@@ -317,6 +318,7 @@ struct fmt_main fmt_haval_256_3 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		haval_256_3_tests
 	}, {
 		init,
@@ -380,6 +382,7 @@ struct fmt_main fmt_haval_128_4 = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ NULL },
 		haval_128_4_tests
 	}, {

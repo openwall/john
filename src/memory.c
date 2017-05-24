@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010,2012 by Solar Designer
+ * Copyright (c) 1996-98,2010,2012,2016 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 #include <ctype.h> /* for isprint() */
 #if HAVE_MEMALIGN && HAVE_MALLOC_H
 #include <malloc.h>
@@ -24,11 +25,7 @@
 #include "johnswap.h"
 #include "memdbg.h"
 
-#if defined (_MSC_VER) && !defined (MEMDBG_ON)
-#define malloc(a) _aligned_malloc(a,16)
-#define realloc(a,b) _aligned_realloc(a,b,16)
-#define calloc(a,b) memset(_aligned_malloc(a*b,16),0,a*b)
-#define free(a) _aligned_free(a)
+#if (defined (_MSC_VER) || HAVE___MINGW_ALIGNED_MALLOC) && !defined (MEMDBG_ON)
 char *strdup_MSVC(const char *str)
 {
 	char * s;
@@ -83,7 +80,8 @@ void *mem_alloc_func(size_t size
 {
 	void *res;
 
-	if (!size) return NULL;
+	if (!size)
+		return NULL;
 #if defined (MEMDBG_ON)
 	res = (char*) MEMDBG_alloc(size, file, line);
 #else
@@ -98,7 +96,7 @@ void *mem_alloc_func(size_t size
 	return res;
 }
 
-void *mem_calloc_func(size_t count, size_t size
+void *mem_calloc_func(size_t nmemb, size_t size
 #if defined (MEMDBG_ON)
 	, char *file, int line
 #endif
@@ -106,16 +104,41 @@ void *mem_calloc_func(size_t count, size_t size
 {
 	void *res;
 
-	if (!count || !size) return NULL;
+	if (!nmemb || !size)
+		return NULL;
 #if defined (MEMDBG_ON)
-	size *= count;
+	size *= nmemb;
 	res = (char*) MEMDBG_alloc(size, file, line);
 	memset(res, 0, size);
 #else
-	res = calloc(count, size);
+	res = calloc(nmemb, size);
 #endif
 	if (!res) {
-		fprintf(stderr, "mem_calloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), count * size);
+		fprintf(stderr, "mem_calloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), nmemb * size);
+		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
+		error();
+	}
+
+	return res;
+}
+
+void *mem_realloc_func(void *old_ptr, size_t size
+#if defined (MEMDBG_ON)
+	, char *file, int line
+#endif
+	)
+{
+	void *res;
+
+	if (!size)
+		return NULL;
+#if defined (MEMDBG_ON)
+	res = (char*) MEMDBG_realloc(old_ptr, size, file, line);
+#else
+	res = realloc(old_ptr, size);
+#endif
+	if (!res) {
+		fprintf(stderr, "mem_realloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), size);
 		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		error();
 	}
@@ -249,6 +272,13 @@ void *mem_alloc_align_func(size_t size, size_t align
 	)
 {
 	void *ptr = NULL;
+	if (align < sizeof(void*))
+		align = sizeof(void*);
+	if (!size)
+		return NULL;
+#ifdef DEBUG
+    assert(!(align & (align - 1)));
+#endif
 #if defined (MEMDBG_ON)
 	ptr = (char*) MEMDBG_alloc_align(size, align, file, line);
 #elif HAVE_POSIX_MEMALIGN
@@ -339,10 +369,10 @@ void dump_text(void *in, int len)
 void dump_stuff_noeol(void *x, unsigned int size)
 {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)x)[i]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 		printf(" ");
 	}
 }
@@ -362,10 +392,10 @@ void dump_stuff_msg_sepline(const void *msg, void *x, unsigned int size) {
 
 void dump_stuff_be_noeol(void *x, unsigned int size) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)x)[i^3]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 		printf(" ");
 	}
 }
@@ -384,13 +414,13 @@ void dump_stuff_be_msg_sepline(const void *msg, void *x, unsigned int size) {
 }
 
 void alter_endianity(void *_x, unsigned int size) {
-	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
+	uint32_t *x = (uint32_t*)_x;
 
 	// size is in octets
 	size>>=2;
 
 #if !ARCH_ALLOWS_UNALIGNED
-	if (is_aligned(x, sizeof(ARCH_WORD_32))) {
+	if (is_aligned(x, sizeof(uint32_t))) {
 #endif
 		while (size--) {
 			*x = JOHNSWAP(*x);
@@ -440,10 +470,10 @@ void alter_endianity(void *_x, unsigned int size) {
 
 void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 }
@@ -461,10 +491,10 @@ void dump_stuff_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, u
 }
 void dump_out_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETOUTPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 }
@@ -486,10 +516,10 @@ void dump_out_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, uns
 // multiple para blocks
 void dump_stuff_mpara_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETPOSMPARA(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 }
@@ -500,7 +530,7 @@ void dump_stuff_mpara_mmx(void *buf, unsigned int size, unsigned int index) {
 // obuf has to be at lease size long.  This function will unwind the SSE-para buffers into a flat.
 void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 		*oBuf++ = ((unsigned char*)buf)[GETPOSMPARA(i, index)];
 }
 void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
@@ -515,10 +545,10 @@ void dump_stuff_mpara_mmx_msg_sepline(const void *msg, void *buf, unsigned int s
 
 void dump_stuff_shammx(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHAGETPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -529,10 +559,10 @@ void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size, unsign
 }
 void dump_out_shammx(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHAGETOUTPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -544,10 +574,10 @@ void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned
 
 void dump_stuff_shammx64(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -558,10 +588,10 @@ void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsi
 }
 void dump_stuff_mmx64(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -573,10 +603,10 @@ void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigne
 
 void dump_out_shammx64(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
-	for(i=0;i<size;i++)
+	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETOUTPOS(i, index)]);
-		if( (i%4)==3 )
+		if ( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
@@ -589,14 +619,14 @@ void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsign
 
 void alter_endianity_w(void *_x, unsigned int count) {
 	int i = -1;
-	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
+	uint32_t *x = (uint32_t*)_x;
 #if ARCH_ALLOWS_UNALIGNED
 	while (++i < count) {
 		x[i] = JOHNSWAP(x[i]);
 	}
 #else
 	unsigned char *cpX, c;
-	if (is_aligned(x,sizeof(ARCH_WORD_32))) {
+	if (is_aligned(x,sizeof(uint32_t))) {
 		// we are in alignment.
 		while (++i < count) {
 			x[i] = JOHNSWAP(x[i]);
@@ -619,14 +649,14 @@ void alter_endianity_w(void *_x, unsigned int count) {
 
 void alter_endianity_w64(void *_x, unsigned int count) {
 	int i = -1;
-	ARCH_WORD_64 *x = (ARCH_WORD_64*)_x;
+	uint64_t *x = (uint64_t*)_x;
 #if ARCH_ALLOWS_UNALIGNED
 	while (++i < count) {
 		x[i] = JOHNSWAP64(x[i]);
 	}
 #else
 	unsigned char *cpX, c;
-	if (is_aligned(x,sizeof(ARCH_WORD_64))) {
+	if (is_aligned(x,sizeof(uint64_t))) {
 		// we are in alignment.
 		while (++i < count) {
 			x[i] = JOHNSWAP64(x[i]);
@@ -651,4 +681,90 @@ void alter_endianity_w64(void *_x, unsigned int count) {
 		cpX += 8;
 	}
 #endif
+}
+
+#define HUGEPAGE_THRESHOLD		(12 * 1024 * 1024)
+
+#ifdef __x86_64__
+#define HUGEPAGE_SIZE			(2 * 1024 * 1024)
+#else
+#undef HUGEPAGE_SIZE
+#endif
+
+void *
+alloc_region_t(region_t * region, size_t size)
+{
+	size_t base_size = size;
+	uint8_t * base, * aligned;
+#ifdef MAP_ANON
+	int flags =
+#ifdef MAP_NOCORE
+	    MAP_NOCORE |
+#endif
+	    MAP_ANON | MAP_PRIVATE;
+#if defined(MAP_HUGETLB) && defined(HUGEPAGE_SIZE)
+	size_t new_size = size;
+	const size_t hugepage_mask = (size_t)HUGEPAGE_SIZE - 1;
+	if (size >= HUGEPAGE_THRESHOLD && size + hugepage_mask >= size) {
+		flags |= MAP_HUGETLB;
+/*
+ * Linux's munmap() fails on MAP_HUGETLB mappings if size is not a multiple of
+ * huge page size, so let's round up to huge page size here.
+ */
+		new_size = size + hugepage_mask;
+		new_size &= ~hugepage_mask;
+	}
+	base = mmap(NULL, new_size, PROT_READ | PROT_WRITE, flags, -1, 0);
+	if (base != MAP_FAILED) {
+		base_size = new_size;
+	} else
+	if (flags & MAP_HUGETLB) {
+		flags &= ~MAP_HUGETLB;
+		base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+	}
+
+#else
+	base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+#endif
+	if (base == MAP_FAILED)
+		base = NULL;
+	aligned = base;
+#elif defined(HAVE_POSIX_MEMALIGN)
+	if ((errno = posix_memalign((void **)&base, 64, size)) != 0)
+		base = NULL;
+	aligned = base;
+#else
+	base = aligned = NULL;
+	if (size + 63 < size) {
+		errno = ENOMEM;
+	} else if ((base = libc_malloc(size + 63)) != NULL) {
+		aligned = base + 63;
+		aligned -= (uintptr_t)aligned & 63;
+	}
+#endif
+	region->base = base;
+	region->aligned = aligned;
+	region->base_size = base ? base_size : 0;
+	region->aligned_size = base ? size : 0;
+	return aligned;
+}
+
+inline void init_region_t(region_t * region)
+{
+	region->base = region->aligned = NULL;
+	region->base_size = region->aligned_size = 0;
+}
+
+int free_region_t(region_t * region)
+{
+	if (region->base) {
+#ifdef MAP_ANON
+		if (munmap(region->base, region->base_size))
+			return -1;
+#else
+		libc_free(region->base);
+#endif
+	}
+	init_region_t(region);
+	return 0;
 }

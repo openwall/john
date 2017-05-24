@@ -33,6 +33,17 @@ void list_add(struct list_main *list, char *data)
 	list_add_link(list, entry);
 }
 
+void list_add_list(struct list_main *list, struct list_main *list2)
+{
+	if (list->tail)
+		list->tail->next = list2->head;
+	else
+		list->head = list2->head;
+	list->tail = list2->tail;
+
+	list->count += list2->count;
+}
+
 void list_add_link(struct list_main *list, struct list_entry *entry)
 {
 	entry->next = NULL;
@@ -70,6 +81,38 @@ void list_add_unique(struct list_main *list, char *data)
 
 	list_add(list, data);
 }
+
+void list_add_global_unique(struct list_main *list, struct list_main *list2,
+                            char *data)
+{
+	struct list_entry *current;
+
+	if ((current = list->head))
+	do {
+		if (!strcmp(current->data, data)) return;
+	} while ((current = current->next));
+
+	if ((current = list2->head))
+	do {
+		if (!strcmp(current->data, data)) return;
+	} while ((current = current->next));
+
+	list_add(list, data);
+}
+
+#if DEBUG
+void list_dump(char *message, struct list_main *list)
+{
+	struct list_entry *current;
+
+	fprintf(stderr, "%s:\n", message);
+
+	if ((current = list->head))
+	do {
+		fprintf(stderr, "%s\n", current->data);
+	} while ((current = current->next));
+}
+#endif
 
 #if 0
 void list_del_next(struct list_main *list, struct list_entry *prev)

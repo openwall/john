@@ -33,7 +33,7 @@
 
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
-#  define FORCE_THREAD_MD5_body
+  #define FORCE_THREAD_MD5_body
 #endif
 #undef _OPENMP
 #endif
@@ -78,7 +78,7 @@
 //dynamic_10 --> md5($s.md5($s.$p))
 //dynamic_11 --> md5($s.md5($p.$s))
 //dynamic_12 --> md5(md5($s).md5($p)) (IPB)
-//dynamic_13 --> md5(md5($p).md5($s))
+//dynamic_13 --> md5(md5($p).md5($s)) (phpFox v3)
 //dynamic_14 --> md5($s.md5($p).$s)
 //dynamic_15 --> md5($u.md5($p).$s)
 //dynamic_16 --> md5(md5(md5($p).$s).$s2)
@@ -3306,7 +3306,7 @@ int dynamic_IS_VALID(int i, int single_lookup_only)
 		// if only loading a single dyna format, then do NOT load the valid array
 		if (i < 1000) {
 			for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
-				if(atoi(&Setups[j].szFORMAT_NAME[8]) == i)
+				if (atoi(&Setups[j].szFORMAT_NAME[8]) == i)
 					return 1;
 			}
 			return 0;

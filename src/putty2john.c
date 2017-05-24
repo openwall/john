@@ -13,6 +13,7 @@
 #include "autoconfig.h"
 #endif
 
+#include <stdint.h>
 #include <stddef.h>		       /* for size_t */
 #include <string.h>		       /* for memcpy() */
 #include <stdio.h>
@@ -26,7 +27,6 @@
 #include <fcntl.h>
 #endif
 #include "memory.h"
-#include "stdint.h"
 #include "jumbo.h"
 #include "memdbg.h"
 #if _MSC_VER
@@ -138,7 +138,6 @@ typedef struct Filename {
     char path[4096];
 } Filename;
 
-#define PASSPHRASE_MAXLEN 512
 
 static char header[40], *b, *encryption, *comment, *mac;
 static const char *putty_error = NULL;
@@ -370,7 +369,7 @@ static void LAME_ssh2_load_userkey(char *path, const char **errorstr)
 		print_hex(public_blob, public_blob_len);
 		printf("*%d*", private_blob_len);
 		print_hex(private_blob, private_blob_len);
-		if(!old_fmt) {
+		if (!old_fmt) {
 			printf("*%s*%s*%s\n", alg, encryption, comment);
 		}
 		else {

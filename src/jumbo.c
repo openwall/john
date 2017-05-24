@@ -17,6 +17,7 @@
 #include <windows.h>
 #include <stdarg.h>
 #endif
+#include <ctype.h>
 
 #if defined (__CYGWIN32__) && !defined(__CYGWIN64__)
 #include <io.h>
@@ -267,7 +268,7 @@ int strcasecmp(char *dst, char *src) {
 
 #if NEED_STRNCASECMP_NATIVE
 int strncasecmp(char *dst, char *src, size_t count) {
-	if(count) {
+	if (count) {
 		int f,l;
 		do {
 			if ( ((f = (unsigned char)(*(dst++))) >= 'A') && (f <= 'Z') )
@@ -315,7 +316,7 @@ char *strupr(char *s)
 #endif
 
 #if NEED_ATOLL_NATIVE
-long long atoll(const char *s) {
+long long jtr_atoll(const char *s) {
 	long long l;
 	sscanf(s, LLd, &l);
 	return l;

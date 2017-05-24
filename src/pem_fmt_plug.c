@@ -120,7 +120,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len, value;
+	int len, value, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -131,29 +131,38 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // type
 		goto err;
+	if (!isdec(p))
+		goto err;
 	value = atoi(p);
 	if (value != 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // cipher
+		goto err;
+	if (!isdec(p))
 		goto err;
 	value = atoi(p);
 	if (value != 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // salt
 		goto err;
-	if(hexlenl(p) != 16)
+	if (hexlenl(p, &extra) != 16 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iterations
 		goto err;
+	if (!isdec(p))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iv
 		goto err;
-	if(hexlenl(p) != 16)
+	if (hexlenl(p, &extra) != 16 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // ciphertext length
 		goto err;
+	if (!isdec(p))
+		goto err;
 	len = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
-	if(hexlenl(p) != len)
+		goto err;
+	if (hexlenl(p, &extra) != len*2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -333,17 +342,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1_sse((const unsigned char**)pin, lens, fctx->salt, SALTLEN, fctx->iterations, pout, 24, 0);
 #else
 		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), fctx->salt, SALTLEN, fctx->iterations, master[0], 24, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 24/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)master[0])[i] = JOHNSWAP(((ARCH_WORD_32*)master[0])[i]);
-			}
-		}
-#endif
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(pem_decrypt(master[i], fctx->iv, fctx->ciphertext) == 0)
+			if (pem_decrypt(master[i], fctx->iv, fctx->ciphertext) == 0)
 				cracked[index+i] = 1;
 			else
 				cracked[index+i] = 0;
@@ -394,10 +395,11 @@ struct fmt_main fmt_pem = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		PEM_tests
 	}, {
 		init,

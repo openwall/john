@@ -10,6 +10,7 @@
  *   Also removed oSSL code: HMAC(EVP_sha1(), ....), and coded what it does
  * (which is simple), inline.
  */
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_wpapsk;
 #elif FMT_REGISTERS_H
@@ -17,10 +18,10 @@ john_register_one(&fmt_wpapsk);
 #else
 
 #include <string.h>
+#include <assert.h>
+
 #include "arch.h"
 #include "simd-intrinsics.h"
-
-#include <assert.h>
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
@@ -33,15 +34,15 @@ john_register_one(&fmt_wpapsk);
 //#undef SIMD_COEF_32
 
 #ifdef SIMD_COEF_32
-#  define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
-#  ifdef _OPENMP
-#    include <omp.h>
-#  endif
+  #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
+  #ifdef _OPENMP
+    #include <omp.h>
+  #endif
 #else
-#  define NBKEYS	1
-#  ifdef _OPENMP
-#    include <omp.h>
-#  endif
+  #define NBKEYS	1
+  #ifdef _OPENMP
+    #include <omp.h>
+  #endif
 #endif
 
 #include "memdbg.h"
@@ -318,7 +319,7 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			SIMDSHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
 				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j/SIMD_COEF_32)*SHA_BUF_SIZ)*SIMD_COEF_32) + (j&(SIMD_COEF_32-1))];
-				for(k = 0; k < 5; k++)
+				for (k = 0; k < 5; k++)
 					outbuf[j].i[k] ^= p[(k*SIMD_COEF_32)];
 			}
 		}
@@ -350,14 +351,14 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			SIMDSHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
 			for (j = 0; j < NBKEYS; j++) {
 				unsigned *p = &((unsigned int*)t_sse_hash1)[(((j/SIMD_COEF_32)*SHA_BUF_SIZ)*SIMD_COEF_32) + (j&(SIMD_COEF_32-1))];
-				for(k = 5; k < 8; k++)
+				for (k = 5; k < 8; k++)
 					outbuf[j].i[k] ^= p[((k-5)*SIMD_COEF_32)];
 			}
 		}
 
 		for (j = 0; j < NBKEYS; ++j) {
 			// the BE() convert should be done in binary, BUT since we use 'common' code for
-			// get_binary(), which is shared between CPU and CUDA/OPenCL, we have to do it here.
+			// get_binary(), which is shared between CPU and OpenCL, we have to do it here.
 			memcpy(out[t*NBKEYS+j].v, outbuf[j].c, 32);
 			alter_endianity_to_BE(out[t*NBKEYS+j].v,8);
 		}
@@ -386,62 +387,63 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 struct fmt_main fmt_wpapsk = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    8,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    BINARY_ALIGN,
-		    SALT_SIZE,
-		    SALT_ALIGN,
-		    MIN_KEYS_PER_CRYPT,
-		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_OMP,
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		8,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_OMP,
 		{ NULL },
-		    tests
+		{ FORMAT_TAG },
+		tests
 	},
 	{
-		    init,
-		    done,
-		    fmt_default_reset,
-		    fmt_default_prepare,
-		    valid,
-		    fmt_default_split,
-		    get_binary,
-		    get_salt,
+		init,
+		done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		get_binary,
+		get_salt,
 		{ NULL },
-		    fmt_default_source,
-		    {
-				binary_hash_0,
-				fmt_default_binary_hash_1,
-				fmt_default_binary_hash_2,
-				fmt_default_binary_hash_3,
-				fmt_default_binary_hash_4,
-				fmt_default_binary_hash_5,
-				fmt_default_binary_hash_6
-		    },
-		    fmt_default_salt_hash,
-		    salt_compare,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    clear_keys,
-		    crypt_all,
-		    {
-				get_hash_0,
-				get_hash_1,
-				get_hash_2,
-				get_hash_3,
-				get_hash_4,
-				get_hash_5,
-				get_hash_6
-		    },
-		    cmp_all,
-		    cmp_one,
-		    cmp_exact
+		fmt_default_source,
+		{
+			binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
+		},
+		fmt_default_salt_hash,
+		salt_compare,
+		set_salt,
+		set_key,
+		get_key,
+		clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };
 

@@ -24,6 +24,7 @@
 #include "autoconfig.h"
 #endif
 
+#include <stdint.h>
 #include <stdio.h>
 #include <math.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -37,9 +38,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
-#include "aes.h"
 
-#include "stdint.h"
+#include "aes.h"
 #include "filevault.h"
 #include "misc.h"
 #include "jumbo.h"
@@ -132,7 +132,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 	    filename = filepath;
 	}
 
-	if(strstr(filepath, ".sparsebundle")) {
+	if (strstr(filepath, ".sparsebundle")) {
 		// The filepath given indicates this is a sparsebundle
 		// A sparsebundle is simply a directory with contents.
 		// Let's check to see if that is the case.
@@ -251,7 +251,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			}
 		}
 
-		if(strstr(name, ".sparseimage") || is_sparsebundle) {
+		if (strstr(name, ".sparseimage") || is_sparsebundle) {
 			// If this file is a sparseimage then we want one of the first chunks as the other chunks could be empty.
 			cno = 1;
 			data_size = 8192;

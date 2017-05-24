@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010-2013 by Solar Designer
+ * Copyright (c) 1996-98,2010-2013,2015 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
  */
@@ -12,6 +12,7 @@
 #ifndef _JOHN_LOADER_H
 #define _JOHN_LOADER_H
 
+#include <stdint.h>
 #include "params.h"
 #ifndef BENCH_BUILD
 #include "list.h"
@@ -112,6 +113,9 @@ struct db_salt {
 
 /* Salt in internal representation */
 	void *salt;
+
+/* md5 of the salt 'data'. Used to find the salt in resume session logic */
+	uint32_t salt_md5[4];
 
 /* Bitmap indicating whether a computed hash is potentially present in the list
  * and hash table below.  Normally, the bitmap is large enough that most of its
@@ -313,5 +317,23 @@ extern void ldr_show_pot_file(struct db_main *db, char *name);
  * Shows cracked passwords.
  */
 extern void ldr_show_pw_file(struct db_main *db, char *name);
+
+/* Compare a possibly truncated pot source with a full one */
+extern int ldr_pot_source_cmp(const char *pot_entry, const char *full_source);
+
+/*
+ * This returns the line to write to a .pot file. It may be shorter than the
+ * original source (with some extra tags added).
+ */
+extern const char *ldr_pot_source(const char *full_source,
+                                  char buffer[LINE_BUFFER_SIZE+1]);
+
+/*
+ * this function simply returns true of false if this is a chopped pot line
+ */
+extern int ldr_isa_pot_source(const char *ciphertext);
+
+/* Common code for determining valid when loading a chopped .pot line */
+extern int ldr_trunc_valid(char *ciphertext, struct fmt_main *format);
 
 #endif

@@ -25,6 +25,7 @@ john_register_one(&fmt_putty);
 #include "sha.h"
 #include <openssl/evp.h>
 #include "hmac_sha.h"
+#include "loader.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -35,6 +36,8 @@ john_register_one(&fmt_putty);
 
 #define FORMAT_LABEL        "PuTTY"
 #define FORMAT_NAME         "Private Key"
+#define FORMAT_TAG          "$putty$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "SHA1/AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
@@ -109,48 +112,48 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	int res;
+	int res, extra;
 	int is_old_fmt;
 
-	if (strncmp(ciphertext, "$putty$", 7))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL) /* cipher */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(res != 1) /* check cipher type */
+	if (res != 1) /* check cipher type */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher block length*/
 		goto err;
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(res != 16) /* check cipher block length */
+	if (res != 16) /* check cipher block length */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* is_mac */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if(res != 0 && res != 1)
+	if (res != 0 && res != 1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* old_fmt */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	is_old_fmt = atoi(p);
-	if(is_old_fmt != 0 && is_old_fmt!= 1)
+	if (is_old_fmt != 0 && is_old_fmt!= 1)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* mac */
 		goto err;
 	res = strlen(p);
 	if (res > 128)
 		goto err;
-	if (hexlenl(p) != res)
+	if (hexlenl(p, &extra) != res || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* public_blob_len */
 		goto err;
@@ -161,7 +164,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* public_blob */
 		goto err;
-	if (hexlenl(p) != res * 2)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* private_blob_len */
 		goto err;
@@ -172,7 +175,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* private_blob */
 		goto err;
-	if (hexlenl(p) != res * 2)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto err;
 	if (!is_old_fmt) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* alg */
@@ -205,11 +208,11 @@ static void *get_salt(char *ciphertext)
 	/* ensure alignment */
 	static union {
 		struct custom_salt _cs;
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} un;
 	struct custom_salt *cs = &(un._cs);
 	memset(cs, 0, sizeof(un));
-	ctcopy += 7;	/* skip over "$putty$" marker */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$putty$" marker */
 	p = strtokm(ctcopy, "*");
 	cs->cipher = atoi(p);
 	p = strtokm(NULL, "*");
@@ -237,7 +240,7 @@ static void *get_salt(char *ciphertext)
 		cs->private_blob[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	if(!cs->old_fmt) {
+	if (!cs->old_fmt) {
 		p = strtokm(NULL, "*");
 		strcpy(cs->alg, p);
 		p = strtokm(NULL, "*");
@@ -300,7 +303,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 		SHA1_Final(key + 20, &s);
 		memset(iv, 0, 32);
 		memset(&akey, 0, sizeof(AES_KEY));
-		if(AES_set_decrypt_key(key, 256, &akey) < 0) {
+		if (AES_set_decrypt_key(key, 256, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		}
 		AES_cbc_encrypt(cur_salt->private_blob, out , cur_salt->private_blob_len, &akey, iv, AES_DECRYPT);
@@ -416,8 +419,9 @@ struct fmt_main fmt_putty = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		putty_tests
 	},
 	{

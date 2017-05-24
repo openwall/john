@@ -125,16 +125,7 @@ int ishexlc_oddOK(const char *q) {
 	return !*q ;
 }
 
-/*
- * if full string is HEX, then return is positive. If there is something
- * other than hex characters, then the return is negative but is the length
- * of 'valid' hex characters that start the string.
- *
- * NOTE, if the length is odd, then the 'full' length will not be returned.
- * the length returned will be length-1 since it would not be proper to try
- * to hex convert the last odd byte.
- */
-static MAYBE_INLINE int _hexlen(const char *q, unsigned char dic[0x100])
+static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100], int *extra_chars)
 {
 	const char *s = q;
 	size_t len = strlen(q);
@@ -143,19 +134,21 @@ static MAYBE_INLINE int _hexlen(const char *q, unsigned char dic[0x100])
 	while (dic[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	if ((size_t)(q - s)&1) --q;
-	return (len == (size_t)(q - s)) ? (int)(q - s) : 0 - (int)(q - s);
+	if (extra_chars)
+		*extra_chars = (*q != 0);
+	return (q - s);
 }
-int hexlen(const char *q)
+size_t hexlen(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16);
+	return _hexlen(q, atoi16, extra_chars);
 }
-int hexlenu(const char *q)
+size_t hexlenu(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16u);
+	return _hexlen(q, atoi16u, extra_chars);
 }
-int hexlenl(const char *q)
+size_t hexlenl(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16l);
+	return _hexlen(q, atoi16l, extra_chars);
 }
 
 int isdec(const char *q)
@@ -179,17 +172,3 @@ int isdecu(const char *q)
 	sprintf(buf, "%u", x);
 	return !strcmp(q,buf);
 }
-
-#ifndef BENCH_BUILD
-/* provides the length of the base64 string.  See base64_convert.c for that
- * function. If the string is not 'pure', then the return is -1*length */
-int base64_mime_len(const char *q) {
-	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE);
-}
-int base64_crypt_len(const char *q) {
-	return base64_valid_length(q, e_b64_crypt, flg_Base64_RET_NEG_IF_NOT_PURE);
-}
-int base64_mime_du_len(const char *q) {
-	return base64_valid_length(q, e_b64_mime, flg_Base64_RET_NEG_IF_NOT_PURE|flg_Base64_MIME_DASH_UNDER);
-}
-#endif

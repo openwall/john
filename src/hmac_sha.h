@@ -25,4 +25,10 @@ extern void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigne
 extern void JTR_hmac_sha512(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len);
 #define hmac_sha512(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha512(key,keylen,data,datalen,dgst,dgstlen)
 
+extern void JTR_hmac_sha224(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len);
+#define hmac_sha224(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha224(key,keylen,data,datalen,dgst,dgstlen)
+
+extern void JTR_hmac_sha384(const unsigned char *key, int key_len, const unsigned char *data, int data_len, unsigned char *digest, int digest_len);
+#define hmac_sha384(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha384(key,keylen,data,datalen,dgst,dgstlen)
+
 #endif /* _JTR_HMAC_SHA_H */

@@ -51,18 +51,18 @@ static inline void rr13(unsigned char *buf, int len) {
 
     const int lbit = len % 8;
 
-    if(len == 0)
+    if (len == 0)
         return;
 
     tmp = (unsigned char *) mem_alloc(bytes);
     memcpy(tmp, buf, bytes);
-    if(lbit) {
+    if (lbit) {
         // pad final byte with initial bits
         tmp[bytes - 1] &= 0xff << (8 - lbit);
-        for(i = lbit; i < 8; i += len)
+        for (i = lbit; i < 8; i += len)
             tmp[bytes - 1] |= buf[0] >> i;
     }
-    for(i = 0; i < bytes; i++) {
+    for (i = 0; i < bytes; i++) {
         const int bits = 13 % len;
 
         // calculate first bit position of this byte
@@ -73,7 +73,7 @@ static inline void rr13(unsigned char *buf, int len) {
         b1 = bb / 8;
         s1 = bb % 8;
 
-        if(bb + 8 > bytes * 8)
+        if (bb + 8 > bytes * 8)
             // watch for wraparound
             s2 = (len + 8 - s1) % 8;
         else
@@ -91,12 +91,12 @@ static inline void rr13(unsigned char *buf, int len) {
 static inline void add1(unsigned char *a, unsigned char *b, size_t len) {
     int i, x;
     int carry = 0;
-    for(i = len - 1; i >= 0; i--){
+    for (i = len - 1; i >= 0; i--){
         x = a[i] + b[i] + carry;
         carry = x > 0xff;
         a[i] = x & 0xff;
     }
-    for(i = len - 1; carry && i >= 0; i--){
+    for (i = len - 1; carry && i >= 0; i--){
         x = a[i] + carry;
         carry = x > 0xff;
         a[i] = x & 0xff;
@@ -122,7 +122,7 @@ static inline void _krb5_n_fold(const void *str, int len, void *key, int size) {
         while(l >= size) {
             add1(key, tmp, size);
             l -= size;
-            if(l == 0)
+            if (l == 0)
                 break;
             memmove(tmp, tmp + size, l);
         }
@@ -183,13 +183,13 @@ static inline void derive_key(const void *constant, int len, krb5_key *krb5key) 
     DES_set_key(&bk[1], &s[1]);
     DES_set_key(&bk[2], &s[2]);
 
-    if(DES3_BLOCK_SIZE * 8 < DES3_KEY_BITS || len != DES3_BLOCK_SIZE) {
+    if (DES3_BLOCK_SIZE * 8 < DES3_KEY_BITS || len != DES3_BLOCK_SIZE) {
         nblocks = (DES3_KEY_BITS + DES3_BLOCK_SIZE * 8 - 1) / (DES3_BLOCK_SIZE * 8);
         k = (unsigned char *) mem_alloc(nblocks * DES3_BLOCK_SIZE);
 
         _krb5_n_fold(constant, len, k, DES3_BLOCK_SIZE);
-        for(i = 0; i < nblocks; i++) {
-            if(i > 0)
+        for (i = 0; i < nblocks; i++) {
+            if (i > 0)
                 memcpy(k + i * DES3_BLOCK_SIZE, k + (i - 1) * DES3_BLOCK_SIZE, DES3_BLOCK_SIZE);
 
             memset(ivec, 0x00, sizeof(ivec));

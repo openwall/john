@@ -19,8 +19,9 @@
  * For now, you can just revert FMT_MAIN_VERSION to 11
  * in case of any problem with the new additions
  * (tunable cost parameters)
+ * (format signatures, #14)
  */
-#define FMT_MAIN_VERSION 13	/* change if structure fmt_main changes */
+#define FMT_MAIN_VERSION 14	/* change if structure fmt_main changes */
 
 /*
  * fmt_main is declared for real further down this file, but we refer to it in
@@ -33,6 +34,12 @@ struct fmt_main;
  * that can be reported for a single format
  */
 #define FMT_TUNABLE_COSTS	3
+
+/*
+ * Maximum number of different signatures
+ * that can be reported for a single format
+ */
+#define FMT_SIGNATURES	4
 
 /*
  * Some format methods accept pointers to these, yet we can't just include
@@ -65,7 +72,7 @@ struct db_salt;
 #define FMT_UTF8			0x00000008
 /*
  * Mark password->binary = NULL immediately after a hash is cracked. Must be
- * set for formats that reads salt->list in crypt_all for the purpose of
+ * set for formats that read salt->list in crypt_all for the purpose of
  * identification of uncracked hashes for this salt.
  */
 #define FMT_REMOVE			0x00000010
@@ -78,10 +85,15 @@ struct db_salt;
  */
 #define FMT_NOT_EXACT			0x00000100
 /*
- * this format uses a dynamic sized salt, and its salt structure
+ * This format uses a dynamic sized salt, and its salt structure
  * 'derives' from the dyna_salt type defined in dyna_salt.h
  */
 #define FMT_DYNA_SALT			0x00000200
+/*
+ * This format supports huge ciphertexts (larger than LINE_BUFFER_SIZE)
+ * and may/will consequently truncate its pot lines with $SOURCE_HASH$
+ */
+#define FMT_HUGE_INPUT			0x00000400
 /* Uses a bitslice implementation */
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */
@@ -101,6 +113,9 @@ struct db_salt;
 #endif
 /* We've already warned the user about hashes of this type being present */
 #define FMT_WARNED			0x80000000
+
+/* Format's length before calling init() */
+extern int fmt_raw_len;
 
 /*
  * A password to test the methods for correct operation.
@@ -162,8 +177,18 @@ struct fmt_params {
  */
 	char *tunable_cost_name[FMT_TUNABLE_COSTS];
 
-/* Some passwords to test the methods for correct operation (or NULL for no
- * self test, and no benchmark), terminated with a NULL ciphertext. */
+/*
+ * format signatures (such as $NT$, etc).
+ *
+ * This is used in loader to see if a line read from a .pot file is a
+ * 'chopped' line, that was shortened before being written to .pot.
+ */
+	char *signature[FMT_SIGNATURES];
+
+/*
+ * Some passwords to test the methods for correct operation (or NULL for no
+ * self test, and no benchmark), terminated with a NULL ciphertext.
+ */
 	struct fmt_tests *tests;
 };
 
@@ -183,7 +208,8 @@ struct fmt_methods {
 
 /* Called whenever the set of password hashes being cracked changes, such as
  * after self-test, but before actual cracking starts.  When called before a
- * self-test or benchmark rather than before actual cracking, db may be NULL.
+ * self-test or benchmark rather than before actual cracking, db may be made
+ * out of test vectors.
  * Normally, this is a no-op since a format implementation shouldn't mess with
  * the database unnecessarily.  However, when there is a good reason to do so
  * this may e.g. transfer the salts and hashes onto a GPU card. */

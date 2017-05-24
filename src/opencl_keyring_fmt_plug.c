@@ -14,8 +14,8 @@ extern struct fmt_main fmt_opencl_keyring;
 john_register_one(&fmt_opencl_keyring);
 #else
 
+#include <stdint.h>
 #include <string.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -26,12 +26,14 @@ john_register_one(&fmt_opencl_keyring);
 #include "misc.h"
 #include "common-opencl.h"
 #include "options.h"
+#include "aes.h"
 #include "sha2.h"
 #include "md5.h"
-#include "stdint.h"
 
 #define FORMAT_LABEL		"keyring-opencl"
 #define FORMAT_NAME		"GNOME Keyring"
+#define FORMAT_TAG			"$keyring$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA256 OpenCL AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -211,17 +213,17 @@ static int looks_like_nice_int(char *p)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int ctlen;
-	if (strncmp(ciphertext, "$keyring$", 9) != 0)
+	int ctlen, extra;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	if (keeptr == NULL)
 		goto err;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p) != SALTLEN * 2)
+	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
 		goto err;
 	while (*p)
 		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
@@ -245,7 +247,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (ctlen > LINE_BUFFER_SIZE)
 		goto err;
-	if (hexlenl(p) != ctlen * 2)
+	if (hexlenl(p, &extra) != ctlen * 2 || extra)
 		goto err;
 	if (strlen(p) < 32)	/* this shouldn't happen for valid hashes */
 		goto err;
@@ -274,7 +276,7 @@ static void *get_salt(char *ciphertext)
 	if (!cur_salt)
 		cur_salt = mem_alloc_tiny(sizeof(struct custom_salt),
 		                          MEM_ALIGN_WORD);
-	ctcopy += 9;	/* skip over "$keyring$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keyring$" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -437,6 +439,7 @@ struct fmt_main fmt_opencl_keyring = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		keyring_tests
 	}, {
 		init,

@@ -38,7 +38,7 @@ void toBitInterleaving(UINT32 low, UINT32 high, UINT32 *even, UINT32 *odd)
 
     *even = 0;
     *odd = 0;
-    for(i=0; i<64; i++) {
+    for (i=0; i<64; i++) {
         unsigned int inBit;
         if (i < 32)
             inBit = (low >> i) & 1;
@@ -57,7 +57,7 @@ void fromBitInterleaving(UINT32 even, UINT32 odd, UINT32 *low, UINT32 *high)
 
     *low = 0;
     *high = 0;
-    for(i=0; i<64; i++) {
+    for (i=0; i<64; i++) {
         unsigned int inBit;
         if ((i % 2) == 0)
             inBit = (even >> (i/2)) & 1;
@@ -88,9 +88,9 @@ void KeccakF1600_InitializeRoundConstants()
     unsigned int i, j, bitPosition;
     UINT32 low, high;
 
-    for(i=0; i<nrRounds; i++) {
+    for (i=0; i<nrRounds; i++) {
         low = high = 0;
-        for(j=0; j<7; j++) {
+        for (j=0; j<7; j++) {
             bitPosition = (1<<j)-1; //2^j-1
             if (LFSR86540(&LFSRstate)) {
                 if (bitPosition < 32)
@@ -110,7 +110,7 @@ void KeccakF1600_InitializeRhoOffsets()
     KeccakRhoOffsets[0] = 0;
     x = 1;
     y = 0;
-    for(t=0; t<24; t++) {
+    for (t=0; t<24; t++) {
         KeccakRhoOffsets[5*y+x] = ((t+1)*(t+2)/2) % 64;
         newX = (0*x+1*y) % 5;
         newY = (2*x+3*y) % 5;
@@ -170,7 +170,7 @@ void KeccakF1600_StateXORLanes(void *state, const unsigned char *data, unsigned 
 {
     if (laneCount <= 25) {
         unsigned int lanePosition;
-        for(lanePosition=0; lanePosition<laneCount; lanePosition++) {
+        for (lanePosition=0; lanePosition<laneCount; lanePosition++) {
             UINT8 laneAsBytes[8];
             UINT32 low, high;
             UINT32 lane[2];
@@ -237,7 +237,7 @@ void KeccakF1600_PermutationOnWords(UINT32 *state)
 
     displayStateAs32bitWords(3, "Same, with lanes as pairs of 32-bit words (bit interleaving)", state);
 
-    for(i=0; i<nrRounds; i++) {
+    for (i=0; i<nrRounds; i++) {
         displayRoundNumber(3, i);
 
         theta(state);
@@ -277,21 +277,21 @@ void theta(UINT32 *A)
     unsigned int x, y, z;
     UINT32 C[5][2], D[5][2];
 
-    for(x=0; x<5; x++) {
-        for(z=0; z<2; z++) {
+    for (x=0; x<5; x++) {
+        for (z=0; z<2; z++) {
             C[x][z] = 0;
-            for(y=0; y<5; y++)
+            for (y=0; y<5; y++)
                 C[x][z] ^= A[index(x, y, z)];
         }
     }
-    for(x=0; x<5; x++) {
+    for (x=0; x<5; x++) {
         ROL64(C[(x+1)%5][0], C[(x+1)%5][1], &(D[x][0]), &(D[x][1]), 1);
-        for(z=0; z<2; z++)
+        for (z=0; z<2; z++)
             D[x][z] ^= C[(x+4)%5][z];
     }
-    for(x=0; x<5; x++)
-        for(y=0; y<5; y++)
-            for(z=0; z<2; z++)
+    for (x=0; x<5; x++)
+        for (y=0; y<5; y++)
+            for (z=0; z<2; z++)
                 A[index(x, y, z)] ^= D[x][z];
 }
 
@@ -299,7 +299,7 @@ void rho(UINT32 *A)
 {
     unsigned int x, y;
 
-    for(x=0; x<5; x++) for(y=0; y<5; y++)
+    for (x=0; x<5; x++) for (y=0; y<5; y++)
         ROL64(A[index(x, y, 0)], A[index(x, y, 1)], &(A[index(x, y, 0)]), &(A[index(x, y, 1)]), KeccakRhoOffsets[5*y+x]);
 }
 
@@ -308,9 +308,9 @@ void pi(UINT32 *A)
     unsigned int x, y, z;
     UINT32 tempA[50];
 
-    for(x=0; x<5; x++) for(y=0; y<5; y++) for(z=0; z<2; z++)
+    for (x=0; x<5; x++) for (y=0; y<5; y++) for (z=0; z<2; z++)
         tempA[index(x, y, z)] = A[index(x, y, z)];
-    for(x=0; x<5; x++) for(y=0; y<5; y++) for(z=0; z<2; z++)
+    for (x=0; x<5; x++) for (y=0; y<5; y++) for (z=0; z<2; z++)
         A[index(0*x+1*y, 2*x+3*y, z)] = tempA[index(x, y, z)];
 }
 
@@ -319,12 +319,12 @@ void chi(UINT32 *A)
     unsigned int x, y, z;
     UINT32 C[5][2];
 
-    for(y=0; y<5; y++) {
-        for(x=0; x<5; x++)
-            for(z=0; z<2; z++)
+    for (y=0; y<5; y++) {
+        for (x=0; x<5; x++)
+            for (z=0; z<2; z++)
                 C[x][z] = A[index(x, y, z)] ^ ((~A[index(x+1, y, z)]) & A[index(x+2, y, z)]);
-        for(x=0; x<5; x++)
-            for(z=0; z<2; z++)
+        for (x=0; x<5; x++)
+            for (z=0; z<2; z++)
                 A[index(x, y, z)] = C[x][z];
     }
 }
@@ -362,7 +362,7 @@ void KeccakF1600_StateExtractLanes(const void *state, unsigned char *data, unsig
 {
     if (laneCount <= 25) {
         unsigned int lanePosition;
-        for(lanePosition=0; lanePosition<laneCount; lanePosition++) {
+        for (lanePosition=0; lanePosition<laneCount; lanePosition++) {
             UINT32 *stateAsHalfLanes = (UINT32*)state;
             UINT32 lane[2];
             UINT8 laneAsBytes[8];
@@ -395,7 +395,7 @@ void displayRoundConstants(FILE *f)
 {
     unsigned int i;
 
-    for(i=0; i<nrRounds; i++) {
+    for (i=0; i<nrRounds; i++) {
         fprintf(f, "RC[%02i][0][0] = ", i);
         fprintf(f, "%08X:%08X", (unsigned int)(KeccakRoundConstants[i][0]), (unsigned int)(KeccakRoundConstants[i][1]));
         fprintf(f, "\n");
@@ -407,7 +407,7 @@ void displayRhoOffsets(FILE *f)
 {
     unsigned int x, y;
 
-    for(y=0; y<5; y++) for(x=0; x<5; x++) {
+    for (y=0; y<5; y++) for (x=0; x<5; x++) {
         fprintf(f, "RhoOffset[%i][%i] = ", x, y);
         fprintf(f, "%2i", KeccakRhoOffsets[5*y+x]);
         fprintf(f, "\n");

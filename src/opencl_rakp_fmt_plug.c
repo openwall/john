@@ -21,12 +21,12 @@ john_register_one(&fmt_opencl_rakp);
 #else
 
 #include <string.h>
+#include <stdint.h>
 
 #include "path.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
@@ -73,8 +73,8 @@ static unsigned char salt_storage[SALT_STORAGE_SIZE];
 static cl_mem salt_buffer, keys_buffer, idx_buffer, digest_buffer;
 
 static unsigned int *keys;
-static unsigned int *idx;
-static ARCH_WORD_32 (*digest);
+static uint32_t *idx;
+static uint32_t (*digest);
 static unsigned int key_idx = 0;
 static int partial_output;
 static struct fmt_main *self;
@@ -357,16 +357,16 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	ARCH_WORD_32 *b;
+	uint32_t *b;
 	int i;
 
 	if (partial_output) {
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], digest_buffer, CL_TRUE, 0, BINARY_SIZE * global_work_size * ocl_v_width, digest, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
-	b = (ARCH_WORD_32*)get_binary(source);
+	b = (uint32_t*)get_binary(source);
 
-	for(i = 0; i < BINARY_SIZE / 4; i++)
+	for (i = 0; i < BINARY_SIZE / 4; i++)
 		if (digest[i * global_work_size * ocl_v_width + index] != b[i])
 			return 0;
 	return 1;
@@ -404,14 +404,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static int get_hash_0(int index) { return digest[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return digest[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return digest[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return digest[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return digest[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return digest[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return digest[index] & PH_MASK_6; }
-
 struct fmt_main fmt_opencl_rakp = {
 	{
 		FORMAT_LABEL,
@@ -427,8 +419,9 @@ struct fmt_main fmt_opencl_rakp = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
@@ -442,13 +435,7 @@ struct fmt_main fmt_opencl_rakp = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -458,13 +445,7 @@ struct fmt_main fmt_opencl_rakp = {
 		clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

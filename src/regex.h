@@ -42,7 +42,7 @@ extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 #endif
 
 
-#if (JS_REGEX_MAJOR_VERSION>1) || ((JS_REGEX_MAJOR_VERSION==1)&&(JS_REGEX_MINOR_VERSION>=1))
+#if (JS_REGEX_MAJOR_VERSION>1) || ((JS_REGEX_MAJOR_VERSION==1)&&(JS_REGEX_MINOR_VERSION>=3))
 
 #include "loader.h"
 /*
@@ -52,6 +52,8 @@ void do_regex_crack(struct db_main *db, const char *regex);
 int do_regex_hybrid_crack(struct db_main *db, const char *regex,
                           const char *base_word, int bCase, const char *regex_alpha);
 char *prepare_regex(char *regex, int *bCase, char **regex_alpha);
+int rexgen_restore_state_hybrid(const char *sig, FILE *file);
+
 #else
 #undef HAVE_REXGEN
 #define do_regex_hybrid_crack(a,word,b,c) crk_process_key(word)

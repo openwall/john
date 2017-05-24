@@ -58,6 +58,9 @@ def process_folder(folder):
 
     if cipher.upper().find("AES") > -1:
         cipher = 0
+    else:
+        sys.stderr.write("%s cipher is not supported yet!\n" % cipher)
+        return
     salt = binascii.hexlify(base64.decodestring(salt.encode()))
     data = binascii.hexlify(base64.decodestring(data.encode()))
     sys.stdout.write("%s:$encfs$%s*%s*%s*%s*%s*%s*%s\n" % \

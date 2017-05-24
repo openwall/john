@@ -41,6 +41,8 @@ john_register_one(&fmt_agile_keychain);
 
 #define FORMAT_LABEL		"agilekeychain"
 #define FORMAT_NAME		"1Password Agile Keychain"
+#define FORMAT_TAG           "$agilekeychain$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
 #else
@@ -113,11 +115,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int saltlen;
 	char *p;
 
-	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 15;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;
 	if (!isdec(p))
@@ -133,13 +135,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	saltlen = atoi(p);
-	if(saltlen > SALTLEN)
+	if (saltlen > SALTLEN)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ct length */
 		goto err;
@@ -150,9 +152,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
-	if(strlen(p) != ctlen * 2)
+	if (strlen(p) != ctlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -172,7 +174,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 15;	/* skip over "$agilekeychain$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$agilekeychain$" */
 	p = strtokm(ctcopy, "*");
 	cs.nkeys = atoi(p);
 	p = strtokm(NULL, "*");
@@ -245,7 +247,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt[0], cur_salt->saltlen[0], cur_salt->iterations[0], pout, 16, 0);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(akcdecrypt(master[i], cur_salt->ct[0]) == 0)
+			if (akcdecrypt(master[i], cur_salt->ct[0]) == 0)
 				cracked[i+index] = 1;
 			else
 				cracked[i+index] = 0;
@@ -256,15 +258,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		       strlen(saved_key[index]),
 		       cur_salt->salt[0], cur_salt->saltlen[0],
 		       cur_salt->iterations[0], master, 16, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)master)[i] = JOHNSWAP(((ARCH_WORD_32*)master)[i]);
-			}
-		}
-#endif
-		if(akcdecrypt(master, cur_salt->ct[0]) == 0)
+		if (akcdecrypt(master, cur_salt->ct[0]) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
@@ -330,10 +324,11 @@ struct fmt_main fmt_agile_keychain = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		agile_keychain_tests
 	}, {
 		init,

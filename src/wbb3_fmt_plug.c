@@ -44,13 +44,16 @@ john_register_one(&fmt_wbb3);
 
 #define FORMAT_LABEL		"wbb3"
 #define FORMAT_NAME		"WoltLab BB3"
+#define FORMAT_TAG           "$wbb3$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		20
+#define MAX_SALT_LEN            40
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		sizeof(int)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	64
@@ -68,11 +71,13 @@ static struct fmt_tests wbb3_tests[] = {
 
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
+static unsigned char (*hexhash1)[40];
+static int dirty;
 
 static struct custom_salt {
 	int type;
-	unsigned char salt[41];
+	unsigned char salt[MAX_SALT_LEN+1];
 } *cur_salt;
 
 static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
@@ -98,10 +103,13 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
+	hexhash1 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*hexhash1));
 }
 
 static void done(void)
 {
+	MEM_FREE(hexhash1);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
@@ -110,15 +118,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char _ctcopy[256], *ctcopy = _ctcopy;
 	char *p;
-	int res;
-	if (strncmp(ciphertext, "$wbb3$*", 7))
+	int res, extra;
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	strnzcpy(ctcopy, ciphertext, 255);
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*"); /* type */
-	if(!p)
+	if (!p)
 		goto err;
-	if(!isdec(p))
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res != 1)
@@ -126,11 +134,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	res = strlen(p);
-	if (hexlenl(p) != res)
+	if (res > MAX_SALT_LEN || !ishexlc_oddOK(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	if (hexlenl(p) != BINARY_SIZE * 2)
+	if (hexlenl(p, &extra) != BINARY_SIZE * 2 || extra)
 		goto err;
 
 	return 1;
@@ -147,7 +155,7 @@ static void *get_salt(char *ciphertext)
 
 	memset(&cs, 0, sizeof(cs));
 	strnzcpy(ctcopy, ciphertext, 255);
-	ctcopy += 7;	/* skip over "$wbb3$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$wbb3$*" */
 	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
 	p = strtokm(NULL, "*");
@@ -199,13 +207,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char hexhash[40];
 		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
-		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
-		hex_encode((unsigned char*)crypt_out[index], 20, hexhash);
+		if (dirty) {
+			unsigned char out[20];
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+			SHA1_Final(out, &ctx);
+			hex_encode(out, 20, hexhash1[index]);
+		}
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, cur_salt->salt, 40);
-		SHA1_Update(&ctx, hexhash, 40);
+		SHA1_Update(&ctx, hexhash1[index], 40);
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 		hex_encode((unsigned char*)crypt_out[index], 20, hexhash);
 		SHA1_Init(&ctx);
@@ -213,6 +224,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Update(&ctx, hexhash, 40);
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -220,14 +232,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
+		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == crypt_out[index][0];
+	return *((uint32_t*)binary) == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
@@ -243,6 +255,7 @@ static void wbb3_set_key(char *key, int index)
 		saved_len = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_len);
 	saved_key[index][saved_len] = 0;
+	dirty = 1;
 }
 
 static char *get_key(int index)
@@ -267,6 +280,7 @@ struct fmt_main fmt_wbb3 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		wbb3_tests
 	}, {
 		init,

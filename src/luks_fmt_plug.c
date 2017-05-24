@@ -37,7 +37,7 @@ john_register_one(&fmt_luks);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include "aes.h"
@@ -73,26 +73,29 @@ john_register_one(&fmt_luks);
 #define LUKS_SALTSIZE 32
 #define LUKS_NUMKEYS 8
 
-#define FORMAT_LABEL		"LUKS"
-#define FORMAT_NAME		""
+#define FORMAT_LABEL        "LUKS"
+#define FORMAT_NAME         ""
+#define FORMAT_TAG          "$luks$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define PLAINTEXT_LENGTH  	125
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		LUKS_DIGESTSIZE
-#define BINARY_ALIGN		4
-#define SALT_SIZE		sizeof(struct custom_salt_LUKS*)
-#define SALT_ALIGN			sizeof(struct custom_salt_LUKS*)
+#define BENCHMARK_COMMENT   ""
+#define PLAINTEXT_LENGTH    125
+#define BENCHMARK_LENGTH    -1
+#define BINARY_SIZE         LUKS_DIGESTSIZE
+#define BINARY_ALIGN        4
+#define SALT_SIZE           sizeof(struct custom_salt_LUKS*)
+#define SALT_ALIGN          sizeof(struct custom_salt_LUKS*)
 #if SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
 #endif
 
 #if ARCH_LITTLE_ENDIAN
@@ -279,7 +282,7 @@ bad:
 
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -316,6 +319,9 @@ static void init(struct fmt_main *self)
 
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
 //	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
+#ifdef _MSC_VER
+	LUKS_test_fixup();
+#endif
 }
 
 static void done(void)
@@ -339,11 +345,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	unsigned int bestiter = 0xFFFFFFFF;
 
 	out = (unsigned char*)&cs.myphdr;
-	if (strncmp(ciphertext, "$luks$", 6) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* is_inlined */
 		goto err;
 	if (!isdec(p))
@@ -442,7 +448,7 @@ static void *get_salt(char *ciphertext)
 	unsigned int bestiter = 0xFFFFFFFF;
 	size_t size = 0;
 
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
@@ -513,9 +519,11 @@ static void *get_binary(char *ciphertext)
 		unsigned char c[LUKS_DIGESTSIZE];
 		ARCH_WORD dummy;
 	} buf;
+
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < LUKS_DIGESTSIZE; i++) {
 		out[i] =
@@ -526,14 +534,6 @@ static void *get_binary(char *ciphertext)
 
 	return out;
 }
-
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_salt(void *salt)
 {
@@ -553,13 +553,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char *af_decrypted = (unsigned char *)mem_alloc(cur_salt->afsize + 20);
 		int i, iterations = cur_salt->bestiter;
 		int dklen = john_ntohl(cur_salt->myphdr.keyBytes);
-		ARCH_WORD_32 keycandidate[MAX_KEYS_PER_CRYPT][256/4];
-		ARCH_WORD_32 masterkeycandidate[MAX_KEYS_PER_CRYPT][256/4];
+		uint32_t keycandidate[MAX_KEYS_PER_CRYPT][256/4];
+		uint32_t masterkeycandidate[MAX_KEYS_PER_CRYPT][256/4];
 #ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 
@@ -576,13 +576,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1((const unsigned char *)saved_key[index], strlen(saved_key[index]),
 		            (const unsigned char*)(cur_salt->myphdr.keyblock[cur_salt->bestslot].passwordSalt), LUKS_SALTSIZE,
 		            iterations, (unsigned char*)keycandidate[0], dklen, 0);
-#endif
-#if ARCH_LITTLE_ENDIAN==0
-		{
-			int kb = john_ntohl(cur_salt->myphdr.keyBytes)>>2;
-			for (i = 0; i < kb; ++i)
-				keycandidate[0][i] = JOHNSWAP(keycandidate[0][i]);
-		}
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			// Decrypt the blocksi
@@ -608,10 +601,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            john_ntohl(cur_salt->myphdr.mkDigestIterations),
 		            (unsigned char*)crypt_out[index], LUKS_DIGESTSIZE, 0);
 
-#endif
-#if ARCH_LITTLE_ENDIAN==0
-		for (i = 0; i < LUKS_DIGESTSIZE/4; ++i)
-			crypt_out[index][i] = JOHNSWAP(crypt_out[index][i]);
 #endif
 		MEM_FREE(af_decrypted);
 	}
@@ -666,8 +655,9 @@ struct fmt_main fmt_luks = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		luks_tests
 	}, {
 		init,
@@ -681,13 +671,7 @@ struct fmt_main fmt_luks = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_dyna_salt_hash,
 		NULL,
@@ -697,13 +681,7 @@ struct fmt_main fmt_luks = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

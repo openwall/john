@@ -9,8 +9,10 @@
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA1;
+extern struct fmt_main fmt_rawSHA1_axcrypt;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_rawSHA1);
+john_register_one(&fmt_rawSHA1_axcrypt);
 #else
 
 #include <string.h>
@@ -52,6 +54,10 @@ john_register_one(&fmt_rawSHA1);
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 
+#define AX_FORMAT			1
+#define RAW_FORMAT			2
+
+#define AX_FORMAT_LABEL			"Raw-SHA1-AxCrypt"
 #define FORMAT_LABEL			"Raw-SHA1"
 #define FORMAT_NAME				""
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
@@ -78,12 +84,17 @@ john_register_one(&fmt_rawSHA1);
 #endif
 
 #ifdef SIMD_COEF_32
-static ARCH_WORD_32 (*saved_key)[SHA_BUF_SIZ*NBKEYS];
-static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
+static uint32_t (*saved_key)[SHA_BUF_SIZ*NBKEYS];
+static uint32_t (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[DIGEST_SIZE / 4];
+static uint32_t (*crypt_key)[DIGEST_SIZE / 4];
 #endif
+
+static unsigned algo;
+static unsigned digest_size;
+static unsigned pos;
+static unsigned SSEi_flags;
 
 static void init(struct fmt_main *self)
 {
@@ -108,6 +119,34 @@ static void init(struct fmt_main *self)
 #endif
 }
 
+
+#ifndef REVERSE_STEPS
+#undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
+#undef SSEi_REVERSE_3STEPS
+#define SSEi_REVERSE_3STEPS 0
+#endif
+
+static void init_raw(struct fmt_main *self)
+{
+    algo = RAW_FORMAT;
+    digest_size = DIGEST_SIZE;
+    pos = 4;
+    SSEi_flags = SSEi_REVERSE_STEPS | SSEi_MIXED_IN;
+
+    init(self);
+}
+
+static void init_ax(struct fmt_main *self)
+{
+    algo = AX_FORMAT;
+    digest_size = AX_DIGEST_SIZE;
+    pos = 3;
+    SSEi_flags = SSEi_REVERSE_3STEPS | SSEi_MIXED_IN;
+
+    init(self);
+}
+
 static void done(void)
 {
 	MEM_FREE(crypt_key);
@@ -116,7 +155,7 @@ static void done(void)
 
 
 #ifdef SIMD_COEF_32
-#define HASH_OFFSET	(index&(SIMD_COEF_32-1))+(((unsigned int)index%NBKEYS)/SIMD_COEF_32)*SIMD_COEF_32*5+4*SIMD_COEF_32
+#define HASH_OFFSET	(index&(SIMD_COEF_32-1))+(((unsigned int)index%NBKEYS)/SIMD_COEF_32)*SIMD_COEF_32*5+pos*SIMD_COEF_32
 static int get_hash_0(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_0; }
 static int get_hash_1(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_1; }
 static int get_hash_2(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_2; }
@@ -125,37 +164,37 @@ static int get_hash_4(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] &
 static int get_hash_5(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return crypt_key[index][4] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_key[index][4] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_key[index][4] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_key[index][4] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_key[index][4] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_key[index][4] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_key[index][4] & PH_MASK_6; }
+static int get_hash_0(int index) { return crypt_key[index][pos] & PH_MASK_0; }
+static int get_hash_1(int index) { return crypt_key[index][pos] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_key[index][pos] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_key[index][pos] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_key[index][pos] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_key[index][pos] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_key[index][pos] & PH_MASK_6; }
 #endif
 
-static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_0; }
-static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_1; }
-static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_2; }
-static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_3; }
-static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_4; }
-static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_5; }
-static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[4] & PH_MASK_6; }
+static int binary_hash_0(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_5; }
+static int binary_hash_6(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_6; }
 
 #ifdef SIMD_COEF_32
 static void set_key(char *key, int index)
 {
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	const uint32_t *wkey = (uint32_t*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const ARCH_WORD_32 *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
+	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
 	                                       key : strcpy(buf_aligned, key));
 #endif
-	ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
-	ARCH_WORD_32 *keybuf_word = keybuffer;
+	uint32_t *keybuffer = &((uint32_t*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
+	uint32_t *keybuf_word = keybuffer;
 	unsigned int len;
-	ARCH_WORD_32 temp;
+	uint32_t temp;
 
 	len = 0;
 	while((unsigned char)(temp = *wkey++)) {
@@ -203,9 +242,9 @@ static char *get_key(int index)
 {
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int i;
-	ARCH_WORD_32 len = ((ARCH_WORD_32*)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
+	uint32_t len = ((uint32_t*)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
 
-	for(i=0;i<len;i++)
+	for (i=0;i<len;i++)
 		out[i] = ((char*)saved_key)[GETPOS(i, index)];
 	out[i] = 0;
 	return (char*)out;
@@ -218,16 +257,22 @@ static char *get_key(int index) {
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 full[DIGEST_SIZE / 4 + 1];
+	static uint32_t full[DIGEST_SIZE / 4];
 	unsigned char *realcipher = (unsigned char*)full;
 
+	memset(full, 0, sizeof(full)); // since ax-crypt 'may' be short.
 	ciphertext += TAG_LENGTH;
-	base64_convert(ciphertext, e_b64_mime, 28, realcipher, e_b64_raw, DIGEST_SIZE, flg_Base64_MIME_TRAIL_EQ);
+	base64_convert(ciphertext, e_b64_hex, HASH_LENGTH,
+	               realcipher, e_b64_raw, sizeof(full),
+	               flg_Base64_MIME_TRAIL_EQ, 0);
 
 #ifdef SIMD_COEF_32
 	alter_endianity(realcipher, DIGEST_SIZE);
 #ifdef REVERSE_STEPS
-	sha1_reverse(full);
+	if (algo == RAW_FORMAT)
+		sha1_reverse(full);
+	else
+		sha1_reverse3(full);
 #endif
 #endif
 
@@ -236,9 +281,8 @@ static void *get_binary(char *ciphertext)
 
 static char *source(char *source, void *binary)
 {
-	ARCH_WORD_32 hash[DIGEST_SIZE / 4];
-	char hex[2 * DIGEST_SIZE + 1];
-	char *fields[10] = { 0 };
+	static char hex[CIPHERTEXT_LENGTH + 1] = FORMAT_TAG;
+	uint32_t hash[DIGEST_SIZE / 4];
 	char *p;
 	int i, j;
 
@@ -247,9 +291,17 @@ static char *source(char *source, void *binary)
 	/* Un-reverse binary */
 #ifdef SIMD_COEF_32
 #ifdef REVERSE_STEPS
-	sha1_unreverse(hash);
+	if (algo == RAW_FORMAT)
+		sha1_unreverse(hash);
+	else {
+		hash[4] = 0;
+		sha1_unreverse3(hash);
+	}
 #endif
 	alter_endianity(hash, DIGEST_SIZE);
+#else
+	if (algo == AX_FORMAT)
+		hash[4] = 0;
 #endif
 
 #if ARCH_LITTLE_ENDIAN==0
@@ -257,21 +309,14 @@ static char *source(char *source, void *binary)
 #endif
 
 	/* Convert to hex string */
-	p = hex;
+	p = hex + TAG_LENGTH;
 	for (i = 0; i < 5; i++)
 		for (j = 0; j < 8; j++)
 			*p++ = itoa16[(hash[i] >> ((j ^ 1) * 4)) & 0xf];
 	*p = 0;
 
-	/* Let prepare() convert to a canonical hash (currently Base64) */
-	fields[1] = (void*)hex;
-	return rawsha1_common_prepare(fields, NULL);
+	return hex;
 }
-
-#ifndef REVERSE_STEPS
-#undef SSEi_REVERSE_STEPS
-#define SSEi_REVERSE_STEPS 0
-#endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -286,7 +331,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 #if SIMD_COEF_32
-		SIMDSHA1body(saved_key[index], crypt_key[index], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
+		SIMDSHA1body(saved_key[index], crypt_key[index], NULL, SSEi_flags);
 #else
 		SHA_CTX ctx;
 
@@ -303,9 +348,9 @@ static int cmp_all(void *binary, int count) {
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-        if (((ARCH_WORD_32*)binary)[4] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32 + 4*SIMD_COEF_32])
+		if (((uint32_t*)binary)[pos] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32 + pos*SIMD_COEF_32])
 #else
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
 #endif
 			return 1;
 	return 0;
@@ -314,16 +359,16 @@ static int cmp_all(void *binary, int count) {
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
-	return (((ARCH_WORD_32 *) binary)[4] == ((ARCH_WORD_32*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32 + 4*SIMD_COEF_32]);
+	return (((uint32_t *) binary)[pos] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32 + pos*SIMD_COEF_32]);
 #else
-	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
+	return !memcmp(binary, crypt_key[index], digest_size);
 #endif
 }
 
 static int cmp_exact(char *source, int index)
 {
 #ifdef SIMD_COEF_32
-	ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
+	uint32_t crypt_key[DIGEST_SIZE / 4];
 	SHA_CTX ctx;
 	char *key = get_key(index);
 
@@ -333,9 +378,12 @@ static int cmp_exact(char *source, int index)
 
 	alter_endianity(crypt_key, DIGEST_SIZE);
 #ifdef REVERSE_STEPS
-	sha1_reverse(crypt_key);
+	if (algo == RAW_FORMAT)
+		sha1_reverse(crypt_key);
+	else
+		sha1_reverse3(crypt_key);
 #endif
-	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
+	return !memcmp(get_binary(source), crypt_key, digest_size);
 #else
 	return 1;
 #endif
@@ -361,14 +409,79 @@ struct fmt_main fmt_rawSHA1 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG_OLD },
 		rawsha1_common_tests
 	}, {
-		init,
+		init_raw,
 		done,
 		fmt_default_reset,
 		rawsha1_common_prepare,
 		rawsha1_common_valid,
 		rawsha1_common_split,
+		get_binary,
+		fmt_default_salt,
+		{ NULL },
+		source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		NULL,
+		fmt_default_set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+struct fmt_main fmt_rawSHA1_axcrypt = {
+	{
+		AX_FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		DIGEST_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+#ifdef _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
+		{ NULL },
+		axcrypt_common_tests
+	}, {
+		init_ax,
+		done,
+		fmt_default_reset,
+		rawsha1_common_prepare,
+		rawsha1_axcrypt_valid,
+		rawsha1_axcrypt_split,
 		get_binary,
 		fmt_default_salt,
 		{ NULL },

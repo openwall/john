@@ -181,7 +181,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	    amd_vliw5(device_info[gpu_id]) ||
 	    (get_local_memory_size(gpu_id) < local_work_size * lmem_per_th))
 	{
-	        if(CHANNEL_INTERLEAVE == 1)
+	        if (CHANNEL_INTERLEAVE == 1)
 		        opencl_init("$JOHN/kernels/bf_cpu_kernel.cl",
 			             gpu_id, NULL);
 	        else {
@@ -252,7 +252,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	} else
 		find_best_gws(fmt);
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 

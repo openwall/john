@@ -69,7 +69,7 @@ static struct fmt_tests md2__tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -94,15 +94,28 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
+	int extra;
 
 	p = ciphertext;
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (hexlenl(p) != 32)
+	if (hexlenl(p, &extra) != 32 || extra)
 		return 0;
 
 	return 1;
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + BINARY_SIZE * 2 + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	strnzcpy(out + TAG_LENGTH, ciphertext, BINARY_SIZE*2 + 1);
+	return out;
 }
 
 static void *get_binary(char *ciphertext)
@@ -191,21 +204,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[40];
-	char *hash = fields[1];
-	if (strlen(hash) == 32) {
-		int i;
-		for (i = 0; i < 32; ++i) {
-			if (atoi16[ARCH_INDEX(hash[i])] == 0x7F)
-				return hash;
-		}
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;
-}
-
 struct fmt_main fmt_md2_ = {
 	{
 		FORMAT_LABEL,
@@ -223,14 +221,15 @@ struct fmt_main fmt_md2_ = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		md2__tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 		{ NULL },

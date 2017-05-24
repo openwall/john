@@ -9,6 +9,8 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * optimized Feb 2016, JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -58,7 +60,7 @@ john_register_one(&fmt_hsrp);
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        55 // Must fit in a single MD5 block
 #define BINARY_SIZE             16
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define REAL_SALT_SIZE          50
 #define SALT_ALIGN              sizeof(int)
@@ -75,9 +77,10 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *saved_len;
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static char (*saved_key)[64];	// 1 full limb of MD5, we do out work IN this buffer.
+static MD5_CTX (*saved_ctx);
+static int *saved_len, dirty;
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int length;
@@ -99,10 +102,13 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_len));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
+	saved_ctx = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_ctx));
 }
 
 static void done(void)
 {
+	MEM_FREE(saved_ctx);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
@@ -115,8 +121,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
+	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		return 0;
+
+	p += TAG_LENGTH;
 
 	q = strrchr(ciphertext, '$');
 	if (!q || q+1==p)
@@ -177,20 +185,10 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
-
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
 }
-
-// this place would normally contain "print_hex" but I do not want to piss of magnum (yet again)
 
 #define PUTCHAR(buf, index, val) ((unsigned char*)(buf))[index] = (val)
 
@@ -203,18 +201,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		uint32_t block[16] = { 0 };
-		int len = saved_len[index];
 		MD5_CTX ctx;
-		MD5_Init(&ctx);
-		// key + keyfill
-		memcpy(block, saved_key[index], len);
-		PUTCHAR(block, len, 0x80);
-		block[14] = len << 3;
+		int len = saved_len[index];
+		if (dirty) {
+			// we use the saved_key buffer in-line.
+			unsigned int *block = (unsigned int*)saved_key[index];
+			MD5_Init(&saved_ctx[index]);
+			// set bit
+			saved_key[index][len] = 0x80;
+			block[14] = len << 3;
 #if (ARCH_LITTLE_ENDIAN==0)
-		block[14] = JOHNSWAP(block[14]);
+			block[14] = JOHNSWAP(block[14]);
 #endif
-		MD5_Update(&ctx, (unsigned char*)block, 64);
+			MD5_Update(&saved_ctx[index], (unsigned char*)block, 64);
+			// clear the bit, so that get_key returns proper key.
+			saved_key[index][len] = 0;
+		}
+		memcpy(&ctx, &saved_ctx[index], sizeof(MD5_CTX));
 		// data
 		MD5_Update(&ctx, cur_salt->salt, cur_salt->length);
 		// key (again)
@@ -222,6 +225,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -231,7 +235,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
+		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }
@@ -248,10 +252,13 @@ static int cmp_exact(char *source, int index)
 
 static void hsrp_set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-
-	/* strncpy will pad with zeros, which is needed */
-	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	int olen = saved_len[index];
+	int len= strlen(key);
+	saved_len[index] = len;
+	strcpy(saved_key[index], key);
+	if (olen > len)
+		memset(&(saved_key[index][len]), 0, olen-len);
+	dirty = 1;
 }
 
 static char *get_key(int index)
@@ -274,8 +281,9 @@ struct fmt_main fmt_hsrp = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
@@ -289,13 +297,7 @@ struct fmt_main fmt_hsrp = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -305,13 +307,7 @@ struct fmt_main fmt_hsrp = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

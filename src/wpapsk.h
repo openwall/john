@@ -4,20 +4,22 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
- * hccap format was introduced by oclHashcat-plus, and it is described here: http://hashcat.net/wiki/hccap
+ * hccap format was introduced by oclHashcat-plus (now renamed to hashcat),
+ * and it is described here: http://hashcat.net/wiki/hccap
  * Code is based on  Aircrack-ng source
  */
 #ifndef _WPAPSK_H
 #define _WPAPSK_H
 
+#include <stdint.h>
+#include <assert.h>
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
-#include "stdint.h"
-
-#include <assert.h>
-#include <openssl/hmac.h>
+#include "hmacmd5.h"
+#include "hmac_sha.h"
 
 #define HCCAP_SIZE		sizeof(hccap_t)
 
@@ -28,6 +30,8 @@
 #define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
+#define FORMAT_TAG           "$WPAPSK$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 
 /** if you want to change hccap_t structure is also defined in hccap2john.c **/
 typedef struct
@@ -67,7 +71,6 @@ typedef struct {
 	uint8_t  salt[36]; // essid
 } wpapsk_salt;
 
-#ifndef _WPAPSK_CUDA_KERNEL
 static struct fmt_tests tests[] = {
 	/* WPA2 testcase from http://wiki.wireshark.org/SampleCaptures */
 	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "Induction"},
@@ -78,9 +81,8 @@ static struct fmt_tests tests[] = {
 	{"$WPAPSK$Greased Lighting#kA5.CDNB.07cofsOMXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGqgvfcXnuF1f7L5fgn4fQMLmDrKjdBNjb6LClRmfLiTYk21.5I0.Ec............7MXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGo.................................................................3X.I.E..1uk2.E..1uk2.E..1uk00...................................................................................................................................................................................../t.....U...D06LUdWVfGPaP1Oa3AV9Hg", "W*A5z&1?op2_L&Hla-OA$#5i_Lu@F+6d?je?u5!6+6766eluu7-l+jOEkIwLe90"},
 	{NULL}
 };
-#endif
 
-/** Below are common variables used by wpapsk_fmt.c cuda_wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
+/** Below are common variables used by wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
 
 static hccap_t hccap;			///structure with hccap data
 static wpapsk_salt currentsalt;		///structure for essid
@@ -89,17 +91,16 @@ static mic_t *mic;			///table for MIC keys
 static wpapsk_password *inbuffer;	///table for candidate passwords
 static wpapsk_hash *outbuffer;		///table for PMK calculated by GPU
 #endif
-static const char wpapsk_prefix[] = "$WPAPSK$";
 
 static int new_keys = 1;
 static char last_ssid[sizeof(hccap.essid)];
 
-/** Below are common functions used by wpapsk_fmt.c cuda_wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
+/** Below are common functions used by wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
 
 static hccap_t *decode_hccap(char *ciphertext)
 {
 	static hccap_t hccap;
-	char *essid = ciphertext + strlen(wpapsk_prefix);
+	char *essid = ciphertext + FORMAT_TAG_LEN;
 	char *hash = strrchr(ciphertext, '#');
 	char *d = hccap.essid;
 	char *cap = hash + 1;
@@ -151,7 +152,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} binary;
 	hccap_t *hccap = decode_hccap(ciphertext);
 
@@ -173,11 +174,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int hashlength = 0;
 	hccap_t *hccap;
 
-	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	hash = strrchr(ciphertext, '#');
-	if (hash == NULL || hash - (ciphertext + strlen(wpapsk_prefix)) > 32)
+	if (hash == NULL || hash - (ciphertext + FORMAT_TAG_LEN) > 32)
 		return 0;
 	hash++;
 	while (hash < ciphertext + strlen(ciphertext)) {
@@ -192,9 +193,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(hccap->essid) > 32) /* real life limit */
 		return 0;
 
-	if(hccap->eapol_size > 256)
+	if (hccap->eapol_size > 256)
 		return 0;
-	if(hccap->eapol_size < 0)
+	if (hccap->eapol_size < 0)
 		return 0;
 	return 1;
 }
@@ -202,7 +203,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 #ifndef JOHN_OCL_WPAPSK
 static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 {
-	HMAC_CTX ctx;
 	char *text = (char*)"Pairwise key expansion";
 	unsigned char buff[100];
 
@@ -210,10 +210,7 @@ static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 	memcpy(buff + 23, data, 76);
 	buff[22] = 0;
 	buff[76 + 23] = 0;
-	HMAC_Init(&ctx, key, 32, EVP_sha1());
-	HMAC_Update(&ctx, buff, 100);
-	HMAC_Final(&ctx, (unsigned char *) ret, NULL);
-	HMAC_CTX_cleanup(&ctx);
+	hmac_sha1((unsigned char*)key, 32, buff, 100, (unsigned char*)ret, 20);
 }
 #endif
 
@@ -324,6 +321,7 @@ static void set_key(char *key, int index)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -348,9 +346,12 @@ static void wpapsk_postprocess(int keys)
 #endif
 		for (i = 0; i < keys; i++) {
 			uint32_t prf[20/4];
+			HMACMD5Context ctx;
+
 			prf_512(outbuffer[i].v, data, prf);
-			HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size,
-			    mic[i].keymic, NULL);
+			hmac_md5_init_K16((unsigned char*)prf, &ctx);
+			hmac_md5_update(hccap.eapol, hccap.eapol_size, &ctx);
+			hmac_md5_final(mic[i].keymic, &ctx);
 		}
 	} else {
 #ifdef _OPENMP
@@ -358,11 +359,10 @@ static void wpapsk_postprocess(int keys)
 #endif
 		for (i = 0; i < keys; i++) {
 			uint32_t prf[20/4];
-			unsigned char keymic[20];
+
 			prf_512(outbuffer[i].v, data, prf);
-			HMAC(EVP_sha1(), prf, 16, hccap.eapol,
-			    hccap.eapol_size, keymic, NULL);
-			memcpy(mic[i].keymic, keymic, 16);
+			hmac_sha1((unsigned char*)prf, 16, hccap.eapol,
+			          hccap.eapol_size, mic[i].keymic, 16);
 		}
 	}
 }
@@ -460,7 +460,9 @@ static int cmp_exact(char *source, int index)
 
 static int salt_compare(const void *x, const void *y)
 {
-	return strncmp((const char*)x, (const char*)y, 36);
+	int c = strncmp((const char*)x, (const char*)y, 36);
+	if (c) return c;
+	return memcmp((const char*)x, (const char*)y, SALT_SIZE);
 }
 
 #endif

@@ -35,6 +35,11 @@
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# References,
+#
+# https://support.1password.com/agile-keychain-design/
+# https://support.1password.com/opvault-design/ (formerly called "Cloud Keychain")
 
 import os
 import sys
@@ -106,6 +111,7 @@ class Key(object):
     def __is_salted(self, data):
         return self.SALTED_PREFIX == data[:len(self.SALTED_PREFIX)]
 
+
 def opdata1_unpack(data):
     HEADER_LENGTH = 8
     TOTAL_HEADER_LENGTH = 32
@@ -127,7 +133,7 @@ def opdata1_unpack(data):
     return plaintext_length, iv, cryptext, expected_hmac, hmac_d_data
 
 
-class CloudKeychain(object):
+class CloudKeychain(object):  # also handles "OPVault format"
     def __init__(self, path, name='default'):
         self.path = path
         self.keys = list()
@@ -160,9 +166,9 @@ class CloudKeychain(object):
                 binascii.hexlify(masterKey).decode("ascii")))
 
             plaintext_length, iv, cryptext, expected_hmac, hmac_d_data = \
-                                         opdata1_unpack(data['masterKey'])
+                opdata1_unpack(data['masterKey'])
 
-            sys.stdout.write("$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" % \
+            sys.stdout.write("$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" %
                 (plaintext_length, len(iv),
                 binascii.hexlify(iv).decode("ascii"), len(cryptext),
                 binascii.hexlify(cryptext).decode("ascii"),
@@ -244,7 +250,7 @@ def process_file(keychain):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <1Password Agile Keychain(s)>\n" % \
+        sys.stderr.write("Usage: %s <1Password Agile Keychain(s)>\n" %
                          sys.argv[0])
         sys.exit(-1)
 

@@ -78,7 +78,7 @@ typedef struct {
 
 struct fmt_main;
 
-struct fmt_main fmt_opencl_lm;
+extern struct fmt_main fmt_opencl_lm;
 
 extern opencl_lm_combined *opencl_lm_all;
 extern opencl_lm_transfer *opencl_lm_keys;

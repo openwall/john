@@ -23,7 +23,7 @@ static int valid_cisco(char *ciphertext)
 		p += CISCO_TAG_LEN;
 
 	q = p;
-	while (atoi64[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi64[ARCH_INDEX(*q)] != 0x7F && q - p <= CISCO_CIPHERTEXT_LENGTH)
 		q++;
 	return !*q && q - p == CISCO_CIPHERTEXT_LENGTH;
 }
@@ -37,7 +37,7 @@ static int valid_hex(char *ciphertext)
 		p += HEX_TAG_LEN;
 
 	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F && q - p <= HEX_CIPHERTEXT_LENGTH)
 		q++;
 	return !*q && q - p == HEX_CIPHERTEXT_LENGTH;
 }
@@ -67,6 +67,25 @@ void * sha256_common_binary(char *ciphertext)
 #ifdef SIMD_COEF_32
 	alter_endianity (out, DIGEST_SIZE);
 #endif
+	return out;
+}
+
+void *sha256_common_binary_BE(char *ciphertext)
+{
+	static unsigned char * out;
+	char *p;
+	int i;
+
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
+
+	p = ciphertext + HEX_TAG_LEN;
+	for (i = 0; i < DIGEST_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	alter_endianity (out, DIGEST_SIZE);
 	return out;
 }
 

@@ -56,6 +56,8 @@ john_register_one(&fmt_vdi);
 
 #define FORMAT_LABEL		"vdi"
 #define FORMAT_NAME		"VirtualBox-VDI AES_XTS"
+#define FORMAT_TAG           "$vdi$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "PBKDF2-SHA256 " SHA256_ALGORITHM_NAME " + AES_XTS"
 
 #if SSE_GROUP_SZ_SHA256
@@ -68,9 +70,6 @@ john_register_one(&fmt_vdi);
 
 static unsigned char (*key_buffer)[PLAINTEXT_LENGTH + 1];
 static unsigned char (*crypt_out)[MAX_SALT_LEN];
-
-#define FORMAT_TAG      "$vdi$"
-#define FORMAT_TAG_LEN  (sizeof(FORMAT_TAG)-1)
 
 static struct fmt_tests tests[] = {
 	// The 'jtr' test hashed were made with VirtualBox. The others were made with pass_gen.pl
@@ -152,38 +151,38 @@ static int valid(char* ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	keylen = atoi(p);
-	if(keylen > MAX_KEY_LEN)
+	if (keylen > MAX_KEY_LEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt length */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	saltlen = atoi(p);
-	if(saltlen > MAX_SALT_LEN)
+	if (saltlen > MAX_SALT_LEN)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt1 */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt2 */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* encr_key */
 		goto err;
-	if(strlen(p) != keylen * 2)
+	if (strlen(p) != keylen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* final_result */
 		goto err;
-	if(strlen(p) != saltlen * 2)
+	if (strlen(p) != saltlen * 2)
 		goto err;
-	if(!ishexlc(p))
+	if (!ishexlc(p))
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) != NULL)
@@ -225,11 +224,11 @@ static void* get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");	/* salt length */
 	s->saltlen = atoi(p);
 	p = strtokm(NULL, "$");	/* salt1 */
-	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt1, e_b64_raw, s->saltlen, 0);
+	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt1, e_b64_raw, s->saltlen, 0, 0);
 	p = strtokm(NULL, "$");	/* salt2 */
-	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt2, e_b64_raw, s->saltlen, 0);
+	base64_convert(p, e_b64_hex, s->saltlen*2, s->salt2, e_b64_raw, s->saltlen, 0, 0);
 	p = strtokm(NULL, "$");	/* encr_key */
-	base64_convert(p, e_b64_hex, s->keylen*2, s->encr, e_b64_raw, s->keylen, 0);
+	base64_convert(p, e_b64_hex, s->keylen*2, s->encr, e_b64_raw, s->keylen, 0, 0);
 
 	MEM_FREE(keeptr);
 	return s;
@@ -247,7 +246,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for(i = 0; i < count;  i += inc)
+	for (i = 0; i < count;  i += inc)
 	{
 		unsigned char key[MAX_KEY_LEN];
 #if SSE_GROUP_SZ_SHA256
@@ -274,15 +273,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, psalt->salt1, psalt->saltlen, psalt->rounds1, &(x.poutc), psalt->keylen, 0);
 #else
 		pbkdf2_sha256((const unsigned char*)key_buffer[i], ksz, psalt->salt1, psalt->saltlen, psalt->rounds1, key, psalt->keylen, 0);
-#endif
-#if ARCH_LITTLE_ENDIAN==0
-		{
-			uint32_t *p32 = (uint32_t *)key;
-			for (j = 0; j < 16; ++j) {
-				*p32 = JOHNSWAP(*p32);
-				++p32;
-			}
-		}
 #endif
 		for (j = 0; j < inc; ++j) {
 #if SSE_GROUP_SZ_SHA256
@@ -348,18 +338,11 @@ static int salt_hash(void *salt)
 }
 
 static void *binary(char *ciphertext) {
-	static ARCH_WORD_32 full[MAX_SALT_LEN / 4];
+	static uint32_t full[MAX_SALT_LEN / 4];
 	unsigned char *realcipher = (unsigned char*)full;
-#if ARCH_LITTLE_ENDIAN==0
-	int j;
-#endif
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
-	base64_convert(ciphertext, e_b64_hex, strlen(ciphertext), realcipher, e_b64_raw, MAX_SALT_LEN, 0);
-#if ARCH_LITTLE_ENDIAN==0
-       for (j = 0; j < 8; ++j)
-	       full[j] = JOHNSWAP(full[j]);
-#endif
+	base64_convert(ciphertext, e_b64_hex, strlen(ciphertext), realcipher, e_b64_raw, MAX_SALT_LEN, 0, 0);
 	return (void*)realcipher;
 }
 
@@ -380,6 +363,7 @@ struct fmt_main fmt_vdi = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

@@ -3,8 +3,8 @@
  *
  * Based on https://github.com/cyberpunkych/attacking_mongodb
  *
- * Hash format for MongoDB system hashes: user:$mongodb$0$hash
- * Hash format for MongoDB network hashes: user:$mongodb$1$salt$hash
+ * Hash format for MongoDB system hashes: user:$mongodb$0$user$hash
+ * Hash format for MongoDB network hashes: user:$mongodb$1$user$salt$hash
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
@@ -40,13 +40,16 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"MongoDB"
 #define FORMAT_NAME		"system / network"
+#define FORMAT_TAG			"$mongodb$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			sizeof(int)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -64,11 +67,15 @@ static struct fmt_tests mongodb_tests[] = {
 	{"$mongodb$1$Herman$9b90cf265f3194d7$a5ca2c517c06fdfb773144d53fb26f56", "123456789"},
 	{"$mongodb$1$sz110$be8fa52f0e64c250$441d6ece7356c67dcc69dd26e7e0501f", "passWOrd"},
 	{"$mongodb$1$jack$304b81adddfb4d6f$c95e106f1d9952c88044a0b21a6bd3fd", ""},
+	// https://jira.mongodb.org/browse/SERVER-9476
+	{"$mongodb$1$z$ce88504553b16752$6deb79af26ebcdd2b2c40438008cb7b0", "g"},
+	// https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst
+	{"$mongodb$1$user$2375531c32080ae8$21742f26431831d5cfca035a08c5bdf6", "pencil"},
 	{NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int type;
@@ -99,14 +106,14 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
-	int type;
+	int type, extra;
 
-	if (strncmp(ciphertext, "$mongodb$", 9))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 
 	if (!(ptr = strtokm(ctcopy, "$"))) /* type */
 		goto error;
@@ -122,16 +129,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (type == 0) {
 		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
-		if (hexlenl(ptr) != 32)
+		if (hexlenl(ptr, &extra) != 32 || extra)
 			goto error;
 	} else {
 		if (!(ptr = strtokm(NULL, "$"))) /* salt */
 			goto error;
-		if (hexlenl(ptr) != 16)
+		if (hexlenl(ptr, &extra) != 16 || extra)
 			goto error;
 		if (!(ptr = strtokm(NULL, "$"))) /* hash */
 			goto error;
-		if (hexlenl(ptr) != 32)
+		if (hexlenl(ptr, &extra) != 32 || extra)
 			goto error;
 	}
 
@@ -150,7 +157,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 9;	/* skip over "$mongodb$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$mongodb$" */
 	p = strtokm(ctcopy, "$");
 	cs.type = atoi(p);
 	p = strtokm(NULL, "$");
@@ -309,6 +316,7 @@ struct fmt_main fmt_mongodb = {
 			"salt type",
 			/* FIXME: report user name length as 2nd cost? */
 		},
+		{ FORMAT_TAG },
 		mongodb_tests
 	}, {
 		init,

@@ -39,6 +39,9 @@ john_register_one(&fmt_keychain);
 
 #define FORMAT_LABEL		"keychain"
 #define FORMAT_NAME		"Mac OS X Keychain"
+#define FORMAT_TAG			"$keychain$*"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 3DES " SHA1_ALGORITHM_NAME
 #else
@@ -108,22 +111,24 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext,  "$keychain$*", 11) != 0)
+	int extra;
+
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 11;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
-	if(hexlenl(p) != SALTLEN * 2)
+	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 		goto err;
-	if(hexlenl(p) != IVLEN * 2)
+	if (hexlenl(p, &extra) != IVLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
-	if(hexlenl(p) != CTLEN * 2)
+	if (hexlenl(p, &extra) != CTLEN * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -140,7 +145,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
-	ctcopy += 11;	/* skip over "$keychain$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keychain$*" */
 	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
@@ -211,17 +216,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1_sse((const unsigned char**)pin, lens, salt_struct->salt, SALTLEN, 1000, pout, 24, 0);
 #else
 		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master[0], 24, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 24/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)master[0])[i] = JOHNSWAP(((ARCH_WORD_32*)master[0])[i]);
-			}
-		}
-#endif
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(kcdecrypt(master[i], salt_struct->iv, salt_struct->ct) == 0)
+			if (kcdecrypt(master[i], salt_struct->iv, salt_struct->ct) == 0)
 				cracked[index+i] = 1;
 			else
 				cracked[index+i] = 0;
@@ -280,6 +277,7 @@ struct fmt_main fmt_keychain = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		{ NULL },
+		{ FORMAT_TAG },
 		keychain_tests
 	}, {
 		init,

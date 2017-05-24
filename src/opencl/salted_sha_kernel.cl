@@ -144,7 +144,7 @@ __kernel void sha1(__global uint *keys,
 #if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
 		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
 #endif
-		 , __global unsigned char *salt,
+		 , __constant uchar *salt,
 		 __global uint *bitmaps,
 		  __global uint *offset_table,
 		  __global uint *hash_table,
@@ -156,26 +156,24 @@ __kernel void sha1(__global uint *keys,
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint W[16] = { 0 };
-	uint temp, A, B, C, D, E;
 	uint len = base & 63;
 	uint hash[5];
-	uint r[16] = {0};
 	unsigned int salt_len = salt[16];
 
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
 	uint loc0 = ikl & 0xff;
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
 	uint loc1 = (ikl & 0xff00) >> 8;
 #endif
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
 	uint loc2 = (ikl & 0xff0000) >> 16;
 #endif
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
 	uint loc3 = (ikl & 0xff000000) >> 24;
 #endif
@@ -199,7 +197,7 @@ __kernel void sha1(__global uint *keys,
 	uint lws = get_local_size(0);
 	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
 
-	for(i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
+	for (i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
 		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
 
 	barrier(CLK_LOCAL_MEM_FENCE);
@@ -248,24 +246,24 @@ __kernel void sha1(__global uint *keys,
 #if NUM_INT_KEYS > 1
 		PUTCHAR_BE(W, GPU_LOC_0, (int_keys[i] & 0xff));
 
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
 		PUTCHAR_BE(W, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
 #endif
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
 		PUTCHAR_BE(W, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
 #endif
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
 		PUTCHAR_BE(W, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
 #endif
 #endif
 #endif
 		sha1_init(hash);
-		sha1_block(W, hash);
+		sha1_block(uint, W, hash);
 
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS

@@ -39,18 +39,28 @@ john_register_one(&fmt_stribog_512);
 #define FORMAT_LABEL		"stribog"
 #define FORMAT_NAME		""
 
+#define TAG256 "$stribog256$"
+#define TAG256_LENGTH (sizeof(TAG256)-1)
+
+#define TAG512 "$stribog512$"
+#define TAG512_LENGTH (sizeof(TAG512)-1)
+
+#define TAG_LENGTH TAG256_LENGTH
+#define FORMAT_TAG TAG256
+
 #define ALGORITHM_NAME		"GOST R 34.11-2012 128/128 SSE4.1 1x"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64 - 1
 #define CIPHERTEXT256_LENGTH	64
-#define CIPHERTEXT512_LENGTH	64
+#define CIPHERTEXT512_LENGTH	128
+#define CIPHERTEXT_LENGTH CIPHERTEXT256_LENGTH
 #define BINARY_SIZE_256		32
 #define BINARY_SIZE_512		64
 #define SALT_SIZE		0
 #define SALT_ALIGN		1
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -86,7 +96,7 @@ static struct fmt_tests stribog_512_tests[] = {
 
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE_512 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE_512 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -108,15 +118,6 @@ static void done(void)
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
-#define TAG256 "$stribog256$"
-#define TAG256_LENGTH strlen(TAG256)
-
-#define TAG512 "$stribog512$"
-#define TAG512_LENGTH strlen(TAG512)
-
-#define TAG_LENGTH TAG256_LENGTH
-#define FORMAT_TAG TAG256
-#define CIPHERTEXT_LENGTH 64
 
 static char *split_256(char *ciphertext, int index, struct fmt_main *self)
 {
@@ -140,7 +141,7 @@ static int valid_256(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 	return 1;
 }
@@ -170,7 +171,7 @@ static void *get_binary_256(char *ciphertext)
 
 #define TAG_LENGTH TAG512_LENGTH
 #define FORMAT_TAG TAG512
-#define CIPHERTEXT_LENGTH 128
+#define CIPHERTEXT_LENGTH CIPHERTEXT512_LENGTH
 
 static char *split_512(char *ciphertext, int index, struct fmt_main *self)
 {
@@ -194,7 +195,7 @@ static int valid_512(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 	while(*p)
-		if(atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 	return 1;
 }
@@ -387,6 +388,7 @@ struct fmt_main fmt_stribog_256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ TAG256 },
 		stribog_256_tests
 	}, {
 		init,
@@ -447,6 +449,7 @@ struct fmt_main fmt_stribog_512 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ TAG512 },
 		stribog_512_tests
 	}, {
 		init,
@@ -492,4 +495,12 @@ struct fmt_main fmt_stribog_512 = {
 
 #endif /* plugin stanza */
 
+#else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning Stribog-256 and Stribog-512 formats require SSE 4.1, formats disabled
+#elif _MSC_VER
+#pragma message(": warning Stribog-256 and Stribog-512 formats require SSE 4.1, formats disabled:")
+#endif
+#endif
 #endif /* __SSE4_1__ */

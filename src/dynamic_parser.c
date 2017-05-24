@@ -69,7 +69,7 @@
 
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
-# define FORCE_THREAD_MD5_body
+ #define FORCE_THREAD_MD5_body
 #endif
 #undef _OPENMP
 #endif
@@ -101,6 +101,10 @@ typedef struct Dynamic_Str_Flag_t
 #define LARGE_HASH_FUNCS(HASH) \
 	{ "DynamicFunc__" #HASH "_crypt_input1_append_input2", DynamicFunc__##HASH##_crypt_input1_append_input2 }, \
 	{ "DynamicFunc__" #HASH "_crypt_input2_append_input1", DynamicFunc__##HASH##_crypt_input2_append_input1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_at_offset_input2", DynamicFunc__##HASH##_crypt_input1_at_offset_input2 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_at_offset_input1", DynamicFunc__##HASH##_crypt_input2_at_offset_input1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input1_at_offset_input1", DynamicFunc__##HASH##_crypt_input1_at_offset_input1 }, \
+	{ "DynamicFunc__" #HASH "_crypt_input2_at_offset_input2", DynamicFunc__##HASH##_crypt_input2_at_offset_input2 }, \
 	{ "DynamicFunc__" #HASH "_crypt_input1_overwrite_input1", DynamicFunc__##HASH##_crypt_input1_overwrite_input1 }, \
 	{ "DynamicFunc__" #HASH "_crypt_input2_overwrite_input2", DynamicFunc__##HASH##_crypt_input2_overwrite_input2 }, \
 	{ "DynamicFunc__" #HASH "_crypt_input1_overwrite_input2", DynamicFunc__##HASH##_crypt_input1_overwrite_input2 }, \
@@ -181,28 +185,47 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__set_input2_len_32_cleartop", DynamicFunc__set_input2_len_32_cleartop },
 	{ "DynamicFunc__set_input2_len_40_cleartop", DynamicFunc__set_input2_len_40_cleartop },
 	{ "DynamicFunc__set_input_len_48", DynamicFunc__set_input_len_48 },
-	{ "DynamicFunc__set_input_2len_48", DynamicFunc__set_input2_len_48 },
+	{ "DynamicFunc__set_input2_len_48", DynamicFunc__set_input2_len_48 },
 	{ "DynamicFunc__set_input_len_56", DynamicFunc__set_input_len_56 },
 	{ "DynamicFunc__set_input2_len_56", DynamicFunc__set_input2_len_56 },
 	{ "DynamicFunc__set_input_len_64", DynamicFunc__set_input_len_64 },
 	{ "DynamicFunc__set_input2_len_64", DynamicFunc__set_input2_len_64 },
 	{ "DynamicFunc__set_input_len_80", DynamicFunc__set_input_len_80 },
-	{ "DynamicFunc__set_input_2len_80", DynamicFunc__set_input2_len_80 },
+	{ "DynamicFunc__set_input2_len_80", DynamicFunc__set_input2_len_80 },
 	{ "DynamicFunc__set_input_len_96", DynamicFunc__set_input_len_96 },
-	{ "DynamicFunc__set_input_2len_96", DynamicFunc__set_input2_len_96 },
+	{ "DynamicFunc__set_input2_len_96", DynamicFunc__set_input2_len_96 },
 
 	{ "DynamicFunc__set_input_len_100", DynamicFunc__set_input_len_100 },
 
 	{ "DynamicFunc__set_input_len_112", DynamicFunc__set_input_len_112 },
-	{ "DynamicFunc__set_input_2len_112", DynamicFunc__set_input2_len_112 },
+	{ "DynamicFunc__set_input2_len_112", DynamicFunc__set_input2_len_112 },
 	{ "DynamicFunc__set_input_len_128", DynamicFunc__set_input_len_128 },
-	{ "DynamicFunc__set_input_2len_128", DynamicFunc__set_input2_len_128 },
+	{ "DynamicFunc__set_input2_len_128", DynamicFunc__set_input2_len_128 },
 	{ "DynamicFunc__set_input_len_160", DynamicFunc__set_input_len_160 },
-	{ "DynamicFunc__set_input_2len_160", DynamicFunc__set_input2_len_160 },
+	{ "DynamicFunc__set_input2_len_160", DynamicFunc__set_input2_len_160 },
 	{ "DynamicFunc__set_input_len_192", DynamicFunc__set_input_len_192 },
-	{ "DynamicFunc__set_input_2len_192", DynamicFunc__set_input2_len_192 },
+	{ "DynamicFunc__set_input2_len_192", DynamicFunc__set_input2_len_192 },
 	{ "DynamicFunc__set_input_len_256", DynamicFunc__set_input_len_256 },
-	{ "DynamicFunc__set_input_2len_256", DynamicFunc__set_input2_len_256 },
+	{ "DynamicFunc__set_input2_len_256", DynamicFunc__set_input2_len_256 },
+	{ "DynamicFunc__LargeHash_set_offset_saltlen", DynamicFunc__LargeHash_set_offset_saltlen },
+
+	{ "DynamicFunc__LargeHash_set_offset_16", DynamicFunc__LargeHash_set_offset_16 },
+	{ "DynamicFunc__LargeHash_set_offset_20", DynamicFunc__LargeHash_set_offset_20 },
+	{ "DynamicFunc__LargeHash_set_offset_24", DynamicFunc__LargeHash_set_offset_24 },
+	{ "DynamicFunc__LargeHash_set_offset_28", DynamicFunc__LargeHash_set_offset_28 },
+	{ "DynamicFunc__LargeHash_set_offset_32", DynamicFunc__LargeHash_set_offset_32 },
+	{ "DynamicFunc__LargeHash_set_offset_40", DynamicFunc__LargeHash_set_offset_40 },
+	{ "DynamicFunc__LargeHash_set_offset_48", DynamicFunc__LargeHash_set_offset_48 },
+	{ "DynamicFunc__LargeHash_set_offset_56", DynamicFunc__LargeHash_set_offset_56 },
+	{ "DynamicFunc__LargeHash_set_offset_64", DynamicFunc__LargeHash_set_offset_64 },
+	{ "DynamicFunc__LargeHash_set_offset_80", DynamicFunc__LargeHash_set_offset_80 },
+	{ "DynamicFunc__LargeHash_set_offset_96", DynamicFunc__LargeHash_set_offset_96 },
+	{ "DynamicFunc__LargeHash_set_offset_100",DynamicFunc__LargeHash_set_offset_100 },
+	{ "DynamicFunc__LargeHash_set_offset_112",DynamicFunc__LargeHash_set_offset_112 },
+	{ "DynamicFunc__LargeHash_set_offset_128",DynamicFunc__LargeHash_set_offset_128 },
+	{ "DynamicFunc__LargeHash_set_offset_160",DynamicFunc__LargeHash_set_offset_160 },
+	{ "DynamicFunc__LargeHash_set_offset_192",DynamicFunc__LargeHash_set_offset_192 },
+
 	{ "DynamicFunc__overwrite_salt_to_input1_no_size_fix", DynamicFunc__overwrite_salt_to_input1_no_size_fix },
 	{ "DynamicFunc__overwrite_salt_to_input2_no_size_fix", DynamicFunc__overwrite_salt_to_input2_no_size_fix },
 	{ "DynamicFunc__append_input1_from_CONST1", DynamicFunc__append_input1_from_CONST1 },
@@ -232,6 +255,7 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__ToSSE", DynamicFunc__ToSSE },
 	{ "DynamicFunc__ToX86", DynamicFunc__ToX86 },
 	{ "DynamicFunc__setmode_unicode", DynamicFunc__setmode_unicode },
+	{ "DynamicFunc__setmode_unicodeBE", DynamicFunc__setmode_unicodeBE },
 	{ "DynamicFunc__setmode_normal", DynamicFunc__setmode_normal },
 	{ "DynamicFunc__base16_convert_locase", DynamicFunc__base16_convert_locase },
 	{ "DynamicFunc__base16_convert_upcase", DynamicFunc__base16_convert_upcase },
@@ -393,6 +417,7 @@ static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_PASSWORD_UPCASE",              MGF_PASSWORD_UPCASE },
 	{ "MGF_PASSWORD_LOCASE",              MGF_PASSWORD_LOCASE },
 	{ "MGF_FULL_CLEAN_REQUIRED",          MGF_FULL_CLEAN_REQUIRED },
+	{ "MGF_FULL_CLEAN_REQUIRED2",         MGF_FULL_CLEAN_REQUIRED2 },
 	{ NULL, 0 }};
 
 #define SALT_AS_HEX_FLAG2(HASH) \
@@ -566,7 +591,8 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 				static char Buf[1024];
 				pSetup->pPreloads[nPreloadCnt].ciphertext = Thin_Convert(Buf, pSetup->pPreloads[nPreloadCnt].ciphertext, 1);
 		}
-		if (!strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_6xxx$", 14)) {
+		if (pSetup->pPreloads[nPreloadCnt].ciphertext &&
+		    !strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, "$dynamic_6xxx$", 14)) {
 			memmove(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName));
 		}
 		if (!pSetup->pPreloads[nPreloadCnt].ciphertext ||

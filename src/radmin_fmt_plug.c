@@ -40,6 +40,8 @@ john_register_one(&fmt_radmin);
 
 #define FORMAT_LABEL		"RAdmin"
 #define FORMAT_NAME		"v2.x"
+#define FORMAT_TAG           "$radmin2$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -66,7 +68,7 @@ static struct fmt_tests radmin_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH+1];
-static ARCH_WORD_32 (*crypt_out)[8];
+static uint32_t (*crypt_out)[8];
 
 static void init(struct fmt_main *self)
 {
@@ -89,8 +91,8 @@ static void done(void)
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self) {
-	static char buf[CIPHERTEXT_LENGTH + 10];   // $radmin2$ is 9 bytes
-	strnzcpy(buf, ciphertext, CIPHERTEXT_LENGTH + 10);
+	static char buf[CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1];   // $radmin2$ is 9 bytes
+	strnzcpy(buf, ciphertext, CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1);
 	strlwr(buf);
 	return buf;
 }
@@ -98,10 +100,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *self) {
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
-	if (strncmp(ciphertext, "$radmin2$", 9))
+	int extra;
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	p = ciphertext + 9;
-	if (hexlen(p) != CIPHERTEXT_LENGTH)
+	p = ciphertext + FORMAT_TAG_LEN;
+	if (hexlen(p, &extra) != CIPHERTEXT_LENGTH || extra)
 		return 0;
 	return 1;
 }
@@ -156,14 +160,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 	for (index = 0; index < count; index++)
-		if (*(ARCH_WORD_32 *)binary == crypt_out[index][0])
+		if (*(uint32_t *)binary == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return *(ARCH_WORD_32 *)binary == crypt_out[index][0];
+	return *(uint32_t *)binary == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
@@ -177,7 +181,8 @@ static void radmin_set_key(char *key, int index)
 	// this code assures that both saved_key[index] gets null-terminated (without buffer overflow)
 	char *cp = &saved_key[index][strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1)+1];
 	// and is null padded up to 100 bytes.  We simply clean up prior buffer, up to element 99, but that element will never be written to
-	while (*cp) *cp++ = 0;
+	if (cp < &saved_key[index][99])
+		while (*cp) *cp++ = 0;
 }
 
 static char *get_key(int index)
@@ -203,6 +208,7 @@ struct fmt_main fmt_radmin = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG },
 		radmin_tests
 	}, {
 		init,

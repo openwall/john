@@ -63,7 +63,7 @@ static char *Convert(char *Buf, char *ciphertext) {
 	if (text_in_dynamic_format_already(pDynamic_19, ciphertext))
 		return ciphertext;
 
-	if (strlen(ciphertext) == CIPHERTEXT_LENGTH) {
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$dynamic_19$%s", ciphertext);
 		return Buf;
 	}
@@ -86,7 +86,8 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 	if (!ciphertext)
 		return 0;
 	get_ptr();
-	i = strlen(ciphertext);
+
+	i = strnlen(ciphertext, CIPHERTEXT_LENGTH + 1);
 	if (i > CIPHERTEXT_LENGTH)
 		return pDynamic_19->methods.valid(ciphertext, pDynamic_19);
 	if (i == CIPHERTEXT_LENGTH)
@@ -105,6 +106,7 @@ struct fmt_main fmt_pixMD5 = {
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
 		0, PLAINTEXT_LENGTH, BINARY_SIZE, BINARY_ALIGN, SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+		{ NULL },
 		{ NULL },
 		pixmd5_tests
 	},
@@ -141,15 +143,6 @@ static void get_ptr() {
 		link_funcs();
 	}
 }
-
-/**
- * GNU Emacs settings: K&R with 1 tab indent.
- * Local Variables:
- * c-file-style: "k&r"
- * c-basic-offset: 8
- * indent-tabs-mode: t
- * End:
- */
 
 #endif /* plugin stanza */
 

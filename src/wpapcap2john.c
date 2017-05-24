@@ -14,16 +14,11 @@
 #include "jumbo.h"
 #include "memdbg.h"
 
-/*
- * Max. number of ESSID's we can collect from all files combined.
- * Just bump this if you need more. We should use a linked list instead
- * and drop this limitation
- */
-#define MAX_ESSIDS	10000
+static size_t max_essids = 1024; /* Will grow automagically */
 
 static int GetNextPacket(FILE *in);
 static int ProcessPacket();
-static void HandleBeacon();
+static void HandleBeacon(uint16 subtype);
 static void Handle4Way(int bIsQOS);
 static void DumpKey(int idx, int one_three, int bIsQOS);
 
@@ -32,9 +27,9 @@ static pcaprec_hdr_t pkt_hdr;
 static uint8 *full_packet;
 static uint8 *packet;
 static int bROT;
-static WPA4way_t wpa[MAX_ESSIDS];
+static WPA4way_t *wpa;    /* alloced/realloced to max_essids*/
+static char **unVerified; /* alloced/realloced to max_essids*/
 static int nwpa = 0;
-static char *unVerified[MAX_ESSIDS];
 static int nunVer = 0;
 static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -97,27 +92,27 @@ static int convert_ivs(FILE *f_in)
 	length = ftell(f_in);
 	fseek(f_in, 0, SEEK_SET);
 
-	if(fread(buffer, 1, 4, f_in) != 4) {
+	if (fread(buffer, 1, 4, f_in) != 4) {
 		fprintf(stderr, "%s: fread file header failed\n", filename);
 		return(1);
 	}
 
-	if(memcmp(buffer, IVSONLY_MAGIC, 4) == 0) {
+	if (memcmp(buffer, IVSONLY_MAGIC, 4) == 0) {
 		fprintf(stderr, "%s: old version .ivs file, no WPA2 handshakes\n", filename);
 		return(1);
 	}
 
-	if(memcmp(buffer, IVS2_MAGIC, 4) != 0) {
+	if (memcmp(buffer, IVS2_MAGIC, 4) != 0) {
 		fprintf(stderr, "%s: not an .%s file\n", filename, IVS2_EXTENSION);
 		return(1);
 	}
 
-	if(fread(&fivs2, 1, sizeof(struct ivs2_filehdr), f_in) != (size_t) sizeof(struct ivs2_filehdr)) {
+	if (fread(&fivs2, 1, sizeof(struct ivs2_filehdr), f_in) != (size_t) sizeof(struct ivs2_filehdr)) {
 		fprintf(stderr, "%s: fread file header failed", filename);
 		return(1);
 	}
 
-	if(fivs2.version > IVS2_VERSION) {
+	if (fivs2.version > IVS2_VERSION) {
 		fprintf(stderr, "%s: wrong %s version: %d. Supported up to version %d.\n", filename, IVS2_EXTENSION, fivs2.version, IVS2_VERSION);
 		return(1);
 	}
@@ -251,7 +246,7 @@ static int convert_ivs(FILE *f_in)
 static void dump_any_unver() {
 	if (nunVer) {
 		int i;
-		fprintf(stderr, "Dumping %d unverified keys, which were not verified\n", nunVer);
+		fprintf(stderr, "Dumping %d unverified keys\n", nunVer);
 		for (i = 0; i < nunVer; ++i) {
 			printf("%s\n", unVerified[i]);
 			MEM_FREE(unVerified[i]);
@@ -292,15 +287,15 @@ static int Process(FILE *in)
 	}
 	link_type = main_hdr.network;
 	if (link_type == LINKTYPE_IEEE802_11)
-		fprintf(stderr, "%s: raw 802.11\n", filename);
+		fprintf(stderr, "\n%s: raw 802.11\n", filename);
 	else if (link_type == LINKTYPE_PRISM_HEADER)
-		fprintf(stderr, "%s: Prism headers stripped\n", filename);
+		fprintf(stderr, "\n%s: Prism headers stripped\n", filename);
 	else if (link_type == LINKTYPE_RADIOTAP_HDR)
-		fprintf(stderr, "%s: Radiotap headers stripped\n", filename);
+		fprintf(stderr, "\n%s: Radiotap headers stripped\n", filename);
 	else if (link_type == LINKTYPE_PPI_HDR)
-		fprintf(stderr, "%s: PPI headers stripped\n", filename);
+		fprintf(stderr, "\n%s: PPI headers stripped\n", filename);
 	else {
-		fprintf(stderr, "%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
+		fprintf(stderr, "\n%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
 	}
 
@@ -340,7 +335,7 @@ static int GetNextPacket(FILE *in)
 	MEM_FREE(full_packet);
 	full_packet = NULL;
 	full_packet = (uint8 *)malloc(pkt_hdr.incl_len);
-	if (NULL == full_packet) {
+	if (!full_packet) {
 		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
@@ -400,7 +395,7 @@ static int ProcessPacket()
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = JOHNSWAP(frame_skip);
 #endif
-		if(frame_skip <= 0 || frame_skip >= pkt_hdr.incl_len)
+		if (frame_skip <= 0 || frame_skip >= pkt_hdr.incl_len)
 			return 0;
 
 		// Kismet logged broken PPI frames for a period
@@ -418,15 +413,21 @@ static int ProcessPacket()
 	pkt = (ether_frame_hdr_t*)packet;
 	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 
-	if (ctl->type == 0 && ctl->subtype == 8) { // beacon  Type 0 is management, subtype 8 is beacon
-		HandleBeacon();
+	//fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
+
+	// Type 0 is management,
+	// Beacon is subtype 8 and probe response is subtype 5
+	if (ctl->type == 0 && (ctl->subtype == 5 || ctl->subtype == 8)) {
+		HandleBeacon(ctl->subtype);
 		return 1;
 	}
-	// if not beacon, then only look data, looking for EAPOL 'type'
+	// if not beacon or probe response, then look only for EAPOL 'type'
 	if (ctl->type == 2) { // type 2 is data
 		uint8 *p = packet;
 		int bQOS = (ctl->subtype & 8) != 0;
 		if ((ctl->toDS ^ ctl->fromDS) != 1)// eapol will ONLY be direct toDS or direct fromDS.
+			return 1;
+		if (sizeof(ether_frame_hdr_t)+6+2+(bQOS?2:0) >= pkt_hdr.incl_len)
 			return 1;
 		// Ok, find out if this is a EAPOL packet or not.
 
@@ -451,6 +452,27 @@ static void e_fail(void)
 	exit(EXIT_FAILURE);
 }
 
+static void alloc_error()
+{
+	fprintf(stderr, "ERROR: Too many ESSIDs seen (%d), out of memory\n", nwpa);
+	exit(EXIT_FAILURE);
+}
+
+// Dynamically allocate more memory for input data.
+// Make sure newly allocated memory is initialized with zeros.
+static void allocate_more_memory(void)
+{
+	size_t old_max = max_essids;
+
+	max_essids *= 2;
+	wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
+	unVerified = realloc(unVerified, sizeof(char*) * max_essids);
+	if (!wpa || !unVerified)
+		alloc_error();
+	memset(wpa + old_max, 0, sizeof(WPA4way_t) * old_max);
+	memset(unVerified + old_max, 0, sizeof(char*) * old_max);
+}
+
 static void ManualBeacon(char *essid_bssid)
 {
 	char *essid = essid_bssid;
@@ -464,16 +486,15 @@ static void ManualBeacon(char *essid_bssid)
 		e_fail();
 
 	bssid = strupr(bssid);
-	fprintf(stderr, "Manually adding ESSID '%s' BSSID '%s'\n", essid, bssid);
+	fprintf(stderr, "Learned BSSID %s ESSID '%s' from command-line option\n",
+	        bssid, essid);
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
-	if (++nwpa >= MAX_ESSIDS) {
-		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
-		exit(EXIT_FAILURE);
-	}
+	if (++nwpa >= max_essids)
+		allocate_more_memory();
 }
 
-static void HandleBeacon()
+static void HandleBeacon(uint16 subtype)
 {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
 	int i;
@@ -484,7 +505,7 @@ static void HandleBeacon()
 	char essid[36] = { 0 };
 	char bssid[18];
 
-	// addr1 should be broadcast
+	// addr1 should be broadcast for beacon, unicast for probe response
 	// addr2 is source addr (should be same as BSSID)
 	// addr3 is BSSID (routers MAC)
 
@@ -498,19 +519,18 @@ static void HandleBeacon()
 		tag = (ether_beacon_tag_t *)x;
 	}
 	to_bssid(bssid, pkt->addr3);
-	for (i = 0; i < nwpa; ++i) {
+	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid))
 			return;
 	}
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
 
-	fprintf(stderr, "Learned ESSID '%s' with BSSID '%s'\n", essid, bssid);
+	fprintf(stderr, "Learned BSSID %s ESSID '%s' from %s\n",
+	        bssid, essid, subtype == 5 ? "probe response" : "beacon");
 
-	if (++nwpa >= MAX_ESSIDS) {
-		fprintf(stderr, "ERROR: Too many ESSIDs seen (%d)\n", MAX_ESSIDS);
-		exit(EXIT_FAILURE);
-	}
+	if (++nwpa >= max_essids)
+		allocate_more_memory();
 }
 
 static void Handle4Way(int bIsQOS)
@@ -528,7 +548,7 @@ static void Handle4Way(int bIsQOS)
 	// we already HAVE fully cracked this
 
 	to_bssid(bssid, pkt->addr3);
-	for (i = 0; i < nwpa; ++i) {
+	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid)) {
 			ess=i;
 			break;
@@ -539,7 +559,7 @@ static void Handle4Way(int bIsQOS)
 		goto out;  // no reason to go on.
 
 	orig_2 = (uint8 *)malloc(pkt_hdr.incl_len);
-	if (NULL == orig_2) {
+	if (!orig_2) {
 		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 		exit(EXIT_FAILURE);
@@ -550,13 +570,15 @@ static void Handle4Way(int bIsQOS)
 	if (bIsQOS)
 		p += 2;
 	// we are now at Logical-Link Control. (8 bytes long).
-	// LLC check not needed here any more.  We do it in the packet cracker section, b4
-	// calling this function.  We just need to skip the 8 byte LLC.
+	// LLC check not needed here any more.  We do it in the packet cracker
+	// section, before calling this function.  We just need to skip the 8 byte
+	// LLC.
 	//if (memcmp(p, "\xaa\xaa\x3\0\0\0\x88\x8e", 8)) return; // not a 4way
 	p += 8;
 	// p now points to the 802.1X Authentication structure.
 	auth = (ether_auto_802_1x_t*)p;
-	auth->length = swap16u(auth->length);
+	if ((auth->length = swap16u(auth->length)) == 0)
+		goto out;
 	//*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
 	auth->key_info_u16 = swap16u(auth->key_info_u16);
 	auth->key_len  = swap16u(auth->key_len);
@@ -612,6 +634,8 @@ static void Handle4Way(int bIsQOS)
 
 		// see if we have a msg1 that 'matches'.
 		MEM_FREE(wpa[ess].packet3);
+		MEM_FREE(wpa[ess].packet2);
+		MEM_FREE(wpa[ess].orig_2);
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		if (wpa[ess].packet2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
@@ -702,6 +726,17 @@ out:
 	MEM_FREE(orig_2);
 }
 
+#if HAVE___MINGW_ALIGNED_MALLOC && !defined (MEMDBG_ON)
+char *strdup_MSVC(const char *str)
+{
+	char * s;
+	s = (char*)__mingw_aligned_malloc(strlen(str)+1, (sizeof(long long)));
+	if (s != NULL)
+		strcpy(s, str);
+	return s;
+}
+#endif
+
 static void DumpKey(int ess, int one_three, int bIsQOS)
 {
 	ether_auto_802_1x_t *auth13, *auth2;
@@ -715,7 +750,8 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	char TmpKey[2048], *cp = TmpKey;
 	int search_len;
 
-	fprintf (stderr, "Dumping key %d at time:  %d.%d BSSID %s  ESSID=%s\n", one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
+	fprintf (stderr, "Dumping key %d at time: %d.%d BSSID %s ESSID '%s'\n",
+	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
@@ -765,11 +801,10 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
 	search_len = cp-TmpKey;
-	cp += sprintf(cp, ":password %sverified:%s", (one_three == 1) ? "not " : "", filename);
+	cp += sprintf(cp, ":%sverified:%s", (one_three == 1) ? "not " : "", filename);
 	if (one_three == 1) {
-		fprintf (stderr, "unVerified key stored, pending verification");
+		fprintf (stderr, "unverified key stored, pending verification\n");
 		unVerified[nunVer++] = strdup(TmpKey);
-		fprintf(stderr, "\n");
 		return;
 	} else {
 		for (i = 0; i < nunVer; ++i) {
@@ -791,6 +826,9 @@ int main(int argc, char **argv)
 	FILE *in;
 	int i;
 	char *base;
+
+	wpa = calloc(max_essids, sizeof(WPA4way_t));
+	unVerified = calloc(max_essids, sizeof(char*));
 
 	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
 	    sizeof(struct ivs2_WPA_hdsk) != 356 || sizeof(hccap_t) != 356+36) {
@@ -832,5 +870,6 @@ int main(int argc, char **argv)
 		} else
 			fprintf(stderr, "Error, file %s not found\n", argv[i]);
 	}
+	fprintf(stderr, "\n%d ESSIDS processed\n", nwpa);
 	return 0;
 }

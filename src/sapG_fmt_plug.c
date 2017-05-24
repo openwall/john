@@ -59,7 +59,7 @@ static unsigned int omp_t = 1;
 #define USER_NAME_LENGTH		12 /* max. length of user name in characters */
 #define SALT_LENGTH				(USER_NAME_LENGTH * 4)	/* bytes of UTF-8 */
 #define PLAINTEXT_LENGTH		40 /* Characters */
-#define UTF8_PLAINTEXT_LENGTH	MIN(125, PLAINTEXT_LENGTH * 4) /* bytes */
+#define UTF8_PLAINTEXT_LENGTH	MIN(125, PLAINTEXT_LENGTH * 3) /* bytes */
 
 #define BINARY_SIZE				20
 #define BINARY_ALIGN			4
@@ -133,7 +133,7 @@ static unsigned int *clean_pos;
 #else
 
 static UTF8 (*saved_key)[UTF8_PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE / sizeof(uint32_t)];
 
 #endif
 
@@ -175,7 +175,7 @@ static void init(struct fmt_main *self)
 #ifdef SIMD_COEF_32
 	clean_pos = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*clean_pos));
-	for(i = 0; i < LIMB; i++)
+	for (i = 0; i < LIMB; i++)
 		saved_key[i] = mem_calloc_align(self->params.max_keys_per_crypt,
 		                                SHA_BUF_SIZ * 4,
 		                                MEM_ALIGN_SIMD);
@@ -198,7 +198,7 @@ static void done(void)
 	MEM_FREE(crypt_key);
 #ifdef SIMD_COEF_32
 	MEM_FREE(interm_crypt);
-	for(i = 0; i < LIMB; i++)
+	for (i = 0; i < LIMB; i++)
 		MEM_FREE(saved_key[i]);
 	MEM_FREE(clean_pos);
 #endif
@@ -296,13 +296,13 @@ static int cmp_all(void *binary, int count) {
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
-	for(;y<SIMD_PARA_SHA1*omp_t;y++)
+	for (;y<SIMD_PARA_SHA1*omp_t;y++)
 #else
-	for(;y<SIMD_PARA_SHA1;y++)
+	for (;y<SIMD_PARA_SHA1;y++)
 #endif
-	for(x=0;x<SIMD_COEF_32;x++)
+	for (x=0;x<SIMD_COEF_32;x++)
 	{
-		if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
+		if ( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
 			return 1;
 	}
 	return 0;
@@ -327,7 +327,7 @@ static int cmp_one(void *binary, int index)
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 
-	if( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5])   |
+	if ( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5])   |
 	    (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
 	    (((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32]) |
 	    (((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32])|
@@ -451,16 +451,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			// Store key into vector key buffer
 			if ((len = keyLen[ti]) < 0) {
-				ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[0][GETSTARTPOS(ti)];
+				uint32_t *keybuf_word = (uint32_t*)&saved_key[0][GETSTARTPOS(ti)];
 #if ARCH_ALLOWS_UNALIGNED
-				const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)saved_plain[ti];
+				const uint32_t *wkey = (uint32_t*)saved_plain[ti];
 #else
 				char buf_aligned[UTF8_PLAINTEXT_LENGTH + 1] JTR_ALIGN(4);
 				char *key = (char*)saved_plain[ti];
-				const ARCH_WORD_32 *wkey = is_aligned(key, 4) ?
+				const uint32_t *wkey = is_aligned(key, 4) ?
 						(uint32_t*)key : (uint32_t*)strcpy(buf_aligned, key);
 #endif
-				ARCH_WORD_32 temp;
+				uint32_t temp;
 
 				len = 0;
 				while(((unsigned char)(temp = *wkey++))) {
@@ -486,7 +486,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					if (len & 63)
 						keybuf_word += SIMD_COEF_32;
 					else
-						keybuf_word = (ARCH_WORD_32*)&saved_key[len>>6][GETSTARTPOS(ti)];
+						keybuf_word = (uint32_t*)&saved_key[len>>6][GETSTARTPOS(ti)];
 				}
 
 				// Back-out of trailing spaces
@@ -507,7 +507,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (++i & 3)
 				saved_key[i>>6][GETPOS(i, ti)] = 0;
 			for (; i < (((len+8)>>6)+1)*64; i += 4)
-				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
+				*(uint32_t*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
 
 			// This should do good but Valgrind insists it's a waste
 			//if (clean_pos[ti] < i)
@@ -556,7 +556,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				saved_key[i>>6][GETPOS(i, ti)] = *p++;
 			// ...then a word at a time. This is a good boost, we are copying between 32 and 82 bytes here.
 			for (;i < lengthIntoMagicArray + len; i += 4, p += 4)
-				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = JOHNSWAP(*(ARCH_WORD_32*)p);
+				*(uint32_t*)&saved_key[i>>6][GETWORDPOS(i, ti)] = JOHNSWAP(*(uint32_t*)p);
 
 			// Now, the salt. This is typically too short for the stunt above.
 			for (i = 0; i < cur_salt->l; i++)
@@ -570,7 +570,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (++i & 3)
 				saved_key[i>>6][GETPOS(i, ti)] = 0;
 			for (; i < clean_pos[ti]; i += 4)
-				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
+				*(uint32_t*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
 
 			clean_pos[ti] = len + 1;
 			if (len > longest)
@@ -657,7 +657,7 @@ static void *get_binary(char *ciphertext)
 
 	newCiphertextPointer = strrchr(ciphertext, '$') + 1;
 
-	for(i=0;i<BINARY_SIZE;i++)
+	for (i=0;i<BINARY_SIZE;i++)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(newCiphertextPointer[i*2])]*16 + atoi16[ARCH_INDEX(newCiphertextPointer[i*2+1])];
 	}
@@ -698,21 +698,21 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 
 #ifdef SIMD_COEF_32
 #define KEY_OFF (((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
-static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_6; }
 #endif
 
 // Here, we remove any salt padding and trim it to 44 bytes
@@ -768,6 +768,7 @@ struct fmt_main fmt_sapG = {
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_UTF8,
+		{ NULL },
 		{ NULL },
 		tests
 	}, {

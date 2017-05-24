@@ -27,10 +27,9 @@ extern struct fmt_main fmt_opencl_dmg;
 john_register_one(&fmt_opencl_dmg);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <openssl/des.h>
-#include "aes.h"
-#include "hmac_sha.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -40,15 +39,19 @@ john_register_one(&fmt_opencl_dmg);
 #include "os.h"
 #endif
 #include "arch.h"
+#include "aes.h"
+#include "hmac_sha.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "options.h"
 #include "jumbo.h"
+#include "loader.h"
 #include "common-opencl.h"
 
 #define FORMAT_LABEL		"dmg-opencl"
 #define FORMAT_NAME		"Apple DMG"
+#define FORMAT_TAG           "$dmg$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL 3DES/AES"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1001
@@ -80,10 +83,11 @@ typedef struct {
 } dmg_hash;
 
 typedef struct {
-	int iterations;
-	int outlen;
-	uint8_t length;
-	uint8_t salt[20];
+	uint32_t iterations;
+	uint32_t outlen;
+	uint32_t skip_bytes;
+	uint8_t  length;
+	uint8_t  salt[64];
 } dmg_salt;
 
 static int *cracked;
@@ -301,7 +305,7 @@ static void reset(struct db_main *db)
 		                       sizeof(dmg_password), 0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 1000);
+		autotune_run(self, 1, 0, 1000000000ULL);
 	}
 }
 
@@ -310,66 +314,66 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *keeptr;
 	char *p;
 	int headerver;
-	int res;
+	int res, extra;
 
-	if (strncmp(ciphertext, "$dmg$", 5) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 5;	/* skip over "$dmg$" marker */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$dmg$" marker */
 	if ((p = strtokm(ctcopy, "*")) == NULL)
 		goto err;
 	headerver = atoi(p);
 	if (headerver == 2) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 20)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
-		if (hexlenl(p) != res*2)
+		if (hexlenl(p, &extra) != res*2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (atoi(p) > 32)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
 			goto err;
-		if (hexlenl(p) != res*2)
+		if (hexlenl(p, &extra) != res*2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 128)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted keyblob */
 			goto err;
-		if (hexlenl(p) != res*2)
+		if (hexlenl(p, &extra) != res*2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk number */
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* data_size */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk */
 			goto err;
-		if (hexlenl(p) != res*2)
+		if (hexlenl(p, &extra) != res*2 || extra)
 			goto err;
 		if (res > 8192)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* scp */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		/* FIXME: which values are allowed here? */
@@ -383,29 +387,29 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	else if (headerver == 1) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 20)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 			goto err;
-		if (hexlenl(p) != res*2)
+		if (hexlenl(p, &extra) != res*2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 296)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* wrapped_aes_key  */
 			goto err;
-		if (hexlenl(p) != res*2)
+		if (hexlenl(p, &extra) != res*2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
 			goto err;
-		if(!isdec(p))
+		if (!isdec(p))
 			goto err;
 		res = atoi(p);
 		if (res > 300)
@@ -434,7 +438,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 5;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);
 	if (cs.headerver == 2) {
@@ -515,9 +519,11 @@ static void set_salt(void *salt)
 	currentsalt.length = 20;
 	currentsalt.outlen = 32;
 	currentsalt.iterations = cur_salt->iterations;
+	currentsalt.skip_bytes = 0;
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-        	CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-        	"Copy setting to gpu");
+			CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
+			"Copy setting to gpu");
 }
 
 #undef set_key
@@ -838,10 +844,11 @@ struct fmt_main fmt_opencl_dmg = {
 #ifdef _OPENMP
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		dmg_tests
 	}, {
 		init,

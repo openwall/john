@@ -33,12 +33,18 @@ john_register_one(&fmt_fde);
 #include <assert.h>
 #include <errno.h>
 #include "os.h"
-#include "stdint.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include "aes.h"
-
 #include <string.h>
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE           1
+#endif
+#endif
+
 #include "arch.h"
 #include "johnswap.h"
 #include "misc.h"
@@ -48,19 +54,12 @@ john_register_one(&fmt_fde);
 #include "options.h"
 #include "memory.h"
 #include "pbkdf2_hmac_sha1.h"
-// NOTE, this format FAILS for generic sha2.  It could be due to interaction between openssl/aes and generic sha2 code.
+#include "aes.h"
 #include "sha2.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           1
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_TAG          "$fde$"
-#define TAG_LENGTH          5
+#define TAG_LENGTH          (sizeof(FORMAT_TAG)-1)
 #define FORMAT_LABEL        "fde"
 #define FORMAT_NAME         "Android FDE"
 #ifdef SIMD_COEF_32
@@ -129,7 +128,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr;
-	int saltlen, keysize;
+	int saltlen, keysize, extra;
 	char *p;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
@@ -147,7 +146,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (hexlenl(p) != saltlen * 2)
+	if (hexlenl(p, &extra) != saltlen * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* keysize */
 		goto err;
@@ -158,11 +157,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* key */
 		goto err;
-	if (hexlenl(p) != keysize * 2)
+	if (hexlenl(p, &extra) != keysize * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* data */
 		goto err;
-	if (hexlenl(p) != 512 * 3 * 2)
+	if (hexlenl(p, &extra) != 512 * 3 * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -250,13 +249,13 @@ void hash_plugin_check_hash(int index)
 	int lens[SSE_GROUP_SZ_SHA1], i;
 	unsigned char *pin[SSE_GROUP_SZ_SHA1];
 	union {
-		ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+		uint32_t *pout[SSE_GROUP_SZ_SHA1];
 		unsigned char *poutc;
 	} x;
 	for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
 		lens[i] = strlen(saved_key[index+i]);
 		pin[i] = (unsigned char*)saved_key[index+i];
-		x.pout[i] = (ARCH_WORD_32*)(Keycandidate[i]);
+		x.pout[i] = (uint32_t*)(Keycandidate[i]);
 	}
 	pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt, 16,
 		2000, &(x.poutc), cur_salt->keysize + 16, 0);
@@ -266,15 +265,6 @@ void hash_plugin_check_hash(int index)
 	pbkdf2_sha1((const uint8_t*)password, strlen(password), (const uint8_t*)(cur_salt->salt),
 		16, 2000, keycandidate, cur_salt->keysize + 16, 0);
 #endif
-#if !ARCH_LITTLE_ENDIAN
-	{
-		int i;
-		for (i = 0; i < (cur_salt->keysize + 16)/sizeof(ARCH_WORD_32); ++i) {
-			((ARCH_WORD_32*)keycandidate)[i] = JOHNSWAP(((ARCH_WORD_32*)keycandidate)[i]);
-		}
-	}
-#endif
-
 	j = 0;
 #ifdef SIMD_COEF_32
 	for (; j < SSE_GROUP_SZ_SHA1; ++j) {
@@ -374,8 +364,9 @@ struct fmt_main fmt_fde = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		fde_tests
 	}, {
 		init,

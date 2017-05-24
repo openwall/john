@@ -64,6 +64,15 @@ with this mode.  Successfully guessed passwords are also tried against
 all loaded password hashes just in case more users have the same
 password.
 
+You can add one or several static words with --single-seed=WORD[,WORD]
+in case some word or name is very common in the passwords (eg. for the
+legendary Gawker dump, you'd use "--single-seed=Gawker,Gizmodo".  This
+will result in combinations of those words and the login/GECOS data and
+has proven very effective.  For more words, the --single-wordlist=FILE
+option works the same except it reads words from a wordlist file. When
+using either option, SingleWordsPairMax will be automatically bumped if
+needed - this can increase run time (and success) dramatically.
+
 Note that running this mode on many password files simultaneously may
 sometimes get more passwords cracked than it would if you ran it on
 the individual password files separately.
@@ -144,7 +153,7 @@ the same result as a rule adding two digits to the base word.
 	Multiple stacking of modes.
 
 The mask and regex modes can be stacked upon some other mode (any mode except
-single, but including eg. stdin and loopback modes).  Regex can be a parent
+single, but including e.g. stdin and loopback modes).  Regex can be a parent
 mode to mask mode even when regex itself runs stacked on some other mode.  In
 that case, mask is always last in chain  (by design, since it can accelerate
 fast GPU formats).  Basically, the first mode is any mode except single, and

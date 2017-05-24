@@ -40,6 +40,8 @@ john_register_one(&fmt_DMD5);
 #define FORMAT_LABEL		"dmd5"
 #define FORMAT_NAME		"DIGEST-MD5 C/R"
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
+#define FORMAT_TAG			"$DIGEST-MD5$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -105,7 +107,7 @@ static struct {
 	unsigned int  prehash_KD_len;
 } cur_salt;
 
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/4];
+static uint32_t (*crypt_key)[BINARY_SIZE/4];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static struct fmt_tests tests[] = {
@@ -135,9 +137,10 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, *data = ciphertext + 12;
+	char *p, *data = ciphertext + FORMAT_TAG_LEN;
+	int extra;
 
-	if (strncmp(ciphertext, "$DIGEST-MD5$", 12) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
 	if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
@@ -157,7 +160,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	data = p + 1; // cnonce
 	if (!(p = strchr(data, '$')) || (int)(p-data) > MD5_HEX_SIZE)
 		return 0;
-	if ( abs(hexlenl(data)) != p-data)
+	if (hexlenl(data, 0) != p-data)
 		return 0;
 	data = p + 1; // nc
 	if (!(p = strchr(data, '$')) || (int)(p-data) >= 9)
@@ -174,7 +177,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 	} else if (strlen(data) > MD5_HEX_SIZE)
 		return 0;
-	if (hexlenl(data) !=strlen(data))
+	if (hexlenl(data, &extra) != MD5_HEX_SIZE || extra)
 		return 0;
 
 	return 1;
@@ -182,10 +185,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[BINARY_SIZE/4];
+	static uint32_t out[BINARY_SIZE/4];
 	char response[MD5_HEX_SIZE + 1];
 	unsigned int i;
-	char *p, *data = ciphertext + 12;
+	char *p, *data = ciphertext + FORMAT_TAG_LEN;
 
 	p = strchr(data, '$'); data = p + 1;
 	p = strchr(data, '$'); data = p + 1;
@@ -221,7 +224,7 @@ static void *get_salt(char *ciphertext)
 	char authzid[8];
 	unsigned char *ptr_src, *ptr_dst, v, i;
 	char *ccopy = strdup(ciphertext);
-	char *p, *data = ccopy + 12;
+	char *p, *data = ccopy + FORMAT_TAG_LEN;
 	MD5_CTX ctx;
 	char A2[DSIZE];
 	unsigned char hash[BINARY_SIZE];
@@ -371,14 +374,14 @@ static int cmp_all(void *binary, int count)
 {
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 	int index;
-	ARCH_WORD_32 b = ((ARCH_WORD_32*)binary)[0];
+	uint32_t b = ((uint32_t*)binary)[0];
 
 	for (index = 0; index < count; index++)
 		if (crypt_key[index][0] == b)
 			return 1;
 	return 0;
 #else
-	return ((ARCH_WORD_32*)binary)[0] == crypt_key[0][0];
+	return ((uint32_t*)binary)[0] == crypt_key[0][0];
 #endif
 }
 
@@ -417,6 +420,7 @@ struct fmt_main fmt_DMD5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	},
 	{

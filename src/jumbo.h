@@ -34,7 +34,13 @@
 #include <string.h>
 #endif
 
-#include "stdint.h"
+#if !AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__)
+#define HAVE__ATOI64 1
+#endif
+
+#include <stdint.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 /******************************************/
 /* here we try to 'find' a usable fseek64 */
@@ -76,15 +82,15 @@
 // back to using fseek (and warn the user)
 #if defined (__CYGWIN32__) && !defined (__CYGWIN64__)
    extern  int fseeko64 (FILE* stream, int64_t offset, int whence);
-#  define jtr_fseek64 fseeko64
+  #define jtr_fseek64 fseeko64
 #elif defined (__CYGWIN64__)
    extern  int fseeko (FILE* stream, int64_t offset, int whence);
-#  define jtr_fseek64 fseeko
+  #define jtr_fseek64 fseeko
 #else
-#  if defined(__GNUC__) && defined (AC_BUILT)
-#    warning Using 32-bit fseek(). Files larger than 2GB will be handled unreliably
-#  endif
-#  define jtr_fseek64 fseek
+  #if defined(__GNUC__) && defined (AC_BUILT)
+    #warning Using 32-bit fseek(). Files larger than 2GB will be handled unreliably
+  #endif
+  #define jtr_fseek64 fseek
 #endif
 
 #endif /* fseek */
@@ -118,15 +124,15 @@
 // back to using ftell (and warn the user)
 #if defined (__CYGWIN32__) && !defined (__CYGWIN64__)
    extern  int64_t ftello64 (FILE* stream);
-#  define jtr_ftell64 ftello64
+  #define jtr_ftell64 ftello64
 #elif defined (__CYGWIN64__)
    extern  int64_t ftello (FILE* stream);
-#  define jtr_ftell64 ftello
+  #define jtr_ftell64 ftello
 #else
-#  if defined(__GNUC__) && defined (AC_BUILT)
-#    warning Using 32-bit ftell(). Files larger than 2GB will be handled unreliably
-#  endif
-#  define jtr_ftell64 ftell
+  #if defined(__GNUC__) && defined (AC_BUILT)
+    #warning Using 32-bit ftell(). Files larger than 2GB will be handled unreliably
+  #endif
+  #define jtr_ftell64 ftell
 #endif
 
 #endif /* ftell */
@@ -135,13 +141,13 @@
 /* here we figure out if we use fopen or fopen64 */
 /*************************************************/
 #if SIZEOF_LONG == 8
-#  define jtr_fopen fopen
+  #define jtr_fopen fopen
 #elif HAVE_FOPEN64
-#  define jtr_fopen fopen64
+  #define jtr_fopen fopen64
 #elif HAVE__FOPEN64
-#  define jtr_fopen _fopen64
+  #define jtr_fopen _fopen64
 #else
-#  define jtr_fopen fopen
+  #define jtr_fopen fopen
 #endif
 #if __CYGWIN32__ || _MSC_VER
    extern  FILE *_fopen64 (const char *Fname, const char *type);
@@ -153,7 +159,7 @@
 
 /*
  * Portable basename() function.  DO NOT USE basename().  Use this
- * proper working equivelent.  The _r version is thread safe. In the
+ * proper working equivalent.  The _r version is thread safe. In the
  * _r version, pass in a buffer that is at least strlen(name)+1 bytes
  * long, however, PATH_BUFFER_SIZE+1 can also be used.
  *
@@ -273,7 +279,9 @@ extern char *strupr(char *s);
 #define atoll _atoi64
 #else
 #define NEED_ATOLL_NATIVE 1
-extern long long atoll(const char *);
+#undef atoll
+#define atoll jtr_atoll
+extern long long jtr_atoll(const char *);
 #endif
 #endif
 

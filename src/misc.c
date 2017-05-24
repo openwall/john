@@ -24,7 +24,9 @@
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <assert.h>
 
+#include "memory.h"
 #include "logger.h"
 #include "params.h"
 #include "misc.h"
@@ -68,13 +70,18 @@ void real_pexit(char *file, int line, char *format, ...)
 {
 	va_list args;
 
-#if defined(HAVE_MPI) && !defined(_JOHN_MISC_NO_LOG)
+#if !defined(_JOHN_MISC_NO_LOG)
+#if HAVE_MPI
 	if (mpi_p > 1)
 		fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+#endif
+#if HAVE_MPI && OS_FORK
 	else
-#elif OS_FORK && !defined(_JOHN_MISC_NO_LOG)
+#endif
+#if OS_FORK
 	if (options.fork)
 		fprintf(stderr, "%u: ", options.node_min);
+#endif
 #endif
 
 	va_start(args, format);
@@ -133,6 +140,100 @@ char *fgetl(char *s, int size, FILE *stream)
 	return res;
 }
 
+#ifndef _JOHN_MISC_NO_LOG
+char *fgetll(char *s, size_t size, FILE *stream)
+{
+	size_t len;
+	int c;
+	char *cp;
+
+	/* fgets' size arg is a signed int! */
+	assert(size <= INT32_MAX);
+
+	if (!fgets(s, size, stream))
+		return NULL;
+
+	len = strlen(s);
+
+	if (!len)
+		return s;
+
+	if (s[len-1] == '\n') {
+		s[--len] = 0;
+		while (len && (s[len-1] == '\n' || s[len-1] == '\r'))
+			s[--len] = 0;
+		return s;
+	}
+	else if (s[len-1] == '\r') {
+		s[--len] = 0;
+		while (len && (s[len-1] == '\n' || s[len-1] == '\r'))
+			s[--len] = 0;
+		/* we may have gotten the first byte of \r\n */
+		c = getc(stream);
+		if (c == EOF)
+			return s;
+		if (c != '\n')
+			ungetc(c, stream);
+		return s;
+	}
+	else if ((len + 1) < size) { /* We read a null byte */
+		while (c != EOF && c != '\n')
+			c = getc(stream);
+		return s;
+	}
+
+	cp = strdup(s);
+
+	while (1) {
+		int increase = MIN((((len >> 12) + 1) << 12), 0x40000000);
+		size_t chunk_len;
+		void *new_cp;
+
+		new_cp = realloc(cp, len + increase);
+
+		while (!new_cp) {
+			increase >>= 2;
+			if (increase < 0x10000)
+				pexit("realloc");
+			new_cp = realloc(cp, len + increase);
+		}
+
+		cp = new_cp;
+
+		/* We get an EOF if there is no trailing \n on the last line */
+		if (!fgets(&cp[len], increase, stream))
+			return cp;
+
+		chunk_len = strlen(&cp[len]);
+		len += chunk_len;
+
+		if (cp[len-1] == '\n') {
+			cp[--len] = 0;
+			while (len && (cp[len-1] == '\n' || cp[len-1] == '\r'))
+				cp[--len] = 0;
+			return cp;
+		}
+		else if (cp[len-1] == '\r') {
+			cp[--len] = 0;
+			while (len && (cp[len-1] == '\n' || cp[len-1] == '\r'))
+				cp[--len] = 0;
+			/* we may have gotten the first byte of \r\n */
+			c = getc(stream);
+			if (c == EOF)
+				return cp;
+			if (c != '\n')
+				ungetc(c, stream);
+			return cp;
+		}
+		else if ((chunk_len + 1) < increase) { /* We read a null byte */
+			while (c != EOF && c != '\n')
+				c = getc(stream);
+			return s;
+		}
+	}
+}
+#endif
+
 char *strnfcpy(char *dst, const char *src, int size)
 {
 	char *dptr = dst;
@@ -166,7 +267,7 @@ int strnzcpyn(char *dst, const char *src, int size)
 		if (!(*dptr++ = *src++)) return (dptr-dst)-1;
 	*dptr = 0;
 
-	return (dptr-dst)-1;
+	return (dptr-dst);
 }
 
 char *strnzcat(char *dst, const char *src, int size)
@@ -187,7 +288,7 @@ char *strnzcat(char *dst, const char *src, int size)
 }
 
 /*
- * strtok code, BUT returns empty token "" for adjacent delmiters. It also
+ * strtok code, BUT returns empty token "" for adjacent delimiters. It also
  * returns leading and trailing tokens for leading and trailing delimiters
  * (strtok strips them away and does not return them). Several other issues
  * in strtok also impact this code
@@ -225,4 +326,98 @@ unsigned atou(const char *src) {
 	unsigned val;
 	sscanf(src, "%u", &val);
 	return val;
+}
+
+/*
+ * atoi replacement(s) but smarter/safer/better. atoi is super useful, BUT
+ * not a standard C function.  I have added atoi
+ */
+MAYBE_INLINE const char *_lltoa(long long num, char *ret, int ret_sz, int base)
+{
+	char *p = ret, *p1 = ret;
+	long long t;
+	// first 35 bytes handle neg digits. byte 36 handles 0, and last 35 handle positive digits.
+	const char bc[] = "zyxwvutsrqponmlkjihgfedcba987654321"
+	                  "0"
+	                  "123456789abcdefghijklmnopqrstuvwxyz";
+
+	if (--ret_sz < 1)	// reduce ret_sz by 1 to handle the null
+		return "";	// we can not touch ret, it is 0 bytes long.
+	*ret = 0;
+	// if we can not handle this base, bail.
+	if (base < 2 || base > 36) return ret;
+	// handle the possible '-' char also. (reduces ret_sz to fit that char)
+	if (num < 0 && --ret_sz < 1)
+		return ret;
+	do {
+		// build our string reversed.
+		t = num;
+		num /= base;
+		*p++ = bc[35 + (t - num * base)];
+		if (num && p-ret == ret_sz) {
+			// truncated but 'safe' of buffer overflow.
+			if (t < 0) *p++ = '-'; // Apply negative sign
+			*p-- = 0;
+			for (; p > p1; ++p1, --p) { // strrev
+				*p1 ^= *p; *p ^= *p1; *p1 ^= *p;
+			}
+			return ret;
+		}
+	} while (num);
+
+	if (t < 0) *p++ = '-'; // Apply negative sign
+	*p-- = 0;
+	for (; p > p1; ++p1, --p) { // strrev
+		*p1 ^= *p; *p ^= *p1; *p1 ^= *p;
+	}
+	return ret;
+}
+
+// almost same, but for unsigned types. there were enough changes that I did not
+// want to make a single 'common' function.  Would have added many more if's to
+// and already semi-complex function.
+MAYBE_INLINE const char *_ulltoa(unsigned long long num, char *ret, int ret_sz, int base)
+{
+	char *p = ret, *p1 = ret;
+	unsigned long long t;
+	const char bc[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+	if (--ret_sz < 1)
+		return "";
+	*ret = 0;
+	if (base < 2 || base > 36) return ret;
+	do {
+		t = num;
+		num /= base;
+		*p++ = bc[35 + (t - num * base)];
+		if (num && p-ret == ret_sz) {
+			*p-- = 0;
+			for (; p > p1; ++p1, --p) {
+				*p1 ^= *p; *p ^= *p1; *p1 ^= *p;
+			}
+			return ret;
+		}
+	} while (num);
+
+	*p-- = 0;
+	for (; p > p1; ++p1, --p) {
+		*p1 ^= *p; *p ^= *p1; *p1 ^= *p;
+	}
+	return ret;
+}
+/*
+ * these are the functions 'external' that other code in JtR can use. These
+ * just call the 'common' code in the 2 inline functions.
+ */
+const char *jtr_itoa(int val, char *result, int rlen, int base) {
+	return _lltoa((long long)val, result, rlen, base);
+}
+const char *jtr_utoa(unsigned int val, char *result, int rlen, int base) {
+	return _ulltoa((long long)val, result, rlen, base);
+}
+const char *jtr_lltoa(long long val, char *result, int rlen, int base) {
+	return _lltoa((long long)val, result, rlen, base);
+}
+const char *jtr_ulltoa(unsigned long long val, char *result, int rlen, int base) {
+	return _ulltoa((long long)val, result, rlen, base);
 }

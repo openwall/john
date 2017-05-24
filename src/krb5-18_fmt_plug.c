@@ -60,7 +60,7 @@ john_register_one(&fmt_krb5_18);
 #define FORMAT_NAME		"Kerberos 5 db etype 18"
 
 #define FORMAT_TAG		"$krb18$"
-#define TAG_LENGTH		7
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 
 #if SIMD_COEF_32
 #define ALGORITHM_NAME    "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " AES"
@@ -93,7 +93,7 @@ static struct fmt_tests kinit_tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char saved_salt[SALT_SIZE+1];
-static ARCH_WORD_32 (*crypt_out)[16];
+static uint32_t (*crypt_out)[16];
 
 static void init(struct fmt_main *self)
 {
@@ -125,12 +125,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 
 	p = strstr(p, "$");
-	if(p == NULL)
+	if (p == NULL)
 		return 0;
 
 	q = ciphertext;
 
-	if(p - q > SALT_SIZE) /* check salt length */
+	if (p - q > SALT_SIZE) /* check salt length */
 		return 0;
 	q = ++p;
 
@@ -211,11 +211,11 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		unsigned char key[32], i;
 		AES_KEY aeskey;
 #ifdef SSE_GROUP_SZ_SHA1
-		ARCH_WORD_32 Key[SSE_GROUP_SZ_SHA1][32/4];
+		uint32_t Key[SSE_GROUP_SZ_SHA1][32/4];
 		int lens[SSE_GROUP_SZ_SHA1];
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			uint32_t *pout[SSE_GROUP_SZ_SHA1];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
@@ -231,11 +231,6 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 #ifdef SSE_GROUP_SZ_SHA1
 		for (; i < SSE_GROUP_SZ_SHA1; ++i) {
 			memcpy(key, Key[i], 32);
-#endif
-#if (ARCH_LITTLE_ENDIAN==0)
-		for (i = 0; i < 8; ++i)
-			((ARCH_WORD_32*)key)[i] = JOHNSWAP(((ARCH_WORD_32*)key)[i]);
-		i = 0;
 #endif
 		AES_set_encrypt_key(key, 256, &aeskey);
 		AES_encrypt((unsigned char*)"kerberos{\x9b[+\x93\x13+\x93", (unsigned char*)(crypt_out[index+i]), &aeskey);
@@ -254,7 +249,7 @@ static int cmp_all(void *binary, int count)
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
-	        if (crypt_out[index][0] == *(ARCH_WORD_32*)binary)
+	        if (crypt_out[index][0] == *(uint32_t*)binary)
 			return 1;
 
 	return 0;
@@ -309,6 +304,7 @@ struct fmt_main fmt_krb5_18 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		kinit_tests
 	}, {
 		init,

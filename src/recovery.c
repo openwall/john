@@ -50,9 +50,12 @@
 #include "config.h"
 #include "options.h"
 #include "loader.h"
+#include "cracker.h"
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "external.h"
+#include "regex.h"
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
@@ -75,6 +78,8 @@ static int rec_fd;
 static FILE *rec_file = NULL;
 static struct db_main *rec_db;
 static void (*rec_save_mode)(FILE *file);
+static void (*rec_save_mode2)(FILE *file);
+static void (*rec_save_mode3)(FILE *file);
 
 static void rec_name_complete(void)
 {
@@ -238,11 +243,39 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
+#if __DJGPP__ || _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
+	// works around bug in cygwin, that has file locking problems with a handle
+	// from a just created file.  If we close and reopen, cygwin does not seem
+	// to have any locking problems.  Go figure???
+	// Note, changed from just __CYGWIN__ to all 'Dos/Windows' as the OS environments
+	// likely this is a Win32 'issue'
+	close(rec_fd);
+	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
+		pexit("open: %s", path_expand(rec_name));
+#endif
 	rec_lock(1);
 	if (!(rec_file = fdopen(rec_fd, "w"))) pexit("fdopen");
 
 	rec_db = db;
 	rec_save_mode = save_mode;
+}
+
+static void save_salt_state()
+{
+	int i;
+	char md5_buf[33], *p=md5_buf;
+	unsigned char *h = (unsigned char*)status.resume_salt_md5;
+
+	if (!status.resume_salt_md5)
+		return;
+
+	for (i = 0; i < 16; ++i) {
+		*p++ = itoa16[*h >> 4];
+		*p++ = itoa16[*h & 0xF];
+		++h;
+	}
+	*p = 0;
+	fprintf(rec_file, "slt-v1\n%s\n", md5_buf);
 }
 
 void rec_save(void)
@@ -261,11 +294,6 @@ void rec_save(void)
 	if (!rec_file) return;
 
 	if (fseek(rec_file, 0, SEEK_SET)) pexit("fseek");
-#ifdef _MSC_VER
-	if (_write(fileno(rec_file), "", 0)) pexit("ftruncate");
-#elif __CYGWIN__
-	if (ftruncate(rec_fd, 0)) pexit("ftruncate");
-#endif
 
 	save_format = !options.format && rec_db->loaded;
 
@@ -274,6 +302,8 @@ void rec_save(void)
 #endif
 	opt = rec_argv;
 	while (*++opt) {
+		if (!strncmp(*opt, "--internal-encoding", 19))
+			memcpy(*opt, "--internal-codepage", 19);
 #ifdef HAVE_MPI
 		if (!strncmp(*opt, "--fork", 6))
 			fake_fork = 0;
@@ -283,7 +313,6 @@ void rec_save(void)
 			!strncmp(*opt, "--input-encoding", 16))
 			add_enc = 0;
 		else if (!strncmp(*opt, "--internal-codepage", 19) ||
-		         !strncmp(*opt, "--internal-encoding", 19) ||
 		         !strncmp(*opt, "--target-encoding", 17))
 			add_2nd_enc = 0;
 		else if (!strncmp(*opt, "--mkv-stats", 11))
@@ -364,7 +393,10 @@ void rec_save(void)
 	    rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
-
+	/* these are 'appended' resume blocks */
+	save_salt_state();
+	if (rec_save_mode2) rec_save_mode2(rec_file);
+	if (rec_save_mode3) rec_save_mode3(rec_file);
 	if (options.flags & FLG_MASK_STACKED)
 		mask_save_state(rec_file);
 
@@ -374,11 +406,22 @@ void rec_save(void)
 	if (fflush(rec_file)) pexit("fflush");
 #ifndef _MSC_VER
 	if (ftruncate(rec_fd, size)) pexit("ftruncate");
+#else
+	if (_chsize(rec_fd, size)) pexit("ftruncate");
 #endif
-#if HAVE_WINDOWS_H==0
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__MINGW64__)
+	_close(_dup(rec_fd));
+#else
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif
+}
+
+void rec_init_hybrid(void (*save_mode)(FILE *file)) {
+	if (!rec_save_mode2)
+		rec_save_mode2 = save_mode;
+	else if (!rec_save_mode3)
+		rec_save_mode3 = save_mode;
 }
 
 /* See the comment in recovery.h on how the "save" parameter is used */
@@ -406,12 +449,24 @@ void rec_done(int save)
 	else
 		log_flush();
 
+/*
+ * In Jumbo we close [releasing the lock] *after* unlinking, avoiding
+ * race conditions. Except we can't do this on b0rken systems.
+ */
+#if __DJGPP__ || _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 	if (fclose(rec_file))
 		pexit("fclose");
 	rec_file = NULL;
+#endif
 
 	if ((!save || save == -1) && unlink(path_expand(rec_name)))
 		pexit("unlink: %s", path_expand(rec_name));
+
+	if (rec_file) {
+		if (fclose(rec_file))
+			pexit("fclose");
+		rec_file = NULL;
+	}
 }
 
 static void rec_format_error(char *fn)
@@ -551,8 +606,28 @@ void rec_restore_args(int lock)
 	rec_restoring_now = 1;
 }
 
+static void restore_salt_state()
+{
+	char buf[34];
+	static uint32_t hash[4];
+	unsigned char *h = (unsigned char*)hash;
+	int i;
+
+	fgetl(buf, sizeof(buf), rec_file);
+	if (strlen(buf) != 32 || !ishex(buf))
+		rec_format_error("multi-salt");
+	for (i = 0; i < 16; ++i) {
+		h[i] = atoi16[ARCH_INDEX(buf[i*2])] << 4;
+		h[i] += atoi16[ARCH_INDEX(buf[i*2+1])];
+	}
+	status.resume_salt_md5 = hash;
+	status.resume_salt = 1;
+}
+
 void rec_restore_mode(int (*restore_mode)(FILE *file))
 {
+	char buf[128];
+
 	rec_name_complete();
 
 	if (!rec_file) return;
@@ -562,6 +637,26 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 
 	if (options.flags & FLG_MASK_STACKED)
 	if (mask_restore_state(rec_file)) rec_format_error("fscanf");
+
+	/* we may be pointed at appended hybrid records.  If so, then process them */
+	fgetl(buf, sizeof(buf), rec_file);
+	while (!feof(rec_file)) {
+		if (!strncmp(buf, "ext-v", 5)) {
+			if (ext_restore_state_hybrid(buf, rec_file))
+				rec_format_error("external-hybrid");
+		}
+#if HAVE_REXGEN
+		else if (!strncmp(buf, "rex-v", 5)) {
+			if (rexgen_restore_state_hybrid(buf, rec_file))
+				rec_format_error("rexgen-hybrid");
+		}
+#endif
+		if (!strcmp(buf, "slt-v1")) {
+			restore_salt_state();
+		}
+		fgetl(buf, sizeof(buf), rec_file);
+	}
+
 /*
  * Unlocking the file explicitly is normally not necessary since we're about to
  * close it anyway (which would normally release the lock).  However, when

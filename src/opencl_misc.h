@@ -51,20 +51,14 @@ typedef struct dyna_salt_t {
 #endif
 
 /*
- * host code may pass -DV_WIDTH=2 or some other width.
- *
- * I wish they'd make typeof() an OpenCL requirement. The only devices I've
- * seen not supporting it is recent Intel but they also never want vectorized
- * code so this workaround works fine for current use.
+ * Host code may pass -DV_WIDTH=2 or some other width.
  */
 #if V_WIDTH > 1
 #define MAYBE_VECTOR_UINT	VECTOR(uint, V_WIDTH)
 #define MAYBE_VECTOR_ULONG	VECTOR(ulong, V_WIDTH)
-#define typeof __typeof__
 #else
 #define MAYBE_VECTOR_UINT	uint
 #define MAYBE_VECTOR_ULONG	ulong
-#define typeof(a) uint
 #define SCALAR 1
 #endif
 
@@ -74,7 +68,7 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
 {
 	uint i;
 	uint r = 0;
-	for(i = 0; i < sizeof(uint) * 8; i++)
+	for (i = 0; i < sizeof(uint) * 8; i++)
 		r |= (uint)((m >> ( (((x >> i) & 1) << 2) |
 		                    (((y >> i) & 1) << 1) |
 		                     ((z >> i) & 1) )) & 1) << i;
@@ -124,7 +118,9 @@ inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 #endif
 
 #if gpu_amd(DEVICE_INFO)
+#ifdef cl_amd_media_ops
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
+#endif
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #else
 #if SCALAR && SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
@@ -160,7 +156,7 @@ inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #define VECTOR(x, y)		CONCAT(x, y)
 
 /* Workaround for problem seen with 9600GT */
-#if OLD_NVIDIA
+#if OLD_NVIDIA || __OS_X__
 #define MAYBE_CONSTANT	__global const
 #else
 #define MAYBE_CONSTANT	__constant
@@ -273,12 +269,36 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 			(dst)[_i] = (src)[_i]; \
 	} while (0)
 
+/* requires char/uchar */
+#define dump_stuff8_msg(msg, x, size) do {	  \
+		uint ii; \
+		printf("%s : ", msg); \
+		for (ii = 0; ii < size; ii++) { \
+			printf("%02x", (x)[ii]); \
+			if (ii % 4 == 3) \
+				printf(" "); \
+		} \
+		printf("\n"); \
+	} while (0)
+
+/* requires short/ushort */
+#define dump_stuff16_msg(msg, x, size) do {	  \
+		uint ii; \
+		printf("%s : ", msg); \
+		for (ii = 0; ii < (size)/2; ii++) { \
+			printf("%04x", (x)[ii]); \
+			if (ii % 2 == 1) \
+				printf(" "); \
+		} \
+		printf("\n"); \
+	} while (0)
+
 /* requires int/uint */
 #define dump_stuff_msg(msg, x, size) do {	  \
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", SWAP32(x[ii])); \
+			printf("%08x ", SWAP32((x)[ii])); \
 		printf("\n"); \
 	} while (0)
 
@@ -287,7 +307,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", x[ii]); \
+			printf("%08x ", (x)[ii]); \
 		printf("\n"); \
 	} while (0)
 

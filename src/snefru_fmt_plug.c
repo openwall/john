@@ -44,7 +44,7 @@ static int omp_t = 1;
 // Snefru-128 and Snefru-256 are the real format labels
 #define FORMAT_LABEL		"Snefru"
 #define FORMAT_TAG		"$snefru$"
-#define TAG_LENGTH		8
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -71,7 +71,7 @@ static struct fmt_tests snefru_256_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE256 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE256 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -98,12 +98,13 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self, int len)
 {
 	char *p;
+	int extra;
 
 	p = ciphertext;
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (hexlenl(p) != len)
+	if (hexlenl(p, &extra) != len || extra)
 		return 0;
 
 	return 1;
@@ -113,9 +114,22 @@ static int valid256(char *ciphertext, struct fmt_main *self)
 {
 	return valid(ciphertext, self, 64);
 }
+
 static int valid128(char *ciphertext, struct fmt_main *self)
 {
 	return valid(ciphertext, self, 32);
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + BINARY_SIZE256 * 2 + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	strnzcpy(out + TAG_LENGTH, ciphertext, BINARY_SIZE256 * 2 + 1);
+	return out;
 }
 
 static void *get_binary_256(char *ciphertext)
@@ -248,17 +262,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static char *prepare(char *fields[10], struct fmt_main *self) {
-	static char buf[64+TAG_LENGTH+1];
-	char *hash = fields[1];
-	int len = strlen(hash);
-	if ( (len == 64 || len == 32) && valid(hash, self, len) ) {
-		sprintf(buf, "%s%s", FORMAT_TAG, hash);
-		return buf;
-	}
-	return hash;
-}
-
 struct fmt_main fmt_snefru_256 = {
 	{
 		"Snefru-256",
@@ -276,14 +279,15 @@ struct fmt_main fmt_snefru_256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		snefru_256_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid256,
-		fmt_default_split,
+		split,
 		get_binary_256,
 		fmt_default_salt,
 		{ NULL },
@@ -336,14 +340,16 @@ struct fmt_main fmt_snefru_128 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },snefru_128_tests
+		{ NULL },
+		{ FORMAT_TAG },
+		snefru_128_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid128,
-		fmt_default_split,
+		split,
 		get_binary_128,
 		fmt_default_salt,
 		{ NULL },

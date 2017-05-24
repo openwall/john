@@ -22,6 +22,8 @@
 // Maximum number of placeholders in a mask.
 #define MAX_NUM_MASK_PLHDR 127
 
+//#define MASK_DEBUG
+
 typedef struct {
 	/* store locations of op braces in mask */
 	int stack_op_br[MAX_NUM_MASK_PLHDR + 1];
@@ -97,10 +99,10 @@ extern void mask_save_state(FILE *file);
 extern int mask_restore_state(FILE *file);
 
 /*
- * Total number of candidates to begin with. Remains unchanged throughout
- * one call to do_mask_crack but may vary with hybrid parent key length.
- * The number includes the part that is processed on GPU, and is used as
- * a multiplier in native mask mode's and parent modes' get_progress().
+ * Total number of candidates (per node) to begin with. Remains unchanged
+ * throughout one call to do_mask_crack but may vary with hybrid parent key
+ * length.  The number includes the part that is processed on GPU, and is
+ * used as a multiplier in native mask mode's and parent modes' get_progress().
  */
 extern unsigned long long mask_tot_cand;
 
@@ -113,7 +115,7 @@ extern int mask_num_qw;
 /* Number of times parent mode called hybrid mask. */
 extern unsigned long long mask_parent_keys;
 
-/* Current length when pure mask mode iterates over length */
+/* Current length when pure mask mode iterates over lengths */
 extern int mask_cur_len;
 
 #endif

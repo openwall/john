@@ -40,7 +40,7 @@ john_register_one(&fmt_DOMINOSEC8);
 #include <string.h>
 
 #ifdef DOMINOSEC_32BIT
-#include "stdint.h"
+#include <stdint.h>
 #endif
 
 #include "misc.h"
@@ -67,10 +67,10 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH	64
 #define CIPHERTEXT_LENGTH	51
 #define BINARY_SIZE		8
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define REAL_SALT_SIZE		16
-#define SALT_ALIGN		sizeof(ARCH_WORD_32)
+#define SALT_ALIGN		sizeof(uint32_t)
 
 #define DIGEST_SIZE		16
 #define BINARY_BUFFER_SIZE	(DIGEST_SIZE-SALT_SIZE)
@@ -80,8 +80,8 @@ static int omp_t = 1;
 
 static unsigned char (*digest34)[34];
 static char (*saved_key)[PLAINTEXT_LENGTH+1];
-static ARCH_WORD_32 (*crypt_out)[(DIGEST_SIZE + 3) / sizeof(ARCH_WORD_32)];
-static ARCH_WORD_32 (*crypt_out_real)[(BINARY_SIZE) / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[(DIGEST_SIZE + 3) / sizeof(uint32_t)];
+static uint32_t (*crypt_out_real)[(BINARY_SIZE) / sizeof(uint32_t)];
 
 static struct custom_salt {
 	unsigned char salt[REAL_SALT_SIZE];
@@ -503,7 +503,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	unsigned int i;
 	unsigned char ch;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	if (ciphertext[0] != '(' ||
@@ -576,13 +576,10 @@ static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[BINARY_SIZE / sizeof(ARCH_WORD_32) + 1];
+	static uint32_t out[BINARY_SIZE / sizeof(uint32_t) + 1];
 
 	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary_struct);
 	memcpy(out, cipher_binary_struct.hash, BINARY_SIZE);
-#if !ARCH_LITTLE_ENDIAN
-	alter_endianity(out, 8);
-#endif
 	return (void*)out;
 }
 
@@ -742,18 +739,18 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int get_hash_0(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(ARCH_WORD_32*)&crypt_out_real[index] & PH_MASK_6; }
+static int get_hash_0(int index) { return *(uint32_t*)&crypt_out_real[index] & PH_MASK_0; }
+static int get_hash_1(int index) { return *(uint32_t*)&crypt_out_real[index] & PH_MASK_1; }
+static int get_hash_2(int index) { return *(uint32_t*)&crypt_out_real[index] & PH_MASK_2; }
+static int get_hash_3(int index) { return *(uint32_t*)&crypt_out_real[index] & PH_MASK_3; }
+static int get_hash_4(int index) { return *(uint32_t*)&crypt_out_real[index] & PH_MASK_4; }
+static int get_hash_5(int index) { return *(uint32_t*)&crypt_out_real[index] & PH_MASK_5; }
+static int get_hash_6(int index) { return *(uint32_t*)&crypt_out_real[index] & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
-	//printf("salt %08x hash %03x\n", *(ARCH_WORD_32*)salt, *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1));
-	return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1);
+	//printf("salt %08x hash %03x\n", *(uint32_t*)salt, *(uint32_t*)salt & (SALT_HASH_SIZE - 1));
+	return *(uint32_t*)salt & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_DOMINOSEC8 = {
@@ -772,6 +769,7 @@ struct fmt_main fmt_DOMINOSEC8 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		{ NULL },
 		{ NULL },
 		tests
 	},

@@ -123,6 +123,7 @@ typedef struct ether_beacon_tag_s {
 } ether_beacon_tag_t;
 
 // This is the structure for a 802.11 control 'beacon' packet.
+// A probe response packet looks the same.
 // NOTE, we only use this packet to get the ESSID.
 typedef struct ether_beacon_data_s {
 	uint32 time1;

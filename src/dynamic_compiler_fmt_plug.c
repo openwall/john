@@ -132,6 +132,9 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 //	if (strncmp(ciphertext, dyna_signature, dyna_sig_len) != 0)
 //		return 0;
 
+	if (strnlen(ciphertext, sizeof(Conv_Buf)) >= sizeof(Conv_Buf))
+		return 0;
+
 	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext, 0), pDynamic);
 }
 
@@ -160,6 +163,7 @@ struct fmt_main fmt_CompiledDynamic =
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
 			/* for now, turn off FMT_SPLIT_UNIFIES_CASE until we get the code right */
 		0, 0, 16, BINARY_ALIGN, DYNA_SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC /*| FMT_SPLIT_UNIFIES_CASE */ ,
+		{ NULL },
 		{ NULL },
 		tests
 	},

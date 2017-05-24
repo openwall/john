@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker.
  *
- * Functions common to CUDA and OpenCL go in this file.
+ * Functions common to OpenCL and other accelerators (eg. FPGA) go in this file.
  *
  * This software is
  * Copyright (c) 2010-2012 Samuele Giovanni Tonon <samu at linuxasylum dot net>
@@ -13,7 +13,7 @@
  *    modifications, are permitted.
  */
 
-#if defined (HAVE_CUDA) || defined (HAVE_OPENCL)
+#if defined (HAVE_OPENCL)
 
 #ifdef AC_BUILT
 #include "autoconfig.h"
@@ -40,7 +40,6 @@
 #include "signals.h"
 #include "memdbg.h"
 
-/* These are shared between OpenCL and CUDA */
 int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];
 hw_bus gpu_device_bus[MAX_GPU_DEVICES];
@@ -49,20 +48,24 @@ int gpu_temp_limit;
 char gpu_degree_sign[8] = "";
 
 void *nvml_lib;
-NVMLINIT nvmlInit = NULL;
-NVMLSHUTDOWN nvmlShutdown = NULL;
-NVMLDEVICEGETHANDLEBYINDEX nvmlDeviceGetHandleByIndex = NULL;
-NVMLDEVICEGETTEMPERATURE nvmlDeviceGetTemperature = NULL;
-NVMLDEVICEGETFANSPEED nvmlDeviceGetFanSpeed = NULL;
-NVMLDEVICEGETUTILIZATIONRATES nvmlDeviceGetUtilizationRates = NULL;
-NVMLDEVICEGETPCIINFO nvmlDeviceGetPciInfo = NULL;
-NVMLDEVICEGETNAME nvmlDeviceGetName = NULL;
-NVMLDEVICEGETHANDLEBYPCIBUSID nvmlDeviceGetHandleByPciBusId = NULL;
-NVMLDEVICEGETINDEX nvmlDeviceGetIndex = NULL;
+#if __linux__ && HAVE_LIBDL
+NVMLINIT nvmlInit;
+NVMLSHUTDOWN nvmlShutdown;
+NVMLDEVICEGETHANDLEBYINDEX nvmlDeviceGetHandleByIndex;
+NVMLDEVICEGETTEMPERATURE nvmlDeviceGetTemperature;
+NVMLDEVICEGETFANSPEED nvmlDeviceGetFanSpeed;
+NVMLDEVICEGETUTILIZATIONRATES nvmlDeviceGetUtilizationRates;
+NVMLDEVICEGETPCIINFO nvmlDeviceGetPciInfo;
+NVMLDEVICEGETNAME nvmlDeviceGetName;
+NVMLDEVICEGETHANDLEBYPCIBUSID nvmlDeviceGetHandleByPciBusId;
+NVMLDEVICEGETINDEX nvmlDeviceGetIndex;
+NVMLDEVICEGETCURRPCIELINKWIDTH nvmlDeviceGetCurrPcieLinkWidth;
+NVMLDEVICEGETMAXPCIELINKWIDTH nvmlDeviceGetMaxPcieLinkWidth;
+#endif /* __linux__ && HAVE_LIBDL */
 
 void *adl_lib;
 
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 static int amd = 0;
 int amd2adl[MAX_GPU_DEVICES];
 int adl2od[MAX_GPU_DEVICES];
@@ -74,18 +77,18 @@ ADL_ADAPTER_ADAPTERINFO_GET ADL_Adapter_AdapterInfo_Get;
 ADL_ADAPTER_ACTIVE_GET ADL_Adapter_Active_Get;
 ADL_OVERDRIVE_CAPS ADL_Overdrive_Caps;
 
-ADL_OVERDRIVE5_THERMALDEVICES_ENUM ADL_Overdrive5_ThermalDevices_Enum = NULL;
-ADL_OVERDRIVE5_ODPARAMETERS_GET ADL_Overdrive5_ODParameters_Get = NULL;
-ADL_OVERDRIVE5_TEMPERATURE_GET ADL_Overdrive5_Temperature_Get = NULL;
-ADL_OVERDRIVE5_FANSPEED_GET ADL_Overdrive5_FanSpeed_Get = NULL;
-ADL_OVERDRIVE5_FANSPEEDINFO_GET ADL_Overdrive5_FanSpeedInfo_Get = NULL;
-ADL_OVERDRIVE5_CURRENTACTIVITY_GET ADL_Overdrive5_CurrentActivity_Get = NULL;
+ADL_OVERDRIVE5_THERMALDEVICES_ENUM ADL_Overdrive5_ThermalDevices_Enum;
+ADL_OVERDRIVE5_ODPARAMETERS_GET ADL_Overdrive5_ODParameters_Get;
+ADL_OVERDRIVE5_TEMPERATURE_GET ADL_Overdrive5_Temperature_Get;
+ADL_OVERDRIVE5_FANSPEED_GET ADL_Overdrive5_FanSpeed_Get;
+ADL_OVERDRIVE5_FANSPEEDINFO_GET ADL_Overdrive5_FanSpeedInfo_Get;
+ADL_OVERDRIVE5_CURRENTACTIVITY_GET ADL_Overdrive5_CurrentActivity_Get;
 
-ADL_OVERDRIVE6_FANSPEED_GET ADL_Overdrive6_FanSpeed_Get = NULL;
-ADL_OVERDRIVE6_THERMALCONTROLLER_CAPS ADL_Overdrive6_ThermalController_Caps = NULL;
-ADL_OVERDRIVE6_TEMPERATURE_GET ADL_Overdrive6_Temperature_Get = NULL;
-ADL_OVERDRIVE6_CURRENTSTATUS_GET ADL_Overdrive6_CurrentStatus_Get = NULL;
-ADL_OVERDRIVE6_CAPABILITIES_GET ADL_Overdrive6_Capabilities_Get = NULL;
+ADL_OVERDRIVE6_FANSPEED_GET ADL_Overdrive6_FanSpeed_Get;
+ADL_OVERDRIVE6_THERMALCONTROLLER_CAPS ADL_Overdrive6_ThermalController_Caps;
+ADL_OVERDRIVE6_TEMPERATURE_GET ADL_Overdrive6_Temperature_Get;
+ADL_OVERDRIVE6_CURRENTSTATUS_GET ADL_Overdrive6_CurrentStatus_Get;
+ADL_OVERDRIVE6_CAPABILITIES_GET ADL_Overdrive6_Capabilities_Get;
 
 // Memory allocation callback function
 static void* ADL_Main_Memory_Alloc(int iSize)
@@ -94,7 +97,7 @@ static void* ADL_Main_Memory_Alloc(int iSize)
 	return lpBuffer;
 }
 
-#endif /* __linux__ && HAVE_LIBDL */
+#endif /* HAVE_LIBDL */
 
 void advance_cursor()
 {
@@ -108,14 +111,15 @@ void advance_cursor()
 }
 
 /* Function pointer to read temperature for device n */
-void (*dev_get_temp[MAX_GPU_DEVICES]) (int, int *, int *, int *);
+void (*dev_get_temp[MAX_GPU_DEVICES]) (int id, int *temp, int *fanspeed,
+                                       int *util, int *cl, int *ml);
 
 /* Map OpenCL device number to ADL/NVML device number */
 unsigned int temp_dev_id[MAX_GPU_DEVICES];
 
 void nvidia_probe(void)
 {
-#if HAVE_LIBDL
+#if __linux__ && HAVE_LIBDL
 	if (nvml_lib)
 		return;
 
@@ -133,13 +137,15 @@ void nvidia_probe(void)
 	nvmlDeviceGetHandleByPciBusId = (NVMLDEVICEGETHANDLEBYPCIBUSID) dlsym(nvml_lib, "nvmlDeviceGetHandleByPciBusId");
 	nvmlDeviceGetIndex = (NVMLDEVICEGETINDEX) dlsym(nvml_lib, "nvmlDeviceGetIndex");
 	//nvmlUnitGetCount = (NVMLUNITGETCOUNT) dlsym(nvml_lib, "nvmlUnitGetCount");
+	nvmlDeviceGetCurrPcieLinkWidth = (NVMLDEVICEGETCURRPCIELINKWIDTH) dlsym(nvml_lib, "nvmlDeviceGetCurrPcieLinkWidth");
+	nvmlDeviceGetMaxPcieLinkWidth = (NVMLDEVICEGETMAXPCIELINKWIDTH) dlsym(nvml_lib, "nvmlDeviceGetMaxPcieLinkWidth");
 	nvmlInit();
 #endif
 }
 
 void amd_probe(void)
 {
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 	LPAdapterInfo lpAdapterInfo = NULL;
 	int i, ret;
 	int iNumberAdapters = 0;
@@ -151,8 +157,14 @@ void amd_probe(void)
 	if (adl_lib)
 		return;
 
+#if HAVE_WINDOWS_H
+	if (!(adl_lib = dlopen("atiadlxx.dll", RTLD_LAZY|RTLD_GLOBAL)) &&
+	    !(adl_lib = dlopen("atiadlxy.dll", RTLD_LAZY|RTLD_GLOBAL)))
+		return;
+#else
 	if (!(adl_lib = dlopen("libatiadlxx.so", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
+#endif
 
 	env = getenv("COMPUTE");
 	if (env && *env)
@@ -245,14 +257,16 @@ void amd_probe(void)
 #endif
 }
 
-void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
+void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util,
+                     int *cl, int *ml)
 {
+#if __linux__ && HAVE_LIBDL
 	nvmlUtilization_t s_util;
 	nvmlDevice_t dev;
 	unsigned int value;
 
 	if (nvmlDeviceGetHandleByIndex(nvml_id, &dev) != NVML_SUCCESS) {
-		*temp = *fanspeed = *util = -1;
+		*temp = *fanspeed = *util = *cl = *ml = -1;
 		return;
 	}
 
@@ -268,10 +282,20 @@ void nvidia_get_temp(int nvml_id, int *temp, int *fanspeed, int *util)
 		*util = s_util.gpu;
 	else
 		*util = -1;
+	if (nvmlDeviceGetMaxPcieLinkWidth(dev, &value) == NVML_SUCCESS)
+		*ml = value;
+	if (nvmlDeviceGetCurrPcieLinkWidth(dev, &value) == NVML_SUCCESS)
+		*cl = value;
+	else
+		*cl = *ml;
+	if (*ml < *cl)
+		*ml = *cl;
+#endif /* __linux__ && HAVE_LIBDL */
 }
 
-#if __linux__ && HAVE_LIBDL
-static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
+#if HAVE_LIBDL
+static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util,
+                         int *cl, int *ml)
 {
 	int ADL_Err = ADL_ERR;
 	ADLFanSpeedInfo fanSpeedInfo = { 0 };
@@ -284,7 +308,7 @@ static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 	if (ADL_Main_Control_Create(ADL_Main_Memory_Alloc, 1) != ADL_OK)
 		return;
 
-	*temp = *fanspeed = *util = -1;
+	*temp = *fanspeed = *util = *cl = *ml = -1;
 
 	if (!ADL_Overdrive5_ThermalDevices_Enum ||
 	    !ADL_Overdrive5_Temperature_Get ||
@@ -324,15 +348,19 @@ static void get_temp_od5(int adl_id, int *temp, int *fanspeed, int *util)
 	if (ADL_Overdrive5_ODParameters_Get(adl_id, &overdriveParameters) == ADL_OK) {
 		activity.iSize = sizeof(ADLPMActivity);
 		if (ADL_Overdrive5_CurrentActivity_Get(adl_id, &activity) == ADL_OK)
-		if (overdriveParameters.iActivityReportingSupported)
+		if (overdriveParameters.iActivityReportingSupported) {
 			*util = activity.iActivityPercent;
+			*cl = activity.iCurrentBusLanes;
+			*ml = activity.iMaximumBusLanes;
+		}
 	}
 
 	ADL_Main_Control_Destroy();
 	return;
 }
 
-static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
+static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util,
+                         int *cl, int *ml)
 {
 	ADLOD6FanSpeedInfo fanSpeedInfo = { 0 };
 	ADLOD6ThermalControllerCaps thermalControllerCaps = { 0 };
@@ -365,7 +393,11 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 		if (ADL_Overdrive6_Capabilities_Get(adl_id, &od6Capabilities) == ADL_OK)
 		if (od6Capabilities.iCapabilities & ADL_OD6_CAPABILITY_GPU_ACTIVITY_MONITOR)
 		if (ADL_Overdrive6_CurrentStatus_Get(adl_id, &currentStatus) == ADL_OK)
+		{
 			*util = currentStatus.iActivityPercent;
+			*cl = currentStatus.iCurrentBusLanes;
+			*ml = currentStatus.iMaximumBusLanes;
+		}
 	}
 
 	ADL_Main_Control_Destroy();
@@ -373,18 +405,19 @@ static void get_temp_od6(int adl_id, int *temp, int *fanspeed, int *util)
 }
 #endif
 
-void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util)
+void amd_get_temp(int amd_id, int *temp, int *fanspeed, int *util, int *cl,
+                  int *ml)
 {
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 	int adl_id = amd_id;
 
 	if (adl2od[adl_id] == 5) {
-		get_temp_od5(adl_id, temp, fanspeed, util);
+		get_temp_od5(adl_id, temp, fanspeed, util, cl, ml);
 	} else if (adl2od[adl_id] == 6) {
-		get_temp_od6(adl_id, temp, fanspeed, util);
+		get_temp_od6(adl_id, temp, fanspeed, util, cl, ml);
 	} else
 #endif
-		*temp = *fanspeed = *util = -1;
+		*temp = *fanspeed = *util = *cl = *ml = -1;
 }
 
 int id2nvml(const hw_bus busInfo) {
@@ -405,7 +438,7 @@ int id2nvml(const hw_bus busInfo) {
 }
 
 int id2adl(const hw_bus busInfo) {
-#if __linux__ && HAVE_LIBDL
+#if HAVE_LIBDL
 	int hardware_id = 0;
 
 	while (hardware_id < amd) {
@@ -432,10 +465,10 @@ void gpu_check_temp(void)
 
 	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++)
 	if (dev_get_temp[gpu_device_list[i]]) {
-		int fan, temp, util;
+		int fan, temp, util, cl, ml;
 		int dev = gpu_device_list[i];
 
-		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
+		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util, &cl, &ml);
 
 		if (temp > 125 || temp < 10) {
 			if (!warned++) {
@@ -473,11 +506,11 @@ void gpu_log_temp(void)
 	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++)
 	if (dev_get_temp[gpu_device_list[i]]) {
 		char s_gpu[256] = "";
-		int n, fan, temp, util;
+		int n, fan, temp, util, cl, ml;
 		int dev = gpu_device_list[i];
 
 		fan = temp = util = -1;
-		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util);
+		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util, &cl, &ml);
 		n = sprintf(s_gpu, "GPU %d:", dev);
 		if (temp >= 0)
 			n += sprintf(s_gpu + n, " temp: %u%sC", temp, gpu_degree_sign);
@@ -491,4 +524,4 @@ void gpu_log_temp(void)
 #endif
 }
 
-#endif /* defined (HAVE_CUDA) || defined (HAVE_OPENCL) */
+#endif /* defined (HAVE_OPENCL) */

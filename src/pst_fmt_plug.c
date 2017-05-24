@@ -44,6 +44,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL			"PST"
 #define FORMAT_NAME			"custom CRC-32"
+#define FORMAT_TAG           "$pst$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -52,7 +54,7 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH		8
 #define BINARY_SIZE			4
 #define SALT_SIZE			0
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
@@ -70,7 +72,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out);
+static uint32_t (*crypt_out);
 
 static void init(struct fmt_main *self)
 {
@@ -95,10 +97,12 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p;
-	if (strncmp(ciphertext, "$pst$", 5))
+	int extra;
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	p = ciphertext + 5;
-	if (hexlenl(p) != BINARY_SIZE * 2)
+	p = ciphertext + FORMAT_TAG_LEN;
+	if (hexlenl(p, &extra) != BINARY_SIZE * 2 || extra)
 		return 0;
 	return 1;
 }
@@ -109,7 +113,7 @@ static void set_key(char *key, int index) {
 
 static int cmp_all(void *binary, int count)
 {
-	ARCH_WORD_32 crc=*((ARCH_WORD_32*)binary), i;
+	uint32_t crc=*((uint32_t*)binary), i;
 	for (i = 0; i < count; ++i)
 		if (crc == crypt_out[i]) return 1;
 	return 0;
@@ -117,7 +121,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == crypt_out[index];
+	return *((uint32_t*)binary) == crypt_out[index];
 }
 
 static int cmp_exact(char *source, int index)
@@ -145,9 +149,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 *out;
+	static uint32_t *out;
 	if (!out)
-		out = mem_alloc_tiny(sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
+		out = mem_alloc_tiny(sizeof(uint32_t), MEM_ALIGN_WORD);
 	sscanf(&ciphertext[5], "%x", out);
 	return out;
 }
@@ -185,6 +189,7 @@ struct fmt_main fmt_pst = {
 #endif
 		FMT_CASE | FMT_TRUNC | FMT_8_BIT | FMT_NOT_EXACT,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

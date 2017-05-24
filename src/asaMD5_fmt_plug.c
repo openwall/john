@@ -41,6 +41,7 @@ john_register_one(&fmt_asaMD5);
 
 static struct fmt_tests tests[] = {
 	{"$dynamic_20$h3mJrcH0901pqX/m$alex","ripper"},
+	{"$dynamic_20$ICzzhPWXScHWElEK$e","ripper"},
 	{"$dynamic_20$3USUcOPFUiMCO4Jk$cisc","cisco"},
 	{"$dynamic_20$lZt7HSIXw3.QP7.R$admc","CscFw-ITC!"},
 	{"$dynamic_20$hN7LzeyYjw12FSIU$john","cisco"},
@@ -84,7 +85,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 	if (!ciphertext)
 		return 0;
 	get_ptr();
-	i = strlen(ciphertext);
+	i = strnlen(ciphertext, CIPHERTEXT_LENGTH + 1);
 	if (i > CIPHERTEXT_LENGTH)
 		return pDynamic_20->methods.valid(ciphertext, pDynamic_20);
 	if (i == CIPHERTEXT_LENGTH)
@@ -97,6 +98,10 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[11+1+16+1+4+1];
+
+	/* Quick cancel of huge lines (eg. zip archives) */
+	if (strnlen(split_fields[1], CIPHERTEXT_LENGTH + 1) > CIPHERTEXT_LENGTH)
+		return split_fields[1];
 
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[1] && strlen(split_fields[1]) == 16) {
@@ -123,6 +128,7 @@ struct fmt_main fmt_asaMD5 = {
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
 		0, 12, BINARY_SIZE, BINARY_ALIGN, SALT_SIZE, SALT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT | FMT_DYNAMIC,
+		{ NULL },
 		{ NULL },
 		tests
 	},

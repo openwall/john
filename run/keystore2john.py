@@ -5,6 +5,12 @@
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
+#
+# Currently, only Sun "JKS" keystore files are supported.
+# See https://www.bouncycastle.org/specifications.html for details.
+#
+# Use "Portecle" (https://sourceforge.net/projects/portecle/files/) for testing
+# various keystore file formats.
 
 """
 

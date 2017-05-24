@@ -30,6 +30,10 @@
 #ifndef _CONVERTUTF_H
 #define _CONVERTUTF_H
 
+#include <wchar.h>
+#include <stdint.h>
+#include <stdlib.h>
+
 #include "options.h"
 #include "common.h"
 #include "jumbo.h"
@@ -80,16 +84,13 @@
 /* Rexgen library header might have defined this (empty) */
 #undef UTF32
 
-typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
-typedef unsigned short UTF16;	/* at least 16 bits */
-typedef unsigned char UTF8;	/* typically 8 bits */
+typedef uint32_t UTF32;
+typedef uint16_t UTF16;
+typedef uint8_t UTF8;
 
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR (UTF32)0x0000FFFD
 #define UNI_MAX_BMP (UTF32)0x0000FFFF
-#define UNI_MAX_UTF16 (UTF32)0x0010FFFF
-#define UNI_MAX_UTF32 (UTF32)0x7FFFFFFF
-#define UNI_MAX_LEGAL_UTF32 (UTF32)0x0010FFFF
 
 /* These are used in NT_fmt.c */
 extern const UTF32 offsetsFromUTF8[];
@@ -98,24 +99,28 @@ extern const char opt_trailingBytesUTF8[64];
 /*
  * Convert to UTF-16LE from UTF-8.
  * 'maxtargetlen' is max. number of characters (as opposed to bytes) in output,
- * eg. PLAINTEXT_LENGTH.
+ * e.g. PLAINTEXT_LENGTH.
  * 'sourcelen' can be strlen(source).
  * Returns number of UTF16 characters (as opposed to bytes) of resulting
- * output. If return is negative, eg. -32, it means 32 characters of INPUT were
+ * output. If return is negative, e.g. -32, it means 32 characters of INPUT were
  * used and then we had to truncate. Either because we ran out of maxtargetlen,
  * or because input was not valid after that point (eg. illegal UTF-8 sequence).
  * To get the length of output in that case, use strlen16(target).
  */
 extern int utf8_to_utf16(UTF16 *target, unsigned int maxtargetlen,
                          const UTF8 *source, unsigned int sourcelen);
-
+/*
+ * same utf8 to utf16 convertion, but to BE format output
+ */
+extern int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
+                            unsigned int sourceLen);
 /*
  * Convert to UTF-16LE from whatever encoding is used (--encoding aware).
  * 'maxdstlen' is max. number of characters (as opposed to bytes) in output,
- * eg. PLAINTEXT_LENGTH.
+ * e.g. PLAINTEXT_LENGTH.
  * 'srclen' can be strlen(src).
  * Returns number of UTF16 characters (as opposed to bytes) of resulting
- * output. If return is negative, eg. -32, it means 32 characters of INPUT were
+ * output. If return is negative, e.g. -32, it means 32 characters of INPUT were
  * used and then we had to truncate. Either because we ran out of maxdstlen, or
  * because input was not valid after that point (eg. illegal UTF-8 sequence).
  * To get the length of output in that case, use strlen16(dst).
@@ -130,21 +135,28 @@ extern int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                            unsigned int srclen);
 
 /* Thread-safe conversion from codepage to UTF-8 */
-UTF8 * enc_to_utf8_r(char *src, UTF8* dst, int dstlen);
+UTF8 *enc_to_utf8_r(char *src, UTF8 *dst, int dstlen);
 
 /* Thread-safe conversion from UTF-8 to codepage */
-char * utf8_to_enc_r(UTF8 *src, char* dst, int dstlen);
+char *utf8_to_enc_r(UTF8 *src, char *dst, int dstlen);
+
+/*
+ * Conversions to/from system's wchar_t
+ */
+extern int cp_to_wcs(wchar_t *dest, size_t dst_sz, const char *src);
+extern int enc_to_wcs(wchar_t *dest, size_t dst_sz, const char *src);
+extern char *wcs_to_enc(char *dest, size_t dst_sz, const wchar_t *src);
 
 /* Convert back to UTF-8 (for get_key without a saved_plain) */
-extern UTF8 * utf16_to_utf8(const UTF16* source);
-extern UTF8 * utf16_to_utf8_r(UTF8 *dst, int dst_len, const UTF16* source);
+extern UTF8 *utf16_to_utf8(const UTF16* source);
+extern UTF8 *utf16_to_utf8_r(UTF8 *dst, int dst_len, const UTF16* source);
 
 /*
  * Convert back to UTF-8 or codepage (for get_key without a saved_plain)
  * from UTF-16LE (regardless of host architecture)
  */
-extern UTF8 * utf16_to_enc(const UTF16* source);
-extern UTF8 * utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16* source);
+extern UTF8 *utf16_to_enc(const UTF16* source);
+extern UTF8 *utf16_to_enc_r(UTF8 *dst, int dst_len, const UTF16* source);
 
 /* UTF-32 functions. No endianness problems! */
 extern UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source);
@@ -156,14 +168,14 @@ extern int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
  * we can opt to convert to/from.
  */
 extern char *utf16_to_cp(const UTF16* source);
-extern char *utf8_to_cp_r(char *src, char* dst, int dstlen);
-extern char *cp_to_utf8_r(char *src, char* dst, int dstlen);
+extern char *utf8_to_cp_r(char *src, char *dst, int dstlen);
+extern char *cp_to_utf8_r(char *src, char *dst, int dstlen);
 
 /*
  * Return length (in characters) of a UTF-16 string
  * Number of octets is the result * sizeof(UTF16)
  */
-extern unsigned int strlen16(const UTF16 * str);
+extern unsigned int strlen16(const UTF16* str);
 
 /*
  * Return length (in characters) of a UTF-8 string
@@ -171,11 +183,29 @@ extern unsigned int strlen16(const UTF16 * str);
  */
 extern unsigned int strlen8(const UTF8 *source);
 
-/* Check if a string is valid UTF-8 */
+/*
+ * Check if a string is valid UTF-8.  Returns true if the string is valid
+ * UTF-8 encoding, including pure 7-bit data or an empty string.
+ *
+ * The probability of a random string of bytes which is not pure ASCII being
+ * valid UTF-8 is 3.9% for a two-byte sequence, and decreases exponentially
+ * for longer sequences.  ISO/IEC 8859-1 is even less likely to be
+ * mis-recognized as UTF-8:  The only non-ASCII characters in it would have
+ * to be in sequences starting with either an accented letter or the
+ * multiplication symbol and ending with a symbol.
+ *
+ * returns   0 if data is not valid UTF-8
+ * returns   1 if data is pure ASCII (which is obviously valid)
+ * returns > 1 if data is valid and in fact contains UTF-8 sequences
+ *
+ * Actually in the last case, the return is the number of proper UTF-8
+ * sequences, so it can be used as a quality measure. A low number might be
+ * a false positive, a high number most probably isn't.
+ */
 extern int valid_utf8(const UTF8 *source);
 
 /* Create an NT hash from a ISO-8859 or UTF-8 string (--encoding= aware) */
-extern int E_md4hash(const UTF8 * passwd, unsigned int len, unsigned char *p16);
+extern int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16);
 
 extern void listEncodings(FILE *stream);
 extern void initUnicode(int type);

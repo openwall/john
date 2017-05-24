@@ -1,0 +1,88 @@
+This document is about cracking password protected BitLocker encrypted
+volumes with JtR.
+
+Method 1
+--------
+
+Use the included bitlocker2john tool to extract hashes from the password
+protected BitLocker encrypted volume(s).
+
+$ ../run/bitlocker2john minimalistic.raw
+Signature found at 0x00010003
+Version: 8
+Invalid version, looking for a signature with valid version...
+Signature found at 0x02110000
+Version: 2 (Windows 7 or later)
+VMK entry found at 0x021100b6
+Key protector with user password found
+minimalistic.raw:$bitlocker$0$16$e221443f32c419b74504ed51b0d66dbf$1048576$12$704e12c6c319d00103000000$60$000000000000000000000000000000002d135e69646c157c15b4c273ad85b86513a1672ae3f531ce121889178c669d37f8e5e0100d331ce78484844c
+
+
+Method 2
+--------
+
+First, build the "bitlocker2john" (https://github.com/kholia/bitlocker2john) project from
+source. See https://github.com/libyal/libbde/wiki/Building for help.
+
+
+Second, use the built bitlocker2john project to extract hash(es) from the encrypted
+BitLocker volume.
+
+
+$ fdisk -l bitlocker-1.raw
+Disk bitlocker-1.raw: 256 MiB, 268435456 bytes, 524288 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0xfd0b8218
+
+Device           Boot Start    End Sectors  Size Id Type
+bitlocker-1.raw1        128 518271  518144  253M  7 HPFS/NTFS/exFAT
+
+128 (Start) * 512 (Sector size) => 65536 => volume offset
+
+$ ./bdetools/bdeinfo -o 65536 bitlocker-1.raw -p dummy
+bdeinfo 20170204
+
+$bitlocker$0$16$73926f843bbb41ea2a89a28b114a1a24$1048576$12$30a81ef90c9dd20103000000$60$942f852f2dc4ba8a589f35e750f33a5838d3bdc1ed77893e02ae1ac866f396f8635301f36010e0fcef0949078338f549ddb70e15c9a598e80c905baa
+
+For more help with bitlocker2john, see the following URLs,
+
+https://github.com/libyal/libbde/wiki
+https://github.com/libyal/libbde/wiki/Troubleshooting
+
+
+Cracking Process
+----------------
+
+Finally, give the extracted hash string to JtR jumbo to crack.
+
+$ cat hash
+$bitlocker$0$16$73926f843bbb41ea2a89a28b114a1a24$1048576$12$30a81ef90c9dd20103000000$60$942f852f2dc4ba8a589f35e750f33a5838d3bdc1ed77893e02ae1ac866f396f8635301f36010e0fcef0949078338f549ddb70e15c9a598e80c905baa
+
+$ ../run/john hash -wordlist=wordlist
+Loaded 1 password hash (BitLocker, BitLocker [SHA-256 AES 64/64])
+Will run 4 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+password@123     (?)
+
+
+To use a GPU for cracking, use the "bitlocker-opencl" format,
+
+$ ../john --format=bitlocker-opencl hash -wordlist=wordlist
+
+Note: For the moment, passwords will be evaluated only if their length is
+between 8 and 16 characters, in the "bitlocker-opencl" format.
+
+
+Links
+-----
+
+Samples BitLocker images for testing are available at,
+
+https://github.com/kholia/libbde/tree/bitlocker2john/samples
+
+More information on BitLocker cracking can be found at,
+
+http://openwall.info/wiki/john/OpenCL-BitLocker

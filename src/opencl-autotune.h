@@ -104,6 +104,12 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 
 	ocl_autotune_running = 1;
 
+#if SIZEOF_SIZE_T > 4
+	/* We can't process more than 4G keys per crypt() */
+	while (gws_limit * mask_int_cand.num_int_cand > 0xffffffffUL)
+		gws_limit >>= 1;
+#endif
+
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
 
@@ -203,8 +209,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
 	create_clobj(global_work_size, self);
 
-	if (options.verbosity > VERB_DEFAULT &&
-	    !(options.flags & FLG_SHOW_CHK))
+	if (options.verbosity > VERB_LEGACY && !(options.flags & FLG_SHOW_CHK))
 		fprintf(stderr,
 		        "Local worksize (LWS) "Zu", global worksize (GWS) "Zu"\n",
 		        local_work_size, global_work_size);

@@ -45,18 +45,19 @@ john_register_one(&fmt_pomelo);
 #define CIPHERTEXT_LENGTH       64
 #define BINARY_SIZE             32
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define BINARY_ALIGN            sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests pomelo_tests[] = {
 	{"$pomelo$2$3$hash runner 2015$8333ad83e46e425872c5545741d6da105cd31ad58926e437d32247e59b26703e", "HashRunner2014"},
+	{"$pomelo$2$3$mysalt$b5bebcd9820de6a58dba52abf76aaf6eed4c5c672dbda64e69e3e3cbcc401314", "password"},
 	{NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	unsigned char salt[64];
@@ -111,7 +112,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	while(*p)
-		if(atoi16l[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16l[ARCH_INDEX(*p++)]==0x7f)
 			return 0;
 
 	return 1;
@@ -235,6 +236,7 @@ struct fmt_main fmt_pomelo = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		pomelo_tests
 	}, {
 		init,

@@ -60,6 +60,12 @@ extern int rec_restoring_now;
 extern void rec_init(struct db_main *db, void (*save_mode)(FILE *file));
 
 /*
+ * Sets a 'hybrid' save function. These are called after calling the 'main'
+ * save function.
+ */
+extern void rec_init_hybrid(void (*save_mode)(FILE *file));
+
+/*
  * Saves the command line arguments and cracking mode specific information.
  */
 extern void rec_save(void);

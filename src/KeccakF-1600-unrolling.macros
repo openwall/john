@@ -42,7 +42,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #elif (Unrolling == 12)
 #define rounds \
     prepareTheta \
-    for(i=0; i<24; i+=12) { \
+    for (i=0; i<24; i+=12) { \
         thetaRhoPiChiIotaPrepareTheta(i   , A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+ 1, E, A) \
         thetaRhoPiChiIotaPrepareTheta(i+ 2, A, E) \
@@ -60,7 +60,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #elif (Unrolling == 8)
 #define rounds \
     prepareTheta \
-    for(i=0; i<24; i+=8) { \
+    for (i=0; i<24; i+=8) { \
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+1, E, A) \
         thetaRhoPiChiIotaPrepareTheta(i+2, A, E) \
@@ -74,7 +74,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #elif (Unrolling == 6)
 #define rounds \
     prepareTheta \
-    for(i=0; i<24; i+=6) { \
+    for (i=0; i<24; i+=6) { \
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+1, E, A) \
         thetaRhoPiChiIotaPrepareTheta(i+2, A, E) \
@@ -86,7 +86,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #elif (Unrolling == 4)
 #define rounds \
     prepareTheta \
-    for(i=0; i<24; i+=4) { \
+    for (i=0; i<24; i+=4) { \
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+1, E, A) \
         thetaRhoPiChiIotaPrepareTheta(i+2, A, E) \
@@ -96,7 +96,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #elif (Unrolling == 3)
 #define rounds \
     prepareTheta \
-    for(i=0; i<24; i+=3) { \
+    for (i=0; i<24; i+=3) { \
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+1, E, A) \
         thetaRhoPiChiIotaPrepareTheta(i+2, A, E) \
@@ -106,7 +106,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #elif (Unrolling == 2)
 #define rounds \
     prepareTheta \
-    for(i=0; i<24; i+=2) { \
+    for (i=0; i<24; i+=2) { \
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         thetaRhoPiChiIotaPrepareTheta(i+1, E, A) \
     } \
@@ -114,7 +114,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #elif (Unrolling == 1)
 #define rounds \
     prepareTheta \
-    for(i=0; i<24; i++) { \
+    for (i=0; i<24; i++) { \
         thetaRhoPiChiIotaPrepareTheta(i  , A, E) \
         copyStateVariables(A, E) \
     } \

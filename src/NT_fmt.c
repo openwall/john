@@ -41,7 +41,9 @@
 
 
 #define FORMAT_LABEL			"NT-old"
-#define FORMAT_NAME			""
+#define FORMAT_NAME				""
+#define FORMAT_TAG				"$NT$"
+#define TAG_LENGTH				(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -156,7 +158,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 		unsigned int d;
 		unsigned int i=0;
 
-		for(;i<NT_NUM_KEYS;i++)
+		for (;i<NT_NUM_KEYS;i++)
 		{
 			/* Round 1 */
 			a = 		0xFFFFFFFF 		 +nt_buffer1x[i*16+0];a=(a<<3 )|(a>>29);
@@ -234,7 +236,7 @@ static void set_key_utf8(char *_key, int index);
 static void set_key_encoding(char *_key, int index);
 extern struct fmt_main fmt_NT;
 
-static void fmt_NT_init(struct fmt_main *self)
+static void init(struct fmt_main *self)
 {
 	memset(last_i,0,4*NT_NUM_KEYS);
 #if defined(NT_X86_64)
@@ -283,22 +285,19 @@ static void fmt_NT_init(struct fmt_main *self)
 	}
 }
 
-static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
-	out[0] = '$';
-	out[1] = 'N';
-	out[2] = 'T';
-	out[3] = '$';
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 
-	memcpy(&out[4], ciphertext, 32);
+	memcpy(&out[TAG_LENGTH], ciphertext, 32);
 	out[36] = 0;
 
-	strlwr(&out[4]);
+	strlwr(&out[TAG_LENGTH]);
 
 	return out;
 }
@@ -307,14 +306,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
-        for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
-        if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
+	if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
 		return 1;
-        else
+	else
 		return 0;
 }
 
@@ -322,12 +321,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // Note, we address the user id inside loader.
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static char out[33+5];
+	static char out[33 + TAG_LENGTH + 1];
 
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
-			sprintf(out, "$NT$%s", split_fields[3]);
-			if (valid(out,self))
+			sprintf(out, "%s%s", FORMAT_TAG, split_fields[3]);
+			if (valid(out, self))
 				return out;
 		}
 	}
@@ -340,8 +339,8 @@ static void *get_binary(char *ciphertext)
 	unsigned int i=0;
 	unsigned int temp;
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
 	for (; i<4; i++)
 	{
@@ -413,7 +412,7 @@ static int get_hash_0(int index)
 #if defined(NT_X86_64)
 	return output8x[32*(index>>3)+8+index%8] & PH_MASK_0;
 #elif defined(NT_SSE2)
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 		return output4x[16*(index>>2)+4+index%4] & PH_MASK_0;
 	else
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_0;
@@ -427,7 +426,7 @@ static int get_hash_1(int index)
 #if defined(NT_X86_64)
 	return output8x[32*(index>>3)+8+index%8] & PH_MASK_1;
 #elif defined(NT_SSE2)
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 		return output4x[16*(index>>2)+4+index%4] & PH_MASK_1;
 	else
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_1;
@@ -441,7 +440,7 @@ static int get_hash_2(int index)
 #if defined(NT_X86_64)
 	return output8x[32*(index>>3)+8+index%8] & PH_MASK_2;
 #elif defined(NT_SSE2)
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 		return output4x[16*(index>>2)+4+index%4] & PH_MASK_2;
 	else
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_2;
@@ -455,7 +454,7 @@ static int get_hash_3(int index)
 #if defined(NT_X86_64)
 	return output8x[32*(index>>3)+8+index%8] & PH_MASK_3;
 #elif defined(NT_SSE2)
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 		return output4x[16*(index>>2)+4+index%4] & PH_MASK_3;
 	else
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_3;
@@ -469,7 +468,7 @@ static int get_hash_4(int index)
 #if defined(NT_X86_64)
 	return output8x[32*(index>>3)+8+index%8] & PH_MASK_4;
 #elif defined(NT_SSE2)
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 		return output4x[16*(index>>2)+4+index%4] & PH_MASK_4;
 	else
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_4;
@@ -483,7 +482,7 @@ static int get_hash_5(int index)
 #if defined(NT_X86_64)
 	return output8x[32*(index>>3)+8+index%8] & PH_MASK_5;
 #elif defined(NT_SSE2)
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 		return output4x[16*(index>>2)+4+index%4] & PH_MASK_5;
 	else
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_5;
@@ -497,7 +496,7 @@ static int get_hash_6(int index)
 #if defined(NT_X86_64)
 	return output8x[32*(index>>3)+8+index%8] & PH_MASK_6;
 #elif defined(NT_SSE2)
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 		return output4x[16*(index>>2)+4+index%4] & PH_MASK_6;
 	else
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & PH_MASK_6;
@@ -512,22 +511,22 @@ static int cmp_all(void *binary, int count)
 	unsigned int b=((unsigned int *)binary)[1];
 
 #if defined(NT_X86_64)
-	for(;i<(NT_NUM_KEYS/8);i++)
-		if(b==output8x[i*32+8] || b==output8x[i*32+9] || b==output8x[i*32+10] || b==output8x[i*32+11] || b==output8x[i*32+12] || b==output8x[i*32+13] || b==output8x[i*32+14] || b==output8x[i*32+15])
+	for (;i<(NT_NUM_KEYS/8);i++)
+		if (b==output8x[i*32+8] || b==output8x[i*32+9] || b==output8x[i*32+10] || b==output8x[i*32+11] || b==output8x[i*32+12] || b==output8x[i*32+13] || b==output8x[i*32+14] || b==output8x[i*32+15])
 			return 1;
 #elif defined(NT_SSE2)
 	unsigned int pos=4;
 
-	for(;i<NT_NUM_KEYS1;i++,pos+=16)
-		if(b==output4x[pos] || b==output4x[pos+1] || b==output4x[pos+2] || b==output4x[pos+3])
+	for (;i<NT_NUM_KEYS1;i++,pos+=16)
+		if (b==output4x[pos] || b==output4x[pos+1] || b==output4x[pos+2] || b==output4x[pos+3])
 			return 1;
 	i=1;
-	for(;i<NT_NUM_KEYS4;i+=4)
-		if(b==output1x[i])
+	for (;i<NT_NUM_KEYS4;i+=4)
+		if (b==output1x[i])
 			return 1;
 #else
-	for(;i<NT_NUM_KEYS;i++)
-		if(b==output1x[i*4+1])
+	for (;i<NT_NUM_KEYS;i++)
+		if (b==output1x[i*4+1])
 			return 1;
 #endif
 
@@ -564,7 +563,7 @@ static int cmp_one(void * binary, int index)
 #elif defined(NT_SSE2)
 	int temp;
 
-	if(index<NT_NUM_KEYS4)
+	if (index<NT_NUM_KEYS4)
 	{
 		buffer=nt_buffer4x;
 
@@ -606,16 +605,16 @@ static int cmp_one(void * binary, int index)
 	pos2=8+pos1;
 	pos3=4+pos1;
 #endif
-	if(b!=t[1])
+	if (b!=t[1])
 		return 0;
 	b += SQRT_3;b = (b << 15) | (b >> 17);
 
 	a += (b ^ c ^ d) + buffer[pos1] + SQRT_3; a = (a << 3 ) | (a >> 29);
-	if(a!=t[0])
+	if (a!=t[0])
 		return 0;
 
 	d += (a ^ b ^ c) + buffer[pos2] + SQRT_3; d = (d << 9 ) | (d >> 23);
-	if(d!=t[3])
+	if (d!=t[3])
 		return 0;
 
 	c += (d ^ a ^ b) + buffer[pos3] + SQRT_3; c = (c << 11) | (c >> 21);
@@ -635,8 +634,8 @@ static char *source(char *source, void *binary)
 	char *cpo;
 	int i;
 
-	strcpy(Buf, "$NT$");
-	cpo = &Buf[4];
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[TAG_LENGTH];
 
 	// we have to 'undo' the stuff done in the get_binary() function, to get back to the 'original' hash value.
 	memcpy(out, binary, 16);
@@ -671,7 +670,7 @@ static inline void set_key_helper(unsigned int * keybuffer,
 {
 	unsigned int i=0;
 	unsigned int md4_size=0;
-	for(; key[md4_size]; i += xBuf, md4_size++)
+	for (; key[md4_size]; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
 		if ((temp = key[++md4_size]) && md4_size < PLAINTEXT_LENGTH)
@@ -688,7 +687,7 @@ static inline void set_key_helper(unsigned int * keybuffer,
 
 key_cleaning:
 	i += xBuf;
-	for(;i <= *last_length; i += xBuf)
+	for (;i <= *last_length; i += xBuf)
 		keybuffer[i] = 0;
 
 	if (xBuf==1)
@@ -705,7 +704,7 @@ static void set_key(char *_key, int index)
 	set_key_helper(&nt_buffer8x[128 * (index >> 3) + index % 8], 8,
 	               (unsigned char *)_key, 112, &last_i[index]);
 #elif defined(NT_SSE2)
-	if(index < NT_NUM_KEYS4) {
+	if (index < NT_NUM_KEYS4) {
 		set_key_helper(&nt_buffer4x[64 * (index >> 2) + index % 4], 4,
 		               (unsigned char *)_key, 56, &last_i[index]);
 	}
@@ -867,7 +866,7 @@ static void set_key_utf8(char *_key, int index)
 	set_key_helper_utf8(&nt_buffer8x[128 * (index >> 3) + index % 8], 8,
 	                (UTF8 *)_key, 112, &last_i[index]);
 #elif defined(NT_SSE2)
-	if(index < NT_NUM_KEYS4)
+	if (index < NT_NUM_KEYS4)
 		set_key_helper_utf8(&nt_buffer4x[64 * (index >> 2) + index % 4], 4,
 		                (UTF8 *)_key, 56, &last_i[index]);
 	else
@@ -905,7 +904,7 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 	} else {
 		unsigned int temp, temp2;
 		i = 0;
-		for(md4_size = 0; (temp2 = key[md4_size]); i += xBuf, md4_size++)
+		for (md4_size = 0; (temp2 = key[md4_size]); i += xBuf, md4_size++)
 		{
 			if ((temp = key[++md4_size]) && md4_size < PLAINTEXT_LENGTH)
 			{
@@ -923,7 +922,7 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 key_cleaning_enc:
 
 	i += xBuf;
-	for(;i <= *last_length; i += xBuf)
+	for (;i <= *last_length; i += xBuf)
 		keybuffer[i] = 0;
 
 	if (xBuf==1) {
@@ -943,7 +942,7 @@ static void set_key_encoding(char *_key, int index)
 #if defined(NT_X86_64)
 	set_key_helper_encoding(&nt_buffer8x[128 * (index >> 3) + index % 8], 8, (unsigned char *)_key, 112, &last_i[index]);
 #elif defined(NT_SSE2)
-	if(index < NT_NUM_KEYS4)
+	if (index < NT_NUM_KEYS4)
 		set_key_helper_encoding(&nt_buffer4x[64 * (index >> 2) + index % 4], 4, (unsigned char *)_key, 56, &last_i[index]);
 	else
 		set_key_helper_encoding(&nt_buffer1x[16 * (index - NT_NUM_KEYS4)], 1, (unsigned char *)_key, 14, &last_i[index]);
@@ -963,7 +962,7 @@ static inline UTF16 *get_key_helper(unsigned int * keybuffer, unsigned int xBuf)
 	unsigned int md4_size=0;
 	unsigned int i=0;
 
-	for(; md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+	for (; md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
 	{
 		key[md4_size] = keybuffer[i];
 		key[md4_size+1] = keybuffer[i] >> 16;
@@ -986,7 +985,7 @@ static char *get_key(int index)
 	return (char*)utf16_to_enc(get_key_helper(&nt_buffer8x[128 * (index >> 3) +
 	                                                index % 8], 8));
 #elif defined(NT_SSE2)
-	if(index < NT_NUM_KEYS4)
+	if (index < NT_NUM_KEYS4)
 		return (char*)utf16_to_enc(get_key_helper(&nt_buffer4x[64 * (index >> 2) +
 		                                                index % 4], 4));
 	else
@@ -1024,14 +1023,15 @@ struct fmt_main fmt_NT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
-		fmt_NT_init,
+		init,
 		fmt_default_done,
 		fmt_default_reset,
 		prepare,
 		valid,
-		nt_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 		{ NULL },

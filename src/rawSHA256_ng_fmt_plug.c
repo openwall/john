@@ -42,8 +42,8 @@ john_register_one(&fmt_rawSHA256_ng);
 #endif
 
 #include <string.h>
+#include <stdint.h>
 
-#include "stdint.h"
 #include "pseudo_intrinsics.h"
 #include "common.h"
 #include "formats.h"
@@ -58,7 +58,7 @@ john_register_one(&fmt_rawSHA256_ng);
 #define SIMD_TYPE                 "256/256 AVX2 8x"
 #elif __ALTIVEC__
 #define SIMD_TYPE                 "128/128 AltiVec 4x"
-#elif __ARM_NEON__
+#elif __ARM_NEON
 #define SIMD_TYPE                 "128/128 NEON 4x"
 #elif __XOP__
 #define SIMD_TYPE                 "128/128 XOP 4x"
@@ -404,7 +404,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	ARCH_WORD_32 *binary = sha256_common_binary(source);
+	uint32_t *binary = sha256_common_binary(source);
     int i;
 
     for (i = 0; i < 8; i++)
@@ -435,6 +435,10 @@ struct fmt_main fmt_rawSHA256_ng = {
 #endif
         FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{
+			HEX_TAG,
+			CISCO_TAG
+		},
         sha256_common_tests
     }, {
         init,

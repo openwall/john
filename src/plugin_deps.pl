@@ -22,12 +22,15 @@ sub find_deps {
 	while (<$fh>) {
 		if (/^\s*#\s*include\s+"([^"]+)"/) {
 			my $object = $base_dir . $1;
+			if ($src_file =~ /^opencl\// && $object =~ /\.cl$/) {
+				$object = "opencl/" . $object;
+			}
 			while ($object =~ s/([^\/]+)\/..\///g) {}
 			if ($object eq "arch.h" || $object eq "autoconfig.h" || -f $object) {
 				if (!($uniqdep_ref->{$object}++)) {
 					#print "src $src_file obj $object\n";
-					if (($src_file =~ /\.cl$/ && $object =~ /^opencl_.*\.h$/) ||
-						($src_file =~ /^opencl_.*\.h$/ && $object =~ /^opencl_.*\.h$/)) {
+					if (($src_file =~ /^opencl\// && $object =~ /^opencl_.*\.h$/) ||
+						($src_file =~ /^opencl_.*\.h$/ && $object =~ /^opencl_.*\.(h|cl)$/)) {
 						$object = "../run/kernels/" . $object;
 						$deps .= " " . $object;
 						# Recurse!

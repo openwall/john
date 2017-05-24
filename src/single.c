@@ -28,6 +28,8 @@
 #include "config.h"
 #include "memdbg.h"
 
+struct list_main *single_seed;
+
 static double progress = 0;
 static int rec_rule;
 
@@ -39,6 +41,9 @@ static struct rpp_context *rule_ctx;
 
 static int words_pair_max;
 static int retest_guessed;
+
+extern int rpp_real_run; /* set to 1 when we really get into single mode */
+
 
 static void save_state(FILE *file)
 {
@@ -95,6 +100,10 @@ static void single_init(void)
 
 	log_event("Proceeding with \"single crack\" mode");
 
+	if (rec_restored && john_main_process)
+		fprintf(stderr, "Proceeding with single, rules:%s\n",
+		        options.activesinglerules);
+
 	retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                              "SingleRetestGuessed", 1);
 
@@ -102,6 +111,11 @@ static void single_init(void)
 	                                  "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;
 
+	if (single_seed->count) {
+		log_event("- SingleWordsPairMax bumped for %d seed words",
+		          single_seed->count);
+		words_pair_max += single_seed->count;
+	}
 	log_event("- SingleWordsPairMax used is %d", words_pair_max);
 	log_event("- SingleRetestGuessed = %s",retest_guessed?"true":"false");
 
@@ -311,6 +325,8 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	char *rule)
 {
 	struct list_entry *first, *second;
+	struct list_entry *global_head = single_seed->head;
+	int first_global, second_global;
 	int first_number, second_number;
 	char pair[RULE_WORD_SIZE];
 	int split;
@@ -319,8 +335,10 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	if (!(first = pw->words->head))
 		return -1;
 
-	first_number = 0;
+	first_number = first_global = 0;
 	do {
+		if (first == global_head)
+			first_global = 1;
 		if ((key = rules_apply(first->data, rule, 0, NULL)))
 		if (ext_filter(key))
 		if (single_add_key(salt, key, 0))
@@ -336,11 +354,14 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 		if (!CP_isLetter[(unsigned char)first->data[0]])
 			continue;
 
-		second_number = 0;
+		second_number = second_global = 0;
 		second = pw->words->head;
 
-		do
-		if (first != second) {
+		do {
+			if (second == global_head)
+				second_global = 1;
+			if (first == second || (first_global && second_global))
+				continue;
 			if ((split = strlen(first->data)) < length) {
 				strnzcpy(pair, first->data, RULE_WORD_SIZE);
 				strnzcat(pair, second->data, RULE_WORD_SIZE);
@@ -355,7 +376,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 					return 0;
 			}
 
-			if (first->data[1]) {
+			if (!first_global && first->data[1]) {
 				pair[0] = first->data[0];
 				pair[1] = 0;
 				strnzcat(pair, second->data, RULE_WORD_SIZE);
@@ -436,6 +457,7 @@ static void single_run(void)
 	int have_words;
 
 	saved_min = rec_rule;
+	rpp_real_run = 1;
 	while ((prerule = rpp_next(rule_ctx))) {
 		if (options.node_count) {
 			int for_node = rule_number % options.node_count + 1;
@@ -447,24 +469,24 @@ static void single_run(void)
 		}
 
 		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
 			continue;
 		}
 
 		if (strcmp(prerule, rule)) {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
 				rule_number + 1, prerule, rule);
 		} else {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Rule #%d: '%.100s' accepted",
 				rule_number + 1, prerule);
 		}
 
 		if (saved_min != rec_rule) {
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity >= VERB_LEGACY)
 			log_event("- Oldest still in use is now rule #%d",
 				rec_rule + 1);
 			saved_min = rec_rule;
@@ -526,6 +548,7 @@ static void single_done(void)
 	}
 
 	rec_done(event_abort || (status.pass && single_db->salts));
+	c_cleanup();
 }
 
 void do_single_crack(struct db_main *db)

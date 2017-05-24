@@ -62,8 +62,8 @@ static int (*saved_len);
 // the Keccak function can read up to next even 8 byte offset.
 // making the buffer larger avoid reading past end of buffer
 static char (*saved_key)[(((PLAINTEXT_LENGTH+1)+7)/8)*8];
-static ARCH_WORD_32 (*crypt_out)
-    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)
+    [(BINARY_SIZE + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -234,6 +234,7 @@ struct fmt_main fmt_rawSHA3 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP | FMT_OMP_BAD | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ NULL },
 		tests
 	}, {

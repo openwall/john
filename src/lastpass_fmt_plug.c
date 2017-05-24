@@ -17,6 +17,13 @@ john_register_one(&fmt_lastpass);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               64
+#endif
+#endif
+
 #include "arch.h"
 #include "johnswap.h"
 #include "misc.h"
@@ -24,18 +31,14 @@ john_register_one(&fmt_lastpass);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/aes.h>
+#include "aes.h"
 #include "pbkdf2_hmac_sha256.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"lp"
 #define FORMAT_NAME		"LastPass offline"
+#define FORMAT_TAG		"$lp$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
@@ -46,7 +49,7 @@ john_register_one(&fmt_lastpass);
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			sizeof(int)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
@@ -68,7 +71,7 @@ static struct fmt_tests lastpass_tests[] = {
 static int omp_t = 1;
 #endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[32 / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int iterations;
@@ -99,18 +102,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext, "$lp$", 4))
+	int extra;
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 4;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* email */
 		goto err;
 	if (strlen(p) > 32)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	if (hexlenl(p) != 32)
+	if (hexlenl(p, &extra) != 32 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -128,7 +133,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 4;	/* skip over "$lp$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$lp$" */
 	p = strtokm(ctcopy, "$");
 	strncpy((char*)cs.salt, p, 32);
 	cs.salt_length = strlen((char*)p);
@@ -180,9 +185,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
-		ARCH_WORD_32 key[MAX_KEYS_PER_CRYPT][8];
+		uint32_t key[MAX_KEYS_PER_CRYPT][8];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -200,14 +205,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		unsigned char key[32];
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->salt_length, 500, key, 32, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 8; ++i) {
-				((ARCH_WORD_32*)key)[i] = JOHNSWAP(((ARCH_WORD_32*)key)[i]);
-			}
-		}
-#endif
 		memset(&akey, 0, sizeof(AES_KEY));
 		AES_set_encrypt_key((unsigned char*)key, 256, &akey);
 		AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[index], &akey, AES_ENCRYPT);
@@ -266,6 +263,7 @@ struct fmt_main fmt_lastpass = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		lastpass_tests
 	}, {
 		init,

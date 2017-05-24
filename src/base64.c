@@ -12,26 +12,26 @@ void base64_unmap(char *in_block) {
   int i;
   char *c;
 
-  for(i=0; i<4; i++) {
+  for (i=0; i<4; i++) {
     c = in_block + i;
 
-    if(*c>='A' && *c<='Z') {
+    if (*c>='A' && *c<='Z') {
       *c -= 'A';
       continue;
     }
 
-    if(*c>='a' && *c<='z') {
+    if (*c>='a' && *c<='z') {
       *c -= 'a';
       *c += 26;
       continue;
     }
 
-    if(*c == '+') {
+    if (*c == '+') {
       *c = 62;
       continue;
     }
 
-    if(*c == '/') {
+    if (*c == '/') {
       *c = 63;
       continue;
     }
@@ -55,9 +55,9 @@ int base64_decode(char *in, int inlen, char *out) {
   out_block = out;
   in_block = in;
 
-  for(i=0; i<inlen; i+=4) {
+  for (i=0; i<inlen; i+=4) {
 
-    if(*in_block == '=')
+    if (*in_block == '=')
       return 0;
 
     memcpy(temp, in_block, 4);
@@ -72,7 +72,7 @@ int base64_decode(char *in, int inlen, char *out) {
       ((temp[2]<<6) & 0xc0) | ((temp[3]   ) & 0x3f);
 
     out_block += 3;
-	if(in_block[3] == '=')
+	if (in_block[3] == '=')
       return 0;
     in_block += 4;
   }

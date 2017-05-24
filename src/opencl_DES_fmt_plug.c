@@ -272,6 +272,7 @@ struct fmt_main fmt_opencl_DES = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_TRUNC | FMT_BS | FMT_REMOVE,
 		{ NULL },
+		{ NULL },
 		tests
 	}, {
 		init,

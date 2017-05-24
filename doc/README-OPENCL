@@ -38,7 +38,7 @@ COMPILING:
 
 The new autoconf (./configure) should find your OpenCL installation and
 enable it. If it doesn't, you may need to pass some parameters about where
-it's located, eg.
+it's located, e.g.,
     ./configure LDFLAGS=-L/opt/AMDAPP/lib CFLAGS=-I/opt/AMDAPP/include
     make -s
 
@@ -73,7 +73,7 @@ USAGE:
 You can use john with your favourite options and the corresponding
 OpenCL format you need. If no --format is given, john will always
 pick the CPU format. To use OpenCL you must explicitly select the
-format eg. --format=wpapsk-opencl
+format, e.g., --format=wpapsk-opencl
 
 
 ====================
@@ -107,7 +107,7 @@ RAKP-opencl               IPMI 2.0 RAKP (RMCP+)
 sha1crypt-opencl          NetBSD's sha1crypt
 WPAPSK-opencl             WPA/WPA2 PSK
 
-If/when a format runs vectorized, it will show algorithm name as eg.
+If/when a format runs vectorized, it will show algorithm name as e.g.
 [OpenCL 4x] as opposed to just [OpenCL].
 
 
@@ -178,7 +178,7 @@ The above will fork to four processes and each process will use a different
 GPU or Accelerator device. The "-dev" option (--device) is likely needed
 because it defaults to 'all' which may include unwanted devices. Instead
 of -dev=gpu,acc (use all/any GPUs and accelerators) you could specify them
-explicitly if needed, eg. -dev=0,1,5,6.
+explicitly if needed, e.g. -dev=0,1,5,6.
 
 Or maybe you have two cards in a remote host called alpha and one card in
 a host called bravo. Build with MPI support and use this variant of the above:
@@ -190,7 +190,7 @@ as one process on bravo. In this case, the "-dev=gpu" option will be
 enumerated on each host so if GPUs are devices 1 & 3 on alpha but device 0 on
 bravo, that is not a problem.
 
-If for some reason you want to run eg. two processes on each GPU, just double
+If for some reason you want to run e.g. two processes on each GPU, just double
 the -fork argument or the MPI number of hosts (using -np option to mpirun).
 The device list will round-robin.
 

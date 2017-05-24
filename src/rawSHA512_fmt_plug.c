@@ -20,13 +20,15 @@ extern struct fmt_main fmt_raw0_SHA512;
 john_register_one(&fmt_raw0_SHA512);
 #else
 
+#include <stdint.h>
+
 #include "arch.h"
 #include "sha2.h"
-#include "stdint.h"
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"
+#include "rawSHA512_common.h"
 
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
@@ -79,17 +81,15 @@ john_register_one(&fmt_raw0_SHA512);
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
-#define __RAWSHA512_CREATE_PROPER_TESTS_ARRAY__
-#include "rawSHA512_common.h"
 
 #ifdef SIMD_COEF_64
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-static ARCH_WORD_64 (*saved_key);
-static ARCH_WORD_64 (*crypt_out);
+static uint64_t (*saved_key);
+static uint64_t (*crypt_out);
 #else
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_64 (*crypt_out)[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
+static uint64_t (*crypt_out)[DIGEST_SIZE / sizeof(uint64_t)];
 #endif
 
 static void init(struct fmt_main *self)
@@ -128,7 +128,7 @@ static void done(void)
 
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_64 *outw;
+	static uint64_t *outw;
 	unsigned char *out;
 	char *p;
 	int i;
@@ -174,28 +174,28 @@ static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 #endif
 
-static int binary_hash_0(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_0; }
-static int binary_hash_1(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_1; }
-static int binary_hash_2(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_2; }
-static int binary_hash_3(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_3; }
-static int binary_hash_4(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_4; }
-static int binary_hash_5(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_5; }
-static int binary_hash_6(void *binary) { return ((ARCH_WORD_64*)binary)[0] & PH_MASK_6; }
+static int binary_hash_0(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_5; }
+static int binary_hash_6(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_6; }
 
 static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_64
 #if ARCH_ALLOWS_UNALIGNED
-	const ARCH_WORD_64 *wkey = (ARCH_WORD_64*)key;
+	const uint64_t *wkey = (uint64_t*)key;
 #else
 	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const ARCH_WORD_64 *wkey = is_aligned(key, sizeof(uint64_t)) ?
-			(ARCH_WORD_64*)key : (ARCH_WORD_64*)strcpy(buf_aligned, key);
+	const uint64_t *wkey = is_aligned(key, sizeof(uint64_t)) ?
+			(uint64_t*)key : (uint64_t*)strcpy(buf_aligned, key);
 #endif
-	ARCH_WORD_64 *keybuffer = &((ARCH_WORD_64*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	ARCH_WORD_64 *keybuf_word = keybuffer;
+	uint64_t *keybuffer = &((uint64_t*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+	uint64_t *keybuf_word = keybuffer;
 	unsigned int len;
-	ARCH_WORD_64 temp;
+	uint64_t temp;
 
 	len = 0;
 	while((unsigned char)(temp = *wkey++)) {
@@ -267,12 +267,12 @@ static char *get_key(int index)
 {
 #ifdef SIMD_COEF_64
 	unsigned i;
-	ARCH_WORD_64 s;
+	uint64_t s;
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned char *wucp = (unsigned char*)saved_key;
 
-	s = ((ARCH_WORD_64*)saved_key)[15*SIMD_COEF_64 + (index&(SIMD_COEF_64-1)) + index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] >> 3;
-	for(i = 0; i < (unsigned)s; i++)
+	s = ((uint64_t*)saved_key)[15*SIMD_COEF_64 + (index&(SIMD_COEF_64-1)) + index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] >> 3;
+	for (i = 0; i < (unsigned)s; i++)
 		out[i] = wucp[ GETPOS(i, index) ];
 	out[i] = 0;
 	return (char*) out;
@@ -317,9 +317,9 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_64
-		if (((ARCH_WORD_64*)binary)[0] == crypt_out[HASH_IDX])
+		if (((uint64_t*)binary)[0] == crypt_out[HASH_IDX])
 #else
-		if ( ((ARCH_WORD_64*)binary)[0] == crypt_out[index][0] )
+		if ( ((uint64_t*)binary)[0] == crypt_out[index][0] )
 #endif
 			return 1;
 	return 0;
@@ -328,18 +328,18 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_64
-	return ((ARCH_WORD_64*)binary)[0] == crypt_out[HASH_IDX];
+	return ((uint64_t*)binary)[0] == crypt_out[HASH_IDX];
 #else
-	return *(ARCH_WORD_64*)binary == crypt_out[index][0];
+	return *(uint64_t*)binary == crypt_out[index][0];
 #endif
 }
 
 static int cmp_exact(char *source, int index)
 {
-	ARCH_WORD_64 *binary = get_binary(source);
+	uint64_t *binary = get_binary(source);
 	char *key = get_key(index);
 	SHA512_CTX ctx;
-	ARCH_WORD_64 crypt_out[DIGEST_SIZE / sizeof(ARCH_WORD_64)];
+	uint64_t crypt_out[DIGEST_SIZE / sizeof(uint64_t)];
 
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, key, strlen(key));
@@ -356,7 +356,7 @@ static int cmp_exact(char *source, int index)
 
 /*
  * The '0_' makes sure this format registers before others,
- * if ambigous.  Do not copy it for other formats.
+ * if ambiguous.  Do not copy it for other formats.
  */
 struct fmt_main fmt_raw0_SHA512 = {
 	{
@@ -376,7 +376,12 @@ struct fmt_main fmt_raw0_SHA512 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		sha512_common_tests
+		{
+			FORMAT_TAG,
+			XSHA512_FORMAT_TAG,
+			NSLDAP_FORMAT_TAG
+		},
+		sha512_common_tests_rawsha512_111
 	}, {
 		init,
 		done,

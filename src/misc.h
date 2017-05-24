@@ -21,20 +21,20 @@
 #include "jumbo.h"
 
 #if !AC_BUILT
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# include "autoconfig.h"
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #include "autoconfig.h"
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 
 /*
@@ -91,6 +91,17 @@ extern int write_loop(int fd, const char *buffer, int count);
 extern char *fgetl(char *s, int size, FILE *stream);
 
 /*
+ * Similar to fgetl(), but handles super long lines (longer than
+ * size, by allocating a buffer, and filling it. So, if the return
+ * to fgetll is a valid pointer, but NOT pointed to the original
+ * s buffer, then the caller MUST call MEM_FREE to that pointer
+ * once it is done with it.
+ */
+#ifndef _JOHN_MISC_NO_LOG
+extern char *fgetll(char *s, size_t size, FILE *stream);
+#endif
+
+/*
  * Similar to strncpy(), but terminates with only one NUL if there's room
  * instead of padding to the supplied size like strncpy() does.
  */
@@ -119,7 +130,7 @@ extern char *strnzcat(char *dst, const char *src, int size);
 extern unsigned atou(const char *src);
 
 /*
- * Similar to strtok(), but properly handles adjacent delmiters as
+ * Similar to strtok(), but properly handles adjacent delimiters as
  * empty strings.  strtok() in the CRTL merges adjacent delimiters
  * and sort of 'skips' them. This one also returns 'empty' tokens
  * for any leading or trailing delims. strtok() strips those off
@@ -128,7 +139,7 @@ extern unsigned atou(const char *src);
 char *strtokm(char *s1, const char *delimit);
 
 #ifndef __has_feature
-# define __has_feature(x) 0
+ #define __has_feature(x) 0
 #endif
 
 #if /* is ASAN enabled? */ \
@@ -141,5 +152,21 @@ char *strtokm(char *s1, const char *delimit);
 #else
   #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
 #endif
+
+/*
+ * itoa type functions. Thread and buffer safe. Handles base from 2 to 36
+ * note if buffer empty (result_len < 1), then a constant "" is returned
+ * otherwise all work is done in the result buffer (which should be
+ * result_len bytes long). If the buffer is too small, the number returned
+ * will be truncated, but the LSB of data will be returned.  Not exactly
+ * the right result, BUT buffer safe.
+ * A truncated example would be: jtr_itoa(-1234567,b,6,10) returns "-4567"
+ * note, itoa and utoa exist on certain systems (even though not stdC funcs)
+ * so they have been renamed.
+ */
+const char *jtr_itoa(int num, char *result, int result_len, int base);
+const char *jtr_utoa(unsigned int num, char *result, int result_len, int base);
+const char *jtr_lltoa(long long num, char *result, int result_len, int base);
+const char *jtr_ulltoa(unsigned long long num, char *result, int result_len, int base);
 
 #endif

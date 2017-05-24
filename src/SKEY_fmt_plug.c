@@ -90,7 +90,7 @@ static struct skey_salt_st {
 	char	seed[SKEY_MAX_SEED_LEN + 1];
 	unsigned char	hash[SKEY_BINKEY_SIZE];
 } saved_salt;
-static ARCH_WORD_32 saved_key[SKEY_BINKEY_SIZE/4];
+static uint32_t saved_key[SKEY_BINKEY_SIZE/4];
 static char	saved_pass[PLAINTEXT_LENGTH + 1];
 
 static void *skey_salt(char *ciphertext);
@@ -99,6 +99,7 @@ static int
 skey_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, buf[128];
+	int extra;
 
 	if (*ciphertext == '#')
 		return 0;
@@ -125,7 +126,7 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if ((p = strtok(NULL, " \t")) == NULL)
 		return 0;
-	if (hexlenl(p) != (2 * SKEY_BINKEY_SIZE))
+	if (hexlenl(p, &extra) != (2 * SKEY_BINKEY_SIZE) || extra)
 		return 0;
 
 	if (!skey_salt(ciphertext))
@@ -281,7 +282,7 @@ static unsigned int skey_hash_type(void *salt)
 	my_salt = (struct skey_salt_st*)salt;
 	/*
 	 * An empty string (like in the first test hash) meaning MD4
-	 * is just my assumtion based on some googling.
+	 * is just my assumption based on some googling.
 	 * Older implementations apparently only supported MD4, MD5, and SHA1,
 	 * while newer only support MD5, SHA1, and RMD160.
 	 * If I am wrong, and "" means MD5, the cost difference
@@ -339,6 +340,7 @@ struct fmt_main fmt_SKEY = {
 			"hash type [1:MD4 2:MD5 3:SHA1 4:RMD160]",
 			"iteration count",
 		},
+		{ NULL },
 		skey_tests
 	}, {
 		fmt_default_init,

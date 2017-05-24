@@ -1,0 +1,104 @@
+	*** Wordlist rules syntax (hashcat extensions). ***
+
+John 1.8-jumbo-2 has added new rules syntax (and some slightly different
+rules processing logic), so that hashcat rules are handled 100% identical
+to how hashcat (cpu) proccesses them.
+
+New .conf file flags added.
+
+There are 2 new 'flags' added.  These tell both the config loader (part of
+john which loads the .conf files), how to process things a bit differently,
+and tells the rules engine that the rules processing should be done fully
+using hashcat logic (or not).  These flags are:
+
+!! hashcat logic ON
+!! hashcat logic OFF
+
+Normally, the hashcat rules files should be included into johns configuration
+and the best way to do this, is to add lines to a john-local.conf file that
+you create (or update) that is either in the current working directory, or
+in the run directory where the john process is located.  Within this file,
+one simply creates include sections, like this:
+
+[List.Rules:HC_dive]
+!! hashcat logic ON
+.include '/code/hashcat/rules/dive.rule'
+!! hashcat logic OFF
+
+[List.Rules:HC_deadone]
+!! hashcat logic ON
+.include '/code/hashcat//rules/d3ad0ne.rule'
+!! hashcat logic OFF
+
+... etc.
+
+Within hashcat mode, there is no rules preprocessor. So rules such as [ and ]
+which would NORMALLY require quoting such as \[ or \] no longer require
+quoting.  Also, there are no 'character classes' within hashcat logic, so
+the ? will be usable as is :  such as  $? where in john's normal rules, this
+would have to be $??  (for class ?)
+
+Note, the "!! hashcat logic ON" / "!! hashcat logic OFF" do not have to
+be used right before/after a .include statement.  However, be very cautious
+when using '!! hashcat logic ON' pragma lines, as this will cause the
+.conf file loading to fail to load sections, and has other strange side
+effects, if the '!! hashcat logic OFF' is not present, and there will be
+few or no side effects, other than sections which are expected to be seen
+or options that are expected to be changed, are NOT showing up or working.
+
+
+	*** New rules added (many work fine outside of hashcat logic sections) ***
+
++-------+------------------+-------+------------+------------------------+-----+
+| Rule  |  Explanation     |Example| Input data |      Output Data       |notes|
++-------+------------------+-------+------------+------------------------+-----+
+|  pN   | Dup word N times |  p2   | P@ss       |   P@ssP@ssP@ss         |  23 |
++-------+------------------+-------+------------+------------------------+-----+
+|  RN   | bitshift right   |  R2   | P@ss       |   P@9s                 |  24 |
++-------+------------------+-------+------------+------------------------+-----+
+|  LN   | bitshift left    |  L2   | P@ss       |   P@æs                 |  24 |
++-------+------------------+-------+------------+------------------------+-----+
+|  k    | swap first 2     |  k    | P@ss       |   @Pss                 |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  K    | swap last 2      |  K    | P@sS       |   P@Ss                 |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  *NM  | swaps N with M   |  *0z  | P@sS       |   S@sP                 |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  +N   | increment char   |  +1   | P@sS       |   PAsS                 |  25 |
++-------+------------------+-------+------------+------------------------+-----+
+|  -N   | decrement char   |  -1   | P@sS       |   P?sS                 |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  4    | append memory    |  uMl4 | P@ss       |   p@ssP@SS             |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  6    | prepend memory   |  uMl6 | P@ss       |   P@SSp@ss             |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  ONM  | Omit range       |  O34  | 012345678  |   01278                |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  zN   | dupe 1st char    |  z2   | P@sS       |   PPP@sS               |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  ZN   | dupe last char   |  Z2   | P@sS       |   P@sSSS               |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  .N   | replace char N   |  .2   | P@sS       |   P@SS                 |  1  |
+|       | with next char   |       |            |                        |     |
++-------+------------------+-------+------------+------------------------+-----+
+|  ,N   | replace char N   |  ,2   | P@sS       |   P@@S                 |  1  |
+|       | with prior char  |       |            |                        |     |
++-------+------------------+-------+------------+------------------------+-----+
+|  yN   | duplicate first  |  y2   | P@sS       |   P@P@sS               |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  YN   | duplicate last   |  Y2   | P@sS       |   P@sSsS               |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  E    | Title case       |  E    | test word  |   Test Word            |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+|  q    | dupe all chars   |  1    | P@sS       |   PP@@ssSS             |  1  |
++-------+------------------+-------+------------+------------------------+-----+
+
+Notes:
+1. works fully without being in HaskCat mode
+2. works in limited extent without being in hashcat mode
+3. p in non hashcat mode is pluralize.  If p is followed by 0 to 9, then it is
+   treated as the hashcat duplicate word, even if not in HC mode.
+4. R and L are keyboard shift R and L if not in hashcat mode. But in hashcat
+   mode, these are bitshift character at location N. If R or N are followed by
+   0 to 9 in non hashcat mode, then they are treated as the hashcat rules.
+5. +N does not work in single mode, unless hashcat logic is used.

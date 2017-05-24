@@ -45,6 +45,8 @@ john_register_one(&fmt_opencl_NT);
 
 #define FORMAT_LABEL        "nt-opencl"
 #define FORMAT_NAME         "NT"
+#define FORMAT_TAG          "$NT$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "MD4 OpenCL"
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
@@ -280,13 +282,13 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
 		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	" -D LOC_1=%d "
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	"-D LOC_2=%d "
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	"-D LOC_3=%d"
 #endif
 	,offset_table_size, hash_table_size_128, shift64_ot_sz, shift64_ht_sz,
@@ -295,13 +297,13 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
 	cp_id2macro(options.internal_cp), PLAINTEXT_LENGTH,
 	static_gpu_locations[0]
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 	, static_gpu_locations[1]
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 	, static_gpu_locations[2]
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 	, static_gpu_locations[3]
 #endif
 	);
@@ -344,20 +346,20 @@ static void init(struct fmt_main *_self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[CIPHERTEXT_LENGTH + 4 + 1];
+	static char out[CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1];
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
 	out[0] = '$';
 	out[1] = 'N';
 	out[2] = 'T';
 	out[3] = '$';
 
-	memcpy(&out[4], ciphertext, 32);
+	memcpy(&out[FORMAT_TAG_LEN], ciphertext, 32);
 	out[36] = 0;
 
-	strlwr(&out[4]);
+	strlwr(&out[FORMAT_TAG_LEN]);
 
 	return out;
 }
@@ -366,8 +368,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
         char *pos;
 
-	if (!strncmp(ciphertext, "$NT$", 4))
-		ciphertext += 4;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		ciphertext += FORMAT_TAG_LEN;
 
         for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
@@ -382,11 +384,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // Note, we address the user id inside loader.
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static char out[33+5];
+	static char out[33+FORMAT_TAG_LEN+1];
 
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
-			sprintf(out, "$NT$%s", split_fields[3]);
+			sprintf(out, "%s%s", FORMAT_TAG, split_fields[3]);
 			if (valid(out,self))
 				return out;
 		}
@@ -453,7 +455,7 @@ static void clear_keys(void)
 
 static void set_key(char *_key, int index)
 {
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	const uint32_t *key = (uint32_t*)_key;
 	int len = strlen(_key);
 
 	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {
@@ -498,7 +500,7 @@ static char *get_key(int index)
 
 	}
 
-	if (t > global_work_size) {
+	if (t >= global_work_size) {
 		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
@@ -607,6 +609,7 @@ struct fmt_main fmt_opencl_NT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8 | FMT_REMOVE,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

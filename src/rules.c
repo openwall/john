@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2005,2009,2010,2012 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005,2009,2010,2015,2016 by Solar Designer
  *
  * With heavy changes in Jumbo, by JimF and magnum
  */
@@ -60,6 +60,7 @@ static int rules_errno;
 static int rules_line;
 
 static int rules_max_length = 0, minlength, maxlength;
+int hc_logic; /* can not be static. rpp.c needs to see it */
 
 /* data structures used in 'dupe' removal code */
 unsigned HASH_LOG, HASH_SIZE, HASH_LOG_HALF, HASH_MASK;
@@ -101,6 +102,9 @@ static struct {
 	char memory[RULE_WORD_SIZE];
 	char *classes[0x100];
 } CC_CACHE_ALIGN rules_data;
+
+/* A null string that is safe to read past (e.g. for ASan) */
+static char safe_null_string[RULE_BUFFER_SIZE];
 
 #define rules_pass rules_data.pass
 #define rules_classes rules_data.classes
@@ -177,7 +181,7 @@ static char *conv_tolower, *conv_toupper;
 
 #define CLASS_export_pos(start, true, false) { \
 	char value, *class; \
-	if ((value = RULE) == '?') { \
+	if (((value = RULE) == '?') && !hc_logic) { \
 		if (!(class = rules_classes[ARCH_INDEX(RULE)])) \
 			goto out_ERROR_CLASS; \
 		for (pos = (start); ARCH_INDEX(in[pos]); pos++) \
@@ -216,6 +220,14 @@ static char *conv_tolower, *conv_toupper;
 #define GET_OUT { \
 	out = alt; \
 	alt = in; \
+}
+
+#define SWAP2(a,b) { \
+	if (length > b && length > a) { \
+		int tmp = in[a]; \
+		in[a] = in[b]; \
+		in[b] = tmp; \
+	} \
 }
 
 static void rules_init_class(char name, char *valid)
@@ -339,7 +351,7 @@ static void rules_init_classes(void)
 	memset(rules_classes, 0, sizeof(rules_classes));
 
 	// this is an ugly hack but it works fine, used for 'b' below
-	for(i=0;i<128;i++)
+	for (i=0;i<128;i++)
 		eightbitchars[i] = i+128;
 	eightbitchars[128] = 0;
 
@@ -348,7 +360,7 @@ static void rules_init_classes(void)
 	rules_init_class('Z', "");
 
 	// Load user-defined character classes ?0 .. ?9 from john.conf
-	for(i='0'; i <= '9'; i++) {
+	for (i='0'; i <= '9'; i++) {
 		char user_class_num[] = "0";
 		char *user_class;
 		user_class_num[0] = i;
@@ -1131,6 +1143,7 @@ void rules_init(int max_length)
 {
 	rules_pass = 0;
 	rules_errno = RULES_ERROR_NONE;
+	hc_logic = 0;
 
 	if (max_length > RULE_WORD_SIZE - 1)
 		max_length = RULE_WORD_SIZE - 1;
@@ -1152,6 +1165,9 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 {
 	static char out_rule[RULE_BUFFER_SIZE];
 
+	if (hc_logic && !strncmp(rule, "!! hashcat logic", 16))
+		return NULL;
+
 	while (RULE)
 	switch (LAST) {
 	case ':':
@@ -1160,6 +1176,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 		break;
 
 	case '-':
+		if (!hc_logic)
 		switch (RULE) {
 		case ':':
 			continue;
@@ -1199,8 +1216,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
-			if (!minlength ||
-			    (rules_vars[ARCH_INDEX(RULE)] >= minlength))
+			if (rules_vars[ARCH_INDEX(RULE)] >= minlength)
 				continue;
 			return NULL;
 
@@ -1218,79 +1234,6 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			if (options.internal_cp != UTF_8) continue;
 			return NULL;
 
-/*
- * This inner case was added to handle things like this, which ARE seen in the
- * wild:
- * -[:c] other_rule_stuff    This case will chew up the -[.....] items,
- * handling them in proper method, just like stand alone -c -:, etc
- */
-		case '[':
-		do {
-			switch (*rule) {
-			case ':':
-				continue;
-
-			case 'c':
-				if (!db) continue;
-				if (db->format->params.flags & FMT_CASE)
-					continue;
-				return NULL;
-
-			case '8':
-				if (!db) continue;
-				if (db->format->params.flags & FMT_8_BIT)
-					continue;
-				return NULL;
-
-			case 's':
-				if (!db) continue;
-				if (db->options->flags & DB_SPLIT) continue;
-				return NULL;
-
-			case 'p':
-				if (split >= 0) continue;
-				return NULL;
-
-			case '>':
-				if (!db && RULE) continue;
-				if (!NEXT) {
-					rules_errno = RULES_ERROR_END;
-					return NULL;
-				}
-				if (rules_vars[ARCH_INDEX(RULE)] <=
-				    rules_max_length)
-					continue;
-				return NULL;
-
-			case '\0':
-				rules_errno = RULES_ERROR_END;
-				return NULL;
-
-			case 'u':
-				if (!db) continue;
-				if (options.internal_cp == UTF_8)
-					continue;
-				return NULL;
-
-			case 'U':
-				if (!db) continue;
-				if (options.internal_cp != UTF_8)
-					continue;
-				return NULL;
-
-			case ']':
-// skip the ']', since we are not dropping down to the while clause.
-				++rule;
-				goto EndPP;
-
-			default:
-				rules_errno = RULES_ERROR_REJECT;
-				return NULL;
-			}
-		} while (RULE);
-		EndPP:
-		continue;
-
 		default:
 			rules_errno = RULES_ERROR_REJECT;
 			return NULL;
@@ -1303,76 +1246,10 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 accept:
 	rules_pass--;
 	strnzcpy(out_rule, rule - 1, sizeof(out_rule));
-	rules_apply("", out_rule, split, last);
+	rules_apply(safe_null_string, out_rule, split, last);
 	rules_pass++;
 
 	return out_rule;
-}
-
-static MAYBE_INLINE int rules_valid_utf8(UTF8 *source)
-{
-	UTF8 a;
-	int length;
-	const UTF8 *srcptr;
-
-	while (*source) {
-		if (*source < 0x80) {
-			source++;
-			continue;
-		}
-
-		length = opt_trailingBytesUTF8[*source & 0x3f] + 1;
-		srcptr = source + length;
-
-		switch (length) {
-		default:
-			return 0;
-			/* Everything else falls through when valid */
-		case 4:
-			if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-		case 3:
-			if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-		case 2:
-			if ((a = (*--srcptr)) > 0xBF) return 0;
-
-			switch (*source) {
-				/* no fall-through in this inner switch */
-			case 0xE0:
-				if (a < 0xA0) return 0;
-				break;
-			case 0xED:
-				if (a > 0x9F) return 0;
-				break;
-			case 0xF0:
-				if (a < 0x90) return 0;
-				break;
-			case 0xF4:
-				if (a > 0x8F) return 0;
-				break;
-			default:
-				if (a < 0x80) return 0;
-			}
-
-		case 1:
-			if (*source >= 0x80 && *source < 0xC2) return 0;
-		}
-		if (*source > 0xF4)
-			return 0;
-
-		source += length;
-	}
-	return 1;
-}
-
-static char* rules_cp_to_utf8(char *in)
-{
-	static char out[PLAINTEXT_BUFFER_SIZE + 1];
-
-	if (!(options.flags & FLG_MASK_STACKED) &&
-	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
-		return cp_to_utf8_r(in, out, rules_max_length);
-
-	return in;
 }
 
 char *rules_apply(char *word_in, char *rule, int split, char *last)
@@ -1383,7 +1260,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	int length;
 	int which;
 
-	if (options.internal_cp != UTF_8 && options.target_enc == UTF_8)
+	if (!(options.flags & FLG_SINGLE_CHK) &&
+	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
 		memory = word = utf8_to_cp_r(word_in, cpword,
 		                             PLAINTEXT_BUFFER_SIZE);
 	else
@@ -1394,7 +1272,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 		in = buffer[2];
 
 	length = 0;
-	while (length < RULE_WORD_SIZE - 1) {
+	while (length < RULE_WORD_SIZE) {
 		if (!(in[length] = word[length]))
 			break;
 		length++;
@@ -1423,7 +1301,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	which = 0;
 
 	while (RULE) {
-		in[RULE_WORD_SIZE - 1] = 0;
+		if (length >= RULE_WORD_SIZE)
+			in[length = RULE_WORD_SIZE - 1] = 0;
 
 		switch (LAST) {
 /* Crack 4.1 rules */
@@ -1477,9 +1356,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					    conv_tolower[ARCH_INDEX(in[pos])];
 				in[pos] = 0;
 			}
-			if (in[0] != 'M' || in[1] != 'c')
-				break;
-			in[2] = conv_toupper[ARCH_INDEX(in[2])];
 			break;
 
 		case 'r':
@@ -1511,6 +1387,19 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'p':
+			if (hc_logic || (*rule >= '1' && *rule <= '9')) {
+				/* HC rule: duplicate word N times */
+				unsigned char x, y;
+				POSITION(x)
+				y = x;
+				in[length*(x+1)] = 0;
+				while (x) {
+					memcpy(in + length*x, in, length);
+					--x;
+				}
+				length *= (y+1);
+				break;
+			} else { /* else john's original pluralize rule. */
 			if (length < 2) break;
 			{
 				int pos = length - 1;
@@ -1535,6 +1424,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					strcat(in, "s");
 			}
 			length = strlen(in);
+			}
 			break;
 
 		case '$':
@@ -1582,6 +1472,21 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'x':
+			if (hc_logic) {
+				/* Slightly different edge logic for HC */
+				int pos, pos2;
+				POSITION(pos)
+				POSITION(pos2)
+				if (pos < length && pos+pos2 <= length) {
+					char *out;
+					GET_OUT
+					in += pos;
+					strnzcpy(out, in, pos2 + 1);
+					length = strlen(in = out);
+					break;
+				}
+				break;
+			} else
 			{
 				int pos;
 				POSITION(pos)
@@ -1608,6 +1513,16 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					memmove(p + 1, p, length++ - pos);
 					VALUE(*p)
 					in[length] = 0;
+					break;
+				}
+				if (hc_logic) {
+					/* different edge logic for HC */
+					int x;
+					VALUE(x)
+					if (pos == length) {
+						in[length++] = x;
+						in[length] = 0;
+					}
 					break;
 				}
 			}
@@ -1708,8 +1623,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 					    conv_toupper[ARCH_INDEX(in[pos])];
 				in[pos] = 0;
 			}
-			if (in[0] == 'm' && in[1] == 'C')
-				in[2] = conv_tolower[ARCH_INDEX(in[2])];
 			break;
 
 		case 't':
@@ -1872,10 +1785,34 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'R':
+			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
+				/* HC rule: bit-shift character right */
+				unsigned char n;
+				unsigned char val;
+				POSITION(n)
+				if (n < length) {
+					val = in[n];
+					val >>= 1;
+					in[n] = val;
+				}
+				break;
+			}
 			CONV(conv_right);
 			break;
 
 		case 'L':
+			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
+				/* HC rule: bit-shift character left */
+				unsigned char n;
+				unsigned char val;
+				POSITION(n)
+				if (n < length) {
+					val = in[n];
+					val <<= 1;
+					in[n] = val;
+				}
+				break;
+			}
 			CONV(conv_left);
 			break;
 
@@ -1925,7 +1862,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'U':
-			if (!rules_valid_utf8((UTF8*)in))
+			if (!valid_utf8((UTF8*)in))
 				REJECT
 			break;
 
@@ -2011,6 +1948,13 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case '+':
+			if (hc_logic || split < 0) {
+				/* HC rule: increment character */
+				unsigned char x;
+				POSITION(x)
+				if (x < length)
+					++in[x];
+			} else {
 			switch (which) {
 			case 1:
 				strcat(in, buffer[2]);
@@ -2029,8 +1973,200 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			default:
 				goto out_ERROR_UNALLOWED;
 			}
-			length = strlen(in);
 			which = 0;
+			length = strlen(in);
+			}
+			break;
+
+		/*
+		 * these are hashcat specific rules added to jumbo JtR
+		 */
+
+		case '-': /* HC rule: decrement character */
+			{
+				unsigned char x;
+				POSITION(x)
+				if (x < length)
+					--in[x];
+			}
+			break;
+
+		case 'k': /* HC rule: swap leading 2 characters */
+			if (length > 1)
+				SWAP2(0,1)
+			break;
+
+		case 'K': /* HC rule: swap last 2 characters */
+			if (length > 1)
+				SWAP2((unsigned)length-1,(unsigned)length-2)
+			break;
+
+		case '*': /* HC rule: 2 characters */
+			{
+				unsigned char x, y;
+				POSITION(x)
+				POSITION(y)
+				if (length > x && length > y)
+					SWAP2(x,y)
+			}
+			break;
+
+		case 'z': /* HC rule: duplicate first char N times */
+			{
+				unsigned char x;
+				int y;
+				POSITION(x)
+				y = length;
+				while (y) {
+					in[y+x] = in[y];
+					--y;
+				}
+				length += x;
+				in[length] = 0;
+				while(x) {
+					in[x] = in[0];
+					--x;
+				}
+			}
+			break;
+
+		case 'Z': /* HC rule: duplicate char char N times */
+			{
+				unsigned char x;
+				POSITION(x)
+				while (x) {
+					in[length] = in[length-1];
+					++length;
+					--x;
+				}
+				in[length] = 0;
+			}
+			break;
+
+		case 'q': /* HC rule: duplicate every character */
+			{
+				int x = length<<1;
+				in[x--] = 0;
+				while (x>0) {
+					in[x] = in[x-1] = in[x>>1];
+					x -= 2;
+				}
+				length <<= 1;
+			}
+			break;
+
+		case '.': /* HC rule: replace character with next */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n < length-1 && length > 1)
+					in[n] = in[n+1];
+			}
+			break;
+
+		case ',': /* HC rule: replace character with prior */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n >= 1 && length > 1 && n < length)
+					in[n] = in[n-1];
+			}
+			break;
+
+		case 'y': /* HC rule: duplicate first n characters */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n <= length) {
+					memmove(&in[n], in, length);
+					length += n;
+					in[length] = 0;
+				}
+			}
+			break;
+
+		case 'Y': /* HC rule: duplicate last n characters */
+			{
+				unsigned char n;
+				POSITION(n)
+				if (n <= length) {
+					memmove(&in[length], &in[length-n], n);
+					length += n;
+					in[length] = 0;
+				}
+			}
+			break;
+
+		case '4': /*  HC rule: append memory */
+			{
+				int m = rules_vars['m']+1;
+				memcpy(&in[length], memory, m);
+				in[length+=m] = 0;
+				break;
+			}
+			break;
+
+		case '6': /*  HC rule: prepend memory */
+			{
+				int m = rules_vars['m']+1;
+				memmove(&in[m], in, length);
+				memcpy(in, memory, m);
+				in[length+=m] = 0;
+				break;
+			}
+			break;
+
+		case 'O': /*  HC rule: Omit */
+			{
+				int pos, pos2;
+				POSITION(pos)
+				POSITION(pos2)
+				if (pos < length && pos+pos2 <= length) {
+					char *out;
+					GET_OUT
+					strncpy(out, in, pos);
+					in += pos+pos2;
+					strnzcpy(out+pos, in, length-(pos+pos2)+1);
+					length -= pos2;
+					in = out;
+					break;
+				}
+			}
+			break;
+
+		case 'E': /*  HC rule: Title Case */
+			{
+				int up=1, idx=0;
+				while (in[idx]) {
+					if (up) {
+						if (in[idx] != ' ') {
+							if (in[idx] >= 'a' &&
+							    in[idx] <= 'z')
+								in[idx] -= 0x20;
+							up = 0;
+						}
+					} else {
+						if (in[idx] == ' ')
+							up = 1;
+						else if (in[idx] >= 'A' &&
+						         in[idx] <= 'Z')
+							in[idx] += 0x20;
+					}
+					++idx;
+				}
+
+			}
+			break;
+
+		case 'e': /* extended title case JtR specific, not HC 'yet' */
+			{
+				int up=1;
+				CLASS(0,
+				      up=1,
+				      if (up) in[pos] = conv_toupper[ARCH_INDEX(in[pos])];
+				      else   in[pos] = conv_tolower[ARCH_INDEX(in[pos])];
+				      up=0)
+			}
 			break;
 
 		default:
@@ -2052,23 +2188,31 @@ out_OK:
 	if (maxlength)
 		if (length > maxlength)
 			return NULL;
+	if (!(options.flags & FLG_MASK_STACKED) &&
+	    options.internal_cp != UTF_8 && options.target_enc == UTF_8) {
+		char out[PLAINTEXT_BUFFER_SIZE + 1];
+
+		strcpy(in, cp_to_utf8_r(in, out, rules_max_length));
+		length = strlen(in);
+	}
+
 	if (last) {
 		if (length > rules_max_length)
 			length = rules_max_length;
 		if (length >= ARCH_SIZE - 1) {
 			if (*(ARCH_WORD *)in != *(ARCH_WORD *)last)
-				return rules_cp_to_utf8(in);
+				return in;
 			if (strcmp(&in[ARCH_SIZE - 1], &last[ARCH_SIZE - 1]))
-				return rules_cp_to_utf8(in);
+				return in;
 			return NULL;
 		}
 		if (last[length])
-			return rules_cp_to_utf8(in);
+			return in;
 		if (memcmp(in, last, length))
-			return rules_cp_to_utf8(in);
+			return in;
 		return NULL;
 	}
-	return rules_cp_to_utf8(in);
+	return in;
 
 out_which:
 	if (which == 1) {
@@ -2304,6 +2448,11 @@ int rules_remove_dups(struct cfg_line *pLines, int log)
 int rules_count(struct rpp_context *start, int split)
 {
 	int count1, count2;
+
+	if (!strcmp(start->input->data, "!! hashcat logic ON"))
+		hc_logic = 1;
+	if (!strcmp(start->input->data, "!! hashcat logic OFF"))
+		hc_logic = 0;
 
 	if (!(count1 = rules_check(start, split))) {
 		log_event("! Invalid rule at line %d: %.100s",

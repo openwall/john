@@ -23,7 +23,7 @@
 //
 
 #include "arch.h"
-#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER && !__ARM_NEON__
+#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER && !__ARM_NEON
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sha1_ng;
@@ -45,6 +45,7 @@ john_register_one(&fmt_sha1_ng);
 #endif
 
 #include <string.h>
+#include <stdint.h>
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -53,12 +54,10 @@ john_register_one(&fmt_sha1_ng);
 #endif
 
 #include "stdbool.h"
-#include "stdint.h"
 #if SIMD_COEF_32 > 8
 #include "int128.h"
 #endif
 #include "pseudo_intrinsics.h"
-#include "stdint.h"
 #include "params.h"
 #include "formats.h"
 #include "memory.h"
@@ -70,9 +69,7 @@ john_register_one(&fmt_sha1_ng);
 
 #define VWIDTH SIMD_COEF_32
 
-#define SHA1_BLOCK_SIZE         64
 #define SHA1_BLOCK_WORDS        16
-#define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
 #ifdef __MIC__
@@ -178,7 +175,7 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
 {
 	register uint32_t result;
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
-	result = _rotl(value, count); //((value<<count)|((ARCH_WORD_32)value>>(32-count)));
+	result = _rotl(value, count); //((value<<count)|((uint32_t)value>>(32-count)));
 #elif __i386__ || __x86_64__
 	asm("rol    %%cl, %0"
 	    : "=r" (result)
@@ -276,7 +273,7 @@ static void sha1_fmt_set_key(char *key, int index)
 	vtype  B;
 
 	// First, find the length of the key by scanning for a zero byte.
-#if (__AVX512F__ && !__AVX512BW__) || __MIC__ || __ALTIVEC__ || __ARM_NEON__
+#if (__AVX512F__ && !__AVX512BW__) || __MIC__ || __ALTIVEC__ || __ARM_NEON
 	uint32_t len = strlen(key);
 #else
 	// FIXME: even uint64_t won't be long enough for AVX-1024
@@ -793,7 +790,7 @@ struct fmt_main fmt_sha1_ng = {
 		.algorithm_name     = "SHA1 128/128 "
 #if __ALTIVEC__
 		"AltiVec"
-#elif __ARM_NEON__
+#elif __ARM_NEON
 		"NEON"
 #elif __XOP__
 		"XOP"
@@ -825,6 +822,7 @@ struct fmt_main fmt_sha1_ng = {
 #endif
 		                      FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		.tunable_cost_name  = { NULL },
+		.signature          = { FORMAT_TAG, FORMAT_TAG_OLD },
 		.tests              = rawsha1_common_tests,
 	},
 	.methods                = {

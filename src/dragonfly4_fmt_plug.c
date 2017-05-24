@@ -38,6 +38,8 @@ john_register_one(&fmt_dragonfly4_64);
 #define FORMAT_LABEL_64			"dragonfly4-64"
 #define FORMAT_NAME_32			"DragonFly BSD $4$ w/ bugs, 32-bit"
 #define FORMAT_NAME_64			"DragonFly BSD $4$ w/ bugs, 64-bit"
+#define FORMAT_TAG				"$4$"
+#define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
@@ -80,8 +82,8 @@ static struct fmt_tests tests_64[] = {
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)
-    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)
+    [(BINARY_SIZE + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 static char *cur_salt;
 static int salt_len;
 
@@ -114,10 +116,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos, *start;
 
-	if (strncmp(ciphertext, "$4$", 3))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
-	ciphertext += 3;
+	ciphertext += FORMAT_TAG_LEN;
 
 	for (pos = ciphertext; *pos && *pos != '$'; pos++);
 	if (!*pos || pos < ciphertext || pos > &ciphertext[8]) return 0;
@@ -130,10 +132,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 #define TO_BINARY(b1, b2, b3) \
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+	value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
 	pos += 4; \
 	out[b1] = value >> 16; \
 	out[b2] = value >> 8; \
@@ -143,8 +145,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // We are actually missing the last 16 bits with this implementation.
 static void *get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
-	ARCH_WORD_32 value;
+	static uint32_t outbuf[BINARY_SIZE/4];
+	uint32_t value;
 	char *pos;
 	unsigned char *out = (unsigned char*)outbuf;
 	int i;
@@ -155,10 +157,10 @@ static void *get_binary(char *ciphertext)
 	for (i = 0; i < 20; i++) {
 		TO_BINARY(i, i + 21, i + 42);
 	}
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18);
+	value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] |
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) |
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18);
 	out[20] = value >> 16;
 	out[41] = value >> 8;
 
@@ -227,8 +229,8 @@ static void *get_salt_32(char *ciphertext)
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_32, MEM_ALIGN_WORD);
 
 	memset(out, 0, SALT_SIZE_32);
-	ciphertext += 3;
-	strcpy(&out[1], "$4$");
+	ciphertext += FORMAT_TAG_LEN;
+	strcpy(&out[1], FORMAT_TAG);
 	for (len = 0; ciphertext[len] != '$'; len++);
 
 	memcpy(&out[5], ciphertext, len);
@@ -246,7 +248,7 @@ static void *get_salt_64(char *ciphertext)
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_64, MEM_ALIGN_WORD);
 
 	memset(out, 0, SALT_SIZE_64);
-	ciphertext += 3;
+	ciphertext += FORMAT_TAG_LEN;
 	memcpy(&out[1], "$4$\0/etc", 8);
 	for (len = 0; ciphertext[len] != '$'; len++);
 
@@ -307,6 +309,7 @@ struct fmt_main fmt_dragonfly4_32 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests_32
 	}, {
 		init,
@@ -366,6 +369,7 @@ struct fmt_main fmt_dragonfly4_64 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		{ NULL },
 		{ NULL },
 		tests_64
 	}, {

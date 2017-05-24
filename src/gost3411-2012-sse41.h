@@ -2,13 +2,13 @@
 #define GOST3411_2012_SSE41_H_
 
 #include <stddef.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include <string.h>
 
 #if defined _MSC_VER
-#	define ALIGN(x) __declspec(align(x))
+	#define ALIGN(x) __declspec(align(x))
 #else
-#	define ALIGN(x) __attribute__((__aligned__(x)))
+	#define ALIGN(x) __attribute__((__aligned__(x)))
 #endif
 
 union uint512_u {

@@ -50,6 +50,7 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "formats.h"
 #include "crc32.h"
 #include "johnswap.h"
+#include "loader.h"
 #define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_ripemd160.h"
@@ -186,7 +187,7 @@ static int valid(char* ciphertext, int pos)
 	q = strchr(p, '$');
 
 	if (!q) { /* no keyfiles */
-		if(pos + 512*2 != strlen(ciphertext))
+		if (pos + 512*2 != strlen(ciphertext))
 			return 0;
 	} else {
 		if (q - p != 512 * 2)
@@ -276,9 +277,9 @@ static void* get_salt(char *ciphertext)
 	}
 
 	// Convert the hexadecimal salt in binary
-	for(i = 0; i < 64; i++)
+	for (i = 0; i < 64; i++)
 		s->salt[i] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
-	for(; i < 512; i++)
+	for (; i < 512; i++)
 		s->bin[i-64] = (atoi16[ARCH_INDEX(ciphertext[2*i])] << 4) | atoi16[ARCH_INDEX(ciphertext[2*i+1])];
 
 	p = ciphertext;
@@ -380,7 +381,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for(i = 0; i < count; i+=psalt->loop_inc)
+	for (i = 0; i < count; i+=psalt->loop_inc)
 	{
 		unsigned char key[64];
 #if SSE_GROUP_SZ_SHA512
@@ -435,21 +436,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_ripemd160((const unsigned char*)key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 		else
 			pbkdf2_whirlpool((const unsigned char*)key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
-#if ARCH_LITTLE_ENDIAN==0
-		if (psalt->hash_type == IS_SHA512) {
-			uint64_t *p64 = (uint64_t *)key;
-			for (j = 0; j < 8; ++j) {
-				*p64 = JOHNSWAP64(*p64);
-				++p64;
-			}
-		} else {
-			uint32_t *p32 = (uint32_t *)key;
-			for (j = 0; j < 16; ++j) {
-				*p32 = JOHNSWAP(*p32);
-				++p32;
-			}
-		}
-#endif
 		for (j = 0; j < psalt->loop_inc; ++j) {
 #if SSE_GROUP_SZ_SHA512
 			if (psalt->hash_type == IS_SHA512)
@@ -517,23 +503,6 @@ static int cmp_exact(char *source, int idx)
 		pbkdf2_ripemd160(key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
 	else
 		pbkdf2_whirlpool(key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
-#if ARCH_LITTLE_ENDIAN==0
-	if (psalt->hash_type == IS_SHA512) {
-		int j;
-		uint64_t *p64 = (uint64_t *)key;
-		for (j = 0; j < 8; ++j) {
-			*p64 = JOHNSWAP64(*p64);
-			++p64;
-		}
-	} else {
-		int j;
-		uint32_t *p32 = (uint32_t *)key;
-		for (j = 0; j < 16; ++j) {
-			*p32 = JOHNSWAP(*p32);
-			++p32;
-		}
-	}
-#endif
 
 	// we have 448 bytes of header (64 bytes unencrypted salt were the first 64 bytes).
 	// decrypt it and look for 3 items.
@@ -627,9 +596,14 @@ struct fmt_main fmt_truecrypt = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"hash algorithm [1:SHA512 2:RIPEMD160 3:Whirlpool]",
+		},
+		{
+			TAG_WHIRLPOOL,
+			TAG_SHA512,
+			TAG_RIPEMD160
 		},
 		tests_all
 	}, {
@@ -679,8 +653,9 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ TAG_RIPEMD160 },
 		tests_ripemd160
 	}, {
 		init,
@@ -740,8 +715,9 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ TAG_SHA512 },
 		tests_sha512
 	}, {
 		init,
@@ -792,8 +768,9 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ TAG_WHIRLPOOL },
 		tests_whirlpool
 	}, {
 		init,

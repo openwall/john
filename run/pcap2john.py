@@ -11,22 +11,23 @@
 import dpkt
 import sys
 import dpkt.ethernet as ethernet
+from dpkt import ip as dip
 import dpkt.stp as stp
 import struct
 import socket
+from binascii import hexlify
 
 import os
 import logging
 l = logging.getLogger("scapy.runtime")
 l.setLevel(49)
-from binascii import hexlify
 try:
     from scapy.all import TCP, IP, UDP, rdpcap
 except ImportError:
     sys.stderr.write("Please install scapy, http://www.secdev.org/projects/scapy/\n")
     sys.exit(-1)
 
-VTP_DOMAIN_SIZE = 32
+# VTP_DOMAIN_SIZE = 32
 
 
 def pcap_parser_bfd(fname):
@@ -138,6 +139,13 @@ def pcap_parser_vtp(fname):
             vlans_data = data[40:]
             revision = data[36:40]
             revision_to_subset_mapping[revision] = vlans_data
+
+        # VTP v1 "Summary Advertisement" message, see "vtp_validate_md5_digest"
+        # function in cisco_IOS-11.2-8_source.tar.bz2
+        if data.startswith("\x01\x01"):
+            # hash is "towards" the end of the packet
+            h = data[56:56+16].encode("hex")
+            sys.stderr.write("[WIP] VTP packet found with MD5 hash %s!\n" % (h))
 
         if not (data.startswith("\x02\x01") or data.startswith("\x01\x01")):  # VTP Version + Summary Advertisement
             continue
@@ -518,43 +526,69 @@ def pcap_parser_isis(fname):
         try:
             llc = LLC(data)
             data = llc.data
-            classification = llc.classification
             if isinstance(data, dpkt.cdp.CDP) or isinstance(data, dpkt.stp.STP):
                 continue
         except:
             continue
 
-        if not classification:
-            continue
-
+        data = data[3:]  # dirty hack to skip over LLC stuff
         discriminator = ord(data[0])
         if discriminator != 0x83:  # IS-IS
             continue
 
-        isis_data = data[8:]  # double check this!
-        offset = 19  # TLVs start after this
-        has_hash = False
+        # Check PDU type (HELLO, LSP, CSNP), LSP needs additional treatment
+        pdu_type = ord(data[4])
+        if pdu_type == 18 or pdu_type == 20:  # LSP PDU, L1 and L2
+            # zeroize the "lifetime" and "checksum" fields
+            data = data[:10] + "\x00\x00" + data[12:24] + "\x00\x00" + data[26:]
 
-        # process TLVs
-        while True:
+        isis_data = data[8:]  # double check this!
+
+        # find authentication TLV using brute-force
+        for offset in range(0, len(isis_data) - 3):
             tlv_type = ord(isis_data[offset])
             tlv_length = ord(isis_data[offset+1])
-            if tlv_length == 0:  # dirty
-                break
-            if tlv_type == 0x0a:  # authentication TLV
-                authentication_type = ord(isis_data[offset+2])
-                if tlv_length == 17 and authentication_type == 0x36:  # hmac-md5 is being used
-                    has_hash = True
-                    h = isis_data[offset+3:offset+3+16]
+            authentication_type = ord(isis_data[offset+2])
+
+            if tlv_type == 0x0a and tlv_length == 17 and authentication_type == 0x36:  # hmac-md5 is being used
+                    hash_length = 16
+                    h = isis_data[offset+3:offset+3+hash_length]
+                    # http://tools.ietf.org/html/rfc1195
+                    salt = data.replace(h, "\x00" * hash_length)  # zero out the hash
+                    sys.stdout.write("%s:$rsvp$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
                     break
-            offset = offset + tlv_length
-
-        if not has_hash:
-            continue
-
-        # http://tools.ietf.org/html/rfc1195
-        salt = data.replace(h, "\x00" * 16)  # zero out the hash
-        sys.stdout.write("%s:$rsvp$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+            # https://tools.ietf.org/html/rfc5310
+            if tlv_type == 0x0a and tlv_length == 23 and authentication_type == 0x3:  # hmac-sha1
+                    hash_length = 20
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]  # +2 is required to skip over "Key ID"
+                    # ospf format supports such hashes!
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
+            if tlv_type == 0x0a and tlv_length == 31 and authentication_type == 0x3:  # hmac-sha224
+                    hash_length = 28
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$5$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))  # yes, 5 is out-of-order
+                    break
+            if tlv_type == 0x0a and tlv_length == 35 and authentication_type == 0x3:  # hmac-sha256
+                    hash_length = 32
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$2$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
+            if tlv_type == 0x0a and tlv_length == 51 and authentication_type == 0x3:  # hmac-sha384
+                    hash_length = 48
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$3$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
+            if tlv_type == 0x0a and tlv_length == 67 and authentication_type == 0x3:  # hmac-sha512
+                    hash_length = 64
+                    h = isis_data[offset+3+2:offset+3+2+hash_length]
+                    salt = data.replace(h, "")  # remove the hash
+                    sys.stdout.write("%s:$ospf$4$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    break
 
     f.close()
 
@@ -786,6 +820,18 @@ def process_hash(uid, nonce, sha1):
     print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
 
 
+def handle_gg_login105(payload, nonce):
+    """
+    GG_LOGIN105 stores uid as hex encoded ASCII. 16th byte is the number of digits in uid.
+    uid begins at 17th byte. sha1 hash is separated from last digit of uid by two bytes.
+    """
+    digits = int(payload[30:32], 16)
+    uid = payload[32:32 + 2*digits].decode("hex")
+    offset = 32 + 2*digits + 4
+    sha1 = payload[offset:offset + 40]
+    print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
+
+
 def pcap_parser_gadu(pcapfile):
     try:
         packets = rdpcap(pcapfile)
@@ -800,12 +846,14 @@ def pcap_parser_gadu(pcapfile):
             payload = str(pkt[TCP].payload).encode('hex')
             if payload[:8] == '01000000':  # GG_WELCOME
                 nonce = payload[16:]
-            if payload[:8] == '31000000':  # GG_LOGIN
+            if payload[:8] == '31000000':  # GG_LOGIN80
                 hashtype = payload[28:30]
                 if hashtype == "02":
                     uid = payload[16:24]
                     sha1 = payload[30:70]
                     process_hash(uid, nonce, sha1)
+            if payload[:8] == '83000000':  # GG_LOGIN105
+                handle_gg_login105(payload, nonce)
 
 
 def pcap_parser_eigrp(fname):
@@ -973,6 +1021,47 @@ def pcap_parser_tgsrep(fname):
         sys.stdout.write("%s:$tgsrep$%s\n" % (index, p.encode("hex")))
 
 
+def pcap_parser_ah(fname):
+    """
+    Extract Authentication Header (AH) hashes from packets.
+
+    VRRP v2 only supports IPv4 addresses. VRRP v3 protocol does not support
+    authentication. Use "Keepalived for Linux" for debugging this function.
+
+    https://fossies.org/linux/scapy/scapy/layers/ipsec.py mentions various HMAC
+    schemes which are possible in the Authentication Header (AH).
+    """
+
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+
+    for _, buf in pcap:
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP:
+            ip = eth.data
+
+            if ip.p != dip.IP_PROTO_AH:  # Authentication Header
+                continue
+
+            if ip.v == 4:
+                salt = bytearray(ip.pack())
+                iphdr_len = 20
+                # https://tools.ietf.org/html/rfc4302#section-2.2 (Payload Length)
+                ah_length = (salt[iphdr_len + 1] + 2) * 4
+                icv_length = ah_length - 12
+                # zero mutable fields (tos, flags, chksum)
+                salt[1] = 0  # tos
+                salt[6] = 0  # flags
+                salt[10:12] = "\x00\x00"  # checksum
+                icv_offset = iphdr_len + icv_length
+                h = salt[icv_offset:icv_offset+icv_length]
+                # zero ah icv
+                salt[icv_offset:icv_offset+icv_length] = "\x00" * icv_length
+                sys.stdout.write("$net-ah$0$%s$%s\n" % (hexlify(salt), hexlify(h)))
+
+    f.close()
+
+
 ############################################################
 # original main, but now calls multiple 2john routines, all
 # cut from the original independent convert programs.
@@ -983,6 +1072,10 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
+        try:
+            pcap_parser_ah(sys.argv[i])
+        except:
+            pass
         pcap_parser_bfd(sys.argv[i])
         try:
             pcap_parser_vtp(sys.argv[i])

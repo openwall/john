@@ -43,9 +43,10 @@ john_register_one(&fmt_openssl);
 #include <fcntl.h>
 #endif
 #include <stdlib.h>
-#include "stdint.h"
+#include <stdint.h>
 #include <sys/types.h>
 #include <openssl/evp.h>
+
 #include "aes.h"
 #include "md5.h"
 #include "arch.h"
@@ -126,7 +127,7 @@ static void done(void)
 //#define DEBUG_VALID
 #ifdef DEBUG_VALID
 // Awesome debug macro for valid()
-#define return if(printf("\noriginal: %s\n",ciphertext)+printf("fail line %u: '%s' p=%p q=%p q-p-1=%u\n",__LINE__,p,p,q,(unsigned int)(q-p-1)))return
+#define return if (printf("\noriginal: %s\n",ciphertext)+printf("fail line %u: '%s' p=%p q=%p q-p-1=%u\n",__LINE__,p,p,q,(unsigned int)(q-p-1)))return
 #endif
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -206,7 +207,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = q; q = strchr(p, '$');	// known-plaintext
 	if (!q)
 		return !strcmp(p, "0");
-	if(strlen(q) == 1)
+	if (strlen(q) == 1)
 		return 0;
 	q = q + 1;
 	if ((q - p - 1) != 1)
@@ -278,7 +279,7 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 {
 	AES_KEY akey;
 	unsigned char out[16*16];
-	if(AES_set_decrypt_key(key, 256, &akey) < 0) {
+	if (AES_set_decrypt_key(key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
 	if (inlined) {
@@ -351,7 +352,7 @@ static int decrypt(char *password)
 	if (check_pkcs_pad(out, 16, 16) < 0)
 			return -1;
 
-	if(cur_salt->kpa)
+	if (cur_salt->kpa)
 		return kpa(key, biv, cur_salt->inlined);
 	return 0;
 }
@@ -433,6 +434,7 @@ struct fmt_main fmt_openssl = {
  *        it would be useful to report some tunable costs
  */
 		{ NULL },
+		{ FORMAT_TAG },
 		openssl_tests
 	}, {
 		init,

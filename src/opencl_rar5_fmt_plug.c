@@ -20,13 +20,13 @@ john_register_one(&fmt_ocl_rar5);
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 //#define DEBUG
 
 #include "misc.h"
 #include "arch.h"
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
@@ -39,14 +39,10 @@ john_register_one(&fmt_ocl_rar5);
 
 #define FORMAT_LABEL		"RAR5-opencl"
 #define FORMAT_NAME		""
-#define FORMAT_TAG  		"$rar5$"
-#define TAG_LENGTH  		6
 #define ALGORITHM_NAME		"PBKDF2-SHA256 OpenCL"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define DEFAULT_LWS		64
-#define DEFAULT_GWS		1024
 #define STEP			0
 #define SEED			1024
 
@@ -72,9 +68,10 @@ typedef struct {
 	uint32_t hash[8];
 } crack_t;
 
+// This structure HAS to match what is in pbkdf2_hmac_sha256_kernel.cl
 typedef struct {
 	uint8_t length;
-	uint8_t salt[64];
+	uint8_t salt[115];
 	uint32_t rounds;
 } salt_t;
 
@@ -263,7 +260,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		1, NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[2]), "Run kernel");
 
-	for(i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
+	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 			1, NULL, &global_work_size, lws, 0, NULL,
 			multi_profilingEvent[3]), "Run split kernel");
@@ -328,6 +325,7 @@ struct fmt_main fmt_ocl_rar5 = {
 	{
 		"iteration count",
 	},
+	{ FORMAT_TAG },
 	tests
 }, {
 	init,

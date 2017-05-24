@@ -19,6 +19,7 @@ extern struct fmt_main fmt_rar5;
 john_register_one(&fmt_rar5);
 #else
 
+#include <stdint.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -32,7 +33,6 @@ static int omp_t = 1;
 
 #include "arch.h"
 #include "johnswap.h"
-#include "stdint.h"
 #include "sha2.h"
 #include "misc.h"
 #include "common.h"
@@ -60,7 +60,7 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		sizeof(int)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
@@ -111,13 +111,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		              PswCheckValue[SSE_GROUP_SZ_SHA256][SHA256_DIGEST_SIZE];
 		unsigned char *pin[SSE_GROUP_SZ_SHA256];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA256];
+			uint32_t *pout[SSE_GROUP_SZ_SHA256];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA256; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
-			x.pout[i] = (ARCH_WORD_32*)PswCheckValue[i];
+			x.pout[i] = (uint32_t*)PswCheckValue[i];
 		}
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, SIZE_SALT50, cur_salt->iterations+32, &(x.poutc), SHA256_DIGEST_SIZE, 0);
 		// special wtf processing
@@ -175,6 +175,7 @@ struct fmt_main fmt_rar5 = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

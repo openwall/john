@@ -230,6 +230,12 @@ struct options_main {
 /* Ciphertext subformat name */
 	char *subformat;
 
+/* Single mode seed word (--single-seed) */
+	char *seed_word;
+
+/* Single mode seed wordlist file name (--single-wordlist) */
+	char *seed_file;
+
 /* Configuration file name */
 	char *config;
 
@@ -328,8 +334,14 @@ struct options_main {
 /* Forced MaxLen (we will reject candidates longer than this) */
 	int force_maxlength;
 
-/* Graceful exit after this many seconds of cracking */
+/*
+ * Graceful exit after this many seconds of cracking. If the number is
+ * negative, we exit after that many seconds of not cracking anything.
+ */
 	int max_run_time;
+
+/* Graceful exit after this many candidates tried. */
+	long long max_cands;
 
 /* Emit a status line every N seconds */
 	int status_interval;
@@ -354,12 +366,12 @@ struct options_main {
 /* Vector width of OpenCL kernel */
 	unsigned int v_width;
 #endif
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL)
 	struct list_main *gpu_devices;
 #endif
 /* -list=WHAT Get a config list (eg. a list of incremental modes available) */
 	char *listconf;
-/* Verbosity level, 1-5. Three is normal, lower is more quiet. */
+/* Verbosity level, 1-5. Three is normal for jumbo, four is "legacy". */
 	int verbosity;
 /* Secure mode. Do not output, log or store cracked passwords. */
 	int secure;

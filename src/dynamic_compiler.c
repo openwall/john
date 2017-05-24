@@ -18,8 +18,8 @@
  *    This expression language will be very similar to the expression language in pass_gen.pl
  *
  *  Valid items in EXPR
- *     md5(EXPR)   Perform MD5.   Results in lowcase hex (unless it's the outter EXPR)
- *     sha1(EXPR)  Perform SHA1.  Results in lowcase hex (unless it's the outter EXPR)
+ *     md5(EXPR)   Perform MD5.   Results in lowcase hex (unless it's the outer EXPR)
+ *     sha1(EXPR)  Perform SHA1.  Results in lowcase hex (unless it's the outer EXPR)
  *     md4(EXPR), sha256(EXPR), sha224(EXPR), sha384(EXPR), sha512(EXPR), gost(EXPR),
  *     whirlpool(EXPR) tiger(EXPR), ripemd128(EXPR), ripemd160(EXPR), ripemd256(EXPR),
  *     ripemd320(EXPR) all act like md5() and sha1, but use the hash listed.
@@ -154,10 +154,12 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 #include "arch.h"
 
 #ifndef DYNAMIC_DISABLED
+#include <stdint.h>
 #include <ctype.h>
 #include <stdarg.h>
+
+#include "misc.h"	// error()
 #include "common.h"
-#include "stdint.h"
 #include "formats.h"
 #include "list.h"
 #include "crc32.h"
@@ -256,9 +258,9 @@ static char *dynamic_expr_normalize(const char *ct) {
 	//           unicode( -> utf16(
 	//           -c=: into c1=\x3a  (colon ANYWHERE in the constant)
 	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
-		static char Buf[512];
+		static char Buf[1024];
 		char *cp = Buf;
-		strcpy(Buf, ct);
+		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
 		cp = Buf;
 		while (*cp) {
@@ -295,9 +297,9 @@ static char *dynamic_expr_normalize(const char *ct) {
 	}
 	if (strstr(ct, ",c")) {
 		// this need greatly improved. Only handling ':' char right now.
-		static char Buf[512];
+		static char Buf[1024];
 		char *cp = Buf;
-		strcpy(Buf, ct);
+		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
 		cp = strstr(ct, ",c");
 		while (cp) {
@@ -501,9 +503,9 @@ static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc
  * set of properly working functions.
  */
 #define OSSL_FUNC(N,TT,T,L) \
-static void N##_hex()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
-static void N##_base64() {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
-static void N##_base64c(){TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void N##_hex()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64() {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64c(){TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
 static void N##_raw()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); }
 OSSL_FUNC(md5,MD5,MD5,16)
 OSSL_FUNC(md4,MD4,MD4,16)
@@ -517,9 +519,9 @@ OSSL_FUNC(whirlpool,WHIRLPOOL,WHIRLPOOL,64)
 
 
 #define KECCAK_FUNC(N,T,L) \
-static void N##_hex()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
-static void N##_base64() {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
-static void N##_base64c(){KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void N##_hex()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64() {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64c(){KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
 static void N##_raw()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); }
 KECCAK_FUNC(sha3_224,SHA3_224,28)
 KECCAK_FUNC(sha3_256,SHA3_256,32)
@@ -529,14 +531,14 @@ KECCAK_FUNC(keccak_256,KECCAK_256,32)
 KECCAK_FUNC(keccak_512,KECCAK_512,64)
 // LARGE_HASH_EDIT_POINT
 
-static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); }
-static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); }
-static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); }
+static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); }
+static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); }
+static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); }
 static void gost_raw()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); }
 #define SPH_FUNC(T,L) \
-static void T##_hex()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0); strcpy(h, gen_conv); } \
-static void T##_base64() { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0); strcpy(h, gen_conv); } \
-static void T##_base64c(){ sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0); strcpy(h, gen_conv); } \
+static void T##_hex()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
+static void T##_base64() { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
+static void T##_base64c(){ sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
 static void T##_raw()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); }
 SPH_FUNC(tiger,24)
 SPH_FUNC(ripemd128,16)  SPH_FUNC(ripemd160,20)  SPH_FUNC(ripemd256,32) SPH_FUNC(ripemd320,40)
@@ -550,12 +552,10 @@ SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein
 // LARGE_HASH_EDIT_POINT
 
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
+static int encode_be()         { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
 static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); return gen_conv; }
 static char *pad100()          { memset(gen_conv, 0, 100); strncpy(gen_conv, gen_pw, 100); return gen_conv; }
-
-// TODO:
-//int encode_be() { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len); return len; }
 
 /*
  * helper functions, to reduce the size of our dynamic_*() functions
@@ -599,7 +599,7 @@ static void dynamic_pad100() { dyna_helper_appendn(pad100(), 100); }
 #define APP_FUNC(TY,VAL) static void dynamic_app_##TY (){dyna_helper_append(VAL);}
 APP_FUNC(sh,gen_s) /*APP_FUNC(s,gen_s)*/ APP_FUNC(S,gen_s2) APP_FUNC(u,gen_u) APP_FUNC(u_lc,gen_ulc)
 APP_FUNC(u_uc,gen_uuc) APP_FUNC(p,gen_pw) APP_FUNC(p_uc,gen_puc) APP_FUNC(p_lc,gen_plc)
-#define APP_CFUNC(N) static void dynamic_app_##N (){dyna_helper_append(dynamic_Demangle((char*)Const[N],NULL));}
+#define APP_CFUNC(N) static void dynamic_app_##N (){int len; char * cp = dynamic_Demangle((char*)Const[N],&len); dyna_helper_appendn(cp, len);}
 APP_CFUNC(1) APP_CFUNC(2) APP_CFUNC(3) APP_CFUNC(4) APP_CFUNC(5) APP_CFUNC(6) APP_CFUNC(7) APP_CFUNC(8)
 //static void dynamic_ftr32  { $h = gen_Stack[--ngen_Stack]; substr($h,0,32);  strcat(gen_Stack[ngen_Stack-1], h);  }
 //static void dynamic_f54    { $h = gen_Stack[--ngen_Stack]; md5_hex(h)."00000000";	 strcat(gen_Stack[ngen_Stack-1], h);  }
@@ -626,7 +626,7 @@ LEXI_FUNC(keccak_256,keccak_256,32)  LEXI_FUNC(keccak_512,keccak_512,64)
 // LARGE_HASH_EDIT_POINT
 
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
-//static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
+static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
 static void dynamic_exp() {
 	int i, j;
 	j = atoi(&pCode[nCurCode][1]);
@@ -801,7 +801,7 @@ static const char *comp_get_symbol(const char *pInput) {
 					  return comp_push_sym(TmpBuf, fpNull, pInput+3, 0);
 		}
 	}
-	// these are functions, BUT can not be used for 'outter' function (i.e. not the final hash)
+	// these are functions, BUT can not be used for 'outer' function (i.e. not the final hash)
 	// Note this may 'look' small, but it is a large IF block, once the macro's expand
 	LastTokIsFunc = 1;
 	LOOKUP_IF_BLK(md5,MD5,5,5,3,16)
@@ -841,7 +841,7 @@ static const char *comp_get_symbol(const char *pInput) {
 	if (!strncmp(pInput, "lc($p)", 6)) { if (bNeedPC&&bNeedPC!=1) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=1; return comp_push_sym("p_lc", fpNull, pInput+6, 0); }
 	if (!strncmp(pInput, "uc($p)", 6)) { if (bNeedPC&&bNeedPC!=2) return comp_push_sym("X", fpNull, pInput, 0); bNeedPC=2; return comp_push_sym("p_uc", fpNull, pInput+6, 0); }
 	LastTokIsFunc = 2;
-	//if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7);
+	if (!strncmp(pInput, "utf16be", 7)) return comp_push_sym("futf16be", dynamic_futf16be, pInput+7, 0);
 	if (!strncmp(pInput, "utf16(", 6))   return comp_push_sym("futf16", dynamic_futf16, pInput+5, 0);
 	LastTokIsFunc = 0;
 	return comp_push_sym("X", fpNull, pInput, 0);
@@ -1513,11 +1513,11 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 			++p;
 			if (*p == 's') {
 				++p;
-				if (*p == '2')    { ++p; comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", side==2?"2":""); }
-				else                     comp_add_script_line("Func=DynamicFunc__append_salt%s\n", side==2?"2":"");
+				if (*p == '2'){ ++p; comp_add_script_line("Func=DynamicFunc__append_2nd_salt%s\n", side==2?"2":""); }
+				else                 comp_add_script_line("Func=DynamicFunc__append_salt%s\n", side==2?"2":"");
 			} else if (*p == 'p') { ++p; comp_add_script_line("Func=DynamicFunc__append_keys%s\n", side==2?"2":"");
 			} else if (*p == 'u') { ++p; comp_add_script_line("Func=DynamicFunc__append_userid%s\n", side==2?"2":"");
-			} else if (*p == 'c') { ++p; comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST%c\n", side, *p++);
+			} else if (*p == 'c') { ++p; comp_add_script_line("Func=DynamicFunc__append_input%s_from_CONST%c\n", side==2?"2":"1", *p++);
 			}
 		} else if (!strncmp(p, keys_base16_in1_type, len)) {
 			p += len;
@@ -1535,10 +1535,10 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 #undef ELSEIF
 #define IF(C,L,F) if (!strncasecmp(pExpr, #C, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
 #define ELSEIF(C,L,F) else if (!strncasecmp(pExpr, #C, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%d_to_output1_FINAL\n",side); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); } }
 
 	// now compute just what hash function was used.
 	IF(MD5,3,0) ELSEIF(MD4,3,0) ELSEIF(SHA1,4,20)
@@ -1734,7 +1734,16 @@ static int parse_expression(DC_struct *p) {
 					inp_cnt = ex_cnt = salt_cnt = 0;
 					len_comp = 0;
 				}
-				//if (!strcasecmp(pCode[i], "futf16be") || !strcasecmp(pCode[i], "futf16")) {
+				if (!strcasecmp(pCode[i], "futf16be")) {
+					if (!in_unicode) {
+						in_unicode = 1;
+						comp_add_script_line("Func=DynamicFunc__setmode_unicodeBE\n");
+					}
+					if (!flag_utf16) {
+						comp_add_script_line("Flag=MGF_UTF8\n");
+						flag_utf16 = 1;
+					}
+				}
 				if (!strcasecmp(pCode[i], "futf16")) {
 					if (!in_unicode) {
 						in_unicode = 1;
@@ -1812,11 +1821,11 @@ static int parse_expression(DC_struct *p) {
 							else if (!strncmp(pCode[x], "IN1", 3)) {
 								comp_add_script_line("Func=DynamicFunc__append_input%s_from_input\n", use_inp1?"":"2"); if (use_inp1) { len_comp<<=1; ex_cnt<<=1; inp_cnt<<=1; salt_cnt<<=1; } else { len_comp2+=len_comp; ex_cnt2+=ex_cnt; inp_cnt2+=inp_cnt; salt_cnt2+=salt_cnt; } }
 							else if (!strcmp(pCode[x], "pad16")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); if(use_inp1) len_comp += 16; else len_comp2 += 16; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad16\n"); if (use_inp1) len_comp += 16; else len_comp2 += 16; }
 							else if (!strcmp(pCode[x], "pad20")) {
-								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); if(use_inp1) len_comp += 20; else len_comp2 += 20; }
+								comp_add_script_line("Func=DynamicFunc__append_keys_pad20\n"); if (use_inp1) len_comp += 20; else len_comp2 += 20; }
 							else if (!strcmp(pCode[x], "pad100")) {
-								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); if(use_inp1) len_comp += 100; else len_comp2 += 100; }
+								comp_add_script_line("Func=DynamicFunc__set_input_len_100\n"); if (use_inp1) len_comp += 100; else len_comp2 += 100; }
 
 							*pCode[x] = 'X';
 						}
@@ -1841,7 +1850,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt) max_inp_len -= (len_comp-239+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (239-len_comp);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1851,7 +1860,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt) max_inp_len -= (len_comp-247+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (247-len_comp);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
@@ -1859,7 +1868,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt) max_inp_len -= (len_comp-256+(inp_cnt-1))/inp_cnt;
 									else max_inp_len = (256-len_comp);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
 
 								}
 							}
@@ -1875,7 +1884,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-239+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (239-len_comp2);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 64 bit SIMD subexpression that is longer than the 239 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 239-max_inp_len);
 								}
 							} else if (!strncasecmp(pCode[i], "f5", 2 ) || !strncasecmp(pCode[i], "f4", 2) ||
 									   !strncasecmp(pCode[i], "f1", 2) || !strncasecmp(pCode[i], "f224", 4 ) ||
@@ -1885,7 +1894,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-247+(inp_cnt2-1))/inp_cnt2;
 									else  max_inp_len = (247-len_comp2);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a 32 bit SIMD subexpression that is longer than the 247 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 247-max_inp_len);
 								}
 							} else {
 								// non SIMD code can use full 256 byte buffers.
@@ -1893,7 +1902,7 @@ static int parse_expression(DC_struct *p) {
 									if (inp_cnt2) max_inp_len -= (len_comp2-256+(inp_cnt2-1))/inp_cnt2;
 									else max_inp_len = (256-len_comp2);
 									if (max_inp_len <= 0)
-										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. It's length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
+										error_msg("This expression can not be handled by the Dynamic engine.\nThere is a subexpression that is longer than the 256 byte max. Its length is %d bytes long, even with 0 byte PLAINTEXT_LENGTH\n", 256-max_inp_len);
 								}
 							}
 							len_comp2 = 0;
@@ -1913,10 +1922,10 @@ static int parse_expression(DC_struct *p) {
 #undef ELSEIF
 #define IF(C,T,L,F) if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 #define ELSEIF(C,T,L,F) else if (!strncasecmp(pCode[i], #T, L)) { \
 	comp_add_script_line("Func=DynamicFunc__" #C "_crypt_input%s_to_output1_FINAL\n", use_inp1?"1":"2"); \
-	if(F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
+	if (F) { comp_add_script_line("Flag=MGF_INPUT_" #F "_BYTE\n"); outer_hash_len = F; } else outer_hash_len = 16; }
 
 							IF(SHA512,f512,4,64)
 							ELSEIF(MD5,f5,2,0)
@@ -2199,7 +2208,7 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 
 int looks_like_bare_hash(const char *fld1) {
 	// look for hex string with 'optional' '$' for salt.
-	int len = base64_valid_length(fld1, e_b64_hex, 0);
+	int len = base64_valid_length(fld1, e_b64_hex, 0, 0);
 	if (len == (outer_hash_len<<1)) {
 		// check salt flag
 		return 1;
@@ -2210,6 +2219,11 @@ int looks_like_bare_hash(const char *fld1) {
 char *dynamic_compile_prepare(char *fld0, char *fld1) {
 	static char Buf[1024], tmp1[64];
 	char *cpExpr=0;
+
+	/* Quick cancel of huge lines (eg. zip archives) */
+	if (strnlen(fld1, LINE_BUFFER_SIZE + 1) > LINE_BUFFER_SIZE)
+		return fld1;
+
 	if (!strncmp(fld1, "$dynamic_", 9)) {
 		int num;
 		if (strlen(fld1) > 490)
@@ -2218,9 +2232,9 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 			char *cpBuilding=fld1;
 			char *cp, *cpo;
 			int bGood=1;
-			static char ct[512];
+			static char ct[1024];
 
-			strcpy(ct, cpBuilding);
+			strnzcpy(ct, cpBuilding, sizeof(ct));
 			cp = strstr(ct, "$HEX$");
 			cpo = cp;
 			*cpo++ = *cp;
@@ -2379,15 +2393,15 @@ char *dynamic_compile_split(char *ct) {
 		// convert back into dynamic= format
 		// Note we should probably ONLY do this on 'raw' hashes!
 		static char Buf[512];
-		sprintf(Buf, "%s%s", dyna_signature, ct);
+		snprintf(Buf, sizeof(Buf), "%s%s", dyna_signature, ct);
 		ct = Buf;
 	} else {
 		if (ldr_in_pot == 1 && !strncmp(ct, "@dynamic=", 9)) {
 			static char Buf[512], Buf2[512];
 			char *cp = strchr(&ct[1], '@');
 			if (cp) {
-				strcpy(Buf, &cp[1]);
-				sprintf(Buf2, "%s%s", dyna_signature, Buf);
+				strnzcpy(Buf, &cp[1], sizeof(Buf));
+				snprintf(Buf2, sizeof(Buf2), "%s%s", dyna_signature, Buf);
 				ct = Buf2;
 			}
 		}

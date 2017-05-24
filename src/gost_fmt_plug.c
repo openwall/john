@@ -42,9 +42,9 @@ john_register_one(&fmt_gost);
 #define FORMAT_NAME		"GOST R 34.11-94"
 
 #define FORMAT_TAG		"$gost$"
-#define TAG_LENGTH		6
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define FORMAT_TAG_CP		"$gost-cp$"
-#define TAG_CP_LENGTH		9
+#define TAG_CP_LENGTH		(sizeof(FORMAT_TAG_CP)-1)
 
 #if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
 #define ALGORITHM_NAME		"64/64"
@@ -59,7 +59,7 @@ john_register_one(&fmt_gost);
 #define BINARY_SIZE		32
 #define SALT_SIZE		1
 #define SALT_ALIGN		1
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -81,7 +81,7 @@ static struct fmt_tests gost_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[8];
+static uint32_t (*crypt_out)[8];
 static int is_cryptopro; /* non 0 for CryptoPro hashes */
 
 static void init(struct fmt_main *self)
@@ -215,7 +215,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (crypt_out[index][0] == *(ARCH_WORD_32*)binary)
+		if (crypt_out[index][0] == *(uint32_t*)binary)
 			return 1;
 
 	return 0;
@@ -262,6 +262,7 @@ struct fmt_main fmt_gost = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
+		{ FORMAT_TAG, FORMAT_TAG_CP },
 		gost_tests
 	}, {
 		init,

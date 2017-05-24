@@ -1,4 +1,4 @@
-== How to install on Ubuntu
+== How to install on Ubuntu (also works on Ubuntu for Windows)
 
 === Install pre-requisites
 
@@ -12,13 +12,19 @@
 
     sudo apt-get install yasm libgmp-dev libpcap-dev pkg-config libbz2-dev
 
-==== If you have an NVIDIA GPU (CUDA and OpenCL support)
+==== If you have an NVIDIA GPU (OpenCL support)
 
-    sudo apt-get install nvidia-cuda-toolkit nvidia-opencl-dev
+    sudo apt-get install nvidia-opencl-dev
 
 ==== If you have an AMD GPU (or want to use CPU as OpenCL device)
 
-    sudo apt-get install fglrx-updates-dev
+    - Up to Ubuntu 15.10 (<= 15.10). This will work on Intel hardware but warnings will be seen.
+    sudo apt-get install ocl-icd-opencl-dev opencl-headers fglrx-dev
+
+    - Ubuntu Xenial 16.04 LTS and above (>= 16.04)
+    The fglrx driver would not be supported in 16.04 (XServer 1.18 is not supported).
+    Canonical and AMD decided to use the new hybrid driver stack for 16.04. JtR OpenCL
+    users should stay on a supported release until the hybrid stack is available.
 
 ==== Optional MPI support
 
@@ -28,7 +34,7 @@
 
     sudo apt-get install cmake bison flex libicu-dev
     cd ~/src
-    git clone --recursive -b 1.2.5 https://github.com/teeshop/rexgen.git
+    git clone --recursive https://github.com/teeshop/rexgen.git
     cd rexgen/src
     ./install.sh
 

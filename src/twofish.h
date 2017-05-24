@@ -181,5 +181,6 @@ extern void Twofish_decrypt(
                             );
 
 extern int Twofish_Decrypt(Twofish_key *m_key, Twofish_Byte *pInput, Twofish_Byte *pOutBuffer, int nInputOctets, Twofish_Byte *m_pInitVector);
+extern int Twofish_Decrypt_cfb128(Twofish_key *m_key, Twofish_Byte *pInput, Twofish_Byte *pOutBuffer, int nInputOctets, Twofish_Byte *m_pInitVector);
 
 #endif

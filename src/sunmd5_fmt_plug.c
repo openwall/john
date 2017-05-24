@@ -88,6 +88,9 @@ john_register_one(&fmt_sunmd5);
 
 #define FORMAT_LABEL			"SunMD5"
 #define FORMAT_NAME			""
+#define FORMAT_TAG           "$md5$"
+#define FORMAT_TAG2          "$md5,"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
@@ -280,9 +283,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *pos;
 
 	/* Common prefix. */
-	if (strncmp(ciphertext, "$md5", 4))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) &&
+		strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN))
 		return 0;
-	ciphertext += 4;
+	ciphertext += FORMAT_TAG_LEN-1;
 
 	/* Optional rounds. */
 	if (!strncmp(ciphertext, ",rounds=", 8) ||
@@ -342,7 +346,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		char c[FULL_BINARY_SIZE];
-		ARCH_WORD_32 w[FULL_BINARY_SIZE / sizeof(ARCH_WORD_32)];
+		uint32_t w[FULL_BINARY_SIZE / sizeof(uint32_t)];
 	} out;
 	unsigned l;
 	unsigned char *cp;
@@ -373,13 +377,13 @@ static void *get_salt(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_0; }
-static int get_hash_1(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_1; }
-static int get_hash_2(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_2; }
-static int get_hash_3(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_3; }
-static int get_hash_4(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_4; }
-static int get_hash_5(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_5; }
-static int get_hash_6(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & PH_MASK_6; }
+static int get_hash_0(int index) { return *((uint32_t*)(crypt_out[index])) & PH_MASK_0; }
+static int get_hash_1(int index) { return *((uint32_t*)(crypt_out[index])) & PH_MASK_1; }
+static int get_hash_2(int index) { return *((uint32_t*)(crypt_out[index])) & PH_MASK_2; }
+static int get_hash_3(int index) { return *((uint32_t*)(crypt_out[index])) & PH_MASK_3; }
+static int get_hash_4(int index) { return *((uint32_t*)(crypt_out[index])) & PH_MASK_4; }
+static int get_hash_5(int index) { return *((uint32_t*)(crypt_out[index])) & PH_MASK_5; }
+static int get_hash_6(int index) { return *((uint32_t*)(crypt_out[index])) & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
@@ -417,7 +421,7 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	for (index = 0; index < count; index++)
-		if (*((ARCH_WORD_32*)binary) == *((ARCH_WORD_32*)crypt_out[index]))
+		if (*((uint32_t*)binary) == *((uint32_t*)crypt_out[index]))
 			return 1;
 
 	return 0;
@@ -425,7 +429,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == *((ARCH_WORD_32*)crypt_out[index]);
+	return *((uint32_t*)binary) == *((uint32_t*)crypt_out[index]);
 }
 
 static int cmp_exact(char *source, int index)
@@ -693,7 +697,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					cpo[GETPOS0(k+16)] = roundascii[k];
 				}
 				cpo[GETPOS0(k+16)] = 0x80;
-				((ARCH_WORD_32*)cpo)[14 * SIMD_COEF_32]=((16+roundasciilen)<<3);
+				((uint32_t*)cpo)[14 * SIMD_COEF_32]=((16+roundasciilen)<<3);
 			}
 			/* now do the 'loop' for the small 1-limb blocks. */
 			zs = zs0 = zb = zb0 = 0;
@@ -701,8 +705,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < nsmall-MIN_DROP_BACK; i += BLK_CNT) {
 				for (j = 0; j < BLK_CNT && zs < nsmall; ++j) {
 					pConx px = &data[smalls[zs++]];
-					ARCH_WORD_32 *pi = (ARCH_WORD_32*)px->digest;
-					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf[group_idx][PARAGETPOS(0, j)];
+					uint32_t *pi = (uint32_t*)px->digest;
+					uint32_t *po = (uint32_t*)&input_buf[group_idx][PARAGETPOS(0, j)];
 					/*
 					 * digest is flat, input buf is SSE_COEF.
 					 * input_buf is po (output) here, we are writing to it.
@@ -718,10 +722,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				 * in non linear order, there is no gain trying to keep it in COEF order
 				 */
 				for (j = 0; j < BLK_CNT && zs0 < nsmall; ++j) {
-					ARCH_WORD_32 *pi, *po;
+					uint32_t *pi, *po;
 					pConx px = &data[smalls[zs0++]];
-					pi = (ARCH_WORD_32*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
-					po = (ARCH_WORD_32*)px->digest;
+					pi = (uint32_t*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
+					po = (uint32_t*)px->digest;
 					po[0] = pi[0];
 					po[1] = pi[COEF];
 					po[2] = pi[COEF+COEF];
@@ -752,7 +756,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < BLK_CNT; ++j) {
 				unsigned char *cpo23 = &(input_buf_big[group_idx][23][PARAGETPOS(0, j)]);
 				unsigned char *cpo24 = &(input_buf_big[group_idx][24][PARAGETPOS(0, j)]);
-				*((ARCH_WORD_32*)cpo24) = 0; /* key clean */
+				*((uint32_t*)cpo24) = 0; /* key clean */
 				cpo23[GETPOS0(61)] = roundascii[0];
 				switch(roundasciilen) {
 					case 1:
@@ -790,13 +794,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						cpo24[3] = 0x80;
 						break;
 				}
-				((ARCH_WORD_32*)cpo24)[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
+				((uint32_t*)cpo24)[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
 			}
 			for (i = 0; i < nbig-MIN_DROP_BACK; i += BLK_CNT) {
 				for (j = 0; j < BLK_CNT && zb < nbig; ++j) {
 					pConx px = &data[bigs[zb++]];
-					ARCH_WORD_32 *pi = (ARCH_WORD_32 *)px->digest;
-					ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf_big[group_idx][0][PARAGETPOS(0, j)];
+					uint32_t *pi = (uint32_t *)px->digest;
+					uint32_t *po = (uint32_t*)&input_buf_big[group_idx][0][PARAGETPOS(0, j)];
 					/*
 					 * digest is flat, input buf is SSE_COEF.
 					 * input_buf is po (output) here, we are writing to it.
@@ -811,10 +815,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					SIMDmd5body(input_buf_big[group_idx][j], (unsigned int *)out_buf[group_idx], (unsigned int *)out_buf[group_idx], SSEi_RELOAD|SSEi_MIXED_IN);
 
 				for (j = 0; j < BLK_CNT && zb0 < nbig; ++j) {
-					ARCH_WORD_32 *pi, *po;
+					uint32_t *pi, *po;
 					pConx px = &data[bigs[zb0++]];
-					pi = (ARCH_WORD_32*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
-					po = (ARCH_WORD_32*)px->digest;
+					pi = (uint32_t*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
+					po = (uint32_t*)px->digest;
 					po[0] = pi[0];
 					po[1] = pi[COEF];
 					po[2] = pi[COEF+COEF];
@@ -832,7 +836,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 #endif
 			/*
-			 * this is the equivelent of the original code:
+			 * this is the equivalent of the original code:
 			 *    roundasciilen = sprintf(roundascii, "%d", round);
 			 * that was at the top of this rounds loop.  We have moved
 			 * it to the bottom. It does compute one 'extra' value that
@@ -899,6 +903,7 @@ struct fmt_main fmt_sunmd5 = {
 			 */
 			"iteration count",
 		},
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		init,

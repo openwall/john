@@ -643,11 +643,8 @@ CC_ASM_OBJS
 CC_MAIN_CPU
 CC_CPU
 LIBOBJS
-CUDA_LIBS
-HAVE_CUDA
-NVIDIA_CUDA
-NVCC_GCC
-NVCC
+ZTEX_LIBS
+ZTEX_SUBDIRS
 CL_LIBS
 CL_CFLAGS
 PTHREAD_CFLAGS
@@ -761,10 +758,10 @@ enable_memdbg
 enable_asan
 enable_ubsan
 enable_plugin_dependencies
+enable_werror
 enable_openmp_for_fast_formats
 enable_mpi
 enable_rexgen
-enable_cuda
 enable_pcap
 enable_native_tests
 enable_native_march
@@ -776,6 +773,7 @@ enable_experimental_code
 enable_fuzz
 enable_openmp
 enable_opencl
+enable_ztex
 '
       ac_precious_vars='build_alias
 host_alias
@@ -797,10 +795,7 @@ PKG_CONFIG
 PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 OPENSSL_CFLAGS
-OPENSSL_LIBS
-NVCC
-NVCC_GCC
-NVIDIA_CUDA'
+OPENSSL_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1396,12 +1391,12 @@ Optional Features:
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
+  --enable-werror         Treat warnings as errors
   --enable-openmp-for-fast-formats
                           Enable OpenMP for fast formats (usually a bad idea -
                           use fork instead)
   --enable-mpi            Use OpenMPI
   --disable-rexgen        Disable use of rexgen library
-  --enable-cuda           Use CUDA even if OpenCL was found too
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not test build system for target features.
                           Implies --disable-native-march.
@@ -1418,6 +1413,7 @@ Optional Features:
   --enable-fuzz           Fuzzing prepare(), valid(), init(), etc
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
+  --enable-ztex           Support ZTEX USB-FPGA module 1.15y
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1457,9 +1453,6 @@ Some influential environment variables:
               C compiler flags for OPENSSL, overriding pkg-config
   OPENSSL_LIBS
               linker flags for OPENSSL, overriding pkg-config
-  NVCC        full pathname of CUDA compiler
-  NVCC_GCC    full pathname of CUDA compiler's gcc backend
-  NVIDIA_CUDA base path of CUDA installation
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -3429,10 +3422,15 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # This might be a Bad Idea[tm] if cross compiling.
 
 
-# @synopsis JTR_SET_CUDA_INCLUDES
-# @summary check and set many normal include paths
+# JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
+# success and forced should be xvar data, "x$enable_foobar", so they
+# will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
+# will be output, and the script will abort, IF forced is xyes which
+# means the user used --enable-foobar
 
 
+# JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED(chk_msg, success, forced, forced_fail_msg)
+# will output a checking 'chk_msg', then calls JTR_MSG_RESULT_FAILIF_FORCED
 
 
 # @synopsis JTR_SET_OPENCL_INCLUDES
@@ -3440,6 +3438,21 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
+
+#
+# AX_ZTEX
+#
+# This software is Copyright (c) 2016 Denis Burykin
+# [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+# and it is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# If configured to support ZTEX USB-FPGA module with --enable-ztex=yes:
+# - check for headers and libraries
+# - add Makefiles
+# - set ZTEX_SUBDIRS, ZTEX_LIBS
+#
 
 
 # Define precious variables. They get included in --help and need no AC_SUBST
@@ -3525,6 +3538,14 @@ else
 fi
 
 
+# Check whether --enable-werror was given.
+if test "${enable_werror+set}" = set; then :
+  enableval=$enable_werror; werror=$enableval
+else
+  werror=no
+fi
+
+
 # Define Features. OpenMP and OpenCL are defined in their respective macros.
 # We define "--disable-FEATURE" when default is "auto".
 # MPI is not "auto" because its network usage might scare people:
@@ -3547,13 +3568,6 @@ if test "${enable_rexgen+set}" = set; then :
   enableval=$enable_rexgen; enable_rexgen=$enableval
 else
   enable_rexgen=auto
-fi
-
-# Check whether --enable-cuda was given.
-if test "${enable_cuda+set}" = set; then :
-  enableval=$enable_cuda; enable_cuda=$enableval
-else
-  enable_cuda=auto
 fi
 
 # Check whether --enable-pcap was given.
@@ -4802,6 +4816,12 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+	if test x"$_ax_prog_cc_mpi_mpi_wanted" = xyes -a x"$_ax_prog_cc_mpi_mpi_found" = xno; then
+		{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "MPI not buildable
+See \`config.log' for more details" "$LINENO" 5; }
+	fi
 
 fi
 
@@ -5905,7 +5925,10 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
       if test "x${CFLAGS_EX}" = x ; then
-         asan=no
+         { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find all required ASAN components
+See \`config.log' for more details" "$LINENO" 5; }
       else
          LDFLAGS="-faddress-sanitizer $LDFLAGS"
       fi
@@ -5968,7 +5991,10 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    if test "x${CFLAGS_EX}" = x ; then
-      ubsan=no
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find all required UBSAN components
+See \`config.log' for more details" "$LINENO" 5; }
    else
       LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
    fi
@@ -6069,6 +6095,55 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+
+if test "x$werror" = xyes ; then
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Werror" >&5
+$as_echo_n "checking if $CC supports -Werror... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -Werror"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -Werror"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+fi
 if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-omit-frame-pointer" >&5
@@ -6260,8 +6335,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
    # clang warnings
      if test "1" = 1; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-format-extra-args" >&5
-$as_echo_n "checking if $CC supports -Wno-format-extra-args... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-extra-args" >&5
+$as_echo_n "checking if $CC supports -Wformat-extra-args... " >&6; }
 fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -6270,7 +6345,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wno-format-extra-args"
+  CFLAGS="-Werror -Wformat-extra-args"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -6287,7 +6362,53 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -Wno-format-extra-args"
+      CFLAGS_EX="$CFLAGS_EX -Wformat-extra-args"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports  -Wunused-but-set-variable" >&5
+$as_echo_n "checking if $CC supports  -Wunused-but-set-variable... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror  -Wunused-but-set-variable"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX  -Wunused-but-set-variable"
 
 else
   if test "1" = 1; then :
@@ -7374,8 +7495,21 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if pkg-config will be used" >&5
 $as_echo_n "checking if pkg-config will be used... " >&6; }
 if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" == xno ; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+
+  if test "xno" == xyes; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+    if test "x$enable_pkg_config" == xyes; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "pkg-config is NOT available
+See \`config.log' for more details" "$LINENO" 5; }
+    fi
+  fi
+
 	PKG_CONFIG=no
 else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -7384,6 +7518,38 @@ fi
 # Cross-compile compliant size checks
 # size_t and off_t are post-poned to after feature macros are set
 # *****************************************************************
+
+#
+# Here, we use perl (if it was found!) and if there is a ../run/john.pot
+# file, to find out if there are any .pot lines that will be TOO long
+# for this version of JtR.  WE have reduced the max pot line length to
+# 1k (it was 30000 or 300000 bytes long before).  So we now need to make
+# sure that all lines are approprate.  We use ../run/potcheck.pl to validate
+# the .pot file here.  IF there are problems, we simply inform the user to
+# fix his .pot file (with ../run/potcheck.pl) and do NOT allow configure
+# to succeeed.
+#
+if ( test -e ../run/john.pot ) ; then
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if potcheck.pl succeeds" >&5
+$as_echo_n "checking if potcheck.pl succeeds... " >&6; }
+if test "x$PERL" == x ; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no Perl (unable to check)" >&5
+$as_echo "no Perl (unable to check)" >&6; }
+else
+   $PERL ../run/potcheck.pl -validate < ../run/john.pot
+   ret=$?
+   if ( test $ret -ne 0 ) ; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+      echo ""
+      echo "   NOTE, john will not run properly until you fix your ../run/john.pot"
+      echo "   file using the ../run/potcheck.pl with the -long command line"
+      exit 1;
+   fi
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+fi
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for egrep" >&5
@@ -7711,6 +7877,39 @@ $as_echo "$ac_cv_sizeof_long_long" >&6; }
 
 cat >>confdefs.h <<_ACEOF
 #define SIZEOF_LONG_LONG $ac_cv_sizeof_long_long
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of wchar_t" >&5
+$as_echo_n "checking size of wchar_t... " >&6; }
+if ${ac_cv_sizeof_wchar_t+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (wchar_t))" "ac_cv_sizeof_wchar_t"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_wchar_t" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (wchar_t)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_wchar_t=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_wchar_t" >&5
+$as_echo "$ac_cv_sizeof_wchar_t" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_WCHAR_T $ac_cv_sizeof_wchar_t
 _ACEOF
 
 
@@ -10069,11 +10268,11 @@ LIBS=""
 using_rexgen=no
 # Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
-	ac_fn_c_check_header_mongrel "$LINENO" "librexgen/c/librexgen.h" "ac_cv_header_librexgen_c_librexgen_h" "$ac_includes_default"
-if test "x$ac_cv_header_librexgen_c_librexgen_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing c_simplestring_new" >&5
-$as_echo_n "checking for library containing c_simplestring_new... " >&6; }
-if ${ac_cv_search_c_simplestring_new+:} false; then :
+  ac_fn_c_check_header_mongrel "$LINENO" "librexgen/version.h" "ac_cv_header_librexgen_version_h" "$ac_includes_default"
+if test "x$ac_cv_header_librexgen_version_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing rexgen_version_int" >&5
+$as_echo_n "checking for library containing rexgen_version_int... " >&6; }
+if ${ac_cv_search_rexgen_version_int+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_func_search_save_LIBS=$LIBS
@@ -10086,11 +10285,11 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char c_simplestring_new ();
+char rexgen_version_int ();
 int
 main ()
 {
-return c_simplestring_new ();
+return rexgen_version_int ();
   ;
   return 0;
 }
@@ -10103,37 +10302,69 @@ for ac_lib in '' rexgen librexgen; do
     LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
   fi
   if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_c_simplestring_new=$ac_res
+  ac_cv_search_rexgen_version_int=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext
-  if ${ac_cv_search_c_simplestring_new+:} false; then :
+  if ${ac_cv_search_rexgen_version_int+:} false; then :
   break
 fi
 done
-if ${ac_cv_search_c_simplestring_new+:} false; then :
+if ${ac_cv_search_rexgen_version_int+:} false; then :
 
 else
-  ac_cv_search_c_simplestring_new=no
+  ac_cv_search_rexgen_version_int=no
 fi
 rm conftest.$ac_ext
 LIBS=$ac_func_search_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_c_simplestring_new" >&5
-$as_echo "$ac_cv_search_c_simplestring_new" >&6; }
-ac_res=$ac_cv_search_c_simplestring_new
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_rexgen_version_int" >&5
+$as_echo "$ac_cv_search_rexgen_version_int" >&6; }
+ac_res=$ac_cv_search_rexgen_version_int
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-  using_rexgen=yes
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking librexgen minimum version" >&5
+$as_echo_n "checking librexgen minimum version... " >&6; } && if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main() { return ! (rexgen_version_int() >= 0x010400); }
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: usable" >&5
+$as_echo "usable" >&6; } && using_rexgen=yes
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: TOO old. Rexgen not usable!" >&5
+$as_echo "TOO old. Rexgen not usable!" >&6; }
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+fi
+
+
+fi
+
+
+  if test "x$using_rexgen" == "xyes" ; then
 
 $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
 
-fi
-
-fi
-
-
-	REXGEN_LIBS=$LIBS
+  else
+    if test "x$enable_rexgen" == "xyes" ; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "rexgen not installed, or unusable version
+See \`config.log' for more details" "$LINENO" 5; }
+    fi
+  fi
+  REXGEN_LIBS=$LIBS
 
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: rexgen check not enabled" >&5
@@ -10266,6 +10497,16 @@ fi
 
 done
 
+  if test x"$enable_pcap" = xyes ; then
+    if test x"$ac_cv_lib_pcap_pcap_compile" != xyes ; then
+      if test x"$ac_cv_lib_wpcap_pcap_compile" != xyes; then
+        { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "PCAP not installed/usable
+See \`config.log' for more details" "$LINENO" 5; }
+	  fi
+    fi
+  fi
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: PCAP check disabled" >&5
 $as_echo "$as_me: PCAP check disabled" >&6;}
@@ -11307,192 +11548,33 @@ if test "x$CL_LIBS" = x; then
 else
    using_cl=yes
    HAVE_OPENCL=-DHAVE_OPENCL
-   if test x$enable_cuda = xauto; then
-      enable_cuda=no
-   fi
 fi
 
-# Check for CUDA, including headers.
+# ZTEX USB-FPGA module support (if --enable-ztex=yes)
 
 
-
-  using_cuda=no
-  if test "x$enable_cuda" != xno; then
-     if test "x$cross_compiling" = xno; then :
-
-
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for CUDA" >&5
-$as_echo_n "checking additional paths for CUDA... " >&6; }
-   ADD_LDFLAGS=""
-   ADD_CFLAGS=""
-   if test -n "$NVIDIA_CUDA"; then
-      CUDAPATH="$NVIDIA_CUDA"
-   else
-      CUDAPATH=/usr/local/cuda
-   fi
-   NVIDIA_CUDA="$CUDAPATH"
-
-   if test -d "$CUDAPATH/include"; then
-      ADD_CFLAGS="$ADD_CFLAGS -I$CUDAPATH/include"
-   fi
-   if test $CPU_BIT_STR = 64 -a -d "$CUDAPATH/lib64"; then
-      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib64"
-   elif test -d "$CUDAPATH/lib"; then
-      ADD_LDFLAGS="$ADD_LDFLAGS -L$CUDAPATH/lib"
-   fi
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CPPFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CPPFLAGS="$CPPFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
- # no typo here
-   jtr_list_add_result=""
-
-   for i in $ADD_LDFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $LDFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         LDFLAGS="$LDFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   for i in $ADD_CFLAGS; do
-      jtr_list_add_dupe=0
-      for j in $CFLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         CFLAGS="$CFLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-
-   if test -z "$jtr_list_add_result"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
-$as_echo "none" >&6; }
+# Check whether --enable-ztex was given.
+if test "${enable_ztex+set}" = set; then :
+  enableval=$enable_ztex; ztex=$enableval
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $jtr_list_add_result" >&5
-$as_echo "$jtr_list_add_result" >&6; }
-fi
-   jtr_list_add_result=""
-
-
-fi
-     # Extract the first word of "nvcc", so it can be a program name with args.
-set dummy nvcc; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_NVCC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $NVCC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_NVCC="$NVCC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH$PATH_SEPARATOR$CUDAPATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_NVCC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-NVCC=$ac_cv_path_NVCC
-if test -n "$NVCC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NVCC" >&5
-$as_echo "$NVCC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
+  ztex=no
 fi
 
 
-     if test "x$NVCC" != "x"; then :
-  for ac_prog in llvm-gcc-4.2 gcc-4.6 gcc-4.5 gcc-4.4 gcc-4.3 gcc-4.2
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_NVCC_GCC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $NVCC_GCC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_NVCC_GCC="$NVCC_GCC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH$PATH_SEPARATOR$CUDAPATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_NVCC_GCC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
+ZTEX_SUBDIRS=""
+ZTEX_LIBS=""
 
-  ;;
-esac
-fi
-NVCC_GCC=$ac_cv_path_NVCC_GCC
-if test -n "$NVCC_GCC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $NVCC_GCC" >&5
-$as_echo "$NVCC_GCC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
+if test "x$ztex" = xyes; then
 
-
-  test -n "$NVCC_GCC" && break
-done
-
-	ac_fn_c_check_header_mongrel "$LINENO" "cuda.h" "ac_cv_header_cuda_h" "$ac_includes_default"
-if test "x$ac_cv_header_cuda_h" = xyes; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cudaGetDeviceCount in -lcudart" >&5
-$as_echo_n "checking for cudaGetDeviceCount in -lcudart... " >&6; }
-if ${ac_cv_lib_cudart_cudaGetDeviceCount+:} false; then :
+ac_fn_c_check_header_mongrel "$LINENO" "libusb-1.0/libusb.h" "ac_cv_header_libusb_1_0_libusb_h" "$ac_includes_default"
+if test "x$ac_cv_header_libusb_1_0_libusb_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libusb_init in -lusb-1.0" >&5
+$as_echo_n "checking for libusb_init in -lusb-1.0... " >&6; }
+if ${ac_cv_lib_usb_1_0_libusb_init+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcudart  $LIBS"
+LIBS="-lusb-1.0  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -11502,54 +11584,68 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char cudaGetDeviceCount ();
+char libusb_init ();
 int
 main ()
 {
-return cudaGetDeviceCount ();
+return libusb_init ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_cudart_cudaGetDeviceCount=yes
+  ac_cv_lib_usb_1_0_libusb_init=yes
 else
-  ac_cv_lib_cudart_cudaGetDeviceCount=no
+  ac_cv_lib_usb_1_0_libusb_init=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_cudart_cudaGetDeviceCount" >&5
-$as_echo "$ac_cv_lib_cudart_cudaGetDeviceCount" >&6; }
-if test "x$ac_cv_lib_cudart_cudaGetDeviceCount" = xyes; then :
-  using_cuda=yes
-				   HAVE_CUDA=-DHAVE_CUDA
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_usb_1_0_libusb_init" >&5
+$as_echo "$ac_cv_lib_usb_1_0_libusb_init" >&6; }
+if test "x$ac_cv_lib_usb_1_0_libusb_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUSB_1_0 1
+_ACEOF
 
-				   CUDA_LIBS=-lcudart
+  LIBS="-lusb-1.0 $LIBS"
 
-fi
-
-
-fi
-
-
-
-fi
-     if test "x$using_cuda" != xyes -a "x$enable_cuda" = xyes; then
-	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find all required CUDA components
+as_fn_error $? "ZTEX USB-FPGA module requires libusb-1.0.
 See \`config.log' for more details" "$LINENO" 5; }
-     fi
-  fi
+
+fi
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "ZTEX USB-FPGA module requires libusb-1.0.
+See \`config.log' for more details" "$LINENO" 5; }
+
+fi
+
+
+
+ac_config_files="$ac_config_files ztex/Makefile ztex/pkt_comm/Makefile"
+
+
+ZTEX_SUBDIRS="ztex"
+ZTEX_LIBS="ztex/*.o ztex/pkt_comm/*.o -lusb-1.0"
+
+fi
+
+
+
 
 
 # Checks for header files.
 # Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
 for ac_header in arpa/inet.h crypt.h dirent.h fcntl.h limits.h locale.h \
                   malloc.h net/ethernet.h netdb.h netinet/in.h \
-                  netinet/in_systm.h stdint.h string.h strings.h \
+                  netinet/in_systm.h string.h strings.h \
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h \
                   sys/time.h sys/times.h sys/types.h termios.h \
                   unistd.h unixlib/local.h windows.h
@@ -12027,6 +12123,22 @@ _ACEOF
 fi
 
 fi
+fi
+
+if test "x$enable_int128" = xno; then
+   have_int128=disabled
+elif test "x$ac_cv_type_int128" = xyes ||
+   test "x$ac_cv_type___int128" = xyes ||
+   test "x$ac_cv_type___int128_t" = xyes; then
+   have_int128=yes
+else
+   if test "x$enable_int128" = xyes; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "int128 is not capable on this build
+See \`config.log' for more details" "$LINENO" 5; }
+   fi
+   have_int128=no
 fi
 
 # Checks for library functions.
@@ -14490,6 +14602,8 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "autoconfig.h") CONFIG_HEADERS="$CONFIG_HEADERS autoconfig.h" ;;
+    "ztex/Makefile") CONFIG_FILES="$CONFIG_FILES ztex/Makefile" ;;
+    "ztex/pkt_comm/Makefile") CONFIG_FILES="$CONFIG_FILES ztex/pkt_comm/Makefile" ;;
     "arch.h") CONFIG_LINKS="$CONFIG_LINKS arch.h:$ARCH_LINK" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "aes/Makefile") CONFIG_FILES="$CONFIG_FILES aes/Makefile" ;;
@@ -15167,7 +15281,7 @@ fi
 echo "configure: creating ./fmt_externs.h"
 rm -f fmt_externs.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 fi
 # if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
@@ -15194,10 +15308,7 @@ if test ! -f fmt_registers.h; then
 fi
 
 if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
-fi
-if test "`echo cuda_*_fmt_plug.c`" != "cuda_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $HAVE_CUDA $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H cuda_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 
 ########################################################
@@ -15213,6 +15324,12 @@ if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a         "x$
       using_omp="yes (not for fast formats)"
    fi
 else
+   if test "x$ompfast" = "xyes"; then
+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "OMP for fast formats requested, but no OMP on this system
+See \`config.log' for more details" "$LINENO" 5; }
+   fi
    using_omp=no
 fi
 
@@ -15294,21 +15411,6 @@ else
    ubsan="disabled"
 fi
 
-if test "x$enable_int128" = xno; then
-   have_int128=disabled
-elif test "x$ac_cv_type_int128" = xyes ||
-   test "x$ac_cv_type___int128" = xyes ||
-   test "x$ac_cv_type___int128_t" = xyes; then
-   have_int128=yes
-else
-   have_int128=no
-fi
-
-if test x$using_cuda = xyes && test x$using_cl = xno; then
-   using_cuda="yes * NOTE: OpenCL is superior, *"
-   using_cl="no  *       even for NVIDIA     *"
-fi
-
 cat <<EOF
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
@@ -15325,7 +15427,6 @@ Experimental code .......................... ${experimental}
 OpenMPI support (default disabled) ......... ${using_mpi}
 Fork support ............................... ${ac_cv_func_fork_works}
 OpenMP support ............................. ${using_omp}
-CUDA support (default disabled by OpenCL) .. ${using_cuda}
 OpenCL support ............................. ${using_cl}
 Generic crypt(3) format .................... ${using_crypt}
 Rexgen (extra cracking mode) ............... ${using_rexgen}
@@ -15335,6 +15436,7 @@ Z (pkzip format, gpg2john) ................. ${using_zlib}
 BZ2 (gpg2john extra decompression logic) ... ${using_bz2}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
 Memory map (share/page large files) ........ ${using_mmap}
+ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ........... ${memdbg_settings}

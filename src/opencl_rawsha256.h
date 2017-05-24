@@ -19,7 +19,6 @@
 
 //Constants.
 #define RAW_PLAINTEXT_LENGTH    55  /* 55 characters + 0x80 */
-#define CISCO_PLAINTEXT_LENGTH  26  /* 25 characters + 0x80 */
 #define PLAINTEXT_LENGTH    RAW_PLAINTEXT_LENGTH
 
 #define BUFFER_SIZE             56  /* RAW_PLAINTEXT_LENGTH multiple of 4 */
@@ -36,6 +35,13 @@
 
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512
+
+#define SPREAD_32(X0, X1, X2, X3, SIZE_MIN_1, X, Y) {                         \
+	X = (X0) ^ (X1) ^ (X2);                                               \
+	X = X & SIZE_MIN_1;                                                   \
+	Y = (X + (X3)) ^ (X0);                                                \
+	Y = Y & SIZE_MIN_1;                                                   \
+}
 
 //Data types.
 typedef union {
@@ -55,7 +61,7 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
 static const char *warn[] = {
-	"pass xfer: ", ", crypt: ", ", result xfer: ", ", index xfer: ",
+	"prep: ", ", xfer pass: ", ", idx: ", ", crypt: ", ", result: ",
 	", mask xfer: ", " + "
 };
 #endif

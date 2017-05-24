@@ -43,6 +43,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"RACF"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$racf$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -50,7 +52,7 @@ static int omp_t = 1;
 #define CIPHERTEXT_LENGTH	16
 #define BINARY_SIZE		8
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		1
 
 #define MIN_KEYS_PER_CRYPT	1
@@ -143,7 +145,9 @@ static struct custom_salt {
 	unsigned char userid[8 + 1];
 } *cur_salt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
+static DES_key_schedule (*schedules);
+static int dirty;
 
 static void init(struct fmt_main *self)
 {
@@ -157,10 +161,13 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
+	schedules = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*schedules));
 }
 
 static void done(void)
 {
+	MEM_FREE(schedules);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
@@ -170,17 +177,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
-	if (strncmp(ciphertext, "$racf$*", 7))
+	int extra;
+
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 7;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*"); /* username */
-	if(!p)
+	if (!p)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
 		goto err;
-	if (hexlenu(p) != CIPHERTEXT_LENGTH)
+	if (hexlenu(p, &extra) != CIPHERTEXT_LENGTH || extra)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;
@@ -196,7 +205,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy, *username;
 	static struct custom_salt cs;
 
-	ctcopy += 7;	/* skip over "$racf$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$racf$*" */
 	username = strtokm(ctcopy, "*");
 	/* process username */
 	strncpy((char*)cs.userid, username, 8);
@@ -255,25 +264,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		DES_cblock des_key;
-		DES_key_schedule schedule;
-		DES_cblock ivec;
-		int i;
+		if (dirty) {
+			DES_cblock des_key;
+			int i;
 
-		/* process key */
-		for(i = 0; saved_key[index][i]; i++)
-			des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
+			/* process key */
+			for (i = 0; saved_key[index][i]; i++)
+				des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
 
-		/* replace missing characters in userid by (EBCDIC space (0x40) XOR 0x55) << 1 */
-		while(i < 8)
-			des_key[i++] = 0x2a;
+			/* replace missing characters in userid by (EBCDIC space (0x40) XOR 0x55) << 1 */
+			while(i < 8)
+				des_key[i++] = 0x2a;
 
-		DES_set_key_unchecked(&des_key, &schedule);
-
+			DES_set_key_unchecked(&des_key, &schedules[index]);
+		}
 		/* do encryption */
-		memset(ivec, 0, 8);
-		DES_cbc_encrypt(cur_salt->userid, (unsigned char*)crypt_out[index], 8, &schedule, &ivec, DES_ENCRYPT);
+		DES_ecb_encrypt((const_DES_cblock*)cur_salt->userid, (DES_cblock*)crypt_out[index], &schedules[index], DES_ENCRYPT);
 	}
+	dirty = 0;
 	return count;
 }
 
@@ -305,6 +313,7 @@ static void racf_set_key(char *key, int index)
 		saved_len = 8;
 	memcpy(saved_key[index], key, saved_len);
 	saved_key[index][saved_len] = 0;
+	dirty = 1;
 }
 
 static char *get_key(int index)
@@ -329,6 +338,7 @@ struct fmt_main fmt_racf = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_TRUNC | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
+		{ FORMAT_TAG },
 		racf_tests
 	}, {
 		init,

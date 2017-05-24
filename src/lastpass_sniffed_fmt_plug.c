@@ -40,6 +40,8 @@ john_register_one(&fmt_sniffed_lastpass);
 
 #define FORMAT_LABEL		"LastPass"
 #define FORMAT_NAME		"sniffed sessions"
+#define FORMAT_TAG			"$lastpass$"
+#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 AES " SHA256_ALGORITHM_NAME
 #else
@@ -76,7 +78,7 @@ static struct fmt_tests lastpass_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[4];
+static uint32_t (*crypt_key)[4];
 
 static struct custom_salt {
 	unsigned int iterations;
@@ -108,11 +110,11 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext, "$lastpass$", 10) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 10;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* username */
 		goto err;
 	if (strlen(p) > 128)
@@ -141,7 +143,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 10;	/* skip over "$lastpass$" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$lastpass$" */
 	p = strtokm(ctcopy, "$");
 	i = strlen(p);
 	if (i > 16)
@@ -159,10 +161,10 @@ static void *get_binary(char *ciphertext)
 	static unsigned int out[4];
 	char Tmp[48];
 	char *p;
-	ciphertext += 10;
+	ciphertext += FORMAT_TAG_LEN;
 	p = strchr(ciphertext, '$')+1;
 	p = strchr(p, '$')+1;
-	base64_convert(p, e_b64_mime, strlen(p), Tmp, e_b64_raw, sizeof(Tmp)-3, 0);
+	base64_convert(p, e_b64_mime, strlen(p), Tmp, e_b64_raw, sizeof(Tmp), 0, 0);
 	memcpy(out, Tmp, 16);
 	return out;
 }
@@ -181,13 +183,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
 	{
-		ARCH_WORD_32 key[MAX_KEYS_PER_CRYPT][8];
+		uint32_t key[MAX_KEYS_PER_CRYPT][8];
 		unsigned i;
 #ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -198,18 +200,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, (unsigned char*)cur_salt->username, strlen(cur_salt->username), cur_salt->iterations, &(x.poutc), 32, 0);
 #else
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen(cur_salt->username), cur_salt->iterations, (unsigned char*)(&key[0]),32,0);
-#if !ARCH_LITTLE_ENDIAN
-		for (i = 0; i < 8; ++i) {
-			key[0][i] = JOHNSWAP(key[0][i]);
-		}
-#endif
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			unsigned char *Key = (unsigned char*)key[i];
 			AES_KEY akey;
 			unsigned char iv[16];
 			unsigned char out[32];
-			if(AES_set_encrypt_key(Key, 256, &akey) < 0) {
+			if (AES_set_encrypt_key(Key, 256, &akey) < 0) {
 				fprintf(stderr, "AES_set_encrypt_key failed in crypt!\n");
 			}
 			memset(iv, 0, sizeof(iv));
@@ -231,7 +228,7 @@ static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
 static int cmp_all(void *binary, int count) {
 	int index;
 	for (index = 0; index < count; index++)
-		if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+		if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
 			return 1;
 	return 0;
 }
@@ -287,6 +284,7 @@ struct fmt_main fmt_sniffed_lastpass = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		lastpass_tests
 	}, {
 		init,

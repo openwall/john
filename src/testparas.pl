@@ -26,7 +26,7 @@ if (defined($ARGV[1]) && $ARGV[1] > 0) { $num_cpus = $ARGV[1]; }
 
 print "This will take a while.\n";
 print "Initial configure...\n";
-print `./configure --disable-cuda --disable-opencl >/dev/null` or die;
+print `./configure --disable-opencl >/dev/null` or die;
 print "Initial build...\n";
 print `make -s clean && make -sj${num_cpus}` or die;
 system ("../run/john >JohnUsage.Scr 2>&1");

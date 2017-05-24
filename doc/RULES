@@ -20,6 +20,12 @@ will have to escape that character (or the config file loader will bail
 out, listing a bugus . directive). At this time, it is not valid for a
 john rule to start with a period, so at this time, this is not a problem.
 
+See RULES-hashcat for information about additional rules added to
+1.8-jumbo-2 to allow john to utilize hashcat/InsidePro rules files
+natively. NOTE, there are additional rules commands added to allow
+hashcat rules to be utilized. These additional rules are documented in
+that RULES-hashcat file.
+
 
 	Rule reject flags.
 
@@ -28,10 +34,12 @@ john rule to start with a period, so at this time, this is not a problem.
 -8	reject this rule unless current hash type uses 8-bit characters
 -s	reject this rule unless some password hashes were split at loading
 -p	reject this rule unless word pair commands are currently allowed
--u	reject this rule unless the --encoding=utf8 flag is used
--U	reject this rule if the --encoding=utf8 flag is used
+-u	reject this rule unless --encoding=utf-8 or config variable
+	DefaultEncoding = UTF-8 is used
+-U	reject this rule if --encoding=utf-8 or config variable
+	DefaultEncoding = UTF-8 is used
 ->N	reject this rule unless length N or longer is supported
--<N     reject this rule unless length N or shorter is supported (--min-len)
+-<N     reject this rule unless length N or shorter is supported (--min-length)
 
 
 	Numeric constants and variables.
@@ -90,7 +98,7 @@ runs, it is only a-z.
 
 NOTE 2, the rules engine currently have very limited understanding of UTF-8 so
 character classes etc. will only work with ASCII characters, even if using
---encoding=utf8.
+--encoding=utf-8.
 
 
 	Simple commands.
@@ -264,6 +272,10 @@ s?CY	replace all characters of class C in the word with Y
 %NX	reject the word unless it contains at least N instances of X
 %N?C	reject the word unless it contains at least N characters of class C
 U       reject the word unless it is valid UTF-8 (use with -u rule reject)
+eC	title case, where C is the separation character
+e?C	title case, with chars from class C as separation characters.
+	NOTE, see hashcat specific 'E' rule which is generic title case for space
+	only characters.  The 'e' rule extendeded more powerful version.
 
 Note that U will accept plain ASCII. It will only reject words that contain
 8-bit characters but can't be parsed as UTF-8. It can be used to reject

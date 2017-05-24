@@ -45,13 +45,15 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"pwsafe"
 #define FORMAT_NAME		"Password Safe"
+#define FORMAT_TAG           "$pwsafe$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA256 " SHA256_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		sizeof(int)
 
 #ifdef SIMD_COEF_32
@@ -75,12 +77,12 @@ static struct fmt_tests pwsafe_tests[] = {
 
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int version;
 	unsigned int iterations;
-	char unsigned salt[32];
+	unsigned char salt[32];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -107,11 +109,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
-	if (strncmp(ciphertext, "$pwsafe$*", 9) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 9;		/* skip over "$pwsafe$*" */
+	ctcopy += FORMAT_TAG_LEN;		/* skip over "$pwsafe$*" */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
 		goto err;
 	if (!isdec(p))
@@ -150,7 +152,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
-	ctcopy += 9;	/* skip over "$pwsafe$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$pwsafe$*" */
 	p = strtokm(ctcopy, "*");
 	cs.version = atoi(p);
 	p = strtokm(NULL, "*");
@@ -650,6 +652,7 @@ struct fmt_main fmt_pwsafe = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		pwsafe_tests
 	}, {
 		init,

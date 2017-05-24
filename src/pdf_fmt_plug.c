@@ -15,26 +15,32 @@ john_register_one(&fmt_pdf);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "md5.h"
-#include "rc4.h"
-#include "pdfcrack_md5.h"
-#include "aes.h"
-#include "sha2.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               64
 #endif
 #endif
+
+#include "arch.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
+#include "misc.h"
+#include "md5.h"
+#include "aes.h"
+#include "sha2.h"
+#include "rc4.h"
+#include "pdfcrack_md5.h"
+#include "loader.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "PDF"
 #define FORMAT_NAME         ""
+#define FORMAT_TAG          "$pdf$"
+#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG_OLD      "$pdf$Standard*"
+#define FORMAT_TAG_OLD_LEN  (sizeof(FORMAT_TAG_OLD)-1)
 #define ALGORITHM_NAME      "MD5 SHA2 RC4/AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1000
@@ -121,12 +127,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	int res;
 
-	if (strncmp(ciphertext,  "$pdf$", 5) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 5;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* V */
 		goto err;
 	if (!isdec(p)) goto err;
@@ -193,12 +199,12 @@ static int old_valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *ptr, *keeptr;
 	int res;
 
-	if (strncmp(ciphertext, "$pdf$Standard*", 14))
+	if (strncmp(ciphertext, FORMAT_TAG_OLD, FORMAT_TAG_OLD_LEN))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 14;
+	ctcopy += FORMAT_TAG_OLD_LEN;
 	if (!(ptr = strtokm(ctcopy, "*"))) /* o_string */
 		goto error;
 	if (!ishexlc(ptr))
@@ -265,7 +271,7 @@ char * convert_old_to_new(char ciphertext[])
 		fields[c] = p;
 		p = strtokm(NULL, "*");
 	}
-	strcpy(out,"$pdf$");
+	strcpy(out,FORMAT_TAG);
 	strcat(out,fields[13]);
 	strcat(out,"*");
 	strcat(out,fields[12]);
@@ -289,18 +295,11 @@ char * convert_old_to_new(char ciphertext[])
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	// if it is the old format
-	if (strncmp(split_fields[1], "$pdf$Standard*", 14) == 0){
-		if(old_valid(split_fields[1], self)) {
-			char * in_new_format = convert_old_to_new(split_fields[1]);
-			// following line segfaults!
-			// strcpy(split_fields[1], in_new_format);
-			return in_new_format;
-		}else{
-			//Return something invalid
-			return "";
-		}
-	}
+	// Convert old format to new one
+	if (!strncmp(split_fields[1], FORMAT_TAG_OLD, FORMAT_TAG_OLD_LEN) &&
+	    old_valid(split_fields[1], self))
+		return convert_old_to_new(split_fields[1]);
+
 	return split_fields[1];
 }
 
@@ -312,7 +311,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 5;	/* skip over "$pdf$" marker */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$pdf$" marker */
 	p = strtokm(ctcopy, "*");
 	cs.V = atoi(p);
 	p = strtokm(NULL, "*");
@@ -619,7 +618,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char output[32];
 		pdf_compute_user_password((unsigned char*)saved_key[index], output);
 		if (crypt_out->R == 2 || crypt_out->R == 5 || crypt_out->R == 6)
-			if(memcmp(output, crypt_out->u, 32) == 0) {
+			if (memcmp(output, crypt_out->u, 32) == 0) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -627,7 +626,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				any_cracked |= 1;
 			}
 		if (crypt_out->R == 3 || crypt_out->R == 4)
-			if(memcmp(output, crypt_out->u, 16) == 0) {
+			if (memcmp(output, crypt_out->u, 16) == 0) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -684,6 +683,7 @@ struct fmt_main fmt_pdf = {
 		{
 			"revision",
 		},
+		{ FORMAT_TAG, FORMAT_TAG_OLD },
 		pdf_tests
 	},
 	{

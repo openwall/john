@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
- * and Copyright (c) 2012 magnum
+ * and Copyright (c) 2012-2017 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -16,20 +16,21 @@
 #include "opencl_misc.h"
 #include "opencl_sha1.h"
 
-#define SHA1_DIGEST_LENGTH     20
+#define SHA1_DIGEST_LENGTH 20
 
 typedef struct {
-	uint length;
+	uint  length;
 	uchar v[KEYLEN];
 } pbkdf2_password;
 
 typedef struct {
-	uint v[(OUTLEN+3)/4];
+	uint  v[(OUTLEN+3)/4]; /* output of PBKDF2 */
 } pbkdf2_hash;
 
 typedef struct {
-	uint iterations;
-	uint outlen;
+	uint  iterations;
+	uint  outlen;
+	uint  skip_bytes;
 	uchar length;
 	uchar salt[SALTLEN];
 } pbkdf2_salt;
@@ -38,7 +39,8 @@ inline void preproc(__global const uchar *key, uint keylen,
     __private uint *state, uint padding)
 {
 	uint i;
-	uint W[16], temp;
+	uint W[16];
+	uint A, B, C, D, E, temp, r[16];
 
 	for (i = 0; i < 16; i++)
 		W[i] = padding;
@@ -46,11 +48,11 @@ inline void preproc(__global const uchar *key, uint keylen,
 	for (i = 0; i < keylen; i++)
 		XORCHAR_BE(W, i, key[i]);
 
-	uint A = INIT_A;
-	uint B = INIT_B;
-	uint C = INIT_C;
-	uint D = INIT_D;
-	uint E = INIT_E;
+	A = INIT_A;
+	B = INIT_B;
+	C = INIT_C;
+	D = INIT_D;
+	E = INIT_E;
 
 	SHA1(A, B, C, D, E, W);
 
@@ -74,11 +76,11 @@ inline void preproc(__global const uchar *key, uint keylen,
 inline void hmac_sha1(__private uint *output,
     __private uint *ipad_state,
     __private uint *opad_state,
-    __global const uchar *salt, int saltlen, uchar add)
+    __constant uchar *salt, int saltlen, uchar add)
 {
 	int i;
-	uint temp, W[16];
-	uint A, B, C, D, E;
+	uint W[16];
+	uint A, B, C, D, E, temp, r[16];
 	uchar buf[64];
 	uint *src = (uint *) buf;
 	i = 64 / 4;
@@ -193,37 +195,49 @@ inline void big_hmac_sha1(__private uint *input, uint inputlen,
 }
 
 inline void pbkdf2(__global const uchar *pass, uint passlen,
-                   __global const uchar *salt, uint saltlen, uint iterations,
-                   __global uint *out, uint outlen)
+                   __constant uchar *salt, uint saltlen, uint iterations,
+                   __global uint *out, uint outlen, uint skip_bytes)
 {
 	uint ipad_state[5];
 	uint opad_state[5];
-	uint r, t = 0;
+	uint accum = 0;
+	uint loop, loops;
 
 	preproc(pass, passlen, ipad_state, 0x36363636);
 	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
-	for (r = 1; r <= (outlen + 19) / 20; r++) {
+	loops = (skip_bytes + outlen + (SHA1_DIGEST_LENGTH-1)) / SHA1_DIGEST_LENGTH;
+	loop = skip_bytes / SHA1_DIGEST_LENGTH + 1;
+
+	while (loop <= loops) {
 		uint tmp_out[5];
 		int i;
 
-		hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, r);
+		hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, loop);
 
 		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH,
 		              ipad_state, opad_state,
 		              tmp_out, iterations);
 
-		for (i = 0; i < 20 && t < (outlen + 3) / 4 * 4; i++, t++)
-			PUTCHAR_BE_G(out, t, ((uchar*)tmp_out)[i]);
+		for (i = skip_bytes % SHA1_DIGEST_LENGTH;
+		     i < SHA1_DIGEST_LENGTH && accum < (outlen + 3) / 4 * 4;
+		     i++, accum++)
+		{
+			PUTCHAR_BE_G(out, accum, ((uchar*)tmp_out)[i]);
+		}
+
+		loop++;
+		skip_bytes = 0;
 	}
 }
 
 __kernel void derive_key(__global const pbkdf2_password *inbuffer,
-    __global pbkdf2_hash *outbuffer, __global const pbkdf2_salt *salt)
+                         __global pbkdf2_hash *outbuffer,
+                         __constant pbkdf2_salt *salt)
 {
 	uint idx = get_global_id(0);
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
-	       salt->salt, salt->length,
-	       salt->iterations, outbuffer[idx].v, salt->outlen);
+	       salt->salt, salt->length, salt->iterations,
+	       outbuffer[idx].v, salt->outlen, salt->skip_bytes);
 }

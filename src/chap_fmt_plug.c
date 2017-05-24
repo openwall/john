@@ -47,12 +47,14 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"chap"
 #define FORMAT_NAME		"iSCSI CHAP authentication"
+#define FORMAT_TAG		"$chap$"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			sizeof(int)
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -66,7 +68,7 @@ static struct fmt_tests chap_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	unsigned char id; /* CHAP_I */
@@ -97,12 +99,12 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
-	if (strncmp(ciphertext,  "$chap$", 6) != 0)
+	int len, extra;
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 6;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* id */
 		goto err;
 	if (!isdec(p))
@@ -112,11 +114,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = strlen(p);
 	if (len > 64 || (len&1))
 		goto err;
-	if (hexlenl(p) != len)
+	if (hexlenl(p, &extra) != len || extra)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* binary */
 		goto err;
-	if (hexlenl(p) != BINARY_SIZE*2)
+	if (hexlenl(p, &extra) != BINARY_SIZE*2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -134,7 +136,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
-	ctcopy += 6; /* skip over "$chap$" */
+	ctcopy += FORMAT_TAG_LEN; /* skip over "$chap$" */
 	p = strtokm(ctcopy, "*");
 	cs.id = atoi(p);
 	p = strtokm(NULL, "*");
@@ -204,7 +206,7 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
+		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }
@@ -250,6 +252,7 @@ struct fmt_main fmt_chap = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		chap_tests
 	}, {
 		init,

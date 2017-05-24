@@ -45,6 +45,11 @@ extern void list_init(struct list_main **list);
 extern void list_add(struct list_main *list, char *data);
 
 /*
+ * Adds an existing list to a list, using just pointers.
+ */
+extern void list_add_list(struct list_main *list, struct list_main *list2);
+
+/*
  * Adds a previously allocated entry to the list.
  */
 extern void list_add_link(struct list_main *list, struct list_entry *entry);
@@ -59,6 +64,20 @@ extern void list_add_multi(struct list_main *list, char *data);
  * only be used on tiny lists.
  */
 extern void list_add_unique(struct list_main *list, char *data);
+
+/*
+ * Adds an entry to the list checking for dupes.  This version checks for
+ * entry in list2 as well.
+ */
+extern void list_add_global_unique(struct list_main *list,
+                                   struct list_main *list2, char *data);
+
+#if DEBUG
+/*
+ * print list to stderr preceded by message.
+ */
+extern void list_dump(char *message, struct list_main *list);
+#endif
 
 #if 0
 /*

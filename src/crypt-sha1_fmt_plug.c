@@ -41,8 +41,6 @@ john_register_one(&fmt_cryptsha1);
 
 #define FORMAT_LABEL                "sha1crypt"
 #define FORMAT_NAME                 "NetBSD's sha1crypt"
-#define BENCHMARK_COMMENT           ""
-#define BENCHMARK_LENGTH            -1001
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF1-SHA1 " SHA1_ALGORITHM_NAME
@@ -77,12 +75,12 @@ john_register_one(&fmt_cryptsha1);
 // static struct fmt_tests sha1crypt_common_tests[] = {  // located in sha1crypt_common.c
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct saltstruct {
 	unsigned int length;
 	unsigned int rounds;
-	unsigned char salt[SALT_LENGTH+sizeof(SHA1_MAGIC)+7+1]; // allows up to 9999999 sized rounds with 64 byte salt.
+	unsigned char salt[SALT_BUFFER_LENGTH+SHA1_MAGIC_LEN+7]; // allows up to 9999999 sized rounds with 64 byte salt.
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -145,7 +143,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[SSE_GROUP_SZ_SHA1], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
 		union {
-			ARCH_WORD_32 *pout[SSE_GROUP_SZ_SHA1];
+			uint32_t *pout[SSE_GROUP_SZ_SHA1];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
@@ -181,7 +179,7 @@ static void *get_salt(char *ciphertext)
 	memset(&out, 0, sizeof(out));
 	p = strrchr(ciphertext, '$') + 1;
 	strnzcpy(tmp, ciphertext, p - ciphertext);
-	out.rounds = strtoul(&ciphertext[sizeof(SHA1_MAGIC)-1], NULL, 10);
+	out.rounds = strtoul(&ciphertext[SHA1_MAGIC_LEN], NULL, 10);
 	// point p to the salt value, BUT we have to decorate the salt for this hash.
 	p = strrchr(tmp, '$') + 1;
 	// real salt used is: <salt><magic><iterations>
@@ -249,6 +247,7 @@ struct fmt_main fmt_cryptsha1 = {
 		{
 			"iteration count",
 		},
+		{ SHA1_MAGIC },
 		sha1crypt_common_tests
 	}, {
 		init,

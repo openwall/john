@@ -95,7 +95,7 @@ john_register_one(&fmt_clipperz);
 #define BENCHMARK_LENGTH	-1
 
 #define CLIPPERZSIG		"$clipperz$"
-#define CLIPPERZSIGLEN		10
+#define CLIPPERZSIGLEN		(sizeof(CLIPPERZSIG)-1)
 #define PLAINTEXT_LENGTH	16
 #define CIPHERTEXT_LENGTH	65
 
@@ -135,16 +135,15 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 // BN_bn2bin sometimes tries to write 33 bytes, hence allow some padding!
 // that is because these are mod 0x115B8B692E0E045692CF280B436735C77A5A9E8A9E7ED56C965F87DB5B2A2ECE3
 // which is a 65 hex digit number (33 bytes long).
-static ARCH_WORD_32 (*crypt_out)[(FULL_BINARY_SIZE/4) + 1];
+static uint32_t (*crypt_out)[(FULL_BINARY_SIZE/4) + 1];
 
 static struct custom_salt {
 	unsigned char saved_salt[SZ];
 	unsigned char user_id[SZ];
 } *cur_salt;
 
-#ifdef HAVE_LIBGMP
 static int max_keys_per_crypt;
-#endif
+
 static void init(struct fmt_main *self)
 {
 	int i;
@@ -158,10 +157,8 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_align(sizeof(*crypt_out), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	pSRP_CTX = mem_calloc_align(sizeof(*pSRP_CTX), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-
-#ifdef HAVE_LIBGMP
 	max_keys_per_crypt =  self->params.max_keys_per_crypt;
-#endif
+
 	for (i = 0; i < self->params.max_keys_per_crypt; ++i) {
 #ifdef HAVE_LIBGMP
 		mpz_init_set_str(pSRP_CTX[i].z_mod, "125617018995153554710546479714086468244499594888726646874671447258204721048803", 10);
@@ -186,15 +183,21 @@ static void init(struct fmt_main *self)
 
 void done(void)
 {
-#ifdef HAVE_LIBGMP
 	int i;
 	for (i = 0; i < max_keys_per_crypt; ++i) {
+#ifdef HAVE_LIBGMP
 		mpz_clear(pSRP_CTX[i].z_mod);
 		mpz_clear(pSRP_CTX[i].z_base);
 		mpz_clear(pSRP_CTX[i].z_exp);
 		mpz_clear(pSRP_CTX[i].z_rop);
-	}
+#else
+		BN_clear_free(pSRP_CTX[i].z_mod);
+		BN_clear_free(pSRP_CTX[i].z_base);
+		BN_clear_free(pSRP_CTX[i].z_exp);
+		BN_clear_free(pSRP_CTX[i].z_rop);
+		BN_CTX_free(pSRP_CTX[i].BN_ctx);
 #endif
+	}
 	MEM_FREE(pSRP_CTX);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
@@ -262,7 +265,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[FULL_BINARY_SIZE];
-		ARCH_WORD_32 dummy[1];
+		uint32_t dummy[1];
 	} buf;
 	unsigned char *out = buf.c;
 	char *p, *q;
@@ -441,14 +444,14 @@ static int cmp_all(void *binary, int count)
 {
 	int i;
 	for (i = 0; i < count; ++i) {
-		if (*((ARCH_WORD_32*)binary) == *((ARCH_WORD_32*)(crypt_out[i])))
+		if (*((uint32_t*)binary) == *((uint32_t*)(crypt_out[i])))
 			return 1;
 	}
 	return 0;
 }
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == *((ARCH_WORD_32*)(crypt_out[index]));
+	return *((uint32_t*)binary) == *((uint32_t*)(crypt_out[index]));
 }
 
 static int cmp_exact(char *source, int index)
@@ -473,6 +476,7 @@ struct fmt_main fmt_clipperz = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ CLIPPERZSIG },
 		tests
 	}, {
 		init,

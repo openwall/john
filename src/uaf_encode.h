@@ -1,5 +1,5 @@
 /*
- * Define functions to encode/deocde SYSUAF password information as a
+ * Define functions to encode/decode SYSUAF password information as a
  * printable string suitable for use in a UNIX-style passwd file (i.e. no
  * colons)
  *

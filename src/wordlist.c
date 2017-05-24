@@ -29,19 +29,19 @@
 #endif
 
 #if !AC_BUILT
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
@@ -115,6 +115,8 @@ static char *mem_map, *map_pos, *map_end, *map_scan_end;
 // used for file in 'memory buffer' mode (ready to use array)
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
+
+extern int rpp_real_run; /* set to 1 when we really get into wordlist mode */
 
 static void save_state(FILE *file)
 {
@@ -306,11 +308,23 @@ static int restore_state(FILE *file)
 		if (mem_map) {
 			char line[LINE_BUFFER_SIZE];
 			skip_lines(rec_line, line);
+			rec_pos = 0;
+		} else if (rec_line && !rec_pos) {
+			/* from mem_map build does not have rec_pos */
+			int64_t i = rec_line;
+			char line[LINE_BUFFER_SIZE];
+			jtr_fseek64(word_file, 0, SEEK_SET);
+			while (i--)
+				if (!fgetl(line, sizeof(line), word_file))
+					pexit(STR_MACRO(jtr_fseek64));
+			rec_pos = jtr_ftell64(word_file);
 		} else
 		if (jtr_fseek64(word_file, rec_pos, SEEK_SET))
 			pexit(STR_MACRO(jtr_fseek64));
 		line_number = rec_line;
 	}
+	else
+		line_number = rec_line;
 
 	return 0;
 }
@@ -420,6 +434,18 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 	return word;
 }
 
+static MAYBE_INLINE void clean_bom(char *line)
+{
+	static int checkbomfirst = 1;
+
+	if (line_number == 0 && checkbomfirst && options.input_enc == UTF_8) {
+		if (!strncmp("\xEF\xBB\xBF", line, 3)) {
+			memmove(line, line + 3, strlen(line) - 2);
+		}
+		checkbomfirst = 0;
+	}
+}
+
 /*
  * This function does two separate things (either or both) just to confuse you.
  * 1. In case we're in loopback mode, skip ciphertext and field separator.
@@ -432,12 +458,15 @@ static MAYBE_INLINE char *convert(char *line)
 {
 	char *p;
 
-	if ((options.flags & FLG_LOOPBACK_CHK) &&
-	    (p = strchr(line, options.loader.field_sep_char)))
-		line = p + 1;
+	if (options.flags & FLG_LOOPBACK_CHK) {
+		if ((p = strchr(line, options.loader.field_sep_char)))
+			line = p + 1;
+		else
+			line += strlen(line);
+	}
 
 	if (options.input_enc != options.target_enc) {
-		UTF16 u16[PLAINTEXT_BUFFER_SIZE + 1];
+		UTF16 u16[LINE_BUFFER_SIZE + 1];
 		char *cp, *s, *d;
 		char e;
 		int len;
@@ -445,7 +474,7 @@ static MAYBE_INLINE char *convert(char *line)
 		len = strcspn(line, "\n\r");
 		e = line[len];
 		line[len] = 0;
-		utf8_to_utf16(u16, PLAINTEXT_BUFFER_SIZE, (UTF8*)line, len);
+		utf8_to_utf16(u16, LINE_BUFFER_SIZE, (UTF8*)line, len);
 		line[len] = e;
 		cp = utf16_to_cp(u16);
 		d = &line[len];
@@ -610,6 +639,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
 		name = options.wordlist = WORDLIST_NAME;
+
+	if (rec_restored && john_main_process)
+		fprintf(stderr,
+		        "Proceeding with wordlist:%s and rules:%s\n",
+		        loopBack ? "loopback" : path_expand(name),
+		        options.activewordlistrules ?
+		        options.activewordlistrules : "none");
 
 	if (options.flags & FLG_STACKED)
 		options.max_fix_state_delay = 0;
@@ -820,7 +856,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					hash_log++;
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
-				if (options.verbosity > VERB_DEFAULT)
 				log_event("- dupe suppression: hash size %u, "
 					"temporarily allocating "LLd" bytes",
 					hash_size,
@@ -946,7 +981,7 @@ GRAB_NEXT_PIPE_LOAD:
 			{
 				char *cpi, *cpe;
 
-				if (options.verbosity > VERB_DEFAULT)
+				if (options.verbosity == VERB_MAX)
 				log_event("- Reading next block of candidate passwords from stdin pipe");
 
 				rules = rules_keep;
@@ -958,6 +993,7 @@ GRAB_NEXT_PIPE_LOAD:
 						pipe_input = 0;
 						break;
 					}
+					cpi = convert(cpi);
 					if (strncmp(cpi, "#!comment", 9)) {
 						int len = strlen(cpi);
 						if (!rules) {
@@ -990,7 +1026,7 @@ GRAB_NEXT_PIPE_LOAD:
 						}
 					}
 				}
-				if (options.verbosity > VERB_DEFAULT) {
+				if (options.verbosity == VERB_MAX) {
 					sprintf(msg_buf, "- Read block of "LLd" "
 					        "candidate passwords from pipe",
 					        (long long)nWordFileLines);
@@ -1002,7 +1038,7 @@ GRAB_NEXT_PIPE_LOAD:
 MEM_MAP_LOAD:
 			rules = rules_keep;
 			nWordFileLines = 0;
-			if (options.verbosity > VERB_DEFAULT)
+			if (options.verbosity == VERB_MAX)
 				log_event("- Reading next block of candidate from the memory mapped file");
 			release_sharedmem_object(pIPC);
 			pIPC = next_sharedmem_object();
@@ -1060,6 +1096,7 @@ REDO_AFTER_LMLOOP:
 
 	if (init_once) {
 		init_once = 0;
+		rpp_real_run = 1;
 
 		status_init(get_progress, 0);
 
@@ -1142,18 +1179,18 @@ REDO_AFTER_LMLOOP:
 			}
 			if ((rule = rules_reject(prerule, -1, last, db))) {
 				if (strcmp(prerule, rule)) {
-					if (options.verbosity > VERB_DEFAULT)
+					if (options.verbosity >= VERB_LEGACY)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted as '%.100s'",
 						rule_number + 1, prerule, rule);
 				} else {
-					if (options.verbosity > VERB_DEFAULT)
+					if (options.verbosity >= VERB_LEGACY)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted",
 						rule_number + 1, prerule);
 				}
 			} else {
-				if (options.verbosity > VERB_DEFAULT)
+				if (options.verbosity >= VERB_LEGACY)
 				log_event("- Rule #%d: '%.100s' rejected",
 					rule_number + 1, prerule);
 				goto next_rule;
@@ -1193,6 +1230,17 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (f_new) {
+					if (do_external_hybrid_crack(db, word))
+					{
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						do_lmloop = 0;
+						break;
+					}
+					wordlist_hybrid_fix_state();
+				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
 						rule = NULL;
@@ -1231,6 +1279,8 @@ REDO_AFTER_LMLOOP:
 #else
 			strcpy(line, words[line_number]);
 #endif
+			clean_bom(line);
+
 			line_number++;
 
 			if ((word = apply(line, rule, -1, last))) {
@@ -1250,6 +1300,16 @@ REDO_AFTER_LMLOOP:
 					wordlist_hybrid_fix_state();
 				} else
 #endif
+				if (f_new) {
+					if (do_external_hybrid_crack(db, word))
+					{
+						rule = NULL;
+						rules = 0;
+						pipe_input = 0;
+						break;
+					}
+					wordlist_hybrid_fix_state();
+				} else
 				if (options.mask) {
 					if (do_mask_crack(word)) {
 						rule = NULL;
@@ -1270,6 +1330,9 @@ REDO_AFTER_LMLOOP:
 		else if (rule)
 		while (mem_map ? mgetl(line) :
 		       fgetl(line, LINE_BUFFER_SIZE, word_file)) {
+
+			clean_bom(line);
+
 			line_number++;
 
 			if (line[0] != '#') {
@@ -1314,6 +1377,16 @@ process_word:
 						wordlist_hybrid_fix_state();
 					} else
 #endif
+					if (f_new) {
+						if (do_external_hybrid_crack(db, word))
+						{
+							rule = NULL;
+							rules = 0;
+							pipe_input = 0;
+							break;
+						}
+						wordlist_hybrid_fix_state();
+					} else
 					if (options.mask) {
 						if (do_mask_crack(word)) {
 							rule = NULL;
@@ -1354,7 +1427,7 @@ next_rule:
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
-			if (rule_number >= dist_switch) {
+			if (options.node_count && rule_number >= dist_switch) {
 				log_event("- Switching to distributing words");
 				dist_rules = 0;
 				dist_switch = rule_count; /* not anymore */

@@ -41,7 +41,7 @@ john_register_one(&fmt_blockchain);
 #define FORMAT_LABEL		"Blockchain"
 #define FORMAT_NAME		"My Wallet"
 #define FORMAT_TAG		"$blockchain$"
-#define TAG_LENGTH		12
+#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
@@ -113,11 +113,10 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len;
+	int len, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
-
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
@@ -134,11 +133,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if(len > BIG_ENOUGH || !len)
+	if (len > BIG_ENOUGH || !len)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
-	if (hexlenl(p) != len * 2)
+	if (hexlenl(p, &extra) != len * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -158,7 +157,7 @@ static void *get_salt(char *ciphertext)
 
 	static union {
 		struct custom_salt _cs;
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} un;
 	struct custom_salt *cs = &(un._cs);
 
@@ -192,7 +191,7 @@ static int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	unsigned char iv[16];
 	memcpy(iv, cur_salt->data, 16);
 
-	if(AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
+	if (AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
 	AES_cbc_encrypt(data + 16, out, 16, &akey, iv, AES_DECRYPT);
@@ -235,7 +234,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
 			cur_salt->data, 16, cur_salt->iter, pout, 32, 0);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			if(blockchain_decrypt(master[i], cur_salt->data) == 0)
+			if (blockchain_decrypt(master[i], cur_salt->data) == 0)
 				cracked[i+index] = 1;
 			else
 				cracked[i+index] = 0;
@@ -246,15 +245,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			strlen(saved_key[index]),
 			cur_salt->data, 16,
 			cur_salt->iter, master, 32, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)master)[i] = JOHNSWAP(((ARCH_WORD_32*)master)[i]);
-			}
-		}
-#endif
-		if(blockchain_decrypt(master, cur_salt->data) == 0)
+		if (blockchain_decrypt(master, cur_salt->data) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
@@ -312,8 +303,9 @@ struct fmt_main fmt_blockchain = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
+		{ FORMAT_TAG },
 		agile_keychain_tests
 	}, {
 		init,

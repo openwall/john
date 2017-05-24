@@ -33,16 +33,15 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #define __USE_MINGW_ANSI_STDIO 1
+#ifdef __SIZEOF_INT128__
+#define HAVE___INT128 1
+#endif
 #endif
 
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 
 #include <stdio.h>
-#ifndef JTR_MODE
 #include <stdint.h>
-#else
-#include "stdint.h"
-#endif
 #include <stdlib.h>
 #if !AC_BUILT
 #include <string.h>
@@ -96,7 +95,9 @@
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
  * Version.....: 0.22
- * Autor.......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Steve Thomas (Sc00bz)
+ *               magnum <john.magnum@hushmail.com>
  * License.....: MIT
  */
 
@@ -142,6 +143,8 @@ int prince_elem_cnt_max;
 int prince_wl_max;
 char *prince_skip_str;
 char *prince_limit_str;
+
+extern int rpp_real_run; /* set to 1 when we really get into prince mode */
 
 static char *mem_map, *map_pos, *map_end;
 #if HAVE_REXGEN
@@ -940,53 +943,6 @@ static MAYBE_INLINE char *skip_bom(char *string)
   return string;
 }
 
-static MAYBE_INLINE int pp_valid_utf8(const UTF8 *source, const UTF8 *source_end)
-{
-  UTF8 a;
-  int length, ret = 1;
-  const UTF8 *srcptr;
-
-  while (source < source_end) {
-    if (*source < 0x80) {
-      source++;
-      continue;
-    }
-
-    length = opt_trailingBytesUTF8[*source & 0x3f] + 1;
-    srcptr = source + length;
-
-    switch (length) {
-    default:
-      return 0;
-      /* Everything else falls through when valid */
-    case 4:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-    case 3:
-      if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-    case 2:
-      if ((a = (*--srcptr)) > 0xBF) return 0;
-
-      switch (*source) {
-        /* no fall-through in this inner switch */
-      case 0xE0: if (a < 0xA0) return 0; break;
-      case 0xED: if (a > 0x9F) return 0; break;
-      case 0xF0: if (a < 0x90) return 0; break;
-      case 0xF4: if (a > 0x8F) return 0; break;
-      default:   if (a < 0x80) return 0;
-      }
-
-    case 1:
-      if (*source >= 0x80 && *source < 0xC2) return 0;
-    }
-    if (*source > 0xF4)
-      return 0;
-
-    source += length;
-    ret++;
-  }
-  return ret;
-}
-
 /* Sort-of fgets() but for a memory-mapped file. Updates len, returns pointer to string */
 static MAYBE_INLINE char *mgets(int *len)
 {
@@ -1165,9 +1121,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     return (-1);
   }
 
-  if (elem_cnt_max <= 0)
+  if (elem_cnt_max < (1 - pw_max))
   {
-    fprintf (stderr, "Value of --elem-cnt-max (%d) must be greater than %d\n", elem_cnt_max, 0);
+    fprintf (stderr, "Value of --elem-cnt-max (%d) must be greater than %d\n", elem_cnt_max, (0 - pw_max));
 
     return (-1);
   }
@@ -1179,7 +1135,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     return (-1);
   }
 
-  if (elem_cnt_min > elem_cnt_max)
+  if (elem_cnt_max > 0 && elem_cnt_min > elem_cnt_max)
   {
     fprintf (stderr, "Value of --elem-cnt-min (%d) must be smaller or equal than value of --elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
 
@@ -1305,7 +1261,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   if (options.flags & FLG_PRINCE_KEYSPACE)
     keyspace = 1;
 
-  if (elem_cnt_min > elem_cnt_max)
+  if (elem_cnt_max > 0 && elem_cnt_min > elem_cnt_max)
   {
     if (john_main_process)
     fprintf (stderr, "Error: --prince-elem-cnt-min (%d) must be smaller than or equal to\n--prince-elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
@@ -1329,9 +1285,15 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   if (!(wordlist = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
     wordlist = options.wordlist = WORDLIST_NAME;
 
+	if (rec_restored && john_main_process)
+    fprintf(stderr, "Proceeding with prince%c%s\n",
+            loopback ? '-' : ':',
+            loopback ? "loopback" : path_expand(wordlist));
+
   log_event("- Wordlist file: %.100s", path_expand(wordlist));
   log_event("- Will generate candidates of length %d - %d", pw_min, pw_max);
-  log_event("- Using chains with %d - %d elements.", elem_cnt_min, elem_cnt_max);
+  log_event("- Using chains with %d - %d elements.", elem_cnt_min,
+            elem_cnt_max > 0 ? elem_cnt_max : pw_max + elem_cnt_max);
 
   if (rules) {
     char *prerule="";
@@ -1360,6 +1322,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
     list_init(&rule_list);
 
+    rpp_real_run = 1;
     if ((prerule = rpp_next(&ctx)))
     do {
       char *rule;
@@ -1369,7 +1332,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
         list_add(rule_list, rule);
         active_rules++;
 
-        if (options.verbosity > VERB_DEFAULT)
+        if (options.verbosity >= VERB_LEGACY)
         {
           if (strcmp(prerule, rule))
             log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
@@ -1379,7 +1342,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                       rule_number + 1, prerule);
         }
       } else {
-        if (options.verbosity > VERB_DEFAULT)
+        if (options.verbosity >= VERB_LEGACY)
           log_event("- Rule #%d: '%.100s' rejected",
                     rule_number + 1, prerule);
       }
@@ -1574,7 +1537,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     while (((1 << hash_log) < size) && hash_log < 27)
       hash_log++;
 
-    if (john_main_process && options.verbosity < VERB_MAX)
+    if (john_main_process && options.verbosity <= VERB_DEFAULT)
       log_event("- Suppressing dupes");
 
     int in_max = MIN(IN_LEN_MAX, pw_max);
@@ -1647,13 +1610,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       input_len = in_superchop (input_buf);
 
     if (warn) {
-      const UTF8 *ep = (UTF8*)line + input_len;
       if (options.input_enc == UTF_8) {
-        if (!pp_valid_utf8((UTF8*)line, ep)) {
+        if (!valid_utf8((UTF8*)line)) {
           warn = 0;
           fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", wordlist);
         }
-      } else if (line != input_buf || pp_valid_utf8((UTF8*)line, ep) > 1) {
+      } else if (line != input_buf || valid_utf8((UTF8*)line) > 1) {
         warn = 0;
         fprintf(stderr, "Warning: UTF-8 seen reading %s\n", wordlist);
       }
@@ -1799,7 +1761,20 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
       if (valid2 == 0) continue;
 
-      int valid3 = chain_valid_with_cnt_max (&chain_buf_new, elem_cnt_max);
+      int eff_elem_cnt_max;
+
+      if (elem_cnt_max > 0)
+      {
+        eff_elem_cnt_max = elem_cnt_max;
+      }
+      else
+      {
+        eff_elem_cnt_max = pw_len + elem_cnt_max;
+
+        if (eff_elem_cnt_max <= elem_cnt_min) continue;
+      }
+
+      int valid3 = chain_valid_with_cnt_max (&chain_buf_new, eff_elem_cnt_max);
 
       if (valid3 == 0) continue;
 
@@ -2281,6 +2256,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                 pp_hybrid_fix_state();
               } else
 #endif
+              if (f_new) {
+                if ((jtr_done = do_external_hybrid_crack(db, pw_buf)))
+                  break;
+                pp_hybrid_fix_state();
+              } else
               if (options.mask) {
                 if ((jtr_done = do_mask_crack(pw_buf)))
                   break;
@@ -2309,6 +2289,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
                     pp_hybrid_fix_state();
                   } else
 #endif
+                  if (f_new) {
+                    if (do_external_hybrid_crack(db, word))
+                      break;
+                    pp_hybrid_fix_state();
+                  } else
                   if (options.mask) {
                     if ((jtr_done = do_mask_crack(word)))
                       break;

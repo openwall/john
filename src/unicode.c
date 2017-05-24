@@ -28,16 +28,17 @@
  */
 
 #include <string.h>
+#include <stdint.h>
 
 #include "common.h"
 #include "arch.h"
 #include "byteorder.h"
 #include "unicode.h"
 #include "UnicodeData.h"
+#define JTR_UNICODE_C	1
 #include "encoding_data.h"
 #include "misc.h"
 #include "config.h"
-#include "stdint.h"
 #include "md4.h"
 #include "john.h"
 #include "memdbg.h"
@@ -230,7 +231,7 @@ static
 #ifndef __SUNPRO_C
 inline
 #endif
-int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
+int _utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
                             unsigned int sourceLen)
 {
 	const UTF16 *targetStart = target;
@@ -329,6 +330,11 @@ int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
 	return (target - targetStart);
 }
 
+/* external function */
+int utf8_to_utf16_be(UTF16 *target, unsigned int len, const UTF8 *source,
+                            unsigned int sourceLen) {
+	return _utf8_to_utf16_be(target, len, source, sourceLen);
+}
 /*
  * Convert from current encoding to UTF-16LE regardless of system arch
  *
@@ -418,7 +424,7 @@ int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
 			return i;
 	} else {
 #endif
-		return utf8_to_utf16_be(dst, maxdstlen, src, srclen);
+		return _utf8_to_utf16_be(dst, maxdstlen, src, srclen);
 #ifndef UNICODE_NO_OPTIONS
 	}
 #endif
@@ -472,25 +478,7 @@ inline unsigned int strlen8(const UTF8 *source)
 	return targetLen;
 }
 
-/*
- * Check if a string is valid UTF-8.  Returns true if the string is valid
- * UTF-8 encoding, including pure 7-bit data or an empty string.
- *
- * The probability of a random string of bytes which is not pure ASCII being
- * valid UTF-8 is 3.9% for a two-byte sequence, and decreases exponentially
- * for longer sequences.  ISO/IEC 8859-1 is even less likely to be
- * mis-recognized as UTF-8:  The only non-ASCII characters in it would have
- * to be in sequences starting with either an accented letter or the
- * multiplication symbol and ending with a symbol.
- *
- * returns   0 if data is not valid UTF-8
- * returns   1 if data is pure ASCII (which is obviously valid)
- * returns > 1 if data is valid and in fact contains UTF-8 sequences
- *
- * Actually in the last case, the return is the number of proper UTF-8
- * sequences, so it can be used as a quality measure. A low number might be
- * a false positive, a high number most probably isn't.
- */
+/* Check if a string is valid UTF-8 */
 int valid_utf8(const UTF8 *source)
 {
 	UTF8 a;
@@ -515,15 +503,14 @@ int valid_utf8(const UTF8 *source)
 		case 3:
 			if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
 		case 2:
-			if ((a = (*--srcptr)) > 0xBF) return 0;
+			if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
 
 			switch (*source) {
 				/* no fall-through in this inner switch */
 			case 0xE0: if (a < 0xA0) return 0; break;
 			case 0xED: if (a > 0x9F) return 0; break;
 			case 0xF0: if (a < 0x90) return 0; break;
-			case 0xF4: if (a > 0x8F) return 0; break;
-			default:   if (a < 0x80) return 0;
+			case 0xF4: if (a > 0x8F) return 0;
 			}
 
 		case 1:
@@ -554,13 +541,13 @@ int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 
 	/* Password is converted to UTF-16LE */
 	trunclen = enc_to_utf16(wpwd, PLAINTEXT_BUFFER_SIZE, passwd, len);
-	if(trunclen < 0)
+	if (trunclen < 0)
 		len = strlen16(wpwd); /* From UTF-8 you can't know */
 	else
 		len = trunclen;
 
 	MD4_Init(&ctx);
-	MD4_Update(&ctx, (unsigned char *)wpwd, len * sizeof(UTF16));
+	MD4_Update(&ctx, (unsigned char*)wpwd, len * sizeof(UTF16));
 	MD4_Final(p16, &ctx);
 
 	return trunclen;
@@ -646,7 +633,7 @@ UTF8 *enc_to_utf8_r(char *src, UTF8 *dst, int dstlen)
 }
 
 /* Thread-safe conversion from UTF-8 to codepage */
-char * utf8_to_enc_r(UTF8 *src, char* dst, int dstlen)
+char *utf8_to_enc_r(UTF8 *src, char *dst, int dstlen)
 {
 	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
 	utf8_to_utf16(tmp16, LINE_BUFFER_SIZE, (unsigned char*)src,
@@ -691,7 +678,7 @@ static inline UTF8 *utf16_to_cp_r(UTF8 *dst, int dst_len, const UTF16 *source)
 /*
  * Thread-safe conversion from UTF-8 to codepage
  */
-char *utf8_to_cp_r(char *src, char* dst, int dstlen)
+char *utf8_to_cp_r(char *src, char *dst, int dstlen)
 {
 	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
 
@@ -853,28 +840,31 @@ static inline UTF8 *utf32_to_cp(UTF8 *dst, int dst_len, const UTF32 *source)
 	return dst;
 }
 
+static inline int cp_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
+                              unsigned int srclen)
+{
+	int i, trunclen = (int)srclen;
+	if (trunclen > maxdstlen)
+		trunclen = maxdstlen;
+
+	for (i = 0; i < trunclen; i++)
+		*dst++ = CP_to_Unicode[*src++];
+	*dst = 0;
+	if (i < srclen)
+		return -i;
+	else
+		return i;
+}
+
 int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc != UTF_8) {
-		int i, trunclen = (int)srclen;
-		if (trunclen > maxdstlen)
-			trunclen = maxdstlen;
-
-		for (i = 0; i < trunclen; i++)
-			*dst++ = CP_to_Unicode[*src++];
-		*dst = 0;
-		if (i < srclen)
-			return -i;
-		else
-			return i;
-	} else {
+	if (options.target_enc != UTF_8)
+		return cp_to_utf32(dst, maxdstlen, src, srclen);
+	else
 #endif
 		return utf8_to_utf32(dst, maxdstlen, src, srclen);
-#ifndef UNICODE_NO_OPTIONS
-	}
-#endif
 }
 
 UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source)
@@ -886,6 +876,40 @@ UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source)
 #ifndef UNICODE_NO_OPTIONS
 	else
 		return utf32_to_cp(dst, dst_len, source);
+#endif
+}
+
+char *wcs_to_enc(char *dest, size_t dst_sz, const wchar_t *src)
+{
+#if SIZEOF_WCHAR_T == 4
+	utf32_to_enc((UTF8*)dest, dst_sz, (UTF32*)src);
+#elif SIZEOF_WCHAR_T == 2 && ARCH_LITTLE_ENDIAN
+	utf16_to_enc_r((UTF8*)dest, dst_sz, (UTF16*)src);
+#else
+	wcstombs(dest, src, dst_sz);
+#endif
+	return dest;
+}
+
+int enc_to_wcs(wchar_t *dest, size_t dst_sz, const char *src)
+{
+#if SIZEOF_WCHAR_T == 4
+	return enc_to_utf32((UTF32*)dest, dst_sz, (UTF8*)src, strlen(src));
+#elif SIZEOF_WCHAR_T == 2 && ARCH_LITTLE_ENDIAN
+	return enc_to_utf16((UTF16*)dest, dst_sz, (UTF8*)src, strlen(src));
+#else
+	return mbstowcs(dest, src, dst_sz);
+#endif
+}
+
+int cp_to_wcs(wchar_t *dest, size_t dst_sz, const char *src)
+{
+#if SIZEOF_WCHAR_T == 4
+	return cp_to_utf32((UTF32*)dest, dst_sz, (UTF8*)src, strlen(src));
+#elif SIZEOF_WCHAR_T == 2 && ARCH_LITTLE_ENDIAN
+	return cp_to_utf16((UTF16*)dest, dst_sz, (UTF8*)src, strlen(src));
+#else
+	return mbstowcs(dest, src, dst_sz);
 #endif
 }
 
@@ -1044,9 +1068,8 @@ int cp_class(int encoding)
 /* Load the 'case-conversion' and other translation tables. */
 void initUnicode(int type)
 {
-
-#ifndef UNICODE_NO_OPTIONS
 	unsigned i, j;
+#ifndef UNICODE_NO_OPTIONS
 	unsigned char *cpU, *cpL, *Sep, *Letter;
 	unsigned char *pos;
 	int encoding;
@@ -1740,7 +1763,7 @@ ucFallback:
 /* Encoding-aware strlwr(): Simple in-place lowercasing */
 char *enc_strlwr(char *s)
 {
-	unsigned char *ptr = (unsigned char *)s;
+	unsigned char *ptr = (unsigned char*)s;
 	int srclen = strlen(s);
 	enc_lc(ptr, srclen + 1, ptr, srclen);
 	return s;
@@ -1749,7 +1772,7 @@ char *enc_strlwr(char *s)
 /* Simple in-place uppercasing */
 char *enc_strupper(char *s)
 {
-	unsigned char *ptr = (unsigned char *)s;
+	unsigned char *ptr = (unsigned char*)s;
 	int srclen = strlen(s);
 	enc_uc(ptr, srclen + 1, ptr, srclen);
 	return s;

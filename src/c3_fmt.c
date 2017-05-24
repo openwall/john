@@ -17,28 +17,11 @@
 
 #if HAVE_CRYPT
 
-/* if this comes after the #define crap below, there are often
- * problems with strdup or other things not being defined. We
- * move this block of includes to above the _XOPEN_* defines
- */
-#if STRING_WITH_STRINGS
-#include <string.h>
-#include <strings.h>
-#elif HAVE_STRING_H
-#include <string.h>
-#elif HAVE_STRINGS_H
-#include <strings.h>
-#endif
-#if !AC_BUILT
-#include <string.h>
-#ifndef _MSC_VER
-#include <strings.h>
-#endif
-#undef _XOPEN_VERSION
 #undef _XOPEN_SOURCE
 #undef _XOPEN_SOURCE_EXTENDED
+#undef _XOPEN_VERSION
+#undef  _XPG4_2
 #undef _GNU_SOURCE
-
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED 1 /* for OpenBSD */
 #define _XOPEN_VERSION 4
@@ -46,6 +29,11 @@
 #define _GNU_SOURCE 1 /* for crypt_r(3) */
 #include <stdio.h>
 
+#if !AC_BUILT
+#include <string.h>
+#ifndef _MSC_VER
+#include <strings.h>
+#endif
 #ifdef __CYGWIN__
 #include <crypt.h>
 #endif
@@ -56,6 +44,15 @@
 #include <unistd.h>
 #endif
 #endif
+#endif
+
+#if STRING_WITH_STRINGS
+#include <string.h>
+#include <strings.h>
+#elif HAVE_STRING_H
+#include <string.h>
+#elif HAVE_STRINGS_H
+#include <strings.h>
 #endif
 
 #if (!AC_BUILT && defined(HAVE_CRYPT))
@@ -678,7 +675,7 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 	c3_salt = salt;
 	algorithm =  c3_subformat_algorithm(salt);
 
-	if(algorithm < 3)
+	if (algorithm < 3)
 		/* no tunable cost parameters */
 		return 1;
 
@@ -737,6 +734,7 @@ struct fmt_main fmt_crypt = {
 			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
 			"algorithm specific iterations",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

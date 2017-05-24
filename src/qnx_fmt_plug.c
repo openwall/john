@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker. Written to crack
- * QNX shadow hash passwords.  algorith is func(salt . pass x rounds+1)
+ * QNX shadow hash passwords.  algorithm is func(salt . pass x rounds+1)
  * func is md5, sha256 or sha512. rounds defaults to 1000, BUT can be specified
  * in the hash string and thus is not fixed.
  *
@@ -18,7 +18,7 @@ john_register_one(&fmt_qnx);
 #include "arch.h"
 
 #undef SIMD_COEF_32
-
+#define FORCE_GENERIC_SHA2 1
 #include "sha2.h"
 #include "md5.h"
 
@@ -77,7 +77,7 @@ john_register_one(&fmt_qnx);
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 #ifdef SIMD_COEF_32
 static int *(sk_by_len[PLAINTEXT_LENGTH+1]);
@@ -157,18 +157,51 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-	int tot_todo=count;
+	int tot_todo = count, inc = 1, *MixOrder = NULL;
+#ifdef SIMD_COEF_32
+	int usesse = 0;
+	if (cur_salt->type == 5) {
+		usesse = 1;
+	}
+#ifdef SIMD_PARA_SHA256
+	if (cur_salt->type == 256) {
+		usesse = 1;
+	}
+#endif
+#ifdef SIMD_PARA_SHA512
+	if (cur_salt->type == 512)
+		usesse = 1;
+#endif
+	if (usesse) {
+		int j, k;
+		MixOrder = (int*)mem_calloc((count+PLAINTEXT_LENGTH*MAX_KEYS_PER_CRYPT), sizeof(int));
+		tot_todo = 0;
+		saved_len[count] = 0; // point all 'tail' MMX buffer elements to this location.
+		for (j = 1; j < PLAINTEXT_LENGTH; ++j) {
+			for (k = 0; k < sk_by_lens[j]; ++k)
+				MixOrder[tot_todo++] = sk_by_len[k];
+			while (tot_todo % MAX_KEYS_PER_CRYPT)
+				MixOrder[tot_todo++] = count;
+		}
+	}
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < tot_todo; index += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < tot_todo; index += inc)
 	{
 #ifdef SIMD_COEF_32
-		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*4+MEM_ALIGN_SIMD];
-		ARCH_WORD_32 *sse_out;
-		sse_out = (ARCH_WORD_32 *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
-#else
+		if (MixOrder) {
+			int len, len_tot=0;
+			switch(cur_salt->type) {
+				case 5:
+				case 256:
+				case 512:
+			}
+		} else
+#endif
+		{
 		int i, len = saved_len[index];
 		char *pass = saved_key[index];
 		switch (cur_salt->type) {
@@ -199,8 +232,34 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA512_CTX ctx;
 				SHA512_Init(&ctx);
 				SHA512_Update(&ctx, cur_salt->salt, cur_salt->len);
-				for (i = 0; i <= cur_salt->rounds; ++i)
-					SHA512_Update(&ctx, pass, len);
+				if (len && 128 % len == 0 && cur_salt->len+len*cur_salt->rounds > 256) {
+					// we can optimize this, by filling buffer (after the
+					// first salted buffer), and then simply calling
+					// jtr_sha512_hash_block 'natively' never having to
+					// refill the buffer again.
+					int ex;
+					for (i = 0; i <= cur_salt->rounds; ++i) {
+						SHA512_Update(&ctx, pass, len);
+						if (ctx.total > 128+cur_salt->len)
+							break;
+					}
+					++i;
+					ex = (256-ctx.total)/len;
+					i += ex;
+					ctx.total += ex*len;
+					jtr_sha512_hash_block(&ctx, ctx.buffer, 1);
+					while (i+128/len <= cur_salt->rounds) {
+						ctx.total += 128;
+						jtr_sha512_hash_block(&ctx, ctx.buffer, 1);
+						i += 128/len;
+					}
+					for (;i <= cur_salt->rounds; ++i)
+						ctx.total += len;
+				} else {
+					for (i = 0; i <= cur_salt->rounds; ++i)
+						SHA512_Update(&ctx, pass, len);
+				}
+				ctx.bIsQnxBuggy = 1;
 				SHA512_Final((unsigned char*)(crypt_out[index]), &ctx);
 				break;
 			}
@@ -208,11 +267,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			default:
 				exit(fprintf(stderr, "Unknown QNX hash type found\n"));
 		}
-#endif
+		}
 	}
-#ifdef SIMD_COEF_32
 	MEM_FREE(MixOrder);
-#endif
 	return count;
 }
 
@@ -241,6 +298,7 @@ static void *get_salt(char *ciphertext)
 	ct = strtokm(NULL, "@");
 	out.len = strlen(ct);
 	memcpy(out.salt, ct, out.len);
+	MEM_FREE(origptr);
 	return &out;
 }
 
@@ -255,9 +313,9 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	if(cur_salt->type == 5)
+	if (cur_salt->type == 5)
 		return !memcmp(binary, crypt_out[index], BINARY_SIZE_MD5);
-	if(cur_salt->type == 256)
+	if (cur_salt->type == 256)
 		return !memcmp(binary, crypt_out[index], BINARY_SIZE_SHA256);
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
@@ -311,6 +369,7 @@ struct fmt_main fmt_qnx = {
 			"iteration count",
 			"algorithm (5=md5 256=sha256 512=sha512)",
 		},
+		{ NULL },
 		tests
 	}, {
 		init,

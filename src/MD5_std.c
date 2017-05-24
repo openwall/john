@@ -17,6 +17,7 @@
 #include "arch.h"
 #include "common.h"
 #include "MD5_std.h"
+#include "cryptmd5_common.h"
 
 #if MD5_std_mt
 #include <omp.h>
@@ -417,11 +418,11 @@ void MD5_std_set_salt(char *salt)
 #endif
 
 	if (salt[8] == MD5_TYPE_STD) {
-		prefix = "$1$";
-		prelen = 3;
+		prefix = md5_salt_prefix;
+		prelen = md5_salt_prefix_len;
 	} else if (salt[8] == MD5_TYPE_APACHE) {
-		prefix = "$apr1$";
-		prelen = 6;
+		prefix = apr1_salt_prefix;
+		prelen = apr1_salt_prefix_len;
 	} else if (salt[8] == MD5_TYPE_AIX) {
 		prefix = "";
 		prelen = 0;
@@ -992,16 +993,16 @@ char *MD5_std_get_salt(char *ciphertext)
 	char *p, *q;
 	int i;
 
-	if (!strncmp(ciphertext, "$apr1$", 6)) {
+	if (!strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len)) {
 		out[8] = MD5_TYPE_APACHE;
-		p = ciphertext + 6;
+		p = ciphertext + apr1_salt_prefix_len;
 	} else
-	if (!strncmp(ciphertext, "{smd5}", 6)) {
+	if (!strncmp(ciphertext, smd5_salt_prefix, smd5_salt_prefix_len)) {
 		out[8] = MD5_TYPE_AIX;
-		p = ciphertext + 6;
+		p = ciphertext + smd5_salt_prefix_len;
 	} else {
 		out[8] = MD5_TYPE_STD;
-		p = ciphertext + 3;
+		p = ciphertext + md5_salt_prefix_len;
 	}
 	q = out;
 	for (i = 0; *p != '$' && i < 8; i++)
@@ -1032,10 +1033,10 @@ MD5_word *MD5_std_get_binary(char *ciphertext)
 	char *pos;
 	MD5_word value;
 
-	pos = ciphertext + 3;
-	if (!strncmp(ciphertext, "$apr1$", 6) ||
-	    !strncmp(ciphertext, "{smd5}", 6))
-		pos = ciphertext + 6;
+	pos = ciphertext + md5_salt_prefix_len;
+	if (!strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len) ||
+	    !strncmp(ciphertext, smd5_salt_prefix, smd5_salt_prefix_len))
+		pos = ciphertext + apr1_salt_prefix_len;
 
 	while (*pos++ != '$');
 

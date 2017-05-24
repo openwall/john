@@ -36,3 +36,15 @@ Loaded 2 password hashes with 2 different salts (HTTP Digest access authenticati
 kikou            (moi)
 nocode           (user)
 guesses: 2  time: 0:00:01:27 (3)  c/s: 670223  trying: nocode
+
+
+
+
+
+- Legacy HDAA support:
+----------------------
+
+If the system you are testing uses the old HDAA algorithm, you may cut the string after the nonce:
+
+$ cat ./htdigest
+user:$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$

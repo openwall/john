@@ -64,6 +64,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
+#define FORMAT_TAG         "$krb5pa$"
+#define FORMAT_TAG_LEN     (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME     "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #else
@@ -103,7 +105,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int etype;
@@ -237,9 +239,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int type, saltlen = 0;
 
 	// tag is mandatory
-	if (strncmp(ciphertext, "$krb5pa$", 8) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	data += 8;
+	data += FORMAT_TAG_LEN;
 
 	// etype field, 17 or 18
 	p = strchr(data, '$');
@@ -275,7 +277,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	// We support a max. total salt length of 52.
 	// We could opt to emit a warning if rejected here.
-	if(saltlen > MAX_SALTLEN) {
+	if (saltlen > MAX_SALTLEN) {
 		static int warned = 0;
 
 		if (!ldr_in_pot)
@@ -303,7 +305,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy += 8;
+	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "$");
 	cs.etype = atoi(p);
 	p = strtokm(NULL, "$");
@@ -363,7 +365,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		snprintf(salt, sizeof(salt), "%s%s", r, u);
 		s = salt;
 	}
-	snprintf(out, sizeof(out), "$krb5pa$%s$%s$%s$%s$%s", e, u, r, s, tc);
+	snprintf(out, sizeof(out), "%s%s$%s$%s$%s$%s", FORMAT_TAG, e, u, r, s, tc);
 
 	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
 	strlwr(data);
@@ -537,14 +539,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1((const unsigned char*)saved_key[index], len[0],
 		       cur_salt->salt,strlen((char*)cur_salt->salt),
 		       4096, tkey[0], 32, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i) {
-				((ARCH_WORD_32*)tkey[0])[i] = JOHNSWAP(((ARCH_WORD_32*)tkey[0])[i]);
-			}
-		}
-#endif
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			// generate 128 bits from 40 bits of "kerberos" string
@@ -636,6 +630,7 @@ struct fmt_main fmt_krb5pa = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

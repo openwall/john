@@ -118,6 +118,9 @@ AS_IF([test x"$_ax_prog_cc_mpi_mpi_wanted" = xno],
       ])
     ])
     AC_LANG_POP([C])
+	if test x"$_ax_prog_cc_mpi_mpi_wanted" = xyes -a x"$_ax_prog_cc_mpi_mpi_found" = xno; then
+		AC_MSG_FAILURE([MPI not buildable])
+	fi
 ])
 
 # Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:

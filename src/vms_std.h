@@ -12,7 +12,7 @@
 #include "arch.h"
 #include "common.h"
 
-typedef ARCH_WORD_32 VMS_word;
+typedef uint32_t VMS_word;
 
 /*
  * Include defnitions for uaf_encode.c functions.
@@ -35,7 +35,6 @@ extern int VMS_dbg_flag;
 #define SAVE_LIMIT 240*7	   /* divisible by 2,3,4,5,6,8,12,15,20,30,40,60,80 */
 #define HINT_GENMASK_BITS 21
 #define HINT_GENERATION_MASK 0x01fffff		/* field to hold generation # */
-#define HINT_MULTIPLE 0x07ff			/* must be > SAVE_LIMIT */
 #endif
 struct result_hint {
     void *lock_vp;				/* serialization object */

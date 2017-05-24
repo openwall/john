@@ -85,7 +85,7 @@ def process_file(f):
             realm = r.attrib["show"]
 
             # locate cname
-            r = msg.xpath('.//field[@name="kerberos.req_body_element"]//field[@name="kerberos.KerberosString"]') or msg.xpath('.//field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]')
+            r = msg.xpath('.//field[@name="kerberos.req_body_element"]//field[@name="kerberos.KerberosString"]') or msg.xpath('.//field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]') or msg.xpath('.//field[@name="kerberos.req_body_element"]//field[@name="kerberos.CNameString"]')
             if r:
                 if isinstance(r, list):
                     r  = r[0]

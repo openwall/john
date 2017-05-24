@@ -45,7 +45,7 @@ def process_old_file(filename):
     This was reverse-engineered on 20th of November, 2015.
     """
     data = open(filename).read()
-    size = len(data)
+    # size = len(data)
 
     if data[0:4] != b"\x50\x4B\x03\x04":  # ZIP signature, http://result42.com/projects/ZipFileLayout
         assert 0
@@ -100,14 +100,15 @@ def process_file(filename):
         if fn.endswith(".iwph"):
 
             # info = zf.getinfo(fn)
-            password_hint = zf.read(fn)
-            sys.stderr.write("Password hint is '%s'\n" % password_hint)  # XXX GECOS!
+            password_hint = zf.read(fn).decode('utf-8')
+            sys.stderr.write("%s: Password hint is '%s'\n" %
+                             (os.path.basename(filename), password_hint))
 
         if fn.endswith(".iwpv2"):
             password_verifier_data = zf.read(fn)
 
     # is this a iWork '09 file?
-    if not password_hint:
+    if not password_verifier_data:
         process_old_file(filename)
         return
 
@@ -124,12 +125,13 @@ def process_file(filename):
                 "[%s] unsupported version (%d) or format (%d)\n" % (version, fmt))
             return
 
-        sys.stdout.write(
-            "%s:$iwork$1$%d$%d$%d$%s$%s$%s::::%s\n" %
-            (os.path.basename(filename), version, fmt, iterations,
-             hexlify(salt)[0:len(salt) * 2].decode("ascii"),
-             hexlify(iv)[0:len(iv) * 2].decode("ascii"),
-             hexlify(datablob)[0:len(datablob) * 2].decode("ascii"), filename))
+        hdatablob = hexlify(datablob)[0:len(datablob) * 2].decode("ascii")
+        sys.stdout.write("%s:$iwork$1$%d$%d$%d$%s$%s$%s::::%s %s\n" %
+                         (os.path.basename(filename), version, fmt, iterations,
+                          hexlify(salt)[0:len(salt) * 2].decode("ascii"),
+                          hexlify(iv)[0:len(iv) * 2].decode("ascii"),
+                          hdatablob, password_hint or "",
+                          os.path.basename(filename)))
 
 
 if __name__ == "__main__":

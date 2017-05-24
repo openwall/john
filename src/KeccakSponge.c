@@ -56,7 +56,7 @@ int Keccak_SpongeAbsorb(Keccak_SpongeInstance *instance, const unsigned char *da
     while(i < dataByteLen) {
         if ((instance->byteIOIndex == 0) && (dataByteLen >= (i + rateInBytes))) {
             // fast lane: processing whole blocks first
-            for(j=dataByteLen-i; j>=rateInBytes; j-=rateInBytes) {
+            for (j=dataByteLen-i; j>=rateInBytes; j-=rateInBytes) {
                 if ((rateInBytes % KeccakF_laneInBytes) > 0)
                     KeccakF1600_StateXORBytesInLane(instance->state, rateInBytes/KeccakF_laneInBytes,
                         curData+(rateInBytes/KeccakF_laneInBytes)*KeccakF_laneInBytes,
@@ -162,7 +162,7 @@ int Keccak_SpongeSqueeze(Keccak_SpongeInstance *instance, unsigned char *data, u
     while(i < dataByteLen) {
         if ((instance->byteIOIndex == rateInBytes) && (dataByteLen >= (i + rateInBytes))) {
             // fast lane: processing whole blocks first
-            for(j=dataByteLen-i; j>=rateInBytes; j-=rateInBytes) {
+            for (j=dataByteLen-i; j>=rateInBytes; j-=rateInBytes) {
                 KeccakF1600_StateXORPermuteExtract(instance->state, 0, 0, curData, rateInBytes/KeccakF_laneInBytes);
                 if ((rateInBytes % KeccakF_laneInBytes) > 0)
                     KeccakF1600_StateExtractBytesInLane(instance->state, rateInBytes/KeccakF_laneInBytes,

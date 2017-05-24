@@ -13,7 +13,7 @@
 #define	OPENCL_DEVICE_INFO_H
 
 //Copied from common-opencl.h
-#define DEV_UNKNOWN                 0       //0
+#define DEV_UNKNOWN                 0           //0
 #define DEV_CPU                     (1 << 0)    //1
 #define DEV_GPU                     (1 << 1)    //2
 #define DEV_ACCELERATOR             (1 << 2)    //4
@@ -30,7 +30,8 @@
 #define DEV_NV_C30                  (1 << 15)   //32768
 #define DEV_NV_C32                  (1 << 16)   //65536
 #define DEV_NV_C35                  (1 << 17)   //131072
-#define DEV_NV_C5X                  (1 << 18)   //262144
+#define DEV_NV_MAXWELL              (1 << 18)   //262144
+#define DEV_NV_PASCAL               (1 << 19)   //524288
 #define DEV_USE_LOCAL               (1 << 20)   //1048576
 #define DEV_NO_BYTE_ADDRESSABLE     (1 << 21)   //2097152
 #define DEV_MESA                    (1 << 22)   //4M
@@ -50,9 +51,14 @@
 #define amd_vliw5(n)                ((n & DEV_AMD_VLIW5) && gpu_amd(n))
 #define nvidia_sm_2x(n)             ((n & DEV_NV_C2X) && gpu_nvidia(n))
 #define nvidia_sm_3x(n)             (((n & DEV_NV_C30) || (n & DEV_NV_C32) || (n & DEV_NV_C35)) && gpu_nvidia(n))
-#define nvidia_sm_5x(n)             ((n & DEV_NV_C5X) && gpu_nvidia(n))
+#define nvidia_sm_5x(n)             ((n & DEV_NV_MAXWELL) && gpu_nvidia(n))
+#define nvidia_sm_6x(n)             ((n & DEV_NV_PASCAL) && gpu_nvidia(n))
 #define no_byte_addressable(n)      ((n & DEV_NO_BYTE_ADDRESSABLE))
 #define use_local(n)                ((n & DEV_USE_LOCAL))
+
+/* Only usable in host code */
+#if !_OPENCL_COMPILER
 #define platform_apple(p)           (get_platform_vendor_id(p) == PLATFORM_APPLE)
+#endif
 
 #endif	/* OPENCL_DEVICE_INFO_H */

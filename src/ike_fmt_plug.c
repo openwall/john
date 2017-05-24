@@ -73,6 +73,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"IKE"
 #define FORMAT_NAME		"PSK"
+#define FORMAT_TAG           "$ike$*"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"HMAC MD5/SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -80,7 +82,7 @@ static int omp_t = 1;
 #define BINARY_SIZE		20 /* SHA1 */
 #define BINARY_SIZE_SMALLER	16 /* MD5 */
 #define SALT_SIZE		sizeof(psk_entry)
-#define BINARY_ALIGN		sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define SALT_ALIGN			sizeof(size_t)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	16
@@ -93,7 +95,7 @@ static struct fmt_tests ike_tests[] = {
 
 static psk_entry *cur_salt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -117,12 +119,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
 
-	if (strncmp(ciphertext, "$ike$*", 6))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
+
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	ctcopy += 6;	/* skip leading '$ike$*' */
+	ctcopy += FORMAT_TAG_LEN;	/* skip leading '$ike$*' */
 	if (*ctcopy != '0' && *ctcopy != '1')
 		goto error;
 	/* skip '*0' */
@@ -195,8 +198,8 @@ error:
 static void *get_salt(char *ciphertext)
 {
 	static psk_entry cs;
-	cs.isnortel = atoi(&ciphertext[6]);
-	load_psk_params(&ciphertext[8], NULL, &cs);
+	cs.isnortel = atoi(&ciphertext[FORMAT_TAG_LEN]);
+	load_psk_params(&ciphertext[FORMAT_TAG_LEN+2], NULL, &cs);
 	return (void *)&cs;
 }
 
@@ -218,14 +221,6 @@ static void *get_binary(char *ciphertext)
 	}
 	return out;
 }
-
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_salt(void *salt)
 {
@@ -250,14 +245,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
+		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (*((ARCH_WORD_32*)binary) == crypt_out[index][0]);
+	return (*((uint32_t*)binary) == crypt_out[index][0]);
 }
 
 static int cmp_exact(char *source, int index)
@@ -315,7 +310,7 @@ struct fmt_main fmt_ike = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 #if IKE_REPORT_TUNABLE_COSTS
 			"hash algorithm used for hmac [1:MD5 2:SHA1]",
@@ -323,6 +318,7 @@ struct fmt_main fmt_ike = {
 			NULL
 #endif
 		},
+		{ FORMAT_TAG },
 		ike_tests
 	}, {
 		init,
@@ -342,13 +338,7 @@ struct fmt_main fmt_ike = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -358,13 +348,7 @@ struct fmt_main fmt_ike = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

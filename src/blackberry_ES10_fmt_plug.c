@@ -51,7 +51,7 @@ john_register_one(&fmt_blackberry1);
 #include "memdbg.h"
 
 #define FORMAT_TAG 		"$bbes10$"
-#define FORMAT_TAG_LENGTH	8
+#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG)-1)
 #define FORMAT_LABEL 		"Blackberry-ES10"
 #define FORMAT_NAME 		""
 #define ALGORITHM_NAME 		"SHA-512 " SHA512_ALGORITHM_NAME
@@ -80,11 +80,11 @@ static struct fmt_tests blackberry_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int iterations;
-	char unsigned salt[MAX_SALT_SIZE + 1];
+	unsigned char salt[MAX_SALT_SIZE + 1];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -123,13 +123,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
-	if(strlen(p) != BINARY_SIZE * 2)
+	if (strlen(p) != BINARY_SIZE * 2)
 		goto err;
 	if (!ishexuc(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
-	if(strlen(p) > MAX_SALT_SIZE)
+	if (strlen(p) > MAX_SALT_SIZE)
 		goto err;
 	p = strtokm(NULL, "$");
 	if (p)
@@ -159,7 +159,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		uint32_t dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	int i;
@@ -204,9 +204,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int i;
 		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE],
 		              *keys, tmpBuf[128];
-		ARCH_WORD_64 *keys64, *tmpBuf64=(ARCH_WORD_64*)tmpBuf, *p64;
+		uint64_t *keys64, *tmpBuf64=(uint64_t*)tmpBuf, *p64;
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
-		keys64 = (ARCH_WORD_64*)keys;
+		keys64 = (uint64_t*)keys;
 		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
 
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -223,7 +223,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (j = 0; j < 98; j++)
 			SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 		// Last one with FLAT_OUT
-		SIMDSHA512body(keys, (ARCH_WORD_64*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
+		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, saved_key[index], strlen(saved_key[index]));
@@ -293,6 +293,7 @@ struct fmt_main fmt_blackberry1 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		blackberry_tests
 	}, {
 		init,

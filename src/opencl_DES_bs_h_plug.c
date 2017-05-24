@@ -100,7 +100,7 @@ static void clean_all_buffers()
 	release_clobj();
 	release_clobj_kpc();
 
-	for( i = 0; i < 4096; i++)
+	for ( i = 0; i < 4096; i++)
 		if (kernels[gpu_id][i])
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Error releasing kernel");
 
@@ -339,6 +339,13 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		get_power_of_two(gws_limit);
 		gws_limit >>= 1;
 	}
+
+#if SIZEOF_SIZE_T > 4
+	/* We can't process more than 4G keys per crypt() */
+	while (gws_limit * mask_int_cand.num_int_cand > 0xffffffffUL)
+		gws_limit >>= 1;
+#endif
+
 	assert(gws_limit > PADDING);
 	assert(!(gws_limit & (gws_limit - 1)));
 
@@ -392,7 +399,7 @@ static void release_kernels()
 	int i;
 
 	for (i = 0; i < 4096; i++)
-	if(marked_salts[i] == i) {
+	if (marked_salts[i] == i) {
 		HANDLE_CLERROR(clReleaseKernel(kernels[gpu_id][i]), "Release kernel(crypt(i)) failed.\n");
 		kernels[gpu_id][i] = 0;
 		marked_salts[i] = 0x7fffffff;
@@ -513,7 +520,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
 		best_time_ms);
 #endif
@@ -602,7 +609,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 #if 0
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu", Limit_smem:"Zu", Limit_kernel:"Zu","
 		"Current time:%Lf, Best time:%Lf\n",
- 		global_work_size, local_work_size, s_mem_limited_lws,
+		global_work_size, local_work_size, s_mem_limited_lws,
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
 		best_time_ms);
 #endif
@@ -634,7 +641,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 	if (lws_tune_flag)
 		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, *forced_global_keys);
 
-	if (options.verbosity > VERB_DEFAULT)
+	if (options.verbosity > VERB_LEGACY)
 	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
 		global_work_size, local_work_size);
 }

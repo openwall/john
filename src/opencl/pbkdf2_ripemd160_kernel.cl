@@ -51,7 +51,7 @@ inline void preproc(__global const uchar *key, uint keylen, uint *state,
 }
 
 inline void hmac_ripemd160(uint *output, uint *ipad_state, uint *opad_state,
-                           __global const uint *salt, uchar add)
+                           __constant uint *salt, uchar add)
 {
 	uint i;
 	uint W[16] = { 0 };
@@ -117,7 +117,7 @@ inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_state,
 }
 
 inline void pbkdf2(__global const uchar *pass, uint passlen,
-                   __global const uint *salt, __global uint *out)
+                   __constant uint *salt, __global uint *out)
 {
 	uint ipad_state[5];
 	uint opad_state[5];
@@ -143,7 +143,7 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 
 __kernel void pbkdf2_ripemd160(__global const pbkdf2_password *inbuffer,
                                __global pbkdf2_hash *outbuffer,
-                               __global const pbkdf2_salt *salt)
+                               __constant pbkdf2_salt *salt)
 {
 	uint idx = get_global_id(0);
 

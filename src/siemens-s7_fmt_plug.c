@@ -34,6 +34,8 @@ john_register_one(&fmt_s7);
 
 #define FORMAT_LABEL		"Siemens-S7"
 #define FORMAT_NAME		""
+#define FORMAT_TAG           "$siemens-s7$"
+#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"HMAC-SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -41,7 +43,7 @@ john_register_one(&fmt_s7);
 #define CIPHERTEXT_LENGTH	(1 + 10 + 1 + 1 + 1 + 40 + 1 + 40)
 #define BINARY_SIZE		20
 #define SALT_SIZE		20
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	8
@@ -53,7 +55,7 @@ static struct fmt_tests s7_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static int new_keys;
 static SHA_CTX *ipad_ctx;
 static SHA_CTX *opad_ctx;
@@ -91,13 +93,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
-	if (strncmp(ciphertext, "$siemens-s7$", 12) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += 12;		/* skip over "$siemens-s7$" */
+	ctcopy += FORMAT_TAG_LEN;		/* skip over "$siemens-s7$" */
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* outcome, currently unused */
 		goto bail;
 	if (strlen(p) != 1 || (*p != '1' && *p != '0')) /* outcome must be '1' or '0' */
@@ -127,8 +129,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[CIPHERTEXT_LENGTH+1];
 
 	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH+1);
-	if( out[12] == '0')
-		out[12] = '1';
+	if ( out[FORMAT_TAG_LEN] == '0')
+		out[FORMAT_TAG_LEN] = '1';
 	return out;
 }
 
@@ -139,7 +141,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static unsigned char lchallenge[20];
-	ctcopy += 12;		/* skip over "$siemens-s7$" */
+	ctcopy += FORMAT_TAG_LEN;		/* skip over "$siemens-s7$" */
 	p = strtokm(ctcopy, "$");
 	p = strtokm(NULL, "$");
 	for (i = 0; i < 20; i++)
@@ -234,7 +236,7 @@ static int cmp_all(void *binary, int count)
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
-		if (*(ARCH_WORD_32*)binary == crypt_out[index][0])
+		if (*(uint32_t*)binary == crypt_out[index][0])
 			return 1;
 	return 0;
 }
@@ -293,6 +295,7 @@ struct fmt_main fmt_s7 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
+		{ FORMAT_TAG },
 		s7_tests
 	}, {
 		init,

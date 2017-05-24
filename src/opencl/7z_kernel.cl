@@ -9,6 +9,9 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
+#define OCL_AES_CBC_DECRYPT 1
+#define AES_SRC_TYPE __constant
+#include "opencl_aes.h"
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 
@@ -30,7 +33,7 @@
 			F = o[5]; \
 			G = o[6]; \
 			H = o[7]; \
-			SHA256(A,B,C,D,E,F,G,H); \
+			SHA256(A,B,C,D,E,F,G,H,W); \
 			o[0] += A; \
 			o[1] += B; \
 			o[2] += C; \
@@ -61,14 +64,18 @@ typedef struct {
 } sevenzip_password;
 
 typedef struct {
-	uint round;
 	uint key[32/4];
+	uint round;
+	uint reject;
 } sevenzip_hash;
 
 typedef struct {
-	uint length;
+	host_size_t length;
+	host_size_t unpacksize;
 	uint iterations;
-	uchar salt[16];
+	//uint salt_size;
+	//uchar salt[16];
+	uchar data[32];
 } sevenzip_salt;
 
 __kernel void sevenzip_init(__global sevenzip_hash *outbuffer)
@@ -84,7 +91,6 @@ __kernel void sevenzip_init(__global sevenzip_hash *outbuffer)
 }
 
 __kernel void sevenzip_loop(__global const sevenzip_password *inbuffer,
-                            __global const sevenzip_salt *salt,
                             __global sevenzip_hash *outbuffer)
 {
 	const uint gid = get_global_id(0);
@@ -126,20 +132,57 @@ __kernel void sevenzip_loop(__global const sevenzip_password *inbuffer,
 }
 
 __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
-                             __global const sevenzip_salt *salt,
+                             __constant sevenzip_salt *salt,
                              __global sevenzip_hash *outbuffer)
 {
 	uint gid = get_global_id(0);
-	uint block[16], output[8];
+	uint block[16], hash[8];
 	uint i;
 	uint pwlen = inbuffer[gid].length;
 
 	for (i = 0; i < 8; i++)
-		output[i] = outbuffer[gid].key[i];
+		hash[i] = outbuffer[gid].key[i];
 
 	/* This is always an empty block (except length) */
-	sha256_zerofinal(block, output, (pwlen + 8) * (1U << salt->iterations));
+	sha256_zerofinal(block, hash, (pwlen + 8) * (1U << salt->iterations));
 
 	for (i = 0; i < 8; i++)
-		outbuffer[gid].key[i] = SWAP32(output[i]);
+		outbuffer[gid].key[i] = SWAP32(hash[i]);
+}
+
+__kernel void sevenzip_aes(__constant sevenzip_salt *salt,
+                           __global sevenzip_hash *outbuffer)
+{
+	uint gid = get_global_id(0);
+	uint i;
+	uint pad;
+
+	pad = salt->length - salt->unpacksize;
+
+	/* Early rejection if possible (only decrypt last 16 bytes) */
+	if (pad > 0 && salt->length >= 32) {
+		uint8_t buf[16];
+		AES_KEY akey;
+		uint aes_key[8];
+		unsigned char iv[16];
+
+		for (i = 0; i < 8; i++)
+			aes_key[i] = outbuffer[gid].key[i];
+		for (i = 0; i < 16; i++)
+			iv[i] = salt->data[i];
+		AES_set_decrypt_key((uchar*)aes_key, 256, &akey);
+		AES_cbc_decrypt(&salt->data[16], buf, 16, &akey, iv);
+
+		i = 15;
+		while (pad > 0) {
+			if (buf[i] != 0) {
+				outbuffer[gid].reject = 1;
+				return;
+			}
+			pad--;
+			i--;
+		}
+	}
+
+	outbuffer[gid].reject = 0;
 }

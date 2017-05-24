@@ -14,13 +14,13 @@
  */
 
 #include <string.h>
+#include <stdint.h>
 
 #include "arch.h"
 #include "pseudo_intrinsics.h"
 #include "memory.h"
 #include "md5.h"
 #include "MD5_std.h"
-#include "stdint.h"
 #include "johnswap.h"
 #include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
@@ -33,7 +33,7 @@
 
 #if SIMD_PARA_MD5
 #define MD5_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD5)
-#define MD5_PARA_DO(x)	for((x)=0;(x)<SIMD_PARA_MD5;(x)++)
+#define MD5_PARA_DO(x)	for ((x)=0;(x)<SIMD_PARA_MD5;(x)++)
 
 #define MD5_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -67,7 +67,7 @@
 #if __AVX512F__
 #define MD5_I(x,y,z)                            \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0x39);
-#elif __ARM_NEON__
+#elif __ARM_NEON
 #define MD5_I(x,y,z)                            \
     tmp[i] = vorn((x[i]), (z[i]));              \
     tmp[i] = vxor((tmp[i]), (y[i]));
@@ -117,7 +117,7 @@ void md5_unreverse(uint32_t *hash)
 #undef INIT_A
 
 void SIMDmd5body(vtype* _data, unsigned int *out,
-                ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+                uint32_t *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD5];
 	vtype a[SIMD_PARA_MD5];
@@ -131,17 +131,17 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	unsigned int i;
 	vtype *data;
 
-#if !__AVX512F__ && !__ARM_NEON__
+#if !__AVX512F__ && !__ARM_NEON
 	vtype mask;
 	mask = vset1_epi32(0xffffffff);
 #endif
 
-	if(SSEi_flags & SSEi_FLAT_IN) {
+	if (SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
 		unsigned k;
 		vtype *W = w;
-		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
+		uint32_t *saved_key = (uint32_t*)_data;
 		MD5_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -158,9 +158,9 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 		}
 #else
 		unsigned j, k;
-		ARCH_WORD_32 *p = (ARCH_WORD_32*)w;
+		uint32_t *p = (uint32_t*)w;
 		vtype *W = w;
-		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
+		uint32_t *saved_key = (uint32_t*)_data;
 		MD5_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -187,7 +187,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	} else
 		data = _data;
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD5_PARA_DO(i)
 		{
@@ -303,7 +303,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	MD5_STEP(MD5_I, c, d, a, b, 2, 0x2ad7d2bb, 15)
 	MD5_STEP(MD5_I, b, c, d, a, 9, 0xeb86d391, 21)
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD5_PARA_DO(i)
 		{
@@ -420,7 +420,7 @@ static MAYBE_INLINE void mmxput(void *buf, unsigned int index, unsigned int bid,
 	unsigned int i;
 
 	nbuf = ((unsigned char*)buf) + index/VS32*64*VS32 + bid*64*MD5_SSE_NUM_KEYS;
-	for(i=0;i<len;i++)
+	for (i=0;i<len;i++)
 		nbuf[ GETPOS((offset+i), index) ] = src[i];
 
 }
@@ -435,7 +435,7 @@ static MAYBE_INLINE void mmxput2(void *buf, unsigned int bid, void *src)
 		memcpy( nbuf+i*64*VS32, ((unsigned char*)src)+i*16*VS32, 16*VS32);
 }
 
-#if (ARCH_SIZE >= 8) || defined(__i386__) || defined(__ARM_NEON__)
+#if (ARCH_SIZE >= 8) || defined(__i386__) || defined(__ARM_NEON)
 #define BITALIGN(hi, lo, s) ((((uint64_t)(hi) << 32) | (lo)) >> (s))
 #else
 #define BITALIGN(hi, lo, s) (((hi) << (32 - (s))) | ((lo) >> (s)))
@@ -597,7 +597,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned int F[4*MD5_SSE_NUM_KEYS];
 
 	saltlen = strlen((char*)salt);
-	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
+	for (i=0;i<MD5_SSE_NUM_KEYS;i++)
 	{
 		unsigned int length_i = strlen((char*)pwd[i]);
 		unsigned int *bt;
@@ -668,8 +668,8 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 		MD5_Final((unsigned char*)tf, &tctx);
 		MD5_Update(&ctx, tf, length_i);
 		length[i] = length_i;
-		for(j=length_i;j;j>>=1)
-			if(j&1)
+		for (j=length_i;j;j>>=1)
+			if (j&1)
 				MD5_Update(&ctx, "\0", 1);
 			else
 				MD5_Update(&ctx, pwd[i], 1);
@@ -686,8 +686,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 
 
 #if SIMD_PARA_MD4
-#define MD4_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD4)
-#define MD4_PARA_DO(x)	for((x)=0;(x)<SIMD_PARA_MD4;(x)++)
+#define MD4_PARA_DO(x)	for ((x)=0;(x)<SIMD_PARA_MD4;(x)++)
 
 #define MD4_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -782,7 +781,7 @@ void md4_unreverse(uint32_t *hash)
 #undef INIT_B
 #undef INIT_A
 
-void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
+void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
                 unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD4];
@@ -798,12 +797,12 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	unsigned int i;
 	vtype *data;
 
-	if(SSEi_flags & SSEi_FLAT_IN) {
+	if (SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
 		unsigned k;
 		vtype *W = w;
-		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
+		uint32_t *saved_key = (uint32_t*)_data;
 		MD4_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -820,9 +819,9 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 		}
 #else
 		unsigned j, k;
-		ARCH_WORD_32 *p = (ARCH_WORD_32*)w;
+		uint32_t *p = (uint32_t*)w;
 		vtype *W = w;
-		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
+		uint32_t *saved_key = (uint32_t*)_data;
 		MD4_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -849,7 +848,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	} else
 		data = _data;
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD4_PARA_DO(i)
 		{
@@ -952,7 +951,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 	MD4_STEP(MD4_H, c, d, a, b, 7, cst, 11)
 	MD4_STEP(MD4_H2, b, c, d, a, 15, cst, 15)
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		MD4_PARA_DO(i)
 		{
@@ -1063,8 +1062,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
 
 
 #if SIMD_PARA_SHA1
-#define SHA1_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_SHA1)
-#define SHA1_PARA_DO(x)		for((x)=0;(x)<SIMD_PARA_SHA1;(x)++)
+#define SHA1_PARA_DO(x)		for ((x)=0;(x)<SIMD_PARA_SHA1;(x)++)
 
 #define SHA1_F(x,y,z)                           \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
@@ -1193,7 +1191,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, ARCH_WORD_32 *reload_state,
         e[i] = vadd_epi32( e[i], w[i*16+(t&0xF)] ); \
         b[i] = vroti_epi32(b[i], 30);               \
     }
-
+#define INIT_D 0x10325476
 #define INIT_E 0xC3D2E1F0
 
 void sha1_reverse(uint32_t *hash)
@@ -1208,9 +1206,22 @@ void sha1_unreverse(uint32_t *hash)
 	hash[4] += INIT_E;
 }
 
+void sha1_reverse3(uint32_t *hash)
+{
+	hash[3] -= INIT_D;
+	hash[3]  = (hash[3] << 2) | (hash[3] >> 30);
+}
+
+void sha1_unreverse3(uint32_t *hash)
+{
+	hash[3]  = (hash[3] << 30) | (hash[3] >> 2);
+	hash[3] += INIT_D;
+}
+
+#undef INIT_D
 #undef INIT_E
 
-void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
+void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
                  unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_SHA1];
@@ -1224,12 +1235,12 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	unsigned int i;
 	vtype *data;
 
-	if(SSEi_flags & SSEi_FLAT_IN) {
+	if (SSEi_flags & SSEi_FLAT_IN) {
 		// Move _data to __data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
 		unsigned k;
 		vtype *W = w;
-		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
+		uint32_t *saved_key = (uint32_t*)_data;
 		SHA1_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -1267,9 +1278,9 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 		}
 #else
 		unsigned j, k;
-		ARCH_WORD_32 *p = (ARCH_WORD_32*)w;
+		uint32_t *p = (uint32_t*)w;
 		vtype *W = w;
-		ARCH_WORD_32 *saved_key = (ARCH_WORD_32*)_data;
+		uint32_t *saved_key = (uint32_t*)_data;
 		SHA1_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -1305,7 +1316,7 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	} else
 		data = _data;
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -1436,11 +1447,21 @@ void SIMDSHA1body(vtype* _data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state,
 	}
 
 	SHA1_ROUND2x( e, a, b, c, d, SHA1_I, 76 );
+
+	if (SSEi_flags & SSEi_REVERSE_3STEPS)
+	{
+		SHA1_PARA_DO(i)
+		{
+			vstore((vtype*)&out[i*5*VS32+3*VS32], d[i]);
+		}
+		return;
+	}
+
 	SHA1_ROUND2x( d, e, a, b, c, SHA1_I, 77 );
 	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 78 );
 	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 79 );
 
-	if((SSEi_flags & SSEi_RELOAD)==0)
+	if ((SSEi_flags & SSEi_RELOAD)==0)
 	{
 		SHA1_PARA_DO(i)
 		{
@@ -1732,7 +1753,7 @@ void sha224_unreverse(uint32_t *hash)
 
 #undef INIT_D
 
-void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, unsigned SSEi_flags)
+void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags)
 {
 	vtype a[SIMD_PARA_SHA256],
 		  b[SIMD_PARA_SHA256],
@@ -1744,16 +1765,16 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 		  h[SIMD_PARA_SHA256];
 	union {
 		vtype w[16];
-		ARCH_WORD_32 p[16*sizeof(vtype)/sizeof(ARCH_WORD_32)];
+		uint32_t p[16*sizeof(vtype)/sizeof(uint32_t)];
 	}_w[SIMD_PARA_SHA256];
 	vtype tmp1[SIMD_PARA_SHA256], tmp2[SIMD_PARA_SHA256], *w = NULL;
-	ARCH_WORD_32 *saved_key=0;
+	uint32_t *saved_key=0;
 
 	unsigned int i, k;
 	if (SSEi_flags & SSEi_FLAT_IN) {
 
 #if __SSE4_1__ || __MIC__
-		saved_key = (ARCH_WORD_32*)data;
+		saved_key = (uint32_t*)data;
 		SHA256_PARA_DO(k)
 		{
 			w = _w[k].w;
@@ -1791,10 +1812,10 @@ void SIMDSHA256body(vtype *data, ARCH_WORD_32 *out, ARCH_WORD_32 *reload_state, 
 		}
 #else
 		unsigned int j;
-		saved_key = (ARCH_WORD_32*)data;
+		saved_key = (uint32_t*)data;
 		SHA256_PARA_DO(k)
 		{
-			ARCH_WORD_32 *p = _w[k].p;
+			uint32_t *p = _w[k].p;
 			w = _w[k].w;
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (j=0; j < 16; j++)
@@ -2301,19 +2322,19 @@ void sha512_unreverse(uint64_t *hash)
 
 #define INIT_D 0x152fecd8f70e5939ULL
 
-void sha384_reverse(ARCH_WORD_64 *hash)
+void sha384_reverse(uint64_t *hash)
 {
 	hash[3] -= INIT_D;
 }
 
-void sha384_unreverse(ARCH_WORD_64 *hash)
+void sha384_unreverse(uint64_t *hash)
 {
 	hash[3] += INIT_D;
 }
 
 #undef INIT_D
 
-void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
+void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
                    unsigned SSEi_flags)
 {
 	unsigned int i, k;
@@ -2330,11 +2351,11 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		ARCH_WORD_64 *_data = (ARCH_WORD_64*)data;
+		uint64_t *_data = (uint64_t*)data;
 		SHA512_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_2BUF_INPUT) {
-				ARCH_WORD_64 (*saved_key)[32] = (ARCH_WORD_64(*)[32])_data;
+				uint64_t (*saved_key)[32] = (uint64_t(*)[32])_data;
 				for (i = 0; i < 14; i += 2) {
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);
@@ -2347,7 +2368,7 @@ void SIMDSHA512body(vtype* data, ARCH_WORD_64 *out, ARCH_WORD_64 *reload_state,
 				GATHER64(tmp2[k], saved_key, 15);
 				_data += (VS64<<5);
 			} else {
-				ARCH_WORD_64 (*saved_key)[16] = (ARCH_WORD_64(*)[16])_data;
+				uint64_t (*saved_key)[16] = (uint64_t(*)[16])_data;
 				for (i = 0; i < 14; i += 2) {
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);

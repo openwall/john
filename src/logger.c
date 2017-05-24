@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #endif
 #include <errno.h>
+#include <time.h>
 #include <stdarg.h>
 #include <string.h>
 #include <signal.h>
@@ -62,6 +63,32 @@
 static int cfg_beep;
 static int cfg_log_passwords;
 static int cfg_showcand;
+static char *LogDateFormat;
+static char *LogDateStderrFormat;
+static int LogDateFormatUTC=0;
+static char *log_perms;
+static char *pot_perms;
+
+#ifdef _MSC_VER
+// I am not sure if there would be other systems which do know know about mode_t
+typedef unsigned mode_t;
+#endif
+
+// windows does not have these unix specific constants.
+#ifndef S_ISUID
+#define S_ISUID 0004000
+#endif
+#ifndef S_IXUSR
+#define S_IXUSR 0000100
+#endif
+#ifndef S_IXGRP
+#define S_IXGRP 0000010
+#endif
+#ifndef S_IXOTH
+#define S_IXOTH 0000001
+#endif
+
+static mode_t perms_t;
 
 /*
  * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
@@ -86,20 +113,49 @@ static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
 static int in_logger = 0;
 
-static void log_file_init(struct log_file *f, char *name, int size)
+static void log_file_init(struct log_file *f, char *name, char *perms, int size)
 {
+	perms_t = strtoul(perms, NULL, 8);
+
+	if ((perms_t & (S_IXUSR | S_IXGRP | S_IXOTH | S_ISUID)) ||
+	    ((perms_t & (S_IRUSR | S_IWUSR)) != (S_IRUSR | S_IWUSR))) {
+		fprintf(stderr, "%sFilePerms %s invalid\n",
+		        (f == &log) ? "Log" : "Pot", perms);
+		error();
+	}
+
 	if (f == &log && (options.flags & FLG_NOLOG)) return;
 	f->name = name;
 
-	if (chmod(path_expand(name), S_IRUSR | S_IWUSR))
-	if (errno != ENOENT)
-		pexit("chmod: %s", path_expand(name));
+	if (chmod(path_expand(name), perms_t) && (errno != ENOENT)) {
+		if (errno == EPERM && cfg_get_bool(SECTION_OPTIONS, NULL,
+		                                   "IgnoreChmodErrors", 0))
+			fprintf(stdout, "Note: chmod of %s to %s failed\n",
+			        path_expand(name), perms);
+		else
+			pexit("chmod: %s", path_expand(name));
+	}
+
+#ifndef _MSC_VER
+    umask(000);
+#endif
 
 	if ((f->fd = open(path_expand(name),
-	    O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0)
+	    O_WRONLY | O_CREAT | O_APPEND, perms_t)) < 0)
 		pexit("open: %s", path_expand(name));
 
-	f->ptr = f->buffer = mem_alloc(size + LINE_BUFFER_SIZE);
+#ifndef _MSC_VER
+    umask(077);
+#endif
+
+	/*
+	 * plain will now always be < LINE_BUFFER_SIZE. We add some extra bytes
+	 * so that there is ALWAYS enough buffer to write our line, and we no
+	 * longer have to check length before a write (.pot or .log file).
+	 * The "64" comes from core.
+	 */
+	f->ptr = f->buffer =
+		mem_alloc(size + LINE_BUFFER_SIZE + PLAINTEXT_BUFFER_SIZE + 64);
 	f->size = size;
 }
 
@@ -118,7 +174,8 @@ static void log_file_flush(struct log_file *f)
 
 #if OS_FLOCK || FCNTL_LOCKS
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locking %s...\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Locking %s...\n",
+	        __FUNCTION__, options.node_min, f->name);
 #endif
 #if FCNTL_LOCKS
 	memset(&lock, 0, sizeof(lock));
@@ -134,14 +191,18 @@ static void log_file_flush(struct log_file *f)
 	}
 #endif
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locked %s exclusively\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Locked %s exclusively\n",
+	        __FUNCTION__, options.node_min, f->name);
 #endif
 #endif
 
 	if (f == &pot) {
 		pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
 #if defined(LOCK_DEBUG)
-		fprintf(stderr, "%s(%u): writing %d at %ld, ending at %ld to file %s\n", __FUNCTION__, options.node_min, count, pos_b4, pos_b4+count, f->name);
+		fprintf(stderr,
+		        "%s(%u): writing %d at %ld, ending at %ld to file %s\n",
+		        __FUNCTION__, options.node_min, count, pos_b4,
+		        pos_b4+count, f->name);
 #endif
 	}
 
@@ -153,7 +214,8 @@ static void log_file_flush(struct log_file *f)
 
 #if OS_FLOCK || FCNTL_LOCKS
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocking %s\n", __FUNCTION__, options.node_min, f->name);
+	fprintf(stderr, "%s(%u): Unlocking %s\n",
+	        __FUNCTION__, options.node_min, f->name);
 #endif
 #if FCNTL_LOCKS
 	lock.l_type = F_UNLCK;
@@ -231,24 +293,44 @@ static void log_file_done(struct log_file *f, int do_sync)
 static int log_time(void)
 {
 	int count1, count2;
-	unsigned int time;
+	unsigned int Time;
 
 	count1 = 0;
+
+	Time = pot.fd >= 0 ? status_get_time() : status_restored_time;
+
+	if (LogDateFormat) {
+		struct tm *t_m;
+		char Buf[128];
+		time_t t;
+
+		t = time(0);
+		if (LogDateFormatUTC)
+			t_m = gmtime(&t);
+		else
+			t_m = localtime(&t);
+		strftime(Buf, sizeof(Buf), LogDateFormat, t_m);
+		count2 = (int)sprintf(log.ptr + count1, "%s ", Buf);
+		if (count2 < 0)
+			return count2;
+		count1 += count2;
+	}
+
 #ifndef HAVE_MPI
 	if (options.fork) {
 #else
 	if (options.fork || mpi_p > 1) {
 #endif
-		count1 = (int)sprintf(log.ptr, "%u ", options.node_min);
-		if (count1 < 0)
-			return count1;
+		count2 = (int)sprintf(log.ptr + count1,
+		                      "%u ", options.node_min);
+		if (count2 < 0)
+			return count2;
+		count1 += count2;
 	}
 
-	time = pot.fd >= 0 ? status_get_time() : status_restored_time;
-
 	count2 = (int)sprintf(log.ptr + count1, "%u:%02u:%02u:%02u ",
-	    time / 86400, time % 86400 / 3600,
-	    time % 3600 / 60, time % 60);
+	    Time / 86400, Time % 86400 / 3600,
+	    Time % 3600 / 60, Time % 60);
 	if (count2 < 0)
 		return count2;
 
@@ -262,7 +344,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 	if (log_name && log.fd < 0) {
 		if (session)
 			log_name = path_session(session, LOG_SUFFIX);
-		if(!rec_restored && !(options.flags & FLG_NOLOG)) {
+		if (!rec_restored && !(options.flags & FLG_NOLOG)) {
 			const char *protect;
 			if (!(protect = cfg_get_param(SECTION_OPTIONS, NULL,
 			                              "LogFileProtect")))
@@ -279,12 +361,19 @@ void log_init(char *log_name, char *pot_name, char *session)
 				}
 			}
 		}
+		if (!(log_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+						"LogFilePermissions")))
+			log_perms = "0600";
 
-		log_file_init(&log, log_name, LOG_BUFFER_SIZE);
+		log_file_init(&log, log_name, log_perms , LOG_BUFFER_SIZE);
 	}
 
 	if (pot_name && pot.fd < 0) {
-		log_file_init(&pot, pot_name, POT_BUFFER_SIZE);
+                if (!(pot_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+						"PotFilePermissions")))
+			pot_perms = "0600";
+
+		log_file_init(&pot, pot_name, pot_perms, POT_BUFFER_SIZE);
 
 		cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep", 0);
 	}
@@ -293,7 +382,12 @@ void log_init(char *log_name, char *pot_name, char *session)
 	                                 "LogCrackedPasswords", 0);
 	cfg_showcand = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                            "StatusShowCandidates", 0);
-
+	LogDateFormat = cfg_get_param(SECTION_OPTIONS, NULL,
+			            "LogDateFormat");
+	LogDateFormatUTC = cfg_get_bool(SECTION_OPTIONS, NULL,
+	                            "LogDateFormatUTC", 0);
+	LogDateStderrFormat = cfg_get_param(SECTION_OPTIONS, NULL,
+			            "LogDateStderrFormat");
 	in_logger = 0;
 }
 
@@ -370,28 +464,26 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 		if (!strncmp(ciphertext, "$dynamic_", 9))
 			ciphertext = dynamic_FIX_SALT_TO_HEX(ciphertext);
 #endif
-		if (strlen(ciphertext) + strlen(store_plain) <= LINE_BUFFER_SIZE - 3) {
-			if (options.secure) {
-				secret = components(store_plain, len);
-				count1 = (int)sprintf(pot.ptr,
-				                      "%s%c%s\n",
-				                      ciphertext,
-				                      field_sep,
-				                      secret);
-			} else
-				count1 = (int)sprintf(pot.ptr,
-				                      "%s%c%s\n", ciphertext,
-				                      field_sep, store_plain);
-			if (count1 > 0) pot.ptr += count1;
-		}
+		if (options.secure) {
+			secret = components(store_plain, len);
+			count1 = (int)sprintf(pot.ptr,
+				                "%s%c%s\n",
+				                ciphertext,
+				                field_sep,
+				                secret);
+		} else
+			count1 = (int)sprintf(pot.ptr,
+				                "%s%c%s\n", ciphertext,
+				                field_sep, store_plain);
+		if (count1 > 0) pot.ptr += count1;
 	}
 
-	if (log.fd >= 0 &&
-	    strlen(login) < LINE_BUFFER_SIZE - 64) {
+	if (log.fd >= 0) {
 		count1 = log_time();
 		if (count1 > 0) {
 			log.ptr += count1;
-			count2 = (int)sprintf(log.ptr, "+ Cracked %s%s%s", login, uid_sep, uid_out);
+			count2 = (int)sprintf(log.ptr, "+ Cracked %s%s%s",
+			                      login, uid_sep, uid_out);
 
 			if (options.secure) {
 				secret = components(rep_plain, len);
@@ -406,7 +498,8 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 				                       " as candidate #"LLu"",
 				                       ((unsigned long long)
 				                       status.cands.hi << 32) +
-				                       status.cands.lo + index + 1);
+				                       status.cands.lo +
+				                       index + 1);
 			count2 += (int)sprintf(log.ptr + count2, "\n");
 
 			if (count2 > 0)
@@ -435,7 +528,21 @@ void log_event(const char *format, ...)
 	int count1, count2;
 
 	if (options.flags & FLG_LOG_STDERR) {
-		unsigned int time;
+		unsigned int Time;
+
+		if (LogDateStderrFormat) {
+			struct tm *t_m;
+			char Buf[128];
+			time_t t;
+
+			t = time(0);
+			if (LogDateFormatUTC)
+				t_m = gmtime(&t);
+			else
+				t_m = localtime(&t);
+			strftime(Buf, sizeof(Buf), LogDateStderrFormat, t_m);
+			fprintf(stderr, "%s ", Buf);
+		}
 
 #ifndef HAVE_MPI
 		if (options.fork)
@@ -444,11 +551,11 @@ void log_event(const char *format, ...)
 #endif
 			fprintf(stderr, "%u ", options.node_min);
 
-		time = pot.fd >= 0 ? status_get_time() : status_restored_time;
+		Time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
 		fprintf(stderr, "%u:%02u:%02u:%02u ",
-		        time / 86400, time % 86400 / 3600,
-		        time % 3600 / 60, time % 60);
+		        Time / 86400, Time % 86400 / 3600,
+		        Time % 3600 / 60, Time % 60);
 
 		va_start(args, format);
 		vfprintf(stderr, format, args);

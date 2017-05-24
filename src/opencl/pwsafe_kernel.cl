@@ -49,10 +49,6 @@
         w[14] += sigma1(w[12]) + w[7] + sigma0(w[15]); \
         w[15] += sigma1(w[13]) + w[8] + sigma0(w[0]);
 
-#define PWSAFE_IN_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_pass))
-#define PWSAFE_OUT_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_hash))
-#define PWSAFE_SALT_SIZE (sizeof(pwsafe_salt))
-
 
 typedef struct {
         uint8_t v[87];
@@ -70,7 +66,7 @@ typedef struct {
         uint8_t salt[32];
 } pwsafe_salt;
 
-inline void sha256_transform(uint32_t * w, uint32_t * state)
+inline void sha256_transform(uint32_t *w, uint32_t *state)
 {
 	uint32_t a = state[0];
 	uint32_t b = state[1];
@@ -165,17 +161,18 @@ inline void sha256_transform(uint32_t * w, uint32_t * state)
 	state[7] += h;
 }
 
-__kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt)
+__kernel void pwsafe_init(__global pwsafe_pass *in,
+                          __constant pwsafe_salt *salt)
 {
 	uint32_t idx = get_global_id(0);
 	uint32_t pl = in[idx].length, i;
-	__global uint32_t * state = (__global uint32_t*)in[idx].v;
+	__global uint32_t *state = (__global uint32_t*)in[idx].v;
 	uint32_t w[32] = {0};
 	uint32_t tstate[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
-	if(pl < 24)
+	if (pl < 24)
 	{
-		for(i = 0; i < pl; i++)
+		for (i = 0; i < pl; i++)
 		{
 			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
 		}
@@ -189,7 +186,7 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 	}
 	else
 	{
-		for(i = 0; i < pl; i++)
+		for (i = 0; i < pl; i++)
 		{
 			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
 		}
@@ -214,16 +211,15 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 	in[idx].length = salt->iterations + 1;
 }
 
-__kernel void pwsafe_iter(__global pwsafe_pass * in)
+__kernel void pwsafe_iter(__global pwsafe_pass *in)
 {
 	uint32_t idx = get_global_id(0);
 	uint32_t i = (258 > in[idx].length) ? in[idx].length : 258;
 	in[idx].length -= i;
-	__global uint32_t * state = (__global uint32_t *)in[idx].v;
-
+	__global uint32_t *state = (__global uint32_t *)in[idx].v;
 	uint32_t a, b, c, d, e, f, g, h;
-
 	uint32_t w[16];
+
 	w[0] = state[0];
 	w[1] = state[1];
 	w[2] = state[2];
@@ -355,12 +351,14 @@ __kernel void pwsafe_iter(__global pwsafe_pass * in)
 
 
 
-__kernel void pwsafe_check(__global pwsafe_pass * in, __global pwsafe_hash * out, __global pwsafe_salt * salt)
+__kernel void pwsafe_check(__global pwsafe_pass *in, __global pwsafe_hash *out,
+                           __constant pwsafe_salt *salt)
 {
 	uint32_t idx = get_global_id(0);
-	__global uint32_t * w = (__global uint32_t *)in[idx].v;
+	__global uint32_t *w = (__global uint32_t *)in[idx].v;
 	uint32_t cmp = 0;
-	__global uint32_t *v = (__global uint32_t *) salt->hash;
+	__constant uint32_t *v = (__constant uint32_t *) salt->hash;
+
 	if (*v++ == w[0]) {
 		uint32_t diff;
 		diff = *v++ ^ (w[1]);

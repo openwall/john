@@ -39,7 +39,7 @@ john_register_one(&fmt_cq);
 #define SALT_SIZE           64  // XXX double check this
 #define SALT_ALIGN          MEM_ALIGN_NONE
 #define BINARY_SIZE         4
-#define BINARY_ALIGN        sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN        sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  512
 
@@ -52,7 +52,7 @@ static struct fmt_tests cq_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_key)[BINARY_SIZE / sizeof(uint32_t)];
 static char saved_salt[SALT_SIZE];
 
 unsigned int AdRandomNumbers[2048] = {
@@ -356,6 +356,8 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, *tmpstr;
+	int extra;
+
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
 
@@ -368,7 +370,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p += 1;
 
-	if (hexlenl(p)  != BINARY_SIZE * 2)
+	if (hexlenl(p, &extra)  != BINARY_SIZE * 2 || extra)
 		goto Err;
 
 	if ((p - q) >= SALT_SIZE || p <= q)
@@ -502,6 +504,7 @@ struct fmt_main fmt_cq = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_NOT_EXACT,
 		{ NULL },
+		{ FORMAT_TAG },
 		cq_tests
 	}, {
 		init,

@@ -58,6 +58,8 @@ static int omp_t = 1;
 
 #define FORMAT_LABEL		"Django"
 #define FORMAT_NAME		""
+#define FORMAT_TAG		"$django$*"
+#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
@@ -69,7 +71,7 @@ static int omp_t = 1;
 #define HASH_LENGTH		44
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN	sizeof(uint32_t)
 #define SALT_ALIGN		sizeof(int)
 
 #ifdef SIMD_COEF_32
@@ -91,7 +93,7 @@ static struct fmt_tests django_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	int type;
@@ -121,11 +123,11 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext, "$django$*", 9) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;;
-	ctcopy += 9;
+	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* type */
 		goto err;
 	/* type must be 1 */
@@ -147,7 +149,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "")) == NULL)	/* hash */
 		goto err;
-	if (strlen(p)-1 != base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ) || strlen(p)-1 > HASH_LENGTH-1)  {
+	if (strlen(p)-1 != base64_valid_length(p,e_b64_mime,flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p)-1 > HASH_LENGTH-1)  {
 		goto err;
 	}
 	MEM_FREE(keeptr);
@@ -166,7 +168,7 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 	strncpy(Buf, ciphertext, 119);
 	Buf[119] = 0;
-	ctcopy += 9;	/* skip over "$django$*" */
+	ctcopy += FORMAT_TAG_LEN;	/* skip over "$django$*" */
 	p = strtokm(ctcopy, "*");
 	cs.type = atoi(p);
 	strtokm(NULL, "$");
@@ -216,7 +218,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int lens[MAX_KEYS_PER_CRYPT], i;
 		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
-			ARCH_WORD_32 *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
@@ -233,13 +235,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]),
 			cur_salt->salt, strlen((char*)cur_salt->salt),
 			cur_salt->iterations, (unsigned char*)crypt_out[index], 32, 0);
-#if !ARCH_LITTLE_ENDIAN
-		{
-			int i;
-			for (i = 0; i < 32/sizeof(ARCH_WORD_32); ++i)
-				((ARCH_WORD_32*)crypt_out[index])[i] = JOHNSWAP(((ARCH_WORD_32*)crypt_out[index])[i]);
-		}
-#endif
 #endif
 	}
 	return count;
@@ -302,6 +297,7 @@ struct fmt_main fmt_django = {
 		{
 			"iteration count",
 		},
+		{ FORMAT_TAG },
 		django_tests
 	}, {
 		init,

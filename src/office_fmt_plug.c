@@ -12,7 +12,6 @@ john_register_one(&fmt_office);
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include "aes.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -27,6 +26,7 @@ john_register_one(&fmt_office);
 #include "params.h"
 #include "options.h"
 #include "unicode.h"
+#include "aes.h"
 #include "sha.h"
 #include "sha2.h"
 #include "johnswap.h"
@@ -113,7 +113,7 @@ static int omp_t = 1;
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 /* UCS-2 password length, in octets */
 static int *saved_len;
-static ARCH_WORD_32 (*crypt_key)[4];
+static uint32_t (*crypt_key)[4];
 static int *cracked;
 
 /* Office 2010/2013 */
@@ -321,7 +321,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		// 28 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 224;
 	}
-	SIMDSHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i)
 		memcpy(hashBuf[i], crypt[i], 20);
 
@@ -330,14 +330,14 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		for (j = 0; j < 8; ++j)
 			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-	SIMDSHA1body(keys, (ARCH_WORD_32*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA1_LOOP_CNT; ++i)
 		memcpy(&hashBuf[i][32], crypt[i], 20);
 
 	// Fix up the size per the spec
 	if (20 < hashSize) { // FIXME: Is this ever true?
 		for (i = 0; i < SHA1_LOOP_CNT; ++i) {
-			for(j = 20; j < hashSize; j++) {
+			for (j = 20; j < hashSize; j++) {
 				hashBuf[i][j] = 0x36;
 				hashBuf[i][32 + j] = 0x36;
 			}
@@ -394,7 +394,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 
 	// Fix up the size per the spec
 	if (20 < hashSize) { // FIXME: Is this ever true?
-		for(i = 20; i < hashSize; i++) {
+		for (i = 20; i < hashSize; i++) {
 			hashBuf[0][i] = 0x36;
 			hashBuf[0][32 + i] = 0x36;
 		}
@@ -410,12 +410,12 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	SHA512_CTX ctx;
 	unsigned char _IBuf[128*SHA512_LOOP_CNT+MEM_ALIGN_CACHE], *keys,
 	              _OBuf[64*SHA512_LOOP_CNT+MEM_ALIGN_CACHE];
-	ARCH_WORD_64 *keys64, (*crypt)[64/8];
+	uint64_t *keys64, (*crypt)[64/8];
 	uint32_t *keys32, *crypt32;
 
 	crypt = (void*)mem_align(_OBuf, MEM_ALIGN_CACHE);
 	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
-	keys64 = (ARCH_WORD_64*)keys;
+	keys64 = (uint64_t*)keys;
 	keys32 = (uint32_t*)keys;
 	crypt32 = (uint32_t*)crypt;
 
@@ -441,7 +441,7 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		for (j = 0; j < SHA512_LOOP_CNT; j++)
 			keys32[(j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64 + 1] = i_be;
 
-		SIMDSHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN);
+		SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN);
 
 		// Then we output to 4 bytes past start of input buffer.
 		for (j = 0; j < SHA512_LOOP_CNT; j++) {
@@ -473,19 +473,19 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		// 72 bytes of crypt data (0x240  we already have 0x220 here)
 		keys[GETPOS_512(127, i)] = 0x40;
 	}
-	SIMDSHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 	for (i = 0; i < SHA512_LOOP_CNT; ++i)
-		memcpy((ARCH_WORD_64*)(hashBuf[i]), crypt[i], 64);
+		memcpy((uint64_t*)(hashBuf[i]), crypt[i], 64);
 
 	// And second "block" (0) to H(n)
 	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
 		for (j = 0; j < 8; ++j)
 			keys[GETPOS_512(64+j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-	SIMDSHA512body(keys, (ARCH_WORD_64*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 
 	for (i = 0; i < SHA512_LOOP_CNT; ++i)
-		memcpy((ARCH_WORD_64*)(&hashBuf[i][64]), crypt[i], 64);
+		memcpy((uint64_t*)(&hashBuf[i][64]), crypt[i], 64);
 }
 #else
 static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
@@ -558,6 +558,62 @@ static void set_salt(void *salt)
 	cur_salt = (ms_office_custom_salt *)salt;
 }
 
+static void DecryptUsingSymmetricKeyAlgorithm(ms_office_custom_salt *cur_salt, unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length)
+{
+	unsigned char iv[32];
+	AES_KEY akey;
+
+	memcpy(iv, cur_salt->osalt, 16);
+	memset(&iv[16], 0, 16);
+	memset(&akey, 0, sizeof(AES_KEY));
+	AES_set_decrypt_key(verifierInputKey, cur_salt->keySize, &akey);
+	AES_cbc_encrypt(encryptedVerifier, (unsigned char*)decryptedVerifier, length, &akey, iv, AES_DECRYPT);
+}
+
+// We now pass in the 16 byte 'output'. The older code has been kept, but
+// it no longer used that way. We used to return the 'cracked' value, i.e.
+// if it matched, return 1, else 0. Now we store the encryption data to out,
+// and then in the format use normal binary_hash() methods to test it. The
+// old method used decryption (of the encrypted field). Now we use encrption
+// of the plaintext data, and then binary_hash() compares that to the known
+// encrypted field data.
+// For the time being, the original code has been kept (commented out). I am
+// doing this in hopes of figuring out some way to salt-dupe correct the
+// office 2010-2013 formats. I do not think they can be done, but I may be
+// wrong, so I will keep this code in an "easy to see what changed" layout.
+static void PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key, uint32_t *out)
+{
+	unsigned char decryptedVerifier[16];
+	//unsigned char decryptedVerifierHash[16];
+	AES_KEY akey;
+	SHA_CTX ctx;
+	unsigned char checkHash[32];
+	unsigned char checkHashed[32];
+
+	memset(&akey, 0, sizeof(AES_KEY));
+	AES_set_decrypt_key(key, 128, &akey);
+	AES_ecb_encrypt(cur_salt->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
+
+	// Not using cracked any more.
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, decryptedVerifier, 16);
+	SHA1_Final(checkHash, &ctx);
+	memset(&akey, 0, sizeof(AES_KEY));
+	AES_set_encrypt_key(key, 128, &akey);
+	AES_ecb_encrypt(checkHash, checkHashed, &akey, AES_ENCRYPT);
+	memcpy(out, checkHashed, 16);
+
+	//AES_set_decrypt_key(key, 128, &akey);
+	//AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
+	//
+	///* find SHA1 hash of decryptedVerifier */
+	//SHA1_Init(&ctx);
+	//SHA1_Update(&ctx, decryptedVerifier, 16);
+	//SHA1_Final(checkHash, &ctx);
+	//
+	//return !memcmp(checkHash, decryptedVerifierHash, 16);
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -572,11 +628,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index+=inc)
 	{
 		int i;
-		if(cur_salt->version == 2007) {
+		if (cur_salt->version == 2007) {
 			unsigned char encryptionKey[SHA1_LOOP_CNT][20];
 			GeneratePasswordHashUsingSHA1(index, encryptionKey);
 			for (i = 0; i < SHA1_LOOP_CNT; ++i)
-				ms_office_common_PasswordVerifier(cur_salt, encryptionKey[i], crypt_key[index+i]);
+				PasswordVerifier(cur_salt, encryptionKey[i], crypt_key[index+i]);
 		}
 		else if (cur_salt->version == 2010) {
 			unsigned char verifierKeys[SHA1_LOOP_CNT][64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
@@ -584,8 +640,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA_CTX ctx;
 			GenerateAgileEncryptionKey(index, verifierKeys);
 			for (i = 0; i < inc; ++i) {
-				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+				DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+				DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 				SHA1_Init(&ctx);
 				SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 				SHA1_Final(hash, &ctx);
@@ -598,8 +654,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_CTX ctx;
 			GenerateAgileEncryptionKey512(index, verifierKeys);
 			for (i = 0; i < inc; ++i) {
-				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-				ms_office_common_DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+				DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+				DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 				SHA512_Init(&ctx);
 				SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 				SHA512_Final(hash, &ctx);
@@ -615,7 +671,7 @@ static int cmp_all(void *binary, int count)
 	int index;
 	if (cur_salt->version == 2007) {
 		for (index = 0; index < count; index++) {
-			if ( ((ARCH_WORD_32*)binary)[0] == crypt_key[index][0] )
+			if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
 				return 1;
 		}
 		return 0;
@@ -660,16 +716,6 @@ static char *get_key(int index)
 {
 	return (char*)utf16_to_enc(saved_key[index]);
 }
-/*
- * MS Office version (2007, 2010, 2013) as first tunable cost
- */
-static unsigned int ms_office_version(void *salt)
-{
-	ms_office_custom_salt *my_salt;
-
-	my_salt = salt;
-	return (unsigned int) my_salt->version;
-}
 
 struct fmt_main fmt_office = {
 	{
@@ -691,18 +737,19 @@ struct fmt_main fmt_office = {
 			"MS Office version",
 			"iteration count",
 		},
+		{ FORMAT_TAG_OFFICE },
 		office_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		ms_office_common_valid_all,
+		ms_office_common_valid,
 		fmt_default_split,
 		ms_office_common_binary,
 		ms_office_common_get_salt,
 		{
-			ms_office_version,
+			ms_office_common_version,
 			ms_office_common_iteration_count,
 		},
 		fmt_default_source,

@@ -30,7 +30,7 @@
 #define _DYNA_SALT_H__
 
 #include <stddef.h>
-#include "stdint.h"
+#include <stdint.h>
 
 //#define DYNA_SALT_DEBUG
 
@@ -62,14 +62,20 @@ typedef struct dyna_salt_john_core_t {
  * each time a format change happens, during self test
  * and loading. There are times where other functions
  * are called, where we do not have a format structure.
+ * Returns the format previously set (may be NULL)
  */
 struct fmt_main;
-void dyna_salt_init(struct fmt_main *format);
+struct fmt_main *dyna_salt_init(struct fmt_main *format);
 
 /*
  * NOTE, will compare dyna and non-dyna salts.
  */
 int dyna_salt_cmp(void *p1, void *p2, int comp_size);
+
+/*
+ * NOTE, will do the MD5 salt hashing for either non or dyna-salts.
+ */
+void dyna_salt_md5(struct db_salt *p, int comp_size);
 
 //#define DYNA_SALT_DEBUG
 

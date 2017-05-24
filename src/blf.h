@@ -35,7 +35,7 @@
 #ifndef _BLF_H_
 #define _BLF_H_
 
-#include "stdint.h"
+#include <stdint.h>
 
 /* Schneier states the maximum key length to be 56 bytes.
  * The way how the subkeys are initialized by the key up

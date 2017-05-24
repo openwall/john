@@ -16,7 +16,6 @@
 #endif
 #include <string.h>
 
-#define MAX_LVL_LEN 28
 #define MAX_LEN 7
 
 #include "params.h"

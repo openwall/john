@@ -16,6 +16,11 @@
 
 #include <string.h>
 #include <process.h>
+#include <stdlib.h>
+
+#if !defined (_MSC_VER)
+#include <unistd.h>
+#endif
 
 #define MAIN_NAME			"john.exe"
 

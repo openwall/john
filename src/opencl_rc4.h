@@ -16,19 +16,16 @@
 
 #include "opencl_misc.h"
 
-#ifndef RC4_BUFLEN
-#error RC4_BUFLEN must be defined prior to including opencl_rc4.h
-#endif
+#define RC4_IV32
 
-// None 2885 626 13860 8097
-#define RC4_IV32 // 3633 696 14278 8118
 #if !gpu_amd(DEVICE_INFO) || DEV_VER_MAJOR < 1445
 /* bug in Catalyst 14.9, besides it is slower */
-#define RC4_UNROLLED_KEY // 3893 817 14340 7245
-#define RC4_UNROLLED // 3932 848 14348 7847
+#define RC4_UNROLLED_KEY
+#define RC4_UNROLLED
 #endif
+
 #if !defined(__OS_X__) && __GPU__ /* Actually we want discrete GPUs */
-#define RC4_USE_LOCAL // 455 397 20560 31655
+#define RC4_USE_LOCAL
 #endif
 
 #ifdef RC4_IV32
@@ -71,7 +68,7 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
 #undef swap_state
 #define swap_state(n) {	  \
 		swap_no_inc(n); \
-		index1 = (index1 + 1) & 15; \
+		index1 = (index1 + 1) & 15; /* WARNING: &15 == %keylen */ \
 	}
 #undef swap_anc_inc
 #define swap_and_inc(n) {	  \
@@ -88,12 +85,12 @@ inline void rc4(
 #endif
                 const uint *restrict key,
 #ifdef RC4_IN_PLACE
-                uint *buf
+                uint *buf,
 #else
                 MAYBE_CONSTANT uint *restrict in,
-                __global uint *restrict out
+                __global uint *restrict out,
 #endif
-	)
+                uint len)
 {
 	uint x;
 	uint y = 0;
@@ -112,7 +109,7 @@ inline void rc4(
 		PUTCHAR_L(state, x, x);
 #endif
 
-	/* RC4_set_key() 406ms */
+	/* RC4_set_key() */
 #ifdef RC4_UNROLLED_KEY
 	/* Unrolled for hard-coded key length 16 */
 	for (x = 0; x < 256; x++) {
@@ -139,10 +136,10 @@ inline void rc4(
 		swap_state(x);
 #endif
 
-	/* RC4() 76ms for 32 bytes in-place */
+	/* RC4() */
 #ifdef RC4_UNROLLED
 	/* Unrolled to 32-bit xor */
-	for (x = 1; x <= RC4_BUFLEN; x++) {
+	for (x = 1; x <= len; x++) {
 		uint xor_word;
 
 		y = (GETCHAR_L(state, x) + y) & 255;
@@ -172,7 +169,7 @@ inline void rc4(
 	}
 #else /* RC4_UNROLLED */
 #pragma unroll
-	for (x = 1; x <= RC4_BUFLEN; x++) {
+	for (x = 1; x <= len; x++) {
 		y = (GETCHAR_L(state, x) + y) & 255;
 		swap_byte(x, y);
 #ifdef RC4_IN_PLACE

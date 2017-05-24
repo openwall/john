@@ -191,17 +191,17 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 #if MASK_ENABLE && !IS_STATIC_GPU_MASK
 	uint ikl = lm_key_loc[section];
 	uint loc0 = (ikl & 0xff) << 3;
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
 	uint loc1 = (ikl & 0xff00) >> 5;
 #endif
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
 	uint loc2 = (ikl & 0xff0000) >> 13;
 #endif
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
 	uint loc3 = (ikl & 0xff000000) >> 21;
 #endif
@@ -232,7 +232,7 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 		s_lm_key[s_key_offset + GPU_LOC_0 + 5] = lm_int_keys[i * 8 + 5];
 		s_lm_key[s_key_offset + GPU_LOC_0 + 6] = lm_int_keys[i * 8 + 6];
 		s_lm_key[s_key_offset + GPU_LOC_0 + 7] = lm_int_keys[i * 8 + 7];
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
 #define OFFSET 	(1 * ITER_COUNT * 8)
 		s_lm_key[s_key_offset + GPU_LOC_1] = lm_int_keys[OFFSET + i * 8];
@@ -245,7 +245,7 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 		s_lm_key[s_key_offset + GPU_LOC_1 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
 #endif
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
 #undef OFFSET
 #define OFFSET 	(2 * ITER_COUNT * 8)
@@ -259,7 +259,7 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 		s_lm_key[s_key_offset + GPU_LOC_2 + 7] = lm_int_keys[OFFSET + i * 8 + 7];
 #endif
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
 #undef OFFSET
 #define OFFSET 	(3 * ITER_COUNT * 8)
@@ -283,7 +283,7 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 		lm_keys[(GPU_LOC_0 + 5) * gws + section] = lm_int_keys[i * 8 + 5];
 		lm_keys[(GPU_LOC_0 + 6) * gws + section] = lm_int_keys[i * 8 + 6];
 		lm_keys[(GPU_LOC_0 + 7) * gws + section] = lm_int_keys[i * 8 + 7];
-#if 1 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
 #define OFFSET 	(1 * ITER_COUNT * 8)
 		lm_keys[GPU_LOC_1 * gws + section] = lm_int_keys[OFFSET + i * 8];
@@ -296,7 +296,7 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 		lm_keys[(GPU_LOC_1 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
 #endif
 #endif
-#if 2 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
 #undef OFFSET
 #define OFFSET 	(2 * ITER_COUNT * 8)
@@ -310,7 +310,7 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 		lm_keys[(GPU_LOC_2 + 7) * gws + section] = lm_int_keys[OFFSET + i * 8 + 7];
 #endif
 #endif
-#if 3 < MASK_FMT_INT_PLHDR
+#if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
 #undef OFFSET
 #define OFFSET 	(3 * ITER_COUNT * 8)

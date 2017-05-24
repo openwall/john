@@ -115,7 +115,7 @@ __constant uint k[] = {
 		d += (t); h = (t) + Sigma0(a) + Maj((a), (b), (c)); \
 	}
 
-#define SHA256(A,B,C,D,E,F,G,H)	  \
+#define SHA256(A,B,C,D,E,F,G,H,W)	  \
 	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0]); \
 	ROUND_A(H,A,B,C,D,E,F,G,k[1],W[1]); \
 	ROUND_A(G,H,A,B,C,D,E,F,k[2],W[2]); \
@@ -183,7 +183,7 @@ __constant uint k[] = {
 
 #define Z (0)
 //W[9]-W[14] are zeros
-#define SHA256_ZEROS(A,B,C,D,E,F,G,H)	  \
+#define SHA256_ZEROS(A,B,C,D,E,F,G,H,W)	  \
 	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0]); \
 	ROUND_A(H,A,B,C,D,E,F,G,k[1],W[1]); \
 	ROUND_A(G,H,A,B,C,D,E,F,k[2],W[2]); \
@@ -249,33 +249,33 @@ __constant uint k[] = {
 	ROUND_B(C,D,E,F,G,H,A,B,k[62],W[14],  W[12],W[15],W[14],W[7]) \
 	ROUND_B(B,C,D,E,F,G,H,A,k[63],W[15],  W[13],W[0],W[15],W[8])
 
-#define sha256_init(o)	  \
+#define sha256_init(ctx)	  \
 	{ \
 		uint i; \
 		for (i = 0; i < 8; i++) \
-			o[i] = h[i]; \
+			(ctx)[i] = h[i]; \
 	}
 
-#define sha256_block(W, o)\
+#define sha256_block(pad, ctx)\
  {	  \
 	uint A, B, C, D, E, F, G, H, t; \
-	A = o[0]; \
-	B = o[1]; \
-	C = o[2]; \
-	D = o[3]; \
-	E = o[4]; \
-	F = o[5]; \
-	G = o[6]; \
-	H = o[7]; \
-	SHA256(A,B,C,D,E,F,G,H); \
-	o[0] += A; \
-	o[1] += B; \
-	o[2] += C; \
-	o[3] += D; \
-	o[4] += E; \
-	o[5] += F; \
-	o[6] += G; \
-	o[7] += H; \
+	A = (ctx)[0]; \
+	B = (ctx)[1]; \
+	C = (ctx)[2]; \
+	D = (ctx)[3]; \
+	E = (ctx)[4]; \
+	F = (ctx)[5]; \
+	G = (ctx)[6]; \
+	H = (ctx)[7]; \
+	SHA256(A,B,C,D,E,F,G,H,pad); \
+	(ctx)[0] += A; \
+	(ctx)[1] += B; \
+	(ctx)[2] += C; \
+	(ctx)[3] += D; \
+	(ctx)[4] += E; \
+	(ctx)[5] += F; \
+	(ctx)[6] += G; \
+	(ctx)[7] += H; \
 }
 
 /*
@@ -353,14 +353,14 @@ __constant ulong K[] = {
 #define sigma0_64(x) ((ror64(x,1))  ^ (ror64(x,8)) ^ (x >> 7))
 #define sigma1_64(x) ((ror64(x,19)) ^ (ror64(x,61)) ^ (x >> 6))
 
-#define INIT_A	0x6a09e667f3bcc908UL
-#define INIT_B	0xbb67ae8584caa73bUL
-#define INIT_C	0x3c6ef372fe94f82bUL
-#define INIT_D	0xa54ff53a5f1d36f1UL
-#define INIT_E	0x510e527fade682d1UL
-#define INIT_F	0x9b05688c2b3e6c1fUL
-#define INIT_G	0x1f83d9abfb41bd6bUL
-#define INIT_H	0x5be0cd19137e2179UL
+#define SHA2_INIT_A	0x6a09e667f3bcc908UL
+#define SHA2_INIT_B	0xbb67ae8584caa73bUL
+#define SHA2_INIT_C	0x3c6ef372fe94f82bUL
+#define SHA2_INIT_D	0xa54ff53a5f1d36f1UL
+#define SHA2_INIT_E	0x510e527fade682d1UL
+#define SHA2_INIT_F	0x9b05688c2b3e6c1fUL
+#define SHA2_INIT_G	0x1f83d9abfb41bd6bUL
+#define SHA2_INIT_H	0x5be0cd19137e2179UL
 
 #define ROUND512_A(a, b, c, d, e, f, g, h, ki, wi)	\
 	t = (ki) + (wi) + (h) + Sigma1_64(e) + Ch((e), (f), (g)); \
@@ -375,7 +375,7 @@ __constant ulong K[] = {
 	t = (ki) + (wi) + (h) + Sigma1_64(e) + Ch((e), (f), (g)); \
 	d += (t); h = (t) + Sigma0_64(a) + Maj((a), (b), (c));
 
-#define SHA512(A, B, C, D, E, F, G, H)	  \
+#define SHA512(A, B, C, D, E, F, G, H, W)	  \
 	ROUND512_A(A,B,C,D,E,F,G,H,K[0],W[0]) \
 	ROUND512_A(H,A,B,C,D,E,F,G,K[1],W[1]) \
 	ROUND512_A(G,H,A,B,C,D,E,F,K[2],W[2]) \
@@ -459,7 +459,7 @@ __constant ulong K[] = {
 
 #define z 0UL
 //W[9]-W[14] are zeros
-#define SHA512_ZEROS(A, B, C, D, E, F, G, H)	  \
+#define SHA512_ZEROS(A, B, C, D, E, F, G, H, W)	  \
 	ROUND512_A(A,B,C,D,E,F,G,H,K[0],W[0]) \
 	ROUND512_A(H,A,B,C,D,E,F,G,K[1],W[1]) \
 	ROUND512_A(G,H,A,B,C,D,E,F,K[2],W[2]) \
@@ -550,25 +550,25 @@ inline void sha512_single_s(ulong *W, ulong *output)
 {
 	ulong A, B, C, D, E, F, G, H, t;
 
-	A = INIT_A;
-	B = INIT_B;
-	C = INIT_C;
-	D = INIT_D;
-	E = INIT_E;
-	F = INIT_F;
-	G = INIT_G;
-	H = INIT_H;
+	A = SHA2_INIT_A;
+	B = SHA2_INIT_B;
+	C = SHA2_INIT_C;
+	D = SHA2_INIT_D;
+	E = SHA2_INIT_E;
+	F = SHA2_INIT_F;
+	G = SHA2_INIT_G;
+	H = SHA2_INIT_H;
 
-	SHA512(A, B, C, D, E, F, G, H)
+	SHA512(A, B, C, D, E, F, G, H, W)
 
-	output[0] = A + INIT_A;
-	output[1] = B + INIT_B;
-	output[2] = C + INIT_C;
-	output[3] = D + INIT_D;
-	output[4] = E + INIT_E;
-	output[5] = F + INIT_F;
-	output[6] = G + INIT_G;
-	output[7] = H + INIT_H;
+	output[0] = A + SHA2_INIT_A;
+	output[1] = B + SHA2_INIT_B;
+	output[2] = C + SHA2_INIT_C;
+	output[3] = D + SHA2_INIT_D;
+	output[4] = E + SHA2_INIT_E;
+	output[5] = F + SHA2_INIT_F;
+	output[6] = G + SHA2_INIT_G;
+	output[7] = H + SHA2_INIT_H;
 }
 #endif
 
@@ -577,25 +577,25 @@ inline void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output)
 {
 	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;
 
-	A = INIT_A;
-	B = INIT_B;
-	C = INIT_C;
-	D = INIT_D;
-	E = INIT_E;
-	F = INIT_F;
-	G = INIT_G;
-	H = INIT_H;
+	A = SHA2_INIT_A;
+	B = SHA2_INIT_B;
+	C = SHA2_INIT_C;
+	D = SHA2_INIT_D;
+	E = SHA2_INIT_E;
+	F = SHA2_INIT_F;
+	G = SHA2_INIT_G;
+	H = SHA2_INIT_H;
 
-	SHA512(A, B, C, D, E, F, G, H)
+	SHA512(A, B, C, D, E, F, G, H, W)
 
-	output[0] = A + INIT_A;
-	output[1] = B + INIT_B;
-	output[2] = C + INIT_C;
-	output[3] = D + INIT_D;
-	output[4] = E + INIT_E;
-	output[5] = F + INIT_F;
-	output[6] = G + INIT_G;
-	output[7] = H + INIT_H;
+	output[0] = A + SHA2_INIT_A;
+	output[1] = B + SHA2_INIT_B;
+	output[2] = C + SHA2_INIT_C;
+	output[3] = D + SHA2_INIT_D;
+	output[4] = E + SHA2_INIT_E;
+	output[5] = F + SHA2_INIT_F;
+	output[6] = G + SHA2_INIT_G;
+	output[7] = H + SHA2_INIT_H;
 }
 
 inline void sha512_single_zeros(MAYBE_VECTOR_ULONG *W,
@@ -603,25 +603,25 @@ inline void sha512_single_zeros(MAYBE_VECTOR_ULONG *W,
 {
 	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;
 
-	A = INIT_A;
-	B = INIT_B;
-	C = INIT_C;
-	D = INIT_D;
-	E = INIT_E;
-	F = INIT_F;
-	G = INIT_G;
-	H = INIT_H;
+	A = SHA2_INIT_A;
+	B = SHA2_INIT_B;
+	C = SHA2_INIT_C;
+	D = SHA2_INIT_D;
+	E = SHA2_INIT_E;
+	F = SHA2_INIT_F;
+	G = SHA2_INIT_G;
+	H = SHA2_INIT_H;
 
-	SHA512_ZEROS(A, B, C, D, E, F, G, H)
+	SHA512_ZEROS(A, B, C, D, E, F, G, H, W)
 
-	output[0] = A + INIT_A;
-	output[1] = B + INIT_B;
-	output[2] = C + INIT_C;
-	output[3] = D + INIT_D;
-	output[4] = E + INIT_E;
-	output[5] = F + INIT_F;
-	output[6] = G + INIT_G;
-	output[7] = H + INIT_H;
+	output[0] = A + SHA2_INIT_A;
+	output[1] = B + SHA2_INIT_B;
+	output[2] = C + SHA2_INIT_C;
+	output[3] = D + SHA2_INIT_D;
+	output[4] = E + SHA2_INIT_E;
+	output[5] = F + SHA2_INIT_F;
+	output[6] = G + SHA2_INIT_G;
+	output[7] = H + SHA2_INIT_H;
 }
 
 #endif /* _OPENCL_SHA2_H */

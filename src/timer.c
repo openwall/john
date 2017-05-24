@@ -42,10 +42,10 @@ void sTimer_sTimer (sTimer *t)
 		sm_cPrecision=0;
 		for (i = 0; i < 10; ++i) {
 			clock_t heuristicTimeTest=clock();
-			if(heuristicTimeTest%10) { sm_cPrecision = 1.0/CLOCKS_PER_SEC; break; }
-			else if(heuristicTimeTest%100) { if (sm_cPrecision == 0 || sm_cPrecision > 10.0/CLOCKS_PER_SEC) sm_cPrecision = 10.0/CLOCKS_PER_SEC; }
-			else if(heuristicTimeTest%1000) { if (sm_cPrecision == 0 || sm_cPrecision > 100.0/CLOCKS_PER_SEC) sm_cPrecision = 100.0/CLOCKS_PER_SEC;  }
-			else if(heuristicTimeTest%10000) { if (sm_cPrecision == 0 || sm_cPrecision > 1000.0/CLOCKS_PER_SEC) sm_cPrecision = 1000.0/CLOCKS_PER_SEC;  }
+			if (heuristicTimeTest%10) { sm_cPrecision = 1.0/CLOCKS_PER_SEC; break; }
+			else if (heuristicTimeTest%100) { if (sm_cPrecision == 0 || sm_cPrecision > 10.0/CLOCKS_PER_SEC) sm_cPrecision = 10.0/CLOCKS_PER_SEC; }
+			else if (heuristicTimeTest%1000) { if (sm_cPrecision == 0 || sm_cPrecision > 100.0/CLOCKS_PER_SEC) sm_cPrecision = 100.0/CLOCKS_PER_SEC;  }
+			else if (heuristicTimeTest%10000) { if (sm_cPrecision == 0 || sm_cPrecision > 1000.0/CLOCKS_PER_SEC) sm_cPrecision = 1000.0/CLOCKS_PER_SEC;  }
 			else { if (sm_cPrecision == 0 || sm_cPrecision > 10000.0/CLOCKS_PER_SEC) sm_cPrecision = 10000.0/CLOCKS_PER_SEC;  }
 		}
 

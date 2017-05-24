@@ -166,24 +166,34 @@ static void sig_remove_reload(void)
 
 void check_abort(int be_async_signal_safe)
 {
+	char *abort_msg = (aborted_by_timer) ?
+		"Session stopped (max run-time reached)\n" :
+		"Session aborted\n";
+
 	if (!event_abort) return;
 
 	tty_done();
 
+	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
+
+	if (john_max_cands) {
+		unsigned long long cands =
+			((unsigned long long)status.cands.hi << 32) +
+			status.cands.lo;
+
+		if (cands >= john_max_cands)
+			abort_msg =
+				"Session stopped (max candidates reached)\n";
+	}
+
 	if (be_async_signal_safe) {
-		if (john_main_process) {
-			if (aborted_by_timer)
-				write_loop(2, "Session stopped (max run-time"
-				           " reached)\n", 39);
-			else
-				write_loop(2, "Session aborted\n", 16);
-		}
+		if (john_main_process)
+			write_loop(2, abort_msg, strlen(abort_msg));
 		_exit(1);
 	}
 
 	if (john_main_process)
-		fprintf(stderr, "Session %s\n", (aborted_by_timer) ?
-		        "stopped (max run-time reached)" : "aborted");
+		fprintf(stderr, "%s", abort_msg);
 	error();
 }
 
@@ -539,11 +549,7 @@ void sig_init(void)
 		abort_grace_time =
 			cfg_get_int(SECTION_OPTIONS, NULL, "AbortGraceTime");
 	}
-#if OS_TIMER
-	timer_save_value = timer_save_interval;
-#elif !defined(BENCH_BUILD)
-	timer_save_value = status_get_time() + timer_save_interval;
-#endif
+
 	timer_ticksafety_interval = (clock_t)1 << (sizeof(clock_t) * 8 - 4);
 	timer_ticksafety_interval /= clk_tck;
 	if ((timer_ticksafety_interval /= TIMER_INTERVAL) <= 0)
@@ -552,9 +558,28 @@ void sig_init(void)
 
 	atexit(sig_done);
 
-	sig_install(sig_handle_update, SIGHUP);
 	sig_install_abort();
+}
+
+void sig_init_late(void)
+{
+	unsigned int time;
+
+#if OS_TIMER
+	timer_save_value = timer_save_interval;
+	time = 0;
+#elif !defined(BENCH_BUILD)
+	timer_save_value = status_get_time() + timer_save_interval;
+	time = status_get_time();
+#endif
+
+	sig_install(sig_handle_update, SIGHUP);
 	sig_install_timer();
+
+	if (options.max_run_time)
+		timer_abort = time + abs(options.max_run_time);
+	if (options.status_interval)
+		timer_status = time + options.status_interval;
 }
 
 void sig_init_child(void)

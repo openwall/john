@@ -84,15 +84,15 @@ Server Challenge: 112233445566778
 
 RainbowCrack look-up of password's first 7 characters (upper-cased) using first
 third (8 bytes) of LMv1 response:
-% rcrack halflmchall/*.rt -f 5237496CFCBD3C0C
+$ rcrack halflmchall/*.rt -f 5237496CFCBD3C0C
 Result: CRICKET
 
 First netntlm.pl Pass (Crack Remaining Characters):
-% netntlm.pl --file capture.lc --seed CRICKET
+$ netntlm.pl --file capture.lc --seed CRICKET
 Result: CRICKET88!
 
 Second netntlm.pl Pass (Determine Case Sensitive Password)[a]:
-% netntlm.pl --file capture.lc
+$ netntlm.pl --file capture.lc
 Result: Cricket88!
 
 [a] Note that the case-sensitive password will be shown about a third through
@@ -112,7 +112,7 @@ Example NTLMv1 Challenge/Response (.lc Format):
 user::WORKGROUP:A37C5C9316D9175589FDC21F260993DAF3644F1AAE2A3DFE:A37C5C9316D9175589FDC21F260993DAF3644F1AAE2A3DFE:1122334455667788
 
 John Usage:
-% john -format:netntlm capture.lc
+$ john --format=netntlm capture.lc
 
 The LMv2 and NTLMv2 challenge/response protocols both employ unique client
 challenges. This additional data effectively defeats the ability to precompute
@@ -130,13 +130,13 @@ Example LMv2 Challenge/Response (.lc Format):
 user::WORKGROUP:1122334455667788:6FAF764ECFDF1D1D9E7BA7B517190F3B:E15C1A679C7609CE
 
 John Usage:
-% john -format:netlmv2 capture.lc
+$ john --format=netlmv2 capture.lc
 
 Example NTLMv2 Challenge/Response (.lc Format):
 user::ATS-W759420A:1122334455667788:02E12C3C2B2F5799D2C1A7661AE80491:0101000000000000B0736308F1C9CA01DABA9E3A11AFD91F0000000002001000310030002E0030002E0032002E0032000000000000000000
 
 John Usage:
-% john -format:netntlmv2 capture.lc
+$ john --format=netntlmv2 capture.lc
 
 
 [1] http://davenport.sourceforge.net/ntlm.html
