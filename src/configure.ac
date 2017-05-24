@@ -465,7 +465,7 @@ else
          JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])
 	   fi]
       [AC_CHECK_HEADER([openssl/opensslv.h],
-	   [AC_CHECK_LIB([ssl],[SSL_library_init],
+	   [AC_CHECK_LIB([ssl],[SSL_CTX_new],
 	    [AC_CHECK_LIB([crypto],[MD5_Update],
 	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
 	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
