@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------
 # "THE BEER-WARE LICENSE" (Revision 42):
-# <eddy (dot) maaalou (at) gmail (dot) com> wrote this file.  As long as you 
-# retain this notice you can do whatever you want with this stuff. If we meet 
-# some day, and you think this stuff is worth it, you can buy me a beer in 
+# <jean-christophe.delaunay (at) synacktiv.com> wrote this file.  As long as you
+# retain this notice you can do whatever you want with this stuff. If we meet
+# some day, and you think this stuff is worth it, you can buy me a beer in
 # return.   Fist0urs
 # ----------------------------------------------------------------------------
 
@@ -92,7 +92,7 @@ class EncryptedData(Sequence):
 class EncryptionKey(Sequence):
     componentType = NamedTypes(
         NamedType('keytype', _c(0, Integer())),
-        NamedType('keyvalue', _c(1, OctetString())))    
+        NamedType('keyvalue', _c(1, OctetString())))
 
 class CheckSum(Sequence):
     componentType = NamedTypes(
@@ -429,6 +429,7 @@ def recv_rep(sock):
 def _decrypt_rep(data, key, spec, enc_spec, msg_type):
     rep = decode(data, asn1Spec=spec)[0]
     rep_enc = str(rep['enc-part']['cipher'])
+    #print rep_enc
     rep_enc = decrypt(key[0], key[1], msg_type, rep_enc)
 
     # MAGIC
@@ -441,6 +442,15 @@ def _decrypt_rep(data, key, spec, enc_spec, msg_type):
 
 def decrypt_tgs_rep(data, key):
     return _decrypt_rep(data, key, TgsRep(), EncTGSRepPart(), 9) # assume subkey
+
+def _extract_data(data, spec):
+    rep = decode(data, asn1Spec=spec)[0]
+
+    return rep
+
+#used in implicit authentication
+def extract_tgs_data(data):
+    return _extract_data(data, Ticket())
 
 def decrypt_as_rep(data, key):
     return _decrypt_rep(data, key, AsRep(), EncASRepPart(), 8)

@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------
 # "THE BEER-WARE LICENSE" (Revision 42):
-# <eddy (dot) maaalou (at) gmail (dot) com> wrote this file.  As long as you 
+# <jean-christophe.delaunay (at) synacktiv.com> wrote this file.  As long as you 
 # retain this notice you can do whatever you want with this stuff. If we meet 
 # some day, and you think this stuff is worth it, you can buy me a beer in 
 # return.   Fist0urs
