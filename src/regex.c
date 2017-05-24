@@ -289,7 +289,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	while (c_iterator_next(iter)) {
 		c_simplestring_clear(buffer);
 		c_iterator_value(iter, buffer);
-		word = c_simplestring_to_utf8_string(buffer);
+		word = c_simplestring_to_string(buffer);
     /**
       * rexgen already creates the correct encoding
       */
@@ -354,7 +354,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 	while (c_iterator_next(iter)) {
 		c_simplestring_clear(buffer);
 		c_iterator_value(iter, buffer);
-		word = c_simplestring_to_utf8_string(buffer);
+		word = c_simplestring_to_string(buffer);
 		if (options.mask) {
 			if (do_mask_crack(word))
 				break;
