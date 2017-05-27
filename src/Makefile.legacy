@@ -99,7 +99,7 @@ OPT_INLINE = -Os -funroll-loops -finline-functions
 
 # Works with Solaris make, and GNU make
 PLUGFORMATS_SRCS: sh =echo *_plug.c
-PLUGFORMATS_SRCS += $(wildcard *_plug.c)
+PLUGFORMATS_SRCS += $(sort $(wildcard *_plug.c))
 PLUGFORMATS_OBJS = $(PLUGFORMATS_SRCS:.c=.o)
 
 JOHN_OBJS = \
