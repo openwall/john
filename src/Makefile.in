@@ -33,6 +33,7 @@ SED = @SED@
 NULL = /dev/null
 SORT = @SORT@
 STRIP = @STRIP@
+CPPCHECK=cppcheck
 
 SHELL = /bin/sh
 VPATH = @srcdir@
@@ -918,6 +919,13 @@ distclean: clean
 strip: default
 	@echo Stripping executables.
 	$(STRIP) $(PROJ)
+
+### cppcheck static coverage analysis
+#
+.PHONY: cppcheck
+
+cppcheck:
+	$(CPPCHECK) --enable=all --force -q .
 
 install: strip shell-completion
 #ifneq ($(prefix), ../run)
