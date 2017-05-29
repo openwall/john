@@ -600,10 +600,27 @@ int crk_reload_pot(void)
 	if (!(pot_file = fopen(path_expand(options.activepot), "rb")))
 		pexit("fopen: %s", path_expand(options.activepot));
 
-	if (crk_pot_pos && (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1)) {
-		perror("fseek");
-		rewind(pot_file);
-		crk_pot_pos = 0;
+	if (crk_pot_pos) {
+		if (jtr_fseek64(pot_file, 0, SEEK_END) == -1)
+			pexit("fseek to end of pot file");
+		if (crk_pot_pos == jtr_ftell64(pot_file))
+			return 0;
+		if (crk_pot_pos > jtr_ftell64(pot_file)) {
+			if (john_main_process) {
+				fprintf(stderr,
+				        "Note: pot file shrunk. Recovering.\n");
+			}
+			log_event("Note: pot file shrunk. Recovering.");
+			rewind(pot_file);
+			crk_pot_pos = 0;
+		}
+		if (jtr_fseek64(pot_file, crk_pot_pos, SEEK_SET) == -1) {
+			perror("fseek to sync pos. of pot file");
+			log_event("fseek to sync pos. of pot file: %s",
+			          strerror(errno));
+			crk_pot_pos = 0;
+			return 0;
+		}
 	}
 
 	ldr_in_pot = 1; /* Mutes some warnings from valid() et al */
