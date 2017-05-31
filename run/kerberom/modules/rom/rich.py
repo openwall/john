@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------
 # "THE BEER-WARE LICENSE" (Revision 42):
-# <jean-christophe.delaunay (at) synacktiv.com> wrote this file.  As long as you 
-# retain this notice you can do whatever you want with this stuff. If we meet 
-# some day, and you think this stuff is worth it, you can buy me a beer in 
+# <jean-christophe.delaunay (at) synacktiv.com> wrote this file.  As long as you
+# retain this notice you can do whatever you want with this stuff. If we meet
+# some day, and you think this stuff is worth it, you can buy me a beer in
 # return.   Fist0urs
 # ----------------------------------------------------------------------------
 
@@ -350,7 +350,6 @@ def LDAPsearch(hLDAPConnection, pMyDN, pMyFilter, pMyAttributes):
                 if iValue == 0:
                     print "Bad value list"
                 else:
-                    
                     pAttribute = cast(pAttribute, PCHAR)
                     ppValue = cast(ppValue, POINTER(PCHAR))
 
@@ -365,7 +364,7 @@ def LDAPsearch(hLDAPConnection, pMyDN, pMyFilter, pMyAttributes):
         KerberomResult.append(entry)
         if pBer != 0:
             ber_free(pBer, 0)
-    
+
     ldap_unbind(hLDAPConnection)
     ldap_msgfree(pSearchResult)
 
@@ -452,7 +451,7 @@ def Get_TGS(hLsaConnection, dwKerberosAuthenticationPackageId, SPNentry):
             pKerbRetrieveTicketResponse = cast(pKerbRetrieveTicketResponse, PKERB_RETRIEVE_TKT_RESPONSE)
             pEncodedTicket = pKerbRetrieveTicketResponse.contents.Ticket.EncodedTicket
             dwEncodedTicketSize = pKerbRetrieveTicketResponse.contents.Ticket.EncodedTicketSize
-    
+
             Ticket = ""
             for i in range(dwEncodedTicketSize):
                 Ticket += hex(pEncodedTicket[i]).replace("0x",'').zfill(2)
