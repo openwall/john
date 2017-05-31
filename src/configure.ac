@@ -234,6 +234,8 @@ else
 fi
    # gcc bug workaround, see issue 632
    JTR_FLAG_CHECK([--param allow-store-data-races=0], 1)
+   # Silly warnings for perfectly fine code
+   JTR_FLAG_CHECK([-Wno-implicit-fallthrough], 1)
    # Silly OSX warnings
    JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
    # clang warnings
