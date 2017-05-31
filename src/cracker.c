@@ -603,8 +603,11 @@ int crk_reload_pot(void)
 	if (crk_pot_pos) {
 		if (jtr_fseek64(pot_file, 0, SEEK_END) == -1)
 			pexit("fseek to end of pot file");
-		if (crk_pot_pos == jtr_ftell64(pot_file))
+		if (crk_pot_pos == jtr_ftell64(pot_file)) {
+			if (fclose(pot_file))
+				pexit("fclose");
 			return 0;
+		}
 		if (crk_pot_pos > jtr_ftell64(pot_file)) {
 			if (john_main_process) {
 				fprintf(stderr,
@@ -619,6 +622,8 @@ int crk_reload_pot(void)
 			log_event("fseek to sync pos. of pot file: %s",
 			          strerror(errno));
 			crk_pot_pos = 0;
+			if (fclose(pot_file))
+				pexit("fclose");
 			return 0;
 		}
 	}
