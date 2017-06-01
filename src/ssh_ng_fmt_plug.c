@@ -252,7 +252,7 @@ static void generate_key_bytes(int nbytes, unsigned char *password, unsigned cha
 }
 #endif
 
-static inline void generate16key_bytes(unsigned char *password,
+inline static void generate16key_bytes(unsigned char *password,
                                        unsigned char *key)
 {
 	MD5_CTX ctx;
@@ -267,7 +267,7 @@ static inline void generate16key_bytes(unsigned char *password,
 	MD5_Final(key, &ctx);
 }
 
-static inline void generate24key_bytes(unsigned char *password,
+inline static void generate24key_bytes(unsigned char *password,
                                        unsigned char *key)
 {
 	unsigned char digest[16];
@@ -295,7 +295,7 @@ static inline void generate24key_bytes(unsigned char *password,
 	memcpy(&key[16], digest, 8);
 }
 
-static inline int check_padding_only(unsigned char *out, int length)
+inline static int check_padding_only(unsigned char *out, int length)
 {
 	int pad;
 	int i;
@@ -314,7 +314,7 @@ static inline int check_padding_only(unsigned char *out, int length)
 	return 0; // valid padding!
 }
 
-static inline int check_padding_and_structure_EC(unsigned char *out, int length, int strict_mode)
+inline static int check_padding_and_structure_EC(unsigned char *out, int length, int strict_mode)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -367,7 +367,7 @@ bad:
 	return -1;
 }
 
-static inline int check_padding_and_structure(unsigned char *out, int length, int strict_mode, int blocksize)
+inline static int check_padding_and_structure(unsigned char *out, int length, int strict_mode, int blocksize)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;

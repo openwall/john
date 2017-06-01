@@ -330,7 +330,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 
-static inline int get_hash(int index)
+inline static int get_hash(int index)
 {
 	int out;
 	struct task_result *result = task_result_by_index(task_list, index);

@@ -44,7 +44,7 @@
 	#define ROTATE_LEFT64(x, n) (x) = (((x)<<(n))|((unsigned long long)(x)>>(64-(n))))
 #if defined(__GNUC__) && defined(CPU_IA32) && !defined(__i386__)
 	/* for intel x86 CPU */
-	static inline uint32_t __attribute__((const)) john_bswap_32(uint32_t val) {
+	inline static uint32_t __attribute__((const)) john_bswap_32(uint32_t val) {
 		register uint32_t res;
 		__asm("bswap\t%0" : "=r" (res) : "0" (val));
 		return res;
@@ -52,7 +52,7 @@
 #else
 	/* Note, the name bswap_32 clashed with a less efficient bswap_32 in gcc 3.4. */
 	/* Thus, we now call it john_bswap_32 to take 'ownership' */
-	static inline uint32_t john_bswap_32(uint32_t x)
+	inline static uint32_t john_bswap_32(uint32_t x)
 	{
 		/* Since this is an inline function, we do not have to worry about */
 		/* multiple reference of x.  Even though we are called from a macro */
@@ -61,7 +61,7 @@
 		return ((x & 0x00FF00FF) << 8) | ((x >> 8) & 0x00FF00FF);
 	}
 #endif
-	static inline uint64_t john_bswap_64(uint64_t x)
+	inline static uint64_t john_bswap_64(uint64_t x)
 	{
 #if ARCH_BITS == 32
 		union {

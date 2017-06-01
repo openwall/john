@@ -264,7 +264,7 @@ static void set_salt(void *salt)
 }
 
 #ifndef SIMD_COEF_32
-static inline int strnfcpy_count(char *dst, char *src, int size)
+inline static int strnfcpy_count(char *dst, char *src, int size)
 {
 	char *dptr = dst, *sptr = src;
 	int count = size;

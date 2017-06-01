@@ -140,7 +140,7 @@ static void done(void)
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
-static int inline valid_common(char *ciphertext, struct fmt_main *self, int b64len, char *sig, int siglen)
+static inline int valid_common(char *ciphertext, struct fmt_main *self, int b64len, char *sig, int siglen)
 {
 	char *p = ciphertext;
 	int len;

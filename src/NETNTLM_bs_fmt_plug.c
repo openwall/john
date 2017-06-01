@@ -264,7 +264,7 @@ static void *get_binary(char *ciphertext)
 	return ptr;
 }
 
-static inline void setup_des_key(unsigned char key_56[], int index)
+inline static void setup_des_key(unsigned char key_56[], int index)
 {
 	char key[8];
 

@@ -15,12 +15,12 @@
  * Functions to access mask data.
  */
 
-static inline int mask_is_inactive()
+inline static int mask_is_inactive()
 {
 	return mask_int_cand.num_int_cand == 1;
 }
 
-static inline unsigned int mask_num_cand()
+inline static unsigned int mask_num_cand()
 {
 	return mask_int_cand.num_int_cand;
 }

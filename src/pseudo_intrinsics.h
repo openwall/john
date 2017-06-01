@@ -84,7 +84,7 @@ typedef union {
 #define vunpacklo_epi64(x, y)   vset_epi64(vgetq_lane_u64(((y).v64, 0), vgetq_lane_u64((x).v64, 0))
 #define vxor(x, y)              (vtype)veorq_u32((x).v32, (y).v32)
 
-static inline int vanyeq_epi32(vtype x, vtype y)
+inline static int vanyeq_epi32(vtype x, vtype y)
 {
 	vtype z = (vtype)vceqq_u32(x.v32, y.v32);
 	return vgetq_lane_u32(z.v32, 0) || vgetq_lane_u32(z.v32, 1) ||
@@ -270,14 +270,14 @@ typedef __m512i vtype;
 #if __MIC__
 #define _mm512_set1_epi8(x) _mm512_set1_epi32(x | x<<8 | x<<16 | x<<24)
 
-static inline __m512i _mm512_loadu_si512(void const *addr)
+inline static __m512i _mm512_loadu_si512(void const *addr)
 {
 	__m512i indices = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
 	return is_aligned(addr, 64) ? _mm512_load_si512(addr) :
 	                              _mm512_i64gather_epi64(indices, addr, 8);
 }
 
-static inline void _mm512_storeu_si512(void *addr, vtype d)
+inline static void _mm512_storeu_si512(void *addr, vtype d)
 {
 	__m512i indices = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
 

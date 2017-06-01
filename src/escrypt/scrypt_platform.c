@@ -62,7 +62,7 @@ alloc_region(escrypt_region_t * region, size_t size)
 	return aligned;
 }
 
-static inline void
+inline static void
 init_region(escrypt_region_t * region)
 {
 	region->base = region->aligned = NULL;

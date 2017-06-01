@@ -178,7 +178,7 @@ static unsigned char *hex2data(const char *string, size_t * data_len)
  *	built-in MD5 functions depending on whether HAVE_LIBSSL is defined.
  *	This is faster that calling OpenSSL "HMAC" directly.
  */
-static inline unsigned char *hmac_md5(unsigned char *text,
+inline static unsigned char *hmac_md5(unsigned char *text,
     size_t text_len, unsigned char *key, size_t key_len, unsigned char *md)
 {
 	static unsigned char m[16];
@@ -260,7 +260,7 @@ static inline unsigned char *hmac_md5(unsigned char *text,
  *	built-in SHA1 functions depending on whether HAVE_LIBSSL is defined.
  *	This is faster that calling OpenSSL "HMAC" directly.
  */
-static inline unsigned char *hmac_sha1(const unsigned char *text,
+inline static unsigned char *hmac_sha1(const unsigned char *text,
     size_t text_len, const unsigned char *key, size_t key_len,
     unsigned char *md)
 {
@@ -496,7 +496,7 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
  *	b) Calculate HASH_R using SKEYID and the other PSK parameters.
  *
  */
-static inline void compute_hash(const psk_entry * psk_params,
+inline static void compute_hash(const psk_entry * psk_params,
     char *password, unsigned char *hash_r)
 {
 	size_t password_len = strlen(password);

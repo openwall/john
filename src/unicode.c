@@ -373,7 +373,7 @@ int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
 #endif
 }
 
-static inline int cp_to_utf16(UTF16 *dst, unsigned int maxdstlen,
+inline static int cp_to_utf16(UTF16 *dst, unsigned int maxdstlen,
                               const UTF8 *src, unsigned int srclen)
 {
 	int i, trunclen = (int)srclen;
@@ -654,7 +654,7 @@ char *cp_to_utf8_r(char *src, char *dst, int dstlen)
 	return (char*)utf16_to_utf8_r((UTF8*)dst, dstlen, tmp16);
 }
 
-static inline UTF8 *utf16_to_cp_r(UTF8 *dst, int dst_len, const UTF16 *source)
+inline static UTF8 *utf16_to_cp_r(UTF8 *dst, int dst_len, const UTF16 *source)
 {
 	UTF8 *tgt = dst;
 	UTF8 *targetEnd = tgt + dst_len;
@@ -725,7 +725,7 @@ UTF8 *utf16_to_enc_r(UTF8 *dst, int dst_len, const UTF16 *source)
 }
 
 /* UTF-32 functions */
-static inline UTF8 *utf32_to_utf8(UTF8 *dst, int dst_len, const UTF32 *source)
+inline static UTF8 *utf32_to_utf8(UTF8 *dst, int dst_len, const UTF32 *source)
 {
 	UTF8 *tpt = dst;
 	UTF8 *targetEnd = tpt + dst_len;
@@ -763,7 +763,7 @@ static inline UTF8 *utf32_to_utf8(UTF8 *dst, int dst_len, const UTF32 *source)
 	return dst;
 }
 
-static inline int utf8_to_utf32(UTF32 *target, unsigned int len,
+inline static int utf8_to_utf32(UTF32 *target, unsigned int len,
                                 const UTF8 *source, unsigned int sourceLen)
 {
 	const UTF32 *targetStart = target;
@@ -826,7 +826,7 @@ static inline int utf8_to_utf32(UTF32 *target, unsigned int len,
 	return (target - targetStart);
 }
 
-static inline UTF8 *utf32_to_cp(UTF8 *dst, int dst_len, const UTF32 *source)
+inline static UTF8 *utf32_to_cp(UTF8 *dst, int dst_len, const UTF32 *source)
 {
 	UTF8 *tgt = dst;
 	UTF8 *targetEnd = tgt + dst_len;
@@ -840,7 +840,7 @@ static inline UTF8 *utf32_to_cp(UTF8 *dst, int dst_len, const UTF32 *source)
 	return dst;
 }
 
-static inline int cp_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
+inline static int cp_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
                               unsigned int srclen)
 {
 	int i, trunclen = (int)srclen;

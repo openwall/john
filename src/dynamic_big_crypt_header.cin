@@ -169,22 +169,22 @@ extern private_subformat_data curdat;
 #endif
 extern unsigned short itoa16_w2_u[256], *itoa16_w2;
 
-static inline void _eLargeOut_set(eLargeOut_t what, int tid)
+inline static void _eLargeOut_set(eLargeOut_t what, int tid)
 {
 	eLargeOut[tid] = what;
 }
 
-static inline int _eLargeOut_get(int tid)
+inline static int _eLargeOut_get(int tid)
 {
 	return eLargeOut[tid];
 }
 
-static inline void _nLargeOff_set(unsigned what, int tid)
+inline static void _nLargeOff_set(unsigned what, int tid)
 {
 	nLargeOff[tid] = what;
 }
 
-static inline int _nLargeOff_get(int tid)
+inline static int _nLargeOff_get(int tid)
 {
 	return nLargeOff[tid];
 }
@@ -317,7 +317,7 @@ void DynamicFunc__LargeHash_set_offset_saltlen(DYNA_OMP_PARAMS)
  *****  helpers.  Doing things like this will reduce the size of the large hash
  *****  primitive functions.
  ******************************************************************************/
-static inline unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	unsigned int j;
 	for (j = 0; j < in_byte_cnt; ++j) {
@@ -334,7 +334,7 @@ static inline unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo,
 }
 
 // NOTE, cpo must be at least in_byte_cnt*2 bytes of buffer
-static inline unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	unsigned int j;
 	for (j = 0; j < in_byte_cnt; ++j) {
@@ -351,7 +351,7 @@ static inline unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo
 }
 
 // NOTE, cpo must be at least in_byte_cnt bytes of buffer
-static inline unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	unsigned int j;
 #if ARCH_ALLOWS_UNALIGNED
@@ -370,7 +370,7 @@ static inline unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo,
 }
 
 // compatible 'standard' MIME base-64 encoding.
-static inline unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int add_eq)
+inline static unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int add_eq)
 {
 	static char *_itoa64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -400,7 +400,7 @@ static inline unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *c
 }
 
 // compatible 'crypt' charset base-64 encoding.
-static inline unsigned char *base64c_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *base64c_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	static char *_itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -427,7 +427,7 @@ static inline unsigned char *base64c_out_buf(unsigned char *cpi, unsigned char *
 	return cpo;
 }
 
-int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid)
+inline int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid)
 {
 	unsigned char *cpo2=cpo;
 	switch(eLargeOut_get(tid)) {
@@ -457,7 +457,7 @@ int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte
 }
 
 #if SIMD_COEF_32
-static inline uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len, int BE_HASH)
+inline static uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len, int BE_HASH)
 {
 	uint32_t *p;
 	unsigned char *cp;
@@ -494,7 +494,7 @@ static inline uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len
 	return ret;
 }
 
-static inline uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len, int BE_HASH)
+inline static uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len, int BE_HASH)
 {
 	uint64_t *p;
 	unsigned char *cp;
