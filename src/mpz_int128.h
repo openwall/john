@@ -56,7 +56,7 @@ typedef uint128_t               mpz_t;
 #define mpz_set_si mpz_set_ui
 
 #define mpz_cmp(op1, op2) ((op1 > op2) ? 1 : (op1 < op2) ? -1 : 0)
-#define mpz_cmp_ui(op1, op2) ((op1 > (op2)) ? 1 : (op1 < (op2)) ? -1 : 0)
+#define mpz_cmp_ui(op1, op2) (op1 - (op2))
 #define mpz_cmp_si(op1, op2) (op1 - (op2))
 
 #define mpz_add(rop, op1, op2) do { rop = op1 + op2; if (rop < op2) rop = UINT128_MAX; } while (0)

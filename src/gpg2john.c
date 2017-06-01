@@ -1545,9 +1545,7 @@ parse_packet(char *hash)
 			fprintf(stderr, "\n");
 		else if (len == EOF)
 			fprintf(stderr, "(until eof)\n");
-		else
-			// printf("(%d bytes)\n", len);
-			;
+		// else printf("(%d bytes)\n", len);
 
 		if (tag < TAG_NUM && tag_func[tag] != NULL) {
 			if (gpg_dbg)
@@ -1687,12 +1685,16 @@ signature_expiration_time(int len)
 public void
 exportable_certification(int len)
 {
-	// printf("\t\tExportable - ");
+#if DEBUG
+	printf("\t\tExportable - ");
 	if (Getc() == 0);
-		// printf("No");
-	else;
-		// printf("Yes");
-	// printf("\n");
+		printf("No");
+	else
+		printf("Yes");
+	printf("\n");
+#else
+	Getc();
+#endif
 }
 
 public void
@@ -1718,12 +1720,16 @@ regular_expression(int len)
 public void
 revocable(int len)
 {
-	// printf("\t\tRevocable - ");
+#if DEBUG
+	printf("\t\tRevocable - ");
 	if (Getc() == 0);
-		// printf("No");
-	else;
-		// printf("Yes");
-	// printf("\n");
+		printf("No");
+	else
+		printf("Yes");
+	printf("\n");
+#else
+	Getc();
+#endif
 }
 
 public void
@@ -1896,12 +1902,16 @@ preferred_key_server(int len)
 public void
 primary_user_id(int len)
 {
-	// printf("\t\tPrimary - ");
+#if DEBUG
+	printf("\t\tPrimary - ");
 	if (Getc() == 0);
-		// printf("No");
-	else;
-		// printf("Yes");
-	// printf("\n");
+		printf("No");
+	else
+		printf("Yes");
+	printf("\n");
+#else
+	Getc();
+#endif
 }
 
 public void
@@ -1976,13 +1986,15 @@ reason_for_revocation(int len)
 public void
 features(int len)
 {
+#if DEBUG
 	int c = Getc();
 	if (c & 0x01)
-		// printf("\t\tFlag - Modification detection (packets 18 and 19)\n");
-		;
+		printf("\t\tFlag - Modification detection (packets 18 and 19)\n");
 	if ((c & ~0xfe) == 0)
-		// printf("\t\tFlag - undefined\n");
-		;
+		printf("\t\tFlag - undefined\n");
+#else
+	Getc();
+#endif
 	skip(len - 1);
 }
 
@@ -2585,12 +2597,12 @@ encrypted_Secret_Key(int len, int sha1)
 			fprintf(stderr, "\tUnknown encrypted key(pub %d)\n", PUBLIC);
 			break;
 		}
+#if DEBUG
 		if (sha1 == YES)
-			// printf("\tEncrypted SHA1 hash\n");
-			;
+			printf("\tEncrypted SHA1 hash\n");
 		else
-			// printf("\tEncrypted checksum\n");
-			;
+			printf("\tEncrypted checksum\n");
+#endif
 		skip(len - used);
 		break;
 	default:

@@ -206,10 +206,11 @@ unsigned long asn1_bit_string_to_long(const uint8_t *buf, size_t len)
         val |= ((unsigned long) rotate_bits(*pos++)) << 16;
     if (len >= 5)
         val |= ((unsigned long) rotate_bits(*pos++)) << 24;
-    if (len >= 6)
+    if (len >= 6) {
         printf("X509: %s - some bits ignored "
                 "(BIT STRING length %lu)",
-                __func__, (unsigned long) len);
+                __FUNCTION__, (unsigned long) len);
+    }
 
     return val;
 }

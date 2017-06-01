@@ -85,7 +85,7 @@ void dyna_salt_created_fp(void *a, char *fname, int line);
 void dyna_salt_remove_fp(void *a, char *fname, int line);
 #define dyna_salt_remove(a) dyna_salt_remove_fp(a,__FILE__,__LINE__)
 #else
-#define dyna_salt_create(a)
+#define dyna_salt_create(a) do {} while (0)
 void dyna_salt_remove_fp(void *a);
 #define dyna_salt_remove(a) dyna_salt_remove_fp(a)
 #endif
