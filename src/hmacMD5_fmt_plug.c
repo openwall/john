@@ -184,6 +184,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		int len, len2;
 		char *d, *o = out;
 
+		memset(out, 0, sizeof(out));
 		p += 10;
 		memset(out, 0, sizeof(out));
 		if (!(d = strchr(p, '$')))
