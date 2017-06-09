@@ -219,7 +219,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		rec_init_hybrid(save_state_hybrid);
 		crk_set_hybrid_fix_state_func_ptr(rex_hybrid_fix_state);
 
-		regex_ptr = c_regex_cb(regex, callback);
+		regex_ptr = c_regex_cb_mb(regex, callback);
 		if (!regex_ptr) {
 			c_simplestring_delete(buffer);
 			fprintf(stderr,
@@ -302,8 +302,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 			}
 		} else
 		if (ext_filter((char *)word)) {
-      // FIXME: is this really necessary?
-			//word[max_len] = 0;
+      c_simplestring_truncate_bytes(buffer, max_len);
 			if (crk_process_key((char *)word)) {
 				retval = 1;
 				goto out;
@@ -321,7 +320,6 @@ out:
 void do_regex_crack(struct db_main *db, const char *regex)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
-	//char word[PLAINTEXT_BUFFER_SIZE];
   const char* word;
 	int max_len = db->format->params.plaintext_length;
 
@@ -336,7 +334,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 	crk_init(db, fix_state, NULL);
 	rec_init_hybrid(save_state_hybrid);
 
-	regex_ptr = c_regex_cb(regex, callback);
+	regex_ptr = c_regex_cb_mb(regex, callback);
 	if (!regex_ptr) {
 		fprintf(stderr,
 		        "Error, invalid regex expression.  John exiting now\n");
@@ -360,8 +358,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 				break;
 		} else
 		if (ext_filter((char *)word)) {
-			//FIXME: is this really necessary?
-      //word[max_len] = 0;
+      c_simplestring_truncate_bytes(buffer, max_len);
 			if (crk_process_key((char *)word))
 				break;
 		}
