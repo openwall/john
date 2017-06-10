@@ -1012,6 +1012,16 @@ static char *fmt_self_test_body(struct fmt_main *format,
 						format->params.label);
 					return s_size;
 				}
+			} else if (!strncasecmp(format->params.label, "sl3", 3)) {
+/*
+ * The SL3 format technically handles 8-bit but the "passwords" are all digits.
+ */
+				if (format->params.flags & FMT_8_BIT) {
+					snprintf(s_size, sizeof(s_size),
+						"%s should not set FMT_8_BIT",
+						format->params.label);
+					return s_size;
+				}
 			} else if (!is_ignore_8th_bit &&
 				   !(format->params.flags & FMT_8_BIT)) {
 				snprintf(s_size, sizeof(s_size),
