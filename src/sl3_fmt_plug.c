@@ -275,7 +275,6 @@ static char *get_key(int index) {
 	do {
 		*d++ = *s++ + '0';
 	} while (i--);
-	*d = 0;
 #endif
 
 	return out;
