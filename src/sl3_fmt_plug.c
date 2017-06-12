@@ -272,9 +272,10 @@ static char *get_key(int index) {
 	char *s = saved_key[index], *d = out;
 	int i = PLAINTEXT_LENGTH;
 
-	do {
+	while (i--) {
 		*d++ = *s++ + '0';
-	} while (i--);
+	};
+	*d = 0;
 #endif
 
 	return out;
