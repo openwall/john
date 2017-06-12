@@ -328,7 +328,7 @@ static int cmp_exact(char *source, int index)
 
 // This code should be rewritten in intrinsics, reading from
 // MMX or SSE2 output buffers and writing to MMX/SSE2 input buffers.
-static inline void sse_bin2ascii(unsigned char *conv, unsigned char *src)
+inline static void sse_bin2ascii(unsigned char *conv, unsigned char *src)
 {
 	unsigned int index;
 
@@ -355,7 +355,7 @@ static inline void sse_bin2ascii(unsigned char *conv, unsigned char *src)
 #endif /* SIMD_COEF_32 */
 
 #ifdef __MMX__
-static inline void bin2ascii(__m64 *conv, __m64 *src)
+inline static void bin2ascii(__m64 *conv, __m64 *src)
 {
 	unsigned int i = 0;
 
@@ -405,7 +405,7 @@ static inline void bin2ascii(__m64 *conv, __m64 *src)
 
 #else
 
-static inline void bin2ascii(uint32_t *conv, uint32_t *source)
+inline static void bin2ascii(uint32_t *conv, uint32_t *source)
 {
 	unsigned char *src = (unsigned char*)source;
 	unsigned int i;
@@ -439,7 +439,7 @@ static inline void bin2ascii(uint32_t *conv, uint32_t *source)
 #endif /* MMX */
 
 #if SIMD_COEF_32
-static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
+inline static void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
 	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32];

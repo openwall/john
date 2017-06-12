@@ -260,7 +260,7 @@ static void set_salt(void *salt) {
 }
 
 #ifdef SIMD_COEF_32
-static inline void set_onesalt(int index)
+inline static void set_onesalt(int index)
 {
 	unsigned int i, idx=index%NBKEYS;
 	unsigned char *sk = (unsigned char*)&saved_key[index/NBKEYS];

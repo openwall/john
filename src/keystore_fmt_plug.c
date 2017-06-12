@@ -122,7 +122,7 @@ static keystore_salt *keystore_cur_salt;
 
 /* To guard against tampering with the keystore, we append a keyed
  * hash with a bit of whitener. */
-static inline void getPreKeyedHash(int idx)
+inline static void getPreKeyedHash(int idx)
 {
 	int i, j;
         unsigned char passwdBytes[PLAINTEXT_LENGTH * 2];

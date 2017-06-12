@@ -186,7 +186,7 @@ static int cmp_exact (char *source, int index)
 /*Beginning of private functions*/
 /* Takes the plaintext password and generates the second row of our
  * working matrix for the final call to the mixing function*/
-static void MAYBE_INLINE
+MAYBE_INLINE static void
 #if LOTUS_N == 3
 lotus_transform_password (unsigned char *i0, unsigned char *o0,
     unsigned char *i1, unsigned char *o1,

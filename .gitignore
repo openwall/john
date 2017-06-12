@@ -61,6 +61,8 @@ src/.gdbinit
 src/Unicode
 src/aes/aes.a
 src/arch.h
+src/all_tests.in
+src/all_tests.lst
 src/autoconfig-stamp-h
 src/autoconfig-stamp-h-in
 src/autoconfig.h

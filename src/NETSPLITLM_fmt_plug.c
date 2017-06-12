@@ -192,7 +192,7 @@ static void *get_binary(char *ciphertext)
 	return binary.c;
 }
 
-static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
+inline static void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
 {
   DES_cblock key;
 

@@ -40,7 +40,7 @@
 #include "scrypt_platform.c"
 
 
-static inline void
+inline static void
 blkcpy_64(escrypt_block_t *dest, const escrypt_block_t *src)
 {
 	int i;
@@ -53,7 +53,7 @@ blkcpy_64(escrypt_block_t *dest, const escrypt_block_t *src)
 #endif
 }
 
-static inline void
+inline static void
 blkxor_64(escrypt_block_t *dest, const escrypt_block_t *src)
 {
 	int i;
@@ -66,7 +66,7 @@ blkxor_64(escrypt_block_t *dest, const escrypt_block_t *src)
 #endif
 }
 
-static inline void
+inline static void
 blkcpy(escrypt_block_t *dest, const escrypt_block_t *src, int len)
 {
 	int i, L;
@@ -81,7 +81,7 @@ blkcpy(escrypt_block_t *dest, const escrypt_block_t *src, int len)
 #endif
 }
 
-static inline void
+inline static void
 blkxor(escrypt_block_t *dest, const escrypt_block_t *src, int len)
 {
 	int i, L;
@@ -179,7 +179,7 @@ blockmix_salsa8(const uint32_t * Bin, uint32_t * Bout, uint32_t * X, size_t r)
  * integerify(B, r):
  * Return the result of parsing B_{2r-1} as a little-endian integer.
  */
-static inline uint64_t
+inline static uint64_t
 integerify(const void * B, size_t r)
 {
 	const uint32_t * X = (const void *)((uintptr_t)(B) + (2 * r - 1) * 64);

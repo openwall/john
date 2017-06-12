@@ -43,14 +43,14 @@ void dump_stuff_msg(const void *msg, void *x, unsigned int size)
 }
 
 /* There should be legislation against adding a BOM to UTF-8 */
-static inline char *skip_bom(char *string)
+inline static char *skip_bom(char *string)
 {
 	if (!memcmp(string, "\xEF\xBB\xBF", 3))
 		string += 3;
 	return string;
 }
 
-static inline int valid_ansi(const UTF16 *source)
+inline static int valid_ansi(const UTF16 *source)
 {
 	while (*source)
 		if (*source++ & 0xff00)
@@ -58,7 +58,7 @@ static inline int valid_ansi(const UTF16 *source)
 	return 1;
 }
 
-static inline int contains_ascii_letters(const char *s)
+inline static int contains_ascii_letters(const char *s)
 {
 	const UTF8 *source = (UTF8*)s;
 

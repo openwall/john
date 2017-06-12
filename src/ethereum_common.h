@@ -18,6 +18,11 @@ typedef struct {
 	int saltlen;
 	uint8_t ct[256];
 	int ctlen;
+	// following fields are only required for handling presale wallets
+	uint8_t encseed[2048];
+	int eslen;
+	uint8_t ethadd[128];
+	int ealen;
 } custom_salt;
 
 extern struct fmt_tests ethereum_tests[];

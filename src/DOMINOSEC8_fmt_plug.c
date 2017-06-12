@@ -548,7 +548,7 @@ static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 								if (ch == '/')
 									out += '?';
 								else
-									; /* shit happens */
+								{ ; } /* shit happens */
 							else
 								out += '>';
 						else

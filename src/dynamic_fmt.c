@@ -569,7 +569,7 @@ const unsigned int OMP_SHA1_INC = (SIMD_PARA_SHA1*SIMD_COEF_32);
 #endif // SIMD_COEF_32
 #endif // _OPENMP
 
-static inline void __nonMP_DynamicFunc__SSEtoX86_switch_output2()
+inline static void __nonMP_DynamicFunc__SSEtoX86_switch_output2()
 {
 #ifdef _OPENMP
 	DynamicFunc__SSEtoX86_switch_output2(0,m_count,0);
@@ -578,7 +578,7 @@ static inline void __nonMP_DynamicFunc__SSEtoX86_switch_output2()
 #endif
 }
 
-static inline void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16()
+inline static void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16()
 {
 #ifdef _OPENMP
 	DynamicFunc__append_from_last_output2_to_input1_as_base16(0,m_count,0);
@@ -606,12 +606,12 @@ void __nonMP_nLargeOff(unsigned val)
 	nLargeOff[0] = val;
 }
 
-static inline void md5_unicode_convert_set(int what, int tid)
+inline static void md5_unicode_convert_set(int what, int tid)
 {
 	md5_unicode_convert[tid] = what;
 }
 
-static inline int md5_unicode_convert_get(int tid)
+inline static int md5_unicode_convert_get(int tid)
 {
 	return md5_unicode_convert[tid];
 }
@@ -635,7 +635,7 @@ void __nonMP_md5_unicode_convert(int what)
 #define nLargeOff_get(tid)        nLargeOff_get(0)
 #endif
 
-static inline void __nonMP_DynamicFunc__append_keys2()
+inline static void __nonMP_DynamicFunc__append_keys2()
 {
 #ifdef _OPENMP
 	DynamicFunc__append_keys2(0,m_count,0);
@@ -3231,7 +3231,7 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned int idx_mo
 #endif  // #ifdef SIMD_COEF_32 from way above.
 
 
-static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
+inline static void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
 {
 	unsigned int j;
 	unsigned int til;
@@ -3347,7 +3347,7 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 	}
 }
 
-static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
+inline static void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
 {
 	unsigned int j;
 	unsigned int til;

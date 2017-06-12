@@ -298,10 +298,11 @@ int argon2_validate_inputs(const argon2_context *context) {
             return ARGON2_PWD_PTR_MISMATCH;
         }
     } else {
+#if 0 // -Wtype-limits
         if (ARGON2_MIN_PWD_LENGTH > context->pwdlen) {
             return ARGON2_PWD_TOO_SHORT;
         }
-
+#endif
         if (ARGON2_MAX_PWD_LENGTH < context->pwdlen) {
             return ARGON2_PWD_TOO_LONG;
         }
@@ -326,11 +327,11 @@ int argon2_validate_inputs(const argon2_context *context) {
     if (ARGON2_MIN_MEMORY > context->m_cost) {
         return ARGON2_MEMORY_TOO_LITTLE;
     }
-
+#if 0 // -Wtype-limits
     if (ARGON2_MAX_MEMORY < context->m_cost) {
         return ARGON2_MEMORY_TOO_MUCH;
     }
-
+#endif
     if (context->m_cost < 8 * context->lanes) {
         return ARGON2_MEMORY_TOO_LITTLE;
     }

@@ -66,7 +66,6 @@ john_register_one(&fmt_ocl_rar);
 
 #include "arch.h"
 #include "sha.h"
-#include "aes.h"
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
@@ -367,7 +366,7 @@ struct fmt_main fmt_ocl_rar = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP | FMT_DYNA_SALT,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		cpu_tests // Changed in init if GPU

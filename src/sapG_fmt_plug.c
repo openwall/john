@@ -345,9 +345,9 @@ static int cmp_one(void *binary, int index)
  * The return value will always be between 32 and 82, inclusive
  */
 #if SIMD_COEF_32
-static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray, unsigned int index)
+inline static unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray, unsigned int index)
 #else
-static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray)
+inline static unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray)
 #endif
 {
 	unsigned int modSum = 0;
@@ -381,9 +381,9 @@ static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHash
  * The return value will always be between 0 and 70, inclusive
  */
 #if SIMD_COEF_32
-static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray, unsigned int index)
+inline static unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray, unsigned int index)
 #else
-static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray)
+inline static unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray)
 #endif
 {
 	unsigned int modSum = 0;
@@ -412,7 +412,7 @@ static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHash
 }
 
 #if SIMD_COEF_32
-static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
+inline static void crypt_done(unsigned const int *source, unsigned int *dest, int index)
 {
 	unsigned int i;
 	unsigned const int *s = &source[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32];

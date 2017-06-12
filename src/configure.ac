@@ -234,6 +234,8 @@ else
 fi
    # gcc bug workaround, see issue 632
    JTR_FLAG_CHECK([--param allow-store-data-races=0], 1)
+   # Silly warnings for perfectly fine code
+   JTR_FLAG_CHECK([-Wno-implicit-fallthrough], 1)
    # Silly OSX warnings
    JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
    # clang warnings
@@ -465,7 +467,7 @@ else
          JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])
 	   fi]
       [AC_CHECK_HEADER([openssl/opensslv.h],
-	   [AC_CHECK_LIB([ssl],[SSL_library_init],
+	   [AC_CHECK_LIB([ssl],[SSL_CTX_new],
 	    [AC_CHECK_LIB([crypto],[MD5_Update],
 	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
 	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]

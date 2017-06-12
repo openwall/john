@@ -195,22 +195,22 @@ extern private_subformat_data curdat;
 #endif
 extern unsigned short itoa16_w2_u[256], *itoa16_w2;
 
-static inline void _eLargeOut_set(eLargeOut_t what, int tid)
+inline static void _eLargeOut_set(eLargeOut_t what, int tid)
 {
 	eLargeOut[tid] = what;
 }
 
-static inline int _eLargeOut_get(int tid)
+inline static int _eLargeOut_get(int tid)
 {
 	return eLargeOut[tid];
 }
 
-static inline void _nLargeOff_set(unsigned what, int tid)
+inline static void _nLargeOff_set(unsigned what, int tid)
 {
 	nLargeOff[tid] = what;
 }
 
-static inline int _nLargeOff_get(int tid)
+inline static int _nLargeOff_get(int tid)
 {
 	return nLargeOff[tid];
 }
@@ -343,7 +343,7 @@ void DynamicFunc__LargeHash_set_offset_saltlen(DYNA_OMP_PARAMS)
  *****  helpers.  Doing things like this will reduce the size of the large hash
  *****  primitive functions.
  ******************************************************************************/
-static inline unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	unsigned int j;
 	for (j = 0; j < in_byte_cnt; ++j) {
@@ -360,7 +360,7 @@ static inline unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo,
 }
 
 // NOTE, cpo must be at least in_byte_cnt*2 bytes of buffer
-static inline unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	unsigned int j;
 	for (j = 0; j < in_byte_cnt; ++j) {
@@ -377,7 +377,7 @@ static inline unsigned char *hexu_out_buf(unsigned char *cpi, unsigned char *cpo
 }
 
 // NOTE, cpo must be at least in_byte_cnt bytes of buffer
-static inline unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	unsigned int j;
 #if ARCH_ALLOWS_UNALIGNED
@@ -396,7 +396,7 @@ static inline unsigned char *raw_out_buf(unsigned char *cpi, unsigned char *cpo,
 }
 
 // compatible 'standard' MIME base-64 encoding.
-static inline unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int add_eq)
+inline static unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int add_eq)
 {
 	static char *_itoa64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -426,7 +426,7 @@ static inline unsigned char *base64_out_buf(unsigned char *cpi, unsigned char *c
 }
 
 // compatible 'crypt' charset base-64 encoding.
-static inline unsigned char *base64c_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
+inline static unsigned char *base64c_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt)
 {
 	static char *_itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -453,7 +453,7 @@ static inline unsigned char *base64c_out_buf(unsigned char *cpi, unsigned char *
 	return cpo;
 }
 
-int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid)
+inline int large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt, int tid)
 {
 	unsigned char *cpo2=cpo;
 	switch(eLargeOut_get(tid)) {
@@ -483,7 +483,7 @@ int inline large_hash_output(unsigned char *cpi, unsigned char *cpo, int in_byte
 }
 
 #if SIMD_COEF_32
-static inline uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len, int BE_HASH)
+inline static uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len, int BE_HASH)
 {
 	uint32_t *p;
 	unsigned char *cp;
@@ -520,7 +520,7 @@ static inline uint32_t Do_FixBufferLen32(unsigned char *input_buf, int total_len
 	return ret;
 }
 
-static inline uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len, int BE_HASH)
+inline static uint32_t Do_FixBufferLen64(unsigned char *input_buf, int total_len, int BE_HASH)
 {
 	uint64_t *p;
 	unsigned char *cp;
@@ -668,7 +668,7 @@ static void DoMD5_crypt_sse(void *in, uint32_t ilen[MD5_LOOPS], void *out[MD5_LO
 	}
 }
 
-static void inline DoMD5_sse_crypt_only(void *in, uint32_t len[MD5_LOOPS], void *out) {
+inline static void DoMD5_sse_crypt_only(void *in, uint32_t len[MD5_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t a[(16*MD5_LOOPS)/sizeof(uint32_t)];
 	uint32_t i, j, loops[MD5_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -698,7 +698,7 @@ static void inline DoMD5_sse_crypt_only(void *in, uint32_t len[MD5_LOOPS], void 
 #define MD5_LOOPS 1
 static const uint32_t MD5_inc = 1;
 
-static void inline DoMD5_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoMD5_crypt_f(void *in, uint32_t len, void *out) {
 	unsigned char *crypt_out=(unsigned char*)out;
 	MD5_CTX ctx;
 	MD5_Init(&ctx);
@@ -706,7 +706,7 @@ static void inline DoMD5_crypt_f(void *in, uint32_t len, void *out) {
 	MD5_Final(crypt_out, &ctx);
 }
 
-static void inline DoMD5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoMD5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[16];
 	MD5_CTX ctx;
 	MD5_Init(&ctx);
@@ -719,7 +719,7 @@ static void inline DoMD5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
-static void inline DoMD5_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoMD5_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	MD5_CTX ctx;
 	MD5_Init(&ctx);
@@ -1026,7 +1026,7 @@ void DynamicFunc__MD5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__MD5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__MD5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 16; // Y was 1 based for ease of reading.
 	for (; i < til; i += MD5_inc) {
 #ifdef SIMD_PARA_MD5
@@ -1180,7 +1180,7 @@ static void DoMD4_crypt_sse(void *in, uint32_t ilen[MD4_LOOPS], void *out[MD4_LO
 	}
 }
 
-static void inline DoMD4_sse_crypt_only(void *in, uint32_t len[MD4_LOOPS], void *out) {
+inline static void DoMD4_sse_crypt_only(void *in, uint32_t len[MD4_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t a[(16*MD4_LOOPS)/sizeof(uint32_t)];
 	uint32_t i, j, loops[MD4_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1210,7 +1210,7 @@ static void inline DoMD4_sse_crypt_only(void *in, uint32_t len[MD4_LOOPS], void 
 #define MD4_LOOPS 1
 static const uint32_t MD4_inc = 1;
 
-static void inline DoMD4_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoMD4_crypt_f(void *in, uint32_t len, void *out) {
 	unsigned char *crypt_out=(unsigned char*)out;
 	MD4_CTX ctx;
 	MD4_Init(&ctx);
@@ -1218,7 +1218,7 @@ static void inline DoMD4_crypt_f(void *in, uint32_t len, void *out) {
 	MD4_Final(crypt_out, &ctx);
 }
 
-static void inline DoMD4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoMD4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[16];
 	MD4_CTX ctx;
 	MD4_Init(&ctx);
@@ -1231,7 +1231,7 @@ static void inline DoMD4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
-static void inline DoMD4_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoMD4_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	MD4_CTX ctx;
 	MD4_Init(&ctx);
@@ -1538,7 +1538,7 @@ void DynamicFunc__MD4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__MD4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__MD4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 16; // Y was 1 based for ease of reading.
 	for (; i < til; i += MD4_inc) {
 #ifdef SIMD_PARA_MD4
@@ -1690,7 +1690,7 @@ static void DoSHA1_crypt_sse(void *in, uint32_t ilen[SHA1_LOOPS], void *out[SHA1
 	}
 }
 
-static void inline DoSHA1_sse_crypt_only(void *in, uint32_t len[SHA1_LOOPS], void *out) {
+inline static void DoSHA1_sse_crypt_only(void *in, uint32_t len[SHA1_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t a[(20*SHA1_LOOPS)/sizeof(uint32_t)];
 	uint32_t i, j, loops[SHA1_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -1720,7 +1720,7 @@ static void inline DoSHA1_sse_crypt_only(void *in, uint32_t len[SHA1_LOOPS], voi
 #define SHA1_LOOPS 1
 static const uint32_t SHA1_inc = 1;
 
-static void inline DoSHA1_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA1_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[20]; uint32_t a[20/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	SHA_CTX ctx;
@@ -1730,7 +1730,7 @@ static void inline DoSHA1_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA1_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA1_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[20];
 	SHA_CTX ctx;
 	SHA1_Init(&ctx);
@@ -1743,7 +1743,7 @@ static void inline DoSHA1_crypt(void *in, uint32_t ilen, void *out, uint32_t *to
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 20, tid);
 }
-static void inline DoSHA1_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA1_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	SHA_CTX ctx;
 	SHA1_Init(&ctx);
@@ -2050,7 +2050,7 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA1_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA1_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 20; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA1_inc) {
 #ifdef SIMD_PARA_SHA1
@@ -2202,7 +2202,7 @@ static void DoSHA224_crypt_sse(void *in, uint32_t ilen[SHA224_LOOPS], void *out[
 	}
 }
 
-static void inline DoSHA224_sse_crypt_only(void *in, uint32_t len[SHA224_LOOPS], void *out) {
+inline static void DoSHA224_sse_crypt_only(void *in, uint32_t len[SHA224_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t a[(32*SHA224_LOOPS)/sizeof(uint32_t)];
 	uint32_t i, j, loops[SHA224_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -2232,7 +2232,7 @@ static void inline DoSHA224_sse_crypt_only(void *in, uint32_t len[SHA224_LOOPS],
 #define SHA224_LOOPS 1
 static const uint32_t SHA224_inc = 1;
 
-static void inline DoSHA224_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA224_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	SHA256_CTX ctx;
@@ -2242,7 +2242,7 @@ static void inline DoSHA224_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA224_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA224_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	SHA256_CTX ctx;
 	SHA224_Init(&ctx);
@@ -2255,7 +2255,7 @@ static void inline DoSHA224_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 28, tid);
 }
-static void inline DoSHA224_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA224_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	SHA256_CTX ctx;
 	SHA224_Init(&ctx);
@@ -2562,7 +2562,7 @@ void DynamicFunc__SHA224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA224_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA224_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 28; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA224_inc) {
 #ifdef SIMD_PARA_SHA256
@@ -2714,7 +2714,7 @@ static void DoSHA256_crypt_sse(void *in, uint32_t ilen[SHA256_LOOPS], void *out[
 	}
 }
 
-static void inline DoSHA256_sse_crypt_only(void *in, uint32_t len[SHA256_LOOPS], void *out) {
+inline static void DoSHA256_sse_crypt_only(void *in, uint32_t len[SHA256_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint32_t a[(32*SHA256_LOOPS)/sizeof(uint32_t)];
 	uint32_t i, j, loops[SHA256_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -2744,7 +2744,7 @@ static void inline DoSHA256_sse_crypt_only(void *in, uint32_t len[SHA256_LOOPS],
 #define SHA256_LOOPS 1
 static const uint32_t SHA256_inc = 1;
 
-static void inline DoSHA256_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA256_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	SHA256_CTX ctx;
@@ -2754,7 +2754,7 @@ static void inline DoSHA256_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	SHA256_CTX ctx;
 	SHA256_Init(&ctx);
@@ -2767,7 +2767,7 @@ static void inline DoSHA256_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoSHA256_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA256_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	SHA256_CTX ctx;
 	SHA256_Init(&ctx);
@@ -3074,7 +3074,7 @@ void DynamicFunc__SHA256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA256_inc) {
 #ifdef SIMD_PARA_SHA256
@@ -3226,7 +3226,7 @@ static void DoSHA384_crypt_sse(void *in, uint32_t ilen[SHA384_LOOPS], void *out[
 	}
 }
 
-static void inline DoSHA384_sse_crypt_only(void *in, uint32_t len[SHA384_LOOPS], void *out) {
+inline static void DoSHA384_sse_crypt_only(void *in, uint32_t len[SHA384_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint64_t a[(64*SHA384_LOOPS)/sizeof(uint64_t)];
 	uint32_t i, j, loops[SHA384_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -3256,7 +3256,7 @@ static void inline DoSHA384_sse_crypt_only(void *in, uint32_t len[SHA384_LOOPS],
 #define SHA384_LOOPS 1
 static const uint32_t SHA384_inc = 1;
 
-static void inline DoSHA384_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA384_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	SHA512_CTX ctx;
@@ -3266,7 +3266,7 @@ static void inline DoSHA384_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA384_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA384_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	SHA512_CTX ctx;
 	SHA384_Init(&ctx);
@@ -3279,7 +3279,7 @@ static void inline DoSHA384_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 48, tid);
 }
-static void inline DoSHA384_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA384_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	SHA512_CTX ctx;
 	SHA384_Init(&ctx);
@@ -3586,7 +3586,7 @@ void DynamicFunc__SHA384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA384_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA384_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 48; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA384_inc) {
 #ifdef SIMD_PARA_SHA512
@@ -3738,7 +3738,7 @@ static void DoSHA512_crypt_sse(void *in, uint32_t ilen[SHA512_LOOPS], void *out[
 	}
 }
 
-static void inline DoSHA512_sse_crypt_only(void *in, uint32_t len[SHA512_LOOPS], void *out) {
+inline static void DoSHA512_sse_crypt_only(void *in, uint32_t len[SHA512_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint64_t a[(64*SHA512_LOOPS)/sizeof(uint64_t)];
 	uint32_t i, j, loops[SHA512_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -3768,7 +3768,7 @@ static void inline DoSHA512_sse_crypt_only(void *in, uint32_t len[SHA512_LOOPS],
 #define SHA512_LOOPS 1
 static const uint32_t SHA512_inc = 1;
 
-static void inline DoSHA512_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA512_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	SHA512_CTX ctx;
@@ -3778,7 +3778,7 @@ static void inline DoSHA512_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	SHA512_CTX ctx;
 	SHA512_Init(&ctx);
@@ -3791,7 +3791,7 @@ static void inline DoSHA512_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 64, tid);
 }
-static void inline DoSHA512_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA512_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	SHA512_CTX ctx;
 	SHA512_Init(&ctx);
@@ -4098,7 +4098,7 @@ void DynamicFunc__SHA512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 64; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA512_inc) {
 #ifdef SIMD_PARA_SHA512
@@ -4196,7 +4196,7 @@ void DynamicFunc__SHA512_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SHA3_224_LOOPS 1
 static const uint32_t SHA3_224_inc = 1;
 
-static void inline DoSHA3_224_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA3_224_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	KECCAK_CTX ctx;
@@ -4206,7 +4206,7 @@ static void inline DoSHA3_224_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA3_224_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA3_224_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	KECCAK_CTX ctx;
 	SHA3_224_Init(&ctx);
@@ -4219,7 +4219,7 @@ static void inline DoSHA3_224_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 28, tid);
 }
-static void inline DoSHA3_224_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA3_224_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	KECCAK_CTX ctx;
 	SHA3_224_Init(&ctx);
@@ -4359,7 +4359,7 @@ void DynamicFunc__SHA3_224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA3_224_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA3_224_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 28; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA3_224_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -4432,7 +4432,7 @@ void DynamicFunc__SHA3_224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SHA3_256_LOOPS 1
 static const uint32_t SHA3_256_inc = 1;
 
-static void inline DoSHA3_256_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA3_256_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	KECCAK_CTX ctx;
@@ -4442,7 +4442,7 @@ static void inline DoSHA3_256_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA3_256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA3_256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	KECCAK_CTX ctx;
 	SHA3_256_Init(&ctx);
@@ -4455,7 +4455,7 @@ static void inline DoSHA3_256_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoSHA3_256_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA3_256_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	KECCAK_CTX ctx;
 	SHA3_256_Init(&ctx);
@@ -4595,7 +4595,7 @@ void DynamicFunc__SHA3_256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA3_256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA3_256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA3_256_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -4668,7 +4668,7 @@ void DynamicFunc__SHA3_256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SHA3_384_LOOPS 1
 static const uint32_t SHA3_384_inc = 1;
 
-static void inline DoSHA3_384_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA3_384_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	KECCAK_CTX ctx;
@@ -4678,7 +4678,7 @@ static void inline DoSHA3_384_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA3_384_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA3_384_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	KECCAK_CTX ctx;
 	SHA3_384_Init(&ctx);
@@ -4691,7 +4691,7 @@ static void inline DoSHA3_384_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 48, tid);
 }
-static void inline DoSHA3_384_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA3_384_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	KECCAK_CTX ctx;
 	SHA3_384_Init(&ctx);
@@ -4831,7 +4831,7 @@ void DynamicFunc__SHA3_384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA3_384_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA3_384_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 48; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA3_384_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -4904,7 +4904,7 @@ void DynamicFunc__SHA3_384_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SHA3_512_LOOPS 1
 static const uint32_t SHA3_512_inc = 1;
 
-static void inline DoSHA3_512_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSHA3_512_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	KECCAK_CTX ctx;
@@ -4914,7 +4914,7 @@ static void inline DoSHA3_512_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSHA3_512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSHA3_512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	KECCAK_CTX ctx;
 	SHA3_512_Init(&ctx);
@@ -4927,7 +4927,7 @@ static void inline DoSHA3_512_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 64, tid);
 }
-static void inline DoSHA3_512_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSHA3_512_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	KECCAK_CTX ctx;
 	SHA3_512_Init(&ctx);
@@ -5067,7 +5067,7 @@ void DynamicFunc__SHA3_512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SHA3_512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SHA3_512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 64; // Y was 1 based for ease of reading.
 	for (; i < til; i += SHA3_512_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -5140,7 +5140,7 @@ void DynamicFunc__SHA3_512_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define KECCAK_256_LOOPS 1
 static const uint32_t KECCAK_256_inc = 1;
 
-static void inline DoKECCAK_256_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoKECCAK_256_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	KECCAK_CTX ctx;
@@ -5150,7 +5150,7 @@ static void inline DoKECCAK_256_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoKECCAK_256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoKECCAK_256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	KECCAK_CTX ctx;
 	KECCAK_256_Init(&ctx);
@@ -5163,7 +5163,7 @@ static void inline DoKECCAK_256_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoKECCAK_256_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoKECCAK_256_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	KECCAK_CTX ctx;
 	KECCAK_256_Init(&ctx);
@@ -5303,7 +5303,7 @@ void DynamicFunc__KECCAK_256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__KECCAK_256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__KECCAK_256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += KECCAK_256_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -5376,7 +5376,7 @@ void DynamicFunc__KECCAK_256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define KECCAK_512_LOOPS 1
 static const uint32_t KECCAK_512_inc = 1;
 
-static void inline DoKECCAK_512_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoKECCAK_512_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	KECCAK_CTX ctx;
@@ -5386,7 +5386,7 @@ static void inline DoKECCAK_512_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoKECCAK_512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoKECCAK_512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	KECCAK_CTX ctx;
 	KECCAK_512_Init(&ctx);
@@ -5399,7 +5399,7 @@ static void inline DoKECCAK_512_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 64, tid);
 }
-static void inline DoKECCAK_512_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoKECCAK_512_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	KECCAK_CTX ctx;
 	KECCAK_512_Init(&ctx);
@@ -5539,7 +5539,7 @@ void DynamicFunc__KECCAK_512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__KECCAK_512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__KECCAK_512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 64; // Y was 1 based for ease of reading.
 	for (; i < til; i += KECCAK_512_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -5612,7 +5612,7 @@ void DynamicFunc__KECCAK_512_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define GOST_LOOPS 1
 static const uint32_t GOST_inc = 1;
 
-static void inline DoGOST_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoGOST_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	gost_ctx ctx;
@@ -5622,7 +5622,7 @@ static void inline DoGOST_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoGOST_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoGOST_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	gost_ctx ctx;
 	john_gost_init(&ctx);
@@ -5635,7 +5635,7 @@ static void inline DoGOST_crypt(void *in, uint32_t ilen, void *out, uint32_t *to
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoGOST_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoGOST_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	gost_ctx ctx;
 	john_gost_init(&ctx);
@@ -5775,7 +5775,7 @@ void DynamicFunc__GOST_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__GOST_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__GOST_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += GOST_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -5848,7 +5848,7 @@ void DynamicFunc__GOST_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define WHIRLPOOL_LOOPS 1
 static const uint32_t WHIRLPOOL_inc = 1;
 
-static void inline DoWHIRLPOOL_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoWHIRLPOOL_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint64_t a[64/sizeof(uint64_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	WHIRLPOOL_CTX ctx;
@@ -5858,7 +5858,7 @@ static void inline DoWHIRLPOOL_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoWHIRLPOOL_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoWHIRLPOOL_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	WHIRLPOOL_CTX ctx;
 	WHIRLPOOL_Init(&ctx);
@@ -5871,7 +5871,7 @@ static void inline DoWHIRLPOOL_crypt(void *in, uint32_t ilen, void *out, uint32_
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 64, tid);
 }
-static void inline DoWHIRLPOOL_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoWHIRLPOOL_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	WHIRLPOOL_CTX ctx;
 	WHIRLPOOL_Init(&ctx);
@@ -6011,7 +6011,7 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__WHIRLPOOL_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__WHIRLPOOL_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 64; // Y was 1 based for ease of reading.
 	for (; i < til; i += WHIRLPOOL_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -6084,7 +6084,7 @@ void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define Tiger_LOOPS 1
 static const uint32_t Tiger_inc = 1;
 
-static void inline DoTiger_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoTiger_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[24]; uint32_t a[24/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_tiger_context ctx;
@@ -6094,7 +6094,7 @@ static void inline DoTiger_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoTiger_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoTiger_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[24];
 	sph_tiger_context ctx;
 	sph_tiger_init(&ctx);
@@ -6107,7 +6107,7 @@ static void inline DoTiger_crypt(void *in, uint32_t ilen, void *out, uint32_t *t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 24, tid);
 }
-static void inline DoTiger_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoTiger_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_tiger_context ctx;
 	sph_tiger_init(&ctx);
@@ -6247,7 +6247,7 @@ void DynamicFunc__Tiger_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__Tiger_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__Tiger_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 24; // Y was 1 based for ease of reading.
 	for (; i < til; i += Tiger_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -6320,7 +6320,7 @@ void DynamicFunc__Tiger_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define RIPEMD128_LOOPS 1
 static const uint32_t RIPEMD128_inc = 1;
 
-static void inline DoRIPEMD128_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoRIPEMD128_crypt_f(void *in, uint32_t len, void *out) {
 	unsigned char *crypt_out=(unsigned char*)out;
 	sph_ripemd128_context ctx;
 	sph_ripemd128_init(&ctx);
@@ -6328,7 +6328,7 @@ static void inline DoRIPEMD128_crypt_f(void *in, uint32_t len, void *out) {
 	sph_ripemd128_close(crypt_out, &ctx);
 }
 
-static void inline DoRIPEMD128_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoRIPEMD128_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[16];
 	sph_ripemd128_context ctx;
 	sph_ripemd128_init(&ctx);
@@ -6341,7 +6341,7 @@ static void inline DoRIPEMD128_crypt(void *in, uint32_t ilen, void *out, uint32_
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
-static void inline DoRIPEMD128_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoRIPEMD128_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_ripemd128_context ctx;
 	sph_ripemd128_init(&ctx);
@@ -6481,7 +6481,7 @@ void DynamicFunc__RIPEMD128_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__RIPEMD128_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__RIPEMD128_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 16; // Y was 1 based for ease of reading.
 	for (; i < til; i += RIPEMD128_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -6554,7 +6554,7 @@ void DynamicFunc__RIPEMD128_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define RIPEMD160_LOOPS 1
 static const uint32_t RIPEMD160_inc = 1;
 
-static void inline DoRIPEMD160_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoRIPEMD160_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[20]; uint32_t a[20/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_ripemd160_context ctx;
@@ -6564,7 +6564,7 @@ static void inline DoRIPEMD160_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoRIPEMD160_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoRIPEMD160_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[20];
 	sph_ripemd160_context ctx;
 	sph_ripemd160_init(&ctx);
@@ -6577,7 +6577,7 @@ static void inline DoRIPEMD160_crypt(void *in, uint32_t ilen, void *out, uint32_
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 20, tid);
 }
-static void inline DoRIPEMD160_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoRIPEMD160_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_ripemd160_context ctx;
 	sph_ripemd160_init(&ctx);
@@ -6717,7 +6717,7 @@ void DynamicFunc__RIPEMD160_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__RIPEMD160_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__RIPEMD160_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 20; // Y was 1 based for ease of reading.
 	for (; i < til; i += RIPEMD160_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -6790,7 +6790,7 @@ void DynamicFunc__RIPEMD160_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define RIPEMD256_LOOPS 1
 static const uint32_t RIPEMD256_inc = 1;
 
-static void inline DoRIPEMD256_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoRIPEMD256_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_ripemd256_context ctx;
@@ -6800,7 +6800,7 @@ static void inline DoRIPEMD256_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoRIPEMD256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoRIPEMD256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	sph_ripemd256_context ctx;
 	sph_ripemd256_init(&ctx);
@@ -6813,7 +6813,7 @@ static void inline DoRIPEMD256_crypt(void *in, uint32_t ilen, void *out, uint32_
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoRIPEMD256_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoRIPEMD256_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_ripemd256_context ctx;
 	sph_ripemd256_init(&ctx);
@@ -6953,7 +6953,7 @@ void DynamicFunc__RIPEMD256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__RIPEMD256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__RIPEMD256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += RIPEMD256_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -7026,7 +7026,7 @@ void DynamicFunc__RIPEMD256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define RIPEMD320_LOOPS 1
 static const uint32_t RIPEMD320_inc = 1;
 
-static void inline DoRIPEMD320_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoRIPEMD320_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[40]; uint32_t a[40/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_ripemd320_context ctx;
@@ -7036,7 +7036,7 @@ static void inline DoRIPEMD320_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoRIPEMD320_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoRIPEMD320_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[40];
 	sph_ripemd320_context ctx;
 	sph_ripemd320_init(&ctx);
@@ -7049,7 +7049,7 @@ static void inline DoRIPEMD320_crypt(void *in, uint32_t ilen, void *out, uint32_
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 40, tid);
 }
-static void inline DoRIPEMD320_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoRIPEMD320_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_ripemd320_context ctx;
 	sph_ripemd320_init(&ctx);
@@ -7189,7 +7189,7 @@ void DynamicFunc__RIPEMD320_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__RIPEMD320_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__RIPEMD320_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 40; // Y was 1 based for ease of reading.
 	for (; i < til; i += RIPEMD320_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -7262,7 +7262,7 @@ void DynamicFunc__RIPEMD320_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL128_3_LOOPS 1
 static const uint32_t HAVAL128_3_inc = 1;
 
-static void inline DoHAVAL128_3_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL128_3_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[16]; uint32_t a[16/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval128_3_context ctx;
@@ -7272,7 +7272,7 @@ static void inline DoHAVAL128_3_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL128_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL128_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[16];
 	sph_haval128_3_context ctx;
 	sph_haval128_3_init(&ctx);
@@ -7285,7 +7285,7 @@ static void inline DoHAVAL128_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
-static void inline DoHAVAL128_3_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL128_3_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval128_3_context ctx;
 	sph_haval128_3_init(&ctx);
@@ -7425,7 +7425,7 @@ void DynamicFunc__HAVAL128_3_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL128_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL128_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 16; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL128_3_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -7498,7 +7498,7 @@ void DynamicFunc__HAVAL128_3_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL128_4_LOOPS 1
 static const uint32_t HAVAL128_4_inc = 1;
 
-static void inline DoHAVAL128_4_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL128_4_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[16]; uint32_t a[16/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval128_4_context ctx;
@@ -7508,7 +7508,7 @@ static void inline DoHAVAL128_4_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL128_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL128_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[16];
 	sph_haval128_4_context ctx;
 	sph_haval128_4_init(&ctx);
@@ -7521,7 +7521,7 @@ static void inline DoHAVAL128_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
-static void inline DoHAVAL128_4_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL128_4_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval128_4_context ctx;
 	sph_haval128_4_init(&ctx);
@@ -7661,7 +7661,7 @@ void DynamicFunc__HAVAL128_4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL128_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL128_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 16; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL128_4_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -7734,7 +7734,7 @@ void DynamicFunc__HAVAL128_4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL128_5_LOOPS 1
 static const uint32_t HAVAL128_5_inc = 1;
 
-static void inline DoHAVAL128_5_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL128_5_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[16]; uint32_t a[16/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval128_5_context ctx;
@@ -7744,7 +7744,7 @@ static void inline DoHAVAL128_5_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL128_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL128_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[16];
 	sph_haval128_5_context ctx;
 	sph_haval128_5_init(&ctx);
@@ -7757,7 +7757,7 @@ static void inline DoHAVAL128_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
-static void inline DoHAVAL128_5_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL128_5_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval128_5_context ctx;
 	sph_haval128_5_init(&ctx);
@@ -7897,7 +7897,7 @@ void DynamicFunc__HAVAL128_5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL128_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL128_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 16; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL128_5_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -7970,7 +7970,7 @@ void DynamicFunc__HAVAL128_5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL160_3_LOOPS 1
 static const uint32_t HAVAL160_3_inc = 1;
 
-static void inline DoHAVAL160_3_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL160_3_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[20]; uint32_t a[20/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval160_3_context ctx;
@@ -7980,7 +7980,7 @@ static void inline DoHAVAL160_3_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL160_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL160_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[20];
 	sph_haval160_3_context ctx;
 	sph_haval160_3_init(&ctx);
@@ -7993,7 +7993,7 @@ static void inline DoHAVAL160_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 20, tid);
 }
-static void inline DoHAVAL160_3_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL160_3_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval160_3_context ctx;
 	sph_haval160_3_init(&ctx);
@@ -8133,7 +8133,7 @@ void DynamicFunc__HAVAL160_3_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL160_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL160_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 20; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL160_3_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -8206,7 +8206,7 @@ void DynamicFunc__HAVAL160_3_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL160_4_LOOPS 1
 static const uint32_t HAVAL160_4_inc = 1;
 
-static void inline DoHAVAL160_4_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL160_4_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[20]; uint32_t a[20/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval160_4_context ctx;
@@ -8216,7 +8216,7 @@ static void inline DoHAVAL160_4_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL160_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL160_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[20];
 	sph_haval160_4_context ctx;
 	sph_haval160_4_init(&ctx);
@@ -8229,7 +8229,7 @@ static void inline DoHAVAL160_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 20, tid);
 }
-static void inline DoHAVAL160_4_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL160_4_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval160_4_context ctx;
 	sph_haval160_4_init(&ctx);
@@ -8369,7 +8369,7 @@ void DynamicFunc__HAVAL160_4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL160_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL160_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 20; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL160_4_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -8442,7 +8442,7 @@ void DynamicFunc__HAVAL160_4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL160_5_LOOPS 1
 static const uint32_t HAVAL160_5_inc = 1;
 
-static void inline DoHAVAL160_5_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL160_5_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[20]; uint32_t a[20/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval160_5_context ctx;
@@ -8452,7 +8452,7 @@ static void inline DoHAVAL160_5_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL160_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL160_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[20];
 	sph_haval160_5_context ctx;
 	sph_haval160_5_init(&ctx);
@@ -8465,7 +8465,7 @@ static void inline DoHAVAL160_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 20, tid);
 }
-static void inline DoHAVAL160_5_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL160_5_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval160_5_context ctx;
 	sph_haval160_5_init(&ctx);
@@ -8605,7 +8605,7 @@ void DynamicFunc__HAVAL160_5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL160_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL160_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 20; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL160_5_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -8678,7 +8678,7 @@ void DynamicFunc__HAVAL160_5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL192_3_LOOPS 1
 static const uint32_t HAVAL192_3_inc = 1;
 
-static void inline DoHAVAL192_3_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL192_3_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[24]; uint32_t a[24/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval192_3_context ctx;
@@ -8688,7 +8688,7 @@ static void inline DoHAVAL192_3_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL192_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL192_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[24];
 	sph_haval192_3_context ctx;
 	sph_haval192_3_init(&ctx);
@@ -8701,7 +8701,7 @@ static void inline DoHAVAL192_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 24, tid);
 }
-static void inline DoHAVAL192_3_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL192_3_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval192_3_context ctx;
 	sph_haval192_3_init(&ctx);
@@ -8841,7 +8841,7 @@ void DynamicFunc__HAVAL192_3_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL192_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL192_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 24; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL192_3_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -8914,7 +8914,7 @@ void DynamicFunc__HAVAL192_3_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL192_4_LOOPS 1
 static const uint32_t HAVAL192_4_inc = 1;
 
-static void inline DoHAVAL192_4_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL192_4_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[24]; uint32_t a[24/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval192_4_context ctx;
@@ -8924,7 +8924,7 @@ static void inline DoHAVAL192_4_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL192_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL192_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[24];
 	sph_haval192_4_context ctx;
 	sph_haval192_4_init(&ctx);
@@ -8937,7 +8937,7 @@ static void inline DoHAVAL192_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 24, tid);
 }
-static void inline DoHAVAL192_4_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL192_4_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval192_4_context ctx;
 	sph_haval192_4_init(&ctx);
@@ -9077,7 +9077,7 @@ void DynamicFunc__HAVAL192_4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL192_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL192_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 24; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL192_4_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -9150,7 +9150,7 @@ void DynamicFunc__HAVAL192_4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL192_5_LOOPS 1
 static const uint32_t HAVAL192_5_inc = 1;
 
-static void inline DoHAVAL192_5_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL192_5_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[24]; uint32_t a[24/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval192_5_context ctx;
@@ -9160,7 +9160,7 @@ static void inline DoHAVAL192_5_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL192_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL192_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[24];
 	sph_haval192_5_context ctx;
 	sph_haval192_5_init(&ctx);
@@ -9173,7 +9173,7 @@ static void inline DoHAVAL192_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 24, tid);
 }
-static void inline DoHAVAL192_5_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL192_5_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval192_5_context ctx;
 	sph_haval192_5_init(&ctx);
@@ -9313,7 +9313,7 @@ void DynamicFunc__HAVAL192_5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL192_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL192_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 24; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL192_5_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -9386,7 +9386,7 @@ void DynamicFunc__HAVAL192_5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL224_3_LOOPS 1
 static const uint32_t HAVAL224_3_inc = 1;
 
-static void inline DoHAVAL224_3_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL224_3_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[28]; uint32_t a[28/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval224_3_context ctx;
@@ -9396,7 +9396,7 @@ static void inline DoHAVAL224_3_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL224_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL224_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[28];
 	sph_haval224_3_context ctx;
 	sph_haval224_3_init(&ctx);
@@ -9409,7 +9409,7 @@ static void inline DoHAVAL224_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 28, tid);
 }
-static void inline DoHAVAL224_3_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL224_3_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval224_3_context ctx;
 	sph_haval224_3_init(&ctx);
@@ -9549,7 +9549,7 @@ void DynamicFunc__HAVAL224_3_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL224_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL224_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 28; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL224_3_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -9622,7 +9622,7 @@ void DynamicFunc__HAVAL224_3_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL224_4_LOOPS 1
 static const uint32_t HAVAL224_4_inc = 1;
 
-static void inline DoHAVAL224_4_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL224_4_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[28]; uint32_t a[28/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval224_4_context ctx;
@@ -9632,7 +9632,7 @@ static void inline DoHAVAL224_4_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL224_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL224_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[28];
 	sph_haval224_4_context ctx;
 	sph_haval224_4_init(&ctx);
@@ -9645,7 +9645,7 @@ static void inline DoHAVAL224_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 28, tid);
 }
-static void inline DoHAVAL224_4_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL224_4_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval224_4_context ctx;
 	sph_haval224_4_init(&ctx);
@@ -9785,7 +9785,7 @@ void DynamicFunc__HAVAL224_4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL224_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL224_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 28; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL224_4_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -9858,7 +9858,7 @@ void DynamicFunc__HAVAL224_4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL224_5_LOOPS 1
 static const uint32_t HAVAL224_5_inc = 1;
 
-static void inline DoHAVAL224_5_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL224_5_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[28]; uint32_t a[28/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval224_5_context ctx;
@@ -9868,7 +9868,7 @@ static void inline DoHAVAL224_5_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL224_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL224_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[28];
 	sph_haval224_5_context ctx;
 	sph_haval224_5_init(&ctx);
@@ -9881,7 +9881,7 @@ static void inline DoHAVAL224_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 28, tid);
 }
-static void inline DoHAVAL224_5_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL224_5_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval224_5_context ctx;
 	sph_haval224_5_init(&ctx);
@@ -10021,7 +10021,7 @@ void DynamicFunc__HAVAL224_5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL224_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL224_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 28; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL224_5_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -10094,7 +10094,7 @@ void DynamicFunc__HAVAL224_5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL256_3_LOOPS 1
 static const uint32_t HAVAL256_3_inc = 1;
 
-static void inline DoHAVAL256_3_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL256_3_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval256_3_context ctx;
@@ -10104,7 +10104,7 @@ static void inline DoHAVAL256_3_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL256_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL256_3_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	sph_haval256_3_context ctx;
 	sph_haval256_3_init(&ctx);
@@ -10117,7 +10117,7 @@ static void inline DoHAVAL256_3_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoHAVAL256_3_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL256_3_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval256_3_context ctx;
 	sph_haval256_3_init(&ctx);
@@ -10257,7 +10257,7 @@ void DynamicFunc__HAVAL256_3_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL256_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL256_3_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL256_3_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -10330,7 +10330,7 @@ void DynamicFunc__HAVAL256_3_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL256_4_LOOPS 1
 static const uint32_t HAVAL256_4_inc = 1;
 
-static void inline DoHAVAL256_4_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL256_4_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval256_4_context ctx;
@@ -10340,7 +10340,7 @@ static void inline DoHAVAL256_4_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL256_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL256_4_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	sph_haval256_4_context ctx;
 	sph_haval256_4_init(&ctx);
@@ -10353,7 +10353,7 @@ static void inline DoHAVAL256_4_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoHAVAL256_4_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL256_4_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval256_4_context ctx;
 	sph_haval256_4_init(&ctx);
@@ -10493,7 +10493,7 @@ void DynamicFunc__HAVAL256_4_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL256_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL256_4_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL256_4_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -10566,7 +10566,7 @@ void DynamicFunc__HAVAL256_4_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define HAVAL256_5_LOOPS 1
 static const uint32_t HAVAL256_5_inc = 1;
 
-static void inline DoHAVAL256_5_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoHAVAL256_5_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_haval256_5_context ctx;
@@ -10576,7 +10576,7 @@ static void inline DoHAVAL256_5_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoHAVAL256_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoHAVAL256_5_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	sph_haval256_5_context ctx;
 	sph_haval256_5_init(&ctx);
@@ -10589,7 +10589,7 @@ static void inline DoHAVAL256_5_crypt(void *in, uint32_t ilen, void *out, uint32
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoHAVAL256_5_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoHAVAL256_5_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_haval256_5_context ctx;
 	sph_haval256_5_init(&ctx);
@@ -10729,7 +10729,7 @@ void DynamicFunc__HAVAL256_5_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__HAVAL256_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__HAVAL256_5_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += HAVAL256_5_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -10802,7 +10802,7 @@ void DynamicFunc__HAVAL256_5_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define PANAMA_LOOPS 1
 static const uint32_t PANAMA_inc = 1;
 
-static void inline DoPANAMA_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoPANAMA_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[32]; uint32_t a[32/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_panama_context ctx;
@@ -10812,7 +10812,7 @@ static void inline DoPANAMA_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoPANAMA_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoPANAMA_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[32];
 	sph_panama_context ctx;
 	sph_panama_init(&ctx);
@@ -10825,7 +10825,7 @@ static void inline DoPANAMA_crypt(void *in, uint32_t ilen, void *out, uint32_t *
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoPANAMA_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoPANAMA_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_panama_context ctx;
 	sph_panama_init(&ctx);
@@ -10965,7 +10965,7 @@ void DynamicFunc__PANAMA_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__PANAMA_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__PANAMA_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += PANAMA_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -11038,7 +11038,7 @@ void DynamicFunc__PANAMA_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define MD2_LOOPS 1
 static const uint32_t MD2_inc = 1;
 
-static void inline DoMD2_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoMD2_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[16]; uint32_t a[16/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_md2_context ctx;
@@ -11048,7 +11048,7 @@ static void inline DoMD2_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoMD2_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoMD2_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[16];
 	sph_md2_context ctx;
 	sph_md2_init(&ctx);
@@ -11061,7 +11061,7 @@ static void inline DoMD2_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 16, tid);
 }
-static void inline DoMD2_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoMD2_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_md2_context ctx;
 	sph_md2_init(&ctx);
@@ -11201,7 +11201,7 @@ void DynamicFunc__MD2_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__MD2_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__MD2_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 16; // Y was 1 based for ease of reading.
 	for (; i < til; i += MD2_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -11274,7 +11274,7 @@ void DynamicFunc__MD2_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SKEIN224_LOOPS 1
 static const uint32_t SKEIN224_inc = 1;
 
-static void inline DoSKEIN224_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSKEIN224_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint32_t a[64/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_skein224_context ctx;
@@ -11284,7 +11284,7 @@ static void inline DoSKEIN224_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSKEIN224_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSKEIN224_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	sph_skein224_context ctx;
 	sph_skein224_init(&ctx);
@@ -11297,7 +11297,7 @@ static void inline DoSKEIN224_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 28, tid);
 }
-static void inline DoSKEIN224_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSKEIN224_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_skein224_context ctx;
 	sph_skein224_init(&ctx);
@@ -11437,7 +11437,7 @@ void DynamicFunc__SKEIN224_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SKEIN224_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SKEIN224_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 28; // Y was 1 based for ease of reading.
 	for (; i < til; i += SKEIN224_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -11510,7 +11510,7 @@ void DynamicFunc__SKEIN224_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SKEIN256_LOOPS 1
 static const uint32_t SKEIN256_inc = 1;
 
-static void inline DoSKEIN256_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSKEIN256_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint32_t a[64/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_skein256_context ctx;
@@ -11520,7 +11520,7 @@ static void inline DoSKEIN256_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSKEIN256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSKEIN256_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	sph_skein256_context ctx;
 	sph_skein256_init(&ctx);
@@ -11533,7 +11533,7 @@ static void inline DoSKEIN256_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 32, tid);
 }
-static void inline DoSKEIN256_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSKEIN256_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_skein256_context ctx;
 	sph_skein256_init(&ctx);
@@ -11673,7 +11673,7 @@ void DynamicFunc__SKEIN256_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SKEIN256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SKEIN256_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 32; // Y was 1 based for ease of reading.
 	for (; i < til; i += SKEIN256_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -11746,7 +11746,7 @@ void DynamicFunc__SKEIN256_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SKEIN384_LOOPS 1
 static const uint32_t SKEIN384_inc = 1;
 
-static void inline DoSKEIN384_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSKEIN384_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint32_t a[64/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_skein384_context ctx;
@@ -11756,7 +11756,7 @@ static void inline DoSKEIN384_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSKEIN384_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSKEIN384_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	sph_skein384_context ctx;
 	sph_skein384_init(&ctx);
@@ -11769,7 +11769,7 @@ static void inline DoSKEIN384_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 48, tid);
 }
-static void inline DoSKEIN384_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSKEIN384_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_skein384_context ctx;
 	sph_skein384_init(&ctx);
@@ -11909,7 +11909,7 @@ void DynamicFunc__SKEIN384_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SKEIN384_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SKEIN384_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 48; // Y was 1 based for ease of reading.
 	for (; i < til; i += SKEIN384_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.
@@ -11982,7 +11982,7 @@ void DynamicFunc__SKEIN384_crypt_input2_to_output1_FINAL(DYNA_OMP_PARAMS) {
 #define SKEIN512_LOOPS 1
 static const uint32_t SKEIN512_inc = 1;
 
-static void inline DoSKEIN512_crypt_f(void *in, uint32_t len, void *out) {
+inline static void DoSKEIN512_crypt_f(void *in, uint32_t len, void *out) {
 	union xx { unsigned char u[64]; uint32_t a[64/sizeof(uint32_t)]; } u;
 	unsigned char *crypt_out=u.u;
 	sph_skein512_context ctx;
@@ -11992,7 +11992,7 @@ static void inline DoSKEIN512_crypt_f(void *in, uint32_t len, void *out) {
 	memcpy(out, crypt_out, 16);
 }
 
-static void inline DoSKEIN512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void DoSKEIN512_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[64];
 	sph_skein512_context ctx;
 	sph_skein512_init(&ctx);
@@ -12005,7 +12005,7 @@ static void inline DoSKEIN512_crypt(void *in, uint32_t ilen, void *out, uint32_t
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), 64, tid);
 }
-static void inline DoSKEIN512_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void DoSKEIN512_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	sph_skein512_context ctx;
 	sph_skein512_init(&ctx);
@@ -12145,7 +12145,7 @@ void DynamicFunc__SKEIN512_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__SKEIN512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__SKEIN512_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = 64; // Y was 1 based for ease of reading.
 	for (; i < til; i += SKEIN512_inc) {
 		dynamic_BHO[Y].BE = 0;	// CTX requires no swapping.

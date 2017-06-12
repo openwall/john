@@ -443,7 +443,7 @@ static int cmp_exact(char *source, int index)
 // md5bit with no conditional logic.
 #define md5bit_2(d,b) (((d[((b)>>3)&0xF]>>((b)&7)))&1)
 
-static inline int
+inline static int
 md5bit(unsigned char *digest, int bit_num)
 {
 	return (((digest[((bit_num)>>3)&0xF]>>((bit_num)&7)))&1);
@@ -460,7 +460,7 @@ md5bit(unsigned char *digest, int bit_num)
 #endif
 }
 
-static inline int
+inline static int
 coin_step(unsigned char *digest, int i, int j, int shift)
 {
 	return md5bit(digest, digest[(digest[i] >> mod5[digest[j]]) & 0x0F] >> ((digest[j] >> (digest[i] & 0x07)) & 0x01)) << shift;

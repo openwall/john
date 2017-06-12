@@ -40,7 +40,7 @@ static const char derive_const[5] = "\x00\x00\x00\x03\xaa";
 /**
  * Heimdal rr13 function                // {{{
  */
-static inline void rr13(unsigned char *buf, int len) {
+inline static void rr13(unsigned char *buf, int len) {
 
     unsigned char *tmp;
     int bytes = (len + 7) / 8;
@@ -88,7 +88,7 @@ static inline void rr13(unsigned char *buf, int len) {
 /**
  * Heimdal add1 function                            // {{{
  */
-static inline void add1(unsigned char *a, unsigned char *b, size_t len) {
+inline static void add1(unsigned char *a, unsigned char *b, size_t len) {
     int i, x;
     int carry = 0;
     for (i = len - 1; i >= 0; i--){
@@ -107,7 +107,7 @@ static inline void add1(unsigned char *a, unsigned char *b, size_t len) {
 /**
  * Heimdal _krb5_n_fold function        // {{{
  */
-static inline void _krb5_n_fold(const void *str, int len, void *key, int size) {
+inline static void _krb5_n_fold(const void *str, int len, void *key, int size) {
 
     int maxlen = 2 * max(size, len), l = 0;
     unsigned char *tmp = (unsigned char *) mem_alloc(maxlen);
@@ -135,7 +135,7 @@ static inline void _krb5_n_fold(const void *str, int len, void *key, int size) {
 /**
  * Heimdal DES3_postproc function               // {{{
  */
-static inline void DES3_postproc(unsigned char *k, int len, krb5_key *krb5key) {
+inline static void DES3_postproc(unsigned char *k, int len, krb5_key *krb5key) {
     unsigned char x[24];
     int i, j;
     unsigned char foo;
@@ -169,7 +169,7 @@ static inline void DES3_postproc(unsigned char *k, int len, krb5_key *krb5key) {
 /**
  * Heimdal based derive_key function                      // {{{
  */
-static inline void derive_key(const void *constant, int len, krb5_key *krb5key) {
+inline static void derive_key(const void *constant, int len, krb5_key *krb5key) {
 
     unsigned char *k;
     unsigned int nblocks = 0, i;
@@ -211,7 +211,7 @@ static inline void derive_key(const void *constant, int len, krb5_key *krb5key) 
 /**
  * Heimdal based string_to_key_derived function          // {{{
  */
-static inline void string_to_key_derived(const void *passwd, int len, krb5_key *krb5key) {
+inline static void string_to_key_derived(const void *passwd, int len, krb5_key *krb5key) {
 
     unsigned char *tmp;
 

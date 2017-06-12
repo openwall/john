@@ -86,7 +86,7 @@ static void * get_salt_encoding(char *_ciphertext);
 struct fmt_main fmt_mscash;
 
 #if !ARCH_LITTLE_ENDIAN
-static inline void swap(unsigned int *x, int count)
+inline static void swap(unsigned int *x, int count)
 {
 	while (count--) {
 		*x = JOHNSWAP(*x);
@@ -540,7 +540,7 @@ static int cmp_exact(char *source, int index)
 }
 
 // This is common code for the SSE/MMX/generic variants of non-UTF8 set_key
-static inline void set_key_helper(unsigned int * keybuffer,
+inline static void set_key_helper(unsigned int * keybuffer,
                                   unsigned int xBuf,
                                   const unsigned char * key,
                                   unsigned int lenStoreOffset,
@@ -583,7 +583,7 @@ static void set_key(char *_key, int index)
 
 // UTF-8 conversion right into key buffer
 // This is common code for the SSE/MMX/generic variants
-static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xBuf,
+inline static void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xBuf,
     const UTF8 * source, unsigned int lenStoreOffset, unsigned int *lastlen)
 {
 	unsigned int *target = keybuffer;
@@ -724,7 +724,7 @@ static void set_key_utf8(char *_key, int index)
 }
 
 // This is common code for the SSE/MMX/generic variants of non-UTF8 non-ISO-8859-1 set_key
-static inline void set_key_helper_encoding(unsigned int * keybuffer,
+inline static void set_key_helper_encoding(unsigned int * keybuffer,
                                   unsigned int xBuf,
                                   const unsigned char * key,
                                   unsigned int lenStoreOffset,

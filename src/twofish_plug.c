@@ -469,7 +469,7 @@ typedef Twofish_UInt32  UInt32;
 
 #endif
 
-
+#if 0
 /*
  * Test the platform-specific macros.
  * This function tests the macros defined so far to make sure the
@@ -589,7 +589,7 @@ static void test_platform()
         Twofish_fatal( "Twofish code: SELECT_BYTE not implemented properly" );
         }
     }
-
+#endif
 
 /*
  * Finally, we can start on the Twofish-related code.
@@ -1235,7 +1235,7 @@ static int Twofish_initialised = 0;
 void Twofish_initialise()
     {
     /* First test the various platform-specific definitions. */
-    test_platform();
+    /* test_platform(); */
 
     /* We can now generate our tables, in the right order of course. */
     initialise_q_boxes();

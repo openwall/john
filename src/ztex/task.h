@@ -94,7 +94,7 @@ void task_assign(struct task *task, struct jtr_device *jtr_device);
 void task_deassign(struct task *task);
 
 // Update status change time
-static inline void task_update_mtime(struct task *task)
+inline static void task_update_mtime(struct task *task)
 {
 	gettimeofday(&task->mtime, NULL);
 }
