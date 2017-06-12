@@ -18,7 +18,6 @@
 import os
 import sys
 import traceback
-import sys
 
 try:
     import json
@@ -30,6 +29,24 @@ except ImportError:
     except ImportError:
         sys.stderr.write("Please install json / simplejson module which is currently not installed.\n")
         sys.exit(-1)
+
+
+def process_presale_wallet(filename, data):
+    try:
+        bkp = data["bkp"]
+    except KeyError:
+        sys.stdout.write("%s: presale wallet is missing 'bkp' field, this is unsupported!\n" % filename)
+        return
+
+    try:
+        encseed = data["encseed"]
+        ethaddr = data["ethaddr"]
+    except KeyError:
+        sys.stdout.write("%s: presale wallet is missing necessary fields!\n" % filename)
+        return
+
+    sys.stdout.write("%s:$ethereum$w*%s*%s*%s\n" %
+                     (os.path.basename(filename), encseed, ethaddr, bkp))
 
 
 def process_file(filename):
@@ -46,7 +63,11 @@ def process_file(filename):
         try:
             crypto = data["crypto"]
         except KeyError:
-            crypto = data["Crypto"]
+            try:
+                crypto = data["Crypto"]
+            except:  # hack for presale wallet
+                process_presale_wallet(filename, data)
+                return
         cipher = crypto["cipher"]
         if cipher != "aes-128-ctr":
             sys.stdout.write("%s: unexpected cipher '%s' found\n" % (filename, cipher))

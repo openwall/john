@@ -28,10 +28,12 @@ john_register_one(&fmt_ethereum);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX 1 // hack, we can't use our simd pbkdf2 code for presale wallets because of varying salt
 #include "pbkdf2_hmac_sha256.h"
 #include "ethereum_common.h"
 #include "escrypt/crypto_scrypt.h"
 #include "KeccakHash.h"
+#include "aes.h"
 #include "jumbo.h"
 #include "memdbg.h"
 
@@ -44,7 +46,7 @@ john_register_one(&fmt_ethereum);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define BINARY_SIZE             32
+#define BINARY_SIZE             16
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
@@ -58,7 +60,7 @@ john_register_one(&fmt_ethereum);
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
+static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
 
 custom_salt  *cur_salt;
 
@@ -152,14 +154,46 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						cur_salt->saltlen, cur_salt->N,
 						cur_salt->r, cur_salt->p,
 						master[i], 32);
+		} else if (cur_salt->type == 2) {
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+				pbkdf2_sha256((unsigned char *)saved_key[index+i],
+						strlen(saved_key[index+i]),
+						(unsigned char *)saved_key[index+i],
+						strlen(saved_key[index+i]),
+						2000, master[i], 16, 0);
 		}
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			Keccak_HashInstance hash;
-			Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01); // delimitedSuffix is 0x06 for SHA-3, and 0x01 for Keccak
-			Keccak_HashUpdate(&hash, master[i] + 16, 16 * 8);
-			Keccak_HashUpdate(&hash, cur_salt->ct, cur_salt->ctlen * 8);
-			Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index+i]);
+		if (cur_salt->type == 0 || cur_salt->type == 1) {
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				Keccak_HashInstance hash;
+				Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01); // delimitedSuffix is 0x06 for SHA-3, and 0x01 for Keccak
+				Keccak_HashUpdate(&hash, master[i] + 16, 16 * 8);
+				Keccak_HashUpdate(&hash, cur_salt->ct, cur_salt->ctlen * 8);
+				Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index+i]);
+			}
+		} else {
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				AES_KEY akey;
+				Keccak_HashInstance hash;
+				unsigned char iv[16];
+				unsigned char seed[4096];
+				int padbyte;
+				int datalen;
+
+				AES_set_decrypt_key(master[i], 128, &akey);
+				memcpy(iv, cur_salt->encseed, 16);
+				AES_cbc_encrypt(cur_salt->encseed + 16, seed, cur_salt->eslen - 16, &akey, iv, AES_DECRYPT);
+				if (check_pkcs_pad(seed, cur_salt->eslen - 16, 16) < 0)
+					continue;
+				padbyte = seed[cur_salt->eslen - 16 - 1];
+				datalen = cur_salt->eslen - 16 - padbyte;
+				if (datalen < 0)
+					continue;
+				Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01);
+				Keccak_HashUpdate(&hash, seed, datalen * 8);
+				Keccak_HashUpdate(&hash, (unsigned char*)"\x02", 1 * 8);
+				Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index+i]);
+			}
 		}
 	}
 
