@@ -4,10 +4,8 @@
  * Input format (IMEI is put in "login field"):
  *   IMEI:hash
  *
- * IMEI is all digits (0-9) and hash is hex lowercase (0-9, a-f)
- *
- * Internal ciphertext format:
- *   IMEI$hash
+ * IMEI is 14 or 15 digits 0-9 (only 14 are used)
+ * hash is hex lowercase (0-9, a-f)
  *
  * Copyright (c) 2017 magnum.
  * Redistribution and use in source and binary forms, with or without
@@ -66,7 +64,7 @@ john_register_one(&FMT_STRUCT);
 
 static struct fmt_tests tests[] = {
 	{"$sl3$35831503698405$d8f6b336a4df3336bf7de58a38b1189f6c5ce1e8", "621888462499899"},
-	{"$sl3$11223344556677$545fabcb0af7d923a56431c9131bfa644c408b47", "123456789012345"},
+	{NULL, "123456789012345", {"112233445566778", "545fabcb0af7d923a56431c9131bfa644c408b47"}},
 	{NULL}
 };
 
