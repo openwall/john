@@ -68,7 +68,7 @@ john_register_one(&fmt_sl3);
 #define PLAINTEXT_LENGTH    15
 
 #define BINARY_ALIGN        4
-#define SALT_LENGTH         9
+#define SALT_SIZE           9
 #define SALT_ALIGN          4
 
 #define BINARY_SIZE         20
@@ -86,7 +86,7 @@ john_register_one(&fmt_sl3);
 #define SL3_MAGIC           "$sl3$"
 #define SL3_MAGIC_LENGTH    (sizeof(SL3_MAGIC) - 1)
 
-struct fmt_tests tests[] = {
+static struct fmt_tests tests[] = {
 	{"$sl3$35831503698405$d8f6b336a4df3336bf7de58a38b1189f6c5ce1e8", "621888462499899"},
 	{"$sl3$11223344556677$545fabcb0af7d923a56431c9131bfa644c408b47", "123456789012345"},
 	{NULL}
@@ -287,10 +287,10 @@ static void *get_salt(char *ciphertext)
 	static char *out;
 
 	if (!out)
-		out = mem_alloc_tiny(SALT_LENGTH, MEM_ALIGN_WORD);
+		out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += SL3_MAGIC_LENGTH;
-	memset(out, 0, SALT_LENGTH);
+	memset(out, 0, SALT_SIZE);
 
 	base64_convert(ciphertext, e_b64_hex, 14, out + 1,
 	               e_b64_raw, 7, 0, 0);
@@ -338,11 +338,11 @@ inline static void set_onesalt(int index)
 	unsigned int i, idx = index % NBKEYS;
 	unsigned char *sk = (unsigned char*)&saved_key[index / NBKEYS];
 
-	for (i = 0; i < SALT_LENGTH; ++i)
+	for (i = 0; i < SALT_SIZE; ++i)
 		sk[GETPOS(PLAINTEXT_LENGTH + i, idx)] = saved_salt[i];
-	sk[GETPOS(PLAINTEXT_LENGTH + SALT_LENGTH, idx)] = 0x80;
+	sk[GETPOS(PLAINTEXT_LENGTH + SALT_SIZE, idx)] = 0x80;
 
-	((unsigned int*)sk)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (PLAINTEXT_LENGTH + SALT_LENGTH) << 3;
+	((unsigned int*)sk)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + idx/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (PLAINTEXT_LENGTH + SALT_SIZE) << 3;
 }
 #endif
 
@@ -372,7 +372,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA_CTX ctx;
 		SHA1_Init( &ctx );
 		SHA1_Update( &ctx, (unsigned char*)saved_key[index], PLAINTEXT_LENGTH);
-		SHA1_Update( &ctx, (unsigned char*)saved_salt, SALT_LENGTH);
+		SHA1_Update( &ctx, (unsigned char*)saved_salt, SALT_SIZE);
 		SHA1_Final( (unsigned char*)crypt_key[index], &ctx);
 #endif
 	}
@@ -414,7 +414,7 @@ struct fmt_main fmt_sl3 = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
-		SALT_LENGTH,
+		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
