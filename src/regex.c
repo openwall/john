@@ -190,7 +190,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
                           const char *regex_alpha)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
-  const char* word;
+	const char* word;
 	static int bFirst = 1;
 	static int bALPHA = 0;
 	int max_len = db->format->params.plaintext_length;
@@ -207,7 +207,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	//	cp_to_wcs(BaseWord, sizeof(BaseWord), base_word);
 	//else /* options.internal_cp == UTF_8 */
 	//	enc_to_wcs(BaseWord, sizeof(BaseWord), base_word);
-  strcpy(BaseWord, base_word);
+	strcpy(BaseWord, base_word);
 
 	if (bFirst) {
 		bFirst = 0;
@@ -290,9 +290,9 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		c_simplestring_clear(buffer);
 		c_iterator_value(iter, buffer);
 		word = c_simplestring_to_string(buffer);
-    /**
-      * rexgen already creates the correct encoding
-      */
+		/**
+		  * rexgen already creates the correct encoding
+		  */
 		//if (options.internal_cp != UTF_8)
 		//	utf8_to_cp_r(word, word, sizeof(word));
 		if (options.mask) {
@@ -302,7 +302,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 			}
 		} else
 		if (ext_filter((char *)word)) {
-      c_simplestring_truncate_bytes(buffer, max_len);
+			c_simplestring_truncate_bytes(buffer, max_len);
 			if (crk_process_key((char *)word)) {
 				retval = 1;
 				goto out;
@@ -320,7 +320,7 @@ out:
 void do_regex_crack(struct db_main *db, const char *regex)
 {
 	c_simplestring_ptr buffer = c_simplestring_new();
-  const char* word;
+	const char* word;
 	int max_len = db->format->params.plaintext_length;
 
 	if (options.req_maxlength)
@@ -358,7 +358,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 				break;
 		} else
 		if (ext_filter((char *)word)) {
-      c_simplestring_truncate_bytes(buffer, max_len);
+			c_simplestring_truncate_bytes(buffer, max_len);
 			if (crk_process_key((char *)word))
 				break;
 		}
