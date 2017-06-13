@@ -10,6 +10,8 @@
 struct fmt_tests ethereum_tests[] = {
 	// https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition, v3 wallets
 	{"$ethereum$p*262144*ae3cd4e7013836a3df6bd7241b12db061dbe2c6785853cce422d148a624ce0bd*5318b4d5bcd28de64ee5559e671353e16f075ecae9f99c7a79a38af5f869aa46*517ead924a9d0dc3124507e3393d175ce3ff7c1e96529c6c555ce9e51205e9b2", "testpassword"},
+	// artificial hash for testing
+	{"$ethereum$p*1024*30323330313838333730333538343831*6dcfca7cbd44eb3ca7f11162b996b98dd46fb68e1afb095686fe944fcbdb3b59*b3a766d8c1390462304af979c6f709ba54a23ff135d1ffcdef485dcc7f79b5f2", "6023"},
 	// scrypt test vectors are disabled to ease CI testing
 	// {"$ethereum$s*262144*1*8*ab0c7876052600dd703518d6fc3fe8984592145b591fc8fb5c6d43190334ba19*d172bf743a674da9cdad04534d56926ef8358534d458fffccd4e6ad2fbde479c*2103ac29920d71da29f15d75b4a16dbe95cfd7ff8faea1056c33131d846e3097", "testpassword"},
 	// {"$ethereum$s*262144*8*1*8de58242f1ab3111ed0ac43c35c8f0f26df783d3188cba906fd3cd33f7ded6b6*542e5f4563a5bb934c8c7caa39005e2cd8f1df731292392e4b006b1660e329df*2d05b6d31adb87243e6cdd9459912d6ddbf25e4bad7160def3e9dd6b3aa5989d", "openwall123"},
@@ -48,7 +50,7 @@ int ethereum_common_valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)   // salt
 			goto err;
-		if (hexlenl(p, &extra) != 64 || extra)
+		if (hexlenl(p, &extra) > 64 * 2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
 			goto err;
@@ -157,6 +159,24 @@ void *ethereum_common_get_salt(char *ciphertext)
 	MEM_FREE(keeptr);
 
 	return (void *)cur_salt;
+}
+
+void *ethereum_get_binary(char *ciphertext)
+{
+	static union {
+		unsigned char c[BINARY_SIZE];
+		uint32_t dummy;
+	} buf;
+	unsigned char *out = buf.c;
+	char *p;
+	int i;
+	p = strrchr(ciphertext, '*') + 1;
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+	return out;
 }
 
 unsigned int ethereum_common_iteration_count(void *salt)

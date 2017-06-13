@@ -9,6 +9,7 @@
 
 #define FORMAT_TAG              "$ethereum$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
+#define BINARY_SIZE             16
 
 typedef struct {
 	uint32_t type;
@@ -31,3 +32,4 @@ extern struct fmt_tests ethereum_tests[];
 int ethereum_common_valid(char *ciphertext, struct fmt_main *self);
 void *ethereum_common_get_salt(char *ciphertext);
 unsigned int ethereum_common_iteration_count(void *salt);
+void *ethereum_get_binary(char *ciphertext);

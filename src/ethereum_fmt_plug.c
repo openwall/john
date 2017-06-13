@@ -83,24 +83,6 @@ static void done(void)
 	MEM_FREE(crypt_out);
 }
 
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[BINARY_SIZE];
-		uint32_t dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i;
-	p = strrchr(ciphertext, '*') + 1;
-	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-
-	return out;
-}
-
 static void set_salt(void *salt)
 {
 	cur_salt = (custom_salt *)salt;
@@ -247,7 +229,7 @@ struct fmt_main fmt_ethereum = {
 		fmt_default_prepare,
 		ethereum_common_valid,
 		fmt_default_split,
-		get_binary,
+		ethereum_get_binary,
 		ethereum_common_get_salt,
 		{
 			ethereum_common_iteration_count,
