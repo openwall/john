@@ -167,12 +167,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				AES_set_decrypt_key(master[i], 128, &akey);
 				memcpy(iv, cur_salt->encseed, 16);
 				AES_cbc_encrypt(cur_salt->encseed + 16, seed, cur_salt->eslen - 16, &akey, iv, AES_DECRYPT);
-				if (check_pkcs_pad(seed, cur_salt->eslen - 16, 16) < 0)
+				if (check_pkcs_pad(seed, cur_salt->eslen - 16, 16) < 0) {
+					memset(crypt_out[index+i], 0, BINARY_SIZE);
 					continue;
+				}
 				padbyte = seed[cur_salt->eslen - 16 - 1];
 				datalen = cur_salt->eslen - 16 - padbyte;
-				if (datalen < 0)
+				if (datalen < 0) {
+					memset(crypt_out[index+i], 0, BINARY_SIZE);
 					continue;
+				}
 				Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01);
 				Keccak_HashUpdate(&hash, seed, datalen * 8);
 				Keccak_HashUpdate(&hash, dpad, 1 * 8);
