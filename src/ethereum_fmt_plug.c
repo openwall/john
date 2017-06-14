@@ -98,6 +98,8 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static unsigned char *dpad = (unsigned char*)"\x02\x00\x00\x00\x00\x00\x00\x00";
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -173,7 +175,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					continue;
 				Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01);
 				Keccak_HashUpdate(&hash, seed, datalen * 8);
-				Keccak_HashUpdate(&hash, (unsigned char*)"\x02", 1 * 8);
+				Keccak_HashUpdate(&hash, dpad, 1 * 8);
 				Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index+i]);
 			}
 		}
