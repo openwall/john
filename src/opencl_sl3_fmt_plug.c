@@ -35,38 +35,13 @@ john_register_one(&FMT_STRUCT);
 #include "options.h"
 #include "mask_ext.h"
 #include "base64_convert.h"
+#include "sl3_common.h"
 #include "bt_interface.h"
 
 #define FORMAT_LABEL        "SL3-opencl"
-#define FORMAT_NAME         "Nokia operator unlock"
 #define ALGORITHM_NAME      "SHA1 OpenCL"
 
-#define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
-
-#define PLAINTEXT_MINLEN    15
-#define PLAINTEXT_LENGTH    15
-
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
-
-#define CIPHERTEXT_LENGTH   (SL3_MAGIC_LENGTH + 14 + 1 + 2 * BINARY_SIZE)
-
-#define BINARY_SIZE         20
-#define BINARY_ALIGN        4
-#define SALT_SIZE           9
-#define SALT_ALIGN          4
-
-#define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
-
-#define SL3_MAGIC           "$sl3$"
-#define SL3_MAGIC_LENGTH    (sizeof(SL3_MAGIC) - 1)
-
-static struct fmt_tests tests[] = {
-	{"$sl3$35831503698405$d8f6b336a4df3336bf7de58a38b1189f6c5ce1e8", "621888462499899"},
-	{NULL, "123456789012345", {"112233445566778", "545fabcb0af7d923a56431c9131bfa644c408b47"}},
-	{NULL}
-};
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
 static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
@@ -320,48 +295,6 @@ static void init(struct fmt_main *_self)
 	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 }
 
-/*
- * At this point in the flow we only accept the internal format of
- * "$sl3$<imei>$<hash>".  Only lower-case hex is allowed.
- */
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	int i;
-
-	if (strncmp(ciphertext, SL3_MAGIC, SL3_MAGIC_LENGTH))
-		return 0;
-	ciphertext += SL3_MAGIC_LENGTH;
-
-	for (i = 0; i < 14; i++)
-		if (ciphertext[i] < '0' || ciphertext[i] > '9')
-			return 0;
-	ciphertext += 14;
-	if (*ciphertext++ != '$')
-		return 0;
-	for (i = 0; i < 2 * BINARY_SIZE; i++)
-		if (!((ciphertext[i] >= '0' && ciphertext[i] <= '9') ||
-		      (ciphertext[i] >= 'a' && ciphertext[i] <= 'f')))
-			return 0;
-	return 1;
-}
-
-/* get_salt() adds the surrounding nulls. */
-static void *get_salt(char *ciphertext)
-{
-	static char *out;
-
-	if (!out)
-		out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
-
-	ciphertext += SL3_MAGIC_LENGTH;
-	memset(out, 0, SALT_SIZE);
-
-	base64_convert(ciphertext, e_b64_hex, 14, out + 1,
-	               e_b64_raw, 7, 0, 0);
-
-	return out;
-}
-
 static void set_salt(void *salt) {
 	static char applebug[SALT_SIZE];
 
@@ -383,11 +316,6 @@ static void *get_binary(char *ciphertext) {
 	               out, e_b64_raw, BINARY_SIZE, 0, 0);
 
 	return (void*)out;
-}
-
-static int salt_hash(void *salt)
-{
-	return *(unsigned int*)salt & (SALT_HASH_SIZE - 1);
 }
 
 static int get_hash_0(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_0; }
@@ -879,6 +807,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (tune_gws) {
 		create_clobj_kpc(pcount);
 		set_kernel_args_kpc();
+		clear_keys();
 		for (i = 0; i < pcount; i++)
 			set_key(key, i);
 		gettimeofday(&startc, NULL);
@@ -1008,13 +937,16 @@ static void reset(struct db_main *db)
 		char *ciphertext;
 		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
 
-		while (tests[num_loaded_hashes].ciphertext != NULL)
+		while (sl3_tests[num_loaded_hashes].ciphertext != NULL)
 			num_loaded_hashes++;
 
 		loaded_hashes = mem_alloc(6 * sizeof(cl_uint) * num_loaded_hashes);
 
-		while (tests[i].ciphertext != NULL) {
-			ciphertext = fmt_default_split(tests[i].ciphertext, 0, &FMT_STRUCT);
+		while (sl3_tests[i].ciphertext != NULL) {
+			if (sl3_tests[i].fields[0])
+				ciphertext = sl3_prepare(sl3_tests[i].fields, self);
+			else
+				ciphertext = sl3_tests[i].ciphertext;
 			binary = (unsigned int*)get_binary(ciphertext);
 			loaded_hashes[6 * i] = binary[0];
 			loaded_hashes[6 * i + 1] = binary[1];
@@ -1074,16 +1006,16 @@ struct fmt_main FMT_STRUCT = {
 		FMT_REMOVE,
 		{ NULL },
 		{ SL3_MAGIC },
-		tests
+		sl3_tests
 	}, {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
-		valid,
+		sl3_prepare,
+		sl3_valid,
 		fmt_default_split,
 		get_binary,
-		get_salt,
+		sl3_get_salt,
 		{ NULL },
 		fmt_default_source,
 		{
@@ -1095,7 +1027,7 @@ struct fmt_main FMT_STRUCT = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		salt_hash,
+		sl3_salt_hash,
 		NULL,
 		set_salt,
 		set_key,
