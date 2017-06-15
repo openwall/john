@@ -10,7 +10,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * improved dection, added iteration count and handle v2 hashes, Feb, 2015, JimF.
+ * Improved detection, added iteration count and handle v2 hashes, Feb, 2015, JimF.
  */
 
 #ifdef HAVE_OPENCL
