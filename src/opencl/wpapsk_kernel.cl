@@ -179,7 +179,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
 
-	// HMAC(EVP_sha1(), key, 32, (text.data), 100, ret, NULL);
+	// HMAC(sha1(), key, 32, (text.data), 100, ret, NULL);
 
 	/* ipad */
 	for (i = 0; i < 8; i++)
@@ -249,7 +249,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 
 	prf_512(outbuffer, salt->data, prf);
 
-	// HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
+	// HMAC(md5(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
 	// eapol is the message (eapol_size blocks, already prepared with 0x80 and len)
 	for (i = 0; i < 4; i++)
@@ -346,7 +346,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 
 	prf_512(outbuffer, salt->data, prf);
 
-	// HMAC(EVP_sha1(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
+	// HMAC(sha1(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
 	// eapol is the message (eapol_size bytes)
 	for (i = 0; i < 4; i++)

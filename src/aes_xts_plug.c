@@ -12,7 +12,7 @@
  * I could get my hands on.  However, 'mostly' we do a single limb AES-XTS which
  * is just 2 AES, and the buffers xored (before and after). There is no mulmod
  * GF(2) logic done in that case.   NOTE, there was NO noticeable change in
- * speed, from using original oSSL EVP_AES_256_XTS vs this code, so this code
+ * speed, from using original oSSL AES_256_XTS vs this code, so this code
  * is deemed 'good enough' for usage in this location.
  *
  * This was also used in vdi_fmt, so the code was pulled out of those files,
@@ -95,4 +95,3 @@ void AES_XTS_decrypt_custom_tweak(const unsigned char *double_key, unsigned
 		out += 16;
 	}
 }
-

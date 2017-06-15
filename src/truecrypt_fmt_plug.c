@@ -22,7 +22,7 @@
  * and we test against the 'TRUE' signature, and against 2 crc32's which
  * are computed over the 448 bytes of decrypted data.  So we now have a
  * full 96 bits of hash.  There will be no way we get false positives from
- * this slow format. EVP_AES_XTS removed. Also, we now only pbkdf2 over
+ * this slow format. AES_XTS removed. Also, we now only pbkdf2 over
  * 64 bytes of data (all that is needed for the 2 AES keys), and that sped
  * up the crypts A LOT (~3x faster)
  *

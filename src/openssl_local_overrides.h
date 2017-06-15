@@ -12,5 +12,3 @@
 
 /* #define HAVE_NO_SSL_WHIRLPOOL		1 */
 /* #define FORCE_GENERIC_SHA2			1 */
-/* #define HAVE_NO_SSL_EVP_aes			1 */
-

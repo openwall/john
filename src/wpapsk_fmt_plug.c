@@ -7,8 +7,7 @@
  * Code is based on  Aircrack-ng source
  *
  * SSE2 code enhancement, Jim Fougeron, Jan, 2013.
- *   Also removed oSSL code: HMAC(EVP_sha1(), ....), and coded what it does
- * (which is simple), inline.
+ *  Also removed oSSL EVP code and coded what it does (which is simple), inline.
  */
 
 #if FMT_EXTERNS_H
@@ -177,9 +176,6 @@ static MAYBE_INLINE void wpapsk_cpu(int count,
 		SHA1_Update(&ctx_opad, buffer.c, 64);
 
 		essid[slen - 1] = 1;
-//		HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen, outbuf.c, NULL);
-		// This code does the HMAC(EVP_....) call.  NOTE, we already have essid
-		// appended with BE((int)1) so we simply call a single SHA1_Update
 		memcpy(&sha1_ctx, &ctx_ipad, sizeof(sha1_ctx));
 		SHA1_Update(&sha1_ctx, essid, slen);
 		SHA1_Final(outbuf.c, &sha1_ctx);
@@ -199,9 +195,6 @@ static MAYBE_INLINE void wpapsk_cpu(int count,
 		}
 		essid[slen - 1] = 2;
 
-//		HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen, &outbuf.c[20], NULL);
-		// This code does the HMAC(EVP_....) call.  NOTE, we already have essid
-		// appended with BE((int)1) so we simply call a single SHA1_Update
 		memcpy(&sha1_ctx, &ctx_ipad, sizeof(sha1_ctx));
 		SHA1_Update(&sha1_ctx, essid, slen);
 		SHA1_Final(&outbuf.c[20], &sha1_ctx);
@@ -293,9 +286,6 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			i2[(j/SIMD_COEF_32)*SIMD_COEF_32*5+(j&(SIMD_COEF_32-1))+4*SIMD_COEF_32] = ctx_opad[j].h4;
 
 			essid[slen - 1] = 1;
-//			HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen, outbuf.c, NULL);
-			// This code does the HMAC(EVP_....) call.  NOTE, we already have essid
-			// appended with BE((int)1) so we simply call a single SHA1_Update
 			memcpy(&sha1_ctx, &ctx_ipad[j], sizeof(sha1_ctx));
 			SHA1_Update(&sha1_ctx, essid, slen);
 			SHA1_Final(outbuf[j].c, &sha1_ctx);
@@ -326,9 +316,6 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 		essid[slen - 1] = 2;
 
 		for (j = 0; j < NBKEYS; ++j) {
-//			HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen, &outbuf.c[20], NULL);
-			// This code does the HMAC(EVP_....) call.  NOTE, we already have essid
-			// appended with BE((int)1) so we simply call a single SHA1_Update
 			memcpy(&sha1_ctx, &ctx_ipad[j], sizeof(sha1_ctx));
 			SHA1_Update(&sha1_ctx, essid, slen);
 			SHA1_Final(&outbuf[j].c[20], &sha1_ctx);

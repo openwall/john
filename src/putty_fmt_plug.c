@@ -341,7 +341,6 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 			SHA_CTX s;
 			unsigned char mackey[20];
 			unsigned int length = 20;
-			// HMAC_CTX ctx;
 			char header[] = "putty-private-key-file-mac-key";
 			SHA1_Init(&s);
 			SHA1_Update(&s, header, sizeof(header)-1);
@@ -349,10 +348,6 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 				SHA1_Update(&s, passphrase, passlen);
 			SHA1_Final(mackey, &s);
 			hmac_sha1(mackey, 20, macdata, maclen, binary, length);
-			/* HMAC_Init(&ctx, mackey, 20, EVP_sha1());
-			 * HMAC_Update(&ctx, macdata, maclen);
-			 * HMAC_Final(&ctx, binary, &length);
-			 * HMAC_CTX_cleanup(&ctx); */
 		} else {
 			SHA_Simple(macdata, maclen, binary);
 		}

@@ -652,7 +652,6 @@ PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
 OPENMP_CFLAGS
-HAVE_BIO_NEW
 PCAP_LIBS
 HAVE_PCAP
 MEMDBG_CFLAGS
@@ -10639,7 +10638,7 @@ if test "$with_commoncrypto" = yes; then :
 $as_echo "#define HAVE_SHA256 1" >>confdefs.h
 
 fi
-for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL RIPEMD160 AES_encrypt EVP_sha512 BIO_new
+for ac_func in SHA256 WHIRLPOOL RIPEMD160 AES_encrypt
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -10653,11 +10652,6 @@ done
 
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
-
-if test "x$ac_cv_func_BIO_new" = xyes ; then
-	HAVE_BIO_NEW=-DHAVE_BIO_NEW
-
-fi
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
