@@ -185,48 +185,40 @@ static void set_salt(void *salt) {
 	salt_buffer = (unsigned char*)p;
 }
 
-static void *get_salt(char *_ciphertext)
+static void *get_salt(char *ciphertext)
 {
-	unsigned char *ciphertext = (unsigned char *)_ciphertext;
 	static UTF16 out[130+1];
 	unsigned char input[MAX_SALT_LEN*3+1];
-	int iterations, utf16len, md4_size;
+	int i, iterations, utf16len;
+	char *lasth = strrchr(ciphertext, '#');
 
 	memset(out, 0, sizeof(out));
 
-	ciphertext += FORMAT_TAG2_LEN;
+	sscanf(&ciphertext[6], "%d", &iterations);
+	ciphertext = strchr(ciphertext, '#') + 1;
 
-	while (*ciphertext && *ciphertext != '#') ++ciphertext;
-	++ciphertext;
-	for (md4_size=0;md4_size<sizeof(input)-1;md4_size++) {
-		if (ciphertext[md4_size] == '#')
-			break;
-		input[md4_size] = ciphertext[md4_size];
-	}
-	input[md4_size] = 0;
+	for (i = 0; &ciphertext[i] < lasth; i++)
+		input[i] = (unsigned char)ciphertext[i];
+	input[i] = 0;
 
-	utf16len = enc_to_utf16(&out[2], MAX_SALT_LEN, input, md4_size);
+	utf16len = enc_to_utf16(&out[2], MAX_SALT_LEN, input, i);
 	if (utf16len < 0)
 		utf16len = strlen16(&out[2]);
 	out[0] = utf16len << 1;
-	sscanf(&_ciphertext[6], "%d", &iterations);
 	out[1] = iterations;
 	return out;
 }
 
-
 static void *get_binary(char *ciphertext)
 {
 	static unsigned int out[BINARY_SIZE / sizeof(unsigned int)];
-	unsigned int i = 0;
+	unsigned int i;
 	unsigned int temp;
 
-	for (; ciphertext[0] != '#'; ciphertext++);
-	ciphertext++;
-	for (; ciphertext[0] != '#'; ciphertext++);
-	ciphertext++;
+	/* We need to allow salt containing '#' so we search backwards */
+	ciphertext = strrchr(ciphertext, '#') + 1;
 
-	for (; i < 4 ;i++)
+	for (i = 0; i < 4 ;i++)
 	{
 #if ARCH_LITTLE_ENDIAN
 		temp  = ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i * 8 + 0])])) << 4;
