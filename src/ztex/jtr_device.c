@@ -47,7 +47,7 @@ struct jtr_device *jtr_device_new(
 	jtr_device_list->device = self;
 	self->device = device;
 	self->comm = comm;
-	
+
 	self->cmp_config_id = -1;
 	self->task_id_next = 1;
 
@@ -59,7 +59,7 @@ struct jtr_device_list *jtr_device_list_new(struct device_list *device_list)
 {
 	struct jtr_device_list *self = mem_alloc(sizeof(struct jtr_device_list));
 	self->device = NULL;
-	
+
 	// Create 1 JtR device for each fpga
 	struct device *device;
 	for (device = device_list->device; device; device = device->next) {
@@ -69,12 +69,11 @@ struct jtr_device_list *jtr_device_list_new(struct device_list *device_list)
 		int i;
 		for (i = 0; i < device->num_of_fpgas; i++) {
 			struct fpga *fpga = &device->fpga[i];
-			//struct jtr_device *jtr_device = 
 			jtr_device_new(self, device, fpga->comm);
 			//printf("jtr_device_new(%d,%d,%d)\n",self, device, fpga->comm);
 		}
 	}
-	
+
 	return self;
 }
 
@@ -93,7 +92,7 @@ struct jtr_device_list *jtr_device_list;
 struct jtr_device_list *jtr_device_list_init()
 {
 	int result;
-	
+
 	if (!libusb_initialized) {
 		result = libusb_init(NULL);
 		if (result < 0) {
@@ -109,9 +108,9 @@ struct jtr_device_list *jtr_device_list_init()
 	// devices aren't initialized
 	if (!device_list) {
 		device_list = device_init_scan(jtr_bitstream);
-		
+
 		int device_count = device_list_count(device_list);
-		
+
 		if (device_count) {
 			fprintf(stderr, "%d device(s) ZTEX 1.15y ready\n", device_count);
 			ztex_dev_list_print(device_list->ztex_dev_list);
@@ -143,12 +142,12 @@ int jtr_device_list_count()
 {
 	if (!jtr_device_list)
 		return 0;
-	
+
 	int count = 0;
 	struct jtr_device *dev;
 	for (dev = jtr_device_list->device; dev; dev = dev->next)
 		count++;
-	
+
 	return count;
 }
 
@@ -161,7 +160,7 @@ void jtr_device_list_merge(
 		fprintf(stderr, "jtr_device_list_merge: invalid args\n");
 		exit(-1);
 	}
-	
+
 	struct jtr_device *dev, *dev_next;
 	for (dev = jtr_device_list_1->device; dev; dev = dev_next) {
 		dev_next = dev->next;
@@ -178,13 +177,13 @@ void jtr_device_delete(
 {
 	if (!jtr_device_list->device)
 		return;
-		
+
 	if (jtr_device_list->device == jtr_device) {
 		jtr_device_list->device = jtr_device->next;
 		MEM_FREE(jtr_device);
 		return;
 	}
-	
+
 	struct jtr_device *dev;
 	for (dev = jtr_device_list->device; dev; dev = dev->next) {
 		if (dev->next == jtr_device) {
@@ -226,9 +225,10 @@ int jtr_device_list_rw(struct task_list *task_list)
 		device_list_merge(device_list, device_list_1);
 	}
 	else {
+		free(device_list_1->ztex_dev_list);
 		free(device_list_1);
 	}
-	
+
 	int data_transfer = 0;
 	int device_count = 0;
 	struct device *device;
@@ -243,7 +243,7 @@ int jtr_device_list_rw(struct task_list *task_list)
 			device_count ++;
 			continue;
 		}
-		
+
 		fprintf(stderr, "SN %s error %d doing r/w of FPGAs (%s)\n",
 			device->ztex_device->snString, result, libusb_error_name(result) );
 
@@ -251,7 +251,7 @@ int jtr_device_list_rw(struct task_list *task_list)
 		device_stop(device, task_list, NULL);
 
 	} // for (device_list)
-	
+
 	return !device_count ? -1 : data_transfer;
 }
 
@@ -274,11 +274,11 @@ int device_stop(
 		num_deassigned += tasks_deassign(task_list, jtr_dev);
 		jtr_device_delete(jtr_device_list, jtr_dev);
 	}
-	
+
 	if (error_msg)
 		fprintf(stderr, "SN %s: %s\n",
 				device->ztex_device->snString, error_msg);
-	
+
 	// Device is excluded from operation, becomes subject for device_*_scan().
 	// TODO: maybe perform hardware reset?
 	//
@@ -294,7 +294,7 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 	struct jtr_device *dev;
 	for (dev = jtr_device_list->device; dev; dev = dev->next) {
 		//int do_break = 0;
-	
+
 		// Fetch input packets from pkt_comm_queue
 		struct pkt *inpkt;
 		while ( (inpkt = pkt_queue_fetch(dev->comm->input_queue) ) ) {
@@ -313,10 +313,10 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 				pkt_delete(inpkt);
 				continue;
 			}
-			
+
 			// Comparator found equality
 			if (inpkt->type == PKT_TYPE_CMP_EQUAL) {
-				
+
 				struct pkt_equal *pkt_equal = pkt_equal_new(inpkt);
 				if (pkt_equal->word_id >= task->num_keys) {
 					fprintf(stderr, "CMP_EQUAL: word_id=%d, num_keys=%d\n",
@@ -330,7 +330,7 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 					fprintf(stderr, "CMP_EQUAL: hash_num=%d, num_hashes=%d\n",
 							pkt_equal->hash_num, cmp_config.num_hashes);
 				}
-				
+
 				//fprintf(stderr,"equality w:%d g:%lu h:%d\n", pkt_equal->word_id,
 				//		pkt_equal->gen_id, pkt_equal->hash_num);
 				task_result_new(task, task->keys
@@ -341,11 +341,11 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 					cmp_config.pw[pkt_equal->hash_num]);
 
 				free(pkt_equal);
-			
+
 			// Processing of an input packet done
-			// (task processing is complete) 	
+			// (task processing is complete)
 			} else if (inpkt->type == PKT_TYPE_PROCESSING_DONE) {
-				
+
 				struct pkt_done *pkt_done = pkt_done_new(inpkt);
 				if (pkt_done->num_processed
 						!= task->num_keys * mask_num_cand()) {
@@ -355,9 +355,9 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 				}
 				task->status = TASK_COMPLETE;
 				task_update_mtime(task);
-				
+
 				free(pkt_done);
-			
+
 			} else {
 				fprintf(stderr, "Unknown packet type=0x%02x len=%d\n",
 						inpkt->type, inpkt->data_len);
@@ -365,11 +365,11 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 				break;
 			}
 		}
-	
+
 		//if (do_break)
 		//	break;
 	} // for (jtr_device_list)
-	
+
 }
 
 
