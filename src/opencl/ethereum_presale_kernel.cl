@@ -1,6 +1,6 @@
 /*
- * This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>,
- * Copyright 2014 magnum, Copyright 2017 Dhiru Kholia, and it is hereby
+ * This software is Copyright 2013 Lukas Odzioba, Copyright 2014 magnum,
+ * Copyright 2017 Dhiru Kholia, Copyright 2017 Frederic Heem, and it is hereby
  * released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -10,15 +10,33 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
+#define OCL_AES_CBC_DECRYPT 1
+#define AES_KEY_TYPE __global
+#define AES_SRC_TYPE __constant
+#include "opencl_aes.h"
+#include "opencl_keccak.h"
 
+// input
 typedef struct {
-	uchar length;
-	uchar v[PLAINTEXT_LENGTH];
+	uint8_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } pass_t;
 
+// internal
 typedef struct {
-	uint hash[8]; /** 256 bits **/
+	uint32_t hash[8];
 } crack_t;
+
+// output
+typedef struct {
+	uint8_t hash[16];
+} hash_t;
+
+// input
+typedef struct {
+	uint8_t encseed[1024];
+	uint32_t eslen;
+} salt_t;
 
 typedef struct {
 	uint ipad[8];
@@ -279,5 +297,37 @@ __kernel void pbkdf2_sha256_kernel(__global const pass_t *inbuffer,
 		state[idx].opad[i] = opad_state[i];
 		state[idx].hash[i] = tmp_out[i];
 		state[idx].W[i] = tmp_out[i];
+	}
+}
+
+__kernel void ethereum_presale_process(__constant salt_t *salt,
+                           __global crack_t *out,
+                           __global hash_t *hash_out)
+{
+	uint32_t gid = get_global_id(0);
+	AES_KEY akey;
+	uchar iv[16];
+	int i;
+	uchar seed[1024 + 1];
+	uchar hash[32];
+	int padbyte;
+	int seed_length;
+
+	seed[0] = 0;
+	for (i = 0; i < 16; i++) {
+		iv[i] = salt->encseed[i];
+	}
+
+	AES_set_decrypt_key((__global uchar*)out[gid].hash, 128, &akey);
+	AES_cbc_decrypt(salt->encseed + 16, seed, salt->eslen - 16, &akey, iv);
+	padbyte = seed[salt->eslen - 16 - 1];
+	seed_length = salt->eslen - 16 - padbyte;
+	if (seed_length < 0)
+		seed_length = 0;
+	seed[seed_length] = 0x02; // add 0x02 to the buffer
+	keccak_256(hash, 16, seed, seed_length + 1);
+
+	for (i = 0; i < 16; i++) {
+		hash_out[gid].hash[i] = hash[i];
 	}
 }

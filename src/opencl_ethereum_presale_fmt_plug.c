@@ -1,7 +1,7 @@
 /*
- * This software is Copyright (c) 2017 Dhiru Kholia <kholia at kth.se> and
- * Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net> and it is
- * hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2017 Dhiru Kholia, Copyright (c) 2017
+ * Frederic Heem, Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>,
+ * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -26,8 +26,6 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #include "formats.h"
 #include "options.h"
 #include "common-opencl.h"
-#include "KeccakHash.h"
-#include "aes.h"
 
 #define FORMAT_NAME             "Ethereum Presale Wallet"
 #define FORMAT_LABEL            "ethereum-presale-opencl"
@@ -42,6 +40,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
+#define PRESALE_KERNEL_NAME     "ethereum_presale_process"
 
 #define HASH_LOOPS              (13*71) // factors 13, 13, 71
 #define ITERATIONS              12000
@@ -55,14 +54,27 @@ struct fmt_tests opencl_ethereum_presale_tests[] = {
 	{NULL}
 };
 
+// input
 typedef struct {
 	uint8_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
 } pass_t;
 
+// input
+typedef struct {
+	uint8_t encseed[1024];
+	uint32_t eslen;
+} salt_t;
+
+// internal
 typedef struct {
 	uint32_t hash[8];
 } crack_t;
+
+// output
+typedef struct {
+    uint8_t hash[16];
+} hash_t;
 
 typedef struct {
 	uint32_t ipad[8];
@@ -72,21 +84,23 @@ typedef struct {
 	uint32_t rounds;
 } state_t;
 
-static pass_t *host_pass;			      /** plain ciphertexts **/
-static crack_t *host_crack;			      /** hash**/
+static pass_t *host_pass;
+static salt_t *host_salt;
+static hash_t *hash_out;
+static unsigned hash_size;
 static cl_int cl_error;
-static cl_mem mem_in, mem_out, mem_state;
-static cl_kernel split_kernel;
+static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_hash;
+static cl_kernel split_kernel, decrypt_kernel;
 static struct fmt_main *self;
 
 static custom_salt *cur_salt;
-static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 #define STEP			0
 #define SEED			1024
 
 static const char *warn[] = {
-        "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
+        "xfer: ",  ", init: " , ", crypt: ", ", decrypt: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -109,21 +123,31 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
-	host_crack = mem_calloc(kpc, sizeof(crack_t));
 	crypt_out = mem_calloc(kpc, sizeof(*crypt_out));
+	host_salt = mem_calloc(1, sizeof(salt_t));
+	hash_size = kpc * sizeof(hash_t);
+	hash_out = mem_calloc(hash_size, 1);
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
 	                        "Cannot allocate mem in");
+	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(salt_t),
+	                          "Cannot allocate mem salt");
 	mem_out = CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t),
 	                         "Cannot allocate mem out");
 	mem_state = CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
 	                           "Cannot allocate mem state");
+	mem_hash = CLCREATEBUFFER(CL_RW, hash_size,
+	                           "Cannot allocate mem hash");
 
 	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
 	CLKERNELARG(crypt_kernel, 1, mem_state, "Error while setting mem_state");
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
-	CLKERNELARG(split_kernel, 1 ,mem_out, "Error while setting mem_out");
+	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
+
+	CLKERNELARG(decrypt_kernel, 0, mem_salt, "Error while setting mem_salt");
+	CLKERNELARG(decrypt_kernel, 1, mem_out, "Error while setting mem_out");
+	CLKERNELARG(decrypt_kernel, 2, mem_hash, "Error setting mem_hash");
 }
 
 /* ------- Helper functions ------- */
@@ -138,13 +162,15 @@ static size_t get_task_max_work_group_size()
 
 static void release_clobj(void)
 {
-	if (host_crack) {
+	if (host_salt) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_hash), "Release mem hash");
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 
 		MEM_FREE(host_pass);
-		MEM_FREE(host_crack);
+		MEM_FREE(host_salt);
 		MEM_FREE(crypt_out);
 	}
 }
@@ -174,6 +200,10 @@ static void reset(struct db_main *db)
 			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
+		decrypt_kernel =
+			clCreateKernel(program[gpu_id], PRESALE_KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating decrypt kernel");
+
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       2, self, create_clobj, release_clobj,
@@ -192,6 +222,7 @@ static void done(void)
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
 		HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
+		HANDLE_CLERROR(clReleaseKernel(decrypt_kernel), "Release kernel 3");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
 
@@ -218,7 +249,7 @@ static int ethereum_valid(char *ciphertext, struct fmt_main *self)
 	if (*p == 'w') {
 		if ((p = strtokm(NULL, "*")) == NULL)   // encseed
 			goto err;
-		if (hexlenl(p, &extra) >= 2048 * 2 || extra)
+		if (hexlenl(p, &extra) >= 1024 * 2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)   // ethaddr
 			goto err;
@@ -241,9 +272,14 @@ err:
 static void set_salt(void *salt)
 {
 	cur_salt = (custom_salt*)salt;
-}
 
-static unsigned char *dpad = (unsigned char*)"\x02\x00\x00\x00\x00\x00\x00\x00";
+	memcpy(host_salt->encseed, cur_salt->encseed, cur_salt->eslen);
+	host_salt->eslen = cur_salt->eslen;
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
+		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
+	    "Copy salt to gpu");
+}
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -271,40 +307,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		opencl_process_event();
 	}
 
+	// Run decrypt kernel
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], decrypt_kernel,
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run kernel");
+
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
-		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
-		NULL, multi_profilingEvent[3]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_hash,
+		CL_TRUE, 0, hash_size, hash_out, 0,
+		NULL, multi_profilingEvent[4]), "Copy result back");
 
 	if (!ocl_autotune_running) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 		for (index = 0; index < count; index++) {
-			AES_KEY akey;
-			Keccak_HashInstance hash;
-			unsigned char iv[16];
-			unsigned char seed[4096];
-			int padbyte;
-			int datalen;
-
-			AES_set_decrypt_key((unsigned char*)host_crack[index].hash, 128, &akey);
-			memcpy(iv, cur_salt->encseed, 16);
-			AES_cbc_encrypt(cur_salt->encseed + 16, seed, cur_salt->eslen - 16, &akey, iv, AES_DECRYPT);
-			if (check_pkcs_pad(seed, cur_salt->eslen - 16, 16) < 0) {
-				memset(crypt_out[index], 0, BINARY_SIZE);
-				continue;
-			}
-			padbyte = seed[cur_salt->eslen - 16 - 1];
-			datalen = cur_salt->eslen - 16 - padbyte;
-			if (datalen < 0) {
-				memset(crypt_out[index], 0, BINARY_SIZE);
-				continue;
-			}
-			Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01);
-			Keccak_HashUpdate(&hash, seed, datalen * 8);
-			Keccak_HashUpdate(&hash, dpad, 1 * 8);
-			Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index]);
+			memcpy(crypt_out[index], hash_out[index].hash, BINARY_SIZE);
 		}
 	}
 
