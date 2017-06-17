@@ -330,29 +330,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 
-inline static int get_hash(int index)
-{
-	int out;
-	struct task_result *result = task_result_by_index(task_list, index);
-	if (!result || !result->binary) {
-		fprintf(stderr,"get_hash(%d): no task_result or binary\n", index);
-		error();
-	}
-	out = *(uint64_t *)result->binary;
-	//fprintf(stderr,"get_hash(%d): %08x\n",index,out);
-	return out;
-}
-
-
-static int get_hash_0(int index) { return get_hash(index) & PH_MASK_0; }
-static int get_hash_1(int index) { return get_hash(index) & PH_MASK_1; }
-static int get_hash_2(int index) { return get_hash(index) & PH_MASK_2; }
-static int get_hash_3(int index) { return get_hash(index) & PH_MASK_3; }
-static int get_hash_4(int index) { return get_hash(index) & PH_MASK_4; }
-static int get_hash_5(int index) { return get_hash(index) & PH_MASK_5; }
-static int get_hash_6(int index) { return get_hash(index) & PH_MASK_6; }
-
-
 static int cmp_one(void *binary, int index)
 {
 	struct task_result *result = task_result_by_index(task_list, index);
@@ -425,13 +402,13 @@ struct fmt_main fmt_ztex_descrypt = {
 		fmt_default_clear_keys,
 		crypt_all, //device_format_crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			device_format_get_hash_0,
+			device_format_get_hash_1,
+			device_format_get_hash_2,
+			device_format_get_hash_3,
+			device_format_get_hash_4,
+			device_format_get_hash_5,
+			device_format_get_hash_6
 		},
 		device_format_cmp_all,
 		cmp_one, //device_format_cmp_one,

@@ -323,7 +323,7 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 							pkt_equal->word_id, task->num_keys);
 				}
 				if (pkt_equal->gen_id >= mask_num_cand()) {
-					fprintf(stderr, "CMP_EQUAL: gen_id=%lu, mask_num_cand=%d\n",
+					fprintf(stderr, "CMP_EQUAL: gen_id=%u, mask_num_cand=%d\n",
 							pkt_equal->gen_id, mask_num_cand());
 				}
 				if (pkt_equal->hash_num >= cmp_config.num_hashes) {
@@ -349,7 +349,7 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 				struct pkt_done *pkt_done = pkt_done_new(inpkt);
 				if (pkt_done->num_processed
 						!= task->num_keys * mask_num_cand()) {
-					fprintf(stderr, "PROCESSING_DONE: keys=%d, %lu/%u\n",
+					fprintf(stderr, "PROCESSING_DONE: keys=%d, %u/%u\n",
 							task->num_keys, pkt_done->num_processed,
 							task->num_keys * mask_num_cand());
 				}

@@ -28,7 +28,7 @@ extern struct fmt_params *jtr_fmt_params;
 
 extern struct device_bitstream *jtr_bitstream;
 
-struct cmp_config cmp_config = { 
+struct cmp_config cmp_config = {
 	-1 // using sequential_id's that start from 0
 };
 
@@ -37,10 +37,10 @@ static int memcmp_reverse(const void *a, const void *b, size_t n)
 {
 	if (!n)
 		return 0;
-		
+
 	const unsigned char *a_ptr = (const unsigned char *)a + n - 1;
 	const unsigned char *b_ptr = (const unsigned char *)b + n - 1;
-	
+
 	while (n > 0) {
 		if (*a_ptr != *b_ptr)
 			return *a_ptr - *b_ptr;
@@ -68,22 +68,27 @@ void cmp_config_new(struct db_salt *salt)
 	//	fprintf(stderr, "cmp_config_new: malloc()\n");
 	//	exit(-1);
 	//}
+	static int warning_num_hashes = 0;
 	int num_hashes = salt->count;
 	if (num_hashes > jtr_bitstream->cmp_entries_max) {
 		num_hashes = jtr_bitstream->cmp_entries_max;
-		fprintf(stderr, "Warning: salt with %d hashes, device supports max. %d hashes/salt, extra hashes ignored\n",
+		if (!warning_num_hashes) {
+			fprintf(stderr, "Warning: salt with %d hashes, device supports"
+				"max. %d hashes/salt, extra hashes ignored\n",
 				salt->count, jtr_bitstream->cmp_entries_max);
+			warning_num_hashes = 1;
+		}
 	}
 
 	if (!num_hashes) {
 		fprintf(stderr, "cmp_config_new: num_hashes == 0\n");
 		exit(-1);
 	}
-	
+
 	if (!cmp_config.pw || cmp_config.num_hashes_max < num_hashes) {
 		if (cmp_config.pw)
 			free(cmp_config.pw);
-			
+
 		int size = num_hashes * sizeof(struct db_password *);
 		cmp_config.pw = malloc(size);
 		if (!cmp_config.pw) {
@@ -92,23 +97,26 @@ void cmp_config_new(struct db_salt *salt)
 		}
 		cmp_config.num_hashes_max = num_hashes;
 	}
-	
+
 	cmp_config.id = salt->sequential_id;
 	cmp_config.salt = salt->salt;
-	cmp_config.num_hashes = num_hashes;
-	
+	cmp_config.num_hashes = 0;
+
 	int offset = 0;
 	struct db_password *pw;
 	for (pw = salt->list; pw; pw = pw->next) {
-		// FMT_REMOVE
+		// FMT_REMOVE issue.
+		// pw->binary is excluded from the list and(or) NULL'ed
+		// on any successful guess, regardless of FMT_REMOVE flag.
 		if (!pw->binary)
 			continue;
 		cmp_config.pw[offset++] = pw;
+		cmp_config.num_hashes ++;
 	}
 
 	if (cmp_config.num_hashes == 1)
 		return;
-		
+
 	// sort hashes in ascending order
 	qsort(cmp_config.pw, cmp_config.num_hashes,
 			sizeof(struct db_password *), compare_binaries);
@@ -119,7 +127,7 @@ struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config)
 {
 	int binary_size = jtr_fmt_params->binary_size;
 	int salt_size = jtr_fmt_params->salt_size;
-	
+
 	int size = 3 + salt_size + cmp_config->num_hashes * binary_size;
 	char *data = malloc(size);
 	if (!data) {
@@ -140,7 +148,7 @@ struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config)
 				cmp_config->num_hashes);
 		return NULL;
 	}
-	
+
 	// PKT_TYPE_CMP_CONFIG. After salt - num_hashes (2 bytes).
 	data[offset++] = cmp_config->num_hashes;
 	data[offset++] = cmp_config->num_hashes >> 8;
@@ -154,7 +162,7 @@ struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config)
 
 	// PKT_TYPE_CMP_CONFIG. 0xCC is the last byte in the packet.
 	data[offset++] = 0xCC;
-	
+
 	struct pkt *pkt = pkt_new(PKT_TYPE_CMP_CONFIG, data, offset);
 	/*
 	for (i=0; i < offset; i++) {
