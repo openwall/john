@@ -43,7 +43,7 @@ john_register_one(&fmt_multibit);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        -1001
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -201,6 +201,21 @@ static int is_bitcoinj_protobuf_data(unsigned char *block)
 	return 0;
 }
 
+static int is_base58(unsigned char *buffer, int length)
+{
+	unsigned char c;
+	int i;
+
+	for (i = 0; i < length; i++) {
+		c = buffer[i];
+		if ((c > 'z') || (c < '1') || ((c > '9') && (c < 'A')) || ((c > 'Z') && (c < 'a'))) {
+			return 0;
+		}
+	}
+
+	return 1; // success
+}
+
 static const unsigned char *salt_hardcoded = (unsigned char*)"\x35\x51\x03\x80\x75\xa3\xb0\xc5";
 static const unsigned char *iv_hardcoded = (unsigned char*)"\xa3\x44\x39\x1f\x53\x83\x11\xb3\x29\x54\x86\x16\xc4\x89\x72\x3e";
 
@@ -220,7 +235,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char key[32];
 		unsigned char outbuf[32 + 1];
 		AES_KEY aes_decrypt_key;
-		int i;
 
 		if (cur_salt->type == 1) {
 			unsigned char c;
@@ -244,22 +258,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Update(&ctx, cur_salt->salt, 8);
 			MD5_Final(iv, &ctx);
 			outbuf[16] = 0; // NULL terminate
-			AES_set_decrypt_key(key, 128 * 2, &aes_decrypt_key);
-			AES_cbc_encrypt(cur_salt->block, outbuf, 32, &aes_decrypt_key, iv, AES_DECRYPT);
+			AES_set_decrypt_key(key, 256, &aes_decrypt_key);
+			AES_cbc_encrypt(cur_salt->block, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
 			c = outbuf[0];
 			if (c == 'L' || c == 'K' || c == '5' || c == 'Q' || c == '\x0a' || c == '#') {
 				// Does it look like a base58 private key (MultiBit, MultiDoge, or oldest-format Android key backup)? (btcrecover)
 				if (c == 'L' || c == 'K' || c == '5' || c == 'Q') {
 					// check if bytes are in base58 set [1-9A-HJ-NP-Za-km-z]
-					for (i = 1; i < 32; i++) {
-						c = outbuf[i];
-						if ((c > 'z') || (c < '1') || ((c > '9') && (c < 'A')) || ((c > 'Z') && (c < 'a'))) {
+					if (is_base58(outbuf + 1, 15)) {
+						// decrypt second block
+						AES_cbc_encrypt(cur_salt->block + 16, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+						if (is_base58(outbuf, 16))
+							cracked[index] = 1;
+						else
 							cracked[index] = 0;
-							break;
-						}
+
+					} else {
+						cracked[index] = 0;
 					}
-					if (i == 32)
-						cracked[index] = 1;
 				} else {
 					// Does it look like a bitcoinj protobuf (newest Bitcoin for Android backup)? (btcrecover)
 					if (strncmp((const char*)outbuf, "# KEEP YOUR PRIV", 8) == 0) // 8 should be enough
