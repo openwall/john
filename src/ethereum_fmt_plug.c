@@ -18,7 +18,7 @@ john_register_one(&fmt_ethereum);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               1
+#define OMP_SCALE               16 // tuned on i7-6600U
 #endif
 #endif
 
