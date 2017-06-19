@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -315,14 +315,17 @@ static void task_result_des_crypt(struct task_result *result)
 	result->binary = mem_alloc(8);
 
 	*(uint64_t *)result->binary
-			= des_crypt(cmp_config.salt, result->key);
+			= des_crypt(cmp_config.salt_ptr, result->key);
 }
 
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int result_count = device_format_crypt_all(pcount, salt);
+	int result_count;
 
+	cmp_config_new(salt, salt->salt, 2);
+
+	result_count = device_format_crypt_all(pcount, salt);
 	if (result_count)
 		task_result_execute(task_list, task_result_des_crypt);
 

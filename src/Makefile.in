@@ -119,7 +119,7 @@ JOHN_OBJS = \
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
-ZTEX_OBJS = ztex_descrypt.o
+ZTEX_OBJS = ztex_descrypt.o ztex_bcrypt.o
 
 FUZZ_OBJS = fuzz.o
 

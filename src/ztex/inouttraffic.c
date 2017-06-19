@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -104,6 +104,10 @@ struct device *device_new(struct ztex_device *ztex_device)
 		device->fpga[i].cmd_count = 0;
 		// packet-based communication
 		device->fpga[i].comm = NULL;
+
+		int j;
+		for (j = 0; j < NUM_PROGCLK_MAX; j ++)
+			device->fpga[i].freq[j] = 0;
 	}
 
 	int result;
@@ -452,7 +456,8 @@ int device_list_fpga_reset(struct device_list *device_list)
 // unlike ztex_select_fpga(), it waits for I/O timeout
 int fpga_select(struct fpga *fpga)
 {
-	int result = vendor_command(fpga->device->handle, 0x8E, fpga->num, 0, NULL, 0);
+	int result = vendor_command(fpga->device->handle, 0x8E, fpga->num,
+			0, NULL, 0);
 	fpga->cmd_count++;
 	if (DEBUG) printf("fpga_select(%d): %d\n", fpga->num, result);
 	if (result < 0) {
@@ -473,7 +478,8 @@ int fpga_select_setup_io(struct fpga *fpga)
 	fpga_status.read_limit *= OUTPUT_WORD_WIDTH;
 	if (DEBUG) {
 		struct fpga_io_state *io_state = &fpga_status.io_state;
-		printf("fpga_select_setup_io(%d): state 0x%02x 0x%02x 0x%02x - 0x%02x 0x%02x 0x%02x, limit %u\n",
+		printf("fpga_select_setup_io(%d): state 0x%02x 0x%02x 0x%02x "
+				"- 0x%02x 0x%02x 0x%02x, limit %u\n",
 			fpga->num,
 			io_state->io_state, io_state->timeout, io_state->app_status,
 			io_state->pkt_comm_status, io_state->debug2, io_state->debug3,
@@ -485,6 +491,107 @@ int fpga_select_setup_io(struct fpga *fpga)
 	fpga->rd.read_limit_valid = 1;
 	return result;
 }
+
+
+int fpga_progclk_raw(struct fpga *fpga, int clk_num,
+		int d_value, int m_value)
+{
+	if (DEBUG)
+		printf("fpga_progclk_raw(%d,%d,%d,%d)\n", fpga->num,
+			clk_num, d_value, m_value);
+
+	int result = vendor_command(fpga->device->handle, 0x93,
+			fpga->num | clk_num << 8, d_value | m_value << 8, NULL, 0);
+	if (result < 0)
+		fprintf(stderr, "fpga_progclk_raw(%d): %s\n", fpga->num,
+			libusb_error_name(result));
+	return result;
+}
+
+
+int fpga_progclk(struct fpga *fpga, int clk_num, int freq)
+{
+	if (DEBUG)
+		printf("fpga_progclk(%d,%d,%d)\n", fpga->num, clk_num, freq);
+
+	const struct {
+		int freq, m, d;
+	} freq_values[] = {
+		{135,36,81},// {,,}, {,,}, {,,}, {,,},
+		{140,35,76}, {141,38,82}, {142,35,75}, {143,32,68}, {144,37,78},
+		{145,31,65}, {146,37,77}, {147,29,60}, {148,37,76}, {149,24,49},
+		{150,31,63}, {151,39,79}, {152,39,78}, {153,39,77}, {154,32,63},
+		{155,25,49}, {156,39,76}, {157,31,60}, {158,39,75}, {159,34,65},
+		{160,30,57}, {161,36,68}, {162,32,60}, {163,37,69}, {164,34,63},
+		{165,38,70}, {166,36,66}, {167,39,71}, {168,37,67}, {169,35,63},
+		{170,33,59}, {171,36,64}, {172,39,69}, {173,37,65}, {174,36,63},
+		{175,38,66},  {177,39,67},
+		{180,29,49},  {182,39,65},
+		{185,31,51},  {187,32,52},
+		{190,35,56},  {192,36,57},
+		{195,25,39},  {197,35,54},
+		{200,27,41},  {202,38,57},
+		{205,33,49},  {207,32,47},
+		{210,38,55},  {212,39,56},
+		{215,29,41},  {217,35,49},
+		{220,21,29},  {222,27,37},
+		{225,20,27},  {227,38,51},
+		{230,31,41},  {232,29,38},
+		{235,34,44},  {237,39,50},
+		{240,30,38},  {242,39,49},
+		{245,25,31},  {247,39,48},
+		{250,37,45},  {252,34,41},
+		{255,21,25},  {257,33,39},
+		{260,35,41},  {262,31,36},
+		{265,34,39},  {267,37,42},
+		{270,32,36},  {272,34,38},
+		{275,38,42},  {277,31,34},
+		{280,35,38},  {282,39,42},
+		{285,30,32},
+		{290,21,22},
+		{295,33,34},
+		{310,39,38},
+		{330,25,23},
+		{350,23,20},
+		{0}
+	};
+
+	if (freq < freq_values[0].freq) {
+		fprintf(stderr, "fpga_progclk(%d, %d, %d): Min. allowed frequency"
+			" is %d MHz\n", fpga->num, clk_num, freq, freq_values[0].freq);
+		return -1;
+	}
+
+	int i;
+	for (i = 1; freq_values[i].freq; i++) {
+		if (freq < freq_values[i].freq)
+			break;
+	}
+
+	if (!freq_values[i].freq && freq > 1.5 * freq_values[i-1].freq) {
+		fprintf(stderr, "fpga_progclk(%d, %d, %d): Max. possible frequency"
+			" is %d MHz\n", fpga->num, clk_num, freq, freq_values[i-1].freq);
+		return -1;
+	}
+
+	int result = fpga_progclk_raw(fpga, clk_num, freq_values[i-1].d,
+			freq_values[i-1].m);
+
+	if (result < 0)
+		return result;
+	else {
+		fpga->freq[clk_num] = freq_values[i-1].freq;
+		return freq_values[i-1].freq;
+	}
+}
+
+
+// ***************************************************************
+//
+// Functions below are used by tests or obsolete.
+// For operating the board, use top-level functions from device.c
+//
+// ***************************************************************
 
 // in OUTPUT_WORD_WIDTH-byte words, default 0. It doesn't register output limit if amount is below output_limit_min
 // if output_limit_min happens to be greater than buffer size, limit_min equal to buffer size is used.

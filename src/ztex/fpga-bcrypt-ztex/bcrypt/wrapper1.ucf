@@ -1,0 +1,81 @@
+###########################################################################
+#
+# Wrapper 1 - top center
+#
+###########################################################################
+#
+# proxy 1_0 - top center, column RAMB X2
+#
+//AREA_GROUP "wrapper1_r1" RANGE=SLICE_X62Y100:SLICE_X67Y103;
+AREA_GROUP "wrapper1_r1" RANGE=SLICE_X64Y100:SLICE_X65Y103;
+INST "wrappers[1].wrapper/*_r1*" AREA_GROUP="wrapper1_r1";
+#
+AREA_GROUP "proxy1_0" RANGE=SLICE_X62Y104:SLICE_X67Y147;
+INST "wrappers[1].wrapper/proxies[0].proxy/*" AREA_GROUP="proxy1_0";
+#
+AREA_GROUP "core1_0_0" RANGE=SLICE_X44Y144:SLICE_X61Y151;
+AREA_GROUP "core1_0_0" RANGE=RAMB8_X2Y72:RAMB8_X2Y75;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[0].core/*" AREA_GROUP="core1_0_0";
+AREA_GROUP "core1_0_1" RANGE=SLICE_X44Y136:SLICE_X61Y143;
+AREA_GROUP "core1_0_1" RANGE=RAMB8_X2Y68:RAMB8_X2Y71;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[1].core/*" AREA_GROUP="core1_0_1";
+AREA_GROUP "core1_0_2" RANGE=SLICE_X44Y128:SLICE_X61Y135;
+AREA_GROUP "core1_0_2" RANGE=RAMB8_X2Y64:RAMB8_X2Y67;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[2].core/*" AREA_GROUP="core1_0_2";
+AREA_GROUP "core1_0_3" RANGE=SLICE_X44Y120:SLICE_X61Y127;
+AREA_GROUP "core1_0_3" RANGE=RAMB8_X2Y60:RAMB8_X2Y63;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[3].core/*" AREA_GROUP="core1_0_3";
+AREA_GROUP "core1_0_4" RANGE=SLICE_X44Y112:SLICE_X61Y119;
+AREA_GROUP "core1_0_4" RANGE=RAMB8_X2Y56:RAMB8_X2Y59;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[4].core/*" AREA_GROUP="core1_0_4";
+AREA_GROUP "core1_0_10" RANGE=SLICE_X44Y104:SLICE_X61Y111;
+AREA_GROUP "core1_0_10" RANGE=RAMB8_X2Y52:RAMB8_X2Y55;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[10].core/*" AREA_GROUP="core1_0_10";
+#
+# proxy 1_0 - top center, column RAMB X3
+#
+AREA_GROUP "core1_0_5" RANGE=SLICE_X68Y144:SLICE_X87Y151;
+AREA_GROUP "core1_0_5" RANGE=RAMB8_X3Y72:RAMB8_X3Y75;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[5].core/*" AREA_GROUP="core1_0_5";
+AREA_GROUP "core1_0_6" RANGE=SLICE_X68Y136:SLICE_X87Y143;
+AREA_GROUP "core1_0_6" RANGE=RAMB8_X3Y68:RAMB8_X3Y71;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[6].core/*" AREA_GROUP="core1_0_6";
+AREA_GROUP "core1_0_7" RANGE=SLICE_X68Y128:SLICE_X87Y135;
+AREA_GROUP "core1_0_7" RANGE=RAMB8_X3Y64:RAMB8_X3Y67;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[7].core/*" AREA_GROUP="core1_0_7";
+AREA_GROUP "core1_0_8" RANGE=SLICE_X68Y120:SLICE_X87Y127;
+AREA_GROUP "core1_0_8" RANGE=RAMB8_X3Y60:RAMB8_X3Y63;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[8].core/*" AREA_GROUP="core1_0_8";
+AREA_GROUP "core1_0_9" RANGE=SLICE_X68Y112:SLICE_X87Y119;
+AREA_GROUP "core1_0_9" RANGE=RAMB8_X3Y56:RAMB8_X3Y59;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[9].core/*" AREA_GROUP="core1_0_9";
+AREA_GROUP "core1_0_11" RANGE=SLICE_X68Y104:SLICE_X87Y111;
+AREA_GROUP "core1_0_11" RANGE=RAMB8_X3Y52:RAMB8_X3Y55;
+INST "wrappers[1].wrapper/proxies[0].proxy/cores[11].core/*" AREA_GROUP="core1_0_11";
+
+#
+############################################################################
+#
+# proxy 1_1 - top center, RAMB X2
+#
+AREA_GROUP "wrapper1_r2" RANGE=SLICE_X62Y148:SLICE_X67Y153;
+INST "wrappers[1].wrapper/*_r2*" AREA_GROUP="wrapper1_r2";
+#
+AREA_GROUP "proxy1_1" RANGE=SLICE_X62Y154:SLICE_X67Y175;
+INST "wrappers[1].wrapper/proxies[1].proxy/*" AREA_GROUP="proxy1_1";
+#
+AREA_GROUP "core1_1_0" RANGE=SLICE_X44Y152:SLICE_X61Y159;
+AREA_GROUP "core1_1_0" RANGE=RAMB8_X2Y76:RAMB8_X2Y79;
+INST "wrappers[1].wrapper/proxies[1].proxy/cores[0].core/*" AREA_GROUP="core1_1_0";
+#
+# proxy 1_1 - top center, column RAMB X3
+#
+AREA_GROUP "core1_1_1" RANGE=SLICE_X68Y152:SLICE_X87Y159;
+AREA_GROUP "core1_1_1" RANGE=RAMB8_X3Y76:RAMB8_X3Y79;
+INST "wrappers[1].wrapper/proxies[1].proxy/cores[1].core/*" AREA_GROUP="core1_1_1";
+AREA_GROUP "core1_1_2" RANGE=SLICE_X68Y160:SLICE_X87Y167;
+AREA_GROUP "core1_1_2" RANGE=RAMB8_X3Y80:RAMB8_X3Y83;
+INST "wrappers[1].wrapper/proxies[1].proxy/cores[2].core/*" AREA_GROUP="core1_1_2";
+AREA_GROUP "core1_1_3" RANGE=SLICE_X68Y168:SLICE_X87Y175;
+AREA_GROUP "core1_1_3" RANGE=RAMB8_X3Y84:RAMB8_X3Y87;
+INST "wrappers[1].wrapper/proxies[1].proxy/cores[3].core/*" AREA_GROUP="core1_1_3";

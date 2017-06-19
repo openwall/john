@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -118,16 +118,8 @@ void task_delete(struct task *task)
 
 
 struct task_list *task_list_create(int num_keys,
-		char *keys, unsigned char *range_info,
-		struct db_salt *salt)
+		char *keys, unsigned char *range_info)
 {
-	// Issue. While sequential_id doesn't change, the content can change
-	// (hash removed). For now, re-create and resend cmp_config every time.
-	//
-	// Comparator configuration. Global cmp_config
-	//if (cmp_config.id == -1 || cmp_config.id != salt->sequential_id)
-		cmp_config_new(salt);
-
 	struct task_list *task_list = mem_alloc(sizeof(struct task_list));
 	task_list->task = NULL;
 
@@ -278,6 +270,9 @@ void task_create_output_pkt_comm(struct task *task)
 	// TODO: check if input queues are not full
 
 	// If on-device comparator is unconfigured or its configuration changes
+	//
+	// Issue. While sequential_id doesn't change, the content can change
+	// (hash removed). For now, re-create and resend cmp_config every time.
 	//
 	//if (dev->cmp_config_id == -1 || dev->cmp_config_id != cmp_config.id) {
 	if (1) {
