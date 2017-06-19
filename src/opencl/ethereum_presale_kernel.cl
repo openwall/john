@@ -313,7 +313,6 @@ __kernel void ethereum_presale_process(__constant salt_t *salt,
 	int padbyte;
 	int seed_length;
 
-	seed[0] = 0;
 	for (i = 0; i < 16; i++) {
 		iv[i] = salt->encseed[i];
 	}

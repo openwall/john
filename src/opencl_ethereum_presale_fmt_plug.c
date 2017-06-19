@@ -15,9 +15,6 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #else
 
 #include <string.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "misc.h"
 #include "arch.h"
@@ -29,7 +26,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 
 #define FORMAT_NAME             "Ethereum Presale Wallet"
 #define FORMAT_LABEL            "ethereum-presale-opencl"
-#define ALGORITHM_NAME          "PBKDF2-SHA256 OpenCL AES"
+#define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1001
 #define MIN_KEYS_PER_CRYPT      1
@@ -94,7 +91,6 @@ static cl_kernel split_kernel, decrypt_kernel;
 static struct fmt_main *self;
 
 static custom_salt *cur_salt;
-static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 #define STEP			0
 #define SEED			1024
@@ -123,7 +119,6 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
-	crypt_out = mem_calloc(kpc, sizeof(*crypt_out));
 	host_salt = mem_calloc(1, sizeof(salt_t));
 	hash_size = kpc * sizeof(hash_t);
 	hash_out = mem_calloc(hash_size, 1);
@@ -171,7 +166,6 @@ static void release_clobj(void)
 
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
-		MEM_FREE(crypt_out);
 	}
 }
 
@@ -285,7 +279,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
 	const int count = *pcount;
-	int index;
 	int loops = (2000 + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
@@ -316,15 +309,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		CL_TRUE, 0, hash_size, hash_out, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
 
-	if (!ocl_autotune_running) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-		for (index = 0; index < count; index++) {
-			memcpy(crypt_out[index], hash_out[index].hash, BINARY_SIZE);
-		}
-	}
-
 	return count;
 }
 
@@ -332,14 +316,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for (; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+		if (!memcmp(binary, hash_out[index].hash, ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, hash_out[index].hash, BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -378,7 +362,7 @@ struct fmt_main fmt_opencl_ethereum_presale = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 		},

@@ -38,7 +38,8 @@ __constant uint64_t RC[24] = \
   REPEAT5(e; v += s;)
 
 /*** Keccak-f[1600] ***/
-void keccakf(void* state) {
+inline void keccakf(void* state)
+{
   uint64_t* a = (uint64_t*)state;
   uint64_t b[5] = {0};
   uint64_t t = 0;
@@ -80,13 +81,13 @@ void keccakf(void* state) {
 #define FOR(i, ST, L, S) \
   _(for (size_t i = 0; i < L; i += ST) { S; })
 #define mkapply_ds(NAME, S)                                          \
-  void NAME(uint8_t* dst,                              \
+  inline void NAME(uint8_t* dst,                                     \
                           const uint8_t* src,                        \
                           size_t len) {                              \
     FOR(i, 1, len, S);                                               \
   }
 #define mkapply_sd(NAME, S)                                          \
-  void NAME(const uint8_t* src,                        \
+  inline void NAME(const uint8_t* src,                               \
                           uint8_t* dst,                              \
                           size_t len) {                              \
     FOR(i, 1, len, S);                                               \
@@ -108,7 +109,8 @@ mkapply_sd(setout, dst[i] = src[i])  // setout
   }
 
 /** The sponge-based hash construction. **/
-int hash(uint8_t* out, size_t outlen, const uint8_t* in, size_t inlen, size_t rate, uint8_t delim) {
+inline int hash(uint8_t* out, size_t outlen, const uint8_t* in, size_t inlen, size_t rate, uint8_t delim)
+{
   uint8_t a[Plen] = {0};
   // Absorb input.
   foldP(in, inlen, xorin);
@@ -140,7 +142,7 @@ int hash(uint8_t* out, size_t outlen, const uint8_t* in, size_t inlen, size_t ra
     return hash(out, outlen, in, inlen, 200 - (bits / 4), 0x06);  \
   }
 #define defkeccak(bits)                                           \
-  int keccak_##bits(uint8_t* out, size_t outlen,                  \
+  inline int keccak_##bits(uint8_t* out, size_t outlen,           \
                   const uint8_t* in, size_t inlen) {              \
     if (outlen > (bits/8)) {                                      \
       return -1;                                                  \
