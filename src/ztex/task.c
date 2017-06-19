@@ -59,7 +59,7 @@ void task_result_list_delete(struct task *task)
 {
 	if (!task->result_list)
 		return;
-		
+
 	struct task_result *result = task->result_list;
 	while (1) {
 		struct task_result *next = result->next;
@@ -79,10 +79,10 @@ struct task *task_new(struct task_list *task_list,
 		unsigned char *range_info)
 {
 	struct task *task = mem_alloc(sizeof(struct task));
-	
+
 	task->next = task_list->task;
 	task_list->task = task;
-	
+
 	task->status = TASK_NONE;
 	task->num_keys = num_keys;
 	task->keys = keys;
@@ -90,10 +90,10 @@ struct task *task_new(struct task_list *task_list,
 	task->result_list = NULL;
 	task->jtr_device = NULL;
 	task->id = 0;
-	
+
 	static struct timeval zero_time = { 0, 0 };
 	task->mtime = zero_time;
-	
+
 	return task;
 }
 
@@ -121,34 +121,36 @@ struct task_list *task_list_create(int num_keys,
 		char *keys, unsigned char *range_info,
 		struct db_salt *salt)
 {
+	// Issue. While sequential_id doesn't change, the content can change
+	// (hash removed). For now, re-create and resend cmp_config every time.
+	//
 	// Comparator configuration. Global cmp_config
-	if (cmp_config.id == -1 || cmp_config.id != salt->sequential_id) {
+	//if (cmp_config.id == -1 || cmp_config.id != salt->sequential_id)
 		cmp_config_new(salt);
-	}
 
 	struct task_list *task_list = mem_alloc(sizeof(struct task_list));
 	task_list->task = NULL;
-	
+
 	// create 1 task per device, distribute keys among tasks
 	int num_tasks = jtr_device_list_count();
 	int keys_per_task = num_keys / num_tasks;
 	int num_extra_keys = num_keys % num_tasks;
-	
+
 	int keys_buffer_offset = 0;
 	int range_info_offset = 0;
 	struct jtr_device *dev;
 	for (dev = jtr_device_list->device; dev; dev = dev->next) {
-			
+
 		int task_num_keys = keys_per_task;
 		if (num_extra_keys) {
 			task_num_keys++;
 			num_extra_keys--;
 		}
-		
+
 		if (!task_num_keys)
 			// No keys for the rest of devices
 			break;
-			
+
 		struct task *task = task_new(task_list, task_num_keys,
 				keys + keys_buffer_offset,
 				range_info ? range_info + range_info_offset : NULL);
@@ -158,7 +160,7 @@ struct task_list *task_list_create(int num_keys,
 		if (range_info)
 			range_info_offset += task_num_keys * MASK_FMT_INT_PLHDR;
 	}
-	
+
 	return task_list;
 }
 
@@ -169,7 +171,7 @@ void tasks_assign(struct task_list *task_list,
 	int num_tasks = task_list_count_by_status(task_list, TASK_UNASSIGNED);
 	if (!num_tasks)
 		return;
-	
+
 	int jtr_device_count = jtr_device_list_count();
 	if (!jtr_device_count)
 		return;
@@ -274,10 +276,11 @@ void task_create_output_pkt_comm(struct task *task)
 //fprintf(stderr,"task_create_output_pkt_comm\n");
 
 	// TODO: check if input queues are not full
-	
+
 	// If on-device comparator is unconfigured or its configuration changes
 	//
-	if (dev->cmp_config_id == -1 || dev->cmp_config_id != cmp_config.id) {
+	//if (dev->cmp_config_id == -1 || dev->cmp_config_id != cmp_config.id) {
+	if (1) {
 		struct pkt *pkt_cmp_config = pkt_cmp_config_new(&cmp_config);
 		if (!pkt_cmp_config) {
 			// some wrong input / internal error
@@ -293,11 +296,11 @@ void task_create_output_pkt_comm(struct task *task)
 
 	// Create and enqueue word generator configuration
 	//
-	struct pkt *pkt_word_gen = pkt_word_gen_new(mask_convert_to_word_gen(), 0);
+	struct pkt *pkt_word_gen = pkt_word_gen_new(mask_convert_to_word_gen());
 	pkt_word_gen->id = task->id;
 	pkt_queue_push(dev->comm->output_queue, pkt_word_gen);
 
-	
+
 	// Create and enqueue template_list or word_list
 	//
 	struct pkt *pkt_list;
@@ -374,29 +377,13 @@ struct task_result *task_result_by_index(struct task_list *task_list, int index)
 	return NULL;
 }
 
-/*
-int task_result_binary_cmp_all(struct task_list *task_list, void *binary)
-{
-	fprintf(stderr,"task_result_binary_cmp_all\n");
-	struct task *task;
-	for (task = task_list->task; task; task = task->next) {
-		struct task_result *result;
-		for (result = task->result_list; result; result = result->next) {
-			fprintf(stderr, "task_result_binary_cmp_all: %.8s %.8s %.8s\n",result->key,result->hash,binary);
-			if (!memcmp(result->hash, binary, jtr_fmt_params->binary_size))
-				return 1;
-		}
-	}
-	return 0;
-}
-*/
 
 void task_list_delete(struct task_list *task_list)
 {
 	struct task *task = task_list->task;
 	if (!task)
 		return;
-		
+
 	while (1) {
 		struct task *next = task->next;
 		task_delete(task);

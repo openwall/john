@@ -59,16 +59,16 @@ void device_format_init(struct fmt_main *fmt_main, struct device_bitstream *bits
 {
 	jtr_fmt_params = &fmt_main->params;
 	jtr_bitstream = bitstream;
-	
+
 	// Initialize hardware.
 	// Uses globals: jtr_device_list, device_list, jtr_bitstream.
 	if (!jtr_device_list_init())
 		error();
 
-		
+
 	// Mask issues. 1 mask per JtR run can be specified. Global variables.
-	 
-	// Mask initialization (mask_int_cand_target). 
+
+	// Mask initialization (mask_int_cand_target).
 	// - Without this, mask is completely unrolled on CPU.
 	// - With this value set, some of ranges get unrolled, so remaining ranges
 	//   result in approximate this number (can be greater or less than)
@@ -81,16 +81,16 @@ void device_format_init(struct fmt_main *fmt_main, struct device_bitstream *bits
 	// with slow response and not enough keys for distribution among devices.
 	// crypt_all() must finish in some reasonable 'response time'
 	// such as 0.1-0.2s.
-	
+
 	// Reduce mask (request to unroll some ranges on CPU if necessary)
 	// by setting mask_int_cand_target.
 	//
 	mask_int_cand_target = jtr_bitstream->candidates_per_crypt;
-	
+
 	// It requires actual mask size (number of candidates in mask)
 	// to calculate max_keys_per_crypt.
 	// On init(), mask is not ready yet. The following does not work.
-	//unsigned int cand_max = mask_estimate_num_cand_max();	
+	//unsigned int cand_max = mask_estimate_num_cand_max();
 }
 
 
@@ -114,7 +114,7 @@ void device_format_reset()
 	keys_per_crypt *= jtr_device_list_count();
 	if (keys_per_crypt > jtr_bitstream->abs_max_keys_per_crypt) {
 		keys_per_crypt = jtr_bitstream->abs_max_keys_per_crypt;
-		
+
 		if (!bench_running) // self-test or benchmark
 			fprintf(stderr, "Warning: Slow communication channel "\
 				"to the device. "\
@@ -130,11 +130,11 @@ void device_format_reset()
 
 	// (re-)allocate keys_buffer, output_key
 	int plaintext_len = jtr_fmt_params->plaintext_length;
-	
+
 	MEM_FREE(keys_buffer);
 	keys_buffer = mem_alloc(plaintext_len
 			* jtr_fmt_params->max_keys_per_crypt);
-	
+
 	MEM_FREE(output_key);
 	output_key = mem_alloc(plaintext_len + 1);
 	output_key[plaintext_len] = 0;
@@ -181,18 +181,18 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 	// Send data to devices, continue communication until result is received
 	int rw_result;
 	for (;;) {
-	
+
 		// If some devices were stopped then some tasks are unassigned.
 		tasks_assign(task_list, jtr_device_list);
 
 		// Perform r/w operations. Stop erroneous devices.
 		rw_result = jtr_device_list_rw(task_list);
-		
+
 		// No operational devices remain - comment out next line
 		// to wait until the device is up
 		if (rw_result < 0)
 			break;
-		
+
 		// Some tasks could be unable to complete for too long.
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
@@ -207,7 +207,7 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 
 		// Process input packets, store results in task_result
 		jtr_device_list_process_inpkt(task_list);
-		
+
 		// Computation done.
 		if (task_list_all_completed(task_list))
 			break;
@@ -216,20 +216,57 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 		// Don't use 100% CPU in a loop.
 		if (!rw_result)
 			usleep(1000);
-		
+
 	}
 
 	if (rw_result < 0) {
 		fprintf(stderr, "No ZTEX devices available, exiting\n");
 		error();
 	}
-	
+
 	// Number of devices can change at runtime.
 	// Dynamic adjustment of max_keys_per_crypt could be a good idea.
 
 	*pcount *= mask_num_cand();
 
 	return task_list_result_count(task_list);
+}
+
+
+static inline int get_hash(int index)
+{
+	uint32_t out;
+	struct task_result *result = task_result_by_index(task_list, index);
+	if (!result || !result->binary) {
+		fprintf(stderr,"get_hash(%d): no task_result or binary\n", index);
+		error();
+	}
+	out = *(uint32_t *)result->binary;
+	//fprintf(stderr,"get_hash(%d): %04x, key %s\n",index,out,result->key);
+	return out;
+}
+
+
+int device_format_get_hash_0(int index) {
+	return get_hash(index) & PH_MASK_0;
+}
+int device_format_get_hash_1(int index) {
+	return get_hash(index) & PH_MASK_1;
+}
+int device_format_get_hash_2(int index) {
+	return get_hash(index) & PH_MASK_2;
+}
+int device_format_get_hash_3(int index) {
+	return get_hash(index) & PH_MASK_3;
+}
+int device_format_get_hash_4(int index) {
+	return get_hash(index) & PH_MASK_4;
+}
+int device_format_get_hash_5(int index) {
+	return get_hash(index) & PH_MASK_5;
+}
+int device_format_get_hash_6(int index) {
+	return get_hash(index) & PH_MASK_6;
 }
 
 
@@ -279,7 +316,7 @@ struct db_password *device_format_get_password(int index)
 
 char *device_format_get_key(int index)
 {
-	// It happens status reporting is requested and there's 
+	// It happens status reporting is requested and there's
 	// a task_result at same index.
 	if (task_list) {
 		struct task_result *result = task_result_by_index(task_list, index);
@@ -305,7 +342,7 @@ char *device_format_get_key(int index)
 		else
 			return "-----";
 	}
-	
+
 	return output_key;
 }
 

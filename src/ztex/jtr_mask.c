@@ -33,7 +33,7 @@ static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 				ranges[mask_skip_ranges[i]].pos;
 		else
 			static_gpu_locations[i] = -1;
-			
+
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (static_gpu_locations[i] != -1) {
 			fprintf(stderr,"!=> Unexpected mask data: static_gpu_locations: ");
@@ -43,18 +43,18 @@ static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 			fprintf(stderr,"\n");
 			break;
 		}
-*/		
+*/
 
 
 void mask_print()
 {
 	fprintf(stderr, "==========\n> num_int_cand:%d static:%d\n",
 			mask_int_cand.num_int_cand, mask_gpu_is_static);
-	
-	mask_cpu_context *mask = mask_int_cand.int_cpu_mask_ctx;	
+
+	mask_cpu_context *mask = mask_int_cand.int_cpu_mask_ctx;
 	fprintf(stderr, "> ps1:%d count:%d cpu_count:%d offset:%d\n",
 			mask->ps1, mask->count, mask->cpu_count, mask->offset);
-	
+
 	int i;
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
 		mask_range *range = mask->ranges + i;
@@ -63,7 +63,7 @@ void mask_print()
 		fprintf(stderr, "> Range %d: count %d, pos %d, offset %d\n",
 				i, range->count, range->pos, range->offset);
 	}
-	
+
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
 		if (mask_skip_ranges[i] == -1)
 			continue;
@@ -78,7 +78,7 @@ void mask_print()
 void mask_set_range_info(unsigned char *range_info)
 {
 	// In mask_mode, it inserts placeholders into the key.
-	// Such as if the key is 'pwd', mask is '?d?w?d?d' then 
+	// Such as if the key is 'pwd', mask is '?d?w?d?d' then
 	// set_key() gets '#pwd##' as an argument ('#' signs used).
 	// Some mask data, such as int_cpu_mask_ctx->ranges[i].offset
 	// is updated at every set_key() invocation.
@@ -107,19 +107,25 @@ void mask_set_range_info(unsigned char *range_info)
 		int range_num = mask_skip_ranges[i];
 		if (range_num == -1)
 			break;
-		
+
 		// This range isn't unrolled on CPU, template key contains '#'
 		mask_range *range = mask_int_cand.int_cpu_mask_ctx->ranges + range_num;
-		
+
 		// Device takes new position for the range.
 		// That shouldn't be less than range's original position.
 		// If 2+ ranges are moved to the same position
 		// (shouldn't happen) then the result is undefined.
-		
+		int new_pos = range->pos + range->offset;
+		if (new_pos > 0x7f) {
+			fprintf(stderr, "Error: Mask placeholder in position %d\n",
+					new_pos);
+			error();
+		}
+
 		// Bit 7 indicates range is active.
-		range_info[i] = 0x80 | (range->pos + range->offset);
+		range_info[i] = 0x80 | new_pos;
 	}
-	
+
 	// If less than MASK_FMT_INT_PLHDR ranges are active
 	// then range_info bytes are terminated with '\0'.
 	if (i < MASK_FMT_INT_PLHDR)
@@ -133,14 +139,14 @@ struct word_gen *mask_convert_to_word_gen()
 {
 	if (mask_is_inactive())
 		return &word_gen_words_pass_by;
-	
+
 	int dst_range_num = 0;
 	int i;
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
 		int range_num = mask_skip_ranges[i];
 		if (range_num == -1)
 			break;
-	
+
 		mask_range *range = mask_int_cand.int_cpu_mask_ctx->ranges + range_num;
 		word_gen.ranges[dst_range_num].num_chars = range->count;
 		word_gen.ranges[dst_range_num].start_idx = 0;
@@ -155,7 +161,7 @@ struct word_gen *mask_convert_to_word_gen()
 	}
 
 	word_gen.num_ranges = dst_range_num;
-	
+
 	return &word_gen;
 }
 
@@ -176,57 +182,26 @@ void mask_reconstruct_plaintext(
 {
 	if (mask_is_inactive() || !mask_skip_ranges)
 		return;
-		
+
 	unsigned int total_count = gen_id;
 	int i;
 	for (i = MASK_FMT_INT_PLHDR - 1; i >= 0; i--) {
 		int range_num = mask_skip_ranges[i];
 		if (range_num == -1)
 			continue;
-			
+
 		mask_range *range = mask_int_cand.int_cpu_mask_ctx->ranges + range_num;
 		int char_index = total_count % range->count;
 		total_count /= range->count;
-		
-		unsigned char shift = *range_info & 0x7f;
-		key[range_num + shift] = range->chars[char_index];
-	}
-}
 
-/*
-static int compare_integers(const void *a, const void *b)
-{
-	return *((int *)a) - *((int *)b);
-}
-
-// Returns max. possible value for 'mask_int_cand_target'
-//
-unsigned int mask_estimate_num_cand_max()
-{
-	if (mask_is_inactive())
-		return 1;
-		
-	unsigned int range_char_counts[MAX_NUM_MASK_PLHDR];
-	
-	mask_range *ranges = mask_int_cand.int_cpu_mask_ctx->ranges;
-	int num_ranges = mask_int_cand.int_cpu_mask_ctx->count;
-	
-	int i;
-	for (i = 0; i < num_ranges; i++)
-		range_char_counts[i] = ranges[i].count;
-	
-	// Take MASK_FMT_INT_PLHDR ranges with greatest number of chars,
-	// multiply char_counts 
-	unsigned int result = 1;
-	if (num_ranges > 1)
-		qsort(&range_char_counts, num_ranges, sizeof(int), compare_integers);
-	for (i = 0; i < num_ranges && i < MASK_FMT_INT_PLHDR; i++) {
-		if (range_char_counts[i]) {
-			result *= range_char_counts[i];
-			//fprintf(stderr, "estimate> i:%d cnt:%d\n",i,range_char_counts[i]);
+		if (!range_info[i]) {
+			// This shouldn't happen
+			fprintf(stderr, "mask_reconstruct_plaintext: inconsistent data,"
+					" key: '%s', gen_id=%d\n", key, gen_id);
+			mask_print();
+			break;
 		}
+		unsigned char new_pos = range_info[i] & 0x7f;
+		key[new_pos] = range->chars[char_index];
 	}
-	
-	return result;
 }
-*/
