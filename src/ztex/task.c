@@ -120,6 +120,14 @@ void task_delete(struct task *task)
 struct task_list *task_list_create(int num_keys,
 		char *keys, unsigned char *range_info)
 {
+
+	// Issue. While sequential_id doesn't change, the content can change
+	// (hash removed). For now, re-create and resend cmp_config every time.
+	//
+	// Comparator configuration. Global cmp_config
+	//if (cmp_config.id == -1 || cmp_config.id != salt->sequential_id)
+		cmp_config_new(salt);
+
 	struct task_list *task_list = mem_alloc(sizeof(struct task_list));
 	task_list->task = NULL;
 

@@ -88,7 +88,6 @@ char *jtr_device_id(struct jtr_device *dev)
 	return device_id;
 }
 
-
 //////////////////////////////////////////////////////////////////////////////
 
 int libusb_initialized;
@@ -524,7 +523,6 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 					cmp_config.pw[pkt_equal->hash_num]);
 
 				free(pkt_equal);
-
 
 			// Processing of an input packet done
 			// (task processing is complete)

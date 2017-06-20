@@ -30,21 +30,23 @@ def process_file(filename):
 
     version = 1  # MultiBit Classic
     pdata = b"".join(data.split())
-    if len(pdata) < 44:
-        sys.stderr.write("%s: Short length for MultiBit wallet files!\n" % bname)
+    if len(pdata) < 64:
+        sys.stderr.write("%s: Short length for a MultiBit wallet file!\n" % bname)
         return
 
     try:
-        pdata = base64.b64decode(pdata[:44])
-        if len(pdata) < 32:
-            # sys.stderr.write("%s: Short length for MultiBit wallet files!\n" % bname)
+        pdata = base64.b64decode(pdata[:64])
+        if not pdata.startswith("Salted__"):
+            version = 2
+        if len(pdata) < 48:
+            # sys.stderr.write("%s: Short length for a MultiBit wallet file!\n" % bname)
             # return
             version = 2  # MultiBit HD possibly?
     except:
         version = 2  # MultiBit HD possibly?
 
     if version == 1:
-        encrypted_data = pdata[16:32]
+        encrypted_data = pdata[16:48]  # two AES blocks
         salt = pdata[8:16]
         encrypted_data = binascii.hexlify(encrypted_data).decode("ascii")
         salt = binascii.hexlify(salt).decode("ascii")

@@ -45,10 +45,10 @@ john_register_one(&fmt_openssl);
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <openssl/evp.h>
 
 #include "aes.h"
 #include "md5.h"
+#include "sha.h"
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
@@ -94,7 +94,7 @@ static struct custom_salt {
 	unsigned char last_chunks[32];
 } *cur_salt;
 
-static struct fmt_tests openssl_tests[] = {
+static struct fmt_tests tests[] = {
 	{"$openssl$1$0$8$a1a5e529c8d92da5$8de763bf61377d365243993137ad9729$1$0", "password"},
 	{"$openssl$1$1$8$844527fb2f5d7ad5$ebccb1fcd2b1b30c5c3624d4016978ea$1$0", "password"},
 	{"$openssl$0$0$8$305cedc2a0521011$bf11609a01e78ec3f50f0cc483e636f9$1$0", "password"},
@@ -295,6 +295,88 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 	return -1;
 }
 
+/*
+ * This replace OpenSSL EVP crap. We currently only support using MD5 or SHA-1
+ * as hash function. That's easily extended tho.
+ */
+#define MAX_KEY_SIZE     256
+#define IV_LEN           16
+typedef enum {md5, sha1} hash_type;
+
+static void BytesToKey(int key_sz, hash_type h, const unsigned char *salt,
+                       const unsigned char *data, int data_len, int count,
+                       unsigned char *key,unsigned char *iv)
+{
+	const int key_len = key_sz / 8;
+	const int iv_len = IV_LEN;
+	const int tot_len = key_len + iv_len;
+	int i;
+	int size_made = 0;
+	unsigned char out[MAX_KEY_SIZE / 8 + IV_LEN];
+	unsigned char *last_out = out;
+
+	if (h == md5) {
+		const int hash_len = 16;
+		MD5_CTX ctx;
+
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, data, data_len);
+		MD5_Update(&ctx, salt, 8);
+		MD5_Final(out, &ctx);
+		for (i = 1; i < count; i++) {
+			MD5_Init(&ctx);
+			MD5_Update(&ctx, out, hash_len);
+			MD5_Final(out, &ctx);
+		}
+		size_made += hash_len;
+		while (size_made < tot_len) {
+			MD5_Init(&ctx);
+			MD5_Update(&ctx, last_out, hash_len);
+			MD5_Update(&ctx, data, data_len);
+			MD5_Update(&ctx, salt, 8);
+			MD5_Final(&out[size_made], &ctx);
+			for (i = 1; i < count; i++) {
+				MD5_Init(&ctx);
+				MD5_Update(&ctx, last_out, hash_len);
+				MD5_Final(&out[size_made], &ctx);
+			}
+			last_out = &out[size_made];
+			size_made += hash_len;
+		}
+	}
+	else if (h == sha1) {
+		const int hash_len = 20;
+		SHA_CTX ctx;
+
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, data, data_len);
+		SHA1_Update(&ctx, salt, 8);
+		SHA1_Final(out, &ctx);
+		for (i = 1; i < count; i++) {
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, out, hash_len);
+			SHA1_Final(out, &ctx);
+		}
+		size_made += hash_len;
+		while (size_made < tot_len) {
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, last_out, hash_len);
+			SHA1_Update(&ctx, data, data_len);
+			SHA1_Update(&ctx, salt, 8);
+			SHA1_Final(&out[size_made], &ctx);
+			for (i = 1; i < count; i++) {
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, last_out, hash_len);
+				SHA1_Final(&out[size_made], &ctx);
+			}
+			last_out = &out[size_made];
+			size_made += hash_len;
+		}
+	}
+	memcpy(key, out, key_len);
+	memcpy(iv, &out[key_len], IV_LEN);
+}
+
 static int decrypt(char *password)
 {
 	unsigned char out[16];
@@ -309,15 +391,15 @@ static int decrypt(char *password)
 		case 0:
 			switch(cur_salt->md) {
 				case 0:
-					EVP_BytesToKey(EVP_aes_256_cbc(), EVP_md5(),
-						cur_salt->salt, (unsigned char*)password,
-						strlen(password), nrounds, key, iv);
+					BytesToKey(256, md5, cur_salt->salt,
+					           (unsigned char*)password, strlen(password),
+					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 256, &akey);
 					break;
 				case 1:
-					EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(),
-						cur_salt->salt, (unsigned char*)password,
-						strlen(password), nrounds, key, iv);
+					BytesToKey(256, sha1, cur_salt->salt,
+					           (unsigned char*)password, strlen(password),
+					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 256, &akey);
 					break;
 			}
@@ -325,15 +407,15 @@ static int decrypt(char *password)
 		case 1:
 			switch(cur_salt->md) {
 				case 0:
-					EVP_BytesToKey(EVP_aes_128_cbc(), EVP_md5(),
-						cur_salt->salt, (unsigned char*)password,
-						strlen(password), nrounds, key, iv);
+					BytesToKey(128, md5, cur_salt->salt,
+					           (unsigned char*)password, strlen(password),
+					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 128, &akey);
 					break;
 				case 1:
-					EVP_BytesToKey(EVP_aes_128_cbc(), EVP_sha1(),
-						cur_salt->salt, (unsigned char*)password,
-						strlen(password), nrounds, key, iv);
+					BytesToKey(128, sha1, cur_salt->salt,
+					           (unsigned char*)password, strlen(password),
+					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 128, &akey);
 					break;
 			}
@@ -362,7 +444,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static void openssl_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	int saved_len = strlen(key);
 	if (saved_len > PLAINTEXT_LENGTH)
@@ -435,7 +517,7 @@ struct fmt_main fmt_openssl = {
  */
 		{ NULL },
 		{ FORMAT_TAG },
-		openssl_tests
+		tests
 	}, {
 		init,
 		done,
@@ -453,7 +535,7 @@ struct fmt_main fmt_openssl = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		openssl_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

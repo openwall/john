@@ -143,7 +143,7 @@ struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config)
 	int size = 3 + cmp_config->salt_len
 			+ cmp_config->num_hashes * binary_size
 			+ 4 * FMT_TUNABLE_COSTS;
-	char *data = malloc(size);
+  char *data = malloc(size);
 	if (!data) {
 		pkt_error("pkt_cmp_config_new(): unable to allocate %d bytes\n",
 				size);
