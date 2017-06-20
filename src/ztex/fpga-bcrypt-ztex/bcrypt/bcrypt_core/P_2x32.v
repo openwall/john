@@ -16,12 +16,12 @@ module P_2x32 #(
 	parameter MSB = 31
 	)(
 	input CLK,
-	
+
 	// Memory PD (1 write/read port)
 	input [4:0] PD_addr,
 	input PD_wr_en,
 	output [MSB:0] PD_out,
-	
+
 	// Input MUX
 	input [MSB:0] din,
 	input [MSB:0] Ltmp_in,
@@ -33,14 +33,14 @@ module P_2x32 #(
 	input [4:0] PN_addr,
 	input PN_wr_en,
 	output [MSB:0] PN_out,
-	
+
 	input ZF_wr_en,
 	output reg ZF, B31
 	);
-	
-	
+
+
 	integer i;
-	
+
 	// PD: 32-deep RAM for constant data, 1 write/read port
 	// - input only from din
 	//
@@ -61,11 +61,12 @@ module P_2x32 #(
 		if (PD_wr_en)
 			PD [PD_addr] <= din;
 
-	// Force creation of RAM32M instead of RAM32X1S - save 8 LUTs
+	// Force creation of RAM32M instead of RAM32X1S
+	// (by defining separate read port) - save 8 LUTs
 	(* KEEP="true" *)
-	wire [4:0] PD_addr_wr = PD_addr;
+	wire [4:0] PD_addr_rd = PD_addr;
 
-	assign PD_out = PD [PD_addr_wr];
+	assign PD_out = PD [PD_addr_rd];
 
 
 	//
@@ -75,15 +76,15 @@ module P_2x32 #(
 	reg [MSB:0] PN [31:0];
 	initial begin
 		// P(0-17)
-		// resevrved(18-23)
 		// 18 - current value for iter_count
+		// resevrved(19-23)
 		// magic_w(24-29), replaced by result
 		// Total: 30
 		PN[30] = 0;
 		PN[31] = 0;
 	end
 
-	wire [MSB:0] PN_input;//, PN_input2;
+	wire [MSB:0] PN_input;
 	always @(posedge CLK)
 		if (PN_wr_en)
 			PN [PN_wr_addr] <= PN_input;
@@ -95,20 +96,16 @@ module P_2x32 #(
 	// Input selection.
 	// It's able to perform decrement w/o touching L,R.
 	//
-	assign PN_input = //PS_input_select == `INPUT_DIN ? din : Ltmp_in;
+	assign PN_input =
 		PS_input_select == `INPUT_DIN & ~decr ? din :
 		PS_input_select == `INPUT_X_ & ~decr ? Ltmp_in :
 		{ {31-`SETTING_MAX{1'b0}}, PN_out[`SETTING_MAX:0] - 1'b1 }; // INPUT_DECR
 
 	assign S_input = PN_input;
-/*	
-	assign PN_input2 = {
-		PN_input[31:`SETTING_MAX+1],
-		PN_input[`SETTING_MAX:0] - decr
-	};
-*/	
-	//		
-	// Zero flag
+
+
+	//
+	// Zero flag (ZF), Bit 31
 	//
 	always @(posedge CLK)
 		if (ZF_wr_en) begin
@@ -116,5 +113,5 @@ module P_2x32 #(
 			B31 <= PD_out[31];
 		end
 
-	
+
 endmodule

@@ -1,15 +1,23 @@
 `timescale 1ns / 1ps
+/*
+ * This software is Copyright (c) 2016 Denis Burykin
+ * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ */
 
 
 module pkt_comm_bcrypt_test();
-	
+
 	reg READ_ALL_FROM_OUTPUT_FIFO = 0;
 
 	genvar i;
 	integer k, k1, k2;
 
 	reg CORE_CLK = 0, IFCLK = 0;
-	
+
 	reg [7:0] din;
 	reg wr_en = 0;
 
@@ -20,9 +28,9 @@ module pkt_comm_bcrypt_test();
 	//
 	// ******************************************************************
 	wire [7:0] app_mode = 0;
-	
+
 	wire [7:0] input_dout;
-	
+
 	fifo_sync_small #( .D_WIDTH(8), .A_WIDTH(15)
 	) fifo_sync_small_in(
 		.CLK(CORE_CLK),
@@ -32,7 +40,7 @@ module pkt_comm_bcrypt_test();
 
 	reg [15:0] hs_input_din;
 	reg [1:0] state = 0;
-	
+
 	always @(posedge CORE_CLK) begin
 		case(state)
 		0: if (~hs_input_empty) begin
@@ -47,17 +55,17 @@ module pkt_comm_bcrypt_test();
 			state <= 0;
 		endcase
 	end
-	
+
 	assign hs_input_rd_en = ~hs_input_empty & (state == 0 || state == 1);
 	assign hs_input_wr_en = ~hs_input_almost_full & state == 2;
 	//
 	// End simulation input from USB controller
-	
-	
+
+
 	localparam NUM_PROXIES = 2;
-	
+
 	localparam NUM_WRAPPERS = 1;
-	
+
 	localparam [32*NUM_WRAPPERS-1 :0] WRAPPERS_CONF = {
 	// is_dummy |reserved |start_proxy_num |end_proxy_num
 		1'b0, 15'b0, 8'd2, 8'd3,	// wrapper #1: proxies 2-3
@@ -71,8 +79,8 @@ module pkt_comm_bcrypt_test();
 		1'b0, 19'b0, 4'd2, 8'd1,//9,	// proxy #1 (0_1): 2 regs, 9 cores
 		1'b0, 19'b0, 4'd1, 8'd1//10	// proxy #0 (0_0): 1 regs, 10 cores
 	};
-	
-	
+
+
 	// ********************************************************
 	//
 	// Some example application
@@ -82,12 +90,12 @@ module pkt_comm_bcrypt_test();
 	wire [7:0] app_status, pkt_comm_status;
 
 	(* KEEP="true" *) wire mode_cmp = ~app_mode[6];
-	
+
 	wire [7:0] core_din;
 	wire [1:0] core_ctrl;
 	wire [NUM_PROXIES-1:0] core_wr_en, core_init_ready, core_crypt_ready;
 	wire [NUM_PROXIES-1:0] core_rd_en, core_empty, core_dout;
-	
+
 	bcrypt #(
 		.NUM_CORES(NUM_PROXIES),
 		.SIMULATION(1)
@@ -100,7 +108,7 @@ module pkt_comm_bcrypt_test();
 		.hs_input_wr_en(hs_input_wr_en),
 		.hs_input_almost_full(hs_input_almost_full),
 		.hs_input_prog_full(hs_input_prog_full),
-		
+
 		.output_dout(),//app_dout),
 		.output_rd_en(READ_ALL_FROM_OUTPUT_FIFO),//app_rd_en),
 		.output_empty(),//app_empty),
@@ -118,7 +126,7 @@ module pkt_comm_bcrypt_test();
 		.app_status(app_status),
 		.debug2(), .debug3(),
 		//.debug(),
-		
+
 		// Wrappers and cores are moved to top level module
 		// for better usage of Hierarchial Design Methodology
 		.mode_cmp(mode_cmp),
@@ -135,7 +143,7 @@ module pkt_comm_bcrypt_test();
 	//
 	generate
 	for (i=0; i < NUM_WRAPPERS; i=i+1) begin:wrappers
-		
+
 		localparam START_PROXY_NUM = WRAPPERS_CONF[32*i+15 -:8];
 		localparam END_PROXY_NUM = WRAPPERS_CONF[32*i+7 -:8];
 		localparam IS_DUMMY = WRAPPERS_CONF[32*i+31];
@@ -152,8 +160,8 @@ module pkt_comm_bcrypt_test();
 			.rd_en(core_rd_en [END_PROXY_NUM : START_PROXY_NUM]),
 			.empty(core_empty [END_PROXY_NUM : START_PROXY_NUM]),
 			.dout(core_dout [END_PROXY_NUM : START_PROXY_NUM])
-		);	
-			
+		);
+
 	end
 	endgenerate
 
@@ -176,7 +184,7 @@ module pkt_comm_bcrypt_test();
 		din <= 8'h22; #20; // id0
 		din <= 8'h33; #20; // id1;
 		din <= 0; #80; // checksum - not checked in simulation
-		
+
 		// salt - 16 bytes
 		// 0xe0 0xf2 0xd3 0xf1 0x0b 0x6a 0x52 0x93 0xe1 0x40 0x6b 0x09 0x05 0xb1 0xeb 0x34
 		din <= 8'he0; #20; din <= 8'hf2; #20; din <= 8'hd3; #20;
@@ -210,7 +218,7 @@ module pkt_comm_bcrypt_test();
 		din <= 2; #20;  din <= 1; #20; din <= 0; #40;
 		din <= 3; #20; // len[7:0]
 		din <= 0; #60;  din <= 8'h07; #40;  din <= 0; #80;
-		
+
 		// body: 1 word: \xd1\x91
 		din <= 8'hd1; #20; din <= 8'h91; #20; din <= 0; #20;
 		din <= 0; #80; // checksum
@@ -230,7 +238,7 @@ module pkt_comm_bcrypt_test();
 		din <= 8'hAB; #20; // id0
 		din <= 8'hCD; #20; // id1;
 		din <= 0; #80; // checksum
-		
+
 		// salt - 16 bytes
 		din <= 8'h65; #20; din <= 8'h59; #20; din <= 8'h96; #20;
 		din <= 8'h65; #20; din <= 8'h96; #20; din <= 8'h65; #20;
@@ -245,14 +253,14 @@ module pkt_comm_bcrypt_test();
 		// hash for "U*U*U"
 		din <= 8'ha3; #20; din <= 8'h73; #20; din <= 8'he6; #20; din <= 8'h09; #20;
 		din <= 8'hCC; #20;
-		
+
 		din <= 0; #80; // checksum
 		wr_en <= 0;
 
 
 		#1000;
 		for (k=0; k < 1; k=k+1) begin
-		
+
 		wr_en <= 1;
 		// word_gen packet
 		din <= 2; #20;  din <= 2; #20; din <= 0; #40;
@@ -270,7 +278,7 @@ module pkt_comm_bcrypt_test();
 		din <= 2; #20;  din <= 4; #20; din <= 0; #40;
 		din <= 9; #20; // len[7:0]
 		din <= 0; #60;  din <= 8'h07; #40;  din <= 0; #80;
-		// body: 
+		// body:
 		din <= "#"; #20; din <= "*"; #20; din <= "#"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
 		din <= 8'h80; #20; din <= 8'h82; #20; din <= 0; #20;
 		din <= 0; #80; // checksum
@@ -279,24 +287,24 @@ module pkt_comm_bcrypt_test();
 		din <= 2; #20;  din <= 1; #20; din <= 0; #40;
 		din <= 4*6; #20; // len[7:0]
 		din <= 0; #60;  din <= 8'h07; #40;  din <= 0; #80;
-		
-		// body: 
+
+		// body:
 		din <= "Z"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
 		din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
 		din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
 		din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
 		din <= 0; #80; // checksum
-*/		
+*/
 		wr_en <= 0;
 		end
 
 
 		// ****************** TEST 3. ******************
 		// TODO
-		
+
 	end
 
-	
+
 	// This does not reflect actual timing
 	initial begin
 		#5;
