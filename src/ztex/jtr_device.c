@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -13,6 +13,7 @@
 #include <libusb-1.0/libusb.h>
 
 #include "../memory.h"
+#include "../config.h"
 
 #include "ztex.h"
 #include "inouttraffic.h"
@@ -78,6 +79,15 @@ struct jtr_device_list *jtr_device_list_new(struct device_list *device_list)
 }
 
 
+char *jtr_device_id(struct jtr_device *dev)
+{
+	static char device_id[32];
+	if (!dev)
+		return "";
+	sprintf(device_id, "%s", dev->device->ztex_device->snString);
+	return device_id;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 int libusb_initialized;
@@ -87,6 +97,80 @@ struct device_list *device_list;
 
 // Global jtr_device_list
 struct jtr_device_list *jtr_device_list;
+
+int PKT_DEBUG = 1;
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+
+// Set frequency for every device, every FPGA from config
+static void set_frequency(struct device_list *device_list)
+{
+	char *CFG_SECTION = "ZTEX:";
+	char conf_name_default[256], conf_name_board[256], conf_name[256];
+	struct device *dev;
+	int fpga_num, clk_num;
+	int default_freq[NUM_PROGCLK_MAX], board_freq[NUM_PROGCLK_MAX],
+		chip_freq[NUM_PROGCLK_MAX];
+	int freq;
+
+	if (!jtr_bitstream->num_progclk)
+		return;
+
+	if (jtr_bitstream->num_progclk > NUM_PROGCLK_MAX) {
+		fprintf(stderr, "Invalid num_progclk=%d in struct device_bitstream,"
+			" label %s\n", jtr_bitstream->num_progclk, jtr_bitstream->label);
+		error();
+	}
+
+	for (clk_num = 0; clk_num < jtr_bitstream->num_progclk; clk_num++)
+		if (jtr_bitstream->freq[clk_num] <= 0) {
+			fprintf(stderr, "Invalid frequency for clock %d in struct"
+				" device_bitstream, label %s\n", clk_num, jtr_bitstream->label);
+			error();
+		}
+
+	// Default frequency (for every device)
+	strcpy(conf_name_default, "Frequency");
+	cfg_get_int_array(CFG_SECTION, jtr_bitstream->label, conf_name_default,
+			default_freq, NUM_PROGCLK_MAX);
+
+	for (dev = device_list->device; dev; dev = dev->next) {
+
+		// Frequency specific to given board
+		sprintf(conf_name_board, "%s_%s", conf_name_default,
+				dev->ztex_device->snString);
+		cfg_get_int_array(CFG_SECTION, jtr_bitstream->label, conf_name_board,
+				board_freq, NUM_PROGCLK_MAX);
+
+		for (fpga_num = 0; fpga_num < dev->num_of_fpgas; fpga_num++) {
+
+			// Frequency for given chip
+			sprintf(conf_name, "%s_%d", conf_name_board, fpga_num + 1);
+			cfg_get_int_array(CFG_SECTION, jtr_bitstream->label, conf_name,
+					chip_freq, NUM_PROGCLK_MAX);
+
+			for (clk_num = 0; clk_num < jtr_bitstream->num_progclk; clk_num++) {
+				freq =
+					chip_freq[clk_num] != -1 ? chip_freq[clk_num] :
+					board_freq[clk_num] != -1 ? board_freq[clk_num] :
+					default_freq[clk_num] != -1 ? default_freq[clk_num] :
+					-1;
+				if (freq == -1)
+					continue;
+
+				// It sets default frequency before GSR. Skip setting
+				// frequency if it's equal to the default one.
+				if (freq == jtr_bitstream->freq[clk_num])
+					continue;
+
+				fpga_progclk(&dev->fpga[fpga_num], clk_num, freq);
+			} // for (clk_num)
+
+		} // for (fpga)
+	} // for (device)
+}
 
 
 struct jtr_device_list *jtr_device_list_init()
@@ -103,7 +187,10 @@ struct jtr_device_list *jtr_device_list_init()
 		libusb_initialized = 1;
 	}
 //ZTEX_DEBUG=1;
-//DEBUG = 2;
+//DEBUG = 1; // print I/O function calls
+//DEBUG = 2; // print all I/O data in hex
+PKT_DEBUG = 1; // print erroneous packets recieved from devices
+//PKT_DEBUG = 2; // print all application packets recieved from devices
 
 	// devices aren't initialized
 	if (!device_list) {
@@ -112,8 +199,10 @@ struct jtr_device_list *jtr_device_list_init()
 		int device_count = device_list_count(device_list);
 
 		if (device_count) {
-			fprintf(stderr, "%d device(s) ZTEX 1.15y ready\n", device_count);
-			ztex_dev_list_print(device_list->ztex_dev_list);
+			//fprintf(stderr, "%d device(s) ZTEX 1.15y ready\n", device_count);
+			//ztex_dev_list_print(device_list->ztex_dev_list);
+			set_frequency(device_list);
+			device_list_print(device_list);
 		} else {
 			fprintf(stderr, "no valid ZTEX devices found\n");
 			return NULL;
@@ -124,6 +213,8 @@ struct jtr_device_list *jtr_device_list_init()
 	// - soft reset, initialize fpgas
 	} else {
 		device_list_init(device_list, jtr_bitstream);
+		set_frequency(device_list);
+		device_list_print(device_list);
 		int device_count = device_list_count(device_list);
 		if (!device_count) {
 			fprintf(stderr, "no valid ZTEX devices found\n");
@@ -288,51 +379,142 @@ fprintf(stderr, "Deassigned: %d\n",num_deassigned);
 }
 
 
-// TODO: more effort on proper error handling
+///////////////////////////////////////////////////////////////////////
+//
+//
+//  Handling of input application-level data packets
+//
+//
+///////////////////////////////////////////////////////////////////////
+
+
+// Find task that matches given input packet
+// Return NULL if no match
+static struct task *inpkt_check_task(struct pkt *inpkt,
+		struct jtr_device *dev, struct task_list *task_list)
+{
+	unsigned int pkt_id = pkt_get_id(inpkt);
+	struct task *task = task_find(task_list, dev, pkt_id);
+	if (!task) {
+		if (PKT_DEBUG >= 1)
+			fprintf(stderr, "%s %s id=%d: no task\n",
+				jtr_device_id(dev), inpkt_type_name(inpkt->type), pkt_id);
+		return NULL;
+	}
+	if (task->status != TASK_ASSIGNED) {
+		if (PKT_DEBUG >= 1)
+			fprintf(stderr, "%s %s id=%d: task not assigned\n",
+				jtr_device_id(dev), inpkt_type_name(inpkt->type), pkt_id);
+		return NULL;
+	}
+	return task;
+}
+
+
+// Check if word_id,gen_id,hash_num from CMP_* packet are valid
+// Return false if data isn't valid
+static int inpkt_check_cmp(struct jtr_device *jtr_dev,
+		struct pkt *inpkt, struct task *task,
+		int word_id, unsigned int gen_id, int hash_num)
+{
+	if (word_id >= task->num_keys) {
+		if (PKT_DEBUG >= 1)
+			fprintf(stderr, "%s %s id=%d: word_id=%d, num_keys=%d\n",
+				jtr_device_id(jtr_dev), inpkt_type_name(inpkt->type),
+				inpkt->id, word_id, task->num_keys);
+		return 0;
+	}
+	if (gen_id >= mask_num_cand()) {
+		if (PKT_DEBUG >= 1)
+			fprintf(stderr, "%s %s id=%d: gen_id=%u, mask_num_cand=%d\n",
+				jtr_device_id(jtr_dev), inpkt_type_name(inpkt->type),
+				inpkt->id, gen_id, mask_num_cand());
+		return 0;
+	}
+	if (hash_num >= cmp_config.num_hashes) {
+		if (PKT_DEBUG >= 1)
+			fprintf(stderr, "%s %s id=%d: hash_num=%d, num_hashes=%d\n",
+				jtr_device_id(jtr_dev), inpkt_type_name(inpkt->type),
+				inpkt->id, hash_num, cmp_config.num_hashes);
+		return 0;
+	}
+	return 1;
+}
+
+
 void jtr_device_list_process_inpkt(struct task_list *task_list)
 {
 	struct jtr_device *dev;
 	for (dev = jtr_device_list->device; dev; dev = dev->next) {
-		//int do_break = 0;
+		int bad_input = 0;
 
 		// Fetch input packets from pkt_comm_queue
 		struct pkt *inpkt;
 		while ( (inpkt = pkt_queue_fetch(dev->comm->input_queue) ) ) {
 
-			unsigned int pkt_id = pkt_get_id(inpkt);
-			struct task *task = task_find(task_list, dev, pkt_id);
+			struct task *task = inpkt_check_task(inpkt, dev, task_list);
 			if (!task) {
-				fprintf(stderr, "pkt_type=%d, pkt_id=%d: no task\n",
-						inpkt->type, pkt_id);
+				// Bad packet from the device.
 				pkt_delete(inpkt);
-				continue;
+				bad_input = 1;
+				break;
 			}
-			if (task->status != TASK_ASSIGNED) {
-				fprintf(stderr, "pkt_type=%d, pkt_id=%d: task not assigned\n",
-						inpkt->type, pkt_id);
-				pkt_delete(inpkt);
-				continue;
-			}
+
+			// Comparator found equality & it sends computed result
+			if (inpkt->type == PKT_TYPE_CMP_RESULT) {
+
+				struct pkt_cmp_result *pkt_cmp_result
+						= pkt_cmp_result_new(inpkt);
+
+				if (PKT_DEBUG >= 2)
+					fprintf(stderr,"%s CMP_RESULT id=%d: w:%d g:%u h:%d\n",
+						jtr_device_id(dev),
+						pkt_cmp_result->id, pkt_cmp_result->word_id,
+						pkt_cmp_result->gen_id, pkt_cmp_result->hash_num);
+
+				if (!inpkt_check_cmp(dev, inpkt, task,
+						pkt_cmp_result->word_id, pkt_cmp_result->gen_id,
+						pkt_cmp_result->hash_num)) {
+					pkt_cmp_result_delete(pkt_cmp_result);
+					bad_input = 1;
+					break;
+				}
+
+				struct task_result *task_result = task_result_new(
+					task, task->keys
+					+ pkt_cmp_result->word_id * jtr_fmt_params->plaintext_length,
+					!task->range_info ? NULL :
+					task->range_info + pkt_cmp_result->word_id * MASK_FMT_INT_PLHDR,
+					pkt_cmp_result->gen_id,
+					cmp_config.pw[pkt_cmp_result->hash_num]
+				);
+
+				task_result->binary = mem_alloc(pkt_cmp_result->result_len);
+				memcpy(task_result->binary, pkt_cmp_result->result,
+						pkt_cmp_result->result_len);
+
+				pkt_cmp_result_delete(pkt_cmp_result);
+
 
 			// Comparator found equality
-			if (inpkt->type == PKT_TYPE_CMP_EQUAL) {
+			} else if (inpkt->type == PKT_TYPE_CMP_EQUAL) {
 
 				struct pkt_equal *pkt_equal = pkt_equal_new(inpkt);
-				if (pkt_equal->word_id >= task->num_keys) {
-					fprintf(stderr, "CMP_EQUAL: word_id=%d, num_keys=%d\n",
-							pkt_equal->word_id, task->num_keys);
-				}
-				if (pkt_equal->gen_id >= mask_num_cand()) {
-					fprintf(stderr, "CMP_EQUAL: gen_id=%u, mask_num_cand=%d\n",
-							pkt_equal->gen_id, mask_num_cand());
-				}
-				if (pkt_equal->hash_num >= cmp_config.num_hashes) {
-					fprintf(stderr, "CMP_EQUAL: hash_num=%d, num_hashes=%d\n",
-							pkt_equal->hash_num, cmp_config.num_hashes);
+
+				if (PKT_DEBUG >= 2)
+					fprintf(stderr,"%s CMP_EQUAL id=%d: w:%d g:%u h:%d\n",
+						jtr_device_id(dev),
+						pkt_equal->id, pkt_equal->word_id,
+						pkt_equal->gen_id, pkt_equal->hash_num);
+
+				if (!inpkt_check_cmp(dev, inpkt, task,
+						pkt_equal->word_id, pkt_equal->gen_id,
+						pkt_equal->hash_num)) {
+					free(pkt_equal);
+					bad_input = 1;
+					break;
 				}
 
-				//fprintf(stderr,"equality w:%d g:%lu h:%d\n", pkt_equal->word_id,
-				//		pkt_equal->gen_id, pkt_equal->hash_num);
 				task_result_new(task, task->keys
 					+ pkt_equal->word_id * jtr_fmt_params->plaintext_length,
 					!task->range_info ? NULL :
@@ -347,6 +529,13 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 			} else if (inpkt->type == PKT_TYPE_PROCESSING_DONE) {
 
 				struct pkt_done *pkt_done = pkt_done_new(inpkt);
+
+				if (PKT_DEBUG >= 2)
+					fprintf(stderr, "%s PROCESSING_DONE id=%d: %u/%d of %d\n",
+						jtr_device_id(dev), pkt_done->id,
+						pkt_done->num_processed, pkt_done->num_processed,//task->num_processed,
+						task->num_keys * mask_num_cand());
+
 				if (pkt_done->num_processed
 						!= task->num_keys * mask_num_cand()) {
 					fprintf(stderr, "PROCESSING_DONE: keys=%d, %u/%u\n",
@@ -359,15 +548,20 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 				free(pkt_done);
 
 			} else {
-				fprintf(stderr, "Unknown packet type=0x%02x len=%d\n",
-						inpkt->type, inpkt->data_len);
+				if (PKT_DEBUG >= 1)
+					fprintf(stderr, "%s %s type=0x%02x id=%d: len=%d\n",
+						jtr_device_id(dev), inpkt_type_name(inpkt->type),
+						inpkt->type, inpkt->id, inpkt->data_len);
 				pkt_delete(inpkt);
+				bad_input = 1;
 				break;
 			}
-		}
+		} // while (input packets)
 
-		//if (do_break)
-		//	break;
+		if (bad_input)
+			// Incorrect packets received from jtr_device.
+			device_stop(dev->device, task_list, "bad input packet");
+
 	} // for (jtr_device_list)
 
 }

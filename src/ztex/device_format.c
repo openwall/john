@@ -78,19 +78,22 @@ void device_format_init(struct fmt_main *fmt_main, struct device_bitstream *bits
 	//   are unrolled regardless of mask_int_cand_target.
 
 	// Mask can create too many candidates. That would result in problems
-	// with slow response and not enough keys for distribution among devices.
+	// with slow response or timeout.
 	// crypt_all() must finish in some reasonable 'response time'
 	// such as 0.1-0.2s.
 
 	// Reduce mask (request to unroll some ranges on CPU if necessary)
 	// by setting mask_int_cand_target.
+	// Unroll all ranges on CPU if format is slow enough.
 	//
-	mask_int_cand_target = jtr_bitstream->candidates_per_crypt;
+	if (jtr_bitstream->candidates_per_crypt > 50 * jtr_bitstream->min_keys
+			|| !jtr_bitstream->min_keys) {
 
+		mask_int_cand_target = jtr_bitstream->candidates_per_crypt;
+	}
 	// It requires actual mask size (number of candidates in mask)
 	// to calculate max_keys_per_crypt.
-	// On init(), mask is not ready yet. The following does not work.
-	//unsigned int cand_max = mask_estimate_num_cand_max();
+	// On init(), mask is not ready yet.
 }
 
 
@@ -168,7 +171,7 @@ void device_format_set_key(char *key, int index)
 
 int device_format_crypt_all(int *pcount, struct db_salt *salt)
 {
-	// * create tasks from keys_buffer and db_salt, 1 task for each jtr_device
+	// * create tasks from keys_buffer, 1 task for each jtr_device
 	// * equally distribute load among tasks assuming all devices are equal
 	// * assign tasks to jtr_devices
 	// * global jtr_device_list used
@@ -176,7 +179,7 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 	if (task_list)
 		task_list_delete(task_list);
 	task_list = task_list_create(*pcount, keys_buffer,
-			mask_is_inactive() ? NULL : range_info_buffer, salt);
+			mask_is_inactive() ? NULL : range_info_buffer);
 
 	// Send data to devices, continue communication until result is received
 	int rw_result;
@@ -233,7 +236,7 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 }
 
 
-static inline int get_hash(int index)
+inline static int get_hash(int index)
 {
 	uint32_t out;
 	struct task_result *result = task_result_by_index(task_list, index);

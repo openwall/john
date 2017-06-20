@@ -47,8 +47,4 @@ void mask_reconstruct_plaintext(
 		unsigned char *range_info,
 		unsigned int gen_id);
 
-// Returns max. possible value for 'mask_int_cand_target'
-unsigned int mask_estimate_num_cand_max();
-
-
 #endif
