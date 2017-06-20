@@ -29,7 +29,7 @@ typedef struct {
 
 // output
 typedef struct {
-	uint8_t hash[16];
+	uint32_t hash[4];
 } hash_t;
 
 // input
@@ -309,7 +309,7 @@ __kernel void ethereum_presale_process(__constant salt_t *salt,
 	uchar iv[16];
 	int i;
 	uchar seed[1024 + 1];
-	uchar hash[32];
+	uint hash[8];
 	int padbyte;
 	int seed_length;
 
@@ -326,7 +326,7 @@ __kernel void ethereum_presale_process(__constant salt_t *salt,
 	seed[seed_length] = 0x02; // add 0x02 to the buffer
 	keccak_256(hash, 16, seed, seed_length + 1);
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < 4; i++) {
 		hash_out[gid].hash[i] = hash[i];
 	}
 }

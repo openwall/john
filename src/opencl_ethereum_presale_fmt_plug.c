@@ -39,8 +39,8 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
 #define PRESALE_KERNEL_NAME     "ethereum_presale_process"
 
-#define HASH_LOOPS              (13*71) // factors 13, 13, 71
-#define ITERATIONS              12000
+#define HASH_LOOPS              (2*2*5*5*5) // factors 2 2 2 2 5 5 5
+#define ITERATIONS              2000
 
 struct fmt_tests opencl_ethereum_presale_tests[] = {
 	// "real-world" presale wallet, thanks to @FredericHeem, https://github.com/tagawa/website/blob/master/pyethtool/pyethtool.py#L61
@@ -206,7 +206,7 @@ static void reset(struct db_main *db)
 		// Auto tune execution from shared/included code.
 		autotune_run(self, ITERATIONS, 0,
 		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 10000000000ULL));
+		              1000000000 : 200));
 	}
 }
 
