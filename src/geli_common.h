@@ -8,6 +8,7 @@
 #include "formats.h"
 #include "sha2.h"
 #include "aes.h"
+#include "hmac_sha.h"
 
 #define SHA512_MDLEN            64
 #define G_ELI_MAXMKEYS          2
@@ -32,8 +33,9 @@ typedef struct {
 	uint16_t md_aalgo;
 	uint8_t md_keys;
 	int32_t md_iterations;
-	uint8_t md_salt[G_ELI_SALTLEN];
+	uint8_t md_salt[G_ELI_SALTLEN + 8];
 	uint8_t	md_mkeys[G_ELI_MAXMKEYS * G_ELI_MKEYLEN];
+	uint32_t saltlen; // hack
 } custom_salt;
 
 extern struct fmt_tests geli_tests[];
@@ -42,3 +44,4 @@ extern struct fmt_tests geli_tests[];
 int geli_common_valid(char *ciphertext, struct fmt_main *self);
 void *geli_common_get_salt(char *ciphertext);
 unsigned int geli_common_iteration_count(void *salt);
+int geli_decrypt_verify(custom_salt *cur_salt, unsigned char *key);

@@ -125,3 +125,45 @@ unsigned int geli_common_iteration_count(void *salt)
 {
 	return (unsigned int) ((custom_salt*)salt)->md_iterations;
 }
+
+// Based on "g_eli_mkey_decrypt" and "g_eli_mkey_verify" functions from FreeBSD
+int geli_decrypt_verify(custom_salt *cur_salt, unsigned char *key)
+{
+	AES_KEY aes_decrypt_key;
+	unsigned char iv[16];
+	unsigned char enckey[SHA512_MDLEN];
+	const unsigned char *mmkey;
+	unsigned char tmpmkey[G_ELI_MKEYLEN];
+	int nkey, bit, ret;
+	const unsigned char *odhmac; /* On-disk HMAC. */
+	unsigned char chmac[SHA512_MDLEN]; /* Calculated HMAC. */
+	unsigned char hmkey[SHA512_MDLEN]; /* Key for HMAC. */
+
+	// The key for encryption is: enckey = HMAC_SHA512(Derived-Key, 1)
+	JTR_hmac_sha512(key, G_ELI_USERKEYLEN, (const unsigned char*)"\x01", 1, enckey, SHA512_MDLEN);
+
+	mmkey = cur_salt->md_mkeys;
+	for (nkey = 0; nkey < G_ELI_MAXMKEYS; nkey++, mmkey += G_ELI_MKEYLEN) {
+		bit = (1 << nkey);
+		if (!(cur_salt->md_keys & bit))
+			continue;
+		memcpy(tmpmkey, mmkey, G_ELI_MKEYLEN);
+
+		// decrypt tmpmkey in aes-cbc mode using enckey
+		AES_set_decrypt_key(enckey, cur_salt->md_keylen, &aes_decrypt_key);
+		memset(iv, 0, 16);
+		AES_cbc_encrypt(tmpmkey, tmpmkey, G_ELI_MKEYLEN, &aes_decrypt_key, iv, AES_DECRYPT);
+
+		// verify stuff, tmpmkey and key are involved
+		JTR_hmac_sha512(key, G_ELI_USERKEYLEN, (const unsigned char*)"\x00", 1, hmkey, SHA512_MDLEN);
+		odhmac = tmpmkey + G_ELI_DATAIVKEYLEN;
+		// Calculate HMAC from Data-Key and IV-Key.
+		JTR_hmac_sha512(hmkey, SHA512_MDLEN, tmpmkey, G_ELI_DATAIVKEYLEN, chmac, SHA512_MDLEN);
+
+		ret = memcmp(odhmac, chmac, 16) == 0;
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
