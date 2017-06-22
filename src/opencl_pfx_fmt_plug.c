@@ -18,9 +18,6 @@ john_register_one(&fmt_opencl_pfx);
 
 #include <stdint.h>
 #include <string.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "misc.h"
 #include "arch.h"
@@ -58,12 +55,12 @@ extern volatile int bench_running;
 // input
 typedef struct {
 	uint32_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
+	uint32_t v[PLAINTEXT_LENGTH / 4];
 } pfx_password;
 
 // output
 typedef struct {
-	uint8_t v[20];
+	uint32_t v[20 / 4];
 } pfx_hash;
 
 // input
@@ -71,14 +68,15 @@ typedef struct {
 	uint32_t iterations;
 	uint32_t keylen;
 	uint32_t saltlen;
-	uint8_t salt[20];
+	uint32_t salt[20 / 4];
+	uint32_t datalen;
+	uint32_t data[MAX_DATA_LENGTH / 4];
 } pfx_salt;
 
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static struct custom_salt *cur_salt;
 static cl_int cl_error;
 static pfx_password *inbuffer;
-static pfx_hash *outbuffer;
 static pfx_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
@@ -109,8 +107,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	settingsize = sizeof(pfx_salt);
 
 	inbuffer = mem_calloc(1, insize);
-	outbuffer = mem_alloc(outsize);
-	crypt_out = mem_calloc(gws, sizeof(*crypt_out));
+	crypt_out = mem_alloc(outsize);
 
 	// Allocate memory
 	mem_in =
@@ -142,8 +139,8 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 		MEM_FREE(inbuffer);
-		MEM_FREE(outbuffer);
 		MEM_FREE(crypt_out);
+		crypt_out = NULL;
 	}
 }
 
@@ -159,8 +156,8 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DPLAINTEXT_LENGTH=%d",
-		         PLAINTEXT_LENGTH);
+		         "-DPLAINTEXT_LENGTH=%d -DMAX_DATA_LENGTH=%d",
+		         PLAINTEXT_LENGTH, MAX_DATA_LENGTH);
 		opencl_init("$JOHN/kernels/pfx_kernel.cl",
 		            gpu_id, build_opts);
 
@@ -173,7 +170,7 @@ static void reset(struct db_main *db)
 		                       sizeof(pfx_password), 0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 300);
+		autotune_run(self, 1, 0, 200);
 	}
 }
 
@@ -264,7 +261,9 @@ static void set_salt(void *salt)
 	currentsalt.saltlen = cur_salt->saltlen;
 	currentsalt.iterations = cur_salt->iteration_count;
 	currentsalt.keylen= cur_salt->key_length;
+	currentsalt.datalen= cur_salt->data_length;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, currentsalt.saltlen);
+	memcpy((char*)currentsalt.data, cur_salt->data, currentsalt.datalen);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
@@ -292,7 +291,6 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -310,22 +308,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
+		outsize, crypt_out, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
-
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++)
-	{
-		hmac_sha1(outbuffer[index].v, cur_salt->key_length,
-				cur_salt->data, cur_salt->data_length,
-				(unsigned char*)crypt_out[index], BINARY_SIZE);
-
-	}
 
 	return count;
 }
@@ -333,6 +317,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 	for (; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
@@ -364,7 +349,7 @@ struct fmt_main fmt_opencl_pfx = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
 			"mac-type",
 		},
