@@ -376,6 +376,8 @@ struct task_result *task_result_by_index(struct task_list *task_list, int index)
 
 void task_list_delete(struct task_list *task_list)
 {
+	if (!task_list)
+		return;
 	struct task *task = task_list->task;
 	if (!task)
 		return;
