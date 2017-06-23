@@ -12,6 +12,7 @@
  *
  * ftp://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
  * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf
+ * http://www.willhackforsushi.com/presentations/PEAP_Shmoocon2008_Wright_Antoniewicz.pdf
  */
 
 #if FMT_EXTERNS_H
@@ -45,25 +46,28 @@ static int omp_t = 1;
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"chap"
-#define FORMAT_NAME		"iSCSI CHAP authentication"
-#define FORMAT_TAG		"$chap$"
-#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			sizeof(int)
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define FORMAT_LABEL            "chap"
+#define FORMAT_NAME             "iSCSI CHAP authentication / EAP-MD5"
+#define FORMAT_TAG              "$chap$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        32
+#define BINARY_SIZE             16
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests chap_tests[] = {
 	{"$chap$0*cc7e5247514551acdcbf782c4027bfb1*fdfdad5277812ae40956a66f3db23308", "password"},
 	{"$chap$0*81a49cb700e8c2ee9bc3852a506406c3*8876e228962a999637eecc2423f55f07", "password"},
 	{"$chap$0*e270954e7d84f99535dce2e5d7340a7d*4d64f587c7b5248406b939e1e9abeb74", "bar"},
+	// EAP-MD5 hashes are also supported!
+	{"$chap$2*d7ec2fff2ada437f9dcd4e3b0df44d50*1ffc6c2659bc5bb94144fd01eb756e37", "beaVIs"},
+	{"$chap$2*00000000000000000000000000000000*9920418b3103652d3b80ffff04da5863", "bradtest"},
 	{NULL}
 };
 
@@ -223,11 +227,7 @@ static int cmp_exact(char *source, int index)
 
 static void chap_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
