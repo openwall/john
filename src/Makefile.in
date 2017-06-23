@@ -137,7 +137,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 
 WITH_PCAP = @HAVE_PCAP@
 ifdef WITH_PCAP
-PROJ += ../run/SIPdump@EXE_EXT@ ../run/vncpcap2john@EXE_EXT@
+PROJ += ../run/SIPdump@EXE_EXT@ ../run/vncpcap2john@EXE_EXT@ ../run/eapmd5tojohn@EXE_EXT@
 endif
 
 WITH_OPENCL=@CL_LIBS@
@@ -497,6 +497,8 @@ unshadow.o:	unshadow.c misc.h jumbo.h arch.h autoconfig.h params.h memory.h memd
 
 vncpcap2john.o:	vncpcap2john.c autoconfig.h cygwin/ethernet.h arch.h tcphdr.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
+eapmd5tojohn.o:	eapmd5tojohn.c arch.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
+
 whirlpool.o:	whirlpool.c sph_whirlpool.h sph_types.h autoconfig.h arch.h memdbg.h os.h os-autoconf.h jumbo.h memory.h md_helper.c
 
 win32_memmap.o:	win32_memmap.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h win32_memmap.h misc.h memdbg.h memory.h
@@ -703,6 +705,9 @@ kernels: @KERNEL_OBJS@
 
 ../run/vncpcap2john@EXE_EXT@: vncpcap2john.o memdbg.o
 	$(CC) -DAC_BUILT -Wall vncpcap2john.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/vncpcap2john
+
+../run/eapmd5tojohn@EXE_EXT@: eapmd5tojohn.o memdbg.o
+	$(CC) -DAC_BUILT -Wall eapmd5tojohn.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/eapmd5tojohn
 
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
