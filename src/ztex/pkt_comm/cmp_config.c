@@ -102,7 +102,10 @@ void cmp_config_new(struct db_salt *salt, void *salt_ptr, int salt_len)
 
 	int cost_num;
 	for (cost_num = 0; cost_num < FMT_TUNABLE_COSTS; cost_num ++) {
-		cmp_config.tunable_costs[cost_num] = salt->cost[cost_num];
+		if (jtr_fmt_params->tunable_cost_name[cost_num])
+			cmp_config.tunable_costs[cost_num] = salt->cost[cost_num];
+		else
+			cmp_config.tunable_costs[cost_num] = 0;
 	}
 
 	// db_salt->salt depends on host system (e.g. different on 32 and 64-bit).
@@ -143,7 +146,7 @@ struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config)
 	int size = 3 + cmp_config->salt_len
 			+ cmp_config->num_hashes * binary_size
 			+ 4 * FMT_TUNABLE_COSTS;
-  char *data = malloc(size);
+	char *data = malloc(size);
 	if (!data) {
 		pkt_error("pkt_cmp_config_new(): unable to allocate %d bytes\n",
 				size);

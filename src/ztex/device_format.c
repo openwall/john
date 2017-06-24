@@ -146,6 +146,10 @@ void device_format_reset()
 	if (!mask_is_inactive())
 		range_info_buffer = mem_alloc(MASK_FMT_INT_PLHDR
 				* jtr_fmt_params->max_keys_per_crypt);
+
+
+	task_list_delete(task_list);
+	task_list = NULL;
 }
 
 
@@ -176,8 +180,7 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 	// * assign tasks to jtr_devices
 	// * global jtr_device_list used
 	//
-	if (task_list)
-		task_list_delete(task_list);
+	task_list_delete(task_list);
 	task_list = task_list_create(*pcount, keys_buffer,
 			mask_is_inactive() ? NULL : range_info_buffer);
 
