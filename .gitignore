@@ -24,6 +24,7 @@ run/cprepair
 run/custom.chr
 run/dmg2john
 run/dynacomptest
+run/eapmd5tojohn
 run/genmkvpwd
 run/gpg2john
 run/hccap2john
@@ -81,6 +82,7 @@ src/fmt_registers.h
 src/generic.h
 src/john_build_rule.h
 src/memdbg_defines.h
+src/secp256k1/secp256k1.a
 src/stamp-h1
 src/version.h
 src/version.h.new
