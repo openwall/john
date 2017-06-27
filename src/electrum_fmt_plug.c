@@ -35,8 +35,6 @@ john_register_one(&fmt_electrum);
 #include "sha2.h"
 #include "jumbo.h"
 #include "secp256k1.h"
-#undef SIMD_COEF_64 // hack, will fix in later commit
-#define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX 1 // hack
 #include "pbkdf2_hmac_sha512.h"
 #include "hmac_sha.h"
 #include "memdbg.h"
@@ -45,7 +43,11 @@ john_register_one(&fmt_electrum);
 #define FORMAT_LABEL            "electrum"
 #define FORMAT_TAG              "$electrum$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "SHA256 AES 32/" ARCH_BITS_STR
+#ifdef SIMD_COEF_64
+#define ALGORITHM_NAME          "SHA256 AES / PBKDF2-SHA512 " SHA1_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME          "SHA256 AES / PBKDF2-SHA512 32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define BINARY_SIZE             0
@@ -53,8 +55,13 @@ john_register_one(&fmt_electrum);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define PLAINTEXT_LENGTH        125
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
+#else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
+#endif
 
 static struct fmt_tests electrum_tests[] = {
 	// Wallets created by Electrum 1.9.8
@@ -232,102 +239,121 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		unsigned char iv[16];
 		unsigned char key[32];
-		unsigned char outbuf[48];
 		SHA256_CTX ctx;
 		AES_KEY aes_decrypt_key;
 		int extra;
-		int i;
+		unsigned char static_privkey[MAX_KEYS_PER_CRYPT][64];
+		int i, j;
 
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, saved_key[index], strlen(saved_key[index]));
-		SHA256_Final(key, &ctx);
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, key, 32);
-		SHA256_Final(key, &ctx);
-		memcpy(iv, cur_salt->iv, 16);
-		AES_set_decrypt_key(key, 128 * 2, &aes_decrypt_key);
-		AES_cbc_encrypt(cur_salt->seed, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+		if (cur_salt->type == 1 || cur_salt->type == 2 || cur_salt->type == 3) {
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+				unsigned char outbuf[48] = { 0 };
 
-		if (cur_salt->type == 1) {
-			// check if 16 bytes of the encrypted seed are all lower-case hex (btcrecover)
-			outbuf[16] = 0;
-			if (hexlenl((const char*)outbuf, &extra) != 8 * 2 || extra)
-				cracked[index] = 0;
-			else
-				cracked[index] = 1;
-		} else if (cur_salt->type == 2) {
-			// check if starting 4 bytes are "xprv"
-			if (strncmp((const char*)outbuf, "xprv", 4))
-				cracked[index] = 0;
-			else {
-				// check if remaining 12 bytes are in base58 set [1-9A-HJ-NP-Za-km-z]
-				for (i = 0; i < 12; i++) {
-					unsigned char c = outbuf[4 + i];
-					if ((c > 'z') || (c < '1') || ((c > '9') && (c < 'A')) || ((c > 'Z') && (c < 'a'))) {
-						cracked[index] = 0;
-						break;
+				SHA256_Init(&ctx);
+				SHA256_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
+				SHA256_Final(key, &ctx);
+				SHA256_Init(&ctx);
+				SHA256_Update(&ctx, key, 32);
+				SHA256_Final(key, &ctx);
+				memcpy(iv, cur_salt->iv, 16);
+				AES_set_decrypt_key(key, 128 * 2, &aes_decrypt_key);
+				AES_cbc_encrypt(cur_salt->seed, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+
+				if (cur_salt->type == 1) {
+					// check if 16 bytes of the encrypted seed are all lower-case hex (btcrecover)
+					outbuf[16] = 0;
+					if (hexlenl((const char*)outbuf, &extra) != 8 * 2 || extra)
+						cracked[index+i] = 0;
+					else
+						cracked[index+i] = 1;
+				} else if (cur_salt->type == 2) {
+					// check if starting 4 bytes are "xprv"
+					if (strncmp((const char*)outbuf, "xprv", 4))
+						cracked[index+i] = 0;
+					else {
+						// check if remaining 12 bytes are in base58 set [1-9A-HJ-NP-Za-km-z]
+						for (j = 0; j < 12; j++) {
+							unsigned char c = outbuf[4 + j];
+							if ((c > 'z') || (c < '1') || ((c > '9') && (c < 'A')) || ((c > 'Z') && (c < 'a'))) {
+								cracked[index+i] = 0;
+								break;
+							}
+						}
+						if (j == 12)
+							cracked[index+i] = 1;
+					}
+				} else if (cur_salt->type == 3) {
+					unsigned char padbyte = outbuf[15];
+					// check for valid PKCS7 padding for a 52 or 51 byte "WIF" private key, 64 is the original data size
+					if (padbyte == 12 || padbyte == 13) {
+						if (check_pkcs_pad(outbuf, 16, 16) < 0)
+							cracked[index+i] = 0;
+						else
+							cracked[index+i] = 1;
+					}
+					else {
+						cracked[index+i] = 0;
 					}
 				}
-				if (i == 12)
-					cracked[index] = 1;
-			}
-		} else if (cur_salt->type == 3) {
-			unsigned char padbyte = outbuf[15];
-			// check for valid PKCS7 padding for a 52 or 51 byte "WIF" private key, 64 is the original data size
-			if (padbyte == 12 || padbyte == 13) {
-				if (check_pkcs_pad(outbuf, 16, 16) < 0)
-					cracked[index] = 0;
-				else
-					cracked[index] = 1;
-			}
-			else {
-				cracked[index] = 0;
 			}
 		} else if (cur_salt->type == 4) {
 			BIGNUM *p, *q, *r;
 			BN_CTX *ctx;
-			unsigned char static_privkey[128];
 			unsigned char shared_pubkey[33];
 			unsigned char keys[128];
 			unsigned char cmac[32];
 			secp256k1_context *sctx;
 			SHA512_CTX md_ctx;
 			int shared_pubkeylen= 33;
+#ifdef SIMD_COEF_64
+			int len[MAX_KEYS_PER_CRYPT];
+			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				len[i] = strlen(saved_key[i+index]);
+				pin[i] = (unsigned char*)saved_key[i+index];
+				pout[i] = static_privkey[i];
+			}
+			pbkdf2_sha512_sse((const unsigned char **)pin, len, (unsigned char*)"", 0, 1024, pout, 64, 0);
+#else
 
-			pbkdf2_sha512((unsigned char *)saved_key[index],
-					strlen(saved_key[index]),
-					(unsigned char*)"", 0, 1024,
-					static_privkey, 64, 0);
-			// do static_privkey % GROUP_ORDER
-			p = BN_bin2bn(static_privkey, 64, NULL);
-			q = BN_new();
-			r = BN_new();
-			BN_hex2bn(&q, group_order);
-			ctx = BN_CTX_new();
-			BN_mod(r, p, q, ctx);
-			BN_CTX_free(ctx);
-			BN_free(p);
-			BN_free(q);
-			BN_bn2bin(r, static_privkey);
-			BN_free(r);
-			sctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-			// multiply point with a scaler, shared_pubkey is compressed representation
-			secp256k1_mul(sctx, shared_pubkey, &cur_salt->pubkey, static_privkey);
-			secp256k1_context_destroy(sctx);
-			SHA512_Init(&md_ctx);
-			SHA512_Update(&md_ctx, shared_pubkey, shared_pubkeylen);
-			SHA512_Final(keys, &md_ctx);
-			// calculate mac of data
-			hmac_sha256(keys + 32, 32, cur_salt->data, cur_salt->datalen, cmac, 32);
-			if (memcmp(&cur_salt->mac, cmac, 16) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+				pbkdf2_sha512((unsigned char *)saved_key[index+i],
+						strlen(saved_key[index+i]),
+						(unsigned char*)"", 0, 1024,
+						static_privkey[i], 64, 0);
+			}
+#endif
+			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+				// do static_privkey % GROUP_ORDER
+				p = BN_bin2bn(static_privkey[i], 64, NULL);
+				q = BN_new();
+				r = BN_new();
+				BN_hex2bn(&q, group_order);
+				ctx = BN_CTX_new();
+				BN_mod(r, p, q, ctx);
+				BN_CTX_free(ctx);
+				BN_free(p);
+				BN_free(q);
+				BN_bn2bin(r, static_privkey[i]);
+				BN_free(r);
+				sctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+				// multiply point with a scaler, shared_pubkey is compressed representation
+				secp256k1_mul(sctx, shared_pubkey, &cur_salt->pubkey, static_privkey[i]);
+				secp256k1_context_destroy(sctx);
+				SHA512_Init(&md_ctx);
+				SHA512_Update(&md_ctx, shared_pubkey, shared_pubkeylen);
+				SHA512_Final(keys, &md_ctx);
+				// calculate mac of data
+				hmac_sha256(keys + 32, 32, cur_salt->data, cur_salt->datalen, cmac, 32);
+				if (memcmp(&cur_salt->mac, cmac, 16) == 0)
+					cracked[index+i] = 1;
+				else
+					cracked[index+i] = 0;
+			}
 		}
 	}
 
