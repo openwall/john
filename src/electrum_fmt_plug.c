@@ -35,7 +35,6 @@ john_register_one(&fmt_electrum);
 #include "sha2.h"
 #include "jumbo.h"
 #include "secp256k1.h"
-#undef SIMD_COEF_64 // hack, will fix in later commit
 #define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX 1 // hack
 #include "pbkdf2_hmac_sha512.h"
 #include "hmac_sha.h"
