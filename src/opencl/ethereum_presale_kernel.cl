@@ -324,7 +324,7 @@ __kernel void ethereum_presale_process(__constant salt_t *salt,
 	if (seed_length < 0)
 		seed_length = 0;
 	seed[seed_length] = 0x02; // add 0x02 to the buffer
-	keccak_256(hash, 16, seed, seed_length + 1);
+	keccak_256((uint8_t*)hash, 16, seed, seed_length + 1);
 
 	for (i = 0; i < 4; i++) {
 		hash_out[gid].hash[i] = hash[i];
