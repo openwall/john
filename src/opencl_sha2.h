@@ -335,7 +335,8 @@ __constant ulong K[] = {
 	0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL
 };
 
-#if gpu_amd(DEVICE_INFO) && SCALAR
+#if gpu_amd(DEVICE_INFO) && SCALAR && defined(cl_amd_media_ops)
+#pragma OPENCL EXTENSION cl_amd_media_ops : enable
 /* Bug seen with multiples of 8 */
 #define ror64(x, n)	(n % 8 ? \
 	 ((n) < 32 ? (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) | ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) | ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32))) : \
