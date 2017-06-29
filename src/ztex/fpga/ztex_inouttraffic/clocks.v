@@ -22,13 +22,19 @@
 
 
 module clocks #(
-	parameter WORD_GEN_FREQ = 228,
+	//parameter WORD_GEN_FREQ = 228, <-- 26.06.17 using CORE_FREQ
 	parameter PKT_COMM_FREQ = 162,
-	parameter CORE_FREQ = 222, 
-	parameter CMP_FREQ = 162//186
+	parameter CORE_FREQ = 220,	// <-- adjust UCF!
+	parameter CMP_FREQ = 160	// <-- adjust UCF!
 	)(
 	input IFCLK_IN,
 	input FXCLK_IN,
+
+	// Programmable clocks
+	input [3:0] progen, 
+	input progdata, progclk,
+	input pll_reset,
+	output progdone_inv,
 	
 	output IFCLK,
 	output WORD_GEN_CLK,
@@ -36,6 +42,8 @@ module clocks #(
 	output CORE_CLK,
 	output CMP_CLK
 	);
+
+	assign WORD_GEN_CLK = CORE_CLK;
 
 
 	// ********************************************************************************
@@ -79,18 +87,58 @@ module clocks #(
 	// in the top half of fpga and other one must be in the bottom half.
 	//
 	// CMTs are numbered 0 to 5 from bottom to top.
+
+
+	// Delay line waits 4 cycles after GSR deasserted
+	reg [3:0] delay_line = 0;
+	always @(posedge IFCLK)
+		delay_line[3:0] <= { delay_line[2:0], 1'b1 };
+	wire CE = &delay_line[3:0];
+
 	
 	cmt2 #(
-		.PLL_FREQ(WORD_GEN_FREQ),
+		.PLL_FREQ(PKT_COMM_FREQ), //WORD_GEN_FREQ),
 		.PHASE_SHIFT(-15)
 	) cmt2(
 		.I(IFCLK_IN),
 		.CLK0(IFCLK),
-		.PLL_CLK(WORD_GEN_CLK),
+		.PLL_CLK(PKT_COMM_CLK), //WORD_GEN_CLK),
 		.IFCLK1_BUFG(IFCLK1_BUFG)
 	);
 
+	//
+	//  26.06.17 using Programmable clocks
+	//
+	BUFG FXCLK_IN_BUFG_inst(
+		.I(FXCLK_IN),
+		.O(FXCLK)
+	);
 
+	// Programmable clock #0:
+	cmt_prog #( .F(CORE_FREQ)
+	) cmt3(
+		.I(FXCLK),
+		.progen(progen[0]), .progdata(progdata), .progclk(progclk),
+		.pll_reset(pll_reset),
+		.CE(CE),
+		.progdone_inv(progdone_inv0),
+		.O(CORE_CLK)
+	);
+
+	// Programmable clock #1:
+	cmt_prog #( .F(CMP_FREQ)
+	) cmt4(
+		.I(FXCLK),
+		.progen(progen[1]), .progdata(progdata), .progclk(progclk),
+		.pll_reset(pll_reset),
+		.CE(CE),
+		.progdone_inv(progdone_inv1),
+		.O(CMP_CLK)
+	);
+
+	assign progdone_inv = progdone_inv0 | progdone_inv1;
+
+/*
 	cmt_common #(
 		//.CLK2_FREQ(),
 		.PLL_FREQ(CMP_FREQ)
@@ -125,5 +173,5 @@ module clocks #(
 		.CLK2(),
 		.PLL_CLK(PKT_COMM_CLK)
 	);
-
+*/
 endmodule

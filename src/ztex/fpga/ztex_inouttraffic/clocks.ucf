@@ -23,53 +23,39 @@ TIMESPEC "TS_IFCLK" = PERIOD "IFCLK" 20.833 ns HIGH 50%;
 #NET "clocks/cmt2/dcm0_clk90" TNM_NET = "cmt2_dcm0_clk90";
 #TIMESPEC "TS_cmt2_dcm0_clk90" = PERIOD "cmt2_dcm0_clk90" 20.833 ns HIGH 50%;
 # PLL_CLK
-NET "clocks/cmt2/dcm0_clkdv" TNM_NET = "cmt2_dcm0_clkdv";
-TIMESPEC "TS_cmt2_dcm0_clkdv" = PERIOD "cmt2_dcm0_clkdv" 41.666 ns HIGH 50%;
+NET "clocks/cmt2/dcm0_clkdv" TNM_NET = "PKT_COMM_CLK";
+TIMESPEC "TS_PKT_COMM_CLK" = PERIOD "PKT_COMM_CLK" 41.666 ns HIGH 50%;
+
 
 # ****************************
 #
-# cmt1 - driven by FXCLK_IN
-# cmt_common.v
+# Programmable clock #0
+# cmt_prog.v
 #
 # ****************************
 #
-#INST "clocks/cmt1/BUFIO2_inst" LOC=BUFIO2_X3Y11;
-INST "clocks/cmt1/DCM_0" LOC=DCM_X0Y2;
-#INST "clocks/cmt1/DCM_CLKGEN_0" LOC=DCM_X0Y3;
-INST "clocks/cmt1/PLL_0" LOC=PLL_ADV_X0Y1;
-
-# CLK2
-#NET "clocks/cmt1/dcm0_clk90" TNM_NET = "cmt1_dcm0_clk90";
-#TIMESPEC "TS_cmt1_dcm0_clk90" = PERIOD "cmt1_dcm0_clk90" 20.833 ns HIGH 50%;
-# PLL_CLK
-NET "clocks/cmt1/dcm0_clkdv" TNM_NET = "cmt1_dcm0_clkdv";
-TIMESPEC "TS_cmt1_dcm0_clkdv" = PERIOD "cmt1_dcm0_clkdv" 41.666 ns HIGH 50%;
-
-# ****************************
-#
-# cmt3 - driven by FXCLK_IN
-# cmt_common.v
-#
-# ****************************
-#
-#INST "clocks/cmt3/BUFIO2_inst" LOC=BUFIO2_X4Y19;
-INST "clocks/cmt3/DCM_0" LOC=DCM_X0Y6;
 INST "clocks/cmt3/DCM_CLKGEN_0" LOC=DCM_X0Y7;
 INST "clocks/cmt3/PLL_0" LOC=PLL_ADV_X0Y3;
 
-# CLK2
-#NET "clocks/cmt3/dcm0_clk90" TNM_NET = "cmt3_dcm0_clk90";
-#TIMESPEC "TS_cmt3_dcm0_clk90" = PERIOD "cmt3_dcm0_clk90" 20.833 ns HIGH 50%;
-# PLL_CLK
-NET "clocks/cmt3/dcm0_clkdv" TNM_NET = "cmt3_dcm0_clkdv";
-TIMESPEC "TS_cmt3_dcm0_clkdv" = PERIOD "cmt3_dcm0_clkdv" 41.666 ns HIGH 50%;
+NET "clocks/cmt3/pll0_clkout0" TNM_NET = "CORE_CLK";
+//TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.347 ns HIGH 50%; // 230
+//TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.444 ns HIGH 50%; // 225
+TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.504 ns HIGH 50%; // 222
+//TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.545 ns HIGH 50%; // 220
+
 
 # ****************************
 #
-# cmt_bufg0 (random location) - driven from BUFG
-# cmt_common.v
+# Programmable clock #1
+# cmt_prog.v
 #
 # ****************************
 #
-NET "clocks/cmt_bufg0/dcm0_clkdv" TNM_NET = "cmt_bufg0_dcm0_clkdv";
-TIMESPEC "TS_cmt_bufg0_dcm0_clkdv" = PERIOD "cmt_bufg0_dcm0_clkdv" 41.666 ns HIGH 50%;
+INST "clocks/cmt4/DCM_CLKGEN_0" LOC=DCM_X0Y9;
+INST "clocks/cmt4/PLL_0" LOC=PLL_ADV_X0Y4;
+
+NET "clocks/cmt4/pll0_clkout0" TNM_NET = "CMP_CLK";
+//TIMESPEC "TS_CMP_CLK" = PERIOD "CMP_CLK" 6.060 ns HIGH 50%; // 165
+TIMESPEC "TS_CMP_CLK" = PERIOD "CMP_CLK" 6.172 ns HIGH 50%; // 162
+//TIMESPEC "TS_CMP_CLK" = PERIOD "CMP_CLK" 6.250 ns HIGH 50%; // 160
+
