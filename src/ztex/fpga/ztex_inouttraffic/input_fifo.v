@@ -26,9 +26,9 @@ module input_fifo(
 	// FIFO Generator v9.3
 	// * Independent Clocks - Block RAM
 	// * 1st word Fall-Through
-	// * write: width 16, depth 16384 (32 Kbytes), read width 8
+	// * write width 16, read width 8
 	// * Almost Full Flag
-	// * Single Programmable Full Threshold Constant: Assert Value 8192 (half size)
+	// * Single Programmable Full Threshold Constant: Assert Value (half size)
 	// * Reset: off
 	wire [7:0] din_stage2;
 	

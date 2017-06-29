@@ -48,10 +48,20 @@ module ztex_inouttraffic(
 	);
 
 
+
+	// PC_RAW is available when VCR interface is off with cmd 0x00
+	wire [7:0] PC_RAW = CS & vcr_inout_raw ? PC : 8'b0;
+
+	reg error_r = 0;
+	
 	clocks clocks(
 		// Input clocks go to Clock Management Tile via dedicated routing
 		.IFCLK_IN(IFCLK_IN),
 		.FXCLK_IN(FXCLK_IN),
+		// Up to 4 Programmable clocks
+		.progen(PC_RAW[5:2]), .progdata(PC_RAW[1]), .progclk(PC_RAW[0]),
+		.pll_reset(error_r),
+		.progdone_inv(progdone_inv),
 		// Produced clocks
 		.IFCLK(IFCLK), 	// for operating I/O pins
 		.PKT_COMM_CLK(PKT_COMM_CLK), // for processing data packets
@@ -115,7 +125,7 @@ module ztex_inouttraffic(
 		.wr_en(app_wr_en),
 		.full(app_full),
 		// Application control (via VCR I/O). Set with fpga_set_app_mode()
-		.app_mode(app_mode),
+		.app_mode(8'h02), //app_mode), <-- disable test mode previously used for tests
 		// Application status (via VCR I/O). Available at fpga->wr.io_state.app_status
 		.pkt_comm_status(pkt_comm_status),
 		.app_status(app_status),
@@ -123,6 +133,10 @@ module ztex_inouttraffic(
 	);
 	
 	
+	always @(posedge IFCLK)
+		error_r <= |pkt_comm_status | |app_status;
+
+
 	// ********************************************************
 	//
 	// Output buffer (via High-Speed interface)
@@ -175,12 +189,11 @@ module ztex_inouttraffic(
 	// Vendor Command/Request (VCR) I/O interface
 	//
 	// ********************************************************
-	wire [7:0] vcr_in = PC;
 	wire [7:0] vcr_out;
 	assign PC = CS && PA7 ? vcr_out : 8'bz;
 	
 	(* KEEP_HIERARCHY="true" *) vcr vcr_inst(
-		.CS(CS), .vcr_in(vcr_in), .vcr_out(vcr_out), .clk_vcr_addr(PA0), .clk_vcr_data(PA1),
+		.CS(CS), .vcr_in(PC), .vcr_out(vcr_out), .clk_vcr_addr(PA0), .clk_vcr_data(PA1),
 		// i/o goes with respect to IFCLK
 		.IFCLK(IFCLK),
 		// various inputs to be read by CPU
@@ -190,12 +203,13 @@ module ztex_inouttraffic(
 		.output_limit(output_limit), .output_limit_not_done(output_limit_not_done),
 		.app_status(app_status),
 		.pkt_comm_status(pkt_comm_status), .debug2(debug2), .debug3(debug3),
+		.progdone_inv(progdone_inv), // Programmable clock
 		// various control wires
+		.inout_raw(vcr_inout_raw),
 		.hs_en(hs_en),
 		.output_mode_limit(output_mode_limit),
 		.reg_output_limit(reg_output_limit),
-		.app_mode(app_mode),
-		.RESET_OUT()
+		.app_mode(app_mode)
 	);
 
 

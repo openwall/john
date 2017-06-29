@@ -55,7 +55,10 @@ struct device_bitstream bitstream = {
 	// Absolute max. keys/crypt_all_interval for all devices.
 	262140,
 	// Max. number of entries in onboard comparator.
-	2047
+	2047,
+	0,	// Min. number of keys (doesn't matter for fast "formats")
+	2, { 220, 160 },	// Programmable clocks
+	"descrypt"	// label for configuration file
 };
 
 
