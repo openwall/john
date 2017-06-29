@@ -268,7 +268,7 @@ struct fmt_main fmt_ztex_bcrypt = {
 		SALT_ALIGN,
 		1, //MIN_KEYS_PER_CRYPT,
 		1, //MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_TRUNC,
 		{
 			"iteration count",
 		},
