@@ -212,7 +212,13 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		// Process input packets, store results in task_result
-		jtr_device_list_process_inpkt(task_list);
+		for (;;) {
+			struct jtr_device *dev
+					= jtr_device_list_process_inpkt(task_list);
+			if (!dev)
+				break;
+			device_stop(dev->device, task_list, "bad input packet.");
+		}
 
 		// Computation done.
 		if (task_list_all_completed(task_list))
