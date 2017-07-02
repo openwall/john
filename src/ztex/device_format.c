@@ -25,6 +25,12 @@
 // then it counts the device as not functioning one.
 #define DEVICE_TASK_TIMEOUT	5
 
+// Control the behavior in case where no devices are ready
+// because of errors. Startup behavior is not affected.
+// Set to 1 if you want to wait until any device is up.
+// Consider ztex_scan.h:ZTEX_SCAN_INTERVAL_DEFAULT
+const int WAIT_UNTIL_DEVICE_UP = 1;
+
 /*
  * keys_buffer. In mask mode, range_info_buffer also used.
  */
@@ -194,9 +200,8 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 		// Perform r/w operations. Stop erroneous devices.
 		rw_result = jtr_device_list_rw(task_list);
 
-		// No operational devices remain - comment out next line
-		// to wait until the device is up
-		if (rw_result < 0)
+		// No operational devices remain.
+		if (!WAIT_UNTIL_DEVICE_UP && rw_result < 0)
 			break;
 
 		// Some tasks could be unable to complete for too long.
@@ -226,12 +231,12 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 
 		// There was no data transfer on devices.
 		// Don't use 100% CPU in a loop.
-		if (!rw_result)
+		if (rw_result <= 0)
 			usleep(1000);
 
 	}
 
-	if (rw_result < 0) {
+	if (!WAIT_UNTIL_DEVICE_UP && rw_result < 0) {
 		fprintf(stderr, "No ZTEX devices available, exiting\n");
 		error();
 	}
