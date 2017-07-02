@@ -374,7 +374,8 @@ int device_stop(
 	// TODO: maybe perform hardware reset?
 	//
 	device_invalidate(device);
-fprintf(stderr, "Deassigned: %d\n",num_deassigned);
+
+	//fprintf(stderr, "Deassigned: %d\n",num_deassigned);
 	return num_deassigned;
 }
 
@@ -442,7 +443,8 @@ static int inpkt_check_cmp(struct jtr_device *jtr_dev,
 }
 
 
-void jtr_device_list_process_inpkt(struct task_list *task_list)
+struct jtr_device *jtr_device_list_process_inpkt(
+		struct task_list *task_list)
 {
 	struct jtr_device *dev;
 	for (dev = jtr_device_list->device; dev; dev = dev->next) {
@@ -560,10 +562,11 @@ void jtr_device_list_process_inpkt(struct task_list *task_list)
 
 		if (bad_input)
 			// Incorrect packets received from jtr_device.
-			device_stop(dev->device, task_list, "bad input packet");
+			return dev;
 
 	} // for (jtr_device_list)
 
+	return NULL;
 }
 
 

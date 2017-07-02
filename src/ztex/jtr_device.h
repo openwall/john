@@ -97,7 +97,10 @@ int jtr_device_list_rw(struct task_list *task_list);
 // Fetch input packets from pkt_comm_queue
 // Match input packets to assigned tasks, create task_result's
 // Uses global jtr_device_list
-void jtr_device_list_process_inpkt(struct task_list *task_list);
+// Return values:
+// NULL - everything processed (if anything)
+// (struct jtr_device *) - bad input from the device
+struct jtr_device *jtr_device_list_process_inpkt(struct task_list *task_list);
 
 // Stop physical device
 // - deassign tasks
