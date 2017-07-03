@@ -79,10 +79,11 @@ uint32_t FileVersionCriticalMask = 0xFFFF0000;
 /// </summary>
 // uint32_t FileVersion32 = 0x00030000;
 uint32_t FileVersion32 = 0x00040000;
-uint32_t FileVersion32_4 = 0x00040000;  // from KeePass 2.36 source
+uint32_t FileVersion32_4 = 0x00040000;  // from KeePass 2.36 sources
 
-// We currently support database formats up to KDBX v3.x. KDBX 4.x
-// is not supported yet.
+// We currently support database formats up to KDBX v3.x. KDBX 4.x is not
+// supported yet. See "KdbxFile.cs" in KeePass 2.36 for more information on
+// KDBX 4.x format.
 
 enum Kdb4HeaderFieldID
 {
@@ -284,10 +285,10 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	printf("\n");
 }
 
-
+// Synchronize with KdbxFile.Read.cs from KeePass 2.x
 static void process_database(char* encryptedDatabase)
 {
-	long dataStartOffset;
+	// long dataStartOffset;
 	unsigned long transformRounds = 0;
 	unsigned char *masterSeed = NULL;
 	int masterSeedLength = 0;
@@ -301,6 +302,7 @@ static void process_database(char* encryptedDatabase)
 	FILE *fp;
 	unsigned char out[32];
 	char *dbname;
+	long algorithm = 0;  // 0 -> AES
 
 	/* specific to keyfile handling */
 	unsigned char *buffer;
@@ -414,22 +416,23 @@ static void process_database(char* encryptedDatabase)
 				// pbData == d6038a2b8b6f4cb5a524339a31dbb59a => ChaCha20
 				// pbData == ad68f29f576f4bb9a36ad47af965346c => TwoFish
 				if (memcmp(pbData, "\xd6\x03\x8a\x2b", 4) == 0) {
-					fprintf(stderr, "! %s : ChaCha20 usage is not supported yet!\n", encryptedDatabase);
-					MEM_FREE(pbData);
-					goto bailout;
+					// fprintf(stderr, "! %s : ChaCha20 usage is not supported yet!\n", encryptedDatabase);
+					// MEM_FREE(pbData);
+					algorithm = 2;
+					// goto bailout;
 				}
-				if (memcmp(pbData, "\x31\xc1\xf2\xe6", 4) != 0) {
+				/* if (memcmp(pbData, "\x31\xc1\xf2\xe6", 4) != 0) {
 					fprintf(stderr, "! %s : Unsupported CipherID found!\n", encryptedDatabase);
 					MEM_FREE(pbData);
 					goto bailout;
-				}
+				} */
 
 			default:
 				MEM_FREE(pbData);
 				break;
 		}
 	}
-	dataStartOffset = ftell(fp);
+	// dataStartOffset = ftell(fp);
 	if (transformRounds == 0 && uVersion < FileVersion32_4) {
 		fprintf(stderr, "! %s : transformRounds can't be 0\n", encryptedDatabase);
 		goto bailout;
@@ -457,7 +460,8 @@ static void process_database(char* encryptedDatabase)
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
-	printf("%s:$keepass$*2*%ld*%ld*", dbname, transformRounds, dataStartOffset);
+	// printf("%s:$keepass$*2*%ld*%ld*", dbname, transformRounds, dataStartOffset);
+	printf("%s:$keepass$*2*%ld*%ld*", dbname, transformRounds, algorithm);  // dataStartOffset field is now used to convey algorithm information
 	print_hex(masterSeed, masterSeedLength);
 	printf("*");
 	print_hex(transformSeed, transformSeedLength);

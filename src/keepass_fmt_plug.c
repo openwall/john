@@ -45,6 +45,7 @@ john_register_one(&fmt_KeePass);
 #include "sha2.h"
 #include "aes.h"
 #include "twofish.h"
+#include "chacha.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"KeePass"
@@ -55,6 +56,7 @@ static keepass_salt_t *cur_salt;
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
+// GenerateKey32 from CompositeKey.cs
 static void transform_key(char *masterkey, keepass_salt_t *csp,
                           unsigned char *final_key)
 {
@@ -158,9 +160,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		unsigned char final_key[32];
 		unsigned char *decrypted_content;
 		SHA256_CTX ctx;
@@ -170,6 +171,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int datasize;
 		AES_KEY akey;
 		Twofish_key tkey;
+		struct chacha_ctx ckey;
 
 		// derive and set decryption key
 		transform_key(keepass_key[index], cur_salt, final_key);
@@ -182,6 +184,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy(iv, cur_salt->enc_iv, 16);
 			memset(&tkey, 0, sizeof(Twofish_key));
 			Twofish_prepare_key(final_key, 32, &tkey);
+		} else if (cur_salt->algorithm == 2) { // ChaCha20
+			memcpy(iv, cur_salt->enc_iv, 16);
+			chacha_keysetup(&ckey, final_key, 256);
+			chacha_ivsetup(&ckey, iv, NULL, 12);
 		}
 
 		if (cur_salt->version == 1 && cur_salt->algorithm == 0) {
@@ -207,6 +213,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			AES_cbc_encrypt(cur_salt->contents, dec_buf, 32,
 			                &akey, iv, AES_DECRYPT);
+			if (!memcmp(dec_buf, cur_salt->expected_bytes, 32)) {
+				cracked[index] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				any_cracked |= 1;
+			}
+		}
+		else if (cur_salt->version == 2 && cur_salt->algorithm == 2) {
+			unsigned char dec_buf[32];
+
+			chacha_decrypt_bytes(&ckey, cur_salt->contents, dec_buf, 32);
 			if (!memcmp(dec_buf, cur_salt->expected_bytes, 32)) {
 				cracked[index] = 1;
 #ifdef _OPENMP
