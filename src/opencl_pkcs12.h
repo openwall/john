@@ -73,7 +73,7 @@ inline void pkcs12_pbe_derive_key(uint iterations, int id,
 
 	hlen = 20;	// for SHA1
 	v = 64;
-	v2 = ((pwdlen+64)/64)*64;
+	v2 = ((pwdlen+64-1)/64)*64;
 
 	// memset(diversifier, (uchar)id, v);
 	for (k = 0; k < v / 4; k++)
