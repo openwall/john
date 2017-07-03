@@ -111,7 +111,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	case 1:
 		hlen = 20;	// for SHA1
 		v = 64;
-		v2 = ((pwdlen+64)/64)*64;
+		v2 = ((pwdlen+64-1)/64)*64;
 		break;
 
 //	case 2:			// for mdc2  (Note, not handled by ans1crypt.py)
@@ -131,12 +131,12 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	case 224:
 		hlen = 28;	// for SHA224
 		v = 64;
-		v2 = ((pwdlen+64)/64)*64;
+		v2 = ((pwdlen+64-1)/64)*64;
 		break;
 	case 256:
 		hlen = 32;	// for SHA256
 		v = 64;
-		v2 = ((pwdlen+64)/64)*64;
+		v2 = ((pwdlen+64-1)/64)*64;
 		break;
 	case 384:
 		hlen = 48;	// for SHA384
@@ -462,7 +462,7 @@ int mbedtls_pkcs12_derivation_simd1( unsigned char *data[SSE_GROUP_SZ_SHA1], siz
 
 			SHA1_Update( &md_ctx, diversifier, v );
 			SHA1_Update( &md_ctx, salt_block[k], v );
-			v2 = ((pwdlen[k]+64)/64)*64;
+			v2 = ((pwdlen[k]+64-1)/64)*64;
 			SHA1_Update( &md_ctx, pwd_block[k], v2 );
 			SHA1_Final( hash, &md_ctx );
 			for (i = 0; i < SHA_DIGEST_LENGTH; ++i) {
@@ -572,7 +572,7 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 
 			SHA256_Update( &md_ctx, diversifier, v );
 			SHA256_Update( &md_ctx, salt_block[k], v );
-			v2 = ((pwdlen[k]+64)/64)*64;
+			v2 = ((pwdlen[k]+64-1)/64)*64;
 			SHA256_Update( &md_ctx, pwd_block[k], v2 );
 			SHA256_Final( hash, &md_ctx );
 			for (i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
