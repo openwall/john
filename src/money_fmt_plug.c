@@ -71,6 +71,8 @@ static struct fmt_tests money_tests[] = {
 	{NULL}
 };
 
+/* Original password */
+static char (*orig_key)[PLAINTEXT_LENGTH + 1];
 /* Password encoded in UCS-2 */
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 /* UCS-2 password length, in octets */
@@ -92,16 +94,35 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
+	orig_key = mem_calloc(sizeof(*orig_key), self->params.max_keys_per_crypt);
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_alloc(self->params.max_keys_per_crypt * sizeof(*saved_len));
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;
+
+	if (options.target_enc == CP1252 || options.target_enc == ISO_8859_1) {
+		struct fmt_tests *test = self->params.tests;
+
+		while (test) {
+			if (strcmp(test->plaintext, "D"))
+				test->plaintext = "\xe4"; // ä
+			else if (strcmp(test->plaintext, "|"))
+				test->plaintext = "\xfc"; // ü
+			else if (strcmp(test->plaintext, "V"))
+				test->plaintext = "\xf6"; // ö
+			else if (strcmp(test->plaintext, "#"))
+				test->plaintext = "\xa3"; // £
+			test++;
+		}
+	}
 }
 
 static void done(void)
 {
 	MEM_FREE(cracked);
+	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
+	MEM_FREE(orig_key);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -180,17 +201,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++)
 	{
-		unsigned char passwordBytes[PASSWORD_LENGTH] = { 0 };
 		unsigned char key[24];
 		unsigned char out[32];
 		MD5_CTX mctx;
 		SHA_CTX sctx;
 
 		if (cur_salt->type == 0) {
-			memcpy(passwordBytes, saved_key[index], saved_len[index]);
-
 			MD5_Init(&mctx);
-			MD5_Update(&mctx, passwordBytes, PASSWORD_LENGTH);
+			MD5_Update(&mctx, saved_key[index], PASSWORD_LENGTH);
 			MD5_Final(key, &mctx);
 
 			// combine key[:16] + salt into a key
@@ -201,10 +219,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			else
 				cracked[index] = 0;
 		} else if (cur_salt->type == 1) {
-			memcpy(passwordBytes, saved_key[index], saved_len[index]);
-
 			SHA1_Init(&sctx);
-			SHA1_Update(&sctx, passwordBytes, PASSWORD_LENGTH);
+			SHA1_Update(&sctx, saved_key[index], PASSWORD_LENGTH);
 			SHA1_Final(key, &sctx);
 
 			// combine key[:16] + salt into a key
@@ -241,23 +257,29 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char *key, int index)
 {
-	char upper_key[PASSWORD_LENGTH + 1];
-	int len = strlen(key);
+	int len;
 
-	/* uppercase key */
-	strnzcpy(upper_key, key, PLAINTEXT_LENGTH + 1);
-	enc_strupper(upper_key);
+	/* store original */
+	len = strnzcpyn(orig_key[index], key, sizeof(orig_key[index]));
 
-	/* convert key to UTF-16LE */
-	saved_len[index] = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)upper_key, len);
-	if (saved_len[index] < 0)
-		saved_len[index] = strlen16(saved_key[index]);
-	saved_len[index] <<= 1;
+	/* uppercase any ASCII letters in key */
+	strupr(orig_key[index]);
+
+	/* convert key to UTF-16LE and fill with nulls */
+	memset(saved_key[index], 0, PASSWORD_LENGTH);
+	len = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)orig_key[index], len);
+	if (len < 0)
+		len = strlen16(saved_key[index]);
+	saved_len[index] = len << 1;
+
+	/* Drop 8th bit */
+	while (len--)
+		saved_key[index][len] &= 0x007f;
 }
 
 static char *get_key(int index)
 {
-	return (char*)utf16_to_enc(saved_key[index]);
+	return orig_key[index];
 }
 
 struct fmt_main fmt_money = {
