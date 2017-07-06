@@ -194,9 +194,19 @@ static char *get_key(int index)
 
 static int is_bitcoinj_protobuf_data(unsigned char *block)
 {
+	unsigned char c;
+	int i;
+
 	// Does it look like a bitcoinj protobuf (newest Bitcoin for Android backup)?
-	if ((strncmp((const char*)block + 2, "org.", 4) == 0) && block[0] == '\x0a')
+	if ((strncmp((const char*)block + 2, "org.", 4) == 0) && block[0] == '\x0a' && block[1] < 128) {
+		// If it doesn't look like a lower alpha domain name of len >= 8 (e.g. 'bitcoin.'), fail (btcrecover)
+		for (i = 6; i < 14; i++) {
+			c = block[i];
+			if ((c > 'z') || ((c < 'a') && ((c != '.'))))
+				return 0;
+		}
 		return 1; // success
+	}
 
 	return 0;
 }
@@ -277,10 +287,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						cracked[index] = 0;
 					}
 				} else {
-					// Does it look like a bitcoinj protobuf (newest Bitcoin for Android backup)? (btcrecover)
+					// Does it look like a KnC for Android key backup?
 					if (strncmp((const char*)outbuf, "# KEEP YOUR PRIV", 8) == 0) // 8 should be enough
 						cracked[index] = 1;
-					// Does it look like a KnC for Android key backup?
+					// Does it look like a bitcoinj protobuf (newest Bitcoin for Android backup)? (btcrecover)
 					else if (is_bitcoinj_protobuf_data(outbuf)) {
 						cracked[index] = 1;
 					}
