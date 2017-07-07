@@ -34,6 +34,8 @@
 #include "loader.h"
 #include "memdbg.h"
 
+extern volatile int bench_running;
+
 struct gpg_common_custom_salt *gpg_common_cur_salt;
 
 struct fmt_tests gpg_common_gpg_tests[] = {
@@ -230,6 +232,9 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 	} else {
 		if (usage != 9 && usage != 18) // https://tools.ietf.org/html/rfc4880
 			goto err;
+		if (!bench_running && usage == 9) {
+			self->params.flags |= FMT_NOT_EXACT;
+		}
 	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;
