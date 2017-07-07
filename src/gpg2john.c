@@ -934,11 +934,8 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 	if (first) {
 		cp = hash;
 		totlen = 0;
-		// printf("\tVer %d\n", Getc());
-		Getc(); // version (we only read this from the first packet. Not read from rest of the 'partial' packets.
-	} else
-		++len;  // we want the 'full' length for subsquent partial packets, since the logic is len-1 we simply fake it out.
-	totlen += (len-1);
+	}
+	totlen += len;
 
 	switch (mode) {
 	case SYM_ALG_MODE_NOT_SPECIFIED:
@@ -963,7 +960,7 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 
 	if (give(len, m_data, sizeof(m_data)) != len)
 		return;
-	cp += print_hex(m_data, len - 1, cp);
+	cp += print_hex(m_data, len, cp);
 
 	if (!partial) {
 		// we only dump the packet out when we get the 'non-partial' packet (i.e. last one).
@@ -971,7 +968,7 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 		// m_usage is not really used in gpg_fmt_plug.c for symmetric hashes,
 		// let's hijack it for specifying tag values.
 		m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
-		fprintf(stderr, "[gpg2john] MDC is misssing, expect false positives!\n");
+		fprintf(stderr, "[gpg2john] MDC is missing, expect lots of false positives!\n");
 		printf("$gpg$*%d*"LLd"*%s*%d*%d*%d*%d*%d*", m_algorithm, (long long)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
