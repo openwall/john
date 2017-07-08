@@ -186,7 +186,18 @@ static void stupidsort(unsigned char * result, unsigned int * source, unsigned i
 }
 #endif
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	return 0;
+}
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char * * argv)
+#else
 int main(int argc, char * * argv)
+#endif
 {
 	struct s_pwd pwd;
 	struct s_pwd pwd2;

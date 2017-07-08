@@ -1,0 +1,55 @@
+Build libFuzzer
+---------------
+
+* Build "libFuzzer.a" using instructions from http://llvm.org/docs/LibFuzzer.html.
+
+* Install Clang binaries in $HOME/clang using instructions from the same link.
+
+* Copy "libFuzzer.a" to $HOME/clang/lib/libLLVMFuzzer.a location, if required.
+
+Build JtR
+---------
+
+$ CC=$HOME/clang/bin/clang ./configure --enable-libfuzzer
+
+$ make -j8
+
+Start fuzzing
+-------------
+
+Here are the instructions for fuzzing keepass2john, which is a program to
+extract hashes from KeePass databases.
+
+* Download sample KeePass databases from http://openwall.info/wiki/john/sample-non-hashes.
+
+* Extract the KeePass databases into "seed" folder. Make a new directory called "my".
+
+* Start fuzzing by running "../run/keepass2john my seed" command.
+
+* Be creative, and good luck! :)
+
+Analyzing crashes
+-----------------
+
+* Run "ASAN_OPTIONS=symbolize=1 ../run/keepass2john <crash-file>" to get a
+  symbolized stacktrace for debugging purposes.
+
+See code coverage
+-----------------
+
+$ ../run/keepass2john my seed -runs=0 -dump_coverage=1 &> /dev/null
+
+$ sancov -symbolize ../run/keepass2john keepass2john.*.sancov > keepass2john.symcov
+
+$ python3 coverage-report-server.py --symcov keepass2john.symcov --srcpath .
+
+Open http://localhost:8001/ in the browser.
+
+References
+----------
+
+* http://llvm.org/docs/LibFuzzer.html
+
+* https://github.com/google/fuzzer-test-suite/blob/master/tutorial/libFuzzerTutorial.md
+
+* http://llvm.org/svn/llvm-project/llvm/trunk/tools/sancov/

@@ -22,7 +22,18 @@ unsigned int *proba1;
 unsigned int *proba2;
 unsigned int *first;
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	return 0;
+}
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
 	FILE *fichier;
 	char *ligne;

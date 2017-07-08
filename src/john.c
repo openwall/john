@@ -171,11 +171,9 @@ extern int base64conv(int argc, char **argv);
 extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
-extern int keepass2john(int argc, char **argv);
 extern int bitlocker2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
-extern int dmg2john(int argc, char **argv);
 extern int putty2john(int argc, char **argv);
 
 int john_main_process = 1;
@@ -1851,7 +1849,11 @@ static void john_done(void)
 
 //#define TEST_MEMDBG_LOGIC
 
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
 	char *name;
 
@@ -1947,11 +1949,6 @@ int main(int argc, char **argv)
 		return putty2john(argc, argv);
 	}
 
-	if (!strcmp(name, "keepass2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return keepass2john(argc, argv);
-	}
-
 	if (!strcmp(name, "bitlocker2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return bitlocker2john(argc, argv);
@@ -1971,12 +1968,6 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return gpg2john(argc, argv);
 	}
-#if !defined (_MSC_VER) && !defined (__MINGW32__)
-	if (!strcmp(name, "dmg2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return dmg2john(argc, argv);
-	}
-#endif
 
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);
@@ -2015,3 +2006,27 @@ int main(int argc, char **argv)
 
 	return exit_status;
 }
+
+#ifdef HAVE_LIBFUZZER
+
+int LLVMFuzzerInitialize(int *argc, char ***argv)
+{
+	return 1;
+}
+
+// dummy fuzzing target
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)  // size is actually the length of Data
+{
+	static uint8_t buffer[8192];
+
+	if (size > sizeof(buffer) - 1) {
+		fprintf(stderr, "size (-max_len) is greater than supported value, aborting!\n");
+		exit(-1);
+	}
+	memcpy(buffer, data, size);
+	buffer[size] = 0;
+	jtr_basename((const char*)buffer);
+
+	return 0;
+}
+#endif

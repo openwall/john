@@ -1040,7 +1040,11 @@ void break_pcaploop()
 	pcap_breakloop(p);
 }
 
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char *argv[])
+#endif
 {
 	char errbuf[PCAP_ERRBUF_SIZE], iface[17], pcapfile[1024];
 	int opt = 0, datalink = 0, ret = 0;
@@ -1191,3 +1195,24 @@ bailout:
 		return 1;
 	}
 }
+
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+	char *argv[] = {"dummy", "-r", name, "/dev/null", NULL};
+
+	fd = mkstemp(name);
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	main_dummy(4, argv);
+	remove(name);
+
+        return 0;
+}
+#endif

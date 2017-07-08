@@ -308,7 +308,43 @@ void attempt_crack(struct Packet_Reader* reader)
 	}
 }
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+	struct Packet_Reader reader;
+
+	fd = mkstemp(name);  // this approach is somehow faster than the fmemopen way
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+
+	memset(&reader, 0, sizeof(reader));
+	if (Packet_Reader_init(&reader, name))
+		attempt_crack(&reader);
+	else {
+		char buf[512];
+		Packet_Reader_get_error(&reader, buf, sizeof buf);
+		fprintf(stderr, "%s", buf);
+		Packet_Reader_close(&reader);
+	}
+	Packet_Reader_close(&reader);
+
+	remove(name);
+
+	return 0;
+}
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char *argv[])
+#endif
 {
 	int i = 1;
 

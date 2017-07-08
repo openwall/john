@@ -130,7 +130,11 @@ static int in6addr_cmp(const void *a, const void *b)
  * SIPdump Main
  */
 
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char *argv[])
+#endif
 {
 	char *dev = NULL, *pcap_file = NULL, *filter = DEFAULT_PCAP_FILTER;
 	char errbuf[PCAP_ERRBUF_SIZE];
@@ -302,6 +306,27 @@ int main(int argc, char *argv[])
 
 	return retval;
 }
+
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+	char *argv[] = {"dummy", "-p", name, "/dev/null", NULL};
+
+	fd = mkstemp(name);  // this approach is somehow faster than the fmemopen way
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	main_dummy(4, argv);
+	remove(name);
+
+	return 0;
+}
+#endif
 
 /*
  * Parse payload and search for SIP connections

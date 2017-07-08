@@ -630,6 +630,7 @@ PLUGFORMATS_DEPS
 KERNEL_OBJS
 PLUGFORMATS_OBJS
 M4_INCLUDES
+HAVE_LIBFUZZER
 HAVE_FUZZ
 EXE_EXT
 YASM_OPTIONS
@@ -770,6 +771,7 @@ enable_nt_full_unicode
 enable_int128
 enable_experimental_code
 enable_fuzz
+enable_libfuzzer
 enable_openmp
 enable_opencl
 enable_ztex
@@ -1410,6 +1412,7 @@ Optional Features:
   --enable-experimental-code
                           Use experimental code
   --enable-fuzz           Fuzzing prepare(), valid(), init(), etc
+  --enable-libfuzzer      Fuzzing using libFuzzer
   --disable-openmp        do not use OpenMP
   --disable-opencl        do not use OpenCL
   --enable-ztex           Support ZTEX USB-FPGA module 1.15y
@@ -3630,6 +3633,13 @@ if test "${enable_fuzz+set}" = set; then :
   enableval=$enable_fuzz; fuzz=$enableval
 else
   fuzz=no
+fi
+
+# Check whether --enable-libfuzzer was given.
+if test "${enable_libfuzzer+set}" = set; then :
+  enableval=$enable_libfuzzer; libfuzzer=$enableval
+else
+  libfuzzer=no
 fi
 
 
@@ -13839,6 +13849,15 @@ if test "x$fuzz" != xno ; then
 else
    { $as_echo "$as_me:${as_lineno-$LINENO}: Fuzz check disabled" >&5
 $as_echo "$as_me: Fuzz check disabled" >&6;}
+fi
+
+# In makefile, we need to know if building with libFuzzer.
+if test "x$libfuzzer" != xno ; then
+   HAVE_LIBFUZZER=-DHAVE_LIBFUZZER
+
+else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: Fuzzing (using libFuzzer) check disabled" >&5
+$as_echo "$as_me: Fuzzing (using libFuzzer) check disabled" >&6;}
 fi
 
 # code to create M4_INCLUDES (all ./m4/*.m4 )

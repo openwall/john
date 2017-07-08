@@ -844,7 +844,48 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	fflush(stdout);
 }
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+	FILE *in;
+	char *base;
+
+	fd = mkstemp(name);  // this approach is somehow faster than the fmemopen way
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+
+	wpa = calloc(max_essids, sizeof(WPA4way_t));
+	unVerified = calloc(max_essids, sizeof(char*));
+
+	in = fopen(filename = name, "rb");
+	if (in) {
+		if ((base = strrchr(filename, '/')))
+			filename = ++base;
+		Process(in);
+		fclose(in);
+	} else
+		fprintf(stderr, "Error, file %s not found\n", name);
+	fprintf(stderr, "\n%d ESSIDS processed\n", nwpa);
+	remove(name);
+
+	free(wpa);
+	free(unVerified);
+
+	return 0;
+}
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
 	FILE *in;
 	int i;

@@ -116,6 +116,41 @@ static void print_hex(unsigned char *str, int len)
 		printf("%02x", str[i]);
 }
 
+// Remove these duplicated strnXYZ functions after refactoring misc.c. Trying
+// to link dmg2john.o with misc.o results in linking errors, as parts of misc.o
+// depends on other parts of JtR jumbo. These linking problems are not easily
+// solvable without refactoring misc.c file.
+int strnzcpyn(char *dst, const char *src, int size)
+{
+	char *dptr;
+	if (!size) return 0;
+
+	dptr = dst;
+
+	while (--size)
+		if (!(*dptr++ = *src++)) return (dptr-dst)-1;
+	*dptr = 0;
+
+	return (dptr-dst);
+}
+
+char *strnzcat(char *dst, const char *src, int size)
+{
+	char *dptr = dst;
+
+	if (size) {
+		while (size && *dptr) {
+			size--; dptr++;
+		}
+		if (size)
+			while (--size)
+				if (!(*dptr++ = *src++)) break;
+	}
+	*dptr = 0;
+
+	return dst;
+}
+
 static void hash_plugin_parse_hash(char *in_filepath)
 {
 	int fd;
@@ -462,7 +497,26 @@ bailout:
 	close(fd);
 }
 
-int dmg2john(int argc, char **argv)
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+
+	fd = mkstemp(name);
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	hash_plugin_parse_hash(name);
+	remove(name);
+
+	return 0;
+}
+#else
+int main(int argc, char **argv)
 {
 	int i;
 
@@ -475,4 +529,6 @@ int dmg2john(int argc, char **argv)
 
 	return 0;
 }
+#endif  // HAVE_LIBFUZZER
+
 #endif
