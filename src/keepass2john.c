@@ -253,7 +253,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	printf("*");
 	print_hex(contents_hash, 32);
 
-	buffer = (unsigned char*) mem_alloc (datasize * sizeof(char));
+	buffer = (unsigned char*)malloc(datasize * sizeof(char));
 
 	/* we inline the content with the hash */
 	fprintf(stderr, "Inlining %s\n", encryptedDatabase);
@@ -262,6 +262,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	if (fread(buffer, datasize, 1, fp) != 1) {
 		warn("%s: Error: read failed: %s.",
 		          encryptedDatabase, strerror(errno));
+		MEM_FREE(buffer);
 		return;
 	}
 
@@ -269,7 +270,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	MEM_FREE(buffer);
 
 	if (keyfile) {
-		buffer = (unsigned char*)mem_alloc(filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*)malloc(filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
@@ -387,7 +388,7 @@ static void process_database(char* encryptedDatabase)
 			goto bailout;
 		}
 		if (uSize > 0) {
-			pbData = (unsigned char*)mem_alloc(uSize);
+			pbData = (unsigned char*)malloc(uSize);
 			if (!pbData || fread(pbData, uSize, 1, fp) != 1) {
 				fprintf(stderr, "error allocating / reading pbData, is the database corrupt?\n");
 				MEM_FREE(pbData);
@@ -517,7 +518,7 @@ static void process_database(char* encryptedDatabase)
 	print_hex(out, 32);
 
 	if (keyfile) {
-		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*)malloc(filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
@@ -571,6 +572,7 @@ bailout:
 	fclose(fp);
 }
 
+#ifndef HAVE_LIBFUZZER
 static int usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-k <keyfile>] <.kdbx database(s)>\n", name);
@@ -578,7 +580,7 @@ static int usage(char *name)
 	return EXIT_FAILURE;
 }
 
-int keepass2john(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int c;
 
@@ -587,7 +589,7 @@ int keepass2john(int argc, char **argv)
 	while ((c = getopt(argc, argv, "k:")) != -1) {
 		switch (c) {
 		case 'k':
-			keyfile = (char *)mem_alloc(strlen(optarg) + 1);
+			keyfile = (char *)malloc(strlen(optarg) + 1);
 			strcpy(keyfile, optarg);
 			break;
 		case '?':
@@ -606,3 +608,24 @@ int keepass2john(int argc, char **argv)
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+
+	fd = mkstemp(name);  // this approach is somehow faster than the fmemopen way
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	process_database(name);
+	remove(name);
+
+	return 0;
+}
+#endif

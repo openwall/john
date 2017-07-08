@@ -86,6 +86,7 @@ AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[sup
 AC_ARG_ENABLE([int128], [AC_HELP_STRING([--disable-int128], [Do not use int128])], [enable_int128=$enableval], [enable_int128=auto])
 AC_ARG_ENABLE([experimental-code], [AC_HELP_STRING([--enable-experimental-code], [Use experimental code])], [experimental=$enableval], [experimental=no])
 AC_ARG_ENABLE([fuzz], [AC_HELP_STRING([--enable-fuzz], [Fuzzing prepare(), valid(), init(), etc])], [fuzz=$enableval], [fuzz=no])
+AC_ARG_ENABLE([libfuzzer], [AC_HELP_STRING([--enable-libfuzzer], [Fuzzing using libFuzzer])], [libfuzzer=$enableval], [libfuzzer=no])
 
 ####### Actual tests start here #######
 
@@ -884,6 +885,13 @@ if test "x$fuzz" != xno ; then
    AC_SUBST(HAVE_FUZZ,[-DHAVE_FUZZ])
 else
    AC_MSG_NOTICE([Fuzz check disabled])
+fi
+
+# In makefile, we need to know if building with libFuzzer.
+if test "x$libfuzzer" != xno ; then
+   AC_SUBST(HAVE_LIBFUZZER,[-DHAVE_LIBFUZZER])
+else
+   AC_MSG_NOTICE([Fuzzing (using libFuzzer) check disabled])
 fi
 
 # code to create M4_INCLUDES (all ./m4/*.m4 )

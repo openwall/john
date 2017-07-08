@@ -68,7 +68,18 @@ void Setup() {
 	atoi16['f'] = atoi16['F'] = 15;
 }
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	return 0;
+}
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv) {
+#else
 int main(int argc, char **argv) {
+#endif
 	char Buf[1024], *cps, *cph, usr_id[512];;
 
 	Setup();

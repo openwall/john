@@ -91,8 +91,6 @@ JOHN_OBJS = \
 	rar2john.o \
 	zip2john.o pkzip.o \
 	racf2john.o \
-	dmg2john.o \
-	keepass2john.o \
 	bitlocker2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
@@ -159,6 +157,13 @@ ifdef WITH_FUZZ
 CFLAGS += -DHAVE_FUZZ
 CFLAGS_MAIN += -DHAVE_FUZZ
 JOHN_OBJS += $(FUZZ_OBJS)
+endif
+
+WITH_LIBFUZZER=@HAVE_LIBFUZZER@
+ifdef WITH_LIBFUZZER
+CFLAGS += -DHAVE_LIBFUZZER  -fsanitize=address -fsanitize-coverage=trace-pc-guard,trace-cmp,trace-gep,trace-div
+CFLAGS_MAIN += -DHAVE_LIBFUZZER -fsanitize=address -fsanitize-coverage=trace-pc-guard,trace-cmp,trace-gep,trace-div
+LDFLAGS += -fsanitize=fuzzer,address
 endif
 
 #########################################################
@@ -289,7 +294,7 @@ DES_std.o:	DES_std.c arch.h common.h memory.h DES_std.h memdbg.h os.h os-autocon
 
 detect.o:	detect.c
 
-dmg2john.o:	dmg2john.c autoconfig.h aes.h aes/aes_func.h arch.h filevault.h misc.h jumbo.h memory.h memdbg.h os.h os-autoconf.h
+dmg2john.o:	dmg2john.c autoconfig.h arch.h filevault.h misc.h jumbo.h memory.h memdbg.h os.h os-autoconf.h
 
 dummy.o:	dummy.c common.h arch.h memory.h formats.h params.h misc.h jumbo.h autoconfig.h options.h list.h loader.h getopt.h memdbg.h os.h os-autoconf.h
 
@@ -351,7 +356,7 @@ KeccakHash.o:	KeccakHash.c KeccakHash.h KeccakSponge.h KeccakF-1600-interface.h 
 
 KeccakSponge.o:	KeccakSponge.c KeccakSponge.h KeccakF-1600-interface.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h memory.h
 
-keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h
+keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h base64.h
 
 bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h
 
@@ -583,10 +588,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/putty2john
 	$(LN) john ../run/putty2john
 
-../run/keepass2john: ../run/john
-	$(RM) ../run/keepass2john
-	$(LN) john ../run/keepass2john
-
 ../run/bitlocker2john: ../run/john
 	$(RM) ../run/bitlocker2john
 	$(LN) john ../run/bitlocker2john
@@ -606,10 +607,6 @@ kernels: @KERNEL_OBJS@
 ../run/racf2john: ../run/john
 	$(RM) ../run/racf2john
 	$(LN) john ../run/racf2john
-
-../run/dmg2john: ../run/john
-	$(RM) ../run/dmg2john
-	$(LN) john ../run/dmg2john
 
 ../run/hccap2john: ../run/john
 	$(RM) ../run/hccap2john
@@ -647,10 +644,6 @@ kernels: @KERNEL_OBJS@
 	$(CC) symlink.c -o ../run/putty2john.exe
 	$(STRIP) ../run/putty2john.exe
 
-../run/keepass2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keepass2john.exe
-	$(STRIP) ../run/keepass2john.exe
-
 ../run/bitlocker2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/bitlocker2john.exe
 	$(STRIP) ../run/bitlocker2john.exe
@@ -670,10 +663,6 @@ kernels: @KERNEL_OBJS@
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
 	$(STRIP) ../run/racf2john.exe
-
-../run/dmg2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/dmg2john.exe
-	$(STRIP) ../run/dmg2john.exe
 
 ../run/hccap2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/hccap2john.exe
@@ -714,6 +703,12 @@ kernels: @KERNEL_OBJS@
 
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
+
+../run/keepass2john@EXE_EXT@: keepass2john.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o base64.o @OPENMP_CFLAGS@ -lcrypto -o ../run/keepass2john
+
+../run/dmg2john@EXE_EXT@: dmg2john.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/dmg2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o jumbo.o memdbg.o
