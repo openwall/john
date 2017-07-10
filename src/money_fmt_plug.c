@@ -68,6 +68,7 @@ static struct fmt_tests money_tests[] = {
 	{"$money$1*e5eee9fec8f4e440*8f7777c9", "V"}, // Original password is "ö"
 	{"$money$1*8c83d504c9f4e440*1a1108fa", "#"}, // Original password is "£"
 	{"$money$0*9e3eee5bcbf4e440*76a3a059", "openwall"}, // MS Money 2004
+	{"$money$0*00b81d0326f5e440*407472c8", "?"}, // Original Я
 	{NULL}
 };
 
@@ -112,6 +113,15 @@ static void init(struct fmt_main *self)
 				test->plaintext = "\xf6"; // ö
 			else if (strcmp(test->plaintext, "#"))
 				test->plaintext = "\xa3"; // £
+			test++;
+		}
+	}
+	else if (options.target_enc == CP1251) {
+		struct fmt_tests *test = self->params.tests;
+
+		while (test) {
+			if (strcmp(test->plaintext, "?"))
+				test->plaintext = "\xdf"; // Я
 			test++;
 		}
 	}
@@ -203,34 +213,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char key[24];
 		unsigned char out[32];
-		MD5_CTX mctx;
-		SHA_CTX sctx;
 
 		if (cur_salt->type == 0) {
+			MD5_CTX mctx;
+
 			MD5_Init(&mctx);
 			MD5_Update(&mctx, saved_key[index], PASSWORD_LENGTH);
 			MD5_Final(key, &mctx);
-
-			// combine key[:16] + salt into a key
-			memcpy(key + PASSWORD_DIGEST_LENGTH, cur_salt->salt, 8);
-			RC4_single(key, 24, cur_salt->encrypted_bytes, 4, out);
-			if (memcmp(out, cur_salt->salt, 4) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
 		} else if (cur_salt->type == 1) {
+			SHA_CTX sctx;
+
 			SHA1_Init(&sctx);
 			SHA1_Update(&sctx, saved_key[index], PASSWORD_LENGTH);
 			SHA1_Final(key, &sctx);
-
-			// combine key[:16] + salt into a key
-			memcpy(key + PASSWORD_DIGEST_LENGTH, cur_salt->salt, 8);
-			RC4_single(key, 24, cur_salt->encrypted_bytes, 4, out);
-			if (memcmp(out, cur_salt->salt, 4) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
 		}
+
+		// combine key[:16] + salt into a key
+		memcpy(key + PASSWORD_DIGEST_LENGTH, cur_salt->salt, 8);
+		RC4_single(key, 24, cur_salt->encrypted_bytes, 4, out);
+		if (memcmp(out, cur_salt->salt, 4) == 0)
+			cracked[index] = 1;
+		else
+			cracked[index] = 0;
 	}
 
 	return count;
@@ -257,24 +261,29 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char *key, int index)
 {
+	unsigned char key7[PLAINTEXT_LENGTH + 1];
+	unsigned char *s, *d;
 	int len;
 
-	/* store original */
+	/* Store original */
 	len = strnzcpyn(orig_key[index], key, sizeof(orig_key[index]));
 
-	/* uppercase any ASCII letters in key */
-	strupr(orig_key[index]);
+	/* Upper-case ASCII and strip 8th bit */
+	s = (unsigned char*)orig_key[index];
+	d = key7;
+	do {
+		if (*s >= 'a' && *s <= 'z')
+			*d++ = *s ^ 0x20;
+		else
+			*d++ = *s & 0x7f;
+	} while (*s++);
 
 	/* convert key to UTF-16LE and fill with nulls */
 	memset(saved_key[index], 0, PASSWORD_LENGTH);
-	len = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)orig_key[index], len);
+	len = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, key7, len);
 	if (len < 0)
 		len = strlen16(saved_key[index]);
 	saved_len[index] = len << 1;
-
-	/* Drop 8th bit */
-	while (len--)
-		saved_key[index][len] &= 0x007f;
 }
 
 static char *get_key(int index)
