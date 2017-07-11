@@ -26,6 +26,7 @@
 import base64
 import sys
 import binascii
+from struct import unpack
 
 DES3 = 0
 AES = 1
@@ -72,7 +73,7 @@ def read_private_key(f):
         tag = "EC"
 
     if not tag:
-        sys.stderr.write("[%s] couldn't parse line saying, %s" % (sys.argv[0], lines[0]));
+        sys.stderr.write("[%s] couldn't parse line saying, %s" % (sys.argv[0], lines[0]))
         return
 
     start = 0
@@ -103,7 +104,7 @@ def read_private_key(f):
         e = sys.exc_info()[1]
         raise Exception('base64 decoding error: ' + str(e))
 
-    if 'proc-type' not in headers and ktype != 2: # unencrypted key file?
+    if 'proc-type' not in headers and ktype != 2:  # unencrypted key file?
         sys.stderr.write("%s has no password!\n" % f.name)
         return None
 
@@ -122,13 +123,41 @@ def read_private_key(f):
     keysize = CIPHER_TABLE[encryption_type]['keysize']
     # mode = CIPHER_TABLE[encryption_type]['mode']
     salt = binascii.unhexlify(saltstr)
-    if ktype == 2: # bcrypt_pbkdf format
-        salt_offset = 47  # XXX is this fixed?
-        salt_length = 16
+    AUTH_MAGIC = b"openssh-key-v1"
+    if ktype == 2:  # bcrypt_pbkdf format, see "sshkey_private_to_blob2" in sshkey.c
+        salt_length = 16  # fixed value in sshkey.c
+        # find offset to salt
+        offset = 0
+        if not data.startswith(AUTH_MAGIC):
+            raise Exception('Missing AUTH_MAGIC!')
+        offset = offset + len(AUTH_MAGIC) + 1  # sizeof(AUTH_MAGIC)
+        length = unpack(">I", data[offset:offset+4])[0]  # ciphername length
+        if length > 32:  # weak sanity check
+            raise Exception('Unknown ciphername!')
+        offset = offset + 4 + length
+        length = unpack(">I", data[offset:offset+4])[0]  # kdfname length
+        offset = offset + 4 + length
+        length = unpack(">I", data[offset:offset+4])[0]  # kdf length
+        salt_offset = offset + 4 + 4  # extra "4" to skip over salt length field
+        # print(salt_offset)  # this should be 47, always?
+        # find offset to check bytes
+        offset = offset + 4 + length  # number of keys
+        offset = offset + 4  # pubkey blob
+        length = unpack(">I", data[offset:offset+4])[0]  # pubkey length
+        offset = offset + 4 + length
+        offset = offset + 4  # skip over length of "encrypted" blob
+        if offset > len(data):
+            raise Exception('Internal error in offset calculation!')
+        ciphertext_begin_offset = offset
         saltstr = data[salt_offset:salt_offset+salt_length].encode("hex")
+        # rounds value appears after salt
+        rounds_offset = salt_offset + salt_length
+        rounds = data[rounds_offset: rounds_offset+4]
+        rounds = unpack(">I", rounds)[0]
+        if rounds == 0:
+            rounds == 16
 
     data = binascii.hexlify(data).decode("ascii")
-    print(keysize)
     if keysize == 24:
         hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 0,  # 0 -> 3DES
             len(salt), saltstr, len(data) // 2, data)
@@ -139,10 +168,8 @@ def read_private_key(f):
         hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 3, len(saltstr) // 2,
             saltstr, len(data) // 2, data)
     elif keysize == 32 and ktype == 2:  # bcrypt pbkdf + aes-256-cbc
-        # round value appears after salt
-        rounds = 16
-        hashline = "%s:$sshng$%s$%s$%s$%s$%s$%d" % (f.name, 2, len(saltstr) // 2,
-            saltstr, len(data) // 2, data, rounds)
+        hashline = "%s:$sshng$%s$%s$%s$%s$%s$%d$%d" % (f.name, 2, len(saltstr) // 2,
+            saltstr, len(data) // 2, data, rounds, ciphertext_begin_offset)
     else:
         sys.stderr.write("%s uses unsupported cipher, please file a bug!\n" % f.name)
         return None
@@ -152,8 +179,8 @@ def read_private_key(f):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stdout.write("Usage: %s < RSA/DSA private key files >\n" % \
-                sys.argv[0])
+        sys.stdout.write("Usage: %s <RSA/DSA/EC/OpenSSH private key file(s)>\n" %
+                         sys.argv[0])
 
     for filename in sys.argv[1:]:
         read_private_key(filename)
