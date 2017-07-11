@@ -77,7 +77,7 @@ static struct fmt_tests sshng_tests[] = {
 	/* it would be nice to get one of these with rounds set to 2,     */
 	/* instead of the rounds=64 of this hash  (pass_gen.pl update)    */
 	/* new ssh key format */
-	{"$sshng$2$16$cc2c3c68c39e0ba6289ed36cb92c3a73$1334$6f70656e7373682d6b65792d7631000000000a6165733235362d636263000000066263727970740000001800000010cc2c3c68c39e0ba6289ed36cb92c3a73000000400000000100000117000000077373682d727361000000030100010000010100af9bf6a900464f154916fac3d80476e0ee739ff7f25a96b562ff9f4262db1972992947dfa89da47f9fa5f4d9e54a2d103ce63779746888c298693663310f054af1c1dc90f62b22f630703726631c03ff217c29a32fd9f9bc178aabe9666c37c2c2bf4a2b4c528efe51e755053216d41e860ef996b549184cd15bd17641128690d2946a76261954edfee942bbefbb182df320d3da7f46a5fcddc15b5ecbf9b1b822cbc9ef978e8b639e8eab2e3b1229d429da4f6bdc27af2f2aab0e187a6cce91b95a8ac6f5602773d0014f1e8124a89e43e502bebb4d21f6a148e208e2d591391d1aede6a0a6d499a3de9996474310dd9d3233e3f05e9d0e85aba44715e838bd000003d08168da8d056f904faf9d80b22c08141e8b068a3af64ace3b5ffbad24b884cd37ae7ad89546031ab834d612b44266b95263a5c38f0d628d704caf70944629ad66d3cef974ec4faaaeb7d7df67f1321bb606ec6e14060c0de1a63a5732ca89b94ae765cb0671a4a1a76b42c06c220546bbf0f8a88471c0bf4200a0cbe0d346be67f688dcf76a3666f7c4447b3ced2d0c9a2fa50abc6ca222ddd70aeb82d65f8fefa313b3db76c5a03478bebc9e0942e17c07ae11d1fbe1b0b380ca2506a26aaf5cdb8668af186d1bc293844bd9c2cc8bb40530387f9a5e11770484593af69384fc003beb82beffa00c1b23f7d6a9bd8f6153cb7abd9531008df384a3455d7cdd7020df4dc507f34e697ad437f01989271b17b93045265f20e6fd02f63ac1e13ec85f8224bc60dd91e15dcfa2ec4f6986e3b37ea6bd571ca18089402f80c121323eb774708cc6ab470e05a53428b65dede47ded97c4f5941be44f6290d5ccdd9bea95b06190efee6c64d874798b6045c5d553a1f68c95f143d0a6893877796fff452851d64ac73c007b91dd6058a5c31165003d9d66b4a1a40c2f82e5c3be6820b109addc0f088c84576e30c7202da3304636de4035f3ca8b032885aa2bedb4d1e134c1615139fb6ed7fa924c2e8abdfcd75da029e910ee8a9d4af594e2a9732115237b6ba3c24f8dfd4bed0a7cb4d96e114bff30e9c68226ae04de6fee2340b41c49cd08982a3f21169853366882a4af43e256cb0d09c88856c46f2ad8a7bcc3896efe5f4f104ef9b595cd08b4b76d6ac074f4fa4a488f508c6106603cb4ca65af819d2222a086ddd16a63021627f337ab9d86b33150808313bfe7368737bf38e7dee410cf08f2effef780d161e2cb734135bba36fe2ee3319cda95242b89b50673c88eb3dfa331e987e3fbde92cec7e019990d97b11c71d5b04b8ec451549abc9ed195a080aefb1d77eff476f9de4315fca5bf6386438869a8d59a5f0badda70b337bb9bdcff966229d631286d3c5b97c41f3ef5daa6ef4416577815214733e8602ef7f8abc3a19ee58f48b10c8ab1d5c76f01febdb29b36910d615d4022849ec117f02b6ae898cc0ff67e61df43284d3ff739ab4c34fe2854797ae0b66e0ba234e236daba6eb9172e9e1f4a0f5283ae9b336059d2ab2c7145e0a4de4b5bed3baf87c90ad4d47b94eb1c01b07510191f06b9eaf014e225b2bce46d5a7080c6d1daf64460836d7630c157e44afc9483a777d76fcafbfc2c4f299211c0465f0151f13707f815700944ad6a17e23e63dd0eecb5cdb5284ad92dd853e0ce136bc77633fef514e6aadeb61e7fe885fe399076cbd5464a6d17efa1e116853e80cf08adea7e550b0d27e6a96d835069674fd7bcc$64", "12345"},
+	{"$sshng$2$16$cc2c3c68c39e0ba6289ed36cb92c3a73$1334$6f70656e7373682d6b65792d7631000000000a6165733235362d636263000000066263727970740000001800000010cc2c3c68c39e0ba6289ed36cb92c3a73000000400000000100000117000000077373682d727361000000030100010000010100af9bf6a900464f154916fac3d80476e0ee739ff7f25a96b562ff9f4262db1972992947dfa89da47f9fa5f4d9e54a2d103ce63779746888c298693663310f054af1c1dc90f62b22f630703726631c03ff217c29a32fd9f9bc178aabe9666c37c2c2bf4a2b4c528efe51e755053216d41e860ef996b549184cd15bd17641128690d2946a76261954edfee942bbefbb182df320d3da7f46a5fcddc15b5ecbf9b1b822cbc9ef978e8b639e8eab2e3b1229d429da4f6bdc27af2f2aab0e187a6cce91b95a8ac6f5602773d0014f1e8124a89e43e502bebb4d21f6a148e208e2d591391d1aede6a0a6d499a3de9996474310dd9d3233e3f05e9d0e85aba44715e838bd000003d08168da8d056f904faf9d80b22c08141e8b068a3af64ace3b5ffbad24b884cd37ae7ad89546031ab834d612b44266b95263a5c38f0d628d704caf70944629ad66d3cef974ec4faaaeb7d7df67f1321bb606ec6e14060c0de1a63a5732ca89b94ae765cb0671a4a1a76b42c06c220546bbf0f8a88471c0bf4200a0cbe0d346be67f688dcf76a3666f7c4447b3ced2d0c9a2fa50abc6ca222ddd70aeb82d65f8fefa313b3db76c5a03478bebc9e0942e17c07ae11d1fbe1b0b380ca2506a26aaf5cdb8668af186d1bc293844bd9c2cc8bb40530387f9a5e11770484593af69384fc003beb82beffa00c1b23f7d6a9bd8f6153cb7abd9531008df384a3455d7cdd7020df4dc507f34e697ad437f01989271b17b93045265f20e6fd02f63ac1e13ec85f8224bc60dd91e15dcfa2ec4f6986e3b37ea6bd571ca18089402f80c121323eb774708cc6ab470e05a53428b65dede47ded97c4f5941be44f6290d5ccdd9bea95b06190efee6c64d874798b6045c5d553a1f68c95f143d0a6893877796fff452851d64ac73c007b91dd6058a5c31165003d9d66b4a1a40c2f82e5c3be6820b109addc0f088c84576e30c7202da3304636de4035f3ca8b032885aa2bedb4d1e134c1615139fb6ed7fa924c2e8abdfcd75da029e910ee8a9d4af594e2a9732115237b6ba3c24f8dfd4bed0a7cb4d96e114bff30e9c68226ae04de6fee2340b41c49cd08982a3f21169853366882a4af43e256cb0d09c88856c46f2ad8a7bcc3896efe5f4f104ef9b595cd08b4b76d6ac074f4fa4a488f508c6106603cb4ca65af819d2222a086ddd16a63021627f337ab9d86b33150808313bfe7368737bf38e7dee410cf08f2effef780d161e2cb734135bba36fe2ee3319cda95242b89b50673c88eb3dfa331e987e3fbde92cec7e019990d97b11c71d5b04b8ec451549abc9ed195a080aefb1d77eff476f9de4315fca5bf6386438869a8d59a5f0badda70b337bb9bdcff966229d631286d3c5b97c41f3ef5daa6ef4416577815214733e8602ef7f8abc3a19ee58f48b10c8ab1d5c76f01febdb29b36910d615d4022849ec117f02b6ae898cc0ff67e61df43284d3ff739ab4c34fe2854797ae0b66e0ba234e236daba6eb9172e9e1f4a0f5283ae9b336059d2ab2c7145e0a4de4b5bed3baf87c90ad4d47b94eb1c01b07510191f06b9eaf014e225b2bce46d5a7080c6d1daf64460836d7630c157e44afc9483a777d76fcafbfc2c4f299211c0465f0151f13707f815700944ad6a17e23e63dd0eecb5cdb5284ad92dd853e0ce136bc77633fef514e6aadeb61e7fe885fe399076cbd5464a6d17efa1e116853e80cf08adea7e550b0d27e6a96d835069674fd7bcc$64$358", "12345"},
 #endif
 	// EC private key
 	{"$sshng$3$16$00B535FBA963402F20C12648A59D7258$128$dfa09369ff38f33c9789d33760d16fdd47730311b41b51a0c7b1dd1dec850c5c2ff523710af12839f25a709f0076cdd3e3643fab2ea1d17c6fae52a797b55e752b71a1fdd46d5bd889b51ddc2a01922340e5be914a67dabf666aff1c88275bd8ec3529e26386279adeb480446ab869dc27c160bd8fe469d5f993b90aaffef8ce", "password123"},
@@ -96,6 +96,7 @@ static struct custom_salt {
 	int ctl;
 	int sl;
 	int rounds;
+	int ciphertext_begin_offset;
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -169,6 +170,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if (!isdec(p))
 			goto err;
+		if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext_begin_offset */
+			goto err;
+		if (!isdec(p))
+			goto err;
 	}
 
 	if (cipher != 0 && cipher != 1 && cipher != 2 && cipher != 3) {
@@ -210,6 +215,8 @@ static void *get_salt(char *ciphertext)
 	if (cs.cipher == 2) {
 		p = strtokm(NULL, "$");
 		cs.rounds = atoi(p);
+		p = strtokm(NULL, "$");
+		cs.ciphertext_begin_offset = atoi(p);
 	}
 	MEM_FREE(keeptr);
 	return (void *)&cs;
@@ -487,7 +494,7 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		bcrypt_pbkdf(password, strlen((const char*)password), cur_salt->salt, 16, key, 32 + 16, cur_salt->rounds);
 		AES_set_decrypt_key(key, 256, &akey);
 		memcpy(iv, key + 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 32, out, 32, &akey, iv, AES_DECRYPT); // decrypt 2 blocks
+		AES_cbc_encrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, out, 16, &akey, iv, AES_DECRYPT); // decrypt 1 block
 	} else if (cur_salt->cipher == 3) { // EC keys with AES-128
 		unsigned char key[16] = {0};
 		AES_KEY akey;
@@ -524,10 +531,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			else
 				cracked[index] = 0;
 		} else if (cur_salt->cipher == 2) {  // new ssh key format handling
-			if (check_padding_only(out + 16, 16) == 0) /* always check the last block (16 bytes) */
+			if (check_padding_only(out + 16, 16) == 0 && out[15] >= 8)
 				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			else { // all keys don't have non-zero length padding
+				if (memcmp(out, out + 4, 4) == 0) {
+					cracked[index] = 1;
+				}
+				else
+					cracked[index] = 0;
+			}
 		} else if (cur_salt->cipher == 3) { // EC keys
 			if (check_padding_and_structure_EC(out, cur_salt->ctl, 0) == 0)
 				cracked[index] = 1;
@@ -565,8 +577,7 @@ static int cmp_exact(char *source, int index)
 		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
 			return 1;
 	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling */
-		if (check_padding_only(out + 16, 16) == 0) /* always check the last block (16 bytes) */
-			return 1;
+		return 1; // XXX add more checks!
 	} else if (cur_salt->cipher == 3) { // EC keys
 		return 1;
 	}
