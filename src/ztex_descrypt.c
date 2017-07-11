@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,10 @@ struct device_bitstream bitstream = {
 	// Absolute max. keys/crypt_all_interval for all devices.
 	262140,
 	// Max. number of entries in onboard comparator.
-	2047
+	2047,
+	0,	// Min. number of keys (doesn't matter for fast "formats")
+	2, { 220, 160 },	// Programmable clocks
+	"descrypt"	// label for configuration file
 };
 
 
@@ -315,42 +318,22 @@ static void task_result_des_crypt(struct task_result *result)
 	result->binary = mem_alloc(8);
 
 	*(uint64_t *)result->binary
-			= des_crypt(cmp_config.salt, result->key);
+			= des_crypt(cmp_config.salt_ptr, result->key);
 }
 
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int result_count = device_format_crypt_all(pcount, salt);
+	int result_count;
 
+	cmp_config_new(salt, salt->salt, 2);
+
+	result_count = device_format_crypt_all(pcount, salt);
 	if (result_count)
 		task_result_execute(task_list, task_result_des_crypt);
 
 	return result_count;
 }
-
-
-inline static int get_hash(int index)
-{
-	int out;
-	struct task_result *result = task_result_by_index(task_list, index);
-	if (!result || !result->binary) {
-		fprintf(stderr,"get_hash(%d): no task_result or binary\n", index);
-		error();
-	}
-	out = *(uint64_t *)result->binary;
-	//fprintf(stderr,"get_hash(%d): %08x\n",index,out);
-	return out;
-}
-
-
-static int get_hash_0(int index) { return get_hash(index) & PH_MASK_0; }
-static int get_hash_1(int index) { return get_hash(index) & PH_MASK_1; }
-static int get_hash_2(int index) { return get_hash(index) & PH_MASK_2; }
-static int get_hash_3(int index) { return get_hash(index) & PH_MASK_3; }
-static int get_hash_4(int index) { return get_hash(index) & PH_MASK_4; }
-static int get_hash_5(int index) { return get_hash(index) & PH_MASK_5; }
-static int get_hash_6(int index) { return get_hash(index) & PH_MASK_6; }
 
 
 static int cmp_one(void *binary, int index)
@@ -393,7 +376,7 @@ struct fmt_main fmt_ztex_descrypt = {
 		1, //MIN_KEYS_PER_CRYPT,
 		1, //MAX_KEYS_PER_CRYPT,
 		//FMT_DEVICE_CMP |
-		FMT_CASE, // | FMT_REMOVE,
+		FMT_CASE | FMT_TRUNC, // | FMT_REMOVE,
 		{ NULL },
 		{ NULL },
 		tests
@@ -425,13 +408,13 @@ struct fmt_main fmt_ztex_descrypt = {
 		fmt_default_clear_keys,
 		crypt_all, //device_format_crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			device_format_get_hash_0,
+			device_format_get_hash_1,
+			device_format_get_hash_2,
+			device_format_get_hash_3,
+			device_format_get_hash_4,
+			device_format_get_hash_5,
+			device_format_get_hash_6
 		},
 		device_format_cmp_all,
 		cmp_one, //device_format_cmp_one,

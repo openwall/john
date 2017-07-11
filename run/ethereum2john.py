@@ -45,8 +45,9 @@ def process_presale_wallet(filename, data):
         sys.stdout.write("%s: presale wallet is missing necessary fields!\n" % filename)
         return
 
+    # 16 bytes of bkp should be enough
     sys.stdout.write("%s:$ethereum$w*%s*%s*%s\n" %
-                     (os.path.basename(filename), encseed, ethaddr, bkp))
+                     (os.path.basename(filename), encseed, ethaddr, bkp[:32]))
 
 
 def process_file(filename):

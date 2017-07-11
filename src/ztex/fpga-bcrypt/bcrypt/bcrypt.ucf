@@ -1,0 +1,27 @@
+#
+# pkt_comm
+#
+AREA_GROUP "pkt_comm" RANGE=SLICE_X22Y93:SLICE_X107Y98,SLICE_X48Y99:SLICE_X83Y101;
+AREA_GROUP "pkt_comm" RANGE=RAMB16_X1Y46:RAMB16_X4Y48;
+AREA_GROUP "pkt_comm" RANGE=RAMB8_X1Y46:RAMB8_X4Y49;
+AREA_GROUP "pkt_comm" RANGE=DSP48_X1Y23:DSP48_X1Y24;
+
+INST "bcrypt/*" AREA_GROUP="pkt_comm";
+
+AREA_GROUP "pkt_comm2" RANGE=SLICE_X48Y89:SLICE_X83Y92;
+AREA_GROUP "pkt_comm2" RANGE=RAMB16_X2Y44:RAMB16_X3Y44,RAMB16_X2Y50:RAMB16_X3Y50;
+
+INST "bcrypt/input_fifo/fifo_input0*" AREA_GROUP="pkt_comm2";
+INST "vcr_inst/*" AREA_GROUP="pkt_comm2";
+INST "hs_io_inst/*" AREA_GROUP="pkt_comm2";
+
+
+NET "bcrypt/inpkt_header/pkt_id*" TIG;
+NET "bcrypt/word_list/range_info*" TIG;
+NET "bcrypt/word_gen/last_range_num*" TIG;
+
+NET "bcrypt/arbiter/pkt_id_saved*" TIG;
+NET "bcrypt/arbiter/pkt_id*" TIG;
+NET "bcrypt/arbiter/hash_num*" TIG;
+
+NET "mode_cmp" TIG;

@@ -32,6 +32,23 @@ except ImportError:
         sys.exit(-1)
 
 
+def process_electrum28_wallets(bname, data):
+    version = 4  # hack
+    MIN_LEN = 37 + 32 + 32  # header + ciphertext + trailer
+    if len(data) < MIN_LEN * 4 / 3:
+        sys.stderr.write("%s: Electrum 2.8+ wallet is too small to parse!\n" % bname)
+        return
+    data = base64.b64decode(data)
+    ephemeral_pubkey = data[4:37]  # compressed representation
+    # ciphertext = data[37:-32]
+    mac = data[-32:]
+    all_but_mac = data[:-32]
+    ephemeral_pubkey = binascii.hexlify(ephemeral_pubkey).decode("ascii")
+    mac = binascii.hexlify(mac).decode("ascii")
+    all_but_mac = binascii.hexlify(all_but_mac).decode("ascii")
+    sys.stdout.write("%s:$electrum$%d*%s*%s*%s\n" % (bname, version, ephemeral_pubkey, all_but_mac, mac))
+
+
 def process_file(filename):
     bname = os.path.basename(filename)
     try:
@@ -45,10 +62,11 @@ def process_file(filename):
     # detect Electrum 2.7+ encrypted wallets
     try:
         if base64.b64decode(data).startswith('BIE1'):
-            sys.stderr.write("%s: Encrypted Electrum 2.7+ wallets are not supported yet!\n" % bname)
+            # sys.stderr.write("%s: Encrypted Electrum 2.8+ wallets are not supported yet!\n" % bname)
+            process_electrum28_wallets(bname, data)
             return
     except:
-        pass
+        return
 
     try:
         data = data.decode("utf-8")

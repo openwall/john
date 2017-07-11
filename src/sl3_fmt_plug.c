@@ -18,27 +18,12 @@ extern struct fmt_main fmt_sl3;
 john_register_one(&fmt_sl3);
 #else
 
-#include <string.h>
-
 #include "arch.h"
 //#undef SIMD_COEF_32
 //#undef SIMD_PARA_SHA1
 //#undef _OPENMP
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "johnswap.h"
 
-#ifdef SIMD_COEF_32
-#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
-#endif
-#include "simd-intrinsics.h"
-
-#include "common.h"
-
-#include "sha.h"
-#include "base64_convert.h"
-
+#include <string.h>
 #ifdef _OPENMP
 #ifdef SIMD_COEF_64
 #ifndef OMP_SCALE
@@ -52,25 +37,22 @@ john_register_one(&fmt_sl3);
 #include <omp.h>
 #endif
 
+#include "misc.h"
+#include "formats.h"
+#include "options.h"
+#include "johnswap.h"
+#ifdef SIMD_COEF_32
+#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
+#endif
+#include "simd-intrinsics.h"
+#include "common.h"
+#include "sha.h"
+#include "sl3_common.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "SL3"
-#define FORMAT_NAME         "Nokia operator unlock"
-
 #define ALGORITHM_NAME      "SHA1 " SHA1_ALGORITHM_NAME
-
-#define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
-
-#define PLAINTEXT_MINLEN    15
-#define PLAINTEXT_LENGTH    15
-
-#define BINARY_ALIGN        4
-#define SALT_SIZE           9
-#define SALT_ALIGN          4
-
-#define BINARY_SIZE         20
-#define CIPHERTEXT_LENGTH   (SL3_MAGIC_LENGTH + 14 + 1 + 2 * BINARY_SIZE)
 
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  NBKEYS
@@ -80,15 +62,6 @@ john_register_one(&fmt_sl3);
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 #endif
-
-#define SL3_MAGIC           "$sl3$"
-#define SL3_MAGIC_LENGTH    (sizeof(SL3_MAGIC) - 1)
-
-static struct fmt_tests tests[] = {
-	{"$sl3$35831503698405$d8f6b336a4df3336bf7de58a38b1189f6c5ce1e8", "621888462499899"},
-	{NULL, "123456789012345", {"112233445566778", "545fabcb0af7d923a56431c9131bfa644c408b47"}},
-	{NULL}
-};
 
 static unsigned char *saved_salt;
 
@@ -133,70 +106,6 @@ static void done(void)
 #ifdef SIMD_COEF_32
 	MEM_FREE(saved_len);
 #endif
-}
-
-/*
- * prepare() will put login field as a hex salt in the internal format of
- * $sl3$<imei>$<hash> and any 15th digit of the IMEI will be gone at that point
- * if it was ever present.
- */
-static char *prepare(char *split_fields[10], struct fmt_main *self)
-{
-	static char out[CIPHERTEXT_LENGTH + 1];
-	int i, len;
-
-	if (strlen(split_fields[1]) != 2 * BINARY_SIZE)
-		return split_fields[1];
-
-	if (!split_fields[0])
-		return split_fields[1];
-
-	len = strlen(split_fields[0]);
-
-	if (len < 14 || len > 15)
-		return split_fields[1];
-
-	sprintf(out, "%s", SL3_MAGIC);
-
-	for (i = 0; i < 14; i++) {
-		if (split_fields[0][i] < '0' || split_fields[0][i] > '9')
-			return split_fields[1];
-		out[SL3_MAGIC_LENGTH + i] = split_fields[0][i];
-	}
-
-	out[SL3_MAGIC_LENGTH + i] = '$';
-
-	for (i = 0; i < 2 * BINARY_SIZE; i++)
-		out[SL3_MAGIC_LENGTH + 14 + 1 + i] = split_fields[1][i];
-
-	out[SL3_MAGIC_LENGTH + 14 + 1 + i] = 0;
-
-	return out;
-}
-
-/*
- * At this point in the flow we only accept the internal format of
- * "$sl3$<imei>$<hash>".  Only lower-case hex is allowed.
- */
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	int i;
-
-	if (strncmp(ciphertext, SL3_MAGIC, SL3_MAGIC_LENGTH))
-		return 0;
-	ciphertext += SL3_MAGIC_LENGTH;
-
-	for (i = 0; i < 14; i++)
-		if (ciphertext[i] < '0' || ciphertext[i] > '9')
-			return 0;
-	ciphertext += 14;
-	if (*ciphertext++ != '$')
-		return 0;
-	for (i = 0; i < 2 * BINARY_SIZE; i++)
-		if (!((ciphertext[i] >= '0' && ciphertext[i] <= '9') ||
-		      (ciphertext[i] >= 'a' && ciphertext[i] <= 'f')))
-			return 0;
-	return 1;
 }
 
 static void *get_binary(char *ciphertext) {
@@ -275,23 +184,6 @@ static char *get_key(int index) {
 	};
 	*d = 0;
 #endif
-
-	return out;
-}
-
-/* get_salt() adds the surrounding nulls. */
-static void *get_salt(char *ciphertext)
-{
-	static char *out;
-
-	if (!out)
-		out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
-
-	ciphertext += SL3_MAGIC_LENGTH;
-	memset(out, 0, SALT_SIZE);
-
-	base64_convert(ciphertext, e_b64_hex, 14, out + 1,
-	               e_b64_raw, 7, 0, 0);
 
 	return out;
 }
@@ -396,11 +288,6 @@ static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
 #endif
 
-static int salt_hash(void *salt)
-{
-	return *(unsigned int*)salt & (SALT_HASH_SIZE - 1);
-}
-
 struct fmt_main fmt_sl3 = {
 	{
 		FORMAT_LABEL,
@@ -419,16 +306,16 @@ struct fmt_main fmt_sl3 = {
 		FMT_OMP | FMT_OMP_BAD,
 		{ NULL },
 		{ SL3_MAGIC },
-		tests
+		sl3_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
-		valid,
+		sl3_prepare,
+		sl3_valid,
 		fmt_default_split,
 		get_binary,
-		get_salt,
+		sl3_get_salt,
 		{ NULL },
 		fmt_default_source,
 		{
@@ -440,7 +327,7 @@ struct fmt_main fmt_sl3 = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		salt_hash,
+		sl3_salt_hash,
 		NULL,
 		set_salt,
 		set_key,

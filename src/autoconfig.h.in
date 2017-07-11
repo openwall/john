@@ -39,9 +39,6 @@
 /* Define to 1 if you have the `atoll' function. */
 #undef HAVE_ATOLL
 
-/* Define to 1 if you have the `BIO_new' function. */
-#undef HAVE_BIO_NEW
-
 /* Define to 1 if you have the <CL/cl.h> header file. */
 #undef HAVE_CL_CL_H
 
@@ -56,12 +53,6 @@
 
 /* Define to 1 if you have the <dirent.h> header file. */
 #undef HAVE_DIRENT_H
-
-/* Define to 1 if you have the `EVP_aes_256_xts' function. */
-#undef HAVE_EVP_AES_256_XTS
-
-/* Define to 1 if you have the `EVP_sha512' function. */
-#undef HAVE_EVP_SHA512
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H

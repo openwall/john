@@ -36,3 +36,18 @@ end_of_line = lf
 
 [inouttraffic.c]
 end_of_line = lf
+
+[jtr_device.c]
+end_of_line = lf
+
+[jtr_mask.c]
+end_of_line = lf
+
+[pkt_comm/cmp_config.c]
+end_of_line = lf
+
+[pkt_comm/inpkt.c]
+end_of_line = lf
+
+[pkt_comm/word_gen.c]
+end_of_line = lf

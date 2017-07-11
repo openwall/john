@@ -652,7 +652,6 @@ PTHREAD_LIBS
 PTHREAD_CC
 ax_pthread_config
 OPENMP_CFLAGS
-HAVE_BIO_NEW
 PCAP_LIBS
 HAVE_PCAP
 MEMDBG_CFLAGS
@@ -6286,53 +6285,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   # Silly warnings for perfectly fine code
-     if test "1" = 1; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-implicit-fallthrough" >&5
-$as_echo_n "checking if $CC supports -Wno-implicit-fallthrough... " >&6; }
-fi
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-  ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wno-implicit-fallthrough"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  if test "1" = 1; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-fi
-      CFLAGS_EX="$CFLAGS_EX -Wno-implicit-fallthrough"
-
-else
-  if test "1" = 1; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  CFLAGS="$ac_saved_cflags"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
    # Silly OSX warnings
      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-deprecated-declarations" >&5
@@ -10639,7 +10591,7 @@ if test "$with_commoncrypto" = yes; then :
 $as_echo "#define HAVE_SHA256 1" >>confdefs.h
 
 fi
-for ac_func in EVP_aes_256_xts SHA256 WHIRLPOOL RIPEMD160 AES_encrypt EVP_sha512 BIO_new
+for ac_func in SHA256 WHIRLPOOL RIPEMD160 AES_encrypt
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -10653,11 +10605,6 @@ done
 
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
-
-if test "x$ac_cv_func_BIO_new" = xyes ; then
-	HAVE_BIO_NEW=-DHAVE_BIO_NEW
-
-fi
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -13945,7 +13892,7 @@ echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-ac
 
 HOST_OS="$host_os"
 
-ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile escrypt/Makefile"
+ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile escrypt/Makefile"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14656,6 +14603,7 @@ do
     "aes/Makefile") CONFIG_FILES="$CONFIG_FILES aes/Makefile" ;;
     "aes/aesni/Makefile") CONFIG_FILES="$CONFIG_FILES aes/aesni/Makefile" ;;
     "aes/openssl/Makefile") CONFIG_FILES="$CONFIG_FILES aes/openssl/Makefile" ;;
+    "secp256k1/Makefile") CONFIG_FILES="$CONFIG_FILES secp256k1/Makefile" ;;
     "escrypt/Makefile") CONFIG_FILES="$CONFIG_FILES escrypt/Makefile" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 

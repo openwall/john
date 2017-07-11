@@ -81,8 +81,6 @@ static unsigned int new_key;
 
 static void set_key_utf8(char *_key, int index);
 static void set_key_encoding(char *_key, int index);
-static void * get_salt_utf8(char *_ciphertext);
-static void * get_salt_encoding(char *_ciphertext);
 struct fmt_main fmt_mscash;
 
 #if !ARCH_LITTLE_ENDIAN
@@ -113,7 +111,7 @@ static void init(struct fmt_main *self)
 	new_key=1;
 
 	mscash1_adjust_tests(self, options.target_enc, PLAINTEXT_LENGTH,
-	                     set_key_utf8, set_key_encoding, get_salt_utf8, get_salt_encoding);
+	                     set_key_utf8, set_key_encoding);
 }
 
 static void done(void)
@@ -125,66 +123,28 @@ static void done(void)
 	MEM_FREE(ms_buffer1x);
 }
 
-static void set_salt(void *salt) {
+static void set_salt(void *salt)
+{
 	salt_buffer=salt;
 }
 
-static void *get_salt(char *_ciphertext)
+static void *get_salt(char *ciphertext)
 {
-	unsigned char *ciphertext = (unsigned char *)_ciphertext;
-	// length=11 for save memory
-	// position 10 = length
-	// 0-9 = 1-19 Unicode characters + EOS marker (0x80)
-	static unsigned int *out=0;
-	unsigned int md4_size;
-
-	if (!out) out = mem_alloc_tiny(11*sizeof(unsigned int), MEM_ALIGN_WORD);
-	memset(out,0,11*sizeof(unsigned int));
-
-	ciphertext+=FORMAT_TAG_LEN;
-
-	for (md4_size = 0 ;; md4_size++)
-		if (md4_size < 19 && ciphertext[md4_size]!='#')
-		{
-			md4_size++;
-
-			out[md4_size>>1] = ciphertext[md4_size-1] | ((ciphertext[md4_size]!='#') ? (ciphertext[md4_size]<<16) : 0x800000);
-
-			if (ciphertext[md4_size]=='#')
-				break;
-		}
-		else
-		{
-			out[md4_size>>1] = 0x80;
-			break;
-		}
-
-	out[10] = (8 + md4_size) << 4;
-
-//	dump_stuff(out, 44);
-
-	return out;
-}
-
-static void *get_salt_encoding(char *_ciphertext) {
-	unsigned char *ciphertext = (unsigned char *)_ciphertext;
 	unsigned char input[19*3+1];
-	int utf16len, md4_size;
+	int i, utf16len;
 	static UTF16 *out=0;
+	char *lasth = strrchr(ciphertext, '#');
 
 	if (!out) out = mem_alloc_tiny(22*sizeof(UTF16), MEM_ALIGN_WORD);
 	memset(out, 0, 22*sizeof(UTF16));
 
 	ciphertext += FORMAT_TAG_LEN;
 
-	for (md4_size=0;md4_size<sizeof(input)-1;md4_size++) {
-		if (ciphertext[md4_size] == '#')
-			break;
-		input[md4_size] = ciphertext[md4_size];
-	}
-	input[md4_size] = 0;
+	for (i = 0; &ciphertext[i] < lasth; i++)
+		input[i] = ciphertext[i];
+	input[i] = 0;
 
-	utf16len = enc_to_utf16(out, 19, input, md4_size);
+	utf16len = enc_to_utf16(out, 19, input, i);
 	if (utf16len < 0)
 		utf16len = strlen16(out);
 
@@ -192,55 +152,12 @@ static void *get_salt_encoding(char *_ciphertext) {
 	out[utf16len] = 0x80;
 #else
 	out[utf16len] = 0x8000;
-	swap((unsigned int*)out, (md4_size>>1)+1);
+	swap((unsigned int*)out, (i>>1)+1);
 #endif
 
 	((unsigned int*)out)[10] = (8 + utf16len) << 4;
 
 //	dump_stuff(out, 44);
-
-	return out;
-}
-
-
-static void * get_salt_utf8(char *_ciphertext)
-{
-	unsigned char *ciphertext = (unsigned char *)_ciphertext;
-	unsigned int md4_size;
-	UTF16 ciphertext_utf16[21];
-	int len;
-	static uint32_t *out=0;
-
-	if (!out) out = mem_alloc_tiny(11*sizeof(uint32_t), MEM_ALIGN_WORD);
-	memset(out, 0, 11*sizeof(uint32_t));
-
-	ciphertext+=FORMAT_TAG_LEN;
-	len = ((unsigned char*)strchr((char*)ciphertext, '#')) - ciphertext;
-	utf8_to_utf16(ciphertext_utf16, 20, ciphertext, len+1);
-
-	for (md4_size = 0 ;; md4_size++) {
-#if !ARCH_LITTLE_ENDIAN
-		ciphertext_utf16[md4_size] = (ciphertext_utf16[md4_size]>>8)|(ciphertext_utf16[md4_size]<<8);
-#endif
-		if (md4_size < 19 && ciphertext_utf16[md4_size]!=(UTF16)'#') {
-			md4_size++;
-#if !ARCH_LITTLE_ENDIAN
-			ciphertext_utf16[md4_size] = (ciphertext_utf16[md4_size]>>8)|(ciphertext_utf16[md4_size]<<8);
-#endif
-			out[md4_size>>1] = ciphertext_utf16[md4_size-1] |
-				((ciphertext_utf16[md4_size]!=(UTF16)'#') ?
-				 (ciphertext_utf16[md4_size]<<16) : 0x800000);
-
-			if (ciphertext_utf16[md4_size]==(UTF16)'#')
-				break;
-		}
-		else {
-			out[md4_size>>1] = 0x80;
-			break;
-		}
-	}
-
-	out[10] = (8 + md4_size) << 4;
 
 	return out;
 }
@@ -252,9 +169,8 @@ static void *get_binary(char *ciphertext)
 	unsigned int temp;
 	unsigned int *salt=fmt_mscash.methods.salt(ciphertext);
 
-	for (;ciphertext[0]!='#';ciphertext++);
-
-	ciphertext++;
+	/* We need to allow salt containing '#' so we search backwards */
+	ciphertext = strrchr(ciphertext, '#') + 1;
 
 	for (; i<4 ;i++)
 	{

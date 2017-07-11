@@ -18,7 +18,7 @@ john_register_one(&fmt_ethereum);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               1
+#define OMP_SCALE               16 // tuned on i7-6600U
 #endif
 #endif
 
@@ -83,24 +83,6 @@ static void done(void)
 	MEM_FREE(crypt_out);
 }
 
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[BINARY_SIZE];
-		uint32_t dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i;
-	p = strrchr(ciphertext, '*') + 1;
-	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-
-	return out;
-}
-
 static void set_salt(void *salt)
 {
 	cur_salt = (custom_salt *)salt;
@@ -115,6 +97,8 @@ static char *get_key(int index)
 {
 	return saved_key[index];
 }
+
+static unsigned char *dpad = (unsigned char*)"\x02\x00\x00\x00\x00\x00\x00\x00";
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -183,15 +167,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				AES_set_decrypt_key(master[i], 128, &akey);
 				memcpy(iv, cur_salt->encseed, 16);
 				AES_cbc_encrypt(cur_salt->encseed + 16, seed, cur_salt->eslen - 16, &akey, iv, AES_DECRYPT);
-				if (check_pkcs_pad(seed, cur_salt->eslen - 16, 16) < 0)
+				if (check_pkcs_pad(seed, cur_salt->eslen - 16, 16) < 0) {
+					memset(crypt_out[index+i], 0, BINARY_SIZE);
 					continue;
+				}
 				padbyte = seed[cur_salt->eslen - 16 - 1];
 				datalen = cur_salt->eslen - 16 - padbyte;
-				if (datalen < 0)
+				if (datalen < 0) {
+					memset(crypt_out[index+i], 0, BINARY_SIZE);
 					continue;
+				}
 				Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01);
 				Keccak_HashUpdate(&hash, seed, datalen * 8);
-				Keccak_HashUpdate(&hash, (unsigned char*)"\x02", 1 * 8);
+				Keccak_HashUpdate(&hash, dpad, 1 * 8);
 				Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index+i]);
 			}
 		}
@@ -234,7 +222,7 @@ struct fmt_main fmt_ethereum = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 		},
@@ -247,7 +235,7 @@ struct fmt_main fmt_ethereum = {
 		fmt_default_prepare,
 		ethereum_common_valid,
 		fmt_default_split,
-		get_binary,
+		ethereum_get_binary,
 		ethereum_common_get_salt,
 		{
 			ethereum_common_iteration_count,

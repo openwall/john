@@ -10,6 +10,13 @@
  * modification, are permitted.
  */
 
+/*
+ * We've seen one single sample where we could not trust the padding check
+ * (early rejection). To be able to crack such hashes, define this to 0.
+ * This hits performance in some cases.
+ */
+#define TRUST_PADDING 0
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sevenzip;
 #elif FMT_REGISTERS_H
@@ -392,7 +399,8 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 	 * be able to trust this, see #2532, so we only do it for truncated
 	 * hashes (it's the only thing we can do!).
 	 */
-	if (cur_salt->type == 0x80 && pad_size > 0 && cur_salt->length >= 32) {
+	if ((cur_salt->type == 0x80 || TRUST_PADDING) &&
+	    pad_size > 0 && cur_salt->length >= 32) {
 		uint8_t buf[16];
 
 		memcpy(iv, cur_salt->data + cur_salt->length - 32, 16);
@@ -406,14 +414,31 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 			nbytes--;
 			i--;
 		}
+
+		if (cur_salt->type == 0x80) /* We only have truncated data */
+			return 1;
 	}
 
 	/* Complete decryption, or partial if possible */
-	aes_len = MIN(aes_len, cur_salt->length);
+	aes_len = nbytes ? cur_salt->length : MIN(aes_len, cur_salt->length);
 	out = mem_alloc(aes_len);
 	memcpy(iv, cur_salt->iv, 16);
 	AES_set_decrypt_key(derived_key, 256, &akey);
 	AES_cbc_encrypt(cur_salt->data, out, aes_len, &akey, iv, AES_DECRYPT);
+
+	/* Padding check unless we already did the quick one */
+	if (TRUST_PADDING && nbytes) {
+		i = cur_salt->length - 1;
+		while (nbytes > 0) {
+			if (out[i] != 0)
+				goto exit_bad;
+			nbytes--;
+			i--;
+		}
+	}
+
+	if (cur_salt->type == 0x80) /* We only have truncated data */
+		goto exit_good;
 
 	/* Optional decompression before CRC */
 	if (cur_salt->type == 1) {

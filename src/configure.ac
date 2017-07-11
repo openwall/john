@@ -234,8 +234,6 @@ else
 fi
    # gcc bug workaround, see issue 632
    JTR_FLAG_CHECK([--param allow-store-data-races=0], 1)
-   # Silly warnings for perfectly fine code
-   JTR_FLAG_CHECK([-Wno-implicit-fallthrough], 1)
    # Silly OSX warnings
    JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
    # clang warnings
@@ -574,13 +572,9 @@ CFLAGS_ORIG="$CFLAGS"
 LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
 CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
 AS_IF([test "$with_commoncrypto" = yes], [AC_DEFINE([HAVE_SHA256],1,[Define to 1 if you have the `SHA256' function.])])
-AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL RIPEMD160 AES_encrypt EVP_sha512 BIO_new])
+AC_CHECK_FUNCS([SHA256 WHIRLPOOL RIPEMD160 AES_encrypt])
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
-
-if test "x$ac_cv_func_BIO_new" = xyes ; then
-	AC_SUBST([HAVE_BIO_NEW],[-DHAVE_BIO_NEW])
-fi
 
 AC_CACHE_SAVE
 
@@ -937,6 +931,7 @@ AC_CONFIG_FILES([Makefile
                  aes/Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
+                 secp256k1/Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 

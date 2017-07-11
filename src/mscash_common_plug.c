@@ -33,7 +33,7 @@ struct fmt_tests mscash1_common_tests[] = {
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
 	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3" },
 	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4" },
-
+	{"M$#january#72488d8077e33d138b9cff94092716e4", "issue#2575"}, // salt contains '#'
 	{"64cd29e36a8431a2b111378564a10631", "test1", {"TEST1"} },    // salt is lowercased before hashing
 	{"290efa10307e36a79b3eebf2a6b29455", "okolada", {"nineteen_characters"} }, // max salt length
 	{"ab60bdb4493822b175486810ac2abe63", "test2", {"test2"} },
@@ -44,12 +44,10 @@ struct fmt_tests mscash1_common_tests[] = {
 void mscash1_adjust_tests(struct fmt_main *self, unsigned target_encoding,
                           unsigned plain_len,
                           void (*set_key_utf8)(char*,int),
-                          void (*set_key_encoding)(char*,int),
-                          void *(*get_salt_utf8)(char*),
-                          void *(*get_salt_encoding)(char*)) {
+                          void (*set_key_encoding)(char*,int))
+{
 	if (target_encoding == UTF_8) {
 		self->methods.set_key = set_key_utf8;
-		self->methods.salt = get_salt_utf8;
 		self->params.plaintext_length = (plain_len * 3);
 		mscash1_common_tests[1].ciphertext = "M$\xC3\xBC#48f84e6f73d6d5305f6558a33fa2c9bb";
 		mscash1_common_tests[1].plaintext = "\xC3\xBC";         // German u-umlaut in UTF-8
@@ -62,7 +60,6 @@ void mscash1_adjust_tests(struct fmt_main *self, unsigned target_encoding,
 		mscash1_common_tests[2].plaintext = "\xFC\xFC"; // 2 x Euro signs
 	} else {
 		self->methods.set_key = set_key_encoding;
-		self->methods.salt = get_salt_encoding;
 	}
 }
 
@@ -217,9 +214,13 @@ struct fmt_tests mscash2_common_tests[] = {
 	{"$DCC2$10240#TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },    // salt is lowercased before hashing
 	{"$DCC2$10240#test3#360e51304a2d383ea33467ab0b639cc4", "test3" },
 	{"$DCC2$10240#test4#6f79ee93518306f071c47185998566ae", "test4" },
+	// salt contains #
+	{"$DCC2$10240##january#cceed966f6689269b758893bb6bbb985", "issue#2575"},
 
 	// Non-standard iterations count
 	{"$DCC2$10000#Twelve_chars#54236c670e185043c8016006c001e982", "magnum"},
+	{"$DCC2$20480##january#474b0082a3a812a1c517fbd7a4e23811", "issue#2575"},
+
 	{"$DCC2$january#26b5495b21f9ad58255d99b5e117abe2", "verylongpassword" },
 	{"$DCC2$february#469375e08b5770b989aa2f0d371195ff", "(##)(&#*%%" },
 	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },

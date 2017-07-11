@@ -33,9 +33,7 @@ extern struct fmt_tests mscash2_common_tests[];
 extern void mscash1_adjust_tests(struct fmt_main *self, unsigned encoding,
                                  unsigned plain_len,
                                  void (*set_key_utf8)(char*,int),
-                                 void (*set_key_encoding)(char*,int),
-                                 void *(*get_salt_utf8)(char*),
-                                 void *(*get_salt_encoding)(char*));
+                                 void (*set_key_encoding)(char*,int));
 
 extern int   mscash1_common_valid(char *ciphertext, struct fmt_main *self);
 extern char *mscash1_common_split(char *ciphertext, int index, struct fmt_main *self);

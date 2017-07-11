@@ -35,7 +35,7 @@
     sudo apt-get install cmake bison flex libicu-dev
     cd ~/src
     git clone --recursive https://github.com/teeshop/rexgen.git
-    cd rexgen/src
+    cd rexgen
     ./install.sh
 
 === Clone latest bleeding-edge Jumbo and build

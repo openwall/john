@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- Begin Editing Here -->
+<Project FileVersion="1.2" Name="Example" ProjectVersion="2.0">
+
+  <Partition Name="/ztex_inouttraffic" State="implement" ImportLocation="NONE" Preserve="placement">
+
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[0].wrapper/core_gen[0].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[0].wrapper/core_gen[1].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[0].wrapper/core_gen[2].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[0].wrapper/core_gen[3].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[0].wrapper/core_gen[4].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[0].wrapper/core_gen[5].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[1].wrapper/core_gen[0].core" State="import" ImportLocation="export2" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[1].wrapper/core_gen[1].core" State="import" ImportLocation="export6" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[1].wrapper/core_gen[2].core" State="import" ImportLocation="export3" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[1].wrapper/core_gen[3].core" State="import" ImportLocation="export3" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[1].wrapper/core_gen[4].core" State="import" ImportLocation="export3" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[1].wrapper/core_gen[5].core" State="import" ImportLocation="export4" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[1].wrapper/core_gen[6].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[2].wrapper/core_gen[0].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[2].wrapper/core_gen[1].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[2].wrapper/core_gen[2].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[2].wrapper/core_gen[3].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[2].wrapper/core_gen[4].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[2].wrapper/core_gen[5].core" State="import" ImportLocation="export5" Preserve="placement">
+    </Partition>
+
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[3].wrapper/core_gen[0].core" State="import" ImportLocation="export3" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[3].wrapper/core_gen[1].core" State="import" ImportLocation="export1" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[3].wrapper/core_gen[2].core" State="import" ImportLocation="export7" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[3].wrapper/core_gen[3].core" State="import" ImportLocation="export1" Preserve="placement">
+    </Partition>
+    <Partition Name="/ztex_inouttraffic/pkt_comm/arbiter/wrapper_gen[3].wrapper/core_gen[4].core" State="import" ImportLocation="export2" Preserve="placement">
+    </Partition>
+
+  </Partition>
+
+</Project>

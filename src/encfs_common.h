@@ -4,7 +4,7 @@
  * and the GPU formats, and places it into one common location
  */
 
-#include <openssl/evp.h>
+#include "aes.h"
 #include "formats.h"
 
 typedef struct encfs_common_custom_salt_t {
@@ -16,8 +16,6 @@ typedef struct encfs_common_custom_salt_t {
 	unsigned int dataLen;
 	unsigned char data[128];
 	unsigned int ivLength;
-	const EVP_CIPHER *streamCipher;
-	const EVP_CIPHER *blockCipher;
 } encfs_common_custom_salt;
 
 #define MAX_KEYLENGTH    32 // in bytes (256 bit)
@@ -31,7 +29,7 @@ unsigned int encfs_common_iteration_count(void *salt);
 
 // exported 'common' functions
 unsigned int encfs_common_MAC_32(encfs_common_custom_salt *cur_salt, unsigned char *src, int len, unsigned char *key);
-int encfs_common_streamDecode(encfs_common_custom_salt *cur_salt, unsigned char *buf, int size, uint64_t iv64, unsigned char *key);
+void encfs_common_streamDecode(encfs_common_custom_salt *cur_salt, unsigned char *buf, int size, uint64_t iv64, unsigned char *key);
 
 // these common items were better done as #defines.
 #define unshuffleBytes(buf, size) do \

@@ -1,0 +1,104 @@
+###########################################################################
+#
+# Wrapper 5 - bottom left
+#
+###########################################################################
+#
+# proxy 5_0 - column RAMB X0
+#
+AREA_GROUP "wrapper5_r1" RANGE=SLICE_X18Y104:SLICE_X21Y107;
+INST "wrappers[5].wrapper/*_r1*" AREA_GROUP="wrapper5_r1";
+#
+AREA_GROUP "proxy5_0" RANGE=SLICE_X18Y56:SLICE_X23Y103;
+INST "wrappers[5].wrapper/proxies[0].proxy/*" AREA_GROUP="proxy5_0";
+#
+AREA_GROUP "core5_0_0" RANGE=SLICE_X0Y52:SLICE_X17Y59;
+AREA_GROUP "core5_0_0" RANGE=RAMB8_X0Y26:RAMB8_X0Y29;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[0].core/*" AREA_GROUP="core5_0_0";
+AREA_GROUP "core5_0_1" RANGE=SLICE_X0Y60:SLICE_X17Y67;
+AREA_GROUP "core5_0_1" RANGE=RAMB8_X0Y30:RAMB8_X0Y33;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[1].core/*" AREA_GROUP="core5_0_1";
+AREA_GROUP "core5_0_2" RANGE=SLICE_X0Y68:SLICE_X17Y75;
+AREA_GROUP "core5_0_2" RANGE=RAMB8_X0Y34:RAMB8_X0Y37;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[2].core/*" AREA_GROUP="core5_0_2";
+AREA_GROUP "core5_0_3" RANGE=SLICE_X0Y76:SLICE_X17Y83;
+AREA_GROUP "core5_0_3" RANGE=RAMB8_X0Y38:RAMB8_X0Y41;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[3].core/*" AREA_GROUP="core5_0_3";
+AREA_GROUP "core5_0_4" RANGE=SLICE_X0Y84:SLICE_X17Y91;
+AREA_GROUP "core5_0_4" RANGE=RAMB8_X0Y42:RAMB8_X0Y45;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[4].core/*" AREA_GROUP="core5_0_4";
+AREA_GROUP "core5_0_5" RANGE=SLICE_X0Y92:SLICE_X17Y99;
+AREA_GROUP "core5_0_5" RANGE=RAMB8_X0Y46:RAMB8_X0Y49;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[5].core/*" AREA_GROUP="core5_0_5";
+#
+# proxy 5_0 - column RAMB X1
+#
+AREA_GROUP "core5_0_6" RANGE=SLICE_X24Y52:SLICE_X41Y59;
+AREA_GROUP "core5_0_6" RANGE=RAMB8_X1Y26:RAMB8_X1Y29;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[6].core/*" AREA_GROUP="core5_0_6";
+AREA_GROUP "core5_0_7" RANGE=SLICE_X24Y60:SLICE_X41Y67;
+AREA_GROUP "core5_0_7" RANGE=RAMB8_X1Y30:RAMB8_X1Y33;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[7].core/*" AREA_GROUP="core5_0_7";
+AREA_GROUP "core5_0_8" RANGE=SLICE_X24Y68:SLICE_X41Y75;
+AREA_GROUP "core5_0_8" RANGE=RAMB8_X1Y34:RAMB8_X1Y37;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[8].core/*" AREA_GROUP="core5_0_8";
+AREA_GROUP "core5_0_9" RANGE=SLICE_X24Y76:SLICE_X41Y83;
+AREA_GROUP "core5_0_9" RANGE=RAMB8_X1Y38:RAMB8_X1Y41;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[9].core/*" AREA_GROUP="core5_0_9";
+AREA_GROUP "core5_0_10" RANGE=SLICE_X24Y84:SLICE_X41Y91;
+AREA_GROUP "core5_0_10" RANGE=RAMB8_X1Y42:RAMB8_X1Y45;
+INST "wrappers[5].wrapper/proxies[0].proxy/cores[10].core/*" AREA_GROUP="core5_0_10";
+#
+############################################################################
+#
+# proxy 5_1 - column RAMB X0
+#
+AREA_GROUP "wrapper5_r2" RANGE=SLICE_X18Y52:SLICE_X23Y55;
+INST "wrappers[5].wrapper/*_r2*" AREA_GROUP="wrapper5_r2";
+#
+AREA_GROUP "proxy5_1" RANGE=SLICE_X18Y16:SLICE_X23Y51;
+INST "wrappers[5].wrapper/proxies[1].proxy/*" AREA_GROUP="proxy5_1";
+#
+AREA_GROUP "core5_1_0" RANGE=SLICE_X0Y3:SLICE_X16Y11;
+AREA_GROUP "core5_1_0" RANGE=RAMB8_X0Y2:RAMB8_X0Y5;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[0].core/*" AREA_GROUP="core5_1_0";
+AREA_GROUP "core5_1_1" RANGE=SLICE_X0Y12:SLICE_X16Y19;
+AREA_GROUP "core5_1_1" RANGE=RAMB8_X0Y6:RAMB8_X0Y9;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[1].core/*" AREA_GROUP="core5_1_1";
+
+AREA_GROUP "core5_1_2" RANGE=SLICE_X0Y20:SLICE_X17Y27;
+AREA_GROUP "core5_1_2" RANGE=RAMB8_X0Y10:RAMB8_X0Y13;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[2].core/*" AREA_GROUP="core5_1_2";
+AREA_GROUP "core5_1_3" RANGE=SLICE_X0Y28:SLICE_X17Y35;
+AREA_GROUP "core5_1_3" RANGE=RAMB8_X0Y14:RAMB8_X0Y17;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[3].core/*" AREA_GROUP="core5_1_3";
+AREA_GROUP "core5_1_4" RANGE=SLICE_X0Y36:SLICE_X17Y43;
+AREA_GROUP "core5_1_4" RANGE=RAMB8_X0Y18:RAMB8_X0Y21;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[4].core/*" AREA_GROUP="core5_1_4";
+AREA_GROUP "core5_1_5" RANGE=SLICE_X0Y44:SLICE_X17Y51;
+AREA_GROUP "core5_1_5" RANGE=RAMB8_X0Y22:RAMB8_X0Y25;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[5].core/*" AREA_GROUP="core5_1_5";
+#
+# proxy 5_1 - column RAMB X1
+#
+//AREA_GROUP "core5_1_6" RANGE=SLICE_X17Y3:SLICE_X33Y11;
+AREA_GROUP "core5_1_6" RANGE=SLICE_X17Y2:SLICE_X33Y11;
+AREA_GROUP "core5_1_6" RANGE=RAMB8_X1Y2:RAMB8_X1Y5;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[6].core/*" AREA_GROUP="core5_1_6";
+AREA_GROUP "core5_1_7" RANGE=SLICE_X17Y12:SLICE_X33Y19,SLICE_X34Y16:SLICE_X39Y19;
+AREA_GROUP "core5_1_7" RANGE=RAMB8_X1Y6:RAMB8_X1Y9;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[7].core/*" AREA_GROUP="core5_1_7";
+
+AREA_GROUP "core5_1_8" RANGE=SLICE_X24Y20:SLICE_X41Y27;
+AREA_GROUP "core5_1_8" RANGE=RAMB8_X1Y10:RAMB8_X1Y13;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[8].core/*" AREA_GROUP="core5_1_8";
+AREA_GROUP "core5_1_9" RANGE=SLICE_X24Y28:SLICE_X41Y35;
+AREA_GROUP "core5_1_9" RANGE=RAMB8_X1Y14:RAMB8_X1Y17;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[9].core/*" AREA_GROUP="core5_1_9";
+AREA_GROUP "core5_1_10" RANGE=SLICE_X24Y36:SLICE_X41Y43;
+AREA_GROUP "core5_1_10" RANGE=RAMB8_X1Y18:RAMB8_X1Y21;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[10].core/*" AREA_GROUP="core5_1_10";
+AREA_GROUP "core5_1_11" RANGE=SLICE_X24Y44:SLICE_X41Y51;
+AREA_GROUP "core5_1_11" RANGE=RAMB8_X1Y22:RAMB8_X1Y25;
+INST "wrappers[5].wrapper/proxies[1].proxy/cores[11].core/*" AREA_GROUP="core5_1_11";
+
