@@ -309,25 +309,6 @@ inline static void generate24key_bytes(unsigned char *password,
 	memcpy(&key[16], digest, 8);
 }
 
-inline static int check_padding_only(unsigned char *out, int length)
-{
-	int pad;
-	int i;
-
-	// check padding
-	pad = out[length - 1];
-	if (pad > 16 || length < 16)
-		return -1;
-	if (pad < 4) { // XXX is this possible? if yes, will killing this result in too many false positives?
-		return -1;
-	}
-	for (i = length - 1; i > pad; i--) // check for 0102030405060708090a like sequence
-		if (out[i] - 1 != out[i - 1])
-			return -1;
-
-	return 0; // valid padding!
-}
-
 inline static int check_padding_and_structure_EC(unsigned char *out, int length, int strict_mode)
 {
 	struct asn1_hdr hdr;
