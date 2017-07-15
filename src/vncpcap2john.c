@@ -122,7 +122,7 @@ int Packet_Reader_init(struct Packet_Reader* self, const char* filename)
 }
 
 void Packet_Reader_get_error(struct Packet_Reader* self, char* out, size_t len) {
-	snprintf(out, len, "Could not read pcap file %s\n", self->pcap_errbuf);
+	snprintf(out, len, "Could not read pcap file, %s\n", self->pcap_errbuf);
 }
 
 void Packet_Reader_close(struct Packet_Reader* self)
@@ -186,6 +186,12 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		payload_len =
 		    header.caplen - (sizeof(struct ether_header) + size_ip + size_tcp);
 
+		// sanity check payload_len
+		if (payload_len > 655350) {
+			fprintf(stderr, "%s:%d: ignoring weird payload_len\n", __FUNCTION__, __LINE__);
+			return false;
+		}
+
 		self->payload_str = malloc(payload_len);
 		if (self->payload_str == NULL) {
 			fprintf(stderr, "%s:%d: malloc failed\n", __FUNCTION__, __LINE__);
@@ -217,12 +223,14 @@ char* obtain(char** src) {
 
 int contains(const char* haystack, size_t len, const char* needle) {
 	size_t l = strlen(needle), i = 0;
+
 	while(i + l <= len) {
 		if (!memcmp(haystack + i, needle, l)) return 1;
 		i++;
 	}
 	return 0;
 }
+
 _Bool VNC_Auth_Reader_find_next(struct Packet_Reader* reader, char** id_out, char** challenge_out, char** response_out)
 {
 	while (Packet_Reader_kick(reader)) {
@@ -279,6 +287,7 @@ void makehex(char* in16, char* out33) {
 	unsigned char* in = (void*)in16;
 	size_t i = 0, j = 0;
 	static const char *htab = "0123456789ABCDEF";
+
 	for (;i<16;i++,j+=2) {
 		out33[j] = htab[in[i] >> 4];
 		out33[j+1] = htab[in[i] & 0xf];
@@ -289,6 +298,7 @@ void makehex(char* in16, char* out33) {
 void attempt_crack(struct Packet_Reader* reader)
 {
 	char *id, *challenge, *response;
+
 	while (VNC_Auth_Reader_find_next(reader, &id, &challenge, &response)) {
 		char hc[33],hr[33];
 		makehex(challenge, hc);
