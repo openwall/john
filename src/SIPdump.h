@@ -361,8 +361,8 @@ int find_value(const char *value, const char *buffer, char *outbuf,
 		}
 	}
 
-	strncpy(outbuf, tempbuf, outbuf_len);
-	outbuf[outbuf_len] = 0;
+	strncpy(outbuf, tempbuf, outbuf_len - 1);
+	outbuf[outbuf_len - 1] = 0;
 	free(tempbuf);
 
 	debug(("find_value: %s'%s'", value, outbuf));
