@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <openssl/md5.h>
 #include <pcap.h>
+#include <errno.h>
 
 /* $FreeBSD: src/sys/net80211/ieee80211_radiotap.h,v 1.5 2005/01/22 20:12:05 sam Exp $ */
 /* $NetBSD: ieee80211_radiotap.h,v 1.11 2005/06/22 06:16:02 dyoung Exp $ */
@@ -346,9 +347,7 @@ struct eapmd5pass_data {
 	uint8_t		challenge[16];
 	uint8_t		response[16];
 	uint8_t		respeapid;
-
 };
-
 
 void cleanexit();
 void usage();
@@ -571,7 +570,6 @@ struct eap_hdr {
 
 void to_upper (char *s)
 {
-
 	char *p;
 	char offset;
 
@@ -668,6 +666,12 @@ void assess_packet(char *user, struct pcap_pkthdr *h, u_int8_t *pkt)
 		printf("Checking Frame: %ld....\n",pcount);
 	}
 
+	if (offset < 0)
+		return;
+
+	 if (offset + sizeof(struct dot11hdr) > h->caplen)
+                return;
+
 	poffset = offset;
 	plen = h->len - offset;
 	if (plen > DOT11HDR_A3_LEN) {
@@ -739,6 +743,9 @@ void assess_packet(char *user, struct pcap_pkthdr *h, u_int8_t *pkt)
 	poffset += DOT2HDR_LEN;
 	plen -= DOT2HDR_LEN;
 
+	if (poffset + sizeof(struct ieee8022) > h->caplen)
+		return;
+
 	if (plen <= 0) {
 		if (__verbosity > 2) {
 			printf("\tDiscarding frame with partial 802.2 header.\n");
@@ -766,6 +773,8 @@ void assess_packet(char *user, struct pcap_pkthdr *h, u_int8_t *pkt)
 	dot1xhdr = (struct ieee8021x *)(pkt + poffset);
 	plen -= DOT1XHDR_LEN;
 	poffset += DOT1XHDR_LEN;
+	if (poffset + sizeof(struct ieee8021x) > h->caplen)
+		return;
 
 	if (plen <= 0) {
 		if (__verbosity > 2) {
@@ -917,6 +926,8 @@ int extract_eapusername(uint8_t *eap, int len, struct eapmd5pass_data *em)
 
 	/* 5 bytes for EAP header information without identity information */
 	usernamelen = (eaplen - 5);
+	if (usernamelen < 0)
+		return 1;
 
 	usernamelen = (eaplen > sizeof(em->username))
 		? sizeof(em->username) : usernamelen;
@@ -1029,13 +1040,12 @@ void break_pcaploop()
 	pcap_breakloop(p);
 }
 
-
-
 int main(int argc, char *argv[])
 {
 	char errbuf[PCAP_ERRBUF_SIZE], iface[17], pcapfile[1024];
 	int opt = 0, datalink = 0, ret = 0;
 	extern struct eapmd5pass_data em;
+	extern int optind;
 
 	memset(&em, 0, sizeof(em));
 	memset(pcapfile, 0, sizeof(pcapfile));
@@ -1073,6 +1083,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	optind = 0;
+
 	if (strlen(pcapfile) > 0) {
 		/* User has specified a libpcap file for reading */
 		p = pcap_open_offline(pcapfile, errbuf);
@@ -1081,7 +1093,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (p == NULL) {
-		fprintf(stderr, "Unable to open pcap device\n");
+		fprintf(stderr, "Unable to open pcap device, %s\n", errbuf);
 		perror("pcap_open");
 		return -1;
 	}
@@ -1092,7 +1104,7 @@ int main(int argc, char *argv[])
 				"mode.\n");
 		perror("pcap_setnonblock");
 		pcap_close(p);
-		return -1;
+		goto bailout;
 	} */
 	/* Examine header length to determine offset of the 802.11 header */
 	datalink = pcap_datalink(p);
@@ -1104,7 +1116,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Unable to determine offset from "
 						"radiotap header (%d).\n", offset);
 				// usage();
-				return(-1);
+				goto bailout;
 			}
 			break;
 
@@ -1123,7 +1135,7 @@ int main(int argc, char *argv[])
 		default:
 			fprintf(stderr, "Unrecognized datalink type %d.\n", datalink);
 			// usage();
-			return(-1);
+			goto bailout;
 	}
 
 	/* Loop for each packet received */
@@ -1138,7 +1150,7 @@ int main(int argc, char *argv[])
 		if (ret != 0) {
 			/* Error reading from packet capture file */
 			fprintf(stderr, "pcap_dispatch: %s\n", pcap_geterr(p));
-			return -1;
+			goto bailout;
 		}
 
 	} else { /* live packet capture */
@@ -1168,6 +1180,8 @@ int main(int argc, char *argv[])
 	if (__verbosity) {
 		printf("Total packets observed: %ld\n", pcount);
 	}
+
+bailout:
 
 	pcap_close(p);
 
