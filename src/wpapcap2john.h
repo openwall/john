@@ -177,9 +177,12 @@ typedef struct WPA4way_s {
 	char bssid[18];
 	char sta[18];
 	uint8 *packet1;
+	int packet1_len;
 	uint8 *packet2;
+	int packet2_len;
 	uint8 *orig_2;
 	uint8 *packet3;
+	int packet3_len;
 	uint8 *packet4;
 	int fully_cracked;
 	int hopefully_cracked; // we have a 1 & 2
