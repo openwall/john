@@ -171,7 +171,6 @@ extern int base64conv(int argc, char **argv);
 extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
-extern int bitlocker2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int putty2john(int argc, char **argv);
@@ -1947,11 +1946,6 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "putty2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return putty2john(argc, argv);
-	}
-
-	if (!strcmp(name, "bitlocker2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return bitlocker2john(argc, argv);
 	}
 
 	if (!strcmp(name, "rar2john")) {
