@@ -91,7 +91,6 @@ JOHN_OBJS = \
 	rar2john.o \
 	zip2john.o pkzip.o \
 	racf2john.o \
-	bitlocker2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
@@ -588,10 +587,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/putty2john
 	$(LN) john ../run/putty2john
 
-../run/bitlocker2john: ../run/john
-	$(RM) ../run/bitlocker2john
-	$(LN) john ../run/bitlocker2john
-
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	$(LN) john ../run/zip2john
@@ -643,10 +638,6 @@ kernels: @KERNEL_OBJS@
 ../run/putty2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/putty2john.exe
 	$(STRIP) ../run/putty2john.exe
-
-../run/bitlocker2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/bitlocker2john.exe
-	$(STRIP) ../run/bitlocker2john.exe
 
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
@@ -709,6 +700,9 @@ kernels: @KERNEL_OBJS@
 
 ../run/dmg2john@EXE_EXT@: dmg2john.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/dmg2john
+
+../run/bitlocker2john@EXE_EXT@: bitlocker2john.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/bitlocker2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o jumbo.o memdbg.o

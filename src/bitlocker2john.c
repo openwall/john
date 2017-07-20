@@ -138,7 +138,9 @@ static void process_encrypted_image(char *encryptedImagePath)
 	}
 	fclose(encryptedImage);
 	if (match == 0) {
+#ifndef HAVE_LIBFUZZER
 		fprintf(stderr, "Error while extracting data: No signature found!\n");
+#endif
 	} else {
 		unsigned char padding[16] = {0};
 		printf("%s:$bitlocker$0$%d$", encryptedImagePath, BITLOCKER_SALT_SIZE);
@@ -152,6 +154,25 @@ static void process_encrypted_image(char *encryptedImagePath)
 	}
 }
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+
+	fd = mkstemp(name);
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	process_encrypted_image(name);
+	remove(name);
+
+	return 0;
+}
+#else
 static int usage(char *name)
 {
 	fprintf(stderr,
@@ -161,7 +182,7 @@ static int usage(char *name)
 	return EXIT_FAILURE;
 }
 
-int bitlocker2john(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	errno = 0;
 
@@ -175,3 +196,4 @@ int bitlocker2john(int argc, char **argv)
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
+#endif  // HAVE_LIBFUZZER
