@@ -181,12 +181,15 @@ typedef struct WPA4way_s {
 	uint8 *packet2;
 	int packet2_len;
 	uint8 *orig_2;
+	int orig_2_len;
 	uint8 *packet3;
 	int packet3_len;
 	uint8 *packet4;
 	int fully_cracked;
 	int hopefully_cracked; // we have a 1 & 2
 	int eapol_sz;
+	uint8 src[6]; // for ethernet link type
+	uint8 dst[6]; // for ethernet link type
 }WPA4way_t;
 
 // Here are the structures needed to store the data that make up the 4-way handshake.
