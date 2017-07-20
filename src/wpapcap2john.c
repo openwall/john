@@ -361,6 +361,8 @@ static int ProcessPacket()
 
 	// Skip Prism frame if present
 	if (link_type == LINKTYPE_PRISM_HEADER) {
+		if (pkt_hdr.incl_len < 8)
+			return 0;
 		if (packet[7] == 0x40)
 			frame_skip = 64;
 		else {
@@ -378,6 +380,8 @@ static int ProcessPacket()
 
 	// Skip Radiotap frame if present
 	if (link_type == LINKTYPE_RADIOTAP_HDR) {
+		if (pkt_hdr.incl_len < 4)
+			return 0;
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = JOHNSWAP(frame_skip);
@@ -391,6 +395,8 @@ static int ProcessPacket()
 
 	// Skip PPI frame if present
 	if (link_type == LINKTYPE_PPI_HDR) {
+		if (pkt_hdr.incl_len < 4)
+			return 0;
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = JOHNSWAP(frame_skip);
@@ -411,6 +417,8 @@ static int ProcessPacket()
 
 	// our data is in *packet with pkt_hdr being the pcap packet header for this packet.
 	pkt = (ether_frame_hdr_t*)packet;
+	if (pkt_hdr.incl_len < 2)
+		return 0;
 	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 
 	//fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
@@ -513,11 +521,15 @@ static void HandleBeacon(uint16 subtype)
 
 	while (((uint8*)tag) < pFinal) {
 		char *x = (char*)tag;
+		if (x + 2 > (char*)pFinal || x + 2 + tag->taglen > (char*)pFinal)
+			break;
 		if (tag->tagtype == 0 && tag->taglen < sizeof(essid))
 			memcpy(essid, tag->tag, tag->taglen);
 		x += tag->taglen + 2;
 		tag = (ether_beacon_tag_t *)x;
 	}
+	if (pkt->addr3 + 6 > pFinal)
+		return;
 	to_bssid(bssid, pkt->addr3);
 	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid))
@@ -539,6 +551,7 @@ static void Handle4Way(int bIsQOS)
 	int i, ess=-1;
 	uint8 *orig_2 = NULL;
 	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
+	uint8 *end = packet + pkt_hdr.incl_len;
 	ether_auto_802_1x_t *auth;
 	int msg = 0;
 	char bssid[18];
@@ -577,6 +590,8 @@ static void Handle4Way(int bIsQOS)
 	p += 8;
 	// p now points to the 802.1X Authentication structure.
 	auth = (ether_auto_802_1x_t*)p;
+	if (p + sizeof(ether_auto_802_1x_t) > end)
+		goto out;
 	if ((auth->length = swap16u(auth->length)) == 0)
 		goto out;
 	//*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
@@ -614,6 +629,7 @@ static void Handle4Way(int bIsQOS)
 	if (msg == 1) {
 		MEM_FREE(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		wpa[ess].packet1_len = pkt_hdr.incl_len;
 		if (wpa[ess].packet1 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
@@ -637,6 +653,7 @@ static void Handle4Way(int bIsQOS)
 		MEM_FREE(wpa[ess].packet2);
 		MEM_FREE(wpa[ess].orig_2);
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		wpa[ess].packet2_len = pkt_hdr.incl_len;
 		if (wpa[ess].packet2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
@@ -680,6 +697,7 @@ static void Handle4Way(int bIsQOS)
 	else if (msg == 3) {
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
 		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		wpa[ess].packet3_len = pkt_hdr.incl_len;
 		if (wpa[ess].packet3 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
@@ -742,6 +760,7 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	ether_auto_802_1x_t *auth13, *auth2;
 	uint8 *p = (uint8*)wpa[ess].packet2;
 	uint8 *pkt2 = p;
+	uint8 *end = (uint8*)wpa[ess].packet2 + wpa[ess].packet2_len;
 	uint8 *p13;
 	hccap_t	hccap;
 	int i;
@@ -762,9 +781,11 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	if (one_three==1) {
 		if (!wpa[ess].packet1) { printf ("ERROR, msg1 null\n"); return; }
 		p = wpa[ess].packet1;
+		end = (uint8*)wpa[ess].packet1 + wpa[ess].packet1_len;
 	} else  {
 		if (!wpa[ess].packet3) { printf ("ERROR, msg3 null\n"); return; }
 		p = wpa[ess].packet3;
+		end = (uint8*)wpa[ess].packet3 + wpa[ess].packet3_len;
 	}
 	p13 = p;
 	if (bIsQOS)
@@ -788,6 +809,8 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	auth2 = (ether_auto_802_1x_t*)p;
 	memset(auth2->wpa_keymic, 0, 16);
 	hccap.eapol_size = wpa[ess].eapol_sz;
+	if (p + hccap.eapol_size > end) // more checks like this should be added to this function
+		return;
 	memcpy(hccap.eapol, auth2, hccap.eapol_size);
 
 	w = (uint8 *)&hccap;
