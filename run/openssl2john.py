@@ -65,15 +65,16 @@ def process(filename, plaintext=None, cipher=0, md=0):
                 rdata = rdata.decode("ascii")
             sys.stdout.write("%s:$openssl$%s$%s$8$%s$%s$0$%s$%s$%s\n" %
                              (filename, cipher, md, salt, last_chunk,
-                              len(rdata), rdata, s))
+                              len(rdata) // 2, rdata, s))
 
 
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [-c cipher] [-m md] [-p plaintext] <OpenSSL encrypted files>\n" % sys.argv[0])
-        sys.stderr.write("cipher: 0 => aes-256-cbc, 1 => aes-128-cbc\n")
-        sys.stderr.write("md: 0 => md5, 1 => sha1\n")
+        sys.stderr.write("\ncipher: 0 => aes-256-cbc, 1 => aes-128-cbc\n")
+        sys.stderr.write("md: 0 => md5, 1 => sha1, 2 => sha256\n")
+        sys.stderr.write("\nOpenSSL 1.1.0e uses aes-256-cbc with sha256\n")  # See "apps/enc.c" in OpenSSL
         sys.exit(-1)
 
     parser = optparse.OptionParser()

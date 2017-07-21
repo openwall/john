@@ -90,7 +90,7 @@ static struct custom_salt {
 	int kpa;
 	int datalen;
 	unsigned char kpt[256];
-	unsigned char data[16 * 16];
+	unsigned char data[1024];
 	unsigned char last_chunks[32];
 } *cur_salt;
 
@@ -101,6 +101,8 @@ static struct fmt_tests tests[] = {
 	{"$openssl$0$0$8$305cedc2a0521011$bf11609a01e78ec3f50f0cc483e636f9$1$1$123456", "password"},
 	{"$openssl$0$0$8$3993671be477e8f0$95384ad4fb11d737dc7ba884ccece94698b46d68d28c5cc4297ce37aea91064e$0$256$9bbbc2af64ba27444370e3b3db6f4077a5b83c099a9b0a13d0c03dbc89185aad078266470bb15c44e7b35aef66f456ba7f44fb0f60824331f5b598347cd471c6745374c7dbecf49a1dd0378e938bb9d3d68703e3038805fb3c7bf0623222bcc8e9375b10853aa7c991ddd086b8e2a97dd9ddd351ee0facde9bc3529742f0ffab990db046f5a64765d7a4b1c83b0290acae3eaa09278933cddcf1fed0ab14d408cd43fb73d830237dcd681425cd878bf4b542c108694b90e82f912c4aa4de02bd002dce975c2bb308aad933bfcfd8375d91837048d110f007ba3852dbb498a54595384ad4fb11d737dc7ba884ccece94698b46d68d28c5cc4297ce37aea91064e$0", "password"},
 	{"$openssl$0$0$8$3993671be477e8f0$95384ad4fb11d737dc7ba884ccece94698b46d68d28c5cc4297ce37aea91064e$0$256$9bbbc2af64ba27444370e3b3db6f4077a5b83c099a9b0a13d0c03dbc89185aad078266470bb15c44e7b35aef66f456ba7f44fb0f60824331f5b598347cd471c6745374c7dbecf49a1dd0378e938bb9d3d68703e3038805fb3c7bf0623222bcc8e9375b10853aa7c991ddd086b8e2a97dd9ddd351ee0facde9bc3529742f0ffab990db046f5a64765d7a4b1c83b0290acae3eaa09278933cddcf1fed0ab14d408cd43fb73d830237dcd681425cd878bf4b542c108694b90e82f912c4aa4de02bd002dce975c2bb308aad933bfcfd8375d91837048d110f007ba3852dbb498a54595384ad4fb11d737dc7ba884ccece94698b46d68d28c5cc4297ce37aea91064e$1$00000000", "password"},
+	// natalya.aes-256-cbc
+	{"$openssl$0$2$8$8aabc4a37e4b6247$0135d41c5a82a620e3adac2a3d4f1358d1aa6c747811f98bdfb29157d2b39a55$0$240$65fdecc46300f543bdf4607ccc4e9117da5ab3b6978e98226c1283cb48701dbc2e1ac7593718f363dc381f244e7a404c8a7ff581aa93b702bebf55ed1c8a82fb629830d792053a132cbaeb51292b258d38fb349385af592a94acded393dfb75bc21874e65498360d93d031725028a9e9b0f8edcfcd89c2a4e88784a24712895fca4f463e2089ef7db580d7841301c1d63c640fd79e9d6c0ad3b4fc94fe610eb5f29400e883027e0469537e79c3ee1ae2cd3250b825288c4373c45f5ea6f6f1236681c55bcc4f1eb137c221bb3f42a0480135d41c5a82a620e3adac2a3d4f1358d1aa6c747811f98bdfb29157d2b39a55$1$privkey", "knockers"},
 	{NULL}
 };
 
@@ -153,7 +155,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	q = q + 1;
 	if ((q - p - 1) != 1)
 		return 0;
-	if (*p != '0' && *p != '1')
+	if (*p != '0' && *p != '1' && *p !='2')
 		return 0;
 	p = q; q = strchr(p, '$');	// salt-size
 	if (!q)
@@ -278,7 +280,7 @@ static void *get_salt(char *ciphertext)
 static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 {
 	AES_KEY akey;
-	unsigned char out[16*16];
+	unsigned char out[1024];
 	if (AES_set_decrypt_key(key, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
 	}
@@ -301,18 +303,18 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
  */
 #define MAX_KEY_SIZE     256
 #define IV_LEN           16
-typedef enum {md5, sha1} hash_type;
+typedef enum {md5, sha1, sha256} hash_type;
 
 static void BytesToKey(int key_sz, hash_type h, const unsigned char *salt,
                        const unsigned char *data, int data_len, int count,
-                       unsigned char *key,unsigned char *iv)
+                       unsigned char *key, unsigned char *iv)
 {
 	const int key_len = key_sz / 8;
 	const int iv_len = IV_LEN;
 	const int tot_len = key_len + iv_len;
 	int i;
 	int size_made = 0;
-	unsigned char out[MAX_KEY_SIZE / 8 + IV_LEN];
+	unsigned char out[128];
 	unsigned char *last_out = out;
 
 	if (h == md5) {
@@ -373,6 +375,36 @@ static void BytesToKey(int key_sz, hash_type h, const unsigned char *salt,
 			size_made += hash_len;
 		}
 	}
+	else if (h == sha256) {
+		const int hash_len = 32;
+		SHA256_CTX ctx;
+
+		SHA256_Init(&ctx);
+		SHA256_Update(&ctx, data, data_len);
+		SHA256_Update(&ctx, salt, 8);
+		SHA256_Final(out, &ctx);
+		for (i = 1; i < count; i++) {
+			SHA256_Init(&ctx);
+			SHA256_Update(&ctx, out, hash_len);
+			SHA256_Final(out, &ctx);
+		}
+		size_made += hash_len;
+		while (size_made < tot_len) {
+			SHA256_Init(&ctx);
+			SHA256_Update(&ctx, last_out, hash_len);
+			SHA256_Update(&ctx, data, data_len);
+			SHA256_Update(&ctx, salt, 8);
+			SHA256_Final(&out[size_made], &ctx);
+			for (i = 1; i < count; i++) {
+				SHA256_Init(&ctx);
+				SHA256_Update(&ctx, last_out, hash_len);
+				SHA256_Final(&out[size_made], &ctx);
+			}
+			last_out = &out[size_made];
+			size_made += hash_len;
+		}
+	}
+
 	memcpy(key, out, key_len);
 	memcpy(iv, &out[key_len], IV_LEN);
 }
@@ -384,7 +416,7 @@ static int decrypt(char *password)
 	unsigned char iv[16];
 	unsigned char biv[16];
 	unsigned char key[32];
-	int nrounds = 1;
+	int nrounds = 1;  // Seems to be fixed as of OpenSSL 1.1.0e (July, 2017)
 
 	// FIXME handle more stuff
 	switch(cur_salt->cipher) {
@@ -402,6 +434,12 @@ static int decrypt(char *password)
 					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 256, &akey);
 					break;
+				case 2:
+					BytesToKey(256, sha256, cur_salt->salt,
+					           (unsigned char*)password, strlen(password),
+					           nrounds, key, iv);
+					AES_set_decrypt_key(key, 256, &akey);
+					break;
 			}
 			break;
 		case 1:
@@ -414,6 +452,12 @@ static int decrypt(char *password)
 					break;
 				case 1:
 					BytesToKey(128, sha1, cur_salt->salt,
+					           (unsigned char*)password, strlen(password),
+					           nrounds, key, iv);
+					AES_set_decrypt_key(key, 128, &akey);
+					break;
+				case 2:
+					BytesToKey(128, sha256, cur_salt->salt,
 					           (unsigned char*)password, strlen(password),
 					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 128, &akey);
