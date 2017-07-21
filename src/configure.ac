@@ -515,7 +515,7 @@ using_rexgen=no
 if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
-      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x010400); }],
+      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x020006); }],
         AC_MSG_RESULT([usable]) && [using_rexgen=yes],
 		AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]
@@ -1097,11 +1097,11 @@ Fork support ............................... ${ac_cv_func_fork_works}
 OpenMP support ............................. ${using_omp}
 OpenCL support ............................. ${using_cl}
 Generic crypt(3) format .................... ${using_crypt}
-Rexgen (extra cracking mode) ............... ${using_rexgen}
-GMP (PRINCE mode and faster SRP formats) ... ${ac_cv_lib_gmp___gmpz_init}
-PCAP (vncpcap2john and SIPdump) ............ ${using_pcap}
-Z (pkzip format, gpg2john) ................. ${using_zlib}
-BZ2 (gpg2john extra decompression logic) ... ${using_bz2}
+librexgen (regex cracking mode) ............ ${using_rexgen}
+libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
+libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
+libz (pkzip format, gpg2john) .............. ${using_zlib}
+libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
 Memory map (share/page large files) ........ ${using_mmap}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}
