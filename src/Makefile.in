@@ -112,7 +112,7 @@ JOHN_OBJS = \
 	regex.o pp.o \
 	c3_fmt.o \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o \
-	unique.o putty2john.o gpg2john.o memdbg.o
+	unique.o gpg2john.o memdbg.o
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
@@ -703,6 +703,9 @@ kernels: @KERNEL_OBJS@
 
 ../run/bitlocker2john@EXE_EXT@: bitlocker2john.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/bitlocker2john
+
+../run/putty2john@EXE_EXT@: putty2john.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ putty2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/putty2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o jumbo.o memdbg.o

@@ -77,7 +77,11 @@ static char *read_body(FILE * fp)
 	int c;
 
 	size = 128 * 1024;
-	text = (char*)mem_alloc(size);
+	text = (char*)malloc(size);
+	if (!text) {
+		fprintf(stderr, "malloc failed in read_body, exiting!\n");
+		exit(-1);
+	}
 	len = 0;
 	text[len] = '\0';
 
@@ -110,7 +114,11 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 		return NULL;
 
 	/* We expect at most 64 base64 characters, ie 48 real bytes, per line. */
-	blob = (unsigned char*)mem_alloc(48 * nlines);
+	blob = (unsigned char*)malloc(48 * nlines);
+	if (!blob) {
+		fprintf(stderr, "malloc failed in read_blob, exiting!\n");
+		exit(-1);
+	}
 	len = 0;
 	for (i = 0; i < nlines; i++) {
 		line = read_body(fp);
@@ -534,7 +542,26 @@ out:
 	MEM_FREE(private_blob);
 }
 
-int putty2john(int argc, char **argv)
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+
+	fd = mkstemp(name);
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	process_file(name);
+	remove(name);
+
+	return 0;
+}
+#else
+int main(int argc, char **argv)
 {
 	int i;
 
@@ -548,3 +575,4 @@ int putty2john(int argc, char **argv)
 	    process_file(argv[i]);
 	return 0;
 }
+#endif

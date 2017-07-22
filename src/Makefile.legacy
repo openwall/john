@@ -151,7 +151,7 @@ JOHN_OBJS = \
 	undrop.o \
 	regex.o pp.o \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o \
-	unique.o putty2john.o gpg2john.o memdbg.o
+	unique.o gpg2john.o memdbg.o
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
@@ -187,7 +187,7 @@ PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../ru
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
 	../run/raw2dyna \
-	../run/putty2john john.local.conf ../run/uaf2john \
+	john.local.conf ../run/uaf2john \
 	../run/wpapcap2john \
 	../run/gpg2john ../run/cprepair ../run/base64conv
 PROJ_DOS = find_version ../run/john.bin ../run/john.com \
@@ -195,7 +195,7 @@ PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/undrop.com \
 	../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/hccap2john.com \
-	../run/putty2john.com john.local.conf \
+	john.local.conf \
 	../run/gpg2john.com
 PROJ_WIN32 = find_version ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
@@ -204,7 +204,6 @@ PROJ_WIN32 = find_version ../run/john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/raw2dyna.exe \
-	../run/putty2john.exe \
 	john.local.conf ../run/gpg2john.exe ../run/base64conv.exe
 PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
@@ -213,7 +212,7 @@ PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/hccap2john.exe \
 	../run/raw2dyna.exe \
-	../run/putty2john.exe john.local.conf \
+	john.local.conf \
 	../run/gpg2john.exe ../run/base64conv.exe
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
 default:
@@ -1697,10 +1696,6 @@ $(SUBDIRS):
 	$(RM) ../run/undrop
 	ln -s john ../run/undrop
 
-../run/putty2john: ../run/john
-	$(RM) ../run/putty2john
-	ln -s john ../run/putty2john
-
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	ln -s john ../run/zip2john
@@ -1745,9 +1740,6 @@ $(SUBDIRS):
 
 ../run/undrop.com: john.com
 	copy john.com ..\run\undrop.com
-
-../run/putty2john.com: john.com
-	copy john.com ..\run\putty2john.com
 
 ../run/rar2john.com: john.com
 	copy john.com ..\run\rar2john.com
@@ -1805,10 +1797,6 @@ john.com: john.asm
 ../run/undrop.exe: symlink.c
 	$(CC) symlink.c -o ../run/undrop.exe
 	$(STRIP) ../run/undrop.exe
-
-../run/putty2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/putty2john.exe
-	$(STRIP) ../run/putty2john.exe
 
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
