@@ -33,90 +33,12 @@
 #include <io.h>
 #endif
 
-#define smalloc(z) safemalloc(z,1)
-#define snmalloc safemalloc
-#define srealloc(y,z) saferealloc(y,z,1)
-#define snrealloc saferealloc
-
-/*
- * Direct use of smalloc within the code should be avoided where
- * possible, in favour of these type-casting macros which ensure
- * you don't mistakenly allocate enough space for one sort of
- * structure and assign it to a different sort of pointer.
- */
-#define snew(type) ((type *)snmalloc(1, sizeof(type)))
-#define snewn(n, type) ((type *)snmalloc((n), sizeof(type)))
-#define sresize(ptr, n, type) \
-    ((type *)snrealloc((sizeof((type *)0 == (ptr)), (ptr)), (n), sizeof(type)))
-
 #ifndef FALSE
 #define FALSE 0
 #endif
 #ifndef TRUE
 #define TRUE 1
 #endif
-
-#ifndef lenof
-#define lenof(x) ( (sizeof((x))) / (sizeof(*(x))))
-#endif
-
-#ifndef min
-#define min(x,y) ( (x) < (y) ? (x) : (y) )
-#endif
-#ifndef max
-#define max(x,y) ( (x) > (y) ? (x) : (y) )
-#endif
-
-#define GET_32BIT_LSB_FIRST(cp) \
-  (((unsigned long)(unsigned char)(cp)[0]) | \
-  ((unsigned long)(unsigned char)(cp)[1] << 8) | \
-  ((unsigned long)(unsigned char)(cp)[2] << 16) | \
-  ((unsigned long)(unsigned char)(cp)[3] << 24))
-
-#define PUT_32BIT_LSB_FIRST(cp, value) ( \
-  (cp)[0] = (unsigned char)(value), \
-  (cp)[1] = (unsigned char)((value) >> 8), \
-  (cp)[2] = (unsigned char)((value) >> 16), \
-  (cp)[3] = (unsigned char)((value) >> 24) )
-
-#define GET_16BIT_LSB_FIRST(cp) \
-  (((unsigned long)(unsigned char)(cp)[0]) | \
-  ((unsigned long)(unsigned char)(cp)[1] << 8))
-
-#define PUT_16BIT_LSB_FIRST(cp, value) ( \
-  (cp)[0] = (unsigned char)(value), \
-  (cp)[1] = (unsigned char)((value) >> 8) )
-
-#define GET_32BIT_MSB_FIRST(cp) \
-  (((unsigned long)(unsigned char)(cp)[0] << 24) | \
-  ((unsigned long)(unsigned char)(cp)[1] << 16) | \
-  ((unsigned long)(unsigned char)(cp)[2] << 8) | \
-  ((unsigned long)(unsigned char)(cp)[3]))
-
-#define GET_32BIT(cp) GET_32BIT_MSB_FIRST(cp)
-
-#define PUT_32BIT_MSB_FIRST(cp, value) ( \
-  (cp)[0] = (unsigned char)((value) >> 24), \
-  (cp)[1] = (unsigned char)((value) >> 16), \
-  (cp)[2] = (unsigned char)((value) >> 8), \
-  (cp)[3] = (unsigned char)(value) )
-
-#define PUT_32BIT(cp, value) PUT_32BIT_MSB_FIRST(cp, value)
-
-#define GET_16BIT_MSB_FIRST(cp) \
-  (((unsigned long)(unsigned char)(cp)[0] << 8) | \
-  ((unsigned long)(unsigned char)(cp)[1]))
-
-#define PUT_16BIT_MSB_FIRST(cp, value) ( \
-  (cp)[0] = (unsigned char)((value) >> 8), \
-  (cp)[1] = (unsigned char)(value) )
-
-#define SSH_CIPHER_IDEA		1
-#define SSH_CIPHER_DES		2
-#define SSH_CIPHER_3DES		3
-#define SSH_CIPHER_BLOWFISH	6
-
-typedef uint32_t word32;
 
 struct ssh2_userkey {
     const struct ssh_signkey *alg;     /* the key algorithm */
@@ -142,7 +64,7 @@ typedef struct Filename {
 static char header[40], *b, *encryption, *comment, *mac;
 static const char *putty_error = NULL;
 static int i, is_mac, old_fmt;
-static char alg[8];
+static char alg[32];
 static int cipher, cipherblk;
 static unsigned char *public_blob, *private_blob;
 static int public_blob_len, private_blob_len;
@@ -168,6 +90,7 @@ static char *read_body(FILE * fp)
 			return text;
 		}
 		if (c == EOF) {
+			MEM_FREE(text);
 			return NULL;
 		}
 		text[len++] = c;
@@ -175,13 +98,16 @@ static char *read_body(FILE * fp)
 	}
 }
 
-
 static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 {
 	unsigned char *blob;
 	char *line;
 	int linelen, len;
 	int i, j, k;
+
+	/* Sanity check nlines */
+	if (nlines < 0 || nlines > (1024 * 1024))
+		return NULL;
 
 	/* We expect at most 64 base64 characters, ie 48 real bytes, per line. */
 	blob = (unsigned char*)mem_alloc(48 * nlines);
@@ -202,6 +128,8 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 		for (j = 0; j < linelen; j += 4) {
 			k = base64_decode_atom(line + j, blob + len);
 			if (!k) {
+				MEM_FREE(blob);
+				MEM_FREE(line);
 				return NULL;
 			}
 			len += k;
@@ -209,9 +137,9 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 		MEM_FREE(line);
 	}
 	*bloblen = len;
+
 	return blob;
 }
-
 
 static int read_header(FILE * fp, char *header)
 {
@@ -271,6 +199,10 @@ static int init_LAME(const Filename *filename) {
 		strcpy(alg, "ssh-rsa");
 	else if (!strcmp(b, "ssh-dss"))
 		strcpy(alg, "ssh-dss");
+	else if (!strcmp(b, "ecdsa-sha2-nistp256"))
+		strcpy(alg, "ecdsa-sha2-nistp256");
+	else if (strlen(b) < sizeof(alg) - 1)
+		strcpy(alg, b);
 	MEM_FREE(b);
 
 	/* Read the Encryption header line. */
@@ -365,7 +297,7 @@ static void LAME_ssh2_load_userkey(char *path, const char **errorstr)
 
 	{
 		fname = strip_suffixes(basename(path), ext, 1);
-		printf("%s:$putty$%d*%d*%d*%d*%s*%d*", fname, cipher,cipherblk, is_mac, old_fmt, mac, public_blob_len);
+		printf("%s:$putty$%d*%d*%d*%d*%s*%d*", fname, cipher, cipherblk, is_mac, old_fmt, mac, public_blob_len);
 		print_hex(public_blob, public_blob_len);
 		printf("*%d*", private_blob_len);
 		print_hex(private_blob, private_blob_len);
@@ -379,8 +311,12 @@ static void LAME_ssh2_load_userkey(char *path, const char **errorstr)
 		return;
 	}
 error:
-	fprintf(stderr, "Something failed!");
-
+	fprintf(stderr, "Something failed!\n");
+	MEM_FREE(comment);
+	MEM_FREE(encryption);
+	MEM_FREE(mac);
+	MEM_FREE(public_blob);
+	MEM_FREE(private_blob);
 }
 
 static FILE *f_open(const Filename *filename, char const *mode, int is_private)
@@ -540,16 +476,14 @@ static int base64_decode_atom(char *atom, unsigned char *out)
 
 static void process_file(const char *fname)
 {
-
 	FILE *fp;
-
 	int type, realtype;
 	char *comment;
 	Filename filename;
 	int needs_pass = 0;
 	const char *errmsg = NULL;
 
-	/* check if file exist */
+	/* check if file exists */
 	if ((fp = fopen(fname, "r")) == NULL) {
 		fprintf(stderr, "Error: Cannot open %s.\n", fname);
 		return;
@@ -558,7 +492,7 @@ static void process_file(const char *fname)
 
 	strcpy(filename.path, fname);
 
-	//src: winpgen.c
+	// src: winpgen.c
 	type = realtype = key_type(&filename);
 	if (type != SSH_KEYTYPE_SSH1 && type != SSH_KEYTYPE_SSH2) {
 		fprintf(stderr, "Error: Couldn't load private key (%s)\n", filename.path);
@@ -585,7 +519,7 @@ static void process_file(const char *fname)
 	if (type == SSH_KEYTYPE_SSH1) {
 		fprintf(stderr, "SSH1 key type not supported!\n");
 		goto out;
-	} else { //SSH_KEYTYPE_SSH2
+	} else { // SSH_KEYTYPE_SSH2
 		if (realtype == type) {
 			LAME_ssh2_load_userkey(filename.path, &errmsg);
 		}
@@ -606,6 +540,7 @@ int putty2john(int argc, char **argv)
 
 	if (argc < 2) {
 		printf( "Usage: putty2john [.ppk PuTTY-Private-Key-File(s)]\n");
+		printf( "\nKey types supported: RSA, DSA, ECDSA, ED25519\n");
 		exit(1);
 	}
 
