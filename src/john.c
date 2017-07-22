@@ -173,7 +173,6 @@ extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
-extern int putty2john(int argc, char **argv);
 
 int john_main_process = 1;
 #if OS_FORK
@@ -1941,11 +1940,6 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "unique")) {
 		CPU_detect_or_fallback(argv, 0);
 		return unique(argc, argv);
-	}
-
-	if (!strcmp(name, "putty2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return putty2john(argc, argv);
 	}
 
 	if (!strcmp(name, "rar2john")) {
