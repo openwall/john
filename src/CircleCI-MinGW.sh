@@ -83,7 +83,7 @@ echo '**************************************************************************
 echo ""
 cd /base/JohnTheRipper/src
 make -s distclean
-CPPFLAGS="-mno-sse2" ./configure
+CFLAGS_EXTRA="-fstack-protector-all" CPPFLAGS="-mno-sse2" ./configure
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
