@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <openssl/cmac.h>
 
 #include "arch.h"
 #include "params.h"
@@ -20,6 +21,7 @@
 #include "johnswap.h"
 #include "hmacmd5.h"
 #include "hmac_sha.h"
+#include "sha2.h"
 
 #define HCCAP_SIZE		sizeof(hccap_t)
 
@@ -79,6 +81,14 @@ static struct fmt_tests tests[] = {
 	{"$WPAPSK$test#..qHuv0A..ZPYJBRzZwAKpEXUJwpza/b69itFaq4.OWoGHfonpc13zCAUsRIfQN2Zar6EXp2BYcRuSkWEJIWjEJJvb4DWZCspbZ51.21.3zy.EY.6........../zZwAKpEXUJwpza/b69itFaq4.OWoGHfonpc13zCAUsQ..................................................................BoK.31m.E2..31m.U2..31m.U2..31m.U................................................................................................................................................................................/X.....E...AkkDQmDg9837LBHG.dGlKA", "biscotte"},
 	/* Maximum length, 63 characters */
 	{"$WPAPSK$Greased Lighting#kA5.CDNB.07cofsOMXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGqgvfcXnuF1f7L5fgn4fQMLmDrKjdBNjb6LClRmfLiTYk21.5I0.Ec............7MXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGo.................................................................3X.I.E..1uk2.E..1uk2.E..1uk00...................................................................................................................................................................................../t.....U...D06LUdWVfGPaP1Oa3AV9Hg", "W*A5z&1?op2_L&Hla-OA$#5i_Lu@F+6d?je?u5!6+6766eluu7-l+jOEkIwLe90"},
+#ifndef JOHN_OCL_WPAPSK
+	/* 802.11w with WPA-PSK-SHA256 */
+	{"$WPAPSK$hello#HY6.hTXZv.v27BkPGuhkCnLAKxYHlTWYs.4yuqVSNAip3SeixhErtNMV30LZAA3uaEfy2U2tJQi.VICk4hqn3V5m7W3lNHSJYW5vLE21.5I0.Eg............/GuhkCnLAKxYHlTWYs.4yuqVSNAip3SeixhErtNMV30I.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4....................................................................................................................................................................................../t.....k.../Ms4UxzvlNw5hOM1igIeo6", "password"},
+	/* 802.11w with WPA-PSK-SHA256 */
+	{"$WPAPSK$hello#JUjQmBbOHUY4RTqMpGc9EjqGdCxMZPWNXBNd1ejNDoFuemrLl27juYlDDUDMgZfery1qJTHYVn2Faso/kUDDjr3y8gspK7viz8BCJE21.5I0.Ec............/pGc9EjqGdCxMZPWNXBNd1ejNDoFuemrLl27juYlDDUA.................................................................3X.I.E..1uk2.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...9Py59nqygwiar49oOKA3RY", "12345678"},
+	/* 802.11w with WPA-PSK-SHA256, https://github.com/neheb */
+	{"$WPAPSK$Neheb#g9a8Jcre9D0WrPnEN4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw04ASqHgvo12wJYJywulb6pWM6C5uqiMPNKNe9pkr6LE61.5I0.Eg.2..........1N4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4X...................................................................................................................................................................................../t.....k...0sHl.mVkiHW.ryNchcMd4g", "bo$$password"},
+#endif
 	{NULL}
 };
 
@@ -333,6 +343,143 @@ static char *get_key(int index)
 	return ret;
 }
 
+/* Code borrowed from https://w1.fi/wpa_supplicant/ starts */
+
+#define SHA256_MAC_LEN 32
+typedef uint16_t u16;
+typedef uint8_t u8;
+
+static inline void WPA_PUT_LE16(u8 *a, u16 val)
+{
+	a[1] = val >> 8;
+	a[0] = val & 0xff;
+}
+
+static int sha256_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
+{
+	SHA256_CTX ctx;
+	size_t i;
+
+	SHA256_Init(&ctx);
+	for (i = 0; i < num_elem; i++) {
+		SHA256_Update(&ctx, addr[i], len[i]);
+	}
+
+	SHA256_Final(mac, &ctx);
+
+	return 0;
+}
+
+static int hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
+		const u8 *addr[], const size_t *len, u8 *mac)
+{
+	unsigned char k_pad[64]; /* padding - key XORd with ipad/opad */
+	unsigned char tk[32];
+	const u8 *_addr[6];
+	size_t _len[6], i;
+
+	/* if key is longer than 64 bytes reset it to key = SHA256(key) */
+	if (key_len > 64) {
+		if (sha256_vector(1, &key, &key_len, tk) < 0)
+			return -1;
+		key = tk;
+		key_len = 32;
+	}
+
+	/* the HMAC_SHA256 transform looks like:
+	 *
+	 * SHA256(K XOR opad, SHA256(K XOR ipad, text))
+	 *
+	 * where K is an n byte key
+	 * ipad is the byte 0x36 repeated 64 times
+	 * opad is the byte 0x5c repeated 64 times
+	 * and text is the data being protected */
+
+	/* start out by storing key in ipad */
+	memset(k_pad, 0, sizeof(k_pad));
+	memcpy(k_pad, key, key_len);
+	/* XOR key with ipad values */
+	for (i = 0; i < 64; i++)
+		k_pad[i] ^= 0x36;
+
+	/* perform inner SHA256 */
+	_addr[0] = k_pad;
+	_len[0] = 64;
+	for (i = 0; i < num_elem; i++) {
+		_addr[i + 1] = addr[i];
+		_len[i + 1] = len[i];
+	}
+	if (sha256_vector(1 + num_elem, _addr, _len, mac) < 0)
+		return -1;
+
+	memset(k_pad, 0, sizeof(k_pad));
+	memcpy(k_pad, key, key_len);
+	/* XOR key with opad values */
+	for (i = 0; i < 64; i++)
+		k_pad[i] ^= 0x5c;
+
+	/* perform outer SHA256 */
+	_addr[0] = k_pad;
+	_len[0] = 64;
+	_addr[1] = mac;
+	_len[1] = SHA256_MAC_LEN;
+	return sha256_vector(2, _addr, _len, mac);
+}
+
+static int sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
+		const u8 *data, size_t data_len, u8 *buf, size_t buf_len_bits)
+{
+	u16 counter = 1;
+	size_t pos, plen;
+	u8 hash[SHA256_MAC_LEN];
+	const u8 *addr[4];
+	size_t len[4];
+	u8 counter_le[2], length_le[2];
+	size_t buf_len = (buf_len_bits + 7) / 8;
+
+	addr[0] = counter_le;
+	len[0] = 2;
+	addr[1] = (u8 *) label;
+	len[1] = strlen(label);
+	addr[2] = data;
+	len[2] = data_len;
+	addr[3] = length_le;
+	len[3] = sizeof(length_le);
+
+	WPA_PUT_LE16(length_le, buf_len_bits);
+	pos = 0;
+
+	while (pos < buf_len) {
+		plen = buf_len - pos;
+		WPA_PUT_LE16(counter_le, counter);
+		if (plen >= SHA256_MAC_LEN) {
+			hmac_sha256_vector(key, key_len, 4, addr, len, &buf[pos]);
+			pos += SHA256_MAC_LEN;
+		} else {
+			if (hmac_sha256_vector(key, key_len, 4, addr, len,
+						hash) < 0)
+				return -1;
+			memcpy(&buf[pos], hash, plen);
+			pos += plen;
+			break;
+		}
+		counter++;
+	}
+
+	/*
+	 * Mask out unused bits in the last octet if it does not use all the
+	 * bits.
+	 */
+	if (buf_len_bits % 8) {
+		u8 mask = 0xff << (8 - buf_len_bits % 8);
+		buf[pos - 1] &= mask;
+	}
+
+	return 0;
+}
+
+/* Code borrowed from https://w1.fi/wpa_supplicant/ ends */
+
 static void wpapsk_postprocess(int keys)
 {
 	int i;
@@ -348,21 +495,41 @@ static void wpapsk_postprocess(int keys)
 			uint32_t prf[20/4];
 			HMACMD5Context ctx;
 
-			prf_512(outbuffer[i].v, data, prf);
+			prf_512(outbuffer[i].v, data, prf); // PTK
 			hmac_md5_init_K16((unsigned char*)prf, &ctx);
 			hmac_md5_update(hccap.eapol, hccap.eapol_size, &ctx);
 			hmac_md5_final(mic[i].keymic, &ctx);
 		}
-	} else {
+	} else if (hccap.keyver == 2) {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
 #endif
 		for (i = 0; i < keys; i++) {
 			uint32_t prf[20/4];
 
-			prf_512(outbuffer[i].v, data, prf);
+			prf_512(outbuffer[i].v, data, prf); // PTK
 			hmac_sha1((unsigned char*)prf, 16, hccap.eapol,
 			          hccap.eapol_size, mic[i].keymic, 16);
+		}
+	} else if (hccap.keyver == 3) { // 802.11w, WPA-PSK-SHA256
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
+#endif
+		for (i = 0; i < keys; i++) {
+			unsigned char ptk[48];
+			unsigned char cmic[16];
+			size_t miclen;
+			CMAC_CTX *ctx;
+
+			sha256_prf_bits((unsigned char*)outbuffer[i].v, 32, "Pairwise key expansion", data, 76, ptk, 48 * 8); // PTK
+
+			// Compute MIC
+			ctx = CMAC_CTX_new();
+			CMAC_Init(ctx, ptk, 16, EVP_aes_128_cbc(), 0);
+			CMAC_Update(ctx, hccap.eapol, hccap.eapol_size);
+			CMAC_Final(ctx, cmic, &miclen);
+			memcpy(mic[i].keymic, cmic, 16);
+			CMAC_CTX_free(ctx);
 		}
 	}
 }
