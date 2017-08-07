@@ -697,12 +697,25 @@ static void reset(struct db_main *db)
 			salt_list[num_salts++] = (*(WORD *)salt -> salt);
 		} while ((salt = salt -> next));
 
+		if (num_salts > 1)
+			fprintf(stderr, "Note: building per-salt kernels. "
+				"This takes e.g. 2 hours for 4096 salts.\n");
 #if _OPENMP && PARALLEL_BUILD
 #pragma omp parallel for
 #endif
-		for (i = 0; i < num_salts; i++)
+		for (i = 0; i < num_salts; i++) {
 			init_kernel(salt_list[i], gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 
+#if _OPENMP && PARALLEL_BUILD
+			if (omp_get_thread_num() == 0)
+#endif
+			{
+				opencl_process_event();
+
+				if (options.verbosity < VERB_LEGACY)
+					advance_cursor();
+			}
+		}
 		set_kernel_args_kpc();
 	}
 	else {
