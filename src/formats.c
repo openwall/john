@@ -46,13 +46,13 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertext, int *is_split_unifies_case, int call_cnt);
 static void get_longest_common_string(char *fstr, char *sstr, int *first_index,
 	int *second_index, int *size);
-#endif
 static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	char *ciphertext, char *plaintext, int *is_ignore_8th_bit,
 	int *plaintext_is_blank, struct db_salt *dbsalt);
 static void test_fmt_case(struct fmt_main *format, void *binary,
 	char *ciphertext, char* plaintext, int *is_case_sensitive,
 	int *plaintext_has_alpha, struct db_salt *dbsalt);
+#endif
 
 void fmt_register(struct fmt_main *format)
 {
@@ -192,6 +192,7 @@ static char *longcand(struct fmt_main *format, int index, int ml)
 	return out;
 }
 
+#ifndef BENCH_BUILD
 static char* is_key_right(struct fmt_main *format, int index,
 	void *binary, char *ciphertext, char *plaintext,
 	int is_test_fmt_case, struct db_salt *dbsalt)
@@ -208,11 +209,9 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	if ((match && !format->methods.cmp_all(binary, match)) ||
 	    (!match && format->methods.cmp_all(binary, match))) {
-#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 			snprintf(err_buf, sizeof(err_buf), "cmp_all(%d) %s", match, ciphertext);
 		else
-#endif
 			sprintf(err_buf, "cmp_all(%d)", match);
 		return err_buf;
 	}
@@ -223,11 +222,9 @@ static char* is_key_right(struct fmt_main *format, int index,
 	}
 
 	if (i == -1) {
-#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 			snprintf(err_buf, sizeof(err_buf), "cmp_one(%d) %s", match, ciphertext);
 		else
-#endif
 			sprintf(err_buf, "cmp_one(%d)", match);
 		return err_buf;
 	}
@@ -236,7 +233,6 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (format->methods.binary_hash[size] &&
 	    format->methods.get_hash[size](i) !=
 	    format->methods.binary_hash[size](binary)) {
-#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY) {
 			// Dump out as much as possible (up to 3 full bytes). This can
 			// help in trying to track down problems, like needing to SWAP
@@ -261,7 +257,6 @@ static char* is_key_right(struct fmt_main *format, int index,
 					format->methods.binary_hash[size](binary),
 					ciphertext);
 		} else
-#endif
 		{
 			sprintf(err_buf, "get_hash[%d](%d) %x!=%x", size,
 				index, format->methods.get_hash[size](index),
@@ -271,11 +266,9 @@ static char* is_key_right(struct fmt_main *format, int index,
 	}
 
 	if (!format->methods.cmp_exact(ciphertext, i)) {
-#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 			snprintf(err_buf, sizeof(err_buf), "cmp_exact(%d) %s", match, ciphertext);
 		else
-#endif
 			sprintf(err_buf, "cmp_exact(%d)", i);
 		return err_buf;
 	}
@@ -285,14 +278,12 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	if (len < format->params.plaintext_min_length ||
 		len > format->params.plaintext_length) {
-#ifndef BENCH_BUILD
 		if (options.verbosity > VERB_LEGACY)
 		snprintf(err_buf, sizeof(err_buf), "The length of string returned by get_key() is %d"
 			"which should be between plaintext_min_length=%d and plaintext_length=%d %s",
 			len, format->params.plaintext_min_length,
 			format->params.plaintext_length, key);
 		else
-#endif
 		sprintf(err_buf, "The length of string returned by get_key() is %d"
 			"which should be between plaintext_min_length=%d and plaintext_length=%d",
 			len, format->params.plaintext_min_length,
@@ -306,11 +297,9 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (format->params.flags & FMT_CASE) {
 		// Case-sensitive passwords
 		if (strncmp(key, plaintext, format->params.plaintext_length)) {
-#ifndef BENCH_BUILD
 			if (options.verbosity > VERB_LEGACY)
 				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (case) %s %s", i, key, plaintext);
 			else
-#endif
 				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
 		}
@@ -318,11 +307,9 @@ static char* is_key_right(struct fmt_main *format, int index,
 		// Case-insensitive passwords
 		if (strncasecmp(key, plaintext,
 			format->params.plaintext_length)) {
-#ifndef BENCH_BUILD
 			if (options.verbosity > VERB_LEGACY)
 				snprintf(err_buf, sizeof(err_buf), "get_key(%d) (no case) %s %s", i, key, plaintext);
 			else
-#endif
 				sprintf(err_buf, "get_key(%d)", i);
 			return err_buf;
 		}
@@ -330,13 +317,16 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	return NULL;
 }
+#endif
 
 #ifdef JUMBO_JTR
 static char *fmt_self_test_body(struct fmt_main *format,
     void *binary_copy, void *salt_copy, struct db_main *db, int full_lvl)
 {
 	static char s_size[200];
+#ifndef BENCH_BUILD
 	char *ret;
+#endif
 #else
 static char *fmt_self_test_body(struct fmt_main *format,
     void *binary_copy, void *salt_copy)
@@ -369,7 +359,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int is_need_unify_case = 1;    // Is need to unify cases in split()
 	int fmt_split_case = ((format->params.flags & FMT_SPLIT_UNIFIES_CASE)==FMT_SPLIT_UNIFIES_CASE);
 	int while_condition;           // since -test and -test-full use very do{}while(cond) so we use a var.
+#ifndef BENCH_BUILD
 	struct db_salt *dbsalt;
+#endif
 
 	// validate that there are no NULL function pointers
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
@@ -868,6 +860,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 #endif
 		if (full_lvl >= 0) {
+#ifndef BENCH_BUILD
 			// Test FMT_CASE
 			format->methods.clear_keys();
 			test_fmt_case(format, binary, ciphertext, plaintext,
@@ -878,7 +871,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			format->methods.set_salt(salt);
 			test_fmt_8_bit(format, binary, ciphertext, plaintext,
 				&is_ignore_8th_bit, &plaintext_is_blank, dbsalt);
-
+#endif
 			format->methods.clear_keys();
 			format->methods.set_salt(salt);
 			for (i = 0; i < max - 1; i++) {
@@ -895,17 +888,20 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		advance_cursor();
 #endif
 		if (full_lvl >= 0) {
+#ifndef BENCH_BUILD
 			ret = is_key_right(format, max - 1, binary, ciphertext, plaintext, 0, dbsalt);
 			if (ret)
 				return ret;
+#endif
 			format->methods.clear_keys();
 			dyna_salt_remove(salt);
 			while_condition = (++current)->ciphertext != NULL;
 		} else {
+#ifndef BENCH_BUILD
 			ret = is_key_right(format, index, binary, ciphertext, plaintext, 0, dbsalt);
 		if (ret)
 			return ret;
-
+#endif
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
 #ifndef JUMBO_JTR
@@ -1094,6 +1090,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	return NULL;
 }
 
+#ifndef BENCH_BUILD
 static void test_fmt_case(struct fmt_main *format, void *binary,
 	char *ciphertext, char* plaintext, int *is_case_sensitive,
 	int *plaintext_has_alpha, struct db_salt *dbsalt)
@@ -1171,7 +1168,6 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 	MEM_FREE(plain_copy);
 }
 
-#ifndef BENCH_BUILD
 static int chrcasecmp(char lc, char rc)
 {
 	if (lc >= 'a' && lc <= 'z')
