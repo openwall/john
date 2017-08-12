@@ -6,6 +6,7 @@ LD = gcc
 CPP = gcc
 YASM =
 AR = ar
+FIND = find
 
 IN = secp256k1.o
 
