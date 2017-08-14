@@ -33,9 +33,50 @@
 # modification, are permitted.
 
 
+import os
 import sys
 import binascii
 import base64
+
+
+def process_lastpass_cli(folder):
+
+    fverify = os.path.join(folder, "verify")
+    fiterations = os.path.join(folder, "iterations")
+    fusername = os.path.join(folder, "username")
+
+    try:
+        f = open(fusername, "rb")
+    except IOError:
+        e = sys.exc_info()[1]
+        sys.stderr.write("%s : %s\n" % (fusername, str(e)))
+        return 2
+    username = f.read().strip().lower()
+    f.close()
+
+    try:
+        f = open(fiterations, "rb")
+    except IOError:
+        e = sys.exc_info()[1]
+        sys.stderr.write("%s : %s\n" % (fiterations, str(e)))
+        return 3
+    iterations = f.read().strip().lower()
+    f.close()
+
+    try:
+        f = open(fverify, "rb")
+    except IOError:
+        e = sys.exc_info()[1]
+        sys.stderr.write("%s : %s\n" % (fverify, str(e)))
+        return 4
+    data = f.read()
+    iv = data[32:][:16]
+    ct = data[32+16:][:16]  # skip over checksum and iv fields
+
+    sys.stdout.write("%s:$lpcli$%s$%s$%s$%s$%s\n" % (folder, 0, username,
+                                                     iterations,
+                                                     binascii.hexlify(iv),
+                                                     binascii.hexlify(ct)))
 
 
 def process_file(email, filename, ifilename):
@@ -65,11 +106,23 @@ def process_file(email, filename, ifilename):
                                             binascii.hexlify(base64.decodestring(data))))
 
 
+def usage():
+    sys.stderr.write("Usage: %s <email address> "
+                     "<LastPass *_lpall.slps file> "
+                     "<LastPass *_key.itr file>\n" % sys.argv[0])
+    sys.stderr.write("\nOR\n\n")
+    sys.stderr.write("Usage: %s <path to .local/share/lpass directory (for lastpass-cli)>\n" % sys.argv[0])
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        sys.stderr.write("Usage: %s <email address> "
-                         "<LastPass *_lpall.slps file> "
-                         "<LastPass *_key.itr file>\n" % sys.argv[0])
+    if len(sys.argv) < 2:
+        usage()
         sys.exit(-1)
 
-    process_file(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 4:  # LastPass v3.x for Firefox + Linux mode
+        process_file(sys.argv[1], sys.argv[2], sys.argv[3])
+    elif len(sys.argv) == 2:
+        process_lastpass_cli(sys.argv[1])
+    else:
+        usage()
+        sys.exit(-1)
