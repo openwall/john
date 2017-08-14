@@ -1025,7 +1025,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
-	        gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose " : "",
+	        (options.verbosity >= VERB_LEGACY && gpu_nvidia(device_info[sequential_id])) ? "-cl-nv-verbose " : "",
 #endif
 	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
 	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
