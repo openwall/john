@@ -590,9 +590,6 @@ void sig_init_child(void)
 #ifdef SIGUSR2
 	sig_remove_reload();
 #endif
-#if OS_TIMER
-	sig_init_timer();
-#endif
 }
 
 static void sig_done(void)
