@@ -1531,10 +1531,6 @@ static void john_init(char *name, int argc, char **argv)
 	    options.listconf)
 		listconf_parse_late();
 
-	/* Start a resumed session by emitting a status line. */
-	if (rec_restored)
-		event_pending = event_status = 1;
-
 	/* Log the expanded command line used for this session. */
 	{
 		int i;
@@ -1714,6 +1710,10 @@ static void john_run(void)
 
 		/* Placed here to disregard load time. */
 		sig_init_late();
+
+		/* Start a resumed session by emitting a status line. */
+		if (rec_restored)
+			event_pending = event_status = 1;
 
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
