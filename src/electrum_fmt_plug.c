@@ -10,6 +10,12 @@
  * Special thanks goes to Christopher Gurnee for making this work possible.
  */
 
+#include "arch.h"
+#if !AC_BUILT
+#define HAVE_LIBZ 1
+#endif
+#if HAVE_LIBZ
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_electrum;
 #elif FMT_REGISTERS_H
@@ -17,6 +23,7 @@ john_register_one(&fmt_electrum);
 #else
 
 #include <string.h>
+#include <zlib.h>
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -81,6 +88,8 @@ static struct fmt_tests electrum_tests[] = {
 	{"$electrum$3*e4a1a7f27bb2df7d0bbf91d769adb29b*9340ec01561bf8bc6240627bee4f84a5", "password@123456789"},
 	// Electrum 2.8.0+ encrypted wallet
 	{"$electrum$4*03c2a94eb01e9453c24c9bf49102356788673cc26fbe27b9bf54b0f150758c7864*4249453103c2a94eb01e9453c24c9bf49102356788673cc26fbe27b9bf54b0f150758c7864355ed45b963901b56cd6c483468247c7c8c76ba11c9cb94633575838cffb8f0cebfc9af91ba402c06cca5c08238c643a0291e66e1a849eb66a9eda17e1496d09f46bfe6f63bfdcd591c260f31b92bd5958ce85c7719983a7395c88570946a59d5dcc2188680aba439cde0dbdfeaba985fe3d1a97d25b81573a92f72aea8c60fa3a4228acb789d7f307f6a19d1025fa6ac81d91d45ef07c0b26d9f85fc6ba07246b8b19d641929aac16ff1c942a3d69b824e3e39a122402aed63d3d12ca299416500459e7353bd56db92102c93f045ccc719cee90d2f891ff6b128886ec90768364bcc89c3393f21a5b57915f4eaf4e3b9c7a3958124b43956a47572ae38df2a11b84f6dc25ddc3d3b1968e3adadc756507118301e8cc490d249dc603f4f46c3bf0b214fd3bfb8dab6f048ba7d60dbee031d386a5aeec6664d2891abbeb0201b437d6e37c140be3e6210078e76afafbd78a8acaf45f21cf83c69218f9bfd3abb0211d57ab1874e9d645171cdaad4887a9fea86003b9948d22d9e7bfaec4c4bd0786cd4d191c82c61e83c61bae06a7c9936af46f8fa121ab696aba24ad8fd8f69537aa713bf271e4be567e7e3ccd141511c96ce634175f845ff680f71bbd595ef5d45d9cfd9a7e099fbab7964add7a76c4820b20952121e5621cb53c9476dc23860a5bc4ba3ecf636dc224503202dc11bf3bc88c70dcc2005684f7d3ebe6a7ea1487423a5145442f8f3d806d5d219560b4bce272ef9d6e32849b692cd91d4c60462b0f813603a52dc84b959051e787d890661e9f439a11fa8819c4fb947ff8dd0a5b7e5e63605f4e9f6eac6f8b2bfd7a9098dd2201c2f4cdaa2d7d0691ccf42b2761a8bb2a08c755077a753a41bcf305c83da8cd9ebaeee0360afb4be00827e167b2c1a3d5975d3a4a1e3b3b56794a155253437710ee3c0d0a2de0c4d631b48808fa946146f09e8ea9888d6c6bad104ebed814e79bdc26be38e8580d8fff6324405c128627079d1e3bafc2479274a3bc4f8196e923c835204e91ce8a9cb235c5349056415ad58a83b41254eda57839cd2e0bb66f125e32c76671f6447b2b0321d021c60706ff6f103ce483986fe0f1cc62307f6a1e89c4b2f334fc6f1f2597f5d68b3948c7655025a04ea858bc33eb341de09bdb4862701abcbc4c907270856de6072ee8d0c9e46e19c50eac454d4ca5fcd1a35f5d239aadc82543deafcd17f0eae2145561b8834dd80d337c574d3e931365db294d66aa4b47669f92784325b85abae49a8447a2afeb4cac460cba2a9d7b298bd3f69ac31862b92a970ed8d3241227858b0c40b2f6793cdd733020987beb7e6f01826fa2dae2b345f4e8e96da885a00901b20308f37c8613cf28ef997a6f25c741af917a547b38cff7577d2cac2654d5cdac2d0f1135ac6db3d70174b03c4149d134325f1b805ef11cd62531c13436ad1c7cb73f488dc411d349be34523d477953e8b47848e31ec85230a99ecd88c9cbc5d33de132aacd04877123cff599bea3b2e7b931347673cca605b3bc129496d5e80b06ae0eb3fce5c24ea0f8d2ecd4cfb9ed5034b26ed18b564731c78f5344ec863bd78797ad7de722c7a88e047af0364f69a303dc5f716ebda1de9ca21cb49e4091cb975c17f098932e884f36bded1fab34814931b0aeb72b1bc90747f7f5ebe73c547681f7a8d6d74e7acde2ba6e5e998bd6b035ade5fa64171dde4a82ed5ed7f273220d47bbd5a1c2ed4359d02392b746ba653d1c30f63bce161d0555ebc4775262036be51d4a50113bbac6823fd6a0d387a32673dc454c4d9d018cc25885a0d15d3f7488bbe18398d758cbbf1a24eaf71bd1560ff216e342e09efdbfae2872cfdf59ed802420ba8522edfd74f6d728ffa1683e586b53cbec80f00be6478a44d8df1c69a5cdbb50aa75da2f2dd0a679b037b4173f20b9514064d15ff50f1e9beb0112a41cdc0ecf7fb3028fe6f4c7339bb79d50cb7d43cabd8ae198741677d41e411c811c6267e9b4e41d944b035e47406d5120f1ee192db810cf6774*40c7a179573d57c54d0da0a1c4d71e306e1eea823f637f29c3e43b9792469d15", "openwall123"},
+	// Electrum 2.8.0+ encrypted wallet with truncated hash, "electrum28-wallet" from btcrecover project
+	{"$electrum$5*0328e536dd1fbbb85d78de1a8c21215d4646cd87d6b6545afcfb203e5bb32e0de4*61b1e287a5acff4b40e4abd73ff62dc233c1c7a6a54b3270949281b9d44bc6e746743733360500718826e50bb28ea99a6378dc0b0c578e9d0bf09c667671c82a1bd71c8121edbb4c9cbca93ab0e17e218558ead81755e62b0d4ad547aa1b3beb0b9ee43b11270261c9b38502f00e7f6f096811b7fdae6f3dce85c278d3751fec044027054218ccf20d404bab24380b303f094704e626348a218f44ab88ce2ac5fa7d450069fca3bb53f9359dbbaad0ea1b3859129b19c93ed7888130f8a534f84a629c67edc150a1c5882a83cb0add4615bb569e8dc471de4d38fc8b1e0b9b28040b5ea86093fcdeceaedb6b8f073f6f0ee5541f473a4b1c2bfae4fc91e4bbb40fa2185ecfa4c72010bcf8df05b1a7db45f64307dbc439f8389f0e368e38960b6d61ac88c07ce95a4b03d6d8b13f4c7dc7d7c447097865235ab621aeef38dc4172bf2dc52e701132480127be375fe98834f16d9895dce7f6cdfe900a2ce57eaa6c3036c1b9a661c3c9adbf84f4adfe6d4d9fa9f829f2957cfb353917dc77fd8dd4872b7d90cb71b7d3a29c9bfe3440e02449220acba410fa0af030f51aa2438f7478dbb277d62613112e4eebc66d5d7bdba793fb2073d449954f563284819189ffb5dbcdeb6c95c64bc24e0ef986bce07bafe96ab449ae2b6edaf4f98ffbd392a57bd93c2359444ec4046ae65b440adb96b6e4eef9d06bb04d2f3fa2e4175165bcadbf7e13cc3b6e65e67df901f96a2f154bc763b56b3736a335e1d1bc16e99736f757a4ae56c099645c917360b1ecf8dcefc7281541c6ff65d87cadab4a48f1f6b7b73a3e5a67e2e032abb56b499e73a9f3b69ce065e43b0174639785ae30635d105ebcc827dcf9b19bdd1a92879a5d4bc4e12b5630c188b1b96e3c586e19901b8f96084bcd59b2f4b201a3a8b6e633a5c194901d4609add9671b0bcc12b2b94ae873d201258b36315484e4b9c5f5d6289656baa93eec9e92aec88e2d73d86b9e3d1f24294e3d8ebe9a9f2f6edfbf28f530670c5b086fc4f74df89b4e4cbe06ee7e45cbd238b599d19c2d5da5523b12b1e7050ea0a9b47a5d22c6c3fc476f814f9705dc7ed3aeb1b44fc6b4d69f02a74963dce5057c3c049f92e595a4da5035cffc303a4cb162803aa3f816527a7e466b8424789a0d77e26819615662420c370457e29fcc1938fd754f3acfd21416ce3ab27e9febbc0e24fc7055eddc31e48faa014f9f3695c2e956f0e6c94c507a8d2f8c3aeb4b98b69b6340b6a3acb1acdde9581279f78ee10687616360c018e9f67d6c8bb5950e8fdabd3d0d5808824975aa4a50f88581472212f24ad58a700fe4787642b973924575fe71d1ecd7b2b6acd363f48c40bdd55f35f60a06dee544c266e608fd5a6d263f745e8b11d1160638eb301adfd1a88eddf6d0ccb9e1021e0bde9cf5163583a202b3dc95c255c8cc24*ec90c1ff54632e7c8cfb812eeb14d7ec49ddaf576dca10bfb16f965e6106ce48", "btcr-test-password"},
 	{NULL}
 };
 
@@ -135,7 +144,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 1 && value != 2 && value != 3 && value != 4)
+	if (value != 1 && value != 2 && value != 3 && value != 4 && value !=5)
 		goto err;
 
 	if (value == 1 || value == 2 || value == 3) {
@@ -230,6 +239,10 @@ static char *get_key(int index)
 
 static const char *group_order = "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141";
 
+// The decypted and decompressed wallet should start with one of these two, // Christopher Gurnee
+#define EXPECTED_BYTES_1 "{\n    \""
+#define EXPECTED_BYTES_2 "{\r\n    \""
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -300,7 +313,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					}
 				}
 			}
-		} else if (cur_salt->type == 4) {
+		} else if (cur_salt->type == 4 || cur_salt->type == 5) {
 			BIGNUM *p, *q, *r;
 			BN_CTX *ctx;
 			unsigned char shared_pubkey[33];
@@ -347,12 +360,47 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA512_Init(&md_ctx);
 				SHA512_Update(&md_ctx, shared_pubkey, shared_pubkeylen);
 				SHA512_Final(keys, &md_ctx);
-				// calculate mac of data
-				hmac_sha256(keys + 32, 32, cur_salt->data, cur_salt->datalen, cmac, 32);
-				if (memcmp(&cur_salt->mac, cmac, 16) == 0)
-					cracked[index+i] = 1;
-				else
-					cracked[index+i] = 0;
+				if (cur_salt->type == 4) {
+					// calculate mac of data
+					hmac_sha256(keys + 32, 32, cur_salt->data, cur_salt->datalen, cmac, 32);
+					if (memcmp(&cur_salt->mac, cmac, 16) == 0)
+						cracked[index+i] = 1;
+					else
+						cracked[index+i] = 0;
+				} else if (cur_salt->type == 5) {
+					        z_stream z;
+						unsigned char iv[16];
+						unsigned char out[512] = { 0 };
+						unsigned char fout[512] = { 0 };
+						AES_KEY aes_decrypt_key;
+
+						// common zlib settings
+						z.zalloc = Z_NULL;
+						z.zfree = Z_NULL;
+						z.opaque = Z_NULL;
+						z.avail_in = 512;
+						z.avail_out = 512;
+						z.next_out = fout;
+
+						memcpy(iv, keys, 16);
+						// fast zlib based rejection test, is this totally safe?
+						AES_set_decrypt_key(keys + 16, 128, &aes_decrypt_key);
+						AES_cbc_encrypt(cur_salt->data, out, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+						if ((memcmp(out, "\x78\x9c", 2) != 0) || (out[2] & 0x7) != 0x5) {
+							cracked[index+i] = 0;
+						} else {
+							AES_set_decrypt_key(keys + 16, 128, &aes_decrypt_key);
+							AES_cbc_encrypt(cur_salt->data + 16, out + 16, 512 - 16, &aes_decrypt_key, iv, AES_DECRYPT);
+							z.next_in = out;
+							inflateInit2(&z, 15);
+							inflate(&z, Z_NO_FLUSH);
+							inflateEnd(&z);
+							if ((memcmp(fout, EXPECTED_BYTES_1, 7) == 0) || (memcmp(fout, EXPECTED_BYTES_2, 8) == 0))
+								cracked[index+i] = 1;
+							else
+								cracked[index+i] = 0;
+						}
+				}
 			}
 		}
 	}
@@ -429,3 +477,5 @@ struct fmt_main fmt_electrum = {
 };
 
 #endif /* plugin stanza */
+
+#endif /* HAVE_LIBZ */
