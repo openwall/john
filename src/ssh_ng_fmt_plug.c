@@ -203,7 +203,9 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(struct custom_salt));
+	cs.rounds = 1;
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$sshng$" */
 	p = strtokm(ctcopy, "$");
 	cs.cipher = atoi(p);
@@ -226,6 +228,7 @@ static void *get_salt(char *ciphertext)
 		cs.ciphertext_begin_offset = atoi(p);
 	}
 	MEM_FREE(keeptr);
+
 	return (void *)&cs;
 }
 
@@ -574,16 +577,29 @@ static int cmp_exact(char *source, int index)
 
 static void sshng_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
 {
 	return saved_key[index];
+}
+
+static unsigned int sshng_kdf(void *salt)
+{
+	struct custom_salt *cur_salt = salt;
+
+	if (cur_salt->cipher == 2)
+		return 2; // bcrypt-pbkdf
+	else
+		return 1; // regular "ssh kdf"
+}
+
+static unsigned int sshng_iteration_count(void *salt)
+{
+	struct custom_salt *cur_salt = salt;
+
+	return cur_salt->rounds;
 }
 
 struct fmt_main fmt_sshng = {
@@ -602,7 +618,10 @@ struct fmt_main fmt_sshng = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_SPLIT_UNIFIES_CASE | FMT_HUGE_INPUT,
-		{ NULL },
+		{
+			"kdf",
+			"iteration count",
+		},
 		{ FORMAT_TAG },
 		sshng_tests
 	}, {
@@ -614,7 +633,10 @@ struct fmt_main fmt_sshng = {
 		split,
 		fmt_default_binary,
 		get_salt,
-		{ NULL },
+		{
+			sshng_kdf,
+			sshng_iteration_count,
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
