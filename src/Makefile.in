@@ -583,10 +583,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/undrop
 	$(LN) john ../run/undrop
 
-../run/putty2john: ../run/john
-	$(RM) ../run/putty2john
-	$(LN) john ../run/putty2john
-
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	$(LN) john ../run/zip2john
@@ -634,10 +630,6 @@ kernels: @KERNEL_OBJS@
 ../run/undrop.exe: symlink.c
 	$(CC) symlink.c -o ../run/undrop.exe
 	$(STRIP) ../run/undrop.exe
-
-../run/putty2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/putty2john.exe
-	$(STRIP) ../run/putty2john.exe
 
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
