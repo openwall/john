@@ -15,10 +15,11 @@
 
 import os
 import sys
-import traceback
+# import traceback
 import base64
 import binascii
 import itertools
+import optparse
 
 try:
     import json
@@ -32,7 +33,7 @@ except ImportError:
         sys.exit(-1)
 
 
-def process_electrum28_wallets(bname, data):
+def process_electrum28_wallets(bname, data, options):
     version = 4  # hack
     MIN_LEN = 37 + 32 + 32  # header + ciphertext + trailer
     if len(data) < MIN_LEN * 4 / 3:
@@ -43,13 +44,17 @@ def process_electrum28_wallets(bname, data):
     # ciphertext = data[37:-32]
     mac = data[-32:]
     all_but_mac = data[:-32]
+    if len(all_but_mac) > 16384 or options.truncate:
+        sys.stderr.write("Forcing generation of truncated hash, this is not tested well!\n")
+        all_but_mac = data[37:][:1024]   # skip over the 4-byte magic & 33-byte pubkey
+        version = 5  # hack
     ephemeral_pubkey = binascii.hexlify(ephemeral_pubkey).decode("ascii")
     mac = binascii.hexlify(mac).decode("ascii")
     all_but_mac = binascii.hexlify(all_but_mac).decode("ascii")
     sys.stdout.write("%s:$electrum$%d*%s*%s*%s\n" % (bname, version, ephemeral_pubkey, all_but_mac, mac))
 
 
-def process_file(filename):
+def process_file(filename, options):
     bname = os.path.basename(filename)
     try:
         f = open(filename, "rb")
@@ -63,14 +68,17 @@ def process_file(filename):
     try:
         if base64.b64decode(data).startswith('BIE1'):
             # sys.stderr.write("%s: Encrypted Electrum 2.8+ wallets are not supported yet!\n" % bname)
-            process_electrum28_wallets(bname, data)
+            process_electrum28_wallets(bname, data, options)
             return
     except:
-        return
+        # traceback.print_exc()
+        pass
 
     try:
         data = data.decode("utf-8")
     except:
+        e = sys.exc_info()[1]
+        sys.stderr.write("%s\n" % str(e))
         return -13
 
     version = None
@@ -83,7 +91,7 @@ def process_file(filename):
             version = 1
         except:
             sys.stderr.write("%s: Unable to parse the wallet file!\n" % bname)
-            traceback.print_exc()
+            # traceback.print_exc()
             return
 
     # This check applies for both Electrum 2.x and 1.x
@@ -226,5 +234,9 @@ if __name__ == "__main__":
         sys.stderr.write("Usage: %s [Ethereum Wallet files (default_wallet)]\n" % sys.argv[0])
         sys.exit(-1)
 
-    for j in range(1, len(sys.argv)):
-        process_file(sys.argv[j])
+    parser = optparse.OptionParser()
+    parser.add_option('-t', action="store_true", dest="truncate", help="force generation of truncated hashes")
+    options, remainder = parser.parse_args()
+
+    for j in range(0, len(remainder)):
+        process_file(remainder[j], options)
