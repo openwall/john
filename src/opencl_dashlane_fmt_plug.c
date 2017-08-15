@@ -24,6 +24,7 @@ john_register_one(&fmt_opencl_dashlane);
 #else
 
 #include <string.h>
+#include <stdint.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -31,7 +32,6 @@ john_register_one(&fmt_opencl_dashlane);
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
-#include "stdint.h"
 #include "dashlane_common.h"
 #include "options.h"
 #include "jumbo.h"
