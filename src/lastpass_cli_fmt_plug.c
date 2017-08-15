@@ -230,7 +230,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #else
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-				pbkdf2_sha256((unsigned char*)saved_key[i+index], strlen(saved_key[i+index]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, key[i], 32, 0);
+				pbkdf2_sha256((unsigned char*)saved_key[i+index], strlen(saved_key[i+index]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, (unsigned char*)key[i], 32, 0);
 			}
 #endif
 		} else {
@@ -285,6 +285,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static unsigned int lastpass_iteration_count(void *salt)
+{
+        return ((struct custom_salt*)salt)->iterations;
+}
+
 struct fmt_main fmt_lastpass_cli = {
 	{
 		FORMAT_LABEL,
@@ -301,7 +306,9 @@ struct fmt_main fmt_lastpass_cli = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{
+			"iteration count",
+		},
 		{ FORMAT_TAG },
 		lastpass_cli_tests
 	}, {
@@ -313,7 +320,9 @@ struct fmt_main fmt_lastpass_cli = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{
+			lastpass_iteration_count,
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
