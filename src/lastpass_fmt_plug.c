@@ -166,7 +166,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE+1];
-		ARCH_WORD dummy;
+		uint32_t dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -180,14 +180,6 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
-
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
@@ -199,14 +191,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		AES_KEY akey;
-#ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT], i;
-		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		uint32_t key[MAX_KEYS_PER_CRYPT][8];
+		int i;
+#ifdef SIMD_COEF_32
+		int lens[MAX_KEYS_PER_CRYPT];
+		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
 			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
@@ -217,19 +209,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			x.pout[i] = key[i];
 		}
 		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, &(x.poutc), 32, 0);
-
+#else
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			memset(&akey, 0, sizeof(AES_KEY));
+			pbkdf2_sha256((unsigned char*)saved_key[i+index], strlen(saved_key[i+index]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, (unsigned char*)key[i], 32, 0);
+		}
+#endif
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			AES_KEY akey;
+
 			AES_set_encrypt_key((unsigned char*)key[i], 256, &akey);
 			AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[i+index], &akey, AES_ENCRYPT);
 		}
-#else
-		unsigned char key[32];
-		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, key, 32, 0);
-		memset(&akey, 0, sizeof(AES_KEY));
-		AES_set_encrypt_key((unsigned char*)key, 256, &akey);
-		AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[index], &akey, AES_ENCRYPT);
-#endif
+
 	}
 	return count;
 }
@@ -255,16 +246,17 @@ static int cmp_exact(char *source, int index)
 
 static void lastpass_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
 {
 	return saved_key[index];
+}
+
+static unsigned int lastpass_iteration_count(void *salt)
+{
+        return ((struct custom_salt*)salt)->iterations;
 }
 
 struct fmt_main fmt_lastpass = {
@@ -283,7 +275,9 @@ struct fmt_main fmt_lastpass = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{
+			"iteration count",
+		},
 		{ FORMAT_TAG },
 		lastpass_tests
 	}, {
@@ -295,16 +289,12 @@ struct fmt_main fmt_lastpass = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{
+			lastpass_iteration_count,
+		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -314,13 +304,7 @@ struct fmt_main fmt_lastpass = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
