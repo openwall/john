@@ -1372,9 +1372,7 @@ static void john_load(void)
 #if CPU_DETECT
 static void CPU_detect_or_fallback(char **argv, int make_check)
 {
-	if (getenv("CPUID_DISABLE"))
-		return;
-
+	if (!getenv("CPUID_DISABLE"))
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
@@ -1402,9 +1400,16 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 		error();
 #endif
 	}
+
+	/*
+	 * Init the crc table here, so that tables are fully setup for any
+	 * ancillary program
+	 */
+	CRC32_Init_tab();
+
 }
 #else
-#define CPU_detect_or_fallback(argv, make_check)
+#define CPU_detect_or_fallback(argv, make_check) CRC32_Init_tab()
 #endif
 
 static void john_init(char *name, int argc, char **argv)
@@ -1915,9 +1920,6 @@ int main(int argc, char **argv)
 		--argc;
 	}
 #endif
-
-	/* put the crc table init here, so that tables are fully setup for any ancillary program */
-	CRC32_Init_tab();
 
         /* Needed before CPU fallback */
 	path_init(argv);
