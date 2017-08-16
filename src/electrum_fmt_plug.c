@@ -144,7 +144,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 1 && value != 2 && value != 3 && value != 4 && value !=5)
+	if (value != 1 && value != 2 && value != 3 && value != 4 && value != 5)
 		goto err;
 
 	if (value == 1 || value == 2 || value == 3) {
