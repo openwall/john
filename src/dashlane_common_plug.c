@@ -11,6 +11,7 @@
 #include "common.h"
 #include "dashlane_common.h"
 #include "aes.h"
+#include "openssl_code.h"
 #include "memdbg.h"
 
 struct fmt_tests dashlane_tests[] = {
@@ -111,9 +112,7 @@ int dashlane_verify(struct custom_salt *cur_salt, unsigned char *pkey)
 	z.avail_out = 128;
 	z.next_out = fout;
 
-	EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(),
-			cur_salt->salt, pkey, 32,
-			1, key, iv);  // our BytesToKey generates wrong data after byte 20!
+	BytesToKey(256, sha1, cur_salt->salt, pkey, 32, 1, key, iv);
 
 	if (cur_salt->type == 1) {
 		AES_set_decrypt_key(pkey, 256, &aes_decrypt_key);
