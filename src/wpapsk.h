@@ -355,7 +355,7 @@ static inline void WPA_PUT_LE16(u8 *a, u16 val)
 	a[0] = val & 0xff;
 }
 
-static int sha256_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
+static void sha256_vector(size_t num_elem, const u8 *addr[], const size_t *len, u8 *mac)
 {
 	SHA256_CTX ctx;
 	size_t i;
@@ -366,11 +366,9 @@ static int sha256_vector(size_t num_elem, const u8 *addr[], const size_t *len, u
 	}
 
 	SHA256_Final(mac, &ctx);
-
-	return 0;
 }
 
-static int hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
+static void hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
 		const u8 *addr[], const size_t *len, u8 *mac)
 {
 	unsigned char k_pad[64]; /* padding - key XORd with ipad/opad */
@@ -380,8 +378,7 @@ static int hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
 
 	/* if key is longer than 64 bytes reset it to key = SHA256(key) */
 	if (key_len > 64) {
-		if (sha256_vector(1, &key, &key_len, tk) < 0)
-			return -1;
+		sha256_vector(1, &key, &key_len, tk);
 		key = tk;
 		key_len = 32;
 	}
@@ -409,8 +406,7 @@ static int hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
 		_addr[i + 1] = addr[i];
 		_len[i + 1] = len[i];
 	}
-	if (sha256_vector(1 + num_elem, _addr, _len, mac) < 0)
-		return -1;
+	sha256_vector(1 + num_elem, _addr, _len, mac);
 
 	memset(k_pad, 0, sizeof(k_pad));
 	memcpy(k_pad, key, key_len);
@@ -423,10 +419,10 @@ static int hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
 	_len[0] = 64;
 	_addr[1] = mac;
 	_len[1] = SHA256_MAC_LEN;
-	return sha256_vector(2, _addr, _len, mac);
+	sha256_vector(2, _addr, _len, mac);
 }
 
-static int sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
+static void sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
 		const u8 *data, size_t data_len, u8 *buf, size_t buf_len_bits)
 {
 	u16 counter = 1;
@@ -456,9 +452,7 @@ static int sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
 			hmac_sha256_vector(key, key_len, 4, addr, len, &buf[pos]);
 			pos += SHA256_MAC_LEN;
 		} else {
-			if (hmac_sha256_vector(key, key_len, 4, addr, len,
-						hash) < 0)
-				return -1;
+			hmac_sha256_vector(key, key_len, 4, addr, len, hash);
 			memcpy(&buf[pos], hash, plen);
 			pos += plen;
 			break;
@@ -474,8 +468,6 @@ static int sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
 		u8 mask = 0xff << (8 - buf_len_bits % 8);
 		buf[pos - 1] &= mask;
 	}
-
-	return 0;
 }
 
 /* Code borrowed from https://w1.fi/wpa_supplicant/ ends */
@@ -533,7 +525,7 @@ static void wpapsk_postprocess(int keys)
 		}
 	}
 }
-#endif
+#endif /* #ifndef JOHN_OCL_WPAPSK */
 
 static int binary_hash_0(void *binary)
 {
