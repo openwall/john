@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_wpapsk);
 #include "common-opencl.h"
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
-static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1;
+static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1, wpapsk_final_sha256;
 static size_t key_buf_size;
 static unsigned int *inbuffer;
 static struct fmt_main *self;
@@ -85,6 +85,7 @@ static size_t get_task_max_work_group_size()
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_pass2));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_md5));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_sha1));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_sha256));
 	return s;
 }
 
@@ -131,6 +132,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
 static void release_clobj(void)
@@ -160,6 +165,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(wpapsk_pass2), "Release Kernel");
 		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
 		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha256), "Release Kernel");
 
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
@@ -206,6 +212,9 @@ static void init(struct fmt_main *_self)
 	else
 		ocl_v_width = opencl_get_vector_width(gpu_id, sizeof(cl_int));
 
+	/* Vectorizing disabled until fixed for keyver 3 */
+	ocl_v_width = 1;
+
 	if (ocl_v_width > 1) {
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),
@@ -244,6 +253,8 @@ static void reset(struct db_main *db)
 		wpapsk_final_md5 = clCreateKernel(program[gpu_id], "wpapsk_final_md5", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		wpapsk_final_sha1 = clCreateKernel(program[gpu_id], "wpapsk_final_sha1", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		wpapsk_final_sha256 = clCreateKernel(program[gpu_id], "wpapsk_final_sha256", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -298,8 +309,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (hccap.keyver == 1)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_md5, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (MD5)");
-	else
+	else if (hccap.keyver == 2)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA1)");
+	else
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha256, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA256)");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running final kernel");
 
 	/// Read the result back

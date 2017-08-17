@@ -67,7 +67,7 @@ typedef struct {
 	uint32_t length;
 #ifdef JOHN_OCL_WPAPSK
 	uint8_t  eapol[256 + 64];
-	uint32_t eapol_size; // blocks
+	uint32_t eapol_size;
 	uint8_t  data[64 + 12];
 #endif
 	uint8_t  salt[36]; // essid
@@ -82,12 +82,10 @@ static struct fmt_tests tests[] = {
 	/* Maximum length, 63 characters */
 	{"$WPAPSK$Greased Lighting#kA5.CDNB.07cofsOMXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGqgvfcXnuF1f7L5fgn4fQMLmDrKjdBNjb6LClRmfLiTYk21.5I0.Ec............7MXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGo.................................................................3X.I.E..1uk2.E..1uk2.E..1uk00...................................................................................................................................................................................../t.....U...D06LUdWVfGPaP1Oa3AV9Hg", "W*A5z&1?op2_L&Hla-OA$#5i_Lu@F+6d?je?u5!6+6766eluu7-l+jOEkIwLe90"},
 	{"$WPAPSK$hello#JUjQmBbOHUY4RTqMpGc9EjqGdCxMZPWNXBNd1ejNDoFuemrLl27juYlDDUDMgZfery1qJTHYVn2Faso/kUDDjr3y8gspK7viz8BCJE21.5I0.Ec............/pGc9EjqGdCxMZPWNXBNd1ejNDoFuemrLl27juYlDDUA.................................................................3X.I.E..1uk2.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...9Py59nqygwiar49oOKA3RY", "12345678"},
-#ifndef JOHN_OCL_WPAPSK
 	/* 802.11w with WPA-PSK-SHA256 */
 	{"$WPAPSK$hello#HY6.hTXZv.v27BkPGuhkCnLAKxYHlTWYs.4yuqVSNAip3SeixhErtNMV30LZAA3uaEfy2U2tJQi.VICk4hqn3V5m7W3lNHSJYW5vLE21.5I0.Eg............/GuhkCnLAKxYHlTWYs.4yuqVSNAip3SeixhErtNMV30I.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4....................................................................................................................................................................................../t.....k.../Ms4UxzvlNw5hOM1igIeo6", "password"},
 	/* 802.11w with WPA-PSK-SHA256, https://github.com/neheb */
 	{"$WPAPSK$Neheb#g9a8Jcre9D0WrPnEN4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw04ASqHgvo12wJYJywulb6pWM6C5uqiMPNKNe9pkr6LE61.5I0.Eg.2..........1N4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4X...................................................................................................................................................................................../t.....k...0sHl.mVkiHW.ryNchcMd4g", "bo$$password"},
-#endif
 	{NULL}
 };
 
@@ -208,13 +206,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (hccap->keyver < 1)
 		return 0;
-#ifdef JOHN_OCL_WPAPSK /* OpenCL format doesn't yet support WPA-PSK-SHA256 */
-	if (hccap->keyver > 2)
-		return 0;
-#else
 	if (hccap->keyver > 3)
 		return 0;
-#endif
 	return 1;
 }
 
@@ -310,16 +303,17 @@ static void set_salt(void *salt)
 	currentsalt.length = strlen(hccap.essid);
 
 #ifdef JOHN_OCL_WPAPSK
-	currentsalt.eapol_size = 1 + (hccap.eapol_size + 8) / 64;
+	currentsalt.eapol_size = hccap.eapol_size;
 	memcpy(currentsalt.eapol, hccap.eapol, hccap.eapol_size);
 	memset(currentsalt.eapol + hccap.eapol_size, 0x80, 1);
 	memset(currentsalt.eapol + hccap.eapol_size + 1, 0, 256 + 64 - hccap.eapol_size - 1);
-	if (hccap.keyver != 1)
+	if (hccap.keyver == 2)
 		alter_endianity(currentsalt.eapol, 256+56);
 	((unsigned int*)currentsalt.eapol)[16 * ((hccap.eapol_size + 8) / 64) + ((hccap.keyver == 1) ? 14 : 15)] = (64 + hccap.eapol_size) << 3;
 	insert_mac(currentsalt.data);
 	insert_nonce(currentsalt.data + 12);
-	alter_endianity(currentsalt.data, 64 + 12);
+	if (hccap.keyver < 3)
+		alter_endianity(currentsalt.data, 64 + 12);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, NULL), "Copy setting to gpu");
 #endif
