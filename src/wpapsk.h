@@ -380,16 +380,8 @@ static void hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
 		const u8 *addr[], const size_t *len, u8 *mac)
 {
 	unsigned char k_pad[64]; /* padding - key XORd with ipad/opad */
-	unsigned char tk[32];
 	const u8 *_addr[6];
 	size_t _len[6], i;
-
-	/* if key is longer than 64 bytes reset it to key = SHA256(key) */
-	if (key_len > 64) {
-		sha256_vector(1, &key, &key_len, tk);
-		key = tk;
-		key_len = 32;
-	}
 
 	/* the HMAC_SHA256 transform looks like:
 	 *
