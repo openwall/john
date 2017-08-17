@@ -265,6 +265,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i;
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	extern volatile int bench_running;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
@@ -273,7 +274,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 64, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
 	/// Run kernel
-	if (ocl_autotune_running || new_keys || strcmp(last_ssid, hccap.essid)) {
+	if (new_keys || strcmp(last_ssid, hccap.essid) ||
+	    ocl_autotune_running || bench_running) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
 		for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
@@ -322,7 +324,9 @@ struct fmt_main fmt_opencl_wpapsk = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE,
-		{ NULL },
+		{
+			"Key version"
+		},
 		{ FORMAT_TAG},
 		tests
 	}, {
@@ -334,7 +338,9 @@ struct fmt_main fmt_opencl_wpapsk = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{
+			get_keyver,
+		},
 		fmt_default_source,
 		{
 			binary_hash_0,

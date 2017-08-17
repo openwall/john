@@ -356,8 +356,9 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
+	extern volatile int bench_running;
 
-	if (new_keys || strcmp(last_ssid, hccap.essid)) {
+	if (new_keys || strcmp(last_ssid, hccap.essid) || bench_running) {
 #ifndef SIMD_COEF_32
 		wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
 #else
@@ -388,7 +389,9 @@ struct fmt_main fmt_wpapsk = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP,
-		{ NULL },
+		{
+			"Key version"
+		},
 		{ FORMAT_TAG },
 		tests
 	},
@@ -401,7 +404,9 @@ struct fmt_main fmt_wpapsk = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{
+			get_keyver,
+		},
 		fmt_default_source,
 		{
 			binary_hash_0,
