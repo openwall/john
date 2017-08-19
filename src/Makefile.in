@@ -90,7 +90,6 @@ JOHN_OBJS = \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
 	zip2john.o pkzip.o \
-	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
 	gost.o \
@@ -594,10 +593,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/rar2john
 	$(LN) john ../run/rar2john
 
-../run/hccap2john: ../run/john
-	$(RM) ../run/hccap2john
-	$(LN) john ../run/hccap2john
-
 ../run/base64conv: ../run/john
 	$(RM) ../run/base64conv
 	$(LN) john ../run/base64conv
@@ -637,10 +632,6 @@ kernels: @KERNEL_OBJS@
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
 	$(STRIP) ../run/rar2john.exe
-
-../run/hccap2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/hccap2john.exe
-	$(STRIP) ../run/hccap2john.exe
 
 ../run/base64conv.exe: symlink.c
 	$(CC) symlink.c -o ../run/base64conv.exe
@@ -689,6 +680,9 @@ kernels: @KERNEL_OBJS@
 
 ../run/racf2john@EXE_EXT@: racf2john.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ racf2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/racf2john
+
+../run/hccap2john@EXE_EXT@: hccap2john.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ common.o hccap2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/hccap2john
 
 ../run/putty2john@EXE_EXT@: putty2john.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ putty2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/putty2john

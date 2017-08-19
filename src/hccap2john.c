@@ -31,6 +31,13 @@
 #include "common.h"
 #include "memdbg.h"
 
+// Duplicated here to overcome linking problems. This file can't link with misc.o file easily.
+unsigned atou(const char *src) {
+	unsigned val;
+	sscanf(src, "%u", &val);
+	return val;
+}
+
 #define HCCAP_SIZE		sizeof(hccap_t)
 typedef struct
 {
@@ -133,7 +140,26 @@ static int process_file(const char *filename)
 	return 1;
 }
 
-int hccap2john(int argc, char **argv)
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+
+	fd = mkstemp(name);
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	process_file(name);
+	remove(name);
+
+	return 0;
+}
+#else
+int main(int argc, char **argv)
 {
 	int i, ret = 0;
 
@@ -147,3 +173,4 @@ int hccap2john(int argc, char **argv)
 
 	return ret;
 }
+#endif
