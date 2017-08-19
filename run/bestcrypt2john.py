@@ -44,7 +44,7 @@ typedef struct {
         bc_16           type;   // encoding type. signed 16 bit value.
         bc_u32          param;  // optional key parameter.
 } BCKeySlot;
-v
+
 // V8 datablock header format.
 typedef struct db_header
 {
