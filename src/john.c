@@ -168,7 +168,6 @@ extern int unique(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 
 extern int base64conv(int argc, char **argv);
-extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
@@ -1956,10 +1955,6 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return zip2john(argc, argv);
-	}
-	if (!strcmp(name, "hccap2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return hccap2john(argc, argv);
 	}
 	if (!strcmp(name, "base64conv")) {
 		CPU_detect_or_fallback(argv, 0);

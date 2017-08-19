@@ -129,7 +129,6 @@ JOHN_OBJS = \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
 	zip2john.o pkzip.o \
-	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
 	gost.o \
@@ -193,7 +192,6 @@ PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/rar2john.com ../run/zip2john \
-	../run/hccap2john.com \
 	john.local.conf \
 	../run/gpg2john.com
 PROJ_WIN32 = find_version ../run/john.exe \
@@ -201,7 +199,6 @@ PROJ_WIN32 = find_version ../run/john.exe \
 	../run/undrop.exe \
 	../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/hccap2john.exe \
 	../run/raw2dyna.exe \
 	john.local.conf ../run/gpg2john.exe ../run/base64conv.exe
 PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
@@ -209,7 +206,6 @@ PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/undrop.exe \
 	../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/hccap2john.exe \
 	../run/raw2dyna.exe \
 	john.local.conf \
 	../run/gpg2john.exe ../run/base64conv.exe
@@ -1707,10 +1703,6 @@ $(SUBDIRS):
 	$(RM) ../run/rar2john
 	ln -s john ../run/rar2john
 
-../run/hccap2john: ../run/john
-	$(RM) ../run/hccap2john
-	ln -s john ../run/hccap2john
-
 ../run/base64conv: ../run/john
 	$(RM) ../run/base64conv
 	ln -s john ../run/base64conv
@@ -1744,9 +1736,6 @@ $(SUBDIRS):
 
 ../run/gpg2john.com: john.com
 	copy john.com ..\run\gpg2john.com
-
-../run/hccap2john.com: john.com
-	copy john.com ..\run\hccap2john.com
 
 ../run/unique.com: john.com
 	copy john.com ..\run\unique.com
@@ -1802,10 +1791,6 @@ john.com: john.asm
 	$(CC) symlink.c -o ../run/gpg2john.exe
 	$(STRIP) ../run/gpg2john.exe
 
-../run/hccap2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/hccap2john.exe
-	$(STRIP) ../run/hccap2john.exe
-
 ../run/base64conv.exe: symlink.c
 	$(CC) symlink.c -o ../run/base64conv.exe
 	$(STRIP) ../run/base64conv.exe
@@ -1860,6 +1845,9 @@ john.com: john.asm
 
 ../run/racf2john: racf2john.o
 	$(LD) $(LDFLAGS) racf2john.o jumbo.o memdbg.o -o ../run/racf2john
+
+../run/hccap2john: hccap2john.o
+	$(LD) $(LDFLAGS) common.o hccap2john.o jumbo.o memdbg.o -o ../run/hccap2john
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
 DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
