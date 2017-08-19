@@ -185,14 +185,14 @@ PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../ru
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/hccap2john \
 	../run/raw2dyna \
-	john.local.conf ../run/uaf2john \
+	../run/uaf2john \
 	../run/wpapcap2john \
 	../run/gpg2john ../run/cprepair ../run/base64conv
 PROJ_DOS = find_version ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/rar2john.com ../run/zip2john \
-	john.local.conf \
+	../run/racf2john.com ../run/hccap2john.com \
 	../run/gpg2john.com
 PROJ_WIN32 = find_version ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
@@ -200,14 +200,13 @@ PROJ_WIN32 = find_version ../run/john.exe \
 	../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/raw2dyna.exe \
-	john.local.conf ../run/gpg2john.exe ../run/base64conv.exe
+	../run/gpg2john.exe ../run/base64conv.exe
 PROJ_WIN32_MINGW = find_version ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/raw2dyna.exe \
-	john.local.conf \
 	../run/gpg2john.exe ../run/base64conv.exe
 PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
 default:
@@ -1739,10 +1738,6 @@ $(SUBDIRS):
 
 ../run/unique.com: john.com
 	copy john.com ..\run\unique.com
-
-# This must not be specified with path because "make clean" would delete it.
-john.local.conf:
-	[ -f ../run/john.local.conf ] || touch ../run/john.local.conf
 
 john.com: john.asm
 	@echo Use Borland TASM/TLINK to make JOHN.COM
