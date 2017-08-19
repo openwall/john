@@ -90,7 +90,6 @@ JOHN_OBJS = \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
 	zip2john.o pkzip.o \
-	racf2john.o \
 	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
@@ -595,10 +594,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/rar2john
 	$(LN) john ../run/rar2john
 
-../run/racf2john: ../run/john
-	$(RM) ../run/racf2john
-	$(LN) john ../run/racf2john
-
 ../run/hccap2john: ../run/john
 	$(RM) ../run/hccap2john
 	$(LN) john ../run/hccap2john
@@ -642,10 +637,6 @@ kernels: @KERNEL_OBJS@
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
 	$(STRIP) ../run/rar2john.exe
-
-../run/racf2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/racf2john.exe
-	$(STRIP) ../run/racf2john.exe
 
 ../run/hccap2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/hccap2john.exe
@@ -695,6 +686,9 @@ kernels: @KERNEL_OBJS@
 
 ../run/bitlocker2john@EXE_EXT@: bitlocker2john.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/bitlocker2john
+
+../run/racf2john@EXE_EXT@: racf2john.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ racf2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/racf2john
 
 ../run/putty2john@EXE_EXT@: putty2john.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ putty2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/putty2john
