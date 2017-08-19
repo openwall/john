@@ -122,7 +122,19 @@ echo "Compiling: Blowfish benchmark (two hashes at a time)"
 $MAKE bench || exit 1
 RES=`./bench 3` || exit 1
 if [ $RES -gt $MAX ]; then
-	BF_X2=1
+	MAX=$RES
+
+	./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 $MD5_IMM $BF_SCALE 3 > arch.h
+	rm -f $BF_DEPEND bench
+
+	echo "Compiling: Blowfish benchmark (three hashes at a time)"
+	$MAKE bench || exit 1
+	RES=`./bench 3` || exit 1
+	if [ $RES -gt $MAX ]; then
+		BF_X2=3
+	else
+		BF_X2=1
+	fi
 else
 	BF_X2=0
 fi
