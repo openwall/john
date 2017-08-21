@@ -34,7 +34,7 @@ static struct fmt_main *self;
 #include "wpapsk.h"
 
 #define FORMAT_LABEL		"wpapsk-opencl"
-#define FORMAT_NAME		"WPA/WPA2 PSK"
+#define FORMAT_NAME		"WPA/WPA2/PMF PSK"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 
 #define BENCHMARK_LENGTH	-1

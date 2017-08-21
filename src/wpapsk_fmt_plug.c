@@ -47,7 +47,7 @@ john_register_one(&fmt_wpapsk);
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk"
-#define FORMAT_NAME		"WPA/WPA2 PSK"
+#define FORMAT_NAME		"WPA/WPA2/PMF PSK"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 
 #define MIN_KEYS_PER_CRYPT	NBKEYS
