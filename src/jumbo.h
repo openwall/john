@@ -214,7 +214,7 @@ extern void *memmem(const void *haystack, size_t haystack_len,
 // We configure search for unix sleep(seconds) function, MSVC and MinGW do not have this,
 // so we replicate it with Win32 Sleep(ms) function.
 #if (AC_BUILT && !HAVE_SLEEP) || (!AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__))
-extern int sleep(int i);
+extern unsigned int sleep(unsigned int i);
 #endif
 
 #if !AC_BUILT

@@ -246,9 +246,9 @@ int64_t ftello64 (FILE * fp) {
 // We configure search for unix sleep(seconds) function, MSVC and MinGW do not have this,
 // so we replicate it with Win32 Sleep(ms) function.
 #if (AC_BUILT && !HAVE_SLEEP) || (!AC_BUILT && (_MSC_VER || __MINGW32__ || __MINGW64__))
-int sleep(int i)
+unsigned int sleep(unsigned int i)
 {
-	Sleep(1000*i);
+	Sleep(1000 * i);
 	return 0;
 }
 #endif
