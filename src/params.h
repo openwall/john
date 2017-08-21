@@ -344,7 +344,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Maximum number of character ranges for rules.
  */
-#define RULE_RANGES_MAX			16
+#define RULE_RANGES_MAX			30
 
 /*
  * Buffer size for words while applying rules, should be at least as large
