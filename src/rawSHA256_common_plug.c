@@ -11,6 +11,7 @@
 #include "formats.h"
 #include "johnswap.h"
 #include "rawSHA256_common.h"
+#include "misc.h"
 #include "memdbg.h"
 
 /* ------- Check if the ciphertext if a valid SHA2 hash ------- */
@@ -135,8 +136,7 @@ char * sha256_common_prepare(char *split_fields[10], struct fmt_main *self)
 		*o++ = itoa16[b >> 4];
 		*o++ = itoa16[b & 0x0f];
 	}
-	printf("Error in prepare()");
-	exit(1);
+	error_msg("Error in prepare()");
 }
 
 /* ------- Split ------- */

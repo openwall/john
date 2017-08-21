@@ -221,8 +221,7 @@ static void *get_salt(char *ciphertext)
 	free(ptrSID);
 
 	if (SID_size < 0){
-		printf("SID_size < 0 !");
-		exit(1);
+		error_msg("SID_size < 0 !");
 	}
 
 	p = strtokm(NULL, "*"); /* cipher algorithm */

@@ -27,6 +27,7 @@
 
 #include "KRB5_std.h"
 #include "memory.h"
+#include "misc.h"
 #include "memdbg.h"
 
 #ifdef _MSC_VER
@@ -197,8 +198,7 @@ inline static void derive_key(const void *constant, int len, krb5_key *krb5key) 
                     DES3_BLOCK_SIZE, &s[0], &s[1], &s[2], (DES_cblock *) ivec, 1);
         }
     } else {
-        printf("Error, should never get here\n");
-        exit(1);
+        error_msg("Error, should never get here\n");
     }
 
     // keytype dependent post-processing

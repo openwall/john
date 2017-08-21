@@ -30,6 +30,7 @@ john_register_one(&fmt_qnx);
 #include "formats.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
+#include "misc.h"
 
 #ifdef _OPENMP
 #ifndef OMP_SCALE
@@ -195,16 +196,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (MixOrder) {
 			int len, len_tot=0;
 			switch(cur_salt->type) {
-				case 5:
-				case 256:
-				case 512:
+			case 5:
+			case 256:
+			case 512:
 			}
 		} else
 #endif
 		{
-		int i, len = saved_len[index];
-		char *pass = saved_key[index];
-		switch (cur_salt->type) {
+			int i, len = saved_len[index];
+			char *pass = saved_key[index];
+			switch (cur_salt->type) {
 			case 5:
 			{
 				MD5_CTX ctx;
@@ -265,8 +266,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 
 			default:
-				exit(fprintf(stderr, "Unknown QNX hash type found\n"));
-		}
+				error_msg("Unknown QNX hash type found\n");
+			}
 		}
 	}
 	MEM_FREE(MixOrder);
