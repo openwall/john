@@ -190,25 +190,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < tot_todo; index += inc)
-	{
+	for (index = 0; index < tot_todo; index += inc) {
 #ifdef SIMD_COEF_32
-		if (MixOrder) {
-			int len, len_tot=0;
-			switch(cur_salt->type) {
-			case 5:
-			case 256:
-			case 512:
-			}
-		} else
+		if (!MixOrder)
 #endif
 		{
 			int i, len = saved_len[index];
 			char *pass = saved_key[index];
+
 			switch (cur_salt->type) {
 			case 5:
 			{
 				MD5_CTX ctx;
+
 				MD5_Init(&ctx);
 				MD5_Update(&ctx, cur_salt->salt, cur_salt->len);
 				for (i = 0; i <= cur_salt->rounds; ++i)
@@ -220,6 +214,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			case 256:
 			{
 				SHA256_CTX ctx;
+
 				SHA256_Init(&ctx);
 				SHA256_Update(&ctx, cur_salt->salt, cur_salt->len);
 				for (i = 0; i <= cur_salt->rounds; ++i)
@@ -231,6 +226,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			case 512:
 			{
 				SHA512_CTX ctx;
+
 				SHA512_Init(&ctx);
 				SHA512_Update(&ctx, cur_salt->salt, cur_salt->len);
 				if (len && 128 % len == 0 && cur_salt->len+len*cur_salt->rounds > 256) {
@@ -265,8 +261,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				break;
 			}
 
-			default:
-				error_msg("Unknown QNX hash type found\n");
 			}
 		}
 	}
