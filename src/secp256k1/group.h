@@ -65,7 +65,7 @@ static void secp256k1_ge_neg(secp256k1_ge *r, const secp256k1_ge *a);
 static void secp256k1_ge_set_gej(secp256k1_ge *r, secp256k1_gej *a);
 
 /** Set a batch of group elements equal to the inputs given in jacobian coordinates */
-static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a, size_t len, const secp256k1_callback *cb);
+// static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a, size_t len, const secp256k1_callback *cb);
 
 /** Set a batch of group elements equal to the inputs given in jacobian
  *  coordinates (with known z-ratios). zr must contain the known z-ratios such
@@ -95,7 +95,7 @@ static void secp256k1_gej_neg(secp256k1_gej *r, const secp256k1_gej *a);
 static int secp256k1_gej_is_infinity(const secp256k1_gej *a);
 
 /** Check whether a group element's y coordinate is a quadratic residue. */
-static int secp256k1_gej_has_quad_y_var(const secp256k1_gej *a);
+// static int secp256k1_gej_has_quad_y_var(const secp256k1_gej *a);
 
 /** Set r equal to the double of a. If rzr is not-NULL, r->z = a->z * *rzr (where infinity means an implicit z = 0).
  * a may not be zero. Constant time. */
@@ -105,7 +105,7 @@ static void secp256k1_gej_double_nonzero(secp256k1_gej *r, const secp256k1_gej *
 static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, secp256k1_fe *rzr);
 
 /** Set r equal to the sum of a and b. If rzr is non-NULL, r->z = a->z * *rzr (a cannot be infinity in that case). */
-static void secp256k1_gej_add_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_gej *b, secp256k1_fe *rzr);
+// static void secp256k1_gej_add_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_gej *b, secp256k1_fe *rzr);
 
 /** Set r equal to the sum of a and b (with b given in affine coordinates, and not infinity). */
 static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b);
