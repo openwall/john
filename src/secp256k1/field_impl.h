@@ -223,6 +223,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
     secp256k1_fe_mul(r, a, &t1);
 }
 
+#if 0
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 #if defined(USE_FIELD_INV_BUILTIN)
     secp256k1_fe_inv(r, a);
@@ -259,7 +260,9 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 #error "Please select field inverse implementation"
 #endif
 }
+#endif
 
+#if 0
 static void secp256k1_fe_inv_all_var(secp256k1_fe *r, const secp256k1_fe *a, size_t len) {
     secp256k1_fe u;
     size_t i;
@@ -286,7 +289,9 @@ static void secp256k1_fe_inv_all_var(secp256k1_fe *r, const secp256k1_fe *a, siz
 
     r[0] = u;
 }
+#endif
 
+#if 0
 static int secp256k1_fe_is_quad_var(const secp256k1_fe *a) {
 #ifndef USE_NUM_NONE
     unsigned char b[32];
@@ -311,5 +316,6 @@ static int secp256k1_fe_is_quad_var(const secp256k1_fe *a) {
     return secp256k1_fe_sqrt(&r, a);
 #endif
 }
+#endif
 
 #endif

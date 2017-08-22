@@ -103,19 +103,19 @@ static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
 static int secp256k1_fe_sqrt(secp256k1_fe *r, const secp256k1_fe *a);
 
 /** Checks whether a field element is a quadratic residue. */
-static int secp256k1_fe_is_quad_var(const secp256k1_fe *a);
+// static int secp256k1_fe_is_quad_var(const secp256k1_fe *a);
 
 /** Sets a field element to be the (modular) inverse of another. Requires the input's magnitude to be
  *  at most 8. The output magnitude is 1 (but not guaranteed to be normalized). */
 static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a);
 
 /** Potentially faster version of secp256k1_fe_inv, without constant-time guarantee. */
-static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a);
+// static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a);
 
 /** Calculate the (modular) inverses of a batch of field elements. Requires the inputs' magnitudes to be
  *  at most 8. The output magnitudes are 1 (but not guaranteed to be normalized). The inputs and
  *  outputs must not overlap in memory. */
-static void secp256k1_fe_inv_all_var(secp256k1_fe *r, const secp256k1_fe *a, size_t len);
+// static void secp256k1_fe_inv_all_var(secp256k1_fe *r, const secp256k1_fe *a, size_t len);
 
 /** Convert a field element to the storage type. */
 static void secp256k1_fe_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a);

@@ -91,9 +91,11 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
     secp256k1_ecmult_gen_blind(ctx, NULL);
 }
 
+#if 0
 static int secp256k1_ecmult_gen_context_is_built(const secp256k1_ecmult_gen_context* ctx) {
     return ctx->prec != NULL;
 }
+#endif
 
 static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst,
                                                const secp256k1_ecmult_gen_context *src, const secp256k1_callback* cb) {

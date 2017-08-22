@@ -213,9 +213,11 @@ static void secp256k1_ecmult_context_clone(secp256k1_ecmult_context *dst,
 #endif
 }
 
+#if 0
 static int secp256k1_ecmult_context_is_built(const secp256k1_ecmult_context *ctx) {
     return ctx->pre_g != NULL;
 }
+#endif
 
 static void secp256k1_ecmult_context_clear(secp256k1_ecmult_context *ctx) {
     free(ctx->pre_g);
