@@ -61,6 +61,10 @@ static struct fmt_tests tests[] = {
 	{"$pgpdisk$0*5*12608*72eacfad309a37bf169a4c7375a583d2*5725d6c36ded48b4309edb2e7fcdc69c", "äbc"},
 	{"$pgpdisk$0*5*14813*72eacfad309a37bf169a4c7375a583d2*d3e61d400fecc177a100f576a5138570", "bar"},
 	{"$pgpdisk$0*5*14792*72eacfad309a37bf169a4c7375a583d2*304ae364c311bbde2d6965ca3246a823", "foo"},
+	{"$pgpdisk$0*7*17739*fb5de863aa2766aff5562db5a7b34ffd*9ca8d6b97c7ebea876f7db7fe35d9f15", "openwall"}, // EME2-AES
+	// Windows XP SP3 + PGP 8.0
+	{"$pgpdisk$0*3*16000*3248d14732ecfb671dda27fd614813bc*4829a0152666928f0000000000000000", "openwall"},
+	{"$pgpdisk$0*4*16000*b47a66d9d4cf45613c3c73a2952d7b88*4e1cd2de6e986d999e1676b2616f5337", "openwall"},
 	{NULL}
 };
 
@@ -116,7 +120,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto bail;
 	res = atoi(p);
-	if (res != 5 && res != 4 && res != 3) // AES-256, Twofish, CAST5
+	if (res != 7 && res != 6 && res != 5 && res != 4 && res != 3) // EME-AES, EME2-AES, AES-256, Twofish, CAST5
 		goto bail;
 	if ((p = strtokm(NULL, "*")) == NULL) // iterations
 		goto bail;
@@ -250,7 +254,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
 			unsigned char key[40];
 
-			if (cur_salt->algorithm == 5) {
+			if (cur_salt->algorithm == 5 || cur_salt->algorithm == 6 || cur_salt->algorithm == 7) {
 				AES_KEY aes_key;
 
 				pgpdisk_kdf(saved_key[i+index], cur_salt->salt, key, 32);

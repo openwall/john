@@ -8,8 +8,8 @@
 #
 # Written in August of 2017 based on PGPDesktop10.0.1_Source.zip.
 #
-# Only tested with Symantec Encryption Desktop 10.4.1 MP1 running on Windows 7
-# SP1 and macOS Sierra.
+# Tested with Symantec Encryption Desktop (SED) 10.4.1 MP1 running on Windows 7
+# SP1 and macOS Sierra. Also tested with PGP 8.0 running on Windows XP SP3.
 
 import os
 import sys
@@ -253,8 +253,8 @@ def process_file(filename):
         fields = struct.unpack(OnDiskMainHeader_fmt, idata)
         headerMagic, headerType, headerSize, headerCRC, nextHeaderOffset, reserved, majorVersion, minorVersion, _, _, _, _, algorithm, salt, something, customTimeout, numBlocksReEncrypted, defaultRoot  = fields[0:18]
         if headerMagic == b"PGPd" and headerType == b"MAIN":
-            if algorithm != 5 and algorithm != 4 and algorithm != 3:
-                sys.stderr.write("Only AES-256, Twofish, CAST5 algorithms are supported currently. Found (%d) instead!\n" % algorithm)
+            if algorithm != 7 and algorithm != 6 and algorithm != 5 and algorithm != 4 and algorithm != 3:
+                sys.stderr.write("Only AES-256, Twofish, CAST5, EME-AES, EME2-AES algorithms are supported currently. Found (%d) instead!\n" % algorithm)
                 return
             if majorVersion != 7 and majorVersion != 6:
                 sys.stderr.write("Untested majorVersion (%d) found, not generating a hash!\n" % majorVersion)
