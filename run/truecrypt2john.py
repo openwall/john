@@ -21,10 +21,10 @@
 import sys
 from os.path import basename
 import binascii
+import optparse
 
 
-def process_file(filename, keyfiles):
-
+def process_file(filename, keyfiles, options):
     try:
         f = open(filename, "rb")
     except Exception as e:
@@ -37,7 +37,12 @@ def process_file(filename, keyfiles):
         sys.stderr.write("%s : Truecrypt volume file to short: Need at least 512 bytes\n", filename)
         return
 
-    for tag in ["truecrypt_RIPEMD_160", "truecrypt_SHA_512", "truecrypt_WHIRLPOOL"]:
+    if options.boot_mode:
+        tags = ["truecrypt_RIPEMD_160_BOOT"]
+    else:
+        tags = ["truecrypt_RIPEMD_160", "truecrypt_SHA_512", "truecrypt_WHIRLPOOL"]
+
+    for tag in tags:
         sys.stdout.write("%s:%s$" % (basename(filename), tag))
         sys.stdout.write(binascii.hexlify(header))
         if keyfiles:
@@ -71,13 +76,18 @@ def process_file(filename, keyfiles):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Error: No truecrypt volume file specified.\n")
-        sys.stderr.write("\nUtility to import TrueCrypt volume to a format crackeable by John The Ripper\n")
-        sys.stderr.write("\nUsage: %s volume_filename [keyfiles(s)]> output_file\n" % sys.argv[0])
+        sys.stderr.write("Utility to import TrueCrypt volume to a format crackeable by John The Ripper\n")
+        sys.stderr.write("\nUsage: %s [-b] volume_filename [keyfiles(s)]> output_file\n" % sys.argv[0])
+        sys.stderr.write("\nEnable -b only when attacking TrueCrypt's boot mode.\n")
+        sys.stderr.write("\nError: No truecrypt volume file specified.\n")
         sys.exit(-1)
 
-    keyfiles = []
-    if len(sys.argv) > 2:
-        keyfiles = sys.argv[2:]
+    parser = optparse.OptionParser()
+    parser.add_option('-b', action="store_true", default=False, dest="boot_mode")
+    options, remainder = parser.parse_args()
 
-    process_file(sys.argv[1], keyfiles)
+    keyfiles = []
+    if len(remainder) > 2:
+        keyfiles = remainder[1:]
+
+    process_file(remainder[0], keyfiles, options)

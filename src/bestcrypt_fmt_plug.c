@@ -32,7 +32,7 @@ john_register_one(&fmt_bestcrypt);
 #include "loader.h"
 #include "pkcs12.h"
 #include "aes.h"
-#include "aes_xts.h"
+#include "xts.h"
 #include "sph_whirlpool.h"
 #include "memdbg.h"
 
