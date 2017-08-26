@@ -150,7 +150,7 @@ static int PKCS1oaepMGF1Unpack(uint8_t *in, uint32_t inlen, unsigned char *p, ui
 		return -1; // corrupt data
 	}
 
-	memcpy(msg, msg + i + 1, inlen - 1 - i);
+	// memmove(msg, msg + i + 1, inlen - 1 - i); // we don't really use this data
 	*msglen = inlen - 1 - i - 1;
 
 	return 0; // success
