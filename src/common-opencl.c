@@ -2435,6 +2435,8 @@ char *get_opencl_header_version()
 
 char *get_error_name(cl_int cl_error)
 {
+	char *message;
+	static char out[128];
 	static char *err_small[] = {
 		"CL_SUCCESS", "CL_DEVICE_NOT_FOUND", "CL_DEVICE_NOT_AVAILABLE",
 		"CL_COMPILER_NOT_AVAILABLE",
@@ -2472,14 +2474,14 @@ char *get_error_name(cl_int cl_error)
 		"CL_INVALID_DEVICE_PARTITION_COUNT"
 	};
 
-	if (cl_error <= 0 && cl_error >= -19) {
-		return err_small[-cl_error];
-	}
-	if (cl_error <= -30 && cl_error >= -68) {
-		return err_invalid[-cl_error - 30];
-	}
-
-	return "UNKNOWN OPENCL ERROR";
+	if (cl_error <= 0 && cl_error >= -19)
+		message = err_small[-cl_error];
+	else if (cl_error <= -30 && cl_error >= -68)
+		message = err_invalid[-cl_error - 30];
+	else
+		message = "UNKNOWN OPENCL ERROR";
+	sprintf(out, "%s (%d)", message, cl_error);
+	return out;
 }
 
 static char *human_format(size_t size)
