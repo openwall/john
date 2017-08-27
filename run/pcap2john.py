@@ -16,6 +16,7 @@ import dpkt.stp as stp
 import struct
 import socket
 from binascii import hexlify
+import time
 
 import os
 import logging
@@ -1062,14 +1063,23 @@ def pcap_parser_ah(fname):
     f.close()
 
 
+def note():
+    sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, and vncpcap2john.\n")
+
+
 ############################################################
 # original main, but now calls multiple 2john routines, all
 # cut from the original independent convert programs.
 ############################################################
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [.pcap files]\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [.pcap files]\n\n" % sys.argv[0])
+        note()
         sys.exit(-1)
+
+    # advertise what is not handled
+    note()
+    time.sleep(2)
 
     for i in range(1, len(sys.argv)):
         try:
@@ -1084,11 +1094,6 @@ if __name__ == "__main__":
             pass
         pcap_parser_vrrp(sys.argv[i])
         pcap_parser_tcpmd5(sys.argv[i])
-        try:
-            pcap_parser_s7(sys.argv[i])
-        except:
-            # sys.stderr.write("s7 could not handle input\n")
-            pass
         pcap_parser_rsvp(sys.argv[i])
         pcap_parser_ntp(sys.argv[i])
         pcap_parser_isis(sys.argv[i])
@@ -1098,3 +1103,8 @@ if __name__ == "__main__":
         pcap_parser_gadu(sys.argv[i])
         pcap_parser_eigrp(sys.argv[i])
         pcap_parser_tgsrep(sys.argv[i])
+        try:
+            pcap_parser_s7(sys.argv[i])
+        except:
+            # sys.stderr.write("DEBUG: s7 parser could not handle input\n")
+            pass
