@@ -3,7 +3,7 @@
 # http://anonsvn.wireshark.org/wireshark/trunk/doc/README.xml-output
 #
 # For extracting "AS-REQ (krb-as-req)" hashes,
-# tshark -r AD-capture-2.pcapng -T pdml  > data.pdml
+# tshark -r AD-capture-2.pcapng -T pdml > data.pdml
 # tshark -2 -r test.pcap -R "tcp.dstport==88 or udp.dstport==88" -T pdml >> data.pdml
 # ./run/krbpa2john.py data.pdml
 #
@@ -15,6 +15,9 @@
 #
 # $ tshark -v
 # TShark 1.10.6 (v1.10.6 from master-1.10)
+#
+# August 2017 update -> Extracts AS-REP hashes too. Crack such hashes with
+# krb5asrep format.
 
 import sys
 try:
@@ -40,7 +43,7 @@ def process_file(f):
         if not r:
             continue
         if isinstance(r, list):
-            r  = r[0]
+            r = r[0]
         message_type = r.attrib["show"]
 
         # "kerberos.etype_info2.salt" value (salt) needs to be extracted
@@ -65,7 +68,7 @@ def process_file(f):
             if not r:
                 continue
             if isinstance(r, list):
-                r  = r[0]
+                r = r[0]
             PA_DATA_ENC_TIMESTAMP = r.attrib["value"]
 
             # locate etype
@@ -73,7 +76,7 @@ def process_file(f):
             if not r:
                 continue
             if isinstance(r, list):
-                r  = r[0]
+                r = r[0]
             etype = r.attrib["show"]
 
             # locate realm
@@ -81,14 +84,14 @@ def process_file(f):
             if not r:
                 continue
             if isinstance(r, list):
-                r  = r[0]
+                r = r[0]
             realm = r.attrib["show"]
 
             # locate cname
             r = msg.xpath('.//field[@name="kerberos.req_body_element"]//field[@name="kerberos.KerberosString"]') or msg.xpath('.//field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]') or msg.xpath('.//field[@name="kerberos.req_body_element"]//field[@name="kerberos.CNameString"]')
             if r:
                 if isinstance(r, list):
-                    r  = r[0]
+                    r = r[0]
                 user = r.attrib["show"]
 
             if user == "":
@@ -116,7 +119,7 @@ def process_file(f):
             if not r:
                 continue
             if isinstance(r, list):
-                r  = r[0]
+                r = r[0]
             encrypted_timestamp = r.attrib["value"]
 
             # locate etype
@@ -124,7 +127,7 @@ def process_file(f):
             if not r:
                 continue
             if isinstance(r, list):
-                r  = r[0]
+                r = r[0]
             etype = r.attrib["show"]
 
             # locate realm
@@ -132,21 +135,21 @@ def process_file(f):
             if not r:
                 continue
             if isinstance(r, list):
-                r  = r[0]
+                r = r[0]
             realm = r.attrib["show"]
 
             # locate cname
             r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]')
             if r:
                 if isinstance(r, list):
-                    r  = r[0]
+                    r = r[0]
                 user = r.attrib["show"]
 
             # locate salt
             r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.etype_info2.salt"]')
             if r:
                 if isinstance(r, list):
-                    r  = r[0]
+                    r = r[0]
                 salt = r.attrib["show"]
 
             if user == "":
@@ -155,6 +158,32 @@ def process_file(f):
             sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s\n" % (user,
                 etype, user, realm, binascii.unhexlify(salt),
                 encrypted_timestamp))
+
+    for msg in messages:  # extract hashes from AS-REP messages
+        r = msg.xpath('.//field[@name="kerberos.msg_type"]') or msg.xpath('.//field[@name="kerberos.msg.type"]')
+        if not r:
+            continue
+        if isinstance(r, list):
+            r = r[0]
+        message_type = r.attrib["show"]
+
+        if message_type == "11":  # Kerberos AS-REP
+            # locate the hash
+            rs = msg.xpath('.//field[@name="kerberos.enc_part_element"]')
+            if not rs:
+                continue
+            if isinstance(rs, list):
+                for r in rs:
+                    v = r.xpath('.//field[@name="kerberos.etype"]')
+                    if isinstance(v, list):
+                        v = v[0]
+                    if v.attrib["show"] != "23":
+                        continue
+                    v = r.xpath('.//field[@name="kerberos.cipher"]')
+                    if isinstance(v, list):
+                        v = v[0]
+                    data = v.attrib["value"]
+                    sys.stdout.write("$krb5asrep$23$%s$%s\n" % (data[0:32], data[32:]))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
