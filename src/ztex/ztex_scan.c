@@ -58,8 +58,9 @@ int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list
 			count++;
 			continue;
 		}
-		// dummy firmware, do upload
-		else if (!strncmp("USB-FPGA Module 1.15y (default)", dev->product_string, 31)) {
+		// 3rd party firmware or dummy firmware, do upload/override
+		else if (ZTEX_FW_3RD_PARTY_OVERWRITE
+			|| !strncmp("USB-FPGA Module 1.15y (default)", dev->product_string, 31)) {
 			// upload firmware
 			result = ztex_firmware_upload(dev, ZTEX_FW_IHX_PATH);
 			if (result >= 0) {
