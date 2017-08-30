@@ -73,7 +73,7 @@ void cmp_config_new(struct db_salt *salt, void *salt_ptr, int salt_len)
 	if (num_hashes > jtr_bitstream->cmp_entries_max) {
 		num_hashes = jtr_bitstream->cmp_entries_max;
 		if (!warning_num_hashes) {
-			fprintf(stderr, "Warning: salt with %d hashes, device supports"
+			fprintf(stderr, "Warning: salt with %d hashes, device supports "
 				"max. %d hashes/salt, extra hashes ignored\n",
 				salt->count, jtr_bitstream->cmp_entries_max);
 			warning_num_hashes = 1;
@@ -128,6 +128,8 @@ void cmp_config_new(struct db_salt *salt, void *salt_ptr, int salt_len)
 			continue;
 		cmp_config.pw[offset++] = pw;
 		cmp_config.num_hashes ++;
+		if (cmp_config.num_hashes == jtr_bitstream->cmp_entries_max)
+			break;
 	}
 
 	if (cmp_config.num_hashes == 1)
