@@ -201,7 +201,19 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #endif
 
 #if gpu_nvidia(DEVICE_INFO)
-// Faster on nvidia, no difference on AMD
+
+#define GET_UINT32BE_UNALIGNED(n, b, i)	  \
+	{ \
+		(n) = ((uint) (b)[(i)] << 24) \
+			| ((uint) (b)[(i) + 1] << 16) \
+			| ((uint) (b)[(i) + 2] <<  8) \
+			| ((uint) (b)[(i) + 3]      ); \
+	}
+
+/*
+ * Faster on nvidia, no difference on AMD
+ * NOTE: This version needs b to be aligned as int!
+ */
 #if __ENDIAN_LITTLE__
 #define GET_UINT32BE(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
 #define PUT_UINT32BE(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)

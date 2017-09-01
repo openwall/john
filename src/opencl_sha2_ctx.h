@@ -38,22 +38,44 @@ inline
 void _sha256_process(SHA256_CTX *ctx, const uchar data[64]) {
 	uint t, W[16], A, B, C, D, E, F, G, H;
 
-	GET_UINT32BE(W[ 0], data,  0);
-	GET_UINT32BE(W[ 1], data,  4);
-	GET_UINT32BE(W[ 2], data,  8);
-	GET_UINT32BE(W[ 3], data, 12);
-	GET_UINT32BE(W[ 4], data, 16);
-	GET_UINT32BE(W[ 5], data, 20);
-	GET_UINT32BE(W[ 6], data, 24);
-	GET_UINT32BE(W[ 7], data, 28);
-	GET_UINT32BE(W[ 8], data, 32);
-	GET_UINT32BE(W[ 9], data, 36);
-	GET_UINT32BE(W[10], data, 40);
-	GET_UINT32BE(W[11], data, 44);
-	GET_UINT32BE(W[12], data, 48);
-	GET_UINT32BE(W[13], data, 52);
-	GET_UINT32BE(W[14], data, 56);
-	GET_UINT32BE(W[15], data, 60);
+#if gpu_nvidia(DEVICE_INFO)
+	if ((ulong)data & 0x03) {
+		GET_UINT32BE_UNALIGNED(W[ 0], data,  0);
+		GET_UINT32BE_UNALIGNED(W[ 1], data,  4);
+		GET_UINT32BE_UNALIGNED(W[ 2], data,  8);
+		GET_UINT32BE_UNALIGNED(W[ 3], data, 12);
+		GET_UINT32BE_UNALIGNED(W[ 4], data, 16);
+		GET_UINT32BE_UNALIGNED(W[ 5], data, 20);
+		GET_UINT32BE_UNALIGNED(W[ 6], data, 24);
+		GET_UINT32BE_UNALIGNED(W[ 7], data, 28);
+		GET_UINT32BE_UNALIGNED(W[ 8], data, 32);
+		GET_UINT32BE_UNALIGNED(W[ 9], data, 36);
+		GET_UINT32BE_UNALIGNED(W[10], data, 40);
+		GET_UINT32BE_UNALIGNED(W[11], data, 44);
+		GET_UINT32BE_UNALIGNED(W[12], data, 48);
+		GET_UINT32BE_UNALIGNED(W[13], data, 52);
+		GET_UINT32BE_UNALIGNED(W[14], data, 56);
+		GET_UINT32BE_UNALIGNED(W[15], data, 60);
+	} else
+#endif
+	{
+		GET_UINT32BE(W[ 0], data,  0);
+		GET_UINT32BE(W[ 1], data,  4);
+		GET_UINT32BE(W[ 2], data,  8);
+		GET_UINT32BE(W[ 3], data, 12);
+		GET_UINT32BE(W[ 4], data, 16);
+		GET_UINT32BE(W[ 5], data, 20);
+		GET_UINT32BE(W[ 6], data, 24);
+		GET_UINT32BE(W[ 7], data, 28);
+		GET_UINT32BE(W[ 8], data, 32);
+		GET_UINT32BE(W[ 9], data, 36);
+		GET_UINT32BE(W[10], data, 40);
+		GET_UINT32BE(W[11], data, 44);
+		GET_UINT32BE(W[12], data, 48);
+		GET_UINT32BE(W[13], data, 52);
+		GET_UINT32BE(W[14], data, 56);
+		GET_UINT32BE(W[15], data, 60);
+	}
 
 	A = ctx->state[0];
 	B = ctx->state[1];
