@@ -157,14 +157,28 @@ void SHA256_Final(uchar output[32], SHA256_CTX *ctx) {
 	SHA256_Update(ctx, sha256_padding, padn);
 	SHA256_Update(ctx, msglen, 8);
 
-	PUT_UINT32BE(ctx->state[0], output,  0);
-	PUT_UINT32BE(ctx->state[1], output,  4);
-	PUT_UINT32BE(ctx->state[2], output,  8);
-	PUT_UINT32BE(ctx->state[3], output, 12);
-	PUT_UINT32BE(ctx->state[4], output, 16);
-	PUT_UINT32BE(ctx->state[5], output, 20);
-	PUT_UINT32BE(ctx->state[6], output, 24);
-	PUT_UINT32BE(ctx->state[7], output, 28);
+#if gpu_nvidia(DEVICE_INFO)
+	if ((ulong)output & 0x03) {
+		PUT_UINT32BE_UNALIGNED(ctx->state[0], output,  0);
+		PUT_UINT32BE_UNALIGNED(ctx->state[1], output,  4);
+		PUT_UINT32BE_UNALIGNED(ctx->state[2], output,  8);
+		PUT_UINT32BE_UNALIGNED(ctx->state[3], output, 12);
+		PUT_UINT32BE_UNALIGNED(ctx->state[4], output, 16);
+		PUT_UINT32BE_UNALIGNED(ctx->state[5], output, 20);
+		PUT_UINT32BE_UNALIGNED(ctx->state[6], output, 24);
+		PUT_UINT32BE_UNALIGNED(ctx->state[7], output, 28);
+	} else
+#endif
+	{
+		PUT_UINT32BE(ctx->state[0], output,  0);
+		PUT_UINT32BE(ctx->state[1], output,  4);
+		PUT_UINT32BE(ctx->state[2], output,  8);
+		PUT_UINT32BE(ctx->state[3], output, 12);
+		PUT_UINT32BE(ctx->state[4], output, 16);
+		PUT_UINT32BE(ctx->state[5], output, 20);
+		PUT_UINT32BE(ctx->state[6], output, 24);
+		PUT_UINT32BE(ctx->state[7], output, 28);
+	}
 }
 
 #endif // #ifndef _OPENCL_SHA2_CTX_H

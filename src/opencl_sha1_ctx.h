@@ -188,11 +188,22 @@ void SHA1_Final(uchar output[20], SHA_CTX *ctx) {
 	SHA1_Update(ctx, sha1_padding, padn);
 	SHA1_Update(ctx, msglen, 8);
 
-	PUT_UINT32BE(ctx->state[0], output,  0);
-	PUT_UINT32BE(ctx->state[1], output,  4);
-	PUT_UINT32BE(ctx->state[2], output,  8);
-	PUT_UINT32BE(ctx->state[3], output, 12);
-	PUT_UINT32BE(ctx->state[4], output, 16);
+#if gpu_nvidia(DEVICE_INFO)
+	if ((ulong)output & 0x03) {
+		PUT_UINT32BE_UNALIGNED(ctx->state[0], output,  0);
+		PUT_UINT32BE_UNALIGNED(ctx->state[1], output,  4);
+		PUT_UINT32BE_UNALIGNED(ctx->state[2], output,  8);
+		PUT_UINT32BE_UNALIGNED(ctx->state[3], output, 12);
+		PUT_UINT32BE_UNALIGNED(ctx->state[4], output, 16);
+	} else
+#endif
+	{
+		PUT_UINT32BE(ctx->state[0], output,  0);
+		PUT_UINT32BE(ctx->state[1], output,  4);
+		PUT_UINT32BE(ctx->state[2], output,  8);
+		PUT_UINT32BE(ctx->state[3], output, 12);
+		PUT_UINT32BE(ctx->state[4], output, 16);
+	}
 }
 
 #endif // #ifndef _OPENCL_SHA1_CTX_H

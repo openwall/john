@@ -210,6 +210,14 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 			| ((uint) (b)[(i) + 3]      ); \
 	}
 
+#define PUT_UINT32BE_UNALIGNED(n, b, i)	  \
+	{ \
+		(b)[(i)    ] = (uchar) ((n) >> 24); \
+		(b)[(i) + 1] = (uchar) ((n) >> 16); \
+		(b)[(i) + 2] = (uchar) ((n) >>  8); \
+		(b)[(i) + 3] = (uchar) ((n)      ); \
+	}
+
 /*
  * Faster on nvidia, no difference on AMD
  * NOTE: This version needs b to be aligned as int!
