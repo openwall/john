@@ -21,7 +21,9 @@ struct fmt_tests pgpdisk_tests[] = {
 	{"$pgpdisk$0*5*14813*72eacfad309a37bf169a4c7375a583d2*d3e61d400fecc177a100f576a5138570", "bar"},
 	{"$pgpdisk$0*5*14792*72eacfad309a37bf169a4c7375a583d2*304ae364c311bbde2d6965ca3246a823", "foo"},
 	{"$pgpdisk$0*7*17739*fb5de863aa2766aff5562db5a7b34ffd*9ca8d6b97c7ebea876f7db7fe35d9f15", "openwall"}, // EME2-AES
+#if PLAINTEXT_LENGTH >= 125
 	{"$pgpdisk$0*5*19193*5d535ca4089270b24e8cd32e2dc8f6c8*8094cde867c142452c1ed82c59655d0a", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, // 125 a's
+#endif
 	// Windows XP SP3 + PGP 8.0
 	{"$pgpdisk$0*3*16000*3248d14732ecfb671dda27fd614813bc*4829a0152666928f0000000000000000", "openwall"},
 	{"$pgpdisk$0*4*16000*b47a66d9d4cf45613c3c73a2952d7b88*4e1cd2de6e986d999e1676b2616f5337", "openwall"},
