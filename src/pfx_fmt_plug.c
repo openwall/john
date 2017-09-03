@@ -78,8 +78,7 @@ static struct fmt_tests tests[] = {
 
 static struct custom_salt  *cur_salt;
 
-/* not quite sure why this has to be PTL+2, but if it is not it will only find max_lengh-1 passwords! */
-static char (*saved_key)[PLAINTEXT_LENGTH + 2];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 

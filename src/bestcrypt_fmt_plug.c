@@ -124,7 +124,7 @@ static struct custom_salt {
 	unsigned char key[256]; // one active key per hash
 } *cur_salt;
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 2];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static int *cracked, cracked_count;
 
