@@ -1800,31 +1800,31 @@ john.com: john.asm
 ../run/genmkvpwd.exe: $(GENMKVPWD_OBJS)
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS_MKV) -o ../run/genmkvpwd.exe
 
-../run/mkvcalcproba: mkvcalcproba.o
+../run/mkvcalcproba: mkvcalcproba.o memdbg.o
 	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/mkvcalcproba
 
-../run/mkvcalcproba.exe: mkvcalcproba.o
+../run/mkvcalcproba.exe: mkvcalcproba.o memdbg.o
 	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/mkvcalcproba.exe
 
-../run/calc_stat: calc_stat.o
+../run/calc_stat: calc_stat.o memdbg.o
 	$(LD) calc_stat.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/calc_stat
 
-../run/calc_stat.exe: calc_stat.o
+../run/calc_stat.exe: calc_stat.o memdbg.o
 	$(LD) calc_stat.o memdbg.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/calc_stat.exe
 
-../run/raw2dyna: raw2dyna.o
+../run/raw2dyna: raw2dyna.o memdbg.o
 	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna
 
-../run/raw2dyna.exe: raw2dyna.o
+../run/raw2dyna.exe: raw2dyna.o memdbg.o
 	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna.exe
 
-../run/SIPdump: SIPdump.o
+../run/SIPdump: SIPdump.o memdbg.o
 	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -lpcap $(OMPFLAGS) -o ../run/SIPdump
 
-../run/vncpcap2john: vncpcap2john.o
+../run/vncpcap2john: vncpcap2john.o memdbg.o
 	$(CC) $(JOHN_CFLAGS) -Wall vncpcap2john.o memdbg.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
 
-../run/uaf2john: uaf2john.o uaf_encode.o
+../run/uaf2john: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode.o memdbg.o $(OMPFLAGS) -o ../run/uaf2john
 
 ../run/wpapcap2john: wpapcap2john.o jumbo.o memdbg.o
@@ -1835,13 +1835,13 @@ john.com: john.asm
 	$(CC) -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
 	misc.c memdbg.c -o ../run/cprepair
 
-../run/tgtsnarf: tgtsnarf.o
+../run/tgtsnarf: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/tgtsnarf
 
-../run/racf2john: racf2john.o
+../run/racf2john: racf2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) racf2john.o jumbo.o memdbg.o -o ../run/racf2john
 
-../run/hccap2john: hccap2john.o
+../run/hccap2john: common.o hccap2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) common.o hccap2john.o jumbo.o memdbg.o -o ../run/hccap2john
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
