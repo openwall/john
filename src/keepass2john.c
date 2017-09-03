@@ -211,7 +211,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	key_transf_rounds = fget32(fp);
 	/* Check if the database is supported */
 	if ((version & 0xFFFFFF00) != (0x00030002 & 0xFFFFFF00)) {
-		fprintf(stderr, "! %s : Unsupported file version!\n", encryptedDatabase);
+		fprintf(stderr, "! %s : Unsupported file version (%u)!\n", encryptedDatabase, version);
 		return;
 	}
 	/* src/Kdb3Database.cpp from KeePass 0.4.3 is authoritative */
@@ -220,7 +220,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	} else if (enc_flag & 8) {
 		algorithm = 1; // Twofish
 	} else {
-		fprintf(stderr, "! %s : Unsupported file encryption!\n", encryptedDatabase);
+		fprintf(stderr, "! %s : Unsupported file encryption (%u)!\n", encryptedDatabase, enc_flag);
 		return;
 	}
 
