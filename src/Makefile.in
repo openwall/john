@@ -669,22 +669,22 @@ kernels: @KERNEL_OBJS@
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
-../run/keepass2john@EXE_EXT@: keepass2john.o memdbg.o
+../run/keepass2john@EXE_EXT@: keepass2john.o jumbo.o memdbg.o base64.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o base64.o @OPENMP_CFLAGS@ -lcrypto -o ../run/keepass2john
 
-../run/dmg2john@EXE_EXT@: dmg2john.o memdbg.o
+../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/dmg2john
 
-../run/bitlocker2john@EXE_EXT@: bitlocker2john.o memdbg.o
+../run/bitlocker2john@EXE_EXT@: bitlocker2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/bitlocker2john
 
-../run/racf2john@EXE_EXT@: racf2john.o memdbg.o
+../run/racf2john@EXE_EXT@: racf2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ racf2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/racf2john
 
-../run/hccap2john@EXE_EXT@: hccap2john.o memdbg.o
+../run/hccap2john@EXE_EXT@: hccap2john.o common.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ common.o hccap2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/hccap2john
 
-../run/putty2john@EXE_EXT@: putty2john.o memdbg.o
+../run/putty2john@EXE_EXT@: putty2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ putty2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/putty2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
