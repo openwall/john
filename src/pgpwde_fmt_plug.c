@@ -49,7 +49,7 @@ john_register_one(&fmt_pgpwde);
 
 static struct custom_salt *cur_salt;
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 2];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
 // In PGP WDE, s2ktype == 100

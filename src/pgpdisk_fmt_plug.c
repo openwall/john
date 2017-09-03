@@ -53,7 +53,7 @@ john_register_one(&fmt_pgpdisk);
 
 static struct custom_salt *cur_salt;
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 2];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
