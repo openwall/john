@@ -13,6 +13,8 @@ struct fmt_tests pgpsda_tests[] = {
 	// Windows XP SP3 + PGP 8.0 generated SDAs
 	{"$pgpsda$0*16000*12ad24b8dd12b751*19504b5f4e85c760", "openwall"},
 	{"$pgpsda$0*16000*1e9be7b5ff672e90*7393cd5cdda0ca1f", "12345678"},
+	// Windows 7 + Symantec Encryption Desktop 10.4.1 MP1
+	{"$pgpsda$0*16000*3eb37ca9dfc4f161*fc937f6faaa07355", "åååååååå"},
 	{NULL}
 };
 
