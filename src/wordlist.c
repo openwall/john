@@ -643,7 +643,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (rec_restored && john_main_process)
 		fprintf(stderr,
 		        "Proceeding with wordlist:%s and rules:%s\n",
-		        loopBack ? "loopback" : path_expand(name),
+		        loopBack ? "loopback" : name ? path_expand(name) : "stdin",
 		        options.activewordlistrules ?
 		        options.activewordlistrules : "none");
 
