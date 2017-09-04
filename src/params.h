@@ -353,6 +353,12 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define RULE_WORD_SIZE			0x80
 
 /*
+ * By default we mute some rules logging in pipe mode, if number of rules
+ * (after PP and dupe rule suppression) is larger than this threshold.
+ */
+#define RULES_MUTE_THR			1000
+
+/*
  * Buffer size for plaintext passwords.
  */
 #define PLAINTEXT_BUFFER_SIZE		0x80

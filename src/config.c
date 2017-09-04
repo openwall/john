@@ -115,7 +115,7 @@ static void cfg_add_section(char *name)
 						fprintf(stderr, "Warning! john.conf section [%s] is multiple declared.\n", name);
 				}
 #ifndef BENCH_BUILD
-				else if (john_main_process && options.verbosity > VERB_LEGACY)
+				else if (john_main_process && options.verbosity >= VERB_DEFAULT)
 					fprintf(stderr, "Warning! Section [%s] overridden by john-local.conf\n", name);
 #endif
 				break;
@@ -426,7 +426,7 @@ void cfg_get_int_array(char *section, char *subsection, char *param,
 			s_value = error + 1;
 		}
 	}
-	
+
 	for ( ; i < array_len; i++)
 		array[i] = -1;
 }

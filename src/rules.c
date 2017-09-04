@@ -72,6 +72,14 @@ struct HashPtr *pHashTbl, *pHashDat;
 static struct cfg_list rules_tmp_dup_removal;
 static int             rules_tmp_dup_removal_cnt;
 
+/*
+ * If rules are used with "-pipe" and there's a large number of them,
+ * some rules logging will be muted unless verbosity is bumped.
+ * This is for not creating gigabytes of logs since pipe mode will go
+ * through all rules over and over again.
+ */
+int rules_mute;
+
 static struct {
 	unsigned char vars[0x100];
 /*
@@ -2472,5 +2480,13 @@ int rules_count(struct rpp_context *start, int split)
 		count1 = count2;
 	}
 
+	if (((options.flags & FLG_PIPE_CHK) && count1 >= RULES_MUTE_THR) &&
+	    options.verbosity <= VERB_LEGACY) {
+		rules_mute = 1;
+		if (john_main_process) {
+			log_event("- NOTE: Some rule logging suppressed. Re-enable with --verbosity=%d or greater",
+				VERB_LEGACY + 1);
+		}
+	}
 	return count1;
 }

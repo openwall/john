@@ -504,7 +504,7 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 
 static void john_omp_show_info(void)
 {
-	if (options.verbosity >= VERB_LEGACY)
+	if (options.verbosity >= VERB_DEFAULT)
 #if HAVE_MPI
 	if (mpi_p == 1)
 #endif
@@ -1257,7 +1257,7 @@ static void john_load(void)
 				log_event("Cost %d (%s) is %u for all loaded hashes",
 				          i+1, database.format->params.tunable_cost_name[i],
 				          database.min_cost[i]);
-				if (options.verbosity >= VERB_LEGACY &&
+				if (options.verbosity >= VERB_DEFAULT &&
 				    john_main_process)
 				printf("Cost %d (%s) is %u for all loaded "
 				       "hashes\n", i+1,
