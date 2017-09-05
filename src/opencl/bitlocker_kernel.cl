@@ -501,10 +501,6 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 
 	while (globalIndexPassword < numPassword) {
 
-#if 0
-		if (globalIndexPassword == 0)
-			printf("thread0 ---- > kernel opencl_bitlocker_attack_init\n");
-#endif
 		index_generic = w_password_size[globalIndexPassword];
 		first_hash0 = 0x6A09E667;
 		first_hash1 = 0xBB67AE85;
@@ -777,20 +773,6 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 		first_hash[(globalIndexPassword*INT_HASH_SIZE) + 6] = first_hash6;
 		first_hash[(globalIndexPassword*INT_HASH_SIZE) + 7] = first_hash7;
 
-#if 0
-		if (globalIndexPassword == 0)
-		{
-			printf("first_hash0: %x\n", first_hash0);
-			printf("first_hash1: %x\n", first_hash1);
-			printf("first_hash2: %x\n", first_hash2);
-			printf("first_hash3: %x\n", first_hash3);
-			printf("first_hash4: %x\n", first_hash4);
-			printf("first_hash5: %x\n", first_hash5);
-			printf("first_hash6: %x\n", first_hash6);
-			printf("first_hash7: %x\n", first_hash7);
-		}
-#endif
-
 		globalIndexPassword += get_global_size(0);
 	}
 }
@@ -882,30 +864,6 @@ __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
 		hash5 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 5];
 		hash6 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 6];
 		hash7 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 7];
-
-#if 0
-		if (globalIndexPassword == 0)
-		{
-			printf("thread0 ---- > kernel opencl_bitlocker_attack_loop, numPassword: %d, numIter: %d, indexW: %d\n", numPassword, numIter, indexW);
-			printf("first_hash0: %x\n", first_hash0);
-			printf("first_hash1: %x\n", first_hash1);
-			printf("first_hash2: %x\n", first_hash2);
-			printf("first_hash3: %x\n", first_hash3);
-			printf("first_hash4: %x\n", first_hash4);
-			printf("first_hash5: %x\n", first_hash5);
-			printf("first_hash6: %x\n", first_hash6);
-			printf("first_hash7: %x\n\n", first_hash7);
-
-			printf("hash0: %x\n", hash0);
-			printf("hash1: %x\n", hash1);
-			printf("hash2: %x\n", hash2);
-			printf("hash3: %x\n", hash3);
-			printf("hash4: %x\n", hash4);
-			printf("hash5: %x\n", hash5);
-			printf("hash6: %x\n", hash6);
-			printf("hash7: %x\n", hash7);
-		}
-#endif
 
 		//HASH_LOOPS num of iteration
 		for (index=0; index < HASH_LOOPS; index++)
@@ -1147,22 +1105,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 
 	int numPassword = numPasswordMem[0];
 
-#if 0
-		if (globalIndexPassword == 0)
-		{
-			printf("thread0 ---- > kernel opencl_bitlocker_attack_final\n");
-			printf("hash0: %x\n", hash0);
-			printf("hash1: %x\n", hash1);
-			printf("hash2: %x\n", hash2);
-			printf("hash3: %x\n", hash3);
-			printf("hash4: %x\n", hash4);
-			printf("hash5: %x\n", hash5);
-			printf("hash6: %x\n", hash6);
-			printf("hash7: %x\n", hash7);
-		}
-#endif
-
-
 	while (globalIndexPassword < numPassword) {
 
 		hash0 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 0];
@@ -1173,13 +1115,7 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		hash5 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 5];
 		hash6 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 6];
 		hash7 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 7];
-#if 0
-		if (globalIndexPassword == 0)
-		{
-            printf("hash: %x - %x - %x - %x - %x - %x - %x\n",  hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7);
-			printf("IV0: %x, IV4: %x, IV8: %x, IV12: %x\n", IV0[0], IV4[0], IV8[0], IV12[0]);
-		}
-#endif
+
 		schedule0 = IV0[0] ^ hash0;
 		schedule1 = IV4[0] ^ hash1;
 		schedule2 = IV8[0] ^ hash2;
@@ -1555,13 +1491,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		    (unsigned int)((unsigned int)(schedule2 & 0x0000ff00) << 8) |
 		    (unsigned int)((unsigned int)(schedule2 & 0x000000ff) << 24);
 
-#if 0
-		    if (globalIndexPassword == 0)
-		    {
-		    	printf("schedule4: %x, schedule6: %x, vmkKey[0]: %x, vmkKey[1]: %x, vmkKey[2]: %x, vmkKey[3]: %x\n",
-		    	 schedule4, schedule6, vmkKey[0], vmkKey[1], vmkKey[2], vmkKey[3]);
-		    }
-#endif
 		if (((vmkKey[16+0] ^ ((unsigned char)schedule4)) == VMK_SIZE) &&
 		        ((vmkKey[16+1] ^ ((unsigned char)(schedule4 >> 8))) == 0x00) &&
 		        ((vmkKey[16+8] ^ ((unsigned char)schedule6)) <= 0x05) &&
