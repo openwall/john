@@ -180,6 +180,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 
 	currentsalt.bytes = cur_salt->bytes;
+	/* NOTE saltlen and key_len are currently hard-coded in kernel, for speed */
 	currentsalt.saltlen = 16;
 	currentsalt.key_len = 32;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, currentsalt.saltlen);

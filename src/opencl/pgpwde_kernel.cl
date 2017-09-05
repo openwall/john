@@ -1,5 +1,6 @@
 /*
  * This software is Copyright (c) 2017 Dhiru Kholia <dhiru at openwall.com> and
+ * Copyright (c) 2017 magnum, and
  * it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,37 +38,39 @@ typedef struct {
 #ifndef __MESA__
 inline
 #endif
-void pgpwde_kdf(__global const uchar *ipassword, uint password_length,
-		__constant const uchar *isalt, uint saltlen, uint cbytes,
-		__global uchar *okey, uint key_length)
+void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
+                __constant uchar *isalt, /*uint saltlen,*/ uint cbytes,
+                __global uchar *okey /*, uint key_length*/)
 {
-	SHA_CTX ctx;
+	const uint saltlen = 16;
+	uint key_length = 32;
 	uint num = (key_length - 1) / SHA1_DIGEST_LENGTH + 1;
-	uint i, j;
-	uint bytes;
-	uint slen;
-	const uint b[1] = { 0 };
+	uint i;
 	uchar password[PLAINTEXT_LENGTH];
 	uchar salt[16];
-	uchar key[2 * SHA1_DIGEST_LENGTH];
 
 	memcpy_cp(salt, isalt, saltlen);
-	memcpy_gp(password, ipassword, password_length);
-	slen = password_length;
-	if (cbytes < slen + 16)
-		cbytes = (uint32_t)(slen + 16);
+	memcpy_gp(password, ipassword, plen);
+	if (cbytes < plen + 16)
+		cbytes = (uint32_t)(plen + 16);
 
 	for (i = 0; i < num; i++) {
+		SHA_CTX ctx;
+		uint bytes;
+		const uint b[1] = { 0 };
+		uchar key[SHA1_DIGEST_LENGTH];
+		uint j;
+
 		bytes = cbytes;
 		SHA1_Init(&ctx);
 		for (j = 0; j < i; j++) {
 			SHA1_Update(&ctx, (uchar*)b, 1);
 		}
 
-		while (bytes > slen + 16) {
+		while (bytes > plen + 16) {
 			SHA1_Update(&ctx, salt, 16);
-			SHA1_Update(&ctx, password, slen);
-			bytes -= slen + 16;
+			SHA1_Update(&ctx, password, plen);
+			bytes -= plen + 16;
 		}
 		if (bytes <= 16) {
 			SHA1_Update(&ctx, salt, bytes);
@@ -75,10 +78,11 @@ void pgpwde_kdf(__global const uchar *ipassword, uint password_length,
 			SHA1_Update(&ctx, salt, 16);
 			SHA1_Update(&ctx, password, bytes - 16);
 		}
-		SHA1_Final(key + (i * SHA1_DIGEST_LENGTH), &ctx);
+		SHA1_Final(key, &ctx);
+		memcpy_pg(okey + (i * SHA1_DIGEST_LENGTH), key,
+		          MIN(key_length, SHA1_DIGEST_LENGTH));
+		key_length -= SHA1_DIGEST_LENGTH;
 	}
-
-	memcpy_pg(okey, key, key_length);
 }
 
 __kernel void pgpwde(__global const pgpwde_password *inbuffer,
@@ -88,5 +92,6 @@ __kernel void pgpwde(__global const pgpwde_password *inbuffer,
 	uint idx = get_global_id(0);
 
 	pgpwde_kdf(inbuffer[idx].v, inbuffer[idx].length, salt->salt,
-			salt->saltlen, salt->bytes, outbuffer[idx].v, salt->key_len);
+	           /*salt->saltlen,*/ salt->bytes, outbuffer[idx].v
+	           /*, salt->key_len*/);
 }
