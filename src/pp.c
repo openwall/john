@@ -1332,22 +1332,18 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
         list_add(rule_list, rule);
         active_rules++;
 
-        if (options.verbosity >= VERB_LEGACY)
-        {
-          if (strcmp(prerule, rule))
-            log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
-                      rule_number + 1, prerule, rule);
-          else
-            log_event("- Rule #%d: '%.100s' accepted",
-                      rule_number + 1, prerule);
-        }
-      } else {
-        if (options.verbosity >= VERB_LEGACY)
-          log_event("- Rule #%d: '%.100s' rejected",
+        if (strcmp(prerule, rule))
+          log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
+                    rule_number + 1, prerule, rule);
+        else
+          log_event("- Rule #%d: '%.100s' accepted",
                     rule_number + 1, prerule);
-      }
+      } else
+        log_event("- Rule #%d: '%.100s' rejected",
+                  rule_number + 1, prerule);
 
-      if (!(rule = rpp_next(&ctx))) break;
+      if (!(rule = rpp_next(&ctx)))
+        break;
       rule_number++;
     } while (rules);
 

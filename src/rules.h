@@ -14,6 +14,14 @@
 #include "rpp.h"
 
 /*
+ * If rules are used with "-pipe" and there's a large number of them,
+ * some rules logging will be muted unless verbosity is bumped.
+ * This is for not creating gigabytes of logs since pipe mode will go
+ * through all rules over and over again.
+ */
+extern int rules_mute;
+
+/*
  * Initializes the rules support.
  */
 extern void rules_init(int max_length);

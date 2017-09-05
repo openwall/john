@@ -106,13 +106,13 @@ static int hmailserver_valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
-	if ( ciphertext == NULL )
+	if (!ciphertext)
 		return 0;
 
 	get_ptr();
-	i = strlen( ciphertext );
+	i = strnlen(ciphertext, CIPHERTEXT_LENGTH + SALT_SIZE + 1);
 
-	if (i != CIPHERTEXT_LENGTH+SALT_SIZE)
+	if (i != CIPHERTEXT_LENGTH + SALT_SIZE)
 		return pDynamic->methods.valid(ciphertext, pDynamic);
 	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic);
 }

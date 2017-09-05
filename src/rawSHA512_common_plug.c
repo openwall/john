@@ -335,13 +335,9 @@ void *sha512_common_binary_nsldap(char *ciphertext) {
 char * sha512_common_prepare_xsha512(char *split_fields[10], struct fmt_main *self)
 {
 	static char Buf[XSHA512_TAG_LENGTH + XSHA512_CIPHERTEXT_LENGTH + 1];
-	if (!strncmp(split_fields[1], XSHA512_FORMAT_TAG, XSHA512_TAG_LENGTH))
-		return split_fields[1];
-	if (split_fields[0] && ishex(split_fields[0]) && strlen(split_fields[0]) == XSHA512_CIPHERTEXT_LENGTH) {
-		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[0]);
-		return Buf;
-	}
-	if (ishex(split_fields[1]) && strlen(split_fields[1]) == XSHA512_CIPHERTEXT_LENGTH) {
+
+	if (strnlen(split_fields[1], XSHA512_CIPHERTEXT_LENGTH + 1) ==
+	    XSHA512_CIPHERTEXT_LENGTH && ishex(split_fields[1])) {
 		sprintf(Buf, "%s%s", XSHA512_FORMAT_TAG, split_fields[1]);
 		return Buf;
 	}

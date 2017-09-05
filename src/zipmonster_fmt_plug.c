@@ -145,7 +145,7 @@ static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 #ifndef SIMD_COEF_32
-static inline void hex_encode_uppercase(unsigned char *str, unsigned char *_out)
+inline static void hex_encode_uppercase(unsigned char *str, unsigned char *_out)
 {
 	int i;
 	unsigned short *out = (unsigned short*)_out;

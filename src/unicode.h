@@ -91,9 +91,6 @@ typedef uint8_t UTF8;
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR (UTF32)0x0000FFFD
 #define UNI_MAX_BMP (UTF32)0x0000FFFF
-#define UNI_MAX_UTF16 (UTF32)0x0010FFFF
-#define UNI_MAX_UTF32 (UTF32)0x7FFFFFFF
-#define UNI_MAX_LEGAL_UTF32 (UTF32)0x0010FFFF
 
 /* These are used in NT_fmt.c */
 extern const UTF32 offsetsFromUTF8[];
@@ -229,28 +226,28 @@ extern UTF16 ucs2_downcase[0x10000];
  * to multi UTC2 lookup table to do things 'properly'. NOTE low2up_ansi() does
  * not handle 0xDF to "SS" conversion, since it is 1 to many.
  */
-static inline UTF8 low2up_ansi(UTF8 c)
+inline static UTF8 low2up_ansi(UTF8 c)
 {
 	if ((ucs2_upcase[c] & 0xFFFE) && ucs2_upcase[c] < 0x100)
 		return (UTF8)ucs2_upcase[c];
 	return c;
 }
 
-static inline UTF8 up2low_ansi(UTF8 c)
+inline static UTF8 up2low_ansi(UTF8 c)
 {
 	if ((ucs2_downcase[c] & 0xFFFE) && ucs2_downcase[c] < 0x100)
 		return (UTF8)ucs2_downcase[c];
 	return c;
 }
 
-static inline UTF16 low2up_u16(UTF16 w)
+inline static UTF16 low2up_u16(UTF16 w)
 {
 	if (ucs2_upcase[w] & 0xFFFE)
 		return ucs2_upcase[w];
 	return w;
 }
 
-static inline UTF16 up2low_u16(UTF16 w)
+inline static UTF16 up2low_u16(UTF16 w)
 {
 	if (ucs2_downcase[w] & 0xFFFE)
 		return ucs2_downcase[w];

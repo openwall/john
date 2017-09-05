@@ -132,6 +132,9 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 //	if (strncmp(ciphertext, dyna_signature, dyna_sig_len) != 0)
 //		return 0;
 
+	if (strnlen(ciphertext, sizeof(Conv_Buf)) >= sizeof(Conv_Buf))
+		return 0;
+
 	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext, 0), pDynamic);
 }
 

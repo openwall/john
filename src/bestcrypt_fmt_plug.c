@@ -32,7 +32,7 @@ john_register_one(&fmt_bestcrypt);
 #include "loader.h"
 #include "pkcs12.h"
 #include "aes.h"
-#include "aes_xts.h"
+#include "xts.h"
 #include "sph_whirlpool.h"
 #include "memdbg.h"
 
@@ -124,7 +124,7 @@ static struct custom_salt {
 	unsigned char key[256]; // one active key per hash
 } *cur_salt;
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 2];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static int *cracked, cracked_count;
 
@@ -454,7 +454,7 @@ struct fmt_main fmt_bestcrypt = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 		},
@@ -474,7 +474,7 @@ struct fmt_main fmt_bestcrypt = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -484,7 +484,7 @@ struct fmt_main fmt_bestcrypt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

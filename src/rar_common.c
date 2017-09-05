@@ -521,7 +521,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static inline void check_rar(int count)
+inline static void check_rar(int count)
 {
 	unsigned int index;
 

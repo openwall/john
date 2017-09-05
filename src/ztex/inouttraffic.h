@@ -3,13 +3,18 @@
  * Require basic ZTEX functions (ztex.c)
  * Assuming device has 'inouttraffic' firmware (inouttraffic.ihx)
  *
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
  */
+#ifndef _INOUTTRAFFIC_H_
+#define _INOUTTRAFFIC_H_
+
+#include "device_bitstream.h"
+
 #define ERR_IO_STATE_TIMEOUT -3001
 #define ERR_IO_STATE_OVERFLOW -3002
 #define ERR_IO_STATE_LIMIT_NOT_DONE -3003
@@ -23,6 +28,10 @@
 
 #define OUTPUT_WORD_WIDTH 2
 
+#define NUM_PROGCLK_MAX	4
+
+// DEBUG=1: print all function calls to stderr
+// DEBUG=2: also print I/O data
 extern int DEBUG;
 
 // VR 0x84
@@ -31,7 +40,7 @@ extern int DEBUG;
 // When not asserted FPGA's input buffer has space for data
 struct fpga_io_state {
 	unsigned char io_state;
- 	unsigned char timeout;
+	unsigned char timeout;
 	unsigned char app_status;
 	unsigned char pkt_comm_status;
 	unsigned char debug2;
@@ -44,7 +53,7 @@ struct fpga_io_state {
 #define IO_STATE_OUTPUT_ERR_OVERFLOW 0x04
 #define IO_STATE_SFIFO_NOT_EMPTY 0x08
 
-// used by VR 0x88, fpga_test_get_id() 
+// used by VR 0x88, fpga_test_get_id()
 struct fpga_echo_request {
 	unsigned short out[2];
 	struct {
@@ -55,29 +64,12 @@ struct fpga_echo_request {
 	} reply;
 };
 
-// Requests 'struct fpga_io_state' fro currently selected FPGA
-int fpga_get_io_state(struct libusb_device_handle *handle, struct fpga_io_state *io_state);
-
-// FPGA would not send data until fpga_setup_output().
-// Returns number of bytes FPGA is going to transmit.
-int fpga_setup_output(struct libusb_device_handle *handle);
-
 // soft reset (VC 0x8B)
 // It resets FPGA to its post-configuration state with Global Set Reset (GSR).
 // Inouttraffic bitstreams have High-Speed interface disabled by default.
 // After reset, fpga_reset() enables High-Speed interface.
 // consider device_fpga_reset() to reset all FPGA's on device
 int fpga_reset(struct libusb_device_handle *handle);
-
-// enable/disable high-speed output.
-// FPGA comes with High-Speed I/O (hs_io) disabled.
-// Application usually would not need this:
-// hs_io status changes internally by e.g. fpga_select() and fpga_reset().
-int fpga_hs_io_enable(struct libusb_device_handle *handle, int enable);
-
-// enabled by default; disable for raw I/O tests
-int fpga_output_limit_enable(struct libusb_device_handle *handle, int enable);
-
 
 // used by VR 0x8C, fpga_select_setup_io()
 struct fpga_status {
@@ -116,8 +108,9 @@ struct fpga {
 	struct fpga_rd rd;
 	uint64_t cmd_count;
 	uint64_t data_out,data_in; // specific for advanced_test.c
-	
+
 	struct pkt_comm *comm;
+	int freq[NUM_PROGCLK_MAX]; // current frequencies
 };
 
 struct device {
@@ -209,12 +202,34 @@ int fpga_select(struct fpga *fpga);
 // combines fpga_select(), fpga_get_io_state(), fpga_setup_output() in 1 USB request
 int fpga_select_setup_io(struct fpga *fpga);
 
+// Sets Programmable clock in MHz. Rounds down given frequency
+// to the nearest value in the table. Return values:
+// <0 Error
+// >0 New frequency (MHz)
+int fpga_progclk(struct fpga *fpga, int clk_num, int freq);
+
 // ***************************************************************
 //
 // Functions below are used by tests or obsolete.
 // For operating the board, use top-level functions from device.c
 //
 // ***************************************************************
+
+// Requests 'struct fpga_io_state' fro currently selected FPGA
+int fpga_get_io_state(struct libusb_device_handle *handle, struct fpga_io_state *io_state);
+
+// FPGA would not send data until fpga_setup_output().
+// Returns number of bytes FPGA is going to transmit.
+int fpga_setup_output(struct libusb_device_handle *handle);
+
+// enable/disable high-speed output.
+// FPGA comes with High-Speed I/O (hs_io) disabled.
+// Application usually would not need this:
+// hs_io status changes internally by e.g. fpga_select() and fpga_reset().
+int fpga_hs_io_enable(struct libusb_device_handle *handle, int enable);
+
+// enabled by default; disable for raw I/O tests
+int fpga_output_limit_enable(struct libusb_device_handle *handle, int enable);
 
 // checks io_state (unless previously checked with fpga_select_setup_io)
 // if input buffer isn't full - performs write
@@ -230,3 +245,5 @@ int fpga_pkt_write(struct fpga *fpga);
 
 // ! Synchronous read with pkt_comm - obsolete
 int fpga_pkt_read(struct fpga *fpga);
+
+#endif

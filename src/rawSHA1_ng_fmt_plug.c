@@ -69,9 +69,7 @@ john_register_one(&fmt_sha1_ng);
 
 #define VWIDTH SIMD_COEF_32
 
-#define SHA1_BLOCK_SIZE         64
 #define SHA1_BLOCK_WORDS        16
-#define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
 #ifdef __MIC__
@@ -160,7 +158,7 @@ static uint32_t *N;
 static uint32_t *MD;
 
 /* unused
-static inline uint32_t __attribute__((const)) rotateright(uint32_t value, uint8_t count)
+inline static uint32_t __attribute__((const)) rotateright(uint32_t value, uint8_t count)
 {
 	register uint32_t result;
 
@@ -173,7 +171,7 @@ static inline uint32_t __attribute__((const)) rotateright(uint32_t value, uint8_
 }
 */
 
-static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t count)
+inline static uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t count)
 {
 	register uint32_t result;
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
@@ -193,7 +191,7 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
 // GCC < 4.3 does not have __builtin_bswap32(), provide an alternative.
 #if !__INTEL_COMPILER && GCC_VERSION < 40300
 #define __builtin_bswap32 bswap32
-static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
+inline static uint32_t __attribute__((const)) bswap32(uint32_t value)
 {
 	register uint32_t result;
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
@@ -719,7 +717,7 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 	return M;
 }
 
-static inline int sha1_fmt_get_hash(int index)
+inline static int sha1_fmt_get_hash(int index)
 {
 	return MD[index];
 }
@@ -732,7 +730,7 @@ static int sha1_fmt_get_hash4(int index) { return sha1_fmt_get_hash(index) & PH_
 static int sha1_fmt_get_hash5(int index) { return sha1_fmt_get_hash(index) & PH_MASK_5; }
 static int sha1_fmt_get_hash6(int index) { return sha1_fmt_get_hash(index) & PH_MASK_6; }
 
-static inline int sha1_fmt_get_binary(void *binary)
+inline static int sha1_fmt_get_binary(void *binary)
 {
 	return *(uint32_t*)(binary);
 }

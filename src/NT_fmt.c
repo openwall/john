@@ -41,9 +41,9 @@
 
 
 #define FORMAT_LABEL			"NT-old"
-#define FORMAT_NAME			""
-#define FORMAT_TAG			"$NT$"
-#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+#define FORMAT_NAME				""
+#define FORMAT_TAG				"$NT$"
+#define TAG_LENGTH				(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -236,7 +236,7 @@ static void set_key_utf8(char *_key, int index);
 static void set_key_encoding(char *_key, int index);
 extern struct fmt_main fmt_NT;
 
-static void fmt_NT_init(struct fmt_main *self)
+static void init(struct fmt_main *self)
 {
 	memset(last_i,0,4*NT_NUM_KEYS);
 #if defined(NT_X86_64)
@@ -285,19 +285,19 @@ static void fmt_NT_init(struct fmt_main *self)
 	}
 }
 
-static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
-	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		ciphertext += FORMAT_TAG_LEN;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
-	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 
-	memcpy(&out[FORMAT_TAG_LEN], ciphertext, 32);
+	memcpy(&out[TAG_LENGTH], ciphertext, 32);
 	out[36] = 0;
 
-	strlwr(&out[FORMAT_TAG_LEN]);
+	strlwr(&out[TAG_LENGTH]);
 
 	return out;
 }
@@ -306,14 +306,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		ciphertext += FORMAT_TAG_LEN;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
-        for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
-        if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
+	if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
 		return 1;
-        else
+	else
 		return 0;
 }
 
@@ -321,12 +321,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // Note, we address the user id inside loader.
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	static char out[33+5];
+	static char out[33 + TAG_LENGTH + 1];
 
 	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
 			sprintf(out, "%s%s", FORMAT_TAG, split_fields[3]);
-			if (valid(out,self))
+			if (valid(out, self))
 				return out;
 		}
 	}
@@ -339,8 +339,8 @@ static void *get_binary(char *ciphertext)
 	unsigned int i=0;
 	unsigned int temp;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		ciphertext += FORMAT_TAG_LEN;
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
 	for (; i<4; i++)
 	{
@@ -635,7 +635,7 @@ static char *source(char *source, void *binary)
 	int i;
 
 	strcpy(Buf, FORMAT_TAG);
-	cpo = &Buf[FORMAT_TAG_LEN];
+	cpo = &Buf[TAG_LENGTH];
 
 	// we have to 'undo' the stuff done in the get_binary() function, to get back to the 'original' hash value.
 	memcpy(out, binary, 16);
@@ -662,7 +662,7 @@ static char *source(char *source, void *binary)
 }
 
 // This is common code for the SSE/MMX/generic variants of non-UTF8 set_key
-static inline void set_key_helper(unsigned int * keybuffer,
+inline static void set_key_helper(unsigned int * keybuffer,
                                   unsigned int xBuf,
                                   const unsigned char * key,
                                   unsigned int lenStoreOffset,
@@ -721,7 +721,7 @@ static void set_key(char *_key, int index)
 
 // UTF-8 conversion right into key buffer
 // This is common code for the SSE/MMX/generic variants
-static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xBuf,
+inline static void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xBuf,
     const UTF8 * source, unsigned int lenStoreOffset, unsigned int *lastlen)
 {
 	unsigned int *target = keybuffer;
@@ -881,7 +881,7 @@ static void set_key_utf8(char *_key, int index)
 }
 
 // This is common code for the SSE/MMX/generic variants of non-UTF8 non-ISO-8859-1 set_key
-static inline void set_key_helper_encoding(unsigned int * keybuffer,
+inline static void set_key_helper_encoding(unsigned int * keybuffer,
                                   unsigned int xBuf,
                                   const unsigned char * key,
                                   unsigned int lenStoreOffset,
@@ -956,7 +956,7 @@ static void set_key_encoding(char *_key, int index)
 
 // Get the key back from the key buffer, from UCS-2
 // This is common code for the SSE/MMX/generic variants
-static inline UTF16 *get_key_helper(unsigned int * keybuffer, unsigned int xBuf)
+inline static UTF16 *get_key_helper(unsigned int * keybuffer, unsigned int xBuf)
 {
 	static UTF16 key[PLAINTEXT_LENGTH + 1];
 	unsigned int md4_size=0;
@@ -1026,12 +1026,12 @@ struct fmt_main fmt_NT = {
 		{ FORMAT_TAG },
 		tests
 	}, {
-		fmt_NT_init,
+		init,
 		fmt_default_done,
 		fmt_default_reset,
 		prepare,
 		valid,
-		nt_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 		{ NULL },

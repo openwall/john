@@ -69,7 +69,7 @@ static struct fmt_tests tests[] = {
 
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static int saved_key_len;
-static char po_buf[SALT_SIZE * 2 + 2 + PLAINTEXT_LENGTH + 128 /* MD5 scratch space */];
+static unsigned char po_buf[SALT_SIZE * 2 + 2 + PLAINTEXT_LENGTH + 128 /* MD5 scratch space */];
 static uint32_t MD5_out[4];
 
 static void po_init(struct fmt_main *self) {

@@ -686,7 +686,6 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 
 
 #if SIMD_PARA_MD4
-#define MD4_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_MD4)
 #define MD4_PARA_DO(x)	for ((x)=0;(x)<SIMD_PARA_MD4;(x)++)
 
 #define MD4_F(x,y,z)                            \
@@ -1063,7 +1062,6 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 
 
 #if SIMD_PARA_SHA1
-#define SHA1_SSE_NUM_KEYS	(SIMD_COEF_32*SIMD_PARA_SHA1)
 #define SHA1_PARA_DO(x)		for ((x)=0;(x)<SIMD_PARA_SHA1;(x)++)
 
 #define SHA1_F(x,y,z)                           \

@@ -177,7 +177,7 @@ static void create_mask_buffers()
 
 static void release_mask_buffers()
 {
- 	MEM_FREE(saved_bitmap);
+	MEM_FREE(saved_bitmap);
 
 	if (buffer_bitmap)
 		clReleaseMemObject(buffer_bitmap);
@@ -638,7 +638,7 @@ static void done(void)
 
 static void prepare_bit_array()
 {
-    	uint64_t *binary;
+	uint64_t *binary;
 	struct db_password *pw;
 	struct db_salt *current_salt;
 

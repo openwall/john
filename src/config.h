@@ -122,6 +122,13 @@ extern char *cfg_get_param(char *section, char *subsection, char *param);
 extern int cfg_get_int(char *section, char *subsection, char *param);
 
 /*
+ * Similar to the above, takes comma-separated list, performs atoi().
+ * Fills the array with values. The rest of the array is filled with -1's.
+ */
+extern void cfg_get_int_array(char *section, char *subsection, char *param,
+		int *array, int array_len);
+
+/*
  * Converts the value to boolean. Returns def if not found.
  */
 extern int cfg_get_bool(char *section, char *subsection, char *param, int def);

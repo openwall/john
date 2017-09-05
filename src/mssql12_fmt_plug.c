@@ -128,9 +128,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
-		return 0;
 	if (strncmp(ciphertext, "0x0200", 6))
+		return 0;
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 	for (i = 6; i < CIPHERTEXT_LENGTH; i++) {
 		if (!((('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||

@@ -136,13 +136,13 @@ typedef struct ether_beacon_data_s {
 } ether_beacon_data_t;
 #pragma pack()
 
-static inline uint16 swap16u(uint16 v) {
+inline static uint16 swap16u(uint16 v) {
 	return ((v>>8)|((v&0xFF)<<8));
 }
-static inline uint32 swap32u(uint32 v) {
+inline static uint32 swap32u(uint32 v) {
 	return JOHNSWAP(v);
 }
-static inline uint64 swap64u(uint64 v) {
+inline static uint64 swap64u(uint64 v) {
 	return JOHNSWAP64(v);
 }
 
@@ -177,13 +177,19 @@ typedef struct WPA4way_s {
 	char bssid[18];
 	char sta[18];
 	uint8 *packet1;
+	int packet1_len;
 	uint8 *packet2;
+	int packet2_len;
 	uint8 *orig_2;
+	int orig_2_len;
 	uint8 *packet3;
+	int packet3_len;
 	uint8 *packet4;
 	int fully_cracked;
 	int hopefully_cracked; // we have a 1 & 2
 	int eapol_sz;
+	uint8 src[6]; // for ethernet link type
+	uint8 dst[6]; // for ethernet link type
 }WPA4way_t;
 
 // Here are the structures needed to store the data that make up the 4-way handshake.

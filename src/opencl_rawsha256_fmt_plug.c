@@ -151,7 +151,7 @@ static void create_mask_buffers()
 
 static void release_mask_buffers()
 {
- 	MEM_FREE(saved_bitmap);
+	MEM_FREE(saved_bitmap);
 
 	if (buffer_bitmap)
 		clReleaseMemObject(buffer_bitmap);

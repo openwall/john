@@ -130,7 +130,11 @@ static int in6addr_cmp(const void *a, const void *b)
  * SIPdump Main
  */
 
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char *argv[])
+#endif
 {
 	char *dev = NULL, *pcap_file = NULL, *filter = DEFAULT_PCAP_FILTER;
 	char errbuf[PCAP_ERRBUF_SIZE];
@@ -138,11 +142,14 @@ int main(int argc, char *argv[])
 	pcap_t *handle = NULL;
 	bpf_u_int32 mask, net;
 	struct bpf_program fp;
+	extern int optind;
 
 	memset(&fp, 0, sizeof(struct bpf_program));
 
-	printf("\nSIPdump %s  ( MaJoMu | www.codito.de ) \n"
-	    "---------------------------------------\n\n", VERSION);
+	/* Reset global state */
+	dump_file = NULL;
+	num_logins = 0;
+	offset = 0;
 
 	/* Parse command line */
 	while ((c = getopt(argc, argv, "i:mp:f:")) != -1) {
@@ -174,6 +181,9 @@ int main(int argc, char *argv[])
 	/* Get dump file */
 	argv += optind;
 	argc -= optind;
+
+	/* Make getopt callable again */
+	optind = 0;
 
 	if (argc != 1) {
 		free(pcap_file);
@@ -294,9 +304,29 @@ int main(int argc, char *argv[])
 	    && strncmp("tcp or udp", filter, strlen("tcp or udp")))
 		free(filter);
 
-	exit(retval);
+	return retval;
 }
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+	char *argv[] = {"dummy", "-p", name, "/dev/null", NULL};
+
+	fd = mkstemp(name);  // this approach is somehow faster than the fmemopen way
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	main_dummy(4, argv);
+	remove(name);
+
+	return 0;
+}
+#endif
 
 /*
  * Parse payload and search for SIP connections
@@ -534,7 +564,12 @@ static void sniff_logins(unsigned char *args,
 	unsigned char *payload;
 	int ip_protocol, ip_tot_len;
 	conn_t connection;
-	size_t size_ip = 0, size_proto = 0, size_payload = 0;
+	size_t size_ip = 0, size_proto = 0;
+	ssize_t size_payload = 0;
+	unsigned char *payload_copy;
+
+	if (header->caplen < 16)
+		return;
 
 	/* Hack to check if network is vlan if ethernet  */
 	if (offset == 18)
@@ -553,6 +588,10 @@ static void sniff_logins(unsigned char *args,
 
 	switch (ip_hdr->ip_v) {
 	case 6:
+		if (sizeof(struct ip6_hdr) + offset > header->caplen) {
+			fprintf(stderr, "> malformed packet smaller than sizeof(struct ip6_hdr), caplen %d\n", header->caplen);
+			return;
+		}
 		size_ip = sizeof(struct ip6_hdr);
 		ip_protocol = ip6->ip6_nxt;
 		ip_tot_len = ntohs(ip6->ip6_plen);
@@ -561,6 +600,10 @@ static void sniff_logins(unsigned char *args,
 		connection.ipversion = 6;
 		break;
 	case 4:
+		if (sizeof(struct ip) + offset > header->caplen) {
+			fprintf(stderr, "> malformed packet smaller than sizeof(struct ip), caplen %d\n", header->caplen);
+			return;
+		}
 		size_ip = sizeof(struct ip);
 		if (size_ip < 20) {
 			debug(
@@ -577,6 +620,12 @@ static void sniff_logins(unsigned char *args,
 		break;
 	default:
 		debug(("Got non-IPv4/IPv6 packet, ignoring..."));
+		return;
+	}
+
+	/* Validate various lengths */
+	if (ip_tot_len > header->caplen || ip_tot_len + offset > header->caplen || (size_ip + offset + sizeof(struct tcp_hdr) > header->caplen)) {
+		fprintf(stderr, "> malformed packet or not tcp?, offset is %d, ip_tot_len is %d, caplen is %d\n", offset, ip_tot_len, header->caplen);
 		return;
 	}
 
@@ -606,12 +655,27 @@ static void sniff_logins(unsigned char *args,
 
 	/* Extract payload from packet */
 	payload = (unsigned char *) (packet + size_ip + size_proto);
+	if (size_proto + size_ip + offset > header->caplen) {
+		printf("malformed packet?, size_ip is %zu, size_proto is %zu, offset is %d, caplen is %d\n", size_ip, size_proto, offset, header->caplen);
+		return;
+	}
 	size_payload = ip_tot_len - (size_ip + size_proto);
-	payload[size_payload] = 0x00;
+	if (size_payload < 0 || size_payload > header->caplen - offset - size_ip)  {
+		printf("malformed packet?, size_ip is %zu, size_proto is %zu, offset is %d, size_payload is %zu, caplen is %d\n", size_ip, size_proto, offset, size_payload, header->caplen);
+		return;
+	}
 
-	/* If we have a payload send to payload and connection information to parser */
+	/* If we have a payload, send payload and connection information to parser */
 	if (size_payload > 0) {
-		parse_payload(&connection, payload, size_payload);
+		payload_copy = malloc(size_payload + 1);
+		if (!payload_copy) {
+			printf("malformed packet?, malloc call failed!\n");
+			return;
+		}
+		memcpy(payload_copy, payload, size_payload);
+		payload_copy[size_payload] = 0x00;
+		parse_payload(&connection, payload_copy, size_payload);
+		free(payload_copy);
 	}
 
 	return;
@@ -661,12 +725,14 @@ static int parse_sip_proto(char *out,
 	/* Error or regular end of SIP header and no auth found */
 	if (error || (!found && lines[num_lines - 1][0] == 0x00)) {
 		free(lines[num_lines - 1]);
+		free(lines);
 		return -1;
 	}
 
 	/* Challenge response sniffed */
 	if (found) {
 		free(lines[num_lines - 1]);
+		free(lines);
 		return 1;
 	}
 
@@ -674,6 +740,7 @@ static int parse_sip_proto(char *out,
 	if (out_len - 1 < strlen(lines[num_lines - 1])) {
 		debug(("Buffer too small for line, ignoring..."));
 		free(lines[num_lines - 1]);
+		free(lines);
 		return -1;
 	}
 
@@ -681,6 +748,7 @@ static int parse_sip_proto(char *out,
 
 	/* Free last line */
 	free(lines[num_lines - 1]);
+	free(lines);
 
 	return 0;
 }

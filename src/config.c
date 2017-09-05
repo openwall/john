@@ -115,7 +115,7 @@ static void cfg_add_section(char *name)
 						fprintf(stderr, "Warning! john.conf section [%s] is multiple declared.\n", name);
 				}
 #ifndef BENCH_BUILD
-				else if (john_main_process && options.verbosity > VERB_LEGACY)
+				else if (john_main_process && options.verbosity >= VERB_DEFAULT)
 					fprintf(stderr, "Warning! Section [%s] overridden by john-local.conf\n", name);
 #endif
 				break;
@@ -403,6 +403,32 @@ int cfg_get_int(char *section, char *subsection, char *param)
 	}
 
 	return -1;
+}
+
+void cfg_get_int_array(char *section, char *subsection, char *param,
+		int *array, int array_len)
+{
+	char *s_value, *error;
+	long l_value;
+	int i = 0;
+
+	s_value = cfg_get_param(section, subsection, param);
+	if (s_value) {
+		for (;;) {
+			if (!*s_value)
+				break;
+			l_value = strtol(s_value, &error, 10);
+			if (error == s_value || (l_value & ~0x3FFFFFFFL))
+				break;
+			array[i++] = (int)l_value;
+			if (!*error || i == array_len)
+				break;
+			s_value = error + 1;
+		}
+	}
+
+	for ( ; i < array_len; i++)
+		array[i] = -1;
 }
 
 int cfg_get_bool(char *section, char *subsection, char *param, int def)

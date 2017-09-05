@@ -15,6 +15,9 @@ extern int ztex_scan_interval;
 
 extern struct timeval ztex_scan_prev_time;
 
+// If set to 1, overwrite any 3rd party firmware
+#define ZTEX_FW_3RD_PARTY_OVERWRITE 1
+
 // firmware image file (*.ihx)
 #define ZTEX_FW_IHX_PATH	"ztex/inouttraffic.ihx"
 

@@ -234,15 +234,6 @@ static void get_ptr() {
 	}
 }
 
-/**
- * GNU Emacs settings: K&R with 1 tab indent.
- * Local Variables:
- * c-file-style: "k&r"
- * c-basic-offset: 8
- * indent-tabs-mode: t
- * End:
- */
-
 #endif /* plugin stanza */
 
 #endif /* DYNAMIC_DISABLED */

@@ -24,13 +24,15 @@ struct pkt_equal *pkt_equal_new(struct pkt *pkt)
 				sizeof(struct pkt_equal));
 		return NULL;
 	}
-	
+
+	pkt_equal->id = pkt->id;
+
 	unsigned char *data = (unsigned char *)pkt->data;
 	pkt_equal->word_id = data[0] | data[1] << 8;
 	pkt_equal->gen_id = data[2] | data[3] << 8
 			| data[4] << 16 | data[5] << 24;
 	pkt_equal->hash_num = data[6] | data[7] << 8;
-	
+
 	pkt_delete(pkt);
 	return pkt_equal;
 }
@@ -41,14 +43,69 @@ struct pkt_done *pkt_done_new(struct pkt *pkt)
 	struct pkt_done *pkt_done = malloc(sizeof(struct pkt_done));
 	if (!pkt_done) {
 		pkt_error("pkt_done_new(): unable to allocate %d bytes\n",
-				sizeof(pkt_done));
+				sizeof(struct pkt_done));
 		return NULL;
 	}
-	
+
+	pkt_done->id = pkt->id;
+
 	unsigned char *data = (unsigned char *)pkt->data;
 	pkt_done->num_processed = data[0] | data[1] << 8
 			| data[2] << 16 | data[3] << 24;
-	
+
 	pkt_delete(pkt);
 	return pkt_done;
 }
+
+struct pkt_cmp_result *pkt_cmp_result_new(struct pkt *pkt)
+{
+	struct pkt_cmp_result *pkt_cmp_result
+			= malloc(sizeof(struct pkt_cmp_result));
+	if (!pkt_cmp_result) {
+		pkt_error("pkt_cmp_result_new(): unable to allocate %d bytes\n",
+				sizeof(struct pkt_cmp_result));
+		return NULL;
+	}
+
+	pkt_cmp_result->id = pkt->id;
+
+	unsigned char *data = (unsigned char *)pkt->data;
+	pkt_cmp_result->word_id = data[0] | data[1] << 8;
+	pkt_cmp_result->gen_id = data[2] | data[3] << 8
+			| data[4] << 16 | data[5] << 24;
+	pkt_cmp_result->hash_num = data[6] | data[7] << 8;
+
+	pkt_cmp_result->result_len = pkt->data_len - 8;
+
+	pkt_cmp_result->result = malloc(pkt_cmp_result->result_len);
+	if (!pkt_cmp_result->result) {
+		pkt_error("pkt_cmp_result_new(): unable to allocate %d bytes\n",
+				pkt_cmp_result->result_len);
+		free(pkt_cmp_result);
+		return NULL;
+	}
+	memcpy(pkt_cmp_result->result, data + 8, pkt_cmp_result->result_len);
+
+	pkt_delete(pkt);
+	return pkt_cmp_result;
+}
+
+
+void pkt_cmp_result_delete(struct pkt_cmp_result *pkt_cmp_result)
+{
+	if (pkt_cmp_result->result)
+		free(pkt_cmp_result->result);
+	free(pkt_cmp_result);
+}
+
+
+char *inpkt_type_name(int pkt_type)
+{
+	return
+		pkt_type == PKT_TYPE_CMP_EQUAL	? "CMP_EQUAL" :
+		pkt_type == PKT_TYPE_PROCESSING_DONE	? "PROCESSING_DONE" :
+		pkt_type == PKT_TYPE_RESULT1	? "RESULT1" :
+		pkt_type == PKT_TYPE_CMP_RESULT	? "CMP_RESULT" :
+		"UNKNOWN";
+}
+

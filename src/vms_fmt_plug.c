@@ -56,7 +56,6 @@ static int omp_t = 1;
 #define FORMAT_NAME			"Purdy"
 #define FORMAT_TAG           "$V$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define FORMAT_NAME_NOPWDMIX		"Purdy (nopwdmix)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

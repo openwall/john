@@ -18,6 +18,12 @@
 #error BITMAP_SIZE_BITS is not defined
 #endif
 
+#if SL3
+#define SL3CONV - '0'
+#else
+#define SL3CONV
+#endif
+
 inline void cmp_final(uint gid,
 		uint iter,
 		__private uint *hash,
@@ -28,27 +34,27 @@ inline void cmp_final(uint gid,
 		volatile __global uint *bitmap_dupe) {
 
 	uint t, offset_table_index, hash_table_index;
-	unsigned long LO, MI, HI;
-	unsigned long p;
+	ulong LO, MI, HI;
+	ulong p;
 
-	HI = (unsigned long)hash[4];
-	MI = ((unsigned long)hash[3] << 32) | (unsigned long)hash[2];
-	LO = ((unsigned long)hash[1] << 32) | (unsigned long)hash[0];
+	HI = (ulong)hash[4];
+	MI = ((ulong)hash[3] << 32) | (ulong)hash[2];
+	LO = ((ulong)hash[1] << 32) | (ulong)hash[0];
 
 	p = (HI % OFFSET_TABLE_SIZE) * SHIFT128_OT_SZ;
 	p += (MI % OFFSET_TABLE_SIZE) * SHIFT64_OT_SZ;
 	p += LO % OFFSET_TABLE_SIZE;
 	p %= OFFSET_TABLE_SIZE;
-	offset_table_index = (unsigned int)p;
+	offset_table_index = (uint)p;
 
 	//error: chances of overflow is extremely low.
-	LO += (unsigned long)offset_table[offset_table_index];
+	LO += (ulong)offset_table[offset_table_index];
 
 	p = (HI % HASH_TABLE_SIZE) * SHIFT128_HT_SZ;
 	p += (MI % HASH_TABLE_SIZE) * SHIFT64_HT_SZ;
 	p += LO % HASH_TABLE_SIZE;
 	p %= HASH_TABLE_SIZE;
-	hash_table_index = (unsigned int)p;
+	hash_table_index = (uint)p;
 
 	if (hash_table[hash_table_index] == hash[0])
 	if (hash_table[HASH_TABLE_SIZE + hash_table_index] == hash[1])
@@ -132,33 +138,40 @@ inline void cmp(uint gid,
 #define USE_CONST_CACHE \
 	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
 
-__kernel void sha1(__global uint *keys,
-		  __global uint *index,
-		  __global uint *int_key_loc,
+__kernel
+void sha1(__global uint *keys,
+          __global uint *index,
+          __global uint *int_key_loc,
 #if USE_CONST_CACHE
-		  constant
+          constant
 #else
-		  __global
+          __global
 #endif
-		  uint *int_keys
 #if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
-		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
+          uint *int_keys __attribute__((max_constant_size (NUM_INT_KEYS * 4))),
+#else
+          uint *int_keys,
 #endif
-		 , __constant uchar *salt,
-		 __global uint *bitmaps,
-		  __global uint *offset_table,
-		  __global uint *hash_table,
-		  __global uint *return_hashes,
-		  volatile __global uint *out_hash_ids,
-		  volatile __global uint *bitmap_dupe)
+          __constant uchar *salt,
+          __global uint *bitmaps,
+          __global uint *offset_table,
+          __global uint *hash_table,
+          __global uint *return_hashes,
+          volatile __global uint *out_hash_ids,
+          volatile __global uint *bitmap_dupe)
 {
 	uint i;
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint W[16] = { 0 };
+#if SL3
+	const uint len = 15;
+	const uint salt_len = 9;
+#else
 	uint len = base & 63;
+	uint salt_len = salt[16];
+#endif
 	uint hash[5];
-	unsigned int salt_len = salt[16];
 
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -205,10 +218,19 @@ __kernel void sha1(__global uint *keys,
 
 	keys += base >> 6;
 
+#if SL3
+	__global uchar *k = (__global uchar*)keys;
+
+	for (i = 0; i < len; i++)
+		PUTCHAR_BE(W, i, *k++ - '0');
+	i = 3;
+#else
 	for (i = 0; i < (len+3)/4; i++)
 		W[i] = SWAP32(*keys++);
-
 	i--;
+#endif
+
+#if !SL3
 	if ((len & 3) == 0) {
 		W[i + 1] = (((uint)salt[0] << 24) | ((uint)salt[1] << 16) | ((uint)salt[2] << 8) | (uint)salt[3]);
 		W[i + 2] = (((uint)salt[4] << 24) | ((uint)salt[5] << 16) | ((uint)salt[6] << 8) | (uint)salt[7]);
@@ -231,12 +253,15 @@ __kernel void sha1(__global uint *keys,
 		W[i + 4] = (((uint)salt[14] << 24) | ((uint)salt[15] << 16));
 
 	}
+#endif
 	if ((len & 3) == 3) {
 		W[i] |= (uint)salt[0];
 		W[i + 1] = (((uint)salt[1] << 24) | ((uint)salt[2] << 16) | ((uint)salt[3] << 8) | (uint)salt[4]);
 		W[i + 2] = (((uint)salt[5] << 24) | ((uint)salt[6] << 16) | ((uint)salt[7] << 8) | (uint)salt[8]);
+#if !SL3
 		W[i + 3] = (((uint)salt[9] << 24) | ((uint)salt[10] << 16) | ((uint)salt[11] << 8) | (uint)salt[12]);
 		W[i + 4] = (((uint)salt[13] << 24) | ((uint)salt[14] << 16) | ((uint)salt[15] << 8));
+#endif
 	}
 
 	PUTCHAR_BE(W, (len + salt_len), 0x80);
@@ -244,21 +269,21 @@ __kernel void sha1(__global uint *keys,
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
-		PUTCHAR_BE(W, GPU_LOC_0, (int_keys[i] & 0xff));
+		PUTCHAR_BE(W, GPU_LOC_0, (int_keys[i] & 0xff) SL3CONV);
 
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		PUTCHAR_BE(W, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8));
+		PUTCHAR_BE(W, GPU_LOC_1, ((int_keys[i] & 0xff00) >> 8) SL3CONV);
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		PUTCHAR_BE(W, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16));
+		PUTCHAR_BE(W, GPU_LOC_2, ((int_keys[i] & 0xff0000) >> 16) SL3CONV);
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		PUTCHAR_BE(W, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24));
+		PUTCHAR_BE(W, GPU_LOC_3, ((int_keys[i] & 0xff000000) >> 24) SL3CONV);
 #endif
 #endif
 #endif

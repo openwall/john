@@ -1,0 +1,53 @@
+[*]
+end_of_line = crlf
+
+[.editorconfig]
+end_of_line = lf
+
+[*.h]
+end_of_line = lf
+
+[fpga/pkt_comm/word_gen.vh]
+end_of_line = lf
+
+[fpga/util/log2.vh]
+end_of_line = lf
+
+[fpga/ztex_inouttraffic/clocks.ucf]
+end_of_line = lf
+
+[fpga/descrypt/descrypt_core/des_loop.v]
+end_of_line = lf
+
+[fpga/descrypt/descrypt_core/descrypt.vh]
+end_of_line = lf
+
+[fpga/descrypt/descrypt_core/Eblock.v]
+end_of_line = lf
+
+[ztex.c]
+end_of_line = lf
+
+[ez-usb/inouttraffic.c]
+end_of_line = lf
+
+[ztex_scan.c]
+end_of_line = lf
+
+[inouttraffic.c]
+end_of_line = lf
+
+[jtr_device.c]
+end_of_line = lf
+
+[jtr_mask.c]
+end_of_line = lf
+
+[pkt_comm/cmp_config.c]
+end_of_line = lf
+
+[pkt_comm/inpkt.c]
+end_of_line = lf
+
+[pkt_comm/word_gen.c]
+end_of_line = lf

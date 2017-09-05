@@ -104,7 +104,7 @@
  * Compute Bout = BlockMix_{salsa20/8, r}(Bin).  The input Bin must be 128r
  * bytes in length; the output Bout must also be the same size.
  */
-static inline void
+inline static void
 blockmix_salsa8(const __m128i * Bin, __m128i * Bout, size_t r)
 {
 	__m128i X0, X1, X2, X3;
@@ -155,7 +155,7 @@ blockmix_salsa8(const __m128i * Bin, __m128i * Bout, size_t r)
 	X2 = _mm_xor_si128((in1)[2], (in2)[2]); \
 	X3 = _mm_xor_si128((in1)[3], (in2)[3]);
 
-static inline uint32_t
+inline static uint32_t
 blockmix_salsa8_xor(const __m128i * Bin1, const __m128i * Bin2, __m128i * Bout,
     size_t r)
 {
@@ -208,7 +208,7 @@ blockmix_salsa8_xor(const __m128i * Bin1, const __m128i * Bin2, __m128i * Bout,
  * integerify(B, r):
  * Return the result of parsing B_{2r-1} as a little-endian integer.
  */
-static inline uint32_t
+inline static uint32_t
 integerify(const void * B, size_t r)
 {
 	return *(const uint32_t *)((uintptr_t)(B) + (2 * r - 1) * 64);

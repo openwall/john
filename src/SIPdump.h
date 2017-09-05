@@ -263,7 +263,7 @@ void write_login_data(login_t * data, const char *file)
 void update_login_data(login_t * data, const char *pw, const char *file)
 {
 	FILE *login_file, *temp_file;
-	char buffer[1024], orig_string[1024];
+	char buffer[2048], orig_string[2048];
 	char *tempfile;
 	size_t tempfile_len;
 
@@ -361,8 +361,8 @@ int find_value(const char *value, const char *buffer, char *outbuf,
 		}
 	}
 
-	strncpy(outbuf, tempbuf, outbuf_len);
-	outbuf[outbuf_len] = 0;
+	strncpy(outbuf, tempbuf, outbuf_len - 1);
+	outbuf[outbuf_len - 1] = 0;
 	free(tempbuf);
 
 	debug(("find_value: %s'%s'", value, outbuf));

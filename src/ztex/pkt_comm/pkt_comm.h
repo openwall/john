@@ -82,7 +82,7 @@ int get_pkt_count(void);
 
 
 // *****************************************************************
-// 
+//
 // packet queue
 //
 // *****************************************************************
@@ -134,7 +134,7 @@ struct pkt_comm_params {
 
 struct pkt_comm {
 	struct pkt_comm_params *params;
-	
+
 	struct pkt_queue *output_queue;
 	unsigned char *output_buf;
 	int output_buf_size;

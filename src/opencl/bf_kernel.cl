@@ -128,7 +128,7 @@ __kernel void blowfish(	constant uint *salt
 #if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
 	__attribute__((max_constant_size(4096)))
 #endif
-  	)
+	)
 {
 		int index = get_global_id(0) ;
 		int lid   = get_local_id(0) ;

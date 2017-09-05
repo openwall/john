@@ -99,7 +99,7 @@ static void _pbkdf2_sha1(const unsigned char *S, int SL, int R, uint32_t *out,
 #endif
 		for (j = 0; j < SHA_DIGEST_LENGTH/sizeof(uint32_t); j++) {
 			out[j] ^= ((uint32_t*)tmp_hash)[j];
-#if defined (EFS_CRAP_LOGIC)
+#if defined (DPAPI_CRAP_LOGIC)
 			((uint32_t*)tmp_hash)[j] = out[j];
 #endif
 		}
@@ -266,7 +266,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 				unsigned *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
 				for (j = 0; j < (SHA_DIGEST_LENGTH/sizeof(uint32_t)); j++) {
 					dgst[k][j] ^= p[(j*SIMD_COEF_32)];
-#if defined (EFS_CRAP_LOGIC)
+#if defined (DPAPI_CRAP_LOGIC)
 					p[(j*SIMD_COEF_32)] = dgst[k][j];
 #endif
 				}
@@ -316,7 +316,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 #define PLAINTEXT_LENGTH	64
 #endif
 
-# define SWAP(n) \
+ #define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 #define INIT_A			0x67452301

@@ -85,10 +85,15 @@ struct db_salt;
  */
 #define FMT_NOT_EXACT			0x00000100
 /*
- * this format uses a dynamic sized salt, and its salt structure
+ * This format uses a dynamic sized salt, and its salt structure
  * 'derives' from the dyna_salt type defined in dyna_salt.h
  */
 #define FMT_DYNA_SALT			0x00000200
+/*
+ * This format supports huge ciphertexts (larger than LINE_BUFFER_SIZE)
+ * and may/will consequently truncate its pot lines with $SOURCE_HASH$
+ */
+#define FMT_HUGE_INPUT			0x00000400
 /* Uses a bitslice implementation */
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */
@@ -108,6 +113,9 @@ struct db_salt;
 #endif
 /* We've already warned the user about hashes of this type being present */
 #define FMT_WARNED			0x80000000
+
+/* Format's length before calling init() */
+extern int fmt_raw_len;
 
 /*
  * A password to test the methods for correct operation.

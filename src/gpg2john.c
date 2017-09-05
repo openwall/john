@@ -43,20 +43,20 @@
 
 #if !AC_BUILT
 #define HAVE_LIBZ 1
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# include "autoconfig.h"
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #include "autoconfig.h"
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 
 #include "arch.h"
@@ -90,14 +90,14 @@ private bz_stream bz;
 #endif  /* HAVE_LIBBZ2 */
 
 #if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
+ #include <sys/time.h>
+ #include <time.h>
 #else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
+ #if HAVE_SYS_TIME_H
+  #include <sys/time.h>
+ #else
+  #include <time.h>
+ #endif
 #endif
 
 #ifdef _MSC_VER
@@ -105,16 +105,16 @@ private bz_stream bz;
 #endif
 
 #if HAVE_STRUCT_TM_TM_ZONE
-# define tm_zone(tm) (tm->tm_zone)
+ #define tm_zone(tm) (tm->tm_zone)
 #elif HAVE_TZNAME
-# define tm_zone(tm) (tzname[tm->tm_isdst])
+ #define tm_zone(tm) (tzname[tm->tm_isdst])
 #elif __MINGW32__
-# define tm_zone(tm) (tzname[tm->tm_isdst])
+ #define tm_zone(tm) (tzname[tm->tm_isdst])
 #else
-# ifndef tzname  /* For SGI. */
+ #ifndef tzname  /* For SGI. */
   extern string tzname[]; /* RS6000 and others reject char **tzname. */
-# endif
-# define tm_zone(tm) (tzname[tm->tm_isdst])
+ #endif
+ #define tm_zone(tm) (tzname[tm->tm_isdst])
 #endif
 
 #include "jumbo.h"
@@ -934,11 +934,8 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 	if (first) {
 		cp = hash;
 		totlen = 0;
-		// printf("\tVer %d\n", Getc());
-		Getc(); // version (we only read this from the first packet. Not read from rest of the 'partial' packets.
-	} else
-		++len;  // we want the 'full' length for subsquent partial packets, since the logic is len-1 we simply fake it out.
-	totlen += (len-1);
+	}
+	totlen += len;
 
 	switch (mode) {
 	case SYM_ALG_MODE_NOT_SPECIFIED:
@@ -963,7 +960,7 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 
 	if (give(len, m_data, sizeof(m_data)) != len)
 		return;
-	cp += print_hex(m_data, len - 1, cp);
+	cp += print_hex(m_data, len, cp);
 
 	if (!partial) {
 		// we only dump the packet out when we get the 'non-partial' packet (i.e. last one).
@@ -971,7 +968,7 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 		// m_usage is not really used in gpg_fmt_plug.c for symmetric hashes,
 		// let's hijack it for specifying tag values.
 		m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
-		fprintf(stderr, "[gpg2john] MDC is misssing, expect false positives!\n");
+		fprintf(stderr, "[gpg2john] MDC is missing, expect lots of false positives!\n");
 		printf("$gpg$*%d*"LLd"*%s*%d*%d*%d*%d*%d*", m_algorithm, (long long)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
@@ -1545,9 +1542,7 @@ parse_packet(char *hash)
 			fprintf(stderr, "\n");
 		else if (len == EOF)
 			fprintf(stderr, "(until eof)\n");
-		else
-			// printf("(%d bytes)\n", len);
-			;
+		// else printf("(%d bytes)\n", len);
 
 		if (tag < TAG_NUM && tag_func[tag] != NULL) {
 			if (gpg_dbg)
@@ -1687,12 +1682,16 @@ signature_expiration_time(int len)
 public void
 exportable_certification(int len)
 {
-	// printf("\t\tExportable - ");
+#if DEBUG
+	printf("\t\tExportable - ");
 	if (Getc() == 0);
-		// printf("No");
-	else;
-		// printf("Yes");
-	// printf("\n");
+		printf("No");
+	else
+		printf("Yes");
+	printf("\n");
+#else
+	Getc();
+#endif
 }
 
 public void
@@ -1718,12 +1717,16 @@ regular_expression(int len)
 public void
 revocable(int len)
 {
-	// printf("\t\tRevocable - ");
+#if DEBUG
+	printf("\t\tRevocable - ");
 	if (Getc() == 0);
-		// printf("No");
-	else;
-		// printf("Yes");
-	// printf("\n");
+		printf("No");
+	else
+		printf("Yes");
+	printf("\n");
+#else
+	Getc();
+#endif
 }
 
 public void
@@ -1896,12 +1899,16 @@ preferred_key_server(int len)
 public void
 primary_user_id(int len)
 {
-	// printf("\t\tPrimary - ");
+#if DEBUG
+	printf("\t\tPrimary - ");
 	if (Getc() == 0);
-		// printf("No");
-	else;
-		// printf("Yes");
-	// printf("\n");
+		printf("No");
+	else
+		printf("Yes");
+	printf("\n");
+#else
+	Getc();
+#endif
 }
 
 public void
@@ -1976,13 +1983,15 @@ reason_for_revocation(int len)
 public void
 features(int len)
 {
+#if DEBUG
 	int c = Getc();
 	if (c & 0x01)
-		// printf("\t\tFlag - Modification detection (packets 18 and 19)\n");
-		;
+		printf("\t\tFlag - Modification detection (packets 18 and 19)\n");
 	if ((c & ~0xfe) == 0)
-		// printf("\t\tFlag - undefined\n");
-		;
+		printf("\t\tFlag - undefined\n");
+#else
+	Getc();
+#endif
 	skip(len - 1);
 }
 
@@ -2585,12 +2594,12 @@ encrypted_Secret_Key(int len, int sha1)
 			fprintf(stderr, "\tUnknown encrypted key(pub %d)\n", PUBLIC);
 			break;
 		}
+#if DEBUG
 		if (sha1 == YES)
-			// printf("\tEncrypted SHA1 hash\n");
-			;
+			printf("\tEncrypted SHA1 hash\n");
 		else
-			// printf("\tEncrypted checksum\n");
-			;
+			printf("\tEncrypted checksum\n");
+#endif
 		skip(len - used);
 		break;
 	default:

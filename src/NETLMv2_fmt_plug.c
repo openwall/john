@@ -184,16 +184,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
+	char *login         = split_fields[0];
+	char *uid           = split_fields[2];
 	char *srv_challenge = split_fields[3];
 	char *nethashv2     = split_fields[4];
 	char *cli_challenge = split_fields[5];
-	char *login = split_fields[0];
-	char *uid = split_fields[2];
 	char *identity = NULL, *tmp;
 
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
-	if (!split_fields[0]||!split_fields[2]||!split_fields[3]||!split_fields[4]||!split_fields[5])
+	if (!login || !uid || !srv_challenge || !nethashv2 || !cli_challenge)
 		return split_fields[1];
 
 	/* DOMAIN\USER: -or- USER::DOMAIN: */

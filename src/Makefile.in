@@ -33,11 +33,12 @@ SED = @SED@
 NULL = /dev/null
 SORT = @SORT@
 STRIP = @STRIP@
+CPPCHECK=cppcheck
 
 SHELL = /bin/sh
 VPATH = @srcdir@
 
-subdirs = aes escrypt @ZTEX_SUBDIRS@
+subdirs = aes secp256k1 escrypt @ZTEX_SUBDIRS@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
@@ -89,11 +90,6 @@ JOHN_OBJS = \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar2john.o \
 	zip2john.o pkzip.o \
-	racf2john.o \
-	dmg2john.o \
-	keepass2john.o \
-	bitlocker2john.o \
-	hccap2john.o \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
 	gost.o \
@@ -114,11 +110,11 @@ JOHN_OBJS = \
 	regex.o pp.o \
 	c3_fmt.o \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o \
-	unique.o putty2john.o gpg2john.o memdbg.o
+	unique.o gpg2john.o memdbg.o
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
-ZTEX_OBJS = ztex_descrypt.o
+ZTEX_OBJS = ztex_descrypt.o ztex_bcrypt.o
 
 FUZZ_OBJS = fuzz.o
 
@@ -136,7 +132,7 @@ PROJ = ../run/john@EXE_EXT@ ../run/unshadow@EXE_EXT@ ../run/unafs@EXE_EXT@ ../ru
 
 WITH_PCAP = @HAVE_PCAP@
 ifdef WITH_PCAP
-PROJ += ../run/SIPdump@EXE_EXT@ ../run/vncpcap2john@EXE_EXT@
+PROJ += ../run/SIPdump@EXE_EXT@ ../run/vncpcap2john@EXE_EXT@ ../run/eapmd5tojohn@EXE_EXT@
 endif
 
 WITH_OPENCL=@CL_LIBS@
@@ -158,6 +154,13 @@ ifdef WITH_FUZZ
 CFLAGS += -DHAVE_FUZZ
 CFLAGS_MAIN += -DHAVE_FUZZ
 JOHN_OBJS += $(FUZZ_OBJS)
+endif
+
+WITH_LIBFUZZER=@HAVE_LIBFUZZER@
+ifdef WITH_LIBFUZZER
+CFLAGS += -DHAVE_LIBFUZZER  -fsanitize=address -fsanitize-coverage=trace-pc-guard,trace-cmp,trace-gep,trace-div
+CFLAGS_MAIN += -DHAVE_LIBFUZZER -fsanitize=address -fsanitize-coverage=trace-pc-guard,trace-cmp,trace-gep,trace-div
+LDFLAGS += -fsanitize=fuzzer,address
 endif
 
 #########################################################
@@ -288,7 +291,7 @@ DES_std.o:	DES_std.c arch.h common.h memory.h DES_std.h memdbg.h os.h os-autocon
 
 detect.o:	detect.c
 
-dmg2john.o:	dmg2john.c autoconfig.h aes.h aes/aes_func.h arch.h filevault.h misc.h jumbo.h memory.h memdbg.h os.h os-autoconf.h
+dmg2john.o:	dmg2john.c autoconfig.h arch.h filevault.h misc.h jumbo.h memory.h memdbg.h os.h os-autoconf.h
 
 dummy.o:	dummy.c common.h arch.h memory.h formats.h params.h misc.h jumbo.h autoconfig.h options.h list.h loader.h getopt.h memdbg.h os.h os-autoconf.h
 
@@ -350,7 +353,7 @@ KeccakHash.o:	KeccakHash.c KeccakHash.h KeccakSponge.h KeccakF-1600-interface.h 
 
 KeccakSponge.o:	KeccakSponge.c KeccakSponge.h KeccakF-1600-interface.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h memory.h
 
-keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h
+keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h base64.h
 
 bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h memdbg.h os.h os-autoconf.h
 
@@ -496,6 +499,8 @@ unshadow.o:	unshadow.c misc.h jumbo.h arch.h autoconfig.h params.h memory.h memd
 
 vncpcap2john.o:	vncpcap2john.c autoconfig.h cygwin/ethernet.h arch.h tcphdr.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
+eapmd5tojohn.o:	eapmd5tojohn.c arch.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
+
 whirlpool.o:	whirlpool.c sph_whirlpool.h sph_types.h autoconfig.h arch.h memdbg.h os.h os-autoconf.h jumbo.h memory.h md_helper.c
 
 win32_memmap.o:	win32_memmap.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h win32_memmap.h misc.h memdbg.h memory.h
@@ -526,7 +531,7 @@ find_version: kernels
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
-SUBDIRS = aes @ZTEX_SUBDIRS@
+SUBDIRS = aes secp256k1 @ZTEX_SUBDIRS@
 
 .PHONY: subdirs $(SUBDIRS) find_version kernels
 
@@ -545,6 +550,9 @@ miscnl.o: misc.c
 aes/aes.a:
 	$(MAKE) -C aes all
 
+secp256k1/secp256k1.a:
+	$(MAKE) -C secp256k1 all
+
 kernels: @KERNEL_OBJS@
 
 ###############################################################################
@@ -558,8 +566,8 @@ kernels: @KERNEL_OBJS@
 
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
-../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a @ZTEX_SUBDIRS@
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a -o ../run/john
+../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a secp256k1/secp256k1.a @ZTEX_SUBDIRS@
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -573,18 +581,6 @@ kernels: @KERNEL_OBJS@
 	$(RM) ../run/undrop
 	$(LN) john ../run/undrop
 
-../run/putty2john: ../run/john
-	$(RM) ../run/putty2john
-	$(LN) john ../run/putty2john
-
-../run/keepass2john: ../run/john
-	$(RM) ../run/keepass2john
-	$(LN) john ../run/keepass2john
-
-../run/bitlocker2john: ../run/john
-	$(RM) ../run/bitlocker2john
-	$(LN) john ../run/bitlocker2john
-
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	$(LN) john ../run/zip2john
@@ -596,18 +592,6 @@ kernels: @KERNEL_OBJS@
 ../run/rar2john: ../run/john
 	$(RM) ../run/rar2john
 	$(LN) john ../run/rar2john
-
-../run/racf2john: ../run/john
-	$(RM) ../run/racf2john
-	$(LN) john ../run/racf2john
-
-../run/dmg2john: ../run/john
-	$(RM) ../run/dmg2john
-	$(LN) john ../run/dmg2john
-
-../run/hccap2john: ../run/john
-	$(RM) ../run/hccap2john
-	$(LN) john ../run/hccap2john
 
 ../run/base64conv: ../run/john
 	$(RM) ../run/base64conv
@@ -637,18 +621,6 @@ kernels: @KERNEL_OBJS@
 	$(CC) symlink.c -o ../run/undrop.exe
 	$(STRIP) ../run/undrop.exe
 
-../run/putty2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/putty2john.exe
-	$(STRIP) ../run/putty2john.exe
-
-../run/keepass2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/keepass2john.exe
-	$(STRIP) ../run/keepass2john.exe
-
-../run/bitlocker2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/bitlocker2john.exe
-	$(STRIP) ../run/bitlocker2john.exe
-
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
 	$(STRIP) ../run/zip2john.exe
@@ -660,18 +632,6 @@ kernels: @KERNEL_OBJS@
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
 	$(STRIP) ../run/rar2john.exe
-
-../run/racf2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/racf2john.exe
-	$(STRIP) ../run/racf2john.exe
-
-../run/dmg2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/dmg2john.exe
-	$(STRIP) ../run/dmg2john.exe
-
-../run/hccap2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/hccap2john.exe
-	$(STRIP) ../run/hccap2john.exe
 
 ../run/base64conv.exe: symlink.c
 	$(CC) symlink.c -o ../run/base64conv.exe
@@ -703,8 +663,29 @@ kernels: @KERNEL_OBJS@
 ../run/vncpcap2john@EXE_EXT@: vncpcap2john.o memdbg.o
 	$(CC) -DAC_BUILT -Wall vncpcap2john.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/vncpcap2john
 
+../run/eapmd5tojohn@EXE_EXT@: eapmd5tojohn.o memdbg.o
+	$(CC) -DAC_BUILT -Wall eapmd5tojohn.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o ../run/eapmd5tojohn
+
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
+
+../run/keepass2john@EXE_EXT@: keepass2john.o jumbo.o memdbg.o base64.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o base64.o @OPENMP_CFLAGS@ -lcrypto -o ../run/keepass2john
+
+../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/dmg2john
+
+../run/bitlocker2john@EXE_EXT@: bitlocker2john.o jumbo.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/bitlocker2john
+
+../run/racf2john@EXE_EXT@: racf2john.o jumbo.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ racf2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/racf2john
+
+../run/hccap2john@EXE_EXT@: hccap2john.o common.o jumbo.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ common.o hccap2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/hccap2john
+
+../run/putty2john@EXE_EXT@: putty2john.o jumbo.o memdbg.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ putty2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/putty2john
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o jumbo.o memdbg.o
@@ -760,6 +741,10 @@ test_full_verbose: default
 
 test_utf8_verbose: default
 	cd ../test && perl jtrts.pl -type utf-8
+
+testfiles:
+	../run/john --list=format-tests -format=cpu | LC_ALL=C cut -f3 > all_tests.in
+	../run/john --list=format-tests -format=cpu | LC_ALL=C cut -f4 > all_tests.lst
 
 bash-completion:
 	[ -d $(DESTDIR)/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/etc/bash_completion.d/ || true
@@ -914,6 +899,13 @@ distclean: clean
 strip: default
 	@echo Stripping executables.
 	$(STRIP) $(PROJ)
+
+### cppcheck static coverage analysis
+#
+.PHONY: cppcheck
+
+cppcheck:
+	$(CPPCHECK) --enable=all --force -q .
 
 install: strip shell-completion
 #ifneq ($(prefix), ../run)

@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- Begin Editing Here -->
+<Project FileVersion="1.2" Name="Example" ProjectVersion="2.0">
+
+  <Partition Name="/ztex_inouttraffic" State="implement" ImportLocation="NONE" Preserve="placement" BoundaryOpt="all">
+
+	<Partition Name="/ztex_inouttraffic/bcrypt" State="import" ImportLocation="export" Preserve="placement">
+	</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[0].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[1].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[2].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[3].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[4].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[5].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[6].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[7].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[8].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[9].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[10].core" State="import" ImportLocation="export3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[0].proxy/cores[11].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[0].core" State="import" ImportLocation="export10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[1].core" State="import" ImportLocation="core0_1_1" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[2].core" State="import" ImportLocation="export9" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[3].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[4].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[5].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[6].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[7].core" State="import" ImportLocation="export9" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[8].core" State="import" ImportLocation="core0_1_8" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[0].wrapper/proxies[1].proxy/cores[9].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[0].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[1].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[2].core" State="import" ImportLocation="export11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[3].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[4].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[5].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[6].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[7].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[8].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[9].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[10].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[0].proxy/cores[11].core" State="import" ImportLocation="export11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[1].proxy/cores[0].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[1].proxy/cores[1].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[1].proxy/cores[2].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[1].wrapper/proxies[1].proxy/cores[3].core" State="import" ImportLocation="proxy2_3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[0].core" State="import" ImportLocation="proxy4_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[1].core" State="import" ImportLocation="export11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[2].core" State="import" ImportLocation="proxy4_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[3].core" State="import" ImportLocation="proxy4_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[4].core" State="import" ImportLocation="proxy4_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[5].core" State="import" ImportLocation="proxy4_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[6].core" State="import" ImportLocation="proxy4_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[7].core" State="import" ImportLocation="proxy4_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[8].core" State="import" ImportLocation="proxy4_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[9].core" State="import" ImportLocation="export11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[10].core" State="import" ImportLocation="proxy4_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[0].proxy/cores[11].core" State="import" ImportLocation="proxy4_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[0].core" State="import" ImportLocation="export7" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[1].core" State="import" ImportLocation="proxy5_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[2].core" State="import" ImportLocation="proxy5_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[3].core" State="import" ImportLocation="export10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[4].core" State="import" ImportLocation="export10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[5].core" State="import" ImportLocation="proxy5_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[6].core" State="import" ImportLocation="export7" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[7].core" State="import" ImportLocation="export9" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[8].core" State="import" ImportLocation="proxy5_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[2].wrapper/proxies[1].proxy/cores[9].core" State="import" ImportLocation="proxy5_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[0].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[1].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[2].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[3].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[4].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[5].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[6].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[7].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[8].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[9].core" State="import" ImportLocation="core3_0_9" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[10].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[11].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[0].proxy/cores[12].core" State="import" ImportLocation="proxy0_1_6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[0].core" State="import" ImportLocation="proxy7_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[1].core" State="import" ImportLocation="core3_1_1" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[2].core" State="import" ImportLocation="proxy7_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[3].core" State="import" ImportLocation="proxy7_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[4].core" State="import" ImportLocation="proxy7_145" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[5].core" State="import" ImportLocation="core3_1_5" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[6].core" State="import" ImportLocation="proxy7_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[7].core" State="import" ImportLocation="proxy7_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[8].core" State="import" ImportLocation="proxy7_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[3].wrapper/proxies[1].proxy/cores[9].core" State="import" ImportLocation="proxy7_142" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[0].core" State="import" ImportLocation="export6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[1].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[2].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[3].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[4].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[5].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[6].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[0].proxy/cores[7].core" State="import" ImportLocation="export6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[0].core" State="import" ImportLocation="core4_1_4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[1].core" State="import" ImportLocation="proxy9_11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[2].core" State="import" ImportLocation="export6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[3].core" State="import" ImportLocation="export6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[4].core" State="import" ImportLocation="core4_1_4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[5].core" State="import" ImportLocation="proxy9_11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[6].core" State="import" ImportLocation="proxy9_11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[7].core" State="import" ImportLocation="proxy9_11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[8].core" State="import" ImportLocation="core4_1_8" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[4].wrapper/proxies[1].proxy/cores[9].core" State="import" ImportLocation="export6" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[0].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[1].core" State="import" ImportLocation="export4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[2].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[3].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[4].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[5].core" State="import" ImportLocation="proxy8_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[6].core" State="import" ImportLocation="export3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[7].core" State="import" ImportLocation="export5" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[8].core" State="import" ImportLocation="export4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[9].core" State="import" ImportLocation="export5" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[0].proxy/cores[10].core" State="import" ImportLocation="export4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[0].core" State="import" ImportLocation="export3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[1].core" State="import" ImportLocation="export3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[2].core" State="import" ImportLocation="export5" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[3].core" State="import" ImportLocation="export4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[4].core" State="import" ImportLocation="proxy9_11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[5].core" State="import" ImportLocation="proxy9_11" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[6].core" State="import" ImportLocation="export5" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[7].core" State="import" ImportLocation="export4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[8].core" State="import" ImportLocation="export3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[9].core" State="import" ImportLocation="export4" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[10].core" State="import" ImportLocation="core5_1_10" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+		<Partition Name="/ztex_inouttraffic/wrappers[5].wrapper/proxies[1].proxy/cores[11].core" State="import" ImportLocation="export3" Preserve="placement" BoundaryOpt="all">
+		</Partition>
+
+  </Partition>
+
+</Project>

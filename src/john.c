@@ -41,19 +41,19 @@
 #endif
 #include <errno.h>
 #if !AC_BUILT
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -157,6 +157,7 @@ extern struct fmt_main fmt_dummy;
 extern struct fmt_main fmt_NT;
 #ifdef HAVE_ZTEX
 extern struct fmt_main fmt_ztex_descrypt;
+extern struct fmt_main fmt_ztex_bcrypt;
 #endif
 
 #include "fmt_externs.h"
@@ -167,15 +168,9 @@ extern int unique(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 
 extern int base64conv(int argc, char **argv);
-extern int hccap2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 extern int gpg2john(int argc, char **argv);
-extern int keepass2john(int argc, char **argv);
-extern int bitlocker2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
-extern int racf2john(int argc, char **argv);
-extern int dmg2john(int argc, char **argv);
-extern int putty2john(int argc, char **argv);
 
 int john_main_process = 1;
 #if OS_FORK
@@ -361,6 +356,7 @@ static void john_register_all(void)
 // Let ZTEX format appear before CPU format
 #ifdef HAVE_ZTEX
 	john_register_one(&fmt_ztex_descrypt);
+	john_register_one(&fmt_ztex_bcrypt);
 #endif
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
@@ -402,6 +398,8 @@ static void john_register_all(void)
 static void john_log_format(void)
 {
 	int min_chunk, chunk;
+	int enc_len, utf8_len;
+	char max_len_s[128];
 
 	/* make sure the format is properly initialized */
 #if HAVE_OPENCL
@@ -410,11 +408,35 @@ static void john_log_format(void)
 #endif
 	fmt_init(database.format);
 
-	log_event("- Hash type: %.100s%s%.100s (lengths up to %d%s)",
+	utf8_len = enc_len = database.format->params.plaintext_length;
+	if (options.target_enc == UTF_8)
+		utf8_len /= 3;
+
+	if (!(database.format->params.flags & FMT_8_BIT) ||
+	    options.target_enc != UTF_8) {
+		/* Not using UTF-8 so length is not ambiguous */
+		snprintf(max_len_s, sizeof(max_len_s), "%d", enc_len);
+	} else if (!fmt_raw_len || fmt_raw_len == enc_len) {
+		/* Example: Office and thin dynamics */
+		snprintf(max_len_s, sizeof(max_len_s),
+		         "%d [worst case UTF-8] to %d [ASCII]",
+		         utf8_len, enc_len);
+	} else if (enc_len == 3 * fmt_raw_len) {
+		/* Example: NT */
+		snprintf(max_len_s, sizeof(max_len_s), "%d", utf8_len);
+	} else {
+		/* Example: SybaseASE */
+		snprintf(max_len_s, sizeof(max_len_s),
+		         "%d [worst case UTF-8] to %d [ASCII]",
+		         utf8_len, fmt_raw_len);
+	}
+
+	log_event("- Hash type: %.100s%s%.100s (min-len %d, max-len %s%s)",
 	    database.format->params.label,
 	    database.format->params.format_name[0] ? ", " : "",
 	    database.format->params.format_name,
-	    database.format->params.plaintext_length,
+	    database.format->params.plaintext_min_length,
+	    max_len_s,
 	    (database.format == &fmt_DES || database.format == &fmt_LM) ?
 	    ", longer passwords split" : "");
 
@@ -482,7 +504,7 @@ static void john_omp_maybe_adjust_or_fallback(char **argv)
 
 static void john_omp_show_info(void)
 {
-	if (options.verbosity >= VERB_LEGACY)
+	if (options.verbosity >= VERB_DEFAULT)
 #if HAVE_MPI
 	if (mpi_p == 1)
 #endif
@@ -997,7 +1019,7 @@ static void load_extra_pots(struct db_main *db, void (*process_file)(struct db_m
 				struct dirent *ep;
 
 				while ((ep = readdir(dp))) {
-					char dname[PATH_BUFFER_SIZE];
+					char dname[2 * PATH_BUFFER_SIZE];
 					char *p;
 
 					if (!(p = strrchr(ep->d_name, '.')) ||
@@ -1235,7 +1257,7 @@ static void john_load(void)
 				log_event("Cost %d (%s) is %u for all loaded hashes",
 				          i+1, database.format->params.tunable_cost_name[i],
 				          database.min_cost[i]);
-				if (options.verbosity >= VERB_LEGACY &&
+				if (options.verbosity >= VERB_DEFAULT &&
 				    john_main_process)
 				printf("Cost %d (%s) is %u for all loaded "
 				       "hashes\n", i+1,
@@ -1348,9 +1370,7 @@ static void john_load(void)
 #if CPU_DETECT
 static void CPU_detect_or_fallback(char **argv, int make_check)
 {
-	if (getenv("CPUID_DISABLE"))
-		return;
-
+	if (!getenv("CPUID_DISABLE"))
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
@@ -1378,9 +1398,16 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 		error();
 #endif
 	}
+
+	/*
+	 * Init the crc table here, so that tables are fully setup for any
+	 * ancillary program
+	 */
+	CRC32_Init_tab();
+
 }
 #else
-#define CPU_detect_or_fallback(argv, make_check)
+#define CPU_detect_or_fallback(argv, make_check) CRC32_Init_tab()
 #endif
 
 static void john_init(char *name, int argc, char **argv)
@@ -1505,10 +1532,6 @@ static void john_init(char *name, int argc, char **argv)
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
 	    options.listconf)
 		listconf_parse_late();
-
-	/* Start a resumed session by emitting a status line. */
-	if (rec_restored)
-		event_pending = event_status = 1;
 
 	/* Log the expanded command line used for this session. */
 	{
@@ -1687,6 +1710,13 @@ static void john_run(void)
 		if (options.flags & FLG_MASK_CHK)
 			mask_crk_init(&database);
 
+		/* Placed here to disregard load time. */
+		sig_init_late();
+
+		/* Start a resumed session by emitting a status line. */
+		if (rec_restored)
+			event_pending = event_status = 1;
+
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
 		else
@@ -1820,10 +1850,13 @@ static void john_done(void)
 
 //#define TEST_MEMDBG_LOGIC
 
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
 	char *name;
-	unsigned int time;
 
 #ifdef TEST_MEMDBG_LOGIC
 	int i,j;
@@ -1886,9 +1919,6 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	/* put the crc table init here, so that tables are fully setup for any ancillary program */
-	CRC32_Init_tab();
-
         /* Needed before CPU fallback */
 	path_init(argv);
 
@@ -1912,49 +1942,19 @@ int main(int argc, char **argv)
 		return unique(argc, argv);
 	}
 
-	if (!strcmp(name, "putty2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return putty2john(argc, argv);
-	}
-
-	if (!strcmp(name, "keepass2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return keepass2john(argc, argv);
-	}
-
-	if (!strcmp(name, "bitlocker2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return bitlocker2john(argc, argv);
-	}
-
 	if (!strcmp(name, "rar2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return rar2john(argc, argv);
-	}
-
-	if (!strcmp(name, "racf2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return racf2john(argc, argv);
 	}
 
 	if (!strcmp(name, "gpg2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return gpg2john(argc, argv);
 	}
-#if !defined (_MSC_VER) && !defined (__MINGW32__)
-	if (!strcmp(name, "dmg2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return dmg2john(argc, argv);
-	}
-#endif
 
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return zip2john(argc, argv);
-	}
-	if (!strcmp(name, "hccap2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return hccap2john(argc, argv);
 	}
 	if (!strcmp(name, "base64conv")) {
 		CPU_detect_or_fallback(argv, 0);
@@ -1962,16 +1962,6 @@ int main(int argc, char **argv)
 	}
 	john_init(name, argc, argv);
 
-	/* Placed here to disregard load time. */
-#if OS_TIMER
-	time = 0;
-#else
-	time = status_get_time();
-#endif
-	if (options.max_run_time)
-		timer_abort = time + abs(options.max_run_time);
-	if (options.status_interval)
-		timer_status = time + options.status_interval;
 	if (options.max_cands) {
 		if (options.node_count) {
 			long long orig_max_cands = options.max_cands;
@@ -1995,3 +1985,27 @@ int main(int argc, char **argv)
 
 	return exit_status;
 }
+
+#ifdef HAVE_LIBFUZZER
+
+int LLVMFuzzerInitialize(int *argc, char ***argv)
+{
+	return 1;
+}
+
+// dummy fuzzing target
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)  // size is actually the length of Data
+{
+	static uint8_t buffer[8192];
+
+	if (size > sizeof(buffer) - 1) {
+		fprintf(stderr, "size (-max_len) is greater than supported value, aborting!\n");
+		exit(-1);
+	}
+	memcpy(buffer, data, size);
+	buffer[size] = 0;
+	jtr_basename((const char*)buffer);
+
+	return 0;
+}
+#endif

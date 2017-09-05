@@ -111,7 +111,7 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	case 1:
 		hlen = 20;	// for SHA1
 		v = 64;
-		v2 = ((pwdlen+64)/64)*64;
+		v2 = ((pwdlen+64-1)/64)*64;
 		break;
 
 //	case 2:			// for mdc2  (Note, not handled by ans1crypt.py)
@@ -131,12 +131,12 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 	case 224:
 		hlen = 28;	// for SHA224
 		v = 64;
-		v2 = ((pwdlen+64)/64)*64;
+		v2 = ((pwdlen+64-1)/64)*64;
 		break;
 	case 256:
 		hlen = 32;	// for SHA256
 		v = 64;
-		v2 = ((pwdlen+64)/64)*64;
+		v2 = ((pwdlen+64-1)/64)*64;
 		break;
 	case 384:
 		hlen = 48;	// for SHA384
@@ -167,87 +167,87 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
     while( datalen > 0 )
     {
         // Calculate hash( diversifier || salt_block || pwd_block )
-	switch (md_type) {
+	    switch (md_type) {
 	    case 1:
-    	        SHA1_Init(&md_ctx);
-                SHA1_Update(&md_ctx, diversifier, v);
-                SHA1_Update(&md_ctx, salt_block, v);
-                SHA1_Update(&md_ctx, pwd_block, v2);
-                SHA1_Final(hash_output, &md_ctx);
-                // Perform remaining ( iterations - 1 ) recursive hash calculations
-                for ( i = 1; i < (size_t) iterations; i++ ) {
-                    SHA1_Init(&md_ctx);
-                    SHA1_Update(&md_ctx, hash_output, hlen);
-                    SHA1_Final(hash_output, &md_ctx);
-                }
-		break;
+		    SHA1_Init(&md_ctx);
+		    SHA1_Update(&md_ctx, diversifier, v);
+		    SHA1_Update(&md_ctx, salt_block, v);
+		    SHA1_Update(&md_ctx, pwd_block, v2);
+		    SHA1_Final(hash_output, &md_ctx);
+		    // Perform remaining ( iterations - 1 ) recursive hash calculations
+		    for ( i = 1; i < (size_t) iterations; i++ ) {
+			    SHA1_Init(&md_ctx);
+			    SHA1_Update(&md_ctx, hash_output, hlen);
+			    SHA1_Final(hash_output, &md_ctx);
+		    }
+		    break;
 	    case 224:
-	    	SHA224_Init(&md_ctx256);
-                SHA224_Update(&md_ctx256, diversifier, v);
-                SHA224_Update(&md_ctx256, salt_block, v);
-                SHA224_Update(&md_ctx256, pwd_block, v2);
-                SHA224_Final(hash_output, &md_ctx256);
-                // Perform remaining ( iterations - 1 ) recursive hash calculations
-                for ( i = 1; i < (size_t) iterations; i++ ) {
-                    SHA224_Init(&md_ctx256);
-                    SHA224_Update(&md_ctx256, hash_output, hlen);
-                    SHA224_Final(hash_output, &md_ctx256);
-                }
-		break;
-    	    case 256:
-	    	SHA256_Init(&md_ctx256);
-                SHA256_Update(&md_ctx256, diversifier, v);
-                SHA256_Update(&md_ctx256, salt_block, v);
-                SHA256_Update(&md_ctx256, pwd_block, v2);
-                SHA256_Final(hash_output, &md_ctx256);
-                // Perform remaining ( iterations - 1 ) recursive hash calculations
-                for ( i = 1; i < (size_t) iterations; i++ ) {
-                    SHA256_Init(&md_ctx256);
-                    SHA256_Update(&md_ctx256, hash_output, hlen);
-                    SHA256_Final(hash_output, &md_ctx256);
-                }
-		break;
+		    SHA224_Init(&md_ctx256);
+		    SHA224_Update(&md_ctx256, diversifier, v);
+		    SHA224_Update(&md_ctx256, salt_block, v);
+		    SHA224_Update(&md_ctx256, pwd_block, v2);
+		    SHA224_Final(hash_output, &md_ctx256);
+		    // Perform remaining ( iterations - 1 ) recursive hash calculations
+		    for ( i = 1; i < (size_t) iterations; i++ ) {
+			    SHA224_Init(&md_ctx256);
+			    SHA224_Update(&md_ctx256, hash_output, hlen);
+			    SHA224_Final(hash_output, &md_ctx256);
+		    }
+		    break;
+	    case 256:
+		    SHA256_Init(&md_ctx256);
+		    SHA256_Update(&md_ctx256, diversifier, v);
+		    SHA256_Update(&md_ctx256, salt_block, v);
+		    SHA256_Update(&md_ctx256, pwd_block, v2);
+		    SHA256_Final(hash_output, &md_ctx256);
+		    // Perform remaining ( iterations - 1 ) recursive hash calculations
+		    for ( i = 1; i < (size_t) iterations; i++ ) {
+			    SHA256_Init(&md_ctx256);
+			    SHA256_Update(&md_ctx256, hash_output, hlen);
+			    SHA256_Final(hash_output, &md_ctx256);
+		    }
+		    break;
 	    case 384:
-	    	SHA384_Init(&md_ctx512);
-                SHA384_Update(&md_ctx512, diversifier, v);
-                SHA384_Update(&md_ctx512, salt_block, v);
-                SHA384_Update(&md_ctx512, pwd_block, v);
-                SHA384_Final(hash_output, &md_ctx512);
-                // Perform remaining ( iterations - 1 ) recursive hash calculations
-                for ( i = 1; i < (size_t) iterations; i++ ) {
-                    SHA384_Init(&md_ctx512);
-                    SHA384_Update(&md_ctx512, hash_output, hlen);
-                    SHA384_Final(hash_output, &md_ctx512);
-                }
-		break;
+		    SHA384_Init(&md_ctx512);
+		    SHA384_Update(&md_ctx512, diversifier, v);
+		    SHA384_Update(&md_ctx512, salt_block, v);
+		    SHA384_Update(&md_ctx512, pwd_block, v);
+		    SHA384_Final(hash_output, &md_ctx512);
+		    // Perform remaining ( iterations - 1 ) recursive hash calculations
+		    for ( i = 1; i < (size_t) iterations; i++ ) {
+			    SHA384_Init(&md_ctx512);
+			    SHA384_Update(&md_ctx512, hash_output, hlen);
+			    SHA384_Final(hash_output, &md_ctx512);
+		    }
+		    break;
 	    case 10: // fall through
 	    case 512:
-	    	SHA512_Init(&md_ctx512);
-                SHA512_Update(&md_ctx512, diversifier, v);
-                SHA512_Update(&md_ctx512, salt_block, v);
-                SHA512_Update(&md_ctx512, pwd_block, v);
-                SHA512_Final(hash_output, &md_ctx512);
-                // Perform remaining ( iterations - 1 ) recursive hash calculations
-                for ( i = 1; i < (size_t) iterations; i++ ) {
-                    SHA512_Init(&md_ctx512);
-                    SHA512_Update(&md_ctx512, hash_output, hlen);
-                    SHA512_Final(hash_output, &md_ctx512);
-                }
-		break;
+		    SHA512_Init(&md_ctx512);
+		    SHA512_Update(&md_ctx512, diversifier, v);
+		    SHA512_Update(&md_ctx512, salt_block, v);
+		    SHA512_Update(&md_ctx512, pwd_block, v);
+		    SHA512_Final(hash_output, &md_ctx512);
+		    // Perform remaining ( iterations - 1 ) recursive hash calculations
+		    for ( i = 1; i < (size_t) iterations; i++ ) {
+			    SHA512_Init(&md_ctx512);
+			    SHA512_Update(&md_ctx512, hash_output, hlen);
+			    SHA512_Final(hash_output, &md_ctx512);
+		    }
+		    break;
 	    case 2:
-                sph_whirlpool_init(&md_ctx_whrl);
-                sph_whirlpool(&md_ctx_whrl, diversifier, v);
-                sph_whirlpool(&md_ctx_whrl, salt_block, v);
-                sph_whirlpool(&md_ctx_whrl, pwd_block, v);
-                sph_whirlpool_close(&md_ctx_whrl, hash_output);
-                // Perform remaining ( iterations - 1 ) recursive hash calculations
-                for ( i = 1; i < (size_t) iterations; i++ ) {
-                    sph_whirlpool_init(&md_ctx_whrl);
-                    sph_whirlpool(&md_ctx_whrl, hash_output, hlen);
-                    sph_whirlpool_close(&md_ctx_whrl, hash_output);
-                }
-		break;
-	}
+		    sph_whirlpool_init(&md_ctx_whrl);
+		    sph_whirlpool(&md_ctx_whrl, diversifier, v);
+		    sph_whirlpool(&md_ctx_whrl, salt_block, v);
+		    sph_whirlpool(&md_ctx_whrl, pwd_block, v);
+		    sph_whirlpool_close(&md_ctx_whrl, hash_output);
+		    // Perform remaining ( iterations - 1 ) recursive hash calculations
+		    for ( i = 1; i < (size_t) iterations; i++ ) {
+			    sph_whirlpool_init(&md_ctx_whrl);
+			    sph_whirlpool(&md_ctx_whrl, hash_output, hlen);
+			    sph_whirlpool_close(&md_ctx_whrl, hash_output);
+		    }
+		    break;
+	    }
 
         use_len = ( datalen > hlen ) ? hlen : datalen;
         memcpy( p, hash_output, use_len );
@@ -462,7 +462,7 @@ int mbedtls_pkcs12_derivation_simd1( unsigned char *data[SSE_GROUP_SZ_SHA1], siz
 
 			SHA1_Update( &md_ctx, diversifier, v );
 			SHA1_Update( &md_ctx, salt_block[k], v );
-			v2 = ((pwdlen[k]+64)/64)*64;
+			v2 = ((pwdlen[k]+64-1)/64)*64;
 			SHA1_Update( &md_ctx, pwd_block[k], v2 );
 			SHA1_Final( hash, &md_ctx );
 			for (i = 0; i < SHA_DIGEST_LENGTH; ++i) {
@@ -572,7 +572,7 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 
 			SHA256_Update( &md_ctx, diversifier, v );
 			SHA256_Update( &md_ctx, salt_block[k], v );
-			v2 = ((pwdlen[k]+64)/64)*64;
+			v2 = ((pwdlen[k]+64-1)/64)*64;
 			SHA256_Update( &md_ctx, pwd_block[k], v2 );
 			SHA256_Final( hash, &md_ctx );
 			for (i = 0; i < SHA256_DIGEST_LENGTH; ++i) {

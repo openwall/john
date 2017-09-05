@@ -29,19 +29,19 @@
 #endif
 
 #if !AC_BUILT
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
@@ -643,7 +643,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (rec_restored && john_main_process)
 		fprintf(stderr,
 		        "Proceeding with wordlist:%s and rules:%s\n",
-		        loopBack ? "loopback" : path_expand(name),
+		        loopBack ? "loopback" : name ? path_expand(name) : "stdin",
 		        options.activewordlistrules ?
 		        options.activewordlistrules : "none");
 
@@ -1179,18 +1179,18 @@ REDO_AFTER_LMLOOP:
 			}
 			if ((rule = rules_reject(prerule, -1, last, db))) {
 				if (strcmp(prerule, rule)) {
-					if (options.verbosity >= VERB_LEGACY)
+					if (!rules_mute)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted as '%.100s'",
 						rule_number + 1, prerule, rule);
 				} else {
-					if (options.verbosity >= VERB_LEGACY)
+					if (!rules_mute)
 					log_event("- Rule #%d: '%.100s'"
 						" accepted",
 						rule_number + 1, prerule);
 				}
 			} else {
-				if (options.verbosity >= VERB_LEGACY)
+				if (!rules_mute)
 				log_event("- Rule #%d: '%.100s' rejected",
 					rule_number + 1, prerule);
 				goto next_rule;

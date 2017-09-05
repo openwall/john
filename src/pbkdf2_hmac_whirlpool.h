@@ -9,7 +9,7 @@
  *
  * This is generic PBKDF2-HMAC-Whirlpool. To use this simple interface,
  * simply include this header file, and then call the pbkdf2_whirlpool()
- * function, filling in all params.  This format is same as the EVP_digest
+ * function, filling in all params.  This format is same as the EVP
  * whirlpool algorithm within OpenSSL.  It uses a 64 byte opad/ipad even
  * though the hash base width is 128 bytes. This is unlike the other
  * PBKDF2 hashes I am familiar with (sha1, sha256, sha512 and now ripemd160).
@@ -42,7 +42,7 @@
 #define WHIRLPOOL_DIGEST_LENGTH   (512/8)
 #endif
 
-// should be 128, but this is how oSSL does it in EVP_digest-whirlpool
+// should be 128, but this is how oSSL does it in EVP digest-whirlpool
 #define WHIRLPOOL_CBLOCK 64
 
 static void _pbkdf2_whirlpool_load_hmac(const unsigned char *K, int KL, WHIRLPOOL_CTX *pIpad, WHIRLPOOL_CTX *pOpad) {

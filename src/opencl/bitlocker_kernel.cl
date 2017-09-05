@@ -340,7 +340,6 @@ inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c
 #define SINGLE_BLOCK_W_SIZE 		64
 #define ITERATION_NUMBER 			0x100000
 #define MAX_INPUT_PASSWORD_LEN 		16
-#define END_STRING 					0x80
 #define SALT_SIZE 					16
 #define INT_HASH_SIZE 				8
 #define HASH_LOOPS					256
@@ -354,12 +353,12 @@ __kernel void opencl_bitlocker_wblocks(
         unsigned char block[SINGLE_BLOCK_W_SIZE];
         int i, j;
 
-        for(i=0; i<SALT_SIZE; i++)
+        for (i=0; i<SALT_SIZE; i++)
                 block[i] = salt_d[i];
 
         i+=8;
 
-        for(j=0; j<40; i++, j++)
+        for (j=0; j<40; i++, j++)
                 block[i] = padding_d[j];
 
         while(loop < ITERATION_NUMBER)
@@ -503,7 +502,7 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 	while (globalIndexPassword < numPassword) {
 
 #if 0
-		if(globalIndexPassword == 0)
+		if (globalIndexPassword == 0)
 			printf("thread0 ---- > kernel opencl_bitlocker_attack_init\n");
 #endif
 		index_generic = w_password_size[globalIndexPassword];
@@ -779,7 +778,7 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 		first_hash[(globalIndexPassword*INT_HASH_SIZE) + 7] = first_hash7;
 
 #if 0
-		if(globalIndexPassword == 0)
+		if (globalIndexPassword == 0)
 		{
 			printf("first_hash0: %x\n", first_hash0);
 			printf("first_hash1: %x\n", first_hash1);
@@ -885,7 +884,7 @@ __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
 		hash7 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 7];
 
 #if 0
-		if(globalIndexPassword == 0)
+		if (globalIndexPassword == 0)
 		{
 			printf("thread0 ---- > kernel opencl_bitlocker_attack_loop, numPassword: %d, numIter: %d, indexW: %d\n", numPassword, numIter, indexW);
 			printf("first_hash0: %x\n", first_hash0);
@@ -909,7 +908,7 @@ __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
 #endif
 
 		//HASH_LOOPS num of iteration
-		for(index=0; index < HASH_LOOPS; index++)
+		for (index=0; index < HASH_LOOPS; index++)
 		{
 			//Prima parte
 			a = 0x6A09E667;
@@ -1149,7 +1148,7 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 	int numPassword = numPasswordMem[0];
 
 #if 0
-		if(globalIndexPassword == 0)
+		if (globalIndexPassword == 0)
 		{
 			printf("thread0 ---- > kernel opencl_bitlocker_attack_final\n");
 			printf("hash0: %x\n", hash0);
@@ -1175,7 +1174,7 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		hash6 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 6];
 		hash7 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 7];
 #if 0
-		if(globalIndexPassword == 0)
+		if (globalIndexPassword == 0)
 		{
             printf("hash: %x - %x - %x - %x - %x - %x - %x\n",  hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7);
 			printf("IV0: %x, IV4: %x, IV8: %x, IV12: %x\n", IV0[0], IV4[0], IV8[0], IV12[0]);
@@ -1557,7 +1556,7 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		    (unsigned int)((unsigned int)(schedule2 & 0x000000ff) << 24);
 
 #if 0
-		    if(globalIndexPassword == 0)
+		    if (globalIndexPassword == 0)
 		    {
 		    	printf("schedule4: %x, schedule6: %x, vmkKey[0]: %x, vmkKey[1]: %x, vmkKey[2]: %x, vmkKey[3]: %x\n",
 		    	 schedule4, schedule6, vmkKey[0], vmkKey[1], vmkKey[2], vmkKey[3]);

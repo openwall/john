@@ -62,7 +62,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
-#  define FORCE_THREAD_MD5_body
+  #define FORCE_THREAD_MD5_body
 #endif
 #undef _OPENMP
 #endif
@@ -181,8 +181,8 @@ static void MD5_swap2(MD5_word *x, MD5_word *x2, MD5_word *y, MD5_word *y2, int 
 #define FORMAT_NAME         "Generic MD5"
 
 #ifdef SIMD_COEF_32
-# define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
-# define SHAGETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) ) //for endianity conversion
+ #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) )
+ #define SHAGETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) ) //for endianity conversion
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -411,10 +411,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (strncmp(ciphertext, pPriv->dynamic_WHICH_TYPE_SIG, strlen(pPriv->dynamic_WHICH_TYPE_SIG)))
 		return 0;
 
+	/* Quick cancel of huge lines (eg. zip archives) */
+	if (strnlen(ciphertext, LINE_BUFFER_SIZE + 1) > LINE_BUFFER_SIZE)
+		return 0;
+
 	// this is now simply REMOVED totally, if we detect it.  Doing this solves MANY other problems
 	// of leaving it in there. The ONLY problem we still have is NULL bytes.
 	if (strstr(ciphertext, "$HEX$")) {
-		if (strlen(ciphertext) < sizeof(fixed_ciphertext))
+		if (strnlen(ciphertext, sizeof(fixed_ciphertext) + 1) < sizeof(fixed_ciphertext))
 			ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
 	}
 
@@ -534,7 +538,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (pPriv->FldMask) {
 		for (i = 0; i < 10; ++i) {
 			if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
-				char Fld[5];
+				char Fld[8];
 				sprintf(Fld, "$$F%d", i);
 				if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 					return 0;
@@ -565,7 +569,7 @@ const unsigned int OMP_SHA1_INC = (SIMD_PARA_SHA1*SIMD_COEF_32);
 #endif // SIMD_COEF_32
 #endif // _OPENMP
 
-static inline void __nonMP_DynamicFunc__SSEtoX86_switch_output2()
+inline static void __nonMP_DynamicFunc__SSEtoX86_switch_output2()
 {
 #ifdef _OPENMP
 	DynamicFunc__SSEtoX86_switch_output2(0,m_count,0);
@@ -574,7 +578,7 @@ static inline void __nonMP_DynamicFunc__SSEtoX86_switch_output2()
 #endif
 }
 
-static inline void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16()
+inline static void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_base16()
 {
 #ifdef _OPENMP
 	DynamicFunc__append_from_last_output2_to_input1_as_base16(0,m_count,0);
@@ -602,12 +606,12 @@ void __nonMP_nLargeOff(unsigned val)
 	nLargeOff[0] = val;
 }
 
-static inline void md5_unicode_convert_set(int what, int tid)
+inline static void md5_unicode_convert_set(int what, int tid)
 {
 	md5_unicode_convert[tid] = what;
 }
 
-static inline int md5_unicode_convert_get(int tid)
+inline static int md5_unicode_convert_get(int tid)
 {
 	return md5_unicode_convert[tid];
 }
@@ -631,7 +635,7 @@ void __nonMP_md5_unicode_convert(int what)
 #define nLargeOff_get(tid)        nLargeOff_get(0)
 #endif
 
-static inline void __nonMP_DynamicFunc__append_keys2()
+inline static void __nonMP_DynamicFunc__append_keys2()
 {
 #ifdef _OPENMP
 	DynamicFunc__append_keys2(0,m_count,0);
@@ -936,7 +940,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	// ANY field[1] longer than 490 will simply be ignored, and returned 'as is'.
 	// the rest of this function makes this assumption.
-	if (!cpBuilding || strlen(cpBuilding) > 490)
+	if (!cpBuilding || strnlen(cpBuilding, 491) > 490)
 		return cpBuilding;
 
 	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them
@@ -982,7 +986,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	// At this point, max length of cpBuilding is 491 (if it was a md5_gen signature)
 
 	// allow a raw hash, if there is a $u but no salt
-	if (pPriv->nUserName && strlen(split_fields[0]) && !strchr(cpBuilding, '$') && strcmp(split_fields[0], "?")) {
+	if (pPriv->nUserName && split_fields[0][0] && !strchr(cpBuilding, '$') && strcmp(split_fields[0], "?")) {
 		static char ct[496];
 		strcpy(ct, cpBuilding);
 		strcat(ct, "$$U");
@@ -1053,7 +1057,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
 	if (pPriv->nUserName && !strstr(cpBuilding, "$$U")) {
-		if (split_fields[0] && strlen(split_fields[0]) && strcmp(split_fields[0], "?")) {
+		if (split_fields[0] && split_fields[0][0] && strcmp(split_fields[0], "?")) {
 			char *userName=split_fields[0], *cp;
 			static char ct[1024];
 			// assume field[0] is in format: username OR DOMAIN\\username  If we find a \\, then  use the username 'following' it.
@@ -1069,7 +1073,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		for (i = 0; i < 10; ++i) {
 			if (pPriv->FldMask&(MGF_FLDx_BIT<<i)) {
 				sprintf(Tmp, "$$F%d", i);
-				if (split_fields[i] && strlen(split_fields[i]) && strcmp(split_fields[i], "/") && !strstr(cpBuilding, Tmp)) {
+				if (split_fields[i] && split_fields[i][0] && strcmp(split_fields[i], "/") && !strstr(cpBuilding, Tmp)) {
 					static char ct[1024];
 					char ct2[1024];
 					snprintf (ct2, sizeof(ct2), "%s$$F%d%s", cpBuilding, i, split_fields[i]);
@@ -1088,7 +1092,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	static char out[1024];
 	private_subformat_data *pPriv = pFmt->private.data;
 
-	if (strlen(ciphertext) > 950)
+	if (strnlen(ciphertext, 951) > 950)
 		return ciphertext;
 
 	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them
@@ -3011,8 +3015,8 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned int ip, 
     // 5113k/4382k  (core2,$dynamic_10$)
 	//  (ath64, $dynamic_9$)
 	//  (ath64, $dynamic_10$)
-# define inc SIMD_COEF_32
-# define incCRY ((SIMD_COEF_32 - 1) * 4)
+ #define inc SIMD_COEF_32
+ #define incCRY ((SIMD_COEF_32 - 1) * 4)
 	// Ok, here we are 1/2 off. We are starting in the 'middle' of a DWORD (and end
 	// in the middle of the last one).
 
@@ -3227,7 +3231,7 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned int idx_mo
 #endif  // #ifdef SIMD_COEF_32 from way above.
 
 
-static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
+inline static void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
 {
 	unsigned int j;
 	unsigned int til;
@@ -3343,7 +3347,7 @@ static inline void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 	}
 }
 
-static inline void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
+inline static void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
 {
 	unsigned int j;
 	unsigned int til;
@@ -8208,7 +8212,7 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 			int i;
 			for (i = 0; i < 10; ++i) {
 				if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
-					char Fld[5];
+					char Fld[8];
 					sprintf(Fld, "$$F%d", i);
 					if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 						return ciphertext;

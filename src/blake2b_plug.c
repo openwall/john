@@ -45,13 +45,13 @@ JTR_ALIGN( 64 ) static const uint64_t blake2b_IV[8] =
 };
 
 /* Some helper functions, not necessarily useful */
-static inline int blake2b_set_lastnode( blake2b_state *S )
+inline static int blake2b_set_lastnode( blake2b_state *S )
 {
   S->f[1] = ~0ULL;
   return 0;
 }
 
-static inline int blake2b_set_lastblock( blake2b_state *S )
+inline static int blake2b_set_lastblock( blake2b_state *S )
 {
   if ( S->last_node ) blake2b_set_lastnode( S );
 
@@ -59,7 +59,7 @@ static inline int blake2b_set_lastblock( blake2b_state *S )
   return 0;
 }
 
-static inline int blake2b_increment_counter( blake2b_state *S, const uint64_t inc )
+inline static int blake2b_increment_counter( blake2b_state *S, const uint64_t inc )
 {
 #if __x86_64__
   // ADD/ADC chain
@@ -148,7 +148,7 @@ int blake2b_init_key( blake2b_state *S, const uint8_t outlen, const void *key, c
   return 0;
 }
 
-static inline int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2B_BLOCKBYTES] )
+inline static int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2B_BLOCKBYTES] )
 {
   __m128i row1l, row1h;
   __m128i row2l, row2h;

@@ -41,8 +41,8 @@
 extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 #endif
 
-
-#if (JS_REGEX_MAJOR_VERSION>1) || ((JS_REGEX_MAJOR_VERSION==1)&&(JS_REGEX_MINOR_VERSION>=3))
+/* require at least version 2.0.6 of rexgen */
+#if (JS_REGEX_MAJOR_VERSION > 2) || ((JS_REGEX_MAJOR_VERSION == 2) && ((JS_REGEX_MINOR_VERSION > 0) || (JS_REGEX_BUILD_VERSION >= 6)))
 
 #include "loader.h"
 /*

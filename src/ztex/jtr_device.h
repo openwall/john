@@ -27,7 +27,7 @@ extern struct jtr_device_list *jtr_device_list;
  * JtR device.
  * - jtr_device is some remote computing device (part of the device)
  * independent from other such devices from the point of view from JtR.
- * - jtr_device doesn't contain anything specific to underlying 
+ * - jtr_device doesn't contain anything specific to underlying
  * physical device or link layer.
  * - Implemented on top of 'inouttraffic' device.
  */
@@ -37,11 +37,11 @@ struct jtr_device {
 	struct device *device;
 	// channel for high-speed packet communication (pkt_comm)
 	struct pkt_comm *comm;
-	
+
 	// TODO: there might be several cores in the design
 	// that share same communication channel
 	//int core_id;
-	
+
 	// using db_salt->sequential_id's that start from 0.
 	// on jtr_device with unconfigured comparator cmp_config_id is -1.
 	int cmp_config_id;
@@ -97,7 +97,10 @@ int jtr_device_list_rw(struct task_list *task_list);
 // Fetch input packets from pkt_comm_queue
 // Match input packets to assigned tasks, create task_result's
 // Uses global jtr_device_list
-void jtr_device_list_process_inpkt(struct task_list *task_list);
+// Return values:
+// NULL - everything processed (if anything)
+// (struct jtr_device *) - bad input from the device
+struct jtr_device *jtr_device_list_process_inpkt(struct task_list *task_list);
 
 // Stop physical device
 // - deassign tasks

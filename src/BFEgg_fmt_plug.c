@@ -87,7 +87,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
     char *pos;
 
     if (*ciphertext != '+') return 0;
-    if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
+    if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH) return 0;
 
     for (pos = &ciphertext[1]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
     if (*pos || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;

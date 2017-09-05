@@ -201,24 +201,26 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *password;
 	static char *netscreen = "nrcstn" ;
-        static int  p[] = { 0, 6, 12, 17, 23, 29 };
+	static int  p[] = { 0, 6, 12, 17, 23, 29 };
 	int i;
 
-	password = ciphertext;
+	password = strchr(ciphertext, '$');
 
-	while ((*password != '$') && (*password != '\0' ))
-		password++;
-	if (*password == '\0') return 0;
+	if (!password)
+		return 0;
 
 	if ((int)(password - ciphertext) > SALT_SIZE)
 		return 0;
 
 	password++;
 
-	if (strlen(password) != 30) return 0;
-        if (strspn(password, b64) != 30) return 0;
+	if (strnlen(password, 31) != 30)
+		return 0;
+	if (strspn(password, b64) != 30)
+		return 0;
 	for (i = 0; i < 6 ; i++)
-		if (netscreen[i] != password[p[i]]) return 0;
+		if (netscreen[i] != password[p[i]])
+			return 0;
 
 	for (i = 0; i < 30 ; i++) {
 		char c = password[i];

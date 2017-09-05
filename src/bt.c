@@ -350,7 +350,7 @@ static void calc_hash_mdoulo_table_size(unsigned int *store, auxilliary_offset_d
 
 static unsigned int create_tables()
 {
- 	unsigned int i;
+	unsigned int i;
 
 	unsigned int bitmap = ((1ULL << (sizeof(OFFSET_TABLE_WORD) * 8)) - 1) & 0xFFFFFFFF;
 	unsigned int limit = bitmap % hash_table_size + 1;

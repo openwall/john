@@ -10,6 +10,8 @@
 #include "opencl_misc.h"
 #include "opencl_md5.h"
 #include "opencl_sha1.h"
+#include "opencl_sha2_ctx.h"
+#include "opencl_cmac.h"
 
 typedef struct {
 	uint keymic[16 / 4];
@@ -179,7 +181,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
 
-	// HMAC(EVP_sha1(), key, 32, (text.data), 100, ret, NULL);
+	// HMAC(sha1(), key, 32, (text.data), 100, ret, NULL);
 
 	/* ipad */
 	for (i = 0; i < 8; i++)
@@ -249,7 +251,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 
 	prf_512(outbuffer, salt->data, prf);
 
-	// HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
+	// HMAC(md5(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
 	// eapol is the message (eapol_size blocks, already prepared with 0x80 and len)
 	for (i = 0; i < 4; i++)
@@ -261,7 +263,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 
 	/* eapol_blocks (of MD5),
 	 * eapol data + 0x80, null padded and len set in set_salt() */
-	eapol_blocks = salt->eapol_size;
+	eapol_blocks = 1 + (salt->eapol_size + 8) / 64;
 
 	/* At least this will not diverge */
 	while (eapol_blocks--) {
@@ -346,7 +348,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 
 	prf_512(outbuffer, salt->data, prf);
 
-	// HMAC(EVP_sha1(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
+	// HMAC(sha1(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
 	// eapol is the message (eapol_size bytes)
 	for (i = 0; i < 4; i++)
@@ -357,7 +359,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 
 	/* eapol_blocks (of SHA1),
 	 * eapol data + 0x80, null padded and len set in set_salt() */
-	eapol_blocks = salt->eapol_size;
+	eapol_blocks = 1 + (salt->eapol_size + 8) / 64;
 
 	/* At least this will not diverge */
 	while (eapol_blocks--) {
@@ -416,4 +418,162 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 #endif
 	}
 #endif
+}
+
+#define SHA256_MAC_LEN 32
+
+inline void
+WPA_PUT_LE16(uchar *a, uint val)
+{
+	a[1] = (val >> 8) & 0xff;
+	a[0] = val & 0xff;
+}
+
+inline void
+sha256_vector(uint num_elem, const uchar *addr[], const uint *len, uchar *mac)
+{
+	SHA256_CTX ctx;
+	uint i;
+
+	SHA256_Init(&ctx);
+	for (i = 0; i < num_elem; i++) {
+		SHA256_Update(&ctx, addr[i], len[i]);
+	}
+
+	SHA256_Final(mac, &ctx);
+}
+
+inline void
+hmac_sha256_vector(const uchar *key, uint key_len, uint num_elem,
+                   const uchar *addr[], const uint *len, uchar *mac)
+{
+	uchar k_pad[64]; /* padding - key XORd with ipad/opad */
+	const uchar *_addr[6];
+	uint _len[6], i;
+
+	/* the HMAC_SHA256 transform looks like:
+	 *
+	 * SHA256(K XOR opad, SHA256(K XOR ipad, text))
+	 *
+	 * where K is an n byte key
+	 * ipad is the byte 0x36 repeated 64 times
+	 * opad is the byte 0x5c repeated 64 times
+	 * and text is the data being protected */
+
+	/* XOR key with ipad values */
+	for (i = 0; i < key_len; i++)
+		k_pad[i] = key[i] ^ 0x36;
+	for (; i < 64; i++)
+		k_pad[i] = 0x36;
+
+	/* perform inner SHA256 */
+	_addr[0] = k_pad;
+	_len[0] = 64;
+	for (i = 0; i < num_elem; i++) {
+		_addr[i + 1] = addr[i];
+		_len[i + 1] = len[i];
+	}
+	sha256_vector(1 + num_elem, _addr, _len, mac);
+
+	/* XOR key with opad values */
+	for (i = 0; i < key_len; i++)
+		k_pad[i] = key[i] ^ 0x5c;
+	for (; i < 64; i++)
+		k_pad[i] = 0x5c;
+
+	/* perform outer SHA256 */
+	_addr[0] = k_pad;
+	_len[0] = 64;
+	_addr[1] = mac;
+	_len[1] = SHA256_MAC_LEN;
+	sha256_vector(2, _addr, _len, mac);
+}
+
+inline void
+sha256_prf_bits(const uchar *key, uint key_len, MAYBE_CONSTANT uchar *data,
+                uint data_len, uchar *buf, uint buf_len_bits)
+{
+	uint counter = 1;
+	uint pos, plen;
+	const uchar *addr[4];
+	uint len[4];
+	uchar counter_le[2], length_le[2];
+	uint buf_len = (buf_len_bits + 7) / 8;
+	const uchar label[] = "Pairwise key expansion";
+	uchar pdata[64 + 12];
+	uint i;
+
+	for (i = 0; i < data_len; i++)
+		pdata[i] = data[i];
+
+	addr[0] = counter_le;
+	len[0] = 2;
+	addr[1] = label;
+	len[1] = 22;     /* strlen(label) */
+	addr[2] = pdata;
+	len[2] = data_len;
+	addr[3] = length_le;
+	len[3] = sizeof(length_le);
+
+	WPA_PUT_LE16(length_le, buf_len_bits);
+	pos = 0;
+
+	while (pos < buf_len) {
+		plen = buf_len - pos;
+		WPA_PUT_LE16(counter_le, counter);
+		if (plen >= SHA256_MAC_LEN) {
+			hmac_sha256_vector(key, key_len, 4, addr, len, &buf[pos]);
+			pos += SHA256_MAC_LEN;
+		} else {
+			uchar hash[SHA256_MAC_LEN];
+			uint i;
+
+			hmac_sha256_vector(key, key_len, 4, addr, len, hash);
+			for (i = 0; i < plen; i++)
+				buf[pos + i] = hash[i];
+			pos += plen;
+			break;
+		}
+		counter++;
+	}
+
+	/*
+	 * Mask out unused bits in the last octet if it does not use all the
+	 * bits.
+	 */
+	if (buf_len_bits % 8) {
+		uchar mask = 0xff << (8 - buf_len_bits % 8);
+		buf[pos - 1] &= mask;
+	}
+}
+
+__kernel
+void wpapsk_final_sha256(__global wpapsk_state *state,
+                         MAYBE_CONSTANT wpapsk_salt *salt,
+                         __global mic_t *mic)
+{
+	uchar ptk[48];
+	uchar cmic[16];
+	uint outbuffer[8];
+	uint gid = get_global_id(0);
+	uint i;
+	AES_CMAC_CTX ctx;
+
+	for (i = 0; i < 5; i++)
+		outbuffer[i] = SWAP32(state[gid].partial[i]);
+
+	for (i = 0; i < 3; i++)
+		outbuffer[5 + i] = SWAP32(state[gid].out[i]);
+
+	sha256_prf_bits((uchar*)outbuffer, 32, (MAYBE_CONSTANT uchar*)salt->data, 76, ptk, 48 * 8);
+
+	/* CMAC is kinda like a HMAC but using AES */
+	AES_CMAC_Init(&ctx);
+	AES_CMAC_SetKey(&ctx, ptk);
+	AES_CMAC_Update(&ctx, (MAYBE_CONSTANT uchar*)salt->eapol, salt->eapol_size);
+	AES_CMAC_Final(cmic, &ctx);
+
+	/* We only use 16 bytes */
+	for (i = 0; i < 16; i++)
+		((__global uchar*)mic[gid].keymic)[i] = cmic[i];
 }

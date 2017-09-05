@@ -63,7 +63,7 @@ john_register_one(&fmt_SybaseASE);
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0
 
-#define PLAINTEXT_LENGTH    64
+#define PLAINTEXT_LENGTH    30
 #define CIPHERTEXT_LENGTH   (6 + 16 + 64)
 
 #define BINARY_SIZE         32
@@ -130,7 +130,7 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 
 	if (options.target_enc == UTF_8)
-		fmt_SybaseASE.params.plaintext_length = 125;
+		fmt_SybaseASE.params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 	// will simply set SIMD stuff here, even if not 'used'
 #ifdef SIMD_COEF_32
 	NULL_LIMB = mem_calloc_align(64, MAX_KEYS_PER_CRYPT, MEM_ALIGN_CACHE);
@@ -268,24 +268,25 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
-	UTF16 tmp[PLAINTEXT_LENGTH+1];
+	UTF16 tmp[PLAINTEXT_LENGTH + 1];
 	int len2, len = enc_to_utf16_be(tmp, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
 	int idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
 
 	if (len < 0)
 		len = strlen16(tmp);
 
-	if (len > 32)
+	if (PLAINTEXT_LENGTH > 32 && len > 32)
 		memcpy(prep_key[idx1][1][idx2], &tmp[32], (len-32)<<1);
 	len2 = len;
-	if (len2 > 32) len2 = 32;
+	if (PLAINTEXT_LENGTH > 32 && len2 > 32)
+		len2 = 32;
 	memcpy(prep_key[idx1][0][idx2], tmp, len2<<1);
 	len2 = len;
 	while (len < last_len[index]) {
-		if (len < 32)
+		if (PLAINTEXT_LENGTH < 32 || len < 32)
 			prep_key[idx1][0][idx2][len] = 0;
 		else
-			prep_key[idx1][1][idx2][len-32] = 0;
+			prep_key[idx1][1][idx2][len - 32] = 0;
 		++len;
 	}
 	last_len[index] = len2;
@@ -307,7 +308,7 @@ static char *get_key(int index)
 #ifdef SIMD_COEF_32
 	int j, idx1=index/MAX_KEYS_PER_CRYPT, idx2=index%MAX_KEYS_PER_CRYPT;
 
-	if (last_len[index] < 32) {
+	if (PLAINTEXT_LENGTH < 32 || last_len[index] < 32) {
 		for (j = 0; j < last_len[index]; ++j)
 			key_le[j] = JOHNSWAP(prep_key[idx1][0][idx2][j])>>16;
 	} else {

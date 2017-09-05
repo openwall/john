@@ -9,7 +9,7 @@
  *
  * This is generic PBKDF2-HMAC-RipeMD160. To use this simple interface,
  * simply include this header file, and then call the pbkdf2_ripemd160()
- * function, filling in all params.  This format is same as the EVP_digest
+ * function, filling in all params.  This format is same as the EVPdigest
  * ripemd160 algorithm within OpenSSL.
  */
 

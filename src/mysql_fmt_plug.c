@@ -116,7 +116,7 @@ static int valid(char* ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++)

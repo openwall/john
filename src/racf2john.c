@@ -91,18 +91,18 @@ static void print_ebcdic(unsigned char *s, int len)
 
 // found a valid user record, search for a DES or KDFAES password hash (no passphrases at this point)
 static void process_user_rec(unsigned char * up, uint16_t len, unsigned char * pn, uint8_t pnl) {
-	char passf[2] = {12,100};  // only finds passwords (not phrases) at this time; both DES and KDFAES
+	char passf[2] = {12, 100};  // only finds passwords (not phrases) at this time; both DES and KDFAES
 	char fn;
 	uint16_t fl;
-	uint16_t x=0;
+	uint16_t x = 0;
 	int found = T_EMPTY;
 	int rpt = false;
-	unsigned char * h1;
+	unsigned char * h1 = NULL;
 	uint8_t h1_len;
-	unsigned char * h2;
+	unsigned char * h2 = NULL;
 	uint8_t h2_len;
 
-	while (x<len) {
+	while (x < len) {
 		fn = up[x];
 		fl = (uint8_t)up[x+1];
 
@@ -126,30 +126,28 @@ static void process_user_rec(unsigned char * up, uint16_t len, unsigned char * p
 		}
 
 		if (rpt) {
-			x=x+fl+5;
+			x = x + fl + 5;
 			rpt = false;
 		} else {
-			x=x+fl+2;
+			x = x + fl + 2;
 		}
-
 	}
-	if (found==T_DES) {
+	if (found == T_DES) {
 		found = T_EMPTY;
-		print_ebcdic(pn,pnl);
+		print_ebcdic(pn, pnl);
 		printf(":$racf$*");
-		print_ebcdic(pn,pnl);
+		print_ebcdic(pn, pnl);
 		printf("*");
-		print_hex(h1,h1_len);
+		print_hex(h1, h1_len);
 		printf("\n");
-
-	} else if (found==T_KDFAES) {
+	} else if (found == T_KDFAES) {
 		found = T_EMPTY;
-		print_ebcdic(pn,pnl);
+		print_ebcdic(pn, pnl);
 		printf(":$racf$*");
-		print_ebcdic(pn,pnl);
+		print_ebcdic(pn, pnl);
 		printf("*");
-		print_hex(h2,h2_len);
-		print_hex(h1,h1_len);
+		print_hex(h2, h2_len);
+		print_hex(h1, h1_len);
 		printf("\n");
 	}
 }
@@ -159,9 +157,9 @@ static void process_file(const char *filename)
 {
 	FILE *fp = fopen(filename, "r");
 	struct stat sb;
-	unsigned char *buffer;
+	unsigned char *buffer = NULL;
 	off_t size;
-	int i,count=0;
+	int i, count = 0;
 	unsigned char *user_prof;
 	uint32_t user_rec_addr = 0;
 	uint16_t user_rec_len = 0;
@@ -170,13 +168,20 @@ static void process_file(const char *filename)
 	uint8_t profile_name_len = 0;
 	unsigned char *profile_name = 0;
 
-	if(stat(filename, &sb) == -1) {
+	if (stat(filename, &sb) == -1) {
 		perror("stat");
 		exit(EXIT_FAILURE);
 	}
 
 	size = sb.st_size;
-	buffer = (unsigned char *)mem_alloc(size);
+	if (size == 0)
+		goto cleanup;
+
+	buffer = (unsigned char *)malloc(size);
+	if (!buffer) {
+		fprintf(stderr, "malloc failed in process_file, aborting!\n");
+		exit(-1);
+	}
 	count = fread(buffer, size, 1, fp);
 	assert(count == 1);
 
@@ -185,32 +190,53 @@ static void process_file(const char *filename)
 
 	// this brute force finds profiles, whether active or disabled and dumps their primary hashes
 	while (i < size) {
-		if (buffer[i-7] == 0xc2 && buffer[i-6] == 0xc1 &&		//"BA"
-				buffer[i-5] == 0xe2 && buffer[i-4] == 0xc5 &&	//"SE"
-				buffer[i-3] == 0x40 && buffer[i-2] == 0x40 &&	//"  "
-				buffer[i-1] == 0x40 && buffer[i] == 0x40 &&		//"  "
-				buffer[i+1] == 0 && buffer[i+2] < 9 &&			//null + total namelen < 9
-				buffer[i+3] == 0 ) {							//null
+		if (buffer[i-7] == 0xc2 && buffer[i-6] == 0xc1 &&               //"BA"
+				buffer[i-5] == 0xe2 && buffer[i-4] == 0xc5 &&   //"SE"
+				buffer[i-3] == 0x40 && buffer[i-2] == 0x40 &&   //"  "
+				buffer[i-1] == 0x40 && buffer[i] == 0x40 &&     //"  "
+				buffer[i+1] == 0 && buffer[i+2] < 9 &&          //null + total namelen < 9
+				buffer[i+3] == 0 ) {                            //null
 
 			user_rec_addr = i-16;
 			user_rec_len = (((uint8_t)buffer[i-9]) << 8) + (uint8_t)buffer[i-8];
 			profile_name_len = (uint8_t)buffer[i+2];
 			profile_name = &buffer[i+4];
-			header_len = (i+4+profile_name_len) - user_rec_addr;
+			header_len = (i + 4 + profile_name_len) - user_rec_addr;
 			profile_len = user_rec_len - header_len;
 			user_prof = &buffer[user_rec_addr + header_len];
 			if (user_prof[0] == 0x02) {
-				process_user_rec(user_prof,profile_len,profile_name,profile_name_len);
+				process_user_rec(user_prof, profile_len, profile_name, profile_name_len);
 			}
 		}
 		i++;
 	}
+
+cleanup:
 	// clean up and exit
 	MEM_FREE(buffer);
 	fclose(fp);
 }
 
-int racf2john(int argc, char **argv)
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+
+	fd = mkstemp(name);
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	process_file(name);
+	remove(name);
+
+	return 0;
+}
+#else
+int main(int argc, char **argv)
 {
 	int i;
 
@@ -223,3 +249,4 @@ int racf2john(int argc, char **argv)
 
 	return 0;
 }
+#endif

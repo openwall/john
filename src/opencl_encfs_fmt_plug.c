@@ -76,7 +76,6 @@ static unsigned int *inbuffer;
 static pbkdf2_out *output;
 static pbkdf2_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
-static size_t key_buf_size;
 static int new_keys;
 static struct fmt_main *self;
 
@@ -123,7 +122,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= ocl_v_width;
 
-	key_buf_size = 64 * gws;
+	key_buf_size = PLAINTEXT_LENGTH * gws;
 
 	/// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);

@@ -162,29 +162,32 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	char clientChal[17];
+	char *srv_challenge = split_fields[3];
+	char *nethashv2     = split_fields[4];
+	char *cli_challenge = split_fields[5];
 
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
-	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
+	if (!srv_challenge || !nethashv2 || !cli_challenge)
 		return split_fields[1];
 
-	if (strlen(split_fields[4]) != CIPHERTEXT_LENGTH)
+	if (strlen(nethashv2) != CIPHERTEXT_LENGTH)
 		return split_fields[1];
 
 	// this string suggests we have an improperly formatted NTLMv2
-	if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
+	if (!strncmp(&nethashv2[32], "0101000000000000", 16))
 		return split_fields[1];
 
 	// Handle ESS (8 byte client challenge in "LM" field padded with zeros)
-	if (strlen(split_fields[3]) == 48 && !strncmp(&split_fields[3][16],
+	if (strlen(srv_challenge) == 48 && !strncmp(&srv_challenge[16],
 	        "00000000000000000000000000000000", 32)) {
-		memcpy(clientChal, split_fields[3],16);
+		memcpy(clientChal, srv_challenge,16);
 		clientChal[16] = 0;
 	}
 	else
 		clientChal[0] = 0;
-	cp = mem_alloc(FORMAT_TAG_LEN+strlen(split_fields[5])+strlen(clientChal)+1+strlen(split_fields[4])+1);
-	sprintf(cp, "%s%s%s$%s", FORMAT_TAG, split_fields[5], clientChal, split_fields[4]);
+	cp = mem_alloc(FORMAT_TAG_LEN+strlen(cli_challenge)+strlen(clientChal)+1+strlen(nethashv2)+1);
+	sprintf(cp, "%s%s%s$%s", FORMAT_TAG, cli_challenge, clientChal, nethashv2);
 
 	if (valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
@@ -261,7 +264,7 @@ static void *get_binary(char *ciphertext)
 	return ptr;
 }
 
-static inline void setup_des_key(unsigned char key_56[], int index)
+inline static void setup_des_key(unsigned char key_56[], int index)
 {
 	char key[8];
 

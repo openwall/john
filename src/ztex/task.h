@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -38,16 +38,16 @@ struct task_result {
 struct task {
 	struct task *next;
 	enum task_status status;
-	
+
 	// for now, all tasks have same comparator configuration
 	//int cmp_config_id;
 	// Global cmp_config
 	//struct cmp_config *cmp_config;
-	
+
 	int num_keys;
 	char *keys;
 	unsigned char *range_info; // NULL if no mask
-	
+
 	struct task_result *result_list;
 	struct jtr_device *jtr_device;
 	int id; // ID is 16-bit, unique within jtr_device
@@ -94,7 +94,7 @@ void task_assign(struct task *task, struct jtr_device *jtr_device);
 void task_deassign(struct task *task);
 
 // Update status change time
-static inline void task_update_mtime(struct task *task)
+inline static void task_update_mtime(struct task *task)
 {
 	gettimeofday(&task->mtime, NULL);
 }
@@ -106,10 +106,9 @@ void task_delete(struct task *task);
 // equally distribute load among tasks assuming all devices are equal
 // assign tasks to jtr_devices
 struct task_list *task_list_create(int num_keys,
-		char *keys, unsigned char *range_info,
-		struct db_salt *salt);
+		char *keys, unsigned char *range_info);
 
-// find task by ID and jtr_device * 
+// find task by ID and jtr_device *
 struct task *task_find(struct task_list *task_list,
 		struct jtr_device *jtr_device, int id);
 

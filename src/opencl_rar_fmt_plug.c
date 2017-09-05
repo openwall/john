@@ -66,7 +66,6 @@ john_register_one(&fmt_ocl_rar);
 
 #include "arch.h"
 #include "sha.h"
-#include "aes.h"
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
@@ -128,8 +127,6 @@ static int split_events[] = { 3, -1, -1 };
 static int new_keys;
 static struct fmt_main *self;
 
-/* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
-#define CPU_GPU_RATIO		32
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_aes_key, pinned_aes_iv;
 static cl_kernel RarInit, RarFinal;
@@ -369,7 +366,7 @@ struct fmt_main fmt_ocl_rar = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP | FMT_DYNA_SALT,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		cpu_tests // Changed in init if GPU

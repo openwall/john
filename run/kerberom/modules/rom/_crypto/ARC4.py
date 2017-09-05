@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------
 # "THE BEER-WARE LICENSE" (Revision 42):
-# <eddy (dot) maaalou (at) gmail (dot) com> wrote this file.  As long as you 
-# retain this notice you can do whatever you want with this stuff. If we meet 
-# some day, and you think this stuff is worth it, you can buy me a beer in 
+# <jean-christophe.delaunay (at) synacktiv.com> wrote this file.  As long as you
+# retain this notice you can do whatever you want with this stuff. If we meet
+# some day, and you think this stuff is worth it, you can buy me a beer in
 # return.   Fist0urs
 # ----------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@
 class ARC4Cipher(object):
      def __init__(self, key):
          self.key = key
-         
+
      def encrypt(self, data):
          S = range(256)
          j = 0

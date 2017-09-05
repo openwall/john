@@ -2,6 +2,7 @@
 #
 # now does mingw-64 build, and linux-64 no-sse2 build  (and tests both)
 
+# 64-bit MinGW
 mkdir -p $HOME/bin
 cat >$HOME/bin/mingw64 << 'EOF'
 #!/bin/sh
@@ -23,6 +24,27 @@ exec "$@"
 EOF
 chmod u+x $HOME/bin/mingw64
 
+# 32-bit MinGW
+cat >$HOME/bin/mingw32 << 'EOF'
+#!/bin/sh
+PREFIX=i686-w64-mingw32
+export CC=$PREFIX-gcc
+export CXX=$PREFIX-g++
+export CPP="$PREFIX-gcc -E"
+export RANLIB=$PREFIX-ranlib
+export STRIP=$PREFIX-strip
+export DLLTOOL=$PREFIX-dlltool
+export DLLWRAP=$PREFIX-dllwrap
+export AS=$PREFIX-gcc
+export AR=$PREFIX-ar
+export WINDRES=$PREFIX-windres
+export PKGCONFIG=$PREFIX-pkg-config
+export OBJDUMP=$PREFIX-objdump
+export PATH="/usr/i686-w64-mingw32/bin:$PATH"
+exec "$@"
+EOF
+chmod u+x $HOME/bin/mingw32
+
 cd /base/JohnTheRipper/src
 export PATH="$HOME/bin:$PATH"
 
@@ -30,31 +52,49 @@ export PATH="$HOME/bin:$PATH"
 # echo -1 > /proc/sys/fs/binfmt_misc/status
 # umount /proc/sys/fs/binfmt_misc
 
-mingw64 ./configure --host=x86_64-w64-mingw32
+# Build with AVX
+mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2.exe\""' --host=i686-w64-mingw32
+mingw32 make -sj4
+mv ../run/john ../run/john-avx.exe
+make clean; make distclean
+
+# Build with AVX2 (32-bit, see https://github.com/magnumripper/JohnTheRipper/issues/2543 for details)
+mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx2 -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx.exe\""' --host=i686-w64-mingw32
+mingw32 make -sj4
+mv ../run/john ../run/john-avx2.exe
+make clean; make distclean
+
+# Build with SSE2 only
+# mingw64 ./configure --disable-native-tests CPPFLAGS='-mno-ssse3' --host=x86_64-w64-mingw32
+mingw32 ./configure --disable-native-tests CPPFLAGS='-mno-ssse3' --host=i686-w64-mingw32
+# mingw64 ./configure --host=x86_64-w64-mingw32
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mingw64 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
-mv ../run/john ../run/john.exe
+mv ../run/john ../run/john-sse2.exe
+mv ../run/john-avx2.exe ../run/john.exe
 
 cd ../run
 # the mingw build does not name many exe files correctly, fix that.
-for f in genmkvpwd mkvcalcproba calc_stat tgtsnarf raw2dyna uaf2john wpapcap2john cprepair ; do mv $f $f.exe ; done
-for f in *.exe ; do x86_64-w64-mingw32-strip $f ; done
+for f in genmkvpwd mkvcalcproba calc_stat tgtsnarf raw2dyna uaf2john wpapcap2john cprepair putty2john racf2john keepass2john hccap2john dmg2john bitlocker2john; do mv $f $f.exe; done
+# for f in *.exe ; do x86_64-w64-mingw32-strip $f ; done
 # remove opencl kernels and ztex stuff for mingw builds
 rm -rf kernels ztex
 cd ../src
 
-basepath="/usr/x86_64-w64-mingw32/sys-root/mingw/bin"
+# basepath="/usr/x86_64-w64-mingw32/sys-root/mingw/bin"
+basepath="/usr/i686-w64-mingw32/sys-root/mingw/bin"
 
 find $basepath | grep "dll$"
 
-cp "$basepath/libwinpthread-1.dll" ../run
-cp "$basepath/zlib1.dll" ../run
-cp "$basepath/libgmp-10.dll" ../run
-cp "$basepath/libssl-10.dll" ../run
-cp "$basepath/libcrypto-10.dll" ../run
-cp "$basepath/libgomp-1.dll" ../run
-cp "$basepath/libgcc_s_seh-1.dll" ../run
+# cp "$basepath/libwinpthread-1.dll" ../run
+# cp "$basepath/zlib1.dll" ../run
+# cp "$basepath/libgmp-10.dll" ../run
+# cp "$basepath/libssl-10.dll" ../run
+# cp "$basepath/libcrypto-10.dll" ../run
+# cp "$basepath/libgomp-1.dll" ../run
+# cp "$basepath/libgcc_s_seh-1.dll" ../run  # not valid for 32-bit MinGW toolchain
+cp ${basepath}/*.dll ../run
 
 find ../run
 
@@ -62,6 +102,10 @@ v=`git rev-parse --short HEAD`
 cd ..
 mkdir -p /base/builds
 zip -r /base/builds/JtR-MinGW-${v}.zip run/ doc/ README.md README README-jumbo
+# 7z a /base/builds/JtR-MinGW-${v}.7z run/ doc/ README.md README README-jumbo
+
+# restore the sse2 build for testing purposes
+mv run/john-sse2.exe run/john.exe
 
 # crazy testing!
 cd /base/JohnTheRipper/run
@@ -83,7 +127,7 @@ echo '**************************************************************************
 echo ""
 cd /base/JohnTheRipper/src
 make -s distclean
-CPPFLAGS="-mno-sse2" ./configure
+CFLAGS_EXTRA="-fstack-protector-all" CPPFLAGS="-mno-sse2" ./configure
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi

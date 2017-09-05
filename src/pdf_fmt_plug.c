@@ -127,7 +127,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	int res;
 
-	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
+	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
 	ctcopy = strdup(ciphertext);
@@ -295,18 +295,11 @@ char * convert_old_to_new(char ciphertext[])
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	// if it is the old format
-	if (strncmp(split_fields[1], FORMAT_TAG_OLD, FORMAT_TAG_OLD_LEN) == 0){
-		if (old_valid(split_fields[1], self)) {
-			char * in_new_format = convert_old_to_new(split_fields[1]);
-			// following line segfaults!
-			// strcpy(split_fields[1], in_new_format);
-			return in_new_format;
-		}else{
-			//Return something invalid
-			return "";
-		}
-	}
+	// Convert old format to new one
+	if (!strncmp(split_fields[1], FORMAT_TAG_OLD, FORMAT_TAG_OLD_LEN) &&
+	    old_valid(split_fields[1], self))
+		return convert_old_to_new(split_fields[1]);
+
 	return split_fields[1];
 }
 

@@ -380,8 +380,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 {
 	if ((!options.target_enc || options.default_target_enc) &&
 	    !options.internal_cp) {
-		if (!strcasecmp(format->params.label, "LM") ||
-		    !strcasecmp(format->params.label, "lm-opencl") ||
+		if (!strncasecmp(format->params.label, "LM", 2) ||
 		    !strcasecmp(format->params.label, "netlm") ||
 		    !strcasecmp(format->params.label, "nethalflm")) {
 			options.target_enc =
@@ -441,6 +440,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	struct fmt_main *alt;
 	char *fields[10], *gid, *shell;
 	int i, retval;
+	int huge_line = 0;
 
 	fields[0] = *login = ldr_get_field(&line, db_opts->field_sep_char);
 	fields[1] = *ciphertext = ldr_get_field(&line, db_opts->field_sep_char);
@@ -497,6 +497,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 		*p = 0;
 		fields[0] = *login = no_username;
 		fields[1] = *ciphertext;
+		if (strnlen(*ciphertext, LINE_BUFFER_SIZE + 1) >
+		    LINE_BUFFER_SIZE) {
+			huge_line = 1;
+		}
 	}
 
 	if (source)
@@ -536,7 +540,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 	gid = fields[3];
 	shell = fields[6];
 
-	if (SPLFLEN(2) == 32 || SPLFLEN(3) == 32) {
+	if (SPLFLEN(1) > LINE_BUFFER_SIZE) {
+		huge_line = 1;
+	}
+	else if (SPLFLEN(2) == 32 || SPLFLEN(3) == 32) {
 		/* PWDUMP */
 		/* user:uid:LMhash:NThash:comment:homedir: */
 		*uid = fields[1];
@@ -667,6 +674,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 			int valid;
 			int part;
 			int is_dynamic = ((alt->params.flags & FMT_DYNAMIC) == FMT_DYNAMIC);
+
+			if (huge_line && !(alt->params.flags & FMT_HUGE_INPUT))
+				continue;
 /* We enforce DynamicAlwaysUseBareHashes for each format. By default
  * dynamics do that only if a bare hash occurs on the first line. */
 #ifndef DYNAMIC_DISABLED
@@ -709,7 +719,10 @@ find_format:
 		char *prepared;
 		int valid;
 
-		prepared = (*format)->methods.prepare(fields, *format);
+		if (huge_line && !((*format)->params.flags & FMT_HUGE_INPUT))
+			prepared = NULL;
+		else
+			prepared = (*format)->methods.prepare(fields, *format);
 		if (prepared)
 			valid = (*format)->methods.valid(prepared, *format);
 		else
@@ -735,6 +748,10 @@ find_format:
 
 		alt = fmt_list;
 		do {
+			if (huge_line &&
+			    !(alt->params.flags & FMT_HUGE_INPUT))
+				continue;
+
 			if (alt == *format)
 				continue;
 			if (alt->params.flags & FMT_WARNED)
@@ -779,6 +796,8 @@ find_format:
 		char *prepared;
 		int valid;
 
+		if (huge_line && !(alt->params.flags & FMT_HUGE_INPUT))
+			continue;
 #ifdef HAVE_CRYPT
 /*
  * Only probe for support by the current system's crypt(3) if this is forced
@@ -1243,15 +1262,18 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	ldr_loading_testdb = 1;
 	bench_running++;
 	while (current->ciphertext) {
-		char *ex_len_line = NULL, _line[LINE_BUFFER_SIZE], *line = _line;
+		char *ex_len_line = NULL;
+		char _line[LINE_BUFFER_SIZE], *line = _line;
 		int i, pos = 0;
 
 		/*
 		 * FIXME: Change the "200" and "300" to something less arbitrary
 		 * or document why they are used.
 		 */
-		if (strlen(current->ciphertext) > LINE_BUFFER_SIZE-200) {
-			ex_len_line = mem_alloc(strlen(current->ciphertext)+300);
+		if (strnlen(current->ciphertext, LINE_BUFFER_SIZE) >
+		    LINE_BUFFER_SIZE - 200) {
+			ex_len_line =
+				mem_alloc(strlen(current->ciphertext) + 300);
 			line = ex_len_line;
 		}
 		if (!current->fields[0])
@@ -1553,7 +1575,8 @@ static void ldr_remove_marked(struct db_main *db)
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
 
-	if (!(db->options->flags & DB_NEED_REMOVAL))
+	if (!options.loader.showuncracked &&
+	    !(db->options->flags & DB_NEED_REMOVAL))
 		return;
 
 	last_salt = NULL;

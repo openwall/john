@@ -74,7 +74,7 @@ static void Do#{HASH}_crypt_sse(void *in, uint32_t ilen[#{HASH}_LOOPS], void *ou
 	}
 }
 
-static void inline Do#{HASH}_sse_crypt_only(void *in, uint32_t len[#{HASH}_LOOPS], void *out) {
+inline static void Do#{HASH}_sse_crypt_only(void *in, uint32_t len[#{HASH}_LOOPS], void *out) {
 	JTR_ALIGN(MEM_ALIGN_SIMD) uint#{BITS}_t a[(#{BIN_SZ}*#{HASH}_LOOPS)/sizeof(uint#{BITS}_t)];
 	uint32_t i, j, loops[#{HASH}_LOOPS], bMore, cnt;
 	unsigned char *cp = (unsigned char*)in;
@@ -104,7 +104,7 @@ static void inline Do#{HASH}_sse_crypt_only(void *in, uint32_t len[#{HASH}_LOOPS
 #define #{HASH}_LOOPS 1
 static const uint32_t #{HASH}_inc = 1;
 
-static void inline Do#{HASH}_crypt_f(void *in, uint32_t len, void *out) {
+inline static void Do#{HASH}_crypt_f(void *in, uint32_t len, void *out) {
 #ifdef TRUNC_TO16
 	union xx { unsigned char u[#{BIN_SZ}]; uint#{BITS}_t a[#{BIN_SZ}/sizeof(uint#{BITS}_t)]; } u;
 	unsigned char *crypt_out=u.u;
@@ -120,7 +120,7 @@ static void inline Do#{HASH}_crypt_f(void *in, uint32_t len, void *out) {
 #endif  // defined TRUNC_TO16
 }
 
-static void inline Do#{HASH}_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
+inline static void Do#{HASH}_crypt(void *in, uint32_t ilen, void *out, uint32_t *tot_len, uint32_t tid) {
 	unsigned char crypt_out[#{BIN_SZ}];
 	#{HASH_CTX} ctx;
 	#{HASH_Init}(&ctx);
@@ -133,7 +133,7 @@ static void inline Do#{HASH}_crypt(void *in, uint32_t ilen, void *out, uint32_t 
 	} else
 		*tot_len += large_hash_output(crypt_out, &(((unsigned char*)out)[*tot_len]), #{BIN_REAL_SZ}, tid);
 }
-static void inline Do#{HASH}_crypt_only(void *in, uint32_t ilen, void *out)
+inline static void Do#{HASH}_crypt_only(void *in, uint32_t ilen, void *out)
 {
 	#{HASH_CTX} ctx;
 	#{HASH_Init}(&ctx);
@@ -440,7 +440,7 @@ void DynamicFunc__#{HASH}_crypt_input2_overwrite_input2(DYNA_OMP_PARAMS) {
 	}
 }
 
-static inline void _Dyna__#{HASH}_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
+inline static void _Dyna__#{HASH}_crypt_inputX_to_outputY(uint32_t X, uint32_t Y, uint32_t i, uint32_t til) {
 	dynamic_BHO[--Y].width = #{BIN_REAL_SZ}; // Y was 1 based for ease of reading.
 	for (; i < til; i += #{HASH}_inc) {
 #ifdef SIMD_PARA_#{PARAHASH}

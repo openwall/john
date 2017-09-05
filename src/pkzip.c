@@ -1,6 +1,7 @@
 #include "arch.h"
 #include <stdio.h>
 #include <string.h>
+
 #include "misc.h"
 #include "common.h"
 #include "memory.h"
@@ -9,10 +10,22 @@
 #include "loader.h"
 #include "memdbg.h"
 
-
 /* helper functions for reading binary data of known little endian */
 /* format from a file. Works whether BE or LE system.              */
-u32 fget32LE(FILE * fp)
+u64 fget64LE(FILE *fp)
+{
+	u64 v = (u64)fgetc(fp);
+	v |= (u64)fgetc(fp) << 8;
+	v |= (u64)fgetc(fp) << 16;
+	v |= (u64)fgetc(fp) << 24;
+	v |= (u64)fgetc(fp) << 32;
+	v |= (u64)fgetc(fp) << 40;
+	v |= (u64)fgetc(fp) << 48;
+	v |= (u64)fgetc(fp) << 56;
+	return v;
+}
+
+u32 fget32LE(FILE *fp)
 {
 	u32 v = fgetc(fp);
 	v |= fgetc(fp) << 8;
@@ -21,13 +34,12 @@ u32 fget32LE(FILE * fp)
 	return v;
 }
 
-u16 fget16LE(FILE * fp)
+u16 fget16LE(FILE *fp)
 {
 	u16 v = fgetc(fp);
 	v |= fgetc(fp) << 8;
 	return v;
 }
-
 
 struct fmt_tests winzip_common_tests[] = {
 	{"$zip2$*0*1*0*9ffba76344938a7d*cc41*210*fb28d3fd983302058c5296c07442502ae05bb59adb9eb2378cb0841efa227cd58f7076ec00bb5faaee24c3433763d715461d4e714cdd9d933f621d2cf6ae73d824414ca2126cfc608d8fc7641d2869afa90f28be7113c71c6b6a3ad6d6633173cde9d7c1bb449cc0a1f8cbab8639255684cd25cb363234f865d9224f4065c0c62e5e60c2500bc78fa903630ccbb5816be2ef5230d411051d7bc54ecdf9dcbe500e742da2a699de0ec1f20b256dbcd506f926e91a1066a74b690f9dd50bd186d799deca428e6230957e2c6fcdcec73927d77bb49699a80e9c1540a13899ecb0b635fb728e1ade737895d3ff9babd4927bbbc296ec92bab87fd7930db6d55e74d610aef2b6ad19b7db519c0e7a257f9f78538bb0e9081c8700f7e8cd887f15a212ecb3d5a221cb8fe82a22a3258703f3c7af77ef5ecf25b4e6fb4118b00547c271d9b778b825247a4cd151bff81436997818f9d3c95155910ff152ad28b0857dcfc943e32729379c634d29a50655dc05fb63fa5f20c9c8cbdc630833a97f4f02792fcd6b1b73bfb4d333485bb0eb257b9db0481d11abfa06c2e0b82817d432341f9bdf2385ede8ca5d94917fa0bab9c2ed9d26ce58f83a93d418aa27a88697a177187e63f89904c0b9053151e30a7855252dab709aee47a2a8c098447160c8f96c56102067d9c8ffc4a74cd9011a2522998da342448b78452c6670eb7eb80ae37a96ca15f13018e16c93d515d75e792f49*bd2e946811c4c5b09694*$/zip2$", "hello1"},
@@ -46,13 +58,13 @@ struct fmt_tests winzip_common_tests[] = {
 	{NULL}
 };
 
-static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, unsigned len, c8 *Auth);
+static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, uint64_t len, c8 *Auth);
 
 int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	c8 *ctcopy, *keeptr, *p, *cp, *Fn=0, *Oh=0, *Ob=0;
 	const char *sFailStr="Truncated hash, strtokm() returned NULL";
-	unsigned val;
+	uint64_t val;
 	int ret = 0;
 	int zip_file_validate=0;
 	static int old_warn = 1;
@@ -71,7 +83,6 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 
 	p = &ctcopy[WINZIP_TAG_LENGTH+1];
-
 
 	// type
 	if ((cp = strtokm(p, "*")) == NULL || !cp || *cp != '0') {
@@ -98,7 +109,7 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 	// Data len.
 	if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp))  {
 		sFailStr = "Data length invalid (not hex number)"; goto Bail; }
-	sscanf((const char*)cp, "%x", &val);
+	sscanf((const char*)cp, "%"PRIx64, &val);
 
 	if ((cp = strtokm(NULL, "*")) == NULL)		// data blob, OR file structure
 		goto Bail;
@@ -147,7 +158,7 @@ Bail:;
 
 char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static int len;
+	static uint64_t len;
 	static char *buf = NULL;
 	char *cp, *cp2;
 
@@ -170,8 +181,8 @@ char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self)
 	return buf;
 }
 
-
-static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, unsigned len, c8 *Auth) {
+static const char *ValidateZipFileData(c8 *Fn, c8 *Oh, c8 *Ob, uint64_t len, c8 *Auth)
+{
 	u32 id, i;
 	long off;
 	unsigned char bAuth[10], b;

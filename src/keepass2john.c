@@ -8,7 +8,7 @@
  * Cracker, http://keecracker.mbw.name/
  *
  * KeePass 1.x support is based on kppy -  A Python-module to provide
- * an API to KeePass 1.x files. http://gitorious.org/kppy/kppy
+ * an API to KeePass 1.x files. https://github.com/raymontag/kppy
  * Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
  *
  * Keyfile support for Keepass 1.x and Keepass 2.x was added by Fist0urs
@@ -77,16 +77,24 @@ uint32_t FileVersionCriticalMask = 0xFFFF0000;
 /// The first 2 bytes are critical (i.e. loading will fail, if the
 /// file version is too high), the last 2 bytes are informational.
 /// </summary>
-uint32_t FileVersion32 = 0x00030000;
+// uint32_t FileVersion32 = 0x00030000;
+uint32_t FileVersion32 = 0x00040000;
+uint32_t FileVersion32_4 = 0x00040000;  // from KeePass 2.36 sources
+
+// We currently support database formats up to KDBX v3.x. KDBX 4.x is not
+// supported yet. See "KdbxFile.cs" in KeePass 2.36 for more information on
+// KDBX 4.x format.
 
 enum Kdb4HeaderFieldID
 {
 	EndOfHeader = 0,
+	CipherID = 2,
 	MasterSeed = 4,
-	TransformSeed = 5,
-	TransformRounds = 6,
+	TransformSeed = 5,  // KDBX 3.1, for backward compatibility only
+	TransformRounds = 6,  // KDBX 3.1, for backward compatibility only
 	EncryptionIV = 7,
-	StreamStartBytes = 9,
+	StreamStartBytes = 9,  // KDBX 3.1, for backward compatibility only
+	KdfParameters = 11,  // KDBX 4, superseding Transform*
 };
 
 static off_t get_file_size(char * filename)
@@ -132,7 +140,7 @@ static uint16_t fget16(FILE * fp)
 	return v;
 }
 
-static void warn_exit(const char *fmt, ...)
+static void warn(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -142,7 +150,7 @@ static void warn_exit(const char *fmt, ...)
 	va_end(ap);
 	fprintf(stderr, "\n");
 
-	exit(EXIT_FAILURE);
+	// exit(EXIT_FAILURE);
 }
 
 /* process KeePass 1.x databases */
@@ -173,29 +181,37 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	enc_flag = fget32(fp);
 	version = fget32(fp);
 
-	if (fread(final_randomseed, 16, 1, fp) != 1)
-		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+	if (fread(final_randomseed, 16, 1, fp) != 1) {
+		warn("%s: Error: read failed: %s.", encryptedDatabase,
 			strerror(errno));
-	if (fread(enc_iv, 16, 1, fp) != 1)
-		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+		return;
+	}
+	if (fread(enc_iv, 16, 1, fp) != 1) {
+		warn("%s: Error: read failed: %s.", encryptedDatabase,
 			strerror(errno));
+		return;
+	}
 
 	num_groups = fget32(fp);
 	num_entries = fget32(fp);
 	(void)num_groups;
 	(void)num_entries;
 
-	if (fread(contents_hash, 32, 1, fp) != 1)
-		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+	if (fread(contents_hash, 32, 1, fp) != 1) {
+		warn("%s: Error: read failed: %s.", encryptedDatabase,
 			strerror(errno));
-	if (fread(transf_randomseed, 32, 1, fp) != 1)
-		warn_exit("%s: Error: read failed: %s.", encryptedDatabase,
+		return;
+	}
+	if (fread(transf_randomseed, 32, 1, fp) != 1) {
+		warn("%s: Error: read failed: %s.", encryptedDatabase,
 			strerror(errno));
+		return;
+	}
 
 	key_transf_rounds = fget32(fp);
 	/* Check if the database is supported */
 	if ((version & 0xFFFFFF00) != (0x00030002 & 0xFFFFFF00)) {
-		fprintf(stderr, "! %s : Unsupported file version!\n", encryptedDatabase);
+		fprintf(stderr, "! %s : Unsupported file version (%u)!\n", encryptedDatabase, version);
 		return;
 	}
 	/* src/Kdb3Database.cpp from KeePass 0.4.3 is authoritative */
@@ -204,7 +220,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	} else if (enc_flag & 8) {
 		algorithm = 1; // Twofish
 	} else {
-		fprintf(stderr, "! %s : Unsupported file encryption!\n", encryptedDatabase);
+		fprintf(stderr, "! %s : Unsupported file encryption (%u)!\n", encryptedDatabase, enc_flag);
 		return;
 	}
 
@@ -219,6 +235,12 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase), extension, 1);
+	filesize = (long long)get_file_size(encryptedDatabase);
+	datasize = filesize - 124;
+	if (datasize < 0) {
+		warn("%s: Error in validating datasize.", encryptedDatabase);
+		return;
+	}
 	// offset (124) field below is not used, we hijack it to convey the
 	// algorithm.
 	// printf("%s:$keepass$*1*%d*%d*", dbname, key_transf_rounds, 124);
@@ -230,28 +252,31 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	print_hex(enc_iv, 16);
 	printf("*");
 	print_hex(contents_hash, 32);
-	filesize = (long long)get_file_size(encryptedDatabase);
-	datasize = filesize - 124;
 
-	buffer = (unsigned char*) mem_alloc (datasize * sizeof(char));
+	buffer = (unsigned char*)malloc(datasize * sizeof(char));
 
 	/* we inline the content with the hash */
 	fprintf(stderr, "Inlining %s\n", encryptedDatabase);
 	printf("*1*"LLd"*", datasize);
 	fseek(fp, 124, SEEK_SET);
-	if (fread(buffer, datasize, 1, fp) != 1)
-		warn_exit("%s: Error: read failed: %s.",
+	if (fread(buffer, datasize, 1, fp) != 1) {
+		warn("%s: Error: read failed: %s.",
 		          encryptedDatabase, strerror(errno));
+		MEM_FREE(buffer);
+		return;
+	}
 
 	print_hex(buffer, datasize);
 	MEM_FREE(buffer);
 
 	if (keyfile) {
-		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*)malloc(filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
-		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
-			warn_exit("%s: Error: read failed: %s.",
+		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
+			warn("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
+			return;
+		}
 
 		/* as in Keepass 1.x implementation:
 		 *  if filesize_keyfile == 32 then assume byte_array
@@ -277,10 +302,10 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	printf("\n");
 }
 
-
+// Synchronize with KdbxFile.Read.cs from KeePass 2.x
 static void process_database(char* encryptedDatabase)
 {
-	long dataStartOffset;
+	// long dataStartOffset;
 	unsigned long transformRounds = 0;
 	unsigned char *masterSeed = NULL;
 	int masterSeedLength = 0;
@@ -294,6 +319,8 @@ static void process_database(char* encryptedDatabase)
 	FILE *fp;
 	unsigned char out[32];
 	char *dbname;
+	long algorithm = 0;  // 0 -> AES
+	size_t fsize = 0;
 
 	/* specific to keyfile handling */
 	unsigned char *buffer;
@@ -311,6 +338,9 @@ static void process_database(char* encryptedDatabase)
 		fprintf(stderr, "! %s : %s\n", encryptedDatabase, strerror(errno));
 		return;
 	}
+	fseek(fp, 0, SEEK_END);
+	fsize = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
 	uSig1 = fget32(fp);
 	uSig2 = fget32(fp);
 	if ((uSig1 == FileSignatureOld1) && (uSig2 == FileSignatureOld2)) {
@@ -329,28 +359,42 @@ static void process_database(char* encryptedDatabase)
 	}
 	uVersion = fget32(fp);
 	if ((uVersion & FileVersionCriticalMask) > (FileVersion32 & FileVersionCriticalMask)) {
-		fprintf(stderr, "! %s : Unknown format: File version unsupported\n", encryptedDatabase);
+		fprintf(stderr, "! %s : Unknown format: File version '%x' unsupported\n", encryptedDatabase, uVersion);
 		fclose(fp);
 		return;
 	}
 	endReached = 0;
-	while (!endReached)
-	{
+	while (!endReached) {
+		int32_t uSize;
 		unsigned char btFieldID = fgetc(fp);
-		uint16_t uSize = fget16(fp);
-		enum Kdb4HeaderFieldID kdbID;
+		enum Kdb4HeaderFieldID kdbID = btFieldID;
 		unsigned char *pbData = NULL;
 
-		if (uSize > 0)
-		{
-			pbData = (unsigned char*)mem_alloc(uSize);
-			if (fread(pbData, uSize, 1, fp) != 1) {
-				fprintf(stderr, "error reading pbData\n");
+		if (uVersion < FileVersion32_4)
+			uSize = fget16(fp);
+		else
+			uSize = fget32(fp);
+
+		if (uSize < 0) {
+			fprintf(stderr, "error validating uSize, is the database corrupt?\n");
+			goto bailout;
+		}
+		if (fsize * 64 < uSize) {
+			fprintf(stderr, "uSize too large, is the database corrupt?\n");
+			goto bailout;
+		}
+		if (uSize == 0 && (kdbID != EndOfHeader)) {
+			fprintf(stderr, "error validating uSize for EndOfHeader, is the database corrupt?\n");
+			goto bailout;
+		}
+		if (uSize > 0) {
+			pbData = (unsigned char*)malloc(uSize);
+			if (!pbData || fread(pbData, uSize, 1, fp) != 1) {
+				fprintf(stderr, "error allocating / reading pbData, is the database corrupt?\n");
 				MEM_FREE(pbData);
 				goto bailout;
 			}
 		}
-		kdbID = btFieldID;
 		switch (kdbID)
 		{
 			case EndOfHeader:
@@ -365,7 +409,7 @@ static void process_database(char* encryptedDatabase)
 				masterSeedLength = uSize;
 				break;
 
-			case TransformSeed:
+			case TransformSeed: // Obsolete in FileVersion32_4; for backward compatibility only
 				if (transformSeed)
 					MEM_FREE(transformSeed);
 
@@ -373,7 +417,12 @@ static void process_database(char* encryptedDatabase)
 				transformSeedLength = uSize;
 				break;
 
-			case TransformRounds:
+			case TransformRounds:  // Obsolete in FileVersion32_4; for backward compatibility only
+				if (uSize < 4) {
+					fprintf(stderr, "error validating uSize for TransformRounds, is the database corrupt?\n");
+					MEM_FREE(pbData);
+					goto bailout;
+				}
 				if (!pbData) {
 					fprintf(stderr, "! %s : parsing failed (pbData is NULL), please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 					goto bailout;
@@ -391,28 +440,54 @@ static void process_database(char* encryptedDatabase)
 				initializationVectorsLength = uSize;
 				break;
 
-			case StreamStartBytes:
+			case StreamStartBytes:  // Not present in FileVersion32_4
 				if (expectedStartBytes)
 					MEM_FREE(expectedStartBytes);
 				expectedStartBytes = pbData;
 				expectedStartBytesLength = uSize;
 				break;
 
+			case CipherID:
+				// pbData == 31c1f2e6bf714350be5805216afc5aff => AES ("Standard" KDBX 3.1)
+				// pbData == d6038a2b8b6f4cb5a524339a31dbb59a => ChaCha20
+				// pbData == ad68f29f576f4bb9a36ad47af965346c => TwoFish
+				if (uSize < 4) {
+					fprintf(stderr, "error validating uSize for CipherID, is the database corrupt?\n");
+					MEM_FREE(pbData);
+					goto bailout;
+				}
+				if (memcmp(pbData, "\xd6\x03\x8a\x2b", 4) == 0) {
+					// fprintf(stderr, "! %s : ChaCha20 usage is not supported yet!\n", encryptedDatabase);
+					// MEM_FREE(pbData);
+					algorithm = 2;
+					// goto bailout;
+				}
+				/* if (memcmp(pbData, "\x31\xc1\xf2\xe6", 4) != 0) {
+					fprintf(stderr, "! %s : Unsupported CipherID found!\n", encryptedDatabase);
+					MEM_FREE(pbData);
+					goto bailout;
+				} */
+
 			default:
 				MEM_FREE(pbData);
 				break;
 		}
 	}
-	dataStartOffset = ftell(fp);
-	if (transformRounds == 0) {
+	// dataStartOffset = ftell(fp);
+	if (transformRounds == 0 && uVersion < FileVersion32_4) {
 		fprintf(stderr, "! %s : transformRounds can't be 0\n", encryptedDatabase);
 		goto bailout;
 	}
 #ifdef KEEPASS_DEBUG
 	fprintf(stderr, "%d, %d, %d, %d\n", masterSeedLength, transformSeedLength, initializationVectorsLength, expectedStartBytesLength);
 #endif
-	if (!masterSeed || !transformSeed || !initializationVectors || !expectedStartBytes) {
+	if ((uVersion < FileVersion32_4) && (!masterSeed || !transformSeed || !initializationVectors || !expectedStartBytes)) {
 		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
+		goto bailout;
+	}
+
+	if (uVersion >= FileVersion32_4) {
+		fprintf(stderr, "! %s : File version '%x' is currently not supported!\n", encryptedDatabase, uVersion);
 		goto bailout;
 	}
 
@@ -423,10 +498,11 @@ static void process_database(char* encryptedDatabase)
 			return;
 		}
 		filesize_keyfile = (long long)get_file_size(keyfile);
- 	}
+	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
-	printf("%s:$keepass$*2*%ld*%ld*",dbname, transformRounds, dataStartOffset);
+	// printf("%s:$keepass$*2*%ld*%ld*", dbname, transformRounds, dataStartOffset);
+	printf("%s:$keepass$*2*%ld*%ld*", dbname, transformRounds, algorithm);  // dataStartOffset field is now used to convey algorithm information
 	print_hex(masterSeed, masterSeedLength);
 	printf("*");
 	print_hex(transformSeed, transformSeedLength);
@@ -442,11 +518,13 @@ static void process_database(char* encryptedDatabase)
 	print_hex(out, 32);
 
 	if (keyfile) {
-		buffer = (unsigned char*) mem_alloc (filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*)malloc(filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
-		if (fread(buffer, filesize_keyfile, 1, kfp) != 1)
-			warn_exit("%s: Error: read failed: %s.",
+		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
+			warn("%s: Error: read failed: %s.",
 				encryptedDatabase, strerror(errno));
+			return;
+		}
 
 		/* as in Keepass 2.x implementation:
 		 *  if keyfile is an xml, get <Data> content
@@ -494,6 +572,7 @@ bailout:
 	fclose(fp);
 }
 
+#ifndef HAVE_LIBFUZZER
 static int usage(char *name)
 {
 	fprintf(stderr, "Usage: %s [-k <keyfile>] <.kdbx database(s)>\n", name);
@@ -501,7 +580,7 @@ static int usage(char *name)
 	return EXIT_FAILURE;
 }
 
-int keepass2john(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int c;
 
@@ -510,7 +589,7 @@ int keepass2john(int argc, char **argv)
 	while ((c = getopt(argc, argv, "k:")) != -1) {
 		switch (c) {
 		case 'k':
-			keyfile = (char *)mem_alloc(strlen(optarg) + 1);
+			keyfile = (char *)malloc(strlen(optarg) + 1);
 			strcpy(keyfile, optarg);
 			break;
 		case '?':
@@ -529,3 +608,24 @@ int keepass2john(int argc, char **argv)
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+
+	fd = mkstemp(name);  // this approach is somehow faster than the fmemopen way
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+	process_database(name);
+	remove(name);
+
+	return 0;
+}
+#endif

@@ -84,16 +84,12 @@ static struct custom_salt {
 
 static struct fmt_main   *self;
 
-static size_t insize,
-       	   	  outsize,
-			  saltsize;
+static size_t insize, outsize, saltsize;
 
 static keystore_password *inbuffer;
 static keystore_hash     *outbuffer;
 static keystore_salt      saltbuffer;
-static cl_mem mem_in,
-              mem_out,
-			  mem_salt;
+static cl_mem mem_in, mem_out, mem_salt;
 
 static cl_int cl_err;
 
@@ -366,7 +362,7 @@ struct fmt_main fmt_opencl_keystore = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		/* FIXME: report cur_salt->length as tunable cost? */
 		{ NULL },
 		{ FORMAT_TAG },
@@ -383,7 +379,7 @@ struct fmt_main fmt_opencl_keystore = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -393,7 +389,7 @@ struct fmt_main fmt_opencl_keystore = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

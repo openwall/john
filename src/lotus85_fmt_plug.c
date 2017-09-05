@@ -40,7 +40,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT     ""
 #define BENCHMARK_LENGTH      -1
 #define PLAINTEXT_LENGTH      32
-#define CIPHERTEXT_LENGTH     0x64
+#define CIPHERTEXT_LENGTH     (LOTUS85_MAX_BLOB_SIZE * 2)
 #define BINARY_SIZE           0
 #define BINARY_LENGTH         5
 #define BINARY_ALIGN          1
@@ -319,7 +319,7 @@ static int lotus85_valid(char *ciphertext,struct fmt_main *self)
 {
 	int len, extra;
 
-	len = strlen(ciphertext);
+	len = strnlen(ciphertext, CIPHERTEXT_LENGTH + 1);
 
 	if (len % 2)
 		return 0;

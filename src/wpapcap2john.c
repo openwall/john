@@ -35,6 +35,8 @@ static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 static const char *filename;
 static unsigned int link_type, ShowIncomplete = 1;
+static uint8 src[6];
+static uint8 dst[6];
 
 // These 2 functions output data properly for JtR, in base-64 format. These
 // were taken from hccap2john.c source, and modified for this project.
@@ -294,6 +296,8 @@ static int Process(FILE *in)
 		fprintf(stderr, "\n%s: Radiotap headers stripped\n", filename);
 	else if (link_type == LINKTYPE_PPI_HDR)
 		fprintf(stderr, "\n%s: PPI headers stripped\n", filename);
+	else if (link_type == LINKTYPE_ETHERNET)
+                fprintf(stderr, "\n%s: Ethernet headers\n", filename);
 	else {
 		fprintf(stderr, "\n%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
@@ -361,6 +365,8 @@ static int ProcessPacket()
 
 	// Skip Prism frame if present
 	if (link_type == LINKTYPE_PRISM_HEADER) {
+		if (pkt_hdr.incl_len < 8)
+			return 0;
 		if (packet[7] == 0x40)
 			frame_skip = 64;
 		else {
@@ -378,6 +384,8 @@ static int ProcessPacket()
 
 	// Skip Radiotap frame if present
 	if (link_type == LINKTYPE_RADIOTAP_HDR) {
+		if (pkt_hdr.incl_len < 4)
+			return 0;
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = JOHNSWAP(frame_skip);
@@ -391,6 +399,8 @@ static int ProcessPacket()
 
 	// Skip PPI frame if present
 	if (link_type == LINKTYPE_PPI_HDR) {
+		if (pkt_hdr.incl_len < 4)
+			return 0;
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = JOHNSWAP(frame_skip);
@@ -409,8 +419,28 @@ static int ProcessPacket()
 		pkt_hdr.orig_len -= frame_skip;
 	}
 
+	// Skip Ethernet frame if present
+	if (link_type == LINKTYPE_ETHERNET) {
+		frame_skip = 14;
+		if (frame_skip <= 0 || frame_skip >= pkt_hdr.incl_len)
+			return 0;
+
+		memcpy(dst, packet, 6);
+		memcpy(src, packet + 6, 6);
+		packet += frame_skip;
+		pkt_hdr.incl_len -= frame_skip;
+		pkt_hdr.orig_len -= frame_skip;
+
+		if (pkt_hdr.incl_len < sizeof(ether_auto_802_1x_t))
+			return 1;
+		Handle4Way(3);
+		return 1;
+	}
+
 	// our data is in *packet with pkt_hdr being the pcap packet header for this packet.
 	pkt = (ether_frame_hdr_t*)packet;
+	if (pkt_hdr.incl_len < 2)
+		return 0;
 	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 
 	//fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
@@ -513,11 +543,15 @@ static void HandleBeacon(uint16 subtype)
 
 	while (((uint8*)tag) < pFinal) {
 		char *x = (char*)tag;
+		if (x + 2 > (char*)pFinal || x + 2 + tag->taglen > (char*)pFinal)
+			break;
 		if (tag->tagtype == 0 && tag->taglen < sizeof(essid))
 			memcpy(essid, tag->tag, tag->taglen);
 		x += tag->taglen + 2;
 		tag = (ether_beacon_tag_t *)x;
 	}
+	if (pkt->addr3 + 6 > pFinal)
+		return;
 	to_bssid(bssid, pkt->addr3);
 	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid))
@@ -539,9 +573,25 @@ static void Handle4Way(int bIsQOS)
 	int i, ess=-1;
 	uint8 *orig_2 = NULL;
 	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
+	uint8 *end = packet + pkt_hdr.incl_len;
 	ether_auto_802_1x_t *auth;
 	int msg = 0;
 	char bssid[18];
+
+	// hack for ethernet packet captures (non-monitor mode)
+	if (bIsQOS == 3) {
+		p = packet;
+		ess = 0;
+		orig_2 = (uint8 *)malloc(pkt_hdr.incl_len);
+		if (!orig_2) {
+			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
+					__FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
+			exit(EXIT_FAILURE);
+		}
+		memcpy(orig_2, packet, pkt_hdr.incl_len);
+
+		goto handle_eapol;
+	}
 
 	// ok, first thing, find the beacon.  If we can NOT find the beacon, then
 	// do not proceed.  Also, if we find the becon, we may determine that
@@ -576,7 +626,10 @@ static void Handle4Way(int bIsQOS)
 	//if (memcmp(p, "\xaa\xaa\x3\0\0\0\x88\x8e", 8)) return; // not a 4way
 	p += 8;
 	// p now points to the 802.1X Authentication structure.
+handle_eapol:
 	auth = (ether_auto_802_1x_t*)p;
+	if (p + sizeof(ether_auto_802_1x_t) > end)
+		goto out;
 	if ((auth->length = swap16u(auth->length)) == 0)
 		goto out;
 	//*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
@@ -611,9 +664,16 @@ static void Handle4Way(int bIsQOS)
 	// invalid keys.  Also, I want to flag "unknown" keys as just that, unk.  These are 1-2's which
 	// do not have valid 3 4's.  They 'may' be valid, but may also be a client with the wrong password.
 
+	if (auth->key_info.KeyDescr == 3) {
+		fprintf(stderr, "Note: Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 is being used!\n");
+	}
+
 	if (msg == 1) {
 		MEM_FREE(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		wpa[ess].packet1_len = pkt_hdr.incl_len;
+		memcpy(wpa[ess].src, src, 6);
+		memcpy(wpa[ess].dst, dst, 6);
 		if (wpa[ess].packet1 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
@@ -637,12 +697,14 @@ static void Handle4Way(int bIsQOS)
 		MEM_FREE(wpa[ess].packet2);
 		MEM_FREE(wpa[ess].orig_2);
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		wpa[ess].packet2_len = pkt_hdr.incl_len;
 		if (wpa[ess].packet2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
 			exit(EXIT_FAILURE);
 		}
 		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		wpa[ess].orig_2_len  = pkt_hdr.incl_len;
 		if (wpa[ess].orig_2 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
@@ -666,10 +728,13 @@ static void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet1 && ShowIncomplete) {
 			ether_auto_802_1x_t *auth2 = auth, *auth1;
 			p = (uint8*)wpa[ess].packet1;
-			if (bIsQOS)
-				p += 2;
-			p += 8;
-			p += sizeof(ether_frame_hdr_t);
+			if (bIsQOS == 3) {
+			} else {
+				if (bIsQOS)
+					p += 2;
+				p += 8;
+				p += sizeof(ether_frame_hdr_t);
+			}
 			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
 				fprintf (stderr, "\nKey1/Key2 hit (unverified), for ESSID:%s (%s)\n", wpa[ess].essid, filename);
@@ -680,6 +745,7 @@ static void Handle4Way(int bIsQOS)
 	else if (msg == 3) {
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
 		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		wpa[ess].packet3_len = pkt_hdr.incl_len;
 		if (wpa[ess].packet3 == NULL) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
 			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
@@ -689,19 +755,26 @@ static void Handle4Way(int bIsQOS)
 		if (wpa[ess].packet2) {
 			ether_auto_802_1x_t *auth3 = auth, *auth2;
 			p = (uint8*)wpa[ess].packet2;
-			if (bIsQOS)
-				p += 2;
-			p += 8;
-			p += sizeof(ether_frame_hdr_t);
+			if (bIsQOS == 3) {
+			} else {
+				if (bIsQOS)
+					p += 2;
+				p += 8;
+				p += sizeof(ether_frame_hdr_t);
+			}
 			auth2 = (ether_auto_802_1x_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
 				ether_auto_802_1x_t *auth1;
 				if (wpa[ess].packet1) {
 					p = (uint8*)wpa[ess].packet1;
-					if (bIsQOS)
-						p += 2;
-					p += 8;
-					p += sizeof(ether_frame_hdr_t);
+					if (bIsQOS == 3) {
+					} else {
+
+						if (bIsQOS)
+							p += 2;
+						p += 8;
+						p += sizeof(ether_frame_hdr_t);
+					}
 					auth1 = (ether_auto_802_1x_t*)p;
 				}
 				// If we saw the first packet, its nonce must
@@ -742,6 +815,7 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	ether_auto_802_1x_t *auth13, *auth2;
 	uint8 *p = (uint8*)wpa[ess].packet2;
 	uint8 *pkt2 = p;
+	uint8 *end = (uint8*)wpa[ess].packet2 + wpa[ess].packet2_len;
 	uint8 *p13;
 	hccap_t	hccap;
 	int i;
@@ -754,40 +828,59 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
-	if (bIsQOS)
-		p += 2;
-	p += 8;
-	p += sizeof(ether_frame_hdr_t);
+	if (bIsQOS == 3) {
+	} else {
+		if (bIsQOS)
+			p += 2;
+		p += 8;
+		p += sizeof(ether_frame_hdr_t);
+	}
 	auth2 = (ether_auto_802_1x_t*)p;
 	if (one_three==1) {
 		if (!wpa[ess].packet1) { printf ("ERROR, msg1 null\n"); return; }
 		p = wpa[ess].packet1;
+		end = (uint8*)wpa[ess].packet1 + wpa[ess].packet1_len;
 	} else  {
 		if (!wpa[ess].packet3) { printf ("ERROR, msg3 null\n"); return; }
 		p = wpa[ess].packet3;
+		end = (uint8*)wpa[ess].packet3 + wpa[ess].packet3_len;
 	}
 	p13 = p;
-	if (bIsQOS)
-		p += 2;
-	p += 8;
-	p += sizeof(ether_frame_hdr_t);
+	if (bIsQOS == 3) {
+	} else {
+		if (bIsQOS)
+			p += 2;
+		p += 8;
+		p += sizeof(ether_frame_hdr_t);
+	}
 	auth13 = (ether_auto_802_1x_t*)p;
 
 	memset(&hccap, 0, sizeof(hccap_t));
 	hccap.keyver = auth2->key_info.KeyDescr;
-	memcpy(hccap.mac1, ((ether_frame_hdr_t*)pkt2)->addr1, 6);
-	memcpy(hccap.mac2, ((ether_frame_hdr_t*)(p13))->addr1, 6);
+	if (bIsQOS == 3) {
+		memcpy(hccap.mac1, wpa[ess].src, 6);
+		memcpy(hccap.mac2, wpa[ess].dst, 6);
+	} else {
+		memcpy(hccap.mac1, ((ether_frame_hdr_t*)pkt2)->addr1, 6);
+		memcpy(hccap.mac2, ((ether_frame_hdr_t*)(p13))->addr1, 6);
+	}
 	memcpy(hccap.nonce1, auth2->wpa_nonce,32);
 	memcpy(hccap.nonce2, auth13->wpa_nonce,32);
 	memcpy(hccap.keymic, auth2->wpa_keymic, 16);
 	p = wpa[ess].orig_2;
-	if (bIsQOS)
-		p += 2;
-	p += 8;
-	p += sizeof(ether_frame_hdr_t);
+	if (bIsQOS == 3) {
+	} else {
+		if (bIsQOS)
+			p += 2;
+		p += 8;
+		p += sizeof(ether_frame_hdr_t);
+	}
 	auth2 = (ether_auto_802_1x_t*)p;
 	memset(auth2->wpa_keymic, 0, 16);
 	hccap.eapol_size = wpa[ess].eapol_sz;
+	end = (uint8*)wpa[ess].orig_2 + wpa[ess].orig_2_len;
+	if (p + hccap.eapol_size > end) // more checks like this should be added to this function
+		return;
 	memcpy(hccap.eapol, auth2, hccap.eapol_size);
 
 	w = (uint8 *)&hccap;
@@ -821,7 +914,48 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	fflush(stdout);
 }
 
+#ifdef HAVE_LIBFUZZER
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+	int fd;
+	char name[] = "/tmp/libFuzzer-XXXXXX";
+	FILE *in;
+	char *base;
+
+	fd = mkstemp(name);  // this approach is somehow faster than the fmemopen way
+	if (fd < 0) {
+		fprintf(stderr, "Problem detected while creating the input file, %s, aborting!\n", strerror(errno));
+		exit(-1);
+	}
+	write(fd, data, size);
+	close(fd);
+
+	wpa = calloc(max_essids, sizeof(WPA4way_t));
+	unVerified = calloc(max_essids, sizeof(char*));
+
+	in = fopen(filename = name, "rb");
+	if (in) {
+		if ((base = strrchr(filename, '/')))
+			filename = ++base;
+		Process(in);
+		fclose(in);
+	} else
+		fprintf(stderr, "Error, file %s not found\n", name);
+	fprintf(stderr, "\n%d ESSIDS processed\n", nwpa);
+	remove(name);
+
+	free(wpa);
+	free(unVerified);
+
+	return 0;
+}
+#endif
+
+#ifdef HAVE_LIBFUZZER
+int main_dummy(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
 	FILE *in;
 	int i;

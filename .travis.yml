@@ -10,24 +10,42 @@ env:
 
 matrix:
   include:
-  - compiler: gcc
+  - os: linux
+    compiler: gcc
     env: ASAN="--enable-asan" OPENCL="yes"
 
-  - compiler: clang
+  - os: linux
+    compiler: clang
     env: ASAN="" OPENCL="yes"
 
-  - env: ASAN="--enable-asan" TEST="fresh test"
+  - os: linux
+    env: ASAN="--enable-asan" TEST="fresh test"
 
-  - env: ASAN="" TEST="TS --restore"
+  - os: linux
+    env: ASAN="" TEST="TS --restore"
 
-  - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+  - os: linux
+    env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+
+  - os: osx
+    osx_image: xcode8.3
+    env: ASAN="" OPENCL="yes"
 
   allow_failures:
-  - env: ASAN="--enable-asan" TEST="fresh test"
+  - os: linux
+    env: ASAN="--enable-asan" OPENCL="yes"
 
-  - env: ASAN="" TEST="TS --restore"
+  - os: linux
+    env: ASAN="" OPENCL="yes"
 
-  - env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+  - os: linux
+    env: ASAN="--enable-asan" TEST="fresh test"
+
+  - os: linux
+    env: ASAN="" TEST="TS --restore"
+
+  - os: linux
+    env: ASAN="" TEST="no OpenMP" OPENCL="yes"
 
   fast_finish: true
 

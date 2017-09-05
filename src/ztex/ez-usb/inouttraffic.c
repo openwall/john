@@ -1,9 +1,9 @@
 /*!
  inouttraffic -- custom firmware for ZTEX USB-FPGA Module 1.15y and 1.15y2
- Together with HDL part and proper host software, it allows usage of 
+ Together with HDL part and proper host software, it allows usage of
  High-Speed interface (Slave FIFO) on a multi-FPGA board.
- 
- This software is Copyright (c) 2016 Denis Burykin
+
+ This software is Copyright (c) 2016-2017 Denis Burykin
  [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
 
  Based on
@@ -59,11 +59,11 @@ void fifo_reset() {
 	FIFORESET = 6; SYNCDELAY;
 	OUTPKTEND = 0x86; SYNCDELAY;  // skip uncommitted pkts in OUT endpoint
 	OUTPKTEND = 0x86; SYNCDELAY;
-	OUTPKTEND = 0x86; SYNCDELAY; 
+	OUTPKTEND = 0x86; SYNCDELAY;
 	OUTPKTEND = 0x86; SYNCDELAY;
 	EP6FIFOCFG = bmBIT4 | bmBIT0; SYNCDELAY;        // AUTOOUT, WORDWIDE
 	FIFORESET = 0x00; SYNCDELAY;  //Release NAKALL
-	
+
 	FIFORESET = 0x80; SYNCDELAY;
 	EP2FIFOCFG = 0x00; SYNCDELAY;
 	FIFORESET = 2; SYNCDELAY;
@@ -122,7 +122,7 @@ void ep0_write_data () {
     IOC = 0x71;//SETUPDAT[2];
     IOA0 = 1;
     IOA0 = 0;
-    
+
 	IOA7 = 0; //write
     IOA1 = 0;
 	for ( b=0; b<EP0BCL; b++ ) {
@@ -132,10 +132,10 @@ void ep0_write_data () {
 	}
 }
 
-ADD_EP0_VENDOR_COMMAND((0x71,,				
+ADD_EP0_VENDOR_COMMAND((0x71,,
 ,,
     ep0_write_data();
-));; 
+));;
 */
 //-----------------------------------------------
 void fpga_set_addr(BYTE addr) {
@@ -294,6 +294,101 @@ void fpga_select_setup_io(BYTE fpga_num) {
 // SETUPDAT[2] : fpga_num
 ADD_EP0_VENDOR_REQUEST((0x8C,,
 	fpga_select_setup_io(SETUPDAT[2]);
+,,
+));;
+
+//-----------------------------------------------
+//
+// Programmable clocks
+//
+//-----------------------------------------------
+__xdata BYTE clock_num; // clock being programmed (0..3)
+
+// Up to 4 clocks, programming enabled with IOC2..5
+void set_progen(BYTE value) {
+	switch (clock_num) {
+	case 0: IOC2 = value;
+			break;
+	case 1: IOC3 = value;
+			break;
+	case 2: IOC4 = value;
+			break;
+	case 3: IOC5 = value;
+			break;
+	};
+}
+
+#define[PROGDATA][IOC1]
+#define[PROGCLK][IOC0]
+
+void set_freq(BYTE d, BYTE m) {
+	BYTE i,j;
+
+	fpga_set_addr(0x00); // Set IOC to raw mode
+
+	set_progen(1);
+	// 2-bit LoadD command
+    PROGDATA = 1;
+    PROGCLK = 1; PROGCLK = 0;
+	PROGDATA = 0;
+	PROGCLK = 1; PROGCLK = 0;
+	// D value
+	for (i = 0; i < 8; i++) {
+		PROGDATA = d & 1;
+		PROGCLK = 1; PROGCLK = 0;
+		d >>= 1;
+	}
+
+	set_progen(0);
+	PROGCLK = 1; PROGCLK = 0;
+	PROGCLK = 1; PROGCLK = 0;
+
+	set_progen(1);
+	// 2-bit LoadM command
+	PROGDATA = 1;
+	PROGCLK = 1; PROGCLK = 0;
+	PROGCLK = 1; PROGCLK = 0;
+	// M value
+	for (i = 0; i < 8; i++) {
+		PROGDATA = m & 1;
+		PROGCLK = 1; PROGCLK = 0;
+		m >>= 1;
+	}
+
+	set_progen(0);
+	PROGCLK = 1; PROGCLK = 0;
+
+	set_progen(1);
+	// 1-bit GO command
+	PROGDATA = 0;
+	PROGCLK = 1; PROGCLK = 0;
+
+	set_progen(0);
+	for (i = 50; i; i--) {
+		PROGCLK = 1; PROGCLK = 0;
+	}
+
+	IOA0 = 1; IOA0 = 0; // Return from raw mode
+}
+
+// fpga_progclk()
+// SETUPDAT[2] : fpga_num, SETUPDAT[3] : clock_num
+// SETUPDAT[4] : D value, SETUPDAT[5] : M value
+ADD_EP0_VENDOR_COMMAND((0x93,,
+	fpga_select(SETUPDAT[2]);
+	clock_num = SETUPDAT[3];
+	//fpga_set_addr(0x94); // pll_reset=1
+	set_freq(SETUPDAT[4], SETUPDAT[5]);
+
+	// Programmable clock (DCM_CLKGEN) drives the PLL.
+	// PLL requires reset when input frequency changes.
+	// Some software forces the PLL into reset and waits.
+	//
+	// Inouttraffic bitstream connects CLKGEN's inverted LOCKED output
+	// to PLL's reset so the approach described above is unnecessary.
+	//
+	//wait(20);
+	//fpga_set_addr(0x95); // pll_reset=0
 ,,
 ));;
 

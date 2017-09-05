@@ -40,6 +40,12 @@
 #
 # https://support.1password.com/agile-keychain-design/
 # https://support.1password.com/opvault-design/ (formerly called "Cloud Keychain")
+#
+# August 2017 notes,
+#
+# In December 2012, AgileBits introduced the OPVault format to replace the
+# Agile Keychain format, which had been introduced in 2008. OPVault format is
+# used by default when syncing with iCloud or Dropbox.
 
 import os
 import sys

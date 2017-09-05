@@ -23,19 +23,19 @@
 #include "int128.h"
 #include <stdio.h>
 #if !AC_BUILT
-# include <string.h>
-# ifndef _MSC_VER
-#  include <strings.h>
-# endif
+ #include <string.h>
+ #ifndef _MSC_VER
+  #include <strings.h>
+ #endif
 #else
-# if STRING_WITH_STRINGS
-#  include <string.h>
-#  include <strings.h>
-# elif HAVE_STRING_H
-#  include <string.h>
-# elif HAVE_STRINGS_H
-#  include <strings.h>
-# endif
+ #if STRING_WITH_STRINGS
+  #include <string.h>
+  #include <strings.h>
+ #elif HAVE_STRING_H
+  #include <string.h>
+ #elif HAVE_STRINGS_H
+  #include <strings.h>
+ #endif
 #endif
 #include <stdlib.h>
 #include "jumbo.h"
@@ -56,7 +56,7 @@ typedef uint128_t               mpz_t;
 #define mpz_set_si mpz_set_ui
 
 #define mpz_cmp(op1, op2) ((op1 > op2) ? 1 : (op1 < op2) ? -1 : 0)
-#define mpz_cmp_ui(op1, op2) ((op1 > (op2)) ? 1 : (op1 < (op2)) ? -1 : 0)
+#define mpz_cmp_ui(op1, op2) (op1 - (op2))
 #define mpz_cmp_si(op1, op2) (op1 - (op2))
 
 #define mpz_add(rop, op1, op2) do { rop = op1 + op2; if (rop < op2) rop = UINT128_MAX; } while (0)
@@ -80,7 +80,7 @@ typedef uint128_t               mpz_t;
 #define mpz_fdiv_q_ui(q, n, d) q = (n) / (d)
 #else
 #define mpz_fdiv_q_ui(q, n, d) _mpz_fdiv_q_ui(&q, n, d)
-static inline int _mpz_fdiv_q_ui(mpz_t *q, mpz_t n, mpz_t d)
+inline static int _mpz_fdiv_q_ui(mpz_t *q, mpz_t n, mpz_t d)
 {
 	*q = n / d;
 	return n % d;
@@ -96,7 +96,7 @@ static inline int _mpz_fdiv_q_ui(mpz_t *q, mpz_t n, mpz_t d)
 			_int128tostr(op, base, ptr); \
 	} while (0)
 
-static inline int _int128tostr(uint128_t op, int base, char *ptr)
+inline static int _int128tostr(uint128_t op, int base, char *ptr)
 {
 	char *p = ptr;
 	if (!op)
@@ -115,7 +115,7 @@ static inline int _int128tostr(uint128_t op, int base, char *ptr)
 }
 
 #define mpz_set_str(rop, str, base) _mpz_set_str(&rop, str, base)
-static inline int _mpz_set_str(mpz_t *rop, char *str, int base)
+inline static int _mpz_set_str(mpz_t *rop, char *str, int base)
 {
 	int num;
 
@@ -153,7 +153,7 @@ static inline int _mpz_set_str(mpz_t *rop, char *str, int base)
 }
 
 /* This is slow and can't print '0'... but it's simple :-P */
-static inline void print128(mpz_t op, FILE *stream)
+inline static void print128(mpz_t op, FILE *stream)
 {
 	if (op == 0) {
 		return;
@@ -163,7 +163,7 @@ static inline void print128(mpz_t op, FILE *stream)
 	fputc(op % 10 + '0', stream);
 }
 
-static inline size_t mpz_out_str(FILE *stream, int base, mpz_t op)
+inline static size_t mpz_out_str(FILE *stream, int base, mpz_t op)
 {
 	if (base != 10) {
 		fprintf(stderr, "%s(): base %d not implemented\n",

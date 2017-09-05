@@ -1,4 +1,5 @@
-/* PKZIP patch for john to handle 'old' pkzip passwords (old 'native' format)
+/*
+ * PKZIP patch for john to handle 'old' pkzip passwords (old 'native' format)
  *
  * Written by Jim Fougeron <jfoug at cox.net> in 2011.  No copyright
  * is claimed, and the software is hereby placed in the public domain.
@@ -190,14 +191,15 @@ static const char *ValidateZipContents(FILE *in, long offset, u32 offex, int len
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	c8 *p, *cp, *cpkeep;
-	int cnt, data_len, ret=0;
+	int cnt, ret=0;
+	u64 data_len;
 	u32 crc;
 	FILE *in;
 	const char *sFailStr;
 	long offset;
 	u32 offex;
 	int type;
-	int complen = 0;
+	u64 complen = 0;
 	int type2 = 0;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
@@ -242,7 +244,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				sFailStr = "Invalid compressed length";
 				goto Bail;
 			}
-			sscanf(cp, "%x", &complen);
+			sscanf(cp, "%"PRIx64, &complen);
 			if ((cp = strtokm(NULL, "*")) == NULL || !cp[0] || !ishexlc_oddOK(cp)) {
 				sFailStr = "Invalid data length value";
 				goto Bail;
@@ -271,7 +273,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			sFailStr = "Invalid data length value";
 			goto Bail;
 		}
-		sscanf(cp, "%x", &data_len);
+		sscanf(cp, "%"PRIx64, &data_len);
 		if ((cp = strtokm(NULL, "*")) == NULL || !ishexlc(cp) || strlen(cp) != 4) {
 			sFailStr = "invalid checksum value";
 			goto Bail;
@@ -341,7 +343,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 Bail:;
 #ifdef ZIP_DEBUG
-	if (!ret) fprintf (stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
+	if (!ret) fprintf (stderr, "pkzip validation failed [%s]  Hash is %.64s\n", sFailStr, ciphertext);
 #endif
 	MEM_FREE(cpkeep);
 	return ret;
@@ -550,7 +552,7 @@ static void *get_salt(char *ciphertext)
 	char *H[3] = {0,0,0};
 	long ex_len[3] = {0,0,0};
 	u32 offex;
-	int i, j;
+	size_t i, j;
 	c8 *p, *cp, *cpalloc = (char*)mem_alloc(strlen(ciphertext)+1);
 	int type2 = 0;
 
@@ -586,9 +588,9 @@ static void *get_salt(char *ciphertext)
 
 		if (data_enum > 1) {
 			cp = strtokm(NULL, "*");
-			sscanf(cp, "%x", &(salt->compLen));
+			sscanf(cp, "%"PRIx64, &(salt->compLen));
 			cp = strtokm(NULL, "*");
-			sscanf(cp, "%x", &(salt->deCompLen));
+			sscanf(cp, "%"PRIx64, &(salt->deCompLen));
 			cp = strtokm(NULL, "*");
 			sscanf(cp, "%x", &(salt->crc32));
 			cp = strtokm(NULL, "*");
@@ -599,7 +601,7 @@ static void *get_salt(char *ciphertext)
 		cp = strtokm(NULL, "*");
 		sscanf(cp, "%x", &(salt->H[i].compType));
 		cp = strtokm(NULL, "*");
-		sscanf(cp, "%x", &(salt->H[i].datlen));
+		sscanf(cp, "%"PRIx64, &(salt->H[i].datlen));
 		cp = strtokm(NULL, "*");
 
 		for (j = 0; j < 4; ++j) {
@@ -722,8 +724,8 @@ static void *get_salt(char *ciphertext)
 	// set the JtR core linkage stuff for this dyna_salt
 	memcpy(salt_p, &psalt, sizeof(psalt));
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(PKZ_SALT, cnt);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(PKZ_SALT, cnt, full_zip_idx, ex_len[0]+ex_len[1]+ex_len[2]+2);
-
+	psalt->dsalt.salt_cmp_size =
+		SALT_CMP_SIZE(PKZ_SALT, cnt, zip_data, ex_len[0]+ex_len[1]+ex_len[2]+2);
 	return salt_p;
 }
 
@@ -1733,7 +1735,7 @@ struct fmt_main fmt_pkzip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
@@ -1749,7 +1751,7 @@ struct fmt_main fmt_pkzip = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		fmt_default_dyna_salt_hash,
 		NULL,
@@ -1759,7 +1761,7 @@ struct fmt_main fmt_pkzip = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

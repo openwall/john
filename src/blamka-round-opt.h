@@ -37,7 +37,7 @@
 #else
 #endif
 
-static inline __m128i fBlaMka(__m128i x, __m128i y) {
+inline static __m128i fBlaMka(__m128i x, __m128i y) {
     const __m128i z = _mm_mul_epu32(x, y);
     return _mm_add_epi64(_mm_add_epi64(x, y), _mm_add_epi64(z, z));
 }

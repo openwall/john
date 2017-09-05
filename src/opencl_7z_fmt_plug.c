@@ -5,6 +5,13 @@
  * modification, are permitted.
  */
 
+/*
+ * We've seen one single sample where we could not trust the padding check
+ * (early rejection). To be able to crack such hashes, define this to 0.
+ * This hits performance in some cases.
+ */
+#define TRUST_PADDING 0
+
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
@@ -105,7 +112,7 @@ static struct custom_salt {
 static struct fmt_tests sevenzip_tests[] = {
 	/* CRC checks passes for this hash (4 bytes of padding) */
 	{"$7z$128$19$0$1122$8$a264c94f2cd72bec0000000000000000$725883103$112$108$64749c0963e20c74602379ca740165b9511204619859d1914819bc427b7e5f0f8fc67f53a0b53c114f6fcf4542a28e4a9d3914b4bc76baaa616d6a7ec9efc3f051cb330b682691193e6fa48159208329460c3025fb273232b82450645f2c12a9ea38b53a2331a1d0858813c8bf25a831", "openwall"},
-	/* padding check (9 bytes) passes for this hash, then LZMA */
+	/* LZMA before CRC (9 bytes of padding) */
 	{"$7z$1$19$0$1122$8$732b59fd26896e410000000000000000$2955316379$192$183$7544a3a7ec3eb99a33d80e57907e28fb8d0e140ec85123cf90740900429136dcc8ba0692b7e356a4d4e30062da546a66b92ec04c64c0e85b22e3c9a823abef0b57e8d7b8564760611442ecceb2ca723033766d9f7c848e5d234ca6c7863a2683f38d4605322320765938049305655f7fb0ad44d8781fec1bf7a2cb3843f269c6aca757e509577b5592b60b8977577c20aef4f990d2cb665de948004f16da9bf5507bf27b60805f16a9fcc4983208297d3affc4455ca44f9947221216f58c337f$232$5d00000100", "password"},
 	/* CRC checks passes for this hash (no padding) */
 	{"$7z$0$19$0$1122$8$d1f50227759415890000000000000000$1412385885$112$112$5e5b8b734adf52a64c541a5a5369023d7cccb78bd910c0092535dfb013a5df84ac692c5311d2e7bbdc580f5b867f7b5dd43830f7b4f37e41c7277e228fb92a6dd854a31646ad117654182253706dae0c069d3f4ce46121d52b6f20741a0bb39fc61113ce14d22f9184adafd6b5333fb1", "password"},
@@ -554,12 +561,16 @@ static int sevenzip_decrypt(sevenzip_hash *derived)
 	size_t aes_len = cur_salt->crc_len ?
 		(cur_salt->crc_len * 11 + 150) / 160 * 16 : crc_len;
 
-	/* Early reject from GPU? */
-	if (derived->reject)
+	/*
+	 * Early rejection (only decrypt last 16 bytes). We don't seem to
+	 * be able to trust this, see #2532, so we only do it for truncated
+	 * hashes (it's the only thing we can do!).
+	 */
+	if ((TRUST_PADDING || cur_salt->type == 0x80) && derived->reject)
 		return 0;
 
 	if (cur_salt->type == 0x80) /* We only have truncated data */
-		goto exit_good;
+		return 1;
 
 	/* Complete decryption, or partial if possible */
 	aes_len = MIN(aes_len, cur_salt->length);
@@ -681,10 +692,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	new_keys = 0;
 
-	// Run AES kernel (per salt)
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_aes, 1,
-		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
-		"Run AES kernel");
+	if (TRUST_PADDING || cur_salt->type == 0x80) {
+		// Run AES kernel (only for truncated hashes)
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_aes, 1,
+			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
+			"Run AES kernel");
+	}
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
@@ -764,7 +777,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_DYNA_SALT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8 | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
 			"padding size",

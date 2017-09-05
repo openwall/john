@@ -22,7 +22,7 @@
 #include <sys/times.h>
 #include <dpmi.h>
 
-static inline clock_t safe_times(struct tms *buffer)
+inline static clock_t safe_times(struct tms *buffer)
 {
 	__dpmi_regs r;
 

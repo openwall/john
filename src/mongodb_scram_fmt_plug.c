@@ -180,7 +180,7 @@ static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
 static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
-static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
+inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
 	int i;
 	for (i = 0; i < len; ++i) {

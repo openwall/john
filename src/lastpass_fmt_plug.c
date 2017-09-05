@@ -1,12 +1,14 @@
-/* LastPass offline cracker patch for JtR. Hacked together during January of 2013 by
- * Dhiru Kholia <dhiru.kholia at gmail.com>.
+/*
+ * LastPass offline cracker patch for JtR. Hacked together during January of
+ * 2013 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * All the hard work was done by Milen (author of hashkill).
+ * All the hard work was done by Milen Rangelov (author of hashkill).
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.  */
+ * are permitted.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_lastpass;
@@ -15,8 +17,6 @@ john_register_one(&fmt_lastpass);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -32,40 +32,31 @@ john_register_one(&fmt_lastpass);
 #include "params.h"
 #include "options.h"
 #include "aes.h"
+#include "lastpass_common.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"lp"
-#define FORMAT_NAME		"LastPass offline"
-#define FORMAT_TAG		"$lp$"
-#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "lp"
+#define FORMAT_TAG              "$lp$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			sizeof(int)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
-
-static struct fmt_tests lastpass_tests[] = {
-	{"$lp$hackme@mailinator.com$6f5d8cec3615fc9ac7ba2e0569bce4f5", "strongpassword"},
-	{"$lp$3$27c8641d7f5ab5985569d9d0b499b467", "123"},
-	{"$lp$ninechars$d09153108a89347da5c97a4a18f91345", "PassWord"},
-	{"$lp$anicocls$764b0f54528eb4a4c93aab1b18af28a5", ""},
-	{NULL}
-};
 
 #if defined (_OPENMP)
 static int omp_t = 1;
@@ -73,11 +64,7 @@ static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
 
-static struct custom_salt {
-	int iterations;
-	int salt_length;
-	unsigned char salt[32];
-} *cur_salt;
+static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
@@ -97,76 +84,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ctcopy;
-	char *keeptr;
-	char *p;
-	int extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		return 0;
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;
-	if ((p = strtokm(ctcopy, "$")) == NULL)	/* email */
-		goto err;
-	if (strlen(p) > 32)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
-		goto err;
-	if (hexlenl(p, &extra) != 32 || extra)
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
-	static struct custom_salt cs;
-	memset(&cs, 0, sizeof(cs));
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$lp$" */
-	p = strtokm(ctcopy, "$");
-	strncpy((char*)cs.salt, p, 32);
-	cs.salt_length = strlen((char*)p);
-	MEM_FREE(keeptr);
-	return (void *)&cs;
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[BINARY_SIZE+1];
-		ARCH_WORD dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i;
-	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |
-			atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-	return out;
-}
-
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
-
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
@@ -178,14 +95,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 	{
-		AES_KEY akey;
-#ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT], i;
-		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		uint32_t key[MAX_KEYS_PER_CRYPT][8];
+		int i;
+#ifdef SIMD_COEF_32
+		int lens[MAX_KEYS_PER_CRYPT];
+		unsigned char *pin[MAX_KEYS_PER_CRYPT];
 		union {
 			uint32_t *pout[MAX_KEYS_PER_CRYPT];
 			unsigned char *poutc;
@@ -195,20 +112,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[i+index];
 			x.pout[i] = key[i];
 		}
-		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->salt_length, 500, &(x.poutc), 32, 0);
-
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, &(x.poutc), 32, 0);
+#else
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			memset(&akey, 0, sizeof(AES_KEY));
+			pbkdf2_sha256((unsigned char*)saved_key[i+index], strlen(saved_key[i+index]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, (unsigned char*)key[i], 32, 0);
+		}
+#endif
+		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			AES_KEY akey;
+
 			AES_set_encrypt_key((unsigned char*)key[i], 256, &akey);
 			AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[i+index], &akey, AES_ENCRYPT);
 		}
-#else
-		unsigned char key[32];
-		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->salt_length, 500, key, 32, 0);
-		memset(&akey, 0, sizeof(AES_KEY));
-		AES_set_encrypt_key((unsigned char*)key, 256, &akey);
-		AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[index], &akey, AES_ENCRYPT);
-#endif
+
 	}
 	return count;
 }
@@ -234,11 +150,7 @@ static int cmp_exact(char *source, int index)
 
 static void lastpass_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
@@ -262,7 +174,9 @@ struct fmt_main fmt_lastpass = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{
+			"iteration count",
+		},
 		{ FORMAT_TAG },
 		lastpass_tests
 	}, {
@@ -270,20 +184,16 @@ struct fmt_main fmt_lastpass = {
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		lastpass_common_valid,
 		fmt_default_split,
-		get_binary,
-		get_salt,
-		{ NULL },
+		lastpass_common_get_binary,
+		lastpass_common_get_salt,
+		{
+			lastpass_common_iteration_count,
+		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -293,13 +203,7 @@ struct fmt_main fmt_lastpass = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

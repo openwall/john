@@ -19,7 +19,6 @@
 
 //Constants.
 #define RAW_PLAINTEXT_LENGTH    55  /* 55 characters + 0x80 */
-#define CISCO_PLAINTEXT_LENGTH  26  /* 25 characters + 0x80 */
 #define PLAINTEXT_LENGTH    RAW_PLAINTEXT_LENGTH
 
 #define BUFFER_SIZE             56  /* RAW_PLAINTEXT_LENGTH multiple of 4 */

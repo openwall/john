@@ -21,17 +21,30 @@
 #include "device.h"
 
 
-int device_init_fpgas(struct device *device, struct pkt_comm_params *params)
+int device_init_fpgas(struct device *device, struct device_bitstream *bitstream)
 {
 	int i;
 	for (i = 0; i < device->num_of_fpgas; i++) {
 		struct fpga *fpga = &device->fpga[i];
-		
+
 		int result = fpga_select(fpga);
 		if (result < 0) {
 			device_invalidate(device);
 			return result;
 		}
+
+		//
+		// Attn: on GSR, clocks remain at programmed frequency
+		// Set FPGAs to default frequency before GSR
+		//
+		int clk_num;
+		for (clk_num = 0; clk_num < bitstream->num_progclk; clk_num++)
+			if (bitstream->freq[clk_num] > 0) {
+				result = fpga_progclk(fpga, clk_num,
+						bitstream->freq[clk_num]);
+				if (result < 0)
+					return result;
+			}
 
 		// Resets FPGA application with Global Set Reset (GSR)
 		result = fpga_reset(device->handle);
@@ -42,14 +55,14 @@ int device_init_fpgas(struct device *device, struct pkt_comm_params *params)
 			device_invalidate(device);
 			return result;
 		}
-		
-		fpga->comm = pkt_comm_new(params);
-		
+
+		fpga->comm = pkt_comm_new(&bitstream->pkt_comm_params);
+
 	} // for
 	return 0;
 }
 
-int device_list_init_fpgas(struct device_list *device_list, struct pkt_comm_params *params)
+int device_list_init_fpgas(struct device_list *device_list, struct device_bitstream *bitstream)
 {
 	int ok_count = 0;
 	struct device *device;
@@ -57,7 +70,7 @@ int device_list_init_fpgas(struct device_list *device_list, struct pkt_comm_para
 		if (!device_valid(device))
 			continue;
 
-		int result = device_init_fpgas(device, params);
+		int result = device_init_fpgas(device, bitstream);
 		if (result < 0) {
 			fprintf(stderr, "SN %s error %d initializing FPGAs.\n",
 					device->ztex_device->snString, result);
@@ -101,7 +114,7 @@ void device_list_init(struct device_list *device_list, struct device_bitstream *
 		}
 	}
 
-	device_list_init_fpgas(device_list, &bitstream->pkt_comm_params);
+	device_list_init_fpgas(device_list, bitstream);
 
 	// Application mode 2: use high-speed packet communication (pkt_comm)
 	// that's the primary mode of operation as opposed to test modes 0 & 1.
@@ -136,11 +149,41 @@ struct device_list *device_init_scan(struct device_bitstream *bitstream)
 {
 	struct ztex_dev_list *ztex_dev_list = ztex_dev_list_new();
 	ztex_init_scan(ztex_dev_list);
-	
+
 	struct device_list *device_list = device_list_new(ztex_dev_list);
 	device_list_init(device_list, bitstream);
-	
+
 	return device_list;
+}
+
+
+void device_list_print(struct device_list *device_list)
+{
+	struct device *dev;
+	for (dev = device_list->device; dev; dev = dev->next) {
+		int num, j;
+		int has_progclk = 0;
+
+		printf("ZTEX %s bus:%d dev:%d",
+				dev->ztex_device->snString, dev->ztex_device->busnum,
+				dev->ztex_device->devnum);
+		for (num = 0; num < dev->num_of_fpgas; num++) {
+			for (j = 0; j < NUM_PROGCLK_MAX; j++) {
+				if (!dev->fpga[num].freq[j])
+					break;
+				if (!has_progclk) {
+					printf(" Frequency:");
+					has_progclk = 1;
+				}
+				if (j > 0)
+					printf(",");
+				printf("%d", dev->fpga[num].freq[j]);
+			}
+			if (has_progclk)
+				printf(" ");
+		}
+		printf("\n");
+	}
 }
 
 
@@ -163,7 +206,7 @@ int device_pkt_rw(struct device *device)
 	int num;
 	for (num = 0; num < device->num_of_fpgas; num++) {
 		struct fpga *fpga = &device->fpga[num];
-		
+
 		// Get input buffer
 		unsigned char *input_buf = pkt_comm_input_get_buf(fpga->comm);
 		if (fpga->comm->error)
@@ -194,7 +237,7 @@ int device_pkt_rw(struct device *device)
 				device->ztex_device->snString, num, fpga->wr.io_state.app_status);
 			return -1;
 		}
-		
+
 		if (fpga->wr.io_state.io_state & ~IO_STATE_INPUT_PROG_FULL) {
 			fprintf(stderr, "SN %s FPGA #%d error: io_state=0x%02x\n",
 				device->ztex_device->snString, num, fpga->wr.io_state.io_state);
@@ -203,24 +246,24 @@ int device_pkt_rw(struct device *device)
 
 		int input_full = fpga->wr.io_state.io_state & IO_STATE_INPUT_PROG_FULL;
 		if (input_full) {
-		
+
 			// FPGA input is full - no write
 			if (DEBUG) printf("#%d write: Input full\n", num);
-		
+
 		} else {
-			
+
 			// Get output buffer
 			int output_data_len = 0;
 			unsigned char *output_data = pkt_comm_get_output_data(fpga->comm,
 					&output_data_len);
 
 			if (!output_data) {
-			
+
 				// No data for output - no write
 				if (DEBUG) printf("fpga_pkt_write(): no data for output\n");
-			
+
 			} else {
-			
+
 				if (DEBUG >= 2) {
 					int i;
 					for (i=0; i < output_data_len; i++) {
@@ -229,7 +272,7 @@ int device_pkt_rw(struct device *device)
 					}
 					printf("\n");
 				}
-				
+
 				// Performing write
 				int transferred = 0;
 				result = libusb_bulk_transfer(fpga->device->handle, 0x06,
@@ -242,7 +285,7 @@ int device_pkt_rw(struct device *device)
 				if (transferred != output_data_len) {
 					return ERR_WR_PARTIAL;
 				}
-				
+
 				// Let pkt_comm register data transmit (clear buffers etc)
 				pkt_comm_output_completed(fpga->comm, output_data_len, 0);
 				data_transferred = 1;
@@ -279,7 +322,7 @@ int device_pkt_rw(struct device *device)
 			else
 				break;
 		} // for (;;)
-		
+
 		// Read completed.
 		if (DEBUG >= 2) {
 			int i;
@@ -296,7 +339,7 @@ int device_pkt_rw(struct device *device)
 			return result;
 		data_transferred = 1;
 	}
-	
+
 	return data_transferred;
 }
 
@@ -324,7 +367,7 @@ int device_fpgas_pkt_rw(struct device *device)
 	int result;
 	int num;
 	for (num = 0; num < device->num_of_fpgas; num++) {
-		
+
 		struct fpga *fpga = &device->fpga[num];
 		//if (!fpga->valid) // currently if r/w error on some FPGA, the entire device invalidated
 		//	continue;

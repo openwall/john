@@ -515,7 +515,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	unsigned int i;
 	unsigned char ch;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	if (ciphertext[0] != '(' ||
@@ -569,7 +569,7 @@ static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 								if (ch == '/')
 									out += '?';
 								else
-									; /* shit happens */
+								{ ; } /* shit happens */
 							else
 								out += '>';
 						else

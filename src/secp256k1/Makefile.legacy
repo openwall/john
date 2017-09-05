@@ -1,0 +1,34 @@
+
+CC = gcc
+CXX = @CXX@
+AS = gcc
+LD = gcc
+CPP = gcc
+YASM =
+AR = ar
+FIND = find
+
+IN = secp256k1.o
+
+all: secp256k1.a
+default: secp256k1.a
+
+secp256k1.o: secp256k1.c
+	$(CC) -DHAVE_CONFIG_H $(CFLAGS) -c secp256k1.c -o secp256k1.o
+
+.PHONY: subdirs $(SUBDIRS)
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ all
+
+secp256k1.a: $(SUBDIRS) secp256k1.o
+	$(AR) -rs $@ $(IN)
+
+clean:
+	$(FIND) . -name \*.a -exec $(RM) {} \;
+	$(FIND) . -name \*.o -exec $(RM) {} \;
+
+distclean: clean
+	$(RM) Makefile

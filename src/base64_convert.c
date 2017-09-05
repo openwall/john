@@ -446,63 +446,63 @@ static size_t actual_raw_to_base64_conv(const char *cpi, size_t len_left, char *
 	return cpo-cpo_o;
 }
 
-static inline size_t mime_to_cryptBS(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t mime_to_cryptBS(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_base64_conv(cpi, cpo, to_len, flags, "mime_to_cryptBS", base64_Decode, base64_encode_iBS);
 }
-static inline size_t mime_to_crypt(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t mime_to_crypt(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_base64_conv(cpi, cpo, to_len, flags, "mime_to_crypt", base64_Decode, base64_encode_i);
 }
-static inline size_t crypt_to_cryptBS(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t crypt_to_cryptBS(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_base64_conv(cpi, cpo, to_len, flags, "crypt_to_cryptBS", base64_decode_i, base64_encode_iBS);
 }
-static inline size_t crypt_to_mime(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t crypt_to_mime(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_base64_conv(cpi, cpo, to_len, flags, "crypt_to_mime", base64_decode_i, base64_encode);
 }
-static inline size_t cryptBS_to_mime(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t cryptBS_to_mime(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_base64_conv(cpi, cpo, to_len, flags, "cryptBS_to_mime", base64_decode_iBS, base64_encode);
 }
-static inline size_t cryptBS_to_crypt(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t cryptBS_to_crypt(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_base64_conv(cpi, cpo, to_len, flags, "cryptBS_to_crypt", base64_decode_iBS, base64_encode_i);
 }
 
 
-static inline size_t hex_to_cryptBS(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t hex_to_cryptBS(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_hex_to_base64_conv(cpi, cpo, to_len, flags, base64_encode_iBS);
 }
-static inline size_t  hex_to_crypt(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t  hex_to_crypt(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_hex_to_base64_conv(cpi, cpo, to_len, flags, base64_encode_i);
 }
-static inline size_t hex_to_mime(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t hex_to_mime(const char *cpi, char *cpo, size_t to_len, unsigned flags) {
 	return actual_hex_to_base64_conv(cpi, cpo, to_len, flags, base64_encode);
 }
 
-static inline size_t cryptBS_to_hex(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t cryptBS_to_hex(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_hex_conv(cpi, len_left, cpo, to_len, flags, base64_decode_iBS);
 }
-static inline size_t crypt_to_hex(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t crypt_to_hex(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_hex_conv(cpi, len_left, cpo, to_len, flags, base64_decode_i);
 }
-static inline size_t mime_to_hex(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t mime_to_hex(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_hex_conv(cpi, len_left, cpo, to_len, flags, base64_Decode);
 }
 
-static inline size_t cryptBS_to_raw(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t cryptBS_to_raw(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_raw_conv(cpi, len_left, cpo, to_len, flags, base64_decode_iBS);
 }
-static inline size_t crypt_to_raw(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t crypt_to_raw(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_raw_conv(cpi, len_left, cpo, to_len, flags, base64_decode_i);
 }
-static inline size_t mime_to_raw(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t mime_to_raw(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_base64_to_raw_conv(cpi, len_left, cpo, to_len, flags, base64_Decode);
 }
 
-static inline size_t raw_to_mime(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t raw_to_mime(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_raw_to_base64_conv(cpi, len_left, cpo, to_len, flags, base64_encode);
 }
-static inline size_t raw_to_crypt(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t raw_to_crypt(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_raw_to_base64_conv(cpi, len_left, cpo, to_len, flags, base64_encode_i);
 }
-static inline size_t raw_to_cryptBS(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
+inline static size_t raw_to_cryptBS(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags) {
 	return actual_raw_to_base64_conv(cpi, len_left, cpo, to_len, flags, base64_encode_iBS);
 }
 

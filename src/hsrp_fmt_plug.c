@@ -121,8 +121,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
+	if (strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		return 0;
+
+	p += TAG_LENGTH;
 
 	q = strrchr(ciphertext, '$');
 	if (!q || q+1==p)
@@ -279,7 +281,7 @@ struct fmt_main fmt_hsrp = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
@@ -295,7 +297,7 @@ struct fmt_main fmt_hsrp = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -305,7 +307,7 @@ struct fmt_main fmt_hsrp = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash /* Not usable with $SOURCE_HASH$ */
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

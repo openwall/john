@@ -258,19 +258,22 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 		}
 		return split_fields[1];
 	}
-	strnzcpy(ct, split_fields[1], 128);
-	cp = &ct[strlen(ct)];
-	*cp++ = '*';
-	strnzcpy(cp, split_fields[0], USERNAMELEN);
-	// upcase user name
-	enc_strupper(cp);
-	// Ok, if there are leading 0's for that binary resultant value, then remove them.
-	if (ct[WOWSIGLEN] == '0') {
-		char ct2[128+32+1];
-		StripZeros(ct, ct2, sizeof(ct2));
-		strcpy(ct, ct2);
+	if (strnlen(split_fields[1], 129) <= 128) {
+		strnzcpy(ct, split_fields[1], 128);
+		cp = &ct[strlen(ct)];
+		*cp++ = '*';
+		strnzcpy(cp, split_fields[0], USERNAMELEN);
+		// upcase user name
+		enc_strupper(cp);
+		// Ok, if there are leading 0's for that binary resultant value, then remove them.
+		if (ct[WOWSIGLEN] == '0') {
+			char ct2[128+32+1];
+			StripZeros(ct, ct2, sizeof(ct2));
+			strcpy(ct, ct2);
+		}
+		return ct;
 	}
-	return ct;
+	return split_fields[1];
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {

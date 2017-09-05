@@ -34,6 +34,8 @@ struct device_list *device_init_scan(struct device_bitstream *bitstream);
 // and continue initialization sequence at next invocations.
 struct device_list *device_timely_scan(struct device_list *device_list, struct device_bitstream *bitstream);
 
+void device_list_print(struct device_list *device_list);
+
 // Performs read/write operations on the device
 // using high-speed packet communication interface (pkt_comm)
 // Return values:

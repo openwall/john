@@ -63,7 +63,10 @@ volatile int event_ticksafety = 0;
 volatile int event_mpiprobe = 0, event_poll_files = 0;
 
 volatile int timer_abort = 0, timer_status = 0;
-static int timer_save_interval, timer_save_value;
+static int timer_save_interval;
+#ifndef BENCH_BUILD
+static int timer_save_value;
+#endif
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 volatile int aborted_by_timer = 0;
 static int abort_grace_time = 30;
@@ -176,6 +179,7 @@ void check_abort(int be_async_signal_safe)
 
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
+#ifndef BENCH_BUILD
 	if (john_max_cands) {
 		unsigned long long cands =
 			((unsigned long long)status.cands.hi << 32) +
@@ -185,6 +189,7 @@ void check_abort(int be_async_signal_safe)
 			abort_msg =
 				"Session stopped (max candidates reached)\n";
 	}
+#endif
 
 	if (be_async_signal_safe) {
 		if (john_main_process)
@@ -549,11 +554,7 @@ void sig_init(void)
 		abort_grace_time =
 			cfg_get_int(SECTION_OPTIONS, NULL, "AbortGraceTime");
 	}
-#if OS_TIMER
-	timer_save_value = timer_save_interval;
-#elif !defined(BENCH_BUILD)
-	timer_save_value = status_get_time() + timer_save_interval;
-#endif
+
 	timer_ticksafety_interval = (clock_t)1 << (sizeof(clock_t) * 8 - 4);
 	timer_ticksafety_interval /= clk_tck;
 	if ((timer_ticksafety_interval /= TIMER_INTERVAL) <= 0)
@@ -562,9 +563,32 @@ void sig_init(void)
 
 	atexit(sig_done);
 
-	sig_install(sig_handle_update, SIGHUP);
 	sig_install_abort();
+}
+
+void sig_init_late(void)
+{
+#ifndef BENCH_BUILD
+	unsigned int time;
+
+#if OS_TIMER
+	timer_save_value = timer_save_interval;
+
+	time = 0;
+#else
+	timer_save_value = status_get_time() + timer_save_interval;
+	time = status_get_time();
+#endif
+#endif
+
+	sig_install(sig_handle_update, SIGHUP);
 	sig_install_timer();
+#ifndef BENCH_BUILD
+	if (options.max_run_time)
+		timer_abort = time + abs(options.max_run_time);
+	if (options.status_interval)
+		timer_status = time + options.status_interval;
+#endif
 }
 
 void sig_init_child(void)
@@ -574,9 +598,6 @@ void sig_init_child(void)
 #endif
 #ifdef SIGUSR2
 	sig_remove_reload();
-#endif
-#if OS_TIMER
-	sig_init_timer();
 #endif
 }
 

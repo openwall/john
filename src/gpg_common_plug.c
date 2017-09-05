@@ -34,6 +34,8 @@
 #include "loader.h"
 #include "memdbg.h"
 
+extern volatile int bench_running;
+
 struct gpg_common_custom_salt *gpg_common_cur_salt;
 
 struct fmt_tests gpg_common_gpg_tests[] = {
@@ -69,6 +71,10 @@ struct fmt_tests gpg_common_gpg_tests[] = {
 	{"$gpg$*0*63*1c890c019b24ce46afd906500094ad1afde4d56b9666dee9568cf2d47315b36e501b340813a62b8b82b72492b00a4595941ebd96de8eab636a00210bc57a13*3*18*2*9*65536*20538c8d69964d96", "password"},
 	/* Challenge6_pro_Company2_hard.pgp (without MDC) */
 	{"$gpg$*0*100*2cc874cb99956585bdf31bc7122540e21043c42e5be9cdeca20daf0dea294bcd15163d4dddc8ecc62b7eaadff213185601ed7431c92c83c4510c19c906f40f8eb865c33cb4be87a63dad7ed882387781d866bbc2c98604c6ee9411a1f0bc5306301913e4*3*9*2*3*5242880*d80b2eb1fddeeda8", "3Pseuderanthemum"},
+	/* Following three hashes were generated from PGP Zip files using gpg2john */
+	{"$gpg$*0*168*24d65b6ca7821043f03882a939aaa1f8d5c4ce7d26d7e83386968903582ca809f6cc7ffddfcb31d27e8945a672ec0e36530d6cbd7ac01318d5658a1121234b4987886ee9d6cfd493f5447dc5e40938e23fc2b70be967ab5ceb516052fc3798d2ccaab57b3ffe42870cba93497539a1b16d8eaf87abfaba81cf0787c87335f25290bbef02eabae5f7c090cab2410adc85f7c6e5210bda57f68acad41cb4f03e6cbf71e32f9fada60a*3*18*2*9*4063232*59092e506c1a856a", "12345678"},
+	{"$gpg$*0*59*044511b6335c3d392c5cb43b56d9bd6ea9e2ba9818d6d9202bdfe1e83d4540f490bf96e17c790b063ec5c61423f031d535c96602431d8153e62392*3*18*2*9*4063232*ab38a8d3fce03b86", "openwall"},
+	{"$gpg$*0*169*33d74e46b0d2c693981a91a30f24af0f6a849a37c61207c03149d5f1a301e247d0bee59476fb604ab622c282bce2b7ef30044ea0e1a9a4167738b2432477cc709f88442111297be0b007567ee56646c245e19524f7a4103abfa35994015ca88b056c62b84c6606d82727d0b24d996efe68e5531652755915115e37e1b60d989c36b9fd09de965ea229740f4c87312d5bb0eb6dc72e68647231831ab3e930fae0ccded0c12166b1b722*3*18*2*9*2097152*4a6b94697208f151", "openwall"},
 	{NULL}
 };
 
@@ -230,6 +236,9 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 	} else {
 		if (usage != 9 && usage != 18) // https://tools.ietf.org/html/rfc4880
 			goto err;
+		if (!bench_running && usage == 9) {
+			self->params.flags |= FMT_NOT_EXACT;
+		}
 	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* hash_algorithm */
 		goto err;

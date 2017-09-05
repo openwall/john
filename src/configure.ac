@@ -86,6 +86,7 @@ AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[sup
 AC_ARG_ENABLE([int128], [AC_HELP_STRING([--disable-int128], [Do not use int128])], [enable_int128=$enableval], [enable_int128=auto])
 AC_ARG_ENABLE([experimental-code], [AC_HELP_STRING([--enable-experimental-code], [Use experimental code])], [experimental=$enableval], [experimental=no])
 AC_ARG_ENABLE([fuzz], [AC_HELP_STRING([--enable-fuzz], [Fuzzing prepare(), valid(), init(), etc])], [fuzz=$enableval], [fuzz=no])
+AC_ARG_ENABLE([libfuzzer], [AC_HELP_STRING([--enable-libfuzzer], [Fuzzing using libFuzzer])], [libfuzzer=$enableval], [libfuzzer=no])
 
 ####### Actual tests start here #######
 
@@ -465,7 +466,7 @@ else
          JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])
 	   fi]
       [AC_CHECK_HEADER([openssl/opensslv.h],
-	   [AC_CHECK_LIB([ssl],[SSL_library_init],
+	   [AC_CHECK_LIB([ssl],[SSL_CTX_new],
 	    [AC_CHECK_LIB([crypto],[MD5_Update],
 	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
 	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
@@ -514,7 +515,7 @@ using_rexgen=no
 if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
-      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x010400); }],
+      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x020006); }],
         AC_MSG_RESULT([usable]) && [using_rexgen=yes],
 		AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]
@@ -572,13 +573,9 @@ CFLAGS_ORIG="$CFLAGS"
 LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
 CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
 AS_IF([test "$with_commoncrypto" = yes], [AC_DEFINE([HAVE_SHA256],1,[Define to 1 if you have the `SHA256' function.])])
-AC_CHECK_FUNCS([EVP_aes_256_xts SHA256 WHIRLPOOL RIPEMD160 AES_encrypt EVP_sha512 BIO_new])
+AC_CHECK_FUNCS([SHA256 WHIRLPOOL RIPEMD160 AES_encrypt])
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
-
-if test "x$ac_cv_func_BIO_new" = xyes ; then
-	AC_SUBST([HAVE_BIO_NEW],[-DHAVE_BIO_NEW])
-fi
 
 AC_CACHE_SAVE
 
@@ -890,6 +887,13 @@ else
    AC_MSG_NOTICE([Fuzz check disabled])
 fi
 
+# In makefile, we need to know if building with libFuzzer.
+if test "x$libfuzzer" != xno ; then
+   AC_SUBST(HAVE_LIBFUZZER,[-DHAVE_LIBFUZZER])
+else
+   AC_MSG_NOTICE([Fuzzing (using libFuzzer) check disabled])
+fi
+
 # code to create M4_INCLUDES (all ./m4/*.m4 )
 AC_SUBST([M4_INCLUDES],[`echo m4/*.m4`])
 
@@ -935,6 +939,7 @@ AC_CONFIG_FILES([Makefile
                  aes/Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
+                 secp256k1/Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
@@ -1092,11 +1097,11 @@ Fork support ............................... ${ac_cv_func_fork_works}
 OpenMP support ............................. ${using_omp}
 OpenCL support ............................. ${using_cl}
 Generic crypt(3) format .................... ${using_crypt}
-Rexgen (extra cracking mode) ............... ${using_rexgen}
-GMP (PRINCE mode and faster SRP formats) ... ${ac_cv_lib_gmp___gmpz_init}
-PCAP (vncpcap2john and SIPdump) ............ ${using_pcap}
-Z (pkzip format, gpg2john) ................. ${using_zlib}
-BZ2 (gpg2john extra decompression logic) ... ${using_bz2}
+librexgen (regex cracking mode) ............ ${using_rexgen}
+libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
+libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
+libz (pkzip format, gpg2john) .............. ${using_zlib}
+libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
 Memory map (share/page large files) ........ ${using_mmap}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}

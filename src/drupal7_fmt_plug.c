@@ -119,7 +119,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int i;
 	unsigned count_log2;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;

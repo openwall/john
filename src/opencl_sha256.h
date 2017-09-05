@@ -127,7 +127,7 @@ __constant uint32_t clear_be_mask[] = {
     dest[pos] = (dest[pos] | (src >> tmp));             \
     if (pos < 15)                           \
         dest[++pos] = (tmp ? (src << (32U - tmp)) : 0U);        \
- 
+
 #define APPEND_SINGLE(dest, src, start) {               \
     uint32_t tmp, pos;                          \
     tmp = (((start) & 3U) << 3);                    \

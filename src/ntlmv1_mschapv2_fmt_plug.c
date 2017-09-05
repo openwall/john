@@ -216,7 +216,7 @@ static struct fmt_tests ntlm_tests[] = {
 	{NULL}
 };
 
-static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
+inline static void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 {
 	DES_cblock key;
 

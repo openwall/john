@@ -24,7 +24,7 @@ extern struct fmt_main fmt_vdi;
 john_register_one(&fmt_vdi);
 #else
 
-#include "aes_xts.h"
+#include "xts.h"
 #include <string.h>
 #include "misc.h"
 #include "memory.h"

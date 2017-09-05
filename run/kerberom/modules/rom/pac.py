@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------
 # "THE BEER-WARE LICENSE" (Revision 42):
-# <eddy (dot) maaalou (at) gmail (dot) com> wrote this file.  As long as you 
-# retain this notice you can do whatever you want with this stuff. If we meet 
-# some day, and you think this stuff is worth it, you can buy me a beer in 
+# <jean-christophe.delaunay (at) synacktiv.com> wrote this file.  As long as you
+# retain this notice you can do whatever you want with this stuff. If we meet
+# some day, and you think this stuff is worth it, you can buy me a beer in
 # return.   Fist0urs
 # ----------------------------------------------------------------------------
 
@@ -166,19 +166,19 @@ def build_pac(user_realm, user_name, user_sid, logon_time, server_key=(RSA_MD5, 
     logon_time = epoch2filetime(logon_time)
     domain_sid, user_id = user_sid.rsplit('-', 1)
     user_id = int(user_id)
-    
+
     elements = []
     elements.append((PAC_LOGON_INFO, _build_pac_logon_info(domain_sid, user_realm, user_id, user_name, logon_time)))
     elements.append((PAC_CLIENT_INFO, _build_pac_client_info(user_name, logon_time)))
     elements.append((PAC_SERVER_CHECKSUM, pack('I', server_key[0]) + chr(0)*16))
     elements.append((PAC_PRIVSVR_CHECKSUM, pack('I', kdc_key[0]) + chr(0)*16))
-    
+
     buf = ''
     # cBuffers
     buf += pack('I', len(elements))
     # Version
     buf += pack('I', 0)
-    
+
     offset = 8 + len(elements) * 16
     for ultype, data in elements:
         # Buffers[i].ulType
@@ -186,7 +186,7 @@ def build_pac(user_realm, user_name, user_sid, logon_time, server_key=(RSA_MD5, 
         # Buffers[i].cbBufferSize
         buf += pack('I', len(data))
         # Buffers[0].Offset
-        buf += pack('Q', offset)  
+        buf += pack('Q', offset)
         offset = (offset + len(data) + 7) / 8 * 8
 
     for ultype, data in elements:
@@ -200,7 +200,7 @@ def build_pac(user_realm, user_name, user_sid, logon_time, server_key=(RSA_MD5, 
     chksum1 = checksum(server_key[0], buf, server_key[1])
     chksum2 = checksum(kdc_key[0], chksum1, kdc_key[1])
     buf = buf[:ch_offset1] + chksum1 + buf[ch_offset1+len(chksum1):ch_offset2] + chksum2 + buf[ch_offset2+len(chksum2):]
-    
+
     return buf
 
 # very dirty...
@@ -286,7 +286,7 @@ def pretty_print_pac(pac):
             k += 4
             print '        ElementId: 0x%08x' % unpack_from('I', pac, k)
             k += 4
-            print '      LogonTime: %s' % filetime2local(pac[k:k+8]) 
+            print '      LogonTime: %s' % filetime2local(pac[k:k+8])
             k += 8
             print '      LogoffTime: %s' % filetime2local(pac[k:k+8])
             k += 8

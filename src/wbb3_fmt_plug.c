@@ -80,7 +80,7 @@ static struct custom_salt {
 	unsigned char salt[MAX_SALT_LEN+1];
 } *cur_salt;
 
-static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
+inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
 	int i;
 	for (i = 0; i < len; ++i) {

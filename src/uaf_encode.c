@@ -579,14 +579,14 @@ int uaf_test_password (
  */
 #define UAF_INCLUDED_FROM_ENCODE 1
 #ifndef UAF_HASH_FUNCTION_COMPILE_TEST
-# ifdef UAF_HASH_FUNCTION_SOURCE
-#  include UAF_HASH_FUNCTION_SOURCE
-# else
+ #ifdef UAF_HASH_FUNCTION_SOURCE
+  #include UAF_HASH_FUNCTION_SOURCE
+ #else
 #ifndef ONE_TIME
 #define ONE_TIME
-#  include "uaf_hash.c"
+  #include "uaf_hash.c"
 #endif
-# endif /* UAF_HASH_INCLUDE */
+ #endif /* UAF_HASH_INCLUDE */
 #endif
 
 #endif
