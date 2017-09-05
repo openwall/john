@@ -90,7 +90,7 @@ static struct custom_salt {
 	int loaded;
 	unsigned char *cipherbuf;
 	int keysize;
-	int iterations;             // NOTE, not used. Hard coded to 2000 for FDE from droid <= 4.3  (PBKDF2-sha1)
+	int iterations; // NOTE, not used. Hard coded to 2000 for FDE from Android <= 4.3 (PBKDF2-SHA1)
 	int saltlen;
 	unsigned char data[512 * 3];
 	unsigned char salt[16];
@@ -168,7 +168,6 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
-	// int res;
 	int i;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
@@ -202,7 +201,7 @@ static void set_salt(void *salt)
 }
 
 // Not reference implementation - this is modified for use by androidfde!
-static void AES_cbc_essiv(unsigned char *src, unsigned char *dst, unsigned char *key, int startsector,int size)
+static void AES_cbc_essiv(unsigned char *src, unsigned char *dst, unsigned char *key, int startsector, int size)
 {
 	AES_KEY aeskey;
 	unsigned char essiv[16];
@@ -214,17 +213,16 @@ static void AES_cbc_essiv(unsigned char *src, unsigned char *dst, unsigned char 
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, key, cur_salt->keysize);
 	SHA256_Final(essivhash, &ctx);
-	memset(sectorbuf,0,16);
-	memset(zeroiv,0,16);
-	memset(essiv,0,16);
-	memcpy(sectorbuf,&startsector,4);
+	memset(sectorbuf, 0, 16);
+	memset(zeroiv, 0, 16);
+	memset(essiv, 0, 16);
+	memcpy(sectorbuf, &startsector, 4);
 	AES_set_encrypt_key(essivhash, 256, &aeskey);
 	AES_cbc_encrypt(sectorbuf, essiv, 16, &aeskey, zeroiv, AES_ENCRYPT);
-	AES_set_decrypt_key(key, cur_salt->keysize*8, &aeskey);
+	AES_set_decrypt_key(key, cur_salt->keysize * 8, &aeskey);
 	AES_cbc_encrypt(src, dst, size, &aeskey, essiv, AES_DECRYPT);
 }
 
-// cracked[index] = hash_plugin_check_hash(saved_key[index]);
 void hash_plugin_check_hash(int index)
 {
 	unsigned char keycandidate2[255];
@@ -263,19 +261,19 @@ void hash_plugin_check_hash(int index)
 #endif
 	AES_set_decrypt_key(keycandidate, cur_salt->keysize*8, &aeskey);
 	AES_cbc_encrypt(cur_salt->mkey, keycandidate2, 16, &aeskey, keycandidate+16, AES_DECRYPT);
-	AES_cbc_essiv(cur_salt->data, decrypted1, keycandidate2,0,32);
-	AES_cbc_essiv(cur_salt->data + 1024, decrypted2, keycandidate2,2,128);
+	AES_cbc_essiv(cur_salt->data, decrypted1, keycandidate2, 0, 32);
+	AES_cbc_essiv(cur_salt->data + 1024, decrypted2, keycandidate2, 2, 128);
 
 	// Check for FAT
 	if (!memcmp(decrypted1 + 3, "MSDOS5.0", 8))
 	    cracked[index+j] = 1;
 	else {
 		// Check for extfs
-		memcpy(&v1,decrypted2+72,4);
-		memcpy(&v2,decrypted2+0x3a,2);
-		memcpy(&v3,decrypted2+0x3c,2);
-		memcpy(&v4,decrypted2+0x4c,2);
-		memcpy(&v5,decrypted2+0x48,4);
+		memcpy(&v1, decrypted2+72, 4);
+		memcpy(&v2, decrypted2+0x3a, 2);
+		memcpy(&v3, decrypted2+0x3c, 2);
+		memcpy(&v4, decrypted2+0x4c, 2);
+		memcpy(&v5, decrypted2+0x48, 4);
 #if !ARCH_LITTLE_ENDIAN
 		v1 = JOHNSWAP(v1);
 		v2 = JOHNSWAP(v2);
