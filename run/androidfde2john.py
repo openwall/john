@@ -37,18 +37,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 from collections import namedtuple
-import getpass
-import base64
 import os
 import struct
-import subprocess
 import binascii
 import sys
 from warnings import warn
 
 DEFAULT_DATA_LABEL = "userdata"
 
-## from system/vold/cryptfs.h
+# from system/vold/cryptfs.h
 # /* This structure starts 16,384 bytes before the end of a hardware
 #  * partition that is encrypted.
 #  * Immediately following this structure is the encrypted key.
@@ -67,10 +64,9 @@ MAX_CRYPTO_TYPE_NAME_LEN = 64
 SALT_LEN = 16
 KEY_TO_SALT_PADDING = 32
 
-# /* definitions of flags in the structure below */
-CRYPT_MNT_KEY_UNENCRYPTED = 0x1 # /* The key for the partition is not encrypted. */
-CRYPT_ENCRYPTION_IN_PROGRESS = 0x2 # /* Set when starting encryption,
-                                   #  * clear when done before rebooting */
+# definitions of flags in the structure below
+CRYPT_MNT_KEY_UNENCRYPTED = 0x1  # The key for the partition is not encrypted
+CRYPT_ENCRYPTION_IN_PROGRESS = 0x2  # Set when starting encryption, clear when done before rebooting
 
 CRYPT_MNT_MAGIC = 0xD0B5B1C4
 
@@ -92,13 +88,14 @@ CRYPT_MNT_MAGIC = 0xD0B5B1C4
 #                                                                needed to decrypt this
 #                                                                partition, null terminated */
 # };
-## end system/vold/cryptfs.h
+# end system/vold/cryptfs.h
 
-## from system/vold/cryptfs.c
+# from system/vold/cryptfs.c
 HASH_COUNT = 2000
 KEY_LEN_BYTES = 16
 IV_LEN_BYTES = 16
-## end system/vold/cryptfs.c
+# end system/vold/cryptfs.c
+
 
 class CryptMntFtr(namedtuple('CryptMntFtr', (
         'magic',
@@ -127,10 +124,12 @@ class CryptMntFtr(namedtuple('CryptMntFtr', (
     def struct_size(cls):
         return cls._struct.size
 
+
 def parse_data(data):
     with open(data, 'rb') as fh:
-        out = fh.read(512 * 3);
+        out = fh.read(512 * 3)
     return out
+
 
 def parse_footer(data):
     with open(data, 'rb') as fh:
@@ -147,7 +146,7 @@ def parse_footer(data):
             if idx == 0:
                 break
 
-            fh.seek(- (CryptMntFtr.struct_size() -1), os.SEEK_CUR)
+            fh.seek(- (CryptMntFtr.struct_size() - 1), os.SEEK_CUR)
 
         crypt_ftr = CryptMntFtr(footer)
 
@@ -185,21 +184,27 @@ def parse_footer(data):
         return (crypt_ftr, key, salt)
 
 
+def note():
+    print("Note: This script only works for old Android <= 4.3 disk images and only aes256/cbc-essiv:sha256 images are supported!")
+
+
 def main(args):
 
     if len(args) < 3:
-        sys.stderr.write("Usage: %s <data partition / image> <footer partition / image>\n" % args[0])
+        sys.stderr.write("Usage: %s <data partition / image> <footer partition / image>\n\n" % args[0])
+        note()
         return
+
+    note()
+
     data = parse_data(args[1])
     (crypt_ftr, encrypted_key, salt) = parse_footer(args[2])
 
-    print("%s:$fde$%s$%s$%s$%s$%s" % (args[1],
-            len(salt),
-            binascii.hexlify(salt).decode("ascii"),
-            crypt_ftr.keysize,
-            binascii.hexlify(encrypted_key).decode("ascii"),
-            binascii.hexlify(data).decode("ascii")))
+    print("%s:$fde$%s$%s$%s$%s$%s" % (args[1], len(salt),
+                                      binascii.hexlify(salt).decode("ascii"),
+                                      crypt_ftr.keysize,
+                                      binascii.hexlify(encrypted_key).decode("ascii"),
+                                      binascii.hexlify(data).decode("ascii")))
 
 if __name__ == '__main__':
     main(sys.argv)
-
