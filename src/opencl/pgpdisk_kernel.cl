@@ -18,10 +18,6 @@
 #define SHA1_DIGEST_LENGTH 20
 #endif
 
-#ifndef _memcpy
-#define _memcpy	memcpy_macro
-#endif
-
 typedef struct {
 	uint length;
 	uchar v[PLAINTEXT_LENGTH];
@@ -54,8 +50,8 @@ void pgpdisk_kdf(__global const uchar *ipassword, uint password_length,
 	unsigned char password[PLAINTEXT_LENGTH];
 	unsigned char salt[16];
 
-	_memcpy(salt, isalt, saltlen);
-	_memcpy(password, ipassword, password_length);
+	memcpy_cp(salt, isalt, saltlen);
+	memcpy_gp(password, ipassword, password_length);
 	plen = password_length;
 	while (bytesNeeded > 0) {
 		uint32_t bytesThisTime = SHA1_DIGEST_LENGTH < bytesNeeded ? SHA1_DIGEST_LENGTH: bytesNeeded;
@@ -82,7 +78,7 @@ void pgpdisk_kdf(__global const uchar *ipassword, uint password_length,
 		offset += bytesThisTime;
 	}
 
-	_memcpy(okey, key, key_len);
+	memcpy_pg(okey, key, key_len);
 }
 
 __kernel void pgpdisk(__global const pgpdisk_password *inbuffer,

@@ -12,8 +12,6 @@
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
 
-#define _memcpy	memcpy_macro
-
 /*
  * SHA-256 context setup
  */
@@ -116,7 +114,7 @@ void SHA256_Update(SHA256_CTX *ctx, const uchar *input, uint ilen) {
 
 	if (left && ilen >= fill)
 	{
-		_memcpy(ctx->buffer + left, input, fill);
+		memcpy_pp(ctx->buffer + left, input, fill);
 		_sha256_process(ctx, ctx->buffer);
 		input += fill;
 		ilen  -= fill;
@@ -132,7 +130,7 @@ void SHA256_Update(SHA256_CTX *ctx, const uchar *input, uint ilen) {
 
 	if (ilen > 0)
 	{
-		_memcpy(ctx->buffer + left, input, ilen);
+		memcpy_pp(ctx->buffer + left, input, ilen);
 	}
 }
 

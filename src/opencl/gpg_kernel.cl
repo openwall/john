@@ -25,10 +25,6 @@
 #define SHA_DIGEST_LENGTH 20
 #endif
 
-#ifndef _memcpy
-#define _memcpy	memcpy_macro
-#endif
-
 typedef struct {
 	uint length;
 	uchar v[PLAINTEXT_LENGTH];
@@ -57,7 +53,7 @@ inline
 #endif
 void S2KItSaltedSHA1Generator(__global const uchar *password,
                                      uint password_length,
-                                     __constant const uchar *salt,
+                                     __constant uchar *salt,
                                      uint _count,
                                      __global uchar *key,
                                      uint key_len)
@@ -80,12 +76,12 @@ void S2KItSaltedSHA1Generator(__global const uchar *password,
 		for (j=0;j<i;++j)
 			keybuf[j] = 0;
 		n = j;
-		_memcpy(keybuf + j, salt, SALT_LENGTH);
-		_memcpy(keybuf + j + SALT_LENGTH, password, password_length);
+		memcpy_cp(keybuf + j, salt, SALT_LENGTH);
+		memcpy_gp(keybuf + j + SALT_LENGTH, password, password_length);
 		j += tl;
 
 		while (j < 128 + 64+1) {
-			_memcpy(keybuf + j, keybuf + n, tl);
+			memcpy_pp(keybuf + j, keybuf + n, tl);
 			j += tl;
 		}
 
@@ -126,11 +122,11 @@ void S2KItSaltedSHA1Generator(__global const uchar *password,
 		}
 		n = j;
 
-		_memcpy(keybuf + j, salt, SALT_LENGTH);
-		_memcpy(keybuf + j + SALT_LENGTH, password, password_length);
+		memcpy_cp(keybuf + j, salt, SALT_LENGTH);
+		memcpy_gp(keybuf + j + SALT_LENGTH, password, password_length);
 		j += tl;
 		while (j+i <= bs+64) { // bs+64 since we need 1 'pre' block that may be dirty.
-			_memcpy(keybuf + j, keybuf + n, tl);
+			memcpy_pp(keybuf + j, keybuf + n, tl);
 			j += tl;
 		}
 		// first buffer 'may' have appended nulls.  So we may actually

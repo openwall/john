@@ -40,8 +40,6 @@
 #include "opencl_misc.h"
 #include "opencl_sha1.h"
 
-#define _memcpy	memcpy_macro
-
 /*
  * SHA-1 context setup
  */
@@ -145,7 +143,7 @@ void SHA1_Update(SHA_CTX *ctx, const uchar *input, uint ilen) {
 
 	if (left && ilen >= fill)
 	{
-		_memcpy(ctx->buffer + left, input, fill);
+		memcpy_pp(ctx->buffer + left, input, fill);
 		_sha1_process(ctx, ctx->buffer);
 		input += fill;
 		ilen  -= fill;
@@ -161,7 +159,7 @@ void SHA1_Update(SHA_CTX *ctx, const uchar *input, uint ilen) {
 
 	if (ilen > 0)
 	{
-		_memcpy(ctx->buffer + left, input, ilen);
+		memcpy_pp(ctx->buffer + left, input, ilen);
 	}
 }
 

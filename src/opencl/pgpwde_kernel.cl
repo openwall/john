@@ -18,10 +18,6 @@
 #define SHA1_DIGEST_LENGTH 20
 #endif
 
-#ifndef _memcpy
-#define _memcpy	memcpy_macro
-#endif
-
 typedef struct {
 	uint length;
 	uchar v[PLAINTEXT_LENGTH];
@@ -55,8 +51,8 @@ void pgpwde_kdf(__global const uchar *ipassword, uint password_length,
 	uchar salt[16];
 	uchar key[2 * SHA1_DIGEST_LENGTH];
 
-	_memcpy(salt, isalt, saltlen);
-	_memcpy(password, ipassword, password_length);
+	memcpy_cp(salt, isalt, saltlen);
+	memcpy_gp(password, ipassword, password_length);
 	slen = password_length;
 	if (cbytes < slen + 16)
 		cbytes = (uint32_t)(slen + 16);
@@ -82,7 +78,7 @@ void pgpwde_kdf(__global const uchar *ipassword, uint password_length,
 		SHA1_Final(key + (i * SHA1_DIGEST_LENGTH), &ctx);
 	}
 
-	_memcpy(okey, key, key_length);
+	memcpy_pg(okey, key, key_length);
 }
 
 __kernel void pgpwde(__global const pgpwde_password *inbuffer,

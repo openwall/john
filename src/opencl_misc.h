@@ -282,12 +282,149 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
 #endif
 
-/* Use with some caution... */
+/*
+ * Use with some caution. Memory type agnostic and if both src and dst are
+ * 8-bit types, this works like a normal memcpy.
+ *
+ * If src and dst are larger but same size, it will still work fine but
+ * 'count' is number of ELEMENTS and not BYTES.
+ *
+ * If src and dst are different size types, you will get what you asked for...
+ */
 #define memcpy_macro(dst, src, count) do {	  \
 		uint c = count; \
 		for (uint _i = 0; _i < c; _i++) \
 			(dst)[_i] = (src)[_i]; \
 	} while (0)
+
+/*
+ * Optimized functions. You need to pick the one that corresponds to the
+ * source- and destination memory type(s).
+ *
+ * Note that for very small sizes, the overhead may make these functions
+ * slower than naive code. On the other hand, due to inlining we will
+ * hopefully have stuff optimized away more often than not!
+ */
+
+/* src and dst are private mem */
+inline void memcpy_pp(void *dst, const void *src, uint count)
+{
+	union {
+		const uint *w;
+		const uchar *c;
+	} s;
+	union {
+		uint *w;
+		uchar *c;
+	} d;
+
+	s.c = src;
+	d.c = dst;
+
+	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
+		while (((uint)s.c) & 0x03 && count--)
+			*d.c++ = *s.c++;
+
+		while (count >= 4) {
+			*d.w++ = *s.w++;
+			count -= 4;
+		}
+	}
+
+	while (count--) {
+		*d.c++ = *s.c++;
+	}
+}
+
+/* src is private mem, dst is global mem */
+inline void memcpy_pg(__global void *dst, const void *src, uint count)
+{
+	union {
+		const uint *w;
+		const uchar *c;
+	} s;
+	union {
+		__global uint *w;
+		__global uchar *c;
+	} d;
+
+	s.c = src;
+	d.c = dst;
+
+	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
+		while (((uint)s.c) & 0x03 && count--)
+			*d.c++ = *s.c++;
+
+		while (count >= 4) {
+			*d.w++ = *s.w++;
+			count -= 4;
+		}
+	}
+
+	while (count--) {
+		*d.c++ = *s.c++;
+	}
+}
+
+/* src is global mem, dst is private mem */
+inline void memcpy_gp(void *dst, __global const void *src, uint count)
+{
+	union {
+		__global const uint *w;
+		__global const uchar *c;
+	} s;
+	union {
+		uint *w;
+		uchar *c;
+	} d;
+
+	s.c = src;
+	d.c = dst;
+
+	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
+		while (((uint)s.c) & 0x03 && count--)
+			*d.c++ = *s.c++;
+
+		while (count >= 4) {
+			*d.w++ = *s.w++;
+			count -= 4;
+		}
+	}
+
+	while (count--) {
+		*d.c++ = *s.c++;
+	}
+}
+
+/* src is constant mem, dst is private mem */
+inline void memcpy_cp(void *dst, __constant void *src, uint count)
+{
+	union {
+		__constant uint *w;
+		__constant uchar *c;
+	} s;
+	union {
+		uint *w;
+		uchar *c;
+	} d;
+
+	s.c = src;
+	d.c = dst;
+
+	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
+		while (((uint)s.c) & 0x03 && count--)
+			*d.c++ = *s.c++;
+
+		while (count >= 4) {
+			*d.w++ = *s.w++;
+			count -= 4;
+		}
+	}
+
+	while (count--) {
+		*d.c++ = *s.c++;
+	}
+}
 
 /* requires char/uchar */
 #define dump_stuff8_msg(msg, x, size) do {	  \
