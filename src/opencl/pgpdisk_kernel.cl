@@ -70,7 +70,7 @@ void pgpdisk_kdf(__global const uchar *ipassword, const uint plen,
 #if __ENDIAN_LITTLE__
 			SHA1_Update(&ctx, (uchar*)&i, 1);
 #else
-			SHA1_Update(&ctx, (((uchar*)&i) + 3, 1);
+			SHA1_Update(&ctx, ((uchar*)&i) + 3, 1);
 #endif
 		}
 		SHA1_Final(key, &ctx);

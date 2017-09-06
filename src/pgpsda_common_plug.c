@@ -80,3 +80,10 @@ void *pgpsda_common_get_salt(char *ciphertext)
 
 	return (void *)&cs;
 }
+
+unsigned int pgpsda_iteration_count(void *salt)
+{
+	struct custom_salt *cs = salt;
+
+	return (unsigned int)cs->iterations;
+}
