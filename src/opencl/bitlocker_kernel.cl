@@ -10,7 +10,9 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, for more informations: http://openwall.info/wiki/john/OpenCL-BitLocker
+ * This is a research project, for more information see http://openwall.info/wiki/john/OpenCL-BitLocker.
+ *
+ * A standalone CUDA implementation is available at https://github.com/e-ago/bitcracker.
  */
 
 #include "opencl_misc.h"
@@ -335,14 +337,14 @@ inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c
 #endif
 }
 
-
-#define VMK_SIZE 					44
-#define SINGLE_BLOCK_W_SIZE 		64
-#define ITERATION_NUMBER 			0x100000
-#define MAX_INPUT_PASSWORD_LEN 		16
-#define SALT_SIZE 					16
-#define INT_HASH_SIZE 				8
-#define HASH_LOOPS					256
+#define FIXED_PASSWORD_BUFFER       32
+#define MAX_INPUT_PASSWORD_LEN      27
+#define VMK_SIZE                    44
+#define SINGLE_BLOCK_W_SIZE         64
+#define ITERATION_NUMBER            0x100000
+#define SALT_SIZE                   16
+#define INT_HASH_SIZE               8
+#define HASH_LOOPS                  256
 
 __kernel void opencl_bitlocker_wblocks(
 	__global unsigned char *salt_d,
@@ -353,12 +355,12 @@ __kernel void opencl_bitlocker_wblocks(
         unsigned char block[SINGLE_BLOCK_W_SIZE];
         int i, j;
 
-        for (i=0; i<SALT_SIZE; i++)
+        for (i = 0; i < SALT_SIZE; i++)
                 block[i] = salt_d[i];
 
-        i+=8;
+        i += 8;
 
-        for (j=0; j<40; i++, j++)
+        for (j = 0; j < 40; i++, j++)
                 block[i] = padding_d[j];
 
         while(loop < ITERATION_NUMBER)
@@ -450,7 +452,7 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
                                       __global int *output_hash
                                       )
 {
-	int globalIndexPassword = get_global_id(0);
+	int globalIndexPassword = (int)get_global_id(0);
 
 	unsigned int schedule0;
 	unsigned int schedule1;
@@ -497,15 +499,11 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 	unsigned int first_hash7;
 	int numPassword = numPasswordMem[0];
 
-	unsigned int indexW = (globalIndexPassword * MAX_INPUT_PASSWORD_LEN);
+	unsigned int indexW = (globalIndexPassword * FIXED_PASSWORD_BUFFER);
+	int curr_fetch=0;
 
 	while (globalIndexPassword < numPassword) {
 
-#if 0
-		if (globalIndexPassword == 0)
-			printf("thread0 ---- > kernel opencl_bitlocker_attack_init\n");
-#endif
-		index_generic = w_password_size[globalIndexPassword];
 		first_hash0 = 0x6A09E667;
 		first_hash1 = 0xBB67AE85;
 		first_hash2 = 0x3C6EF372;
@@ -524,78 +522,41 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 		g = 0x1F83D9AB;
 		h = 0x5BE0CD19;
 
-		indexW = (globalIndexPassword * MAX_INPUT_PASSWORD_LEN);
+        indexW = (globalIndexPassword*FIXED_PASSWORD_BUFFER);
+        index_generic = w_password_size[globalIndexPassword];
 
-		schedule0 =
-		    (((unsigned int)w_password[(indexW +
-		                                0)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        1)]) << 8) | 0;
-		schedule1 =
-		    (((unsigned int)w_password[(indexW +
-		                                2)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        3)]) << 8) | 0;
-		schedule2 =
-		    (((unsigned int)w_password[(indexW +
-		                                4)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        5)]) << 8) | 0;
-		schedule3 =
-		    (((unsigned int)w_password[(indexW +
-		                                6)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        7)]) << 8) | 0;
-		schedule4 =
-		    (((unsigned int)w_password[(indexW +
-		                                8)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        9)]) << 8) | 0;
-		schedule5 =
-		    (((unsigned int)w_password[(indexW +
-		                                10)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        11)]) << 8) | 0;
-		schedule6 =
-		    (((unsigned int)w_password[(indexW +
-		                                12)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        13)]) << 8) | 0;
-		schedule7 =
-		    (((unsigned int)w_password[(indexW +
-		                                14)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        15)]) << 8) | 0;
-
-		if (index_generic == 16)
-			schedule8 = 0x80000000;
-		else
-			schedule8 = 0;
-		schedule9 = 0;
-		schedule10 = 0;
-		schedule11 = 0;
-		schedule12 = 0;
-		schedule13 = 0;
-		schedule14 = 0;
-		index_generic *= 2;
-		schedule15 =
-		    ((unsigned char)((index_generic << 3) >> 8)) << 8 | ((unsigned
-		            char)(index_generic << 3));
-		//-----------------------------------------------
-
-#if 0
-		if (globalIndexPassword == 0)
-		{
-			printf("schedule0: %x\n", schedule0);
-			printf("schedule1: %x\n", schedule1);
-			printf("schedule2: %x\n", schedule2);
-			printf("schedule3: %x\n", schedule3);
-			printf("schedule4: %x\n", schedule4);
-			printf("schedule5: %x\n", schedule5);
-			printf("schedule6: %x\n", schedule6);
-			printf("schedule7: %x\n", schedule7);
-			printf("schedule8: %x\n", schedule8);
-			printf("schedule9: %x\n", schedule9);
-			printf("schedule10: %x\n", schedule10);
-			printf("schedule11: %x\n", schedule11);
-			printf("schedule12: %x\n", schedule12);
-			printf("schedule12: %x\n", schedule13);
-			printf("schedule12: %x\n", schedule14);
-			printf("schedule12: %x\n", schedule15);
-		}
-#endif
+        curr_fetch=0;
+        schedule0 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule1 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule2 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule3 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule4 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule5 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule6 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule7 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule8 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule9 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule10 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule11 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule12 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule13 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        if(index_generic == MAX_INPUT_PASSWORD_LEN) schedule13 = schedule13 | ((unsigned int)0x8000);
+        schedule14=0;
+        index_generic*=2;
+        schedule15 = ((unsigned char)((index_generic << 3) >> 8)) << 8 | ((unsigned char)(index_generic << 3));
 
 		ALL_SCHEDULE_LAST16()
 
@@ -799,20 +760,6 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 		first_hash[(globalIndexPassword*INT_HASH_SIZE) + 6] = first_hash6;
 		first_hash[(globalIndexPassword*INT_HASH_SIZE) + 7] = first_hash7;
 
-#if 0
-		if (globalIndexPassword == 0)
-		{
-			printf("first_hash0: %x\n", first_hash0);
-			printf("first_hash1: %x\n", first_hash1);
-			printf("first_hash2: %x\n", first_hash2);
-			printf("first_hash3: %x\n", first_hash3);
-			printf("first_hash4: %x\n", first_hash4);
-			printf("first_hash5: %x\n", first_hash5);
-			printf("first_hash6: %x\n", first_hash6);
-			printf("first_hash7: %x\n", first_hash7);
-		}
-#endif
-
 		globalIndexPassword += get_global_size(0);
 	}
 }
@@ -905,34 +852,10 @@ __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
 		hash6 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 6];
 		hash7 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 7];
 
-#if 0
-		if (globalIndexPassword == 0)
+		// HASH_LOOPS num of iteration
+		for (index = 0; index < HASH_LOOPS; index++)
 		{
-			printf("thread0 ---- > kernel opencl_bitlocker_attack_loop, numPassword: %d, numIter: %d, indexW: %d\n", numPassword, numIter, indexW);
-			printf("first_hash0: %x\n", first_hash0);
-			printf("first_hash1: %x\n", first_hash1);
-			printf("first_hash2: %x\n", first_hash2);
-			printf("first_hash3: %x\n", first_hash3);
-			printf("first_hash4: %x\n", first_hash4);
-			printf("first_hash5: %x\n", first_hash5);
-			printf("first_hash6: %x\n", first_hash6);
-			printf("first_hash7: %x\n\n", first_hash7);
-
-			printf("hash0: %x\n", hash0);
-			printf("hash1: %x\n", hash1);
-			printf("hash2: %x\n", hash2);
-			printf("hash3: %x\n", hash3);
-			printf("hash4: %x\n", hash4);
-			printf("hash5: %x\n", hash5);
-			printf("hash6: %x\n", hash6);
-			printf("hash7: %x\n", hash7);
-		}
-#endif
-
-		//HASH_LOOPS num of iteration
-		for (index=0; index < HASH_LOOPS; index++)
-		{
-			//Prima parte
+			// Prima parte
 			a = 0x6A09E667;
 			b = 0xBB67AE85;
 			c = 0x3C6EF372;
@@ -1169,22 +1092,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 
 	int numPassword = numPasswordMem[0];
 
-#if 0
-		if (globalIndexPassword == 0)
-		{
-			printf("thread0 ---- > kernel opencl_bitlocker_attack_final\n");
-			printf("hash0: %x\n", hash0);
-			printf("hash1: %x\n", hash1);
-			printf("hash2: %x\n", hash2);
-			printf("hash3: %x\n", hash3);
-			printf("hash4: %x\n", hash4);
-			printf("hash5: %x\n", hash5);
-			printf("hash6: %x\n", hash6);
-			printf("hash7: %x\n", hash7);
-		}
-#endif
-
-
 	while (globalIndexPassword < numPassword) {
 
 		hash0 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 0];
@@ -1195,13 +1102,7 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		hash5 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 5];
 		hash6 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 6];
 		hash7 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 7];
-#if 0
-		if (globalIndexPassword == 0)
-		{
-            printf("hash: %x - %x - %x - %x - %x - %x - %x\n",  hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7);
-			printf("IV0: %x, IV4: %x, IV8: %x, IV12: %x\n", IV0[0], IV4[0], IV8[0], IV12[0]);
-		}
-#endif
+
 		schedule0 = IV0[0] ^ hash0;
 		schedule1 = IV4[0] ^ hash1;
 		schedule2 = IV8[0] ^ hash2;
@@ -1577,13 +1478,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		    (unsigned int)((unsigned int)(schedule2 & 0x0000ff00) << 8) |
 		    (unsigned int)((unsigned int)(schedule2 & 0x000000ff) << 24);
 
-#if 0
-		    if (globalIndexPassword == 0)
-		    {
-		    	printf("schedule4: %x, schedule6: %x, vmkKey[0]: %x, vmkKey[1]: %x, vmkKey[2]: %x, vmkKey[3]: %x\n",
-		    	 schedule4, schedule6, vmkKey[0], vmkKey[1], vmkKey[2], vmkKey[3]);
-		    }
-#endif
 		if (((vmkKey[16+0] ^ ((unsigned char)schedule4)) == VMK_SIZE) &&
 		        ((vmkKey[16+1] ^ ((unsigned char)(schedule4 >> 8))) == 0x00) &&
 		        ((vmkKey[16+8] ^ ((unsigned char)schedule6)) <= 0x05) &&

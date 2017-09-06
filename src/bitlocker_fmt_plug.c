@@ -1,4 +1,5 @@
-/* JtR format to crack BitLocker hashes.
+/*
+ * JtR format to crack BitLocker hashes.
  *
  * This software is Copyright (c) 2017, Dhiru Kholia <kholia at kth.se> and it
  * is hereby released to the general public under the following terms:
@@ -10,6 +11,9 @@
  *
  * http://jessekornblum.com/publications/di09.pdf (Implementing BitLocker Drive
  * Encryption for Forensic Analysis) by Jesse D. Kornblum is a useful reference.
+ *
+ * Tested with Windows 8.1 and 10 BitLocker volumes. AES-CBC and XTS-AES modes
+ * are supported. BitLocker To Go is supported.
  */
 
 #if FMT_EXTERNS_H
