@@ -104,14 +104,18 @@ static void pgpsda_kdf(char *password, unsigned char *salt, unsigned char *key)
 	int plen;
 	int iterations = cur_salt->iterations;
 	SHA_CTX ctx; // SHA1 usage is hardcoded
-	int i = 0, j = 0; // These variables are of type uint16_t in the original code
+	uint32_t j = 0; // "j" has type uint8_t in the original code
 
 	plen = strlen(password);
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, salt, 8);
-	for (i = 0, j = 0; i < iterations; i++, j++) {
+	for (j = 0; j < iterations; j++) {
 		SHA1_Update(&ctx, password, plen);
-		SHA1_Update(&ctx, &j, 1); // XXX endianness?
+#if ARCH_LITTLE_ENDIAN
+		SHA1_Update(&ctx, (uint8_t*)&j, 1);
+#else
+		SHA1_Update(&ctx, ((uint8_t*)&j) + 3, 1);
+#endif
 	}
 
 	SHA1_Final(key, &ctx);
@@ -171,13 +175,6 @@ static void set_key(char *key, int index)
 static char *get_key(int index)
 {
 	return saved_key[index];
-}
-
-static unsigned int pgpsda_iteration_count(void *salt)
-{
-	struct custom_salt *cs = salt;
-
-	return (unsigned int)cs->iterations;
 }
 
 struct fmt_main fmt_pgpsda = {

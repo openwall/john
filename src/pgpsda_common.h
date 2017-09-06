@@ -24,3 +24,4 @@ extern struct fmt_tests pgpsda_tests[];
 // exported 'common' functions
 int pgpsda_common_valid(char *ciphertext, struct fmt_main *self);
 void *pgpsda_common_get_salt(char *ciphertext);
+unsigned int pgpsda_iteration_count(void *salt);

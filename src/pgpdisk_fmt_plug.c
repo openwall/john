@@ -116,8 +116,7 @@ static void pgpdisk_kdf(char *password, unsigned char *salt, unsigned char *key,
 	plen = strlen(password);
 	while (bytesNeeded > 0) {
 		uint32_t bytesThisTime = SHA1_DIGEST_LENGTH < bytesNeeded ? SHA1_DIGEST_LENGTH: bytesNeeded;
-		uint8_t j;
-		uint16_t i;
+		uint32_t j = 0; // "j" has type uint8_t in the original code
 
 		SHA1_Init(&ctx);
 		if (offset > 0) {
@@ -132,9 +131,13 @@ static void pgpdisk_kdf(char *password, unsigned char *salt, unsigned char *key,
 		else
 			SHA1_Update(&ctx, salt, 16); // kNumSaltBytes = 16, for AES-256, Twofish
 
-		for (i = 0, j = 0; i < iterations; i++, j++) {
+		for (j = 0; j < iterations; j++) {
 			SHA1_Update(&ctx, hash, bytesThisTime);
-			SHA1_Update(&ctx, &j, 1);
+#if ARCH_LITTLE_ENDIAN
+			SHA1_Update(&ctx, (uint8_t*)&j, 1);
+#else
+			SHA1_Update(&ctx, ((uint8_t*)&j) + 3, 1);
+#endif
 		}
 		SHA1_Final(key + offset, &ctx);
 
