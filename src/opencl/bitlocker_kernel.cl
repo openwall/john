@@ -10,7 +10,8 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, for more informations: http://openwall.info/wiki/john/OpenCL-BitLocker
+ * This is a research project, more informations here: http://openwall.info/wiki/john/OpenCL-BitLocker
+ * Standalone CUDA implementation: https://github.com/e-ago/bitcracker
  */
 
 #include "opencl_misc.h"
@@ -335,13 +336,13 @@ inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c
 #endif
 }
 
-
-#define VMK_SIZE 					44
-#define SINGLE_BLOCK_W_SIZE 		64
-#define ITERATION_NUMBER 			0x100000
-#define MAX_INPUT_PASSWORD_LEN 		16
-#define SALT_SIZE 					16
-#define INT_HASH_SIZE 				8
+#define FIXED_PASSWORD_BUFFER		32
+#define MAX_INPUT_PASSWORD_LEN		27
+#define VMK_SIZE					44
+#define SINGLE_BLOCK_W_SIZE			64
+#define ITERATION_NUMBER			0x100000
+#define SALT_SIZE					16
+#define INT_HASH_SIZE				8
 #define HASH_LOOPS					256
 
 __kernel void opencl_bitlocker_wblocks(
@@ -450,7 +451,7 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
                                       __global int *output_hash
                                       )
 {
-	int globalIndexPassword = get_global_id(0);
+	int globalIndexPassword = (int)get_global_id(0);
 
 	unsigned int schedule0;
 	unsigned int schedule1;
@@ -497,11 +498,11 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 	unsigned int first_hash7;
 	int numPassword = numPasswordMem[0];
 
-	unsigned int indexW = (globalIndexPassword * MAX_INPUT_PASSWORD_LEN);
+	unsigned int indexW=(globalIndexPassword*FIXED_PASSWORD_BUFFER);
+    int curr_fetch=0;
 
 	while (globalIndexPassword < numPassword) {
 
-		index_generic = w_password_size[globalIndexPassword];
 		first_hash0 = 0x6A09E667;
 		first_hash1 = 0xBB67AE85;
 		first_hash2 = 0x3C6EF372;
@@ -520,56 +521,41 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 		g = 0x1F83D9AB;
 		h = 0x5BE0CD19;
 
-		indexW = (globalIndexPassword * MAX_INPUT_PASSWORD_LEN);
+        indexW=(globalIndexPassword*FIXED_PASSWORD_BUFFER);
+        index_generic=w_password_size[globalIndexPassword];
 
-		schedule0 =
-		    (((unsigned int)w_password[(indexW +
-		                                0)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        1)]) << 8) | 0;
-		schedule1 =
-		    (((unsigned int)w_password[(indexW +
-		                                2)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        3)]) << 8) | 0;
-		schedule2 =
-		    (((unsigned int)w_password[(indexW +
-		                                4)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        5)]) << 8) | 0;
-		schedule3 =
-		    (((unsigned int)w_password[(indexW +
-		                                6)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        7)]) << 8) | 0;
-		schedule4 =
-		    (((unsigned int)w_password[(indexW +
-		                                8)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        9)]) << 8) | 0;
-		schedule5 =
-		    (((unsigned int)w_password[(indexW +
-		                                10)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        11)]) << 8) | 0;
-		schedule6 =
-		    (((unsigned int)w_password[(indexW +
-		                                12)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        13)]) << 8) | 0;
-		schedule7 =
-		    (((unsigned int)w_password[(indexW +
-		                                14)]) << 24) | 0 | (((unsigned int)w_password[(indexW +
-		                                        15)]) << 8) | 0;
-
-		if (index_generic == 16)
-			schedule8 = 0x80000000;
-		else
-			schedule8 = 0;
-		schedule9 = 0;
-		schedule10 = 0;
-		schedule11 = 0;
-		schedule12 = 0;
-		schedule13 = 0;
-		schedule14 = 0;
-		index_generic *= 2;
-		schedule15 =
-		    ((unsigned char)((index_generic << 3) >> 8)) << 8 | ((unsigned
-		            char)(index_generic << 3));
-		//-----------------------------------------------
+        curr_fetch=0;
+        schedule0 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule1 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule2 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule3 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule4 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule5 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule6 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule7 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule8 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule9 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule10 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule11 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule12 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        curr_fetch+=2;
+        schedule13 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
+        if(index_generic == MAX_INPUT_PASSWORD_LEN) schedule13 = schedule13 | ((unsigned int)0x8000);
+        schedule14=0;
+        index_generic*=2;
+        schedule15 = ((unsigned char)((index_generic << 3) >> 8)) << 8 | ((unsigned char)(index_generic << 3));
 
 		ALL_SCHEDULE_LAST16()
 
