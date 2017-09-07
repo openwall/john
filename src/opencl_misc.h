@@ -321,8 +321,8 @@ inline void memcpy_pp(void *dst, const void *src, uint count)
 	s.c = src;
 	d.c = dst;
 
-	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
-		while (((uint)s.c) & 0x03 && count--)
+	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
+		while (((size_t)s.c) & 0x03 && count--)
 			*d.c++ = *s.c++;
 
 		while (count >= 4) {
@@ -351,8 +351,8 @@ inline void memcpy_pg(__global void *dst, const void *src, uint count)
 	s.c = src;
 	d.c = dst;
 
-	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
-		while (((uint)s.c) & 0x03 && count--)
+	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
+		while (((size_t)s.c) & 0x03 && count--)
 			*d.c++ = *s.c++;
 
 		while (count >= 4) {
@@ -381,8 +381,8 @@ inline void memcpy_gp(void *dst, __global const void *src, uint count)
 	s.c = src;
 	d.c = dst;
 
-	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
-		while (((uint)s.c) & 0x03 && count--)
+	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
+		while (((size_t)s.c) & 0x03 && count--)
 			*d.c++ = *s.c++;
 
 		while (count >= 4) {
@@ -411,8 +411,8 @@ inline void memcpy_cp(void *dst, __constant void *src, uint count)
 	s.c = src;
 	d.c = dst;
 
-	if (((uint)dst & 0x03) == ((uint)src & 0x03)) {
-		while (((uint)s.c) & 0x03 && count--)
+	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
+		while (((size_t)s.c) & 0x03 && count--)
 			*d.c++ = *s.c++;
 
 		while (count >= 4) {
