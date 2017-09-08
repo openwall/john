@@ -229,7 +229,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	else
 		return 0;
 
-	if (res!=ARGON2_OK)
+	if (res!=ARGON2_OK || ctx.outlen < 8)
 	  return 0;
 
 	return 1;
