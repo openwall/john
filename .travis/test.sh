@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 # There is a bug in echo -e in Travis
-echo '[Disabled:Formats]' > john-local.conf
+echo '[Local:Disabled:Formats]' > john-local.conf
 echo 'Raw-SHA512-free-opencl = Y' >> john-local.conf
 echo 'XSHA512-free-opencl = Y' >> john-local.conf
 echo 'gpg-opencl = Y' >> john-local.conf
