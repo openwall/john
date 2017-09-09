@@ -338,7 +338,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE,
 		{
-			"Key version"
+			"key version [1:WPA 2:WPA2 3:802.11w]"
 		},
 		{ FORMAT_TAG},
 		tests

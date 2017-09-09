@@ -362,7 +362,7 @@ struct fmt_main fmt_qnx = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"iteration count",
-			"algorithm (5=md5 256=sha256 512=sha512)",
+			"algorithm [5:MD5 256:SHA256 512:SHA512]",
 		},
 		{ NULL },
 		tests

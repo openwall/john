@@ -293,7 +293,7 @@ struct fmt_main fmt_crc32 = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{
-			"version: 0 = CRC-32, 1 = CRC-32C",
+			"version [0:CRC-32 1:CRC-32C]",
 		},
 		{ FORMAT_TAG, FORMAT_TAGc },
 		tests

@@ -465,7 +465,7 @@ struct fmt_main fmt_pfx = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
-			"mac-type",
+			"mac-type [1:SHA1 224:SHA224 256:SHA256 384:SHA384 512:SHA512]",
 		},
 		{ FORMAT_TAG },
 		tests

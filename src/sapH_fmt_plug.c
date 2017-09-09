@@ -668,7 +668,7 @@ struct fmt_main fmt_sapH = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_OMP | FMT_CASE | FMT_8_BIT | FMT_UTF8,
 		{
-			"hash type [1:sha1 2:SHA256 3:SHA384 4:SHA512]",
+			"hash type [1:SHA1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
 		},
 		{ FORMAT_TAG, FORMAT_TAG256, FORMAT_TAG384, FORMAT_TAG512 },
