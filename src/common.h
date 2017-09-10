@@ -49,7 +49,7 @@
 
 #ifdef __GNUC__
 #if __GNUC__ >= 5
-#define MAYBE_INLINE __attribute__((gnu_inline)) inline
+#define MAYBE_INLINE __attribute__((gnu_inline)) __attribute__((always_inline)) inline
 #elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || defined(__INTEL_COMPILER) || __NVCC__
 #define MAYBE_INLINE __attribute__((always_inline)) inline
 #elif __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
