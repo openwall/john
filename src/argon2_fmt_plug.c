@@ -450,12 +450,17 @@ static unsigned int tunable_cost_m(void *_salt)
 	return salt->m_cost;
 }
 
-static unsigned int tunable_cost_l(void *_salt)
+static unsigned int tunable_cost_p(void *_salt)
 {
 	struct argon2_salt *salt=(struct argon2_salt *)_salt;
 	return salt->lanes;
 }
 
+static unsigned int tunable_cost_type(void *_salt)
+{
+	struct argon2_salt *salt=(struct argon2_salt *)_salt;
+	return (int)salt->type;
+}
 #endif
 
 struct fmt_main fmt_argon2 = {
@@ -480,7 +485,8 @@ struct fmt_main fmt_argon2 = {
 		{
 			"t",
 			"m",
-			"l"
+			"p",
+			"type [0:Argon2d 1:Argon2i]"
 		},
 		{0},
 		tests
@@ -496,7 +502,8 @@ struct fmt_main fmt_argon2 = {
 		{
 			tunable_cost_t,
 			tunable_cost_m,
-			tunable_cost_l
+			tunable_cost_p,
+			tunable_cost_type,
 		},
 		fmt_default_source,
 		{
