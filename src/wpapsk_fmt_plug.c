@@ -390,7 +390,7 @@ struct fmt_main fmt_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP,
 		{
-			"Key version"
+			"key version [1:WPA 2:WPA2 3:802.11w]"
 		},
 		{ FORMAT_TAG },
 		tests

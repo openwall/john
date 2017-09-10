@@ -627,7 +627,7 @@ struct fmt_main fmt_episerver = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
 		{
-			"hash type [1: SHA1 2:SHA256]",
+			"hash type [1:SHA1 2:SHA256]",
 		},
 		{ FORMAT_TAG },
 		episerver_tests
