@@ -214,6 +214,8 @@ static void process_file(const char *archive_name)
 				jtr_fseek64(fp, -6, SEEK_CUR);
 			}
 			if (!found) {
+				if (process_file5(archive_name))
+					return;
 				fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
 				goto err;
 			}
@@ -221,11 +223,11 @@ static void process_file(const char *archive_name)
 		else {
 			/* try to detect RAR 5 files */
 			fclose(fp);
-            fp = NULL;
+			fp = NULL;
 			MEM_FREE(best);
 			MEM_FREE(gecos);
 			if (process_file5(archive_name))
-                return;
+				return;
 			fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
 			goto err;
 		}
