@@ -294,7 +294,10 @@ static int Process(FILE *in)
 		fprintf(stderr, "\n%s: Radiotap headers stripped\n", filename);
 	else if (link_type == LINKTYPE_PPI_HDR)
 		fprintf(stderr, "\n%s: PPI headers stripped\n", filename);
-	else {
+	else if (link_type == LINKTYPE_ETHERNET) {
+		fprintf(stderr, "\n%s: Ethernet headers not supported\n", filename);
+		return 0;
+	} else {
 		fprintf(stderr, "\n%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
 	}
@@ -567,7 +570,10 @@ static void Handle4Way(int bIsQOS)
 			break;
 		}
 	}
-	if (ess==-1) goto out;
+	if (ess == -1) {
+		fprintf(stderr, "Saw BSSID with unknown ESSID. Perhaps -e option needed?\n");
+		goto out;
+	}
 	if (wpa[ess].fully_cracked)
 		goto out;  // no reason to go on.
 
@@ -627,6 +633,8 @@ static void Handle4Way(int bIsQOS)
 	// do not have valid 3 4's.  They 'may' be valid, but may also be a client with the wrong password.
 
 	if (msg == 1) {
+		if (auth->key_info.KeyDescr == 3)
+			fprintf(stderr, "Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 (PMF) is being used!\n");
 		MEM_FREE(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		wpa[ess].packet1_len = pkt_hdr.incl_len;
