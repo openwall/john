@@ -675,6 +675,7 @@ static void Handle4Way(int bIsQOS)
 		}
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.incl_len);
 		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.incl_len);
+		wpa[ess].orig_2_len = pkt_hdr.incl_len;
 
 		// This is canonical for any encapsulations
 		wpa[ess].eapol_sz = auth->length + 4;
@@ -810,6 +811,7 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	memcpy(hccap.nonce2, auth13->wpa_nonce,32);
 	memcpy(hccap.keymic, auth2->wpa_keymic, 16);
 	p = wpa[ess].orig_2;
+	end = p + wpa[ess].orig_2_len;
 	if (bIsQOS)
 		p += 2;
 	p += 8;
@@ -817,8 +819,11 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	auth2 = (ether_auto_802_1x_t*)p;
 	memset(auth2->wpa_keymic, 0, 16);
 	hccap.eapol_size = wpa[ess].eapol_sz;
-	if (p + hccap.eapol_size > end) // more checks like this should be added to this function
+	if (p + hccap.eapol_size > end) {
+		// more checks like this should be added to this function
+		fprintf(stderr, "%s() malformed data? Or bug in our code %p + %d > %p by %ld\n", __FUNCTION__, p, hccap.eapol_size, end, p + hccap.eapol_size - end);
 		return;
+	}
 	memcpy(hccap.eapol, auth2, hccap.eapol_size);
 
 	w = (uint8 *)&hccap;

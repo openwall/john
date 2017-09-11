@@ -152,9 +152,8 @@ inline static uint64 swap64u(uint64 v) {
 // that are needed are:   msg1 and msg2  or msg2 and msg3.  These MUST be paired, and
 // matched to each other.  The match 'rules' are:
 // the packets MUST be sequential (only eapol messages being looked at, so sequential epol's)
-// if the match is a msg1-msg2, then both MUST have exact same If a msg1-msg2 pair,
-//   they BOTH must have the exact same ether_auto_802_1x_t.replay_cnt
-// if the match is a msg2-msg3, then the msg2 ether_auto_802_1x_t.replay_cnt must be exactly
+// If a msg1-msg2 pair, they BOTH must have the exact same ether_auto_802_1x_t.replay_cnt
+// If the match is a msg2-msg3, then the msg2 ether_auto_802_1x_t.replay_cnt must be exactly
 //   one less than the ether_auto_802_1x_t.replay_cnt in the msg3.
 // if any of the above 3 rules (actually only 2 of the 3, since the msg1-msg2 and msg2-msg3
 //   rules are only used in proper context), then we do NOT have a valid 4-way.
@@ -181,13 +180,14 @@ typedef struct WPA4way_s {
 	uint8 *packet2;
 	int packet2_len;
 	uint8 *orig_2;
+	int orig_2_len;
 	uint8 *packet3;
 	int packet3_len;
 	uint8 *packet4;
 	int fully_cracked;
 	int hopefully_cracked; // we have a 1 & 2
 	int eapol_sz;
-}WPA4way_t;
+} WPA4way_t;
 
 // Here are the structures needed to store the data that make up the 4-way handshake.
 // we harvest this data to make JtR input strings.
