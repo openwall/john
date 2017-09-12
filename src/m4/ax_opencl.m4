@@ -82,7 +82,7 @@ if test "$disable_opencl" = 'yes'; then
   CPPFLAGS="$CL_CFLAGS $CPPFLAGS"
   ax_save_LIBS=$LIBS
   LIBS=""
-  ax_check_libs="-lOpenCL -lCL -lclparser"
+  ax_check_libs="-lOpenCL -lCL -lclparser -lpocl"
   for ax_lib in $ax_check_libs; do
     AS_IF([test X$ax_compiler_ms = Xyes],
           [ax_try_lib=`echo $ax_lib | $SED -e 's/^-l//' -e 's/$/.lib/'`],
