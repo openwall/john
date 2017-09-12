@@ -934,7 +934,8 @@ int main(int argc, char **argv)
 "Usage: %s [-c] [-e essid:bssid [-e ...]] <file[s]>\n"
 "\n-c\tShow only complete auths (incomplete ones might be wrong passwords\n"
 "\tbut we can crack what passwords were tried).\n"
-"-e\tManually add Name:MAC pair(s) in case the file lacks beacons.\n\n",
+"-e\tManually add Name:MAC pair(s) in case the file lacks beacons.\n"
+"\teg. -e Networkname:de:ad:ca:fe:ba:be\n\n",
 		                 argv[0]);
 
 	for (i = 1; i < argc; i++) {
