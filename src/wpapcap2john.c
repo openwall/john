@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+//#define WPADEBUG 1
+
 #include "wpapcap2john.h"
 #include "jumbo.h"
 #include "memdbg.h"
@@ -26,6 +28,7 @@ static uint32 start_t, start_u, cur_t, cur_u;
 static pcaprec_hdr_t pkt_hdr;
 static uint8 *full_packet;
 static uint8 *packet;
+static uint8 *new_p;
 static int bROT;
 static WPA4way_t *wpa;    /* alloced/realloced to max_essids*/
 static char **unVerified; /* alloced/realloced to max_essids*/
@@ -294,18 +297,16 @@ static int Process(FILE *in)
 		fprintf(stderr, "\n%s: Radiotap headers stripped\n", filename);
 	else if (link_type == LINKTYPE_PPI_HDR)
 		fprintf(stderr, "\n%s: PPI headers stripped\n", filename);
-	else if (link_type == LINKTYPE_ETHERNET) {
-		fprintf(stderr, "\n%s: Ethernet headers not supported\n", filename);
-		return 0;
-	} else {
+	else if (link_type == LINKTYPE_ETHERNET)
+		fprintf(stderr, "\n%s: Ethernet headers, non-monitor mode. Use of -e option likely required.\n", filename);
+	else {
 		fprintf(stderr, "\n%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
 	}
 
 	while (GetNextPacket(in)) {
 		if (!ProcessPacket()) {
-			dump_any_unver();
-			return 1;
+			break;
 		}
 	}
 	dump_any_unver();
@@ -349,6 +350,15 @@ static int GetNextPacket(FILE *in)
 
 	return (read_size == pkt_hdr.incl_len);
 }
+
+// Fake 802.11 header. We use this when indata is Ethernet (not monitor mode)
+// in order to fake a packet we can process
+static uint8 fake802_11[] = {
+	0x88, 0x02, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x06, 0x00, 0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00
+};
 
 // Ok, this function is the main packet processor.  NOTE, when we are done
 // reading packets (i.e. we have done what we want), we return 0, and
@@ -418,8 +428,49 @@ static int ProcessPacket()
 		pkt_hdr.orig_len -= frame_skip;
 	}
 
+	// Handle Ethernet EAPOL data if present. This is typically a pcap
+	// sniffed in non-monitor-mode.
+	// We strip the ethernet header and add a fake 802.11 header instead.
+	if (link_type == LINKTYPE_ETHERNET &&
+	    packet[12] == 0x88 && packet[13] == 0x8e) {
+		int new_len = pkt_hdr.incl_len - 12 + sizeof(fake802_11);
+		ether_auto_802_1x_t *auth;
+
+#if WPADEBUG
+		dump_hex("Ethernet packet, will fake 802.11.\nOriginal", packet, pkt_hdr.incl_len);
+#endif
+		if (!(new_p = realloc(new_p, new_len))) {
+			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
+			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
+			exit(EXIT_FAILURE);
+		}
+		// Start with some fake 802.11 header data
+		memcpy(new_p, fake802_11, sizeof(fake802_11));
+		// Put original src and dest in the fake 802.11 header
+		memcpy(new_p + 4, packet, 12);
+		// Add original EAPOL data
+		memcpy(new_p + sizeof(fake802_11), packet + 12, pkt_hdr.incl_len - 12);
+
+		auth = (ether_auto_802_1x_t*)&packet[14];
+		auth->key_info_u16 = swap16u(auth->key_info_u16);
+		// Add the BSSID to the 802.11 header
+		if (auth->key_info.KeyACK)
+			memcpy(new_p + 16, packet, 6);
+		else
+			memcpy(new_p + 16, packet + 6, 6);
+
+		pkt_hdr.incl_len += sizeof(fake802_11) - 12;
+		pkt_hdr.orig_len += sizeof(fake802_11) - 12;
+		packet = new_p;
+	}
+
 	// our data is in *packet with pkt_hdr being the pcap packet header for this packet.
 	pkt = (ether_frame_hdr_t*)packet;
+
+#if WPADEBUG
+	dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
+#endif
+
 	if (pkt_hdr.incl_len < 2)
 		return 0;
 	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
@@ -571,7 +622,7 @@ static void Handle4Way(int bIsQOS)
 		}
 	}
 	if (ess == -1) {
-		fprintf(stderr, "Saw BSSID with unknown ESSID. Perhaps -e option needed?\n");
+		fprintf(stderr, "Saw BSSID %s with unknown ESSID. Perhaps -e option needed?\n", bssid);
 		goto out;
 	}
 	if (wpa[ess].fully_cracked)
@@ -634,7 +685,7 @@ static void Handle4Way(int bIsQOS)
 
 	if (msg == 1) {
 		if (auth->key_info.KeyDescr == 3)
-			fprintf(stderr, "Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 (PMF) is being used!\n");
+			fprintf(stderr, "Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 (PMF) is being used.\n");
 		MEM_FREE(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
 		wpa[ess].packet1_len = pkt_hdr.incl_len;
@@ -949,5 +1000,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Error, file %s not found\n", argv[i]);
 	}
 	fprintf(stderr, "\n%d ESSIDS processed\n", nwpa);
+	MEM_FREE(new_p);
 	return 0;
 }

@@ -249,3 +249,19 @@ struct ivs2_WPA_hdsk
     int keyver;                                  /* key version (TKIP / AES)     */
     int state;                                   /* handshake completion         */
 };
+
+#if WPADEBUG
+static void dump_hex(char *msg, void *x, unsigned int size)
+{
+	unsigned int i;
+
+	fprintf(stderr, "%s : ", msg);
+
+	for (i = 0; i < size; i++) {
+		fprintf(stderr, "%.2x", ((unsigned char*)x)[i]);
+		if ((i % 4) == 3)
+			fprintf(stderr, " ");
+	}
+	fprintf(stderr, "\n");
+}
+#endif
