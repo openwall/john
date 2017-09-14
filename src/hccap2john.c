@@ -28,7 +28,9 @@
 #endif
 #include <errno.h>
 #include <assert.h>
+
 #include "common.h"
+#include "hccap.h"
 #include "memdbg.h"
 
 // Duplicated here to overcome linking problems. This file can't link with misc.o file easily.
@@ -37,20 +39,6 @@ unsigned atou(const char *src) {
 	sscanf(src, "%u", &val);
 	return val;
 }
-
-#define HCCAP_SIZE		sizeof(hccap_t)
-typedef struct
-{
-	char          essid[36];
-	unsigned char mac1[6];
-	unsigned char mac2[6];
-	unsigned char nonce1[32];
-	unsigned char nonce2[32];
-	unsigned char eapol[256];
-	int           eapol_size;
-	int           keyver;
-	unsigned char keymic[16];
-} hccap_t;
 
 static void code_block(unsigned char *in, unsigned char b)
 {

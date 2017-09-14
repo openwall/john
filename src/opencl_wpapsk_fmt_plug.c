@@ -37,8 +37,6 @@ static struct fmt_main *self;
 #define FORMAT_NAME		"WPA/WPA2/PMF PSK"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 
-#define BENCHMARK_LENGTH	-1
-
 #define ITERATIONS		4095
 #define HASH_LOOPS		105 // factors 3, 3, 5, 7, 13
 #define SEED			256
