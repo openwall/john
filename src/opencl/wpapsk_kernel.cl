@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>,
- * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012-2013 magnum,
+ * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012-2017 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -32,6 +32,23 @@ typedef struct {
 	MAYBE_VECTOR_UINT out[5];
 	MAYBE_VECTOR_UINT partial[5];
 } wpapsk_state;
+
+#ifdef WPAPMK
+
+__kernel
+void wpapmk_init(__global const uint *inbuffer,
+                 __global wpapsk_state *state)
+{
+	uint gid = get_global_id(0);
+	uint i;
+
+	for (i = 0; i < 5; i++)
+		state[gid].partial[i] = inbuffer[gid * 8 + i];
+	for (i = 0; i < 3; i++)
+		state[gid].out[i] = inbuffer[gid * 8 + 5 + i];
+}
+
+#else
 
 inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       __global MAYBE_VECTOR_UINT *ipad,
@@ -167,6 +184,7 @@ void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = state[gid].out[i];
 }
+#endif /* WPAPMK */
 
 //__constant uchar *text = "Pairwise key expansion\0";
 //__constant uint text[6] = { 0x72696150, 0x65736977, 0x79656b20, 0x70786520, 0x69736e61, 0x00006e6f };

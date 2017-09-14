@@ -176,7 +176,7 @@ static char *longcand(struct fmt_main *format, int index, int ml)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE];
 
-	memset(out, '!' + (index & 31), ml);
+	memset(out, '0' + (index % 10), ml);
 	if (!(format->params.flags & FMT_8_BIT) ||
 #ifndef BENCH_BUILD
 	    !(format->params.flags & FMT_CASE) || options.target_enc == UTF_8
