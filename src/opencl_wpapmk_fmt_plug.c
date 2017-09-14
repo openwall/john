@@ -297,7 +297,7 @@ struct fmt_main fmt_opencl_wpapsk_pmk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE,
+		0,
 		{
 			"key version [1:WPA 2:WPA2 3:802.11w]"
 		},
