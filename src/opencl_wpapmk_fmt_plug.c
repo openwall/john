@@ -27,6 +27,7 @@ static cl_kernel wpapmk_init, wpapsk_final_md5, wpapsk_final_sha1, wpapsk_final_
 static size_t key_buf_size;
 static unsigned int *inbuffer;
 static struct fmt_main *self;
+static int new_keys;
 
 #define JOHN_OCL_WPAPMK
 #include "wpapmk.h"
@@ -165,6 +166,7 @@ static void set_key(char *key, int index)
 		((unsigned char*)inbuffer)[GETPOS(i, index)] =
 			(atoi16[ARCH_INDEX(key[i << 1])] << 4) |
 			atoi16[ARCH_INDEX(key[(i << 1) + 1])];
+	new_keys = 1;
 }
 
 static char* get_key(int index)
@@ -257,10 +259,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * ocl_v_width;
 
 	/// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 32, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 32, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
-	/// Call init kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapmk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run final kernel (MD5)");
+		/// Call init kernel
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapmk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run final kernel (MD5)");
+
+		new_keys = 0;
+	}
 
 	if (hccap.keyver == 1)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_md5, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run final kernel (MD5)");
