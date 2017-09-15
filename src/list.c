@@ -124,3 +124,14 @@ void list_del_next(struct list_main *list, struct list_entry *prev)
 	list->count--;
 }
 #endif
+
+int list_check(struct list_main *list, char *data)
+{
+	struct list_entry *current;
+
+	for (current = list->head; current; current = current->next)
+		if (!strcmp(current->data, data))
+			return 1;
+
+	return 0;
+}

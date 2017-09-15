@@ -12,9 +12,12 @@
  *
  */
 
+#include "../list.h"
+
 // (re-)initializes hardware.
 // Saves pointers to 'struct fmt_params', 'struct device_bitstream'.
-void device_format_init(struct fmt_main *fmt_main, struct device_bitstream *bitstream);
+void device_format_init(struct fmt_main *fmt_main,
+		struct device_bitstream *bitstream, struct list_main *devices_allow);
 
 void device_format_done();
 

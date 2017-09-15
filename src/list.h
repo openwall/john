@@ -86,4 +86,9 @@ extern void list_dump(char *message, struct list_main *list);
 extern void list_del_next(struct list_main *list, struct list_entry *prev);
 #endif
 
+/*
+ * Returns 1 if the list contains 'data'.
+ */
+extern int list_check(struct list_main *list, char *data);
+
 #endif
