@@ -166,7 +166,7 @@ module word_gen_b #(
 			// Num. of ranges exceeds RANGES_MAX
 			if (din > RANGES_MAX)
 				state <= CONF_ERROR;
-			else if (din[NUM_RANGES_MSB:0] != 0)
+			else if (din[`MSB(RANGES_MAX):0] != 0)
 				state <= CONF_RANGE_NUM_CHARS;
 			else
 				state <= CONF_NUM_GENERATE0;
