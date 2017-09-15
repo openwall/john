@@ -49,7 +49,7 @@
 static struct device_bitstream bitstream = {
 	// bitstream ID (check is performed by querying operating bitstream)
 	0xbc01,
-	"ztex/ztex115y_bcrypt.bit",
+	"$JOHN/ztex/ztex115y_bcrypt.bit",
 	// parameters for high-speed packet communication (pkt_comm)
 	{ 2, 6144, 8190 },
 	// computing performance estimation (in candidates per interval)

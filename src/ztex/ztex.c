@@ -16,6 +16,8 @@
 
 #include "ztex.h"
 
+#include "../path.h"
+
 //===============================================================
 //
 // Contains functions for operating Ztex USB-FPGA modules.
@@ -849,12 +851,12 @@ int ztex_firmware_upload_ihx(struct ztex_device *dev, struct ihx_data *ihx_data)
 	return 0;
 }
 
-int ztex_firmware_upload(struct ztex_device *dev, const char *filename)
+int ztex_firmware_upload(struct ztex_device *dev, char *filename)
 {
 	int result;
 	FILE *fp;
-	if ( !(fp = fopen(filename, "r")) ) {
-		printf("fopen(%s): %s\n", filename, strerror(errno));
+	if ( !(fp = fopen(path_expand(filename), "r")) ) {
+		printf("fopen(%s): %s\n", path_expand(filename), strerror(errno));
 		return -1;
 	}
 	if (ZTEX_DEBUG) {

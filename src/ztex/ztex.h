@@ -156,7 +156,7 @@ struct ihx_data {
 
 // Uploads firmware from .ihx file, device resets.
 // < 0 on error.
-int ztex_firmware_upload(struct ztex_device *dev, const char *filename);
+int ztex_firmware_upload(struct ztex_device *dev, char *filename);
 
 // resets device. firmware is lost.
 void ztex_device_reset(struct ztex_device *dev);

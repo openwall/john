@@ -19,7 +19,7 @@ extern struct timeval ztex_scan_prev_time;
 #define ZTEX_FW_3RD_PARTY_OVERWRITE 1
 
 // firmware image file (*.ihx)
-#define ZTEX_FW_IHX_PATH	"ztex/inouttraffic.ihx"
+#define ZTEX_FW_IHX_PATH	"$JOHN/ztex/inouttraffic.ihx"
 
 // if firmware was uploaded, perform rescan after that many sec
 #define ZTEX_FW_UPLOAD_DELAY	2

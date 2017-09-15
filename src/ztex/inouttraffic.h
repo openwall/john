@@ -175,7 +175,7 @@ int device_check_bitstream_type(struct device *device, unsigned short bitstream_
 // Checks if bitstreams on devices are loaded and of specified type.
 // if (filename != NULL) performs upload in case of wrong or no bitstream
 // Returns: number of devices with bitstreams uploaded
-int device_list_check_bitstreams(struct device_list *device_list, unsigned short BITSTREAM_TYPE, const char *filename);
+int device_list_check_bitstreams(struct device_list *device_list, unsigned short BITSTREAM_TYPE, char *filename);
 
 // tests if bitstream from currently selected FPGA is operational and gets bitstream_type
 // Returns:
