@@ -13,6 +13,8 @@
 // Based on original Ztex SDK written in java.
 //
 //===============================================================
+#ifndef _ZTEX_H_
+#define _ZTEX_H_
 
 #define USB_CMD_TIMEOUT 150
 #define USB_RW_TIMEOUT 500
@@ -89,6 +91,9 @@ struct ztex_dev_list {
 	struct ztex_device *dev;
 };
 
+// checks if given string is a valid Serial Number
+int ztex_sn_is_valid(char *sn);
+
 int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev);
 
 void ztex_device_delete(struct ztex_device *dev);
@@ -134,10 +139,14 @@ int ztex_check_capability(struct ztex_device *dev, int i, int j);
 // Devices in question:
 // 1. Got ZTEX Vendor & Product ID, also SN
 // 2. Have ZTEX-specific descriptor
+// If some devices are already opened (e.g. by other process) -
+// skips them, warns if warn_open is set (it can't distinguish device
+// is already opened or other error condition such as permissions).
 // Returns:
 // >= 0 number of devices added
 // <0 error
-int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list);
+int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
+		struct ztex_dev_list *dev_list, int warn_open);
 
 // upload bitstream on FPGA
 int ztex_configureFpgaHS(struct ztex_device *dev, FILE *fp, int interfaceHS);
@@ -160,3 +169,5 @@ int ztex_firmware_upload(struct ztex_device *dev, char *filename);
 
 // resets device. firmware is lost.
 void ztex_device_reset(struct ztex_device *dev);
+
+#endif

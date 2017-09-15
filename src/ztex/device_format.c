@@ -21,6 +21,12 @@
 #include "jtr_mask.h"
 #include "device_bitstream.h"
 
+// Problem: Inclusion of ztex.h results in inclusion of libusb-1.0.h
+// which includes more stuff, on Cygwin that results in redefinition
+// of MEM_FREE macro. Using forward declaration instead.
+//#include "ztex.h"
+extern int ztex_sn_is_valid(char *sn);
+
 // If some task is not completed in this many seconds,
 // then it counts the device as not functioning one.
 #define DEVICE_TASK_TIMEOUT	5
@@ -59,12 +65,24 @@ struct task_list *task_list;
  */
 struct fmt_params *jtr_fmt_params;
 struct device_bitstream *jtr_bitstream;
+struct list_main *jtr_devices_allow;
 
-
-void device_format_init(struct fmt_main *fmt_main, struct device_bitstream *bitstream)
+void device_format_init(struct fmt_main *fmt_main,
+		struct device_bitstream *bitstream, struct list_main *devices_allow)
 {
 	jtr_fmt_params = &fmt_main->params;
 	jtr_bitstream = bitstream;
+	jtr_devices_allow = devices_allow;
+
+	struct list_entry *entry;
+	int found_bad_sn = 0;
+	for (entry = devices_allow->head; entry; entry = entry->next)
+		if (!ztex_sn_is_valid(entry->data)) {
+			fprintf(stderr, "Error: bad Serial Number '%s'\n", entry->data);
+			found_bad_sn = 1;
+		}
+	if (found_bad_sn)
+		error();
 
 	// Initialize hardware.
 	// Uses globals: jtr_device_list, device_list, jtr_bitstream.

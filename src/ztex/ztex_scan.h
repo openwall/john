@@ -24,11 +24,6 @@ extern struct timeval ztex_scan_prev_time;
 // if firmware was uploaded, perform rescan after that many sec
 #define ZTEX_FW_UPLOAD_DELAY	2
 
-// Find Ztex USB devices (of supported type)
-// Upload firmware (device resets) if necessary
-// Returns number of newly found devices (excluding those that were reset)
-int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list, int *fw_upload_count);
-
 // Function to be invoked timely to scan for new devices.
 // Skip valid devices from 'dev_list'.
 // Upload firmware if necessary. After upload device resets.

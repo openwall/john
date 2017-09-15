@@ -21,6 +21,7 @@
 #include "formats.h"
 #include "memory.h"
 #include "config.h"
+#include "options.h"
 
 #include "BF_common.h"
 
@@ -145,7 +146,7 @@ static void init(struct fmt_main *fmt_main)
 	//fprintf(stderr, "bitstream.candidates_per_crypt=%d\n",
 	//		bitstream.candidates_per_crypt);
 
-	device_format_init(fmt_main, &bitstream);
+	device_format_init(fmt_main, &bitstream, options.gpu_devices);
 }
 
 // Existing CPU implementation use following data structures:

@@ -71,6 +71,23 @@ int vendor_request(struct libusb_device_handle *handle, int cmd, int value, int 
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+// checks if given string is a valid Serial Number
+int ztex_sn_is_valid(char *sn)
+{
+	int i;
+	for (i = 0; i < ZTEX_SNSTRING_LEN; i++) {
+		if (!sn[i])
+			return i < ZTEX_SNSTRING_MIN_LEN ? 0 : 1;
+		if ( !( (sn[i] >= '0' && sn[i] <= '9') || (sn[i] >= 'A' && sn[i] <= 'F')
+				|| (sn[i] >= 'a' && sn[i] <= 'f')) )
+			return 0;
+	}
+	if (sn[i])
+		return 0;
+
+	return 1;
+}
+
 // Creates 'struct ztex_device' out of 'libusb_device *'
 // gets data from the device
 int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
@@ -93,8 +110,9 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 	if (result < 0) {
 		// e.g. on Windows no driver for device
 		// or device already opened
-		ztex_error("ztex_device_new: libusb_open returns %d (%s)\n",
-				result, libusb_error_name(result));
+		if (result != LIBUSB_ERROR_ACCESS)
+			ztex_error("ztex_device_new: libusb_open returns %d (%s)\n",
+					result, libusb_error_name(result));
 		ztex_device_delete(dev);
 		return result;
 	}
@@ -123,11 +141,11 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 		ztex_device_delete(dev);
 		return result;
 	}
-	if (strlen(dev->snString) < ZTEX_SNSTRING_MIN_LEN) {
-		ztex_error("ztex_device_new: Serial Number is too short(%d chars), must be >%d\n",
-				strlen(dev->snString), ZTEX_SNSTRING_MIN_LEN);
+
+	if (!ztex_sn_is_valid(dev->snString)) {
+		ztex_error("ztex_device_new: bad Serial Number (%s)\n", dev->snString);
 		ztex_device_delete(dev);
-		return result;
+		return -1;
 	}
 
 	result = libusb_get_string_descriptor_ascii(dev->handle, desc.iProduct,
@@ -409,10 +427,14 @@ int ztex_check_capability(struct ztex_device *dev, int i, int j)
 // Devices in question:
 // 1. Got ZTEX Vendor & Product ID, also SN
 // 2. Have ZTEX-specific descriptor
+// If some devices are already opened (e.g. by other process) -
+// skips them, warns if warn_open is set (it can't distinguish device
+// is already opened or other error condition such as permissions).
 // Returns:
 // >= 0 number of devices added
 // <0 error
-int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list)
+int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
+		struct ztex_dev_list *dev_list, int warn_open)
 {
 	libusb_device **usb_devs;
 	int result;
@@ -425,6 +447,7 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list, struct ztex_dev_li
 		return (int)cnt;
 	}
 
+	int num_fail_open = 0;
 	int i;
 	for (i = 0; usb_devs[i]; i++) {
 		libusb_device *usb_dev = usb_devs[i];
@@ -447,8 +470,11 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list, struct ztex_dev_li
 
 		struct ztex_device *ztex_dev;
 		result = ztex_device_new(usb_dev, &ztex_dev);
-		if (result < 0)
+		if (result < 0) {
+			if (result == LIBUSB_ERROR_ACCESS)
+				num_fail_open ++;
 			continue;
+		}
 
 		// found new device
 		if (ZTEX_DEBUG) printf("ztex_scan_new_devices: SN %s productId: %d.%d\n",
@@ -470,6 +496,12 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list, struct ztex_dev_li
 	}
 
 	libusb_free_device_list(usb_devs, 1);
+
+	if (warn_open && num_fail_open) {
+		fprintf(stderr, "Warning: unable to access %d board(s), that could be"
+			" insuffisient permissions\nor other john invocation is running.\n",
+			num_fail_open);
+	}
 	return count;
 }
 
@@ -766,8 +798,8 @@ int ztex_reset_cpu(struct ztex_device *dev, int r)
 {
 	unsigned char buf[1] = { r };
 	int result = vendor_command(dev->handle, 0xA0, 0xE600, 0, buf, 1);
-	// Don't return error on r==0 && LIBUSB_ERR_NO_DEVICE
-	if (result < 0 && !(result == -4 && !r) ) {
+	// Don't return error on r==0 && LIBUSB_ERROR_NO_DEVICE
+	if (result < 0 && !(result == LIBUSB_ERROR_NO_DEVICE && !r) ) {
 		ztex_error("SN %s: ztex_reset_cpu(%d) returns %d (%s)\n",
 				dev->snString, r, result, libusb_error_name(result));
 		return result;

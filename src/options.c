@@ -250,7 +250,7 @@ static struct opt_entry opt_list[] = {
 	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0,
 		(FLG_SCALAR | OPT_REQ_PARAM), "%u", &options.v_width},
 #endif
-#if defined(HAVE_OPENCL)
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 	{"devices", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
@@ -459,7 +459,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	list_init(&options.loader.users);
 	list_init(&options.loader.groups);
 	list_init(&options.loader.shells);
-#if defined(HAVE_OPENCL)
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 	list_init(&options.gpu_devices);
 #endif
 
