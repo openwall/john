@@ -31,7 +31,8 @@ typedef struct {
 	uint8_t  eapol[256];
 } __attribute__((packed)) hccapx_t;
 
-#define HCCAP_SIZE          sizeof(hccap_t)
-#define HCCAPX_SIZE          sizeof(hccapx_t)
+#define HCCAP_SIZE      sizeof(hccap_t)
+#define HCCAPX_SIZE     sizeof(hccapx_t)
+#define HCCAPC_MAGIC    0x58504348 /* "HCPX" */
 
 #endif /* _HCCAP_H */
