@@ -209,7 +209,7 @@ static void sig_handle_abort(int signum)
 	int saved_errno = errno;
 
 #if OS_FORK
-	if (john_main_process) {
+	if (john_main_process && !aborted_by_timer) {
 /*
  * We assume that our children are running on the same tty with us, so if we
  * receive a SIGINT they probably do as well without us needing to forward the
