@@ -59,7 +59,7 @@ static struct device_bitstream bitstream = {
 	262140,	// Absolute max. keys/crypt_all_interval for all devices.
 	3,		// Max. number of entries in onboard comparator.
 	124,	// Min. number of keys for effective device utilization
-	1, { 140 },	// Programmable clocks
+	1, { 141 },	// Programmable clocks
 	"bcrypt"	// label for configuration file
 };
 
