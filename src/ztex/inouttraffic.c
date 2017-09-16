@@ -509,7 +509,7 @@ int fpga_progclk_raw(struct fpga *fpga, int clk_num,
 int fpga_progclk(struct fpga *fpga, int clk_num, int freq)
 {
 	if (DEBUG)
-		fprintf(stderr, "fpga_progclk(%d,%d,%d)\n",	fpga->num,
+		fprintf(stderr, "fpga_progclk(%d,%d,%d)\n", fpga->num,
 				clk_num, freq);
 
 	const struct {

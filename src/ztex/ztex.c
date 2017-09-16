@@ -498,8 +498,9 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
 	libusb_free_device_list(usb_devs, 1);
 
 	if (warn_open && num_fail_open) {
-		fprintf(stderr, "Warning: unable to access %d board(s), that could be"
-			" insuffisient permissions\nor other john invocation is running.\n",
+		fprintf(stderr, "Warning: unable to access %d board(s), could be "
+			"insufficient permissions or\n"
+			"another instance of john running.\n",
 			num_fail_open);
 	}
 	return count;
