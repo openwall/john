@@ -5,7 +5,7 @@
 #
 # Modified for JtR
 #
-# Copyright (C) 2011  Jeff Forcier <jeff@bitprophet.org>
+# Copyright (C) 2011, Jeff Forcier <jeff@bitprophet.org>
 #
 # This file is part of ssh.
 #
@@ -39,7 +39,7 @@ CIPHER_TABLE = {
 }
 
 
-def read_private_key(f):
+def read_private_key(filename):
     """
     Read an SSH2-format private key file, looking for a string of the type
     C{"BEGIN xxx PRIVATE KEY"} for some C{xxx}, base64-decode the text we
@@ -53,27 +53,27 @@ def read_private_key(f):
         return
 
     lines = f.readlines()
+    all_lines = ''.join(lines)
     ktype = -1
-
     tag = None
-    if "BEGIN RSA PRIVATE" in lines[0]:  # XXX can we make this a bit more robust?
+    if "BEGIN RSA PRIVATE" in all_lines:
         tag = "RSA"
         ktype = 0
-    elif "-----BEGIN OPENSSH PRIVATE KEY-----" in lines[0]:
+    elif "-----BEGIN OPENSSH PRIVATE KEY-----" in all_lines:
         # new private key format for OpenSSH (automatically enabled for
         # keys using ed25519 signatures), ed25519 stuff is not supported
         # yet!
         ktype = 2  # bcrypt pbkdf + aes-256-cbc
         tag = "OPENSSH"
-    elif "-----BEGIN DSA PRIVATE KEY-----" in lines[0]:
+    elif "-----BEGIN DSA PRIVATE KEY-----" in all_lines:
         ktype = 1
         tag = "DSA"
-    elif "-----BEGIN EC PRIVATE KEY-----" in lines[0]:
+    elif "-----BEGIN EC PRIVATE KEY-----" in all_lines:
         ktype = 3
         tag = "EC"
 
     if not tag:
-        sys.stderr.write("[%s] couldn't parse line saying, %s" % (sys.argv[0], lines[0]))
+        sys.stderr.write("[%s] couldn't parse keyfile\n" % filename)
         return
 
     start = 0
