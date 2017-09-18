@@ -47,7 +47,12 @@ john_register_one(&fmt_wpapsk);
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk"
+#if !HAVE_OPENSSL_CMAC_H
+#warning Notice: WPAPSK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.
+#define FORMAT_NAME		"WPA/WPA2 PSK"
+#else
 #define FORMAT_NAME		"WPA/WPA2/PMF PSK"
+#endif
 #define ALGORITHM_NAME		"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 
 #define MIN_KEYS_PER_CRYPT	NBKEYS
@@ -390,7 +395,11 @@ struct fmt_main fmt_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_OMP,
 		{
+#if HAVE_OPENSSL_CMAC_H
 			"key version [1:WPA 2:WPA2 3:802.11w]"
+#else
+			"key version [1:WPA 2:WPA2]"
+#endif
 		},
 		{ FORMAT_TAG },
 		tests

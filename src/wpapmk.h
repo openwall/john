@@ -13,7 +13,9 @@
 
 #include <stdint.h>
 #include <assert.h>
+#if HAVE_OPENSSL_CMAC_H
 #include <openssl/cmac.h>
+#endif
 
 #include "arch.h"
 #include "params.h"
@@ -63,7 +65,9 @@ typedef struct {
 static struct fmt_tests tests[] = {
 	{"$WPAPSK$test#..qHuv0A..ZPYJBRzZwAKpEXUJwpza/b69itFaq4.OWoGHfonpc13zCAUsRIfQN2Zar6EXp2BYcRuSkWEJIWjEJJvb4DWZCspbZ51.21.3zy.EY.6........../zZwAKpEXUJwpza/b69itFaq4.OWoGHfonpc13zCAUsQ..................................................................BoK.31m.E2..31m.U2..31m.U2..31m.U................................................................................................................................................................................/X.....E...AkkDQmDg9837LBHG.dGlKA", "cdd79a5acfb070c7e9d1023b870285d639e430b32f31aa37ac825a55b55524ee"},
 	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "a288fcf0caaacda9a9f58633ff35e8992a01d9c10ba5e02efdf8cb5d730ce7bc"},
+#if HAVE_OPENSSL_CMAC_H || defined(JOHN_OCL_WPAPMK)
 	{"$WPAPSK$Neheb#g9a8Jcre9D0WrPnEN4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw04ASqHgvo12wJYJywulb6pWM6C5uqiMPNKNe9pkr6LE61.5I0.Eg.2..........1N4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4X...................................................................................................................................................................................../t.....k...0sHl.mVkiHW.ryNchcMd4g", "fb57668cd338374412c26208d79aa5c30ce40a110224f3cfb592a8f2e8bf53e8"},
+#endif
 	{NULL}
 };
 
@@ -180,8 +184,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (hccap->keyver < 1)
 		return 0;
+#if HAVE_OPENSSL_CMAC_H || defined(JOHN_OCL_WPAPMK)
 	if (hccap->keyver > 3)
 		return 0;
+#else
+	if (hccap->keyver > 2)
+		return 0;
+#endif
 	return 1;
 }
 
@@ -248,6 +257,8 @@ static void set_salt(void *salt)
 }
 
 #ifndef JOHN_OCL_WPAPMK
+
+#if HAVE_OPENSSL_CMAC_H
 
 /* Code borrowed from https://w1.fi/wpa_supplicant/ starts */
 
@@ -367,6 +378,7 @@ static void sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
 		buf[pos - 1] &= mask;
 	}
 }
+#endif /* HAVE_OPENSSL_CMAC_H */
 
 /* Code borrowed from https://w1.fi/wpa_supplicant/ ends */
 
@@ -401,6 +413,7 @@ static void wpapsk_postprocess(int keys)
 			hmac_sha1((unsigned char*)prf, 16, hccap.eapol,
 			          hccap.eapol_size, mic[i].keymic, 16);
 		}
+#if HAVE_OPENSSL_CMAC_H
 	} else if (hccap.keyver == 3) { // 802.11w, WPA-PSK-SHA256
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
@@ -421,6 +434,7 @@ static void wpapsk_postprocess(int keys)
 			memcpy(mic[i].keymic, cmic, 16);
 			CMAC_CTX_free(ctx);
 		}
+#endif /* HAVE_OPENSSL_CMAC_H */
 	}
 }
 #endif /* #ifndef JOHN_OCL_WPAPMK */

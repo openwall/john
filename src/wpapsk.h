@@ -13,7 +13,9 @@
 
 #include <stdint.h>
 #include <assert.h>
+#if HAVE_OPENSSL_CMAC_H
 #include <openssl/cmac.h>
+#endif
 
 #include "arch.h"
 #include "params.h"
@@ -67,10 +69,12 @@ static struct fmt_tests tests[] = {
 	/* Maximum length, 63 characters */
 	{"$WPAPSK$Greased Lighting#kA5.CDNB.07cofsOMXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGqgvfcXnuF1f7L5fgn4fQMLmDrKjdBNjb6LClRmfLiTYk21.5I0.Ec............7MXEEUwFTkO/RX2sQUaW9eteI8ynpFMwRgFZC6kk7bGo.................................................................3X.I.E..1uk2.E..1uk2.E..1uk00...................................................................................................................................................................................../t.....U...D06LUdWVfGPaP1Oa3AV9Hg", "W*A5z&1?op2_L&Hla-OA$#5i_Lu@F+6d?je?u5!6+6766eluu7-l+jOEkIwLe90"},
 	{"$WPAPSK$hello#JUjQmBbOHUY4RTqMpGc9EjqGdCxMZPWNXBNd1ejNDoFuemrLl27juYlDDUDMgZfery1qJTHYVn2Faso/kUDDjr3y8gspK7viz8BCJE21.5I0.Ec............/pGc9EjqGdCxMZPWNXBNd1ejNDoFuemrLl27juYlDDUA.................................................................3X.I.E..1uk2.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...9Py59nqygwiar49oOKA3RY", "12345678"},
+#if HAVE_OPENSSL_CMAC_H || defined(JOHN_OCL_WPAPSK)
 	/* 802.11w with WPA-PSK-SHA256 */
 	{"$WPAPSK$hello#HY6.hTXZv.v27BkPGuhkCnLAKxYHlTWYs.4yuqVSNAip3SeixhErtNMV30LZAA3uaEfy2U2tJQi.VICk4hqn3V5m7W3lNHSJYW5vLE21.5I0.Eg............/GuhkCnLAKxYHlTWYs.4yuqVSNAip3SeixhErtNMV30I.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4....................................................................................................................................................................................../t.....k.../Ms4UxzvlNw5hOM1igIeo6", "password"},
 	/* 802.11w with WPA-PSK-SHA256, https://github.com/neheb */
 	{"$WPAPSK$Neheb#g9a8Jcre9D0WrPnEN4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw04ASqHgvo12wJYJywulb6pWM6C5uqiMPNKNe9pkr6LE61.5I0.Eg.2..........1N4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4X...................................................................................................................................................................................../t.....k...0sHl.mVkiHW.ryNchcMd4g", "bo$$password"},
+#endif
 	{NULL}
 };
 
@@ -191,8 +195,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (hccap->keyver < 1)
 		return 0;
+#if HAVE_OPENSSL_CMAC_H || defined(JOHN_OCL_WPAPSK)
 	if (hccap->keyver > 3)
 		return 0;
+#else
+	if (hccap->keyver > 2)
+		return 0;
+#endif
 	return 1;
 }
 
@@ -330,6 +339,8 @@ static char *get_key(int index)
 	return ret;
 }
 
+#if HAVE_OPENSSL_CMAC_H
+
 /* Code borrowed from https://w1.fi/wpa_supplicant/ starts */
 
 #define SHA256_MAC_LEN 32
@@ -448,6 +459,7 @@ static void sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
 		buf[pos - 1] &= mask;
 	}
 }
+#endif /* HAVE_OPENSSL_CMAC_H */
 
 /* Code borrowed from https://w1.fi/wpa_supplicant/ ends */
 
@@ -482,6 +494,7 @@ static void wpapsk_postprocess(int keys)
 			hmac_sha1((unsigned char*)prf, 16, hccap.eapol,
 			          hccap.eapol_size, mic[i].keymic, 16);
 		}
+#if HAVE_OPENSSL_CMAC_H
 	} else if (hccap.keyver == 3) { // 802.11w, WPA-PSK-SHA256
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
@@ -502,6 +515,7 @@ static void wpapsk_postprocess(int keys)
 			memcpy(mic[i].keymic, cmic, 16);
 			CMAC_CTX_free(ctx);
 		}
+#endif /* HAVE_OPENSSL_CMAC_H */
 	}
 }
 #endif /* #ifndef JOHN_OCL_WPAPSK */

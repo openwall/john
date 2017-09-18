@@ -10270,6 +10270,18 @@ fi
 
 done
 
+for ac_header in openssl/cmac.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "openssl/cmac.h" "ac_cv_header_openssl_cmac_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_cmac_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENSSL_CMAC_H 1
+_ACEOF
+ break
+fi
+
+done
+
 
 BACKUP_LIBS="$LIBS"
 
