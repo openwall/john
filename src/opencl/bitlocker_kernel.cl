@@ -963,7 +963,7 @@ __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
 	}
 }
 
-// ----- Finale AES-CCM
+// ----- Final AES-CCM
 __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
                                       __global int *found,
                                       __global unsigned char *vmkKey,
