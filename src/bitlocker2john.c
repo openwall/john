@@ -29,6 +29,7 @@
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h> // getopt defined here for unix
 #endif
+#include <getopt.h>
 #include "params.h"
 #include "memory.h"
 #include "memdbg.h"
@@ -267,7 +268,6 @@ static int usage(char *name){
 		"\t\tShow this help\n"
 		"  -i"
 		"\t\tImage path of encrypted memory unit encrypted with BitLocker\n", name);
-
 	return EXIT_FAILURE;
 }
 
