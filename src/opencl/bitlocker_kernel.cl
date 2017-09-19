@@ -286,20 +286,6 @@ __constant unsigned int TS3[256] = {
 	0x5454FCA8U, 0xBBBBD66DU, 0x16163A2CU
 };
 
-#if 0 /* This is not used */
-inline unsigned int IADD3(unsigned int a, unsigned int b, unsigned int c)
-{
-#if HAVE_LUT3
-	unsigned int d;
-
-	asm("iadd3 %0, %1, %2, %3;": "=r"(d):"r"(a), "r"(b), "r"(c));
-	return d;
-#else
-	return a + b + c;
-#endif
-}
-#endif
-
 inline unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
@@ -452,55 +438,17 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
                                       __global int *output_hash
                                       )
 {
-	int globalIndexPassword = (int)get_global_id(0);
-
-	unsigned int schedule0;
-	unsigned int schedule1;
-	unsigned int schedule2;
-	unsigned int schedule3;
-	unsigned int schedule4;
-	unsigned int schedule5;
-	unsigned int schedule6;
-	unsigned int schedule7;
-	unsigned int schedule8;
-	unsigned int schedule9;
-	unsigned int schedule10;
-	unsigned int schedule11;
-	unsigned int schedule12;
-	unsigned int schedule13;
-	unsigned int schedule14;
-	unsigned int schedule15;
-	unsigned int schedule16;
-	unsigned int schedule17;
-	unsigned int schedule18;
-	unsigned int schedule19;
-	unsigned int schedule20;
-	unsigned int schedule21;
-	unsigned int schedule22;
-	unsigned int schedule23;
-	unsigned int schedule24;
-	unsigned int schedule25;
-	unsigned int schedule26;
-	unsigned int schedule27;
-	unsigned int schedule28;
-	unsigned int schedule29;
-	unsigned int schedule30;
-	unsigned int schedule31;
-
+	unsigned int schedule0, schedule1, schedule2, schedule3, schedule4, schedule5, schedule6, schedule7, schedule8, schedule9;
+	unsigned int schedule10, schedule11, schedule12, schedule13, schedule14, schedule15, schedule16, schedule17, schedule18, schedule19;
+	unsigned int schedule20, schedule21, schedule22, schedule23, schedule24, schedule25, schedule26, schedule27, schedule28, schedule29;
+	unsigned int schedule30, schedule31;
+	unsigned int first_hash0, first_hash1, first_hash2, first_hash3, first_hash4, first_hash5, first_hash6, first_hash7;
 	unsigned int a, b, c, d, e, f, g, h;
-	int index_generic;
-	unsigned int first_hash0;
-	unsigned int first_hash1;
-	unsigned int first_hash2;
-	unsigned int first_hash3;
-	unsigned int first_hash4;
-	unsigned int first_hash5;
-	unsigned int first_hash6;
-	unsigned int first_hash7;
-	int numPassword = numPasswordMem[0];
-
-	unsigned int indexW = (globalIndexPassword * FIXED_PASSWORD_BUFFER);
-	int curr_fetch=0;
+	int index_generic=0, numPassword = 0, curr_fetch=0, indexW=0;
+	int globalIndexPassword = (int)get_global_id(0);
+	
+	numPassword = numPasswordMem[0];
+	indexW = (globalIndexPassword * FIXED_PASSWORD_BUFFER);
 
 	while (globalIndexPassword < numPassword) {
 
@@ -764,74 +712,29 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
 	}
 }
 
+// ----- Main SHA-256 loop
 __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
                                       __global unsigned int *w_blocks_d,
                                       __global int *first_hash,
                                       __global int *output_hash,
                                       __global int *numIterPtr)
 {
-	int globalIndexPassword = get_global_id(0);
-
-	unsigned int hash0;
-	unsigned int hash1;
-	unsigned int hash2;
-	unsigned int hash3;
-	unsigned int hash4;
-	unsigned int hash5;
-	unsigned int hash6;
-	unsigned int hash7;
-
-	unsigned int schedule0;
-	unsigned int schedule1;
-	unsigned int schedule2;
-	unsigned int schedule3;
-	unsigned int schedule4;
-	unsigned int schedule5;
-	unsigned int schedule6;
-	unsigned int schedule7;
-	unsigned int schedule8;
-	unsigned int schedule9;
-	unsigned int schedule10;
-	unsigned int schedule11;
-	unsigned int schedule12;
-	unsigned int schedule13;
-	unsigned int schedule14;
-	unsigned int schedule15;
-	unsigned int schedule16;
-	unsigned int schedule17;
-	unsigned int schedule18;
-	unsigned int schedule19;
-	unsigned int schedule20;
-	unsigned int schedule21;
-	unsigned int schedule22;
-	unsigned int schedule23;
-	unsigned int schedule24;
-	unsigned int schedule25;
-	unsigned int schedule26;
-	unsigned int schedule27;
-	unsigned int schedule28;
-	unsigned int schedule29;
-	unsigned int schedule30;
-	unsigned int schedule31;
-
+	unsigned int schedule0, schedule1, schedule2, schedule3, schedule4, schedule5, schedule6, schedule7, schedule8, schedule9;
+	unsigned int schedule10, schedule11, schedule12, schedule13, schedule14, schedule15, schedule16, schedule17, schedule18, schedule19;
+	unsigned int schedule20, schedule21, schedule22, schedule23, schedule24, schedule25, schedule26, schedule27, schedule28, schedule29;
+	unsigned int schedule30, schedule31;
+	unsigned int first_hash0, first_hash1, first_hash2, first_hash3, first_hash4, first_hash5, first_hash6, first_hash7;
+	unsigned int hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7;
 	unsigned int a, b, c, d, e, f, g, h;
-	unsigned int first_hash0;
-	unsigned int first_hash1;
-	unsigned int first_hash2;
-	unsigned int first_hash3;
-	unsigned int first_hash4;
-	unsigned int first_hash5;
-	unsigned int first_hash6;
-	unsigned int first_hash7;
-	int numPassword = numPasswordMem[0];
-	int numIter = numIterPtr[0];
-	unsigned int indexW = 0;
-	int index = 0;
 
-	//For each password
+	int index, numPassword = 0, curr_fetch=0, indexW=0;
+	int globalIndexPassword = (int)get_global_id(0);
+	int numIter = numIterPtr[0];
+	
+	numPassword = numPasswordMem[0];
+
 	while (globalIndexPassword < numPassword)
 	{
-		//Starting index for W Block
 		indexW = (SINGLE_BLOCK_W_SIZE * numIter * HASH_LOOPS);
 
 		first_hash0 = first_hash[(globalIndexPassword*INT_HASH_SIZE) + 0];
@@ -852,10 +755,8 @@ __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
 		hash6 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 6];
 		hash7 = output_hash[(globalIndexPassword*INT_HASH_SIZE) + 7];
 
-		// HASH_LOOPS num of iteration
 		for (index = 0; index < HASH_LOOPS; index++)
 		{
-			// Prima parte
 			a = 0x6A09E667;
 			b = 0xBB67AE85;
 			c = 0x3C6EF372;
@@ -1062,6 +963,7 @@ __kernel void opencl_bitlocker_attack_loop(__global int *numPasswordMem,
 	}
 }
 
+// ----- Finale AES-CCM
 __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
                                       __global int *found,
                                       __global unsigned char *vmkKey,
@@ -1176,7 +1078,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 		                TS3[schedule2 & 0xFF], hash7);
 
-		//----- 2
 		hash0 ^= (TS2[(hash7 >> 24)] & 0x000000FF) ^
 		         (TS3[(hash7 >> 16) & 0xFF] & 0xFF000000) ^
 		         (TS0[(hash7 >> 8) & 0xFF] & 0x00FF0000) ^
@@ -1228,7 +1129,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		                TS3[schedule2 & 0xFF], hash7);
 
 
-		//----- 3
 		hash0 ^= (TS2[(hash7 >> 24)] & 0x000000FF) ^
 		         (TS3[(hash7 >> 16) & 0xFF] & 0xFF000000) ^
 		         (TS0[(hash7 >> 8) & 0xFF] & 0x00FF0000) ^
@@ -1280,8 +1180,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 		                TS3[schedule2 & 0xFF], hash7);
 
-
-		//----- 4
 		hash0 ^= (TS2[(hash7 >> 24)] & 0x000000FF) ^
 		         (TS3[(hash7 >> 16) & 0xFF] & 0xFF000000) ^
 		         (TS0[(hash7 >> 8) & 0xFF] & 0x00FF0000) ^
@@ -1332,8 +1230,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 		                TS3[schedule2 & 0xFF], hash7);
 
-
-		//----- 5
 		hash0 ^= (TS2[(hash7 >> 24)] & 0x000000FF) ^
 		         (TS3[(hash7 >> 16) & 0xFF] & 0xFF000000) ^
 		         (TS0[(hash7 >> 8) & 0xFF] & 0x00FF0000) ^
@@ -1384,8 +1280,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 		                TS3[schedule2 & 0xFF], hash7);
 
-
-		//----- 6
 		hash0 ^= (TS2[(hash7 >> 24)] & 0x000000FF) ^
 		         (TS3[(hash7 >> 16) & 0xFF] & 0xFF000000) ^
 		         (TS0[(hash7 >> 8) & 0xFF] & 0x00FF0000) ^
@@ -1436,7 +1330,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 		                TS3[schedule2 & 0xFF], hash7);
 
-		// last 4 words
 		hash0 ^= (TS2[(hash7 >> 24)] & 0x000000FF) ^
 		         (TS3[(hash7 >> 16) & 0xFF] & 0xFF000000) ^
 		         (TS0[(hash7 >> 8) & 0xFF] & 0x00FF0000) ^
@@ -1445,7 +1338,6 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		hash2 ^= hash1;
 		hash3 ^= hash2;
 
-		// NR-th round
 		schedule0 = (TS2[(schedule4 >> 24)] & 0xFF000000) ^
 		            (TS3[(schedule5 >> 16) & 0xFF] & 0x00FF0000) ^
 		            (TS0[(schedule6 >> 8) & 0xFF] & 0x0000FF00) ^

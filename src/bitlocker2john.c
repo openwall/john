@@ -30,19 +30,44 @@
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h> // getopt defined here for unix
 #endif
+#include <getopt.h>
 #include "params.h"
 #include "memory.h"
 #include "memdbg.h"
 
-#define BITLOCKER_SALT_SIZE 16
-#define BITLOCKER_NONCE_SIZE 12
-#define BITLOCKER_VMK_SIZE 44
-#define BITLOCKER_MAC_SIZE 16
+#define SALT_SIZE 16
+#define NONCE_SIZE 12
+#define VMK_SIZE 44
+#define MAC_SIZE 16
+#define SIGNATURE_LEN 9
+#define INPUT_SIZE 2048
 
-static unsigned char salt[BITLOCKER_SALT_SIZE],
-		nonce[BITLOCKER_NONCE_SIZE],
-		mac[BITLOCKER_MAC_SIZE],
-		encryptedVMK[BITLOCKER_VMK_SIZE];
+static unsigned char salt[SALT_SIZE], nonce[NONCE_SIZE], mac[MAC_SIZE], vmk[VMK_SIZE];
+
+static struct option long_options[] =
+{
+	{"help", no_argument, 0, 'h'},
+	{"image", required_argument, 0, 'i'},
+	{"outfile", required_argument, 0, 'o'},
+	{0, 0, 0, 0}
+};
+
+void * Calloc(size_t len, size_t size) {
+	void * ptr = NULL;
+	if( size <= 0)
+	{
+		fprintf(stderr,"Critical error: memory size is 0\n");
+		exit(EXIT_FAILURE);
+	}
+
+	ptr = (void *)calloc(len, size);	
+	if( ptr == NULL )
+	{
+		fprintf(stderr,"Critical error: Memory allocation\n");
+		exit(EXIT_FAILURE);
+	}
+	return ptr;
+}
 
 static void fillBuffer(FILE *fp, unsigned char *buffer, int size)
 {
@@ -52,32 +77,36 @@ static void fillBuffer(FILE *fp, unsigned char *buffer, int size)
 		buffer[k] = (unsigned char)fgetc(fp);
 }
 
-static void print_hex(unsigned char *str, int len)
+static void print_hex(unsigned char *str, int len, FILE *out)
 {
 	int i;
 
 	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
+		fprintf(out, "%02x", str[i]);
 }
 
-static void process_encrypted_image(char *encryptedImagePath)
+int process_encrypted_image(char * encryptedImagePath, char * outputFile)
 {
-	FILE *encryptedImage;
+	const char signature[SIGNATURE_LEN] = "-FVE-FS-";
+	int version = 0, fileLen = 0, j = 0, i = 0, match = 0;
 
-	int match = 0;
-	char signature[8] = "-FVE-FS-";
-	int version = 0;
 	unsigned char vmk_entry[4] = { 0x02, 0x00, 0x08, 0x00 };
-	unsigned char key_protection_type[2] = { 0x00, 0x20 };
+	unsigned char key_protection_clear[2] = { 0x00, 0x00 };
+	unsigned char key_protection_tpm[2] = { 0x00, 0x01 };
+	unsigned char key_protection_start_key[2] = { 0x00, 0x02 };
+	unsigned char key_protection_recovery[2] = { 0x00, 0x08 };
+	unsigned char key_protection_password[2] = { 0x00, 0x20 };
 	unsigned char value_type[2] = { 0x00, 0x05 };
-	char c;
-	int i = 0;
-	int j, fileLen;
+	unsigned char padding[16] = {0};
+	char c,d;
+	FILE * outFile, * encryptedImage;
 
+
+	printf("Opening file %s\n", encryptedImagePath);
 	encryptedImage = fopen(encryptedImagePath, "r");
 	if (!encryptedImage) {
 		fprintf(stderr, "! %s : %s\n", encryptedImagePath, strerror(errno));
-		return;
+		return 1;
 	}
 
 	fseek(encryptedImage, 0, SEEK_END);
@@ -91,8 +120,7 @@ static void process_encrypted_image(char *encryptedImagePath)
 		}
 		if (i == 8) {
 			match = 1;
-			fprintf(stderr, "Signature found at 0x%08lx\n",
-					(ftell(encryptedImage) - i - 1));
+			fprintf(stderr, "\nSignature found at 0x%08lx\n", (ftell(encryptedImage) - i - 1));
 			fseek(encryptedImage, 1, SEEK_CUR);
 			version = fgetc(encryptedImage);
 			fprintf(stderr, "Version: %d ", version);
@@ -101,57 +129,92 @@ static void process_encrypted_image(char *encryptedImagePath)
 			else if (version == 2)
 				fprintf(stderr, "(Windows 7 or later)\n");
 			else {
-				fprintf
-					(stderr, "\nInvalid version, looking for a signature with valid version...\n");
+				fprintf(stderr, "\nInvalid version, looking for a signature with valid version...\n");
+				match = 0;
 			}
 		}
+		if(match == 0) { i=0; continue; }
+
 		i = 0;
 		while (i < 4 && (unsigned char)c == vmk_entry[i]) {
 			c = fgetc(encryptedImage);
 			i++;
 		}
+
 		if (i == 4) {
-			fprintf(stderr, "VMK entry found at 0x%08lx\n",
-					(ftell(encryptedImage) - i - 3));
+			fprintf(stderr, "VMK entry found at 0x%08lx\n", (ftell(encryptedImage) - i - 3));
 			fseek(encryptedImage, 27, SEEK_CUR);
-			if (
-					((unsigned char)fgetc(encryptedImage) == key_protection_type[0]) &&
-					((unsigned char)fgetc(encryptedImage) == key_protection_type[1])
-			   ) {
-				fprintf(stderr, "Key protector with user password found\n");
+			c = (unsigned char)fgetc(encryptedImage);
+			d = (unsigned char)fgetc(encryptedImage);
+
+			if ((c == key_protection_clear[0]) && (d == key_protection_clear[1])) 
+				fprintf(stderr, "VMK not encrypted.. stored clear!\n");
+			else if ((c == key_protection_tpm[0]) && (d == key_protection_tpm[1])) 
+				fprintf(stderr, "VMK encrypted with TPM...not supported!\n");
+			else if ((c == key_protection_start_key[0]) && (d == key_protection_start_key[1])) 
+				fprintf(stderr, "VMK encrypted with Startup Key...not supported!\n");
+			else if ((c == key_protection_recovery[0]) && (d == key_protection_recovery[1])) 
+				fprintf(stderr, "VMK encrypted with Recovery key...not supported!\n");
+			else if ((c == key_protection_password[0]) && (d == key_protection_password[1])) 
+			{
+				fprintf(stderr, "VMK encrypted with user password found!\n");
 				fseek(encryptedImage, 12, SEEK_CUR);
-				fillBuffer(encryptedImage, salt, BITLOCKER_SALT_SIZE);
+				fillBuffer(encryptedImage, salt, SALT_SIZE);
 				fseek(encryptedImage, 83, SEEK_CUR);
-				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) ||
-						((unsigned char)fgetc(encryptedImage) != value_type[1])) {
+				if (((unsigned char)fgetc(encryptedImage) != value_type[0]) || ((unsigned char)fgetc(encryptedImage) != value_type[1])) {
 					fprintf(stderr, "Error: VMK not encrypted with AES-CCM\n");
+					match=0;
+					i=0;
+					continue;
 				}
+
 				fseek(encryptedImage, 3, SEEK_CUR);
-				fillBuffer(encryptedImage, nonce, BITLOCKER_NONCE_SIZE);
-				fillBuffer(encryptedImage, mac, BITLOCKER_MAC_SIZE);
-				fillBuffer(encryptedImage, encryptedVMK, BITLOCKER_VMK_SIZE);
+				fillBuffer(encryptedImage, nonce, NONCE_SIZE);
+				fillBuffer(encryptedImage, mac, MAC_SIZE);
+				fillBuffer(encryptedImage, vmk, VMK_SIZE);
 				break;
 			}
 		}
-		i = 0;
 
+		i = 0;
 	}
+
 	fclose(encryptedImage);
+
 	if (match == 0) {
 #ifndef HAVE_LIBFUZZER
 		fprintf(stderr, "Error while extracting data: No signature found!\n");
+		return 1;
 #endif
 	} else {
-		unsigned char padding[16] = {0};
-		printf("%s:$bitlocker$0$%d$", encryptedImagePath, BITLOCKER_SALT_SIZE);
-		print_hex(salt, BITLOCKER_SALT_SIZE);
-		printf("$%d$%d$", 0x100000, BITLOCKER_NONCE_SIZE); // fixed iterations , fixed nonce size
-		print_hex(nonce, BITLOCKER_NONCE_SIZE);
-		printf("$%d$", BITLOCKER_VMK_SIZE + 16);
-		print_hex(padding, 16); // hack, this should actually be entire AES-CCM encrypted block (which includes encryptedVMK)
-		print_hex(encryptedVMK, BITLOCKER_VMK_SIZE);
+		printf("%s result hash:\n$bitlocker$0$%d$", encryptedImagePath, SALT_SIZE);
+		print_hex(salt, SALT_SIZE, stdout);
+		printf("$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
+		print_hex(nonce, NONCE_SIZE, stdout);
+		printf("$%d$", VMK_SIZE + 16);
+		print_hex(padding, 16, stdout); // hack, this should actually be entire AES-CCM encrypted block (which includes vmk)
+		print_hex(vmk, VMK_SIZE, stdout);
 		printf("\n");
+		
+		outFile = fopen(outputFile, "w");
+		if (!outFile) {
+			fprintf(stderr, "! %s : %s\n", outputFile, strerror(errno));
+			return 1;
+		}
+
+		fprintf(outFile, "$bitlocker$0$%d$", SALT_SIZE);
+		print_hex(salt, SALT_SIZE, outFile);
+		fprintf(outFile, "$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
+		print_hex(nonce, NONCE_SIZE, outFile);
+		fprintf(outFile, "$%d$", VMK_SIZE + 16);
+		print_hex(padding, 16, outFile); // hack, this should actually be entire AES-CCM encrypted block (which includes vmk)
+		print_hex(vmk, VMK_SIZE, outFile);
+		fprintf(outFile, "\n");
+
+		fclose(outFile);
 	}
+
+	return 0;
 }
 
 #ifdef HAVE_LIBFUZZER
@@ -173,27 +236,70 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	return 0;
 }
 #else
-static int usage(char *name)
-{
-	fprintf(stderr,
-			"Usage: %s <BitLocker Encrypted Disk Image(s)>\n",
-			name);
+
+static int usage(char *name){
+	printf("\nUsage: %s -i <Encrypted memory unit> -o <output file>\n\n"
+		"Options:\n\n"
+		"  -h, --help"
+		"\t\tShow this help\n"
+		"  -i, --image"
+		"\t\tPath of memory unit encrypted with BitLocker\n"
+		"  -o, --outfile"
+		"\t\tOutput file\n\n", name);
 
 	return EXIT_FAILURE;
 }
 
 int main(int argc, char **argv)
 {
+	int opt, option_index = 0;
+	char * imagePath=NULL, * outFile=NULL;
+	
 	errno = 0;
+	while (1) {
+		opt = getopt_long(argc, argv, "hi:o:", long_options, &option_index);
+		if (opt == -1)
+			break;
+		switch (opt)
+		{
+			case 'h':
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+				break;
+			case 'i':
+				if(strlen(optarg) >= INPUT_SIZE)
+				{
+					fprintf(stderr, "ERROR: Input image path is bigger than %d\n", INPUT_SIZE);
+					exit(EXIT_FAILURE);
+				}
+				imagePath=(char *)Calloc(INPUT_SIZE, sizeof(char));
+				strncpy(imagePath, optarg, strlen(optarg)+1);
+				break;
+			case 'o':
+				if(strlen(optarg) >= INPUT_SIZE)
+				{
+					fprintf(stderr, "ERROR: Input outfile path is bigger than %d\n", INPUT_SIZE);
+					exit(EXIT_FAILURE);
+				}
+				outFile=(char *)Calloc(INPUT_SIZE, sizeof(char));
+				strncpy(outFile,optarg, strlen(optarg)+1);
+				break;
+			default:
+				break;
+		}
+	}
 
-	if (argc < 2)
-		return usage(argv[0]);
-	argv++;
-	argc--;
-	while (argc--)
-		process_encrypted_image(*argv++);
+	if(!imagePath || !outFile)
+	{
+		usage(argv[0]);
+		exit(EXIT_FAILURE);
+	}
+	
+	process_encrypted_image(imagePath, outFile);
 
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
+
 	return 0;
 }
+
 #endif  // HAVE_LIBFUZZER
