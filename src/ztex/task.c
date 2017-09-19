@@ -124,34 +124,48 @@ struct task_list *task_list_create(int num_keys,
 	struct task_list *task_list = mem_alloc(sizeof(struct task_list));
 	task_list->task = NULL;
 
-	// create 1 task per device, distribute keys among tasks
-	int num_tasks = jtr_device_list_count();
-	int keys_per_task = num_keys / num_tasks;
-	int num_extra_keys = num_keys % num_tasks;
+	if (!num_keys) {
+		fprintf(stderr, "task_list_create: num_keys=0\n");
+		error();
+	}
+
+	// distribute keys equally among devices
+	int num_devices = jtr_device_list_count();
+	int keys_per_device = num_keys / num_devices;
+	int num_extra_keys = num_keys % num_devices;
 
 	int keys_buffer_offset = 0;
 	int range_info_offset = 0;
 	struct jtr_device *dev;
 	for (dev = jtr_device_list->device; dev; dev = dev->next) {
 
-		int task_num_keys = keys_per_task;
+		int device_num_keys = keys_per_device;
 		if (num_extra_keys) {
-			task_num_keys++;
+			device_num_keys++;
 			num_extra_keys--;
 		}
 
-		if (!task_num_keys)
-			// No keys for the rest of devices
+		// No more keys for this device and remaining ones
+		if (!device_num_keys)
 			break;
 
-		struct task *task = task_new(task_list, task_num_keys,
-				keys + keys_buffer_offset,
-				range_info ? range_info + range_info_offset : NULL);
-		task_assign(task, dev);
+		// Number of keys in word_list/template_list is 16 bit value.
+		// Create several tasks if necessary.
+		while (device_num_keys) {
+			// TODO: maybe create tasks of equal size
+			int task_num_keys = device_num_keys > 65535 ? 65535
+				: device_num_keys;
+			device_num_keys -= task_num_keys;
 
-		keys_buffer_offset += task_num_keys * jtr_fmt_params->plaintext_length;
-		if (range_info)
-			range_info_offset += task_num_keys * MASK_FMT_INT_PLHDR;
+			struct task *task = task_new(task_list, task_num_keys,
+					keys + keys_buffer_offset,
+					range_info ? range_info + range_info_offset : NULL);
+			task_assign(task, dev);
+
+			keys_buffer_offset += task_num_keys * jtr_fmt_params->plaintext_length;
+			if (range_info)
+				range_info_offset += task_num_keys * MASK_FMT_INT_PLHDR;
+		}
 	}
 
 	return task_list;
@@ -260,11 +274,11 @@ void task_create_output_pkt_comm(struct task *task)
 	struct jtr_device *dev = task->jtr_device;
 	if (!dev || task->status != TASK_ASSIGNED) {
 		fprintf(stderr, "task_list_create_output_pkt_comm: unassigned task\n");
-		exit(-1);
+		error();
 	}
 	if (!task->num_keys || !task->keys) {
 		fprintf(stderr, "task_list_create_output_pkt_comm: task contains nothing\n");
-		exit(-1);
+		error();
 	}
 //fprintf(stderr,"task_create_output_pkt_comm\n");
 

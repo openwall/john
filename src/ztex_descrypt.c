@@ -54,7 +54,7 @@ struct device_bitstream bitstream = {
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	35 * 1024*1024,
 	// Absolute max. keys/crypt_all_interval for all devices.
-	262140,
+	2 * 1024*1024,
 	// Max. number of entries in onboard comparator.
 	2047,
 	0,	// Min. number of keys (doesn't matter for fast "formats")
