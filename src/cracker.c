@@ -594,6 +594,9 @@ int crk_reload_pot(void)
 #endif
 	event_reload = 0;
 
+	if (event_abort)
+		return 0;
+
 	if (crk_params.flags & FMT_NOT_EXACT)
 		return 0;
 
