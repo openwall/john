@@ -29,7 +29,6 @@
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h> // getopt defined here for unix
 #endif
-#include <getopt.h>
 #include "params.h"
 #include "memory.h"
 #include "memdbg.h"
@@ -46,6 +45,7 @@
 #define IV_SIZE                  16
 #define VMK_SIZE                 44
 #define SIGNATURE_LEN            9
+
 
 static unsigned char p_salt[SALT_SIZE], p_nonce[NONCE_SIZE], p_mac[MAC_SIZE], p_vmk[VMK_SIZE];
 static unsigned char r_salt[SALT_SIZE], r_nonce[NONCE_SIZE], r_mac[MAC_SIZE], r_vmk[VMK_SIZE];
@@ -267,7 +267,14 @@ static int usage(char *name){
 		"  -h"
 		"\t\tShow this help\n"
 		"  -i"
+<<<<<<< HEAD
 		"\t\tImage path of encrypted memory unit encrypted with BitLocker\n", name);
+=======
+		"\t\tPath of memory unit encrypted with BitLocker\n"
+		"  -o"
+		"\t\tOutput file\n\n", name);
+
+>>>>>>> getopt_long removed (getopt instead), VMK comparison improved with version check (should help to avoid false positives)
 	return EXIT_FAILURE;
 }
 
@@ -275,7 +282,9 @@ int main(int argc, char **argv)
 {
 	int opt;
 	char *image_path = NULL;
-
+	int opt = 0;
+	char * imagePath=NULL, * outFile=NULL;
+	
 	errno = 0;
 	
 	while (1) {
