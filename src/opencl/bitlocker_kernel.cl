@@ -972,26 +972,9 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
                                       __global unsigned int *IV8, __global unsigned int *IV12,
                                       __global int *output_hash)
 {
+	unsigned int schedule0, schedule1, schedule2, schedule3, schedule4, schedule5, schedule6, schedule7;
+	unsigned int hash0, hash1, hash2, hash3, hash4, hash5, hash6, hash7;
 	int globalIndexPassword = get_global_id(0);
-
-	unsigned int hash0;
-	unsigned int hash1;
-	unsigned int hash2;
-	unsigned int hash3;
-	unsigned int hash4;
-	unsigned int hash5;
-	unsigned int hash6;
-	unsigned int hash7;
-
-	unsigned int schedule0;
-	unsigned int schedule1;
-	unsigned int schedule2;
-	unsigned int schedule3;
-	unsigned int schedule4;
-	unsigned int schedule5;
-	unsigned int schedule6;
-	unsigned int schedule7;
-
 	int numPassword = numPasswordMem[0];
 
 	while (globalIndexPassword < numPassword) {
@@ -1358,23 +1341,33 @@ __kernel void opencl_bitlocker_attack_final(__global int *numPasswordMem,
 		            (TS0[(schedule5 >> 8) & 0xFF] & 0x0000FF00) ^
 		            (TS1[(schedule6) & 0xFF] & 0x000000FF) ^ hash3;
 
-
 		schedule4 =
 		    (unsigned int)(((unsigned int)(schedule0 & 0xff000000)) >> 24) |
 		    (unsigned int)((unsigned int)(schedule0 & 0x00ff0000) >> 8) |
 		    (unsigned int)((unsigned int)(schedule0 & 0x0000ff00) << 8) |
 		    (unsigned int)((unsigned int)(schedule0 & 0x000000ff) << 24);
+
+		schedule5 =
+		    (unsigned int)(((unsigned int)(schedule1 & 0xff000000)) >> 24) |
+		    (unsigned int)((unsigned int)(schedule1 & 0x00ff0000) >> 8) |
+		    (unsigned int)((unsigned int)(schedule1 & 0x0000ff00) << 8) |
+		    (unsigned int)((unsigned int)(schedule1 & 0x000000ff) << 24);
+
 		schedule6 =
 		    (unsigned int)(((unsigned int)(schedule2 & 0xff000000)) >> 24) |
 		    (unsigned int)((unsigned int)(schedule2 & 0x00ff0000) >> 8) |
 		    (unsigned int)((unsigned int)(schedule2 & 0x0000ff00) << 8) |
 		    (unsigned int)((unsigned int)(schedule2 & 0x000000ff) << 24);
 
-		if (((vmkKey[16+0] ^ ((unsigned char)schedule4)) == VMK_SIZE) &&
+		if (
+				((vmkKey[16+0] ^ ((unsigned char)schedule4)) == 0x2c) &&
 		        ((vmkKey[16+1] ^ ((unsigned char)(schedule4 >> 8))) == 0x00) &&
+		        ((vmkKey[16+4] ^ ((unsigned char) schedule5)) == 0x01) &&
+                ((vmkKey[16+5] ^ ((unsigned char) (schedule5 >> 8))) == 0x00) &&
 		        ((vmkKey[16+8] ^ ((unsigned char)schedule6)) <= 0x05) &&
 		        ((vmkKey[16+9] ^ ((unsigned char)(schedule6 >> 8))) == 0x20)
-		   ) {
+		   )
+		{
 			found[0] = globalIndexPassword;
 			break;
 		}

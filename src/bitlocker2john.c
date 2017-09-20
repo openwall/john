@@ -30,7 +30,6 @@
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h> // getopt defined here for unix
 #endif
-#include <getopt.h>
 #include "params.h"
 #include "memory.h"
 #include "memdbg.h"
@@ -43,14 +42,6 @@
 #define INPUT_SIZE 2048
 
 static unsigned char salt[SALT_SIZE], nonce[NONCE_SIZE], mac[MAC_SIZE], vmk[VMK_SIZE];
-
-static struct option long_options[] =
-{
-	{"help", no_argument, 0, 'h'},
-	{"image", required_argument, 0, 'i'},
-	{"outfile", required_argument, 0, 'o'},
-	{0, 0, 0, 0}
-};
 
 void * Calloc(size_t len, size_t size) {
 	void * ptr = NULL;
@@ -240,11 +231,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 static int usage(char *name){
 	printf("\nUsage: %s -i <Encrypted memory unit> -o <output file>\n\n"
 		"Options:\n\n"
-		"  -h, --help"
+		"  -h"
 		"\t\tShow this help\n"
-		"  -i, --image"
+		"  -i"
 		"\t\tPath of memory unit encrypted with BitLocker\n"
-		"  -o, --outfile"
+		"  -o"
 		"\t\tOutput file\n\n", name);
 
 	return EXIT_FAILURE;
@@ -252,12 +243,12 @@ static int usage(char *name){
 
 int main(int argc, char **argv)
 {
-	int opt, option_index = 0;
+	int opt = 0;
 	char * imagePath=NULL, * outFile=NULL;
 	
 	errno = 0;
 	while (1) {
-		opt = getopt_long(argc, argv, "hi:o:", long_options, &option_index);
+		opt = getopt(argc, argv, "hi:o:");
 		if (opt == -1)
 			break;
 		switch (opt)
