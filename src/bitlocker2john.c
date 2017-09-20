@@ -29,12 +29,10 @@
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h> // getopt defined here for unix
 #endif
-#include <getopt.h>
 #include "params.h"
 #include "memory.h"
 #include "memdbg.h"
 
-<<<<<<< HEAD
 #define HASH_UP                  0
 #define HASH_UP_MAC              1
 #define HASH_RP                  2
@@ -47,41 +45,6 @@
 #define IV_SIZE                  16
 #define VMK_SIZE                 44
 #define SIGNATURE_LEN            9
-=======
-#define SALT_SIZE 16
-#define NONCE_SIZE 12
-#define VMK_SIZE 44
-#define MAC_SIZE 16
-#define SIGNATURE_LEN 9
-#define INPUT_SIZE 2048
-
-static unsigned char salt[SALT_SIZE], nonce[NONCE_SIZE], mac[MAC_SIZE], vmk[VMK_SIZE];
-
-static struct option long_options[] =
-{
-	{"help", no_argument, 0, 'h'},
-	{"image", required_argument, 0, 'i'},
-	{"outfile", required_argument, 0, 'o'},
-	{0, 0, 0, 0}
-};
-
-void * Calloc(size_t len, size_t size) {
-	void * ptr = NULL;
-	if( size <= 0)
-	{
-		fprintf(stderr,"Critical error: memory size is 0\n");
-		exit(EXIT_FAILURE);
-	}
-
-	ptr = (void *)calloc(len, size);	
-	if( ptr == NULL )
-	{
-		fprintf(stderr,"Critical error: Memory allocation\n");
-		exit(EXIT_FAILURE);
-	}
-	return ptr;
-}
->>>>>>> bitlocker2john code reworked (more check added). code cleanup and comments in main attack kernel
 
 static unsigned char p_salt[SALT_SIZE], p_nonce[NONCE_SIZE], p_mac[MAC_SIZE], p_vmk[VMK_SIZE];
 static unsigned char r_salt[SALT_SIZE], r_nonce[NONCE_SIZE], r_mac[MAC_SIZE], r_vmk[VMK_SIZE];
@@ -102,18 +65,10 @@ static void print_hex(unsigned char *str, int len, FILE *out)
 		fprintf(out, "%02x", str[i]);
 }
 
-<<<<<<< HEAD
 int process_encrypted_image(char *image_path)
 {
 	int version = 0, file_length = 0, j = 0, i = 0, match = 0, vmk_found = 0, recovery_found = 0;
 	const char signature[SIGNATURE_LEN] = "-FVE-FS-";
-=======
-int process_encrypted_image(char * encryptedImagePath, char * outputFile)
-{
-	const char signature[SIGNATURE_LEN] = "-FVE-FS-";
-	int version = 0, fileLen = 0, j = 0, i = 0, match = 0;
-
->>>>>>> bitlocker2john code reworked (more check added). code cleanup and comments in main attack kernel
 	unsigned char vmk_entry[4] = { 0x02, 0x00, 0x08, 0x00 };
 	unsigned char key_protection_clear[2] = { 0x00, 0x00 };
 	unsigned char key_protection_tpm[2] = { 0x00, 0x01 };
@@ -121,7 +76,6 @@ int process_encrypted_image(char * encryptedImagePath, char * outputFile)
 	unsigned char key_protection_recovery[2] = { 0x00, 0x08 };
 	unsigned char key_protection_password[2] = { 0x00, 0x20 };
 	unsigned char value_type[2] = { 0x00, 0x05 };
-<<<<<<< HEAD
 	char a, b, c, d;
 	FILE *fp;
 
@@ -130,17 +84,6 @@ int process_encrypted_image(char * encryptedImagePath, char * outputFile)
 
 	if (!fp) {
 		fprintf(stderr, "! %s : %s\n", image_path, strerror(errno));
-=======
-	unsigned char padding[16] = {0};
-	char c,d;
-	FILE * outFile, * encryptedImage;
-
-
-	printf("Opening file %s\n", encryptedImagePath);
-	encryptedImage = fopen(encryptedImagePath, "r");
-	if (!encryptedImage) {
-		fprintf(stderr, "! %s : %s\n", encryptedImagePath, strerror(errno));
->>>>>>> bitlocker2john code reworked (more check added). code cleanup and comments in main attack kernel
 		return 1;
 	}
 
@@ -155,15 +98,9 @@ int process_encrypted_image(char * encryptedImagePath, char * outputFile)
 		}
 		if (i == 8) {
 			match = 1;
-<<<<<<< HEAD
 			fprintf(stderr, "\nSignature found at 0x%08lx\n", (ftell(fp) - i - 1));
 			fseek(fp, 1, SEEK_CUR);
 			version = fgetc(fp);
-=======
-			fprintf(stderr, "\nSignature found at 0x%08lx\n", (ftell(encryptedImage) - i - 1));
-			fseek(encryptedImage, 1, SEEK_CUR);
-			version = fgetc(encryptedImage);
->>>>>>> bitlocker2john code reworked (more check added). code cleanup and comments in main attack kernel
 			fprintf(stderr, "Version: %d ", version);
 			if (version == 1)
 				fprintf(stderr, "(Windows Vista)\n");
@@ -341,7 +278,7 @@ int main(int argc, char **argv)
 
 	errno = 0;
 	while (1) {
-		opt = getopt_long(argc, argv, "hi:o:", long_options, &option_index);
+		opt = getopt(argc, argv, "hi:o:");
 		if (opt == -1)
 			break;
 		switch (opt)
