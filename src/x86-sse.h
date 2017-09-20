@@ -77,15 +77,6 @@
 #define JOHN_AVX			1
 #endif
 
-#ifdef __SSSE3__
-#undef CPU_NAME
-#define CPU_NAME		"SSSE3"
-#endif
-#ifdef __SSE4_1__
-#undef CPU_NAME
-#define CPU_NAME		"SSE4.1"
-#endif
-
 #define DES_ASM				1
 #define DES_128K			0
 #define DES_X2				1
