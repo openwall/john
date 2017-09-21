@@ -563,7 +563,7 @@ static void ManualBeacon(char *essid_bssid)
 		allocate_more_memory();
 }
 
-static const char const *ctl_subtype[9] = {
+static const char* const ctl_subtype[9] = {
 	"association request",     // 0
 	"1",                       // 1
 	"reassociation request",   // 2
