@@ -252,7 +252,7 @@ static struct opt_entry opt_list[] = {
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 	{"devices", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
-		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
+		OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{"costs", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
@@ -340,9 +340,15 @@ JOHN_USAGE_FORK \
 #define JOHN_USAGE_FORMAT \
 "--format=NAME              force hash of type NAME. The supported formats can\n" \
 "                           be seen with --list=formats and --list=subformats\n\n"
+
 #if defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
 "--devices=N[,..]           set OpenCL device(s) (see --list=opencl-devices)\n"
+#define JOHN_USAGE_ZTEX \
+"                           or set ZTEX device(s) by its(their) serial number(s)\n"
+#elif defined(HAVE_ZTEX)
+#define JOHN_USAGE_ZTEX \
+"--devices=N[,..]           set ZTEX device(s) by its(their) serial number(s)\n"
 #endif
 
 static void print_usage(char *name)
@@ -353,6 +359,9 @@ static void print_usage(char *name)
 	printf(JOHN_USAGE, name);
 #if defined(HAVE_OPENCL)
 	printf("%s", JOHN_USAGE_GPU);
+#endif
+#if defined(HAVE_ZTEX)
+	printf("%s", JOHN_USAGE_ZTEX);
 #endif
 	printf("%s", JOHN_USAGE_FORMAT);
 	exit(0);
@@ -460,7 +469,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	list_init(&options.loader.groups);
 	list_init(&options.loader.shells);
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
-	list_init(&options.gpu_devices);
+	list_init(&options.acc_devices);
 #endif
 
 	options.length = -1;
@@ -550,8 +559,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 #if HAVE_OPENCL
 	if (options.format && strcasestr(options.format, "opencl") &&
-	    (options.flags & FLG_FORK) && options.gpu_devices->count == 0) {
-		list_add(options.gpu_devices, "all");
+	    (options.flags & FLG_FORK) && options.acc_devices->count == 0) {
+		list_add(options.acc_devices, "all");
 	}
 #endif
 
