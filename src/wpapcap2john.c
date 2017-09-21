@@ -38,6 +38,7 @@ static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 static const char *filename;
 static unsigned int link_type, ShowIncomplete = 1;
+static int warn_wpaclean;
 
 // These 2 functions output data properly for JtR, in base-64 format. These
 // were taken from hccap2john.c source, and modified for this project.
@@ -325,6 +326,9 @@ static int GetNextPacket(FILE *in)
 		pkt_hdr.incl_len = swap32u(pkt_hdr.incl_len);
 		pkt_hdr.orig_len = swap32u(pkt_hdr.orig_len);
 	}
+	if (pkt_hdr.ts_sec == 0 && pkt_hdr.ts_usec == 0 && !warn_wpaclean++)
+		fprintf(stderr,
+        "**\n** Warning: %s seems to be processed with some dubious tool like 'wpaclean'. Important information may be lost.\n**\n", filename);
 	if (!start_t) {
 		start_t = pkt_hdr.ts_sec;
 		start_u = pkt_hdr.ts_usec;
@@ -1048,6 +1052,7 @@ int main(int argc, char **argv)
 		                 argv[0]);
 
 	for (i = 1; i < argc; i++) {
+		warn_wpaclean = 0;
 		in = fopen(filename = argv[i], "rb");
 		if (in) {
 			if ((base = strrchr(filename, '/')))
