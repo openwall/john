@@ -136,6 +136,21 @@ typedef struct ether_beacon_data_s {
 } ether_beacon_data_t;
 #pragma pack()
 
+typedef struct ether_assocreq_s {
+	uint16 capa;
+	uint16 interval;
+	ether_beacon_tag_t tags[1];
+} ether_assocreq_t;
+#pragma pack()
+
+typedef struct ether_reassocreq_s {
+	uint16 capa;
+	uint16 interval;
+	uint8  addr3[6];
+	ether_beacon_tag_t tags[1];
+} ether_reassocreq_t;
+#pragma pack()
+
 inline static uint16 swap16u(uint16 v) {
 	return ((v>>8)|((v&0xFF)<<8));
 }
@@ -187,6 +202,7 @@ typedef struct WPA4way_s {
 	int fully_cracked;
 	int hopefully_cracked; // we have a 1 & 2
 	int eapol_sz;
+	int prio; // lower prio will overwrite higher
 } WPA4way_t;
 
 // Here are the structures needed to store the data that make up the 4-way handshake.

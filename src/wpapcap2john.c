@@ -156,7 +156,7 @@ static int convert_ivs(FILE *f_in)
 			unsigned int ofs = (p - buffer);
 			unsigned int len = pktlen - ofs;
 
-			if (len <= 0 || len+1 > sizeof(essid)) {
+			if (len <= 0 || len > 32) {
 				printf("Invalid ESSID length (%d)\n", len);
 				return 1;
 			}
@@ -437,7 +437,7 @@ static int ProcessPacket()
 		ether_auto_802_1x_t *auth;
 
 #if WPADEBUG
-		dump_hex("Ethernet packet, will fake 802.11.\nOriginal", packet, pkt_hdr.incl_len);
+		//dump_hex("Ethernet packet, will fake 802.11.\nOriginal", packet, pkt_hdr.incl_len);
 #endif
 		if (!(new_p = realloc(new_p, new_len))) {
 			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
@@ -468,7 +468,7 @@ static int ProcessPacket()
 	pkt = (ether_frame_hdr_t*)packet;
 
 #if WPADEBUG
-	dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
+	//dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
 #endif
 
 	if (pkt_hdr.incl_len < 2)
@@ -479,7 +479,10 @@ static int ProcessPacket()
 
 	// Type 0 is management,
 	// Beacon is subtype 8 and probe response is subtype 5
-	if (ctl->type == 0 && (ctl->subtype == 5 || ctl->subtype == 8)) {
+	// probe request is 4, assoc request is 0, reassoc is 2
+	if (ctl->type == 0 && (ctl->subtype == 0 || ctl->subtype == 2 ||
+	                       ctl->subtype == 4 || ctl->subtype == 5 ||
+	                       ctl->subtype == 8)) {
 		HandleBeacon(ctl->subtype);
 		return 1;
 	}
@@ -556,16 +559,47 @@ static void ManualBeacon(char *essid_bssid)
 		allocate_more_memory();
 }
 
+static const char const *ctl_subtype[9] = {
+	"association request",     // 0
+	"1",                       // 1
+	"reassociation request",   // 2
+	"3",                       // 3
+	"unicast probe request",   // 4
+	"probe response",          // 5
+	"6",                       // 6
+	"7",                       // 7
+	"beacon"                   // 8
+};
+
 static void HandleBeacon(uint16 subtype)
 {
+	const uint8 bcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
-	int i;
-
-	ether_beacon_data_t *pDat = (ether_beacon_data_t*)&packet[sizeof(ether_frame_hdr_t)];
-	ether_beacon_tag_t *tag = pDat->tags;
+	ether_beacon_tag_t *tag;
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
 	char essid[36] = { 0 };
 	char bssid[18];
+	int prio = 0;
+	int i;
+
+	if (subtype == 8 || subtype == 5) { // beacon or probe response
+		ether_beacon_data_t *pDat = (ether_beacon_data_t*)&packet[sizeof(ether_frame_hdr_t)];
+		tag = pDat->tags;
+		prio = (subtype == 8 ? 5 : 3);
+	} else if (subtype == 4 && memcmp(pkt->addr1, bcast, 6)) {
+		// unicast probe request
+		tag = (ether_beacon_tag_t*)&packet[sizeof(ether_frame_hdr_t)];
+		prio = 4;
+	} else if (subtype == 0) { // association request
+		ether_assocreq_t *pDat = (ether_assocreq_t*)&packet[sizeof(ether_frame_hdr_t)];
+		tag = pDat->tags;
+		prio = 2;
+	} else if (subtype == 2) { // re-association request
+		ether_reassocreq_t *pDat = (ether_reassocreq_t*)&packet[sizeof(ether_frame_hdr_t)];
+		tag = pDat->tags;
+		prio = 1;
+	} else
+		return;
 
 	// addr1 should be broadcast for beacon, unicast for probe response
 	// addr2 is source addr (should be same as BSSID)
@@ -577,23 +611,47 @@ static void HandleBeacon(uint16 subtype)
 		char *x = (char*)tag;
 		if (x + 2 > (char*)pFinal || x + 2 + tag->taglen > (char*)pFinal)
 			break;
-		if (tag->tagtype == 0 && tag->taglen < sizeof(essid))
+		if (tag->tagtype == 0) {
+			if (tag->taglen == 0 || tag->taglen > 32) {
+				to_bssid(bssid, pkt->addr3);
+				fprintf(stderr, "Invalid BSSID %s ESSID '%s' from %s\n",
+				        bssid, tag->tag, ctl_subtype[subtype]);
+				return;
+			}
 			memcpy(essid, tag->tag, tag->taglen);
+			break;
+		}
 		x += tag->taglen + 2;
 		tag = (ether_beacon_tag_t *)x;
 	}
+	if (strlen(essid) == 0)
+		return;
 	if (pkt->addr3 + 6 > pFinal)
 		return;
 	to_bssid(bssid, pkt->addr3);
+
+	// Check if already in db, or older entry has worse prio
 	for (i = nwpa - 1; i >= 0; --i) {
-		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid))
+		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid)) {
+			if (wpa[i].prio > prio) {
+				fprintf(stderr, " Bumped BSSID %s ESSID '%s' (%d -> %d) from %s\n", wpa[i].bssid, wpa[i].essid, wpa[i].prio, prio, ctl_subtype[subtype]);
+				wpa[i].prio = prio;
+			}
 			return;
+		} else if (!strcmp(bssid, wpa[i].bssid)) {
+			if (wpa[i].prio >= prio) {
+				fprintf(stderr, "Renamed BSSID %s ESSID '%s' (old '%s' prio %d, new prio %d) from %s\n", wpa[i].bssid, essid, wpa[i].essid, wpa[i].prio, prio, ctl_subtype[subtype]);
+				break;
+			}
+		}
 	}
+
+	wpa[nwpa].prio = prio;
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
 
 	fprintf(stderr, "Learned BSSID %s ESSID '%s' from %s\n",
-	        bssid, essid, subtype == 5 ? "probe response" : "beacon");
+	        bssid, essid, ctl_subtype[subtype]);
 
 	if (++nwpa >= max_essids)
 		allocate_more_memory();
@@ -749,7 +807,7 @@ static void Handle4Way(int bIsQOS)
 			p += sizeof(ether_frame_hdr_t);
 			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "\nKey1/Key2 hit (unverified), for ESSID:%s (%s)\n", wpa[ess].essid, filename);
+				fprintf (stderr, "\nKey1/Key2 hit (unverified), for ESSID %s (%s)\n", wpa[ess].essid, filename);
 				DumpKey(ess, 1, bIsQOS);
 			}
 		}
@@ -786,8 +844,8 @@ static void Handle4Way(int bIsQOS)
 				// match the third's nonce and we are 100% sure.
 				// If we didn't see it, we are only 99% sure.
 				if (!wpa[ess].packet1 || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
-					fprintf (stderr, "\nKey2/Key3 hit (%s verified), for ESSID:%s (%s)\n",
-						wpa[ess].packet1 ? "100%" : "99%", wpa[ess].essid, filename);
+					fprintf (stderr, "\nKey2/Key3 hit (%s verified), for BSSID %s ESSID '%s' (file '%s')\n",
+						wpa[ess].packet1 ? "100%" : "99%", wpa[ess].bssid, wpa[ess].essid, filename);
 					DumpKey(ess, 3, bIsQOS);
 					wpa[ess].fully_cracked = 1;
 				}
