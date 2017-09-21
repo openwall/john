@@ -403,7 +403,7 @@ static void john_log_format(void)
 
 	/* make sure the format is properly initialized */
 #if HAVE_OPENCL
-	if (!(options.gpu_devices->count && options.fork &&
+	if (!(options.acc_devices->count && options.fork &&
 	      strstr(database.format->params.label, "-opencl")))
 #endif
 	fmt_init(database.format);
@@ -641,7 +641,7 @@ static void john_fork(void)
 			options.node_max = options.node_min;
 #if HAVE_OPENCL
 			// Poor man's multi-device support
-			if (options.gpu_devices->count &&
+			if (options.acc_devices->count &&
 			    strstr(database.format->params.label, "-opencl")) {
 				// Pick device to use for this child
 				opencl_preinit();
@@ -677,7 +677,7 @@ static void john_fork(void)
 
 #if HAVE_OPENCL
 	// Poor man's multi-device support
-	if (options.gpu_devices->count &&
+	if (options.acc_devices->count &&
 	    strstr(database.format->params.label, "-opencl")) {
 		// Pick device to use for mother process
 		opencl_preinit();
@@ -1198,7 +1198,7 @@ static void john_load(void)
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
 #if HAVE_OPENCL
-			if (!(options.gpu_devices->count && options.fork &&
+			if (!(options.acc_devices->count && options.fork &&
 			      strstr(database.format->params.label, "-opencl")))
 #endif
 			fmt_init(database.format);

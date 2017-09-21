@@ -367,7 +367,8 @@ struct options_main {
 	unsigned int v_width;
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
-	struct list_main *gpu_devices;
+/* Allow to set and select OpenCL device(s) or ztex boards */
+	struct list_main *acc_devices;
 #endif
 /* -list=WHAT Get a config list (eg. a list of incremental modes available) */
 	char *listconf;

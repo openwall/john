@@ -111,7 +111,7 @@ static unsigned char DES_atoi64_bitswapped[128] = {
 static void init(struct fmt_main *fmt_main)
 {
 	DES_std_init(); // Used DES_std.c to perform des_crypt() on CPU
-	device_format_init(fmt_main, &bitstream, options.gpu_devices);
+	device_format_init(fmt_main, &bitstream, options.acc_devices);
 }
 
 

@@ -833,7 +833,7 @@ find_format:
 			*ciphertext = prepared;
 			ldr_set_encoding(alt);
 #ifdef HAVE_OPENCL
-			if (options.gpu_devices->count && options.fork &&
+			if (options.acc_devices->count && options.fork &&
 			    strstr(alt->params.label, "-opencl"))
 				*format = alt;
 			else

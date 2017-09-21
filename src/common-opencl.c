@@ -704,7 +704,7 @@ void opencl_preinit(void)
 			struct list_entry *current;
 
 			/* New syntax, sequential --device */
-			if ((current = options.gpu_devices->head)) {
+			if ((current = options.acc_devices->head)) {
 				do {
 					device_list[n++] = current->data;
 				} while ((current = current->next));
@@ -714,7 +714,7 @@ void opencl_preinit(void)
 				gpu_id = -1;
 		}
 
-		if (!options.gpu_devices->head && gpu_id < 0) {
+		if (!options.acc_devices->head && gpu_id < 0) {
 			char *devcfg;
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
