@@ -1,15 +1,18 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall dot net>
- * and Copyright (c) 2012-2014 magnum
+ * and Copyright (c) 2012-2017 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
  * hccap2john processes hccap files into a format suitable for use with JtR.
  * hccap format was introduced by oclHashcat-plus (now renamed to hashcat),
- * and it is described here: http://hashcat.net/wiki/hccap
+ * and it is described here: https://hashcat.net/wiki/doku.php?id=hccap
  *
- * hccap format => $WPAPSK$essid#base64 encoded hccap_t
+ * hccapx format is "version 2" of hccap and it is described here:
+ * https://hashcat.net/wiki/doku.php?id=hccapx
+ *
+ * This tool handles both types.
  */
 #if AC_BUILT
 #include "autoconfig.h"
