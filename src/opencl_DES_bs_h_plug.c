@@ -15,6 +15,8 @@
 #include "opencl_DES_bs.h"
 #include "opencl_DES_hst_dev_shared.h"
 #include "mask_ext.h"
+#include "john.h"
+#include "memdbg.h"
 
 #define PADDING 	2048
 #define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_h_%s.config"
@@ -24,10 +26,7 @@ static cl_kernel **kernels;
 static cl_mem buffer_map, buffer_bs_keys, buffer_unchecked_hashes;
 static WORD *marked_salts = NULL, current_salt = 0;
 static unsigned int *processed_salts = NULL;
-
 static int mask_mode = 0;
-
-#include "memdbg.h"
 
 static int des_crypt_25(int *pcount, struct db_salt *salt);
 
@@ -697,7 +696,7 @@ static void reset(struct db_main *db)
 			salt_list[num_salts++] = (*(WORD *)salt -> salt);
 		} while ((salt = salt -> next));
 
-		if (num_salts > 1)
+		if (num_salts > 1 && john_main_process)
 			fprintf(stderr, "Note: building per-salt kernels. "
 				"This takes e.g. 2 hours for 4096 salts.\n");
 #if _OPENMP && PARALLEL_BUILD
