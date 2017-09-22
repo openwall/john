@@ -22,7 +22,7 @@ static int GetNextPacket(FILE *in);
 static int ProcessPacket();
 static void HandleBeacon(uint16 subtype);
 static void Handle4Way(int bIsQOS);
-static void DumpKey(int idx, int one_three, int bIsQOS);
+static void DumpAuth(int idx, int one_three, int bIsQOS);
 
 static uint32 start_t, start_u, cur_t, cur_u;
 static pcaprec_hdr_t pkt_hdr;
@@ -250,7 +250,7 @@ static int convert_ivs(FILE *f_in)
 static void dump_any_unver() {
 	if (nunVer) {
 		int i;
-		fprintf(stderr, "Dumping %d unverified keys\n", nunVer);
+		fprintf(stderr, "Dumping %d unverified auths\n", nunVer);
 		for (i = 0; i < nunVer; ++i) {
 			printf("%s\n", unVerified[i]);
 			MEM_FREE(unVerified[i]);
@@ -370,8 +370,8 @@ static uint8 fake802_11[] = {
 // indication we have completed (or that the data we want is not here).
 static int ProcessPacket()
 {
-	ether_frame_hdr_t *pkt;
-	ether_frame_ctl_t *ctl;
+	ieee802_1x_frame_hdr_t *pkt;
+	ieee802_1x_frame_ctl_t *ctl;
 	unsigned int frame_skip = 0;
 
 	packet = full_packet;
@@ -438,7 +438,7 @@ static int ProcessPacket()
 	if (link_type == LINKTYPE_ETHERNET &&
 	    packet[12] == 0x88 && packet[13] == 0x8e) {
 		int new_len = pkt_hdr.incl_len - 12 + sizeof(fake802_11);
-		ether_auto_802_1x_t *auth;
+		ieee802_1x_auth_t *auth;
 
 #if WPADEBUG
 		//dump_hex("Ethernet packet, will fake 802.11.\nOriginal", packet, pkt_hdr.incl_len);
@@ -455,7 +455,7 @@ static int ProcessPacket()
 		// Add original EAPOL data
 		memcpy(new_p + sizeof(fake802_11), packet + 12, pkt_hdr.incl_len - 12);
 
-		auth = (ether_auto_802_1x_t*)&packet[14];
+		auth = (ieee802_1x_auth_t*)&packet[14];
 		auth->key_info_u16 = swap16u(auth->key_info_u16);
 		// Add the BSSID to the 802.11 header
 		if (auth->key_info.KeyACK)
@@ -469,7 +469,7 @@ static int ProcessPacket()
 	}
 
 	// our data is in *packet with pkt_hdr being the pcap packet header for this packet.
-	pkt = (ether_frame_hdr_t*)packet;
+	pkt = (ieee802_1x_frame_hdr_t*)packet;
 
 #if WPADEBUG
 	//dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
@@ -477,7 +477,7 @@ static int ProcessPacket()
 
 	if (pkt_hdr.incl_len < 2)
 		return 0;
-	ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
+	ctl = (ieee802_1x_frame_ctl_t *)&pkt->frame_ctl;
 
 	//fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
 
@@ -496,11 +496,11 @@ static int ProcessPacket()
 		int bQOS = (ctl->subtype & 8) != 0;
 		if ((ctl->toDS ^ ctl->fromDS) != 1)// eapol will ONLY be direct toDS or direct fromDS.
 			return 1;
-		if (sizeof(ether_frame_hdr_t)+6+2+(bQOS?2:0) >= pkt_hdr.incl_len)
+		if (sizeof(ieee802_1x_frame_hdr_t)+6+2+(bQOS?2:0) >= pkt_hdr.incl_len)
 			return 1;
 		// Ok, find out if this is a EAPOL packet or not.
 
-		p += sizeof(ether_frame_hdr_t);
+		p += sizeof(ieee802_1x_frame_hdr_t);
 		if (bQOS)
 			p += 2;
 		// p now points to the start of the LLC (logical link control) structure.
@@ -578,8 +578,8 @@ static const char* const ctl_subtype[9] = {
 static void HandleBeacon(uint16 subtype)
 {
 	const uint8 bcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
-	ether_beacon_tag_t *tag;
+	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
+	ieee802_1x_beacon_tag_t *tag;
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
 	char essid[36] = { 0 };
 	char bssid[18];
@@ -587,19 +587,19 @@ static void HandleBeacon(uint16 subtype)
 	int i;
 
 	if (subtype == 8 || subtype == 5) { // beacon or probe response
-		ether_beacon_data_t *pDat = (ether_beacon_data_t*)&packet[sizeof(ether_frame_hdr_t)];
+		ieee802_1x_beacon_data_t *pDat = (ieee802_1x_beacon_data_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
 		tag = pDat->tags;
 		prio = (subtype == 8 ? 5 : 3);
 	} else if (subtype == 4 && memcmp(pkt->addr1, bcast, 6)) {
 		// unicast probe request
-		tag = (ether_beacon_tag_t*)&packet[sizeof(ether_frame_hdr_t)];
+		tag = (ieee802_1x_beacon_tag_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
 		prio = 4;
 	} else if (subtype == 0) { // association request
-		ether_assocreq_t *pDat = (ether_assocreq_t*)&packet[sizeof(ether_frame_hdr_t)];
+		ieee802_1x_assocreq_t *pDat = (ieee802_1x_assocreq_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
 		tag = pDat->tags;
 		prio = 2;
 	} else if (subtype == 2) { // re-association request
-		ether_reassocreq_t *pDat = (ether_reassocreq_t*)&packet[sizeof(ether_frame_hdr_t)];
+		ieee802_1x_reassocreq_t *pDat = (ieee802_1x_reassocreq_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
 		tag = pDat->tags;
 		prio = 1;
 	} else
@@ -626,7 +626,7 @@ static void HandleBeacon(uint16 subtype)
 			break;
 		}
 		x += tag->taglen + 2;
-		tag = (ether_beacon_tag_t *)x;
+		tag = (ieee802_1x_beacon_tag_t *)x;
 	}
 	if (strlen(essid) == 0)
 		return;
@@ -663,12 +663,12 @@ static void HandleBeacon(uint16 subtype)
 
 static void Handle4Way(int bIsQOS)
 {
-	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
+	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	int i, ess=-1;
 	uint8 *orig_2 = NULL;
-	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
+	uint8 *p = (uint8*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
 	uint8 *end = packet + pkt_hdr.incl_len;
-	ether_auto_802_1x_t *auth;
+	ieee802_1x_auth_t *auth;
 	int msg = 0;
 	char bssid[18];
 
@@ -708,8 +708,8 @@ static void Handle4Way(int bIsQOS)
 	//if (memcmp(p, "\xaa\xaa\x3\0\0\0\x88\x8e", 8)) return; // not a 4way
 	p += 8;
 	// p now points to the 802.1X Authentication structure.
-	auth = (ether_auto_802_1x_t*)p;
-	if (p + sizeof(ether_auto_802_1x_t) > end)
+	auth = (ieee802_1x_auth_t*)p;
+	if (p + sizeof(ieee802_1x_auth_t) > end)
 		goto out;
 	if ((auth->length = swap16u(auth->length)) == 0)
 		goto out;
@@ -735,15 +735,17 @@ static void Handle4Way(int bIsQOS)
 			msg = 1;
 	}
 
-	// Ok, we look for a 1 followed immediately by a 2 which have exact same replay_cnt, we have
-	// a 'likely' key. Or we want a 2 followed by a 3 that are 1 replay count apart)  which means
-	// we DO have a key.  The 3 is not returned unless the 2 (which came from the client), IS
-	// valid. So, we get the anonce from either the 1 or the 3 packet.
+// If we see M1 followed by M2 which have same replay_cnt, we have a likely
+// auth. Or we want a M2 followed by a M3 that are 1 replay count apart
+// which means we DO have an auth.
+// The M3 is not returned unless the M2 (which came from the client), IS
+// valid. So, we get the anonce from either the M1 or the M3 packet.
 
-	// for our first run, we output ALL valid keys found in the file. That way, I can validate that
-	// any keys which were produced by aircrack-ng are 'valid' or not.  aircrack-ng WILL generate some
-	// invalid keys.  Also, I want to flag "unknown" keys as just that, unk.  These are 1-2's which
-	// do not have valid 3 4's.  They 'may' be valid, but may also be a client with the wrong password.
+// For our first run, we output ALL valid auths found in the file. That way,
+// I can validate that any auths which were produced by aircrack-ng are valid
+// or not.  aircrack-ng WILL generate some invalid auths.  Also, I want to flag
+// "unknown" auths as just that, unk.  These are M1-M2's which do not have valid
+// M3-M4's.  They may be valid, but may also be a client with the wrong password
 
 	if (msg == 1) {
 		if (auth->key_info.KeyDescr == 3)
@@ -763,9 +765,9 @@ static void Handle4Way(int bIsQOS)
 	}
 	else if (msg == 2) {
 		// Some sanitiy checks
-		if (pkt_hdr.incl_len < sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
+		if (pkt_hdr.incl_len < sizeof(ieee802_1x_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
 			fprintf(stderr, "%s: header len %u, wanted to subtract "Zu", skipping packet\n",
-				filename, pkt_hdr.incl_len, sizeof(ether_frame_hdr_t) + (bIsQOS ? 10 : 8));
+				filename, pkt_hdr.incl_len, sizeof(ieee802_1x_frame_hdr_t) + (bIsQOS ? 10 : 8));
 			goto out;
 		}
 
@@ -803,16 +805,16 @@ static void Handle4Way(int bIsQOS)
 		}
 
 		if (wpa[ess].packet1 && ShowIncomplete) {
-			ether_auto_802_1x_t *auth2 = auth, *auth1;
+			ieee802_1x_auth_t *auth2 = auth, *auth1;
 			p = (uint8*)wpa[ess].packet1;
 			if (bIsQOS)
 				p += 2;
 			p += 8;
-			p += sizeof(ether_frame_hdr_t);
-			auth1 = (ether_auto_802_1x_t*)p;
+			p += sizeof(ieee802_1x_frame_hdr_t);
+			auth1 = (ieee802_1x_auth_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "\nKey1/Key2 hit (unverified), for ESSID %s (%s)\n", wpa[ess].essid, filename);
-				DumpKey(ess, 1, bIsQOS);
+				fprintf (stderr, "\nM1/M2 hit (unverified), for ESSID %s (%s)\n", wpa[ess].essid, filename);
+				DumpAuth(ess, 1, bIsQOS);
 			}
 		}
 	}
@@ -827,30 +829,30 @@ static void Handle4Way(int bIsQOS)
 		}
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.incl_len);
 		if (wpa[ess].packet2) {
-			ether_auto_802_1x_t *auth3 = auth, *auth2;
+			ieee802_1x_auth_t *auth3 = auth, *auth2;
 			p = (uint8*)wpa[ess].packet2;
 			if (bIsQOS)
 				p += 2;
 			p += 8;
-			p += sizeof(ether_frame_hdr_t);
-			auth2 = (ether_auto_802_1x_t*)p;
+			p += sizeof(ieee802_1x_frame_hdr_t);
+			auth2 = (ieee802_1x_auth_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
-				ether_auto_802_1x_t *auth1;
+				ieee802_1x_auth_t *auth1;
 				if (wpa[ess].packet1) {
 					p = (uint8*)wpa[ess].packet1;
 					if (bIsQOS)
 						p += 2;
 					p += 8;
-					p += sizeof(ether_frame_hdr_t);
-					auth1 = (ether_auto_802_1x_t*)p;
+					p += sizeof(ieee802_1x_frame_hdr_t);
+					auth1 = (ieee802_1x_auth_t*)p;
 				}
 				// If we saw the first packet, its nonce must
 				// match the third's nonce and we are 100% sure.
 				// If we didn't see it, we are only 99% sure.
 				if (!wpa[ess].packet1 || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
-					fprintf (stderr, "\nKey2/Key3 hit (%s verified), for BSSID %s ESSID '%s' (file '%s')\n",
+					fprintf (stderr, "\nM2/M3 hit (%s verified), for BSSID %s ESSID '%s' (file '%s')\n",
 						wpa[ess].packet1 ? "100%" : "99%", wpa[ess].bssid, wpa[ess].essid, filename);
-					DumpKey(ess, 3, bIsQOS);
+					DumpAuth(ess, 3, bIsQOS);
 					wpa[ess].fully_cracked = 1;
 				}
 			}
@@ -877,9 +879,9 @@ char *strdup_MSVC(const char *str)
 }
 #endif
 
-static void DumpKey(int ess, int one_three, int bIsQOS)
+static void DumpAuth(int ess, int one_three, int bIsQOS)
 {
-	ether_auto_802_1x_t *auth13, *auth2;
+	ieee802_1x_auth_t *auth13, *auth2;
 	uint8 *p = (uint8*)wpa[ess].packet2;
 	uint8 *pkt2 = p;
 	uint8 *end = (uint8*)wpa[ess].packet2 + wpa[ess].packet2_len;
@@ -891,15 +893,15 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	char TmpKey[2048], *cp = TmpKey;
 	int search_len;
 
-	fprintf (stderr, "Dumping key %d at time: %d.%d BSSID %s ESSID '%s'\n",
+	fprintf (stderr, "Dumping M%d at time: %d.%d BSSID %s ESSID '%s'\n",
 	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
 		p += 2;
 	p += 8;
-	p += sizeof(ether_frame_hdr_t);
-	auth2 = (ether_auto_802_1x_t*)p;
+	p += sizeof(ieee802_1x_frame_hdr_t);
+	auth2 = (ieee802_1x_auth_t*)p;
 	if (one_three==1) {
 		if (!wpa[ess].packet1) { printf ("ERROR, msg1 null\n"); return; }
 		p = wpa[ess].packet1;
@@ -913,13 +915,13 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	if (bIsQOS)
 		p += 2;
 	p += 8;
-	p += sizeof(ether_frame_hdr_t);
-	auth13 = (ether_auto_802_1x_t*)p;
+	p += sizeof(ieee802_1x_frame_hdr_t);
+	auth13 = (ieee802_1x_auth_t*)p;
 
 	memset(&hccap, 0, sizeof(hccap_t));
 	hccap.keyver = auth2->key_info.KeyDescr;
-	memcpy(hccap.mac1, ((ether_frame_hdr_t*)pkt2)->addr1, 6);
-	memcpy(hccap.mac2, ((ether_frame_hdr_t*)(p13))->addr1, 6);
+	memcpy(hccap.mac1, ((ieee802_1x_frame_hdr_t*)pkt2)->addr1, 6);
+	memcpy(hccap.mac2, ((ieee802_1x_frame_hdr_t*)(p13))->addr1, 6);
 	memcpy(hccap.nonce1, auth2->wpa_nonce,32);
 	memcpy(hccap.nonce2, auth13->wpa_nonce,32);
 	memcpy(hccap.keymic, auth2->wpa_keymic, 16);
@@ -928,8 +930,8 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	if (bIsQOS)
 		p += 2;
 	p += 8;
-	p += sizeof(ether_frame_hdr_t);
-	auth2 = (ether_auto_802_1x_t*)p;
+	p += sizeof(ieee802_1x_frame_hdr_t);
+	auth2 = (ieee802_1x_auth_t*)p;
 	memset(auth2->wpa_keymic, 0, 16);
 	hccap.eapol_size = wpa[ess].eapol_sz;
 	if (p + hccap.eapol_size > end) {
@@ -952,13 +954,13 @@ static void DumpKey(int ess, int one_three, int bIsQOS)
 	search_len = cp-TmpKey;
 	cp += sprintf(cp, ":%sverified:%s", (one_three == 1) ? "not " : "", filename);
 	if (one_three == 1) {
-		fprintf (stderr, "unverified key stored, pending verification\n");
+		fprintf (stderr, "unverified auth stored, pending verification\n");
 		unVerified[nunVer++] = strdup(TmpKey);
 		return;
 	} else {
 		for (i = 0; i < nunVer; ++i) {
 			if (!strncmp(TmpKey, unVerified[i], search_len)) {
-				fprintf (stderr, "Key now verified\n");
+				fprintf (stderr, "Auth now verified\n");
 				MEM_FREE(unVerified[i]);
 				unVerified[i] = unVerified[--nunVer];
 				break;

@@ -1,5 +1,5 @@
-// structs and data (from wireshark, and ethernet structures)
 //
+// structs and data (from wireshark, and ethernet structures)
 //
 
 #ifdef _MSC_VER
@@ -47,6 +47,7 @@ typedef struct pcap_hdr_s {
 	uint32 snaplen;        /* max length of captured packets, in octets */
 	uint32 network;        /* data link type */
 } pcap_hdr_t;
+
 // PCAP packet header
 typedef struct pcaprec_hdr_s {
 	uint32 ts_sec;         /* timestamp seconds */
@@ -56,7 +57,7 @@ typedef struct pcaprec_hdr_s {
 } pcaprec_hdr_t;
 
 // Ok, here are the struct we need to decode 802.11 for JtR
-typedef struct ether_frame_hdr_s {
+typedef struct ieee802_1x_frame_hdr_s {
 	uint16 frame_ctl;
 	uint16 duration;
 	uint8  addr1[6];
@@ -67,9 +68,9 @@ typedef struct ether_frame_hdr_s {
 //	uint16 qos_ctl; // optional (if X then it is set)
 //	uint16 ht_ctl;  // optional (if X then it is set)
 //	int8   body[1];
-} ether_frame_hdr_t;
+} ieee802_1x_frame_hdr_t;
 
-typedef struct ether_frame_ctl_s { // bitmap of the ether_frame_hdr_s.frame_ctl
+typedef struct ieee802_1x_frame_ctl_s { // bitmap of the ieee802_1x_frame_hdr_s.frame_ctl
 	uint16 version  : 2;
 	uint16 type     : 2;
 	uint16 subtype  : 4;
@@ -81,10 +82,10 @@ typedef struct ether_frame_ctl_s { // bitmap of the ether_frame_hdr_s.frame_ctl
 	uint16 moredata : 1;
 	uint16 protfram : 1;
 	uint16 order    : 1;
-} ether_frame_ctl_t;
+} ieee802_1x_frame_ctl_t;
 
 // THIS is the structure for the EAPOL data within the packet.
-typedef struct ether_auto_802_1x_s {
+typedef struct ieee802_1x_auth_s {
 	uint8 ver; // 1 ?
 	uint8 key;
 	uint16 length;  // in BE format
@@ -112,43 +113,43 @@ typedef struct ether_auto_802_1x_s {
 	uint8 wpa_keyid[8];
 	uint8 wpa_keymic[16];
 	uint16 wpa_keydatlen;
-} ether_auto_802_1x_t;
+} ieee802_1x_auth_t;
 
-typedef struct ether_beacon_tag_s {
+typedef struct ieee802_1x_beacon_tag_s {
 	uint8  tagtype;
 	uint8  taglen;
 	uint8  tag[1];
 	// we have to 'walk' from 1 tag to next, since the tag itself is
 	// var length.
-} ether_beacon_tag_t;
+} ieee802_1x_beacon_tag_t;
 
 // This is the structure for a 802.11 control 'beacon' packet.
 // A probe response packet looks the same.
 // NOTE, we only use this packet to get the ESSID.
-typedef struct ether_beacon_data_s {
+typedef struct ieee802_1x_beacon_data_s {
 	uint32 time1;
 	uint32 time2;
 	uint16 interval;
 	uint16 caps;
 	// ok, now here we have a array of 'tagged params'.
 	// these are variable sized, so we have to 'specially' walk them.
-	ether_beacon_tag_t tags[1];
-} ether_beacon_data_t;
+	ieee802_1x_beacon_tag_t tags[1];
+} ieee802_1x_beacon_data_t;
 #pragma pack()
 
-typedef struct ether_assocreq_s {
+typedef struct ieee802_1x_assocreq_s {
 	uint16 capa;
 	uint16 interval;
-	ether_beacon_tag_t tags[1];
-} ether_assocreq_t;
+	ieee802_1x_beacon_tag_t tags[1];
+} ieee802_1x_assocreq_t;
 #pragma pack()
 
-typedef struct ether_reassocreq_s {
+typedef struct ieee802_1x_reassocreq_s {
 	uint16 capa;
 	uint16 interval;
 	uint8  addr3[6];
-	ether_beacon_tag_t tags[1];
-} ether_reassocreq_t;
+	ieee802_1x_beacon_tag_t tags[1];
+} ieee802_1x_reassocreq_t;
 #pragma pack()
 
 inline static uint16 swap16u(uint16 v) {
@@ -167,9 +168,9 @@ inline static uint64 swap64u(uint64 v) {
 // that are needed are:   msg1 and msg2  or msg2 and msg3.  These MUST be paired, and
 // matched to each other.  The match 'rules' are:
 // the packets MUST be sequential (only eapol messages being looked at, so sequential epol's)
-// If a msg1-msg2 pair, they BOTH must have the exact same ether_auto_802_1x_t.replay_cnt
-// If the match is a msg2-msg3, then the msg2 ether_auto_802_1x_t.replay_cnt must be exactly
-//   one less than the ether_auto_802_1x_t.replay_cnt in the msg3.
+// If a msg1-msg2 pair, they BOTH must have the exact same ieee802_1x_auth_t.replay_cnt
+// If the match is a msg2-msg3, then the msg2 ieee802_1x_auth_t.replay_cnt must be exactly
+//   one less than the ieee802_1x_auth_t.replay_cnt in the msg3.
 // if any of the above 3 rules (actually only 2 of the 3, since the msg1-msg2 and msg2-msg3
 //   rules are only used in proper context), then we do NOT have a valid 4-way.
 // During run, every time we see a msg1, we 'forget' all other packets.  When we see a msg2,
