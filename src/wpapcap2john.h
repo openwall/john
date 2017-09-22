@@ -267,7 +267,6 @@ struct ivs2_WPA_hdsk
     int state;                                   /* handshake completion         */
 };
 
-#if WPADEBUG
 static void dump_hex(char *msg, void *x, unsigned int size)
 {
 	unsigned int i;
@@ -281,4 +280,19 @@ static void dump_hex(char *msg, void *x, unsigned int size)
 	}
 	fprintf(stderr, "\n");
 }
-#endif
+
+#define safe_realloc(p, len) do {	  \
+		if (!(p = realloc(p, len))) { \
+			fprintf(stderr, "%s:%d: realloc of "Zu" bytes failed\n", \
+			        __FILE__, __LINE__, (size_t)len); \
+			exit(EXIT_FAILURE); \
+		} \
+	} while (0)
+
+#define safe_malloc(p, len) do {	  \
+		if (!(p = malloc(len))) { \
+			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n", \
+			        __FILE__, __LINE__, (size_t)len); \
+			exit(EXIT_FAILURE); \
+		} \
+	} while (0)

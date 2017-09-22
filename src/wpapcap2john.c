@@ -291,17 +291,17 @@ static int Process(FILE *in)
 	}
 	link_type = main_hdr.network;
 	if (link_type == LINKTYPE_IEEE802_11)
-		fprintf(stderr, "\n%s: raw 802.11\n", filename);
+		fprintf(stderr, "\nFile %s: raw 802.11\n", filename);
 	else if (link_type == LINKTYPE_PRISM_HEADER)
-		fprintf(stderr, "\n%s: Prism headers stripped\n", filename);
+		fprintf(stderr, "\nFile %s: Prism headers stripped\n", filename);
 	else if (link_type == LINKTYPE_RADIOTAP_HDR)
-		fprintf(stderr, "\n%s: Radiotap headers stripped\n", filename);
+		fprintf(stderr, "\nFile %s: Radiotap headers stripped\n", filename);
 	else if (link_type == LINKTYPE_PPI_HDR)
-		fprintf(stderr, "\n%s: PPI headers stripped\n", filename);
+		fprintf(stderr, "\nFile %s: PPI headers stripped\n", filename);
 	else if (link_type == LINKTYPE_ETHERNET)
-		fprintf(stderr, "\n%s: Ethernet headers, non-monitor mode. Use of -e option likely required.\n", filename);
+		fprintf(stderr, "\nFile %s: Ethernet headers, non-monitor mode. Use of -e option likely required.\n", filename);
 	else {
-		fprintf(stderr, "\n%s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
+		fprintf(stderr, "\nFile %s: No 802.11 wireless traffic data (network %d)\n", filename, link_type);
 		return 0;
 	}
 
@@ -341,13 +341,7 @@ static int GetNextPacket(FILE *in)
 		cur_u = pkt_hdr.ts_usec-start_u;
 
 	MEM_FREE(full_packet);
-	full_packet = NULL;
-	full_packet = (uint8 *)malloc(pkt_hdr.incl_len);
-	if (!full_packet) {
-		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
-		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
-		exit(EXIT_FAILURE);
-	}
+	safe_malloc(full_packet, pkt_hdr.incl_len);
 	read_size = fread(full_packet, 1, pkt_hdr.incl_len, in);
 	if (read_size < pkt_hdr.incl_len)
 		fprintf(stderr, "%s: truncated last packet\n", filename);
@@ -443,11 +437,7 @@ static int ProcessPacket()
 #if WPADEBUG
 		//dump_hex("Ethernet packet, will fake 802.11.\nOriginal", packet, pkt_hdr.incl_len);
 #endif
-		if (!(new_p = realloc(new_p, new_len))) {
-			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
-			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
-			exit(EXIT_FAILURE);
-		}
+		safe_realloc(new_p, new_len);
 		// Start with some fake 802.11 header data
 		memcpy(new_p, fake802_11, sizeof(fake802_11));
 		// Put original src and dest in the fake 802.11 header
@@ -690,12 +680,7 @@ static void Handle4Way(int bIsQOS)
 	if (wpa[ess].fully_cracked)
 		goto out;  // no reason to go on.
 
-	orig_2 = (uint8 *)malloc(pkt_hdr.incl_len);
-	if (!orig_2) {
-		fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
-		        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
-		exit(EXIT_FAILURE);
-	}
+	safe_malloc(orig_2, pkt_hdr.incl_len);
 	memcpy(orig_2, packet, pkt_hdr.incl_len);
 
 	// Ok, after pkt,  uint16 QOS control (should be 00 00)
@@ -751,13 +736,8 @@ static void Handle4Way(int bIsQOS)
 		if (auth->key_info.KeyDescr == 3)
 			fprintf(stderr, "Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 (PMF) is being used.\n");
 		MEM_FREE(wpa[ess].packet1);
-		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		safe_malloc(wpa[ess].packet1, pkt_hdr.incl_len);
 		wpa[ess].packet1_len = pkt_hdr.incl_len;
-		if (wpa[ess].packet1 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
-			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
-			exit(EXIT_FAILURE);
-		}
 		memcpy(wpa[ess].packet1, packet, pkt_hdr.incl_len);
 		MEM_FREE(wpa[ess].packet2);
 		MEM_FREE(wpa[ess].orig_2);
@@ -775,19 +755,9 @@ static void Handle4Way(int bIsQOS)
 		MEM_FREE(wpa[ess].packet3);
 		MEM_FREE(wpa[ess].packet2);
 		MEM_FREE(wpa[ess].orig_2);
-		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		safe_malloc(wpa[ess].packet2, pkt_hdr.incl_len);
 		wpa[ess].packet2_len = pkt_hdr.incl_len;
-		if (wpa[ess].packet2 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
-			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
-			exit(EXIT_FAILURE);
-		}
-		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
-		if (wpa[ess].orig_2 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
-			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
-			exit(EXIT_FAILURE);
-		}
+		wpa[ess].orig_2  = malloc(pkt_hdr.incl_len);
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.incl_len);
 		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.incl_len);
 		wpa[ess].orig_2_len = pkt_hdr.incl_len;
@@ -820,13 +790,8 @@ static void Handle4Way(int bIsQOS)
 	}
 	else if (msg == 3) {
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
-		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.incl_len);
+		safe_malloc(wpa[ess].packet3, pkt_hdr.incl_len);
 		wpa[ess].packet3_len = pkt_hdr.incl_len;
-		if (wpa[ess].packet3 == NULL) {
-			fprintf(stderr, "%s:%d: malloc of "Zu" bytes failed\n",
-			        __FILE__, __LINE__, sizeof(uint8) * pkt_hdr.orig_len);
-			exit(EXIT_FAILURE);
-		}
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.incl_len);
 		if (wpa[ess].packet2) {
 			ieee802_1x_auth_t *auth3 = auth, *auth2;
@@ -896,18 +861,27 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	fprintf (stderr, "Dumping M%d at time: %d.%d BSSID %s ESSID '%s'\n",
 	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
-	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
+	if (!wpa[ess].packet2) {
+		fprintf(stderr, "ERROR, msg2 null\n");
+		return;
+	}
 	if (bIsQOS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
 	auth2 = (ieee802_1x_auth_t*)p;
 	if (one_three==1) {
-		if (!wpa[ess].packet1) { printf ("ERROR, msg1 null\n"); return; }
+		if (!wpa[ess].packet1) {
+			fprintf(stderr, "ERROR, msg1 null\n");
+			return;
+		}
 		p = wpa[ess].packet1;
 		end = (uint8*)wpa[ess].packet1 + wpa[ess].packet1_len;
 	} else  {
-		if (!wpa[ess].packet3) { printf ("ERROR, msg3 null\n"); return; }
+		if (!wpa[ess].packet3) {
+			fprintf(stderr, "ERROR, msg3 null\n");
+			return;
+		}
 		p = wpa[ess].packet3;
 		end = (uint8*)wpa[ess].packet3 + wpa[ess].packet3_len;
 	}
@@ -936,7 +910,9 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	hccap.eapol_size = wpa[ess].eapol_sz;
 	if (p + hccap.eapol_size > end) {
 		// more checks like this should be added to this function
-		fprintf(stderr, "%s() malformed data? Or bug in our code %p + %d > %p by %ld\n", __FUNCTION__, p, hccap.eapol_size, end, p + hccap.eapol_size - end);
+		fprintf(stderr, "%s() malformed data in %s?\n", __FUNCTION__, filename);
+		dump_hex("Full packet", pkt2, end - pkt2);
+		fprintf(stderr, "\n");
 		return;
 	}
 	memcpy(hccap.eapol, auth2, hccap.eapol_size);
@@ -1022,6 +998,9 @@ int main(int argc, char **argv)
 	wpa = calloc(max_essids, sizeof(WPA4way_t));
 	unVerified = calloc(max_essids, sizeof(char*));
 
+	if (!wpa || !unVerified)
+		alloc_error();
+
 	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
 	    sizeof(struct ivs2_WPA_hdsk) != 356 || sizeof(hccap_t) != 356+36) {
 		fprintf(stderr, "Internal error: struct sizes wrong.\n");
@@ -1054,7 +1033,14 @@ int main(int argc, char **argv)
 		                 argv[0]);
 
 	for (i = 1; i < argc; i++) {
+		int j;
+
+		// Re-init between pcap files
 		warn_wpaclean = 0;
+		start_t = start_u = 0;
+		for (j = 0; j < nwpa; j++)
+			wpa[j].prio = 5;
+
 		in = fopen(filename = argv[i], "rb");
 		if (in) {
 			if ((base = strrchr(filename, '/')))
