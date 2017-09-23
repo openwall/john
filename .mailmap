@@ -1,25 +1,52 @@
+#
 # This ensures 'git shortlog' understands "different" committers as being
 # the same person
 #
 # Proper Name <commit@email.xx>
 # Proper Name <proper@email.xx> <commit@email.xx>
 #
+Agnieszka Bielec <bielecagnieszka8@gmail.com>
+Agnieszka Bielec <bielecagnieszka8@gmail.com> <eternal67@gmail.com>
+Aleksey Cherepanov <aleksey.4erepanov@gmail.com>
+Aleksey Cherepanov <aleksey.4erepanov@gmail.com> <lyosha@openwall.com>
+Alexander Cherepanov <cherepan@mccme.ru>
+Alexander Cherepanov <cherepan@mccme.ru> <ch3root@openwall.com>
+Apingis <denis-burykin2014@yandex.ru>
+Apingis <denis-burykin2014@yandex.ru> <denis_burykin@yahoo.com>
+arcctgx <arcctgx@poczta.onet.pl>
+arcctgx <arcctgx@poczta.onet.pl> <arcctgx@users.noreply.github.com>
+bartavelle (Simon Marechal) <bartavelle@gmail.com>
+Christian Mehlmauer <firefart@gmail.com>
+Christian Mehlmauer <firefart@gmail.com> <FireFart@users.noreply.github.com>
 Claudio André <claudioandre.br@gmail.com>
 Claudio André <claudioandre.br@gmail.com> <claudio.andre@correios.net.br>
 Dhiru Kholia <dhiru@openwall.com>
 Dhiru Kholia <dhiru@openwall.com> <dhiru.kholia@gmail.com>
+Dhiru Kholia <dhiru@openwall.com> <dhiru@kth.se>
+Dhiru Kholia <dhiru@openwall.com> <dhiru@redhat.com>
 Dhiru Kholia <dhiru@openwall.com> <dhiru@spotify.com>
+Dhiru Kholia <dhiru@openwall.com> <dkholia@cs.ubc.ca>
+Dhiru Kholia <dhiru@openwall.com> <dkholia@redhat.com>
+Dhiru Kholia <dhiru@openwall.com> <kholia@kth.se>
 Elena Ago <elena.ago@gmail.com>
+Elena Ago <elena.ago@gmail.com> <elenago@elenagos-MBP.lan>
 Frank Dittrich <frank.dittrich@mailbox.org>
-Frank Dittrich <frank.dittrich@mailbox.org> <frank_dittrich@hotmail.com>
 Frank Dittrich <frank.dittrich@mailbox.org> <fd@f18x64.localdomain>
+Frank Dittrich <frank.dittrich@mailbox.org> <frank_dittrich@hotmail.com>
+Harrison Neal <hneal@whatdidibreak.com>
+Harrison Neal <hneal@whatdidibreak.com> <hneal@hwatdidibreak.com>
+Jan Starke <jan.starke@t-systems.com>
+Jan Starke <jan.starke@t-systems.com> <jan.starke@outofbed.org>
+Jan Starke <teeshop@users.noreply.github.com>
 JimF <jfoug@openwall.net>
 JimF <jfoug@openwall.net> <jfoug@cox.net>
+JimF <jfoug@openwall.net> <jfoug@users.noreply.github.com>
 JimF <jfoug@openwall.net> <jim.fougeron@1PQHGQ1.dtn.com>
 Kai Zhao <loverszhao@gmail.com>
+Kai Zhao <loverszhao@gmail.com> <loverszhao@email.com>
 Kai Zhao <loverszhao@gmail.com> <loverszhaokai@qq.com>
-Zhang Lei <zhanglei.april@gmail.com>
 Lukas Odzioba <ukasz@openwall.net> <lukas.odzioba@gmail.com>
+magnum <john.magnum@hushmail.com> <magnum>
 Milen Rangelov <gat3way@gat3way.eu>
 Myrice <qqlddg@gmail.com> <myrice@myrice-laptop.(none)>
 Samuele <samu@linuxasylum.net>
@@ -30,5 +57,4 @@ Solar <solar@openwall.com>
 Solar <solar@openwall.com> <solar>
 Tavis Ormandy <taviso@cmpxchg8b.com> <taviso@redhat.(none)>
 Tavis Ormandy <taviso@cmpxchg8b.com> <you@example.com>
-bartavelle (Simon Marechal) <bartavelle@gmail.com>
-magnum <john.magnum@hushmail.com> <magnum>
+Zhang Lei <zhanglei.april@gmail.com>
