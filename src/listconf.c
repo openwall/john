@@ -455,7 +455,6 @@ void listconf_parse_late(void)
 	if (!strcasecmp(options.listconf, "ext-modes"))
 	{
 		cfg_print_subsections("List.External", "generate", NULL, 0);
-		cfg_print_subsections("List.External", "new", NULL, 0);
 		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "ext-hybrids"))
