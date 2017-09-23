@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.8-0-jumbo-2:
 
-magnum (1666):
+magnum (1771):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe
 	  static buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but
 	  in other places with similar code.
@@ -2733,6 +2733,170 @@ magnum (1666):
 	  may/will truncate its pot entries.
 	OpenBSDsoftRAID format: Drop a dupe test vector so we don't confuse
 	  the test suite.
+	Update CREDITS-jumbo and CHANGES-jumbo.git
+	Revert some of changes from 272c664 for the net-md5 format. They were
+	  needed for tag translation (I thought it was merely about
+	  supporting bare hashes).
+	Git .mailmap for e-ago
+	Revert some of changes from 272c664 for the net-sha1 format. They were
+	  needed for tag translation (I thought it was merely about
+	  supporting bare hashes). Closes #2554.
+	Bug fixes and workarounds avoiding -Wformat-truncation warnings from
+	  gcc-7. Closes #2533.
+	Style fix, no-op: Change all '# define' -> ' #define'.
+	Whitespace violation fixes, no-op.
+	Code cleanup: Drop a few unused macros (but not in borrowed code).
+	Serious performance bugfix for fgetll() in edge cases.
+	Add a makefile target for producing test files from all formats.
+	Bugfix for the fgetll bugfix in 07ddb4f7. Also never allocate less
+	  than 4K.
+	Fix for uninitialized variable. Closes #2556.
+	Fix for uninitialized variable in fgetll(). Silly me.
+	Pot sync: Emit a warning if pot file shrunk. Merely seeking past end
+	  does not detect that.
+	RAR OpenCL format was lacking FMT_HUGE_INPUT.
+	7z formats was lacking FMT_HUGE_INPUT flag.
+	OSPF format is FMT_HUGE_INPUT, electrum and multibit aren't.
+	Fix a bug introduced in 827df441.
+	Don't allow gcc 7.1.1 to complain about perfectly fine fallthrough
+	  code.
+	Fixes for -Wold-style-declaration.
+	Various fixes for -Wextra
+	Add test files (from 'make testfiles') to .gitignore
+	DMG OpenCL: Use split kernel. Closes #2564.
+	Add SL3 CPU format. Closes #731.
+	Add a silly kludge for a silly test. See
+	  https://github.com/magnumripper/JohnTheRipper/commit/e4795d6#commitcomment-22477620
+	Buffer overrun fix for SL3 format in non SIMD builds.
+	Revert "Using the new multibyte character aware API from rexgen
+	  (#2566)" (#2569)
+	SL3 ensure correct string termination in non-SIMD code.
+	Add SL3 GPU format. See #731.
+	SL3-opencl: Correction of format flags.
+	SL3 formats: Ensure we self-test prepare() function.
+	Ethereum format: Set FMT_HUGE_INPUT. See #2568.
+	SL3 formats: Share common code.
+	OpenSSL-enc format: Get rid of OpenSSL EVP calls. Apart from being
+	  more portable we also got a 25% speed boost. See #1686.
+	Get rid of OpenSSL EVP in encfs formats. See #1686.
+	Drop artefacts from EVP and BIO high-level crap that we have gotten
+	  rid of. Some of it were just comments now but they were removed
+	  or modified to not hit a grep. Closes #1686.
+	mscash formats: Fix bugs for parsing salt containing '#'. See #2575.
+	ztex .editorconfig update after 0bfd564c
+	Fix some run-time OpenCL compiler warnings for ethereal-presale, plus
+	  other insignificant changes.
+	PFX: Add a test vector with a non-ASCII password.
+	Ethereum-presale OpenCL: Auto tune tweaks. Aim for similar durations
+	  of loop and post-process kernels. Avoid uint8_t and size_t in
+	  kernels.
+	OpenCL SHA-1 (CTX version) clean-up.
+	PFX optimizations. Move the last HMAC-SHA1 to GPU (for crying out
+	  loud?). Optimize/unroll some 8-bit operations. Use a quick raw
+	  SHA-1 for inner loop of PKCS12. Over 8x boost (that last thing
+	  made the most). See #2176.
+	Update .gitignore with a couple of new entries.
+	Ethereum-presale OpenCL: Add a cast to pacify some runtime compilers.
+	OpenCL: SHA-2 AMD fix for OSX.
+	Optionally trust 7z padding for early rejection. See #2532 and
+	  470766a.
+	Drop test for -Wno-implicit-fallthrough. For some reason, the cc
+	  options check passes that even though it's not supported. Anyway
+	  it's not needed unless we use -Wextra.
+	PFX formats: Add test vectors describing the need for #2606.
+	MS Money format: Correction for full UCS-2 support (strip 8th bit).
+	  See #2607. Also some optimizations.
+	MS Money: #2607 8-bit fix: Assume ANSI codepage -> upper-case
+	  ASCII -> strip 8th bit -> UCS-2
+	Regex mode now needs librexgen >= 2.0.6
+	Fix a problem with resuming a descrypt-opencl session. Closes #2662.
+	Fix a bug introduced in 0168a45a when using fork (not MPI). Closes
+	  #2664. This might also affect #2547 somehow.
+	WPAPSK: Drop some dead code. There's little point in having a function
+	  always return 0 and then test for other returns...
+	Improve WPAPSK valid() so we don't accept versions we don't support.
+	  Closes #2678.
+	Fix a problem with possible AVX2 (et al) code before we
+	  detect/fallback for CPU type. Closes #2679.
+	Remove some dead code from WPAPSK. Key is always 32 bytes.
+	WPAPSK formats: Add keyver as cost 1 = WPA (MD5), 2 = WPA2 (SHA1),
+	  3 = 802.11w (SHA256)
+	WPAPSK-opencl: Add support (GPU side) for 802.11w / WPA-PSK-SHA256.
+	  Closes #2648.
+	Add "PMF" to wpapsk algo names, indicating we support 802.11w
+	  WPA2-PSK-SHA256
+	Sybase ASE format: Decrease max. length to 30. Closes #2686.
+	Bump RULE_RANGES_MAX from 16 to 30. See #2684.
+	Replace calls to abort(3) with our own error().
+	Fix a mismatch between (POSIX) sleep(3) and emulation of it for
+	  Windows.
+	Replace guerilla usage of exit() to error().
+	QNX format: Move a valid check from crypt_all() to, wait for it,
+	  valid()!
+	OpenCL: Bug fixes. The dreaded PGP-WDE bug that only showed up on
+	  nvidias were caused by an optimized macro assuming data to be
+	  aligned as integer. Most uses of that macro always involved
+	  aligned data but the CTX versions of SHA-1 and SHA-2 may pass
+	  unaligned data. The now added code to handle that will
+	  (hopefully) often be optimized away.
+	OpenCL: SHA1/2 CTX also had alignment issues with output. Closes
+	  #2710.
+	PGPWDE-OpenCL: 5% boost just be ensuring 'struct pgpwde_password' is
+	  sized to end up aligned (124 + 4 == 128).
+	Oops, the previous commit obviously made a length 125 test vector
+	  fail.
+	Tweaks for suppression of heavy logging. See #2717.
+	Bugfix for resuming a -stdin session.
+	OpenCL shared code optimizations (memcpy macro replaced with
+	  functions).
+	Minor tweaks to pgpdisk-opencl. Avoid non-native widths like the
+	  plague, reduce use of private memory.
+	pgpwde-opencl: Since host code hard-codes saltlen and key_len, do so
+	  in kernel also. This allows the run-time optimizer to gain us
+	  some 5% boost.
+	Agilekeychain: Add the new test vector from f78f329 to OpenCL version
+	  too.
+	krb5pa-md5-opencl: Add the new test vector from 4810534 to OpenCL
+	  version too.
+	Electrum(-modern) OpenCL format: Correct algorithm name.
+	OpenCL shared code: Avoid build warnings on some platforms.
+	PGP OpenCL optimzation
+	Revert "Add support for Ethernet link type"
+	wpapcap2john: (Re-)add some diagnostic comments after previous
+	  revertion.
+	eeacc1a merely hid an older bug instead of fixing it. Duh! Fix the
+	  silly band-aid (add a warning print) and also fix the original
+	  bug.
+	wpapcap2john usage blurb: Clearify -e option.
+	wpapcap2john: Re-introduce support for Ethernet encapsulation. See
+	  #2751.
+	Add hccap.h (preparation for #2753).
+	Add WPA-PSK PMK formats. Closes #2754.
+	wpapsk-pmk-opencl: Optimization for many salts.
+	wpapsk-pmk-opencl: Do not set FMT_CASE
+	hccap2john: Add support for reading hccapx files. Closes #2753.
+	Fix a problem where -max-run-time=N with -fork would loop signals so
+	  some processes ended prematurely. See #2757.
+	Only add WPA 802.11w CMAC functionality if our OpenSSL has CMAC. This
+	  does not apply to OpenCL formats, they do it on GPU. Closes
+	  #2763.
+	cracker.c: Ensure we never try to sync pot file if event_abort is
+	  raised. This shouldn't happen anyway but was added as safety.
+	Remove dupe logic from x86-sse.h resulting in incorrect CPU_NAME for
+	  anything beyond SSE4.1. See #2764.
+	Suppress OpenMP warnings for ztex formats. Closes #2771.
+	wpapcap2john: Improve ESSID gathering. Closes #2768.
+	wpapcap2john: Warn about silly tools like wpaclean.
+	hccapx2john: Update license/description & links.
+	wpapcap2john: Type led to build warning.
+	DEScrypt-opencl: Avoid printing silly message once per node.
+	Refactored some extremely confusing and misleading structure names in
+	  wpapcap2john that had me make mistakes over the years.
+	wpapcap2john: Code clean-up (add alloc macros). Re-init more stuff
+	  between each new file. Add some debug output in case of bad data
+	  seen.
+	.mailmap update
+	Update CREDITS-jumbo
 
 JimF (1395):
 	configure: removed many function checks (for #910)
@@ -4644,6 +4808,297 @@ JimF (1395):
 	#2363 sed s/ARCH_WORD_32/uint32_t/g In all source, other than core
 	  john files
 
+Dhiru Kholia (288):
+	Add jtrTestSuite as a submodule
+	Update MinGW stuff
+	Drop a couple of old formats from the unused/ folder
+	blatant attempt to increase my patch count
+	Support TGS-REP hash extraction, based on Kerberoast
+	Don't ignore non-inlined keepass hashes without giving a reason
+	Use sane inlining defaults in keepass2john
+	Update olefile to 0.41, add ACCDB support
+	Add support for cracking Inno Setup hashes
+	Revert "Add support for cracking Inno Setup hashes"
+	Add sample Inno Setup hash
+	Add support for md5($p.$s.md5($p.$s)) scheme
+	Add support for cracking HSRPv2 hashes
+	Add some HSRPv2 test vectors
+	A blast from the past!
+	Make SSH format actually crack Superfish key
+	Give credit where it is due
+	clean up /doc, #1
+	Stop wasting time in maintaining the legacy build system
+	Revert "Stop wasting time in maintaining the legacy build system"
+	Stop wasting time in maintaining the legacy build system
+	Emit a scary message when Makefile.legacy is used
+	Respect PEP8 a bit
+	Recommend PGPCrack-NG for cracking symmetrically encrypted PGP files
+	Add support for Notes/Domino 8+ H-hashes
+	Add support for SHA3 hashes (unify with Keccak stuff)
+	Fix the build failure caused by the recent SHA3 patch
+	Add support for hmac_pbkdf2_md5 hashes, v2
+	Add credit for SHA3 stuff
+	Remove unused function from the SHA3 format
+	Fix description in dominosec8 format
+	Add support for HAS-160 hashes
+	Add HMAC-GOST (currently broken for unknown reasons)
+	Add a test vector for HMAC-GOST
+	Add support for POMELO hashes
+	Add non-SSE implementation of POMELO as backup
+	Add support for Pufferfish hashes
+	Add support for Stribog hashes, v6 (SSE4.1 enabled)
+	Tweak README.MinGW a bit
+	HMAC MD5 cleanup, fixes #1324
+	Fix ASan crash in the new Keccak code
+	Add support for new Oracle Database 12c password hashes
+	Add support for Oracle 12c "H" hashes
+	Port truecrypt_volume2john.c to Python
+	Add support for keyfiles in TrueCrypt format, #1
+	Add support for keyfiles in TrueCrypt format, #2
+	truecrypt_volume2john.c is dead now
+	Create index on aes.a library, MinGW fix #1
+	Stop overwriting AR variable, MinGW fix #2
+	Simplify linking for luks2john.c, MinGW fix #3
+	Fix uaf_encode.c compilation, MinGW fix #4
+	Fix sshng2john.py, fixes #1374
+	Restore a new, robust version of krbpa2john.py utility
+	Remove broken krbpa2john stuff from pcap2john.py
+	Generate new hash format in krbpa2john.py
+	Make krbpa2john.py a bit more robust
+	Restore salt extraction "feature" in krbpa2john.py
+	Unify, and cleanup keystore2john stuff
+	Make krbpa2john.py a bit more robust, #3
+	Make krbpa2john.py a bit more robust, #4
+	Add support for MinGW builds, with <3 from JimF!
+	dynamic_1016 never did md5($s,$p), it does md5($p,$s) instead!
+	Use CircleCI for MinGW builds instead of Travis CI
+	Make CI testing configuration saner
+	Show CircleCI build status in README.md
+	Add support for more NTP hash types
+	Fix copying stuff in MinGW builds
+	Suppress wine warnings in CircleCI environment
+	MinGW build filenames now include short commit hash
+	"download" badge now downloads latest MinGW build
+	Start cleaning up *2john tools
+	Add support for vBulletin > 3.8.5
+	Use "dynamic_2006" for vBulletin!
+	Fix issue #1595
+	Update olefile to 0.42.1 (released 2015-01-24)
+	Make CircleCI testing more robust
+	Update blockchain2john.py to handle v2 hashes, fixes #1050
+	Make blockchain2john.py work with Python 3 too
+	Simplify kirbi2john.py utility
+	Add a test vector in blockchain format
+	Remove a debugging statement from the HSRP v2 parser
+	Improve handling of "special" blockchain v1 wallets
+	Remove testing dictionary, WTF?
+	[ssh] advertise ability to crack PEM files
+	[ssh-ng] add support for EC private keys
+	[ssh] add a PEM test vector
+	Fix downloading of Windows builds
+	Fast PEM cracker
+	[pem] fix errors in pem2john.py
+	[pem] make the format more robust
+	[pem] false positives shouldn not happen now
+	[pem] add support for dsa keys
+	[pem] add a better format description
+	[ssh-ng] advertise support for new "OPENSSH" format private keys
+	[keychain] tested on OS X El Capitan
+	Add support for cracking files using GPG symmetric encryption
+	make gpg format slightly more robust
+	Add support for cracking Apple iWork '13 files
+	Add support for iWork '09 files
+	GPU support for cracking Apple iWork files
+	Add partial support for KWallet 5 files
+	Fix out-of-bounds write in raw-md5 format, caught by ASan
+	ssh format is dead, use ssh-ng format instead
+	Fix bogus line endings in vdi2john.pl
+	Advertise npdf2john a bit
+	Update instructions for MinGW builds
+	[vnc] fix cracking of short passwords, fixes #2021
+	Add documentation for cracking PDF files
+	Add documentation for cracking PST files
+	[iwork-opencl] Remove unused identifier, noticed by Lei Zhang
+	Improve VTP packet parsing a bit
+	Add a comment in keystore2john.py
+	[keepass] KeePass 2 does not support Twofish by default
+	Warn instead of aborting when using keyfile with KeePass 2 databases
+	Document known formats built using the dynamic compiler
+	LUKS only supports sha1 as the hash function currently
+	Document support for cracking JBoss AS 7.1 hashes
+	enfcs: warn for unsupported ciphers
+	Minor fixes in DYNAMIC_COMPILER_FORMATS.md
+	Ugly hack to get pfx2john working again after LINE_BUFFER_SIZE changes
+	Add support for "BKS" (BouncyCastle) format keystore files
+	pfx-ng format
+	Document the correct hash format for MongoDB hashes
+	Add utility to extract MongoDB hashes in JtR format
+	Faster way to crack MONGODB-CR system hashes
+	Fix a misleading indentation compiler warning
+	Add support for cracking MongoDB SCRAM-SHA-1 system hashes
+	Rename MONGODB-MiTM system hashes to MONGODB-CR network hashes
+	Add support for sha256 in pfx-ng format
+	Add support for sha512 in pfx-ng format
+	Add support for MD5(Palshop) hashes
+	Add a sha512 test vector in pfx-ng format
+	Add a usage note for gpg2john utility
+	Add support for cracking SocialEngine hashes
+	Add support for cracking MD5(ZipMonster) hashes
+	Add some more MongoDB network authentication test vectors
+	Add a pfx-ng test vector from CMIYC 2013 contest
+	Fix TravisCI failures by disabling some OpenCL formats
+	Fix a buffer overflow warning at rawSHA512_common_plug.c:333
+	Fix a unused function warning in zipmonster format
+	Add support for cracking Poison Ivy "hashes"
+	krb5pa2john: Fix for broken user extraction due to field name change.
+	  Closes #2299.
+	New format for cracking leet.cc hashes
+	Add support for cracking FileZilla Server hashes
+	leet: avoid crash while processing dynamic_82 type hashes
+	Add dump-apex-hashes.sql script to README.apex
+	Add support for Enpass Password Manager (CPU + GPU)
+	Add support for modern KWallet databases
+	Add pdf2john.pl tool for extracting hashes from PDF files
+	Use Fedora 25 in CircleCI
+	HSRP: remove an old joke
+	Remove remaining traces of ssh2john
+	Fix rename-to-exe logic for the MinGW build
+	Fixes and improvements for iwork2john.py
+	Add support for Oracle PeopleSoft PS_TOKEN hashes
+	Fix the link to LICENSE file
+	Fix a typo in iwork format
+	Add SIMD support for cracking modern KWallet files
+	Fix a thinko in enpass format
+	phpFox v3 hashes can be cracked using dynamic_13
+	Add support for iTunes Backup (#2410)
+	iwork-opencl: move all work to GPU, v2 (#2417)
+	s/erros/errors (fix typos)
+	Add support for cracking FileVault 2 hashes
+	FVDE (FileVault 2) OpenCL support (#2436)
+	Fix error handling in luks2john.py
+	Remove now unnecessary BIO_ checks
+	Remove pdf2john.py, use pdf2john.pl instead
+	gpg2john.c: fix compilation error in case of missing zlib-dev
+	Improve salt and hash validation in EPiServer format
+	Support handling of modern Bitcoin Core wallet versions
+	Various efs2john.py enhancements
+	Add support for cracking Padlock databases
+	Initial support for Jetico BestCrypt 8.x / 9.x (#2448)
+	dmg2john.py: handle encrypted_blob_size with value 64 properly
+	Fix a minor memory leak in BestCrypt format (#2459)
+	Fix a minor memory leak in Padlock format
+	PEP 8 fixes for pcap2john.py
+	Fix a typo in spelling out "JWT"
+	Add support for cracking MS OneNote (.one) files
+	Add support for cracking Windows BitLocker passwords
+	Add support for auditing XMPP SCRAM-SHA-1 hashes
+	Increase PLAINTEXT_LENGTH in Bitcoin format
+	MSDP MD5 password hashes are also supported
+	Misc OpenBSD disk encryption related improvements
+	Fix padding checks in ssh-ng format
+	Add support for bcrypt PBKDF in OpenBSD-SoftRAID format
+	Various 1password2john.py cleanups
+	Add another test vector in Oracle12C format
+	Add another test vector in pomelo format
+	Add support for IPsec Authentication Header (AH) hashes
+	Add support for cracking FreeBSD GELI hashes
+	Add support for ArubaOS hashes
+	Add support for cracking SNMPv3 hashes
+	Fix ALGORITHM_NAME in BitLocker CPU format
+	Various bitlocker2john.c cleanups
+	Various BitLocker related documentation fixes
+	Use OS X support in Travis CI
+	All FreeBSD GELI versions (v0 to v7) are supported now
+	Be more informative when benchmarking itunes-backup format (#2527)
+	Fix import problems in kerberom.py
+	Add support for cracking Ethereum wallets (#2525)
+	Add support for cracking Electrum wallets
+	Add support for cracking MultiBit wallets
+	Improve and extend support for IS-IS hashes
+	Add support for more OSPF and IS-IS authentication algorithms
+	Add support for Ethereum presale wallets
+	Limit output bkp field length in ethereum2john.py
+	Partial OpenCL support for Ethereum format
+	Fix a harmless out-of-bounds read in ethereum format
+	Fix sneaky false positives in ethereum format
+	Fix typos in blockchain formats
+	Blockchain formats: Cleanup code and support My Wallet v3
+	OpenCL support for Ethereum presale wallets
+	Add a real-world Ethereum presale wallet test vector
+	Reduce false positives in MultiBit format
+	Ethereum format: Tune OMP_SCALE value
+	Ethereum format: Move AES decryption + Keccak to GPU
+	MultiBit format: Improve performance by doing delayed decryption
+	OpenCL support for cracking PFX files
+	OpenCL support for cracking FreeBSD GELI
+	Add support for EAP-MD5 hashes
+	Add support for cracking Electrum 2.8+ encrypted wallets
+	Electrum format: remove build hacks and add SIMD
+	OpenCL support for cracking Electrum 2.8+ wallets
+	Warn about unsupported configurations in keepass2john.c
+	Add support for MS Money
+	Add support for ChaCha20 in KeePass format
+	Add support for Access 2007 files using CryptoAPI
+	Add support for SunShop hashes (#2605)
+	Fix handling of GPG symmetric encryption without MDC
+	Reduce false positives in MultiBit format (take 2)
+	Add FMT_NOT_EXACT in GPG format to handle files without MDC
+	Fix multiple problems in sshng2john and SSH-ng format
+	Use Fedora 26 in CircleCI
+	Make uaf2john more robust in input handling
+	Make keepass2john.c more robust in handling input
+	Make dmg2john.c more robust in input handling
+	Make vncpcap2john.c more robust in input handling
+	Few enhancements for openssl2john.py
+	Make SIPdump more robust in handling input
+	Make eapmd5tojohn more robust in input handling
+	Make wpapcap2john more robust in input handling
+	Enable usage of libFuzzer with JtR
+	Add support for SHA-256 in openssl-enc format
+	Enable fuzzing of bitlocker2john using libFuzzer
+	Enable -fstack-protector-all for a CircleCI build
+	Assorted PuTTY cracking enhancements
+	Add WPA2-PSK-SHA256 (802.11w) support
+	Add support for Ethernet link type
+	Add support for Dashlane password manager
+	Few fixes for the LastPass format
+	Add support for LastPass CLI
+	Enable fuzzing of putty2john using libFuzzer
+	Few enhancements for the LastPass formats
+	Report tunable costs for ssh-ng format
+	Use the proper stdint.h file
+	Cleanup old putty2john build stuff
+	Report tunable costs in OpenBSD-SoftRAID format
+	Get rid of EVP_BytesToKey from Dashlane format
+	Add support for truncated Electrum hashes
+	Fix a whitespace error in electrum format
+	Report tunable costs in electrum format
+	Fix a typo in bestcrypt2john.py
+	Add support for cracking PGP WDE encrypted drives
+	Eliminate warnings about unused functions from secp256k1 code
+	GPG format supports cracking PGP Zip files too
+	Add support for cracking PGP Virtual Disk images
+	Add support for EME2-AES in PGP Disk format
+	Fix a problem detected by ASan in PGP WDE format
+	Enable fuzzing of racf2john using libFuzzer
+	Enable fuzzing of hccap2john using libFuzzer
+	OpenCL support for PGP Disk format
+	Show limitations of pcap2john.py explicitly
+	OpenCL support for PGP WDE format
+	OpenCL support for LastPass formats
+	Add support for cracking Kerberos AS-REP responses
+	Various enhancements for the TrueCrypt format
+	Minor updates for 1Password stuff
+	Make error messages more informative in keepass2john.c
+	Add more test vectors in PGP Disk format
+	Add support for cracking PGP SDAs (self-decrypting archives)
+	Generate 32-bit MinGW builds with AVX2, AVX and SSE
+	Add another test vector in PGP SDA format
+	Cleanup DMD5 format a bit
+	OpenCL support for cracking PGP SDAs
+	Make luks2john.py compatible with Python 3 too
+	Fix support for RAR 5.x SFX files
+
 Sayantan Datta (266):
 	DEScrypt OpenCL: Use a "safer" kernel for some devices (drivers)
 	  that could not cope with the goto's.
@@ -4929,7 +5384,7 @@ Sayantan Datta (266):
 	  checking.
 	bugfix for d2a0668
 
-Frank Dittrich (220):
+Frank Dittrich (231):
 	korelogic.conf: fix month name in [List.Rules:MonthsFullPreface]
 	korelogic.conf: split some rule definitions for dupe suppression
 	submodule update
@@ -5216,213 +5671,20 @@ Frank Dittrich (220):
 	Remove all references of CUDA from doc/BUGS
 	Increase Raw-SHA1-Linkedin's PLAINTEXT_LENGTH for non-SIMD builds
 	  (#2530)
+	Add some known hash collisions to sapB format tests
+	Fix for make -f Makefile.legacy clean
+	Fixes for make -f Makefile.legacy generic
+	Legacy generic build: Test BF_X2 = 3 if BF_X2 = 1 was faster than
+	  BF_X2 = 0
+	Legacy builds: adjust plugin format sequence (match autoconf seq.)
+	remove john.local.conf from Makefile.legacy
+	Makefile.legacy: fix dependencies
+	Makefile.in: fix dependencies
+	Reduce sizeof(saved_key) to PLAINTEXT_LENGTH + 1
+	Enhance Argon2 tunable cost reporting (#2742)
+	Enhance and unify tunable cost descriptions (#2745)
 
-Dhiru Kholia (202):
-	Add jtrTestSuite as a submodule
-	Update MinGW stuff
-	Drop a couple of old formats from the unused/ folder
-	blatant attempt to increase my patch count
-	Support TGS-REP hash extraction, based on Kerberoast
-	Don't ignore non-inlined keepass hashes without giving a reason
-	Use sane inlining defaults in keepass2john
-	Update olefile to 0.41, add ACCDB support
-	Add support for cracking Inno Setup hashes
-	Revert "Add support for cracking Inno Setup hashes"
-	Add sample Inno Setup hash
-	Add support for md5($p.$s.md5($p.$s)) scheme
-	Add support for cracking HSRPv2 hashes
-	Add some HSRPv2 test vectors
-	A blast from the past!
-	Make SSH format actually crack Superfish key
-	Give credit where it is due
-	clean up /doc, #1
-	Stop wasting time in maintaining the legacy build system
-	Revert "Stop wasting time in maintaining the legacy build system"
-	Stop wasting time in maintaining the legacy build system
-	Emit a scary message when Makefile.legacy is used
-	Respect PEP8 a bit
-	Recommend PGPCrack-NG for cracking symmetrically encrypted PGP files
-	Add support for Notes/Domino 8+ H-hashes
-	Add support for SHA3 hashes (unify with Keccak stuff)
-	Fix the build failure caused by the recent SHA3 patch
-	Add support for hmac_pbkdf2_md5 hashes, v2
-	Add credit for SHA3 stuff
-	Remove unused function from the SHA3 format
-	Fix description in dominosec8 format
-	Add support for HAS-160 hashes
-	Add HMAC-GOST (currently broken for unknown reasons)
-	Add a test vector for HMAC-GOST
-	Add support for POMELO hashes
-	Add non-SSE implementation of POMELO as backup
-	Add support for Pufferfish hashes
-	Add support for Stribog hashes, v6 (SSE4.1 enabled)
-	Tweak README.MinGW a bit
-	HMAC MD5 cleanup, fixes #1324
-	Fix ASan crash in the new Keccak code
-	Add support for new Oracle Database 12c password hashes
-	Add support for Oracle 12c "H" hashes
-	Port truecrypt_volume2john.c to Python
-	Add support for keyfiles in TrueCrypt format, #1
-	Add support for keyfiles in TrueCrypt format, #2
-	truecrypt_volume2john.c is dead now
-	Create index on aes.a library, MinGW fix #1
-	Stop overwriting AR variable, MinGW fix #2
-	Simplify linking for luks2john.c, MinGW fix #3
-	Fix uaf_encode.c compilation, MinGW fix #4
-	Fix sshng2john.py, fixes #1374
-	Restore a new, robust version of krbpa2john.py utility
-	Remove broken krbpa2john stuff from pcap2john.py
-	Generate new hash format in krbpa2john.py
-	Make krbpa2john.py a bit more robust
-	Restore salt extraction "feature" in krbpa2john.py
-	Unify, and cleanup keystore2john stuff
-	Make krbpa2john.py a bit more robust, #3
-	Make krbpa2john.py a bit more robust, #4
-	Add support for MinGW builds, with <3 from JimF!
-	dynamic_1016 never did md5($s,$p), it does md5($p,$s) instead!
-	Use CircleCI for MinGW builds instead of Travis CI
-	Make CI testing configuration saner
-	Show CircleCI build status in README.md
-	Add support for more NTP hash types
-	Fix copying stuff in MinGW builds
-	Suppress wine warnings in CircleCI environment
-	MinGW build filenames now include short commit hash
-	"download" badge now downloads latest MinGW build
-	Start cleaning up *2john tools
-	Add support for vBulletin > 3.8.5
-	Use "dynamic_2006" for vBulletin!
-	Fix issue #1595
-	Update olefile to 0.42.1 (released 2015-01-24)
-	Make CircleCI testing more robust
-	Update blockchain2john.py to handle v2 hashes, fixes #1050
-	Make blockchain2john.py work with Python 3 too
-	Simplify kirbi2john.py utility
-	Add a test vector in blockchain format
-	Remove a debugging statement from the HSRP v2 parser
-	Improve handling of "special" blockchain v1 wallets
-	Remove testing dictionary, WTF?
-	[ssh] advertise ability to crack PEM files
-	[ssh-ng] add support for EC private keys
-	[ssh] add a PEM test vector
-	Fix downloading of Windows builds
-	Fast PEM cracker
-	[pem] fix errors in pem2john.py
-	[pem] make the format more robust
-	[pem] false positives shouldn not happen now
-	[pem] add support for dsa keys
-	[pem] add a better format description
-	[ssh-ng] advertise support for new "OPENSSH" format private keys
-	[keychain] tested on OS X El Capitan
-	Add support for cracking files using GPG symmetric encryption
-	make gpg format slightly more robust
-	Add support for cracking Apple iWork '13 files
-	Add support for iWork '09 files
-	GPU support for cracking Apple iWork files
-	Add partial support for KWallet 5 files
-	Fix out-of-bounds write in raw-md5 format, caught by ASan
-	ssh format is dead, use ssh-ng format instead
-	Fix bogus line endings in vdi2john.pl
-	Advertise npdf2john a bit
-	Update instructions for MinGW builds
-	[vnc] fix cracking of short passwords, fixes #2021
-	Add documentation for cracking PDF files
-	Add documentation for cracking PST files
-	[iwork-opencl] Remove unused identifier, noticed by Lei Zhang
-	Improve VTP packet parsing a bit
-	Add a comment in keystore2john.py
-	[keepass] KeePass 2 does not support Twofish by default
-	Warn instead of aborting when using keyfile with KeePass 2 databases
-	Document known formats built using the dynamic compiler
-	LUKS only supports sha1 as the hash function currently
-	Document support for cracking JBoss AS 7.1 hashes
-	enfcs: warn for unsupported ciphers
-	Minor fixes in DYNAMIC_COMPILER_FORMATS.md
-	Ugly hack to get pfx2john working again after LINE_BUFFER_SIZE changes
-	Add support for "BKS" (BouncyCastle) format keystore files
-	pfx-ng format
-	Document the correct hash format for MongoDB hashes
-	Add utility to extract MongoDB hashes in JtR format
-	Faster way to crack MONGODB-CR system hashes
-	Fix a misleading indentation compiler warning
-	Add support for cracking MongoDB SCRAM-SHA-1 system hashes
-	Rename MONGODB-MiTM system hashes to MONGODB-CR network hashes
-	Add support for sha256 in pfx-ng format
-	Add support for sha512 in pfx-ng format
-	Add support for MD5(Palshop) hashes
-	Add a sha512 test vector in pfx-ng format
-	Add a usage note for gpg2john utility
-	Add support for cracking SocialEngine hashes
-	Add support for cracking MD5(ZipMonster) hashes
-	Add some more MongoDB network authentication test vectors
-	Add a pfx-ng test vector from CMIYC 2013 contest
-	Fix TravisCI failures by disabling some OpenCL formats
-	Fix a buffer overflow warning at rawSHA512_common_plug.c:333
-	Fix a unused function warning in zipmonster format
-	Add support for cracking Poison Ivy "hashes"
-	krb5pa2john: Fix for broken user extraction due to field name change.
-	  Closes #2299.
-	New format for cracking leet.cc hashes
-	Add support for cracking FileZilla Server hashes
-	leet: avoid crash while processing dynamic_82 type hashes
-	Add dump-apex-hashes.sql script to README.apex
-	Add support for Enpass Password Manager (CPU + GPU)
-	Add support for modern KWallet databases
-	Add pdf2john.pl tool for extracting hashes from PDF files
-	Use Fedora 25 in CircleCI
-	HSRP: remove an old joke
-	Remove remaining traces of ssh2john
-	Fix rename-to-exe logic for the MinGW build
-	Fixes and improvements for iwork2john.py
-	Add support for Oracle PeopleSoft PS_TOKEN hashes
-	Fix the link to LICENSE file
-	Fix a typo in iwork format
-	Add SIMD support for cracking modern KWallet files
-	Fix a thinko in enpass format
-	phpFox v3 hashes can be cracked using dynamic_13
-	Add support for iTunes Backup (#2410)
-	iwork-opencl: move all work to GPU, v2 (#2417)
-	s/erros/errors (fix typos)
-	Add support for cracking FileVault 2 hashes
-	FVDE (FileVault 2) OpenCL support (#2436)
-	Fix error handling in luks2john.py
-	Remove now unnecessary BIO_ checks
-	Remove pdf2john.py, use pdf2john.pl instead
-	gpg2john.c: fix compilation error in case of missing zlib-dev
-	Improve salt and hash validation in EPiServer format
-	Support handling of modern Bitcoin Core wallet versions
-	Various efs2john.py enhancements
-	Add support for cracking Padlock databases
-	Initial support for Jetico BestCrypt 8.x / 9.x (#2448)
-	dmg2john.py: handle encrypted_blob_size with value 64 properly
-	Fix a minor memory leak in BestCrypt format (#2459)
-	Fix a minor memory leak in Padlock format
-	PEP 8 fixes for pcap2john.py
-	Fix a typo in spelling out "JWT"
-	Add support for cracking MS OneNote (.one) files
-	Add support for cracking Windows BitLocker passwords
-	Add support for auditing XMPP SCRAM-SHA-1 hashes
-	Increase PLAINTEXT_LENGTH in Bitcoin format
-	MSDP MD5 password hashes are also supported
-	Misc OpenBSD disk encryption related improvements
-	Fix padding checks in ssh-ng format
-	Add support for bcrypt PBKDF in OpenBSD-SoftRAID format
-	Various 1password2john.py cleanups
-	Add another test vector in Oracle12C format
-	Add another test vector in pomelo format
-	Add support for IPsec Authentication Header (AH) hashes
-	Add support for cracking FreeBSD GELI hashes
-	Add support for ArubaOS hashes
-	Add support for cracking SNMPv3 hashes
-	Fix ALGORITHM_NAME in BitLocker CPU format
-	Various bitlocker2john.c cleanups
-	Various BitLocker related documentation fixes
-	Use OS X support in Travis CI
-	All FreeBSD GELI versions (v0 to v7) are supported now
-	Be more informative when benchmarking itunes-backup format (#2527)
-	Fix import problems in kerberom.py
-	Add support for cracking Ethereum wallets (#2525)
-
-Claudio André (165):
+Claudio André (175):
 	OpenCL: AMD devices have some weird bug when using pinned buffers.
 	  Forgotten file: see ec080119f45ffef07f7f1dd36e120ee56d5d6734
 	OpenCL: Updates to get_processor_family().
@@ -5628,6 +5890,16 @@ Claudio André (165):
 	readme: fix markudown (#2487)
 	racf2john: mute a compiler warning (#2519)
 	PO: fix a bad conversion in a signed char buffer (#2520)
+	maint: add a static code analysis tool (#2561)
+	maint: remove one unused function in ssh_ng format
+	descrypt-opencl: warn about the slow startup at many salts
+	OpenCL: mute ptxas info (from build log) in default verbosity
+	OpenCL: add the failure code to the error message
+	CI: update Travis environment
+	maint: fix MAYBE_INLINE macro for GCC 5+
+	maint: mute a compiler warning [-Wmacro-redefined] (#2746)
+	maint: add pocl as a valid OpenCL implementation (#2750)
+	maint: rename 'gpu_devices' to be adequate to any accelerator
 
 Zhang Lei (108):
 	Resolve issues encountered when building for MIC.
@@ -5832,7 +6104,7 @@ Kai Zhao (84):
 	Detect FMT_SPLIT_UNIFIES_CASE error
 	Change to 'FAILED' when there is a FMT_SPLIT warning or error
 
-Solar (32):
+Solar (33):
 	Fix a bug in truecrypt for non-x86 archs. Closes #912.
 	Early (contest) version of AVX2 support for DES.
 	Fix a compile error in dynamic_compiler_plug.c
@@ -5875,8 +6147,9 @@ Solar (32):
 	Assorted spelling fixes
 	Updated the Rapid7 link (https)
 	Got rid of ARCH_WORD_32 in favor of uint32_t
+	Fix for argon2. Closes #2650.
 
-Fist0urs (26):
+Fist0urs (28):
 	Initial commit.
 	Fixed bug in self-tests (thanks to @jfoug and @magnumripper)
 	Cosmetic changes
@@ -5916,14 +6189,55 @@ Fist0urs (26):
 	  ARC4-HMAC encrypted tickets to be cracked with john
 	Add hash extractor + support for cracking DPAPI masterkey file from XP
 	  to Win10
+	kerberom: new version adding Windows support and Windows implicit
+	  (#2557)
+	Remove CRLF and trailing whitespaces in run/kerberom. Addresses #2559
+	  (#2562)
 
-Jan Starke (4):
+Apingis (16):
+	descrypt-ztex format; includes library for operating ZTEX hardware and
+	  bitstream (4MB). Requires libusb-1.0. Autoconf support.
+	HDL sources; Copyright and license information; small corrections
+	Improvements in ztex library (#2577)
+	ztex-bcrypt format (#2582)
+	error introduced in online conflict resolution - corrected (#2584)
+	bugfixes in ztex-bcrypt trigger another build attempt by CI.
+	Built new descrypt-ztex bitstream from existing design. - Added
+	  programmable clocks - Minor improvements in the design -
+	  Fully compartible with previous version
+	Added FMT_TRUNC
+	Rename for more consistent directory names; added
+	  fpga-descrypt/README.md and summary
+	  fpga-descrypt\ztex_inouttraffic_summary.html
+	Оn bad input packet, board correctly removed from operation.
+	If the only board fails, don't exit, wait until it's up
+	Ztex improve (#2711)
+	bugfix in bcrypt-ztex bitstream; $JOHN; --devices (#2756)
+	ztex-improve (#2760)
+	Fix typos (#2762)
+	Removed limit of (2^18-4) keys/board per crypt_all() (#2766)
+
+Elena Ago (8):
+	BitLocker (OpenCL version): BitLocker password cracking tool (#2427)
+	New hash format (#2516)
+	Bitlocker-opencl: Various fixes, closes #2512. Closes #2546.
+	BitLocker: Extend OpenCL password length limit and use common tests
+	bitlocker2john code reworked (more check added). code cleanup and
+	  comments in main attack kernel
+	Comment fix
+	Format flags
+	getopt_long removed (getopt instead), VMK comparison improved with
+	  version check (should help to avoid false positives)
+
+Jan Starke (6):
 	Update regex code for working with latest rexgen library from
 	  https://github.com/teeshop/rexgen. Older versions of the lib are
 	  no longer supported.
 	compiles cleanly with rexgen 1.3.1, contains version check for rexgen
 	removed error messages in case rexgen is not available
 	updated configure script
+	Using the new multibyte character aware API from rexgen (#2566)
+	Using the new multibyte character aware API from rexgen (#2571)
 
 Aleksey Cherepanov (3):
 	added --show=types option; renamed m_allow_rawhash_fixup into
@@ -5976,11 +6290,6 @@ Christian Mehlmauer (2):
 	update OSX compile instructions
 	Update .gitignore
 
-Denis Burykin (2):
-	descrypt-ztex format; includes library for operating ZTEX hardware and
-	  bitstream (4MB). Requires libusb-1.0. Autoconf support.
-	HDL sources; Copyright and license information; small corrections
-
 Michel Normand (2):
 	set ARCH_LITTLE_ENDIAN for powerpc64 little endian in src/ppc64.h
 	add src/escrypt/tests in .gitignore
@@ -6006,10 +6315,6 @@ arcctgx (2):
 	  (#2429)
 	add support for more recent Gadu-Gadu login packets
 
-e-ago (2):
-	BitLocker (OpenCL version): BitLocker password cracking tool (#2427)
-	New hash format (#2516)
-
 philsmd (2):
 	pdf2john.py problem, commit efc315e926f521cc41c002742a994776edbacc1d
 	  broke it
@@ -6021,8 +6326,15 @@ walkerk1980 (2):
 	  allow log file creation perms, change to bitwise check from strcmp()
 	  on LogFilePerms and PotFilePerms
 
+Agnieszka Bielec (1):
+	newest argon2 CPU version, no idea why virtual speed is 8 times slower
+	  than real
+
 Alexander Haase (1):
 	Added support for HDAA as defined in RFC 2069.
+
+Bernhard M. Wiedemann (1):
+	sort input files (#2560)
 
 Bernhard Spil (1):
 	Replace deprecated des_ methods and calls that were available in
@@ -6031,15 +6343,17 @@ Bernhard Spil (1):
 Bigendian Smalls (1):
 	racf2john update to dump KDFAES hashes (#2510)
 
+Christian Inci (1):
+	Fix for 31-character passwords on PKCS12 (off-by-one error)
+
 Dhirendra Kholia (1):
 	Make ssh-ng saner by using a tiny ASN.1 decoder
 
 Dmitri Lapin (1):
 	Fixed wrong header (was immintrin.h - AVX header)
 
-Eternal (1):
-	newest argon2 CPU version, no idea why virtual speed is 8 times slower
-	  than real
+Ioannis Profetis (1):
+	autoconf: Replace deprecated symbol check for OpenSSL >= 1.1.0 (#2558)
 
 Ivan Novikov (1):
 	Add support for cracking ColdFusion 11 hashes
@@ -6068,6 +6382,12 @@ Ralf Sager (1):
 
 Tonimir Kisasondi (1):
 	Added keyring2john.py
+
+Warren MacEvoy (1):
+	Update INSTALL-UBUNTU (#2625)
+
+Will Dormann (1):
+	Make input parsing more robust in sshng2john.py
 
 c0re (1):
 	pdf2john: Fix AttributeError
