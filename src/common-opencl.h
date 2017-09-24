@@ -166,6 +166,9 @@ unsigned int opencl_get_vector_width(int sequential_id, int size);
 /* Returns number of selected devices */
 int get_number_of_devices_in_use(void);
 
+/* Returns number of requested devices */
+int get_number_of_requested_devices(void);
+
 /* Initialize a specific device. If necessary, parse command line and get
  * information about all OpenCL devices. */
 int opencl_prepare_dev(int sequential_id);
