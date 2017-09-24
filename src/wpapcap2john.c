@@ -931,6 +931,8 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	cp += sprintf(cp, ":%sverified:%s", (one_three == 1) ? "not " : "", filename);
 	if (one_three == 1) {
 		fprintf (stderr, "unverified auth stored, pending verification\n");
+		if (nunVer >= max_essids)
+			allocate_more_memory();
 		unVerified[nunVer++] = strdup(TmpKey);
 		return;
 	} else {
