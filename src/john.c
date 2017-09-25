@@ -647,7 +647,7 @@ static void john_fork(void)
 				// Pick device to use for this child
 				opencl_preinit();
 				gpu_id =
-				    gpu_device_list[i % get_number_of_devices_in_use()];
+				    requested_devices[i % get_number_of_requested_devices()];
 				platform_id = get_platform_id(gpu_id);
 
 				// Hide any other devices from list

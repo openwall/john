@@ -38,6 +38,7 @@ typedef struct {
 #define MAX_GPU_DEVICES         128
 extern int gpu_id;
 extern int gpu_device_list[MAX_GPU_DEVICES];
+extern int requested_devices[MAX_GPU_DEVICES];
 
 extern hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 

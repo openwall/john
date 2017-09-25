@@ -189,6 +189,15 @@ int get_number_of_devices_in_use()
 	return --i;
 }
 
+int get_number_of_requested_devices()
+{
+	int i = 0;
+
+	while (requested_devices[i++] != -1);
+
+	return --i;
+}
+
 int get_platform_id(int sequential_id)
 {
 	int pos = 0, i = 0;
@@ -614,8 +623,10 @@ static void add_device_to_list(int sequential_id)
 		}
 		gpu_device_list[get_number_of_devices_in_use() + 1] = -1;
 		gpu_device_list[get_number_of_devices_in_use()] = sequential_id;
-
 	}
+	// The full list of requested devices.
+	requested_devices[get_number_of_requested_devices() + 1] = -1;
+	requested_devices[get_number_of_requested_devices()] = sequential_id;
 }
 
 static void add_device_type(cl_ulong device_type)
@@ -691,6 +702,8 @@ void opencl_preinit(void)
 
 		gpu_device_list[0] = -1;
 		gpu_device_list[1] = -1;
+		requested_devices[0] = -1;
+		requested_devices[1] = -1;
 
 		gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
 		                             "AbortTemperature");

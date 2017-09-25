@@ -42,6 +42,7 @@
 
 int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];
+int requested_devices[MAX_GPU_DEVICES];
 hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
 int gpu_temp_limit;
