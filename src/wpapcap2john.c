@@ -858,8 +858,6 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	char TmpKey[2048], *cp = TmpKey;
 	int search_len;
 
-	fprintf (stderr, "Dumping M%d at time: %d.%d BSSID %s ESSID '%s'\n",
-	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) {
 		fprintf(stderr, "ERROR, msg2 null\n");
@@ -945,7 +943,8 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 			}
 		}
 	}
-	fprintf(stderr, "\n");
+	fprintf (stderr, "Dumping M%d at time: %d.%d BSSID %s ESSID '%s'\n",
+	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	printf ("%s\n", TmpKey);
 	fflush(stdout);
 }
