@@ -93,6 +93,11 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	return gpg_common_valid(ciphertext, self, 1);
+}
+
 static void set_salt(void *salt)
 {
 	gpg_common_cur_salt = *(struct gpg_common_custom_salt **)salt;
@@ -189,7 +194,7 @@ struct fmt_main fmt_gpg = {
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		gpg_common_valid,
+		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		gpg_common_get_salt,

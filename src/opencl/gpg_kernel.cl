@@ -6,8 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * converted to use 'common' code, Feb29-Mar1 2016, JimF.  Also, added
- * CPU handling of all 'types' which we do not yet have in GPU.
+ * Converted to use 'common' code, Feb29-Mar1 2016, JimF.
  */
 
 #include "opencl_device_info.h"
