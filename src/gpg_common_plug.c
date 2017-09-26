@@ -160,11 +160,13 @@ static int gpg_common_valid_cipher_algorithm(int cipher_algorithm)
 	return 0;
 }
 
-// NOTE, the CPU code was added to the GPU format (Still runs CPU mode, for those hashes)
-// so not ALL algo's are usable by both CPU and GPU.
-static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec)
+static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec, int isCPU)
 {
+	static int warn_once = 1;
+
 	if (spec == SPEC_SIMPLE || spec == SPEC_SALTED) {
+		if (!isCPU)
+			goto print_warn_once;
 		switch(hash_algorithm) {
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
@@ -172,6 +174,10 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec)
 		}
 	}
 	if (spec == SPEC_ITERATED_SALTED) {
+		if (!isCPU) {
+			if (hash_algorithm == HASH_SHA1) return 1;
+			goto print_warn_once;
+		}
 		switch(hash_algorithm)
 		{
 			case HASH_SHA1: return 1;
@@ -184,9 +190,17 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec)
 		}
 	}
 	return 0;
+
+print_warn_once:
+	if (warn_once) {
+		fprintf(stderr,
+		        "Error: The gpg-opencl format currently only supports keys using iterated salted SHA1.\n");
+		warn_once = 0;
+	}
+	return 0;
 }
 
-int gpg_common_valid(char *ciphertext, struct fmt_main *self)
+int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format)
 {
 	char *ctcopy, *keeptr, *p;
 	int res,j,spec,usage,algorithm,ex_flds=0;
@@ -245,7 +259,7 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (!gpg_common_valid_hash_algorithm(res, spec))
+	if (!gpg_common_valid_hash_algorithm(res, spec, is_CPU_format))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;

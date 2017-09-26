@@ -28,7 +28,7 @@
 
 extern struct fmt_tests gpg_common_gpg_tests[];
 
-extern int gpg_common_valid(char *ciphertext, struct fmt_main *self);
+extern int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format);
 extern int gpg_common_check(unsigned char *keydata, int ks);
 extern void *gpg_common_get_salt(char *ciphertext);
 
