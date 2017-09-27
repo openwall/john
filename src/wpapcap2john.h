@@ -85,7 +85,7 @@ typedef struct ieee802_1x_frame_ctl_s { // bitmap of the ieee802_1x_frame_hdr_s.
 } ieee802_1x_frame_ctl_t;
 
 // THIS is the structure for the EAPOL data within the packet.
-typedef struct ieee802_1x_auth_s {
+typedef struct ieee802_1x_eapol_s {
 	uint8 ver; // 1 ?
 	uint8 key;
 	uint16 length;  // in BE format
@@ -102,7 +102,7 @@ typedef struct ieee802_1x_auth_s {
 			uint16 Error	: 1;
 			uint16 Reqst	: 1;
 			uint16 EncKeyDat: 1;
-		}key_info;
+		} key_info;
 		uint16 key_info_u16;	// union used for swapping, to work around worthless gcc warning.
 	};
 	uint16 key_len;
@@ -113,7 +113,14 @@ typedef struct ieee802_1x_auth_s {
 	uint8 wpa_keyid[8];
 	uint8 wpa_keymic[16];
 	uint16 wpa_keydatlen;
+} ieee802_1x_eapol_t;
+
+typedef struct ieee802_1x_auth_s {
+	uint16 algo;
+	uint16 seq;
+	uint16 status;
 } ieee802_1x_auth_t;
+#pragma pack()
 
 typedef struct ieee802_1x_beacon_tag_s {
 	uint8  tagtype;
@@ -162,31 +169,36 @@ inline static uint64 swap64u(uint64 v) {
 	return JOHNSWAP64(v);
 }
 
-// This type structure is used to keep track of EAPOL packets, as they are read
-// from a PCAP file.  we need to get certain 'paired' packets, to be able to create
-// the input file for JtR (i.e. the 4-way to make the hash input for JtR). The packets
-// that are needed are:   msg1 and msg2  or msg2 and msg3.  These MUST be paired, and
-// matched to each other.  The match 'rules' are:
-// the packets MUST be sequential (only eapol messages being looked at, so sequential epol's)
-// If a msg1-msg2 pair, they BOTH must have the exact same ieee802_1x_auth_t.replay_cnt
-// If the match is a msg2-msg3, then the msg2 ieee802_1x_auth_t.replay_cnt must be exactly
-//   one less than the ieee802_1x_auth_t.replay_cnt in the msg3.
-// if any of the above 3 rules (actually only 2 of the 3, since the msg1-msg2 and msg2-msg3
-//   rules are only used in proper context), then we do NOT have a valid 4-way.
-// During run, every time we see a msg1, we 'forget' all other packets.  When we see a msg2,
-//   we forget all msg3 and msg4's.  Also, for a msg2, we see if we have a msg1.  If so, we
-//   see if that msg1 satisfies the replay_cnt rule.  If that is the case, then we have a
-//   'possible' valid 4-way. We do write the results.  However, at this time, we are not
-//   100% 'sure' we have a valid 4-way.  We CAN get a msg1/msg2 pair, even if the AP trying
-//   to validate, did not know the password.  If all we see is the msg1/msg2, then we do not
-//   KNOW for sure, if that AP was able to validate itself.   If there was a msg1 but it did
-//   not match, we simply drop it.  Finally, when we get a msg3, we dump the msg1 and msg4's.
-//   We check for a msg2 that is valid.  If the msg2 is valid, then we are SURE that we have
-//   a valid 4-way.  The msg3 would not be sent, unless the router was happy that the
-//   the connecting AP knows the PW, unless the router was written to always 'fake' reply,
-//   but that is likely against 802.11 rules.  The only thing I could think might do this,
-//   is some honey-pot router, looking for hackers. A real router is not going to give a
-//   msg3 unless the 4-way is going along fine.
+/* This type structure is used to keep track of EAPOL packets, as they are read
+ * from a PCAP file.  we need to get certain 'paired' packets, to be able to
+ * create the input file for JtR (i.e. the 4-way to make the hash input for
+ * JtR). The packets that are needed are:  M1/M2 or M2/M3.  These MUST be
+ * paired, and matched to each other.  The match 'rules' are:
+ *
+ * - The packets MUST be sequential (sequential EAPOL's, per AP)
+ * - If a M1/M2 pair, they BOTH must have the exact same replay_cnt
+ * - If the match is a M2/M3, then the M2 replay_cnt must be exactly one less
+ *   than the replay_cnt in the M3.
+ *
+ * If any of the above 3 rules (actually only 2 of the 3, since the M1/M2 and
+ * M2/M3 rules are only used in proper context), then we do NOT have a valid
+ * 4-way.
+ *
+ * During run, every time we see a M1 for a given AP, we 'forget' all other
+ * packets for it.  When we see a M2, we forget all M3 and M4's.  Also, for a
+ * M2, we see if we have a M1.  If so, we see if that M1 satisfies the
+ * replay_cnt rule.  If that is the case, then we have a 'possible' valid
+ * 4-way.  We do write the results.  However, at this time, we are not 100%
+ * 'sure' we have a valid 4-way.  We CAN get a M1/M2 pair, even if the STA
+ * trying to validate used the wrong password.  If all we see is the M1/M2,
+ * then we do not KNOW for sure, if that STA was able to validate itself.  If
+ * there was a M1 but it did not match, we simply drop it.
+ *
+ * Finally, when we get a M3, we dump the M1 and M4's.  We check for a M2 that
+ * is valid.  If the M2 is valid, then we are SURE that we have a valid 4-way.
+ * The M3 would not be sent, unless the router was happy that the connecting
+ * AP knows the PW.
+ */
 typedef struct WPA4way_s {
 	char essid[36];
 	char bssid[18];
@@ -199,7 +211,6 @@ typedef struct WPA4way_s {
 	int orig_2_len;
 	uint8 *packet3;
 	int packet3_len;
-	uint8 *packet4;
 	int fully_cracked;
 	int hopefully_cracked; // we have a 1 & 2
 	int eapol_sz;

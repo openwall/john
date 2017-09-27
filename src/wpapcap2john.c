@@ -20,11 +20,12 @@ static size_t max_essids = 1024; /* Will grow automagically */
 
 static int GetNextPacket(FILE *in);
 static int ProcessPacket();
-static void HandleBeacon(uint16 subtype);
+static void HandleBeacon(uint16 subtype, int has_ht);
 static void Handle4Way(int bIsQOS);
 static void DumpAuth(int idx, int one_three, int bIsQOS);
 
 static uint32 start_t, start_u, cur_t, cur_u;
+static uint32 pkt_num;
 static pcaprec_hdr_t pkt_hdr;
 static uint8 *full_packet;
 static uint8 *packet;
@@ -39,6 +40,7 @@ static const char cpItoa64[64] =
 static const char *filename;
 static unsigned int link_type, ShowIncomplete = 1;
 static int warn_wpaclean;
+static int verbosity = 1;
 
 // These 2 functions output data properly for JtR, in base-64 format. These
 // were taken from hccap2john.c source, and modified for this project.
@@ -88,7 +90,7 @@ static int convert_ivs(FILE *f_in)
 	unsigned int pktlen;
 	unsigned char bssid[6];
 	int bssidFound = 0;
-	char essid[500];
+	char essid[32 + 1];
 	int essidFound = 0;
 	unsigned char *p, *w;
 
@@ -196,7 +198,7 @@ static int convert_ivs(FILE *f_in)
 
 			fprintf(stderr, "WPA handshake keyver=%d eapolSize=%d\n\n", wivs2->keyver, wivs2->eapol_size);
 
-			printf ("%s:$WPAPSK$%s#", essid, essid);
+			printf("%s:$WPAPSK$%s#", essid, essid);
 
 			memset(&hccap, 0, sizeof(hccap_t));
 			hccap.keyver = wivs2->keyver;
@@ -221,10 +223,10 @@ static int convert_ivs(FILE *f_in)
 			w = (unsigned char*)&hccap;
 			for (i=36; i+3 < sizeof(hccap_t); i += 3) {
 				code_block(&w[i], 1, buf);
-				printf ("%s", buf);
+				printf("%s", buf);
 			}
 			code_block(&w[i], 0, buf);
-			printf ("%s", buf);
+			printf("%s", buf);
 			to_compact(gecos, hccap.mac1);
 			to_dashed(ap_mac, hccap.mac1);
 			to_dashed(sta_mac, hccap.mac2);
@@ -250,7 +252,7 @@ static int convert_ivs(FILE *f_in)
 static void dump_any_unver() {
 	if (nunVer) {
 		int i;
-		fprintf(stderr, "Dumping %d unverified auths\n", nunVer);
+		fprintf(stderr, "Dumping %d M1/M2 auths\n", nunVer);
 		for (i = 0; i < nunVer; ++i) {
 			printf("%s\n", unVerified[i]);
 			MEM_FREE(unVerified[i]);
@@ -310,6 +312,7 @@ static int Process(FILE *in)
 			break;
 		}
 	}
+	fprintf(stderr, "File %s: End of data\n", filename);
 	dump_any_unver();
 	return 1;
 }
@@ -329,16 +332,18 @@ static int GetNextPacket(FILE *in)
 	if (pkt_hdr.ts_sec == 0 && pkt_hdr.ts_usec == 0 && !warn_wpaclean++)
 		fprintf(stderr,
         "**\n** Warning: %s seems to be processed with some dubious tool like 'wpaclean'. Important information may be lost.\n**\n", filename);
+
 	if (!start_t) {
 		start_t = pkt_hdr.ts_sec;
 		start_u = pkt_hdr.ts_usec;
 	}
-	cur_t = pkt_hdr.ts_sec-start_t;
-	if (start_u > pkt_hdr.ts_usec) {
-		--cur_t;
-		cur_u = 1000000-(start_u-pkt_hdr.ts_usec);
-	} else
-		cur_u = pkt_hdr.ts_usec-start_u;
+	cur_t = pkt_hdr.ts_sec - start_t;
+	cur_u = pkt_hdr.ts_usec - start_u;
+
+	while (cur_u > 999999) {
+		cur_t--;
+		cur_u += 1000000;
+	}
 
 	MEM_FREE(full_packet);
 	safe_malloc(full_packet, pkt_hdr.incl_len);
@@ -358,6 +363,26 @@ static uint8 fake802_11[] = {
 	0x06, 0x00, 0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00
 };
 
+// Type 0 subtypes
+static const char* const ctl_subtype[16] = {
+	"Association request",     // 0
+	"Association response",    // 1
+	"Reassociation request",   // 2
+	"Reassociation response",  // 3
+	"Probe request",           // 4
+	"Probe response",          // 5
+	"Subtype 6",               // 6
+	"Subtype 7",               // 7
+	"Beacon",                  // 8
+	"ATIM",                    // 9
+	"Disassociation",          // 10
+	"Authentication",          // 11
+	"Deauthentication",        // 12
+	"Action",                  // 13
+	"Action no ack",           // 14
+	"Subtype 15"
+};
+
 // Ok, this function is the main packet processor.  NOTE, when we are done
 // reading packets (i.e. we have done what we want), we return 0, and
 // the program will exit gracefully.  It is not an error, it is just an
@@ -367,6 +392,7 @@ static int ProcessPacket()
 	ieee802_1x_frame_hdr_t *pkt;
 	ieee802_1x_frame_ctl_t *ctl;
 	unsigned int frame_skip = 0;
+	int has_ht;
 
 	packet = full_packet;
 
@@ -432,7 +458,7 @@ static int ProcessPacket()
 	if (link_type == LINKTYPE_ETHERNET &&
 	    packet[12] == 0x88 && packet[13] == 0x8e) {
 		int new_len = pkt_hdr.incl_len - 12 + sizeof(fake802_11);
-		ieee802_1x_auth_t *auth;
+		ieee802_1x_eapol_t *auth;
 
 #if WPADEBUG
 		//dump_hex("Ethernet packet, will fake 802.11.\nOriginal", packet, pkt_hdr.incl_len);
@@ -445,7 +471,7 @@ static int ProcessPacket()
 		// Add original EAPOL data
 		memcpy(new_p + sizeof(fake802_11), packet + 12, pkt_hdr.incl_len - 12);
 
-		auth = (ieee802_1x_auth_t*)&packet[14];
+		auth = (ieee802_1x_eapol_t*)&packet[14];
 		auth->key_info_u16 = swap16u(auth->key_info_u16);
 		// Add the BSSID to the 802.11 header
 		if (auth->key_info.KeyACK)
@@ -461,33 +487,56 @@ static int ProcessPacket()
 	// our data is in *packet with pkt_hdr being the pcap packet header for this packet.
 	pkt = (ieee802_1x_frame_hdr_t*)packet;
 
-#if WPADEBUG
-	//dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
-#endif
+	if (verbosity > 1) {
+		char src[18], dst[18];
 
-	if (pkt_hdr.incl_len < 2)
+		if (verbosity > 2)
+			dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
+
+		to_bssid(dst, &packet[4]);
+		to_bssid(src, &packet[10]);
+		if (verbosity > 2)
+			fprintf(stderr, "%4d %2d.%06u  %s -> %s %-4d ", ++pkt_num, pkt_hdr.ts_sec, pkt_hdr.ts_usec, src, dst, pkt_hdr.incl_len);
+		else
+			fprintf(stderr, "%4d %2d.%06u  %s -> %s %-4d ", ++pkt_num, cur_t, cur_u, src, dst, pkt_hdr.incl_len);
+	}
+
+	if (pkt_hdr.incl_len < 2) {
+		if (verbosity > 1)
+			fprintf(stderr, "Truncated data\n");
 		return 0;
+	}
+
 	ctl = (ieee802_1x_frame_ctl_t *)&pkt->frame_ctl;
 
-	//fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
+	has_ht = (ctl->order == 1); // 802.11n, 4 extra bytes MAC header
+
+	if (has_ht && verbosity > 1)
+		fprintf(stderr, "[802.11n] ");
 
 	// Type 0 is management,
 	// Beacon is subtype 8 and probe response is subtype 5
 	// probe request is 4, assoc request is 0, reassoc is 2
-	if (ctl->type == 0 && (ctl->subtype == 0 || ctl->subtype == 2 ||
-	                       ctl->subtype == 4 || ctl->subtype == 5 ||
-	                       ctl->subtype == 8)) {
-		HandleBeacon(ctl->subtype);
+	if (ctl->type == 0) {
+		HandleBeacon(ctl->subtype, has_ht);
 		return 1;
 	}
 	// if not beacon or probe response, then look only for EAPOL 'type'
 	if (ctl->type == 2) { // type 2 is data
 		uint8 *p = packet;
 		int bQOS = (ctl->subtype & 8) != 0;
-		if ((ctl->toDS ^ ctl->fromDS) != 1)// eapol will ONLY be direct toDS or direct fromDS.
+
+		if ((ctl->toDS ^ ctl->fromDS) != 1) {
+			// eapol will ONLY be direct toDS or direct fromDS.
+			if (verbosity > 1)
+				fprintf(stderr, "Invalid EAPOL src/dst\n");
 			return 1;
-		if (sizeof(ieee802_1x_frame_hdr_t)+6+2+(bQOS?2:0) >= pkt_hdr.incl_len)
+		}
+		if (sizeof(ieee802_1x_frame_hdr_t)+6+2+(bQOS?2:0)+(has_ht?4:0) >= pkt_hdr.incl_len) {
+			if (verbosity > 1)
+				fprintf(stderr, "QoS Null or malformed EAPOL\n");
 			return 1;
+		}
 		// Ok, find out if this is a EAPOL packet or not.
 
 		p += sizeof(ieee802_1x_frame_hdr_t);
@@ -495,11 +544,38 @@ static int ProcessPacket()
 			p += 2;
 		// p now points to the start of the LLC (logical link control) structure.
 		// this is 8 bytes long, and the last 2 bytes are the 'type' field.  What
-		// we are looking for is 802.11X authentication packets. These are 0x888e
+		// we are looking for is 802.1X authentication packets. These are 0x888e
 		// in value.  We are running from an LE point of view, so should look for 0x8e88
 		p += 6;
-		if (*((uint16*)p) == 0x8e88)
+		if (*((uint16*)p) == 0x8e88) {
 			Handle4Way(bQOS);	// this packet was a eapol packet.
+			return 1;
+		}
+	}
+
+	if (verbosity > 1) {
+		int ts = (ctl->type << 4) | ctl->subtype;
+
+		if (ctl->type == 0)
+			fprintf(stderr, "%s\n", ctl_subtype[ctl->subtype]);
+		else if (ts == 0x15)
+			fprintf(stderr, "VHT NDP Announcement\n");
+		else if (ts == 0x18)
+			fprintf(stderr, "Block Ack Req\n");
+		else if (ts == 0x19)
+			fprintf(stderr, "Block Ack\n");
+		else if (ts == 0x1b)
+			fprintf(stderr, "RTS\n");
+		else if (ts == 0x1c)
+			fprintf(stderr, "CTS\n");
+		else if (ts == 0x1d)
+			fprintf(stderr, "Ack\n");
+		else if (ts >= 0x20 && ts <= 0x23)
+			fprintf(stderr, "Data\n");
+		else if (ts > 0x23 && ts < 0x30)
+			fprintf(stderr, "QoS Data\n");
+		else
+			fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
 	}
 
 	return 1;
@@ -553,47 +629,46 @@ static void ManualBeacon(char *essid_bssid)
 		allocate_more_memory();
 }
 
-static const char* const ctl_subtype[9] = {
-	"association request",     // 0
-	"1",                       // 1
-	"reassociation request",   // 2
-	"3",                       // 3
-	"unicast probe request",   // 4
-	"probe response",          // 5
-	"6",                       // 6
-	"7",                       // 7
-	"beacon"                   // 8
-};
-
-static void HandleBeacon(uint16 subtype)
+static void HandleBeacon(uint16 subtype, int has_ht)
 {
 	const uint8 bcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	ieee802_1x_beacon_tag_t *tag;
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
-	char essid[36] = { 0 };
+	char essid[32 + 1];
 	char bssid[18];
 	int prio = 0;
 	int i;
 
 	if (subtype == 8 || subtype == 5) { // beacon or probe response
-		ieee802_1x_beacon_data_t *pDat = (ieee802_1x_beacon_data_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
+		ieee802_1x_beacon_data_t *pDat = (ieee802_1x_beacon_data_t*)&packet[sizeof(ieee802_1x_frame_hdr_t) + (has_ht ? 4 : 0)];
 		tag = pDat->tags;
 		prio = (subtype == 8 ? 5 : 3);
-	} else if (subtype == 4 && memcmp(pkt->addr1, bcast, 6)) {
-		// unicast probe request
-		tag = (ieee802_1x_beacon_tag_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
+	} else if (subtype == 4) { // probe request
+		tag = (ieee802_1x_beacon_tag_t*)&packet[sizeof(ieee802_1x_frame_hdr_t) + (has_ht ? 4 : 0)];
 		prio = 4;
 	} else if (subtype == 0) { // association request
-		ieee802_1x_assocreq_t *pDat = (ieee802_1x_assocreq_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
+		ieee802_1x_assocreq_t *pDat = (ieee802_1x_assocreq_t*)&packet[sizeof(ieee802_1x_frame_hdr_t) + (has_ht ? 4 : 0)];
 		tag = pDat->tags;
 		prio = 2;
 	} else if (subtype == 2) { // re-association request
-		ieee802_1x_reassocreq_t *pDat = (ieee802_1x_reassocreq_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
+		ieee802_1x_reassocreq_t *pDat = (ieee802_1x_reassocreq_t*)&packet[sizeof(ieee802_1x_frame_hdr_t) + (has_ht ? 4 : 0)];
 		tag = pDat->tags;
 		prio = 1;
-	} else
+	} else if (subtype == 11) {
+		ieee802_1x_auth_t *p = (ieee802_1x_auth_t*)&packet[sizeof(ieee802_1x_frame_hdr_t) + (has_ht ? 4 : 0)];
+		if (p->algo == 0)
+			fprintf(stderr, "WPA authentication, status %04x\n", p->status);
+		else if (p->algo == 1)
+			fprintf(stderr, "WEP authentication, status %04x\n", p->status);
+		else
+			fprintf(stderr, "Authentication %04x, status %04x\n", p->algo, p->status);
 		return;
+	} else {
+		if (verbosity > 1)
+			fprintf(stderr, "%s\n", ctl_subtype[subtype]);
+		return;
+	}
 
 	// addr1 should be broadcast for beacon, unicast for probe response
 	// addr2 is source addr (should be same as BSSID)
@@ -608,33 +683,56 @@ static void HandleBeacon(uint16 subtype)
 		if (tag->tagtype == 0) {
 			if (tag->taglen == 0 || tag->taglen > 32) {
 				to_bssid(bssid, pkt->addr3);
-				fprintf(stderr, "Invalid BSSID %s ESSID '%s' from %s\n",
-				        bssid, tag->tag, ctl_subtype[subtype]);
+				fprintf(stderr, "%s %s ESSID",
+				        ctl_subtype[subtype],
+				        tag->taglen ? "with invalid length" : "for any");
+				if (memcmp(pkt->addr1, pkt->addr3, 6))
+					fprintf(stderr, " (BSSID %s)\n", bssid);
+				else
+					fprintf(stderr, "\n");
 				return;
 			}
 			memcpy(essid, tag->tag, tag->taglen);
+			essid[tag->taglen] = 0;
 			break;
 		}
 		x += tag->taglen + 2;
 		tag = (ieee802_1x_beacon_tag_t *)x;
 	}
-	if (strlen(essid) == 0)
+	if (strlen(essid) == 0) {
+		if (verbosity > 1)
+			fprintf(stderr, "%s with ESSID length 0\n", ctl_subtype[subtype]);
 		return;
-	if (pkt->addr3 + 6 > pFinal)
+	}
+	if (pkt->addr3 + 6 > pFinal) {
+		if (verbosity > 1)
+			fprintf(stderr, "%s with malformed data\n", ctl_subtype[subtype]);
 		return;
+	}
 	to_bssid(bssid, pkt->addr3);
+
+	if (!memcmp(pkt->addr3, bcast, 6)) {
+		fprintf(stderr, "Broadcast %s '%s'\n",
+		        ctl_subtype[subtype], essid);
+		return;
+	}
 
 	// Check if already in db, or older entry has worse prio
 	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid)) {
 			if (wpa[i].prio > prio) {
-				fprintf(stderr, " Bumped BSSID %s ESSID '%s' (%d -> %d) from %s\n", wpa[i].bssid, wpa[i].essid, wpa[i].prio, prio, ctl_subtype[subtype]);
+				fprintf(stderr, "%s '%s' at %s (prio %d -> %d)\n",
+				        ctl_subtype[subtype], wpa[i].essid, wpa[i].bssid,
+				        wpa[i].prio, prio);
 				wpa[i].prio = prio;
+			} else {
+				fprintf(stderr, "%s '%s' at %s\n", ctl_subtype[subtype],
+				        wpa[i].essid, wpa[i].bssid);
 			}
 			return;
 		} else if (!strcmp(bssid, wpa[i].bssid)) {
 			if (wpa[i].prio >= prio) {
-				fprintf(stderr, "Renamed BSSID %s ESSID '%s' (old '%s' prio %d, new prio %d) from %s\n", wpa[i].bssid, essid, wpa[i].essid, wpa[i].prio, prio, ctl_subtype[subtype]);
+				fprintf(stderr, "%s '%s' at %s (renamed, old '%s' prio %d, new prio %d)\n", ctl_subtype[subtype], essid, wpa[i].bssid, wpa[i].essid, wpa[i].prio, prio);
 				break;
 			}
 		}
@@ -644,8 +742,7 @@ static void HandleBeacon(uint16 subtype)
 	strcpy(wpa[nwpa].essid, essid);
 	strcpy(wpa[nwpa].bssid, bssid);
 
-	fprintf(stderr, "Learned BSSID %s ESSID '%s' from %s\n",
-	        bssid, essid, ctl_subtype[subtype]);
+	fprintf(stderr, "%s '%s' at %s\n", ctl_subtype[subtype], essid, bssid);
 
 	if (++nwpa >= max_essids)
 		allocate_more_memory();
@@ -658,9 +755,11 @@ static void Handle4Way(int bIsQOS)
 	uint8 *orig_2 = NULL;
 	uint8 *p = (uint8*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
 	uint8 *end = packet + pkt_hdr.incl_len;
-	ieee802_1x_auth_t *auth;
+	ieee802_1x_eapol_t *auth;
 	int msg = 0;
 	char bssid[18];
+	char nonce[9];
+	uint64 rc;
 
 	// ok, first thing, find the beacon.  If we can NOT find the beacon, then
 	// do not proceed.  Also, if we find the becon, we may determine that
@@ -669,20 +768,14 @@ static void Handle4Way(int bIsQOS)
 	to_bssid(bssid, pkt->addr3);
 	for (i = nwpa - 1; i >= 0; --i) {
 		if (!strcmp(bssid, wpa[i].bssid)) {
-			ess=i;
+			ess = i;
 			break;
 		}
 	}
 	if (ess == -1) {
-		fprintf(stderr, "Saw BSSID %s with unknown ESSID. Perhaps -e option needed?\n", bssid);
-		goto out;
+		fprintf(stderr, "EAPOL for BSSID %s - unknown ESSID. Perhaps -e option needed?\n", bssid);
+		return;
 	}
-	if (wpa[ess].fully_cracked)
-		goto out;  // no reason to go on.
-
-	safe_malloc(orig_2, pkt_hdr.incl_len);
-	memcpy(orig_2, packet, pkt_hdr.incl_len);
-
 	// Ok, after pkt,  uint16 QOS control (should be 00 00)
 	if (bIsQOS)
 		p += 2;
@@ -693,24 +786,29 @@ static void Handle4Way(int bIsQOS)
 	//if (memcmp(p, "\xaa\xaa\x3\0\0\0\x88\x8e", 8)) return; // not a 4way
 	p += 8;
 	// p now points to the 802.1X Authentication structure.
-	auth = (ieee802_1x_auth_t*)p;
-	if (p + sizeof(ieee802_1x_auth_t) > end)
-		goto out;
-	if ((auth->length = swap16u(auth->length)) == 0)
-		goto out;
+	auth = (ieee802_1x_eapol_t*)p;
+	if (p + sizeof(ieee802_1x_eapol_t) > end) {
+		if (verbosity > 1)
+			fprintf(stderr, "EAPOL truncated?\n");
+		return;
+	}
+	if ((auth->length = swap16u(auth->length)) == 0) {
+		if (verbosity > 1)
+			fprintf(stderr, "Zero length\n");
+		return;
+	}
 	//*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
 	auth->key_info_u16 = swap16u(auth->key_info_u16);
 	auth->key_len  = swap16u(auth->key_len);
 	auth->replay_cnt  = swap64u(auth->replay_cnt);
 	auth->wpa_keydatlen  = swap16u(auth->wpa_keydatlen);
 
+	sprintf(nonce, "%02x%02x%02x%02x", auth->wpa_nonce[28], auth->wpa_nonce[29], auth->wpa_nonce[30], auth->wpa_nonce[31]);
+	rc = auth->replay_cnt;
+
 	if (!auth->key_info.KeyACK) {
-		// msg 2 or 4
-		if (auth->key_info.Secure) {
-			// msg = 4;
-			// is this useful?
-			goto out;
-		}
+		if (auth->key_info.Secure || auth->wpa_keydatlen == 0)
+			msg = 4;
 		else
 			msg = 2;
 	} else {
@@ -719,6 +817,21 @@ static void Handle4Way(int bIsQOS)
 		else
 			msg = 1;
 	}
+
+	if (wpa[ess].fully_cracked) {
+		if (verbosity > 1)
+			fprintf(stderr, "EAPOL M%u, nonce %s rc %llu (4-way already seen)%s\n", msg, nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+		return;  // no reason to go on.
+	}
+
+	if (msg == 4) {
+		if (verbosity > 1)
+			fprintf(stderr, "Spurious M4 snonce %s rc %llu\n", nonce, rc);
+		return;
+	}
+
+	safe_malloc(orig_2, pkt_hdr.incl_len);
+	memcpy(orig_2, packet, pkt_hdr.incl_len);
 
 // If we see M1 followed by M2 which have same replay_cnt, we have a likely
 // auth. Or we want a M2 followed by a M3 that are 1 replay count apart
@@ -733,8 +846,12 @@ static void Handle4Way(int bIsQOS)
 // M3-M4's.  They may be valid, but may also be a client with the wrong password
 
 	if (msg == 1) {
-		if (auth->key_info.KeyDescr == 3)
-			fprintf(stderr, "Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 (PMF) is being used.\n");
+		if (verbosity > 1)
+			fprintf(stderr, "EAPOL M1 anonce %s rc %llu%s\n", nonce, rc,
+			        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+		else
+			if (auth->key_info.KeyDescr == 3)
+				fprintf(stderr, "Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 (PMF) is being used.\n");
 		MEM_FREE(wpa[ess].packet1);
 		safe_malloc(wpa[ess].packet1, pkt_hdr.incl_len);
 		wpa[ess].packet1_len = pkt_hdr.incl_len;
@@ -751,13 +868,13 @@ static void Handle4Way(int bIsQOS)
 			goto out;
 		}
 
-		// see if we have a msg1 that 'matches'.
+		// see if we have a M1 that 'matches'.
 		MEM_FREE(wpa[ess].packet3);
 		MEM_FREE(wpa[ess].packet2);
 		MEM_FREE(wpa[ess].orig_2);
 		safe_malloc(wpa[ess].packet2, pkt_hdr.incl_len);
 		wpa[ess].packet2_len = pkt_hdr.incl_len;
-		wpa[ess].orig_2  = malloc(pkt_hdr.incl_len);
+		safe_malloc(wpa[ess].orig_2, pkt_hdr.incl_len);
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.incl_len);
 		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.incl_len);
 		wpa[ess].orig_2_len = pkt_hdr.incl_len;
@@ -775,59 +892,74 @@ static void Handle4Way(int bIsQOS)
 		}
 
 		if (wpa[ess].packet1 && ShowIncomplete) {
-			ieee802_1x_auth_t *auth2 = auth, *auth1;
+			ieee802_1x_eapol_t *auth2 = auth, *auth1;
 			p = (uint8*)wpa[ess].packet1;
 			if (bIsQOS)
 				p += 2;
 			p += 8;
 			p += sizeof(ieee802_1x_frame_hdr_t);
-			auth1 = (ieee802_1x_auth_t*)p;
+			auth1 = (ieee802_1x_eapol_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf (stderr, "\nM1/M2 hit (unverified), for ESSID %s (%s)\n", wpa[ess].essid, filename);
+				fprintf(stderr, "EAPOL M2 (matching M1 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				DumpAuth(ess, 1, bIsQOS);
+			} else {
+				if (verbosity > 1)
+					fprintf(stderr, "EAPOL M2 (no matching M1 seen) snonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 			}
+		} else {
+			if (verbosity > 1)
+				fprintf(stderr, "%sM2 snonce %s rc %llu%s\n", wpa[ess].packet1 ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
+
 	}
 	else if (msg == 3) {
-		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
+		// see if we have a M2 that 'matches',  which is 1 less than our replay count.
 		safe_malloc(wpa[ess].packet3, pkt_hdr.incl_len);
 		wpa[ess].packet3_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.incl_len);
 		if (wpa[ess].packet2) {
-			ieee802_1x_auth_t *auth3 = auth, *auth2;
+			ieee802_1x_eapol_t *auth3 = auth, *auth2;
 			p = (uint8*)wpa[ess].packet2;
 			if (bIsQOS)
 				p += 2;
 			p += 8;
 			p += sizeof(ieee802_1x_frame_hdr_t);
-			auth2 = (ieee802_1x_auth_t*)p;
+			auth2 = (ieee802_1x_eapol_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
-				ieee802_1x_auth_t *auth1;
+				ieee802_1x_eapol_t *auth1;
 				if (wpa[ess].packet1) {
 					p = (uint8*)wpa[ess].packet1;
 					if (bIsQOS)
 						p += 2;
 					p += 8;
 					p += sizeof(ieee802_1x_frame_hdr_t);
-					auth1 = (ieee802_1x_auth_t*)p;
+					auth1 = (ieee802_1x_eapol_t*)p;
 				}
-				// If we saw the first packet, its nonce must
-				// match the third's nonce and we are 100% sure.
-				// If we didn't see it, we are only 99% sure.
+				// If we saw the M1, its nonce must match the M3 nonce and we
+				// are 100% sure. If we didn't see it, we are only 99% sure.
 				if (!wpa[ess].packet1 || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
-					fprintf (stderr, "\nM2/M3 hit (%s verified), for BSSID %s ESSID '%s' (file '%s')\n",
-						wpa[ess].packet1 ? "100%" : "99%", wpa[ess].bssid, wpa[ess].essid, filename);
+					fprintf(stderr, "EAPOL M3 (M2 seen, M1%s seen), anonce %s rc %llu for BSSID %s ESSID '%s'%s\n",
+					        wpa[ess].packet1 ? "" : " not", nonce, rc,
+					        wpa[ess].bssid, wpa[ess].essid,
+					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 					DumpAuth(ess, 3, bIsQOS);
 					wpa[ess].fully_cracked = 1;
+				} else {
+					if (verbosity > 1)
+						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				}
 			}
+		} else {
+			if (verbosity > 1)
+				fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu%s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
 		// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
 		MEM_FREE(wpa[ess].packet1);
 		MEM_FREE(wpa[ess].packet3);
 		MEM_FREE(wpa[ess].packet2);
 		MEM_FREE(wpa[ess].orig_2);
-	}
+	} else
+		fprintf(stderr, "not EAPOL\n");
 
 out:
 	MEM_FREE(orig_2);
@@ -846,7 +978,7 @@ char *strdup_MSVC(const char *str)
 
 static void DumpAuth(int ess, int one_three, int bIsQOS)
 {
-	ieee802_1x_auth_t *auth13, *auth2;
+	ieee802_1x_eapol_t *auth13, *auth2;
 	uint8 *p = (uint8*)wpa[ess].packet2;
 	uint8 *pkt2 = p;
 	uint8 *end = (uint8*)wpa[ess].packet2 + wpa[ess].packet2_len;
@@ -858,26 +990,26 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	char TmpKey[2048], *cp = TmpKey;
 	int search_len;
 
-	cp += sprintf (cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
+	cp += sprintf(cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!wpa[ess].packet2) {
-		fprintf(stderr, "ERROR, msg2 null\n");
+		fprintf(stderr, "ERROR, M2 null\n");
 		return;
 	}
 	if (bIsQOS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
-	auth2 = (ieee802_1x_auth_t*)p;
-	if (one_three==1) {
+	auth2 = (ieee802_1x_eapol_t*)p;
+	if (one_three == 1) {
 		if (!wpa[ess].packet1) {
-			fprintf(stderr, "ERROR, msg1 null\n");
+			fprintf(stderr, "ERROR, M1 null\n");
 			return;
 		}
 		p = wpa[ess].packet1;
 		end = (uint8*)wpa[ess].packet1 + wpa[ess].packet1_len;
 	} else  {
 		if (!wpa[ess].packet3) {
-			fprintf(stderr, "ERROR, msg3 null\n");
+			fprintf(stderr, "ERROR, M3 null\n");
 			return;
 		}
 		p = wpa[ess].packet3;
@@ -888,7 +1020,7 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
-	auth13 = (ieee802_1x_auth_t*)p;
+	auth13 = (ieee802_1x_eapol_t*)p;
 
 	memset(&hccap, 0, sizeof(hccap_t));
 	hccap.keyver = auth2->key_info.KeyDescr;
@@ -903,7 +1035,7 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
-	auth2 = (ieee802_1x_auth_t*)p;
+	auth2 = (ieee802_1x_eapol_t*)p;
 	memset(auth2->wpa_keymic, 0, 16);
 	hccap.eapol_size = wpa[ess].eapol_sz;
 	if (p + hccap.eapol_size > end) {
@@ -928,7 +1060,8 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	search_len = cp-TmpKey;
 	cp += sprintf(cp, ":%sverified:%s", (one_three == 1) ? "not " : "", filename);
 	if (one_three == 1) {
-		fprintf (stderr, "unverified auth stored, pending verification\n");
+		if (verbosity == 1)
+			fprintf(stderr, "M1/M2 stored, pending verification\n");
 		if (nunVer >= max_essids)
 			allocate_more_memory();
 		unVerified[nunVer++] = strdup(TmpKey);
@@ -936,16 +1069,18 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	} else {
 		for (i = 0; i < nunVer; ++i) {
 			if (!strncmp(TmpKey, unVerified[i], search_len)) {
-				fprintf (stderr, "Auth now verified\n");
+				if (verbosity == 1)
+					fprintf(stderr, "Auth now verified\n");
 				MEM_FREE(unVerified[i]);
 				unVerified[i] = unVerified[--nunVer];
 				break;
 			}
 		}
 	}
-	fprintf (stderr, "Dumping M%d at time: %d.%d BSSID %s ESSID '%s'\n",
-	         one_three, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
-	printf ("%s\n", TmpKey);
+	fprintf(stderr, "Dumping %s at time: %u.%06u BSSID %s ESSID '%s'\n",
+	        one_three == 1 ? "M1/M2" : "M2/M3",
+	        cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
+	printf("%s\n", TmpKey);
 	fflush(stdout);
 }
 
@@ -1014,6 +1149,12 @@ int main(int argc, char **argv)
 		argv++; argc--;
 	}
 
+	while (argc > 1 && !strcmp(argv[1], "-v")) {
+		verbosity++;
+		argv[1] = argv[0];
+		argv++; argc--;
+	}
+
 	while (argc > 2 && !strcmp(argv[1], "-e")) {
 		argv[1] = argv[0];
 		argv++; argc--;
@@ -1026,11 +1167,12 @@ int main(int argc, char **argv)
 		return !!fprintf(stderr,
 "Converts PCAP or IVS2 files to JtR format.\n"
 "Supported encapsulations: 802.11, Prism, Radiotap and PPI.\n"
-"Usage: %s [-c] [-e essid:bssid [-e ...]] <file[s]>\n"
+"Usage: %s [-c] [-v] [-e essid:bssid [-e ...]] <file[s]>\n"
 "\n-c\tShow only complete auths (incomplete ones might be wrong passwords\n"
 "\tbut we can crack what passwords were tried).\n"
+"-v\tBump verbosity\n"
 "-e\tManually add Name:MAC pair(s) in case the file lacks beacons.\n"
-"\teg. -e Networkname:de:ad:ca:fe:ba:be\n\n",
+"\teg. -e \"Magnum WIFI:6d:61:67:6e:75:6d\"\n\n",
 		                 argv[0]);
 
 	for (i = 1; i < argc; i++) {
@@ -1039,6 +1181,7 @@ int main(int argc, char **argv)
 		// Re-init between pcap files
 		warn_wpaclean = 0;
 		start_t = start_u = 0;
+		pkt_num = 0;
 		for (j = 0; j < nwpa; j++)
 			wpa[j].prio = 5;
 
