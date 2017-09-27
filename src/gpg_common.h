@@ -13,22 +13,22 @@
 
 #include "dyna_salt.h"
 
-#define BENCHMARK_COMMENT		   ""
-#define BENCHMARK_LENGTH		   -1001
+#define BENCHMARK_COMMENT    ""
+#define BENCHMARK_LENGTH     -1001
 #define FORMAT_TAG           "$gpg$*"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define BINARY_SIZE                        0
-#define BINARY_ALIGN                       MEM_ALIGN_WORD
-#define SALT_LENGTH                        8
-#define SALT_ALIGN                         (sizeof(void*))
-#define PLAINTEXT_LENGTH                   125
+#define BINARY_SIZE          0
+#define BINARY_ALIGN         MEM_ALIGN_WORD
+#define SALT_LENGTH          8
+#define SALT_ALIGN           (sizeof(void*))
+#define PLAINTEXT_LENGTH     125
 
 // Minimum number of bits when checking the first BN
 #define MIN_BN_BITS 64
 
 extern struct fmt_tests gpg_common_gpg_tests[];
 
-extern int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format);
+extern int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU);
 extern int gpg_common_check(unsigned char *keydata, int ks);
 extern void *gpg_common_get_salt(char *ciphertext);
 

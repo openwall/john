@@ -19,13 +19,6 @@ john_register_one(&fmt_opencl_gpg);
 
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
-#include <openssl/blowfish.h>
-#include <openssl/ripemd.h>
-#include <openssl/cast.h>
-#include <openssl/bn.h>
-#include <openssl/dsa.h>
-#include <openssl/des.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -35,15 +28,8 @@ john_register_one(&fmt_opencl_gpg);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
-#include "aes.h"
-#include "idea-JtR.h"
-#include "md5.h"
-#include "rc4.h"
-#include "pdfcrack_md5.h"
-#include "sha.h"
 #include "common-opencl.h"
 #include "options.h"
-#include "sha2.h"
 #include "gpg_common.h"
 
 #define FORMAT_LABEL		"gpg-opencl"
@@ -83,6 +69,15 @@ struct fmt_tests gpg_tests[] = {  // from GPU
 	{"$gpg$*1*668*2048*97b296b60904f6d505344b5b0aa277b0f40de05788a39cd9c39b14a56b607bd5db65e8da6111149a1725d06a4b52bdddf0e467e26fe13f72aa5570a0ea591eec2e24d3e9dd7534f26ec9198c8056ea1c03a88161fec88afd43474d31bf89756860c2bc6a6bc9e2a4a2fc6fef30f8cd2f74da6c301ccd5863f3240d1a2db7cbaa2df3a8efe0950f6200cbc10556393583a6ebb2e041095fc62ae3a9e4a0c5c830d73faa72aa8167b7b714ab85d927382d77bbfffb3f7c8184711e81cf9ec2ca03906e151750181500238f7814d2242721b2307baa9ea66e39b10a4fdad30ee6bff50d79ceac604618e74469ae3c80e7711c16fc85233a9eac39941a564b38513c1591502cde7cbd47a4d02a5d7d5ceceb7ff920ee40c29383bd7779be1e00b60354dd86ca514aa30e8f1523efcffdac1292198fe96983cb989a259a4aa475ed9b4ce34ae2282b3ba0169b2e82f9dee476eff215db33632cdcc72a65ba2e68d8e3f1fed90aaa68c4c886927b733144fb7225f1208cd6a108e675cc0cb11393db7451d883abb6adc58699393b8b7b7e19c8584b6fc95720ced39eabaa1124f423cc70f38385c4e9c4b4eeb39e73e891da01299c0e6ce1e97e1750a5c615e28f486c6a0e4da52c15285e7cf26ac859f5f4190e2804ad81ba4f8403e6358fbf1d48c7d593c3bac20a403010926877db3b9d7d0aaacd713a2b9833aff88d1e6b4d228532a66fe68449ad0d706ca7563fe8c2ec77062cc33244a515f2023701c052f0dd172b7914d497fdaefabd91a199d6cb2b62c71472f52c65d6a67d97d7713d39e91f347d2bc73b421fb5c6c6ba028555e5a92a535aabf7a4234d6ea8a315d8e6dcc82087cc76ec8a7b2366cecf176647538968e804541b79a1b602156970d1b943eb2641f2b123e45d7cace9f2dc84b704938fa8c7579a859ef87eca46*3*254*2*3*8*d911a3f73b050340*2097152*347e15bee29eb77d", "password"},
 	/* SHA1-CAST5 salt-iter, DSA key */
 	{"$gpg$*17*42*1024*d974ae70cfbf8ab058b2e1d898add67ab1272535e8c4b9c5bd671adce22d08d5db941a60e0715b4f0c9d*3*254*2*3*8*a9e85673bb9199d8*11534336*71e35b85cddfe2af", "crackme"},
+
+	/* gpg --gen-key --s2k-digest-algo SHA256 --s2k-cipher-algo AES */
+	{"$gpg$*1*668*2048*92f639f5a56692a0fb3bd32ca5d91099b49d4cf283da7d272ed51bdf337a4960e361eeb302d418c3f9620d94a077bcf888b56f892d87e2f330ecab3934ebc080ac440b4bb7cd1f79565f0a8b7331c2302d725451fbeff51ff2f25e69708555edfb353dfcab9ce33f6071ccaa2d32ad93a73082be621a8ec43a66f984551607d1e366892386e2f3cc0bdf6447216d0fbc8402c86d54cf0fd8fc133c4899a5a4b1b36cedfb5b11e804856885a7230def7718684f99f995df24f985706f0c1311d15d9a043b6a0096f5e0bb751c61a07517372441887de0532b35d5e4f9d5b35b2119715ca51a4a59227a3031fbd24f25d06ae8b6d17c1b5998aba281733cc6260930916c0d4fb84bf0cf4e7112b07bf5d78a97716599be4bed78d741757ea7149db2d1c9ff35d3b69f80dd7152ed99642b695c88c0f075ffd8a360f30a3e6160d2c5b99e41418f47ac6f9615c1a4d73b0f05c8d11d8ea18b9ea6bf9e6d2a7642f253b7ee742389a9dc19bb81261061b578609b73ad314e6e5c6afe68640abc62f5009e659fa64790689f7befe5009e396cc63d79493e56371a080c0c94c8f0036dbe9ac5a8861befc5882168f7866ec225641a2cf91d8318fcf660699d1e0272b4e0df7751c84e48513a5d26c27a12bf7f9e6965321a97f0b8162f4861fea9c78ee4bc3110b2d412f38081781f0aba5a43b92af148c4e3d9affa1f6b3a42cfcf7c7275b95445777ae51ed200bdb30606432ff05d132232ee9e8a92eba811b96422ba3390f3dbe23f8d6c5ed5cbee361f980e58394c0a8d0f9e9e1186dbb5defcf5bf3c9b44f55598a0b119b71a8bd8edf6428555e36e76785954997f40409beeea578740fb77334c4a396bfac3a24f8628212737ff6d7ffa3802e7bacd06e3e81344eebd1e60a72efa5f45e09151f55d838fda78007190c040851e5f67*3*254*8*7*16*1d1d7a3090537117d6d18e3b8dc41433*65536*d5285754134a9a05", "12345678"},
+	/* gpg --gen-key --s2k-digest-algo SHA256 --s2k-cipher-algo CAMELLIA128 */
+	{"$gpg$*1*668*2048*cce4298ada379aa74719ec266478e8711d7aa880ac552a15577ecb35c5d2f48a78d2b2fa1b015764c747b4632a7fe53675f2e117c64c0c4312e182c45ddcf988ed402de11ee93294e465070e052d198313bb822e88f31bcb1e3206271d8a5833d035effdce53648167663790e502574d1c5cf51fad8ae968bb155b75b22306f65cc37b27e0d6ba9b8e39b567c4853b41b21b9556b21a96f7f20477784118614b821e47d80ebc168d8b763e2bddfc37b7c55af838c9cff3be0e18da6da8f3671ab3c990fe541aedbb2ea8b43060f8cba4651baa4b8c498740064b95511c1e55d2125f99d636aec077ea0a606c1e9d9c919f0ed7f54a877907b45c544e534a843d8fded7334e66b74acc0a67b7ad6ffc317e93215e63ad083515d2394841ba52476096537cf0c436016031698d1497c7983e37fcd8ce4f184b6daa31cb5a2d7631355fc561bf681e309f6474163278ba8fd25e3dcc28342cc3b5c288d3cc95bc1c0746cc082b78f43cf3161d9c6551d56fbf23d83a8e10ae9380f754a2c0b74b93359d1b16213bb81625f301493ba6b347a1e5fb79745f7c8e317814e0e861f4fdb85f988f48ead7012f8e13a58fa07e33761efe64cb39b4bcf1f19d1f8b14f5bfc46c7703922273582bd99c266492247b2281c2565c03fe5270f0e858036ea4c994d4afd2029cc184a877189817dce9b5da2c8f89ea8914a0cc29dc4786aef6638e1983467ff574d2a4cc704bef7a7070c3b2bbb2f23e7c0fd8cf00365decae26a2d8ab45093587b3f8c3224bf7b8dd6c4a43853ef5c9c6eb6df0f2a77b126f55b49f77de5dc382a8327ed6fa24f379a4e9d1296cb0a9066b902f510aca6560f9e50bdd9663a269cdba41dd212dac569845c13226f2cd5311527705b24d698cb0acfb44b8a60bb4d3113ef2cb2cc7d597a889612c7f73aca5f8fd70a7*3*254*8*11*16*65a45645f3abe401f3345713d8eadfdf*65536*48e94f48bcda5a55", "abc"},
+	/* gpg --gen-key --s2k-digest-algo SHA256 --s2k-cipher-algo AES256 */
+	{"$gpg$*1*668*2048*4cb57f4b39dc6fc9137f99c9f4799e7a7b3dfa40fe6890e18b7b32c866aa8c63aa35ee1b3d2b5a223120a145fd066d082674552c6c89169c6f9a06efb238ba69c7d8b7826501bdbf6b92dfd7c97f5b9388a2afa6a8f985dbc8c962c56ed92a9f6dca3566e98647df5d31fec885608623e830fcf3346177a0e572dfe23610ae90c323bbb4cc54d857b7ea7642477c490a2fc875f3f7cc7889367f7ba3161df2a6c48218a06468146deeb66fc2d754420b3a967f418696eec725ad7d3093dc17924a2770949dd68f8efa79ddfdccbc7c23091fa7342a72b02f8288a14e7b9c51653a7d4f6044456b72a46033e3eb1855708c3bd310e10fb0f460ac362008d08526cb255e8a3efea5f6741a314b71d5fb811e42d1b3be79e546fcd52bc4d18ce3dcbe6c0b1816c25047bc8d81cbf21b57ba6bb12ab363fb17dd51176a5231e15b2740a66aff37d5b74547fc2af2448e6e83cf2ecbc7f897724e3d802becabdcf9ff2b2d977e45ff170899b1c3714a293b783ef758152c3072ad20a8b36b661c0af40c24e277dcefb3a869cce9a1e7f3afbd0abdbcbf87c309d2cb3fe36bd0069dd60da6651dc6e557d486953ef98699bee86b82baaa412f41c5952b3bec9ab43329f895a76dfd3e0e46bcd10277b1f57dfe43375a330c5c6e953c890c9e075f24fc1a9bdc38ea2ecaf0a4bc58026a545eacc317aee3eeebb39725b3ea6e1171ad600576b36e3d592909b73a4a3841c97a38db51f2579cd93d23560b9486e6a2d4d0a966efb31225c79d3214ed9da5b31b235b26f98a2b2f62f01684cf959056e978fd4ede44f4feaa35a8d411010a0a6df89a5d41eef39d64edea9c6dd79aa3ce9fdb4b41e88389776aafaedb3372e26633f13a63c4a62d2546e9b0c1e0d542991a2f8e9d76a630a20707d42073374308a409fe2a05b1476de07bb25679*3*254*8*9*16*ccdac5fce9ae3ec503390424a918aedb*65536*7dfbd9389fd9de2c", "openwall"},
+	/* SHA256-AES256 salt-iter */
+	{"$gpg$*1*348*1024*8f58917c41a894a4a3cdc138161c111312e404a1a27bb19f3234656c805ca9374bbfce59750688c6d84ba2387a4cd48330f504812cf074eba9c4da11d057d0a2662e3c7d9969e1256e40a56cce925fba29f4975ddb8619004def3502a0e7cf2ec818695c158243f21da34440eea1fec20418c7cf7dbe2230279ba9858201c00ae1d412aea1f59a66538fb739a15297ff9de39860e2782bf60a3979a5577a448925a0bc2d24c6bf3d09500046487a60bf5945e1a37b73a93eebb15cfd08c5279a942e150affbbe0d3084ab8aef2b6d9f16dc37b84334d91b80cf6f7b6c2e82d3c2be42afd39827dac16b4581be2d2f01d9703f2b19c16e149414fdfdcf8794aa90804e4b1dac8725bd0b0be52513848973eeadd5ec06d8a1da8ac072800fcc9c579172b58d39db5bc00bc0d7a21cf85fb6c7ce10f64edde425074cb9d1b4b078790aed2a46e79dc7fa4b8f3751111a2ff06f083a20c7d73d6bbc747e0*3*254*8*9*16*5b68d216aa46f2c1ed0f01234ebb6e06*131072*6c18b4661b884405", "openwall"},
 	{NULL}
 };
 
@@ -95,6 +90,7 @@ static gpg_hash *outbuffer;
 static gpg_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
+static cl_kernel crypt_kernel_sha256;
 
 size_t insize, outsize, settingsize, cracked_size;
 
@@ -140,12 +136,22 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
+	// SHA-1 S2K
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
+
+	// SHA-256 S2K
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha256, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha256, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha256, 2, sizeof(mem_setting),
+		&mem_setting), "Error while setting mem_salt kernel argument");
+
 }
 
 static void release_clobj(void)
@@ -179,6 +185,9 @@ static void reset(struct db_main *db)
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "gpg", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
+		crypt_kernel_sha256 = clCreateKernel(program[gpu_id], "gpg_sha256", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -259,10 +268,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		"Copy data to gpu");
 
 	// Run kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws, 0, NULL,
-		multi_profilingEvent[1]),
-		"Run kernel");
+	if (gpg_common_cur_salt->hash_algorithm == HASH_SHA1) {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+					crypt_kernel, 1, NULL,
+					&global_work_size, lws, 0, NULL,
+					multi_profilingEvent[1]), "Run kernel");
+	} else if (gpg_common_cur_salt->hash_algorithm == HASH_SHA256) {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+					crypt_kernel_sha256, 1, NULL,
+					&global_work_size, lws, 0, NULL,
+					multi_profilingEvent[1]), "Run kernel");
+	}
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
