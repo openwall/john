@@ -1295,7 +1295,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	ldr_fix_database(testdb);
 	ldr_loading_testdb = 0;
 
-	if (options.verbosity == VERB_MAX)
+	if (options.verbosity == VERB_MAX && john_main_process)
 		fprintf(stderr,
 		        "Loaded %d hashes with %d different salts to test db from test vectors\n",
 		        testdb->password_count, testdb->salt_count);

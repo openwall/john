@@ -1625,10 +1625,14 @@ static void john_run(void)
 			struct db_main *test_db = 0;
 			char *where;
 
-			test_db = ldr_init_test_db(database.format,
-			                           &database);
+			if (!(options.flags & FLG_NOTESTS))
+				test_db = ldr_init_test_db(database.format,
+				                           &database);
+			else
+				test_db = &database;
 			where = fmt_self_test(database.format, test_db);
-			ldr_free_test_db(test_db);
+			if (!(options.flags & FLG_NOTESTS))
+				ldr_free_test_db(test_db);
 			if (where) {
 				fprintf(stderr, "Self test failed (%s)\n",
 				    where);
