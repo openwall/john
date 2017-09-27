@@ -167,7 +167,7 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec, int isC
 	if (spec == SPEC_SIMPLE || spec == SPEC_SALTED) {
 		if (!isCPU)
 			goto print_warn_once;
-		switch(hash_algorithm) {
+		switch (hash_algorithm) {
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
 			case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
@@ -175,11 +175,11 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec, int isC
 	}
 	if (spec == SPEC_ITERATED_SALTED) {
 		if (!isCPU) {
-			if (hash_algorithm == HASH_SHA1) return 1;
+			if (hash_algorithm == HASH_SHA1 || hash_algorithm == HASH_SHA256)
+				return 1;
 			goto print_warn_once;
 		}
-		switch(hash_algorithm)
-		{
+		switch (hash_algorithm) {
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
 			case HASH_RIPEMD160: return 1;
@@ -194,7 +194,7 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec, int isC
 print_warn_once:
 	if (warn_once) {
 		fprintf(stderr,
-		        "Error: The gpg-opencl format currently only supports keys using iterated salted SHA1.\n");
+		        "Error: This GPG OpenCL format does not support the requested S2K type!\n");
 		warn_once = 0;
 	}
 	return 0;
