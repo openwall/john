@@ -145,7 +145,7 @@ edata:
 	/* assume edata2 following */
 	if (((p = strtokm(NULL, "$")) == NULL))
 		goto err;
-	if (!ishex(p) && (hexlen(p, &extra) < 64 || extra))
+	if (!ishex(p) || (hexlen(p, &extra) < (64 + 16) || extra))
 		goto err;
 
 	if ((strtokm(NULL, "$") != NULL))
