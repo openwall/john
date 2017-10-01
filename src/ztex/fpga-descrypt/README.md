@@ -27,6 +27,14 @@ Candidate passwords move from the generator to arbiter unit.
 - A total number of computed candidates is also accounted. It sends PROCESSING_DONE packet after it finishes processing of an input packet.
 
 
+## Notes on performing simulation using ISIM from ISE 14.5
+
+- Select descrypt_test.v as a top module for behavioral simulation.
+- Make sure sources for cores are included in the project (during implementation, sources for cores - top module is descrypt_core.v - are excluded from the design, .ngc file is used instead). Accordingly, empty "blackbox" declaration in wrapper.v must be commented out.
+- Simulation does not include I/O over USB subsystem. Test data is written into input fifo by the testbench module and results appear in output_fifo/fifo_output0/ram where that can be verified.
+- Data being transferred over USB in both directions is protected with a checksum. During the simulation, input checksum verification turns off.
+
+
 ## Design Placement and Routing details
 
 - Substantial attention was paid for optimal placement of individual components. While tools can do that fully automately, it's assumed if developer watches them more then results are better.
