@@ -397,7 +397,8 @@ int gpg2john(int argc, char **argv)
 			if (m_flen - (int)(marker - hash) - 1 > 8) {
 				marker = memmem(marker + 1, m_flen - (int)(marker - hash) - 1, "---BEGIN", 8);
 				if (marker) {
-					fprintf(stderr, "Error: Ensure that the input file contains a single private key only.\n", filename);
+					fprintf(stderr, "Error: Ensure that the input file %s "
+					        "contains a single private key only.\n", filename);
 					something_failed = 1;
 				}
 			}
