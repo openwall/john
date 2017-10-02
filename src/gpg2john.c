@@ -169,10 +169,11 @@ static int hash_generated = 0;
 
 
 /* Global data for read_radix64 and decode_radix64 functions, reset for each new file */
-static int done = NO;
-static unsigned int avail = 0;
-static byte *qdr;
-static int found = NO;
+static int done_rr = NO;
+static int done_dr = NO;
+static unsigned int avail_dr = 0;
+static int found_rr = NO;
+static byte *qdr = NULL;
 
 /*
  * pgpdump.c
@@ -370,9 +371,11 @@ int gpg2john(int argc, char **argv)
 		size_t ret = 0;
 
 		/* reset global state */
-		done = NO;
-		avail = 0;
-		found = NO;
+		done_rr = NO;
+		done_dr = NO;
+		avail_dr = 0;
+		found_rr = NO;
+		qdr = NULL;
 		hash_generated = 0;
 
 		fprintf(stderr, "\nFile %s\n", argv[i]);
@@ -2778,9 +2781,9 @@ read_radix64(byte *p, unsigned int max)
 	int c, d, out = 0, lf = 0, cr = 0;
 	byte *lim = p + max;
 
-	if (done == YES) return 0;
+	if (done_rr == YES) return 0;
 
-	if (found == NO) {
+	if (found_rr == NO) {
 
 	again:
 		do {
@@ -2795,13 +2798,13 @@ read_radix64(byte *p, unsigned int max)
 			if (fgets((cast_t)tmpbuf, BUFSIZ, stdin) == NULL)
 				warn_exit("can't find PGP armor.");
 		} while (line_not_blank(tmpbuf) == YES);
-		found = YES;
+		found_rr = YES;
 	}
 
 	while (p < lim) {
 		c = getchar();
 		if (c == EOF) {
-			done = YES;
+			done_rr = YES;
 			return out;
 		}
 
@@ -2830,45 +2833,45 @@ read_radix64(byte *p, unsigned int max)
 	return out;
  skiptail:
 	while (getchar() != EOF);
-	done = YES;
+	done_rr = YES;
 	return out;
 }
+
 
 private int
 decode_radix64(byte *p, unsigned int max)
 {
-	byte *q = qdr;
 	unsigned int i, size, out = 0;
 	byte c1, c2, c3, c4, *r, *lim = p + max;
 
-	if (done == YES) return 0;
+	if (done_dr == YES) return 0;
 
 	while (p + 3 < lim) {
-		if (avail < 4) {
-			r = q;
-			q = d_buf1;
-			for (i = 0; i < avail; i++)
-				*q++ = *r++;
-			size = (*d_func1)(q, sizeof(d_buf1) - avail);
-			q = d_buf1;
-			avail += size;
+		if (avail_dr < 4) {
+			r = qdr;
+			qdr = d_buf1;
+			for (i = 0; i < avail_dr; i++)
+				*qdr++ = *r++;
+			size = (*d_func1)(qdr, sizeof(d_buf1) - avail_dr);
+			qdr = d_buf1;
+			avail_dr += size;
 			if (size == 0) {
-				done = YES;
-				switch (avail) {
+				done_dr = YES;
+				switch (avail_dr) {
 				case 0:
 					return out;
 				case 1:
 					warning("illegal radix64 length.");
 					return out; /* anyway */
 				case 2:
-					c1 = *q++;
-					c2 = *q++;
+					c1 = *qdr++;
+					c2 = *qdr++;
 					*p++ = (c1 << 2) | ((c2 & 0x30) >> 4);
 					return out + 1;
 				case 3:
-					c1 = *q++;
-					c2 = *q++;
-					c3 = *q++;
+					c1 = *qdr++;
+					c2 = *qdr++;
+					c3 = *qdr++;
 					*p++ = (c1 << 2) | ((c2 & 0x30) >> 4);
 					*p++ = ((c2 & 0x0f) << 4) |
 						((c3 & 0x3c) >> 2);
@@ -2877,15 +2880,15 @@ decode_radix64(byte *p, unsigned int max)
 			}
 		}
 
-		if (avail >= 4) {
-			c1 = *q++;
-			c2 = *q++;
-			c3 = *q++;
-			c4 = *q++;
+		if (avail_dr >= 4) {
+			c1 = *qdr++;
+			c2 = *qdr++;
+			c3 = *qdr++;
+			c4 = *qdr++;
 			*p++ = (c1 << 2) | ((c2 & 0x30) >> 4);
 			*p++ = ((c2 & 0x0f) << 4) | ((c3 & 0x3c) >> 2);
 			*p++ = ((c3 & 0x03) << 6) | c4;
-			avail -= 4;
+			avail_dr -= 4;
 			out += 3;
 		}
 	}
