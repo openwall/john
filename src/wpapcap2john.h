@@ -203,6 +203,7 @@ inline static uint64 swap64u(uint64 v) {
 typedef struct handshake_s {
 	uint8 *packet;
 	int packet_len;
+	int isQoS;
 	uint32 ts_sec;
 	uint32 ts_usec;
 } handshake_t;
