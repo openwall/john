@@ -12,6 +12,9 @@
 #include <stddef.h>
 
 //#define WPADEBUG 1
+#define IGNORE_MSG1 0
+#define IGNORE_MSG2 0
+#define IGNORE_MSG3 0
 
 #include "wpapcap2john.h"
 #include "jumbo.h"
@@ -23,7 +26,7 @@ static int GetNextPacket(FILE *in);
 static int ProcessPacket();
 static void HandleBeacon(uint16 subtype, int has_ht);
 static void Handle4Way(int bIsQOS);
-static void DumpAuth(int idx, int one_three, int bIsQOS);
+static void DumpAuth(int idx, int first, int second, int bIsQOS);
 
 static uint32 start_t, start_u, cur_t, cur_u;
 static uint32 pkt_num;
@@ -757,6 +760,16 @@ static void HandleBeacon(uint16 subtype, int has_ht)
 		allocate_more_memory();
 }
 
+static int is_zero(void *ptr, size_t len)
+{
+	unsigned char *p = ptr;
+
+	while (len--)
+		if (*p++)
+			return 0;
+	return 1;
+}
+
 static void Handle4Way(int bIsQOS)
 {
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
@@ -834,9 +847,9 @@ static void Handle4Way(int bIsQOS)
 		return;  // no reason to go on.
 	}
 
-	if (msg == 4) {
+	if (msg == 4 && is_zero(auth->wpa_nonce, 32)) {
 		if (verbosity > 1)
-			fprintf(stderr, "Spurious M4 snonce %s rc %llu\n", nonce, rc);
+			fprintf(stderr, "Spurious M4 snonce nulled rc %llu\n", rc);
 		return;
 	}
 
@@ -852,7 +865,7 @@ static void Handle4Way(int bIsQOS)
 // "unknown" auths as just that, unk.  These are M1-M2's which do not have valid
 // M3-M4's.  They may be valid, but may also be a client with the wrong password
 
-	if (msg == 1) {
+	if (msg == 1 && !IGNORE_MSG1) {
 		if (verbosity > 1)
 			fprintf(stderr, "EAPOL M1 anonce %s rc %llu%s\n", nonce, rc,
 			        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -867,7 +880,8 @@ static void Handle4Way(int bIsQOS)
 		MEM_FREE(wpa[ess].M[2].packet);
 		MEM_FREE(wpa[ess].M[3].packet);
 	}
-	else if (msg == 2) {
+
+	else if (msg == 2 && !IGNORE_MSG2) {
 		// Some sanitiy checks
 		if (pkt_hdr.incl_len < sizeof(ieee802_1x_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
 			fprintf(stderr, "%s: header len %u, wanted to subtract "Zu", skipping packet\n",
@@ -906,7 +920,7 @@ static void Handle4Way(int bIsQOS)
 			auth1 = (ieee802_1x_eapol_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
 				fprintf(stderr, "EAPOL M2 (matching M1 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
-				DumpAuth(ess, 1, bIsQOS);
+				DumpAuth(ess, 1, 2, bIsQOS);
 			} else {
 				if (verbosity > 1)
 					fprintf(stderr, "EAPOL M2 (no matching M1 seen) snonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -917,11 +931,13 @@ static void Handle4Way(int bIsQOS)
 		}
 
 	}
-	else if (msg == 3) {
+
+	else if (msg == 3 && !IGNORE_MSG3) {
 		// see if we have a M2 that 'matches',  which is 1 less than our replay count.
 		safe_malloc(wpa[ess].M[3].packet, pkt_hdr.incl_len);
 		wpa[ess].M[3].packet_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].M[3].packet, packet, pkt_hdr.incl_len);
+
 		if (wpa[ess].M[2].packet) {
 			ieee802_1x_eapol_t *auth3 = auth, *auth2;
 			p = (uint8*)wpa[ess].M[2].packet;
@@ -947,8 +963,14 @@ static void Handle4Way(int bIsQOS)
 					        wpa[ess].M[1].packet ? "" : " not", nonce, rc,
 					        wpa[ess].bssid, wpa[ess].essid,
 					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
-					DumpAuth(ess, 3, bIsQOS);
+					DumpAuth(ess, 2, 3, bIsQOS);
 					wpa[ess].fully_cracked = 1;
+
+					// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
+					wpa[ess].M[0].packet = NULL;
+					MEM_FREE(wpa[ess].M[1].packet);
+					MEM_FREE(wpa[ess].M[3].packet);
+					MEM_FREE(wpa[ess].M[2].packet);
 				} else {
 					if (verbosity > 1)
 						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -958,11 +980,90 @@ static void Handle4Way(int bIsQOS)
 			if (verbosity > 1)
 				fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu%s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
-		// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
-		wpa[ess].M[0].packet = NULL;
-		MEM_FREE(wpa[ess].M[1].packet);
-		MEM_FREE(wpa[ess].M[3].packet);
+	}
+
+	else if (msg == 4) {
+		// Some sanitiy checks
+		if (pkt_hdr.incl_len < sizeof(ieee802_1x_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
+			fprintf(stderr, "%s: header len %u, wanted to subtract "Zu", skipping packet\n",
+				filename, pkt_hdr.incl_len, sizeof(ieee802_1x_frame_hdr_t) + (bIsQOS ? 10 : 8));
+			return;
+		}
+
+		// see if we have a M1 or M3 that 'matches'.
 		MEM_FREE(wpa[ess].M[2].packet);
+		MEM_FREE(wpa[ess].M[4].packet);
+		safe_malloc(wpa[ess].M[4].packet, pkt_hdr.incl_len);
+		wpa[ess].M[4].packet_len = pkt_hdr.incl_len;
+		memcpy(wpa[ess].M[4].packet, packet, pkt_hdr.incl_len);
+		wpa[ess].M[0].packet = wpa[ess].M[4].packet;
+		wpa[ess].M[0].packet_len = wpa[ess].M[4].packet_len;
+
+		// This is canonical for any encapsulations
+		wpa[ess].eapol_sz = auth->length + 4;
+
+		if (wpa[ess].eapol_sz > sizeof(((hccap_t*)(NULL))->eapol)) {
+			fprintf(stderr, "%s: eapol size %u (too large), skipping packet\n",
+			        filename, wpa[ess].eapol_sz);
+			wpa[ess].eapol_sz = 0;
+			MEM_FREE(wpa[ess].M[4].packet);
+			wpa[ess].M[0].packet = NULL;
+			return;
+		}
+
+		if (wpa[ess].M[3].packet) {
+			ieee802_1x_eapol_t *auth4 = auth, *auth3;
+
+			p = wpa[ess].M[3].packet ?
+				(uint8*)wpa[ess].M[3].packet : (uint8*)wpa[ess].M[1].packet;
+			if (bIsQOS)
+				p += 2;
+			p += 8;
+			p += sizeof(ieee802_1x_frame_hdr_t);
+			auth3 = (ieee802_1x_eapol_t*)p;
+			if (auth3->replay_cnt == auth4->replay_cnt) {
+				fprintf(stderr, "EAPOL M4 (matching M3 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				DumpAuth(ess, 3, 4, bIsQOS);
+				wpa[ess].fully_cracked = 1;
+				// clear this, so we do not hit the same 4 packet and output exact same 3/4 combo.
+				wpa[ess].M[0].packet = NULL;
+				MEM_FREE(wpa[ess].M[1].packet);
+				MEM_FREE(wpa[ess].M[2].packet);
+				MEM_FREE(wpa[ess].M[3].packet);
+				MEM_FREE(wpa[ess].M[4].packet);
+				return;
+			}
+		}
+		if (wpa[ess].M[1].packet) {
+			ieee802_1x_eapol_t *auth4 = auth, *auth1;
+
+			p = wpa[ess].M[3].packet ?
+				(uint8*)wpa[ess].M[3].packet : (uint8*)wpa[ess].M[1].packet;
+			if (bIsQOS)
+				p += 2;
+			p += 8;
+			p += sizeof(ieee802_1x_frame_hdr_t);
+			auth1 = (ieee802_1x_eapol_t*)p;
+			if ((auth1->replay_cnt + 1) == auth4->replay_cnt) {
+				fprintf(stderr, "EAPOL M4 (matching M1 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				DumpAuth(ess, 1, 4, bIsQOS);
+				wpa[ess].fully_cracked = 1;
+				// clear this, so we do not hit the same 4 packet and output exact same 3/4 combo.
+				wpa[ess].M[0].packet = NULL;
+				MEM_FREE(wpa[ess].M[1].packet);
+				MEM_FREE(wpa[ess].M[2].packet);
+				MEM_FREE(wpa[ess].M[3].packet);
+				MEM_FREE(wpa[ess].M[4].packet);
+				return;
+			} else {
+				if (verbosity > 1)
+					fprintf(stderr, "EAPOL M4 (no matching M1/M3 seen) snonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+			}
+
+		} else {
+			if (verbosity > 1)
+				fprintf(stderr, "THIS %sM4 snonce %s rc %llu%s\n", (wpa[ess].M[1].packet || wpa[ess].M[3].packet) ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+		}
 	} else
 		fprintf(stderr, "not EAPOL\n");
 }
@@ -978,12 +1079,30 @@ char *strdup_MSVC(const char *str)
 }
 #endif
 
-static void DumpAuth(int ess, int one_three, int bIsQOS)
+// We pick anonce from M1 or M3. Everything else should be from M2, or
+// possibly from M4 unless it's zeroed out. In a pinch we can allegedly
+// use EAPOL from M3 but then nonce fuzzing is impossible.
+//
+// hccapx "message pair value"
+// val  msgs   EAPOL  fuzzing possible  rc match  used here
+//   0  M1/M2   M2      yes               yes       yes
+//   1  M1/M4   M4      yes               yes       yes
+//   2  M2/M3   M2      yes               yes       yes
+//   3  M2/M3   M3      no                yes       no
+//   4  M3/M4   M3      no                yes       no
+//   5  M3/M4   M4      yes               yes       yes
+// 128  M1/M2   M2      yes               no        no
+// 129  M1/M4   M4      yes               no        no
+// 130  M2/M3   M2      yes               no        no
+// 131  M2/M3   M3      no                no        no
+// 132  M3/M4   M3      no                no        no
+// 133  M3/M4   M4      yes               no        no
+static void DumpAuth(int ess, int first, int second, int bIsQOS)
 {
 	ieee802_1x_eapol_t *auth13, *auth2;
-	uint8 *pkt2 = (uint8*)wpa[ess].M[2].packet;
+	uint8 *pkt2 = (uint8*)wpa[ess].M[second].packet;
 	uint8 *p = pkt2;
-	uint8 *end = (uint8*)wpa[ess].M[2].packet + wpa[ess].M[2].packet_len;
+	uint8 *end = (uint8*)wpa[ess].M[second].packet + wpa[ess].M[second].packet_len;
 	uint8 *p13;
 	hccap_t	hccap;
 	int i;
@@ -993,7 +1112,7 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	int search_len;
 
 	cp += sprintf(cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
-	if (!wpa[ess].M[2].packet) {
+	if (!pkt2) {
 		fprintf(stderr, "ERROR, M2 null\n");
 		return;
 	}
@@ -1002,21 +1121,14 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
 	auth2 = (ieee802_1x_eapol_t*)p;
-	if (one_three == 1) {
-		if (!wpa[ess].M[1].packet) {
-			fprintf(stderr, "ERROR, M1 null\n");
-			return;
-		}
-		p = wpa[ess].M[1].packet;
-		end = (uint8*)wpa[ess].M[1].packet + wpa[ess].M[1].packet_len;
-	} else  {
-		if (!wpa[ess].M[3].packet) {
-			fprintf(stderr, "ERROR, M3 null\n");
-			return;
-		}
-		p = wpa[ess].M[3].packet;
-		end = (uint8*)wpa[ess].M[3].packet + wpa[ess].M[3].packet_len;
+
+	if (!wpa[ess].M[first].packet) {
+		fprintf(stderr, "ERROR, M1 null\n");
+		return;
 	}
+	p = wpa[ess].M[first].packet;
+	end = (uint8*)wpa[ess].M[first].packet + wpa[ess].M[first].packet_len;
+
 	p13 = p;
 	if (bIsQOS)
 		p += 2;
@@ -1061,8 +1173,8 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	cp += sprintf(cp, ":%s:%s:%s::WPA", ap_mac, sta_mac, gecos);
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
-	cp += sprintf(cp, ":%sverified:%s", (one_three == 1) ? "not " : "", filename);
-	if (one_three == 1) {
+	cp += sprintf(cp, ":%sverified:%s", (first == 1 && second == 2) ? "not " : "", filename);
+	if (first == 1 && second == 2) {
 		if (verbosity == 1)
 			fprintf(stderr, "M1/M2 stored, pending verification\n");
 		if (nunVer >= max_essids)
@@ -1080,9 +1192,8 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 			}
 		}
 	}
-	fprintf(stderr, "Dumping %s at time: %u.%06u BSSID %s ESSID '%s'\n",
-	        one_three == 1 ? "M1/M2" : "M2/M3",
-	        cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
+	fprintf(stderr, "Dumping M%u/M%u at time: %u.%06u BSSID %s ESSID '%s'\n",
+	        first, second, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	printf("%s\n", TmpKey);
 	fflush(stdout);
 }
