@@ -200,18 +200,16 @@ inline static uint64 swap64u(uint64 v) {
  * The M3 would not be sent, unless the router was happy that the connecting
  * AP knows the PW.
  */
+typedef struct handshake_s {
+	uint8 *packet;
+	int packet_len;
+} handshake_t;
+
 typedef struct WPA4way_s {
 	char essid[36];
 	char bssid[18];
 	char sta[18];
-	uint8 *packet1;
-	int packet1_len;
-	uint8 *packet2;
-	int packet2_len;
-	uint8 *eapol_pkt;
-	int eapol_pkt_len;
-	uint8 *packet3;
-	int packet3_len;
+	handshake_t M[5];
 	int fully_cracked;
 	int hopefully_cracked; // we have a 1 & 2
 	int eapol_sz;
