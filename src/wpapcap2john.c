@@ -39,10 +39,11 @@ static WPA4way_t *wpa;    /* alloced/realloced to max_essids*/
 static char **unVerified; /* alloced/realloced to max_essids*/
 static int nwpa = 0;
 static int nunVer = 0;
+static int rctime = 10*60;
 static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 static const char *filename;
-static unsigned int link_type, ShowIncomplete = 1;
+static unsigned int link_type, ShowIncomplete = 1, IgnoreRepCnt;
 static int warn_wpaclean;
 static int warn_snaplen;
 static int verbosity = 1;
@@ -877,6 +878,8 @@ static void Handle4Way(int bIsQOS)
 		wpa[ess].M[1].packet_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].M[1].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[0].packet = NULL;
+		wpa[ess].M[1].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
+		wpa[ess].M[1].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 		MEM_FREE(wpa[ess].M[2].packet);
 		MEM_FREE(wpa[ess].M[3].packet);
 	}
@@ -897,6 +900,8 @@ static void Handle4Way(int bIsQOS)
 		memcpy(wpa[ess].M[2].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[0].packet = wpa[ess].M[2].packet;
 		wpa[ess].M[0].packet_len = wpa[ess].M[2].packet_len;
+		wpa[ess].M[2].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
+		wpa[ess].M[2].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 
 		// This is canonical for any encapsulations
 		wpa[ess].eapol_sz = auth->length + 4;
@@ -921,6 +926,9 @@ static void Handle4Way(int bIsQOS)
 			if (auth1->replay_cnt == auth2->replay_cnt) {
 				fprintf(stderr, "EAPOL M2 (matching M1 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				DumpAuth(ess, 1, 2, bIsQOS);
+			} else if (IgnoreRepCnt && (wpa[ess].M[2].ts_sec >= wpa[ess].M[1].ts_sec && wpa[ess].M[2].ts_sec - wpa[ess].M[1].ts_sec < rctime)) {
+				fprintf(stderr, "EAPOL M2 w/ M1 hit, snonce %s rc %llu for ESSID %s (rc mismatch)%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				DumpAuth(ess, 1, 2, bIsQOS);
 			} else {
 				if (verbosity > 1)
 					fprintf(stderr, "EAPOL M2 (no matching M1 seen) snonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -933,10 +941,13 @@ static void Handle4Way(int bIsQOS)
 	}
 
 	else if (msg == 3 && !IGNORE_MSG3) {
-		// see if we have a M2 that 'matches',  which is 1 less than our replay count.
+		// Either we have a M2 that 'matches', (1 less than our replay count)
+		// or we get a matching M4 in the future (with non-zeroed data)
 		safe_malloc(wpa[ess].M[3].packet, pkt_hdr.incl_len);
 		wpa[ess].M[3].packet_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].M[3].packet, packet, pkt_hdr.incl_len);
+		wpa[ess].M[3].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
+		wpa[ess].M[3].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 
 		if (wpa[ess].M[2].packet) {
 			ieee802_1x_eapol_t *auth3 = auth, *auth2;
@@ -946,7 +957,7 @@ static void Handle4Way(int bIsQOS)
 			p += 8;
 			p += sizeof(ieee802_1x_frame_hdr_t);
 			auth2 = (ieee802_1x_eapol_t*)p;
-			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
+			if (auth2->replay_cnt + 1 == auth3->replay_cnt) {
 				ieee802_1x_eapol_t *auth1;
 				if (wpa[ess].M[1].packet) {
 					p = (uint8*)wpa[ess].M[1].packet;
@@ -960,6 +971,36 @@ static void Handle4Way(int bIsQOS)
 				// are 100% sure. If we didn't see it, we are only 99% sure.
 				if (!wpa[ess].M[1].packet || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
 					fprintf(stderr, "EAPOL M3 (M2 seen, M1%s seen), anonce %s rc %llu for BSSID %s ESSID '%s'%s\n",
+					        wpa[ess].M[1].packet ? "" : " not", nonce, rc,
+					        wpa[ess].bssid, wpa[ess].essid,
+					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+					DumpAuth(ess, 2, 3, bIsQOS);
+					wpa[ess].fully_cracked = 1;
+
+					// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
+					wpa[ess].M[0].packet = NULL;
+					MEM_FREE(wpa[ess].M[1].packet);
+					MEM_FREE(wpa[ess].M[3].packet);
+					MEM_FREE(wpa[ess].M[2].packet);
+				} else {
+					if (verbosity > 1)
+						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				}
+			} else if (IgnoreRepCnt && (wpa[ess].M[2].ts_sec >= wpa[ess].M[1].ts_sec && wpa[ess].M[2].ts_sec - wpa[ess].M[1].ts_sec < rctime)) {
+				ieee802_1x_eapol_t *auth1;
+
+				if (wpa[ess].M[1].packet) {
+					p = (uint8*)wpa[ess].M[1].packet;
+					if (bIsQOS)
+						p += 2;
+					p += 8;
+					p += sizeof(ieee802_1x_frame_hdr_t);
+					auth1 = (ieee802_1x_eapol_t*)p;
+				}
+				// If we saw the M1, its nonce must match the M3 nonce and we
+				// are 100% sure. If we didn't see it, we are only 99% sure.
+				if (!wpa[ess].M[1].packet || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
+					fprintf(stderr, "EAPOL M3 (M2 seen, M1%s seen), anonce %s rc %llu for BSSID %s ESSID '%s' (rc mismatch)%s\n",
 					        wpa[ess].M[1].packet ? "" : " not", nonce, rc,
 					        wpa[ess].bssid, wpa[ess].essid,
 					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -996,6 +1037,8 @@ static void Handle4Way(int bIsQOS)
 		safe_malloc(wpa[ess].M[4].packet, pkt_hdr.incl_len);
 		wpa[ess].M[4].packet_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].M[4].packet, packet, pkt_hdr.incl_len);
+		wpa[ess].M[4].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
+		wpa[ess].M[4].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 		wpa[ess].M[0].packet = wpa[ess].M[4].packet;
 		wpa[ess].M[0].packet_len = wpa[ess].M[4].packet_len;
 
@@ -1025,6 +1068,7 @@ static void Handle4Way(int bIsQOS)
 				fprintf(stderr, "EAPOL M4 (matching M3 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				DumpAuth(ess, 3, 4, bIsQOS);
 				wpa[ess].fully_cracked = 1;
+
 				// clear this, so we do not hit the same 4 packet and output exact same 3/4 combo.
 				wpa[ess].M[0].packet = NULL;
 				MEM_FREE(wpa[ess].M[1].packet);
@@ -1048,6 +1092,7 @@ static void Handle4Way(int bIsQOS)
 				fprintf(stderr, "EAPOL M4 (matching M1 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				DumpAuth(ess, 1, 4, bIsQOS);
 				wpa[ess].fully_cracked = 1;
+
 				// clear this, so we do not hit the same 4 packet and output exact same 3/4 combo.
 				wpa[ess].M[0].packet = NULL;
 				MEM_FREE(wpa[ess].M[1].packet);
@@ -1269,6 +1314,12 @@ int main(int argc, char **argv)
 		argv++; argc--;
 	}
 
+	if (argc > 1 && !strcmp(argv[1], "-r")) {
+		IgnoreRepCnt = 1;
+		argv[1] = argv[0];
+		argv++; argc--;
+	}
+
 	while (argc > 2 && !strcmp(argv[1], "-e")) {
 		argv[1] = argv[0];
 		argv++; argc--;
@@ -1281,10 +1332,11 @@ int main(int argc, char **argv)
 		return !!fprintf(stderr,
 "Converts PCAP or IVS2 files to JtR format.\n"
 "Supported encapsulations: 802.11, Prism, Radiotap and PPI.\n"
-"Usage: %s [-c] [-v] [-e essid:bssid [-e ...]] <file[s]>\n"
+"Usage: %s [-c] [-v] [-r] [-e essid:bssid [-e ...]] <file[s]>\n"
 "\n-c\tShow only complete auths (incomplete ones might be wrong passwords\n"
 "\tbut we can crack what passwords were tried).\n"
 "-v\tBump verbosity\n"
+"-r\tIgnore replay-count (for use with nonce fuzzing)\n"
 "-e\tManually add Name:MAC pair(s) in case the file lacks beacons.\n"
 "\teg. -e \"Magnum WIFI:6d:61:67:6e:75:6d\"\n\n",
 		                 argv[0]);

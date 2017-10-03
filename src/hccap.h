@@ -5,8 +5,8 @@
 
 typedef struct {
 	char          essid[36];
-	unsigned char mac1[6];
-	unsigned char mac2[6];
+	unsigned char mac1[6];    // AP
+	unsigned char mac2[6];    // STA
 	unsigned char nonce1[32]; // snonce
 	unsigned char nonce2[32]; // anonce
 	unsigned char eapol[256];
