@@ -17,6 +17,7 @@ typedef   signed char      int8;
 
 #include "arch.h"
 #include "johnswap.h"
+#include "hccap.h"
 
 // All data structures MUST be byte aligned, since we work on 'raw' data in structures
 // and do not load structures record by record.
@@ -207,8 +208,8 @@ typedef struct WPA4way_s {
 	int packet1_len;
 	uint8 *packet2;
 	int packet2_len;
-	uint8 *orig_2;
-	int orig_2_len;
+	uint8 *eapol_pkt;
+	int eapol_pkt_len;
 	uint8 *packet3;
 	int packet3_len;
 	int fully_cracked;
@@ -219,20 +220,6 @@ typedef struct WPA4way_s {
 
 // Here are the structures needed to store the data that make up the 4-way handshake.
 // we harvest this data to make JtR input strings.
-
-// this struct IS the struct in JtR. So we load it up, the do a base-64 convert to save.
-typedef struct
-{
-	char          essid[36];  // Note, we do not 'write' this one, it is the salt.
-	unsigned char mac1[6];    // the base-64 data we write, starts from this element forward.
-	unsigned char mac2[6];
-	unsigned char nonce1[32];
-	unsigned char nonce2[32];
-	unsigned char eapol[256];
-	int           eapol_size;
-	int           keyver;
-	unsigned char keymic[16];
-} hccap_t;
 
 //BSSID const. length of 6 bytes; can be together with all the other types
 #define IVS2_BSSID      0x0001

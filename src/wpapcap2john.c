@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 //#define WPADEBUG 1
 
@@ -759,8 +760,7 @@ static void HandleBeacon(uint16 subtype, int has_ht)
 static void Handle4Way(int bIsQOS)
 {
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
-	int i, ess=-1;
-	uint8 *orig_2 = NULL;
+	int i, ess = -1;
 	uint8 *p = (uint8*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
 	uint8 *end = packet + pkt_hdr.incl_len;
 	ieee802_1x_eapol_t *auth;
@@ -769,9 +769,8 @@ static void Handle4Way(int bIsQOS)
 	char nonce[9];
 	uint64 rc;
 
-	// ok, first thing, find the beacon.  If we can NOT find the beacon, then
-	// do not proceed.  Also, if we find the becon, we may determine that
-	// we already HAVE fully cracked this
+	// Find the ESSID in our db.  If we can NOT find it, do not proceed.
+	// Also, if we find it, we may determine that we're done with it already
 
 	to_bssid(bssid, pkt->addr3);
 	for (i = nwpa - 1; i >= 0; --i) {
@@ -784,15 +783,18 @@ static void Handle4Way(int bIsQOS)
 		fprintf(stderr, "EAPOL for BSSID %s - unknown ESSID. Perhaps -e option needed?\n", bssid);
 		return;
 	}
+
 	// Ok, after pkt,  uint16 QOS control (should be 00 00)
 	if (bIsQOS)
 		p += 2;
+
 	// we are now at Logical-Link Control. (8 bytes long).
 	// LLC check not needed here any more.  We do it in the packet cracker
 	// section, before calling this function.  We just need to skip the 8 byte
 	// LLC.
 	//if (memcmp(p, "\xaa\xaa\x3\0\0\0\x88\x8e", 8)) return; // not a 4way
 	p += 8;
+
 	// p now points to the 802.1X Authentication structure.
 	auth = (ieee802_1x_eapol_t*)p;
 	if (p + sizeof(ieee802_1x_eapol_t) > end) {
@@ -838,9 +840,6 @@ static void Handle4Way(int bIsQOS)
 		return;
 	}
 
-	safe_malloc(orig_2, pkt_hdr.incl_len);
-	memcpy(orig_2, packet, pkt_hdr.incl_len);
-
 // If we see M1 followed by M2 which have same replay_cnt, we have a likely
 // auth. Or we want a M2 followed by a M3 that are 1 replay count apart
 // which means we DO have an auth.
@@ -864,8 +863,8 @@ static void Handle4Way(int bIsQOS)
 		safe_malloc(wpa[ess].packet1, pkt_hdr.incl_len);
 		wpa[ess].packet1_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].packet1, packet, pkt_hdr.incl_len);
+		wpa[ess].eapol_pkt = NULL;
 		MEM_FREE(wpa[ess].packet2);
-		MEM_FREE(wpa[ess].orig_2);
 		MEM_FREE(wpa[ess].packet3);
 	}
 	else if (msg == 2) {
@@ -873,19 +872,17 @@ static void Handle4Way(int bIsQOS)
 		if (pkt_hdr.incl_len < sizeof(ieee802_1x_frame_hdr_t) + (bIsQOS ? 10 : 8)) {
 			fprintf(stderr, "%s: header len %u, wanted to subtract "Zu", skipping packet\n",
 				filename, pkt_hdr.incl_len, sizeof(ieee802_1x_frame_hdr_t) + (bIsQOS ? 10 : 8));
-			goto out;
+			return;
 		}
 
 		// see if we have a M1 that 'matches'.
 		MEM_FREE(wpa[ess].packet3);
 		MEM_FREE(wpa[ess].packet2);
-		MEM_FREE(wpa[ess].orig_2);
 		safe_malloc(wpa[ess].packet2, pkt_hdr.incl_len);
 		wpa[ess].packet2_len = pkt_hdr.incl_len;
-		safe_malloc(wpa[ess].orig_2, pkt_hdr.incl_len);
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.incl_len);
-		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.incl_len);
-		wpa[ess].orig_2_len = pkt_hdr.incl_len;
+		wpa[ess].eapol_pkt = wpa[ess].packet2;
+		wpa[ess].eapol_pkt_len = wpa[ess].packet2_len;
 
 		// This is canonical for any encapsulations
 		wpa[ess].eapol_sz = auth->length + 4;
@@ -895,8 +892,8 @@ static void Handle4Way(int bIsQOS)
 			        filename, wpa[ess].eapol_sz);
 			wpa[ess].eapol_sz = 0;
 			MEM_FREE(wpa[ess].packet2);
-			MEM_FREE(wpa[ess].orig_2);
-			goto out;
+			wpa[ess].eapol_pkt = NULL;
+			return;
 		}
 
 		if (wpa[ess].packet1 && ShowIncomplete) {
@@ -962,15 +959,12 @@ static void Handle4Way(int bIsQOS)
 				fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu%s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
 		// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
+		wpa[ess].eapol_pkt = NULL;
 		MEM_FREE(wpa[ess].packet1);
 		MEM_FREE(wpa[ess].packet3);
 		MEM_FREE(wpa[ess].packet2);
-		MEM_FREE(wpa[ess].orig_2);
 	} else
 		fprintf(stderr, "not EAPOL\n");
-
-out:
-	MEM_FREE(orig_2);
 }
 
 #if HAVE___MINGW_ALIGNED_MALLOC && !defined (MEMDBG_ON)
@@ -987,8 +981,8 @@ char *strdup_MSVC(const char *str)
 static void DumpAuth(int ess, int one_three, int bIsQOS)
 {
 	ieee802_1x_eapol_t *auth13, *auth2;
-	uint8 *p = (uint8*)wpa[ess].packet2;
-	uint8 *pkt2 = p;
+	uint8 *pkt2 = (uint8*)wpa[ess].packet2;
+	uint8 *p = pkt2;
 	uint8 *end = (uint8*)wpa[ess].packet2 + wpa[ess].packet2_len;
 	uint8 *p13;
 	hccap_t	hccap;
@@ -1033,18 +1027,17 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	memset(&hccap, 0, sizeof(hccap_t));
 	hccap.keyver = auth2->key_info.KeyDescr;
 	memcpy(hccap.mac1, ((ieee802_1x_frame_hdr_t*)pkt2)->addr1, 6);
-	memcpy(hccap.mac2, ((ieee802_1x_frame_hdr_t*)(p13))->addr1, 6);
+	memcpy(hccap.mac2, ((ieee802_1x_frame_hdr_t*)p13)->addr1, 6);
 	memcpy(hccap.nonce1, auth2->wpa_nonce,32);
 	memcpy(hccap.nonce2, auth13->wpa_nonce,32);
 	memcpy(hccap.keymic, auth2->wpa_keymic, 16);
-	p = wpa[ess].orig_2;
-	end = p + wpa[ess].orig_2_len;
+	p = wpa[ess].eapol_pkt;
+	end = p + wpa[ess].eapol_pkt_len;
 	if (bIsQOS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
 	auth2 = (ieee802_1x_eapol_t*)p;
-	memset(auth2->wpa_keymic, 0, 16);
 	hccap.eapol_size = wpa[ess].eapol_sz;
 	if (p + hccap.eapol_size > end) {
 		// more checks like this should be added to this function
@@ -1054,18 +1047,20 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 		return;
 	}
 	memcpy(hccap.eapol, auth2, hccap.eapol_size);
+	memset(hccap.eapol + offsetof(ieee802_1x_eapol_t, wpa_keymic), 0, 16);
 
 	w = (uint8 *)&hccap;
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
 		cp += code_block(&w[i], 1, cp);
 	cp += code_block(&w[i], 0, cp);
+	search_len = cp - TmpKey;
+
 	to_compact(gecos, hccap.mac1);
 	to_dashed(ap_mac, hccap.mac1);
 	to_dashed(sta_mac, hccap.mac2);
 	cp += sprintf(cp, ":%s:%s:%s::WPA", ap_mac, sta_mac, gecos);
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
-	search_len = cp-TmpKey;
 	cp += sprintf(cp, ":%sverified:%s", (one_three == 1) ? "not " : "", filename);
 	if (one_three == 1) {
 		if (verbosity == 1)
