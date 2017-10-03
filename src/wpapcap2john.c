@@ -40,6 +40,7 @@ static const char cpItoa64[64] =
 static const char *filename;
 static unsigned int link_type, ShowIncomplete = 1;
 static int warn_wpaclean;
+static int warn_snaplen;
 static int verbosity = 1;
 
 // These 2 functions output data properly for JtR, in base-64 format. These
@@ -329,9 +330,13 @@ static int GetNextPacket(FILE *in)
 		pkt_hdr.incl_len = swap32u(pkt_hdr.incl_len);
 		pkt_hdr.orig_len = swap32u(pkt_hdr.orig_len);
 	}
+
 	if (pkt_hdr.ts_sec == 0 && pkt_hdr.ts_usec == 0 && !warn_wpaclean++)
 		fprintf(stderr,
         "**\n** Warning: %s seems to be processed with some dubious tool like 'wpaclean'. Important information may be lost.\n**\n", filename);
+
+	if (pkt_hdr.orig_len > pkt_hdr.incl_len && !warn_snaplen++)
+		fprintf(stderr, "**\n** Warning: %s seems to be recorded with insufficient snaplen, packet was %u bytes but only %u bytes were recorded\n**\n", filename, pkt_hdr.orig_len, pkt_hdr.incl_len);
 
 	if (!start_t) {
 		start_t = pkt_hdr.ts_sec;
@@ -494,7 +499,10 @@ static int ProcessPacket()
 			dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
 
 		to_bssid(dst, &packet[4]);
-		to_bssid(src, &packet[10]);
+		if (pkt_hdr.incl_len >= 16)
+			to_bssid(src, &packet[10]);
+		else
+			strcpy(src, "                 ");
 		if (verbosity > 2)
 			fprintf(stderr, "%4d %2d.%06u  %s -> %s %-4d ", ++pkt_num, pkt_hdr.ts_sec, pkt_hdr.ts_usec, src, dst, pkt_hdr.incl_len);
 		else
@@ -820,7 +828,7 @@ static void Handle4Way(int bIsQOS)
 
 	if (wpa[ess].fully_cracked) {
 		if (verbosity > 1)
-			fprintf(stderr, "EAPOL M%u, nonce %s rc %llu (4-way already seen)%s\n", msg, nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+			fprintf(stderr, "EAPOL M%u, %cnonce %s rc %llu (4-way already seen)%s\n", msg, (msg == 1 || msg == 3) ? 'a' : 's', nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		return;  // no reason to go on.
 	}
 
@@ -1041,7 +1049,7 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 	if (p + hccap.eapol_size > end) {
 		// more checks like this should be added to this function
 		fprintf(stderr, "%s() malformed data in %s?\n", __FUNCTION__, filename);
-		dump_hex("Full packet", pkt2, end - pkt2);
+		dump_hex("Full packet", wpa[ess].orig_2, wpa[ess].orig_2_len);
 		fprintf(stderr, "\n");
 		return;
 	}
@@ -1067,7 +1075,7 @@ static void DumpAuth(int ess, int one_three, int bIsQOS)
 		unVerified[nunVer++] = strdup(TmpKey);
 		return;
 	} else {
-		for (i = 0; i < nunVer; ++i) {
+		for (i = nunVer - 1; i >= 0; i--) {
 			if (!strncmp(TmpKey, unVerified[i], search_len)) {
 				if (verbosity == 1)
 					fprintf(stderr, "Auth now verified\n");
@@ -1179,6 +1187,7 @@ int main(int argc, char **argv)
 		int j;
 
 		// Re-init between pcap files
+		warn_snaplen = 0;
 		warn_wpaclean = 0;
 		start_t = start_u = 0;
 		pkt_num = 0;
