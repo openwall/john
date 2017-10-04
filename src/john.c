@@ -144,6 +144,7 @@ static int john_omp_threads_new;
 
 #if CPU_DETECT
 extern int CPU_detect(void);
+extern char CPU_req_name[];
 #endif
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
@@ -1395,7 +1396,7 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 		}
 #endif
 		fprintf(stderr, "Sorry, %s is required for this build\n",
-		    CPU_NAME);
+		    CPU_req_name);
 		if (make_check)
 			exit(0);
 		error();
