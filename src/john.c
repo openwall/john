@@ -519,15 +519,17 @@ static void john_omp_show_info(void)
 			msg = "no OpenMP support";
 		else if ((database.format->params.flags & FMT_OMP_BAD))
 			msg = "poor OpenMP scalability";
-		if (msg)
+		if (msg) {
 #if OS_FORK
+		if (!(options.flags & (FLG_PIPE_CHK | FLG_STDIN_CHK)))
 			fprintf(stderr, "Warning: %s for this hash type, "
 			    "consider --fork=%d\n",
 			    msg, john_omp_threads_orig);
-#else
+		else
+#endif
 			fprintf(stderr, "Warning: %s for this hash type\n",
 			    msg);
-#endif
+		}
 	}
 
 /*
