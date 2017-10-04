@@ -899,6 +899,7 @@ static void Handle4Way(int is_qos)
 		wpa[ess].M[1].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 		MEM_FREE(wpa[ess].M[2].packet);
 		MEM_FREE(wpa[ess].M[3].packet);
+		MEM_FREE(wpa[ess].M[4].packet);
 	}
 
 	else if (msg == 2 && !IGNORE_MSG2) {
@@ -910,15 +911,16 @@ static void Handle4Way(int is_qos)
 		}
 
 		// see if we have a M1 that 'matches'.
-		MEM_FREE(wpa[ess].M[3].packet);
 		MEM_FREE(wpa[ess].M[2].packet);
+		MEM_FREE(wpa[ess].M[3].packet);
+		MEM_FREE(wpa[ess].M[4].packet);
 		safe_malloc(wpa[ess].M[2].packet, pkt_hdr.incl_len);
-		wpa[ess].M[2].isQoS = is_qos;
 		wpa[ess].M[2].packet_len = pkt_hdr.incl_len;
+		wpa[ess].M[2].isQoS = is_qos;
 		memcpy(wpa[ess].M[2].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[0].packet = wpa[ess].M[2].packet;
-		wpa[ess].M[0].isQoS = is_qos;
 		wpa[ess].M[0].packet_len = wpa[ess].M[2].packet_len;
+		wpa[ess].M[0].isQoS = is_qos;
 		wpa[ess].M[2].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
 		wpa[ess].M[2].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 
@@ -993,7 +995,7 @@ static void Handle4Way(int is_qos)
 					        wpa[ess].M[1].packet ? "" : " not", nonce, rc,
 					        wpa[ess].bssid, wpa[ess].essid,
 					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
-					DumpAuth(ess, 2, 3);
+					DumpAuth(ess, 3, 2);
 					wpa[ess].fully_cracked = 1;
 
 					// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
@@ -1001,6 +1003,7 @@ static void Handle4Way(int is_qos)
 					MEM_FREE(wpa[ess].M[1].packet);
 					MEM_FREE(wpa[ess].M[2].packet);
 					MEM_FREE(wpa[ess].M[3].packet);
+					MEM_FREE(wpa[ess].M[4].packet);
 				} else {
 					if (verbosity > 1)
 						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -1023,7 +1026,7 @@ static void Handle4Way(int is_qos)
 					        wpa[ess].M[1].packet ? "" : " not", nonce, rc,
 					        wpa[ess].bssid, wpa[ess].essid,
 					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
-					DumpAuth(ess, 2, 3);
+					DumpAuth(ess, 3, 2);
 					wpa[ess].fully_cracked = 1;
 
 					// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
@@ -1031,6 +1034,7 @@ static void Handle4Way(int is_qos)
 					MEM_FREE(wpa[ess].M[1].packet);
 					MEM_FREE(wpa[ess].M[2].packet);
 					MEM_FREE(wpa[ess].M[3].packet);
+					MEM_FREE(wpa[ess].M[4].packet);
 				} else {
 					if (verbosity > 1)
 						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -1060,8 +1064,8 @@ static void Handle4Way(int is_qos)
 		wpa[ess].M[4].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
 		wpa[ess].M[4].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 		wpa[ess].M[0].packet = wpa[ess].M[4].packet;
-		wpa[ess].M[0].isQoS = is_qos;
 		wpa[ess].M[0].packet_len = wpa[ess].M[4].packet_len;
+		wpa[ess].M[0].isQoS = is_qos;
 
 		// This is canonical for any encapsulations
 		wpa[ess].eapol_sz = auth->length + 4;
@@ -1165,9 +1169,9 @@ char *strdup_MSVC(const char *str)
 // 133  M3/M4   M4      yes               no        no
 static void DumpAuth(int ess, int first, int second)
 {
-	ieee802_1x_eapol_t *auth13, *auth2;
-	uint8 *pkt2 = (uint8*)wpa[ess].M[second].packet;
-	uint8 *p = pkt2;
+	ieee802_1x_eapol_t *auth13, *auth24;
+	uint8 *p24 = (uint8*)wpa[ess].M[second].packet;
+	uint8 *p = p24;
 	uint8 *end = (uint8*)wpa[ess].M[second].packet + wpa[ess].M[second].packet_len;
 	uint8 *p13;
 	hccap_t	hccap;
@@ -1177,18 +1181,18 @@ static void DumpAuth(int ess, int first, int second)
 	char TmpKey[2048], *cp = TmpKey;
 
 	cp += sprintf(cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
-	if (!pkt2) {
-		fprintf(stderr, "ERROR, M2 null\n");
+	if (!p24) {
+		fprintf(stderr, "ERROR, M%u null\n", second);
 		return;
 	}
 	if (wpa[ess].M[second].isQoS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
-	auth2 = (ieee802_1x_eapol_t*)p;
+	auth24 = (ieee802_1x_eapol_t*)p;
 
 	if (!wpa[ess].M[first].packet) {
-		fprintf(stderr, "ERROR, M1 null\n");
+		fprintf(stderr, "ERROR, M%u null\n", first);
 		return;
 	}
 	p = wpa[ess].M[first].packet;
@@ -1202,19 +1206,19 @@ static void DumpAuth(int ess, int first, int second)
 	auth13 = (ieee802_1x_eapol_t*)p;
 
 	memset(&hccap, 0, sizeof(hccap_t));
-	hccap.keyver = auth2->key_info.KeyDescr;
-	memcpy(hccap.mac1, ((ieee802_1x_frame_hdr_t*)pkt2)->addr1, 6);
+	hccap.keyver = auth24->key_info.KeyDescr;
+	memcpy(hccap.mac1, ((ieee802_1x_frame_hdr_t*)p24)->addr1, 6);
 	memcpy(hccap.mac2, ((ieee802_1x_frame_hdr_t*)p13)->addr1, 6);
-	memcpy(hccap.nonce1, auth2->wpa_nonce,32);
+	memcpy(hccap.nonce1, auth24->wpa_nonce,32);
 	memcpy(hccap.nonce2, auth13->wpa_nonce,32);
-	memcpy(hccap.keymic, auth2->wpa_keymic, 16);
+	memcpy(hccap.keymic, auth24->wpa_keymic, 16);
 	p = wpa[ess].M[0].packet;
 	end = p + wpa[ess].M[0].packet_len;
 	if (wpa[ess].M[0].isQoS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
-	auth2 = (ieee802_1x_eapol_t*)p;
+	auth24 = (ieee802_1x_eapol_t*)p;
 	hccap.eapol_size = wpa[ess].eapol_sz;
 	if (p + hccap.eapol_size > end) {
 		// more checks like this should be added to this function
@@ -1223,7 +1227,7 @@ static void DumpAuth(int ess, int first, int second)
 		fprintf(stderr, "\n");
 		return;
 	}
-	memcpy(hccap.eapol, auth2, hccap.eapol_size);
+	memcpy(hccap.eapol, auth24, hccap.eapol_size);
 	memset(hccap.eapol + offsetof(ieee802_1x_eapol_t, wpa_keymic), 0, 16);
 
 	w = (uint8 *)&hccap;
