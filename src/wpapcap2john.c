@@ -336,7 +336,8 @@ static int Process(FILE *in)
 		}
 	}
 	fprintf(stderr, "File %s: End of data\n", filename);
-	dump_any_unver();
+	if (ShowIncomplete)
+		dump_any_unver();
 	return 1;
 }
 
@@ -933,7 +934,7 @@ static void Handle4Way(int is_qos)
 			return;
 		}
 
-		if (wpa[ess].M[1].packet && ShowIncomplete) {
+		if (wpa[ess].M[1].packet) {
 			ieee802_1x_eapol_t *auth2 = auth, *auth1;
 			p = (uint8*)wpa[ess].M[1].packet;
 			if (wpa[ess].M[1].isQoS)
