@@ -33,7 +33,7 @@ char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
 static int cfg_recursion;
 static int cfg_process_directive(char *line, int number, int in_hcmode);
-static int cfg_loading_john_local = 0;
+static int cfg_loading_john_local, cfg_loaded_john_local;
 
 /* we have exposed this to the dyna_parser file, so that it can easily
  * walk the configuration list one time, to determine which dynamic formats
@@ -586,13 +586,23 @@ static int cfg_process_directive_include_config(char *line, int number)
 		return 1;
 	}
 
-	if (strstr(Name, "/john-local.conf"))
+	if (strstr(Name, "/john-local.conf")) {
+		if (!strcmp(Name, "$JOHN/john-local.conf") ||
+		    !strcmp(Name, "./john-local.conf")) {
+			if (!strcmp(path_expand("$JOHN/"), "./") &&
+			    cfg_loaded_john_local)
+				return 0;
+			else
+				cfg_loaded_john_local = 1;
+		}
 		cfg_loading_john_local = 1;
+	}
 	saved_fname = cfg_name;
 	cfg_recursion++;
 	cfg_init(Name, allow_missing);
 	cfg_recursion--;
 	cfg_name = saved_fname;
+	cfg_loading_john_local = 0;
 	return 0;
 }
 
