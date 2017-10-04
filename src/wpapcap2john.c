@@ -1005,7 +1005,7 @@ static void Handle4Way(int is_qos)
 					if (verbosity > 1)
 						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				}
-			} else if (IgnoreRepCnt && (wpa[ess].M[2].ts_sec >= wpa[ess].M[1].ts_sec && wpa[ess].M[2].ts_sec - wpa[ess].M[1].ts_sec < rctime)) {
+			} else if (IgnoreRepCnt && (wpa[ess].M[3].ts_sec >= wpa[ess].M[2].ts_sec && wpa[ess].M[3].ts_sec - wpa[ess].M[2].ts_sec < rctime)) {
 				ieee802_1x_eapol_t *auth1;
 
 				if (wpa[ess].M[1].packet) {
