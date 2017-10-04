@@ -26,7 +26,7 @@ static int GetNextPacket(FILE *in);
 static int ProcessPacket();
 static void HandleBeacon(uint16 subtype, int has_ht);
 static void Handle4Way(int is_qos);
-static void DumpAuth(int idx, int first, int second);
+static void DumpAuth(int idx, int ap_msg, int sta_msg);
 
 static uint32 start_t, start_u, cur_t, cur_u;
 static uint32 pkt_num;
@@ -889,17 +889,17 @@ static void Handle4Way(int is_qos)
 		else
 			if (auth->key_info.KeyDescr == 3)
 				fprintf(stderr, "Found AES cipher with AES-128-CMAC MIC, 802.11w with WPA2-PSK-SHA256 (PMF) is being used.\n");
-		MEM_FREE(wpa[ess].M[1].packet);
-		safe_malloc(wpa[ess].M[1].packet, pkt_hdr.incl_len);
-		wpa[ess].M[1].isQoS = is_qos;
-		wpa[ess].M[1].packet_len = pkt_hdr.incl_len;
-		memcpy(wpa[ess].M[1].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[0].packet = NULL;
-		wpa[ess].M[1].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
-		wpa[ess].M[1].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
+		MEM_FREE(wpa[ess].M[1].packet);
 		MEM_FREE(wpa[ess].M[2].packet);
 		MEM_FREE(wpa[ess].M[3].packet);
 		MEM_FREE(wpa[ess].M[4].packet);
+		safe_malloc(wpa[ess].M[1].packet, pkt_hdr.incl_len);
+		wpa[ess].M[1].isQoS = is_qos;
+		memcpy(wpa[ess].M[1].packet, packet, pkt_hdr.incl_len);
+		wpa[ess].M[1].packet_len = pkt_hdr.incl_len;
+		wpa[ess].M[1].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
+		wpa[ess].M[1].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 	}
 
 	else if (msg == 2 && !IGNORE_MSG2) {
@@ -915,14 +915,14 @@ static void Handle4Way(int is_qos)
 		MEM_FREE(wpa[ess].M[3].packet);
 		MEM_FREE(wpa[ess].M[4].packet);
 		safe_malloc(wpa[ess].M[2].packet, pkt_hdr.incl_len);
-		wpa[ess].M[2].packet_len = pkt_hdr.incl_len;
 		wpa[ess].M[2].isQoS = is_qos;
 		memcpy(wpa[ess].M[2].packet, packet, pkt_hdr.incl_len);
+		wpa[ess].M[2].packet_len = pkt_hdr.incl_len;
+		wpa[ess].M[2].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
+		wpa[ess].M[2].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 		wpa[ess].M[0].packet = wpa[ess].M[2].packet;
 		wpa[ess].M[0].packet_len = wpa[ess].M[2].packet_len;
 		wpa[ess].M[0].isQoS = is_qos;
-		wpa[ess].M[2].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
-		wpa[ess].M[2].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 
 		// This is canonical for any encapsulations
 		wpa[ess].eapol_sz = auth->length + 4;
@@ -963,10 +963,11 @@ static void Handle4Way(int is_qos)
 	else if (msg == 3 && !IGNORE_MSG3) {
 		// Either we have a M2 that 'matches', (1 less than our replay count)
 		// or we get a matching M4 in the future (with non-zeroed data)
+		MEM_FREE(wpa[ess].M[4].packet);
 		safe_malloc(wpa[ess].M[3].packet, pkt_hdr.incl_len);
 		wpa[ess].M[3].isQoS = is_qos;
-		wpa[ess].M[3].packet_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].M[3].packet, packet, pkt_hdr.incl_len);
+		wpa[ess].M[3].packet_len = pkt_hdr.incl_len;
 		wpa[ess].M[3].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
 		wpa[ess].M[3].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 
@@ -1059,8 +1060,8 @@ static void Handle4Way(int is_qos)
 		MEM_FREE(wpa[ess].M[4].packet);
 		safe_malloc(wpa[ess].M[4].packet, pkt_hdr.incl_len);
 		wpa[ess].M[4].isQoS = is_qos;
-		wpa[ess].M[4].packet_len = pkt_hdr.incl_len;
 		memcpy(wpa[ess].M[4].packet, packet, pkt_hdr.incl_len);
+		wpa[ess].M[4].packet_len = pkt_hdr.incl_len;
 		wpa[ess].M[4].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
 		wpa[ess].M[4].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
 		wpa[ess].M[0].packet = wpa[ess].M[4].packet;
@@ -1081,10 +1082,10 @@ static void Handle4Way(int is_qos)
 
 		if (wpa[ess].M[3].packet) {
 			ieee802_1x_eapol_t *auth4 = auth, *auth3;
+			int pkt = wpa[ess].M[3].packet ? 3 : 1;
 
-			p = wpa[ess].M[3].packet ?
-				(uint8*)wpa[ess].M[3].packet : (uint8*)wpa[ess].M[1].packet;
-			if (wpa[ess].M[3].isQoS)
+			p = (uint8*)wpa[ess].M[pkt].packet;
+			if (wpa[ess].M[pkt].isQoS)
 				p += 2;
 			p += 8;
 			p += sizeof(ieee802_1x_frame_hdr_t);
@@ -1167,12 +1168,12 @@ char *strdup_MSVC(const char *str)
 // 131  M2/M3   M3      no                no        no
 // 132  M3/M4   M3      no                no        no
 // 133  M3/M4   M4      yes               no        no
-static void DumpAuth(int ess, int first, int second)
+static void DumpAuth(int ess, int ap_msg, int sta_msg)
 {
 	ieee802_1x_eapol_t *auth13, *auth24;
-	uint8 *p24 = (uint8*)wpa[ess].M[second].packet;
+	uint8 *p24 = (uint8*)wpa[ess].M[sta_msg].packet;
 	uint8 *p = p24;
-	uint8 *end = (uint8*)wpa[ess].M[second].packet + wpa[ess].M[second].packet_len;
+	uint8 *end = (uint8*)wpa[ess].M[sta_msg].packet + wpa[ess].M[sta_msg].packet_len;
 	uint8 *p13;
 	hccap_t	hccap;
 	int i;
@@ -1182,24 +1183,24 @@ static void DumpAuth(int ess, int first, int second)
 
 	cp += sprintf(cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!p24) {
-		fprintf(stderr, "ERROR, M%u null\n", second);
+		fprintf(stderr, "ERROR, M%u null\n", sta_msg);
 		return;
 	}
-	if (wpa[ess].M[second].isQoS)
+	if (wpa[ess].M[sta_msg].isQoS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
 	auth24 = (ieee802_1x_eapol_t*)p;
 
-	if (!wpa[ess].M[first].packet) {
-		fprintf(stderr, "ERROR, M%u null\n", first);
+	if (!wpa[ess].M[ap_msg].packet) {
+		fprintf(stderr, "ERROR, M%u null\n", ap_msg);
 		return;
 	}
-	p = wpa[ess].M[first].packet;
-	end = (uint8*)wpa[ess].M[first].packet + wpa[ess].M[first].packet_len;
+	p = wpa[ess].M[ap_msg].packet;
+	end = (uint8*)wpa[ess].M[ap_msg].packet + wpa[ess].M[ap_msg].packet_len;
 
 	p13 = p;
-	if (wpa[ess].M[first].isQoS)
+	if (wpa[ess].M[ap_msg].isQoS)
 		p += 2;
 	p += 8;
 	p += sizeof(ieee802_1x_frame_hdr_t);
@@ -1241,10 +1242,10 @@ static void DumpAuth(int ess, int first, int second)
 	cp += sprintf(cp, ":%s:%s:%s::WPA", ap_mac, sta_mac, gecos);
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
-	cp += sprintf(cp, ":%sverified:%s", (first == 1 && second == 2) ? "not " : "", filename);
+	cp += sprintf(cp, ":%sverified:%s", (ap_msg == 1 && sta_msg == 2) ? "not " : "", filename);
 
 	fprintf(stderr, "Dumping M%u/M%u at time: %u.%06u BSSID %s ESSID '%s'\n",
-	        first, second, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
+	        ap_msg, sta_msg, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
 	printf("%s\n", TmpKey);
 	fflush(stdout);
 }
