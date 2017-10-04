@@ -88,11 +88,29 @@ static int pristine_gecos;
 static int single_skip_login;
 #endif
 
-/* There should be legislation against adding a BOM to UTF-8 */
-static char *skip_bom(char *string)
+/*
+ * There should be legislation against adding a BOM to UTF-8, not to
+ * mention calling UTF-16 a "text file".
+ */
+static MAYBE_INLINE char *check_bom(char *string)
 {
-	if (!memcmp(string, "\xEF\xBB\xBF", 3))
+	static int warned;
+
+	if (((unsigned char*)string)[0] < 0xef)
+		return string;
+
+	if (!memcmp(string, "\xEF\xBB\xBF", 3)) {
+		if (options.input_enc != UTF_8 && !warned++) {
+			fprintf(stderr,
+			        "Warning: UTF-8 BOM seen in input file - You probably want --input-encoding=UTF8\n");
+		}
 		string += 3;
+	}
+	if (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2)) {
+		fprintf(stderr,
+		        "Error: UTF-16 encoded files are not supported.\n");
+		error();
+	}
 	return string;
 }
 
@@ -196,7 +214,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 
 	dyna_salt_init(db->format);
 	while ((ex_size_line = fgetll(line_buf, sizeof(line_buf), file))) {
-		line = skip_bom(ex_size_line);
+		line = check_bom(ex_size_line);
 
 		if (warn_enc) {
 			char *u8check;
@@ -936,7 +954,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 	line_sb = line;
 	if (options.flags & FLG_FUZZ_CHK)
-		line_sb = skip_bom(line);
+		line_sb = check_bom(line);
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home, &uid,
 		NULL, &db->format, db->options, line_sb);
 #else

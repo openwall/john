@@ -434,15 +434,30 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 	return word;
 }
 
-static MAYBE_INLINE void clean_bom(char *line)
+/*
+ * There should be legislation against adding a BOM to UTF-8, not to
+ * mention calling UTF-16 a "text file".
+ */
+static MAYBE_INLINE void check_bom(char *line)
 {
-	static int checkbomfirst = 1;
+	static int warned;
 
-	if (line_number == 0 && checkbomfirst && options.input_enc == UTF_8) {
-		if (!strncmp("\xEF\xBB\xBF", line, 3)) {
+	if (((unsigned char*)line)[0] < 0xef)
+		return;
+	if (!strncmp("\xEF\xBB\xBF", line, 3)) {
+		if (options.input_enc == UTF_8)
 			memmove(line, line + 3, strlen(line) - 2);
+		else {
+			if (!warned++)
+				fprintf(stderr,
+				        "Warning: UTF-8 BOM seen in wordlist - You probably want --input-encoding=UTF8\n");
+			line += 3;
 		}
-		checkbomfirst = 0;
+	}
+	if (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2)) {
+		fprintf(stderr,
+		        "Error: UTF-16 encoded files are not supported.\n");
+		error();
 	}
 }
 
@@ -733,6 +748,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 					if (!mgetl(line))
 						break;
+					check_bom(line);
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					lp = convert(line);
@@ -759,6 +775,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 					if (!mgetl(line))
 						break;
+					check_bom(line);
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					lp = convert(line);
@@ -884,8 +901,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					i--;
 					break;
 				}
-				if (!myWordFileLines)
+				if (!myWordFileLines) {
+					check_bom(cp);
 					cp = convert(cp);
+				}
 				ep = cp;
 				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r')
 					ep++;
@@ -993,6 +1012,7 @@ GRAB_NEXT_PIPE_LOAD:
 						pipe_input = 0;
 						break;
 					}
+					check_bom(cpi);
 					cpi = convert(cpi);
 					if (strncmp(cpi, "#!comment", 9)) {
 						int len = strlen(cpi);
@@ -1279,8 +1299,6 @@ REDO_AFTER_LMLOOP:
 #else
 			strcpy(line, words[line_number]);
 #endif
-			clean_bom(line);
-
 			line_number++;
 
 			if ((word = apply(line, rule, -1, last))) {
@@ -1331,9 +1349,8 @@ REDO_AFTER_LMLOOP:
 		while (mem_map ? mgetl(line) :
 		       fgetl(line, LINE_BUFFER_SIZE, word_file)) {
 
-			clean_bom(line);
-
 			line_number++;
+			check_bom(line);
 
 			if (line[0] != '#') {
 process_word:

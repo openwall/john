@@ -935,11 +935,20 @@ static int get_bits(mpz_t *op)
   return b;
 }
 
-/* There should be legislation against adding a BOM to UTF-8 */
-static MAYBE_INLINE char *skip_bom(char *string)
+/*
+ * There should be legislation against adding a BOM to UTF-8, not to
+ * mention calling UTF-16 a "text file".
+ */
+static MAYBE_INLINE char *check_bom(char *string)
 {
+  if (((unsigned char*)string)[0] < 0xef)
+    return string;
   if (!memcmp(string, "\xEF\xBB\xBF", 3))
     string += 3;
+  if (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2)) {
+    fprintf(stderr, "Error: UTF-16 encoded files are not supported.\n");
+    error();
+  }
   return string;
 }
 
@@ -1285,7 +1294,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   if (!(wordlist = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
     wordlist = options.wordlist = WORDLIST_NAME;
 
-	if (rec_restored && john_main_process)
+  if (rec_restored && john_main_process)
     fprintf(stderr, "Proceeding with prince%c%s\n",
             loopback ? '-' : ':',
             loopback ? "loopback" : path_expand(wordlist));
@@ -1600,7 +1609,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     if (!strncmp(input_buf, "#!comment", 9))
       continue;
 
-    char *line = skip_bom(input_buf);
+    char *line = check_bom(input_buf);
 
     if (!mem_map)
       input_len = in_superchop (input_buf);
