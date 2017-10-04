@@ -1656,8 +1656,13 @@ DES_bs_crypt_plain_loop:
 .text
 
 #ifdef UNDERSCORES
+#define CPU_req_name _CPU_req_name
 #define CPU_detect _CPU_detect
 #endif
+.globl CPU_req_name
+CPU_req_name:
+	.asciz CPU_NAME
+
 .globl CPU_detect
 CPU_detect:
 	pushq %rbx

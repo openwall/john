@@ -28,8 +28,9 @@
 #define DES_xor_key2			_DES_xor_key2
 #define MD5_body			_MD5_body
 #define BF_body				_BF_body
-#define BF_body_generic     _BF_body_generic
+#define BF_body_generic     		_BF_body_generic
 #define BF_current			_BF_current
+#define CPU_req_name			_CPU_req_name
 #define CPU_detect			_CPU_detect
 #endif
 
@@ -1314,6 +1315,12 @@ BF_body:
 #define cpuid \
 	.byte 0x0F; \
 	.byte 0xA2
+#endif
+
+#ifdef CPU_NAME
+.globl CPU_req_name
+CPU_req_name:
+	.asciz CPU_NAME
 #endif
 
 .globl CPU_detect

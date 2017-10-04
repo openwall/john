@@ -74,6 +74,10 @@
 #include "listconf.h" /* must be included after version.h */
 #include "memdbg.h"
 
+#if CPU_DETECT
+extern char CPU_req_name[];
+#endif
+
 /*
  * FIXME: Should all the listconf_list_*() functions get an additional stream
  * parameter, so that they can write to stderr instead of stdout in case fo an
@@ -130,6 +134,9 @@ static void listconf_list_build_info(void)
 	puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
 	puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
 	puts("Private home: " JOHN_PRIVATE_HOME);
+#endif
+#if CPU_REQ
+	printf("CPU tests: %s\n", CPU_req_name);
 #endif
 #if CPU_FALLBACK
 	puts("CPU fallback binary: " CPU_FALLBACK_BINARY);
