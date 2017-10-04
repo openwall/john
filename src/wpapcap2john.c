@@ -898,8 +898,8 @@ static void Handle4Way(int is_qos)
 		wpa[ess].M[1].isQoS = is_qos;
 		memcpy(wpa[ess].M[1].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[1].packet_len = pkt_hdr.incl_len;
-		wpa[ess].M[1].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
-		wpa[ess].M[1].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
+		wpa[ess].M[1].ts_sec = cur_t;
+		wpa[ess].M[1].ts_usec = cur_u;
 	}
 
 	else if (msg == 2 && !IGNORE_MSG2) {
@@ -918,8 +918,8 @@ static void Handle4Way(int is_qos)
 		wpa[ess].M[2].isQoS = is_qos;
 		memcpy(wpa[ess].M[2].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[2].packet_len = pkt_hdr.incl_len;
-		wpa[ess].M[2].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
-		wpa[ess].M[2].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
+		wpa[ess].M[2].ts_sec = cur_t;
+		wpa[ess].M[2].ts_usec = cur_u;
 		wpa[ess].M[0].packet = wpa[ess].M[2].packet;
 		wpa[ess].M[0].packet_len = wpa[ess].M[2].packet_len;
 		wpa[ess].M[0].isQoS = is_qos;
@@ -968,8 +968,8 @@ static void Handle4Way(int is_qos)
 		wpa[ess].M[3].isQoS = is_qos;
 		memcpy(wpa[ess].M[3].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[3].packet_len = pkt_hdr.incl_len;
-		wpa[ess].M[3].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
-		wpa[ess].M[3].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
+		wpa[ess].M[3].ts_sec = cur_t;
+		wpa[ess].M[3].ts_usec = cur_u;
 
 		if (wpa[ess].M[2].packet) {
 			ieee802_1x_eapol_t *auth3 = auth, *auth2;
@@ -1062,8 +1062,8 @@ static void Handle4Way(int is_qos)
 		wpa[ess].M[4].isQoS = is_qos;
 		memcpy(wpa[ess].M[4].packet, packet, pkt_hdr.incl_len);
 		wpa[ess].M[4].packet_len = pkt_hdr.incl_len;
-		wpa[ess].M[4].ts_sec = ((pcaprec_hdr_t*)full_packet)->ts_sec;
-		wpa[ess].M[4].ts_usec = ((pcaprec_hdr_t*)full_packet)->ts_usec;
+		wpa[ess].M[4].ts_sec = cur_t;
+		wpa[ess].M[4].ts_usec = cur_u;
 		wpa[ess].M[0].packet = wpa[ess].M[4].packet;
 		wpa[ess].M[0].packet_len = wpa[ess].M[4].packet_len;
 		wpa[ess].M[0].isQoS = is_qos;
@@ -1180,6 +1180,7 @@ static void DumpAuth(int ess, int ap_msg, int sta_msg)
 	uint8 *w;
 	char sta_mac[18+1], ap_mac[18+1], gecos[13+1];
 	char TmpKey[2048], *cp = TmpKey;
+	int latest = sta_msg;
 
 	cp += sprintf(cp, "%s:$WPAPSK$%s#", wpa[ess].essid, wpa[ess].essid);
 	if (!p24) {
@@ -1244,8 +1245,11 @@ static void DumpAuth(int ess, int ap_msg, int sta_msg)
 		cp += sprintf(cp, "%d", hccap.keyver);
 	cp += sprintf(cp, ":%sverified:%s", (ap_msg == 1 && sta_msg == 2) ? "not " : "", filename);
 
-	fprintf(stderr, "Dumping M%u/M%u at time: %u.%06u BSSID %s ESSID '%s'\n",
-	        ap_msg, sta_msg, cur_t, cur_u, wpa[ess].bssid, wpa[ess].essid);
+	if (wpa[ess].M[ap_msg].ts_sec >= wpa[ess].M[sta_msg].ts_sec &&
+	    wpa[ess].M[ap_msg].ts_usec > wpa[ess].M[sta_msg].ts_usec)
+		latest = ap_msg;
+	fprintf(stderr, "Dumping M%u/M%u at %u.%06u BSSID %s ESSID '%s'\n",
+	        ap_msg, sta_msg, wpa[ess].M[latest].ts_sec, wpa[ess].M[latest].ts_usec, wpa[ess].bssid, wpa[ess].essid);
 	printf("%s\n", TmpKey);
 	fflush(stdout);
 }
