@@ -232,13 +232,13 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 
 #define PUT_UINT64BE_UNALIGNED(n, b, i)	  \
 	{ \
-		(b)[(i)    ] = (uchar) ((n) >> 56); \
-		(b)[(i) + 1] = (uchar) ((n) >> 48); \
-		(b)[(i) + 2] = (uchar) ((n) >> 40); \
-		(b)[(i) + 3] = (uchar) ((n) >> 32); \
-		(b)[(i) + 4] = (uchar) ((n) >> 24); \
-		(b)[(i) + 5] = (uchar) ((n) >> 16); \
-		(b)[(i) + 6] = (uchar) ((n) >>  8); \
+		(b)[(i)    ] = (uchar) ((ulong)(n) >> 56); \
+		(b)[(i) + 1] = (uchar) ((ulong)(n) >> 48); \
+		(b)[(i) + 2] = (uchar) ((ulong)(n) >> 40); \
+		(b)[(i) + 3] = (uchar) ((ulong)(n) >> 32); \
+		(b)[(i) + 4] = (uchar) ((ulong)(n) >> 24); \
+		(b)[(i) + 5] = (uchar) ((ulong)(n) >> 16); \
+		(b)[(i) + 6] = (uchar) ((ulong)(n) >>  8); \
 		(b)[(i) + 7] = (uchar) ((n)      ); \
 	}
 
@@ -290,13 +290,13 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 
 #define PUT_UINT64BE(n, b, i)	  \
 	{ \
-		(b)[(i)    ] = (uchar) ((n) >> 56); \
-		(b)[(i) + 1] = (uchar) ((n) >> 48); \
-		(b)[(i) + 2] = (uchar) ((n) >> 40); \
-		(b)[(i) + 3] = (uchar) ((n) >> 32); \
-		(b)[(i) + 4] = (uchar) ((n) >> 24); \
-		(b)[(i) + 5] = (uchar) ((n) >> 16); \
-		(b)[(i) + 6] = (uchar) ((n) >>  8); \
+		(b)[(i)    ] = (uchar) ((ulong)(n) >> 56); \
+		(b)[(i) + 1] = (uchar) ((ulong)(n) >> 48); \
+		(b)[(i) + 2] = (uchar) ((ulong)(n) >> 40); \
+		(b)[(i) + 3] = (uchar) ((ulong)(n) >> 32); \
+		(b)[(i) + 4] = (uchar) ((ulong)(n) >> 24); \
+		(b)[(i) + 5] = (uchar) ((ulong)(n) >> 16); \
+		(b)[(i) + 6] = (uchar) ((ulong)(n) >>  8); \
 		(b)[(i) + 7] = (uchar) ((n)      ); \
 	}
 #endif
