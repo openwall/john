@@ -254,10 +254,10 @@ static int convert_ivs(FILE *f_in)
 }
 
 static void dump_any_unver() {
+	int printed = 0;
 	int i;
 
 	for (i = 0; i < nwpa; i++) {
-		int printed = 0;
 		int first = 0, second = 0;
 
 		if (!wpa[i].M[0].packet)
