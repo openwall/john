@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_gpg);
 
 #define FORMAT_LABEL		"gpg-opencl"
 #define FORMAT_NAME		"OpenPGP / GnuPG Secret Key"
-#define ALGORITHM_NAME		"SHA1 OpenCL"
+#define ALGORITHM_NAME		"SHA1/SHA2 OpenCL"
 #define SALT_SIZE		sizeof(struct gpg_common_custom_salt*)
 
 #define MIN_KEYS_PER_CRYPT	1
@@ -363,7 +363,7 @@ struct fmt_main fmt_opencl_gpg = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{
 			"s2k-count", /* only for gpg --s2k-mode 3, see man gpg, option --s2k-count n */
-			"hash algorithm [2:SHA1]",
+			"hash algorithm [2:SHA1 8:SHA256 10:SHA512]",
 			"cipher algorithm [1:IDEA 2:3DES 3:CAST5 4:Blowfish 7:AES128 8:AES192 9:AES256 10:Twofish 11:Camellia128 12:Camellia192 13:Camellia256]",
 		},
 		{ FORMAT_TAG },
