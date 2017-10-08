@@ -120,7 +120,7 @@ echo ""
 echo ""
 echo ""
 echo '******************************************************************************'
-echo "now testing the 32-bit SSE2 Windows build
+echo "now testing the 32-bit SSE2 Windows build"
 echo '******************************************************************************'
 echo ""
 # crazy testing!
