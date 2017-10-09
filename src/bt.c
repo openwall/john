@@ -307,7 +307,7 @@ MAYBE_ATOMIC_CAPTURE
 
 		for (i = 0; i < offset_table_size && offset_data[i].collisions; i++)
 			;
-			fprintf (stdout, "Unused Slots in Offset Table:%Lf %%\n", 100.00 * (long double)(offset_table_size - i) / (long double)(offset_table_size));
+			fprintf(stdout, "Unused Slots in Offset Table:%Lf %%\n", 100.00 * (long double)(offset_table_size - i) / (long double)(offset_table_size));
 
 		fprintf(stdout, "Total Memory Use(in GBs):%Lf\n", ((long double)total_memory_in_bytes) / ((long double) 1024 * 1024 * 1024));
 	}

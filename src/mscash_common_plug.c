@@ -143,7 +143,7 @@ char *mscash1_common_prepare(char *split_fields[10], struct fmt_main *self)
 			return split_fields[1];
 
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
-	sprintf (cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
+	sprintf(cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
 	if (mscash1_common_valid(cp, self))
 	{
 		char *cipher = str_alloc_copy(cp);
@@ -380,7 +380,7 @@ char *mscash2_common_prepare(char *split_fields[10], struct fmt_main *self)
 			return split_fields[1];
 
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
-	sprintf (cp, "%s10240#%s#%s", FORMAT_TAG2, split_fields[0], split_fields[1]);
+	sprintf(cp, "%s10240#%s#%s", FORMAT_TAG2, split_fields[0], split_fields[1]);
 	if (mscash2_common_valid(cp, 128, self))
 	{
 		char *cipher = str_alloc_copy(cp);

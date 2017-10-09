@@ -186,7 +186,7 @@ static void process_file(const char *fname)
 				cp = cur;
 				if (best_len < compressed_size) {
 #if DEBUG
-					printf ("This buffer not used, it is not 'best' size\n");
+					printf("This buffer not used, it is not 'best' size\n");
 #endif
 				} else {
 					store = 1;
@@ -220,7 +220,7 @@ static void process_file(const char *fname)
 						itoa16[ARCH_INDEX(salt[i] >> 4)],
 						itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 				}
-				if (store) cp += sprintf (cp, "*");
+				if (store) cp += sprintf(cp, "*");
 				// since in the format we read/compare this one, we do it char by
 				// char, so there is no endianity swapping needed. (validator)
 				for (i = 0; i < 2; i++) {
@@ -274,7 +274,7 @@ static void process_file(const char *fname)
 
 cleanup:
 	if (cur)
-		printf ("%s\n",cur);
+		printf("%s\n",cur);
 	MEM_FREE(cur);
 	fclose(fp);
 }
@@ -502,8 +502,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		}
 
 		// Ok, now set checksum bytes.  This will depend upon if from crc, or from timestamp
-		sprintf (p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
-		sprintf (p->chksum2, "%02x%02x", lastmod_time>>8, lastmod_time&0xFF);
+		sprintf(p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
+		sprintf(p->chksum2, "%02x%02x", lastmod_time>>8, lastmod_time&0xFF);
 
 		return 1;
 	}
@@ -634,7 +634,7 @@ print_and_cleanup:;
 		strnzcpy(path, fname, sizeof(path));
 		bname = basename(path);
 
-		printf ("%s:$pkzip2$%x*%x*", bname, count_of_hashes, zfp.check_bytes);
+		printf("%s:$pkzip2$%x*%x*", bname, count_of_hashes, zfp.check_bytes);
 		if (checksum_only)
 			i = 0;
 		for (; i < count_of_hashes; ++i) {

@@ -63,7 +63,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		strnzcpy(Type, sz, sizeof(Type));
 		cp = strchr(Type, ':');
 		if (cp) *cp = 0;
-		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
+		printf("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
 	}
 
 	// The config has not been loaded, so we have to load it now, if we want to 'check'
@@ -79,7 +79,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	{
 		char *sz = dynamic_LOAD_PARSER_SIGNATURE(i);
 		if (sz && dynamic_IS_VALID(i, 0) == 1)
-			printf ("UserFormat = dynamic_%d  type = %s\n", i, sz);
+			printf("UserFormat = dynamic_%d  type = %s\n", i, sz);
 	}
 }
 

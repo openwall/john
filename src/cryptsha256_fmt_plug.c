@@ -73,7 +73,7 @@ void proc(int p) {
 void main(int argc, char **argv) {
    int i;
    if (argc==2) s=atoi(argv[1]);
-   printf ("Len: cp   pspc cspp ppc  cpp  psc  csp  pc   (saltlen=%d)\n",s);
+   printf("Len: cp   pspc cspp ppc  cpp  psc  csp  pc   (saltlen=%d)\n",s);
    for (i = 0; i < 40; ++i)
      proc(i);
 }

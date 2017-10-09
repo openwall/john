@@ -443,7 +443,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// Ok, now Tmp is v
 
 		//if (!strcmp(saved_key[j], "ENTERNOW__1") && !strcmp((char*)user_id, "DIP")) {
-		//	printf ("salt=%s user=%s  pass=%s, ", (char*)saved_salt, (char*)user_id, saved_key[j]);
+		//	printf("salt=%s user=%s  pass=%s, ", (char*)saved_salt, (char*)user_id, saved_key[j]);
 		//	dump_stuff_msg("sha$h  ", Tmp, 20);
 		//}
 

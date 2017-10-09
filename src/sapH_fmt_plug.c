@@ -601,7 +601,7 @@ static void *get_salt(char *ciphertext)
 	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { s.type = 3; cp += FORMAT_TAG384_LEN; hash_len = SHA384_BINARY_SIZE; }
 	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { s.type = 4; cp += FORMAT_TAG512_LEN; hash_len = SHA512_BINARY_SIZE; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
-	sscanf (cp, "%u", &s.iter);
+	sscanf(cp, "%u", &s.iter);
 	while (*cp != '}') ++cp;
 	++cp;
 	total_len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,

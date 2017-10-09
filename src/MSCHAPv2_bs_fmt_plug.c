@@ -274,7 +274,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 				ret = str_alloc_copy(split_fields[1]);
 				ret[(cp3-split_fields[1])+1] = '$';
 				ret[(cp3-split_fields[1])+2] = 0;
-				//printf ("Here is the cut item: %s\n", ret);
+				//printf("Here is the cut item: %s\n", ret);
 			}
 		}
 	}
@@ -570,7 +570,7 @@ static char *long_to_short(char *ciphertext) {
 	memcpy(&pos[16], &ciphertext[42], CIPHERTEXT_LENGTH+2);
 	pos[16+CIPHERTEXT_LENGTH+2] = '$';
 	pos[16+CIPHERTEXT_LENGTH+3] = 0;
-	//printf ("short=%s  original=%s\n", Buf, ciphertext);
+	//printf("short=%s  original=%s\n", Buf, ciphertext);
 	return Buf;
 }
 

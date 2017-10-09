@@ -1873,7 +1873,7 @@ int main(int argc, char **argv)
 		cp[i] = mem_alloc_align(43,i);
 		for (j = 0; j < 43; ++j)
 			cp[i][j] = 'x';
-		printf ("%03d offset %x  %x %x\n", i, cp[i], (unsigned)(cp[i])%i, (((unsigned)(cp[i]))/i)%i);
+		printf("%03d offset %x  %x %x\n", i, cp[i], (unsigned)(cp[i])%i, (((unsigned)(cp[i]))/i)%i);
 	}
 	for (i = 1; i < 257; ++i)
 		MEM_FREE(cp[i]);

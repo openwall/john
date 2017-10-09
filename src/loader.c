@@ -2021,7 +2021,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	if (db->options->showinvalid) {
 		if (count == -1) {
 			db->password_count++;
-			printf ("%s\n", orig_line);
+			printf("%s\n", orig_line);
 		} else
 			db->guess_count += count;
 		goto free_and_return;

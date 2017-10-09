@@ -256,23 +256,23 @@ static char *hex(unsigned char *p, int len) {
 	if (len > 32) {
 		do {
 			for (i = 0; i < 32; ++i) {
-				op += sprintf (op, "%02X", p[i]);
+				op += sprintf(op, "%02X", p[i]);
 				if (i<31&&i%4==3)
-					op += sprintf (op, " ");
+					op += sprintf(op, " ");
 				if (i==15)
-					op += sprintf (op, ": ");
+					op += sprintf(op, ": ");
 			}
 			len -= 32;
 			p += 32;
-			op += sprintf (op, "\n          ");
+			op += sprintf(op, "\n          ");
 		} while (len > 32);
 	}
 	for (i = 0; i < len; ++i) {
-		op += sprintf (op, "%02X", p[i]);
+		op += sprintf(op, "%02X", p[i]);
 		if (i<31&&i%4==3)
-			op += sprintf (op, " ");
+			op += sprintf(op, " ");
 		if (i==15)
-			op += sprintf (op, ": ");
+			op += sprintf(op, ": ");
 	}
 	return buf;
 }

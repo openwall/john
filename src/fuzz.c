@@ -590,7 +590,7 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	}
 	if (fclose(s_file)) pexit("fclose");
 	remove(status_file_path);
-	printf ("   Completed\n");
+	printf("   Completed\n");
 }
 
 // Dump fuzzed hashes which index is between from and to, including from and excluding to

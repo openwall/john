@@ -173,7 +173,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		return split_fields[1];
 	if (strnlen(split_fields[1], CIPHERTEXT_LENGTH + 1) == CIPHERTEXT_LENGTH) {
 		cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
-		sprintf (cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
+		sprintf(cp, "%s%s#%s", FORMAT_TAG, split_fields[0], split_fields[1]);
 		if (valid(cp, self)) {
 			UTF8 tmp8[MAX_USERNAME_LEN * 3 + 1];
 			int utf8len;
@@ -187,9 +187,9 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 			utf8len = enc_uc(tmp8, sizeof(tmp8), (unsigned char*)split_fields[0], strlen(split_fields[0]));
 
 			cp = mem_alloc_tiny(utf8len + strlen(split_fields[1]) + 4, MEM_ALIGN_NONE);
-			sprintf (cp, "%s%s#%s", FORMAT_TAG, tmp8, split_fields[1]);
+			sprintf(cp, "%s%s#%s", FORMAT_TAG, tmp8, split_fields[1]);
 #ifdef DEBUG_ORACLE
-			printf ("tmp8         : %s\n", tmp8);
+			printf("tmp8         : %s\n", tmp8);
 #endif
 			return cp;
 		}

@@ -1005,7 +1005,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			sscanf(&field_sep_char_str[2], "%x", &xTmp);
 			if (!xTmp || xTmp > 255) {
 				if (john_main_process)
-					fprintf (stderr, "trying to use an "
+					fprintf(stderr, "trying to use an "
 					         "invalid field separator char:"
 					         " %s\n",
 					         field_sep_char_str);
@@ -1014,7 +1014,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.loader.field_sep_char = (char)xTmp;
 		} else {
 				if (john_main_process)
-					fprintf (stderr, "trying to use an "
+					fprintf(stderr, "trying to use an "
 					         "invalid field separator char:"
 					         " %s (must be single byte "
 					         "character)\n",
@@ -1024,7 +1024,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 		if (options.loader.field_sep_char != ':')
 			if (john_main_process)
-				fprintf (stderr, "using field sep char '%c' "
+				fprintf(stderr, "using field sep char '%c' "
 				         "(0x%02x)\n", options.loader.field_sep_char,
 				         options.loader.field_sep_char);
 	}

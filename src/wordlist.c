@@ -410,7 +410,7 @@ static double get_progress(void)
 		size = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, pos, SEEK_SET);
 #if 0
-		fprintf (stderr, "pos="LLd"  size="LLd"  percent=%0.4f\n", (long long)pos, (long long)size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
+		fprintf(stderr, "pos="LLd"  size="LLd"  percent=%0.4f\n", (long long)pos, (long long)size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
 #endif
 		if (pos < 0) {
 #ifdef __DJGPP__

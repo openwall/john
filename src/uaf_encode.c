@@ -560,7 +560,7 @@ int uaf_test_password (
 		&password_dx, pwd->alg, pwd->salt, &username_dx );
 
     if ( ((status&1) == 0) ) {
-	printf ("Retry... (lgi$hpwd2 status %d)\n", status );
+	printf("Retry... (lgi$hpwd2 status %d)\n", status );
     }
     if ( pwd->flags & UAIsM_PWDMIX ) memset ( uc_password, 0, sizeof(uc_password) );
 

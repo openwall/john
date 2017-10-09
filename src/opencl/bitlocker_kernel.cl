@@ -501,7 +501,7 @@ __kernel void opencl_bitlocker_attack_init(__global int *numPasswordMem,
         schedule12 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
         curr_fetch+=2;
         schedule13 = ((unsigned int)w_password[(indexW+curr_fetch)] << 24) | 0 | ((unsigned int)w_password[(indexW+curr_fetch+1)] <<  8) | 0;
-        if(index_generic == MAX_INPUT_PASSWORD_LEN) schedule13 = schedule13 | ((unsigned int)0x8000);
+        if (index_generic == MAX_INPUT_PASSWORD_LEN) schedule13 = schedule13 | ((unsigned int)0x8000);
         schedule14=0;
         index_generic*=2;
         schedule15 = ((unsigned char)((index_generic << 3) >> 8)) << 8 | ((unsigned char)(index_generic << 3));

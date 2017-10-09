@@ -356,7 +356,7 @@ static void unique_run(void)
 		write_buffer();
 
 		if (verbose)
-			printf ("\rTotal lines read "LLu" Unique lines written "LLu"\r", totLines, written_lines);
+			printf("\rTotal lines read "LLu" Unique lines written "LLu"\r", totLines, written_lines);
 	}
 }
 
@@ -404,11 +404,11 @@ int unique(int argc, char **argv)
 			int len;
 			sscanf(argv[1], "-mem=%d", &len);
 			if (len > 25) {
-				fprintf (stderr, "Warning, max memory usages reduced to 25\n");
+				fprintf(stderr, "Warning, max memory usages reduced to 25\n");
 				len = 25;
 			}
 			if (len < 13) {
-				fprintf (stderr, "Warning the min memory usage allowed is 13\n");
+				fprintf(stderr, "Warning the min memory usage allowed is 13\n");
 				len = 13;
 			}
 			--argc;
@@ -473,7 +473,7 @@ int unique(int argc, char **argv)
 	unique_init(argv[1]);
 	unique_run();
 	unique_done();
-    printf ("Total lines read "LLu" Unique lines written "LLu"\n", totLines, written_lines);
+    printf("Total lines read "LLu" Unique lines written "LLu"\n", totLines, written_lines);
 
 	return 0;
 }

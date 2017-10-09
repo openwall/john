@@ -307,7 +307,7 @@ main(int argc, char *argv[])
 #else
 #include <stdio.h>
 int main() {
-	printf ("tgtsnarf could NOT be compiled on this system, due to lack of support libraries\n");
+	printf("tgtsnarf could NOT be compiled on this system, due to lack of support libraries\n");
 	return 1;
 }
 #endif

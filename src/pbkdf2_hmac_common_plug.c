@@ -591,7 +591,7 @@ char *pbkdf2_hmac_sha256_prepare(char *fields[10], struct fmt_main *self) {
 		return fields[1];
 	if (strlen(fields[1]) != 4+14+43)
 		return fields[1];
-	sprintf (Buf, "%s20000$%14.14s$%s", PBKDF2_SHA256_FORMAT_TAG, &(fields[1][FORMAT_TAG_CISCO8_LEN]),
+	sprintf(Buf, "%s20000$%14.14s$%s", PBKDF2_SHA256_FORMAT_TAG, &(fields[1][FORMAT_TAG_CISCO8_LEN]),
 		base64_convert_cp(&(fields[1][FORMAT_TAG_CISCO8_LEN+14+1]), e_b64_crypt, 43, tmp, e_b64_mime, sizeof(tmp), flg_Base64_NO_FLAGS, 0));
 	cp = strchr(Buf, '+');
 	while (cp) {
