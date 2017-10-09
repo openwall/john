@@ -1133,7 +1133,7 @@ static void Handle4Way(int is_qos)
 
 		} else {
 			if (verbosity > 1)
-				fprintf(stderr, "THIS %sM4 snonce %s rc %llu%s\n", (wpa[ess].M[1].packet || wpa[ess].M[3].packet) ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "%sM4 snonce %s rc %llu%s\n", (wpa[ess].M[1].packet || wpa[ess].M[3].packet) ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
 	} else
 		fprintf(stderr, "not EAPOL\n");
