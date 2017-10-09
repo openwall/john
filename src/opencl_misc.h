@@ -169,10 +169,10 @@ inline uint SWAP32(uint x)
 }
 
 #define SWAP64(n)	bitselect( \
-		bitselect(rotate((ulong)n, 24UL), \
-		          rotate((ulong)n, 8UL), 0x000000FF000000FFUL), \
-		bitselect(rotate((ulong)n, 56UL), \
-		          rotate((ulong)n, 40UL), 0x00FF000000FF0000UL), \
+		bitselect(rotate(n, 24UL), \
+		          rotate(n, 8UL), 0x000000FF000000FFUL), \
+		bitselect(rotate(n, 56UL), \
+		          rotate(n, 40UL), 0x00FF000000FF0000UL), \
 		0xFFFF0000FFFF0000UL)
 #else
 inline uint SWAP32(uint x)

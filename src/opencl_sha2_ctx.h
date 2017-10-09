@@ -316,7 +316,7 @@ void SHA512_Final(uchar output[64], SHA512_CTX *ctx) {
 
 	bits = ctx->total << 3;
 
-	PUT_UINT64BE(0, msglen, 0);
+	PUT_UINT64BE(0UL, msglen, 0);
 	PUT_UINT64BE(bits, msglen, 8);
 
 	last = ctx->total & 0x7F;
