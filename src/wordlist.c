@@ -454,9 +454,10 @@ static MAYBE_INLINE void check_bom(char *line)
 			line += 3;
 		}
 	}
-	if (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2)) {
+	if (options.input_enc == UTF_8 &&
+	    (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2))) {
 		fprintf(stderr,
-		        "Error: UTF-16 encoded files are not supported.\n");
+		        "Error: UTF-16 BOM seen in wordlist.\n");
 		error();
 	}
 }
