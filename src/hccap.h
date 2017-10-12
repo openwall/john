@@ -4,15 +4,15 @@
 #include <stdint.h>
 
 typedef struct {
-	char          essid[36];
-	unsigned char mac1[6];    // AP
-	unsigned char mac2[6];    // STA
-	unsigned char nonce1[32]; // snonce
-	unsigned char nonce2[32]; // anonce
-	unsigned char eapol[256];
-	int           eapol_size;
-	int           keyver;
-	unsigned char keymic[16];
+	char     essid[36];
+	uint8_t  mac1[6];    // AP
+	uint8_t  mac2[6];    // STA
+	uint8_t  nonce1[32]; // snonce
+	uint8_t  nonce2[32]; // anonce
+	uint8_t  eapol[256];
+	uint32_t eapol_size;
+	uint32_t keyver;
+	uint8_t  keymic[16];
 } hccap_t;
 
 typedef struct {
@@ -33,6 +33,7 @@ typedef struct {
 
 #define HCCAP_SIZE      sizeof(hccap_t)
 #define HCCAPX_SIZE     sizeof(hccapx_t)
+
 #define HCCAPC_MAGIC    0x58504348 /* "HCPX" */
 
 #endif /* _HCCAP_H */

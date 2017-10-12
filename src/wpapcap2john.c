@@ -1,15 +1,17 @@
 /*
  * This software is Copyright (c) 2013 Jim Fougeron jfoug AT cox dot net,
  * Copyright (c) 2013 Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2014 magnum, and it is hereby released
+ * and Copyright (c) 2014-2017 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
  */
 
+#define __STDC_FORMAT_MACROS
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <inttypes.h>
 
 //#define WPADEBUG 1
 #define IGNORE_MSG1 0
@@ -24,16 +26,16 @@ static size_t max_essids = 1024; /* Will grow automagically */
 
 static int GetNextPacket(FILE *in);
 static int ProcessPacket();
-static void HandleBeacon(uint16 subtype, int has_ht);
+static void HandleBeacon(uint16_t subtype, int has_ht);
 static void Handle4Way(int is_qos);
 static void DumpAuth(int idx, int ap_msg, int sta_msg);
 
-static uint32 start_t, start_u, cur_t, cur_u;
-static uint32 pkt_num;
+static uint32_t start_t, start_u, cur_t, cur_u;
+static uint32_t pkt_num;
 static pcaprec_hdr_t pkt_hdr;
-static uint8 *full_packet;
-static uint8 *packet;
-static uint8 *new_p;
+static uint8_t *full_packet;
+static uint8_t *packet;
+static uint8_t *new_p;
 static int bROT;
 static WPA4way_t *wpa;    /* alloced/realloced to max_essids*/
 static int nwpa = 0;
@@ -63,19 +65,19 @@ static int code_block(unsigned char *in, unsigned char b, char *cp)
 	return cnt+3;
 }
 
-static void to_bssid(char bssid[18], uint8 *p)
+static void to_bssid(char bssid[18], uint8_t *p)
 {
 	sprintf(bssid, "%02X:%02X:%02X:%02X:%02X:%02X",
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-static void to_dashed(char bssid[18], uint8 *p)
+static void to_dashed(char bssid[18], uint8_t *p)
 {
 	sprintf(bssid, "%02x-%02x-%02x-%02x-%02x-%02x",
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-static void to_compact(char bssid[13], uint8 *p)
+static void to_compact(char bssid[13], uint8_t *p)
 {
 	sprintf(bssid, "%02x%02x%02x%02x%02x%02x",
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
@@ -451,7 +453,7 @@ static int GetNextPacket(FILE *in)
 
 // Fake 802.11 header. We use this when indata is Ethernet (not monitor mode)
 // in order to fake a packet we can process
-static uint8 fake802_11[] = {
+static uint8_t fake802_11[] = {
 	0x88, 0x02, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -478,7 +480,7 @@ static const char* const ctl_subtype[16] = {
 	"Subtype 15"
 };
 
-// Ok, this function is the main packet processor.  NOTE, when we are done
+// Ok, this function is the main packet processor.  When we are done
 // reading packets (i.e. we have done what we want), we return 0, and
 // the program will exit gracefully.  It is not an error, it is just an
 // indication we have completed (or that the data we want is not here).
@@ -621,7 +623,7 @@ static int ProcessPacket()
 	}
 	// if not beacon or probe response, then look only for EAPOL 'type'
 	if (ctl->type == 2) { // type 2 is data
-		uint8 *p = packet;
+		uint8_t *p = packet;
 		int bQOS = (ctl->subtype & 8) != 0;
 
 		if ((ctl->toDS ^ ctl->fromDS) != 1) {
@@ -645,7 +647,7 @@ static int ProcessPacket()
 		// we are looking for is 802.1X authentication packets. These are 0x888e
 		// in value.  We are running from an LE point of view, so should look for 0x8e88
 		p += 6;
-		if (*((uint16*)p) == 0x8e88) {
+		if (*((uint16_t*)p) == 0x8e88) {
 			Handle4Way(bQOS);	// this packet was a eapol packet.
 			return 1;
 		}
@@ -706,12 +708,12 @@ static void ManualBeacon(char *essid_bssid)
 		allocate_more_memory();
 }
 
-static void HandleBeacon(uint16 subtype, int has_ht)
+static void HandleBeacon(uint16_t subtype, int has_ht)
 {
-	const uint8 bcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+	const uint8_t bcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	ieee802_1x_beacon_tag_t *tag;
-	uint8 *pFinal = &packet[pkt_hdr.incl_len];
+	uint8_t *pFinal = &packet[pkt_hdr.incl_len];
 	char essid[32 + 1];
 	char bssid[18];
 	int prio = 0;
@@ -753,7 +755,7 @@ static void HandleBeacon(uint16 subtype, int has_ht)
 
 	// ok, walk the tags
 
-	while (((uint8*)tag) < pFinal) {
+	while (((uint8_t*)tag) < pFinal) {
 		char *x = (char*)tag;
 		if (x + 2 > (char*)pFinal || x + 2 + tag->taglen > (char*)pFinal)
 			break;
@@ -839,13 +841,13 @@ static void Handle4Way(int is_qos)
 {
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	int i, ess = -1;
-	uint8 *p = (uint8*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
-	uint8 *end = packet + pkt_hdr.incl_len;
+	uint8_t *p = (uint8_t*)&packet[sizeof(ieee802_1x_frame_hdr_t)];
+	uint8_t *end = packet + pkt_hdr.incl_len;
 	ieee802_1x_eapol_t *auth;
 	int msg = 0;
 	char bssid[18];
 	char nonce[9];
-	uint64 rc;
+	uint64_t rc;
 
 	// Find the ESSID in our db.  If we can NOT find it, do not proceed.
 	// Also, if we find it, we may determine that we're done with it already
@@ -862,7 +864,7 @@ static void Handle4Way(int is_qos)
 		return;
 	}
 
-	// Ok, after pkt,  uint16 QOS control (should be 00 00)
+	// Ok, after pkt,  uint16_t QOS control (should be 00 00)
 	if (is_qos)
 		p += 2;
 
@@ -885,7 +887,7 @@ static void Handle4Way(int is_qos)
 			fprintf(stderr, "Zero length\n");
 		return;
 	}
-	//*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
+	//*(uint16_t*)&(auth->key_info) = swap16u(*(uint16_t*)&(auth->key_info));
 	auth->key_info_u16 = swap16u(auth->key_info_u16);
 	auth->key_len  = swap16u(auth->key_len);
 	auth->replay_cnt  = swap64u(auth->replay_cnt);
@@ -908,13 +910,13 @@ static void Handle4Way(int is_qos)
 
 	if (wpa[ess].fully_cracked) {
 		if (verbosity > 1)
-			fprintf(stderr, "EAPOL M%u, %cnonce %s rc %llu (4-way already seen)%s\n", msg, (msg == 1 || msg == 3) ? 'a' : 's', nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+			fprintf(stderr, "EAPOL M%u, %cnonce %s rc %"PRIu64" (4-way already seen)%s\n", msg, (msg == 1 || msg == 3) ? 'a' : 's', nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		return;  // no reason to go on.
 	}
 
 	if (msg == 4 && is_zero(auth->wpa_nonce, 32)) {
 		if (verbosity > 1)
-			fprintf(stderr, "Spurious M4 snonce nulled rc %llu\n", rc);
+			fprintf(stderr, "Spurious M4 snonce nulled rc %"PRIu64"\n", rc);
 		return;
 	}
 
@@ -932,7 +934,7 @@ static void Handle4Way(int is_qos)
 
 	if (msg == 1 && !IGNORE_MSG1) {
 		if (verbosity > 1)
-			fprintf(stderr, "EAPOL M1 anonce %s rc %llu%s\n", nonce, rc,
+			fprintf(stderr, "EAPOL M1 anonce %s rc %"PRIu64"%s\n", nonce, rc,
 			        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		else
 			if (auth->key_info.KeyDescr == 3)
@@ -986,24 +988,24 @@ static void Handle4Way(int is_qos)
 
 		if (wpa[ess].M[1].packet) {
 			ieee802_1x_eapol_t *auth2 = auth, *auth1;
-			p = (uint8*)wpa[ess].M[1].packet;
+			p = (uint8_t*)wpa[ess].M[1].packet;
 			if (wpa[ess].M[1].isQoS)
 				p += 2;
 			p += 8;
 			p += sizeof(ieee802_1x_frame_hdr_t);
 			auth1 = (ieee802_1x_eapol_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
-				fprintf(stderr, "EAPOL M2 (matching M1 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "EAPOL M2 (matching M1 seen), snonce %s rc %"PRIu64" for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 			} else if (IgnoreRepCnt && (wpa[ess].M[2].ts_sec >= wpa[ess].M[1].ts_sec && wpa[ess].M[2].ts_sec - wpa[ess].M[1].ts_sec < rctime)) {
-				fprintf(stderr, "EAPOL M2 w/ M1 hit, snonce %s rc %llu for ESSID %s (rc mismatch)%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "EAPOL M2 w/ M1 hit, snonce %s rc %"PRIu64" for ESSID %s (rc mismatch)%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 			} else {
 				if (verbosity > 1)
-					fprintf(stderr, "EAPOL M2 (no matching M1 seen) snonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+					fprintf(stderr, "EAPOL M2 (no matching M1 seen) snonce %s rc %"PRIu64" %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 			}
 			return;
 		} else {
 			if (verbosity > 1)
-				fprintf(stderr, "%sM2 snonce %s rc %llu%s\n", wpa[ess].M[1].packet ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "%sM2 snonce %s rc %"PRIu64"%s\n", wpa[ess].M[1].packet ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
 
 	}
@@ -1021,7 +1023,7 @@ static void Handle4Way(int is_qos)
 
 		if (wpa[ess].M[2].packet) {
 			ieee802_1x_eapol_t *auth3 = auth, *auth2;
-			p = (uint8*)wpa[ess].M[2].packet;
+			p = (uint8_t*)wpa[ess].M[2].packet;
 			if (wpa[ess].M[2].isQoS)
 				p += 2;
 			p += 8;
@@ -1030,7 +1032,7 @@ static void Handle4Way(int is_qos)
 			if (auth2->replay_cnt + 1 == auth3->replay_cnt) {
 				ieee802_1x_eapol_t *auth1;
 				if (wpa[ess].M[1].packet) {
-					p = (uint8*)wpa[ess].M[1].packet;
+					p = (uint8_t*)wpa[ess].M[1].packet;
 					if (wpa[ess].M[1].isQoS)
 						p += 2;
 					p += 8;
@@ -1040,7 +1042,7 @@ static void Handle4Way(int is_qos)
 				// If we saw the M1, its nonce must match the M3 nonce and we
 				// are 100% sure. If we didn't see it, we are only 99% sure.
 				if (!wpa[ess].M[1].packet || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
-					fprintf(stderr, "EAPOL M3 (M2 seen, M1%s seen), anonce %s rc %llu for BSSID %s ESSID '%s'%s\n",
+					fprintf(stderr, "EAPOL M3 (M2 seen, M1%s seen), anonce %s rc %"PRIu64" for BSSID %s ESSID '%s'%s\n",
 					        wpa[ess].M[1].packet ? "" : " not", nonce, rc,
 					        wpa[ess].bssid, wpa[ess].essid,
 					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -1055,13 +1057,13 @@ static void Handle4Way(int is_qos)
 					MEM_FREE(wpa[ess].M[4].packet);
 				} else {
 					if (verbosity > 1)
-						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %"PRIu64" %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				}
 			} else if (IgnoreRepCnt && (wpa[ess].M[3].ts_sec >= wpa[ess].M[2].ts_sec && wpa[ess].M[3].ts_sec - wpa[ess].M[2].ts_sec < rctime)) {
 				ieee802_1x_eapol_t *auth1;
 
 				if (wpa[ess].M[1].packet) {
-					p = (uint8*)wpa[ess].M[1].packet;
+					p = (uint8_t*)wpa[ess].M[1].packet;
 					if (wpa[ess].M[1].isQoS)
 						p += 2;
 					p += 8;
@@ -1071,7 +1073,7 @@ static void Handle4Way(int is_qos)
 				// If we saw the M1, its nonce must match the M3 nonce and we
 				// are 100% sure. If we didn't see it, we are only 99% sure.
 				if (!wpa[ess].M[1].packet || !memcmp(auth1->wpa_nonce, auth3->wpa_nonce, 32)) {
-					fprintf(stderr, "EAPOL M3 (M2 seen, M1%s seen), anonce %s rc %llu for BSSID %s ESSID '%s' (rc mismatch)%s\n",
+					fprintf(stderr, "EAPOL M3 (M2 seen, M1%s seen), anonce %s rc %"PRIu64" for BSSID %s ESSID '%s' (rc mismatch)%s\n",
 					        wpa[ess].M[1].packet ? "" : " not", nonce, rc,
 					        wpa[ess].bssid, wpa[ess].essid,
 					        auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
@@ -1086,12 +1088,12 @@ static void Handle4Way(int is_qos)
 					MEM_FREE(wpa[ess].M[4].packet);
 				} else {
 					if (verbosity > 1)
-						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+						fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %"PRIu64" %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				}
 			}
 		} else {
 			if (verbosity > 1)
-				fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %llu%s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "EAPOL M3 (no M2 seen) anonce %s rc %"PRIu64"%s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
 	}
 
@@ -1132,14 +1134,14 @@ static void Handle4Way(int is_qos)
 			ieee802_1x_eapol_t *auth4 = auth, *auth3;
 			int pkt = wpa[ess].M[3].packet ? 3 : 1;
 
-			p = (uint8*)wpa[ess].M[pkt].packet;
+			p = (uint8_t*)wpa[ess].M[pkt].packet;
 			if (wpa[ess].M[pkt].isQoS)
 				p += 2;
 			p += 8;
 			p += sizeof(ieee802_1x_frame_hdr_t);
 			auth3 = (ieee802_1x_eapol_t*)p;
 			if (auth3->replay_cnt == auth4->replay_cnt) {
-				fprintf(stderr, "EAPOL M4 (matching M3 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "EAPOL M4 (matching M3 seen), snonce %s rc %"PRIu64" for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				DumpAuth(ess, 3, 4);
 				wpa[ess].fully_cracked = 1;
 
@@ -1156,14 +1158,14 @@ static void Handle4Way(int is_qos)
 			int pkt = wpa[ess].M[3].packet ? 3 : 1;
 			ieee802_1x_eapol_t *auth4 = auth, *auth1;
 
-			p = (uint8*)wpa[ess].M[pkt].packet;
+			p = (uint8_t*)wpa[ess].M[pkt].packet;
 			if (wpa[ess].M[pkt].isQoS)
 				p += 2;
 			p += 8;
 			p += sizeof(ieee802_1x_frame_hdr_t);
 			auth1 = (ieee802_1x_eapol_t*)p;
 			if ((auth1->replay_cnt + 1) == auth4->replay_cnt) {
-				fprintf(stderr, "EAPOL M4 (matching M1 seen), snonce %s rc %llu for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "EAPOL M4 (matching M1 seen), snonce %s rc %"PRIu64" for ESSID %s%s\n", nonce, rc, wpa[ess].essid, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 				DumpAuth(ess, 1, 4);
 				wpa[ess].fully_cracked = 1;
 
@@ -1176,12 +1178,12 @@ static void Handle4Way(int is_qos)
 				return;
 			} else {
 				if (verbosity > 1)
-					fprintf(stderr, "EAPOL M4 (no matching M1/M3 seen) snonce %s rc %llu %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+					fprintf(stderr, "EAPOL M4 (no matching M1/M3 seen) snonce %s rc %"PRIu64" %s\n", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 			}
 
 		} else {
 			if (verbosity > 1)
-				fprintf(stderr, "%sM4 snonce %s rc %llu%s\n", (wpa[ess].M[1].packet || wpa[ess].M[3].packet) ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
+				fprintf(stderr, "%sM4 snonce %s rc %"PRIu64"%s\n", (wpa[ess].M[1].packet || wpa[ess].M[3].packet) ? "" : "Spurious ", nonce, rc, auth->key_info.KeyDescr == 3 ? " [AES-128-CMAC]" : "");
 		}
 	} else
 		fprintf(stderr, "not EAPOL\n");
@@ -1219,13 +1221,13 @@ char *strdup_MSVC(const char *str)
 static void DumpAuth(int ess, int ap_msg, int sta_msg)
 {
 	ieee802_1x_eapol_t *auth13, *auth24;
-	uint8 *p24 = (uint8*)wpa[ess].M[sta_msg].packet;
-	uint8 *p = p24;
-	uint8 *end = (uint8*)wpa[ess].M[sta_msg].packet + wpa[ess].M[sta_msg].packet_len;
-	uint8 *p13;
+	uint8_t *p24 = (uint8_t*)wpa[ess].M[sta_msg].packet;
+	uint8_t *p = p24;
+	uint8_t *end = (uint8_t*)wpa[ess].M[sta_msg].packet + wpa[ess].M[sta_msg].packet_len;
+	uint8_t *p13;
 	hccap_t	hccap;
 	int i;
-	uint8 *w;
+	uint8_t *w;
 	char sta_mac[18+1], ap_mac[18+1], gecos[13+1];
 	char TmpKey[2048], *cp = TmpKey;
 	int latest = sta_msg;
@@ -1246,7 +1248,7 @@ static void DumpAuth(int ess, int ap_msg, int sta_msg)
 		return;
 	}
 	p = wpa[ess].M[ap_msg].packet;
-	end = (uint8*)wpa[ess].M[ap_msg].packet + wpa[ess].M[ap_msg].packet_len;
+	end = (uint8_t*)wpa[ess].M[ap_msg].packet + wpa[ess].M[ap_msg].packet_len;
 
 	p13 = p;
 	if (wpa[ess].M[ap_msg].isQoS)
@@ -1280,7 +1282,7 @@ static void DumpAuth(int ess, int ap_msg, int sta_msg)
 	memcpy(hccap.eapol, auth24, hccap.eapol_size);
 	memset(hccap.eapol + offsetof(ieee802_1x_eapol_t, wpa_keymic), 0, 16);
 
-	w = (uint8 *)&hccap;
+	w = (uint8_t *)&hccap;
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
 		cp += code_block(&w[i], 1, cp);
 	cp += code_block(&w[i], 0, cp);
@@ -1354,7 +1356,7 @@ int main(int argc, char **argv)
 
 	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
 	    sizeof(struct ivs2_WPA_hdsk) != 352 || sizeof(hccap_t) != 356+36) {
-		fprintf(stderr, "Internal error: struct sizes wrong.\n");
+		fprintf(stderr, "Internal error: struct sizes wrong. %zu:2 %zu:4 %zu:352 %zu:392\n", sizeof(struct ivs2_filehdr),  sizeof(struct ivs2_pkthdr), sizeof(struct ivs2_WPA_hdsk), sizeof(hccap_t));
 		return 2;
 	}
 
