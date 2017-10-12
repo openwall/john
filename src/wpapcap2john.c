@@ -1240,7 +1240,7 @@ static void DumpAuth(int ess, int ap_msg, int sta_msg)
 	to_compact(gecos, hccap.mac1);
 	to_dashed(ap_mac, hccap.mac1);
 	to_dashed(sta_mac, hccap.mac2);
-	cp += sprintf(cp, ":%s:%s:%s::WPA", ap_mac, sta_mac, gecos);
+	cp += sprintf(cp, ":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
 	cp += sprintf(cp, ":%sverified:%s", (ap_msg == 1 && sta_msg == 2) ? "not " : "", filename);
