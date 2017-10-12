@@ -35,7 +35,7 @@ elif [[ -z "$TEST" ]]; then
     fi
 
     # Configure and build
-    ./configure $ASAN
+    ./configure CPPFLAGS=-mno-avx2 $ASAN
     make -sj4
 
     ../.travis/test.sh
