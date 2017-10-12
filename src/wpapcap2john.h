@@ -19,18 +19,12 @@ typedef   signed char      int8;
 #include "johnswap.h"
 #include "hccap.h"
 
-// All data structures MUST be byte aligned, since we work on 'raw' data in structures
-// and do not load structures record by record.
+// All data structures MUST be byte aligned, since we work on 'raw' data in
+// structures and do not load structures record by record.
 #pragma pack(1)
 
-// Borrowed from cap2hccap's pcap.h
 #define TCPDUMP_MAGIC           0xA1B2C3D4
 #define TCPDUMP_CIGAM           0xD4C3B2A1
-#define IVSONLY_MAGIC           "\xBF\xCA\x84\xD4"
-#define IVS2_MAGIC              "\xAE\x78\xD1\xFF"
-
-#define IVS2_EXTENSION          "ivs"
-#define IVS2_VERSION             1
 
 #define LINKTYPE_ETHERNET       1
 #define LINKTYPE_IEEE802_11     105
@@ -219,51 +213,56 @@ typedef struct WPA4way_s {
 	int prio; // lower prio will overwrite higher
 } WPA4way_t;
 
-// Here are the structures needed to store the data that make up the 4-way handshake.
-// we harvest this data to make JtR input strings.
+// Support for loading airodump-ng ivs2 files.
+#define IVSONLY_MAGIC           "\xBF\xCA\x84\xD4"
+#define IVS2_MAGIC              "\xAE\x78\xD1\xFF"
+#define IVS2_EXTENSION          "ivs"
+#define IVS2_VERSION             1
 
-//BSSID const. length of 6 bytes; can be together with all the other types
+// BSSID const. length of 6 bytes; can be together with all the other types
 #define IVS2_BSSID      0x0001
 
-//ESSID var. length; alone, or with BSSID
+// ESSID var. length; alone, or with BSSID
 #define IVS2_ESSID      0x0002
 
-//wpa structure, const. length; alone, or with BSSID
+// wpa structure, const. length; alone, or with BSSID
 #define IVS2_WPA        0x0004
 
-//IV+IDX+KEYSTREAM, var. length; alone or with BSSID
+// IV+IDX+KEYSTREAM, var. length; alone or with BSSID
 #define IVS2_XOR        0x0008
 
-/* [IV+IDX][i][l][XOR_1]..[XOR_i][weight]                                                        *
- * holds i possible keystreams for the same IV with a length of l for each keystream (l max 32)  *
- * and an array "int weight[16]" at the end                                                      */
+/*
+ * [IV+IDX][i][l][XOR_1]..[XOR_i][weight]
+ * holds i possible keystreams for the same IV with a length of l for each
+ * keystream (l max 32) and an array "int weight[16]" at the end
+ */
 #define IVS2_PTW        0x0010
 
-//unencrypted packet
+// unencrypted packet
 #define IVS2_CLR        0x0020
 
 struct ivs2_filehdr
 {
-    unsigned short version;
+    uint16 version;
 };
 
 struct ivs2_pkthdr
 {
-    unsigned short  flags;
-    unsigned short  len;
+    uint16  flags;
+    uint16  len;
 };
 
 // WPA handshake in ivs2 format
 struct ivs2_WPA_hdsk
 {
-    unsigned char stmac[6];                      /* supplicant MAC               */
-    unsigned char snonce[32];                    /* supplicant nonce             */
-    unsigned char anonce[32];                    /* authenticator nonce          */
-    unsigned char keymic[16];                    /* eapol frame MIC              */
-    unsigned char eapol[256];                    /* eapol frame contents         */
-    int eapol_size;                              /* eapol frame size             */
-    int keyver;                                  /* key version (TKIP / AES)     */
-    int state;                                   /* handshake completion         */
+    uint8 stmac[6];     /* supplicant MAC           */
+    uint8 snonce[32];   /* supplicant nonce         */
+    uint8 anonce[32];   /* authenticator nonce      */
+    uint8 keymic[16];   /* eapol frame MIC          */
+    uint8 eapol[256];   /* eapol frame contents     */
+    uint32 eapol_size;  /* eapol frame size         */
+    uint8 keyver;       /* key version (TKIP / AES) */
+    uint8 state;        /* handshake completion     */
 };
 
 static void dump_hex(char *msg, void *x, unsigned int size)
@@ -273,7 +272,7 @@ static void dump_hex(char *msg, void *x, unsigned int size)
 	fprintf(stderr, "%s : ", msg);
 
 	for (i = 0; i < size; i++) {
-		fprintf(stderr, "%.2x", ((unsigned char*)x)[i]);
+		fprintf(stderr, "%.2x", ((uint8*)x)[i]);
 		if ((i % 4) == 3)
 			fprintf(stderr, " ");
 	}

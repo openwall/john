@@ -81,22 +81,42 @@ static void to_compact(char bssid[13], uint8 *p)
 	        p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
+static void alloc_error()
+{
+	fprintf(stderr, "ERROR: Too many ESSIDs seen (%d), out of memory\n", nwpa);
+	exit(EXIT_FAILURE);
+}
+
+// Dynamically allocate more memory for input data.
+// Make sure newly allocated memory is initialized with zeros.
+static void allocate_more_memory(void)
+{
+	size_t old_max = max_essids;
+
+	max_essids *= 2;
+	wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
+	if (!wpa)
+		alloc_error();
+	memset(wpa + old_max, 0, sizeof(WPA4way_t) * old_max);
+}
+
 // Convert WPA handshakes from aircrack-ng (airodump-ng) IVS2 to JtR format
-static int convert_ivs(FILE *f_in)
+static int convert_ivs2(FILE *f_in)
 {
 	struct ivs2_filehdr fivs2;
 	struct ivs2_pkthdr ivs2;
 	struct ivs2_WPA_hdsk *wivs2;
 	hccap_t hccap;
-	unsigned int i;
+	int i;
 	unsigned char buffer[66000];
 	size_t length, pos;
 	unsigned int pktlen;
-	unsigned char bssid[6];
+	char bssid[18];
+	unsigned char bssid_b[6];
 	int bssidFound = 0;
 	char essid[32 + 1];
-	int essidFound = 0;
 	unsigned char *p, *w;
+	int ess = -1;
 
 	fseek(f_in, 0, SEEK_END);
 	length = ftell(f_in);
@@ -108,7 +128,7 @@ static int convert_ivs(FILE *f_in)
 	}
 
 	if (memcmp(buffer, IVSONLY_MAGIC, 4) == 0) {
-		fprintf(stderr, "%s: old version .ivs file, no WPA2 handshakes\n", filename);
+		fprintf(stderr, "%s: old version .ivs file, only WEP handshakes.\n", filename);
 		return(1);
 	}
 
@@ -118,7 +138,7 @@ static int convert_ivs(FILE *f_in)
 	}
 
 	if (fread(&fivs2, 1, sizeof(struct ivs2_filehdr), f_in) != (size_t) sizeof(struct ivs2_filehdr)) {
-		fprintf(stderr, "%s: fread file header failed", filename);
+		fprintf(stderr, "%s: fread ivs2 file header failed", filename);
 		return(1);
 	}
 
@@ -127,11 +147,13 @@ static int convert_ivs(FILE *f_in)
 		return(1);
 	}
 
+	fprintf(stderr, "\nFile %s: airodump-ng 'ivs' file (v2)\n", filename);
+
 	pos = ftell(f_in);
 
 	while (pos < length) {
 		if (fread(&ivs2, 1, sizeof(struct ivs2_pkthdr), f_in) != sizeof(struct ivs2_pkthdr)) {
-			fprintf(stderr, "%s: Error reading header at pos "Zu" of "Zu"\n", filename, pos, length);
+			fprintf(stderr, "%s: Error reading ivs2 header at pos "Zu" of "Zu"\n", filename, pos, length);
 			return 1;
 		}
 
@@ -139,12 +161,12 @@ static int convert_ivs(FILE *f_in)
 
 		pktlen = (unsigned int)ivs2.len;
 		if (pktlen+pos > length) {
-			fprintf(stderr, "%s: Invalid packet length %u at "Zu"\n", filename, pktlen, pos-sizeof(struct ivs2_pkthdr));
+			fprintf(stderr, "%s: Invalid ivs2 packet length %u at "Zu"\n", filename, pktlen, pos-sizeof(struct ivs2_pkthdr));
 			return 1;
 		}
 
 		if (fread(&buffer, 1, pktlen, f_in) != pktlen) {
-			fprintf(stderr, "%s: Error reading data (%u) at pos "Zu" of "Zu"\n", filename, pktlen, pos, length);
+			fprintf(stderr, "%s: Error reading ivs2 data (%u) at pos "Zu" of "Zu"\n", filename, pktlen, pos, length);
 			return 1;
 		}
 
@@ -153,10 +175,12 @@ static int convert_ivs(FILE *f_in)
 
 		p = buffer;
 		if (ivs2.flags & IVS2_BSSID) {
-			memcpy(bssid, p, 6);
+			memcpy(bssid_b, p, 6);
+			to_bssid(bssid, p);
 			p += 6;
 
-			fprintf(stderr, "%s: BSSID: %02x:%02x:%02x:%02x:%02x:%02x\n", filename, p[0], p[1], p[2], p[3], p[4], p[5]);
+			if (verbosity > 2)
+				fprintf(stderr, "ivs2 BSSID: %s\n", bssid);
 			bssidFound = 1;
 		}
 		if (ivs2.flags & IVS2_ESSID) {
@@ -164,81 +188,124 @@ static int convert_ivs(FILE *f_in)
 			unsigned int len = pktlen - ofs;
 
 			if (len <= 0 || len > 32) {
-				printf("Invalid ESSID length (%d)\n", len);
+				printf("ivs2 Invalid ESSID length (%d)\n", len);
 				return 1;
 			}
 
 			memcpy(essid, p, len);
 			essid[len] = 0;
 
-			essidFound = 1;
-
-			fprintf(stderr,"ESSID: '%s' (%d bytes)\n", essid, len);
+			if (verbosity > 2)
+				fprintf(stderr,"ivs2 ESSID: '%s' (%d bytes)\n", essid, len);
 			p += len;
+
+			// Check if already in db
+			for (i = nwpa - 1; i >= 0; --i) {
+				if (!strcmp(bssid, wpa[i].bssid) && !strcmp(essid, wpa[i].essid)) {
+					ess = i;
+
+					break;
+				} else if (!strcmp(bssid, wpa[i].bssid)) {
+					fprintf(stderr, "ivs2 '%s' at %s (renamed, old '%s')\n", essid, wpa[i].bssid, wpa[i].essid);
+					memcpy(wpa[i].essid, essid, len);
+					essid[len] = 0;
+					ess = i;
+					break;
+				}
+			}
+
+			// New entry
+			if (ess < 0) {
+				ess = nwpa;
+				wpa[nwpa].prio = 5;
+				strcpy(wpa[nwpa].essid, essid);
+				strcpy(wpa[nwpa].bssid, bssid);
+
+				fprintf(stderr, "ivs2 '%s' at %s\n", essid, bssid);
+
+				if (++nwpa >= max_essids)
+					allocate_more_memory();
+			}
+		} else if (bssidFound && ess < 0) {
+			// Check if already in db
+			for (i = nwpa - 1; i >= 0; --i) {
+				if (!strcmp(bssid, wpa[i].bssid)) {
+					fprintf(stderr, "ESSID (from db): '%s' at %s\n", wpa[i].essid, wpa[i].bssid);
+					ess = i;
+					break;
+				}
+			}
 		}
 
 		if (ivs2.flags & IVS2_WPA) {
-			char buf[8];
 			int ofs = (p - buffer);
 			int len = pktlen - ofs;
-			char sta_mac[18], ap_mac[18], gecos[13];
 
-			if (len != sizeof(struct ivs2_WPA_hdsk)) {
-				fprintf(stderr, "%s: Invalid WPA handshake length (%d vs %d)\n", filename, len, (int)sizeof(struct ivs2_WPA_hdsk));
-				return 1;
-			}
+			if (!wpa[ess].fully_cracked) {
+				char buf[8];
+				char sta_mac[18], ap_mac[18], gecos[13];
 
-			if (!bssidFound) {
-				fprintf(stderr, "%s: Got WPA handshake but we don't have BSSID\n", filename);
-				return 1;
-			}
+				if (len != sizeof(struct ivs2_WPA_hdsk)) {
+					fprintf(stderr, "%s: Invalid WPA handshake length (%d vs %d)\n", filename, len, (int)sizeof(struct ivs2_WPA_hdsk));
+					return 1;
+				}
 
-			if (!essidFound) {
-				fprintf(stderr, "%s: Got WPA handshake but we don't have SSID\n", filename);
-				return 1;
-			}
+				if (!bssidFound) {
+					fprintf(stderr, "%s: Got WPA handshake but we don't have BSSID\n", filename);
+					return 1;
+				}
 
-			wivs2 = (struct ivs2_WPA_hdsk*)p;
+				if (ess < 0) {
+					fprintf(stderr, "%s: Got WPA handshake for %s but we don't have ESSID (perhaps -e option needed?)\n", filename, bssid);
+					return 1;
+				}
 
-			fprintf(stderr, "WPA handshake keyver=%d eapolSize=%d\n\n", wivs2->keyver, wivs2->eapol_size);
+				wivs2 = (struct ivs2_WPA_hdsk*)p;
 
-			printf("%s:$WPAPSK$%s#", essid, essid);
+				fprintf(stderr, "ivs2 WPA handshake state=%d keyver=%d eapolSize=%d\n\n", wivs2->state, wivs2->keyver, wivs2->eapol_size);
 
-			memset(&hccap, 0, sizeof(hccap_t));
-			hccap.keyver = wivs2->keyver;
+				printf("%s:$WPAPSK$%s#", essid, essid);
 
-			memcpy(hccap.mac1, bssid, 6);
-			memcpy(hccap.mac2, wivs2->stmac, 6);
+				memset(&hccap, 0, sizeof(hccap_t));
+				hccap.keyver = wivs2->keyver;
 
-			memcpy(hccap.nonce1, wivs2->snonce,32);
-			memcpy(hccap.nonce2, wivs2->anonce,32);
-			memcpy(hccap.keymic, wivs2->keymic, 16);
-			hccap.eapol_size = wivs2->eapol_size;
+				memcpy(hccap.mac1, bssid_b, 6);
+				memcpy(hccap.mac2, wivs2->stmac, 6);
 
-			if (hccap.eapol_size > sizeof(((hccap_t*)(NULL))->eapol)) {
-				fprintf(stderr,
-				        "%s: eapol size %u (too large), skipping packet\n",
-				        filename, hccap.eapol_size);
-				return 1;
-			}
-			memcpy(hccap.eapol, wivs2->eapol, wivs2->eapol_size);
+				memcpy(hccap.nonce1, wivs2->snonce,32);
+				memcpy(hccap.nonce2, wivs2->anonce,32);
+				memcpy(hccap.keymic, wivs2->keymic, 16);
+				hccap.eapol_size = wivs2->eapol_size;
 
-			// print struct in base64 format
-			w = (unsigned char*)&hccap;
-			for (i=36; i+3 < sizeof(hccap_t); i += 3) {
-				code_block(&w[i], 1, buf);
+				if (hccap.eapol_size > sizeof(((hccap_t*)(NULL))->eapol)) {
+					fprintf(stderr,
+					        "%s: eapol size %u (too large), skipping packet\n",
+					        filename, hccap.eapol_size);
+					return 1;
+				}
+				memcpy(hccap.eapol, wivs2->eapol, wivs2->eapol_size);
+
+				// print struct in base64 format
+				w = (unsigned char*)&hccap;
+				for (i=36; i+3 < sizeof(hccap_t); i += 3) {
+					code_block(&w[i], 1, buf);
+					printf("%s", buf);
+				}
+				code_block(&w[i], 0, buf);
 				printf("%s", buf);
+				to_compact(gecos, hccap.mac1);
+				to_dashed(ap_mac, hccap.mac1);
+				to_dashed(sta_mac, hccap.mac2);
+				printf(":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
+				if (hccap.keyver > 1)
+					printf("%d", hccap.keyver);
+				printf("::%s\n", filename);
+				fflush(stdout);
+				/* State seems unreliable
+				if (wivs2->state == 7)
+					wpa[ess].fully_cracked = 1;
+				*/
 			}
-			code_block(&w[i], 0, buf);
-			printf("%s", buf);
-			to_compact(gecos, hccap.mac1);
-			to_dashed(ap_mac, hccap.mac1);
-			to_dashed(sta_mac, hccap.mac2);
-			printf(":%s:%s:%s::WPA", sta_mac, ap_mac, gecos);
-			if (hccap.keyver > 1)
-				printf("%d", hccap.keyver);
-			printf("::%s\n", filename);
-			fflush(stdout);
 
 			p += len;
 		}
@@ -299,8 +366,8 @@ static int Process(FILE *in)
 	else if (main_hdr.magic_number == 0xd4c3b2a1)
 		bROT = 1;
 	else {
-		if (convert_ivs(in)) {
-			fprintf(stderr, "%s: not a pcap file\n", filename);
+		if (convert_ivs2(in)) {
+			fprintf(stderr, "%s: not a .ivs v2 file\n", filename);
 			return 0;
 		}
 		return 1;
@@ -616,25 +683,6 @@ static void e_fail(void)
 {
 	fprintf(stderr, "Incorrect -e option.\n");
 	exit(EXIT_FAILURE);
-}
-
-static void alloc_error()
-{
-	fprintf(stderr, "ERROR: Too many ESSIDs seen (%d), out of memory\n", nwpa);
-	exit(EXIT_FAILURE);
-}
-
-// Dynamically allocate more memory for input data.
-// Make sure newly allocated memory is initialized with zeros.
-static void allocate_more_memory(void)
-{
-	size_t old_max = max_essids;
-
-	max_essids *= 2;
-	wpa = realloc(wpa, sizeof(WPA4way_t) * max_essids);
-	if (!wpa)
-		alloc_error();
-	memset(wpa + old_max, 0, sizeof(WPA4way_t) * old_max);
 }
 
 static void ManualBeacon(char *essid_bssid)
@@ -1305,7 +1353,7 @@ int main(int argc, char **argv)
 		alloc_error();
 
 	if (sizeof(struct ivs2_filehdr) != 2  || sizeof(struct ivs2_pkthdr) != 4 ||
-	    sizeof(struct ivs2_WPA_hdsk) != 356 || sizeof(hccap_t) != 356+36) {
+	    sizeof(struct ivs2_WPA_hdsk) != 352 || sizeof(hccap_t) != 356+36) {
 		fprintf(stderr, "Internal error: struct sizes wrong.\n");
 		return 2;
 	}
