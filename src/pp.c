@@ -941,14 +941,17 @@ static int get_bits(mpz_t *op)
  */
 static MAYBE_INLINE char *check_bom(char *string)
 {
+  static int warned;
+
   if (((unsigned char*)string)[0] < 0xef)
     return string;
   if (!memcmp(string, "\xEF\xBB\xBF", 3))
     string += 3;
   if (options.input_enc == UTF_8 &&
       (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2))) {
-    fprintf(stderr, "Error: UTF-16 BOM seen in wordlist.\n");
-    error();
+    if (!warned++)
+      fprintf(stderr, "Warning: UTF-16 BOM seen in wordlist.\n");
+    string += 2;
   }
   return string;
 }

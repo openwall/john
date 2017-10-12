@@ -440,7 +440,7 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
  */
 static MAYBE_INLINE void check_bom(char *line)
 {
-	static int warned;
+	static int warned8, warned16;
 
 	if (((unsigned char*)line)[0] < 0xef)
 		return;
@@ -448,7 +448,7 @@ static MAYBE_INLINE void check_bom(char *line)
 		if (options.input_enc == UTF_8)
 			memmove(line, line + 3, strlen(line) - 2);
 		else {
-			if (!warned++)
+			if (!warned8++)
 				fprintf(stderr,
 				        "Warning: UTF-8 BOM seen in wordlist - You probably want --input-encoding=UTF8\n");
 			line += 3;
@@ -456,9 +456,9 @@ static MAYBE_INLINE void check_bom(char *line)
 	}
 	if (options.input_enc == UTF_8 &&
 	    (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2))) {
-		fprintf(stderr,
-		        "Error: UTF-16 BOM seen in wordlist.\n");
-		error();
+		if (!warned16++)
+			fprintf(stderr,
+			        "Warning: UTF-16 BOM seen in wordlist.\n");
 	}
 }
 
