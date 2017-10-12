@@ -242,50 +242,58 @@ static int convert_ivs2(FILE *f_in)
 		if (ivs2.flags & IVS2_WPA) {
 			int ofs = (p - buffer);
 			int len = pktlen - ofs;
+			char buf[8];
+			char sta_mac[18], ap_mac[18], gecos[13];
+			char anonce[9];
+			char snonce[9];
 
+			if (len != sizeof(struct ivs2_WPA_hdsk)) {
+				fprintf(stderr, "%s: Invalid WPA handshake length (%d vs %d)\n", filename, len, (int)sizeof(struct ivs2_WPA_hdsk));
+				return 1;
+			}
+
+			if (!bssidFound) {
+				fprintf(stderr, "%s: Got WPA handshake but we don't have BSSID\n", filename);
+				return 1;
+			}
+
+			if (ess < 0) {
+				fprintf(stderr, "%s: Got WPA handshake for %s but we don't have ESSID (perhaps -e option needed?)\n", filename, bssid);
+				return 1;
+			}
+
+			wivs2 = (struct ivs2_WPA_hdsk*)p;
+
+			memset(&hccap, 0, sizeof(hccap_t));
+			hccap.keyver = wivs2->keyver;
+
+			memcpy(hccap.mac1, bssid_b, 6);
+			memcpy(hccap.mac2, wivs2->stmac, 6);
+
+			memcpy(hccap.nonce1, wivs2->snonce,32);
+			memcpy(hccap.nonce2, wivs2->anonce,32);
+			memcpy(hccap.keymic, wivs2->keymic, 16);
+			hccap.eapol_size = wivs2->eapol_size;
+
+			if (hccap.eapol_size > sizeof(((hccap_t*)(NULL))->eapol)) {
+				fprintf(stderr,
+				        "%s: eapol size %u (too large), skipping packet\n",
+				        filename, hccap.eapol_size);
+				return 1;
+			}
+			memcpy(hccap.eapol, wivs2->eapol, wivs2->eapol_size);
+			//memset(hccap.eapol + offsetof(ieee802_1x_eapol_t, wpa_keymic), 0, 16);
+
+			sprintf(anonce, "%02x%02x%02x%02x", wivs2->anonce[28], wivs2->anonce[29], wivs2->anonce[30], wivs2->anonce[31]);
+			sprintf(snonce, "%02x%02x%02x%02x", wivs2->snonce[28], wivs2->snonce[29], wivs2->snonce[30], wivs2->snonce[31]);
+
+			if (verbosity > 1) {
+				to_bssid(ap_mac, hccap.mac1);
+				to_bssid(sta_mac, hccap.mac2);
+				fprintf(stderr, "%s -> %s ivs2 WPA handshake ESSID '%s' anonce %s snonce %s state=%d keyver=%d eapolSize=%d%s%s\n", sta_mac, ap_mac, essid, anonce, snonce, wivs2->state, wivs2->keyver, wivs2->eapol_size, hccap.keyver == 3 ? " [AES-128-CMAC]" : "", (wpa[ess].fully_cracked) ? " (4-way already seen)" : "");
+			}
 			if (!wpa[ess].fully_cracked) {
-				char buf[8];
-				char sta_mac[18], ap_mac[18], gecos[13];
-
-				if (len != sizeof(struct ivs2_WPA_hdsk)) {
-					fprintf(stderr, "%s: Invalid WPA handshake length (%d vs %d)\n", filename, len, (int)sizeof(struct ivs2_WPA_hdsk));
-					return 1;
-				}
-
-				if (!bssidFound) {
-					fprintf(stderr, "%s: Got WPA handshake but we don't have BSSID\n", filename);
-					return 1;
-				}
-
-				if (ess < 0) {
-					fprintf(stderr, "%s: Got WPA handshake for %s but we don't have ESSID (perhaps -e option needed?)\n", filename, bssid);
-					return 1;
-				}
-
-				wivs2 = (struct ivs2_WPA_hdsk*)p;
-
-				fprintf(stderr, "ivs2 WPA handshake state=%d keyver=%d eapolSize=%d\n\n", wivs2->state, wivs2->keyver, wivs2->eapol_size);
-
 				printf("%s:$WPAPSK$%s#", essid, essid);
-
-				memset(&hccap, 0, sizeof(hccap_t));
-				hccap.keyver = wivs2->keyver;
-
-				memcpy(hccap.mac1, bssid_b, 6);
-				memcpy(hccap.mac2, wivs2->stmac, 6);
-
-				memcpy(hccap.nonce1, wivs2->snonce,32);
-				memcpy(hccap.nonce2, wivs2->anonce,32);
-				memcpy(hccap.keymic, wivs2->keymic, 16);
-				hccap.eapol_size = wivs2->eapol_size;
-
-				if (hccap.eapol_size > sizeof(((hccap_t*)(NULL))->eapol)) {
-					fprintf(stderr,
-					        "%s: eapol size %u (too large), skipping packet\n",
-					        filename, hccap.eapol_size);
-					return 1;
-				}
-				memcpy(hccap.eapol, wivs2->eapol, wivs2->eapol_size);
 
 				// print struct in base64 format
 				w = (unsigned char*)&hccap;
