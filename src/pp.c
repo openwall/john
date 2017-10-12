@@ -949,7 +949,7 @@ static MAYBE_INLINE char *check_bom(char *string)
     string += 3;
   if (options.input_enc == UTF_8 &&
       (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2))) {
-    if (!warned++)
+    if (john_main_process && !warned++)
       fprintf(stderr, "Warning: UTF-16 BOM seen in wordlist.\n");
     string += 2;
   }

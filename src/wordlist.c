@@ -448,18 +448,15 @@ static MAYBE_INLINE void check_bom(char *line)
 		if (options.input_enc == UTF_8)
 			memmove(line, line + 3, strlen(line) - 2);
 		else {
-			if (!warned8++)
+			if (john_main_process && !warned8++)
 				fprintf(stderr,
 				        "Warning: UTF-8 BOM seen in wordlist - You probably want --input-encoding=UTF8\n");
 			line += 3;
 		}
 	}
-	if (options.input_enc == UTF_8 &&
-	    (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2))) {
-		if (!warned16++)
-			fprintf(stderr,
-			        "Warning: UTF-16 BOM seen in wordlist.\n");
-	}
+	if (options.input_enc == UTF_8  && !warned16++ &&
+	    (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2)))
+		fprintf(stderr, "Warning: UTF-16 BOM seen in wordlist.\n");
 }
 
 /*
