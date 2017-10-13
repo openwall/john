@@ -200,10 +200,8 @@ typedef struct handshake_s {
 typedef struct WPA4way_s {
 	char essid[32 + 1];
 	char bssid[18];
-	char sta[18];
 	handshake_t M[5];
 	int fully_cracked;
-	int hopefully_cracked; // we have a 1 & 2
 	int eapol_sz;
 	int prio; // lower prio will overwrite higher
 } WPA4way_t;
