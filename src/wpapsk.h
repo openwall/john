@@ -191,8 +191,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (hccap->eapol_size > 256)
 		return 0;
-	if (hccap->eapol_size < 0)
-		return 0;
 	if (hccap->keyver < 1)
 		return 0;
 #if HAVE_OPENSSL_CMAC_H || defined(JOHN_OCL_WPAPSK)
