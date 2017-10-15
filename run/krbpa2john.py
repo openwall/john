@@ -23,7 +23,7 @@ import sys
 try:
     from lxml import etree
 except ImportError:
-    sys.stderr.write("This program needs lxml libraries to run!\n")
+    sys.stderr.write("This program needs lxml libraries to run. Please install the python-lxml package.\n")
     sys.exit(1)
 import binascii
 
@@ -168,22 +168,43 @@ def process_file(f):
         message_type = r.attrib["show"]
 
         if message_type == "11":  # Kerberos AS-REP
+            s = msg.xpath('.//field[@name="kerberos.salt"]')  # is this valid for M$ AD too?
             # locate the hash
             rs = msg.xpath('.//field[@name="kerberos.enc_part_element"]')
             if not rs:
                 continue
             if isinstance(rs, list):
+                idx = 0
+                multiple_entries = False
+                if len(rs) >= 2:  # this is typically 2
+                    multiple_entries = True
                 for r in rs:
+                    if multiple_entries and idx == 0:  # skip over the first entry, is this always correct?
+                        idx = idx + 1
+                        continue
+                    idx = idx + 1
                     v = r.xpath('.//field[@name="kerberos.etype"]')
                     if isinstance(v, list):
                         v = v[0]
-                    if v.attrib["show"] != "23":
-                        continue
+                    etype = v.attrib["show"]
+                    if etype != "23":
+                        if s is None:
+                            sys.stderr.write("Unable to find kerberos.salt value. Please report this bug to us!\n")
+                            continue
+                        if isinstance(s, list):
+                            if len(s) == 0:
+                                sys.stderr.write("Unable to find kerberos.salt value. Please report this bug to us!\n")
+                                continue
+                            s = s[0]
+                            salt = s.attrib["show"]
                     v = r.xpath('.//field[@name="kerberos.cipher"]')
                     if isinstance(v, list):
                         v = v[0]
                     data = v.attrib["value"]
-                    sys.stdout.write("$krb5asrep$23$%s$%s\n" % (data[0:32], data[32:]))
+                    if etype != "23":
+                        sys.stdout.write("$krb5asrep$%s$%s$%s$%s\n" % (etype, salt, data[0:-24], data[-24:]))
+                    else:
+                        sys.stdout.write("$krb5asrep$%s$%s$%s\n" % (etype, data[0:32], data[32:]))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
