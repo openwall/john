@@ -182,6 +182,7 @@ static void release_clobj(void)
 static void init(struct fmt_main *_self)
 {
 	self = _self;
+	Twofish_initialise();
 	opencl_prepare_dev(gpu_id);
 }
 
