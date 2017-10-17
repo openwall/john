@@ -31,6 +31,7 @@ john_register_one(&fmt_opencl_gpg);
 #include "common-opencl.h"
 #include "options.h"
 #include "gpg_common.h"
+#include "twofish.h"
 
 #define FORMAT_LABEL		"gpg-opencl"
 #define FORMAT_NAME		"OpenPGP / GnuPG Secret Key"
