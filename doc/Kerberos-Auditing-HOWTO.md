@@ -69,6 +69,18 @@ Benchmarking: krb5-23, Kerberos 5 db etype 23 rc4-hmac...
 Raw:	8036K c/s real, 2060K c/s virtual
 ```
 
+NOTE: Replace the removed `krb5-23` format with `nt` format in modern versions
+of JtR.
+
+```
+$ ../run/john --format=nt ~/hash
+Loaded 1 password hash (NT [MD4 256/256 AVX2 8x3])
+123456           (?)
+```
+
+NOTE: Other Kerberos hashing schemes (i.e. aes128-cts-hmac-sha1-96, aes256-cts-hmac-sha1-96)
+are handled by other JtR formats like `krb5-17` and `krb5-18`.
+
 Setting up a Kerberos Server
 ----------------------------
 
