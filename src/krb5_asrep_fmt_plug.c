@@ -529,7 +529,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 	}
-	new_keys = 0;
+	if (cur_salt->etype == 23)
+		new_keys = 0;
 
 	return count;
 }
