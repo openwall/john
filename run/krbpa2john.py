@@ -11,13 +11,17 @@
 # tshark -2 -r test.pcap -R "tcp.srcport==88 or udp.srcport==88" -T pdml >> data.pdml
 # ./run/krbpa2john.py data.pdml
 #
-# Tested on Ubuntu 14.04.2 LTS (Trusty Tahr)
+# Tested on Ubuntu 14.04.2 LTS (Trusty Tahr), and Fedora 25.
 #
 # $ tshark -v
 # TShark 1.10.6 (v1.10.6 from master-1.10)
 #
 # August 2017 update -> Extracts AS-REP hashes too. Crack such hashes with
 # krb5asrep format.
+#
+# October 2017 update -> Extracts TGS-REP hashes too. Crack such hashes with
+# krb5tgs format.
+
 
 import sys
 try:
@@ -26,6 +30,7 @@ except ImportError:
     sys.stderr.write("This program needs lxml libraries to run. Please install the python-lxml package.\n")
     sys.exit(1)
 import binascii
+
 
 def process_file(f):
 
@@ -112,52 +117,47 @@ def process_file(f):
                             etype, user, realm, salt,
                             PA_DATA_ENC_TIMESTAMP))
 
-    for msg in messages:  # WIP!
-        if msg.attrib['showname'] == "Kerberos TGS-REP":  # kerberos.msg.type == 13
-            # locate encrypted timestamp
-            r = msg.xpath('field[@name="kerberos.padata"]//field[@name="kerberos.PA_ENC_TIMESTAMP.encrypted"]')
-            if not r:
+    for msg in messages:  # extract hashes from TGS-REP messages
+        r = msg.xpath('.//field[@name="kerberos.msg_type"]') or msg.xpath('.//field[@name="kerberos.msg.type"]')
+        if not r:
+            continue
+        if isinstance(r, list):
+            r = r[0]
+        message_type = r.attrib["show"]
+        if message_type == "13":  # Kerberos TGS_REP
+            spnps = msg.xpath('.//field[@name="kerberos.SNameString"]')  # is this robust enough?
+            spn = "Unknown"
+            if isinstance(spnps, list):
+                out = []
+                for spnp in spnps:
+                    out.append(spnp.attrib["show"])
+                spn = "/".join(out)
+            # locate the hash
+            rs = msg.xpath('.//field[@name="kerberos.enc_part_element"]')
+            if not rs:
                 continue
-            if isinstance(r, list):
-                r = r[0]
-            encrypted_timestamp = r.attrib["value"]
-
-            # locate etype
-            r = msg.xpath('field[@name="kerberos.padata"]//field[@name="kerberos.etype"]')
-            if not r:
-                continue
-            if isinstance(r, list):
-                r = r[0]
-            etype = r.attrib["show"]
-
-            # locate realm
-            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.realm"]')
-            if not r:
-                continue
-            if isinstance(r, list):
-                r = r[0]
-            realm = r.attrib["show"]
-
-            # locate cname
-            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.name_string"]')
-            if r:
-                if isinstance(r, list):
-                    r = r[0]
-                user = r.attrib["show"]
-
-            # locate salt
-            r = msg.xpath('field[@name="kerberos.kdc_req_body"]//field[@name="kerberos.etype_info2.salt"]')
-            if r:
-                if isinstance(r, list):
-                    r = r[0]
-                salt = r.attrib["show"]
-
-            if user == "":
-                user = binascii.unhexlify(salt)
-
-            sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s\n" % (user,
-                etype, user, realm, binascii.unhexlify(salt),
-                encrypted_timestamp))
+            if isinstance(rs, list):
+                idx = 0
+                multiple_entries = False
+                if len(rs) >= 2:  # this is typically 2
+                    multiple_entries = True
+                for r in rs:
+                    if multiple_entries and idx != 0:  # only generate hash for the first "kerberos.enc_part_element", is this always correct?
+                        idx = idx + 1
+                        continue
+                    idx = idx + 1
+                    v = r.xpath('.//field[@name="kerberos.etype"]')
+                    if isinstance(v, list):
+                        v = v[0]
+                    etype = v.attrib["show"]
+                    v = r.xpath('.//field[@name="kerberos.cipher"]')
+                    if isinstance(v, list):
+                        v = v[0]
+                    data = v.attrib["value"]
+                    if etype != "23":
+                        sys.stderr.write("Currently unsupported etype %s found!\n" % etype)
+                    else:
+                        sys.stdout.write("%s:$krb5tgs$%s$%s$%s\n" % (spn, etype, data[:32], data[32:]))
 
     for msg in messages:  # extract hashes from AS-REP messages
         r = msg.xpath('.//field[@name="kerberos.msg_type"]') or msg.xpath('.//field[@name="kerberos.msg.type"]')
