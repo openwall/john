@@ -9,7 +9,7 @@
 Try to be clear about your environment and what you are doing. If possible, share with us the file or hash you are auditing.
 
 ### System configuration
-Attach details about your OS and about JtR, including:
+Attach details about your OS and about JtR, including (please, adjust the path to the john binary accordingly):
 - are you using bleeding-jumbo? Updated?
-- `$ john --list=build-info`.
-- `$ john --list=opencl-devices` (if applicable).
+- `$ ../run/john --list=build-info`.
+- `$ ../run/john --list=opencl-devices` (if applicable).
