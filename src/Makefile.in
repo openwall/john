@@ -497,7 +497,7 @@ unrarvm.o:	unrarvm.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp.h
 
 unshadow.o:	unshadow.c misc.h jumbo.h arch.h autoconfig.h params.h memory.h memdbg.h os.h os-autoconf.h
 
-vncpcap2john.o:	vncpcap2john.c autoconfig.h cygwin/ethernet.h arch.h tcphdr.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
+vncpcap2john.o:	vncpcap2john.c autoconfig.h cygwin_ethernet.h arch.h tcphdr.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
 eapmd5tojohn.o:	eapmd5tojohn.c arch.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
