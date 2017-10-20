@@ -2,11 +2,12 @@
  * KRB5 - Enctype 18 (aes256-cts-hmac-sha1-96) cracker patch for JtR
  * Created on August of 2012 by Mougey Camille (CEA/DAM) & Lalet Pierre (CEA/DAM)
  *
- * This format is one of formats saved in KDC database and used during the authentication part
+ * This format is one of formats saved in KDC database and used during the authentication part.
  *
- * This software is Copyright (c) 2012, Mougey Camille (CEA/DAM)
- * Lalet Pierre (CEA/DAM)
- * and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2012, Mougey Camille (CEA/DAM), and Lalet
+ * Pierre (CEA/DAM) and it is hereby released to the general public under the
+ * following terms:
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
  *
@@ -16,7 +17,9 @@
  *
  * Format rewritten Dec, 2014, without use of -lkrb5, by JimF.  Now we use 'native' JtR
  * pbkdf2-hmac-sha1() and simple call to 2 AES limb encrypt for entire process. Very
- * simple, and 10x faster, and no obsure -lkrb5 dependency
+ * simple, and 10x faster, and no obsure -lkrb5 dependency.
+ *
+ * Added support for etype 17 in October, 2017 by Dhiru Kholia.
  */
 
 #if AC_BUILT
@@ -25,8 +28,10 @@
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_krb5_18;
+extern struct fmt_main fmt_krb5_17;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_krb5_18);
+john_register_one(&fmt_krb5_17);
 #else
 
 #include <string.h>
@@ -56,26 +61,28 @@ john_register_one(&fmt_krb5_18);
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"krb5-18"
-#define FORMAT_NAME		"Kerberos 5 db etype 18"
-
-#define FORMAT_TAG		"$krb18$"
-#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
-
+#define FORMAT_LABEL            "krb5-18"
+#define FORMAT_LABEL_17         "krb5-17"
+#define FORMAT_NAME             "Kerberos 5 DB etype 18"
+#define FORMAT_NAME_17          "Kerberos 5 DB etype 17"
+#define FORMAT_TAG_18           "$krb18$"
+#define FORMAT_TAG_17           "$krb17$"
+#define TAG_LENGTH              (sizeof(FORMAT_TAG_18)-1) // common
 #if SIMD_COEF_32
-#define ALGORITHM_NAME    "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " AES"
+#define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " AES"
 #else
-#define ALGORITHM_NAME    "PBKDF2-SHA1 32/" ARCH_BITS_STR " AES"
+#define ALGORITHM_NAME          "PBKDF2-SHA1 32/" ARCH_BITS_STR " AES"
 #endif
-
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	64
-#define CIPHERTEXT_LENGTH	64
-#define BINARY_SIZE		32
-#define BINARY_ALIGN		4
-#define SALT_SIZE		CIPHERTEXT_LENGTH
-#define SALT_ALIGN		1
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        64
+#define CIPHERTEXT_LENGTH_18    64
+#define CIPHERTEXT_LENGTH_17    32
+#define BINARY_SIZE             16 // MIN(32, 16)
+#define BINARY_ALIGN            4
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              sizeof(uint32_t)
+#define MAX_SALT_SIZE           128
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
@@ -84,16 +91,26 @@ john_register_one(&fmt_krb5_18);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
-static struct fmt_tests kinit_tests[] = {
-  {"OLYMPE.OLtest$214bb89cf5b8330112d52189ab05d9d05b03b5a961fe6d06203335ad5f339b26", "password"},
-  {FORMAT_TAG "OLYMPE.OLtest$214bb89cf5b8330112d52189ab05d9d05b03b5a961fe6d06203335ad5f339b26",
-   "password"},
-  {NULL}
+static struct fmt_tests kinit_tests_18[] = {
+	{"OLYMPE.OLtest$214bb89cf5b8330112d52189ab05d9d05b03b5a961fe6d06203335ad5f339b26", "password"},
+	{FORMAT_TAG_18 "OLYMPE.OLtest$214bb89cf5b8330112d52189ab05d9d05b03b5a961fe6d06203335ad5f339b26", "password"},
+	{NULL}
+};
+
+static struct fmt_tests kinit_tests_17[] = {
+	// bare hashes are not supported for etype 17
+	{FORMAT_TAG_17 "TEST.LOCALtest$6fb8b78e20ad3df6591cabb9cacf4594", "password"},
+	{FORMAT_TAG_17 "TEST.LOCALtest$b7dc1cf2b403cf5f27ea9b2ea526dc5a", "password@123"},
+	{NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static char saved_salt[SALT_SIZE+1];
 static uint32_t (*crypt_out)[16];
+
+static struct custom_salt {
+	uint32_t type;
+	char saved_salt[MAX_SALT_SIZE+1];  // XXX is this enough?
+} *cur_salt;
 
 static void init(struct fmt_main *self)
 {
@@ -121,8 +138,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	p = ciphertext;
 
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
-		p += TAG_LENGTH;
+	if (!strncmp(p, FORMAT_TAG_18, TAG_LENGTH) || !strncmp(p, FORMAT_TAG_17, TAG_LENGTH))
+		p += TAG_LENGTH;  // both the TAG lengths are same
 
 	p = strstr(p, "$");
 	if (p == NULL)
@@ -130,7 +147,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	q = ciphertext;
 
-	if (p - q > SALT_SIZE) /* check salt length */
+	if (p - q > MAX_SALT_SIZE) /* check salt length */
 		return 0;
 	q = ++p;
 
@@ -138,39 +155,43 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		q++;
 	}
 
-	return !*q && q - p == CIPHERTEXT_LENGTH;
+	return !*q && (q - p == CIPHERTEXT_LENGTH_18 || q - p == CIPHERTEXT_LENGTH_17);
 }
 
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + SALT_SIZE + 1];
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH_18 + SALT_SIZE + 1];
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+	if (!strncmp(ciphertext, FORMAT_TAG_18, TAG_LENGTH) || !strncmp(ciphertext, FORMAT_TAG_17, TAG_LENGTH))
 		return ciphertext;
 
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	strnzcpyn(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + SALT_SIZE + 1);
+	memcpy(out, FORMAT_TAG_18, TAG_LENGTH);
+	strnzcpyn(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH_18 + SALT_SIZE + 1);
 	return out;
 }
 
 static void *get_salt(char *ciphertext)
 {
-	static char out[SALT_SIZE+1];
+	static struct custom_salt cs;
 	char *p, *q;
 
-	memset(&out, 0, sizeof(out));
+	memset(&cs, 0, SALT_SIZE);
+	if (!strncmp(ciphertext, FORMAT_TAG_18, TAG_LENGTH))
+		cs.type = 18;
+	else
+		cs.type = 17;
 	p = ciphertext + TAG_LENGTH;
 	q = strstr(p, "$");
-	strncpy(out, p, q-p);
-	out[q-p] = 0;
+	strncpy(cs.saved_salt, p, q-p);
+	cs.saved_salt[MAX_SALT_SIZE] = 0;
 
-	return out;
+	return (void*)&cs;
 }
 
 static void set_salt(void *salt)
 {
-	strcpy(saved_salt, salt);
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static void *get_binary(char *ciphertext)
@@ -183,7 +204,7 @@ static void *get_binary(char *ciphertext)
 
 	p = ciphertext;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+	if (!strncmp(ciphertext, FORMAT_TAG_18, TAG_LENGTH) || !strncmp(ciphertext, FORMAT_TAG_17, TAG_LENGTH))
 		p += TAG_LENGTH;
 	p = strstr(p, "$") + 1;
 
@@ -193,6 +214,7 @@ static void *get_binary(char *ciphertext)
 		        atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+
 	return out;
 }
 
@@ -210,6 +232,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	{
 		unsigned char key[32], i;
 		AES_KEY aeskey;
+		int key_size;
 #ifdef SSE_GROUP_SZ_SHA1
 		uint32_t Key[SSE_GROUP_SZ_SHA1][32/4];
 		int lens[SSE_GROUP_SZ_SHA1];
@@ -223,17 +246,27 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			x.pout[i] = Key[i];
 		}
-		pbkdf2_sha1_sse((const unsigned char **)pin, lens, (const unsigned char*)saved_salt, strlen(saved_salt), 4096, &(x.poutc), 32, 0);
+		if (cur_salt->type == 18) {
+			key_size = 32;
+		} else {
+			key_size = 16;
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, (const unsigned char*)cur_salt->saved_salt, strlen(cur_salt->saved_salt), 4096, &(x.poutc), key_size, 0);
 #else
-		pbkdf2_sha1((const unsigned char*)saved_key[index], strlen(saved_key[index]), (const unsigned char*)saved_salt, strlen(saved_salt), 4096, key, 32, 0);
+		if (cur_salt->type == 18) {
+			key_size = 32;
+		} else {
+			key_size = 16;
+		}
+		pbkdf2_sha1((const unsigned char*)saved_key[index], strlen(saved_key[index]), (const unsigned char*)cur_salt->saved_salt, strlen(cur_salt->saved_salt), 4096, key, key_size, 0);
 #endif
 		i=0;
 #ifdef SSE_GROUP_SZ_SHA1
 		for (; i < SSE_GROUP_SZ_SHA1; ++i) {
-			memcpy(key, Key[i], 32);
+			memcpy(key, Key[i], key_size);
 #endif
-		AES_set_encrypt_key(key, 256, &aeskey);
-		AES_encrypt((unsigned char*)"kerberos{\x9b[+\x93\x13+\x93", (unsigned char*)(crypt_out[index+i]), &aeskey);
+		AES_set_encrypt_key(key, key_size * 8, &aeskey);
+		AES_encrypt((unsigned char*)"kerberos{\x9b[+\x93\x13+\x93", (unsigned char*)(crypt_out[index+i]), &aeskey); // the weird constant string comes from "nfold" function
 		AES_encrypt((unsigned char*)(crypt_out[index+i]), (unsigned char*)&crypt_out[index+i][4], &aeskey);
 #ifdef SSE_GROUP_SZ_SHA1
 		}
@@ -279,14 +312,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
-
 struct fmt_main fmt_krb5_18 = {
 	{
 		FORMAT_LABEL,
@@ -304,8 +329,8 @@ struct fmt_main fmt_krb5_18 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ FORMAT_TAG },
-		kinit_tests
+		{ FORMAT_TAG_18 },
+		kinit_tests_18
 	}, {
 		init,
 		done,
@@ -318,13 +343,7 @@ struct fmt_main fmt_krb5_18 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -334,13 +353,56 @@ struct fmt_main fmt_krb5_18 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact,
+	}
+};
+
+struct fmt_main fmt_krb5_17 = {
+	{
+		FORMAT_LABEL_17,
+		FORMAT_NAME_17,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		{ NULL },
+		{ FORMAT_TAG_18 },
+		kinit_tests_17
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid,
+		split,
+		get_binary,
+		get_salt,
+		{ NULL },
+		fmt_default_source,
+		{
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		NULL,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,
