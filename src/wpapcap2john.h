@@ -18,8 +18,10 @@
 #include "johnswap.h"
 #include "hccap.h"
 
-// All data structures must be byte aligned, since we work on 'raw' data in
-// structures and do not load structures record by record.
+/*
+ * Most data structures must be byte aligned, since we work on 'raw' data in
+ * structures and do not load structures record by record.
+ */
 #pragma pack(1)
 
 #define TCPDUMP_MAGIC           0xA1B2C3D4
@@ -31,9 +33,9 @@
 #define LINKTYPE_RADIOTAP_HDR   127
 #define LINKTYPE_PPI_HDR        192
 
-// PCAP main file header
+/* PCAP main file header */
 typedef struct pcap_hdr_s {
-	uint32_t magic_number;   /* magic number 0xA1B2C3D4 (or 0xD4C3B2A1 if file in BE format) */
+	uint32_t magic_number;   /* magic number 0xA1B2C3D4 (or 0xD4C3B2A1 BE) */
 	uint16_t version_major;  /* major version number 0x0200 */
 	uint16_t version_minor;  /* minor version number 0x0400 */
 	int32_t  thiszone;       /* GMT to local correction */
@@ -42,7 +44,7 @@ typedef struct pcap_hdr_s {
 	uint32_t network;        /* data link type */
 } pcap_hdr_t;
 
-// PCAP packet header
+/* PCAP packet header */
 typedef struct pcaprec_hdr_s {
 	uint32_t ts_sec;         /* timestamp seconds */
 	uint32_t ts_usec;        /* timestamp microseconds */
@@ -50,7 +52,7 @@ typedef struct pcaprec_hdr_s {
 	uint32_t orig_len;       /* actual length of packet */
 } pcaprec_hdr_t;
 
-// Ok, here are the struct we need to decode 802.11 for JtR
+/* Ok, here are the struct we need to decode 802.11 for JtR */
 typedef struct ieee802_1x_frame_hdr_s {
 	uint16_t frame_ctl;
 	uint16_t duration;
@@ -64,7 +66,8 @@ typedef struct ieee802_1x_frame_hdr_s {
 //	int8_t   body[1];
 } ieee802_1x_frame_hdr_t;
 
-typedef struct ieee802_1x_frame_ctl_s { // bitmap of the ieee802_1x_frame_hdr_s.frame_ctl
+/* bitmap of the ieee802_1x_frame_hdr_s.frame_ctl */
+typedef struct ieee802_1x_frame_ctl_s {
 	uint16_t version  : 2;
 	uint16_t type     : 2;
 	uint16_t subtype  : 4;
@@ -78,7 +81,7 @@ typedef struct ieee802_1x_frame_ctl_s { // bitmap of the ieee802_1x_frame_hdr_s.
 	uint16_t order    : 1;
 } ieee802_1x_frame_ctl_t;
 
-// THIS is the structure for the EAPOL data within the packet.
+/* This is the structure for the EAPOL data within the packet. */
 typedef struct ieee802_1x_eapol_s {
 	uint8_t ver; // 1 ?
 	uint8_t key;
@@ -97,7 +100,7 @@ typedef struct ieee802_1x_eapol_s {
 			uint16_t Reqst	: 1;
 			uint16_t EncKeyDat: 1;
 		} key_info;
-		uint16_t key_info_u16;	// union used for swapping, to work around worthless gcc warning.
+		uint16_t key_info_u16;	// union used for swapping
 	};
 	uint16_t key_len;
 	uint64_t replay_cnt;
@@ -119,20 +122,19 @@ typedef struct ieee802_1x_beacon_tag_s {
 	uint8_t  tagtype;
 	uint8_t  taglen;
 	uint8_t  tag[1];
-	// we have to 'walk' from 1 tag to next, since the tag itself is
-	// var length.
+/* we have to 'walk' from 1 tag to next, since the tag itself is var length. */
 } ieee802_1x_beacon_tag_t;
 
-// This is the structure for a 802.11 control 'beacon' packet.
-// A probe response packet looks the same.
-// We only use this packet to get the ESSID.
+/*
+ * This is the structure for a 802.11 control 'beacon' packet.
+ * A probe response packet looks the same.
+ * We only use this packet to get the ESSID.
+ */
 typedef struct ieee802_1x_beacon_data_s {
 	uint32_t time1;
 	uint32_t time2;
 	uint16_t interval;
 	uint16_t caps;
-	// ok, now here we have a array of 'tagged params'.
-	// these are variable sized, so we have to 'specially' walk them.
 	ieee802_1x_beacon_tag_t tags[1];
 } ieee802_1x_beacon_data_t;
 
@@ -159,13 +161,21 @@ inline static uint64_t swap64u(uint64_t v) {
 	return JOHNSWAP64(v);
 }
 
-/* This type structure is used to keep track of EAPOL packets, as they are read
+typedef struct essid_s {
+	int prio; /* On name conflict, prio <= old_prio will overwrite */
+	int essid_len;
+	char essid[32 + 1];
+	uint8_t bssid[6];
+} essid_t;
+
+/*
+ * This type structure is used to keep track of EAPOL packets, as they are read
  * from a PCAP file.  we need to get certain 'paired' packets, to be able to
  * create the input file for JtR (i.e. the 4-way to make the hash input for
  * JtR). The packets that are needed are:  M1/M2 or M2/M3.  These MUST be
  * paired, and matched to each other.  The match 'rules' are:
  *
- * - The packets MUST be sequential (sequential EAPOL's, per AP)
+ * - The packets MUST be sequential (sequential EAPOL's, per AP/STA pair)
  * - If a M1/M2 pair, they BOTH must have the exact same replay_cnt
  * - If the match is a M2/M3, then the M2 replay_cnt must be exactly one less
  *   than the replay_cnt in the M3.
@@ -174,9 +184,9 @@ inline static uint64_t swap64u(uint64_t v) {
  * M2/M3 rules are only used in proper context), then we do NOT have a valid
  * 4-way.
  *
- * During run, every time we see a M1 for a given AP, we 'forget' all other
- * packets for it.  When we see a M2, we forget all M3 and M4's.  Also, for a
- * M2, we see if we have a M1.  If so, we see if that M1 satisfies the
+ * During run, every time we see a M1 for a given AP/STA pair, we 'forget' all
+ * other packets for it.  When we see a M2, we forget all M3 and M4's.  Also,
+ * for a M2, we see if we have a M1.  If so, we see if that M1 satisfies the
  * replay_cnt rule.  If that is the case, then we have a 'possible' valid
  * 4-way.  We do write the results.  However, at this time, we are not 100%
  * 'sure' we have a valid 4-way.  We CAN get a M1/M2 pair, even if the STA
@@ -190,38 +200,39 @@ inline static uint64_t swap64u(uint64_t v) {
  * AP knows the PW.
  */
 typedef struct handshake_s {
-	uint8_t *packet;
-	int packet_len;
-	int isQoS;
-	uint32_t ts_sec;
-	uint32_t ts_usec;
+	uint64_t ts64;
+	int eapol_size;
+	ieee802_1x_eapol_t *eapol;
 } handshake_t;
 
 typedef struct WPA4way_s {
-	char essid[32 + 1];
-	char bssid[18];
-	handshake_t M[5];
+	uint64_t rc;
+	uint32_t anonce_msb;
+	uint32_t anonce_lsb;
+	int8_t fuzz;
+	uint8_t be;
 	int fully_cracked;
-	int eapol_sz;
-	int prio; // lower prio will overwrite higher
+	handshake_t M[5];
+	uint8_t bssid[6];
+	uint8_t staid[6];
 } WPA4way_t;
 
-// Support for loading airodump-ng ivs2 files.
+/* Support for loading airodump-ng ivs2 files. */
 #define IVSONLY_MAGIC           "\xBF\xCA\x84\xD4"
 #define IVS2_MAGIC              "\xAE\x78\xD1\xFF"
 #define IVS2_EXTENSION          "ivs"
 #define IVS2_VERSION             1
 
-// BSSID const. length of 6 bytes; can be together with all the other types
+/* BSSID const. length of 6 bytes; can be together with all the other types */
 #define IVS2_BSSID      0x0001
 
-// ESSID var. length; alone, or with BSSID
+/* ESSID var. length; alone, or with BSSID */
 #define IVS2_ESSID      0x0002
 
-// wpa structure, const. length; alone, or with BSSID
+/* WPA structure, const. length; alone, or with BSSID */
 #define IVS2_WPA        0x0004
 
-// IV+IDX+KEYSTREAM, var. length; alone or with BSSID
+/* IV+IDX+KEYSTREAM, var. length; alone or with BSSID */
 #define IVS2_XOR        0x0008
 
 /*
@@ -245,9 +256,10 @@ struct ivs2_pkthdr
     uint16_t  len;
 };
 
-// WPA handshake in ivs2 format. NOTE THIS IS NOT PACKED!
-// from airodump-ng src/include/eapol.h
-#pragma pack()
+/*
+ * WPA handshake in ivs2 format. From airodump-ng src/include/eapol.h
+ */
+#pragma pack() /* NOTE, THIS IS NOT PACKED! */
 struct ivs2_WPA_hdsk
 {
     uint8_t stmac[6];     /* supplicant MAC           */
