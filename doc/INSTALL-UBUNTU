@@ -1,12 +1,23 @@
+Please, read INSTALL for general information about installing John on your system.
+
+== Preamble
+
+    Important: it's actually about a local to a user's home directory, not a
+    system-wide installation. In fact, most likely you do not need to install
+    John the Ripper system-wide.  Instead, after you compile the source code
+    (see below), you may simply enter the "run" directory and invoke John from
+    there, e.g., ./john --list=build-options.
+
+    Commands not explicitly prefixed by sudo must be run as a regular user
+    (the one that will use JtR) rather than as root.
+
 == How to install on Ubuntu (also works on Ubuntu for Windows)
+
     The steps listed below might work unchanged on Debian and derivatives (untested).
 
-=== Install pre-requisites
+=== Preconditions and Required stuff
 
     mkdir -p ~/src
-
-==== Required stuff
-
     sudo apt-get install build-essential libssl-dev git
 
 ==== Recommended (extra formats and performance)
