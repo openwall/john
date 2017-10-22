@@ -1034,7 +1034,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        full_path,
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
-	            "-D__MESA__" : opencl_get_dev_info(sequential_id),
+	            "-D__MESA__ " : opencl_get_dev_info(sequential_id),
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
