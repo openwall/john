@@ -1,3 +1,5 @@
+#include <openssl/des.h>
+
 #include "krb5_common.h"
 
 /* n-fold(k-bits):
@@ -14,7 +16,7 @@
 
 /* input length is in bits */
 void nfold(unsigned int inbits, const unsigned char *in,
-		unsigned int outbits,unsigned char *out)
+		unsigned int outbits, unsigned char *out)
 {
 	int a, b, c, lcm;
 	int byte, i, msbit;
@@ -176,3 +178,152 @@ static void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
 	AES_cts_encrypt(ciphertext, plaintext, ctext_size, &ekey, iv, AES_ENCRYPT);
 }
 #endif
+
+// The following functions are borrowed from Shishi project. See
+// lib/crypto-des.c and lib/low-crypto.c files in Shishi. Copyrighted by Simon
+// Josefsson and licensed under GPLv3.
+
+void des_set_odd_key_parity_shishi(char key[8])
+{
+	int i, j;
+
+	for (i = 0; i < 8; i++) {
+		int n_set_bits = 0;
+
+		for (j = 1; j < 8; j++)
+			if (key[i] & (1 << j))
+				n_set_bits++;
+
+		key[i] &= ~1;
+		if ((n_set_bits % 2) == 0)
+			key[i] |= 1;
+	}
+}
+
+static char weak_des_keys[16][8] = {
+	/* Weak keys */
+	"\x01\x01\x01\x01\x01\x01\x01\x01",
+	"\x1F\x1F\x1F\x1F\x0E\x0E\x0E\x0E",
+	"\xE0\xE0\xE0\xE0\xF1\xF1\xF1\xF1",
+	"\xFE\xFE\xFE\xFE\xFE\xFE\xFE\xFE",
+	/* Semiweak keys */
+	"\x01\xFE\x01\xFE\x01\xFE\x01\xFE",
+	"\x1F\xE0\x1F\xE0\x0E\xF1\x0E\xF1",
+	"\x01\xE0\x01\xE0\x01\xF1\x01\xF1",
+	"\x1F\xFE\x1F\xFE\x0E\xFE\x0E\xFE",
+	"\x01\x1F\x01\x1F\x01\x0E\x01\x0E",
+	"\xE0\xFE\xE0\xFE\xF1\xFE\xF1\xFE",
+	"\xFE\x01\xFE\x01\xFE\x01\xFE\x01",
+	"\xE0\x1F\xE1\x0F\xF1\x0E\xF1\x0E",
+	"\xE0\x01\xE0\x01\xF1\x01\xF1\x01",
+	"\xFE\x1F\xFE\x1F\xFE\x0E\xFE\x0E",
+	"\x1F\x01\x1F\x01\x0E\x01\x0E\x01",
+	"\xFE\xE0\xFE\xE0\xFE\xF1\xFE\xF1"
+};
+
+void des_key_correction_shishi(char key[8])
+{
+	size_t i;
+
+	/* fixparity(key); */
+	des_set_odd_key_parity_shishi(key);
+
+	/* This loop could be replaced by optimized code (compare nettle),
+	   but let's not do that. */
+	for (i = 0; i < 16; i++) {
+		if (memcmp (key, weak_des_keys[i], 8) == 0) {
+			key[7] ^= 0xF0;
+			break;
+		}
+	}
+}
+
+void des_cbc_mac_shishi(char key[8], char iv[8], unsigned char *in, size_t inlen, char *out)
+{
+	DES_cblock dkey;
+	DES_cblock ivec;
+	DES_key_schedule dks;
+	unsigned char ct[inlen]; // XXX
+
+	memcpy(dkey, key, 8);
+	DES_set_key((DES_cblock *)dkey, &dks);
+	memcpy(ivec, iv, 8);
+	DES_cbc_encrypt(in, ct, inlen, &dks, &ivec, DES_ENCRYPT);
+	memcpy(out, ct + inlen - 8, 8);
+}
+
+// https://tools.ietf.org/html/rfc1510 (string_to_key)
+int des_string_to_key_shishi(char *string, size_t stringlen,
+		char *salt, size_t saltlen, unsigned char *outkey)
+{
+	unsigned char *s, *s_copy;
+	int n_s;
+	int odd;
+	char tempkey[8];
+	char p[8];
+	int i, j;
+	char temp, temp2;
+
+	odd = 1;
+	n_s = stringlen + saltlen;
+	if ((n_s % 8) != 0)
+		n_s += 8 - n_s % 8;
+	s = malloc(n_s);
+	s_copy = malloc(n_s);
+	memset(s, 0, n_s);
+	memcpy(s, string, stringlen);
+	if (saltlen > 0)
+		memcpy(s + stringlen, salt, saltlen);
+	memset(s + stringlen + saltlen, 0, n_s - stringlen - saltlen);
+	memset(tempkey, 0, sizeof(tempkey));
+	memcpy(s_copy, s, n_s);  // this is required as the following loop has an unknown bug which corrupts the last block of "s"
+	for (i = 0; i < n_s / 8; i++) {
+		for (j = 0; j < 8; j++)
+			s[i * 8 + j] = s[i * 8 + j] & ~0x80;
+
+		if (odd == 0) {
+			for (j = 0; j < 4; j++) {
+				temp = s[i * 8 + j];
+				temp =
+					((temp >> 6) & 0x01) |
+					((temp >> 4) & 0x02) |
+					((temp >> 2) & 0x04) |
+					((temp) & 0x08) |
+					((temp << 2) & 0x10) |
+					((temp << 4) & 0x20) | ((temp << 6) & 0x40);
+				temp2 = s[i * 8 + 7 - j];
+				temp2 =
+					((temp2 >> 6) & 0x01) |
+					((temp2 >> 4) & 0x02) |
+					((temp2 >> 2) & 0x04) |
+					((temp2) & 0x08) |
+					((temp2 << 2) & 0x10) |
+					((temp2 << 4) & 0x20) | ((temp2 << 6) & 0x40);
+				s[i * 8 + j] = temp2;
+				s[i * 8 + 7 - j] = temp;
+			}
+		}
+
+		odd = !odd;
+		/* tempkey = tempkey XOR 8byteblock; */
+		for (j = 0; j < 8; j++)
+			tempkey[j] ^= s[i * 8 + j];
+	}
+
+	for (j = 0; j < 8; j++)
+		tempkey[j] = tempkey[j] << 1;
+
+	des_key_correction_shishi(tempkey);
+	memcpy(s, string, stringlen);
+	if (saltlen > 0)
+		memcpy(s + stringlen, salt, saltlen);
+	des_cbc_mac_shishi(tempkey, tempkey, s_copy, n_s, p);
+	memcpy(tempkey, p, 8);
+	des_key_correction_shishi(tempkey);
+	memcpy(outkey, tempkey, 8);
+
+	free(s);
+	free(s_copy);
+
+	return 0;
+}
