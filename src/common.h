@@ -27,6 +27,9 @@
 #ifndef MIN
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #endif
+#ifndef ABS
+#define ABS(a) ((a)<0?(0-(a)):(a))
+#endif
 
 /* sets v to the next higher even power of 2 */
 #define get_power_of_two(v)                     \

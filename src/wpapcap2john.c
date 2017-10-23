@@ -60,7 +60,7 @@ static int n_apsta;
 static int n_hashes;
 static int rctime = 2 * 1000000; /* 2 seconds (bumped with -r) */
 static const char *filename;
-static unsigned int link_type, show_unverified = 1, ignore_rc;
+static unsigned int link_type, show_unverified = 1, ignore_rc, force_fuzz;
 static int warn_wpaclean;
 static int warn_snaplen;
 static int verbosity;
@@ -482,7 +482,7 @@ static void remove_handshake(int apsta, int handshake)
 }
 
 static void print_auth(int apsta, int ap_msg, int sta_msg,
-                      hccap_t hccap, int fuzz, int be)
+                       hccap_t hccap, int fuzz, int be)
 {
 	int i;
 	char TmpKey[2048], *cp = TmpKey;
@@ -491,13 +491,15 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
 	int latest = sta_msg;
 
 	if (fuzz) {
-		if (be)
+		//fprintf(stderr, "anonce ...%08x -> ", (uint32_t)*anonce_lsb);
+		if (be == 1)
 			*anonce_lsb =
 				swap32u((uint32_t)(
 					        (int32_t)swap32u((uint32_t)*anonce_lsb) + fuzz)
 					);
-		else
+		else /* LE */
 			*anonce_lsb += fuzz;
+		//fprintf(stderr, "%08x\n", (uint32_t)*anonce_lsb);
 	}
 
 	cp += sprintf(cp, "%s:$WPAPSK$%s#", get_essid(apsta_db[apsta].bssid),
@@ -511,10 +513,11 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
 	              to_compact(hccap.mac1), to_compact(hccap.mac1));
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "%d", hccap.keyver);
-	cp += sprintf(cp, ":%sverified%s:%s",
-	              (ap_msg == 1 && sta_msg == 2) ? "not " : "",
-	              fuzz ? ", fuzzed" : "",
-	              filename);
+	cp += sprintf(cp, ":%sverified",
+	              (ap_msg == 1 && sta_msg == 2) ? "not " : "");
+	if (fuzz)
+		cp += sprintf(cp, ", fuzz %d %s", fuzz, (be == 1) ? "BE" : "LE");
+	cp += sprintf(cp, ":%s", filename);
 
 	if (apsta_db[apsta].M[ap_msg].ts64 > apsta_db[apsta].M[sta_msg].ts64)
 		latest = ap_msg;
@@ -554,13 +557,13 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
  */
 static void dump_auth(int apsta, int ap_msg, int sta_msg)
 {
-	int i;
+	int i, j;
 	ieee802_1x_eapol_t *auth13 = apsta_db[apsta].M[ap_msg].eapol;
 	ieee802_1x_eapol_t *auth24 = apsta_db[apsta].M[sta_msg].eapol;
 	hccap_t	hccap;
 	int this_fuzz = 0;
+	int endian = apsta_db[apsta].endian;
 	int fuzz = apsta_db[apsta].fuzz;
-	int endianness = apsta_db[apsta].be;
 
 	if (ignore_rc && fuzz) {
 		if ((ap_msg == 1 && sta_msg == 2) || (ap_msg == 3 && sta_msg == 4))
@@ -568,12 +571,16 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg)
 				apsta_db[apsta].M[sta_msg].eapol->replay_cnt;
 		else
 			this_fuzz = MAX(apsta_db[apsta].M[ap_msg].eapol->replay_cnt, apsta_db[apsta].M[sta_msg].eapol->replay_cnt) - MIN(apsta_db[apsta].M[ap_msg].eapol->replay_cnt, apsta_db[apsta].M[sta_msg].eapol->replay_cnt) - 1;
-		if (fuzz < 0)
-			this_fuzz = 0 - this_fuzz;
-		if (verbosity)
-			fprintf(stderr, "Outputting with fuzz: %d (%d seen)\n",
-			        this_fuzz, fuzz);
 	}
+	this_fuzz = MAX(MAX(ABS(force_fuzz), ABS(this_fuzz)), fuzz);
+
+	if (fuzz < 0)
+		this_fuzz = 0 - this_fuzz;
+
+	if (verbosity && this_fuzz)
+		fprintf(stderr, "Outputting with fuzz: %d (%d seen) %s\n",
+		        this_fuzz, fuzz,
+		        endian ? (endian == 1 ? "BE" : "LE") : "LE/BE");
 
 	if (!auth24) {
 		fprintf(stderr, "ERROR, M%u null\n", sta_msg);
@@ -614,14 +621,21 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg)
 	memset(hccap.eapol + offsetof(ieee802_1x_eapol_t, wpa_keymic), 0,
 	       sizeof(hccap.keymic));
 
-	if (!this_fuzz || this_fuzz == 1)
-		print_auth(apsta, ap_msg, sta_msg, hccap, 0, 0);
-	else if (this_fuzz < 0)
-		for (i = 0; i >= this_fuzz; i--)
-			print_auth(apsta, ap_msg, sta_msg, hccap, i, endianness);
-	else
-		for (i = 0; i <= this_fuzz; i++)
-			print_auth(apsta, ap_msg, sta_msg, hccap, i, endianness);
+	/* Non-fuzzed first */
+	print_auth(apsta, ap_msg, sta_msg, hccap, 0, 0);
+
+	/* If endianness unknown, we fuzz LE and BE */
+	for (j = (endian ? endian : 1); j <= (endian ? endian : 2); j++) {
+		/* Fuzz negative */
+		if (fuzz < 0 || force_fuzz)
+			for (i = -1; i >= (0 - this_fuzz); i--)
+				print_auth(apsta, ap_msg, sta_msg, hccap, i, j);
+
+		/* Fuzz positive */
+		if (fuzz > 0 || force_fuzz)
+			for (i = 1; i <= this_fuzz; i++)
+				print_auth(apsta, ap_msg, sta_msg, hccap, i, j);
+	}
 
 	if (MAX(ap_msg, sta_msg) > 2) {
 		apsta_db[apsta].fully_cracked = 1;
@@ -958,6 +972,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 				if (apsta_db[apsta].fuzz && verbosity > 1)
 					fprintf(stderr, "anonce LSB inc fuzz %d LE ",
 					        apsta_db[apsta].fuzz);
+				apsta_db[apsta].endian = 2;
 			}
 			else if ((nonce_lsb & 0xffffff00) ==
 			         (apsta_db[apsta].anonce_lsb & 0xffffff00)) {
@@ -971,7 +986,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 				if (apsta_db[apsta].fuzz && verbosity > 1)
 					fprintf(stderr, "anonce LSB inc fuzz %d BE ",
 					        apsta_db[apsta].fuzz);
-				apsta_db[apsta].be = 1;
+				apsta_db[apsta].endian = 1;
 			}
 		}
 		apsta_db[apsta].anonce_msb = nonce_msb;
@@ -1757,7 +1772,8 @@ void usage(char *name, int ret)
 	"\tbut we can crack what passwords were tried).\n"
 	"-v\tBump verbosity (can be used several times, try -vv)\n"
 	"-d\tDo not suppress dupe hashes (per AP/STA pair)\n"
-	"-r\tIgnore replay-count (may output fuzzed-nonce handshakes)\n"
+	"-r\tIgnore replay-count (may output fuzzed-anonce handshakes)\n"
+	"-f <n>\tForce anonce fuzzing with +/- <n>\n"
 	"-e\tManually add Name:MAC pair(s) in case the file lacks beacons.\n"
 	"\teg. -e \"Magnum WIFI:6d:61:67:6e:75:6d\"\n"
 	"-m\tIgnore any packets not involving this mac adress\n\n",
@@ -1832,6 +1848,15 @@ int main(int argc, char **argv)
 			argv[1] = argv[0];
 			argv++; argc--;
 			manual_beacon(argv[1]);
+			argv[1] = argv[0];
+			argv++; argc--;
+			continue;
+		}
+
+		if (argc > 2 && !strcmp(argv[1], "-f")) {
+			argv[1] = argv[0];
+			argv++; argc--;
+			force_fuzz = ABS(atoi(argv[1]));
 			argv[1] = argv[0];
 			argv++; argc--;
 			continue;

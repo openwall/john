@@ -210,7 +210,7 @@ typedef struct WPA4way_s {
 	uint32_t anonce_msb;
 	uint32_t anonce_lsb;
 	int8_t fuzz;
-	uint8_t be;
+	uint8_t endian; /* 0 == unknown, 1 == BE, 2 == LE */
 	int fully_cracked;
 	handshake_t M[5];
 	uint8_t bssid[6];
