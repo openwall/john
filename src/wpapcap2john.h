@@ -83,8 +83,8 @@ typedef struct ieee802_1x_frame_ctl_s {
 
 /* This is the structure for the EAPOL data within the packet. */
 typedef struct ieee802_1x_eapol_s {
-	uint8_t ver; // 1 ?
-	uint8_t key;
+	uint8_t ver; // 1, 2 ?
+	uint8_t type; // key == 3
 	uint16_t length;  // in BE format
 	uint8_t key_descr; // should be 2 for EAPOL RSN KEY ?
 	union {
@@ -150,6 +150,18 @@ typedef struct ieee802_1x_reassocreq_s {
 	uint8_t  addr3[6];
 	ieee802_1x_beacon_tag_t tags[1];
 } ieee802_1x_reassocreq_t;
+
+typedef struct eapext_s {
+	uint8_t  version;
+	uint8_t  type;
+	uint16_t len;
+	uint8_t  eapcode;
+	uint8_t  eapid;
+	uint16_t eaplen;
+	uint8_t  eaptype;
+} eapext_t;
+#define EAP_CODE_RESP       2
+#define EAP_TYPE_ID         1
 
 inline static uint16_t swap16u(uint16_t v) {
 	return ((v>>8)|((v&0xFF)<<8));

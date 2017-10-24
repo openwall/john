@@ -882,8 +882,8 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 	if (verbosity >= 3) {
 		fprintf(stderr,
 		        "EAPOL breakdown:\n"
-		        "\tver %02x key %02x length %d key_descr %02x",
-		        auth->ver, auth->key, auth->length, auth->key_descr);
+		        "\tver %02x type %02x length %d key_descr %02x",
+		        auth->ver, auth->type, auth->length, auth->key_descr);
 		fprintf(stderr, " key_info %d %d %d %d %d %d %d %d %d\n",
 		        auth->key_info.KeyDescr, auth->key_info.KeyType,
 		        auth->key_info.KeyIdx, auth->key_info.Install,
@@ -969,7 +969,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 					apsta_db[apsta].fuzz = MIN(fuzz, (int8_t)(nonce2 - nonce1));
 				else if (nonce2 - nonce1 > 1)
 					apsta_db[apsta].fuzz = MAX(fuzz, (int8_t)(nonce2 - nonce1));
-				if (apsta_db[apsta].fuzz && verbosity > 1)
+				if (apsta_db[apsta].fuzz && verbosity >= 2)
 					fprintf(stderr, "anonce LSB inc fuzz %d LE ",
 					        apsta_db[apsta].fuzz);
 				apsta_db[apsta].endian = 2;
@@ -983,7 +983,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 					apsta_db[apsta].fuzz = MIN(fuzz, (int8_t)(nonce2 - nonce1));
 				else if (nonce2 - nonce1 > 1)
 					apsta_db[apsta].fuzz = MAX(fuzz, (int8_t)(nonce2 - nonce1));
-				if (apsta_db[apsta].fuzz && verbosity > 1)
+				if (apsta_db[apsta].fuzz && verbosity >= 2)
 					fprintf(stderr, "anonce LSB inc fuzz %d BE ",
 					        apsta_db[apsta].fuzz);
 				apsta_db[apsta].endian = 1;
@@ -1002,7 +1002,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 			if (apsta_db[apsta].M[i].eapol &&
 			    cur_ts64 >= apsta_db[apsta].M[i].ts64 &&
 			    cur_ts64 - apsta_db[apsta].M[i].ts64 > stp * rctime) {
-				if (verbosity > 2)
+				if (verbosity >= 3)
 					fprintf(stderr, "[discarding stale M%d from %u.%06u] ",
 					        i, (uint32_t)(apsta_db[apsta].M[i].ts64 / 1000000),
 					        (uint32_t)(apsta_db[apsta].M[i].ts64 % 1000000));
@@ -1512,19 +1512,50 @@ static int process_packet(void)
  */
 		p += 6;
 		if (*((uint16_t*)p) == 0x8e88) {
+			eapext_t *eap;
+
 			p += 2;
 			/*if (has_ht)
 			  p += 4;*/
-			/* this packet was an EAPOL packet.  Some sanity checks */
-			if (pkt_hdr.incl_len < sizeof(ieee802_1x_frame_hdr_t) +
-			    (has_qos ? 10 : 8)) {
-				fprintf(stderr,
-				        "%s: header len %u, wanted to subtract "Zu", skipping packet\n",
-				        filename, pkt_hdr.incl_len,
-				        sizeof(ieee802_1x_frame_hdr_t) + (has_qos ? 10 : 8));
-			} else
-				handle4way((ieee802_1x_eapol_t*)p);
-			return 1;
+			eap = (eapext_t*)p;
+
+			if (eap->type == 0) {
+				if (pkt_hdr.incl_len < sizeof(eapext_t) + (has_qos ? 10 : 8)) {
+					fprintf(stderr, "%s: truncated packet\n", filename);
+					return 1;
+				}
+				if (eap->eaptype == EAP_TYPE_ID &&
+				    eap->eapcode == EAP_CODE_RESP) {
+					/* Identity response */
+					int len = swap16u(eap->eaplen) - 5;
+					char *id;
+
+					p += sizeof(eapext_t);
+					safe_malloc(id, len + 1);
+					memcpy(id, p, len);
+					id[len] = 0;
+					if (verbosity >= 2)
+						fprintf(stderr, "EAP Identity Response: '%s'\n", id);
+					MEM_FREE(id);
+					return 1;
+				}
+			} else if (eap->type == 1) {
+				if (verbosity >= 2)
+					fprintf(stderr, "EAP Start\n");
+				return 1;
+			} else if (eap->type == 3) {
+				/* EAP key */
+				if (pkt_hdr.incl_len < sizeof(ieee802_1x_frame_hdr_t) +
+				    (has_qos ? 10 : 8)) {
+					fprintf(stderr, "%s: truncated packet\n", filename);
+				} else
+					handle4way((ieee802_1x_eapol_t*)p);
+				return 1;
+			} else {
+				if (verbosity >= 2)
+					fprintf(stderr, "EAP type %d\n", eap->type);
+				return 1;
+			}
 		}
 	}
 
