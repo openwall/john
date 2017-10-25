@@ -187,7 +187,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 			p = strchr(ciphertext + FORMAT_TAG_LEN + ETYPE_TAG_LEN + 1, '$') + 1;
 			for (i = 0; i < p - ciphertext; i++)
 				ptr[i] = ARCH_INDEX(ciphertext[i]);
-			for (; i < strlen(ciphertext); i++)
+			for (; i < strlen(ciphertext) + 1; i++)
 				ptr[i] = tolower(ARCH_INDEX(ciphertext[i]));
 
 		} else {
