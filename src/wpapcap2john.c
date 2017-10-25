@@ -965,7 +965,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 				uint32_t nonce1 = swap32u(apsta_db[apsta].anonce_lsb);
 				uint32_t nonce2 = swap32u(nonce_lsb);
 
-				if (nonce2 - nonce1 < 0)
+				if (nonce2 < nonce1)
 					apsta_db[apsta].fuzz = MIN(fuzz, (int8_t)(nonce2 - nonce1));
 				else if (nonce2 - nonce1 > 1)
 					apsta_db[apsta].fuzz = MAX(fuzz, (int8_t)(nonce2 - nonce1));
@@ -979,7 +979,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 				uint32_t nonce1 = apsta_db[apsta].anonce_lsb;
 				uint32_t nonce2 = nonce_lsb;
 
-				if (nonce2 - nonce1 < 0)
+				if (nonce2 < nonce1)
 					apsta_db[apsta].fuzz = MIN(fuzz, (int8_t)(nonce2 - nonce1));
 				else if (nonce2 - nonce1 > 1)
 					apsta_db[apsta].fuzz = MAX(fuzz, (int8_t)(nonce2 - nonce1));
