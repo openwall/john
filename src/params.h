@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2016 by Solar Designer
+ * Copyright (c) 1996-2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -22,7 +22,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.9"
+#define JOHN_VERSION			"1.8.0.10"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -135,11 +135,17 @@
 /*
  * File names.
  */
+#ifdef __DJGPP__
+#define CFG_FULL_NAME			"$JOHN/john.ini"
+#else
 #define CFG_FULL_NAME			"$JOHN/john.conf"
-#define CFG_ALT_NAME			"$JOHN/john.ini"
+#endif
 #if JOHN_SYSTEMWIDE
+#ifdef __DJGPP__
+#define CFG_PRIVATE_FULL_NAME		JOHN_PRIVATE_HOME "/john.ini"
+#else
 #define CFG_PRIVATE_FULL_NAME		JOHN_PRIVATE_HOME "/john.conf"
-#define CFG_PRIVATE_ALT_NAME		JOHN_PRIVATE_HOME "/john.ini"
+#endif
 #define POT_NAME			JOHN_PRIVATE_HOME "/john.pot"
 #define LOG_NAME			JOHN_PRIVATE_HOME "/john.log"
 #define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john"

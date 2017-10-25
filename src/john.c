@@ -536,10 +536,8 @@ static void john_init(char *name, int argc, char **argv)
 
 #if JOHN_SYSTEMWIDE
 		cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-		cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
-		cfg_init(CFG_FULL_NAME, 1);
-		cfg_init(CFG_ALT_NAME, 0);
+		cfg_init(CFG_FULL_NAME, 0);
 	}
 
 	status_init(NULL, 1);
