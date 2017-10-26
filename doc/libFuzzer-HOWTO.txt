@@ -12,7 +12,7 @@ Build JtR
 
 $ CC=$HOME/clang/bin/clang ./configure --enable-libfuzzer
 
-$ make -j8
+$ make -sj8
 
 Start fuzzing
 -------------

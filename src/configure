@@ -15471,5 +15471,5 @@ UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
 
 Install missing libraries to get any needed features that were omitted.
 
-Configure finished.  Now '${use_make} clean && ${use_make} -s' to compile.
+Configure finished.  Now '${use_make} -s clean && ${use_make} -sj8' to compile.
 EOF

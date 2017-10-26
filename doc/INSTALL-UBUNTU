@@ -50,7 +50,7 @@
 
     cd ~/src/john/src
     # For MPI, use './configure --enable-mpi' below
-    ./configure && make -s clean && make -sj4
+    ./configure && make -s clean && make -sj8
 
 === Test your build
 

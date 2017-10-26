@@ -9,7 +9,7 @@ $ sudo dnf install mingw32-openssl mingw32-openssl-static \
 
 $ ./configure --host=i686-w64-mingw32
 
-$ make -j4
+$ make -sj8
 
 64-bit builds
 -------------
@@ -20,7 +20,7 @@ $ sudo dnf install mingw64-openssl mingw64-openssl-static \
 
 $ ./configure --host=x86_64-w64-mingw32
 
-$ make -j4
+$ make -sj8
 
 Notes
 -----

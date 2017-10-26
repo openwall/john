@@ -40,11 +40,11 @@ The new autoconf (./configure) should find your OpenCL installation and
 enable it. If it doesn't, you may need to pass some parameters about where
 it's located, e.g.,
     ./configure LDFLAGS=-L/opt/AMDAPP/lib CFLAGS=-I/opt/AMDAPP/include
-    make -s
+    make -sj8
 
 To build without OpenCL, use:
     ./configure --disable-opencl
-    make -s
+    make -sj8
 
 
 ATI/AMD suggest you to use ATISTREAMSDKROOT env variable to
