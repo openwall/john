@@ -1471,21 +1471,19 @@ static void john_init(char *name, int argc, char **argv)
 		listconf_parse_early();
 
 	if (!make_check) {
-		if (options.config)
-		{
+		if (options.config) {
 			path_init_ex(options.config);
 			cfg_init(options.config, 0);
-			cfg_init(CFG_FULL_NAME, 1);
-			cfg_init(CFG_ALT_NAME, 0);
-		}
-		else
-		{
 #if JOHN_SYSTEMWIDE
 			cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-			cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
 			cfg_init(CFG_FULL_NAME, 1);
-			cfg_init(CFG_ALT_NAME, 0);
+		}
+		else {
+#if JOHN_SYSTEMWIDE
+			cfg_init(CFG_PRIVATE_FULL_NAME, 1);
+#endif
+			cfg_init(CFG_FULL_NAME, 0);
 		}
 	}
 
