@@ -70,10 +70,8 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	// and show any user set md5-generic functions.
 #if JOHN_SYSTEMWIDE
 	cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-	cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
 	cfg_init(CFG_FULL_NAME, 1);
-	cfg_init(CFG_ALT_NAME, 0);
 
 	for (i = 1000; i < 10000; ++i)
 	{
