@@ -148,17 +148,30 @@ static char *to_compact(void *ptr)
 	return out[rr++ & 3];
 }
 
-static char *get_essid(uint8_t *bssid)
+static int get_essid_num(uint8_t *bssid)
 {
 	int i;
 
-	for (i = n_essid - 1; i >= 0; --i) {
+	for (i = n_essid - 1; i >= 0; --i)
 		if (!memcmp(bssid, essid_db[i].bssid, 6))
-			return essid_db[i].essid;
+			return i;
+	return -1;
+}
+
+static char *get_essid(uint8_t *bssid)
+{
+	int ess = get_essid_num(bssid);
+
+	if (ess < 0) {
+		if (verbosity)
+			fprintf(stderr, "ESSID for %s not found\n", to_mac_str(bssid));
+		return "[NOTFOUND]";
 	}
-	if (verbosity)
-		fprintf(stderr, "ESSID for %s not found\n", to_mac_str(bssid));
-	return "[NOTFOUND]";
+
+	if (essid_db[ess].essid_len == 0)
+		return to_mac_str(essid_db[ess].bssid);
+	else
+		return essid_db[ess].essid;
 }
 
 /*
@@ -334,19 +347,9 @@ static int convert_ivs2(FILE *f_in)
 				if (++n_essid >= max_state)
 					allocate_more_state();
 			}
-		} else if (bssidFound && ess < 0) {
+		} else if (bssidFound && ess < 0)
 			/* Check if already in db */
-			for (i = n_essid - 1; i >= 0; --i) {
-				if (!memcmp(bssid, essid_db[i].bssid, 6)) {
-					if (verbosity >= 2)
-						fprintf(stderr, "ESSID (from db): '%s' at %s\n",
-						        essid_db[i].essid,
-						        to_mac_str(essid_db[i].bssid));
-					ess = i;
-					break;
-				}
-			}
-		}
+			ess = get_essid_num(bssid);
 
 		if (ivs2.flags & IVS2_WPA) {
 			int ofs = (p - ivs_buf);
@@ -555,7 +558,7 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
  * 132  M3/M4   M3      no                no        no
  * 133  M3/M4   M4      yes               no        yes*
  */
-static void dump_auth(int apsta, int ap_msg, int sta_msg)
+static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 {
 	int i, j;
 	ieee802_1x_eapol_t *auth13 = apsta_db[apsta].M[ap_msg].eapol;
@@ -565,6 +568,17 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg)
 	int endian = apsta_db[apsta].endian;
 	int fuzz = apsta_db[apsta].fuzz;
 
+	if (essid_db[get_essid_num(apsta_db[apsta].bssid)].essid_len == 0) {
+		if (essid_db[get_essid_num(apsta_db[apsta].bssid)].prio == 6) {
+			fprintf(stderr,
+		        "%s: WPA handshake for %s but we don't have ESSID%s\n",
+		        filename, to_mac_str(apsta_db[apsta].bssid),
+		        opt_e_used ? "" : " (perhaps -e option needed?)");
+			essid_db[get_essid_num(apsta_db[apsta].bssid)].prio = 10;
+		}
+		if (!force)
+			return;
+	}
 	if (ignore_rc && fuzz) {
 		if ((ap_msg == 1 && sta_msg == 2) || (ap_msg == 3 && sta_msg == 4))
 			this_fuzz = apsta_db[apsta].M[sta_msg].eapol->replay_cnt -
@@ -665,7 +679,7 @@ static void dump_any_unver() {
 		if (ap_msg && sta_msg) {
 			if (verbosity && !printed++)
 				fprintf(stderr, "Dumping unverified auths\n");
-			dump_auth(i, ap_msg, sta_msg);
+			dump_auth(i, ap_msg, sta_msg, 1);
 			remove_handshake(i, 1);
 			remove_handshake(i, 2);
 			remove_handshake(i, 3);
@@ -921,17 +935,12 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 	bssid = pkt->addr3;
 
 	/* Find the ESSID in our db. */
-	for (i = n_essid - 1; i >= 0; --i) {
-		if (!memcmp(bssid, essid_db[i].bssid, 6)) {
-			ess = i;
-			break;
-		}
-	}
+	ess = get_essid_num(bssid);
 	if (ess == -1) {
 		ess = n_essid;
 		essid_db[ess].prio = 6;
-		essid_db[ess].essid_len = 17;
-		memcpy(essid_db[ess].essid, to_mac_str(bssid), 18);
+		essid_db[ess].essid_len = 0;
+		essid_db[ess].essid[0] = 0;
 		memcpy(essid_db[ess].bssid, bssid, 6);
 
 		if (++n_essid >= max_essid)
@@ -1068,7 +1077,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 						fprintf(stderr, "Dumping older M1/M2 seen%s\n",
 						        auth1->replay_cnt == auth2->replay_cnt ?
 						        "" : " (rc mismatch)");
-					dump_auth(apsta, 1, 2);
+					dump_auth(apsta, 1, 2, 0);
 				}
 			}
 		}
@@ -1112,7 +1121,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 						        "EAPOL M2, already got one. Dumping old%s\n",
 						        auth1->replay_cnt == auth2->replay_cnt ?
 						        "" : " (rc mismatch)");
-					dump_auth(apsta, 1, 2);
+					dump_auth(apsta, 1, 2, 0);
 				}
 			}
 		}
@@ -1220,7 +1229,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 						        auth2->replay_cnt + 1 == auth3->replay_cnt ?
 						        "" : " (rc mismatch)",
 						        apsta_db[apsta].M[1].eapol ? "" : " not");
-					dump_auth(apsta, 3, 2);
+					dump_auth(apsta, 3, 2, 0);
 					return;
 				}
 			}
@@ -1278,7 +1287,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 					        " [AES-128-CMAC]" : "",
 					        auth3->replay_cnt == auth4->replay_cnt ?
 					        "" : " (rc mismatch)");
-				dump_auth(apsta, 3, 4);
+				dump_auth(apsta, 3, 4, 0);
 				return;
 			}
 		}
@@ -1296,7 +1305,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 					        " [AES-128-CMAC]" : "",
 					        auth1->replay_cnt + 1 == auth4->replay_cnt ?
 					        "" : " (rc mismatch)");
-				dump_auth(apsta, 1, 4);
+				dump_auth(apsta, 1, 4, 0);
 				return;
 			} else {
 				if (verbosity >= 2)
@@ -1404,6 +1413,8 @@ static int process_packet(void)
 		int new_len = pkt_hdr.incl_len - 12 + sizeof(fake802_11);
 		ieee802_1x_eapol_t *auth;
 
+		//dump_hex("Orig packet", packet, pkt_hdr.incl_len);
+
 		if (new_len > new_p_sz) {
 			safe_realloc(new_p, new_len);
 			new_p_sz = new_len;
@@ -1419,13 +1430,14 @@ static int process_packet(void)
 		auth->key_info_u16 = swap16u(auth->key_info_u16);
 		/* Add the BSSID to the 802.11 header */
 		if (auth->key_info.KeyACK)
-			memcpy(new_p + 16, packet, 6);
-		else
 			memcpy(new_p + 16, packet + 6, 6);
+		else
+			memcpy(new_p + 16, packet, 6);
 
 		pkt_hdr.incl_len += sizeof(fake802_11) - 12;
 		pkt_hdr.orig_len += sizeof(fake802_11) - 12;
 		packet = new_p;
+		//dump_hex("Fake packet", packet, pkt_hdr.incl_len);
 	}
 
 /* our data is in *packet with pkt_hdr being the pcap packet header for it */
@@ -1445,8 +1457,7 @@ static int process_packet(void)
 
 	filter_hit = (!filter_mac[0] ||
 	              !strcmp(filter_mac, to_mac_str(packet_dst)) ||
-	              (packet_src == NULL || !strcmp(filter_mac,
-	                                             to_mac_str(packet_src))));
+	              (packet_src && !strcmp(filter_mac, to_mac_str(packet_src))));
 
 	if (verbosity >= 2 && filter_hit) {
 		if (verbosity >= 4)
@@ -1479,7 +1490,7 @@ static int process_packet(void)
 		return 1;
 	}
 
-	if (!filter_hit && memcmp(bcast, packet_dst, 6))
+	if (!filter_hit && (memcmp(bcast, packet_dst, 6) || packet_src != NULL))
 		return 1;
 
 	/* if not beacon or probe response, then look only for EAPOL 'type' */
@@ -1706,22 +1717,49 @@ static void manual_beacon(char *essid_bssid)
 {
 	char *essid = essid_bssid;
 	char *bssid = strchr(essid_bssid, ':');
+	uint8_t *bssid_bin = essid_db[n_apsta].bssid;
+	int l = 0;
 
 	if (!bssid)
 		e_fail();
 
 	*bssid++ = 0;
-	if (strlen(essid) > 32 || strlen(bssid) != 17)
+	if (strlen(essid) > 32 || strlen(bssid) < 12)
 		e_fail();
 
-	bssid = strupr(bssid);
-	fprintf(stderr, "Learned BSSID %s ESSID '%s' from command-line option\n",
-	        bssid, essid);
 	strcpy(essid_db[n_apsta].essid, essid);
 	essid_db[n_apsta].essid_len = strlen(essid);
-	memcpy(essid_db[n_apsta].bssid, bssid, 6);
+
+	bssid = strupr(bssid);
+	while (*bssid && l < 12) {
+		if (*bssid >= '0' && *bssid <= '9')
+			*bssid_bin = (*bssid - '0') << 4;
+		else if (*bssid >= 'A' && *bssid <= 'F')
+			*bssid_bin = (*bssid - 'A' + 10) << 4;
+		else {
+			bssid++;
+			continue;
+		}
+		l++;
+		bssid++;
+		if (*bssid >= '0' && *bssid <= '9')
+			*bssid_bin |= *bssid - '0';
+		else if (*bssid >= 'A' && *bssid <= 'F')
+			*bssid_bin |= *bssid - 'A' + 10;
+		else {
+			bssid++;
+			continue;
+		}
+		bssid_bin++;
+		l++;
+		bssid++;
+	}
+	if (*bssid || l != 12)
+		e_fail();
 	if (++n_essid >= max_state)
 		allocate_more_essid();
+	fprintf(stderr, "Learned BSSID %s ESSID '%s' from command-line option\n",
+	        to_mac_str(essid_db[n_apsta].bssid), essid);
 	opt_e_used = 1;
 }
 
