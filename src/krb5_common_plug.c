@@ -252,11 +252,11 @@ void des_cbc_mac_shishi(char key[8], char iv[8], unsigned char *in, size_t inlen
 	memcpy(out, ct + inlen - 8, 8);
 }
 
-// https://tools.ietf.org/html/rfc1510 (string_to_key)
+// Borrowed from the Shishi project, https://tools.ietf.org/html/rfc1510 (string_to_key)
 int des_string_to_key_shishi(char *string, size_t stringlen,
 		char *salt, size_t saltlen, unsigned char *outkey)
 {
-	unsigned char *s, *s_copy;
+	unsigned char s[125 + 256], s_copy[125 + 256];  // Sync. this with PLAINTEXT_LENGTH and MAX_SALT_SIZE in krb5_db_fmt_plug.c. More is OK, less is not.
 	int n_s;
 	int odd;
 	char tempkey[8];
@@ -268,15 +268,12 @@ int des_string_to_key_shishi(char *string, size_t stringlen,
 	n_s = stringlen + saltlen;
 	if ((n_s % 8) != 0)
 		n_s += 8 - n_s % 8;
-	s = malloc(n_s);
-	s_copy = malloc(n_s);
 	memset(s, 0, n_s);
 	memcpy(s, string, stringlen);
 	if (saltlen > 0)
 		memcpy(s + stringlen, salt, saltlen);
-	memset(s + stringlen + saltlen, 0, n_s - stringlen - saltlen);
 	memset(tempkey, 0, sizeof(tempkey));
-	memcpy(s_copy, s, n_s);  // this is required as the following loop has an unknown bug which corrupts the last block of "s"
+	memcpy(s_copy, s, n_s);  // This is required as the following loop changes "s". Upstream is unaware of this bug in their code.
 	for (i = 0; i < n_s / 8; i++) {
 		for (j = 0; j < 8; j++)
 			s[i * 8 + j] = s[i * 8 + j] & ~0x80;
@@ -321,9 +318,6 @@ int des_string_to_key_shishi(char *string, size_t stringlen,
 	memcpy(tempkey, p, 8);
 	des_key_correction_shishi(tempkey);
 	memcpy(outkey, tempkey, 8);
-
-	free(s);
-	free(s_copy);
 
 	return 0;
 }
