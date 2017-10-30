@@ -781,6 +781,11 @@ static void learn_essid(uint16_t subtype, int has_ht)
 		return;
 	}
 
+	if (verbosity >= 2 && filter_hit && pkt->addr3[0] & 0x01)
+		fprintf(stderr, "[mcast BSSID] ");
+	else if (verbosity >= 2 && filter_hit && pkt->addr3[0] & 0x02)
+		fprintf(stderr, "[LA BSSID] ");
+
 	/* Check if already in db, or older entry has worse prio */
 	for (i = n_essid - 1; i >= 0; --i) {
 		if (!memcmp(bssid, essid_db[i].bssid, 6) &&
@@ -1471,6 +1476,15 @@ static int process_packet(void)
 			fprintf(stderr, "%4d %2d.%06u  %s -> %s %-4d ", pkt_num,
 			        cur_t, cur_u, to_mac_str(packet_src),
 			        to_mac_str(packet_dst), pkt_hdr.incl_len);
+
+		if (verbosity >= 2 && filter_hit && packet_src && packet_src[0] & 0x02)
+			fprintf(stderr, "[LA src] ");
+		if (verbosity >= 2 && filter_hit && memcmp(packet_dst, bcast, 6)) {
+			if (packet_dst[0] & 0x01)
+				fprintf(stderr, "[mcast] ");
+			else if (packet_dst[0] & 0x02)
+				fprintf(stderr, "[LA dst] ");
+		}
 	}
 
 	ctl = (ieee802_1x_frame_ctl_t *)&pkt->frame_ctl;
