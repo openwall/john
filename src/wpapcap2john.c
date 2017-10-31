@@ -72,6 +72,7 @@ static int opt_e_used;
 static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 static const uint8_t bcast[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+static const uint8_t l3mcast[3] = { 0x01, 0x00, 0x5e };
 
 /*
  * Fake 802.11 header. We use this when indata is Ethernet (not monitor mode)
@@ -781,7 +782,11 @@ static void learn_essid(uint16_t subtype, int has_ht)
 		return;
 	}
 
-	if (verbosity >= 2 && filter_hit && pkt->addr3[0] & 0x01)
+	if (verbosity >= 2 && filter_hit && !memcmp(l3mcast, pkt->addr3, 3))
+		fprintf(stderr, "[IPv4 mcast BSSID] ");
+	else if (verbosity >= 2 && filter_hit && (pkt->addr3[0] & 0x03) == 0x03)
+		fprintf(stderr, "[LA mcast BSSID] ");
+	else if (verbosity >= 2 && filter_hit && pkt->addr3[0] & 0x01)
 		fprintf(stderr, "[mcast BSSID] ");
 	else if (verbosity >= 2 && filter_hit && pkt->addr3[0] & 0x02)
 		fprintf(stderr, "[LA BSSID] ");
@@ -1477,10 +1482,22 @@ static int process_packet(void)
 			        cur_t, cur_u, to_mac_str(packet_src),
 			        to_mac_str(packet_dst), pkt_hdr.incl_len);
 
-		if (verbosity >= 2 && filter_hit && packet_src && packet_src[0] & 0x02)
-			fprintf(stderr, "[LA src] ");
+		if (verbosity >= 2 && filter_hit && packet_src) {
+			if (!memcmp(l3mcast, packet_src, 3))
+				fprintf(stderr, "[IPv4 mcast src] ");
+			else if ((packet_src[0] & 0x03) == 0x03)
+				fprintf(stderr, "[LA mcast src] ");
+			else if (packet_src[0] & 0x01)
+				fprintf(stderr, "[mcast src] ");
+			else if (packet_src[0] & 0x02)
+				fprintf(stderr, "[LA src] ");
+		}
 		if (verbosity >= 2 && filter_hit && memcmp(packet_dst, bcast, 6)) {
-			if (packet_dst[0] & 0x01)
+			if (!memcmp(l3mcast, packet_dst, 3))
+				fprintf(stderr, "[IPv4 mcast] ");
+			else if ((packet_dst[0] & 0x03) == 0x03)
+				fprintf(stderr, "[LA mcast] ");
+			else if (packet_dst[0] & 0x01)
 				fprintf(stderr, "[mcast] ");
 			else if (packet_dst[0] & 0x02)
 				fprintf(stderr, "[LA dst] ");
@@ -1540,8 +1557,8 @@ static int process_packet(void)
 			eapext_t *eap;
 
 			p += 2;
-			/*if (has_ht)
-			  p += 4;*/
+			if (has_ht)
+				p += 4;
 			eap = (eapext_t*)p;
 
 			if (eap->type == 0) {
