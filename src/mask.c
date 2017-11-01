@@ -48,7 +48,7 @@ static unsigned long long rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
 static int parent_fix_state_pending;
-int mask_add_len, mask_num_qw, mask_cur_len;
+int mask_add_len, mask_num_qw, mask_cur_len, maxlength_computed = 0;
 
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
@@ -2007,6 +2007,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask_fmt = db->format;
 
 	fmt_maxlen = mask_fmt->params.plaintext_length;
+
+	// Track to know whether max-length is specified or computed
+	maxlength_computed = (options.req_maxlength == 0);
 
 	if (options.req_minlength >= 0 && !options.req_maxlength)
 		options.req_maxlength = fmt_maxlen;

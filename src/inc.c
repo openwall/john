@@ -547,7 +547,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			min_length = 0;
 	}
 
-	if (options.req_maxlength && options.req_maxlength < max_length) {
+	if (options.req_maxlength && !maxlength_computed) {
 		max_length = options.req_maxlength;
 #if HAVE_REXGEN
 		if (regex)
