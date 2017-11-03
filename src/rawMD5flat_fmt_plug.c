@@ -312,7 +312,7 @@ struct fmt_main fmt_rawMD5f = {
 #ifdef _OPENMP
 		FMT_OMP | FMT_OMP_BAD |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ FORMAT_TAG },
 		tests
 	}, {
