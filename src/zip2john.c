@@ -85,6 +85,21 @@
  *        was seen when running zip2john. If the file is removed, this hash line will no longer be valid.
  *  Oh    Offset to the zip central header record for this blob.
  *  Ob    Offset to the start of the blob data
+ *
+ *
+ * The new format for PKWARE's Strong Encryption Specification is:
+ *
+ *    filename:$zip3$*Ty*Al*Bi*Ma*Sa*Erd*Le*DF*Au*Fn
+ *    Ty = type (0) and ignored.
+ *    Al = algorithm (1 for AES)
+ *    Bi = bit length (128/192/256 bit)
+ *    Ma = magic (file magic), reserved, must be '0' now
+ *    Sa = salt(hex), 12 or 16 bytes of IV data
+ *    Erd = encrypted random data (max. 256 bytes)
+ *    Le = real compr len (hex) length of compressed/encrypted data (field DF), unused currently
+ *    DF = compressed data DF can be Le*2 hex bytes, and if so, then it is the ENTIRE file blob written 'inline', unused currently
+ *    Au = authentication code, a 8 byte hex value that contains a CRC32 checksum, unused currently
+ *    Fn = filename within zip file
  */
 
 #include <stdint.h>
@@ -120,6 +135,13 @@ static char *ascii_fname, *only_fname;
 
 static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
 static int  MagicToEnum[] = {  0,   1,     1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
+
+static void print_hex_inline(unsigned char *str, int len)
+{
+	int i;
+	for (i = 0; i < len; ++i)
+		printf("%02x", str[i]);
+}
 
 static void process_old_zip(const char *fname);
 static void process_file(const char *fname)
@@ -275,6 +297,81 @@ static void process_file(const char *fname)
 						break;
 				}
 				if (store) cp += sprintf(cp, "*$/zip2$:::::%s\n", bname);
+			} else if (flags & 1 && (version == 51 || version == 52 || version >= 61)) {	/* Strong Encryption?, APPNOTE-6.3.4.TXT, bit 6 check doesn't really work */
+				// fseek(fp, filename_length, SEEK_CUR);
+				// fseek(fp, extrafield_length, SEEK_CUR);
+				// continue;
+				unsigned char iv[16];
+				unsigned char Erd[256];
+				uint32_t Size;
+				uint32_t Format;
+				uint16_t AlgId;
+				uint16_t Bitlen;
+				uint16_t Flags;
+				uint16_t ErdSize;
+				uint32_t Reserved1;
+				uint16_t VSize;
+				uint16_t IVSize;
+				char *bname;
+				long previous_position;
+
+				// unused
+				(void) Flags;
+				(void) Bitlen;
+				(void) Reserved1;
+				(void) Size;
+
+				strnzcpy(path, fname, sizeof(path));
+				bname = basename(path);
+				previous_position = ftell(fp);
+				IVSize = fget16LE(fp);
+				if (IVSize > sizeof(iv))
+					goto bail;
+				fread(iv, 1, IVSize, fp);
+				Size = fget32LE(fp);
+				Format = fget16LE(fp);
+				if (Format != 3) {
+					goto bail;
+				}
+				AlgId = fget16LE(fp);
+				if (AlgId == 0x660E || AlgId == 0x660F || AlgId ==  0x6610)
+					AlgId = 1;
+				else if (AlgId == 0x6603 || AlgId == 0x6609 || AlgId == 0x6720 || AlgId == 0x6721 || AlgId == 0x6801) {
+					fprintf(stderr, "AlgId (%x) is currently unsupported, please report this to us!\n", AlgId);
+					goto bail;
+				} else
+					goto bail;
+				if (IVSize == 0) { // XXX handle endianness
+					memset(iv, 0, 16);
+					memcpy(iv, &crc, 4);
+					memcpy(iv + 4, &uncompressed_size, 8);
+					IVSize = 12;
+				}
+				Bitlen = fget16LE(fp);
+				Flags = fget16LE(fp);
+				ErdSize = fget16LE(fp);
+				if (ErdSize > sizeof(Erd))
+					goto bail;
+				fread(Erd, 1, ErdSize, fp);
+				Reserved1 = fget32LE(fp);
+				if (Reserved1 != 0) {
+					fprintf(stderr, "Reserved1 is %u (non-zero), please report this bug to us!\n", Reserved1);
+					goto bail;
+				}
+				VSize = fget16LE(fp);
+				fseek(fp, VSize, SEEK_CUR);
+
+				printf("%s:$zip3$*%d*%d*%d*%d*", bname, 0, AlgId, Bitlen, 0);
+				print_hex_inline(iv, 12);
+				printf("*");
+				print_hex_inline(Erd, ErdSize);
+				printf("*0*0*0*%s\n", filename);
+				continue;
+bail:
+				fseek(fp, previous_position, SEEK_SET);
+				fseek(fp, filename_length, SEEK_CUR);
+				fseek(fp, extrafield_length, SEEK_CUR);
+				fseek(fp, compressed_size, SEEK_CUR);
 			} else if (flags & 1) {	/* old encryption */
 				fclose(fp);
 				fp = 0;
@@ -288,7 +385,38 @@ static void process_file(const char *fname)
 			}
 		} else if (id == 0x08074b50UL) {	/* data descriptor */
 			fseek(fp, 12, SEEK_CUR);
-		} else if (id == 0x02014b50UL || id == 0x06054b50UL) {	/* central directory structures */
+		} else if (id == 0x02014b50UL) {	/* central directory structures */
+			/* uint16_t version_maker = fget16LE(fp);
+			uint16_t version_needed = fget16LE(fp);
+			uint16_t filename_length;
+			uint16_t extrafield_length;
+			uint16_t comment_length;
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget32LE(fp);
+			(void) fget32LE(fp);
+			(void) fget32LE(fp);
+			filename_length = fget16LE(fp);
+			extrafield_length = fget16LE(fp);
+			comment_length = fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget32LE(fp);
+			(void) fget32LE(fp);
+			(void) version_maker;
+			(void) version_needed;
+
+			if (fread(filename, 1, filename_length, fp) != filename_length) {
+				fprintf(stderr, "Error, in fread of file data!\n");
+				goto cleanup;
+			}
+			filename[filename_length] = 0;
+			fseek(fp, extrafield_length, SEEK_CUR);
+			fseek(fp, comment_length, SEEK_CUR); */
+			goto cleanup;
+		} else if (id == 0x06054b50UL) { /* end of central dir  */
 			goto cleanup;
 		}
 	}
