@@ -447,7 +447,11 @@ static int convert_ivs2(FILE *f_in)
 				       to_compact(hccap.mac1),
 				       to_compact(hccap.mac1));
 				if (hccap.keyver > 1)
-					cp += sprintf(cp, "%d", hccap.keyver);
+					cp += sprintf(cp, "2");
+				if (hccap.keyver > 2)
+					cp += sprintf(cp, " CMAC");
+				if (hccap.keyver > 3)
+					cp += sprintf(cp, ", ver %d", hccap.keyver);
 				cp += sprintf(cp, "::%s", filename);
 				if (strcmp(LastKey, NewKey)) {
 					puts(NewKey);
@@ -516,7 +520,11 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
 	cp += sprintf(cp, ":%s:%s:%s::WPA", to_compact(hccap.mac2),
 	              to_compact(hccap.mac1), to_compact(hccap.mac1));
 	if (hccap.keyver > 1)
-		cp += sprintf(cp, "%d", hccap.keyver);
+		cp += sprintf(cp, "2");
+	if (hccap.keyver > 2)
+		cp += sprintf(cp, " CMAC");
+	if (hccap.keyver > 3)
+		cp += sprintf(cp, ", ver %d", hccap.keyver);
 	cp += sprintf(cp, ":%sverified",
 	              (ap_msg == 1 && sta_msg == 2) ? "not " : "");
 	if (fuzz)
