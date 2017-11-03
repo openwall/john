@@ -83,6 +83,7 @@ static struct fmt_tests tests[] = {
 	{"5a105e8b9d40e1329780d62ea2265d8a", "test1"},
 	{FORMAT_TAG "5a105e8b9d40e1329780d62ea2265d8a", "test1"},
 	{"098f6bcd4621d373cade4e832627b4f6", "test"},
+	{"098F6BCD4621D373CADE4E832627B4F6", "test"},
 	{FORMAT_TAG "378e2c4a07968da2eca692320136433d", "thatsworking"},
 	{FORMAT_TAG "8ad8757baa8564dc136c1e07507f4a98", "test3"},
 	{"d41d8cd98f00b204e9800998ecf8427e", ""},
@@ -177,7 +178,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 
 	q = p;
-	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
@@ -191,6 +192,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		return ciphertext;
 
 	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH);
+	strlwr(&out[TAG_LENGTH]);
 
 	return out;
 }
