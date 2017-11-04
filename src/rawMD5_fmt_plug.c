@@ -187,7 +187,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1] = FORMAT_TAG;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+	if (ciphertext[0] == '$' &&
+			!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
 
 	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH);
