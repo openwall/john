@@ -14,8 +14,6 @@
 #ifndef _JOHN_OPENCL_MASK_H
 #define _JOHN_OPENCL_MASK_H
 
-#include "opencl_mask.h"
-
 #ifdef _OPENCL_COMPILER
 //To keep Sayantan license, some code was moved to this file.
 

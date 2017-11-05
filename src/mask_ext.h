@@ -12,7 +12,6 @@
 #define _JOHN_MASK_EXT_H
 
 #include "mask.h"
-#include "opencl_mask.h"
 
 typedef union {
 	unsigned char x[4];
