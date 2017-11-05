@@ -81,6 +81,7 @@ static struct fmt_tests tests[] = {
 	{"8a9d093f14f8701df17732b2bb182c74", "password"},
 	{FORMAT_TAG "6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
 	{"6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
+	{"6D78785C44EA8DFA178748B245D8C3AE", "magnum" },
 	{FORMAT_TAG "31d6cfe0d16ae931b73c59d7e0c089c0", "" },
 	{FORMAT_TAG "934eb897904769085af8101ad9dabca2", "John the ripper" },
 	{FORMAT_TAG "cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
@@ -157,7 +158,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 
 	q = p;
-	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
@@ -166,11 +167,13 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		return ciphertext;
+	if (ciphertext[0] == '$' &&
+			!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(&out[TAG_LENGTH]);
 	return out;
 }
 
@@ -449,7 +452,7 @@ struct fmt_main fmt_rawMD4 = {
 #ifdef _OPENMP
 		FMT_OMP | FMT_OMP_BAD |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
