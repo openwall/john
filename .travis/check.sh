@@ -46,7 +46,7 @@ elif [[ "$TEST" == "fresh test" ]]; then
       cd /cwd/src; \
       apt-get update -qq; \
       apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev libomp-dev; \
-      ./configure --enable-asan; \
+      ./configure CPPFLAGS=-mno-avx2 --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
       PROBLEM='slow' ../.travis/test.sh
