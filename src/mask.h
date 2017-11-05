@@ -19,6 +19,9 @@
 
 #include "loader.h"
 
+// See also opencl_mask.h.
+#define MASK_FMT_INT_PLHDR 4
+
 // Maximum number of placeholders in a mask.
 #define MAX_NUM_MASK_PLHDR 127
 
