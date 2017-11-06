@@ -1,6 +1,7 @@
 #include <openssl/des.h>
 
 #include "krb5_common.h"
+#include "memdbg.h"
 
 /* n-fold(k-bits):
  * l = lcm(n,k)
@@ -243,13 +244,21 @@ void des_cbc_mac_shishi(char key[8], char iv[8], unsigned char *in, size_t inlen
 	DES_cblock dkey;
 	DES_cblock ivec;
 	DES_key_schedule dks;
+#ifdef _MSC_VER
+	unsigned char *ct;
+	ct = mem_alloc(inlen);
+#else
 	unsigned char ct[inlen]; // XXX
+#endif
 
 	memcpy(dkey, key, 8);
 	DES_set_key((DES_cblock *)dkey, &dks);
 	memcpy(ivec, iv, 8);
 	DES_cbc_encrypt(in, ct, inlen, &dks, &ivec, DES_ENCRYPT);
 	memcpy(out, ct + inlen - 8, 8);
+#ifdef _MSC_VER
+	MEM_FREE(ct);
+#endif
 }
 
 // Borrowed from the Shishi project, https://tools.ietf.org/html/rfc1510 (string_to_key)

@@ -40,7 +40,12 @@
 
 #include <stdint.h>
 #define __STDC_FORMAT_MACROS
+#if (AC_BUILT && HAVE_INTTYPES_H) && ! defined(_MSC_VER)
 #include <inttypes.h>
+#else
+#define PRIx64    "llx"
+#define PRIu64    "llu"
+#endif
 
 /******************************************/
 /* here we try to 'find' a usable fseek64 */

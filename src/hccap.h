@@ -15,6 +15,9 @@ typedef struct {
 	uint8_t  keymic[16];
 } hccap_t;
 
+#ifdef _MSC_VER
+#pragma pack(1)
+#endif
 typedef struct {
 	uint32_t signature;
 	uint32_t version;
@@ -29,7 +32,15 @@ typedef struct {
 	uint8_t  nonce_sta[32]; // snonce
 	uint16_t eapol_len;
 	uint8_t  eapol[256];
-} __attribute__((packed)) hccapx_t;
+}
+#ifndef _MSC_VER
+__attribute__((packed))
+#endif
+	hccapx_t;
+#ifdef _MSC_VER
+#pragma pack()
+#endif
+
 
 #define HCCAP_SIZE      sizeof(hccap_t)
 #define HCCAPX_SIZE     sizeof(hccapx_t)
