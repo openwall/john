@@ -1,15 +1,17 @@
 #!/usr/bin/env python2
 
+# This file was named krbpa2john.py previously.
+#
 # http://anonsvn.wireshark.org/wireshark/trunk/doc/README.xml-output
 #
 # For extracting "AS-REQ (krb-as-req)" hashes,
 # tshark -r AD-capture-2.pcapng -T pdml > data.pdml
 # tshark -2 -r test.pcap -R "tcp.dstport==88 or udp.dstport==88" -T pdml >> data.pdml
-# ./run/krbpa2john.py data.pdml
+# ./run/krb2john.py data.pdml
 #
 # For extracting "TGS-REP (krb-tgs-rep)" hashes,
 # tshark -2 -r test.pcap -R "tcp.srcport==88 or udp.srcport==88" -T pdml >> data.pdml
-# ./run/krbpa2john.py data.pdml
+# ./run/krb2john.py data.pdml
 #
 # Tested on Ubuntu 14.04.2 LTS (Trusty Tahr), and Fedora 25.
 #

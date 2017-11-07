@@ -15,7 +15,7 @@
  * Legacy input format:
  *   user:$mskrb5$user$realm$HexChecksum$HexTimestamp
  *
- * New input format from krbpa2john.py (the above is still supported),
+ * New input format from krb2john.py (the above is still supported),
  * note the lack of a separator between HexTimestamp and HexChecksum:
  *   user:$krb5pa$etype$user$realm$salt$HexTimestampHexChecksum
  *
@@ -121,7 +121,7 @@ static struct fmt_tests tests[] = {
 	{"$mskrb5$$$334ef74dad191b71c43efaa16aa79d88$34ebbad639b2b5a230b7ec1d821594ed6739303ae6798994e72bd13d5e0e32fdafb65413", "VeryveryveryloooooooongPassword"},
 	// repeat first hash in exactly the same form that is used in john.pot
 	{"$krb5pa$23$$$$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
-	// http://www.exumbraops.com/layerone2016/party (sample.krb.pcap, hash extracted by krbpa2john.py)
+	// http://www.exumbraops.com/layerone2016/party (sample.krb.pcap, hash extracted by krb2john.py)
 	{"$krb5pa$23$$$$4b8396107e9e4ec963c7c2c5827a4f978ad6ef943f87637614c0f31b2030ad1115d636e1081340c5d6612a3e093bd40ce8232431", "P@$$w0rd123"},
 	// ADSecurityOrg-MS14068-Exploit-KRBPackets.pcapng, https://adsecurity.org/?p=676
 	{"$krb5pa$23$$$$3d973b3833953655d019abff1a98ea124d98d94170fb77574f3cf6d0e6a7eded9f3e4bb37ec9fb64b55df7d9aceb6e19c1711983", "TheEmperor99!"},

@@ -123,14 +123,6 @@ or a full zip: https://github.com/kholia/my-pcaps/archive/master.zip
 ################################################################################
 
 ################################################################################
-# from krbpa2john.py
-####
-# http://anonsvn.wireshark.org/wireshark/trunk/doc/README.xml-output
-# tshark -r AD-capture-2.pcapng -T pdml  > ~/data.pdml
-# krbng2john data.pdml
-################################################################################
-
-################################################################################
 # from isis2john.py
 ####
 # Parser for IS-IS MD5 authentication packets.
