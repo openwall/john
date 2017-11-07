@@ -11,8 +11,8 @@
  *    modifications, are permitted.
  */
 
-#ifndef _JOHN_OPENCL_MASK_H
-#define _JOHN_OPENCL_MASK_H
+#ifndef _JOHN_OPENCL_MASK_EXTRAS_H
+#define _JOHN_OPENCL_MASK_EXTRAS_H
 
 #ifdef _OPENCL_COMPILER
 //To keep Sayantan license, some code was moved to this file.
