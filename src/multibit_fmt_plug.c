@@ -20,7 +20,7 @@ john_register_one(&fmt_multibit);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               128
+#define OMP_SCALE               128 // just 8 is better for v2 salts
 #endif
 #endif
 
@@ -41,7 +41,7 @@ john_register_one(&fmt_multibit);
 #define FORMAT_LABEL            "multibit"
 #define FORMAT_TAG              "$multibit$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "MD5 AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "MD5/scrypt AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1001
 #define BINARY_SIZE             0
@@ -70,7 +70,6 @@ static struct custom_salt {
 	unsigned char block[32];
 	unsigned char iv[16];
 	unsigned char block2[16];
-
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -198,7 +197,8 @@ static int is_bitcoinj_protobuf_data(unsigned char *block)
 	int i;
 
 	// Does it look like a bitcoinj protobuf (newest Bitcoin for Android backup)?
-	if ((strncmp((const char*)block + 2, "org.", 4) == 0) && block[0] == '\x0a' && block[1] < 128) {
+	if (block[0] == '\x0a' && block[1] < 128 &&
+	    !memcmp((const char*)block + 2, "org.", 4)) {
 		// If it doesn't look like a lower alpha domain name of len >= 8 (e.g. 'bitcoin.'), fail (btcrecover)
 		for (i = 6; i < 14; i++) {
 			c = block[i];
@@ -234,8 +234,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index = 0;
 
-	memset(cracked, 0, sizeof(cracked[0]) * cracked_count);
-
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -243,8 +241,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char iv[16];
 		unsigned char key[32];
-		unsigned char outbuf[32 + 1];
+		unsigned char outbuf[16];
 		AES_KEY aes_decrypt_key;
+		int len = strlen(saved_key[index]);
+
+		cracked[index] = 0;
 
 		if (cur_salt->type == 1) {
 			unsigned char c;
@@ -252,73 +253,69 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			// key
 			MD5_Init(&ctx);
-			MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+			MD5_Update(&ctx, saved_key[index], len);
 			MD5_Update(&ctx, cur_salt->salt, 8);
 			MD5_Final(key, &ctx);
 			// key + 16
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, key, 16);
-			MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+			MD5_Update(&ctx, saved_key[index], len);
 			MD5_Update(&ctx, cur_salt->salt, 8);
 			MD5_Final(key + 16, &ctx);
 			// iv
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, key + 16, 16);
-			MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+			MD5_Update(&ctx, saved_key[index], len);
 			MD5_Update(&ctx, cur_salt->salt, 8);
 			MD5_Final(iv, &ctx);
-			outbuf[16] = 0; // NULL terminate
+
 			AES_set_decrypt_key(key, 256, &aes_decrypt_key);
 			AES_cbc_encrypt(cur_salt->block, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
-			c = outbuf[0];
-			if (c == 'L' || c == 'K' || c == '5' || c == 'Q' || c == '\x0a' || c == '#') {
-				// Does it look like a base58 private key (MultiBit, MultiDoge, or oldest-format Android key backup)? (btcrecover)
-				if (c == 'L' || c == 'K' || c == '5' || c == 'Q') {
-					// check if bytes are in base58 set [1-9A-HJ-NP-Za-km-z]
-					if (is_base58(outbuf + 1, 15)) {
-						// decrypt second block
-						AES_cbc_encrypt(cur_salt->block + 16, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
-						if (is_base58(outbuf, 16))
-							cracked[index] = 1;
-						else
-							cracked[index] = 0;
 
-					} else {
-						cracked[index] = 0;
-					}
-				} else {
-					// Does it look like a KnC for Android key backup?
-					if (strncmp((const char*)outbuf, "# KEEP YOUR PRIV", 8) == 0) // 8 should be enough
+			c = outbuf[0];
+			if (c == 'L' || c == 'K' || c == '5' || c == 'Q') {
+				// Does it look like a base58 private key (MultiBit, MultiDoge, or oldest-format Android key backup)? (btcrecover)
+				// check if bytes are in base58 set [1-9A-HJ-NP-Za-km-z]
+				if (is_base58(outbuf + 1, 15)) {
+					// decrypt second block
+					AES_cbc_encrypt(cur_salt->block + 16, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+					if (is_base58(outbuf, 16))
 						cracked[index] = 1;
-					// Does it look like a bitcoinj protobuf (newest Bitcoin for Android backup)? (btcrecover)
-					else if (is_bitcoinj_protobuf_data(outbuf)) {
-						cracked[index] = 1;
-					}
 				}
+			} else if (c == '#') {
+				// Does it look like a KnC for Android key backup?
+				if (memcmp((const char*)outbuf, "# KEEP YOUR PRIV", 8) == 0) // 8 should be enough
+					cracked[index] = 1;
+			} else if (c == '\x0a') {
+				// Does it look like a bitcoinj protobuf (newest Bitcoin for Android backup)? (btcrecover)?
+				if (is_bitcoinj_protobuf_data(outbuf))
+					cracked[index] = 1;
 			}
+
 		} else if (cur_salt->type == 2) {
-			unsigned char key[32];
-			unsigned char outbuf2[16 + 1];
-			unsigned char iv[16];
 			UTF16 password[PLAINTEXT_LENGTH * 2 + 1];
 
-			outbuf2[16] = 0;
-			cracked[index] = 0;
-			enc_to_utf16_be(password, PLAINTEXT_LENGTH, (const unsigned char*)saved_key[index], strlen(saved_key[index]) + 1);
-			crypto_scrypt((const unsigned char*)password, (strlen16(password) + 1) * 2, salt_hardcoded, 8, 16384, 8, 1, key, 32);
+			len = enc_to_utf16_be(password, PLAINTEXT_LENGTH, (const unsigned char*)saved_key[index], len + 1);
+			if (len < 0)
+				len = strlen16(password);
+
+			crypto_scrypt((const unsigned char*)password, (len + 1) * 2, salt_hardcoded, 8, 16384, 8, 1, key, 32);
 
 			// 1
 			AES_set_decrypt_key(key, 128 * 2, &aes_decrypt_key);
 			memcpy(iv, cur_salt->iv, 16);
 			AES_cbc_encrypt(cur_salt->block, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+
 			if (is_bitcoinj_protobuf_data(outbuf))
 				cracked[index] = 1;
-			// 2
-			AES_set_decrypt_key(key, 128 * 2, &aes_decrypt_key);
-			memcpy(iv, iv_hardcoded, 16);
-			AES_cbc_encrypt(cur_salt->block2, outbuf2, 16, &aes_decrypt_key, iv, AES_DECRYPT);
-			if (is_bitcoinj_protobuf_data(outbuf2))
-				cracked[index] = 1;
+			else {
+				// 2
+				AES_set_decrypt_key(key, 128 * 2, &aes_decrypt_key);
+				memcpy(iv, iv_hardcoded, 16);
+				AES_cbc_encrypt(cur_salt->block2, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+				if (is_bitcoinj_protobuf_data(outbuf))
+					cracked[index] = 1;
+			}
 		}
 	}
 
