@@ -170,17 +170,37 @@ static void process_file(const char *fname)
 			filename[filename_length] = 0;
 
 			if (compression_method == 99) {	/* AES encryption */
+#define AES_EXTRA_DATA_LENGTH 11  // http://www.winzip.com/aes_info.htm#authentication-code
 				uint64_t real_cmpr_len;
-				uint16_t efh_id = fget16LE(fp);
-				uint16_t efh_datasize = fget16LE(fp);
-				uint16_t efh_vendor_version = fget16LE(fp);
-				uint16_t efh_vendor_id = fget16LE(fp);
-				char efh_aes_strength = fgetc(fp);
-				uint16_t actual_compression_method = fget16LE(fp);
+				uint16_t efh_id;
+				uint16_t efh_datasize;
+				uint16_t efh_vendor_version;
+				uint16_t efh_vendor_id;
+				char efh_aes_strength;
+				uint16_t actual_compression_method;
 				unsigned char salt[16], d;
 				char *bname;
 				int magic_enum = 0;  // reserved at 0 for now, we are not computing this (yet).
 
+				if (extrafield_length > AES_EXTRA_DATA_LENGTH)
+					fseek(fp, extrafield_length - AES_EXTRA_DATA_LENGTH, SEEK_CUR);
+				efh_id = fget16LE(fp);
+				efh_datasize = fget16LE(fp);
+				efh_vendor_version = fget16LE(fp);
+				efh_vendor_id = fget16LE(fp);
+				efh_aes_strength = fgetc(fp);
+				actual_compression_method = fget16LE(fp);
+				if (efh_id != 0x9901) {
+					fprintf(stderr, "Unable to parse %s which is using WinZip AES encryption!\n", fname);
+					goto cleanup;
+				}
+				// Data size: this value is currently 7, but because it is possible that this
+				// specification will be modified in the future to store additional data in
+				// this extra field, vendors should not assume that it will always remain 7.
+				if (efh_datasize != 7) {
+					fprintf(stderr, "AES_EXTRA_DATA_LENGTH is not 11 for %s, please report this to us!\n", fname);
+					goto cleanup;
+				}
 				strnzcpy(path, fname, sizeof(path));
 				bname = basename(path);
 				cp = cur;
@@ -229,7 +249,8 @@ static void process_file(const char *fname)
 						itoa16[ARCH_INDEX(d >> 4)],
 						itoa16[ARCH_INDEX(d & 0x0f)]);
 				}
-				real_cmpr_len = compressed_size-2-(4+4*efh_aes_strength)-extrafield_length;
+				// Password verification value -> 2 bytes, Salt value -> (4 + 4 * efh_aes_strength)
+				real_cmpr_len = compressed_size - 2 - (4 + 4 * efh_aes_strength) - AES_EXTRA_DATA_LENGTH;
 				// not quite sure why the real_cmpr_len is 'off by 1' ????
 				++real_cmpr_len;
 				if (store)
