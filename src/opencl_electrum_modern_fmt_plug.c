@@ -8,7 +8,6 @@
  * Based on opencl_pbkdf2_hmac_sha512_fmt_plug.c file.
  */
 
-#include "arch.h"
 #if !AC_BUILT
 #define HAVE_LIBZ 1
 #endif
