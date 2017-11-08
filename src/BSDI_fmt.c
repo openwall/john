@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2010-2012,2015 by Solar Designer
+ * Copyright (c) 1996-2001,2010-2012,2015,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -144,37 +144,37 @@ static void *salt(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *(uint32_t *)binary & 0xF;
+	return *(uint32_t *)binary & PH_MASK_0;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *(uint32_t *)binary & 0xFF;
+	return *(uint32_t *)binary & PH_MASK_1;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(uint32_t *)binary & 0xFFF;
+	return *(uint32_t *)binary & PH_MASK_2;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(uint32_t *)binary & 0xFFFF;
+	return *(uint32_t *)binary & PH_MASK_3;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(uint32_t *)binary & 0xFFFFF;
+	return *(uint32_t *)binary & PH_MASK_4;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(uint32_t *)binary & 0xFFFFFF;
+	return *(uint32_t *)binary & PH_MASK_5;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(uint32_t *)binary & 0x7FFFFFF;
+	return *(uint32_t *)binary & PH_MASK_6;
 }
 
 #define get_hash_0 DES_bs_get_hash_0

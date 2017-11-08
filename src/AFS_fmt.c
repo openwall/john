@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2012,2015 by Solar Designer
+ * Copyright (c) 1996-2001,2012,2015,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -193,7 +193,7 @@ static void *salt(char *ciphertext)
 static int binary_hash_0(void *binary)
 {
 	if (((ARCH_WORD *)binary)[2] == ~(ARCH_WORD)0)
-		return *(ARCH_WORD *)binary & 0xF;
+		return *(ARCH_WORD *)binary & 0xFF;
 
 	return DES_STD_HASH_0(((ARCH_WORD *)binary)[2]);
 }
@@ -201,17 +201,9 @@ static int binary_hash_0(void *binary)
 static int binary_hash_1(void *binary)
 {
 	if (((ARCH_WORD *)binary)[2] == ~(ARCH_WORD)0)
-		return *(ARCH_WORD *)binary & 0xFF;
-
-	return DES_STD_HASH_1(((ARCH_WORD *)binary)[2]);
-}
-
-static int binary_hash_2(void *binary)
-{
-	if (((ARCH_WORD *)binary)[2] == ~(ARCH_WORD)0)
 		return *(ARCH_WORD *)binary & 0xFFF;
 
-	return DES_STD_HASH_2(((ARCH_WORD *)binary)[2]);
+	return DES_STD_HASH_1(((ARCH_WORD *)binary)[2]);
 }
 
 static ARCH_WORD to_short_hash(int index)
@@ -241,7 +233,7 @@ static int get_hash_0(int index)
 
 	if (buffer[index].is_long) {
 		if ((binary = to_short_hash(index)) == ~(ARCH_WORD)0)
-			return buffer[index].aligned.binary[0] & 0xF;
+			return buffer[index].aligned.binary[0] & 0xFF;
 	} else
 		binary = buffer[index].aligned.binary[0] & AFS_BINARY_MASK;
 	return DES_STD_HASH_0(binary);
@@ -253,22 +245,10 @@ static int get_hash_1(int index)
 
 	if (buffer[index].is_long) {
 		if ((binary = to_short_hash(index)) == ~(ARCH_WORD)0)
-			return buffer[index].aligned.binary[0] & 0xFF;
-	} else
-		binary = buffer[index].aligned.binary[0] & AFS_BINARY_MASK;
-	return DES_STD_HASH_1(binary);
-}
-
-static int get_hash_2(int index)
-{
-	ARCH_WORD binary;
-
-	if (buffer[index].is_long) {
-		if ((binary = to_short_hash(index)) == ~(ARCH_WORD)0)
 			return buffer[index].aligned.binary[0] & 0xFFF;
 	} else
 		binary = buffer[index].aligned.binary[0] & AFS_BINARY_MASK;
-	return DES_STD_HASH_2(binary);
+	return DES_STD_HASH_1(binary);
 }
 
 static void set_salt(void *salt)
@@ -469,7 +449,7 @@ struct fmt_main fmt_AFS = {
 		{
 			binary_hash_0,
 			binary_hash_1,
-			binary_hash_2,
+			NULL,
 			NULL,
 			NULL,
 			NULL,
@@ -484,7 +464,7 @@ struct fmt_main fmt_AFS = {
 		{
 			get_hash_0,
 			get_hash_1,
-			get_hash_2,
+			NULL,
 			NULL,
 			NULL,
 			NULL,
