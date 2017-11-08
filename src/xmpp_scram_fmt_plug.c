@@ -73,6 +73,8 @@ static struct fmt_tests tests[] = {
 	{"$xmpp-scram$0$4096$16$4f67aec1bd53f5f2f74652e69a3b8f32$4aec3caa8ace5180efa7a671092646c041ab1496", "qwerty"},
 	// ejabberd hash with a space in password
 	{"$xmpp-scram$0$4096$16$1f7fcb384d5bcc61dfb1231ae1b32a2f$a2d076d56b0152ed557ad7d38fce93159bc63c9b", "password 123"},
+	// openfire 4.1.6 hash, manually extracted from the database
+	{"$xmpp-scram$0$4096$24$bc1bd6638a1231ffd54f608983425eacf729d8455a469197$aee9254762b23a3950fd7c803caab5f6654587c8", "openwall123"},
 	{NULL}
 };
 
