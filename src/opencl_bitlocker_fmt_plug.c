@@ -106,7 +106,7 @@ static bitlocker_custom_salt *cur_salt;
 static int w_block_precomputed(unsigned char *salt);
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static void create_clobj(size_t gws, struct fmt_main *self)

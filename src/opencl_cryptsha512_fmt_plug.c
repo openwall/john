@@ -61,7 +61,7 @@ static int new_keys, source_in_use;
 static int split_events[3] = { 1, 6, 7 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 /* ------- Helper functions ------- */

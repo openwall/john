@@ -181,7 +181,7 @@ static const char *warn[] = {
 };
 
 // This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 /* ------- Helper functions ------- */
