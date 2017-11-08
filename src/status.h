@@ -43,6 +43,7 @@ struct status_main {
 	int progress;
 	int resume_salt;
 	uint32_t *resume_salt_md5;
+	int resume_salt_crypts_per;
 };
 
 extern struct status_main status;

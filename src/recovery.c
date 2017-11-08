@@ -81,6 +81,8 @@ static void (*rec_save_mode)(FILE *file);
 static void (*rec_save_mode2)(FILE *file);
 static void (*rec_save_mode3)(FILE *file);
 
+extern int cracker_max_keys_per_crypt();
+
 static void rec_name_complete(void)
 {
 	if (rec_name_completed)
@@ -275,7 +277,12 @@ static void save_salt_state()
 		++h;
 	}
 	*p = 0;
-	fprintf(rec_file, "slt-v1\n%s\n", md5_buf);
+	fprintf(rec_file, "slt-v2\n%s\n", md5_buf);
+	// bug found in original salt-restore.  if the cracks per loop value is NOT the same,
+	// then we end up skipping processing some data. So we save this value, and then
+	// when we resume IF this value is not the same, we ignore the salt resume, and just
+	// start from salt zero.
+	fprintf(rec_file, "%d\n", cracker_max_keys_per_crypt());
 }
 
 void rec_save(void)
@@ -606,16 +613,31 @@ void rec_restore_args(int lock)
 	rec_restoring_now = 1;
 }
 
-static void restore_salt_state()
+static void restore_salt_state(int type)
 {
 	char buf[34];
+	char buf2[48];
 	static uint32_t hash[4];
 	unsigned char *h = (unsigned char*)hash;
 	int i;
 
 	fgetl(buf, sizeof(buf), rec_file);
+	if (type == 2) {
+		fgetl(buf2, sizeof(buf2), rec_file);
+	}
 	if (strlen(buf) != 32 || !ishex(buf))
 		rec_format_error("multi-salt");
+	if (type == 2) {
+		// the first crack, we seek to the above salt, BUT only if we
+		// still have exactly same count of max_crypts_per  If the max
+		// changes, then we simply start over at salt#1 to avoid any
+		// salt records NOT being processed. properly.
+		status.resume_salt_crypts_per = strtoul(buf2, NULL, 10);
+	} else if (type == 1) {
+		// tells cracker to ignore the check, since this information was not
+		// available in v1 slt records. v1 salt will NOT resume in cracker.c
+		status.resume_salt_crypts_per = -1;
+	}
 	for (i = 0; i < 16; ++i) {
 		h[i] = atoi16[ARCH_INDEX(buf[i*2])] << 4;
 		h[i] += atoi16[ARCH_INDEX(buf[i*2+1])];
@@ -652,7 +674,10 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 		}
 #endif
 		if (!strcmp(buf, "slt-v1")) {
-			restore_salt_state();
+			restore_salt_state(1);
+		}
+		if (!strcmp(buf, "slt-v2")) {
+			restore_salt_state(2);
 		}
 		fgetl(buf, sizeof(buf), rec_file);
 	}
