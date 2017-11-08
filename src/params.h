@@ -180,20 +180,20 @@
  * its own purposes.  This does not affect password cracking speed after the
  * loading is complete.
  */
-#define PASSWORD_HASH_SIZE_FOR_LDR	5
+#define PASSWORD_HASH_SIZE_FOR_LDR	4
 
 /*
  * Hash table sizes.  These may also be hardcoded into the hash functions.
  */
 #define SALT_HASH_LOG			20
 #define SALT_HASH_SIZE			(1 << SALT_HASH_LOG)
-#define PASSWORD_HASH_SIZE_0		0x10
-#define PASSWORD_HASH_SIZE_1		0x100
-#define PASSWORD_HASH_SIZE_2		0x1000
-#define PASSWORD_HASH_SIZE_3		0x10000
-#define PASSWORD_HASH_SIZE_4		0x100000
-#define PASSWORD_HASH_SIZE_5		0x1000000
-#define PASSWORD_HASH_SIZE_6		0x8000000
+#define PASSWORD_HASH_SIZE_0		0x100
+#define PASSWORD_HASH_SIZE_1		0x1000
+#define PASSWORD_HASH_SIZE_2		0x10000
+#define PASSWORD_HASH_SIZE_3		0x100000
+#define PASSWORD_HASH_SIZE_4		0x1000000
+#define PASSWORD_HASH_SIZE_5		0x8000000
+#define PASSWORD_HASH_SIZE_6		0x40000000
 
 #define PH_MASK_0			(PASSWORD_HASH_SIZE_0 - 1)
 #define PH_MASK_1			(PASSWORD_HASH_SIZE_1 - 1)
@@ -209,12 +209,12 @@
  * may be smaller as determined by PASSWORD_HASH_SHR.
  */
 #define PASSWORD_HASH_THRESHOLD_0	3
-#define PASSWORD_HASH_THRESHOLD_1	3
-#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 25)
-#define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 20)
+#define PASSWORD_HASH_THRESHOLD_1	(PASSWORD_HASH_SIZE_0 / 25)
+#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 20)
+#define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 10)
 #define PASSWORD_HASH_THRESHOLD_4	(PASSWORD_HASH_SIZE_3 / 10)
-#define PASSWORD_HASH_THRESHOLD_5	(PASSWORD_HASH_SIZE_4 / 15)
-#define PASSWORD_HASH_THRESHOLD_6	(PASSWORD_HASH_SIZE_5 / 5)
+#define PASSWORD_HASH_THRESHOLD_5	(PASSWORD_HASH_SIZE_4 / 10)
+#define PASSWORD_HASH_THRESHOLD_6	(PASSWORD_HASH_SIZE_5 / 35)
 
 /*
  * Tables of the above values.
@@ -230,9 +230,11 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * 64-bit pointers, respectively.
  */
 #if ARCH_BITS >= 64
-#define PASSWORD_HASH_SHR		0
-#else
+/* Up to 128 MiB bitmap, 2 GiB hash table assuming 64-bit pointers */
 #define PASSWORD_HASH_SHR		2
+#else
+/* Up to 128 MiB bitmap, 512 MiB hash table assuming 32-bit pointers */
+#define PASSWORD_HASH_SHR		3
 #endif
 
 /*

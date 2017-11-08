@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2012 by Solar Designer
+ * Copyright (c) 1996-2000,2012,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -96,19 +96,17 @@ extern ARCH_WORD DES_count;
 /*
  * Binary ciphertext hash functions.
  */
-#define DES_STD_HASH_0(x) \
-	(((x) >> (DES_SIZE_FIX + 1)) & 0xF)
 #if DES_128K
-#define DES_STD_HASH_1(x) \
-	(DES_STD_HASH_0(x) | \
+#define DES_STD_HASH_0(x) \
+	((((x) >> (DES_SIZE_FIX + 1)) & 0xF) | \
 	(((x) >> (DES_SIZE_FIX + 3)) & 0xF0))
 #else
-#define DES_STD_HASH_1(x) \
-	(DES_STD_HASH_0(x) | \
+#define DES_STD_HASH_0(x) \
+	((((x) >> (DES_SIZE_FIX + 1)) & 0xF) | \
 	(((x) >> (DES_SIZE_FIX + 5)) & 0xF0))
 #endif
-#define DES_STD_HASH_2(x) \
-	(DES_STD_HASH_1(x) | \
+#define DES_STD_HASH_1(x) \
+	(DES_STD_HASH_0(x) | \
 	(((x) >> (DES_SIZE_FIX + 9)) & 0xF00))
 
 #ifndef DES_STD_ALGORITHM_NAME
