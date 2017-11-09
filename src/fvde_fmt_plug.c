@@ -56,7 +56,7 @@ john_register_one(&fmt_fvde);
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            1
-#define SALT_ALIGN              sizeof(int)
+#define SALT_ALIGN              sizeof(uint64_t)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
@@ -140,11 +140,19 @@ static int fvde_decrypt(fvde_custom_salt *cur_salt, unsigned char *key)
 
 	for (j = 5; j >= 0; j--) { // 5 is fixed!
 		for (i = 2; i >=1; i--) { // i = n
+#if ARCH_LITTLE_ENDIAN
 			todecrypt.qword[0] = JOHNSWAP64(A ^ (n*j+i));
 			todecrypt.qword[1] = JOHNSWAP64(R[i]);
 			AES_ecb_encrypt(todecrypt.stream, todecrypt.stream, &akey, AES_DECRYPT);
 			A = JOHNSWAP64(todecrypt.qword[0]);
 			R[i] = JOHNSWAP64(todecrypt.qword[1]);
+#else
+			todecrypt.qword[0] = A ^ (n*j+i);
+			todecrypt.qword[1] = R[i];
+			AES_ecb_encrypt(todecrypt.stream, todecrypt.stream, &akey, AES_DECRYPT);
+			A = todecrypt.qword[0];
+			R[i] = todecrypt.qword[1];
+#endif
 		}
 	}
 

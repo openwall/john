@@ -15,7 +15,7 @@ typedef struct {
 	unsigned char salt[SALTLEN];
 	unsigned int iterations;
 	union blob {  // wrapped kek
-		uint64_t qword[BLOBLEN/8];
+		uint64_t qword[BLOBLEN/sizeof(uint64_t)];
 		unsigned char chr[BLOBLEN];
 	} blob;
 } fvde_custom_salt;
