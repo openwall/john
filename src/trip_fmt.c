@@ -282,11 +282,7 @@ static int binary_hash_1(void *binary)
 	return DES_STD_HASH_1(*(ARCH_WORD *)binary);
 }
 
-static int binary_hash_2(void *binary)
-{
-	return DES_STD_HASH_2(*(ARCH_WORD *)binary);
-}
-
+#define binary_hash_2 NULL
 #define binary_hash_3 NULL
 #define binary_hash_4 NULL
 #define binary_hash_5 NULL
@@ -294,7 +290,10 @@ static int binary_hash_2(void *binary)
 
 static int get_hash_0(int index)
 {
-	return DES_STD_HASH_0(buffer[index].aligned.binary[0]);
+	ARCH_WORD binary;
+
+	binary = buffer[index].aligned.binary[0];
+	return DES_STD_HASH_0(binary);
 }
 
 static int get_hash_1(int index)
@@ -305,14 +304,7 @@ static int get_hash_1(int index)
 	return DES_STD_HASH_1(binary);
 }
 
-static int get_hash_2(int index)
-{
-	ARCH_WORD binary;
-
-	binary = buffer[index].aligned.binary[0];
-	return DES_STD_HASH_2(binary);
-}
-
+#define get_hash_2 NULL
 #define get_hash_3 NULL
 #define get_hash_4 NULL
 #define get_hash_5 NULL
