@@ -50,7 +50,7 @@ john_register_one(&fmt_enpass);
 #define PLAINTEXT_LENGTH     125
 #define SALT_SIZE            sizeof(struct custom_salt)
 #define BINARY_ALIGN         1
-#define SALT_ALIGN           1
+#define SALT_ALIGN           sizeof(unsigned int)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT   SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT   SSE_GROUP_SZ_SHA1
