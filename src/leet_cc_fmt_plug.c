@@ -1,4 +1,5 @@
-/* Cracker for leet.cc hashes.
+/*
+ * Cracker for leet.cc hashes.
  *
  * hsh = bin2hex(hash("sha512", $password . $salt, true) ^ hash("whirlpool", $salt . $password, true))
  * $salt == username
@@ -195,7 +196,7 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {	static union {
 		unsigned char c[BINARY_SIZE+1];
-		ARCH_WORD dummy;
+		uint64_t dummy;
 	} buf;
 	int i;
 	unsigned char *out = buf.c;
@@ -211,6 +212,15 @@ static void *get_binary(char *ciphertext)
 
 	return out;
 }
+
+/* using our own binary_hash_x() functions allows us to avoid BE / LE issues */
+static int binary_hash_0(void *binary) { return *((uint64_t *)binary) & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return *((uint64_t *)binary) & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return *((uint64_t *)binary) & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return *((uint64_t *)binary) & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return *((uint64_t *)binary) & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return *((uint64_t *)binary) & PH_MASK_5; }
+static int binary_hash_6(void *binary) { return *((uint64_t *)binary) & PH_MASK_6; }
 
 static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
 static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
@@ -379,13 +389,13 @@ struct fmt_main fmt_leet = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		NULL,
