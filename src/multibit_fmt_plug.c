@@ -234,13 +234,12 @@ static const unsigned char *iv_hardcoded = (unsigned char*)"\xa3\x44\x39\x1f\x53
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		unsigned char iv[16];
 		unsigned char key[32];
 		unsigned char outbuf[16];
