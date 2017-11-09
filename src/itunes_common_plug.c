@@ -69,7 +69,7 @@ void *itunes_common_get_salt(char *ciphertext)
 	char *p;
 	static struct custom_salt *cs;
 
-	cs = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	cs = mem_calloc_tiny(sizeof(struct custom_salt), sizeof(uint64_t));
 
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "*");
@@ -77,8 +77,10 @@ void *itunes_common_get_salt(char *ciphertext)
 	p = strtokm(NULL, "*"); // wpky
 	for (i = 0; i < WPKYLEN; i++)
 		cs->wpky.chr[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+#if ARCH_LITTLE_ENDIAN
 	for (i = 0; i < WPKYLEN / 8; i++)
 		cs->wpky.qword[i] = JOHNSWAP64(cs->wpky.qword[i]);
+#endif
 	p = strtokm(NULL, "*"); // iterations
 	cs->iterations = atoi(p);
 	p = strtokm(NULL, "*"); // salt
@@ -123,11 +125,19 @@ int itunes_common_decrypt(struct custom_salt *cur_salt, unsigned char *key)
 
 	for (j = 5; j >= 0; j--) {
 		for (i = 4; i >=1; i--) {
+#if ARCH_LITTLE_ENDIAN
 			todecrypt.qword[0] = JOHNSWAP64(A ^ (n*j+i));
 			todecrypt.qword[1] = JOHNSWAP64(R[i]);
 			AES_ecb_encrypt(todecrypt.stream, todecrypt.stream, &akey, AES_DECRYPT);
 			A = JOHNSWAP64(todecrypt.qword[0]);
 			R[i] = JOHNSWAP64(todecrypt.qword[1]);
+#else
+			todecrypt.qword[0] = A ^ (n*j+i);
+			todecrypt.qword[1] = R[i];
+			AES_ecb_encrypt(todecrypt.stream, todecrypt.stream, &akey, AES_DECRYPT);
+			A = todecrypt.qword[0];
+			R[i] = todecrypt.qword[1];
+#endif
 		}
 	}
 

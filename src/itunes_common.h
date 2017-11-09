@@ -17,7 +17,7 @@
 struct custom_salt {
 	int version;
 	union wpky {
-		uint64_t qword[WPKYLEN/8];
+		uint64_t qword[WPKYLEN/sizeof(uint64_t)];
 		unsigned char chr[WPKYLEN];
 	} wpky;
 	unsigned char salt[SALTLEN];
