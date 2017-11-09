@@ -50,9 +50,9 @@ john_register_one(&fmt_argon2);
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        100 //only in john
 #define BINARY_SIZE             256 //only in john
-#define BINARY_ALIGN            1
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               64  //only in john
-#define SALT_ALIGN              1
+#define SALT_ALIGN              sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
