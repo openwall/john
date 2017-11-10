@@ -49,7 +49,7 @@ john_register_one(&fmt_known_hosts);
 #define PAD_SIZE                64
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              1
+#define SALT_ALIGN              sizeof(uint64_t)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
