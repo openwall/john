@@ -374,43 +374,43 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int get_hash_0(int index)
 {
 	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & 0xF;
+	return crypt[0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index)
 {
 	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & 0xFF;
+	return crypt[0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index)
 {
 	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & 0xFFF;
+	return crypt[0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index)
 {
 	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & 0xFFFF;
+	return crypt[0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index)
 {
 	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & 0xFFFFF;
+	return crypt[0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index)
 {
 	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & 0xFFFFFF;
+	return crypt[0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index)
 {
 	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & 0x7FFFFFF;
+	return crypt[0] & PH_MASK_6;
 }
 
 static int salt_hash(void *_salt)
