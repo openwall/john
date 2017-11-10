@@ -1285,7 +1285,16 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_CAST5: {
 					   CAST_KEY ck;
 					   CAST_set_key(&ck, ks, keydata);
-					   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, CAST_DECRYPT);
+					   if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						   // handle PGP's weird CFB mode, do this for each cipher, take care of block-size!
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, 10, &ck, ivec, &tmp, CAST_DECRYPT);
+						   tmp = 0;
+						   CAST_set_key(&ck, ks, keydata);
+						   memcpy(ivec, gpg_common_cur_salt->data + 2, 8); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data + 10, out + 10, gpg_common_cur_salt->datalen - 10, &ck, ivec, &tmp, CAST_DECRYPT);
+					   } else {
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, CAST_DECRYPT);
+					   }
 				   }
 				   break;
 		case CIPHER_BLOWFISH: {
@@ -1346,11 +1355,48 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		MEM_FREE(out);
 		return 0;
 	} else if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
-		// https://www.ietf.org/rfc/rfc2440.txt
-		if ((out[9] == out[7]) && (out[8] == out[6])) { // XXX this verifier is not good at all!
-			MEM_FREE(out);
-			return 1;
+		int ctb, new_ctb, pkttype;
+		unsigned long pktlen;
+
+		(void) pktlen;
+
+		// https://www.ietf.org/rfc/rfc2440.txt, http://www.ietf.org/rfc/rfc1991.txt,
+		// and parse() from g10/parse-packet.c.
+		if ((out[9] != out[7]) || (out[8] != out[6]))
+			goto bad;
+
+		// The first byte of a packet is the so-called tag. The
+		// highest bit must be set.
+		ctb = out[10];
+		if (!(ctb & 0x80)) {
+			goto bad;
 		}
+
+		// Immediately following the header is the length. There are
+		// two formats: the old format and the new format. If bit 6
+		// (where the least significant bit is bit 0) is set in the
+		// tag, then we are dealing with a new format packet.
+		// Otherwise, it is an old format packet.
+		pktlen = 0;
+		new_ctb = !!(ctb & 0x40);
+		if (new_ctb) {
+			// Get the packet's type. This is encoded in the 6 least
+			// significant bits of the tag.
+			pkttype = ctb & 0x3f;
+		} else {
+			// This is an old format packet.
+
+			// Extract the packet's type. This is encoded in bits 2-5.
+			pkttype = (ctb >> 2) & 0xf;
+		}
+
+		// Check packet type (double-check this)
+		if (pkttype != 8 && pkttype != 11) // PKT_COMPRESSED, PKT_PLAINTEXT
+			goto bad;
+
+		MEM_FREE(out);
+		return 1;
+bad:
 		MEM_FREE(out);
 		return 0;
 	}
