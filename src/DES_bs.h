@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010-2012,2015 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012,2015,2017 by Solar Designer
  */
 
 /*
@@ -192,12 +192,12 @@ extern int DES_bs_get_hash_3(int index);
 extern int DES_bs_get_hash_4(int index);
 extern int DES_bs_get_hash_5(int index);
 extern int DES_bs_get_hash_6(int index);
+extern int DES_bs_get_hash_0t(int index);
 extern int DES_bs_get_hash_1t(int index);
 extern int DES_bs_get_hash_2t(int index);
 extern int DES_bs_get_hash_3t(int index);
 extern int DES_bs_get_hash_4t(int index);
 extern int DES_bs_get_hash_5t(int index);
-extern int DES_bs_get_hash_6t(int index);
 
 /*
  * Compares 32 bits of a given ciphertext against at least the first count of

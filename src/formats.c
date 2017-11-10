@@ -945,21 +945,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				index = max - 1;
 			} else
 #endif
-/* Jump straight to last index for non-bitslice DES */
-#ifndef JUMBO_JTR
-			if (!(format->params.flags & FMT_BS) &&
-			    (!strcmp(format->params.label, "des") ||
-			    !strcmp(format->params.label, "bsdi") ||
-			    !strcmp(format->params.label, "afs")))
-				index = max - 1;
-#else
-			if (!(format->params.flags & FMT_BS) &&
-			    (!strcasecmp(format->params.label, "descrypt") ||
-			    !strcasecmp(format->params.label, "bsdicrypt") ||
-			    !strcasecmp(format->params.label, "AFS")))
-				index = max - 1;
-#endif
-
 			current = format->params.tests;
 			done |= 2;
 		}
