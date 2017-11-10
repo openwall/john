@@ -202,12 +202,24 @@ static void process_file(const char *fname)
 				uint16_t actual_compression_method;
 				unsigned char salt[16], d;
 				char *bname;
+				int found = 0;
 				int magic_enum = 0;  // reserved at 0 for now, we are not computing this (yet).
 
-				if (extrafield_length > AES_EXTRA_DATA_LENGTH)
-					fseek(fp, extrafield_length - AES_EXTRA_DATA_LENGTH, SEEK_CUR);
-				efh_id = fget16LE(fp);
-				efh_datasize = fget16LE(fp);
+				while (!ferror(fp)) {
+					efh_id = fget16LE(fp);
+					efh_datasize = fget16LE(fp);
+					if (efh_id != 0x9901) {
+#if DEBUG
+						fprintf(stderr, "[DEBUG] Skipping over efh_id (%x) with size %d.\n", efh_id, efh_datasize);
+#endif
+						fseek(fp, efh_datasize, SEEK_CUR);
+					} else {
+						found = 1;
+						break;
+					}
+				}
+				if (!found)
+					goto cleanup;
 				efh_vendor_version = fget16LE(fp);
 				efh_vendor_id = fget16LE(fp);
 				efh_aes_strength = fgetc(fp);
@@ -296,7 +308,11 @@ static void process_file(const char *fname)
 					if (!strchr(fname, d) && d != ':' && !isxdigit(d))
 						break;
 				}
-				if (store) cp += sprintf(cp, "*$/zip2$:::::%s\n", bname);
+				if (store) cp += sprintf(cp, "*$/zip2$:::::%s-%s\n", bname, filename);
+				if (cur) {
+					printf("%s\n",cur);
+					cur = NULL;  // dirty hack to avoid printing of last hash twice
+				}
 			} else if (flags & 1 && (version == 51 || version == 52 || version >= 61)) {	/* Strong Encryption?, APPNOTE-6.3.4.TXT, bit 6 check doesn't really work */
 				// fseek(fp, filename_length, SEEK_CUR);
 				// fseek(fp, extrafield_length, SEEK_CUR);
