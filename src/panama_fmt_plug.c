@@ -106,14 +106,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[TAG_LENGTH + BINARY_SIZE * 2 + 1];
+	static union {
+		char out[TAG_LENGTH + BINARY_SIZE * 2 + 1];
+		uint32_t dummy;
+	} buf;
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
 
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	strnzcpy(out + TAG_LENGTH, ciphertext, BINARY_SIZE * 2 + 1);
-	return out;
+	memcpy(buf.out, FORMAT_TAG, TAG_LENGTH);
+	strnzcpy(buf.out + TAG_LENGTH, ciphertext, BINARY_SIZE * 2 + 1);
+	return buf.out;
 }
 
 static void *get_binary(char *ciphertext)
