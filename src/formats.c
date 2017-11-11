@@ -605,6 +605,23 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ciphertext = format->methods.split(ciphertext, 0, format);
 		if (!ciphertext)
 			return "split() returned NULL";
+
+		if (format->params.signature[0]) {
+			int i, error = 1;
+			for (i = 0; i < FMT_SIGNATURES && format->params.signature[i] && error; i++) {
+				error = strncmp(ciphertext, format->params.signature[i], strlen(format->params.signature[i]));
+			}
+			if (error) {
+#if DEBUG
+				fprintf(stderr, "ciphertext:%s\n", ciphertext);
+#endif
+				if (format->methods.split == fmt_default_split)
+					return "fmt_default_split() doesn't convert raw hashes";
+				else
+					return "split() doesn't add expected format tag";
+			}
+		}
+
 		plaintext = current->plaintext;
 
 		if (!sl)
