@@ -1,3 +1,5 @@
+// NOTE: This code is based on https://password-hashing.net/submissions/POMELO-v3.tar.gz archive.
+
 // PHC submission:  POMELO v2
 // Designed by:     Hongjun Wu (Email: wuhongjun@gmail.com)
 // This code was written by Hongjun Wu on Jan 31, 2015.
@@ -116,7 +118,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 
     //Step 1: Initialize the state S
     state_size = 1ULL << (13+m_cost);   // state size is 2**(13+m_cost) bytes
-    S = (__m128i *)mem_alloc_align(state_size,16);
+    S = (__m128i *)mem_alloc_align(state_size, 16);
     mask  = (1ULL << (8+m_cost)) - 1;   // mask is used for modulation: modulo size_size/32;
     mask1 = (1ULL << (9+m_cost)) - 1;   // mask is used for modulation: modulo size_size/16;
 

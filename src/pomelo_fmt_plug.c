@@ -3,6 +3,9 @@
  * contest by Dhiru Kholia.
  */
 
+// Enable this format only on little-endian systems
+#ifdef ARCH_LITTLE_ENDIAN
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_pomelo;
 #elif FMT_REGISTERS_H
@@ -281,3 +284,5 @@ struct fmt_main fmt_pomelo = {
 };
 
 #endif /* plugin stanza */
+
+#endif /* ARCH_LITTLE_ENDIAN */
