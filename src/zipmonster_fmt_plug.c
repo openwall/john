@@ -114,6 +114,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + 2 * BINARY_SIZE + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		return ciphertext;
+
+	strcpy(out, FORMAT_TAG);
+	strcpy(&out[TAG_LENGTH], ciphertext);
+
+	return out;
+}
+
 static void *get_binary(char *ciphertext)
 {
 	static union {
@@ -121,11 +134,9 @@ static void *get_binary(char *ciphertext)
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
-	char *p = ciphertext;
+	char *p = ciphertext + TAG_LENGTH;
 	int i;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		p = ciphertext + TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE && *p; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
@@ -309,7 +320,7 @@ struct fmt_main fmt_zipmonster = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11
