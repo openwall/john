@@ -39,6 +39,7 @@ john_register_one(&fmt_palshop);
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             10  /* 20 characters of "m2", now 10 binary bytes. */
+#define CIPHERTEXT_LENGTH       51
 #define SALT_SIZE               0
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
@@ -95,10 +96,23 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex_oddOK(p))
 		return 0;
 
-	if (strlen(p) != 51)
+	if (strlen(p) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	return 1;
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		return ciphertext;
+
+	strcpy(out, FORMAT_TAG);
+	strcpy(&out[TAG_LENGTH], ciphertext);
+
+	return out;
 }
 
 static void *get_binary(char *ciphertext)
@@ -108,10 +122,8 @@ static void *get_binary(char *ciphertext)
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
-	char *p = ciphertext;
+	char *p = ciphertext + TAG_LENGTH;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		p = ciphertext + TAG_LENGTH;
 	++p; // skip the first 'nibble'.  Take next 10 bytes.
 	base64_convert(p, e_b64_hex, 20, out, e_b64_raw, 10, 0, 0);
 
@@ -239,7 +251,7 @@ struct fmt_main fmt_palshop = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 #if FMT_MAIN_VERSION > 11

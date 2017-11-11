@@ -43,9 +43,7 @@ john_register_one(&FMT_STRUCT);
 
 #define PLAINTEXT_LENGTH		(55 - MAX_SALT_LEN)
 #define BUFSIZE				((PLAINTEXT_LENGTH+3)/4*4)
-#define CIPHERTEXT_LENGTH		((BINARY_SIZE + 1 + MAX_SALT_LEN + 2) / 3 * 4)
 
-#define BINARY_SIZE			20
 #define BINARY_ALIGN			4
 #define SALT_SIZE			(MAX_SALT_LEN + sizeof(unsigned int))
 #define SALT_ALIGN			4
@@ -53,8 +51,6 @@ john_register_one(&FMT_STRUCT);
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
-#define NSLDAP_MAGIC "{ssha}"
-#define NSLDAP_MAGIC_LENGTH 6
 #define BASE64_ALPHABET	  \
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
