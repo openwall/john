@@ -138,10 +138,8 @@ static void *get_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		p = strrchr(ciphertext, '$') + 1;
-	else
-		p = ciphertext;
+	p = ciphertext + TAG_LENGTH;
+
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |

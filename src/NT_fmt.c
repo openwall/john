@@ -339,8 +339,7 @@ static void *get_binary(char *ciphertext)
 	unsigned int i=0;
 	unsigned int temp;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
+	ciphertext += TAG_LENGTH;
 
 	for (; i<4; i++)
 	{
