@@ -1,4 +1,4 @@
-The following changes have been made between John 1.8.0 and 1.8.0.10:
+The following changes have been made between John 1.8.0 and 1.8.0.11:
 
 * 3x interleaving for bcrypt on x86-64, except in AVX-enabled builds.
 Provides significant speedup on Core 2 CPUs.
@@ -25,6 +25,7 @@ of NEON for bitslice DES).
 * Made a minor optimization to MMX and SSE2 assembly code for LM hash.
 * Dropped Ultrix and SCO support.
 * Don't probe for alternate config file names (like john.ini when on Unix).
+* "DokuWiki" external mode sample has been added to the default john.conf.
 * Fixed a bug introduced in version 1.7.4 in the wordlist rules engine, where
 some sequences of rule commands could overflow a word buffer.
 * Fixed an out of bounds write bug in the external mode virtual machine.

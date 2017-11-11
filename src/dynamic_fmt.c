@@ -7470,9 +7470,23 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->methods.get_hash[4] = get_hash_4_64x4;
 		pFmt->methods.get_hash[5] = get_hash_5_64x4;
 #endif
-		// Not enough bits in a single WORD to do the 7th one.
-		pFmt->methods.binary_hash[6] = NULL;
-		pFmt->methods.get_hash[6] = NULL;
+		// Not enough bits in a single WORD
+		if (PASSWORD_HASH_SIZE_6 >= 0x1000000) {
+			pFmt->methods.binary_hash[6] = NULL;
+			pFmt->methods.get_hash[6] = NULL;
+		}
+		if (PASSWORD_HASH_SIZE_5 >= 0x1000000) {
+			pFmt->methods.binary_hash[5] = NULL;
+			pFmt->methods.get_hash[5] = NULL;
+		}
+		if (PASSWORD_HASH_SIZE_4 >= 0x1000000) {
+			pFmt->methods.binary_hash[4] = NULL;
+			pFmt->methods.get_hash[4] = NULL;
+		}
+		if (PASSWORD_HASH_SIZE_3 >= 0x1000000) {
+			pFmt->methods.binary_hash[3] = NULL;
+			pFmt->methods.get_hash[3] = NULL;
+		}
 
 	}
 //	printf("%.13s",Setup->szFORMAT_NAME);

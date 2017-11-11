@@ -591,37 +591,37 @@ void finish_checking()
 
 int opencl_DES_bs_get_hash_0(int index)
 {
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xf;
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & PH_MASK_0;
 }
 
 int opencl_DES_bs_get_hash_1(int index)
 {
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xff;
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & PH_MASK_1;
 }
 
 int opencl_DES_bs_get_hash_2(int index)
 {
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfff;
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & PH_MASK_2;
 }
 
 int opencl_DES_bs_get_hash_3(int index)
 {
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffff;
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & PH_MASK_3;
 }
 
 int opencl_DES_bs_get_hash_4(int index)
 {
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xfffff;
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & PH_MASK_4;
 }
 
 int opencl_DES_bs_get_hash_5(int index)
 {
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0xffffff;
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & PH_MASK_5;
 }
 
 int opencl_DES_bs_get_hash_6(int index)
 {
-	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & 0x7ffffff;
+	return hash_tables[current_salt][hash_ids[2 + 2 * index]] & PH_MASK_6;
 }
 
 int opencl_DES_bs_cmp_one(void *binary, int index)
