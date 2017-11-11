@@ -56,14 +56,13 @@ void *ms_office_common_binary(char *ciphertext)
 {
 	static unsigned int out[4];
 	int i, length;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy, *p, Tmp[16];
+	char *ctcopy = strdup(ciphertext + FORMAT_TAG_OFFICE_LEN);
+	char *p, Tmp[16];
 
-	ctcopy += FORMAT_TAG_OFFICE_LEN;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
 	if (atoi(p) != 2007) {
 		memset(out, 0, sizeof(out));
-		MEM_FREE(keeptr);
+		MEM_FREE(ctcopy);
 		return out;
 	}
 	p = strtokm(NULL, "*");
@@ -76,7 +75,7 @@ void *ms_office_common_binary(char *ciphertext)
 	for (i = 0; i < length && i < 16; i++)
 		Tmp[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	MEM_FREE(keeptr);
+	MEM_FREE(ctcopy);
 	memcpy(out, Tmp, 16);
 	return out;
 }

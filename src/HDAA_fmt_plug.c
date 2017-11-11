@@ -82,8 +82,8 @@ static unsigned int omp_t = 1;
 
 #define SEPARATOR			'$'
 
-#define MAGIC				"$response$"
-#define MAGIC_LEN			(sizeof(MAGIC)-1)
+#define FORMAT_TAG				"$response$"
+#define TAG_LENGTH			(sizeof(FORMAT_TAG)-1)
 #define SIZE_TAB			12
 
 // This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
@@ -196,11 +196,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 
-	if (strncmp(ciphertext, MAGIC, MAGIC_LEN) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += MAGIC_LEN;
+	ctcopy += TAG_LENGTH;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
@@ -240,9 +240,9 @@ err:
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	char *cp;
-	if (strncmp(ciphertext, MAGIC, MAGIC_LEN))
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
-	cp = ciphertext + MAGIC_LEN;
+	cp = ciphertext + TAG_LENGTH;
 	cp = strchr(cp, '$'); if (!cp) return ciphertext;
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
@@ -711,7 +711,7 @@ static void *get_binary(char *ciphertext)
 	static unsigned int realcipher[BINARY_SIZE / sizeof(int)];
 	int i;
 
-	ciphertext += 10;
+	ciphertext += TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		((unsigned char*)realcipher)[i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
@@ -758,7 +758,7 @@ struct fmt_main fmt_HDAA = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
-		{ MAGIC },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,

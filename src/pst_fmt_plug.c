@@ -152,7 +152,7 @@ static void *get_binary(char *ciphertext)
 	static uint32_t *out;
 	if (!out)
 		out = mem_alloc_tiny(sizeof(uint32_t), MEM_ALIGN_WORD);
-	sscanf(&ciphertext[5], "%x", out);
+	sscanf(&ciphertext[FORMAT_TAG_LEN], "%x", out);
 	return out;
 }
 
