@@ -1355,19 +1355,24 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		MEM_FREE(out);
 		return 0;
 	} else if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
-		int ctb, new_ctb, pkttype;
+		int ctb, new_ctb, pkttype, c, partial, lenbytes = 0;
 		unsigned long pktlen;
+		unsigned long idx = 0; // pointer in the "decrypted data + 10" stream
+		unsigned char *p;
 
 		(void) pktlen;
+		(void) partial;
 
 		// https://www.ietf.org/rfc/rfc2440.txt, http://www.ietf.org/rfc/rfc1991.txt,
-		// and parse() from g10/parse-packet.c.
+		// and parse() from g10/parse-packet.c. This block contains code from GnuPG
+		// which is copyrighted by FSF, Werner Koch, and  g10 Code GmbH.
 		if ((out[9] != out[7]) || (out[8] != out[6]))
 			goto bad;
 
 		// The first byte of a packet is the so-called tag. The
 		// highest bit must be set.
-		ctb = out[10];
+		p = &out[10];
+		ctb = p[0];
 		if (!(ctb & 0x80)) {
 			goto bad;
 		}
@@ -1383,16 +1388,81 @@ int gpg_common_check(unsigned char *keydata, int ks)
 			// Get the packet's type. This is encoded in the 6 least
 			// significant bits of the tag.
 			pkttype = ctb & 0x3f;
-		} else {
-			// This is an old format packet.
 
+			// Extract the packet's length.  New format packets
+			// have 4 ways to encode the packet length. The value
+			// of the first byte determines the encoding and
+			// partially determines the length. See section 4.2.2
+			// of RFC 4880 for details.
+			c = p[1];
+			if (c < 192) {
+				pktlen = c;
+			}  else if (c < 224) {
+				pktlen = (c - 192) * 256;
+				c = p[2];
+				pktlen += c + 192;
+			}
+			else if (c == 255) {
+				int i;
+				char value[4];
+				(void) value;
+
+				for (i = 0; i < 4; i ++) {
+					c = p[2 + i];
+				}
+				// pktlen = buf32_to_ulong (value); // XXX
+				idx = 2 + 4;
+			} else {
+				// Partial body length
+			}
+		} else {  // This is an old format packet.
 			// Extract the packet's type. This is encoded in bits 2-5.
+			int i;
 			pkttype = (ctb >> 2) & 0xf;
+
+			// The type of length encoding is encoded in bits 0-1 of the tag
+			lenbytes = ((ctb & 3) == 3) ? 0 : (1 << (ctb & 3));
+			if (!lenbytes) {
+				pktlen = 0;  // Don't know the value.
+				// This isn't really partial, but we can treat it the same
+				// in a "read until the end" sort of way.
+				partial = 1;
+				if (pkttype != 8 && pkttype != 11)
+					goto bad;
+				idx = 1;
+			}
+			else {
+				for (i= 0; i < lenbytes; i++) {
+					pktlen <<= 8;
+					c = p[1 + i];
+					pktlen |= c;
+				}
+				idx = 1 + lenbytes;
+			}
 		}
 
 		// Check packet type (double-check this)
-		if (pkttype != 8 && pkttype != 11) // PKT_COMPRESSED, PKT_PLAINTEXT
+		if (pkttype != 8 && pkttype != 11)  // PKT_COMPRESSED, PKT_PLAINTEXT
 			goto bad;
+
+		if (pkttype == 8) {  // PKT_COMPRESSED, check for known compression algorithms
+			c = p[idx];
+			if (c != 0 && c != 1 && c != 2 && c != 3)
+				goto bad;
+		}
+
+		// Random note: MDC is only missing for ciphers with block size <= 64 bits?
+
+		// This is the major source of false positives now!
+		if (pkttype == 11) {  // PKT_PLAINTEXT, there is not much we can do here? perhaps offer known-plaintext-attack feature to the user?
+			// gpg -o sample_new_fp_qwertyzxcvb12345.gpg.txt --cipher-algo CAST5 --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt
+			// printf("[DEBUG] lenbytes = %d, pktlen = %lu\n", lenbytes, pktlen);
+			if (lenbytes == 0 && pktlen == 0)  // heuristic, always safe?
+				goto bad;
+			if (pktlen > gpg_common_cur_salt->datalen) {  // always safe?
+				goto bad;
+			}
+		}
 
 		MEM_FREE(out);
 		return 1;
