@@ -83,6 +83,14 @@ struct fmt_tests gpg_common_gpg_tests[] = {
 	{"$gpg$*1*668*2048*d875c0d3f173363879b40a3b9566de49ee222a4613648c50886cd39a11291517f6eb5e40fd752524495b07abab266ccaab0b24f50c87f4b91b1638ad62a3ee0387e41f44ab40dfe6fa54d3b589fed9ce65e33ff5bd7df220de91f65cb94c4feb290e0313522a957d32c6304ef6c68b449f1d21482cb90f4033b8993282029901d74f175283a8a950fbfa1a682dad90b147f5ae36791b019ab25994b95087657add312538b382ae86e4a3ff4f1d4b95eba062412f755f525d0ac4f0dbf3a30ab427bcfab6194ef6b10b73bc8752377e53f13d5985c0887774e54b9c857df6adeadda87291c47fdbf8fa7a400bf2e495955d88bb2ed3363b8f6f065059d99af452bef8c234c152d0cf241a14b81346838bbb455ae692b0e5a2905556af215eba3ec1804c28115c933d9264d6282b7c0923d375202485a25ea75b66ce6ee8bed214a1431f2a927f3d7859e96076edd9565ef61578f455b6d25bbcec7e2cfd3b83350168ece7facc65ee49518437cb5161a657773dd9e40946bb2a9609cbb3a07b906f18fcc88f6f9cb344020c32ec2918e7501923f6e6343db3afc7007e3bb5b443828193b073c3dd61657405d0c5532ecf42f745f674d2449c88825076046d75faa892ff7d077c44c1709490680279db7ed90e2676bd3573c2e2ee879054120b870fe1743082e6340f5812c73937d3876ebd9a4ad84913aa7784c7be8ac8410e9ab680e88c47a5c869f837ee224ccc6443f6ac36a92d682fc1a7db2f0bb6cb30e5be1d17bbfc5163471a55cc47eeef2c27ce49f0cec48d1d7a5769b5f42bf93eb6bd61643c49cbf7b75b1d6118653f45a84777bc604144d8ccd6814f32a3ef80e45cb507d91767d1334171041bf3f586ec803000c67baaf57a74c228fa986522129f5cb3aa85a3f44373e5f8c47951f892d58a923cde68e659632c0267*3*254*9*4*8*29b4190538078f46*65536*5f8d833d2266d429", "abcdef"},
 	/* gpg --gen-key --s2k-digest-algo SHA512 --s2k-cipher-algo idea */
 	{"$gpg$*1*668*2048*a83b3cf2f3662290d890569cd9787828ea71fd946f303db9f8cdc9c4400285af8689605a1a853f0d6850b002e9579fbc91a0702206cbd958dad1ff2aafbcb8db13c5188bf5694e5af98300e6711775bec0a0c882bf84883d96f9ab03a827b2cb719c63ab32b729bd4657d6990403d95fab3e1e53bfccb65c2fe9b4a17d2d779e01612b3d7f4ebdd92a7dbc8c111b68021c4479f8d4b9a12c0b686e66fbfc3d498186f17d8668e53efe233d2b0d01f8315180afe42bfdc4c02c2054a7f2d3063963dd14375a87604bee5eeedea89d5148cf1df108d338f51f6d814188e313b90eb8b65fb55bff87a8b3e86becc7b836a417dce1f32648fc156efe89df46f51f4beed6cf5c1cc449b4651e1b2d1a2eafdcd91987d1dcf06a885ef621699c171b27db2932f7c61cba5aaf320ff694b6c8cc08342ade9e6b53f2e943cf0e1e73de0e891a37992e7b01396c59051b28459532e375d2026af2605e08f6f8aadf3981f52aab3ccd5a727256f997f9c51d3a5b1c48e80fe5398ca7f3c8150ad00389c7d87d705001c5b587edff657c4a9ad16eb8860fcf179a271c913696c3178e3742ca39cd9e85a3a9558f6550a3c10ebc2ab4791f7761cd4e5bd0b0d1cd3becfe3bc94681ba5ead47dd81cedec1a7607b843b9369afd8bac1dcd0efa5e751cb5f5510367ecbf89f72764ff0e513ff76d75e1085ac7cbf2b377ee2d379bf46cb166cf03d06aeeefb8028f4b1a0f0626ffe3a7e0d672538ed55df96406d51073c92317dd6d057b749727a78be1636c3ab1be2586df97f56a20e8df099ffb4542ab34c23e0984bc9a4918230bf5e06d06b3321c7404b87cff50ffa73a959cff0ecebf3407f59055ba6d934e4ae818734f1eef05904bcfa3226a1e008d52974a2fffda74004739b1c75895da34b95ce4b1a1023f878667dd29efac7c6867adf59*3*254*10*1*8*bcd00fecc8fcf1a9*65536*2ef2aa27d53d3b10", "qwerty"},
+	/* gpg -o out.gpg --cipher-algo 3DES --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt */
+	{"$gpg$*0*36*c8ebbe8116a24a2c5f7e81c1588c225e39e41bfe1b3bede92e2914443ade5651efe9c949*3*9*2*2*1024*2f4ddf3395af20a6", "qwertyzxcvb12345"},
+	/* gpg -o out.gpg --cipher-algo IDEA --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt */
+	{"$gpg$*0*36*73426e4ec660c94430cf8551a3a3d8e2fc710d018b31271d83fd5098ff2e29b6734fdbca*3*9*2*1*1024*c77703dc5a6b398b", "qwertyzxcvb12345"},
+	/* gpg -o out.gpg --cipher-algo CAST5 --force-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt */
+	{"$gpg$*0*58*190111fef479fda732000fe7ead411eb778bfe101cf71c6a8a5fbf96b7d8e99dbbad901c37c88d213e1306a953d9aa9a04244509693f16856061*3*18*2*3*1024*d3e886db68fbfa0f", "qwertyzxcvb12345"},
+	/* gpg -o out.gpg --cipher-algo twofish --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt, has mdc in spite of "--no-mdc" flag */
+	{"$gpg$*0*66*c87c9a0e7e7f7299129645f2f352076f8d9c29c830e7d21b28ee45fbfe2a31fcb70900fd8031e896035d672847c9b9c59f1fd802290d3d6992c45eb3d27e95cc0990*3*18*2*10*1024*45216ac170f04fd5", "qwertyzxcvb12345"},
 	{NULL}
 };
 
@@ -1279,17 +1287,23 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_IDEA: {
 					   IDEA_KEY_SCHEDULE iks;
 					   JtR_idea_set_encrypt_key(keydata, &iks);
-					   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, 10, &iks, ivec, &tmp, IDEA_DECRYPT);
+						   tmp = 0;
+						   memcpy(ivec, gpg_common_cur_salt->data + 2, 8); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data + 10, out + 10, gpg_common_cur_salt->datalen - 10, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   } else {
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   }
 				   }
 				   break;
 		case CIPHER_CAST5: {
 					   CAST_KEY ck;
 					   CAST_set_key(&ck, ks, keydata);
 					   if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
-						   // handle PGP's weird CFB mode, do this for each cipher, take care of block-size!
+						   // handle PGP's weird CFB mode, do this for each cipher with block-size <= 8, take care of block-size!
 						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, 10, &ck, ivec, &tmp, CAST_DECRYPT);
 						   tmp = 0;
-						   CAST_set_key(&ck, ks, keydata);
 						   memcpy(ivec, gpg_common_cur_salt->data + 2, 8); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
 						   CAST_cfb64_encrypt(gpg_common_cur_salt->data + 10, out + 10, gpg_common_cur_salt->datalen - 10, &ck, ivec, &tmp, CAST_DECRYPT);
 					   } else {
@@ -1323,7 +1337,14 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  DES_set_key((DES_cblock *) key1, &ks1);
 					  DES_set_key((DES_cblock *) key2, &ks2);
 					  DES_set_key((DES_cblock *) key3, &ks3);
-					  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+					  if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, 10, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+						  num = 0;
+						  memcpy(divec, gpg_common_cur_salt->data + 2, 8); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data + 10, out + 10, gpg_common_cur_salt->datalen - 10, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+					  } else {
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+					  }
 				    }
 				    break;
 		case CIPHER_CAMELLIA128:
