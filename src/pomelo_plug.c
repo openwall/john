@@ -105,7 +105,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     unsigned long long state_size, mask;
 
     //check the size of password, salt, and output. Password at most 256 bytes; salt at most 64 bytes; output at most 256 bytes.
-    if (inlen > 256 || saltlen > 64 || outlen > 256 || inlen < 0 || saltlen < 0 || outlen < 0) return 1;
+    if (inlen > 256 || saltlen > 64 || outlen > 256) return 1;
 
     //Step 1: Initialize the state S
     state_size = 1ULL << (13+m_cost);    // state size is 2**(13+m_cost) bytes
