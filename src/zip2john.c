@@ -125,6 +125,7 @@
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
+#include "johnswap.h"
 #include "memdbg.h"
 
 #define LARGE_ENOUGH 8192
@@ -343,7 +344,8 @@ static void process_file(const char *fname)
 				IVSize = fget16LE(fp);
 				if (IVSize > sizeof(iv))
 					goto bail;
-				fread(iv, 1, IVSize, fp);
+				if (fread(iv, 1, IVSize, fp) != IVSize)
+					goto bail;
 				Size = fget32LE(fp);
 				Format = fget16LE(fp);
 				if (Format != 3) {
@@ -357,8 +359,12 @@ static void process_file(const char *fname)
 					goto bail;
 				} else
 					goto bail;
-				if (IVSize == 0) { // XXX handle endianness
+				if (IVSize == 0) {
 					memset(iv, 0, 16);
+#if !ARCH_LITTLE_ENDIAN
+					crc = JOHNSWAP(crc);
+					uncompressed_size = JOHNSWAP64(uncompressed_size);
+#endif
 					memcpy(iv, &crc, 4);
 					memcpy(iv + 4, &uncompressed_size, 8);
 					IVSize = 12;
@@ -368,7 +374,8 @@ static void process_file(const char *fname)
 				ErdSize = fget16LE(fp);
 				if (ErdSize > sizeof(Erd))
 					goto bail;
-				fread(Erd, 1, ErdSize, fp);
+				if (fread(Erd, 1, ErdSize, fp) != ErdSize)
+					goto bail;
 				Reserved1 = fget32LE(fp);
 				if (Reserved1 != 0) {
 					fprintf(stderr, "Reserved1 is %u (non-zero), please report this bug to us!\n", Reserved1);
@@ -378,7 +385,7 @@ static void process_file(const char *fname)
 				fseek(fp, VSize, SEEK_CUR);
 
 				printf("%s:$zip3$*%d*%d*%d*%d*", bname, 0, AlgId, Bitlen, 0);
-				print_hex_inline(iv, 12);
+				print_hex_inline(iv, IVSize);  // getting this right isn't important ;)
 				printf("*");
 				print_hex_inline(Erd, ErdSize);
 				printf("*0*0*0*%s\n", filename);
