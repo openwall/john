@@ -555,12 +555,19 @@ void do_incremental_crack(struct db_main *db, char *mode)
 #endif
 	}
 
+	if (options.req_minlength >= 0 && min_length > max_length &&
+	   (options.req_maxlength == 0 || maxlength_computed) &&
+	    options.req_minlength <= CHARSET_LENGTH) {
+		max_length = min_length;
+	}
+
 	if (min_length > max_length) {
 		log_event("! MinLen = %d exceeds MaxLen = %d",
 		    min_length, max_length);
 		if (john_main_process)
-			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
-			    min_length, max_length);
+			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d; "
+			    "MaxLen can be increased up to %d\n",
+			    min_length, max_length, CHARSET_LENGTH);
 		error();
 	}
 
