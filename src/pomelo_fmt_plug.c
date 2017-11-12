@@ -3,8 +3,10 @@
  * contest by Dhiru Kholia.
  */
 
+#include "arch.h"
+
 // Enable this format only on little-endian systems
-#ifdef ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_pomelo;
@@ -13,20 +15,18 @@ john_register_one(&fmt_pomelo);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               512 // XXX
 #endif
 #endif
+
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "pomelo"
