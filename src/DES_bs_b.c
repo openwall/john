@@ -232,7 +232,7 @@ typedef struct {
 typedef vector signed int vtype;
 
 #define vst(dst, ofs, src) \
-	vec_st((src), (ofs) * sizeof(DES_bs_vector), (dst))
+	vec_st((src), (ofs) * sizeof(DES_bs_vector), (vtype *)(dst))
 
 #define vxorf(a, b) \
 	vec_xor((a), (b))
