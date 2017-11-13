@@ -57,7 +57,7 @@
 
 #define MD5_ASM				0
 #define MD5_X2				1
-#define MD5_IMM				0
+#define MD5_IMM				1
 
 #define BF_ASM				0
 #define BF_SCALE			0
