@@ -106,7 +106,7 @@ default:
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
-#	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
+	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "linux-ia64               Linux, IA-64"
 	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2 (best)"
@@ -300,7 +300,7 @@ linux-ppc32-altivec:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt" \
-		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
 
 linux-ppc32:
 	$(LN) ppc32.h arch.h
@@ -309,14 +309,13 @@ linux-ppc32:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
-# This is slightly slower than linux-ppc32-altivec for most hash types.
 linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -m64 -lcrypt" \
-		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
 
 linux-ppc64:
 	$(LN) ppc64.h arch.h
