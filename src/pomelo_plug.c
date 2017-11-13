@@ -94,8 +94,6 @@
     }                                                                               \
 }
 
-int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost);
-
 int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost)
 {
     unsigned long long i, j;
@@ -144,13 +142,12 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 
     //Step 7: Generate the output
     memcpy(out, ((unsigned char*)S)+state_size-outlen, outlen);
-    memset(S, 0, state_size);  // clear the memory
     MEM_FREE(S);           // free the memory
 
     return 0;
 }
 
-#elif __SSE2__
+#elif defined(__SSE2__)
 
 #include <emmintrin.h>
 
@@ -235,8 +232,6 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     }                                                                                     \
 }
 
-int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost);
-
 int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost)
 {
     unsigned long long i,j;
@@ -287,7 +282,6 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 
     //Step 7: Generate the output
     memcpy(out, ((unsigned char*)S)+state_size-outlen, outlen);
-    memset(S, 0, state_size);  // clear the memory
     MEM_FREE(S);                   // free the memory
 
     return 0;
@@ -402,8 +396,6 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     }                                        \
 }
 
-int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost);
-
 int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen, unsigned int t_cost, unsigned int m_cost)
 {
     unsigned long long i, j, temp;
@@ -453,7 +445,6 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
 
     //Step 7: Generate the output
     memcpy(out, ((unsigned char*)S)+state_size-outlen, outlen);
-    memset(S, 0, state_size);  // clear the memory
     MEM_FREE(S);          // free the memory
 
     return 0;
