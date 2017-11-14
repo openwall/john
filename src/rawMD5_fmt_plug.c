@@ -5,6 +5,7 @@
  * and binary forms, with or without modification, are permitted.
  *
  * OMP added May 2013, JimF
+ * BE SIMD logic added 2017, JimF
  */
 
 #if FMT_EXTERNS_H
