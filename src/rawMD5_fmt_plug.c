@@ -101,7 +101,11 @@ static struct fmt_tests tests[] = {
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
+#endif
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -222,15 +226,14 @@ static void *get_binary(char *ciphertext)
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
 
-
-#if ARCH_LITTLE_ENDIAN
-		out[i]=temp;
+#if ARCH_LITTLE_ENDIAN || defined(SIMD_COEF_32)
+		out[i] = temp;
 #else
-		out[i]=JOHNSWAP(temp);
+		out[i] = JOHNSWAP(temp);
 #endif
 	}
 
-#if SIMD_COEF_32 && defined(REVERSE_STEPS)
+#if defined(SIMD_COEF_32) && defined(REVERSE_STEPS)
 	md5_reverse(out);
 #endif
 
@@ -250,7 +253,7 @@ static char *source(char *source, void *binary)
 	md5_unreverse(b);
 #endif
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN && !defined(SIMD_COEF_32)
 	alter_endianity(b, 16);
 #endif
 
@@ -278,6 +281,7 @@ static void set_key(char *_key, int index)
 	uint32_t temp;
 
 	len = 0;
+#if ARCH_LITTLE_ENDIAN
 	while((temp = *key++) & 0xff) {
 		if (!(temp & 0xff00))
 		{
@@ -298,6 +302,28 @@ static void set_key(char *_key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = temp;
+#else
+	while((temp = *key++) & 0xff000000) {
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xff000000) | (0x80 << 16));
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xffff0000) | (0x80 << 8));
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff))
+		{
+			*keybuf_word = JOHNSWAP(temp | 0x80U);
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = JOHNSWAP(temp);
+#endif
 		len += 4;
 		keybuf_word += SIMD_COEF_32;
 	}
@@ -426,10 +452,12 @@ static int cmp_exact(char *source, int index)
 	MD5_Update(&ctx, key, strlen(key));
 	MD5_Final((void*)crypt_key, &ctx);
 
-#ifdef REVERSE_STEPS
-	md5_reverse(crypt_key);
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity(crypt_key, 16);
 #endif
-	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
+	// ignore first 4 bytes (the 'possibly' reversed stuff). Due to handing both LE and
+	// BE, in either reversed or non-reveresed, skipping those bytes is simply eaiser.
+	return !memcmp(&((uint32_t*)(get_binary(source)))[1], &crypt_key[1], DIGEST_SIZE-4);
 #else
 	return 1;
 #endif
