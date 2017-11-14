@@ -76,7 +76,11 @@ john_register_one(&fmt_rawSHA1_axcrypt);
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 )
+#endif
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -197,6 +201,7 @@ static void set_key(char *key, int index)
 	uint32_t temp;
 
 	len = 0;
+#if ARCH_LITTLE_ENDIAN==1
 	while((unsigned char)(temp = *wkey++)) {
 		if (!(temp & 0xff00))
 		{
@@ -217,6 +222,28 @@ static void set_key(char *key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = JOHNSWAP(temp);
+#else
+	while((temp = *wkey++) & 0xff000000) {
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = (temp & 0xff000000) | (0x80 << 16);
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = (temp & 0xffff0000) | (0x80 << 8);
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff))
+		{
+			*keybuf_word = temp | 0x80U;
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = temp;
+#endif
 		len += 4;
 		keybuf_word += SIMD_COEF_32;
 	}
@@ -267,7 +294,9 @@ static void *get_binary(char *ciphertext)
 	               flg_Base64_MIME_TRAIL_EQ, 0);
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN
 	alter_endianity(realcipher, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	if (algo == RAW_FORMAT)
 		sha1_reverse(full);
@@ -298,7 +327,9 @@ static char *source(char *source, void *binary)
 		sha1_unreverse3(hash);
 	}
 #endif
+#if ARCH_LITTLE_ENDIAN
 	alter_endianity(hash, DIGEST_SIZE);
+#endif
 #else
 	if (algo == AX_FORMAT)
 		hash[4] = 0;
@@ -376,7 +407,9 @@ static int cmp_exact(char *source, int index)
 	SHA1_Update(&ctx, key, strlen(key));
 	SHA1_Final((void*)crypt_key, &ctx);
 
+#if ARCH_LITTLE_ENDIAN
 	alter_endianity(crypt_key, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	if (algo == RAW_FORMAT)
 		sha1_reverse(crypt_key);

@@ -456,9 +456,10 @@ static int cmp_exact(char *source, int index)
 #if !ARCH_LITTLE_ENDIAN
 	alter_endianity(crypt_key, 16);
 #endif
-	// ignore first 4 bytes (the 'possibly' reversed stuff). Due to handing both LE and
-	// BE, in either reversed or non-reveresed, skipping those bytes is simply eaiser.
-	return !memcmp(&((uint32_t*)(get_binary(source)))[1], &crypt_key[1], DIGEST_SIZE-4);
+#if defined(REVERSE_STEPS)
+	md5_reverse(crypt_key);
+#endif
+	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
 #else
 	return 1;
 #endif
