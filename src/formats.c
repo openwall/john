@@ -175,8 +175,11 @@ static int is_aligned(void *p, size_t align)
 static char *longcand(struct fmt_main *format, int index, int ml)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE];
+	int i;
 
-	memset(out, '0' + (index % 10), ml);
+	for (i = 0; i < ml; ++i)
+		out[i] = '0' + (i+index)%10;
+
 	if (!(format->params.flags & FMT_8_BIT) ||
 #ifndef BENCH_BUILD
 	    !(format->params.flags & FMT_CASE) || options.target_enc == UTF_8
@@ -869,6 +872,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 					sprintf(s_size, "max. length in index "
 					        "%d: wrote %d, got %d back", i,
 					        ml, (int)strlen(getkey));
+					fprintf(stderr, "\ngetkey = %s\nsetkey = %s\n", getkey, setkey);
+
 					return s_size;
 				}
 			}
