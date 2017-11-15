@@ -83,7 +83,11 @@ john_register_one(&fmt_raw0_SHA512);
 #endif
 
 #ifdef SIMD_COEF_64
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#else
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#endif
 static uint64_t (*saved_key);
 static uint64_t (*crypt_out);
 #else
@@ -147,7 +151,9 @@ static void *get_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_64
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
+#endif
 #ifdef REVERSE_STEPS
 	sha512_reverse(outw);
 #endif
@@ -198,6 +204,7 @@ static void set_key(char *key, int index)
 	uint64_t temp;
 
 	len = 0;
+#if ARCH_LITTLE_ENDIAN==1
 	while((unsigned char)(temp = *wkey++)) {
 		if (!(temp & 0xff00))
 		{
@@ -242,6 +249,52 @@ static void set_key(char *key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = JOHNSWAP64(temp);
+#else
+	while((temp = *wkey++)  & 0xff00000000000000ULL) {
+		if (!(temp & 0xff000000000000ULL))
+		{
+			*keybuf_word = (temp & 0xff00000000000000ULL) | (0x80ULL << 48);
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff0000000000ULL))
+		{
+			*keybuf_word = (temp & 0xffff000000000000ULL) | (0x80ULL << 40);
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00000000ULL))
+		{
+			*keybuf_word = (temp & 0xffffff0000000000ULL) | (0x80ULL << 32);
+			len+=3;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff000000))
+		{
+			*keybuf_word = (temp & 0xffffffff00000000ULL) | (0x80ULL << 24);
+			len+=4;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = (temp & 0xffffffffff000000ULL) | (0x80 << 16);
+			len+=5;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = (temp & 0xffffffffffff0000ULL) | (0x80 << 8);
+			len+=6;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff))
+		{
+			*keybuf_word = temp | 0x80;
+			len+=7;
+			goto key_cleaning;
+		}
+		*keybuf_word = temp;
+#endif
 		len += 8;
 		keybuf_word += SIMD_COEF_64;
 	}
@@ -346,7 +399,9 @@ static int cmp_exact(char *source, int index)
 	SHA512_Final((unsigned char*)crypt_out, &ctx);
 
 #ifdef SIMD_COEF_64
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE/8);
+#endif
 #ifdef REVERSE_STEPS
 	sha512_reverse(crypt_out);
 #endif
