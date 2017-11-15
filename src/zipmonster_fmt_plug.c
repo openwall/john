@@ -64,7 +64,11 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static unsigned short itoa16u_w[256];
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i,index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#else
+#define GETPOS(i,index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#endif
 #endif
 
 static void init(struct fmt_main *self)
@@ -85,7 +89,11 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*crypt_out));
 	for (i = 0; i < 256; ++i) {
+#if ARCH_LITTLE_ENDIAN==1
 		sprintf(buf, "%X%X", i>>4, i&0xF);
+#else
+		sprintf(buf, "%X%X", i&0xF, i>>4);
+#endif
 		memcpy(&(itoa16u_w[i]), buf, 2);
 	}
 }
@@ -143,7 +151,9 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
+#if defined(SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	alter_endianity(out, BINARY_SIZE);
+#endif
 	return out;
 }
 
@@ -195,14 +205,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memset(md5, 0, 64 * SIMD_COEF_32 * SIMD_PARA_MD5);
 
 		for (j = 0; j < SIMD_COEF_32*SIMD_PARA_MD5; ++j) {
+#if ARCH_LITTLE_ENDIAN==1
 			uint16_t *op = (uint16_t*)&md5[GETPOS(0, j)];
+#else
+			uint16_t *op = (uint16_t*)&md5[GETPOS(3, j)];
+#endif
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, saved_key[index+j], strlen(saved_key[index+j]));
 			MD5_Final(buffer, &ctx);
 
 			for (k = 0; k < 16; ++k) {
+#if ARCH_LITTLE_ENDIAN==1
 				op[0] = itoa16u_w[buffer[k++]];
 				op[1] = itoa16u_w[buffer[k]];
+#else
+				op[1] = itoa16u_w[buffer[k++]];
+				op[0] = itoa16u_w[buffer[k]];
+#endif
 				op += ((SIMD_COEF_32) << 1);
 			}
 			md5[GETPOS(32,j)] = 0x80;
@@ -223,18 +242,32 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// upper case hex encode into the next input buffer.
 			for (j = 0; j < SIMD_PARA_MD5*SIMD_COEF_32; ++j) {
 				int i;
+#if ARCH_LITTLE_ENDIAN==1
 				uint16_t *op = (uint16_t*)&md5[GETPOS(0, j)];
+#else
+				uint16_t *op = (uint16_t*)&md5[GETPOS(3, j)];
+#endif
 				p = &crypt_buf[(j&(SIMD_COEF_32-1))+(4*SIMD_COEF_32*(j/SIMD_COEF_32))];
 				for (i = 0; i < 4; ++i) {
 					t = *p;
 					p += SIMD_COEF_32;
+#if ARCH_LITTLE_ENDIAN==1
 					op[0] = itoa16u_w[t&0xFF];
 					op[1] = itoa16u_w[(t>>8)&0xFF];
 					t >>= 16;
 					op += ((SIMD_COEF_32) << 1);
 					op[0] = itoa16u_w[t&0xFF];
 					op[1] = itoa16u_w[(t>>8)&0xFF];
+#else
+					op[1] = itoa16u_w[t&0xFF];
+					op[0] = itoa16u_w[(t>>8)&0xFF];
+					t >>= 16;
 					op += ((SIMD_COEF_32) << 1);
+					op[1] = itoa16u_w[t&0xFF];
+					op[0] = itoa16u_w[(t>>8)&0xFF];
+#endif
+					op += ((SIMD_COEF_32) << 1);
+
 				}
 			}
 #else
