@@ -7,6 +7,7 @@
  * magnum in 2011-2012.
  *
  * OMP added May 2013, JimF
+ * BE SIMD logic added 2017, JimF
  */
 
 #if FMT_EXTERNS_H
@@ -94,6 +95,10 @@ static struct fmt_tests tests[] = {
 	{FORMAT_TAG "41f92cf74e3d2c3ba79183629a929915", "rockyou" },
 	{FORMAT_TAG "012d73e0fab8d26e0f4d65e36077511e", "12345678" },
 	{FORMAT_TAG "0ceb1fd260c35bd50005341532748de6", "abc123" },
+	{"8be1ec697b14ad3a53b371436120641d", "1"},
+	{"114c5a33b8d4127fbe492bd6583aeb4d", "12"},
+	{"c58cda49f00748a3bc0fcfa511d516cb", "123"},
+	{"f375f401ddc698af533f16f8ac1e91c1", "1234"},
 	{NULL}
 };
 
@@ -101,7 +106,11 @@ static struct fmt_tests tests[] = {
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*4*SIMD_COEF_32 )
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*4*SIMD_COEF_32 )
+#endif
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -202,14 +211,14 @@ static void *get_binary(char *ciphertext)
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
 
-#if ARCH_LITTLE_ENDIAN
-		out[i]=temp;
+#if ARCH_LITTLE_ENDIAN || defined(SIMD_COEF_32)
+		out[i] = temp;
 #else
-		out[i]=JOHNSWAP(temp);
+		out[i] = JOHNSWAP(temp);
 #endif
 	}
 
-#if SIMD_COEF_32 && defined(REVERSE_STEPS)
+#if defined(SIMD_COEF_32) && defined(REVERSE_STEPS)
 	md4_reverse(out);
 #endif
 
@@ -229,7 +238,7 @@ static char *source(char *source, void *binary)
 	md4_unreverse(b);
 #endif
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN && !defined(SIMD_COEF_32)
 	alter_endianity(b, 16);
 #endif
 
@@ -257,6 +266,7 @@ static void set_key(char *_key, int index)
 	uint32_t temp;
 
 	len = 0;
+#if ARCH_LITTLE_ENDIAN
 	while((temp = *key++) & 0xff) {
 		if (!(temp & 0xff00))
 		{
@@ -277,6 +287,28 @@ static void set_key(char *_key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = temp;
+#else
+	while((temp = *key++) & 0xff000000) {
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xff000000) | (0x80 << 16));
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xffff0000) | (0x80 << 8));
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff))
+		{
+			*keybuf_word = JOHNSWAP(temp | 0x80U);
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = JOHNSWAP(temp);
+#endif
 		len += 4;
 		keybuf_word += SIMD_COEF_32;
 	}
@@ -398,7 +430,10 @@ static int cmp_exact(char *source, int index)
 	MD4_Update(&ctx, key, strlen(key));
 	MD4_Final((void*)crypt_key, &ctx);
 
-#ifdef REVERSE_STEPS
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity(crypt_key, 16);
+#endif
+#if defined(REVERSE_STEPS)
 	md4_reverse(crypt_key);
 #endif
 	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
