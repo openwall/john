@@ -215,9 +215,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Update(&ctx, cur_salt->salt, strlen((char*)cur_salt->salt));
 			SHA512_Final(tmpBuf, &ctx);
 			p64 = &keys64[i%SIMD_COEF_64+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+#if ARCH_LITTLE_ENDIAN==1
 			for (j = 0; j < 8; ++j)
 				p64[j*SIMD_COEF_64] = JOHNSWAP64(tmpBuf64[j]);
 			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
+#else
+			for (j = 0; j < 8; ++j)
+				p64[j*SIMD_COEF_64] = tmpBuf64[j];
+			p64[8*SIMD_COEF_64] = 0x80;
+#endif
 			p64[15*SIMD_COEF_64] = 0x200;
 		}
 		for (j = 0; j < 98; j++)

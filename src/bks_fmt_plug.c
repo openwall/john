@@ -216,6 +216,9 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < 20; i++)
 			cs.store_hmac[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	}
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity(cs.store_hmac, 20);
+#endif
 	MEM_FREE(keeptr);
 
 	return (void *)&cs;
