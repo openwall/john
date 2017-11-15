@@ -161,40 +161,46 @@ if test "x$enable_native_tests" != xno; then
   [
   CC="$CC_BACKUP -mssse3"
   AC_MSG_CHECKING([for SSSE3])
-  AC_RUN_IFELSE(
-    [
-    AC_LANG_SOURCE(
-      [[#include <tmmintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
-    )]
-    ,[CPU_BEST_FLAGS="-mssse3"]dnl
+
+  if test "$(uname -m)" = "x86_64"; then
+    CPUID_ASM="x86-64.S"
+    CPUID_FILE="x86-64.h"
+  else
+    CPUID_ASM="x86.S"
+    CPUID_FILE="x86-any.h"
+  fi
+
+  if test ! -f arch.h; then
+      cp $CPUID_FILE arch.h
+  fi
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+
+  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
+  AS_IF([test "x$SIMD_var" = x1],
+     [CPU_BEST_FLAGS="-mssse3"]
      [CPU_STR="SSSE3"]
      [AC_MSG_RESULT([yes])]
-    ,[CPU_NOTFOUND=1]
+    ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT([no])]
-    )
+  )
   ]
   )
+
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -msse4.1"
   AC_MSG_CHECKING([for SSE4.1])
-  AC_RUN_IFELSE(
-    [
-    AC_LANG_SOURCE(
-      [[#include <smmintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-    )]
-    ,[CPU_BEST_FLAGS="-msse4.1"]dnl
+
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+
+  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
+  AS_IF([test "x$SIMD_var" = x1],
+     [CPU_BEST_FLAGS="-msse4.1"]
      [CPU_STR="SSE4.1"]
      [AC_MSG_RESULT([yes])]
-    ,[CPU_NOTFOUND=1]
+    ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT([no])]
-    )
+  )
   ]
   )
 
@@ -202,20 +208,17 @@ if test "x$enable_native_tests" != xno; then
   [
   CC="$CC_BACKUP -mavx"
   AC_MSG_CHECKING([for AVX])
-  AC_RUN_IFELSE(
-    [
-    AC_LANG_SOURCE(
-      [[#include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-    )]
-    ,[CPU_BEST_FLAGS="-mavx"]dnl
+
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+
+  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
+  AS_IF([test "x$SIMD_var" = x1],
+     [CPU_BEST_FLAGS="-mavx"]dnl
      [CPU_STR="AVX"]
      [AC_MSG_RESULT([yes])]
-    ,[CPU_NOTFOUND=1]
+    ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT([no])]
-    )
+  )
   ]
   )
 
@@ -223,19 +226,17 @@ if test "x$enable_native_tests" != xno; then
   [
   CC="$CC_BACKUP -mxop"
   AC_MSG_CHECKING([for XOP])
-  AC_RUN_IFELSE(
-    [
-    AC_LANG_SOURCE(
-      [[#include <x86intrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-    )]
-    ,[CPU_BEST_FLAGS="-mxop"]dnl
+
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+
+  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
+  AS_IF([test "x$SIMD_var" = x1],
+     [CPU_BEST_FLAGS="-mxop"]dnl
      [CPU_STR="XOP"]
      [AC_MSG_RESULT([yes])]
-    ,[AC_MSG_RESULT([no])]
-    )
+    ,
+     [AC_MSG_RESULT([no])]
+  )
   ]
   )
 
@@ -243,20 +244,18 @@ if test "x$enable_native_tests" != xno; then
   [
   CC="$CC_BACKUP -mavx2"
   AC_MSG_CHECKING([for AVX2])
-  AC_RUN_IFELSE(
-    [
-    AC_LANG_SOURCE(
-      [[#include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-    )]
-    ,[CPU_BEST_FLAGS="-mavx2"]dnl
+
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+
+  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
+  AS_IF([test "x$SIMD_var" = x1],
+     [CPU_BEST_FLAGS="-mavx2"]dnl
      [CPU_STR="AVX2"]
      [AC_MSG_RESULT([yes])]
-    ,[CPU_NOTFOUND=1]
+    ,
+     [CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
-    )
+  )
   ]
   )
 
