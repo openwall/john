@@ -306,6 +306,13 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, u
 
 
 /*
+ * 16-bit endian-swap a memory buffer in place. Size is in octets (so should
+ * be a multiple of 2). From now on, this function may be used on any arch.
+ * this is needed for some swapping of things like UTF16LE to UTF16BE, etc.
+ */
+void alter_endianity_w16(void * x, unsigned int size);
+
+/*
  * 32-bit endian-swap a memory buffer in place. Size is in octets (so should
  * be a multiple of 4). From now on, this function may be used on any arch.
  */

@@ -202,7 +202,7 @@ static void *get_binary(char *ciphertext)
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
 
-#if ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN==1 || SIMD_COEF_32
 		out[i]=temp;
 #else
 		out[i]=JOHNSWAP(temp);
@@ -464,6 +464,12 @@ static char *get_key(int index)
 			break;
 		}
 	}
+#if ARCH_LITTLE_ENDIAN==0
+	// NOTE, we really should add utf16be_to_enc(key) to unicode.[ch] (and the
+	// other 7 or so required functions. currently unicode.c ONLY handles
+	// UTF-16LE, but we are left with UTF-16BE due to key loading.
+	alter_endianity_w16(key, md5_size<<1);
+#endif
 	return (char*)utf16_to_enc(key);
 #else
 	return (char*)utf16_to_enc(saved_key);
