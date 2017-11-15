@@ -322,10 +322,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char iv[16];
 
 			// Copy and convert from SIMD_COEF_64 buffers back into flat buffers, in little-endian
+#if ARCH_LITTLE_ENDIAN==1
 			for (i = 0; i < sizeof(key)/sizeof(uint64_t); i++)  // the derived key
 				((uint64_t *)key)[i] = JOHNSWAP64(key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
 			for (i = 0; i < sizeof(iv)/sizeof(uint64_t); i++)   // the derived iv
 				((uint64_t *)iv)[i]  = JOHNSWAP64(key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(uint64_t) + i) + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
+#else
+			for (i = 0; i < sizeof(key)/sizeof(uint64_t); i++)  // the derived key
+				((uint64_t *)key)[i] = key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+			for (i = 0; i < sizeof(iv)/sizeof(uint64_t); i++)   // the derived iv
+				((uint64_t *)iv)[i]  = key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(uint64_t) + i) + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+#endif
 
 			AES_set_decrypt_key(key, 256, &aes_key);
 			AES_cbc_encrypt(cur_salt->cry_master, output, cur_salt->cry_master_length, &aes_key, iv, AES_DECRYPT);
