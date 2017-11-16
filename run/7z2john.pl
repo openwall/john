@@ -11,13 +11,13 @@ use File::Basename;
 # magnum (adapt to JtR use)
 
 # version:
-# 1.0
+# 1.2
 
 # date released:
 # April 2015
 
 # date last updated:
-# 5th February 2017
+# 16th Nov 2017
 
 # dependencies:
 # Compress::Raw::Lzma
@@ -1306,7 +1306,7 @@ sub extract_hash_from_archive
     $type_of_data = $type_of_compression;
   }
 
-  $hash_buf = sprintf ("%s:%s%i\$%i\$%i\$%s\$%i\$%s\$%i\$%i\$%i\$%s",
+  $hash_buf = sprintf ("%s:%s%u\$%u\$%u\$%s\$%u\$%s\$%u\$%u\$%u\$%s",
     basename($file_path),
     $SEVEN_ZIP_HASH_SIGNATURE,
     $type_of_data,
@@ -1326,7 +1326,7 @@ sub extract_hash_from_archive
 
   my $crc_len = $substreams_info->{'unpack_sizes'}[0]; # we always stick to the first file here
 
-  $hash_buf .= sprintf ("\$%i\$%s",
+  $hash_buf .= sprintf ("\$%u\$%s",
     $crc_len,
     $compression_attributes
   );
