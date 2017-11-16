@@ -88,7 +88,11 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static int *MixOrder, MixOrderLen;
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)   ((index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32)
+#else
+#define GETPOS(i, index)   ((index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32)
+#endif
 static unsigned salt_mem_total;
 
 typedef struct preload_t {
@@ -421,7 +425,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (x = 0; x <  MAX_KEYS_PER_CRYPT; ++x) {
 				idx = MixOrder[index+x];
 				if (idx < count)
+#if ARCH_LITTLE_ENDIAN==1
 					crypt_out[idx][0] = JOHNSWAP(sse_out[5*SIMD_COEF_32*(x/SIMD_COEF_32)+x%SIMD_COEF_32]);
+#else
+					crypt_out[idx][0] = sse_out[5*SIMD_COEF_32*(x/SIMD_COEF_32)+x%SIMD_COEF_32];
+#endif
 			}
 #endif
 

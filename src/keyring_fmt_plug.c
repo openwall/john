@@ -58,7 +58,11 @@ john_register_one(&fmt_keyring);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_KEYS_PER_CRYPT (SIMD_COEF_32*SIMD_PARA_SHA256)
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#else
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -240,10 +244,18 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 		uint32_t *Optr32 = (uint32_t*)(key[i]);
 		uint32_t *Iptr32 = &keys32[(i/SIMD_COEF_32)*SIMD_COEF_32*16 + (i%SIMD_COEF_32)];
 		for (j = 0; j < 4; ++j)
+#if ARCH_LITTLE_ENDIAN==1
 			Optr32[j] = JOHNSWAP(Iptr32[j*SIMD_COEF_32]);
+#else
+			Optr32[j] = Iptr32[j*SIMD_COEF_32];
+#endif
 		Optr32 = (uint32_t*)(iv[i]);
 		for (j = 0; j < 4; ++j)
+#if ARCH_LITTLE_ENDIAN==1
 			Optr32[j] = JOHNSWAP(Iptr32[(j+4)*SIMD_COEF_32]);
+#else
+			Optr32[j] = Iptr32[(j+4)*SIMD_COEF_32];
+#endif
 	}
 }
 #else
