@@ -215,20 +215,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Update(&ctx, cur_salt->salt, strlen((char*)cur_salt->salt));
 			SHA512_Final(tmpBuf, &ctx);
 			p64 = &keys64[i%SIMD_COEF_64+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+			for (j = 0; j < 8; ++j)
 #if ARCH_LITTLE_ENDIAN==1
-			for (j = 0; j < 8; ++j)
 				p64[j*SIMD_COEF_64] = JOHNSWAP64(tmpBuf64[j]);
-			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
 #else
-			for (j = 0; j < 8; ++j)
 				p64[j*SIMD_COEF_64] = tmpBuf64[j];
-			p64[8*SIMD_COEF_64] = 0x80;
 #endif
+			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
 			p64[15*SIMD_COEF_64] = 0x200;
 		}
 		for (j = 0; j < 98; j++)
 			SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
-		// Last one with FLAT_OUT
 		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);

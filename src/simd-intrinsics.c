@@ -390,7 +390,6 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 #endif
 
 	if (SSEi_flags & SSEi_FLAT_OUT) {
-#if !ARCH_LITTLE_ENDIAN
 		MD5_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*4*VS32];
@@ -411,17 +410,23 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 				uint32_t s[4 * VS32];
 			} tmp;
 
+#if ARCH_LITTLE_ENDIAN==1
+			tmp.v[0] = a[i];
+			tmp.v[1] = b[i];
+			tmp.v[2] = c[i];
+			tmp.v[3] = d[i];
+#else
 			tmp.v[0] = vswap32(a[i]);
 			tmp.v[1] = vswap32(b[i]);
 			tmp.v[2] = vswap32(c[i]);
 			tmp.v[3] = vswap32(d[i]);
+#endif
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 4; k++)
 					o[j*4+k] = tmp.s[k*VS32+j];
 #endif
 		}
-#endif
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
@@ -1096,7 +1101,6 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 #endif
 
 	if (SSEi_flags & SSEi_FLAT_OUT) {
-#if !ARCH_LITTLE_ENDIAN
 		MD4_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*4*VS32];
@@ -1117,17 +1121,23 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 				uint32_t s[4 * VS32];
 			} tmp;
 
+#if ARCH_LITTLE_ENDIAN==1
+			tmp.v[0] = a[i];
+			tmp.v[1] = b[i];
+			tmp.v[2] = c[i];
+			tmp.v[3] = d[i];
+#else
 			tmp.v[0] = vswap32(a[i]);
 			tmp.v[1] = vswap32(b[i]);
 			tmp.v[2] = vswap32(c[i]);
 			tmp.v[3] = vswap32(d[i]);
+#endif
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 4; k++)
 					o[j*4+k] = tmp.s[k*VS32+j];
 #endif
 		}
-#endif
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
@@ -1604,7 +1614,6 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 	}
 
 	if (SSEi_flags & SSEi_FLAT_OUT) {
-#if ARCH_LITTLE_ENDIAN==1
 		SHA1_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*5*VS32];
@@ -1626,18 +1635,25 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 				uint32_t s[5 * VS32];
 			} tmp;
 
+#if ARCH_LITTLE_ENDIAN==1
 			tmp.v[0] = vswap32(a[i]);
 			tmp.v[1] = vswap32(b[i]);
 			tmp.v[2] = vswap32(c[i]);
 			tmp.v[3] = vswap32(d[i]);
 			tmp.v[4] = vswap32(e[i]);
+#else
+			tmp.v[0] = a[i];
+			tmp.v[1] = b[i];
+			tmp.v[2] = c[i];
+			tmp.v[3] = d[i];
+			tmp.v[4] = e[i];
+#endif
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 5; k++)
 					o[j*5+k] = tmp.s[k*VS32+j];
 #endif
 		}
-#endif
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
@@ -2165,7 +2181,6 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 	}
 
 	if (SSEi_flags & SSEi_FLAT_OUT) {
-#if ARCH_LITTLE_ENDIAN==1
 		SHA256_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*8*VS32];
@@ -2190,6 +2205,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 				uint32_t s[8 * VS32];
 			} tmp;
 
+#if ARCH_LITTLE_ENDIAN==1
 			tmp.v[0] = vswap32(a[i]);
 			tmp.v[1] = vswap32(b[i]);
 			tmp.v[2] = vswap32(c[i]);
@@ -2198,13 +2214,22 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 			tmp.v[5] = vswap32(f[i]);
 			tmp.v[6] = vswap32(g[i]);
 			tmp.v[7] = vswap32(h[i]);
+#else
+			tmp.v[0] = a[i];
+			tmp.v[1] = b[i];
+			tmp.v[2] = c[i];
+			tmp.v[3] = d[i];
+			tmp.v[4] = e[i];
+			tmp.v[5] = f[i];
+			tmp.v[6] = g[i];
+			tmp.v[7] = h[i];
+#endif
 
 			for (j = 0; j < VS32; j++)
 				for (k = 0; k < 8; k++)
 					o[j*8+k] = tmp.s[k*VS32+j];
 #endif
 		}
-#endif
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
@@ -2735,7 +2760,6 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 	}
 
 	if (SSEi_flags & SSEi_FLAT_OUT) {
-#if ARCH_LITTLE_ENDIAN==1
 		SHA512_PARA_DO(i)
 		{
 			uint64_t *o = (uint64_t*)&out[i*8*VS64];
@@ -2758,6 +2782,7 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 				uint64_t s[8 * VS64];
 			} tmp;
 
+#if ARCH_LITTLE_ENDIAN==1
 			tmp.v[0] = vswap64(a[i]);
 			tmp.v[1] = vswap64(b[i]);
 			tmp.v[2] = vswap64(c[i]);
@@ -2766,13 +2791,21 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 			tmp.v[5] = vswap64(f[i]);
 			tmp.v[6] = vswap64(g[i]);
 			tmp.v[7] = vswap64(h[i]);
-
+#else
+			tmp.v[0] = a[i];
+			tmp.v[1] = b[i];
+			tmp.v[2] = c[i];
+			tmp.v[3] = d[i];
+			tmp.v[4] = e[i];
+			tmp.v[5] = f[i];
+			tmp.v[6] = g[i];
+			tmp.v[7] = h[i];
+#endif
 			for (j = 0; j < VS64; j++)
 				for (k = 0; k < 8; k++)
 					o[j*8+k] = tmp.s[k*VS64+j];
 #endif
 		}
-#endif
 	}
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
