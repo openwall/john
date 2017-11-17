@@ -750,7 +750,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
 					uint64_t *o = (uint64_t *)crypt_struct->cptr[k][idx];
 					for (j = 0; j < 8; ++j)
+#if ARCH_LITTLE_ENDIAN==1
 						*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
+#else
+						*o++ = sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64];
+#endif
 				}
 			}
 			if (++idx == 42)
@@ -761,7 +765,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
 				uint64_t *o = (uint64_t *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
+#if ARCH_LITTLE_ENDIAN==1
 					*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
+#else
+					*o++ = sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64];
+#endif
 			}
 		}
 #else
