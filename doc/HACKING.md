@@ -32,13 +32,43 @@ GCC Compile Farm has PPC64 hardware available which is a big endian architecture
        -netdev user,id=net0 -device e1000-82545em,netdev=net0,id=net0,mac=52:54:00:c8:19:17 \
        -redir tcp:2222::22"
 
-   # qemu-system-ppc64 $common_args -cdrom debian-8.9.9-powerpc-CD-1.iso -boot d  # for installation
+   # qemu-system-ppc64 $common_args -cdrom debian-8.9.0-powerpc-CD-1.iso -boot d  # for installation
 
    qemu-system-ppc64 $common_args  # for normal use
    ```
 
    These instructions were tested with QEMU 2.10. I am not sure if the SMP
    acceleration is working well.
+
+4. To enable Debian software repositories in the VM, modify `/etc/apt/sources.list` to include the following lines,
+
+   ```
+   deb http://mirrors.kernel.org/debian/ jessie main
+   deb-src http://mirrors.kernel.org/debian/ jessie main
+
+   deb http://security.debian.org/ jessie/updates main
+   deb-src http://security.debian.org/ jessie/updates main
+   ```
+
+   and then run `su -c "apt-get update"`.
+
+5. Install the required software packages,
+
+   ```
+   $ su -c "apt-get install build-essential gdb ctags libssl-dev sudo vim git openssh-server gcc-multilib -y"
+
+   ```
+
+   Enable `sudo` for the local user.
+
+   ```
+   $ su -c "/usr/sbin/usermod -a -G sudo <username>"
+   ```
+
+   See `INSTALL-UBUNTU` file for more information on this topic.
+
+6. SSH from the host machine to the VM machine by executing `ssh -p2222
+   <username>@localhost`.
 
 #### References
 
