@@ -91,6 +91,12 @@ struct fmt_tests gpg_common_gpg_tests[] = {
 	{"$gpg$*0*58*190111fef479fda732000fe7ead411eb778bfe101cf71c6a8a5fbf96b7d8e99dbbad901c37c88d213e1306a953d9aa9a04244509693f16856061*3*18*2*3*1024*d3e886db68fbfa0f", "qwertyzxcvb12345"},
 	/* gpg -o out.gpg --cipher-algo twofish --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt, has mdc in spite of "--no-mdc" flag */
 	{"$gpg$*0*66*c87c9a0e7e7f7299129645f2f352076f8d9c29c830e7d21b28ee45fbfe2a31fcb70900fd8031e896035d672847c9b9c59f1fd802290d3d6992c45eb3d27e95cc0990*3*18*2*10*1024*45216ac170f04fd5", "qwertyzxcvb12345"},
+	/* PGP 8.0 for Windows, AES-256 with missing mdc */
+	{"$gpg$*0*44*cfa1353f691dfa09e1f2001fe81a50f67b7d38a69d4d909a5ec665f2691304c092b5136e4c691368fb006973*3*9*2*9*65536*f3d4f603c697cf18", "openwall123"},
+	/* PGP 8.0 for Windows, Twofish with missing mdc */
+	{"$gpg$*0*44*eaf7c0fd70579388927f1c85395e6f76a73234639a792c0a08c8ede8397ac09e105bc6eca51632367d572348*3*9*2*10*65536*048af401a552dca6", "openwall"},
+	/* PGP Desktop 9.0.2 */
+	{"$gpg$*0*66*c54842eed9b536e1fafad46aa233a6c158bd1fcabeed6b91531d8331a3452466d02446586b9b6837b510efbe95bb9f91c92d258be82f65092483812b896af3d4aa28*3*18*2*9*65536*b2688a012358b7fa", "openwall"},
 	{NULL}
 };
 
@@ -1198,6 +1204,7 @@ int gpg_common_check(unsigned char *keydata, int ks)
 	int i;
 	uint8_t checksum[SHA_DIGEST_LENGTH];
 	SHA_CTX ctx;
+	int block_size = 8;
 
 	// out is used for more than just data. So if datalen is 'small', but
 	// other things (like mpz integer creation) are needed, we know that
@@ -1288,10 +1295,10 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					   IDEA_KEY_SCHEDULE iks;
 					   JtR_idea_set_encrypt_key(keydata, &iks);
 					   if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
-						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, 10, &iks, ivec, &tmp, IDEA_DECRYPT);
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &iks, ivec, &tmp, IDEA_DECRYPT);
 						   tmp = 0;
-						   memcpy(ivec, gpg_common_cur_salt->data + 2, 8); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
-						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data + 10, out + 10, gpg_common_cur_salt->datalen - 10, &iks, ivec, &tmp, IDEA_DECRYPT);
+						   memcpy(ivec, gpg_common_cur_salt->data + 2, block_size); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &iks, ivec, &tmp, IDEA_DECRYPT);
 					   } else {
 						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
 					   }
@@ -1302,10 +1309,10 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					   CAST_set_key(&ck, ks, keydata);
 					   if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
 						   // handle PGP's weird CFB mode, do this for each cipher with block-size <= 8, take care of block-size!
-						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, 10, &ck, ivec, &tmp, CAST_DECRYPT);
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ck, ivec, &tmp, CAST_DECRYPT);
 						   tmp = 0;
-						   memcpy(ivec, gpg_common_cur_salt->data + 2, 8); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
-						   CAST_cfb64_encrypt(gpg_common_cur_salt->data + 10, out + 10, gpg_common_cur_salt->datalen - 10, &ck, ivec, &tmp, CAST_DECRYPT);
+						   memcpy(ivec, gpg_common_cur_salt->data + 2, block_size); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ck, ivec, &tmp, CAST_DECRYPT);
 					   } else {
 						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, CAST_DECRYPT);
 					   }
@@ -1322,7 +1329,15 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_AES256: {
 					    AES_KEY ck;
 					    AES_set_encrypt_key(keydata, ks * 8, &ck);
-					    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, AES_DECRYPT);
+					    block_size = 16;
+					    if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ck, ivec, &tmp, AES_DECRYPT);
+						    tmp = 0;
+						    memcpy(ivec, gpg_common_cur_salt->data + 2, block_size);
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ck, ivec, &tmp, AES_DECRYPT);
+					    } else {
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, AES_DECRYPT);
+					    }
 				    }
 				    break;
 		case CIPHER_3DES: {
@@ -1338,10 +1353,10 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  DES_set_key((DES_cblock *) key2, &ks2);
 					  DES_set_key((DES_cblock *) key3, &ks3);
 					  if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
-						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, 10, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 						  num = 0;
-						  memcpy(divec, gpg_common_cur_salt->data + 2, 8); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
-						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data + 10, out + 10, gpg_common_cur_salt->datalen - 10, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+						  memcpy(divec, gpg_common_cur_salt->data + 2, block_size); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 					  } else {
 						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 					  }
@@ -1358,7 +1373,16 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_TWOFISH: {
 					      Twofish_key ck;
 					      Twofish_prepare_key(keydata, ks, &ck);
-					      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, ivec);
+
+					      block_size = 16;
+					      if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, block_size + 2, ivec);
+						      tmp = 0;
+						      memcpy(ivec, gpg_common_cur_salt->data + 2, block_size);
+						      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, ivec);
+					      } else {
+						      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, ivec);
+					      }
 				      }
 				      break;
 		default:
@@ -1378,7 +1402,7 @@ int gpg_common_check(unsigned char *keydata, int ks)
 	} else if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
 		int ctb, new_ctb, pkttype, c, partial, lenbytes = 0;
 		unsigned long pktlen;
-		unsigned long idx = 0; // pointer in the "decrypted data + 10" stream
+		unsigned long idx = 0; // pointer in the "decrypted data + block_size + 2" stream
 		unsigned char *p;
 
 		(void) pktlen;
@@ -1386,13 +1410,12 @@ int gpg_common_check(unsigned char *keydata, int ks)
 
 		// https://www.ietf.org/rfc/rfc2440.txt, http://www.ietf.org/rfc/rfc1991.txt,
 		// and parse() from g10/parse-packet.c. This block contains code from GnuPG
-		// which is copyrighted by FSF, Werner Koch, and  g10 Code GmbH.
-		if ((out[9] != out[7]) || (out[8] != out[6]))
+		// which is copyrighted by FSF, Werner Koch, and g10 Code GmbH.
+		if ((out[block_size + 1] != out[block_size - 1]) || (out[block_size] != out[block_size - 2]))
 			goto bad;
-
 		// The first byte of a packet is the so-called tag. The
 		// highest bit must be set.
-		p = &out[10];
+		p = &out[block_size + 2];
 		ctb = p[0];
 		if (!(ctb & 0x80)) {
 			goto bad;
@@ -1405,7 +1428,7 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		// Otherwise, it is an old format packet.
 		pktlen = 0;
 		new_ctb = !!(ctb & 0x40);
-		if (new_ctb) {
+		if (new_ctb) {  // Used by PGP 8.0 from year 2002
 			// Get the packet's type. This is encoded in the 6 least
 			// significant bits of the tag.
 			pkttype = ctb & 0x3f;
@@ -1416,12 +1439,14 @@ int gpg_common_check(unsigned char *keydata, int ks)
 			// partially determines the length. See section 4.2.2
 			// of RFC 4880 for details.
 			c = p[1];
+			idx = 2;
 			if (c < 192) {
 				pktlen = c;
 			}  else if (c < 224) {
 				pktlen = (c - 192) * 256;
 				c = p[2];
 				pktlen += c + 192;
+				idx++;
 			}
 			else if (c == 255) {
 				int i;
@@ -1430,9 +1455,9 @@ int gpg_common_check(unsigned char *keydata, int ks)
 
 				for (i = 0; i < 4; i ++) {
 					c = p[2 + i];
+					idx++;
 				}
 				// pktlen = buf32_to_ulong (value); // XXX
-				idx = 2 + 4;
 			} else {
 				// Partial body length
 			}
@@ -1472,7 +1497,9 @@ int gpg_common_check(unsigned char *keydata, int ks)
 				goto bad;
 		}
 
-		// Random note: MDC is only missing for ciphers with block size <= 64 bits?
+		// Random note: MDC is only missing for ciphers with block size
+		// <= 64 bits? No! PGP 8.0 can use AES-256, and still generate
+		// output files with no MDC.
 
 		// This is the major source of false positives now!
 		if (pkttype == 11) {  // PKT_PLAINTEXT, there is not much we can do here? perhaps offer known-plaintext-attack feature to the user?
