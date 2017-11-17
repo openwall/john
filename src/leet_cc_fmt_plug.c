@@ -265,15 +265,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			cp[saved_len[index+i]+cur_salt->saltlen] = 0x80;
 			in[i*16+15] = (saved_len[index+i]+cur_salt->saltlen)<<3;
 			memset(&cp[saved_len[index+i]+cur_salt->saltlen+1], 0, 120-(saved_len[index+i]+cur_salt->saltlen+1));
-#if !ARCH_LITTLE_ENDIAN
-			// in non-little endian mode, we have strange behavior for BE formats using flat. ;)
-			{
-				uint64_t *p = (uint64_t*)cp;
-				int j, til = ((saved_len[index+i]+cur_salt->saltlen+1)>>3)+1; // swap key, salt and 0x80
-				for (j = 0; j < til; ++j)
-					p[j] = JOHNSWAP64(p[j]);
-			}
-#endif
 		}
 		SIMDSHA512body(in, out, NULL, SSEi_FLAT_IN);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
