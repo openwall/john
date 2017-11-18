@@ -253,7 +253,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* crc */
 		goto err;
-	if (!isdecu(p))
+	if (!isdecu(p) && !isdec_negok(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* data length */
 		goto err;
