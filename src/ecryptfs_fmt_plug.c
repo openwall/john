@@ -62,7 +62,11 @@ static int omp_t = 1;
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 *8 )
+#else
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 *8 )
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -168,7 +172,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[REAL_BINARY_SIZE];
-		uint32_t dummy;
+		uint64_t dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	int i;
@@ -179,7 +183,9 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
+#if defined(SIMD_COEF_64) && !ARCH_LITTLE_ENDIAN
+	alter_endianity_w64(out, REAL_BINARY_SIZE>>5);
+#endif
 	return out;
 }
 
