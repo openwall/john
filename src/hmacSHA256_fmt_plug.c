@@ -72,7 +72,11 @@ john_register_one(&fmt_hmacSHA256);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i&63) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i&63) & 3)) + (unsigned int)index/SIMD_COEF_32 * PAD_SIZE * SIMD_COEF_32)
+#else
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i&63) & (0xffffffff - 3)) * SIMD_COEF_32 + ((i&63) & 3) + (unsigned int)index/SIMD_COEF_32 * PAD_SIZE * SIMD_COEF_32)
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -280,8 +284,13 @@ static MAYBE_INLINE void set_key(char *key, int index, const int B_LEN)
 	int len;
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1
 	uint32_t *ipadp = (uint32_t*)&ipad[GETPOS(3, index)];
 	uint32_t *opadp = (uint32_t*)&opad[GETPOS(3, index)];
+#else
+	uint32_t *ipadp = (uint32_t*)&ipad[GETPOS(0, index)];
+	uint32_t *opadp = (uint32_t*)&opad[GETPOS(0, index)];
+#endif
 	const uint32_t *keyp = (uint32_t*)key;
 	unsigned int temp;
 
@@ -307,19 +316,34 @@ static MAYBE_INLINE void set_key(char *key, int index, const int B_LEN)
 		keyp = (unsigned int*)k0;
 		for (i = 0; i < B_LEN / 4; i++, ipadp += SIMD_COEF_32, opadp += SIMD_COEF_32)
 		{
+#if ARCH_LITTLE_ENDIAN==1
 			temp = JOHNSWAP(*keyp++);
+#else
+			temp = *keyp++;
+#endif
 			*ipadp ^= temp;
 			*opadp ^= temp;
 		}
 	}
 	else
-	while(((temp = JOHNSWAP(*keyp++)) & 0xff000000)) {
+#if ARCH_LITTLE_ENDIAN==1
+		while(((temp = JOHNSWAP(*keyp++)) & 0xff000000)) {
+#else
+		while(((temp = *keyp++) & 0xff000000)) {
+#endif
 		if (!(temp & 0x00ff0000) || !(temp & 0x0000ff00))
 		{
+#if ARCH_LITTLE_ENDIAN==1
 			((unsigned short*)ipadp)[1] ^=
 				(unsigned short)(temp >> 16);
 			((unsigned short*)opadp)[1] ^=
 				(unsigned short)(temp >> 16);
+#else
+			((unsigned short*)ipadp)[0] ^=
+				(unsigned short)(temp >> 16);
+			((unsigned short*)opadp)[0] ^=
+				(unsigned short)(temp >> 16);
+#endif
 			break;
 		}
 		*ipadp ^= temp;
@@ -555,7 +579,7 @@ static void *get_binary(char *ciphertext, const int B_LEN)
 	for (i=0;i<B_LEN;i++)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];
 
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity(realcipher, B_LEN);
 #endif
 	return (void*)realcipher;
