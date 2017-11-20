@@ -12,12 +12,12 @@
 #define BINARY_SIZE             16
 
 typedef struct {
+	uint8_t ct[256];
 	uint32_t type;
 	int N, r, p;
 	int iterations;
 	uint8_t salt[64];
 	int saltlen;
-	uint8_t ct[256];
 	int ctlen;
 	// following fields are only required for handling presale wallets
 	uint8_t encseed[2048];

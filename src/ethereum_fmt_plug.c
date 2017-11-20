@@ -50,7 +50,7 @@ john_register_one(&fmt_ethereum);
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
-#define SALT_ALIGN              sizeof(int)
+#define SALT_ALIGN              sizeof(uint64_t)
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
@@ -62,7 +62,12 @@ john_register_one(&fmt_ethereum);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
 
-custom_salt  *cur_salt;
+static custom_salt *cur_salt;
+
+static union {
+	uint64_t dummy;
+	unsigned char data[8];
+} dpad;
 
 static void init(struct fmt_main *self)
 {
@@ -75,6 +80,8 @@ static void init(struct fmt_main *self)
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
+
+	memcpy(dpad.data, "\x02\x00\x00\x00\x00\x00\x00\x00", 8);
 }
 
 static void done(void)
@@ -97,8 +104,6 @@ static char *get_key(int index)
 {
 	return saved_key[index];
 }
-
-static unsigned char *dpad = (unsigned char*)"\x02\x00\x00\x00\x00\x00\x00\x00";
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -179,7 +184,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				}
 				Keccak_HashInitialize(&hash, 1088, 512, 256, 0x01);
 				Keccak_HashUpdate(&hash, seed, datalen * 8);
-				Keccak_HashUpdate(&hash, dpad, 1 * 8);
+				Keccak_HashUpdate(&hash, dpad.data, 1 * 8);
 				Keccak_HashFinal(&hash, (unsigned char*)crypt_out[index+i]);
 			}
 		}
