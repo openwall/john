@@ -65,7 +65,7 @@ static int omp_t = 1;
 #define BINARY_SIZE			8
 #define BINARY_ALIGN		4
 #define SALT_SIZE			sizeof(struct uaf_hash_info)
-#define SALT_ALIGN			4
+#define SALT_ALIGN			sizeof(long)
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
