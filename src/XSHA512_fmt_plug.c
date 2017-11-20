@@ -157,13 +157,13 @@ static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 #endif
 
-int binary_hash_0 (void *p) { return *((uint64_t*)p) & PH_MASK_0; }
-int binary_hash_1 (void *p) { return *((uint64_t*)p) & PH_MASK_1; }
-int binary_hash_2 (void *p) { return *((uint64_t*)p) & PH_MASK_2; }
-int binary_hash_3 (void *p) { return *((uint64_t*)p) & PH_MASK_3; }
-int binary_hash_4 (void *p) { return *((uint64_t*)p) & PH_MASK_4; }
-int binary_hash_5 (void *p) { return *((uint64_t*)p) & PH_MASK_5; }
-int binary_hash_6 (void *p) { return *((uint64_t*)p) & PH_MASK_6; }
+static int binary_hash_0 (void *p) { return *((uint64_t*)p) & PH_MASK_0; }
+static int binary_hash_1 (void *p) { return *((uint64_t*)p) & PH_MASK_1; }
+static int binary_hash_2 (void *p) { return *((uint64_t*)p) & PH_MASK_2; }
+static int binary_hash_3 (void *p) { return *((uint64_t*)p) & PH_MASK_3; }
+static int binary_hash_4 (void *p) { return *((uint64_t*)p) & PH_MASK_4; }
+static int binary_hash_5 (void *p) { return *((uint64_t*)p) & PH_MASK_5; }
+static int binary_hash_6 (void *p) { return *((uint64_t*)p) & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {

@@ -57,7 +57,11 @@ john_register_one(&fmt_sl3);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  NBKEYS
 #define MAX_KEYS_PER_CRYPT  NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#else
+#define GETPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
@@ -118,7 +122,7 @@ static void *get_binary(char *ciphertext) {
 	memset(out, 0, BINARY_SIZE);
 	base64_convert(ciphertext, e_b64_hex, 2 * BINARY_SIZE,
 	               out, e_b64_raw, BINARY_SIZE, 0, 0);
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity((unsigned char*)out, BINARY_SIZE);
 #endif
 	return (void*)out;
@@ -148,6 +152,7 @@ static void set_key(char *_key, int index)
 		*d++ = *_key++ - '0';
 	} while (i--);
 
+#if ARCH_LITTLE_ENDIAN==1
 	*keybuf_word = JOHNSWAP(*wkey++);
 	keybuf_word += SIMD_COEF_32;
 	*keybuf_word = JOHNSWAP(*wkey++);
@@ -155,6 +160,15 @@ static void set_key(char *_key, int index)
 	*keybuf_word = JOHNSWAP(*wkey++);
 	keybuf_word += SIMD_COEF_32;
 	*keybuf_word = JOHNSWAP(*wkey);
+#else
+	*keybuf_word = *wkey++;
+	keybuf_word += SIMD_COEF_32;
+	*keybuf_word = *wkey++;
+	keybuf_word += SIMD_COEF_32;
+	*keybuf_word = *wkey++;
+	keybuf_word += SIMD_COEF_32;
+	*keybuf_word = *wkey;
+#endif
 
 #else
 	char *d = saved_key[index];
