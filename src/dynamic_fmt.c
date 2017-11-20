@@ -3186,7 +3186,7 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned int idx_mo
 	unsigned char *cpO;
 	// if our insertion point is on an 'even' DWORD, then we use DWORD * copying, as long as we can
 	// This provides quite a nice speedup.
-#if ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
 	// if big-endian, we gain nothing from this function (since we would have to byte swap)
 	if (len>3&&(bf_ptr&3)) {
 		cpO = &IPB[GETPOS(bf_ptr, idx_mod)];
