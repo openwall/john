@@ -8,7 +8,7 @@
  */
 
 #include "arch.h"
-#if SIMD_COEF_32
+#if SIMD_COEF_32 && ARCH_LITTLE_ENDIAN==1
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA256_ng;

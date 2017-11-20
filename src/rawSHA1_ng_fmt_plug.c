@@ -23,7 +23,7 @@
 //
 
 #include "arch.h"
-#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER && !__ARM_NEON
+#if defined(SIMD_COEF_32) && (SIMD_COEF_32 < 16 || ARCH_BITS >= 64) && !_MSC_VER && !__ARM_NEON && ARCH_LITTLE_ENDIAN==1
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sha1_ng;
