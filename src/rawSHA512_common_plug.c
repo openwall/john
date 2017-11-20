@@ -188,7 +188,7 @@ void * sha512_common_binary(char *ciphertext)
 		p += 2;
 	}
 
-#ifdef SIMD_COEF_64
+#if defined(SIMD_COEF_64) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 #endif
 	return out;
@@ -259,7 +259,7 @@ void * sha512_common_binary_xsha512(char *ciphertext)
 		p += 2;
 	}
 
-#ifdef SIMD_COEF_64
+#if defined(SIMD_COEF_64) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
 #endif
 	return out;
@@ -324,7 +324,7 @@ void *sha512_common_binary_nsldap(char *ciphertext) {
 	ciphertext += NSLDAP_TAG_LENGTH;
 	base64_decode(ciphertext, strlen(ciphertext), realcipher);
 
-#ifdef SIMD_COEF_64
+#if defined(SIMD_COEF_64) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64 (realcipher, DIGEST_SIZE/8);
 #endif
 	return (void*)realcipher;

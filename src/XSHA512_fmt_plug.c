@@ -61,7 +61,11 @@ john_register_one(&fmt_XSHA512);
 #define BINARY_SIZE				DIGEST_SIZE
 
 #ifdef SIMD_COEF_64
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#else
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#endif
 static uint64_t (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
 static uint64_t (*crypt_out);
 static int max_keys;
@@ -153,6 +157,14 @@ static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 #endif
 
+int binary_hash_0 (void *p) { return *((uint64_t*)p) & PH_MASK_0; }
+int binary_hash_1 (void *p) { return *((uint64_t*)p) & PH_MASK_1; }
+int binary_hash_2 (void *p) { return *((uint64_t*)p) & PH_MASK_2; }
+int binary_hash_3 (void *p) { return *((uint64_t*)p) & PH_MASK_3; }
+int binary_hash_4 (void *p) { return *((uint64_t*)p) & PH_MASK_4; }
+int binary_hash_5 (void *p) { return *((uint64_t*)p) & PH_MASK_5; }
+int binary_hash_6 (void *p) { return *((uint64_t*)p) & PH_MASK_6; }
+
 static int salt_hash(void *salt)
 {
 	return *(uint32_t *)salt & (SALT_HASH_SIZE - 1);
@@ -220,6 +232,7 @@ static void set_key(char *key, int index)
 	wucp[GETPOS(7, index)] = key[3];
 	++len;
 	keybuf_word += SIMD_COEF_64;
+#if ARCH_LITTLE_ENDIAN==1
 	while((unsigned char)(temp = *wkey++)) {
 		if (!(temp & 0xff00))
 		{
@@ -264,6 +277,52 @@ static void set_key(char *key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = JOHNSWAP64(temp);
+#else
+	while((temp = *wkey++)  & 0xff00000000000000ULL) {
+		if (!(temp & 0xff000000000000ULL))
+		{
+			*keybuf_word = (temp & 0xff00000000000000ULL) | (0x80ULL << 48);
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff0000000000ULL))
+		{
+			*keybuf_word = (temp & 0xffff000000000000ULL) | (0x80ULL << 40);
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00000000ULL))
+		{
+			*keybuf_word = (temp & 0xffffff0000000000ULL) | (0x80ULL << 32);
+			len+=3;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff000000))
+		{
+			*keybuf_word = (temp & 0xffffffff00000000ULL) | (0x80ULL << 24);
+			len+=4;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = (temp & 0xffffffffff000000ULL) | (0x80 << 16);
+			len+=5;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = (temp & 0xffffffffffff0000ULL) | (0x80 << 8);
+			len+=6;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff))
+		{
+			*keybuf_word = temp | 0x80;
+			len+=7;
+			goto key_cleaning;
+		}
+		*keybuf_word = temp;
+#endif
 		len += 8;
 		keybuf_word += SIMD_COEF_64;
 	}
@@ -393,13 +452,13 @@ struct fmt_main fmt_XSHA512 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		NULL,

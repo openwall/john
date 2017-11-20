@@ -55,7 +55,11 @@ static unsigned int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#endif
 
 #else
 
@@ -147,7 +151,7 @@ static void *get_binary(char *ciphertext)
 		p += 2;
 	}
 
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return out;
@@ -168,7 +172,7 @@ static void *get_salt(char *ciphertext)
 		p += 2;
 	}
 
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity(out, SALT_SIZE);
 #endif
 	return out;
@@ -292,6 +296,7 @@ static void set_key(char *key, int index)
 	uint32_t temp;
 
 	len = 4;
+#if ARCH_LITTLE_ENDIAN==1
 	while((temp = *wkey++) & 0xff) {
 		if (!(temp & 0xff00))
 		{
@@ -312,6 +317,28 @@ static void set_key(char *key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = JOHNSWAP(temp);
+#else
+	while((temp = *wkey++) & 0xff000000) {
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = (temp & 0xff000000) | (0x80 << 16);
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = (temp & 0xffff0000) | (0x80 << 8);
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff))
+		{
+			*keybuf_word = temp | 0x80U;
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = temp;
+#endif
 		len += 4;
 		keybuf_word += SIMD_COEF_32;
 	}
