@@ -1,0 +1,54 @@
+@SET_MAKE@
+CC = @CC@
+CXX = @CXX@
+AS = @CC@
+LD = @CC@
+CPP = @CC@
+
+top_srcdir = @top_srcdir@
+srcdir = @srcdir@
+prefix = @prefix@
+
+CPPFLAGS = @CPPFLAGS@
+CFLAGSX = -c @CFLAGS@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ @HT@ $(RELEASE_BLD) $(CPPFLAGS)
+# CFLAGS for use on the main john.c file only
+CFLAGS_MAIN = -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
+CFLAGS = -DAC_BUILT @CC_CPU@ @CC_MAIN_CPU@ $(CFLAGSX)
+ASFLAGS = -DAC_BUILT @ASFLAGS@ @CC_CPU@ @CC_MAIN_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@ @HT@
+LIBS = @LIBS@
+LDFLAGS = -g @LDFLAGS@ $(LIBS) @HAVE_MPI@
+#
+OPT_NORMAL = @OPT_NORMAL_FLAGS@
+OPT_INLINE = @OPT_INLINE_FLAGS@
+#
+
+YASM = @YASM@
+AR = @AR@
+FIND = @FIND@
+RM = /bin/rm -f
+
+WITH_OPENCL=@CL_LIBS@
+ifdef WITH_OPENCL
+CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
+CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
+endif
+
+PLUGFORMATS_OCL_OBJS = @PLUGFORMATS_OCL_OBJS@
+
+@PLUGFORMATS_OCL_DEPS@
+
+.c.o:
+	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
+
+opencl.a: $(PLUGFORMATS_OCL_OBJS)
+	$(AR) -rs $@ $(PLUGFORMATS_OCL_OBJS)
+
+default: opencl.a
+all: opencl.a
+
+clean:
+	$(FIND) . -name \*.a -exec $(RM) {} \;
+	$(FIND) . -name \*.o -exec $(RM) {} \;
+
+distclean: clean
+	$(RM) Makefile

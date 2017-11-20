@@ -924,11 +924,13 @@ fi
 echo "configure: creating *_plug.c and OpenCL object rules"
 if test "`echo *_plug.c`" != "*_plug.c"; then
    AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/\.c/.o/g'`])
-   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
+   AC_SUBST([PLUGFORMATS_OCL_OBJS],[`for i in $(echo jumbo/opencl/*_plug.c | sed 's/\.c/.o/g'); do basename $i; done | tr "\n" " "`])
+   AC_SUBST([KERNEL_OBJS],[`echo jumbo/opencl/kernels/*.cl | sed 's/jumbo\/opencl\/kernels\//..\/run\/kernels\//g'`])
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
-      AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
+      AC_SUBST([PLUGFORMATS_OCL_DEPS],[`$PERL ./plugin_deps.pl jumbo/opencl/*_plug.c`])
+      AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl jumbo/opencl/kernels/*.cl`])
    fi
 fi
 
@@ -941,6 +943,7 @@ AC_CONFIG_FILES([Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  secp256k1/Makefile
+                 jumbo/opencl/Makefile
                  escrypt/Makefile])
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
@@ -953,6 +956,10 @@ echo "configure: creating ./fmt_externs.h"
 rm -f fmt_externs.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+fi
+
+if test "`echo jumbo/opencl/opencl_*_fmt_plug.c`" != "jumbo/opencl/opencl_*_fmt_plug.c"; then
+   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H jumbo/opencl/opencl_*_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f >> fmt_externs.h
 fi
 # if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
@@ -978,8 +985,8 @@ if test ! -f fmt_registers.h; then
   echo >fmt_registers.h
 fi
 
-if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+if test "`echo jumbo/opencl/opencl_*_fmt_plug.c`" != "jumbo/opencl/opencl_*_fmt_plug.c"; then
+   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H jumbo/opencl/opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 
 ########################################################

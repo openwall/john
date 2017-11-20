@@ -140,7 +140,7 @@ AC_DEFUN([JTR_SET_OPENCL_INCLUDES],
 [
    AC_MSG_CHECKING([additional paths for OpenCL])
    ADD_LDFLAGS=""
-   ADD_CFLAGS=""
+   ADD_CFLAGS="-iquote$(pwd) -iquote$(pwd)/jumbo/opencl/include"
    if test -n "$AMDAPPSDKROOT"; then
       if test -d "$AMDAPPSDKROOT/include"; then
          ADD_CFLAGS="$ADD_CFLAGS -I$AMDAPPSDKROOT/include"
