@@ -89,7 +89,11 @@ static int cfg_merge_local_section() {
 		if (!found) {
 			// add a new item. NOTE, fixes bug #767
 			// https://github.com/magnumripper/JohnTheRipper/issues/767
+#if ARCH_ALLOWS_UNALIGNED
 			struct cfg_param *p3 = (struct cfg_param*)mem_alloc_tiny(sizeof(struct cfg_param), 1);
+#else
+			struct cfg_param *p3 = (struct cfg_param*)mem_alloc_tiny(sizeof(struct cfg_param), MEM_ALIGN_WORD);
+#endif
 			p3->next = parent->params;
 			p3->name = p1->name;
 			p3->value = p1->value;
