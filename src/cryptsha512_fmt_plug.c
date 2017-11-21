@@ -139,6 +139,11 @@ john_register_one(&fmt_cryptsha512);
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
+#if ARCH_LITTLE_ENDIAN==1
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#else
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -749,6 +754,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				int j, k;
 				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
 					uint64_t *o = (uint64_t *)crypt_struct->cptr[k][idx];
+#if !ARCH_ALLOWS_UNALIGNED
+					if (!is_aligned(o, 8)) {
+						unsigned char *cp = (unsigned char*)o;
+						for (j = 0; j < 64; ++j)
+							*cp++ = ((unsigned char*)sse_out)[GETPOS(j, k)];
+					} else
+#endif
 					for (j = 0; j < 8; ++j)
 #if ARCH_LITTLE_ENDIAN==1
 						*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
