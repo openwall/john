@@ -69,7 +69,7 @@ static struct fmt_tests panama__tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 3];  // PANAMA implementation expects 32-bit alignment
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
@@ -160,6 +160,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		sph_panama(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_panama_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
