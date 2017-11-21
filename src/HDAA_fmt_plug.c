@@ -54,7 +54,7 @@ john_register_one(&fmt_HDAA);
 #define BINARY_SIZE			16
 #define BINARY_ALIGN			4
 #define SALT_SIZE			sizeof(reqinfo_t)
-#define SALT_ALIGN			4
+#define SALT_ALIGN			8
 
 #if defined(_OPENMP)
 static unsigned int omp_t = 1;
