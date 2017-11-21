@@ -68,7 +68,11 @@ john_register_one(&fmt_mysqlSHA1);
 
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#endif
 
 #else
 
@@ -163,11 +167,12 @@ static void set_key(char *key, int index)
 	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
 	                                       key : strcpy(buf_aligned, key));
 #endif
-	uint32_t *keybuf_word = (uint32_t*)&saved_key[GETPOS(3, index)];
+	uint32_t *keybuf_word = &((uint32_t*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
 	unsigned int len;
 	uint32_t temp;
 
 	len = 0;
+#if ARCH_LITTLE_ENDIAN==1
 	while((temp = *wkey++) & 0xff) {
 		if (!(temp & 0xff00))
 		{
@@ -188,6 +193,28 @@ static void set_key(char *key, int index)
 			goto key_cleaning;
 		}
 		*keybuf_word = JOHNSWAP(temp);
+#else
+	while((temp = *wkey++) & 0xff000000) {
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = (temp & 0xff000000) | (0x80 << 16);
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = (temp & 0xffff0000) | (0x80 << 8);
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff))
+		{
+			*keybuf_word = temp | 0x80U;
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = temp;
+#endif
 		len += 4;
 		keybuf_word += SIMD_COEF_32;
 	}
@@ -305,7 +332,7 @@ static void *get_binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
 	return (void *)realcipher;
