@@ -102,7 +102,11 @@ john_register_one(&fmt_oracle11);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#endif
 #define GETPOS_WORD(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 +               (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4)
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -215,6 +219,7 @@ static void set_key(char *key, int index)
 	unsigned int len;
 
 	len = SALT_SIZE;
+#if ARCH_LITTLE_ENDIAN==1
 	while((*keybuf_word = JOHNSWAP(*wkey++)) & 0xff000000) {
 		if (!(*keybuf_word & 0xff0000))
 		{
@@ -231,6 +236,25 @@ static void set_key(char *key, int index)
 			len+=3;
 			break;
 		}
+#else
+	while((*keybuf_word = *wkey++) & 0xff000000) {
+		if (!(*keybuf_word & 0xff0000))
+		{
+			len++;
+			break;
+		}
+		if (!(*keybuf_word & 0xff00))
+		{
+			len+=2;
+			break;
+		}
+		if (!(*keybuf_word & 0xff))
+		{
+			len+=3;
+			break;
+		}
+#endif
+
 		len += 4;
 		keybuf_word += SIMD_COEF_32;
 	}
@@ -319,6 +343,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// 1. Copy a byte at a time until we're aligned in buffer
 		// 2. Copy a whole word, or two!
 		// 3. Copy the stray bytes
+#if !ARCH_ALLOWS_UNALIGNED || ARCH_LITTLE_ENDIAN==0
+		for ( ; i < SALT_SIZE; ++i)
+			saved_key[GETPOS(i+len, index)] = saved_salt[i];
+#else
 		switch (len & 3)
 		{
 		case 0:
@@ -371,6 +399,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			break;
 		}
+#endif
 	}
 	SIMDSHA1body(saved_key, (unsigned int *)crypt_key, NULL, SSEi_MIXED_IN);
 #else
@@ -395,7 +424,7 @@ static void * get_binary(char *ciphertext)
 		realcipher.c[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 +
 						atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity((unsigned char *)realcipher.c, BINARY_SIZE);
 #endif
 	return (void *)realcipher.c;
