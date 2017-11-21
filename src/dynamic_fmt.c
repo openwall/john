@@ -1190,7 +1190,11 @@ static void set_salt(void *salt)
 		saltlen = 0;
 		return;
 	}
-	cpsalt = *((unsigned char**)salt);
+#if ARCH_ALLOWS_UNALIGNED
+        cpsalt = *((unsigned char**)salt);
+#else
+        memcpy(((void*)&(cpsalt)), ((unsigned char **)salt), sizeof(void*));
+#endif
 	saltlen = *cpsalt++ - '0';
 	saltlen <<= 3;
 	saltlen += *cpsalt++ - '0';
@@ -2444,7 +2448,11 @@ static int salt_hash(void *salt)
 		return 0;
 
 	// salt is now a pointer, but WORD aligned.  We remove that word alingment, and simply use the next bits
+#if ARCH_ALLOWS_UNALIGNED
 	H = *((unsigned long*)salt);
+#else
+	memcpy(&h, salt, 8);
+#endif
 
 	// Mix up the pointer value (H^(H>>9)) so that if we have a fixed sized allocation
 	// that things do get 'stirred' up better.
