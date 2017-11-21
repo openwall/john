@@ -72,7 +72,7 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
 #define BINARY_ALIGN		1
-#define SALT_ALIGN			sizeof(int)
+#define SALT_ALIGN			8
 #define SALT_SIZE           sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
