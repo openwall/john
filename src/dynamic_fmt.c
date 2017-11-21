@@ -2451,7 +2451,7 @@ static int salt_hash(void *salt)
 #if ARCH_ALLOWS_UNALIGNED
 	H = *((unsigned long*)salt);
 #else
-	memcpy(&h, salt, 8);
+	memcpy(&H, salt, 8);
 #endif
 
 	// Mix up the pointer value (H^(H>>9)) so that if we have a fixed sized allocation
