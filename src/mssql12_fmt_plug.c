@@ -242,6 +242,10 @@ static void set_key(char *_key, int index)
 	keybuffer[15] = ((len << 1) + SALT_SIZE) << 3;
 
 	new_keys = 1;
+
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity_w16(saved_key[index], len<<1);
+#endif
 #endif
 }
 
@@ -305,7 +309,9 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(ciphertext[i*2+15])];
 
 #ifdef SIMD_COEF_64
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64 (realcipher, DIGEST_SIZE/8);
+#endif
 #ifdef REVERSE_STEPS
 	sha512_reverse(out);
 #endif
@@ -433,7 +439,9 @@ static int cmp_exact(char *source, int index)
 	SHA512_Update(&ctx, cursalt, SALT_SIZE);
 	SHA512_Final((unsigned char*)crypt_out, &ctx);
 
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE/8);
+#endif
 #ifdef REVERSE_STEPS
 	sha512_reverse(crypt_out);
 #endif
