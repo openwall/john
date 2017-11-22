@@ -29,6 +29,13 @@ john_register_one(&fmt_HDAA);
 #include "formats.h"
 #include "md5.h"
 
+#if ARCH_LITTLE_ENDIAN==0
+// For now, neuter this format from SIMD building.
+// Someone else can port to BE at a later date.
+#undef SIMD_COEF_32
+#undef SIMD_PARA_MD5
+#endif
+
 #include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
