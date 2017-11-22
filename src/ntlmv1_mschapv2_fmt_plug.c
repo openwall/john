@@ -1310,7 +1310,7 @@ static int cmp_exact(char *source, int index)
 			JOHNSWAP(*(uint32_t*)&nthash[GETOUTPOS_W32(i, index)]);
 #endif
 #else
-	memcpy(key, &nthash[index * 16], 16);
+	memcpy(k.key, &nthash[index * 16], 16);
 #endif
 	/* Hash is NULL padded to 21-bytes */
 	memset(&k.key[16], 0, 5);
