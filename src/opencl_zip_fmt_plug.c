@@ -44,10 +44,10 @@ john_register_one(&fmt_opencl_zip);
  #define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-#define BINARY_ALIGN		MEM_ALIGN_NONE
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(my_salt*)
-#define SALT_ALIGN		4
+#define SALT_ALIGN		sizeof(size_t)
 
 typedef struct {
 	uint32_t length;

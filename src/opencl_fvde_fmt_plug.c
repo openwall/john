@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_fvde);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(*cur_salt)
-#define SALT_ALIGN              1
+#define SALT_ALIGN              sizeof(uint64_t)
 #define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"

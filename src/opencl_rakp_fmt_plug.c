@@ -57,7 +57,7 @@ john_register_one(&fmt_opencl_rakp);
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
-#define BINARY_ALIGN            1
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              1
 
 #define STEP                    0
