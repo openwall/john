@@ -138,8 +138,13 @@ static void init(struct fmt_main *self)
 	for (i = 0; i < kpc/MAX_KEYS_PER_CRYPT; ++i) {
 		int j;
 		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {
+#if ARCH_LITTLE_ENDIAN==1
 			prep_key[i][3][j][3] = 0x80;
 			prep_key[i][3][j][30] = 518<<3;
+#else
+			prep_key[i][3][j][3] = 0x8000;
+			prep_key[i][3][j][31] = 518<<3;
+#endif
 		}
 	}
 	crypt_cache = mem_calloc_align(sizeof(*crypt_cache),
