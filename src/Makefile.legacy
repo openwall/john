@@ -246,7 +246,7 @@ default:
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
-#	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
+	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "linux-ia64               Linux, IA-64"
 	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2 (best)"
@@ -728,7 +728,7 @@ linux-ppc32-altivec:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
-		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -744,7 +744,6 @@ linux-ppc32:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-# This is slightly slower than linux-ppc32-altivec for most hash types.
 linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -752,7 +751,7 @@ linux-ppc64-altivec:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT -DHAVE_LIBDL" \
 		LDFLAGS="$(LDFLAGS) -m64 -lcrypt -ldl" \
-		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
