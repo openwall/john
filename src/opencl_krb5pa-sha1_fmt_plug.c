@@ -70,7 +70,7 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #define BINARY_SIZE		12
 #define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		1
+#define SALT_ALIGN		4
 #define MAX_SALTLEN             52
 #define MAX_REALMLEN            MAX_SALTLEN
 #define MAX_USERLEN             MAX_SALTLEN

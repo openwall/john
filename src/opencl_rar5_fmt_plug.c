@@ -47,7 +47,7 @@ john_register_one(&fmt_ocl_rar5);
 #define SEED			1024
 
 #define BINARY_ALIGN		4
-#define SALT_ALIGN		1
+#define SALT_ALIGN		sizeof(int)
 
 #define PLAINTEXT_LENGTH	55
 #define BINARY_SIZE		SIZE_PSWCHECK
