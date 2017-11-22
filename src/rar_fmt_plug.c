@@ -98,7 +98,11 @@ john_register_one(&fmt_rar);
 #ifdef SIMD_COEF_32
 #include "simd-intrinsics.h"
 #define NBKEYS (SIMD_COEF_32*SIMD_PARA_SHA1)
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 )
+#else
+#define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 )
+#endif
 #define HASH_IDX(idx) (((unsigned int)idx&(SIMD_COEF_32-1))+(unsigned int)idx/SIMD_COEF_32*5*SIMD_COEF_32)
 
 #define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " AES"
@@ -277,7 +281,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					for (k = RawLength; k < 64; ++k)
 						tempin[GETPOS(k, j)] = 0;
 					tempin[GETPOS(RawLength, j)] = 0x80;
+#if ARCH_LITTLE_ENDIAN==1
 					tail = (uint32_t*)&tempin[GETPOS(64 - 1, j)];
+#else
+					tail = (uint32_t*)&tempin[GETPOS(64 - 1 - 3, j)];
+#endif
 					*tail = cur_len*8;
 				}
 				if (i == 0)
@@ -307,7 +315,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (j = 0; j < NBKEYS; ++j) {
 			uint32_t *tail;
 			RawPsw[0][GETPOS(0, j)] = 0x80;
-			tail = (uint32_t*)&RawPsw[0][GETPOS(64 - 1, j)];
+#if ARCH_LITTLE_ENDIAN==1
+			tail =  (uint32_t*)&RawPsw[0][GETPOS(64 - 1, j)];
+#else
+			tail =  (uint32_t*)&RawPsw[0][GETPOS(64 - 1 - 3, j)];
+#endif
+
 			*tail = cur_len*8;
 		}
 		SIMDSHA1body(RawPsw[0], digest, digest, SSEi_MIXED_IN | SSEi_RELOAD);
@@ -316,7 +329,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < 4; ++i) {
 				int idx = indices[index + j];
 				uint32_t *dst = (uint32_t*)&aes_key[idx*16];
+#if ARCH_LITTLE_ENDIAN==1
 				dst[i] = digest[HASH_IDX(j) + i*SIMD_COEF_32];
+#else
+				dst[i] = JOHNSWAP(digest[HASH_IDX(j) + i*SIMD_COEF_32]);
+#endif
 			}
 		}
 	}
