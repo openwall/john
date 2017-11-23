@@ -92,8 +92,7 @@ static void done(void)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self) {
 	static char buf[CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1];   // $radmin2$ is 9 bytes
-	strnzcpy(buf, ciphertext, CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1);
-	strlwr(buf);
+	memcpylwr(buf, ciphertext, CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1);
 	return buf;
 }
 

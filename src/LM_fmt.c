@@ -112,13 +112,11 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
 
 	if (index)
-		memcpy(&out[FORMAT_TAG_LEN], &ciphertext[16], 16);
+		memcpylwr(&out[FORMAT_TAG_LEN], &ciphertext[16], 16);
 	else
-		memcpy(&out[FORMAT_TAG_LEN], ciphertext, 16);
+		memcpylwr(&out[FORMAT_TAG_LEN], ciphertext, 16);
 
 	out[20] = 0;
-
-	strlwr(&out[FORMAT_TAG_LEN]);
 
 	return out;
 }
