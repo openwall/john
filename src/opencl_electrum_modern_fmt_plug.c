@@ -30,7 +30,6 @@ john_register_one(&fmt_opencl_electrum_modern);
 #endif
 
 #include "misc.h"
-#include "arch.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
