@@ -264,11 +264,11 @@ char *strnzcpylwr(char *dst, const char *src, int size)
 
 	if (size)
 		while (--size) {
-			if (!*src) return dst;
 			if (*src >= 'A' && *src <= 'Z') {
 				*dptr = *src | 0x20;
 			} else {
 				*dptr = *src;
+				if (!*src) return dst;
 			}
 			dptr++;
 			src++;
