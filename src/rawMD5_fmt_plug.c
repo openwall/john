@@ -201,8 +201,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 			!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
 
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH);
-	strlwr(&out[TAG_LENGTH]);
+	memcpylwr(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 
 	return out;
 }

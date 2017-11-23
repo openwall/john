@@ -303,6 +303,19 @@ char *strlwr(char *s)
 }
 #endif
 
+void memcpylwr(char *dest, const char *src, size_t n)
+{
+	while (n--) {
+		if (*src >= 'A' && *src <= 'Z') {
+			*dest = *src | 0x20;
+		} else {
+			*dest = *src;
+		}
+		dest++;
+		src++;
+	}
+}
+
 #if (AC_BUILT && !HAVE_STRUPR) || (!AC_BUILT && !_MSC_VER)
 char *strupr(char *s)
 {
