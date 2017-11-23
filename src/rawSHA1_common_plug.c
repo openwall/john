@@ -125,7 +125,7 @@ char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
 		ciphertext += TAG_LENGTH;
 
 	strncpy(out, FORMAT_TAG, sizeof(out));
-	memcpylwr(&out[TAG_LENGTH], ciphertext, HASH_LENGTH + 1);
+	strnzcpylwr(&out[TAG_LENGTH], ciphertext, HASH_LENGTH + 1);
 
 	return out;
 }

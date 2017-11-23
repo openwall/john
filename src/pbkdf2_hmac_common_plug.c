@@ -95,7 +95,7 @@ char *pbkdf2_hmac_md4_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[PBKDF2_MD4_MAX_CIPHERTEXT_LENGTH + 1];
 	char *cp;
-	memcpylwr(out, ciphertext, sizeof(out));
+	strnzcpylwr(out, ciphertext, sizeof(out));
 	cp = strchr(out, '.');
 	while (cp) {
 		*cp = '$';
@@ -230,7 +230,7 @@ error:
 char *pbkdf2_hmac_md5_split(char *ciphertext, int index, struct fmt_main *self) {
 	static char out[PBKDF2_MD5_MAX_CIPHERTEXT_LENGTH + 1];
 	char *cp;
-	memcpylwr(out, ciphertext, sizeof(out));
+	strnzcpylwr(out, ciphertext, sizeof(out));
 	cp = strchr(out, '.');
 	while (cp) {
 		*cp = '$';
@@ -378,7 +378,7 @@ char *pbkdf2_hmac_sha1_split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH + 1];
 	char *cp;
 
-	memcpylwr(out, ciphertext, sizeof(out));
+	strnzcpylwr(out, ciphertext, sizeof(out));
 	cp = strchr(out, '.');
 	while (cp) {
 		*cp = '$';
@@ -720,7 +720,7 @@ char *pbkdf2_hmac_sha512_split(char *ciphertext, int index, struct fmt_main *sel
 	static char out[PBKDF2_SHA512_MAX_CIPHERTEXT_LENGTH + 1];
 	char *cp;
 
-	memcpylwr(out, ciphertext, sizeof(out));
+	strnzcpylwr(out, ciphertext, sizeof(out));
 	if (*out == '$') {
 		cp = strchr(&out[1], '$');
 		if (cp) {

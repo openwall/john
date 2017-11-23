@@ -113,6 +113,11 @@ extern char *strnfcpy(char *dst, const char *src, int size);
 extern char *strnzcpy(char *dst, const char *src, int size);
 
 /*
+ * Similar to the above, but also converts to lowercase in a single pass
+ */
+extern char *strnzcpylwr(char *dst, const char *src, int size);
+
+/*
  * Similar to the strnzcpy, but returns the length of the string.
  */
 extern int strnzcpyn(char *dst, const char *src, int size);
