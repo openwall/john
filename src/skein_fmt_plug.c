@@ -142,8 +142,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		ciphertext += TAG_LENGTH;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	strnzcpy(out + TAG_LENGTH, ciphertext, BINARY_SIZE512*2 + 1);
-	strlwr(out + TAG_LENGTH);
+	strnzcpylwr(out + TAG_LENGTH, ciphertext, BINARY_SIZE512*2 + 1);
 	return out;
 }
 
