@@ -8,6 +8,7 @@
  * Based on opencl_pbkdf2_hmac_sha512_fmt_plug.c file.
  */
 
+#include "arch.h"
 #if !AC_BUILT
 #define HAVE_LIBZ 1
 #endif
@@ -29,7 +30,6 @@ john_register_one(&fmt_opencl_electrum_modern);
 #endif
 
 #include "misc.h"
-#include "arch.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
