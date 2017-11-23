@@ -242,10 +242,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 
-	memcpy(&out[TAG_LENGTH], ciphertext, 32);
+	memcpylwr(&out[TAG_LENGTH], ciphertext, 32);
 	out[36] = 0;
-
-	strlwr(&out[TAG_LENGTH]);
 
 	return out;
 }

@@ -109,8 +109,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		ciphertext += 8;
 
 	memcpy(out, "$keccak$", 8);
-	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + 8);
+	memcpylwr(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
 

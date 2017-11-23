@@ -154,10 +154,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	strcpy(out, "$dynamic_29$");
 
-	memcpy(&out[12], ciphertext, 32);
+	memcpylwr(&out[12], ciphertext, CIPHERTEXT_LENGTH);
 	out[sizeof(out)-1] = 0;
-
-	strlwr(&out[12]);
 
 	return out;
 }

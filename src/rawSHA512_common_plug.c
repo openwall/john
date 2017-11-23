@@ -353,8 +353,7 @@ char * sha512_common_split(char *ciphertext, int index, struct fmt_main *self)
 		ciphertext += TAG_LENGTH;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + TAG_LENGTH);
+	memcpylwr(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
 
@@ -366,7 +365,6 @@ char * sha512_common_split_xsha512(char *ciphertext, int index, struct fmt_main 
 		return ciphertext;
 
 	memcpy(out, XSHA512_FORMAT_TAG, XSHA512_TAG_LENGTH);
-	memcpy(out + XSHA512_TAG_LENGTH, ciphertext, XSHA512_CIPHERTEXT_LENGTH + 1);
-	strlwr(out + XSHA512_TAG_LENGTH);
+	memcpylwr(out + XSHA512_TAG_LENGTH, ciphertext, XSHA512_CIPHERTEXT_LENGTH + 1);
 	return out;
 }
