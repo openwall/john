@@ -290,6 +290,8 @@ extern long long jtr_atoll(const char *);
 #endif
 #endif
 
+void memcpylwr(char *, const char *, size_t);
+
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
 // since we added -std=c99 for Mingw builds (to handle printf/scanf %xxx specifiers better),
 // we had to make some 'changes'. Mostly, some of the string types are undeclared (but will
