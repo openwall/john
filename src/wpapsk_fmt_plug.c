@@ -20,6 +20,12 @@ john_register_one(&fmt_wpapsk);
 #include <assert.h>
 
 #include "arch.h"
+
+#if !ARCH_LITTLE_ENDIAN
+#undef SIMD_COEF_32
+#undef SIMD_PARA_SHA1
+#endif
+
 #include "simd-intrinsics.h"
 #include "formats.h"
 #include "common.h"
