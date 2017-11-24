@@ -335,7 +335,7 @@ static char *source(char *source, void *binary)
 		hash[4] = 0;
 #endif
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
 	alter_endianity(hash, DIGEST_SIZE);
 #endif
 

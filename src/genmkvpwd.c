@@ -226,7 +226,7 @@ int main(int argc, char * * argv)
 
 	init_probatables(argv[1]);
 
-	if (max_len==0)
+	if (max_len == 0)
 	{
 		for (max_len=6;max_len<20;max_len++)
 		{
@@ -247,7 +247,7 @@ int main(int argc, char * * argv)
 		goto fin;
 	}
 
-	if (max_lvl==0)
+	if (max_lvl == 0)
 	{
 		for (max_lvl=100;max_lvl<=MAX_MKV_LVL;max_lvl++)
 		{
@@ -286,7 +286,7 @@ int main(int argc, char * * argv)
 	else
 		fprintf(stderr, ""LLu" possible passwords\n", nbparts[0] );
 
-	if (end==0)
+	if (end == 0)
 		end = nbparts[0];
 
 	pwd.level = 0;

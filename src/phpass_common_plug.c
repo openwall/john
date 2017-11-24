@@ -109,7 +109,7 @@ void *phpass_common_binary(char *ciphertext)
 	b[bidx] = sixbits;
 	sixbits = atoi64[ARCH_INDEX(*pos++)];
 	b[bidx] |= (sixbits<<6);
-#if ARCH_LITTLE_ENDIAN==0 && defined (SIMD_COEF_32)
+#if !ARCH_LITTLE_ENDIAN && defined (SIMD_COEF_32)
 	alter_endianity(b, 16);
 #endif
 	return b;

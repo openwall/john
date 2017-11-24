@@ -276,7 +276,7 @@ void hash_plugin_check_hash(int index)
 	AES_cbc_essiv(cur_salt->data + 1024, decrypted2, keycandidate2,2,128);
 
 	// Check for FAT
-	if ((memcmp(decrypted1+3,"MSDOS5.0",8)==0))
+	if (!memcmp(decrypted1 + 3, "MSDOS5.0", 8))
 	    cracked[index+j] = 1;
 	else {
 		// Check for extfs

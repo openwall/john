@@ -327,7 +327,7 @@ void alter_endianity_w64(void *x, unsigned int count);
 #if ARCH_ALLOWS_UNALIGNED
 // we can inline these, to always use JOHNSWAP/JOHNSWAP64
 // NOTE, more portable to use #defines to inline, than the MAYBE_INLINE within header files.
-#if (ARCH_LITTLE_ENDIAN==0)
+#if !ARCH_LITTLE_ENDIAN
 #define alter_endianity_to_BE(a,b)
 #define alter_endianity_to_BE64(a,b)
 #define alter_endianity_to_LE(ptr,word32_cnt) do{ \
@@ -355,7 +355,7 @@ void alter_endianity_w64(void *x, unsigned int count);
 }while(0)
 #endif
 #else
-#if (ARCH_LITTLE_ENDIAN==0)
+#if !ARCH_LITTLE_ENDIAN
 #define alter_endianity_to_BE(a,b)
 #define alter_endianity_to_LE(a,b) do{alter_endianity_w(a,b);}while(0)
 #define alter_endianity_to_BE64(a,b)

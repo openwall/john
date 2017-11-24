@@ -210,7 +210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// set bit
 			saved_key[index][len] = 0x80;
 			block[14] = len << 3;
-#if (ARCH_LITTLE_ENDIAN==0)
+#if !ARCH_LITTLE_ENDIAN
 			block[14] = JOHNSWAP(block[14]);
 #endif
 			MD5_Update(&saved_ctx[index], (unsigned char*)block, 64);

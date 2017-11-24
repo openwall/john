@@ -343,7 +343,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// 1. Copy a byte at a time until we're aligned in buffer
 		// 2. Copy a whole word, or two!
 		// 3. Copy the stray bytes
-#if !ARCH_ALLOWS_UNALIGNED || ARCH_LITTLE_ENDIAN==0
+#if !ARCH_ALLOWS_UNALIGNED || !ARCH_LITTLE_ENDIAN
 		for ( ; i < SALT_SIZE; ++i)
 			saved_key[GETPOS(i+len, index)] = saved_salt[i];
 #else

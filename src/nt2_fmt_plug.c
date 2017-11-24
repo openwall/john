@@ -582,7 +582,7 @@ static char *get_key(int index)
 			break;
 		}
 	}
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
 	alter_endianity_w16(key, md4_size<<1);
 #endif
 	return (char*)utf16_to_enc(key);

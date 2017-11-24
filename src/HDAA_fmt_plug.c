@@ -29,7 +29,7 @@ john_register_one(&fmt_HDAA);
 #include "formats.h"
 #include "md5.h"
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
 // For now, neuter this format from SIMD building.
 // Someone else can port to BE at a later date.
 #undef SIMD_COEF_32

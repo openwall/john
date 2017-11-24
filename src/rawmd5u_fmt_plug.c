@@ -464,7 +464,7 @@ static char *get_key(int index)
 			break;
 		}
 	}
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
 	// NOTE, we really should add utf16be_to_enc(key) to unicode.[ch] (and the
 	// other 7 or so required functions. currently unicode.c ONLY handles
 	// UTF-16LE, but we are left with UTF-16BE due to key loading.

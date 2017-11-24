@@ -33,7 +33,7 @@ john_register_one(&fmt_sapB);
 #define FORMAT_LABEL			"sapb"
 #define FORMAT_NAME			"SAP CODVN B (BCODE)"
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
 // For now, neuter this format from SIMD building.
 // Someone else can port to BE at a later date.
 #undef SIMD_COEF_32

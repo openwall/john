@@ -69,7 +69,8 @@ char *jtr_basename_r(const char *name, char *buf) {
 	int something=0;
 
 	// if name was null, or the string was null, then return a '.' char.
-	if (!name || name[0]==0) return ".";
+	if (!name || name[0] == 0)
+		return ".";
 
 	strcpy(buf, name);
 	base = buf;
@@ -80,7 +81,8 @@ char *jtr_basename_r(const char *name, char *buf) {
 	    ((base[0] >= 'A' && base[0] <= 'Z')||(base[0] >= 'a' && base[0] <= 'z')) &&
 	    base[1] == ':')
 		base += 2;
-	if (base[0]==0) return ".";
+	if (base[0] == 0)
+		return ".";
 #endif
 
 	p = base;
@@ -101,7 +103,8 @@ char *jtr_basename_r(const char *name, char *buf) {
 			*p = 0;
 			--p;
 		}
-		if (base[0]==0) return ".";
+		if (base[0] == 0)
+			return ".";
 	}
 	return (char*)base;
 }

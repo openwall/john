@@ -420,7 +420,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	}
 #endif
 
-	if (ntests==0) return NULL;
+	if (ntests == 0)
+		return NULL;
 
 	/* Check prepare, valid, split before init */
 	if (!current->fields[1])

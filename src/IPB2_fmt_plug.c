@@ -227,7 +227,7 @@ static void *get_binary(char *ciphertext)
 			(atoi16[ARCH_INDEX(ciphertext[i*2])] << 4)
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
-#if ARCH_LITTLE_ENDIAN==0 && defined (SIMD_COEF_32)
+#if !ARCH_LITTLE_ENDIAN && defined (SIMD_COEF_32)
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return (void*)out;

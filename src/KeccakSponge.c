@@ -43,7 +43,7 @@ int Keccak_SpongeAbsorb(Keccak_SpongeInstance *instance, const unsigned char *da
     const unsigned char *curData;
     unsigned int rateInBytes = instance->rate/8;
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
     unsigned long long lldat[rateInBytes/8];
     const unsigned long long *ll;
 #endif
@@ -61,7 +61,7 @@ int Keccak_SpongeAbsorb(Keccak_SpongeInstance *instance, const unsigned char *da
                     KeccakF1600_StateXORBytesInLane(instance->state, rateInBytes/KeccakF_laneInBytes,
                         curData+(rateInBytes/KeccakF_laneInBytes)*KeccakF_laneInBytes,
                         0, rateInBytes%KeccakF_laneInBytes);
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
 		ll = (const unsigned long long *)curData;
 		for (i = 0; i < rateInBytes/8; ++i)
 			lldat[i] = JOHNSWAP64(ll[i]);

@@ -36,7 +36,7 @@ john_register_one(&fmt_sapH);
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN
 // For now, neuter this format from SIMD building.
 // Someone else can port to BE at a later date.
 #undef SIMD_COEF_32

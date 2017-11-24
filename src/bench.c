@@ -712,7 +712,7 @@ AGAIN:
 		/* format and needs init called to change the name     */
 		if ((format->params.flags & FMT_DYNAMIC) ||
 		    strstr(format->params.label, "-opencl") ||
-			strcmp(format->params.label, "crypt")==0 )
+		    !strcmp(format->params.label, "crypt"))
 			fmt_init(format);
 
 		/* GPU-side mask mode benchmark */

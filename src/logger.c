@@ -271,7 +271,7 @@ static void log_file_fsync(struct log_file *f)
 	if (f->fd < 0) return;
 
 	log_file_flush(f);
-#if HAVE_WINDOWS_H==0
+#if !HAVE_WINDOWS_H
 	if (fsync(f->fd)) pexit("fsync");
 #endif
 }

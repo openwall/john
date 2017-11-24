@@ -234,7 +234,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	// we want the hash to use 32 bytes OR more.  43 base64 bytes is 32 raw bytes
-	return p[length]==0 && length >= 43;
+	return p[length] == 0 && length >= 43;
 }
 
 static void *get_binary(char *ciphertext)
