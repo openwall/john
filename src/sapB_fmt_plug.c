@@ -485,7 +485,7 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 #if SIMD_COEF_32
 	// This may be unaligned here, but after the aligned vector buffer
 	// transfer, we will have no junk left from loop overrun
-	*(unsigned int*)&destArray[sum20] = 0x00000080;
+	memcpy(&destArray[sum20], "\x80\0\0\0", 4);	// this might be a source of BE alignment problems.
 #endif
 	return sum20;
 }

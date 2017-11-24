@@ -326,7 +326,13 @@ static void crypt_all_1(int count) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*5)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 5; ++j) {
+					// likely location for BE porting
+#if ARCH_ALLOWS_UNALIGNED
 					Icp32[j] = JOHNSWAP(*pcrypt);
+#else
+					uint32_t tmp = JOHNSWAP(*pcrypt);
+					memcpy(&Icp32[j], &tmp, 4);
+#endif
 					pcrypt += SIMD_COEF_32;
 				}
 			}
@@ -398,7 +404,12 @@ static void crypt_all_256(int count) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 					Icp32[j] = JOHNSWAP(*pcrypt);
+#else
+					uint32_t tmp = JOHNSWAP(*pcrypt);
+					memcpy(&Icp32[j], &tmp, 4);
+#endif
 					pcrypt += SIMD_COEF_32;
 				}
 			}
@@ -409,7 +420,12 @@ static void crypt_all_256(int count) {
 			uint32_t *Iptr32 = &crypt32[ ((i/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (i&(SIMD_COEF_32-1))];
 			// we only want 16 bytes, not 32
 			for (j = 0; j < 4; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 				Optr32[j] = JOHNSWAP(*Iptr32);
+#else
+				uint32_t tmp = JOHNSWAP(*Iptr32);
+				memcpy(&Optr32[j], &tmp, 4);
+#endif
 				Iptr32 += SIMD_COEF_32;
 			}
 		}
@@ -471,7 +487,12 @@ static void crypt_all_384(int count) {
 				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 6; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 					Icp64[j] = JOHNSWAP64(*pcrypt);
+#else
+					uint64_t tmp = JOHNSWAP64(*pcrypt);
+					memcpy(&Icp64[j], &tmp, 8);
+#endif
 					pcrypt += SIMD_COEF_64;
 				}
 			}
@@ -543,7 +564,12 @@ static void crypt_all_512(int count) {
 				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 					Icp64[j] = JOHNSWAP64(*pcrypt);
+#else
+					uint64_t tmp = JOHNSWAP64(*pcrypt);
+					memcpy(&Icp64[j], &tmp, 8);
+#endif
 					pcrypt += SIMD_COEF_64;
 				}
 			}

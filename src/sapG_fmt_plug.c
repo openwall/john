@@ -562,8 +562,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (++i & 3)
 				saved_key[i>>6][GETPOS(i, ti)] = *p++;
 			// ...then a word at a time. This is a good boost, we are copying between 32 and 82 bytes here.
+#if ARCH_ALLOWS_UNALIGNED
 			for (;i < lengthIntoMagicArray + len; i += 4, p += 4)
 				*(uint32_t*)&saved_key[i>>6][GETWORDPOS(i, ti)] = JOHNSWAP(*(uint32_t*)p);
+#else
+			for (;i < lengthIntoMagicArray + len; ++i, ++p) {
+				saved_key[i>>6][GETPOS(i, ti)] = *p;
+			}
+#endif
 
 			// Now, the salt. This is typically too short for the stunt above.
 			for (i = 0; i < cur_salt->l; i++)
