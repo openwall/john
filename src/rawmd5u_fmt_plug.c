@@ -52,7 +52,7 @@ john_register_one(&fmt_rawmd5uthick);
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS * BLOCK_LOOPS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+#define GETPOSW(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i*4)&(0xffffffff-3))*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -132,7 +132,7 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc_align(sizeof(*crypt_key), BINARY_SIZE*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	buf_ptr = mem_calloc_align(sizeof(*buf_ptr), self->params.max_keys_per_crypt, sizeof(*buf_ptr));
 	for (i=0; i<self->params.max_keys_per_crypt; i++)
-		buf_ptr[i] = (unsigned int*)&saved_key[GETPOS(0, i)];
+		buf_ptr[i] = (unsigned int*)&saved_key[GETPOSW(0, i)];
 #endif
 }
 
@@ -202,7 +202,7 @@ static void *get_binary(char *ciphertext)
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
 
-#if ARCH_LITTLE_ENDIAN==1 || SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1 || defined(SIMD_COEF_32)
 		out[i]=temp;
 #else
 		out[i]=JOHNSWAP(temp);
@@ -445,7 +445,7 @@ static char *get_key(int index)
 {
 #ifdef SIMD_COEF_32
 	// Get the key back from the key buffer, from UCS-2
-	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
+	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOSW(0, index)];
 	static UTF16 key[PLAINTEXT_LENGTH + 1 + 1]; // if only +1 we 'can' overflow.  Not sure why, but ASan found it.
 	unsigned int md5_size=0;
 	unsigned int i=0;
