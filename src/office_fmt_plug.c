@@ -213,14 +213,11 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
-	for (i = 0; i < SIMD_PARA_SHA1; ++i) {
-		int j;
-		for (j = 20; j < 24; ++j) {
-			keys[GETPOS_1(j,i*SIMD_COEF_32)] = 0;
-			keys[GETPOS_1(j,(i*SIMD_COEF_32+1))] = 0;
-			keys[GETPOS_1(j,(i*SIMD_COEF_32+2))] = 0;
-			keys[GETPOS_1(j,(i*SIMD_COEF_32+3))] = 0;
-		}
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+		keys[GETPOS_1(20,i)] = 0;
+		keys[GETPOS_1(21,i)] = 0;
+		keys[GETPOS_1(22,i)] = 0;
+		keys[GETPOS_1(23,i)] = 0;
 	}
 
 	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
