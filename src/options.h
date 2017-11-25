@@ -280,6 +280,9 @@ struct options_main {
 /* Input encoding for word lists, and/or pot file clear-texts. */
 	int input_enc;
 
+/* Replacement character for "EmulateBrokenEncoding" feature. */
+	unsigned char replacement_character;
+
 /* True if encoding was set from john.conf as opposed to command line. */
 	int default_enc;
 	int default_target_enc;
