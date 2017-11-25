@@ -81,7 +81,7 @@ typedef struct my_salt_t {
 
 static my_salt *saved_salt;
 
-static unsigned char (*crypt_key)[WINZIP_BINARY_SIZE];
+static unsigned char (*crypt_key)[((WINZIP_BINARY_SIZE + 4)/4)*4]; // ensure 32-bit alignment
 
 static cl_int cl_error;
 static zip_password *inbuffer;

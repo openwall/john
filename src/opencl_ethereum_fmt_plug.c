@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_ethereum);
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(*cur_salt)
-#define SALT_ALIGN              sizeof(int)
+#define SALT_ALIGN              sizeof(uint64_t)
 #define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
