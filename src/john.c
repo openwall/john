@@ -882,6 +882,16 @@ static void john_load_conf(void)
 			options.flags |= FLG_RULES;
 	}
 
+	/* EmulateBrokenEncoding feature */
+	options.replacement_character = 0;
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "EmulateBrokenEncoding", 0)) {
+		char *value;
+
+		value = cfg_get_param(SECTION_OPTIONS, NULL, "ReplacementCharacter");
+		if (value != NULL)
+			options.replacement_character = value[0];
+	}
+
 	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
 	options.show_uid_in_cracks = cfg_get_bool(SECTION_OPTIONS, NULL, "ShowUIDinCracks", 0);
 	options.reload_at_crack =
