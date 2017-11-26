@@ -9,7 +9,7 @@ if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
 
     ../.travis/test.sh
 
-elif [[ -z "$TEST" ]]; then
+elif [[ -z "$TEST" || "$TEST" == "encoding" ]]; then
     cd src
 
     # Build and run with the address sanitizer instrumented code
@@ -38,7 +38,7 @@ elif [[ -z "$TEST" ]]; then
     ./configure CPPFLAGS=-mno-avx2 $ASAN
     make -sj4
 
-    ../.travis/test.sh
+    ../.travis/test.sh "$TEST"
 
 elif [[ "$TEST" == "fresh test" ]]; then
     # ASAN using a 'recent' compiler
