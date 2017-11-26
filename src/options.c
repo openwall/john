@@ -372,7 +372,8 @@ void opt_print_hidden_usage(void)
 	puts("--help                     print usage summary, just like running the command");
 	puts("                           without any parameters");
 	puts("--config=FILE              use FILE instead of john.conf or john.ini");
-	puts("--mem-file-size=SIZE       size threshold for wordlist preload (default 5 MB)");
+	printf("--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n",
+	       WORDLIST_BUFFER_DEFAULT >> 20);
 	printf("--format=CLASS             valid classes: dynamic, cpu");
 #ifdef HAVE_OPENCL
 	printf(", opencl");

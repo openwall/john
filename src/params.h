@@ -409,7 +409,11 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define MAX_MKV_LEN 30
 
 /* Default maximum size of wordlist memory buffer. */
-#define WORDLIST_BUFFER_DEFAULT		0x80000000
+#if ARCH_BITS > 32
+#define WORDLIST_BUFFER_DEFAULT		0x80000000U
+#else
+#define WORDLIST_BUFFER_DEFAULT		0x40000000
+#endif
 
 /* Number of custom Mask placeholders */
 #define MAX_NUM_CUST_PLHDR		9
