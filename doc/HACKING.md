@@ -50,6 +50,21 @@ GCC Compile Farm has PPC64 hardware available which is a big endian architecture
    deb-src http://security.debian.org/ jessie/updates main
    ```
 
+   Here is an alternate sources.list file, generated from https://debgen.simplylinux.ch/index.php?generate
+   ```
+   deb http://deb.debian.org/debian/ oldstable main contrib non-free
+   deb-src http://deb.debian.org/debian/ oldstable main contrib non-free
+
+   deb http://deb.debian.org/debian/ oldstable-updates main contrib non-free
+   deb-src http://deb.debian.org/debian/ oldstable-updates main contrib non-free
+
+   deb http://deb.debian.org/debian-security oldstable/updates main
+   deb-src http://deb.debian.org/debian-security oldstable/updates main
+
+   deb http://ftp.debian.org/debian jessie-backports main
+   deb-src http://ftp.debian.org/debian jessie-backports main
+   ```
+
    and then run `su -c "apt-get update"`.
 
 5. Install the required software packages,
