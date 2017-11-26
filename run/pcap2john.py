@@ -807,6 +807,69 @@ def pcap_parser_glbp(fname):
     f.close()
 
 
+# Parts are borrowed from "module_tacacs_plus.py" from Loki project which is
+# Copyright 2015 Daniel Mende <dmende@ernw.de>. See tacacs_plus_fmt.plug.c for
+# licensing information.
+
+#  1 2 3 4 5 6 7 8  1 2 3 4 5 6 7 8  1 2 3 4 5 6 7 8  1 2 3 4 5 6 7 8
+#
+# +----------------+----------------+----------------+----------------+
+# |major  | minor  |                |                |                |
+# |version| version|      type      |     seq_no     |   flags        |
+# +----------------+----------------+----------------+----------------+
+# |                                                                   |
+# |                            session_id                             |
+# +----------------+----------------+----------------+----------------+
+# |                                                                   |
+# |                              length                               |
+# +----------------+----------------+----------------+----------------+
+
+def pcap_parser_tacacs_plus(fname):
+    TACACS_PLUS_PORT = 49
+    TACACS_PLUS_VERSION_MAJOR = 0xc
+    TYPE_AUTHEN = 0x01
+    FLAGS_UNENCRYPTED = 0x01
+
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+    index = 0
+
+    for _, buf in pcap:
+        index = index + 1
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP or eth.type == dpkt.ethernet.ETH_TYPE_IP6:
+            ip = eth.data
+
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP and ip.p != dpkt.ip.IP_PROTO_TCP:
+                continue
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP6 and ip.nxt != dpkt.ip.IP_PROTO_TCP:
+                continue
+
+            tcp = ip.data
+            data = tcp.data
+
+            if tcp.dport != TACACS_PLUS_PORT and tcp.sport != TACACS_PLUS_PORT:
+                continue
+            if len(tcp.data) <= 12:
+                continue
+
+            server = tcp.sport == TACACS_PLUS_PORT
+            ver, kind, seq_no, flags, session_id, length = struct.unpack("!BBBBII", data[:12])
+            if flags & FLAGS_UNENCRYPTED:
+                continue
+            version_minor = ver & 0x0F
+            if not server or kind != TYPE_AUTHEN:
+                continue
+            ciphertext = data[12:]
+            predata = struct.pack("!I", session_id)
+            postdata = struct.pack("!BB", TACACS_PLUS_VERSION_MAJOR << 4 + version_minor, seq_no)
+            sys.stdout.write("%s:$tacacs-plus$0$%s$%s$%s\n" % (index,
+                                                               predata.encode("hex"),
+                                                               ciphertext.encode("hex"),
+                                                               postdata.encode("hex")))
+    f.close()
+
+
 def endian(s):
     ret = ""
     for i in range(0, len(s), 2):
@@ -1103,6 +1166,7 @@ if __name__ == "__main__":
         pcap_parser_gadu(sys.argv[i])
         pcap_parser_eigrp(sys.argv[i])
         pcap_parser_tgsrep(sys.argv[i])
+        pcap_parser_tacacs_plus(sys.argv[i])
         try:
             pcap_parser_s7(sys.argv[i])
         except:
