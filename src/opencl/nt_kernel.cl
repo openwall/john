@@ -177,13 +177,16 @@ inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 	}
 	*target = 0x80;	// Terminate
 
-#if __OS_X__ && gpu_nvidia(DEVICE_INFO)
-	/*
-	 * Driver bug workaround. Halves the performance :-(
-	 * Bug seen with GT 650M version 10.6.47 310.42.05f01
-	 */
+#if __OS_X__
+	// Stupid driver/runtime bug workarounds.
+#if cpu(DEVICE_INFO)
+	// This acts like some kind of barrier but a normal barrier doesn't help.
+	printf("");
+#elif gpu_nvidia(DEVICE_INFO)
 	barrier(CLK_GLOBAL_MEM_FENCE);
 #endif
+#endif
+
 	return (uint)(target - (UTF16*)nt_buffer);
 }
 
