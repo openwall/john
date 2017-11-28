@@ -308,11 +308,7 @@ static int cmp_exact(char *source, int index)
 
 static void racf_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > 8)
-		saved_len = 8;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 	dirty = 1;
 }
 

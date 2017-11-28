@@ -114,11 +114,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_key(char *key, int index)
 {
-	int len = strlen(key);
-	if (len > PLAINTEXT_LENGTH)
-		len =  PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, len);
-	saved_key[index][len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)

@@ -122,11 +122,7 @@ static void set_salt(void *salt)
 
 static void encfs_set_key(char *key, int index)
 {
-	int len = strlen(key);
-	if (len > PLAINTEXT_LENGTH)
-		len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, len);
-	saved_key[index][len] = 0;
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
