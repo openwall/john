@@ -81,11 +81,11 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		rawsha3-512 rawsha3-224 rawsha3-256 rawsha3-384 AzureAD vdi_256 vdi_128
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
-		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1 leet
+		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1 leet sapg
 		));
 
 # todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
-#       raw-skein-256 raw-skein-512 _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
+#       raw-skein-256 raw-skein-512 _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb stribog
 
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0; my $is_mdc2_valid = -1;
@@ -2104,6 +2104,24 @@ sub pomelo {
 sub sapb {
 }
 sub sapg {
+	my $CODVNG = "\x91\xAC\x51\x14\x9F\x67\x54\x43\x24\xE7\x3B\xE0\x28\x74\x7B\xC2".
+	             "\x86\x33\x13\xEB\x5A\x4F\xCB\x5C\x08\x0A\x73\x37\x0E\x5D\x1C\x2F".
+		     "\x33\x8F\xE6\xE5\xF8\x9B\xAE\xDD\x16\xF2\x4B\x8D\x2C\xE1\xD4\xDC".
+		     "\xB0\xCB\xDF\x9D\xD4\x70\x6D\x17\xF9\x4D\x42\x3F\x9B\x1B\x11\x94".
+		     "\x9F\x5B\xC1\x9B\x06\x05\x9D\x03\x9D\x5E\x13\x8A\x1E\x9A\x6A\xE8".
+		     "\xD9\x7C\x14\x17\x58\xC7\x2A\xF6\xA1\x99\x63\x0A\xD7\xFD\x70\xC3".
+		     "\xF6\x5E\x74\x13\x03\xC9\x0B\x04\x26\x98\xF7\x26\x8A\x92\x93\x25".
+		     "\xB0\xA2\x0D\x23\xED\x63\x79\x6D\x13\x32\xFA\x3C\x35\x02\x9A\xA3".
+		     "\xB3\xDD\x8E\x0A\x24\xBF\x51\xC3\x7C\xCD\x55\x9F\x37\xAF\x94\x4C".
+		     "\x29\x08\x52\x82\xB2\x3B\x4E\x37\x9F\x17\x07\x91\x11\x3B\xFD\xCD";
+	my $uname = uc get_username(12);
+	$uname =~ s/ /-/g;
+	my @ar = unpack("C*", sha1($_[1].$uname));
+	my $len = 0; for ($h = 0; $h < 10; ++$h) { $len += $ar[$h] % 6; } $len += 0x20;
+	my $off = 0; for ($h = 19; $h > 9; --$h) { $off += $ar[$h] % 8; }
+	$h = sha1($_[1].substr($CODVNG, $off, $len).$uname);
+	$out_username = $uname;
+	return "$uname\$".uc unpack("H*", $h);
 }
 sub stribog {
 }
