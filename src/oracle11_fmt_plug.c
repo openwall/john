@@ -261,11 +261,7 @@ static void set_key(char *key, int index)
 	saved_key[GETPOS(len, index)] = 0x80;
 	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
 #else
-	saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_len);
-	saved_key[saved_len] = 0;
+	saved_len = strnzcpyn(saved_key, key, PLAINTEXT_LENGTH + 1);
 #endif
 }
 
