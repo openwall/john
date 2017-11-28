@@ -67,7 +67,7 @@ john_register_one(&fmt_tacacsplus);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        -1000
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
@@ -92,7 +92,7 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static int *cracked;
+static int any_cracked, *cracked;
 static size_t cracked_size;
 
 static struct custom_salt {
@@ -122,6 +122,7 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
+	any_cracked = 0;
 	cracked = mem_calloc(cracked_size, 1);
 }
 
@@ -244,8 +245,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index = 0;
 
-	memset(cracked, 0, cracked_size);
-
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -253,6 +256,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		if (check_password(index, cur_salt)) {
 			cracked[index] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+			any_cracked |= 1;
 		}
 	}
 
@@ -261,12 +268,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
