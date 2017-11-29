@@ -61,7 +61,7 @@ john_register_one(&fmt_HDAA);
 #define BINARY_SIZE			16
 #define BINARY_ALIGN			4
 #define SALT_SIZE			sizeof(reqinfo_t)
-#define SALT_ALIGN			8
+#define SALT_ALIGN			sizeof(size_t)
 
 #if defined(_OPENMP)
 static unsigned int omp_t = 1;
@@ -665,7 +665,7 @@ static void *get_salt(char *ciphertext)
 	MD5_CTX ctx;
 
 	/* parse the password string */
-	if (!r) r = mem_alloc_tiny(sizeof(*r), MEM_ALIGN_WORD);
+	if (!r) r = mem_alloc_tiny(sizeof(*r), SALT_ALIGN);
 	memset(r, 0, sizeof(*r));
 	for (nb = 0, i = 1; ciphertext[i] != 0; i++) {
 		if (ciphertext[i] == SEPARATOR) {
