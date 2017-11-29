@@ -488,8 +488,7 @@ static int cmp_exact(char *source, int index)
 
 static void keystore_set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-	strcpy(saved_key[index], key);
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 	dirty = 1;
 }
 

@@ -136,7 +136,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_key(char *key, int index) {
 
-	strcpy(saved_key[index], key);
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 	dirty = 1;
 }
 

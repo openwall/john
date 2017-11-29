@@ -156,9 +156,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-  if (!key) return;
-  key_len[index] = strlen(key) + 1;
-  strcpy(saved_key[index], key);
+  key_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key)) + 1;
 }
 
 static char* get_key(int index)

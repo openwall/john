@@ -272,23 +272,10 @@ static void set_salt(void *salt)
 #endif
 }
 
-#ifndef SIMD_COEF_32
-inline static int strnfcpy_count(char *dst, char *src, int size)
-{
-	char *dptr = dst, *sptr = src;
-	int count = size;
-
-	while (count--)
-		if (!(*dptr++ = *sptr++)) break;
-
-	return size-count-1;
-}
-#endif
-
 static void set_key(char *key, int index)
 {
 #ifdef SIMD_COEF_32
-	strcpy(saved_plain[index], key);
+	strnzcpy(saved_plain[index], key, sizeof(*saved_plain));
 	new_key = 1;
 #else
 	unsigned char key_hash[BINARY_SIZE];
@@ -298,7 +285,7 @@ static void set_key(char *key, int index)
 	int i, len;
 	MD5_CTX ctx;
 
-	len = strnfcpy_count(saved_plain[index], key, PLAINTEXT_LENGTH);
+	len = strnzcpyn(saved_plain[index], key, sizeof(*saved_plain));
 
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, key, len);

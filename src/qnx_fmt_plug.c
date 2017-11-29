@@ -137,7 +137,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 static void set_key(char *key, int index)
 {
-	saved_len[index] = strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 #ifdef SIMD_COEF_32
 	sk_by_len[len][sk_by_lens[len]++] = index;
 #endif

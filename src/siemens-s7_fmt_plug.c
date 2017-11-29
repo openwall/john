@@ -253,7 +253,7 @@ static int cmp_exact(char *source, int index)
 
 static void s7_set_key(char *key, int index)
 {
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 	new_keys = 1;
 }
 

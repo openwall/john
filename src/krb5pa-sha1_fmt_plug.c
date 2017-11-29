@@ -256,7 +256,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)

@@ -117,7 +117,7 @@ static void set_key(char *key, int index)
 {
 	BF_std_set_key(key, index, sign_extension_bug);
 
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

@@ -257,8 +257,7 @@ static int cmp_exact(char *source, int index)
 
 static void django_set_key(char *key, int index)
 {
-	strcpy(saved_key[index], key);
-
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

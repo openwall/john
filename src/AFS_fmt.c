@@ -263,7 +263,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy(buffer[index].key, key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(buffer[index].key, key, sizeof(buffer[0].key));
 }
 
 static char *get_key(int index)

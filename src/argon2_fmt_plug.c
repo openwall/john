@@ -237,12 +237,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void set_key(char *key, int index)
 {
-	int len;
-	len = strlen(key);
-	if (len > PLAINTEXT_LENGTH)
-		len = PLAINTEXT_LENGTH;
-	memcpy(saved_key + index * (PLAINTEXT_LENGTH + 1), key, len);
-	saved_key[index * (PLAINTEXT_LENGTH + 1) + len] = 0;
+	strnzcpy(saved_key + index * (PLAINTEXT_LENGTH + 1), key, PLAINTEXT_LENGTH+1);
 }
 
 static char *get_key(int index)

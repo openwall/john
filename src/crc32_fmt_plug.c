@@ -188,9 +188,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_key(char *key, int index)
 {
-	char *p = saved_key[index];
-	while ( (*p++ = *key++) )
-		;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

@@ -359,7 +359,7 @@ static void set_salt(void *salt)
 /* Set password at given index */
 static void lotus85_set_key(char *key,int index)
 {
-	strnzcpy(lotus85_saved_passwords[index],key,strlen(key)+1);
+	strnzcpy(lotus85_saved_passwords[index],key,sizeof(lotus85_saved_passwords[index]));
 }
 
 /* Return password at given index as string */

@@ -156,7 +156,7 @@ static int get_hash_6(int index)
 
 static void set_key(char *key, int index)
 {
-	saved_len[index] = strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
