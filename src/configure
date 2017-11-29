@@ -757,6 +757,7 @@ with_flock
 enable_memdbg
 enable_asan
 enable_ubsan
+enable_ubsanalign
 enable_plugin_dependencies
 enable_werror
 enable_openmp_for_fast_formats
@@ -1388,7 +1389,10 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-memdbg         Enable memdbg memory debugging (safe level)
   --enable-asan           * Build with AddressSanitizer
-  --enable-ubsan          * Build with UndefinedBehaviorSanitizer
+  --enable-ubsan          * Build with UndefinedBehaviorSanitizer (w/o mem
+                          alignment checks)
+  --enable-ubsanalign     * Build with UndefinedBehaviorSanitizer (only memory
+                          alignment checks)
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
@@ -3530,6 +3534,13 @@ if test "${enable_ubsan+set}" = set; then :
   enableval=$enable_ubsan; ubsan=$enableval
 else
   ubsan=no
+fi
+
+# Check whether --enable-ubsanalign was given.
+if test "${enable_ubsanalign+set}" = set; then :
+  enableval=$enable_ubsanalign; ubsanalign=$enableval
+else
+  ubsanalign=no
 fi
 
 # Check whether --enable-plugin-dependencies was given.
@@ -6009,6 +6020,70 @@ See \`config.log' for more details" "$LINENO" 5; }
    fi
    LDFLAGS=${LDFLAGS_BAK}
 fi
+if test "x$ubsanalign" = xyes ; then
+   if test "x$ubsan" == xyes ; then
+      echo "ERROR, --enable-ubsan and --enable-ubsanalign are MUTUALLY exclusive"
+      exit -1
+   fi
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=alignment" >&5
+$as_echo_n "checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=alignment... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=alignment"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=alignment"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+   if test "x${CFLAGS_EX}" = x ; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find all required UBSAN components for alignment checking
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+      LDFLAGS="-fsanitize=alignment $LDFLAGS"
+   fi
+   LDFLAGS=${LDFLAGS_BAK}
+fi
 
    # now fill out CFLAGS
    CFLAGS_EX=""
@@ -6153,7 +6228,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 fi
-if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsanalign" = xyes ; then
      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-omit-frame-pointer" >&5
 $as_echo_n "checking if $CC supports -fno-omit-frame-pointer... " >&6; }
@@ -13818,6 +13893,15 @@ if test "x$ubsan" = xyes ; then
    LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
 fi
 
+if test "x$ubsanalign" = xyes ; then
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g $O_DEBUG -fsanitize=alignment $CFLAGS"
+   ASFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=alignment $ASFLAGS"
+   CPPFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 $CPPFLAGS"
+   LDFLAGS="-fsanitize=alignment $LDFLAGS"
+fi
+
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
    CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
@@ -15436,6 +15520,11 @@ if test "x$ubsan" = xyes ; then
 else
    ubsan="disabled"
 fi
+if test "x$ubsanalign" = xyes ; then
+   ubsanalign="enabled"
+else
+   ubsanalign="disabled"
+fi
 
 cat <<EOF
 
@@ -15468,6 +15557,7 @@ Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ........... ${memdbg_settings}
 AddressSanitizer ("ASan") .................. ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
+UBS (alignment check) ("UbSanAlign") ....... ${ubsanalign}
 
 Install missing libraries to get any needed features that were omitted.
 
