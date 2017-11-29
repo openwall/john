@@ -154,7 +154,7 @@ static void done(void)
  */
 static void set_key(char *key, int index)
 {
-	strcpy(saved_key[index], key);
+	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

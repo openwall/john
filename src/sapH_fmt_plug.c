@@ -244,7 +244,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strcpy((char*)saved_plain[index], key);
+	strnzcpyn(saved_plain[index], key, sizeof(*saved_plain));
 }
 
 static char *get_key(int index)

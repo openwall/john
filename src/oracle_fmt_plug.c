@@ -248,7 +248,7 @@ static void oracle_set_key(char *key, int index) {
 	UTF16 cur_key_mixedcase[PLAINTEXT_LENGTH+1];
 	UTF16 *c;
 
-	strcpy(plain_key[index], key);
+	strnzcpy(plain_key[index], key, sizeof(*plain_key));
 	// Can't use enc_to_utf16_be() because we need to do utf16_uc later
 	key_length[index] = enc_to_utf16((UTF16 *)cur_key_mixedcase, PLAINTEXT_LENGTH, (unsigned char*)key, strlen(key));
 

@@ -129,8 +129,7 @@ static int salt_hash(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strnfcpy(saved_key, key, PLAINTEXT_LENGTH);
-	saved_key_len = strlen(saved_key);
+	saved_key_len = strnzcpyn(saved_key, key, sizeof(saved_key));
 }
 
 static char *get_key(int index)

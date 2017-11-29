@@ -352,11 +352,7 @@ key_cleaning:
 	}
 	keybuffer[14*SIMD_COEF_32] = len << 3;
 #else
-	int length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
-	saved_len[index] = length;
-	memcpy(saved_key[index], key, length);
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 #endif
 }
 

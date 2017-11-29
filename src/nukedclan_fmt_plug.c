@@ -262,7 +262,7 @@ static int cmp_exact(char *source, int index)
 
 static void nk_set_key(char *key, int index)
 {
-	strcpy(saved_key[index], key);
+	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

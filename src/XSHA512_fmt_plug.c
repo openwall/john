@@ -194,11 +194,7 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 #ifndef SIMD_COEF_64
-	int length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
-	saved_len[index] = length;
-	memcpy(saved_key[index], key, length);
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 #else
 	uint64_t *keybuffer = &((uint64_t *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 	uint64_t *keybuf_word = keybuffer;

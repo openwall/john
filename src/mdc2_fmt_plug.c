@@ -180,8 +180,7 @@ static int cmp_exact(char *source, int index)
 
 static void mdc2_set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-	strncpy(saved_key[index], key, sizeof(saved_key[0]));
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

@@ -732,7 +732,7 @@ static void *get_salt(char *ciphertext)
 static void set_key(char *key, int index)
 {
 	/* Keep the PW, so we can return it in get_key if asked to do so */
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 	dirty = 1;
 }
 
