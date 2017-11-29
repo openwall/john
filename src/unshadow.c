@@ -97,17 +97,40 @@ static void read_file(char *name, void (*process_line)(char *line))
 	if (fclose(file)) pexit("fclose");
 }
 
+static int space_or_tab(char c) {
+	if (c == ' ') {
+		return 1;
+	}
+	if (c == '\t') {
+		return 1;
+	}
+
+	return 0;
+}
+
 static void process_shadow_line(char *line)
 {
 	static struct shadow_entry **entry = NULL;
 	struct shadow_entry *last;
 	char *login, *passwd, *tail;
 
+	/* AIX "password = " */
 	if (!(passwd = strchr(line, ':'))) {
-		while (*line == ' ' || *line == '\t') line++;
-		/* AIX */
-		if (!strncmp(line, "password = ", 11) && entry)
-			(*entry)->passwd = str_alloc_copy(line + 11);
+		/* skip spaces and tabs */
+		while (space_or_tab(*line))
+			line++;
+		if (!strncmp(line, "password", 8)) {
+			line += 8;
+			while (space_or_tab(*line))
+				line++;
+			if (!strncmp(line, "=", 1)) {
+				line++;
+				while (space_or_tab(*line))
+					line++;
+				if (entry)
+					(*entry)->passwd = str_alloc_copy(line);
+			}
+		}
 		return;
 	}
 
