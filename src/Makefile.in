@@ -114,6 +114,8 @@ JOHN_OBJS = \
 
 OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
+OPENCL_PLUGFORMATS_OBJS = @OPENCL_PLUGFORMATS_OBJS@
+
 ZTEX_OBJS = ztex_descrypt.o ztex_bcrypt.o
 
 FUZZ_OBJS = fuzz.o
@@ -139,7 +141,7 @@ WITH_OPENCL=@CL_LIBS@
 ifdef WITH_OPENCL
 CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
 CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
-JOHN_OBJS += $(OCL_OBJS)
+JOHN_OBJS += $(OCL_OBJS) $(OPENCL_PLUGFORMATS_OBJS)
 endif
 
 WITH_ZTEX=@ZTEX_LIBS@

@@ -945,15 +945,27 @@ fi
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and
 # john_buildrule.h moved from Makefile.in to here.
+# don't build opencl_*plug.c unless an opencl build
 ####################################################
-echo "configure: creating *_plug.c and OpenCL object rules"
+if test x$using_cl = xyes ; then
+  echo "configure: creating *_plug.c and OpenCL object rules"
+else
+  echo "configure: creating *_plug.c rules, WITHOUT OpenCL objects"
+fi
+AC_SUBST([KERNEL_OBJS],[])
+AC_SUBST([KERNEL_DEPS],[])
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/\.c/.o/g'`])
-   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
+   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
+   AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
+   if test x$using_cl = xyes ; then
+     AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
+   fi
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
-      AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
+      if test x$using_cl = xyes ; then
+        AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
+      fi
    fi
 fi
 
