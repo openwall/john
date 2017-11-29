@@ -617,7 +617,7 @@ _john()
 			;;
 		--show=?([Ll]|[Ll][Ee]|[Ll][Ee][Ff]|[Ll][Ee][Ff][Tt]|[Tt]|[Tt][Yy]|[Tt][Yy][Pp]|[Tt][Yy]|[Tt][Yy][Pp][Ee]|[Tt][Yy]|[Tt][Yy][Pp][Ee][Ss]|[Ii]|[Ii][Nn]|[Ii][Nn][Vv]|[Ii][Nn][Vv][Aa]|[Ii][Nn][Vv][Aa][Ll]|[Ii][Nn][Vv][Aa][Ll][Ii]|[Ii][Nn][Vv][Aa][Ll][Ii][Dd]))
 			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
-			COMPREPLY=( $(compgen -W "left types invalid" -- ${cur}) )
+			COMPREPLY=( $(compgen -W "left types types-json invalid" -- ${cur}) )
 			return 0
 			;;
 		--users=?(-)+(L|U)*|--groups=+(-|G)*|--shells=+(-|S)*|--salts=+(-|C)*)

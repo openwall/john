@@ -1175,6 +1175,9 @@ static void john_load(void)
 				database.password_count -
 				database.guess_count);
 
+			if (options.loader.showtypes_json)
+				puts("]");
+
 			fmt_all_done();
 
 			return;

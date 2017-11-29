@@ -207,6 +207,9 @@ struct db_options {
 /* if --show=types is used, john shows all hashes in machine readable form */
 	int showtypes;
 
+/* if --show=types-json is used, show all hashes in JSON form */
+	int showtypes_json;
+
 /* if --show=invalid is used, john shows all hashes which fail valid() */
 	int showinvalid;
 

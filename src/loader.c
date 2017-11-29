@@ -453,6 +453,35 @@ static void ldr_set_encoding(struct fmt_main *format)
 	initUnicode(UNICODE_UNICODE);
 }
 
+static char *escape_json(char *in)
+{
+	char *ret;
+	size_t num = 0;
+	char c;
+	char *p = in;
+
+	while ((c = *p++))
+		if (c == '\\' || c == '"')
+			num++;
+
+	if (!num)
+		return in;
+
+	num += (p - in);
+	ret = mem_alloc_tiny(num, MEM_ALIGN_NONE);
+
+	p = ret - 1;
+	while ((*++p = *in++)) {
+		if (*p == '\\')
+			*++p = '\\';
+		else if (*p == '"') {
+			*p = '\\';
+			*++p = '"';
+		}
+	}
+	return ret;
+}
+
 static int ldr_split_line(char **login, char **ciphertext,
 	char **gecos, char **home, char **uid,
 	char *source, struct fmt_main **format,
@@ -462,6 +491,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	char *fields[10], *gid, *shell;
 	int i, retval;
 	int huge_line = 0;
+	static int line_no = 0;
 
 	fields[0] = *login = ldr_get_field(&line, db_opts->field_sep_char);
 	fields[1] = *ciphertext = ldr_get_field(&line, db_opts->field_sep_char);
@@ -472,11 +502,16 @@ static int ldr_split_line(char **login, char **ciphertext,
 	    strncmp(*ciphertext, "$dummy$", 7)) {
 		if (db_opts->showtypes) {
 			int fs = db_opts->field_sep_char;
-			printf("%s%c%s%c2%c\n",
-			       *login,
-			       fs, *ciphertext,
-			       fs, /* 2, */
-			       fs);
+
+			if (db_opts->showtypes_json)
+				printf("%s{\"lineNo\":\"%d\",\"login\":\"%s\",\"ciphertext\":\"%s\",\"consistencyMark\":\"2\"}\n",
+				       line_no == 0 ? "[" : ",",
+				       line_no, escape_json(*login),
+				       escape_json(*ciphertext));
+			else
+				printf("%s%c%s%c2%c\n",
+				       *login, fs, *ciphertext, fs,/* 2, */fs);
+			line_no++;
 		}
 		return 0;
 	}
@@ -506,11 +541,19 @@ static int ldr_split_line(char **login, char **ciphertext,
 			if (p - *ciphertext < 13) {
 				if (db_opts->showtypes) {
 					int fs = db_opts->field_sep_char;
-					printf("%c%s%c3%c\n",
-					       /* empty, */
-					       fs, *ciphertext,
-					       fs, /* 3, */
-					       fs);
+
+					if (db_opts->showtypes_json)
+						printf("%s{\"lineNo\":\"%d\",\"ciphertext\":\"%s\",\"consistencyMark\":\"3\"}\n",
+						       line_no == 0 ? "[" : ",",
+						       line_no,
+						       escape_json(*ciphertext));
+					else
+						printf("%c%s%c3%c\n",
+						       /* empty, */
+						       fs, *ciphertext,
+						       fs, /* 3, */
+						       fs);
+					line_no++;
 				}
 				return 0;
 			}
@@ -670,14 +713,27 @@ static int ldr_split_line(char **login, char **ciphertext,
 		 * then a parser have to match input line with output line
 		 * by number of line.
 		 */
-		printf("%s%c%s%c%s%c%s%c%s%c%s%c%s",
-		       *login,
-		       fs, *ciphertext,
-		       fs, *uid,
-		       fs, gid,
-		       fs, *gecos,
-		       fs, *home,
-		       fs, shell);
+		if (db_opts->showtypes_json)
+			printf("%s{\"lineNo\":\"%d\",\"login\":\"%s\",\"ciphertext\":\"%s\",\"uid\":\"%s\",\"gid\":\"%s\",\"gecos\":\"%s\",\"home\":\"%s\",\"shell\":\"%s\",\"rowFormats\":[{",
+			       line_no == 0 ? "[" : ",",
+			       line_no,
+			       escape_json(*login),
+			       escape_json(*ciphertext),
+			       escape_json(*uid),
+			       escape_json(gid),
+			       escape_json(*gecos),
+			       escape_json(*home),
+			       escape_json(shell));
+		else
+			printf("%s%c%s%c%s%c%s%c%s%c%s%c%s",
+			       *login,
+			       fs, *ciphertext,
+			       fs, *uid,
+			       fs, gid,
+			       fs, *gecos,
+			       fs, *home,
+			       fs, shell);
+		line_no++;
 		check_field_separator(*login);
 		check_field_separator(*ciphertext);
 		check_field_separator(*uid);
@@ -714,23 +770,44 @@ static int ldr_split_line(char **login, char **ciphertext,
 			ldr_set_encoding(alt);
 			/* Empty field between valid formats */
 			if (not_first_format) {
-				printf("%c", fs);
+				if (db_opts->showtypes_json)
+					printf("},{");
+				else
+					printf("%c", fs);
 			}
 			not_first_format = 1;
-			printf("%c%s%c%d%c%d%c%d",
-			       fs, alt->params.label,
-			       fs, disabled,
-			       fs, is_dynamic,
-			       fs, prepared_eq_ciphertext);
+			if (db_opts->showtypes_json)
+				printf("\"label\":\"%s\",\"disabled\":\"%d\",\"dynamic\":\"%d\",\"prepareEqCiphertext\":\"%d\",\"canonHash\":[",
+				       alt->params.label,
+				       disabled,
+				       is_dynamic,
+				       prepared_eq_ciphertext);
+			else
+				printf("%c%s%c%d%c%d%c%d",
+				       fs, alt->params.label,
+				       fs, disabled,
+				       fs, is_dynamic,
+				       fs, prepared_eq_ciphertext);
 			check_field_separator(alt->params.label);
 			/* Canonical hash or hashes (like halves of LM) */
 			for (part = 0; part < valid; part++) {
 				char *split = alt->methods.split(prepared, part, alt);
-				printf("%c%s", fs, split);
+
+				if (db_opts->showtypes_json)
+					printf("%s\"%s\"",
+					       part ? "," : "",
+					       escape_json(split));
+				else
+					printf("%c%s", fs, split);
 				check_field_separator(split);
 			}
+			if (db_opts->showtypes_json)
+				printf("]");
 		} while ((alt = alt->next));
-		printf("%c%d%c\n", fs, bad_char, fs);
+		if (db_opts->showtypes_json)
+			printf("}],\"consistencyMark\":\"%d\"}\n", bad_char);
+		else
+			printf("%c%d%c\n", fs, bad_char, fs);
 		return 0;
 #undef check_field_separator
 	}

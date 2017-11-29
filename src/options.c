@@ -409,6 +409,7 @@ void opt_print_hidden_usage(void)
 	       VERB_MAX, VERB_DEFAULT);
 	puts("--show=types               show some information about hashes in file (machine");
 	puts("                           readable)");
+	puts("--show=types-json          show some information about hashes in file (JSON)");
 	puts("--show=invalid             show any lines from input that are not valid for");
 	puts("                           selected format(s)");
 	puts("--skip-self-tests          skip self tests");
@@ -974,11 +975,16 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		else if (!strcasecmp(show_uncracked_str, "types")) {
 			options.loader.showtypes = 1;
 		}
+		else if (!strcasecmp(show_uncracked_str, "types-json")) {
+			options.loader.showtypes = 1;
+			options.loader.showtypes_json = 1;
+		}
 		else if (!strcasecmp(show_uncracked_str, "invalid")) {
 			options.loader.showinvalid = 1;
 		}
 		else {
-			fprintf(stderr, "Invalid option in --show switch.\nOnly --show , --show=left, --show=types or --show=invalid are valid\n");
+			fprintf(stderr, "Invalid option in --show switch. Valid options:\n"
+			        "--show, --show=left, --show=types, --show=types-json, --show=invalid\n");
 			error();
 		}
 	}
