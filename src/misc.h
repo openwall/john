@@ -123,6 +123,11 @@ extern char *strnzcpylwr(char *dst, const char *src, int size);
 extern int strnzcpyn(char *dst, const char *src, int size);
 
 /*
+ * Similar to the strnzcpylwr, but returns the length of the string.
+ */
+extern int strnzcpylwrn(char *dst, const char *src, int size);
+
+/*
  * Similar to strncat(), but total buffer size is supplied, and always NUL
  * terminates the string.
  */

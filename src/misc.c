@@ -292,6 +292,30 @@ int strnzcpyn(char *dst, const char *src, int size)
 	return (dptr-dst);
 }
 
+int strnzcpylwrn(char *dst, const char *src, int size)
+{
+	char *dptr;
+	if (!size) return 0;
+
+	dptr = dst;
+
+	if (size)
+		while (--size) {
+			if (*src >= 'A' && *src <= 'Z') {
+				*dptr = *src | 0x20;
+			} else {
+				*dptr = *src;
+				if (!*src) return (dptr-dst);
+			}
+			dptr++;
+			src++;
+		}
+	*dptr = 0;
+
+	return (dptr-dst);
+
+}
+
 char *strnzcat(char *dst, const char *src, int size)
 {
 	char *dptr = dst;
