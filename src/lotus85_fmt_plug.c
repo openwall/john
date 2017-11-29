@@ -341,6 +341,7 @@ static void *get_salt(char *ciphertext)
 	int i,len;
 	static struct custom_salt cs;
 
+	memset(&cs, 0, sizeof(cs));
 	len = strlen(ciphertext) >> 1;
 
 	for (i = 0; i < len; i++)

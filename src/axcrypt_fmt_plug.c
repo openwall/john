@@ -157,6 +157,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	static void *ptr;
 
+	memset(&cs, 0, sizeof(cs));
 	cs.keyfile = NULL;
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$axcrypt$*" */
 	p = strtokm(ctcopy, "*");

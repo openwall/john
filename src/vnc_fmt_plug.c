@@ -190,6 +190,8 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	char *ctcopy = strdup(ciphertext);
 	char *p, *keeptr = ctcopy;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$vnc$*" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < 16; i++)
