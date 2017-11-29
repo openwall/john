@@ -205,6 +205,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy, *username;
 	static struct custom_salt cs;
 
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$racf$*" */
 	username = strtokm(ctcopy, "*");
 	/* process username */

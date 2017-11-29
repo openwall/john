@@ -140,6 +140,8 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN; /* skip over "$chap$" */
 	p = strtokm(ctcopy, "*");
 	cs.id = atoi(p);

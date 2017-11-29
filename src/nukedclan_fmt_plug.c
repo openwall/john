@@ -164,6 +164,8 @@ static void *get_salt(char *ciphertext)
 	char _ctcopy[256], *ctcopy=_ctcopy;
 	char *p;
 	int i;
+
+	memset(&cs, 0, sizeof(cs));
 	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$nk$*" */
 	p = strtokm(ctcopy, "*");

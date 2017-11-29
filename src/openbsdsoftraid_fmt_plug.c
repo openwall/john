@@ -179,6 +179,7 @@ static void* get_salt(char *ciphertext)
 	int i;
 	char *p;
 
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "$"); /* iterations */
 	cs.num_iterations = atoi(p);
