@@ -418,12 +418,14 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little
+	[echo "checking special compiler flags... ARM"]
         JTR_ARM_SPECIAL_LOGIC
         ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
+       [echo "checking special compiler flags... MIC"]
        JTR_MIC_SPECIAL_LOGIC
        ;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
@@ -434,10 +436,12 @@ case "$host_cpu" in
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
   powerpc64le) ARCH_LINK=ppc64.h endian=little
-	JTR_PPC64_SPECIAL_LOGIC
+  	[echo "checking special compiler flags... PPC64le"]
+  	JTR_PPC64_SPECIAL_LOGIC
 	;;
   powerpc64*) ARCH_LINK=ppc64.h endian=big
-	JTR_PPC64_SPECIAL_LOGIC
+  	[echo "checking special compiler flags... PPC64"]
+  	JTR_PPC64_SPECIAL_LOGIC
 	;;
   powerpcle) ARCH_LINK=ppc32.h endian=little ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big ;;
@@ -457,7 +461,7 @@ esac
 # macros for each environment.  We probably should fall back to calling
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
-AS_IF([test "x$cpu_family" = xintel], [JTR_X86_SPECIAL_LOGIC])
+AS_IF([test "x$cpu_family" = xintel], [echo "checking special compiler flags... Intel X86*"] [JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 JTR_GENERIC_LOGIC

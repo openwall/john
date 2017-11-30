@@ -95,7 +95,7 @@ JTR_LIST_ADD_RESULT
 # This might be a Bad Idea[tm] if cross compiling.
 AC_DEFUN([JTR_SET_64_INCLUDES],
 [
-  AC_MSG_CHECKING([additional paths])
+  AC_MSG_CHECKING([additional paths (64 bit)])
   ADD_LDFLAGS=""
   ADD_CFLAGS=""
 if test -d /usr/local/lib64; then
