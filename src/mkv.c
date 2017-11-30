@@ -334,8 +334,12 @@ static double get_progress(void)
 	if (gend == 0)
 		return 0;
 
-	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
+	/* Less accurate because we don't know all details needed */
+	if (!f_filter || f_new || options.req_minlength || gmin_level)
+		return 100.0 * (gidx - gstart) / (gend - gstart);
 
+	/* Accurate even with small markov space and huge hybrid mask */
+	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 	return 100.0 * try / ((gend - gstart) * mask_mult);
 }
 
