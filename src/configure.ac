@@ -267,6 +267,51 @@ fi
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])
 
+# early check of 64 bit systems.
+case "$host_cpu" in
+  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64) CFLAGS_EX=""
+	JTR_FLAG_CHECK([-m64], 1)
+	if test "x${CFLAGS_EX}" != x ; then
+		LDFLAGS="-m64 $LDFLAGS"
+		CFLAGS="-m64 $CFLAGS"
+		ASFLAGS="-m64 $ASFLAGS"
+	fi
+  ;;
+  *)
+	AC_MSG_CHECKING([if gcc supports -m64])
+	AC_MSG_RESULT([no])
+  ;;
+esac
+
+# Cross compile compliant 32/64 bit test code.
+AC_MSG_CHECKING([for 32/64 bit])
+AC_LINK_IFELSE(
+   [AC_LANG_SOURCE(
+      [extern void exit(int);
+      int main() {
+      #if defined(_LP64) || defined(__LP64__) || defined(_LLP64) || defined(__LLP64__) || \
+        defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(__amd64__) || \
+        defined(_M_AMD64) || defined(_M_X64) || defined(WIN64) || \
+        defined(__IA64__) || defined(__ia64) || defined(_M_IA64) || \
+        defined(__aarch64__) || defined(__ppc64__)
+          exit(0);}
+      #else
+          BORK!
+      #endif
+      ]
+   )]
+  ,[CPU_BITS="-m64"]
+   [CPU_BIT_STR="64"]
+   [AC_MSG_RESULT([64-bit])]
+  ,[CPU_BITS="-m32"]
+   [CPU_BIT_STR="32"]
+   [AC_MSG_RESULT([32-bit])]
+)
+
+if test "x${CPU_BITS}" = x-m64 ; then
+	JTR_SET_64_INCLUDES
+fi
+
 # Checks for programs.
 AC_PROG_LN_S
 AC_PROG_GREP
@@ -354,7 +399,7 @@ dnl AC_CHECK_SIZEOF([int *function()]
 # pa-risc.h
 # ppc32.h
 # ppc32alt.h (-maltivec)
-# ppc64.h (-m64)
+# ppc64.h (-m64 -maltivec)
 # ppc64alt.h (-maltivec -faltivec)
 # sparc32.h
 # sparc64.h (-m64 -mcpu=ultrasparc) (-xarch=native64)
@@ -389,9 +434,11 @@ case "$host_cpu" in
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
   powerpc64le) ARCH_LINK=ppc64.h endian=little
-	           JTR_PPC_SPECIAL_LOGIC
-	           ;;
-  powerpc64*) ARCH_LINK=ppc64.h endian=big ;;
+	JTR_PPC64_SPECIAL_LOGIC
+	;;
+  powerpc64*) ARCH_LINK=ppc64.h endian=big
+	JTR_PPC64_SPECIAL_LOGIC
+	;;
   powerpcle) ARCH_LINK=ppc32.h endian=little ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big ;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
