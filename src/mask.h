@@ -122,6 +122,6 @@ extern unsigned long long mask_parent_keys;
 extern int mask_cur_len;
 
 /* Set if max-length is computed (as opposed to specified by the user) */
-extern int maxlength_computed;
+extern int mask_maxlength_computed;
 
 #endif
