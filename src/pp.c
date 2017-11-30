@@ -146,6 +146,7 @@ char *prince_limit_str;
 
 extern int rpp_real_run; /* set to 1 when we really get into prince mode */
 
+static double progress;
 static char *mem_map, *map_pos, *map_end;
 #if HAVE_REXGEN
 static char *regex_alpha;
@@ -897,7 +898,6 @@ void pp_hybrid_fix_state(void)
 
 static double get_progress(void)
 {
-  static double progress;
   mpf_t fpos, perc;
 
   if (rec_pos_destroyed)
@@ -906,7 +906,7 @@ static double get_progress(void)
   mpf_init(fpos); mpf_init(perc);
 
   mpf_set_z(fpos, rec_pos);
-  if (0 != mpf_sgn(count))
+  if (mpf_sgn(count))
     mpf_div(perc, fpos, count);
   progress = 100.0 * mpf_get_d(perc);
 
@@ -1187,19 +1187,20 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   char last_buf[PLAINTEXT_BUFFER_SIZE] = "\r";
   char *last = last_buf;
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
-  int our_fmt_len = db->format->params.plaintext_length - mask_add_len;
+  int mask_mult = MAX(1, mask_num_qw);
+  int our_fmt_len = (db->format->params.plaintext_length + ((mask_mult - 1) * mask_add_len)) / mask_mult - mask_add_len;
 
   dupe_check = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 
   log_event("Proceeding with PRINCE (" REALGMP " version)%s",
             loopback ? " in loopback mode" : "");
 
-  /* This mode defaults to length 16 (unless lowered by format) */
+  /* This mode defaults to length 16 (unless lowered by format)... */
   pw_min = MAX(PW_MIN, options.req_minlength);
   pw_max = MIN(PW_MAX, our_fmt_len);
 
-  /* ...but can be bumped using -max-len */
-  if (options.req_maxlength)
+  /* ...but can be bumped or decreased using -max-len */
+  if (options.req_maxlength && !mask_maxlength_computed)
     pw_max = options.req_maxlength;
 
 #if HAVE_REXGEN
@@ -1213,11 +1214,6 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       our_fmt_len--;
   }
 #endif
-
-  if (mask_num_qw > 1) {
-    pw_min /= MIN(PW_MIN, mask_num_qw);
-    pw_max /= mask_num_qw;
-  }
 
   if (pw_max > OUT_LEN_MAX)
   {
@@ -1939,8 +1935,6 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
   mpf_set_z(count, total_ks_cnt);
   mpf_mul_ui(count, count, rule_count);
-  if (mask_tot_cand)
-    mpf_mul_ui(count, count, mask_tot_cand);
 
   crk_init(db, fix_state, NULL);
 #endif
@@ -2388,7 +2382,10 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   log_event("PRINCE done. Cleaning up.");
 
   if (!event_abort)
-      mpz_set(rec_pos, total_ks_cnt);
+  {
+    progress = 100.0;
+    mpz_set(rec_pos, total_ks_cnt);
+  }
 #endif
   mpz_clear (iter_max);
   mpz_clear (total_ks_cnt);
