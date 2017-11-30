@@ -27,9 +27,9 @@
 /*
  * Emulate symbols defined for VMS services.
  */
-#define SSs_ABORT	44
+#define SSs_ABORT        44
 #define SSs_BADPARAM     20
-#define SSs_NORMAL	1
+#define SSs_NORMAL        1
 #endif
 
 #include "memdbg.h"
@@ -77,7 +77,7 @@ Comments:	The overall speed of this routine is not great.  This is
 
 */
 
-typedef struct dsc$descriptor_s string;
+typedef struct dsc_descriptor_s string;
 
 
 /*
@@ -179,7 +179,7 @@ static int hash_password (
 	    return -1;
 //         exit(SSs_BADPARAM);
     }
-    if (username->dsc$w_length > 31) {
+    if (username->dsc_w_length > 31) {
 	    puts("2");
 	printf("Internal coding error, username is more than 31 bytes long.\n");
 	exit(SSs_ABORT);
@@ -189,7 +189,7 @@ static int hash_password (
     /* Setup pointer references */
     r3 = password;			/* 1st COLLAPSE uses the password desc.   */
     r4 = &qword;			/* @r4..@r4+7 equals obuf */
-    r5 = username->dsc$w_length;
+    r5 = username->dsc_w_length;
     r7 = (encrypt == 3);
 
     /* Clear the output buffer (zero the quadword) */
@@ -198,7 +198,7 @@ static int hash_password (
     UAF_QW_SET(*output_hash,0);
 
     /* Check for the null password and return zero as the hash value if so */
-    if (password->dsc$w_length == 0) {
+    if (password->dsc_w_length == 0) {
 	return SSs_NORMAL;
     }
 
@@ -212,9 +212,9 @@ static int hash_password (
 
 	/* Use a blank padded username */
 	strncpy(uname,"            ",sizeof(uname));
-	strncpy(uname, username->dsc$a_pointer, r5);
-	username->dsc$a_pointer = (char *)&uname;
-	username->dsc$w_length = 12;
+	strncpy(uname, username->dsc_a_pointer, r5);
+	username->dsc_a_pointer = (char *)&uname;
+	username->dsc_w_length = 12;
 	break;
 
       case UAIsC_PURDY_V:		/* Purdy with blanks stripped */
@@ -225,14 +225,14 @@ static int hash_password (
 	* 2 bytes of class information (4 bytes total), then the address of the
 	* buffer.  Usernames can not be longer than 31 characters.
 	*/
-	for ( ulen = username->dsc$w_length; ulen > 0; ulen-- ) {
-	    if ( username->dsc$a_pointer[ulen-1] != ' ' ) break;
-	    username->dsc$w_length--;
+	for ( ulen = username->dsc_w_length; ulen > 0; ulen-- ) {
+	    if ( username->dsc_a_pointer[ulen-1] != ' ' ) break;
+	    username->dsc_w_length--;
 	}
 
 	/* If Purdy_S:  Bytes 0-1 => plaintext length */
 	if (r7) {
-	   r4->ulw[0] = password->dsc$w_length;
+	   r4->ulw[0] = password->dsc_w_length;
 	}
 
 	break;
@@ -307,11 +307,11 @@ static void COLLAPSE_R2 (string *r3, quad *r4, char r7)
 
     /* --------------------------------------------------------------------- */
 
-    r0 = r3->dsc$w_length;		/* Obtain the number of input bytes */
+    r0 = r3->dsc_w_length;		/* Obtain the number of input bytes */
 
     if (r0 == 0) return;		/* Do nothing with empty string */
 
-    r2 = r3->dsc$a_pointer;		/* Obtain pointer to input string */
+    r2 = r3->dsc_a_pointer;		/* Obtain pointer to input string */
 
     for (; (r0 != 0); r0--) {		/* Loop until input string exhausted */
 
