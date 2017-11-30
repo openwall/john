@@ -142,6 +142,10 @@ ifdef WITH_OPENCL
 CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
 CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
 JOHN_OBJS += $(OCL_OBJS) $(OPENCL_PLUGFORMATS_OBJS)
+
+# core OpenCL dependencies
+CL_DEVICE_HEADER = opencl_device_info.h
+CL_COMMON_HEADER = common-opencl.h common-gpu.h gpu_sensors.h
 endif
 
 WITH_ZTEX=@ZTEX_LIBS@
@@ -269,9 +273,13 @@ charset.o:	charset.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h param
 
 common.o:	common.c arch.h common.h memory.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h misc.h base64_convert.h
 
+ifdef WITH_OPENCL
+opencl_autotune.o:	opencl_autotune.c $(CL_COMMON_HEADER) arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h path.h $(CL_DEVICE_HEADER) memdbg.h os.h os-autoconf.h
+
 common-gpu.o:	common-gpu.c autoconfig.h Win32-dlfcn-port.h common-gpu.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h params.h logger.h config.h signals.h memdbg.h
 
-common-opencl.o:	common-opencl.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h common-opencl.h common-gpu.h gpu_sensors.h path.h opencl_device_info.h mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h math.h john.h md5.h john-mpi.h memdbg.h
+common-opencl.o:	common-opencl.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h math.h john.h md5.h john-mpi.h memdbg.h
+endif
 
 compiler.o:	compiler.c arch.h params.h memory.h compiler.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h
 
@@ -317,7 +325,7 @@ external.o:	external.c misc.h jumbo.h arch.h autoconfig.h params.h os.h os-autoc
 
 fake_salts.o:	fake_salts.c config.h john.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h memory.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h fake_salts.h memdbg.h
 
-formats.o:	formats.c params.h arch.h memory.h formats.h misc.h jumbo.h autoconfig.h dyna_salt.h unicode.h options.h list.h loader.h getopt.h common.h base64_convert.h common-opencl.h common-gpu.h gpu_sensors.h path.h opencl_device_info.h bench.h math.h memdbg.h os.h os-autoconf.h
+formats.o:	formats.c params.h arch.h memory.h formats.h misc.h jumbo.h autoconfig.h dyna_salt.h unicode.h options.h list.h loader.h getopt.h common.h base64_convert.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) bench.h math.h memdbg.h os.h os-autoconf.h
 
 fuzz.o:	fuzz.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h win32_memmap.h mmap-windows.c memdbg.h memory.h config.h john.h params.h signals.h unicode.h options.h list.h loader.h formats.h misc.h getopt.h common.h
 
@@ -361,7 +369,7 @@ bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h 
 
 list.o:	list.c memory.h arch.h list.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h
 
-listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h version.h listconf.h memdbg.h
+listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) version.h listconf.h memdbg.h
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h DES_bs.h common.h loader.h params.h list.h formats.h memdbg.h os.h os-autoconf.h
 
@@ -407,9 +415,7 @@ nonstd.o:	nonstd.c
 
 NT_fmt.o:	NT_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h options.h list.h loader.h getopt.h unicode.h aligned.h johnswap.h memdbg.h os.h os-autoconf.h
 
-opencl_autotune.o:	opencl_autotune.c common-opencl.h common-gpu.h gpu_sensors.h arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h path.h opencl_device_info.h memdbg.h os.h os-autoconf.h
-
-options.o:	options.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h memory.h list.h loader.h formats.h logger.h status.h math.h recovery.h options.h getopt.h common.h bench.h external.h compiler.h john.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h unicode.h fake_salts.h path.h regex.h john-mpi.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h prince.h version.h listconf.h memdbg.h john_build_rule.h
+options.o:	options.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h memory.h list.h loader.h formats.h logger.h status.h math.h recovery.h options.h getopt.h common.h bench.h external.h compiler.h john.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h unicode.h fake_salts.h path.h regex.h john-mpi.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) prince.h version.h listconf.h memdbg.h john_build_rule.h
 
 panama.o:	panama.c sph_panama.h sph_types.h autoconfig.h arch.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
@@ -703,7 +709,7 @@ kernels: @KERNEL_OBJS@
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o @MEMDBG_CFLAGS@ memdbg.o $(LDFLAGS) @OPENMP_CFLAGS@ -o ../run/tgtsnarf
 
-john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h common-opencl.h common-gpu.h gpu_sensors.h opencl_device_info.h john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
+john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h math.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john-mpi.h regex.h unicode.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) john_build_rule.h memdbg.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
