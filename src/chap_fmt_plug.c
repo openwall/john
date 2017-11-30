@@ -1,4 +1,5 @@
-/* iSCSI CHAP authentication cracker. Hacked together during September of 2012
+/*
+ * iSCSI CHAP authentication cracker. Hacked together during September of 2012
  * by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -13,6 +14,10 @@
  * ftp://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
  * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf
  * http://www.willhackforsushi.com/presentations/PEAP_Shmoocon2008_Wright_Antoniewicz.pdf
+ *
+ * https://tools.ietf.org/html/rfc2865 -> The CHAP challenge value is found in
+ * the CHAP-Challenge Attribute (60) if present in the packet, otherwise in the
+ * Request Authenticator field.
  */
 
 #if FMT_EXTERNS_H
@@ -21,16 +26,8 @@ extern struct fmt_main fmt_chap;
 john_register_one(&fmt_chap);
 #else
 
-#include "md5.h"
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -44,6 +41,14 @@ static int omp_t = 1;
 #endif
 #endif
 #endif
+
+#include "arch.h"
+#include "misc.h"
+#include "md5.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "chap"
@@ -68,6 +73,10 @@ static struct fmt_tests chap_tests[] = {
 	// EAP-MD5 hashes are also supported!
 	{"$chap$2*d7ec2fff2ada437f9dcd4e3b0df44d50*1ffc6c2659bc5bb94144fd01eb756e37", "beaVIs"},
 	{"$chap$2*00000000000000000000000000000000*9920418b3103652d3b80ffff04da5863", "bradtest"},
+	// RADIUS EAP-MD5 hash
+	{"$chap$1*266b0e9a58322f4d01ab25b35f879464*c9f9769597e320843f5f2af7b8f1c9bd", "S0cc3r"},
+	// RADIUS CHAP authentication is supported too
+	{"$chap$238*98437c9fd4cb5f446202c0b1ffab2592*050d578a292a4bfd9f030d2797919687", "hello"},
 	{NULL}
 };
 
