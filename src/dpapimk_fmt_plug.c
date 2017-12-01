@@ -26,7 +26,7 @@ john_register_one(&fmt_DPAPImk);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               64
+#define OMP_SCALE               4
 #endif
 #endif
 
@@ -100,9 +100,6 @@ static struct fmt_tests dpapimk_tests[] = {
 	{NULL}
 };
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
@@ -120,11 +117,14 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+#ifdef _OPENMP
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -143,6 +143,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
+	int length1, length2, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
@@ -182,11 +183,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdec(p))
 		goto err;
-	if (!atoi(p))
-		goto err;
+	length1 = atoi(p);
 	if ((p = strtokm(NULL, "*")) == NULL)    /* encrypted part */
 		goto err;
-	if (!ishexlc(p))
+	length2 = hexlenl(p, &extra);
+	if (length2 < 64 * 2 || length2 > 512 * 2 || (length1 != length2) || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -237,10 +238,10 @@ static void *get_salt(char *ciphertext)
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	p = strtokm(NULL, "*"); /* encrypted length */
-	cs.encrypted_len = (uint32_t) atoi(p);
+	cs.encrypted_len = (uint32_t) atoi(p) / 2;
 
 	p = strtokm(NULL, "*"); /* encrypted stuff */
-	for (i = 0; i < cs.encrypted_len/2; i++)
+	for (i = 0; i < cs.encrypted_len; i++)
 		cs.encrypted[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
@@ -269,11 +270,11 @@ static int decrypt_v1(unsigned char *key, unsigned char *iv, unsigned char *pwdh
 	DES_set_key((DES_cblock *) (key + 8), &ks2);
 	DES_set_key((DES_cblock *) (key + 16), &ks3);
 	memcpy(ivec, iv, 8);
-	DES_ede3_cbc_encrypt(data, out, (cur_salt->encrypted_len / 2) * 8, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
+	DES_ede3_cbc_encrypt(data, out, cur_salt->encrypted_len, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
 
 	hmacSalt = out;
 	expected_hmac = out + 16;
-	last_key = out + (cur_salt->encrypted_len / 2) - 64;
+	last_key = out + cur_salt->encrypted_len - 64;
 
 	hmac_sha1(pwdhash, 32, hmacSalt, 16, encKey, DIGEST_LEN1);
 	hmac_sha1(encKey, DIGEST_LEN1, last_key, 64, computed_hmac, DIGEST_LEN1);
@@ -293,11 +294,11 @@ static int decrypt_v2(unsigned char *key, unsigned char *iv, unsigned char *pwdh
 	AES_KEY aeskey;
 
 	AES_set_decrypt_key(key, KEY_LEN2 * 8, &aeskey);
-	AES_cbc_encrypt(data, out, (cur_salt->encrypted_len / 2) * 8, &aeskey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(data, out, cur_salt->encrypted_len, &aeskey, iv, AES_DECRYPT);
 
 	hmacSalt = out;
 	expected_hmac = out + 16;
-	last_key = out + (cur_salt->encrypted_len / 2) - 64;
+	last_key = out + cur_salt->encrypted_len - 64;
 
 	hmac_sha512(pwdhash, 20, hmacSalt, IV_LEN2, encKey, DIGEST_LEN2);
 	hmac_sha512(encKey, DIGEST_LEN2, last_key, 64, hmacComputed, DIGEST_LEN2);
