@@ -368,18 +368,19 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
 
+	/* Add all plug-in formats */
+#include "fmt_registers.h"
+
+	/* This format is deprecated so registers after plug-in NT formats */
+	john_register_one(&fmt_NT);
+
 #ifndef DYNAMIC_DISABLED
-	/* Add dynamic formats */
+	/* Add dynamic formats last so they never have precedence */
 	cnt = dynamic_Register_formats(&selfs);
 
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 #endif
-
-#include "fmt_registers.h"
-
-	/* This format is deprecated so registers after plug-in NT formats */
-	john_register_one(&fmt_NT);
 
 	john_register_one(&fmt_dummy);
 #if HAVE_CRYPT
