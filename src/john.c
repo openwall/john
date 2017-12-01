@@ -216,11 +216,11 @@ static void john_register_one(struct fmt_main *format)
 		}
 
 		if (pos) {
-			// Wildcard, as in --format=office*
+			/* Wildcard, as in --format=office* */
 			if (strncasecmp(format->params.label, options.format,
 			                (int)(pos - options.format)))
 				return;
-			// Trailer wildcard, as in *office or raw*ng
+			/* Trailer wildcard, as in *office or raw*ng */
 			if (pos[1]) {
 				int wild_len = strlen(++pos);
 				int label_len = strlen(format->params.label);
@@ -238,7 +238,7 @@ static void john_register_one(struct fmt_main *format)
 		           (pos = strchr(options.format, '@'))) {
 			char *reject, *algo = strdup(++pos);
 
-			// Rejections
+			/* Rejections */
 			if ((reject = strcasestr(algo, "-dynamic"))) {
 				if (format->params.flags & FMT_DYNAMIC) {
 					MEM_FREE (algo);
@@ -253,7 +253,7 @@ static void john_register_one(struct fmt_main *format)
 				}
 				memmove(reject, reject + 7, strlen(reject + 6));
 			}
-			// Algo match, as in --format=@xop or --format=@sha384
+			/* Algo match, eg. --format=@xop or --format=@sha384 */
 			if (!strcasestr(format->params.algorithm_name, algo)) {
 				MEM_FREE (algo);
 				return;
@@ -322,18 +322,18 @@ static void john_register_one(struct fmt_main *format)
 	                 format->params.label, 0)) {
 #ifdef DEBUG
 		if (format->params.flags & FMT_DYNAMIC) {
-			// in debug mode, we 'allow' dyna
+			/* in debug mode, we 'allow' dyna */
 		} else
 #else
 		if (options.format &&
 		    !strcasecmp(options.format, "dynamic-all") &&
 		    (format->params.flags & FMT_DYNAMIC)) {
-			// allow dyna if '-format=dynamic-all' was selected
+			/* allow dyna if '-format=dynamic-all' was selected */
 		} else
 #endif
 		if (options.format &&
 		    !strcasecmp(options.format, format->params.label)) {
-			// allow if specifically requested
+			/* allow if specifically requested */
 		} else
 			return;
 	}
@@ -349,12 +349,12 @@ static void john_register_all(void)
 #endif
 
 	if (options.format) {
-/* The case of the expression for this format is VERY important to keep */
+	/* The case of the expression for this format is significant */
 		if (strncasecmp(options.format, "dynamic=", 8))
 			strlwr(options.format);
 	}
 
-// Let ZTEX format appear before CPU format
+	/* Let ZTEX format appear before CPU format */
 #ifdef HAVE_ZTEX
 	john_register_one(&fmt_ztex_descrypt);
 	john_register_one(&fmt_ztex_bcrypt);
@@ -369,10 +369,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_trip);
 
 #ifndef DYNAMIC_DISABLED
-	// NOTE, this MUST happen, before ANY format that links a 'thin' format
-	// to dynamic.
-	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
-	// generic format first
+	/* Add dynamic formats */
 	cnt = dynamic_Register_formats(&selfs);
 
 	for (i = 0; i < cnt; ++i)
@@ -381,7 +378,7 @@ static void john_register_all(void)
 
 #include "fmt_registers.h"
 
-	// This format is deprecated so now registers after plug-in NT format.
+	/* This format is deprecated so registers after plug-in NT formats */
 	john_register_one(&fmt_NT);
 
 	john_register_one(&fmt_dummy);
@@ -644,20 +641,20 @@ static void john_fork(void)
 			options.node_min += i;
 			options.node_max = options.node_min;
 #if HAVE_OPENCL
-			// Poor man's multi-device support
+			/* Poor man's multi-device support */
 			if (options.acc_devices->count &&
 			    strstr(database.format->params.label, "-opencl")) {
-				// Pick device to use for this child
+				/* Pick device to use for this child */
 				opencl_preinit();
 				gpu_id =
 				    requested_devices[i % get_number_of_requested_devices()];
 				platform_id = get_platform_id(gpu_id);
 
-				// Hide any other devices from list
+				/* Hide any other devices from list */
 				gpu_device_list[0] = gpu_id;
 				gpu_device_list[1] = -1;
 
-				// Postponed format init in forked process
+				/* Postponed format init in forked process */
 				fmt_init(database.format);
 			}
 #endif
@@ -680,18 +677,18 @@ static void john_fork(void)
 	}
 
 #if HAVE_OPENCL
-	// Poor man's multi-device support
+	/* Poor man's multi-device support */
 	if (options.acc_devices->count &&
 	    strstr(database.format->params.label, "-opencl")) {
-		// Pick device to use for mother process
+		/* Pick device to use for mother process */
 		opencl_preinit();
 		gpu_id = gpu_device_list[0];
 		platform_id = get_platform_id(gpu_id);
 
-		// Hide any other devices from list
+		/* Hide any other devices from list */
 		gpu_device_list[1] = -1;
 
-		// Postponed format init in mother process
+		/* Postponed format init in mother process */
 		fmt_init(database.format);
 	}
 #endif
@@ -1892,7 +1889,7 @@ int main(int argc, char **argv)
 	exit(0);
 #endif
 
-	sig_preinit(); // Mitigate race conditions
+	sig_preinit(); /* Mitigate race conditions */
 #ifdef __DJGPP__
 	if (--argc <= 0) return 1;
 	if ((name = strrchr(argv[0], '/')))
@@ -1922,12 +1919,16 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef _MSC_VER
-	// Ok, I am making a simple way to debug external programs. in VC.  Prior to this, I would set
-	// break point below, right where the external name is, and then would modify IP to put me into
-	// the block that calls main() from the external.  Now, in VC mode, if the first command is:
-	// -external_command=COMMAND, then I set name == COMMAND, and pop the command line args off, just
-	// like the first one was not there.  So if the command was "-external_command=gpg2john secring.gpg"
-	// then we will be setup in gpg2john mode with command line arg of secring.gpg
+/*
+ * Ok, I am making a simple way to debug external programs. in VC.  Prior to
+ * this, I would set break point below, right where the external name is, and
+ * then would modify IP to put me into the block that calls main() from the
+ * external.  Now, in VC mode, if the first command is:
+ * -external_command=COMMAND, then I set name == COMMAND, and pop the command
+ * line args off, just like the first one was not there.  So if the command was
+ * "-external_command=gpg2john secring.gpg" then we will be setup in gpg2john
+ * mode with command line arg of secring.gpg
+ */
 	if (argc > 2 && !strncmp(argv[1], "-external_command=", 18)) {
 		int i;
 		name = &argv[1][18];
