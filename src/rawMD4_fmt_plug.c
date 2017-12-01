@@ -106,11 +106,7 @@ static struct fmt_tests tests[] = {
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#if ARCH_LITTLE_ENDIAN
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*4*SIMD_COEF_32 )
-#else
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*4*SIMD_COEF_32 )
-#endif
+#include "common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -249,106 +245,7 @@ static char *source(char *source, void *binary)
 	return out;
 }
 
-#ifdef SIMD_COEF_32
-static void set_key(char *_key, int index)
-{
-#if ARCH_ALLOWS_UNALIGNED
-	const uint32_t *key = (uint32_t*)_key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const uint32_t *key = (uint32_t*)(is_aligned(_key, sizeof(uint32_t)) ?
-	                                      _key : strcpy(buf_aligned, _key));
-#endif
-	uint32_t *keybuffer = &((uint32_t*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*SIMD_COEF_32];
-	uint32_t *keybuf_word = keybuffer;
-	unsigned int len;
-	uint32_t temp;
-
-	len = 0;
-#if ARCH_LITTLE_ENDIAN
-	while((temp = *key++) & 0xff) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = (temp & 0xff) | (0x80 << 8);
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = (temp & 0xffff) | (0x80 << 16);
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = temp | (0x80U << 24);
-			len+=3;
-			goto key_cleaning;
-		}
-		*keybuf_word = temp;
-#else
-	while((temp = *key++) & 0xff000000) {
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xff000000) | (0x80 << 16));
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xffff0000) | (0x80 << 8));
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff))
-		{
-			*keybuf_word = JOHNSWAP(temp | 0x80U);
-			len+=3;
-			goto key_cleaning;
-		}
-		*keybuf_word = JOHNSWAP(temp);
-#endif
-		len += 4;
-		keybuf_word += SIMD_COEF_32;
-	}
-	*keybuf_word = 0x80;
-
-key_cleaning:
-	keybuf_word += SIMD_COEF_32;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_32;
-	}
-	keybuffer[14*SIMD_COEF_32] = len << 3;
-}
-#else
-static void set_key(char *key, int index)
-{
-	int len = strlen(key);
-	saved_len[index] = len;
-	memcpy(saved_key[index], key, len);
-}
-#endif
-
-#ifdef SIMD_COEF_32
-static char *get_key(int index)
-{
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int i;
-	uint32_t len = ((uint32_t*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*SIMD_COEF_32] >> 3;
-
-	for (i=0;i<len;i++)
-		out[i] = ((char*)saved_key)[GETPOS(i, index)];
-	out[i] = 0;
-	return (char*)out;
-}
-#else
-static char *get_key(int index)
-{
-	saved_key[index][saved_len[index]] = 0;
-	return saved_key[index];
-}
-#endif
+#include "common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
