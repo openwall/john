@@ -270,6 +270,11 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
+// can not use common-get-hash.h since the HASH_IDX_OUT will vary between 5 and
+// 8 limbs based upon the current salt.  No way for pre-processor to handle that.
+// the only way to use common-get-hash.h would be to make a format for sha1, and
+// a 2nd for sha256.  But since we already have a singlular format, we will simply
+// not use the common code here.
 #ifdef SIMD_COEF_32
 static int get_hash_0 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_0; }
 static int get_hash_1 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_1; }

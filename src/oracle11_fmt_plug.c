@@ -426,24 +426,9 @@ static void * get_binary(char *ciphertext)
 	return (void *)realcipher.c;
 }
 
-#ifdef SIMD_COEF_32
-#define KEY_OFF (((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
-static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[KEY_OFF] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[index] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 5
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -497,13 +482,8 @@ struct fmt_main fmt_oracle11 = {
 		clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -303,13 +303,8 @@ static unsigned int skey_hash_type(void *salt)
 		return (unsigned int) 0;
 }
 
-static int get_hash_0(int index) { return saved_key[0] & PH_MASK_0; }
-static int get_hash_1(int index) { return saved_key[0] & PH_MASK_1; }
-static int get_hash_2(int index) { return saved_key[0] & PH_MASK_2; }
-static int get_hash_3(int index) { return saved_key[0] & PH_MASK_3; }
-static int get_hash_4(int index) { return saved_key[0] & PH_MASK_4; }
-static int get_hash_5(int index) { return saved_key[0] & PH_MASK_5; }
-static int get_hash_6(int index) { return saved_key[0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR saved_key
+#include "common-get-hash.h"
 
 /* iteration count as 2nd tunable cost */
 static unsigned int skey_iteration_count(void *salt)
@@ -374,13 +369,8 @@ struct fmt_main fmt_SKEY = {
 		fmt_default_clear_keys,
 		skey_crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		skey_cmp_all,
 		skey_cmp_one,
