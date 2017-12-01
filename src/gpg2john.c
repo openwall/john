@@ -1761,7 +1761,7 @@ exportable_certification(int len)
 {
 #if DEBUG
 	printf("\t\tExportable - ");
-	if (Getc() == 0);
+	if (Getc() == 0)
 		printf("No");
 	else
 		printf("Yes");
@@ -1798,7 +1798,7 @@ revocable(int len)
 {
 #if DEBUG
 	printf("\t\tRevocable - ");
-	if (Getc() == 0);
+	if (Getc() == 0)
 		printf("No");
 	else
 		printf("Yes");
@@ -1984,7 +1984,7 @@ primary_user_id(int len)
 {
 #if DEBUG
 	printf("\t\tPrimary - ");
-	if (Getc() == 0);
+	if (Getc() == 0)
 		printf("No");
 	else
 		printf("Yes");
