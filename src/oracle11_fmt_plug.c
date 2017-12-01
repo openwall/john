@@ -206,7 +206,7 @@ static void clear_keys(void)
 
 #define SALT_APPENDED SALT_SIZE
 #define NON_SIMD_SINGLE_SAVED_KEY
-#define SET_SAVED_LEN_OSSL
+#define NON_SIMD_SET_SAVED_LEN
 #include "common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count)

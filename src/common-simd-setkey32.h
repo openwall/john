@@ -27,8 +27,41 @@
  * for non_simd builds, these buffers must be there:
  *    static int (*saved_len);
  *    static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+ *
+ *   SALT_PREPENDED       Define to FIXED length of the salt!
+ *        Similar to the APPEND, but places the password SALT_PREPENDED
+ *        bytes INTO the buffer.  Also within getkey, the code skips over
+ *        the salt, and only returns the password.
+ *
+ *   FMT_IS_BE            Simple define (set or not)
+ *        This needs set for any BE format (SHAx, etc). NOTE, this define
+ *        should have already been set before calling common-simd-getpos.h
+ *        so it normally is NOT a concern before including this file.
+ *
+ * INCLUDE_TRAILING_NULL  Simple define
+ *        citrix includes the NULL byte (before the 0x80) in the SIMD
+ *        code, so that logic was kept.  A pretty simple block of code
+ *        controlled by this define, impacting only that format, BUT
+ *        if other formats want a NULL trailing the password, simply
+ *        define this flag.
+ *
+ * SET_SAVED_LEN          Simple define
+ *        The format wants to save the length into 'saved_len'. This
+ *        logic will set the length (password) into saved_len[] array
+ *        in simd code. It will save it into saved_len[] array OR into
+ *        saved_len variable, based upon the next variable.  NOTE, simd
+ *        will ALWAYS use an array, IF it uses saved_len at all.
+ *
+ * NON_SIMD_SET_SAVED_LEN  Simple define
+ *        If this variable is set, then in the non-simd code, there is
+ *        a simple variable (not an array), so we store (and later use)
+ *        the save_len into a single variable.
+ *
+ * NON_SIMD_SINGLE_SAVED_KEY  simple define.
+ *        In a non-simd mode, there is only 1 saved_key variable (not
+ *        an array of them).
+ *
  */
-
 
 #if defined(SIMD_COEF_32)
 
@@ -168,12 +201,12 @@ key_cleaning:
 static void set_key(char *key, int index)
 {
 #if defined (NON_SIMD_SINGLE_SAVED_KEY)
-#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+#  if defined(SET_SAVED_LEN) || defined (NON_SIMD_SET_SAVED_LEN)
 	saved_len =
 #  endif
 	strnzcpyn(saved_key, key, sizeof(saved_key));
 #else
-#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+#  if defined(SET_SAVED_LEN) || defined (NON_SIMD_SET_SAVED_LEN)
 	saved_len[index] =
 #  endif
 	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
@@ -208,13 +241,13 @@ static char *get_key(int index)
 static char *get_key(int index)
 {
 #if defined (NON_SIMD_SINGLE_SAVED_KEY)
-#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+#  if defined(SET_SAVED_LEN) || defined (NON_SIMD_SET_SAVED_LEN)
 	saved_key[saved_len] = 0;
 #  endif
 	return saved_key;
 #else
 	static char out [PLAINTEXT_LENGTH + 1];
-#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+#  if defined(SET_SAVED_LEN) || defined (NON_SIMD_SET_SAVED_LEN)
 	return strnzcpy(out, saved_key[index], saved_len[index]+1);
 #  else
 	return strnzcpy(out, saved_key[index], sizeof(out));
