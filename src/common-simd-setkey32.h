@@ -28,6 +28,20 @@
  *    static int (*saved_len);
  *    static char (*saved_key)[PLAINTEXT_LENGTH + 1];
  *
+ * NOTE, the above requirements have been relaxed, to allow more formats to be
+ *  able to use this code.  To do this, #if logic was added at appropriate
+ *  locations in the code, to handle slightly different format behaviors and
+ *  requirements.  Here are a list of things which can be be predefined
+ *  before including this file, so that it behaves in a manner which the
+ *  format expects (variables, setup usages, etc).
+ *
+ *   SALT_APPENDED        Define to FIXED length of the salt!
+ *        The format will append a salt to the block of data. This code
+ *        will place the 0x80 AFTER the password and salt (salt is a place
+ *        holder buffer), and put the length of pw+salt_len into the
+ *        length field bits.  It is also used in get_key to return JUST
+ *        the password, and not the key.  ONLY impacts SIMD builds.
+ *
  *   SALT_PREPENDED       Define to FIXED length of the salt!
  *        Similar to the APPEND, but places the password SALT_PREPENDED
  *        bytes INTO the buffer.  Also within getkey, the code skips over
