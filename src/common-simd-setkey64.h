@@ -209,14 +209,6 @@ key_cleaning:
 	keybuffer[14*SIMD_COEF_64] = len << 3;
 #	endif
 #endif
-//	if (!index)
-//		printf ("\n");
-//	printf ("(%d)", index);
-//	dump_stuff_mmx64(saved_key, 128, index);
-//	fflush(stdout);
-//	if (index > 3)
-//		exit(0);
-//
 }
 #else	// !defined SIMD_COEF_64
 static void set_key(char *key, int index)
