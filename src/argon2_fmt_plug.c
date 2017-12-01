@@ -89,12 +89,13 @@ static struct argon2_salt saved_salt;
 static region_t * memory;
 static void **pseudo_rands;
 
-static char *saved_key;
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *saved_len;
 static int threads;
 static size_t saved_mem_size;
 static uint32_t saved_segment_length;
 
-static unsigned char *crypted;
+static unsigned char (*crypted)[BINARY_SIZE];
 
 static void *get_salt(char *ciphertext);
 
@@ -111,14 +112,11 @@ static void init(struct fmt_main *self)
 	threads=1;
 #endif
 	saved_key =
-	    malloc(self->params.max_keys_per_crypt * (PLAINTEXT_LENGTH + 1));
-	memset(saved_key, 0,
-	    self->params.max_keys_per_crypt * (PLAINTEXT_LENGTH + 1));
-	crypted = malloc(self->params.max_keys_per_crypt * (BINARY_SIZE));
-	memset(crypted, 0, self->params.max_keys_per_crypt * (BINARY_SIZE));
-
-	memory=malloc(threads*sizeof(region_t));
-	pseudo_rands=malloc(threads*sizeof(void*));
+	    mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
+	crypted = mem_calloc(self->params.max_keys_per_crypt, (BINARY_SIZE));
+	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(int));
+	memory=mem_calloc(threads, sizeof(region_t));
+	pseudo_rands=mem_calloc(threads,sizeof(void*));
 
 	for (i=0;i<threads;i++)
 	{
@@ -133,15 +131,16 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	int i;
-	free(saved_key);
-	free(crypted);
 	for (i=0;i<threads;i++)
 	{
 		free_region_t(&memory[i]);
-		free(pseudo_rands[i]);
+		MEM_FREE(pseudo_rands[i]);
 	}
-	free(memory);
-	free(pseudo_rands);
+	MEM_FREE(memory);
+	MEM_FREE(pseudo_rands);
+	MEM_FREE(saved_len);
+	MEM_FREE(crypted);
+	MEM_FREE(saved_key);
 }
 
 static void print_memory(double memory)
@@ -237,12 +236,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy(saved_key + index * (PLAINTEXT_LENGTH + 1), key, PLAINTEXT_LENGTH+1);
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
 {
-	return saved_key + index * (PLAINTEXT_LENGTH + 1);
+	return saved_key[index];
 }
 
 
@@ -322,9 +321,9 @@ static void set_salt(void *salt)
 	{
 		if (saved_segment_length>0)
 			for (i=0;i<threads;i++)
-				free(pseudo_rands[i]);
+				MEM_FREE(pseudo_rands[i]);
 		for (i=0;i<threads;i++)
-			pseudo_rands[i]=malloc(sizeof(uint64_t) * segment_length);
+			pseudo_rands[i]=mem_calloc(sizeof(uint64_t), segment_length);
 
 		saved_segment_length=segment_length;
 	}
@@ -334,7 +333,7 @@ static int cmp_all(void *binary, int count)
 {
 	int i;
 	for (i = 0; i < count; i++) {
-		if (!memcmp(binary, crypted + i * BINARY_SIZE, saved_salt.hash_size))
+		if (!memcmp(binary, crypted[i], saved_salt.hash_size))
 			return 1;
 	}
 	return 0;
@@ -342,7 +341,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypted + index * BINARY_SIZE,  saved_salt.hash_size);
+	return !memcmp(binary, crypted[index],  saved_salt.hash_size);
 }
 
 static int cmp_exact(char *source, int index)
@@ -359,54 +358,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (i = 0; i < count; i++) {
-		argon2_hash(saved_salt.t_cost, saved_salt.m_cost, saved_salt.lanes, saved_key + i * (PLAINTEXT_LENGTH + 1), strlen(saved_key + i * (PLAINTEXT_LENGTH + 1)), saved_salt.salt,
-		    saved_salt.salt_length, crypted + i * BINARY_SIZE, saved_salt.hash_size, 0, 0, saved_salt.type, ARGON2_VERSION_NUMBER, memory[THREAD_NUMBER%threads].aligned, pseudo_rands[THREAD_NUMBER%threads]);
+		argon2_hash(saved_salt.t_cost, saved_salt.m_cost, saved_salt.lanes, saved_key[i], saved_len[i], saved_salt.salt,
+		    saved_salt.salt_length, crypted[i], saved_salt.hash_size, 0, 0, saved_salt.type, ARGON2_VERSION_NUMBER, memory[THREAD_NUMBER%threads].aligned, pseudo_rands[THREAD_NUMBER%threads]);
 	}
 
 	return count;
 }
 
-static int get_hash_0(int index)
-{
-	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & PH_MASK_0;
-}
-
-static int get_hash_1(int index)
-{
-	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & PH_MASK_1;
-}
-
-static int get_hash_2(int index)
-{
-	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & PH_MASK_2;
-}
-
-static int get_hash_3(int index)
-{
-	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & PH_MASK_3;
-}
-
-static int get_hash_4(int index)
-{
-	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & PH_MASK_4;
-}
-
-static int get_hash_5(int index)
-{
-	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & PH_MASK_5;
-}
-
-static int get_hash_6(int index)
-{
-	uint32_t *crypt = (uint32_t *) (crypted + index * BINARY_SIZE);
-	return crypt[0] & PH_MASK_6;
-}
+static int get_hash_0(int index) { 	return ((uint32_t *)(crypted[index]))[0] & PH_MASK_0; }
+static int get_hash_1(int index) { 	return ((uint32_t *)(crypted[index]))[0] & PH_MASK_1; }
+static int get_hash_2(int index) { 	return ((uint32_t *)(crypted[index]))[0] & PH_MASK_2; }
+static int get_hash_3(int index) { 	return ((uint32_t *)(crypted[index]))[0] & PH_MASK_3; }
+static int get_hash_4(int index) { 	return ((uint32_t *)(crypted[index]))[0] & PH_MASK_4; }
+static int get_hash_5(int index) { 	return ((uint32_t *)(crypted[index]))[0] & PH_MASK_5; }
+static int get_hash_6(int index) { 	return ((uint32_t *)(crypted[index]))[0] & PH_MASK_6; }
 
 static int salt_hash(void *_salt)
 {
