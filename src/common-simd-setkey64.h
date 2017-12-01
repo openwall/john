@@ -213,9 +213,17 @@ key_cleaning:
 #else	// !defined SIMD_COEF_64
 static void set_key(char *key, int index)
 {
-	int len = strlen(key);
-	saved_len[index] = len;
-	memcpy(saved_key[index], key, len);
+#if defined (NON_SIMD_SINGLE_SAVED_KEY)
+#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+	saved_len =
+#  endif
+	strnzcpyn(saved_key, key, sizeof(saved_key));
+#else
+#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+	saved_len[index] =
+#  endif
+	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+#endif
 }
 #endif  // SIMD_COEF_64
 
@@ -246,9 +254,18 @@ static char *get_key(int index)
 #else // !defined SIMD_COEF_64
 static char *get_key(int index)
 {
+#if defined (NON_SIMD_SINGLE_SAVED_KEY)
+#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+	saved_key[saved_len] = 0;
+#  endif
+	return saved_key;
+#else
 	static char out [PLAINTEXT_LENGTH + 1];
-	memcpy(out, saved_key[index], saved_len[index]);
-	out[saved_len[index]] = 0;
-	return out;
+#  if defined(SET_SAVED_LEN) || defined (SET_SAVED_LEN_OSSL)
+	return strnzcpy(out, saved_key[index], saved_len[index]+1);
+#  else
+	return strnzcpy(out, saved_key[index], sizeof(out));
+#  endif
+#endif
 }
 #endif  // SIMD_COEF_64

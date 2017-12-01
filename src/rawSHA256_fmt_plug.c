@@ -190,6 +190,7 @@ static int binary_hash_4(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK
 static int binary_hash_5(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_6; }
 
+#define SET_SAVED_LEN_OSSL
 #include "common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS

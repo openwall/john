@@ -190,6 +190,7 @@ static void set_salt(void *salt)
 }
 
 #define SALT_PREPENDED SALT_SIZE
+#define SET_SAVED_LEN_OSSL
 #include "common-simd-setkey64.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)

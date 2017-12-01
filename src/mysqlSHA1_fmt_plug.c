@@ -154,6 +154,7 @@ static void init(struct fmt_main *self)
 #endif
 }
 
+#define NON_SIMD_SINGLE_SAVED_KEY
 #include "common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count) {

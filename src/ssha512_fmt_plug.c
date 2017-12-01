@@ -84,7 +84,7 @@ static uint64_t (**len_ptr64);
 static int max_count;
 #else
 static uint32_t (*crypt_out)[DIGEST_SIZE / 4];
-static uint64_t (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif
 static int *saved_len;
 

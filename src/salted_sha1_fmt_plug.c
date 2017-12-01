@@ -91,6 +91,7 @@ static int last_salt_size;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_key)[BINARY_SIZE / 4];
+static unsigned int *saved_len;
 #endif
 
 static void init(struct fmt_main *self)
@@ -109,22 +110,20 @@ static void init(struct fmt_main *self)
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_key));
 #else
-	saved_len = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_len));
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,
 	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,
 	                             sizeof(*crypt_key), MEM_ALIGN_SIMD);
 #endif
+	saved_len = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_len));
 }
 
 static void done(void)
 {
 	MEM_FREE(crypt_key);
 	MEM_FREE(saved_key);
-#ifdef SIMD_COEF_32
 	MEM_FREE(saved_len);
-#endif
 }
 
 static void * get_binary(char *ciphertext) {

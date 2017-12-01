@@ -124,9 +124,9 @@ static unsigned char *saved_salt;
 
 #ifdef SIMD_COEF_32
 
-unsigned char *saved_key;
-unsigned char *crypt_key;
-
+static unsigned char *saved_key;
+static unsigned char *crypt_key;
+static int *saved_len;
 #else
 
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -143,6 +143,7 @@ static void init(struct fmt_main *self)
 
 	saved_key = mem_calloc_align(SHA_BUF_SIZ * 4, NBKEYS, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_align(BINARY_SIZE, NBKEYS, MEM_ALIGN_SIMD);
+	saved_len = mem_calloc(sizeof(int), NBKEYS);
 	/* Set lengths to SALT_LEN to avoid strange things in crypt_all()
 	   if called without setting all keys (in benchmarking). Unset
 	   keys would otherwise get a length of -10 and a salt appended
@@ -157,6 +158,7 @@ static void done(void)
 {
 	MEM_FREE(saved_salt);
 #ifdef SIMD_COEF_32
+	MEM_FREE(saved_len);
 	MEM_FREE(crypt_key);
 	MEM_FREE(saved_key);
 #endif
@@ -203,6 +205,8 @@ static void clear_keys(void)
 }
 
 #define SALT_APPENDED SALT_SIZE
+#define NON_SIMD_SINGLE_SAVED_KEY
+#define SET_SAVED_LEN_OSSL
 #include "common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count)

@@ -104,6 +104,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return ciphertext;
 }
 
+#define NON_SIMD_SINGLE_SAVED_KEY
 #include "common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count) {

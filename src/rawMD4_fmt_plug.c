@@ -245,6 +245,7 @@ static char *source(char *source, void *binary)
 	return out;
 }
 
+#define SET_SAVED_LEN_OSSL
 #include "common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
