@@ -611,7 +611,7 @@ void *pbkdf2_hmac_sha256_binary(char *ciphertext) {
 #ifdef DEBUG
 	assert(strlen(c) == 43);
 #endif
-	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT, 0);
+	base64_convert(c, e_b64_mime, 43, buf.c, e_b64_raw, sizeof(buf.c), flg_Base64_MIME_PLUS_TO_DOT|flg_Base64_DONOT_NULL_TERMINATE, 0);
 	return ret;
 }
 
