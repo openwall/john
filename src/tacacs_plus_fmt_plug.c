@@ -8,9 +8,6 @@
  * released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted.
- *
- * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
  *  * Redistributions of source code must retain the above copyright
@@ -227,7 +224,7 @@ static int check_password(int index, struct custom_salt *cs)
 	flags = digest.c[1];
 	server_msg_len = digest.c[3] | (digest.c[2] << 8);
 	data_len = digest.c[5] | (digest.c[4] << 8);
-	if(((status >= 0x01 && status <= 0x07) || status == 0x21) && (flags == 0x01 || flags == 0x00) &&
+	if (((status >= 0x01 && status <= 0x07) || status == 0x21) && (flags == 0x01 || flags == 0x00) &&
 		(6U + server_msg_len + data_len == cs->ctlen)) {
 		return 1;
 	}
