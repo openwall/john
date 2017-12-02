@@ -75,18 +75,16 @@ struct s_salt
 static struct s_salt *saved_salt;
 
 #ifdef SIMD_COEF_64
-#if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#else
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#endif
+#define FMT_IS_64BIT
+#define FMT_IS_BE
+#include "common-simd-getpos.h"
 static uint64_t (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64];
 static uint64_t (*crypt_out)[8*SIMD_COEF_64];
 static uint64_t (**len_ptr64);
 static int max_count;
 #else
 static uint32_t (*crypt_out)[DIGEST_SIZE / 4];
-static uint64_t (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 #endif
 static int *saved_len;
 
@@ -138,133 +136,8 @@ static void done(void)
 	MEM_FREE(saved_len);
 }
 
-#ifdef SIMD_COEF_64
-static void set_key(char *key, int index) {
-#if ARCH_ALLOWS_UNALIGNED
-	const uint64_t *wkey = (uint64_t*)key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const uint64_t *wkey = is_aligned(key, sizeof(uint64_t)) ?
-			(uint64_t*)key : (uint64_t*)strcpy(buf_aligned, key);
-#endif
-	uint64_t *keybuffer = &((uint64_t *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	uint64_t *keybuf_word = keybuffer;
-	unsigned int len;
-	uint64_t temp;
-
-	len = 0;
-#if ARCH_LITTLE_ENDIAN==1
-	while((unsigned char)(temp = *wkey++)) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = JOHNSWAP64(temp & 0xff);
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = JOHNSWAP64(temp & 0xffff);
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = JOHNSWAP64(temp & 0xffffff);
-			len+=3;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64(temp & 0xffffffff);
-			len+=4;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64(temp & 0xffffffffffULL);
-			len+=5;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64(temp & 0xffffffffffffULL);
-			len+=6;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64(temp & 0xffffffffffffffULL);
-			len+=7;
-			goto key_cleaning;
-		}
-		*keybuf_word = JOHNSWAP64(temp);
-#else
-	while((temp = *wkey++)  & 0xff00000000000000ULL) {
-		if (!(temp & 0xff000000000000ULL))
-		{
-			*keybuf_word = (temp & 0xff00000000000000ULL) | (0x80ULL << 48);
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000000000ULL))
-		{
-			*keybuf_word = (temp & 0xffff000000000000ULL) | (0x80ULL << 40);
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000ULL))
-		{
-			*keybuf_word = (temp & 0xffffff0000000000ULL) | (0x80ULL << 32);
-			len+=3;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = (temp & 0xffffffff00000000ULL) | (0x80ULL << 24);
-			len+=4;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = (temp & 0xffffffffff000000ULL) | (0x80 << 16);
-			len+=5;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = (temp & 0xffffffffffff0000ULL) | (0x80 << 8);
-			len+=6;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff))
-		{
-			*keybuf_word = temp | 0x80;
-			len+=7;
-			goto key_cleaning;
-		}
-		*keybuf_word = temp;
-#endif
-		len += 8;
-		keybuf_word += SIMD_COEF_64;
-	}
-
-key_cleaning:
-	saved_len[index] = len;
-	keybuf_word += SIMD_COEF_64;
-	while(*keybuf_word && keybuf_word < &keybuffer[15*SIMD_COEF_64]) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_64;
-	}
-}
-#else
-static void set_key(char *key, int index)
-{
-	int len = strlen(key);
-
-	saved_len[index] = len;
-	memcpy(saved_key[index], key, len + 1);
-}
-#endif
+#define SET_SAVED_LEN
+#include "common-simd-setkey64.h"
 
 static void * get_salt(char * ciphertext)
 {
@@ -288,25 +161,6 @@ static void * get_salt(char * ciphertext)
 	memcpy(cursalt.data.c, realcipher+DIGEST_SIZE, cursalt.len);
 	return &cursalt;
 }
-
-#ifdef SIMD_COEF_64
-static char *get_key(int index) {
-	unsigned i;
-	uint64_t s;
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned char *wucp = (unsigned char*)saved_key;
-
-	s = saved_len[index];
-	for (i=0;i<(unsigned)s;i++)
-		out[i] = wucp[ GETPOS(i, index) ];
-	out[i] = 0;
-	return (char*) out;
-}
-#else
-static char *get_key(int index) {
-	return (char*)saved_key[index];
-}
-#endif
 
 static int cmp_all(void *binary, int count) {
 	unsigned int index;

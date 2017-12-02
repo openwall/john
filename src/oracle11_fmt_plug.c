@@ -102,11 +102,8 @@ john_register_one(&fmt_oracle11);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
-#else
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
-#endif
+#define FMT_IS_BE
+#include "common-simd-getpos.h"
 #define GETPOS_WORD(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 +               (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4)
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -127,9 +124,9 @@ static unsigned char *saved_salt;
 
 #ifdef SIMD_COEF_32
 
-unsigned char *saved_key;
-unsigned char *crypt_key;
-
+static unsigned char *saved_key;
+static unsigned char *crypt_key;
+static int *saved_len;
 #else
 
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -146,6 +143,7 @@ static void init(struct fmt_main *self)
 
 	saved_key = mem_calloc_align(SHA_BUF_SIZ * 4, NBKEYS, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_align(BINARY_SIZE, NBKEYS, MEM_ALIGN_SIMD);
+	saved_len = mem_calloc(sizeof(int), NBKEYS);
 	/* Set lengths to SALT_LEN to avoid strange things in crypt_all()
 	   if called without setting all keys (in benchmarking). Unset
 	   keys would otherwise get a length of -10 and a salt appended
@@ -160,6 +158,7 @@ static void done(void)
 {
 	MEM_FREE(saved_salt);
 #ifdef SIMD_COEF_32
+	MEM_FREE(saved_len);
 	MEM_FREE(crypt_key);
 	MEM_FREE(saved_key);
 #endif
@@ -205,84 +204,10 @@ static void clear_keys(void)
 #endif
 }
 
-static void set_key(char *key, int index)
-{
-#ifdef SIMD_COEF_32
-#if ARCH_ALLOWS_UNALIGNED
-	const uint32_t *wkey = (uint32_t*)key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
-	                                       key : strcpy(buf_aligned, key));
-#endif
-	uint32_t *keybuf_word = (unsigned int*)&saved_key[GETPOS_WORD(0, index)];
-	unsigned int len;
-
-	len = SALT_SIZE;
-#if ARCH_LITTLE_ENDIAN==1
-	while((*keybuf_word = JOHNSWAP(*wkey++)) & 0xff000000) {
-		if (!(*keybuf_word & 0xff0000))
-		{
-			len++;
-			break;
-		}
-		if (!(*keybuf_word & 0xff00))
-		{
-			len+=2;
-			break;
-		}
-		if (!(*keybuf_word & 0xff))
-		{
-			len+=3;
-			break;
-		}
-#else
-	while((*keybuf_word = *wkey++) & 0xff000000) {
-		if (!(*keybuf_word & 0xff0000))
-		{
-			len++;
-			break;
-		}
-		if (!(*keybuf_word & 0xff00))
-		{
-			len+=2;
-			break;
-		}
-		if (!(*keybuf_word & 0xff))
-		{
-			len+=3;
-			break;
-		}
-#endif
-
-		len += 4;
-		keybuf_word += SIMD_COEF_32;
-	}
-	saved_key[GETPOS(len, index)] = 0x80;
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
-#else
-	saved_len = strnzcpyn(saved_key, key, sizeof(saved_key));
-#endif
-}
-
-static char *get_key(int index)
-{
-#ifdef SIMD_COEF_32
-	unsigned int i,s;
-	static char out[PLAINTEXT_LENGTH + 1];
-
-	s = (((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3) - SALT_SIZE;
-
-	for (i = 0; i < s; i++)
-		out[i] = ((char*)saved_key)[ GETPOS(i, index) ];
-	out[i] = 0;
-
-	return (char *) out;
-#else
-	saved_key[saved_len] = 0;
-	return saved_key;
-#endif
-}
+#define SALT_APPENDED SALT_SIZE
+#define NON_SIMD_SINGLE_SAVED_KEY
+#define NON_SIMD_SET_SAVED_LEN
+#include "common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count)
 {

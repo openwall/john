@@ -68,11 +68,8 @@ john_register_one(&fmt_mysqlSHA1);
 
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
-#else
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
-#endif
+#define FMT_IS_BE
+#include "common-simd-getpos.h"
 
 #else
 
@@ -157,95 +154,8 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-static void set_key(char *key, int index)
-{
-#ifdef SIMD_COEF_32
-#if ARCH_ALLOWS_UNALIGNED
-	const uint32_t *wkey = (uint32_t*)key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
-	                                       key : strcpy(buf_aligned, key));
-#endif
-	uint32_t *keybuf_word = &((uint32_t*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
-	unsigned int len;
-	uint32_t temp;
-
-	len = 0;
-#if ARCH_LITTLE_ENDIAN==1
-	while((temp = *wkey++) & 0xff) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xff) | (0x80 << 8));
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xffff) | (0x80 << 16));
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = JOHNSWAP(temp | (0x80U << 24));
-			len+=3;
-			goto key_cleaning;
-		}
-		*keybuf_word = JOHNSWAP(temp);
-#else
-	while((temp = *wkey++) & 0xff000000) {
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = (temp & 0xff000000) | (0x80 << 16);
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = (temp & 0xffff0000) | (0x80 << 8);
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff))
-		{
-			*keybuf_word = temp | 0x80U;
-			len+=3;
-			goto key_cleaning;
-		}
-		*keybuf_word = temp;
-#endif
-		len += 4;
-		keybuf_word += SIMD_COEF_32;
-	}
-	*keybuf_word = 0x80000000;
-
-key_cleaning:
-	keybuf_word += SIMD_COEF_32;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_32;
-	}
-	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = len << 3;
-#else
-	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
-#endif
-}
-
-static char *get_key(int index) {
-#ifdef SIMD_COEF_32
-	static char out[PLAINTEXT_LENGTH+1];
-	unsigned int i, s;
-
-	s = ((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
-	for (i = 0; i < s; i++)
-		out[i] = saved_key[ GETPOS(i, index) ];
-	out[i] = 0;
-	return out;
-#else
-	return saved_key;
-#endif
-}
+#define NON_SIMD_SINGLE_SAVED_KEY
+#include "common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32

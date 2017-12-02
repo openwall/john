@@ -61,11 +61,9 @@ john_register_one(&fmt_XSHA512);
 #define BINARY_SIZE				DIGEST_SIZE
 
 #ifdef SIMD_COEF_64
-#if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#else
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#endif
+#define FMT_IS_64BIT
+#define FMT_IS_BE
+#include "common-simd-getpos.h"
 static uint64_t (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
 static uint64_t (*crypt_out);
 static int max_keys;
@@ -191,166 +189,9 @@ static void set_salt(void *salt)
 #endif
 }
 
-static void set_key(char *key, int index)
-{
-#ifndef SIMD_COEF_64
-	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
-#else
-	uint64_t *keybuffer = &((uint64_t *)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	uint64_t *keybuf_word = keybuffer;
-	unsigned int len;
-	uint64_t temp;
-	unsigned char *wucp = (unsigned char*)saved_key;
-
-	// ok, first 4 bytes (if there are that many or more), we handle one offs.
-	// this is because we already have 4 byte salt loaded into our saved_key.
-	// IF there are more bytes of password, we drop into the multi loader.
-#if ARCH_ALLOWS_UNALIGNED
-	const uint64_t *wkey = (uint64_t*)&(key[4]);
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const uint64_t *wkey = is_aligned(key + 4, sizeof(uint64_t)) ?
-		(uint64_t*)(key + 4) : (uint64_t*)buf_aligned;
-	if ((char *)wkey == buf_aligned && strlen(key) >= 4)
-		strcpy(buf_aligned, key + 4);
-#endif
-	len = 4;
-	if (key[0] == 0) {wucp[GETPOS(4, index)] = 0x80; wucp[GETPOS(5, index)] = wucp[GETPOS(6, index)] = wucp[GETPOS(7, index)] = 0; goto key_cleaning; }
-	wucp[GETPOS(4, index)] = key[0];
-	++len;
-	if (key[1] == 0) {wucp[GETPOS(5, index)] = 0x80; wucp[GETPOS(6, index)] = wucp[GETPOS(7, index)] = 0; goto key_cleaning; }
-	wucp[GETPOS(5, index)] = key[1];
-	++len;
-	if (key[2] == 0) {wucp[GETPOS(6, index)] = 0x80; wucp[GETPOS(7, index)] = 0; goto key_cleaning; }
-	wucp[GETPOS(6, index)] = key[2];
-	++len;
-	if (key[3] == 0) {wucp[GETPOS(7, index)] = 0x80; goto key_cleaning; }
-	wucp[GETPOS(7, index)] = key[3];
-	++len;
-	keybuf_word += SIMD_COEF_64;
-#if ARCH_LITTLE_ENDIAN==1
-	while((unsigned char)(temp = *wkey++)) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xff) | (0x80 << 8));
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffff) | (0x80 << 16));
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffff) | (0x80ULL << 24));
-			len+=3;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffff) | (0x80ULL << 32));
-			len+=4;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffffffULL) | (0x80ULL << 40));
-			len+=5;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffffffffULL) | (0x80ULL << 48));
-			len+=6;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffffffffffULL) | (0x80ULL << 56));
-			len+=7;
-			goto key_cleaning;
-		}
-		*keybuf_word = JOHNSWAP64(temp);
-#else
-	while((temp = *wkey++)  & 0xff00000000000000ULL) {
-		if (!(temp & 0xff000000000000ULL))
-		{
-			*keybuf_word = (temp & 0xff00000000000000ULL) | (0x80ULL << 48);
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000000000ULL))
-		{
-			*keybuf_word = (temp & 0xffff000000000000ULL) | (0x80ULL << 40);
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000ULL))
-		{
-			*keybuf_word = (temp & 0xffffff0000000000ULL) | (0x80ULL << 32);
-			len+=3;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = (temp & 0xffffffff00000000ULL) | (0x80ULL << 24);
-			len+=4;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = (temp & 0xffffffffff000000ULL) | (0x80 << 16);
-			len+=5;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = (temp & 0xffffffffffff0000ULL) | (0x80 << 8);
-			len+=6;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff))
-		{
-			*keybuf_word = temp | 0x80;
-			len+=7;
-			goto key_cleaning;
-		}
-		*keybuf_word = temp;
-#endif
-		len += 8;
-		keybuf_word += SIMD_COEF_64;
-	}
-	*keybuf_word = 0x8000000000000000ULL;
-key_cleaning:
-	keybuf_word += SIMD_COEF_64;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_64;
-	}
-	keybuffer[15*SIMD_COEF_64] = len << 3;
-#endif
-}
-
-static char *get_key(int index)
-{
-#ifndef SIMD_COEF_64
-	saved_key[index][saved_len[index]] = 0;
-	return saved_key[index];
-#else
-	static unsigned char key[PLAINTEXT_LENGTH+1];
-	int i;
-	unsigned char *wucp = (unsigned char*)saved_key;
-	uint64_t *keybuffer = &((uint64_t*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	int len = (keybuffer[15*SIMD_COEF_64] >> 3) - SALT_SIZE;
-
-	for (i = 0; i < len; ++i)
-		key[i] = wucp[GETPOS(SALT_SIZE + i, index)];
-	key[i] = 0;
-	return (char*)key;
-#endif
-}
+#define SALT_PREPENDED SALT_SIZE
+#define NON_SIMD_SET_SAVED_LEN
+#include "common-simd-setkey64.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
