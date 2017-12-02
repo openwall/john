@@ -174,92 +174,10 @@ static void *get_salt(char *ciphertext)
 	return out;
 }
 
-#ifdef SIMD_COEF_32
-static int get_hash_0(int index)
-{
-	unsigned int x,y;
-        x = index&(SIMD_COEF_32-1);
-        y = (unsigned int)index/SIMD_COEF_32;
-	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_0;
-}
-static int get_hash_1(int index)
-{
-	unsigned int x,y;
-        x = index&(SIMD_COEF_32-1);
-        y = (unsigned int)index/SIMD_COEF_32;
-	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_1;
-}
-static int get_hash_2(int index)
-{
-	unsigned int x,y;
-        x = index&(SIMD_COEF_32-1);
-        y = (unsigned int)index/SIMD_COEF_32;
-	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_2;
-}
-static int get_hash_3(int index)
-{
-	unsigned int x,y;
-        x = index&(SIMD_COEF_32-1);
-        y = (unsigned int)index/SIMD_COEF_32;
-	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_3;
-}
-static int get_hash_4(int index)
-{
-	unsigned int x,y;
-        x = index&(SIMD_COEF_32-1);
-        y = (unsigned int)index/SIMD_COEF_32;
-	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_4;
-}
-static int get_hash_5(int index)
-{
-	unsigned int x,y;
-        x = index&(SIMD_COEF_32-1);
-        y = (unsigned int)index/SIMD_COEF_32;
-	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_5;
-}
-static int get_hash_6(int index)
-{
-	unsigned int x,y;
-        x = index&(SIMD_COEF_32-1);
-        y = (unsigned int)index/SIMD_COEF_32;
-	return ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*5] & PH_MASK_6;
-}
-#else
-static int get_hash_0(int index)
-{
-	return crypt_out[index][0] & PH_MASK_0;
-}
-
-static int get_hash_1(int index)
-{
-	return crypt_out[index][0] & PH_MASK_1;
-}
-
-static int get_hash_2(int index)
-{
-	return crypt_out[index][0] & PH_MASK_2;
-}
-
-static int get_hash_3(int index)
-{
-	return crypt_out[index][0] & PH_MASK_3;
-}
-
-static int get_hash_4(int index)
-{
-	return crypt_out[index][0] & PH_MASK_4;
-}
-
-static int get_hash_5(int index)
-{
-	return crypt_out[index][0] & PH_MASK_5;
-}
-
-static int get_hash_6(int index)
-{
-	return crypt_out[index][0] & PH_MASK_6;
-}
-#endif
+#define COMMON_GET_HASH_SIMD32 5
+#define COMMON_GET_HASH_VAR crypt_out
+#define COMMON_GET_HASH_SIMD_VAR crypt_key
+#include "common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -421,13 +339,8 @@ struct fmt_main fmt_XSHA = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

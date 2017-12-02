@@ -376,13 +376,8 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-static int get_hash_0(int idx) { return crypt_key[idx][0] & PH_MASK_0; }
-static int get_hash_1(int idx) { return crypt_key[idx][0] & PH_MASK_1; }
-static int get_hash_2(int idx) { return crypt_key[idx][0] & PH_MASK_2; }
-static int get_hash_3(int idx) { return crypt_key[idx][0] & PH_MASK_3; }
-static int get_hash_4(int idx) { return crypt_key[idx][0] & PH_MASK_4; }
-static int get_hash_5(int idx) { return crypt_key[idx][0] & PH_MASK_5; }
-static int get_hash_6(int idx) { return crypt_key[idx][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 static int cmp_all(void *binary, int count)
 {
@@ -451,13 +446,8 @@ struct fmt_main fmt_oracle = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

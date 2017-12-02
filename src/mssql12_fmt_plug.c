@@ -368,25 +368,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-#define HASH_IDX (((unsigned int)index&(SIMD_COEF_64-1))+(unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64)
+#define COMMON_GET_HASH_SIMD64 8
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
-#ifdef SIMD_COEF_64
-static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & PH_MASK_0; }
-static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & PH_MASK_1; }
-static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & PH_MASK_2; }
-static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & PH_MASK_3; }
-static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & PH_MASK_4; }
-static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & PH_MASK_5; }
-static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return (crypt_out[index])[0] & PH_MASK_0; }
-static int get_hash_1(int index) { return (crypt_out[index])[0] & PH_MASK_1; }
-static int get_hash_2(int index) { return (crypt_out[index])[0] & PH_MASK_2; }
-static int get_hash_3(int index) { return (crypt_out[index])[0] & PH_MASK_3; }
-static int get_hash_4(int index) { return (crypt_out[index])[0] & PH_MASK_4; }
-static int get_hash_5(int index) { return (crypt_out[index])[0] & PH_MASK_5; }
-static int get_hash_6(int index) { return (crypt_out[index])[0] & PH_MASK_6; }
-#endif
+#define HASH_IDX (((unsigned int)index&(SIMD_COEF_64-1))+(unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64)
 
 static int binary_hash_0(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_0; }
 static int binary_hash_1(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_1; }
@@ -509,13 +495,8 @@ struct fmt_main fmt_mssql12 = {
 #endif
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -163,32 +163,11 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-#ifdef SIMD_COEF_32
-#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
-static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & PH_MASK_0; }
-static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & PH_MASK_1; }
-static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & PH_MASK_2; }
-static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & PH_MASK_3; }
-static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & PH_MASK_4; }
-static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & PH_MASK_5; }
-static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 8
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
-static int binary_hash_0(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_0; }
-static int binary_hash_1(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_1; }
-static int binary_hash_2(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_2; }
-static int binary_hash_3(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_3; }
-static int binary_hash_4(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_4; }
-static int binary_hash_5(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_5; }
-static int binary_hash_6(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_6; }
+#define HASH_IDX ((((unsigned int)index)&(SIMD_COEF_32-1))+(((unsigned int)index)/SIMD_COEF_32)*SIMD_COEF_32*8)
 
 #define NON_SIMD_SET_SAVED_LEN
 #include "common-simd-setkey32.h"
@@ -302,13 +281,13 @@ struct fmt_main fmt_rawSHA256 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -318,13 +297,8 @@ struct fmt_main fmt_rawSHA256 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,
