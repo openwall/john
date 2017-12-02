@@ -50,7 +50,7 @@ JOHN_OBJS = \
 	dummy.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
-	loader.o logger.o math.o memory.o misc.o options.o params.o path.o \
+	loader.o logger.o memory.o misc.o options.o params.o path.o \
 	recovery.o rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
 	unshadow.o \
 	unafs.o \
@@ -76,7 +76,7 @@ BENCH_OBJS = \
 	DES_bs.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
-	bench.o best.o common.o config.o formats.o math.o memory.o miscnl.o \
+	bench.o best.o common.o config.o formats.o memory.o miscnl.o \
 	params.o path.o signals.o tty.o
 
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique

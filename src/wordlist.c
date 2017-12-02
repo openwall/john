@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2009,2013 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2009,2013,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -9,13 +9,13 @@
  */
 
 #define _POSIX_SOURCE /* for fileno(3) */
+#include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
 #include "misc.h"
-#include "math.h"
 #include "params.h"
 #include "common.h"
 #include "path.h"
@@ -132,7 +132,6 @@ static int get_progress(void)
 {
 	struct stat file_stat;
 	long pos;
-	int64 x100;
 
 	if (!word_file) return progress;
 
@@ -149,10 +148,8 @@ static int get_progress(void)
 			pexit("ftell");
 	}
 
-	mul32by32(&x100, pos, 100);
-	return
-		(rule_number * 100 +
-		div64by32lo(&x100, file_stat.st_size + 1)) / rule_count;
+	return (rule_number * 100 +
+	    (uint64_t)pos * 100 / (file_stat.st_size + 1)) / rule_count;
 }
 
 static char *dummy_rules_apply(char *word, char *rule, int split, char *last)

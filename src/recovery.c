@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2005,2006,2009,2010,2013 by Solar Designer
+ * Copyright (c) 1996-2003,2005,2006,2009,2010,2013,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -140,13 +140,13 @@ void rec_save(void)
 	    "%d\n%d\n%d\n%x\n",
 	    status_get_time() + 1,
 	    status.guess_count,
-	    status.combs.lo,
-	    status.combs.hi,
+	    (unsigned int)(status.combs & 0xffffffffU),
+	    (unsigned int)(status.combs >> 32),
 	    status.combs_ehi,
-	    status.crypts.lo,
-	    status.crypts.hi,
-	    status.cands.lo,
-	    status.cands.hi,
+	    (unsigned int)(status.crypts & 0xffffffffU),
+	    (unsigned int)(status.crypts >> 32),
+	    (unsigned int)(status.cands & 0xffffffffU),
+	    (unsigned int)(status.cands >> 32),
 	    status.compat,
 	    status.pass,
 	    status_get_progress ? status_get_progress() : -1,
@@ -211,6 +211,7 @@ void rec_restore_args(int lock)
 	int index, argc;
 	char **argv;
 	char *save_rec_name;
+	unsigned int combs_lo, combs_hi;
 
 	rec_name_complete();
 	if (!(rec_file = fopen(path_expand(rec_name), "r+"))) {
@@ -262,21 +263,22 @@ void rec_restore_args(int lock)
 	if (fscanf(rec_file, "%u\n%u\n%x\n%x\n",
 	    &status_restored_time,
 	    &status.guess_count,
-	    &status.combs.lo,
-	    &status.combs.hi) != 4)
+	    &combs_lo, &combs_hi) != 4)
 		rec_format_error("fscanf");
+	status.combs = ((uint64_t)combs_hi << 32) | combs_lo;
 	if (!status_restored_time)
 		status_restored_time = 1;
 
 	if (rec_version >= 4) {
+		unsigned int crypts_lo, crypts_hi, cands_lo, cands_hi;
 		if (fscanf(rec_file, "%x\n%x\n%x\n%x\n%x\n%d\n",
 		    &status.combs_ehi,
-		    &status.crypts.lo,
-		    &status.crypts.hi,
-		    &status.cands.lo,
-		    &status.cands.hi,
+		    &crypts_lo, &crypts_hi,
+		    &cands_lo, &cands_hi,
 		    &status.compat) != 6)
 			rec_format_error("fscanf");
+		status.crypts = ((uint64_t)crypts_hi << 32) | crypts_lo;
+		status.cands = ((uint64_t)cands_hi << 32) | cands_lo;
 	} else {
 /* Historically, we were reusing what became the combs field for candidates
  * count when in --stdout mode */

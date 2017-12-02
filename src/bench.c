@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -11,6 +11,7 @@
 #define NEED_OS_TIMER
 #include "os.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -24,7 +25,6 @@
 
 #include "arch.h"
 #include "misc.h"
-#include "math.h"
 #include "params.h"
 #include "memory.h"
 #include "signals.h"
@@ -96,7 +96,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	struct tms buf;
 	clock_t start_real, start_virtual, end_real, end_virtual;
-	int64 crypts;
+	uint64_t crypts;
 	char *ciphertext;
 	void *salt, *two_salts[2];
 	int index, max;
@@ -173,7 +173,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	start_real = times(&buf);
 	start_virtual = buf.tms_utime + buf.tms_stime;
 	start_virtual += buf.tms_cutime + buf.tms_cstime;
-	crypts.lo = crypts.hi = 0;
+	crypts = 0;
 
 	index = salts;
 	max = format->params.max_keys_per_crypt;
@@ -191,7 +191,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		format->methods.cmp_all(binary,
 		    format->methods.crypt_all(&count, NULL));
 
-		add32to64(&crypts, count);
+		crypts += count;
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
@@ -214,24 +214,16 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	return event_abort ? "" : NULL;
 }
 
-void benchmark_cps(int64 *crypts, clock_t time, char *buffer)
+void benchmark_cps(uint64_t crypts, clock_t time, char *buffer)
 {
-	unsigned int cps_hi, cps_lo;
-	int64 tmp;
-
-	tmp = *crypts;
-	mul64by32(&tmp, clk_tck);
-	cps_hi = div64by32lo(&tmp, time);
-
-	if (cps_hi >= 1000000)
-		sprintf(buffer, "%uK", cps_hi / 1000);
-	else
-	if (cps_hi >= 100)
-		sprintf(buffer, "%u", cps_hi);
-	else {
-		mul64by32(&tmp, 10);
-		cps_lo = div64by32lo(&tmp, time) % 10;
-		sprintf(buffer, "%u.%u", cps_hi, cps_lo);
+	unsigned int cps = crypts * clk_tck / time;
+	if (cps >= 1000000) {
+		sprintf(buffer, "%uK", cps / 1000);
+	} else if (cps >= 100) {
+		sprintf(buffer, "%u", cps);
+	} else {
+		unsigned int frac = crypts * clk_tck * 10 / time % 10;
+		sprintf(buffer, "%u.%u", cps, frac);
 	}
 }
 
@@ -293,8 +285,8 @@ int benchmark_all(void)
 
 		puts("DONE");
 
-		benchmark_cps(&results_m.crypts, results_m.real, s_real);
-		benchmark_cps(&results_m.crypts, results_m.virtual, s_virtual);
+		benchmark_cps(results_m.crypts, results_m.real, s_real);
+		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n",
 			msg_m, s_real, s_virtual);
@@ -308,8 +300,8 @@ int benchmark_all(void)
 			goto next;
 		}
 
-		benchmark_cps(&results_1.crypts, results_1.real, s_real);
-		benchmark_cps(&results_1.crypts, results_1.virtual, s_virtual);
+		benchmark_cps(results_1.crypts, results_1.real, s_real);
+		benchmark_cps(results_1.crypts, results_1.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n\n",
 			msg_1, s_real, s_virtual);
