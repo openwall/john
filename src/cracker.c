@@ -1,11 +1,13 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010-2013,2015 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010-2013,2015,2017 by Solar Designer
  */
 
 #define NEED_OS_TIMER
 #include "os.h"
 
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
@@ -17,7 +19,6 @@
 #endif
 
 #include "misc.h"
-#include "math.h"
 #include "memory.h"
 #include "signals.h"
 #include "idle.h"
@@ -47,7 +48,7 @@ static int crk_key_index, crk_last_key;
 static void *crk_last_salt;
 static void (*crk_fix_state)(void);
 static struct db_keys *crk_guesses;
-static int64 *crk_timestamps;
+static uint64_t *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 
 static void crk_dummy_set_salt(void *salt)
@@ -129,7 +130,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_guesses = guesses;
 
 	if (db->loaded) {
-		size = crk_params.max_keys_per_crypt * sizeof(int64);
+		size = crk_params.max_keys_per_crypt * sizeof(uint64_t);
 		memset(crk_timestamps = mem_alloc(size), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
@@ -233,7 +234,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int dupe;
 	char *key;
 
-	dupe = !memcmp(&crk_timestamps[index], &status.crypts, sizeof(int64));
+	dupe = crk_timestamps[index] == status.crypts;
 	crk_timestamps[index] = status.crypts;
 
 	key = crk_methods.get_key(index);
@@ -304,11 +305,7 @@ static int crk_password_loop(struct db_salt *salt)
 	match = crk_methods.crypt_all(&count, salt);
 	crk_last_key = count;
 
-	{
-		int64 effective_count;
-		mul32by32(&effective_count, salt->count, count);
-		status_update_crypts(&effective_count, count);
-	}
+	status_update_crypts((uint64_t)salt->count * count, count);
 
 	if (!match)
 		return 0;
@@ -448,7 +445,7 @@ static int crk_salt_loop(void)
 	} while ((salt = salt->next));
 
 	if (done >= 0)
-		add32to64(&status.cands, crk_key_index);
+		status.cands += crk_key_index;
 
 	if (salt)
 		return 1;
@@ -549,11 +546,11 @@ int crk_process_salt(struct db_salt *salt)
 				int not_from_guesses =
 				    index - count_from_guesses;
 				if (not_from_guesses > 0) {
-					add32to64(&status.cands,
-					    not_from_guesses);
+					status.cands += not_from_guesses;
 					count_from_guesses = 0;
-				} else
+				} else {
 					count_from_guesses -= index;
+				}
 			}
 			if (done)
 				return 1;

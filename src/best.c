@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2006,2011-2013 by Solar Designer
+ * Copyright (c) 1996-99,2003,2006,2011-2013,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -15,10 +15,10 @@
 #define NEED_OS_FORK
 #include "os.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 
-#include "math.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
@@ -37,7 +37,6 @@ int main(int argc, char **argv)
 	struct fmt_main *format;
 	struct bench_results results;
 	unsigned long virtual;
-	int64 tmp;
 	char s_real[64], s_virtual[64];
 
 	if (argc != 2) return 1;
@@ -73,16 +72,14 @@ int main(int argc, char **argv)
 
 		fprintf(stderr, "FAILED\n");
 	} else {
-		tmp = results.crypts;
-		mul64by32(&tmp, clk_tck * 10);
 #ifdef _OPENMP
-		virtual = div64by32lo(&tmp, results.real);
+		virtual = results.crypts * clk_tck * 10 / results.real;
 #else
-		virtual = div64by32lo(&tmp, results.virtual);
+		virtual = results.crypts * clk_tck * 10 / results.virtual;
 #endif
 
-		benchmark_cps(&results.crypts, results.real, s_real);
-		benchmark_cps(&results.crypts, results.virtual, s_virtual);
+		benchmark_cps(results.crypts, results.real, s_real);
+		benchmark_cps(results.crypts, results.virtual, s_virtual);
 
 		fprintf(stderr, "%s c/s real, %s c/s virtual\n",
 			s_real, s_virtual);
