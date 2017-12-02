@@ -307,6 +307,7 @@ default:
 	@echo "win32-cygwin-x86-opencl  Win32, Cygwin, x86 with SSE2 and OpenCL"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
 	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
+	@echo "win32-cygwin-x86-anyomp  Win32, Cygwin, x86 (OpenMP enabled)"
 	@echo "win32-mingw-x86-sse2[i]  Win32, MinGW, x86 with SSE2 (best if 32-bit)"
 	@echo "win32-mingw-x86-mmx      Win32, MinGW, x86 with MMX"
 	@echo "win32-mingw-x86-any      Win32, MinGW, x86"
@@ -1568,6 +1569,19 @@ win32-cygwin-x86-any:
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		CFLAGS_MAIN="$(CFLAGS) -O0" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE_ORIG) $(PROJ_PCAP)
+	@echo "All done"
+
+win32-cygwin-x86-anyomp:
+	$(CP) x86-any.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2 -fopenmp" \
+		CFLAGS_MAIN="$(CFLAGS) -O0 -fopenmp" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -fopenmp"
+		LDFLAGS="$(LDFLAGS) -fopenmp"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
