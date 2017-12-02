@@ -121,7 +121,7 @@ static void set_key(char *_key, int index)
 	keybuf_word  += ((SALT_PREPENDED+7)/8)*SIMD_COEF_64;
 	len = SALT_PREPENDED;
 	while (SALT_PREPENDED+idx < til) {
-		if (!_key[0]) { 
+		if (!_key[0]) {
 			((unsigned char*)saved_key)[GETPOS(idx+SALT_PREPENDED, index)] = 0x80;
 			while (++idx + SALT_PREPENDED < til)
 				((unsigned char*)saved_key)[GETPOS(idx+SALT_PREPENDED, index)] = 0;
