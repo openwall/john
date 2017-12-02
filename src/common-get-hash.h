@@ -1,15 +1,13 @@
 /*
- * This software was written by JimF : jfoug AT cox dot net
- * in 2017. No copyright is claimed, and the software is hereby
- * placed in the public domain. In case this attempt to disclaim
- * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright (c) 2017 JimF
- * and it is hereby released to the general public under the following
- * terms:
- *
- * This software may be modified, redistributed, and used for any
- * purpose, in source and binary forms, with or without modification.
- *
+ * This software is Copyright (c) 2017 jfoug : jfoug AT cox dot net
+ *  Parts taken from code previously written by:
+ *    magnumripper
+ *    Alain Espinosa
+ *    Simon Marechal
+ *    and possibly others.
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #if defined (COMMON_GET_HASH_LINK)
