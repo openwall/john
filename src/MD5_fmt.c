@@ -157,10 +157,96 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-#define COMMON_GET_HASH_SIMD32 4
-#define COMMON_GET_HASH_VAR MD5_out
-#define COMMON_GET_HASH_SIMD_VAR sout
-#include "common-get-hash.h"
+static int get_hash_0(int index)
+{
+#ifdef SIMD_PARA_MD5
+	unsigned int x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_0;
+#else
+	init_t();
+	return MD5_out[index][0] & PH_MASK_0;
+#endif
+}
+
+static int get_hash_1(int index)
+{
+#ifdef SIMD_PARA_MD5
+	unsigned int x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_1;
+#else
+	init_t();
+	return MD5_out[index][0] & PH_MASK_1;
+#endif
+}
+
+static int get_hash_2(int index)
+{
+#ifdef SIMD_PARA_MD5
+	unsigned int x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_2;
+#else
+	init_t();
+	return MD5_out[index][0] & PH_MASK_2;
+#endif
+}
+
+static int get_hash_3(int index)
+{
+#ifdef SIMD_PARA_MD5
+	unsigned int x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_3;
+#else
+	init_t();
+	return MD5_out[index][0] & PH_MASK_3;
+#endif
+}
+
+static int get_hash_4(int index)
+{
+#ifdef SIMD_PARA_MD5
+	unsigned int x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_4;
+#else
+	init_t();
+	return MD5_out[index][0] & PH_MASK_4;
+#endif
+}
+
+static int get_hash_5(int index)
+{
+#ifdef SIMD_PARA_MD5
+	unsigned int x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_5;
+#else
+	init_t();
+	return MD5_out[index][0] & PH_MASK_5;
+#endif
+}
+
+static int get_hash_6(int index)
+{
+#ifdef SIMD_PARA_MD5
+	unsigned int x,y;
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	return ((MD5_word *)sout)[x+y*SIMD_COEF_32*4] & PH_MASK_6;
+#else
+	init_t();
+	return MD5_out[index][0] & PH_MASK_6;
+#endif
+}
 
 static int salt_hash(void *salt)
 {
@@ -350,8 +436,13 @@ struct fmt_main fmt_MD5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-#define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
