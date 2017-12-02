@@ -2,17 +2,23 @@
 #define __COMMON_SIMD_GETPOS_H__
 
 /*
- * This software was written by JimF : jfoug AT cox dot net
- * in 2017. No copyright is claimed, and the software is hereby
- * placed in the public domain. In case this attempt to disclaim
- * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright (c) 2017 JimF
- * and it is hereby released to the general public under the following
- * terms:
- *
- * This software may be modified, redistributed, and used for any
- * purpose, in source and binary forms, with or without modification.
- *
+ * This software is Copyright (c) 2017 jfoug : jfoug AT cox dot net
+ *  Parts taken from code previously written by:
+ *    magnumripper
+ *    Alain Espinosa
+ *    Simon Marechal
+ *    and possibly others.
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
+/*
+ * !!NOTE!! if used on a BE format (SHA1/256/512), then before including
+ *   this file, define  'FMT_IS_BE'  so that the proper macros for the
+ *   hash typ[e are the being ones that will used.  the ARCH_LITTLE_ENDIAN,
+ *   SIMD_COEFp[32][64] are global defines, and will already be correctly
+ *   for your build. You DO NOT have to reset them before including this
+ *   generic code header.
  */
 
 #if !defined(FMT_IS_64BIT)
