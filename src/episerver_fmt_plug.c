@@ -51,7 +51,6 @@ john_register_one(&fmt_episerver);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
 #include "base64_convert.h"
 #include "unicode.h"
 #include "memdbg.h"
@@ -248,7 +247,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(ctcopy, "*");
 	cs.version = atoi(p);
 	p = strtokm(NULL, "*");
-	base64_decode(p, strlen(p), (char*)cs.esalt);
+	base64_convert(p, e_b64_mime, strlen(p), (char*)cs.esalt, e_b64_raw, sizeof(cs.esalt), flg_Base64_DONOT_NULL_TERMINATE, NULL);
 	return (void *)&cs;
 }
 
@@ -263,7 +262,7 @@ static void *get_binary(char *ciphertext)
 
 	memset(buf.c, 0, sizeof(buf.c));
 	p = strrchr(ciphertext, '*') + 1;
-	base64_decode(p, strlen(p), (char*)out);
+	base64_convert(p, e_b64_mime, strlen(p), (char*)out, e_b64_raw, sizeof(buf.c), flg_Base64_DONOT_NULL_TERMINATE, NULL);
 #if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity(out, BINARY_SIZE);
 #endif

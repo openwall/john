@@ -21,7 +21,7 @@ john_register_one(&fmt_django_scrypt);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "escrypt/crypto_scrypt.h"
 #ifdef _OPENMP
 static int omp_t = 1;
@@ -167,7 +167,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	p = strrchr(ciphertext, '$') + 1;
-	base64_decode(p, strlen(p), (char*)out);
+	base64_convert(p, e_b64_mime, strlen(p), (char*)out, e_b64_raw, sizeof(buf.c), flg_Base64_DONOT_NULL_TERMINATE, NULL);
 	return out;
 }
 
