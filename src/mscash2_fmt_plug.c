@@ -568,7 +568,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #ifdef _OPENMP
+#if defined(WITH_UBSAN)
+#pragma omp parallel for
+#else
 #pragma omp parallel for default(none) private(t) shared(count, salt_buffer, salt_len, crypt_out, md4hash)
+#endif
 #endif
 	for (t1 = 0; t1 < count; t1 += MS_NUM_KEYS)	{
 		MD4_CTX ctx;

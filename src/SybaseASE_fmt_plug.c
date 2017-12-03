@@ -308,10 +308,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
+#if defined(WITH_UBSAN)
+#pragma omp parallel for
+#else
 #ifndef SIMD_COEF_32
 #pragma omp parallel for default(none) private(index) shared(dirty, prep_ctx, count, crypt_out, prep_key)
 #else
 #pragma omp parallel for default(none) private(index) shared(dirty, count, crypt_cache, crypt_out, prep_key, NULL_LIMB)
+#endif
 #endif
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)

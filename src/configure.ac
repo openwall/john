@@ -66,8 +66,7 @@ AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking inst
 
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
-AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer (w/o mem alignment checks)])], [ubsan=$enableval], [ubsan=no])
-AC_ARG_ENABLE([ubsanalign], [AS_HELP_STRING([--enable-ubsanalign], [* Build with UndefinedBehaviorSanitizer (only memory alignment checks)])], [ubsanalign=$enableval], [ubsanalign=no])
+AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
@@ -212,26 +211,11 @@ fi
 if test "x$ubsan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
-   JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error], 1)
+   JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined], 1)
    if test "x${CFLAGS_EX}" = x ; then
       AC_MSG_FAILURE([Could not find all required UBSAN components])
    else
-      LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
-   fi
-   LDFLAGS=${LDFLAGS_BAK}
-fi
-if test "x$ubsanalign" = xyes ; then
-   if test "x$ubsan" == xyes ; then
-      echo "ERROR, --enable-ubsan and --enable-ubsanalign are MUTUALLY exclusive"
-      exit -1
-   fi
-   CFLAGS_EX=""
-   LDFLAGS_BAK=${LDFLAGS}
-   JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=alignment], 1)
-   if test "x${CFLAGS_EX}" = x ; then
-      AC_MSG_FAILURE([Could not find all required UBSAN components for alignment checking])
-   else
-      LDFLAGS="-fsanitize=alignment $LDFLAGS"
+      LDFLAGS="-fsanitize=undefined $LDFLAGS"
    fi
    LDFLAGS=${LDFLAGS_BAK}
 fi
@@ -244,7 +228,7 @@ fi
 if test "x$werror" = xyes ; then
    JTR_FLAG_CHECK([-Werror], 1)
 fi
-if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsanalign" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
    JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
 else
    JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
@@ -868,17 +852,10 @@ fi
 if test "x$ubsan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
-   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0 $CFLAGS"
-   LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
-fi
-
-if test "x$ubsanalign" = xyes ; then
-   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
-   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
-   CFLAGS="-g $O_DEBUG -fsanitize=alignment $CFLAGS"
-   ASFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=alignment $ASFLAGS"
+   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined $CFLAGS"
+   ASFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined $ASFLAGS"
    CPPFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 $CPPFLAGS"
-   LDFLAGS="-fsanitize=alignment $LDFLAGS"
+   LDFLAGS="-fsanitize=undefined $LDFLAGS"
 fi
 
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
@@ -1115,11 +1092,6 @@ if test "x$ubsan" = xyes ; then
 else
    ubsan="disabled"
 fi
-if test "x$ubsanalign" = xyes ; then
-   ubsanalign="enabled"
-else
-   ubsanalign="disabled"
-fi
 
 cat <<EOF
 dnl =======================================================================
@@ -1153,7 +1125,6 @@ Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ........... ${memdbg_settings}
 AddressSanitizer ("ASan") .................. ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
-UBS (alignment check) ("UbSanAlign") ....... ${ubsanalign}
 
 Install missing libraries to get any needed features that were omitted.
 

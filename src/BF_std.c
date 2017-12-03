@@ -388,7 +388,11 @@ void BF_std_crypt(BF_salt *salt, int n)
 #endif
 
 #if BF_mt > 1 && defined(_OPENMP)
+#if defined(WITH_UBSAN)
+#pragma omp parallel for
+#else
 #pragma omp parallel for default(none) private(t) shared(n, BF_init_state, BF_init_key, BF_exp_key, salt, BF_magic_w, BF_out)
+#endif
 #endif
 	for_each_t() {
 #if BF_mt > 1
