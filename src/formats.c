@@ -1437,7 +1437,7 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 
 		salt = format->methods.salt(split_ret);
 		dyna_salt_create(salt);
-		if (salt != NULL) {
+		if (salt != NULL && format->params.salt_size) {
 			orig_salt = mem_alloc(format->params.salt_size);
 			memcpy(orig_salt, salt, format->params.salt_size);
 		}
