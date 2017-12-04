@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015,2017 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum
  *
@@ -20,6 +20,7 @@
 #define NEED_OS_TIMER
 #include "os.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
@@ -40,7 +41,6 @@
 
 #include "arch.h"
 #include "misc.h"
-#include "math.h"
 #include "params.h"
 #include "memory.h"
 #include "signals.h"
@@ -305,7 +305,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	clock_t start_virtual, end_virtual;
 	struct tms buf;
 #endif
-	int64 crypts;
+	uint64_t crypts;
 	char *ciphertext;
 	void *salt, *two_salts[2];
 	int index, max, i;
@@ -507,7 +507,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	start_virtual = buf.tms_utime + buf.tms_stime;
 	start_virtual += buf.tms_cutime + buf.tms_cstime;
 #endif
-	crypts.lo = crypts.hi = 0;
+	crypts = 0;
 
 	index = salts;
 	max = format->params.max_keys_per_crypt;
@@ -534,7 +534,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		    format->methods.crypt_all(&count, 0));
 #endif
 
-		add32to64(&crypts, count);
+		crypts += count;
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
@@ -588,29 +588,23 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	return event_abort ? "" : NULL;
 }
 
-void benchmark_cps(int64 *crypts, clock_t time, char *buffer)
+void benchmark_cps(uint64_t crypts, clock_t time, char *buffer)
 {
-	unsigned long long cps;
+	unsigned int cps = crypts * clk_tck / time;
+	uint64_t cpsl = crypts * clk_tck / time;
 
-	cps = ((unsigned long long)crypts->hi << 32) + crypts->lo;
-	cps *= clk_tck;
-	cps /= time;
-
-	if (cps >= 1000000000000ULL)
-		sprintf(buffer, ""LLu"G", cps / 1000000000ULL);
-	if (cps >= 1000000000)
-		sprintf(buffer, ""LLu"M", cps / 1000000);
-	else
-	if (cps >= 1000000)
-		sprintf(buffer, ""LLu"K", cps / 1000);
-	else
-	if (cps >= 100)
-		sprintf(buffer, ""LLu"", cps);
-	else {
-		cps = ((unsigned long long)crypts->hi << 32) + crypts->lo;
-		cps *= clk_tck * 10;
-		cps /= time;
-		sprintf(buffer, ""LLu"."LLu"", cps / 10, cps % 10);
+	if (cpsl >= 1000000000000ULL) {
+		sprintf(buffer, "%uG", (uint32_t)(cpsl / 1000000000ULL));
+	} else if (cpsl >= 1000000000) {
+		sprintf(buffer, "%uM", (uint32_t)(cpsl / 1000000));
+	} else
+	if (cps >= 1000000) {
+		sprintf(buffer, "%uK", cps / 1000);
+	} else if (cps >= 100) {
+		sprintf(buffer, "%u", cps);
+	} else {
+		unsigned int frac = crypts * clk_tck * 10 / time % 10;
+		sprintf(buffer, "%u.%u", cps, frac);
 	}
 }
 
@@ -623,10 +617,8 @@ void gather_results(struct bench_results *results)
 		MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&results->virtual, &combined.virtual, 1, MPI_LONG,
 		MPI_SUM, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&results->crypts.lo, &combined.crypts.lo, 1, MPI_UNSIGNED,
-		MPI_SUM, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&results->crypts.hi, &combined.crypts.hi, 1, MPI_UNSIGNED,
-		MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&results->crypts, &combined.crypts, 1,
+	           MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&results->salts_done, &combined.salts_done, 1, MPI_INT,
 		MPI_MIN, 0, MPI_COMM_WORLD);
 	if (mpi_id == 0) {
@@ -876,8 +868,8 @@ AGAIN:
 			       results_m.salts_done, BENCHMARK_MANY);
 		}
 
-		benchmark_cps(&results_m.crypts, results_m.real, s_real);
-		benchmark_cps(&results_m.crypts, results_m.virtual, s_virtual);
+		benchmark_cps(results_m.crypts, results_m.real, s_real);
+		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 #ifdef HAVE_MPI
 		if (john_main_process)
@@ -903,8 +895,8 @@ AGAIN:
 			goto next;
 		}
 
-		benchmark_cps(&results_1.crypts, results_1.real, s_real);
-		benchmark_cps(&results_1.crypts, results_1.virtual, s_virtual);
+		benchmark_cps(results_1.crypts, results_1.real, s_real);
+		benchmark_cps(results_1.crypts, results_1.virtual, s_virtual);
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif

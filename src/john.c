@@ -1819,12 +1819,7 @@ static void john_done(void)
 			          "Session aborted";
 
 			if (john_max_cands) {
-				unsigned long long cands =
-					((unsigned long long)
-					 status.cands.hi << 32) +
-					status.cands.lo;
-
-				if (cands >= john_max_cands)
+				if (status.cands >= john_max_cands)
 					abort_msg =
 						"Session stopped (max candidates reached)";
 			}
@@ -1995,8 +1990,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Allow resuming, for another set of N candidates */
-		john_max_cands = ((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo + llabs(options.max_cands);
+		john_max_cands = status.cands + llabs(options.max_cands);
 	}
 
 	john_run();

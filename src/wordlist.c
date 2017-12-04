@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2009,2013 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2009,2013,2017 by Solar Designer
  *
  * Heavily modified by JimF, magnum and maybe by others.
  *
@@ -9,9 +9,6 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
-
-#include <stdio.h>
-#include <sys/stat.h>
 
 #if AC_BUILT
 #include "autoconfig.h"
@@ -22,11 +19,15 @@
 #endif
 #endif
 
-#include "os.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <sys/stat.h>
 
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
+
+#include "os.h"
 
 #if !AC_BUILT
  #include <string.h>
@@ -61,7 +62,6 @@
 #include "arch.h"
 #include "jumbo.h"
 #include "misc.h"
-#include "math.h"
 #include "params.h"
 #include "common.h"
 #include "path.h"
@@ -387,7 +387,9 @@ void wordlist_hybrid_fix_state(void)
 
 static double get_progress(void)
 {
-	int64_t pos, size;
+	struct stat file_stat;
+	long pos;
+	uint64_t size;
 	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
@@ -405,12 +407,14 @@ static double get_progress(void)
 		pos = map_pos - mem_map;
 		size = map_end - mem_map;
 	} else {
+		if (fstat(fileno(word_file), &file_stat))
+			pexit("fstat");
 		pos = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, 0, SEEK_END);
 		size = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, pos, SEEK_SET);
 #if 0
-		fprintf(stderr, "pos="LLd"  size="LLd"  percent=%0.4f\n", (long long)pos, (long long)size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
+		fprintf(stderr, "pos=%ld  size=%"PRIu64"  percent=%0.4f\n", (long long)pos, (long long)size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
 #endif
 		if (pos < 0) {
 #ifdef __DJGPP__
@@ -422,7 +426,7 @@ static double get_progress(void)
 		}
 	}
 #if 0
-	fprintf(stderr, "rule %d/%d mask "LLu" pos "LLu"/"LLu"\n",
+	fprintf(stderr, "rule %d/%d mask "LLu" pos "LLu"/%"PRIu64"\n",
 	        rule_number, rule_count, mask_mult, pos, size);
 #endif
 	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /

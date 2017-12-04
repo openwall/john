@@ -39,7 +39,6 @@ static double cand;
 
 static double get_progress(void)
 {
-	double try;
 	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
@@ -47,9 +46,7 @@ static double get_progress(void)
 	if (!cand)
 		return -1;
 
-	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
-
-	return 100.0 * try / (cand * mask_mult);
+	return 100.0 * status.cands / (cand * mask_mult);
 }
 
 typedef char (*char2_table)
@@ -883,8 +880,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		unsigned long long mask_mult =
 			mask_tot_cand ? mask_tot_cand : 1;
 
-		cand = (((unsigned long long)status.cands.hi << 32) +
-		        status.cands.lo) / mask_mult;
+		cand = status.cands / mask_mult;
 	}
 
 	crk_done();

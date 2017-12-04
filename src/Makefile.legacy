@@ -135,7 +135,7 @@ JOHN_OBJS = \
 	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
-	loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o options.o \
+	loader.o logger.o mask.o mask_ext.o memory.o misc.o options.o \
 	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o wordlist.o \
 	mkv.o mkvlib.o \
@@ -174,7 +174,7 @@ BENCH_OBJS = \
 	DES_bsg.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
-	bench-t.o best.o common_g.o config_g.o formats_g.o jumbo.o math.o dyna_salt.o \
+	bench-t.o best.o common_g.o config_g.o formats_g.o jumbo.o dyna_salt.o \
 	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
 GENMKVPWD_OBJS = \
