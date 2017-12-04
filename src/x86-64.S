@@ -1641,17 +1641,15 @@ DES_bs_crypt_plain_loop:
  * CPU detection.
  */
 
-#define C7_AVX2                 $0x00000128 /* BMI2 + AVX2 + BMI1 */
+#define C7_AVX2                 $0x00000020 /* AVX2 */
 #define C7_AVX512F              $0x00010000
 #define C7_AVX512BW             $0x40010000 /* AVX512BW + AVX512F */
 
-#define CX_ABM                  $0x00000020 /* LZCNT (AVX2) */
 #define CX_XOP                  $0x00000800
 
 #define CF_SSSE3                $0x00000200 /* SSSE3 */
 #define CF_SSE4_1               $0x00080200 /* SSE4.1 + SSSE3 */
 #define CF_AVX                  $0x1C000000 /* AVX + XSAVE + OSXSAVE */
-#define CF_AVX2                 $0x1C401000 /* the above + MOVBE + FMA3 */
 
 .text
 
@@ -1670,11 +1668,7 @@ CPU_detect:
 /* First, leaf 1 checks */
 	movl $1,%eax
 	cpuid
-#if CPU_REQ_AVX2
-	andl CF_AVX2,%ecx
-	cmpl CF_AVX2,%ecx
-	jne CPU_detect_fail
-#elif CPU_REQ_AVX || CPU_REQ_XOP
+#if CPU_REQ_AVX2 || CPU_REQ_AVX || CPU_REQ_XOP
 	andl CF_AVX,%ecx
 	cmpl CF_AVX,%ecx
 	jne CPU_detect_fail
@@ -1698,7 +1692,7 @@ CPU_detect:
 #endif
 
 /* Extended feature tests (if required) */
-#if CPU_REQ_AVX2 || CPU_REQ_XOP
+#if CPU_REQ_XOP
 	movl $0x80000000,%eax
 	cpuid
 	movl $0x80000001,%edx
@@ -1706,11 +1700,7 @@ CPU_detect:
 	jl CPU_detect_fail
 	xchgl %edx,%eax
 	cpuid
-#if CPU_REQ_AVX2
-	testl CX_ABM,%ecx
-#elif CPU_REQ_XOP
 	testl CX_XOP,%ecx
-#endif
 	jz CPU_detect_fail
 #endif
 
