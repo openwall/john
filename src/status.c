@@ -299,7 +299,7 @@ static void status_print_cracking(double percent)
 	}
 
 	if (showcand)
-		sprintf(sc, " "LLu"p", status.cands);
+		sprintf(sc, " %"PRIu64"p", status.cands);
 
 	eta_string = status_get_ETA(percent, time);
 
