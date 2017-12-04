@@ -51,8 +51,6 @@ typedef enum {
 #define flg_Base64_MIME_TRAIL_EQ_CNT    0x40
 // #define flg_Base64_RET_NEG_IF_NOT_PURE  0x80   // Depricated, invalid flag!
 #define flg_Base64_DONOT_NULL_TERMINATE 0x100
-#define flg_Base64_CRYPT_TRANSPOSE      0x200
-#define flg_Base64_CRYPT_AIX            0x400
 
 /*
  * return will be number of bytes converted and placed into *to (can be less

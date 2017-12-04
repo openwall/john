@@ -16,7 +16,7 @@
  *     hex
  *     mime     (A..Za..z0..1+/   The == for null trails may be optional, removed for now)
  *     crypt    (./0..9A..Za..z   Similar to encoding used by crypt)
- *     cryptBS  like crypt, but bit swapped encoding order  (can have flag flg_Base64_CRYPT_AIX to do an final swap, like AIX)
+ *     cryptBS  like crypt, but bit swapped encoding order
  */
 
 #include <stdio.h>
@@ -354,15 +354,18 @@ static size_t actual_base64_to_base64_conv(const char *cpi, char *cpo, size_t to
  ******************************************************************************************/
 static size_t actual_hex_to_base64_conv(const char *cpi, char *cpo, size_t to_len, unsigned flags, b64_encode_f encode) {
 	char Tmp2[5], *cpo_o = cpo, *orig_cpo = cpo;
-	unsigned char Tmp[3];
+	unsigned char Tmp[3], this_len=4;
 	size_t len=0, len_left = strlen(cpi), use_bytes=3;
 	if ((flags&flg_Base64_DONOT_NULL_TERMINATE) == 0)
 		--to_len;
 	while (len_left > 0) {
 		if (len_left < 6) {
 			--use_bytes;
-			if (len_left < 4)
+			--this_len;
+			if (len_left < 4) {
 				--use_bytes;
+				--this_len;
+			}
 			memset(Tmp,0,3);
 		}
 		hex_to_raw(cpi, len_left < 6 ? len_left : 6, Tmp);
@@ -413,7 +416,7 @@ static size_t actual_base64_to_hex_conv(const char *cpi, size_t len_left, char *
 		else {
 			memcpy(cpo, Tmp2, 6);
 			cpo += 6;
-			len += 6;
+			len += this_len*2;
 			cpi += 4;
 			if (len_left < 4)
 				len_left = 0;
@@ -466,13 +469,16 @@ static size_t actual_base64_to_raw_conv(const char *cpi, size_t len_left, char *
 
 static size_t actual_raw_to_base64_conv(const char *cpi, size_t len_left, char *cpo, size_t to_len, unsigned flags, b64_encode_f encode) {
 	char Tmp[3], Tmp2[5], *cpo_o = cpo, *orig_cpo = cpo;
-	size_t len=0;
+	size_t len=0, this_len=4;
 	if ((flags&flg_Base64_DONOT_NULL_TERMINATE) == 0)
 		--to_len;
 	while (len_left > 0) {
 		if (len_left<3) {
 			memset(Tmp, 0, 3);
 			memcpy(Tmp, cpi, len_left);
+			this_len=3;
+			if (len_left == 1)
+				this_len=2;
 			cpi = Tmp;
 		}
 		encode((const unsigned char*)cpi, (len_left>3?3:len_left), Tmp2, flags);
@@ -485,7 +491,7 @@ static size_t actual_raw_to_base64_conv(const char *cpi, size_t len_left, char *
 		else {
 			memcpy(cpo, Tmp2, 4);
 			cpo += 4;
-			len += to_len;
+			len += this_len;
 			cpi += 3;
 			if (len_left < 3)
 				len_left = 0;
@@ -583,50 +589,6 @@ static void setup_mime() {
 	common_init();
 }
 
-// Initially handle md5crypt transpose. Then extend to handle all the other *crypt
-// flavors.  Probably can use the to_len and from_len variables to deterine which
-#define TO_BINARY(b1, b2, b3) \
-	value = (uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
-		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
-	pos += 4; \
-	b[b1] = value >> 16; \
-	b[b2] = value >> 8; \
-	b[b3] = value;
-static void * binary_b64_md5(char *ciphertext, unsigned char *b)
-{
-	char *pos;
-	uint32_t value;
-
-	pos = ciphertext;
-	TO_BINARY(0, 6, 12);
-	TO_BINARY(1, 7, 13);
-	TO_BINARY(2, 8, 14);
-	TO_BINARY(3, 9, 15);
-	TO_BINARY(4, 10, 5);
-	b[11] =
-		(uint32_t)atoi64[ARCH_INDEX(pos[0])] |
-		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6);
-
-	return b;
-}
-
-int crypt_transpose(char *to_crypt, int to_len) {
-	return to_len;
-}
-
-int crypt_detranspose(char *from_crypt, size_t from_len) {
-	unsigned char b[128];
-	size_t len;
-	if (from_len == 0x16)
-		binary_b64_md5(from_crypt, b);
-	len = raw_to_crypt((const char*)b, 0x10, from_crypt, from_len, 0);
-	return len;
-}
-
-
-
 void mime_deplus(char *to) {
 	char *cp = strchr(to, '+');
 	while (cp) {
@@ -666,20 +628,11 @@ char *base64_convert_cp(const void *from, b64_convert_type from_t, size_t from_l
 }
 size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len, void *to, b64_convert_type to_t, size_t to_len, unsigned flags, int *err)
 {
-	char *from_crypt = 0;
 	if (!mime_setup)
 		setup_mime();
 
 	if (from_t != e_b64_raw)
 		from_len = strnlen((char*)from, from_len);
-
-	if ( from_t == e_b64_crypt && (flags&flg_Base64_CRYPT_TRANSPOSE) == flg_Base64_CRYPT_TRANSPOSE) {
-		char from_crypt[256];
-		memset(from_crypt, 0, from_len+3);
-		memcpy(from_crypt, from, from_len);
-		from_len = crypt_detranspose(from_crypt, from_len);
-		from = from_crypt;
-	}
 
 	if (err) *err = ERR_base64_no_error;
 	switch (from_t) {
@@ -767,9 +720,6 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 				case e_b64_crypt:	/* crypt encoding */
 				{
 					size_t len = hex_to_crypt((const char *)from, (char *)to, to_len, flags);
-					if ( (flags&flg_Base64_CRYPT_TRANSPOSE) == flg_Base64_CRYPT_TRANSPOSE) {
-						len = crypt_detranspose((char*)to, len);
-					}
 					return len;
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
@@ -877,9 +827,6 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 				{
 					size_t len = mime_to_crypt((const char *)fromWrk, (char *)to, to_len, flags);
 					if (alloced) MEM_FREE(fromWrk);
-					if ( (flags&flg_Base64_CRYPT_TRANSPOSE) == flg_Base64_CRYPT_TRANSPOSE) {
-						len = crypt_detranspose((char*)to, len);
-					}
 					return len;
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
@@ -899,8 +846,8 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 			switch(to_t) {
 				case e_b64_raw:		/* raw memory */
 				{
+
 					size_t len = crypt_to_raw((const char *)from, from_len, (char *)to, to_len, flags);
-					MEM_FREE(from_crypt);
 					return len;
 				}
 				case e_b64_hex:		/* hex */
@@ -908,7 +855,6 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 					size_t len = crypt_to_hex((const char *)from, from_len, (char *)to, to_len, flags);
 					if ( (flags&flg_Base64_HEX_UPCASE) == flg_Base64_HEX_UPCASE)
 						strupr((char*)to);
-					MEM_FREE(from_crypt);
 					return len;
 				}
 				case e_b64_mime:	/* mime */
@@ -918,33 +864,25 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 						mime_deplus((char*)to);
 					if ( (flags&flg_Base64_MIME_DASH_UNDER) == flg_Base64_MIME_DASH_UNDER)
 						mime_dash_under((char*)to);
-					MEM_FREE(from_crypt);
 					return len;
 				}
 				case e_b64_crypt:	/* crypt encoding */
 				{
 					if (to_len < from_len+1) {
 						if (err) *err = ERR_base64_to_buffer_sz;
-						MEM_FREE(from_crypt);
 						return 0;
 					}
 					memcpy(to, from, from_len);
 					((char*)to)[from_len]=0;
-					if ( (flags&flg_Base64_CRYPT_TRANSPOSE) == flg_Base64_CRYPT_TRANSPOSE) {
-						from_len = crypt_detranspose((char*)to, from_len);
-					}
-					MEM_FREE(from_crypt);
 					return from_len;
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
 				{
 					size_t len = crypt_to_cryptBS((const char *)from, (char *)to, to_len, flags);
-					MEM_FREE(from_crypt);
 					return len;
 				}
 				default:
 					if (err) *err = ERR_base64_unk_to_type;
-					MEM_FREE(from_crypt);
 					return 0;
 			}
 		}
@@ -975,9 +913,6 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 				case e_b64_crypt:	/* crypt encoding */
 				{
 					size_t len = cryptBS_to_crypt((const char *)from, (char *)to, to_len, flags);
-					if ( (flags&flg_Base64_CRYPT_TRANSPOSE) == flg_Base64_CRYPT_TRANSPOSE) {
-						len = crypt_detranspose((char*)to, len);
-					}
 					return len;
 				}
 				case e_b64_cryptBS:	/* crypt encoding, network order (used by WPA, cisco9, etc) */
@@ -1103,7 +1038,6 @@ static int usage(char *name)
 	        "  -q will only output resultant string. No extra junk text\n"
 	        "  -e turns on buffer overwrite error checking logic\n"
 	        "  -l performs a 'length' test\n"
-			"  -c cryptmd5 transpose handling\n"
 			"\n"
 			"  -r ifname  process whole file ifname (this is the input file)\n"
 			"  -w ofname  The output filename for whole file processing\n"
@@ -1123,8 +1057,6 @@ static int usage(char *name)
 	        "  CRYPT_TRAIL_DOTS   output crypt adds . chars (input . auto handled)\n"
 	        "  MIME_PLUS_TO_DOT   mime converts + to . (passlib encoding)\n"
 	        "  MIME_DASH_UNDER    mime convert +/ into -_ (passlib encoding)\n"
-			"  CRYPT_TRANSPOSE    does the strange character transpose from md5crypt\n"
-			"  CRYPT_AIX          Use cryptBS, but does final transpose of results\n"
 	        "",
 	        name);
 	return EXIT_FAILURE;
@@ -1146,8 +1078,6 @@ static int handle_flag_type(const char *pflag) {
 	if (!strcasecmp(pflag, "CRYPT_TRAIL_DOTS")) return flg_Base64_CRYPT_TRAIL_DOTS;
 	if (!strcasecmp(pflag, "MIME_PLUS_TO_DOT")) return flg_Base64_MIME_PLUS_TO_DOT;
 	if (!strcasecmp(pflag, "MIME_DASH_UNDER"))  return flg_Base64_MIME_DASH_UNDER;
-	if (!strcasecmp(pflag, "CRYPT_TRANSPOSE"))  return flg_Base64_CRYPT_TRANSPOSE;
-	if (!strcasecmp(pflag, "CRYPT_AIX"))        return flg_Base64_CRYPT_AIX;
 
 	return 0;
 }
@@ -1302,7 +1232,7 @@ int base64conv(int argc, char **argv) {
 	/* Parse command line */
 	if (argc == 1)
 		return usage(argv[0]);
-	while ((c = getopt(argc, argv, "i:o:q!e!f:l!w:r:c!")) != -1) {
+	while ((c = getopt(argc, argv, "i:o:q!e!f:l!w:r:")) != -1) {
 		switch (c) {
 		case 'i':
 			in_t = str2convtype(optarg);
@@ -1316,9 +1246,6 @@ int base64conv(int argc, char **argv) {
 			did_len_check=1;
 			break;
 		case 'f':
-			flags |= handle_flag_type(optarg);
-			break;
-		case 'c':
 			flags |= handle_flag_type(optarg);
 			break;
 		case 'o':
