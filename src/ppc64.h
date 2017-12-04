@@ -45,18 +45,40 @@
 #define DES_COPY			0
 #define DES_BS_ASM			0
 #define DES_BS				1
-#define DES_BS_VECTOR			0
+#if defined(JOHN_ALTIVEC)
+#define DES_BS_EXPAND			3
+#if 1
+#define DES_BS_VECTOR			2
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 AltiVec"
+#elif 0
+/* It is likely unreasonable to use S-box expressions requiring vsel when this
+ * operation is only available in one of the two instruction sets.
+ * So let's revert to less demanding S-box expressions. */
+#define DES_BS_VECTOR			3
+#define DES_BS_VECTOR_SIZE		4
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 AltiVec + 64/64"
+#else
+#define DES_BS_VECTOR			4
+#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 AltiVec"
+#endif
+#else
 #define DES_BS_EXPAND			1
+#define DES_BS_VECTOR			0
+#endif
 
-#define MD5_ASM				0
+#define MD5_ASM			0
 #define MD5_X2				1
-#define MD5_IMM				0
+#if HAVE_ALTIVEC
+#define MD5_IMM			1
+#else
+#define MD5_IMM			0
+#endif
 
 #define BF_ASM				0
 #define BF_SCALE			0
 #define BF_X2				0
 
-#ifdef __ALTIVEC__
+#if defined(JOHN_ALTIVEC)
 #define SIMD_COEF_32		4
 #define SIMD_COEF_64		2
 #endif
@@ -77,9 +99,9 @@
 #define SIMD_PARA_SHA512	1
 #endif
 
-#define STR_VALUE(arg)			#arg
-#define PARA_TO_N(n)			STR_VALUE(n) "x"
-#define PARA_TO_MxN(m, n)		STR_VALUE(m) "x" STR_VALUE(n)
+#define STR_VALUE(arg)		#arg
+#define PARA_TO_N(n)		STR_VALUE(n) "x"
+#define PARA_TO_MxN(m, n)	STR_VALUE(m) "x" STR_VALUE(n)
 
 #if SIMD_PARA_MD4 > 1
 #define MD4_N_STR			PARA_TO_MxN(SIMD_COEF_32, SIMD_PARA_MD4)
