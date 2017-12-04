@@ -43,8 +43,12 @@
 #if (AC_BUILT && HAVE_INTTYPES_H) && ! defined(_MSC_VER)
 #include <inttypes.h>
 #else
+#ifndef PRIx64
 #define PRIx64    "llx"
+#endif
+#ifndef PRIu64
 #define PRIu64    "llu"
+#endif
 #endif
 
 /******************************************/

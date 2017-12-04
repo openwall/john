@@ -180,15 +180,8 @@ void check_abort(int be_async_signal_safe)
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 #ifndef BENCH_BUILD
-	if (john_max_cands) {
-		unsigned long long cands =
-			((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo;
-
-		if (cands >= john_max_cands)
-			abort_msg =
-				"Session stopped (max candidates reached)\n";
-	}
+	if (john_max_cands && status.cands >= john_max_cands)
+		abort_msg = "Session stopped (max candidates reached)\n";
 #endif
 
 	if (be_async_signal_safe) {
