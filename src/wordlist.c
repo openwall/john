@@ -388,7 +388,7 @@ void wordlist_hybrid_fix_state(void)
 static double get_progress(void)
 {
 	struct stat file_stat;
-	long pos;
+	int64_t pos;
 	uint64_t size;
 	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
@@ -414,7 +414,7 @@ static double get_progress(void)
 		size = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, pos, SEEK_SET);
 #if 0
-		fprintf(stderr, "pos=%ld  size=%"PRIu64"  percent=%0.4f\n", (long long)pos, (long long)size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
+		fprintf(stderr, "pos=%"PRId64"  size=%"PRIu64"  percent=%0.4f\n", pos, size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
 #endif
 		if (pos < 0) {
 #ifdef __DJGPP__
@@ -426,7 +426,7 @@ static double get_progress(void)
 		}
 	}
 #if 0
-	fprintf(stderr, "rule %d/%d mask "LLu" pos "LLu"/%"PRIu64"\n",
+	fprintf(stderr, "rule %d/%d mask "LLu" pos %"PRId64"/%"PRIu64"\n",
 	        rule_number, rule_count, mask_mult, pos, size);
 #endif
 	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /

@@ -990,7 +990,8 @@ static int crk_salt_loop(void)
 		status.resume_salt_md5 = NULL;
 
 	if (done >= 0)
-		status.cands += crk_key_index * mask_int_cand.num_int_cand;
+		status.cands +=
+			(uint64_t)crk_key_index * mask_int_cand.num_int_cand;
 
 	if (john_max_cands && !event_abort) {
 		if (status.cands >= john_max_cands)
