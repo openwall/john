@@ -19,7 +19,7 @@ matrix:
     env: ASAN=""
 
   - os: linux
-    compiler: gcc
+    compiler: clang
     env: ASAN="--enable-asan"
 
   - os: linux
@@ -40,7 +40,7 @@ matrix:
 
   allow_failures:
   - os: linux
-    compiler: gcc
+    compiler: clang
     env: ASAN="--enable-asan"
 
   fast_finish: true
