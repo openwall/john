@@ -140,7 +140,6 @@ char *phpass_common_prepare(char *split_fields[10], struct fmt_main *self)
 	return phpass_common_split(split_fields[1], 0, self);
 }
 
-
 unsigned int phpass_common_iteration_count(void *salt)
 {
 	return 1U<<atoi64[(((unsigned char*)salt)[8])];

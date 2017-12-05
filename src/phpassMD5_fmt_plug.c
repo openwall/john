@@ -308,13 +308,14 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 	return count;
 }
 
-static void * salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char salt[SALT_SIZE+2];
-		uint32_t x;
+		uint64_t dummy;
 	} x;
 	unsigned char *salt = x.salt;
+
 	// store off the 'real' 8 bytes of salt
 	memcpy(salt, &ciphertext[4], 8);
 	// append the 1 byte of loop count information.
@@ -364,7 +365,7 @@ struct fmt_main fmt_phpassmd5 = {
 		phpass_common_valid,
 		phpass_common_split,
 		phpass_common_binary,
-		salt,
+		get_salt,
 		{
 			phpass_common_iteration_count,
 		},
