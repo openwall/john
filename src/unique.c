@@ -356,7 +356,7 @@ static void unique_run(void)
 		write_buffer();
 
 		if (verbose)
-			printf("\rTotal lines read "LLu" Unique lines written "LLu"\r", totLines, written_lines);
+			printf("\rTotal lines read %"PRIu64" Unique lines written %"PRIu64"\r", totLines, written_lines);
 	}
 }
 
@@ -473,7 +473,7 @@ int unique(int argc, char **argv)
 	unique_init(argv[1]);
 	unique_run();
 	unique_done();
-    printf("Total lines read "LLu" Unique lines written "LLu"\n", totLines, written_lines);
+    printf("Total lines read %"PRIu64" Unique lines written %"PRIu64"\n", totLines, written_lines);
 
 	return 0;
 }

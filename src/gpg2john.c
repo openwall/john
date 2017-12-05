@@ -1038,7 +1038,7 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 		// let's hijack it for specifying tag values.
 		m_usage = 9; // Symmetrically Encrypted Data Packet (these lack MDC)
 		fprintf(stderr, "[gpg2john] MDC is missing, expect lots of false positives!\n");
-		printf("$gpg$*%d*"LLd"*%s*%d*%d*%d*%d*%d*", m_algorithm, (long long)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
+		printf("$gpg$*%d*%"PRId64"*%s*%d*%d*%d*%d*%d*", m_algorithm, (int64_t)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
 		printf("%s\n", hash);
@@ -1159,7 +1159,7 @@ Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial, char *ha
 	if (!partial) {
 		// we only dump the packet out when we get the 'non-partial' packet (i.e. last one).
 		m_usage = 18; // Sym. Encrypted Integrity Protected Data Packet (Tag 18)
-		printf("$gpg$*%d*"LLd"*%s*%d*%d*%d*%d*%d*", m_algorithm, (long long)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
+		printf("$gpg$*%d*%"PRId64"*%s*%d*%d*%d*%d*%d*", m_algorithm, (int64_t)totlen, hash, m_spec, m_usage, m_hashAlgorithm, m_cipherAlgorithm, m_count);
 		cp = hash;
 		cp += print_hex(m_salt, 8, cp);
 		printf("%s\n", hash);

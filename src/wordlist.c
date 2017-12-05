@@ -48,7 +48,7 @@
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
 #undef MEM_FREE
-#if !defined(__CYGWIN__) && !defined(__MINGW64__)
+#if !defined(__CYGWIN__) && !defined(__MINGW64__) && !defined(__MINGW32__)
 #include "mmap-windows.c"
 #endif /* __CYGWIN */
 #endif /* _MSC_VER ... */
@@ -120,7 +120,7 @@ extern int rpp_real_run; /* set to 1 when we really get into wordlist mode */
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n" LLd "\n" LLd "\n",
+	fprintf(file, "%d\n%" PRId64 "\n%" PRId64 "\n",
 	        rec_rule, (long long)rec_pos, (long long)rec_line);
 }
 
@@ -285,13 +285,13 @@ static int restore_state(FILE *file)
 {
 	long long rule, line, pos;
 
-	if (fscanf(file, LLd"\n"LLd"\n", &rule, &pos) != 2)
+	if (fscanf(file, "%"PRId64"\n%"PRId64"\n", &rule, &pos) != 2)
 		return 1;
 	rec_rule = rule;
 	rec_pos = pos;
 	rec_line = 0;
 	if (rec_version >= 4) {
-		if (fscanf(file, LLd"\n", &line) != 1)
+		if (fscanf(file, "%"PRId64"\n", &line) != 1)
 			return 1;
 		rec_line = line;
 	}
@@ -426,7 +426,7 @@ static double get_progress(void)
 		}
 	}
 #if 0
-	fprintf(stderr, "rule %d/%d mask "LLu" pos %"PRId64"/%"PRIu64"\n",
+	fprintf(stderr, "rule %d/%d mask %"PRIu64" pos %"PRId64"/%"PRIu64"\n",
 	        rule_number, rule_count, mask_mult, pos, size);
 #endif
 	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /
@@ -691,7 +691,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 #ifdef HAVE_MMAP
 		if (cfg_get_bool(SECTION_OPTIONS, NULL, "WordlistMemoryMap", 1))
 		{
-			log_event("- memory mapping wordlist ("LLd" bytes)",
+			log_event("- memory mapping wordlist (%"PRId64" bytes)",
 			          (long long)file_len);
 #if (SIZEOF_SIZE_T < 8)
 /*
@@ -801,7 +801,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				        " we read it\n");
 				log_event("- loaded this node's share of "
 				          "wordfile %s into memory "
-				          "(%lu bytes of "LLd", max_size="Zu
+				          "(%lu bytes of %"PRId64", max_size="Zu
 				          " avg/node)", name, my_size,
 				          (long long)file_len,
 				          options.max_wordfile_memory);
@@ -817,7 +817,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			}
 			else {
 				log_event("- loading wordfile %s into memory "
-				          "("LLd" bytes, max_size="Zu")",
+				          "(%"PRId64" bytes, max_size="Zu")",
 				          name, (long long)file_len,
 				          options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
@@ -857,7 +857,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			if (aep[-1] != csearch)
 				++nWordFileLines;
 			words = mem_alloc((nWordFileLines + 1) * sizeof(char*));
-			log_event("- wordfile had "LLd" lines and required "LLd
+			log_event("- wordfile had %"PRId64" lines and required %"PRId64
 			          " bytes for index.",
 			          (long long)nWordFileLines,
 			          (long long)(nWordFileLines * sizeof(char*)));
@@ -876,7 +876,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
 				log_event("- dupe suppression: hash size %u, "
-					"temporarily allocating "LLd" bytes",
+					"temporarily allocating %"PRId64" bytes",
 					hash_size,
 					(hash_size * sizeof(unsigned int)) +
 					((long long)nWordFileLines *
@@ -943,7 +943,7 @@ skip:
 				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
 			if ((long long)nWordFileLines - i > 0)
-				log_event("- suppressed "LLd" duplicate lines "
+				log_event("- suppressed %"PRId64" duplicate lines "
 				          "and/or comments from wordlist.",
 				          (long long)nWordFileLines - i);
 			MEM_FREE(buffer.hash);
@@ -1049,7 +1049,7 @@ GRAB_NEXT_PIPE_LOAD:
 					}
 				}
 				if (options.verbosity == VERB_MAX) {
-					sprintf(msg_buf, "- Read block of "LLd" "
+					sprintf(msg_buf, "- Read block of %"PRId64" "
 					        "candidate passwords from pipe",
 					        (long long)nWordFileLines);
 					log_event("%s", msg_buf);

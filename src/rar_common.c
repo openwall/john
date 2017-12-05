@@ -244,7 +244,7 @@ static void *get_salt(char *ciphertext)
 			jtr_fseek64(fp, pos, SEEK_SET);
 			count = fread(psalt->raw_data, 1, psalt->pack_size, fp);
 			if (count != psalt->pack_size) {
-				fprintf(stderr, "Error loading file from archive '%s', expected "LLu" bytes, got "Zu". Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
+				fprintf(stderr, "Error loading file from archive '%s', expected %"PRIu64" bytes, got "Zu". Archive possibly damaged.\n", archive_name, psalt->pack_size, count);
 				error();
 			}
 			psalt->blob = psalt->raw_data;

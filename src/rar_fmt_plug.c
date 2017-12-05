@@ -54,7 +54,7 @@ john_register_one(&fmt_rar);
 #endif
 #if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
 #include "win32_memmap.h"
-#if !defined(__CYGWIN__) && !defined(__MINGW64__)
+#if !defined(__CYGWIN__) && !defined(__MINGW64__) && !defined(__MINGW32__)
 #include "mmap-windows.c"
 #elif defined HAVE_MMAP
 #include <sys/mman.h>
