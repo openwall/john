@@ -118,7 +118,7 @@ void *ethereum_common_get_salt(char *ciphertext)
 	char *p;
 	static custom_salt *cur_salt;
 
-	cur_salt = mem_calloc_tiny(sizeof(custom_salt), MEM_ALIGN_WORD);
+	cur_salt = mem_calloc_tiny(sizeof(custom_salt), MEM_ALIGN_SIMD); // 64-bit alignment is required
 
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "*");
