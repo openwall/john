@@ -21,7 +21,6 @@ john_register_one(&fmt_mongodb_scram);
 #include "formats.h"
 #include "johnswap.h"
 #include "sha.h"
-#include "base64.h"
 #include "base64_convert.h"
 #include "hmac_sha.h"
 #include "simd-intrinsics.h"
@@ -146,7 +145,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 	cs.iterations = atoi(p);
 	p = strtokm(NULL, "$");
-	base64_decode(p, strlen(p), (char*)cs.salt);
+	base64_convert(p, e_b64_mime, strlen(p), (char*)cs.salt, e_b64_raw, sizeof(cs.salt), flg_Base64_NO_FLAGS, NULL);
 	MEM_FREE(keeptr);
 
 	return (void *)&cs;
@@ -162,7 +161,7 @@ static void *get_binary(char *ciphertext)
 	char *p;
 
 	p = strrchr(ciphertext, '$') + 1;
-	base64_decode(p, strlen(p), (char*)out);
+	base64_convert(p, e_b64_mime, strlen(p), (char*)out, e_b64_raw, sizeof(buf.c), flg_Base64_NO_FLAGS, NULL);
 
 	return out;
 }

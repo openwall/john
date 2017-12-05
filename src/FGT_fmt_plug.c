@@ -33,7 +33,7 @@ john_register_one(&fmt_FGT);
 #include "misc.h"
 
 #include "sha.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "simd-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
@@ -130,7 +130,7 @@ static void * get_salt(char *ciphertext)
 	} out;
 	char buf[SALT_SIZE+BINARY_SIZE+1];
 
-	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
+	base64_convert(ciphertext+3, e_b64_mime, CIPHERTEXT_LENGTH, (char*)buf, e_b64_raw, sizeof(buf), flg_Base64_NO_FLAGS, NULL);
 	memcpy(out.b, buf, SALT_SIZE);
 
 	return out.b;
@@ -161,7 +161,7 @@ static void * get_binary(char *ciphertext)
 	char buf[SALT_SIZE+BINARY_SIZE+1];
 
 	memset(buf, 0, sizeof(buf));
-	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
+	base64_convert(ciphertext+3, e_b64_mime, CIPHERTEXT_LENGTH, (char*)buf, e_b64_raw, sizeof(buf), flg_Base64_NO_FLAGS, NULL);
 	// skip over the 12 bytes of salt and get only the hashed password
 	memcpy(bin.b, buf+SALT_SIZE, BINARY_SIZE);
 

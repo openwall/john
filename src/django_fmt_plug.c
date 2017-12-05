@@ -44,7 +44,6 @@ john_register_one(&fmt_django);
 #include "params.h"
 #include "options.h"
 #include "johnswap.h"
-#include "base64.h"
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
@@ -188,7 +187,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	p = strrchr(ciphertext, '$') + 1;
-	base64_decode(p, strlen(p), (char*)out);
+	base64_convert(p, e_b64_mime, strlen(p), (char*)out, e_b64_raw, sizeof(buf.c), flg_Base64_DONOT_NULL_TERMINATE, NULL);
 	return out;
 }
 

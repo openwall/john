@@ -29,7 +29,7 @@ john_register_one(&FMT_STRUCT);
 #include "options.h"
 #include "salted_sha1_common.h"
 #include "mask_ext.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "bt_interface.h"
 
 #define FORMAT_LABEL			"salted-sha1-opencl"
@@ -332,7 +332,7 @@ static void * get_salt(char * ciphertext)
 	memset(realcipher, 0, sizeof(realcipher));
 	memset(&cursalt, 0, sizeof(struct s_salt));
 	len = strlen(ciphertext);
-	base64_decode(ciphertext, len, realcipher);
+	base64_convert(ciphertext, e_b64_mime, len, (char*)realcipher, e_b64_raw, sizeof(realcipher), flg_Base64_NO_FLAGS, NULL);
 
 	// We now support any salt length up to SALT_SIZE
 	cursalt.len = (len + 3) / 4 * 3 - BINARY_SIZE;
@@ -360,7 +360,7 @@ static void * get_binary(char *ciphertext) {
 
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, BINARY_SIZE);
-	base64_decode(ciphertext, strlen(ciphertext), realcipher);
+	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), (char*)realcipher, e_b64_raw, BINARY_SIZE + 1 + SALT_SIZE, flg_Base64_NO_FLAGS, NULL);
 
 	return (void *)realcipher;
 }
