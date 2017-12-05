@@ -457,26 +457,38 @@ static char *escape_json(char *in)
 {
 	char *ret;
 	size_t num = 0;
-	char c;
-	char *p = in;
+	uint8_t c;
+	uint8_t *p = (uint8_t*)in;
 
-	while ((c = *p++))
+	while ((c = *p++)) {
 		if (c == '\\' || c == '"')
 			num++;
-
+		else if (c < ' ')
+			num += 5;
+	}
 	if (!num)
 		return in;
 
-	num += (p - in);
+	num += (p - (uint8_t*)in);
 	ret = mem_alloc_tiny(num, MEM_ALIGN_NONE);
 
-	p = ret - 1;
+	p = (uint8_t*)ret - 1;
 	while ((*++p = *in++)) {
 		if (*p == '\\')
 			*++p = '\\';
 		else if (*p == '"') {
 			*p = '\\';
 			*++p = '"';
+		} else if (*p < ' ') {
+			const char* const hex = "0123456789abcdef";
+			uint8_t c = *p;
+
+			*p = '\\';
+			*++p = 'u';
+			*++p = '0';
+			*++p = '0';
+			*++p = hex[ARCH_INDEX(c >> 4)];
+			*++p = hex[ARCH_INDEX(c & 0xf)];
 		}
 	}
 	return ret;
