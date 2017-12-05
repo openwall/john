@@ -82,7 +82,7 @@ JOHN_OBJS = \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \
-	base64.o base64_convert.o \
+	base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
@@ -235,9 +235,7 @@ lzma/Lzma2Dec.o:	lzma/Lzma2Dec.c lzma/Precomp.h lzma/Compiler.h lzma/Lzma2Dec.h 
 
 lzma/LzmaDec.o:	lzma/LzmaDec.c lzma/Precomp.h lzma/Compiler.h lzma/LzmaDec.h lzma/7zTypes.h
 
-base64.o:	base64.c memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h memory.h
-
-base64_convert.o:	base64_convert.c missing_getopt.h memory.h arch.h misc.h jumbo.h autoconfig.h common.h base64.h base64_convert.h memdbg.h os.h os-autoconf.h
+base64_convert.o:	base64_convert.c missing_getopt.h memory.h arch.h misc.h jumbo.h autoconfig.h common.h base64_convert.h memdbg.h os.h os-autoconf.h
 
 batch.o:	batch.c params.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h signals.h loader.h list.h formats.h misc.h status.h config.h single.h wordlist.h inc.h memdbg.h memory.h
 
@@ -675,8 +673,8 @@ kernels: @KERNEL_OBJS@
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
-../run/keepass2john@EXE_EXT@: keepass2john.o jumbo.o memdbg.o base64.o
-	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o base64.o @OPENMP_CFLAGS@ -lcrypto -o ../run/keepass2john
+../run/keepass2john@EXE_EXT@: keepass2john.c jumbo.c memdbg.c base64_convert.c misc.c common.c memory.c
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.c jumbo.c @MEMDBG_CFLAGS@ memdbg.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c @OPENMP_CFLAGS@ -lcrypto -o ../run/keepass2john
 
 ../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/dmg2john

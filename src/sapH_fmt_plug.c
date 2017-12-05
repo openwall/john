@@ -225,7 +225,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(cp) != base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ|flg_Base64_MIME_TRAIL_EQ_CNT, 0))
 		goto err;
 	len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	                     sizeof(tmp), flg_Base64_MIME_TRAIL_EQ, 0);
+	                     sizeof(tmp), flg_Base64_MIME_TRAIL_EQ|flg_Base64_DONOT_NULL_TERMINATE, 0);
 	len -= hash_len;
 	if (len < 1 || len > SALT_LENGTH)
 		goto err;
@@ -620,7 +620,7 @@ static void *get_binary(char *ciphertext)
 	while (*cp != '}') ++cp;
 	++cp;
 	base64_convert(cp, e_b64_mime, strlen(cp), b.cp, e_b64_raw,
-	               sizeof(b.cp), flg_Base64_MIME_TRAIL_EQ, 0);
+	               BINARY_SIZE, flg_Base64_MIME_TRAIL_EQ|flg_Base64_DONOT_NULL_TERMINATE, 0);
 	return b.cp;
 
 }
@@ -642,7 +642,7 @@ static void *get_salt(char *ciphertext)
 	while (*cp != '}') ++cp;
 	++cp;
 	total_len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
-	                           sizeof(tmp), flg_Base64_MIME_TRAIL_EQ, 0);
+	                           sizeof(tmp), flg_Base64_MIME_TRAIL_EQ|flg_Base64_DONOT_NULL_TERMINATE, 0);
 	s.slen = total_len-hash_len;
 	memcpy(s.s, &tmp[hash_len], s.slen);
 	return &s;

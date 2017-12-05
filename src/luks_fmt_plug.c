@@ -52,7 +52,7 @@ john_register_one(&fmt_luks);
 #include "params.h"
 #include "options.h"
 #include "memory.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "dyna_salt.h"
 
@@ -474,7 +474,8 @@ static void *get_salt(char *ciphertext)
 		p = strtokm(NULL, "$");
 		size = strlen(p) / 4 * 3 + 1;
 		buf = mem_calloc(1, size+4);
-		base64_decode(p, strlen(p), (char*)buf);
+		base64_convert(p, e_b64_mime, strlen(p), buf, e_b64_raw, size+4, flg_Base64_NO_FLAGS, 0);
+
 		cs.afsize = size;
 	}
 	else {

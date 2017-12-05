@@ -50,7 +50,7 @@
 #include "memdbg.h"
 
 #include "sha2.h"
-#include "base64.h"
+#include "base64_convert.h"
 
 const char *extension[] = {".kdbx"};
 static char *keyfile = NULL;
@@ -327,7 +327,7 @@ static void process_database(char* encryptedDatabase)
 	long long filesize_keyfile = 0;
 	char *p;
 	char *data;
-	char b64_decoded[64];
+	char b64_decoded[128+1];
 	FILE *kfp = NULL;
 	SHA256_CTX ctx;
 	unsigned char hash[32];
@@ -541,8 +541,7 @@ static void process_database(char* encryptedDatabase)
 			p += strlen("<Data>");
 			data = p;
 			p = strstr(p, "</Data>");
-			base64_decode(data, p - data, b64_decoded);
-			print_hex((unsigned char *) b64_decoded, 32);
+			printf ("%s", base64_convert_cp(data, e_b64_mime, p - data, b64_decoded, e_b64_hex, sizeof(b64_decoded), flg_Base64_NO_FLAGS, 0));
 		}
 		else if (filesize_keyfile == 32)
 			print_hex(buffer, filesize_keyfile);

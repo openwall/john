@@ -121,7 +121,7 @@ JOHN_OBJS = \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \
-	base64.o base64_convert.o \
+	base64_convert.o \
 	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \

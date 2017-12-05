@@ -25,7 +25,7 @@ john_register_one(&fmt_known_hosts);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "params.h"
 #include "options.h"
 #ifdef _OPENMP
@@ -122,7 +122,7 @@ static void *get_salt(char *ciphertext)
 	p = ciphertext +  TAG_LENGTH + 3;
 
 	q = strchr(p, '|');
-	base64_decode(p, q - p, (char*)salt);
+	base64_convert(p, e_b64_mime, q-p, salt, e_b64_raw, sizeof(salt), flg_Base64_NO_FLAGS, 0);
 
 	for (i = 0; i < 20; ++i) {
 		ipad[i] = salt[i] ^ 0x36;
@@ -147,7 +147,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	p = strrchr(ciphertext, '|') + 1;
-	base64_decode((char*)p, BINARY_ENCODED_SIZE, (char*)out);
+	base64_convert((char*)p, e_b64_mime, BINARY_ENCODED_SIZE, (char*)out, e_b64_raw, sizeof(buf.c), flg_Base64_NO_FLAGS, 0);
 
 	return out;
 }

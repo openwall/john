@@ -10,7 +10,7 @@
 
 #include "formats.h"
 #include "johnswap.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "rawSHA512_common.h"
 #include "johnswap.h"
 #include "memdbg.h"
@@ -322,7 +322,7 @@ void *sha512_common_binary_nsldap(char *ciphertext) {
 	char *realcipher = x.out;
 
 	ciphertext += NSLDAP_TAG_LENGTH;
-	base64_decode(ciphertext, strlen(ciphertext), realcipher);
+	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), realcipher, e_b64_raw, sizeof(x.out), flg_Base64_DONOT_NULL_TERMINATE, 0);
 
 #if defined(SIMD_COEF_64) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64 (realcipher, DIGEST_SIZE/8);
