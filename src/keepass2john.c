@@ -166,14 +166,14 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t num_entries;
 	uint32_t key_transf_rounds;
 	unsigned char *buffer;
-	long long filesize = 0;
-	long long datasize;
+	int64_t filesize = 0;
+	int64_t datasize;
 	int algorithm = -1;
 	char *dbname;
 	FILE *kfp = NULL;
 
 	/* specific to keyfile handling */
-	long long filesize_keyfile = 0;
+	int64_t filesize_keyfile = 0;
 	SHA256_CTX ctx;
 	unsigned char hash[32];
 	int counter;
@@ -231,11 +231,11 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
 			return;
 		}
-		filesize_keyfile = (long long)get_file_size(keyfile);
+		filesize_keyfile = (int64_t)get_file_size(keyfile);
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase), extension, 1);
-	filesize = (long long)get_file_size(encryptedDatabase);
+	filesize = (int64_t)get_file_size(encryptedDatabase);
 	datasize = filesize - 124;
 	if (datasize < 0) {
 		warn("%s: Error in validating datasize.", encryptedDatabase);
@@ -324,7 +324,7 @@ static void process_database(char* encryptedDatabase)
 
 	/* specific to keyfile handling */
 	unsigned char *buffer;
-	long long filesize_keyfile = 0;
+	int64_t filesize_keyfile = 0;
 	char *p;
 	char *data;
 	char b64_decoded[64];
@@ -497,7 +497,7 @@ static void process_database(char* encryptedDatabase)
 			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
 			return;
 		}
-		filesize_keyfile = (long long)get_file_size(keyfile);
+		filesize_keyfile = (int64_t)get_file_size(keyfile);
 	}
 
 	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);

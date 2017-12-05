@@ -22,7 +22,7 @@
 
 static void show_pwd_rnbs(struct s_pwd * pwd)
 {
-	unsigned long long i;
+	uint64_t i;
 	unsigned int k;
 	unsigned long lvl;
 
@@ -53,7 +53,7 @@ static void show_pwd_rnbs(struct s_pwd * pwd)
 
 static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 {
-	unsigned long long i;
+	uint64_t i;
 	unsigned int k;
 	unsigned long lvl;
 	unsigned char curchar;
@@ -98,7 +98,7 @@ static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 	pwd->level = lvl;
 }
 
-static void show_pwd(unsigned long long start, unsigned long long end, unsigned int max_level, unsigned int max_len)
+static void show_pwd(uint64_t start, uint64_t end, unsigned int max_level, unsigned int max_len)
 {
 	struct s_pwd pwd;
 	unsigned int i;
@@ -203,7 +203,7 @@ int main(int argc, char * * argv)
 	struct s_pwd pwd2;
 
 	unsigned int max_lvl = 0, max_len;
-	unsigned long long start, end;
+	uint64_t start, end;
 
 	max_len = 0;
 	start = 0;

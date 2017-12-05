@@ -44,7 +44,7 @@ static mask_cpu_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 static int max_keylen, fmt_maxlen, rec_len, restored_len, restored;
-static unsigned long long rec_cl, cand_length;
+static uint64_t rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
 static int parent_fix_state_pending;
@@ -60,10 +60,10 @@ static int mask_has_8bit;
  * cand and rec_cand is the number of remaining candidates.
  * So, its value decreases as cracking progress.
  */
-static unsigned long long cand, rec_cand;
+static uint64_t cand, rec_cand;
 
-unsigned long long mask_tot_cand;
-unsigned long long mask_parent_keys;
+uint64_t mask_tot_cand;
+uint64_t mask_parent_keys;
 
 #define BUILT_IN_CHARSET "ludsaLUDSAbhBH123456789"
 
@@ -1537,7 +1537,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 		ranges(ps).chars[ranges(ps).iter];
 
 static int generate_keys(mask_cpu_context *cpu_mask_ctx,
-			  unsigned long long *my_candidates)
+			  uint64_t *my_candidates)
 {
 	char key_e[PLAINTEXT_BUFFER_SIZE];
 	char *key;
@@ -1619,7 +1619,7 @@ done:
 }
 
 static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
-                               unsigned long long *my_candidates)
+                               uint64_t *my_candidates)
 {
 	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
 	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
@@ -1744,9 +1744,9 @@ static void skip_position(mask_cpu_context *cpu_mask_ctx, int *arr)
 		}
 }
 
-static unsigned long long divide_work(mask_cpu_context *cpu_mask_ctx)
+static uint64_t divide_work(mask_cpu_context *cpu_mask_ctx)
 {
-	unsigned long long offset, my_candidates, total_candidates, ctr;
+	uint64_t offset, my_candidates, total_candidates, ctr;
 	int ps;
 	double fract;
 
@@ -1796,7 +1796,7 @@ static unsigned long long divide_work(mask_cpu_context *cpu_mask_ctx)
  */
 static double get_progress(void)
 {
-	unsigned long long total = mask_tot_cand;
+	uint64_t total = mask_tot_cand;
 
 	emms();
 
@@ -1833,7 +1833,7 @@ int mask_restore_state(FILE *file)
 {
 	int i, d;
 	unsigned cu;
-	unsigned long long ull;
+	uint64_t ull;
 	int fail = !(options.flags & FLG_MASK_STACKED);
 
 	if (fscanf(file, "%"PRIu64"\n", &ull) == 1)

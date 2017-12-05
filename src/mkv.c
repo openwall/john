@@ -35,7 +35,7 @@
 
 extern struct fmt_main fmt_LM;
 
-static long long tidx, hybrid_tidx;
+static int64_t tidx, hybrid_tidx;
 #if HAVE_REXGEN
 static char *regex_alpha;
 static int regex_case;
@@ -71,7 +71,7 @@ void mkv_hybrid_fix_state(void)
 
 static int show_pwd_rnbs(struct db_main *db, struct s_pwd *pwd)
 {
-	unsigned long long i;
+	uint64_t i;
 	unsigned int k;
 	unsigned long lvl;
 	char pass_filtered[PLAINTEXT_BUFFER_SIZE];
@@ -132,7 +132,7 @@ static int show_pwd_rnbs(struct db_main *db, struct s_pwd *pwd)
 
 static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 {
-	unsigned long long i;
+	uint64_t i;
 	unsigned int k;
 	unsigned long lvl;
 	unsigned char curchar;
@@ -236,7 +236,7 @@ static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 	return 0;
 }
 
-static int show_pwd(struct db_main *db, unsigned long long start)
+static int show_pwd(struct db_main *db, uint64_t start)
 {
 	struct s_pwd pwd;
 	unsigned int i;
@@ -326,7 +326,7 @@ static int show_pwd(struct db_main *db, unsigned long long start)
 
 static double get_progress(void)
 {
-	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
+	uint64_t mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
 
@@ -556,8 +556,8 @@ void get_markov_options(struct db_main *db,
 }
 
 void get_markov_start_end(char *start_token, char *end_token,
-                          unsigned long long mkv_max,
-                          unsigned long long *mkv_start, unsigned long long *mkv_end)
+                          uint64_t mkv_max,
+                          uint64_t *mkv_start, uint64_t *mkv_end)
 {
 	*mkv_start = 0;
 	*mkv_end = 0;
@@ -651,7 +651,7 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	char *end_token = NULL;
 	char *param = NULL;
 	unsigned int mkv_minlevel, mkv_level, mkv_maxlen, mkv_minlen;
-	unsigned long long mkv_start, mkv_end;
+	uint64_t mkv_start, mkv_end;
 
 	if (mkv_param != NULL) {
 		param = str_alloc_copy(mkv_param);
@@ -688,10 +688,10 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	gmin_len = mkv_minlen;
 
 	nbparts =
-	    mem_alloc(256 * (mkv_level + 1) * sizeof(long long) * (mkv_maxlen +
+	    mem_alloc(256 * (mkv_level + 1) * sizeof(int64_t) * (mkv_maxlen +
 	              1));
 	memset(nbparts, 0,
-	       256 * (mkv_level + 1) * (mkv_maxlen + 1) * sizeof(long long));
+	       256 * (mkv_level + 1) * (mkv_maxlen + 1) * sizeof(int64_t));
 
 	nb_parts(0, 0, 0, mkv_level, mkv_maxlen);
 
@@ -710,7 +710,7 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	}
 
 	if (options.node_count > 1) {
-		unsigned long long mkv_size;
+		uint64_t mkv_size;
 
 		mkv_size = mkv_end - mkv_start + 1;
 		if (options.node_max != options.node_count)

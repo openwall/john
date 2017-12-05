@@ -121,7 +121,7 @@ extern int rpp_real_run; /* set to 1 when we really get into wordlist mode */
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n%" PRId64 "\n%" PRId64 "\n",
-	        rec_rule, (long long)rec_pos, (long long)rec_line);
+	        rec_rule, (int64_t)rec_pos, (int64_t)rec_line);
 }
 
 static int restore_rule_number(void)
@@ -180,8 +180,8 @@ static MAYBE_INLINE char *mgetl(char *res)
 
 #elif ARCH_SIZE >= 8 && ARCH_ALLOWS_UNALIGNED /* Eight chars at a time */
 
-	unsigned long long *ss = (unsigned long long*)map_pos;
-	unsigned long long *dd = (unsigned long long*)pos;
+	uint64_t *ss = (uint64_t*)map_pos;
+	uint64_t *dd = (uint64_t*)pos;
 	unsigned int *s = (unsigned int*)map_pos;
 	unsigned int *d = (unsigned int*)pos;
 
@@ -283,7 +283,7 @@ static void restore_line_number(void)
 
 static int restore_state(FILE *file)
 {
-	long long rule, line, pos;
+	int64_t rule, line, pos;
 
 	if (fscanf(file, "%"PRId64"\n%"PRId64"\n", &rule, &pos) != 2)
 		return 1;
@@ -390,7 +390,7 @@ static double get_progress(void)
 	struct stat file_stat;
 	int64_t pos;
 	uint64_t size;
-	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
+	uint64_t mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
 
@@ -692,7 +692,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (cfg_get_bool(SECTION_OPTIONS, NULL, "WordlistMemoryMap", 1))
 		{
 			log_event("- memory mapping wordlist (%"PRId64" bytes)",
-			          (long long)file_len);
+			          (int64_t)file_len);
 #if (SIZEOF_SIZE_T < 8)
 /*
  * Now even though we are 64 bit file size, we must still deal with some
@@ -803,7 +803,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				          "wordfile %s into memory "
 				          "(%lu bytes of %"PRId64", max_size="Zu
 				          " avg/node)", name, my_size,
-				          (long long)file_len,
+				          (int64_t)file_len,
 				          options.max_wordfile_memory);
 				if (john_main_process)
 				fprintf(stderr,"Each node loaded 1/%d "
@@ -818,7 +818,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			else {
 				log_event("- loading wordfile %s into memory "
 				          "(%"PRId64" bytes, max_size="Zu")",
-				          name, (long long)file_len,
+				          name, (int64_t)file_len,
 				          options.max_wordfile_memory);
 				if (options.node_count > 1 && john_main_process)
 				fprintf(stderr,"Each node loaded the whole "
@@ -859,8 +859,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			words = mem_alloc((nWordFileLines + 1) * sizeof(char*));
 			log_event("- wordfile had %"PRId64" lines and required %"PRId64
 			          " bytes for index.",
-			          (long long)nWordFileLines,
-			          (long long)(nWordFileLines * sizeof(char*)));
+			          (int64_t)nWordFileLines,
+			          (int64_t)(nWordFileLines * sizeof(char*)));
 
 			i = 0;
 			cp = word_file_str;
@@ -879,7 +879,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					"temporarily allocating %"PRId64" bytes",
 					hash_size,
 					(hash_size * sizeof(unsigned int)) +
-					((long long)nWordFileLines *
+					((int64_t)nWordFileLines *
 					 sizeof(element_st)));
 				buffer.hash = mem_alloc(hash_size *
 				                        sizeof(unsigned int));
@@ -942,10 +942,10 @@ skip:
 				if (ec == '\r' && *cp == '\n') cp++;
 				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
-			if ((long long)nWordFileLines - i > 0)
+			if ((int64_t)nWordFileLines - i > 0)
 				log_event("- suppressed %"PRId64" duplicate lines "
 				          "and/or comments from wordlist.",
-				          (long long)nWordFileLines - i);
+				          (int64_t)nWordFileLines - i);
 			MEM_FREE(buffer.hash);
 			MEM_FREE(buffer.data);
 			nWordFileLines = i;
@@ -1051,7 +1051,7 @@ GRAB_NEXT_PIPE_LOAD:
 				if (options.verbosity == VERB_MAX) {
 					sprintf(msg_buf, "- Read block of %"PRId64" "
 					        "candidate passwords from pipe",
-					        (long long)nWordFileLines);
+					        (int64_t)nWordFileLines);
 					log_event("%s", msg_buf);
 				}
 			}
