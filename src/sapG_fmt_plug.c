@@ -46,7 +46,13 @@ static unsigned int omp_t = 1;
 #if defined(_OPENMP)
 #include <omp.h>
 #ifndef OMP_SCALE
+#if defined (SIMD_COEF_32)
+// some OMP scaling moved into max_keys, so that we can have more values in SIMD
+// mode, to sort hashes by limb size.  (TODO)
+#define OMP_SCALE				128
+#else
 #define OMP_SCALE				2048
+#endif
 #endif
 #endif
 
@@ -69,11 +75,16 @@ static unsigned int omp_t = 1;
 
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
-#define GETWORDPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETSTARTPOS(index)		( (index&(SIMD_COEF_32-1))*4 + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*20*SIMD_COEF_32 ) //for endianity conversion
+// max keys increased to allow sorting based on limb counts
+#define MAX_KEYS_PER_CRYPT		NBKEYS*64
+#define GETWORDPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETSTARTPOS(index)		( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTSTARTPOS(index)	( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*20*SIMD_COEF_32 )
+#if ARCH_LITTLE_ENDIAN
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 +             (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 ) //for endianity conversion
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 +             ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 ) //for endianity conversion
+#endif
 
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -119,6 +130,7 @@ static struct fmt_tests tests[] = {
 
 static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1];
 static int *keyLen;
+static int max_keys;
 
 #ifdef SIMD_COEF_32
 
@@ -169,6 +181,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
+	max_keys = self->params.max_keys_per_crypt;
 	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
 	                         sizeof(*saved_plain));
 	keyLen = mem_calloc(self->params.max_keys_per_crypt, sizeof(*keyLen));
@@ -283,7 +296,7 @@ static void clear_keys(void)
 
 static void set_key(char *key, int index)
 {
-	memcpy((char*)saved_plain[index], key, UTF8_PLAINTEXT_LENGTH);
+	strnzcpy((char*)saved_plain[index], key, sizeof(*saved_plain));
 	keyLen[index] = -1;
 }
 
@@ -295,14 +308,10 @@ static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x,y=0;
 
-#ifdef _OPENMP
-	for (;y<SIMD_PARA_SHA1*omp_t;y++)
-#else
-	for (;y<SIMD_PARA_SHA1;y++)
-#endif
+	for (;y<max_keys;y+=SIMD_COEF_32)
 	for (x=0;x<SIMD_COEF_32;x++)
 	{
-		if ( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5] )
+		if ( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*5] )
 			return 1;
 	}
 	return 0;
@@ -353,7 +362,7 @@ inline static unsigned int extractLengthOfMagicArray(unsigned const char *pbHash
 	unsigned int modSum = 0;
 
 #if SIMD_COEF_32
-	unsigned const char *p = &pbHashArray[GETOUTPOS(3, index)];
+	unsigned const char *p = &pbHashArray[GETOUTSTARTPOS(index)]; // [(index/SIMD_COEF_32)*20*SIMD_COEF_32+(index%SIMD_COEF_32)*4]
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
@@ -363,13 +372,16 @@ inline static unsigned int extractLengthOfMagicArray(unsigned const char *pbHash
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
 	modSum += *p++ % 6;
-	p += 4*(SIMD_COEF_32 - 1) + 2;
+	p += 4*(SIMD_COEF_32 - 1);
+#if ARCH_LITTLE_ENDIAN
+	p += 2;
+#endif
 	modSum += *p++ % 6;
 	modSum += *p % 6;
 #else
 	unsigned int i;
 
-	for (i=0; i<=9; i++)
+	for (i = 0; i < 10; i++)
 		modSum += pbHashArray[i] % 6;
 #endif
 	return modSum + 0x20; //0x20 is hardcoded...
@@ -389,23 +401,30 @@ inline static unsigned int extractOffsetToMagicArray(unsigned const char *pbHash
 	unsigned int modSum = 0;
 
 #if SIMD_COEF_32
-	unsigned const int *p = (unsigned int*)&pbHashArray[GETOUTPOS(11, index)];
-	unsigned int temp;
-
-	temp = *p & 0x0707;
-	modSum += (temp >> 8) + (unsigned char)temp;
-	p += SIMD_COEF_32;
-	temp = *p & 0x07070707;
-	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
-		(unsigned char)(temp >> 8) + (unsigned char)temp;
-	p += SIMD_COEF_32;
-	temp = *p & 0x07070707;
-	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
-		(unsigned char)(temp >> 8) + (unsigned char)temp;
+	unsigned const char *p = &pbHashArray[GETOUTSTARTPOS(index)]; // [(index/SIMD_COEF_32)*20*SIMD_COEF_32+(index%SIMD_COEF_32)*4]
+	p += 4*(SIMD_COEF_32)*2;
+#if !ARCH_LITTLE_ENDIAN
+	p += 2;
+#endif
+	modSum += *p++ % 8;
+	modSum += *p++ % 8;
+#if ARCH_LITTLE_ENDIAN
+	p += 2;
+#endif
+	p += 4*(SIMD_COEF_32 - 1);
+	modSum += *p++ % 8;
+	modSum += *p++ % 8;
+	modSum += *p++ % 8;
+	modSum += *p++ % 8;
+	p += 4*(SIMD_COEF_32 - 1);
+	modSum += *p++ % 8;
+	modSum += *p++ % 8;
+	modSum += *p++ % 8;
+	modSum += *p % 8;
 #else
 	unsigned int i;
 
-	for (i = 19; i >= 10; i--)
+	for (i = 10; i < 20; i++)
 		modSum += pbHashArray[i] % 8;
 #endif
 	return modSum;
@@ -430,16 +449,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 #if SIMD_COEF_32
+#define ti (t*NBKEYS+index)
 
+	unsigned t;
 #if defined(_OPENMP)
-	int t;
 #pragma omp parallel for
-	for (t = 0; t < omp_t; t++)
-#define ti ((unsigned int)t*NBKEYS+(unsigned int)index)
-#else
-#define t  0
-#define ti (unsigned int)index
 #endif
+	for (t = 0; t < (count-1)/(NBKEYS)+1; t++)
 	{
 		unsigned int index, i, longest;
 		int len;
@@ -463,6 +479,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				uint32_t temp;
 
 				len = 0;
+#if ARCH_LITTLE_ENDIAN
 				while(((unsigned char)(temp = *wkey++))) {
 					if (!(temp & 0xff00))
 					{
@@ -482,6 +499,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						len+=3;
 						break;
 					}
+#else
+				while((temp = *wkey++) & 0xff000000) {
+					if (!(temp & 0xff0000))
+					{
+						*keybuf_word = (temp & 0xff000000) | (0x80 << 16);
+						len++;
+						break;
+					}
+					if (!(temp & 0xff00))
+					{
+						*keybuf_word = (temp & 0xffff0000) | (0x80 << 8);
+						len+=2;
+						break;
+					}
+					*keybuf_word = temp;
+					if (!(temp & 0xff))
+					{
+						*keybuf_word = temp | 0x80U;
+						len+=3;
+						break;
+					}
+#endif
 					len += 4;
 					if (len & 63)
 						keybuf_word += SIMD_COEF_32;
@@ -555,8 +594,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (++i & 3)
 				saved_key[i>>6][GETPOS(i, ti)] = *p++;
 			// ...then a word at a time. This is a good boost, we are copying between 32 and 82 bytes here.
+#if ARCH_ALLOWS_UNALIGNED
 			for (;i < lengthIntoMagicArray + len; i += 4, p += 4)
+#if ARCH_LITTLE_ENDIAN
 				*(uint32_t*)&saved_key[i>>6][GETWORDPOS(i, ti)] = JOHNSWAP(*(uint32_t*)p);
+#else
+				*(uint32_t*)&saved_key[i>>6][GETWORDPOS(i, ti)] = *(uint32_t*)p;
+#endif
+#else
+			for (;i < lengthIntoMagicArray + len; ++i, ++p) {
+				saved_key[i>>6][GETPOS(i, ti)] = *p;
+			}
+#endif
 
 			// Now, the salt. This is typically too short for the stunt above.
 			for (i = 0; i < cur_salt->l; i++)
@@ -661,7 +710,7 @@ static void *get_binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(newCiphertextPointer[i*2])]*16 + atoi16[ARCH_INDEX(newCiphertextPointer[i*2+1])];
 	}
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN
 	alter_endianity((unsigned char*)realcipher, BINARY_SIZE);
 #endif
 	return (void*)realcipher;
@@ -696,24 +745,9 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 }
 #endif
 
-#ifdef SIMD_COEF_32
-#define KEY_OFF (((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*5+(index&(SIMD_COEF_32-1)))
-static int get_hash_0(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t*)crypt_key)[KEY_OFF] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 5
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 // Here, we remove any salt padding and trim it to 44 bytes
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -799,13 +833,8 @@ struct fmt_main fmt_sapG = {
 		clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

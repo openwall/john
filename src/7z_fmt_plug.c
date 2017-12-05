@@ -30,6 +30,12 @@ john_register_one(&fmt_sevenzip);
 #endif
 
 #include "arch.h"
+
+#if !ARCH_LITTLE_ENDIAN
+#undef SIMD_COEF_32
+#undef SIMD_PARA_SHA256
+#endif
+
 #include "johnswap.h"
 #include "misc.h"
 #include "common.h"
@@ -247,7 +253,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* crc */
 		goto err;
-	if (!isdecu(p))
+	if (!isdecu(p) && !isdec_negok(p))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* data length */
 		goto err;

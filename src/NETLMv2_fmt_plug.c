@@ -381,8 +381,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-	memcpy((char *)saved_plain[index], key, saved_len[index] + 1);
+	saved_len[index] = strnzcpyn((char*)saved_plain[index], key, sizeof(*saved_plain));
 	keys_prepared = 0;
 }
 
@@ -397,40 +396,8 @@ static int salt_hash(void *salt)
 	return (*(uint32_t *)salt+8) & (SALT_HASH_SIZE - 1);
 }
 
-static int get_hash_0(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_0;
-}
-
-static int get_hash_1(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_1;
-}
-
-static int get_hash_2(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_2;
-}
-
-static int get_hash_3(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_3;
-}
-
-static int get_hash_4(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_4;
-}
-
-static int get_hash_5(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_5;
-}
-
-static int get_hash_6(int index)
-{
-	return *(uint32_t *)output[index] & PH_MASK_6;
-}
+#define COMMON_GET_HASH_VAR output
+#include "common-get-hash.h"
 
 struct fmt_main fmt_NETLMv2 = {
 	{
@@ -479,13 +446,8 @@ struct fmt_main fmt_NETLMv2 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

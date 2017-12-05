@@ -318,7 +318,7 @@ static void init(struct fmt_main *self)
 	}
 
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.
-//	printf ("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
+//	printf("length=%d end=%s\n", strlen(fmt_luks.params.tests[0].ciphertext), &((fmt_luks.params.tests[0].ciphertext)[strlen(fmt_luks.params.tests[0].ciphertext)-30]));
 #ifdef _MSC_VER
 	LUKS_test_fixup();
 #endif
@@ -628,11 +628,7 @@ static int cmp_exact(char *source, int index)
 
 static void luks_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

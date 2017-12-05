@@ -211,11 +211,11 @@ fi
 if test "x$ubsan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
-   JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error], 1)
+   JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined], 1)
    if test "x${CFLAGS_EX}" = x ; then
       AC_MSG_FAILURE([Could not find all required UBSAN components])
    else
-      LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
+      LDFLAGS="-fsanitize=undefined $LDFLAGS"
    fi
    LDFLAGS=${LDFLAGS_BAK}
 fi
@@ -250,6 +250,51 @@ fi
 ],[dnl
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build])
 ])
+
+# early check of 64 bit systems.
+case "$host_cpu" in
+  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64) CFLAGS_EX=""
+	JTR_FLAG_CHECK([-m64], 1)
+	if test "x${CFLAGS_EX}" != x ; then
+		LDFLAGS="-m64 $LDFLAGS"
+		CFLAGS="-m64 $CFLAGS"
+		ASFLAGS="-m64 $ASFLAGS"
+	fi
+  ;;
+  *)
+	AC_MSG_CHECKING([if gcc supports -m64])
+	AC_MSG_RESULT([no])
+  ;;
+esac
+
+# Cross compile compliant 32/64 bit test code.
+AC_MSG_CHECKING([for 32/64 bit])
+AC_LINK_IFELSE(
+   [AC_LANG_SOURCE(
+      [extern void exit(int);
+      int main() {
+      #if defined(_LP64) || defined(__LP64__) || defined(_LLP64) || defined(__LLP64__) || \
+        defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(__amd64__) || \
+        defined(_M_AMD64) || defined(_M_X64) || defined(WIN64) || \
+        defined(__IA64__) || defined(__ia64) || defined(_M_IA64) || \
+        defined(__aarch64__) || defined(__ppc64__)
+          exit(0);}
+      #else
+          BORK!
+      #endif
+      ]
+   )]
+  ,[CPU_BITS="-m64"]
+   [CPU_BIT_STR="64"]
+   [AC_MSG_RESULT([64-bit])]
+  ,[CPU_BITS="-m32"]
+   [CPU_BIT_STR="32"]
+   [AC_MSG_RESULT([32-bit])]
+)
+
+if test "x${CPU_BITS}" = x-m64 ; then
+	JTR_SET_64_INCLUDES
+fi
 
 # Checks for programs.
 AC_PROG_LN_S
@@ -338,7 +383,7 @@ dnl AC_CHECK_SIZEOF([int *function()]
 # pa-risc.h
 # ppc32.h
 # ppc32alt.h (-maltivec)
-# ppc64.h (-m64)
+# ppc64.h (-m64 -maltivec)
 # ppc64alt.h (-maltivec -faltivec)
 # sparc32.h
 # sparc64.h (-m64 -mcpu=ultrasparc) (-xarch=native64)
@@ -357,12 +402,14 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little
+	[echo "checking special compiler flags... ARM"]
         JTR_ARM_SPECIAL_LOGIC
         ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
+       [echo "checking special compiler flags... MIC"]
        JTR_MIC_SPECIAL_LOGIC
        ;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
@@ -373,9 +420,13 @@ case "$host_cpu" in
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
   powerpc64le) ARCH_LINK=ppc64.h endian=little
-	           JTR_PPC_SPECIAL_LOGIC
-	           ;;
-  powerpc64*) ARCH_LINK=ppc64.h endian=big ;;
+  	[echo "checking special compiler flags... PPC64le"]
+  	JTR_PPC64_SPECIAL_LOGIC
+	;;
+  powerpc64*) ARCH_LINK=ppc64.h endian=big
+  	[echo "checking special compiler flags... PPC64"]
+  	JTR_PPC64_SPECIAL_LOGIC
+	;;
   powerpcle) ARCH_LINK=ppc32.h endian=little ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big ;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
@@ -394,7 +445,7 @@ esac
 # macros for each environment.  We probably should fall back to calling
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
-AS_IF([test "x$cpu_family" = xintel], [JTR_X86_SPECIAL_LOGIC])
+AS_IF([test "x$cpu_family" = xintel], [echo "checking special compiler flags... Intel X86*"] [JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 JTR_GENERIC_LOGIC
@@ -506,6 +557,7 @@ AC_CHECK_LIB([kernel32],[main])
 AC_CHECK_LIB([dl],[dlopen],[AC_DEFINE(HAVE_LIBDL,1,[Define to 1 if you have the `dl' library (-ldl).])] [AC_SUBST(DL_LIBS, [-ldl])])
 
 AC_CHECK_HEADERS([intrin.h], break)
+AC_CHECK_HEADERS([openssl/cmac.h], break)
 
 BACKUP_LIBS="$LIBS"
 
@@ -851,8 +903,10 @@ fi
 if test "x$ubsan" = xyes ; then
    CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
-   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error --param=max-vartrack-size=0 $CFLAGS"
-   LDFLAGS="-fsanitize=undefined -fno-sanitize=alignment -fsanitize-undefined-trap-on-error $LDFLAGS"
+   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined $CFLAGS"
+   ASFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined $ASFLAGS"
+   CPPFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 $CPPFLAGS"
+   LDFLAGS="-fsanitize=undefined $LDFLAGS"
 fi
 
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
@@ -919,15 +973,27 @@ fi
 ####################################################
 # Code  to create @PLUGFORMATS_OBJS@ and
 # john_buildrule.h moved from Makefile.in to here.
+# don't build opencl_*plug.c unless an opencl build
 ####################################################
-echo "configure: creating *_plug.c and OpenCL object rules"
+if test x$using_cl = xyes ; then
+  echo "configure: creating *_plug.c and OpenCL object rules"
+else
+  echo "configure: creating *_plug.c rules, WITHOUT OpenCL objects"
+fi
+AC_SUBST([KERNEL_OBJS],[])
+AC_SUBST([KERNEL_DEPS],[])
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/\.c/.o/g'`])
-   AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
+   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
+   AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
+   if test x$using_cl = xyes ; then
+     AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
+   fi
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       echo "configure: creating Makefile dependencies"
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
-      AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
+      if test x$using_cl = xyes ; then
+        AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
+      fi
    fi
 fi
 
@@ -1113,6 +1179,6 @@ UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
 
 Install missing libraries to get any needed features that were omitted.
 
-Configure finished.  Now '${use_make} clean && ${use_make} -s' to compile.
+Configure finished.  Now '${use_make} -s clean && ${use_make} -sj8' to compile.
 EOF
 dnl =======================================================================

@@ -137,7 +137,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		tmp5[5]=0;
 		encode64_uint32((uint8_t*)tmp6, sizeof(tmp6), p, 30);
 		tmp6[5]=0;
-		sprintf (Buf, "%s%c%s%s%14.14s$%s", FMT_TAG7, N_to_c(N), tmp5, tmp6, &(fields[1][3]),
+		sprintf(Buf, "%s%c%s%s%14.14s$%s", FMT_TAG7, N_to_c(N), tmp5, tmp6, &(fields[1][3]),
 			base64_convert_cp(&(fields[1][3+14+1]), e_b64_crypt, 43, tmp, e_b64_cryptBS, sizeof(tmp), flg_Base64_NO_FLAGS, 0));
 	}
 	else if (!strncmp(fields[1], FMT_SCRYPTKDF, FMT_SCRYPTKDF_LEN))
@@ -183,7 +183,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		while (cp > tmp2 && *cp == '.') *cp-- = 0;
 		cp = &tmp4[strlen(tmp)-1];
 		while (cp > tmp4 && *cp == '.') *cp-- = 0;
-		sprintf (Buf, "%s%c%s%s%s$%s", FMT_TAG7, N_to_c(N), tmp5, tmp6, tmp4, tmp2);
+		sprintf(Buf, "%s%c%s%s%s$%s", FMT_TAG7, N_to_c(N), tmp5, tmp6, tmp4, tmp2);
 	} else
 		return fields[1];
 	return Buf;
@@ -234,7 +234,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	// we want the hash to use 32 bytes OR more.  43 base64 bytes is 32 raw bytes
-	return p[length]==0 && length >= 43;
+	return p[length] == 0 && length >= 43;
 }
 
 static void *get_binary(char *ciphertext)

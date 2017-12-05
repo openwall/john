@@ -88,7 +88,7 @@ size_t insize, outsize, settingsize, cracked_size;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static const char *warn[] = {
@@ -352,7 +352,7 @@ struct fmt_main fmt_opencl_pfx = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
-			"mac-type",
+			"mac-type [1:SHA1 224:SHA224 256:SHA256 384:SHA384 512:SHA512]",
 		},
 		{ FORMAT_TAG },
 		pfx_tests

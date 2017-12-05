@@ -49,11 +49,11 @@
 #include <descrip.h>
 #include <uaidef.h>
 #include <starlet.h>
-#define UAIsC_AD_II UAI$C_AD_II
-#define UAIsC_PURDY UAI$C_PURDY
-#define UAIsC_PURDY_V UAI$C_PURDY_V
-#define UAIsC_PURDY_S UAI$C_PURDY_S
-#define UAIsM_PWDMIX UAI$M_PWDMIX
+#define UAIsC_AD_II UAI_C_AD_II
+#define UAIsC_PURDY UAI_C_PURDY
+#define UAIsC_PURDY_V UAI_C_PURDY_V
+#define UAIsC_PURDY_S UAI_C_PURDY_S
+#define UAIsM_PWDMIX UAI_M_PWDMIX
 #else
 /*
  * Emulate symbols defined for VMS services.
@@ -64,12 +64,12 @@
 #define UAIsC_PURDY_S 3
 #define UAIsM_PWDMIX 0x2000000
 
-struct dsc$descriptor_s {
-    unsigned short int dsc$w_length;
-    unsigned char dsc$b_dtype, dsc$b_char;
-    char *dsc$a_pointer;
+struct dsc_descriptor_s {
+    unsigned short int dsc_w_length;
+    unsigned char dsc_b_dtype, dsc_b_char;
+    char *dsc_a_pointer;
 };
-#define $DESCRIPTOR(x,s) struct dsc$descriptor_s x={sizeof(s), 1, 1, s}
+#define _DESCRIPTOR(x,s) struct dsc_descriptor_s x={sizeof(s), 1, 1, s}
 #endif
 
 #ifdef HAVE_PTHREADS
@@ -103,9 +103,9 @@ static unsigned short r50_map[256];
  * system service but in different order.
  */
 static int hash_password ( uaf_qword *, 	/* Receives result hash */
-	struct dsc$descriptor_s *, 		/* Password */
+	struct dsc_descriptor_s *, 		/* Password */
 	unsigned char, unsigned short,		/* Algorithm code and salt */
-	struct dsc$descriptor_s *);		/* Username (eff. more salt) */
+	struct dsc_descriptor_s *);		/* Username (eff. more salt) */
 
 /****************************************************************************/
 /* Internal helper functions.
@@ -429,7 +429,7 @@ int uaf_getuai_info (
 {
    static long uai_ctx = -1;		/* protected by uaf_static mutex */
 #ifdef VMS
-     $DESCRIPTOR(username_dx,"");
+     _DESCRIPTOR(username_dx,"");
     char owner[32];			/* counted string */
     char defdev[32];			/* counted string */
     char defdir[64];			/* counted string */
@@ -471,9 +471,9 @@ int uaf_getuai_info (
      * Call system to get the information and fixup.  Serialize.
      */
     pthread_mutex_lock ( &uaf_static );
-    username_dx.dsc$a_pointer = (char *) username;
-    username_dx.dsc$w_length = strlen(username);
-    status = SYS$GETUAI ( 0, &uai_ctx, &username_dx, item, 0, 0, 0 );
+    username_dx.dsc_a_pointer = (char *) username;
+    username_dx.dsc_w_length = strlen(username);
+    status = SYS_GETUAI ( 0, &uai_ctx, &username_dx, item, 0, 0, 0 );
     pthread_mutex_unlock ( &uaf_static );
     if ( (status&1) == 0 ) {
 	return status;
@@ -527,8 +527,8 @@ int uaf_test_password (
 	int replace_if, uaf_qword *hashed_password )		/* Update pwd if false */
 {
     char uc_username[32], uc_password[32];
-    $DESCRIPTOR(username_dx, uc_username );
-    $DESCRIPTOR(password_dx,"");
+    _DESCRIPTOR(username_dx, uc_username );
+    _DESCRIPTOR(password_dx,"");
     int status, i, ulen;
     memset(hashed_password, 0, sizeof(uaf_qword));
     /*
@@ -537,19 +537,19 @@ int uaf_test_password (
     ulen = strlen ( pwd->username.s );
     if ( ulen > sizeof(uc_username)-1 ) return 0;	/* name too long */
     strcpy ( uc_username, pwd->username.s );
-    username_dx.dsc$w_length = ulen;
+    username_dx.dsc_w_length = ulen;
 
-    password_dx.dsc$w_length = strlen(password);
+    password_dx.dsc_w_length = strlen(password);
     if ( pwd->flags & UAIsM_PWDMIX ) {	/* take password verbatim */
-	password_dx.dsc$a_pointer = (char *) password;
+	password_dx.dsc_a_pointer = (char *) password;
     } else {
 	/*
 	 * Upcase password.
 	 */
-	password_dx.dsc$a_pointer = uc_password;
-	if ( password_dx.dsc$w_length > sizeof(uc_password) )
-		password_dx.dsc$w_length = sizeof(uc_password);
-	for ( i = 0; i < password_dx.dsc$w_length; i++ )
+	password_dx.dsc_a_pointer = uc_password;
+	if ( password_dx.dsc_w_length > sizeof(uc_password) )
+		password_dx.dsc_w_length = sizeof(uc_password);
+	for ( i = 0; i < password_dx.dsc_w_length; i++ )
 		uc_password[i] = toupper ( ARCH_INDEX(password[i]) );
     }
     /*
@@ -560,7 +560,7 @@ int uaf_test_password (
 		&password_dx, pwd->alg, pwd->salt, &username_dx );
 
     if ( ((status&1) == 0) ) {
-	printf ("Retry... (lgi$hpwd2 status %d)\n", status );
+	printf("Retry... (lgi$hpwd2 status %d)\n", status );
     }
     if ( pwd->flags & UAIsM_PWDMIX ) memset ( uc_password, 0, sizeof(uc_password) );
 

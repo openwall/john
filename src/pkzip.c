@@ -150,7 +150,7 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 
 Bail:;
 #ifdef ZIP_DEBUG
-	fprintf (stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
+	fprintf(stderr, "pkzip validation failed [%s]  Hash is %s\n", sFailStr, ciphertext);
 #endif
 	MEM_FREE(keeptr);
 	return ret;

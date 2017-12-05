@@ -108,7 +108,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 static void set_key(char *key, int index) {
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
+	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
 
 static int cmp_all(void *binary, int count)
@@ -152,7 +152,7 @@ static void *get_binary(char *ciphertext)
 	static uint32_t *out;
 	if (!out)
 		out = mem_alloc_tiny(sizeof(uint32_t), MEM_ALIGN_WORD);
-	sscanf(&ciphertext[5], "%x", out);
+	sscanf(&ciphertext[FORMAT_TAG_LEN], "%x", out);
 	return out;
 }
 
@@ -161,13 +161,8 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int get_hash_0(int index) { return crypt_out[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 struct fmt_main fmt_pst = {
 	{
@@ -219,13 +214,8 @@ struct fmt_main fmt_pst = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

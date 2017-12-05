@@ -288,7 +288,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 			print_hex(buffer, filesize_keyfile);
 		else if (filesize_keyfile == 64){
 			for (counter = 0; counter <64; counter++)
-				printf ("%c", buffer[counter]);
+				printf("%c", buffer[counter]);
 		}
 		else{
 		  /* precompute sha256 to speed-up cracking */
@@ -549,7 +549,7 @@ static void process_database(char* encryptedDatabase)
 		else if (filesize_keyfile == 64)
 		{
 			for (counter = 0; counter <64; counter++)
-				printf ("%c", buffer[counter]);
+				printf("%c", buffer[counter]);
 		}
 		else
 		{

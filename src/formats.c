@@ -175,8 +175,11 @@ static int is_aligned(void *p, size_t align)
 static char *longcand(struct fmt_main *format, int index, int ml)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE];
+	int i;
 
-	memset(out, '!' + (index & 31), ml);
+	for (i = 0; i < ml; ++i)
+		out[i] = '0' + (i+index)%10;
+
 	if (!(format->params.flags & FMT_8_BIT) ||
 #ifndef BENCH_BUILD
 	    !(format->params.flags & FMT_CASE) || options.target_enc == UTF_8
@@ -417,7 +420,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	}
 #endif
 
-	if (ntests==0) return NULL;
+	if (ntests == 0)
+		return NULL;
 
 	/* Check prepare, valid, split before init */
 	if (!current->fields[1])
@@ -605,6 +609,23 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ciphertext = format->methods.split(ciphertext, 0, format);
 		if (!ciphertext)
 			return "split() returned NULL";
+
+		if (format->params.signature[0]) {
+			int i, error = 1;
+			for (i = 0; i < FMT_SIGNATURES && format->params.signature[i] && error; i++) {
+				error = strncmp(ciphertext, format->params.signature[i], strlen(format->params.signature[i]));
+			}
+			if (error) {
+#if DEBUG
+				fprintf(stderr, "ciphertext:%s\n", ciphertext);
+#endif
+				if (format->methods.split == fmt_default_split)
+					return "fmt_default_split() doesn't convert raw hashes";
+				else
+					return "split() doesn't add expected format tag";
+			}
+		}
+
 		plaintext = current->plaintext;
 
 		if (!sl)
@@ -852,6 +873,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 					sprintf(s_size, "max. length in index "
 					        "%d: wrote %d, got %d back", i,
 					        ml, (int)strlen(getkey));
+					fprintf(stderr, "\ngetkey = %s\nsetkey = %s\n", getkey, setkey);
+
 					return s_size;
 				}
 			}
@@ -943,23 +966,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				for (i = index + 1; i < max - 1; i++)
 				    fmt_set_key(longcand(format, i, sl), i);
 				index = max - 1;
-			} else
+			}
 #endif
-/* Jump straight to last index for non-bitslice DES */
-#ifndef JUMBO_JTR
-			if (!(format->params.flags & FMT_BS) &&
-			    (!strcmp(format->params.label, "des") ||
-			    !strcmp(format->params.label, "bsdi") ||
-			    !strcmp(format->params.label, "afs")))
-				index = max - 1;
-#else
-			if (!(format->params.flags & FMT_BS) &&
-			    (!strcasecmp(format->params.label, "descrypt") ||
-			    !strcasecmp(format->params.label, "bsdicrypt") ||
-			    !strcasecmp(format->params.label, "AFS")))
-				index = max - 1;
-#endif
-
 			current = format->params.tests;
 			done |= 2;
 		}
@@ -1429,7 +1437,7 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 
 		salt = format->methods.salt(split_ret);
 		dyna_salt_create(salt);
-		if (salt != NULL) {
+		if (salt != NULL && format->params.salt_size) {
 			orig_salt = mem_alloc(format->params.salt_size);
 			memcpy(orig_salt, salt, format->params.salt_size);
 		}

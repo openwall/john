@@ -96,9 +96,11 @@ static unsigned iteration_cnt =	(ITERATIONS); /* this will get changed at runtim
 
 #ifdef SIMD_COEF_32
 #define MS_NUM_KEYS			(SIMD_COEF_32*SIMD_PARA_SHA1)
-// Ok, now we have our MMX/SSE2/intr buffer.
-// this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#if ARCH_LITTLE_ENDIAN==1
+#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#else
+#define GETPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3) )*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#endif
 static unsigned char (*sse_hash1);
 static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
@@ -241,7 +243,7 @@ static void *get_binary(char *ciphertext)
 #endif
 		out[i] = temp;
 	}
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return out;
@@ -566,7 +568,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #ifdef _OPENMP
+#if defined(WITH_UBSAN)
+#pragma omp parallel for
+#else
 #pragma omp parallel for default(none) private(t) shared(count, salt_buffer, salt_len, crypt_out, md4hash)
+#endif
 #endif
 	for (t1 = 0; t1 < count; t1 += MS_NUM_KEYS)	{
 		MD4_CTX ctx;

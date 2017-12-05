@@ -57,7 +57,7 @@ john_register_one(&fmt_opencl_rakp);
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
-#define BINARY_ALIGN            1
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              1
 
 #define STEP                    0
@@ -80,7 +80,7 @@ static int partial_output;
 static struct fmt_main *self;
 
 //This file contains auto-tuning routine(s). Have to included after other definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static struct fmt_tests tests[] = {

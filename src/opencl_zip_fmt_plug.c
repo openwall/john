@@ -44,10 +44,10 @@ john_register_one(&fmt_opencl_zip);
  #define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-#define BINARY_ALIGN		MEM_ALIGN_NONE
+#define BINARY_ALIGN		sizeof(uint32_t)
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(my_salt*)
-#define SALT_ALIGN		4
+#define SALT_ALIGN		sizeof(size_t)
 
 typedef struct {
 	uint32_t length;
@@ -81,7 +81,7 @@ typedef struct my_salt_t {
 
 static my_salt *saved_salt;
 
-static unsigned char (*crypt_key)[WINZIP_BINARY_SIZE];
+static unsigned char (*crypt_key)[((WINZIP_BINARY_SIZE + 4)/4)*4]; // ensure 32-bit alignment
 
 static cl_int cl_error;
 static zip_password *inbuffer;
@@ -96,7 +96,7 @@ static size_t insize, outsize, settingsize;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static const char * warn[] = {

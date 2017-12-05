@@ -52,16 +52,22 @@ export PATH="$HOME/bin:$PATH"
 # echo -1 > /proc/sys/fs/binfmt_misc/status
 # umount /proc/sys/fs/binfmt_misc
 
+echo ""
+echo '******************************************************************************'
+echo "now building for Windows, with CPU fallback"
+echo '******************************************************************************'
+echo ""
+
 # Build with AVX
 mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2.exe\""' --host=i686-w64-mingw32
 mingw32 make -sj4
-mv ../run/john ../run/john-avx.exe
+mv -v ../run/john ../run/john-avx.exe
 make clean; make distclean
 
 # Build with AVX2 (32-bit, see https://github.com/magnumripper/JohnTheRipper/issues/2543 for details)
 mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx2 -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx.exe\""' --host=i686-w64-mingw32
 mingw32 make -sj4
-mv ../run/john ../run/john-avx2.exe
+mv -v ../run/john ../run/john-avx2.exe
 make clean; make distclean
 
 # Build with SSE2 only
@@ -71,8 +77,10 @@ mingw32 ./configure --disable-native-tests CPPFLAGS='-mno-ssse3' --host=i686-w64
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mingw64 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
-mv ../run/john ../run/john-sse2.exe
-mv ../run/john-avx2.exe ../run/john.exe
+mv -v ../run/john ../run/john-sse2.exe
+
+# AVX2 is default, but with CPU fallback
+mv -v ../run/john-avx2.exe ../run/john.exe
 
 cd ../run
 # the mingw build does not name many exe files correctly, fix that.
@@ -105,8 +113,16 @@ zip -r /base/builds/JtR-MinGW-${v}.zip run/ doc/ README.md README README-jumbo
 # 7z a /base/builds/JtR-MinGW-${v}.7z run/ doc/ README.md README README-jumbo
 
 # restore the sse2 build for testing purposes
-mv run/john-sse2.exe run/john.exe
+mv -v run/john-sse2.exe run/john.exe
 
+echo ""
+echo ""
+echo ""
+echo ""
+echo '******************************************************************************'
+echo "now testing the 32-bit SSE2 Windows build"
+echo '******************************************************************************'
+echo ""
 # crazy testing!
 cd /base/JohnTheRipper/run
 export WINEDEBUG=-all  # suppress wine warnings
@@ -122,12 +138,12 @@ echo ""
 echo ""
 echo ""
 echo '******************************************************************************'
-echo "now testing a NON-SIMD build"
+echo "now building/testing a NON-SIMD 64-bit Linux build"
 echo '******************************************************************************'
 echo ""
 cd /base/JohnTheRipper/src
 make -s distclean
-CFLAGS_EXTRA="-fstack-protector-all" CPPFLAGS="-mno-sse2" ./configure
+CFLAGS_EXTRA="-fstack-protector-all" CPPFLAGS="-mno-sse2 -mno-mmx" ./configure
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
@@ -143,7 +159,7 @@ echo ""
 echo ""
 echo ""
 echo '******************************************************************************'
-echo "now testing a 32 bit NON-SIMD build"
+echo "now building/testing a 32 bit NON-SIMD Linux build"
 echo '******************************************************************************'
 echo ""
 make -s distclean
@@ -160,7 +176,7 @@ echo ""
 echo ""
 echo ""
 echo '******************************************************************************'
-echo "now testing a 32 bit SSE2 build"
+echo "now building/testing a 32 bit SSE2 Linux build"
 echo '******************************************************************************'
 echo ""
 make -f Makefile.legacy -s clean

@@ -125,13 +125,19 @@ static void bitlocker_kdf(unsigned char *password_hash, unsigned char *out)
 {
 	struct libbde_password_key_data pkd;
 	SHA256_CTX ctx;
+	uint64_t ic;
 
 	memset(&pkd, 0, sizeof(struct libbde_password_key_data));
 	memcpy(pkd.initial_sha256_hash, password_hash, 32);
 	memcpy(pkd.salt, cur_salt->salt, cur_salt->salt_length);
 
-	for (pkd.iteration_count = 0; pkd.iteration_count < cur_salt->iterations; pkd.iteration_count++) {
+	for (ic = 0; ic < cur_salt->iterations; ic++) {
 		SHA256_Init(&ctx);
+#if ARCH_LITTLE_ENDIAN
+		pkd.iteration_count = ic;
+#else
+		pkd.iteration_count = JOHNSWAP64(ic);
+#endif
 		SHA256_Update(&ctx, &pkd, sizeof(struct libbde_password_key_data));
 		SHA256_Final(pkd.last_sha256_hash, &ctx);
 	}

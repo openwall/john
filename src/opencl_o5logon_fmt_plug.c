@@ -92,7 +92,7 @@ static unsigned int *saved_plain, *saved_idx;
 static unsigned int key_idx;
 static struct fmt_main *self;
 
-#include "opencl-autotune.h" // Must come after auto-tune definitions
+#include "opencl_autotune.h" // Must come after auto-tune definitions
 #include "memdbg.h"
 
 static size_t get_task_max_work_group_size()
@@ -233,6 +233,8 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$o5logon$" */
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++)

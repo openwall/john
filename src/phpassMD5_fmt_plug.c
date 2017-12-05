@@ -39,6 +39,7 @@ john_register_one(&fmt_phpassmd5);
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "johnswap.h"
 #include "formats.h"
 #include "md5.h"
 #include "phpass_common.h"
@@ -77,7 +78,11 @@ john_register_one(&fmt_phpassmd5);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	NBKEYS
 #define MAX_KEYS_PER_CRYPT	NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -145,8 +150,13 @@ static void set_salt(void *salt)
 	for (i = 0; i < max_keys; ++i) {
 		if (i && (i&(SIMD_COEF_32-1)) == 0)
 			p += 15*SIMD_COEF_32;
+#if ARCH_LITTLE_ENDIAN==1
 		p[0] = ((uint32_t *)salt)[0];
 		p[SIMD_COEF_32] = ((uint32_t *)salt)[1];
+#else
+		p[0] = JOHNSWAP(((uint32_t *)salt)[0]);
+		p[SIMD_COEF_32] = JOHNSWAP(((uint32_t *)salt)[1]);
+#endif
 		++p;
 	}
 #else	// !SIMD_COEF_32
@@ -313,24 +323,9 @@ static void * salt(char *ciphertext)
 	return salt;
 }
 
-#ifdef SIMD_COEF_32
-#define SIMD_INDEX (index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*SIMD_COEF_32*4
-static int get_hash_0(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t*)(crypt_key[index]))[0] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 4
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -391,13 +386,8 @@ struct fmt_main fmt_phpassmd5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

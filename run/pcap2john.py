@@ -807,6 +807,191 @@ def pcap_parser_glbp(fname):
     f.close()
 
 
+# Parts are borrowed from "module_tacacs_plus.py" from the loki project which is
+# Copyright 2015 Daniel Mende <dmende@ernw.de>. See the licensing blurb before
+# "pcap_parser_wlccp" function.
+#
+#  1 2 3 4 5 6 7 8  1 2 3 4 5 6 7 8  1 2 3 4 5 6 7 8  1 2 3 4 5 6 7 8
+#
+# +----------------+----------------+----------------+----------------+
+# |major  | minor  |                |                |                |
+# |version| version|      type      |     seq_no     |   flags        |
+# +----------------+----------------+----------------+----------------+
+# |                                                                   |
+# |                            session_id                             |
+# +----------------+----------------+----------------+----------------+
+# |                                                                   |
+# |                              length                               |
+# +----------------+----------------+----------------+----------------+
+
+def pcap_parser_tacacs_plus(fname):
+    TACACS_PLUS_PORT = 49
+    TACACS_PLUS_VERSION_MAJOR = 0xc
+    TYPE_AUTHEN = 0x01
+    FLAGS_UNENCRYPTED = 0x01
+
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+    index = 0
+
+    for _, buf in pcap:
+        index = index + 1
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP or eth.type == dpkt.ethernet.ETH_TYPE_IP6:
+            ip = eth.data
+
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP and ip.p != dpkt.ip.IP_PROTO_TCP:
+                continue
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP6 and ip.nxt != dpkt.ip.IP_PROTO_TCP:
+                continue
+
+            tcp = ip.data
+            data = tcp.data
+
+            if tcp.dport != TACACS_PLUS_PORT and tcp.sport != TACACS_PLUS_PORT:
+                continue
+            if len(tcp.data) <= 12:
+                continue
+
+            server = tcp.sport == TACACS_PLUS_PORT
+            ver, kind, seq_no, flags, session_id, length = struct.unpack("!BBBBII", data[:12])
+            if flags & FLAGS_UNENCRYPTED:
+                continue
+            version_minor = ver & 0x0F
+            if not server or kind != TYPE_AUTHEN:
+                continue
+            ciphertext = data[12:]
+            predata = struct.pack("!I", session_id)
+            postdata = struct.pack("!BB", TACACS_PLUS_VERSION_MAJOR << 4 + version_minor, seq_no)
+            sys.stdout.write("%s:$tacacs-plus$0$%s$%s$%s\n" % (index,
+                                                               predata.encode("hex"),
+                                                               ciphertext.encode("hex"),
+                                                               postdata.encode("hex")))
+    f.close()
+
+# This code is borrowed from "module_wlccp.py" from the loki project which is
+# Copyright 2015 Daniel Mende <dmende@ernw.de>.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# * Redistributions of source code must retain the above copyright
+#   notice, this list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above
+#   copyright notice, this list of conditions and the following disclaimer
+#   in the documentation and/or other materials provided with the
+#   distribution.
+#
+# * Neither the name of the copyright holders nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+def pcap_parser_wlccp(fname):
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+    index = 0
+
+    comms = {}  # "state machine", bugs introduced by me!
+
+    for _, buf in pcap:
+        index = index + 1
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP or eth.type == dpkt.ethernet.ETH_TYPE_IP6:
+            ip = eth.data
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP and ip.p != dpkt.ip.IP_PROTO_UDP:
+                continue
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP6 and ip.nxt != dpkt.ip.IP_PROTO_UDP:
+                continue
+
+            udp = ip.data
+            data = udp.data
+
+            if udp.dport != 2887 and udp.sport != 2887:
+                continue
+            if len(udp.data) <= 28 + 12 + 6 + 4 + 16:  # rough check
+                continue
+
+            # WLCCP header parse
+            (version, sap, dst_type, length, msg_type, hopcount, iden, flags, orig_node_type) = struct.unpack("!BBHHBBHHH", data[:14])
+            orig_node_mac = data[14:20]
+            dst_node_type = struct.unpack("!H", data[20:22])
+            dst_node_mac = data[22:28]
+            data = data[28:]
+
+            if msg_type & 0x3f == 0x0b:  # EAP AUTH
+                # EAP header parse
+                requestor_type = struct.unpack("!H", data[:2])
+                requestor_mac = data[2:8]
+                (aaa_msg_type, aaa_auth_type, aaa_key_mgmt_type, status_code) = struct.unpack("!BBBB", data[8:12])
+                data = data[12:]
+                host = requestor_mac.encode("hex")
+                if host in comms:
+                    leap = comms[host]
+                elif not host == "000000000000":
+                    comms[host] = (None, None, None, None)
+
+                (eapol_version, eapol_type, eapol_len) = struct.unpack("!BBH", data[2:6])
+                data = data[6:]
+                # check EAP-TYPE
+                if eapol_type == 0x00:
+                    (eap_code, eap_id, eap_len) = struct.unpack("!BBH", data[:4])
+                    data = data[4:]
+                    # check EAP-CODE
+                    if eap_code == 0x01:
+                        (leap_type, leap_version, leap_reserved, leap_count) = struct.unpack("!BBBB", data[:4])
+                        data = data[4:]
+                        # EAP-REQUEST, check the leap hdr
+                        if leap_type == 0x11 and leap_version == 0x01 and leap_reserved == 0x00 and leap_count == 0x08:
+                            (leap_auth_chall, leap_auth_resp, leap_supp_chall, leap_supp_resp) = leap
+                            if not leap_auth_chall and not leap_auth_resp and not leap_supp_chall and not leap_supp_resp:
+                                iden = eap_id
+                                chall = data[:8]
+                                user = data[8:16]
+                                print("[DEBUG] WLCCP: EAP-AUTH challenge from authenticator seen for %s" % host)
+                                comms[host] = ((iden, chall, user), leap_auth_resp, leap_supp_chall, leap_supp_resp)
+                            elif leap_auth_chall and leap_auth_resp and not leap_supp_chall and not leap_supp_resp:
+                                chall = data[:8]
+                                print("[DEBUG] WLCCP: EAP-AUTH challenge from supplicant seen for %s" % host)
+                                comms[host] = (leap_auth_chall, leap_auth_resp, chall, leap_supp_resp)
+                    elif eap_code == 0x02:
+                            (leap_type, leap_version, leap_reserved, leap_count) = struct.unpack("!BBBB", data[:4])
+                            data = data[4:]
+                            # EAP-RESPONSE, check the leap hdr
+                            if leap_type == 0x11 and leap_version == 0x01 and leap_reserved == 0x00 and leap_count == 0x18:
+                                (leap_auth_chall, leap_auth_resp, leap_supp_chall, leap_supp_resp) = leap
+                                if leap_auth_chall and not leap_auth_resp and not leap_supp_chall and not leap_supp_resp:
+                                    resp = data[:24]
+                                    print("[DEBUG] WLCCP: EAP-AUTH response from authenticator seen for %s" % host)
+                                    comms[host] = (leap_auth_chall, resp, leap_supp_chall, leap_supp_resp)
+                                elif leap_auth_chall and leap_auth_resp and leap_supp_chall and not leap_supp_resp:
+                                    resp = data[:24]
+                                    print("[DEBUG] WLCCP: EAP-AUTH response from supplicant seen for %s" % host)
+                                    comms[host] = (leap_auth_chall, leap_auth_resp, leap_supp_chall, resp)
+
+    for entry in comms:
+        (leap_auth_chall, leap_auth_resp, leap_supp_chall, leap_supp_resp) = comms[entry]
+        if leap_auth_chall:
+            _, challenge, user = leap_auth_chall
+            print("%s:$NETNTLM$%s$%s" % (user, challenge.encode("hex"), leap_auth_resp.encode("hex")))
+
+    f.close()
+
+
 def endian(s):
     ret = ""
     for i in range(0, len(s), 2):
@@ -1064,7 +1249,7 @@ def pcap_parser_ah(fname):
 
 
 def note():
-    sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, and vncpcap2john.\n")
+    sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john.\n")
 
 
 ############################################################
@@ -1103,6 +1288,8 @@ if __name__ == "__main__":
         pcap_parser_gadu(sys.argv[i])
         pcap_parser_eigrp(sys.argv[i])
         pcap_parser_tgsrep(sys.argv[i])
+        pcap_parser_tacacs_plus(sys.argv[i])
+        pcap_parser_wlccp(sys.argv[i])
         try:
             pcap_parser_s7(sys.argv[i])
         except:

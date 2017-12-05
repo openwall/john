@@ -127,22 +127,12 @@ static void clear_keys(void) {
 #endif
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static void set_key(char *key, int index)
 {
-	int len = strlen(key);
-	saved_len[index] = len;
-	if (len > PLAINTEXT_LENGTH)
-		len = saved_len[index] = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, len);
-	saved_key[index][len] = 0;
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 #ifdef SIMD_COEF_32
 	sk_by_len[len][sk_by_lens[len]++] = index;
 #endif
@@ -362,7 +352,7 @@ struct fmt_main fmt_qnx = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"iteration count",
-			"algorithm (5=md5 256=sha256 512=sha512)",
+			"algorithm [5:MD5 256:SHA256 512:SHA512]",
 		},
 		{ NULL },
 		tests
@@ -397,13 +387,8 @@ struct fmt_main fmt_qnx = {
 		clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -28,6 +28,7 @@ john_register_one(&fmt_hmacMD5);
 #include "formats.h"
 #include "md5.h"
 #include "aligned.h"
+#include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "base64_convert.h"
 #include "memdbg.h"
@@ -65,7 +66,11 @@ john_register_one(&fmt_hmacMD5);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      MD5_N
 #define MAX_KEYS_PER_CRYPT      MD5_N
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i&63) & (0xffffffff - 3)) * SIMD_COEF_32 + ((i&63) & 3) + (unsigned int)index/SIMD_COEF_32 * PAD_SIZE * SIMD_COEF_32)
+#else
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i&63) & (0xffffffff - 3)) * SIMD_COEF_32 + (3-((i&63)&3)) + (unsigned int)index/SIMD_COEF_32 * PAD_SIZE * SIMD_COEF_32)
+#endif
 
 #else
 #define MIN_KEYS_PER_CRYPT      1
@@ -275,8 +280,13 @@ static void set_key(char *key, int index)
 {
 	int len;
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1
 	uint32_t *ipadp = (uint32_t*)&ipad[GETPOS(0, index)];
 	uint32_t *opadp = (uint32_t*)&opad[GETPOS(0, index)];
+#else
+	uint32_t *ipadp = (uint32_t*)&ipad[GETPOS(3, index)];
+	uint32_t *opadp = (uint32_t*)&opad[GETPOS(3, index)];
+#endif
 	const uint32_t *keyp = (uint32_t*)key;
 	unsigned int temp;
 
@@ -296,25 +306,49 @@ static void set_key(char *key, int index)
 		keyp = (unsigned int*)k0;
 		for (i = 0; i < BINARY_SIZE / 4; i++, ipadp += SIMD_COEF_32, opadp += SIMD_COEF_32)
 		{
+#if ARCH_LITTLE_ENDIAN==1
 			temp = *keyp++;
+#else
+			temp = JOHNSWAP(*keyp++);
+#endif
 			*ipadp ^= temp;
 			*opadp ^= temp;
 		}
 	}
-	else
-	while((unsigned char)(temp = *keyp++)) {
-		if (!(temp & 0xff00) || !(temp & 0xff0000))
-		{
-			*ipadp ^= (unsigned short)temp;
-			*opadp ^= (unsigned short)temp;
-			break;
+	else {
+#if ARCH_LITTLE_ENDIAN==1
+		while((unsigned char)(temp = *keyp++)) {
+			if (!(temp & 0xff00) || !(temp & 0xff0000))
+			{
+				*ipadp ^= (unsigned short)temp;
+				*opadp ^= (unsigned short)temp;
+				break;
+			}
+			*ipadp ^= temp;
+			*opadp ^= temp;
+			if (!(temp & 0xff000000))
+				break;
+			ipadp += SIMD_COEF_32;
+			opadp += SIMD_COEF_32;
 		}
-		*ipadp ^= temp;
-		*opadp ^= temp;
-		if (!(temp & 0xff000000))
-			break;
-		ipadp += SIMD_COEF_32;
-		opadp += SIMD_COEF_32;
+#else
+		while((temp = *keyp++) & 0xff000000) {
+			if (!(temp & 0xff0000) || !(temp & 0xff00))
+			{
+				*ipadp ^= (unsigned short)JOHNSWAP(temp);
+				*opadp ^= (unsigned short)JOHNSWAP(temp);
+				break;
+			}
+			*ipadp ^= JOHNSWAP(temp);
+			*opadp ^= JOHNSWAP(temp);
+			if (!(temp & 0xff))
+				break;
+			ipadp += SIMD_COEF_32;
+			opadp += SIMD_COEF_32;
+		}
+
+#endif
+
 	}
 #else
 	int i;
@@ -476,7 +510,9 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity(out, BINARY_SIZE);
+#endif
 	return (void*)out;
 }
 

@@ -309,7 +309,7 @@ char *rpp_next(struct rpp_context *ctx)
 			len = strlen(cp)-1;
 			if (!strncmp(ctx->output, ".log both ", 10) ||
 			    !strncmp(ctx->output, ".log screen ", 11))
-				fprintf (stderr, "%*.*s\n", len,len, cp);
+				fprintf(stderr, "%*.*s\n", len,len, cp);
 			if (strncmp(ctx->output, ".log screen ", 11))
 				log_event ("%*.*s\n", len, len, cp);
 			return rpp_next(ctx);

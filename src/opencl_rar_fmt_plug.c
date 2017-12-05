@@ -118,7 +118,7 @@ static int split_events[] = { 3, -1, -1 };
 #define SEED			256
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 #define ITERATIONS		0x40000

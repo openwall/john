@@ -7,6 +7,7 @@
  * magnum in 2011-2012.
  *
  * OMP added May 2013, JimF
+ * BE SIMD logic added 2017, JimF
  */
 
 #if FMT_EXTERNS_H
@@ -81,6 +82,7 @@ static struct fmt_tests tests[] = {
 	{"8a9d093f14f8701df17732b2bb182c74", "password"},
 	{FORMAT_TAG "6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
 	{"6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
+	{"6D78785C44EA8DFA178748B245D8C3AE", "magnum" },
 	{FORMAT_TAG "31d6cfe0d16ae931b73c59d7e0c089c0", "" },
 	{FORMAT_TAG "934eb897904769085af8101ad9dabca2", "John the ripper" },
 	{FORMAT_TAG "cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
@@ -93,6 +95,10 @@ static struct fmt_tests tests[] = {
 	{FORMAT_TAG "41f92cf74e3d2c3ba79183629a929915", "rockyou" },
 	{FORMAT_TAG "012d73e0fab8d26e0f4d65e36077511e", "12345678" },
 	{FORMAT_TAG "0ceb1fd260c35bd50005341532748de6", "abc123" },
+	{"8be1ec697b14ad3a53b371436120641d", "1"},
+	{"114c5a33b8d4127fbe492bd6583aeb4d", "12"},
+	{"c58cda49f00748a3bc0fcfa511d516cb", "123"},
+	{"f375f401ddc698af533f16f8ac1e91c1", "1234"},
 	{NULL}
 };
 
@@ -100,7 +106,7 @@ static struct fmt_tests tests[] = {
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*4*SIMD_COEF_32 )
+#include "common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -157,7 +163,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		p += TAG_LENGTH;
 
 	q = p;
-	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
@@ -166,11 +172,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		return ciphertext;
+	if (ciphertext[0] == '$' &&
+			!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	memcpylwr(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
 
@@ -199,14 +206,14 @@ static void *get_binary(char *ciphertext)
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
 
-#if ARCH_LITTLE_ENDIAN
-		out[i]=temp;
+#if ARCH_LITTLE_ENDIAN || defined(SIMD_COEF_32)
+		out[i] = temp;
 #else
-		out[i]=JOHNSWAP(temp);
+		out[i] = JOHNSWAP(temp);
 #endif
 	}
 
-#if SIMD_COEF_32 && defined(REVERSE_STEPS)
+#if defined(SIMD_COEF_32) && defined(REVERSE_STEPS)
 	md4_reverse(out);
 #endif
 
@@ -226,7 +233,7 @@ static char *source(char *source, void *binary)
 	md4_unreverse(b);
 #endif
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN && !defined(SIMD_COEF_32)
 	alter_endianity(b, 16);
 #endif
 
@@ -238,83 +245,8 @@ static char *source(char *source, void *binary)
 	return out;
 }
 
-#ifdef SIMD_COEF_32
-static void set_key(char *_key, int index)
-{
-#if ARCH_ALLOWS_UNALIGNED
-	const uint32_t *key = (uint32_t*)_key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const uint32_t *key = (uint32_t*)(is_aligned(_key, sizeof(uint32_t)) ?
-	                                      _key : strcpy(buf_aligned, _key));
-#endif
-	uint32_t *keybuffer = &((uint32_t*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*SIMD_COEF_32];
-	uint32_t *keybuf_word = keybuffer;
-	unsigned int len;
-	uint32_t temp;
-
-	len = 0;
-	while((temp = *key++) & 0xff) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = (temp & 0xff) | (0x80 << 8);
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = (temp & 0xffff) | (0x80 << 16);
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = temp | (0x80U << 24);
-			len+=3;
-			goto key_cleaning;
-		}
-		*keybuf_word = temp;
-		len += 4;
-		keybuf_word += SIMD_COEF_32;
-	}
-	*keybuf_word = 0x80;
-
-key_cleaning:
-	keybuf_word += SIMD_COEF_32;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_32;
-	}
-	keybuffer[14*SIMD_COEF_32] = len << 3;
-}
-#else
-static void set_key(char *key, int index)
-{
-	int len = strlen(key);
-	saved_len[index] = len;
-	memcpy(saved_key[index], key, len);
-}
-#endif
-
-#ifdef SIMD_COEF_32
-static char *get_key(int index)
-{
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned int i;
-	uint32_t len = ((uint32_t*)saved_key)[14*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*MD4_BUF_SIZ*SIMD_COEF_32] >> 3;
-
-	for (i=0;i<len;i++)
-		out[i] = ((char*)saved_key)[GETPOS(i, index)];
-	out[i] = 0;
-	return (char*)out;
-}
-#else
-static char *get_key(int index)
-{
-	saved_key[index][saved_len[index]] = 0;
-	return saved_key[index];
-}
-#endif
+#define NON_SIMD_SET_SAVED_LEN
+#include "common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
@@ -395,7 +327,10 @@ static int cmp_exact(char *source, int index)
 	MD4_Update(&ctx, key, strlen(key));
 	MD4_Final((void*)crypt_key, &ctx);
 
-#ifdef REVERSE_STEPS
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity(crypt_key, 16);
+#endif
+#if defined(REVERSE_STEPS)
 	md4_reverse(crypt_key);
 #endif
 	return !memcmp(get_binary(source), crypt_key, DIGEST_SIZE);
@@ -449,7 +384,7 @@ struct fmt_main fmt_rawMD4 = {
 #ifdef _OPENMP
 		FMT_OMP | FMT_OMP_BAD |
 #endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests

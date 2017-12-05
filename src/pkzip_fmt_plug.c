@@ -61,7 +61,7 @@ john_register_one(&fmt_pkzip);
 #define BINARY_ALIGN        1
 
 #define SALT_SIZE           (sizeof(PKZ_SALT*))
-#define SALT_ALIGN          (sizeof(uint32_t))
+#define SALT_ALIGN          (sizeof(uint64_t))
 
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  64
@@ -343,7 +343,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 Bail:;
 #ifdef ZIP_DEBUG
-	if (!ret) fprintf (stderr, "pkzip validation failed [%s]  Hash is %.64s\n", sFailStr, ciphertext);
+	if (!ret) fprintf(stderr, "pkzip validation failed [%s]  Hash is %.64s\n", sFailStr, ciphertext);
 #endif
 	MEM_FREE(cpkeep);
 	return ret;
@@ -624,7 +624,7 @@ static void *get_salt(char *ciphertext)
 				FILE *fp;
 				fp = fopen(cp, "rb");
 				if (!fp) {
-					fprintf (stderr, "Error opening file for pkzip data:  %s\n", cp);
+					fprintf(stderr, "Error opening file for pkzip data:  %s\n", cp);
 					MEM_FREE(cpalloc);
 					return 0;
 				}
@@ -634,7 +634,7 @@ static void *get_salt(char *ciphertext)
 					ex_len[i] = salt->compLen;
 					H[i] = mem_alloc(salt->compLen);
 					if (fread(H[i], 1, salt->compLen, fp) != salt->compLen) {
-						fprintf (stderr, "Error reading zip file for pkzip data:  %s\n", cp);
+						fprintf(stderr, "Error reading zip file for pkzip data:  %s\n", cp);
 						fclose(fp);
 						MEM_FREE(cpalloc);
 						return 0;
@@ -651,7 +651,7 @@ static void *get_salt(char *ciphertext)
 					ex_len[i] = 384;
 					H[i] = mem_alloc(384);
 					if (fread(H[i], 1, 384, fp) != 384) {
-						fprintf (stderr, "Error reading zip file for pkzip data:  %s\n", cp);
+						fprintf(stderr, "Error reading zip file for pkzip data:  %s\n", cp);
 						fclose(fp);
 						MEM_FREE(cpalloc);
 						return 0;
@@ -732,7 +732,7 @@ static void *get_salt(char *ciphertext)
 static void set_key(char *key, int index)
 {
 	/* Keep the PW, so we can return it in get_key if asked to do so */
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 	dirty = 1;
 }
 
@@ -817,11 +817,11 @@ static int cmp_exact_loadfile(int index)
 	/* Open the zip file, and 'seek' to the proper offset of the binary zip blob */
 	fp = fopen(salt->fname, "rb");
 	if (!fp) {
-		fprintf (stderr, "\nERROR, the zip file: %s has been removed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
+		fprintf(stderr, "\nERROR, the zip file: %s has been removed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
 		return 1;
 	}
 	if (fseek(fp, salt->offset, SEEK_SET)) {
-		fprintf (stderr, "\nERROR, the zip file: %s fseek() failed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
+		fprintf(stderr, "\nERROR, the zip file: %s fseek() failed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
 		fclose(fp);
 		return 1;
 	}
@@ -830,7 +830,7 @@ static int cmp_exact_loadfile(int index)
 	key0.u = K12[index*3], key1.u = K12[index*3+1], key2.u = K12[index*3+2];
 	k=12;
 	if (fread(in, 1, 12, fp) != 12) {
-		fprintf (stderr, "\nERROR, the zip file: %s fread() failed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
+		fprintf(stderr, "\nERROR, the zip file: %s fread() failed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
 		fclose(fp);
 		return 1;
 	}
@@ -879,7 +879,7 @@ static int cmp_exact_loadfile(int index)
 		if (ferror(fp)) {
 			inflateEnd(&strm);
 			fclose(fp);
-			fprintf (stderr, "\nERROR, the zip file: %s fread() failed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
+			fprintf(stderr, "\nERROR, the zip file: %s fread() failed.\nWe are a possible password has been found, but FULL validation can not be done!\n", salt->fname);
 			return 1;
 		}
 		if (strm.avail_in == 0)
@@ -1585,7 +1585,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 					if (!check_inflate_CODE2(curDecryBuf))
 						goto Failed_Bailout;
 #if (ZIP_DEBUG==2)
-					fprintf (stderr, "CODE2 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
+					fprintf(stderr, "CODE2 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
 #endif
 				}
 				else {
@@ -1606,7 +1606,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 					if (!check_inflate_CODE1(curDecryBuf, til))
 						goto Failed_Bailout;
 #if (ZIP_DEBUG==2)
-					fprintf (stderr, "CODE1 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
+					fprintf(stderr, "CODE1 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
 #endif
 				}
 			}

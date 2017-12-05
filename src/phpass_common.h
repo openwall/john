@@ -18,7 +18,7 @@
 #define PHPASS_CPU_PLAINTEXT_LENGTH    39
 #define PHPASS_CIPHERTEXT_LENGTH       34
 #define PHPASS_BINARY_SIZE             16
-#define PHPASS_SALT_ALIGN              4
+#define PHPASS_SALT_ALIGN              8
 #define PHPASS_BINARY_ALIGN            4
 #define FORMAT_TAG                     "$P$"
 #define FORMAT_TAG_LEN                (sizeof(FORMAT_TAG)-1)

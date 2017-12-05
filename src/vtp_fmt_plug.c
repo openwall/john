@@ -99,7 +99,7 @@ static  struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = omp_get_num_threads();
+	int omp_t = omp_get_max_threads();
 
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -383,11 +383,8 @@ static int cmp_exact(char *source, int index)
 
 static void vtp_set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-
-	strnzcpy(saved_key[index], key, sizeof(saved_key[0]));
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 	dirty = 1;
-
 }
 
 static char *get_key(int index)

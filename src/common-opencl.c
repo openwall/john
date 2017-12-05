@@ -189,6 +189,15 @@ int get_number_of_devices_in_use()
 	return --i;
 }
 
+int get_number_of_requested_devices()
+{
+	int i = 0;
+
+	while (requested_devices[i++] != -1);
+
+	return --i;
+}
+
 int get_platform_id(int sequential_id)
 {
 	int pos = 0, i = 0;
@@ -614,8 +623,10 @@ static void add_device_to_list(int sequential_id)
 		}
 		gpu_device_list[get_number_of_devices_in_use() + 1] = -1;
 		gpu_device_list[get_number_of_devices_in_use()] = sequential_id;
-
 	}
+	// The full list of requested devices.
+	requested_devices[get_number_of_requested_devices() + 1] = -1;
+	requested_devices[get_number_of_requested_devices()] = sequential_id;
 }
 
 static void add_device_type(cl_ulong device_type)
@@ -691,6 +702,8 @@ void opencl_preinit(void)
 
 		gpu_device_list[0] = -1;
 		gpu_device_list[1] = -1;
+		requested_devices[0] = -1;
+		requested_devices[1] = -1;
 
 		gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
 		                             "AbortTemperature");
@@ -704,7 +717,7 @@ void opencl_preinit(void)
 			struct list_entry *current;
 
 			/* New syntax, sequential --device */
-			if ((current = options.gpu_devices->head)) {
+			if ((current = options.acc_devices->head)) {
 				do {
 					device_list[n++] = current->data;
 				} while ((current = current->next));
@@ -714,7 +727,7 @@ void opencl_preinit(void)
 				gpu_id = -1;
 		}
 
-		if (!options.gpu_devices->head && gpu_id < 0) {
+		if (!options.acc_devices->head && gpu_id < 0) {
 			char *devcfg;
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
@@ -1021,7 +1034,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        full_path,
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
-	            "-D__MESA__" : opencl_get_dev_info(sequential_id),
+	            "-D__MESA__ " : opencl_get_dev_info(sequential_id),
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else

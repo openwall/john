@@ -90,6 +90,31 @@ JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
 JTR_LIST_ADD_RESULT
 ])
 
+# @synopsis SET_64_INCLUDES
+# @summary check and set some 64 bit includes
+# This might be a Bad Idea[tm] if cross compiling.
+AC_DEFUN([JTR_SET_64_INCLUDES],
+[
+  AC_MSG_CHECKING([additional paths (64 bit)])
+  ADD_LDFLAGS=""
+  ADD_CFLAGS=""
+if test -d /usr/local/lib64; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/lib64"
+fi
+if test -d /usr/lib64; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/lib64"
+fi
+if test -d /lib64; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/lib64"
+fi
+JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
+jtr_list_add_result=""
+JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])
+JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
+JTR_LIST_ADD_RESULT
+])
+
+
 # @synopsis SET_NORMAL_SSL_INCLUDES(base path)
 # @summary check and set include/library paths for OpenSSL
 # This might be a Bad Idea[tm] if cross compiling.

@@ -506,7 +506,11 @@ static void process_file(const char *fname)
 		fprintf(stderr, "Error: Couldn't load private key (%s)\n", filename.path);
 		return;
 	}
+	if (type == SSH_KEYTYPE_SSH1) {
+		fprintf(stderr, "%s : SSH1 RSA private keys are not supported currently!\n", filename.path);
+		return;
 
+	}
 	if (type != SSH_KEYTYPE_SSH1 && type != SSH_KEYTYPE_SSH2) {
 		realtype = type;
 	}
@@ -514,10 +518,10 @@ static void process_file(const char *fname)
 	comment = NULL;
 	if (realtype == SSH_KEYTYPE_SSH2) {
 		needs_pass = ssh2_userkey_encrypted(&filename, &comment);
-	}
-	if (needs_pass==0) {
-		fprintf(stderr, "%s : this private key doesn't need a passphrase!\n", fname);
-		goto out;
+		if (needs_pass == 0) {
+			fprintf(stderr, "%s : this private key doesn't need a passphrase!\n", fname);
+			goto out;
+		}
 	}
 
 	if (init_LAME(&filename)==1) {

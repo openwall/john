@@ -132,11 +132,13 @@ static void *get_salt(char *ciphertext)
 {
 	unsigned char input[19*3+1];
 	int i, utf16len;
-	static UTF16 *out=0;
 	char *lasth = strrchr(ciphertext, '#');
+	union {
+		UTF16 u16[22];
+		uint32_t w[11];
+	} static out;
 
-	if (!out) out = mem_alloc_tiny(22*sizeof(UTF16), MEM_ALIGN_WORD);
-	memset(out, 0, 22*sizeof(UTF16));
+	memset(out.u16, 0, sizeof(out.u16));
 
 	ciphertext += FORMAT_TAG_LEN;
 
@@ -144,22 +146,22 @@ static void *get_salt(char *ciphertext)
 		input[i] = ciphertext[i];
 	input[i] = 0;
 
-	utf16len = enc_to_utf16(out, 19, input, i);
+	utf16len = enc_to_utf16(out.u16, 19, input, i);
 	if (utf16len < 0)
-		utf16len = strlen16(out);
+		utf16len = strlen16(out.u16);
 
 #if ARCH_LITTLE_ENDIAN
-	out[utf16len] = 0x80;
+	out.u16[utf16len] = 0x80;
 #else
-	out[utf16len] = 0x8000;
-	swap((unsigned int*)out, (i>>1)+1);
+	out.u16[utf16len] = 0x8000;
+	swap(out.w, (i>>1)+1);
 #endif
 
-	((unsigned int*)out)[10] = (8 + utf16len) << 4;
+	out.w[10] = (8 + utf16len) << 4;
 
-//	dump_stuff(out, 44);
+//	dump_stuff(out.w, 44);
 
-	return out;
+	return out.u16;
 }
 
 static void *get_binary(char *ciphertext)

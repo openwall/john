@@ -50,7 +50,7 @@ john_register_one(&fmt_enpass);
 #define PLAINTEXT_LENGTH     125
 #define SALT_SIZE            sizeof(struct custom_salt)
 #define BINARY_ALIGN         1
-#define SALT_ALIGN           1
+#define SALT_ALIGN           sizeof(unsigned int)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT   SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT   SSE_GROUP_SZ_SHA1
@@ -169,11 +169,7 @@ static int cmp_exact(char *source, int index)
 
 static void enpass_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

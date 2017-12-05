@@ -1,11 +1,11 @@
 /* PDF cracker patch for JtR. Hacked together during Monsoon of 2012 by
- * Dhiru Kholia <dhiru.kholia at gmail.com> .
+ * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * Uses code from Sumatra PDF and MuPDF which are under GPL
+ * Uses code from Sumatra PDF and MuPDF which are under GPL.
  *
- * Edited by Shane Quigley 2013
+ * Edited by Shane Quigley in 2013.
  */
 
 #if FMT_EXTERNS_H
@@ -18,7 +18,7 @@ john_register_one(&fmt_pdf);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               64
+#define OMP_SCALE           64
 #endif
 #endif
 
@@ -46,9 +46,9 @@ john_register_one(&fmt_pdf);
 #define BENCHMARK_LENGTH    -1000
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	1
-#define SALT_ALIGN	sizeof(int)
+#define SALT_SIZE           sizeof(struct custom_salt)
+#define BINARY_ALIGN        1
+#define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -70,7 +70,7 @@ static struct custom_salt {
 	unsigned char o[127];
 	unsigned char ue[32];
 	unsigned char oe[32];
-	unsigned char id[32];
+	unsigned char id[128];
 	int length;
 	int length_id;
 	int length_u;
@@ -98,6 +98,8 @@ static struct fmt_tests pdf_tests[] = {
 	{"$pdf$4*4*128*-4*1*16*f7bc2744e1652cf61ca83cac8fccb535*32*f55cc5032f04b985c5aeacde5ec4270f0122456a91bae5134273a6db134c87c4*32*785d891cdcb5efa59893c78f37e7b75acef8924951039b4fa13f62d92bb3b660", "L4sV3g4z"},
 	{"$pdf$4*4*128*-4*1*16*ec8ea2af2977db1faa4a955904dc956f*32*fc413edb049720b1f8eac87a358faa740122456a91bae5134273a6db134c87c4*32*1ba7aed2f19c77ac6b5061230b62e80b48fc42918f92aef689ceb07d26204991", "ZZt0pr0x"},
 	{"$pdf$4*4*128*-4*1*16*56761d6da774d8d47387dccf1a84428c*32*640782cab5b7c8f6cf5eab82c38016540122456a91bae5134273a6db134c87c4*32*b5720d5f3d9675a280c6bb8050cbb169e039b578b2de4a42a40dc14765e064cf", "24Le`m0ns"},
+	/* This hash exposed a problem with our length_id check */
+	{"$pdf$1*2*40*-4*1*36*65623237393831382d636439372d343130332d613835372d343164303037316639386134*32*c7230519f7db63ab1676fa30686428f0f997932bf831f1c1dcfa48cfb3b7fe99*32*161cd2f7c95283ca9db930b36aad3571ee6f5fb5632f30dc790e19c5069c86b8", "vision"},
 	{NULL}
 };
 
@@ -154,7 +156,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdec(p)) goto err;
 	res = atoi(p);
-	if (res > 32)
+	if (res > 128)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* id */
 		goto err;
@@ -354,11 +356,7 @@ static void set_salt(void *salt)
 
 static void pdf_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

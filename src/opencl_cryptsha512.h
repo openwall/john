@@ -31,14 +31,14 @@
 
 //Constants.
 #define SALT_LENGTH             16
-#define SALT_ALIGN              4
+#define SALT_ALIGN              8
 #define PLAINTEXT_LENGTH        23
 #define CIPHERTEXT_LENGTH   86
 #define BUFFER_ARRAY            8
 #define SALT_ARRAY              (SALT_LENGTH / 8)
 #define PLAINTEXT_ARRAY         ((PLAINTEXT_LENGTH + 7) / 8)
 #define BINARY_SIZE             64
-#define BINARY_ALIGN            4
+#define BINARY_ALIGN            sizeof(uint64_t)
 #define SEED                    1024
 #define STEP                    0
 

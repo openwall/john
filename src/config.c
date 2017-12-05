@@ -33,7 +33,7 @@ char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
 static int cfg_recursion;
 static int cfg_process_directive(char *line, int number, int in_hcmode);
-static int cfg_loading_john_local = 0;
+static int cfg_loading_john_local, cfg_loaded_john_local;
 
 /* we have exposed this to the dyna_parser file, so that it can easily
  * walk the configuration list one time, to determine which dynamic formats
@@ -89,7 +89,11 @@ static int cfg_merge_local_section() {
 		if (!found) {
 			// add a new item. NOTE, fixes bug #767
 			// https://github.com/magnumripper/JohnTheRipper/issues/767
+#if ARCH_ALLOWS_UNALIGNED
 			struct cfg_param *p3 = (struct cfg_param*)mem_alloc_tiny(sizeof(struct cfg_param), 1);
+#else
+			struct cfg_param *p3 = (struct cfg_param*)mem_alloc_tiny(sizeof(struct cfg_param), MEM_ALIGN_WORD);
+#endif
 			p3->next = parent->params;
 			p3->name = p1->name;
 			p3->value = p1->value;
@@ -586,13 +590,23 @@ static int cfg_process_directive_include_config(char *line, int number)
 		return 1;
 	}
 
-	if (strstr(Name, "/john-local.conf"))
+	if (strstr(Name, "/john-local.conf")) {
+		if (!strcmp(Name, "$JOHN/john-local.conf") ||
+		    !strcmp(Name, "./john-local.conf")) {
+			if (!strcmp(path_expand("$JOHN/"), "./") &&
+			    cfg_loaded_john_local)
+				return 0;
+			else
+				cfg_loaded_john_local = 1;
+		}
 		cfg_loading_john_local = 1;
+	}
 	saved_fname = cfg_name;
 	cfg_recursion++;
 	cfg_init(Name, allow_missing);
 	cfg_recursion--;
 	cfg_name = saved_fname;
+	cfg_loading_john_local = 0;
 	return 0;
 }
 
@@ -608,7 +622,7 @@ static int cfg_process_directive(char *line, int number, int in_hc_mode)
 	if (!strncmp(line, ".log ", 5))
 		return -1;
 	if (john_main_process)
-		fprintf (stderr, "Unknown directive in the .conf file:  '%s'\n", line);
+		fprintf(stderr, "Unknown directive in the .conf file:  '%s'\n", line);
 #ifndef BENCH_BUILD
 	log_event("! Unknown directive in the .conf file:  %s", line);
 #endif

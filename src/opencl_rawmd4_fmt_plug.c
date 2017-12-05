@@ -42,7 +42,7 @@ john_register_one(&FMT_STRUCT);
 #define CIPHERTEXT_LENGTH   32
 #define DIGEST_SIZE         16
 #define BINARY_SIZE         16
-#define BINARY_ALIGN        1
+#define BINARY_ALIGN        sizeof(int)
 #define SALT_SIZE           0
 #define SALT_ALIGN          1
 

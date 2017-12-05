@@ -1,15 +1,18 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall dot net>
- * and Copyright (c) 2012-2014 magnum
+ * and Copyright (c) 2012-2017 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
  * hccap2john processes hccap files into a format suitable for use with JtR.
  * hccap format was introduced by oclHashcat-plus (now renamed to hashcat),
- * and it is described here: http://hashcat.net/wiki/hccap
+ * and it is described here: https://hashcat.net/wiki/doku.php?id=hccap
  *
- * hccap format => $WPAPSK$essid#base64 encoded hccap_t
+ * hccapx format is "version 2" of hccap and it is described here:
+ * https://hashcat.net/wiki/doku.php?id=hccapx
+ *
+ * This tool handles both types.
  */
 #if AC_BUILT
 #include "autoconfig.h"
@@ -28,7 +31,9 @@
 #endif
 #include <errno.h>
 #include <assert.h>
+
 #include "common.h"
+#include "hccap.h"
 #include "memdbg.h"
 
 // Duplicated here to overcome linking problems. This file can't link with misc.o file easily.
@@ -37,20 +42,6 @@ unsigned atou(const char *src) {
 	sscanf(src, "%u", &val);
 	return val;
 }
-
-#define HCCAP_SIZE		sizeof(hccap_t)
-typedef struct
-{
-	char          essid[36];
-	unsigned char mac1[6];
-	unsigned char mac2[6];
-	unsigned char nonce1[32];
-	unsigned char nonce2[32];
-	unsigned char eapol[256];
-	int           eapol_size;
-	int           keyver;
-	unsigned char keymic[16];
-} hccap_t;
 
 static void code_block(unsigned char *in, unsigned char b)
 {
@@ -73,7 +64,7 @@ void to_compact(char ssid[13], unsigned char *p)
 	sprintf(ssid, "%02x%02x%02x%02x%02x%02x",p[0],p[1],p[2],p[3],p[4],p[5]);
 }
 
-static void print_hccap(hccap_t * cap, const char *filename)
+static void print_hccap(hccap_t *cap, const char *filename)
 {
 	int i;
 	unsigned char *w = (unsigned char *)cap;
@@ -100,9 +91,12 @@ static void print_hccap(hccap_t * cap, const char *filename)
 static int process_file(const char *filename)
 {
 	hccap_t hccap;
+	hccapx_t hccapx;
 	FILE *f;
 	struct stat sb;
-	size_t size;
+	size_t size, len;
+	int is_x = 0;
+	static int warn;
 
 	f = fopen(filename, "r");
 	if (stat(filename, &sb) == -1) {
@@ -111,17 +105,10 @@ static int process_file(const char *filename)
 		fclose(f);
 		return 0;
 	}
-	if (sb.st_size % sizeof(hccap)) {
-		fprintf(stderr, "%s: file has wrong size\n\n", filename);
-		fclose(f);
-		return 0;
-	}
+	if (sb.st_size > 4) {
+		char magic[5];
 
-	size = sb.st_size;
-
-	do {
-		errno = 0;
-		if (fread(&hccap, sizeof(hccap), 1, f) != 1) {
+		if (fread(magic, 4, 1, f) != 1) {
 			if (ferror(f) && errno) {
 				perror(filename);
 				fprintf(stderr, "\n");
@@ -130,13 +117,71 @@ static int process_file(const char *filename)
 			fclose(f);
 			return 0;
 		}
-		print_hccap(&hccap, filename);
-		fprintf(stderr, "\n");
-		size -= sizeof(hccap);
-	} while (size);
+		magic[4] = 0;
+
+		if (!strcmp(magic, "HCPX"))
+			is_x = 1;
+
+		fseek(f, 0, SEEK_SET);
+	}
+
+	if (is_x && sb.st_size % sizeof(hccapx) == 0) {
+		size = sb.st_size;
+
+		do {
+			errno = 0;
+			if (fread(&hccapx, sizeof(hccapx), 1, f) != 1) {
+				if (ferror(f) && errno) {
+					perror(filename);
+					fprintf(stderr, "\n");
+				} else
+					fprintf(stderr, "%s: file read error\n\n", filename);
+				fclose(f);
+				return 0;
+			}
+			if (hccapx.signature != HCCAPC_MAGIC && !warn++)
+				fprintf(stderr, "%s: Invalid hccapx magic seen\n", filename);
+
+			memset(&hccap, 0, sizeof(hccap));
+			len = MIN(hccapx.essid_len, 32);
+			memcpy(hccap.essid, hccapx.essid, len);
+			memcpy(hccap.mac1, hccapx.mac_ap, 6);
+			memcpy(hccap.mac2, hccapx.mac_sta, 6);
+			memcpy(hccap.nonce1, hccapx.nonce_sta, 32);
+			memcpy(hccap.nonce2, hccapx.nonce_ap, 32);
+			hccap.eapol_size = MIN(hccapx.eapol_len, sizeof(hccap.eapol));
+			memcpy(hccap.eapol, hccapx.eapol, hccap.eapol_size);
+			hccap.keyver = hccapx.keyver;
+			memcpy(hccap.keymic, hccapx.keymic, 16);
+
+			print_hccap(&hccap, filename);
+			size -= sizeof(hccapx);
+		} while (size);
+	} else if (sb.st_size % sizeof(hccap) == 0) {
+		size = sb.st_size;
+
+		do {
+			errno = 0;
+			if (fread(&hccap, sizeof(hccap), 1, f) != 1) {
+				if (ferror(f) && errno) {
+					perror(filename);
+					fprintf(stderr, "\n");
+				} else
+					fprintf(stderr, "%s: file read error\n\n", filename);
+				fclose(f);
+				return 0;
+			}
+			print_hccap(&hccap, filename);
+			size -= sizeof(hccap);
+		} while (size);
+	} else {
+		fprintf(stderr, "%s: file has wrong size%s\n\n", filename,
+		        is_x ? " (hcapx magic found)" : "");
+		fclose(f);
+		return 0;
+	}
 
 	fclose(f);
-
 	return 1;
 }
 
@@ -164,7 +209,7 @@ int main(int argc, char **argv)
 	int i, ret = 0;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <hccap file[s]>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <hccap and/or hccapx file[s]>\n", argv[0]);
 		return 1;
 	}
 

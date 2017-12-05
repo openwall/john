@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_fvde);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(*cur_salt)
-#define SALT_ALIGN              1
+#define SALT_ALIGN              sizeof(uint64_t)
 #define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
@@ -90,7 +90,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static void create_clobj(size_t kpc, struct fmt_main *self)

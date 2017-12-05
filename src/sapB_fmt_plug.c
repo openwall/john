@@ -26,6 +26,8 @@ john_register_one(&fmt_sapB);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "memory.h"
+#include "johnswap.h"
 #include "options.h"
 #include "unicode.h"
 #include "md5.h"
@@ -71,8 +73,13 @@ static unsigned int omp_t = 1;
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+// NOTE GETOUTPOS is valid to return the uint32 (i.e. i is 0, 4, 8, 12, ....) which is how we use it in this format.
 #define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32)
+#if ARCH_LITTLE_ENDIAN
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -278,7 +285,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH);
+	strnzcpy(saved_plain[index], key, sizeof(*saved_plain));
 	keyLen[index] = -1;
 }
 
@@ -363,6 +370,22 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 	                        (sum20 >> 8) + sum20);
 	sum20 += (temp_key[5] & 3) | 0x20;
 
+#if defined (NO_UNROLL)
+	// MUCH easier to understand.  Kept for documentation reasons.
+	I1 = I2 = I3 = 0;
+	while(I2 < sum20) {
+		if (I1 < len) {
+			if (temp_key[DEFAULT_OFFSET - I1] & 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		++I2;
+		destArray[I2++] = 0;
+	}
+#else
 	// Some unrolling
 	if (temp_key[15] & 0x01) {
 		destArray[0] = bcodeArr[47];
@@ -475,10 +498,12 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 		destArray[I2] = bcodeArr[I2 - I1 - I3];
 		destArray[++I2] = 0; I2++;
 	}
+#endif
+
 #if SIMD_COEF_32
 	// This may be unaligned here, but after the aligned vector buffer
 	// transfer, we will have no junk left from loop overrun
-	*(unsigned int*)&destArray[sum20] = 0x00000080;
+	memcpy(&destArray[sum20], "\x80\0\0\0", 4);	// this might be a source of BE alignment problems.
 #endif
 	return sum20;
 }
@@ -547,24 +572,40 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		for (index = 0; index < NBKEYS; index++) {
 			unsigned int sum20;
-			unsigned char temp_key[BINARY_SIZE*2];
+			// note, without the union (just type casting to uint32_t*) was causing weird problems
+			// compiling for ppc64 (BE). This was seen for other things, where typecasting caused
+			// problems.  Using a union, solved the problem fully.
+			union {
+				unsigned char temp_key[BINARY_SIZE*2];
+				uint32_t      temp_keyw[BINARY_SIZE/2];
+			} x;
 			uint32_t destArray[TEMP_ARRAY_SIZE / 4];
 			const unsigned int *sw;
 			unsigned int *dw;
 
 			// Temporary flat copy of crypt
+
 			sw = (unsigned int*)&crypt_key[GETOUTPOS(0, ti)];
-			dw = (unsigned int*)temp_key;
 			for (i = 0; i < 4; i++, sw += SIMD_COEF_32)
-				*dw++ = *sw;
+#if ARCH_LITTLE_ENDIAN
+				x.temp_keyw[i] = *sw;
+#else
+				x.temp_keyw[i] = JOHNSWAP(*sw);
+#endif
 
 			//now: walld0rf-magic [tm], (c), <g>
-			sum20 = walld0rf_magic(ti, temp_key, (unsigned char*)destArray);
+			sum20 = walld0rf_magic(ti, x.temp_key, (unsigned char*)destArray);
 
 			// Vectorize a word at a time
+#if ARCH_LITTLE_ENDIAN
 			dw = (unsigned int*)&interm_key[GETPOS(0, ti)];
 			for (i = 0;i <= sum20; i += 4, dw += SIMD_COEF_32)
 				*dw = destArray[i >> 2];
+#else
+			dw = (unsigned int*)&interm_key[GETPOS(3, ti)];
+			for (i = 0;i <= sum20; i += 4, dw += SIMD_COEF_32)
+				*dw = JOHNSWAP(destArray[i >> 2]);
+#endif
 
 			((unsigned int *)interm_key)[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (unsigned int)ti/SIMD_COEF_32*16*SIMD_COEF_32] = sum20 << 3;
 		}
@@ -643,6 +684,9 @@ static void *get_binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(newCiphertextPointer[i*2])]*16 + atoi16[ARCH_INDEX(newCiphertextPointer[i*2+1])];
 	}
+#if !ARCH_LITTLE_ENDIAN && defined (SIMD_COEF_32)
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
 	return (void *)realcipher;
 }
 
@@ -690,24 +734,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-#ifdef SIMD_COEF_32
-#define HASH_OFFSET (index&(SIMD_COEF_32-1))+((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*4
-static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 4
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 // Public domain hash function by DJ Bernstein
 static int salt_hash(void *salt)
@@ -769,13 +798,8 @@ struct fmt_main fmt_sapB = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

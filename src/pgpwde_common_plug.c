@@ -83,7 +83,7 @@ int PKCS1oaepMGF1Unpack(uint8_t *in, uint32_t inlen, unsigned char *p, uint32_t 
 			break;
 	}
 
-	if(i == inlen - 1 || msg[i] != 1)  {
+	if (i == inlen - 1 || msg[i] != 1)  {
 		return -1; // corrupt data
 	}
 

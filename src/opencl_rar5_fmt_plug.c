@@ -47,7 +47,7 @@ john_register_one(&fmt_ocl_rar5);
 #define SEED			1024
 
 #define BINARY_ALIGN		4
-#define SALT_ALIGN		1
+#define SALT_ALIGN		sizeof(int)
 
 #define PLAINTEXT_LENGTH	55
 #define BINARY_SIZE		SIZE_PSWCHECK
@@ -99,7 +99,7 @@ static const char * warn[] = {
 static int split_events[] = { 3, -1, -1 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static void create_clobj(size_t kpc, struct fmt_main *self)

@@ -48,7 +48,7 @@ static unsigned long long rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
 static int parent_fix_state_pending;
-int mask_add_len, mask_num_qw, mask_cur_len;
+int mask_add_len, mask_num_qw, mask_cur_len, mask_maxlength_computed = 0;
 
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
@@ -1796,25 +1796,22 @@ static unsigned long long divide_work(mask_cpu_context *cpu_mask_ctx)
  */
 static double get_progress(void)
 {
-	double try;
 	unsigned long long total = mask_tot_cand;
 
 	emms();
-
-	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
 
 	if (!mask_tot_cand)
 		return -1;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s() try %.0f candlen %llu tot %llu\n", __FUNCTION__,
-	        try, cand_length, total);
+	        status.cands, cand_length, total);
 #endif
 
 	if (cand_length)
 		total += cand_length;
 
-	return 100.0 * try / total;
+	return 100.0 * status.cands / total;
 }
 
 void mask_save_state(FILE *file)
@@ -2007,6 +2004,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask_fmt = db->format;
 
 	fmt_maxlen = mask_fmt->params.plaintext_length;
+
+	// Track to know whether max-length is specified or computed
+	mask_maxlength_computed = (options.req_maxlength == 0);
 
 	if (options.req_minlength >= 0 && !options.req_maxlength)
 		options.req_maxlength = fmt_maxlen;
@@ -2266,8 +2266,7 @@ void mask_done()
 			MEM_FREE(mask);
 		/* For reporting DONE regardless of rounding errors */
 		if (!event_abort) {
-			mask_tot_cand = (((unsigned long long)status.cands.hi << 32) +
-				status.cands.lo);
+			mask_tot_cand = status.cands;
 			cand_length = 0;
 		}
 		if (!(options.flags & FLG_TEST_CHK)) {
@@ -2315,9 +2314,7 @@ int do_mask_crack(const char *extern_key)
 
 		for (i = mask_cur_len; i <= max_len; i++) {
 			mask_cur_len = max_keylen = i;
-			cand_length = rec_cl ? rec_cl - 1 :
-				((unsigned long long)status.cands.hi << 32) +
-				status.cands.lo;
+			cand_length = rec_cl ? rec_cl - 1 : status.cands;
 			rec_cl = 0;
 
 			assert(extern_key == NULL);

@@ -878,12 +878,12 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 }
 void base64_convert_error_exit(int err) {
 	switch (err) {
-		case ERR_base64_no_error:	fprintf (stderr, "base64_convert no error\n"); break;
-		case ERR_base64_unk_from_type:	fprintf (stderr, "base64_convert error-%d, Unknown From Type\n", err); break;
-		case ERR_base64_unk_to_type:	fprintf (stderr, "base64_convert error-%d, Unknown To Type\n", err); break;
-		case ERR_base64_to_buffer_sz:	fprintf (stderr, "base64_convert error-%d, *to buffer too small\n", err); break;
-		case ERR_base64_unhandled:	fprintf (stderr, "base64_convert error-%d, currently unhandled conversion\n", err); break;
-		default:			fprintf (stderr, "base64_convert_error_exit(%d)\n", err);
+		case ERR_base64_no_error:	fprintf(stderr, "base64_convert no error\n"); break;
+		case ERR_base64_unk_from_type:	fprintf(stderr, "base64_convert error-%d, Unknown From Type\n", err); break;
+		case ERR_base64_unk_to_type:	fprintf(stderr, "base64_convert error-%d, Unknown To Type\n", err); break;
+		case ERR_base64_to_buffer_sz:	fprintf(stderr, "base64_convert error-%d, *to buffer too small\n", err); break;
+		case ERR_base64_unhandled:	fprintf(stderr, "base64_convert error-%d, currently unhandled conversion\n", err); break;
+		default:			fprintf(stderr, "base64_convert_error_exit(%d)\n", err);
 	}
 	exit(1);
 }
@@ -1033,7 +1033,7 @@ static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type i
 
 	fp = fopen(fname, "rb");
 	if (!fp) {
-		fprintf (stderr, "Error, could not find file [%s]\n", fname);
+		fprintf(stderr, "Error, could not find file [%s]\n", fname);
 		exit(-1);
 	}
 	fseek(fp, 0, SEEK_END);
@@ -1044,7 +1044,7 @@ static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type i
 	in_str = (char*)mem_calloc(1, in_len+4);
 	if (fread(in_str, 1, in_len, fp) != in_len) {
 		MEM_FREE(in_str);
-		fprintf (stderr, "Error, reading file [%s]\n", fname);
+		fprintf(stderr, "Error, reading file [%s]\n", fname);
 		fclose(fp);
 		exit(-1);
 	}
@@ -1133,27 +1133,27 @@ void length_test() {
 	                     out, e_b64_raw,
 	                     sizeof(out),
 	                     flg_Base64_MIME_TRAIL_EQ, 0);
-	printf ("len=%zd  data = %s\n", len, out);
+	printf("len=%zd  data = %s\n", len, out);
 	len = base64_convert(d, e_b64_mime, strlen(d)+1,
 	                     out, e_b64_raw,
 	                     sizeof(out),
 	                     flg_Base64_MIME_TRAIL_EQ, 0);
-	printf ("len=%zd  data = %s\n", len, out);
+	printf("len=%zd  data = %s\n", len, out);
 	len = base64_convert(d, e_b64_mime, strlen(d)+2,
 	                     out, e_b64_raw,
 	                     sizeof(out),
 	                     flg_Base64_MIME_TRAIL_EQ, 0);
-	printf ("len=%zd  data = %s\n", len, out);
+	printf("len=%zd  data = %s\n", len, out);
 	len = base64_convert(d, e_b64_mime, strlen(d)+3,
 	                     out, e_b64_raw,
 	                     sizeof(out),
 	                     flg_Base64_MIME_TRAIL_EQ, 0);
-	printf ("len=%zd  data = %s\n", len, out);
+	printf("len=%zd  data = %s\n", len, out);
 	len = base64_convert(d, e_b64_mime, strlen(d)+8,
 	                     out, e_b64_raw,
 	                     sizeof(out),
 	                     flg_Base64_MIME_TRAIL_EQ, 0);
-	printf ("len=%zd  data = %s\n", len, out);
+	printf("len=%zd  data = %s\n", len, out);
 }
 
 /* simple conerter of strings or raw memory     */
@@ -1232,7 +1232,7 @@ int base64conv(int argc, char **argv) {
 		// if we are out of params, then read from stdin
 		char *buf;
 		if (isatty(fileno(stdin))) {
-			fprintf (stderr, "Enter lines of data to be converted\n");
+			fprintf(stderr, "Enter lines of data to be converted\n");
 		}
 		buf = (char*)mem_alloc(256*1024);
 		fgetl(buf, 256*1024-1, stdin);

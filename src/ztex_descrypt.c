@@ -17,6 +17,7 @@
 #include "common.h"
 #include "formats.h"
 #include "memory.h"
+#include "options.h"
 #include "DES_std.h"
 
 #include "ztex/device_bitstream.h"
@@ -46,14 +47,14 @@
 struct device_bitstream bitstream = {
 	// bitstream ID (check is performed by querying operating bitstream)
 	0x0101,
-	"ztex/ztex115y_descrypt.bit",
+	"$JOHN/ztex/ztex115y_descrypt.bit",
 	// parameters for high-speed packet communication (pkt_comm)
 	{ 2, 32768, 2046 },
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	35 * 1024*1024,
 	// Absolute max. keys/crypt_all_interval for all devices.
-	262140,
+	2 * 1024*1024,
 	// Max. number of entries in onboard comparator.
 	2047,
 	0,	// Min. number of keys (doesn't matter for fast "formats")
@@ -110,7 +111,7 @@ static unsigned char DES_atoi64_bitswapped[128] = {
 static void init(struct fmt_main *fmt_main)
 {
 	DES_std_init(); // Used DES_std.c to perform des_crypt() on CPU
-	device_format_init(fmt_main, &bitstream);
+	device_format_init(fmt_main, &bitstream, options.acc_devices);
 }
 
 

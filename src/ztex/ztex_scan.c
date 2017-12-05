@@ -17,6 +17,9 @@
 #include "inouttraffic.h"
 #include "ztex_scan.h"
 
+#include "../options.h"
+#include "../list.h"
+
 ///////////////////////////////////////////////////////////////////
 //
 // Find Ztex devices (of supported type)
@@ -25,22 +28,36 @@
 //
 ///////////////////////////////////////////////////////////////////
 
-int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list, int *fw_upload_count)
+extern struct list_main *jtr_devices_allow;
+
+// Find Ztex USB devices (of supported type)
+// Check "--devices" command-line option
+// Upload firmware (device resets) if necessary
+// Return number of newly found devices (excluding those that were reset)
+static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list,
+		int *fw_upload_count, int warn_open)
 {
 	static int fw_3rd_party_warning = 0;
 	int fw_3rd_party_count = 0;
 	int count = 0;
 	(*fw_upload_count) = 0;
 
-	int result = ztex_scan_new_devices(new_dev_list, dev_list);
-	if (result < 0) {
-		//printf("ztex_scan_new_devices(): %s\n", libusb_strerror(result));
+	int result = ztex_scan_new_devices(new_dev_list, dev_list, warn_open);
+	if (result <= 0)
 		return 0;
-	}
 
 	struct ztex_device *dev, *dev_next;
 	for (dev = new_dev_list->dev; dev; dev = dev_next) {
 		dev_next = dev->next;
+
+		// If john is invoked with "--devices" command-line option,
+		// use only listed boards.
+		if (jtr_devices_allow->count) {
+			if (!list_check(jtr_devices_allow, dev->snString)) {
+				ztex_dev_list_remove(new_dev_list, dev);
+				continue;
+			}
+		}
 
 		// Check device type
 		// only 1.15y devices supported for now
@@ -117,7 +134,7 @@ int ztex_timely_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 		return 0;
 
 	int count, fw_upload_count;
-	count = ztex_scan(new_dev_list, dev_list, &fw_upload_count);
+	count = ztex_scan(new_dev_list, dev_list, &fw_upload_count, 0);
 	if (ztex_scan_fw_upload_count > count) {
 		// Not exact; better record SNs of devices for fw upload
 		fprintf(stderr, "%d device(s) lost after firmware upload\n",
@@ -143,7 +160,7 @@ int ztex_timely_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 int ztex_init_scan(struct ztex_dev_list *new_dev_list)
 {
 	int count;
-	count = ztex_scan(new_dev_list, NULL, &ztex_scan_fw_upload_count);
+	count = ztex_scan(new_dev_list, NULL, &ztex_scan_fw_upload_count, 1);
 	// if some devices ready - return immediately
 	gettimeofday(&ztex_scan_prev_time, NULL);
 	if (count)
@@ -155,7 +172,7 @@ int ztex_init_scan(struct ztex_dev_list *new_dev_list)
 	usleep(ZTEX_FW_UPLOAD_DELAY* 1000*1000);
 
 	int fw_upload_count_stage2;
-	count = ztex_scan(new_dev_list, NULL, &fw_upload_count_stage2);
+	count = ztex_scan(new_dev_list, NULL, &fw_upload_count_stage2, 0);
 	//if (fw_upload_count_stage2) { // device just plugged in. wait for timely_scan
 	if (ztex_scan_fw_upload_count > count) {
 		// Not exact; better record SNs of devices for fw upload

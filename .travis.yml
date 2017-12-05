@@ -12,20 +12,27 @@ matrix:
   include:
   - os: linux
     compiler: gcc
-    env: ASAN="--enable-asan" OPENCL="yes"
-
-  - os: linux
-    compiler: clang
     env: ASAN="" OPENCL="yes"
 
   - os: linux
+    compiler: clang
+    env: ASAN=""
+
+  - os: linux
+    compiler: gcc
+    env: ASAN="--enable-asan"
+
+  - os: linux
     env: ASAN="--enable-asan" TEST="fresh test"
+    group: deprecated-2017Q3
 
   - os: linux
-    env: ASAN="" TEST="TS --restore"
+    compiler: gcc
+    env: ASAN="" OPENCL="yes" TEST="encoding"
 
   - os: linux
-    env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+    compiler: clang
+    env: ASAN="" OPENCL="yes" TEST="encoding"
 
   - os: osx
     osx_image: xcode8.3
@@ -33,24 +40,10 @@ matrix:
 
   allow_failures:
   - os: linux
-    env: ASAN="--enable-asan" OPENCL="yes"
-
-  - os: linux
-    env: ASAN="" OPENCL="yes"
-
-  - os: linux
-    env: ASAN="--enable-asan" TEST="fresh test"
-
-  - os: linux
-    env: ASAN="" TEST="TS --restore"
-
-  - os: linux
-    env: ASAN="" TEST="no OpenMP" OPENCL="yes"
+    compiler: gcc
+    env: ASAN="--enable-asan"
 
   fast_finish: true
-
-before_install:
-  - export OMP_NUM_THREADS=4
 
 script:
   - .travis/check.sh

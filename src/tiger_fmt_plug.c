@@ -110,7 +110,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	while(*p)
-		if (atoi16[ARCH_INDEX(*p++)]==0x7f)
+		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
 			return 0;
 	return 1;
 }
@@ -138,10 +138,8 @@ static void *get_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		p = strrchr(ciphertext, '$') + 1;
-	else
-		p = ciphertext;
+	p = ciphertext + TAG_LENGTH;
+
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
@@ -152,13 +150,8 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -202,11 +195,7 @@ static int cmp_exact(char *source, int index)
 
 static void tiger_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
@@ -264,13 +253,8 @@ struct fmt_main fmt_tiger = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

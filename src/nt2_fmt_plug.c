@@ -76,7 +76,7 @@ john_register_one(&fmt_NT2);
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+#define GETPOSW(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i*4)&(0xffffffff-3))*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -96,7 +96,7 @@ static char *source(char *source, void *binary)
 	md4_unreverse(b);
 #endif
 
-#if ARCH_LITTLE_ENDIAN==0
+#if !ARCH_LITTLE_ENDIAN && !defined (SIMD_COEF_32)
 	alter_endianity(b, 16);
 #endif
 
@@ -220,7 +220,7 @@ static void init(struct fmt_main *self)
 	                             sizeof(*crypt_key), MEM_ALIGN_SIMD);
 	buf_ptr = mem_calloc(self->params.max_keys_per_crypt, sizeof(*buf_ptr));
 	for (i=0; i<self->params.max_keys_per_crypt; i++)
-		buf_ptr[i] = (unsigned int*)&saved_key[GETPOS(0, i)];
+		buf_ptr[i] = (unsigned int*)&saved_key[GETPOSW(0, i)];
 #endif
 }
 
@@ -242,10 +242,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 
-	memcpy(&out[TAG_LENGTH], ciphertext, 32);
+	memcpylwr(&out[TAG_LENGTH], ciphertext, 32);
 	out[36] = 0;
-
-	strlwr(&out[TAG_LENGTH]);
 
 	return out;
 }
@@ -306,7 +304,7 @@ static void *get_binary(char *ciphertext)
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+6])]))<<28;
 		temp |= ((unsigned int)(atoi16[ARCH_INDEX(ciphertext[i*8+7])]))<<24;
 
-#if ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN || defined(SIMD_COEF_32)
 		out[i]=temp;
 #else
 		out[i]=JOHNSWAP(temp);
@@ -563,7 +561,7 @@ static char *get_key(int index)
 {
 #ifdef SIMD_COEF_32
 	// Get the key back from the key buffer, from UCS-2
-	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
+	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOSW(0, index)];
 	static UTF16 key[PLAINTEXT_LENGTH + 1];
 	unsigned int md4_size=0;
 	unsigned int i=0;
@@ -582,6 +580,9 @@ static char *get_key(int index)
 			break;
 		}
 	}
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity_w16(key, md4_size<<1);
+#endif
 	return (char*)utf16_to_enc(key);
 #else
 	return (char*)utf16_to_enc(saved_key);
@@ -661,6 +662,9 @@ static int cmp_exact(char *source, int index)
 	MD4_Update(&ctx, u16, len << 1);
 	MD4_Final((void*)crypt_key, &ctx);
 
+#if !ARCH_LITTLE_ENDIAN
+	alter_endianity(crypt_key, 16);
+#endif
 #ifdef REVERSE_STEPS
 	md4_reverse(crypt_key);
 #endif

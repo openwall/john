@@ -93,6 +93,11 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	return gpg_common_valid(ciphertext, self, 1);
+}
+
 static void set_salt(void *salt)
 {
 	gpg_common_cur_salt = *(struct gpg_common_custom_salt **)salt;
@@ -100,11 +105,7 @@ static void set_salt(void *salt)
 
 static void gpg_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
@@ -189,7 +190,7 @@ struct fmt_main fmt_gpg = {
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		gpg_common_valid,
+		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		gpg_common_get_salt,

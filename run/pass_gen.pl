@@ -82,10 +82,11 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
 		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1 leet
+		sapg sapb
 		));
 
-# todo: sapb sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
-#       raw-skein-256 raw-skein-512 _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo sapb sapg stribog
+# todo: sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
+#       raw-skein-256 raw-skein-512 _7z axcrypt bks dmd5 dominosec8 krb5_tgs lotus5 lotus85 net_md5 net_sha1 netlmv2 netsplitlm openssl_enc oracle12c pem po pomelo stribog
 
 my $i; my $h; my $u; my $salt;  my $out_username; my $out_extras; my $out_uc_pass; my $l0pht_fmt;
 my $qnx_sha512_warning=0; my $is_mdc2_valid = -1;
@@ -2102,8 +2103,85 @@ sub pem {
 sub pomelo {
 }
 sub sapb {
+	my $BCODE = "\x14\x77\xf3\xd4\xbb\x71\x23\xd0\x03\xff\x47\x93\x55\xaa\x66\x91".
+	            "\xf2\x88\x6b\x99\xbf\xcb\x32\x1a\x19\xd9\xa7\x82\x22\x49\xa2\x51".
+	            "\xe2\xb7\x33\x71\x8b\x9f\x5d\x01\x44\x70\xae\x11\xef\x28\xf0\x0d";
+	my $TRANS = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\x3f\x40\x41\x50\x43\x44\x45\x4b\x47\x48\x4d\x4e\x54\x51\x53\x46".
+		    "\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x56\x55\x5c\x49\x5d\x4a".
+		    "\x42\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".
+		    "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x58\x5b\x59\xff\x52".
+		    "\x4c\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".
+		    "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x57\x5e\x5a\x4f\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff".
+		    "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
+	$out_username = uc get_username(12);
+	my $pw = $_[1];
+	# note length=0 password fails, who cares!
+	if (length $pw > 8) { $pw = substr($pw, 0, 8); }
+	# convert password into 'translated' password
+	my @arp = unpack("C*", $pw);
+	my $pass_tr = ""; for ($h = 0; $h < length $pw; ++$h) { $pass_tr .= substr($TRANS, $arp[$h]%256, 1); }
+	# convert username (salt) into 'translated' username
+	my @ars = unpack("C*", $out_username);
+	my $user_tr = ""; for ($h = 0; $h < length $out_username; ++$h) { $user_tr .= substr($TRANS, $ars[$h]%256, 1); }
+
+	$h = md5($pass_tr.$user_tr);
+
+	# wald0rf_magic crap (from sapB_fmt_plug.c)
+	my @arh = unpack("C*", $h);
+	my $sum20 = $arh[0]%4+$arh[1]%4+$arh[2]%4+$arh[3]%4+$arh[5]%4+0x20;
+	my $destArray = "";  # we build $sum20 byts of destArray, using tralated password, username and the BCODE array
+	my $I1=0; my $I3=0;  # the I2 variable is simply current length of destArray
+	while (length $destArray < $sum20) {
+		if ($I1 < length($pw)) {
+			if ($arh[15-$I1] % 2) {
+				$destArray .= substr($BCODE, 0x30-$I1-1, 1);
+			}
+			$destArray .= substr($pass_tr, $I1++, 1);
+		}
+		if ($I3 < length $out_username) {
+			$destArray .= substr($user_tr, $I3++, 1);
+		}
+		$destArray .= substr($BCODE, length($destArray) - $I1 - $I3, 1);
+		$destArray .= "\0";
+	}
+	# note, the wald0r_magic can give us 1 byte too much, for some $sum20 values. Fix if needed.
+	if (length $destArray > $sum20) { $destArray = substr($destArray, 0, $sum20); }
+	# end of wald0rf_magic crap
+
+	$h = md5($destArray);
+	my @ar = unpack("C*", $h);
+	$h = "";
+	for ($I1 = 0; $I1 < 8; ++$I1) {
+		$h .= chr($ar[$I1] ^ $ar[$I1+8]);
+	}
+	return "$out_username\$". uc unpack("H*",$h);
 }
 sub sapg {
+	my $CODVNG = "\x91\xAC\x51\x14\x9F\x67\x54\x43\x24\xE7\x3B\xE0\x28\x74\x7B\xC2".
+	             "\x86\x33\x13\xEB\x5A\x4F\xCB\x5C\x08\x0A\x73\x37\x0E\x5D\x1C\x2F".
+		     "\x33\x8F\xE6\xE5\xF8\x9B\xAE\xDD\x16\xF2\x4B\x8D\x2C\xE1\xD4\xDC".
+		     "\xB0\xCB\xDF\x9D\xD4\x70\x6D\x17\xF9\x4D\x42\x3F\x9B\x1B\x11\x94".
+		     "\x9F\x5B\xC1\x9B\x06\x05\x9D\x03\x9D\x5E\x13\x8A\x1E\x9A\x6A\xE8".
+		     "\xD9\x7C\x14\x17\x58\xC7\x2A\xF6\xA1\x99\x63\x0A\xD7\xFD\x70\xC3".
+		     "\xF6\x5E\x74\x13\x03\xC9\x0B\x04\x26\x98\xF7\x26\x8A\x92\x93\x25".
+		     "\xB0\xA2\x0D\x23\xED\x63\x79\x6D\x13\x32\xFA\x3C\x35\x02\x9A\xA3".
+		     "\xB3\xDD\x8E\x0A\x24\xBF\x51\xC3\x7C\xCD\x55\x9F\x37\xAF\x94\x4C".
+		     "\x29\x08\x52\x82\xB2\x3B\x4E\x37\x9F\x17\x07\x91\x11\x3B\xFD\xCD";
+	$out_username = uc get_username(12);
+	my @ar = unpack("C*", sha1($_[1].$out_username));
+	my $len = 0; for ($h = 0; $h < 10; ++$h) { $len += $ar[$h] % 6; } $len += 0x20;
+	my $off = 0; for ($h = 19; $h > 9; --$h) { $off += $ar[$h] % 8; }
+	$h = uc unpack("H*", sha1($_[1].substr($CODVNG, $off, $len).$out_username));
+	return "$out_username\$$h";
 }
 sub stribog {
 }

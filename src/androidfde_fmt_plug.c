@@ -72,7 +72,7 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
 #define BINARY_ALIGN		1
-#define SALT_ALIGN			sizeof(int)
+#define SALT_ALIGN			8
 #define SALT_SIZE           sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
@@ -276,7 +276,7 @@ void hash_plugin_check_hash(int index)
 	AES_cbc_essiv(cur_salt->data + 1024, decrypted2, keycandidate2,2,128);
 
 	// Check for FAT
-	if ((memcmp(decrypted1+3,"MSDOS5.0",8)==0))
+	if (!memcmp(decrypted1 + 3, "MSDOS5.0", 8))
 	    cracked[index+j] = 1;
 	else {
 		// Check for extfs
@@ -337,11 +337,7 @@ static int cmp_exact(char *source, int index)
 
 static void fde_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

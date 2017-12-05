@@ -51,31 +51,6 @@ if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
   CC="$CC_BACKUP"
 fi
 
-# Cross compile compliant 32/64 bit test code.
-AC_MSG_CHECKING([for 32/64 bit])
-AC_LINK_IFELSE(
-   [AC_LANG_SOURCE(
-      [extern void exit(int);
-      int main() {
-      #if defined(_LP64) || defined(__LP64__) || defined(_LLP64) || defined(__LLP64__) || \
-        defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(__amd64__) || \
-        defined(_M_AMD64) || defined(_M_X64) || defined(WIN64) || \
-        defined(__IA64__) || defined(__ia64) || defined(_M_IA64) || \
-        defined(__aarch64__) || defined(__ppc64__)
-          exit(0);}
-      #else
-          BORK!
-      #endif
-      ]
-   )]
-  ,[CPU_BITS="-m64"]
-   [CPU_BIT_STR="64"]
-   [AC_MSG_RESULT([64-bit])]
-  ,[CPU_BITS="-m32"]
-   [CPU_BIT_STR="32"]
-   [AC_MSG_RESULT([32-bit])]
-)
-
 # At this point we know the arch and CPU width so we can pick details. Most
 # "special stuff" from old fat Makefile should go here.
 case "${host_cpu}_${CFLAGS}" in
@@ -103,7 +78,7 @@ case "${host_cpu}_${CFLAGS}" in
    mic*)
       [CC_ASM_OBJS="simd-intrinsics.o"]
       ;;
-   powerpc64le*)
+   powerpc64*)
       [CC_ASM_OBJS="simd-intrinsics.o"]
       ;;
    arm*)

@@ -38,7 +38,9 @@
 #define ARCH_INT_GT_32			0
 #endif
 
+#if !defined(ARCH_ALLOWS_UNALIGNED)
 #define ARCH_ALLOWS_UNALIGNED		1
+#endif
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			1
@@ -75,15 +77,6 @@
 #endif
 #if defined(__AVX__) || defined(JOHN_XOP)
 #define JOHN_AVX			1
-#endif
-
-#ifdef __SSSE3__
-#undef CPU_NAME
-#define CPU_NAME		"SSSE3"
-#endif
-#ifdef __SSE4_1__
-#undef CPU_NAME
-#define CPU_NAME		"SSE4.1"
 #endif
 
 #define DES_ASM				1

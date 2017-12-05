@@ -11,13 +11,13 @@ use File::Basename;
 # magnum (adapt to JtR use)
 
 # version:
-# 1.0
+# 1.2
 
 # date released:
 # April 2015
 
 # date last updated:
-# 5th February 2017
+# 16th Nov 2017
 
 # dependencies:
 # Compress::Raw::Lzma
@@ -96,6 +96,18 @@ use File::Basename;
 # Constants
 #
 
+# cracker specific stuff
+
+my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
+
+my $PASSWORD_RECOVERY_TOOL_NAME = "john";
+my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;          # hexadecimal output value. This value should always be >= 64
+my $PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK  = 1;      # does the cracker support the AES-CBC padding attack (0 means no, 1 means yes)
+my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1, 2); # within this list we only need values ranging from 1 to 7
+                                                             # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
+
+# 7-zip specific stuff
+
 my $LZMA2_MIN_COMPRESSED_LEN = 16; # the raw data (decrypted) needs to be at least: 3 + 1 + 1, header (start + size) + at least one byte of data + end
                                    # therefore we need to have at least one AES BLOCK (128 bits = 16 bytes)
 
@@ -166,15 +178,6 @@ my $SEVEN_ZIP_TRUNCATED          = 128; # (0x80 or 0b10000000)
 
 my %SEVEN_ZIP_COMPRESSOR_NAMES   = (1 => "LZMA1", 2 => "LZMA2", 3 => "PPMD", 4 => "BCJ", 5 => "BCJ2", 6 => "BZIP2",
                                     7 => "DEFLATE");
-
-# cracker specific stuff
-
-my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
-
-my $PASSWORD_RECOVERY_TOOL_NAME = "john";
-my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;          # hexadecimal output value. This value should always be >= 64
-my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1, 2); # within this list we only need values ranging from 1 to 7
-                                                             # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
 
 #
 # Helper functions
@@ -1172,17 +1175,20 @@ sub extract_hash_from_archive
     {
       if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
       {
-        my_seek ($fp, $data_len - 32, 1);
+        if ($PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK == 1)
+        {
+          my_seek ($fp, $data_len - 32, 1);
 
-        $iv_buf = my_read ($fp, 16);
-        $iv_len = 16;
+          $iv_buf = my_read ($fp, 16);
+          $iv_len = 16;
 
-        $data = my_read ($fp, 16);
-        $data_len = 16;
+          $data = my_read ($fp, 16);
+          $data_len = 16;
 
-        $unpack_size %= 16;
+          $unpack_size %= 16;
 
-        $is_truncated = 1;
+          $is_truncated = 1;
+        }
       }
 
       $padding_attack_possible = 1;
@@ -1199,9 +1205,12 @@ sub extract_hash_from_archive
   if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
   {
     print STDERR "WARNING: the file '". $file_path . "' unfortunately can't be used with $PASSWORD_RECOVERY_TOOL_NAME since the data length\n";
-    print STDERR "in this particular case is too long ($data_len of the maximum allowed " .($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2). " bytes) ";
-    print STDERR "and it can't be truncated.\n";
-    print STDERR "This should only happen in very rare cases.\n";
+    print STDERR "in this particular case is too long ($data_len of the maximum allowed " .($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2). " bytes).\n";
+
+    if ($PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK == 1)
+    {
+      print STDERR "Furthermore, it could not be truncated. This should only happen in very rare cases.\n";
+    }
 
     return "";
   }
@@ -1306,7 +1315,7 @@ sub extract_hash_from_archive
     $type_of_data = $type_of_compression;
   }
 
-  $hash_buf = sprintf ("%s:%s%i\$%i\$%i\$%s\$%i\$%s\$%i\$%i\$%i\$%s",
+  $hash_buf = sprintf ("%s:%s%u\$%u\$%u\$%s\$%u\$%s\$%u\$%u\$%u\$%s",
     basename($file_path),
     $SEVEN_ZIP_HASH_SIGNATURE,
     $type_of_data,
@@ -1326,7 +1335,7 @@ sub extract_hash_from_archive
 
   my $crc_len = $substreams_info->{'unpack_sizes'}[0]; # we always stick to the first file here
 
-  $hash_buf .= sprintf ("\$%i\$%s",
+  $hash_buf .= sprintf ("\$%u\$%s",
     $crc_len,
     $compression_attributes
   );

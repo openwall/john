@@ -151,7 +151,6 @@ char * sha256_common_split(char *ciphertext, int index, struct fmt_main *self)
 		ciphertext += HEX_TAG_LEN;
 
 	memcpy(out, HEX_TAG, HEX_TAG_LEN);
-	memcpy(out + HEX_TAG_LEN, ciphertext, HEX_CIPHERTEXT_LENGTH + 1);
-	strlwr(out + HEX_TAG_LEN);
+	memcpylwr(out + HEX_TAG_LEN, ciphertext, HEX_CIPHERTEXT_LENGTH + 1);
 	return out;
 }

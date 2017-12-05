@@ -288,7 +288,11 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 }
 #if defined(SIMD_COEF_32)
 // SIMD method
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS1(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#else
+#define GETPOS1(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#endif
 
 
 static int mbedtls_pkcs12_derivation_simd1( unsigned char *data[SSE_GROUP_SZ_SHA1],
@@ -643,7 +647,11 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 #if defined(SIMD_COEF_64)
 
 // 64 bit mixer
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS4(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#else
+#define GETPOS4(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#endif
 
 int mbedtls_pkcs12_derivation_simd_sha512( unsigned char *data[SSE_GROUP_SZ_SHA512], size_t datalen,
 	        const unsigned char *pwd[SSE_GROUP_SZ_SHA512], size_t pwdlen[SSE_GROUP_SZ_SHA512],

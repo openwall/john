@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_ethereum);
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(*cur_salt)
-#define SALT_ALIGN              sizeof(int)
+#define SALT_ALIGN              sizeof(uint64_t)
 #define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
@@ -94,7 +94,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static void create_clobj(size_t kpc, struct fmt_main *self)

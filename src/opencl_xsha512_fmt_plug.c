@@ -96,7 +96,7 @@ static struct fmt_main *self;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static const char * warn[] = {
@@ -441,7 +441,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		FMT_CASE | FMT_8_BIT,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
-		{ FORMAT_TAG },
+		{ XSHA512_FORMAT_TAG },
 #endif
 	    sha512_common_tests_xsha512_20
 	}, {

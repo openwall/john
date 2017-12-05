@@ -49,7 +49,7 @@ john_register_one(&fmt_known_hosts);
 #define PAD_SIZE                64
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              1
+#define SALT_ALIGN              sizeof(uint64_t)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
@@ -152,13 +152,8 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -209,10 +204,7 @@ static int cmp_exact(char *source, int index)
 
 static void known_hosts_set_key(char *key, int index)
 {
-	int len = strlen(key);
-
-	memcpy(saved_key[index], key, len);
-	saved_key[index][len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
@@ -267,13 +259,8 @@ struct fmt_main fmt_known_hosts = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

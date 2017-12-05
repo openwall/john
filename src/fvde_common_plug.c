@@ -74,7 +74,7 @@ void *fvde_common_get_salt(char *ciphertext)
 	char *p;
 	static fvde_custom_salt *cs;
 
-	cs = mem_calloc_tiny(sizeof(fvde_custom_salt), MEM_ALIGN_WORD);
+	cs = mem_calloc_tiny(sizeof(fvde_custom_salt), sizeof(uint64_t));
 
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$"); // version
@@ -90,9 +90,10 @@ void *fvde_common_get_salt(char *ciphertext)
 	for (i = 0; i < BLOBLEN; i++)
 		cs->blob.chr[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+#if ARCH_LITTLE_ENDIAN
 	for (i = 0; i < BLOBLEN / 8; i++)
 		 cs->blob.qword[i] = JOHNSWAP64(cs->blob.qword[i]);
-
+#endif
 	MEM_FREE(keeptr);
 
 	return (void *)cs;

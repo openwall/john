@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2009,2013 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2009,2013,2017 by Solar Designer
  *
  * Heavily modified by JimF, magnum and maybe by others.
  *
@@ -9,9 +9,6 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
-
-#include <stdio.h>
-#include <sys/stat.h>
 
 #if AC_BUILT
 #include "autoconfig.h"
@@ -22,11 +19,15 @@
 #endif
 #endif
 
-#include "os.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <sys/stat.h>
 
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
+
+#include "os.h"
 
 #if !AC_BUILT
  #include <string.h>
@@ -61,7 +62,6 @@
 #include "arch.h"
 #include "jumbo.h"
 #include "misc.h"
-#include "math.h"
 #include "params.h"
 #include "common.h"
 #include "path.h"
@@ -387,7 +387,9 @@ void wordlist_hybrid_fix_state(void)
 
 static double get_progress(void)
 {
-	int64_t pos, size;
+	struct stat file_stat;
+	int64_t pos;
+	uint64_t size;
 	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
@@ -405,12 +407,14 @@ static double get_progress(void)
 		pos = map_pos - mem_map;
 		size = map_end - mem_map;
 	} else {
+		if (fstat(fileno(word_file), &file_stat))
+			pexit("fstat");
 		pos = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, 0, SEEK_END);
 		size = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, pos, SEEK_SET);
 #if 0
-		fprintf (stderr, "pos="LLd"  size="LLd"  percent=%0.4f\n", (long long)pos, (long long)size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
+		fprintf(stderr, "pos=%"PRId64"  size=%"PRIu64"  percent=%0.4f\n", pos, size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
 #endif
 		if (pos < 0) {
 #ifdef __DJGPP__
@@ -422,7 +426,7 @@ static double get_progress(void)
 		}
 	}
 #if 0
-	fprintf(stderr, "rule %d/%d mask "LLu" pos "LLu"/"LLu"\n",
+	fprintf(stderr, "rule %d/%d mask "LLu" pos %"PRId64"/%"PRIu64"\n",
 	        rule_number, rule_count, mask_mult, pos, size);
 #endif
 	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /
@@ -434,16 +438,29 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 	return word;
 }
 
-static MAYBE_INLINE void clean_bom(char *line)
+/*
+ * There should be legislation against adding a BOM to UTF-8, not to
+ * mention calling UTF-16 a "text file".
+ */
+static MAYBE_INLINE void check_bom(char *line)
 {
-	static int checkbomfirst = 1;
+	static int warned8, warned16;
 
-	if (line_number == 0 && checkbomfirst && options.input_enc == UTF_8) {
-		if (!strncmp("\xEF\xBB\xBF", line, 3)) {
+	if (((unsigned char*)line)[0] < 0xef)
+		return;
+	if (!strncmp("\xEF\xBB\xBF", line, 3)) {
+		if (options.input_enc == UTF_8)
 			memmove(line, line + 3, strlen(line) - 2);
+		else {
+			if (john_main_process && !warned8++)
+				fprintf(stderr,
+				        "Warning: UTF-8 BOM seen in wordlist - You probably want --input-encoding=UTF8\n");
+			line += 3;
 		}
-		checkbomfirst = 0;
 	}
+	if (options.input_enc == UTF_8  && !warned16++ &&
+	    (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2)))
+		fprintf(stderr, "Warning: UTF-16 BOM seen in wordlist.\n");
 }
 
 /*
@@ -733,6 +750,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 					if (!mgetl(line))
 						break;
+					check_bom(line);
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					lp = convert(line);
@@ -759,6 +777,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 					if (!mgetl(line))
 						break;
+					check_bom(line);
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					lp = convert(line);
@@ -884,8 +903,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					i--;
 					break;
 				}
-				if (!myWordFileLines)
+				if (!myWordFileLines) {
+					check_bom(cp);
 					cp = convert(cp);
+				}
 				ep = cp;
 				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r')
 					ep++;
@@ -993,6 +1014,7 @@ GRAB_NEXT_PIPE_LOAD:
 						pipe_input = 0;
 						break;
 					}
+					check_bom(cpi);
 					cpi = convert(cpi);
 					if (strncmp(cpi, "#!comment", 9)) {
 						int len = strlen(cpi);
@@ -1279,8 +1301,6 @@ REDO_AFTER_LMLOOP:
 #else
 			strcpy(line, words[line_number]);
 #endif
-			clean_bom(line);
-
 			line_number++;
 
 			if ((word = apply(line, rule, -1, last))) {
@@ -1331,9 +1351,8 @@ REDO_AFTER_LMLOOP:
 		while (mem_map ? mgetl(line) :
 		       fgetl(line, LINE_BUFFER_SIZE, word_file)) {
 
-			clean_bom(line);
-
 			line_number++;
+			check_bom(line);
 
 			if (line[0] != '#') {
 process_word:

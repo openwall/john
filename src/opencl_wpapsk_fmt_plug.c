@@ -37,8 +37,6 @@ static struct fmt_main *self;
 #define FORMAT_NAME		"WPA/WPA2/PMF PSK"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 
-#define BENCHMARK_LENGTH	-1
-
 #define ITERATIONS		4095
 #define HASH_LOOPS		105 // factors 3, 3, 5, 7, 13
 #define SEED			256
@@ -72,7 +70,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 /* ------- Helper functions ------- */
@@ -338,7 +336,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE,
 		{
-			"Key version"
+			"key version [1:WPA 2:WPA2 3:802.11w]"
 		},
 		{ FORMAT_TAG},
 		tests

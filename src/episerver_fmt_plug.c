@@ -90,7 +90,12 @@ john_register_one(&fmt_episerver);
 #define HASH_IDX_SHA1   (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32)
 #define HASH_IDX_SHA256 (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
 #define HASH_IDX_OUT    (cur_salt->version == 0 ? HASH_IDX_SHA1 : HASH_IDX_SHA256)
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
+#else
+#define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
+#endif
+
 
 #define ALGORITHM_NAME      "SHA1/SHA256 " SHA256_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH    19 // (64 - 9 - 16)/2
@@ -259,12 +264,17 @@ static void *get_binary(char *ciphertext)
 	memset(buf.c, 0, sizeof(buf.c));
 	p = strrchr(ciphertext, '*') + 1;
 	base64_decode(p, strlen(p), (char*)out);
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return out;
 }
 
+// can not use common-get-hash.h since the HASH_IDX_OUT will vary between 5 and
+// 8 limbs based upon the current salt.  No way for pre-processor to handle that.
+// the only way to use common-get-hash.h would be to make a format for sha1, and
+// a 2nd for sha256.  But since we already have a singlular format, we will simply
+// not use the common code here.
 #ifdef SIMD_COEF_32
 static int get_hash_0 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_0; }
 static int get_hash_1 (int index) { return crypt_out[HASH_IDX_OUT] & PH_MASK_1; }
@@ -400,11 +410,19 @@ static void episerver_set_key(char *_key, int index)
 		unsigned int temp;
 		if ((temp = *key++))
 		{
+#if ARCH_LITTLE_ENDIAN==1
 			*keybuf_word = JOHNSWAP((temp << 16) | temp2);
+#else
+			*keybuf_word = (temp2 << 24) | (temp<<8);
+#endif
 		}
 		else
 		{
+#if ARCH_LITTLE_ENDIAN==1
 			*keybuf_word = JOHNSWAP((0x80 << 16) | temp2);
+#else
+			*keybuf_word = (temp2 << 24) | 0x8000;
+#endif
 			len++;
 			goto key_cleaning;
 		}
@@ -594,6 +612,9 @@ static char *get_key(int index)
 		out[i] = ((unsigned char*)saved_key)[GETPOS(16 + (i<<1), index)] | (((unsigned char*)saved_key)[GETPOS(16 + (i<<1) + 1, index)] << 8);
 	out[i] = 0;
 
+#if defined (SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	alter_endianity_w16(out, s<<1);
+#endif
 	return (char*)utf16_to_enc(out);
 #else
 	return saved_key[index];
@@ -627,7 +648,7 @@ struct fmt_main fmt_episerver = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
 		{
-			"hash type [1: SHA1 2:SHA256]",
+			"hash type [1:SHA1 2:SHA256]",
 		},
 		{ FORMAT_TAG },
 		episerver_tests

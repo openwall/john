@@ -90,7 +90,7 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = omp_get_num_threads();
+	int omp_t = omp_get_max_threads();
 
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -210,7 +210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// set bit
 			saved_key[index][len] = 0x80;
 			block[14] = len << 3;
-#if (ARCH_LITTLE_ENDIAN==0)
+#if !ARCH_LITTLE_ENDIAN
 			block[14] = JOHNSWAP(block[14]);
 #endif
 			MD5_Update(&saved_ctx[index], (unsigned char*)block, 64);
@@ -253,11 +253,9 @@ static int cmp_exact(char *source, int index)
 static void hsrp_set_key(char *key, int index)
 {
 	int olen = saved_len[index];
-	int len= strlen(key);
-	saved_len[index] = len;
-	strcpy(saved_key[index], key);
-	if (olen > len)
-		memset(&(saved_key[index][len]), 0, olen-len);
+	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	if (olen > saved_len[index])
+		memset(&(saved_key[index][saved_len[index]]), 0, olen-saved_len[index]);
 	dirty = 1;
 }
 

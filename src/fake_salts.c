@@ -160,10 +160,8 @@ static char *LoadUserClass(char which, int i) {
 	if (!loaded) {
 #if JOHN_SYSTEMWIDE
 		cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-		cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
 		cfg_init(CFG_FULL_NAME, 1);
-		cfg_init(CFG_ALT_NAME, 0);
 		loaded = 1;
 	}
 

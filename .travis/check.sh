@@ -9,7 +9,7 @@ if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
 
     ../.travis/test.sh
 
-elif [[ -z "$TEST" ]]; then
+elif [[ -z "$TEST" || "$TEST" == "encoding" ]]; then
     cd src
 
     # Build and run with the address sanitizer instrumented code
@@ -18,40 +18,35 @@ elif [[ -z "$TEST" ]]; then
 
     # Prepare environment
     sudo apt-get update -qq
-    sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
-    sudo apt-get install fglrx-dev opencl-headers || true
+    sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libiomp-dev
+
+    if [[ "$OPENCL" == "yes" ]]; then
+        sudo apt-get install fglrx-dev opencl-headers || true
+
+        # Fix the OpenCL stuff
+        mkdir -p /etc/OpenCL
+        mkdir -p /etc/OpenCL/vendors
+        sudo ln -sf /usr/lib/fglrx/etc/OpenCL/vendors/amdocl64.icd /etc/OpenCL/vendors/amd.icd
+    fi
+
+    if [[ ! -f /usr/lib/x86_64-linux-gnu/libomp.so ]]; then
+        # A bug somewhere?
+        sudo ln -sf /usr/lib/libiomp5.so /usr/lib/x86_64-linux-gnu/libomp.so
+    fi
 
     # Configure and build
-    ./configure $ASAN
+    ./configure CPPFLAGS=-mno-avx2 $ASAN
     make -sj4
 
-    ../.travis/test.sh
-
-elif [[ "$TEST" == "no OpenMP" ]]; then
-    cd src
-
-    # Build and run with the address sanitizer instrumented code
-    export ASAN_OPTIONS=symbolize=1
-    export ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer)
-
-    # Prepare environment
-    sudo apt-get update -qq
-    sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
-    sudo apt-get install fglrx-dev opencl-headers || true
-
-    # Configure and build
-    ./configure $ASAN --disable-native-tests --disable-openmp
-    make -sj4
-
-    ../.travis/test.sh
+    ../.travis/test.sh "$TEST"
 
 elif [[ "$TEST" == "fresh test" ]]; then
     # ASAN using a 'recent' compiler
-    docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:16.10 sh -c " \
+    docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:rolling sh -c " \
       cd /cwd/src; \
       apt-get update -qq; \
-      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev; \
-      ./configure --enable-asan; \
+      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev libomp-dev; \
+      ./configure CPPFLAGS=-mno-avx2 --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
       PROBLEM='slow' ../.travis/test.sh

@@ -7,7 +7,7 @@
 #if !defined (salted_sha1_common_h__)
 #define salted_sha1_common_h__
 
-#define NSLDAP_MAGIC         "{ssha}"
+#define NSLDAP_MAGIC         "{SSHA}"
 #define NSLDAP_MAGIC_LENGTH  6
 #define BINARY_SIZE          20
 #define MAX_SALT_LEN         16  // bytes, the base64 representation is longer

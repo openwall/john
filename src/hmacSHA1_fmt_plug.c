@@ -57,7 +57,11 @@ john_register_one(&fmt_hmacSHA1);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SHA1_N
 #define MAX_KEYS_PER_CRYPT      SHA1_N
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + (3 - ((i) & 3)) + (unsigned int)index/SIMD_COEF_32 * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
+#else
+#define GETPOS(i, index)        ((index & (SIMD_COEF_32 - 1)) * 4 + ((i) & (0xffffffff - 3)) * SIMD_COEF_32 + ((i) & 3) + (unsigned int)index/SIMD_COEF_32 * SHA_BUF_SIZ * 4 * SIMD_COEF_32)
+#endif
 
 #else
 #define MIN_KEYS_PER_CRYPT      1
@@ -110,7 +114,7 @@ static void init(struct fmt_main *self)
 	unsigned int i;
 #endif
 #ifdef _OPENMP
-	int omp_t = omp_get_num_threads();
+	int omp_t = omp_get_max_threads();
 
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -208,8 +212,13 @@ static void set_key(char *key, int index)
 {
 	int len;
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1
 	uint32_t *ipadp = (uint32_t*)&ipad[GETPOS(3, index)];
 	uint32_t *opadp = (uint32_t*)&opad[GETPOS(3, index)];
+#else
+	uint32_t *ipadp = (uint32_t*)&ipad[GETPOS(0, index)];
+	uint32_t *opadp = (uint32_t*)&opad[GETPOS(0, index)];
+#endif
 	const uint32_t *keyp = (uint32_t*)key;
 	unsigned int temp;
 
@@ -229,19 +238,34 @@ static void set_key(char *key, int index)
 		keyp = (unsigned int*)k0;
 		for (i = 0; i < BINARY_SIZE / 4; i++, ipadp += SIMD_COEF_32, opadp += SIMD_COEF_32)
 		{
+#if ARCH_LITTLE_ENDIAN==1
 			temp = JOHNSWAP(*keyp++);
+#else
+			temp = *keyp++;
+#endif
 			*ipadp ^= temp;
 			*opadp ^= temp;
 		}
 	}
 	else
+#if ARCH_LITTLE_ENDIAN==1
 	while(((temp = JOHNSWAP(*keyp++)) & 0xff000000)) {
+#else
+	while(((temp = *keyp++) & 0xff000000)) {
+#endif
 		if (!(temp & 0x00ff0000) || !(temp & 0x0000ff00))
 		{
+#if ARCH_LITTLE_ENDIAN==1
 			((unsigned short*)ipadp)[1] ^=
 				(unsigned short)(temp >> 16);
 			((unsigned short*)opadp)[1] ^=
 				(unsigned short)(temp >> 16);
+#else
+			((unsigned short*)ipadp)[0] ^=
+				(unsigned short)(temp >> 16);
+			((unsigned short*)opadp)[0] ^=
+				(unsigned short)(temp >> 16);
+#endif
 			break;
 		}
 		*ipadp ^= temp;
@@ -404,7 +428,7 @@ static void *get_binary(char *ciphertext)
 		p += 2;
 	}
 
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return (void*)out;

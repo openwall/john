@@ -29,6 +29,13 @@ john_register_one(&fmt_HDAA);
 #include "formats.h"
 #include "md5.h"
 
+#if !ARCH_LITTLE_ENDIAN
+// For now, neuter this format from SIMD building.
+// Someone else can port to BE at a later date.
+#undef SIMD_COEF_32
+#undef SIMD_PARA_MD5
+#endif
+
 #include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
@@ -54,7 +61,7 @@ john_register_one(&fmt_HDAA);
 #define BINARY_SIZE			16
 #define BINARY_ALIGN			4
 #define SALT_SIZE			sizeof(reqinfo_t)
-#define SALT_ALIGN			4
+#define SALT_ALIGN			sizeof(size_t)
 
 #if defined(_OPENMP)
 static unsigned int omp_t = 1;
@@ -82,8 +89,8 @@ static unsigned int omp_t = 1;
 
 #define SEPARATOR			'$'
 
-#define MAGIC				"$response$"
-#define MAGIC_LEN			(sizeof(MAGIC)-1)
+#define FORMAT_TAG				"$response$"
+#define TAG_LENGTH			(sizeof(FORMAT_TAG)-1)
 #define SIZE_TAB			12
 
 // This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
@@ -196,11 +203,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 
-	if (strncmp(ciphertext, MAGIC, MAGIC_LEN) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += MAGIC_LEN;
+	ctcopy += TAG_LENGTH;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL) /* hash */
 		goto err;
@@ -240,9 +247,9 @@ err:
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	char *cp;
-	if (strncmp(ciphertext, MAGIC, MAGIC_LEN))
+	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
-	cp = ciphertext + MAGIC_LEN;
+	cp = ciphertext + TAG_LENGTH;
 	cp = strchr(cp, '$'); if (!cp) return ciphertext;
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
@@ -658,7 +665,7 @@ static void *get_salt(char *ciphertext)
 	MD5_CTX ctx;
 
 	/* parse the password string */
-	if (!r) r = mem_alloc_tiny(sizeof(*r), MEM_ALIGN_WORD);
+	if (!r) r = mem_alloc_tiny(sizeof(*r), SALT_ALIGN);
 	memset(r, 0, sizeof(*r));
 	for (nb = 0, i = 1; ciphertext[i] != 0; i++) {
 		if (ciphertext[i] == SEPARATOR) {
@@ -711,7 +718,7 @@ static void *get_binary(char *ciphertext)
 	static unsigned int realcipher[BINARY_SIZE / sizeof(int)];
 	int i;
 
-	ciphertext += 10;
+	ciphertext += TAG_LENGTH;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		((unsigned char*)realcipher)[i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
@@ -719,24 +726,9 @@ static void *get_binary(char *ciphertext)
 	return (void*) realcipher;
 }
 
-#ifdef SIMD_COEF_32
-#define HASH_OFFSET (index&(SIMD_COEF_32-1))+((unsigned int)index/SIMD_COEF_32)*SIMD_COEF_32*4
-static int get_hash_0(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t *)crypt_key)[HASH_OFFSET] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(uint32_t*)&crypt_key[index] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 4
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 struct fmt_main fmt_HDAA = {
 	{
@@ -758,7 +750,7 @@ struct fmt_main fmt_HDAA = {
 #endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
-		{ MAGIC },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
@@ -788,13 +780,8 @@ struct fmt_main fmt_HDAA = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

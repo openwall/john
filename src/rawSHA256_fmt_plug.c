@@ -87,7 +87,8 @@ john_register_one(&fmt_rawSHA256);
 #endif
 
 #ifdef SIMD_COEF_32
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define FMT_IS_BE
+#include "common-simd-getpos.h"
 static uint32_t (*saved_key);
 static uint32_t (*crypt_out);
 #else
@@ -152,7 +153,9 @@ static void *get_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN
 	alter_endianity (out, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	sha256_reverse(outw);
 #endif
@@ -160,111 +163,14 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-#ifdef SIMD_COEF_32
-#define HASH_IDX (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
-static int get_hash_0 (int index) { return crypt_out[HASH_IDX] & PH_MASK_0; }
-static int get_hash_1 (int index) { return crypt_out[HASH_IDX] & PH_MASK_1; }
-static int get_hash_2 (int index) { return crypt_out[HASH_IDX] & PH_MASK_2; }
-static int get_hash_3 (int index) { return crypt_out[HASH_IDX] & PH_MASK_3; }
-static int get_hash_4 (int index) { return crypt_out[HASH_IDX] & PH_MASK_4; }
-static int get_hash_5 (int index) { return crypt_out[HASH_IDX] & PH_MASK_5; }
-static int get_hash_6 (int index) { return crypt_out[HASH_IDX] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 8
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
-static int binary_hash_0(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_0; }
-static int binary_hash_1(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_1; }
-static int binary_hash_2(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_2; }
-static int binary_hash_3(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_3; }
-static int binary_hash_4(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_4; }
-static int binary_hash_5(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_5; }
-static int binary_hash_6(void *binary) { return ((uint32_t*)binary)[0] & PH_MASK_6; }
+#define HASH_IDX ((((unsigned int)index)&(SIMD_COEF_32-1))+(((unsigned int)index)/SIMD_COEF_32)*SIMD_COEF_32*8)
 
-#ifdef SIMD_COEF_32
-static void set_key(char *key, int index) {
-#if ARCH_ALLOWS_UNALIGNED
-	const uint32_t *wkey = (uint32_t*)key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
-	                                       key : strcpy(buf_aligned, key));
-#endif
-	uint32_t *keybuffer = &((uint32_t *)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
-	uint32_t *keybuf_word = keybuffer;
-	unsigned int len;
-	uint32_t temp;
-
-	len = 0;
-	while((unsigned char)(temp = *wkey++)) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xff) | (0x80 << 8));
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xffff) | (0x80 << 16));
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = JOHNSWAP(temp | (0x80U << 24));
-			len+=3;
-			goto key_cleaning;
-		}
-		*keybuf_word = JOHNSWAP(temp);
-		len += 4;
-		keybuf_word += SIMD_COEF_32;
-	}
-	*keybuf_word = 0x80000000;
-
-key_cleaning:
-	keybuf_word += SIMD_COEF_32;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_32;
-	}
-	keybuffer[15*SIMD_COEF_32] = len << 3;
-}
-#else
-static void set_key(char *key, int index)
-{
-	int len = strlen(key);
-	saved_len[index] = len;
-	if (len > PLAINTEXT_LENGTH)
-		len = saved_len[index] = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, len);
-}
-#endif
-
-#ifdef SIMD_COEF_32
-static char *get_key(int index) {
-	unsigned int i,s;
-	static char out[PLAINTEXT_LENGTH+1];
-	unsigned char *wucp = (unsigned char*)saved_key;
-
-	s = ((uint32_t *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
-	for (i=0;i<s;i++)
-		out[i] = wucp[ GETPOS(i, index) ];
-	out[i] = 0;
-	return (char*) out;
-}
-#else
-static char *get_key(int index)
-{
-	saved_key[index][saved_len[index]] = 0;
-	return saved_key[index];
-}
-#endif
+#define NON_SIMD_SET_SAVED_LEN
+#include "common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
@@ -330,7 +236,9 @@ static int cmp_exact(char *source, int index)
 	SHA256_Final((unsigned char*)crypt_out, &ctx);
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN
 	alter_endianity(crypt_out, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	sha256_reverse(crypt_out);
 #endif
@@ -373,13 +281,13 @@ struct fmt_main fmt_rawSHA256 = {
 		{ NULL },
 		fmt_default_source,
 		{
-			binary_hash_0,
-			binary_hash_1,
-			binary_hash_2,
-			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,
@@ -389,13 +297,8 @@ struct fmt_main fmt_rawSHA256 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

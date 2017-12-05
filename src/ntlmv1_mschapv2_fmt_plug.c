@@ -97,6 +97,7 @@ john_register_one(&fmt_NETNTLM_new);
 #include "formats.h"
 #include "options.h"
 #include "memory.h"
+#include "johnswap.h"
 #include "sha.h"
 #include "md4.h"
 #include "md5.h"
@@ -144,8 +145,19 @@ extern volatile int bench_running;
 #endif
 #define MIN_KEYS_PER_CRYPT      (NBKEYS * BLOCK_LOOPS)
 #define MAX_KEYS_PER_CRYPT      (NBKEYS * BLOCK_LOOPS)
+
+// These 2 get the proper uint32_t limb from the SIMD mixed set. They both
+// work properly for both BE and LE machines :) These SHOULD be used whenever
+// the full uint32_t item is wanted, usually RHS of an assignment to uint32_t*
+// NOTE, i is number is based on uint32_t[] and not uint8_t[] offsets.
+#define GETOUTPOS_W32(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i<<2)&(0xffffffff-3))*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32*4 )
+#define GETPOS_W32(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i<<2)&(0xffffffff-3))*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+// GETPOS HAS to be BE/LE specific
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
-#define GETOUTPOS(i, index)     ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*4*SIMD_COEF_32*4 )
+#else
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32*4 )
+#endif
 #else
 #define PLAINTEXT_LENGTH        64
 #define MIN_KEYS_PER_CRYPT      1
@@ -401,7 +413,7 @@ static char *chap_long_to_short(char *ciphertext) {
 	memcpy(&pos[16], &ciphertext[42], CIPHERTEXT_LENGTH+2);
 	pos[16+CIPHERTEXT_LENGTH+2] = '$';
 	pos[16+CIPHERTEXT_LENGTH+3] = 0;
-	//printf ("short=%s  original=%s\n", Buf, ciphertext);
+	//printf("short=%s  original=%s\n", Buf, ciphertext);
 	return Buf;
 }
 
@@ -512,7 +524,7 @@ static char *chap_prepare(char *split_fields[10], struct fmt_main *pFmt)
 				ret = str_alloc_copy(split_fields[1]);
 				ret[(cp3-split_fields[1]) + 1] = '$';
 				ret[(cp3-split_fields[1]) + 2] = 0;
-				//printf ("Here is the cut item: %s\n", ret);
+				//printf("Here is the cut item: %s\n", ret);
 			}
 		}
 	}
@@ -717,7 +729,7 @@ static void set_key_ansi(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
 	const uchar *key = (uchar*)_key;
-	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(0, index)];
+	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS_W32(0, index)];
 	unsigned int len, temp2;
 
 	len = 0;
@@ -775,7 +787,7 @@ static void set_key_CP(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
 	const uchar *key = (uchar*)_key;
-	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(0, index)];
+	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS_W32(0, index)];
 	unsigned int len, temp2;
 
 	len = 0;
@@ -822,7 +834,7 @@ static void set_key_utf8(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
 	const UTF8 *source = (UTF8*)_key;
-	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(0, index)];
+	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS_W32(0, index)];
 	UTF32 chl, chh = 0x80;
 	unsigned int len = 0;
 
@@ -1011,13 +1023,14 @@ static void done(void)
 static char *get_key(int index)
 {
 #ifdef SIMD_COEF_32
-	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(0, index)];
+	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS_W32(0, index)];
 	static UTF16 key[PLAINTEXT_LENGTH + 1];
 	unsigned int md4_size=0;
 	unsigned int i=0;
 
 	for (; md4_size < PLAINTEXT_LENGTH; i += SIMD_COEF_32, md4_size++)
 	{
+#if ARCH_LITTLE_ENDIAN==1
 		key[md4_size] = keybuf_word[i];
 		key[md4_size+1] = keybuf_word[i] >> 16;
 		if (key[md4_size] == 0x80 && key[md4_size+1] == 0) {
@@ -1032,6 +1045,22 @@ static char *get_key(int index)
 			key[md4_size] = 0;
 			break;
 		}
+#else
+		unsigned int INWORD = JOHNSWAP(keybuf_word[i]);
+		key[md4_size] = INWORD >> 16;
+		key[md4_size+1] = INWORD;
+		if (key[md4_size] == 0x8000 && key[md4_size+1] == 0) {
+			key[md4_size] = 0;
+			break;
+		}
+		++md4_size;
+		if (key[md4_size] == 0x8000 && (md4_size == PLAINTEXT_LENGTH ||
+		    (keybuf_word[i+SIMD_COEF_32]&0xFFFF0000) == 0))
+		{
+			key[md4_size] = 0;
+			break;
+		}
+#endif
 	}
 	return (char*)utf16_to_enc(key);
 #else
@@ -1144,14 +1173,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unsigned int value;
 
 				value = *(uint32_t*)
-					&nthash[GETOUTPOS(12, i)] >> 16;
+					&nthash[GETOUTPOS_W32(3, i)] >> 16;
 				crypt_key[i] = value;
 				bitmap[value >> 5] |= 1U << (value & 0x1f);
 			}
 		else
 			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
 				crypt_key[i] = *(uint32_t*)
-					&nthash[GETOUTPOS(12, i)] >> 16;
+					&nthash[GETOUTPOS_W32(3, i)] >> 16;
 			}
 #else
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
@@ -1181,7 +1210,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_one(void *binary, int index)
 {
-	if (crypt_key[index] == *(unsigned short*)binary) {
+#if ARCH_LITTLE_ENDIAN==1
+	if (crypt_key[index] == *(unsigned short*)binary)
+#else
+	if ( JOHNSWAP(crypt_key[index])>>16 == *(unsigned short*)binary)
+#endif
+	{
 		DES_key_schedule ks;
 		DES_cblock computed_binary;
 		unsigned int key[2];
@@ -1189,8 +1223,12 @@ static int cmp_one(void *binary, int index)
 		int i;
 
 		for (i = 0; i < 2; i++)
-			key[i] = *(uint32_t*)
-				&nthash[GETOUTPOS(4 * i, index)];
+			key[i] = 
+#if ARCH_LITTLE_ENDIAN==1
+				*(uint32_t*) &nthash[GETOUTPOS_W32(i, index)];
+#else
+				JOHNSWAP (*(uint32_t*) &nthash[GETOUTPOS_W32(i, index)]);
+#endif
 #else
 		memcpy(key, &nthash[index * 16], 8);
 #endif
@@ -1205,7 +1243,11 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_all(void *binary, int count)
 {
+#if ARCH_LITTLE_ENDIAN==1
 	unsigned int value = *(unsigned short*)binary;
+#else
+	unsigned int value = JOHNSWAP(*(unsigned short*)binary)>>16;
+#endif
 	int index;
 
 	cmps_per_crypt++;
@@ -1252,30 +1294,37 @@ static int cmp_exact(char *source, int index)
 {
 	DES_key_schedule ks;
 	uchar binary[24];
-	unsigned char key[21];
+	union {
+		unsigned char key[24];
+		unsigned int Key32[6];
+	}k;
 	char *cp;
 	int i;
 
 #ifdef SIMD_COEF_32
 	for (i = 0; i < 4; i++)
-		((uint32_t*)key)[i] = *(uint32_t*)
-			&nthash[GETOUTPOS(4 * i, index)];
+		k.Key32[i] =
+#if ARCH_LITTLE_ENDIAN==1
+			*(uint32_t*)&nthash[GETOUTPOS_W32(i, index)];
 #else
-	memcpy(key, &nthash[index * 16], 16);
+			JOHNSWAP(*(uint32_t*)&nthash[GETOUTPOS_W32(i, index)]);
+#endif
+#else
+	memcpy(k.key, &nthash[index * 16], 16);
 #endif
 	/* Hash is NULL padded to 21-bytes */
-	memset(&key[16], 0, 5);
+	memset(&k.key[16], 0, 5);
 
 	/* Split into three 7-byte segments for use as DES keys
 	   Use each key to DES encrypt challenge
 	   Concatenate output to for 24-byte NTLM response */
-	setup_des_key(key, &ks);
+	setup_des_key(k.key, &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)binary,
 	                &ks, DES_ENCRYPT);
-	setup_des_key(&key[7], &ks);
+	setup_des_key(&k.key[7], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[8],
 	                &ks, DES_ENCRYPT);
-	setup_des_key(&key[14], &ks);
+	setup_des_key(&k.key[14], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16],
 	                &ks, DES_ENCRYPT);
 
@@ -1297,10 +1346,17 @@ static int cmp_exact(char *source, int index)
 
 static int salt_hash(void *salt) { return *(uint32_t*)salt & (SALT_HASH_SIZE - 1); }
 
+#if ARCH_LITTLE_ENDIAN==1
 static int binary_hash_0(void *binary) { return *(unsigned short*)binary & PH_MASK_0; }
 static int binary_hash_1(void *binary) { return *(unsigned short*)binary & PH_MASK_1; }
 static int binary_hash_2(void *binary) { return *(unsigned short*)binary & PH_MASK_2; }
 static int binary_hash_3(void *binary) { return *(unsigned short*)binary & PH_MASK_3; }
+#else
+static int binary_hash_0(void *binary) { return (JOHNSWAP(*(unsigned short*)binary)>>16) & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return (JOHNSWAP(*(unsigned short*)binary)>>16) & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return (JOHNSWAP(*(unsigned short*)binary)>>16) & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return (JOHNSWAP(*(unsigned short*)binary)>>16) & PH_MASK_3; }
+#endif
 
 static int get_hash_0(int index) { return crypt_key[index] & PH_MASK_0; }
 static int get_hash_1(int index) { return crypt_key[index] & PH_MASK_1; }

@@ -231,7 +231,11 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 
 	bits = (ctx->total <<  3);
 	m.wlen[0] = 0;
-	OUTBE32(bits, m.mlen, 4);
+#if ARCH_LITTLE_ENDIAN
+	m.wlen[1] = JOHNSWAP(bits);
+#else
+	m.wlen[1] = bits;
+#endif
 
 	last = ctx->total & 0x3F;
 	padcnt = (last < 56) ? (56 - last) : (120 - last);
@@ -554,7 +558,12 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 
 	bits = (ctx->total <<  3);
 	m.wlen[0] = 0;
-	OUTBE64(bits, m.mlen, 8);
+#if ARCH_LITTLE_ENDIAN
+	m.wlen[1] = JOHNSWAP64(bits);
+#else
+	m.wlen[1] = bits;
+#endif
+
 
 	last = ctx->total & 0x7F;
 	padcnt = (last < 112) ? (112 - last) : (240 - last);

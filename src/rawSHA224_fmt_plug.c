@@ -99,7 +99,8 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef SIMD_COEF_32
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define FMT_IS_BE
+#include "common-simd-getpos.h"
 static uint32_t (*saved_key);
 static uint32_t (*crypt_out);
 #else
@@ -166,8 +167,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		ciphertext += TAG_LENGTH;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
-	strlwr(out + TAG_LENGTH);
+	memcpylwr(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
 
@@ -192,7 +192,9 @@ static void *get_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity (out, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	sha224_reverse(outw);
 #endif
@@ -227,84 +229,8 @@ static int binary_hash_4(void *binary) { return ((uint32_t*)binary)[3] & PH_MASK
 static int binary_hash_5(void *binary) { return ((uint32_t*)binary)[3] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((uint32_t*)binary)[3] & PH_MASK_6; }
 
-#ifdef SIMD_COEF_32
-static void set_key(char *key, int index) {
-#if ARCH_ALLOWS_UNALIGNED
-	const uint32_t *wkey = (uint32_t*)key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint32_t));
-	const uint32_t *wkey = (uint32_t*)(is_aligned(key, sizeof(uint32_t)) ?
-	                                       key : strcpy(buf_aligned, key));
-#endif
-	uint32_t *keybuffer = &((uint32_t *)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
-	uint32_t *keybuf_word = keybuffer;
-	unsigned int len;
-	uint32_t temp;
-
-	len = 0;
-	while((unsigned char)(temp = *wkey++)) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xff) | (0x80 << 8));
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = JOHNSWAP((temp & 0xffff) | (0x80 << 16));
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = JOHNSWAP(temp | (0x80U << 24));
-			len+=3;
-			goto key_cleaning;
-		}
-		*keybuf_word = JOHNSWAP(temp);
-		len += 4;
-		keybuf_word += SIMD_COEF_32;
-	}
-	*keybuf_word = 0x80000000;
-
-key_cleaning:
-	keybuf_word += SIMD_COEF_32;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_32;
-	}
-	keybuffer[15*SIMD_COEF_32] = len << 3;
-}
-#else
-static void set_key(char *key, int index)
-{
-	int len = strlen(key);
-	saved_len[index] = len;
-	if (len > PLAINTEXT_LENGTH)
-		len = saved_len[index] = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, len);
-}
-#endif
-
-#ifdef SIMD_COEF_32
-static char *get_key(int index) {
-	unsigned int i,s;
-	static char out[PLAINTEXT_LENGTH+1];
-	unsigned char *wucp = (unsigned char*)saved_key;
-
-	s = ((uint32_t *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] >> 3;
-	for (i=0;i<s;i++)
-		out[i] = wucp[ GETPOS(i, index) ];
-	out[i] = 0;
-	return (char*) out;
-}
-#else
-static char *get_key(int index)
-{
-	saved_key[index][saved_len[index]] = 0;
-	return saved_key[index];
-}
-#endif
+#define NON_SIMD_SET_SAVED_LEN
+#include "common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
@@ -370,7 +296,9 @@ static int cmp_exact(char *source, int index)
 	SHA224_Final((unsigned char*)crypt_out, &ctx);
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN
 	alter_endianity(crypt_out, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	sha224_reverse(crypt_out);
 #endif

@@ -45,14 +45,14 @@ static unsigned char salt[SALT_SIZE], nonce[NONCE_SIZE], mac[MAC_SIZE], vmk[VMK_
 
 void * Calloc(size_t len, size_t size) {
 	void * ptr = NULL;
-	if( size <= 0)
+	if ( size <= 0)
 	{
 		fprintf(stderr,"Critical error: memory size is 0\n");
 		exit(EXIT_FAILURE);
 	}
 
 	ptr = (void *)calloc(len, size);	
-	if( ptr == NULL )
+	if ( ptr == NULL )
 	{
 		fprintf(stderr,"Critical error: Memory allocation\n");
 		exit(EXIT_FAILURE);
@@ -124,7 +124,7 @@ int process_encrypted_image(char * encryptedImagePath, char * outputFile)
 				match = 0;
 			}
 		}
-		if(match == 0) { i=0; continue; }
+		if (match == 0) { i=0; continue; }
 
 		i = 0;
 		while (i < 4 && (unsigned char)c == vmk_entry[i]) {
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 				break;
 			case 'i':
-				if(strlen(optarg) >= INPUT_SIZE)
+				if (strlen(optarg) >= INPUT_SIZE)
 				{
 					fprintf(stderr, "ERROR: Input image path is bigger than %d\n", INPUT_SIZE);
 					exit(EXIT_FAILURE);
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
 				strncpy(imagePath, optarg, strlen(optarg)+1);
 				break;
 			case 'o':
-				if(strlen(optarg) >= INPUT_SIZE)
+				if (strlen(optarg) >= INPUT_SIZE)
 				{
 					fprintf(stderr, "ERROR: Input outfile path is bigger than %d\n", INPUT_SIZE);
 					exit(EXIT_FAILURE);
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if(!imagePath || !outFile)
+	if (!imagePath || !outFile)
 	{
 		usage(argv[0]);
 		exit(EXIT_FAILURE);

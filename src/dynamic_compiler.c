@@ -153,6 +153,17 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 
 #include "arch.h"
 
+#if defined(SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	#undef SIMD_COEF_32
+	#undef SIMD_COEF_64
+	#undef SIMD_PARA_MD5
+	#undef SIMD_PARA_MD4
+	#undef SIMD_PARA_SHA1
+	#undef SIMD_PARA_SHA256
+	#undef SIMD_PARA_SHA512
+	#define BITS ARCH_BITS_STR
+#endif
+
 #ifndef DYNAMIC_DISABLED
 #include <stdint.h>
 #include <ctype.h>
@@ -338,7 +349,7 @@ static void DumpParts(char *part, char *cp) {
 	cp = strtok(cp, "\n");
 	while (cp) {
 		if (!strncmp(cp, part, len))
-			printf ("%s\n", cp);
+			printf("%s\n", cp);
 		cp = strtok(NULL, "\n");
 	}
 }
@@ -350,7 +361,7 @@ static void DumpParts2(char *part, char *cp, char *comment) {
 		if (!strncmp(cp, part, len)) {
 			if (first)
 				printf("%s\n", comment);
-			printf ("%s\n", cp);
+			printf("%s\n", cp);
 			first = 0;
 		}
 		cp = strtok(NULL, "\n");
@@ -374,26 +385,26 @@ static void dump_HANDLE(void *_p) {
 	// order does not matter for the dyna-parser, BUT putting in good form
 	// will help anyone wanting to learn how to properly code in the dyna
 	// script language.
-	printf ("##############################################################\n");
-	printf ("#  Dynamic script for expression %s%s\n", p->pExpr, p->pExtraParams);
-	printf ("##############################################################\n");
+	printf("##############################################################\n");
+	printf("#  Dynamic script for expression %s%s\n", p->pExpr, p->pExtraParams);
+	printf("##############################################################\n");
 	cp = str_alloc_copy(p->pScript);
 	DumpParts("Expression", cp);
 	cp = str_alloc_copy(p->pScript);
-	printf ("#  Flags for this format\n");
+	printf("#  Flags for this format\n");
 	DumpParts("Flag=", cp);
 	cp = str_alloc_copy(p->pScript);
-	printf ("#  Lengths used in this format\n");
+	printf("#  Lengths used in this format\n");
 	DumpParts("SaltLen=", cp);
 	cp = str_alloc_copy(p->pScript);
 	DumpParts("MaxInput", cp);
 	cp = str_alloc_copy(p->pScript);
-	printf ("#  The functions in the script\n");
+	printf("#  The functions in the script\n");
 	DumpParts("Func=", cp);
 	cp = str_alloc_copy(p->pScript);
 	DumpParts2("Const", cp, "#  Constants used by this format");
 	cp = str_alloc_copy(p->pScript);
-	printf ("#  The test hashes that validate this script\n");
+	printf("#  The test hashes that validate this script\n");
 	DumpParts("Test", cp);
 
 	exit(0);
@@ -409,7 +420,7 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 	if (!strstr(expr, ",nolib") && (OLvL || strstr(expr, ",O"))) {
 		pHand = dynamic_compile_library(expr, crc32);
 		if (pHand && strstr(expr, ",debug")) {
-			printf ("Code from dynamic_compiler_lib.c\n");
+			printf("Code from dynamic_compiler_lib.c\n");
 			dump_HANDLE(pHand);
 		}
 	}
@@ -1211,7 +1222,7 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 					// expression is VALID and syntax check successful
 #ifdef WITH_MAIN
 					if (!GEN_BIG)
-					printf ("The expression checks out as valid\n");
+					printf("The expression checks out as valid\n");
 #endif
 					return nSyms;
 				}
@@ -1231,7 +1242,7 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 					// expression is VALID and syntax check successful
 #ifdef WITH_MAIN
 					if (!GEN_BIG)
-						printf ("The expression checks out as valid\n");
+						printf("The expression checks out as valid\n");
 #endif
 					return nSyms;
 				}
@@ -1684,7 +1695,7 @@ static int parse_expression(DC_struct *p) {
 	// we have to dump these items here.  The current code generator smashes them.
 	if (compile_debug)
 		for (i = 0; i <nCode; ++i)
-			printf ("%s\n", pCode[i]);
+			printf("%s\n", pCode[i]);
 
 	if (bNeedS || bNeedU || Const[1])
 		comp_add_script_line("SaltLen=%d\n", nSaltLen ? nSaltLen : -32);
@@ -2451,16 +2462,16 @@ int big_gen_one(int Num, char *cpExpr) {
 
 	ret = dynamic_compile(cpExpr, &p);
 	p2 = (DC_struct *)p;
-	if (ret || !p2->pScript) return !!printf ("Error, null script variable in type %d\n", Num);
-	printf ("static struct fmt_tests _Preloads_%d[] = {\n", Num);
+	if (ret || !p2->pScript) return !!printf("Error, null script variable in type %d\n", Num);
+	printf("static struct fmt_tests _Preloads_%d[] = {\n", Num);
 	/*
 	 * FIXME This should be rewritten, using DC_NUM_VECTORS and not
 	 * hard coding stuff:
 	 */
-	printf ("    {\"$dynamic_%d$%s\",\"abc\"},\n",Num, strchr(&(p2->pLine[0][1]), '@')+1);
-	printf ("    {\"$dynamic_%d$%s\",\"john\"},\n",Num, strchr(&(p2->pLine[1][1]), '@')+1);
-	printf ("    {\"$dynamic_%d$%s\",\"passweird\"},\n",Num, strchr(&(p2->pLine[2][1]), '@')+1);
-	printf ("    {NULL}};\n");
+	printf("    {\"$dynamic_%d$%s\",\"abc\"},\n",Num, strchr(&(p2->pLine[0][1]), '@')+1);
+	printf("    {\"$dynamic_%d$%s\",\"john\"},\n",Num, strchr(&(p2->pLine[1][1]), '@')+1);
+	printf("    {\"$dynamic_%d$%s\",\"passweird\"},\n",Num, strchr(&(p2->pLine[2][1]), '@')+1);
+	printf("    {NULL}};\n");
 	return 0;
 }
 int big_gen(char *cpType, char *cpNum) {
@@ -2477,8 +2488,8 @@ int big_gen(char *cpType, char *cpNum) {
 	ret = dynamic_compile(szExpr, &p);
 	if (ret) return 1;
 
-	printf ("/*** Large hash group for %s dynamic_%d to dynamic_%d ***/\n", cpType, Num, Num+8);
-	printf ("DYNA_PRE_DEFINE_LARGE_HASH(%s,%s,%d)\n", cpTypeU, cpNum, (int)strlen(gen_conv)); // gen_conv still holds the last hash from the simple hash($p) expression.
+	printf("/*** Large hash group for %s dynamic_%d to dynamic_%d ***/\n", cpType, Num, Num+8);
+	printf("DYNA_PRE_DEFINE_LARGE_HASH(%s,%s,%d)\n", cpTypeU, cpNum, (int)strlen(gen_conv)); // gen_conv still holds the last hash from the simple hash($p) expression.
 
 	if (big_gen_one(Num++, szExpr)) return 1;
 	sprintf(szExpr, "dynamic=%s($s.$p)", cpType); //161
@@ -2512,7 +2523,7 @@ int main(int argc, char **argv) {
 	printf("processing this expression: %s\n\n", argv[1]);
 	ret = dynamic_compile(argv[1], &p);
 	p2 = (DC_struct *)p;
-	if (ret || !p2->pScript) return !!printf ("Error, null script variable\n");
+	if (ret || !p2->pScript) return !!printf("Error, null script variable\n");
 
 	printf("Script:\n-------------\n%s\n\n", p2->pScript);
 	printf("Expression:  %s\n", p2->pExpr);

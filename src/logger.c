@@ -271,7 +271,7 @@ static void log_file_fsync(struct log_file *f)
 	if (f->fd < 0) return;
 
 	log_file_flush(f);
-#if HAVE_WINDOWS_H==0
+#if !HAVE_WINDOWS_H
 	if (fsync(f->fd)) pexit("fsync");
 #endif
 }
@@ -495,10 +495,8 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 				                       ": %s", rep_plain);
 			if (cfg_showcand)
 				count2 += (int)sprintf(log.ptr + count2,
-				                       " as candidate #"LLu"",
-				                       ((unsigned long long)
-				                       status.cands.hi << 32) +
-				                       status.cands.lo +
+				                       " as candidate #%"PRIu64,
+				                       status.cands +
 				                       index + 1);
 			count2 += (int)sprintf(log.ptr + count2, "\n");
 

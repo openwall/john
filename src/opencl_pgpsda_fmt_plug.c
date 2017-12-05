@@ -72,7 +72,7 @@ static struct fmt_main *self;
 size_t insize, outsize, settingsize;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static const char *warn[] = {

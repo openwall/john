@@ -11,7 +11,7 @@
  * Legacy input format:
  * user:$mskrb5$user$realm$checksum$timestamp
  *
- * New input format from krbpa2john.py (the above is still supported)
+ * New input format from krb2john.py (the above is still supported)
  * user:$krb5pa$etype$user$realm$salt$timestamp+checksum
  *
  * user, realm and salt are unused in this format.
@@ -97,7 +97,7 @@ static struct fmt_tests tests[] = {
 #endif
 	// repeat first hash in exactly the same form that is used in john.pot
 	{"$krb5pa$23$$$$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
-	// http://www.exumbraops.com/layerone2016/party (sample.krb.pcap, hash extracted by krbpa2john.py)
+	// http://www.exumbraops.com/layerone2016/party (sample.krb.pcap, hash extracted by krb2john.py)
 	{"$krb5pa$23$$$$4b8396107e9e4ec963c7c2c5827a4f978ad6ef943f87637614c0f31b2030ad1115d636e1081340c5d6612a3e093bd40ce8232431", "P@$$w0rd123"},
 	{NULL}
 };
@@ -134,7 +134,7 @@ static const char *warn[] = {
 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 /* ------- Helper functions ------- */

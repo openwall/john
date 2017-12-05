@@ -287,7 +287,11 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 		alter_endianity(dgst, sizeof(dgst));
 		for (i = skip_bytes%SHA_DIGEST_LENGTH; i < SHA_DIGEST_LENGTH && accum < outlen; ++i) {
 			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+#if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];
+#else
+				out[j][accum] = ((unsigned char*)(dgst[j]))[i^3];
+#endif
 			}
 			++accum;
 		}

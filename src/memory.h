@@ -306,6 +306,13 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, u
 
 
 /*
+ * 16-bit endian-swap a memory buffer in place. Size is in octets (so should
+ * be a multiple of 2). From now on, this function may be used on any arch.
+ * this is needed for some swapping of things like UTF16LE to UTF16BE, etc.
+ */
+void alter_endianity_w16(void * x, unsigned int size);
+
+/*
  * 32-bit endian-swap a memory buffer in place. Size is in octets (so should
  * be a multiple of 4). From now on, this function may be used on any arch.
  */
@@ -320,7 +327,7 @@ void alter_endianity_w64(void *x, unsigned int count);
 #if ARCH_ALLOWS_UNALIGNED
 // we can inline these, to always use JOHNSWAP/JOHNSWAP64
 // NOTE, more portable to use #defines to inline, than the MAYBE_INLINE within header files.
-#if (ARCH_LITTLE_ENDIAN==0)
+#if !ARCH_LITTLE_ENDIAN
 #define alter_endianity_to_BE(a,b)
 #define alter_endianity_to_BE64(a,b)
 #define alter_endianity_to_LE(ptr,word32_cnt) do{ \
@@ -348,7 +355,7 @@ void alter_endianity_w64(void *x, unsigned int count);
 }while(0)
 #endif
 #else
-#if (ARCH_LITTLE_ENDIAN==0)
+#if !ARCH_LITTLE_ENDIAN
 #define alter_endianity_to_BE(a,b)
 #define alter_endianity_to_LE(a,b) do{alter_endianity_w(a,b);}while(0)
 #define alter_endianity_to_BE64(a,b)

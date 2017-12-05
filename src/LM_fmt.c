@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010-2012 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -112,13 +112,11 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	memcpy(out, FORMAT_TAG, FORMAT_TAG_LEN);
 
 	if (index)
-		memcpy(&out[FORMAT_TAG_LEN], &ciphertext[16], 16);
+		memcpylwr(&out[FORMAT_TAG_LEN], &ciphertext[16], 16);
 	else
-		memcpy(&out[FORMAT_TAG_LEN], ciphertext, 16);
+		memcpylwr(&out[FORMAT_TAG_LEN], ciphertext, 16);
 
 	out[20] = 0;
-
-	strlwr(&out[FORMAT_TAG_LEN]);
 
 	return out;
 }

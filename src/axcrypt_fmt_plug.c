@@ -157,6 +157,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	static void *ptr;
 
+	memset(&cs, 0, sizeof(cs));
 	cs.keyfile = NULL;
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$axcrypt$*" */
 	p = strtokm(ctcopy, "*");
@@ -292,9 +293,7 @@ static int cmp_exact(char *source, int index)
 
 static void axcrypt_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

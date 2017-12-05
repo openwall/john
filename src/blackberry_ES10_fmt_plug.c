@@ -175,13 +175,8 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -216,13 +211,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Final(tmpBuf, &ctx);
 			p64 = &keys64[i%SIMD_COEF_64+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 			for (j = 0; j < 8; ++j)
+#if ARCH_LITTLE_ENDIAN==1
 				p64[j*SIMD_COEF_64] = JOHNSWAP64(tmpBuf64[j]);
+#else
+				p64[j*SIMD_COEF_64] = tmpBuf64[j];
+#endif
 			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
 			p64[15*SIMD_COEF_64] = 0x200;
 		}
 		for (j = 0; j < 98; j++)
 			SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
-		// Last one with FLAT_OUT
 		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);
@@ -264,11 +262,7 @@ static int cmp_exact(char *source, int index)
 
 static void blackberry_set_key(char *key, int index)
 {
-	int saved_len = strlen(key);
-	if (saved_len > PLAINTEXT_LENGTH)
-		saved_len = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_len);
-	saved_key[index][saved_len] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
@@ -323,13 +317,8 @@ struct fmt_main fmt_blackberry1 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -39,7 +39,6 @@ static double cand;
 
 static double get_progress(void)
 {
-	double try;
 	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 
 	emms();
@@ -47,9 +46,7 @@ static double get_progress(void)
 	if (!cand)
 		return -1;
 
-	try = ((unsigned long long)status.cands.hi << 32) + status.cands.lo;
-
-	return 100.0 * try / (cand * mask_mult);
+	return 100.0 * status.cands / (cand * mask_mult);
 }
 
 typedef char (*char2_table)
@@ -523,39 +520,51 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	max_count = cfg_get_int(SECTION_INC, mode, "CharCount");
 
 	/* Hybrid mask */
-	min_length -= mask_add_len;
-	max_length -= mask_add_len;
 	our_fmt_len -= mask_add_len;
-	if (mask_num_qw > 1) {
-		min_length /= mask_num_qw;
-		max_length /= mask_num_qw;
+	if (mask_num_qw > 1)
 		our_fmt_len /= mask_num_qw;
-	}
 
 #if HAVE_REXGEN
 	/* Hybrid regex */
 	if ((regex = prepare_regex(options.regex, &regex_case, &regex_alpha))) {
-		if (min_length)
-			min_length--;
-		if (max_length)
-			max_length--;
 		if (our_fmt_len)
 			our_fmt_len--;
 	}
 #endif
 
-	/* Command-line can override (narrow) lengths from config file */
-	if (options.req_minlength > min_length)
+	/* Command-line can override lengths from config file */
+	if (options.req_minlength >= 0) {
 		min_length = options.req_minlength;
-	if (options.req_maxlength && options.req_maxlength < max_length)
+
+#if HAVE_REXGEN
+		if (regex)
+			min_length--;
+#endif
+		if (min_length < 0)
+			min_length = 0;
+	}
+
+	if (options.req_maxlength && !mask_maxlength_computed) {
 		max_length = options.req_maxlength;
+#if HAVE_REXGEN
+		if (regex)
+			max_length--;
+#endif
+	}
+
+	if (options.req_minlength >= 0 && min_length > max_length &&
+	   (options.req_maxlength == 0 || mask_maxlength_computed) &&
+	    options.req_minlength <= CHARSET_LENGTH) {
+		max_length = min_length;
+	}
 
 	if (min_length > max_length) {
 		log_event("! MinLen = %d exceeds MaxLen = %d",
 		    min_length, max_length);
 		if (john_main_process)
-			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
-			    min_length, max_length);
+			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d; "
+			    "MaxLen can be increased up to %d\n",
+			    min_length, max_length, CHARSET_LENGTH);
 		error();
 	}
 
@@ -871,8 +880,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		unsigned long long mask_mult =
 			mask_tot_cand ? mask_tot_cand : 1;
 
-		cand = (((unsigned long long)status.cands.hi << 32) +
-		        status.cands.lo) / mask_mult;
+		cand = status.cands / mask_mult;
 	}
 
 	crk_done();

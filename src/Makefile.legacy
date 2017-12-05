@@ -135,7 +135,7 @@ JOHN_OBJS = \
 	common-gpu.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
-	loader.o logger.o mask.o mask_ext.o math.o memory.o misc.o options.o \
+	loader.o logger.o mask.o mask_ext.o memory.o misc.o options.o \
 	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o wordlist.o \
 	mkv.o mkvlib.o \
@@ -174,7 +174,7 @@ BENCH_OBJS = \
 	DES_bsg.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
-	bench-t.o best.o common_g.o config_g.o formats_g.o jumbo.o math.o dyna_salt.o \
+	bench-t.o best.o common_g.o config_g.o formats_g.o jumbo.o dyna_salt.o \
 	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
 
 GENMKVPWD_OBJS = \
@@ -246,7 +246,7 @@ default:
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
-#	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
+	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "linux-ia64               Linux, IA-64"
 	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2 (best)"
@@ -307,6 +307,7 @@ default:
 	@echo "win32-cygwin-x86-opencl  Win32, Cygwin, x86 with SSE2 and OpenCL"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
 	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
+	@echo "win32-cygwin-x86-anyomp  Win32, Cygwin, x86 (OpenMP enabled)"
 	@echo "win32-mingw-x86-sse2[i]  Win32, MinGW, x86 with SSE2 (best if 32-bit)"
 	@echo "win32-mingw-x86-mmx      Win32, MinGW, x86 with MMX"
 	@echo "win32-mingw-x86-any      Win32, MinGW, x86"
@@ -728,7 +729,7 @@ linux-ppc32-altivec:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl" \
-		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -744,7 +745,6 @@ linux-ppc32:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-# This is slightly slower than linux-ppc32-altivec for most hash types.
 linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -752,7 +752,7 @@ linux-ppc64-altivec:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT -DHAVE_LIBDL" \
 		LDFLAGS="$(LDFLAGS) -m64 -lcrypt -ldl" \
-		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
 	@echo "All done"
@@ -1569,6 +1569,19 @@ win32-cygwin-x86-any:
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		CFLAGS_MAIN="$(CFLAGS) -O0" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE_ORIG) $(PROJ_PCAP)
+	@echo "All done"
+
+win32-cygwin-x86-anyomp:
+	$(CP) x86-any.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2 -fopenmp" \
+		CFLAGS_MAIN="$(CFLAGS) -O0 -fopenmp" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -fopenmp"
+		LDFLAGS="$(LDFLAGS) -fopenmp"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"

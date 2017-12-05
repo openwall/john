@@ -179,6 +179,7 @@ static void* get_salt(char *ciphertext)
 	int i;
 	char *p;
 
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "$"); /* iterations */
 	cs.num_iterations = atoi(p);
@@ -318,7 +319,7 @@ static int cmp_exact(char *source, int index)
 
 static void jtr_set_key(char* key, int index)
 {
-	strcpy(key_buffer[index], key);
+	strnzcpyn(key_buffer[index], key, sizeof(*key_buffer));
 }
 
 static char *get_key(int index)

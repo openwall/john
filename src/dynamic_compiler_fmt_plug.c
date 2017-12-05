@@ -19,6 +19,18 @@
  */
 
 #include "arch.h"
+
+#if defined(SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	#undef SIMD_COEF_32
+	#undef SIMD_COEF_64
+	#undef SIMD_PARA_MD5
+	#undef SIMD_PARA_MD4
+	#undef SIMD_PARA_SHA1
+	#undef SIMD_PARA_SHA256
+	#undef SIMD_PARA_SHA512
+	#define BITS ARCH_BITS_STR
+#endif
+
 #ifndef DYNAMIC_DISABLED
 
 #if FMT_EXTERNS_H
@@ -253,7 +265,7 @@ static void our_init(struct fmt_main *self)
 static void get_ptr() {
 	if (!pDynamic) {
 		dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(dyna_script, &dyna_type, &fmt_CompiledDynamic, Convert);
-		sprintf (dyna_hash_type, "$dynamic_%d$", dyna_type);
+		sprintf(dyna_hash_type, "$dynamic_%d$", dyna_type);
 		dyna_hash_type_len = strlen(dyna_hash_type);
 		pDynamic = dynamic_THIN_FORMAT_LINK(&fmt_CompiledDynamic, Convert(Conv_Buf, (char*)dyna_line[0], 0), "@dynamic=", 0);
 		link_funcs();

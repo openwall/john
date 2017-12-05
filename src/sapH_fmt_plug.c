@@ -36,6 +36,17 @@ john_register_one(&fmt_sapH);
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
 
+#if !ARCH_LITTLE_ENDIAN
+// For now, neuter this format from SIMD building.
+// Someone else can port to BE at a later date.
+#undef SIMD_COEF_32
+#undef SIMD_PARA_SHA1
+#undef SIMD_PARA_SHA256
+#undef SIMD_COEF_64
+#undef SIMD_PARA_SHA512
+#endif
+
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -233,7 +244,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strcpy((char*)saved_plain[index], key);
+	strnzcpyn(saved_plain[index], key, sizeof(*saved_plain));
 }
 
 static char *get_key(int index)
@@ -315,7 +326,13 @@ static void crypt_all_1(int count) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*5)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 5; ++j) {
+					// likely location for BE porting
+#if ARCH_ALLOWS_UNALIGNED
 					Icp32[j] = JOHNSWAP(*pcrypt);
+#else
+					uint32_t tmp = JOHNSWAP(*pcrypt);
+					memcpy(&Icp32[j], &tmp, 4);
+#endif
 					pcrypt += SIMD_COEF_32;
 				}
 			}
@@ -387,7 +404,12 @@ static void crypt_all_256(int count) {
 				uint32_t *pcrypt = &crypt32[ ((k/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (k&(SIMD_COEF_32-1))];
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 					Icp32[j] = JOHNSWAP(*pcrypt);
+#else
+					uint32_t tmp = JOHNSWAP(*pcrypt);
+					memcpy(&Icp32[j], &tmp, 4);
+#endif
 					pcrypt += SIMD_COEF_32;
 				}
 			}
@@ -398,7 +420,12 @@ static void crypt_all_256(int count) {
 			uint32_t *Iptr32 = &crypt32[ ((i/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (i&(SIMD_COEF_32-1))];
 			// we only want 16 bytes, not 32
 			for (j = 0; j < 4; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 				Optr32[j] = JOHNSWAP(*Iptr32);
+#else
+				uint32_t tmp = JOHNSWAP(*Iptr32);
+				memcpy(&Optr32[j], &tmp, 4);
+#endif
 				Iptr32 += SIMD_COEF_32;
 			}
 		}
@@ -460,7 +487,12 @@ static void crypt_all_384(int count) {
 				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 6; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 					Icp64[j] = JOHNSWAP64(*pcrypt);
+#else
+					uint64_t tmp = JOHNSWAP64(*pcrypt);
+					memcpy(&Icp64[j], &tmp, 8);
+#endif
 					pcrypt += SIMD_COEF_64;
 				}
 			}
@@ -532,7 +564,12 @@ static void crypt_all_512(int count) {
 				uint64_t *pcrypt = &crypt64[ ((k/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (k&(SIMD_COEF_64-1))];
 				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
+#if ARCH_ALLOWS_UNALIGNED
 					Icp64[j] = JOHNSWAP64(*pcrypt);
+#else
+					uint64_t tmp = JOHNSWAP64(*pcrypt);
+					memcpy(&Icp64[j], &tmp, 8);
+#endif
 					pcrypt += SIMD_COEF_64;
 				}
 			}
@@ -601,7 +638,7 @@ static void *get_salt(char *ciphertext)
 	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { s.type = 3; cp += FORMAT_TAG384_LEN; hash_len = SHA384_BINARY_SIZE; }
 	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { s.type = 4; cp += FORMAT_TAG512_LEN; hash_len = SHA512_BINARY_SIZE; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
-	sscanf (cp, "%u", &s.iter);
+	sscanf(cp, "%u", &s.iter);
 	while (*cp != '}') ++cp;
 	++cp;
 	total_len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
@@ -617,13 +654,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return ciphertext;
 }
 
-static int get_hash_0(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_0; }
-static int get_hash_1(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_1; }
-static int get_hash_2(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_2; }
-static int get_hash_3(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_3; }
-static int get_hash_4(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_4; }
-static int get_hash_5(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_5; }
-static int get_hash_6(int index) { return *(uint32_t*)crypt_key[index] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -668,7 +700,7 @@ struct fmt_main fmt_sapH = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_OMP | FMT_CASE | FMT_8_BIT | FMT_UTF8,
 		{
-			"hash type [1:sha1 2:SHA256 3:SHA384 4:SHA512]",
+			"hash type [1:SHA1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
 		},
 		{ FORMAT_TAG, FORMAT_TAG256, FORMAT_TAG384, FORMAT_TAG512 },
@@ -704,13 +736,8 @@ struct fmt_main fmt_sapH = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

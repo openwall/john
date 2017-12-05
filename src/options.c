@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2016 by Solar Designer
+ * Copyright (c) 1996-2017 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  *
@@ -250,9 +250,9 @@ static struct opt_entry opt_list[] = {
 	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0,
 		(FLG_SCALAR | OPT_REQ_PARAM), "%u", &options.v_width},
 #endif
-#if defined(HAVE_OPENCL)
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 	{"devices", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
-		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
+		OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{"costs", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
@@ -299,7 +299,7 @@ static struct opt_entry opt_list[] = {
 
 #define JOHN_USAGE	  \
 "John the Ripper " JTR_GIT_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING UBSAN_STRING " [" JOHN_BLD "]\n" \
-"Copyright (c) 1996-2016 by " JOHN_COPYRIGHT "\n" \
+"Copyright (c) 1996-2017 by " JOHN_COPYRIGHT "\n" \
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n" \
@@ -340,9 +340,15 @@ JOHN_USAGE_FORK \
 #define JOHN_USAGE_FORMAT \
 "--format=NAME              force hash of type NAME. The supported formats can\n" \
 "                           be seen with --list=formats and --list=subformats\n\n"
+
 #if defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
 "--devices=N[,..]           set OpenCL device(s) (see --list=opencl-devices)\n"
+#define JOHN_USAGE_ZTEX \
+"                           or set ZTEX device(s) by its(their) serial number(s)\n"
+#elif defined(HAVE_ZTEX)
+#define JOHN_USAGE_ZTEX \
+"--devices=N[,..]           set ZTEX device(s) by its(their) serial number(s)\n"
 #endif
 
 static void print_usage(char *name)
@@ -354,6 +360,9 @@ static void print_usage(char *name)
 #if defined(HAVE_OPENCL)
 	printf("%s", JOHN_USAGE_GPU);
 #endif
+#if defined(HAVE_ZTEX)
+	printf("%s", JOHN_USAGE_ZTEX);
+#endif
 	printf("%s", JOHN_USAGE_FORMAT);
 	exit(0);
 }
@@ -363,7 +372,8 @@ void opt_print_hidden_usage(void)
 	puts("--help                     print usage summary, just like running the command");
 	puts("                           without any parameters");
 	puts("--config=FILE              use FILE instead of john.conf or john.ini");
-	puts("--mem-file-size=SIZE       size threshold for wordlist preload (default 5 MB)");
+	printf("--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n",
+	       WORDLIST_BUFFER_DEFAULT >> 20);
 	printf("--format=CLASS             valid classes: dynamic, cpu");
 #ifdef HAVE_OPENCL
 	printf(", opencl");
@@ -399,6 +409,7 @@ void opt_print_hidden_usage(void)
 	       VERB_MAX, VERB_DEFAULT);
 	puts("--show=types               show some information about hashes in file (machine");
 	puts("                           readable)");
+	puts("--show=types-json          show some information about hashes in file (JSON)");
 	puts("--show=invalid             show any lines from input that are not valid for");
 	puts("                           selected format(s)");
 	puts("--skip-self-tests          skip self tests");
@@ -459,8 +470,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	list_init(&options.loader.users);
 	list_init(&options.loader.groups);
 	list_init(&options.loader.shells);
-#if defined(HAVE_OPENCL)
-	list_init(&options.gpu_devices);
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
+	list_init(&options.acc_devices);
 #endif
 
 	options.length = -1;
@@ -550,8 +561,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 #if HAVE_OPENCL
 	if (options.format && strcasestr(options.format, "opencl") &&
-	    (options.flags & FLG_FORK) && options.gpu_devices->count == 0) {
-		list_add(options.gpu_devices, "all");
+	    (options.flags & FLG_FORK) && options.acc_devices->count == 0) {
+		list_add(options.acc_devices, "all");
 	}
 #endif
 
@@ -964,11 +975,16 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		else if (!strcasecmp(show_uncracked_str, "types")) {
 			options.loader.showtypes = 1;
 		}
+		else if (!strcasecmp(show_uncracked_str, "types-json")) {
+			options.loader.showtypes = 1;
+			options.loader.showtypes_json = 1;
+		}
 		else if (!strcasecmp(show_uncracked_str, "invalid")) {
 			options.loader.showinvalid = 1;
 		}
 		else {
-			fprintf(stderr, "Invalid option in --show switch.\nOnly --show , --show=left, --show=types or --show=invalid are valid\n");
+			fprintf(stderr, "Invalid option in --show switch. Valid options:\n"
+			        "--show, --show=left, --show=types, --show=types-json, --show=invalid\n");
 			error();
 		}
 	}
@@ -996,7 +1012,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			sscanf(&field_sep_char_str[2], "%x", &xTmp);
 			if (!xTmp || xTmp > 255) {
 				if (john_main_process)
-					fprintf (stderr, "trying to use an "
+					fprintf(stderr, "trying to use an "
 					         "invalid field separator char:"
 					         " %s\n",
 					         field_sep_char_str);
@@ -1005,7 +1021,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.loader.field_sep_char = (char)xTmp;
 		} else {
 				if (john_main_process)
-					fprintf (stderr, "trying to use an "
+					fprintf(stderr, "trying to use an "
 					         "invalid field separator char:"
 					         " %s (must be single byte "
 					         "character)\n",
@@ -1015,7 +1031,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 		if (options.loader.field_sep_char != ':')
 			if (john_main_process)
-				fprintf (stderr, "using field sep char '%c' "
+				fprintf(stderr, "using field sep char '%c' "
 				         "(0x%02x)\n", options.loader.field_sep_char,
 				         options.loader.field_sep_char);
 	}

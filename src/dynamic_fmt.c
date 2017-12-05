@@ -60,6 +60,17 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 
 #include "arch.h"
 
+#if defined(SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	#undef SIMD_COEF_32
+	#undef SIMD_COEF_64
+	#undef SIMD_PARA_MD5
+	#undef SIMD_PARA_MD4
+	#undef SIMD_PARA_SHA1
+	#undef SIMD_PARA_SHA256
+	#undef SIMD_PARA_SHA512
+	#define BITS ARCH_BITS_STR
+#endif
+
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
   #define FORCE_THREAD_MD5_body
@@ -848,7 +859,7 @@ static void init(struct fmt_main *pFmt)
 	fmt_Dynamic.params.benchmark_length   = pFmt->params.benchmark_length;
 // we allow for 3 bytes of utf8 data to make up the number of plaintext_length unicode chars.
 	if ( (pFmt->params.flags&FMT_UNICODE) && options.target_enc == UTF_8 ) {
-		//printf ("Here pFmt->params.plaintext_length=%d pPriv->pSetup->MaxInputLen=%d\n", pFmt->params.plaintext_length, pPriv->pSetup->MaxInputLen);
+		//printf("Here pFmt->params.plaintext_length=%d pPriv->pSetup->MaxInputLen=%d\n", pFmt->params.plaintext_length, pPriv->pSetup->MaxInputLen);
 		pFmt->params.plaintext_length = MIN(125, pFmt->params.plaintext_length * 3);
 	}
 	else
@@ -1065,7 +1076,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 			if (cp)
 				userName = &cp[1];
 			userName = HandleCase(userName, pPriv->nUserName);
-			snprintf (ct, sizeof(ct), "%s$$U%s", cpBuilding, userName);
+			snprintf(ct, sizeof(ct), "%s$$U%s", cpBuilding, userName);
 			cpBuilding = ct;
 		}
 	}
@@ -1076,7 +1087,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 				if (split_fields[i] && split_fields[i][0] && strcmp(split_fields[i], "/") && !strstr(cpBuilding, Tmp)) {
 					static char ct[1024];
 					char ct2[1024];
-					snprintf (ct2, sizeof(ct2), "%s$$F%d%s", cpBuilding, i, split_fields[i]);
+					snprintf(ct2, sizeof(ct2), "%s$$F%d%s", cpBuilding, i, split_fields[i]);
 					strcpy(ct, ct2);
 					cpBuilding = ct;
 				}
@@ -1179,7 +1190,11 @@ static void set_salt(void *salt)
 		saltlen = 0;
 		return;
 	}
-	cpsalt = *((unsigned char**)salt);
+#if ARCH_ALLOWS_UNALIGNED
+        cpsalt = *((unsigned char**)salt);
+#else
+        memcpy(((void*)&(cpsalt)), ((unsigned char **)salt), sizeof(void*));
+#endif
 	saltlen = *cpsalt++ - '0';
 	saltlen <<= 3;
 	saltlen += *cpsalt++ - '0';
@@ -1757,7 +1772,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if ((curdat.pFmtMain->params.flags & FMT_OMP) == FMT_OMP) {
 		int j;
 		unsigned int inc = (m_count+m_ompt-1) / m_ompt;
-		//printf ("maxkeys=%d m_count=%d inc1=%d granularity=%d inc2=%d\n", curdat.pFmtMain->params.max_keys_per_crypt, m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
+		//printf("maxkeys=%d m_count=%d inc1=%d granularity=%d inc2=%d\n", curdat.pFmtMain->params.max_keys_per_crypt, m_count, inc, curdat.omp_granularity, ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity);
 		inc = ((inc + curdat.omp_granularity-1)/curdat.omp_granularity)*curdat.omp_granularity;
 #pragma omp parallel for shared(curdat, inc, m_count)
 		for (j = 0; j < m_count; j += inc) {
@@ -1789,7 +1804,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if 0
 		// Dump state (for debugging help)
 		if (i==0) printf("\npassword=%.*s\n", saved_key_len[0], saved_key[0]);
-		printf ("\nState after function: %s\n", dynamic_Find_Function_Name(curdat.dynamic_FUNCTIONS[i]));
+		printf("\nState after function: %s\n", dynamic_Find_Function_Name(curdat.dynamic_FUNCTIONS[i]));
 		// dump input 1
 #ifdef SIMD_COEF_32
 		dump_stuff_mmx_msg("input_buf[0]", input_buf[0].c, 64, 0);
@@ -1797,10 +1812,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		dump_stuff_mmx_msg("input_buf[2]", input_buf[0].c, 64, 2);
 		dump_stuff_mmx_msg("input_buf[3]", input_buf[0].c, 64, 3);
 #endif
-		printf ("input_buf86[0] : %*.*s\n", total_len_X86[0],total_len_X86[0],input_buf_X86[0].x1.b);
-		printf ("input_buf86[1] : %*.*s\n", total_len_X86[1],total_len_X86[1],input_buf_X86[1].x1.b);
-		printf ("input_buf86[2] : %*.*s\n", total_len_X86[2],total_len_X86[2],input_buf_X86[2].x1.b);
-		printf ("input_buf86[3] : %*.*s\n", total_len_X86[3],total_len_X86[3],input_buf_X86[3].x1.b);
+		printf("input_buf86[0] : %*.*s\n", total_len_X86[0],total_len_X86[0],input_buf_X86[0].x1.b);
+		printf("input_buf86[1] : %*.*s\n", total_len_X86[1],total_len_X86[1],input_buf_X86[1].x1.b);
+		printf("input_buf86[2] : %*.*s\n", total_len_X86[2],total_len_X86[2],input_buf_X86[2].x1.b);
+		printf("input_buf86[3] : %*.*s\n", total_len_X86[3],total_len_X86[3],input_buf_X86[3].x1.b);
 		// dump crypt 1
 #ifdef SIMD_COEF_32
 		dump_stuff_mmx_msg("crypt_key[0]", crypt_key[0].c, 16, 0);
@@ -1819,10 +1834,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		dump_stuff_mmx_msg("input_buf2[2]", input_buf2[0].c, 64, 2);
 		dump_stuff_mmx_msg("input_buf2[3]", input_buf2[0].c, 64, 3);
 #endif
-		printf ("input2_buf86[0] : %*.*s\n", total_len2_X86[0],total_len2_X86[0],input_buf2_X86[0].x1.b);
-		printf ("input2_buf86[1] : %*.*s\n", total_len2_X86[1],total_len2_X86[1],input_buf2_X86[1].x1.b);
-		printf ("input2_buf86[2] : %*.*s\n", total_len2_X86[2],total_len2_X86[2],input_buf2_X86[2].x1.b);
-		printf ("input2_buf86[3] : %*.*s\n", total_len2_X86[3],total_len2_X86[3],input_buf2_X86[3].x1.b);
+		printf("input2_buf86[0] : %*.*s\n", total_len2_X86[0],total_len2_X86[0],input_buf2_X86[0].x1.b);
+		printf("input2_buf86[1] : %*.*s\n", total_len2_X86[1],total_len2_X86[1],input_buf2_X86[1].x1.b);
+		printf("input2_buf86[2] : %*.*s\n", total_len2_X86[2],total_len2_X86[2],input_buf2_X86[2].x1.b);
+		printf("input2_buf86[3] : %*.*s\n", total_len2_X86[3],total_len2_X86[3],input_buf2_X86[3].x1.b);
 		// dump crypt 2
 #ifdef SIMD_COEF_32
 		dump_stuff_mmx_msg("crypt_key2[0]", crypt_key2[0].c, 16, 0);
@@ -2433,7 +2448,11 @@ static int salt_hash(void *salt)
 		return 0;
 
 	// salt is now a pointer, but WORD aligned.  We remove that word alingment, and simply use the next bits
+#if ARCH_ALLOWS_UNALIGNED
 	H = *((unsigned long*)salt);
+#else
+	memcpy(&H, salt, 8);
+#endif
 
 	// Mix up the pointer value (H^(H>>9)) so that if we have a fixed sized allocation
 	// that things do get 'stirred' up better.
@@ -3175,7 +3194,7 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned int idx_mo
 	unsigned char *cpO;
 	// if our insertion point is on an 'even' DWORD, then we use DWORD * copying, as long as we can
 	// This provides quite a nice speedup.
-#if ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
 	// if big-endian, we gain nothing from this function (since we would have to byte swap)
 	if (len>3&&(bf_ptr&3)) {
 		cpO = &IPB[GETPOS(bf_ptr, idx_mod)];
@@ -7470,21 +7489,35 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->methods.get_hash[4] = get_hash_4_64x4;
 		pFmt->methods.get_hash[5] = get_hash_5_64x4;
 #endif
-		// Not enough bits in a single WORD to do the 7th one.
-		pFmt->methods.binary_hash[6] = NULL;
-		pFmt->methods.get_hash[6] = NULL;
+		// Not enough bits in a single WORD
+		if (PASSWORD_HASH_SIZE_6 >= 0x1000000) {
+			pFmt->methods.binary_hash[6] = NULL;
+			pFmt->methods.get_hash[6] = NULL;
+		}
+		if (PASSWORD_HASH_SIZE_5 >= 0x1000000) {
+			pFmt->methods.binary_hash[5] = NULL;
+			pFmt->methods.get_hash[5] = NULL;
+		}
+		if (PASSWORD_HASH_SIZE_4 >= 0x1000000) {
+			pFmt->methods.binary_hash[4] = NULL;
+			pFmt->methods.get_hash[4] = NULL;
+		}
+		if (PASSWORD_HASH_SIZE_3 >= 0x1000000) {
+			pFmt->methods.binary_hash[3] = NULL;
+			pFmt->methods.get_hash[3] = NULL;
+		}
 
 	}
-//	printf ("%.13s",Setup->szFORMAT_NAME);
+//	printf("%.13s",Setup->szFORMAT_NAME);
 	if ( (Setup->flags & (MGF_INPBASE64|MGF_INPBASE64_4x6|MGF_INPBASE64a|MGF_INPBASE64m|MGF_INPBASE64b)) == 0)  {
 		pFmt->params.flags |= FMT_SPLIT_UNIFIES_CASE;
-//		printf ("  Setting FMT_SPLIT_UNIFIES_CASE");
+//		printf("  Setting FMT_SPLIT_UNIFIES_CASE");
 		if (pFmt->methods.split == split) {
 			pFmt->methods.split = split_UC;
-//			printf ("  split set to split_UC()\n");
+//			printf("  split set to split_UC()\n");
 		}
 	}
-//	else printf ("  split set to split()\n");
+//	else printf("  split set to split()\n");
 	if (Setup->flags & MGF_UTF8)
 		pFmt->params.flags |= FMT_UTF8;
 	if (Setup->flags & MGF_INPBASE64a) {

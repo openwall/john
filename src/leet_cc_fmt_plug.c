@@ -1,4 +1,5 @@
-/* Cracker for leet.cc hashes.
+/*
+ * Cracker for leet.cc hashes.
  *
  * hsh = bin2hex(hash("sha512", $password . $salt, true) ^ hash("whirlpool", $salt . $password, true))
  * $salt == username
@@ -195,7 +196,7 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {	static union {
 		unsigned char c[BINARY_SIZE+1];
-		ARCH_WORD dummy;
+		uint64_t dummy;
 	} buf;
 	int i;
 	unsigned char *out = buf.c;
@@ -212,13 +213,17 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
+/* using our own binary_hash_x() functions allows us to avoid BE / LE issues */
+static int binary_hash_0(void *binary) { return *((uint64_t *)binary) & PH_MASK_0; }
+static int binary_hash_1(void *binary) { return *((uint64_t *)binary) & PH_MASK_1; }
+static int binary_hash_2(void *binary) { return *((uint64_t *)binary) & PH_MASK_2; }
+static int binary_hash_3(void *binary) { return *((uint64_t *)binary) & PH_MASK_3; }
+static int binary_hash_4(void *binary) { return *((uint64_t *)binary) & PH_MASK_4; }
+static int binary_hash_5(void *binary) { return *((uint64_t *)binary) & PH_MASK_5; }
+static int binary_hash_6(void *binary) { return *((uint64_t *)binary) & PH_MASK_6; }
+
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -258,7 +263,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		SIMDSHA512body(in, out, NULL, SSEi_FLAT_IN);
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+#if ARCH_LITTLE_ENDIAN==1
 			output1[i].p64[0] = JOHNSWAP64(out[((i/SIMD_COEF_64)*8*SIMD_COEF_64+i%SIMD_COEF_64)]);
+#else
+			output1[i].p64[0] = out[((i/SIMD_COEF_64)*8*SIMD_COEF_64+i%SIMD_COEF_64)];
+#endif
 #else
 		SHA512_CTX sctx;
 
@@ -379,13 +388,13 @@ struct fmt_main fmt_leet = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		NULL,
@@ -395,13 +404,8 @@ struct fmt_main fmt_leet = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

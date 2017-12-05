@@ -106,7 +106,7 @@ static bitlocker_custom_salt *cur_salt;
 static int w_block_precomputed(unsigned char *salt);
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -530,7 +530,7 @@ static void set_key(char *key, int index)
 	size = strlen(key);
 	inbuffer_size[index] = size;
 	memcpy(tmp, key, size);
-	if(size < BITLOCKER_MAX_INPUT_PASSWORD_LEN)
+	if (size < BITLOCKER_MAX_INPUT_PASSWORD_LEN)
 		tmp[size] = 0x80;
 
 	memcpy((inbuffer + (index * BITLOCKER_FIXED_PASSWORD_BUFFER)), tmp, BITLOCKER_FIXED_PASSWORD_BUFFER);

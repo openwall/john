@@ -447,7 +447,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(cl_ulong), &const_cache_size, 0), "failed to get CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE.");
 
 	if (!use_last_build_opt) {
-		sprintf (build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
+		sprintf(build_opts, "-D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
 		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
 #if MASK_FMT_INT_PLHDR > 1
 		" -D LOC_1=%d "
@@ -477,7 +477,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 		last_build_opts[2] = s_mem_lws;
 	}
 	else {
-		sprintf (build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
+		sprintf(build_opts, "-cl-kernel-arg-info -D FULL_UNROLL=%u -D USE_LOCAL_MEM=%u -D WORK_GROUP_SIZE="Zu""
 		" -D OFFSET_TABLE_SIZE=%u -D HASH_TABLE_SIZE=%u -D MASK_ENABLE=%u -D ITER_COUNT=%u -D LOC_0=%d"
 #if MASK_FMT_INT_PLHDR > 1
 		" -D LOC_1=%d "

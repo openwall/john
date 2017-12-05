@@ -31,6 +31,17 @@
 
 #include "arch.h"
 
+#if defined(SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	#undef SIMD_COEF_32
+	#undef SIMD_COEF_64
+	#undef SIMD_PARA_MD5
+	#undef SIMD_PARA_MD4
+	#undef SIMD_PARA_SHA1
+	#undef SIMD_PARA_SHA256
+	#undef SIMD_PARA_SHA512
+	#define BITS ARCH_BITS_STR
+#endif
+
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
   #define FORCE_THREAD_MD5_body
@@ -63,23 +74,21 @@ void dynamic_DISPLAY_ALL_FORMATS()
 		strnzcpy(Type, sz, sizeof(Type));
 		cp = strchr(Type, ':');
 		if (cp) *cp = 0;
-		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
+		printf("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
 	}
 
 	// The config has not been loaded, so we have to load it now, if we want to 'check'
 	// and show any user set md5-generic functions.
 #if JOHN_SYSTEMWIDE
 	cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-	cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
 	cfg_init(CFG_FULL_NAME, 1);
-	cfg_init(CFG_ALT_NAME, 0);
 
 	for (i = 1000; i < 10000; ++i)
 	{
 		char *sz = dynamic_LOAD_PARSER_SIGNATURE(i);
 		if (sz && dynamic_IS_VALID(i, 0) == 1)
-			printf ("UserFormat = dynamic_%d  type = %s\n", i, sz);
+			printf("UserFormat = dynamic_%d  type = %s\n", i, sz);
 	}
 }
 

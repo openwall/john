@@ -138,8 +138,13 @@ static void init(struct fmt_main *self)
 	for (i = 0; i < kpc/MAX_KEYS_PER_CRYPT; ++i) {
 		int j;
 		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {
+#if ARCH_LITTLE_ENDIAN==1
 			prep_key[i][3][j][3] = 0x80;
 			prep_key[i][3][j][30] = 518<<3;
+#else
+			prep_key[i][3][j][3] = 0x8000;
+			prep_key[i][3][j][31] = 518<<3;
+#endif
 		}
 	}
 	crypt_cache = mem_calloc_align(sizeof(*crypt_cache),
@@ -212,40 +217,8 @@ static void *get_salt(char *ciphertext)
 	return out.u8;
 }
 
-static int get_hash_0(int index)
-{
-    return crypt_out[index][0] & PH_MASK_0;
-}
-
-static int get_hash_1(int index)
-{
-    return crypt_out[index][0] & PH_MASK_1;
-}
-
-static int get_hash_2(int index)
-{
-    return crypt_out[index][0] & PH_MASK_2;
-}
-
-static int get_hash_3(int index)
-{
-    return crypt_out[index][0] & PH_MASK_3;
-}
-
-static int get_hash_4(int index)
-{
-    return crypt_out[index][0] & PH_MASK_4;
-}
-
-static int get_hash_5(int index)
-{
-    return crypt_out[index][0] & PH_MASK_5;
-}
-
-static int get_hash_6(int index)
-{
-    return crypt_out[index][0] & PH_MASK_6;
-}
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -335,10 +308,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
+#if defined(WITH_UBSAN)
+#pragma omp parallel for
+#else
 #ifndef SIMD_COEF_32
 #pragma omp parallel for default(none) private(index) shared(dirty, prep_ctx, count, crypt_out, prep_key)
 #else
 #pragma omp parallel for default(none) private(index) shared(dirty, count, crypt_cache, crypt_out, prep_key, NULL_LIMB)
+#endif
 #endif
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
@@ -448,13 +425,8 @@ struct fmt_main fmt_SybaseASE = {
         fmt_default_clear_keys,
         crypt_all,
         {
-		get_hash_0,
-		get_hash_1,
-		get_hash_2,
-		get_hash_3,
-		get_hash_4,
-		get_hash_5,
-		get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
         },
         cmp_all,
         cmp_one,

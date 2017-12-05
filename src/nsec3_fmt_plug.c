@@ -280,10 +280,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
+	saved_key_length = strnzcpyn((char*)saved_key, key, sizeof(saved_key));
 	convert_label_wf();
 }
 

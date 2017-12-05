@@ -75,6 +75,28 @@ struct fmt_tests gpg_common_gpg_tests[] = {
 	{"$gpg$*0*168*24d65b6ca7821043f03882a939aaa1f8d5c4ce7d26d7e83386968903582ca809f6cc7ffddfcb31d27e8945a672ec0e36530d6cbd7ac01318d5658a1121234b4987886ee9d6cfd493f5447dc5e40938e23fc2b70be967ab5ceb516052fc3798d2ccaab57b3ffe42870cba93497539a1b16d8eaf87abfaba81cf0787c87335f25290bbef02eabae5f7c090cab2410adc85f7c6e5210bda57f68acad41cb4f03e6cbf71e32f9fada60a*3*18*2*9*4063232*59092e506c1a856a", "12345678"},
 	{"$gpg$*0*59*044511b6335c3d392c5cb43b56d9bd6ea9e2ba9818d6d9202bdfe1e83d4540f490bf96e17c790b063ec5c61423f031d535c96602431d8153e62392*3*18*2*9*4063232*ab38a8d3fce03b86", "openwall"},
 	{"$gpg$*0*169*33d74e46b0d2c693981a91a30f24af0f6a849a37c61207c03149d5f1a301e247d0bee59476fb604ab622c282bce2b7ef30044ea0e1a9a4167738b2432477cc709f88442111297be0b007567ee56646c245e19524f7a4103abfa35994015ca88b056c62b84c6606d82727d0b24d996efe68e5531652755915115e37e1b60d989c36b9fd09de965ea229740f4c87312d5bb0eb6dc72e68647231831ab3e930fae0ccded0c12166b1b722*3*18*2*9*2097152*4a6b94697208f151", "openwall"},
+	/* gpg --gen-key --s2k-digest-algo SHA512 --s2k-cipher-algo AES */
+	{"$gpg$*1*668*2048*1de86a75cca20667506b71e729cf77e10ec148a948a94199910506e783eba52bf074f5d1d1f4819adbe28c7b51b464069ba3e44fceb62eef3038d3dfe8f7bc6012c9abc35769439730a8aabe99e4603fd2201303e82b413617d8fbaf95fdaee3d16d38a74df86a814f487e78b5c84093187529ebc54232a945628205b2eaf13ffeb41f94b1482a73f3aeb97f297d2398d94be2782a1f24244430cf251553dce8571c99ccbd6fe46e6863b25fe132420d1f49acdf9bf413c2155a794b5cf45cea8bc4d958fee20b5523cc42343a106fca60068f93aedd6d4f6021bee5a22b70969c1c8369a615de3f46867bc9364d0cdde141672c102ae42cb338c21d0ec6dd4eec923345201b3b3f97e94b7f60defb2a733616cdcd50c4254689441ab25d3ffe8adb56ef6654f35b446f05a56eef24a4bcdd52cc2b4590667f56d31c6182a757ad0ca1d1377cb04ac3a0711b25cb978ce51f19b5affe648153fa96ee3204b4043478ea20903aa7ff7f2f71cfcff802de73d709776d2dcf611d2936366c7a42edd7ab12ce4cf354eef5c27118ee89f3bb6f9de37b8e64e6db3071ea0b6de83ed27568e25672b56eacad2fee9a8872ea17b6a5fef7e14c3fece236842d2cef0c2044dbdcb2a3b317f64aaad1703844e0ebe1a5e0a90f137b62735d65dc51cf0357abe7ffd25d41d0e23fa9fc03b1be7b73f6fb8a9db04aed18cec473b0c93ffd981cc54cfd779e116c46ee621f3aa4b2e16a8ab8017a234cf26ac77f433e4544bd5761c8b263ae1b8023f6d1aca73bae1d2da5bbf7824406f5e2ff976fbf6e4b9484f020e9346648435d341de2e06a9e607059f847c5007a078dec2f08f466fc219ea5c4762d678af9b4737466e6af46edab495305a4d30124cc30d67fd3d38787cf763e362fe4484722e22b5f584e7cf64ec2c05390252a23583da9ca*3*254*10*7*16*5dfa8dd3acc0c05f3b1666f0e9243ef9*65536*75807ba0c8e4917f", "12345678"},
+	/* gpg --gen-key --s2k-digest-algo SHA224 --s2k-cipher-algo Twofish */
+	{"$gpg$*1*348*1024*d34b480dff5b275826f7e429b8f27c43f94c4db41740df16fcbca68dfa2e73d8f35dc3bdbf0847b71c5c4a5f3b1259cb2f9387026343b302f8dfb0a57d042cfa5d28a4729ae995cd695ab05db0300305df9b4a03f36c1368466eaf6d8a58e193bfaf9d14680732481bb4b6fbf6fbfb4d4731fadc6cb6dd5a13b71d7fe95cc06a2299fb6082742affde071b610beba076b692c2bb214aa8c513c826d80bf6424f86ae9d2c62483b35e7c55959c954040cb40c676abad542c3fc7a9406dcef6e290408fb4c4f64d67185ead007d753c923a12a603b23601f09ee96a3fedf322eca02c29497cc3228018079fe935feffb871261100807d5a000389bf2b9baa18e37dc485bfebfe43b58b53ab0d9d96e1c770ec65085dfecc45538f570afabd823f56bd43af49747b9c6e28951cd43d3f4652f8619064dd9b449e6b7b1887e6c8e329e537664d1ab1538bae0e075aa15901034d844a43e317ab607088f70*3*254*11*10*16*24ff5d0153905789635d463a626f13a0*65536*c5538cead34df464", "123456"},
+	/* gpg --gen-key --s2k-digest-algo SHA384 --s2k-cipher-algo Blowfish */
+	{"$gpg$*1*668*2048*d875c0d3f173363879b40a3b9566de49ee222a4613648c50886cd39a11291517f6eb5e40fd752524495b07abab266ccaab0b24f50c87f4b91b1638ad62a3ee0387e41f44ab40dfe6fa54d3b589fed9ce65e33ff5bd7df220de91f65cb94c4feb290e0313522a957d32c6304ef6c68b449f1d21482cb90f4033b8993282029901d74f175283a8a950fbfa1a682dad90b147f5ae36791b019ab25994b95087657add312538b382ae86e4a3ff4f1d4b95eba062412f755f525d0ac4f0dbf3a30ab427bcfab6194ef6b10b73bc8752377e53f13d5985c0887774e54b9c857df6adeadda87291c47fdbf8fa7a400bf2e495955d88bb2ed3363b8f6f065059d99af452bef8c234c152d0cf241a14b81346838bbb455ae692b0e5a2905556af215eba3ec1804c28115c933d9264d6282b7c0923d375202485a25ea75b66ce6ee8bed214a1431f2a927f3d7859e96076edd9565ef61578f455b6d25bbcec7e2cfd3b83350168ece7facc65ee49518437cb5161a657773dd9e40946bb2a9609cbb3a07b906f18fcc88f6f9cb344020c32ec2918e7501923f6e6343db3afc7007e3bb5b443828193b073c3dd61657405d0c5532ecf42f745f674d2449c88825076046d75faa892ff7d077c44c1709490680279db7ed90e2676bd3573c2e2ee879054120b870fe1743082e6340f5812c73937d3876ebd9a4ad84913aa7784c7be8ac8410e9ab680e88c47a5c869f837ee224ccc6443f6ac36a92d682fc1a7db2f0bb6cb30e5be1d17bbfc5163471a55cc47eeef2c27ce49f0cec48d1d7a5769b5f42bf93eb6bd61643c49cbf7b75b1d6118653f45a84777bc604144d8ccd6814f32a3ef80e45cb507d91767d1334171041bf3f586ec803000c67baaf57a74c228fa986522129f5cb3aa85a3f44373e5f8c47951f892d58a923cde68e659632c0267*3*254*9*4*8*29b4190538078f46*65536*5f8d833d2266d429", "abcdef"},
+	/* gpg --gen-key --s2k-digest-algo SHA512 --s2k-cipher-algo idea */
+	{"$gpg$*1*668*2048*a83b3cf2f3662290d890569cd9787828ea71fd946f303db9f8cdc9c4400285af8689605a1a853f0d6850b002e9579fbc91a0702206cbd958dad1ff2aafbcb8db13c5188bf5694e5af98300e6711775bec0a0c882bf84883d96f9ab03a827b2cb719c63ab32b729bd4657d6990403d95fab3e1e53bfccb65c2fe9b4a17d2d779e01612b3d7f4ebdd92a7dbc8c111b68021c4479f8d4b9a12c0b686e66fbfc3d498186f17d8668e53efe233d2b0d01f8315180afe42bfdc4c02c2054a7f2d3063963dd14375a87604bee5eeedea89d5148cf1df108d338f51f6d814188e313b90eb8b65fb55bff87a8b3e86becc7b836a417dce1f32648fc156efe89df46f51f4beed6cf5c1cc449b4651e1b2d1a2eafdcd91987d1dcf06a885ef621699c171b27db2932f7c61cba5aaf320ff694b6c8cc08342ade9e6b53f2e943cf0e1e73de0e891a37992e7b01396c59051b28459532e375d2026af2605e08f6f8aadf3981f52aab3ccd5a727256f997f9c51d3a5b1c48e80fe5398ca7f3c8150ad00389c7d87d705001c5b587edff657c4a9ad16eb8860fcf179a271c913696c3178e3742ca39cd9e85a3a9558f6550a3c10ebc2ab4791f7761cd4e5bd0b0d1cd3becfe3bc94681ba5ead47dd81cedec1a7607b843b9369afd8bac1dcd0efa5e751cb5f5510367ecbf89f72764ff0e513ff76d75e1085ac7cbf2b377ee2d379bf46cb166cf03d06aeeefb8028f4b1a0f0626ffe3a7e0d672538ed55df96406d51073c92317dd6d057b749727a78be1636c3ab1be2586df97f56a20e8df099ffb4542ab34c23e0984bc9a4918230bf5e06d06b3321c7404b87cff50ffa73a959cff0ecebf3407f59055ba6d934e4ae818734f1eef05904bcfa3226a1e008d52974a2fffda74004739b1c75895da34b95ce4b1a1023f878667dd29efac7c6867adf59*3*254*10*1*8*bcd00fecc8fcf1a9*65536*2ef2aa27d53d3b10", "qwerty"},
+	/* gpg -o out.gpg --cipher-algo 3DES --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt */
+	{"$gpg$*0*36*c8ebbe8116a24a2c5f7e81c1588c225e39e41bfe1b3bede92e2914443ade5651efe9c949*3*9*2*2*1024*2f4ddf3395af20a6", "qwertyzxcvb12345"},
+	/* gpg -o out.gpg --cipher-algo IDEA --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt */
+	{"$gpg$*0*36*73426e4ec660c94430cf8551a3a3d8e2fc710d018b31271d83fd5098ff2e29b6734fdbca*3*9*2*1*1024*c77703dc5a6b398b", "qwertyzxcvb12345"},
+	/* gpg -o out.gpg --cipher-algo CAST5 --force-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt */
+	{"$gpg$*0*58*190111fef479fda732000fe7ead411eb778bfe101cf71c6a8a5fbf96b7d8e99dbbad901c37c88d213e1306a953d9aa9a04244509693f16856061*3*18*2*3*1024*d3e886db68fbfa0f", "qwertyzxcvb12345"},
+	/* gpg -o out.gpg --cipher-algo twofish --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt, has mdc in spite of "--no-mdc" flag */
+	{"$gpg$*0*66*c87c9a0e7e7f7299129645f2f352076f8d9c29c830e7d21b28ee45fbfe2a31fcb70900fd8031e896035d672847c9b9c59f1fd802290d3d6992c45eb3d27e95cc0990*3*18*2*10*1024*45216ac170f04fd5", "qwertyzxcvb12345"},
+	/* PGP 8.0 for Windows, AES-256 with missing mdc */
+	{"$gpg$*0*44*cfa1353f691dfa09e1f2001fe81a50f67b7d38a69d4d909a5ec665f2691304c092b5136e4c691368fb006973*3*9*2*9*65536*f3d4f603c697cf18", "openwall123"},
+	/* PGP 8.0 for Windows, Twofish with missing mdc */
+	{"$gpg$*0*44*eaf7c0fd70579388927f1c85395e6f76a73234639a792c0a08c8ede8397ac09e105bc6eca51632367d572348*3*9*2*10*65536*048af401a552dca6", "openwall"},
+	/* PGP Desktop 9.0.2 */
+	{"$gpg$*0*66*c54842eed9b536e1fafad46aa233a6c158bd1fcabeed6b91531d8331a3452466d02446586b9b6837b510efbe95bb9f91c92d258be82f65092483812b896af3d4aa28*3*18*2*9*65536*b2688a012358b7fa", "openwall"},
 	{NULL}
 };
 
@@ -160,20 +182,26 @@ static int gpg_common_valid_cipher_algorithm(int cipher_algorithm)
 	return 0;
 }
 
-// NOTE, the CPU code was added to the GPU format (Still runs CPU mode, for those hashes)
-// so not ALL algo's are usable by both CPU and GPU.
-static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec)
+static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec, int isCPU)
 {
+	static int warn_once = 1;
+
 	if (spec == SPEC_SIMPLE || spec == SPEC_SALTED) {
-		switch(hash_algorithm) {
+		if (!isCPU)
+			goto print_warn_once;
+		switch (hash_algorithm) {
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
 			case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
 		}
 	}
 	if (spec == SPEC_ITERATED_SALTED) {
-		switch(hash_algorithm)
-		{
+		if (!isCPU) {
+			if (hash_algorithm == HASH_SHA1 || hash_algorithm == HASH_SHA256 || hash_algorithm == HASH_SHA512)
+				return 1;
+			goto print_warn_once;
+		}
+		switch (hash_algorithm) {
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
 			case HASH_RIPEMD160: return 1;
@@ -184,9 +212,17 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec)
 		}
 	}
 	return 0;
+
+print_warn_once:
+	if (warn_once) {
+		fprintf(stderr,
+		        "Error: This GPG OpenCL format does not support the requested S2K type!\n");
+		warn_once = 0;
+	}
+	return 0;
 }
 
-int gpg_common_valid(char *ciphertext, struct fmt_main *self)
+int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format)
 {
 	char *ctcopy, *keeptr, *p;
 	int res,j,spec,usage,algorithm,ex_flds=0;
@@ -245,7 +281,7 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (!gpg_common_valid_hash_algorithm(res, spec))
+	if (!gpg_common_valid_hash_algorithm(res, spec, is_CPU_format))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
@@ -1168,6 +1204,7 @@ int gpg_common_check(unsigned char *keydata, int ks)
 	int i;
 	uint8_t checksum[SHA_DIGEST_LENGTH];
 	SHA_CTX ctx;
+	int block_size = 8;
 
 	// out is used for more than just data. So if datalen is 'small', but
 	// other things (like mpz integer creation) are needed, we know that
@@ -1257,13 +1294,28 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_IDEA: {
 					   IDEA_KEY_SCHEDULE iks;
 					   JtR_idea_set_encrypt_key(keydata, &iks);
-					   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &iks, ivec, &tmp, IDEA_DECRYPT);
+						   tmp = 0;
+						   memcpy(ivec, gpg_common_cur_salt->data + 2, block_size); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   } else {
+						   JtR_idea_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &iks, ivec, &tmp, IDEA_DECRYPT);
+					   }
 				   }
 				   break;
 		case CIPHER_CAST5: {
 					   CAST_KEY ck;
 					   CAST_set_key(&ck, ks, keydata);
-					   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, CAST_DECRYPT);
+					   if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						   // handle PGP's weird CFB mode, do this for each cipher with block-size <= 8, take care of block-size!
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ck, ivec, &tmp, CAST_DECRYPT);
+						   tmp = 0;
+						   memcpy(ivec, gpg_common_cur_salt->data + 2, block_size); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ck, ivec, &tmp, CAST_DECRYPT);
+					   } else {
+						   CAST_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, CAST_DECRYPT);
+					   }
 				   }
 				   break;
 		case CIPHER_BLOWFISH: {
@@ -1277,7 +1329,15 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_AES256: {
 					    AES_KEY ck;
 					    AES_set_encrypt_key(keydata, ks * 8, &ck);
-					    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, AES_DECRYPT);
+					    block_size = 16;
+					    if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ck, ivec, &tmp, AES_DECRYPT);
+						    tmp = 0;
+						    memcpy(ivec, gpg_common_cur_salt->data + 2, block_size);
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ck, ivec, &tmp, AES_DECRYPT);
+					    } else {
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, AES_DECRYPT);
+					    }
 				    }
 				    break;
 		case CIPHER_3DES: {
@@ -1292,7 +1352,14 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  DES_set_key((DES_cblock *) key1, &ks1);
 					  DES_set_key((DES_cblock *) key2, &ks2);
 					  DES_set_key((DES_cblock *) key3, &ks3);
-					  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+					  if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+						  num = 0;
+						  memcpy(divec, gpg_common_cur_salt->data + 2, block_size); // GCRY_CIPHER_ENABLE_SYNC, cipher_sync from libgcrypt
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+					  } else {
+						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
+					  }
 				    }
 				    break;
 		case CIPHER_CAMELLIA128:
@@ -1306,7 +1373,16 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_TWOFISH: {
 					      Twofish_key ck;
 					      Twofish_prepare_key(keydata, ks, &ck);
-					      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, ivec);
+
+					      block_size = 16;
+					      if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
+						      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, block_size + 2, ivec);
+						      tmp = 0;
+						      memcpy(ivec, gpg_common_cur_salt->data + 2, block_size);
+						      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, ivec);
+					      } else {
+						      Twofish_Decrypt_cfb128(&ck, gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, ivec);
+					      }
 				      }
 				      break;
 		default:
@@ -1324,11 +1400,121 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		MEM_FREE(out);
 		return 0;
 	} else if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
-		// https://www.ietf.org/rfc/rfc2440.txt
-		if ((out[9] == out[7]) && (out[8] == out[6])) { // XXX this verifier is not good at all!
-			MEM_FREE(out);
-			return 1;
+		int ctb, new_ctb, pkttype, c, partial, lenbytes = 0;
+		unsigned long pktlen;
+		unsigned long idx = 0; // pointer in the "decrypted data + block_size + 2" stream
+		unsigned char *p;
+
+		(void) pktlen;
+		(void) partial;
+
+		// https://www.ietf.org/rfc/rfc2440.txt, http://www.ietf.org/rfc/rfc1991.txt,
+		// and parse() from g10/parse-packet.c. This block contains code from GnuPG
+		// which is copyrighted by FSF, Werner Koch, and g10 Code GmbH.
+		if ((out[block_size + 1] != out[block_size - 1]) || (out[block_size] != out[block_size - 2]))
+			goto bad;
+		// The first byte of a packet is the so-called tag. The
+		// highest bit must be set.
+		p = &out[block_size + 2];
+		ctb = p[0];
+		if (!(ctb & 0x80)) {
+			goto bad;
 		}
+
+		// Immediately following the header is the length. There are
+		// two formats: the old format and the new format. If bit 6
+		// (where the least significant bit is bit 0) is set in the
+		// tag, then we are dealing with a new format packet.
+		// Otherwise, it is an old format packet.
+		pktlen = 0;
+		new_ctb = !!(ctb & 0x40);
+		if (new_ctb) {  // Used by PGP 8.0 from year 2002
+			// Get the packet's type. This is encoded in the 6 least
+			// significant bits of the tag.
+			pkttype = ctb & 0x3f;
+
+			// Extract the packet's length.  New format packets
+			// have 4 ways to encode the packet length. The value
+			// of the first byte determines the encoding and
+			// partially determines the length. See section 4.2.2
+			// of RFC 4880 for details.
+			c = p[1];
+			idx = 2;
+			if (c < 192) {
+				pktlen = c;
+			}  else if (c < 224) {
+				pktlen = (c - 192) * 256;
+				c = p[2];
+				pktlen += c + 192;
+				idx++;
+			}
+			else if (c == 255) {
+				int i;
+				char value[4];
+				(void) value;
+
+				for (i = 0; i < 4; i ++) {
+					c = p[2 + i];
+					idx++;
+				}
+				// pktlen = buf32_to_ulong (value); // XXX
+			} else {
+				// Partial body length
+			}
+		} else {  // This is an old format packet.
+			// Extract the packet's type. This is encoded in bits 2-5.
+			int i;
+			pkttype = (ctb >> 2) & 0xf;
+
+			// The type of length encoding is encoded in bits 0-1 of the tag
+			lenbytes = ((ctb & 3) == 3) ? 0 : (1 << (ctb & 3));
+			if (!lenbytes) {
+				pktlen = 0;  // Don't know the value.
+				// This isn't really partial, but we can treat it the same
+				// in a "read until the end" sort of way.
+				partial = 1;
+				if (pkttype != 8 && pkttype != 11)
+					goto bad;
+				idx = 1;
+			}
+			else {
+				for (i= 0; i < lenbytes; i++) {
+					pktlen <<= 8;
+					c = p[1 + i];
+					pktlen |= c;
+				}
+				idx = 1 + lenbytes;
+			}
+		}
+
+		// Check packet type (double-check this)
+		if (pkttype != 8 && pkttype != 11)  // PKT_COMPRESSED, PKT_PLAINTEXT
+			goto bad;
+
+		if (pkttype == 8) {  // PKT_COMPRESSED, check for known compression algorithms
+			c = p[idx];
+			if (c != 0 && c != 1 && c != 2 && c != 3)
+				goto bad;
+		}
+
+		// Random note: MDC is only missing for ciphers with block size
+		// <= 64 bits? No! PGP 8.0 can use AES-256, and still generate
+		// output files with no MDC.
+
+		// This is the major source of false positives now!
+		if (pkttype == 11) {  // PKT_PLAINTEXT, there is not much we can do here? perhaps offer known-plaintext-attack feature to the user?
+			// gpg -o sample_new_fp_qwertyzxcvb12345.gpg.txt --cipher-algo CAST5 --no-mdc --symmetric --compress-level 0 --s2k-mode 3 --s2k-count 1 secret.txt
+			// printf("[DEBUG] lenbytes = %d, pktlen = %lu\n", lenbytes, pktlen);
+			if (lenbytes == 0 && pktlen == 0)  // heuristic, always safe?
+				goto bad;
+			if (pktlen > gpg_common_cur_salt->datalen) {  // always safe?
+				goto bad;
+			}
+		}
+
+		MEM_FREE(out);
+		return 1;
+bad:
 		MEM_FREE(out);
 		return 0;
 	}

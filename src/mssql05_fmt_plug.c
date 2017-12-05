@@ -63,7 +63,11 @@ john_register_one(&fmt_mssql05);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 ) //for endianity conversion
+#endif
 
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -77,6 +81,13 @@ john_register_one(&fmt_mssql05);
 static struct fmt_tests tests[] = {
 	{"0x01004086CEB6BF932BC4151A1AF1F13CD17301D70816A8886908", "toto"},
 	{"0x01004086CEB60ED526885801C23B366965586A43D3DEAC6DD3FD", "titi"},
+	{"0x01007437483404C339C3DED1D1A462455533315842ECF3713676", "thisISALongPass"},
+	{"0x010071746753050B885462C63CF4F015F084AD64DB4658C1D7D6", "1"},
+	{"0x01006F50386B49746C0A24A0F66AA7B6DF80604A79548A6C2F3A", "12"},
+	{"0x01006136377289E986FD9970CDB1BB5F50F3F3F15F7263004E3E", "123"},
+	{"0x0100304854648C5B02A71C4B2D1213728E635ED3DC5E6677F832", "1234"},
+	{"0x0100516E6B47CA2EDB9AC27CBC8D087D28785B3F40BE9835366A", "12345"},
+	{"0x0100736A684B3C211B4621996FD7F0AA2A49F0A94B751C45AE01", "123456"},
 	{"0x0100A607BA7C54A24D17B565C59F1743776A10250F581D482DA8B6D6261460D3F53B279CC6913CE747006A2E3254", "foo",    {"User1"} },
 	{"0x01000508513EADDF6DB7DDD270CCA288BF097F2FF69CC2DB74FBB9644D6901764F999BAB9ECB80DE578D92E3F80D", "bar",    {"User2"} },
 	{"0x01008408C523CF06DCB237835D701C165E68F9460580132E28ED8BC558D22CEDF8801F4503468A80F9C52A12C0A3", "canard", {"User3"} },
@@ -195,7 +206,7 @@ static void set_key(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
 	const unsigned char *key = (unsigned char*)_key;
-	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	unsigned int *keybuf_word = &((unsigned int*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
 	unsigned int len, temp2;
 
 	len = SALT_SIZE >> 1;
@@ -203,11 +214,13 @@ static void set_key(char *_key, int index)
 		unsigned int temp;
 		if ((temp = *key++))
 		{
-			*keybuf_word = JOHNSWAP((temp << 16) | temp2);
+			// works for both BE and LE! setting only 2 bytes and 2 nulls
+			*keybuf_word = (temp2 << 24) | (temp<<8);
 		}
 		else
 		{
-			*keybuf_word = JOHNSWAP(temp2);
+			// works for both BE and LE! setting only 1 byte and 3 nulls
+			*keybuf_word = (temp2 << 24);
 			keybuf_word += SIMD_COEF_32;
 			*keybuf_word = (0x80 << 8);
 			len++;
@@ -246,7 +259,7 @@ static void set_key_CP(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
 	const unsigned char *key = (unsigned char*)_key;
-	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	unsigned int *keybuf_word = &((unsigned int*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
 	unsigned int len, temp2;
 
 	len = SALT_SIZE >> 1;
@@ -294,7 +307,7 @@ static void set_key_utf8(char *_key, int index)
 {
 #ifdef SIMD_COEF_32
 	const UTF8 *source = (UTF8*)_key;
-	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	unsigned int *keybuf_word = &((unsigned int*)saved_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32];
 	UTF32 chl, chh = 0x80;
 	unsigned int len;
 
@@ -432,6 +445,9 @@ static char *get_key(int index) {
 			(saved_key[GETPOS((i<<1) + 1, index)] << 8);
 	}
 	out[i] = 0;
+#if defined (SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	alter_endianity_w16(out, s<<1);
+#endif
 	return (char*)utf16_to_enc(out);
 #else
 	((UTF16*)saved_key)[key_length>>1] = 0;
@@ -482,7 +498,9 @@ static void *get_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_32
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity(realcipher, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	sha1_reverse(out);
 #endif
@@ -529,7 +547,9 @@ static int cmp_exact(char *source, int index)
 	SHA1_Update(&ctx, cursalt, SALT_SIZE);
 	SHA1_Final((void*)crypt_key, &ctx);
 
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity(crypt_key, DIGEST_SIZE);
+#endif
 #ifdef REVERSE_STEPS
 	sha1_reverse(crypt_key);
 #endif

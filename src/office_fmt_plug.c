@@ -48,8 +48,17 @@ john_register_one(&fmt_office);
 #define BINARY_ALIGN	4
 #define SALT_ALIGN	sizeof(int)
 #ifdef SIMD_COEF_32
+#define GETPOS_512W(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512W(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#else
+#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#endif
 #define SHA1_LOOP_CNT       (SIMD_COEF_32*SIMD_PARA_SHA1)
 #define SHA512_LOOP_CNT     (SIMD_COEF_64 * SIMD_PARA_SHA512)
 #define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
@@ -204,8 +213,12 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
-	for (i = 0; i < SIMD_PARA_SHA1; ++i)
-		memset(&keys[GETPOS_1(23,i*SIMD_COEF_32)], 0, 4*SIMD_COEF_32);
+	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+		keys[GETPOS_1(20,i)] = 0;
+		keys[GETPOS_1(21,i)] = 0;
+		keys[GETPOS_1(22,i)] = 0;
+		keys[GETPOS_1(23,i)] = 0;
+	}
 
 	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 
@@ -435,15 +448,20 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 
 	// we do 1 less than actual number of iterations here.
 	for (i = 0; i < cur_salt->spinCount-1; i++) {
-		unsigned int i_be = JOHNSWAP(i);
 
 		// Iteration counter in first 4 bytes
-		for (j = 0; j < SHA512_LOOP_CNT; j++)
-			keys32[(j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64 + 1] = i_be;
+		for (j = 0; j < SHA512_LOOP_CNT; j++) {
+			keys[GETPOS_512(0, j)] = i & 0xFF;
+			keys[GETPOS_512(1, j)] = (i>>8) & 0xFF;
+			keys[GETPOS_512(2, j)] = (i>>16) & 0xFF;
+			keys[GETPOS_512(3, j)] = (i>>24) & 0xFF;
+		}
 
 		SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN);
 
 		// Then we output to 4 bytes past start of input buffer.
+
+		/* Original code to copy in 64 bytes into offset 4.  Not BE compatible.
 		for (j = 0; j < SHA512_LOOP_CNT; j++) {
 			uint32_t *o = keys32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64;
 			uint32_t *in = crypt32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*8*SIMD_COEF_64;
@@ -453,6 +471,47 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 				o += SIMD_COEF_64*2;
 				o[1] = in[0];
 				in += SIMD_COEF_64*2;
+			}
+		}
+		*/
+
+		/* First shot: works good, not endianity bound, but is SLOWER (1/2 speed)
+		for (j = 0; j < SHA512_LOOP_CNT; j++) {
+			for (k = 0; k < 64; k++) {
+				keys[GETPOS_512((k+4), j)] = ((unsigned char*)crypt)[GETOUTPOS_512(k,j)];
+			}
+		}
+		*/
+
+
+		// tweaked original code, swapping uint32_t and this works.
+		// it is very likely this code could be optimized even more, by handling data
+		// in uint64_t items. First and last would still need handled in uint32, but
+		// other 7 elements could be done by reading 2 8 byte values from crypt, shifting
+		// and then placing at one time into input buffer.   I might look into doing that
+		// and see if there is any improvement.  It may also be benefical to look at using
+		// flat buffers here.  Flat buffers would be trivial.  a simple memcpy to move all
+		// 64 bytes at once.  NOTE, in flat model, there is NO way to do this using any
+		// 64 bit assignments. Either the input buffer, or the crypt buffer would not be
+		// properly aligned.  So memcpy would have to be used. BUT it should be trivial
+		// and may in the end be a faster solution, than keeping this code in mixed form.
+		// but for now, it will be left as a task for someone else.
+		for (j = 0; j < SHA512_LOOP_CNT; j++) {
+			uint32_t *o = keys32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64;
+			uint32_t *in = crypt32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*8*SIMD_COEF_64;
+
+			for (k = 0; k < 8; k++) {
+#if ARCH_LITTLE_ENDIAN==1
+				o[0] = in[1];
+				o += SIMD_COEF_64*2;
+				o[1] = in[0];
+				in += SIMD_COEF_64*2;
+#else
+				o[1] = in[0];
+				o += SIMD_COEF_64*2;
+				o[0] = in[1];
+				in += SIMD_COEF_64*2;
+#endif
 			}
 		}
 	}

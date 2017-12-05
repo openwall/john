@@ -144,6 +144,7 @@ static int john_omp_threads_new;
 
 #if CPU_DETECT
 extern int CPU_detect(void);
+extern char CPU_req_name[];
 #endif
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
@@ -215,11 +216,11 @@ static void john_register_one(struct fmt_main *format)
 		}
 
 		if (pos) {
-			// Wildcard, as in --format=office*
+			/* Wildcard, as in --format=office* */
 			if (strncasecmp(format->params.label, options.format,
 			                (int)(pos - options.format)))
 				return;
-			// Trailer wildcard, as in *office or raw*ng
+			/* Trailer wildcard, as in *office or raw*ng */
 			if (pos[1]) {
 				int wild_len = strlen(++pos);
 				int label_len = strlen(format->params.label);
@@ -237,7 +238,7 @@ static void john_register_one(struct fmt_main *format)
 		           (pos = strchr(options.format, '@'))) {
 			char *reject, *algo = strdup(++pos);
 
-			// Rejections
+			/* Rejections */
 			if ((reject = strcasestr(algo, "-dynamic"))) {
 				if (format->params.flags & FMT_DYNAMIC) {
 					MEM_FREE (algo);
@@ -252,7 +253,7 @@ static void john_register_one(struct fmt_main *format)
 				}
 				memmove(reject, reject + 7, strlen(reject + 6));
 			}
-			// Algo match, as in --format=@xop or --format=@sha384
+			/* Algo match, eg. --format=@xop or --format=@sha384 */
 			if (!strcasestr(format->params.algorithm_name, algo)) {
 				MEM_FREE (algo);
 				return;
@@ -321,18 +322,18 @@ static void john_register_one(struct fmt_main *format)
 	                 format->params.label, 0)) {
 #ifdef DEBUG
 		if (format->params.flags & FMT_DYNAMIC) {
-			// in debug mode, we 'allow' dyna
+			/* in debug mode, we 'allow' dyna */
 		} else
 #else
 		if (options.format &&
 		    !strcasecmp(options.format, "dynamic-all") &&
 		    (format->params.flags & FMT_DYNAMIC)) {
-			// allow dyna if '-format=dynamic-all' was selected
+			/* allow dyna if '-format=dynamic-all' was selected */
 		} else
 #endif
 		if (options.format &&
 		    !strcasecmp(options.format, format->params.label)) {
-			// allow if specifically requested
+			/* allow if specifically requested */
 		} else
 			return;
 	}
@@ -348,12 +349,12 @@ static void john_register_all(void)
 #endif
 
 	if (options.format) {
-/* The case of the expression for this format is VERY important to keep */
+	/* The case of the expression for this format is significant */
 		if (strncasecmp(options.format, "dynamic=", 8))
 			strlwr(options.format);
 	}
 
-// Let ZTEX format appear before CPU format
+	/* Let ZTEX format appear before CPU format */
 #ifdef HAVE_ZTEX
 	john_register_one(&fmt_ztex_descrypt);
 	john_register_one(&fmt_ztex_bcrypt);
@@ -367,21 +368,19 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_trip);
 
+	/* Add all plug-in formats */
+#include "fmt_registers.h"
+
+	/* This format is deprecated so registers after plug-in NT formats */
+	john_register_one(&fmt_NT);
+
 #ifndef DYNAMIC_DISABLED
-	// NOTE, this MUST happen, before ANY format that links a 'thin' format
-	// to dynamic.
-	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
-	// generic format first
+	/* Add dynamic formats last so they never have precedence */
 	cnt = dynamic_Register_formats(&selfs);
 
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 #endif
-
-#include "fmt_registers.h"
-
-	// This format is deprecated so now registers after plug-in NT format.
-	john_register_one(&fmt_NT);
 
 	john_register_one(&fmt_dummy);
 #if HAVE_CRYPT
@@ -403,7 +402,7 @@ static void john_log_format(void)
 
 	/* make sure the format is properly initialized */
 #if HAVE_OPENCL
-	if (!(options.gpu_devices->count && options.fork &&
+	if (!(options.acc_devices->count && options.fork &&
 	      strstr(database.format->params.label, "-opencl")))
 #endif
 	fmt_init(database.format);
@@ -509,7 +508,8 @@ static void john_omp_show_info(void)
 	if (mpi_p == 1)
 #endif
 	if (database.format && database.format->params.label &&
-	        !strstr(database.format->params.label, "-opencl"))
+	        !strstr(database.format->params.label, "-opencl") &&
+	        !strstr(database.format->params.label, "-ztex"))
 	if (!options.fork && john_omp_threads_orig > 1 &&
 	    database.format && database.format != &dummy_format &&
 	    !rec_restoring_now) {
@@ -518,15 +518,17 @@ static void john_omp_show_info(void)
 			msg = "no OpenMP support";
 		else if ((database.format->params.flags & FMT_OMP_BAD))
 			msg = "poor OpenMP scalability";
-		if (msg)
+		if (msg) {
 #if OS_FORK
+		if (!(options.flags & (FLG_PIPE_CHK | FLG_STDIN_CHK)))
 			fprintf(stderr, "Warning: %s for this hash type, "
 			    "consider --fork=%d\n",
 			    msg, john_omp_threads_orig);
-#else
+		else
+#endif
 			fprintf(stderr, "Warning: %s for this hash type\n",
 			    msg);
-#endif
+		}
 	}
 
 /*
@@ -640,20 +642,20 @@ static void john_fork(void)
 			options.node_min += i;
 			options.node_max = options.node_min;
 #if HAVE_OPENCL
-			// Poor man's multi-device support
-			if (options.gpu_devices->count &&
+			/* Poor man's multi-device support */
+			if (options.acc_devices->count &&
 			    strstr(database.format->params.label, "-opencl")) {
-				// Pick device to use for this child
+				/* Pick device to use for this child */
 				opencl_preinit();
 				gpu_id =
-				    gpu_device_list[i % get_number_of_devices_in_use()];
+				    requested_devices[i % get_number_of_requested_devices()];
 				platform_id = get_platform_id(gpu_id);
 
-				// Hide any other devices from list
+				/* Hide any other devices from list */
 				gpu_device_list[0] = gpu_id;
 				gpu_device_list[1] = -1;
 
-				// Postponed format init in forked process
+				/* Postponed format init in forked process */
 				fmt_init(database.format);
 			}
 #endif
@@ -676,18 +678,18 @@ static void john_fork(void)
 	}
 
 #if HAVE_OPENCL
-	// Poor man's multi-device support
-	if (options.gpu_devices->count &&
+	/* Poor man's multi-device support */
+	if (options.acc_devices->count &&
 	    strstr(database.format->params.label, "-opencl")) {
-		// Pick device to use for mother process
+		/* Pick device to use for mother process */
 		opencl_preinit();
 		gpu_id = gpu_device_list[0];
 		platform_id = get_platform_id(gpu_id);
 
-		// Hide any other devices from list
+		/* Hide any other devices from list */
 		gpu_device_list[1] = -1;
 
-		// Postponed format init in mother process
+		/* Postponed format init in mother process */
 		fmt_init(database.format);
 	}
 #endif
@@ -876,6 +878,16 @@ static void john_load_conf(void)
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "WordlistRules")))
 			options.flags |= FLG_RULES;
+	}
+
+	/* EmulateBrokenEncoding feature */
+	options.replacement_character = 0;
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "EmulateBrokenEncoding", 0)) {
+		char *value;
+
+		value = cfg_get_param(SECTION_OPTIONS, NULL, "ReplacementCharacter");
+		if (value != NULL)
+			options.replacement_character = value[0];
 	}
 
 	options.secure = cfg_get_bool(SECTION_OPTIONS, NULL, "SecureMode", 0);
@@ -1161,6 +1173,9 @@ static void john_load(void)
 				database.password_count -
 				database.guess_count);
 
+			if (options.loader.showtypes_json)
+				puts("]");
+
 			fmt_all_done();
 
 			return;
@@ -1198,7 +1213,7 @@ static void john_load(void)
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
 #if HAVE_OPENCL
-			if (!(options.gpu_devices->count && options.fork &&
+			if (!(options.acc_devices->count && options.fork &&
 			      strstr(database.format->params.label, "-opencl")))
 #endif
 			fmt_init(database.format);
@@ -1392,7 +1407,7 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 		}
 #endif
 		fprintf(stderr, "Sorry, %s is required for this build\n",
-		    CPU_NAME);
+		    CPU_req_name);
 		if (make_check)
 			exit(0);
 		error();
@@ -1467,21 +1482,19 @@ static void john_init(char *name, int argc, char **argv)
 		listconf_parse_early();
 
 	if (!make_check) {
-		if (options.config)
-		{
+		if (options.config) {
 			path_init_ex(options.config);
 			cfg_init(options.config, 0);
-			cfg_init(CFG_FULL_NAME, 1);
-			cfg_init(CFG_ALT_NAME, 0);
-		}
-		else
-		{
 #if JOHN_SYSTEMWIDE
 			cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-			cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
 			cfg_init(CFG_FULL_NAME, 1);
-			cfg_init(CFG_ALT_NAME, 0);
+		}
+		else {
+#if JOHN_SYSTEMWIDE
+			cfg_init(CFG_PRIVATE_FULL_NAME, 1);
+#endif
+			cfg_init(CFG_FULL_NAME, 0);
 		}
 	}
 
@@ -1624,10 +1637,14 @@ static void john_run(void)
 			struct db_main *test_db = 0;
 			char *where;
 
-			test_db = ldr_init_test_db(database.format,
-			                           &database);
+			if (!(options.flags & FLG_NOTESTS))
+				test_db = ldr_init_test_db(database.format,
+				                           &database);
+			else
+				test_db = &database;
 			where = fmt_self_test(database.format, test_db);
-			ldr_free_test_db(test_db);
+			if (!(options.flags & FLG_NOTESTS))
+				ldr_free_test_db(test_db);
 			if (where) {
 				fprintf(stderr, "Self test failed (%s)\n",
 				    where);
@@ -1802,12 +1819,7 @@ static void john_done(void)
 			          "Session aborted";
 
 			if (john_max_cands) {
-				unsigned long long cands =
-					((unsigned long long)
-					 status.cands.hi << 32) +
-					status.cands.lo;
-
-				if (cands >= john_max_cands)
+				if (status.cands >= john_max_cands)
 					abort_msg =
 						"Session stopped (max candidates reached)";
 			}
@@ -1865,7 +1877,7 @@ int main(int argc, char **argv)
 		cp[i] = mem_alloc_align(43,i);
 		for (j = 0; j < 43; ++j)
 			cp[i][j] = 'x';
-		printf ("%03d offset %x  %x %x\n", i, cp[i], (unsigned)(cp[i])%i, (((unsigned)(cp[i]))/i)%i);
+		printf("%03d offset %x  %x %x\n", i, cp[i], (unsigned)(cp[i])%i, (((unsigned)(cp[i]))/i)%i);
 	}
 	for (i = 1; i < 257; ++i)
 		MEM_FREE(cp[i]);
@@ -1873,7 +1885,7 @@ int main(int argc, char **argv)
 	exit(0);
 #endif
 
-	sig_preinit(); // Mitigate race conditions
+	sig_preinit(); /* Mitigate race conditions */
 #ifdef __DJGPP__
 	if (--argc <= 0) return 1;
 	if ((name = strrchr(argv[0], '/')))
@@ -1903,12 +1915,16 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef _MSC_VER
-	// Ok, I am making a simple way to debug external programs. in VC.  Prior to this, I would set
-	// break point below, right where the external name is, and then would modify IP to put me into
-	// the block that calls main() from the external.  Now, in VC mode, if the first command is:
-	// -external_command=COMMAND, then I set name == COMMAND, and pop the command line args off, just
-	// like the first one was not there.  So if the command was "-external_command=gpg2john secring.gpg"
-	// then we will be setup in gpg2john mode with command line arg of secring.gpg
+/*
+ * Ok, I am making a simple way to debug external programs. in VC.  Prior to
+ * this, I would set break point below, right where the external name is, and
+ * then would modify IP to put me into the block that calls main() from the
+ * external.  Now, in VC mode, if the first command is:
+ * -external_command=COMMAND, then I set name == COMMAND, and pop the command
+ * line args off, just like the first one was not there.  So if the command was
+ * "-external_command=gpg2john secring.gpg" then we will be setup in gpg2john
+ * mode with command line arg of secring.gpg
+ */
 	if (argc > 2 && !strncmp(argv[1], "-external_command=", 18)) {
 		int i;
 		name = &argv[1][18];
@@ -1974,8 +1990,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Allow resuming, for another set of N candidates */
-		john_max_cands = ((unsigned long long)status.cands.hi << 32) +
-			status.cands.lo + llabs(options.max_cands);
+		john_max_cands = status.cands + llabs(options.max_cands);
 	}
 
 	john_run();

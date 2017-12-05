@@ -85,6 +85,21 @@
  *        was seen when running zip2john. If the file is removed, this hash line will no longer be valid.
  *  Oh    Offset to the zip central header record for this blob.
  *  Ob    Offset to the start of the blob data
+ *
+ *
+ * The new format for PKWARE's Strong Encryption Specification is:
+ *
+ *    filename:$zip3$*Ty*Al*Bi*Ma*Sa*Erd*Le*DF*Au*Fn
+ *    Ty = type (0) and ignored.
+ *    Al = algorithm (1 for AES)
+ *    Bi = bit length (128/192/256 bit)
+ *    Ma = magic (file magic), reserved, must be '0' now
+ *    Sa = salt(hex), 12 or 16 bytes of IV data
+ *    Erd = encrypted random data (max. 256 bytes)
+ *    Le = real compr len (hex) length of compressed/encrypted data (field DF), unused currently
+ *    DF = compressed data DF can be Le*2 hex bytes, and if so, then it is the ENTIRE file blob written 'inline', unused currently
+ *    Au = authentication code, a 8 byte hex value that contains a CRC32 checksum, unused currently
+ *    Fn = filename within zip file
  */
 
 #include <stdint.h>
@@ -110,6 +125,7 @@
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
+#include "johnswap.h"
 #include "memdbg.h"
 
 #define LARGE_ENOUGH 8192
@@ -120,6 +136,13 @@ static char *ascii_fname, *only_fname;
 
 static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
 static int  MagicToEnum[] = {  0,   1,     1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
+
+static void print_hex_inline(unsigned char *str, int len)
+{
+	int i;
+	for (i = 0; i < len; ++i)
+		printf("%02x", str[i]);
+}
 
 static void process_old_zip(const char *fname);
 static void process_file(const char *fname)
@@ -170,23 +193,55 @@ static void process_file(const char *fname)
 			filename[filename_length] = 0;
 
 			if (compression_method == 99) {	/* AES encryption */
+#define AES_EXTRA_DATA_LENGTH 11  // http://www.winzip.com/aes_info.htm#authentication-code
 				uint64_t real_cmpr_len;
-				uint16_t efh_id = fget16LE(fp);
-				uint16_t efh_datasize = fget16LE(fp);
-				uint16_t efh_vendor_version = fget16LE(fp);
-				uint16_t efh_vendor_id = fget16LE(fp);
-				char efh_aes_strength = fgetc(fp);
-				uint16_t actual_compression_method = fget16LE(fp);
+				uint16_t efh_id;
+				uint16_t efh_datasize;
+				uint16_t efh_vendor_version;
+				uint16_t efh_vendor_id;
+				char efh_aes_strength;
+				uint16_t actual_compression_method;
 				unsigned char salt[16], d;
 				char *bname;
+				int found = 0;
 				int magic_enum = 0;  // reserved at 0 for now, we are not computing this (yet).
 
+				while (!ferror(fp)) {
+					efh_id = fget16LE(fp);
+					efh_datasize = fget16LE(fp);
+					if (efh_id != 0x9901) {
+#if DEBUG
+						fprintf(stderr, "[DEBUG] Skipping over efh_id (%x) with size %d.\n", efh_id, efh_datasize);
+#endif
+						fseek(fp, efh_datasize, SEEK_CUR);
+					} else {
+						found = 1;
+						break;
+					}
+				}
+				if (!found)
+					goto cleanup;
+				efh_vendor_version = fget16LE(fp);
+				efh_vendor_id = fget16LE(fp);
+				efh_aes_strength = fgetc(fp);
+				actual_compression_method = fget16LE(fp);
+				if (efh_id != 0x9901) {
+					fprintf(stderr, "Unable to parse %s which is using WinZip AES encryption!\n", fname);
+					goto cleanup;
+				}
+				// Data size: this value is currently 7, but because it is possible that this
+				// specification will be modified in the future to store additional data in
+				// this extra field, vendors should not assume that it will always remain 7.
+				if (efh_datasize != 7) {
+					fprintf(stderr, "AES_EXTRA_DATA_LENGTH is not 11 for %s, please report this to us!\n", fname);
+					goto cleanup;
+				}
 				strnzcpy(path, fname, sizeof(path));
 				bname = basename(path);
 				cp = cur;
 				if (best_len < compressed_size) {
 #if DEBUG
-					printf ("This buffer not used, it is not 'best' size\n");
+					printf("This buffer not used, it is not 'best' size\n");
 #endif
 				} else {
 					store = 1;
@@ -220,7 +275,7 @@ static void process_file(const char *fname)
 						itoa16[ARCH_INDEX(salt[i] >> 4)],
 						itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 				}
-				if (store) cp += sprintf (cp, "*");
+				if (store) cp += sprintf(cp, "*");
 				// since in the format we read/compare this one, we do it char by
 				// char, so there is no endianity swapping needed. (validator)
 				for (i = 0; i < 2; i++) {
@@ -229,7 +284,8 @@ static void process_file(const char *fname)
 						itoa16[ARCH_INDEX(d >> 4)],
 						itoa16[ARCH_INDEX(d & 0x0f)]);
 				}
-				real_cmpr_len = compressed_size-2-(4+4*efh_aes_strength)-extrafield_length;
+				// Password verification value -> 2 bytes, Salt value -> (4 + 4 * efh_aes_strength)
+				real_cmpr_len = compressed_size - 2 - (4 + 4 * efh_aes_strength) - AES_EXTRA_DATA_LENGTH;
 				// not quite sure why the real_cmpr_len is 'off by 1' ????
 				++real_cmpr_len;
 				if (store)
@@ -253,7 +309,92 @@ static void process_file(const char *fname)
 					if (!strchr(fname, d) && d != ':' && !isxdigit(d))
 						break;
 				}
-				if (store) cp += sprintf(cp, "*$/zip2$:::::%s\n", bname);
+				if (store) cp += sprintf(cp, "*$/zip2$:::::%s-%s\n", bname, filename);
+				if (cur) {
+					printf("%s\n",cur);
+					cur = NULL;  // dirty hack to avoid printing of last hash twice
+				}
+			} else if (flags & 1 && (version == 51 || version == 52 || version >= 61)) {	/* Strong Encryption?, APPNOTE-6.3.4.TXT, bit 6 check doesn't really work */
+				// fseek(fp, filename_length, SEEK_CUR);
+				// fseek(fp, extrafield_length, SEEK_CUR);
+				// continue;
+				unsigned char iv[16];
+				unsigned char Erd[256];
+				uint32_t Size;
+				uint32_t Format;
+				uint16_t AlgId;
+				uint16_t Bitlen;
+				uint16_t Flags;
+				uint16_t ErdSize;
+				uint32_t Reserved1;
+				uint16_t VSize;
+				uint16_t IVSize;
+				char *bname;
+				long previous_position;
+
+				// unused
+				(void) Flags;
+				(void) Bitlen;
+				(void) Reserved1;
+				(void) Size;
+
+				strnzcpy(path, fname, sizeof(path));
+				bname = basename(path);
+				previous_position = ftell(fp);
+				IVSize = fget16LE(fp);
+				if (IVSize > sizeof(iv))
+					goto bail;
+				if (fread(iv, 1, IVSize, fp) != IVSize)
+					goto bail;
+				Size = fget32LE(fp);
+				Format = fget16LE(fp);
+				if (Format != 3) {
+					goto bail;
+				}
+				AlgId = fget16LE(fp);
+				if (AlgId == 0x660E || AlgId == 0x660F || AlgId ==  0x6610)
+					AlgId = 1;
+				else if (AlgId == 0x6603 || AlgId == 0x6609 || AlgId == 0x6720 || AlgId == 0x6721 || AlgId == 0x6801) {
+					fprintf(stderr, "AlgId (%x) is currently unsupported, please report this to us!\n", AlgId);
+					goto bail;
+				} else
+					goto bail;
+				if (IVSize == 0) {
+					memset(iv, 0, 16);
+#if !ARCH_LITTLE_ENDIAN
+					crc = JOHNSWAP(crc);
+					uncompressed_size = JOHNSWAP64(uncompressed_size);
+#endif
+					memcpy(iv, &crc, 4);
+					memcpy(iv + 4, &uncompressed_size, 8);
+					IVSize = 12;
+				}
+				Bitlen = fget16LE(fp);
+				Flags = fget16LE(fp);
+				ErdSize = fget16LE(fp);
+				if (ErdSize > sizeof(Erd))
+					goto bail;
+				if (fread(Erd, 1, ErdSize, fp) != ErdSize)
+					goto bail;
+				Reserved1 = fget32LE(fp);
+				if (Reserved1 != 0) {
+					fprintf(stderr, "Reserved1 is %u (non-zero), please report this bug to us!\n", Reserved1);
+					goto bail;
+				}
+				VSize = fget16LE(fp);
+				fseek(fp, VSize, SEEK_CUR);
+
+				printf("%s:$zip3$*%d*%d*%d*%d*", bname, 0, AlgId, Bitlen, 0);
+				print_hex_inline(iv, IVSize);  // getting this right isn't important ;)
+				printf("*");
+				print_hex_inline(Erd, ErdSize);
+				printf("*0*0*0*%s\n", filename);
+				continue;
+bail:
+				fseek(fp, previous_position, SEEK_SET);
+				fseek(fp, filename_length, SEEK_CUR);
+				fseek(fp, extrafield_length, SEEK_CUR);
+				fseek(fp, compressed_size, SEEK_CUR);
 			} else if (flags & 1) {	/* old encryption */
 				fclose(fp);
 				fp = 0;
@@ -267,14 +408,45 @@ static void process_file(const char *fname)
 			}
 		} else if (id == 0x08074b50UL) {	/* data descriptor */
 			fseek(fp, 12, SEEK_CUR);
-		} else if (id == 0x02014b50UL || id == 0x06054b50UL) {	/* central directory structures */
+		} else if (id == 0x02014b50UL) {	/* central directory structures */
+			/* uint16_t version_maker = fget16LE(fp);
+			uint16_t version_needed = fget16LE(fp);
+			uint16_t filename_length;
+			uint16_t extrafield_length;
+			uint16_t comment_length;
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget32LE(fp);
+			(void) fget32LE(fp);
+			(void) fget32LE(fp);
+			filename_length = fget16LE(fp);
+			extrafield_length = fget16LE(fp);
+			comment_length = fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget16LE(fp);
+			(void) fget32LE(fp);
+			(void) fget32LE(fp);
+			(void) version_maker;
+			(void) version_needed;
+
+			if (fread(filename, 1, filename_length, fp) != filename_length) {
+				fprintf(stderr, "Error, in fread of file data!\n");
+				goto cleanup;
+			}
+			filename[filename_length] = 0;
+			fseek(fp, extrafield_length, SEEK_CUR);
+			fseek(fp, comment_length, SEEK_CUR); */
+			goto cleanup;
+		} else if (id == 0x06054b50UL) { /* end of central dir  */
 			goto cleanup;
 		}
 	}
 
 cleanup:
 	if (cur)
-		printf ("%s\n",cur);
+		printf("%s\n",cur);
 	MEM_FREE(cur);
 	fclose(fp);
 }
@@ -502,8 +674,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		}
 
 		// Ok, now set checksum bytes.  This will depend upon if from crc, or from timestamp
-		sprintf (p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
-		sprintf (p->chksum2, "%02x%02x", lastmod_time>>8, lastmod_time&0xFF);
+		sprintf(p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
+		sprintf(p->chksum2, "%02x%02x", lastmod_time>>8, lastmod_time&0xFF);
 
 		return 1;
 	}
@@ -634,7 +806,7 @@ print_and_cleanup:;
 		strnzcpy(path, fname, sizeof(path));
 		bname = basename(path);
 
-		printf ("%s:$pkzip2$%x*%x*", bname, count_of_hashes, zfp.check_bytes);
+		printf("%s:$pkzip2$%x*%x*", bname, count_of_hashes, zfp.check_bytes);
 		if (checksum_only)
 			i = 0;
 		for (; i < count_of_hashes; ++i) {

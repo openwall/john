@@ -15,7 +15,7 @@
  * Legacy input format:
  *   user:$mskrb5$user$realm$HexChecksum$HexTimestamp
  *
- * New input format from krbpa2john.py (the above is still supported),
+ * New input format from krb2john.py (the above is still supported),
  * note the lack of a separator between HexTimestamp and HexChecksum:
  *   user:$krb5pa$etype$user$realm$salt$HexTimestampHexChecksum
  *
@@ -121,8 +121,10 @@ static struct fmt_tests tests[] = {
 	{"$mskrb5$$$334ef74dad191b71c43efaa16aa79d88$34ebbad639b2b5a230b7ec1d821594ed6739303ae6798994e72bd13d5e0e32fdafb65413", "VeryveryveryloooooooongPassword"},
 	// repeat first hash in exactly the same form that is used in john.pot
 	{"$krb5pa$23$$$$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
-	// http://www.exumbraops.com/layerone2016/party (sample.krb.pcap, hash extracted by krbpa2john.py)
+	// http://www.exumbraops.com/layerone2016/party (sample.krb.pcap, hash extracted by krb2john.py)
 	{"$krb5pa$23$$$$4b8396107e9e4ec963c7c2c5827a4f978ad6ef943f87637614c0f31b2030ad1115d636e1081340c5d6612a3e093bd40ce8232431", "P@$$w0rd123"},
+	// ADSecurityOrg-MS14068-Exploit-KRBPackets.pcapng, https://adsecurity.org/?p=676
+	{"$krb5pa$23$$$$3d973b3833953655d019abff1a98ea124d98d94170fb77574f3cf6d0e6a7eded9f3e4bb37ec9fb64b55df7d9aceb6e19c1711983", "TheEmperor99!"},
 	{NULL}
 };
 
@@ -325,8 +327,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void set_key(char *key, int index)
 {
-	saved_len[index] = strlen(key);
-	memcpy(saved_plain[index], key, saved_len[index] + 1);
+	saved_len[index] = strnzcpyn(saved_plain[index], key, sizeof(*saved_plain));
 	keys_prepared = 0;
 }
 
@@ -423,13 +424,8 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int get_hash_0(int index) { return output[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return output[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return output[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return output[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return output[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return output[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return output[index][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR output
+#include "common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -483,13 +479,8 @@ struct fmt_main fmt_mskrb5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

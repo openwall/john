@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010-2013,2015 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010-2013,2015,2017 by Solar Designer
  *
  * ...with heavy changes in the jumbo patch, by magnum & JimF
  */
@@ -8,6 +8,8 @@
 #define NEED_OS_TIMER
 #include "os.h"
 
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <signal.h>
@@ -37,7 +39,6 @@
 #endif
 
 #include "misc.h"
-#include "math.h"
 #include "memory.h"
 #include "signals.h"
 #include "idle.h"
@@ -93,9 +94,14 @@ static int crk_key_index, crk_last_key;
 static void *crk_last_salt;
 void (*crk_fix_state)(void);
 static struct db_keys *crk_guesses;
-static int64 *crk_timestamps;
+static uint64_t *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 int64_t crk_pot_pos;
+
+/* expose max_keys_per_crypt to the world (needed in recovery.c) */
+int cracker_max_keys_per_crypt() {
+	return  crk_params.max_keys_per_crypt;
+}
 
 static void crk_dummy_set_salt(void *salt)
 {
@@ -203,9 +209,8 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_guesses = guesses;
 
 	if (db->loaded) {
-		size = crk_params.max_keys_per_crypt * sizeof(int64);
-		memset(crk_timestamps = mem_alloc_tiny(size, sizeof(int64)),
-		       -1, size);
+		size = crk_params.max_keys_per_crypt * sizeof(uint64_t);
+		memset(crk_timestamps = mem_alloc(size), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
 
@@ -335,8 +340,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	char *key, *utf8key, *repkey, *replogin, *repuid;
 
 	if (index >= 0 && index < crk_params.max_keys_per_crypt) {
-		dupe = !memcmp(&crk_timestamps[index],
-		               &status.crypts, sizeof(int64));
+		dupe = crk_timestamps[index] == status.crypts;
 		crk_timestamps[index] = status.crypts;
 	} else
 		dupe = 0;
@@ -401,9 +405,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		}
 
 		if (options.max_cands < 0)
-			john_max_cands =
-				((unsigned long long)status.cands.hi << 32) +
-				status.cands.lo - options.max_cands +
+			john_max_cands = status.cands - options.max_cands +
 				crk_params.max_keys_per_crypt;
 
 		if (dupe)
@@ -593,6 +595,9 @@ int crk_reload_pot(void)
 	salt_time = 0;
 #endif
 	event_reload = 0;
+
+	if (event_abort)
+		return 0;
 
 	if (crk_params.flags & FMT_NOT_EXACT)
 		return 0;
@@ -818,11 +823,7 @@ static int crk_password_loop(struct db_salt *salt)
 	match = crk_methods.crypt_all(&count, salt);
 	crk_last_key = count;
 
-	{
-		int64 effective_count;
-		mul32by32(&effective_count, salt->count, count);
-		status_update_crypts(&effective_count, count);
-	}
+	status_update_crypts((uint64_t)salt->count * count, count);
 
 	if (!match)
 		return 0;
@@ -964,11 +965,12 @@ static int crk_salt_loop(void)
 	/* on first run, right after restore, this can be non-zero */
 	if (status.resume_salt) {
 		struct db_salt *s = salt;
-
-		status.resume_salt = 0;	/* only resume the first time */
-		while (s) {
+		/* clear resume so it only works the first time */
+		status.resume_salt = 0;
+		while (s)
+		{
 			if (s->salt_md5[0] == status.resume_salt_md5[0] &&
-			    !memcmp(s->salt_md5, status.resume_salt_md5, 16))
+				!memcmp(s->salt_md5, status.resume_salt_md5, 16))
 			{
 				/* found it!! */
 				salt = s;
@@ -987,24 +989,12 @@ static int crk_salt_loop(void)
 	if (!salt || crk_db->salt_count < 2)
 		status.resume_salt_md5 = NULL;
 
-	if (done >= 0) {
-#if !HAVE_OPENCL
-		/* Assumes we'll never overrun 32-bit in one crypt */
-		add32to64(&status.cands, crk_key_index *
-		          mask_int_cand.num_int_cand);
-#else
-		/* Safe for > 4G crypts per call */
-		int64 totcand;
-		mul32by32(&totcand, crk_key_index, mask_int_cand.num_int_cand);
-		add64to64(&status.cands, &totcand);
-#endif
-	}
+	if (done >= 0)
+		status.cands +=
+			(uint64_t)crk_key_index * mask_int_cand.num_int_cand;
 
 	if (john_max_cands && !event_abort) {
-		unsigned long long cands =
-			((unsigned long long)
-			 status.cands.hi << 32) + status.cands.lo;
-		if (cands >= john_max_cands)
+		if (status.cands >= john_max_cands)
 			event_abort = event_pending = 1;
 	}
 
@@ -1030,18 +1020,41 @@ static int crk_salt_loop(void)
 	return ext_abort;
 }
 
+/* this variable is used in salt-resume logic  */
+/* if the KPC is now larger than it was when   */
+/* the .rec file was made, then the first loop */
+/* must limit its KPC to what was saved in the */
+/* .rec file.                                  */
+static int cracker_max_keys_to_use = 0;
+
 int crk_process_key(char *key)
 {
 	if (crk_db->loaded) {
+		if (!cracker_max_keys_to_use) {
+			cracker_max_keys_to_use = crk_params.max_keys_per_crypt;
+			if (status.resume_salt) {
+				if (status.resume_salt_crypts_per <= 0)
+					/* No longer resume v1 salt, we do not know the restore KPC */
+					status.resume_salt = 0;
+				else if (status.resume_salt_crypts_per < cracker_max_keys_to_use)
+					/* NOTE this reduction can only happen the FIRST time */
+					cracker_max_keys_to_use = status.resume_salt_crypts_per;
+			}
+		}
+
 		if (crk_key_index == 0)
 			crk_methods.clear_keys();
 
 		crk_methods.set_key(key, crk_key_index++);
 
-		if (crk_key_index >= crk_params.max_keys_per_crypt ||
+		if (crk_key_index >= cracker_max_keys_to_use ||
 		    (options.force_maxkeys &&
-		     crk_key_index >= options.force_maxkeys))
-			return crk_salt_loop();
+		     crk_key_index >= options.force_maxkeys)) {
+			int ret = crk_salt_loop();
+			/* From here on cracker_max_keys_to_use is set to max KPC */
+			cracker_max_keys_to_use = crk_params.max_keys_per_crypt;
+			return ret;
+		}
 
 		return 0;
 	}
@@ -1060,10 +1073,7 @@ int crk_process_key(char *key)
 	status_update_cands(1);
 
 	if (john_max_cands && !event_abort) {
-		unsigned long long cands =
-			((unsigned long long)
-			 status.cands.hi << 32) + status.cands.lo;
-		if (cands >= john_max_cands)
+		if (status.cands >= john_max_cands)
 			event_abort = event_pending = 1;
 	}
 
@@ -1127,11 +1137,11 @@ int crk_process_salt(struct db_salt *salt)
 				int not_from_guesses =
 				    index - count_from_guesses;
 				if (not_from_guesses > 0) {
-					add32to64(&status.cands,
-					    not_from_guesses);
+					status.cands += not_from_guesses;
 					count_from_guesses = 0;
-				} else
+				} else {
 					count_from_guesses -= index;
+				}
 			}
 			if (done)
 				return 1;

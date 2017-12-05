@@ -413,6 +413,19 @@ void dump_stuff_be_msg_sepline(const void *msg, void *x, unsigned int size) {
 	dump_stuff_be(x, size);
 }
 
+void alter_endianity_w16(void * _x, unsigned int size) {
+	unsigned char c, *x = (unsigned char*)_x;
+
+	// size is in octets
+	size>>=1;
+	while (size--) {
+		c = *x;
+		*x = x[1];
+		x[1] = c;
+		x += 2;
+	}
+}
+
 void alter_endianity(void *_x, unsigned int size) {
 	uint32_t *x = (uint32_t*)_x;
 

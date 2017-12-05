@@ -40,7 +40,19 @@
 
 #include <stdint.h>
 #define __STDC_FORMAT_MACROS
+#if (AC_BUILT && HAVE_INTTYPES_H) && ! defined(_MSC_VER)
 #include <inttypes.h>
+#else
+#ifndef PRIx64
+#define PRIx64    "llx"
+#endif
+#ifndef PRIu64
+#define PRIu64    "llu"
+#endif
+#ifndef PRId64
+#define PRId64    "lld"
+#endif
+#endif
 
 /******************************************/
 /* here we try to 'find' a usable fseek64 */
@@ -284,6 +296,8 @@ extern char *strupr(char *s);
 extern long long jtr_atoll(const char *);
 #endif
 #endif
+
+void memcpylwr(char *, const char *, size_t);
 
 #if (__MINGW32__ || __MINGW64__) && __STRICT_ANSI__
 // since we added -std=c99 for Mingw builds (to handle printf/scanf %xxx specifiers better),

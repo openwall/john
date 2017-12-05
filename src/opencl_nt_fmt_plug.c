@@ -140,7 +140,7 @@ static const char * warn[] = {
 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl-autotune.h"
+#include "opencl_autotune.h"
 #include "memdbg.h"
 
 /* ------- Helper functions ------- */
@@ -356,10 +356,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	out[2] = 'T';
 	out[3] = '$';
 
-	memcpy(&out[FORMAT_TAG_LEN], ciphertext, 32);
+	memcpylwr(&out[FORMAT_TAG_LEN], ciphertext, 32);
 	out[36] = 0;
-
-	strlwr(&out[FORMAT_TAG_LEN]);
 
 	return out;
 }

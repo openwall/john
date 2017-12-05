@@ -44,7 +44,7 @@ void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
 {
 	const uint saltlen = 16;
 	uint key_length = 32;
-	uint num = (key_length - 1) / SHA1_DIGEST_LENGTH + 1;
+	const uint num = (key_length - 1) / SHA1_DIGEST_LENGTH + 1; // Always 2
 	uint i;
 	uchar password[PLAINTEXT_LENGTH];
 	uchar salt[16];
@@ -59,13 +59,11 @@ void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
 		uint bytes;
 		const uint b[1] = { 0 };
 		uchar key[SHA1_DIGEST_LENGTH];
-		uint j;
 
 		bytes = cbytes;
+
 		SHA1_Init(&ctx);
-		for (j = 0; j < i; j++) {
-			SHA1_Update(&ctx, (uchar*)b, 1);
-		}
+		SHA1_Update(&ctx, (uchar*)b, i);
 
 		while (bytes > plen + 16) {
 			SHA1_Update(&ctx, salt, 16);

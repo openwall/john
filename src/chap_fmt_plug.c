@@ -1,4 +1,5 @@
-/* iSCSI CHAP authentication cracker. Hacked together during September of 2012
+/*
+ * iSCSI CHAP authentication cracker. Hacked together during September of 2012
  * by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -13,6 +14,10 @@
  * ftp://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
  * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf
  * http://www.willhackforsushi.com/presentations/PEAP_Shmoocon2008_Wright_Antoniewicz.pdf
+ *
+ * https://tools.ietf.org/html/rfc2865 -> The CHAP challenge value is found in
+ * the CHAP-Challenge Attribute (60) if present in the packet, otherwise in the
+ * Request Authenticator field.
  */
 
 #if FMT_EXTERNS_H
@@ -21,16 +26,8 @@ extern struct fmt_main fmt_chap;
 john_register_one(&fmt_chap);
 #else
 
-#include "md5.h"
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
@@ -44,6 +41,14 @@ static int omp_t = 1;
 #endif
 #endif
 #endif
+
+#include "arch.h"
+#include "misc.h"
+#include "md5.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "chap"
@@ -68,6 +73,10 @@ static struct fmt_tests chap_tests[] = {
 	// EAP-MD5 hashes are also supported!
 	{"$chap$2*d7ec2fff2ada437f9dcd4e3b0df44d50*1ffc6c2659bc5bb94144fd01eb756e37", "beaVIs"},
 	{"$chap$2*00000000000000000000000000000000*9920418b3103652d3b80ffff04da5863", "bradtest"},
+	// RADIUS EAP-MD5 hash
+	{"$chap$1*266b0e9a58322f4d01ab25b35f879464*c9f9769597e320843f5f2af7b8f1c9bd", "S0cc3r"},
+	// RADIUS CHAP authentication is supported too
+	{"$chap$238*98437c9fd4cb5f446202c0b1ffab2592*050d578a292a4bfd9f030d2797919687", "hello"},
 	{NULL}
 };
 
@@ -140,6 +149,8 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
+
+	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN; /* skip over "$chap$" */
 	p = strtokm(ctcopy, "*");
 	cs.id = atoi(p);
@@ -172,13 +183,8 @@ static void *get_binary(char *ciphertext)
 	return out; /* CHAP_R */
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -227,7 +233,7 @@ static int cmp_exact(char *source, int index)
 
 static void chap_set_key(char *key, int index)
 {
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
@@ -282,13 +288,8 @@ struct fmt_main fmt_chap = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -316,7 +316,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 			MEMDBG_HDR  volatile *p2 = p->mdbg_next;
 			while (p2) {
 				if (p2 == p || p2 == p2->mdbg_next) {
-					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					fprintf(stderr, "Error, internal loop in the memdbg linked list, aborting\n");
 					break;
 				}
 				p2 = p2->mdbg_next;
@@ -363,7 +363,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 			MEMDBG_HDR  *p2 = p->mdbg_next;
 			while (p2) {
 				if (p2 == p || p2 == p2->mdbg_next) {
-					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					fprintf(stderr, "Error, internal loop in the memdbg linked list, aborting\n");
 					break;
 				}
 				p2 = p2->mdbg_next;
@@ -414,7 +414,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 			MEMDBG_HDR  *p2 = p->mdbg_next;
 			while (p2) {
 				if (p2 == p || p2 == p2->mdbg_next) {
-					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					fprintf(stderr, "Error, internal loop in the memdbg linked list, aborting\n");
 					break;
 				}
 				p2 = p2->mdbg_next;
@@ -456,7 +456,7 @@ void MemDbg_Validate_msg2(int level, const char *pMsg, int bShowExMessages) {
 			MEMDBG_HDR  *p2 = p->mdbg_next;
 			while (p2) {
 				if (p2 == p || p2 == p2->mdbg_next) {
-					fprintf (stderr, "Error, internal loop in the memdbg linked list, aborting\n");
+					fprintf(stderr, "Error, internal loop in the memdbg linked list, aborting\n");
 					break;
 				}
 				p2 = p2->mdbg_next;

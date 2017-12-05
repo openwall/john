@@ -97,10 +97,9 @@ to start with "single crack" mode:
 
 	john --single mypasswd
 
-or since the GNU-style double dashes are optional and since option
-names can be abbreviated for as long as they remain unambiguous:
+or since the GNU-style double dashes are optional:
 
-	john -si mypasswd
+	john -single mypasswd
 
 You should not abbreviate options in scripts which you would want to
 work with future versions of John since what is unambiguous now might
@@ -245,9 +244,10 @@ proper name, but kept for historical reasons).  You can simply run:
 
 	john --incremental mypasswd
 
-or:
+or, since option names can be abbreviated for as long as they remain
+unambiguous:
 
-	john -i mypasswd
+	john -inc mypasswd
 
 This will use the default "incremental" mode parameters, which are
 defined in the configuration file's section named either
@@ -269,14 +269,14 @@ parameters and only crack simpler passwords, from a limited character
 set.  The following command will try 10 different characters only,
 passwords from "0" to "99999999999999999999" (in an optimal order):
 
-	john -i=digits mypasswd
+	john -inc=digits mypasswd
 
 Of course, you can use most of the additional features demonstrated
 above for wordlist mode with "incremental" mode as well.  For example,
 on a large-scale penetration test, you may have John crack only root
 (UID 0) accounts in a set of password files:
 
-	john -i -u=0 *.pwd
+	john -inc -u=0 *.pwd
 
 7. If you've got a password file for which you already have a lot of
 passwords cracked or obtained by other means, and the passwords are
@@ -294,7 +294,7 @@ files or from some other password files from the same place:
 
 	john --make-charset=custom.chr passwd1 passwd2
 	[ Configure your custom "incremental" mode now.  See below. ]
-	john -i=custom passwd3
+	john -inc=custom passwd3
 
 You can use some pre-defined or custom word filters when generating the
 charset file to have John consider some simpler passwords only:

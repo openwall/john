@@ -17,6 +17,7 @@
 #include "inouttraffic.h"
 #include "pkt_comm/pkt_comm.h"
 
+#include "../path.h"
 
 int DEBUG = 0;
 
@@ -340,7 +341,7 @@ int device_check_bitstream_type(struct device *device, unsigned short bitstream_
 //
 // Returns: number of devices with bitstreams uploaded
 // < 0 on fatal error
-int device_list_check_bitstreams(struct device_list *device_list, unsigned short BITSTREAM_TYPE, const char *filename)
+int device_list_check_bitstreams(struct device_list *device_list, unsigned short BITSTREAM_TYPE, char *filename)
 {
 	int ok_count = 0;
 	int uploaded_count = 0;
@@ -373,8 +374,8 @@ int device_list_check_bitstreams(struct device_list *device_list, unsigned short
 		}
 
 		if (!fp)
-			if ( !(fp = fopen(filename, "r")) ) {
-				printf("fopen(%s): %s\n", filename, strerror(errno));
+			if ( !(fp = fopen(path_expand(filename), "r")) ) {
+				printf("fopen(%s): %s\n", path_expand(filename), strerror(errno));
 				return -1;
 			}
 		printf("SN %s: uploading bitstreams.. ", device->ztex_device->snString);
@@ -496,10 +497,6 @@ int fpga_select_setup_io(struct fpga *fpga)
 int fpga_progclk_raw(struct fpga *fpga, int clk_num,
 		int d_value, int m_value)
 {
-	if (DEBUG)
-		printf("fpga_progclk_raw(%d,%d,%d,%d)\n", fpga->num,
-			clk_num, d_value, m_value);
-
 	int result = vendor_command(fpga->device->handle, 0x93,
 			fpga->num | clk_num << 8, d_value | m_value << 8, NULL, 0);
 	if (result < 0)
@@ -512,7 +509,8 @@ int fpga_progclk_raw(struct fpga *fpga, int clk_num,
 int fpga_progclk(struct fpga *fpga, int clk_num, int freq)
 {
 	if (DEBUG)
-		printf("fpga_progclk(%d,%d,%d)\n", fpga->num, clk_num, freq);
+		fprintf(stderr, "fpga_progclk(%d,%d,%d)\n", fpga->num,
+				clk_num, freq);
 
 	const struct {
 		int freq, m, d;

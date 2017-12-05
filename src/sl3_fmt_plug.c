@@ -57,7 +57,11 @@ john_register_one(&fmt_sl3);
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  NBKEYS
 #define MAX_KEYS_PER_CRYPT  NBKEYS
+#if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#else
+#define GETPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
@@ -118,7 +122,7 @@ static void *get_binary(char *ciphertext) {
 	memset(out, 0, BINARY_SIZE);
 	base64_convert(ciphertext, e_b64_hex, 2 * BINARY_SIZE,
 	               out, e_b64_raw, BINARY_SIZE, 0, 0);
-#ifdef SIMD_COEF_32
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity((unsigned char*)out, BINARY_SIZE);
 #endif
 	return (void*)out;
@@ -148,6 +152,7 @@ static void set_key(char *_key, int index)
 		*d++ = *_key++ - '0';
 	} while (i--);
 
+#if ARCH_LITTLE_ENDIAN==1
 	*keybuf_word = JOHNSWAP(*wkey++);
 	keybuf_word += SIMD_COEF_32;
 	*keybuf_word = JOHNSWAP(*wkey++);
@@ -155,6 +160,15 @@ static void set_key(char *_key, int index)
 	*keybuf_word = JOHNSWAP(*wkey++);
 	keybuf_word += SIMD_COEF_32;
 	*keybuf_word = JOHNSWAP(*wkey);
+#else
+	*keybuf_word = *wkey++;
+	keybuf_word += SIMD_COEF_32;
+	*keybuf_word = *wkey++;
+	keybuf_word += SIMD_COEF_32;
+	*keybuf_word = *wkey++;
+	keybuf_word += SIMD_COEF_32;
+	*keybuf_word = *wkey;
+#endif
 
 #else
 	char *d = saved_key[index];
@@ -269,24 +283,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-#ifdef SIMD_COEF_32
-#define HASH_OFFSET	(index&(SIMD_COEF_32-1))+(((unsigned int)index%NBKEYS)/SIMD_COEF_32)*SIMD_COEF_32*5
-static int get_hash_0(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_key[index/NBKEYS][HASH_OFFSET] & PH_MASK_6; }
-#else
-static int get_hash_0(int index) { return crypt_key[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_key[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_key[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_key[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_key[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_key[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_key[index][0] & PH_MASK_6; }
-#endif
+#define COMMON_GET_HASH_SIMD32 5
+#define COMMON_GET_HASH_VAR crypt_key
+#include "common-get-hash.h"
 
 struct fmt_main fmt_sl3 = {
 	{
@@ -335,13 +334,8 @@ struct fmt_main fmt_sl3 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

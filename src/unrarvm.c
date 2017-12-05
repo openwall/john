@@ -222,7 +222,7 @@ unsigned int rarvm_getbits(rarvm_input_t *rarvm_input)
 	unsigned int bit_field;
 
 	if (rarvm_input->in_addr+2 > rarvm_input->buf_size) {
-		//printf ("rarvm_getbits() out of data: offset %u with %u in buffer\n", rarvm_input->in_addr+2, rarvm_input->buf_size);
+		//printf("rarvm_getbits() out of data: offset %u with %u in buffer\n", rarvm_input->in_addr+2, rarvm_input->buf_size);
 		return 0;
 	}
 	bit_field = (unsigned int) rarvm_input->in_buf[rarvm_input->in_addr] << 16;

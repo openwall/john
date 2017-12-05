@@ -156,9 +156,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-  if (!key) return;
-  key_len[index] = strlen(key) + 1;
-  strcpy(saved_key[index], key);
+  key_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key)) + 1;
 }
 
 static char* get_key(int index)
@@ -206,13 +204,8 @@ static int cmp_exact(char *source, int index)
   return 1;
 }
 
-static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
+#define COMMON_GET_HASH_VAR crypt_out
+#include "common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -269,13 +262,8 @@ struct fmt_main fmt_EPI =
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+#define COMMON_GET_HASH_LINK
+#include "common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

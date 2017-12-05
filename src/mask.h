@@ -19,6 +19,9 @@
 
 #include "loader.h"
 
+// See also opencl_mask.h.
+#define MASK_FMT_INT_PLHDR 4
+
 // Maximum number of placeholders in a mask.
 #define MAX_NUM_MASK_PLHDR 127
 
@@ -117,5 +120,8 @@ extern unsigned long long mask_parent_keys;
 
 /* Current length when pure mask mode iterates over lengths */
 extern int mask_cur_len;
+
+/* Set if max-length is computed (as opposed to specified by the user) */
+extern int mask_maxlength_computed;
 
 #endif

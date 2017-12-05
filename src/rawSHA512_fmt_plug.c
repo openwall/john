@@ -83,7 +83,9 @@ john_register_one(&fmt_raw0_SHA512);
 #endif
 
 #ifdef SIMD_COEF_64
-#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define FMT_IS_64BIT
+#define FMT_IS_BE
+#include "common-simd-getpos.h"
 static uint64_t (*saved_key);
 static uint64_t (*crypt_out);
 #else
@@ -147,7 +149,9 @@ static void *get_binary(char *ciphertext)
 	}
 
 #ifdef SIMD_COEF_64
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
+#endif
 #ifdef REVERSE_STEPS
 	sha512_reverse(outw);
 #endif
@@ -182,105 +186,8 @@ static int binary_hash_4(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK
 static int binary_hash_5(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((uint64_t*)binary)[0] & PH_MASK_6; }
 
-static void set_key(char *key, int index)
-{
-#ifdef SIMD_COEF_64
-#if ARCH_ALLOWS_UNALIGNED
-	const uint64_t *wkey = (uint64_t*)key;
-#else
-	char buf_aligned[PLAINTEXT_LENGTH + 1] JTR_ALIGN(sizeof(uint64_t));
-	const uint64_t *wkey = is_aligned(key, sizeof(uint64_t)) ?
-			(uint64_t*)key : (uint64_t*)strcpy(buf_aligned, key);
-#endif
-	uint64_t *keybuffer = &((uint64_t*)saved_key)[(index&(SIMD_COEF_64-1)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-	uint64_t *keybuf_word = keybuffer;
-	unsigned int len;
-	uint64_t temp;
-
-	len = 0;
-	while((unsigned char)(temp = *wkey++)) {
-		if (!(temp & 0xff00))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xff) | (0x80 << 8));
-			len++;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffff) | (0x80 << 16));
-			len+=2;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffff) | (0x80ULL << 24));
-			len+=3;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffff) | (0x80ULL << 32));
-			len+=4;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff0000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffffffULL) | (0x80ULL << 40));
-			len+=5;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff000000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffffffffULL) | (0x80ULL << 48));
-			len+=6;
-			goto key_cleaning;
-		}
-		if (!(temp & 0xff00000000000000ULL))
-		{
-			*keybuf_word = JOHNSWAP64((temp & 0xffffffffffffffULL) | (0x80ULL << 56));
-			len+=7;
-			goto key_cleaning;
-		}
-		*keybuf_word = JOHNSWAP64(temp);
-		len += 8;
-		keybuf_word += SIMD_COEF_64;
-	}
-	*keybuf_word = 0x8000000000000000ULL;
-
-key_cleaning:
-	keybuf_word += SIMD_COEF_64;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
-		keybuf_word += SIMD_COEF_64;
-	}
-	keybuffer[15*SIMD_COEF_64] = len << 3;
-#else
-	int len = strlen(key);
-	saved_len[index] = len;
-	if (len > PLAINTEXT_LENGTH)
-		len = saved_len[index] = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, len);
-#endif
-}
-
-static char *get_key(int index)
-{
-#ifdef SIMD_COEF_64
-	unsigned i;
-	uint64_t s;
-	static char out[PLAINTEXT_LENGTH + 1];
-	unsigned char *wucp = (unsigned char*)saved_key;
-
-	s = ((uint64_t*)saved_key)[15*SIMD_COEF_64 + (index&(SIMD_COEF_64-1)) + index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] >> 3;
-	for (i = 0; i < (unsigned)s; i++)
-		out[i] = wucp[ GETPOS(i, index) ];
-	out[i] = 0;
-	return (char*) out;
-#else
-	saved_key[index][saved_len[index]] = 0;
-	return saved_key[index];
-#endif
-}
+#define NON_SIMD_SET_SAVED_LEN
+#include "common-simd-setkey64.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
@@ -346,7 +253,9 @@ static int cmp_exact(char *source, int index)
 	SHA512_Final((unsigned char*)crypt_out, &ctx);
 
 #ifdef SIMD_COEF_64
+#if ARCH_LITTLE_ENDIAN==1
 	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE/8);
+#endif
 #ifdef REVERSE_STEPS
 	sha512_reverse(crypt_out);
 #endif

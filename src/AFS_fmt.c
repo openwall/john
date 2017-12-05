@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2012,2015 by Solar Designer
+ * Copyright (c) 1996-2001,2012,2015,2017 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -210,14 +210,6 @@ static int binary_hash_1(void *binary)
 	return DES_STD_HASH_1(((ARCH_WORD *)binary)[2]);
 }
 
-static int binary_hash_2(void *binary)
-{
-	if (((ARCH_WORD *)binary)[2] == ~(ARCH_WORD)0)
-		return *(ARCH_WORD *)binary & PH_MASK_2;
-
-	return DES_STD_HASH_2(((ARCH_WORD *)binary)[2]);
-}
-
 static ARCH_WORD to_short_hash(int index)
 {
 	char base64[14];
@@ -263,18 +255,6 @@ static int get_hash_1(int index)
 	return DES_STD_HASH_1(binary);
 }
 
-static int get_hash_2(int index)
-{
-	ARCH_WORD binary;
-
-	if (buffer[index].is_long) {
-		if ((binary = to_short_hash(index)) == ~(ARCH_WORD)0)
-			return buffer[index].aligned.binary[0] & PH_MASK_2;
-	} else
-		binary = buffer[index].aligned.binary[0] & AFS_BINARY_MASK;
-	return DES_STD_HASH_2(binary);
-}
-
 static void set_salt(void *salt)
 {
 	strnzcpy(cell, salt, SALT_SIZE);
@@ -283,7 +263,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy(buffer[index].key, key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(buffer[index].key, key, sizeof(buffer[0].key));
 }
 
 static char *get_key(int index)
@@ -477,7 +457,7 @@ struct fmt_main fmt_AFS = {
 		{
 			binary_hash_0,
 			binary_hash_1,
-			binary_hash_2,
+			NULL,
 			NULL,
 			NULL,
 			NULL,
@@ -493,7 +473,7 @@ struct fmt_main fmt_AFS = {
 		{
 			get_hash_0,
 			get_hash_1,
-			get_hash_2,
+			NULL,
 			NULL,
 			NULL,
 			NULL,

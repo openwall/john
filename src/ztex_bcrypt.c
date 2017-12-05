@@ -21,6 +21,7 @@
 #include "formats.h"
 #include "memory.h"
 #include "config.h"
+#include "options.h"
 
 #include "BF_common.h"
 
@@ -49,16 +50,16 @@
 static struct device_bitstream bitstream = {
 	// bitstream ID (check is performed by querying operating bitstream)
 	0xbc01,
-	"ztex/ztex115y_bcrypt.bit",
+	"$JOHN/ztex/ztex115y_bcrypt.bit",
 	// parameters for high-speed packet communication (pkt_comm)
 	{ 2, 6144, 8190 },
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	1,	// set by init()
-	262140,	// Absolute max. keys/crypt_all_interval for all devices.
+	1 * 1024*1024,	// Absolute max. keys/crypt_all_interval for all devices.
 	3,		// Max. number of entries in onboard comparator.
 	124,	// Min. number of keys for effective device utilization
-	1, { 140 },	// Programmable clocks
+	1, { 141 },	// Programmable clocks
 	"bcrypt"	// label for configuration file
 };
 
@@ -145,7 +146,7 @@ static void init(struct fmt_main *fmt_main)
 	//fprintf(stderr, "bitstream.candidates_per_crypt=%d\n",
 	//		bitstream.candidates_per_crypt);
 
-	device_format_init(fmt_main, &bitstream);
+	device_format_init(fmt_main, &bitstream, options.acc_devices);
 }
 
 // Existing CPU implementation use following data structures:

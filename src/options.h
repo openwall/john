@@ -280,6 +280,9 @@ struct options_main {
 /* Input encoding for word lists, and/or pot file clear-texts. */
 	int input_enc;
 
+/* Replacement character for "EmulateBrokenEncoding" feature. */
+	unsigned char replacement_character;
+
 /* True if encoding was set from john.conf as opposed to command line. */
 	int default_enc;
 	int default_target_enc;
@@ -366,8 +369,9 @@ struct options_main {
 /* Vector width of OpenCL kernel */
 	unsigned int v_width;
 #endif
-#if defined(HAVE_OPENCL)
-	struct list_main *gpu_devices;
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
+/* Allow to set and select OpenCL device(s) or ztex boards */
+	struct list_main *acc_devices;
 #endif
 /* -list=WHAT Get a config list (eg. a list of incremental modes available) */
 	char *listconf;
