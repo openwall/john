@@ -43,13 +43,6 @@ matrix:
     compiler: gcc
     env: ASAN="--enable-asan"
 
-  - os: linux
-    env: ASAN="--enable-asan" TEST="fresh test"
-
-  - os: osx
-    osx_image: xcode8.3
-    env: ASAN="" OPENCL="yes"
-
   fast_finish: true
 
 script:
