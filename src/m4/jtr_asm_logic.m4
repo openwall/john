@@ -1,0 +1,39 @@
+# This file is Copyright (C) 2014-2017 magnum & JimF,
+# and is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modifications, are permitted.
+#
+# All tests in this file are supposed to be cross compile compliant
+#
+AC_DEFUN([JTR_ASM_LOGIC], [
+CC_BACKUP=$CC
+
+#############################################################################
+# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
+#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
+#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
+#  -DUNDERSCORES for cygwin / MinGW / VC
+#############################################################################
+EXTRA_AS_FLAGS=
+AC_MSG_CHECKING([for extra ASFLAGS])
+CFLAGS_BACKUP=$CFLAGS
+CFLAGS="$CFLAGS -O0"
+AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
+      [JTR_LIST_ADD(EXTRA_AS_FLAGS, [-DUNDERSCORES])])
+
+AC_LINK_IFELSE([AC_LANG_SOURCE(
+	[[extern void exit(int);
+	int main() {
+	#if defined(__APPLE__) && defined(__MACH__)
+        exit(0);
+    #else
+        BORK!
+	#endif
+	}]])]
+  ,[JTR_LIST_ADD(EXTRA_AS_FLAGS, [-DBSD -DALIGN_LOG])])
+
+AS_IF([test "x$EXTRA_AS_FLAGS" = x],[AC_MSG_RESULT([None needed])],[AC_MSG_RESULT([${EXTRA_AS_FLAGS}])])
+
+CC="$CC_BACKUP"
+CFLAGS="$CFLAGS_BACKUP"
+])

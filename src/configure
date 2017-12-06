@@ -8926,6 +8926,7 @@ esac
 # macros for each environment.  We probably should fall back to calling
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
+JTR_ASM_LOGIC
 if test "x$cpu_family" = xintel; then :
   echo "checking special compiler flags... Intel X86*"
 CC_BACKUP=$CC
@@ -9152,7 +9153,7 @@ $as_echo_n "checking for SSSE3... " >&6; }
   if test ! -f arch.h; then
       cp $CPUID_FILE arch.h
   fi
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM $EXTRA_AS_FLAGS -o test_SIMD
 
   SIMD_var=$( ./test_SIMD; echo $? )
 
@@ -9178,7 +9179,7 @@ fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
 $as_echo_n "checking for SSE4.1... " >&6; }
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM $EXTRA_AS_FLAGS -o test_SIMD
 
   SIMD_var=$( ./test_SIMD; echo $? )
 
@@ -9204,7 +9205,7 @@ fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
 $as_echo_n "checking for AVX... " >&6; }
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM $EXTRA_AS_FLAGS -o test_SIMD
 
   SIMD_var=$( ./test_SIMD; echo $? )
 
@@ -9229,7 +9230,7 @@ fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
 $as_echo_n "checking for XOP... " >&6; }
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM $EXTRA_AS_FLAGS -o test_SIMD
 
   SIMD_var=$( ./test_SIMD; echo $? )
 
@@ -9253,7 +9254,7 @@ fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
 $as_echo_n "checking for AVX2... " >&6; }
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM $EXTRA_AS_FLAGS -o test_SIMD
 
   SIMD_var=$( ./test_SIMD; echo $? )
 
@@ -9768,76 +9769,6 @@ fi
       CC_ASM_OBJS="alpha.o"
       ;;
 esac
-
-#############################################################################
-# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
-#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
-#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
-#  -DUNDERSCORES for cygwin / MinGW / VC
-#############################################################################
-EXTRA_AS_FLAGS=
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for extra ASFLAGS" >&5
-$as_echo_n "checking for extra ASFLAGS... " >&6; }
-CC="$CC_BACKUP"
-CFLAGS_BACKUP=$CFLAGS
-CFLAGS="$CFLAGS -O0"
-if echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out; then :
-
-   for i in -DUNDERSCORES; do
-      jtr_list_add_dupe=0
-      for j in $EXTRA_AS_FLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-fi
-
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-extern void exit(int);
-	int main() {
-	#if defined(__APPLE__) && defined(__MACH__)
-        exit(0);
-    #else
-        BORK!
-	#endif
-	}
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-
-   for i in -DBSD -DALIGN_LOG; do
-      jtr_list_add_dupe=0
-      for j in $EXTRA_AS_FLAGS; do
-         if test "x$i" = "x$j"; then
-            jtr_list_add_dupe=1
-            break
-         fi
-      done
-      if test $jtr_list_add_dupe = 0; then
-         EXTRA_AS_FLAGS="$EXTRA_AS_FLAGS $i"
-         jtr_list_add_result="$jtr_list_add_result $i"
-      fi
-   done
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-
-if test "x$EXTRA_AS_FLAGS" = x; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: None needed" >&5
-$as_echo "None needed" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${EXTRA_AS_FLAGS}" >&5
-$as_echo "${EXTRA_AS_FLAGS}" >&6; }
-fi
 
 #############################################################################
 # Extra code for X32 ABI test.  We need this for dynamic AES-NI support.

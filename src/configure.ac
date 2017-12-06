@@ -440,6 +440,7 @@ esac
 # macros for each environment.  We probably should fall back to calling
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
+JTR_ASM_LOGIC
 AS_IF([test "x$cpu_family" = xintel], [echo "checking special compiler flags... Intel X86*"] [JTR_X86_SPECIAL_LOGIC])
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
