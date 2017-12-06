@@ -16,7 +16,7 @@
 
 unsigned char *proba1;
 unsigned char *proba2;
-unsigned long long *nbparts;
+uint64_t *nbparts;
 unsigned char *first;
 unsigned char charsorted[256 * 256];
 
@@ -24,15 +24,15 @@ unsigned int gmax_level;
 unsigned int gmax_len;
 unsigned int gmin_level;
 unsigned int gmin_len;
-unsigned long long gidx;
-unsigned long long gstart;
-unsigned long long gend;
+uint64_t gidx;
+uint64_t gstart;
+uint64_t gend;
 
-unsigned long long nb_parts(unsigned char lettre, unsigned int len,
+uint64_t nb_parts(unsigned char lettre, unsigned int len,
                             unsigned int level, unsigned int max_lvl, unsigned int max_len)
 {
 	int i;
-	unsigned long long out = 1;
+	uint64_t out = 1;
 
 	if (level > max_lvl)
 		return 0;
@@ -57,7 +57,7 @@ unsigned long long nb_parts(unsigned char lettre, unsigned int len,
 	return out;
 }
 
-void print_pwd(unsigned long long index, struct s_pwd *pwd,
+void print_pwd(uint64_t index, struct s_pwd *pwd,
                unsigned int max_lvl, unsigned int max_len)
 {
 	unsigned int len = 1;

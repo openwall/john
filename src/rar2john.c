@@ -350,10 +350,10 @@ next_file_header:
 
 		if (verbose) {
 			fprintf(stderr,
-			        "! HEAD_SIZE: %d, PACK_SIZE: "LLu", UNP_SIZE: "LLu"\n",
+			        "! HEAD_SIZE: %d, PACK_SIZE: %"PRIu64", UNP_SIZE: %"PRIu64"\n",
 			        file_header_head_size,
-			        (unsigned long long)file_header_pack_size,
-			        (unsigned long long)file_header_unp_size);
+			        (uint64_t)file_header_pack_size,
+			        (uint64_t)file_header_unp_size);
 			fprintf(stderr, "! file_header_block:\n!  ");
 			for (i = 0; i < 32; ++i)
 				fprintf(stderr, " %02x", file_header_block[i]);
@@ -553,9 +553,9 @@ next_file_header:
 			//fprintf(stderr, "! file_header_flags is 0x%04x\n", file_header_head_flags);
 		}
 
-		best_len += sprintf(&best[best_len], "*"LLu"*"LLu"*",
-		        (unsigned long long)file_header_pack_size,
-		        (unsigned long long)file_header_unp_size);
+		best_len += sprintf(&best[best_len], "*%"PRIu64"*%"PRIu64"*",
+		        (uint64_t)file_header_pack_size,
+		        (uint64_t)file_header_unp_size);
 
 		/* We always store it inline */
 

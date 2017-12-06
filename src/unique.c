@@ -65,7 +65,7 @@ static FILE *output;
 static FILE *use_to_unique_but_not_add;
 static int do_not_unique_against_self=0;
 
-long long totLines=0,written_lines=0;
+uint64_t totLines=0, written_lines=0;
 int verbose=0, cut_len=0, LM=0;
 unsigned int vUNIQUE_HASH_LOG=UNIQUE_HASH_LOG, vUNIQUE_HASH_SIZE=UNIQUE_HASH_SIZE, vUNIQUE_BUFFER_SIZE=UNIQUE_BUFFER_SIZE;
 unsigned int vUNIQUE_HASH_MASK = UNIQUE_HASH_SIZE - 1;
@@ -356,7 +356,7 @@ static void unique_run(void)
 		write_buffer();
 
 		if (verbose)
-			printf("\rTotal lines read "LLu" Unique lines written "LLu"\r", totLines, written_lines);
+			printf("\rTotal lines read %"PRIu64" Unique lines written %"PRIu64"\r", totLines, written_lines);
 	}
 }
 
@@ -473,7 +473,7 @@ int unique(int argc, char **argv)
 	unique_init(argv[1]);
 	unique_run();
 	unique_done();
-    printf("Total lines read "LLu" Unique lines written "LLu"\n", totLines, written_lines);
+    printf("Total lines read %"PRIu64" Unique lines written %"PRIu64"\n", totLines, written_lines);
 
 	return 0;
 }

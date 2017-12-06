@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	unsigned int j;
 	unsigned int k;
 	unsigned int l;
-	unsigned long long index;
+	uint64_t index;
 	unsigned char position[256];
 	unsigned int charset;
 	unsigned int nb_lignes;
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 			i++;
 		}
 		if (index < 8E18)
-			printf("\t%d\t%d\t" LLd "\t%d\n", k, i, index, l);
+			printf("\t%d\t%d\t%" PRIu64 "\t%d\n", k, i, index, l);
 		else
 			printf("\t%d\t%d\t-\t%d\n", k, i, l);
 	}

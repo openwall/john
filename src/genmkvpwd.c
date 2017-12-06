@@ -22,7 +22,7 @@
 
 static void show_pwd_rnbs(struct s_pwd * pwd)
 {
-	unsigned long long i;
+	uint64_t i;
 	unsigned int k;
 	unsigned long lvl;
 
@@ -53,7 +53,7 @@ static void show_pwd_rnbs(struct s_pwd * pwd)
 
 static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 {
-	unsigned long long i;
+	uint64_t i;
 	unsigned int k;
 	unsigned long lvl;
 	unsigned char curchar;
@@ -98,7 +98,7 @@ static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 	pwd->level = lvl;
 }
 
-static void show_pwd(unsigned long long start, unsigned long long end, unsigned int max_level, unsigned int max_len)
+static void show_pwd(uint64_t start, uint64_t end, unsigned int max_level, unsigned int max_len)
 {
 	struct s_pwd pwd;
 	unsigned int i;
@@ -203,7 +203,7 @@ int main(int argc, char * * argv)
 	struct s_pwd pwd2;
 
 	unsigned int max_lvl = 0, max_len;
-	unsigned long long start, end;
+	uint64_t start, end;
 
 	max_len = 0;
 	start = 0;
@@ -235,13 +235,13 @@ int main(int argc, char * * argv)
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
 			if (nbparts[0] > 1000000000)
-				printf(""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
+				printf("%"PRIu64" G possible passwords (%"PRIu64")\n", nbparts[0] / 1000000000, nbparts[0]);
 			else if (nbparts[0] > 10000000)
-				printf(""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
+				printf("%"PRIu64" M possible passwords (%"PRIu64")\n", nbparts[0] / 1000000, nbparts[0]);
 			else if (nbparts[0] > 10000)
-				printf(""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
+				printf("%"PRIu64" K possible passwords (%"PRIu64")\n", nbparts[0] / 1000, nbparts[0]);
 			else
-				printf(""LLu" possible passwords\n", nbparts[0] );
+				printf("%"PRIu64" possible passwords\n", nbparts[0] );
 			MEM_FREE(nbparts);
 		}
 		goto fin;
@@ -256,13 +256,13 @@ int main(int argc, char * * argv)
 			memset(nbparts, 0, 256*(max_lvl+1)*(max_len+1)*sizeof(long long));
 			nb_parts(0, 0, 0, max_lvl, max_len);
 			if (nbparts[0] > 1000000000)
-				printf(""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
+				printf("%"PRIu64" G possible passwords (%"PRIu64")\n", nbparts[0] / 1000000000, nbparts[0]);
 			else if (nbparts[0] > 10000000)
-				printf(""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
+				printf("%"PRIu64" M possible passwords (%"PRIu64")\n", nbparts[0] / 1000000, nbparts[0]);
 			else if (nbparts[0] > 10000)
-				printf(""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
+				printf("%"PRIu64" K possible passwords (%"PRIu64")\n", nbparts[0] / 1000, nbparts[0]);
 			else
-				printf(""LLu" possible passwords\n", nbparts[0] );
+				printf("%"PRIu64" possible passwords\n", nbparts[0] );
 			MEM_FREE(nbparts);
 		}
 		goto fin;
@@ -278,13 +278,13 @@ int main(int argc, char * * argv)
 
 	nb_parts(0, 0, 0, max_lvl, max_len);
 	if (nbparts[0] > 1000000000)
-		fprintf(stderr, ""LLu" G possible passwords ("LLu")\n", nbparts[0] / 1000000000, nbparts[0]);
+		fprintf(stderr, "%"PRIu64" G possible passwords (%"PRIu64")\n", nbparts[0] / 1000000000, nbparts[0]);
 	else if (nbparts[0] > 10000000)
-		fprintf(stderr, ""LLu" M possible passwords ("LLu")\n", nbparts[0] / 1000000, nbparts[0]);
+		fprintf(stderr, "%"PRIu64" M possible passwords (%"PRIu64")\n", nbparts[0] / 1000000, nbparts[0]);
 	else if (nbparts[0] > 10000)
-		fprintf(stderr, ""LLu" K possible passwords ("LLu")\n", nbparts[0] / 1000, nbparts[0]);
+		fprintf(stderr, "%"PRIu64" K possible passwords (%"PRIu64")\n", nbparts[0] / 1000, nbparts[0]);
 	else
-		fprintf(stderr, ""LLu" possible passwords\n", nbparts[0] );
+		fprintf(stderr, "%"PRIu64" possible passwords\n", nbparts[0] );
 
 	if (end == 0)
 		end = nbparts[0];
@@ -297,7 +297,7 @@ int main(int argc, char * * argv)
 	print_pwd(start, &pwd, max_lvl, max_len);
 	print_pwd(start, &pwd2, max_lvl, max_len);
 
-	fprintf(stderr, "starting with %s ("LLu" to "LLu", %f%% of the scope)\n", pwd.password, start, end, 100*((float) end-start)/((float) nbparts[0]) );
+	fprintf(stderr, "starting with %s (%"PRIu64" to %"PRIu64", %f%% of the scope)\n", pwd.password, start, end, 100*((float) end-start)/((float) nbparts[0]) );
 
 	show_pwd(start, end, max_lvl, max_len);
 

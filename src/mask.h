@@ -107,7 +107,7 @@ extern int mask_restore_state(FILE *file);
  * length.  The number includes the part that is processed on GPU, and is
  * used as a multiplier in native mask mode's and parent modes' get_progress().
  */
-extern unsigned long long mask_tot_cand;
+extern uint64_t mask_tot_cand;
 
 /* Hybrid mask's contribution to key length. Eg. for bc?l?d?w this will be 4. */
 extern int mask_add_len;
@@ -116,7 +116,7 @@ extern int mask_add_len;
 extern int mask_num_qw;
 
 /* Number of times parent mode called hybrid mask. */
-extern unsigned long long mask_parent_keys;
+extern uint64_t mask_parent_keys;
 
 /* Current length when pure mask mode iterates over lengths */
 extern int mask_cur_len;
