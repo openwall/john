@@ -750,16 +750,16 @@ static int ldr_split_line(char **login, char **ciphertext,
 			if (*gid)
 				printf("\"gid\":\"%s\",",
 				       escape_json(gid));
-			if (strcmp(*gecos, "/"))
+			if (**gecos && strcmp(*gecos, "/"))
 				printf("\"gecos\":\"%s\",",
 				       escape_json(*gecos));
-			if (strcmp(*home, "/"))
+			if (**home && strcmp(*home, "/"))
 				printf("\"home\":\"%s\",",
 				       escape_json(*home));
-			if (strcmp(shell, "/"))
+			if (*shell && strcmp(shell, "/"))
 				printf("\"shell\":\"%s\",",
 				       escape_json(shell));
-			printf("\"rowFormats\":[{");
+			printf("\"rowFormats\":[");
 		} else
 			printf("%s%c%s%c%s%c%s%c%s%c%s%c%s",
 			       *login,
@@ -807,10 +807,11 @@ static int ldr_split_line(char **login, char **ciphertext,
 			/* Empty field between valid formats */
 			if (not_first_format) {
 				if (db_opts->showtypes_json)
-					printf("},{");
+					printf(",{");
 				else
 					printf("%c", fs);
-			}
+			} else if (db_opts->showtypes_json)
+				printf("{");
 			not_first_format = 1;
 			if (db_opts->showtypes_json) {
 				printf("\"label\":\"%s\",",
@@ -842,11 +843,14 @@ static int ldr_split_line(char **login, char **ciphertext,
 				check_field_separator(split);
 			}
 			if (db_opts->showtypes_json)
-				printf("]");
+				printf("]}");
 		} while ((alt = alt->next));
-		if (db_opts->showtypes_json)
-			printf("}],\"consistencyMark\":%d}", bad_char);
-		else
+		if (db_opts->showtypes_json) {
+			if (bad_char)
+				printf("],\"consistencyMark\":%d}", bad_char);
+			else
+				printf("]}");
+		} else
 			printf("%c%d%c\n", fs, bad_char, fs);
 		return 0;
 #undef check_field_separator

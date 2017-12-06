@@ -1145,12 +1145,14 @@ static void john_load(void)
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
 
-			ldr_show_pot_file(&database, options.activepot);
+			if (!options.loader.showtypes) {
+				ldr_show_pot_file(&database, options.activepot);
 /*
  * Load optional extra (read-only) pot files. If an entry is a directory,
  * we read all files in it. We currently do NOT recurse.
  */
-			load_extra_pots(&database, &ldr_show_pot_file);
+				load_extra_pots(&database, &ldr_show_pot_file);
+			}
 
 			if ((current = options.passwd->head))
 			do {
@@ -1231,6 +1233,7 @@ static void john_load(void)
 		}
 
 		total = database.password_count;
+
 		ldr_load_pot_file(&database, options.activepot);
 
 /*
