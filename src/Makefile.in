@@ -674,7 +674,7 @@ kernels: @KERNEL_OBJS@
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/uaf2john
 
 ../run/keepass2john@EXE_EXT@: keepass2john.c jumbo.c memdbg.c base64_convert.c misc.c common.c memory.c
-	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.c jumbo.c @MEMDBG_CFLAGS@ memdbg.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c @OPENMP_CFLAGS@ -lcrypto -o ../run/keepass2john
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.c jumbo.c @MEMDBG_CFLAGS@ memdbg.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c  $(LDFLAGS) @OPENMP_CFLAGS@ -lcrypto -o ../run/keepass2john
 
 ../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/dmg2john
