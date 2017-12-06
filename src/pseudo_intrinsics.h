@@ -101,7 +101,7 @@ inline static int vanyeq_epi32(vtype x, vtype y)
 #include <altivec.h>
 
 typedef vector unsigned int vtype32;
-typedef vector unsigned long vtype64;
+typedef vector unsigned long long vtype64;
 typedef union {
 	vtype32 v32;
 	vtype64 v64;
