@@ -617,8 +617,23 @@ void gather_results(struct bench_results *results)
 		MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&results->virtual, &combined.virtual, 1, MPI_LONG,
 		MPI_SUM, 0, MPI_COMM_WORLD);
+#ifdef MPI_UNSIGNED_LONG_LONG
 	MPI_Reduce(&results->crypts, &combined.crypts, 1,
 	           MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+#else
+	{
+		uint32_t c_hi, r_hi = results->crypts >> 32;
+		uint32_t c_lo, r_lo = results->crypts & 0xffffffffU;
+
+		/* Bug: We'd need carry here! */
+		MPI_Reduce(&r_lo, &c_lo, 1, MPI_UNSIGNED,
+		           MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&r_hi, &c_hi, 1, MPI_UNSIGNED,
+		           MPI_SUM, 0, MPI_COMM_WORLD);
+
+		combined.crypts = (uint64_t)c_hi << 32 | (uint64_t)c_lo;
+	}
+#endif
 	MPI_Reduce(&results->salts_done, &combined.salts_done, 1, MPI_INT,
 		MPI_MIN, 0, MPI_COMM_WORLD);
 	if (mpi_id == 0) {
