@@ -129,11 +129,11 @@ static void done(void)
 static void * get_binary(char *ciphertext) {
 	static char *realcipher;
 
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + MAX_SALT_LEN + 4, MEM_ALIGN_WORD);
+	if (!realcipher) realcipher = mem_alloc_tiny(CIPHERTEXT_LENGTH, MEM_ALIGN_WORD);
 
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, BINARY_SIZE);
-	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), realcipher, e_b64_raw, BINARY_SIZE+MAX_SALT_LEN, 0, 0);
+	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), realcipher, e_b64_raw, CIPHERTEXT_LENGTH, flg_Base64_DONOT_NULL_TERMINATE, 0);
 #if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
@@ -146,14 +146,14 @@ static void * get_binary(char *ciphertext) {
 static void * get_salt(char * ciphertext)
 {
 	static struct s_salt cursalt;
-	char realcipher[BINARY_SIZE + MAX_SALT_LEN + 4];
+	char realcipher[BINARY_SIZE + MAX_SALT_LEN];
 	int len;
 
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, sizeof(realcipher));
 	memset(&cursalt, 0, sizeof(struct s_salt));
 	len = strlen(ciphertext);
-	cursalt.len = base64_convert(ciphertext, e_b64_mime, len, realcipher, e_b64_raw, BINARY_SIZE+MAX_SALT_LEN, 0, 0) - BINARY_SIZE;
+	cursalt.len = base64_convert(ciphertext, e_b64_mime, len, realcipher, e_b64_raw, BINARY_SIZE+MAX_SALT_LEN, flg_Base64_DONOT_NULL_TERMINATE, 0) - BINARY_SIZE;
 
 	memcpy(cursalt.data.c, realcipher+BINARY_SIZE, cursalt.len);
 	return &cursalt;

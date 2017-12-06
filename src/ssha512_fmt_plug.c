@@ -19,7 +19,7 @@ john_register_one(&fmt_saltedsha2);
 #include "johnswap.h"
 #include "common.h"
 #include "sha2.h"
-#include "base64.h"
+#include "base64_convert.h"
 #include "simd-intrinsics.h"
 #include <string.h>
 #include "rawSHA512_common.h"
@@ -150,7 +150,7 @@ static void * get_salt(char * ciphertext)
 	memset(realcipher, 0, sizeof(realcipher));
 	memset(&cursalt, 0, sizeof(struct s_salt));
 	len = strlen(ciphertext);
-	base64_decode(ciphertext, len, realcipher);
+	base64_convert(ciphertext, e_b64_mime, len, realcipher, e_b64_raw, sizeof(realcipher), flg_Base64_DONOT_NULL_TERMINATE, 0);
 
 	// We now support any salt length up to NSLDAP_SALT_SIZE
 	cursalt.len = (len + 3) / 4 * 3 - DIGEST_SIZE;

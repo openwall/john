@@ -60,13 +60,13 @@ echo ""
 
 # Build with AVX
 mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2.exe\""' --host=i686-w64-mingw32
-mingw32 make -sj4
+mingw32 make -j4
 mv -v ../run/john ../run/john-avx.exe
 make clean; make distclean
 
 # Build with AVX2 (32-bit, see https://github.com/magnumripper/JohnTheRipper/issues/2543 for details)
 mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx2 -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx.exe\""' --host=i686-w64-mingw32
-mingw32 make -sj4
+mingw32 make -j4
 mv -v ../run/john ../run/john-avx2.exe
 make clean; make distclean
 
@@ -145,7 +145,7 @@ cd /base/JohnTheRipper/src
 make -s distclean
 CFLAGS_EXTRA="-fstack-protector-all" CPPFLAGS="-mno-sse2 -mno-mmx" ./configure
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
-make -sj4
+make -j4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 ../run/john --list=build-info
 echo "[Disabled:Formats]" > john-local.conf
@@ -163,7 +163,7 @@ echo "now building/testing a 32 bit NON-SIMD Linux build"
 echo '******************************************************************************'
 echo ""
 make -s distclean
-JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-any
+JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -j4 linux-x86-any
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
 echo "[Disabled:Formats]" > john-local.conf
@@ -180,7 +180,7 @@ echo "now building/testing a 32 bit SSE2 Linux build"
 echo '******************************************************************************'
 echo ""
 make -f Makefile.legacy -s clean
-JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-sse2
+JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -j4 linux-x86-sse2
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 ../run/john --list=build-info
 echo "[Disabled:Formats]" > john-local.conf
