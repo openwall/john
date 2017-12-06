@@ -1580,7 +1580,7 @@ win32-cygwin-x86-anyomp:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2 -fopenmp" \
 		CFLAGS_MAIN="$(CFLAGS) -O0 -fopenmp" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -fopenmp"
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -fopenmp" \
 		LDFLAGS="$(LDFLAGS) -fopenmp"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
