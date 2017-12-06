@@ -65,7 +65,7 @@ static FILE *output;
 static FILE *use_to_unique_but_not_add;
 static int do_not_unique_against_self=0;
 
-int64_t totLines=0,written_lines=0;
+uint64_t totLines=0, written_lines=0;
 int verbose=0, cut_len=0, LM=0;
 unsigned int vUNIQUE_HASH_LOG=UNIQUE_HASH_LOG, vUNIQUE_HASH_SIZE=UNIQUE_HASH_SIZE, vUNIQUE_BUFFER_SIZE=UNIQUE_BUFFER_SIZE;
 unsigned int vUNIQUE_HASH_MASK = UNIQUE_HASH_SIZE - 1;

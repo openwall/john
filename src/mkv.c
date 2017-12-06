@@ -562,8 +562,8 @@ void get_markov_start_end(char *start_token, char *end_token,
 	*mkv_start = 0;
 	*mkv_end = 0;
 
-	if ((start_token != NULL) && (sscanf(start_token, "%"PRId64, mkv_start) == 1)) {
-		if ((end_token != NULL) && (sscanf(end_token, "%"PRId64, mkv_end) == 1)) {
+	if ((start_token != NULL) && (sscanf(start_token, "%"PRIu64, mkv_start) == 1)) {
+		if ((end_token != NULL) && (sscanf(end_token, "%"PRIu64, mkv_end) == 1)) {
 		}
 		/* NOTE, end_token can be an empty string. Treat "" and mkv_max as equal */
 		else if (end_token != NULL && *end_token) {
@@ -705,7 +705,7 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 		fprintf(stderr, "%d len=", mkv_level);
 		if (mkv_minlen > 0)
 			fprintf(stderr, "%d-", mkv_minlen);
-		fprintf(stderr, "%d pwd=%" PRId64 "%s)\n", mkv_maxlen, mkv_end - mkv_start,
+		fprintf(stderr, "%d pwd=%" PRIu64 "%s)\n", mkv_maxlen, mkv_end - mkv_start,
 		        options.node_count > 1 ? " split over nodes" : "");
 	}
 
@@ -731,7 +731,7 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	log_event("- Statsfile: %s", statfile);
 	log_event("- Markov level: %d - %d", mkv_minlevel, mkv_level);
 	log_event("- Length: %d - %d", mkv_minlen, mkv_maxlen);
-	log_event("- Start-End: %" PRId64 " - %" PRId64, mkv_start, mkv_end);
+	log_event("- Start-End: %" PRIu64 " - %" PRIu64, mkv_start, mkv_end);
 
 	show_pwd(db, mkv_start);
 

@@ -257,7 +257,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 
 	/* we inline the content with the hash */
 	fprintf(stderr, "Inlining %s\n", encryptedDatabase);
-	printf("*1*%"PRIu64"*", datasize);
+	printf("*1*%"PRId64"*", datasize);
 	fseek(fp, 124, SEEK_SET);
 	if (fread(buffer, datasize, 1, fp) != 1) {
 		warn("%s: Error: read failed: %s.",
