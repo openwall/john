@@ -668,6 +668,7 @@ M_LIBS
 OPENSSL_LIBS
 OPENSSL_CFLAGS
 COMMONCRYPTO_LIBS
+SIMD_var
 EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -728,6 +729,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -836,6 +838,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1088,6 +1091,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1225,7 +1237,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -9128,76 +9140,60 @@ fi
   CC="$CC_BACKUP -mssse3"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
 $as_echo_n "checking for SSSE3... " >&6; }
-  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
 
-    #include <tmmintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}
+  if test "$(uname -m)" = "x86_64"; then
+    CPUID_ASM="x86-64.S"
+    CPUID_FILE="x86-64.h"
+  else
+    CPUID_ASM="x86.S"
+    CPUID_FILE="x86-any.h"
+  fi
 
+  if test ! -f arch.h; then
+      cp $CPUID_FILE arch.h
+  fi
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mssse3"     CPU_STR="SSSE3"
+  SIMD_var=$( ./test_SIMD; echo $? )
+
+  if test "x$SIMD_var" = x1; then :
+  CPU_BEST_FLAGS="-mssse3"
+     CPU_STR="SSSE3"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
 else
-  CPU_NOTFOUND=1
+  CPU_NOTFOUND="1"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
 
 
 fi
+
   if test "x$CPU_NOTFOUND" = x0; then :
 
   CC="$CC_BACKUP -msse4.1"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
 $as_echo_n "checking for SSE4.1... " >&6; }
-  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
 
-    #include <smmintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
+  SIMD_var=$( ./test_SIMD; echo $? )
 
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-msse4.1"     CPU_STR="SSE4.1"
+  if test "x$SIMD_var" = x1; then :
+  CPU_BEST_FLAGS="-msse4.1"
+     CPU_STR="SSE4.1"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
 else
-  CPU_NOTFOUND=1
+  CPU_NOTFOUND="1"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
 
 
 fi
@@ -9207,37 +9203,22 @@ fi
   CC="$CC_BACKUP -mavx"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
 $as_echo_n "checking for AVX... " >&6; }
-  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
 
-    #include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
+  SIMD_var=$( ./test_SIMD; echo $? )
 
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
+  if test "x$SIMD_var" = x1; then :
   CPU_BEST_FLAGS="-mavx"     CPU_STR="AVX"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
 else
-  CPU_NOTFOUND=1
+  CPU_NOTFOUND="1"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
 
 
 fi
@@ -9247,23 +9228,12 @@ fi
   CC="$CC_BACKUP -mxop"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
 $as_echo_n "checking for XOP... " >&6; }
-  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
 
-    #include <x86intrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
+  SIMD_var=$( ./test_SIMD; echo $? )
 
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
+  if test "x$SIMD_var" = x1; then :
   CPU_BEST_FLAGS="-mxop"     CPU_STR="XOP"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -9273,10 +9243,6 @@ else
 $as_echo "no" >&6; }
 
 fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
 
 
 fi
@@ -9286,23 +9252,12 @@ fi
   CC="$CC_BACKUP -mavx2"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
 $as_echo_n "checking for AVX2... " >&6; }
-  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
 
-    #include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
+  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
+  SIMD_var=$( ./test_SIMD; echo $? )
 
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
+  if test "x$SIMD_var" = x1; then :
   CPU_BEST_FLAGS="-mavx2"     CPU_STR="AVX2"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -9313,10 +9268,6 @@ else
 $as_echo "no" >&6; }
 
 fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
 
 
 fi
