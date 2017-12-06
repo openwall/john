@@ -78,7 +78,7 @@ case "${host_cpu}_${CFLAGS}" in
    mic*)
       [CC_ASM_OBJS="simd-intrinsics.o"]
       ;;
-   powerpc64*)
+   powerpc*)
       [CC_ASM_OBJS="simd-intrinsics.o"]
       ;;
    arm*)
