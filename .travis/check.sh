@@ -35,7 +35,7 @@ elif [[ -z "$TEST" || "$TEST" == "encoding" ]]; then
     fi
 
     # Configure and build
-    ./configure CPPFLAGS=-mno-avx2 $ASAN
+    ./configure $ASAN
     make -sj4
 
     ../.travis/test.sh "$TEST"
@@ -46,7 +46,7 @@ elif [[ "$TEST" == "fresh test" ]]; then
       cd /cwd/src; \
       apt-get update -qq; \
       apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev libomp-dev; \
-      ./configure CPPFLAGS=-mno-avx2 --enable-asan; \
+      ./configure --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
       PROBLEM='slow' ../.travis/test.sh
