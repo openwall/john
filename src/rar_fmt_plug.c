@@ -41,6 +41,10 @@
  *
  */
 
+#include "arch.h"
+
+#if ARCH_ALLOWS_UNALIGNED
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rar;
 #elif FMT_REGISTERS_H
@@ -63,7 +67,6 @@ john_register_one(&fmt_rar);
 #include <sys/mman.h>
 #endif
 
-#include "arch.h"
 #include "sha.h"
 #include "crc32.h"
 #include "misc.h"
@@ -432,5 +435,12 @@ struct fmt_main fmt_rar = {
 		cmp_exact
 	}
 };
-
 #endif /* plugin stanza */
+
+#else
+#ifdef __GNUC__
+#pragma message(": target system requires aligned memory access, rar format disabled:")
+#elif _MSC_VER
+#warning ": target system requires aligned memory access, rar format disabled:"
+#endif
+#endif
