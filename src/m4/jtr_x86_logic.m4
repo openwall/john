@@ -173,7 +173,7 @@ if test "x$enable_native_tests" != xno; then
   if test ! -f arch.h; then
       cp $CPUID_FILE arch.h
   fi
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
@@ -191,7 +191,7 @@ if test "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -msse4.1"
   AC_MSG_CHECKING([for SSE4.1])
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
@@ -209,7 +209,7 @@ if test "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -mavx"
   AC_MSG_CHECKING([for AVX])
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
@@ -227,7 +227,7 @@ if test "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -mxop"
   AC_MSG_CHECKING([for XOP])
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
@@ -245,7 +245,7 @@ if test "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -mavx2"
   AC_MSG_CHECKING([for AVX2])
 
-  $CC -P $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
