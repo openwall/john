@@ -759,6 +759,7 @@ with_flock
 enable_memdbg
 enable_asan
 enable_ubsan
+enable_ubsantrap
 enable_plugin_dependencies
 enable_werror
 enable_openmp_for_fast_formats
@@ -1391,6 +1392,8 @@ Optional Features:
   --enable-memdbg         Enable memdbg memory debugging (safe level)
   --enable-asan           * Build with AddressSanitizer
   --enable-ubsan          * Build with UndefinedBehaviorSanitizer
+  --enable-ubsantrap      * Build with UndefinedBehaviorSanitizer, crashes on
+                          failure
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
@@ -3545,6 +3548,13 @@ if test "${enable_ubsan+set}" = set; then :
   enableval=$enable_ubsan; ubsan=$enableval
 else
   ubsan=no
+fi
+
+# Check whether --enable-ubsantrap was given.
+if test "${enable_ubsantrap+set}" = set; then :
+  enableval=$enable_ubsantrap; ubsantrap=$enableval
+else
+  ubsantrap=no
 fi
 
 # Check whether --enable-plugin-dependencies was given.
@@ -5958,7 +5968,6 @@ See \`config.log' for more details" "$LINENO" 5; }
 fi
 
    # if user requested  UbSan, make sure we can properly build/link with it.
-   # FIXME: for now, exclude -fsanitize=alignment on all architectures, not just x86
 if test "x$ubsan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
@@ -6019,6 +6028,67 @@ See \`config.log' for more details" "$LINENO" 5; }
    fi
    LDFLAGS=${LDFLAGS_BAK}
 fi
+if test "x$ubsantrap" = xyes ; then
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+     if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error" >&5
+$as_echo_n "checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error"
+
+else
+  if test "1" = 1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+   if test "x${CFLAGS_EX}" = x ; then
+      { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find all required UBSAN components
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+      LDFLAGS="-fsanitize=undefined $LDFLAGS"
+   fi
+   LDFLAGS=${LDFLAGS_BAK}
+fi
+
 
    # now fill out CFLAGS
    CFLAGS_EX=""
@@ -6163,7 +6233,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 fi
-if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-omit-frame-pointer" >&5
 $as_echo_n "checking if $CC supports -fno-omit-frame-pointer... " >&6; }
@@ -15112,6 +15182,19 @@ if test "x$ubsan" = xyes ; then
    LDFLAGS="-fsanitize=undefined $LDFLAGS"
 fi
 
+if test "x$ubsantrap" = xyes ; then
+   if test "x$ubsan" = xyes ; then
+	echo "--enable-ubsan and --enable-ubsantrap are mutually exclusive. Pick one or the other (or NONE)"
+	exit (1)
+   fi
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error $CFLAGS"
+   ASFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error $ASFLAGS"
+   CPPFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 $CPPFLAGS"
+   LDFLAGS="-fsanitize=undefined -fsanitize-undefined-trap-on-error $LDFLAGS"
+fi
+
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
    CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
@@ -16742,6 +16825,10 @@ if test "x$ubsan" = xyes ; then
    ubsan="enabled"
 else
    ubsan="disabled"
+fi
+
+if test "x$ubsantrap" = xyes ; then
+   ubsan="enabled (trap)"
 fi
 
 cat <<EOF

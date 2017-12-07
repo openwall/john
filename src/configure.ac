@@ -68,6 +68,7 @@ AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking inst
 AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
+AC_ARG_ENABLE([ubsantrap], [AS_HELP_STRING([--enable-ubsantrap], [* Build with UndefinedBehaviorSanitizer, crashes on failure])], [ubsantrap=$enableval], [ubsantrap=no])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
@@ -203,7 +204,6 @@ if test "x$asan" = xyes ; then
 fi
 
    # if user requested  UbSan, make sure we can properly build/link with it.
-   # FIXME: for now, exclude -fsanitize=alignment on all architectures, not just x86
 if test "x$ubsan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
@@ -215,6 +215,18 @@ if test "x$ubsan" = xyes ; then
    fi
    LDFLAGS=${LDFLAGS_BAK}
 fi
+if test "x$ubsantrap" = xyes ; then
+   CFLAGS_EX=""
+   LDFLAGS_BAK=${LDFLAGS}
+   JTR_FLAG_CHECK_LINK([-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error], 1)
+   if test "x${CFLAGS_EX}" = x ; then
+      AC_MSG_FAILURE([Could not find all required UBSAN components])
+   else
+      LDFLAGS="-fsanitize=undefined $LDFLAGS"
+   fi
+   LDFLAGS=${LDFLAGS_BAK}
+fi
+
 
    # now fill out CFLAGS
    CFLAGS_EX=""
@@ -224,7 +236,7 @@ fi
 if test "x$werror" = xyes ; then
    JTR_FLAG_CHECK([-Werror], 1)
 fi
-if test "x$asan" = xyes || test "x$ubsan" = xyes ; then
+if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
    JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
 else
    JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
@@ -910,6 +922,19 @@ if test "x$ubsan" = xyes ; then
    LDFLAGS="-fsanitize=undefined $LDFLAGS"
 fi
 
+if test "x$ubsantrap" = xyes ; then
+   if test "x$ubsan" = xyes ; then
+	echo "--enable-ubsan and --enable-ubsantrap are mutually exclusive. Pick one or the other (or NONE)"
+	exit (1)
+   fi
+   CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
+   CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
+   CFLAGS="-g $O_DEBUG -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error $CFLAGS"
+   ASFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error $ASFLAGS"
+   CPPFLAGS="-DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 $CPPFLAGS"
+   LDFLAGS="-fsanitize=undefined -fsanitize-undefined-trap-on-error $LDFLAGS"
+fi
+
 #add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
    CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
@@ -1143,6 +1168,10 @@ if test "x$ubsan" = xyes ; then
    ubsan="enabled"
 else
    ubsan="disabled"
+fi
+
+if test "x$ubsantrap" = xyes ; then
+   ubsan="enabled (trap)"
 fi
 
 cat <<EOF
