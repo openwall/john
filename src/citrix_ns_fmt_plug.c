@@ -206,10 +206,12 @@ static void set_salt(void *salt)
 #ifdef SIMD_COEF_32
 	int i, index;
 
-	for (index = 0; index < kpc; index++)
+	for (index = 0; index < kpc; index++) {
+		int idx = index % NBKEYS;
+		unsigned char *sk = saved_key[index/NBKEYS];
 		for (i = 0; i < SALT_SIZE; i++)
-			saved_key[0][GETPOS(i, index)] =
-				((unsigned char*)salt)[i];
+			sk[GETPOS(i, idx)] = ((unsigned char*)salt)[i];
+	}
 #else
 	memcpy(saved_salt, salt, SALT_SIZE);
 #endif
