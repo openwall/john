@@ -544,7 +544,7 @@ static void *get_salt(char *ciphertext)
 	/* NOTE, almost NO error checking at all in this function.  Proper error checking done in valid() */
 	static union alignment {
 		unsigned char c[8];
-		uint32_t a[1];
+		uint64_t a[1];	// salt alignment of 8 bytes required. uint64_t values in the salt.
 	} a;
 	unsigned char *salt_p = a.c;
 	PKZ_SALT *salt, *psalt;

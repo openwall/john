@@ -49,7 +49,7 @@ john_register_one(&fmt_known_hosts);
 #define PAD_SIZE                64
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              sizeof(uint64_t)
+#define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
@@ -64,6 +64,7 @@ static struct fmt_tests known_hosts_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
+// SHA_CTX needs 4 byte salt alignment.
 static struct custom_salt {
 	SHA_CTX ipad_ctx;
 	SHA_CTX opad_ctx;
