@@ -231,7 +231,11 @@ static void set_key(char *_key, int index)
 		len += 8;
 		keybuf_word += SIMD_COEF_64;
 	}
+#if ARCH_LITTLE_ENDIAN
 	*keybuf_word = COMMON_SWAP(0x80LL);
+#else
+	*keybuf_word = COMMON_SWAP(0x8000000000000000ULL);
+#endif
 
 key_cleaning:
 	keybuf_word += SIMD_COEF_64;

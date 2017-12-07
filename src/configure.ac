@@ -376,10 +376,8 @@ dnl AC_CHECK_SIZEOF([int *function()]
 # mips32.h (we override the BE defined within it)
 # mips64.h
 # pa-risc.h
-# ppc32.h
-# ppc32alt.h (-maltivec)
-# ppc64.h (-m64 -maltivec)
-# ppc64alt.h (-maltivec -faltivec)
+# ppc32.h  (with or without -maltivec)
+# ppc64.h (-m64 with or without -maltivec)
 # sparc32.h
 # sparc64.h (-m64 -mcpu=ultrasparc) (-xarch=native64)
 # vax.h
@@ -422,8 +420,14 @@ case "$host_cpu" in
   	[echo "checking special compiler flags... PPC64"]
   	JTR_PPC64_SPECIAL_LOGIC
 	;;
-  powerpcle) ARCH_LINK=ppc32.h endian=little ;;
-  powerpc*) ARCH_LINK=ppc32.h endian=big ;;
+  powerpcle) ARCH_LINK=ppc32.h endian=little
+  	[echo "checking special compiler flags... PPC32le"]
+  	JTR_PPC32_SPECIAL_LOGIC
+	;;
+  powerpc*) ARCH_LINK=ppc32.h endian=big
+  	[echo "checking special compiler flags... PPC32"]
+  	JTR_PPC32_SPECIAL_LOGIC
+	;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
   sparc*) ARCH_LINK=sparc32.h endian=big ;;
   vax*) ARCH_LINK=vax.h endian=little ;;

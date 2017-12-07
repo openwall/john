@@ -168,7 +168,11 @@ static void set_key(char *_key, int index)
 		len += 4;
 		keybuf_word += SIMD_COEF_32;
 	}
+#if ARCH_LITTLE_ENDIAN
 	*keybuf_word = COMMON_SWAP(0x80);
+#else
+	*keybuf_word = COMMON_SWAP(0x80000000U);
+#endif
 #ifdef DEBUG
 	/* This function is higly optimized and assumes that we are
 	   never ever given a key longer than fmt_params.plaintext_length.
