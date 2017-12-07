@@ -729,7 +729,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -838,7 +837,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1091,15 +1089,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1237,7 +1226,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -16151,8 +16140,6 @@ Cross compiling ............................ ${cross_compiling}
 Legacy arch header ......................... ${ARCH_LINK}
 
 Optional libraries/features found:
-Fuzzing test ............................... ${fuzz}
-Experimental code .......................... ${experimental}
 OpenMPI support (default disabled) ......... ${using_mpi}
 Fork support ............................... ${ac_cv_func_fork_works}
 OpenMP support ............................. ${using_omp}
@@ -16167,12 +16154,20 @@ libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 Memory map (share/page large files) ........ ${using_mmap}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 
+EOF
+
+if test "$ubsan" != "disabled" || test "$asan" != "disabled" || test "$memdbg_settings" != "disabled" || test "$fuzz" != "no" || test "$experimental" != "no" ; then
+cat <<EOF
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ........... ${memdbg_settings}
 AddressSanitizer ("ASan") .................. ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
+Fuzzing test ............................... ${fuzz}
+Experimental code .......................... ${experimental}
 
-Install missing libraries to get any needed features that were omitted.
-
-Configure finished.  Now '${use_make} -s clean && ${use_make} -sj8' to compile.
 EOF
+fi
+
+echo "Install missing libraries to get any needed features that were omitted."
+echo ""
+echo "Configure finished.  Now \"${use_make} -s clean && ${use_make} -sj8\" to compile."

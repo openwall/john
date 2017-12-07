@@ -1151,8 +1151,6 @@ Cross compiling ............................ ${cross_compiling}
 Legacy arch header ......................... ${ARCH_LINK}
 
 Optional libraries/features found:
-Fuzzing test ............................... ${fuzz}
-Experimental code .......................... ${experimental}
 OpenMPI support (default disabled) ......... ${using_mpi}
 Fork support ............................... ${ac_cv_func_fork_works}
 OpenMP support ............................. ${using_omp}
@@ -1167,13 +1165,22 @@ libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 Memory map (share/page large files) ........ ${using_mmap}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 
+EOF
+
+dnl === this section is NOT output, unless there is some debugging flag enabled.
+if test "$ubsan" != "disabled" || test "$asan" != "disabled" || test "$memdbg_settings" != "disabled" || test "$fuzz" != "no" || test "$experimental" != "no" ; then
+cat <<EOF
 Development options (these may hurt performance when enabled):
 Memdbg memory debugging settings ........... ${memdbg_settings}
 AddressSanitizer ("ASan") .................. ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
+Fuzzing test ............................... ${fuzz}
+Experimental code .......................... ${experimental}
 
-Install missing libraries to get any needed features that were omitted.
-
-Configure finished.  Now '${use_make} -s clean && ${use_make} -sj8' to compile.
 EOF
+fi
+
+echo "Install missing libraries to get any needed features that were omitted."
+echo ""
+echo "Configure finished.  Now \"${use_make} -s clean && ${use_make} -sj8\" to compile."
 dnl =======================================================================
