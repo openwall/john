@@ -439,8 +439,8 @@ struct fmt_main fmt_rar = {
 
 #else
 #ifdef __GNUC__
-#pragma message(": target system requires aligned memory access, rar format disabled:")
-#elif _MSC_VER
 #warning ": target system requires aligned memory access, rar format disabled:"
+#elif _MSC_VER
+#pragma message(": target system requires aligned memory access, rar format disabled:")
 #endif
 #endif
