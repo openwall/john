@@ -1,4 +1,4 @@
-#!/usr/bin/env lua
+-- #!/usr/bin/env lua -> shebang line seems to be breaking tshark :-(
 
 -- Usage: tshark -q -Xlua_script:network2john.lua -r selected.pcap
 --
@@ -228,4 +228,45 @@ function tap_iscsi.packet(pinfo,tvb,tapdata)
 end
 
 function tap_iscsi.draw()
+end
+
+
+-- Extract DHCP OMAPI hashes from .pcap files. Tested with omshell, and pypureomapi.
+tap_omapi = Listener.new(nil, "omapi")
+
+local f_authid = Field.new("omapi.authid")
+local f_authlen = Field.new("omapi.authlength")
+local f_omapi = Field.new("omapi")
+local omapi_tip_printed = false
+
+function tap_omapi.packet(pinfo,tvb,tapdata)
+	if not omapi_tip_printed then
+		print("[WARNING] The DHCP OMAPI secret value is likely to be uncrackable under normal circumstances!")
+		omapi_tip_printed = true
+	end
+
+	local authid = f_authid()
+	if not authid then
+		return
+	end
+	if authid.value ~= 1 then
+		return
+	end
+
+	local authlen = f_authlen()
+	if authlen.value ~= 16 then
+		print("[DEBUG] omapi.authlength is not 16, please report this to us!")
+		return
+	end
+
+	local omapi_field = f_omapi()
+	local omapi_payload = omapi_field.range()
+	local wholeMsg = tostring(omapi_payload:bytes():tohex():lower())
+	local payload = string.sub(wholeMsg, 8+1, -32-1)
+	local signature = string.sub(wholeMsg, -32)
+	local hash = string.format("%s:$rsvp$1$%s$%s", pinfo.number, payload, signature)
+	print(hash)
+end
+
+function tap_omapi.draw()
 end
