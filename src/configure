@@ -15185,7 +15185,7 @@ fi
 if test "x$ubsantrap" = xyes ; then
    if test "x$ubsan" = xyes ; then
 	echo "--enable-ubsan and --enable-ubsantrap are mutually exclusive. Pick one or the other (or NONE)"
-	exit (1)
+	exit 1
    fi
    CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
