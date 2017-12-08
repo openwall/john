@@ -438,9 +438,12 @@ struct fmt_main fmt_rar = {
 #endif /* plugin stanza */
 
 #else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
 #ifdef __GNUC__
 #warning ": target system requires aligned memory access, rar format disabled:"
 #elif _MSC_VER
 #pragma message(": target system requires aligned memory access, rar format disabled:")
 #endif
 #endif
+
+#endif	/* ARCH_ALLOWS_UNALIGNED */
