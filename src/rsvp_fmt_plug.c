@@ -31,6 +31,7 @@ john_register_one(&fmt_rsvp);
 #include "arch.h"
 #include "md5.h"
 #include "sha.h"
+#include "hmac_sha.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -40,7 +41,7 @@ john_register_one(&fmt_rsvp);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "rsvp"
-#define FORMAT_NAME             "HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS, OMAPI"
+#define FORMAT_NAME             "HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS, OMAPI, RNDC"
 #define FORMAT_TAG              "$rsvp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
@@ -55,10 +56,10 @@ john_register_one(&fmt_rsvp);
 #define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
 #define MAX_SALT_SIZE           8192
-// currently only 2 types, 1 for md5 and 2 for SHA1. Bump this
-// number each type a type is added, and make sure the types
-// are sequential.
-#define MAX_TYPES               2
+// Currently only 6 types are supported (1 for md5, 2 for SHA1, 3 for SHA224,
+// and so on). Bump this number each type a type is added, and make sure the
+// types are sequential.
+#define MAX_TYPES               6
 
 static struct fmt_tests tests[] = {
 	{"$rsvp$1$10010000ff0000ac002404010100000000000001d7e95bfa0000003a00000000000000000000000000000000000c0101c0a8011406000017000c0301c0a8010a020004020008050100007530000c0b01c0a8010a0000000000240c0200000007010000067f00000545fa000046fa000045fa0000000000007fffffff00300d020000000a010000080400000100000001060000014998968008000001000000000a000001000005dc05000000$636d8e6db5351fbc9dad620c5ec16c0b", "password12345"},
@@ -71,23 +72,31 @@ static struct fmt_tests tests[] = {
 	{"$rsvp$1$831401001101000301192168201101001b005a000104034900018102cc8ee50400000002e810fe800000000000000465fffffe000000f00f0000000004192168201104000000040a113600000000000000000000000000000000$44b62860b363f9adf60acdb9d66abe27", "1234"},
 	// DHCP OMAPI hash
 	{"$rsvp$1$0000001000000001000000004e878f6e000000000006637265617465000000040000000100096578636c7573697665000000040000000100047479706500000004686f737400000000$6240c96047e5e0a6da897f0e19dda707", "12345678"},
+	// BIND RNDC hmac-md5 hash
+	{"$rsvp$1$055f6374726c0200000038045f7365720100000006343336393532045f74696d010000000a31353132373936343538045f657870010000000a31353132373936353138055f64617461020000000e047479706501000000046e756c6c$84bf81fdcb5113dfb9a1b02c32091b10", "12345678"},
+	// BIND RNDC hmac-sha1 hash
+	{"$rsvp$2$055f6374726c0200000039045f736572010000000731343030373138045f74696d010000000a31353132383031313735045f657870010000000a31353132383031323335055f64617461020000000e047479706501000000046e756c6c$bdcdde831ef62d4db001155d0d4b71073b9f3e46", "12345678"},
+	// BIND RNDC hmac-sha224 hash
+	{"$rsvp$3$055f6374726c020000003a045f73657201000000083130353433393138045f74696d010000000a31353132383035323538045f657870010000000a31353132383035333138055f64617461020000000e047479706501000000046e756c6c$34e0b7c5f737a800b684196374249eb2e1ab26f08be8ef967541cb0e", "12345678"},
+	// BIND RNDC hmac-sha256 hash
+	{"$rsvp$4$055f6374726c0200000039045f736572010000000738363630353334045f74696d010000000a31353132383031323633045f657870010000000a31353132383031333233055f64617461020000000e047479706501000000046e756c6c$90998313a5c554cc373bdef4157e23a51655ce55e0dd258049d7bedf2497bb78", "12345678"},
+	// BIND RNDC hmac-sha384 hash
+	{"$rsvp$5$055f6374726c020000003a045f73657201000000083133373633393733045f74696d010000000a31353132383035343931045f657870010000000a31353132383035353531055f64617461020000000e047479706501000000046e756c6c$7009d9833402cfd59045bb877addac39357827eadd01059b27507d73846a80b2c1bb8407154fdbcbef1fa6412e7ce6c2", "12345678"},
+	// BIND RND hmac-sha512 hash
+	{"$rsvp$6$055f6374726c0200000039045f736572010000000734343131323530045f74696d010000000a31353132383033353139045f657870010000000a31353132383033353739055f64617461020000000e047479706501000000046e756c6c$8de37f5b8fee6733bf0edf895ad2751989f7a6317534216a16db68f55c853d15f1114fe3c0f98521c1dcaa29eabe1d603cc2a3fee7f9dc22f127dfa220b5c632", "12345678"},
 	{NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 
-// when we add more types, they need to be sequential (next will be 3),
+// When we add more types, they need to be sequential (next will be 7),
 // AND we need to bump this to the count. Each type will use one of these
-// to track whether it has build the first half of the hmac.  The size
+// to track whether it has build the first half of the hmac. The size
 // of this array should be 1 more than the max number of types.
 static int new_keys[MAX_TYPES+1];
 
-// we make our crypt_out large enough for an SHA1 output now.  Even though
-// we only compare first BINARY_SIZE data.
-static uint32_t (*crypt_out)[ (BINARY_SIZE+4) / sizeof(uint32_t)];
-static SHA_CTX *ipad_ctx;
-static SHA_CTX *opad_ctx;
+static uint32_t (*crypt_out)[ (BINARY_SIZE) / sizeof(uint32_t)];
 static MD5_CTX *ipad_mctx;
 static MD5_CTX *opad_mctx;
 
@@ -112,10 +121,6 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_len));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
-	ipad_ctx  = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*opad_ctx));
-	opad_ctx  = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*opad_ctx));
 	ipad_mctx = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*opad_mctx));
 	opad_mctx = mem_calloc(self->params.max_keys_per_crypt,
@@ -126,8 +131,6 @@ static void done(void)
 {
 	MEM_FREE(opad_mctx);
 	MEM_FREE(ipad_mctx);
-	MEM_FREE(opad_ctx);
-	MEM_FREE(ipad_ctx);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
@@ -147,7 +150,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(p, "$")) == NULL) /* version */
 		goto err;
 	version = atoi(p);
-	if (version != 1  && version != 2)
+	if (version != 1  && version != 2 && version != 3 && version != 4 && version != 5 && version != 6)
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
@@ -159,7 +162,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(NULL, "$")) == NULL) /* hash */
 		goto err;
-	/* there is code that trim longer binary values, so we do not need to check for extra long */
+	/* There is code in get_binary() that trims longer binary values, so we do not need to check for extra long inputs */
 	if (strlen(p) < BINARY_SIZE*2)
 		goto err;
 	if (!ishexlc(p))
@@ -229,7 +232,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char buf[20];
+		unsigned char buf[64];
+
 		if (cur_salt->type == 1) {
 			MD5_CTX ctx;
 			if (new_keys[cur_salt->type]) {
@@ -266,44 +270,36 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Update(&ctx, buf, 16);
 			MD5_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 2) {
-			SHA_CTX ctx;
 			if (new_keys[cur_salt->type]) {
-				int i, len = strlen(saved_key[index]);
-				unsigned char *p = (unsigned char*)saved_key[index];
-				unsigned char pad[64];
-
-				if (len > 64) {
-					SHA1_Init(&ctx);
-					SHA1_Update(&ctx, p, len);
-					SHA1_Final(buf, &ctx);
-					len = 20;
-					p = buf;
-				}
-				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x36;
-				}
-				SHA1_Init(&ipad_ctx[index]);
-				SHA1_Update(&ipad_ctx[index], pad, len);
-				if (len < 64)
-					SHA1_Update(&ipad_ctx[index], "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36", 64-len);
-				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x5C;
-				}
-				SHA1_Init(&opad_ctx[index]);
-				SHA1_Update(&opad_ctx[index], pad, len);
-				if (len < 64)
-					SHA1_Update(&opad_ctx[index], "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C", 64-len);
+				hmac_sha1((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+						cur_salt->salt, cur_salt->salt_length,
+						(unsigned char*)crypt_out[index], BINARY_SIZE);
 			}
-			memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
-			SHA1_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
-			SHA1_Final(buf, &ctx);
-			memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
-			SHA1_Update(&ctx, buf, 20);
-			// NOTE, this writes 20 bytes. That is why we had to bump up the size of each crypt_out[] value,
-			// even though we only look at the first 16 bytes when comparing the saved binary.
-			SHA1_Final((unsigned char*)(crypt_out[index]), &ctx);
+		} else if (cur_salt->type == 3) {
+			if (new_keys[cur_salt->type]) {
+				hmac_sha224((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+						cur_salt->salt, cur_salt->salt_length,
+						(unsigned char*)crypt_out[index], BINARY_SIZE);
+			}
+		} else if (cur_salt->type == 4) {
+			if (new_keys[cur_salt->type]) {
+				hmac_sha256((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+						cur_salt->salt, cur_salt->salt_length,
+						(unsigned char*)crypt_out[index], BINARY_SIZE);
+			}
+		} else if (cur_salt->type == 5) {
+			if (new_keys[cur_salt->type]) {
+				hmac_sha384((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+						cur_salt->salt, cur_salt->salt_length,
+						(unsigned char*)crypt_out[index], BINARY_SIZE);
+			}
+		} else if (cur_salt->type == 6) {
+			if (new_keys[cur_salt->type]) {
+				hmac_sha512((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+						cur_salt->salt, cur_salt->salt_length,
+						(unsigned char*)crypt_out[index], BINARY_SIZE);
+			}
 		}
-
 	}
 	new_keys[cur_salt->type] = 0;
 
@@ -336,7 +332,7 @@ static void rsvp_set_key(char *key, int index)
 	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 
 	// Workaround for self-test code not working as IRL
-	new_keys[1] = new_keys[2] = 2;
+	new_keys[1] = new_keys[2] = new_keys[3] = new_keys[4] = new_keys[5] = new_keys[6] = 2;
 }
 
 static void clear_keys(void) {
@@ -377,7 +373,7 @@ struct fmt_main fmt_rsvp = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
-			"hash algorithm used for hmac [1:MD5 2:SHA1]"
+			"hash algorithm used for hmac [1:MD5 2:SHA1 3:SHA224 4:SHA256 5:SHA384 6:SHA512]"
 		},
 		{ FORMAT_TAG },
 		tests

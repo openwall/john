@@ -17,6 +17,7 @@ import struct
 import socket
 from binascii import hexlify
 import time
+import base64
 
 import os
 import logging
@@ -1223,6 +1224,81 @@ def pcap_parser_ah(fname):
     f.close()
 
 
+def pcap_parser_rndc(fname):
+    """
+    Extract BIND RNDC hashes from .pcap files.
+
+    Based on rndc.py.in from bind-9.11.2.tar.gz tarball.
+    """
+
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+    index = 0
+
+    for _, buf in pcap:
+        index = index + 1
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP or eth.type == dpkt.ethernet.ETH_TYPE_IP6:
+            ip = eth.data
+
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP and ip.p != dpkt.ip.IP_PROTO_TCP:
+                continue
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP6 and ip.nxt != dpkt.ip.IP_PROTO_TCP:
+                continue
+
+            tcp = ip.data
+            data = tcp.data
+
+            if tcp.dport != 953 and tcp.sport != 953:  # is this RNDC traffic?
+                continue
+
+            if len(data) < 48:
+                continue
+
+            # sanity check the payload
+            offset = data.find("hmd5")
+            kind = 1
+            if offset == -1:
+                offset = data.find("hsha")
+                kind = 2
+            if offset == -1:
+                continue
+
+            if kind == 1:
+                hash_offset = offset + len("hmd5") + 5
+                h = data[hash_offset:hash_offset + 22]
+                if len(h) % 4:
+                    h += '=' * (4 - len(h) % 4)
+                h = base64.decodestring(h)
+                data_offset = hash_offset + 22
+                salt = data[data_offset:]
+            elif kind == 2:
+                hash_type_offset = offset + len("hmd5") + 5
+                hash_type = ord(data[hash_type_offset:hash_type_offset + 1])
+                hash_offset = offset + len("hsha") + 6
+                h = data[hash_offset:hash_offset + 88]
+                if len(h) % 4:
+                    h += '=' * (4 - len(h) % 4)
+                h = base64.decodestring(h)
+                data_offset = hash_offset + 88
+                salt = data[data_offset:]
+                if hash_type == 161:  # SHA-1
+                    kind = 2
+                elif hash_type == 162:  # SHA-224
+                    kind = 3
+                elif hash_type == 163:  # SHA-256
+                    kind = 4
+                elif hash_type == 164:  # SHA-384
+                    kind = 5
+                elif hash_type == 165:  # SHA-512
+                    kind = 6
+
+            sys.stdout.write("%s:$rsvp$%s$%s$%s\n" % (index, kind, salt.encode("hex"), h.encode("hex")))
+
+
+    f.close()
+
+
 def note():
     sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john.\n")
 
@@ -1265,6 +1341,7 @@ if __name__ == "__main__":
         pcap_parser_tgsrep(sys.argv[i])
         pcap_parser_tacacs_plus(sys.argv[i])
         pcap_parser_wlccp(sys.argv[i])
+        pcap_parser_rndc(sys.argv[i])
         try:
             pcap_parser_s7(sys.argv[i])
         except:
