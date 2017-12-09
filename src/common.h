@@ -129,11 +129,8 @@ int ishexlcn(const char *q, int n);
 size_t hexlen(const char *q, int *extra_chars);
 size_t hexlenl(const char *q, int *extra_chars); /* lower cased only */
 size_t hexlenu(const char *q, int *extra_chars); /* upper cased only */
-/* is this a valid string for atoi() ONLY positive numbers are valid */
 int isdec(const char *q);
-/* is this a valid string for atoi() */
 int isdec_negok(const char *q);
-/* is this a valid string for atou()?  atou() func == sprintf("%x",&val) */
 int isdecu(const char *q);
 
 #endif

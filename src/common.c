@@ -29,146 +29,63 @@ static int initialized = 0;
 
 void common_init(void)
 {
-	const char *pos;
 
-	if (initialized) return;
 
-	memset(atoi64, 0x7F, sizeof(atoi64));
-	for (pos = itoa64; pos <= &itoa64[63]; pos++)
-		atoi64[ARCH_INDEX(*pos)] = pos - itoa64;
 
-	memset(atoi16, 0x7F, sizeof(atoi16));
-	for (pos = itoa16; pos <= &itoa16[15]; pos++)
-		atoi16[ARCH_INDEX(*pos)] = pos - itoa16;
 
-	memcpy(atoi16l, atoi16, sizeof(atoi16l));
 
-	atoi16['A'] = atoi16['a'];
-	atoi16['B'] = atoi16['b'];
-	atoi16['C'] = atoi16['c'];
-	atoi16['D'] = atoi16['d'];
-	atoi16['E'] = atoi16['e'];
-	atoi16['F'] = atoi16['f'];
 
-	memset(atoi16u, 0x7F, sizeof(atoi16u));
-	for (pos = itoa16u; pos <= &itoa16u[15]; pos++)
-		atoi16u[ARCH_INDEX(*pos)] = pos - itoa16u;
 
-	initialized = 1;
 }
 
 int ishex(const char *q)
 {
-	const char *p=q;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	return !*q && !(((q-p))&1);
 }
 int ishex_oddOK(const char *q)
 {
-	// Sometimes it is 'ok' to have odd length hex.  Usually not.  If odd is
-	// allowed, then the format will have to properly handle odd length.
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	return !*q;
 }
 
 int ishexuc(const char *q)
 {
-	const char *p=q;
-	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	return !*q && !(((p-q))&1);
 }
 int ishexlc(const char *q)
 {
-	const char *p=q;
-	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	return !*q && !(((p-q))&1);
 }
 
 int ishexn(const char *q, int n)
 {
-	const char *p=q;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	return (q-p) >= n;
 }
 int ishexucn(const char *q, int n)
 {
-	const char *p=q;
-	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	return (q-p) >= n;
 }
 int ishexlcn(const char *q, int n)
 {
-	const char *p=q;
-	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	return (q-p) >= n;
 }
 
 int ishexuc_oddOK(const char *q) {
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'a' && *q <= 'f') return 0;
-		++q;
-	}
-	return !*q ;
 }
 int ishexlc_oddOK(const char *q) {
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'A' && *q <= 'F') return 0;
-		++q;
-	}
-	return !*q ;
 }
 
 static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100], int *extra_chars)
 {
-	const char *s = q;
-	size_t len = strlen(q);
-	if (len&1) --len;
 
-	while (dic[ARCH_INDEX(*q)] != 0x7F)
-		++q;
-	if ((size_t)(q - s)&1) --q;
-	if (extra_chars)
-		*extra_chars = (*q != 0);
-	return (q - s);
 }
 size_t hexlen(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16, extra_chars);
 }
 size_t hexlenu(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16u, extra_chars);
 }
 size_t hexlenl(const char *q, int *extra_chars)
 {
-	return _hexlen(q, atoi16l, extra_chars);
 }
 
-int isdec(const char *q)
-{
-	char buf[24];
-	int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf) && *q != '-';
 }
 int isdec_negok(const char *q)
 {
-	char buf[24];
-	int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf);
+
+
 }
-int isdecu(const char *q)
-{
-	char buf[24];
-	unsigned int x = atou(q);
-	sprintf(buf, "%u", x);
-	return !strcmp(q,buf);
+int isdecu(const char *q) {
 }
