@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <linux/auxvec.h>
@@ -35,7 +36,7 @@ out_close:
 	return result;
 }
 
-void print_cap(long cap, long feature_bit, const char *feature) {
+void print_cap(unsigned long cap, unsigned long feature_bit, const char *feature) {
     char buf[128], *cp;
 	sprintf (buf, "%-36s", feature);
 	cp = strchr(buf, ' ');
@@ -46,6 +47,14 @@ void print_cap(long cap, long feature_bit, const char *feature) {
 	else
 		printf ("%s Absent\n", buf);
 }
+
+void handle_cap(unsigned long cap, unsigned long feature_bit) {
+	if (cap & feature_bit) {
+		printf ("1");
+		exit(1);
+	}
+}
+
 int main(int argc, char **argv) {
 	long caps = get_caps_ppc(0);
 	long caps2 = get_caps_ppc(2);
@@ -96,11 +105,11 @@ int main(int argc, char **argv) {
 	// ok, if arguments are set, we are calling this from configure, so we check for certain 'key' flags.
 	
 	if (!strcmp(argv[1], "PPC_FEATURE_HAS_ALTIVEC"))
-		return !! (caps & PPC_FEATURE_HAS_ALTIVEC);
+		handle_cap(caps, PPC_FEATURE_HAS_ALTIVEC);
 	if (!strcmp(argv[1], "PPC_FEATURE_HAS_VSX"))
-		return !! (caps & PPC_FEATURE_HAS_VSX);
+		handle_cap(caps, PPC_FEATURE_HAS_VSX);
 	if (!strcmp(argv[1], "PPC_FEATURE2_ARCH_2_07"))
-		return !! (caps2 & PPC_FEATURE2_ARCH_2_07);
+		handle_cap(caps, PPC_FEATURE2_ARCH_2_07);
 	printf ("Flag %s not handled\n", argv[1]);
 	return 0;
 }
