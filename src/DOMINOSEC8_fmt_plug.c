@@ -541,22 +541,27 @@ static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 				out <<= 6;
 				ch = *ascii_cipher;
 
-				if (ch < '0' || ch > '9')
-					if (ch < 'A' || ch > 'Z')
-						if (ch < 'a' || ch > 'z')
-							if (ch != '+')
-								if (ch == '/')
+				if (ch < '0' || ch > '9') {
+					if (ch < 'A' || ch > 'Z') {
+						if (ch < 'a' || ch > 'z') {
+							if (ch != '+') {
+								if (ch == '/') {
 									out += '?';
-								else
-								{ ; } /* shit happens */
-							else
+								} else {
+									/* shit happens */
+								}
+							} else {
 								out += '>';
-						else
+							}
+						} else {
 							out += ch-'=';
-					else
+						}
+					} else {
 						out += ch-'7';
-				else
+					}
+				} else {
 					out += ch-'0';
+				}
 				++ascii_cipher;
 			} while (--loop);
 		}
