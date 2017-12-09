@@ -1396,7 +1396,7 @@ Optional Features:
   --enable-ubsan          * Build with UndefinedBehaviorSanitizer
   --enable-ubsantrap      * Build with UndefinedBehaviorSanitizer, crashes on
                           failure
-  --enable-simd           * Build forcing SIMD logic to be OFF
+  --disable-simd          * Build forcing SIMD logic to be OFF
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
@@ -3564,7 +3564,7 @@ fi
 if test "${enable_simd+set}" = set; then :
   enableval=$enable_simd; simd=$enableval
 else
-  simd=no
+  simd=yes
 fi
 
 # Check whether --enable-plugin-dependencies was given.
