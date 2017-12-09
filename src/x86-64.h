@@ -41,6 +41,22 @@
 
 #define CPU_DETECT			0
 
+#if defined (JOHN_SIMD_OFF)
+#undef __SSE2__
+#undef __SSSE3__
+#undef JOHN_SSSE3
+#undef __SSE4_1__
+#undef JOHN_SSE4_1
+#undef __AVX512F__
+#undef JOHN_AVX512F
+#undef __AVX512BW__
+#undef JOHN_AVX512BW
+#undef __XOP__
+#undef JOHN_XOP
+#undef JOHN_AVX2
+#undef __MMX__
+#endif
+
 #ifdef __SSE2__
 #define CPU_NAME			"SSE2"
 #endif
@@ -271,6 +287,8 @@
 #define SIMD_COEF_64 1
 #endif
 
+#if !defined (JOHN_SIMD_OFF)
+
 #ifndef SIMD_PARA_MD4
 #if defined(__INTEL_COMPILER)
 #define SIMD_PARA_MD4			3
@@ -364,6 +382,8 @@
 #define SHA512_N_STR		PARA_TO_MxN(SIMD_COEF_64, SIMD_PARA_SHA512)
 #else
 #define SHA512_N_STR		PARA_TO_N(SIMD_COEF_64)
+#endif
+
 #endif
 
 #define SHA_BUF_SIZ			16

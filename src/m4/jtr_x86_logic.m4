@@ -36,6 +36,7 @@ dnl
 AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
+if test "x$simd" = xyes ; then
 dnl
 #############################################################################
 # Intel Active CPU probe test.  Start with SSE2, then SSSE3, then SSE4, until failure
@@ -477,6 +478,8 @@ else
     )
   ]
   )
+fi
+
 fi
 
 CC="$CC_BACKUP"
