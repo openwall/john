@@ -1396,7 +1396,7 @@ Optional Features:
   --enable-ubsan          * Build with UndefinedBehaviorSanitizer
   --enable-ubsantrap      * Build with UndefinedBehaviorSanitizer, crashes on
                           failure
-  --disable-simd          * Build forcing SIMD logic to be OFF
+  --enable-simd           * Build forcing SIMD logic to be OFF
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
@@ -3564,7 +3564,7 @@ fi
 if test "${enable_simd+set}" = set; then :
   enableval=$enable_simd; simd=$enableval
 else
-  simd=yes
+  simd=no
 fi
 
 # Check whether --enable-plugin-dependencies was given.
@@ -14061,6 +14061,9 @@ AESNI_ARCH="$aesni_arch"
 
 aesni_os=""
 aesni_options="DISABLED"
+
+if test "x$simd" = "xyes" ; then
+
 if test "x$ax_intel_x32" = xyes; then
    aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
 else
@@ -14122,6 +14125,7 @@ fi
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_YASM" >&5
 $as_echo "$ac_cv_path_YASM" >&6; }
+fi
 fi
 if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
