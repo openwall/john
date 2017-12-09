@@ -22,15 +22,22 @@ AC_DEFUN([JTR_PPC64_SPECIAL_LOGIC], [
   JTR_FLAG_CHECK([-fno-strict-aliasing], 1)
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing" ; fi
 
-  CFLAGS_EX=""
-  JTR_FLAG_CHECK([-maltivec], 1)
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
-  CFLAGS_EX=""
-  JTR_FLAG_CHECK([-mvsx], 1)
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
-  CFLAGS_EX=""
-  JTR_FLAG_CHECK([-mpower8-vector], 1)
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
+
+  if `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = 1 -a `./test_cpuid PPC_FEATURE_HAS_VSX` = 1 -a `./test_cpuid PPC_FEATURE2_ARCH_2_07` = 1 ; then
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-maltivec], 1)
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-mvsx], 1)
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-mpower8-vector], 1)
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+  fi
+
+  @rm test_cpuid
+
   CFLAGS_EX="$ac_saved_cflags_ex"
 
   AC_SUBST([OPT_INLINE_FLAGS],["${INLINE_FLAGS}"])
@@ -55,16 +62,21 @@ AC_DEFUN([JTR_PPC32_SPECIAL_LOGIC], [
   JTR_FLAG_CHECK([-fno-strict-aliasing], 1)
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing" ; fi
 
-  CFLAGS_EX=""
-  JTR_FLAG_CHECK([-maltivec], 1)
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
-  CFLAGS_EX=""
-  JTR_FLAG_CHECK([-mvsx], 1)
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
-  CFLAGS_EX=""
-  JTR_FLAG_CHECK([-mpower8-vector], 1)
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
-  CFLAGS_EX="$ac_saved_cflags_ex"
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
+
+  if `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = 1 -a `./test_cpuid PPC_FEATURE_HAS_VSX` = 1 -a `./test_cpuid PPC_FEATURE2_ARCH_2_07` = 1 ; then
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-maltivec], 1)
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-mvsx], 1)
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-mpower8-vector], 1)
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+  fi
+
+  @rm test_cpuid
 
   AC_SUBST([OPT_INLINE_FLAGS],["${INLINE_FLAGS}"])
 ])
