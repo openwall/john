@@ -8521,8 +8521,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing" ; fi
 
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
+
+  if `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = 1 -a `./test_cpuid PPC_FEATURE_HAS_VSX` = 1 -a `./test_cpuid PPC_FEATURE2_ARCH_2_07` = 1 ; then
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -8568,9 +8571,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -8616,9 +8619,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -8664,7 +8667,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+  fi
+
+  @rm test_cpuid
+
   CFLAGS_EX="$ac_saved_cflags_ex"
 
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
@@ -8823,8 +8830,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing" ; fi
 
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
+
+  if `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = 1 -a `./test_cpuid PPC_FEATURE_HAS_VSX` = 1 -a `./test_cpuid PPC_FEATURE2_ARCH_2_07` = 1 ; then
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -8870,9 +8880,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -8918,9 +8928,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -8966,7 +8976,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+  fi
+
+  @rm test_cpuid
+
   CFLAGS_EX="$ac_saved_cflags_ex"
 
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
@@ -9125,8 +9139,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing" ; fi
 
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
+
+  if `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = 1 -a `./test_cpuid PPC_FEATURE_HAS_VSX` = 1 -a `./test_cpuid PPC_FEATURE2_ARCH_2_07` = 1 ; then
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -9172,9 +9189,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -9220,9 +9237,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -9268,8 +9285,10 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
-  CFLAGS_EX="$ac_saved_cflags_ex"
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+  fi
+
+  @rm test_cpuid
 
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
 
@@ -9427,8 +9446,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing" ; fi
 
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
+
+  if `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = 1 -a `./test_cpuid PPC_FEATURE_HAS_VSX` = 1 -a `./test_cpuid PPC_FEATURE2_ARCH_2_07` = 1 ; then
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -9474,9 +9496,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" CPU_STR="ALTIVEC" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -9522,9 +9544,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
-  CFLAGS_EX=""
-    if test "1" = 1; then :
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -9570,8 +9592,10 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
-  CFLAGS_EX="$ac_saved_cflags_ex"
+    if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mpower8-vector" ; fi
+  fi
+
+  @rm test_cpuid
 
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
 
