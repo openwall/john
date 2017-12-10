@@ -5,6 +5,8 @@
  * ...with heavy changes in the jumbo patch, by magnum & JimF
  */
 
+#include "arch.h"
+
 #define NEED_OS_TIMER
 #include "os.h"
 
@@ -30,7 +32,6 @@
 #include <io.h> // open()
 #endif
 
-#include "arch.h"
 #include "params.h"
 #include "base64_convert.h"
 
