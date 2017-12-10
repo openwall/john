@@ -270,35 +270,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Update(&ctx, buf, 16);
 			MD5_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 2) {
-			if (new_keys[cur_salt->type]) {
-				hmac_sha1((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-						cur_salt->salt, cur_salt->salt_length,
-						(unsigned char*)crypt_out[index], BINARY_SIZE);
-			}
+			hmac_sha1((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, cur_salt->salt_length,
+					(unsigned char*)crypt_out[index], BINARY_SIZE);
 		} else if (cur_salt->type == 3) {
-			if (new_keys[cur_salt->type]) {
-				hmac_sha224((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-						cur_salt->salt, cur_salt->salt_length,
-						(unsigned char*)crypt_out[index], BINARY_SIZE);
-			}
+			hmac_sha224((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, cur_salt->salt_length,
+					(unsigned char*)crypt_out[index], BINARY_SIZE);
 		} else if (cur_salt->type == 4) {
-			if (new_keys[cur_salt->type]) {
-				hmac_sha256((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-						cur_salt->salt, cur_salt->salt_length,
-						(unsigned char*)crypt_out[index], BINARY_SIZE);
-			}
+			hmac_sha256((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, cur_salt->salt_length,
+					(unsigned char*)crypt_out[index], BINARY_SIZE);
 		} else if (cur_salt->type == 5) {
-			if (new_keys[cur_salt->type]) {
-				hmac_sha384((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-						cur_salt->salt, cur_salt->salt_length,
-						(unsigned char*)crypt_out[index], BINARY_SIZE);
-			}
+			hmac_sha384((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, cur_salt->salt_length,
+					(unsigned char*)crypt_out[index], BINARY_SIZE);
 		} else if (cur_salt->type == 6) {
-			if (new_keys[cur_salt->type]) {
-				hmac_sha512((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-						cur_salt->salt, cur_salt->salt_length,
-						(unsigned char*)crypt_out[index], BINARY_SIZE);
-			}
+			hmac_sha512((const unsigned char*)saved_key[index], strlen(saved_key[index]),
+					cur_salt->salt, cur_salt->salt_length,
+					(unsigned char*)crypt_out[index], BINARY_SIZE);
 		}
 	}
 	new_keys[cur_salt->type] = 0;
@@ -332,7 +322,7 @@ static void rsvp_set_key(char *key, int index)
 	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 
 	// Workaround for self-test code not working as IRL
-	new_keys[1] = new_keys[2] = new_keys[3] = new_keys[4] = new_keys[5] = new_keys[6] = 2;
+	new_keys[1] = 2;
 }
 
 static void clear_keys(void) {
