@@ -1,3 +1,5 @@
+#include "arch.h"
+
 #if defined(__SSE2__) || defined(__SSE4_1__) || defined(__XOP__)
 /*
    BLAKE2 reference source code package - optimized C implementations
