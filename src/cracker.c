@@ -5,8 +5,6 @@
  * ...with heavy changes in the jumbo patch, by magnum & JimF
  */
 
-#include "arch.h"
-
 #define NEED_OS_TIMER
 #include "os.h"
 
@@ -35,9 +33,15 @@
 #include "params.h"
 #include "base64_convert.h"
 
+#if defined(JOHN_NO_SIMD)
+#undef __SSE__
+#endif
+
 #if CRK_PREFETCH && defined(__SSE__)
 #include <xmmintrin.h>
 #endif
+
+#include "arch.h"
 
 #include "misc.h"
 #include "memory.h"
