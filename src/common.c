@@ -80,6 +80,7 @@ int ishexuc(const char *q)
 		++q;
 	return !*q && !(((p-q))&1);
 }
+
 int ishexlc(const char *q)
 {
 	const char *p=q;
@@ -95,6 +96,7 @@ int ishexn(const char *q, int n)
 		++q;
 	return (q-p) >= n;
 }
+
 int ishexucn(const char *q, int n)
 {
 	const char *p=q;
@@ -102,6 +104,7 @@ int ishexucn(const char *q, int n)
 		++q;
 	return (q-p) >= n;
 }
+
 int ishexlcn(const char *q, int n)
 {
 	const char *p=q;
@@ -117,6 +120,7 @@ int ishexuc_oddOK(const char *q) {
 	}
 	return !*q ;
 }
+
 int ishexlc_oddOK(const char *q) {
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
 		if (*q >= 'A' && *q <= 'F') return 0;
@@ -138,37 +142,43 @@ static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100], int 
 		*extra_chars = (*q != 0);
 	return (q - s);
 }
+
 size_t hexlen(const char *q, int *extra_chars)
 {
 	return _hexlen(q, atoi16, extra_chars);
 }
+
 size_t hexlenu(const char *q, int *extra_chars)
 {
 	return _hexlen(q, atoi16u, extra_chars);
 }
+
 size_t hexlenl(const char *q, int *extra_chars)
 {
 	return _hexlen(q, atoi16l, extra_chars);
 }
 
+static int isdec_len(const char *q, const char *mxv)
+{
+	const char *p = q;
+	do {
+		if (*p < '0' || *p > '9' || p - q >= 10)
+			return 0;
+	} while (*++p);
+	return p - q < 10 || strcmp(q, mxv) <= 0;
+}
+
 int isdec(const char *q)
 {
-	char buf[24];
-	int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf) && *q != '-';
+	return isdec_len(q, "2147483647");
 }
+
 int isdec_negok(const char *q)
 {
-	char buf[24];
-	int x = atoi(q);
-	sprintf(buf, "%d", x);
-	return !strcmp(q,buf);
+	return *q == '-' ? isdec_len(q + 1, "2147483648") : isdec(q);
 }
+
 int isdecu(const char *q)
 {
-	char buf[24];
-	unsigned int x = atou(q);
-	sprintf(buf, "%u", x);
-	return !strcmp(q,buf);
+	return isdec_len(q, "4294967295");
 }
