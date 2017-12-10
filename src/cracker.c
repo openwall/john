@@ -33,7 +33,7 @@
 #include "params.h"
 #include "base64_convert.h"
 
-#if defined(JOHN_NO_SIMD)
+#if defined(JOHN_SIMD_OFF)
 #undef __SSE__
 #endif
 

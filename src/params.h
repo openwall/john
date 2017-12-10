@@ -313,7 +313,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * How many bitmap entries should the cracker prefetch at once.  Set this to 0
  * to disable prefetching.
  */
-#if defined(__SSE__) && !defined(JOHN_NO_SIMD)
+#if defined(__SSE__) && !defined(JOHN_SIMD_OFF)
 #define CRK_PREFETCH			64
 #else
 #define CRK_PREFETCH			0
