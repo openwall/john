@@ -31,7 +31,6 @@ john_register_one(&fmt_rsvp);
 #include "arch.h"
 #include "md5.h"
 #include "sha.h"
-#include "hmac_sha.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -96,9 +95,25 @@ static int *saved_len;
 // of this array should be 1 more than the max number of types.
 static int new_keys[MAX_TYPES+1];
 
-static uint32_t (*crypt_out)[ (BINARY_SIZE) / sizeof(uint32_t)];
+// We make our crypt_out large enough for an SHA512 output now. Even though
+// we only compare first BINARY_SIZE data.
+static uint32_t (*crypt_out)[64 / sizeof(uint32_t)];
+static SHA_CTX *ipad_ctx;
+static SHA_CTX *opad_ctx;
+static SHA256_CTX *ipad_ctx_224;
+static SHA256_CTX *opad_ctx_224;
+static SHA256_CTX *ipad_ctx_256;
+static SHA256_CTX *opad_ctx_256;
+static SHA512_CTX *ipad_ctx_384;
+static SHA512_CTX *opad_ctx_384;
+static SHA512_CTX *ipad_ctx_512;
+static SHA512_CTX *opad_ctx_512;
 static MD5_CTX *ipad_mctx;
 static MD5_CTX *opad_mctx;
+
+static const char *ipad_constant_block = "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36";
+
+static const char *opad_constant_block = "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C";
 
 static  struct custom_salt {
 	int type;
@@ -121,8 +136,28 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_len));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
+	ipad_ctx = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*ipad_ctx));
+	opad_ctx = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_ctx));
+	ipad_ctx_224 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*ipad_ctx_224));
+	opad_ctx_224 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_ctx_224));
+	ipad_ctx_256 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*ipad_ctx_256));
+	opad_ctx_256 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_ctx_256));
+	ipad_ctx_384 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*ipad_ctx_384));
+	opad_ctx_384 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_ctx_384));
+	ipad_ctx_512 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*ipad_ctx_512));
+	opad_ctx_512 = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*opad_ctx_512));
 	ipad_mctx = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*opad_mctx));
+	                       sizeof(*ipad_mctx));
 	opad_mctx = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*opad_mctx));
 }
@@ -131,6 +166,16 @@ static void done(void)
 {
 	MEM_FREE(opad_mctx);
 	MEM_FREE(ipad_mctx);
+	MEM_FREE(opad_ctx);
+	MEM_FREE(ipad_ctx);
+	MEM_FREE(opad_ctx_224);
+	MEM_FREE(ipad_ctx_224);
+	MEM_FREE(opad_ctx_256);
+	MEM_FREE(ipad_ctx_256);
+	MEM_FREE(opad_ctx_384);
+	MEM_FREE(ipad_ctx_384);
+	MEM_FREE(opad_ctx_512);
+	MEM_FREE(ipad_ctx_512);
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
@@ -254,14 +299,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				MD5_Init(&ipad_mctx[index]);
 				MD5_Update(&ipad_mctx[index], pad, len);
 				if (len < 64)
-					MD5_Update(&ipad_mctx[index], "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36", 64-len);
+					MD5_Update(&ipad_mctx[index], ipad_constant_block, 64-len);
 				for (i = 0; i < len; ++i) {
 					pad[i] = p[i] ^ 0x5C;
 				}
 				MD5_Init(&opad_mctx[index]);
 				MD5_Update(&opad_mctx[index], pad, len);
 				if (len < 64)
-					MD5_Update(&opad_mctx[index], "\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C", 64-len);
+					MD5_Update(&opad_mctx[index], opad_constant_block, 64-len);
 			}
 			memcpy(&ctx, &ipad_mctx[index], sizeof(ctx));
 			MD5_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
@@ -270,25 +315,187 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Update(&ctx, buf, 16);
 			MD5_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 2) {
-			hmac_sha1((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-					cur_salt->salt, cur_salt->salt_length,
-					(unsigned char*)crypt_out[index], BINARY_SIZE);
+			SHA_CTX ctx;
+
+			if (new_keys[cur_salt->type]) {
+				int i, len = strlen(saved_key[index]);
+				unsigned char *p = (unsigned char*)saved_key[index];
+				unsigned char pad[64];
+
+				if (len > 64) {
+					SHA1_Init(&ctx);
+					SHA1_Update(&ctx, p, len);
+					SHA1_Final(buf, &ctx);
+					len = 20;
+					p = buf;
+				}
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x36;
+				}
+				SHA1_Init(&ipad_ctx[index]);
+				SHA1_Update(&ipad_ctx[index], pad, len);
+				if (len < 64)
+					SHA1_Update(&ipad_ctx[index], ipad_constant_block, 64-len);
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x5C;
+				}
+				SHA1_Init(&opad_ctx[index]);
+				SHA1_Update(&opad_ctx[index], pad, len);
+				if (len < 64)
+					SHA1_Update(&opad_ctx[index], opad_constant_block, 64-len);
+			}
+			memcpy(&ctx, &ipad_ctx[index], sizeof(ctx));
+			SHA1_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
+			SHA1_Final(buf, &ctx);
+			memcpy(&ctx, &opad_ctx[index], sizeof(ctx));
+			SHA1_Update(&ctx, buf, 20);
+			// NOTE, this writes 20 bytes. That is why we had to bump up the size of each crypt_out[] value,
+			// even though we only look at the first 16 bytes when comparing the saved binary.
+			SHA1_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 3) {
-			hmac_sha224((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-					cur_salt->salt, cur_salt->salt_length,
-					(unsigned char*)crypt_out[index], BINARY_SIZE);
+			SHA256_CTX ctx;
+
+			if (new_keys[cur_salt->type]) {
+				int i, len = strlen(saved_key[index]);
+				unsigned char *p = (unsigned char*)saved_key[index];
+				unsigned char pad[64];
+
+				if (len > 64) {
+					SHA224_Init(&ctx);
+					SHA224_Update(&ctx, p, len);
+					SHA224_Final(buf, &ctx);
+					len = 28;
+					p = buf;
+				}
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x36;
+				}
+				SHA224_Init(&ipad_ctx_224[index]);
+				SHA224_Update(&ipad_ctx_224[index], pad, len);
+				if (len < 64)
+					SHA224_Update(&ipad_ctx_224[index], ipad_constant_block, 64-len);
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x5C;
+				}
+				SHA224_Init(&opad_ctx_224[index]);
+				SHA224_Update(&opad_ctx_224[index], pad, len);
+				if (len < 64)
+					SHA224_Update(&opad_ctx_224[index], opad_constant_block, 64-len);
+			}
+			memcpy(&ctx, &ipad_ctx_224[index], sizeof(ctx));
+			SHA224_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
+			SHA224_Final(buf, &ctx);
+			memcpy(&ctx, &opad_ctx_224[index], sizeof(ctx));
+			SHA224_Update(&ctx, buf, 28);
+			SHA224_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 4) {
-			hmac_sha256((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-					cur_salt->salt, cur_salt->salt_length,
-					(unsigned char*)crypt_out[index], BINARY_SIZE);
+			SHA256_CTX ctx;
+
+			if (new_keys[cur_salt->type]) {
+				int i, len = strlen(saved_key[index]);
+				unsigned char *p = (unsigned char*)saved_key[index];
+				unsigned char pad[64];
+
+				if (len > 64) {
+					SHA256_Init(&ctx);
+					SHA256_Update(&ctx, p, len);
+					SHA256_Final(buf, &ctx);
+					len = 32;
+					p = buf;
+				}
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x36;
+				}
+				SHA256_Init(&ipad_ctx_256[index]);
+				SHA256_Update(&ipad_ctx_256[index], pad, len);
+				if (len < 64)
+					SHA256_Update(&ipad_ctx_256[index], ipad_constant_block, 64-len);
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x5C;
+				}
+				SHA256_Init(&opad_ctx_256[index]);
+				SHA256_Update(&opad_ctx_256[index], pad, len);
+				if (len < 64)
+					SHA256_Update(&opad_ctx_256[index], opad_constant_block, 64-len);
+			}
+			memcpy(&ctx, &ipad_ctx_256[index], sizeof(ctx));
+			SHA256_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
+			SHA256_Final(buf, &ctx);
+			memcpy(&ctx, &opad_ctx_256[index], sizeof(ctx));
+			SHA256_Update(&ctx, buf, 32);
+			SHA256_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 5) {
-			hmac_sha384((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-					cur_salt->salt, cur_salt->salt_length,
-					(unsigned char*)crypt_out[index], BINARY_SIZE);
+			SHA512_CTX ctx;
+
+			if (new_keys[cur_salt->type]) {
+				int i, len = strlen(saved_key[index]);
+				unsigned char *p = (unsigned char*)saved_key[index];
+				unsigned char pad[128];
+
+				if (len > 128) {
+					SHA384_Init(&ctx);
+					SHA384_Update(&ctx, p, len);
+					SHA384_Final(buf, &ctx);
+					len = 48;
+					p = buf;
+				}
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x36;
+				}
+				SHA384_Init(&ipad_ctx_384[index]);
+				SHA384_Update(&ipad_ctx_384[index], pad, len);
+				if (len < 128)
+					SHA384_Update(&ipad_ctx_384[index], ipad_constant_block, 128-len);
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x5C;
+				}
+				SHA384_Init(&opad_ctx_384[index]);
+				SHA384_Update(&opad_ctx_384[index], pad, len);
+				if (len < 128)
+					SHA384_Update(&opad_ctx_384[index], opad_constant_block, 128-len);
+			}
+			memcpy(&ctx, &ipad_ctx_384[index], sizeof(ctx));
+			SHA384_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
+			SHA384_Final(buf, &ctx);
+			memcpy(&ctx, &opad_ctx_384[index], sizeof(ctx));
+			SHA384_Update(&ctx, buf, 48);
+			SHA384_Final((unsigned char*)(crypt_out[index]), &ctx);
 		} else if (cur_salt->type == 6) {
-			hmac_sha512((const unsigned char*)saved_key[index], strlen(saved_key[index]),
-					cur_salt->salt, cur_salt->salt_length,
-					(unsigned char*)crypt_out[index], BINARY_SIZE);
+			SHA512_CTX ctx;
+
+			if (new_keys[cur_salt->type]) {
+				int i, len = strlen(saved_key[index]);
+				unsigned char *p = (unsigned char*)saved_key[index];
+				unsigned char pad[128];
+
+				if (len > 128) {
+					SHA512_Init(&ctx);
+					SHA512_Update(&ctx, p, len);
+					SHA512_Final(buf, &ctx);
+					len = 64;
+					p = buf;
+				}
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x36;
+				}
+				SHA512_Init(&ipad_ctx_512[index]);
+				SHA512_Update(&ipad_ctx_512[index], pad, len);
+				if (len < 128)
+					SHA512_Update(&ipad_ctx_512[index], ipad_constant_block, 128-len);
+				for (i = 0; i < len; ++i) {
+					pad[i] = p[i] ^ 0x5C;
+				}
+				SHA512_Init(&opad_ctx_512[index]);
+				SHA512_Update(&opad_ctx_512[index], pad, len);
+				if (len < 128)
+					SHA512_Update(&opad_ctx_512[index], opad_constant_block, 128-len);
+			}
+			memcpy(&ctx, &ipad_ctx_512[index], sizeof(ctx));
+			SHA512_Update(&ctx, cur_salt->salt, cur_salt->salt_length);
+			SHA512_Final(buf, &ctx);
+			memcpy(&ctx, &opad_ctx_512[index], sizeof(ctx));
+			SHA512_Update(&ctx, buf, 64);
+			SHA512_Final((unsigned char*)(crypt_out[index]), &ctx);
 		}
 	}
 	new_keys[cur_salt->type] = 0;
@@ -322,7 +529,7 @@ static void rsvp_set_key(char *key, int index)
 	saved_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 
 	// Workaround for self-test code not working as IRL
-	new_keys[1] = 2;
+	new_keys[1] = new_keys[2] = new_keys[3] = new_keys[4] = new_keys[5] = new_keys[6] = 2;
 }
 
 static void clear_keys(void) {
@@ -336,9 +543,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-/*
- * report hash algorithm used for hmac as "tunable cost"
- */
+// Report hash algorithm used for hmac as "tunable cost"
 static unsigned int rsvp_hash_type(void *salt)
 {
 	struct custom_salt *my_salt;
@@ -346,6 +551,7 @@ static unsigned int rsvp_hash_type(void *salt)
 	my_salt = salt;
 	return (unsigned int) my_salt->type;
 }
+
 struct fmt_main fmt_rsvp = {
 	{
 		FORMAT_LABEL,
