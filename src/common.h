@@ -129,8 +129,13 @@ int ishexlcn(const char *q, int n);
 size_t hexlen(const char *q, int *extra_chars);
 size_t hexlenl(const char *q, int *extra_chars); /* lower cased only */
 size_t hexlenu(const char *q, int *extra_chars); /* upper cased only */
+/* Is this a valid number <=10digits and in the range [0 .... <= 0x7fffffff]
+ * ONLY positive numbers are valid. */
 int isdec(const char *q);
+/* Is this a valid number <=10digits.
+ * Positive [0..<= 0x7fffffff] and negative [ <= 0x80000000] numbers are valid */
 int isdec_negok(const char *q);
+/* Is this a valid number <=10digits.ONLY positive [0..<=0xffffffff] numbers are valid */
 int isdecu(const char *q);
 
 #endif
