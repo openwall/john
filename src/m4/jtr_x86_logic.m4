@@ -34,6 +34,11 @@ dnl TODO: Ultimately we should not depend on any predefined stuff in arch.h
 dnl at all
 dnl
 AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
+if test "x$simd" = xno ; then
+AC_SUBST([JOHN_SIMD_OFF],["-DJOHN_SIMD_OFF -mno-sse2 -mno-mmx"])
+CFLAGS="-mno-sse2 -mno-mmx $CFLAGS"
+fi
+
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 dnl

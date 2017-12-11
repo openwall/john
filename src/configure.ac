@@ -69,6 +69,7 @@ AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([ubsantrap], [AS_HELP_STRING([--enable-ubsantrap], [* Build with UndefinedBehaviorSanitizer, crashes on failure])], [ubsantrap=$enableval], [ubsantrap=no])
+AC_ARG_ENABLE([simd], [AS_HELP_STRING([--disable-simd], [* Build forcing SIMD logic to be OFF])], [simd=$enableval], [simd=yes])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
@@ -402,6 +403,11 @@ dnl AC_CHECK_SIZEOF([int *function()]
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 # *****************************************************************
 #
+if test "x$simd" = xno ; then
+[echo "SIMD logic... DISABLED by request"]
+AC_SUBST([JOHN_SIMD_OFF],["-DJOHN_SIMD_OFF"])
+fi
+
 cpu_family="unkown"
 CPU_STR="$host_cpu"
 case "$host_cpu" in
@@ -415,9 +421,9 @@ case "$host_cpu" in
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
-       [echo "checking special compiler flags... MIC"]
-       JTR_MIC_SPECIAL_LOGIC
-       ;;
+	[echo "checking special compiler flags... MIC"]
+	JTR_MIC_SPECIAL_LOGIC
+	;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
   mipsel) ARCH_LINK=mips32.h endian=little ;;
   mips64|mips64eb|mipseb64) ARCH_LINK=mips64.h endian=big ;;
@@ -853,6 +859,9 @@ AC_SUBST([AESNI_ARCH],["$aesni_arch"])
 
 aesni_os=""
 aesni_options="DISABLED"
+
+if test "x$simd" = "xyes" ; then
+
 if test "x$ax_intel_x32" = xyes; then
    aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
 else
@@ -884,6 +893,7 @@ if test "x$aesni_options" != xDISABLED; then
            test "x$yasmout" != x \
            && ac_cv_path_YASM=$ac_path_YASM ac_path_YASM_found=:]]
          )])
+fi
 fi
 if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
@@ -1042,8 +1052,14 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 ##########################################################
 echo "configure: creating ./fmt_externs.h"
 rm -f fmt_externs.h
+
+CFLAGS_EX2=
+if test "x$simd" = xno ; then
+CFLAGS_EX2=-DJOHN_SIMD_OFF
+fi
+
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 fi
 # if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
@@ -1057,7 +1073,7 @@ fi
 echo "configure: creating ./fmt_registers.h"
 rm -f fmt_registers.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
+   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 fi
 # if the file was not created, then bail.
 if test -f fmt_registers.h -a ! -s fmt_registers.h; then
@@ -1070,7 +1086,7 @@ if test ! -f fmt_registers.h; then
 fi
 
 if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 
 ########################################################

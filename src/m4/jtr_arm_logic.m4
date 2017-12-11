@@ -23,6 +23,9 @@ dnl
 # so the results of our tests must be remembered, and reset just before exit.
 # Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
 #############################################################################
+
+if test "x$simd" = xyes ; then
+
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
   AC_MSG_NOTICE([Testing build host's native CPU features])
@@ -61,6 +64,7 @@ else
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
   )
+fi
 fi
 
 CC="$CC_BACKUP"
