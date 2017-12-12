@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 /* magic constants PowerPC specific! for CPU CAPACITY bits (the PPC_FEATURE_HAS_ALTIVEC bits) */
 #include <asm/cputable.h>
 
-#if !defined(PPC) && !defined(powerpc)
+#if !defined(PPC) && !defined(powerpc) && !defined(__PPC__) && !defined(__powerpc__)
 #error program specifically written to deal with CPU information on the PowerPC
 #endif
  
