@@ -14,7 +14,7 @@
  *  PowerPC system.  Simply run the process (or use command switch -?) and
  *  a full human readable dump will be performed.
  *  The code was also written to function inside john's configure script.
- *  There are 3 flags we ask about.  The program will query 
+ *  There are 3 flags we ask about.  The program will query
  */
 
 #include <stdio.h>
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 #if !defined(PPC) && !defined(powerpc) && !defined(__PPC__) && !defined(__powerpc__)
 #error program specifically written to deal with CPU information on the PowerPC
 #endif
- 
+
 void print_cap(unsigned long cap, unsigned long feature_bit, const char *feature) {
     char buf[128], *cp;
 	sprintf (buf, "%-36s", feature);
@@ -107,7 +107,7 @@ int dump_full_listing(unsigned long caps, unsigned long caps2) {
 
 void config_handle_cap(unsigned long cap, unsigned long feature_bit) {
 	if (cap & feature_bit) {
-		/* 
+		/*
 		 * we set error code of 1, and stdout "1\n"
 		 * Used in configure script to detect HW capability bits.
 		 */
@@ -133,10 +133,10 @@ int main(int argc, char **argv, char **envp) {
 
 	if (argc < 2 || argc == 2 && !strcmp(argv[1], "?"))
 		return dump_full_listing(caps, caps2);
-	
+
 	// ok, if arguments other than -? are set, we are being called from
 	// configure so check for certain 'key' flags configure cares about.
-	
+
 	if (!strcmp(argv[1], "PPC_FEATURE_HAS_ALTIVEC"))
 		config_handle_cap(caps, PPC_FEATURE_HAS_ALTIVEC);
 	if (!strcmp(argv[1], "PPC_FEATURE_HAS_VSX"))
@@ -146,3 +146,4 @@ int main(int argc, char **argv, char **envp) {
 	printf ("Flag %s not handled\n", argv[1]);
 	return 0;
 }
+#endif
