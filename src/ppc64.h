@@ -15,7 +15,7 @@
 #ifndef _JOHN_ARCH_H
 #define _JOHN_ARCH_H
 
-#if defined (JOHN_ALTIVEC)
+#if defined (JOHN_ALTIVEC) && !defined(JOHN_SIMD_OFF)
 // in autoconfig builds, we always link to this header,
 // but later KNOW that we are ALTIVEC, so once we know
 // we then include the proper header

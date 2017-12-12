@@ -30,13 +30,18 @@
 #include <io.h> // open()
 #endif
 
-#include "arch.h"
 #include "params.h"
 #include "base64_convert.h"
+
+#if defined(JOHN_SIMD_OFF)
+#undef __SSE__
+#endif
 
 #if CRK_PREFETCH && defined(__SSE__)
 #include <xmmintrin.h>
 #endif
+
+#include "arch.h"
 
 #include "misc.h"
 #include "memory.h"

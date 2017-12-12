@@ -669,6 +669,7 @@ OPENSSL_LIBS
 OPENSSL_CFLAGS
 COMMONCRYPTO_LIBS
 SIMD_var
+JOHN_SIMD_OFF
 EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -760,6 +761,7 @@ enable_memdbg
 enable_asan
 enable_ubsan
 enable_ubsantrap
+enable_simd
 enable_plugin_dependencies
 enable_werror
 enable_openmp_for_fast_formats
@@ -1394,6 +1396,7 @@ Optional Features:
   --enable-ubsan          * Build with UndefinedBehaviorSanitizer
   --enable-ubsantrap      * Build with UndefinedBehaviorSanitizer, crashes on
                           failure
+  --disable-simd          * Build forcing SIMD logic to be OFF
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
@@ -3555,6 +3558,13 @@ if test "${enable_ubsantrap+set}" = set; then :
   enableval=$enable_ubsantrap; ubsantrap=$enableval
 else
   ubsantrap=no
+fi
+
+# Check whether --enable-simd was given.
+if test "${enable_simd+set}" = set; then :
+  enableval=$enable_simd; simd=$enableval
+else
+  simd=yes
 fi
 
 # Check whether --enable-plugin-dependencies was given.
@@ -8262,6 +8272,12 @@ _ACEOF
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 # *****************************************************************
 #
+if test "x$simd" = xno ; then
+echo "SIMD logic... DISABLED by request"
+JOHN_SIMD_OFF="-DJOHN_SIMD_OFF"
+
+fi
+
 cpu_family="unkown"
 CPU_STR="$host_cpu"
 case "$host_cpu" in
@@ -8279,6 +8295,9 @@ CFLAGS_BACKUP=$CFLAGS
 # so the results of our tests must be remembered, and reset just before exit.
 # Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
 #############################################################################
+
+if test "x$simd" = xyes ; then
+
 CFLAGS="$CFLAGS -O0"
 if test "x$enable_native_tests" = xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
@@ -8347,6 +8366,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 fi
+fi
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
@@ -8356,12 +8376,12 @@ CFLAGS="$CFLAGS_BACKUP"
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
-       echo "checking special compiler flags... MIC"
+	echo "checking special compiler flags... MIC"
 
 # specific optimization flags for MIC
 CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
 
-       ;;
+	;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
   mipsel) ARCH_LINK=mips32.h endian=little ;;
   mips64|mips64eb|mipseb64) ARCH_LINK=mips64.h endian=big ;;
@@ -8523,7 +8543,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
 
-  if test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
+  if test "x$simd" = "xyes" && test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
     CFLAGS_EX=""
       if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
@@ -8832,7 +8852,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
 
-  if test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
+  if test "x$simd" = "xyes" && test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
     CFLAGS_EX=""
       if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
@@ -9141,7 +9161,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
 
-  if test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
+  if test "x$simd" = "xyes" && test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
     CFLAGS_EX=""
       if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
@@ -9448,7 +9468,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA ppc_cpuid.c -o test_cpuid
 
-  if test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
+  if test "x$simd" = "xyes" && test `./test_cpuid PPC_FEATURE_HAS_ALTIVEC` = "1" && test `./test_cpuid PPC_FEATURE_HAS_VSX` = "1" && test `./test_cpuid PPC_FEATURE2_ARCH_2_07` = "1" ; then
     CFLAGS_EX=""
       if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
@@ -9731,6 +9751,7 @@ if test "x$cpu_family" = xintel; then :
   echo "checking special compiler flags... Intel X86*"
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
+if test "x$simd" = xyes ; then
 #############################################################################
 # Intel Active CPU probe test.  Start with SSE2, then SSSE3, then SSE4, until failure
 # whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
@@ -10432,6 +10453,8 @@ rm -f core conftest.err conftest.$ac_objext \
 
 
 fi
+fi
+
 fi
 
 CC="$CC_BACKUP"
@@ -14038,6 +14061,9 @@ AESNI_ARCH="$aesni_arch"
 
 aesni_os=""
 aesni_options="DISABLED"
+
+if test "x$simd" = "xyes" ; then
+
 if test "x$ax_intel_x32" = xyes; then
    aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
 else
@@ -14099,6 +14125,7 @@ fi
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_YASM" >&5
 $as_echo "$ac_cv_path_YASM" >&6; }
+fi
 fi
 if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
@@ -16720,8 +16747,14 @@ fi
 ##########################################################
 echo "configure: creating ./fmt_externs.h"
 rm -f fmt_externs.h
+
+CFLAGS_EX2=
+if test "x$simd" = xno ; then
+CFLAGS_EX2=-DJOHN_SIMD_OFF
+fi
+
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 fi
 # if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
@@ -16735,7 +16768,7 @@ fi
 echo "configure: creating ./fmt_registers.h"
 rm -f fmt_registers.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
+   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 fi
 # if the file was not created, then bail.
 if test -f fmt_registers.h -a ! -s fmt_registers.h; then
@@ -16748,7 +16781,7 @@ if test ! -f fmt_registers.h; then
 fi
 
 if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
+   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 
 ########################################################
