@@ -35,8 +35,13 @@ dnl at all
 dnl
 AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
 if test "x$simd" = xno ; then
-AC_SUBST([JOHN_NO_SIMD],["-DDJOHN_NO_SIMD -mno-sse2 -mno-mmx"])
+if test "x$CC" != xgcc ; then
+echo --disable-simd only tested with gcc for Intel
+AC_SUBST([JOHN_NO_SIMD],[""])
+else
+AC_SUBST([JOHN_NO_SIMD],["-DJOHN_NO_SIMD -mno-sse2 -mno-mmx"])
 CFLAGS="-mno-sse2 -mno-mmx $CFLAGS"
+fi
 fi
 
 CC_BACKUP=$CC

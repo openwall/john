@@ -669,7 +669,7 @@ OPENSSL_LIBS
 OPENSSL_CFLAGS
 COMMONCRYPTO_LIBS
 SIMD_var
-JOHN_SIMD_OFF
+JOHN_NO_SIMD
 EGREP
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -8274,7 +8274,7 @@ _ACEOF
 #
 if test "x$simd" = xno ; then
 echo "SIMD logic... disabled by request"
-JOHN_SIMD_OFF="-DJOHN_SIMD_OFF"
+JOHN_NO_SIMD="-DJOHN_NO_SIMD"
 
 fi
 
@@ -9750,9 +9750,15 @@ CFLAGS="$CFLAGS_BACKUP"
 if test "x$cpu_family" = xintel; then :
   echo "checking special compiler flags... Intel X86*"
 if test "x$simd" = xno ; then
-JOHN_SIMD_OFF="-DJOHN_SIMD_OFF -mno-sse2 -mno-mmx"
+if test "x$CC" != xgcc ; then
+echo --disable-simd only tested with gcc for Intel
+JOHN_NO_SIMD=""
+
+else
+JOHN_NO_SIMD="-DJOHN_NO_SIMD -mno-sse2 -mno-mmx"
 
 CFLAGS="-mno-sse2 -mno-mmx $CFLAGS"
+fi
 fi
 
 CC_BACKUP=$CC
@@ -16753,7 +16759,7 @@ rm -f fmt_externs.h
 
 CFLAGS_EX2=
 if test "x$simd" = xno ; then
-CFLAGS_EX2=-DJOHN_SIMD_OFF
+CFLAGS_EX2=-DJOHN_NO_SIMD
 fi
 
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then

@@ -405,7 +405,7 @@ dnl AC_CHECK_SIZEOF([int *function()]
 #
 if test "x$simd" = xno ; then
 [echo "SIMD logic... disabled by request"]
-AC_SUBST([JOHN_NO_SIMD],["-DDJOHN_NO_SIMD"])
+AC_SUBST([JOHN_NO_SIMD],["-DJOHN_NO_SIMD"])
 fi
 
 cpu_family="unkown"
