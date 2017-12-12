@@ -312,7 +312,7 @@ static void *get_salt(char *ciphertext)
 {
 	static union {
 		unsigned char salt[SALT_SIZE+2];
-		uint64_t dummy;
+		uint32_t dummy[(SALT_SIZE+2+sizeof(uint32_t)-1)/sizeof(uint32_t)];
 	} x;
 	unsigned char *salt = x.salt;
 

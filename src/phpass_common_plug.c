@@ -52,7 +52,7 @@ struct fmt_tests phpass_common_tests_39[] = {
 		{"$P$91234567xogA.H64Lkk8Cx8vlWBVzH0", "thisisalongertst"},
 		{"$P$612345678si5M0DDyPpmRCmcltU/YW/", "JohnRipper"}, // note smaller loop count
 		{"$H$712345678WhEyvy1YWzT4647jzeOmo0", "JohnRipper"}, // note smaller loop count (phpbb w/older PHP version)
-		{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // note larber loop count  (Wordpress)
+		{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // note larger loop count  (Wordpress)
 		{NULL}
 };
 
