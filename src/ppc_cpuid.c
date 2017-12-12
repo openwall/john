@@ -22,6 +22,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#if !defined(__gnu_linux__)
+// we do not have a CPUID for non linux. Simply return that we have all required switches.
+// if the user runs this on a machine which the SIMD is there, but FAILS to be new enough
+// then they will have to add the --disable-simd flag to configure.
+int main(int argc, char **argv) {
+	if (!strcmp(argv[1], "PPC_FEATURE_HAS_ALTIVEC"))
+		return !!printf ("1\n");
+	if (!strcmp(argv[1], "PPC_FEATURE_HAS_VSX"))
+		return !!printf ("1\n");
+	if (!strcmp(argv[1], "PPC_FEATURE2_ARCH_2_07"))
+		return !!printf ("1\n");
+	printf ("Flag %s not handled\n", argv[1]);
+	return 0;
+}
+
+#else
+// this code is know to only work on linux
+
 /* magic constants for auxillary table id's (the AT_HWCAP type numbers) */
 #include <linux/auxvec.h>
 /* magic constants PowerPC specific! for CPU CAPACITY bits (the PPC_FEATURE_HAS_ALTIVEC bits) */
