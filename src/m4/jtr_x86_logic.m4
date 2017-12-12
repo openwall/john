@@ -35,7 +35,7 @@ dnl at all
 dnl
 AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
 if test "x$simd" = xno ; then
-AC_SUBST([JOHN_SIMD_OFF],["-DJOHN_SIMD_OFF -mno-sse2 -mno-mmx"])
+AC_SUBST([JOHN_NO_SIMD],["-DDJOHN_NO_SIMD -mno-sse2 -mno-mmx"])
 CFLAGS="-mno-sse2 -mno-mmx $CFLAGS"
 fi
 

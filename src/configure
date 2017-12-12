@@ -1396,7 +1396,7 @@ Optional Features:
   --enable-ubsan          * Build with UndefinedBehaviorSanitizer
   --enable-ubsantrap      * Build with UndefinedBehaviorSanitizer, crashes on
                           failure
-  --disable-simd          * Build forcing SIMD logic to be OFF
+  --disable-simd          * Build forcing SIMD logic to be disabled
   --disable-plugin-dependencies
                           Do not create best-effort Makefile dependencies for
                           plugins
@@ -8273,7 +8273,7 @@ _ACEOF
 # *****************************************************************
 #
 if test "x$simd" = xno ; then
-echo "SIMD logic... DISABLED by request"
+echo "SIMD logic... disabled by request"
 JOHN_SIMD_OFF="-DJOHN_SIMD_OFF"
 
 fi
