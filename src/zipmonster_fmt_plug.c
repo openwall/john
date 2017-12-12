@@ -89,10 +89,10 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*crypt_out));
 	for (i = 0; i < 256; ++i) {
-#if ARCH_LITTLE_ENDIAN==1
-		sprintf(buf, "%X%X", i>>4, i&0xF);
-#else
+#if !ARCH_LITTLE_ENDIAN && defined(SIMD_COEF_32)
 		sprintf(buf, "%X%X", i&0xF, i>>4);
+#else
+		sprintf(buf, "%X%X", i>>4, i&0xF);
 #endif
 		memcpy(&(itoa16u_w[i]), buf, 2);
 	}
