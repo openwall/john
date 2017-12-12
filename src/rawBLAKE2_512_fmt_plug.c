@@ -34,15 +34,15 @@ john_register_one(&fmt_rawBLAKE2);
 
 #define FORMAT_LABEL			"Raw-Blake2"
 #define FORMAT_NAME			""
-#if defined(__AVX__)
+#if !defined(JOHN_NO_SIMD) && defined(__AVX__)
 #define ALGORITHM_NAME			"128/128 AVX"
-#elif defined(__XOP__)
+#elif !defined(JOHN_NO_SIMD) && defined(__XOP__)
 #define ALGORITHM_NAME			"128/128 XOP"
-#elif defined(__SSE4_1__)
+#elif !defined(JOHN_NO_SIMD) && defined(__SSE4_1__)
 #define ALGORITHM_NAME			"128/128 SSE4.1"
-#elif defined(__SSSE3__)
+#elif !defined(JOHN_NO_SIMD) && defined(__SSSE3__)
 #define ALGORITHM_NAME			"128/128 SSSE3"
-#elif defined(__SSE2__)
+#elif !defined(JOHN_NO_SIMD) && defined(__SSE2__)
 #define ALGORITHM_NAME			"128/128 SSE2"
 #else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
