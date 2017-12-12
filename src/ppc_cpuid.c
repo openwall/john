@@ -125,7 +125,7 @@ int main(int argc, char **argv, char **envp) {
 	// skip past ENV, to the auxv array of longs.
 	// NOTE, using 'long' data type works properly on either 32 or 64 bit builds.
 	while (*envp++ != NULL);
-	for (i = 0, auxv = (long*)envp; auxv[i] != AT_NULL ; i += 2) {
+	for (i = 0, auxv = (unsigned long*)envp; auxv[i] != AT_NULL ; i += 2) {
 		/* find data for AT_HWCAP or AT_HWCAP2 depending upon how called. */
 		if (auxv[i] == AT_HWCAP)
 			caps = auxv[i+1];
@@ -133,7 +133,7 @@ int main(int argc, char **argv, char **envp) {
 			caps2 = auxv[i+1];
 	}
 
-	if (argc < 2 || argc == 2 && !strcmp(argv[1], "?"))
+	if (argc < 2 || (argc == 2 && !strcmp(argv[1], "?")))
 		return dump_full_listing(caps, caps2);
 
 	// ok, if arguments other than -? are set, we are being called from
