@@ -34,9 +34,6 @@ dnl TODO: Ultimately we should not depend on any predefined stuff in arch.h
 dnl at all
 dnl
 AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
-if test "x$simd" = xno ; then
-AC_SUBST([JOHN_NO_SIMD],["-DJOHN_NO_SIMD"])
-fi
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
@@ -488,6 +485,5 @@ CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$simd" = xno ; then
 CPU_STR="SIMD_disabled"
-HT="-UHAVE_HT"
 fi
 ])

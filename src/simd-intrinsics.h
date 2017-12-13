@@ -20,9 +20,6 @@
 #include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
 
-#if !defined(JOHN_NO_SIMD) && !defined(_EMMINTRIN_H_INCLUDED)
-#define __m128i void
-#endif
 #define vtype void
 
 #define STRINGIZE2(s) #s

@@ -9749,10 +9749,6 @@ CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$cpu_family" = xintel; then :
   echo "checking special compiler flags... Intel X86*"
-if test "x$simd" = xno ; then
-JOHN_NO_SIMD="-DJOHN_NO_SIMD"
-
-fi
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
@@ -10464,7 +10460,6 @@ CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$simd" = xno ; then
 CPU_STR="SIMD_disabled"
-HT="-UHAVE_HT"
 fi
 
 fi
@@ -14069,8 +14064,6 @@ AESNI_ARCH="$aesni_arch"
 aesni_os=""
 aesni_options="DISABLED"
 
-if test "x$simd" = "xyes" ; then
-
 if test "x$ax_intel_x32" = xyes; then
    aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
 else
@@ -14133,7 +14126,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_YASM" >&5
 $as_echo "$ac_cv_path_YASM" >&6; }
 fi
-fi
+
 if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
 elif test "$cpu_family" = intel; then

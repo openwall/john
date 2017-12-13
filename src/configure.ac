@@ -860,8 +860,6 @@ AC_SUBST([AESNI_ARCH],["$aesni_arch"])
 aesni_os=""
 aesni_options="DISABLED"
 
-if test "x$simd" = "xyes" ; then
-
 if test "x$ax_intel_x32" = xyes; then
    aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
 else
@@ -894,7 +892,7 @@ if test "x$aesni_options" != xDISABLED; then
            && ac_cv_path_YASM=$ac_path_YASM ac_path_YASM_found=:]]
          )])
 fi
-fi
+
 if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
 elif test "$cpu_family" = intel; then
