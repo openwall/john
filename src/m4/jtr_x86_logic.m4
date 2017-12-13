@@ -34,6 +34,16 @@ dnl TODO: Ultimately we should not depend on any predefined stuff in arch.h
 dnl at all
 dnl
 AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
+if test "x$simd" = xno ; then
+if test "x$CC" != xgcc ; then
+echo --disable-simd only tested with gcc for Intel
+AC_SUBST([JOHN_NO_SIMD],[""])
+else
+AC_SUBST([JOHN_NO_SIMD],["-DJOHN_NO_SIMD -mno-sse2 -mno-mmx"])
+CFLAGS="-mno-sse2 -mno-mmx $CFLAGS"
+fi
+fi
+
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 dnl

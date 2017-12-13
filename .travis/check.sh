@@ -1,10 +1,14 @@
 #!/bin/bash
 
+# variable for testing --disable-simd.
+# Simply comment next line out to revert to original code.
+DISABLE_SIMD=--disable-simd
+
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     # brew install --force openssl
     cd src
 
-    ./configure CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
+    ./configure $DISABLE_SIMD CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
     make -sj4
 
     ../.travis/test.sh
@@ -23,6 +27,9 @@ elif [[ -z "$TEST" || "$TEST" == "encoding" ]]; then
     if [[ "$OPENCL" == "yes" ]]; then
         sudo apt-get install fglrx-dev opencl-headers || true
 
+	# --disable-simd and opencl do not work together.  Turn off disable-simd mode.
+#	DISABLE_SIMD=
+
         # Fix the OpenCL stuff
         mkdir -p /etc/OpenCL
         mkdir -p /etc/OpenCL/vendors
@@ -35,7 +42,7 @@ elif [[ -z "$TEST" || "$TEST" == "encoding" ]]; then
     fi
 
     # Configure and build
-    ./configure $ASAN
+    ./configure $DISABLE_SIMD $ASAN
     make -sj4
 
     ../.travis/test.sh "$TEST"
@@ -46,7 +53,7 @@ elif [[ "$TEST" == "fresh test" ]]; then
       cd /cwd/src; \
       apt-get update -qq; \
       apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev libomp-dev; \
-      ./configure --enable-asan; \
+      ./configure --disable-simd --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
       PROBLEM='slow' ../.travis/test.sh
@@ -61,7 +68,7 @@ elif [[ "$TEST" == "TS --restore" ]]; then
     sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
 
     # Configure and build
-    ./configure
+    ./configure $DISABLE_SIMD
     make -sj4
 
     cd ..
@@ -78,7 +85,7 @@ elif [[ "$TEST" == "TS docker" ]]; then
       cd /cwd/src; \
       apt-get update -qq; \
       apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev git; \
-      ./configure; \
+      ./configure $DISABLE_SIMD; \
       make -sj4; \
       cd ..; \
       git clone --depth 1 https://github.com/magnumripper/jtrTestSuite.git tests; \
