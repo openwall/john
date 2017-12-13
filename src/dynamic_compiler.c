@@ -2398,17 +2398,28 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 }
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
+	static char Buf[1024], Buf2[1024];
 	if (strncmp(ct, "dynamic_", 8)) {
-		return dynamic_compile_prepare("", ct);
+		char *cp;
+		ct = dynamic_compile_prepare("", ct);
+		cp = strrchr(ct, '@');
+		while (*cp) {
+			if (*cp >= 'A' && *cp <= 'Z') {
+				snprintf(Buf, sizeof(Buf), "%s", ct);
+				cp = strrchr(Buf, '@');
+				strlwr(cp);
+				return Buf;
+			}
+			++cp;
+		}
+		return ct;
 	} else if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
 		// convert back into dynamic= format
 		// Note we should probably ONLY do this on 'raw' hashes!
-		static char Buf[512];
 		snprintf(Buf, sizeof(Buf), "%s%s", dyna_signature, ct);
 		ct = Buf;
 	} else {
 		if (ldr_in_pot == 1 && !strncmp(ct, "@dynamic=", 9)) {
-			static char Buf[512], Buf2[512];
 			char *cp = strchr(&ct[1], '@');
 			if (cp) {
 				strnzcpy(Buf, &cp[1], sizeof(Buf));

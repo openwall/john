@@ -1469,6 +1469,8 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 
 		*has_change_case = 1;
 		split_ret = format->methods.split(cipher_copy, 0, format);
+		if (strcmp(cipher_copy, ciphertext))
+			*is_need_unify_case = 0;
 		binary = format->methods.binary(split_ret);
 
 		if (binary != NULL)
@@ -1487,6 +1489,8 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 
 		*has_change_case = 1;
 		split_ret = format->methods.split(cipher_copy, 0, format);
+		if (strcmp(cipher_copy, ciphertext))
+			*is_need_unify_case = 0;
 		binary = format->methods.binary(split_ret);
 
 		if (binary != NULL)
