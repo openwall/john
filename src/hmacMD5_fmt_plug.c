@@ -510,7 +510,7 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-#if !ARCH_LITTLE_ENDIAN
+#if !ARCH_LITTLE_ENDIAN && defined(SIMD_COEF_32)
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return (void*)out;

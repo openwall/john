@@ -245,6 +245,13 @@ static int get_hash_3 (int index) { return crypt_out[(unsigned int)index/SIMD_CO
 static int get_hash_4 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & PH_MASK_4; }
 static int get_hash_5 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & PH_MASK_5; }
 static int get_hash_6 (int index) { return crypt_out[(unsigned int)index/SIMD_COEF_64][index&(SIMD_COEF_64-1)] & PH_MASK_6; }
+static int binary_hash_0 (void *p) { return *((uint64_t*)p) & PH_MASK_0; }
+static int binary_hash_1 (void *p) { return *((uint64_t*)p) & PH_MASK_1; }
+static int binary_hash_2 (void *p) { return *((uint64_t*)p) & PH_MASK_2; }
+static int binary_hash_3 (void *p) { return *((uint64_t*)p) & PH_MASK_3; }
+static int binary_hash_4 (void *p) { return *((uint64_t*)p) & PH_MASK_4; }
+static int binary_hash_5 (void *p) { return *((uint64_t*)p) & PH_MASK_5; }
+static int binary_hash_6 (void *p) { return *((uint64_t*)p) & PH_MASK_6; }
 #else
 static int get_hash_0(int index) { return crypt_out[index][0] & PH_MASK_0; }
 static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
@@ -254,14 +261,6 @@ static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
 static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 #endif
-
-static int binary_hash_0 (void *p) { return *((uint64_t*)p) & PH_MASK_0; }
-static int binary_hash_1 (void *p) { return *((uint64_t*)p) & PH_MASK_1; }
-static int binary_hash_2 (void *p) { return *((uint64_t*)p) & PH_MASK_2; }
-static int binary_hash_3 (void *p) { return *((uint64_t*)p) & PH_MASK_3; }
-static int binary_hash_4 (void *p) { return *((uint64_t*)p) & PH_MASK_4; }
-static int binary_hash_5 (void *p) { return *((uint64_t*)p) & PH_MASK_5; }
-static int binary_hash_6 (void *p) { return *((uint64_t*)p) & PH_MASK_6; }
 
 static int salt_hash(void *salt)
 {
@@ -300,6 +299,7 @@ struct fmt_main fmt_saltedsha2 = {
 		{ NULL },
 		fmt_default_source,
 		{
+#ifdef SIMD_COEF_64
 			binary_hash_0,
 			binary_hash_1,
 			binary_hash_2,
@@ -307,6 +307,15 @@ struct fmt_main fmt_saltedsha2 = {
 			binary_hash_4,
 			binary_hash_5,
 			binary_hash_6
+#else
+			fmt_default_binary_hash_0,
+			fmt_default_binary_hash_1,
+			fmt_default_binary_hash_2,
+			fmt_default_binary_hash_3,
+			fmt_default_binary_hash_4,
+			fmt_default_binary_hash_5,
+			fmt_default_binary_hash_6
+#endif
 		},
 		salt_hash,
 		NULL,

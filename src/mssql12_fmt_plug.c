@@ -368,6 +368,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
+#define COMMON_GET_HASH_64BIT_HASH
 #define COMMON_GET_HASH_SIMD64 8
 #define COMMON_GET_HASH_VAR crypt_out
 #include "common-get-hash.h"

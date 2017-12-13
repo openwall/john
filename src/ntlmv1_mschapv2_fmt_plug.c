@@ -1210,7 +1210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_one(void *binary, int index)
 {
-#if ARCH_LITTLE_ENDIAN==1
+#if ARCH_LITTLE_ENDIAN==1 || !defined(SIMD_COEF_32)
 	if (crypt_key[index] == *(unsigned short*)binary)
 #else
 	if ( JOHNSWAP(crypt_key[index])>>16 == *(unsigned short*)binary)
@@ -1243,7 +1243,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_all(void *binary, int count)
 {
-#if ARCH_LITTLE_ENDIAN==1
+#if ARCH_LITTLE_ENDIAN==1 || !defined(SIMD_COEF_32)
 	unsigned int value = *(unsigned short*)binary;
 #else
 	unsigned int value = JOHNSWAP(*(unsigned short*)binary)>>16;
@@ -1346,7 +1346,7 @@ static int cmp_exact(char *source, int index)
 
 static int salt_hash(void *salt) { return *(uint32_t*)salt & (SALT_HASH_SIZE - 1); }
 
-#if ARCH_LITTLE_ENDIAN==1
+#if ARCH_LITTLE_ENDIAN==1 || !defined(SIMD_COEF_32)
 static int binary_hash_0(void *binary) { return *(unsigned short*)binary & PH_MASK_0; }
 static int binary_hash_1(void *binary) { return *(unsigned short*)binary & PH_MASK_1; }
 static int binary_hash_2(void *binary) { return *(unsigned short*)binary & PH_MASK_2; }
