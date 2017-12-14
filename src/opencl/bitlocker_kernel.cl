@@ -582,8 +582,7 @@ int enableMacVerification(
     unsigned int a,b,c,d;
 	unsigned int local0, local1, local2, local3, local4, local5, local6, local7, local8, local9;
 	unsigned int local10, local11, local12, local13, local14, local15, local16, local17, local18, local19;
-	unsigned int local20, local21, local22, local23, local24, local25, local26, local27, local28, local29;
-	unsigned int local30, local31;
+	unsigned int local28, local29, local30, local31;
 
 	a = IV0;
     b = IV4;

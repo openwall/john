@@ -341,7 +341,7 @@ static void reset(struct db_main *db)
 
 		autotune_run(self, HASH_LOOPS * ITERATIONS, 0,
 		             (cpu(device_info[gpu_id]) ?
-		              10000000 : 100000000ULL));
+		              10000 : 10000000ULL));
 		              //1000000000 : 10000000000ULL));
 	}
 }
