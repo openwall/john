@@ -27,23 +27,23 @@ if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
        [AC_MSG_RESULT(no)]
        # or -xarch=native
        [AC_MSG_CHECKING([whether compiler understands -xarch=native])
-	CC="$CC_BACKUP -xarch=native"
-	AC_LINK_IFELSE(
-	  [AC_LANG_SOURCE([int main() { return 0; }])],
-	  [AC_MSG_RESULT(yes)]
-	  [CPU_BEST_FLAGS="-xarch=native $CPU_BEST_FLAGS"],
-	  [AC_MSG_RESULT(no)]
-	  # or "-arch host"
-	  [AC_MSG_CHECKING([whether compiler understands -arch host])
-	   CC="$CC_BACKUP -arch host"
-	   AC_LINK_IFELSE(
-	     [AC_LANG_SOURCE([int main() { return 0; }])],
-	     [AC_MSG_RESULT(yes)]
-	     [CPU_BEST_FLAGS="-arch host $CPU_BEST_FLAGS"],
-	     [AC_MSG_RESULT(no)]
-	   )
-	  ]
-	)
+  CC="$CC_BACKUP -xarch=native"
+  AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([int main() { return 0; }])],
+    [AC_MSG_RESULT(yes)]
+    [CPU_BEST_FLAGS="-xarch=native $CPU_BEST_FLAGS"],
+    [AC_MSG_RESULT(no)]
+    # or "-arch host"
+    [AC_MSG_CHECKING([whether compiler understands -arch host])
+     CC="$CC_BACKUP -arch host"
+     AC_LINK_IFELSE(
+       [AC_LANG_SOURCE([int main() { return 0; }])],
+       [AC_MSG_RESULT(yes)]
+       [CPU_BEST_FLAGS="-arch host $CPU_BEST_FLAGS"],
+       [AC_MSG_RESULT(no)]
+     )
+    ]
+  )
        ]
      )
     ]
@@ -54,16 +54,14 @@ fi
 # At this point we know the arch and CPU width so we can pick details. Most
 # "special stuff" from old fat Makefile should go here.
 case "${host_cpu}_${CFLAGS}" in
-   *_*-mno-mmx) ;;
-   *_*-mno-sse2) ;;
    x86_64_*)
       case "${CPPFLAGS}_${CFLAGS}" in
         *-mno-sse2*) ;;
         *-mno-mmx*) ;;
         *)
-      AS_IF([test "y$CPU_STR" != "yx86_64"],
-         [CC_ASM_OBJS="x86-64.o simd-intrinsics.o"])
-      ;;
+          AS_IF([test -n "$SIMD_NAME" -o $simd != no],
+            [CC_ASM_OBJS="x86-64.o simd-intrinsics.o"])
+          ;;
       esac
    ;;
    i?86_*)

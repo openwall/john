@@ -47,7 +47,7 @@ dnl
 # Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
 #############################################################################
 dnl
-CFLAGS="$CFLAGS -O0"
+CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
   AS_CASE([$host_os], [darwin*],
     [CC="$CC_BACKUP -mavx"
@@ -82,7 +82,8 @@ CFLAGS="$CFLAGS -O0"
     [CC="$CC_BACKUP"]]
   )
 
-if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
+if test "x$simd" = xyes; then
+ if test "x$enable_native_tests" != xno; then
   AC_MSG_NOTICE([Testing build host's native CPU features])
   AC_MSG_CHECKING([for Hyperthreading])
   AC_RUN_IFELSE(
@@ -132,7 +133,7 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
         int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mmmx"] dnl
-     [CPU_STR="MMX"]
+     [SIMD_NAME="MMX"]
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
@@ -151,7 +152,7 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-msse2"] dnl
-     [CPU_STR="SSE2"]
+     [SIMD_NAME="SSE2"]
      [AS_IF([test y$ARCH_LINK = yx86-mmx.h], [ARCH_LINK=x86-sse.h])]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
@@ -174,12 +175,12 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
   if test ! -f arch.h; then
       cp $CPUID_FILE arch.h
   fi
-  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
      [CPU_BEST_FLAGS="-mssse3"]
-     [CPU_STR="SSSE3"]
+     [SIMD_NAME="SSSE3"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT([no])]
@@ -192,12 +193,12 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -msse4.1"
   AC_MSG_CHECKING([for SSE4.1])
 
-  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
      [CPU_BEST_FLAGS="-msse4.1"]
-     [CPU_STR="SSE4.1"]
+     [SIMD_NAME="SSE4.1"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT([no])]
@@ -210,12 +211,12 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -mavx"
   AC_MSG_CHECKING([for AVX])
 
-  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
      [CPU_BEST_FLAGS="-mavx"]dnl
-     [CPU_STR="AVX"]
+     [SIMD_NAME="AVX"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT([no])]
@@ -228,12 +229,12 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -mxop"
   AC_MSG_CHECKING([for XOP])
 
-  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
      [CPU_BEST_FLAGS="-mxop"]dnl
-     [CPU_STR="XOP"]
+     [SIMD_NAME="XOP"]
      [AC_MSG_RESULT([yes])]
     ,
      [AC_MSG_RESULT([no])]
@@ -246,12 +247,12 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
   CC="$CC_BACKUP -mavx2"
   AC_MSG_CHECKING([for AVX2])
 
-  $CC -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
 
   AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
   AS_IF([test "x$SIMD_var" = x1],
      [CPU_BEST_FLAGS="-mavx2"]dnl
-     [CPU_STR="AVX2"]
+     [SIMD_NAME="AVX2"]
      [AC_MSG_RESULT([yes])]
     ,
      [CPU_NOTFOUND=1]
@@ -273,7 +274,7 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512f"]dnl
-     [CPU_STR="AVX512F"]
+     [SIMD_NAME="AVX512F"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -294,19 +295,22 @@ if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512bw"]dnl
-     [CPU_STR="AVX512BW"]
+     [SIMD_NAME="AVX512BW"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
   ]
   )
 
-else if test "x$simd" = xyes ; then
+  rm -f test_SIMD
+
+ else
+
   ##########################################
   # cross-compile versions of the same tests
   ##########################################
   CPU_NOTFOUND=0
-  AC_MSG_NOTICE([Testing tool-chain's CPU features])
+  AC_MSG_NOTICE([Testing tool-chain's CPU support with given options])
   AC_MSG_CHECKING([for MMX])
   AC_LINK_IFELSE(
     [
@@ -317,7 +321,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mmmx"] dnl
-     [CPU_STR="MMX"]
+     [SIMD_NAME="MMX"]
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
@@ -335,7 +339,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-msse2"] dnl
-     [CPU_STR="SSE2"]
+     [SIMD_NAME="SSE2"]
      [AS_IF([test y$ARCH_LINK = yx86-mmx.h], [ARCH_LINK=x86-sse.h])]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
@@ -354,7 +358,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mssse3"]dnl
-     [CPU_STR="SSSE3"]
+     [SIMD_NAME="SSSE3"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -373,7 +377,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-msse4.1"]dnl
-     [CPU_STR="SSE4.1"]
+     [SIMD_NAME="SSE4.1"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -393,7 +397,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx"]dnl
-     [CPU_STR="AVX"]
+     [SIMD_NAME="AVX"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -413,7 +417,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mxop"]dnl
-     [CPU_STR="XOP"]
+     [SIMD_NAME="XOP"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
@@ -432,7 +436,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx2"]dnl
-     [CPU_STR="AVX2"]
+     [SIMD_NAME="AVX2"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -452,7 +456,7 @@ else if test "x$simd" = xyes ; then
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512f"]dnl
-     [CPU_STR="AVX512F"]
+     [SIMD_NAME="AVX512F"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
@@ -472,19 +476,24 @@ else if test "x$simd" = xyes ; then
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512bw"]dnl
-     [CPU_STR="AVX512BW"]
+     [SIMD_NAME="AVX512BW"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
   ]
   )
+ fi
 fi
+
+if test $simd != yes; then
+  if test $simd = no; then
+    SIMD_NAME="(SIMD disabled)"
+  else
+    CPU_BEST_FLAGS=$SIMD_FLAGS
+  fi
 fi
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
-if test "x$simd" = xno ; then
-  CPU_STR="SIMD disabled"
-fi
 ])

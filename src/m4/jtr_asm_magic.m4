@@ -23,14 +23,14 @@ AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - c
       [JTR_LIST_ADD(EXTRA_AS_FLAGS, [-DUNDERSCORES])])
 
 AC_LINK_IFELSE([AC_LANG_SOURCE(
-	[[extern void exit(int);
-	int main() {
-	#if defined(__APPLE__) && defined(__MACH__)
-        exit(0);
-    #else
-        BORK!
-	#endif
-	}]])]
+  [[extern void exit(int);
+  int main() {
+  #if defined(__APPLE__) && defined(__MACH__)
+    exit(0);
+  #else
+    BORK!
+  #endif
+  }]])]
   ,[JTR_LIST_ADD(EXTRA_AS_FLAGS, [-DBSD -DALIGN_LOG])])
 
 AS_IF([test "x$EXTRA_AS_FLAGS" = x],[AC_MSG_RESULT([None needed])],[AC_MSG_RESULT([${EXTRA_AS_FLAGS}])])
@@ -41,15 +41,15 @@ AS_IF([test "x$EXTRA_AS_FLAGS" = x],[AC_MSG_RESULT([None needed])],[AC_MSG_RESUL
 AS_IF([test "x$cpu_family" = xintel -a "x$ax_intel_x32" != xno],
 AC_MSG_CHECKING([for X32 ABI])
 [AC_LINK_IFELSE(
-   [AC_LANG_SOURCE(
-      [[extern void exit(int);
+  [AC_LANG_SOURCE(
+    [[extern void exit(int);
      int main() {
      #if defined(__x86_64__) && defined(__ILP32__)
-         exit(0);}
+       exit(0);}
      #else
-         BORK!
+       BORK!
      #endif
-      ]]
+     ]]
    )]
    ,[AC_MSG_RESULT([yes])]
    [ax_intel_x32=yes]

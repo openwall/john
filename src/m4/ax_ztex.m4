@@ -15,8 +15,8 @@
 AC_DEFUN_ONCE([AX_ZTEX], [
 
 AC_ARG_ENABLE([ztex],
-	[AC_HELP_STRING([--enable-ztex],[Support ZTEX USB-FPGA module 1.15y])],
-	[ztex=$enableval], [ztex=no])
+  [AC_HELP_STRING([--enable-ztex],[Support ZTEX USB-FPGA module 1.15y])],
+  [ztex=$enableval], [ztex=no])
 
 ZTEX_SUBDIRS=""
 ZTEX_LIBS=""
@@ -24,11 +24,11 @@ ZTEX_LIBS=""
 if test "x$ztex" = xyes; then
 
 AC_CHECK_HEADER([libusb-1.0/libusb.h],
-	[AC_CHECK_LIB([usb-1.0], [libusb_init],
-		[],
-		[AC_MSG_FAILURE(ZTEX USB-FPGA module requires libusb-1.0.)]
-	)],
-	[AC_MSG_FAILURE(ZTEX USB-FPGA module requires libusb-1.0.)]
+  [AC_CHECK_LIB([usb-1.0], [libusb_init],
+    [],
+    [AC_MSG_FAILURE(ZTEX USB-FPGA module requires libusb-1.0.)]
+  )],
+  [AC_MSG_FAILURE(ZTEX USB-FPGA module requires libusb-1.0.)]
 )
 
 AC_CONFIG_FILES([ztex/Makefile ztex/pkt_comm/Makefile])
