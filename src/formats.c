@@ -1082,7 +1082,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		// @loverszhaokai needs to look at a re-do of the function.  The 'blind' casing fails
 		// when there are constant strings, or things like user names embedded in the hash,
 		// or other non-hex strings.
-		if (full_lvl > 0)
+		// Fixed the function,  Dec 13, 2017.  Jfoug.  Changed to function with --test-full=0
+		if (full_lvl >= 0)
 		if (!fmt_split_case && format->params.binary_size != 0 && is_change_case && is_need_unify_case) {
 			snprintf(s_size, sizeof(s_size),
 				"should unify cases in split() and set FMT_SPLIT_UNIFIES_CASE (#3)");
@@ -1464,37 +1465,45 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 	// Lower case
 	strlwr(cipher_copy + index);
 
-	if (strcmp(cipher_copy, ciphertext))
-	if (format->methods.valid(cipher_copy, format)) {
+	if (strcmp(cipher_copy, ciphertext)) {
+		if (format->methods.valid(cipher_copy, format)) {
 
-		*has_change_case = 1;
-		split_ret = format->methods.split(cipher_copy, 0, format);
-		binary = format->methods.binary(split_ret);
+			*has_change_case = 1;
+			split_ret = format->methods.split(cipher_copy, 0, format);
+			if (!strcmp(split_ret, ciphertext))
+				*is_need_unify_case = 0;
+			binary = format->methods.binary(split_ret);
 
-		if (binary != NULL)
-		if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
-			// Do not need to unify cases in split() and add
-			// FMT_SPLIT_UNIFIES_CASE
+			if (binary != NULL)
+			if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
+				// Do not need to unify cases in split() and add
+				// FMT_SPLIT_UNIFIES_CASE
+				*is_need_unify_case = 0;
+			}
+		} else
 			*is_need_unify_case = 0;
-		}
 	}
 
 	// Upper case
 	strupr(cipher_copy + index);
 
-	if (strcmp(cipher_copy, ciphertext))
-	if (format->methods.valid(cipher_copy, format)) {
+	if (strcmp(cipher_copy, ciphertext)) {
+		if (format->methods.valid(cipher_copy, format)) {
 
-		*has_change_case = 1;
-		split_ret = format->methods.split(cipher_copy, 0, format);
-		binary = format->methods.binary(split_ret);
+			*has_change_case = 1;
+			split_ret = format->methods.split(cipher_copy, 0, format);
+			if (!strcmp(split_ret, ciphertext))
+				*is_need_unify_case = 0;
+			binary = format->methods.binary(split_ret);
 
-		if (binary != NULL)
-		if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
-			// Do not need to unify cases in split() and add
-			// FMT_SPLIT_UNIFIES_CASE
+			if (binary != NULL)
+			if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
+				// Do not need to unify cases in split() and add
+				// FMT_SPLIT_UNIFIES_CASE
+				*is_need_unify_case = 0;
+			}
+		} else
 			*is_need_unify_case = 0;
-		}
 	}
 
 	MEM_FREE(orig_salt);

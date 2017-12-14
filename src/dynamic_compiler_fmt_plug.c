@@ -84,6 +84,7 @@ static int dyna_hash_type_len;
 static struct fmt_main *pDynamic;
 static void our_init(struct fmt_main *self);
 static void get_ptr();
+static char* (*dyna_split)(char *ciphertext, int index, struct fmt_main *self);
 
 /* this function converts a 'native' @dynamic= signature string into a $dynamic_6xxx$ syntax string */
 static char *Convert(char *Buf, char *ciphertext, int in_load)
@@ -115,7 +116,7 @@ static char *Convert(char *Buf, char *ciphertext, int in_load)
 static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	ciphertext = dynamic_compile_split(ciphertext);
-	return ciphertext;
+	return dyna_split(ciphertext, index, self);
 }
 extern char *load_regen_lost_salt_Prepare(char *split_fields1);
 static char *our_prepare(char **fields, struct fmt_main *self)
@@ -212,6 +213,7 @@ static void link_funcs() {
 	}
 	fmt_CompiledDynamic.methods.salt   = our_salt;
 	fmt_CompiledDynamic.methods.binary = our_binary;
+	dyna_split = fmt_CompiledDynamic.methods.split;
 	fmt_CompiledDynamic.methods.split = our_split;
 	fmt_CompiledDynamic.methods.prepare = our_prepare;
 	fmt_CompiledDynamic.methods.done = our_done;
