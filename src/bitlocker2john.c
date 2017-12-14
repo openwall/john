@@ -253,7 +253,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	}
 	write(fd, data, size);
 	close(fd);
-	process_encrypted_image(name);
+	process_encrypted_image();
 	remove(name);
 
 	return 0;
@@ -277,6 +277,7 @@ int main(int argc, char **argv)
 	char *image_path = NULL;
 
 	errno = 0;
+	
 	while (1) {
 		opt = getopt(argc, argv, "hi:o:");
 		if (opt == -1)
@@ -287,24 +288,45 @@ int main(int argc, char **argv)
 				usage(argv[0]);
 				exit(EXIT_FAILURE);
 				break;
+
 			case 'i':
 				if(strlen(optarg) >= INPUT_SIZE)
 				{
-					fprintf(stderr, "ERROR: Input image path is bigger than %d\n", INPUT_SIZE);
+					fprintf(stderr, "ERROR: Input string is bigger than %d\n", INPUT_SIZE);
 					exit(EXIT_FAILURE);
 				}
 				imagePath=(char *)Calloc(INPUT_SIZE, sizeof(char));
 				strncpy(imagePath, optarg, strlen(optarg)+1);
 				break;
+
 			case 'o':
 				if(strlen(optarg) >= INPUT_SIZE)
 				{
-					fprintf(stderr, "ERROR: Input outfile path is bigger than %d\n", INPUT_SIZE);
+					fprintf(stderr, "ERROR: Input string is bigger than %d\n", INPUT_SIZE);
 					exit(EXIT_FAILURE);
 				}
-				outFile=(char *)Calloc(INPUT_SIZE, sizeof(char));
-				strncpy(outFile,optarg, strlen(optarg)+1);
+				outHashUser = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_USER)+2), sizeof(char));
+				memcpy(outHashUser, optarg, strlen(optarg));
+				outHashUser[strlen(optarg)] = '/';
+				memcpy(outHashUser+strlen(optarg)+1, FILE_OUT_HASH_USER, strlen(FILE_OUT_HASH_USER));
+
+				outHashUserMac = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_USER_MAC)+2), sizeof(char));
+				memcpy(outHashUserMac, optarg, strlen(optarg));
+				outHashUserMac[strlen(optarg)] = '/';
+				memcpy(outHashUserMac+strlen(optarg)+1, FILE_OUT_HASH_USER_MAC, strlen(FILE_OUT_HASH_USER_MAC));
+
+				outHashRecovery = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_RECV)+2), sizeof(char));
+				memcpy(outHashRecovery, optarg, strlen(optarg));
+				outHashRecovery[strlen(optarg)] = '/';
+				memcpy(outHashRecovery+strlen(optarg)+1, FILE_OUT_HASH_RECV, strlen(FILE_OUT_HASH_RECV));
+
+				outHashRecoveryMac = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_RECV_MAC)+2), sizeof(char));
+				memcpy(outHashRecoveryMac, optarg, strlen(optarg));
+				outHashRecoveryMac[strlen(optarg)] = '/';
+				memcpy(outHashRecoveryMac+strlen(optarg)+1, FILE_OUT_HASH_RECV_MAC, strlen(FILE_OUT_HASH_RECV_MAC));
+				
 				break;
+
 			default:
 				break;
 		}
@@ -342,6 +364,23 @@ int main(int argc, char **argv)
 
 	MEM_FREE(image_path);
 
+	if(outHashRecovery == NULL) //Current directory
+	{
+		outHashRecovery = (char*)Calloc( (strlen(FILE_OUT_HASH_RECV)+1), sizeof(char));
+		memcpy(outHashRecovery, FILE_OUT_HASH_RECV, strlen(FILE_OUT_HASH_RECV));
+	}
+
+	printf("\n---------> bitlocker2john hash extractor <---------\n");
+	if(process_encrypted_image())
+		fprintf(stderr, "\nError while parsing input device image\n");
+	else
+		printf("\nOutput files:\nUser Password:\"%s\"\nUser Password with MAC:\"%s\"\nRecovery Password:\"%s\"\nRecovery Password with MAC:\"%s\"\n", outHashUser, outHashUserMac, outHashRecovery, outHashRecoveryMac);
+
+	free(outHashUser);
+	free(outHashUserMac);
+	free(outHashRecovery);
+	free(outHashRecoveryMac);
+	
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;

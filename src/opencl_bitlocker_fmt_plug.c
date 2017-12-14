@@ -448,7 +448,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i, m=0, startIndex=0, h_loopHash=0;
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-
+	
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 	h_found[0] = -1;
 	h_loopIter=cur_salt->iterations/HASH_LOOPS;
