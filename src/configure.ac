@@ -69,7 +69,7 @@ AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([ubsantrap], [AS_HELP_STRING([--enable-ubsantrap], [* Build with UndefinedBehaviorSanitizer, crashes on failure])], [ubsantrap=$enableval], [ubsantrap=no])
-AC_ARG_ENABLE([simd], [AS_HELP_STRING([--disable-simd], [* Build forcing SIMD logic to be disabled])], [simd=$enableval], [simd=yes])
+AC_ARG_ENABLE([simd], [AS_HELP_STRING([--disable-simd, --enable-simd=foo], [* Build forcing SIMD logic to be disabled, or force use of "foo" for SIMD (eg. --enable-simd=altivec)])], [simd=$enableval], [simd=yes])
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
@@ -248,7 +248,7 @@ fi
    JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
    # clang warnings
    JTR_FLAG_CHECK([-Wformat-extra-args], 1)
-   JTR_FLAG_CHECK([ -Wunused-but-set-variable], 1)
+   JTR_FLAG_CHECK([-Wunused-but-set-variable], 1)
    #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
    AS_IF([test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes], [JTR_FLAG_CHECK([-Qunused-arguments],1)])
    # Justified and Ancient (see #1093)
@@ -264,7 +264,7 @@ fi
 case "$host_cpu" in
   ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
     CFLAGS_EX=""
-    JTR_FLAG_CHECK([-m64], 1)
+    JTR_FLAG_CHECK_LINK([-m64], 1)
     if test "x${CFLAGS_EX}" != x ; then
       LDFLAGS="-m64 $LDFLAGS"
       CFLAGS="-m64 $CFLAGS"
@@ -273,7 +273,7 @@ case "$host_cpu" in
     ;;
   *)
     AC_MSG_CHECKING([if gcc supports -m64])
-    AC_MSG_RESULT([no])
+    AC_MSG_RESULT([skipped])
     ;;
 esac
 
@@ -357,9 +357,7 @@ else
    ret=$?
    if ( test $ret -ne 0 ) ; then
       AC_MSG_RESULT([no])
-      AC_MSG_NOTICE([\nNOTE, john will not run properly until you fix your ../run/john.pot])
-      AC_MSG_NOTICE([      file using the ../run/potcheck.pl with the -long command line])
-      exit 1;
+      AC_MSG_ERROR([NOTE, john will not run properly until you fix your ../run/john.pot file using '../run/potcheck.pl -longline_fix'])
    fi
    AC_MSG_RESULT([yes])
 fi
@@ -383,6 +381,43 @@ AC_CHECK_SIZEOF([void *])
 dnl  Not sure how to do sizeof function pointer in configure. I will add this one to jumbo.h 'by hand'
 dnl AC_CHECK_SIZEOF([int *function()]
 
+# Handle --disable-simd or --enable-simd=foo
+SIMD_FLAGS=""
+CFLAGS_EX=""
+case "$simd" in
+  yes|auto)
+    ;;
+  no)
+    AC_MSG_NOTICE([SIMD logic disabled by request])
+    AC_SUBST([JOHN_NO_SIMD], ["-DJOHN_NO_SIMD"])
+    ;;
+  neon)
+    JTR_FLAG_CHECK_LINK([-mfpu=neon], 2)
+    SIMD_NAME="NEON"
+    ;;
+  altivec1)
+    JTR_FLAG_CHECK_LINK([-maltivec], 2)
+    JTR_FLAG_CHECK_LINK([-msvx], 2)
+    SIMD_NAME="Altivec"
+    ;;
+  altivec*)
+    JTR_FLAG_CHECK_LINK([-maltivec], 2)
+    JTR_FLAG_CHECK_LINK([-msvx], 2)
+    JTR_FLAG_CHECK_LINK([-mpower8vector], 2)
+    SIMD_NAME="Altivec2"
+    ;;
+  # Handle known cases of --enable-simd=foo --> -mfoo
+  mmx|sse*|ssse3|avx*|xop*)
+    SIMD_NAME=`echo $simd | tr a-z A-Z`
+    AC_MSG_NOTICE([Trying to force $SIMD_NAME using default method (--enable-simd=$simd).])
+    JTR_FLAG_CHECK_LINK([-m${simd}], 2)
+    ;;
+  *)
+    SIMD_NAME=`echo $simd | tr a-z A-Z`
+    AC_MSG_ERROR([SIMD type $SIMD_NAME not supported (--enable-simd=$simd)])
+esac
+JTR_LIST_ADD(SIMD_FLAGS, ["$CFLAGS_EX"])
+
 # Available arch.h's:
 # alpha.h
 # arm32le.h (mfpu=neon) (we may override the "le")
@@ -403,13 +438,7 @@ dnl AC_CHECK_SIZEOF([int *function()]
 # See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
 # *****************************************************************
 #
-if test "x$simd" = xno ; then
-   AC_MSG_NOTICE([SIMD logic disabled by request])
-   AC_SUBST([JOHN_NO_SIMD],["-DJOHN_NO_SIMD"])
-fi
-
 cpu_family="unkown"
-CPU_STR="$host_cpu"
 case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
@@ -472,7 +501,7 @@ esac
 JTR_ASM_MAGIC
 AS_IF([test "x$cpu_family" = xintel],
        AC_MSG_CHECKING([special compiler flags])
-       AC_MSG_RESULT([Intel X86*])
+       AC_MSG_RESULT([Intel x86])
        [JTR_X86_SPECIAL_LOGIC]
      )
 AC_MSG_CHECKING([for arch.h alternative])
@@ -834,7 +863,7 @@ AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _al
 AC_CACHE_SAVE
 
 if test "x$simd" != xno ; then
-  CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
+  CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${SIMD_NAME} | tr .a-z _A-Z)
 fi
 
 AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])
@@ -1009,7 +1038,7 @@ if test x$with_flock != xno; then
    CFLAGS="$CFLAGS -DPREFER_FLOCK"
 fi
 
-#if test ${CPU_STR} = "AVX2" || test ${host_cpu} = "k1om"; then
+#if test ${SIMD_NAME} = "AVX2" || test ${host_cpu} = "k1om"; then
 #   if test x$experimental = xno; then
 #      AC_DEFINE([DYNAMIC_DISABLED], 1, [Disables Dynamic format completely])
 #   fi
@@ -1043,7 +1072,7 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
 fi
 
 AC_MSG_NOTICE([configure: creating ./john_build_rule.h])
-echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-ac\"" > john_build_rule.h
+echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} ${SIMD_NAME} AC\"" > john_build_rule.h
 
 AC_SUBST([HOST_OS],["$host_os"])
 AC_CONFIG_FILES([Makefile
@@ -1142,8 +1171,8 @@ else
    using_mmap=no
 fi
 
-if test "x$host_cpu" != "x$CPU_STR" ; then
-   host_cpu="$host_cpu $CPU_STR"
+if test -n "$SIMD_NAME"; then
+   CPU_NAME="$host_cpu $SIMD_NAME"
 fi
 
 # Ensure reports of tests does not show up blank:
@@ -1203,7 +1232,7 @@ dnl =======================================================================
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU ................................. ${host_cpu}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
+Target CPU ................................. ${CPU_NAME}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
 AES-NI support ............................. ${using_aesni}
 Target OS .................................. ${host_os}
 Cross compiling ............................ ${cross_compiling}

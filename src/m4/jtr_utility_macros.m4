@@ -28,42 +28,47 @@ AC_DEFUN([JTR_LIST_ADD_RESULT], [
    jtr_list_add_result=""
 ])
 
-# @synopsis JTR_FLAG_CHECK [compiler flags]
-# @summary check whether compiler supports given
-#          C flags or not. The var CFLAGS_EX is
-#          added to with each 'valid' command.
+# @synopsis JTR_FLAG_CHECK([compiler flags], flags)
+# @summary check whether compiler supports given options or not.
+# CFLAGS_EX is appended with each 'valid' command.
+#
+# If a second argument is 0, don't show progress
+# If a second argument is 1, show progress
+# If a second argument is 2, bails if not supported
 AC_DEFUN([JTR_FLAG_CHECK],
 [dnl
-  AS_IF([test "$2" = 1], [AC_MSG_CHECKING([if $CC supports $1])])
+  AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1])])
   AC_LANG_PUSH([C])
   ac_saved_cflags="$CFLAGS"
   CFLAGS="-Werror $1"
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AS_IF([test "$2" = 1], [AC_MSG_RESULT([yes])])]
+    [AS_IF([test "$2" -gt 0], [AC_MSG_RESULT([yes])])]
       [CFLAGS_EX="$CFLAGS_EX $1"]
-    ,[AS_IF([test "$2" = 1], [AC_MSG_RESULT([no])])]
+    ,[AS_IF([test $2 -gt 0], [AC_MSG_RESULT([no])])]
+    [AS_IF([test "$2" = 2], [AC_MSG_ERROR([Not supported by compiler])])]
   )
   CFLAGS="$ac_saved_cflags"
   AC_LANG_POP([C])
 ])
 
-# @synopsis JTR_FLAG_CHECK_LINK [compiler flags]
-# @summary check whether compiler supports given
-#          C flags or not. The var CFLAGS_EX is
-#          added to with each 'valid' command.
-#          This macro adds linkage, since some
-#          functions will compile, but fail at
-#          link time (-faddress_sanitize is one)
+# @synopsis JTR_FLAG_CHECK_LINK(compiler flags[, flags])
+# @summary check whether compiler and linker supports given options or not.
+# CFLAGS_EX is appended with each 'valid' command.
+#
+# If a second argument is 0, don't show progress
+# If a second argument is 1, show progress
+# If a second argument is 2, bails if not supported
 AC_DEFUN([JTR_FLAG_CHECK_LINK],
 [dnl
-  AS_IF([test "$2" = 1], [AC_MSG_CHECKING([if $CC supports $1])])
+  AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1 w/ linking])])
   AC_LANG_PUSH([C])
   ac_saved_cflags="$CFLAGS"
   CFLAGS="-Werror $1"
   AC_LINK_IFELSE([AC_LANG_PROGRAM([])],
-    [AS_IF([test "$2" = 1], [AC_MSG_RESULT([yes])])]
+    [AS_IF([test "$2" -gt 0], [AC_MSG_RESULT([yes])])]
       [CFLAGS_EX="$CFLAGS_EX $1"]
-    ,[AS_IF([test "$2" = 1], [AC_MSG_RESULT([no])])]
+    ,[AS_IF([test $2 -gt 0], [AC_MSG_RESULT([no])])]
+    [AS_IF([test "$2" = 2], [AC_MSG_ERROR([Not supported by compiler/linker])])]
   )
   CFLAGS="$ac_saved_cflags"
   AC_LANG_POP([C])
