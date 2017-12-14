@@ -10,9 +10,9 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, for more information see http://openwall.info/wiki/john/OpenCL-BitLocker.
+ * More info here: http://openwall.info/wiki/john/OpenCL-BitLocker
  *
- * A standalone CUDA implementation is available at https://github.com/e-ago/bitcracker.
+ * A standalone CUDA implementation is available here: https://github.com/e-ago/bitcracker
  */
 
 #ifdef HAVE_OPENCL
@@ -60,51 +60,56 @@ static const char *warn[] = {
 
 static int split_events[] = { 14, -1, -1 };
 
-#define BITLOCKER_JTR_HASH_SIZE                 45
-#define BITLOCKER_HASH_SIZE                     8
-#define BITLOCKER_SINGLE_BLOCK_SHA_SIZE         64
+#define BL_SINGLE_BLOCK_SHA_SIZE         64
 #define BITLOCKER_PADDING_SIZE                  40
 #define BITLOCKER_ITERATION_NUMBER              0x100000
 #define BITLOCKER_FIXED_PART_INPUT_CHAIN_HASH   88
-#define BITLOCKER_MAX_INPUT_PASSWORD_LEN        27
-#define BITLOCKER_MIN_INPUT_PASSWORD_LEN        8
 #define BITLOCKER_INT_HASH_SIZE                 8
-#define BITLOCKER_FIXED_PASSWORD_BUFFER         32
 #define BITLOCKER_SALT_SIZE                     16
 #define BITLOCKER_MAC_SIZE                      16
 #define BITLOCKER_NONCE_SIZE                    12
 #define BITLOCKER_IV_SIZE                       16
 #define BITLOCKER_VMK_SIZE                      60
+#define BITLOCKER_VMK_HEADER_SIZE 		12
+#define BITLOCKER_VMK_BODY_SIZE 		32
+#define BITLOCKER_VMK_FULL_SIZE 		44
 #define FALSE                                   0
 #define TRUE                                    1
 #define BITLOCKER_ENABLE_DEBUG                  0
 #define WBLOCKS_KERNEL_NAME                     "opencl_bitlocker_wblocks"
-#define PREPARE_KERNEL_NAME                     "opencl_bitlocker_attack_init"
+#define INIT_KERNEL_NAME                    	"opencl_bitlocker_attack_init"
 #define ATTACK_KERNEL_NAME                      "opencl_bitlocker_attack_loop"
 #define FINAL_KERNEL_NAME                       "opencl_bitlocker_attack_final"
+
+#define BITLOCKER_PSW_CHAR_MIN_SIZE		8
+#define BITLOCKER_PSW_CHAR_MAX_SIZE 		55
+#define BITLOCKER_PSW_INT_SIZE 			32
+#define BITLOCKER_FIRST_LENGHT 			27
+#define BITLOCKER_SECOND_LENGHT 		55
 
 #ifndef UINT32_C
 	#define UINT32_C(c) c ## UL
 #endif
 
-static cl_mem salt_d, padding_d, w_blocks_d, deviceEncryptedVMK,
-       devicePassword, devicePasswordSize, deviceFound, numPasswordsKernelDev,
-       first_hash, output_hash, currentIterPtr, IV0_dev, IV4_dev, IV8_dev, IV12_dev;
-static cl_int cl_error;
-static unsigned int *w_blocks_h, *hash_zero;
-static unsigned char *tmpIV, *inbuffer;
-static int *inbuffer_size;
-static int *hostFound, i;
-static unsigned int tmp_global;
-static unsigned int *IV0, *IV4, *IV8, *IV12;
-static int *numPasswordsKernel;
-static cl_int cl_error;
-static cl_kernel prepare_kernel, final_kernel;
-static cl_kernel block_kernel;
 static struct fmt_main *self;
 static bitlocker_custom_salt *cur_salt;
-static int w_block_precomputed(unsigned char *salt);
+static cl_kernel init_kernel, final_kernel, block_kernel;
+static cl_int cl_error;
 
+static cl_mem d_salt, d_pad, d_wblocks,
+       d_pswI, d_pswSize, d_found, d_numPsw,
+       d_firstHash, d_outHash, d_currIter, d_attack;
+
+static cl_mem d_vmk, d_mac;
+static cl_mem d_vmkIV0, d_vmkIV4, d_vmkIV8, d_vmkIV12;
+static cl_mem d_macIV0, d_macIV4, d_macIV8, d_macIV12;
+static cl_mem d_cMacIV0, d_cMacIV4, d_cMacIV8, d_cMacIV12;
+
+static unsigned int *h_wblocks, *hash_zero, *h_pswI;
+static int *h_pswSize, *h_found, i, *h_numPsw, *h_attack;
+static unsigned char *h_pswC, *h_vmkIV, *h_mac, *h_macIV, *h_cMacIV;
+
+static int w_block_precomputed(unsigned char *salt);
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 #include "memdbg.h"
@@ -122,106 +127,150 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 #define CLKERNELARG(kernel, id, arg, msg)\
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
-	size_t input_password_number = BITLOCKER_FIXED_PASSWORD_BUFFER * gws;
+	int arg=0;
 
-	inbuffer = (unsigned char *)mem_calloc(input_password_number, sizeof(unsigned char));
-	inbuffer_size = (int *)mem_calloc(input_password_number, sizeof(int));
-	hostFound = (int *)mem_calloc(1, sizeof(int));
-	w_blocks_h = (unsigned int *)mem_calloc((BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
-	                                        BITLOCKER_ITERATION_NUMBER), sizeof(unsigned int));
+	// ============================================= HOST =============================================
+	h_pswC = (unsigned char *)mem_calloc(BITLOCKER_PSW_CHAR_MAX_SIZE * gws, sizeof(unsigned char));
+	h_pswI = (unsigned int *)mem_calloc(BITLOCKER_PSW_INT_SIZE * gws, sizeof(unsigned int));
+	h_pswSize = (int *)mem_calloc(gws, sizeof(int));
+	h_found = (int *)mem_calloc(1, sizeof(int));
+	h_wblocks = (unsigned int *)mem_calloc((BL_SINGLE_BLOCK_SHA_SIZE *BITLOCKER_ITERATION_NUMBER), sizeof(unsigned int));
+	hash_zero = (unsigned int *)mem_calloc(gws * BITLOCKER_INT_HASH_SIZE, sizeof(unsigned int));
+	h_attack = (int *)mem_calloc(1, sizeof(int));
+	h_mac = (unsigned char *)calloc(BITLOCKER_MAC_SIZE, sizeof(unsigned char));
+	h_vmkIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
+	h_macIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
+	h_cMacIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
 
-	hash_zero = (unsigned int *)mem_calloc(input_password_number * BITLOCKER_INT_HASH_SIZE, sizeof(unsigned int));
+	// ============================================= DEVICE =============================================
+	d_attack = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int), "Cannot allocate device memory");
+	// ===== IV fast attack
+	d_vmkIV0 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_vmkIV4 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_vmkIV8 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_vmkIV12 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	// ===== IV MAC verification
+	d_mac = CLCREATEBUFFER(CL_MEM_READ_ONLY, BITLOCKER_MAC_SIZE*sizeof(unsigned char), "Cannot allocate device memory");
+	d_macIV0 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_macIV4 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_macIV8 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_macIV12 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_cMacIV0 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_cMacIV4 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_cMacIV8 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
+	d_cMacIV12 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
 
-	IV0 = (unsigned int *)mem_calloc(1, sizeof(unsigned int));
-	IV4 = (unsigned int *)mem_calloc(1, sizeof(unsigned int));
-	IV8 = (unsigned int *)mem_calloc(1, sizeof(unsigned int));
-	IV12 = (unsigned int *)mem_calloc(1, sizeof(unsigned int));
+	d_numPsw = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int),
+			"Cannot allocate d_numPsw");
 
-	IV0_dev = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate numPass");
-	IV4_dev = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate numPass");
-	IV8_dev = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate numPass");
-	IV12_dev = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate numPass");
+	d_vmk = CLCREATEBUFFER(CL_MEM_READ_ONLY,
+			BITLOCKER_VMK_SIZE * sizeof(char), "Cannot allocate d_vmk");
 
-	numPasswordsKernelDev = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int),
-			"Cannot allocate numPass");
+	d_pswI = CLCREATEBUFFER(CL_MEM_READ_ONLY, BITLOCKER_PSW_INT_SIZE*gws*sizeof(unsigned int),
+			"Cannot allocate d_pswI");
 
-	deviceEncryptedVMK = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-			BITLOCKER_VMK_SIZE * sizeof(char), "Cannot allocate vmk");
+	//1 or 2
+	d_pswSize = CLCREATEBUFFER(CL_MEM_READ_ONLY, gws*sizeof(unsigned int), 
+			"Cannot allocate d_pswSize");
 
-	devicePassword = CLCREATEBUFFER(CL_MEM_READ_ONLY, input_password_number * sizeof(unsigned char),
-			"Cannot allocate inbuffer");
+	d_found = CLCREATEBUFFER(CL_MEM_WRITE_ONLY, sizeof(int),
+			"Cannot allocate d_found");
 
-	devicePasswordSize = CLCREATEBUFFER(CL_MEM_READ_ONLY, input_password_number * sizeof(unsigned char), 
-			"Cannot allocate inbuffer size");
-
-	deviceFound = CLCREATEBUFFER(CL_MEM_WRITE_ONLY, sizeof(int),
-			"Cannot allocate device found");
-
-	w_blocks_d = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-			BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
+	d_wblocks = CLCREATEBUFFER(CL_MEM_READ_WRITE,
+			BL_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
 			sizeof(unsigned int), "Cannot allocate w blocks");
 
-	first_hash = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-			input_password_number * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
-			"Cannot allocate first hash");
+	d_firstHash = CLCREATEBUFFER(CL_MEM_READ_WRITE,
+			gws * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
+			"Cannot allocate d_firstHash");
 
-	output_hash = CLCREATEBUFFER(CL_MEM_READ_WRITE,
-			input_password_number * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
-			"Cannot allocate first hash");
+	d_outHash = CLCREATEBUFFER(CL_MEM_READ_WRITE,
+			gws * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
+			"Cannot allocate d_outHash");
 
-	currentIterPtr = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int),
-			"Cannot allocate first hash");
+	d_currIter = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int),
+			"Cannot allocate d_currIter");
 
-	CLKERNELARG(prepare_kernel, 0, numPasswordsKernelDev,
-			"Error while setting numPasswordsKernelDev");
-	CLKERNELARG(prepare_kernel, 1, devicePassword,
-			"Error while setting numPasswordsKernelDev");
-	CLKERNELARG(prepare_kernel, 2, devicePasswordSize,
-			"Error while setting numPasswordsKernelDev");
-	CLKERNELARG(prepare_kernel, 3, first_hash,
-			"Error while setting first_hash");
-	CLKERNELARG(prepare_kernel, 4, output_hash,
-			"Error while setting output_hash");
+	// =========================== Init kernel ===========================
+	arg=0;
+	CLKERNELARG(init_kernel, arg++, d_numPsw,
+			"Error while setting d_numPsw");
+	CLKERNELARG(init_kernel, arg++, d_pswI,
+			"Error while setting d_pswI");
+	CLKERNELARG(init_kernel, arg++, d_pswSize,
+			"Error while setting d_pswSize");
+	CLKERNELARG(init_kernel, arg++, d_firstHash,
+			"Error while setting d_firstHash");
+	CLKERNELARG(init_kernel, arg++, d_outHash,
+			"Error while setting d_outHash");
+	CLKERNELARG(init_kernel, arg++, d_attack,
+			"Error while setting d_attack");
 
-	CLKERNELARG(crypt_kernel, 0, numPasswordsKernelDev,
-			"Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 1, w_blocks_d,
-			"Error while setting numPasswordsKernelDev");
-	CLKERNELARG(crypt_kernel, 2, first_hash,
-			"Error while setting first_hash");
-	CLKERNELARG(crypt_kernel, 3, output_hash,
-			"Error while setting output_hash");
-	CLKERNELARG(crypt_kernel, 4, currentIterPtr,
-			"Error while setting currentIterPtr");
+	// =========================== Loop kernel ===========================
+	arg=0;
+	CLKERNELARG(crypt_kernel, arg++, d_numPsw,
+			"Error while setting d_numPsw");
+	CLKERNELARG(crypt_kernel, arg++, d_wblocks,
+			"Error while setting d_wblocks");
+	CLKERNELARG(crypt_kernel, arg++, d_firstHash,
+			"Error while setting d_firstHash");
+	CLKERNELARG(crypt_kernel, arg++, d_outHash,
+			"Error while setting d_outHash");
+	CLKERNELARG(crypt_kernel, arg++, d_currIter,
+			"Error while setting d_currIter");
 
-	CLKERNELARG(final_kernel, 0, numPasswordsKernelDev,
-			"Error while setting numPasswordsKernelDev");
-	CLKERNELARG(final_kernel, 1, deviceFound,
-			"Error while setting deviceFound");
-	CLKERNELARG(final_kernel, 2, deviceEncryptedVMK,
-			"Error while setting deviceEncryptedVMK");
-	CLKERNELARG(final_kernel, 3, w_blocks_d,
-			"Error while setting w_blocks_d");
-	CLKERNELARG(final_kernel, 4, IV0_dev,
-			"Error while setting IV0");
-	CLKERNELARG(final_kernel, 5, IV4_dev,
-			"Error while setting IV4");
-	CLKERNELARG(final_kernel, 6, IV8_dev,
-			"Error while setting IV8");
-	CLKERNELARG(final_kernel, 7, IV12_dev,
-			"Error while setting IV12");
-	CLKERNELARG(final_kernel, 8, output_hash,
-			"Error while setting output_hash");
+	// =========================== Final kernel ===========================
+	arg=0;
+	CLKERNELARG(final_kernel, arg++, d_numPsw,
+			"Error while setting d_numPsw");
+	CLKERNELARG(final_kernel, arg++, d_found,
+			"Error while setting d_found");
+	CLKERNELARG(final_kernel, arg++, d_vmk,
+			"Error while setting d_vmk");
+	CLKERNELARG(final_kernel, arg++, d_outHash,
+			"Error while setting d_outHash");
 
-	salt_d = CLCREATEBUFFER(CL_MEM_READ_ONLY,
-			BITLOCKER_SALT_SIZE * sizeof(unsigned char), "Cannot allocate salt_d");
-	padding_d =
-		CLCREATEBUFFER(CL_MEM_READ_ONLY, BITLOCKER_PADDING_SIZE * sizeof(unsigned char),
-				"Cannot allocate padding_d");
+	CLKERNELARG(final_kernel, arg++, d_attack,
+			"Error while setting d_attack");
+	CLKERNELARG(final_kernel, arg++, d_vmkIV0,
+			"Error while setting d_vmkIV0");
+	CLKERNELARG(final_kernel, arg++, d_vmkIV4,
+			"Error while setting d_vmkIV4");
+	CLKERNELARG(final_kernel, arg++, d_vmkIV8,
+			"Error while setting d_vmkIV8");
+	CLKERNELARG(final_kernel, arg++, d_vmkIV12,
+			"Error while setting d_vmkIV12");
 
-	CLKERNELARG(block_kernel, 0, salt_d, "Error while setting salt_d");
-	CLKERNELARG(block_kernel, 1, padding_d, "Error while setting padding_d");
-	CLKERNELARG(block_kernel, 2, w_blocks_d, "Error while setting w_blocks_d");
+	CLKERNELARG(final_kernel, arg++, d_macIV0,
+			"Error while setting d_macIV0");
+	CLKERNELARG(final_kernel, arg++, d_macIV4,
+			"Error while setting d_macIV4");
+	CLKERNELARG(final_kernel, arg++, d_macIV8,
+			"Error while setting d_macIV8");
+	CLKERNELARG(final_kernel, arg++, d_macIV12,
+			"Error while setting d_macIV12");
+	
+	CLKERNELARG(final_kernel, arg++, d_cMacIV0,
+			"Error while setting d_cMacIV0");
+	CLKERNELARG(final_kernel, arg++, d_cMacIV4,
+			"Error while setting d_cMacIV4");
+	CLKERNELARG(final_kernel, arg++, d_cMacIV8,
+			"Error while setting d_cMacIV8");
+	CLKERNELARG(final_kernel, arg++, d_cMacIV12,
+			"Error while setting d_cMacIV12");
+
+	CLKERNELARG(final_kernel, arg++, d_mac,
+			"Error while setting d_mac");
+
+	d_salt = CLCREATEBUFFER(CL_MEM_READ_ONLY,
+			BITLOCKER_SALT_SIZE * sizeof(unsigned char), "Cannot allocate d_salt");
+	
+	d_pad = CLCREATEBUFFER(CL_MEM_READ_ONLY, BITLOCKER_PADDING_SIZE * sizeof(unsigned char),
+				"Cannot allocate d_pad");
+
+	CLKERNELARG(block_kernel, 0, d_salt, "Error while setting d_salt");
+	CLKERNELARG(block_kernel, 1, d_pad, "Error while setting d_pad");
+	CLKERNELARG(block_kernel, 2, d_wblocks, "Error while setting d_wblocks");
 }
 
 static size_t get_task_max_work_group_size()
@@ -229,7 +278,7 @@ static size_t get_task_max_work_group_size()
 	size_t s;
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, prepare_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, init_kernel));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, block_kernel));
 
@@ -238,17 +287,17 @@ static size_t get_task_max_work_group_size()
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(deviceEncryptedVMK), "Release encrypted VMK");
-	HANDLE_CLERROR(clReleaseMemObject(devicePassword), "Release encrypted VMK");
-	HANDLE_CLERROR(clReleaseMemObject(devicePasswordSize), "Release encrypted VMK");
-	HANDLE_CLERROR(clReleaseMemObject(deviceFound), "Release encrypted VMK");
-	HANDLE_CLERROR(clReleaseMemObject(w_blocks_d), "Release encrypted VMK");
-	HANDLE_CLERROR(clReleaseMemObject(salt_d), "Release encrypted VMK");
-	HANDLE_CLERROR(clReleaseMemObject(padding_d), "Release encrypted VMK");
+	HANDLE_CLERROR(clReleaseMemObject(d_vmk), "Release");
+	HANDLE_CLERROR(clReleaseMemObject(d_pswI), "Release");
+	HANDLE_CLERROR(clReleaseMemObject(d_pswSize), "Release");
+	HANDLE_CLERROR(clReleaseMemObject(d_found), "Release");
+	HANDLE_CLERROR(clReleaseMemObject(d_wblocks), "Release");
+	HANDLE_CLERROR(clReleaseMemObject(d_salt), "Release");
+	HANDLE_CLERROR(clReleaseMemObject(d_pad), "Release");
 
-	MEM_FREE(hostFound);
-	MEM_FREE(w_blocks_h);
-	MEM_FREE(numPasswordsKernel);
+	MEM_FREE(h_found);
+	MEM_FREE(h_wblocks);
+	MEM_FREE(h_numPsw);
 }
 
 static void init(struct fmt_main *_self)
@@ -268,12 +317,12 @@ static void reset(struct db_main *db)
 		opencl_init("$JOHN/kernels/bitlocker_kernel.cl", gpu_id, NULL);
 
 		block_kernel =
-		    clCreateKernel(program[gpu_id], WBLOCKS_KERNEL_NAME, &cl_error);
+			clCreateKernel(program[gpu_id], WBLOCKS_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error,
 		               "Error creating block kernel");
 
-		prepare_kernel =
-			clCreateKernel(program[gpu_id], PREPARE_KERNEL_NAME, &cl_error);
+		init_kernel =
+			clCreateKernel(program[gpu_id], INIT_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
 
 		crypt_kernel =
@@ -286,14 +335,14 @@ static void reset(struct db_main *db)
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
-		                       14, self, create_clobj, release_clobj,
+		                       25, self, create_clobj, release_clobj,
 		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 		                       0, db);
 
-		// Auto tune execution from shared/included code.
 		autotune_run(self, HASH_LOOPS * ITERATIONS, 0,
 		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 10000000000ULL));
+		              10000000 : 100000000ULL));
+		              //1000000000 : 10000000000ULL));
 	}
 }
 
@@ -301,15 +350,11 @@ static void done(void)
 {
 	if (autotuned) {
 		release_clobj();
-		HANDLE_CLERROR(clReleaseKernel(block_kernel), "Release kernel W");
-		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel A");
-		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel A");
-		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel A");
-
-		//HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
-		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
-		               "Release Program");
-
+		HANDLE_CLERROR(clReleaseKernel(block_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(init_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 		autotuned--;
 	}
 }
@@ -334,175 +379,204 @@ static int w_block_precomputed(unsigned char *salt)
 		padding[BITLOCKER_PADDING_SIZE - 1 - i] =
 		    (uint8_t)(msgLen >> (i * 8));
 
-	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_d,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_salt,
 		CL_TRUE, 0, BITLOCKER_SALT_SIZE * sizeof(char), salt, 0,
-		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+		NULL, multi_profilingEvent[0]), "clEnqueueWriteBuffer");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], padding_d,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pad,
 		CL_TRUE, 0, BITLOCKER_PADDING_SIZE * sizeof(char), padding, 0,
-		NULL, multi_profilingEvent[1]), "Copy data to gpu");
+		NULL, multi_profilingEvent[1]), "clEnqueueWriteBuffer");
 
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], block_kernel,
 		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run kernel");
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], w_blocks_d,
-		CL_TRUE, 0, BITLOCKER_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
-		sizeof(unsigned int), w_blocks_h, 0,
-		NULL, multi_profilingEvent[3]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], d_wblocks,
+		CL_TRUE, 0, BL_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
+		sizeof(unsigned int), h_wblocks, 0,
+		NULL, multi_profilingEvent[3]), "clEnqueueReadBuffer");
 
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 	return 1;
 }
 
-
-
 static void set_salt(void * cipher_salt_input)
 {
 	cur_salt = (bitlocker_custom_salt *) cipher_salt_input;
 
 	w_block_precomputed(cur_salt->salt);
-	if (!w_blocks_h) {
+	if (!h_wblocks) {
 		error_msg("Error... Exit\n");
 	}
 
-	tmpIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
+	memset(h_vmkIV, 0, BITLOCKER_IV_SIZE);
+	memcpy(h_vmkIV + 1, cur_salt->iv, BITLOCKER_NONCE_SIZE);
+	h_vmkIV[0] = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
+	h_vmkIV[BITLOCKER_IV_SIZE - 1] = 1;
 
-	memset(tmpIV, 0, BITLOCKER_IV_SIZE);
-	memcpy(tmpIV + 1, cur_salt->iv, BITLOCKER_NONCE_SIZE);
+   	h_attack[0] = cur_salt->attack_type;
+	memcpy(h_mac, cur_salt->mac, BITLOCKER_MAC_SIZE);
 
-	*tmpIV = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
-	tmpIV[BITLOCKER_IV_SIZE - 1] = 1;
+	//-------- macIV setup ------
+	memset(h_macIV, 0, BITLOCKER_IV_SIZE);
+	h_macIV[0] = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
+	memcpy(h_macIV + 1, cur_salt->iv, BITLOCKER_NONCE_SIZE);
+	h_macIV[BITLOCKER_IV_SIZE-1] = 0; 
+	// -----------------------
 
-	tmp_global = (((unsigned int *)(tmpIV))[0]);
-	IV0[0] =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
-	tmp_global = ((unsigned int *)(tmpIV + 4))[0];
-	IV4[0] =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
-	tmp_global = ((unsigned int *)(tmpIV + 8))[0];
-	IV8[0] =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
-
-	tmp_global = ((unsigned int *)(tmpIV + 12))[0];
-	IV12[0] =
-	    (unsigned int)(((unsigned int)(tmp_global & 0xff000000)) >> 24) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x00ff0000) >> 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x0000ff00) << 8) |
-	    (unsigned int)((unsigned int)(tmp_global & 0x000000ff) << 24);
+	//-------- cMacIV setup ------
+	memset(h_cMacIV, 0, BITLOCKER_IV_SIZE);
+	h_cMacIV[0] = 0x3a;
+	memcpy(h_cMacIV + 1, cur_salt->iv, BITLOCKER_NONCE_SIZE);
+	h_cMacIV[BITLOCKER_IV_SIZE-1] = 0x2c; 
+	// -----------------------
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i;
+	int i, m=0;
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-
+	
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-	hostFound[0] = -1;
+	h_found[0] = -1;
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], numPasswordsKernelDev,
+	// =========================== Init kernel ===========================
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_numPsw,
 		CL_FALSE, 0, sizeof(int), pcount, 0,
-		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], deviceEncryptedVMK,
-		CL_FALSE, 0, BITLOCKER_VMK_SIZE * sizeof(char), cur_salt->data /* encryptedVMK */, 0,
-		NULL, multi_profilingEvent[1]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pswI,
+		CL_FALSE, 0, count * BITLOCKER_PSW_INT_SIZE * sizeof(unsigned int), h_pswI, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], devicePassword,
-		CL_FALSE, 0, count * BITLOCKER_FIXED_PASSWORD_BUFFER * sizeof(char), inbuffer, 0,
-		NULL, multi_profilingEvent[2]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pswSize,
+		CL_FALSE, 0, count * sizeof(int), h_pswSize, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], devicePasswordSize,
-		CL_FALSE, 0, count * sizeof(int), inbuffer_size, 0,
-		NULL, multi_profilingEvent[3]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_attack,
+		CL_FALSE, 0, sizeof(int), h_attack, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");	
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], deviceFound,
-		CL_FALSE, 0, sizeof(int), hostFound, 0,
-		NULL, multi_profilingEvent[4]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_outHash,
+		CL_FALSE, 0, count * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int), 
+		hash_zero, 0, NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], w_blocks_d,
-		CL_FALSE, 0, (BITLOCKER_SINGLE_BLOCK_SHA_SIZE *
-	                                        BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int),
-		w_blocks_h, 0,
-		NULL, multi_profilingEvent[5]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], init_kernel,
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m]), "Run kernel");
 
-	i=0;
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], currentIterPtr,
-		CL_FALSE, 0, sizeof(int), &i, 0,
-		NULL, multi_profilingEvent[6]), "Copy data to gpu");
-
-
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], output_hash,
-		CL_FALSE, 0, count * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int), hash_zero, 0,
-		NULL, multi_profilingEvent[7]), "Copy data to gpu");
-
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], IV0_dev,
-		CL_FALSE, 0, sizeof(unsigned int), IV0, 0,
-		NULL, multi_profilingEvent[8]), "Copy data to gpu");
-
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], IV4_dev,
-		CL_FALSE, 0, sizeof(unsigned int), IV4, 0,
-		NULL, multi_profilingEvent[9]), "Copy data to gpu");
-
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], IV8_dev,
-		CL_FALSE, 0, sizeof(unsigned int), IV8, 0,
-		NULL, multi_profilingEvent[10]), "Copy data to gpu");
-
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], IV12_dev,
-		CL_FALSE, 0, sizeof(unsigned int), IV12, 0,
-		NULL, multi_profilingEvent[11]), "Copy data to gpu");
-
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[12]), "Run kernel");
+	// =========================== Loop kernel ===========================
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_wblocks,
+		CL_FALSE, 0, (BL_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int),
+		h_wblocks, 0, NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
 	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS); i++) {
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], currentIterPtr,
-		CL_FALSE, 0, sizeof(int), &i, 0,
-		NULL, multi_profilingEvent[13]), "Copy iter num to gpu");
+		
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_currIter,
+				CL_FALSE, 0, sizeof(int), &i, 0,
+				NULL, multi_profilingEvent[m+1]), "Copy iter num to gpu");
 
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[14]), "Run loop kernel");
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m+2]), "Run loop kernel");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[15]), "Run kernel");
+	// =========================== Final kernel ===========================
+	m+=3;
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_found,
+		CL_FALSE, 0, sizeof(int), h_found, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], deviceFound,
-		CL_TRUE, 0, sizeof(int), hostFound, 0,
-		NULL, multi_profilingEvent[16]), "Copy result back");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmk,
+		CL_FALSE, 0, BITLOCKER_VMK_SIZE * sizeof(char), cur_salt->data, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	// =============== vmkIV ===============
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV0,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV4,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV+4)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV8,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV+8)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV12,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV+12)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+	// =======================================
+
+	// ================== macIV ==================
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV0,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV4,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV+4)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV8,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV+8)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV12,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV+12)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+	// ===========================================
+
+	// =============== cMacIV ==============
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV0,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV4,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV+4)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV8,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV+8)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV12,
+		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV+12)), 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+	// ===========================================
+
+	// =================== MAC ===================
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_mac,
+		CL_FALSE, 0, BITLOCKER_MAC_SIZE, (void*)h_mac, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+	// ===========================================
+
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m++]), "Run kernel");
+
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], d_found,
+		CL_TRUE, 0, sizeof(int), h_found, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueReadBuffer");
 
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	opencl_process_event();
+
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	if (hostFound[0] >= 0) {
+	if (h_found[0] >= 0) {
 #if BITLOCKER_ENABLE_DEBUG == 1
 
 		fprintf(stdout, "\n[BitCracker] -> Password found: #%d, %.*s\n",
-		        hostFound[0] + 1, BITLOCKER_MAX_INPUT_PASSWORD_LEN,
-		        (char *)(inbuffer +
-		                 (hostFound[0] * BITLOCKER_MAX_INPUT_PASSWORD_LEN)));
+		        h_found[0] + 1, BITLOCKER_PSW_CHAR_MAX_SIZE,
+		        (char *)(h_pswC +
+				(h_found[0] * BITLOCKER_PSW_CHAR_MAX_SIZE)));
 #endif
-
 		return 1;
 	} else
 		return 0;
@@ -510,7 +584,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	if (hostFound[0] == index)
+	if (h_found[0] == index)
 		return 1;
 	else
 		return 0;
@@ -523,25 +597,116 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char *key, int index)
 {
-	int size;
-	char tmp[BITLOCKER_FIXED_PASSWORD_BUFFER];
-
-	memset(tmp, 0, BITLOCKER_FIXED_PASSWORD_BUFFER);
+	int j=0, k=0, size=0, count=0;
+	char tmp[BITLOCKER_PSW_CHAR_MAX_SIZE], tmp2[BITLOCKER_PSW_CHAR_MAX_SIZE], *p;
+	int8_t check_digit;
+	memset(tmp, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
+	
 	size = strlen(key);
-	inbuffer_size[index] = size;
 	memcpy(tmp, key, size);
-	if (size < BITLOCKER_MAX_INPUT_PASSWORD_LEN)
-		tmp[size] = 0x80;
 
-	memcpy((inbuffer + (index * BITLOCKER_FIXED_PASSWORD_BUFFER)), tmp, BITLOCKER_FIXED_PASSWORD_BUFFER);
+	if(tmp[0] == '\n' || size < BITLOCKER_PSW_CHAR_MIN_SIZE || size > BITLOCKER_SECOND_LENGHT) return;
+	
+	memset((h_pswC)+(index*BITLOCKER_PSW_CHAR_MAX_SIZE), 0, BITLOCKER_PSW_CHAR_MAX_SIZE*sizeof(unsigned char));
+	memcpy((h_pswC+(index*BITLOCKER_PSW_CHAR_MAX_SIZE)), tmp, size);
+
+	memset((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE), 0, BITLOCKER_PSW_INT_SIZE*sizeof(unsigned int));
+        
+        //Recovery password
+	if(h_attack[0] == BITLOCKER_HASH_RP || h_attack[0] == BITLOCKER_HASH_RP_MAC)
+	{
+		memset(tmp2, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
+		p = strtokm(tmp, "-");
+		do
+		{
+			//Dislocker, Recovery Password checks
+			if( ((atoi(p) % 11) != 0) || (atoi(p) >= 720896) ) break;
+			check_digit = (int8_t) ( p[0] - p[1] + p[2] - p[3] + p[4] - 48 ) % 11;
+			if( check_digit < 0 ) check_digit = (int8_t) check_digit + 11;
+			if( check_digit != (p[5] - 48)) break;
+
+			((uint16_t*)(tmp2+count))[0] = (uint16_t)(atoi(p) / 11);
+			p = strtokm(NULL, "-");
+			count+=2;
+
+		} while(p != NULL);
+
+		if(count != (RECOVERY_PASS_BLOCKS*2)) return;
+		
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[0] = ( (((unsigned int)tmp2[0]  ) << 24) & 0xFF000000) |
+							( (((unsigned int)tmp2[0+1]) << 16) & 0x00FF0000) |	
+							( (((unsigned int)tmp2[0+2])  << 8) & 0x0000FF00)  |
+							( (((unsigned int)tmp2[0+3])  << 0) & 0x000000FF);
+
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[1] = 	( (((unsigned int)tmp2[4]) << 24) & 0xFF000000) |
+							( (((unsigned int)tmp2[4+1]) << 16) & 0x00FF0000) |	
+							( (((unsigned int)tmp2[4+2]) << 8) & 0x0000FF00)  |
+							( (((unsigned int)tmp2[4+3]) << 0) & 0x000000FF);
+
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[2] = 	( (((unsigned int)tmp2[8]) << 24) & 0xFF000000) |
+							( (((unsigned int)tmp2[8+1]) << 16) & 0x00FF0000) |	
+							( (((unsigned int)tmp2[8+2]) << 8) & 0x0000FF00)  |
+							( (((unsigned int)tmp2[8+3]) << 0) & 0x000000FF);
+
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[3] = 	( (((unsigned int)tmp2[12]) << 24) & 0xFF000000) |
+							( (((unsigned int)tmp2[12+1]) << 16) & 0x00FF0000) |	
+							( (((unsigned int)tmp2[12+2]) << 8) & 0x0000FF00)  |
+							( (((unsigned int)tmp2[12+3]) << 0) & 0x000000FF);
+
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[4] = 0x80000000;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[5] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[6] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[7] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[8] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[9] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[10] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[11] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[12] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[13] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[14] = 0;
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[15] = 0x80;
+
+		h_pswSize[index]=1;
+	}
+	else //User Password
+	{
+		tmp[size] = 0x80;
+		do
+		{
+			((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+j)[0] = ( (((unsigned int)tmp[k]) << 24) & 0xFF000000);
+			k++;
+
+			if(k <= size)
+				((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+j)[0] = ((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+j)[0] | ( (((unsigned int)tmp[k]) << 8) & 0x0000FF00);
+
+			j++;
+			k++;
+		} while(k <= size);
+
+		if(size <= BITLOCKER_FIRST_LENGHT)
+		{
+			//16 int
+			h_pswSize[index]=1;
+			((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+14)[0] = 0;
+			((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+15)[0] = ((int)(((size*2) << 3) >> 8)) << 8 | ((int)((size*2) << 3));
+		}
+		else
+		{
+			//32 int
+			h_pswSize[index]=2;
+			((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+30)[0] = 0;
+			((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+31)[0] = ((uint8_t)(((size*2) << 3) >> 8)) << 8 | ((uint8_t)((size*2) << 3));
+		}
+	}
+	memset(tmp, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
 }
 
 static char *get_key(int index)
 {
-	static char ret[BITLOCKER_FIXED_PASSWORD_BUFFER + 1];
+	static char ret[BITLOCKER_PSW_CHAR_MAX_SIZE + 1];
 
-	memset(ret, '\0', BITLOCKER_FIXED_PASSWORD_BUFFER + 1);
-	memcpy(ret, inbuffer + (index * BITLOCKER_FIXED_PASSWORD_BUFFER), inbuffer_size[index]);
+	memset(ret, 0, BITLOCKER_PSW_CHAR_MAX_SIZE + 1);
+	memcpy(ret, h_pswC + (index * BITLOCKER_PSW_CHAR_MAX_SIZE), BITLOCKER_PSW_CHAR_MAX_SIZE);
 
 	return ret;
 }
@@ -553,8 +718,8 @@ struct fmt_main fmt_opencl_bitlocker = {
 	ALGORITHM_NAME,
 	BENCHMARK_COMMENT,
 	BENCHMARK_LENGTH,
-	BITLOCKER_MIN_INPUT_PASSWORD_LEN,
-	BITLOCKER_MAX_INPUT_PASSWORD_LEN,
+	BITLOCKER_PSW_CHAR_MIN_SIZE,
+	BITLOCKER_PSW_CHAR_MAX_SIZE,
 	BINARY_SIZE,
 	BINARY_ALIGN,
 	SALT_SIZE,

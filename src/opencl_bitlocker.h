@@ -10,7 +10,9 @@
  * implied. See the following for more information on the GPLv2 license:
  * http://www.gnu.org/licenses/gpl-2.0.html
  *
- * This is a research project, for more informations: http://openwall.info/wiki/john/OpenCL-BitLocker
+ * More info here: http://openwall.info/wiki/john/OpenCL-BitLocker
+ *
+ * A standalone CUDA implementation is available here: https://github.com/e-ago/bitcracker.
  */
 
 
@@ -262,22 +264,22 @@
         h += LOP3LUT_XOR(ROR2(a), ROR13(a), ROR22(a)) + LOP3LUT_ANDOR(a,b,c);   /*((a & (b | c)) | (b & c)); */
 
 #define ROUND_SECOND_BLOCK(a, b, c, d, e, f, g, h, i, k, indexW) \
-        h += LOP3LUT_XOR(ROR6(e), ROR11(e), ROR25(e)) + LOP3LUT_XORAND(g,e,f) + k +  w_blocks_d[indexW+i]; \
+        h += LOP3LUT_XOR(ROR6(e), ROR11(e), ROR25(e)) + LOP3LUT_XORAND(g,e,f) + k +  d_wblocks[indexW+i]; \
         d += h;  \
         h += LOP3LUT_XOR(ROR2(a), ROR13(a), ROR22(a)) + LOP3LUT_ANDOR(a,b,c);
 
 //W-block evaluate
 #define LOADSCHEDULE_WPRE(i, j)  \
-        w_blocks_d[j] =                           \
+        d_wblocks[j] =                           \
               (unsigned int)block[i * 4 + 0] << 24  \
             | (unsigned int)block[i * 4 + 1] << 16  \
             | (unsigned int)block[i * 4 + 2] <<  8  \
             | (unsigned int)block[i * 4 + 3];
 
 #define SCHEDULE_WPRE(i)  \
-        w_blocks_d[i] = w_blocks_d[i - 16] + w_blocks_d[i - 7]  \
-            + (ROR(w_blocks_d[i - 15], 7) ^ ROR(w_blocks_d[i - 15], 18) ^ (w_blocks_d[i - 15] >> 3))  \
-            + (ROR(w_blocks_d[i - 2], 17) ^ ROR(w_blocks_d[i - 2], 19) ^ (w_blocks_d[i - 2] >> 10));
+        d_wblocks[i] = d_wblocks[i - 16] + d_wblocks[i - 7]  \
+            + (ROR(d_wblocks[i - 15], 7) ^ ROR(d_wblocks[i - 15], 18) ^ (d_wblocks[i - 15] >> 3))  \
+            + (ROR(d_wblocks[i - 2], 17) ^ ROR(d_wblocks[i - 2], 19) ^ (d_wblocks[i - 2] >> 10));
 
 #endif
 /* _BITCRACKER_H */
