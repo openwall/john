@@ -93,7 +93,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!p)
 		return 0;
-	if (!ishex_oddOK(p))
+	if (!ishexlc(p+1))
+		return 0;
+	if ( !((*p >= '0' && *p<= '9') || (*p >= 'a' && *p<= 'f') ) ) // first byte (was skipped in the hexlc call.
 		return 0;
 
 	if (strlen(p) != CIPHERTEXT_LENGTH)
