@@ -262,18 +262,19 @@ fi
 
 # early check of 64 bit systems.
 case "$host_cpu" in
-  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64) CFLAGS_EX=""
-	JTR_FLAG_CHECK([-m64], 1)
-	if test "x${CFLAGS_EX}" != x ; then
-		LDFLAGS="-m64 $LDFLAGS"
-		CFLAGS="-m64 $CFLAGS"
-		ASFLAGS="-m64 $ASFLAGS"
-	fi
-  ;;
+  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-m64], 1)
+    if test "x${CFLAGS_EX}" != x ; then
+      LDFLAGS="-m64 $LDFLAGS"
+      CFLAGS="-m64 $CFLAGS"
+      ASFLAGS="-m64 $ASFLAGS"
+    fi
+    ;;
   *)
-	AC_MSG_CHECKING([if gcc supports -m64])
-	AC_MSG_RESULT([no])
-  ;;
+    AC_MSG_CHECKING([if gcc supports -m64])
+    AC_MSG_RESULT([no])
+    ;;
 esac
 
 # Cross compile compliant 32/64 bit test code.
@@ -302,7 +303,7 @@ AC_LINK_IFELSE(
 )
 
 if test "x${CPU_BITS}" = x-m64 ; then
-	JTR_SET_64_INCLUDES
+  JTR_SET_64_INCLUDES
 fi
 
 # Checks for programs.
@@ -328,10 +329,10 @@ AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip])])
 PKG_PROG_PKG_CONFIG
 AC_MSG_CHECKING([if pkg-config will be used])
 if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" == xno ; then
-	JTR_MSG_RESULT_FAILIF_FORCED([xno], [x$enable_pkg_config], [pkg-config is NOT available])
-	PKG_CONFIG=no
+  JTR_MSG_RESULT_FAILIF_FORCED([xno], [x$enable_pkg_config], [pkg-config is NOT available])
+  PKG_CONFIG=no
 else
-	AC_MSG_RESULT([yes])
+  AC_MSG_RESULT([yes])
 fi
 # Cross-compile compliant size checks
 # size_t and off_t are post-poned to after feature macros are set
@@ -356,9 +357,8 @@ else
    ret=$?
    if ( test $ret -ne 0 ) ; then
       AC_MSG_RESULT([no])
-      echo ""
-      echo "   NOTE, john will not run properly until you fix your ../run/john.pot"
-      echo "   file using the ../run/potcheck.pl with the -long command line"
+      AC_MSG_NOTICE([\nNOTE, john will not run properly until you fix your ../run/john.pot])
+      AC_MSG_NOTICE([      file using the ../run/potcheck.pl with the -long command line])
       exit 1;
    fi
    AC_MSG_RESULT([yes])
@@ -404,8 +404,8 @@ dnl AC_CHECK_SIZEOF([int *function()]
 # *****************************************************************
 #
 if test "x$simd" = xno ; then
-[echo "SIMD logic... disabled by request"]
-AC_SUBST([JOHN_NO_SIMD],["-DJOHN_NO_SIMD"])
+   AC_MSG_NOTICE([SIMD logic disabled by request])
+   AC_SUBST([JOHN_NO_SIMD],["-DJOHN_NO_SIMD"])
 fi
 
 cpu_family="unkown"
@@ -414,16 +414,18 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little
-	[echo "checking special compiler flags... ARM"]
-        JTR_ARM_SPECIAL_LOGIC
-        ;;
+    AC_MSG_CHECKING([special compiler flags])
+    AC_MSG_RESULT([ARM])
+    JTR_ARM_SPECIAL_LOGIC
+    ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
-	[echo "checking special compiler flags... MIC"]
-	JTR_MIC_SPECIAL_LOGIC
-	;;
+    AC_MSG_CHECKING([special compiler flags])
+    AC_MSG_RESULT([MIC])
+    JTR_MIC_SPECIAL_LOGIC
+    ;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
   mipsel) ARCH_LINK=mips32.h endian=little ;;
   mips64|mips64eb|mipseb64) ARCH_LINK=mips64.h endian=big ;;
@@ -432,21 +434,25 @@ case "$host_cpu" in
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
   powerpc64le) ARCH_LINK=ppc64.h endian=little
-  	[echo "checking special compiler flags... PPC64le"]
-  	JTR_PPC64_SPECIAL_LOGIC
-	;;
+    AC_MSG_CHECKING([special compiler flags])
+    AC_MSG_RESULT([PPC64le])
+    JTR_PPC64_SPECIAL_LOGIC
+    ;;
   powerpc64*) ARCH_LINK=ppc64.h endian=big
-  	[echo "checking special compiler flags... PPC64"]
-  	JTR_PPC64_SPECIAL_LOGIC
-	;;
+    AC_MSG_CHECKING([special compiler flags])
+    AC_MSG_RESULT([PPC64])
+    JTR_PPC64_SPECIAL_LOGIC
+    ;;
   powerpcle) ARCH_LINK=ppc32.h endian=little
-  	[echo "checking special compiler flags... PPC32le"]
-  	JTR_PPC32_SPECIAL_LOGIC
-	;;
+    AC_MSG_CHECKING([special compiler flags])
+    AC_MSG_RESULT([PPC32le])
+    JTR_PPC32_SPECIAL_LOGIC
+    ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big
-  	[echo "checking special compiler flags... PPC32"]
-  	JTR_PPC32_SPECIAL_LOGIC
-	;;
+    AC_MSG_CHECKING([special compiler flags])
+    AC_MSG_RESULT([PPC32])
+    JTR_PPC32_SPECIAL_LOGIC
+    ;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
   sparc*) ARCH_LINK=sparc32.h endian=big ;;
   vax*) ARCH_LINK=vax.h endian=little ;;
@@ -464,7 +470,10 @@ esac
 # make -f Makefile.legacy clean generic or failing with an echo of that message,
 # for any environment we do not handle.
 JTR_ASM_MAGIC
-AS_IF([test "x$cpu_family" = xintel], [echo "checking special compiler flags... Intel X86*"] [JTR_X86_SPECIAL_LOGIC])
+AS_IF([test "x$cpu_family" = xintel],
+       AC_MSG_CHECKING([special compiler flags])
+       AC_MSG_RESULT([Intel X86*]) [JTR_X86_SPECIAL_LOGIC]
+     )
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
 JTR_GENERIC_LOGIC
@@ -520,7 +529,7 @@ AS_IF([test "x$with_openssl" != xno],
    PKG_CHECK_MODULES([OPENSSL], [openssl],
       AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
          AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
-	    AC_MSG_FAILURE([JtR requires OpenSSL and OpenSSL-devel being installed. Install if not installed.
+         AC_MSG_FAILURE([JtR requires OpenSSL and OpenSSL-devel being installed. Install if not installed.
 Try using --disable-pkg-config and possibly helping configure find oSSL by providing hints in CFLAGS and LDFLAGS],1))
 else
    AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x" -o "x$cross_compiling" = "xyes" -o "x$enable_native_tests" = xno -o "x$PKG_CONFIG" = xno],
@@ -528,27 +537,27 @@ else
       [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
       [if test "x$cross_compiling" = "xyes" -a "x$OPENSSL_LIBS" = "x"; then
         OPENSSL_LIBS="-lssl -lcrypto"
-        fi]
+      fi]
       LIBS_ORIG="$LIBS"
       LIBS="$LIBS $OPENSSL_LIBS"
       [AC_MSG_RESULT([$OPENSSL_CFLAGS $OPENSSL_LIBS])]
       [if test "x$cross_compiling" = xno; then
          JTR_SET_NORMAL_SSL_INCLUDES([/usr/local/ssl])
-	   fi]
+      fi]
       [AC_CHECK_HEADER([openssl/opensslv.h],
-	   [AC_CHECK_LIB([ssl],[SSL_CTX_new],
-	    [AC_CHECK_LIB([crypto],[MD5_Update],
-	       [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
-	       [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
-		  [OPENSSL_LIBS="-lssl -lcrypto"],
-	       [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
-	    [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
-	   )
-	  LIBS="$LIBS_ORIG"],
-	 [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
-      )]
-   )
-   fi]
+      [AC_CHECK_LIB([ssl],[SSL_CTX_new],
+      [AC_CHECK_LIB([crypto],[MD5_Update],
+         [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
+         [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
+         [OPENSSL_LIBS="-lssl -lcrypto"],
+         [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
+         [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
+      )
+    LIBS="$LIBS_ORIG"],
+    [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
+   )]
+  )
+  fi]
 )
 
 #################
@@ -588,7 +597,7 @@ if test "x$enable_rexgen" != xno ; then
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
       [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x020006); }],
         AC_MSG_RESULT([usable]) && [using_rexgen=yes],
-		AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
+        AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]
   )
   if test "x$using_rexgen" == "xyes" ; then
@@ -626,7 +635,7 @@ if test "x$enable_pcap" != xno ; then
     if test x"$ac_cv_lib_pcap_pcap_compile" != xyes ; then
       if test x"$ac_cv_lib_wpcap_pcap_compile" != xyes; then
         AC_MSG_FAILURE([PCAP not installed/usable])
-	  fi
+      fi
     fi
   fi
 else
@@ -823,7 +832,9 @@ AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _al
 
 AC_CACHE_SAVE
 
-CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
+if test "x$simd" != xno ; then
+  CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
+fi
 
 AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])
 AC_SUBST([CC_MAIN_CPU],["${CPU_BEST_FLAGS_MAIN}"])
@@ -932,8 +943,7 @@ fi
 
 if test "x$ubsantrap" = xyes ; then
    if test "x$ubsan" = xyes ; then
-	echo "--enable-ubsan and --enable-ubsantrap are mutually exclusive. Pick one or the other (or NONE)"
-	exit 1
+     AC_MSG_ERROR([--enable-ubsan and --enable-ubsantrap are mutually exclusive. Pick one or the other (or NONE)])
    fi
    CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
@@ -1010,9 +1020,9 @@ fi
 # don't build opencl_*plug.c unless an opencl build
 ####################################################
 if test x$using_cl = xyes ; then
-  echo "configure: creating *_plug.c and OpenCL object rules"
+  AC_MSG_NOTICE([configure: creating *_plug.c and OpenCL object rules])
 else
-  echo "configure: creating *_plug.c rules, WITHOUT OpenCL objects"
+  AC_MSG_NOTICE([configure: creating *_plug.c rules, WITHOUT OpenCL objects])
 fi
 AC_SUBST([KERNEL_OBJS],[])
 AC_SUBST([KERNEL_DEPS],[])
@@ -1023,7 +1033,7 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
      AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
    fi
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
-      echo "configure: creating Makefile dependencies"
+      AC_MSG_NOTICE([configure: creating Makefile dependencies])
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
       if test x$using_cl = xyes ; then
         AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
@@ -1031,7 +1041,7 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
    fi
 fi
 
-echo "configure: creating ./john_build_rule.h"
+AC_MSG_NOTICE([configure: creating ./john_build_rule.h])
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-ac\"" > john_build_rule.h
 
 AC_SUBST([HOST_OS],["$host_os"])
@@ -1048,7 +1058,7 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # This needs arch.h to be linked so can't happen before
 # AC_OUTPUT
 ##########################################################
-echo "configure: creating ./fmt_externs.h"
+AC_MSG_NOTICE([configure: creating ./fmt_externs.h])
 rm -f fmt_externs.h
 
 CFLAGS_EX2=
@@ -1068,7 +1078,7 @@ fi
 if test ! -f fmt_externs.h; then
   echo >fmt_externs.h
 fi
-echo "configure: creating ./fmt_registers.h"
+AC_MSG_NOTICE([configure: creating ./fmt_registers.h])
 rm -f fmt_registers.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
@@ -1102,7 +1112,7 @@ if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a dnl
    fi
 else
    if test "x$ompfast" = "xyes"; then
-	AC_MSG_FAILURE([OMP for fast formats requested, but no OMP on this system])
+     AC_MSG_FAILURE([OMP for fast formats requested, but no OMP on this system])
    fi
    using_omp=no
 fi
@@ -1152,7 +1162,6 @@ fi
 if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-xO") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-fast\b") -eq 0; then
-   echo
    AC_MSG_WARN([No recognized optimization option present in CFLAGS])
 fi
 if test "x$endian" = "xbig"; then

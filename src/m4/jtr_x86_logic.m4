@@ -82,7 +82,7 @@ CFLAGS="$CFLAGS -O0"
     [CC="$CC_BACKUP"]]
   )
 
-if test "x$enable_native_tests" != xno; then
+if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
   AC_MSG_NOTICE([Testing build host's native CPU features])
   AC_MSG_CHECKING([for Hyperthreading])
   AC_RUN_IFELSE(
@@ -301,7 +301,7 @@ if test "x$enable_native_tests" != xno; then
   ]
   )
 
-else
+else if test "x$simd" = xyes ; then
   ##########################################
   # cross-compile versions of the same tests
   ##########################################
@@ -479,11 +479,12 @@ else
   ]
   )
 fi
+fi
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$simd" = xno ; then
-CPU_STR="SIMD_disabled"
+  CPU_STR="SIMD_disabled"
 fi
 ])

@@ -6692,8 +6692,9 @@ fi
 
 # early check of 64 bit systems.
 case "$host_cpu" in
-  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64) CFLAGS_EX=""
-	  if test "1" = 1; then :
+  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
+    CFLAGS_EX=""
+      if test "1" = 1; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -m64" >&5
 $as_echo_n "checking if $CC supports -m64... " >&6; }
 fi
@@ -6739,18 +6740,18 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-	if test "x${CFLAGS_EX}" != x ; then
-		LDFLAGS="-m64 $LDFLAGS"
-		CFLAGS="-m64 $CFLAGS"
-		ASFLAGS="-m64 $ASFLAGS"
-	fi
-  ;;
+    if test "x${CFLAGS_EX}" != x ; then
+      LDFLAGS="-m64 $LDFLAGS"
+      CFLAGS="-m64 $CFLAGS"
+      ASFLAGS="-m64 $ASFLAGS"
+    fi
+    ;;
   *)
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if gcc supports -m64" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking if gcc supports -m64" >&5
 $as_echo_n "checking if gcc supports -m64... " >&6; }
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-  ;;
+    ;;
 esac
 
 # Cross compile compliant 32/64 bit test code.
@@ -7782,9 +7783,9 @@ See \`config.log' for more details" "$LINENO" 5; }
     fi
   fi
 
-	PKG_CONFIG=no
+  PKG_CONFIG=no
 else
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
 # Cross-compile compliant size checks
@@ -7813,9 +7814,10 @@ else
    if ( test $ret -ne 0 ) ; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-      echo ""
-      echo "   NOTE, john will not run properly until you fix your ../run/john.pot"
-      echo "   file using the ../run/potcheck.pl with the -long command line"
+      { $as_echo "$as_me:${as_lineno-$LINENO}: \nNOTE, john will not run properly until you fix your ../run/john.pot" >&5
+$as_echo "$as_me: \nNOTE, john will not run properly until you fix your ../run/john.pot" >&6;}
+      { $as_echo "$as_me:${as_lineno-$LINENO}:       file using the ../run/potcheck.pl with the -long command line" >&5
+$as_echo "$as_me:       file using the ../run/potcheck.pl with the -long command line" >&6;}
       exit 1;
    fi
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -8273,8 +8275,9 @@ _ACEOF
 # *****************************************************************
 #
 if test "x$simd" = xno ; then
-echo "SIMD logic... disabled by request"
-JOHN_NO_SIMD="-DJOHN_NO_SIMD"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: SIMD logic disabled by request" >&5
+$as_echo "$as_me: SIMD logic disabled by request" >&6;}
+   JOHN_NO_SIMD="-DJOHN_NO_SIMD"
 
 fi
 
@@ -8284,7 +8287,10 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   arm*) ARCH_LINK=arm32le.h endian=little
-	echo "checking special compiler flags... ARM"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ARM" >&5
+$as_echo "ARM" >&6; }
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
@@ -8371,17 +8377,20 @@ fi
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
-        ;;
+    ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
-	echo "checking special compiler flags... MIC"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: MIC" >&5
+$as_echo "MIC" >&6; }
 
 # specific optimization flags for MIC
 CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
 
-	;;
+    ;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
   mipsel) ARCH_LINK=mips32.h endian=little ;;
   mips64|mips64eb|mipseb64) ARCH_LINK=mips64.h endian=big ;;
@@ -8390,7 +8399,10 @@ CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
   mips*) ARCH_LINK=mips32.h endian=big ;;
   pdp*) ARCH_LINK=autoconf_arch.h endian=little ;;
   powerpc64le) ARCH_LINK=ppc64.h endian=little
-  	echo "checking special compiler flags... PPC64le"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: PPC64le" >&5
+$as_echo "PPC64le" >&6; }
 
   echo "checking special compiler flags... PowerPC64"
   CPU_BEST_FLAGS=""
@@ -8697,9 +8709,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
 
 
-	;;
+    ;;
   powerpc64*) ARCH_LINK=ppc64.h endian=big
-  	echo "checking special compiler flags... PPC64"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: PPC64" >&5
+$as_echo "PPC64" >&6; }
 
   echo "checking special compiler flags... PowerPC64"
   CPU_BEST_FLAGS=""
@@ -9006,9 +9021,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
 
 
-	;;
+    ;;
   powerpcle) ARCH_LINK=ppc32.h endian=little
-  	echo "checking special compiler flags... PPC32le"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: PPC32le" >&5
+$as_echo "PPC32le" >&6; }
 
   echo "checking special compiler flags... PowerPC32"
   CPU_BEST_FLAGS=""
@@ -9313,9 +9331,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
 
 
-	;;
+    ;;
   powerpc*) ARCH_LINK=ppc32.h endian=big
-  	echo "checking special compiler flags... PPC32"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: PPC32" >&5
+$as_echo "PPC32" >&6; }
 
   echo "checking special compiler flags... PowerPC32"
   CPU_BEST_FLAGS=""
@@ -9620,7 +9641,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
   OPT_INLINE_FLAGS="${INLINE_FLAGS}"
 
 
-	;;
+    ;;
   sparc64) ARCH_LINK=sparc64.h endian=big ;;
   sparc*) ARCH_LINK=sparc32.h endian=big ;;
   vax*) ARCH_LINK=vax.h endian=little ;;
@@ -9748,7 +9769,10 @@ CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$cpu_family" = xintel; then :
-  echo "checking special compiler flags... Intel X86*"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+       { $as_echo "$as_me:${as_lineno-$LINENO}: result: Intel X86*" >&5
+$as_echo "Intel X86*" >&6; }
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
@@ -9820,7 +9844,7 @@ fi
      ;;
 esac
 
-if test "x$enable_native_tests" != xno; then
+if test "x$simd" = xyes -a "x$enable_native_tests" != xno; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
 $as_echo "$as_me: Testing build host's native CPU features" >&6;}
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Hyperthreading" >&5
@@ -10173,7 +10197,7 @@ fi
 
 fi
 
-else
+else if test "x$simd" = xyes ; then
   ##########################################
   # cross-compile versions of the same tests
   ##########################################
@@ -10454,13 +10478,15 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 fi
+fi
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$simd" = xno ; then
-CPU_STR="SIMD_disabled"
+  CPU_STR="SIMD_disabled"
 fi
+
 
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for arch.h alternative" >&5
@@ -11084,7 +11110,7 @@ $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
 
       if test "x$cross_compiling" = "xyes" -a "x$OPENSSL_LIBS" = "x"; then
         OPENSSL_LIBS="-lssl -lcrypto"
-        fi
+      fi
       LIBS_ORIG="$LIBS"
       LIBS="$LIBS $OPENSSL_LIBS"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_CFLAGS $OPENSSL_LIBS" >&5
@@ -11158,7 +11184,7 @@ fi
    jtr_list_add_result=""
 
 
-	   fi
+      fi
       ac_fn_c_check_header_mongrel "$LINENO" "openssl/opensslv.h" "ac_cv_header_openssl_opensslv_h" "$ac_includes_default"
 if test "x$ac_cv_header_openssl_opensslv_h" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_CTX_new in -lssl" >&5
@@ -11241,7 +11267,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 
-		  OPENSSL_LIBS="-lssl -lcrypto"
+         OPENSSL_LIBS="-lssl -lcrypto"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -11257,7 +11283,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 
 fi
 
-	  LIBS="$LIBS_ORIG"
+    LIBS="$LIBS_ORIG"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -11269,7 +11295,7 @@ fi
 
 
 fi
-   fi
+  fi
 
 fi
 
@@ -11936,7 +11962,7 @@ done
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "PCAP not installed/usable
 See \`config.log' for more details" "$LINENO" 5; }
-	  fi
+      fi
     fi
   fi
 else
@@ -13987,7 +14013,9 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
-CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
+if test "x$simd" != xno ; then
+  CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${CPU_STR} | tr . _)
+fi
 
 CC_CPU="${CPU_BEST_FLAGS}"
 
@@ -15235,8 +15263,7 @@ fi
 
 if test "x$ubsantrap" = xyes ; then
    if test "x$ubsan" = xyes ; then
-	echo "--enable-ubsan and --enable-ubsantrap are mutually exclusive. Pick one or the other (or NONE)"
-	exit 1
+     as_fn_error $? "--enable-ubsan and --enable-ubsantrap are mutually exclusive. Pick one or the other (or NONE)" "$LINENO" 5
    fi
    CFLAGS=`echo $CFLAGS | sed 's/-g //g; s/-O2 //g'`
    CFLAGS=`echo $CFLAGS | sed 's/-g$//g; s/-O2$//g'`
@@ -15333,9 +15360,11 @@ fi
 # don't build opencl_*plug.c unless an opencl build
 ####################################################
 if test x$using_cl = xyes ; then
-  echo "configure: creating *_plug.c and OpenCL object rules"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating *_plug.c and OpenCL object rules" >&5
+$as_echo "$as_me: configure: creating *_plug.c and OpenCL object rules" >&6;}
 else
-  echo "configure: creating *_plug.c rules, WITHOUT OpenCL objects"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating *_plug.c rules, WITHOUT OpenCL objects" >&5
+$as_echo "$as_me: configure: creating *_plug.c rules, WITHOUT OpenCL objects" >&6;}
 fi
 
 
@@ -15349,7 +15378,8 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
 
    fi
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
-      echo "configure: creating Makefile dependencies"
+      { $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating Makefile dependencies" >&5
+$as_echo "$as_me: configure: creating Makefile dependencies" >&6;}
       PLUGFORMATS_DEPS=`$PERL ./plugin_deps.pl *_plug.c`
 
       if test x$using_cl = xyes ; then
@@ -15359,7 +15389,8 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
    fi
 fi
 
-echo "configure: creating ./john_build_rule.h"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating ./john_build_rule.h" >&5
+$as_echo "$as_me: configure: creating ./john_build_rule.h" >&6;}
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${CPU_STR}-ac\"" > john_build_rule.h
 
 HOST_OS="$host_os"
@@ -16745,7 +16776,8 @@ fi
 # This needs arch.h to be linked so can't happen before
 # AC_OUTPUT
 ##########################################################
-echo "configure: creating ./fmt_externs.h"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating ./fmt_externs.h" >&5
+$as_echo "$as_me: configure: creating ./fmt_externs.h" >&6;}
 rm -f fmt_externs.h
 
 CFLAGS_EX2=
@@ -16765,7 +16797,8 @@ fi
 if test ! -f fmt_externs.h; then
   echo >fmt_externs.h
 fi
-echo "configure: creating ./fmt_registers.h"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating ./fmt_registers.h" >&5
+$as_echo "$as_me: configure: creating ./fmt_registers.h" >&6;}
 rm -f fmt_registers.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
@@ -16798,7 +16831,7 @@ if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a         "x$
    fi
 else
    if test "x$ompfast" = "xyes"; then
-	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "OMP for fast formats requested, but no OMP on this system
 See \`config.log' for more details" "$LINENO" 5; }
@@ -16851,7 +16884,6 @@ fi
 if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-xO") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-fast\b") -eq 0; then
-   echo
    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No recognized optimization option present in CFLAGS" >&5
 $as_echo "$as_me: WARNING: No recognized optimization option present in CFLAGS" >&2;}
 fi
