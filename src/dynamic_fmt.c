@@ -1101,17 +1101,22 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 {
 	static char out[1024];
+	char search_char = '$';
 	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (strnlen(ciphertext, 951) > 950)
 		return ciphertext;
 
+	if (!strncmp(ciphertext, "@dynamic=", 9))
+		search_char = '@';
+
 	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them
-	if (pPriv->dynamic_base64_inout == 3 && !strncmp(ciphertext, "$dynamic_", 9))
+	if (pPriv->dynamic_base64_inout == 3 &&
+	    (!strncmp(ciphertext, "$dynamic_", 9) || !strncmp(ciphertext, "@dynamic=", 9)))
 	{
 		static char ct[496];
 		unsigned int len;
-		char *cp = strchr(&ciphertext[9], '$'), *cp2;
+		char *cp = strchr(&ciphertext[9], search_char), *cp2;
 		if (cp) {
 			++cp;
 			len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0);
@@ -1127,7 +1132,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		}
 	}
 
-	if (!strncmp(ciphertext, "$dynamic", 8)) {
+	if (!strncmp(ciphertext, "$dynamic", 8) ||
+	    !strncmp(ciphertext, "@dynamic=", 9)) {
 		if (strstr(ciphertext, "$HEX$"))
 			return RemoveHEX(out, ciphertext);
 		return ciphertext;
@@ -1150,6 +1156,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 {
 	static char out[1024];
+	char search_char = '$';
 	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (!strncmp(ciphertext, "$dynamic", 8)) {
@@ -1157,6 +1164,12 @@ static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 			RemoveHEX(out, ciphertext);
 		else
 			strcpy(out, ciphertext);
+	} else if (!strncmp(ciphertext, "@dynamic=", 9)) {
+		if (strstr(ciphertext, "$HEX$"))
+			RemoveHEX(out, ciphertext);
+		else
+			strcpy(out, ciphertext);
+		search_char = '@';
 	} else {
 		if (!strncmp(ciphertext, "md5_gen(", 8)) {
 			ciphertext += 8;
@@ -1169,7 +1182,7 @@ static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 		} else
 			sprintf(out, "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 	}
-	ciphertext = strchr(&out[8], '$')+1;
+	ciphertext = strchr(&out[8], search_char)+1;
 	while (*ciphertext && *ciphertext != '$') {
 		if (*ciphertext >= 'A' && *ciphertext <= 'Z')
 			*ciphertext += 0x20; // ASCII specific, but I really do not care.
