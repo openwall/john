@@ -485,6 +485,6 @@ CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$simd" = xno ; then
-  CPU_STR="SIMD_disabled"
+  CPU_STR="SIMD disabled"
 fi
 ])

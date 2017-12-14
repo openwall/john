@@ -9774,6 +9774,7 @@ $as_echo_n "checking special compiler flags... " >&6; }
        { $as_echo "$as_me:${as_lineno-$LINENO}: result: Intel X86*" >&5
 $as_echo "Intel X86*" >&6; }
 
+
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 #############################################################################
@@ -10484,7 +10485,7 @@ CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 if test "x$simd" = xno ; then
-  CPU_STR="SIMD_disabled"
+  CPU_STR="SIMD disabled"
 fi
 
 

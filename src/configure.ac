@@ -472,7 +472,8 @@ esac
 JTR_ASM_MAGIC
 AS_IF([test "x$cpu_family" = xintel],
        AC_MSG_CHECKING([special compiler flags])
-       AC_MSG_RESULT([Intel X86*]) [JTR_X86_SPECIAL_LOGIC]
+       AC_MSG_RESULT([Intel X86*])
+       [JTR_X86_SPECIAL_LOGIC]
      )
 AC_MSG_CHECKING([for arch.h alternative])
 AC_MSG_RESULT([${ARCH_LINK}])
