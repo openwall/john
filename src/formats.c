@@ -1083,7 +1083,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		// when there are constant strings, or things like user names embedded in the hash,
 		// or other non-hex strings.
 		// Fixed the function,  Dec 13, 2017.  Jfoug.  Changed to function with --test-full=0
-		if (full_lvl >= 0)
+		// However, there is one format which has not been fixed. That is the dynamic
+		// compiler.  So the --test-full=1 level has been kept for this functionality.
+		if (full_lvl > 0)
 		if (!fmt_split_case && format->params.binary_size != 0 && is_change_case && is_need_unify_case) {
 			snprintf(s_size, sizeof(s_size),
 				"should unify cases in split() and set FMT_SPLIT_UNIFIES_CASE (#3)");
@@ -1504,7 +1506,7 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 			}
 		} else
 			*is_need_unify_case = 0;
-	} 
+	}
 
 	MEM_FREE(orig_salt);
 	MEM_FREE(orig_binary);
