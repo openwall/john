@@ -143,7 +143,7 @@ echo '**************************************************************************
 echo ""
 cd /base/JohnTheRipper/src
 make -s distclean
-CFLAGS_EXTRA="-fstack-protector-all" CPPFLAGS="-mno-sse2 -mno-mmx" ./configure
+CFLAGS_EXTRA="-fstack-protector-all" ./configure --disable-simd
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
@@ -159,7 +159,7 @@ echo ""
 echo ""
 echo ""
 echo '******************************************************************************'
-echo "now building/testing a 32 bit NON-SIMD Linux build"
+echo "now building/testing a 32 bit legacy NON-SIMD Linux build"
 echo '******************************************************************************'
 echo ""
 make -s distclean
@@ -176,7 +176,7 @@ echo ""
 echo ""
 echo ""
 echo '******************************************************************************'
-echo "now building/testing a 32 bit SSE2 Linux build"
+echo "now building/testing a 32 bit legacy SSE2 Linux build"
 echo '******************************************************************************'
 echo ""
 make -f Makefile.legacy -s clean

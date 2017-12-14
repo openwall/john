@@ -41,11 +41,11 @@
 
 #define CPU_DETECT			0
 
-#ifdef __SSE2__
+#if !defined(JOHN_NO_SIMD) && defined(__SSE2__)
 #define CPU_NAME			"SSE2"
 #endif
 
-#if __SSSE3__ || JOHN_SSSE3
+#if !defined(JOHN_NO_SIMD) && (__SSSE3__ || JOHN_SSSE3)
 #undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
@@ -58,7 +58,7 @@
 #endif
 #endif
 
-#if __SSE4_1__ || JOHN_SSE4_1
+#if !defined(JOHN_NO_SIMD) && (__SSE4_1__ || JOHN_SSE4_1)
 #undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
@@ -71,7 +71,7 @@
 #endif
 #endif
 
-#if __AVX512F__ || JOHN_AVX512F
+#if !defined(JOHN_NO_SIMD) && (__AVX512F__ || JOHN_AVX512F)
 #undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
@@ -84,7 +84,7 @@
 #endif
 #endif
 
-#if __AVX512BW__ || JOHN_AVX512BW
+#if !defined(JOHN_NO_SIMD) && (__AVX512BW__ || JOHN_AVX512BW)
 #undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
@@ -97,10 +97,10 @@
 #endif
 #endif
 
-#ifdef __XOP__
+#if !defined(JOHN_NO_SIMD) && defined(__XOP__)
 #define JOHN_XOP			1
 #endif
-#if defined(__AVX__) || defined(JOHN_XOP) || defined(JOHN_AVX2)
+#if !defined(JOHN_NO_SIMD) && (defined(__AVX__) || defined(JOHN_XOP) || defined(JOHN_AVX2))
 #define JOHN_AVX			1
 #endif
 
@@ -112,10 +112,10 @@
 #define DES_EXTB			1
 #define DES_COPY			0
 #define DES_BS				1
-#if !defined(__SSE2__)
+#if defined(JOHN_NO_SIMD) || !defined(__SSE2__)
 #define DES_BS_VECTOR			0
 #define DES_BS_ALGORITHM_NAME		"DES 64/64"
-#elif defined(JOHN_AVX) && (defined(__GNUC__) || defined(_OPENMP))
+#elif !defined(JOHN_NO_SIMD) && defined(JOHN_AVX) && (defined(__GNUC__) || defined(_OPENMP))
 /*
  * Require gcc for AVX/XOP because DES_bs_all is aligned in a gcc-specific way,
  * except in OpenMP-enabled builds, where it's aligned by different means.
@@ -206,7 +206,7 @@
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 AVX-16"
 #endif
 #endif
-#elif (defined(__SSE2__) && defined(_OPENMP))
+#elif !defined(JOHN_NO_SIMD) && (defined(__SSE2__) && defined(_OPENMP))
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			2
@@ -235,7 +235,7 @@
 #endif
 #define DES_BS_EXPAND			1
 
-#if CPU_DETECT && DES_BS == 3
+#if !defined(JOHN_NO_SIMD) && CPU_DETECT && DES_BS == 3
 #define CPU_REQ_XOP			1
 #undef CPU_NAME
 #define CPU_NAME			"XOP"
@@ -255,7 +255,9 @@
 			 + __GNUC_PATCHLEVEL__)
 #endif
 
-#ifdef __SSE2__
+#if defined(__SSE2__)
+
+#if !defined(JOHN_NO_SIMD)
 
 #if __AVX512F__
 #define SIMD_COEF_32 16
@@ -366,11 +368,14 @@
 #define SHA512_N_STR		PARA_TO_N(SIMD_COEF_64)
 #endif
 
+#endif	/* !defined(JOHN_NO_SIMD) */
+
 #define SHA_BUF_SIZ			16
 
 #define NT_X86_64
 
 #endif /* __SSE2__ */
+
 
 #define BF_ASM				0
 #define BF_SCALE			1
@@ -395,7 +400,7 @@
  * In Jumbo, we may get BF_X2 from autoconf (after testing ht cpuid flag).
  */
 #ifndef BF_X2
-#if __AVX__ && HAVE_HT && _OPENMP
+#if !defined(JOHN_NO_SIMD) && __AVX__ && HAVE_HT && _OPENMP
 #define BF_X2				1
 #else
 #define BF_X2				3
