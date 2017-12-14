@@ -27,6 +27,11 @@ indent_size = 8
 indent_style = space
 indent_size = 2
 
+# M4 is a bastard
+[*.{ac,m4}]
+indent_style = space
+indent_size = 2
+
 # Core files do use a tab size of 8
 [*.{S,sh}]
 indent_size = 8
