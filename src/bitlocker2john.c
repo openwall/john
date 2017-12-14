@@ -193,6 +193,7 @@ int process_encrypted_image(char *image_path)
 			// UP
 			printf("\nUser Password hash:\n$bitlocker$%d$%d$", HASH_UP, SALT_SIZE);
 			printf("$bitlocker$%d$%d$", HASH_UP, SALT_SIZE);
+
 			print_hex(p_salt, SALT_SIZE, stdout);
 			printf("$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
 			print_hex(p_nonce, NONCE_SIZE, stdout);
@@ -254,7 +255,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	}
 	write(fd, data, size);
 	close(fd);
-	process_encrypted_image(name);
+	process_encrypted_image();
 	remove(name);
 
 	return 0;
@@ -267,14 +268,8 @@ static int usage(char *name){
 		"  -h"
 		"\t\tShow this help\n"
 		"  -i"
-<<<<<<< HEAD
 		"\t\tImage path of encrypted memory unit encrypted with BitLocker\n", name);
-=======
-		"\t\tPath of memory unit encrypted with BitLocker\n"
-		"  -o"
-		"\t\tOutput file\n\n", name);
 
->>>>>>> getopt_long removed (getopt instead), VMK comparison improved with version check (should help to avoid false positives)
 	return EXIT_FAILURE;
 }
 
@@ -373,6 +368,23 @@ int main(int argc, char **argv)
 
 	MEM_FREE(image_path);
 
+	if(outHashRecovery == NULL) //Current directory
+	{
+		outHashRecovery = (char*)Calloc( (strlen(FILE_OUT_HASH_RECV)+1), sizeof(char));
+		memcpy(outHashRecovery, FILE_OUT_HASH_RECV, strlen(FILE_OUT_HASH_RECV));
+	}
+
+	printf("\n---------> bitlocker2john hash extractor <---------\n");
+	if(process_encrypted_image())
+		fprintf(stderr, "\nError while parsing input device image\n");
+	else
+		printf("\nOutput files:\nUser Password:\"%s\"\nUser Password with MAC:\"%s\"\nRecovery Password:\"%s\"\nRecovery Password with MAC:\"%s\"\n", outHashUser, outHashUserMac, outHashRecovery, outHashRecoveryMac);
+
+	free(outHashUser);
+	free(outHashUserMac);
+	free(outHashRecovery);
+	free(outHashRecoveryMac);
+	
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;

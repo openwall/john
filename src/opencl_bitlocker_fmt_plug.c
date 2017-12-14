@@ -253,7 +253,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 			"Error while setting d_macIV8");
 	CLKERNELARG(final_kernel, arg++, d_macIV12,
 			"Error while setting d_macIV12");
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	CLKERNELARG(final_kernel, arg++, d_cMacIV0,
 			"Error while setting d_cMacIV0");
 	CLKERNELARG(final_kernel, arg++, d_cMacIV4,
@@ -268,7 +272,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	d_salt = CLCREATEBUFFER(CL_MEM_READ_ONLY,
 			BITLOCKER_SALT_SIZE * sizeof(unsigned char), "Cannot allocate d_salt");
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	d_pad = CLCREATEBUFFER(CL_MEM_READ_ONLY, BITLOCKER_PADDING_SIZE * sizeof(unsigned char),
 				"Cannot allocate d_pad");
 
@@ -344,13 +352,21 @@ static void reset(struct db_main *db)
 		 */
 
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
+<<<<<<< HEAD
 		                       26, self, create_clobj, release_clobj,
+=======
+		                       25, self, create_clobj, release_clobj,
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 		                       0, db);
 
 		autotune_run(self, HASH_LOOPS * ITERATIONS, 0,
 		             (cpu(device_info[gpu_id]) ?
+<<<<<<< HEAD
 		              10000 : 100000000ULL));
+=======
+		              10000000 : 100000000ULL));
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 		              //1000000000 : 10000000000ULL));
 	}
 }
@@ -425,40 +441,60 @@ static void set_salt(void * cipher_salt_input)
 	h_vmkIV[0] = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
 	h_vmkIV[BITLOCKER_IV_SIZE - 1] = 1;
 
+<<<<<<< HEAD
 	h_attack[0] = cur_salt->attack_type;
+=======
+   	h_attack[0] = cur_salt->attack_type;
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	memcpy(h_mac, cur_salt->mac, BITLOCKER_MAC_SIZE);
 
 	//-------- macIV setup ------
 	memset(h_macIV, 0, BITLOCKER_IV_SIZE);
 	h_macIV[0] = (unsigned char)(BITLOCKER_IV_SIZE - 1 - BITLOCKER_NONCE_SIZE - 1);
 	memcpy(h_macIV + 1, cur_salt->iv, BITLOCKER_NONCE_SIZE);
+<<<<<<< HEAD
 	h_macIV[BITLOCKER_IV_SIZE-1] = 0;
+=======
+	h_macIV[BITLOCKER_IV_SIZE-1] = 0; 
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	// -----------------------
 
 	//-------- cMacIV setup ------
 	memset(h_cMacIV, 0, BITLOCKER_IV_SIZE);
 	h_cMacIV[0] = 0x3a;
 	memcpy(h_cMacIV + 1, cur_salt->iv, BITLOCKER_NONCE_SIZE);
+<<<<<<< HEAD
 	h_cMacIV[BITLOCKER_IV_SIZE-1] = 0x2c;
+=======
+	h_cMacIV[BITLOCKER_IV_SIZE-1] = 0x2c; 
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	// -----------------------
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+<<<<<<< HEAD
 	int i, m=0, startIndex=0, h_loopHash=0;
+=======
+	int i, m=0;
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-
+	
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 	h_found[0] = -1;
+<<<<<<< HEAD
 	h_loopIter=cur_salt->iterations/HASH_LOOPS;
 	if(cur_salt->iterations%HASH_LOOPS != 0) h_loopIter++;
 	h_loopHash = HASH_LOOPS;
+=======
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 
 	// =========================== Init kernel ===========================
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_numPsw,
 		CL_FALSE, 0, sizeof(int), pcount, 0,
 		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+<<<<<<< HEAD
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pswI,
 		CL_FALSE, 0, count * BITLOCKER_PSW_INT_SIZE * sizeof(unsigned int), h_pswI, 0,
@@ -479,11 +515,34 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], init_kernel,
 		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m]), "Run kernel");
 
+=======
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pswI,
+		CL_FALSE, 0, count * BITLOCKER_PSW_INT_SIZE * sizeof(unsigned int), h_pswI, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pswSize,
+		CL_FALSE, 0, count * sizeof(int), h_pswSize, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_attack,
+		CL_FALSE, 0, sizeof(int), h_attack, 0,
+		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");	
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_outHash,
+		CL_FALSE, 0, count * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int), 
+		hash_zero, 0, NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], init_kernel,
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m]), "Run kernel");
+
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	// =========================== Loop kernel ===========================
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_wblocks,
 		CL_FALSE, 0, (BL_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int),
 		h_wblocks, 0, NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
+<<<<<<< HEAD
 	for (i = 0; i < (ocl_autotune_running ? 1 : h_loopIter); i++) {
 
 		if( ( (HASH_LOOPS * i) + HASH_LOOPS) > cur_salt->iterations)
@@ -501,6 +560,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				1, NULL, &global_work_size, lws, 0,
 				NULL, multi_profilingEvent[m+3]), "Run loop kernel");
 
+=======
+	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS); i++) {
+		
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_currIter,
+				CL_FALSE, 0, sizeof(int), &i, 0,
+				NULL, multi_profilingEvent[m+1]), "Copy iter num to gpu");
+
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m+2]), "Run loop kernel");
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 
@@ -508,7 +576,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// =========================== Final kernel ===========================
+<<<<<<< HEAD
 	m+=4;
+=======
+	m+=3;
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_found,
 		CL_FALSE, 0, sizeof(int), h_found, 0,
 		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
@@ -625,17 +697,29 @@ static void set_key(char *key, int index)
 	char tmp[BITLOCKER_PSW_CHAR_MAX_SIZE], tmp2[BITLOCKER_PSW_CHAR_MAX_SIZE], *p;
 	int8_t check_digit;
 	memset(tmp, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	size = strlen(key);
 	memcpy(tmp, key, size);
 
 	if(tmp[0] == '\n' || size < BITLOCKER_PSW_CHAR_MIN_SIZE || size > BITLOCKER_SECOND_LENGHT) return;
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 	memset((h_pswC)+(index*BITLOCKER_PSW_CHAR_MAX_SIZE), 0, BITLOCKER_PSW_CHAR_MAX_SIZE*sizeof(unsigned char));
 	memcpy((h_pswC+(index*BITLOCKER_PSW_CHAR_MAX_SIZE)), tmp, size);
 
 	memset((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE), 0, BITLOCKER_PSW_INT_SIZE*sizeof(unsigned int));
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
         //Recovery password
 	if(h_attack[0] == BITLOCKER_HASH_RP || h_attack[0] == BITLOCKER_HASH_RP_MAC)
 	{
@@ -656,24 +740,42 @@ static void set_key(char *key, int index)
 		} while(p != NULL);
 
 		if(count != (RECOVERY_PASS_BLOCKS*2)) return;
+<<<<<<< HEAD
 
 		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[0] = ( (((unsigned int)tmp2[0]  ) << 24) & 0xFF000000) |
 							( (((unsigned int)tmp2[0+1]) << 16) & 0x00FF0000) |
+=======
+		
+		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[0] = ( (((unsigned int)tmp2[0]  ) << 24) & 0xFF000000) |
+							( (((unsigned int)tmp2[0+1]) << 16) & 0x00FF0000) |	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 							( (((unsigned int)tmp2[0+2])  << 8) & 0x0000FF00)  |
 							( (((unsigned int)tmp2[0+3])  << 0) & 0x000000FF);
 
 		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[1] = 	( (((unsigned int)tmp2[4]) << 24) & 0xFF000000) |
+<<<<<<< HEAD
 							( (((unsigned int)tmp2[4+1]) << 16) & 0x00FF0000) |
+=======
+							( (((unsigned int)tmp2[4+1]) << 16) & 0x00FF0000) |	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 							( (((unsigned int)tmp2[4+2]) << 8) & 0x0000FF00)  |
 							( (((unsigned int)tmp2[4+3]) << 0) & 0x000000FF);
 
 		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[2] = 	( (((unsigned int)tmp2[8]) << 24) & 0xFF000000) |
+<<<<<<< HEAD
 							( (((unsigned int)tmp2[8+1]) << 16) & 0x00FF0000) |
+=======
+							( (((unsigned int)tmp2[8+1]) << 16) & 0x00FF0000) |	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 							( (((unsigned int)tmp2[8+2]) << 8) & 0x0000FF00)  |
 							( (((unsigned int)tmp2[8+3]) << 0) & 0x000000FF);
 
 		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[3] = 	( (((unsigned int)tmp2[12]) << 24) & 0xFF000000) |
+<<<<<<< HEAD
 							( (((unsigned int)tmp2[12+1]) << 16) & 0x00FF0000) |
+=======
+							( (((unsigned int)tmp2[12+1]) << 16) & 0x00FF0000) |	
+>>>>>>> New attack modes: User Password with MAC verification, Recovery Password, Recovery Password with MAC verification
 							( (((unsigned int)tmp2[12+2]) << 8) & 0x0000FF00)  |
 							( (((unsigned int)tmp2[12+3]) << 0) & 0x000000FF);
 
