@@ -71,32 +71,6 @@
 #endif
 #endif
 
-#if !defined(JOHN_NO_SIMD) && (__AVX512F__ || JOHN_AVX512F)
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_AVX512F			1
-#undef CPU_NAME
-#define CPU_NAME			"AVX512F"
-#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
-#define CPU_FALLBACK_BINARY		"john-non-avx512f"
-#define CPU_FALLBACK_BINARY_DEFAULT
-#endif
-#endif
-
-#if !defined(JOHN_NO_SIMD) && (__AVX512BW__ || JOHN_AVX512BW)
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_AVX512BW			1
-#undef CPU_NAME
-#define CPU_NAME			"AVX512BW"
-#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
-#define CPU_FALLBACK_BINARY		"john-non-avx512bw"
-#define CPU_FALLBACK_BINARY_DEFAULT
-#endif
-#endif
-
 #if !defined(JOHN_NO_SIMD) && defined(__XOP__)
 #define JOHN_XOP			1
 #endif
@@ -242,6 +216,32 @@
 #ifdef CPU_FALLBACK_BINARY_DEFAULT
 #undef CPU_FALLBACK_BINARY
 #define CPU_FALLBACK_BINARY		"john-non-xop"
+#endif
+#endif
+
+#if !defined(JOHN_NO_SIMD) && (__AVX512F__ || JOHN_AVX512F)
+#undef CPU_DETECT
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_AVX512F			1
+#undef CPU_NAME
+#define CPU_NAME			"AVX512F"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-avx512f"
+#define CPU_FALLBACK_BINARY_DEFAULT
+#endif
+#endif
+
+#if !defined(JOHN_NO_SIMD) && (__AVX512BW__ || JOHN_AVX512BW)
+#undef CPU_DETECT
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_AVX512BW			1
+#undef CPU_NAME
+#define CPU_NAME			"AVX512BW"
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
+#define CPU_FALLBACK_BINARY		"john-non-avx512bw"
+#define CPU_FALLBACK_BINARY_DEFAULT
 #endif
 #endif
 
