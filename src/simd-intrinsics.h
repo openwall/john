@@ -14,6 +14,7 @@
 #undef SIMD_COEF_32
 #endif
 
+#include "arch.h"
 #include "common.h"
 #include "pseudo_intrinsics.h"
 #include "simd-intrinsics-load-flags.h"
