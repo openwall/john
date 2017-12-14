@@ -28,15 +28,13 @@
 // if the user runs this on a machine which the SIMD is there, but FAILS to be new enough
 // then they will have to add the --disable-simd flag to configure.
 int main(int argc, char **argv) {
-	if (argc==1)
-		return !printf("This program a Linux system to run with any meaningful data\n");
-	if (!strcmp(argv[1], "PPC_FEATURE_HAS_ALTIVEC"))
-		return !!printf ("1\n");
-	if (!strcmp(argv[1], "PPC_FEATURE_HAS_VSX"))
-		return !!printf ("1\n");
-	if (!strcmp(argv[1], "PPC_FEATURE2_ARCH_2_07"))
-		return !!printf ("1\n");
-	printf ("Flag %s not handled\n", argv[1]);
+	if (argc==2) {
+		if (!strcmp(argv[1], "PPC_FEATURE_HAS_ALTIVEC") ||
+		    !strcmp(argv[1], "PPC_FEATURE_HAS_VSX") ||
+		    !strcmp(argv[1], "PPC_FEATURE2_ARCH_2_07"))
+		    return !!printf ("1\n");
+	}
+	printf ("This program only returns meaningful data on a Linux system\n");
 	return 0;
 }
 
