@@ -24,7 +24,6 @@ matrix:
 
   - os: linux
     env: ASAN="--enable-asan" TEST="fresh test"
-    group: deprecated-2017Q3
 
   - os: linux
     compiler: gcc
