@@ -732,11 +732,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (cnt = 1; ; ++cnt) {
 			if (crypt_struct->datlen[idx]==256) {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
-				SIMDSHA512body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
-				SIMDSHA512body((__m128i *)&cp[128], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
+				SIMDSHA512body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
+				SIMDSHA512body(&cp[128], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
 			} else {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
-				SIMDSHA512body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
+				SIMDSHA512body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 			}
 			if (cnt == cur_salt->rounds)
 				break;

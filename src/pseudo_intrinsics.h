@@ -40,8 +40,6 @@
 #ifdef __ARM_NEON
 #include <arm_neon.h>
 
-#define __m128i vtype
-
 typedef uint8x16_t vtype8;
 typedef uint32x4_t vtype32;
 typedef uint64x2_t vtype64;
@@ -101,8 +99,6 @@ inline static int vanyeq_epi32(vtype x, vtype y)
 /*************************** AltiVec (Power) **************************/
 #elif __ALTIVEC__
 #include <altivec.h>
-
-#define __m128i vtype
 
 typedef vector unsigned int vtype32;
 typedef vector unsigned long long vtype64;
