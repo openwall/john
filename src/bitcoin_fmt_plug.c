@@ -30,7 +30,6 @@ john_register_one(&fmt_bitcoin);
 #ifndef OMP_SCALE
 #define OMP_SCALE               1
 #endif
-static int omp_t = 1;
 #endif
 
 #include "arch.h"
@@ -115,10 +114,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);

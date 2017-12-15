@@ -21,8 +21,14 @@ john_register_one(&fmt_gost);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               512 // tuned K8-dual HT
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -30,39 +36,30 @@ john_register_one(&fmt_gost);
 #include "params.h"
 #include "options.h"
 #include "gost.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // tuned K8-dual HT
-#endif
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"gost"
-#define FORMAT_NAME		"GOST R 34.11-94"
+#define FORMAT_LABEL            "gost"
+#define FORMAT_NAME             "GOST R 34.11-94"
 
-#define FORMAT_TAG		"$gost$"
-#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
-#define FORMAT_TAG_CP		"$gost-cp$"
-#define TAG_CP_LENGTH		(sizeof(FORMAT_TAG_CP)-1)
-
+#define FORMAT_TAG              "$gost$"
+#define TAG_LENGTH              (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG_CP           "$gost-cp$"
+#define TAG_CP_LENGTH           (sizeof(FORMAT_TAG_CP)-1)
 #if !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
-#define ALGORITHM_NAME		"64/64"
+#define ALGORITHM_NAME          "64/64"
 #else
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
 #endif
-
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define CIPHERTEXT_LENGTH	64
-#define BINARY_SIZE		32
-#define SALT_SIZE		1
-#define SALT_ALIGN		1
-#define BINARY_ALIGN	sizeof(uint32_t)
-
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define CIPHERTEXT_LENGTH       64
+#define BINARY_SIZE             32
+#define SALT_SIZE               1
+#define SALT_ALIGN              1
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests gost_tests[] = {
 	{"ce85b99cc46752fffee35cab9a7b0278abb4c2d2055cff685af4912c49490f8d", ""},
@@ -88,9 +85,12 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	gost_init_table();
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,

@@ -30,7 +30,6 @@ john_register_one(&fmt_gpg);
 #else
 
 #include <string.h>
-#include <assert.h>
 #include <stdint.h>
 
 #ifdef _OPENMP
@@ -62,10 +61,6 @@ john_register_one(&fmt_gpg);
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
-
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 static int any_cracked;
@@ -74,10 +69,13 @@ static size_t cracked_size;
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);

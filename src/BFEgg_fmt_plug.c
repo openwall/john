@@ -16,12 +16,7 @@ john_register_one(&fmt_BFEgg);
 
 #include <string.h>
 
-#include "misc.h"
-#include "formats.h"
-#include "common.h"
-#include "blowfish.c"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 // Tuning on AMD A8 4500M laptop, cygwin64 with OMP(4x) -test=5
 // 4   = 44330 (original)
@@ -39,26 +34,27 @@ static int omp_t = 1;
 #define OMP_SCALE               128
 #endif
 #endif
+
+#include "misc.h"
+#include "formats.h"
+#include "common.h"
+#include "blowfish.c"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"bfegg"
-#define FORMAT_NAME			"Eggdrop"
-#define ALGORITHM_NAME			"Blowfish 32/" ARCH_BITS_STR
-
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
-
-#define PLAINTEXT_MIN_LENGTH		1
-#define PLAINTEXT_LENGTH		72
-#define CIPHERTEXT_LENGTH		13
-
-#define BINARY_SIZE			7
-#define BINARY_ALIGN			4
-#define SALT_SIZE			0
-#define SALT_ALIGN			1
-
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define FORMAT_LABEL            "bfegg"
+#define FORMAT_NAME             "Eggdrop"
+#define ALGORITHM_NAME          "Blowfish 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_MIN_LENGTH    1
+#define PLAINTEXT_LENGTH        72
+#define CIPHERTEXT_LENGTH       13
+#define BINARY_SIZE             7
+#define BINARY_ALIGN            4
+#define SALT_SIZE               0
+#define SALT_ALIGN              1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests tests[] = {
     {"+9F93o1OxwgK1", "123456"},
@@ -99,10 +95,13 @@ void init(struct fmt_main *self) {
 	const char *pos;
 
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

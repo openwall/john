@@ -1,4 +1,5 @@
-/* Java KeyStore password cracker for JtR.
+/*
+ * Java KeyStore password cracker for JtR.
  * (will NOT address password(s) for alias(es) within keystore).
  *
  * OpenCL plugin by Terry West.
@@ -33,8 +34,6 @@ john_register_one(&fmt_opencl_keystore);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
 
 #include "arch.h"
 #include "sha.h"
@@ -44,22 +43,21 @@ john_register_one(&fmt_opencl_keystore);
 #include "params.h"
 #include "options.h"
 #include "keystore_common.h"
-
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"keystore-opencl"
-#define FORMAT_NAME			"Java KeyStore"
-#define ALGORITHM_NAME		"SHA1 OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define FORMAT_LABEL            "keystore-opencl"
+#define FORMAT_NAME             "Java KeyStore"
+#define ALGORITHM_NAME          "SHA1 OpenCL"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
 // reduced PLAIN_LEN from 125 bytes, and speed went from 12.2k to 16.4k
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH        32
 // reduced BIN_SIZE from 20 bytes to 4 for the GPU, and speed went from
 // 16.4k to 17.8k.  cmp_exact does a CPU hash check on possible matches.
-#define SALT_SIZE			sizeof(struct custom_salt)
-#define SALT_ALIGN			4
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              4
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 // these to pass to kernel
 typedef struct {
@@ -190,7 +188,6 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
-
 	if (autotuned) {
 		release_clobj();
 
@@ -257,7 +254,6 @@ static void set_salt(void *salt)
 			                            CL_FALSE, 0, saltsize,
 										&saltbuffer, 0, NULL, NULL),
 										"Copy salt to gpu");
-
 }
 
 static void keystore_set_key(char *key, int index)
@@ -271,6 +267,7 @@ static void keystore_set_key(char *key, int index)
 static char *get_key(int index)
 {
 	static char key[PLAINTEXT_LENGTH + 1];
+
 	memcpy(key, inbuffer[index].pass, inbuffer[index].length);
 	key[inbuffer[index].length] = 0;
 
@@ -279,9 +276,7 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-
 	const int count = *pcount;
-
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -315,6 +310,7 @@ static int cmp_all(void *binary, int count)
 			return 1;
 		}
 	}
+
 	return 0;
 }
 
@@ -323,6 +319,7 @@ static int cmp_one(void *binary, int index)
 	if (((uint32_t*)binary)[0] != outbuffer[index].gpu_out) {
 		return 0;
 	}
+
 	return 1;
 }
 

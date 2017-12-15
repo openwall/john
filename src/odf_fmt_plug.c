@@ -1,4 +1,5 @@
-/* ODF cracker patch for JtR. Hacked together during Summer of 2012 by
+/*
+ * ODF cracker patch for JtR. Hacked together during Summer of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -12,9 +13,8 @@ extern struct fmt_main fmt_odf;
 john_register_one(&fmt_odf);
 #else
 
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
+#include <openssl/blowfish.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -31,33 +31,32 @@ john_register_one(&fmt_odf);
 #include "options.h"
 #include "sha.h"
 #include "sha2.h"
-#include <openssl/blowfish.h>
 #include "aes.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"ODF"
-#define FORMAT_TAG		"$odf$*"
-#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
-#define FORMAT_NAME		""
+#define FORMAT_LABEL            "OpenDocument ODF"
+#define FORMAT_TAG              "$odf$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define FORMAT_NAME             ""
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"SHA1/SHA256 " SHA1_ALGORITHM_NAME " BF/AES"
+#define ALGORITHM_NAME          "SHA1/SHA256 " SHA1_ALGORITHM_NAME " BF/AES"
 #else
-#define ALGORITHM_NAME		"SHA1/SHA256 BF/AES 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "SHA1/SHA256 BF/AES 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		20
-#define PLAINTEXT_LENGTH	125
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			sizeof(int)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define BINARY_SIZE             20
+#define PLAINTEXT_LENGTH        125
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static struct fmt_tests odf_tests[] = {
@@ -71,9 +70,6 @@ static struct fmt_tests odf_tests[] = {
 	{NULL}
 };
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
 
@@ -93,10 +89,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -197,6 +196,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$odf$*" */
 	p = strtokm(ctcopy, "*");
@@ -229,6 +229,7 @@ static void *get_salt(char *ciphertext)
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	cs.content_length = i;
 	MEM_FREE(keeptr);
+
 	return (void *)&cs;
 }
 
@@ -256,6 +257,7 @@ static void *get_binary(char *ciphertext)
 		p += 2;
 	}
 	MEM_FREE(ctcopy);
+
 	return out;
 }
 

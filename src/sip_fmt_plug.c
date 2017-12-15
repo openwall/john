@@ -1,9 +1,12 @@
-/* SIP cracker patch for JtR. Hacked together during March of 2012 by
+/*
+ * SIP cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com> .
  *
- * Copyright (C) 2007  Martin J. Muench <mjm@codito.de>
- * SIP digest authentication password (hash) cracker
- * See doc/SIPcrack-LICENSE */
+ * This code is based on SIPcrack (SIP digest authentication password hash
+ * cracker) which is Copyright (C) 2007 Martin J. Muench <mjm@codito.de>.
+ *
+ * See doc/SIPcrack-LICENSE for licensing details.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sip;
@@ -11,22 +14,11 @@ extern struct fmt_main fmt_sip;
 john_register_one(&fmt_sip);
 #else
 
-#include "md5.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "crc32.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sip_fmt_plug.h"
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 // Tuned on core i7 quad HT
 //   1   4963K
@@ -38,6 +30,16 @@ static int omp_t = 1;
 #define OMP_SCALE   32
 #endif
 #endif
+
+#include "arch.h"
+#include "md5.h"
+#include "crc32.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
+#include "sip_fmt_plug.h"
 #include "memdbg.h"
 
 typedef struct sip_salt_t {
@@ -48,21 +50,20 @@ typedef struct sip_salt_t {
 
 static sip_salt *pSalt;
 
-
-#define FORMAT_LABEL		"SIP"
-#define FORMAT_NAME		""
-#define FORMAT_TAG           "$sip$*"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(sip_salt)
-#define BINARY_ALIGN	4
-#define SALT_ALIGN		sizeof(int)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	64
+#define FORMAT_LABEL            "SIP"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$sip$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        32
+#define BINARY_SIZE             16
+#define SALT_SIZE               sizeof(sip_salt)
+#define BINARY_ALIGN            4
+#define SALT_ALIGN              sizeof(int)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
 
 static struct fmt_tests sip_tests[] = {
 	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104**46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
@@ -82,10 +83,13 @@ static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	/* Init bin 2 hex table for faster conversions later */
 	init_bin2hex(bin2hex_table);
@@ -104,7 +108,8 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *q;
-	int i,res = 0;
+	int i, res = 0;
+
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
@@ -198,19 +203,16 @@ static void *get_salt(char *ciphertext)
 	char saltBuf[2048];
 	char *lines[16];
 	login_t login;
-	int num_lines;
 	MD5_CTX md5_ctx;
 	unsigned char md5_bin_hash[MD5_LEN];
 	char static_hash[MD5_LEN_HEX+1];
 	char *saltcopy = saltBuf;
 
 	memset(&salt, 0, sizeof(salt));
-
 	strcpy(saltBuf, ciphertext);
 	saltcopy += FORMAT_TAG_LEN;	/* skip over "$sip$*" */
 	memset(&login, 0, sizeof(login_t));
-	num_lines = stringtoarray(lines, saltcopy, '*');
-	assert(num_lines == 14);
+	stringtoarray(lines, saltcopy, '*');
 	strncpy(login.server,      lines[0], sizeof(login.server)      - 1 );
 	strncpy(login.client,      lines[1], sizeof(login.client)      - 1 );
 	strncpy(login.user,        lines[2], sizeof(login.user)        - 1 );
@@ -264,7 +266,6 @@ static void *get_salt(char *ciphertext)
 	/* Get lens of static buffers */
 	salt.static_hash_data_len  = strlen(salt.static_hash_data);
 
-	/* Begin brute force attack */
 #ifdef SIP_DEBUG
 	printf("Starting bruteforce against user '%s' (%s: '%s')\n",
 			login.user, login.algorithm, login.hash);
@@ -345,7 +346,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void sip_set_key(char *key, int index)

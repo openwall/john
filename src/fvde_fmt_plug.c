@@ -1,4 +1,5 @@
-/* JtR format to crack FileVault 2 hashes.
+/*
+ * JtR format to crack FileVault 2 hashes.
  *
  * This software is Copyright (c) 2017, Dhiru Kholia <kholia at kth.se> and it
  * is hereby released to the general public under the following terms:
@@ -17,8 +18,7 @@ john_register_one(&fmt_fvde);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -36,8 +36,8 @@ john_register_one(&fmt_fvde);
 #include "aes.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "jumbo.h"
-#include "memdbg.h"
 #include "fvde_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "FVDE"
 #define FORMAT_NAME             "FileVault 2"
@@ -65,9 +65,6 @@ john_register_one(&fmt_fvde);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked, cracked_count;
 static fvde_custom_salt *cur_salt;
@@ -76,10 +73,13 @@ static void init(struct fmt_main *self)
 {
 
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);

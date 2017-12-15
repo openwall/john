@@ -1,10 +1,14 @@
-/* SXC cracker patch for JtR. Hacked together during Summer of 2012 by
+/*
+ * SXC cracker patch for JtR. Hacked together during Summer of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>.
+ *
+ * This format should also work for other StarOffice file formats.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.  */
+ * are permitted.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sxc;
@@ -13,8 +17,15 @@ john_register_one(&fmt_sxc);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+#include <openssl/blowfish.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // tuned on core i7
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -23,38 +34,31 @@ john_register_one(&fmt_sxc);
 #include "options.h"
 #include "johnswap.h"
 #include "sha.h"
-#include <openssl/blowfish.h>
 #include "pbkdf2_hmac_sha1.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2 // tuned on core i7
-#endif
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"sxc"
-#define FORMAT_NAME		"StarOffice .sxc"
-#define FORMAT_TAG          "$sxc$*"
-#define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "sxc"
+#define FORMAT_NAME             "StarOffice .sxc"
+#define FORMAT_TAG              "$sxc$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " Blowfish"
+#define ALGORITHM_NAME          "SHA1 " SHA1_ALGORITHM_NAME " Blowfish"
 #else
-#define ALGORITHM_NAME		"SHA1 Blowfish 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "SHA1 Blowfish 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		20
-#define PLAINTEXT_LENGTH	125
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(uint32_t)
-#define SALT_ALIGN		sizeof(int)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define BINARY_SIZE             20
+#define PLAINTEXT_LENGTH        125
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static struct fmt_tests sxc_tests[] = {
@@ -65,14 +69,11 @@ static struct fmt_tests sxc_tests[] = {
 	{NULL}
 };
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
 
 static struct custom_salt {
-	int cipher_type; // FIXME: cipher_type seems to be ignored
+	int cipher_type; // FIXME: cipher_type seems to be ignored. NOTE: only samples with Blowfish exist / are known.
 	int checksum_type;
 	int iterations;
 	int key_size;
@@ -88,10 +89,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -111,6 +115,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *keeptr;
 	char *p;
 	int res, extra;
+
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -190,9 +195,9 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
-	memset(&cs, 0, sizeof(cs));
 
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$sxc$*" */
+	memset(&cs, 0, sizeof(cs));
+	ctcopy += FORMAT_TAG_LEN; /* skip over "$sxc$*" */
 	p = strtokm(ctcopy, "*");
 	cs.cipher_type = atoi(p);
 	p = strtokm(NULL, "*");
@@ -224,6 +229,7 @@ static void *get_salt(char *ciphertext)
 		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
+
 	return (void *)&cs;
 }
 
@@ -239,13 +245,12 @@ static void *get_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 
-	ctcopy += 6;	/* skip over "$sxc$*" */
+	ctcopy += FORMAT_TAG_LEN;
 	strtokm(ctcopy, "*");
 	strtokm(NULL, "*");
 	strtokm(NULL, "*");
 	strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
-
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
@@ -253,6 +258,7 @@ static void *get_binary(char *ciphertext)
 		p += 2;
 	}
 	MEM_FREE(keeptr);
+
 	return out;
 }
 
@@ -279,6 +285,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char output[1024];
 		int i;
 		SHA_CTX ctx;
+
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
@@ -288,6 +295,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		{
 			int lens[MAX_KEYS_PER_CRYPT];
 			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 20;
 				pin[i] = (unsigned char*)hash[i];
@@ -348,9 +356,8 @@ static char *get_key(int index)
 
 static unsigned int iteration_count(void *salt)
 {
-	struct custom_salt *my_salt;
+	struct custom_salt *my_salt = salt;
 
-	my_salt = salt;
 	return (unsigned int) my_salt->iterations;
 }
 

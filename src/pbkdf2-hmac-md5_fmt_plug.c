@@ -12,15 +12,10 @@ extern struct fmt_main fmt_pbkdf2_hmac_md5;
 john_register_one(&fmt_pbkdf2_hmac_md5);
 #else
 
-#include <ctype.h>
 #include <string.h>
-#include <assert.h>
 #include <stdint.h>
 
 #include "arch.h"
-
-//#undef SIMD_COEF_32
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -65,9 +60,12 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));

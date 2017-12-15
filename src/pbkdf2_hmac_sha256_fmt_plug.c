@@ -1,20 +1,21 @@
-/* This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+/*
+ * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * Based on hmac-sha512 by magnum
+ * Based on hmac-sha512 by magnum.
  *
  * Minor fixes, format unification and OMP support done by Dhiru Kholia
- * <dhiru@openwall.com>
+ * <dhiru@openwall.com>.
  *
  * Fixed for supporting $ml$ "dave" format as well as GRUB native format by
  * magnum 2013. Note: We support a binary size of >512 bits (64 bytes / 128
  * chars of hex) but we currently do not calculate it even in cmp_exact(). The
  * chance for a 512-bit hash collision should be pretty dang slim.
  *
- * the pbkdf2_sha256_hmac was so messed up, I simply copied sha512 over the top
- * of it, replacing the code in totality.  JimF.
+ * The pbkdf2_sha256_hmac was so messed up, I simply copied sha512 over the top
+ * of it, replacing the code in totality. JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -23,9 +24,7 @@ extern struct fmt_main fmt_pbkdf2_hmac_sha256;
 john_register_one(&fmt_pbkdf2_hmac_sha256);
 #else
 
-#include <ctype.h>
 #include <string.h>
-#include <assert.h>
 #include <stdint.h>
 
 #include "misc.h"
@@ -62,7 +61,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #endif
 #define BENCHMARK_LENGTH        -1
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               4
@@ -86,10 +84,13 @@ static uint32_t (*crypt_out)[PBKDF2_SHA256_BINARY_SIZE / sizeof(uint32_t)];
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

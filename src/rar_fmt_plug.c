@@ -52,7 +52,6 @@ john_register_one(&fmt_rar);
 #else
 
 #include <string.h>
-#include <errno.h>
 #if AC_BUILT
 #include "autoconfig.h"
 #endif

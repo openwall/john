@@ -1,4 +1,5 @@
-/* Fast cracker for SSH RSA / DSA key files. Hacked together during October
+/*
+ * Fast cracker for SSH RSA / DSA key files. Hacked together during October
  * of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * Support for cracking new openssh key format (bcrypt pbkdf) was added by
@@ -11,7 +12,8 @@
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_sshng;
@@ -22,14 +24,11 @@ john_register_one(&fmt_sshng);
 #include <string.h>
 #include <stdint.h>
 #include <openssl/des.h>
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               16 // adjust this dynamically based on the hash type?
+#define OMP_SCALE           16 // adjust this dynamically based on the hash type?
 #endif
 #endif
 
@@ -42,8 +41,8 @@ static int omp_t = 1;
 #include "options.h"
 #include "md5.h"
 #include "bcrypt_pbkdf.h"
-#include "memdbg.h"
 #include "asn1.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL        "SSH-ng"
 #define FORMAT_NAME         ""
@@ -106,10 +105,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

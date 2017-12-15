@@ -17,9 +17,12 @@ john_register_one(&fmt_oldoffice);
 
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
+
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               256
+#endif
 #endif
 
 #include "md5.h"
@@ -35,27 +38,22 @@ john_register_one(&fmt_oldoffice);
 #include "dyna_salt.h"
 #include "memdbg.h"
 
-#ifndef OMP_SCALE
-#define OMP_SCALE               256
-#endif
+#define FORMAT_LABEL            "oldoffice"
+#define FORMAT_NAME             "MS Office <= 2003"
+#define ALGORITHM_NAME          "MD5/SHA1 RC4 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1000
+#define PLAINTEXT_LENGTH        64
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            MEM_ALIGN_NONE
+#define SALT_SIZE               sizeof(dyna_salt*)
+#define SALT_ALIGN              MEM_ALIGN_WORD
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
-#define FORMAT_LABEL		"oldoffice"
-#define FORMAT_NAME		"MS Office <= 2003"
-#define ALGORITHM_NAME		"MD5/SHA1 RC4 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1000
-#define PLAINTEXT_LENGTH	64
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_SIZE		sizeof(dyna_salt*)
-#define SALT_ALIGN		MEM_ALIGN_WORD
-
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-
-#define CIPHERTEXT_LENGTH	(TAG_LEN + 120)
-#define FORMAT_TAG		"$oldoffice$"
-#define TAG_LEN			(sizeof(FORMAT_TAG) - 1)
+#define CIPHERTEXT_LENGTH       (TAG_LEN + 120)
+#define FORMAT_TAG              "$oldoffice$"
+#define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
 
 static struct fmt_tests oo_tests[] = {
 	{"$oldoffice$1*de17a7f3c3ff03a39937ba9666d6e952*2374d5b6ce7449f57c9f252f9f9b53d2*e60e1185f7aecedba262f869c0236f81", "test"},
@@ -114,11 +112,13 @@ static custom_salt *cur_salt = &cs;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = 1;
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ?

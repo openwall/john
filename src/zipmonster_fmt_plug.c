@@ -1,4 +1,5 @@
-/* This format is reverse engineered from InsidePro Hash Manager!
+/*
+ * This format is reverse engineered from InsidePro Hash Manager!
  *
  * This software is Copyright (c) 2016, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
@@ -12,18 +13,7 @@ extern struct fmt_main fmt_zipmonster;
 john_register_one(&fmt_zipmonster);
 #else
 
-#include "arch.h"
-#include "sha.h"
-#include "md5.h"
 #include <string.h>
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "simd-intrinsics.h"
-
-//#undef SIMD_COEF_32
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -31,6 +21,16 @@ john_register_one(&fmt_zipmonster);
 #define OMP_SCALE               1
 #endif
 #endif
+
+#include "arch.h"
+#include "sha.h"
+#include "md5.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "ZipMonster"
@@ -76,11 +76,13 @@ static void init(struct fmt_main *self)
 	int i;
 	char buf[3];
 #ifdef _OPENMP
-	static int omp_t = 1;
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_key));
@@ -108,9 +110,9 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext;
+
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		p = ciphertext + TAG_LENGTH;
-
 	if (!p)
 		return 0;
 	if (!ishexlc(p))

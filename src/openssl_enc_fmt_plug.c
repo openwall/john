@@ -1,4 +1,5 @@
-/* OpenSSL "enc" cracker for JtR.
+/*
+ * OpenSSL "enc" cracker for JtR.
  *
  * This software is Copyright (c) 2013, Dhiru Kholia <dhiru at openwall.com>
  *
@@ -38,13 +39,15 @@ john_register_one(&fmt_openssl);
 #endif
 
 #include <string.h>
-#include <errno.h>
-#if !AC_BUILT || HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
 #include <stdlib.h>
 #include <stdint.h>
-#include <sys/types.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               8
+#endif
+#endif
 
 #include "aes.h"
 #include "md5.h"
@@ -56,12 +59,6 @@ john_register_one(&fmt_openssl);
 #include "common.h"
 #include "formats.h"
 #include "jumbo.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               8
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "openssl-enc"
@@ -71,8 +68,8 @@ john_register_one(&fmt_openssl);
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
 #define SALT_SIZE           sizeof(struct custom_salt)
-#define BINARY_ALIGN		1
-#define SALT_ALIGN			sizeof(int)
+#define BINARY_ALIGN        1
+#define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  8
 #define MAX_KEYS_PER_CRYPT  8
 #define PLAINTEXT_LENGTH    125
@@ -111,9 +108,12 @@ static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

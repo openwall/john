@@ -1,4 +1,5 @@
-/* Cracker for BlackBerry Enterprise Server 10 hashes.
+/*
+ * Cracker for BlackBerry Enterprise Server 10 hashes.
  *
  * Thanks to Nicolas RUFF for providing the algorithm details and sample
  * hashes!
@@ -20,21 +21,6 @@ john_register_one(&fmt_blackberry1);
 #else
 
 #include <string.h>
-#include <errno.h>
-#include "sha2.h"
-#include "arch.h"
-
-//#undef _OPENMP
-//#undef SIMD_COEF_64
-//#undef SIMD_PARA_SHA512
-
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -45,32 +31,43 @@ john_register_one(&fmt_blackberry1);
 // 256 - 81753
 // 512 - 80537
 #ifndef OMP_SCALE
-#define OMP_SCALE		128
+#define OMP_SCALE               128
 #endif
 #endif
+
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
+#include "sha2.h"
+#include "johnswap.h"
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
-#define FORMAT_TAG 		"$bbes10$"
-#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG)-1)
-#define FORMAT_LABEL 		"Blackberry-ES10"
-#define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"SHA-512 " SHA512_ALGORITHM_NAME
+#define FORMAT_TAG              "$bbes10$"
+#define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "Blackberry-ES10"
+#define FORMAT_NAME             ""
+#define ALGORITHM_NAME          "SHA-512 " SHA512_ALGORITHM_NAME
 
-#define BENCHMARK_COMMENT	" (101x)"
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		64
-#define BINARY_ALIGN		4
-#define MAX_SALT_SIZE		64
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
+#define BENCHMARK_COMMENT       " (101x)"
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define BINARY_SIZE             64
+#define BINARY_ALIGN            4
+#define MAX_SALT_SIZE           64
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              4
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
+
 static struct fmt_tests blackberry_tests[] = {
 	{"$bbes10$76BDF6BE760FCF5DEE7B20E27632D1FEDD9D64E1BBCC941F42957E87CBFB96F176324B2E2C71976CEBE67CA6F400F33F001D7453D80F4AF5D80C8A93ED0BA0E6$DB1C19C0", "toulouse"},
 	{"$bbes10$57ECCAA65BB087E3E506A8C5CEBEE193DD051538CE44F4156D65F1B44E0266DF49337EA11812DF12E39C8B12EB46F19C291FD9529CD4F09B3C8109BE6F4861E5$0wzWUnuQ", "test"},
@@ -91,9 +88,12 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -244,6 +244,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 	for (; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;

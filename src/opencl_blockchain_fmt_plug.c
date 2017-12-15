@@ -1,5 +1,6 @@
-/* blockchain "My Wallet" cracker patch for JtR. Hacked together during June of
- * 2013 by Dhiru Kholia <dhiru at openwall.com>.
+/*
+ * Format for cracking blockchain.info "My Wallet" format wallets. Hacked
+ * together during June of 2013 by Dhiru Kholia <dhiru at openwall.com>.
  *
  * See https://blockchain.info/wallet/wallet-format
 
@@ -23,6 +24,7 @@ john_register_one(&fmt_opencl_blockchain);
 
 #include <stdint.h>
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif

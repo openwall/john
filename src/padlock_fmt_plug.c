@@ -17,7 +17,6 @@ john_register_one(&fmt_padlock);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-static int omp_t = 1;
 #ifndef OMP_SCALE
 #define OMP_SCALE               4
 #endif
@@ -96,10 +95,13 @@ static int *cracked, cracked_count;
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));

@@ -57,9 +57,6 @@ john_register_one(&fmt_geli);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked, cracked_count;
 static custom_salt *cur_salt;
@@ -68,10 +65,13 @@ static void init(struct fmt_main *self)
 {
 
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);

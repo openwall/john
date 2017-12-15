@@ -1,4 +1,5 @@
-/* PSK cracker patch for JtR. Hacked together during March of 2012 by
+/*
+ * PSK cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com> .
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
@@ -53,8 +54,14 @@ john_register_one(&fmt_ike);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               16
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -62,30 +69,23 @@ john_register_one(&fmt_ike);
 #include "params.h"
 #include "options.h"
 #include "ike-crack.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               16
-#endif
-static int omp_t = 1;
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"IKE"
-#define FORMAT_NAME		"PSK"
-#define FORMAT_TAG           "$ike$*"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"HMAC MD5/SHA1 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		20 /* SHA1 */
-#define BINARY_SIZE_SMALLER	16 /* MD5 */
-#define SALT_SIZE		sizeof(psk_entry)
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			sizeof(size_t)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	16
+#define FORMAT_LABEL            "IKE"
+#define FORMAT_NAME             "PSK"
+#define FORMAT_TAG              "$ike$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "HMAC MD5/SHA1 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        32
+#define BINARY_SIZE             20 /* SHA1 */
+#define BINARY_SIZE_SMALLER     16 /* MD5 */
+#define SALT_SIZE               sizeof(psk_entry)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(size_t)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      16
 
 static struct fmt_tests ike_tests[] = {
 	{"$ike$*0*5c7916ddf8db4d233b3b36005bb3ccc115a73807e11a897be943fd4a2d0f942624cb00588d8b3a0a26502b73e639df217ef6c4cb90f96b0a3c3ef2f62ed025b4a705df9de65e33e380c1ba5fa23bf1f9911bbf388d0844256fa0131fc5cf8acb396936ba3295b4637b039d93f58db90a3a1cf1ef5051103bacf6e1a3334f9f89*fde8c68c5f324c7dbcbadde1d757af6962c63496c009f77cad647f2997fd4295e50821453a6dc2f6279fd7fef68768584d9cee0da6e68a534a097ce206bf77ecc798310206f3f82d92d02c885794e0a430ceb2d6b43c2aff45a6e14c6558382df0692ff65c2724eef750764ee456f31424a5ebd9e115d826bbb9722111aa4e01*b2a3c7aa4be95e85*756e3fa11c1b102c*00000001000000010000002c01010001000000240101000080010001800200018003000180040002800b0001000c000400007080*01000000ac100202*251d7ace920b17cb34f9d561bca46d037b337d19*e045819a64edbf022620bff3efdb935216584cc4*b9c594fa3fca6bb30a85c4208a8df348", "abc123"},
@@ -100,10 +100,13 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
@@ -198,8 +201,10 @@ error:
 static void *get_salt(char *ciphertext)
 {
 	static psk_entry cs;
+
 	cs.isnortel = atoi(&ciphertext[FORMAT_TAG_LEN]);
 	load_psk_params(&ciphertext[FORMAT_TAG_LEN+2], NULL, &cs);
+
 	return (void *)&cs;
 }
 
@@ -212,6 +217,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '*') + 1;
 	for (i = 0; i < BINARY_SIZE_SMALLER; i++) {
 		out[i] =
@@ -219,6 +225,7 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+
 	return out;
 }
 
@@ -244,6 +251,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 	for (; index < count; index++)
 		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
@@ -270,6 +278,7 @@ static char *get_key(int index)
 {
 	return saved_key[index];
 }
+
 /*
  * For ike, the hash algorithm used for hmac
  * is returned as the first "tunable cost":
@@ -285,9 +294,8 @@ static char *get_key(int index)
 #if IKE_REPORT_TUNABLE_COSTS
 static unsigned int tunable_cost_hmac_hash_type(void *salt)
 {
-	psk_entry *my_salt;
+	psk_entry *my_salt = salt;
 
-	my_salt = salt;
 	return (unsigned int) my_salt->hash_type;
 }
 #endif

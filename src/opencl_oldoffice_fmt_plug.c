@@ -19,7 +19,6 @@ john_register_one(&FORMAT_STRUCT);
 
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
 
 #include "common-opencl.h"
 #include "arch.h"

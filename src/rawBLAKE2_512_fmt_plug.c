@@ -3,7 +3,7 @@
  * Copyright (c) 2012 by Solar Designer
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  *
- * Re-used for BLAKE2 by Dhiru Kholia (dhiru at openwall.com)
+ * Re-used for BLAKE2 by Dhiru Kholia (dhiru at openwall.com).
  */
 
 #if FMT_EXTERNS_H
@@ -12,12 +12,6 @@ extern struct fmt_main fmt_rawBLAKE2;
 john_register_one(&fmt_rawBLAKE2);
 #else
 
-#include "arch.h"
-
-#include "blake2.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
 #include <string.h>
 
 #if !FAST_FORMATS_OMP
@@ -26,44 +20,45 @@ john_register_one(&fmt_rawBLAKE2);
 
 #ifdef _OPENMP
 #ifndef OMP_SCALE
-#define OMP_SCALE			2048
+#define OMP_SCALE               2048
 #endif
 #include <omp.h>
 #endif
+
+#include "arch.h"
+#include "blake2.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"Raw-Blake2"
-#define FORMAT_NAME			""
+#define FORMAT_LABEL            "Raw-Blake2"
+#define FORMAT_NAME             ""
 #if !defined(JOHN_NO_SIMD) && defined(__AVX__)
-#define ALGORITHM_NAME			"128/128 AVX"
+#define ALGORITHM_NAME          "128/128 AVX"
 #elif !defined(JOHN_NO_SIMD) && defined(__XOP__)
-#define ALGORITHM_NAME			"128/128 XOP"
+#define ALGORITHM_NAME          "128/128 XOP"
 #elif !defined(JOHN_NO_SIMD) && defined(__SSE4_1__)
-#define ALGORITHM_NAME			"128/128 SSE4.1"
+#define ALGORITHM_NAME          "128/128 SSE4.1"
 #elif !defined(JOHN_NO_SIMD) && defined(__SSSE3__)
-#define ALGORITHM_NAME			"128/128 SSSE3"
+#define ALGORITHM_NAME          "128/128 SSSE3"
 #elif !defined(JOHN_NO_SIMD) && defined(__SSE2__)
-#define ALGORITHM_NAME			"128/128 SSE2"
+#define ALGORITHM_NAME          "128/128 SSE2"
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
 #endif
-#define FORMAT_TAG           "$BLAKE2$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
-
-#define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		128
-
-#define BINARY_SIZE			64
-#define SALT_SIZE			0
-
-#define BINARY_ALIGN			4
-#define SALT_ALIGN			1
-
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define FORMAT_TAG              "$BLAKE2$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define CIPHERTEXT_LENGTH       128
+#define BINARY_SIZE             64
+#define SALT_SIZE               0
+#define BINARY_ALIGN            4
+#define SALT_ALIGN              1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests tests[] = {
 	{"4245af08b46fbb290222ab8a68613621d92ce78577152d712467742417ebc1153668f1c9e1ec1e152a32a9c242dc686d175e087906377f0c483c5be2cb68953e", "blake2"},
@@ -86,12 +81,13 @@ static uint32_t (*crypt_out)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t;
+	int omp_t = omp_get_max_threads();
 
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));

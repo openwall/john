@@ -1,4 +1,5 @@
-/* Django 1.4 patch for JtR. Hacked together during May of 2012 by
+/*
+ * Django 1.4 patch for JtR. Hacked together during May of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -14,13 +15,13 @@
  *
  * django-hash => Second column of "SELECT username, password FROM auth_user"
  *
- * July, 2012, the oSSL PKCS5_PBKDF2_HMAC function was replaced with a much faster
+ * July, 2012, the OpenSSL PKCS5_PBKDF2_HMAC function was replaced with a much faster
  * function pbkdf2() designed by JimF.  Originally this function was designed for
- * the mscash2 (DCC2).  The same pbkdf2 function, is used, and simply required small
+ * the mscash2 (DCC2). The same pbkdf2 function, is used, and simply required small
  * changes to use SHA256.
  *
- * This new code is 3x to 4x FASTER than the original oSSL code. Even though it is
- * only useing oSSL functions.  A lot of the high level stuff in oSSL sux for speed.
+ * This new code is 3x to 4x FASTER than the original OpenSSL code. Even though it is
+ * only using OpenSSL functions. A lot of the high level stuff in OpenSSL sux for speed.
  */
 
 #if FMT_EXTERNS_H
@@ -29,12 +30,14 @@ extern struct fmt_main fmt_django;
 john_register_one(&fmt_django);
 #else
 
-// uncomment this header to use the slower PKCS5_PBKDF2_HMAC function.
-// Note, PKCS5_PBKDF2_HMAC is ONLY available in oSSL 1.00 + (1.0c I think to be exact)
-//#include <openssl/evp.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // tuned on core i7
+#endif
+#endif
 
 #include "arch.h"
 #include "sha2.h"
@@ -46,39 +49,32 @@ john_register_one(&fmt_django);
 #include "johnswap.h"
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha256.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4 // tuned on core i7
-#endif
-static int omp_t = 1;
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"Django"
-#define FORMAT_NAME		""
-#define FORMAT_TAG		"$django$*"
-#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "Django"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$django$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA256 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	" (x10000)"
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define HASH_LENGTH		44
-#define BINARY_SIZE		32
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(uint32_t)
-#define SALT_ALIGN		sizeof(int)
+#define BENCHMARK_COMMENT       " (x10000)"
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define HASH_LENGTH             44
+#define BINARY_SIZE             32
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static struct fmt_tests django_tests[] = {
@@ -103,10 +99,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);

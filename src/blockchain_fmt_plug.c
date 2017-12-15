@@ -1,5 +1,6 @@
-/* blockchain "My Wallet" cracker patch for JtR. Hacked together during June of
- * 2013 by Dhiru Kholia <dhiru at openwall.com>.
+/*
+ * Format for cracking blockchain.info "My Wallet" format wallets. Hacked
+ * together during June of 2013 by Dhiru Kholia <dhiru at openwall.com>.
  *
  * See https://blockchain.info/wallet/wallet-format
  *
@@ -10,6 +11,9 @@
  * modification, are permitted.
  *
  * Improved detection, added iteration count and handle v2 hashes, Feb, 2015, JimF.
+ *
+ * Usage of https://github.com/gurnec/btcrecover is recommended for cases we
+ * don't handle yet.
  */
 
 #if FMT_EXTERNS_H
@@ -19,7 +23,14 @@ john_register_one(&fmt_blockchain);
 #else
 
 #include <string.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               4  // this is a slow format
+#endif
+#endif
+
 #include "arch.h"
 #include "jumbo.h"
 #include "common.h"
@@ -29,34 +40,28 @@ john_register_one(&fmt_blockchain);
 #include "johnswap.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "blockchain_common.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4  // this is a slow format
-#endif
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"Blockchain"
-#define FORMAT_NAME		"My Wallet"
+#define FORMAT_LABEL            "Blockchain"
+#define FORMAT_NAME             "My Wallet"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	" (x10)"
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		1
-#define PLAINTEXT_LENGTH	125
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
+#define BENCHMARK_COMMENT       " (x10)"
+#define BENCHMARK_LENGTH        -1
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
+#define PLAINTEXT_LENGTH        125
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              4
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -67,12 +72,13 @@ static struct custom_salt *cur_salt;
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	int omp_t = 1;
+	int omp_t = omp_get_max_threads();
 
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -135,6 +141,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
@@ -148,7 +155,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void blockchain_set_key(char *key, int index)

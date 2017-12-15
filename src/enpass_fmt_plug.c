@@ -1,10 +1,12 @@
-/* JtR format to crack Enpass Password Manager databases.
+/*
+ * JtR format to crack Enpass Password Manager databases.
  *
  * This software is Copyright (c) 2017, Dhiru Kholia <dhiru at openwall.com>,
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_enpass;
@@ -14,8 +16,13 @@ john_register_one(&fmt_enpass);
 
 #include <string.h>
 #include <stdint.h>
-#include <assert.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // this is a slow format, so 4 should be enough
+#endif
+#endif
 
 #include "aes.h"
 #include "arch.h"
@@ -27,12 +34,6 @@ john_register_one(&fmt_enpass);
 #include "johnswap.h"
 #include "enpass_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4 // this is a slow format, so 4 should be enough
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL         "enpass"
@@ -75,11 +76,13 @@ static struct custom_salt *cur_salt;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = 1;
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
@@ -151,6 +154,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
@@ -164,7 +168,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void enpass_set_key(char *key, int index)

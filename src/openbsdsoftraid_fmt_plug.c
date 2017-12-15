@@ -35,7 +35,6 @@ john_register_one(&fmt_openbsd_softraid);
 #include "pbkdf2_hmac_sha1.h"
 #include "loader.h"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE                   1
@@ -97,10 +96,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	key_buffer = mem_calloc(sizeof(*key_buffer), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);

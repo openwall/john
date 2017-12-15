@@ -1,5 +1,6 @@
-/* whirlpool cracker patch for JtR. Hacked together during April of 2013 by Dhiru
- * Kholia <dhiru at openwall.com>.
+/*
+ * Whirlpool cracker patch for JtR. Hacked together during April of 2013 by
+ * Dhiru Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
  * it is hereby released to the general public under the following terms:
@@ -19,43 +20,44 @@ john_register_one(&fmt_whirlpool);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "openssl_local_overrides.h"
-#include "sph_whirlpool.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include <openssl/opensslv.h>
-#if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
-   (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
-#include <openssl/whrlpool.h>
-#endif
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               256
 #endif
 #endif
+
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
+#include "sph_whirlpool.h"
+#include "openssl_local_overrides.h"
+#include <openssl/opensslv.h>
+#if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
+   (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
+#include <openssl/whrlpool.h>
+#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"Whirpool"
-#define FORMAT_NAME		""
-#define FORMAT_TAG		"$whirlpool$"
-#define TAG_LENGTH		11
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define CIPHERTEXT_LENGTH	128
-#define BINARY_SIZE		64
-#define SALT_SIZE		0
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BINARY_ALIGN		4
-#define SALT_ALIGN		1
+#define FORMAT_LABEL            "Whirpool"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$whirlpool$"
+#define TAG_LENGTH              11
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define CIPHERTEXT_LENGTH       128
+#define BINARY_SIZE             64
+#define SALT_SIZE               0
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+#define BINARY_ALIGN            4
+#define SALT_ALIGN              1
 
 static struct fmt_tests whirlpool_0_tests[] = {
 	{"B3E1AB6EAF640A34F784593F2074416ACCD3B8E62C620175FCA0997B1BA2347339AA0D79E754C308209EA36811DFA40C1C32F1A2B9004725D987D3635165D3C8", ""},
@@ -84,10 +86,13 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

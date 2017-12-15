@@ -29,7 +29,7 @@
  * and binary forms, with or without modification, are permitted.
  *
  * This software is Copyright (c) 2012 Dhiru Kholia (dhiru at openwall.com) and
- * released under same terms as above
+ * released under same terms as above.
  */
 
 #ifdef HAVE_OPENCL
@@ -40,10 +40,7 @@ extern struct fmt_main fmt_opencl_krb5pa_sha1;
 john_register_one(&fmt_opencl_krb5pa_sha1);
 #else
 
-#include <errno.h>
 #include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -60,17 +57,17 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #include "hmac_sha.h"
 #include "loader.h"
 
-#define FORMAT_LABEL		"krb5pa-sha1-opencl"
-#define FORMAT_NAME		"Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
-#define FORMAT_TAG           "$krb5pa$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1001
-#define BINARY_SIZE		12
-#define BINARY_ALIGN		4
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
+#define FORMAT_LABEL            "krb5pa-sha1-opencl"
+#define FORMAT_NAME             "Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
+#define FORMAT_TAG              "$krb5pa$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1001
+#define BINARY_SIZE             12
+#define BINARY_ALIGN            4
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              4
 #define MAX_SALTLEN             52
 #define MAX_REALMLEN            MAX_SALTLEN
 #define MAX_USERLEN             MAX_SALTLEN
@@ -78,13 +75,13 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #define CHECKSUM_SIZE           BINARY_SIZE
 #define TOTAL_LENGTH            (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 /* This handles all sizes */
-#define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
+#define GETPOS(i, index)        (((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 /* This is faster but can't handle size 3 */
-//#define GETPOS(i, index)	(((index) & (ocl_v_width - 1)) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
+//#define GETPOS(i, index)      (((index) & (ocl_v_width - 1)) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 static struct fmt_tests tests[] = {
 	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},

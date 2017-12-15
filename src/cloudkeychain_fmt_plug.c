@@ -1,4 +1,5 @@
-/* 1Password Cloud Keychain cracker patch for JtR. Hacked together during
+/*
+ * 1Password Cloud Keychain cracker patch for JtR. Hacked together during
  * April of 2013 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -12,7 +13,7 @@
  * This software is based on "onepasswordpy" project but no actual code is
  * borrowed from it.
  *
- * "onepasswordpy" project is at https://github.com/Roguelazer/onepasswordpy
+ * "onepasswordpy" project is at https://github.com/Roguelazer/onepasswordpy.
  */
 
 #if FMT_EXTERNS_H
@@ -23,7 +24,13 @@ john_register_one(&fmt_cloud_keychain);
 
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               1
+#endif
+#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -34,44 +41,38 @@ john_register_one(&fmt_cloud_keychain);
 #include "johnswap.h"
 #include "sha2.h"
 #include "pbkdf2_hmac_sha512.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"cloudkeychain"
-#define FORMAT_NAME		"1Password Cloud Keychain"
-#define FORMAT_TAG           "$cloudkeychain$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "cloudkeychain"
+#define FORMAT_NAME             "1Password Cloud Keychain"
+#define FORMAT_TAG              "$cloudkeychain$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_64
-#define ALGORITHM_NAME		"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA512 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA512 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define HASH_LENGTH		64
-#define BINARY_SIZE 		0
-#define BINARY_ALIGN		1
-#define PLAINTEXT_LENGTH	111
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define HASH_LENGTH             64
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
+#define PLAINTEXT_LENGTH        111
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              4
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
-#define SALTLEN 32
-#define IVLEN 16
-#define CTLEN 2048
-#define EHMLEN 32
-#define PAD_SIZE		128
+#define SALTLEN                 32
+#define IVLEN                   16
+#define CTLEN                   2048
+#define EHMLEN                  32
+#define PAD_SIZE                128
 
 static struct fmt_tests cloud_keychain_tests[] = {
 	{"$cloudkeychain$16$2e57e8b57eda4d99df2fe02324960044$227272$336$6f706461746130310001000000000000881d65af6b863f6678d484ff551bc843a95faf289b914e570a1993353789b66a9c6bd40b42c588923e8869862339d06ef3d5c091c0ba997a704619b3ffc121b4b126071e9e0a0812f722f95a2d7b80c22bc91fc237cb3dfaba1bee1c9d3cb4c94332335ab203bb0f07ca774c19729ce8182f91cd228ae18fb82b17535ecae012f14904a6ace90d9bab1d934eb957ea98a68b4b2db3c8e02d27f7aff9203cdbd91c2b7c6aaa6f9c2ca3c1d5f976fc9ed86b80082ae3e39c2f30a35d26c2c14dbd64386be9b5ae40851824dc5963b54703ba17d20b424deaaa452793a1ef8418db2dda669b064075e450404a46433f6533dfe0a13b34fa1f55238ffea5062a4f22e821b9e99639c9d0ece27df65caf0aaaad7200b0187e7b3134107e38582ef73b6fde10044103924d8275bf9bfadc98540ae61c5e59be06c5bca981460345bd29$256$16$881d65af6b863f6678d484ff551bc843$272$a95faf289b914e570a1993353789b66a9c6bd40b42c588923e8869862339d06ef3d5c091c0ba997a704619b3ffc121b4b126071e9e0a0812f722f95a2d7b80c22bc91fc237cb3dfaba1bee1c9d3cb4c94332335ab203bb0f07ca774c19729ce8182f91cd228ae18fb82b17535ecae012f14904a6ace90d9bab1d934eb957ea98a68b4b2db3c8e02d27f7aff9203cdbd91c2b7c6aaa6f9c2ca3c1d5f976fc9ed86b80082ae3e39c2f30a35d26c2c14dbd64386be9b5ae40851824dc5963b54703ba17d20b424deaaa452793a1ef8418db2dda669b064075e450404a46433f6533dfe0a13b34fa1f55238ffea5062a4f22e821b9e99639c9d0ece27df65caf0aaaad7200b0187e7b3134107e38582ef73b$32$6fde10044103924d8275bf9bfadc98540ae61c5e59be06c5bca981460345bd29$304$6f706461746130310001000000000000881d65af6b863f6678d484ff551bc843a95faf289b914e570a1993353789b66a9c6bd40b42c588923e8869862339d06ef3d5c091c0ba997a704619b3ffc121b4b126071e9e0a0812f722f95a2d7b80c22bc91fc237cb3dfaba1bee1c9d3cb4c94332335ab203bb0f07ca774c19729ce8182f91cd228ae18fb82b17535ecae012f14904a6ace90d9bab1d934eb957ea98a68b4b2db3c8e02d27f7aff9203cdbd91c2b7c6aaa6f9c2ca3c1d5f976fc9ed86b80082ae3e39c2f30a35d26c2c14dbd64386be9b5ae40851824dc5963b54703ba17d20b424deaaa452793a1ef8418db2dda669b064075e450404a46433f6533dfe0a13b34fa1f55238ffea5062a4f22e821b9e99639c9d0ece27df65caf0aaaad7200b0187e7b3134107e38582ef73b", "fred"},
@@ -80,9 +81,6 @@ static struct fmt_tests cloud_keychain_tests[] = {
 	{NULL}
 };
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
@@ -107,10 +105,13 @@ static void init(struct fmt_main *self)
 {
 
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -221,6 +222,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$cloudkeychain$" */
 	p = strtokm(ctcopy, "$");
@@ -354,6 +356,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
@@ -367,7 +370,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void cloud_keychain_set_key(char *key, int index)
@@ -382,9 +385,8 @@ static char *get_key(int index)
 
 static unsigned int iteration_count(void *salt)
 {
-	struct custom_salt *my_salt;
+	struct custom_salt *my_salt = salt;
 
-	my_salt = salt;
 	return (unsigned int)my_salt->iterations;
 }
 

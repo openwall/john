@@ -1,23 +1,18 @@
 /*
- * KRB5_fmt.c
- *
- *  Kerberos 5 module for John the Ripper, based on the
- *  KRB4 module by Dug Song.
+ * Kerberos 5 module for John the Ripper, based on the
+ * KRB4 module by Dug Song.
  *
  * Author: Nasko Oskov <nasko at netsekure.org>
  *
  * Licensing:
  *
- *  The module contains code derived or copied from the Heimdal project.
+ *  The module contains code derived or copied from the Heimdal project, which
+ *  is distribution of Kerberos based on M.I.T. implementation.
  *
- *  Copyright (c) 1997-2000 Kungliga Tekniska Högskolan
- *  (Royal Institute of Technology, Stockholm, Sweden).
- *  All rights reserved.
+ *  Copyright (c) 1997-2000 Kungliga Tekniska Högskolan (Royal Institute of
+ *  Technology, Stockholm, Sweden). All rights reserved.
  *
- *  Which is distribution of Kerberos based on M.I.T. implementation.
- *
- *  Copyright (C) 1990 by the Massachusetts Institute of Technology
- *
+ *  Copyright (C) 1990 by the Massachusetts Institute of Technology.
  */
 
 #if FMT_EXTERNS_H
@@ -26,33 +21,18 @@ extern struct fmt_main fmt_KRB5;
 john_register_one(&fmt_KRB5);
 #else
 
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
-
+#include <ctype.h> // required
 #include <stdlib.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#if !AC_BUILT || HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
-#include <errno.h>
-
 #include <string.h>
 #include <openssl/des.h>
 
-#include <ctype.h>
-
 #include "arch.h"
 #include "misc.h"
-#include "formats.h"    // needed for format structs
+#include "formats.h"
 #include "memory.h"
 #include "KRB5_std.h"
 #include "memdbg.h"
 
-
-// defines
 #define MAGIC_PREFIX        "$krb5$"
 #define MAGIC_PREFIX_LEN    (sizeof(MAGIC_PREFIX)-1)
 #define MAX_REALM_LEN       64

@@ -1,10 +1,13 @@
-/* AxCrypt 1.x encrypted files cracker patch for JtR
- * 2016 by Fist0urs <eddy.maaalou at gmail.com>.
+/*
+ * AxCrypt 1.x encrypted files cracker patch for JtR.
+ * Written in 2016 by Fist0urs <eddy.maaalou at gmail.com>.
  *
  * This software is Copyright (c) 2016, Fist0urs <eddy.maaalou at gmail.com>,
  * and it is hereby released to the general public under the following terms:
+ *
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_axcrypt;
@@ -14,8 +17,14 @@ john_register_one(&fmt_axcrypt);
 
 #include <string.h>
 #include <stdint.h>
-#include <assert.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               1
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -25,30 +34,24 @@ john_register_one(&fmt_axcrypt);
 #include "dyna_salt.h"
 #include "sha.h"
 #include "aes.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE		1
-#endif
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"axcrypt"
-#define FORMAT_NAME		"AxCrypt"
-#define FORMAT_TAG		"$axcrypt$*"
-#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA1 AES 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125 /* actual max is 250 */
-#define BINARY_SIZE		0
-#define SALT_SIZE		sizeof(struct custom_salt *)
-#define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_ALIGN		sizeof(struct custom_salt *)
+#define FORMAT_LABEL            "axcrypt"
+#define FORMAT_NAME             "AxCrypt"
+#define FORMAT_TAG              "$axcrypt$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "SHA1 AES 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125 /* actual max is 250 */
+#define BINARY_SIZE             0
+#define SALT_SIZE               sizeof(struct custom_salt *)
+#define BINARY_ALIGN            MEM_ALIGN_NONE
+#define SALT_ALIGN              sizeof(struct custom_salt *)
 /* constant value recommended by FIPS */
-#define AES_WRAPPING_IV		"\xA6\xA6\xA6\xA6\xA6\xA6\xA6\xA6"
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define AES_WRAPPING_IV         "\xA6\xA6\xA6\xA6\xA6\xA6\xA6\xA6"
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 #define PUT_64BITS_XOR_MSB(cp, value) ( \
 		(cp)[0] ^= (unsigned char)((value)), \
@@ -58,9 +61,9 @@ john_register_one(&fmt_axcrypt);
 
 static struct fmt_tests axcrypt_tests[] = {
 	/*
-		formats can be:
-		$axcrypt$*version*iterations*salt*wrappedkey
-		$axcrypt$*version*iterations*salt*wrappedkey*key-file
+	 * Formats can be,
+	 *   $axcrypt$*version*iterations*salt*wrappedkey
+	 *   $axcrypt$*version*iterations*salt*wrappedkey*key-file
 	*/
 	{"$axcrypt$*1*1337*0fd9e7e2f907f480f8af162564f8f94b*af10c88878ba4e2c89b12586f93b7802453121ee702bc362", "Bab00nmoNCo|\\|2$inge"},
 	{"$axcrypt$*1*60000*7522aa07694d441e47f8faad8a8cb984*95e02b7ccbdc27c227a80d1307505d8b769e87b32f312aa1", "nuNuche<3rewshauv"},
@@ -88,11 +91,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = 1;
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 				sizeof(*saved_key));
@@ -216,9 +221,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		/*
-			NUMBER_AES_BLOCKS = 2
-			AES_BLOCK_SIZE = 16
-		*/
+		 * NUMBER_AES_BLOCKS = 2
+		 * AES_BLOCK_SIZE = 16
+		 */
 
 		unsigned char KEK[20], lsb[24], cipher[16];
 		AES_KEY akey;
@@ -273,6 +278,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			any_cracked |= 1;
 		}
 	}
+
 	return count;
 }
 

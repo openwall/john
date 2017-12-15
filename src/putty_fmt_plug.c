@@ -1,12 +1,14 @@
-/* PuTTY private key cracker patch for JtR. Hacked together during Monsoon of
+/*
+ * PuTTY private key cracker patch for JtR. Hacked together during Monsoon of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com> .
  *
- * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * p-ppk-crack v0.5 made by michu@neophob.com -- PuTTY private key cracker
+ * This software is based on p-ppk-crack v0.5 (PuTTY private key cracker) made
+ * by michu@neophob.com. In turn, p-ppk-crack is based on PuTTY SVN version.
+ * See [1] for the exact licensing terms.
  *
- * Source code based on putty svn version, check
- * http://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html
+ * [1] http://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html
  */
 
 #if FMT_EXTERNS_H
@@ -16,6 +18,14 @@ john_register_one(&fmt_putty);
 #else
 
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE           64
+#endif
+#endif
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
@@ -23,15 +33,8 @@ john_register_one(&fmt_putty);
 #include "misc.h"
 #include "aes.h"
 #include "sha.h"
-#include <openssl/evp.h>
 #include "hmac_sha.h"
 #include "loader.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           64
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "PuTTY"
@@ -49,10 +52,6 @@ john_register_one(&fmt_putty);
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
-
 #define PUT_32BIT_MSB_FIRST(cp, value) ( \
 		(cp)[0] = (unsigned char)((value) >> 24), \
 		(cp)[1] = (unsigned char)((value) >> 16), \
@@ -60,7 +59,6 @@ static int omp_t = 1;
 		(cp)[3] = (unsigned char)(value) )
 
 #define PUT_32BIT(cp, value) PUT_32BIT_MSB_FIRST(cp, value)
-
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
@@ -91,10 +89,13 @@ static struct fmt_tests putty_tests[] = {
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -214,6 +215,7 @@ static void *get_salt(char *ciphertext)
 		uint32_t dummy;
 	} un;
 	struct custom_salt *cs = &(un._cs);
+
 	memset(cs, 0, sizeof(un));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$putty$" marker */
 	p = strtokm(ctcopy, "*");
@@ -273,6 +275,7 @@ static char *get_key(int index)
 static void SHA_Simple(void *p, int len, unsigned char *output)
 {
 	SHA_CTX ctx;
+
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, p, len);
 	SHA1_Final(output, &ctx);
@@ -313,6 +316,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 		unsigned char *macdata;
 		unsigned char macdata_ar[4*5+sizeof(cur_salt->alg)+sizeof(cur_salt->encryption)+sizeof(cur_salt->comment)+sizeof(cur_salt->public_blob)+sizeof(cur_salt->private_blob)+1];
 		int maclen;
+
 		if (cur_salt->old_fmt) {
 			/* MAC (or hash) only covers the private blob. */
 			macdata = out;
@@ -322,6 +326,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 			int namelen = strlen(cur_salt->alg);
 			int enclen = strlen(cur_salt->encryption);
 			int commlen = strlen(cur_salt->comment);
+
 			maclen = (4 + namelen +
 					4 + enclen +
 					4 + commlen +
@@ -341,6 +346,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 			unsigned char mackey[20];
 			unsigned int length = 20;
 			char header[] = "putty-private-key-file-mac-key";
+
 			SHA1_Init(&s);
 			SHA1_Update(&s, header, sizeof(header)-1);
 			if (cur_salt->cipher && passphrase)

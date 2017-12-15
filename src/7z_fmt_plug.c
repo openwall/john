@@ -24,9 +24,12 @@ john_register_one(&fmt_sevenzip);
 #else
 
 #include <string.h>
-#include <errno.h>
+
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // tuned on core i7
+#endif
 #endif
 
 #include "arch.h"
@@ -50,19 +53,16 @@ john_register_one(&fmt_sevenzip);
 #include "lzma/LzmaDec.h"
 #include "lzma/Lzma2Dec.h"
 
-#define FORMAT_LABEL		"7z"
-#define FORMAT_NAME		"7-Zip"
-#define FORMAT_TAG		"$7z$"
-#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
-#define BENCHMARK_COMMENT	" (512K iterations)"
-#define BENCHMARK_LENGTH	0
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		1
-#define SALT_SIZE		sizeof(struct custom_salt*)
-#define SALT_ALIGN		sizeof(struct custom_salt*)
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // tuned on core i7
-#endif
+#define FORMAT_LABEL            "7z"
+#define FORMAT_NAME             "7-Zip"
+#define FORMAT_TAG              "$7z$"
+#define TAG_LENGTH              (sizeof(FORMAT_TAG)-1)
+#define BENCHMARK_COMMENT       " (512K iterations)"
+#define BENCHMARK_LENGTH        0
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
+#define SALT_SIZE               sizeof(struct custom_salt*)
+#define SALT_ALIGN              sizeof(struct custom_salt*)
 
 #ifdef SIMD_COEF_32
 #include "simd-intrinsics.h"
@@ -162,12 +162,13 @@ static void init(struct fmt_main *self)
 {
 	CRC32_t crc;
 #if defined (_OPENMP)
-	int omp_t = 1;
+	int omp_t = omp_get_max_threads();
 
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	// allocate 1 more slot to handle the tail of vector buffer
 	max_kpc = self->params.max_keys_per_crypt + 1;
@@ -699,7 +700,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void sevenzip_set_key(char *key, int index)
