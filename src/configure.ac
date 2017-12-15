@@ -392,7 +392,13 @@ case "$simd" in
     AC_SUBST([JOHN_NO_SIMD], ["-DJOHN_NO_SIMD"])
     ;;
   neon)
-    JTR_FLAG_CHECK_LINK([-mfpu=neon], 2)
+    AS_CASE([$host_cpu],
+      [arm*],
+        JTR_FLAG_CHECK_LINK([-mfpu=neon], 2),
+      [aarch64],
+        JTR_FLAG_CHECK_LINK([-march=armv8-a+simd], 2),
+      AC_ERROR([NEON only applicable for ARM CPU's])
+    )
     SIMD_NAME="NEON"
     ;;
   altivec1)
