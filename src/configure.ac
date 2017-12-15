@@ -1173,6 +1173,8 @@ fi
 
 if test -n "$SIMD_NAME"; then
    CPU_NAME="$host_cpu $SIMD_NAME"
+else
+   CPU_NAME=$host_cpu
 fi
 
 # Ensure reports of tests does not show up blank:
