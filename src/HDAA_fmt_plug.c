@@ -28,13 +28,7 @@ john_register_one(&fmt_HDAA);
 #include "common.h"
 #include "formats.h"
 #include "md5.h"
-
-#if !ARCH_LITTLE_ENDIAN
-// For now, neuter this format from SIMD building.
-// Someone else can port to BE at a later date.
-#undef SIMD_COEF_32
-#undef SIMD_PARA_MD5
-#endif
+#include "johnswap.h"
 
 #include "simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
@@ -80,8 +74,13 @@ static unsigned int omp_t = 1;
 #define NBKEYS					(SIMD_COEF_32 * SIMD_PARA_MD5)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
+#if ARCH_LITTLE_ENDIAN
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
 #define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
+#else
+#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
+#endif
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -353,7 +352,11 @@ inline static void sse_bin2ascii(unsigned char *conv, unsigned char *src)
 			t |= ((src[GETOUTPOS(i, index)] & 0xf0) >> 4);
 			t += 0x06060606;
 			t += ((((t >> 4) & 0x01010101) * 0x27) + 0x2a2a2a2a);
+#if ARCH_LITTLE_ENDIAN
 			*(unsigned int*)&conv[GETPOS(j, index)] = t;
+#else
+			*(unsigned int*)&conv[GETPOS((j+3), index)] = t;
+#endif
 			j+=4;
 		}
 	}
@@ -485,7 +488,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			key = rinfo->h1tmp;
 			for (len = 0; len < rinfo->h1tmplen; len += 4, key += 4)
+#if ARCH_LITTLE_ENDIAN
 				*(uint32_t*)&saved_key[len>>6][GETPOS(len, ti)] = *(uint32_t*)key;
+#else
+				*(uint32_t*)&saved_key[len>>6][GETPOS(len+3, ti)] = JOHNSWAP(*(uint32_t*)key);
+#endif
 			len = rinfo->h1tmplen;
 			key = (char*)&saved_plain[ti];
 			while((temp = *key++)) {
@@ -499,7 +506,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (++i & 3)
 				saved_key[i>>6][GETPOS(i, ti)] = 0;
 			for (; i < (((len+8)>>6)+1)*64; i += 4)
+#if ARCH_LITTLE_ENDIAN
 				*(uint32_t*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
+#else
+				*(uint32_t*)&saved_key[i>>6][GETPOS(i+3, ti)] = 0;
+#endif
 
 			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 		}
@@ -516,13 +527,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			len = CIPHERTEXT_LENGTH - 1;
 			key = rinfo->h3tmp + CIPHERTEXT_LENGTH;
 
+#if !ARCH_ALLOWS_UNALIGNED
+			if (len != 3) {
+				while (++len < rinfo->h3tmplen )
+					saved_key[len>>6][GETPOS(len, ti)] = *key++;
+			} else
+#endif
+			{
 			// Copy a char at a time until aligned at destination
 			while (++len & 3)
 				saved_key[len>>6][GETPOS(len, ti)] = *key++;
-
 			// ...then a word at a time. This is a good boost, we are copying over 100 bytes.
-			for (;len < rinfo->h3tmplen; len += 4, key += 4)
+			for (;len < rinfo->h3tmplen; len += 4, key += 4) {
+#if ARCH_LITTLE_ENDIAN
 				*(uint32_t*)&saved_key[len>>6][GETPOS(len, ti)] = *(uint32_t*)key;
+#else
+				*(uint32_t*)&saved_key[len>>6][GETPOS(len+3, ti)] = *(uint32_t*)key;
+#endif
+			}
+			}
+
 			len = rinfo->h3tmplen;
 			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
 
@@ -532,7 +556,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				saved_key[i>>6][GETPOS(i, ti)] = 0;
 			//for (; i < (((len+8)>>6)+1)*64; i += 4)
 			for (; i <= crypt_len[index]; i += 4)
+#if ARCH_LITTLE_ENDIAN
 				*(uint32_t*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
+#else
+				*(uint32_t*)&saved_key[i>>6][GETPOS(i+3, ti)] = 0;
+#endif
 
 			((unsigned int *)saved_key[(len+8)>>6])[14*SIMD_COEF_32 + (ti&(SIMD_COEF_32-1)) + (ti/SIMD_COEF_32)*16*SIMD_COEF_32] = len << 3;
 			crypt_len[index] = len;
@@ -723,6 +751,9 @@ static void *get_binary(char *ciphertext)
 		((unsigned char*)realcipher)[i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16 +
 			atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
 	}
+#if !ARCH_LITTLE_ENDIAN && defined(SIMD_COEF_32)
+	alter_endianity(realcipher, 16);
+#endif
 	return (void*) realcipher;
 }
 
