@@ -668,7 +668,6 @@ M_LIBS
 OPENSSL_LIBS
 OPENSSL_CFLAGS
 COMMONCRYPTO_LIBS
-SIMD_var
 JOHN_NO_SIMD
 EGREP
 PKG_CONFIG_LIBDIR
@@ -10551,6 +10550,7 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
+
   if test "x$CPU_NOTFOUND" = x0; then :
 
   CC="$CC_BACKUP -msse2"
@@ -10592,13 +10592,11 @@ fi
 
 
 fi
+
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mssse3"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
-$as_echo_n "checking for SSSE3... " >&6; }
-
-  if test "$(uname -m)" = "x86_64"; then
+  CC="$CC_BACKUP"
+  if test $host_cpu = "x86_64"; then
     CPUID_ASM="x86-64.S"
     CPUID_FILE="x86-64.h"
   else
@@ -10606,14 +10604,26 @@ $as_echo_n "checking for SSSE3... " >&6; }
     CPUID_FILE="x86-any.h"
   fi
 
-  if test ! -f arch.h; then
-      cp $CPUID_FILE arch.h
-  fi
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  CFLAGS="$CFLAGS_BACKUP -mssse3 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
 
-  SIMD_var=$( ./test_SIMD; echo $? )
+  ln -fs $CPUID_FILE arch.h
 
-  if test "x$SIMD_var" = x1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSSE3" >&5
+$as_echo_n "checking for SSSE3... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
   CPU_BEST_FLAGS="-mssse3"
      SIMD_NAME="SSSE3"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -10625,21 +10635,34 @@ else
 $as_echo "no" >&6; }
 
 fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
 
 
 fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -msse4.1"
+  CFLAGS="$CFLAGS_BACKUP -msse4.1 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.1" >&5
 $as_echo_n "checking for SSE4.1... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
 
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  SIMD_var=$( ./test_SIMD; echo $? )
-
-  if test "x$SIMD_var" = x1; then :
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
   CPU_BEST_FLAGS="-msse4.1"
      SIMD_NAME="SSE4.1"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -10651,21 +10674,34 @@ else
 $as_echo "no" >&6; }
 
 fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
 
 
 fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mavx"
+  CFLAGS="$CFLAGS_BACKUP -mavx -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
 $as_echo_n "checking for AVX... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
 
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  SIMD_var=$( ./test_SIMD; echo $? )
-
-  if test "x$SIMD_var" = x1; then :
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
   CPU_BEST_FLAGS="-mavx"     SIMD_NAME="AVX"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -10676,21 +10712,34 @@ else
 $as_echo "no" >&6; }
 
 fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
 
 
 fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mxop"
+  CFLAGS="$CFLAGS_BACKUP -mxop -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XOP" >&5
 $as_echo_n "checking for XOP... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
 
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  SIMD_var=$( ./test_SIMD; echo $? )
-
-  if test "x$SIMD_var" = x1; then :
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
   CPU_BEST_FLAGS="-mxop"     SIMD_NAME="XOP"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -10700,21 +10749,34 @@ else
 $as_echo "no" >&6; }
 
 fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
 
 
 fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mavx2"
+  CFLAGS="$CFLAGS_BACKUP -mavx2 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX2" >&5
 $as_echo_n "checking for AVX2... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
 
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  SIMD_var=$( ./test_SIMD; echo $? )
-
-  if test "x$SIMD_var" = x1; then :
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
   CPU_BEST_FLAGS="-mavx2"     SIMD_NAME="AVX2"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -10725,13 +10787,20 @@ else
 $as_echo "no" >&6; }
 
 fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
 
 
 fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mavx512f"
+  CFLAGS="$CFLAGS_BACKUP -mavx512f -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
+  ln -fs mic.h arch.h
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512F" >&5
 $as_echo_n "checking for AVX512F... " >&6; }
   if test "$cross_compiling" = yes; then :
@@ -10742,12 +10811,9 @@ See \`config.log' for more details" "$LINENO" 5; }
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-
-    #include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
-
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
@@ -10771,7 +10837,8 @@ fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CC="$CC_BACKUP -mavx512bw"
+  CFLAGS="$CFLAGS_BACKUP -mavx512bw -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512BW" >&5
 $as_echo_n "checking for AVX512BW... " >&6; }
   if test "$cross_compiling" = yes; then :
@@ -10782,12 +10849,9 @@ See \`config.log' for more details" "$LINENO" 5; }
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-
-    #include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}
-
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
@@ -10807,8 +10871,6 @@ fi
 
 
 fi
-
-  rm -f test_SIMD
 
  else
 
