@@ -8358,6 +8358,8 @@ $as_echo "$as_me: SIMD logic disabled by request" >&6;}
 
     ;;
   neon)
+    case $host_cpu in #(
+  arm*) :
       if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mfpu=neon w/ linking" >&5
 $as_echo_n "checking if $CC supports -mfpu=neon w/ linking... " >&6; }
@@ -8407,7 +8409,62 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+ ;; #(
+  aarch64) :
+      if test 2 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -march=armv8-a+simd w/ linking" >&5
+$as_echo_n "checking if $CC supports -march=armv8-a+simd w/ linking... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -march=armv8-a+simd"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  if test "2" -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -march=armv8-a+simd"
+
+else
+  if test 2 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+    if test "2" = 2; then :
+  as_fn_error $? "Not supported by compiler/linker" "$LINENO" 5
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+ ;; #(
+  *) :
+    as_fn_error $? "NEON only applicable for ARM CPU's" "$LINENO" 5
+     ;;
+esac
     SIMD_NAME="NEON"
     ;;
   altivec1)
@@ -11164,14 +11221,10 @@ fi
         CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics.o"
       fi
    ;;
-   mic*)
-      CC_ASM_OBJS="simd-intrinsics.o"
-      ;;
-   powerpc*)
-      CC_ASM_OBJS="simd-intrinsics.o"
-      ;;
-   arm*)
-      CC_ASM_OBJS="simd-intrinsics.o"
+   mic*|powerpc*|arm*|aarch64*)
+      if test -n "$SIMD_NAME" -o $simd != no; then :
+  CC_ASM_OBJS="simd-intrinsics.o"
+fi
       ;;
    alpha*dec*)
       CC_ASM_OBJS="digipaq-alpha.o"

@@ -73,14 +73,9 @@ case "${host_cpu}_${CFLAGS}" in
         [CC_ASM_OBJS="x86.o x86-sse.o simd-intrinsics.o"]
       fi
    ;;
-   mic*)
-      [CC_ASM_OBJS="simd-intrinsics.o"]
-      ;;
-   powerpc*)
-      [CC_ASM_OBJS="simd-intrinsics.o"]
-      ;;
-   arm*)
-      [CC_ASM_OBJS="simd-intrinsics.o"]
+   mic*|powerpc*|arm*|aarch64*)
+      AS_IF([test -n "$SIMD_NAME" -o $simd != no],
+        [CC_ASM_OBJS="simd-intrinsics.o"])
       ;;
    alpha*dec*)
       [CC_ASM_OBJS="digipaq-alpha.o"]
