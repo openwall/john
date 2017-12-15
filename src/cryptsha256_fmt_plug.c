@@ -744,11 +744,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (cnt = 1; ; ++cnt) {
 			if (crypt_struct->datlen[idx]==128) {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
-				SIMDSHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
-				SIMDSHA256body((__m128i *)&cp[64], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
+				SIMDSHA256body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
+				SIMDSHA256body(&cp[64], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
 			} else {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
-				SIMDSHA256body((__m128i *)cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
+				SIMDSHA256body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 			}
 			if (cnt == cur_salt->rounds)
 				break;
