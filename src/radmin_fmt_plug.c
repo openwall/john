@@ -1,4 +1,5 @@
-/* RAdmin v2.x cracker patch for JtR. Hacked together during
+/*
+ * RAdmin v2.x cracker patch for JtR. Hacked together during
  * May of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -6,7 +7,8 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
  *
- * Input Format => user:$radmin2$hash */
+ * Input Format => user:$radmin2$hash
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_radmin;
@@ -14,16 +16,8 @@ extern struct fmt_main fmt_radmin;
 john_register_one(&fmt_radmin);
 #else
 
-#include "md5.h"
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 #include <omp.h>
 // Tuned on core i7 quad HT
@@ -36,24 +30,32 @@ john_register_one(&fmt_radmin);
 #define OMP_SCALE     32
 #endif
 #endif
+
+#include "md5.h"
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"RAdmin"
-#define FORMAT_NAME		"v2.x"
-#define FORMAT_TAG           "$radmin2$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	99
-#define CIPHERTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define SALT_SIZE		0
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	64
+#define FORMAT_LABEL            "RAdmin"
+#define FORMAT_NAME             "v2.x"
+#define FORMAT_TAG              "$radmin2$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        99
+#define CIPHERTEXT_LENGTH       32
+#define BINARY_SIZE             16
+#define SALT_SIZE               0
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
 
-#define BINARY_ALIGN		4
-#define SALT_ALIGN		1
+#define BINARY_ALIGN            4
+#define SALT_ALIGN              1
 
 static struct fmt_tests radmin_tests[] = {
 	{"$radmin2$B137F09CF92F465CABCA06AB1B283C1F", "lastwolf"},
@@ -74,9 +76,12 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -92,7 +97,9 @@ static void done(void)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self) {
 	static char buf[CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1];   // $radmin2$ is 9 bytes
+
 	strnzcpylwr(buf, ciphertext, CIPHERTEXT_LENGTH + FORMAT_TAG_LEN + 1);
+
 	return buf;
 }
 
@@ -106,6 +113,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = ciphertext + FORMAT_TAG_LEN;
 	if (hexlen(p, &extra) != CIPHERTEXT_LENGTH || extra)
 		return 0;
+
 	return 1;
 }
 
@@ -118,6 +126,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
@@ -153,6 +162,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (*(uint32_t *)binary == crypt_out[index][0])
 			return 1;
@@ -172,16 +182,17 @@ static int cmp_exact(char *source, int index)
 
 static void radmin_set_key(char *key, int index)
 {
-	// this code assures that both saved_key[index] gets null-terminated (without buffer overflow)
+	// This code assures that both saved_key[index] gets null-terminated (without buffer overflow)
 	char *cp = &saved_key[index][strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1)+1];
-	// and is null padded up to 100 bytes.  We simply clean up prior buffer, up to element 99, but that element will never be written to
+	// and is null padded up to 100 bytes. We simply clean up prior buffer,
+	// up to element 99, but that element will never be written to.
 	if (cp < &saved_key[index][99])
 		while (*cp) *cp++ = 0;
 }
 
 static char *get_key(int index)
 {
-	// assured null teminated string.  Just return it.
+	// Assured NUL teminated string, just return it.
 	return saved_key[index];
 }
 

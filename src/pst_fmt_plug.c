@@ -1,14 +1,16 @@
-/* PST cracker patch for JtR. Hacked together during July of 2012 by
+/*
+ * PST cracker patch for JtR. Hacked together during July of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * Optimizations and shift to pkzip CRC32 code done by JimF
+ * Optimizations and shift to pkzip CRC32 code done by JimF.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * Uses code from crc32_fmt_plug.c written by JimF */
+ * Uses code from crc32_fmt_plug.c written by JimF.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_pst;
@@ -17,11 +19,6 @@ john_register_one(&fmt_pst);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "crc32.h"
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -38,27 +35,29 @@ john_register_one(&fmt_pst);
 #define OMP_SCALE               16384 // core i7 no HT
 #endif
 #endif
-static int omp_t = 1;
 #endif
+
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "crc32.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"PST"
-#define FORMAT_NAME			"custom CRC-32"
-#define FORMAT_TAG           "$pst$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
-
-#define PLAINTEXT_LENGTH		8
-#define BINARY_SIZE			4
-#define SALT_SIZE			0
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			1
-
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		256
+#define FORMAT_LABEL            "PST"
+#define FORMAT_NAME             "custom CRC-32"
+#define FORMAT_TAG              "$pst$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        8
+#define BINARY_SIZE             4
+#define SALT_SIZE               0
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      256
 
 static struct fmt_tests tests[] = {
 	{"$pst$a9290513", "openwall"}, /* "jfuck jw" works too ;) */
@@ -77,10 +76,13 @@ static uint32_t (*crypt_out);
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -114,6 +116,7 @@ static void set_key(char *key, int index) {
 static int cmp_all(void *binary, int count)
 {
 	uint32_t crc=*((uint32_t*)binary), i;
+
 	for (i = 0; i < count; ++i)
 		if (crc == crypt_out[i]) return 1;
 	return 0;
@@ -150,9 +153,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static void *get_binary(char *ciphertext)
 {
 	static uint32_t *out;
+
 	if (!out)
 		out = mem_alloc_tiny(sizeof(uint32_t), MEM_ALIGN_WORD);
 	sscanf(&ciphertext[FORMAT_TAG_LEN], "%x", out);
+
 	return out;
 }
 

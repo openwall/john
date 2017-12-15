@@ -1,9 +1,8 @@
-/* luks.c
+/*
+ * This code is based on luks.c file from hashkill (a hash cracking tool)
+ * project. Copyright (C) 2010 Milen Rangelov <gat3way@gat3way.eu>.
  *
- * hashkill - a hash cracking tool
- * Copyright (C) 2010 Milen Rangelov <gat3way@gat3way.eu>
- *
- * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>
+ * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,19 +30,19 @@ john_register_one(&fmt_luks);
 #else
 #define _LARGEFILE64_SOURCE 1
 #endif
-#include "jumbo.h" // large file support
-#include "os.h"
 #include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include "aes.h"
-#include "sha.h"
-#include "sha2.h"
 #include <string.h>
+#include <errno.h> // used in this format
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               1
+#endif
+#endif
+
 #include "arch.h"
 #include "johnswap.h"
 #include "misc.h"
@@ -52,16 +51,14 @@ john_register_one(&fmt_luks);
 #include "params.h"
 #include "options.h"
 #include "memory.h"
+#include "jumbo.h" // large file support
+#include "os.h"
+#include "aes.h"
+#include "sha.h"
+#include "sha2.h"
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "dyna_salt.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
-#endif
 #include "memdbg.h"
 
 #define LUKS_MAGIC_L        6
@@ -290,9 +287,12 @@ static void init(struct fmt_main *self)
 //	extern struct fmt_main fmt_luks;
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
@@ -355,7 +355,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	is_inlined = atoi(p);
-
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (!isdec(p))
@@ -461,7 +460,6 @@ static void *get_salt(char *ciphertext)
 	/* common handling */
 	p = strtokm(NULL, "$");
 	res = atoi(p);
-	assert(res == sizeof(struct luks_phdr));
 	p = strtokm(NULL, "$");
 	for (i = 0; i < res; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
@@ -496,8 +494,6 @@ static void *get_salt(char *ciphertext)
 	}
 	cs.afsize = af_sectors(john_ntohl(cs.myphdr.keyBytes),
 			john_ntohl(cs.myphdr.keyblock[cs.bestslot].stripes));
-	assert(res == cs.afsize);
-
 	MEM_FREE(keeptr);
 
 	psalt = (struct custom_salt_LUKS*)mem_alloc_tiny(sizeof(struct custom_salt_LUKS)+size, 4);

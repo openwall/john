@@ -1,4 +1,5 @@
-/* Cracker for eCryptfs ~/.ecryptfs/wrapped-passphrase.
+/*
+ * Cracker for eCryptfs ~/.ecryptfs/wrapped-passphrase.
  *
  * We attack "login passphrase" instead of "mount passphrase" (and which could
  * be 128-bit random key!).
@@ -23,7 +24,14 @@ john_register_one(&fmt_ecryptfs1);
 #else
 
 #include <string.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // XXX
+#endif
+#endif
+
 #include "sha2.h"
 #include "arch.h"
 #include "misc.h"
@@ -34,33 +42,24 @@ john_register_one(&fmt_ecryptfs1);
 #include "base64_convert.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               8 // XXX
-#endif
-#endif
 #include "memdbg.h"
 
-//#undef SIMD_COEF_64
-
-#define FORMAT_TAG 		"$ecryptfs$"
-#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
-#define FORMAT_LABEL 		"eCryptfs"
-#define FORMAT_NAME 		""
-#define ALGORITHM_NAME 		"SHA512 " SHA512_ALGORITHM_NAME
-#define BENCHMARK_COMMENT	" (65536x)"  // good luck with that!
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define REAL_BINARY_SIZE	8
-#define HEX_BINARY_SIZE     (REAL_BINARY_SIZE*2)
-#define BINARY_SIZE		64
-#define BINARY_ALIGN		4
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
+#define FORMAT_TAG              "$ecryptfs$"
+#define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
+#define FORMAT_LABEL            "eCryptfs"
+#define FORMAT_NAME             ""
+#define ALGORITHM_NAME          "SHA512 " SHA512_ALGORITHM_NAME
+#define BENCHMARK_COMMENT       " (65536x)"  // good luck with that!
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define REAL_BINARY_SIZE        8
+#define HEX_BINARY_SIZE         (REAL_BINARY_SIZE*2)
+#define BINARY_SIZE             64
+#define BINARY_ALIGN            4
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              4
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 *8 )
@@ -68,11 +67,11 @@ static int omp_t = 1;
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 *8 )
 #endif
 #else
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
-/* taken from eCryptfs */
+/* Taken from eCryptfs source code */
 #define ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS 65536
 #define ECRYPTFS_SALT_SIZE 8
 #define ECRYPTFS_DEFAULT_SALT "\x00\x11\x22\x33\x44\x55\x66\x77"
@@ -101,10 +100,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);

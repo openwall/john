@@ -1,4 +1,5 @@
-/* *New* EPiServer cracker patch for JtR. Hacked together during Summer of
+/*
+ * *New* EPiServer cracker patch for JtR. Hacked together during Summer of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC. Based on sample
  * code by hashcat's atom.
  *
@@ -40,8 +41,17 @@ john_register_one(&fmt_episerver);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               2048 // core i7 no HT
+#endif
+#endif
 
 #include "sha.h"
 #include "sha2.h"
@@ -55,56 +65,44 @@ john_register_one(&fmt_episerver);
 #include "unicode.h"
 #include "memdbg.h"
 
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048 // core i7 no HT
-#endif
-#endif
-
-#define FORMAT_LABEL		"EPiServer"
-#define FORMAT_NAME		""
-#define FORMAT_TAG		"$episerver$*"
-#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define BINARY_SIZE		32 /* larger of the two */
-#define BINARY_ALIGN		4
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define EFFECTIVE_SALT_SIZE 16
-#define SALT_ALIGN		4
+#define FORMAT_LABEL            "EPiServer"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$episerver$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define BINARY_SIZE             32 /* larger of the two */
+#define BINARY_ALIGN            4
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define EFFECTIVE_SALT_SIZE     16
+#define SALT_ALIGN              4
 
 #ifdef SIMD_COEF_32
 #include "simd-intrinsics.h"
 #include "johnswap.h"
 
-#define NBKEYS_SHA1     (SIMD_COEF_32 * SIMD_PARA_SHA1)
-#define NBKEYS_SHA256   (SIMD_COEF_32 * SIMD_PARA_SHA256)
-#define NBKEYS          (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA256)
-#define HASH_IDX_IN     (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
-#define HASH_IDX_SHA1   (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32)
-#define HASH_IDX_SHA256 (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
-#define HASH_IDX_OUT    (cur_salt->version == 0 ? HASH_IDX_SHA1 : HASH_IDX_SHA256)
+#define NBKEYS_SHA1             (SIMD_COEF_32 * SIMD_PARA_SHA1)
+#define NBKEYS_SHA256           (SIMD_COEF_32 * SIMD_PARA_SHA256)
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA256)
+#define HASH_IDX_IN             (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
+#define HASH_IDX_SHA1           (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32)
+#define HASH_IDX_SHA256         (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
+#define HASH_IDX_OUT            (cur_salt->version == 0 ? HASH_IDX_SHA1 : HASH_IDX_SHA256)
 #if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
 #else
-#define GETPOS(i, index) ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
 #endif
 
-
-#define ALGORITHM_NAME      "SHA1/SHA256 " SHA256_ALGORITHM_NAME
-#define PLAINTEXT_LENGTH    19 // (64 - 9 - 16)/2
-#define MIN_KEYS_PER_CRYPT  NBKEYS
-#define MAX_KEYS_PER_CRYPT  NBKEYS
+#define ALGORITHM_NAME          "SHA1/SHA256 " SHA256_ALGORITHM_NAME
+#define PLAINTEXT_LENGTH        19 // (64 - 9 - 16)/2
+#define MIN_KEYS_PER_CRYPT      NBKEYS
+#define MAX_KEYS_PER_CRYPT      NBKEYS
 #else
-#define ALGORITHM_NAME		"SHA1/SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
-#define PLAINTEXT_LENGTH	32
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	16
+#define ALGORITHM_NAME          "SHA1/SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
+#define PLAINTEXT_LENGTH        32
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      16
 #endif
 
 static struct fmt_tests episerver_tests[] = {
@@ -134,6 +132,7 @@ static struct custom_salt {
 	int version;
 	unsigned char esalt[18 + 1]; /* base64 decoding, 24 / 4 * 3 = 18 */
 } *cur_salt;
+
 #if defined(_OPENMP) || defined(SIMD_COEF_32)
 static int omp_t = 1;
 #endif
@@ -145,12 +144,14 @@ static void episerver_set_key_CP(char *_key, int index);
 
 static void init(struct fmt_main *self)
 {
-
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 #ifdef SIMD_COEF_32
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt*SHA_BUF_SIZ,

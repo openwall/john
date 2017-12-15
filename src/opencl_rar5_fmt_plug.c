@@ -17,9 +17,7 @@ extern struct fmt_main fmt_ocl_rar5;
 john_register_one(&fmt_ocl_rar5);
 #else
 
-#include <ctype.h>
 #include <string.h>
-#include <assert.h>
 #include <stdint.h>
 
 //#define DEBUG
@@ -32,32 +30,32 @@ john_register_one(&fmt_ocl_rar5);
 #include "common-opencl.h"
 #include "rar5_common.h"
 
-#define SIZE_SALT50 16
-#define SIZE_PSWCHECK 8
-#define SIZE_PSWCHECK_CSUM 4
-#define SIZE_INITV 16
+#define SIZE_SALT50             16
+#define SIZE_PSWCHECK           8
+#define SIZE_PSWCHECK_CSUM      4
+#define SIZE_INITV              16
 
-#define FORMAT_LABEL		"RAR5-opencl"
-#define FORMAT_NAME		""
-#define ALGORITHM_NAME		"PBKDF2-SHA256 OpenCL"
+#define FORMAT_LABEL            "RAR5-opencl"
+#define FORMAT_NAME             ""
+#define ALGORITHM_NAME          "PBKDF2-SHA256 OpenCL"
 
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define STEP			0
-#define SEED			1024
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define STEP                    0
+#define SEED                    1024
 
-#define BINARY_ALIGN		4
-#define SALT_ALIGN		sizeof(int)
+#define BINARY_ALIGN            4
+#define SALT_ALIGN              sizeof(int)
 
-#define PLAINTEXT_LENGTH	55
-#define BINARY_SIZE		SIZE_PSWCHECK
-#define SALT_SIZE		sizeof(struct custom_salt)
+#define PLAINTEXT_LENGTH        55
+#define BINARY_SIZE             SIZE_PSWCHECK
+#define SALT_SIZE               sizeof(struct custom_salt)
 
-#define KERNEL_NAME		"pbkdf2_sha256_kernel"
-#define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
+#define KERNEL_NAME             "pbkdf2_sha256_kernel"
+#define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
 
-#define HASH_LOOPS		(3*13*29) // factors 3, 13, 29, 29
-#define ITERATIONS		(32800 - 1)
+#define HASH_LOOPS              (3*13*29) // factors 3, 13, 29, 29
+#define ITERATIONS              (32800 - 1)
 
 typedef struct {
 	uint8_t length;

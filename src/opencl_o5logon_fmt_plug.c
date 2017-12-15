@@ -1,4 +1,5 @@
-/* Cracker for Oracle's O5LOGON protocol hashes. Hacked together during
+/*
+ * Cracker for Oracle's O5LOGON protocol hashes. Hacked together during
  * September of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * O5LOGON is used since version 11g. CVE-2012-3137 applies to Oracle 11.1
@@ -7,7 +8,8 @@
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ */
 
 /*
  * Modifications (c) 2014 Harrison Neal.
@@ -15,7 +17,7 @@
  * SHA-1 hashes are now computed with OpenCL.
  * Modifications are based on opencl_rawsha1_fmt.c and sha1_kernel.cl
  * and thus are licensed under the GPLv2.
- * Original files are (c) 2011 Samuele Giovanni Tonon and (c) 2012 magnum
+ * Original files are (c) 2011 Samuele Giovanni Tonon and (c) 2012 magnum.
  */
 
 #ifdef HAVE_OPENCL
@@ -27,8 +29,6 @@ john_register_one(&fmt_opencl_o5logon);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
 
 #include "arch.h"
 #include "sha.h"
@@ -39,23 +39,23 @@ john_register_one(&fmt_opencl_o5logon);
 #include "options.h"
 #include "common-opencl.h"
 
-#define FORMAT_LABEL		"o5logon-opencl"
-#define FORMAT_NAME		"Oracle O5LOGON protocol"
-#define FORMAT_TAG           "$o5logon$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA1 AES OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
-#define CIPHERTEXT_LENGTH	48
-#define SALT_LENGTH		10
-#define BINARY_SIZE		0
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		1
-#define SALT_ALIGN			MEM_ALIGN_WORD
+#define FORMAT_LABEL            "o5logon-opencl"
+#define FORMAT_NAME             "Oracle O5LOGON protocol"
+#define FORMAT_TAG              "$o5logon$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "SHA1 AES OpenCL"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        32
+#define CIPHERTEXT_LENGTH       48
+#define SALT_LENGTH             10
+#define BINARY_SIZE             0
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            1
+#define SALT_ALIGN              MEM_ALIGN_WORD
 
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests o5logon_tests[] = {
 	{"$o5logon$566499330E8896301A1D2711EFB59E756D41AF7A550488D82FE7C8A418E5BE08B4052C0DC404A805C1D7D43FE3350873*4F739806EBC1D7742BC6", "password"},

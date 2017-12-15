@@ -1,4 +1,5 @@
-/* HAS160-512 cracker patch for JtR. Hacked together during May, 2015
+/*
+ * HAS160-512 cracker patch for JtR. Hacked together during May, 2015
  * by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * Thanks for RHash, http://www.randombit.net/has160.html and
@@ -27,9 +28,9 @@ john_register_one(&fmt__HAS160);
 #ifdef _OPENMP
 #ifndef OMP_SCALE
 #ifdef __MIC__
-#define OMP_SCALE           64
+#define OMP_SCALE                       64
 #else
-#define OMP_SCALE			2048
+#define OMP_SCALE                       2048
 #endif // __MIC__
 #endif // OMP_SCALE
 #include <omp.h>
@@ -37,21 +38,21 @@ john_register_one(&fmt__HAS160);
 
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"has-160"
-#define FORMAT_NAME			""
-#define ALGORITHM_NAME			"HAS-160 32/" ARCH_BITS_STR
+#define FORMAT_LABEL                    "has-160"
+#define FORMAT_NAME                     ""
+#define ALGORITHM_NAME                  "HAS-160 32/" ARCH_BITS_STR
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_COMMENT               ""
+#define BENCHMARK_LENGTH                -1
 
-#define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		40
-#define BINARY_SIZE			20
-#define SALT_SIZE			0
-#define BINARY_ALIGN			4
-#define SALT_ALIGN			1
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define PLAINTEXT_LENGTH                125
+#define CIPHERTEXT_LENGTH               40
+#define BINARY_SIZE                     20
+#define SALT_SIZE                       0
+#define BINARY_ALIGN                    4
+#define SALT_ALIGN                      1
+#define MIN_KEYS_PER_CRYPT              1
+#define MAX_KEYS_PER_CRYPT              1
 
 static struct fmt_tests tests[] = {
 	{"307964ef34151d37c8047adec7ab50f4ff89762d", ""},
@@ -71,12 +72,13 @@ static uint32_t (*crypt_out)[(BINARY_SIZE) / sizeof(uint32_t)];
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t;
+	int omp_t = omp_get_max_threads();
 
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
@@ -130,6 +132,7 @@ static void set_key(char *key, int index)
 static char *get_key(int index)
 {
 	saved_key[index][saved_len[index]] = 0;
+
 	return saved_key[index];
 }
 
@@ -154,6 +157,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 	for (; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;

@@ -49,7 +49,6 @@ john_register_one(&fmt_DOMINOSEC8);
 #undef SIMD_COEF_32
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               128
@@ -177,10 +176,13 @@ static struct fmt_tests tests[] = {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));

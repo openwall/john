@@ -40,9 +40,13 @@ john_register_one(&fmt_zip);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include <ctype.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               1	// Tuned on core i7
+#endif
+#endif
 
 #include "arch.h"
 #include "crc32.h"
@@ -55,13 +59,6 @@ john_register_one(&fmt_zip);
 #include "pkzip.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "dyna_salt.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1	// Tuned on core i7
-#endif
-static int omp_t = 1;
-#endif
 #include "hmac_sha.h"
 #include "memdbg.h"
 
@@ -81,7 +78,6 @@ typedef struct my_salt_t {
 	unsigned char datablob[1];
 } my_salt;
 
-
 #define FORMAT_LABEL        "ZIP"
 #define FORMAT_NAME         "WinZip"
 #ifdef SIMD_COEF_32
@@ -89,7 +85,7 @@ typedef struct my_salt_t {
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH    125
 #define BINARY_ALIGN        sizeof(uint32_t)
 #define SALT_SIZE           sizeof(my_salt*)
 #define SALT_ALIGN          sizeof(my_salt*)
@@ -129,10 +125,13 @@ static my_salt *saved_salt;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

@@ -1,8 +1,10 @@
-/* AIX smd5 cracker patch for JtR. Hacked together during April of 2013 by Dhiru
+/*
+ * AIX smd5 cracker patch for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
  * it is hereby released to the general public under the following terms:
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
@@ -14,10 +16,8 @@ john_register_one(&fmt_smd5);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               16 // tuned on i7 w/HT
@@ -33,22 +33,22 @@ static int omp_t = 1;
 #include "options.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"aix-smd5"
-#define FORMAT_NAME		"AIX LPA {smd5} (modified crypt-md5)"
-#define FORMAT_TAG		"{smd5}"
-#define FORMAT_TAG1		"$1$"
-#define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
-#define FORMAT_TAG1_LEN	(sizeof(FORMAT_TAG1)-1)
-#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		16
-#define BINARY_ALIGN			4
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN			sizeof(int)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define FORMAT_LABEL            "aix-smd5"
+#define FORMAT_NAME             "AIX LPA {smd5} (modified crypt-md5)"
+#define FORMAT_TAG              "{smd5}"
+#define FORMAT_TAG1             "$1$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define FORMAT_TAG1_LEN         (sizeof(FORMAT_TAG1)-1)
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define BINARY_SIZE             16
+#define BINARY_ALIGN            4
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              sizeof(int)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests smd5_tests[] = {
 	/* following hashes are AIX non-standard smd5 hashes */
@@ -74,10 +74,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -127,6 +130,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	keeptr = ctcopy;
 	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
@@ -143,6 +147,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 
 	MEM_FREE(keeptr);
+
 	return (void *)&cs;
 }
 

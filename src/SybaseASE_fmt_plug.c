@@ -118,9 +118,12 @@ static void init(struct fmt_main *self)
 #endif
 #ifdef _OPENMP
 	i = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= i;
-	i *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= i;
+
+	if (i > 1) {
+		self->params.min_keys_per_crypt *= i;
+		i *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= i;
+	}
 #endif
 	kpc = self->params.max_keys_per_crypt;
 

@@ -1,4 +1,5 @@
-/* Java KeyStore cracker. Written by Dhiru Kholia <dhiru at openwall.com> and
+/*
+ * Java KeyStore cracker. Written by Dhiru Kholia <dhiru at openwall.com> and
  * Narendra Kangralkar <narendrakangralkar at gmail.com>.
  *
  * Input Format: $keystore$target$data_length$data$hash$nkeys$keylength$keydata$keylength$keydata...
@@ -9,9 +10,9 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
  *
- * major re-write - JimF, Feb, 2016.
- *  Added SIMD and prebuild all salt data for SIMD.
- *  made a common code module (for sharing code with GPU)
+ * Major re-write - JimF, Feb, 2016.
+ *  + Added SIMD and prebuild all salt data for SIMD.
+ *  + made a common code module (for sharing code with GPU)
  */
 
 #if FMT_EXTERNS_H
@@ -21,14 +22,9 @@ john_register_one(&fmt_keystore);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
 
 #include "arch.h"
 #include "simd-intrinsics.h"
-
-//#undef SIMD_COEF_32
-
 #include "sha.h"
 #include "misc.h"
 #include "common.h"
@@ -38,9 +34,9 @@ john_register_one(&fmt_keystore);
 #include "dyna_salt.h"
 #include "johnswap.h"
 #include "keystore_common.h"
+#include "memdbg.h"
 
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #if SIMD_COEF_32
@@ -52,32 +48,30 @@ static int omp_t = 1;
 #elif SIMD_COEF_32
 #define OMP_SCALE               128
 #endif
-#include "memdbg.h"
-
 
 #ifdef SIMD_COEF_32
-#define NBKEYS			(SIMD_COEF_32 * SIMD_PARA_SHA1)
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 
-#define FORMAT_LABEL		"keystore"
-#define FORMAT_NAME		"Java KeyStore"
+#define FORMAT_LABEL            "keystore"
+#define FORMAT_NAME             "Java KeyStore"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "SHA1 " SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #endif
 
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	125
-#define SALT_SIZE		sizeof(struct keystore_salt *)
-#define SALT_ALIGN		sizeof(struct keystore_salt *)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        125
+#define SALT_SIZE               sizeof(struct keystore_salt *)
+#define SALT_ALIGN              sizeof(struct keystore_salt *)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	NBKEYS
-#define MAX_KEYS_PER_CRYPT	NBKEYS
+#define MIN_KEYS_PER_CRYPT      NBKEYS
+#define MAX_KEYS_PER_CRYPT      NBKEYS
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -89,9 +83,9 @@ static int *MixOrder, MixOrderLen;
 
 #ifdef SIMD_COEF_32
 #if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index)   ((index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32)
+#define GETPOS(i, index)        ((index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32)
 #else
-#define GETPOS(i, index)   ((index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32)
+#define GETPOS(i, index)        ((index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32)
 #endif
 static unsigned salt_mem_total;
 
@@ -152,14 +146,17 @@ inline static void getPreKeyedHash(int idx)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #elif SIMD_COEF_32
 	self->params.max_keys_per_crypt *= OMP_SCALE;
 #endif
-	// we need 1 more saved_key than is 'used'. This extra key is used
+	// We need 1 more saved_key than is 'used'. This extra key is used
 	// in SIMD code, for all part full grouped blocks.
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt + 1);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt + 1);

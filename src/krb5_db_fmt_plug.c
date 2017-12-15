@@ -39,8 +39,7 @@ john_register_one(&fmt_krb5_3);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -52,6 +51,8 @@ john_register_one(&fmt_krb5_3);
 #include "pbkdf2_hmac_sha1.h"
 #include "aes.h"
 #include "krb5_common.h"
+
+// OpenMP configuration needs to be here.
 #ifdef _OPENMP
 #include <omp.h>
 #ifdef SIMD_COEF_32
@@ -64,6 +65,7 @@ john_register_one(&fmt_krb5_3);
 #endif
 #endif
 #endif
+
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "krb5-18"
@@ -139,9 +141,12 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

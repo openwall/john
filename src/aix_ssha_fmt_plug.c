@@ -1,12 +1,14 @@
-/* AIX ssha cracker patch for JtR. Hacked together during April of 2013 by Dhiru
+/*
+ * AIX ssha cracker patch for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com> and magnum.
  *
  * Thanks to atom (of hashcat project) and philsmd for discovering and
  * publishing the details of various AIX hashing algorithms.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
- * magnum, and
- * it is hereby released to the general public under the following terms:
+ * magnum, and it is hereby released to the general public under the following
+ * terms:
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
@@ -22,67 +24,66 @@ john_register_one(&fmt_aixssha512);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned on i7 w/HT for SHA-256
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               8 // Tuned on i7 w/HT for SHA-256
-#endif
-#endif
 #include "pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "pbkdf2_hmac_sha512.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL_SHA1	"aix-ssha1"
-#define FORMAT_LABEL_SHA256	"aix-ssha256"
-#define FORMAT_LABEL_SHA512	"aix-ssha512"
-#define FORMAT_NAME_SHA1	"AIX LPA {ssha1}"
-#define FORMAT_NAME_SHA256	"AIX LPA {ssha256}"
-#define FORMAT_NAME_SHA512	"AIX LPA {ssha512}"
+#define FORMAT_LABEL_SHA1       "aix-ssha1"
+#define FORMAT_LABEL_SHA256     "aix-ssha256"
+#define FORMAT_LABEL_SHA512     "aix-ssha512"
+#define FORMAT_NAME_SHA1        "AIX LPA {ssha1}"
+#define FORMAT_NAME_SHA256      "AIX LPA {ssha256}"
+#define FORMAT_NAME_SHA512      "AIX LPA {ssha512}"
 
-#define FORMAT_TAG1			"{ssha1}"
-#define FORMAT_TAG256		"{ssha256}"
-#define FORMAT_TAG512		"{ssha512}"
-#define FORMAT_TAG1_LEN		(sizeof(FORMAT_TAG1)-1)
-#define FORMAT_TAG256_LEN	(sizeof(FORMAT_TAG256)-1)
-#define FORMAT_TAG512_LEN	(sizeof(FORMAT_TAG512)-1)
+#define FORMAT_TAG1             "{ssha1}"
+#define FORMAT_TAG256           "{ssha256}"
+#define FORMAT_TAG512           "{ssha512}"
+#define FORMAT_TAG1_LEN         (sizeof(FORMAT_TAG1)-1)
+#define FORMAT_TAG256_LEN       (sizeof(FORMAT_TAG256)-1)
+#define FORMAT_TAG512_LEN       (sizeof(FORMAT_TAG512)-1)
 
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME_SHA1	"PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME_SHA1     "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME_SHA1	"PBKDF2-SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME_SHA1     "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME_SHA256	"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME_SHA256   "PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME_SHA256	"PBKDF2-SHA256 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME_SHA256   "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
 #ifdef SIMD_COEF_64
-#define ALGORITHM_NAME_SHA512	"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME_SHA512   "PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME_SHA512	"PBKDF2-SHA512 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME_SHA512   "PBKDF2-SHA512 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125 /* actual max in AIX is 255 */
-#define BINARY_SIZE		20
-#define BINARY_ALIGN		4
-#define CMP_SIZE 		BINARY_SIZE - 2
-#define LARGEST_BINARY_SIZE	64
-#define MAX_SALT_SIZE		24
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125 /* actual max in AIX is 255 */
+#define BINARY_SIZE             20
+#define BINARY_ALIGN            4
+#define CMP_SIZE                BINARY_SIZE - 2
+#define LARGEST_BINARY_SIZE     64
+#define MAX_SALT_SIZE           24
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              4
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests aixssha_tests1[] = {
 	{"{ssha1}06$T6numGi8BRLzTYnF$AdXq1t6baevg9/cu5QBBk8Xg.se", "whatdoyouwantfornothing$$$$$$"},
@@ -124,10 +125,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -362,9 +366,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-	//dump_stuff_msg("\nbinary   ", binary, CMP_SIZE);
+
+	// dump_stuff_msg("\nbinary   ", binary, CMP_SIZE);
 	for (; index < count; index++) {
-		//dump_stuff_msg("crypt_out", crypt_out[index], CMP_SIZE);
+		// dump_stuff_msg("crypt_out", crypt_out[index], CMP_SIZE);
 		if (!memcmp(binary, crypt_out[index], CMP_SIZE-2))
 			return 1;
 	}

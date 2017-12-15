@@ -1,5 +1,7 @@
-/* Office 2007 cracker patch for JtR. Hacked together during March of 2012 by
- * Dhiru Kholia <dhiru.kholia at gmail.com> */
+/*
+ * Office 2007 cracker patch for JtR. Hacked together during March of 2012 by
+ * Dhiru Kholia <dhiru.kholia at gmail.com>.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_office;
@@ -10,12 +12,11 @@ john_register_one(&fmt_office);
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               4
+#define OMP_SCALE                4
 #endif
 #endif
 
@@ -34,40 +35,37 @@ john_register_one(&fmt_office);
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 
-//#undef SIMD_COEF_32
-//#undef SIMD_COEF_64
-
-#define FORMAT_LABEL		"Office"
-#define FORMAT_NAME		"2007/2010/2013"
-#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME " / SHA512 " SHA512_ALGORITHM_NAME " AES"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(*cur_salt)
-#define BINARY_ALIGN	4
-#define SALT_ALIGN	sizeof(int)
+#define FORMAT_LABEL             "Office"
+#define FORMAT_NAME              "2007/2010/2013"
+#define ALGORITHM_NAME           "SHA1 " SHA1_ALGORITHM_NAME " / SHA512 " SHA512_ALGORITHM_NAME " AES"
+#define BENCHMARK_COMMENT        ""
+#define BENCHMARK_LENGTH         -1
+#define PLAINTEXT_LENGTH         125
+#define BINARY_SIZE              16
+#define SALT_SIZE                sizeof(*cur_salt)
+#define BINARY_ALIGN             4
+#define SALT_ALIGN               sizeof(int)
 #ifdef SIMD_COEF_32
 #define GETPOS_512W(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define GETOUTPOS_512W(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#define GETOUTPOS_512W(i, index) ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
 #if ARCH_LITTLE_ENDIAN==1
-#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define GETOUTPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#define GETPOS_1(i, index)       ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_512(i, index)     ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512(i, index)  ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
 #else
-#define GETPOS_1(i, index)  ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define GETOUTPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#define GETPOS_1(i, index)       ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_512(i, index)     ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512(i, index)  ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
 #endif
-#define SHA1_LOOP_CNT       (SIMD_COEF_32*SIMD_PARA_SHA1)
-#define SHA512_LOOP_CNT     (SIMD_COEF_64 * SIMD_PARA_SHA512)
-#define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
+#define SHA1_LOOP_CNT            (SIMD_COEF_32*SIMD_PARA_SHA1)
+#define SHA512_LOOP_CNT          (SIMD_COEF_64 * SIMD_PARA_SHA512)
+#define MIN_KEYS_PER_CRYPT       (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT       (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
 #else
-#define SHA1_LOOP_CNT		1
-#define SHA512_LOOP_CNT 1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define SHA1_LOOP_CNT            1
+#define SHA512_LOOP_CNT          1
+#define MIN_KEYS_PER_CRYPT       1
+#define MAX_KEYS_PER_CRYPT       1
 #endif
 
 static struct fmt_tests office_tests[] = {
@@ -115,9 +113,6 @@ static ms_office_custom_salt *cur_salt;
 
 #define MS_OFFICE_2007_ITERATIONS	50000
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 /* Password encoded in UCS-2 */
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 /* UCS-2 password length, in octets */
@@ -591,10 +586,13 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);

@@ -12,7 +12,7 @@
  * Copyright (c) 2012 Dhiru Kholia <dhiru.kholia at gmail.com>,
  * Copyright (c) 2014 m3g9tr0n (Spiros Fraganastasis),
  * Copyright (c) 2016 Fist0urs <eddy.maaalou at gmail.com>, and
- * Copyright (c) 2017 magnum
+ * Copyright (c) 2017 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -26,12 +26,11 @@ john_register_one(&fmt_KeePass);
 
 #include <string.h>
 #include <stdint.h>
-#include <assert.h>
-#include <errno.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE		1
+#define OMP_SCALE               1
 #endif
 #endif
 
@@ -48,9 +47,9 @@ john_register_one(&fmt_KeePass);
 #include "chacha.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"KeePass"
-#define FORMAT_NAME		""
-#define ALGORITHM_NAME		"SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
+#define FORMAT_LABEL            "KeePass"
+#define FORMAT_NAME             ""
+#define ALGORITHM_NAME          "SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
 
 static keepass_salt_t *cur_salt;
 static int any_cracked, *cracked;
@@ -122,11 +121,13 @@ static void transform_key(char *masterkey, keepass_salt_t *csp,
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = 1;
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	keepass_key = mem_calloc(self->params.max_keys_per_crypt,
 				sizeof(*keepass_key));

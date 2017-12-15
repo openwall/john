@@ -24,7 +24,6 @@ john_register_one(&fmt_oracle);
 #include "formats.h"
 #include "unicode.h"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE              512
@@ -213,14 +212,16 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	DES_set_key((DES_cblock *)"\x01\x23\x45\x67\x89\xab\xcd\xef", &desschedule_static);
-
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
+	DES_set_key((DES_cblock *)"\x01\x23\x45\x67\x89\xab\xcd\xef", &desschedule_static);
 	cur_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*cur_key));
 	plain_key = mem_calloc(self->params.max_keys_per_crypt,

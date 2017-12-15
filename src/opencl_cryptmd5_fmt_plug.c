@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz at openwall dot net>
- * and Copyright (c) 2012 magnum
+ * and Copyright (c) 2012 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
@@ -13,11 +13,6 @@ john_register_one(&fmt_opencl_cryptMD5);
 #else
 
 #include <stdint.h>
-#include <string.h>
-#include <assert.h>
-#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
-#include <unistd.h>
-#endif
 
 #include "arch.h"
 #include "formats.h"

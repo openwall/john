@@ -1,4 +1,5 @@
-/* Cracker for Oracle's O5LOGON protocol hashes. Hacked together during
+/*
+ * Cracker for Oracle's O5LOGON protocol hashes. Hacked together during
  * September of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * O5LOGON is used since version 11g. CVE-2012-3137 applies to Oracle 11.1
@@ -7,9 +8,8 @@
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
-
-/*
+ * are permitted.
+ *
  * Modifications (c) 2014 Harrison Neal, released under the same terms
  * as the original.
  */
@@ -21,8 +21,14 @@ john_register_one(&fmt_o5logon);
 #else
 
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+#include <stdint.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               512 // tuned on core i7
+#endif
+#endif
 
 #include "arch.h"
 #include "sha.h"
@@ -33,32 +39,24 @@ john_register_one(&fmt_o5logon);
 #include "options.h"
 #include "aes.h"
 #include "md5.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // tuned on core i7
-//#define OMP_SCALE                8192 // tuned on K8-Dual HT
-#endif
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"o5logon"
-#define FORMAT_NAME		"Oracle O5LOGON protocol"
-#define FORMAT_TAG           "$o5logon$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA1 AES 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32 /* Multiple of 16 */
-#define CIPHERTEXT_LENGTH	48
-#define SALT_LENGTH		10
-#define BINARY_SIZE		0
-#define BINARY_ALIGN	1
-#define SALT_ALIGN		sizeof(int)
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define FORMAT_LABEL            "o5logon"
+#define FORMAT_NAME             "Oracle O5LOGON protocol"
+#define FORMAT_TAG              "$o5logon$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "SHA1 AES 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        32 /* Multiple of 16 */
+#define CIPHERTEXT_LENGTH       48
+#define SALT_LENGTH             10
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
+#define SALT_ALIGN              sizeof(int32_t)
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests o5logon_tests[] = {
 	{"$o5logon$566499330E8896301A1D2711EFB59E756D41AF7A550488D82FE7C8A418E5BE08B4052C0DC404A805C1D7D43FE3350873*4F739806EBC1D7742BC6", "password"},
@@ -96,10 +94,13 @@ static void init(struct fmt_main *self)
 	static char Buf[128];
 
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -314,7 +315,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void o5logon_set_key(char *key, int index)

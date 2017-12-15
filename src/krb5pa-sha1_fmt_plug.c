@@ -29,7 +29,7 @@
  * and binary forms, with or without modification, are permitted.
  *
  * This software is Copyright (c) 2012 Dhiru Kholia (dhiru at openwall.com) and
- * released under same terms as above
+ * released under same terms as above.
  */
 
 #if FMT_EXTERNS_H
@@ -38,12 +38,9 @@ extern struct fmt_main fmt_krb5pa;
 john_register_one(&fmt_krb5pa);
 #else
 
-#include <errno.h>
 #include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               64
@@ -54,12 +51,12 @@ static int omp_t = 1;
 #include "formats.h"
 #include "options.h"
 #include "common.h"
+#include "loader.h"
 #include "unicode.h"
 #include "johnswap.h"
 #include "aes.h"
 #include "hmac_sha.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "loader.h"
 #include "krb5_common.h"
 #include "memdbg.h"
 
@@ -74,24 +71,24 @@ static int omp_t = 1;
 #endif
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   -1
-#define BINARY_SIZE		12
-#define BINARY_ALIGN		4
-#define PLAINTEXT_LENGTH	125
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define SALT_ALIGN		4
+#define BINARY_SIZE        12
+#define BINARY_ALIGN       4
+#define PLAINTEXT_LENGTH   125
+#define SALT_SIZE          sizeof(struct custom_salt)
+#define SALT_ALIGN         4
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT SSE_GROUP_SZ_SHA1
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT 1
+#define MAX_KEYS_PER_CRYPT 1
 #endif
-#define MAX_SALTLEN             128
-#define MAX_REALMLEN            64
-#define MAX_USERLEN             64
-#define TIMESTAMP_SIZE          44
-#define CHECKSUM_SIZE           BINARY_SIZE
-#define TOTAL_LENGTH            (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
+#define MAX_SALTLEN        128
+#define MAX_REALMLEN       64
+#define MAX_USERLEN        64
+#define TIMESTAMP_SIZE     44
+#define CHECKSUM_SIZE      BINARY_SIZE
+#define TOTAL_LENGTH       (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
 static struct fmt_tests tests[] = {
 	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},
@@ -124,10 +121,13 @@ static void init(struct fmt_main *self)
 {
 	unsigned char usage[5];
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);

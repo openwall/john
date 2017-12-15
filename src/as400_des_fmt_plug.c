@@ -1,15 +1,21 @@
-// AS/400 DES plugin for JtR
-// This software is Copyright (c) 2016 Rob Schoemaker (@5up3rUs3r) and Bart Kulach (@bartholozz)
-// and it is hereby released to the general public under the following terms:
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted.
-//
-// See http://www.hackthelegacy.org for details and tooling to retrieve hashes from AS/400 systems
-//
-// Based on RACF cracker patch for JtR by Dhiru Kholia <dhiru.kholia at gmail.com>,
-// Nigel Pentland <nigel at nigelpentland.net> and Main Framed <mainframed767 at gmail.com>.
-//
-// file format => userid:$as400des$*userid*hash
+/*
+ * AS/400 DES plugin for JtR.
+ *
+ * This software is Copyright (c) 2016 Rob Schoemaker (@5up3rUs3r) and Bart
+ * Kulach (@bartholozz) and it is hereby released to the general public under
+ * the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * See http://www.hackthelegacy.org for details and tooling to retrieve hashes
+ * from AS/400 systems.
+ *
+ * Based on RACF cracker patch for JtR by Dhiru Kholia <dhiru.kholia at gmail.com>, and
+ * Nigel Pentland <nigel at nigelpentland.net> and Main Framed <mainframed767 at gmail.com>.
+ *
+ * Hash format => userid:$as400des$*userid*hash
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_as400des;
@@ -17,10 +23,9 @@ extern struct fmt_main fmt_as400des;
 john_register_one(&fmt_as400des);
 #else
 
-#include <openssl/des.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+#include <openssl/des.h>
+
 #include "arch.h"
 #include "crc32.h"
 #include "misc.h"
@@ -128,7 +133,6 @@ static void process_userid(unsigned char *str)
 		str[8] = 0; /* terminate string */
 	}
 }
-
 
 static struct fmt_tests as400_des_tests[] = {
 	{"$as400des$AAAAAAA*CA2E330B2FD1820E", "AAAAAAAA"},
@@ -305,6 +309,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 	for (; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;

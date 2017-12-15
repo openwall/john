@@ -1,4 +1,5 @@
-/* Siemens S7 authentication protocol cracker. Written  by Narendra Kangralkar
+/*
+ * Siemens S7 authentication protocol cracker. Written  by Narendra Kangralkar
  * <narendrakangralkar at gmail.com> and Dhiru Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013, Dhiru Kholia <dhiru.kholia at gmail.com>
@@ -14,39 +15,39 @@ extern struct fmt_main fmt_s7;
 john_register_one(&fmt_s7);
 #else
 
-#include "sha.h"
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               2048
 #endif
 #endif
+
+#include "sha.h"
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"Siemens-S7"
-#define FORMAT_NAME		""
-#define FORMAT_TAG           "$siemens-s7$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"HMAC-SHA1 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	125
-#define CIPHERTEXT_LENGTH	(1 + 10 + 1 + 1 + 1 + 40 + 1 + 40)
-#define BINARY_SIZE		20
-#define SALT_SIZE		20
-#define BINARY_ALIGN	sizeof(uint32_t)
-#define SALT_ALIGN		1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	8
+#define FORMAT_LABEL            "Siemens-S7"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$siemens-s7$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "HMAC-SHA1 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        125
+#define CIPHERTEXT_LENGTH       (1 + 10 + 1 + 1 + 1 + 40 + 1 + 40)
+#define BINARY_SIZE             20
+#define SALT_SIZE               20
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
 
 static struct fmt_tests s7_tests[] = {
 	{"$siemens-s7$1$599fe00cdb61f76cc6e949162f22c95943468acb$002e45951f62602b2f5d15df217f49da2f5379cb", "123"},
@@ -66,9 +67,12 @@ static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -93,6 +97,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
+
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
@@ -141,6 +146,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static unsigned char lchallenge[20];
+
 	ctcopy += FORMAT_TAG_LEN;		/* skip over "$siemens-s7$" */
 	p = strtokm(ctcopy, "$");
 	p = strtokm(NULL, "$");
@@ -148,6 +154,7 @@ static void *get_salt(char *ciphertext)
 		lchallenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
+
 	return (void *)lchallenge;
 }
 
@@ -160,6 +167,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =

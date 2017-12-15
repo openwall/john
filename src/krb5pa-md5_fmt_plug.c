@@ -38,7 +38,6 @@
  * This software is Copyright (c) 2011-2012 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
- *
  */
 
 #if FMT_EXTERNS_H
@@ -47,21 +46,14 @@ extern struct fmt_main fmt_mskrb5;
 john_register_one(&fmt_mskrb5);
 #else
 
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#if !AC_BUILT || HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
-#include <errno.h>
 #include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
+
 #ifdef _OPENMP
 #include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE          1024
+#endif
 #endif
 
 #include "arch.h"
@@ -70,7 +62,6 @@ john_register_one(&fmt_mskrb5);
 #include "options.h"
 #include "common.h"
 #include "unicode.h"
-
 #include "md5.h"
 #include "hmacmd5.h"
 #include "md4.h"
@@ -102,10 +93,6 @@ john_register_one(&fmt_mskrb5);
 // these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT 1
 #define MAX_KEYS_PER_CRYPT 1
-
-#ifndef OMP_SCALE
-#define OMP_SCALE          1024
-#endif
 
 // Second and third plaintext will be replaced in init() under come encodings
 static struct fmt_tests tests[] = {
@@ -145,9 +132,11 @@ static void init(struct fmt_main *self)
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
 
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
 	                         sizeof(*saved_plain));

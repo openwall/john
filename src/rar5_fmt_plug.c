@@ -1,4 +1,5 @@
-/* RAR 5.0 cracker patch for JtR. Hacked together during May of 2013 by Dhiru
+/*
+ * RAR 5.0 cracker patch for JtR. Hacked together during May of 2013 by Dhiru
  * Kholia.
  *
  * http://www.rarlab.com/technote.htm
@@ -21,10 +22,8 @@ john_register_one(&fmt_rar5);
 
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               1 // tuned on core i7
@@ -40,15 +39,13 @@ static int omp_t = 1;
 #include "params.h"
 #include "options.h"
 #include "rar5_common.h"
-//#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha256.h"
-
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"RAR5"
-#define FORMAT_NAME		""
+#define FORMAT_LABEL            "RAR5"
+#define FORMAT_NAME             ""
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME          "PBKDF2-SHA256 64/" ARCH_BITS_STR " " SHA2_LIB
@@ -56,18 +53,18 @@ static int omp_t = 1;
 #define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(uint32_t)
-#define SALT_ALIGN		sizeof(int)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        32
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -75,10 +72,13 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);

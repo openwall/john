@@ -17,10 +17,7 @@ john_register_one(&fmt_opencl_office);
 #else
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
 
 #include "arch.h"
 #include "misc.h"

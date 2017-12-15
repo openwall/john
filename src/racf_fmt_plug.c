@@ -1,5 +1,6 @@
-/* RACF cracker patch for JtR. Hacked together during March of 2012 by
- * Dhiru Kholia <dhiru.kholia at gmail.com> .
+/*
+ * RACF cracker patch for JtR. Hacked together during March of 2012 by
+ * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and it is hereby released to the general public under the following terms:
@@ -21,10 +22,16 @@ extern struct fmt_main fmt_racf;
 john_register_one(&fmt_racf);
 #else
 
-#include <openssl/des.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
+#include <openssl/des.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               2048 // tuned K8-dual HT
+#endif
+#endif
+
 #include "arch.h"
 #include "crc32.h"
 #include "misc.h"
@@ -32,30 +39,23 @@ john_register_one(&fmt_racf);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048 // tuned K8-dual HT
-#endif
-static int omp_t = 1;
-#endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"RACF"
-#define FORMAT_NAME		""
-#define FORMAT_TAG           "$racf$*"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"DES 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	8
-#define CIPHERTEXT_LENGTH	16
-#define BINARY_SIZE		8
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(uint32_t)
-#define SALT_ALIGN		1
+#define FORMAT_LABEL            "RACF"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$racf$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "DES 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        8
+#define CIPHERTEXT_LENGTH       16
+#define BINARY_SIZE             8
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              1
 
-#define MIN_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT	1
 
 static const unsigned char a2e[256] = {
@@ -152,10 +152,13 @@ static int dirty;
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

@@ -1,4 +1,5 @@
-/* WoltLab Burning Board 3 (WBB3) cracker patch for JtR. Hacked together during
+/*
+ * WoltLab Burning Board 3 (WBB3) cracker patch for JtR. Hacked together during
  * May of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -12,9 +13,8 @@
  *
  * type => 1, for sha1($salt.sha1($salt.sha1($pass))) hashing scheme
  *
- * JimF, July 2012.
- * Made small change in hex_encode 10x improvement in speed.  Also some other
- * changes.  Should be a thin dyanamic.
+ * JimF, July 2012. Made small change in hex_encode 10x improvement in speed.
+ * Also some other changes. This should be a thin dyanamic.
  */
 
 #if FMT_EXTERNS_H
@@ -23,40 +23,39 @@ extern struct fmt_main fmt_wbb3;
 john_register_one(&fmt_wbb3);
 #else
 
-#include "arch.h"
-#include "sha.h"
-
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               8 // tuned on core i7
 #endif
 #endif
+
+#include "arch.h"
+#include "sha.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"wbb3"
-#define FORMAT_NAME		"WoltLab BB3"
-#define FORMAT_TAG           "$wbb3$*"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		20
+#define FORMAT_LABEL            "wbb3"
+#define FORMAT_NAME             "WoltLab BB3"
+#define FORMAT_TAG              "$wbb3$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        32
+#define BINARY_SIZE             20
 #define MAX_SALT_LEN            40
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(uint32_t)
-#define SALT_ALIGN		sizeof(int)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	64
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
 
 static struct fmt_tests wbb3_tests[] = {
 	{"$wbb3$*1*0b053db07dc02bc6f6e24e00462f17e3c550afa9*e2063f7c629d852302d3020599376016ff340399", "123456"},
@@ -68,7 +67,6 @@ static struct fmt_tests wbb3_tests[] = {
 	{"$wbb3$*1*d132b22d3f1d942b99cc1f5fbd5cc3eb0824d608*e3e03fe02223c5030e834f81997f614b43441853", "1234567890"},
 	{NULL}
 };
-
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
@@ -83,6 +81,7 @@ static struct custom_salt {
 inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
 	int i;
+
 	for (i = 0; i < len; ++i) {
 		out[0] = itoa16[str[i]>>4];
 		out[1] = itoa16[str[i]&0xF];
@@ -93,11 +92,13 @@ inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	static int omp_t = 1;
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -160,6 +161,7 @@ static void *get_salt(char *ciphertext)
 	cs.type = atoi(p);
 	p = strtokm(NULL, "*");
 	strcpy((char *)cs.salt, p);
+
 	return (void *)&cs;
 }
 
@@ -172,6 +174,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '*') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
@@ -195,6 +198,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -202,6 +206,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	{
 		unsigned char hexhash[40];
 		SHA_CTX ctx;
+
 		if (dirty) {
 			unsigned char out[20];
 			SHA1_Init(&ctx);
@@ -220,12 +225,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 	dirty = 0;
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 	for (; index < count; index++)
 		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;

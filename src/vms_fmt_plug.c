@@ -35,7 +35,6 @@ john_register_one(&fmt_VMS);
 #include "common.h"
 #include "formats.h"
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               1024 // Tuned on K8-Dual HT
@@ -124,10 +123,13 @@ static int valid(char *ciphertext, struct fmt_main *self )
 static void fmt_vms_init ( struct fmt_main *self )
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	/* Init bin 2 hex table for faster conversions later */
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,

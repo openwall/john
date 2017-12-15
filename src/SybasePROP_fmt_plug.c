@@ -35,7 +35,6 @@ john_register_one(&fmt_sybaseprop);
 #ifndef OMP_SCALE
 #define OMP_SCALE           16
 #endif
-static int omp_t = 1;
 #endif
 
 #include "memdbg.h"
@@ -78,7 +77,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
+	int omp_t = omp_get_max_threads();
+
 	if (omp_t > 1) {
 		self->params.min_keys_per_crypt *= omp_t;
 		omp_t *= OMP_SCALE;

@@ -1,10 +1,9 @@
-/* androidfde.c
+/*
+ * This code is based on androidfde.c file from hashkill (a hash cracking tool)
+ * project. Copyright (C) 2010 Milen Rangelov <gat3way@gat3way.eu>.
  *
- * hashkill - a hash cracking tool
- * Copyright (C) 2010 Milen Rangelov <gat3way@gat3way.eu>
- *
- * Modified for JtR and made stuff more generic
- * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>
+ * Modified for JtR and made stuff more generic - Dhiru.
+ * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,15 +29,10 @@ john_register_one(&fmt_fde);
 
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "os.h"
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <string.h>
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE           1
@@ -71,8 +65,8 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH    64
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
-#define BINARY_ALIGN		1
-#define SALT_ALIGN			8
+#define BINARY_ALIGN        1
+#define SALT_ALIGN          8
 #define SALT_SIZE           sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
@@ -107,10 +101,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	int omp_t = omp_get_max_threads();
+
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	max_cracked = self->params.max_keys_per_crypt;
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -233,7 +230,7 @@ static void AES_cbc_essiv(unsigned char *src, unsigned char *dst, unsigned char 
 	AES_cbc_encrypt(src, dst, size, &aeskey, essiv, AES_DECRYPT);
 }
 
-//		cracked[index] = hash_plugin_check_hash(saved_key[index]);
+// cracked[index] = hash_plugin_check_hash(saved_key[index]);
 void hash_plugin_check_hash(int index)
 {
 	unsigned char keycandidate2[255];

@@ -1,16 +1,17 @@
-/* VNC cracker patch for JtR. Hacked together during March of 2012 by
+/*
+ * VNC cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>
  *
  * On Windows, Use Ettercap to get VNC challenge-response pairs in
  * JtR format. E.g. ettercap -Tq -r /home/user/sample.pcap
  *
  * On other platforms, vncpcap2john.cpp should be able to parse
- * .pcap files and output VNC challenge-response pairs in JtR format
+ * .pcap files and output VNC challenge-response pairs in JtR format.
  *
  * bit_flip table and encryption algorithm are taken fron VNCcrack.
  *
  * (C) 2003, 2004, 2006, 2008 Jack Lloyd <lloyd@randombit.net>
- * Licensed under the GNU GPL v2
+ * Licensed under the GNU GPL v2.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,7 +21,8 @@
  * You should have received a copy of the GNU General Public
  * License along with this program; if not, write to the Free
  * Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
- * 02111-1307 USA. */
+ * 02111-1307 USA.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_vnc;
@@ -30,16 +32,8 @@ john_register_one(&fmt_vnc);
 
 #include <openssl/des.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #ifdef __MIC__
@@ -49,22 +43,29 @@ static int omp_t = 1;
 #endif // __MIC__
 #endif // OMP_SCALE
 #endif // _OPENMP
+
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"VNC"
-#define FORMAT_NAME		""
-#define FORMAT_TAG           "$vnc$*"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"DES 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	8
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN	sizeof(uint32_t)
-#define SALT_ALIGN		1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define FORMAT_LABEL            "VNC"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$vnc$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "DES 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        8
+#define BINARY_SIZE             16
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 /* DES_set_odd_parity() already applied */
 static const unsigned char bit_flip[256] = {
@@ -134,12 +135,14 @@ static unsigned char (*des_key)[PLAINTEXT_LENGTH];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static void init(struct fmt_main *self)
 {
+#ifdef _OPENMP
+	int omp_t = omp_get_max_threads();
 
-#if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	des_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*des_key));
@@ -262,6 +265,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif

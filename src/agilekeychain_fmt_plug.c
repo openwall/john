@@ -1,4 +1,5 @@
-/* 1Password Agile Keychain cracker patch for JtR. Hacked together during
+/*
+ * 1Password Agile Keychain cracker patch for JtR. Hacked together during
  * July of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -9,7 +10,7 @@
  * This software is based on "agilekeychain" project but no actual code is
  * borrowed from it.
  *
- * "agilekeychain" project is at https://bitbucket.org/gwik/agilekeychain
+ * "agilekeychain" project is at https://bitbucket.org/gwik/agilekeychain.
  */
 
 #if FMT_EXTERNS_H
@@ -19,7 +20,7 @@ john_register_one(&fmt_agile_keychain);
 #else
 
 #include <string.h>
-#include <errno.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -32,35 +33,35 @@ john_register_one(&fmt_agile_keychain);
 #include "common.h"
 #include "formats.h"
 #include "params.h"
-#include "johnswap.h"
 #include "options.h"
-#include "pbkdf2_hmac_sha1.h"
 #include "aes.h"
 #include "jumbo.h"
+#include "johnswap.h"
+#include "pbkdf2_hmac_sha1.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"agilekeychain"
-#define FORMAT_NAME		"1Password Agile Keychain"
-#define FORMAT_TAG           "$agilekeychain$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "agilekeychain"
+#define FORMAT_NAME             "1Password Agile Keychain"
+#define FORMAT_TAG              "$agilekeychain$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME		"PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		1
-#define SALT_ALIGN		sizeof(int)
-#define PLAINTEXT_LENGTH	125
-#define SALT_SIZE		sizeof(struct custom_salt)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
+#define SALT_ALIGN              sizeof(int)
+#define PLAINTEXT_LENGTH        125
+#define SALT_SIZE               sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
 #define SALTLEN 8
@@ -92,12 +93,13 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	int omp_t = 1;
+	int omp_t = omp_get_max_threads();
 
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
+	if (omp_t > 1) {
+		self->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -285,7 +287,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void agile_keychain_set_key(char *key, int index)
