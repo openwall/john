@@ -139,6 +139,7 @@ if test "x$simd" = xyes; then
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
   )
+
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CC="$CC_BACKUP -msse2"
@@ -159,12 +160,11 @@ if test "x$simd" = xyes; then
      [AC_MSG_RESULT(no)]
   )
   ])
+
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mssse3"
-  AC_MSG_CHECKING([for SSSE3])
-
-  if test "$(uname -m)" = "x86_64"; then
+  CC="$CC_BACKUP"
+  if test $host_cpu = "x86_64"; then
     CPUID_ASM="x86-64.S"
     CPUID_FILE="x86-64.h"
   else
@@ -172,13 +172,16 @@ if test "x$simd" = xyes; then
     CPUID_FILE="x86-any.h"
   fi
 
-  if test ! -f arch.h; then
-      cp $CPUID_FILE arch.h
-  fi
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSSE3 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
+  CFLAGS="$CFLAGS_BACKUP -mssse3 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
 
-  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
-  AS_IF([test "x$SIMD_var" = x1],
+  ln -fs $CPUID_FILE arch.h
+
+  AC_MSG_CHECKING([for SSSE3])
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
      [CPU_BEST_FLAGS="-mssse3"]
      [SIMD_NAME="SSSE3"]
      [AC_MSG_RESULT([yes])]
@@ -190,13 +193,14 @@ if test "x$simd" = xyes; then
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -msse4.1"
+  CFLAGS="$CFLAGS_BACKUP -msse4.1 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   AC_MSG_CHECKING([for SSE4.1])
-
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_SSE4_1 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
-  AS_IF([test "x$SIMD_var" = x1],
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
      [CPU_BEST_FLAGS="-msse4.1"]
      [SIMD_NAME="SSE4.1"]
      [AC_MSG_RESULT([yes])]
@@ -208,13 +212,14 @@ if test "x$simd" = xyes; then
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mavx"
+  CFLAGS="$CFLAGS_BACKUP -mavx -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   AC_MSG_CHECKING([for AVX])
-
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
-  AS_IF([test "x$SIMD_var" = x1],
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
      [CPU_BEST_FLAGS="-mavx"]dnl
      [SIMD_NAME="AVX"]
      [AC_MSG_RESULT([yes])]
@@ -226,13 +231,14 @@ if test "x$simd" = xyes; then
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mxop"
+  CFLAGS="$CFLAGS_BACKUP -mxop -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   AC_MSG_CHECKING([for XOP])
-
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_XOP -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
-  AS_IF([test "x$SIMD_var" = x1],
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
      [CPU_BEST_FLAGS="-mxop"]dnl
      [SIMD_NAME="XOP"]
      [AC_MSG_RESULT([yes])]
@@ -244,18 +250,18 @@ if test "x$simd" = xyes; then
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mavx2"
+  CFLAGS="$CFLAGS_BACKUP -mavx2 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   AC_MSG_CHECKING([for AVX2])
-
-  $CC 2>/dev/null -P $EXTRA_AS_FLAGS $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA -DCPU_REQ_AVX2 -DCPU_REQ test_SIMD.c $CPUID_ASM -o test_SIMD
-
-  AC_SUBST([SIMD_var],[$( ./test_SIMD; echo $? )])
-  AS_IF([test "x$SIMD_var" = x1],
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
      [CPU_BEST_FLAGS="-mavx2"]dnl
      [SIMD_NAME="AVX2"]
      [AC_MSG_RESULT([yes])]
-    ,
-     [CPU_NOTFOUND=1]
+    ,[CPU_NOTFOUND=1]
      [AC_MSG_RESULT([no])]
   )
   ]
@@ -263,17 +269,17 @@ if test "x$simd" = xyes; then
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mavx512f"
+  CFLAGS="$CFLAGS_BACKUP -mavx512f -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
+  ln -fs mic.h arch.h
+
   AC_MSG_CHECKING([for AVX512F])
-  AC_RUN_IFELSE(
-    [
-    AC_LANG_SOURCE(
-      [[#include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-    )]
-    ,[CPU_BEST_FLAGS="-mavx512f"]dnl
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
+     [CPU_BEST_FLAGS="-mavx512f"]dnl
      [SIMD_NAME="AVX512F"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -284,25 +290,21 @@ if test "x$simd" = xyes; then
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
-  CC="$CC_BACKUP -mavx512bw"
+  CFLAGS="$CFLAGS_BACKUP -mavx512bw -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
   AC_MSG_CHECKING([for AVX512BW])
-  AC_RUN_IFELSE(
-    [
-    AC_LANG_SOURCE(
-      [[#include <immintrin.h>
-        #include <stdio.h>
-        extern void exit(int);
-        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
-    )]
-    ,[CPU_BEST_FLAGS="-mavx512bw"]dnl
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
+     [CPU_BEST_FLAGS="-mavx512bw"]dnl
      [SIMD_NAME="AVX512BW"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
   ]
   )
-
-  rm -f test_SIMD
 
  else
 
