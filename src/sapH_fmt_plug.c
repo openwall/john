@@ -36,17 +36,6 @@ john_register_one(&fmt_sapH);
 //#undef SIMD_COEF_64
 //#undef SIMD_PARA_SHA512
 
-#if !ARCH_LITTLE_ENDIAN
-// For now, neuter this format from SIMD building.
-// Someone else can port to BE at a later date.
-#undef SIMD_COEF_32
-#undef SIMD_PARA_SHA1
-#undef SIMD_PARA_SHA256
-#undef SIMD_COEF_64
-#undef SIMD_PARA_SHA512
-#endif
-
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -316,8 +305,13 @@ static void crypt_all_1(int count) {
 			keys[(i<<6)+len+20] = 0x80;
 			offs[i] = len;
 			len += 20;
+#if ARCH_LITTLE_ENDIAN
 			keys[(i<<6)+60] = (len<<3)&0xff;
 			keys[(i<<6)+61] = (len>>5);
+#else
+			keys[(i<<6)+62] = (len>>5);
+			keys[(i<<6)+63] = (len<<3)&0xff;
+#endif
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
@@ -328,10 +322,18 @@ static void crypt_all_1(int count) {
 				for (j = 0; j < 5; ++j) {
 					// likely location for BE porting
 #if ARCH_ALLOWS_UNALIGNED
+  #if ARCH_LITTLE_ENDIAN
 					Icp32[j] = JOHNSWAP(*pcrypt);
+  #else
+					Icp32[j] = *pcrypt;
+  #endif
 #else
+  #if ARCH_LITTLE_ENDIAN
 					uint32_t tmp = JOHNSWAP(*pcrypt);
 					memcpy(&Icp32[j], &tmp, 4);
+  #else
+					memcpy(&Icp32[j], pcrypt, 4);
+  #endif
 #endif
 					pcrypt += SIMD_COEF_32;
 				}
@@ -343,7 +345,11 @@ static void crypt_all_1(int count) {
 			uint32_t *Iptr32 = &crypt32[ ((i/SIMD_COEF_32)*(SIMD_COEF_32*5)) + (i&(SIMD_COEF_32-1))];
 			// we only want 16 bytes, not 20
 			for (j = 0; j < 4; ++j) {
+#if ARCH_LITTLE_ENDIAN
 				Optr32[j] = JOHNSWAP(*Iptr32);
+#else
+				Optr32[j] = *Iptr32;
+#endif
 				Iptr32 += SIMD_COEF_32;
 			}
 		}
@@ -394,8 +400,13 @@ static void crypt_all_256(int count) {
 			keys[(i<<6)+len+32] = 0x80;
 			offs[i] = len;
 			len += 32;
+#if ARCH_LITTLE_ENDIAN
 			keys[(i<<6)+60] = (len<<3)&0xff;
 			keys[(i<<6)+61] = (len>>5);
+#else
+			keys[(i<<6)+62] = (len>>5);
+			keys[(i<<6)+63] = (len<<3)&0xff;
+#endif
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
@@ -405,10 +416,18 @@ static void crypt_all_256(int count) {
 				uint32_t *Icp32 = (uint32_t *)(&keys[(k<<6)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
 #if ARCH_ALLOWS_UNALIGNED
+  #if ARCH_LITTLE_ENDIAN
 					Icp32[j] = JOHNSWAP(*pcrypt);
+  #else
+					Icp32[j] = *pcrypt;
+  #endif
 #else
+  #if ARCH_LITTLE_ENDIAN
 					uint32_t tmp = JOHNSWAP(*pcrypt);
 					memcpy(&Icp32[j], &tmp, 4);
+  #else
+					memcpy(&Icp32[j], pcrypt, 4);
+  #endif
 #endif
 					pcrypt += SIMD_COEF_32;
 				}
@@ -420,11 +439,10 @@ static void crypt_all_256(int count) {
 			uint32_t *Iptr32 = &crypt32[ ((i/SIMD_COEF_32)*(SIMD_COEF_32*8)) + (i&(SIMD_COEF_32-1))];
 			// we only want 16 bytes, not 32
 			for (j = 0; j < 4; ++j) {
-#if ARCH_ALLOWS_UNALIGNED
+#if ARCH_LITTLE_ENDIAN
 				Optr32[j] = JOHNSWAP(*Iptr32);
 #else
-				uint32_t tmp = JOHNSWAP(*Iptr32);
-				memcpy(&Optr32[j], &tmp, 4);
+				Optr32[j] = *Iptr32;
 #endif
 				Iptr32 += SIMD_COEF_32;
 			}
@@ -477,8 +495,13 @@ static void crypt_all_384(int count) {
 			keys[(i<<7)+len+48] = 0x80;
 			offs[i] = len;
 			len += 48;
+#if ARCH_LITTLE_ENDIAN
 			keys[(i<<7)+120] = (len<<3)&0xff;
 			keys[(i<<7)+121] = (len>>5);
+#else
+			keys[(i<<7)+126] = (len>>5);
+			keys[(i<<7)+127] = (len<<3)&0xff;
+#endif
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
@@ -488,10 +511,18 @@ static void crypt_all_384(int count) {
 				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 6; ++j) {
 #if ARCH_ALLOWS_UNALIGNED
+  #if ARCH_LITTLE_ENDIAN
 					Icp64[j] = JOHNSWAP64(*pcrypt);
+  #else
+					Icp64[j] = *pcrypt;
+  #endif
 #else
+  #if ARCH_LITTLE_ENDIAN
 					uint64_t tmp = JOHNSWAP64(*pcrypt);
 					memcpy(&Icp64[j], &tmp, 8);
+  #else
+					memcpy(&Icp64[j], pcrypt, 8);
+  #endif
 #endif
 					pcrypt += SIMD_COEF_64;
 				}
@@ -503,7 +534,11 @@ static void crypt_all_384(int count) {
 			uint64_t *Iptr64 = &crypt64[ ((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 48
 			for (j = 0; j < 2; ++j) {
+#if ARCH_LITTLE_ENDIAN
 				Optr64[j] = JOHNSWAP64(*Iptr64);
+#else
+				Optr64[j] = *Iptr64;
+#endif
 				Iptr64 += SIMD_COEF_64;
 			}
 		}
@@ -554,8 +589,13 @@ static void crypt_all_512(int count) {
 			keys[(i<<7)+len+64] = 0x80;
 			offs[i] = len;
 			len += 64;
+#if ARCH_LITTLE_ENDIAN
 			keys[(i<<7)+120] = (len<<3)&0xff;
 			keys[(i<<7)+121] = (len>>5);
+#else
+			keys[(i<<7)+126] = (len>>5);
+			keys[(i<<7)+127] = (len<<3)&0xff;
+#endif
 		}
 		for (i = 1; i < sapH_cur_salt->iter; ++i) {
 			uint32_t k;
@@ -565,10 +605,18 @@ static void crypt_all_512(int count) {
 				uint64_t *Icp64 = (uint64_t *)(&keys[(k<<7)+offs[k]]);
 				for (j = 0; j < 8; ++j) {
 #if ARCH_ALLOWS_UNALIGNED
+  #if ARCH_LITTLE_ENDIAN
 					Icp64[j] = JOHNSWAP64(*pcrypt);
+  #else
+					Icp64[j] = *pcrypt;
+  #endif
 #else
+  #if ARCH_LITTLE_ENDIAN
 					uint64_t tmp = JOHNSWAP64(*pcrypt);
 					memcpy(&Icp64[j], &tmp, 8);
+  #else
+					memcpy(&Icp64[j], pcrypt, 8);
+  #endif
 #endif
 					pcrypt += SIMD_COEF_64;
 				}
@@ -580,7 +628,11 @@ static void crypt_all_512(int count) {
 			uint64_t *Iptr64 = &crypt64[((i/SIMD_COEF_64)*(SIMD_COEF_64*8)) + (i&(SIMD_COEF_64-1))];
 			// we only want 16 bytes, not 64
 			for (j = 0; j < 2; ++j) {
+#if ARCH_LITTLE_ENDIAN
 				Optr64[j] = JOHNSWAP64(*Iptr64);
+#else
+				Optr64[j] = *Iptr64;
+#endif
 				Iptr64 += SIMD_COEF_64;
 			}
 		}
