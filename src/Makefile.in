@@ -46,7 +46,7 @@ prefix = @prefix@
 JTR_GIT_COMMIT = \"-$(shell git describe --dirty=+ --always 2>/dev/null)\"
 ifeq ($(JTR_GIT_COMMIT), \"-\")
 # this format string will be replaced by git archive:
-JTR_ARCHIVE_VERSION_STRING = "$Format:-%h %ci$"
+JTR_ARCHIVE_VERSION_STRING = $Format:-%h %ci$
 JTR_GIT_VERSION = JOHN_VERSION "\"$(JTR_ARCHIVE_VERSION_STRING)\""
 else
 JTR_GIT_HEAD_TS = \" $(shell git show -s --format=%ci HEAD 2>/dev/null)\"
