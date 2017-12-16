@@ -170,8 +170,76 @@ the recommended order of reading:
 * CHANGES (*) - history of changes
 * CONTACT (*) - how to contact the author or otherwise obtain support
 * CREDITS (*) - credits
+* BUGS - list of known bugs
+* README.bash-completion - how to enable bash completion for JtR
+* DYNAMIC - how to use dynamic format in JtR
+* DYNAMIC COMPILER FORMATS - List of known hash formats built using the dynamic compiler
+* DYNAMIC_SCRIPTING - how to build/optimise a format that uses dynamic
+* HACKING - list of all possible hacks in John
 * LICENSE - copyrights and licensing terms
 * COPYING - GNU GPL version 2, as referenced by LICENSE above
+
+The rest of documents in alphabetical:
+
+* AddressSanitizer-HOWTO - Building JtR with AddressSanitizer (or ASan)
+* Auditing-Openfire - Openfire hashes audit process
+* AxCrypt-Auditing-HOWTO - auditing AxCrypt secrets
+* DYNAMIC_EXPRESSIONS - 'self-describing' Dynamic format.
+* dynamic_history - upto date history on dynamic_fmt.c file
+* ENCODINGS - Encoding in the current John
+* EXTERNAL - how to define external mode and available external mode functions
+* HDAA_README - for HTTP Digest access authentication
+* INSTALL-UBUNTU - Only for Ubuntu (Please read INSTALL for general installation information)
+* john-1.7.9-jumbo-7-licensing-stats.txt - license status for john-1.7.9-jumbo-7
+* Kerberos-Auditing-HOWTO - how to audit Kerberos hashes
+* libFuzzer-HOWTO - how to build libfuzzer
+* MARKOV - basic information/usage for the Markov mode
+* MASK - Information on mask mode and examples
+* NETNTLM_README - LM/NTLM Challenge / Response Authentication
+* OFFICE - JtR on Office 2003 / 2007 / 2010 / 2013 files
+* pass_gen.Manifest - pass_gen.pl version history
+* pcap2john.readme - all the prior copyright headers from the independent XXX2john.py PCAP conversion utilities
+* PRINCE - JtR prince mode crash course
+* README.7z2john - 7z2 credit in JtR
+* README.apex - dumping Oracle APEX...
+* README.Apple_DMG - cracking DMG in JtR
+* README.bitcoin - cracking bitcoin wallet files with JtR
+* README.BitLocker - cracking bitlocker in JtR
+* README.coding-style(*) - accepted coding style for contributors
+* README.cprepair - reading broken files
+* README-CUDA - JtR CUDA updates/status
+* README-DISTROS - building a CPU-fallback chain (with OpenMP fallback too) for distros
+* README.Ethereum - cracking etherum wallet in JtR
+* README.FileVault2 - cracking password protected FileVault 2 encrypted volumes in JtR
+* README.format-epi - how to dump EPiServer password hashes
+* README.FreeBSD(*) - building JtR-jumbo on FreeBSD
+* README.gpg - PGP Zip / OpenPGP / GnuPG private cracking in JtR
+* README.IBM_AS400 - How to get & crack AS/400 hashes
+* README.IOS 7 - cracking IOS 7 restrictions PIN code
+* README.keychain - Cracking Apple's Mac OS Keychain files
+* README.keyring - cracking GNOME Keyring files
+* README.keystore - cracking KeyStore files
+* README-krb5-18-23 - kdb5_util in JtR
+* README.kwallet - cracking KWallet files
+* README.librexgen - howto perform regex expression work within JtR
+* README.LotusNotes - IBM Lotus Domino hash extractor
+* README.LUKS - Cracking LUKS passphrases
+* README-MIC - how to build JtR for MIC
+* README.MinGW - Fedora >= 22 cross-compiling instructions
+* README.mozilla - cracking Mozilla Firefox, Thunderbird and SeaMonkey master passwords
+* README.mpi - using MPI in JtR
+* README-OPENCL - how to use opencl in JtR
+* README-PDF - PDF cracking in JtR
+* README-PST - PST cracking in JtR
+* README.pwsafe - cracking Password Safe 3.x and Password Gorilla databases with john
+* README.ssh - Cracking password protected ssh private keys
+* README-ZIP - ZIP cracking in JtR
+* README-ZTEX - using ZTEX with JtR
+* Regen-Lost-Salts - regen-lost-salt in JtR
+* RULES-hashcat - wordlist rules with hashcat extension
+* SecureMode-tutorial - using JtR's SecureMode feature
+* SIPcrack-LICENSE - the SIPcrack license
+
 
 (*) most users can safely skip these.
 
