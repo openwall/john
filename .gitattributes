@@ -1,0 +1,11 @@
+# Files/directories to be ignored for git archive
+.circle export-ignore
+.gitattributes export-ignore
+.github export-ignore
+.gitignore export-ignore
+.gitmodules export-ignore
+.mailmap export-ignore
+.pre-commit.sh export-ignore
+.travis export-ignore
+.travis.yml export-ignore
+circle.yml export-ignore
