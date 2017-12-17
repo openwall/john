@@ -856,22 +856,22 @@ static void save_state(FILE *file)
   mpz_t half; mpz_init(half);
 
   mpz_fdiv_r_2exp(half, rec_pos, 64); // lower 64 bits
-  fprintf(file, ""LLu"\n", (unsigned long long)mpz_get_ui(half));
+  fprintf(file, "%"PRIu64"\n", (uint64_t)mpz_get_ui(half));
 
   mpz_fdiv_q_2exp(half, rec_pos, 64); // upper 64 bits
-  fprintf(file, ""LLu"\n", (unsigned long long)mpz_get_ui(half));
+  fprintf(file, "%"PRIu64"\n", (uint64_t)mpz_get_ui(half));
 }
 
 static int restore_state(FILE *file)
 {
-  unsigned long long temp;
+  uint64_t temp;
   mpz_t hi;
 
-  if (fscanf(file, ""LLu"\n", &temp) != 1)
+  if (fscanf(file, "%"PRIu64"\n", &temp) != 1)
     return 1;
   mpz_set_ui(rec_pos, temp);
 
-  if (fscanf(file, ""LLu"\n", &temp) != 1)
+  if (fscanf(file, "%"PRIu64"\n", &temp) != 1)
     return 1;
   mpz_init_set_ui(hi, temp);
   mpz_mul_2exp(hi, hi, 64); // hi = temp << 64
