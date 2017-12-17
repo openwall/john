@@ -232,6 +232,7 @@ struct fmt_main fmt_ethereum = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"iteration count",
+			"kdf [0:PBKDF2-SHA256 1:scrypt 2:PBKDF2-SHA256 presale]",
 		},
 		{ FORMAT_TAG },
 		ethereum_tests
@@ -246,6 +247,7 @@ struct fmt_main fmt_ethereum = {
 		ethereum_common_get_salt,
 		{
 			ethereum_common_iteration_count,
+			ethereum_common_kdf_type,
 		},
 		fmt_default_source,
 		{
