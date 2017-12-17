@@ -9,10 +9,18 @@
 #include "hmac_sha.h"
 #include "memdbg.h"
 #include "johnswap.h"
-
+	
 struct fmt_tests bitlocker_tests[] = {
 	// Windows 10 generated BitLocker image
 	{"$bitlocker$0$16$134bd2634ba580adc3758ca5a84d8666$1048576$12$9080903a0d9dd20103000000$60$0c52fdd87f17ac55d4f4b82a00b264070f36a84ead6d4cd330368f7dddfde1bdc9f5d08fa526dae361b3d64875f76a077fe9c67f44e08d56f0131bb2", "openwall@123"},
+#ifdef HAVE_OPENCL
+	// Same test with MAC verification
+	{"$bitlocker$1$16$134bd2634ba580adc3758ca5a84d8666$1048576$12$9080903a0d9dd20103000000$60$0c52fdd87f17ac55d4f4b82a00b264070f36a84ead6d4cd330368f7dddfde1bdc9f5d08fa526dae361b3d64875f76a077fe9c67f44e08d56f0131bb2", "openwall@123"},
+	// Windows 10, Recovery Password attack
+	{"$bitlocker$2$16$432dd19f37dd413a88552225628c8ae5$1048576$12$a0da3fc75f6cd30106000000$60$3e57c68216ef3d2b8139fdb0ec74254bdf453e688401e89b41cae7c250739a8b36edd4fe86a597b5823cf3e0f41c98f623b528960a4bee00c42131ef", "111683-110022-683298-209352-468105-648483-571252-334455"},
+	// Same test with MAC verification
+	{"$bitlocker$3$16$432dd19f37dd413a88552225628c8ae5$1048576$12$a0da3fc75f6cd30106000000$60$3e57c68216ef3d2b8139fdb0ec74254bdf453e688401e89b41cae7c250739a8b36edd4fe86a597b5823cf3e0f41c98f623b528960a4bee00c42131ef", "111683-110022-683298-209352-468105-648483-571252-334455"},
+#endif
 	// Windows 10
 	{"$bitlocker$0$16$73926f843bbb41ea2a89a28b114a1a24$1048576$12$30a81ef90c9dd20103000000$60$942f852f2dc4ba8a589f35e750f33a5838d3bdc1ed77893e02ae1ac866f396f8635301f36010e0fcef0949078338f549ddb70e15c9a598e80c905baa", "password@123"},
 	// Windows 8.1
@@ -47,8 +55,14 @@ int bitlocker_common_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 0)
+	if(
+		value != BITLOCKER_HASH_UP 	&&
+		value != BITLOCKER_HASH_UP_MAC 	&&
+		value != BITLOCKER_HASH_RP 	&&
+		value != BITLOCKER_HASH_RP_MAC
+	)
 		goto err;
+
 	if ((p = strtokm(NULL, "$")) == NULL)   // salt length
 		goto err;
 	if (!isdec(p))
@@ -97,7 +111,7 @@ void *bitlocker_common_get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
-	int i;
+	int i, j;
 	char *p;
 	static bitlocker_custom_salt *cs;
 
@@ -105,6 +119,8 @@ void *bitlocker_common_get_salt(char *ciphertext)
 
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$"); // version
+	//UP or RP with or without MAC verification
+	cs->attack_type = atoi(p);
 	p = strtokm(NULL, "$"); // salt length
 	cs->salt_length = atoi(p);
 	p = strtokm(NULL, "$"); // salt
@@ -121,8 +137,11 @@ void *bitlocker_common_get_salt(char *ciphertext)
 	p = strtokm(NULL, "$"); // data_size
 	cs->data_size = atoi(p);
 	p = strtokm(NULL, "$"); // data
-	for (i = 0; i < cs->data_size; i++)
-		cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < MACLEN; i++)
+		cs->mac[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	for (j=0, i = MACLEN; i < cs->data_size; j++, i++)
+		cs->data[j] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	MEM_FREE(keeptr);
