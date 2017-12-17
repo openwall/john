@@ -32,4 +32,5 @@ extern struct fmt_tests ethereum_tests[];
 int ethereum_common_valid(char *ciphertext, struct fmt_main *self);
 void *ethereum_common_get_salt(char *ciphertext);
 unsigned int ethereum_common_iteration_count(void *salt);
+unsigned int ethereum_common_kdf_type(void *salt);
 void *ethereum_get_binary(char *ciphertext);
