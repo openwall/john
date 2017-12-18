@@ -8,7 +8,7 @@
 
 #include "misc.h"	// error()
 
-static int omp_t = 1;
+static int threads = 1;
 static unsigned char *saved_salt;
 static unsigned char *saved_key;
 static int (*cracked);

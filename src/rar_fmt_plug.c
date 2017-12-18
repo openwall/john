@@ -144,9 +144,9 @@ static uint32_t (*tmp_out)[NBKEYS*5];
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	self->params.max_keys_per_crypt *= omp_t;
+	threads = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= threads;
+	self->params.max_keys_per_crypt *= threads;
 #endif /* _OPENMP */
 
 	// Length is a cost. We sort in buckets but we need them to be mostly full
@@ -155,7 +155,7 @@ static void init(struct fmt_main *self)
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 
-	unpack_data = mem_calloc(omp_t, sizeof(unpack_data_t));
+	unpack_data = mem_calloc(threads, sizeof(unpack_data_t));
 	cracked = mem_calloc(self->params.max_keys_per_crypt,
 	                     sizeof(*cracked));
 	// allocate 1 more slot to handle the tail of vector buffer

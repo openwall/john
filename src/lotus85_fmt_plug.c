@@ -293,12 +293,12 @@ static void get_user_id_secret_key(const char *password, uint8_t *secret_key)
 static void lotus85_init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	int omp_t = omp_get_max_threads();
+	int threads = omp_get_max_threads();
 
-	if (omp_t > 1) {
-		self->params.min_keys_per_crypt *= omp_t;
-		omp_t *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= omp_t;
+	if (threads > 1) {
+		self->params.min_keys_per_crypt *= threads;
+		threads *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= threads;
 	}
 #endif
 	lotus85_saved_passwords = mem_calloc(self->params.max_keys_per_crypt,

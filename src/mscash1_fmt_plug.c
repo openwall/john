@@ -96,10 +96,10 @@ inline static void swap(unsigned int *x, int count)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	fmt_mscash.params.max_keys_per_crypt *= omp_t;
+	int threads = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= threads;
+	threads *= OMP_SCALE;
+	fmt_mscash.params.max_keys_per_crypt *= threads;
 #endif
 
 	ms_buffer1x = mem_calloc(sizeof(ms_buffer1x[0]), 16*fmt_mscash.params.max_keys_per_crypt);
