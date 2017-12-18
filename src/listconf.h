@@ -54,7 +54,7 @@
 
 #if JTR_RELEASE_BUILD
 #undef JTR_GIT_VERSION
-#define JTR_GIT_VERSION JOHN_VERSION
+#define JTR_GIT_VERSION JUMBO_VERSION
 #endif
 
 /* Suboptions that can be used before full initialization, like --list=help */

@@ -26,7 +26,13 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.12-jumbo-1-bleeding"
+#define JOHN_VERSION			"1.8.0.12"
+
+/*
+ * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD
+ * below, in any release tar-balls (and only then).
+ */
+#define JUMBO_VERSION			JOHN_VERSION "-jumbo-1-bleeding"
 
 /*
  * Define this for release tarballs after updating the string above.
