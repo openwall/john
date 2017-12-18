@@ -17,13 +17,7 @@ john_register_one(&fmt_snefru_128);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "snefru.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 #include <omp.h>
 // OMP_SCALE tuned on core i7 quad core HT
@@ -38,6 +32,13 @@ john_register_one(&fmt_snefru_128);
 #endif
 #endif
 
+#include "arch.h"
+#include "snefru.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 // Snefru-128 and Snefru-256 are the real format labels
@@ -188,32 +189,31 @@ static void *get_binary_128(char *ciphertext)
 static int crypt_256(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		snefru_ctx ctx;;
 
 		rhash_snefru256_init(&ctx);
 		rhash_snefru_update(&ctx, (unsigned char*)saved_key[index], strlen(saved_key[index]));
 		rhash_snefru_final(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int crypt_128(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		snefru_ctx ctx;;
 
 		rhash_snefru128_init(&ctx);
@@ -221,15 +221,15 @@ static int crypt_128(int *pcount, struct db_salt *salt)
 		rhash_snefru_final(&ctx, (unsigned char*)crypt_out[index]);
 
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
 			return 1;
 	return 0;

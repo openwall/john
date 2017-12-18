@@ -205,6 +205,7 @@ static char *get_key(int index) {
 
 static int cmp_all(void *binary, int count) {
 	unsigned int index;
+
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
         if (((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32])
@@ -254,19 +255,17 @@ inline static void set_onesalt(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
+	int inc = 1;
+
+#ifdef SIMD_COEF_32
+	inc = NBKEYS;
+#endif
 
 #ifdef _OPENMP
-#ifdef SIMD_COEF_32
-	int inc = NBKEYS;
-#else
-	int inc = 1;
-#endif
-
 #pragma omp parallel for
-	for (index=0; index < count; index += inc)
 #endif
-	{
+	for (index = 0; index < count; index += inc) {
 #ifdef SIMD_COEF_32
 		unsigned int i;
 
@@ -281,6 +280,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Final( (unsigned char*)crypt_key[index], &ctx);
 #endif
 	}
+
 	return count;
 }
 

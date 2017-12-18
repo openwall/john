@@ -12,8 +12,6 @@ john_register_one(&fmt_rakp);
 
 #include <string.h>
 
-#include "arch.h"
-
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -21,6 +19,7 @@ john_register_one(&fmt_rakp);
 #endif
 #endif
 
+#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -31,18 +30,13 @@ john_register_one(&fmt_rakp);
 
 #define FORMAT_LABEL            "RAKP"
 #define FORMAT_NAME             "IPMI 2.0 RAKP (RMCP+)"
-
 #ifdef SIMD_COEF_32
 #define SHA1_N                  (SIMD_PARA_SHA1 * SIMD_COEF_32)
 #endif
-
 #define ALGORITHM_NAME          "HMAC-SHA1 " SHA1_ALGORITHM_NAME
-
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
-
 #define PLAINTEXT_LENGTH        125
-
 #define PAD_SIZE                64
 #define BINARY_SIZE             20
 #define BINARY_ALIGN            sizeof(uint32_t)
@@ -50,7 +44,6 @@ john_register_one(&fmt_rakp);
 #define SALT_ALIGN              MEM_ALIGN_NONE
 #define SALT_MIN_SIZE           (PAD_SIZE - 8)
 #define SALT_MAX_SIZE           (2 * PAD_SIZE - 8 - 1)
-
 #define FORMAT_TAG              "$rakp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
@@ -306,15 +299,16 @@ static char *get_key(int index)
 static int cmp_all(void *binary, int count)
 {
 #ifdef SIMD_COEF_32
-	unsigned int x, y = 0;
+	unsigned int x, y;
 
-	for (;y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++)
-		for (x = 0; x < SIMD_COEF_32; x++)
-		{
+	for (y = 0; y < (unsigned int)(count + SIMD_COEF_32 - 1) / SIMD_COEF_32; y++) {
+		for (x = 0; x < SIMD_COEF_32; x++) {
 			// NOTE crypt_key is in input format (4*SHA_BUF_SIZ*SIMD_COEF_32)
 			if (((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[x + y * SIMD_COEF_32 * SHA_BUF_SIZ])
 				return 1;
 		}
+	}
+
 	return 0;
 #else
 	int index = 0;
@@ -344,19 +338,18 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return (1);
+	return 1;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #if _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
 		if (new_keys) {
 			SIMDSHA1body(&ipad[index * SHA_BUF_SIZ * 4],
@@ -398,6 +391,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	}
 	new_keys = 0;
+
 	return count;
 }
 
@@ -410,6 +404,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |

@@ -5,11 +5,11 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * Special thanks goes to the Loki project for providing the sample pcap files,
+ * Special thanks goes to the loki project for providing the sample pcap files,
  * and for implementing the cryptographic functions involved in RFC 5709
  * clearly.
  *
- * https://c0decafe.de/svn/codename_loki/
+ * See https://c0decafe.de/svn/codename_loki/ for more information.
  */
 
 #if FMT_EXTERNS_H
@@ -205,13 +205,12 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		int plen = strlen(saved_key[index]);
 		unsigned char key[64];
 		unsigned char out[64];
@@ -286,8 +285,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++)
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;

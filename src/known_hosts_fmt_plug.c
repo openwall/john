@@ -167,12 +167,11 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		SHA_CTX ctx;
 		memcpy(&ctx, &cur_salt->ipad_ctx, sizeof(ctx));
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
@@ -182,15 +181,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Update(&ctx, crypt_out[index], BINARY_SIZE);
 		SHA1_Final((unsigned char*) crypt_out[index], &ctx);
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

@@ -113,13 +113,12 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #if SIMD_COEF_32
 		int lens[SSE_GROUP_SZ_MD5], i;
 		unsigned char *pin[SSE_GROUP_SZ_MD5];
@@ -144,18 +143,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		           PBKDF2_MDx_BINARY_SIZE, 0);
 #endif
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (; index < count; index++)
+	for (index = 0; index < count; index++)
 #endif
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
-	//dump_stuff_msg("\nbinary", crypt_out[count - 1], 16);
+	// dump_stuff_msg("\nbinary", crypt_out[count - 1], 16);
 	return 0;
 }
 

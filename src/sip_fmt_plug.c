@@ -298,13 +298,12 @@ static void * get_binary(char *ciphertext) {
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		/* password */
 		MD5_CTX md5_ctx;
 		unsigned char md5_bin_hash[MD5_LEN];
@@ -326,6 +325,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Update(&md5_ctx, (unsigned char*)pSalt->static_hash_data, pSalt->static_hash_data_len);
 		MD5_Final((unsigned char*)crypt_key[index], &md5_ctx);
 	}
+
 	return count;
 }
 

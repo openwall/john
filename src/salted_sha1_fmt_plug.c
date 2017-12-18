@@ -162,9 +162,10 @@ static void * get_salt(char * ciphertext)
 
 static int cmp_all(void *binary, int count) {
 	unsigned int index;
+
 	for (index = 0; index < count; index++)
 #ifdef SIMD_COEF_32
-        if (((uint32_t *) binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32])
+		if (((uint32_t *) binary)[0] == ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + index/SIMD_COEF_32*5*SIMD_COEF_32])
 #else
 		if ( ((uint32_t*)binary)[0] == ((uint32_t*)&(crypt_key[index][0]))[0] )
 #endif
@@ -174,16 +175,17 @@ static int cmp_all(void *binary, int count) {
 
 static int cmp_exact(char *source, int index)
 {
-	return (1);
+	return 1;
 }
 
 static int cmp_one(void * binary, int index)
 {
 #ifdef SIMD_COEF_32
-    int i;
+	int i;
+
 	for (i = 0; i < BINARY_SIZE/sizeof(uint32_t); i++)
-        if (((uint32_t *) binary)[i] != ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32+i*SIMD_COEF_32])
-            return 0;
+		if (((uint32_t *) binary)[i] != ((uint32_t*)crypt_key)[(index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32+i*SIMD_COEF_32])
+			return 0;
 	return 1;
 #else
 	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
@@ -214,19 +216,17 @@ inline static void set_onesalt(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
+	int inc = 1;
+
+#ifdef SIMD_COEF_32
+	inc = NBKEYS;
+#endif
 
 #ifdef _OPENMP
-#ifdef SIMD_COEF_32
-	int inc = NBKEYS;
-#else
-	int inc = 1;
-#endif
-
 #pragma omp parallel for
-	for (index=0; index < count; index += inc)
 #endif
-	{
+	for (index = 0; index < count; index += inc) {
 #ifdef SIMD_COEF_32
 		unsigned int i;
 
@@ -253,7 +253,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int salt_hash(void *salt)
 {
-	struct s_salt * mysalt = salt;
+	struct s_salt *mysalt = salt;
+
 	return mysalt->data.w32 & (SALT_HASH_SIZE - 1);
 }
 

@@ -319,13 +319,12 @@ static int verify_key(unsigned char *key, int key_size)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		unsigned char key[MAX_KEYS_PER_CRYPT][56]; /* 56 seems to be the max. key size */
 		int key_size[MAX_KEYS_PER_CRYPT];
 		int i;
@@ -364,6 +363,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;

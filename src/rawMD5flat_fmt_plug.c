@@ -231,9 +231,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
 
 #pragma omp parallel for
-	for (index = 0; index < loops; index += inc)
 #endif
-	{
+	for (index = 0; index < loops; index += inc) {
 #if SIMD_COEF_32
 		SIMDmd5body(saved_key[index], crypt_key[index/NBKEYS], NULL, SSEi_FLAT_IN);
 #else
@@ -243,6 +242,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Final((unsigned char *)crypt_key[index], &ctx);
 #endif
 	}
+
 	return count;
 }
 

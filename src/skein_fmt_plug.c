@@ -1,4 +1,5 @@
-/* Skein cracker patch for JtR. Hacked together during April of 2013 by Dhiru
+/*
+ * Skein cracker patch for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
@@ -17,13 +18,14 @@ john_register_one(&fmt_skein_512);
 #else
 
 #include <string.h>
+
 #include "arch.h"
-#include "sph_skein.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "sph_skein.h"
 #ifdef _OPENMP
 #include <omp.h>
 // OMP_SCALE tuned on core i7 quad core HT
@@ -38,31 +40,31 @@ john_register_one(&fmt_skein_512);
 // 4k  - 8688k  8648k
 #ifndef OMP_SCALE
 #ifdef __MIC__
-#define OMP_SCALE  64
+#define OMP_SCALE               64
 #else
-#define OMP_SCALE  1024
+#define OMP_SCALE               1024
 #endif // __MIC__
 #endif // OMP_SCALE
 #endif // _OPENMP
 #include "memdbg.h"
 
 // Skein-256 or Skein-512 are the real format labels.
-#define FORMAT_LABEL		"Skein"
-#define FORMAT_NAME		""
-#define FORMAT_TAG		"$skein$"
-#define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"Skein 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE256		32
-#define BINARY_SIZE512		64
-#define CMP_SIZE		28 // skein224
-#define SALT_SIZE		0
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BINARY_ALIGN		4
-#define SALT_ALIGN		1
+#define FORMAT_LABEL            "Skein"
+#define FORMAT_NAME             ""
+#define FORMAT_TAG              "$skein$"
+#define TAG_LENGTH              (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "Skein 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        125
+#define BINARY_SIZE256          32
+#define BINARY_SIZE512          64
+#define CMP_SIZE                28 // skein224
+#define SALT_SIZE               0
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+#define BINARY_ALIGN            4
+#define SALT_ALIGN              1
 
 static struct fmt_tests skein_256_tests[] = {
 	{"39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
@@ -202,47 +204,46 @@ static void *get_binary_512(char *ciphertext)
 static int crypt_256(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_skein256_context ctx;
 
 		sph_skein256_init(&ctx);
 		sph_skein256(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_skein256_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int crypt_512(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_skein512_context ctx;
 
 		sph_skein512_init(&ctx);
 		sph_skein512(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_skein512_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], CMP_SIZE))
 			return 1;
 	return 0;
@@ -324,7 +325,6 @@ struct fmt_main fmt_skein_256 = {
 		cmp_exact
 	}
 };
-
 
 struct fmt_main fmt_skein_512 = {
 	{

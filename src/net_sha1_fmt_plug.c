@@ -202,7 +202,7 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 	if (cur_salt->magic != MAGIC) {
 		return pDynamicFmt->methods.crypt_all(pcount, salt);
@@ -210,8 +210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		SHA_CTX ctx;
 
 		SHA1_Init(&ctx);
@@ -224,11 +223,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
+
 	if (cur_salt->magic != MAGIC) {
 		return pDynamicFmt->methods.cmp_all(binary, count);
 	}
-	for (; index < count; index++)
+	for (index = 0; index < count; index++)
 		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;

@@ -239,13 +239,12 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		DES_key_schedule schedule;
 		unsigned char encrypted_challenge[16];
 		/* process key (note, moved to get_key) */
@@ -259,16 +258,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			crypt_out[index][0] = crypt_out[index][1] = 0;
 		}
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
 
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

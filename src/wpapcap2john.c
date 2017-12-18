@@ -226,26 +226,26 @@ static int convert_ivs2(FILE *f_in)
 	if (fread(ivs_buf, 1, 4, f_in) != 4) {
 		fprintf(stderr, "%s: fread file header failed\n", filename);
 		MEM_FREE(ivs_buf);
-		return(1);
+		return 1;
 	}
 
 	if (memcmp(ivs_buf, IVSONLY_MAGIC, 4) == 0) {
 		fprintf(stderr, "%s: old version .ivs file, only WEP handshakes.\n", filename);
 		MEM_FREE(ivs_buf);
-		return(1);
+		return 1;
 	}
 
 	if (memcmp(ivs_buf, IVS2_MAGIC, 4) != 0) {
 		fprintf(stderr, "%s: not an .%s file\n", filename, IVS2_EXTENSION);
 		MEM_FREE(ivs_buf);
-		return(1);
+		return 1;
 	}
 
 	if (fread(&fivs2, 1, sizeof(struct ivs2_filehdr), f_in) !=
 	    (size_t) sizeof(struct ivs2_filehdr)) {
 		fprintf(stderr, "%s: fread ivs2 file header failed", filename);
 		MEM_FREE(ivs_buf);
-		return(1);
+		return 1;
 	}
 
 	if (fivs2.version > IVS2_VERSION) {
@@ -253,7 +253,7 @@ static int convert_ivs2(FILE *f_in)
 		        "%s: wrong %s version: %d. Supported up to version %d.\n",
 		        filename, IVS2_EXTENSION, fivs2.version, IVS2_VERSION);
 		MEM_FREE(ivs_buf);
-		return(1);
+		return 1;
 	}
 
 	if (verbosity)

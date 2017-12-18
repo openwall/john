@@ -184,12 +184,11 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		uint32_t key[MAX_KEYS_PER_CRYPT][8];
 		unsigned i;
 #ifdef SIMD_COEF_32
@@ -221,6 +220,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy(crypt_key[index+i], out, 16);
 		}
 	}
+
 	return count;
 }
 

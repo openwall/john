@@ -298,13 +298,12 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
     int count = *pcount;
-    int index = 0;
+    int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-    for (index = 0; index < count; index += VWIDTH)
 #endif
-    {
+    for (index = 0; index < count; index += VWIDTH) {
         int i;
 
         vtype a, b, c, d, e, f, g, h;

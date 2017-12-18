@@ -10,7 +10,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * optimized Feb 2016, JimF.
+ * Optimized in Feb 2016, JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -20,6 +20,7 @@ john_register_one(&fmt_hsrp);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 // OMP_SCALE tuned on core i7 4-core HT
@@ -152,8 +153,8 @@ static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
 	int i, len;
-	memset(&cs, 0, SALT_SIZE);
 
+	memset(&cs, 0, SALT_SIZE);
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
 
@@ -164,6 +165,7 @@ static void *get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(ciphertext[2 * i + 1])];
 
 	cs.length = len;
+
 	return &cs;
 }
 
@@ -176,6 +178,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
@@ -197,12 +200,11 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		MD5_CTX ctx;
 		int len = saved_len[index];
 		if (dirty) {
@@ -228,15 +230,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 	dirty = 0;
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;

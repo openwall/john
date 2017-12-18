@@ -109,12 +109,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
-	unsigned int x,y=0;
-	for (;y<SIMD_PARA_SHA1;y++)
-	for (x=0;x<SIMD_COEF_32;x++)
-	{
-		if ( ((uint32_t*)binary)[1] == crypt_key[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
-			return 1;
+	unsigned int x, y;
+	for (y = 0; y < SIMD_PARA_SHA1; y++) {
+		for (x = 0; x < SIMD_COEF_32; x++) {
+			if ( ((uint32_t*)binary)[1] == crypt_key[x+y*SIMD_COEF_32*5+SIMD_COEF_32] )
+				return 1;
+		}
 	}
 	return 0;
 #else
@@ -124,7 +124,7 @@ static int cmp_all(void *binary, int count) {
 
 static int cmp_exact(char *source, int index)
 {
-	return (1);
+	return 1;
 }
 
 static int cmp_one(void * binary, int index)

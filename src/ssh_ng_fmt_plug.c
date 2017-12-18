@@ -504,13 +504,12 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		unsigned char out[N];
 		common_crypt_code(saved_key[index], out, 0); // don't do full decryption (except for EC keys)
 
@@ -546,6 +545,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
@@ -560,6 +560,7 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	unsigned char out[N];
+
 	common_crypt_code(saved_key[index], out, 1); // do full decryption!
 
 	if (cur_salt->cipher == 0) { // 3DES

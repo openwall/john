@@ -310,7 +310,7 @@ static int decrypt_v2(unsigned char *key, unsigned char *iv, unsigned char *pwdh
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for

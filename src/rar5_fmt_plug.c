@@ -98,13 +98,12 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifdef SSE_GROUP_SZ_SHA256
 		int lens[SSE_GROUP_SZ_SHA256], i, j;
 		unsigned char PswCheck[SIZE_PSWCHECK],

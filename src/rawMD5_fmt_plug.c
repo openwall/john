@@ -280,7 +280,7 @@ static char *source(char *source, void *binary)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 	int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
 
@@ -316,7 +316,7 @@ static int cmp_all(void *binary, int count) {
 		}
 	return 0;
 #else
-	unsigned int index = 0;
+	unsigned int index;
 
 #if 1
 	for (index = 0; index < count; index++)

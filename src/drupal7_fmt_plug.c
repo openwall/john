@@ -178,12 +178,11 @@ static int cmp_exact(char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_64
 		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
 		uint64_t *keys64;

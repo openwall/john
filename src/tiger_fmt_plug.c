@@ -1,4 +1,5 @@
-/* Tiger cracker patch for JtR. Hacked together during April of 2013 by Dhiru
+/*
+ * Tiger cracker patch for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
@@ -15,13 +16,6 @@ john_register_one(&fmt_tiger);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "sph_tiger.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -48,6 +42,14 @@ john_register_one(&fmt_tiger);
 #endif // __MIC__
 #endif // OMP_SCALE
 #endif // _OPENMP
+
+#include "arch.h"
+#include "sph_tiger.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Tiger"
@@ -158,28 +160,27 @@ static void *get_binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_tiger_context ctx;
 
 		sph_tiger_init(&ctx);
 		sph_tiger(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_tiger_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

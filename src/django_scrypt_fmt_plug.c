@@ -1,5 +1,6 @@
-/* scrypt cracker patch for JtR. Hacked together during May of 2013 by Dhiru
- * Kholia <dhiru at openwall.com>.
+/*
+ * Django scrypt cracker patch for JtR. Hacked together during May of 2013 by
+ * Dhiru Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
  * it is hereby released to the general public under the following terms:
@@ -15,6 +16,14 @@ john_register_one(&fmt_django_scrypt);
 #else
 
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // So slow a format, a multiplier is NOT needed
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -23,12 +32,6 @@ john_register_one(&fmt_django_scrypt);
 #include "options.h"
 #include "base64_convert.h"
 #include "escrypt/crypto_scrypt.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // So slow a format, a multiplier is NOT needed
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"django-scrypt"
@@ -168,6 +171,7 @@ static void *get_binary(char *ciphertext)
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
+
 	p = strrchr(ciphertext, '$') + 1;
 	base64_convert(p, e_b64_mime, strlen(p), (char*)out, e_b64_raw, sizeof(buf.c), flg_Base64_DONOT_NULL_TERMINATE, 0);
 	return out;
@@ -184,31 +188,29 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		if (crypto_scrypt((unsigned char*)saved_key[index], strlen((char*)saved_key[index]),
 				cur_salt->salt, strlen((char*)cur_salt->salt),
 				(1ULL) << cur_salt->N, cur_salt->r,
 				cur_salt->p, (unsigned char*)crypt_out[index],
-				BINARY_SIZE) == -1)
-		{
+				BINARY_SIZE) == -1) {
 			memset(crypt_out[index], 0, sizeof(crypt_out[index]));
 		}
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

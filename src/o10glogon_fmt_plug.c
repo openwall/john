@@ -308,9 +308,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (idx = 0; idx < count; idx++)
 #endif
-	{
+	for (idx = 0; idx < count; idx++) {
 		unsigned char buf[256], buf1[256];
 		unsigned int l;
 		uint32_t iv[2];
@@ -364,6 +363,7 @@ static void *get_salt(char *ciphertext)
 	cp = strchr(cp+1, '$') + 1;
 	salt.auth_pass_len = strlen(cp)/2;
 	base64_convert(cp,e_b64_hex,salt.auth_pass_len*2,salt.auth_pass,e_b64_raw,salt.auth_pass_len,0,0);
+
 	return &salt;
 }
 

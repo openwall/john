@@ -308,7 +308,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #if defined(WITH_UBSAN)
@@ -321,8 +321,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 #endif
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifndef SIMD_COEF_32
 		SHA256_CTX ctx;
 		if (dirty) {
@@ -353,12 +352,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	}
 	dirty = 0;
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-    int index = 0;
+    int index;
 
     for (index = 0; index < count; index++)
         if (*(uint32_t *)binary == *(uint32_t *)crypt_out[index])

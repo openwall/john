@@ -212,13 +212,13 @@ static void clear_keys(void)
 static int cmp_all(void *binary, int count)
 {
 #ifdef SIMD_COEF_32
-	unsigned int x,y=0;
+	unsigned int x, y;
 
-	for (;y<SIMD_PARA_SHA1;y++)
-	for (x=0;x<SIMD_COEF_32;x++)
-	{
-		if ( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5] )
-			return 1;
+	for (y = 0; y < SIMD_PARA_SHA1; y++) {
+		for (x = 0; x < SIMD_COEF_32; x++) {
+			if ( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*SIMD_COEF_32*5] )
+				return 1;
+		}
 	}
 	return 0;
 #else

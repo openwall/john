@@ -256,13 +256,12 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		if (dirty) {
 			DES_cblock des_key;
 			int i;
@@ -281,15 +280,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		DES_ecb_encrypt((const_DES_cblock*)cur_salt->userid, (DES_cblock*)crypt_out[index], &schedules[index], DES_ENCRYPT);
 	}
 	dirty = 0;
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

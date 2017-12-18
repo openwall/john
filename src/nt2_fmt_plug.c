@@ -20,9 +20,6 @@ john_register_one(&fmt_NT2);
 
 #include "arch.h"
 
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_MD4
-
 /*
  * Only effective for SIMD.
  * Undef to disable reversing steps for benchmarking.
@@ -625,12 +622,13 @@ static int cmp_all(void *binary, int count) {
 #else
 	const unsigned int c = SIMD_PARA_MD4;
 #endif
-	for (y = 0; y < c; y++)
-		for (x = 0; x < SIMD_COEF_32; x++)
-		{
+	for (y = 0; y < c; y++) {
+		for (x = 0; x < SIMD_COEF_32; x++) {
 			if ( ((uint32_t*)binary)[1] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x+SIMD_COEF_32] )
 				return 1;
 		}
+	}
+
 	return 0;
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);

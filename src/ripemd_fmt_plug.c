@@ -17,13 +17,6 @@ john_register_one(&fmt_ripemd_128);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "sph_ripemd.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -50,6 +43,14 @@ john_register_one(&fmt_ripemd_128);
 #endif // __MIC__
 #endif // OMP_SCALE
 #endif // _OPENMP
+
+#include "arch.h"
+#include "sph_ripemd.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$ripemd$"
@@ -203,47 +204,46 @@ static void *get_binary_128(char *ciphertext)
 static int crypt_160(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_ripemd160_context ctx;
 
 		sph_ripemd160_init(&ctx);
 		sph_ripemd160(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_ripemd160_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int crypt_128(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_ripemd128_context ctx;
 
 		sph_ripemd128_init(&ctx);
 		sph_ripemd128(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_ripemd128_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

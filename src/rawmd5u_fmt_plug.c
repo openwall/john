@@ -476,14 +476,14 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
-	unsigned int x,y=0;
+	unsigned int x, y;
 
-	for (;y<SIMD_PARA_MD5*BLOCK_LOOPS;y++)
-		for (x=0;x<SIMD_COEF_32;x++)
-		{
+	for (y = 0 ; y < SIMD_PARA_MD5*BLOCK_LOOPS; y++) {
+		for (x = 0; x < SIMD_COEF_32; x++) {
 			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4] )
 				return 1;
 		}
+	}
 	return 0;
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
@@ -492,13 +492,13 @@ static int cmp_all(void *binary, int count) {
 
 static int cmp_exact(char *source, int index)
 {
-	return (1);
+	return 1;
 }
 
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
-	unsigned int x,y;
+	unsigned int x, y;
 	x = index&(SIMD_COEF_32-1);
 	y = (unsigned int)index/SIMD_COEF_32;
 

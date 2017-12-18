@@ -259,15 +259,13 @@ static char *source(char *source, void *binary)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
-
-#ifdef _OPENMP
+	int index;
 	int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
 
+#ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < loops; index++)
 #endif
-	{
+	for (index = 0; index < loops; index++) {
 #if SIMD_COEF_32
 		SIMDmd4body(saved_key[index], crypt_key[index], NULL, SSEi_REVERSE_STEPS | SSEi_MIXED_IN);
 #else
@@ -277,6 +275,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD4_Final((unsigned char *)crypt_key[index], &ctx);
 #endif
 	}
+
 	return count;
 }
 
@@ -288,19 +287,18 @@ static int cmp_all(void *binary, int count) {
 #else
 	const unsigned int c = SIMD_PARA_MD4;
 #endif
-	for (y = 0; y < c; y++)
-		for (x = 0; x < SIMD_COEF_32; x++)
-		{
+	for (y = 0; y < c; y++) {
+		for (x = 0; x < SIMD_COEF_32; x++) {
 			if ( ((uint32_t*)binary)[1] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x+SIMD_COEF_32] )
 				return 1;
 		}
+	}
+
 	return 0;
 #else
-	unsigned int index = 0;
+	unsigned int index;
 
-#ifdef _OPENMP
 	for (index = 0; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
 			return 1;
 	return 0;

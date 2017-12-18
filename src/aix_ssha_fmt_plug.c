@@ -365,10 +365,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
 
 	// dump_stuff_msg("\nbinary   ", binary, CMP_SIZE);
-	for (; index < count; index++) {
+	for (index = 0; index < count; index++) {
 		// dump_stuff_msg("crypt_out", crypt_out[index], CMP_SIZE);
 		if (!memcmp(binary, crypt_out[index], CMP_SIZE-2))
 			return 1;

@@ -220,7 +220,7 @@ static int krb4_check_parity(DES_cblock *key)
 		if ((*key)[i] != odd_parity[(*key)[i]])
 			return (0);
 	}
-	return (1);
+	return 1;
 }
 
 static int cmp_all(void *binary, int count)
@@ -249,7 +249,7 @@ static int cmp_one(void *binary, int count)
 
 static int cmp_exact(char *source, int index)
 {
-	return (1);
+	return 1;
 }
 
 struct fmt_main fmt_KRB4 = {

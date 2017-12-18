@@ -1,4 +1,5 @@
-/* GPG cracker patch for JtR. Hacked together during Monsoon of 2012 by
+/*
+ * GPG cracker patch for JtR. Hacked together during Monsoon of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com> .
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
@@ -20,7 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
- * converted to use 'common' code, Feb29-Mar1 2016, JimF.
+ * Converted to use 'common' code, Feb29-Mar1 2016, JimF.
  */
 
 #if FMT_EXTERNS_H
@@ -35,7 +36,7 @@ john_register_one(&fmt_gpg);
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               64
+#define OMP_SCALE           64
 #endif
 #endif
 
@@ -124,9 +125,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		int res;
 		unsigned char keydata[64];
 

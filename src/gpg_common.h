@@ -7,14 +7,14 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  *
- *  Functions and data which is common among the GPG crackers
- *  (CPU, OpenCL)
+ * This file contains functions and data which are common among the GPG
+ * crackers (CPU, and OpenCL formats).
  */
 
 #include "dyna_salt.h"
 
 #define BENCHMARK_COMMENT    ""
-#define BENCHMARK_LENGTH     -1001
+#define BENCHMARK_LENGTH     -1000
 #define FORMAT_TAG           "$gpg$*"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define BINARY_SIZE          0
@@ -43,7 +43,6 @@ enum {
 	SPEC_SALTED = 1,
 	SPEC_ITERATED_SALTED = 3
 };
-
 
 enum {
 	PKA_UNKNOWN = 0,
