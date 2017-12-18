@@ -17,6 +17,7 @@ john_register_one(&fmt_multibit);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -34,8 +35,8 @@ john_register_one(&fmt_multibit);
 #include "md5.h"
 #include "escrypt/crypto_scrypt.h"
 #include "jumbo.h"
-#include "memdbg.h"
 #include "unicode.h"
+#include "memdbg.h"
 
 #define FORMAT_NAME             "MultiBit Wallet"
 #define FORMAT_LABEL            "multibit"
@@ -43,7 +44,7 @@ john_register_one(&fmt_multibit);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5/scrypt AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1001
+#define BENCHMARK_LENGTH        -1000
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
