@@ -94,14 +94,14 @@ static struct qnx_saltstruct {
 
 static void init(struct fmt_main *self)
 {
-	int omp_t = 1;
+	int threads = 1;
 	int max_crypts;
 
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
-	omp_t *= OMP_SCALE;
+	threads = omp_get_max_threads();
+	threads *= OMP_SCALE;
 #endif
-	max_crypts = SIMD_COEF_SCALE * omp_t * MAX_KEYS_PER_CRYPT;
+	max_crypts = SIMD_COEF_SCALE * threads * MAX_KEYS_PER_CRYPT;
 	self->params.max_keys_per_crypt = max_crypts;
 	// we allocate 1 more than needed, and use that 'extra' value as a zero
 	// length PW to fill in the tail groups in MMX mode.
@@ -109,8 +109,8 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc(1 + max_crypts, sizeof(*saved_key));
 	crypt_out = mem_calloc(1 + max_crypts, sizeof(*crypt_out));
 #ifdef SIMD_COEF_32
-	for (omp_t = 1; omp_t <= PLAINTEXT_LENGTH; ++omp_t)
-		sk_by_len[omp_t] = mem_calloc(1+max_crypts, sizeof(int));
+	for (threads = 1; threads <= PLAINTEXT_LENGTH; ++threads)
+		sk_by_len[threads] = mem_calloc(1+max_crypts, sizeof(int));
 #endif
 }
 

@@ -43,7 +43,7 @@ john_register_one(&fmt_sapB);
 
 #if defined(_OPENMP)
 #include <omp.h>
-static unsigned int omp_t = 1;
+static unsigned int threads = 1;
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
 #define OMP_SCALE			512	// tuned on K8-dual HT.
@@ -198,10 +198,10 @@ static void init(struct fmt_main *self)
 		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nUse --target-encoding=iso-8859-1 or whatever is applicable.\n");
 
 #if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt = (omp_t * MIN_KEYS_PER_CRYPT);
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt = (omp_t * MAX_KEYS_PER_CRYPT);
+	threads = omp_get_max_threads();
+	self->params.min_keys_per_crypt = (threads * MIN_KEYS_PER_CRYPT);
+	threads *= OMP_SCALE;
+	self->params.max_keys_per_crypt = (threads * MAX_KEYS_PER_CRYPT);
 #endif
 #ifdef SIMD_COEF_32
 	saved_key  = mem_calloc_align(self->params.max_keys_per_crypt,
@@ -313,7 +313,7 @@ static int cmp_all(void *binary, int count) {
 	unsigned int x,y=0;
 
 #ifdef _OPENMP
-	for (;y<SIMD_PARA_MD5*omp_t;y++)
+	for (;y<SIMD_PARA_MD5*threads;y++)
 #else
 	for (;y<SIMD_PARA_MD5;y++)
 #endif
@@ -515,7 +515,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if defined(_OPENMP)
 	int t;
 #pragma omp parallel for
-	for (t = 0; t < omp_t; t++)
+	for (t = 0; t < threads; t++)
 #define ti (t*NBKEYS+index)
 #else
 #define t  0

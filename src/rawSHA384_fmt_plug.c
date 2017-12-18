@@ -123,12 +123,12 @@ static uint64_t (*crypt_out)[DIGEST_SIZE / sizeof(uint64_t)];
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int omp_t = omp_get_max_threads();
+	int threads = omp_get_max_threads();
 
-	if (omp_t > 1) {
-		self->params.min_keys_per_crypt *= omp_t;
-		omp_t *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= omp_t;
+	if (threads > 1) {
+		self->params.min_keys_per_crypt *= threads;
+		threads *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= threads;
 	}
 #endif
 #ifndef SIMD_COEF_64
