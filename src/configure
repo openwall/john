@@ -10799,8 +10799,6 @@ fi
 
   CFLAGS="$CFLAGS_BACKUP -mavx512f -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
 
-  ln -fs mic.h arch.h
-
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512F" >&5
 $as_echo_n "checking for AVX512F... " >&6; }
   if test "$cross_compiling" = yes; then :

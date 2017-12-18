@@ -271,8 +271,6 @@ if test "x$simd" = xyes; then
   [
   CFLAGS="$CFLAGS_BACKUP -mavx512f -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
 
-  ln -fs mic.h arch.h
-
   AC_MSG_CHECKING([for AVX512F])
   AC_RUN_IFELSE([AC_LANG_SOURCE(
     [[extern int CPU_detect(void); extern char CPU_req_name[];
