@@ -230,7 +230,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
-	for (index=0; index<count; index++)
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(output[index], binary, BINARY_SIZE))
 			return 1;
 	return 0;

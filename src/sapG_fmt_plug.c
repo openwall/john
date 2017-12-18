@@ -1,8 +1,9 @@
 /*
- * this is a SAP PASSCODE (CODEVN G) plugin for john the ripper.
- * tested on linux/x86 only, rest is up to you.. at least, someone did the reversing :-)
+ * This is a SAP PASSCODE (CODEVN G) plugin for JtR.
  *
- * please note: this code is in a "works for me"-state, feel free to modify/speed up/clean/whatever it...
+ * Tested on linux/x86 only, rest is up to you... at least, someone did the reversing :-)
+ *
+ * Please note: this code is in a "works for me"-state, feel free to modify/speed up/clean/whatever it...
  *
  * (c) x7d8 sap loverz, public domain, btw
  * cheers: see test-cases.
@@ -22,13 +23,24 @@ john_register_one(&fmt_sapG);
 #include <string.h>
 #include <ctype.h>
 
-#include "arch.h"
+#if defined(_OPENMP)
+#include <omp.h>
+#ifndef OMP_SCALE
+#if defined (SIMD_COEF_32)
+// Some OMP scaling moved into max_keys, so that we can have more values in SIMD
+// mode, to sort hashes by limb size.  (TODO)
+#define OMP_SCALE               128
+#else
+#define OMP_SCALE               2048
+#endif
+#endif
+#endif
 
+#include "arch.h"
 #ifdef SIMD_COEF_32
-#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 #include "simd-intrinsics.h"
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -36,60 +48,42 @@ john_register_one(&fmt_sapG);
 #include "options.h"
 #include "unicode.h"
 #include "johnswap.h"
-
-#define FORMAT_LABEL			"sapg"
-#define FORMAT_NAME				"SAP CODVN F/G (PASSCODE)"
-
-#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
-
-static unsigned int threads = 1;
-#if defined(_OPENMP)
-#include <omp.h>
-#ifndef OMP_SCALE
-#if defined (SIMD_COEF_32)
-// some OMP scaling moved into max_keys, so that we can have more values in SIMD
-// mode, to sort hashes by limb size.  (TODO)
-#define OMP_SCALE				128
-#else
-#define OMP_SCALE				2048
-#endif
-#endif
-#endif
-
 #include "memdbg.h"
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
-
-#define SALT_FIELD_LENGTH		40
-#define USER_NAME_LENGTH		12 /* max. length of user name in characters */
-#define SALT_LENGTH				(USER_NAME_LENGTH * 4)	/* bytes of UTF-8 */
-#define PLAINTEXT_LENGTH		40 /* Characters */
-#define UTF8_PLAINTEXT_LENGTH	MIN(125, PLAINTEXT_LENGTH * 3) /* bytes */
-
-#define BINARY_SIZE				20
-#define BINARY_ALIGN			4
-#define SALT_SIZE				sizeof(struct saltstruct)
-#define SALT_ALIGN				4
-#define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + 2*BINARY_SIZE)	/* SALT + $ + 2x20 bytes for SHA1-representation */
+#define FORMAT_LABEL            "sapg"
+#define FORMAT_NAME             "SAP CODVN F/G (PASSCODE)"
+#define ALGORITHM_NAME          "SHA1 " SHA1_ALGORITHM_NAME
+#define BENCHMARK_COMMENT        ""
+#define BENCHMARK_LENGTH        0
+#define SALT_FIELD_LENGTH       40
+#define USER_NAME_LENGTH        12 /* max. length of user name in characters */
+#define SALT_LENGTH             (USER_NAME_LENGTH * 4)    /* bytes of UTF-8 */
+#define PLAINTEXT_LENGTH        40 /* Characters */
+#define UTF8_PLAINTEXT_LENGTH   MIN(125, PLAINTEXT_LENGTH * 3) /* bytes */
+#define BINARY_SIZE             20
+#define BINARY_ALIGN            4
+#define SALT_SIZE               sizeof(struct saltstruct)
+#define SALT_ALIGN              4
+#define CIPHERTEXT_LENGTH       (SALT_LENGTH + 1 + 2*BINARY_SIZE)    /* SALT + $ + 2x20 bytes for SHA1-representation */
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MIN_KEYS_PER_CRYPT      NBKEYS
 // max keys increased to allow sorting based on limb counts
-#define MAX_KEYS_PER_CRYPT		NBKEYS*64
-#define GETWORDPOS(i, index)	( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
-#define GETSTARTPOS(index)		( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
-#define GETOUTSTARTPOS(index)	( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*20*SIMD_COEF_32 )
+#define MAX_KEYS_PER_CRYPT      NBKEYS*64
+#define GETWORDPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETSTARTPOS(index)      ( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTSTARTPOS(index)   ( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*20*SIMD_COEF_32 )
 #if ARCH_LITTLE_ENDIAN
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 +             (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 ) //for endianity conversion
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 +             (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 ) //for endianity conversion
 #else
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 +             ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 ) //for endianity conversion
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 +             ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 ) //for endianity conversion
+#endif
+#else
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
-#else
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
-#endif
+static unsigned int threads = 1;
 
 //this array is from disp+work (sap's worker process)
 #define MAGIC_ARRAY_SIZE 160
@@ -309,13 +303,13 @@ static char *get_key(int index) {
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
-	unsigned int x,y=0;
+	unsigned int x, y;
 
-	for (;y<max_keys;y+=SIMD_COEF_32)
-	for (x=0;x<SIMD_COEF_32;x++)
-	{
-		if ( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*5] )
-			return 1;
+	for (y = 0; y < max_keys; y += SIMD_COEF_32) {
+		for (x = 0; x < SIMD_COEF_32; x++) {
+			if ( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*5] )
+				return 1;
+		}
 	}
 	return 0;
 #else
@@ -454,12 +448,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if SIMD_COEF_32
 #define ti (t*NBKEYS+index)
 
-	unsigned t;
+	int t;
 #if defined(_OPENMP)
 #pragma omp parallel for
 #endif
-	for (t = 0; t < (count-1)/(NBKEYS)+1; t++)
-	{
+	for (t = 0; t < (count-1)/(NBKEYS)+1; t++) {
 		unsigned int index, i, longest;
 		int len;
 		unsigned int crypt_len[NBKEYS];

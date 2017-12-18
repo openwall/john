@@ -108,9 +108,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		unsigned char master[MAX_KEYS_PER_CRYPT][32];
 		int i;
 #ifdef SIMD_COEF_32
@@ -132,12 +131,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cracked[index+i] = 0;
 		}
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;

@@ -1,4 +1,5 @@
-/* HAVAL cracker patch for JtR. Hacked together during April of 2013 by Dhiru
+/*
+ * HAVAL cracker patch for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
@@ -17,13 +18,6 @@ john_register_one(&fmt_haval_128_4);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "sph_haval.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -49,6 +43,14 @@ john_register_one(&fmt_haval_128_4);
 #endif // __MIC__
 #endif // OMP_SCALE
 #endif // _OPENMP
+
+#include "arch.h"
+#include "sph_haval.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_TAG		"$haval$"
@@ -137,16 +139,19 @@ static int valid(char *ciphertext, struct fmt_main *self, int len)
 	return 1;
 }
 
-/* we need independent valids, since the $haval$ signature is the same */
-/* otherwise, if we have input with a mix of both types, then ALL of them */
-/* will validate, even though  only the ones of the proper type will actually */
-/* be tested.  If we had a singleton crypt function (which both 128-4 and */
-/* 256-3 used, then a single valid would also work. But since each have */
-/* their own crypt, and they are NOT compatible, then we need separate valids */
+/*
+ * We need independent valids, since the $haval$ signature is the same.
+ * Otherwise, if we have input with a mix of both types, then ALL of them
+ * will validate, even though only the ones of the proper type will actually be
+ * tested. If we had a singleton crypt function (which both 128-4 and
+ * 256-3 used, then a single valid would also work. But since each have
+ * their own crypt, and they are NOT compatible, then we need separate valids.
+ */
 static int valid3(char *ciphertext, struct fmt_main *self)
 {
 	return valid(ciphertext, self, 64);
 }
+
 static int valid4(char *ciphertext, struct fmt_main *self)
 {
 	return valid(ciphertext, self, 32);
@@ -206,47 +211,46 @@ static void *get_binary_128(char *ciphertext)
 static int crypt_256_3(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_haval256_3_context ctx;
 
 		sph_haval256_3_init(&ctx);
 		sph_haval256_3(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_haval256_3_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int crypt_128_4(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_haval128_4_context ctx;
 
 		sph_haval128_4_init(&ctx);
 		sph_haval128_4(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_haval128_4_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

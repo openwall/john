@@ -526,13 +526,12 @@ static void pwsafe_sha256_iterate(unsigned int * state, unsigned int iterations)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT) {
 		SHA256_CTX ctx;
 #ifdef SIMD_COEF_32
 		unsigned int i;
@@ -594,8 +593,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++)
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

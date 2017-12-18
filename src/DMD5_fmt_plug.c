@@ -329,13 +329,12 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		unsigned char hash[16];
 		unsigned char hex_hash[MD5_HEX_SIZE];
 		unsigned char *ptr_src, *ptr_dst;

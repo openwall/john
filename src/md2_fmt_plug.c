@@ -1,4 +1,5 @@
-/* MD2 cracker patch for JtR. Hacked together during May of 2013 by Dhiru
+/*
+ * MD2 cracker patch for JtR. Hacked together during May of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
@@ -15,13 +16,7 @@ john_register_one(&fmt_md2_);
 #else
 
 #include <string.h>
-#include "arch.h"
-#include "sph_md2.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 #include <omp.h>
 // OMP_SCALE tuned on core i7 quad core HT
@@ -43,6 +38,14 @@ john_register_one(&fmt_md2_);
 #endif // __MIC__
 #endif // OMP_SCALE
 #endif // _OPENMP
+
+#include "arch.h"
+#include "sph_md2.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"MD2"
@@ -148,28 +151,27 @@ static void *get_binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_md2_context ctx;
 
 		sph_md2_init(&ctx);
 		sph_md2(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_md2_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

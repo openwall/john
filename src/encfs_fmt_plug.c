@@ -143,9 +143,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		int i, j;
 		unsigned char master[MAX_KEYS_PER_CRYPT][MAX_KEYLENGTH + MAX_IVLENGTH];
 		unsigned char tmpBuf[sizeof(cur_salt->data)];
@@ -184,6 +183,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 	}
+
 	return count;
 }
 

@@ -234,12 +234,11 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += NBKEYS)
-	{
+	for (index = 0; index < count; index += NBKEYS) {
 		sph_whirlpool_context wctx;
 		int i;
 		union {
@@ -293,8 +292,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++)
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (((uint64_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;

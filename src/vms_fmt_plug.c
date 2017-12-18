@@ -166,10 +166,9 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;
@@ -205,14 +204,14 @@ void VMS_std_set_salt ( void *salt )
 int VMS_std_crypt(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		uaf_test_password (cur_salt, saved_key[index], 0, crypt_out[index]);
 	}
+
 	return count;
 }
 

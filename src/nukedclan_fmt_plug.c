@@ -1,4 +1,5 @@
-/* Nuked-Klan CMS DB cracker patch for JtR. Hacked together during
+/*
+ * Nuked-Klan CMS DB cracker patch for JtR. Hacked together during
  * July of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
@@ -85,6 +86,7 @@ static struct custom_salt {
 inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
 	int i;
+
 	for (i = 0; i < len; ++i) {
 		out[0] = itoa16[str[i]>>4];
 		out[1] = itoa16[str[i]&0xF];
@@ -209,7 +211,7 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -239,8 +241,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++)
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;

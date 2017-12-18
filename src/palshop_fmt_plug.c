@@ -140,12 +140,11 @@ static void *get_binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		unsigned char m1[53], buffer[16+20], *cp;
 		int i;
 		MD5_CTX mctx;
@@ -195,8 +194,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++)
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;

@@ -1,9 +1,9 @@
-/* MYSQL_half_fmt.c
+/*
+ * MYSQL_half_fmt.c
  *
  * Copyright (c) 2008 by <earthquake at rycon.hu>
  *
  * John the ripper MYSQL-fast module
- *
  *
  * Note: The mysql hash's first 8byte is relevant,
  * the another ones depends on the first 8. Maybe

@@ -475,7 +475,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 		    //rar_dbgmsg("unrar: read_tables: ppm_decode_init failed\n");
 		    return 0;
 		}
-		return(1);
+		return 1;
 	}
 	unpack_data->unp_block_type = BLOCK_LZ;
 	//rar_dbgmsg("LZ block\n");

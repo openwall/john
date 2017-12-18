@@ -125,9 +125,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		int i;
 
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
@@ -146,6 +145,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;

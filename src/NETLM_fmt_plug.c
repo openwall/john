@@ -253,9 +253,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (index=0; index<count; index++)
+	for (index = 0; index < count; index++)
 #endif
 		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
 			return 1;

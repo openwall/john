@@ -161,12 +161,11 @@ static void compressor(unsigned char *in, unsigned char *out)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		// hash is compressor(md5(password))
 		MD5_CTX ctx;
 		unsigned char *out = (unsigned char*)crypt_out[index];
@@ -178,15 +177,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		compressor(hash, out);
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

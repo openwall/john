@@ -606,9 +606,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 #if !defined(_OPENMP) && defined (__CYGWIN32__) && defined (MEMDBG_ON)
 		static  /* work around for some 'unknown' bug in cygwin gcc when using memdbg.h code. I have NO explanation, JimF. */
 #endif
@@ -631,6 +630,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				any_cracked |= 1;
 			}
 	}
+
 	return count;
 }
 

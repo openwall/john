@@ -1,4 +1,5 @@
-/* Cracker for both MongoDB system and sniffed network hashes. Hacked together
+/*
+ * Cracker for both MongoDB system and sniffed network hashes. Hacked together
  * during November of 2012 by Dhiru Kholia <dhiru at openwall.com>.
  *
  * Based on https://github.com/cyberpunkych/attacking_mongodb
@@ -9,7 +10,8 @@
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_mongodb;
@@ -17,41 +19,43 @@ extern struct fmt_main fmt_mongodb;
 john_register_one(&fmt_mongodb);
 #else
 
-#include "md5.h"
 #include <string.h>
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #ifdef __MIC__
 #define OMP_SCALE               512
 #else
-#define OMP_SCALE               16384	// Tuned on K8-dual HT
+#define OMP_SCALE               16384 // Tuned on K8-dual HT
 #endif // __MIC__
 #endif // OMP_SCALE
 #endif // _OPENMP
+
+#include "md5.h"
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"MongoDB"
-#define FORMAT_NAME		"system / network"
-#define FORMAT_TAG			"$mongodb$"
-#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "MongoDB"
+#define FORMAT_NAME             "system / network"
+#define FORMAT_TAG              "$mongodb$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 
-#define ALGORITHM_NAME		"MD5 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define SALT_ALIGN			sizeof(int)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        32
+#define BINARY_SIZE             16
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define BINARY_ALIGN            sizeof(uint32_t)
+#define SALT_ALIGN              sizeof(int)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 static struct fmt_tests mongodb_tests[] = {
 	{"$mongodb$0$sa$75692b1d11c072c6c79332e248c4f699", "sa"},
@@ -158,6 +162,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$mongodb$" */
 	p = strtokm(ctcopy, "$");
@@ -169,6 +174,7 @@ static void *get_salt(char *ciphertext)
 		strcpy((char*)cs.salt, p);
 	}
 	MEM_FREE(keeptr);
+
 	return (void *)&cs;
 }
 
@@ -181,6 +187,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
@@ -203,6 +210,7 @@ static void set_salt(void *salt)
 inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
 	int i;
+
 	for (i = 0; i < len; ++i) {
 		out[0] = itoa16[str[i]>>4];
 		out[1] = itoa16[str[i]&0xF];
@@ -213,12 +221,11 @@ inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		if (cur_salt->type == 0) {
 			MD5_CTX ctx;
 			MD5_Init(&ctx);
@@ -244,15 +251,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Final((unsigned char*)crypt_out[index], &ctx);
 		}
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;
@@ -279,13 +286,12 @@ static char *get_key(int index)
 }
 
 /*
- * report salt type as first "tunable cost"
+ * Report salt type as first "tunable cost"
  */
 static unsigned int mongodb_salt_type(void *salt)
 {
-	struct custom_salt *my_salt;
+	struct custom_salt *my_salt = salt;
 
-	my_salt = salt;
 	return (unsigned int) my_salt->type;
 }
 

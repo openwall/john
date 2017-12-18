@@ -188,13 +188,12 @@ static int verify_page(unsigned char *page1)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		unsigned char master[MAX_KEYS_PER_CRYPT][32];
 		unsigned char output[24];
 		unsigned char *iv_in;
@@ -237,6 +236,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cracked[index+i] = 0;
 		}
 	}
+
 	return count;
 }
 

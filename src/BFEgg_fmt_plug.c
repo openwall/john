@@ -162,10 +162,9 @@ static char *get_key(int index) {
 }
 
 static int cmp_all(void *binary, int count) {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], 4))
 			return 1;
 	return 0;
@@ -187,20 +186,16 @@ static int cmp_exact(char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
-		/*if (saved_key[index][0] == '\0') {
-			zerolengthkey = 1;
-		} else {
-			zerolengthkey = 0; */
+	for (index = 0; index < count; index++) {
 		if (saved_key[index][0] != 0)
 			blowfish_encrypt_pass(saved_key[index],
 				(char*)crypt_out[index]);
 	}
+
 	return count;
 }
 

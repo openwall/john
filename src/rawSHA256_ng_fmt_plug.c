@@ -199,6 +199,7 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
     int i;
+
     for (i = 0; i < 8; i++)
             MEM_FREE(crypt_key[i]);
     MEM_FREE(saved_key);
@@ -211,7 +212,6 @@ static int get_hash_3(int index) { return crypt_key[0][index] & PH_MASK_3; }
 static int get_hash_4(int index) { return crypt_key[0][index] & PH_MASK_4; }
 static int get_hash_5(int index) { return crypt_key[0][index] & PH_MASK_5; }
 static int get_hash_6(int index) { return crypt_key[0][index] & PH_MASK_6; }
-
 
 static void set_key(char *key, int index)
 {
@@ -227,7 +227,6 @@ static void set_key(char *key, int index)
         buf8[len++] = 0;
 }
 
-
 static char *get_key(int index)
 {
     uint32_t *buf = (uint32_t*) &saved_key[index];
@@ -241,17 +240,15 @@ static char *get_key(int index)
     return (char*) out;
 }
 
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
     int count = *pcount;
-    int index = 0;
+    int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-    for (index = 0; index < count; index += VWIDTH)
 #endif
-    {
+    for (index = 0; index < count; index += VWIDTH) {
         vtype a, b, c, d, e, f, g, h;
         vtype w[64], tmp1, tmp2;
         int i;
@@ -375,46 +372,39 @@ static int crypt_all(int *pcount, struct db_salt *salt)
     return count;
 }
 
-
 static int cmp_all(void *binary, int count)
 {
 	vtype bin;
 	vtype digest;
 	int i = 0;
 
-#ifdef _OPENMP
-	for (i = 0; i < count; i += VWIDTH)
-#endif
-	{
+	for (i = 0; i < count; i += VWIDTH) {
 		digest = vload((vtype*) &crypt_key[0][i]);
 		bin    = vset1_epi32(((uint32_t*) binary)[0]);
 
-        if (vanyeq_epi32(bin, digest))
-            return 1;
+		if (vanyeq_epi32(bin, digest))
+			return 1;
 	}
 
 	return 0;
 }
-
 
 static int cmp_one(void *binary, int index)
 {
 	return ((uint32_t*) binary)[0] == crypt_key[0][index];
 }
 
-
 static int cmp_exact(char *source, int index)
 {
 	uint32_t *binary = sha256_common_binary(source);
-    int i;
+	int i;
 
-    for (i = 0; i < 8; i++)
-        if (((uint32_t*) binary)[i] != crypt_key[i][index])
-            return 0;
+	for (i = 0; i < 8; i++)
+		if (((uint32_t*) binary)[i] != crypt_key[i][index])
+			return 0;
 
-    return 1;
+	return 1;
 }
-
 
 struct fmt_main fmt_rawSHA256_ng = {
     {

@@ -139,12 +139,11 @@ static void *get_binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		JtR_MDC2_CTX ctx;
 		JtR_MDC2_Init(&ctx);
 		JtR_MDC2_Update(&ctx, (unsigned char*)saved_key[index], saved_len[index]);
@@ -156,10 +155,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;

@@ -476,10 +476,9 @@ static int cmp_all(void *binary, int count)
 	}
 	return 0;
 #else
-	int index = 0;
-
+	int index;
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
-	for (; index < count; index++)
+	for (index = 0; index < count; index++)
 #endif
 		if (((uint32_t*)binary)[0] == crypt_key[index][0])
 			return 1;
@@ -509,7 +508,7 @@ static int cmp_one_384(void *binary, int index) {
 
 static int cmp_exact(char *source, int index)
 {
-	return (1);
+	return 1;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt,
@@ -521,7 +520,7 @@ static int crypt_all(int *pcount, struct db_salt *salt,
 	)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for

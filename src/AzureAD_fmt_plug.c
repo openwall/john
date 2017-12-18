@@ -142,12 +142,11 @@ static char *get_key(int index) {
 
 static int crypt_all(int *pcount, struct db_salt *salt) {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		// * PBKDF2(UTF-16(uc(hex(MD4(UTF-16(password))))), rnd_salt(10), 100, HMAC-SHA256, 32)
 		// Trivial for now.  Can optimized later.
 		UTF16 Buf[PLAINTEXT_LENGTH+1];
@@ -191,13 +190,15 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 #endif
 	}
 	dirty = 0;
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++)
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], 4))
 			return 1;
 	return 0;

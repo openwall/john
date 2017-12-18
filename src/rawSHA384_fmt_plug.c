@@ -252,13 +252,12 @@ static int binary_hash_6(void *binary) { return ((uint64_t*)binary)[3] & PH_MASK
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_64
 		SIMDSHA512body(&saved_key[index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64],
 		              &crypt_out[index/SIMD_COEF_64*8*SIMD_COEF_64],
@@ -270,6 +269,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA384_Final((unsigned char *)crypt_out[index], &ctx);
 #endif
 	}
+
 	return count;
 }
 

@@ -183,13 +183,12 @@ static void *get_binary(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
 		SIMDSHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
 		              &crypt_out[(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32],
@@ -201,6 +200,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
 #endif
 	}
+
 	return count;
 }
 

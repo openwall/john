@@ -237,12 +237,11 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		compute_hash(cur_salt, saved_key[index], (unsigned char*)crypt_out[index]);
 	}
 	return count;
@@ -250,9 +249,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
 
-	for (; index < count; index++)
+	for (index = 0; index < count; index++)
 		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;

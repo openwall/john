@@ -329,14 +329,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	const unsigned char one[] = { 1, 0, 0, 0 };
-	int i = 0;
+	int i;
 
 	if (!keys_prepared) {
 #ifdef _OPENMP
 #pragma omp parallel for
-		for (i = 0; i < count; i++)
 #endif
-		{
+		for (i = 0; i < count; i++) {
 			int len;
 			unsigned char K[KEY_SIZE];
 			unsigned char K1[KEY_SIZE];
@@ -358,9 +357,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (i = 0; i < count; i++)
 #endif
-	{
+	for (i = 0; i < count; i++) {
 		unsigned char K3[KEY_SIZE], cleartext[TIMESTAMP_SIZE];
 		HMACMD5Context ctx;
 		// key set up with K1 is stored in saved_ctx[i]
@@ -394,10 +392,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
+	int index;
+
 	for (index = 0; index < count; index++)
-#endif
 		if (*(uint32_t*)binary == output[index][0])
 			return 1;
 	return 0;

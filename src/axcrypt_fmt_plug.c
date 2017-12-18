@@ -217,9 +217,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		/*
 		 * NUMBER_AES_BLOCKS = 2
 		 * AES_BLOCK_SIZE = 16

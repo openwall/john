@@ -18,41 +18,37 @@ john_register_one(&fmt_oracle);
 #include <string.h>
 #include <openssl/des.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               512
+#endif
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "unicode.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE              512
-#endif
-#endif
-
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"oracle"
-#define FORMAT_NAME			"Oracle 10"
-#define FORMAT_TAG           "O$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME			"DES 32/" ARCH_BITS_STR
-
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
-
-#define PLAINTEXT_LENGTH		120 // worst case UTF-8 is 40 characters of Unicode, that'll do
-
-#define BINARY_SIZE			8
-#define BINARY_ALIGN		4
-#define MAX_USERNAME_LEN    30
-#define SALT_SIZE			(MAX_USERNAME_LEN*2 + 4)  // also contain the NULL
-#define SALT_ALIGN			2
-#define CIPHERTEXT_LENGTH	16
-#define MAX_INPUT_LEN		(CIPHERTEXT_LENGTH + 3 + MAX_USERNAME_LEN * (options.input_enc == UTF_8 ? 3 : 1))
-
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define FORMAT_LABEL            "oracle"
+#define FORMAT_NAME             "Oracle 10"
+#define FORMAT_TAG              "O$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "DES 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define PLAINTEXT_LENGTH        120 // worst case UTF-8 is 40 characters of Unicode, that'll do
+#define BINARY_SIZE             8
+#define BINARY_ALIGN            4
+#define MAX_USERNAME_LEN        30
+#define SALT_SIZE               (MAX_USERNAME_LEN*2 + 4)  // also contain the NULL
+#define SALT_ALIGN              2
+#define CIPHERTEXT_LENGTH       16
+#define MAX_INPUT_LEN           (CIPHERTEXT_LENGTH + 3 + MAX_USERNAME_LEN * (options.input_enc == UTF_8 ? 3 : 1))
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 //#define DEBUG_ORACLE
 
@@ -290,9 +286,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (idx = 0; idx < count; idx++)
 #endif
-	{
+	for (idx = 0; idx < count; idx++) {
 		unsigned char buf[sizeof(cur_salt)];
 		unsigned char buf2[SALT_SIZE + PLAINTEXT_LENGTH*2];
 		DES_key_schedule sched_local;
@@ -330,11 +325,11 @@ static void * get_binary(char *ciphertext)
 	if (!out3) out3 = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	l = strlen(ciphertext) - CIPHERTEXT_LENGTH;
-	for (i=0;i<BINARY_SIZE;i++)
-	{
+	for (i = 0; i < BINARY_SIZE; i++) {
 		out3[i] = atoi16[ARCH_INDEX(ciphertext[i*2+l])]*16
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+l+1])];
 	}
+
 	return out3;
 }
 
@@ -384,6 +379,7 @@ static int cmp_all(void *binary, int count)
 {
 	int i;
 	uint32_t b = *(uint32_t*)binary;
+
 	for (i = 0; i < count; ++i)
 		if (b == *((uint32_t*)(crypt_key[i])) )
 			return 1;

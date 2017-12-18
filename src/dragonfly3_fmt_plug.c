@@ -183,12 +183,11 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		SHA256_CTX ctx;
 
 		SHA256_Init(&ctx);
@@ -201,6 +200,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+
 	return count;
 }
 
@@ -250,10 +250,9 @@ static void *get_salt_64(char *ciphertext)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

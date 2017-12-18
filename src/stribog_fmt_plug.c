@@ -270,13 +270,12 @@ static void stribog_final(unsigned char* digest, void* context)
 static int crypt_256(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		/* GOST34112012Context ctx;
 
 		GOST34112012Init(&ctx, 256);
@@ -289,18 +288,18 @@ static int crypt_256(int *pcount, struct db_salt *salt)
 		stribog_update(&ctx, (const unsigned char*)saved_key[index], strlen(saved_key[index]));
 		stribog_final((unsigned char*)crypt_out[index], &ctx);
 	}
+
 	return count;
 }
 
 static int crypt_512(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		GOST34112012Context ctx[2]; // alignment stuff
 
 		stribog512_init((void *)ctx);
@@ -314,10 +313,9 @@ static int crypt_512(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

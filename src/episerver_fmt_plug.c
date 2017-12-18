@@ -309,13 +309,12 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 #ifdef SIMD_COEF_32
-	for (index = 0; index < count; index += (cur_salt->version == 0 ? NBKEYS_SHA1 : NBKEYS_SHA256))
-	{
+	for (index = 0; index < count; index += (cur_salt->version == 0 ? NBKEYS_SHA1 : NBKEYS_SHA256)) {
 		uint32_t *in = &saved_key[HASH_IDX_IN];
 		uint32_t *out = &crypt_out[HASH_IDX_OUT];
 
@@ -325,8 +324,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SIMDSHA256body(in, out, NULL, SSEi_MIXED_IN);
 	}
 #else
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		unsigned char passwordBuf[PLAINTEXT_LENGTH*2+2];
 		int len;
 		len = enc_to_utf16((UTF16*)passwordBuf, PLAINTEXT_LENGTH,
@@ -355,8 +353,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++) {
+	int index;
+
+	for (index = 0; index < count; index++) {
 #ifdef SIMD_COEF_32
 		if (*((uint32_t*)binary) == crypt_out[HASH_IDX_OUT])
 #else
@@ -364,6 +363,7 @@ static int cmp_all(void *binary, int count)
 #endif
 			return 1;
 	}
+
 	return 0;
 }
 

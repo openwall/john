@@ -163,51 +163,50 @@ static void *get_binary(char *ciphertext)
 static int crypt_0(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_whirlpool0_context ctx;
 
 		sph_whirlpool0_init(&ctx);
 		sph_whirlpool0(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_whirlpool0_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int crypt_1(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		sph_whirlpool1_context ctx;
 
 		sph_whirlpool1_init(&ctx);
 		sph_whirlpool1(&ctx, saved_key[index], strlen(saved_key[index]));
 		sph_whirlpool1_close(&ctx, (unsigned char*)crypt_out[index]);
 	}
+
 	return count;
 }
 
 static int crypt_2(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int index = 0;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 		WHIRLPOOL_CTX ctx;
@@ -223,15 +222,15 @@ static int crypt_2(int *pcount, struct db_salt *salt)
 		sph_whirlpool_close(&ctx, (unsigned char*)crypt_out[index]);
 #endif
 	}
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

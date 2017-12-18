@@ -183,8 +183,9 @@ static void *get_salt(char *ciphertext)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (; index < count; index++)
+	for (index = 0; index < count; index++)
 #endif
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;

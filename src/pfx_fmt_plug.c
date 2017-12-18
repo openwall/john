@@ -219,8 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += inc)
-	{
+	for (index = 0; index < count; index += inc) {
 #if !defined(SIMD_COEF_32)
 
 		if (cur_salt->mac_algo == 1) {
@@ -421,8 +420,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
+
 #if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (; index < count; index++)
+	for (index = 0; index < count; index++)
 #endif
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;

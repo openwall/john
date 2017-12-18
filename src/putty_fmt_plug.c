@@ -376,9 +376,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		cracked[index] = LAME_ssh2_load_userkey(saved_key[index]);
 		if (cracked[index])
 #ifdef _OPENMP
@@ -386,6 +385,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 			any_cracked |= 1;
 	}
+
 	return count;
 }
 

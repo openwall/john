@@ -439,14 +439,13 @@ key_cleaning:
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
-	unsigned int x,y=0;
+	unsigned int x, y;
 #ifdef _OPENMP
-	for (;y<SIMD_PARA_MD5*threads;y++)
+	for (y = 0; y < SIMD_PARA_MD5*threads; y++)
 #else
-	for (;y<SIMD_PARA_MD5;y++)
+	for (y = 0; y < SIMD_PARA_MD5; y++)
 #endif
-		for (x = 0; x < SIMD_COEF_32; x++)
-		{
+		for (x = 0; x < SIMD_COEF_32; x++) {
 			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
 		}
