@@ -1960,4 +1960,3 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 		gIndex += get_global_size(0);
 	}
 }
-

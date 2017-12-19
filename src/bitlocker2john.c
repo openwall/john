@@ -255,7 +255,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	}
 	write(fd, data, size);
 	close(fd);
-	process_encrypted_image();
+	process_encrypted_image(name);
 	remove(name);
 
 	return 0;
@@ -368,23 +368,6 @@ int main(int argc, char **argv)
 
 	MEM_FREE(image_path);
 
-	if(outHashRecovery == NULL) //Current directory
-	{
-		outHashRecovery = (char*)Calloc( (strlen(FILE_OUT_HASH_RECV)+1), sizeof(char));
-		memcpy(outHashRecovery, FILE_OUT_HASH_RECV, strlen(FILE_OUT_HASH_RECV));
-	}
-
-	printf("\n---------> bitlocker2john hash extractor <---------\n");
-	if(process_encrypted_image())
-		fprintf(stderr, "\nError while parsing input device image\n");
-	else
-		printf("\nOutput files:\nUser Password:\"%s\"\nUser Password with MAC:\"%s\"\nRecovery Password:\"%s\"\nRecovery Password with MAC:\"%s\"\n", outHashUser, outHashUserMac, outHashRecovery, outHashRecoveryMac);
-
-	free(outHashUser);
-	free(outHashUserMac);
-	free(outHashRecovery);
-	free(outHashRecoveryMac);
-	
 	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;
