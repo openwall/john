@@ -332,6 +332,11 @@ extern int fileno(FILE *);
 #define strlwr _strlwr
 #define open _open
 #define fdopen _fdopen
+#pragma warning(disable: 4244) // possible loss of data
+#pragma warning(disable: 4334) // 32 bit shift implictly converted to 64 bits
+#pragma warning(disable: 4133) // function imcompatible types
+#pragma warning(disable: 4146) // unary minus applied to unsigned
+#pragma warning(disable: 4715) // not all control paths return a value
 #endif
 
 #if (AC_BUILT && !HAVE_SNPRINTF && HAVE_SPRINTF_S) || (!AC_BUILT && _MSC_VER)

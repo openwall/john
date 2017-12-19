@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #elif _MSC_VER || __MINGW32__
 #include <windows.h>
+char CPU_req_name[48];
 #endif
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
