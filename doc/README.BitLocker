@@ -1,13 +1,26 @@
 This document is about cracking password protected BitLocker encrypted
 volumes with JtR.
 
-Hash Extraction
----------------
+Step 1: Extract the hash
+------------------------
 
-Use the included bitlocker2john tool to extract hashes from the password
-protected BitLocker encrypted volume(s).
+In order to use the BitLocker-OpenCL format, you must produce a well-formatted
+hash from your BitLocker encrypted image. Use the bitlocker2john tool to
+extract hashes from password protected BitLocker encrypted volumes. It returns
+four output hashes with different prefixes:
 
-$ ../run/bitlocker2john minimalistic.raw
+* If the device was encrypted using the User Password authentication method,
+  bitlocker2john prints these two hashes:
+  * $bitlocker$0$... : it starts the User Password fast attack mode
+  * $bitlocker$1$... : it starts the User Password attack mode with MAC verification (slower execution, no false positives)
+
+* In any case, bitlocker2john prints these two hashes:
+  * $bitlocker$2$... : it starts the Recovery Password fast attack mode
+  * $bitlocker$3$... : it starts the Recovery Password attack mode with MAC verification (slower execution, no false positives)
+
+Hash extraction example,
+
+$ ../run/bitlocker2john minimalistic.raw  # operate on a disk image
 Signature found at 0x00010003
 Version: 8
 Invalid version, looking for a signature with valid version...
@@ -15,44 +28,46 @@ Signature found at 0x02110000
 Version: 2 (Windows 7 or later)
 VMK entry found at 0x021100b6
 Key protector with user password found
-minimalistic.raw:$bitlocker$0$16$e221443f32c419b74504ed51b0d66dbf$1048576$12$704e12c6c319d00103000000$60$000000000000000000000000000000002d135e69646c157c15b4c273ad85b86513a1672ae3f531ce121889178c669d37f8e5e0100d331ce78484844c
+minimalistic.raw:$bitlocker$0$16$e221443f32c419b74504ed51b0d66dbf$1048576$12$704e12c6c...
 
+Instead of running bitlocker2john directly on BitLocker encrypted devices
+(e.g. /dev/sdb1), you may use the dd command to create a disk image of a
+device encrypted with BitLocker
 
-Cracking Process
-----------------
+$ sudo dd if=/dev/disk2 of=disk_image conv=noerror,sync
++4030464+0 records in
++4030464+0 records out
++2063597568 bytes transferred in 292.749849 secs (7049013 bytes/sec)
 
-Finally, give the extracted hash string to JtR jumbo to crack.
+For further details about User Password and Recovery Password attacks, please
+refer to the Wiki page: http://openwall.info/wiki/john/OpenCL-BitLocker.
 
-$ cat hash
-$bitlocker$0$16$73926f843bbb41ea2a89a28b114a1a24$1048576$12$30a81ef90c9dd20103000000$60$942f852f2dc4ba8a589f35e750f33a5838d3bdc1ed77893e02ae1ac866f396f8635301f36010e0fcef0949078338f549ddb70e15c9a598e80c905baa
+Step 2: Attack!
+---------------
 
-$ ../run/john hash -wordlist=wordlist
-Loaded 1 password hash (BitLocker, BitLocker [SHA-256 AES 64/64])
-Will run 4 OpenMP threads
-Press 'q' or Ctrl-C to abort, almost any other key for status
-password@123     (?)
+Use the BitLocker-OpenCL format specifying the hash file:
 
+$ ./john --format=bitlocker-opencl --wordlist=wordlist target_hash
 
-To use a GPU for cracking, use the "bitlocker-opencl" format,
+Currently, this format is able to evaluate passwords having length between 8
+(minimum password length) and 55 characters.
 
-$ ../john --format=bitlocker-opencl hash -wordlist=wordlist
+The mask you can use to generate Recovery Passwords is:
 
-Note: For the moment, passwords will be evaluated only if their length is
-between 8 and 27 characters, in the "bitlocker-opencl" format.
-
+-mask=?d?d?d?d?d?d[-]?d?d?d?d?d?d[-]?d?d?d?d?d?d[-]?d?d?d?d?d?d[-]?d?d?d?d?d?d[-]?d?d?d?d?d?d[-]?d?d?d?d?d?d[-]?d?d?d?d?d?d
 
 Links
 -----
 
 Samples BitLocker images for testing are available at,
 
-https://github.com/kholia/libbde/tree/bitlocker2john/samples
+* https://github.com/kholia/libbde/tree/bitlocker2john/samples
+* https://github.com/e-ago/bitcracker/tree/master/Images
 
-https://github.com/e-ago/bitcracker/tree/master/Images
-
+Samples of User Password/Recovery Passwords dictionaries are available at
+https://github.com/e-ago/bitcracker/tree/master/Dictionary
 
 More information on BitLocker cracking can be found at,
 
-http://openwall.info/wiki/john/OpenCL-BitLocker
-
-https://github.com/e-ago/bitcracker
+* http://openwall.info/wiki/john/OpenCL-BitLocker
+* https://github.com/e-ago/bitcracker

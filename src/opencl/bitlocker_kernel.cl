@@ -348,7 +348,6 @@ int enableMacVerification(
 #define ITERATION_NUMBER            0x100000
 #define SALT_SIZE                   16
 #define INT_HASH_SIZE               8
-#define HASH_LOOPS                  256
 #define BITLOCKER_HASH_UP 			0
 #define BITLOCKER_HASH_UP_MAC		1
 #define BITLOCKER_HASH_RP 			2
@@ -1249,7 +1248,9 @@ __kernel void opencl_bitlocker_attack_loop(__global int *nPswPtr,
                                       __global unsigned int *d_wblocks,
                                       __global int *first_hash,
                                       __global int *output_hash,
-                                      __global int *nIterPtr)
+                                      __global int *startIndex,
+                                      __global int *hashLoops
+                                      )
 {
 	unsigned int schedule0, schedule1, schedule2, schedule3, schedule4, schedule5, schedule6, schedule7, schedule8, schedule9;
 	unsigned int schedule10, schedule11, schedule12, schedule13, schedule14, schedule15, schedule16, schedule17, schedule18, schedule19;
@@ -1261,13 +1262,13 @@ __kernel void opencl_bitlocker_attack_loop(__global int *nPswPtr,
 
 	int index, nPsw = 0, indexW=0;
 	int gIndex = (int)get_global_id(0);
-	int nIter = nIterPtr[0];
+	int nIter = startIndex[0];
 
 	nPsw = nPswPtr[0];
 
 	while (gIndex < nPsw)
 	{
-		indexW = (SINGLE_BLOCK_W_SIZE * nIter * HASH_LOOPS);
+		indexW = (SINGLE_BLOCK_W_SIZE * nIter);
 
 		first_hash0 = first_hash[(gIndex*INT_HASH_SIZE) + 0];
 		first_hash1 = first_hash[(gIndex*INT_HASH_SIZE) + 1];
@@ -1287,7 +1288,7 @@ __kernel void opencl_bitlocker_attack_loop(__global int *nPswPtr,
 		hash6 = output_hash[(gIndex*INT_HASH_SIZE) + 6];
 		hash7 = output_hash[(gIndex*INT_HASH_SIZE) + 7];
 
-		for (index = 0; index < HASH_LOOPS; index++)
+		for (index = 0; index < hashLoops[0]; index++)
 		{
 			a = 0x6A09E667;
 			b = 0xBB67AE85;
