@@ -18,14 +18,20 @@
  * Fixed BE issues, and build problems (Fall 2014), JimF.
  */
 
-#include "arch.h"
-
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_openbsd_softraid;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_openbsd_softraid);
 #else
 
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE                   1
+#endif
+#endif
+
+#include "arch.h"
 #include "aes.h"
 #include "hmac_sha.h"
 #include "sha.h"
@@ -34,12 +40,6 @@ john_register_one(&fmt_openbsd_softraid);
 #include "bcrypt_pbkdf.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "loader.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE                   1
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL                "OpenBSD-SoftRAID"
@@ -239,9 +239,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
 #endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		AES_KEY akey;
 		unsigned char mask_key[MAX_KEYS_PER_CRYPT][32];
 		unsigned char unmasked_keys[OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS];
@@ -301,8 +300,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-	for (; index < count; index++)
+	int index;
+
+	for (index = 0; index < count; index++)
 		if (*(uint32_t*)binary == *(uint32_t*)(crypt_out[index]))
 			return 1;
 	return 0;
@@ -316,6 +316,7 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	void *bin = get_binary(source);
+
 	return !memcmp(bin, crypt_out[index], 20);
 }
 
