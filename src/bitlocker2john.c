@@ -79,7 +79,7 @@ int process_encrypted_image(char *image_path)
 	char a, b, c, d;
 	FILE *fp;
 
-	printf("Opening file %s\n", image_path);
+	fprintf(stderr, "Opening file %s\n", image_path);
 	fp = fopen(image_path, "r");
 
 	if (!fp) {
@@ -188,57 +188,51 @@ int process_encrypted_image(char *image_path)
 #endif
 	} else {
 		if (vmk_found == 1) {
-#if 0
+			// UP
 			printf("\nUser Password hash:\n$bitlocker$%d$%d$", HASH_UP, SALT_SIZE);
+			printf("$bitlocker$%d$%d$", HASH_UP, SALT_SIZE);
 			print_hex(p_salt, SALT_SIZE, stdout);
 			printf("$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
 			print_hex(p_nonce, NONCE_SIZE, stdout);
 			printf("$%d$", VMK_SIZE + MAC_SIZE);
-			print_hex(p_mac, MAC_SIZE, stdout); // hack, this should actually be entire AES-CCM encrypted block (which includes vmk)
+			print_hex(p_mac, MAC_SIZE, stdout);
 			print_hex(p_vmk, VMK_SIZE, stdout);
 			printf("\n");
-#endif
-			// UP
-			printf("$bitlocker$%d$%d$", HASH_UP, SALT_SIZE);
-			print_hex(p_salt, SALT_SIZE, stdout);
-			fprintf(stdout, "$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
-			print_hex(p_nonce, NONCE_SIZE, stdout);
-			fprintf(stdout, "$%d$", VMK_SIZE + MAC_SIZE);
-			print_hex(p_mac, MAC_SIZE, stdout);
-			print_hex(p_vmk, VMK_SIZE, stdout);
-			fprintf(stdout, "\n");
 
 			// UP with MAC
+			printf("Hash type: User Password with MAC verification (slower solution, no false positives)\n");
 			printf("$bitlocker$%d$%d$", HASH_UP_MAC, SALT_SIZE);
 			print_hex(p_salt, SALT_SIZE, stdout);
-			fprintf(stdout, "$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
+			printf("$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
 			print_hex(p_nonce, NONCE_SIZE, stdout);
-			fprintf(stdout, "$%d$", VMK_SIZE + MAC_SIZE);
+			printf("$%d$", VMK_SIZE + MAC_SIZE);
 			print_hex(p_mac, MAC_SIZE, stdout);
 			print_hex(p_vmk, VMK_SIZE, stdout);
-			fprintf(stdout, "\n");
+			printf("\n");
 		}
 
 		if (recovery_found == 1) {
 			// RP
-			fprintf(stdout, "$bitlocker$%d$%d$", HASH_RP, SALT_SIZE);
+			printf("Hash type: Recovery Password fast attack\n");
+			printf("$bitlocker$%d$%d$", HASH_RP, SALT_SIZE);
 			print_hex(r_salt, SALT_SIZE, stdout);
-			fprintf(stdout, "$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
+			printf("$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
 			print_hex(r_nonce, NONCE_SIZE, stdout);
-			fprintf(stdout, "$%d$", VMK_SIZE + MAC_SIZE);
+			printf("$%d$", VMK_SIZE + MAC_SIZE);
 			print_hex(r_mac, MAC_SIZE, stdout);
 			print_hex(r_vmk, VMK_SIZE, stdout);
-			fprintf(stdout, "\n");
+			printf("\n");
 
 			// RP with MAC
-			fprintf(stdout, "$bitlocker$%d$%d$", HASH_RP_MAC, SALT_SIZE);
+			printf("Hash type: Recovery Password with MAC verification (slower solution, no false positives)\n");
+			printf("$bitlocker$%d$%d$", HASH_RP_MAC, SALT_SIZE);
 			print_hex(r_salt, SALT_SIZE, stdout);
-			fprintf(stdout, "$%d$%d$", 0x100000, NONCE_SIZE);
+			printf("$%d$%d$", 0x100000, NONCE_SIZE);
 			print_hex(r_nonce, NONCE_SIZE, stdout);
-			fprintf(stdout, "$%d$", VMK_SIZE + MAC_SIZE);
+			printf("$%d$", VMK_SIZE + MAC_SIZE);
 			print_hex(r_mac, MAC_SIZE, stdout);
 			print_hex(r_vmk, VMK_SIZE, stdout);
-			fprintf(stdout, "\n");
+			printf("\n");
 		}
 	}
 

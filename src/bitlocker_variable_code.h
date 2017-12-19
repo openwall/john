@@ -2,12 +2,12 @@
  * Common "variable" code for the BitLocker format.
  */
 
+#define BITLOCKER_ITERATION_NUMBER              0x100000  // duplicated here
+
 static struct fmt_tests bitlocker_tests[] = {
 	// Two artificial hashes to ease development and testing work
-#ifdef CPU_FORMAT
 	{"$bitlocker$0$16$134bd2634ba580adc3758ca5a84d8666$500$12$9080903a0d9dd20103000000$60$99919e1e955b55f75f2f16eb0af96f2d605630a49879d8f2458e390ef87722ae346e391be3e1c6d9af425a576dac155ad306e9ce7a407dd2ab431102", "openwall@123"},
 	{"$bitlocker$0$16$73926f843bbb41ea2a89a28b114a1a24$500$12$30a81ef90c9dd20103000000$60$96461b121c7a42c454492162042586ea7848c5b09fdb58234f60c06ebf74b2e1ca6dec0b7f3958e32fa2c50f8772ca0a2227bad8ea10fce03fe07b6c", "password@123"},
-#endif
 	// Windows 10 generated BitLocker image
 	{"$bitlocker$0$16$134bd2634ba580adc3758ca5a84d8666$1048576$12$9080903a0d9dd20103000000$60$0c52fdd87f17ac55d4f4b82a00b264070f36a84ead6d4cd330368f7dddfde1bdc9f5d08fa526dae361b3d64875f76a077fe9c67f44e08d56f0131bb2", "openwall@123"},
 	// Same test with MAC verification
@@ -87,6 +87,7 @@ static int bitlocker_common_valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *keeptr, *p;
 	int value, extra;
 	int salt_length;
+	unsigned int iterations;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -129,6 +130,9 @@ static int bitlocker_common_valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "$")) == NULL)   // iterations
 		goto err;
 	if (!isdec(p))
+		goto err;
+	iterations = atoi(p);
+	if (iterations > BITLOCKER_ITERATION_NUMBER)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // nonce length
 		goto err;

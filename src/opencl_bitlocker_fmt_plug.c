@@ -61,7 +61,7 @@ static const char *warn[] = {
 
 static int split_events[] = { 14, -1, -1 };
 
-#define BL_SINGLE_BLOCK_SHA_SIZE         64
+#define BL_SINGLE_BLOCK_SHA_SIZE                64
 #define BITLOCKER_PADDING_SIZE                  40
 #define BITLOCKER_ITERATION_NUMBER              0x100000
 #define BITLOCKER_FIXED_PART_INPUT_CHAIN_HASH   88
@@ -71,22 +71,22 @@ static int split_events[] = { 14, -1, -1 };
 #define BITLOCKER_NONCE_SIZE                    12
 #define BITLOCKER_IV_SIZE                       16
 #define BITLOCKER_VMK_SIZE                      60
-#define BITLOCKER_VMK_HEADER_SIZE 		12
-#define BITLOCKER_VMK_BODY_SIZE 		32
-#define BITLOCKER_VMK_FULL_SIZE 		44
+#define BITLOCKER_VMK_HEADER_SIZE               12
+#define BITLOCKER_VMK_BODY_SIZE                 32
+#define BITLOCKER_VMK_FULL_SIZE                 44
 #define FALSE                                   0
 #define TRUE                                    1
 #define BITLOCKER_ENABLE_DEBUG                  0
 #define WBLOCKS_KERNEL_NAME                     "opencl_bitlocker_wblocks"
-#define INIT_KERNEL_NAME                    	"opencl_bitlocker_attack_init"
+#define INIT_KERNEL_NAME                        "opencl_bitlocker_attack_init"
 #define ATTACK_KERNEL_NAME                      "opencl_bitlocker_attack_loop"
 #define FINAL_KERNEL_NAME                       "opencl_bitlocker_attack_final"
 
-#define BITLOCKER_PSW_CHAR_MIN_SIZE		8
-#define BITLOCKER_PSW_CHAR_MAX_SIZE 		55
-#define BITLOCKER_PSW_INT_SIZE 			32
-#define BITLOCKER_FIRST_LENGHT 			27
-#define BITLOCKER_SECOND_LENGHT 		55
+#define BITLOCKER_PSW_CHAR_MIN_SIZE             8
+#define BITLOCKER_PSW_CHAR_MAX_SIZE             55
+#define BITLOCKER_PSW_INT_SIZE                  32
+#define BITLOCKER_FIRST_LENGHT                  27
+#define BITLOCKER_SECOND_LENGHT                 55
 
 #ifndef UINT32_C
 	#define UINT32_C(c) c ## UL
@@ -99,7 +99,7 @@ static cl_int cl_error;
 
 static cl_mem d_salt, d_pad, d_wblocks,
        d_pswI, d_pswSize, d_found, d_numPsw,
-       d_firstHash, d_outHash, d_currIter, d_attack;
+       d_firstHash, d_outHash, d_startIndex, d_attack, d_loopHash;
 
 static cl_mem d_vmk, d_mac;
 static cl_mem d_vmkIV0, d_vmkIV4, d_vmkIV8, d_vmkIV12;
@@ -107,7 +107,7 @@ static cl_mem d_macIV0, d_macIV4, d_macIV8, d_macIV12;
 static cl_mem d_cMacIV0, d_cMacIV4, d_cMacIV8, d_cMacIV12;
 
 static unsigned int *h_wblocks, *hash_zero, *h_pswI;
-static int *h_pswSize, *h_found, i, *h_numPsw, *h_attack;
+static int *h_pswSize, *h_found, i, *h_numPsw, *h_attack, h_loopIter=0;
 static unsigned char *h_pswC, *h_vmkIV, *h_mac, *h_macIV, *h_cMacIV;
 
 static int w_block_precomputed(unsigned char *salt);
@@ -145,6 +145,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	// ============================================= DEVICE =============================================
 	d_attack = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int), "Cannot allocate device memory");
+	d_loopHash = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int), "Cannot allocate device memory");
 	// ===== IV fast attack
 	d_vmkIV0 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
 	d_vmkIV4 = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(unsigned int), "Cannot allocate device memory");
@@ -189,8 +190,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 			gws * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 			"Cannot allocate d_outHash");
 
-	d_currIter = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int),
-			"Cannot allocate d_currIter");
+	d_startIndex = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int),
+			"Cannot allocate d_startIndex");
 
 	// =========================== Init kernel ===========================
 	arg=0;
@@ -217,8 +218,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 			"Error while setting d_firstHash");
 	CLKERNELARG(crypt_kernel, arg++, d_outHash,
 			"Error while setting d_outHash");
-	CLKERNELARG(crypt_kernel, arg++, d_currIter,
-			"Error while setting d_currIter");
+	CLKERNELARG(crypt_kernel, arg++, d_startIndex,
+			"Error while setting d_startIndex");
+	CLKERNELARG(crypt_kernel, arg++, d_loopHash,
+			"Error while setting d_loopHash");
 
 	// =========================== Final kernel ===========================
 	arg=0;
@@ -311,9 +314,8 @@ static void reset(struct db_main *db)
 {
 	if (!autotuned) {
 
-		char build_opts[64];
-
-		snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
+		//char build_opts[64];
+		//snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
 
 		opencl_init("$JOHN/kernels/bitlocker_kernel.cl", gpu_id, NULL);
 
@@ -334,9 +336,15 @@ static void reset(struct db_main *db)
 			clCreateKernel(program[gpu_id], FINAL_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
 
-		// Initialize openCL tuning (library) for this format.
+		/*
+		 * Initialize openCL tuning (library) for this format.
+		 * Autotuning with default parameters:
+		 * HASH_LOOP = 256
+		 * ITERATIONS = 4096
+		 */
+
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
-		                       25, self, create_clobj, release_clobj,
+		                       26, self, create_clobj, release_clobj,
 		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 		                       0, db);
 
@@ -437,12 +445,15 @@ static void set_salt(void * cipher_salt_input)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i, m=0;
+	int i, m=0, startIndex=0, h_loopHash=0;
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 	h_found[0] = -1;
+	h_loopIter=cur_salt->iterations/HASH_LOOPS;
+	if(cur_salt->iterations%HASH_LOOPS != 0) h_loopIter++;
+	h_loopHash = HASH_LOOPS;
 
 	// =========================== Init kernel ===========================
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_numPsw,
@@ -473,19 +484,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		CL_FALSE, 0, (BL_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int),
 		h_wblocks, 0, NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
 
-	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS); i++) {
+	for (i = 0; i < (ocl_autotune_running ? 1 : h_loopIter); i++) {
 
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_currIter,
-				CL_FALSE, 0, sizeof(int), &i, 0,
+		if( ( (HASH_LOOPS * i) + HASH_LOOPS) > cur_salt->iterations)
+			h_loopHash = (cur_salt->iterations % HASH_LOOPS);
+
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_startIndex,
+				CL_FALSE, 0, sizeof(int), &startIndex, 0,
 				NULL, multi_profilingEvent[m+1]), "Copy iter num to gpu");
 
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m+2]), "Run loop kernel");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_loopHash,
+				CL_FALSE, 0, sizeof(int), &h_loopHash, 0,
+				NULL, multi_profilingEvent[m+2]), "clEnqueueWriteBuffer");
+
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
+				1, NULL, &global_work_size, lws, 0,
+				NULL, multi_profilingEvent[m+3]), "Run loop kernel");
+
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
+
+		startIndex += h_loopHash;
 	}
 
 	// =========================== Final kernel ===========================
-	m+=3;
+	m+=4;
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_found,
 		CL_FALSE, 0, sizeof(int), h_found, 0,
 		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
