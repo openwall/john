@@ -25,9 +25,9 @@ john_register_one(&fmt_opencl_cryptsha256);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
-#include "opencl_cryptsha256.h"
+#include "opencl_sha256crypt.h"
 #define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
-#include "cryptsha256_common.h"
+#include "sha256crypt_common.h"
 
 #define FORMAT_LABEL            "sha256crypt-opencl"
 #define ALGORITHM_NAME          "SHA256 OpenCL"

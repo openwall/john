@@ -3,66 +3,46 @@
  * based on rawSHA256_fmt.c code and Drepper's spec at
  * http://www.akkadia.org/drepper/SHA-crypt.txt
  *
- * This  software is Copyright (c) 2012 magnum, and it is hereby released to the
+ * This software is Copyright (c) 2012 magnum, and it is hereby released to the
  * general public under the following terms:  Redistribution and use in source
  * and binary forms, with or without modification, are permitted.
  *
- * Ported to SSE2, May 2013, JimF.  A little harder than some, since we have to
+ * See code/comments in cryptsha256 for how and why this is being done.  NOTE,
+ * we could limit ourselves to 15 byte password, and then only need 1 limb
+ * SHA512 SIMD logic.  If we allow 2 limb logic then 79 byte passwords are max.
+ * this is better than cryptsha256, where if we only allowed 1 limb, then only
+ * 3 btye passwords would have been max, and even at 2 limbs, 35 byte passwords
+ * are the longest we can do.
+ *
+ * Porting to SSE2, May 2015, JimF.  A little harder than some, since we have to
  * group and rearrange passwords based upon length.  We must only run passwords
- * of a specific block group size in 1 SSE_COEF_SHA256 bundle.  If we later do
- * PARA_SHA256, then each bundle of SSE_COEF_SHA256*PARA_SHA256 will have to be
+ * of a specific block group size in 1 SSE_COEF_SHA512 bundle.  If we later do
+ * PARA_SHA512, then each bundle of SSE_COEF_SHA512*PARA_SHA512 will have to be
  * made up of passwords of same block group size.
  *
  * Here are the block sizes per password length.  To be equal group size, all
- * numbers for 2 passwords must be equal all the way across.  So, password lengths
- * of 0, 1, 2, 3 are 1 group.  4, 5, 6, 7 are another group. 8,9,10,11 are another,
- * 12-23 are another and the final is 24-35. So there are 5 'groups' of lengths. We
- * could skip the length 0,1,2,3 group
+ * numbers for 2 passwords must be equal all the way across.  So, password
+ * lengths of 0, 1, ... 15 are 1 group.  16..23 are another group. 24..31 are
+ * yet another, etc. There are 5 'groups' of lengths.
  *
- * Here is the raw block length data. The
+ * Here is the raw block length data. Only first and last length for the group has been kept.
 Len: cp   pspc cspp ppc  cpp  psc  csp  pc
 0  : 1    1    1    1    1    1    1    1
-1  : 1    1    1    1    1    1    1    1
-2  : 1    1    1    1    1    1    1    1
-3  : 1    1    1    1    1    1    1    1
-4  : 1    2    2    1    1    1    1    1
-5  : 1    2    2    1    1    1    1    1
-6  : 1    2    2    1    1    1    1    1
-7  : 1    2    2    1    1    1    1    1
-8  : 1    2    2    1    1    2    2    1
-9  : 1    2    2    1    1    2    2    1
-10 : 1    2    2    1    1    2    2    1
-11 : 1    2    2    1    1    2    2    1
-12 : 1    2    2    2    2    2    2    1
-13 : 1    2    2    2    2    2    2    1
-14 : 1    2    2    2    2    2    2    1
-15 : 1    2    2    2    2    2    2    1
-16 : 1    2    2    2    2    2    2    1
-17 : 1    2    2    2    2    2    2    1
-18 : 1    2    2    2    2    2    2    1
-19 : 1    2    2    2    2    2    2    1
-20 : 1    2    2    2    2    2    2    1
-21 : 1    2    2    2    2    2    2    1
-22 : 1    2    2    2    2    2    2    1
-23 : 1    2    2    2    2    2    2    1
-24 : 2    2    2    2    2    2    2    2
-25 : 2    2    2    2    2    2    2    2
-26 : 2    2    2    2    2    2    2    2
-27 : 2    2    2    2    2    2    2    2
-28 : 2    2    2    2    2    2    2    2
-29 : 2    2    2    2    2    2    2    2
-30 : 2    2    2    2    2    2    2    2
-31 : 2    2    2    2    2    2    2    2
-32 : 2    2    2    2    2    2    2    2
-33 : 2    2    2    2    2    2    2    2
-34 : 2    2    2    2    2    2    2    2
-35 : 2    2    2    2    2    2    2    2
-Source to make above table (made up to 40,but over 35 is 3 limbs)
+15 : 1    1    1    1    1    1    1    1
+16 : 1    2    2    1    1    1    1    1
+23 : 1    2    2    1    1    1    1    1
+24 : 1    2    2    2    2    1    1    1
+31 : 1    2    2    2    2    1    1    1
+32 : 1    2    2    2    2    2    2    1
+47 : 1    2    2    2    2    2    2    1
+48 : 2    2    2    2    2    2    2    2
+79 : 2    2    2    2    2    2    2    2
+Source to make above table (made up to 90,but over 79 is 3 limbs)
 #include <stdio.h>
-int c=32, s=16;
-_inline int S(int sz) {
-   if (sz<=55) return 1;
-   else if (sz <= 55+64) return 2;
+int c=64, s=16;
+int S(int sz) {
+   if (sz<=111) return 1;
+   else if (sz <= 111+128) return 2;
    else return 3;
 }
 void proc(int p) {
@@ -74,20 +54,20 @@ void main(int argc, char **argv) {
    int i;
    if (argc==2) s=atoi(argv[1]);
    printf("Len: cp   pspc cspp ppc  cpp  psc  csp  pc   (saltlen=%d)\n",s);
-   for (i = 0; i < 40; ++i)
+   for (i = 0; i < 90; ++i)
      proc(i);
 }
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_cryptsha256;
+extern struct fmt_main fmt_cryptsha512;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_cryptsha256);
+john_register_one(&fmt_cryptsha512);
 #else
 
 #include "arch.h"
 
-//#undef SIMD_COEF_32
+//#undef SIMD_COEF_64
 
 #include "sha2.h"
 
@@ -102,7 +82,7 @@ john_register_one(&fmt_cryptsha256);
 
 #ifdef _OPENMP
 #ifndef OMP_SCALE
-#define OMP_SCALE			8
+#define OMP_SCALE			16
 #endif
 #include <omp.h>
 #endif
@@ -121,52 +101,60 @@ john_register_one(&fmt_cryptsha256);
 // them in groups that all 'fit' together, and do so until we exhaust all from a given length
 // range, then do all in the next range.  Thus, until we get to the last set within a length
 // range, we are doing a fully packed SSE run, and having a LOT less wasted space. This will
-// get even more interesting, when we start doing OMP, but it should just be the same principle,
+// get even more interesting, when we start doing OMP, but it should just be the same principal,
 // preload more passwords, and group them, then run the OMP threads over a single length, then
 // go to the next length, until done, trying to keep each thread running, and keeping each block
 // of SSE data full, until the last in a range.  We probably can simply build all the rearrangments,
 // then let the threads go on ALL data, without caring about the length, since each thread will only
 // be working on passwords in a single MMX buffer that all match, at any given moment.
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 #ifdef _OPENMP
-#define SIMD_COEF_SCALE     (128/SIMD_COEF_32)
+#define SIMD_COEF_SCALE     (32/SIMD_COEF_64)
 #else
-#define SIMD_COEF_SCALE     (256/SIMD_COEF_32)
+#define SIMD_COEF_SCALE     (64/SIMD_COEF_64)
 #endif
 #else
 #define SIMD_COEF_SCALE     1
 #endif
 
-#define FORMAT_LABEL			"sha256crypt"
+#define FORMAT_LABEL			"sha512crypt"
 
-#ifdef SIMD_COEF_32
-#define ALGORITHM_NAME          SHA256_ALGORITHM_NAME
+#ifdef SIMD_COEF_64
+#define ALGORITHM_NAME          SHA512_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME          "32/" ARCH_BITS_STR " " SHA2_LIB
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME         "64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME         "32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 #endif
 
-// 35 character input is MAX password that fits into 2 SHA256 blocks
-// 35 character input creates a 118 byte buffer, plus 1 for 0x80 and
-// 1 unused byte and 8 byte bit length.  That is max for a 2 block crypt
-#define PLAINTEXT_LENGTH		35
+// 79 is max length we can do in 2 SIMD limbs, so just make it 79 always.
+#define PLAINTEXT_LENGTH		79
 
-#define SALT_SIZE				sizeof(struct saltstruct)
+#define BINARY_ALIGN			4
+#define SALT_SIZE			sizeof(struct saltstruct)
+#define SALT_ALIGN			4
 
-#ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_32*SIMD_PARA_SHA256)
-#define MAX_KEYS_PER_CRYPT		(SIMD_COEF_32*SIMD_PARA_SHA256)
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
 #if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
 #else
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
 #endif
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-#define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
-#include "cryptsha256_common.h"
+// these MUST be defined prior to loading cryptsha512_valid.h
+#define BINARY_SIZE			64
+#define SALT_LENGTH			16
+#define CIPHERTEXT_LENGTH		86
+#define __CRYPTSHA512_CREATE_PROPER_TESTS_ARRAY__
+#include "sha512crypt_common.h"
 
 #define BLKS MAX_KEYS_PER_CRYPT
 
@@ -179,7 +167,7 @@ john_register_one(&fmt_cryptsha256);
 /* buffer layouts listed, but they fall into a pattern that is 42 long (2*3*7)    */
 /* this structure encapsulates this.  we build this buffer, after computing the   */
 /* s hash, the p hash, and the starting c values.  Then, within the inner loop,   */
-/* we simply spin through this structure, calling the SHA256 code to do the work. */
+/* we simply spin through this structure, calling the SHA512 code to do the work. */
 /* NOTE, most of the time, there will be 1 block and 2 block crypts.  As the      */
 /* the password length grows, the more 2 block crypts there are, thus slower      */
 /**/
@@ -191,14 +179,14 @@ john_register_one(&fmt_cryptsha256);
 /* index needed will be known in the crypt_all. This means we need something      */
 /* similar to out GET_POS macros, but also for oSSL formats.                      */
 /* To do this, we have to use the JtR sha2.c functions, since there is this func: */
-/* sha256_hash_block(&CTX, data, int perform_endian_swap).  So if we set the last */
+/* sha512_hash_block(&CTX, data, int perform_endian_swap).  So if we set the last */
 /* param to 0, we can call this function, and it will avoid the byte swapping     */
 typedef struct cryptloopstruct_t {
-	unsigned char buf[8*2*64*BLKS];	// will allocate to hold 42 2 block buffers (42 * 2 * 64)  Reduced to only requiring 8*2*64
+	unsigned char buf[8*2*128*BLKS];	// will allocate to hold 42 2 block buffers (42 * 2 * 128)  Reduced to only requiring 8*2*128
 								// now, the cryptstructs are on the stack within the crypt for loop, so we avoid allocation.
 								// and to avoid the single static variable, or a static array.
 	unsigned char *bufs[BLKS][42];	// points to the start of each 2 block buffer.
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	int offs[BLKS][42];
 #endif
 	unsigned char *cptr[BLKS][42];	// points to where we copy the crypt pointer for next round.
@@ -207,18 +195,18 @@ typedef struct cryptloopstruct_t {
 								// NOTE, datlen could be changed to a number, and then we could do > 2 block crypts. Would take a little
 								// more memory (and longer PW's certainly DO take more time), but it should work fine. It may be an issue
 								// especially when doing OMP, that the memory footprint of this 'hot' inner loop simply gets too big, and
-								// things slow down. For now, we are limiting ourselves to 35 byte password, which fits into 2 SHA256 buffers
+								// things slow down. For now, we are limiting ourselves to 35 byte password, which fits into 2 SHA512 buffers
 } cryptloopstruct;
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
-/* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA256_Init() calls, in the inner loop */
-static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
-#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_32)
-static const uint32_t ctx_init[8] =
-	{0x6A09E667,0xBB67AE85,0x3C6EF372,0xA54FF53A,0x510E527F,0x9B05688C,0x1F83D9AB,0x5BE0CD19};
+/* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA512_Init() calls, in the inner loop */
+static const unsigned char padding[256] = { 0x80, 0 /* 0,0,0,0.... */ };
+#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_64)
+static const uint64_t ctx_init[8] =
+	{0x6A09E667F3BCC908ULL,0xBB67AE8584CAA73BULL,0x3C6EF372FE94F82BULL,0xA54FF53A5F1D36F1ULL,0x510E527FADE682D1ULL,0x9B05688C2B3E6C1FULL,0x1F83D9ABFB41BD6BULL,0x5BE0CD19137E2179ULL};
 #endif
 
 static struct saltstruct {
@@ -279,17 +267,17 @@ pc
 */
 static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, char *p_bytes, char *s_bytes) {
 	unsigned len_pc, len_ppsc, len_ppc, len_psc; // length of 'data'
-	unsigned tot_pc, tot_ppsc, tot_ppc, tot_psc; // length of entire block to crypt (64 or 128)
+	unsigned tot_pc, tot_ppsc, tot_ppc, tot_psc; // length of entire block to crypt (128 or 256)
 	unsigned off_pc, off_pspc, off_ppc, off_psc; // offset to the crypt ptr for these 4 'types'.
-	unsigned dlen_pc, dlen_ppsc, dlen_ppc, dlen_psc; // is this 1 or 2 block (or actual len for CommonCrypto, since it uses SHA256_Final()
+	unsigned dlen_pc, dlen_ppsc, dlen_ppc, dlen_psc; // is this 1 or 2 block (or actual len for CommonCrypto, since it uses SHA512_Final()
 	unsigned plen=saved_len[index];
 	unsigned char *cp = crypt_struct->buf;
 	cryptloopstruct *pstr = crypt_struct;
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	// in SSE mode, we FORCE every buffer to be 2 blocks, even if it COULD fit into 1.
 	// Then we simply use the 2 block SSE code.
 	unsigned char *next_cp;
-	cp += idx*2*64;
+	cp += idx*2*128;
 #endif
 
 	len_pc   = plen + BINARY_SIZE;
@@ -298,19 +286,19 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	len_psc  = plen + cur_salt->len + BINARY_SIZE;
 
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
-	if (len_pc  <=55) tot_pc  =64; else tot_pc  =128;
-	if (len_ppsc<=55) tot_ppsc=64; else tot_ppsc=128;
-	if (len_ppc <=55) tot_ppc =64; else tot_ppc =128;
-	if (len_psc <=55) tot_psc =64; else tot_psc =128;
+	if (len_pc  <=111) tot_pc  =128; else tot_pc  =256;
+	if (len_ppsc<=111) tot_ppsc=128; else tot_ppsc=256;
+	if (len_ppc <=111) tot_ppc =128; else tot_ppc =256;
+	if (len_psc <=111) tot_psc =128; else tot_psc =256;
 	dlen_pc  =len_pc;
 	dlen_ppsc=len_ppsc;
 	dlen_ppc =len_ppc;
 	dlen_psc =len_psc;
 #else
-	if (len_pc  <=55) {tot_pc  =64; dlen_pc  =64;}else{tot_pc  =128; dlen_pc  =128; }
-	if (len_ppsc<=55) {tot_ppsc=64; dlen_ppsc=64;}else{tot_ppsc=128; dlen_ppsc=128; }
-	if (len_ppc <=55) {tot_ppc =64; dlen_ppc =64;}else{tot_ppc =128; dlen_ppc =128; }
-	if (len_psc <=55) {tot_psc =64; dlen_psc =64;}else{tot_psc =128; dlen_psc =128; }
+	if (len_pc  <=111) {tot_pc  =128; dlen_pc  =128;}else{tot_pc  =256; dlen_pc  =256; }
+	if (len_ppsc<=111) {tot_ppsc=128; dlen_ppsc=128;}else{tot_ppsc=256; dlen_ppsc=256; }
+	if (len_ppc <=111) {tot_ppc =128; dlen_ppc =128;}else{tot_ppc =256; dlen_ppc =256; }
+	if (len_psc <=111) {tot_psc =128; dlen_psc =128;}else{tot_psc =256; dlen_psc =256; }
 #endif
 	off_pc   = len_pc   - BINARY_SIZE;
 	off_pspc = len_ppsc - BINARY_SIZE;
@@ -318,8 +306,8 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	off_psc  = len_psc  - BINARY_SIZE;
 
 	// Adjust cp for idx;
-#ifdef SIMD_COEF_32
-	next_cp = cp + (2*64*BLKS);
+#ifdef SIMD_COEF_64
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[0] is a cp  (First of this type)
@@ -332,9 +320,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][0][tot_pc-2] = (len_pc<<3)>>8;
 	pstr->bufs[idx][0][tot_pc-1] = (len_pc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[1] is a pspc  (First of this type)
@@ -348,9 +336,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][1][tot_ppsc-2] = (len_ppsc<<3)>>8;
 	pstr->bufs[idx][1][tot_ppsc-1] = (len_ppsc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[2] is a cspp  (First of this type)
@@ -364,9 +352,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][2][tot_ppsc-2] = (len_ppsc<<3)>>8;
 	pstr->bufs[idx][2][tot_ppsc-1] = (len_ppsc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[3] is a ppc  (First of this type)
@@ -379,9 +367,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][3][tot_ppc-2] = (len_ppc<<3)>>8;
 	pstr->bufs[idx][3][tot_ppc-1] = (len_ppc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[4] is a cspp  (from 2)
@@ -402,9 +390,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][6][tot_ppc-2] = (len_ppc<<3)>>8;
 	pstr->bufs[idx][6][tot_ppc-1] = (len_ppc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[07] psc  (First of this type)
@@ -417,9 +405,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][7][tot_psc-2] = (len_psc<<3)>>8;
 	pstr->bufs[idx][7][tot_psc-1] = (len_psc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[08] cspp  (from 2)
@@ -456,9 +444,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][14][tot_psc-2] = (len_psc<<3)>>8;
 	pstr->bufs[idx][14][tot_psc-1] = (len_psc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[15] ppc   (from 3)
@@ -494,9 +482,9 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	pstr->bufs[idx][21][tot_pc-2] = (len_pc<<3)>>8;
 	pstr->bufs[idx][21][tot_pc-1] = (len_pc<<3)&0xFF;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	cp = next_cp;
-	next_cp = cp + (2*64*BLKS);
+	next_cp = cp + (2*128*BLKS);
 #endif
 
 	// pstr->buf[22] cspp  (from 2)
@@ -586,28 +574,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 	int *MixOrder, tot_todo;
 
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 	// group based upon size splits.
 	MixOrder = mem_calloc((count+6*MAX_KEYS_PER_CRYPT), sizeof(int));
 	{
 		static const int lens[17][6] = {
-			{0,12,24,38,39,40},  //  0 byte salt (down to 2 slots now, but probably NOT valid.)
-			{0,12,23,24,39,40},  //  1 byte salt (down to 3 slots now)
-			{0,11,12,22,24,39},  //  2 byte salt
-			{0,11,12,21,24,39},  //  3 byte salt
-			{0,10,12,20,24,39},  //  4 byte salt
-			{0,10,12,19,24,39},  //  5 byte salt
-			{0, 9,12,18,24,39},  //  6 byte salt
-			{0, 9,12,17,24,39},  //  7 byte salt
-			{0, 8,12,16,24,39},  //  8 byte salt
-			{0, 8,12,15,24,39},  //  9 byte salt
-			{0, 7,12,14,24,39},  // 10 byte salt
-			{0, 7,12,13,24,39},  // 11 byte salt
-			{0, 6,12,24,38,39},  // 12 byte salt (down to 4 slots now)
-			{0, 6,11,12,24,38},  // 13 byte salt
-			{0, 5,10,12,24,37},  // 14 byte salt
-			{0, 5, 9,12,24,37},  // 15 byte salt
-			{0, 4, 8,12,24,36} };
+			{0,24,48,88,89,90},  //  0 byte salt
+			{0,24,48,88,89,90},  //  1 byte salt
+			{0,23,24,46,48,87},  //  2 byte salt
+			{0,23,24,45,48,87},  //  3 byte salt
+			{0,22,24,44,48,86},  //  4 byte salt
+			{0,22,24,43,48,86},  //  5 byte salt
+			{0,21,24,42,48,85},  //  6 byte salt
+			{0,21,24,41,48,85},  //  7 byte salt
+			{0,20,24,40,48,84},  //  8 byte salt
+			{0,20,24,39,48,84},  //  9 byte salt
+			{0,19,24,38,48,83},  // 10 byte salt
+			{0,19,24,37,48,83},  // 11 byte salt
+			{0,18,24,36,48,82},  // 12 byte salt
+			{0,18,24,35,48,82},  // 13 byte salt
+			{0,17,24,34,48,81},  // 14 byte salt
+			{0,17,24,33,48,81},  // 15 byte salt
+			{0,16,24,32,48,80} };
 		int j;
 		tot_todo = 0;
 		saved_len[count] = 0; // point all 'tail' MMX buffer elements to this location.
@@ -639,8 +627,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			ARCH_WORD a[BINARY_SIZE/sizeof(ARCH_WORD)];
 		} u;
 		unsigned char *temp_result = u.c;
-		SHA256_CTX ctx;
-		SHA256_CTX alt_ctx;
+		SHA512_CTX ctx;
+		SHA512_CTX alt_ctx;
 		size_t cnt;
 		int idx;
 		char *cp;
@@ -648,68 +636,68 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		char s_bytes[PLAINTEXT_LENGTH+1];
 		char tmp_cls[sizeof(cryptloopstruct)+MEM_ALIGN_SIMD];
 		cryptloopstruct *crypt_struct;
-#ifdef SIMD_COEF_32
-		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*4+MEM_ALIGN_SIMD];
-		uint32_t *sse_out;
-		sse_out = (uint32_t *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
+#ifdef SIMD_COEF_64
+		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*8+MEM_ALIGN_SIMD];
+		uint64_t *sse_out;
+		sse_out = (uint64_t *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
 		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,MEM_ALIGN_SIMD);
 
 		for (idx = 0; idx < MAX_KEYS_PER_CRYPT; ++idx)
 		{
 			/* Prepare for the real work.  */
-			SHA256_Init(&ctx);
+			SHA512_Init(&ctx);
 
 			/* Add the key string.  */
-			SHA256_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
+			SHA512_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* The last part is the salt string.  This must be at most 16
 			   characters and it ends at the first `$' character (for
 			   compatibility with existing implementations).  */
-			SHA256_Update(&ctx, cur_salt->salt, cur_salt->len);
+			SHA512_Update(&ctx, cur_salt->salt, cur_salt->len);
 
-			/* Compute alternate SHA256 sum with input KEY, SALT, and KEY.  The
+			/* Compute alternate SHA512 sum with input KEY, SALT, and KEY.  The
 			   final result will be added to the first context.  */
-			SHA256_Init(&alt_ctx);
+			SHA512_Init(&alt_ctx);
 
 			/* Add key.  */
-			SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
+			SHA512_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* Add salt.  */
-			SHA256_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
+			SHA512_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
 
 			/* Add key again.  */
-			SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
+			SHA512_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
-			/* Now get result of this (32 bytes) and add it to the other
+			/* Now get result of this (64 bytes) and add it to the other
 			   context.  */
-			SHA256_Final((unsigned char*)crypt_out[MixOrder[index+idx]], &alt_ctx);
+			SHA512_Final((unsigned char*)crypt_out[MixOrder[index+idx]], &alt_ctx);
 
 			/* Add for any character in the key one byte of the alternate sum.  */
 			for (cnt = saved_len[MixOrder[index+idx]]; cnt > BINARY_SIZE; cnt -= BINARY_SIZE)
-				SHA256_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], BINARY_SIZE);
-			SHA256_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], cnt);
+				SHA512_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], BINARY_SIZE);
+			SHA512_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], cnt);
 
 			/* Take the binary representation of the length of the key and for every
 			   1 add the alternate sum, for every 0 the key.  */
 			for (cnt = saved_len[MixOrder[index+idx]]; cnt > 0; cnt >>= 1)
 				if ((cnt & 1) != 0)
-					SHA256_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], BINARY_SIZE);
+					SHA512_Update(&ctx, (unsigned char*)crypt_out[MixOrder[index+idx]], BINARY_SIZE);
 				else
-					SHA256_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
+					SHA512_Update(&ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* Create intermediate result.  */
-			SHA256_Final((unsigned char*)crypt_out[MixOrder[index+idx]], &ctx);
+			SHA512_Final((unsigned char*)crypt_out[MixOrder[index+idx]], &ctx);
 
 			/* Start computation of P byte sequence.  */
-			SHA256_Init(&alt_ctx);
+			SHA512_Init(&alt_ctx);
 
 			/* For every character in the password add the entire password.  */
 			for (cnt = 0; cnt < saved_len[MixOrder[index+idx]]; ++cnt)
-				SHA256_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
+				SHA512_Update(&alt_ctx, (unsigned char*)saved_key[MixOrder[index+idx]], saved_len[MixOrder[index+idx]]);
 
 			/* Finish the digest.  */
-			SHA256_Final(temp_result, &alt_ctx);
+			SHA512_Final(temp_result, &alt_ctx);
 
 			/* Create byte sequence P.  */
 			cp = p_bytes;
@@ -718,15 +706,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy (cp, temp_result, cnt);
 
 			/* Start computation of S byte sequence.  */
-			SHA256_Init(&alt_ctx);
+			SHA512_Init(&alt_ctx);
 
 			/* repeat the following 16+A[0] times, where A[0] represents the
 			   first byte in digest A interpreted as an 8-bit unsigned value */
 			for (cnt = 0; cnt < 16 + ((unsigned char*)crypt_out[MixOrder[index+idx]])[0]; ++cnt)
-				SHA256_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
+				SHA512_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
 
 			/* Finish the digest.  */
-			SHA256_Final(temp_result, &alt_ctx);
+			SHA512_Final(temp_result, &alt_ctx);
 
 			/* Create byte sequence S.  */
 			cp = s_bytes;
@@ -734,41 +722,40 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cp = (char *) memcpy (cp, temp_result, BINARY_SIZE) + BINARY_SIZE;
 			memcpy (cp, temp_result, cnt);
 
-			/* Repeatedly run the collected hash value through SHA256 to
+			/* Repeatedly run the collected hash value through SHA512 to
 			   burn CPU cycles.  */
 			LoadCryptStruct(crypt_struct, MixOrder[index+idx], idx, p_bytes, s_bytes);
 		}
 
 		idx = 0;
-#ifdef SIMD_COEF_32
+#ifdef SIMD_COEF_64
 		for (cnt = 1; ; ++cnt) {
-			if (crypt_struct->datlen[idx]==128) {
+			if (crypt_struct->datlen[idx]==256) {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
-				SIMDSHA256body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
-				SIMDSHA256body(&cp[64], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
+				SIMDSHA512body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
+				SIMDSHA512body(&cp[128], sse_out, sse_out, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK|SSEi_RELOAD);
 			} else {
 				unsigned char *cp = crypt_struct->bufs[0][idx];
-				SIMDSHA256body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
+				SIMDSHA512body(cp, sse_out, NULL, SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK);
 			}
 			if (cnt == cur_salt->rounds)
 				break;
 			{
-				unsigned int j, k;
+				int j, k;
 				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
-					uint32_t *o = (uint32_t *)crypt_struct->cptr[k][idx];
+					uint64_t *o = (uint64_t *)crypt_struct->cptr[k][idx];
 #if !ARCH_ALLOWS_UNALIGNED
-					if (!is_aligned(o, 4)) {
+					if (!is_aligned(o, 8)) {
 						unsigned char *cp = (unsigned char*)o;
-						for (j = 0; j < 32; ++j)
+						for (j = 0; j < 64; ++j)
 							*cp++ = ((unsigned char*)sse_out)[GETPOS(j, k)];
 					} else
 #endif
-
 					for (j = 0; j < 8; ++j)
 #if ARCH_LITTLE_ENDIAN==1
-						*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+(k&(SIMD_COEF_32-1))+k/SIMD_COEF_32*8*SIMD_COEF_32]);
+						*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
 #else
-						*o++ = sse_out[(j*SIMD_COEF_32)+(k&(SIMD_COEF_32-1))+k/SIMD_COEF_32*8*SIMD_COEF_32];
+						*o++ = sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64];
 #endif
 				}
 			}
@@ -776,34 +763,34 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				idx = 0;
 		}
 		{
-			unsigned int j, k;
+			int j, k;
 			for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
-				uint32_t *o = (uint32_t *)crypt_out[MixOrder[index+k]];
+				uint64_t *o = (uint64_t *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
 #if ARCH_LITTLE_ENDIAN==1
-					*o++ = JOHNSWAP(sse_out[(j*SIMD_COEF_32)+(k&(SIMD_COEF_32-1))+k/SIMD_COEF_32*8*SIMD_COEF_32]);
+					*o++ = JOHNSWAP64(sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64]);
 #else
-					*o++ = sse_out[(j*SIMD_COEF_32)+(k&(SIMD_COEF_32-1))+k/SIMD_COEF_32*8*SIMD_COEF_32];
+					*o++ = sse_out[j*SIMD_COEF_64+(k&(SIMD_COEF_64-1))+k/SIMD_COEF_64*8*SIMD_COEF_64];
 #endif
 			}
 		}
 #else
-		SHA256_Init(&ctx);
+		SHA512_Init(&ctx);
 		for (cnt = 1; ; ++cnt) {
-			// calling with 64 byte, or 128 byte always, will force the update to properly crypt the data.
+			// calling with 128 byte, or 256 byte always, will force the update to properly crypt the data.
 			// NOTE the data is fully formed. It ends in a 0x80, is padded with nulls, AND has bit appended.
-			SHA256_Update(&ctx, crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
+			SHA512_Update(&ctx, crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
 			if (cnt == cur_salt->rounds)
 				break;
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
-			SHA256_Final(crypt_struct->cptr[0][idx], &ctx);
+			SHA512_Final(crypt_struct->cptr[0][idx], &ctx);
 #else // !defined JTR_INC_COMMON_CRYPTO_SHA2, so it is oSSL, or generic
 #if ARCH_LITTLE_ENDIAN
 			{
 				int j;
-				uint32_t *o = (uint32_t *)crypt_struct->cptr[0][idx];
+				uint64_t *o = (uint64_t *)crypt_struct->cptr[0][idx];
 				for (j = 0; j < 8; ++j)
-					*o++ = JOHNSWAP(ctx.h[j]);
+					*o++ = JOHNSWAP64(ctx.h[j]);
 			}
 #else
 			memcpy(crypt_struct->cptr[0][idx], ctx.h, BINARY_SIZE);
@@ -813,21 +800,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				idx = 0;
 
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
-			SHA256_Init(&ctx);
+			SHA512_Init(&ctx);
 #else
-			// this memcpy is 'good enough', used instead of SHA256_Init()
+			// this memcpy is 'good enough', used instead of SHA512_Init()
 			memcpy(ctx.h, ctx_init, sizeof(ctx_init));
 #endif
 		}
 #ifdef JTR_INC_COMMON_CRYPTO_SHA2
-		SHA256_Final((unsigned char*)crypt_out[MixOrder[index]], &ctx);
+		SHA512_Final((unsigned char*)crypt_out[MixOrder[index]], &ctx);
 #else
 #if ARCH_LITTLE_ENDIAN
 		{
 			int j;
-			uint32_t *o = (uint32_t *)crypt_out[MixOrder[index]];
+			uint64_t *o = (uint64_t *)crypt_out[MixOrder[index]];
 			for (j = 0; j < 8; ++j)
-				*o++ = JOHNSWAP(ctx.h[j]);
+				*o++ = JOHNSWAP64(ctx.h[j]);
 		}
 #else
 		memcpy(crypt_out[MixOrder[index]], ctx.h, BINARY_SIZE);
@@ -897,12 +884,12 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static unsigned int iteration_count(void *salt)
+static unsigned int sha512crypt_iterations(void *salt)
 {
-	struct saltstruct *sha256crypt_salt;
+	struct saltstruct *sha512crypt_salt;
 
-	sha256crypt_salt = salt;
-	return (unsigned int)sha256crypt_salt->rounds;
+	sha512crypt_salt = salt;
+	return (unsigned int)sha512crypt_salt->rounds;
 }
 
 // Public domain hash function by DJ Bernstein
@@ -919,11 +906,11 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_cryptsha256 = {
+struct fmt_main fmt_cryptsha512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		"SHA256 " ALGORITHM_NAME,
+		"SHA512 " ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
@@ -950,7 +937,7 @@ struct fmt_main fmt_cryptsha256 = {
 		get_binary,
 		get_salt,
 		{
-			iteration_count,
+			sha512crypt_iterations,
 		},
 		fmt_default_source,
 		{

@@ -13,4 +13,3 @@
 #define smd5_salt_prefix_len (sizeof(smd5_salt_prefix)-1)
 
 int cryptmd5_common_valid(char *ciphertext, struct fmt_main *self);
-

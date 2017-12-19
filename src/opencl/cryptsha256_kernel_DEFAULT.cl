@@ -11,7 +11,7 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#include "opencl_cryptsha256.h"
+#include "opencl_sha256crypt.h"
 
 #if __CPU__
     #define UNROLL

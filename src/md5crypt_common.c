@@ -7,7 +7,7 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "cryptmd5_common.h"
+#include "md5crypt_common.h"
 #include "memdbg.h"
 
 int cryptmd5_common_valid(char *ciphertext, struct fmt_main *self)

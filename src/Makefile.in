@@ -73,7 +73,7 @@ JOHN_OBJS = \
 	jumbo.o john-mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
-	MD5_fmt.o MD5_std.o cryptmd5_common.o \
+	MD5_fmt.o MD5_std.o md5crypt_common.o \
 	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
 	escrypt/crypto_scrypt-best.o escrypt/crypto_scrypt-common.o \
@@ -295,7 +295,7 @@ cracker.o:	cracker.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h param
 
 crc32.o:	crc32.c memory.h arch.h crc32.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h
 
-cryptmd5_common.o:	cryptmd5_common.c arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h cryptmd5_common.h memdbg.h os.h os-autoconf.h
+md5crypt_common.o:	md5crypt_common.c arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h md5crypt_common.h memdbg.h os.h os-autoconf.h
 
 DES_bs.o:	DES_bs.c arch.h common.h memory.h DES_std.h DES_bs.h loader.h params.h list.h formats.h misc.h jumbo.h autoconfig.h unicode.h options.h getopt.h memdbg.h os.h os-autoconf.h
 
@@ -391,7 +391,7 @@ md4.o:	md4.c md4.h arch.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h memor
 
 md5.o:	md5.c md5.h arch.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h memory.h
 
-MD5_fmt.o:	MD5_fmt.c arch.h misc.h jumbo.h autoconfig.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h MD5_std.h formats.h params.h cryptmd5_common.h memdbg.h os.h os-autoconf.h
+MD5_fmt.o:	MD5_fmt.c arch.h misc.h jumbo.h autoconfig.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h MD5_std.h formats.h params.h md5crypt_common.h memdbg.h os.h os-autoconf.h
 
 MD5_std.o:	MD5_std.c arch.h common.h memory.h MD5_std.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h
 

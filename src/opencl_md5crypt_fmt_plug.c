@@ -22,7 +22,7 @@ john_register_one(&fmt_opencl_cryptMD5);
 #include "config.h"
 #include "common-opencl.h"
 #include "options.h"
-#include "cryptmd5_common.h"
+#include "md5crypt_common.h"
 
 #define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 

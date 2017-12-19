@@ -25,9 +25,9 @@ john_register_one(&fmt_opencl_cryptsha512);
 #include "common-opencl.h"
 #include "config.h"
 #include "options.h"
-#include "opencl_cryptsha512.h"
+#include "opencl_sha512crypt.h"
 #define __CRYPTSHA512_CREATE_PROPER_TESTS_ARRAY__
-#include "cryptsha512_common.h"
+#include "sha512crypt_common.h"
 
 #define FORMAT_LABEL            "sha512crypt-opencl"
 #define ALGORITHM_NAME          "SHA512 OpenCL"

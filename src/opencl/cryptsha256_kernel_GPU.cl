@@ -11,7 +11,7 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#include "opencl_cryptsha256.h"
+#include "opencl_sha256crypt.h"
 
 #if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729)
     #define VECTOR_USAGE    1

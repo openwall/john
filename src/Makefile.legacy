@@ -106,7 +106,7 @@ JOHN_OBJS = \
 	jumbo.o john-mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
-	MD5_fmt.o MD5_std.o cryptmd5_common.o \
+	MD5_fmt.o MD5_std.o md5crypt_common.o \
 	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
 	escrypt/crypto_scrypt-best.o escrypt/crypto_scrypt-common.o \
@@ -163,7 +163,7 @@ BENCH_DES_BS_OBJS_DEPEND = \
 	DES_bs_b.o
 
 BENCH_MD5_OBJS_DEPEND = \
-	MD5_fmt.o MD5_std.o cryptmd5_common.o
+	MD5_fmt.o MD5_std.o md5crypt_common.o
 
 BENCH_BF_OBJS_DEPEND = \
 	BF_fmt.o BF_std.o BF_common.o
