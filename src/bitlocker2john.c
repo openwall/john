@@ -98,16 +98,16 @@ int process_encrypted_image(char *image_path)
 		}
 		if (i == 8) {
 			match = 1;
-			fprintf(stderr, "\nSignature found at 0x%08lx\n", (ftell(fp) - i - 1));
+			printf("\nSignature found at 0x%08lx\n", (ftell(fp) - i - 1));
 			fseek(fp, 1, SEEK_CUR);
 			version = fgetc(fp);
-			fprintf(stderr, "Version: %d ", version);
+			printf("Version: %d ", version);
 			if (version == 1)
-				fprintf(stderr, "(Windows Vista)\n");
+				printf("(Windows Vista)\n");
 			else if (version == 2)
-				fprintf(stderr, "(Windows 7 or later)\n");
+				printf("(Windows 7 or later)\n");
 			else {
-				fprintf(stderr, "\nInvalid version, looking for a signature with valid version...\n");
+				printf("\nInvalid version, looking for a signature with valid version...\n");
 				match = 0;
 			}
 		}
@@ -122,19 +122,19 @@ int process_encrypted_image(char *image_path)
 		}
 
 		if (i == 4) {
-			fprintf(stderr, "\nVMK entry found at 0x%08lx\n", (ftell(fp) - i - 3));
+			printf("\nVMK entry found at 0x%08lx\n", (ftell(fp) - i - 3));
 			fseek(fp, 27, SEEK_CUR);
 			c = (unsigned char)fgetc(fp);
 			d = (unsigned char)fgetc(fp);
 
 			if ((c == key_protection_clear[0]) && (d == key_protection_clear[1]))
-				fprintf(stderr, "VMK not encrypted.. stored clear!\n");
+				printf("VMK not encrypted.. stored clear!\n");
 			else if ((c == key_protection_tpm[0]) && (d == key_protection_tpm[1]))
-				fprintf(stderr, "VMK encrypted with TPM...not supported!\n");
+				printf("VMK encrypted with TPM...not supported!\n");
 			else if ((c == key_protection_start_key[0]) && (d == key_protection_start_key[1]))
-				fprintf(stderr, "VMK encrypted with Startup Key...not supported!\n");
+				printf("VMK encrypted with Startup Key...not supported!\n");
 			else if ((c == key_protection_recovery[0]) && (d == key_protection_recovery[1])) {
-				fprintf(stderr, "VMK encrypted with Recovery key found!\n");
+				printf("VMK encrypted with Recovery key found!\n");
 				fseek(fp, 12, SEEK_CUR);
 				fill_buffer(fp, r_salt, SALT_SIZE);
 				fseek(fp, 147, SEEK_CUR);
@@ -146,7 +146,7 @@ int process_encrypted_image(char *image_path)
 					i = 0;
 					continue;
 				} else
-					fprintf(stderr, "VMK encrypted with AES-CCM\n");
+					printf("VMK encrypted with AES-CCM\n");
 
 				fseek(fp, 3, SEEK_CUR);
 				fill_buffer(fp, r_nonce, NONCE_SIZE);
@@ -155,7 +155,7 @@ int process_encrypted_image(char *image_path)
 				recovery_found = 1;
 			}
 			else if ((c == key_protection_password[0]) && (d == key_protection_password[1]) && vmk_found == 0) {
-				fprintf(stderr, "VMK encrypted with user password found!\n");
+				printf("VMK encrypted with user password found!\n");
 				fseek(fp, 12, SEEK_CUR);
 				fill_buffer(fp, p_salt, SALT_SIZE);
 				fseek(fp, 83, SEEK_CUR);
@@ -165,7 +165,7 @@ int process_encrypted_image(char *image_path)
 					i = 0;
 					continue;
 				}
-				else fprintf(stderr, "VMK encrypted with AES-CCM\n");
+				else printf("VMK encrypted with AES-CCM\n");
 
 				fseek(fp, 3, SEEK_CUR);
 				fill_buffer(fp, p_nonce, NONCE_SIZE);

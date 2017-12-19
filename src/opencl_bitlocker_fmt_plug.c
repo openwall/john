@@ -415,6 +415,12 @@ static void set_salt(void * cipher_salt_input)
 {
 	cur_salt = (bitlocker_custom_salt *) cipher_salt_input;
 
+	if(cur_salt->iterations > BITLOCKER_ITERATION_NUMBER)
+	{
+		error_msg("Input iterations (%d) greter than max iterations (%d)\n", cur_salt->iterations, BITLOCKER_ITERATION_NUMBER);
+		exit(-1);
+	}
+
 	w_block_precomputed(cur_salt->salt);
 	if (!h_wblocks) {
 		error_msg("Error... Exit\n");
