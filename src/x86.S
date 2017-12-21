@@ -1294,9 +1294,12 @@ BF_body:
  * CPU detection.
  */
 
+#define EF_ID				$0x00200000
+
+/* Leaf 7 */
 #define C7_AVX2				$0x00000020 /* AVX2 */
-#define C7_AVX512F			$0x00010000
-#define C7_AVX512BW			$0x40010000 /* AVX512BW + AVX512F */
+#define C7_AVX512F			$0x00010000 /* AVX512F */
+#define C7_AVX512BW			$0x40010000 /* + AVX512BW */
 
 #define EF_ID				$0x00200000
 
@@ -1382,6 +1385,7 @@ CPU_detect_fail:
 	jmp CPU_detect_ret
 #endif
 CPU_detect_cont:
+#endif
 	movl $1,%eax
 	cpuid
 #if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
