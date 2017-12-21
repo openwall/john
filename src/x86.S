@@ -1294,16 +1294,20 @@ BF_body:
  * CPU detection.
  */
 
-#define C7_AVX2				$0x00000020 /* AVX2 */
-#define C7_AVX512F			$0x00010000
-#define C7_AVX512BW			$0x40010000 /* AVX512BW + AVX512F */
-
 #define EF_ID				$0x00200000
+
+/* Leaf 7 */
+#define C7_AVX2				$0x00000020 /* AVX2 */
+#define C7_AVX512F			$0x00010000 /* AVX512F */
+#define C7_AVX512BW			$0x40010000 /* + AVX512BW */
+
+/* Leaf 1 */
 #define CF_MMX				$0x00800000
-#define CF_SSE2				$0x04000000
+#define CF_SSE2				$0x04000000 /* SSE2 */
 #define CF_SSSE3			$0x04000200 /* + SSSE3 */
 #define CF_SSE4_1			$0x04080200 /* + SSE4.1 */
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
+
 #define CF_XOP				$0x00000800
 /* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
@@ -1372,23 +1376,8 @@ CPU_detect_fail:
 	popl %ecx
 	xorl %eax,%eax
 	jmp CPU_detect_ret
-#elif CPU_REQ_SSE4_1 || CPU_REQ_SSSE3
-/* Leaf 1 checks */
-	movl $1,%eax
-	cpuid
-#if CPU_REQ_SSE4_1
-	andl CF_SSE4_1,%ecx
-	cmpl CF_SSE4_1,%ecx
-#elif CPU_REQ_SSSE3
-	andl CF_SSSE3,%ecx
-	cmpl CF_SSSE3,%ecx
-#endif
-	je CPU_detect_cont
-	popl %ecx
-	xorl %eax,%eax
-	jmp CPU_detect_ret
-#endif
 CPU_detect_cont:
+#endif
 	movl $1,%eax
 	cpuid
 #if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
@@ -1433,8 +1422,18 @@ CPU_detect_XOP:
 	popl %ecx
 #if DES_BS_VECTOR >= 4
 	xchgl %edx,%eax
+#if CPU_REQ_SSE4_1
+	andl CF_SSE4_1,%ecx
+	cmpl CF_SSE4_1,%ecx
+	jne CPU_detect_ret
+#elif CPU_REQ_SSSE3
+	andl CF_SSSE3,%ecx
+	cmpl CF_SSSE3,%ecx
+	jne CPU_detect_ret
+#else
 	andl CF_SSE2,%eax
 	jz CPU_detect_ret		/* No SSE2 */
+#endif
 	xchgl %edx,%eax
 #elif DES_X2
 	xchgl %edx,%eax
