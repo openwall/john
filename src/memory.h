@@ -177,7 +177,7 @@ char *strdup_MSVC(const char *str);
 #define realloc(a,b) __mingw_aligned_realloc(a,b,(sizeof(long long)))
 #define calloc(a,b) memset(__mingw_aligned_malloc(a*b,(sizeof(long long))),0,a*b)
 #define free(a) __mingw_aligned_free(a)
-// #define strdup(a) strdup_MSVC(a) // this is breaking MinGW cross-compiler builds of bitlocker2john.c
+#define strdup(a) strdup_MSVC(a)
 char *strdup_MSVC(const char *str);
 
 #define MEM_FREE(ptr) \
