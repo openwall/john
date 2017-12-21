@@ -10601,7 +10601,7 @@ fi
     CPUID_FILE="x86-64.h"
   else
     CPUID_ASM="x86.S"
-    CPUID_FILE="x86-any.h"
+    CPUID_FILE="x86-sse.h"
   fi
 
   CFLAGS="$CFLAGS_BACKUP -mssse3 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
