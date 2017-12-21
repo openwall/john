@@ -10720,6 +10720,11 @@ fi
 
 fi
 
+  # Temporary bug workaround: Do not probe for better than AVX on 32-bit
+  if test y$ARCH_LINK = yx86-sse.h; then :
+  CPU_NOTFOUND=1
+fi
+
   if test "x$CPU_NOTFOUND" = x0; then :
 
   CFLAGS="$CFLAGS_BACKUP -mxop -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
