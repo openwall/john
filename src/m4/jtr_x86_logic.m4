@@ -224,6 +224,9 @@ if test "x$simd" = xyes; then
   ]
   )
 
+  # Temporary bug workaround: Do not probe for better than AVX on 32-bit
+  AS_IF([test y$ARCH_LINK = yx86-sse.h], [CPU_NOTFOUND=1])
+
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   CFLAGS="$CFLAGS_BACKUP -mxop -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
