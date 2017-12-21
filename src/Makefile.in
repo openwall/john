@@ -685,8 +685,8 @@ kernels: @KERNEL_OBJS@
 ../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/dmg2john
 
-../run/bitlocker2john@EXE_EXT@: bitlocker2john.o jumbo.o memdbg.o
-	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/bitlocker2john
+../run/bitlocker2john@EXE_EXT@: bitlocker2john.c jumbo.c memdbg.c base64_convert.c misc.c common.o memory.c
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.c jumbo.c @MEMDBG_CFLAGS@ memdbg.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c  $(LDFLAGS) @OPENMP_CFLAGS@ -lcrypto -o ../run/bitlocker2john
 
 ../run/racf2john@EXE_EXT@: racf2john.o jumbo.o memdbg.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ racf2john.o jumbo.o @MEMDBG_CFLAGS@ memdbg.o @OPENMP_CFLAGS@ -o ../run/racf2john
