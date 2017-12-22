@@ -34,6 +34,9 @@ john_register_one(&fmt_argon2);
 #define FORMAT_TAG_i            "$argon2i$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG_d)-1)
 
+#if defined (JOHN_NO_SIMD)
+#define ALGORITHM_NAME          "Blake2"
+#else
 #if defined(__XOP__)
 #define ALGORITHM_NAME          "Blake2 XOP"
 #elif defined(__AVX__)
@@ -44,6 +47,7 @@ john_register_one(&fmt_argon2);
 #define ALGORITHM_NAME          "Blake2 SSE2"
 #else
 #define ALGORITHM_NAME          "Blake2"
+#endif
 #endif
 
 #define BENCHMARK_COMMENT       ""

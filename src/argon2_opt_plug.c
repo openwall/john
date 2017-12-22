@@ -11,7 +11,7 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#ifdef __SSE2__
+#if !defined (JOHN_NO_SIMD) && defined(__SSE2__)
 
 #include <stdint.h>
 #include <string.h>

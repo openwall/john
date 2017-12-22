@@ -12,7 +12,7 @@
  *
  */
 
-#ifndef __SSE2__
+#if defined (JOHN_NO_SIMD) || !defined(__SSE2__)
 
 #include <stdint.h>
 #include <string.h>
