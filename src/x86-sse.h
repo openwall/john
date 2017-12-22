@@ -315,6 +315,8 @@
 
 #define SHA_BUF_SIZ			16
 
+#ifndef JOHN_NO_SIMD
 #define NT_SSE2
+#endif
 
 #endif
