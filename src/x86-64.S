@@ -1741,6 +1741,8 @@ CPU_detect_fail:
 	ret
 #endif
 
+
+#ifndef JOHN_NO_SIMD
 /* The following was written by Alain Espinosa <alainesp at gmail.com> in 2007.
  * No copyright is claimed, and the software is hereby placed in the public domain.
  * In case this attempt to disclaim copyright and place the software in the
@@ -2098,6 +2100,8 @@ nt_crypt_all_8859_1_x86_64:
 	xchgq %r8,%rax
 	EPILOGUE
 	ret
+
+#endif /* !defined JOHN_NO_SIMD */
 
 #if defined(__ELF__) && defined(__linux__)
 .section .note.GNU-stack,"",@progbits

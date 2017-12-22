@@ -372,7 +372,9 @@
 
 #define SHA_BUF_SIZ			16
 
+#ifndef JOHN_NO_SIMD
 #define NT_X86_64
+#endif
 
 #endif /* __SSE2__ */
 
