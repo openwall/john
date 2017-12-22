@@ -17,7 +17,7 @@
 #include "arch.h"
 #include "memdbg.h"
 
-#ifdef __AVX2__
+#if !defined(JOHN_NO_SIMD) && defined(__AVX2__)
 
 // This code give the C implementation of POMELO using the AVX2 implementation.
 
@@ -147,7 +147,7 @@ int PHS_pomelo(void *out, size_t outlen, const void *in, size_t inlen, const voi
     return 0;
 }
 
-#elif defined(__SSE2__)
+#elif !defined(JOHN_NO_SIMD) && defined(__SSE2__)
 
 #include <emmintrin.h>
 

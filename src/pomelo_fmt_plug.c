@@ -34,9 +34,9 @@ john_register_one(&fmt_pomelo);
 #define FORMAT_TAG              "$pomelo$"
 #define TAG_LENGTH              sizeof(FORMAT_TAG) - 1
 
-#ifdef __AVX2__
+#if !defined(JOHN_NO_SIMD) && defined(__AVX2__)
 #define ALGORITHM_NAME          "POMELO 256/256 AVX2 1x"
-#elif defined(__SSE2__)
+#elif !defined(JOHN_NO_SIMD) && defined(__SSE2__)
 #define ALGORITHM_NAME          "POMELO 128/128 SSE2 1x"
 #elif !defined(USE_GCC_ASM_IA32) && defined(USE_GCC_ASM_X64)
 #define ALGORITHM_NAME          "POMELO 64/64"
