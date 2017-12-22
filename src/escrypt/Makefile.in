@@ -20,7 +20,7 @@
 CC = @CC@
 LD = @LD@
 RM = /bin/rm -f
-CFLAGS = @CFLAGS@
+CFLAGS = @CFLAGS@ @JOHN_NO_SIMD@
 #CFLAGS = -Wall -O2 -fomit-frame-pointer
 LDFLAGS = @LDFLAGS@
 

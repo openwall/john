@@ -32,11 +32,11 @@
 #define FMT_CISCO9_LEN          (sizeof(FMT_CISCO9)-1)
 #define FMT_SCRYPTKDF			"$ScryptKDF.pm$"
 #define FMT_SCRYPTKDF_LEN       (sizeof(FMT_SCRYPTKDF)-1)
-#ifdef __XOP__
+#if !defined(JOHN_NO_SIMD) && defined(__XOP__)
 #define ALGORITHM_NAME			"Salsa20/8 128/128 XOP"
-#elif defined(__AVX__)
+#elif !defined(JOHN_NO_SIMD) && defined(__AVX__)
 #define ALGORITHM_NAME			"Salsa20/8 128/128 AVX"
-#elif defined(__SSE2__)
+#elif !defined(JOHN_NO_SIMD) && defined(__SSE2__)
 #define ALGORITHM_NAME			"Salsa20/8 128/128 SSE2"
 #else
 #define ALGORITHM_NAME			"Salsa20/8 32/" ARCH_BITS_STR
