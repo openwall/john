@@ -1362,14 +1362,14 @@ CPU_detect:
 	xorl %ecx,%ecx
 	cpuid
 #if CPU_REQ_AVX512BW
-	andl C7_AVX512BW,%ecx
-	cmpl C7_AVX512BW,%ecx
+	andl C7_AVX512BW,%ebx
+	cmpl C7_AVX512BW,%ebx
 #elif CPU_REQ_AVX512F
-	andl C7_AVX512F,%ecx
-	cmpl C7_AVX512F,%ecx
+	andl C7_AVX512F,%ebx
+	cmpl C7_AVX512F,%ebx
 #elif CPU_REQ_AVX2
-	andl C7_AVX2,%ecx
-	cmpl C7_AVX2,%ecx
+	andl C7_AVX2,%ebx
+	cmpl C7_AVX2,%ebx
 #endif
 	je CPU_detect_cont
 CPU_detect_fail:
