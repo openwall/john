@@ -19,6 +19,10 @@
 #if !AC_BUILT
 #define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
 #endif
+
+// for testing disable zlib code, remove comment on next line.
+// #undef HAVE_LIBZ
+
 #if HAVE_LIBZ
 
 #if FMT_EXTERNS_H
@@ -1771,4 +1775,15 @@ struct fmt_main fmt_pkzip = {
 };
 
 #endif /* plugin stanza */
+
+#else
+
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning pkzip format requires zlib to function. The format has been disabled
+#elif _MSC_VER
+#pragma message(": warning pkzip format requires zlib to function. The format has been disabled :")
+#endif
+#endif
+
 #endif /* HAVE_LIBZ */
