@@ -37,7 +37,7 @@ static int use_yield = 0;
 extern int nice(int);
 #endif
 
-#ifdef __BEOS__
+#if defined(__BEOS__) || defined(__HAIKU__)
 #include <OS.h>
 #endif
 
@@ -84,7 +84,7 @@ void idle_init(struct fmt_main *format)
 #if defined(__MINGW32__) || defined (_MSC_VER)
 	SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
-#elif defined(__BEOS__)
+#elif defined(__BEOS__) || defined(__HAIKU__)
 	set_thread_priority(getpid(), 1);
 #else
 /*
