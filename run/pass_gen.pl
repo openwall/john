@@ -82,7 +82,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
 		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1 leet
-		sapg sapb
+		sapg sapb bitlocker
 		));
 
 # todo: sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
@@ -802,6 +802,11 @@ sub Uint32LERaw {
 sub Uint32BERaw {
 	my $i = $_[0];
 	return chr(($i>>24)&0xFF).chr(($i>>16)&0xFF).chr(($i>>8)&0xFF).chr($i&0xFF);
+}
+# this will return the same LE formated buffer as 'uint64_t i' would on Intel
+sub Uint64LERaw {
+	my $i = $_[0];
+	return chr($i&0xFF).chr(($i>>8)&0xFF).chr(($i>>16)&0xFF).chr(($i>>24)&0xFF).chr(($i>>32)&0xFF).chr(($i>>40)&0xFF).chr(($i>>48)&0xFF).chr(($i>>56)&0xFF);
 }
 
 sub net_ssl_init {
@@ -1935,6 +1940,36 @@ sub sip {
 	my $dyna_hash = md5_hex($dynamic_hash_data.$_[0]);
 	my $h = md5_hex($dyna_hash.$static_hash_data);
 	return "\$sip\$*$serverIP*$clientIP*$user*$realm*$method*$URIpart1*$clientIP**$nonce****MD5*$h";
+}
+
+sub bitlocker {
+	require Crypt::AuthEnc::CCM;
+	my $itr = get_loops(1048576);
+	my $salt = get_salt(16,16,\@chrHexLo);
+	my $iv = get_iv(12);
+	# data taken from sample test hash in JtR bitlocker format, after decrypt.
+	my $data = pack("H*","9a0bd9fbcb83988509088b435f1058fd2c000000010000000320000029a9df35315149afb5613e97f48ba8efbc9f2a1fd041dd019df1db87a1a29e1f");
+	my $pwd = encode("UTF-16LE", $_[1]);
+	my $h = sha256($pwd); $h = sha256($h);
+	# do kdf code
+	my $i;
+	my $last = "\0" x 32;
+	for ($i = 0; $i < $itr; ++$i) {
+		$last = sha256($last, $h, $salt, Uint64LERaw($i));
+	}
+	$h = $last;
+	# end of kdf code
+	print unpack("H*", $h)."\n";
+	# we have the key.  we have the IV, we have the unenc data. Now we just have
+	# to properly encrypt it, then return the proper hash string.
+
+#	my $ae = Crypt::AuthEnc::CCM->new("AES", $h, $iv, $data, $tag_len, $pt_len);
+#	my $ct = $ae->encrypt_add('data1');
+#	$ct .= $ae->encrypt_add('data2');
+#	$ct .= $ae->encrypt_add('data3');
+#	my $tag = $ae->encrypt_done();
+
+	exit(0);
 }
 
 ##############################################################################
@@ -3593,7 +3628,7 @@ sub pbkdf2_hmac_sha256 {
 	return "\$pbkdf2-sha256\$${itr}\$${s64}\$${h64}";
 }
 sub pbkdf2_hmac_sha1 {
-	$salt=get_salt(16, -115);
+	$salt=get_salt(16, -179);
 	my $itr = get_loops(1000);
 	return "\$pbkdf2-hmac-sha1\$${itr}.".unpack("H*", $salt).".".pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20, 64);
 }
