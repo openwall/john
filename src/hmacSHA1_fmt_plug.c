@@ -333,7 +333,7 @@ static int cmp_all(void *binary, int count)
 
 	return 0;
 #else
-	int index;
+	int index = 0;
 
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 	for (index = 0; index < count; index++)
