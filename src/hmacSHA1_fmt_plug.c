@@ -333,7 +333,7 @@ static int cmp_all(void *binary, int count)
 
 	return 0;
 #else
-	int index;
+	int index = 0;
 
 	for (index = 0; index < count; index++)
 		if (((uint32_t*)binary)[0] == crypt_key[index][0])
