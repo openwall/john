@@ -22,8 +22,7 @@ Please, read INSTALL for general information about installing John on your syste
 
 ==== Recommended (extra formats and performance)
 
-    sudo dnf install yasm gmp-devel libpcap-devel
-    #libbz2-dev
+    sudo dnf install yasm gmp-devel libpcap-devel bzip2-devel
 
 === Clone latest bleeding-edge Jumbo and build
 
