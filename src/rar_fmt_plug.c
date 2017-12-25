@@ -438,11 +438,8 @@ struct fmt_main fmt_rar = {
 
 #else
 #if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
-#ifdef __GNUC__
-#warning ": target system requires aligned memory access, rar format disabled:"
-#elif _MSC_VER
-#pragma message(": target system requires aligned memory access, rar format disabled:")
-#endif
+#define JTR_CC_MESSAGE "Notice: target system requires aligned memory access; rar format disabled."
+#include "compiler_message.h"
 #endif
 
 #endif	/* ARCH_ALLOWS_UNALIGNED */
