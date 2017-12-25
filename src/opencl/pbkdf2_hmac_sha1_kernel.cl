@@ -91,7 +91,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 	// assertion [i <= saltlen < (i+64)], so all remaining salt (if any) fits in this block
 	for (j = 0; i < saltlen; ++j, ++i)
 		PUTCHAR_BE(W, j, salt[i]);
-	
+
 	if (last <= 51) {
 		// this is last limb, everything fits
 		PUTCHAR_BE(W, last + 3, add);
