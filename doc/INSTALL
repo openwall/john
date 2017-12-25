@@ -61,21 +61,21 @@ Note that whenever you pass CFLAGS like this, the default "-g -O2" will go
 away, so add that too (like was done above).
 
 You might want to add "-s" to make, for suppressing normal output and just
-print warnings and errors. For a multi-core host you can also add e.g. "-j8"
-for using 8 processes (hopefully on different cores) in parallel when building.
+print warnings and errors. For a multi-core host you can also add e.g. "-j4"
+for using 4 processes (hopefully on different cores) in parallel when building.
 This can be written together, as in:
-	./configure && make -sj8
+	./configure && make -sj4
 
 That -j option does not work well with the "clean" target so if you want to
 use that, do it separately:
-	./configure && make -s clean && make -sj8
+	./configure && make -s clean && make -sj4
 
 ./configure should find and enable any extra stuff you have, including OMP,
 OpenCL, and extra libraries mentioned above. The only exception is MPI
 which needs the "--enable-mpi" option to be supplied to configure. If something
 is missing, it's likely installed in a non-standard location so you'd need to
 pass parameters:
-	./configure LDFLAGS=-L/opt/lib CFLAGS="-O2 -I/opt/include" && make -sj8
+	./configure LDFLAGS=-L/opt/lib CFLAGS="-O2 -I/opt/include" && make -sj4
 
 NOTE! If you pass CFLAGS like above, you probably also want to add "-O2"
 since it (and "-g") will only be added automatically provided CFLAGS start
@@ -86,7 +86,7 @@ there is one) you can disable its use within configure:
 	./configure --disable-pkg-config
 
 You can also disable certain features you don't want, eg:
-	./configure --disable-openmp && make -sj8
+	./configure --disable-openmp && make -sj4
 
 If everything goes well, this will create the executables for John and
 its related utilities under "../run/".  You can change directory to
@@ -125,9 +125,9 @@ binary when applicable. This gains performance and has some other benfits
 too. Here's how to do it for your "home build":
 
 	./configure --disable-openmp &&
-	make -s clean && make -sj8 && mv ../run/john ../run/john-non-omp &&
+	make -s clean && make -sj4 && mv ../run/john ../run/john-non-omp &&
 	./configure CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-non-omp\""' &&
-	make -s clean && make -sj8 && echo All Done
+	make -s clean && make -sj4 && echo All Done
 
 Then you just run "john" as usual.
 
@@ -158,7 +158,7 @@ that probably work fine but these instructions are for "Homebrew":
   4. Provide the path to GCC and the OpenSSL libraries to the configure script:
         ./configure CC="gcc-6" CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
   5. Clean old files and make:
-        make -s clean && make -sj8
+        make -s clean && make -sj4
 
 After the above, you should be able to get an optimal build with AVX and/or
 whatever extra features your CPU has got.

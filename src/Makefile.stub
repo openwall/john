@@ -13,7 +13,7 @@ all: default
 install: default
 
 default:
-	@echo "A normal build is now \"./configure && make -sj8\"."
+	@echo "A normal build is now \"./configure && make -sj4\"."
 	@echo
 	@exit 1
 

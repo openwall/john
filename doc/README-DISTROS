@@ -12,40 +12,40 @@ seamlessly fallback to john-xop -> john-avx -> john-sse4.1 -> john-ssse3 ->
 john-sse2 and finally to any of them with -non-omp, if appropriate.
 
 	./configure --disable-native-tests CPPFLAGS='-DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC="\"/usr/local/bin\"" -DJOHN_SYSTEMWIDE_HOME="\"/usr/local/share/john\""' --disable-openmp &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-sse2-non-omp &&
 	./configure --disable-native-tests CPPFLAGS='-DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC="\"/usr/local/bin\"" -DJOHN_SYSTEMWIDE_HOME="\"/usr/local/share/john\"" -DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-sse2-non-omp\""' &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-sse2 &&
 	./configure --disable-native-tests CPPFLAGS=-mssse3 --disable-openmp &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-ssse3-non-omp &&
 	./configure --disable-native-tests CPPFLAGS='-DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC="\"/usr/local/bin\"" -DJOHN_SYSTEMWIDE_HOME="\"/usr/local/share/john\"" -mssse3 -DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-ssse3-non-omp\"" -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2\""' &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-ssse3 &&
 	./configure --disable-native-tests CPPFLAGS=-msse4.1 --disable-openmp &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-sse4.1-non-omp &&
 	./configure --disable-native-tests CPPFLAGS='-DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC="\"/usr/local/bin\"" -DJOHN_SYSTEMWIDE_HOME="\"/usr/local/share/john\"" -msse4.1 -DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-sse4.1-non-omp\"" -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-ssse3\""' &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-sse4.1 &&
 	./configure --disable-native-tests CPPFLAGS=-mavx --disable-openmp &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-avx-non-omp &&
 	./configure --disable-native-tests CPPFLAGS='-DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC="\"/usr/local/bin\"" -DJOHN_SYSTEMWIDE_HOME="\"/usr/local/share/john\"" -mavx -DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-avx-non-omp\"" -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse4.1\""' &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-avx &&
 	./configure --disable-native-tests CPPFLAGS=-mxop --disable-openmp &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-xop-non-omp &&
 	./configure --disable-native-tests CPPFLAGS='-DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC="\"/usr/local/bin\"" -DJOHN_SYSTEMWIDE_HOME="\"/usr/local/share/john\"" -mxop -DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-xop-non-omp\"" -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx\""' &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-xop &&
 	./configure --disable-native-tests CPPFLAGS=-mavx2 --disable-openmp &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	mv ../run/john ../run/john-non-omp &&
 	./configure --disable-native-tests CPPFLAGS='-DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC="\"/usr/local/bin\"" -DJOHN_SYSTEMWIDE_HOME="\"/usr/local/share/john\"" -mavx2 -DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-non-omp\"" -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-xop\""' &&
-	make -s clean && make -sj8 strip &&
+	make -s clean && make -sj4 strip &&
 	rm -rf ../run/*.dSYM &&
 	sudo mv ../run/{john,john-*,*2john,unshadow,unique,undrop,unafs,base64conv,tgtsnarf,mkvcalcproba,genmkvpwd,calc_stat,raw2dyna,cprepair,SIPdump} /usr/local/bin &&
 	sudo mkdir -p /usr/local/share/john &&

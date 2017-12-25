@@ -1,0 +1,48 @@
+Please, read INSTALL for general information about installing John on your system.
+
+== Preamble
+
+    Important: it's actually about a local to a user's home directory, not a
+    system-wide installation. In fact, most likely you do not need to install
+    John the Ripper system-wide.  Instead, after you compile the source code
+    (see below), you may simply enter the "run" directory and invoke John from
+    there, e.g., ./john --list=build-options.
+
+    Commands not explicitly prefixed by sudo must be run as a regular user
+    (the one that will use JtR) rather than as root.
+
+== How to install on Fedora
+
+   If anything below fails, run 'sudo dnf update' and re-try.
+
+=== Preconditions and Required stuff
+
+    sudo dnf update
+    sudo dnf install git gcc openssl-devel
+
+==== Recommended (extra formats and performance)
+
+    sudo dnf install yasm gmp-devel libpcap-devel
+    #libbz2-dev
+
+=== Clone latest bleeding-edge Jumbo and build
+
+==== Clone GIT repo
+
+    mkdir -p ~/src
+    cd ~/src
+    git clone git://github.com/magnumripper/JohnTheRipper -b bleeding-jumbo john
+
+==== Build
+
+    cd ~/src/john/src
+    # For MPI, use './configure --enable-mpi' below
+    ./configure && make -s clean && make -sj4
+
+=== Test your build
+
+    $ ../run/john --test=0
+
+=== Benchmark your build
+
+    $ ../run/john --test

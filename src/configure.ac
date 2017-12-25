@@ -1278,5 +1278,5 @@ fi
 
 echo "Install missing libraries to get any needed features that were omitted."
 echo ""
-echo "Configure finished.  Now \"${use_make} -s clean && ${use_make} -sj8\" to compile."
+echo "Configure finished.  Now \"${use_make} -s clean && ${use_make} -sj4\" to compile."
 dnl =======================================================================

@@ -61,7 +61,7 @@ Please, read INSTALL for general information about installing John on your syste
 
     cd ~/src/john/src
     # For MPI, use './configure --enable-mpi' below
-    ./configure && make -s clean && make -sj8
+    ./configure && make -s clean && make -sj4
 
 === Test your build
 
