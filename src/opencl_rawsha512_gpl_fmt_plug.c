@@ -569,7 +569,7 @@ static void build_kernel()
 		snprintf(opt, sizeof(opt), "-DBITMAP_SIZE_MINUS1=%u", bitmap_size - 1U);
 
 		if (mask_int_cand.num_int_cand > 1)
-			strncat(opt, " -DGPU_MASK_MODE=1", 64U);
+			strncat(opt, " -DGPU_MASK_MODE", 64U);
 
 		opencl_build_kernel(task, gpu_id, opt, 0);
 

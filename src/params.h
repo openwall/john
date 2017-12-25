@@ -46,7 +46,7 @@
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
  *
  * You do need to set JOHN_SYSTEMWIDE to 1, but you do not need to patch this
- * file for that.  Instead, you can pass -DJOHN_SYSTEMWIDE=1 in CFLAGS.  You
+ * file for that.  Instead, you can pass -DJOHN_SYSTEMWIDE in CFLAGS.  You
  * also do not need to patch the Makefile for that since you can pass the
  * CFLAGS via "make" command line.  Similarly, you do not need to patch
  * anything to change JOHN_SYSTEMWIDE_EXEC and JOHN_SYSTEMWIDE_HOME (although
@@ -54,7 +54,7 @@
  *
  * JOHN_SYSTEMWIDE_EXEC should be set to the _directory_ where John will look
  * for its "CPU fallback" program binary (which should be another build of John
- * itself).  This is activated when John is compiled with -DCPU_FALLBACK=1.
+ * itself).  This is activated when John is compiled with -DCPU_FALLBACK.
  * The fallback program binary name is defined with CPU_FALLBACK_BINARY in
  * architecture-specific header files such as x86-64.h (and the default should
  * be fine - no need to patch it).  On x86-64, this may be used to
@@ -65,7 +65,7 @@
  * 32-bit x86 (yes, you may need to make five builds of John for a single
  * 32-bit x86 binary package).
  *
- * Similarly, -DOMP_FALLBACK=1 activates fallback to OMP_FALLBACK_BINARY in the
+ * Similarly, -DOMP_FALLBACK activates fallback to OMP_FALLBACK_BINARY in the
  * JOHN_SYSTEMWIDE_EXEC directory when an OpenMP-enabled build of John
  * determines that it would otherwise run only one thread, which would often
  * be less optimal than running a non-OpenMP build.

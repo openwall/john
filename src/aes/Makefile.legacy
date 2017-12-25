@@ -11,7 +11,7 @@ ifeq "$(GCCV44)" "1"
 			ifdef AESNI_ARCH
 				AESIN += aesni/*.o
 				SUBDIRS += aesni
-				AESNI_DEC = -DAESNI_IN_USE=1
+				AESNI_DEC = -DAESNI_IN_USE
 			endif
 		endif
 	endif
