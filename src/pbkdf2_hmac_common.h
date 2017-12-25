@@ -41,7 +41,7 @@
 #define PKCS5S2_TAG_LEN                     (sizeof(PKCS5S2_TAG)-1)
 #define PK5K2_TAG                           "$p5k2$"
 #define PK5K2_TAG_LEN                       (sizeof(PK5K2_TAG)-1)
-#define PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH   (PBKDF2_SHA1_TAG_LEN + 6 + 1 + 2*PBKDF2_32_MAX_SALT_SIZE + 1 + 2*PBKDF2_SHA1_MAX_BINARY_SIZE)
+#define PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH   (PBKDF2_SHA1_TAG_LEN + 6 + 1 + 2*PBKDF2_32_MAX_SALT_SIZE_SHA1 + 1 + 2*PBKDF2_SHA1_MAX_BINARY_SIZE)
 
 #define PBKDF2_SHA256_BINARY_SIZE           32
 #define PBKDF2_SHA256_FORMAT_TAG            "$pbkdf2-sha256$"
