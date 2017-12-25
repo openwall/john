@@ -8801,6 +8801,7 @@ esac
 # Available arch.h's:
 # alpha.h
 # arm32le.h (mfpu=neon) (we may override the "le")
+# arm64le.h (we may override the "le")
 # ia64.h
 # mips32.h (we override the BE defined within it)
 # mips64.h
@@ -8822,6 +8823,11 @@ cpu_family="unkown"
 case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
+  aarch64) ARCH_LINK=arm64le.h endian=little
+    SIMD_NAME="NEON"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: NEON" >&5
+$as_echo "NEON" >&6; }
+    ;;
   arm*) ARCH_LINK=arm32le.h endian=little
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
 $as_echo_n "checking special compiler flags... " >&6; }
@@ -17559,8 +17565,8 @@ fi
 if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-xO") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-fast\b") -eq 0; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No recognized optimization option present in CFLAGS" >&5
-$as_echo "$as_me: WARNING: No recognized optimization option present in CFLAGS" >&2;}
+   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No recognized optimization option present in CFLAGS \"$CFLAGS\"" >&5
+$as_echo "$as_me: WARNING: No recognized optimization option present in CFLAGS \"$CFLAGS\"" >&2;}
 fi
 if test "x$endian" = "xbig"; then
    using_endian="BE"

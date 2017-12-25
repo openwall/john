@@ -427,6 +427,7 @@ JTR_LIST_ADD(SIMD_FLAGS, ["$CFLAGS_EX"])
 # Available arch.h's:
 # alpha.h
 # arm32le.h (mfpu=neon) (we may override the "le")
+# arm64le.h (we may override the "le")
 # ia64.h
 # mips32.h (we override the BE defined within it)
 # mips64.h
@@ -448,6 +449,10 @@ cpu_family="unkown"
 case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
+  aarch64) ARCH_LINK=arm64le.h endian=little
+    SIMD_NAME="NEON"
+    AC_MSG_RESULT([NEON])
+    ;;
   arm*) ARCH_LINK=arm32le.h endian=little
     AC_MSG_CHECKING([special compiler flags])
     AC_MSG_RESULT([ARM])
@@ -1200,7 +1205,7 @@ fi
 if test $(echo "$CFLAGS" | ${GREP} -c -- "-O") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-xO") -eq 0 &&
    test $(echo "$CFLAGS" | ${GREP} -c -- "-fast\b") -eq 0; then
-   AC_MSG_WARN([No recognized optimization option present in CFLAGS])
+   AC_MSG_WARN([No recognized optimization option present in CFLAGS "$CFLAGS"])
 fi
 if test "x$endian" = "xbig"; then
    using_endian="BE"
