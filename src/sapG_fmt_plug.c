@@ -25,15 +25,6 @@ john_register_one(&fmt_sapG);
 
 #if defined(_OPENMP)
 #include <omp.h>
-#ifndef OMP_SCALE
-#if defined (SIMD_COEF_32)
-// Some OMP scaling moved into max_keys, so that we can have more values in SIMD
-// mode, to sort hashes by limb size.  (TODO)
-#define OMP_SCALE               128
-#else
-#define OMP_SCALE               2048
-#endif
-#endif
 #endif
 
 #include "arch.h"
@@ -49,6 +40,14 @@ john_register_one(&fmt_sapG);
 #include "unicode.h"
 #include "johnswap.h"
 #include "memdbg.h"
+
+#ifndef OMP_SCALE
+#if defined (SIMD_COEF_32)
+#define OMP_SCALE               32
+#else
+#define OMP_SCALE               2048
+#endif
+#endif
 
 #define FORMAT_LABEL            "sapg"
 #define FORMAT_NAME             "SAP CODVN F/G (PASSCODE)"
