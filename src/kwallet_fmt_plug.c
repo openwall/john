@@ -18,6 +18,7 @@ john_register_one(&fmt_kwallet);
 #else
 
 #include <string.h>
+#include <openssl/blowfish.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -33,7 +34,6 @@ john_register_one(&fmt_kwallet);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/blowfish.h>
 #include "sha.h"
 #include "pbkdf2_hmac_sha512.h"
 #include "memdbg.h"
@@ -61,6 +61,7 @@ john_register_one(&fmt_kwallet);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #endif
+
 // #define BENCH_LARGE_PASSWORDS   1
 
 static struct fmt_tests kwallet_tests[] = {
@@ -166,7 +167,8 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$kwallet$" */
+
+	ctcopy += FORMAT_TAG_LEN;
 	if (!salt) salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	memset(salt, 0, sizeof(*salt));
 	p = strtokm(ctcopy, "$");
@@ -338,6 +340,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_64
 			int len[MAX_KEYS_PER_CRYPT];
 			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 				len[i] = strlen(saved_key[i+index]);
 				pin[i] = (unsigned char*)saved_key[i+index];
