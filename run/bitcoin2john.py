@@ -806,8 +806,8 @@ if __name__ == '__main__':
 
         # Use btcrecover/btcrpass.py -> "Bitcoin Core" logic in case of problems
         # with the code in this file.
-        minversion = json_db["minversion"]
-        if minversion > max_version:
+        minversion = json_db.get("minversion", None)
+        if minversion and minversion > max_version:
             sys.stderr.write("WARNING: %s has previously unseen minversion '%s'!\n" %
                              (os.path.basename(filename), minversion))
 
