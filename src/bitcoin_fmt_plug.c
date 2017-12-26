@@ -1,5 +1,6 @@
-/* bitcoin-qt (bitcoin) wallet cracker patch for JtR. Hacked together during
- * April of 2013 by Dhiru Kholia <dhiru at openwall dot com>.
+/*
+ * Cracker for bitcoin-qt (bitcoin) wallet hashes. Hacked together during April
+ * of 2013 by Dhiru Kholia <dhiru at openwall dot com>.
  *
  * Also works for Litecoin-Qt (litecoin) wallet files!
  *
@@ -25,6 +26,7 @@ john_register_one(&fmt_bitcoin);
 
 #include <stdint.h>
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -45,41 +47,41 @@ john_register_one(&fmt_bitcoin);
 #include "jumbo.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"Bitcoin"
-#define FORMAT_NAME		"Bitcoin Core"
-#define FORMAT_TAG           "$bitcoin$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
+#define FORMAT_LABEL            "Bitcoin"
+#define FORMAT_NAME             "Bitcoin Core"
+#define FORMAT_TAG              "$bitcoin$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 
 #ifdef SIMD_COEF_64
-#define ALGORITHM_NAME		"SHA512 AES " SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME          "SHA512 AES " SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME		"SHA512 AES 64/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "SHA512 AES 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME		"SHA512 AES 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "SHA512 AES 32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 #endif
 
 #if !defined (SHA512_DIGEST_LENGTH)
-#define SHA512_DIGEST_LENGTH 64
+#define SHA512_DIGEST_LENGTH    64
 #endif
 
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		1
-#define SALT_ALIGN			sizeof(int)
-#define SALT_SIZE		sizeof(struct custom_salt)
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1000
+#define PLAINTEXT_LENGTH        125
+#define BINARY_SIZE             0
+#define BINARY_ALIGN            1
+#define SALT_ALIGN              sizeof(int)
+#define SALT_SIZE               sizeof(struct custom_salt)
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT	(SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
-#define SZ 			128
+#define SZ                      128
 
 static struct fmt_tests bitcoin_tests[] = {
 	/* bitcoin wallet hashes */
@@ -92,6 +94,10 @@ static struct fmt_tests bitcoin_tests[] = {
 	{"$bitcoin$96$8e7be42551c822c7e55a384e15b4fbfec69ceaed000925870dfb262d3381ed4405507f6c94defbae174a218eed0b5ce8$16$b469e6dbd76926cf$244139$96$ec03604094ada8a5d76bbdb455d260ac8b202ec475d5362d334314c4e7012a2f4b8f9cf8761c9862cd20892e138cd29e$66$03fdd0341a72d1a119ea1de51e477f0687a2bf601c07c032cc87ef82e0f8f49b19", "password@12345"},
 	/* bitcoin-core-0.14.0 wallet */
 	{"$bitcoin$96$2559c50151aeec013a9820c571fbee02e5892a3ead07607ee8de9d0ff55798cff6fe60dbd71d7873cb794a03e0d63b70$16$672204f8ab168ff6$136157$96$a437e8bd884c928603ee00cf85eaaf9245a071efa763db03ab485cb757f155976edc7294a6a731734f383850fcac4316$66$03ff84bb48f454662b91a6e588af8752da0674efa5dae82e7340152afcc38f4ba4", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
+	/* bitcoin-core-0.15.1 wallet, 2017-12-26 */
+	{"$bitcoin$96$a05caebc15448da36badbfca2f17624fdf0aa606627213288ca282919b4347580cb161e9d15cb56f8df550c382d8da0a$16$2da7b13a38ef4fb1$148503$96$9d6d027ce45c3fb7a6d4f68c56577fb3b78c9b2d0686e76480cd17df82c88ee3b8616374895fb6edd2257dece6c1a6a6$66$03ffc099d1b6dc18b063fe4c4abc51ef0647d03296104288dc13a5a05d5d018fe1", "openwall123"},
+	/* bitcoin-0.7.0-win32-setup.exe from year 2012 */
+	{"$bitcoin$96$23582816ecc192d621e22069f5849583684301882a0128aeebd34c208e200db5dfc8feba73d9284156887223ea288b02$16$3052e5cd17a35872$83181$96$c10fd1099feefaff326bc5437bd9be9afc4eee67d8965abe6b191a750c787287a96dc5afcad3a887ce0848cdcfe15516$66$03ff11e4003e96d7b8a028e12aed4f0a041848f58e4c41eebe6cb862f758da6cb7", "openwall123"},
 	{NULL}
 };
 
@@ -223,6 +229,7 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	static struct custom_salt cs;
+
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "$");
@@ -372,6 +379,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #endif
 	}
+
 	return count;
 }
 
