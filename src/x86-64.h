@@ -368,13 +368,11 @@
 #define SHA512_N_STR		PARA_TO_N(SIMD_COEF_64)
 #endif
 
+#define NT_X86_64
+
 #endif	/* !defined(JOHN_NO_SIMD) */
 
 #define SHA_BUF_SIZ			16
-
-#ifndef JOHN_NO_SIMD
-#define NT_X86_64
-#endif
 
 #endif /* __SSE2__ */
 
