@@ -32,7 +32,7 @@ typedef struct {
 	unsigned int  length;
 	unsigned int  outlen;
 	unsigned int  iterations;
-	unsigned char salt[115];
+	unsigned char salt[179];
 } pbkdf2_salt;
 
 #ifndef _OPENCL_COMPILER
