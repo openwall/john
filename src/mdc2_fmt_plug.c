@@ -15,6 +15,7 @@ john_register_one(&fmt_mdc2);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -29,8 +30,8 @@ john_register_one(&fmt_mdc2);
 #include "johnswap.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 #include "mdc2-JtR.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "mdc2"
 #define FORMAT_NAME             "MDC-2"

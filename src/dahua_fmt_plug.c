@@ -18,6 +18,7 @@ john_register_one(&fmt_dahua);
 #else
 
 #include <string.h>
+#include <ctype.h>
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -43,7 +44,6 @@ john_register_one(&fmt_dahua);
 #include "params.h"
 #include "options.h"
 #include "memdbg.h"
-#include <ctype.h>
 
 #define FORMAT_LABEL            "dahua"
 #define FORMAT_NAME             "\"MD5 based authentication\" Dahua"

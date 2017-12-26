@@ -15,6 +15,7 @@ john_register_one(&fmt_geli);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -32,8 +33,8 @@ john_register_one(&fmt_geli);
 #include "aes.h"
 #include "pbkdf2_hmac_sha512.h"
 #include "jumbo.h"
-#include "memdbg.h"
 #include "geli_common.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "geli"
 #define FORMAT_NAME             "FreeBSD GELI"

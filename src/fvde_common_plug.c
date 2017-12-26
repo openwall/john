@@ -7,8 +7,8 @@
 #include "common.h"
 #include "fvde_common.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 struct fmt_tests fvde_tests[] = {
 	// https://github.com/kholia/fvde2john/blob/master/fvde-1.raw.tar.xz

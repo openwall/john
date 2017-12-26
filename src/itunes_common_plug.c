@@ -6,9 +6,9 @@
 #include "misc.h"
 #include "common.h"
 #include "itunes_common.h"
-#include "memdbg.h"
 #include "johnswap.h"
 #include "aes.h"
+#include "memdbg.h"
 
 int itunes_common_valid(char *ciphertext, struct fmt_main *self)
 {

@@ -21,15 +21,15 @@ john_register_one(&fmt_mozilla);
 #else
 
 #include <string.h>
+#include <stdint.h>
+#include <openssl/des.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE 2048 // XXX
 #endif
 #endif
-
-#include <stdint.h>
-#include <openssl/des.h>
 
 #include "arch.h"
 #include "md5.h"
@@ -39,8 +39,8 @@ john_register_one(&fmt_mozilla);
 #include "johnswap.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 #include "sha.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "Mozilla"
 #define FORMAT_NAME             "Mozilla key3.db"
