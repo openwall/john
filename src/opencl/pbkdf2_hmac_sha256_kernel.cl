@@ -4,6 +4,8 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ *  increased salt.  Now unlimited salt length. (Dec 2017, JimF)
  */
 
 #include "opencl_device_info.h"
@@ -70,7 +72,7 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
                         uint *opad_state, __constant uchar *salt,
                         uint saltlen)
 {
-	uint i, t;
+	uint i, t, j, last;
 	uint W[16];
 	uint A, B, C, D, E, F, G, H;
 
@@ -135,6 +137,7 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
 //		W[7] = H + h;
 //	}
 
+#if 0
 	A = ipad_state[0];
 	B = ipad_state[1];
 	C = ipad_state[2];
@@ -206,6 +209,86 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
 			W[7] = H + i;
 		}
 	}
+
+#endif
+	// Code now handles ANY length salt!
+	i = 0;
+	last = saltlen;	// this the count of bytes of salt put into the final buffer.
+	uint a, b, c, d, e, f, g, h;
+	a = A = ipad_state[0];
+	b = B = ipad_state[1];
+	c = C = ipad_state[2];
+	d = D = ipad_state[3];
+	e = E = ipad_state[4];
+	f = F = ipad_state[5];
+	g = G = ipad_state[6];
+	h = H = ipad_state[7];
+	while (i+64 <= saltlen) {
+		// no need to clean. We are using the entire 64 bytes with this block of salt
+		for (j = 0; j < 64; ++j, ++i)
+			PUTCHAR_BE(W, j, salt[i]);
+		last -= 64;
+		SHA256(A, B, C, D, E, F, G, H, W);
+		a = (A += a);
+		b = (B += b);
+		c = (C += c);
+		d = (D += d);
+		e = (E += e);
+		f = (F += f);
+		g = (G += g);
+		h = (H += h);
+	}
+	//
+	// ok, either this is the last limb, OR we have this one, and have to make 1 more.
+	//
+	// Fully blank out the buffer (dont skip element 15 len 61-63 wont clean buffer)
+	for (j = 0; j < 16; j++)
+		W[j] = 0;
+
+	// assertion [i <= saltlen < (i+64)], so all remaining salt (if any) fits in this block
+	for (j = 0; i < saltlen; ++j, ++i)
+		PUTCHAR_BE(W, j, salt[i]);
+
+	if (last <= 51) {
+		// this is last limb, everything fits
+		PUTCHAR_BE(W, last + 3, 1);		// should be add to allow more than 32 bytes to be returned!
+		PUTCHAR_BE(W, last + 4, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+	} else {
+		// do the last limb with salt data, then 1 more buffer, since this one
+		// the salt + add number did NOT fit into this buffer.
+		if (last < 61)
+			PUTCHAR_BE(W, last + 3, 1);	// should be add to allow more than 32 bytes to be returned!
+		if (last < 60)
+			PUTCHAR_BE(W, last + 4, 0x80);
+		SHA256(A, B, C, D, E, F, G, H, W);
+		a = (A += a);
+		b = (B += b);
+		c = (C += c);
+		d = (D += d);
+		e = (E += e);
+		f = (F += f);
+		g = (G += g);
+		h = (H += h);
+		// Final limb (no salt data put into this one)
+		for (j = 0; j < 15; j++)
+			W[j] = 0;
+		if (last >= 61)
+			PUTCHAR_BE(W, last + 3 - 64, 1);	// should be add to allow more than 32 bytes to be returned!
+		if (last >= 60)
+			PUTCHAR_BE(W, last + 4 - 64, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+	}
+	// this is sha256_final for our salt.add-word.
+	SHA256(A, B, C, D, E, F, G, H, W);
+	W[0] = A + a;
+	W[1] = B + b;
+	W[2] = C + c;
+	W[3] = D + d;
+	W[4] = E + e;
+	W[5] = F + f;
+	W[6] = G + g;
+	W[7] = H + h;
 
 	W[8] = 0x80000000;
 	W[15] = 0x300;
