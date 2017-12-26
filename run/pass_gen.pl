@@ -3620,7 +3620,7 @@ sub pbkdf2_hmac_sha512 {
 	return "\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".".pp_pbkdf2_hex($_[1],$salt,$itr,"sha512",64, 128);
 }
 sub pbkdf2_hmac_sha256 {
-	$salt=get_salt(16, -115);
+	$salt=get_salt(16, -179);
 	my $itr = get_loops(12000);
 	my $s64 = base64pl($salt);
 	my $h64 = substr(base64pl(pack("H*",pp_pbkdf2_hex($_[1],$salt,$itr,"sha256",32, 64))),0,43);
@@ -3633,12 +3633,12 @@ sub pbkdf2_hmac_sha1 {
 	return "\$pbkdf2-hmac-sha1\$${itr}.".unpack("H*", $salt).".".pp_pbkdf2_hex($_[1],$salt,$itr,"sha1",20, 64);
 }
 sub pbkdf2_hmac_md4 {
-	$salt=get_salt(16, -115);
+	$salt=get_salt(16, -179);
 	my $itr = get_loops(1000);
 	return "\$pbkdf2-hmac-md4\$${itr}\$".unpack("H*", $salt).'$'.pp_pbkdf2_hex($_[1],$salt,$itr,"md4",16, 64);
 }
 sub pbkdf2_hmac_md5 {
-	$salt=get_salt(16, -115);
+	$salt=get_salt(16, -179);
 	my $itr = get_loops(1000);
 	return "\$pbkdf2-hmac-md5\$${itr}\$".unpack("H*", $salt).'$'.pp_pbkdf2_hex($_[1],$salt,$itr,"md5",16, 64);
 }
