@@ -1,4 +1,5 @@
-/* Cracker for IPsec Authentication Header (AH) hashes.
+/*
+ * Cracker for IPsec Authentication Header (AH) hashes.
  *
  * This software is Copyright (c) 2017, Dhiru Kholia <dhiru [at] openwall.com>,
  * and it is hereby released to the general public under the following terms:
@@ -14,6 +15,7 @@ john_register_one(&fmt_netah);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -79,8 +81,8 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
-        MEM_FREE(saved_key);
-        MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_out);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -148,6 +150,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
