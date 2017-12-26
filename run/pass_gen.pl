@@ -82,7 +82,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		qnx_md5 qnx_sha512 qnx_sha256 sxc vnc vtp keystore pbkdf2-hmac-md4
 		pbkdf2-hmac-md5 racf zipmonster asamd5 mongodb_scram has160 fgt iwork
 		palshop snefru_128 snefru_256 keyring efs mdc2 eigrp as400ssha1 leet
-		sapg sapb bitlocker
+		sapg sapb bitlocker money_md5 money_sha1
 		));
 
 # todo: sapfg ike keepass cloudkeychain pfx pdf pkzip rar5 ssh raw_gost_cp cq dmg dominosec encfs fde gpg haval-128 Haval-256 krb4 krb5 krb5pa-sha1 kwallet luks pfx afs ssh oldoffice openbsd-softraid openssl-enc openvms panama putty ssh-ng sybase-prop tripcode whirlpool0 whirlpool1
@@ -1969,7 +1969,48 @@ sub bitlocker {
 #	$ct .= $ae->encrypt_add('data3');
 #	my $tag = $ae->encrypt_done();
 
-	exit(0);
+#	exit(0);
+}
+
+sub money_md5 {
+	require Crypt::RC4;
+	import Crypt::RC4 qw(RC4);
+	my $pw = $_[0];
+	my $i;
+	my $salt = get_salt(8);
+	for ($i = 0; $i < length $pw; ++$i) {
+		my $c = substr($pw, $i, 1);
+		if ( ord($c) >= ord('a') && ord($c) <= ord('z')) {
+			 $c = chr(ord($c)-0x20); 
+		}
+		$c = chr(ord($c) % 0x80);
+		substr($pw, $i, 1) = $c;
+	}
+	while (length($pw) < 20) { $pw .= "\0"; }
+	$pw = encode("UTF-16LE", $pw);
+	my $h = md5($pw);
+	my $enc = RC4($h.$salt, substr($salt, 0, 4));
+	return "\$money\$0*".unpack("H*", $salt)."*".unpack("H*", $enc);
+}
+sub money_sha1 {
+	require Crypt::RC4;
+	import Crypt::RC4 qw(RC4);
+	my $pw = $_[0];
+	my $i;
+	my $salt = get_salt(8);
+	for ($i = 0; $i < length $pw; ++$i) {
+		my $c = substr($pw, $i, 1);
+		if ( ord($c) >= ord('a') && ord($c) <= ord('z')) {
+			 $c = chr(ord($c)-0x20); 
+		}
+		$c = chr(ord($c) % 0x80);
+		substr($pw, $i, 1) = $c;
+	}
+	while (length($pw) < 20) { $pw .= "\0"; }
+	$pw = encode("UTF-16LE", $pw);
+	my $h = sha1($pw);
+	my $enc = RC4(substr($h,0,16).$salt, substr($salt, 0, 4));
+	return "\$money\$1*".unpack("H*", $salt)."*".unpack("H*", $enc);
 }
 
 ##############################################################################
