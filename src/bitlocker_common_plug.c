@@ -7,8 +7,8 @@
 #include "common.h"
 #include "bitlocker_common.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 #include "johnswap.h"
+#include "memdbg.h"
 
 unsigned int bitlocker_common_iteration_count(void *salt)
 {
