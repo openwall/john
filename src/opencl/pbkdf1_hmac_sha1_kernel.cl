@@ -7,6 +7,7 @@
  * increased salt_len from 52, to 115.  salts [56-115] bytes
  * require 2 sha1 limbs to handle.  Salts [0-55] bytes in length are handled by
  * 1 sha1 limb.  (Feb. 28/16, JimF)
+ * increased salt again.  Now unlimited salt length. (Dec 2017, JimF)
  *
  * This is pbkdf1 but using hmac-sha1 (NetBSD crypt)
  *
@@ -62,42 +63,48 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       __global MAYBE_VECTOR_UINT *opad,
                       MAYBE_CONSTANT uchar *salt, uint saltlen)
 {
-	uint i;
+	uint i, j, last;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
 
 	for (i = 0; i < 5; i++)
 		output[i] = ipad[i];
 
-	for (i = 0; i < 15; i++)
-		W[i] = 0;
-
-	if (saltlen < 56) {
-		for (i = 0; i < saltlen; i++)
-			PUTCHAR_BE(W, i, salt[i]);
-		PUTCHAR_BE(W, saltlen, 0x80);
-		W[15] = (64 + saltlen) << 3;
-		sha1_block(MAYBE_VECTOR_UINT, W, output);
-	} else {
-		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
-		uint j;
-		W[15] = 0;	// first buffer will NOT get length, so zero it out also.
-		for (i = 0; i < saltlen && i < 64; i++)
-			PUTCHAR_BE(W, i, salt[i]);
-		if (saltlen < 64)
-			PUTCHAR_BE(W, saltlen, 0x80);
-		sha1_block(MAYBE_VECTOR_UINT, W, output);
-
-		// build and process 2nd limb
-		for (j = 0; j < 15; j++)
-			W[j] = 0;
-		for (; i < saltlen; i++)
-			PUTCHAR_BE(W, i - 64, salt[i]);
-		if (saltlen >= 64)
-			PUTCHAR_BE(W, saltlen-64, 0x80);
-		W[15] = (64 + saltlen) << 3;
+	// Code now handles ANY length salt!
+	i = 0;
+	last = saltlen;	// this the count of bytes of salt put into the final buffer.
+	while (i+64 <= saltlen) {
+		// no need to clean. We are using the entire 64 bytes with this block of salt
+		for (j = 0; j < 64; ++j, ++i)
+			PUTCHAR_BE(W, j, salt[i]);
+		last -= 64;
 		sha1_block(MAYBE_VECTOR_UINT, W, output);
 	}
+	//
+	// ok, either this is the last limb, OR we have this one, and have to make 1 more.
+	//
+	// Fully blank out the buffer (dont skip element 15 len 61-63 wont clean buffer)
+	for (j = 0; j < 16; j++)
+		W[j] = 0;
+
+	// assertion [i <= saltlen < (i+64)], so all remaining salt (if any) fits in this block
+	for (j = 0; i < saltlen; ++j, ++i)
+		PUTCHAR_BE(W, j, salt[i]);
+	// assertion: remaining salt was < 64 bytes, so we know the 0x80 fits in this limb.
+	PUTCHAR_BE(W, last, 0x80);
+	if (last <= 55) {
+		// this is last limb, everything fits
+		W[15] = (64 + saltlen) << 3;
+	} else {
+		sha1_block(MAYBE_VECTOR_UINT, W, output);
+		// Final limb totally blank.
+		for (j = 0; j < 15; j++)
+			W[j] = 0;
+		W[15] = (64 + saltlen) << 3;
+	}
+	// this is sha1_final for our salt.add-word.
+	sha1_block(MAYBE_VECTOR_UINT, W, output);
+
 	for (i = 0; i < 5; i++)
 		W[i] = output[i];
 	W[5] = 0x80000000;

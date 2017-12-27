@@ -3,6 +3,9 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * salt length increase. HAS to match pbkdf2_hmac_sha256_kernel.cl code
+ *    Dec 2017, JimF.
  */
 
 #include "pbkdf2_hmac_sha256_kernel.cl"
@@ -17,9 +20,9 @@
  * but with some added stuff appended
  */
 typedef struct {
-	uint8_t length;
-	uint8_t salt[115];
 	uint32_t rounds;
+	uint32_t length;
+	uint8_t salt[179];
 	union blob {  // wrapped kek
 		uint64_t qword[BLOBLEN/8];
 		uint8_t chr[BLOBLEN];

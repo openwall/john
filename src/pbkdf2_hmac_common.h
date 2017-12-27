@@ -18,8 +18,7 @@
 #define FORMAT_NAME		                   ""
 
 #define PBKDF2_32_BINARY_ALIGN             sizeof(uint32_t)
-#define PBKDF2_32_MAX_SALT_SIZE_SHA1       179 /* 3 limb sha1 max when 4 byte loop counter is appended */
-#define PBKDF2_32_MAX_SALT_SIZE            115 /* 2 limb md4/md5/sha1/sha256 max when 4 byte loop counter is appended */
+#define PBKDF2_32_MAX_SALT_SIZE            179 /* 3 limb md4/md5/sha1/sha256 max when 4 byte loop counter is appended */
 #define PBKDF2_64_MAX_SALT_SIZE            107 /* 1 limb sha512 max when 4 byte loop counter is appended */
 
 #define PBKDF2_MDx_BINARY_SIZE             16
@@ -42,7 +41,7 @@
 #define PKCS5S2_TAG_LEN                     (sizeof(PKCS5S2_TAG)-1)
 #define PK5K2_TAG                           "$p5k2$"
 #define PK5K2_TAG_LEN                       (sizeof(PK5K2_TAG)-1)
-#define PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH   (PBKDF2_SHA1_TAG_LEN + 6 + 1 + 2*PBKDF2_32_MAX_SALT_SIZE_SHA1 + 1 + 2*PBKDF2_SHA1_MAX_BINARY_SIZE)
+#define PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH   (PBKDF2_SHA1_TAG_LEN + 6 + 1 + 2*PBKDF2_32_MAX_SALT_SIZE + 1 + 2*PBKDF2_SHA1_MAX_BINARY_SIZE)
 
 #define PBKDF2_SHA256_BINARY_SIZE           32
 #define PBKDF2_SHA256_FORMAT_TAG            "$pbkdf2-sha256$"
