@@ -286,10 +286,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-#endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 		unsigned char key[32], i;
 		AES_KEY aeskey;
 		int key_size;
@@ -347,9 +344,7 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index++)
-#endif
 		if (crypt_out[index][0] == *(uint32_t*)binary)
 			return 1;
 

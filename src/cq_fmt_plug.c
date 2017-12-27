@@ -443,27 +443,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index++)
-#endif
-	{
 		*crypt_key[index] = AdEncryptPassword(saved_salt, saved_key[index]);
-	}
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int i = 0;
+	int i;
 
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (i = 0; i < count; ++i)
-#endif
-	{
 		if ((*(unsigned int*)binary) == *(unsigned int*)crypt_key[i])
 			return 1;
-	}
 
 	return 0;
 }

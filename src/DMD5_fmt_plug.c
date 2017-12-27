@@ -378,7 +378,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-#if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 	int index;
 	uint32_t b = ((uint32_t*)binary)[0];
 
@@ -386,9 +385,6 @@ static int cmp_all(void *binary, int count)
 		if (crypt_key[index][0] == b)
 			return 1;
 	return 0;
-#else
-	return ((uint32_t*)binary)[0] == crypt_key[0][0];
-#endif
 }
 
 static int cmp_one(void *binary, int index)

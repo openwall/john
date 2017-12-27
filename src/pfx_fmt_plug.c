@@ -210,10 +210,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		inc = SSE_GROUP_SZ_SHA1;
 	else if (cur_salt->mac_algo == 256 || cur_salt->mac_algo == 224)
 		inc = SSE_GROUP_SZ_SHA256;
+#endif
 #if defined(SIMD_COEF_64)
 	else if (cur_salt->mac_algo == 512 || cur_salt->mac_algo == 384)
 		inc = SSE_GROUP_SZ_SHA512;
-#endif
 #endif
 
 #ifdef _OPENMP
@@ -221,7 +221,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += inc) {
 #if !defined(SIMD_COEF_32)
-
 		if (cur_salt->mac_algo == 1) {
 			unsigned char mackey[20];
 			int mackeylen = cur_salt->key_length;
@@ -419,11 +418,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
 
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

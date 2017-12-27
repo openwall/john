@@ -412,8 +412,9 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count)
 {
-#ifdef SIMD_COEF_32
 	unsigned int index;
+
+#ifdef SIMD_COEF_32
 
 	for (index = 0; index < count; index++) {
 		// NOTE crypt_key is in input format (PAD_SIZE * SIMD_COEF_32)
@@ -422,11 +423,7 @@ static int cmp_all(void *binary, int count)
 	}
 	return 0;
 #else
-	int index = 0;
-
-#if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 	for (index = 0; index < count; index++)
-#endif
 		if (((uint32_t*)binary)[0] == crypt_key[index][0])
 			return 1;
 	return 0;
@@ -473,10 +470,7 @@ static int crypt_all(int *pcount, struct db_salt *salt,
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-#endif
-	{
+	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
 		unsigned int i, *pclear;
 

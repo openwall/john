@@ -200,6 +200,7 @@ static int cmp_all(void* binary, int count)
 
 static int cmp_exact(char* source, int index)
 {
+	uint32_t *binary = get_binary_size(source, 8);
 	register uint32_t nr = 1345345333, add = 7, nr2 = 0x12345671;
 	register uint32_t tmp;
 	unsigned char *p;
@@ -215,35 +216,22 @@ static int cmp_exact(char* source, int index)
 		add += tmp;
 	}
 
-#if 0
-	{
-		char ctmp[CIPHERTEXT_LENGTH + 1];
-		sprintf(ctmp, "%08x%08x", nr & (((uint32_t)1 << 31) - 1), nr2 & (((uint32_t)1 << 31) - 1));
-		return !memcmp(source, ctmp, CIPHERTEXT_LENGTH);
-	}
-#else
-	{
-		uint32_t *binary = get_binary_size(source, 8);
-		return
-		    binary[0] == (nr & (((uint32_t)1 << 31) - 1)) &&
-		    binary[1] == (nr2 & (((uint32_t)1 << 31) - 1));
-	}
-#endif
+	return
+		binary[0] == (nr & (((uint32_t)1 << 31) - 1)) &&
+		binary[1] == (nr2 & (((uint32_t)1 << 31) - 1));
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i = 0;
+	int i;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(count, saved_key, crypt_key)
 #endif
-#if MAX_KEYS_PER_CRYPT > 1 || defined(_OPENMP)
-	for (i = 0; i < count; i++)
-#endif
-	{
+	for (i = 0; i < count; i++) {
 		unsigned char *p = (unsigned char *)saved_key[i];
+
 		if (*p) {
 			uint32_t nr, add;
 			uint32_t tmp;
@@ -260,11 +248,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				add += tmp;
 			}
 			crypt_key[i][0] = (nr & (((uint32_t)1 << 31) - 1));
-#if MAX_KEYS_PER_CRYPT > 1 || defined(_OPENMP)
 			continue;
-#else
-			return count;
-#endif
 		}
 		crypt_key[i][0] = (1345345333 & (((uint32_t)1 << 31) - 1));
 	}

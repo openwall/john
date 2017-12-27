@@ -1186,13 +1186,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					&nthash[GETOUTPOS_W32(3, i)] >> 16;
 			}
 #else
-#if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-		for (i = 0; i < count; i++)
-#endif
-		{
+		for (i = 0; i < count; i++) {
 			MD4_CTX ctx;
 
 			MD4_Init( &ctx );
@@ -1226,7 +1223,7 @@ static int cmp_one(void *binary, int index)
 		int i;
 
 		for (i = 0; i < 2; i++)
-			key[i] = 
+			key[i] =
 #if ARCH_LITTLE_ENDIAN==1
 				*(uint32_t*) &nthash[GETOUTPOS_W32(i, index)];
 #else
@@ -1268,10 +1265,6 @@ static int cmp_all(void *binary, int count)
 		unsigned int a = crypt_key[index];
 		unsigned int b = crypt_key[index + 1];
 
-#if 0
-		if (((a | b) & value) != value)
-			continue;
-#endif
 		if (a == value || b == value)
 			goto thorough;
 	}
