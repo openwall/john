@@ -392,6 +392,11 @@ case "$simd" in
   no)
     AC_MSG_NOTICE([SIMD logic disabled by request])
     AC_SUBST([JOHN_NO_SIMD], ["-DJOHN_NO_SIMD"])
+    [case "$host_cpu" in
+      aarch64|arm*|powerpc*)
+        SIMD_NAME="(SIMD disabled)"
+      ;;
+    esac]
     ;;
   neon)
     AS_CASE([$host_cpu],
@@ -1109,7 +1114,7 @@ rm -f fmt_externs.h
 
 CFLAGS_EX2=
 if test "x$simd" = xno ; then
-CFLAGS_EX2=-DJOHN_NO_SIMD
+   CFLAGS_EX2=-DJOHN_NO_SIMD
 fi
 
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
