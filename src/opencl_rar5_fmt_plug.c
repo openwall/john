@@ -47,7 +47,6 @@ john_register_one(&fmt_ocl_rar5);
 #define BINARY_ALIGN            4
 #define SALT_ALIGN              sizeof(int)
 
-#define PLAINTEXT_LENGTH        55
 #define BINARY_SIZE             SIZE_PSWCHECK
 #define SALT_SIZE               sizeof(struct custom_salt)
 
@@ -57,29 +56,7 @@ john_register_one(&fmt_ocl_rar5);
 #define HASH_LOOPS              (3*13*29) // factors 3, 13, 29, 29
 #define ITERATIONS              (32800 - 1)
 
-typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
-} pass_t;
-
-typedef struct {
-	uint32_t hash[8];
-} crack_t;
-
-// This structure HAS to match what is in pbkdf2_hmac_sha256_kernel.cl
-typedef struct {
-	uint8_t length;
-	uint8_t salt[115];
-	uint32_t rounds;
-} salt_t;
-
-typedef struct {
-	uint32_t ipad[8];
-	uint32_t opad[8];
-	uint32_t hash[8];
-	uint32_t W[8];
-	uint32_t rounds;
-} state_t;
+#include "opencl_pbkdf2_hmac_sha256.h"
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/

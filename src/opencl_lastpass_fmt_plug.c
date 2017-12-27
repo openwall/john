@@ -33,35 +33,13 @@ john_register_one(&fmt_opencl_lastpass);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              sizeof(int)
-#define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
 
 #define HASH_LOOPS              (13*71) // factors 13, 13, 71
 #define ITERATIONS              12000
 
-typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
-} pass_t;
-
-typedef struct {
-	uint32_t hash[8];
-} crack_t;
-
-typedef struct {
-	uint8_t length;
-	uint8_t salt[115];
-	uint32_t rounds;
-} salt_t;
-
-typedef struct {
-	uint32_t ipad[8];
-	uint32_t opad[8];
-	uint32_t hash[8];
-	uint32_t W[8];
-	uint32_t rounds;
-} state_t;
+#include "opencl_pbkdf2_hmac_sha256.h"
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/

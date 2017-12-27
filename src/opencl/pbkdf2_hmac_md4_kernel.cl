@@ -7,6 +7,7 @@
  * increased salt_len from 52 (which was a bug), to 115.  salts [52-115] bytes
  * require 2 md4 limbs to handle.  Salts [0-51] bytes in length are handled by
  * 1 md4 limb.  (Feb. 2/16, JimF)
+ *  increased salt again.  Now unlimited salt length. (Dec 2017, JimF)
  *
  * This is a generic pbkdf2-hmac-md4
  *
@@ -62,51 +63,60 @@ inline void hmac_md4(__global MAYBE_VECTOR_UINT *state,
                      __global MAYBE_VECTOR_UINT *opad,
                      MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
-	uint i;
+	uint i, j, last;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[4];
 
 	for (i = 0; i < 4; i++)
 		output[i] = ipad[i];
 
-	for (i = 0; i < 14; i++)
-		W[i] = 0;
-	if (saltlen < 52) {
-		// only needs 1 limb
-		for (i = 0; i < saltlen; i++)
-			PUTCHAR(W, i, salt[i]);
-		PUTCHAR(W, saltlen + 3, add);
-		PUTCHAR(W, saltlen + 4, 0x80);
-		W[14] = (64 + saltlen + 4) << 3;
-		W[15] = 0;
-		md4_block(MAYBE_VECTOR_UINT, W, output);
-	} else {
-		// handles 2 limbs of salt and loop-count (up to 115 byte salt)
-		uint j;
-		W[14] = 0;	// first buffer will NOT get length, so zero it out also.
-		W[15] = 0;
-		for (i = 0; i < saltlen && i < 64; i++)
-			PUTCHAR(W, i, salt[i]);
-		// i MUST be preserved.  It if our count of # of salt bytes consumed.
-		if (saltlen < 61)
-			PUTCHAR(W, saltlen + 3, add);
-		if (saltlen < 60)
-			PUTCHAR(W, saltlen + 4, 0x80);
-		md4_block(MAYBE_VECTOR_UINT, W, output);
-
-		// now build and process 2nd limb
-		for (j = 0; j < 14; j++)  // do not fuk with i!
-			W[j] = 0;
-		for (; i < saltlen; i++)
-			PUTCHAR(W, i - 64, salt[i]);
-		if (saltlen >= 61)
-			PUTCHAR(W, saltlen + 3 - 64, add);
-		if (saltlen >= 60)
-			PUTCHAR(W, saltlen + 4 - 64, 0x80);
-		W[14] = (64 + saltlen + 4) << 3;
-		W[15] = 0;
+	// Code now handles ANY length salt!
+	i = 0;
+	last = saltlen;	// this the count of bytes of salt put into the final buffer.
+	while (i+64 <= saltlen) {
+		// no need to clean. We are using the entire 64 bytes with this block of salt
+		for (j = 0; j < 64; ++j, ++i)
+			PUTCHAR(W, j, salt[i]);
+		last -= 64;
 		md4_block(MAYBE_VECTOR_UINT, W, output);
 	}
+	//
+	// ok, either this is the last limb, OR we have this one, and have to make 1 more.
+	//
+	// Fully blank out the buffer (dont skip element 15 len 61-63 wont clean buffer)
+	for (j = 0; j < 16; j++)
+		W[j] = 0;
+
+	// assertion [i <= saltlen < (i+64)], so all remaining salt (if any) fits in this block
+	for (j = 0; i < saltlen; ++j, ++i)
+		PUTCHAR(W, j, salt[i]);
+
+	if (last <= 51) {
+		// this is last limb, everything fits
+		PUTCHAR(W, last + 3, add);
+		PUTCHAR(W, last + 4, 0x80);
+		W[14] = (64 + saltlen + 4) << 3;
+	} else {
+		// do the last limb with salt data, then 1 more buffer, since this one
+		// the salt + add number did NOT fit into this buffer.
+		if (last < 61)
+			PUTCHAR(W, last + 3, add);
+		if (last < 60)
+			PUTCHAR(W, last + 4, 0x80);
+		md4_block(MAYBE_VECTOR_UINT, W, output);
+		// Final limb (no salt data put into this one)
+		for (j = 0; j < 14; j++)
+			W[j] = 0;
+		if (last >= 61)
+			PUTCHAR(W, last + 3 - 64, add);
+		if (last >= 60)
+			PUTCHAR(W, last + 4 - 64, 0x80);
+		W[14] = (64 + saltlen + 4) << 3;
+		W[15] = 0;
+	}
+	// this is sha1_final for our salt.add-word.
+	md4_block(MAYBE_VECTOR_UINT, W, output);
+
 	for (i = 0; i < 4; i++)
 		W[i] = output[i];
 	W[4] = 0x80;

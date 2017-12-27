@@ -4,6 +4,8 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ *  increased salt.  Now unlimited salt length. (Dec 2017, JimF)
  */
 
 #include "opencl_device_info.h"
@@ -21,7 +23,7 @@ typedef struct {
 
 typedef struct {
 	uchar length;
-	uchar salt[115];
+	uchar salt[179];
 	uint rounds;
 } salt_t;
 
@@ -70,9 +72,9 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
                         uint *opad_state, __constant uchar *salt,
                         uint saltlen)
 {
-	uint i, t;
-	uint W[16];
-	uint A, B, C, D, E, F, G, H;
+	uint i, j, last;
+	uint W[16], ctx[8];
+//	uint t, A, B, C, D, E, F, G, H;
 
 // Not sure if either 'method' (i.e. a buf[128]={0} or simply dropping right into W[] array)
 // is better than the other, so both have been left in the kernel for now.  Once we know
@@ -135,6 +137,7 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
 //		W[7] = H + h;
 //	}
 
+#if 0
 	A = ipad_state[0];
 	B = ipad_state[1];
 	C = ipad_state[2];
@@ -207,28 +210,67 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
 		}
 	}
 
+#endif
+	// Code now handles ANY length salt!
+	// switched to use sha256_block ctx model
+	for (j = 0; j < 8; j++)
+		ctx[j] = ipad_state[j];
+
+	i = 0;
+	last = saltlen;	// this the count of bytes of salt put into the final buffer.
+	while (i+64 <= saltlen) {
+		// no need to clean. We are using the entire 64 bytes with this block of salt
+		for (j = 0; j < 64; ++j, ++i)
+			PUTCHAR_BE(W, j, salt[i]);
+		last -= 64;
+		sha256_block(W, ctx);
+	}
+	//
+	// ok, either this is the last limb, OR we have this one, and have to make 1 more.
+	//
+	// Fully blank out the buffer (dont skip element 15 len 61-63 wont clean buffer)
+	for (j = 0; j < 16; j++)
+		W[j] = 0;
+
+	// assertion [i <= saltlen < (i+64)], so all remaining salt (if any) fits in this block
+	for (j = 0; i < saltlen; ++j, ++i)
+		PUTCHAR_BE(W, j, salt[i]);
+
+	if (last <= 51) {
+		// this is last limb, everything fits
+		PUTCHAR_BE(W, last + 3, 1);		// should be add to allow more than 32 bytes to be returned!
+		PUTCHAR_BE(W, last + 4, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+	} else {
+		// do the last limb with salt data, then 1 more buffer, since this one
+		// the salt + add number did NOT fit into this buffer.
+		if (last < 61)
+			PUTCHAR_BE(W, last + 3, 1);	// should be add to allow more than 32 bytes to be returned!
+		if (last < 60)
+			PUTCHAR_BE(W, last + 4, 0x80);
+		sha256_block(W, ctx);
+		// Final limb (no salt data put into this one)
+		for (j = 0; j < 15; j++)
+			W[j] = 0;
+		if (last >= 61)
+			PUTCHAR_BE(W, last + 3 - 64, 1);	// should be add to allow more than 32 bytes to be returned!
+		if (last >= 60)
+			PUTCHAR_BE(W, last + 4 - 64, 0x80);
+		W[15] = (64 + saltlen + 4) << 3;
+	}
+	// this is sha256_final for our salt.add-word.
+	sha256_block(W, ctx);
+	for (j = 0; j < 8; j++)
+		W[j] = ctx[j];
 	W[8] = 0x80000000;
 	W[15] = 0x300;
 
-	A = opad_state[0];
-	B = opad_state[1];
-	C = opad_state[2];
-	D = opad_state[3];
-	E = opad_state[4];
-	F = opad_state[5];
-	G = opad_state[6];
-	H = opad_state[7];
+	for (j = 0; j < 8; j++)
+		ctx[j] = opad_state[j];
+	sha256_block_zeros(W, ctx);
 
-	SHA256_ZEROS(A, B, C, D, E, F, G, H, W);
-
-	output[0] = A + opad_state[0];
-	output[1] = B + opad_state[1];
-	output[2] = C + opad_state[2];
-	output[3] = D + opad_state[3];
-	output[4] = E + opad_state[4];
-	output[5] = F + opad_state[5];
-	output[6] = G + opad_state[6];
-	output[7] = H + opad_state[7];
+	for (j = 0; j < 8; j++)
+		output[j] = ctx[j];
 }
 
 __kernel void pbkdf2_sha256_loop(__global state_t *state,
