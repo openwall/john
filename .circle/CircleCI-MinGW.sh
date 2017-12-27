@@ -59,20 +59,24 @@ echo '**************************************************************************
 echo ""
 
 # Build with AVX
-mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2.exe\""' --host=i686-w64-mingw32
+mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mavx -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2.exe\""' --host=i686-w64-mingw32
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mingw32 make -sj4
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mv -v ../run/john ../run/john-avx.exe
 make clean; make distclean
 
 # Build with AVX2 (32-bit, see https://github.com/magnumripper/JohnTheRipper/issues/2543 for details)
-mingw32 ./configure --disable-native-tests CPPFLAGS='-mavx2 -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx.exe\""' --host=i686-w64-mingw32
+mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mavx2 -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx.exe\""' --host=i686-w64-mingw32
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mingw32 make -sj4
+if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mv -v ../run/john ../run/john-avx2.exe
 make clean; make distclean
 
 # Build with SSE2 only
 # mingw64 ./configure --disable-native-tests CPPFLAGS='-mno-ssse3' --host=x86_64-w64-mingw32
-mingw32 ./configure --disable-native-tests CPPFLAGS='-mno-ssse3' --host=i686-w64-mingw32
+mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mno-ssse3' --host=i686-w64-mingw32
 # mingw64 ./configure --host=x86_64-w64-mingw32
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 mingw64 make -sj4
@@ -143,7 +147,7 @@ echo '**************************************************************************
 echo ""
 cd /base/JohnTheRipper/src
 make -s distclean
-CFLAGS_EXTRA="-fstack-protector-all" ./configure --disable-simd
+CFLAGS_EXTRA="-fstack-protector-all" ./configure --enable-werror --disable-simd
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
 make -sj4
 if [ "x$?" != "x0" ] ; then exit 1 ; fi
