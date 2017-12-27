@@ -450,8 +450,11 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   aarch64) ARCH_LINK=arm64le.h endian=little
-    SIMD_NAME="NEON"
-    AC_MSG_RESULT([NEON])
+    AS_IF([test $simd != no],
+        [AC_MSG_CHECKING([special compiler flags])]
+        [AC_MSG_RESULT([aarch64])]
+        [SIMD_NAME="NEON"]
+      )
     ;;
   arm*) ARCH_LINK=arm32le.h endian=little
     AC_MSG_CHECKING([special compiler flags])

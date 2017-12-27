@@ -8824,9 +8824,14 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   aarch64) ARCH_LINK=arm64le.h endian=little
-    SIMD_NAME="NEON"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: NEON" >&5
-$as_echo "NEON" >&6; }
+    if test $simd != no; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+$as_echo_n "checking special compiler flags... " >&6; }
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: aarch64" >&5
+$as_echo "aarch64" >&6; }
+        SIMD_NAME="NEON"
+
+fi
     ;;
   arm*) ARCH_LINK=arm32le.h endian=little
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
