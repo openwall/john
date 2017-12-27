@@ -351,6 +351,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// byte passwords 'all' group into the final group. Those are run 1 at
 	// a time through CTX based code.
 	int j, tot=0;
+
 	tot_todo = 0;
 	saved_len[count] = 0; // point all 'tail' MMX buffer elements to this location.
 	for (j = 0; j < 21 && tot<count; ++j) {
@@ -382,13 +383,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	tot_todo = count;
 #endif
 
-	index = 0;
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < tot_todo; index += MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < tot_todo; index += MAX_KEYS_PER_CRYPT) {
 		SHA_CTX ctx;
 #ifdef SIMD_COEF_32
 		int x, tid=0, len, idx;
@@ -452,11 +450,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
 
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index++)
-#endif
 		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;

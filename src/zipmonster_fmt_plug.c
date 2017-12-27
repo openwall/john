@@ -177,7 +177,7 @@ inline static void hex_encode_uppercase(unsigned char *str, unsigned char *_out)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 	int inc = 1;
 #ifdef SIMD_COEF_32
 	inc = SIMD_COEF_32*SIMD_PARA_MD5;
@@ -186,8 +186,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += inc)
-	{
+	for (index = 0; index < count; index += inc) {
 		unsigned char buffer[BINARY_SIZE];
 		MD5_CTX ctx;
 		int n = 49999;
@@ -293,11 +292,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
+	int index;
 
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
 			return 1;
 	return 0;

@@ -234,15 +234,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	DES_key_schedule ks;
-	int i = 0;
+	int i;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i, ks) shared(count, output, challenge, saved_key)
 #endif
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
-	for (i = 0; i < count; i++)
-#endif
-	{
+	for (i = 0; i < count; i++) {
 		/* Just do a partial binary, the first DES operation */
 		setup_des_key(saved_key[i], &ks);
 		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i],
@@ -253,10 +250,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+	int index;
+
 	for (index = 0; index < count; index++)
-#endif
 		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
 			return 1;
 	return 0;
