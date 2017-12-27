@@ -50,11 +50,9 @@ john_register_one(&fmt_wpapsk);
 
 #define FORMAT_LABEL		"wpapsk"
 #if !HAVE_OPENSSL_CMAC_H
-#ifdef _MSC_VER
-#pragma message("Notice: WPAPSK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.")
-#else
-#warning Notice: WPAPSK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.
-#endif
+#define JTR_CC_MESSAGE "Notice: WPAPSK (CPU) format built without support for 802.11w. Upgrade your OpenSSL."
+#include "compiler_message.h"
+
 #define FORMAT_NAME		"WPA/WPA2 PSK"
 #else
 #define FORMAT_NAME		"WPA/WPA2/PMF PSK"

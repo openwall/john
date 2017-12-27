@@ -1779,11 +1779,8 @@ struct fmt_main fmt_pkzip = {
 #else
 
 #if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
-#ifdef __GNUC__
-#warning pkzip format requires zlib to function. The format has been disabled
-#elif _MSC_VER
-#pragma message(": warning pkzip format requires zlib to function. The format has been disabled :")
-#endif
+#define JTR_CC_MESSAGE "Notice: pkzip format requires zlib to function; format disabled."
+#include "compiler_message.h"
 #endif
 
 #endif /* HAVE_LIBZ */
