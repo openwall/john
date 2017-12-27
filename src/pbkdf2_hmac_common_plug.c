@@ -381,7 +381,7 @@ int pbkdf2_hmac_sha1_valid(char *ciphertext, struct fmt_main *self) {
 	if (!(ptr = strtokm(NULL, delim)))
 		goto error;
 	len = strlen(ptr); // salt hex length
-	if (len > 2 * PBKDF2_32_MAX_SALT_SIZE_SHA1 || len & 1)
+	if (len > 2 * PBKDF2_32_MAX_SALT_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
