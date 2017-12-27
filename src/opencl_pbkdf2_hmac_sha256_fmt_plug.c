@@ -32,7 +32,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 
 #define SALT_ALIGN		1
 
-#define PLAINTEXT_LENGTH	55
 #define SALT_SIZE		sizeof(salt_t)
 
 #define KERNEL_NAME		"pbkdf2_sha256_kernel"
@@ -41,28 +40,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define HASH_LOOPS		(13*71) // factors 13, 13, 71
 #define ITERATIONS		12000
 
-typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
-} pass_t;
-
-typedef struct {
-	uint32_t hash[8];
-} crack_t;
-
-typedef struct {
-	uint8_t length;
-	uint8_t salt[PBKDF2_32_MAX_SALT_SIZE];
-	uint32_t rounds;
-} salt_t;
-
-typedef struct {
-	uint32_t ipad[8];
-	uint32_t opad[8];
-	uint32_t hash[8];
-	uint32_t W[8];
-	uint32_t rounds;
-} state_t;
+#include "opencl_pbkdf2_hmac_sha256.h"
 
 //#define DEBUG
 static pass_t *host_pass;			      /** plain ciphertexts **/
