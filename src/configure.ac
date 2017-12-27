@@ -234,14 +234,16 @@ fi
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
 
-if test "x$werror" = xyes ; then
-   JTR_FLAG_CHECK([-Werror], 1)
-fi
-if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
-   JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
-else
-   JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
-fi
+   AS_IF([test "x$werror" = xyes],
+      JTR_FLAG_CHECK([-Werror], 1)
+      JTR_FLAG_CHECK([-Wno-error=cpp], 1)
+   )
+   if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
+      JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
+   else
+      JTR_FLAG_CHECK([-fomit-frame-pointer], 1)
+   fi
+
    # gcc bug workaround, see issue 632
    JTR_FLAG_CHECK([--param allow-store-data-races=0], 1)
    # Silly OSX warnings
