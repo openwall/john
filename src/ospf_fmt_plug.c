@@ -19,6 +19,7 @@ john_register_one(&fmt_ospf);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
@@ -90,8 +91,8 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
-        MEM_FREE(saved_key);
-        MEM_FREE(crypt_out);
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_out);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
