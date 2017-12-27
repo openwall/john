@@ -5,6 +5,9 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * salt length increase. HAS to match pbkdf2_hmac_sha256_kernel.cl code
+ *  Now uses a common header file.  Dec 2017, JimF.
  */
 #ifdef HAVE_OPENCL
 
@@ -35,7 +38,6 @@ john_register_one(&fmt_opencl_fvde);
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              sizeof(uint64_t)
-#define PLAINTEXT_LENGTH        55
 #define KERNEL_NAME             "pbkdf2_sha256_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
 #define AES_KERNEL_NAME         "fvde_decrypt"
@@ -43,35 +45,18 @@ john_register_one(&fmt_opencl_fvde);
 #define HASH_LOOPS              (7*113) // factors 7 89 113 (for 70400)
 #define ITERATIONS              70400
 
-typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
-} pass_t;
+#include "opencl_pbkdf2_hmac_sha256.h"
 
 typedef struct {
-	uint32_t hash[8];
-} crack_t;
-
-typedef struct {
-	uint8_t length;
-	uint8_t salt[115];
-	uint32_t rounds;
+	salt_t salt;	// MUST match opencl_pbkdf2_hmac_sha256.cl structure!
 	union {  // wrapped kek
 		uint64_t qword[BLOBLEN/8];
 		uint8_t chr[BLOBLEN];
 	} blob;
-} salt_t;
-
-typedef struct {
-	uint32_t ipad[8];
-	uint32_t opad[8];
-	uint32_t hash[8];
-	uint32_t W[8];
-	uint32_t rounds;
-} state_t;
+} salt_t2;
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
-static salt_t *host_salt;			      /** salt **/
+static salt_t2 *host_salt;			      /** salt **/
 static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_cracked;
 static cl_kernel split_kernel, decrypt_kernel;
@@ -107,13 +92,13 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
-	host_salt = mem_calloc(1, sizeof(salt_t));
+	host_salt = mem_calloc(1, sizeof(salt_t2));
 	cracked_size = kpc * sizeof(*cracked);
 	cracked = mem_calloc(cracked_size, 1);
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
 	                        "Cannot allocate mem in");
-	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(salt_t),
+	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(salt_t2),
 	                          "Cannot allocate mem salt");
 	mem_out = CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t),
 	                         "Cannot allocate mem out");
@@ -219,13 +204,13 @@ static void set_salt(void *salt)
 {
 	cur_salt = (fvde_custom_salt*)salt;
 
-	memcpy(host_salt->salt, cur_salt->salt, cur_salt->salt_length);
+	memcpy(host_salt->salt.salt, cur_salt->salt, cur_salt->salt_length);
 	memcpy(host_salt->blob.qword, cur_salt->blob.qword, BLOBLEN);
-	host_salt->length = cur_salt->salt_length;
-	host_salt->rounds = cur_salt->iterations;
+	host_salt->salt.length = cur_salt->salt_length;
+	host_salt->salt.rounds = cur_salt->iterations;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
+		CL_FALSE, 0, sizeof(salt_t2), host_salt, 0, NULL, NULL),
 	    "Copy salt to gpu");
 }
 
@@ -233,7 +218,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
 	const int count = *pcount;
-	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
+	int loops = (host_salt->salt.rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
