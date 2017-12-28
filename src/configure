@@ -16100,11 +16100,11 @@ fi
 # don't build opencl_*plug.c unless an opencl build
 ####################################################
 if test x$using_cl = xyes ; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating *_plug.c and OpenCL object rules" >&5
-$as_echo "$as_me: configure: creating *_plug.c and OpenCL object rules" >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: creating *_plug.c and OpenCL object rules" >&5
+$as_echo "$as_me: creating *_plug.c and OpenCL object rules" >&6;}
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating *_plug.c rules, WITHOUT OpenCL objects" >&5
-$as_echo "$as_me: configure: creating *_plug.c rules, WITHOUT OpenCL objects" >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: creating *_plug.c rules, WITHOUT OpenCL objects" >&5
+$as_echo "$as_me: creating *_plug.c rules, WITHOUT OpenCL objects" >&6;}
 fi
 
 
@@ -16118,8 +16118,8 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
 
    fi
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating Makefile dependencies" >&5
-$as_echo "$as_me: configure: creating Makefile dependencies" >&6;}
+      { $as_echo "$as_me:${as_lineno-$LINENO}: creating Makefile dependencies" >&5
+$as_echo "$as_me: creating Makefile dependencies" >&6;}
       PLUGFORMATS_DEPS=`$PERL ./plugin_deps.pl *_plug.c`
 
       if test x$using_cl = xyes ; then
@@ -16129,8 +16129,8 @@ $as_echo "$as_me: configure: creating Makefile dependencies" >&6;}
    fi
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating ./john_build_rule.h" >&5
-$as_echo "$as_me: configure: creating ./john_build_rule.h" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: creating ./john_build_rule.h" >&5
+$as_echo "$as_me: creating ./john_build_rule.h" >&6;}
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} ${SIMD_NAME} AC\"" > john_build_rule.h
 
 HOST_OS="$host_os"
@@ -17516,8 +17516,8 @@ fi
 # This needs arch.h to be linked so can't happen before
 # AC_OUTPUT
 ##########################################################
-{ $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating ./fmt_externs.h" >&5
-$as_echo "$as_me: configure: creating ./fmt_externs.h" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: creating ./fmt_externs.h" >&5
+$as_echo "$as_me: creating ./fmt_externs.h" >&6;}
 rm -f fmt_externs.h
 
 CFLAGS_EX2=
@@ -17537,8 +17537,8 @@ fi
 if test ! -f fmt_externs.h; then
   echo >fmt_externs.h
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: configure: creating ./fmt_registers.h" >&5
-$as_echo "$as_me: configure: creating ./fmt_registers.h" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: creating ./fmt_registers.h" >&5
+$as_echo "$as_me: creating ./fmt_registers.h" >&6;}
 rm -f fmt_registers.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h

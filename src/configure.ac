@@ -1071,9 +1071,9 @@ fi
 # don't build opencl_*plug.c unless an opencl build
 ####################################################
 if test x$using_cl = xyes ; then
-  AC_MSG_NOTICE([configure: creating *_plug.c and OpenCL object rules])
+  AC_MSG_NOTICE([creating *_plug.c and OpenCL object rules])
 else
-  AC_MSG_NOTICE([configure: creating *_plug.c rules, WITHOUT OpenCL objects])
+  AC_MSG_NOTICE([creating *_plug.c rules, WITHOUT OpenCL objects])
 fi
 AC_SUBST([KERNEL_OBJS],[])
 AC_SUBST([KERNEL_DEPS],[])
@@ -1084,7 +1084,7 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
      AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
    fi
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
-      AC_MSG_NOTICE([configure: creating Makefile dependencies])
+      AC_MSG_NOTICE([creating Makefile dependencies])
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
       if test x$using_cl = xyes ; then
         AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
@@ -1092,7 +1092,7 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
    fi
 fi
 
-AC_MSG_NOTICE([configure: creating ./john_build_rule.h])
+AC_MSG_NOTICE([creating ./john_build_rule.h])
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} ${SIMD_NAME} AC\"" > john_build_rule.h
 
 AC_SUBST([HOST_OS],["$host_os"])
@@ -1109,7 +1109,7 @@ AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 # This needs arch.h to be linked so can't happen before
 # AC_OUTPUT
 ##########################################################
-AC_MSG_NOTICE([configure: creating ./fmt_externs.h])
+AC_MSG_NOTICE([creating ./fmt_externs.h])
 rm -f fmt_externs.h
 
 CFLAGS_EX2=
@@ -1129,7 +1129,7 @@ fi
 if test ! -f fmt_externs.h; then
   echo >fmt_externs.h
 fi
-AC_MSG_NOTICE([configure: creating ./fmt_registers.h])
+AC_MSG_NOTICE([creating ./fmt_registers.h])
 rm -f fmt_registers.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
