@@ -1,27 +1,29 @@
-dnl -----------------------------------------------------------------------------------------------
+dnl ======================================================================
 dnl changes to default _AC_INIT_HELP macro Copyright 2014, JimF
 dnl
-dnl This is JTR specific version of the --help screen.  We will put here EXACTLY what
-dnl we want shown for ./configure --help in JtR.
-dnl The only thing different than the macro in my general.m4 is I edited the directory
-dnl stuff out.
+dnl This is JTR specific version of the --help screen.  We will put here
+dnl EXACTLY what we want shown for ./configure --help in JtR.
+dnl The only thing different than the macro in my general.m4 is I edited
+dnl the directory stuff out.
 dnl
-dnl The 'original' macro was found (on my cygwin install) at /usr/share/autoconf/autoconf/general.m4
-dnl I have kept the original format, I simply remove some directory 'help' we did not want.
+dnl The 'original' macro was found (on my cygwin install) at
+dnl /usr/share/autoconf/autoconf/general.m4
+dnl I have kept the original format, I simply remove some directory 'help'
+dnl we did not want.
 dnl
-dnl -----------------------------------------------------------------------------------------------
-# _AC_INIT_HELP
-# -------------
-# Handle the `configure --help' message.
+dnl ======================================================================
+dnl _AC_INIT_HELP
+dnl -------------
+dnl Handle the `configure --help' message.
 m4_define([_AC_INIT_HELP],
 [m4_divert_push([HELP_BEGIN])dnl
 
-#
-# Report the --help message.
-#
+dnl
+dnl Report the --help message.
+dnl
 if test "$ac_init_help" = "long"; then
-  # Omit some internal or obsolete options to make the list less imposing.
-  # This message is too long to be a string in the A/UX 3.1 sh.
+  dnl Omit some internal or obsolete options to make the list less imposing.
+  dnl This message is too long to be a string in the A/UX 3.1 sh.
   cat <<_ACEOF
 \`configure' configures m4_ifset([AC_PACKAGE_STRING],
 			[AC_PACKAGE_STRING],
@@ -104,14 +106,14 @@ ac_status=$?
 fi
 
 if test "$ac_init_help" = "recursive"; then
-  # If there are subdirs, report their specific --help.
+  dnl If there are subdirs, report their specific --help.
   for ac_dir in : $ac_subdirs_all; do test "x$ac_dir" = x: && continue
     test -d "$ac_dir" ||
       { cd "$srcdir" && ac_pwd=`pwd` && srcdir=. && test -d "$ac_dir"; } ||
       continue
     _AC_SRCDIRS(["$ac_dir"])
     cd "$ac_dir" || { ac_status=$?; continue; }
-    # Check for guested configure.
+    dnl Check for guested configure.
     if test -f "$ac_srcdir/configure.gnu"; then
       echo &&
       $SHELL "$ac_srcdir/configure.gnu" --help=recursive
@@ -127,4 +129,4 @@ fi
 
 test -n "$ac_init_help" && exit $ac_status
 m4_divert_pop([HELP_END])dnl
-])# _AC_INIT_HELP
+])dnl _AC_INIT_HELP

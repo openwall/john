@@ -1345,13 +1345,8 @@ for ac_var in $ac_precious_vars; do
   eval ac_cv_env_${ac_var}_value=\$${ac_var}
 done
 
-#
-# Report the --help message.
-#
 if test "$ac_init_help" = "long"; then
-  # Omit some internal or obsolete options to make the list less imposing.
-  # This message is too long to be a string in the A/UX 3.1 sh.
-  cat <<_ACEOF
+      cat <<_ACEOF
 \`configure' configures john jumbo to adapt to many kinds of systems.
 
 Usage: $0 [OPTION]... [VAR=VALUE]...
@@ -1483,8 +1478,7 @@ ac_status=$?
 fi
 
 if test "$ac_init_help" = "recursive"; then
-  # If there are subdirs, report their specific --help.
-  for ac_dir in : $ac_subdirs_all; do test "x$ac_dir" = x: && continue
+    for ac_dir in : $ac_subdirs_all; do test "x$ac_dir" = x: && continue
     test -d "$ac_dir" ||
       { cd "$srcdir" && ac_pwd=`pwd` && srcdir=. && test -d "$ac_dir"; } ||
       continue
@@ -1523,8 +1517,7 @@ esac
 ac_abs_srcdir=$ac_abs_top_srcdir$ac_dir_suffix
 
     cd "$ac_dir" || { ac_status=$?; continue; }
-    # Check for guested configure.
-    if test -f "$ac_srcdir/configure.gnu"; then
+        if test -f "$ac_srcdir/configure.gnu"; then
       echo &&
       $SHELL "$ac_srcdir/configure.gnu" --help=recursive
     elif test -f "$ac_srcdir/configure"; then
@@ -2624,13 +2617,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-##  AM_INIT_AUTOMAKE([foreign subdir-objects])
 
 ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-# Include our extra macro code
 # generated automatically by aclocal 1.14 -*- Autoconf -*-
 
 # Copyright (C) 1996-2013 Free Software Foundation, Inc.
@@ -3366,20 +3357,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-# This file is Copyright (C) 2014-2017 magnum & JimF,
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# All tests in this file are supposed to be cross compile compliant
-#
-
-
-# JtR configure Intel-SIMD instruction active probe test
-# Copyright (C) 2014 Jim Fougeron, for John Ripper project.
-# This file put into public domain. unlimited permission to
-# copy and/or distribute it, with or without modifications,
-# as long as this notice is preserved.
 
 
 
@@ -3388,91 +3365,34 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-# JtR configure Arm-NEON instruction active probe test
-# Copyright (C) 2014 Jim Fougeron, for John Ripper project.
-# This file put into public domain. unlimited permission to
-# copy and/or distribute it, with or without modifications,
-# as long as this notice is preserved.
-
-
-# This file is Copyright (C) 2014 magnum,
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# All tests in this file are supposed to be cross compile compliant
-#
-
-
-# This file is Copyright (C) 2014 JimF,
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# All tests in this file are supposed to be cross compile compliant
-#
-
-
-# This file is Copyright (C) 2014 JimF, and magnum
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# Here are contained numerous utility macros
-
-# JTR_LIST_ADD(variable, value(s))
-# Add space separated value(s) to variable unless already present.
 
 
 
 
-# @synopsis JTR_FLAG_CHECK([compiler flags], flags)
-# @summary check whether compiler supports given options or not.
-# CFLAGS_EX is appended with each 'valid' command.
-#
-# If a second argument is 0, don't show progress
-# If a second argument is 1, show progress
-# If a second argument is 2, bails if not supported
-
-
-# @synopsis JTR_FLAG_CHECK_LINK(compiler flags[, flags])
-# @summary check whether compiler and linker supports given options or not.
-# CFLAGS_EX is appended with each 'valid' command.
-#
-# If a second argument is 0, don't show progress
-# If a second argument is 1, show progress
-# If a second argument is 2, bails if not supported
-
-
-# @synopsis SET_NORMAL_INCLUDES
-# @summary check and set many normal include paths
-# This might be a Bad Idea[tm] if cross compiling.
-
-
-# @synopsis SET_64_INCLUDES
-# @summary check and set some 64 bit includes
-# This might be a Bad Idea[tm] if cross compiling.
 
 
 
-# @synopsis SET_NORMAL_SSL_INCLUDES(base path)
-# @summary check and set include/library paths for OpenSSL
-# This might be a Bad Idea[tm] if cross compiling.
 
 
-# JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
-# success and forced should be xvar data, "x$enable_foobar", so they
-# will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
-# will be output, and the script will abort, IF forced is xyes which
-# means the user used --enable-foobar
 
 
-# JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED(chk_msg, success, forced, forced_fail_msg)
-# will output a checking 'chk_msg', then calls JTR_MSG_RESULT_FAILIF_FORCED
 
 
-# @synopsis JTR_SET_OPENCL_INCLUDES
-# @summary check and set many normal include paths
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3493,7 +3413,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 #
 
 
-# Define precious variables. They get included in --help and need no AC_SUBST
 
 
 
@@ -3501,8 +3420,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
-# Define Packages.
-# Use OpenSSL (default: yes).
 
 # Check whether --with-openssl was given.
 if test "${with_openssl+set}" = set; then :
@@ -3511,7 +3428,6 @@ else
   with_openssl=yes
 fi
 
-# Use CommonCrypto (default: no)
 
 # Check whether --with-commoncrypto was given.
 if test "${with_commoncrypto+set}" = set; then :
@@ -3520,7 +3436,6 @@ else
   with_commoncrypto=no
 fi
 
-# Cludge for endian (if not auto detected)
 
 # Check whether --with-endian was given.
 if test "${with_endian+set}" = set; then :
@@ -3529,7 +3444,6 @@ else
   endian=unknown
 fi
 
-# -DJOHN_SYSTEMWIDE
 
 # Check whether --with-systemwide was given.
 if test "${with_systemwide+set}" = set; then :
@@ -3598,9 +3512,6 @@ else
 fi
 
 
-# Define Features. OpenMP and OpenCL are defined in their respective macros.
-# We define "--disable-FEATURE" when default is "auto".
-# MPI is not "auto" because its network usage might scare people:
 # Check whether --enable-openmp-for-fast-formats was given.
 if test "${enable_openmp_for_fast_formats+set}" = set; then :
   enableval=$enable_openmp_for_fast_formats; ompfast=$enableval
@@ -3693,14 +3604,11 @@ else
 fi
 
 
-####### Actual tests start here #######
 
-# Assert that we don't have a stray GNUmakefile left in the tree :-(
 if test -f GNU?akefile; then
    as_fn_error $? "Stray GNUmakefile (or GNUMakefile) detected. Please remove it" "$LINENO" 5
 fi
 
-# Support cross compile
 ac_aux_dir=
 for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
   if test -f "$ac_dir/install-sh"; then
@@ -3802,7 +3710,6 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 
 
-# Check for MPI. Only if MPI not found/wanted: Check for CC.
 using_mpi=no
 # expand $ac_aux_dir to an absolute path
 am_aux_dir=`cd $ac_aux_dir && pwd`
@@ -5317,8 +5224,6 @@ fi
 
 
 
-# At this point we know whether this is a cross compile
-# Don't test for $cross_compiling = yes, because it might be 'maybe'.
 if test "x$enable_native_tests" = xauto; then
    if test "x$cross_compiling" != xno; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: This is a cross-compile; all native tests disabled" >&5
@@ -5329,10 +5234,6 @@ $as_echo "$as_me: This is a cross-compile; all native tests disabled" >&6;}
    fi
 fi
 
-###
-# Here we call setting up many -I in CFLAGS, and -L in
-# LDFLAGS for 'normal' paths, IF we find them.
-###
 if test "x$cross_compiling" = xno; then :
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths" >&5
@@ -5404,13 +5305,6 @@ fi
 
 fi
 
-###
-# check compiler switches here.  OPT_NORMAL, then
-#  OPT_INLINE, then extra CFLAGS are checked.
-###
-#
-# first test a totally BOGUS command line switch, to make sure that the
-# detection logic actually detects BAD command switches
 CFLAGS_EX=""
   if test 0 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fFOO_BAR_SWITCH_NOT_VALID" >&5
@@ -5461,9 +5355,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-# note, check message must be done after the first call to JTR_FLAG_CHECK. Since this is
-# the first macro that will use $CC, a lot of messages will happen.  We need to make that first
-# macro 'call', so that those messages are output, THEN we make our checking message.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro for -m with $CC" >&5
 $as_echo_n "checking arg check macro for -m with $CC... " >&6; }
   if test 0 -gt 0; then :
@@ -5574,7 +5465,6 @@ else
 $as_echo "no" >&6; }
 fi
 
-# This gave false positives on gcc 4.4.7, see issue #682
 CFLAGS_EX=""
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro for -Q with $CC" >&5
 $as_echo_n "checking arg check macro for -Q with $CC... " >&6; }
@@ -5637,12 +5527,10 @@ else
 $as_echo "no" >&6; }
 fi
 
-# Now, we only do option checking, IF this worked, i.e. that option was not detected as valid
 if test "x$JTR_FLAG_CHECK_WORKS" = xyes; then :
 
    CFLAGS_EX=""
-   # first fill out JtR's OPT_NORMAL= value
-     if test 1 -gt 0; then :
+        if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -funroll-loops" >&5
 $as_echo_n "checking if $CC supports -funroll-loops... " >&6; }
 fi
@@ -5695,8 +5583,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    OPT_NORMAL_FLAGS="${OPT_NORMAL_V}"
 
 
-   # now fill in extras for JtR's OPT_INLINE= value
-   CFLAGS_EX=""
+      CFLAGS_EX=""
      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Os" >&5
 $as_echo_n "checking if $CC supports -Os... " >&6; }
@@ -5847,8 +5734,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    OPT_INLINE_FLAGS="${CFLAGS_EX}"
 
 
-   # pick -Og or -O1 for debug targets (applies to ASan/UbSan too)
-   CFLAGS_EX=""
+      CFLAGS_EX=""
      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Og" >&5
 $as_echo_n "checking if $CC supports -Og... " >&6; }
@@ -5906,8 +5792,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    O_DEBUG=$O_DEBUG
 
 
-   # if user requested  ASan, make sure we can properly build/link with it.
-if test "x$asan" = xyes ; then
+   if test "x$asan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
      if test 1 -gt 0; then :
@@ -6025,8 +5910,7 @@ See \`config.log' for more details" "$LINENO" 5; }
    LDFLAGS=${LDFLAGS_BAK}
 fi
 
-   # if user requested  UbSan, make sure we can properly build/link with it.
-if test "x$ubsan" = xyes ; then
+   if test "x$ubsan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
      if test 1 -gt 0; then :
@@ -6154,8 +6038,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 fi
 
 
-   # now fill out CFLAGS
-   CFLAGS_EX=""
+      CFLAGS_EX=""
      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wall" >&5
 $as_echo_n "checking if $CC supports -Wall... " >&6; }
@@ -6507,8 +6390,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
    fi
 
-   # gcc bug workaround, see issue 632
-     if test 1 -gt 0; then :
+        if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports --param allow-store-data-races=0" >&5
 $as_echo_n "checking if $CC supports --param allow-store-data-races=0... " >&6; }
 fi
@@ -6557,8 +6439,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   # Silly OSX warnings
-     if test 1 -gt 0; then :
+        if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-deprecated-declarations" >&5
 $as_echo_n "checking if $CC supports -Wno-deprecated-declarations... " >&6; }
 fi
@@ -6607,8 +6488,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   # clang warnings
-     if test 1 -gt 0; then :
+        if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-extra-args" >&5
 $as_echo_n "checking if $CC supports -Wformat-extra-args... " >&6; }
 fi
@@ -6706,8 +6586,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   #JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
-   if test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes; then :
+      if test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes; then :
     if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Qunused-arguments" >&5
 $as_echo_n "checking if $CC supports -Qunused-arguments... " >&6; }
@@ -6758,8 +6637,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 fi
-   # Justified and Ancient (see #1093)
-     if test 1 -gt 0; then :
+        if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -std=gnu89" >&5
 $as_echo_n "checking if $CC supports -std=gnu89... " >&6; }
 fi
@@ -6808,8 +6686,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   # We like reproducible builds
-     if test 1 -gt 0; then :
+        if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wdate-time" >&5
 $as_echo_n "checking if $CC supports -Wdate-time... " >&6; }
 fi
@@ -6875,12 +6752,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 else
-     { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&5
-$as_echo "$as_me: Unable to validate $CC command line arguments. CFLAGS may need to be passed to ./configure for proper build" >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. Using standard values." >&5
+$as_echo "$as_me: Unable to validate $CC command line arguments. Using standard values." >&6;}
+   CFLAGS_EXTRA="-Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer"
 
 fi
 
-# early check of 64 bit systems.
 case "$host_cpu" in
   ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
     CFLAGS_EX=""
@@ -6948,7 +6825,6 @@ $as_echo "skipped" >&6; }
     ;;
 esac
 
-# Cross compile compliant 32/64 bit test code.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for 32/64 bit" >&5
 $as_echo_n "checking for 32/64 bit... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -7058,7 +6934,6 @@ fi
 
 fi
 
-# Checks for programs.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
 $as_echo_n "checking whether ln -s works... " >&6; }
 LN_S=$as_ln_s
@@ -7838,7 +7713,6 @@ fi
 
 fi
 
-# Check if we have this at all
 
 
 
@@ -7982,20 +7856,7 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-# Cross-compile compliant size checks
-# size_t and off_t are post-poned to after feature macros are set
-# *****************************************************************
 
-#
-# Here, we use perl (if it was found!) and if there is a ../run/john.pot
-# file, to find out if there are any .pot lines that will be TOO long
-# for this version of JtR.  WE have reduced the max pot line length to
-# 1k (it was 30000 or 300000 bytes long before).  So we now need to make
-# sure that all lines are approprate.  We use ../run/potcheck.pl to validate
-# the .pot file here.  IF there are problems, we simply inform the user to
-# fix his .pot file (with ../run/potcheck.pl) and do NOT allow configure
-# to succeeed.
-#
 if ( test -e ../run/john.pot ) ; then
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if potcheck.pl succeeds" >&5
 $as_echo_n "checking if potcheck.pl succeeds... " >&6; }
@@ -8014,6 +7875,7 @@ $as_echo "no" >&6; }
 $as_echo "yes" >&6; }
 fi
 fi
+
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for egrep" >&5
@@ -8444,7 +8306,6 @@ _ACEOF
 
 
 
-# Handle --disable-simd or --enable-simd=foo
 SIMD_FLAGS=""
 CFLAGS_EX=""
 case "$simd" in
@@ -8827,8 +8688,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     SIMD_NAME="Altivec2"
     ;;
-  # Handle known cases of --enable-simd=foo --> -mfoo
-  mmx|sse*|ssse3|avx*|xop*)
+    mmx|sse*|ssse3|avx*|xop*)
     SIMD_NAME=`echo $simd | tr a-z A-Z`
     { $as_echo "$as_me:${as_lineno-$LINENO}: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&5
 $as_echo "$as_me: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&6;}
@@ -8903,27 +8763,7 @@ esac
    done
 
 
-# Available arch.h's:
-# alpha.h
-# arm32le.h (mfpu=neon) (we may override the "le")
-# arm64le.h (we may override the "le")
-# ia64.h
-# mips32.h (we override the BE defined within it)
-# mips64.h
-# pa-risc.h
-# ppc32.h  (with or without -maltivec)
-# ppc64.h (-m64 with or without -maltivec)
-# sparc32.h
-# sparc64.h (-m64 -mcpu=ultrasparc) (-xarch=native64)
-# vax.h
-# x86-64.h (-mx32, -m64)
-# x86-any.h
-# x86-mmx.h
-# x86-sse.h
-#
-# See http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-6/src/external/bsd/pcc/dist/pcc/configure.ac for many alternatives
-# *****************************************************************
-#
+
 cpu_family="unkown"
 case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
@@ -8946,13 +8786,6 @@ $as_echo "ARM" >&6; }
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
-#############################################################################
-# Arm-NEON Active CPU probe test.  We check for NEON instructions
-# At the very end of configure, we set gcc
-# back to whatever the 'best' was.  During running in configure, $CC gets reset
-# so the results of our tests must be remembered, and reset just before exit.
-# Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
-#############################################################################
 
 if test "x$simd" = xyes ; then
 
@@ -8995,9 +8828,6 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
 fi
 
 else
-  ##########################################
-  # cross-compile versions of the same tests
-  ##########################################
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NEON" >&5
 $as_echo_n "checking for NEON... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -9039,8 +8869,7 @@ $as_echo_n "checking special compiler flags... " >&6; }
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: MIC" >&5
 $as_echo "MIC" >&6; }
 
-# specific optimization flags for MIC
-CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
+  CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
 
     ;;
   mips|mipseb) ARCH_LINK=mips32.h endian=big ;;
@@ -9058,7 +8887,7 @@ $as_echo "PPC64le" >&6; }
 
   echo "checking special compiler flags... PowerPC64"
   CPU_BEST_FLAGS=""
-  INLINE_FLAGS=""  # taken from Makefile.legacy:  OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
+  INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
     if test 1 -gt 0; then :
@@ -9388,7 +9217,7 @@ $as_echo "PPC64" >&6; }
 
   echo "checking special compiler flags... PowerPC64"
   CPU_BEST_FLAGS=""
-  INLINE_FLAGS=""  # taken from Makefile.legacy:  OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
+  INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
     if test 1 -gt 0; then :
@@ -9718,7 +9547,7 @@ $as_echo "PPC32le" >&6; }
 
   echo "checking special compiler flags... PowerPC32"
   CPU_BEST_FLAGS=""
-  INLINE_FLAGS=""  # taken from Makefile.legacy:  OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
+  INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
     if test 1 -gt 0; then :
@@ -10046,7 +9875,7 @@ $as_echo "PPC32" >&6; }
 
   echo "checking special compiler flags... PowerPC32"
   CPU_BEST_FLAGS=""
-  INLINE_FLAGS=""  # taken from Makefile.legacy:  OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
+  INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
     if test 1 -gt 0; then :
@@ -10377,22 +10206,10 @@ $as_echo "$as_me: WARNING: Uncertain support for ${host}, please report!" >&2;}
      ;;
 esac
 
-# NOTE, later, we will probably do this by parsing the host or target to figure
-# out the system, then have a switch statement, based upon the system, calling
-# the proper JTR_cputype_SPECIAL_LOGIC function (and of course have to write
-# macros for each environment.  We probably should fall back to calling
-# make -f Makefile.legacy clean generic or failing with an echo of that message,
-# for any environment we do not handle.
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 
-#############################################################################
-# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
-#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
-#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
-#  -DUNDERSCORES for cygwin / MinGW / VC
-#############################################################################
 EXTRA_AS_FLAGS=
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for extra ASFLAGS" >&5
 $as_echo_n "checking for extra ASFLAGS... " >&6; }
@@ -10456,9 +10273,6 @@ else
 $as_echo "${EXTRA_AS_FLAGS}" >&6; }
 fi
 
-#############################################################################
-# Extra code for X32 ABI test.  We need this for dynamic AES-NI support.
-#############################################################################
 if test "x$cpu_family" = xintel -a "x$ax_intel_x32" != xno; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for X32 ABI" >&5
 $as_echo_n "checking for X32 ABI... " >&6; }
@@ -10501,14 +10315,8 @@ $as_echo "Intel x86" >&6; }
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
-#############################################################################
-# Intel Active CPU probe test.  Start with SSE2, then SSSE3, then SSE4, until failure
-# whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
-# since one is intel, one is AMD.  At the very end of configure, we set gcc
-# back to whatever the 'best' was.  During running in configure, $CC gets reset
-# so the results of our tests must be remembered, and reset just before exit.
-# Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
-#############################################################################
+
+
 CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
   case $host_os in #(
@@ -10988,9 +10796,6 @@ fi
 
  else
 
-  ##########################################
-  # cross-compile versions of the same tests
-  ##########################################
   CPU_NOTFOUND=0
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing tool-chain's CPU support with given options" >&5
 $as_echo "$as_me: Testing tool-chain's CPU support with given options" >&6;}
@@ -11291,7 +11096,6 @@ $as_echo "${ARCH_LINK}" >&6; }
 
 CC_BACKUP=$CC
 
-# Check for -march=native and add it to CPU_BEST_FLAGS
 if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -march=native" >&5
 $as_echo_n "checking whether compiler understands -march=native... " >&6; }
@@ -11307,8 +11111,7 @@ $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-    # or -xarch=native64
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native64" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native64" >&5
 $as_echo_n "checking whether compiler understands -xarch=native64... " >&6; }
      CC="$CC_BACKUP -xarch=native64"
      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -11322,8 +11125,7 @@ $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-       # or -xarch=native
-       { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native" >&5
+              { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -xarch=native" >&5
 $as_echo_n "checking whether compiler understands -xarch=native... " >&6; }
   CC="$CC_BACKUP -xarch=native"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -11337,8 +11139,7 @@ $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-    # or "-arch host"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -arch host" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler understands -arch host" >&5
 $as_echo_n "checking whether compiler understands -arch host... " >&6; }
      CC="$CC_BACKUP -arch host"
      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -11374,8 +11175,6 @@ rm -f core conftest.err conftest.$ac_objext \
   CC="$CC_BACKUP"
 fi
 
-# At this point we know the arch and CPU width so we can pick details. Most
-# "special stuff" from old fat Makefile should go here.
 case "${host_cpu}_${CFLAGS}" in
    x86_64_*)
       case "${CPPFLAGS}_${CFLAGS}" in
@@ -11414,16 +11213,12 @@ CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 
-# Set a variable detecting x86-64 w/ X32 ABI
 if test "x$ax_intel_x32" = xyes; then
    using_x32=", X32 ABI"
 else
    using_x32=""
 fi
 
-#############################################################################
-# Check for LE/BE CPU
-#############################################################################
 if test "x$endian" = "xunknown"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether byte ordering is bigendian" >&5
 $as_echo_n "checking whether byte ordering is bigendian... " >&6; }
@@ -11669,15 +11464,6 @@ as_fn_error $? "Could not determine endianity. Supply '--with-endian=little|big'
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
-#############################################################################
-# Checks for libraries.
-#
-# NOTE, be VERY careful of spaces around the comma's in the AC_CHECK_LIB. Best
-# to not have any.  If there are space, then often that will get a lib to NOT
-# be added to @LIBS@ and cause linkage problems.  Also note, if action if found
-# is specified, the -llibname will NOT get appended to LIBS. So it has to be
-# done by 'hand'.
-################################################
 
 if test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
@@ -12088,9 +11874,6 @@ fi
 
 fi
 
-#################
-# libz is found in pkg-config --switch zlib
-#################
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sqrt in -lm" >&5
 $as_echo_n "checking for sqrt in -lm... " >&6; }
 if ${ac_cv_lib_m_sqrt+:} false; then :
@@ -12513,7 +12296,6 @@ BACKUP_LIBS="$LIBS"
 
 LIBS=""
 using_rexgen=no
-# Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
   ac_fn_c_check_header_mongrel "$LINENO" "librexgen/version.h" "ac_cv_header_librexgen_version_h" "$ac_includes_default"
 if test "x$ac_cv_header_librexgen_version_h" = xyes; then :
@@ -12632,7 +12414,6 @@ MEMDBG_CFLAGS="${MEMDBG_CFLAGS}"
 
 
 LIBS="$BACKUP_LIBS"
-# in makefile, we need to know if building extra pcap items.
 if test "x$enable_pcap" != xno ; then
   for ac_header in pcap.h pcap/pcap.h
 do :
@@ -12759,9 +12540,6 @@ else
 $as_echo "$as_me: PCAP check disabled" >&6;}
 fi
 
-####################################
-# Check for variations we can handle
-####################################
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether time.h and sys/time.h may both be included" >&5
 $as_echo_n "checking whether time.h and sys/time.h may both be included... " >&6; }
 if ${ac_cv_header_time+:} false; then :
@@ -12829,7 +12607,6 @@ $as_echo "#define STRING_WITH_STRINGS 1" >>confdefs.h
 
 fi
 
-# Check missing stuff in OpenSSL (too old, or disabled features)
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
 LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
@@ -12940,11 +12717,7 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
-#################
-# Check packages:
-#################
 
-# Check for openMP (enable/disable handled within the macro).
 
   OPENMP_CFLAGS=
   # Check whether --enable-openmp was given.
@@ -13012,7 +12785,6 @@ $as_echo "$ac_cv_prog_c_openmp" >&6; }
 
 
 
-# Check for OpenCL (enable/disable handled within the macro)
 if test "x$cross_compiling" = xno -a "x$enable_opencl" != xno; then :
 
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking additional paths for OpenCL" >&5
@@ -13792,7 +13564,6 @@ else
    HAVE_OPENCL=-DHAVE_OPENCL
 fi
 
-# ZTEX USB-FPGA module support (if --enable-ztex=yes)
 
 
 # Check whether --enable-ztex was given.
@@ -13883,8 +13654,6 @@ fi
 
 
 
-# Checks for header files.
-# Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
 for ac_header in arpa/inet.h crypt.h dirent.h fcntl.h limits.h locale.h \
                   malloc.h net/ethernet.h netdb.h netinet/in.h \
                   netinet/in_systm.h string.h strings.h \
@@ -13903,7 +13672,6 @@ fi
 
 done
 
-# Quirks for Solaris and OpenBSD
 for ac_header in net/if.h
 do :
   ac_fn_c_check_header_compile "$LINENO" "net/if.h" "ac_cv_header_net_if_h" "
@@ -14085,7 +13853,6 @@ $as_echo "$as_me: not updating unwritable cache $cache_file" >&6;}
 fi
 rm -f confcache
 
-# Checks for typedefs, structures, and compiler characteristics.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for stdbool.h that conforms to C99" >&5
 $as_echo_n "checking for stdbool.h that conforms to C99... " >&6; }
 if ${ac_cv_header_stdbool_h+:} false; then :
@@ -14383,7 +14150,6 @@ See \`config.log' for more details" "$LINENO" 5; }
    have_int128=no
 fi
 
-# Checks for library functions.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for error_at_line" >&5
 $as_echo_n "checking for error_at_line... " >&6; }
 if ${ac_cv_lib_error_at_line+:} false; then :
@@ -14420,11 +14186,9 @@ esac
 fi
 
 
-# JtR's usage of fork may not work on minwin, even though the AC_FUNC_FORK says it should
 case "$host_os" in
   mingw*)
-    # FORK is known to 'compile' but to fail and not be usable.
-    ac_cv_func_fork=no
+        ac_cv_func_fork=no
     ac_cv_func_fork_works=no
     ac_cv_func_vfork=no
     ac_cv_func_vfork_works=no
@@ -14664,10 +14428,6 @@ fi
 
     ;;
 esac
-# until we write a rpl_malloc replacement, we CAN NOT look for AC_FUNC_MALLOC.
-#AC_FUNC_MALLOC
-# we need a rpl_realloc before using this one.
-#AC_FUNC_REALLOC
 
 for ac_func in fseek64 fseeko fseeko64 _fseeki64 lseek64 lseek ftell64 ftello \
                ftello64 _ftelli64 fopen64 _fopen64 memmem mmap sleep \
@@ -14687,7 +14447,6 @@ fi
 done
 
 
-# Mesa claims to support OpenCL 1.2, but does not.
 CFLAGS_BACKUP=$CFLAGS
 LIBS_BACKUP=$LIBS
 CFLAGS="$CFLAGS $CL_CFLAGS"
@@ -14702,7 +14461,6 @@ fi
 CFLAGS=$CFLAGS_BACKUP
 LIBS=$LIBS_BACKUP
 
-# This will stop at first found, will be used for mem_alloc_aligned()
 for ac_func in posix_memalign aligned_alloc memalign __mingw_aligned_malloc _aligned_malloc
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
@@ -14963,10 +14721,6 @@ CC_BACKUP=$CC
 CFLAGS_BACKUP="$CFLAGS"
 
 case "$host_os" in
-#############################################################################
-# check for using .exe or -ln -s for cygwin/mingw builds only.  Default uses
-# symlink.c and exe. cygwin can use --enable-ln-s to override this with ln -s
-#############################################################################
   cygwin*)
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for *2john helper type" >&5
 $as_echo_n "checking for *2john helper type... " >&6; }
@@ -14989,10 +14743,7 @@ _ACEOF
 fi
 done
 
-    # check for GetFileSizeEx was more of a bioch. I had to revert
-    # to doing a build/link probe. I could not find a way to do it with
-    # AC_CHECK_FUNCS, or AC_CHECK_LIB or AC_SEARCH_LIBS. Things just failed.
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GetFileSizeEx" >&5
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GetFileSizeEx" >&5
 $as_echo_n "checking for GetFileSizeEx... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -15026,7 +14777,6 @@ rm -f core conftest.err conftest.$ac_objext \
 $as_echo_n "checking for *2john helper type... " >&6; }
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: .exe (symlink.c)" >&5
 $as_echo ".exe (symlink.c)" >&6; }
-     # From legacy Makefile's mingw targets
 
 
 ac_ext=c
@@ -15589,8 +15339,7 @@ fi
      ;;
 
   solaris*)
-     # From legacy Makefile's LDFLAGS_SOLARIS
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lnsl" >&5
+          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lnsl" >&5
 $as_echo_n "checking for main in -lnsl... " >&6; }
 if ${ac_cv_lib_nsl_main+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -15710,18 +15459,12 @@ fi
      ;;
 esac
 
-#############################################
-# From this point, we accumlate all set vars
-# into the jtr_list_add_result var, and later
-# output what vars were added (or none)
-#############################################
 jtr_list_add_result=""
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for OS-specific feature macros needed" >&5
 $as_echo_n "checking for OS-specific feature macros needed... " >&6; }
 
 case "$host_os" in
   freebsd*)
-    # From legacy Makefile's FreeBSD targets
 
    for i in -D__BSD_VISIBLE; do
       jtr_list_add_dupe=0
@@ -15743,7 +15486,6 @@ fi
     ;;
 
   linux*)
-    # For exposing fileno()
 
    for i in -D_POSIX_SOURCE; do
       jtr_list_add_dupe=0
@@ -15759,8 +15501,7 @@ fi
       fi
    done
 
-    # For exposing memmem()
-    if test "x$ac_cv_func_memmem" = xyes; then :
+        if test "x$ac_cv_func_memmem" = xyes; then :
 
    for i in -D_GNU_SOURCE; do
       jtr_list_add_dupe=0
@@ -15777,8 +15518,7 @@ fi
    done
 
 fi
-    # For exposing aligned_alloc
-    if test "x$ac_cv_func_aligned_alloc" = xyes; then :
+        if test "x$ac_cv_func_aligned_alloc" = xyes; then :
 
    for i in -D_ISOC11_SOURCE; do
       jtr_list_add_dupe=0
@@ -15795,8 +15535,7 @@ fi
    done
 
 else
-  # For exposing posix_memalign()
-        if test "x$ac_cv_func_posix_memalign" = xyes; then :
+          if test "x$ac_cv_func_posix_memalign" = xyes; then :
 
    for i in -D_XOPEN_SOURCE=600; do
       jtr_list_add_dupe=0
@@ -15818,10 +15557,7 @@ fi
     ;;
 
   cygwin*)
-    # For exposing fileno().  NOTE, build fails if both _POSIX_SOURCE and _GNU_SOURCE used at same time.
-    #JTR_LIST_ADD(CFLAGS_EXTRA, [-D_POSIX_SOURCE])
-    # For exposing memmem()
-    if test "x$ac_cv_func_memmem" = xyes; then :
+                    if test "x$ac_cv_func_memmem" = xyes; then :
 
    for i in -D_GNU_SOURCE; do
       jtr_list_add_dupe=0
@@ -15838,11 +15574,9 @@ fi
    done
 
 fi
-    # For exposing aligned_alloc
     ;;
 
   mingw*)
-    # For understanding really basic things like printf("%zu", ...)
 
    for i in -D__USE_MINGW_ANSI_STDIO; do
       jtr_list_add_dupe=0
@@ -15861,9 +15595,6 @@ fi
     ;;
 esac
 
-#############################################################################
-# Add large file support - this typically requires a feature macro on 32-bit.
-#############################################################################
 case "$host" in
   *linux*|arm*|alpha*|powerpcle|powerpc*)
     if test x${CPU_BIT_STR} = x32 && test "x$ac_cv_func_lseek64" = xyes; then :
@@ -15943,10 +15674,6 @@ fi
     ;;
 esac
 
-#########################################
-# Now output the result of what we
-# accumlated in jtr_list_add_result
-#########################################
 
    if test -z "$jtr_list_add_result"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: none" >&5
@@ -15962,8 +15689,6 @@ CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
 
-# The size of size_t and/or off_t might change when feature macros (chosen in
-# JTR_SYSTEMS_SPECIFIC_LOGIC) are used.
 CFLAGS_BACKUP="$CFLAGS"
 CFLAGS="$CFLAGS $CFLAGS_EXTRA"
 # The cast to long int works around a bug in the HP C Compiler
@@ -16062,7 +15787,6 @@ if test "x$ubsantrap" = xyes ; then
    LDFLAGS="-fsanitize=undefined -fsanitize-undefined-trap-on-error $LDFLAGS"
 fi
 
-#add ARCH_LITTLE_ENDIAN to command line, IF we know it is big or little
 if test "x$endian" = "xbig"; then
    CFLAGS="$CFLAGS -DARCH_LITTLE_ENDIAN=0"
    ASFLAGS="$ASFLAGS -DARCH_LITTLE_ENDIAN=0"
@@ -16073,32 +15797,24 @@ else
    fi
 fi
 
-# build proper 'link' to the arch file (based on bit only, for 32 bit, we may
-# want different ones, and for other CPU's we need different ones)
-# note, we remove it first.
 if rm -f arch.h; then :
 
 fi
 ac_config_links="$ac_config_links arch.h:$ARCH_LINK"
 
 
-# For the fastest MS formats, full Unicode support (4-byte UTF-8) can
-# mean a 10% performance hit. Default is support for up to 3-byte UTF-8
-# which corresponds to full UCS-2 or Unicode BMP.
 if test "x$enable_nt_unicode" != xno; then :
 
 $as_echo "#define NT_FULL_UNICODE 1" >>confdefs.h
 
 fi
 
-# Use features that may not yet be stable
 if test "x$experimental" != xno; then :
 
 $as_echo "#define USE_EXPERIMENTAL 1" >>confdefs.h
 
 fi
 
-# In makefile, we need to know if building extra fuzz items.
 if test "x$fuzz" != xno ; then
    HAVE_FUZZ=-DHAVE_FUZZ
 
@@ -16107,7 +15823,6 @@ else
 $as_echo "$as_me: Fuzz check disabled" >&6;}
 fi
 
-# In makefile, we need to know if building with libFuzzer.
 if test "x$libfuzzer" != xno ; then
    HAVE_LIBFUZZER=-DHAVE_LIBFUZZER
 
@@ -16116,13 +15831,9 @@ else
 $as_echo "$as_me: Fuzzing (using libFuzzer) check disabled" >&6;}
 fi
 
-# code to create M4_INCLUDES (all ./m4/*.m4 )
 M4_INCLUDES=`echo m4/*.m4`
 
 
-# Handle --prefix -> JOHN_SYSTEMWIDE
-# A prefix of /usr/local will mean execs in /usr/local/bin and the rest
-# in /usr/local/share/john
 if test $prefix != "../run" && test $prefix != "NONE" ; then :
   CFLAGS="$CFLAGS -DJOHN_SYSTEMWIDE -DJOHN_SYSTEMWIDE_EXEC='\"$prefix/bin\"' -DJOHN_SYSTEMWIDE_HOME='\"$prefix/share/john\"'"
 else
@@ -16137,17 +15848,7 @@ if test x$with_flock != xno; then
    CFLAGS="$CFLAGS -DPREFER_FLOCK"
 fi
 
-#if test ${SIMD_NAME} = "AVX2" || test ${host_cpu} = "k1om"; then
-#   if test x$experimental = xno; then
-#      AC_DEFINE([DYNAMIC_DISABLED], 1, [Disables Dynamic format completely])
-#   fi
-#fi
 
-####################################################
-# Code  to create @PLUGFORMATS_OBJS@ and
-# john_buildrule.h moved from Makefile.in to here.
-# don't build opencl_*plug.c unless an opencl build
-####################################################
 if test x$using_cl = xyes ; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: creating *_plug.c and OpenCL object rules" >&5
 $as_echo "$as_me: creating *_plug.c and OpenCL object rules" >&6;}
@@ -16187,13 +15888,9 @@ HOST_OS="$host_os"
 ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile escrypt/Makefile"
 
 
-# Escaping the '#' in things like "-wno-error=#warnings" is required in
-# Makefile but forbidden when *not* in Makefile so we need to back-up
-# CFLAGS_EXTRA before writing Makefile, and revert after (duh!)
 CFLAGS_EXTRA_BACKUP=$CFLAGS_EXTRA
 CFLAGS_EXTRA=$(echo $CFLAGS_EXTRA | sed 's/#/\\#/g')
 
-# This actually writes Makefile et al.
 ac_config_commands="$ac_config_commands default"
 
 cat >confcache <<\_ACEOF
@@ -17570,11 +17267,6 @@ fi
 
 CFLAGS_EXTRA=$CFLAGS_EXTRA_BACKUP
 
-##########################################################
-# Create fmt_externs.h and fmt_registers.h
-# This needs arch.h to be linked so can't happen before
-# AC_OUTPUT
-##########################################################
 { $as_echo "$as_me:${as_lineno-$LINENO}: creating ./fmt_externs.h" >&5
 $as_echo "$as_me: creating ./fmt_externs.h" >&6;}
 rm -f fmt_externs.h
@@ -17587,12 +17279,10 @@ fi
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
 fi
-# if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
   cp Makefile.stub Makefile
   as_fn_error $? "The build of fmt_externs.h failed. Can not continue!" "$LINENO" 5
 fi
-# if file does not exist, then create a blank one (i.e. no *_plug.c files)
 if test ! -f fmt_externs.h; then
   echo >fmt_externs.h
 fi
@@ -17602,12 +17292,10 @@ rm -f fmt_registers.h
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
 fi
-# if the file was not created, then bail.
 if test -f fmt_registers.h -a ! -s fmt_registers.h; then
   cp Makefile.stub Makefile
   as_fn_error $? "The build of fmt_registers.h failed. Can not continue!" "$LINENO" 5
 fi
-# if file does not exist, then create a blank one (i.e. no *_plug.c files)
 if test ! -f fmt_registers.h; then
   echo >fmt_registers.h
 fi
@@ -17616,12 +17304,7 @@ if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
    $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 
-########################################################
-#    ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE
-########################################################
 
-# Hard to get proper info from AC_OPENMP. If it's enabled with no special
-# options needed, we might end up listing it as disabled
 if test "x$ac_cv_prog_c_openmp" != x -a  "x$enable_openmp" != xno -a         "x$ac_cv_prog_c_openmp" != xunsupported ; then
    if test "x$ompfast" = "xyes"; then
       using_omp=yes
@@ -17668,7 +17351,6 @@ else
    CPU_NAME=$host_cpu
 fi
 
-# Ensure reports of tests does not show up blank:
 if test "x$ac_cv_func_fork_works" = x ; then
    ac_cv_func_fork_works=no
 fi

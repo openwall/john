@@ -4,6 +4,5 @@ dnl
 dnl This file contains compiler flags specifically for MIC.
 
 AC_DEFUN([JTR_MIC_SPECIAL_LOGIC], [
-# specific optimization flags for MIC
-CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
+  CPU_BEST_FLAGS="-no-opt-prefetch $CPU_BEST_FLAGS"
 ])

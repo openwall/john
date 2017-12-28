@@ -10,7 +10,7 @@ dnl
 AC_DEFUN([JTR_PPC64_SPECIAL_LOGIC], [
   echo "checking special compiler flags... PowerPC64"
   CPU_BEST_FLAGS=""
-  INLINE_FLAGS=""  # taken from Makefile.legacy:  OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
+  INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
   JTR_FLAG_CHECK([-finline-functions], 1)
@@ -50,7 +50,7 @@ dnl
 AC_DEFUN([JTR_PPC32_SPECIAL_LOGIC], [
   echo "checking special compiler flags... PowerPC32"
   CPU_BEST_FLAGS=""
-  INLINE_FLAGS=""  # taken from Makefile.legacy:  OPT_INLINE="-finline-functions -finline-limit=4000 -fno-strict-aliasing -maltivec"
+  INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
   JTR_FLAG_CHECK([-finline-functions], 1)

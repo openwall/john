@@ -1,14 +1,14 @@
-# This file is Copyright (C) 2014 magnum,
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# All tests in this file are supposed to be cross compile compliant
-#
+dnl This file is Copyright (C) 2014 magnum,
+dnl and is hereby released to the general public under the following terms:
+dnl Redistribution and use in source and binary forms, with or without
+dnl modifications, are permitted.
+dnl
+dnl All tests in this file are supposed to be cross compile compliant
+dnl
 AC_DEFUN([JTR_GENERIC_LOGIC], [
 CC_BACKUP=$CC
 
-# Check for -march=native and add it to CPU_BEST_FLAGS
+dnl Check for -march=native and add it to CPU_BEST_FLAGS
 if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
   AC_MSG_CHECKING([whether compiler understands -march=native])
   CC="$CC_BACKUP -march=native"
@@ -17,7 +17,7 @@ if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
     [AC_MSG_RESULT(yes)]
     [CPU_BEST_FLAGS="-march=native $CPU_BEST_FLAGS"],
     [AC_MSG_RESULT(no)]
-    # or -xarch=native64
+    dnl or -xarch=native64
     [AC_MSG_CHECKING([whether compiler understands -xarch=native64])
      CC="$CC_BACKUP -xarch=native64"
      AC_LINK_IFELSE(
@@ -25,7 +25,7 @@ if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
        [AC_MSG_RESULT(yes)]
        [CPU_BEST_FLAGS="-xarch=native64 $CPU_BEST_FLAGS"],
        [AC_MSG_RESULT(no)]
-       # or -xarch=native
+       dnl or -xarch=native
        [AC_MSG_CHECKING([whether compiler understands -xarch=native])
   CC="$CC_BACKUP -xarch=native"
   AC_LINK_IFELSE(
@@ -33,7 +33,7 @@ if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
     [AC_MSG_RESULT(yes)]
     [CPU_BEST_FLAGS="-xarch=native $CPU_BEST_FLAGS"],
     [AC_MSG_RESULT(no)]
-    # or "-arch host"
+    dnl or "-arch host"
     [AC_MSG_CHECKING([whether compiler understands -arch host])
      CC="$CC_BACKUP -arch host"
      AC_LINK_IFELSE(
@@ -51,8 +51,8 @@ if test "x$enable_native_march" != xno -a "x$osx_assembler_warn" != xyes; then
   CC="$CC_BACKUP"
 fi
 
-# At this point we know the arch and CPU width so we can pick details. Most
-# "special stuff" from old fat Makefile should go here.
+dnl At this point we know the arch and CPU width so we can pick details. Most
+dnl "special stuff" from old fat Makefile should go here.
 case "${host_cpu}_${CFLAGS}" in
    x86_64_*)
       case "${CPPFLAGS}_${CFLAGS}" in

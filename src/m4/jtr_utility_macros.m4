@@ -1,12 +1,12 @@
-# This file is Copyright (C) 2014 JimF, and magnum
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# Here are contained numerous utility macros
+dnl This file is Copyright (C) 2014 JimF, and magnum
+dnl and is hereby released to the general public under the following terms:
+dnl Redistribution and use in source and binary forms, with or without
+dnl modifications, are permitted.
+dnl
+dnl Here are contained numerous utility macros
 
-# JTR_LIST_ADD(variable, value(s))
-# Add space separated value(s) to variable unless already present.
+dnl JTR_LIST_ADD(variable, value(s))
+dnl Add space separated value(s) to variable unless already present.
 AC_DEFUN([JTR_LIST_ADD], [
    for i in $2; do
       jtr_list_add_dupe=0
@@ -28,13 +28,13 @@ AC_DEFUN([JTR_LIST_ADD_RESULT], [
    jtr_list_add_result=""
 ])
 
-# @synopsis JTR_FLAG_CHECK([compiler flags], flags)
-# @summary check whether compiler supports given options or not.
-# CFLAGS_EX is appended with each 'valid' command.
-#
-# If a second argument is 0, don't show progress
-# If a second argument is 1, show progress
-# If a second argument is 2, bails if not supported
+dnl @synopsis JTR_FLAG_CHECK([compiler flags], flags)
+dnl @summary check whether compiler supports given options or not.
+dnl CFLAGS_EX is appended with each 'valid' command.
+dnl
+dnl If a second argument is 0, don't show progress
+dnl If a second argument is 1, show progress
+dnl If a second argument is 2, bails if not supported
 AC_DEFUN([JTR_FLAG_CHECK],
 [dnl
   AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1])])
@@ -51,13 +51,13 @@ AC_DEFUN([JTR_FLAG_CHECK],
   AC_LANG_POP([C])
 ])
 
-# @synopsis JTR_FLAG_CHECK_LINK(compiler flags[, flags])
-# @summary check whether compiler and linker supports given options or not.
-# CFLAGS_EX is appended with each 'valid' command.
-#
-# If a second argument is 0, don't show progress
-# If a second argument is 1, show progress
-# If a second argument is 2, bails if not supported
+dnl @synopsis JTR_FLAG_CHECK_LINK(compiler flags[, flags])
+dnl @summary check whether compiler and linker supports given options or not.
+dnl CFLAGS_EX is appended with each 'valid' command.
+dnl
+dnl If a second argument is 0, don't show progress
+dnl If a second argument is 1, show progress
+dnl If a second argument is 2, bails if not supported
 AC_DEFUN([JTR_FLAG_CHECK_LINK],
 [dnl
   AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1 w/ linking])])
@@ -74,9 +74,9 @@ AC_DEFUN([JTR_FLAG_CHECK_LINK],
   AC_LANG_POP([C])
 ])
 
-# @synopsis SET_NORMAL_INCLUDES
-# @summary check and set many normal include paths
-# This might be a Bad Idea[tm] if cross compiling.
+dnl @synopsis SET_NORMAL_INCLUDES
+dnl @summary check and set many normal include paths
+dnl This might be a Bad Idea[tm] if cross compiling.
 AC_DEFUN([JTR_SET_NORMAL_INCLUDES],
 [
   AC_MSG_CHECKING([additional paths])
@@ -95,9 +95,9 @@ JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
 JTR_LIST_ADD_RESULT
 ])
 
-# @synopsis SET_64_INCLUDES
-# @summary check and set some 64 bit includes
-# This might be a Bad Idea[tm] if cross compiling.
+dnl @synopsis SET_64_INCLUDES
+dnl @summary check and set some 64 bit includes
+dnl This might be a Bad Idea[tm] if cross compiling.
 AC_DEFUN([JTR_SET_64_INCLUDES],
 [
   AC_MSG_CHECKING([additional paths (64 bit)])
@@ -120,9 +120,9 @@ JTR_LIST_ADD_RESULT
 ])
 
 
-# @synopsis SET_NORMAL_SSL_INCLUDES(base path)
-# @summary check and set include/library paths for OpenSSL
-# This might be a Bad Idea[tm] if cross compiling.
+dnl @synopsis SET_NORMAL_SSL_INCLUDES(base path)
+dnl @summary check and set include/library paths for OpenSSL
+dnl This might be a Bad Idea[tm] if cross compiling.
 AC_DEFUN([JTR_SET_NORMAL_SSL_INCLUDES],
 [
   AC_MSG_CHECKING([additional paths for OpenSSL])
@@ -141,11 +141,11 @@ JTR_LIST_ADD(CFLAGS, [$ADD_CFLAGS])
 JTR_LIST_ADD_RESULT
 ])
 
-# JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
-# success and forced should be xvar data, "x$enable_foobar", so they
-# will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
-# will be output, and the script will abort, IF forced is xyes which
-# means the user used --enable-foobar
+dnl JTR_MSG_RESULT_FAILIF_FORCED(success, forced, forced_fail_msg)
+dnl success and forced should be xvar data, "x$enable_foobar", so they
+dnl will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
+dnl will be output, and the script will abort, IF forced is xyes which
+dnl means the user used --enable-foobar
 AC_DEFUN([JTR_MSG_RESULT_FAILIF_FORCED], [
   if test "$1" == xyes; then
     AC_MSG_RESULT([yes])
@@ -157,15 +157,15 @@ AC_DEFUN([JTR_MSG_RESULT_FAILIF_FORCED], [
   fi
 ])
 
-# JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED(chk_msg, success, forced, forced_fail_msg)
-# will output a checking 'chk_msg', then calls JTR_MSG_RESULT_FAILIF_FORCED
+dnl JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED(chk_msg, success, forced, forced_fail_msg)
+dnl will output a checking 'chk_msg', then calls JTR_MSG_RESULT_FAILIF_FORCED
 AC_DEFUN([JTR_MSG_CHECKING_AND_RESULT_FAILIF_FORCED], [
   AC_MSG_CHECKING([$1])
   JTR_MSG_RESULT_FAILIF_FORCED($2,$3,$4)
 ])
 
-# @synopsis JTR_SET_OPENCL_INCLUDES
-# @summary check and set many normal include paths
+dnl @synopsis JTR_SET_OPENCL_INCLUDES
+dnl @summary check and set many normal include paths
 AC_DEFUN([JTR_SET_OPENCL_INCLUDES],
 [
    AC_MSG_CHECKING([additional paths for OpenCL])

@@ -1,8 +1,8 @@
-# JtR configure Arm-NEON instruction active probe test
-# Copyright (C) 2014 Jim Fougeron, for John Ripper project.
-# This file put into public domain. unlimited permission to
-# copy and/or distribute it, with or without modifications,
-# as long as this notice is preserved.
+dnl JtR configure Arm-NEON instruction active probe test
+dnl Copyright (C) 2014 Jim Fougeron, for John Ripper project.
+dnl This file put into public domain. unlimited permission to
+dnl copy and/or distribute it, with or without modifications,
+dnl as long as this notice is preserved.
 dnl
 dnl This program is distributed in the hope that it will be useful,
 dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
@@ -16,13 +16,12 @@ AC_DEFUN([JTR_ARM_SPECIAL_LOGIC], [
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 dnl
-#############################################################################
-# Arm-NEON Active CPU probe test.  We check for NEON instructions
-# At the very end of configure, we set gcc
-# back to whatever the 'best' was.  During running in configure, $CC gets reset
-# so the results of our tests must be remembered, and reset just before exit.
-# Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
-#############################################################################
+dnl ======================================================================
+dnl Arm-NEON Active CPU probe test.  We check for NEON instructions.
+dnl At the very end of configure, we set gcc back to whatever the 'best' was.
+dnl During running in configure, $CC gets reset so the results of our tests
+dnl must be remembered, and reset just before exit.
+dnl ======================================================================
 
 if test "x$simd" = xyes ; then
 
@@ -46,9 +45,9 @@ if test "x$enable_native_tests" = xyes; then
      [AC_MSG_RESULT(no)]
   )
 else
-  ##########################################
-  # cross-compile versions of the same tests
-  ##########################################
+dnl ======================================================================
+dnl               cross-compile versions of the same tests
+dnl ======================================================================
   AC_MSG_CHECKING([for NEON])
   AC_LINK_IFELSE(
     [

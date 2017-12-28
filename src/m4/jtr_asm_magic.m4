@@ -1,20 +1,20 @@
-# This file is Copyright (C) 2014-2017 magnum & JimF,
-# and is hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without
-# modifications, are permitted.
-#
-# All tests in this file are supposed to be cross compile compliant
-#
+dnl This file is Copyright (C) 2014-2017 magnum & JimF,
+dnl and is hereby released to the general public under the following terms:
+dnl Redistribution and use in source and binary forms, with or without
+dnl modifications, are permitted.
+dnl
+dnl All tests in this file are supposed to be cross compile compliant
+dnl
 AC_DEFUN([JTR_ASM_MAGIC], [
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 
-#############################################################################
-# ASM_MAGIC code.  Here we add certain 'magic' values. Things like
-#  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
-#  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
-#  -DUNDERSCORES for cygwin / MinGW / VC
-#############################################################################
+dnl ======================================================================
+dnl ASM_MAGIC code.  Here we add certain 'magic' values. Things like
+dnl  -DUNDERSCORES -DBSD -DALIGN_LOG   (for macosx-x86-*)
+dnl  -DUNDERSCORES -DALIGN_LOG for (dos-djgpp-x86-*)
+dnl  -DUNDERSCORES for cygwin / MinGW / VC
+dnl ======================================================================
 EXTRA_AS_FLAGS=
 AC_MSG_CHECKING([for extra ASFLAGS])
 CC="$CC_BACKUP"
@@ -35,9 +35,9 @@ AC_LINK_IFELSE([AC_LANG_SOURCE(
 
 AS_IF([test "x$EXTRA_AS_FLAGS" = x],[AC_MSG_RESULT([None needed])],[AC_MSG_RESULT([${EXTRA_AS_FLAGS}])])
 
-#############################################################################
-# Extra code for X32 ABI test.  We need this for dynamic AES-NI support.
-#############################################################################
+dnl ======================================================================
+dnl Extra code for X32 ABI test.  We need this for dynamic AES-NI support.
+dnl ======================================================================
 AS_IF([test "x$cpu_family" = xintel -a "x$ax_intel_x32" != xno],
 AC_MSG_CHECKING([for X32 ABI])
 [AC_LINK_IFELSE(

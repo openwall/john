@@ -1,8 +1,8 @@
-# JtR configure Intel-SIMD instruction active probe test
-# Copyright (C) 2014 Jim Fougeron, for John Ripper project.
-# This file put into public domain. unlimited permission to
-# copy and/or distribute it, with or without modifications,
-# as long as this notice is preserved.
+dnl JtR configure Intel-SIMD instruction active probe test
+dnl Copyright (C) 2014 Jim Fougeron, for John Ripper project.
+dnl This file put into public domain. unlimited permission to
+dnl copy and/or distribute it, with or without modifications,
+dnl as long as this notice is preserved.
 dnl
 dnl This program is distributed in the hope that it will be useful,
 dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
@@ -37,16 +37,11 @@ AC_DEFUN([JTR_X86_SPECIAL_LOGIC], [
 
 CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
-dnl
-#############################################################################
-# Intel Active CPU probe test.  Start with SSE2, then SSSE3, then SSE4, until failure
-# whatever the last one is, we use it.  NOTE, if AVX fails we still DO test XOP
-# since one is intel, one is AMD.  At the very end of configure, we set gcc
-# back to whatever the 'best' was.  During running in configure, $CC gets reset
-# so the results of our tests must be remembered, and reset just before exit.
-# Config probe test code copyright 2014, Jim Fougeron.  Placed into public domain.
-#############################################################################
-dnl
+
+dnl ======================================================================
+dnl               Intel Active CPU probe test of build-host.
+dnl ======================================================================
+
 CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
   AS_CASE([$host_os], [darwin*],
@@ -306,9 +301,9 @@ if test "x$simd" = xyes; then
 
  else
 
-  ##########################################
-  # cross-compile versions of the same tests
-  ##########################################
+dnl ======================================================================
+dnl               cross-compile versions of the same tests
+dnl ======================================================================
   CPU_NOTFOUND=0
   AC_MSG_NOTICE([Testing tool-chain's CPU support with given options])
   AC_MSG_CHECKING([for MMX])
