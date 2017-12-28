@@ -5306,7 +5306,7 @@ fi
 fi
 
 CFLAGS_EX=""
-  if test 0 -gt 0; then :
+if test 0 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fFOO_BAR_SWITCH_NOT_VALID" >&5
 $as_echo_n "checking if $CC supports -fFOO_BAR_SWITCH_NOT_VALID... " >&6; }
 fi
@@ -5357,7 +5357,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro for -m with $CC" >&5
 $as_echo_n "checking arg check macro for -m with $CC... " >&6; }
-  if test 0 -gt 0; then :
+if test 0 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mFOO_BAR_SWITCH_NOT_VALID" >&5
 $as_echo_n "checking if $CC supports -mFOO_BAR_SWITCH_NOT_VALID... " >&6; }
 fi
@@ -5406,7 +5406,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  if test 0 -gt 0; then :
+if test 0 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -m666" >&5
 $as_echo_n "checking if $CC supports -m666... " >&6; }
 fi
@@ -5468,7 +5468,7 @@ fi
 CFLAGS_EX=""
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking arg check macro for -Q with $CC" >&5
 $as_echo_n "checking arg check macro for -Q with $CC... " >&6; }
-  if test 0 -gt 0; then :
+if test 0 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -QFOO_BAR_SWITCH_NOT_VALID" >&5
 $as_echo_n "checking if $CC supports -QFOO_BAR_SWITCH_NOT_VALID... " >&6; }
 fi
@@ -5530,7 +5530,7 @@ fi
 if test "x$JTR_FLAG_CHECK_WORKS" = xyes; then :
 
    CFLAGS_EX=""
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -funroll-loops" >&5
 $as_echo_n "checking if $CC supports -funroll-loops... " >&6; }
 fi
@@ -5584,7 +5584,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
       CFLAGS_EX=""
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Os" >&5
 $as_echo_n "checking if $CC supports -Os... " >&6; }
 fi
@@ -5633,7 +5633,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-     if test 0 -gt 0; then :
+   if test 0 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -funroll-loops" >&5
 $as_echo_n "checking if $CC supports -funroll-loops... " >&6; }
 fi
@@ -5682,7 +5682,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-functions" >&5
 $as_echo_n "checking if $CC supports -finline-functions... " >&6; }
 fi
@@ -5735,7 +5735,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
       CFLAGS_EX=""
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Og" >&5
 $as_echo_n "checking if $CC supports -Og... " >&6; }
 fi
@@ -5795,7 +5795,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
    if test "x$asan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fsanitize=address w/ linking" >&5
 $as_echo_n "checking if $CC supports -fsanitize=address w/ linking... " >&6; }
 fi
@@ -5846,7 +5846,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    if test "x${CFLAGS_EX}" = x ; then
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -faddress-sanitizer w/ linking" >&5
 $as_echo_n "checking if $CC supports -faddress-sanitizer w/ linking... " >&6; }
 fi
@@ -5913,7 +5913,7 @@ fi
    if test "x$ubsan" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined w/ linking" >&5
 $as_echo_n "checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined w/ linking... " >&6; }
 fi
@@ -5976,7 +5976,7 @@ fi
 if test "x$ubsantrap" = xyes ; then
    CFLAGS_EX=""
    LDFLAGS_BAK=${LDFLAGS}
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error w/ linking" >&5
 $as_echo_n "checking if $CC supports -DWITH_UBSAN -DARCH_ALLOWS_UNALIGNED=0 -fsanitize=undefined -fsanitize-undefined-trap-on-error w/ linking... " >&6; }
 fi
@@ -6039,7 +6039,7 @@ fi
 
 
       CFLAGS_EX=""
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wall" >&5
 $as_echo_n "checking if $CC supports -Wall... " >&6; }
 fi
@@ -6088,7 +6088,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wdeclaration-after-statement" >&5
 $as_echo_n "checking if $CC supports -Wdeclaration-after-statement... " >&6; }
 fi
@@ -6139,7 +6139,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    if test "x$werror" = xyes; then :
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Werror" >&5
 $as_echo_n "checking if $CC supports -Werror... " >&6; }
 fi
@@ -6188,7 +6188,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-error=cpp" >&5
 $as_echo_n "checking if $CC supports -Wno-error=cpp... " >&6; }
 fi
@@ -6237,7 +6237,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-error=#warnings" >&5
 $as_echo_n "checking if $CC supports -Wno-error=#warnings... " >&6; }
 fi
@@ -6289,7 +6289,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 fi
    if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-omit-frame-pointer" >&5
 $as_echo_n "checking if $CC supports -fno-omit-frame-pointer... " >&6; }
 fi
@@ -6339,7 +6339,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
    else
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fomit-frame-pointer" >&5
 $as_echo_n "checking if $CC supports -fomit-frame-pointer... " >&6; }
 fi
@@ -6390,7 +6390,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
    fi
 
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports --param allow-store-data-races=0" >&5
 $as_echo_n "checking if $CC supports --param allow-store-data-races=0... " >&6; }
 fi
@@ -6439,7 +6439,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-deprecated-declarations" >&5
 $as_echo_n "checking if $CC supports -Wno-deprecated-declarations... " >&6; }
 fi
@@ -6488,7 +6488,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-extra-args" >&5
 $as_echo_n "checking if $CC supports -Wformat-extra-args... " >&6; }
 fi
@@ -6537,7 +6537,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-     if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wunused-but-set-variable" >&5
 $as_echo_n "checking if $CC supports -Wunused-but-set-variable... " >&6; }
 fi
@@ -6587,7 +6587,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
       if test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes; then :
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Qunused-arguments" >&5
 $as_echo_n "checking if $CC supports -Qunused-arguments... " >&6; }
 fi
@@ -6637,7 +6637,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 fi
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -std=gnu89" >&5
 $as_echo_n "checking if $CC supports -std=gnu89... " >&6; }
 fi
@@ -6686,7 +6686,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-        if test 1 -gt 0; then :
+      if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wdate-time" >&5
 $as_echo_n "checking if $CC supports -Wdate-time... " >&6; }
 fi
@@ -6761,7 +6761,7 @@ fi
 case "$host_cpu" in
   ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -m64 w/ linking" >&5
 $as_echo_n "checking if $CC supports -m64 w/ linking... " >&6; }
 fi
@@ -8325,7 +8325,7 @@ $as_echo "$as_me: SIMD logic disabled by request" >&6;}
   neon)
     case $host_cpu in #(
   arm*) :
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mfpu=neon w/ linking" >&5
 $as_echo_n "checking if $CC supports -mfpu=neon w/ linking... " >&6; }
 fi
@@ -8376,7 +8376,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
  ;; #(
   aarch64) :
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -march=armv8-a+simd w/ linking" >&5
 $as_echo_n "checking if $CC supports -march=armv8-a+simd w/ linking... " >&6; }
 fi
@@ -8433,7 +8433,7 @@ esac
     SIMD_NAME="NEON"
     ;;
   altivec1)
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec w/ linking" >&5
 $as_echo_n "checking if $CC supports -maltivec w/ linking... " >&6; }
 fi
@@ -8483,7 +8483,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -msvx w/ linking" >&5
 $as_echo_n "checking if $CC supports -msvx w/ linking... " >&6; }
 fi
@@ -8536,7 +8536,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     SIMD_NAME="Altivec"
     ;;
   altivec*)
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec w/ linking" >&5
 $as_echo_n "checking if $CC supports -maltivec w/ linking... " >&6; }
 fi
@@ -8586,7 +8586,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -msvx w/ linking" >&5
 $as_echo_n "checking if $CC supports -msvx w/ linking... " >&6; }
 fi
@@ -8636,7 +8636,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8vector w/ linking" >&5
 $as_echo_n "checking if $CC supports -mpower8vector w/ linking... " >&6; }
 fi
@@ -8692,7 +8692,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     SIMD_NAME=`echo $simd | tr a-z A-Z`
     { $as_echo "$as_me:${as_lineno-$LINENO}: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&5
 $as_echo "$as_me: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&6;}
-      if test 2 -gt 0; then :
+    if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -m${simd} w/ linking" >&5
 $as_echo_n "checking if $CC supports -m${simd} w/ linking... " >&6; }
 fi
@@ -8813,7 +8813,8 @@ else
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mfpu=neon"      SIMD_NAME="NEON"
+  CPU_BEST_FLAGS="-mfpu=neon"
+     SIMD_NAME="NEON"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -8841,7 +8842,8 @@ $as_echo_n "checking for NEON... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mfpu=neon"      SIMD_NAME="NEON"
+  CPU_BEST_FLAGS="-mfpu=neon"
+     SIMD_NAME="NEON"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -8890,7 +8892,7 @@ $as_echo "PPC64le" >&6; }
   INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-functions" >&5
 $as_echo_n "checking if $CC supports -finline-functions... " >&6; }
 fi
@@ -8941,7 +8943,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-functions" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-limit=4000" >&5
 $as_echo_n "checking if $CC supports -finline-limit=4000... " >&6; }
 fi
@@ -8992,7 +8994,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-limit=4000" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
 $as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
 fi
@@ -9047,7 +9049,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$simd" = "xyes" -a "`./test_cpuid PPC_FEATURE_HAS_ALTIVEC`" = "1" -a "`./test_cpuid PPC_FEATURE_HAS_VSX`" = "1" -a  "`./test_cpuid PPC_FEATURE2_ARCH_2_07`" = "1" ; then
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -9098,7 +9100,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" SIMD_NAME="Altivec" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -9149,7 +9151,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -9220,7 +9222,7 @@ $as_echo "PPC64" >&6; }
   INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-functions" >&5
 $as_echo_n "checking if $CC supports -finline-functions... " >&6; }
 fi
@@ -9271,7 +9273,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-functions" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-limit=4000" >&5
 $as_echo_n "checking if $CC supports -finline-limit=4000... " >&6; }
 fi
@@ -9322,7 +9324,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-limit=4000" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
 $as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
 fi
@@ -9377,7 +9379,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$simd" = "xyes" -a "`./test_cpuid PPC_FEATURE_HAS_ALTIVEC`" = "1" -a "`./test_cpuid PPC_FEATURE_HAS_VSX`" = "1" -a  "`./test_cpuid PPC_FEATURE2_ARCH_2_07`" = "1" ; then
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -9428,7 +9430,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" SIMD_NAME="Altivec" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -9479,7 +9481,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -9550,7 +9552,7 @@ $as_echo "PPC32le" >&6; }
   INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-functions" >&5
 $as_echo_n "checking if $CC supports -finline-functions... " >&6; }
 fi
@@ -9601,7 +9603,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-functions" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-limit=4000" >&5
 $as_echo_n "checking if $CC supports -finline-limit=4000... " >&6; }
 fi
@@ -9652,7 +9654,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-limit=4000" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
 $as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
 fi
@@ -9707,7 +9709,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$simd" = "xyes" && test "`./test_cpuid PPC_FEATURE_HAS_ALTIVEC`" = "1" -a "`./test_cpuid PPC_FEATURE_HAS_VSX`" = "1" -a "`./test_cpuid PPC_FEATURE2_ARCH_2_07`" = "1" ; then
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -9758,7 +9760,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" SIMD_NAME="Altivec" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -9809,7 +9811,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -9878,7 +9880,7 @@ $as_echo "PPC32" >&6; }
   INLINE_FLAGS=""
   ac_saved_cflags_ex="$CFLAGS_EX"
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-functions" >&5
 $as_echo_n "checking if $CC supports -finline-functions... " >&6; }
 fi
@@ -9929,7 +9931,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-functions" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -finline-limit=4000" >&5
 $as_echo_n "checking if $CC supports -finline-limit=4000... " >&6; }
 fi
@@ -9980,7 +9982,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$CFLAGS_EX" != x ; then INLINE_FLAGS="$INLINE_FLAGS -finline-limit=4000" ; fi
   CFLAGS_EX=""
-    if test 1 -gt 0; then :
+  if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
 $as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
 fi
@@ -10035,7 +10037,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   if test "x$simd" = "xyes" && test "`./test_cpuid PPC_FEATURE_HAS_ALTIVEC`" = "1" -a "`./test_cpuid PPC_FEATURE_HAS_VSX`" = "1" -a "`./test_cpuid PPC_FEATURE2_ARCH_2_07`" = "1" ; then
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -maltivec" >&5
 $as_echo_n "checking if $CC supports -maltivec... " >&6; }
 fi
@@ -10086,7 +10088,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -maltivec" INLINE_FLAGS="$INLINE_FLAGS -maltivec" SIMD_NAME="Altivec" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mvsx" >&5
 $as_echo_n "checking if $CC supports -mvsx... " >&6; }
 fi
@@ -10137,7 +10139,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     if test "x$CFLAGS_EX" != x ; then CPU_BEST_FLAGS="$CPU_BEST_FLAGS -mvsx" ; fi
     CFLAGS_EX=""
-      if test 1 -gt 0; then :
+    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mpower8-vector" >&5
 $as_echo_n "checking if $CC supports -mpower8-vector... " >&6; }
 fi
@@ -10457,7 +10459,8 @@ else
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mmmx"      SIMD_NAME="MMX"
+  CPU_BEST_FLAGS="-mmmx"
+     SIMD_NAME="MMX"
      if test y$ARCH_LINK = yx86-any.h; then :
   ARCH_LINK=x86-mmx.h
 fi
@@ -10497,7 +10500,8 @@ else
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-msse2"      SIMD_NAME="SSE2"
+  CPU_BEST_FLAGS="-msse2"
+     SIMD_NAME="SSE2"
      if test y$ARCH_LINK = yx86-mmx.h; then :
   ARCH_LINK=x86-sse.h
 fi
@@ -10626,7 +10630,8 @@ extern int CPU_detect(void); extern char CPU_req_name[];
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx"     SIMD_NAME="AVX"
+  CPU_BEST_FLAGS="-mavx"
+     SIMD_NAME="AVX"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10664,7 +10669,8 @@ extern int CPU_detect(void); extern char CPU_req_name[];
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mxop"     SIMD_NAME="XOP"
+  CPU_BEST_FLAGS="-mxop"
+     SIMD_NAME="XOP"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10701,7 +10707,8 @@ extern int CPU_detect(void); extern char CPU_req_name[];
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx2"     SIMD_NAME="AVX2"
+  CPU_BEST_FLAGS="-mavx2"
+     SIMD_NAME="AVX2"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10739,7 +10746,8 @@ extern int CPU_detect(void); extern char CPU_req_name[];
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx512f"     SIMD_NAME="AVX512F"
+  CPU_BEST_FLAGS="-mavx512f"
+     SIMD_NAME="AVX512F"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10777,7 +10785,8 @@ extern int CPU_detect(void); extern char CPU_req_name[];
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx512bw"     SIMD_NAME="AVX512BW"
+  CPU_BEST_FLAGS="-mavx512bw"
+     SIMD_NAME="AVX512BW"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10812,7 +10821,8 @@ $as_echo_n "checking for MMX... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mmmx"      SIMD_NAME="MMX"
+  CPU_BEST_FLAGS="-mmmx"
+     SIMD_NAME="MMX"
      if test y$ARCH_LINK = yx86-any.h; then :
   ARCH_LINK=x86-mmx.h
 fi
@@ -10842,7 +10852,8 @@ $as_echo_n "checking for SSE2... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-msse2"      SIMD_NAME="SSE2"
+  CPU_BEST_FLAGS="-msse2"
+     SIMD_NAME="SSE2"
      if test y$ARCH_LINK = yx86-mmx.h; then :
   ARCH_LINK=x86-sse.h
 fi
@@ -10874,7 +10885,8 @@ $as_echo_n "checking for SSSE3... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mssse3"     SIMD_NAME="SSSE3"
+  CPU_BEST_FLAGS="-mssse3"
+     SIMD_NAME="SSSE3"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10904,7 +10916,8 @@ $as_echo_n "checking for SSE4.1... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-msse4.1"     SIMD_NAME="SSE4.1"
+  CPU_BEST_FLAGS="-msse4.1"
+     SIMD_NAME="SSE4.1"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10935,7 +10948,8 @@ $as_echo_n "checking for AVX... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx"     SIMD_NAME="AVX"
+  CPU_BEST_FLAGS="-mavx"
+     SIMD_NAME="AVX"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10966,7 +10980,8 @@ $as_echo_n "checking for XOP... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mxop"     SIMD_NAME="XOP"
+  CPU_BEST_FLAGS="-mxop"
+     SIMD_NAME="XOP"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -10996,7 +11011,8 @@ $as_echo_n "checking for AVX2... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx2"     SIMD_NAME="AVX2"
+  CPU_BEST_FLAGS="-mavx2"
+     SIMD_NAME="AVX2"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -11027,7 +11043,8 @@ $as_echo_n "checking for AVX512F... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx512f"     SIMD_NAME="AVX512F"
+  CPU_BEST_FLAGS="-mavx512f"
+     SIMD_NAME="AVX512F"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -11058,7 +11075,8 @@ $as_echo_n "checking for AVX512BW... " >&6; }
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx512bw"     SIMD_NAME="AVX512BW"
+  CPU_BEST_FLAGS="-mavx512bw"
+     SIMD_NAME="AVX512BW"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 

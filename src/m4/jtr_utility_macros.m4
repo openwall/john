@@ -36,8 +36,7 @@ dnl If a second argument is 0, don't show progress
 dnl If a second argument is 1, show progress
 dnl If a second argument is 2, bails if not supported
 AC_DEFUN([JTR_FLAG_CHECK],
-[dnl
-  AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1])])
+ [AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1])])
   AC_LANG_PUSH([C])
   ac_saved_cflags="$CFLAGS"
   CFLAGS="-Werror $1"
@@ -59,8 +58,7 @@ dnl If a second argument is 0, don't show progress
 dnl If a second argument is 1, show progress
 dnl If a second argument is 2, bails if not supported
 AC_DEFUN([JTR_FLAG_CHECK_LINK],
-[dnl
-  AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1 w/ linking])])
+ [AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $1 w/ linking])])
   AC_LANG_PUSH([C])
   ac_saved_cflags="$CFLAGS"
   CFLAGS="-Werror $1"

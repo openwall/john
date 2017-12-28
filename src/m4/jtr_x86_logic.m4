@@ -127,7 +127,7 @@ if test "x$simd" = xyes; then
         extern void exit(int);
         int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mmmx"] dnl
+    ,[CPU_BEST_FLAGS="-mmmx"]
      [SIMD_NAME="MMX"]
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
      [AC_MSG_RESULT([yes])]
@@ -147,7 +147,7 @@ if test "x$simd" = xyes; then
         extern void exit(int);
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-msse2"] dnl
+    ,[CPU_BEST_FLAGS="-msse2"]
      [SIMD_NAME="SSE2"]
      [AS_IF([test y$ARCH_LINK = yx86-mmx.h], [ARCH_LINK=x86-sse.h])]
      [AC_MSG_RESULT([yes])]
@@ -215,7 +215,7 @@ if test "x$simd" = xyes; then
       unsigned int nt_buffer8x[4], output8x[4];
       int main(int argc, char **argv) { return !CPU_detect(); }
     ]])],
-     [CPU_BEST_FLAGS="-mavx"]dnl
+     [CPU_BEST_FLAGS="-mavx"]
      [SIMD_NAME="AVX"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
@@ -234,7 +234,7 @@ if test "x$simd" = xyes; then
       unsigned int nt_buffer8x[4], output8x[4];
       int main(int argc, char **argv) { return !CPU_detect(); }
     ]])],
-     [CPU_BEST_FLAGS="-mxop"]dnl
+     [CPU_BEST_FLAGS="-mxop"]
      [SIMD_NAME="XOP"]
      [AC_MSG_RESULT([yes])]
     ,
@@ -253,7 +253,7 @@ if test "x$simd" = xyes; then
       unsigned int nt_buffer8x[4], output8x[4];
       int main(int argc, char **argv) { return !CPU_detect(); }
     ]])],
-     [CPU_BEST_FLAGS="-mavx2"]dnl
+     [CPU_BEST_FLAGS="-mavx2"]
      [SIMD_NAME="AVX2"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -272,7 +272,7 @@ if test "x$simd" = xyes; then
       unsigned int nt_buffer8x[4], output8x[4];
       int main(int argc, char **argv) { return !CPU_detect(); }
     ]])],
-     [CPU_BEST_FLAGS="-mavx512f"]dnl
+     [CPU_BEST_FLAGS="-mavx512f"]
      [SIMD_NAME="AVX512F"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -291,7 +291,7 @@ if test "x$simd" = xyes; then
       unsigned int nt_buffer8x[4], output8x[4];
       int main(int argc, char **argv) { return !CPU_detect(); }
     ]])],
-     [CPU_BEST_FLAGS="-mavx512bw"]dnl
+     [CPU_BEST_FLAGS="-mavx512bw"]
      [SIMD_NAME="AVX512BW"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
@@ -315,7 +315,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m64 t;*((long long*)&t)=1;t=_mm_set1_pi32(7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mmmx"] dnl
+    ,[CPU_BEST_FLAGS="-mmmx"]
      [SIMD_NAME="MMX"]
      [AS_IF([test y$ARCH_LINK = yx86-any.h], [ARCH_LINK=x86-mmx.h])]
      [AC_MSG_RESULT([yes])]
@@ -333,7 +333,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_slli_si128(t,7);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-msse2"] dnl
+    ,[CPU_BEST_FLAGS="-msse2"]
      [SIMD_NAME="SSE2"]
      [AS_IF([test y$ARCH_LINK = yx86-mmx.h], [ARCH_LINK=x86-sse.h])]
      [AC_MSG_RESULT([yes])]
@@ -352,7 +352,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_shuffle_epi8(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mssse3"]dnl
+    ,[CPU_BEST_FLAGS="-mssse3"]
      [SIMD_NAME="SSSE3"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -371,7 +371,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m128d t;*((long long*)&t)=1;t=_mm_round_pd(t,1);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-msse4.1"]dnl
+    ,[CPU_BEST_FLAGS="-msse4.1"]
      [SIMD_NAME="SSE4.1"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -391,7 +391,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m256d t;*((long long*)&t)=1;t=_mm256_movedup_pd(t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mavx"]dnl
+    ,[CPU_BEST_FLAGS="-mavx"]
      [SIMD_NAME="AVX"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -411,7 +411,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m128i t;*((long long*)&t)=1;t=_mm_roti_epi32(t,5);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mxop"]dnl
+    ,[CPU_BEST_FLAGS="-mxop"]
      [SIMD_NAME="XOP"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
@@ -430,7 +430,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m256i t, t1;*((long long*)&t)=1;t1=t;t=_mm256_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mavx2"]dnl
+    ,[CPU_BEST_FLAGS="-mavx2"]
      [SIMD_NAME="AVX2"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -450,7 +450,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_mul_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mavx512f"]dnl
+    ,[CPU_BEST_FLAGS="-mavx512f"]
      [SIMD_NAME="AVX512F"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND=1]
@@ -470,7 +470,7 @@ dnl ======================================================================
         extern void exit(int);
         int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mavx512bw"]dnl
+    ,[CPU_BEST_FLAGS="-mavx512bw"]
      [SIMD_NAME="AVX512BW"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]

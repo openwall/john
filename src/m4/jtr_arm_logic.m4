@@ -38,7 +38,7 @@ if test "x$enable_native_tests" = xyes; then
   extern void exit(int);
   int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mfpu=neon"] dnl
+    ,[CPU_BEST_FLAGS="-mfpu=neon"]
      [SIMD_NAME="NEON"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
@@ -57,7 +57,7 @@ dnl ======================================================================
   extern void exit(int);
   int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
     )]
-    ,[CPU_BEST_FLAGS="-mfpu=neon"] dnl
+    ,[CPU_BEST_FLAGS="-mfpu=neon"]
      [SIMD_NAME="NEON"]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
