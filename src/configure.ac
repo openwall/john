@@ -237,6 +237,7 @@ fi
    AS_IF([test "x$werror" = xyes],
       JTR_FLAG_CHECK([-Werror], 1)
       JTR_FLAG_CHECK([-Wno-error=cpp], 1)
+      JTR_FLAG_CHECK([[-Wno-error=#warnings]], 1)
    )
    if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
       JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
@@ -1102,7 +1103,17 @@ AC_CONFIG_FILES([Makefile
                  aes/openssl/Makefile
                  secp256k1/Makefile
                  escrypt/Makefile])
+
+# Escaping the '#' in things like "-wno-error=#warnings" is required in
+# Makefile but forbidden when *not* in Makefile so we need to back-up
+# CFLAGS_EXTRA before writing Makefile, and revert after (duh!)
+CFLAGS_EXTRA_BACKUP=$CFLAGS_EXTRA
+CFLAGS_EXTRA=$(echo $CFLAGS_EXTRA | sed 's/#/\\#/g')
+
+# This actually writes Makefile et al.
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
+
+CFLAGS_EXTRA=$CFLAGS_EXTRA_BACKUP
 
 ##########################################################
 # Create fmt_externs.h and fmt_registers.h
