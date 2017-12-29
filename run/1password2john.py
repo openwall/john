@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Written by Dhiru Kholia <dhiru at openwall.com> in July 2012 for JtR project.
 # Copyright (c) 2012-2013, Dhiru Kholia.
@@ -25,16 +25,16 @@
 # both that copyright notice and this permission notice appear in
 # supporting documentation.
 #
-# THE AUTHOR PROVIDES THIS SOFTWARE ``AS IS'' AND ANY EXPRESSED OR
-# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# THE AUTHOR PROVIDES THIS SOFTWARE 'AS IS' AND ANY EXPRESSED OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
+# EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # References,
 #
@@ -46,11 +46,48 @@
 # In December 2012, AgileBits introduced the OPVault format to replace the
 # Agile Keychain format, which had been introduced in 2008. OPVault format is
 # used by default when syncing with iCloud or Dropbox.
+#
+# December 2017 notes,
+#
+# Thanks goes to Matt Page and philsmd for figuring out the details related to
+# 1Password 6 for macOS.
+#
+# https://github.com/mpage/onepassword/blob/master/vault.go has some new
+# "attack vectors" as well.
+#
+# https://github.com/mpage/onepassword/blob/master/notes.md is useful too.
+#
+# Agile Keychain format uses encryptionKeys.js file. Cloud Keychain (and
+# OPVault) format uses profile.js file. However, 1Password 6 (and 1Password 4)
+# for macOS stores data in .sqlite files.
+#
+# $ ls -l ~/Library/Application\ Support/1Password\ 4/Data/  # macOS 10.13.2 + 1Password 6.8.5
+# -rw-r--r--  1 lulu  staff    4096 Dec 29 15:29 B5.sqlite
+# -rw-r--r--  1 lulu  staff    4096 Dec 29 15:29 OnePassword.sqlite
+#
+# From https://blog.elcomsoft.com/2017/08/attacking-the-1password-master-password-follow-up/,
+#
+# B5.sqlite -> this database is used in macOS for synchronizing with 1Password
+# proprietary cloud service.
+#
+# We can only extract the "hash" from the OnePassword.sqlite file (and not the
+# B5.sqlite file) at the moment.
+#
+# Please note that the "profiles" table in OnePassword.sqlite can be empty,
+# unless the "Local Vaults" option under 1Password 6 -> Preferences -> Advanced
+# is selected.
 
 import os
 import sys
 import struct
 import base64
+import sqlite3
+
+PY3 = sys.version_info[0] == 3
+
+if not PY3:
+    reload(sys)
+    sys.setdefaultencoding('utf8')
 
 try:
     import json
@@ -122,10 +159,10 @@ def opdata1_unpack(data):
     HEADER_LENGTH = 8
     TOTAL_HEADER_LENGTH = 32
     HMAC_LENGTH = 32
-    if data[:HEADER_LENGTH] != "opdata01":
+    if data[:HEADER_LENGTH] != b"opdata01":
         data = base64.b64decode(data)
     if PY3 or PMV:
-        exec('MAGIC = b"opdata01"')
+        MAGIC = b"opdata01"
     else:
         MAGIC = "opdata01"
 
@@ -159,7 +196,7 @@ class CloudKeychain(object):  # also handles "OPVault format"
                 self.processed = True
             else:
                 return
-            f = open(keys_file_path, 'r')
+            f = open(keys_file_path, 'rb')
             ds = f.read()[INITIAL_KEY_OFFSET:-1]
             data = json.loads(ds)
 
@@ -248,7 +285,43 @@ class AgileKeychain(object):
         sys.stdout.write("\n")
 
 
+def process_sqlite(filename):
+    db = sqlite3.connect(filename)
+    cursor = db.cursor()
+    rows = cursor.execute('SELECT master_key_data, salt, iterations FROM profiles')
+    found = False
+    for row in rows:
+        masterKey, salt, iterations  = row
+        sys.stdout.write("$cloudkeychain$%s$%s$%s$%s$%s" % (
+            len(salt),
+            binascii.hexlify(salt).decode("ascii"),
+            iterations,
+            len(masterKey),
+            binascii.hexlify(masterKey).decode("ascii")))
+
+        plaintext_length, iv, cryptext, expected_hmac, hmac_d_data = \
+            opdata1_unpack(masterKey)
+        sys.stdout.write("$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" % (
+            plaintext_length, len(iv),
+            binascii.hexlify(iv).decode("ascii"), len(cryptext),
+            binascii.hexlify(cryptext).decode("ascii"),
+            len(expected_hmac),
+            binascii.hexlify(expected_hmac).decode("ascii"),
+            len(hmac_d_data),
+            binascii.hexlify(hmac_d_data).decode("ascii")))
+
+        found = True
+
+    return found
+
+
 def process_file(keychain):
+    found = False
+    if "sqlite" in keychain:  # XXX weak hack
+        found = process_sqlite(keychain)
+
+    if found:
+        return
 
     keychainobj = CloudKeychain(keychain)
     if not keychainobj.processed:
@@ -256,7 +329,7 @@ def process_file(keychain):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <1Password Agile Keychain(s)>\n" %
+        sys.stderr.write("Usage: %s <1Password Agile Keychain(s) / Cloud Keychain(s)> / OnePassword.sqlite\n" %
                          sys.argv[0])
         sys.exit(-1)
 
