@@ -507,8 +507,6 @@ void listconf_parse_late(void)
    But if LWS or GWS was already set, we do not overwrite. */
 		setenv("LWS", "1", 0);
 		setenv("GWS", "1", 0);
-		setenv("BLOCKS", "1", 0);
-		setenv("THREADS", "1", 0);
 #endif
 
 #if 0
@@ -579,8 +577,6 @@ void listconf_parse_late(void)
    But if LWS or GWS was already set, we do not overwrite. */
 		setenv("LWS", "1", 0);
 		setenv("GWS", "1", 0);
-		setenv("BLOCKS", "1", 0);
-		setenv("THREADS", "1", 0);
 #endif
 		format = fmt_list;
 		do {
@@ -898,8 +894,6 @@ void listconf_parse_late(void)
 		   GWS was already set, we do not overwrite. */
 		setenv("LWS", "1", 0);
 		setenv("GWS", "1", 0);
-		setenv("BLOCKS", "1", 0);
-		setenv("THREADS", "1", 0);
 #endif
 		do {
 			int ntests = 0;

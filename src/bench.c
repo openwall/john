@@ -301,8 +301,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	struct itimerval it;
 #endif
 	clock_t start_real, end_real;
-#if !defined (__MINGW32__) && !defined (_MSC_VER)
 	clock_t start_virtual, end_virtual;
+#if !defined (__MINGW32__) && !defined (_MSC_VER)
 	struct tms buf;
 #endif
 	uint64_t crypts;
@@ -501,7 +501,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
-	start_real = clock();
+	start_virtual = start_real = clock();
 #else
 	start_real = times(&buf);
 	start_virtual = buf.tms_utime + buf.tms_stime;
@@ -542,30 +542,26 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	} while (benchmark_time &&
 		 (((wait && salts_done < salts) ||
 	          bench_running) && !event_abort));
-	//fprintf(stderr, "  salts_done=%d  ", salts_done);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();
 #else
 	end_real = times(&buf);
+#endif
 	if (end_real == start_real) end_real++;
 
+#if defined (__MINGW32__) || defined (_MSC_VER)
+	end_virtual = end_real;
+#else
 	end_virtual = buf.tms_utime + buf.tms_stime;
 	end_virtual += buf.tms_cutime + buf.tms_cstime;
 	if (end_virtual == start_virtual) end_virtual++;
-	results->virtual = end_virtual - start_virtual;
 #endif
 
 	results->real = end_real - start_real;
+	results->virtual = end_virtual - start_virtual;
 	results->crypts = crypts;
 	results->salts_done = salts_done;
-
-	// if left at 0, we get a / by 0 later.  I have seen this happen on -test=0 runs.
-	if (results->real == 0)
-		results->real = 1;
-#if defined (__MINGW32__) || defined (_MSC_VER)
-	results->virtual = results->real;
-#endif
 
 	for (index = 0; index < 2; index++) {
 		if (index == 0 || !dyna_copied)
@@ -671,8 +667,6 @@ int benchmark_all(void)
 		   GWS was already set, we do not overwrite. */
 		setenv("LWS", "7", 0);
 		setenv("GWS", "49", 0);
-		setenv("BLOCKS", "7", 0);
-		setenv("THREADS", "7", 0);
 	}
 #endif
 
