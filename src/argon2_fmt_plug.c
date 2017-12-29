@@ -95,7 +95,7 @@ static void **pseudo_rands;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static int threads;
+static int threads = 1;
 static size_t saved_mem_size;
 static uint32_t saved_segment_length;
 
@@ -107,13 +107,13 @@ static void init(struct fmt_main *self)
 {
 	int i;
 #ifdef _OPENMP
-	int omp_t = omp_get_max_threads();
-	threads=omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
-#else
-	threads=1;
+	threads = omp_get_max_threads();
+
+	if (threads > 1) {
+		self->params.min_keys_per_crypt *= threads;
+		threads *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= threads;
+	}
 #endif
 	saved_key =
 	    mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
