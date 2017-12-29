@@ -62,6 +62,9 @@ john_register_one(&fmt_ocl_rar);
 #elif defined(HAVE_MMAP)
 #include <sys/mman.h>
 #endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "arch.h"
 #include "sha.h"
@@ -98,13 +101,6 @@ john_register_one(&fmt_ocl_rar);
 #define SALT_ALIGN		sizeof(rarfile*)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE		32
-#endif
-#endif
 
 static const char * warn[] = {
 	"key xfer: "  ,  ", len xfer: "   , ", init: " , ", loop: " ,
