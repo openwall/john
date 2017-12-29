@@ -227,12 +227,13 @@ static const char constant_phrase[] =
 	"Be all my sins remember'd.\n";
 
 static unsigned char mod5[0x100];
+static int ngroups = 1;
 
 static void init(struct fmt_main *self)
 {
 	int i;
 #ifdef SIMD_COEF_32
-	int j, k, ngroups = 1;
+	int j, k;
 #endif
 #ifdef _OPENMP
 	int threads = omp_get_max_threads();
@@ -517,11 +518,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int idx, group_idx;
-#ifdef _OPENMP
-	int ngroups = OMP_SCALE * omp_get_max_threads();
-#else
-	int ngroups = 1;
-#endif
 	int group_sz = (count + ngroups - 1) / ngroups;
 
 	for (idx = 0; idx < count; ++idx) {
