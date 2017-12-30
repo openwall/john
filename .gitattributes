@@ -1,5 +1,6 @@
 # Substitions for git archive
 src/Makefile.in export-subst
+src/Makefile.legacy export-subst
 
 # Files/directories to be ignored for git archive
 .circle export-ignore
