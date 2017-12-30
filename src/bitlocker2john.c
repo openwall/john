@@ -46,6 +46,7 @@
 #define VMK_SIZE                 44
 #define SIGNATURE_LEN            9
 
+
 static unsigned char p_salt[SALT_SIZE], p_nonce[NONCE_SIZE], p_mac[MAC_SIZE], p_vmk[VMK_SIZE];
 static unsigned char r_salt[SALT_SIZE], r_nonce[NONCE_SIZE], r_mac[MAC_SIZE], r_vmk[VMK_SIZE];
 
@@ -98,16 +99,16 @@ int process_encrypted_image(char *image_path)
 		}
 		if (i == 8) {
 			match = 1;
-			fprintf(stderr, "\nSignature found at 0x%08lx\n", (ftell(fp) - i - 1));
+			printf("\nSignature found at 0x%08lx\n", (ftell(fp) - i - 1));
 			fseek(fp, 1, SEEK_CUR);
 			version = fgetc(fp);
-			fprintf(stderr, "Version: %d ", version);
+			printf("Version: %d ", version);
 			if (version == 1)
-				fprintf(stderr, "(Windows Vista)\n");
+				printf("(Windows Vista)\n");
 			else if (version == 2)
-				fprintf(stderr, "(Windows 7 or later)\n");
+				printf("(Windows 7 or later)\n");
 			else {
-				fprintf(stderr, "\nInvalid version, looking for a signature with valid version...\n");
+				printf("\nInvalid version, looking for a signature with valid version...\n");
 				match = 0;
 			}
 		}
@@ -120,20 +121,21 @@ int process_encrypted_image(char *image_path)
 			c = fgetc(fp);
 			i++;
 		}
+
 		if (i == 4) {
-			fprintf(stderr, "\nVMK entry found at 0x%08lx\n", (ftell(fp) - i - 3));
+			printf("\nVMK entry found at 0x%08lx\n", (ftell(fp) - i - 3));
 			fseek(fp, 27, SEEK_CUR);
 			c = (unsigned char)fgetc(fp);
 			d = (unsigned char)fgetc(fp);
 
 			if ((c == key_protection_clear[0]) && (d == key_protection_clear[1]))
-				fprintf(stderr, "VMK not encrypted.. stored clear!\n");
+				printf("VMK not encrypted.. stored clear!\n");
 			else if ((c == key_protection_tpm[0]) && (d == key_protection_tpm[1]))
-				fprintf(stderr, "VMK encrypted with TPM...not supported!\n");
+				printf("VMK encrypted with TPM...not supported!\n");
 			else if ((c == key_protection_start_key[0]) && (d == key_protection_start_key[1]))
-				fprintf(stderr, "VMK encrypted with Startup Key...not supported!\n");
+				printf("VMK encrypted with Startup Key...not supported!\n");
 			else if ((c == key_protection_recovery[0]) && (d == key_protection_recovery[1])) {
-				fprintf(stderr, "VMK encrypted with Recovery key found!\n");
+				printf("VMK encrypted with Recovery key found!\n");
 				fseek(fp, 12, SEEK_CUR);
 				fill_buffer(fp, r_salt, SALT_SIZE);
 				fseek(fp, 147, SEEK_CUR);
@@ -145,7 +147,7 @@ int process_encrypted_image(char *image_path)
 					i = 0;
 					continue;
 				} else
-					fprintf(stderr, "VMK encrypted with AES-CCM\n");
+					printf("VMK encrypted with AES-CCM\n");
 
 				fseek(fp, 3, SEEK_CUR);
 				fill_buffer(fp, r_nonce, NONCE_SIZE);
@@ -154,7 +156,7 @@ int process_encrypted_image(char *image_path)
 				recovery_found = 1;
 			}
 			else if ((c == key_protection_password[0]) && (d == key_protection_password[1]) && vmk_found == 0) {
-				fprintf(stderr, "VMK encrypted with user password found!\n");
+				printf("VMK encrypted with user password found!\n");
 				fseek(fp, 12, SEEK_CUR);
 				fill_buffer(fp, p_salt, SALT_SIZE);
 				fseek(fp, 83, SEEK_CUR);
@@ -164,7 +166,7 @@ int process_encrypted_image(char *image_path)
 					i = 0;
 					continue;
 				}
-				else fprintf(stderr, "VMK encrypted with AES-CCM\n");
+				else printf("VMK encrypted with AES-CCM\n");
 
 				fseek(fp, 3, SEEK_CUR);
 				fill_buffer(fp, p_nonce, NONCE_SIZE);
@@ -191,6 +193,7 @@ int process_encrypted_image(char *image_path)
 			// UP
 			printf("\nUser Password hash:\n$bitlocker$%d$%d$", HASH_UP, SALT_SIZE);
 			printf("$bitlocker$%d$%d$", HASH_UP, SALT_SIZE);
+
 			print_hex(p_salt, SALT_SIZE, stdout);
 			printf("$%d$%d$", 0x100000, NONCE_SIZE); // fixed iterations , fixed nonce size
 			print_hex(p_nonce, NONCE_SIZE, stdout);
@@ -274,8 +277,64 @@ int main(int argc, char **argv)
 {
 	int opt;
 	char *image_path = NULL;
-
+	int opt = 0;
+	char * imagePath=NULL, * outFile=NULL;
+	
 	errno = 0;
+	
+	while (1) {
+		opt = getopt(argc, argv, "hi:o:");
+		if (opt == -1)
+			break;
+		switch (opt)
+		{
+			case 'h':
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+				break;
+
+			case 'i':
+				if(strlen(optarg) >= INPUT_SIZE)
+				{
+					fprintf(stderr, "ERROR: Input string is bigger than %d\n", INPUT_SIZE);
+					exit(EXIT_FAILURE);
+				}
+				imagePath=(char *)Calloc(INPUT_SIZE, sizeof(char));
+				strncpy(imagePath, optarg, strlen(optarg)+1);
+				break;
+
+			case 'o':
+				if(strlen(optarg) >= INPUT_SIZE)
+				{
+					fprintf(stderr, "ERROR: Input string is bigger than %d\n", INPUT_SIZE);
+					exit(EXIT_FAILURE);
+				}
+				outHashUser = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_USER)+2), sizeof(char));
+				memcpy(outHashUser, optarg, strlen(optarg));
+				outHashUser[strlen(optarg)] = '/';
+				memcpy(outHashUser+strlen(optarg)+1, FILE_OUT_HASH_USER, strlen(FILE_OUT_HASH_USER));
+
+				outHashUserMac = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_USER_MAC)+2), sizeof(char));
+				memcpy(outHashUserMac, optarg, strlen(optarg));
+				outHashUserMac[strlen(optarg)] = '/';
+				memcpy(outHashUserMac+strlen(optarg)+1, FILE_OUT_HASH_USER_MAC, strlen(FILE_OUT_HASH_USER_MAC));
+
+				outHashRecovery = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_RECV)+2), sizeof(char));
+				memcpy(outHashRecovery, optarg, strlen(optarg));
+				outHashRecovery[strlen(optarg)] = '/';
+				memcpy(outHashRecovery+strlen(optarg)+1, FILE_OUT_HASH_RECV, strlen(FILE_OUT_HASH_RECV));
+
+				outHashRecoveryMac = (char*)Calloc( (strlen(optarg)+strlen(FILE_OUT_HASH_RECV_MAC)+2), sizeof(char));
+				memcpy(outHashRecoveryMac, optarg, strlen(optarg));
+				outHashRecoveryMac[strlen(optarg)] = '/';
+				memcpy(outHashRecoveryMac+strlen(optarg)+1, FILE_OUT_HASH_RECV_MAC, strlen(FILE_OUT_HASH_RECV_MAC));
+				
+				break;
+
+			default:
+				break;
+		}
+	}
 
 	while (1) {
 		opt = getopt(argc, argv, "hi:");

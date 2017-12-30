@@ -1301,6 +1301,13 @@ BF_body:
 #define C7_AVX512F			$0x00010000 /* AVX512F */
 #define C7_AVX512BW			$0x40010000 /* + AVX512BW */
 
+#define EF_ID				$0x00200000
+
+/* Leaf 7 */
+#define C7_AVX2				$0x00000020 /* AVX2 */
+#define C7_AVX512F			$0x00010000 /* AVX512F */
+#define C7_AVX512BW			$0x40010000 /* + AVX512BW */
+
 /* Leaf 1 */
 #define CF_MMX				$0x00800000
 #define CF_SSE2				$0x04000000 /* SSE2 */
@@ -1376,6 +1383,7 @@ CPU_detect_fail:
 	popl %ecx
 	xorl %eax,%eax
 	jmp CPU_detect_ret
+#endif
 CPU_detect_cont:
 #endif
 	movl $1,%eax
