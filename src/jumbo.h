@@ -40,7 +40,7 @@
 
 #include <stdint.h>
 #define __STDC_FORMAT_MACROS
-#if (AC_BUILT && HAVE_INTTYPES_H) && ! defined(_MSC_VER)
+#if (!AC_BUILT || HAVE_INTTYPES_H) && ! defined(_MSC_VER)
 #include <inttypes.h>
 #else
 #ifndef PRIx64
