@@ -48,18 +48,15 @@ john_register_one(&fmt_opencl_bitlocker);
 #define SALT_SIZE               sizeof(bitlocker_custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define HASH_LOOPS              256
-#define ITERATIONS              4096 // 1048576 / 256
+#define ITERATIONS              1048576 //4096 (/ 256)
 #define STEP                    0
 #define SEED                    1024
 
-static const char *warn[] = {
-        "xfer: ",  ", ",  ", ",  ", ",  ", ",
-        ", ",  ", ",  ", ",  ", ",  ", ",
-        ", ",  ", ",  ", prepare: " ,  ", xfer: ",  ", crypt: ",
-        ", final: ",  ", res xfer: "
+static const char * warn[] = {
+	"init: ", ", loop: ", ", final: ", ", xfer: "
 };
 
-static int split_events[] = { 14, -1, -1 };
+static int split_events[] = { 1, -1, -1};
 
 #define BL_SINGLE_BLOCK_SHA_SIZE                64
 #define BITLOCKER_PADDING_SIZE                  40
@@ -281,10 +278,10 @@ static size_t get_task_max_work_group_size()
 {
 	size_t s;
 
-	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, init_kernel));
+	s = autotune_get_task_max_work_group_size(FALSE, 0, init_kernel);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, block_kernel));
+	//s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, block_kernel));
 
 	return s;
 }
@@ -340,18 +337,17 @@ static void reset(struct db_main *db)
 		 * Initialize openCL tuning (library) for this format.
 		 * Autotuning with default parameters:
 		 * HASH_LOOP = 256
-		 * ITERATIONS = 4096
+		 * ITERATIONS = 1048576
 		 */
 
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
-		                       26, self, create_clobj, release_clobj,
+		                       1, self, create_clobj, release_clobj,
 		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 		                       0, db);
 
-		autotune_run(self, HASH_LOOPS * ITERATIONS, 0,
+		autotune_run(self, ITERATIONS, 0,
 		             (cpu(device_info[gpu_id]) ?
-		              10000 : 100000000ULL));
-		              //1000000000 : 10000000000ULL));
+		              1000000000 : 10000000000ULL));
 	}
 }
 
@@ -390,21 +386,21 @@ static int w_block_precomputed(unsigned char *salt)
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_salt,
 		CL_TRUE, 0, BITLOCKER_SALT_SIZE * sizeof(char), salt, 0,
-		NULL, multi_profilingEvent[0]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pad,
 		CL_TRUE, 0, BITLOCKER_PADDING_SIZE * sizeof(char), padding, 0,
-		NULL, multi_profilingEvent[1]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], block_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run kernel");
+		1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], d_wblocks,
 		CL_TRUE, 0, BL_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER *
 		sizeof(unsigned int), h_wblocks, 0,
-		NULL, multi_profilingEvent[3]), "clEnqueueReadBuffer");
+		NULL, NULL), "clEnqueueReadBuffer");
 
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
@@ -445,8 +441,8 @@ static void set_salt(void * cipher_salt_input)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i, m=0, startIndex=0, h_loopHash=0;
 	const int count = *pcount;
+	int i, startIndex=0, h_loopHash=0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -458,31 +454,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// =========================== Init kernel ===========================
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_numPsw,
 		CL_FALSE, 0, sizeof(int), pcount, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pswI,
 		CL_FALSE, 0, count * BITLOCKER_PSW_INT_SIZE * sizeof(unsigned int), h_pswI, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_pswSize,
 		CL_FALSE, 0, count * sizeof(int), h_pswSize, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_attack,
 		CL_FALSE, 0, sizeof(int), h_attack, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_outHash,
 		CL_FALSE, 0, count * BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
-		hash_zero, 0, NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		hash_zero, 0, NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], init_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m]), "Run kernel");
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[0]), "Run kernel");
 
 	// =========================== Loop kernel ===========================
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_wblocks,
 		CL_FALSE, 0, (BL_SINGLE_BLOCK_SHA_SIZE * BITLOCKER_ITERATION_NUMBER) * sizeof(unsigned int),
-		h_wblocks, 0, NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		h_wblocks, 0, NULL, NULL), "clEnqueueWriteBuffer");
 
 	for (i = 0; i < (ocl_autotune_running ? 1 : h_loopIter); i++) {
 
@@ -491,15 +487,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_startIndex,
 				CL_FALSE, 0, sizeof(int), &startIndex, 0,
-				NULL, multi_profilingEvent[m+1]), "Copy iter num to gpu");
+				NULL, NULL), "Copy iter num to gpu");
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_loopHash,
 				CL_FALSE, 0, sizeof(int), &h_loopHash, 0,
-				NULL, multi_profilingEvent[m+2]), "clEnqueueWriteBuffer");
+				NULL, NULL), "clEnqueueWriteBuffer");
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 				1, NULL, &global_work_size, lws, 0,
-				NULL, multi_profilingEvent[m+3]), "Run loop kernel");
+				NULL, multi_profilingEvent[1]), "Run loop kernel");
 
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
@@ -508,81 +504,80 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// =========================== Final kernel ===========================
-	m+=4;
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_found,
 		CL_FALSE, 0, sizeof(int), h_found, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmk,
 		CL_FALSE, 0, BITLOCKER_VMK_SIZE * sizeof(char), cur_salt->data, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	// =============== vmkIV ===============
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV0,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV4,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV+4)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV8,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV+8)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_vmkIV12,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_vmkIV+12)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 	// =======================================
 
 	// ================== macIV ==================
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV0,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV4,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV+4)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV8,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV+8)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_macIV12,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_macIV+12)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 	// ===========================================
 
 	// =============== cMacIV ==============
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV0,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV4,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV+4)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV8,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV+8)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_cMacIV12,
 		CL_FALSE, 0, sizeof(unsigned int), (void*)((unsigned int *)(h_cMacIV+12)), 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 	// ===========================================
 
 	// =================== MAC ===================
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], d_mac,
 		CL_FALSE, 0, BITLOCKER_MAC_SIZE, (void*)h_mac, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueWriteBuffer");
+		NULL, NULL), "clEnqueueWriteBuffer");
 	// ===========================================
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[m++]), "Run kernel");
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run kernel");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], d_found,
 		CL_TRUE, 0, sizeof(int), h_found, 0,
-		NULL, multi_profilingEvent[m++]), "clEnqueueReadBuffer");
+		NULL, multi_profilingEvent[3]), "clEnqueueReadBuffer");
 
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 	opencl_process_event();
