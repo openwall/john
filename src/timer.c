@@ -12,121 +12,151 @@
  *
  * Portable hi-res timer.  Was a nice C++ class.
  * Downgraded to C for project john
- *
  */
 
-#include "timer.h"
 #include <stdio.h>
+
+#include "timer.h"
 #include "memdbg.h"
 
-double sm_HRTicksPerSec=0.0;	// HR Ticks per second
-int sm_fGotHRTicksPerSec=0;	// Set if we have got the above
-double sm_hrPrecision=0.0;
-double sm_cPrecision=0.0;
+double sm_HRTicksPerSec = 0.0;  // HR Ticks per second
+int sm_fGotHRTicksPerSec = 0;   // Set if we have got the above
+double sm_hrPrecision = 0.0;
+double sm_cPrecision = 0.0;
 
-void sTimer_sTimer (sTimer *t)
+void sTimer_Init(sTimer *t)
 {
-	t->m_fRunning=0;
-	t->m_cStartTime=0;
-	t->m_cEndTime=0;
-	t->m_dAccumSeconds=0;
+	t->m_fRunning = 0;
+	t->m_cStartTime = 0;
+	t->m_cEndTime = 0;
+	t->m_dAccumSeconds = 0;
 	HRZERO(t->m_hrStartTime);
 	HRZERO(t->m_hrEndTime);
-	if (!sm_fGotHRTicksPerSec)
-	{
-        // What's the lowest digit set non-zero in a clock() call
+	if (!sm_fGotHRTicksPerSec) {
+		// What's the lowest digit set non-zero in a clock() call
 		// That's a fair indication what the precision is likely to be.
 		// Note - this isn't actually used
 		int i;
 		sm_fGotHRTicksPerSec = 1;
-		sm_cPrecision=0;
+		sm_cPrecision = 0;
 		for (i = 0; i < 10; ++i) {
-			clock_t heuristicTimeTest=clock();
-			if (heuristicTimeTest%10) { sm_cPrecision = 1.0/CLOCKS_PER_SEC; break; }
-			else if (heuristicTimeTest%100) { if (sm_cPrecision == 0 || sm_cPrecision > 10.0/CLOCKS_PER_SEC) sm_cPrecision = 10.0/CLOCKS_PER_SEC; }
-			else if (heuristicTimeTest%1000) { if (sm_cPrecision == 0 || sm_cPrecision > 100.0/CLOCKS_PER_SEC) sm_cPrecision = 100.0/CLOCKS_PER_SEC;  }
-			else if (heuristicTimeTest%10000) { if (sm_cPrecision == 0 || sm_cPrecision > 1000.0/CLOCKS_PER_SEC) sm_cPrecision = 1000.0/CLOCKS_PER_SEC;  }
-			else { if (sm_cPrecision == 0 || sm_cPrecision > 10000.0/CLOCKS_PER_SEC) sm_cPrecision = 10000.0/CLOCKS_PER_SEC;  }
+			clock_t heuristicTimeTest = clock();
+			if (heuristicTimeTest % 10) {
+				sm_cPrecision = 1.0 / CLOCKS_PER_SEC;
+				break;
+			}
+			else if (heuristicTimeTest % 100) {
+				if (sm_cPrecision == 0 ||
+				        sm_cPrecision > 10.0 / CLOCKS_PER_SEC)
+					sm_cPrecision = 10.0 / CLOCKS_PER_SEC;
+			}
+			else if (heuristicTimeTest % 1000) {
+				if (sm_cPrecision == 0 ||
+				        sm_cPrecision > 100.0 / CLOCKS_PER_SEC)
+					sm_cPrecision = 100.0 / CLOCKS_PER_SEC;
+			}
+			else if (heuristicTimeTest % 10000) {
+				if (sm_cPrecision == 0 ||
+				        sm_cPrecision > 1000.0 / CLOCKS_PER_SEC)
+					sm_cPrecision =
+					    1000.0 / CLOCKS_PER_SEC;
+			}
+			else {
+				if (sm_cPrecision == 0 ||
+				        sm_cPrecision > 10000.0 / CLOCKS_PER_SEC)
+					sm_cPrecision =
+					    10000.0 / CLOCKS_PER_SEC;
+			}
 		}
 
-        // Find the claimed resolution of the high res timer
+		// Find the claimed resolution of the high res timer
 		// Then find the most likely real rate by waiting for it to change.
 		// Note - I've frequently seen missed beats, and therefore a
 		// 0.000001 reality gets reported as a 0.000002.
 		// Note - this also isn't actually used, all that matters is
 		// whether HRTicksPerSec has a non-zero value or not.
-		HRGETTICKS_PER_SEC (sm_HRTicksPerSec);
+		HRGETTICKS_PER_SEC(sm_HRTicksPerSec);
 
-		if (sm_HRTicksPerSec != 0.0)
-		{
+		if (sm_HRTicksPerSec != 0.0) {
 			hr_timer start, end;
-			HRSETCURRENT (start);
-			do
-			{
-				HRSETCURRENT (end);
-			}	while (HRGETTICKS (end) == HRGETTICKS (start));
+			HRSETCURRENT(start);
+			do {
+				HRSETCURRENT(end);
+			} while (HRGETTICKS(end) == HRGETTICKS(start));
 
-			sm_hrPrecision = (HRGETTICKS (end)-HRGETTICKS (start))/sm_HRTicksPerSec;
+			sm_hrPrecision =
+			    (HRGETTICKS(end) -
+			     HRGETTICKS(start)) / sm_HRTicksPerSec;
 		}
 	}
 }
 
 
-void sTimer_Stop (sTimer *t)
+void sTimer_Stop(sTimer *t)
 {
-	if (t->m_fRunning)
-	{
-		if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT (t->m_hrEndTime); }
-		else { t->m_cEndTime = clock (); }
+	if (t->m_fRunning) {
+		if (sm_HRTicksPerSec != 0.0) {
+			HRSETCURRENT(t->m_hrEndTime);
+		}
+		else {
+			t->m_cEndTime = clock();
+		}
 	}
 	else
-		HRZERO (t->m_hrEndTime);
+		HRZERO(t->m_hrEndTime);
 	t->m_fRunning = 0;
 }
 
-void sTimer_Start (sTimer *t, int bClear)
+void sTimer_Start(sTimer *t, int bClear)
 {
 	if (bClear)
 		sTimer_ClearTime(t);
-	if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT (t->m_hrStartTime); }
-	else { t->m_cStartTime = clock (); }
+	if (sm_HRTicksPerSec != 0.0) {
+		HRSETCURRENT(t->m_hrStartTime);
+	}
+	else {
+		t->m_cStartTime = clock();
+	}
 	t->m_fRunning = 1;
 }
 
 void sTimer_ClearTime(sTimer *t)
 {
 	t->m_dAccumSeconds = 0;
-	HRZERO (t->m_hrStartTime);
-	HRZERO (t->m_hrEndTime);
-	t->m_fRunning=0;
+	HRZERO(t->m_hrStartTime);
+	HRZERO(t->m_hrEndTime);
+	t->m_fRunning = 0;
 }
 
-double sTimer_GetSecs (sTimer *t)
+double sTimer_GetSecs(sTimer *t)
 {
 	double retval;
-	if (t->m_fRunning)
-	{
-		if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT(t->m_hrEndTime); }
-		else { t->m_cEndTime = clock (); }
+	if (t->m_fRunning) {
+		if (sm_HRTicksPerSec != 0.0) {
+			HRSETCURRENT(t->m_hrEndTime);
+		}
+		else {
+			t->m_cEndTime = clock();
+		}
 	}
-	if (sm_HRTicksPerSec == 0.0)
-	{
+	if (sm_HRTicksPerSec == 0.0) {
 		// This is process time
-		double d = (t->m_cEndTime-t->m_cStartTime)*1.0;
+		double d = (t->m_cEndTime - t->m_cStartTime) * 1.0;
 		if (d > 0)
-			retval = d/CLOCKS_PER_SEC;
+			retval = d / CLOCKS_PER_SEC;
 		else
 			retval = 0;
 	}
-	else
-	{
+	else {
 		// This is wall-clock time
-		double d = (HRGETTICKS (t->m_hrEndTime) - HRGETTICKS (t->m_hrStartTime));
+		double d =
+		    (HRGETTICKS(t->m_hrEndTime) -
+		     HRGETTICKS(t->m_hrStartTime));
 		retval = 0;
 		if (d > 0)
-			retval = d/sm_HRTicksPerSec;
+			retval = d / sm_HRTicksPerSec;
 		else
 			retval = 0;
 	}
-	return retval+t->m_dAccumSeconds;
+	return retval + t->m_dAccumSeconds;
 }

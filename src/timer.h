@@ -12,42 +12,47 @@
  *
  * Portable hi-res timer.  Was a nice C++ class.
  * Downgraded to C for project john
- *
  */
 
-#ifndef GOT_TIMER_H
-#define GOT_TIMER_H
+#ifndef _HAVE_TIMER_H
+#define _HAVE_TIMER_H
 
 #include <time.h>
 
 #if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
-#include <sys/timeb.h> /* for ftime(), which is not used */
+
+#include <sys/timeb.h>      /* for ftime(), which is not used */
 #undef MEM_FREE
 #include <windows.h>
 #undef MEM_FREE
 typedef LARGE_INTEGER hr_timer;
 
-#define HRZERO(X)				(X).HighPart = (X).LowPart = 0
-#define HRSETCURRENT(X)			QueryPerformanceCounter (&(X));
-#define HRGETTICKS(X)			((double)(X).HighPart*4294967296.0+(double)(X).LowPart)
-#define HRGETTICKS_PER_SEC(X)	{LARGE_INTEGER large;														\
-								   if (QueryPerformanceFrequency (&large))									\
-								      (X) = (double)large.HighPart*4294967296.0 +	(double)large.LowPart;	\
-								   else																		\
-								      (X) = 0.0;															\
-								}
+#define HRZERO(X)             (X).HighPart = (X).LowPart = 0
+#define HRSETCURRENT(X)       QueryPerformanceCounter (&(X));
+#define HRGETTICKS(X)         ((double)(X).HighPart * 4294967296.0 + \
+                               (double)(X).LowPart)
+#define HRGETTICKS_PER_SEC(X) {	  \
+		LARGE_INTEGER large; \
+		if (QueryPerformanceFrequency (&large)) \
+			(X) = (double)large.HighPart*4294967296.0 + (double)large.LowPart; \
+		else \
+			(X) = 0.0; \
+	}
+
 #else
+
 #include <sys/time.h>
 typedef struct timeval hr_timer;
-#define HRZERO(X)				(X).tv_sec = (X).tv_usec = 0
-#define HRSETCURRENT(X)			{struct timezone tz; gettimeofday (&(X), &tz);}
-#define HRGETTICKS(X)			((double)(X).tv_sec*1000000.0+(double)(X).tv_usec)
-#define HRGETTICKS_PER_SEC(X)	(X) = 1000000.0
+#define HRZERO(X)             (X).tv_sec = (X).tv_usec = 0
+#define HRSETCURRENT(X)       { struct timezone tz; gettimeofday (&(X), &tz); }
+#define HRGETTICKS(X)         ((double)(X).tv_sec * 1000000.0 +	\
+                               (double)(X).tv_usec)
+#define HRGETTICKS_PER_SEC(X) (X) = 1000000.0
+
 #endif
 
-typedef struct _sTimer
-{
-	int m_fRunning;				// true if we are running
+typedef struct sTimer_s {
+	int m_fRunning;     // true if we are running
 	clock_t m_cStartTime;
 	clock_t m_cEndTime;
 	hr_timer m_hrStartTime;
@@ -55,60 +60,36 @@ typedef struct _sTimer
 	double m_dAccumSeconds;
 } sTimer;
 
-void sTimer_sTimer(sTimer *t);
-void sTimer_Start (sTimer *t, int bClear/*=true*/);	// Start the timer
-//inline void sTimer_Start_noclear (sTimer *t);	// Start the timer
-void sTimer_Stop (sTimer *t);			// Stop the timer
-//inline void sTimer_Pause(sTimer *t);			// Pause the timer
-//inline void sTimer_Resume(sTimer *t);			// Resume the timer.
-void sTimer_ClearTime(sTimer *t);		// Clears out the time to 0
-double sTimer_GetSecs (sTimer *t);		// If timer is running returns elapsed;
-										// if stopped returns timed interval;
-										// if not started returns 0.0.
+void sTimer_Init(sTimer *t);      // Init
+void sTimer_Start(sTimer *t, int bClear /*=true*/);  // Start the timer
+void sTimer_Stop(sTimer *t);      // Stop the timer
+void sTimer_ClearTime(sTimer *t); // Clears out the time to 0
+double sTimer_GetSecs(sTimer *t); // If timer is running returns elapsed;
+                                  // if stopped returns timed interval;
+                                  // if not started returns 0.0.
 
-extern double sm_HRTicksPerSec;	// HR Ticks per second (claimed)
-extern int sm_fGotHRTicksPerSec;	// Set if we have got the above
-extern double sm_hrPrecision;	// HR Ticks per second (observed, best guess)
-extern double sm_cPrecision;	// clocks (ticks) per second (observed, best guess)
+extern double sm_HRTicksPerSec;  // HR Ticks per second (claimed)
+extern int sm_fGotHRTicksPerSec; // Set if we have got the above
+extern double sm_hrPrecision;    // HR Ticks per second (observed, guess)
+extern double sm_cPrecision;     // clocks (ticks) per second (observed, guess)
 
-//inline void sTimer_Start_noclear (sTimer *t)
-//{
-//	if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT (t->m_hrStartTime); }
-//	else { t->m_cStartTime = clock (); }
-//	t->m_fRunning = 1;
-//}
 #define sTimer_Start_noclear(t) \
-	do { \
-	if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT ((t)->m_hrStartTime); } \
-	else { (t)->m_cStartTime = clock (); } \
-	(t)->m_fRunning = 1; \
-	} while (0)
+    do { \
+    if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT ((t)->m_hrStartTime); } \
+    else { (t)->m_cStartTime = clock (); } \
+    (t)->m_fRunning = 1; \
+    } while (0)
 
-//inline void sTimer_Pause (sTimer *t)
-//{
-//	t->m_dAccumSeconds = sTimer_GetSecs(t);
-//	HRZERO (t->m_hrStartTime);
-//	HRZERO (t->m_hrEndTime);
-//	t->m_fRunning=0;
-//}
 #define sTimer_Pause(t) \
-	do { \
-	(t)->m_dAccumSeconds = sTimer_GetSecs(t); \
-	(t)->m_fRunning=0; \
-	} while (0)
-
-
-//inline void sTimer_Resume (sTimer *t)
-//{
-	//HRZERO (t->m_hrEndTime);
-//	if (!t->m_fRunning)
-//		sTimer_Start_noclear(t);
-//}
+    do { \
+    (t)->m_dAccumSeconds = sTimer_GetSecs(t); \
+    (t)->m_fRunning=0; \
+    } while (0)
 
 #define sTimer_Resume(t) \
-	do { \
-	if (!(t)->m_fRunning) \
-		sTimer_Start_noclear(t); \
-	} while (0)
+    do { \
+    if (!(t)->m_fRunning) \
+        sTimer_Start_noclear(t); \
+    } while (0)
 
-#endif
+#endif /* _HAVE_TIMER_H */
