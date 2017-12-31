@@ -917,6 +917,15 @@ strip: default
 cppcheck:
 	$(CPPCHECK) --enable=all --force -q .
 
+### Copy OpenCL stuff to run/kernels
+#
+.PHONY: kernel-copy
+
+kernel-copy:
+	$(MKDIR) ../run/kernels
+	$(CP) opencl/*.cl ../run/kernels
+	$(CP) opencl_*.h ../run/kernels
+
 install: strip shell-completion
 #ifneq ($(prefix), ../run)
 #	@echo Copying binaries to $(prefix)
