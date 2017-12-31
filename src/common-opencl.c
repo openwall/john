@@ -62,9 +62,11 @@
 
 #define LOG_SIZE 1024*16
 
+#if !defined(__CYGWIN__)
 // If true, use realpath(3) for translating eg. "-I./kernels" into an absolute
 // path before submitting as JIT compile option to OpenCL.
 #define I_REALPATH 1
+#endif
 
 // If we are a release build, only output OpenCL build log if
 // there was a fatal error (or --verbosity was increased).
