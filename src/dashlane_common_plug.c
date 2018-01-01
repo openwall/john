@@ -4,14 +4,13 @@
 #endif
 #if HAVE_LIBZ
 
-#include <openssl/evp.h>
 #include <zlib.h>
 
 #include "misc.h"
 #include "common.h"
-#include "dashlane_common.h"
 #include "aes.h"
 #include "openssl_code.h"
+#include "dashlane_common.h"
 #include "memdbg.h"
 
 struct fmt_tests dashlane_tests[] = {

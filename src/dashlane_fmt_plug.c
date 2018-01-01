@@ -23,14 +23,14 @@ john_register_one(&fmt_dashlane);
 #else
 
 #include <string.h>
+#include <zlib.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE               4
 #endif
 #endif
-#include <openssl/evp.h>
-#include <zlib.h>
 
 #include "misc.h"
 #include "common.h"
