@@ -1,7 +1,8 @@
 /*
- * encfs JtR, common code. 2014 by JimF
+ * Common code for EncFS format for JtR. 2014 by JimF.
+ *
  * This file takes replicated but common code, shared between the CPU
- * and the GPU formats, and places it into one common location
+ * and the GPU formats, and places it into one common location.
  */
 
 #include "arch.h"
@@ -108,6 +109,7 @@ void *encfs_common_get_salt(char *ciphertext)
 unsigned int encfs_common_iteration_count(void *salt)
 {
 	encfs_common_custom_salt *my_salt = (encfs_common_custom_salt *)salt;
+
 	return (unsigned int) my_salt->iterations;
 }
 
@@ -129,12 +131,12 @@ void encfs_common_setIVec(encfs_common_custom_salt *cur_salt, unsigned char *ive
 static void flipBytes(unsigned char *buf, int size)
 {
 	unsigned char revBuf[64];
-
 	int bytesLeft = size;
 	int i;
-	while(bytesLeft) {
-		int toFlip = MIN_( sizeof(revBuf), bytesLeft );
-		for (i=0; i<toFlip; ++i)
+
+	while (bytesLeft) {
+		int toFlip = MIN_(sizeof(revBuf), bytesLeft);
+		for (i = 0; i < toFlip; ++i)
 			revBuf[i] = buf[toFlip - (i+1)];
 		memcpy( buf, revBuf, toFlip );
 		bytesLeft -= toFlip;
@@ -144,18 +146,17 @@ static void flipBytes(unsigned char *buf, int size)
 }
 static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *key, const unsigned char *data, int dataLen, uint64_t *chainedIV)
 {
-	unsigned char DataIV[128+8];	// max data len is 128
+	unsigned char DataIV[128+8]; // max data len is 128
 	unsigned char md[20];
 	int i;
 	unsigned char h[8] = {0,0,0,0,0,0,0,0};
 	uint64_t value;
 
 	memcpy(DataIV, data, dataLen);
-	if (chainedIV)
-	{
-	  // toss in the chained IV as well
+	if (chainedIV) {
+		// toss in the chained IV as well
 		uint64_t tmp = *chainedIV;
-		for (i=0; i<8; ++i) {
+		for (i = 0; i < 8; ++i) {
 			DataIV[dataLen++] = (tmp & 0xff);
 			tmp >>= 8;
 		}
@@ -163,20 +164,22 @@ static uint64_t _checksum_64(encfs_common_custom_salt *cur_salt, unsigned char *
 	hmac_sha1(key, cur_salt->keySize, DataIV, dataLen, md, 20);
 
 	// chop this down to a 64bit value..
-	for (i=0; i < 19; ++i)
+	for (i = 0; i < 19; ++i)
 		h[i%8] ^= (unsigned char)(md[i]);
-
 	value = (uint64_t)h[0];
-	for (i=1; i<8; ++i)
+	for (i = 1; i < 8; ++i)
 		value = (value << 8) | (uint64_t)h[i];
+
 	return value;
 }
 
 static uint64_t MAC_64(encfs_common_custom_salt *cur_salt,  const unsigned char *data, int len, unsigned char *key, uint64_t *chainedIV )
 {
 	uint64_t tmp = _checksum_64(cur_salt, key, data, len, chainedIV );
+
 	if (chainedIV)
 		*chainedIV = tmp;
+
 	return tmp;
 }
 
