@@ -57,6 +57,12 @@ static struct fmt_tests multibit_tests[] = {
 	// Wallets created by MultiBit Classic 0.5.18
 	{"$multibit$1*0908a1bd44147709*c82b6d0409c1e46a4660ea6d4fa9ae12e4e234c98a71a51ced105c7e66a57ca3", "openwall"},
 	{"$multibit$1*2043ebb14b6d9670*24284a38a62b6a63fb0912ebc05aa9d26d6fd828134d20b9778d8d841f65f584", "openwall123"},
+	// MultiBit Classic 0.5.19 .key files
+	{"$multibit$1*39eac524fccaf7f2*c325ba3be05990e787904bc9d3603f035c3ed1bd673f87513765eefb5befda7e", "openwall123"},
+	{"$multibit$1*21ecedddebcb4ca8*8777067e8109e71ccdcda54817eed8615d8dea85f363829c0c78d61da9e1268e", "\xe4""b"}, // original password is "äb"
+	// MultiBit Classic 0.5.19 .wallet files
+	{"$multibit$3*16384*8*1*1bf663752dade439*d2a4810673c311f6cdd4cebceadbd564c05d408ba9c74912a187953eabc20bee", "openwall123"},
+	{"$multibit$3*16384*8*1*1bf663752dade439*956a6f229c25154832bab8f4ddfe83e985631678fb8df33aad1b5128a55ea0e2", "\xe4""b"}, // original password is "äb"
 	// MultiBit HD wallet 0.5.0
 	{"$multibit$2*081e3a1252c26731120d0d63783ae46f*8354d5b454e78fb15f81c9e6289ba9b8*081e3a1252c26731120d0d63783ae46f", "openwall"},
 	{NULL}
@@ -71,6 +77,9 @@ static struct custom_salt {
 	unsigned char block[32];
 	unsigned char iv[16];
 	unsigned char block2[16];
+	uint32_t n;
+	uint32_t r;
+	uint32_t p;
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -112,7 +121,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 1 && value != 2)
+	if (value != 1 && value != 2 && value != 3)
 		goto err;
 	if (value == 1) {
 		if ((p = strtokm(NULL, "*")) == NULL) // salt
@@ -135,6 +144,27 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtokm(NULL, "*")) == NULL) // encrypted block with hardcoded iv
 			goto err;
 		if (hexlenl(p, &extra) != 16 * 2 || extra)
+			goto err;
+	} else if (value == 3) {
+		if ((p = strtokm(NULL, "*")) == NULL) // n
+			goto err;
+		if (!isdec(p))
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) // r
+			goto err;
+		if (!isdec(p))
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) // p
+			goto err;
+		if (!isdec(p))
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) // salt
+			goto err;
+		if (hexlenl(p, &extra) != 8 * 2 || extra)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) // encrypted blocks
+			goto err;
+		if (hexlenl(p, &extra) != 32 * 2 || extra)
 			goto err;
 	}
 	MEM_FREE(keeptr);
@@ -173,6 +203,18 @@ static void *get_salt(char *ciphertext)
 		p = strtokm(NULL, "*");
 		for (i = 0; i < 16; i++)
 			cs.block2[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
+	} else if (cs.type == 3) {
+		cs.n = atoi(p);
+		p = strtokm(NULL, "*");
+		cs.r = atoi(p);
+		p = strtokm(NULL, "*");
+		cs.p = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < 8; i++)
+			cs.salt[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
+		p = strtokm(NULL, "*");
+		for (i = 0; i < 32; i++)
+			cs.block[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 	}
 
 	MEM_FREE(keeptr);
@@ -321,6 +363,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (is_bitcoinj_protobuf_data(outbuf))
 					cracked[index] = 1;
 			}
+		} else if (cur_salt->type == 3) {
+			UTF16 password[PLAINTEXT_LENGTH * 2 + 1];
+
+			len = enc_to_utf16_be(password, PLAINTEXT_LENGTH, (const unsigned char*)saved_key[index], len + 1);
+			if (len < 0)
+				len = strlen16(password);
+
+			crypto_scrypt((const unsigned char*)password, (len + 1) * 2, cur_salt->salt, 8, cur_salt->n, cur_salt->r, cur_salt->p, key, 32);
+			memcpy(iv, cur_salt->block, 16);
+			AES_set_decrypt_key(key, 256, &aes_decrypt_key);
+			AES_cbc_encrypt(cur_salt->block + 16, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+
+			if (!memcmp(outbuf, "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10", 16))
+				cracked[index] = 1;
 		}
 	}
 
@@ -361,7 +417,7 @@ struct fmt_main fmt_multibit = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE,
 		{ NULL },
 		{ FORMAT_TAG },
 		multibit_tests
