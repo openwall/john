@@ -1,10 +1,12 @@
-/* EncFS cracker patch for JtR. Hacked together during July of 2012
+/*
+ * EncFS cracker patch for JtR. Hacked together during July of 2012
  * by Dhiru Kholia <dhiru at openwall.com>
  *
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_encfs;
@@ -13,27 +15,24 @@ john_register_one(&fmt_encfs);
 #else
 
 #include <stdint.h>
-#include <openssl/opensslv.h>
-#include <openssl/crypto.h>
-#include <openssl/ssl.h>
-#include <openssl/engine.h>
 #include <string.h>
 
-#include "arch.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "encfs_common.h"
-#include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE               1
+#define OMP_SCALE           1
 #endif
 #endif
+
+#include "arch.h"
+#include "options.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "misc.h"
 #include "johnswap.h"
+#include "encfs_common.h"
+#include "pbkdf2_hmac_sha1.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "EncFS"
@@ -44,9 +43,9 @@ john_register_one(&fmt_encfs);
 #define ALGORITHM_NAME      "PBKDF2-SHA1 AES/Blowfish 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1001
+#define BENCHMARK_LENGTH    -1000
 #define BINARY_SIZE         0
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH    125
 #define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           sizeof(*cur_salt)
 #define SALT_ALIGN          sizeof(int)
@@ -58,11 +57,12 @@ john_register_one(&fmt_encfs);
 #define MAX_KEYS_PER_CRYPT  1
 #endif
 
+#define KEY_CHECKSUM_BYTES  4
+
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
-#define KEY_CHECKSUM_BYTES 4
 
 static encfs_common_custom_salt *cur_salt;
 
@@ -71,40 +71,23 @@ static struct fmt_tests encfs_tests[] = {
 	{"$encfs$128*181317*0*20*e9a6d328b4c75293d07b093e8ec9846d04e22798*36*b9e83adb462ac8904695a60de2f3e6d57018ccac2227251d3f8fc6a8dd0cd7178ce7dc3f", "Jupiter"},
 	{"$encfs$256*714949*0*20*472a967d35760775baca6aefd1278f026c0e520b*52*ac3b7ee4f774b4db17336058186ab78d209504f8a58a4272b5ebb25e868a50eaf73bcbc5e3ffd50846071c882feebf87b5a231b6", "Valient Gough"},
 	{"$encfs$256*120918*0*20*e6eb9a85ee1c348bc2b507b07680f4f220caa763*52*9f75473ade3887bca7a7bb113fbc518ffffba631326a19c1e7823b4564ae5c0d1e4c7e4aec66d16924fa4c341cd52903cc75eec4", "Alo3San1t@nats"},
+	// EncFS 1.7.4 running on Ubuntu 14.04.5 LTS
+	{"$encfs$256*1441549*0*20*17ebe5f12d0aacd4b01dcbdc7be3c493c574b1d0*52*753146f6a9098c445242b1f49dc66beece6b2a2c335b975d8ff2b69d2448bf160ba116fbcc1c6d3fa71ecc90624aac6f0bcaac2e", "openwall"},
 	{NULL}
 };
 
 static void init(struct fmt_main *self)
 {
-	/* OpenSSL init, cleanup part is left to OS */
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
-	ENGINE_load_builtin_engines();
-	ENGINE_register_all_complete();
+#ifdef _OPENMP
+	int threads = omp_get_max_threads();
 
-#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-	if (SSLeay() < 0x10000000) {
-		fprintf(stderr, "Warning: compiled against OpenSSL 1.0+, "
-		    "but running with an older version -\n"
-		    "disabling OpenMP for SSH because of thread-safety issues "
-		    "of older OpenSSL\n");
-		self->params.min_keys_per_crypt =
-		    self->params.max_keys_per_crypt = 1;
-		self->params.flags &= ~FMT_OMP;
-	}
-	else {
-		int threads = omp_get_max_threads();
-
-		if (threads > 1) {
-			self->params.min_keys_per_crypt *= threads;
-			threads *= OMP_SCALE;
-			self->params.max_keys_per_crypt *= threads;
-		}
+	if (threads > 1) {
+		self->params.min_keys_per_crypt *= threads;
+		threads *= OMP_SCALE;
+		self->params.max_keys_per_crypt *= threads;
 	}
 #endif
-	saved_key = mem_calloc_align(sizeof(*saved_key),
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_align(sizeof(*saved_key), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_align(sizeof(*cracked), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -118,7 +101,6 @@ static void done(void)
 
 static void set_salt(void *salt)
 {
-	/* restore custom_salt back */
 	cur_salt = (encfs_common_custom_salt *) salt;
 }
 
@@ -136,6 +118,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;

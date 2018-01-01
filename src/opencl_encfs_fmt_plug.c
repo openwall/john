@@ -1,10 +1,11 @@
 /*
- * Modified by Dhiru Kholia <dhiru at openwall.com> for Keychain format.
+ * Modified by Dhiru Kholia <dhiru at openwall.com> for EncFS format.
  *
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted. */
+ * modification, are permitted.
+ */
 
 #ifdef HAVE_OPENCL
 
@@ -16,13 +17,6 @@ john_register_one(&fmt_opencl_encfs);
 
 #include <stdint.h>
 #include <string.h>
-#include <openssl/opensslv.h>
-#include <openssl/crypto.h>
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/engine.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -37,24 +31,24 @@ john_register_one(&fmt_opencl_encfs);
 #define OUTLEN (32 + 16)
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-#define FORMAT_LABEL		"encfs-opencl"
-#define FORMAT_NAME		"EncFS"
-#define OCL_ALGORITHM_NAME	"PBKDF2-SHA1 OpenCL"
-#define CPU_ALGORITHM_NAME	" AES/Blowfish"
-#define ALGORITHM_NAME		OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define FORMAT_LABEL            "encfs-opencl"
+#define FORMAT_NAME             "EncFS"
+#define OCL_ALGORITHM_NAME      "PBKDF2-SHA1 OpenCL"
+#define CPU_ALGORITHM_NAME      " AES/Blowfish"
+#define ALGORITHM_NAME          OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
-#define BINARY_SIZE		0
-#define PLAINTEXT_LENGTH	64
-#define SALT_SIZE		sizeof(*cur_salt)
-#define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN			MEM_ALIGN_WORD
+#define BINARY_SIZE             0
+#define PLAINTEXT_LENGTH        64
+#define SALT_SIZE               sizeof(*cur_salt)
+#define BINARY_ALIGN            MEM_ALIGN_WORD
+#define SALT_ALIGN              MEM_ALIGN_WORD
 
 /* This handles all widths */
-#define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
+#define GETPOS(i, index)        (((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 static int *cracked;
 static int any_cracked;
@@ -87,11 +81,11 @@ static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
  * be chosen for a kernel duration of not more than 200 ms
  */
-#define HASH_LOOPS		(3 * 251)
-#define ITERATIONS		181474 /* Just for auto tune */
-#define LOOP_COUNT		(((currentsalt.iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
-#define STEP			0
-#define SEED			128
+#define HASH_LOOPS              (3 * 251)
+#define ITERATIONS              181474 /* Just for auto tune */
+#define LOOP_COUNT              (((currentsalt.iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
+#define STEP                    0
+#define SEED                    128
 
 static const char * warn[] = {
 	"P xfer: "  ,  ", init: "   , ", loop: " , ", final: ", ", res xfer: "
@@ -114,17 +108,13 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
-#if 0
-struct fmt_main *me;
-#endif
-
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= ocl_v_width;
 
 	key_buf_size = PLAINTEXT_LENGTH * gws;
 
-	/// Allocate memory
+	// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
 	output = mem_alloc(sizeof(pbkdf2_out) * gws);
 	cracked = mem_calloc(1, cracked_size);
@@ -217,13 +207,13 @@ static void reset(struct db_main *db)
 		pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-		//Initialize openCL tuning (library) for this format.
+		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 2*HASH_LOOPS, split_events,
 		                       warn, 2, self, create_clobj,
 		                       release_clobj,
 		                       ocl_v_width * sizeof(pbkdf2_state), 0, db);
 
-		//Auto tune execution from shared/included code.
+		// Auto tune execution from shared/included code.
 		autotune_run(self, 2 * (ITERATIONS - 1) + 4, 0,
 		             (cpu(device_info[gpu_id]) ?
 		              1000000000 : 10000000000ULL));
@@ -283,13 +273,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		any_cracked = 0;
 	}
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	if (ocl_autotune_running || new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}
 
-	/// Run kernels
+	// Run kernels
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
 	for (j = 0; j < (ocl_autotune_running ? 1 : (currentsalt.outlen + 19) / 20); j++) {
@@ -302,7 +292,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 	}
 
-	/// Read the result back
+	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf2_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
 	if (!ocl_autotune_running) {
@@ -325,8 +315,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memcpy(tmpBuf, cur_salt->data + KEY_CHECKSUM_BYTES, cur_salt->keySize + cur_salt->ivLength);
 			encfs_common_streamDecode(cur_salt, tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
 			checksum2 = encfs_common_MAC_32(cur_salt, tmpBuf, cur_salt->keySize + cur_salt->ivLength, master);
-			if (checksum2 == checksum)
-			{
+			if (checksum2 == checksum) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
