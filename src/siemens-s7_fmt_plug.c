@@ -263,14 +263,14 @@ static char *get_key(int index)
 
 static int salt_hash(void *salt)
 {
-    unsigned char *s = salt;
-    unsigned int hash = 5381;
-    unsigned int len = SALT_SIZE;
+	unsigned char *s = salt;
+	unsigned int hash = 5381;
+	unsigned int len = SALT_SIZE;
 
-    while (len--)
-        hash = ((hash << 5) + hash) ^ *s++;
+	while (len--)
+		hash = ((hash << 5) + hash) ^ *s++;
 
-    return hash & (SALT_HASH_SIZE - 1);
+	return hash & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_s7 = {
