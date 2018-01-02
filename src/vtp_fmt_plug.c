@@ -5,8 +5,10 @@
  * realisticgroup.com> and Dhiru Kholia <dhiru at openwall.com>, and it is
  * hereby released to the general public under the following terms:
  *
- * Redistribution and use in source and binary forms, with or without#
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * Take a look at "cisco_IOS-11.2-8_source.tar.bz2" if in doubt ;)
  */
 
 #if FMT_EXTERNS_H
@@ -16,6 +18,7 @@ john_register_one(&fmt_vtp);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 // Tuned on core i7 4-core HT
@@ -73,15 +76,15 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 /* VTP summary advertisement packet, partially based on original Yersinia code */
 typedef struct {
-    unsigned char version;
-    unsigned char code;
-    unsigned char followers;
-    unsigned char domain_name_length;
-    unsigned char domain_name[32];  // zero padded
-    uint32_t revision;  // 4 bytes
-    uint32_t updater;   // 4 bytes
-    unsigned char update_timestamp[12]; // zero'ed during MAC calculations
-    unsigned char md5_checksum[16];
+	unsigned char version;
+	unsigned char code;
+	unsigned char followers;
+	unsigned char domain_name_length;
+	unsigned char domain_name[32];  // zero padded
+	uint32_t revision;  // 4 bytes
+	uint32_t updater; // 4 bytes
+	unsigned char update_timestamp[12];  // zero'ed during MAC calculations
+	unsigned char md5_checksum[16];
 } vtp_summary_packet;
 
 static  struct custom_salt {
@@ -187,8 +190,8 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	int i;
 	char *p, *q;
-	memset(&cs, 0, SALT_SIZE);
 
+	memset(&cs, 0, SALT_SIZE);
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
 
@@ -209,7 +212,7 @@ static void *get_salt(char *ciphertext)
 		cs.salt[i] = (atoi16[ARCH_INDEX(q[2 * i])] << 4) |
 			atoi16[ARCH_INDEX(q[2 * i + 1])];
 
-	if (cs.salt_length > 72) { /* we have trailing bytes */
+	if (cs.salt_length > 72) {  // we have trailing bytes
 		cs.trailer_length = cs.salt_length - 72;
 		memcpy(cs.trailer_data, cs.salt + 72, cs.trailer_length);
 	}
@@ -242,6 +245,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
@@ -290,8 +294,11 @@ static void vtp_secret_derive(char *password, int length, unsigned char *output)
 	cp = buf[bufs_used];
 	/* treat password as a cyclic generator */
 	for (;;) {
-		/* note this WILL exit.  Modular math assures will do so in 'length' buffers or       */
-		/* less. with PLAINTEXTLEN set to 55 bytes, we only need 55 buffers to assure a cycle */
+		/*
+		 * Note: This WILL exit. Modular math assures will do so in 'length'
+		 * buffers or less. With PLAINTEXTLEN set to 55 bytes, we only need 55
+		 * buffers to assure a cycle.
+		 */
 		if (local_cnt + length <= 64) {
 			memcpy(&cp[local_cnt], password, length);
 			local_cnt += length;
