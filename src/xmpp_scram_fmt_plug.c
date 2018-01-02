@@ -20,8 +20,14 @@ extern struct fmt_main fmt_xmpp_scram;
 john_register_one(&fmt_xmpp_scram);
 #else
 
-#include <openssl/sha.h>
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#ifndef OMP_SCALE
+#define OMP_SCALE               1
+#endif
+#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -33,12 +39,6 @@ john_register_one(&fmt_xmpp_scram);
 #include "hmac_sha.h"
 #include "simd-intrinsics.h"
 #include "pbkdf2_hmac_sha1.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
-#endif
 #include "memdbg.h"
 
 #if defined SIMD_COEF_32
@@ -141,11 +141,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (hexlenl(p, &extra) != res * 2 || extra)
-                goto err;
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hash */
 		goto err;
 	if (hexlenl(p, &extra) != BINARY_SIZE * 2 || extra)
-                goto err;
+		goto err;
 
 	MEM_FREE(keeptr);
 	return 1;
