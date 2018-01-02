@@ -402,6 +402,25 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+unsigned int get_iteration_count(void *salt)
+{
+	struct custom_salt *cs = salt;
+
+	if (cs->type == 1)
+		return 3;
+	else if (cs->type == 2)
+		return 16384;
+	else
+		return (unsigned int)cs->n;
+}
+
+unsigned int get_kdf_type(void *salt)
+{
+	struct custom_salt *cs = salt;
+
+	return cs->type;
+}
+
 struct fmt_main fmt_multibit = {
 	{
 		FORMAT_LABEL,
@@ -418,7 +437,10 @@ struct fmt_main fmt_multibit = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE,
-		{ NULL },
+		{
+			"iteration count",
+			"kdf [1:MD5 2:scrypt hd 3:scrypt classic]",
+		},
 		{ FORMAT_TAG },
 		multibit_tests
 	}, {
@@ -430,7 +452,10 @@ struct fmt_main fmt_multibit = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-		{ NULL },
+		{
+			get_iteration_count,
+			get_kdf_type,
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
