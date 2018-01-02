@@ -1976,8 +1976,8 @@ void ldr_fix_database(struct db_main *db)
 		ldr_filter_salts(db);
 		ldr_filter_costs(db);
 		ldr_remove_marked(db);
-		ldr_cost_ranges(db);
 	}
+	ldr_cost_ranges(db);
 	ldr_sort_salts(db);
 	ldr_init_hash(db);
 
