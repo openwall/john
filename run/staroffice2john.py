@@ -41,11 +41,12 @@ def process_file(filename):
     except:
         elements = list(r.getiterator())
 
+    target = "content.xml"
     is_encrypted = False
     key_size = 16
     for i in range(0, len(elements)):
         element = elements[i]
-        if element.get("{http://openoffice.org/2001/manifest}full-path") == "content.xml":
+        if element.get("{http://openoffice.org/2001/manifest}full-path") == target:
             for j in range(i + 1, i + 1 + 3):
                 element = elements[j]
                 data = element.get("{http://openoffice.org/2001/manifest}checksum")
@@ -75,10 +76,10 @@ def process_file(filename):
     salt = binascii.hexlify(base64.b64decode(salt)).decode("ascii")
 
     try:
-        content = zf.open("content.xml").read()
+        content = zf.open(target).read()
     except KeyError:
         sys.stderr.write("%s is not an encrypted StarOffice file, " \
-                         "content.xml missing!\n" % filename)
+                         "%s missing!\n" % (filename, target))
         return 5
 
     algorithm_type = 0
@@ -89,7 +90,6 @@ def process_file(filename):
     if original_length >= 1024:
         length = 1024
         original_length = 1024
-
     else:
         # pad to make length multiple of 8
         pad = b"00000000"
