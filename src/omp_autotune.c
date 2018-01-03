@@ -66,7 +66,7 @@ void omp_autotune_init(void)
 int omp_autotune(struct fmt_main *format, int preset)
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
+	int threads = (format->params.flags & FMT_OMP) ? omp_get_max_threads() : 1;
 #else
 	int threads = 1;
 #endif
@@ -93,7 +93,8 @@ int omp_autotune(struct fmt_main *format, int preset)
 void omp_autotune_run(struct db_main *db)
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
+	int threads =
+		fmt ? ((fmt->params.flags & FMT_OMP) ? omp_get_max_threads() : 1) : 1;
 #else
 	int threads = 1;
 #endif
