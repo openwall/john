@@ -84,7 +84,7 @@ JOHN_OBJS = \
 	NT_fmt.o \
 	KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o \
 	whirlpool.o haval.o skein.o md2.o panama.o \
-	timer.o \
+	timer.o omp_autotune.o \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \
@@ -416,6 +416,8 @@ mmap-windows.o:	mmap-windows.c memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h 
 nonstd.o:	nonstd.c
 
 NT_fmt.o:	NT_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h options.h list.h loader.h getopt.h unicode.h aligned.h johnswap.h memdbg.h os.h os-autoconf.h
+
+omp_autotune.o:	timer.h memdbg.h
 
 options.o:	options.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h memory.h list.h loader.h formats.h logger.h status.h recovery.h options.h getopt.h common.h bench.h external.h compiler.h john.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h unicode.h fake_salts.h path.h regex.h john-mpi.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) prince.h version.h listconf.h memdbg.h john_build_rule.h
 

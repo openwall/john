@@ -262,6 +262,8 @@ static struct opt_entry opt_list[] = {
 	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
+	{"tune", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.tune},
 	{NULL}
 };
 
@@ -422,6 +424,7 @@ void opt_print_hidden_usage(void)
 	puts("--input-encoding=NAME      input encoding (alias for --encoding)");
 	puts("--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODING)");
 	puts("--target-encoding=NAME     output encoding (used by format, see doc/ENCODING)");
+	puts("--tune=HOW                 tuning options (auto/report/N)");
 #ifdef HAVE_OPENCL
 	puts("--force-scalar             (OpenCL) force scalar mode");
 	puts("--force-vector-width=N     (OpenCL) force vector width N");
@@ -747,6 +750,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			options.loader.min_cost[i] = 0;
 			options.loader.max_cost[i] = UINT_MAX;
 		}
+	}
+
+	if (options.tune) {
+		if (strcmp(options.tune, "auto") &&
+		    strcmp(options.tune, "report") &&
+		    !isdec(options.tune))
+			error_msg("Allowed arguments to --tune is auto, report or N, where N is a positive number");
 	}
 
 	if (options.flags & FLG_SALTS) {

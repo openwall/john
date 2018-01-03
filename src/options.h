@@ -385,6 +385,8 @@ struct options_main {
 	char *regex;
 /* Custom masks */
 	char *custom_mask[MAX_NUM_CUST_PLHDR];
+/* Tune options */
+	char *tune;
 };
 
 extern struct options_main options;

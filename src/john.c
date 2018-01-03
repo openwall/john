@@ -141,6 +141,7 @@ static int john_omp_threads_new;
 #define _MP_VERSION ""
 #endif
 #endif
+#include "omp_autotune.h"
 #include "memdbg.h"
 
 #if CPU_DETECT
@@ -1514,6 +1515,7 @@ static void john_init(char *name, int argc, char **argv)
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
 #endif
+	omp_autotune_init();
 	if (!(options.flags & FLG_STDOUT))
 		john_register_all(); /* maybe restricted to one format by options */
 	common_init();
@@ -1724,6 +1726,8 @@ static void john_run(void)
 
 		if (options.flags & FLG_MASK_CHK)
 			mask_init(&database, options.mask);
+
+		omp_autotune_run(&database);
 
 		if (trigger_reset)
 			database.format->methods.reset(&database);

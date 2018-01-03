@@ -25,6 +25,7 @@
 #endif
 #include "jumbo.h"
 #include "bench.h"
+#include "omp_autotune.h"
 #include "memdbg.h"
 
 char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
@@ -391,10 +392,13 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (options.flags & FLG_NOTESTS) {
 		fmt_init(format);
 		dyna_salt_init(format);
-		if (db->real)
+		if (db->real) {
+			omp_autotune_run(db->real);
 			format->methods.reset(db->real);
-		else
+		} else {
+			omp_autotune_run(db);
 			format->methods.reset(db);
+		}
 		format->private.initialized = 2;
 		format->methods.clear_keys();
 		return NULL;
@@ -496,6 +500,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ml /= 3;
 #endif
 
+	omp_autotune_run(db);
 #ifndef JUMBO_JTR
 	format->methods.reset(NULL);
 #endif
