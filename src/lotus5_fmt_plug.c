@@ -18,6 +18,10 @@ john_register_one(&fmt_lotus5);
 #include <omp.h>
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE 2 // core i7
+#endif
+
 #include "memdbg.h"
 
 #ifdef __x86_64__
@@ -102,13 +106,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = omp_get_max_threads();
-	if (n < 1)
-		n = 1;
-	n *= 2;
-	if (n > self->params.max_keys_per_crypt)
-		n = self->params.max_keys_per_crypt;
-	self->params.min_keys_per_crypt = n;
+	omp_autotune(self, OMP_SCALE);
 #endif
 
 	crypt_key = mem_calloc_align(sizeof(*crypt_key),

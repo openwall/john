@@ -96,14 +96,8 @@ static unsigned int crctype;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = omp_get_max_threads();
-	if (n > 4) {
-		n = 4; // it just won't scale further
-		omp_set_num_threads(n);
-	}
-	self->params.max_keys_per_crypt *= (n*OMP_SCALE);
+	omp_autotune(self, OMP_SCALE);
 #endif
-	//printf("Using %u x %u = %u keys per crypt\n", MAX_KEYS_PER_CRYPT, n, self->params.max_keys_per_crypt);
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crcs      = mem_calloc(self->params.max_keys_per_crypt,

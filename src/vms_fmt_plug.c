@@ -123,13 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self )
 static void fmt_vms_init ( struct fmt_main *self )
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	/* Init bin 2 hex table for faster conversions later */
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,

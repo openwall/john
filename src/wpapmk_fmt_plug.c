@@ -43,6 +43,10 @@ john_register_one(&fmt_wpapsk_pmk);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#ifndef OMP_SCALE
+#define OMP_SCALE 1024 // core i7
+#endif
+
 extern wpapsk_hash *outbuffer;
 extern wpapsk_salt currentsalt;
 extern hccap_t hccap;
@@ -51,9 +55,7 @@ extern mic_t *mic;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= threads;
-	self->params.max_keys_per_crypt *= threads;
+	omp_autotune(self, OMP_SCALE);
 #endif
 
 	assert(sizeof(hccap_t) == HCCAP_SIZE);

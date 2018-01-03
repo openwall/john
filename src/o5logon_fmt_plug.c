@@ -94,13 +94,7 @@ static void init(struct fmt_main *self)
 	static char Buf[128];
 
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -109,11 +103,13 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc(self->params.max_keys_per_crypt,
 	                     sizeof(*cracked));
 
-	aesDec = get_AES_dec192_CBC();
-	aesEnc = get_AES_enc192_CBC();
-	sprintf(Buf, "%s %s", self->params.algorithm_name,
-	        get_AES_type_string());
-	self->params.algorithm_name=Buf;
+	if (!*aesDec) {
+		aesDec = get_AES_dec192_CBC();
+		aesEnc = get_AES_enc192_CBC();
+		sprintf(Buf, "%s %s", self->params.algorithm_name,
+		        get_AES_type_string());
+		self->params.algorithm_name=Buf;
+	}
 }
 
 static void done(void)

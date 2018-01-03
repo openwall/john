@@ -95,7 +95,7 @@ static void **pseudo_rands;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static int threads = 1;
+static int sc_threads = 1;
 static size_t saved_mem_size;
 static uint32_t saved_segment_length;
 
@@ -106,23 +106,18 @@ static void *get_salt(char *ciphertext);
 static void init(struct fmt_main *self)
 {
 	int i;
-#ifdef _OPENMP
-	threads = omp_get_max_threads();
 
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+#ifdef _OPENMP
+	sc_threads = omp_autotune(self, OMP_SCALE);
 #endif
 	saved_key =
 	    mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypted = mem_calloc(self->params.max_keys_per_crypt, (BINARY_SIZE));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(int));
-	memory=mem_calloc(threads, sizeof(region_t));
-	pseudo_rands=mem_calloc(threads,sizeof(void*));
+	memory=mem_calloc(sc_threads, sizeof(region_t));
+	pseudo_rands=mem_calloc(sc_threads,sizeof(void*));
 
-	for (i=0;i<threads;i++)
+	for (i=0;i<sc_threads;i++)
 	{
 		init_region_t(&memory[i]);
 		pseudo_rands[i]=NULL;
@@ -135,7 +130,7 @@ static void init(struct fmt_main *self)
 static void done(void)
 {
 	int i;
-	for (i=0;i<threads;i++)
+	for (i=0;i<sc_threads;i++)
 	{
 		free_region_t(&memory[i]);
 		MEM_FREE(pseudo_rands[i]);
@@ -313,9 +308,9 @@ static void set_salt(void *salt)
 	if (mem_size>saved_mem_size)
 	{
 		if (saved_mem_size>0)
-			for (i=0;i<threads;i++)
+			for (i=0;i<sc_threads;i++)
 				free_region_t(&memory[i]);
-		for (i=0;i<threads;i++)
+		for (i=0;i<sc_threads;i++)
 			alloc_region_t(&memory[i],mem_size);
 
 		saved_mem_size=mem_size;
@@ -324,9 +319,9 @@ static void set_salt(void *salt)
 	if (segment_length>saved_segment_length)
 	{
 		if (saved_segment_length>0)
-			for (i=0;i<threads;i++)
+			for (i=0;i<sc_threads;i++)
 				MEM_FREE(pseudo_rands[i]);
-		for (i=0;i<threads;i++)
+		for (i=0;i<sc_threads;i++)
 			pseudo_rands[i]=mem_calloc(sizeof(uint64_t), segment_length);
 
 		saved_segment_length=segment_length;
@@ -363,7 +358,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (i = 0; i < count; i++) {
 		argon2_hash(saved_salt.t_cost, saved_salt.m_cost, saved_salt.lanes, saved_key[i], saved_len[i], saved_salt.salt,
-		    saved_salt.salt_length, crypted[i], saved_salt.hash_size, 0, 0, saved_salt.type, ARGON2_VERSION_NUMBER, memory[THREAD_NUMBER%threads].aligned, pseudo_rands[THREAD_NUMBER%threads]);
+		    saved_salt.salt_length, crypted[i], saved_salt.hash_size, 0, 0, saved_salt.type, ARGON2_VERSION_NUMBER, memory[THREAD_NUMBER%sc_threads].aligned, pseudo_rands[THREAD_NUMBER%sc_threads]);
 	}
 
 	return count;

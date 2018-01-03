@@ -146,15 +146,7 @@ inline static void getPreKeyedHash(int idx)
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
-#elif SIMD_COEF_32
-	self->params.max_keys_per_crypt *= OMP_SCALE;
+	omp_autotune(self, OMP_SCALE);
 #endif
 	// We need 1 more saved_key than is 'used'. This extra key is used
 	// in SIMD code, for all part full grouped blocks.

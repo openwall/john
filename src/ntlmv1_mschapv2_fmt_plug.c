@@ -969,13 +969,7 @@ bailout:
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP) && !defined(SIMD_COEF_32)
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	my = self;
 	if (options.target_enc == UTF_8) {

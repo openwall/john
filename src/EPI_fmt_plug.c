@@ -11,7 +11,7 @@
  * See doc/README.format-epi for information on the input file format.
  *
  * Updated Dec, 2014, JimF.  Added OMP, and allowed more than one hash to be
- * processed at once (OMP_SCALE stuff).
+ * processed at once.
  */
 
 #if FMT_EXTERNS_H
@@ -69,13 +69,7 @@ static struct fmt_tests global_tests[] =
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	key_len   = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*key_len));

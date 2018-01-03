@@ -100,15 +100,7 @@ static unsigned SSEi_flags;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int threads;
-
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 #ifdef SIMD_COEF_32
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,

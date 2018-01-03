@@ -19,7 +19,7 @@ john_register_one(&fmt_XSHA);
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_SHA1)
 
 #ifdef _OPENMP
-static unsigned int threads = 1;
+static unsigned int sc_threads = 1;
 #include <omp.h>
 #ifndef OMP_SCALE
 #define OMP_SCALE			128
@@ -99,10 +99,7 @@ static void init(struct fmt_main *self)
 {
 #ifdef SIMD_COEF_32
 #if defined (_OPENMP)
-	threads = omp_get_max_threads();
-	self->params.min_keys_per_crypt = threads * NBKEYS;
-	threads *= OMP_SCALE;
-	self->params.max_keys_per_crypt = threads * NBKEYS;
+	sc_threads = omp_autotune(self, OMP_SCALE);
 #endif
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             SHA_BUF_SIZ * 4, MEM_ALIGN_SIMD);
@@ -205,7 +202,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i = 0;
 #if defined(_OPENMP)
 #pragma omp parallel for
-	for (i = 0; i < threads; i++) {
+	for (i = 0; i < sc_threads; i++) {
 #endif
 		unsigned int *in = &saved_key[i*NBKEYS*SHA_BUF_SIZ];
 		unsigned int *out = &crypt_key[i*NBKEYS*BINARY_SIZE/4];
@@ -240,7 +237,7 @@ static int cmp_all(void *binary, int count)
 	unsigned int x, y;
 
 #ifdef _OPENMP
-	for (y = 0; y < SIMD_PARA_SHA1*threads; y++)
+	for (y = 0; y < SIMD_PARA_SHA1 * sc_threads; y++)
 #else
 	for (y = 0; y < SIMD_PARA_SHA1; y++)
 #endif
@@ -306,7 +303,10 @@ struct fmt_main fmt_XSHA = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP | FMT_OMP_BAD | FMT_CASE | FMT_8_BIT,
+#if SIMD_COEF_32 && _OPENMP
+		FMT_OMP | FMT_OMP_BAD |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		{ NULL },
 		{ NULL },
 		tests

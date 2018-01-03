@@ -81,7 +81,6 @@ john_register_one(&fmt_blizzard);
 #endif
 #include "memdbg.h"
 
-
 #define FORMAT_LABEL		"WoWSRP"
 #define FORMAT_NAME		"Battlenet"
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR EXP_STR
@@ -138,14 +137,9 @@ static int max_keys_per_crypt;
 static void init(struct fmt_main *self)
 {
 	int i;
-#if defined (_OPENMP)
-	int threads = omp_get_max_threads();
 
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+#if defined (_OPENMP)
+	omp_autotune(self, OMP_SCALE);
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));

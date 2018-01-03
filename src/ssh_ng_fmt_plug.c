@@ -72,7 +72,7 @@ static struct fmt_tests sshng_tests[] = {
 	/* DSA test vectors */
 	{"$sshng$0$8$78DAEB836ED0A646$448$95d5a4abd38c957a969a322aa6936798d3c8523e6e553d762e4068b130294db89b4e67b790825bd6e0de1b60528557d8faf0ce4d413d92818f0cbb315b5b7902df845722032bc6883b4b87b5e5cce406c15f6d0b2d45916d156a661b0cc6a421dc7dd794788df9085a59c6f87c5baed7c6bc4a48a64c5a439d9b9f7e808397fce1fc1ed789e0114cb03cd392bf660541041c1f964476044d39dd71eb240231f4111494b3fbe85a35f2bbe32d93927aedecf959e786a51be450ade61e746b8eae6174016e8dabf59a358a518c3445c93b4824e61c065664f24b3e773643c0e47996b7c348cefe63407303cbb37e672905bb0a4fd51e4cfd920563863987f96f9fa2098d0ed5c9244f21ba4df28d9826fd8e0f525af349f7b54f0c83bee8de8e1d3702a6edc0a396af85b8805d3ac4a0b01f053d0454856fa3a450f199637ae0333670483a454769b5bcbb5a6329d07c0ad6ac847f11e32ccb835650fb9404880c1ad19548cfb57107d43cc8610b9869165a8b116867b118f97ef74f09ab285114512f599d066d46dae846a1b04787f3e30410b234e5fc098e8a39419a2dbdb5a25c709b13fd31eb2d0e6994e11df0e32ff45b1a3c95c153ce606912a8dc966daf", "television"},
 #ifdef DEBUG
-	/* this key is SUPER slow, now that OMP_SCALE has been increased. */
+	/* this key is SUPER slow. */
 	/* it would be nice to get one of these with rounds set to 2,     */
 	/* instead of the rounds=64 of this hash  (pass_gen.pl update)    */
 	/* new ssh key format */
@@ -105,13 +105,7 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
