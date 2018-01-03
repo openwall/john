@@ -2,10 +2,11 @@
  * SXC cracker patch for JtR. Hacked together during Summer of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * This format should also work for other StarOffice file formats.
+ * This format also works for other StarOffice file formats.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
  */
@@ -38,7 +39,7 @@ john_register_one(&fmt_sxc);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "sxc"
-#define FORMAT_NAME             "StarOffice .sxc"
+#define FORMAT_NAME             "StarOffice (.sxc, .sdw, .sxd, .sxw, .sxi)"
 #define FORMAT_TAG              "$sxc$*"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_32
