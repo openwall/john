@@ -123,7 +123,7 @@ JOHN_OBJS = \
 	KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o \
 	NT_fmt.o \
 	whirlpool.o haval.o skein.o md2.o panama.o \
-	timer.o \
+	timer.o omp_autotune.o \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \

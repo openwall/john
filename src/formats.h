@@ -425,4 +425,9 @@ extern int fmt_default_binary_hash_6(void * binary);
  */
 #define fmt_dummy_hash fmt_default_get_hash
 
+/*
+ * This is for all formats that want to use omp_autotune()
+ */
+#include "omp_autotune.h"
+
 #endif
