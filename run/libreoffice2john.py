@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 
-"""odf2john.py processes ODF files into a format suitable
-for use with JtR.
+# The libreoffice2john.py utility processes OpenOffice / LibreOffice files into
+# a format suitable for use with JtR.
+#
+# This utility was previously named odf2john.py.
 
-Output Format:
-
-filename:$odf*cipher type*checksum type*iterations*key-size*checksum*
-iv length*iv*salt length*salt*inline or not*content.xml or its path"""
+# Output Format:
+#
+#   filename:$odf*cipher type*checksum type*iterations*key-size*checksum*...
+#     ...iv length*iv*salt length*salt*unused*content.xml data
+#
+# This software is Copyright (c) 2012, Dhiru Kholia <dhiru at openwall.com> and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 
 from xml.etree.ElementTree import ElementTree
 import zipfile
@@ -72,10 +80,10 @@ def process_file(filename):
         sys.stderr.write("%s is not an encrypted OpenOffice file!\n" % filename)
         return 4
 
-    checksum = base64.decodestring(checksum.encode())
+    checksum = base64.b64decode(checksum)
     checksum = binascii.hexlify(checksum).decode("ascii")
-    iv = binascii.hexlify(base64.decodestring(iv.encode())).decode("ascii")
-    salt = binascii.hexlify(base64.decodestring(salt.encode())).decode("ascii")
+    iv = binascii.hexlify(base64.b64decode(iv)).decode("ascii")
+    salt = binascii.hexlify(base64.b64decode(salt)).decode("ascii")
 
     try:
         content = zf.open("content.xml").read(1024)
@@ -137,7 +145,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <ODF files>\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s <OpenOffice / LibreOffice files>\n" % sys.argv[0])
         sys.exit(-1)
 
     for k in range(1, len(sys.argv)):
