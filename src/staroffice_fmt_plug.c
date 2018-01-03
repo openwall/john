@@ -92,6 +92,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
+// See "ZipFile::StaticHasValidPassword" from package/source/zipapi/ZipFile.cxx from LibreOffice
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
