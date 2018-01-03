@@ -134,7 +134,7 @@ static struct custom_salt {
 } *cur_salt;
 
 #if defined(_OPENMP) || defined(SIMD_COEF_32)
-static int threads = 1;
+static int sc_threads = 1;
 #endif
 
 #ifdef SIMD_COEF_32
@@ -145,13 +145,7 @@ static void episerver_set_key_CP(char *_key, int index);
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	sc_threads = omp_autotune(self, OMP_SCALE);
 #endif
 #ifdef SIMD_COEF_32
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt*SHA_BUF_SIZ,
@@ -298,7 +292,7 @@ static void set_salt(void *salt)
 #ifdef SIMD_COEF_32
 	int index, j;
 	cur_salt = (struct custom_salt *)salt;
-	for (index = 0; index < MAX_KEYS_PER_CRYPT*threads; ++index)
+	for (index = 0; index < MAX_KEYS_PER_CRYPT*sc_threads; ++index)
 		for (j = 0; j < EFFECTIVE_SALT_SIZE; ++j) // copy the salt to vector buffer
 			((unsigned char*)saved_key)[GETPOS(j, index)] = ((unsigned char*)cur_salt->esalt)[j];
 #else

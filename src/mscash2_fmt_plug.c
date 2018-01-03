@@ -124,14 +124,8 @@ static unsigned int (*crypt_out);
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-	if (threads < 1)
-		threads = 1;
-	self->params.min_keys_per_crypt *= threads;
-	threads *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= threads;
+	omp_autotune(self, OMP_SCALE);
 #endif
-
 	key = mem_calloc(self->params.max_keys_per_crypt,
 	                 (PLAINTEXT_LENGTH + 1));
 	md4hash = mem_calloc(self->params.max_keys_per_crypt,

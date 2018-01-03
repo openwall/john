@@ -229,20 +229,17 @@ static struct saltstruct {
 
 static void init(struct fmt_main *self)
 {
-	int threads = 1;
-	int max_crypts;
-
 #ifdef _OPENMP
-	threads = omp_get_max_threads();
-	threads *= OMP_SCALE;
+	omp_autotune(self, OMP_SCALE);
 #endif
-	max_crypts = SIMD_COEF_SCALE * threads * MAX_KEYS_PER_CRYPT;
-	self->params.max_keys_per_crypt = max_crypts;
+
+	self->params.max_keys_per_crypt *= SIMD_COEF_SCALE;
+
 	// we allocate 1 more than needed, and use that 'extra' value as a zero
 	// length PW to fill in the tail groups in MMX mode.
-	saved_len = mem_calloc(1 + max_crypts, sizeof(*saved_len));
-	saved_key = mem_calloc(1 + max_crypts, sizeof(*saved_key));
-	crypt_out = mem_calloc(1 + max_crypts, sizeof(*crypt_out));
+	saved_len = mem_calloc(1 + self->params.max_keys_per_crypt, sizeof(*saved_len));
+	saved_key = mem_calloc(1 + self->params.max_keys_per_crypt, sizeof(*saved_key));
+	crypt_out = mem_calloc(1 + self->params.max_keys_per_crypt, sizeof(*crypt_out));
 }
 
 static void done(void)

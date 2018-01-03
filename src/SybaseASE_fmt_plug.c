@@ -113,17 +113,11 @@ static int kpc, dirty;
 extern struct fmt_main fmt_SybaseASE;
 static void init(struct fmt_main *self)
 {
-#if _OPENMP || SIMD_COEF_32
+#if SIMD_COEF_32
 	int i;
 #endif
 #ifdef _OPENMP
-	i = omp_get_max_threads();
-
-	if (i > 1) {
-		self->params.min_keys_per_crypt *= i;
-		i *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= i;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	kpc = self->params.max_keys_per_crypt;
 

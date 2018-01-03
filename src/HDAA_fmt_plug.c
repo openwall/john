@@ -58,7 +58,7 @@ john_register_one(&fmt_HDAA);
 #define SALT_ALIGN			sizeof(size_t)
 
 #if defined(_OPENMP)
-static unsigned int threads = 1;
+static unsigned int sc_threads = 1;
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
 #define OMP_SCALE			256
@@ -159,13 +159,7 @@ static void init(struct fmt_main *self)
 	int i;
 #endif
 #if defined (_OPENMP)
-	threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	sc_threads = omp_autotune(self);
 #endif
 #ifdef SIMD_COEF_32
 	for (i = 0; i < LIMBS; i++)
@@ -290,7 +284,7 @@ static int cmp_all(void *binary, int count)
 #ifdef SIMD_COEF_32
 	unsigned int x, y;
 #ifdef _OPENMP
-	for (y = 0; y < SIMD_PARA_MD5 * threads; y++)
+	for (y = 0; y < SIMD_PARA_MD5 * sc_threads; y++)
 #else
 	for (y = 0; y < SIMD_PARA_MD5; y++)
 #endif

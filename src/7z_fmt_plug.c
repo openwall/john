@@ -10,18 +10,18 @@
  * modification, are permitted.
  */
 
+#if FMT_EXTERNS_H
+extern struct fmt_main fmt_sevenzip;
+#elif FMT_REGISTERS_H
+john_register_one(&fmt_sevenzip);
+#else
+
 /*
  * We've seen one single sample where we could not trust the padding check
  * (early rejection). To be able to crack such hashes, define this to 0.
  * This hits performance in some cases.
  */
 #define TRUST_PADDING 0
-
-#if FMT_EXTERNS_H
-extern struct fmt_main fmt_sevenzip;
-#elif FMT_REGISTERS_H
-john_register_one(&fmt_sevenzip);
-#else
 
 #include <string.h>
 
@@ -161,15 +161,11 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 	CRC32_t crc;
-#if defined (_OPENMP)
-	int threads = omp_get_max_threads();
 
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+#if defined (_OPENMP)
+	omp_autotune(self, OMP_SCALE);
 #endif
+
 	// allocate 1 more slot to handle the tail of vector buffer
 	max_kpc = self->params.max_keys_per_crypt + 1;
 

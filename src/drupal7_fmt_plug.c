@@ -96,13 +96,7 @@ static char (*crypt_key)[DIGEST_SIZE];
 static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	EncKey    = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*EncKey));

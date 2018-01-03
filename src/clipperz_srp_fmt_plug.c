@@ -86,7 +86,6 @@ john_register_one(&fmt_clipperz);
 #endif
 #include "memdbg.h"
 
-
 #define FORMAT_LABEL		"Clipperz"
 #define FORMAT_NAME		"SRP"
 #define ALGORITHM_NAME		"SHA256 32/" ARCH_BITS_STR EXP_STR
@@ -148,13 +147,7 @@ static void init(struct fmt_main *self)
 {
 	int i;
 #if defined (_OPENMP)
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);

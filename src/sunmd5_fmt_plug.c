@@ -235,17 +235,12 @@ static void init(struct fmt_main *self)
 #ifdef SIMD_COEF_32
 	int j, k;
 #endif
-#ifdef _OPENMP
-	int threads = omp_get_max_threads();
 
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+#ifdef _OPENMP
+	omp_autotune(self, OMP_SCALE);
 
 #ifdef SIMD_COEF_32
-	ngroups = threads;
+	ngroups = self->params.max_keys_per_crypt / MAX_KEYS_PER_CRYPT;
 #endif
 #endif
 

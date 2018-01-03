@@ -82,19 +82,11 @@ static uint32_t saved_salt;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 #ifdef SIMD_COEF_64
-#ifndef _OPENMP
-	int threads = 1;
-#endif
-	saved_key = mem_calloc_align(threads, sizeof(*saved_key), MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
 	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             8 * sizeof(uint64_t), MEM_ALIGN_SIMD);
 	max_keys = self->params.max_keys_per_crypt;

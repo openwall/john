@@ -29,7 +29,6 @@ john_register_one(&fmt_IPB2);
 
 #if defined(_OPENMP)
 #include <omp.h>
-static unsigned int threads = 1;
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
 #define OMP_SCALE			512  // Tuned K8-dual HT
@@ -39,8 +38,6 @@ static unsigned int threads = 1;
 #define OMP_SCALE			256
 #endif
 #endif
-#else
-#define threads				1
 #endif
 
 #include "memdbg.h"
@@ -128,6 +125,9 @@ static const char itoa16_and_0f[] =
 	"0123456789abcdef";
 
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
+#if defined(_OPENMP) || !SIMD_COEF_32
+static unsigned int sc_threads = 1;
+#endif
 
 #if SIMD_COEF_32
 
@@ -151,15 +151,9 @@ static void init(struct fmt_main *self)
 #if SIMD_COEF_32
 	unsigned int i;
 #endif
+
 #if defined (_OPENMP)
-	threads = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= threads;
-	threads *= OMP_SCALE;
-	// these 2 lines of change, allows the format to work with
-	// [Options] FormatBlockScaleTuneMultiplier= without other format change
-	threads *= self->params.max_keys_per_crypt;
-	threads /= NBKEYS;
-	self->params.max_keys_per_crypt = (threads*NBKEYS);
+	sc_threads = omp_autotune(self, OMP_SCALE);
 #endif
 #if SIMD_COEF_32
 	key_buf   = mem_calloc_align(self->params.max_keys_per_crypt,
@@ -267,7 +261,7 @@ static void set_salt(void *salt)
 #else
 	int index;
 
-	for (index = 0; index < threads * MAX_KEYS_PER_CRYPT; index++)
+	for (index = 0; index < sc_threads * MAX_KEYS_PER_CRYPT; index++)
 		memcpy(saved_key[index], salt, MD5_HEX_SIZE);
 #endif
 }
@@ -311,7 +305,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if defined(_OPENMP)
 	int t;
 #pragma omp parallel for
-	for (t = 0; t < threads; t++)
+	for (t = 0; t < sc_threads; t++)
 #define ti (t*NBKEYS+index)
 #else
 #define t  0
@@ -441,7 +435,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x, y;
 #ifdef _OPENMP
-	for (y = 0; y < SIMD_PARA_MD5*threads; y++)
+	for (y = 0; y < SIMD_PARA_MD5*sc_threads; y++)
 #else
 	for (y = 0; y < SIMD_PARA_MD5; y++)
 #endif

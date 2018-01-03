@@ -173,13 +173,7 @@ static void init(struct fmt_main *self)
 	int i;
 #endif
 #ifdef _OPENMP
-	int threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
+	omp_autotune(self, OMP_SCALE);
 #endif
 	if (options.target_enc == UTF_8) {
 		/* This avoids an if clause for every set_key */
