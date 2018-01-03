@@ -1,7 +1,16 @@
 #!/usr/bin/env python
 
-"""sxc2john.py processes SXC files into a format suitable
-for use with JtR."""
+# The staroffice2john.py utility processes StarOffice files into a format
+# suitable for use with JtR.
+#
+# This utility was previously named sxc2john.py.
+#
+# This software is Copyright (c) 2017, Dhiru Kholia <kholia at kth.se> and it is
+# hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+
 
 from xml.etree.ElementTree import ElementTree
 import zipfile
@@ -27,9 +36,9 @@ def process_file(filename):
     r = tree.getroot()
 
     # getiterator() is deprecated but 2.6 does not have iter()
-    try :
+    try:
         elements = list(r.iter())
-    except :
+    except:
         elements = list(r.getiterator())
 
     is_encrypted = False
@@ -54,16 +63,16 @@ def process_file(filename):
                     iteration_count = data
                 data = element.get("{http://openoffice.org/2001/manifest}algorithm-name")
                 if data:
-                    assert(data == "Blowfish CFB")
+                    assert data == "Blowfish CFB"
 
     if not is_encrypted:
         sys.stderr.write("%s is not an encrypted StarOffice file!\n" % filename)
         return 4
 
-    checksum = base64.decodestring(checksum.encode)
+    checksum = base64.b64decode(checksum)
     checksum = binascii.hexlify(checksum).decode("ascii")
-    iv = binascii.hexlify(base64.decodestring(iv.encode)).decode("ascii")
-    salt = binascii.hexlify(base64.decodestring(salt.encode)).decode("ascii")
+    iv = binascii.hexlify(base64.b64decode(iv)).decode("ascii")
+    salt = binascii.hexlify(base64.b64decode(salt)).decode("ascii")
 
     try:
         content = zf.open("content.xml").read()
@@ -83,7 +92,7 @@ def process_file(filename):
 
     else:
         # pad to make length multiple of 8
-        pad = "00000000"
+        pad = b"00000000"
         pad_length = original_length % 8
         if pad_length > 0:
             content = content + pad[0:pad_length]
@@ -93,11 +102,11 @@ def process_file(filename):
             (filename, algorithm_type,
             checksum_type, iteration_count, key_size, checksum, len(iv) / 2,
             iv, len(salt) / 2, salt, original_length, length,
-            binascii.hexlify(content[:length])))
+            binascii.hexlify(content[:length]).decode("ascii")))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <SXC files>\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s <StarOffice files (.sxc, .sdw, .sxd, .sxw, .sxi)>\n" % sys.argv[0])
         sys.exit(-1)
 
     for k in range(1, len(sys.argv)):
