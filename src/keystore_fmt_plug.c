@@ -173,15 +173,6 @@ static void done(void)
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_key);
-#ifdef SIMD_COEF_32
-	while (salt_preload) {
-		int i;
-		for (i = 20; i >= 0; --i)
-			MEM_FREE(salt_preload->ex_data[i]);
-		MEM_FREE(salt_preload->first_blk);
-		salt_preload = salt_preload->next;
-	}
-#endif
 }
 
 #ifdef SIMD_COEF_32
@@ -209,7 +200,7 @@ void link_salt(keystore_salt *ps) {
 	memcpy(p->data_hash, ps->data_hash, 20);
 	// make sure this salt was not already loaded. IF it is loaded, then
 	// adjust the pointer in the salt-db record.
-	p->first_blk = mem_calloc_align(threads, sizeof(*p->first_blk), MEM_ALIGN_SIMD);
+	p->first_blk = mem_calloc_tiny(threads * sizeof(*p->first_blk), MEM_ALIGN_SIMD);
 	salt_mem_total += threads*sizeof(*p->first_blk);
 	for (t = 0; t < threads; ++t) {	// t is threads
 	for (j = 0; j < 21; ++j) {	// j is length-4 of candidate password
@@ -232,7 +223,7 @@ void link_salt(keystore_salt *ps) {
 			// we only add 1 instance of the ex_data. for each
 			// password length, since this data is read only.
 			// All threads can share it.
-			p->ex_data[j] = mem_calloc_align((len+8)/64+1,
+			p->ex_data[j] = mem_calloc_tiny(((len+8)/64+1) *
 				64*NBKEYS, MEM_ALIGN_SIMD);
 			salt_mem_total += ((len+8)/64+1)*64*NBKEYS;
 			for (idx = 0; idx < NBKEYS; ++idx) {
