@@ -1,10 +1,13 @@
 /*
- * Modified by Dhiru Kholia <dhiru at openwall.com> for Keychain format.
+ * Modified by Dhiru Kholia <dhiru at openwall.com> for StarOffice format.
  *
- * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
- * and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2012 Dhiru Kholia, Copyright (c) 2012 Lukas
+ * Odzioba <ukasz@openwall.net> and it is hereby released to the general public
+ * under the following terms:
+ *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted. */
+ * modification, are permitted.
+ */
 
 #ifdef HAVE_OPENCL
 
@@ -17,6 +20,7 @@ john_register_one(&fmt_opencl_sxc);
 #include <string.h>
 #include <stdint.h>
 #include <openssl/blowfish.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -32,20 +36,20 @@ john_register_one(&fmt_opencl_sxc);
 #include "formats.h"
 #include "common-opencl.h"
 
-#define FORMAT_LABEL		"sxc-opencl"
-#define FORMAT_NAME		"StarOffice .sxc"
-#define FORMAT_TAG           "$sxc$*"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL Blowfish"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BINARY_SIZE		20
-#define PLAINTEXT_LENGTH	64
-#define SALT_SIZE		sizeof(sxc_cpu_salt)
-#define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN		4
+#define FORMAT_LABEL            "sxc-opencl"
+#define FORMAT_NAME             "StarOffice .sxc"
+#define FORMAT_TAG              "$sxc$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL Blowfish"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+#define BINARY_SIZE             20
+#define PLAINTEXT_LENGTH        64
+#define SALT_SIZE               sizeof(sxc_cpu_salt)
+#define BINARY_ALIGN            MEM_ALIGN_WORD
+#define SALT_ALIGN              4
 
 typedef struct {
 	uint32_t length;
