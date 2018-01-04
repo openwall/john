@@ -20,9 +20,6 @@
 #define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
 #endif
 
-// for testing disable zlib code, remove comment on next line.
-// #undef HAVE_LIBZ
-
 #if HAVE_LIBZ
 
 #if FMT_EXTERNS_H
@@ -34,18 +31,17 @@ john_register_one(&fmt_pkzip);
 #include <string.h>
 #include <zlib.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "common.h"
 #include "misc.h"
 #include "formats.h"
 #define USE_PKZIP_MAGIC 1
 #include "pkzip.h"
-
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
 #include "loader.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL        "PKZIP"
@@ -69,12 +65,10 @@ john_register_one(&fmt_pkzip);
 
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  64
-#ifndef OMP_SCALE
-#define OMP_SCALE           64
-#endif
 
-//#define ZIP_DEBUG 1
-//#define ZIP_DEBUG 2
+#ifndef OMP_SCALE
+#define OMP_SCALE           32 // Tuned w/ MKPC for core i7
+#endif
 
 /*
  * It is likely that this should be put into the arch.h files for the different systems,
@@ -402,9 +396,9 @@ static void init(struct fmt_main *self)
 #ifdef PKZIP_USE_MULT_TABLE
 	unsigned short n=0;
 #endif
-#ifdef _OPENMP
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	K12 = mem_calloc(sizeof(*K12) * 3, self->params.max_keys_per_crypt);
 	chk = mem_calloc(sizeof(*chk), self->params.max_keys_per_crypt);
