@@ -45,13 +45,11 @@ john_register_one(&fmt_sunmd5);
 
 #include "misc.h"
 #include "options.h"
-#include "misc.h"
 #include "params.h"
 #include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "loader.h"
-#include "memory.h"
 #include "md5.h"
 #include "simd-intrinsics.h"
 #include "memdbg.h"

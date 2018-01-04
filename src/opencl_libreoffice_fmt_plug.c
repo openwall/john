@@ -30,8 +30,6 @@ john_register_one(&fmt_opencl_odf);
 #include "common.h"
 #include "misc.h"
 #include "options.h"
-#include "common.h"
-#include "formats.h"
 #include "libreoffice_common.h"
 #define INCLUDE_BF_HASHES       1
 #include "libreoffice_variable_code.h"

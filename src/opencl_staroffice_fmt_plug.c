@@ -32,8 +32,6 @@ john_register_one(&fmt_opencl_sxc);
 #include "common.h"
 #include "misc.h"
 #include "options.h"
-#include "common.h"
-#include "formats.h"
 #include "staroffice_common.h"
 #include "common-opencl.h"
 

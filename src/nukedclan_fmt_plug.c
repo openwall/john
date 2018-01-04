@@ -32,7 +32,6 @@ john_register_one(&fmt_nk);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "common.h"
 
 #ifdef _OPENMP
 #include <omp.h>

@@ -27,7 +27,6 @@
 #include "external.h"
 #include "cracker.h"
 #include "john.h"
-#include "options.h"
 #include "unicode.h"
 #include "mask.h"
 #include "regex.h"

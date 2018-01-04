@@ -12,7 +12,6 @@
 #include "johnswap.h"
 #include "base64_convert.h"
 #include "rawSHA512_common.h"
-#include "johnswap.h"
 #include "memdbg.h"
 
 struct fmt_tests sha512_common_tests_rawsha512_111[] = {

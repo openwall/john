@@ -29,7 +29,6 @@ john_register_one(&fmt_opencl_dashlane);
 #include <omp.h>
 #endif
 
-#include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "dashlane_common.h"

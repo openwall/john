@@ -28,7 +28,6 @@ john_register_one(&fmt_stribog_512);
 #endif
 #endif
 
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
