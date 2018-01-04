@@ -28,28 +28,28 @@ john_register_one(&fmt_MYSQL_fast);
 #include <stdlib.h>
 #include <string.h>
 
+#include "arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
-
 #ifdef _OPENMP
 #include <omp.h>
+#endif
+
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "memdbg.h"
+
 #ifdef __MIC__
 #ifndef OMP_SCALE
 #define OMP_SCALE			2048
 #endif
 #else
 #ifndef OMP_SCALE
-#define OMP_SCALE			81920
+#define OMP_SCALE			16 // This and MKPC tuned for core i7
 #endif
 #endif
-#endif
-
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"mysql"
 #define FORMAT_NAME			"MySQL pre-4.1"
@@ -67,7 +67,7 @@ john_register_one(&fmt_MYSQL_fast);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		8
+#define MAX_KEYS_PER_CRYPT		512
 
 static struct fmt_tests tests[] = {
 	// ciphertext, plaintext
@@ -94,9 +94,9 @@ static uint32_t (*crypt_key)[BINARY_SIZE / 4];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                      sizeof(*saved_key));
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
