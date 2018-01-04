@@ -76,7 +76,9 @@ static void init(struct fmt_main *self)
 	int i;
 	char buf[3];
 #ifdef _OPENMP
-	omp_autotune(self, OMP_SCALE);
+	/* Workaround until this format can handle MKPC tuning, see #3091 */
+	if (omp_get_max_threads() > 1)
+		omp_autotune(self, OMP_SCALE);
 #endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_key));
