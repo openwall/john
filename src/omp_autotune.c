@@ -36,7 +36,12 @@ void omp_autotune_init(void)
 {
 	int ci;
 
+#if __i386__ || __x86_64__
 	use_preset = cfg_get_bool(CONF_SECTION, "UsePreset", 1);
+#else
+	// Our presets are from intel[tm] CPUs. Anything else should autotune
+	use_preset = 0;
+#endif
 	if ((ci = cfg_get_int(CONF_SECTION, "AutoTuneSampleTime")) < 0)
 		ci = 10;
 	sample_time = (double)ci / 1000.0;
