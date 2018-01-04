@@ -1,8 +1,10 @@
 /*
  * Modified by Dhiru Kholia <dhiru at openwall.com> for GPG format.
  *
- * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
- * and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2012 Dhiru Kholia <dhiru at openwall.com>,
+ * Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net> and it is hereby
+ * released to the general public under the following terms:
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
@@ -251,6 +253,7 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	uint32_t length = strlen(key);
+
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
@@ -261,6 +264,7 @@ static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
 	uint32_t length = inbuffer[index].length;
+
 	memcpy(ret, inbuffer[index].v, length);
 	ret[length] = '\0';
 	return ret;
@@ -313,14 +317,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	if (gpg_common_check(outbuffer[index].v, gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm)))
-	{
-		cracked[index] = 1;
+	for (index = 0; index < count; index++) {
+		if (gpg_common_check(outbuffer[index].v, gpg_common_keySize(gpg_common_cur_salt->cipher_algorithm))) {
+			cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-		any_cracked |= 1;
+			any_cracked |= 1;
+		}
 	}
 
 	return count;
@@ -340,12 +344,6 @@ static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
-
-/*
- * Report gpg --s2k-count n as 1st tunable cost,
- * hash algorithm as 2nd tunable cost,
- * cipher algorithm as 3rd tunable cost.
- */
 
 struct fmt_main fmt_opencl_gpg = {
 	{
