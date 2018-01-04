@@ -498,9 +498,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	    (format->params.flags & FMT_UTF8) &&
 	    (format->params.flags & FMT_UNICODE))
 		ml /= 3;
-#endif
 
 	omp_autotune_run(db);
+#endif
+
 #ifndef JUMBO_JTR
 	format->methods.reset(NULL);
 #endif
