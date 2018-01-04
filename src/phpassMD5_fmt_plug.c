@@ -36,6 +36,10 @@ john_register_one(&fmt_phpassmd5);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -43,16 +47,6 @@ john_register_one(&fmt_phpassmd5);
 #include "formats.h"
 #include "md5.h"
 #include "phpass_common.h"
-
-//#undef _OPENMP
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_MD5
-
-#ifdef _OPENMP
-#define OMP_SCALE               32
-#include <omp.h>
-#endif
-
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 
@@ -77,7 +71,7 @@ john_register_one(&fmt_phpassmd5);
 // loop count data, making it 9.
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT	NBKEYS
-#define MAX_KEYS_PER_CRYPT	NBKEYS
+#define MAX_KEYS_PER_CRYPT	(NBKEYS * 2)
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
 #else
@@ -85,8 +79,10 @@ john_register_one(&fmt_phpassmd5);
 #endif
 #else
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	2
 #endif
+
+#define OMP_SCALE           2 // Tuned w/ MKPC for core i7, including SIMD
 
 #ifdef SIMD_COEF_32
 // hash with key appended (used on all steps other than first)
@@ -104,9 +100,8 @@ static unsigned char cursalt[SALT_SIZE];
 static unsigned loopCnt;
 
 static void init(struct fmt_main *self) {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifdef SIMD_COEF_32
 	crypt_key = mem_calloc_align(self->params.max_keys_per_crypt/NBKEYS,
 	                             sizeof(*crypt_key), MEM_ALIGN_SIMD);
@@ -269,12 +264,11 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 	const int count = *pcount;
 	int loops = 1, index;
 
+	loops = (count + MIN_KEYS_PER_CRYPT - 1) / MIN_KEYS_PER_CRYPT;
 #ifdef _OPENMP
-	loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
 #pragma omp parallel for
 #endif
-	for (index = 0; index < loops; index++)
-	{
+	for (index = 0; index < loops; index++) {
 		unsigned Lcount;
 #ifdef SIMD_COEF_32
 
