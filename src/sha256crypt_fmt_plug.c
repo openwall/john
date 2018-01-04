@@ -85,29 +85,26 @@ extern struct fmt_main fmt_cryptsha256;
 john_register_one(&fmt_cryptsha256);
 #else
 
-#include "arch.h"
-
-//#undef SIMD_COEF_32
-
-#include "sha2.h"
-
 #define _GNU_SOURCE 1
 #include <string.h>
 
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include "arch.h"
+#include "sha2.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE			8
-#endif
-#include <omp.h>
-#endif
-
 #include "memdbg.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			2 // This and MKPC tuned for core i7
+#endif
 
 // NOTE, in SSE mode, even if NOT in OMP, we may need to scale, quite a bit, due to needing
 // to 'group' passwords differently, so that we have lengths which 'share' the same number
@@ -229,9 +226,7 @@ static struct saltstruct {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 
 	self->params.max_keys_per_crypt *= SIMD_COEF_SCALE;
 
