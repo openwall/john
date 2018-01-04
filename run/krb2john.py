@@ -23,6 +23,12 @@
 #
 # October 2017 update -> Extracts TGS-REP hashes too. Crack such hashes with
 # krb5tgs format.
+#
+# This software is Copyright (c) 2012, Dhiru Kholia <dhiru at openwall.com> and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 
 
 import sys
