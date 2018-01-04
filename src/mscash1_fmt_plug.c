@@ -24,6 +24,11 @@ john_register_one(&fmt_mscash);
 #else
 
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -34,14 +39,6 @@ john_register_one(&fmt_mscash);
 #include "loader.h"
 #include "johnswap.h"
 #include "mscash_common.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE			192
-#endif
-#endif
-
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"mscash"
@@ -51,15 +48,12 @@ john_register_one(&fmt_mscash);
 #define PLAINTEXT_LENGTH		27
 #define SALT_SIZE			(11*4)
 
-#define OK_NUM_KEYS			64
-#define BEST_NUM_KEYS			512
-#ifdef _OPENMP
-#define MS_NUM_KEYS			OK_NUM_KEYS
-#else
-#define MS_NUM_KEYS			BEST_NUM_KEYS
+#ifndef OMP_SCALE
+#define OMP_SCALE			2 // Tuned w/ MKPC for core i7
 #endif
-#define MIN_KEYS_PER_CRYPT		OK_NUM_KEYS
-#define MAX_KEYS_PER_CRYPT		MS_NUM_KEYS
+
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		512
 
 static unsigned int *ms_buffer1x;
 static unsigned int *output1x;
@@ -95,9 +89,7 @@ inline static void swap(unsigned int *x, int count)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 
 	ms_buffer1x = mem_calloc(sizeof(ms_buffer1x[0]), 16*fmt_mscash.params.max_keys_per_crypt);
 	output1x    = mem_calloc(sizeof(output1x[0])   ,  4*fmt_mscash.params.max_keys_per_crypt);
@@ -230,11 +222,10 @@ static void nt_hash(int count)
 {
 	int i;
 
-#if MS_NUM_KEYS > 1 && defined(_OPENMP)
+#if defined(_OPENMP)
 #pragma omp parallel for default(none) private(i) shared(count, ms_buffer1x, crypt_out, last)
 #endif
-	for (i = 0; i < count; i++)
-	{
+	for (i = 0; i < count; i++) {
 		unsigned int a;
 		unsigned int b;
 		unsigned int c;
@@ -333,11 +324,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		nt_hash(count);
 	}
 
-#if MS_NUM_KEYS > 1 && defined(_OPENMP)
+#if defined(_OPENMP)
 #pragma omp parallel for default(none) private(i) shared(count, last, crypt_out, salt_buffer, output1x)
 #endif
-	for (i = 0; i < count; i++)
-	{
+	for (i = 0; i < count; i++) {
 		unsigned int a;
 		unsigned int b;
 		unsigned int c;
