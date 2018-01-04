@@ -142,11 +142,12 @@ void omp_autotune_run(struct db_main *db)
 	sTimer_Init(&timer);
 	do {
 		int i;
+		int min_kpc = fmt->params.min_keys_per_crypt;
 		int this_kpc = mkpc * threads * scale;
 		int cps, crypts = 0;
 
 		if (threads == 1)
-			this_kpc = scale; // We're tuning MKPC
+			this_kpc = min_kpc * scale; // We're tuning MKPC
 
 		fmt->params.max_keys_per_crypt = this_kpc;
 
@@ -190,7 +191,7 @@ void omp_autotune_run(struct db_main *db)
 			else
 				fprintf(stderr,
 				        "MKPC %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				        scale, crypts, crypts / this_kpc, this_kpc,
+				        this_kpc, crypts, crypts / this_kpc, this_kpc,
 				        duration, cps);
 		}
 
@@ -232,7 +233,7 @@ void omp_autotune_run(struct db_main *db)
 				        best_scale, fmt_preset);
 			else
 				fprintf(stderr, "Autotuned MKPC %d, preset is %d\n",
-				        best_scale, mkpc);
+				        best_scale * fmt->params.min_keys_per_crypt, mkpc);
 		}
 	} else {
 		if (john_main_process && options.verbosity > VERB_DEFAULT)
@@ -242,7 +243,8 @@ void omp_autotune_run(struct db_main *db)
 	}
 
 	if (threads == 1)
-		fmt->params.max_keys_per_crypt = best_scale;
+		fmt->params.max_keys_per_crypt =
+			best_scale * fmt->params.min_keys_per_crypt;
 	else
 		fmt->params.max_keys_per_crypt = mkpc * threads * best_scale;
 
