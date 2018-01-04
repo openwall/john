@@ -58,6 +58,10 @@ john_register_one(&fmt_mscash2);
 
 #include <string.h>
 
+#if defined (_OPENMP)
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -71,15 +75,11 @@ john_register_one(&fmt_mscash2);
 #include "simd-intrinsics.h"
 #include "loader.h"
 #include "mscash_common.h"
-
-#if defined (_OPENMP)
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE			8	// Tuned on Corei7 Quad-HT
-#endif
-#endif
-
 #include "memdbg.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			2 // Tuned on core i7 w/ MKPC
+#endif
 
 #define ITERATIONS			10240
 static unsigned iteration_cnt =	(ITERATIONS); /* this will get changed at runtime, salt loading */
@@ -110,7 +110,7 @@ static unsigned char (*sse_crypt2);
 #endif
 
 #define MIN_KEYS_PER_CRYPT		MS_NUM_KEYS
-#define MAX_KEYS_PER_CRYPT		MS_NUM_KEYS
+#define MAX_KEYS_PER_CRYPT		(MS_NUM_KEYS * 2)
 
 #define HASH_LEN			(16+48)
 
@@ -123,9 +123,9 @@ static unsigned int (*crypt_out);
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	key = mem_calloc(self->params.max_keys_per_crypt,
 	                 (PLAINTEXT_LENGTH + 1));
 	md4hash = mem_calloc(self->params.max_keys_per_crypt,
@@ -541,7 +541,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// now get NTLM of the password (MD4 of unicode)
 	if (new_key) {
-#if MS_NUM_KEYS > 1 && defined(_OPENMP)
+#if defined(_OPENMP)
 #pragma omp parallel for default(none) private(i) shared(count, key, md4hash)
 #endif
 		for (i = 0; i < count; ++i) {
