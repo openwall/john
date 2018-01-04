@@ -13,6 +13,7 @@ john_register_one(&fmt_wpapsk_pmk);
 
 #include <string.h>
 #include <assert.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -41,10 +42,10 @@ john_register_one(&fmt_wpapsk_pmk);
 #define ALGORITHM_NAME		"MD5/SHA-1/SHA-2"
 
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	128
 
 #ifndef OMP_SCALE
-#define OMP_SCALE 1024 // core i7
+#define OMP_SCALE 2 // MKPC and OMP_SCALE tuned for core i7
 #endif
 
 extern wpapsk_hash *outbuffer;
@@ -54,9 +55,7 @@ extern mic_t *mic;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
