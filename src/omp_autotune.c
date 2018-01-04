@@ -31,6 +31,7 @@ static int omp_scale;
 static int report;
 static int fmt_preset;
 static int tune_preset;
+static int scale = 1;
 
 void omp_autotune_init(void)
 {
@@ -75,10 +76,10 @@ int omp_autotune(struct fmt_main *format, int preset)
 	fmt_preset = preset;
 
 	omp_scale = tune_preset ? tune_preset : (use_preset ? preset : 0);
-	ret_scale = omp_scale ? omp_scale : 1;
+	ret_scale = (threads == 1) ? 1 : (omp_scale ? omp_scale : 1);
 
 	if (omp_autotune_running)
-		return fmt->params.max_keys_per_crypt / mkpc;
+		return threads * scale;
 
 	if (!use_preset || !preset) {
 		fmt = format;
@@ -98,7 +99,7 @@ void omp_autotune_run(struct db_main *db)
 #else
 	int threads = 1;
 #endif
-	int best_scale = 1, scale = 1;
+	int best_scale = 1;
 	int best_cps = 0;
 	int no_progress = 0;
 	int min_crypts = 0;
@@ -115,6 +116,7 @@ void omp_autotune_run(struct db_main *db)
 	    (!strcmp(options.tune, "report") || options.verbosity > VERB_DEFAULT))
 		fprintf(stderr, "\n");
 
+	scale = 1;
 	omp_autotune_running = 1;
 
 	// Find most expensive salt, for auto-tune
@@ -213,10 +215,10 @@ void omp_autotune_run(struct db_main *db)
 		if (duration > max_tune_time || no_progress >= max_no_progress)
 			break;
 
-		if (threads == 1) {
+		if (threads == 1 && min_kpc == 1) {
 			int quick_move = 1;
 
-			while (crypts / this_kpc / quick_move > 100) {
+			while (crypts / this_kpc / quick_move > 8192) {
 				quick_move *= 2;
 				scale *= 2;
 			}
@@ -227,13 +229,15 @@ void omp_autotune_run(struct db_main *db)
 	} while (1);
 
 	if (!strcmp(options.tune, "report")) {
-		if (MAX(best_scale, fmt_preset) > 4 * MIN(best_scale, fmt_preset)) {
-			if (threads > 1)
-				fprintf(stderr, "Autotuned OMP scale %d, preset is %d\n",
-				        best_scale, fmt_preset);
-			else
+		if (threads == 1) {
+			if (MAX(best_scale * fmt->params.min_keys_per_crypt, mkpc) >
+			    4 * MIN(best_scale * fmt->params.min_keys_per_crypt, mkpc))
 				fprintf(stderr, "Autotuned MKPC %d, preset is %d\n",
 				        best_scale * fmt->params.min_keys_per_crypt, mkpc);
+		} else {
+			if (MAX(best_scale, fmt_preset) > 4 * MIN(best_scale, fmt_preset))
+				fprintf(stderr, "Autotuned OMP scale %d, preset is %d\n",
+				        best_scale, fmt_preset);
 		}
 	} else {
 		if (threads == 1) {
@@ -272,6 +276,7 @@ cleanup:
 	fmt = NULL;
 	omp_scale = 0;
 	mkpc = 0;
+	scale = 1;
 
 	return;
 }
