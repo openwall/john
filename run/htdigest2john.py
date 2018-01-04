@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 
-"""htdigest2john.py processes htdigest files into a format
-suitable for use with JtR."""
+# The htdigest2john.py utility processes htdigest files into a format suitable
+# for use with JtR.
+#
+# This software is Copyright (c) 2012, Dhiru Kholia <dhiru at openwall.com> and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 
 import sys
 import binascii
