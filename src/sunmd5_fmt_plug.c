@@ -32,9 +32,6 @@ john_register_one(&fmt_sunmd5);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE 2
-#endif
 #endif
 
 #include "arch.h"
@@ -59,12 +56,13 @@ john_register_one(&fmt_sunmd5);
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 
-/*
- * these 2 are for testing non-MMX mode. if we
- * undefine these 2, then we force build oSSL model.
- */
-//#undef SIMD_PARA_MD5
-//#undef SIMD_COEF_32
+#ifndef OMP_SCALE
+#if SIMD_COEF_32
+#define OMP_SCALE 2 // Tuned for core i7 w/ MKPC
+#else
+#define OMP_SCALE 8 // Tuned for core i7 w/ SIMD disabled
+#endif
+#endif
 
 #ifndef MD5_CBLOCK
 #define MD5_CBLOCK 64
@@ -87,11 +85,11 @@ john_register_one(&fmt_sunmd5);
 #define SALT_ALIGN			1
 
 #if SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT  SIMD_COEF_32
-#define MAX_KEYS_PER_CRYPT  (16 * SIMD_COEF_32 * SIMD_PARA_MD5)
+#define MIN_KEYS_PER_CRYPT  (SIMD_COEF_32 * SIMD_PARA_MD5)
+#define MAX_KEYS_PER_CRYPT  (SIMD_COEF_32 * SIMD_PARA_MD5 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT	2
 #endif
 
 #define FORMAT_LABEL			"SunMD5"
@@ -236,13 +234,7 @@ static void init(struct fmt_main *self)
 	int j, k;
 #endif
 
-#ifdef _OPENMP
-	omp_autotune(self, OMP_SCALE);
-
-#ifdef SIMD_COEF_32
-	ngroups = self->params.max_keys_per_crypt / MAX_KEYS_PER_CRYPT;
-#endif
-#endif
+	ngroups = omp_autotune(self, OMP_SCALE);
 
 #ifdef SIMD_COEF_32
 	/*
