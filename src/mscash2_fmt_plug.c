@@ -69,7 +69,6 @@ john_register_one(&fmt_mscash2);
 #include "formats.h"
 #include "unicode.h"
 #include "options.h"
-#include "unicode.h"
 #include "sha.h"
 #include "md4.h"
 #include "simd-intrinsics.h"

@@ -29,7 +29,6 @@ john_register_one(&fmt_opencl_pem);
 #include <omp.h>
 #endif
 
-#include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "pem_common.h"

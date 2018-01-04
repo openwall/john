@@ -32,7 +32,6 @@ john_register_one(&fmt_electrum);
 #endif
 #include <openssl/bn.h>
 
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

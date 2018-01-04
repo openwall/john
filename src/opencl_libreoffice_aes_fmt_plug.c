@@ -25,8 +25,6 @@ john_register_one(&fmt_opencl_odf_aes);
 #include "common.h"
 #include "misc.h"
 #include "options.h"
-#include "common.h"
-#include "formats.h"
 #include "aes.h"
 #include "libreoffice_common.h"
 #define INCLUDE_AES_HASHES      1

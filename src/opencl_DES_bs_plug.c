@@ -817,8 +817,6 @@ typedef union {
 	kp += 1;					\
 }
 
-#include "memdbg.h"
-
 static void des_finalize_int_keys()
 {
 	key_page *int_key_page[MASK_FMT_INT_PLHDR];

@@ -29,7 +29,6 @@
 #include "external.h"
 #include "mask.h"
 #include "regex.h"
-#include "options.h"
 #include "unicode.h"
 #include "memdbg.h"
 
