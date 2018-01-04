@@ -130,8 +130,9 @@ void omp_autotune_run(struct db_main *db)
 	}
 
 	if (john_main_process && options.verbosity == VERB_MAX) {
-		fprintf(stderr, "%s OMP autotune using %s db",
-		        fmt->params.label, db->real ? "real" : "test");
+		fprintf(stderr, "%s %s autotune using %s db",
+		        fmt->params.label, threads > 1 ? "OMP" : "MKPC",
+		        db->real ? "real" : "test");
 		if (fmt->methods.tunable_cost_value[0])
 			fprintf(stderr, " with %s of %d\n",
 			        fmt->params.tunable_cost_name[0], tune_cost);
@@ -143,6 +144,9 @@ void omp_autotune_run(struct db_main *db)
 		int i;
 		int this_kpc = mkpc * threads * scale;
 		int cps, crypts = 0;
+
+		if (threads == 1)
+			this_kpc = scale; // We're tuning MKPC
 
 		fmt->params.max_keys_per_crypt = this_kpc;
 
@@ -186,7 +190,7 @@ void omp_autotune_run(struct db_main *db)
 			else
 				fprintf(stderr,
 				        "MKPC %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				        scale * mkpc, crypts, crypts / this_kpc, this_kpc,
+				        scale, crypts, crypts / this_kpc, this_kpc,
 				        duration, cps);
 		}
 
@@ -205,7 +209,7 @@ void omp_autotune_run(struct db_main *db)
 
 		min_crypts = crypts;
 
-		if (duration > max_tune_time || no_progress > max_no_progress)
+		if (duration > max_tune_time || no_progress >= max_no_progress)
 			break;
 
 		if (threads == 1) {
@@ -228,7 +232,7 @@ void omp_autotune_run(struct db_main *db)
 				        best_scale, fmt_preset);
 			else
 				fprintf(stderr, "Autotuned MKPC %d, preset is %d\n",
-				        best_scale * mkpc, mkpc);
+				        best_scale, mkpc);
 		}
 	} else {
 		if (john_main_process && options.verbosity > VERB_DEFAULT)
@@ -237,7 +241,10 @@ void omp_autotune_run(struct db_main *db)
 		log_event("Autotune found best speed at OMP scale of %d", best_scale);
 	}
 
-	fmt->params.max_keys_per_crypt = mkpc * threads * best_scale;
+	if (threads == 1)
+		fmt->params.max_keys_per_crypt = best_scale;
+	else
+		fmt->params.max_keys_per_crypt = mkpc * threads * best_scale;
 
 	if (best_scale != scale) {
 		// Release old buffers
