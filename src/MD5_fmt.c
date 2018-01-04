@@ -130,7 +130,12 @@ static void init(struct fmt_main *self)
 {
 	MD5_std_init(self);
 #if defined(_OPENMP) && defined(SIMD_PARA_MD5)
-	omp_para = omp_autotune(self, OMP_SCALE);
+	omp_para = omp_get_max_threads();
+	if (omp_para < 1)
+		omp_para = 1;
+	self->params.min_keys_per_crypt = MD5_N * omp_para;
+	omp_para *= OMP_SCALE;
+	self->params.max_keys_per_crypt = MD5_N * omp_para;
 #elif MD5_std_mt
 	self->params.min_keys_per_crypt = MD5_std_min_kpc;
 	self->params.max_keys_per_crypt = MD5_std_max_kpc;
