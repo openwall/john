@@ -236,10 +236,21 @@ void omp_autotune_run(struct db_main *db)
 				        best_scale * fmt->params.min_keys_per_crypt, mkpc);
 		}
 	} else {
-		if (john_main_process && options.verbosity > VERB_DEFAULT)
+		if (threads == 1) {
+			if (john_main_process && options.verbosity > VERB_DEFAULT)
+			fprintf(stderr,
+			        "Autotune found best speed at MKPC of %d (%d * %d)\n",
+			        best_scale * fmt->params.min_keys_per_crypt,
+			        best_scale, fmt->params.min_keys_per_crypt);
+			log_event("Autotune found best speed at MKPC of %d (%d * %d)",
+			          best_scale * fmt->params.min_keys_per_crypt,
+			          best_scale, fmt->params.min_keys_per_crypt);
+		} else {
+			if (john_main_process && options.verbosity > VERB_DEFAULT)
 			fprintf(stderr, "Autotune found best speed at OMP scale of %d\n",
 			        best_scale);
-		log_event("Autotune found best speed at OMP scale of %d", best_scale);
+			log_event("Autotune found best speed at OMP scale of %d", best_scale);
+		}
 	}
 
 	if (threads == 1)
