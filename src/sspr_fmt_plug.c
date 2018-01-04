@@ -34,49 +34,26 @@ john_register_one(&fmt_sspr);
 #include "common.h"
 #include "params.h"
 #include "options.h"
+#include "sspr_common.h"
+#define CPU_FORMAT              1
+#include "sspr_variable_code.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "sspr"
-#define FORMAT_NAME             "NetIQ SSPR"
-#define FORMAT_TAG              "$sspr$"
-#define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5/SHA1/SHA256/SHA512 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        125
-#define BINARY_SIZE             64
-#define BINARY_SIZE_MIN         16
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define MAX_SALT_LEN            1500
-
-static struct fmt_tests tests[] = {
-	{"$sspr$2$100000$tMR6sNepv6M6nOqOy3SWnAUWo22p0GI7$f0ae3140ce2cf46c13d0b6c4bd4fab65b45b27c0", "openwall@123"},
-	{"$sspr$2$100000$BrWV47lSy3Mwpp8pb60ZlJS85YS242bo$1f71c58c8dfc16c9037d3cd1cf21d1139cad4fa4", "password@123"},
-	{"$sspr$1$100000$NONE$64840051a425cbc0b4e2d3750d9e0de3e800de18", "password@12345"},
-	{"$sspr$1$100000$NONE$5cd2aeb3adf2baeca485672f01486775a208a40e", "openwall@12345"},
-	{"$sspr$0$100000$NONE$1e6172e71e6af1c15f4c5ca658815835", "abc@12345"},
-	{"$sspr$0$100000$NONE$1117af8ec9f70e8eed192c6c01776b6b", "abc@123"},
-	{"$sspr$3$100000$blwmhFBUiq67iEX9WFc8EG8mCxWL4tCR$c0706a057dfdb5d31d6dd40f060c8982e1e134fdf1e7eb0d299009c2f56c1936", "hello@12345"},
-	{"$sspr$3$100000$lNInqvnmbv9x65N2ltQeCialILG8Fr47$6bd508dcc2a5626c9d7ab3296bcce0538ca0ba24bf43cd2aebe2f58705814a00", "abc@123"},
-	{"$sspr$4$100000$ZP3ftUBQwrovglISxt9ujUtwslsSMCjj$a2a89e0e185f2a32f18512415e4dfc379629f0222ead58f0207e9c9f7424c36fe9c7a615be6035849c11da1293da78e50e725a664b7f5fe123ede7871f13ae7f", "hello@123"},
-	{"$sspr$4$100000$ZzhxK3gHP8HVkcELqIeybuRWvZjDirtg$ca5608befc50075bc4a1441de23beb4a034197d70df670addabc62a4a4d26b2e78ee38c50e9d18ce55d31b00fbb9916af12e80bf3e395ff38e58f8a958427602", "hello@12345"},
-	{"$sspr$2$100000$4YtbuUHaTSHBuE1licTV16KjSZuMMMCn$23b3cf4e1a951b2ed9d5df43632f77092fa93128", "\xe4""bc@123"},  // original password was "äbc@123", application uses a code page
-	{NULL}
-};
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
-static struct custom_salt {
-	uint32_t iterations;
-	uint32_t saltlen;
-	uint32_t fmt;
-	char salt[MAX_SALT_LEN];
-} *cur_salt;
+static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
@@ -95,85 +72,7 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy, *keeptr, *p;
-	int value, extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
-		return 0;
-
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-
-	ctcopy += TAG_LENGTH;
-	if ((p = strtokm(ctcopy, "$")) == NULL)  // type
-		goto err;
-	if (!isdec(p))
-		goto err;
-	value = atoi(p);
-	if (value != 0 && value != 1 && value != 2 && value != 3 && value != 4)
-		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL)  // iterations
-		goto err;
-	if (!isdec(p))
-		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL)  // salt
-		goto err;
-	if (strlen(p) > MAX_SALT_LEN)
-		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL)  // binary
-		goto err;
-	value = hexlenl(p, &extra);
-	if (value < BINARY_SIZE_MIN * 2 || value > BINARY_SIZE * 2 || extra)
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
-
-	memset(&cs, 0, SALT_SIZE);
-	ctcopy += TAG_LENGTH;
-	p = strtokm(ctcopy, "$");
-	cs.fmt = atoi(p);
-	p = strtokm(NULL, "$");
-	cs.iterations = atoi(p);
-	p = strtokm(NULL, "$");
-	cs.saltlen = strlen(p);
-	strncpy(cs.salt, p, MAX_SALT_LEN);
-
-	MEM_FREE(keeptr);
-
-	return &cs;
-}
-
-static void *get_binary(char *ciphertext)
-{
-	static union {
-		unsigned char c[BINARY_SIZE];
-		uint32_t dummy;
-	} buf;
-	unsigned char *out = buf.c;
-	char *p;
-	int i;
-
-	memset(buf.c, 0, BINARY_SIZE);
-	p = strrchr(ciphertext, '$') + 1;
-	for (i = 0; i < BINARY_SIZE_MIN; i++) {
-		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
-		p += 2;
-	}
-
-	return out;
+	return sspr_valid(ciphertext, self, 1);
 }
 
 static void set_salt(void *salt)
@@ -282,11 +181,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static unsigned int get_kdf_type(void *salt)
-{
-	return ((struct custom_salt *)salt)->fmt;
-}
-
 struct fmt_main fmt_sspr = {
 	{
 		FORMAT_LABEL,
@@ -307,7 +201,7 @@ struct fmt_main fmt_sspr = {
 			"KDF [0:MD5 1:SHA1 2:SHA1_SALT 3:SHA256_SALT 4:SHA512_SALT]",
 		},
 		{ FORMAT_TAG },
-		tests
+		sspr_tests
 	}, {
 		init,
 		done,
@@ -315,10 +209,10 @@ struct fmt_main fmt_sspr = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		get_binary,
-		get_salt,
+		sspr_get_binary,
+		sspr_get_salt,
 		{
-			get_kdf_type,
+			sspr_get_kdf_type,
 		},
 		fmt_default_source,
 		{
