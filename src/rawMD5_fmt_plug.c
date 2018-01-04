@@ -17,6 +17,12 @@ john_register_one(&fmt_rawMD5);
 #include <string.h>
 
 #include "arch.h"
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "md5.h"
 #include "misc.h"	// error()
@@ -24,34 +30,13 @@ john_register_one(&fmt_rawMD5);
 #include "johnswap.h"
 #include "formats.h"
 #include "base64_convert.h"
-
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_MD5
-
-/*
- * Only effective for SIMD.
- * Undef to disable reversing steps for benchmarking.
- */
 #define REVERSE_STEPS
-
-#ifdef _OPENMP
-#ifdef SIMD_COEF_32
-#ifndef OMP_SCALE
-#define OMP_SCALE               256 // core i7
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE				2048
-#endif
-#endif
-#include <omp.h>
-#endif
 #include "simd-intrinsics.h"
 #include "memdbg.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE				16 // Tuned after MKPC for core i7 incl non-SIMD
+#endif
 
 #define FORMAT_LABEL			"Raw-MD5"
 #define FORMAT_NAME			""
@@ -106,12 +91,12 @@ static struct fmt_tests tests[] = {
 #ifdef SIMD_COEF_32
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		(NBKEYS * 16)
 #include "common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		256
 #endif
 
 #ifdef SIMD_COEF_32
@@ -125,11 +110,7 @@ static uint32_t (*crypt_key)[4];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#else
-	self->params.max_keys_per_crypt *= 10;
-#endif
 #ifndef SIMD_COEF_32
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
@@ -276,7 +257,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index;
 
-	int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
+	int loops = (count + MIN_KEYS_PER_CRYPT - 1) / MIN_KEYS_PER_CRYPT;
 
 #ifdef _OPENMP
 #pragma omp parallel for
