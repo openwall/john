@@ -29,9 +29,6 @@ john_register_one(&fmt_KeePass);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
 #endif
 
 #include "arch.h"
@@ -46,6 +43,10 @@ john_register_one(&fmt_KeePass);
 #include "twofish.h"
 #include "chacha.h"
 #include "memdbg.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // This and MKPC tuned for core i7
+#endif
 
 #define FORMAT_LABEL            "KeePass"
 #define FORMAT_NAME             ""
@@ -120,9 +121,9 @@ static void transform_key(char *masterkey, keepass_salt_t *csp,
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	keepass_key = mem_calloc(self->params.max_keys_per_crypt,
 				sizeof(*keepass_key));
 	any_cracked = 0;
