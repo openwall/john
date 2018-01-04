@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+# This software is Copyright (c) 2017, Dhiru Kholia <dhiru at openwall.com> and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+
 """
 ArubaOS password hashing algorithm details were found by Sven Blumenstein.
 
