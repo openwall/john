@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+# This utility helps in cracking files encrypted using "openssl enc" command.
+#
+# This software is Copyright (c) 2013, Dhiru Kholia <dhiru at openwall.com> and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+
+
 import sys
 import base64
 import optparse
@@ -19,7 +28,7 @@ def process(filename, plaintext=None, cipher=0, md=0):
 
         if not data.startswith(b"Salted__"):
             try:
-                data = base64.decodestring(data)
+                data = base64.b64decode(data)
             except:
                 sys.stderr.write("%s doesn't seem to be encrypted using OpenSSL's enc command!\n" % filename)
                 return
