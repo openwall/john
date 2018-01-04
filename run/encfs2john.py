@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
-"""encfs2john.py processes EncFS files into a format suitable
-for use with JtR"""
-
+# The encfs2john.py utility processes EncFS files into a format suitable for
+# use with JtR.
+#
+# This software is Copyright (c) 2012, Dhiru Kholia <dhiru at openwall.com> and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 
 from xml.etree.ElementTree import ElementTree
 import sys
@@ -16,7 +21,7 @@ def process_folder(folder):
     if not os.path.exists(filename):
         sys.stderr.write("%s doesn't have .encfs6.xml!\n" % folder)
         return 1
-    mf = open(filename)
+    mf = open(filename, "rb")
     tree = ElementTree()
     tree.parse(mf)
     r = tree.getroot()
@@ -61,8 +66,8 @@ def process_folder(folder):
     else:
         sys.stderr.write("%s cipher is not supported yet!\n" % cipher)
         return
-    salt = binascii.hexlify(base64.decodestring(salt.encode()))
-    data = binascii.hexlify(base64.decodestring(data.encode()))
+    salt = binascii.hexlify(base64.b64decode(salt))
+    data = binascii.hexlify(base64.b64decode(data))
     sys.stdout.write("%s:$encfs$%s*%s*%s*%s*%s*%s*%s\n" % \
             (folder, keySize, iterations, cipher, saltLen,
             salt.decode("ascii"),
