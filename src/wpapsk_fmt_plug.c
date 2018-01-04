@@ -19,33 +19,18 @@ john_register_one(&fmt_wpapsk);
 #include <string.h>
 #include <assert.h>
 
-#include "arch.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
+#include "arch.h"
 #include "simd-intrinsics.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "pbkdf2_hmac_sha1.h"
-//#define WPAPSK_DEBUG
 #include "wpapsk.h"
 #include "sha.h"
-
-// if this is uncommented, we will force building of SSE to be 'off'. It is
-// useful in testing but 99.9% of the builds should have this undef commented out.
-//#undef SIMD_COEF_32
-
-#ifdef SIMD_COEF_32
-  #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
-  #ifdef _OPENMP
-    #include <omp.h>
-  #endif
-#else
-  #define NBKEYS	1
-  #ifdef _OPENMP
-    #include <omp.h>
-  #endif
-#endif
-
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk"
@@ -65,11 +50,17 @@ john_register_one(&fmt_wpapsk);
 #define ALGORITHM_NAME          "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 
+#ifdef SIMD_COEF_32
+#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
+#else
+#define NBKEYS	1
+#endif
+
 #define MIN_KEYS_PER_CRYPT	NBKEYS
-#define MAX_KEYS_PER_CRYPT	NBKEYS
+#define MAX_KEYS_PER_CRYPT	(NBKEYS * 2)
 
 #ifndef OMP_SCALE
-#define OMP_SCALE 2 // core i7
+#define OMP_SCALE 2 // tuned w/ MKPC, core i7M HT SIMD/non-SIMD
 #endif
 
 extern wpapsk_password *inbuffer;
@@ -80,9 +71,7 @@ extern mic_t *mic;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
