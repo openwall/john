@@ -37,7 +37,7 @@ void omp_autotune_init(void)
 {
 	int ci;
 
-#if __i386__ || __x86_64__
+#if __i386__ || __x86_64__ || __MIC__
 	use_preset = cfg_get_bool(CONF_SECTION, "UsePreset", 1);
 #else
 	// Our presets are from intel[tm] CPUs. Anything else should autotune
@@ -117,7 +117,7 @@ void omp_autotune_run(struct db_main *db)
 	if (!fmt || omp_scale == 1)
 		goto cleanup;
 
-	if (john_main_process && bench_running &&
+	if (john_main_process && (options.flags & FLG_TEST_CHK) &&
 	    ((options.tune && !strcmp(options.tune, "report")) ||
 	     options.verbosity > VERB_DEFAULT))
 		fprintf(stderr, "\n");
@@ -178,6 +178,8 @@ void omp_autotune_run(struct db_main *db)
 		// Set the salt we picked earlier
 		fmt->methods.set_salt(salt);
 
+		bench_running++;
+
 		sTimer_Start(&timer, 1);
 		do {
 			int count = this_kpc;
@@ -186,6 +188,8 @@ void omp_autotune_run(struct db_main *db)
 			crypts += count;
 		} while (crypts < min_crypts || sTimer_GetSecs(&timer) < sample_time);
 		sTimer_Stop(&timer);
+
+		bench_running--;
 
 		duration = sTimer_GetSecs(&timer);
 		cps = crypts / duration;
@@ -236,8 +240,7 @@ void omp_autotune_run(struct db_main *db)
 
 	if (options.tune && !strcmp(options.tune, "report")) {
 		if (threads == 1) {
-			if (MAX(best_scale * fmt->params.min_keys_per_crypt, mkpc) >
-			    4 * MIN(best_scale * fmt->params.min_keys_per_crypt, mkpc))
+			if (best_scale * fmt->params.min_keys_per_crypt != mkpc)
 				fprintf(stderr, "Autotuned MKPC %d, preset is %d\n",
 				        best_scale * fmt->params.min_keys_per_crypt, mkpc);
 		} else {
