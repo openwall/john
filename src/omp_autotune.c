@@ -118,7 +118,8 @@ void omp_autotune_run(struct db_main *db)
 		goto cleanup;
 
 	if (john_main_process && bench_running &&
-	    (!strcmp(options.tune, "report") || options.verbosity > VERB_DEFAULT))
+	    ((options.tune && !strcmp(options.tune, "report")) ||
+	     options.verbosity > VERB_DEFAULT))
 		fprintf(stderr, "\n");
 
 	scale = 1;
@@ -233,7 +234,7 @@ void omp_autotune_run(struct db_main *db)
 		scale *= 2;
 	} while (1);
 
-	if (!strcmp(options.tune, "report")) {
+	if (options.tune && !strcmp(options.tune, "report")) {
 		if (threads == 1) {
 			if (MAX(best_scale * fmt->params.min_keys_per_crypt, mkpc) >
 			    4 * MIN(best_scale * fmt->params.min_keys_per_crypt, mkpc))
