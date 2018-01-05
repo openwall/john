@@ -2,12 +2,21 @@
  * ODF cracker patch for JtR. Hacked together during Summer of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * This also works for various LibreOffice document formats.
+ * This also works for various OpenDocument, OpenOffice and LibreOffice file
+ * formats.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.  */
+ * are permitted.
+ *
+ * This work is based on Udo Schuermann's "Ringlord Technologies ODF Java Library".
+ *
+ * See https://github.com/kuschuermann/rltodfjlib and http://ringlord.com/odfdecrypt.html
+ * for details.
+ *
+ * Also look at "odfencrypt.groovy" for OpenDocument encryption details.
+ */
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_odf;
