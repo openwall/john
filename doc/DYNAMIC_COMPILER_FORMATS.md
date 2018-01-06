@@ -155,3 +155,41 @@ $ cat ~/jboss-as-7.1.1.Final/standalone/configuration/mgmt-users.properties
 #
 user=1c3470194afdc84b90a0781c5e4462fc
 ```
+
+## Cracking AuthMe hashes
+
+AuthMe is an authentication plugin used by Minecraft servers. AuthMe hashes are
+stored in the following format,
+
+```
+$SHA$c7dedf5a36c4a343$05ae3239eee683872ef1cc9096777bf4b1a72a179709efc17d8bf1603b082065
+```
+
+To crack such hashes, remove the `$SHA$` signature and move the salt to the end
+of the hash string. The resulting hash will thus become,
+
+```
+$ cat sample-hash
+05ae3239eee683872ef1cc9096777bf4b1a72a179709efc17d8bf1603b082065$c7dedf5a36c4a343
+```
+
+```
+$ cat wordlist
+password123
+openwall
+admin
+pantof
+```
+
+```
+$ ../run/john -form=dynamic='sha256(sha256($p).$s)' sample-hash -w=wordlist
+Using default input encoding: UTF-8
+Loaded 1 password hash (dynamic=sha256(sha256($p).$s) [256/256 AVX2 8x])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+pantof           (?)
+Session completed
+```
+
+See `Sha256.java` from `https://github.com/AuthMe/AuthMeReloaded` for addtional details.
+
+NOTE: The inbuilt `dynamic_65` format is a bit faster at cracking such hashes.
