@@ -144,14 +144,14 @@ static void done(void)
 
 static void print_memory(double memory)
 {
-	char s[]="\0kMGT";
-	int i=0;
-	while(memory>=1024)
-	{
-		memory/=1024;
+	char s[] = "\0kMGT";
+	int i = 0;
+
+	while (memory >= 1024 && s[i + 1]) {
+		memory /= 1024;
 		i++;
 	}
-	printf("memory per hash : %.2lf %cB\n",memory,s[i]);
+	fprintf(stderr, "memory per hash : %.2lf %cB\n", memory, s[i]);
 }
 
 static void reset(struct db_main *db)
