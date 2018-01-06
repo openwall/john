@@ -14,6 +14,7 @@ john_register_one(&fmt_argon2);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -59,9 +60,9 @@ john_register_one(&fmt_argon2);
 #define SALT_ALIGN              sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      2
 
-#define OMP_SCALE               16
+#define OMP_SCALE               8 // tuned w/ MKPC for core i7m
 
 #ifdef _OPENMP
 #define THREAD_NUMBER omp_get_thread_num()
@@ -107,9 +108,8 @@ static void init(struct fmt_main *self)
 {
 	int i;
 
-#ifdef _OPENMP
 	sc_threads = omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key =
 	    mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypted = mem_calloc(self->params.max_keys_per_crypt, (BINARY_SIZE));
