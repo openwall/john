@@ -38,9 +38,6 @@ john_register_one(&fmt_PO);
 #include "md5.h"
 #include "memdbg.h"
 
-typedef uint32_t MD5_word;
-typedef MD5_word MD5_binary[4];
-
 #define FORMAT_LABEL			"po"
 #define FORMAT_NAME			"Post.Office"
 #define ALGORITHM_NAME			"MD5 32/" ARCH_BITS_STR
@@ -108,7 +105,7 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count)
 {
-	return *(MD5_word *)binary == MD5_out[0];
+	return *(uint32_t *)binary == MD5_out[0];
 }
 
 static int cmp_one(void *binary, int index)
@@ -125,7 +122,7 @@ static int cmp_exact(char *source, int index)
         {
                 fullmd5[i] = atoi16[ARCH_INDEX(source[i*2])]*16 + atoi16[ARCH_INDEX(source[i*2+1])];
         }
-	return !memcmp(fullmd5, MD5_out, sizeof(MD5_binary));
+	return !memcmp(fullmd5, MD5_out, sizeof(fullmd5));
 }
 
 static void *get_binary(char *ciphertext)
