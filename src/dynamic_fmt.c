@@ -146,7 +146,7 @@ static unsigned int m_ompt;
 #if (defined (_OPENMP)||defined(FORCE_THREAD_MD5_body)) && defined (_MSC_VER)
 unsigned DES_bs_max_kpc, DES_bs_min_kpc, DES_bs_all_p;
 #undef MD5_body
-extern void MD5_body(MD5_word x[15],MD5_word out[4]);
+extern void MD5_body(uint32_t x[15],uint32_t out[4]);
 #endif
 
 #define STRINGIZE2(s) #s
@@ -171,14 +171,14 @@ unsigned *nLargeOff;
 #define MD5_swap2(a,b,c,d,e)
 #else
 extern char *MD5_DumpHexStr(void *p);
-static void MD5_swap(MD5_word *x, MD5_word *y, int count)
+static void MD5_swap(uint32_t *x, uint32_t *y, int count)
 {
 	do {
 		*y++ = JOHNSWAP(*x++);
 	} while (--count);
 }
 #if MD5_X2
-static void MD5_swap2(MD5_word *x, MD5_word *x2, MD5_word *y, MD5_word *y2, int count)
+static void MD5_swap2(uint32_t *x, uint32_t *x2, uint32_t *y, uint32_t *y2, int count)
 {
 	do {
 		*y++ = JOHNSWAP(*x++);
@@ -2761,10 +2761,10 @@ static void * binary_b64b(char *ciphertext)
 
 #define TO_BINARY(b1, b2, b3) \
 	value = \
-		(MD5_word)atoi64[ARCH_INDEX(pos[0])] | \
-		((MD5_word)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((MD5_word)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((MD5_word)atoi64[ARCH_INDEX(pos[3])] << 18); \
+		(uint32_t)atoi64[ARCH_INDEX(pos[0])] | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((uint32_t)atoi64[ARCH_INDEX(pos[3])] << 18); \
 	pos += 4; \
 	b[b1] = value >> 16; \
 	b[b2] = value >> 8; \
@@ -2773,7 +2773,7 @@ static void * binary_b64a(char *ciphertext)
 {
 	static unsigned char *b;
 	char *pos;
-	MD5_word value;
+	uint32_t value;
 
 	if (!b) b = mem_alloc_tiny(16, MEM_ALIGN_WORD);
 	pos = ciphertext;
@@ -2788,10 +2788,10 @@ static void * binary_b64a(char *ciphertext)
 	TO_BINARY(3, 9, 15);
 	TO_BINARY(4, 10, 5);
 	b[11] =
-		(MD5_word)atoi64[ARCH_INDEX(pos[0])] |
-		((MD5_word)atoi64[ARCH_INDEX(pos[1])] << 6);
+		(uint32_t)atoi64[ARCH_INDEX(pos[0])] |
+		((uint32_t)atoi64[ARCH_INDEX(pos[1])] << 6);
 
-	MD5_swap((MD5_word*)b,(MD5_word*)b, 4);
+	MD5_swap((uint32_t*)b,(uint32_t*)b, 4);
 	return b;
 }
 
@@ -5820,7 +5820,7 @@ void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix(DY
 	{
 		unsigned char *cpo, *cpi;
 		unsigned int i;
-		/* MD5_word *w; */
+		/* uint32_t *w; */
 #if MD5_X2
 		if (j&1)
 			{cpo = input_buf_X86[j>>MD5_X2].x2.B2; cpi = crypt_key2_X86[j>>MD5_X2].x2.B2; /* w=input_buf_X86[j>>MD5_X2].x2.w2; */}
@@ -5865,7 +5865,7 @@ void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix(DYNA_OMP_PARA
 	{
 		unsigned char *cpo, *cpi;
 		unsigned int i;
-		/* MD5_word *w; */
+		/* uint32_t *w; */
 #if MD5_X2
 		if (j&1)
 			{cpo = input_buf_X86[j>>MD5_X2].x2.B2; cpi = crypt_key_X86[j>>MD5_X2].x2.B2; /* w=input_buf_X86[j>>MD5_X2].x2.w2; */}
@@ -6061,7 +6061,7 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix(DYN
 	for (; j < til; ++j)
 	{
 		unsigned char *cpo, *cpi;
-		/* MD5_word *w; */
+		/* uint32_t *w; */
 #if MD5_X2
 		if (j&1)
 			{cpo = input_buf2_X86[j>>MD5_X2].x2.B2; cpi = crypt_key_X86[j>>MD5_X2].x2.B2; /* w=input_buf_X86[j>>MD5_X2].x2.w2; */}
@@ -6102,7 +6102,7 @@ void DynamicFunc__overwrite_from_last_output2_to_input2_as_base16_no_size_fix(DY
 	for (; j < til; ++j)
 	{
 		unsigned char *cpo, *cpi;
-		/* MD5_word *w; */
+		/* uint32_t *w; */
 #if MD5_X2
 		if (j&1)
 			{cpo = input_buf2_X86[j>>MD5_X2].x2.B2; cpi = crypt_key2_X86[j>>MD5_X2].x2.B2; /* w=input_buf2_X86[j>>MD5_X2].x2.w2; */}
@@ -6147,7 +6147,7 @@ void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix(DYNA_OMP_PAR
 	for (; j < til; ++j)
 	{
 		unsigned char *cpo, *cpi;
-		/* MD5_word *w; */
+		/* uint32_t *w; */
 #if MD5_X2
 		if (j&1)
 			{cpo = input_buf2_X86[j>>MD5_X2].x2.B2; cpi = crypt_key2_X86[j>>MD5_X2].x2.B2; /* w=input_buf_X86[j>>MD5_X2].x2.w2; */}

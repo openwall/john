@@ -26,8 +26,6 @@
  * is not SOOOOO huge.
  */
 
-typedef uint32_t MD5_word;
-
 // NOTE, we will HAVE to increase this at some time.  sha512 has 128 byte hash all in itself. So you try
 // to do sha512($s.sha512($p)), or even sha512(sha512($p)) we are blowing past our buffers, BAD
 
@@ -55,14 +53,14 @@ typedef uint32_t MD5_word;
 typedef struct {
 	union {
 		double dummy;
-		MD5_word w[16/sizeof(MD5_word)];
+		uint32_t w[16/sizeof(uint32_t)];
 		char b[16];
 		unsigned char B[16];
 	}x1;
 #if MD5_X2
 	union {
 		double dummy2;
-		MD5_word w2[16/sizeof(MD5_word)];
+		uint32_t w2[16/sizeof(uint32_t)];
 		char b2[16];
 		unsigned char B2[16];
 	}x2;
@@ -85,14 +83,14 @@ typedef struct {
 typedef struct {
 	union {
 		double dummy;
-		MD5_word w[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/sizeof(MD5_word)];
+		uint32_t w[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/sizeof(uint32_t)];
 		char b[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 		unsigned char B[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 	}x1;
 #if MD5_X2
 	union {
 		double dummy2;
-		MD5_word w2[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/sizeof(MD5_word)];
+		uint32_t w2[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/sizeof(uint32_t)];
 		char b2[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 		unsigned char B2[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 	}x2;
@@ -321,9 +319,9 @@ extern void MD5_body(uint32_t x1[15], uint32_t x2[15], uint32_t out1[4], uint32_
 #else
 #if (defined(_OPENMP) || defined (FORCE_THREAD_MD5_body)) && !MD5_ASM
 #define MD5_body(x, out) MD5_body_for_thread(0, x, out)
-extern void MD5_body_for_thread(int t, MD5_word x[15],MD5_word out[4]);
+extern void MD5_body_for_thread(int t, uint32_t x[15],uint32_t out[4]);
 #else
-extern void MD5_body(MD5_word x[15],MD5_word out[4]);
+extern void MD5_body(uint32_t x[15],uint32_t out[4]);
 #endif
 #define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L)<55) {A.x1.b[L]=0x80;A.x1.w[14]=(L<<3);MD5_swap(A.x1.w,A.x1.w,((L+4)>>2));MD5_body(A.x1.w,C.x1.w);MD5_swap(C.x1.w,C.x1.w,4);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L); MD5_Final((unsigned char *)(C.x1.b),&ctx); } }while(0)
