@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-"""Utility to extract Bitwarden "hashes" from "storage.js" files."""
+"""Utility to extract Bitwarden "hashes" from Google Chrome / Firefox / Android local data"""
 
 # Huge thanks goes to Joshua Stein for documenting the various cryptographic
 # constructions used in Bitwarden.
@@ -74,7 +74,10 @@ def process_xml_file(filename):
 def process_leveldb(path):
     db = plyvel.DB(path, create_if_missing=False)
     email = db.get(b'userEmail')
+    email = email.decode("utf-8")
+    email = email.strip('"').rstrip('"')  # always safe?
     enc_key = db.get(b'encKey')
+    enc_key = enc_key.decode("ascii")
 
     return email, enc_key
 

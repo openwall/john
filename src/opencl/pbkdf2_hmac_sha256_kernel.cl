@@ -23,8 +23,8 @@ typedef struct {
 
 typedef struct {
 	uint rounds;
-	uint length;
 	uchar salt[179];
+	uint length;
 } salt_t;
 
 typedef struct {
