@@ -21,8 +21,8 @@
  */
 typedef struct {
 	uint32_t rounds;
-	uint32_t length;
 	uint8_t salt[179];
+	uint32_t length;
 	union blob {  // wrapped kek
 		uint64_t qword[BLOBLEN/8];
 		uint8_t chr[BLOBLEN];

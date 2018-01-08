@@ -12,8 +12,8 @@
 
 typedef struct {
 	uint32_t rounds;
-	uint32_t length;
 	uint8_t salt[179];
+	uint32_t length;
 } salt_t;
 
 typedef struct {
