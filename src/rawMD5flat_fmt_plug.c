@@ -310,6 +310,7 @@ struct fmt_main fmt_rawMD5f = {
 		FMT_OMP | FMT_OMP_BAD |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{ NULL },
 		{ FORMAT_TAG },
 		tests
 	}, {
