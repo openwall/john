@@ -51,20 +51,14 @@ john_register_one(&fmt_HDAA);
 #define SALT_SIZE			sizeof(reqinfo_t)
 #define SALT_ALIGN			sizeof(size_t)
 
-#ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
-#define OMP_SCALE			256
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE			32
-#endif
+#define OMP_SCALE			16
 #endif
 
 #ifdef SIMD_COEF_32
 #define NBKEYS					(SIMD_COEF_32 * SIMD_PARA_MD5)
 #define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		(NBKEYS * 32)
+#define MAX_KEYS_PER_CRYPT		(NBKEYS * 64)
 #if ARCH_LITTLE_ENDIAN
 #define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
 #define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
