@@ -17,31 +17,9 @@ john_register_one(&fmt_tiger);
 
 #include <string.h>
 
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE tuned on core i7 quad core HT
-// 1   -   235k
-// 64  -  7723k
-// 128 - 10311K
-// 256 - 12043K
-// 512 - 13543
-// 1k  - 14256k
-// 2k  - 14860k  ** this one chosen
-// 4k  - 15093k
-// 8k  - 14935k
-// 16k - 14931k
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE  128
-#else
-#define OMP_SCALE  (1024*2)
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "arch.h"
 #include "sph_tiger.h"
@@ -65,8 +43,16 @@ john_register_one(&fmt_tiger);
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
 
+#ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  2
+#else
+#define OMP_SCALE  32 // Tuned w/ MKPC for core i7
+#endif
+#endif
+
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	64
 
 static struct fmt_tests tiger_tests[] = {
 	{"3293AC630C13F0245F92BBB1766E16167A4E58492DDE73F3", ""},
@@ -81,9 +67,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -215,10 +200,7 @@ struct fmt_main fmt_tiger = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#ifdef _OPENMP
-		FMT_OMP | FMT_OMP_BAD |
-#endif
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		FMT_OMP | FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		{ FORMAT_TAG },
 		tiger_tests
