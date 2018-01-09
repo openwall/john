@@ -18,33 +18,14 @@ john_register_one(&fmt_ripemd_128);
 
 #include <string.h>
 
+#include "arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
-
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE tuned on core i7 quad core HT
-//         128     160
-// 1   -   234k    234k
-// 64  -  7547k   6310k
-// 128 -  9849k   7987k
-// 256 - 11835k   9205k
-// 512 - 13288k  10027k
-// 1k  - 14142k  10553k
-// 2k  - 14607k  11980k  ** this level chosen
-// 4k  - 14828k  10871k
-// 8k  - 14639k  10794k
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE  64
-#else
-#define OMP_SCALE  2048
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
-#include "arch.h"
 #include "sph_ripemd.h"
 #include "misc.h"
 #include "common.h"
@@ -52,6 +33,14 @@ john_register_one(&fmt_ripemd_128);
 #include "params.h"
 #include "options.h"
 #include "memdbg.h"
+
+#ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE  1
+#else
+#define OMP_SCALE  32 // tuned w/ MKPC for core i7
+#endif
+#endif
 
 #define FORMAT_TAG		"$ripemd$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
@@ -63,7 +52,7 @@ john_register_one(&fmt_ripemd_128);
 #define BINARY_SIZE128		16
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	64
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
 
@@ -100,9 +89,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE160 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	if (!saved_key) {
 		saved_key = mem_calloc(self->params.max_keys_per_crypt,
 		                       sizeof(*saved_key));
