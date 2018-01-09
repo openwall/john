@@ -71,14 +71,15 @@ john_register_one(&fmt_sha1_ng);
 
 #define SHA1_BLOCK_WORDS        16
 #define SHA1_DIGEST_WORDS        5
-#define SHA1_PARALLEL_HASH     512 // This must be a multiple of max VWIDTH.
+#define SHA1_PARALLEL_HASH       (SIMD_COEF_32 * 32)
+
 #ifdef __MIC__
 #ifndef OMP_SCALE
-#define OMP_SCALE              128
+#define OMP_SCALE              512
 #endif
 #else
 #ifndef OMP_SCALE
-#define OMP_SCALE             2048 // Multiplier to hide OMP overhead
+#define OMP_SCALE             8192 // Tuned w/ MKPC for core i7
 #endif
 #endif
 
@@ -210,9 +211,7 @@ inline static uint32_t __attribute__((const)) bswap32(uint32_t value)
 
 static void sha1_fmt_init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 
 	M   = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*M),
 	                       MEM_ALIGN_CACHE);
