@@ -15,27 +15,18 @@ john_register_one(&fmt__HAS160);
 #include <string.h>
 
 #include "arch.h"
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
 #include "has160.h"
-
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE                       64
-#else
-#define OMP_SCALE                       2048
-#endif // __MIC__
-#endif // OMP_SCALE
-#include <omp.h>
-#endif // _OPENMP
-
 #include "memdbg.h"
 
 #define FORMAT_LABEL                    "has-160"
@@ -51,8 +42,13 @@ john_register_one(&fmt__HAS160);
 #define SALT_SIZE                       0
 #define BINARY_ALIGN                    4
 #define SALT_ALIGN                      1
+
+#ifndef OMP_SCALE
+#define OMP_SCALE                       4 // Tuned w/ MKPC for core i7
+#endif
+
 #define MIN_KEYS_PER_CRYPT              1
-#define MAX_KEYS_PER_CRYPT              1
+#define MAX_KEYS_PER_CRYPT              128
 
 static struct fmt_tests tests[] = {
 	{"307964ef34151d37c8047adec7ab50f4ff89762d", ""},
@@ -71,9 +67,8 @@ static uint32_t (*crypt_out)[(BINARY_SIZE) / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
