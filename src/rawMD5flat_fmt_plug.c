@@ -8,8 +8,7 @@
  *
  */
 
-#include "arch.h"
-
+#include "arch.h" /* Needed for USE_EXPERIMENTAL as well as FAST_FORMATS_OMP */
 #if USE_EXPERIMENTAL
 
 #if FMT_EXTERNS_H
@@ -20,38 +19,36 @@ john_register_one(&fmt_rawMD5f);
 
 #include <string.h>
 
-#include "md5.h"
-#include "common.h"
-#include "formats.h"
-
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
-
 #ifdef _OPENMP
-#ifdef SIMD_COEF_32
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
-#endif
-#endif
 #include <omp.h>
 #endif
+
+#include "md5.h"
+#include "common.h"
+#include "formats.h"
 #include "simd-intrinsics.h"
 #include "memdbg.h"
+
+#ifndef OMP_SCALE
+#ifdef SIMD_COEF_32
+#define OMP_SCALE               4
+#else
+#define OMP_SCALE               128
+#endif
+#endif
 
 #ifdef SIMD_COEF_32
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD5)
 #define PLAINTEXT_LENGTH        55
 #define MIN_KEYS_PER_CRYPT      NBKEYS
-#define MAX_KEYS_PER_CRYPT      NBKEYS
+#define MAX_KEYS_PER_CRYPT      (NBKEYS * 128)
 #else
 #define PLAINTEXT_LENGTH        125
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      32
 #endif
 
 #define FORMAT_LABEL            "Raw-MD5-flat"
@@ -94,7 +91,6 @@ static struct fmt_tests tests[] = {
 #ifdef SIMD_COEF_32
 static uint32_t (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 static uint32_t (*saved_key)[64/4];
-static int sz;
 #else
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_key)[DIGEST_SIZE/4];
@@ -102,10 +98,8 @@ static uint32_t (*crypt_key)[DIGEST_SIZE/4];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
-	sz = self->params.max_keys_per_crypt * 64;
+
 #ifndef SIMD_COEF_32
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -216,17 +210,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-#ifdef _OPENMP
 #ifdef SIMD_COEF_32
-	const int inc = SIMD_COEF_32;
+	const int inc = NBKEYS;
 #else
 	const int inc = 1;
 #endif
-	const int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
 
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < loops; index += inc) {
+	for (index = 0; index < count; index += inc) {
 #if SIMD_COEF_32
 		SIMDmd5body(saved_key[index], crypt_key[index/NBKEYS], NULL, SSEi_FLAT_IN);
 #else
