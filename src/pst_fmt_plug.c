@@ -20,24 +20,14 @@ john_register_one(&fmt_pst);
 
 #include <string.h>
 
+#include "arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
-
 #ifdef _OPENMP
 #include <omp.h>
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               16384 // core i7 no HT
-#endif
-#endif
 #endif
 
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -57,7 +47,17 @@ john_register_one(&fmt_pst);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      256
+#define MAX_KEYS_PER_CRYPT      1024
+
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE               1024
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE               16 // Tuned w/ MKPC for core i7
+#endif
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$pst$a9290513", "openwall"}, /* "jfuck jw" works too ;) */
@@ -75,9 +75,8 @@ static uint32_t (*crypt_out);
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
