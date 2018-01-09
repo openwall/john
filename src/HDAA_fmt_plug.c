@@ -159,7 +159,7 @@ static void init(struct fmt_main *self)
 	int i;
 #endif
 #if defined (_OPENMP)
-	sc_threads = omp_autotune(self);
+	sc_threads = omp_autotune(self, OMP_SCALE);
 #endif
 #ifdef SIMD_COEF_32
 	for (i = 0; i < LIMBS; i++)
