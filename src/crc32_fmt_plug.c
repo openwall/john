@@ -30,27 +30,20 @@ extern struct fmt_main fmt_crc32;
 john_register_one(&fmt_crc32);
 #else
 
-/* Uncomment to try out a non-SSE4.2 build (bench with -cost=1:1) */
-//#undef __SSE4_2__
-//#undef __AVX2__
-
 #include <string.h>
+
+#include "arch.h"
+#if !FAST_FORMATS_OMP
+#undef _OPENMP
+#endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "common.h"
 #include "formats.h"
 #include "crc32.h"
 #include "loader.h"
-
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE       256	// tuned on core i7
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"CRC32"
@@ -70,8 +63,12 @@ john_register_one(&fmt_crc32);
 #define SALT_SIZE			5
 #define SALT_ALIGN			4
 
+#ifndef OMP_SCALE
+#define OMP_SCALE       2 // tuned w/ MKPC for core i7
+#endif
+
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		8192 // per thread
+#define MAX_KEYS_PER_CRYPT		8192
 
 static struct fmt_tests tests[] = {
 	{"$crc32$00000000.fa455f6b", "ripper"},
@@ -95,9 +92,8 @@ static unsigned int crctype;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crcs      = mem_calloc(self->params.max_keys_per_crypt,
