@@ -2,18 +2,6 @@
  * Common code for the StarOffice format.
  */
 
-//#define _TEST_SHA1_
-
-#if defined (_TEST_SHA1_)
-
-#include "arch.h"
-#include "johnswap.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-
-#else
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -191,8 +179,6 @@ void *staroffice_get_binary(char *ciphertext)
 	return out;
 }
 
-#endif
-
 typedef struct
 {
     uint32_t st[5];
@@ -208,7 +194,6 @@ typedef struct
 #define R3(v,w,x,y,z,i) z+=(((w|x)&y)|(w&x))+W2(i)+0x8F1BBCDC+rol(v,5);w=rol(w,30);
 #define R4(v,w,x,y,z,i) z+=(w^x^y)+W2(i)+0xCA62C1D6+rol(v,5);w=rol(w,30);
 
-
 static void SHA1Hash_buggy(uint32_t st[5], const unsigned char buf[64]) {
 	uint32_t a, b, c, d, e, W[16];
 
@@ -220,17 +205,6 @@ static void SHA1Hash_buggy(uint32_t st[5], const unsigned char buf[64]) {
 	memcpy((char*)W, buf, 64);
 #endif
 
-//#if defined (_TEST_SHA1_)
-//	{
-//		uint8_t *pp = (uint8_t*)W;
-//		for (a = 0; a < 64; ++a) {
-//			printf("%02x", pp[a]);
-//			if (a%4==3)
-//				printf(" ");
-//		}
-//	}
-//	printf("\n");
-//#endif
 	a = st[0];
 	b = st[1];
 	c = st[2];
@@ -386,7 +360,6 @@ void SHA1Final_buggy(unsigned char digest[20], SHA1_CTX_buggy *ctx)
 	}
 }
 
-
 // mimic bug in Star/Libre office SHA1. Needed for any string of length 52 to 55 mod(64)
 void SHA1_Libre_Buggy(unsigned char *data, int len, uint32_t results[5]) {
 	SHA1_CTX_buggy ctx;
@@ -394,36 +367,3 @@ void SHA1_Libre_Buggy(unsigned char *data, int len, uint32_t results[5]) {
 	SHA1Update_buggy(&ctx, data, len);
 	SHA1Final_buggy((unsigned char*)results, &ctx);
 }
-
-#if defined (_TEST_SHA1_)
-
-// test script:
-//  perl -e '{use Digest::SHA1; $s = "1"; for ($i = 0; $i < 512; ++$i) { $a=Digest::SHA1::sha1_hex($s)."\n"; $b=`./a $s`; if ($a ne $b) { print $i+1,"\n"; } $s .= $i%10; } }'
-//
-// $ ./a 10123456789012345678901234567890123456789012345678901 should return 9e295edfe28b42bdc8217e6dffcb54e114d7ebfe (which is the 'correct' busted value)
-
-int main(int argc, char **argv) {
-	uint32_t res[5];
-	uint8_t *p = (uint8_t*)res;
-	int i;
-
-	if (!strcmp(argv[1], "-f")) {
-		FILE *in = fopen(argv[2], "rb");
-		char *buf;
-		size_t len;
-		fseek(in, 0, SEEK_END);
-		len = ftell(in);
-		fseek(in, 0, SEEK_SET);
-		buf = malloc(len);
-		fread(buf, 1, len, in);
-		fclose(in);
-		SHA1_Libre_Buggy((unsigned char*)buf, len, res);
-		free(buf);
-	} else
-		SHA1_Libre_Buggy((unsigned char*)(argv[1]), strlen(argv[1]), res);
-	for (i = 0; i < 20; ++i)
-		printf ("%02x", p[i]);
-	printf("\n");
-}
-#endif
-
