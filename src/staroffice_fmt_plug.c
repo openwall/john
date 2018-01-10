@@ -48,7 +48,7 @@ john_register_one(&fmt_sxc);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-// keep plaintext length under 52 to avoid having to deal with the Libra/Star office SHA1 bug
+// keep plaintext length under 52 to avoid having to deal with the Libre/Star office SHA1 bug
 #define PLAINTEXT_LENGTH        51
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
