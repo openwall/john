@@ -36,6 +36,7 @@ john_register_one(&fmt_sxc);
 #include "johnswap.h"
 #include "sha.h"
 #include "staroffice_common.h"
+#define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX
 #include "pbkdf2_hmac_sha1.h"
 #include "memdbg.h"
 
@@ -47,7 +48,8 @@ john_register_one(&fmt_sxc);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define PLAINTEXT_LENGTH        125
+// keep plaintext length under 52 to avoid having to deal with the Libra/Star office SHA1 bug
+#define PLAINTEXT_LENGTH        51
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
@@ -60,7 +62,8 @@ john_register_one(&fmt_sxc);
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
+// we store a 'good' SHA1 and a possible bad SHA1 value here (first 4 bytes only)
+static uint32_t (*crypt_out)[8 / sizeof(uint32_t)];
 
 static struct custom_salt *cur_salt;
 
@@ -132,13 +135,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		       cur_salt->key_size, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			unsigned int crypt[5];
 			bf_ivec_pos = 0;
 			memcpy(ivec, cur_salt->iv, 8);
 			BF_set_key(&bf_key, cur_salt->key_size, key[i]);
 			BF_cfb64_encrypt(cur_salt->content, output, cur_salt->length, &bf_key, ivec, &bf_ivec_pos, 0);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, output, cur_salt->original_length);
-			SHA1_Final((unsigned char*)crypt_out[index+i], &ctx);
+			SHA1_Final((unsigned char*)crypt, &ctx);
+			if (cur_salt->original_length % 64 >= 52 && cur_salt->original_length % 64 <= 55) {
+				SHA1_Libre_Buggy(output, cur_salt->original_length, crypt);
+			}
+			crypt_out[index+i][1] = crypt[0];
 		}
 	}
 
@@ -149,20 +157,61 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
-	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+	for (index = 0; index < count; index++) {
+		if (!memcmp(binary, crypt_out[index], 4))
 			return 1;
+		if (!memcmp(binary, &crypt_out[index][1], 4))
+			return 1;
+	}
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	if (!memcmp(binary, crypt_out[index], 4))
+		return 1;
+	if (!memcmp(binary, &crypt_out[index][1], 4))
+		return 1;
+	return 0;
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	unsigned char key[32];
+	unsigned char hash[20];
+	unsigned char *binary;
+	BF_KEY bf_key;
+	int bf_ivec_pos;
+	unsigned char ivec[8];
+	unsigned char output[1024];
+	unsigned int crypt[5];
+	SHA_CTX ctx;
+
+	binary = staroffice_get_binary(source);
+
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
+	SHA1_Final(hash, &ctx);
+	pbkdf2_sha1(hash, 20, cur_salt->salt,
+		       cur_salt->salt_length,
+		       cur_salt->iterations, key,
+		       cur_salt->key_size, 0);
+	bf_ivec_pos = 0;
+	memcpy(ivec, cur_salt->iv, 8);
+	BF_set_key(&bf_key, cur_salt->key_size, key);
+	BF_cfb64_encrypt(cur_salt->content, output, cur_salt->length, &bf_key, ivec, &bf_ivec_pos, 0);
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, output, cur_salt->original_length);
+	SHA1_Final((unsigned char*)crypt, &ctx);
+	if (!memcmp(crypt, binary, 20))
+		return 1;
+	// try the buggy version.
+	if (cur_salt->original_length % 64 >= 52 && cur_salt->original_length % 64 <= 55) {
+		SHA1_Libre_Buggy(output, cur_salt->original_length, crypt);
+		if (!memcmp(crypt, binary, 20))
+			return 1;
+	}
+	return 0;
 }
 
 static void sxc_set_key(char *key, int index)
