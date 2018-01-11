@@ -127,10 +127,9 @@ void omp_autotune_run(struct db_main *db)
 
 	// Find most expensive salt, for auto-tune
 	{
-		struct db_main *tune_db = db->real ? db->real : db;
-		struct db_salt *s = tune_db->salts;
+		struct db_salt *s = db->salts;
 
-		tune_cost = MIN(tune_db->max_cost[0], options.loader.max_cost[0]);
+		tune_cost = MIN(db->max_cost[0], options.loader.max_cost[0]);
 
 		while (s->next && s->cost[0] < tune_cost)
 			s = s->next;
