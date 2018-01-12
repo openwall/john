@@ -22,24 +22,15 @@ john_register_one(&fmt_EPI);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-
 #include "sha.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE              8192
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE              32768   // Tuned, K8-dual HT
-#endif
-#endif // __MIC__
-#endif
 #include "memdbg.h"
 
 #define CIPHERTEXT_LENGTH  105
@@ -49,7 +40,17 @@ john_register_one(&fmt_EPI);
 #define SALT_LENGTH        30
 #define SALT_ALIGN         4
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1024
+
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE              8
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE              4   // Tuned w/ MKPC for core i7
+#endif
+#endif // __MIC__
 
 static int (*key_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -68,9 +69,8 @@ static struct fmt_tests global_tests[] =
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	key_len   = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*key_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -168,10 +168,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for private(i) shared(global_salt, saved_key, key_len, crypt_out)
 #endif
-#if defined (_OPENMP) || MAX_KEYS_PER_CRYPT>1
-	for (i = 0; i < count; ++i)
-#endif
-	{
+	for (i = 0; i < count; ++i) {
 		SHA_CTX ctx;
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH-1);

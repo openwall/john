@@ -42,20 +42,13 @@ john_register_one(&fmt_episerver);
 
 #include <string.h>
 
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048 // core i7 no HT
-#endif
 #endif
 
+#include "arch.h"
 #include "sha.h"
 #include "sha2.h"
-#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -84,11 +77,13 @@ john_register_one(&fmt_episerver);
 #define NBKEYS_SHA1             (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #define NBKEYS_SHA256           (SIMD_COEF_32 * SIMD_PARA_SHA256)
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA256)
+
 #define HASH_IDX_IN             (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32)
 #define HASH_IDX_SHA1           (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*5*SIMD_COEF_32)
 #define HASH_IDX_SHA256         (((unsigned int)index&(SIMD_COEF_32-1))+(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32)
 #define HASH_IDX_OUT            (cur_salt->version == 0 ? HASH_IDX_SHA1 : HASH_IDX_SHA256)
-#if ARCH_LITTLE_ENDIAN==1
+
+#if ARCH_LITTLE_ENDIAN
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
 #else
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianness conversion
@@ -97,12 +92,20 @@ john_register_one(&fmt_episerver);
 #define ALGORITHM_NAME          "SHA1/SHA256 " SHA256_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH        19 // (64 - 9 - 16)/2
 #define MIN_KEYS_PER_CRYPT      NBKEYS
-#define MAX_KEYS_PER_CRYPT      NBKEYS
+#ifdef _OPENMP
+#define MAX_KEYS_PER_CRYPT      (NBKEYS * 256)
+#else
+#define MAX_KEYS_PER_CRYPT      (NBKEYS * 2)
+#endif
 #else
 #define ALGORITHM_NAME          "SHA1/SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
 #define PLAINTEXT_LENGTH        32
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      16
+#define MAX_KEYS_PER_CRYPT      1024
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
 #endif
 
 static struct fmt_tests episerver_tests[] = {
@@ -133,21 +136,19 @@ static struct custom_salt {
 	unsigned char esalt[18 + 1]; /* base64 decoding, 24 / 4 * 3 = 18 */
 } *cur_salt;
 
-#if defined(_OPENMP) || defined(SIMD_COEF_32)
-static int sc_threads = 1;
-#endif
-
 #ifdef SIMD_COEF_32
+static int mkpc;
 static void episerver_set_key_utf8(char *_key, int index);
 static void episerver_set_key_CP(char *_key, int index);
 #endif
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
-	sc_threads = omp_autotune(self, OMP_SCALE);
-#endif
+	omp_autotune(self, OMP_SCALE);
+
 #ifdef SIMD_COEF_32
+	mkpc = self->params.max_keys_per_crypt;
+
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt*SHA_BUF_SIZ,
 	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
 	crypt_out = mem_calloc_align(self->params.max_keys_per_crypt*BINARY_SIZE/4,
@@ -258,7 +259,7 @@ static void *get_binary(char *ciphertext)
 	memset(buf.c, 0, sizeof(buf.c));
 	p = strrchr(ciphertext, '*') + 1;
 	base64_convert(p, e_b64_mime, strlen(p), (char*)out, e_b64_raw, sizeof(buf.c), flg_Base64_DONOT_NULL_TERMINATE, 0);
-#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
+#if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN
 	alter_endianity(out, BINARY_SIZE);
 #endif
 	return out;
@@ -292,7 +293,7 @@ static void set_salt(void *salt)
 #ifdef SIMD_COEF_32
 	int index, j;
 	cur_salt = (struct custom_salt *)salt;
-	for (index = 0; index < MAX_KEYS_PER_CRYPT*sc_threads; ++index)
+	for (index = 0; index < mkpc; ++index)
 		for (j = 0; j < EFFECTIVE_SALT_SIZE; ++j) // copy the salt to vector buffer
 			((unsigned char*)saved_key)[GETPOS(j, index)] = ((unsigned char*)cur_salt->esalt)[j];
 #else
@@ -304,6 +305,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -314,7 +316,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		if (cur_salt->version == 0)
 			SIMDSHA1body(in, out, NULL, SSEi_MIXED_IN);
-		else if (cur_salt->version == 1)
+		else //if (cur_salt->version == 1)
 			SIMDSHA256body(in, out, NULL, SSEi_MIXED_IN);
 	}
 #else
@@ -333,7 +335,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&ctx, passwordBuf, len);
 			SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 		}
-		else if (cur_salt->version == 1) {
+		else /*if (cur_salt->version == 1)*/ {
 			SHA256_CTX ctx;
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, cur_salt->esalt, EFFECTIVE_SALT_SIZE);
@@ -404,7 +406,7 @@ static void episerver_set_key(char *_key, int index)
 		unsigned int temp;
 		if ((temp = *key++))
 		{
-#if ARCH_LITTLE_ENDIAN==1
+#if ARCH_LITTLE_ENDIAN
 			*keybuf_word = JOHNSWAP((temp << 16) | temp2);
 #else
 			*keybuf_word = (temp2 << 24) | (temp<<8);
@@ -412,7 +414,7 @@ static void episerver_set_key(char *_key, int index)
 		}
 		else
 		{
-#if ARCH_LITTLE_ENDIAN==1
+#if ARCH_LITTLE_ENDIAN
 			*keybuf_word = JOHNSWAP((0x80 << 16) | temp2);
 #else
 			*keybuf_word = (temp2 << 24) | 0x8000;
@@ -637,10 +639,7 @@ struct fmt_main fmt_episerver = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#ifdef _OPENMP
-		FMT_OMP | FMT_OMP_BAD |
-#endif
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
+		FMT_OMP | FMT_OMP_BAD | FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
 		{
 			"hash type [1:SHA1 2:SHA256]",
 		},
