@@ -26,9 +26,6 @@ john_register_one(&fmt_mozilla);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE 2048 // XXX
-#endif
 #endif
 
 #include "arch.h"
@@ -55,7 +52,11 @@ john_register_one(&fmt_mozilla);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE 2 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$mozilla$*3*20*1*5199adfab24e85e3f308bacf692115f23dcd4f8f*11*2a864886f70d010c050103*16*9debdebd4596b278de029b2b2285ce2e*20*2c4d938ccb3f7f1551262185ccee947deae3b8ae", "12345678"},
@@ -78,9 +79,8 @@ static  struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
@@ -284,6 +284,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
