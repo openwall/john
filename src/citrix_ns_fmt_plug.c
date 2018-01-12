@@ -39,15 +39,6 @@ john_register_one(&fmt_ctrxns);
 #include <string.h>
 
 #ifdef _OPENMP
-#ifdef SIMD_COEF_32
-#ifndef OMP_SCALE
-#define OMP_SCALE                       1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE                       2048
-#endif
-#endif
 #include <omp.h>
 #endif
 
@@ -82,12 +73,16 @@ john_register_one(&fmt_ctrxns);
 
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT              NBKEYS
-#define MAX_KEYS_PER_CRYPT              NBKEYS
+#define MAX_KEYS_PER_CRYPT              (NBKEYS * 256)
 #define FMT_IS_BE
 #include "common-simd-getpos.h"
 #else
 #define MIN_KEYS_PER_CRYPT              1
-#define MAX_KEYS_PER_CRYPT              1
+#define MAX_KEYS_PER_CRYPT              256
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE                       4	// Tuned w/ MKPC for core i7
 #endif
 
 static struct fmt_tests tests[] = {
@@ -114,9 +109,8 @@ static uint32_t (*crypt_key)[BINARY_SIZE / 4];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifdef SIMD_COEF_32
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt / NBKEYS,
 	                       sizeof(*saved_key), MEM_ALIGN_SIMD);
@@ -269,7 +263,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
-	int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
+	int loops = (count + MIN_KEYS_PER_CRYPT - 1) / MIN_KEYS_PER_CRYPT;
 
 #ifdef _OPENMP
 #pragma omp parallel for
