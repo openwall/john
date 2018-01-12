@@ -30,15 +30,6 @@ john_register_one(&fmt_chap);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               65536 // core i7 no HT
-#endif
-#endif
 #endif
 
 #include "arch.h"
@@ -63,7 +54,17 @@ john_register_one(&fmt_chap);
 #define SALT_ALIGN              sizeof(int)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1024
+
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE               2
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tune w/ MKPC for core i7
+#endif
+#endif
 
 static struct fmt_tests chap_tests[] = {
 	{"$chap$0*cc7e5247514551acdcbf782c4027bfb1*fdfdad5277812ae40956a66f3db23308", "password"},
@@ -90,9 +91,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
