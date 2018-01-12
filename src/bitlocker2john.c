@@ -67,7 +67,8 @@ static void print_hex(unsigned char *str, int len, FILE *out)
 
 int process_encrypted_image(char *image_path)
 {
-	int version = 0, file_length = 0, j = 0, i = 0, match = 0, vmk_found = 0, recovery_found = 0;
+	int version = 0, i = 0, match = 0, vmk_found = 0, recovery_found = 0;
+	long int file_length = 0, j = 0;
 	const char signature[SIGNATURE_LEN] = "-FVE-FS-";
 	unsigned char vmk_entry[4] = { 0x02, 0x00, 0x08, 0x00 };
 	unsigned char key_protection_clear[2] = { 0x00, 0x00 };
