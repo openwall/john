@@ -15,9 +15,6 @@ john_register_one(&fmt_cq);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE 256	// core i7 no HT
-#endif
 #endif
 
 #include "arch.h"
@@ -41,7 +38,11 @@ john_register_one(&fmt_cq);
 #define BINARY_SIZE         4
 #define BINARY_ALIGN        sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  512
+#define MAX_KEYS_PER_CRYPT  4096
+
+#ifndef OMP_SCALE
+#define OMP_SCALE 8	// Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests cq_tests[] = {
 	{"$cq$admin$a9db7ca6", ""},
@@ -334,9 +335,8 @@ unsigned int AdEncryptPassword(const char* username, const char* password) {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_key = mem_calloc_align(sizeof(*crypt_key),
