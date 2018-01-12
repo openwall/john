@@ -23,23 +23,6 @@ john_register_one(&fmt_hsrp);
 
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE tuned on core i7 4-core HT
-// 2048 -  8850k 6679k
-// 4096 - 10642k 7278k
-// 8192 - 10489k 7532k
-// 16k  - 10413k 7694k
-// 32k  - 12111k 7803k  ** this value chosen
-// 64k  - 12420k 6523k
-// 128k - 12220k 6741k
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE 8192
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE 32768
-#endif
-#endif
 #endif
 
 #include "arch.h"
@@ -66,7 +49,17 @@ john_register_one(&fmt_hsrp);
 #define REAL_SALT_SIZE          50
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      256
+
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE 32
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE 8 // Tuned w/ MKPC for core i7
+#endif
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$hsrp$000004030a64010000000000000000000a000064041c010000000a0000140000000000000000000000000000000000000000$52e1db09d18d695b8fefb3730ff8d9d6", "password12345"},
@@ -90,9 +83,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
