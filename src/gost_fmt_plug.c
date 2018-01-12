@@ -24,9 +24,6 @@ john_register_one(&fmt_gost);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // tuned K8-dual HT
-#endif
 #endif
 
 #include "arch.h"
@@ -59,7 +56,11 @@ john_register_one(&fmt_gost);
 #define SALT_ALIGN              1
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests gost_tests[] = {
 	{"ce85b99cc46752fffee35cab9a7b0278abb4c2d2055cff685af4912c49490f8d", ""},
@@ -83,9 +84,8 @@ static int is_cryptopro; /* non 0 for CryptoPro hashes */
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	gost_init_table();
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
