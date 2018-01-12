@@ -18,9 +18,6 @@ john_register_one(&fmt_mdc2);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE 2048 // XXX
-#endif
 #endif
 
 #include "arch.h"
@@ -46,7 +43,11 @@ john_register_one(&fmt_mdc2);
 #define SALT_SIZE               0
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE 4 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$mdc2$000ed54e093d61679aefbeae05bfe33a", "The quick brown fox jumps over the lazy dog"},
@@ -61,9 +62,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
@@ -135,6 +135,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
