@@ -51,9 +51,6 @@ john_register_one(&fmt_mskrb5);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE          1024
-#endif
 #endif
 
 #include "arch.h"
@@ -90,9 +87,12 @@ john_register_one(&fmt_mskrb5);
 #define SALT_ALIGN         4
 #define TOTAL_LENGTH       (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
-// these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT 1
-#define MAX_KEYS_PER_CRYPT 1
+#define MAX_KEYS_PER_CRYPT 32
+
+#ifndef OMP_SCALE
+#define OMP_SCALE          2 // Tuned w/ MKPC for core i7
+#endif
 
 // Second and third plaintext will be replaced in init() under come encodings
 static struct fmt_tests tests[] = {
@@ -129,9 +129,8 @@ static int keys_prepared;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
 	                         sizeof(*saved_plain));
 	saved_len   = mem_calloc(self->params.max_keys_per_crypt,
