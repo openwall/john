@@ -37,7 +37,8 @@ john_register_one(&fmt_opencl_odf_aes);
 #define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define BINARY_SIZE             (256/8)
+#define FULL_BINARY_SIZE        (256/8)
+#define BINARY_SIZE             4
 #define PLAINTEXT_LENGTH        63
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define AES_LEN                 1024
@@ -62,7 +63,7 @@ typedef struct {
 } odf_salt;
 
 typedef struct {
-	uint v[BINARY_SIZE / sizeof(uint)]; /* output from final SHA-256 */
+	uint v[FULL_BINARY_SIZE / sizeof(uint)]; /* output from final SHA-256 */
 } odf_out;
 
 static cl_int cl_error;
@@ -193,73 +194,7 @@ static void reset(struct db_main *db)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy;
-	char *keeptr;
-	char *p;
-	int res, extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		return 0;
-
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;
-	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
-		goto err;
-	res = atoi(p);
-	if (res != 1) {
-		goto err;
-	}
-	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum type */
-		goto err;
-	res = atoi(p);
-	if (res != 0 && res != 1)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* key size */
-		goto err;
-	res = atoi(p);
-	if (res != 16 && res != 32)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
-		goto err;
-	if (hexlenl(p, &extra) != res * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iv length */
-		goto err;
-	res = atoi(p);
-	if (res > 16)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
-		goto err;
-	if (hexlenl(p, &extra) != res * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
-		goto err;
-	res = atoi(p);
-	if (res > 32)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-		goto err;
-	if (hexlenl(p, &extra) != res * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* something */
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* content */
-		goto err;
-	res = strlen(p);
-	if (res > 2 * AES_LEN || res & 1)
-		goto err;
-	if (!ishexlc(p))
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
+	return libreoffice_valid(ciphertext, self, 0, 2);	// types=2 gives sha256 only
 }
 
 static void set_salt(void *salt)
@@ -320,19 +255,19 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_out[index].v, ARCH_SIZE))
+		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index].v, 20);
+	return (*((uint32_t*)binary) == crypt_out[index][0])
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	return libre_common_cmp_exact(source, saved_key[index], cur_salt);
 }
 
 struct fmt_main fmt_opencl_odf_aes = {
