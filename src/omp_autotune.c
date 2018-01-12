@@ -81,7 +81,7 @@ int omp_autotune(struct fmt_main *format, int preset)
 	fmt_preset = preset;
 
 	omp_scale = tune_preset ? tune_preset : (use_preset ? preset : 0);
-	ret_scale = (threads == 1) ? 1 : (omp_scale ? omp_scale : 1);
+	ret_scale = tune_preset ? tune_preset : (threads == 1 ? 1 : (omp_scale ? omp_scale : 1));
 
 	if (omp_autotune_running)
 		return threads * scale;
@@ -243,7 +243,7 @@ void omp_autotune_run(struct db_main *db)
 				fprintf(stderr, "Autotuned MKPC %d, preset is %d\n",
 				        best_scale * fmt->params.min_keys_per_crypt, mkpc);
 		} else {
-			if (MAX(best_scale, fmt_preset) > 4 * MIN(best_scale, fmt_preset))
+			if (best_scale != fmt_preset)
 				fprintf(stderr, "Autotuned OMP scale %d, preset is %d\n",
 				        best_scale, fmt_preset);
 		}
@@ -265,13 +265,9 @@ void omp_autotune_run(struct db_main *db)
 		}
 	}
 
-	if (threads == 1)
-		fmt->params.max_keys_per_crypt =
-			best_scale * fmt->params.min_keys_per_crypt;
-	else
-		fmt->params.max_keys_per_crypt = mkpc * threads * best_scale;
-
 	if (best_scale != scale) {
+		scale = best_scale;
+
 		// Release old buffers
 		fmt->methods.done();
 
