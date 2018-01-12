@@ -19,21 +19,17 @@ john_register_one(&fmt_dragonfly3_32);
 john_register_one(&fmt_dragonfly3_64);
 #else
 
-#include "sha2.h"
-
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE			4096  // tuned on K8-dual HT
-#endif
-#include <omp.h>
-#endif
+#include "sha2.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL_32			"dragonfly3-32"
@@ -57,7 +53,11 @@ john_register_one(&fmt_dragonfly3_64);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1024
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			2  // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests_32[] = {
 	{"$3$z$EBG66iBCGfUfENOfqLUH/r9xQxI1cG373/hRop6j.oWs", "magnum"},
