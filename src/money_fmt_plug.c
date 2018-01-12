@@ -22,9 +22,6 @@ john_register_one(&fmt_money);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               128
-#endif
 #endif
 
 #include "arch.h"
@@ -53,7 +50,11 @@ john_register_one(&fmt_money);
 #define SALT_ALIGN              sizeof(uint32_t)
 #define PLAINTEXT_LENGTH        20
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      256
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
 
 #define PASSWORD_DIGEST_LENGTH  16
 #define PASSWORD_LENGTH         40  // UTF16-LE length
@@ -89,9 +90,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	orig_key = mem_calloc(sizeof(*orig_key), self->params.max_keys_per_crypt);
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_alloc(self->params.max_keys_per_crypt * sizeof(*saved_len));
