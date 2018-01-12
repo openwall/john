@@ -26,11 +26,9 @@ john_register_one(&fmt_DMD5);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
 #endif
 
 #include "arch.h"
@@ -56,7 +54,11 @@ john_register_one(&fmt_DMD5);
 #define CIPHERTEXT_LENGTH       (DSIZE * 4)
 #define PLAINTEXT_LENGTH        32
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1024
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#endif
 
 static const char itoa16_shr_04[] =
 	"0000000000000000"
@@ -118,9 +120,8 @@ static struct fmt_tests tests[] = {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       PLAINTEXT_LENGTH + 1);
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
