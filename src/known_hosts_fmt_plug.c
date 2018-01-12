@@ -19,21 +19,20 @@ extern struct fmt_main fmt_known_hosts;
 john_register_one(&fmt_known_hosts);
 #else
 
-#include "sha.h"
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
+#include "sha.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "base64_convert.h"
 #include "params.h"
 #include "options.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "known_hosts"
@@ -51,7 +50,11 @@ john_register_one(&fmt_known_hosts);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      256
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests known_hosts_tests[] = {
 	{"$known_hosts$|1|yivSFSAv9mhGu/GPc14KpaPMSjE=|I9L3FH6RGefWIFb0Po74BVN3Fto=", "213.100.98.219"},
@@ -72,9 +75,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
