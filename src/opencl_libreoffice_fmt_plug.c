@@ -41,8 +41,8 @@ john_register_one(&fmt_opencl_odf);
 #define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define PLAINTEXT_LENGTH        64
-#define BINARY_SIZE             20
+// keep plaintext length under 52 to avoid having to deal with the Libre/Star office SHA1 bug
+#define PLAINTEXT_LENGTH        51
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              4
@@ -65,7 +65,7 @@ typedef struct {
 } odf_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt *cur_salt;
 
@@ -190,75 +190,7 @@ static void reset(struct db_main *db)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy;
-	char *keeptr;
-	char *p;
-	int res, extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		return 0;
-
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;
-	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
-		goto err;
-	res = atoi(p);
-	if (res != 0) {
-		goto err;
-	}
-	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum type */
-		goto err;
-	res = atoi(p);
-	if (res != 0 && res != 1)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* key size */
-		goto err;
-	res = atoi(p);
-	if (res != 16 && res != 32)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
-		goto err;
-	//if (hexlenl(p) != res) // Hmm.  res==16, length of p == 40???  Not sure about this one.
-	//	goto err;
-	if (!ishexlc(p))
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iv length */
-		goto err;
-	res = atoi(p);
-	if (res > 16)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
-		goto err;
-	if (hexlenl(p, &extra) != res * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* salt length */
-		goto err;
-	res = atoi(p);
-	if (res > 32)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-		goto err;
-	if (hexlenl(p, &extra) != res * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* something */
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* content */
-		goto err;
-	res = strlen(p);
-	if (res > 2048 || res & 1)
-		goto err;
-	if (!ishexlc(p))
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
+	return libreoffice_valid(ciphertext, self, 0, 1);	// types=1 gives sha1 only
 }
 
 static void set_salt(void *salt)
@@ -329,6 +261,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
+		unsigned int crypt[5];
 		BF_KEY bf_key;
 		SHA_CTX ctx;
 		int bf_ivec_pos;
@@ -340,8 +273,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BF_set_key(&bf_key, cur_salt->key_size, (unsigned char*)outbuffer[index].v);
 		BF_cfb64_encrypt(cur_salt->content, output, cur_salt->content_length, &bf_key, ivec, &bf_ivec_pos, 0);
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, output, cur_salt->content_length);
-		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
+		SHA1_Update(&ctx, output, cur_salt->original_length);
+		SHA1_Final((unsigned char*)crypt, &ctx);
+		crypt_out[index][0] = crypt[0];
+		if (cur_salt->original_length % 64 >= 52 && cur_salt->original_length % 64 <= 55)
+			SHA1_Libre_Buggy(output, cur_salt->original_length, crypt);
+		crypt_out[index][1] = crypt[0];
 	}
 
 	return count;
@@ -351,20 +288,27 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
-	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+	for (index = 0; index < count; index++) {
+		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
+		if (*((uint32_t*)binary) == crypt_out[index][1])
+			return 1;
+	}
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	if (*((uint32_t*)binary) == crypt_out[index][0])
+		return 1;
+	if (*((uint32_t*)binary) == crypt_out[index][1])
+		return 1;
+	return 0;
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	return libre_common_cmp_exact(source, saved_key[index], cur_salt);
 }
 
 struct fmt_main fmt_opencl_odf = {
@@ -392,7 +336,7 @@ struct fmt_main fmt_opencl_odf = {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
+		libreoffice_prepare,
 		valid,
 		fmt_default_split,
 		libreoffice_get_binary,

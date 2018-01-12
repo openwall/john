@@ -57,9 +57,9 @@ john_register_one(&fmt_odf);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define PLAINTEXT_LENGTH        125
+// keep plaintext length under 52 to avoid having to deal with the Libre/Star office SHA1 bug
+#define PLAINTEXT_LENGTH        51
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define BINARY_SIZE             20
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
@@ -71,7 +71,7 @@ john_register_one(&fmt_odf);
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt *cur_salt;
 
@@ -94,7 +94,7 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return libreoffice_valid(ciphertext, self, 1);
+	return libreoffice_valid(ciphertext, self, 1, 3);	// types=3 gives both sha1 and sha256
 }
 
 static void set_salt(void *salt)
@@ -146,13 +146,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				unsigned int crypt[5];
 				bf_ivec_pos = 0;
 				memcpy(ivec, cur_salt->iv, 8);
 				BF_set_key(&bf_key, cur_salt->key_size, key[i]);
 				BF_cfb64_encrypt(cur_salt->content, output, cur_salt->content_length, &bf_key, ivec, &bf_ivec_pos, 0);
 				SHA1_Init(&ctx);
-				SHA1_Update(&ctx, output, cur_salt->content_length);
-				SHA1_Final((unsigned char*)crypt_out[index+i], &ctx);
+				SHA1_Update(&ctx, output, cur_salt->original_length);
+				SHA1_Final((unsigned char*)crypt, &ctx);
+				crypt_out[index+i][0] = crypt[0];
+				if (cur_salt->original_length % 64 >= 52 && cur_salt->original_length % 64 <= 55)
+					SHA1_Libre_Buggy(output, cur_salt->original_length, crypt);
+				crypt_out[index+i][1] = crypt[0];
 			}
 		}
 		else {
@@ -181,6 +186,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			       cur_salt->key_size, 0);
 #endif
 			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+				unsigned int crypt[8];
 				memcpy(iv, cur_salt->iv, 16);
 				memset(&akey, 0, sizeof(AES_KEY));
 				if (AES_set_decrypt_key(key[i], 256, &akey) < 0) {
@@ -189,7 +195,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				AES_cbc_encrypt(cur_salt->content, output, cur_salt->content_length, &akey, iv, AES_DECRYPT);
 				SHA256_Init(&ctx);
 				SHA256_Update(&ctx, output, cur_salt->content_length);
-				SHA256_Final((unsigned char*)crypt_out[index+i], &ctx);
+				SHA256_Final((unsigned char*)crypt, &ctx);
+				crypt_out[index+i][0] = crypt[0];
+				crypt_out[index+i][1] = crypt[0];
 			}
 		}
 	}
@@ -201,20 +209,27 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
-	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+	for (index = 0; index < count; index++) {
+		if (*((uint32_t*)binary) == crypt_out[index][0])
 			return 1;
+		if (*((uint32_t*)binary) == crypt_out[index][1])
+			return 1;
+	}
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	if (*((uint32_t*)binary) == crypt_out[index][0])
+		return 1;
+	if (*((uint32_t*)binary) == crypt_out[index][1])
+		return 1;
+	return 0;
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	return libre_common_cmp_exact(source, saved_key[index], cur_salt);
 }
 
 static void set_key(char *key, int index)
@@ -252,7 +267,7 @@ struct fmt_main fmt_odf = {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		libreoffice_prepare,
 		valid,
 		fmt_default_split,
 		libreoffice_get_binary,
