@@ -28,30 +28,20 @@ john_register_one(&fmt_FGT);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
-
 #include "sha.h"
 #include "base64_convert.h"
-#include "simd-intrinsics.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE               8192
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               32768 // tuned on AMD K8 dual-HT (XOP)
-#endif
-#endif // __MIC__
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Fortigate"
 #define FORMAT_NAME             "FortiOS"
-#define ALGORITHM_NAME		"SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
@@ -69,7 +59,17 @@ john_register_one(&fmt_FGT);
 #define FORTINET_MAGIC_LENGTH   24
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		512
+
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE               16
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#endif
+#endif // __MIC__
 
 static struct fmt_tests fgt_tests[] =
 {
@@ -87,9 +87,8 @@ static uint32_t (*crypt_key)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -200,10 +199,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_len, crypt_key, cp)
 #endif
-#if defined (_OPENMP) || MAX_KEYS_PER_CRYPT>1
-	for (i = 0; i < count; i++)
-#endif
-	{
+	for (i = 0; i < count; i++) {
 		SHA_CTX ctx;
 
 		memcpy(&ctx, &ctx_salt, sizeof(ctx));
