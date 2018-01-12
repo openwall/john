@@ -23,14 +23,7 @@ john_register_one(&fmt_mongodb);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE               512
-#else
-#define OMP_SCALE               16384 // Tuned on K8-dual HT
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "md5.h"
 #include "arch.h"
@@ -55,7 +48,11 @@ john_register_one(&fmt_mongodb);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      512
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               16 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests mongodb_tests[] = {
 	{"$mongodb$0$sa$75692b1d11c072c6c79332e248c4f699", "sa"},
@@ -88,9 +85,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -216,6 +212,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
