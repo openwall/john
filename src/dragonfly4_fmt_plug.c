@@ -19,19 +19,15 @@ john_register_one(&fmt_dragonfly4_32);
 john_register_one(&fmt_dragonfly4_64);
 #else
 
-#include "sha2.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE			2048  // tuned on K8-dual HT
-#endif
-#include <omp.h>
-#endif
+#include "sha2.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL_32			"dragonfly4-32"
@@ -60,7 +56,11 @@ john_register_one(&fmt_dragonfly4_64);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			2  // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests_32[] = {
 	{"$4$7E48ul$K4u43llx1P184KZBoILl2hnFLBHj6.486TtxWA.EA1pLZuQS7P5k0LQqyEULux47.5vttDbSo/Cbpsez.AUI", "magnum"},
@@ -89,9 +89,8 @@ static int salt_len;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
