@@ -16,9 +16,12 @@ john_register_one(&fmt_hmacSHA512);
 john_register_one(&fmt_hmacSHA384);
 #else
 
-#include "sha2.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "arch.h"
+#include "sha2.h"
 #include "misc.h"
 #include "common.h"
 #include "base64_convert.h"
@@ -26,19 +29,6 @@ john_register_one(&fmt_hmacSHA384);
 #include "aligned.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifdef SIMD_COEF_64
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024 // scaled on core i7-quad HT
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // scaled K8-dual HT
-#endif
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"HMAC-SHA512"
@@ -71,7 +61,7 @@ john_register_one(&fmt_hmacSHA384);
 
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512 * 8)
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i&127)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i&127)&7)) + index/SIMD_COEF_64 * PAD_SIZE * SIMD_COEF_64 )
 #else
@@ -79,7 +69,11 @@ john_register_one(&fmt_hmacSHA384);
 #endif
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
 #endif
 
 static struct fmt_tests tests[] = {
@@ -146,9 +140,9 @@ static void init(struct fmt_main *self, const int B_LEN)
 #ifdef SIMD_COEF_64
 	int i;
 #endif
-#ifdef _OPENMP
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifdef SIMD_COEF_64
 	bufsize = sizeof(*opad) * self->params.max_keys_per_crypt * PAD_SIZE;
 	crypt_key = mem_calloc_align(1, bufsize, MEM_ALIGN_SIMD);
@@ -518,7 +512,7 @@ static int crypt_all(int *pcount, struct db_salt *salt,
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_64
 		unsigned int i;
 
@@ -545,7 +539,7 @@ static int crypt_all(int *pcount, struct db_salt *salt,
 			// NOTE, SSESHA384 will output 64 bytes. We need the first 48 (plus the 0x80 padding).
 			// so we are forced to 'clean' this crap up, before using the crypt as the input.
 			uint64_t *pclear = (uint64_t*)&crypt_key[index/SIMD_COEF_64*PAD_SIZE_W*SIMD_COEF_64*8];
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 				pclear[48/8*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*PAD_SIZE_W*SIMD_COEF_64] = 0x8000000000000000ULL;
 				pclear[48/8*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*PAD_SIZE_W*SIMD_COEF_64+SIMD_COEF_64] = 0;
 			}
@@ -653,13 +647,13 @@ static void *get_salt(char *ciphertext)
 	memset(&cur_salt, 0, sizeof(cur_salt));
 	while(((unsigned char*)salt)[salt_len])
 	{
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 			cur_salt.salt[salt_len / PAD_SIZE][GETPOS(salt_len, i)] =
 				((unsigned char*)salt)[salt_len];
 		++salt_len;
 	}
 	cur_salt.salt_len = salt_len;
-	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+	for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 		cur_salt.salt[salt_len / PAD_SIZE][GETPOS(salt_len, i)] = 0x80;
 		((uint64_t*)cur_salt.salt[(salt_len+16) / PAD_SIZE])[15 * SIMD_COEF_64 + (i & (SIMD_COEF_64-1)) + (i/SIMD_COEF_64) * PAD_SIZE_W * SIMD_COEF_64] = (salt_len + PAD_SIZE) << 3;
 	}
