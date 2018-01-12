@@ -37,10 +37,6 @@ john_register_one(&fmt_mssql12);
 #endif
 
 #include "arch.h"
-/*
- * Only effective for SIMD.
- * Undef to disable reversing steps for benchmarking.
- */
 #define REVERSE_STEPS
 #include "misc.h"
 #include "params.h"
@@ -52,18 +48,6 @@ john_register_one(&fmt_mssql12);
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "memdbg.h"
-
-#ifdef _OPENMP
-#ifdef SIMD_COEF_64
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024  // tuned K8-dual HT
-#endif
-#endif
-#endif
 
 #define FORMAT_LABEL            "mssql12"
 #define FORMAT_NAME             "MS SQL 2012/2014"
@@ -80,10 +64,14 @@ john_register_one(&fmt_mssql12);
 
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512 * 128)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2  // Tuned w/ MKPC for core i7
 #endif
 
 #ifndef SHA_BUF_SIZ
@@ -164,9 +152,8 @@ static void set_key_enc(char *_key, int index);
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifdef SIMD_COEF_64
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             sizeof(*saved_key),
@@ -326,14 +313,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-#if defined(_OPENMP) || PLAINTEXT_LENGTH > 1
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-#endif
-	{
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_64
 		if (new_keys) {
 			int i;
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 				uint64_t *keybuffer = saved_key[index + i];
 				unsigned char *wucp = (unsigned char*)keybuffer;
 				int j, len = (keybuffer[15] >> 3) - SALT_SIZE;
