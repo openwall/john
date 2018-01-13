@@ -255,19 +255,19 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	for (index = 0; index < count; index++)
-		if (*((uint32_t*)binary) == crypt_out[index][0])
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (*((uint32_t*)binary) == crypt_out[index][0])
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return libre_common_cmp_exact(source, saved_key[index], cur_salt);
+	return 1;
 }
 
 struct fmt_main fmt_opencl_odf_aes = {
