@@ -273,7 +273,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BF_set_key(&bf_key, cur_salt->key_size, (unsigned char*)outbuffer[index].v);
 		BF_cfb64_encrypt(cur_salt->content, output, cur_salt->content_length, &bf_key, ivec, &bf_ivec_pos, 0);
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, output, cur_salt->content_length);
+		SHA1_Update(&ctx, output, cur_salt->original_length);
 		SHA1_Final((unsigned char*)crypt, &ctx);
 		crypt_out[index][0] = crypt[0];
 		if (cur_salt->original_length % 64 >= 52 && cur_salt->original_length % 64 <= 55)
