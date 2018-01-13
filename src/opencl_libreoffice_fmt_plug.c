@@ -275,10 +275,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, output, cur_salt->content_length);
 		SHA1_Final((unsigned char*)crypt, &ctx);
-		crypt_out[index+i][0] = crypt[0];
+		crypt_out[index][0] = crypt[0];
 		if (cur_salt->original_length % 64 >= 52 && cur_salt->original_length % 64 <= 55)
 			SHA1_Libre_Buggy(output, cur_salt->original_length, crypt);
-		crypt_out[index+i][1] = crypt[0];
+		crypt_out[index][1] = crypt[0];
 	}
 
 	return count;
