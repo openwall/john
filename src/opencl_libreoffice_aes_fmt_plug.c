@@ -37,8 +37,8 @@ john_register_one(&fmt_opencl_odf_aes);
 #define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define FULL_BINARY_SIZE        (256/8)
-#define BINARY_SIZE             4
+#undef BINARY_SIZE
+#define BINARY_SIZE             (256/8)
 #define PLAINTEXT_LENGTH        63
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define AES_LEN                 1024
@@ -63,7 +63,7 @@ typedef struct {
 } odf_salt;
 
 typedef struct {
-	uint v[FULL_BINARY_SIZE / sizeof(uint)]; /* output from final SHA-256 */
+	uint v[BINARY_SIZE / sizeof(uint)]; /* output from final SHA-256 */
 } odf_out;
 
 static cl_int cl_error;
