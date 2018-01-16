@@ -27,14 +27,7 @@ john_register_one(&fmt_vdi);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE               16
-#else
-#define OMP_SCALE               4
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "arch.h"
 #include "xts.h"
@@ -63,10 +56,14 @@ john_register_one(&fmt_vdi);
 
 #if SSE_GROUP_SZ_SHA256
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA256 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
 #endif
 
 static unsigned char (*key_buffer)[PLAINTEXT_LENGTH + 1];
@@ -100,9 +97,8 @@ static struct vdi_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	key_buffer = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*key_buffer));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -235,17 +231,12 @@ static void* get_salt(char *ciphertext)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
-	int inc=1;
 	const int count = *pcount;
 
-#if SSE_GROUP_SZ_SHA256
-	inc = SSE_GROUP_SZ_SHA256;
-#endif
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (i = 0; i < count;  i += inc)
-	{
+	for (i = 0; i < count;  i += MIN_KEYS_PER_CRYPT) {
 		unsigned char key[MAX_KEY_LEN];
 #if SSE_GROUP_SZ_SHA256
 		unsigned char Keys[SSE_GROUP_SZ_SHA256][MAX_KEY_LEN];
@@ -272,7 +263,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		pbkdf2_sha256((const unsigned char*)key_buffer[i], ksz, psalt->salt1, psalt->saltlen, psalt->rounds1, key, psalt->keylen, 0);
 #endif
-		for (j = 0; j < inc; ++j) {
+		for (j = 0; j < MIN_KEYS_PER_CRYPT; ++j) {
 #if SSE_GROUP_SZ_SHA256
 			memcpy(key, Keys[j], sizeof(key));
 #endif
