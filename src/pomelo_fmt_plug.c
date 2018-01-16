@@ -15,11 +15,9 @@ john_register_one(&fmt_pomelo);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // XXX
-#endif
 #endif
 
 #include "misc.h"
@@ -53,7 +51,11 @@ john_register_one(&fmt_pomelo);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      16
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests pomelo_tests[] = {
 	{"$pomelo$2$3$hash runner 2015$8333ad83e46e425872c5545741d6da105cd31ad58926e437d32247e59b26703e", "HashRunner2014"},
@@ -74,9 +76,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	if (!saved_key) {
 		saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 		crypt_out = mem_calloc(self->params.max_keys_per_crypt,	sizeof(*crypt_out));
