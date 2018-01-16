@@ -42,10 +42,8 @@ john_register_one(&fmt_krb5pa);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
 #endif
-#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "formats.h"
@@ -78,11 +76,16 @@ john_register_one(&fmt_krb5pa);
 #define SALT_ALIGN         4
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT (SSE_GROUP_SZ_SHA1 * 2)
 #else
 #define MIN_KEYS_PER_CRYPT 1
-#define MAX_KEYS_PER_CRYPT 1
+#define MAX_KEYS_PER_CRYPT 2
 #endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE          16 // Tuned w/ MKPC for core i7
+#endif
+
 #define MAX_SALTLEN        128
 #define MAX_REALMLEN       64
 #define MAX_USERLEN        64
@@ -121,9 +124,8 @@ static void init(struct fmt_main *self)
 {
 	unsigned char usage[5];
 
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 
@@ -322,33 +324,34 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char tkey[MAX_KEYS_PER_CRYPT][32];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		unsigned char tkey[MIN_KEYS_PER_CRYPT][32];
 		unsigned char base_key[32];
 		unsigned char Ke[32];
 		unsigned char plaintext[44];
 		int key_size, i;
-		int len[MAX_KEYS_PER_CRYPT];
+		int len[MIN_KEYS_PER_CRYPT];
 #ifdef SIMD_COEF_32
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			len[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = tkey[i];
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, len, cur_salt->salt,strlen((char*)cur_salt->salt), 4096, pout, 32, 0);
 #else
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			len[i] = strlen(saved_key[index+i]);
 		}
 		pbkdf2_sha1((const unsigned char*)saved_key[index], len[0],
 		       cur_salt->salt,strlen((char*)cur_salt->salt),
 		       4096, tkey[0], 32, 0);
 #endif
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			// generate 128 bits from 40 bits of "kerberos" string
 			// This is precomputed in init()
 			//nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
