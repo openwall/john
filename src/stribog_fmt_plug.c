@@ -23,9 +23,6 @@ john_register_one(&fmt_stribog_512);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // XXX
-#endif
 #endif
 
 #include "misc.h"
@@ -58,7 +55,11 @@ john_register_one(&fmt_stribog_512);
 #define BINARY_ALIGN            sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests stribog_256_tests[] = {
 	{"$stribog256$bbe19c8d2025d99f943a932a0b365a822aa36a4c479d22cc02c8973e219a533f", ""},
@@ -95,9 +96,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE_512 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	if (!saved_key) {
 		saved_key = mem_calloc_align(self->params.max_keys_per_crypt, sizeof(*saved_key), MEM_ALIGN_SIMD);
 	}
