@@ -15,11 +15,9 @@ john_register_one(&fmt_pdf);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           64
-#endif
 #endif
 
 #include "arch.h"
@@ -50,7 +48,11 @@ john_register_one(&fmt_pdf);
 #define BINARY_ALIGN        1
 #define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  4
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           8 // Tuned w/ MKPC for core i7
+#endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
@@ -101,9 +103,8 @@ static struct fmt_tests pdf_tests[] = {
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
