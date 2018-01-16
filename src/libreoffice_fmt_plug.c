@@ -28,9 +28,6 @@ john_register_one(&fmt_odf);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
 #endif
 
 #include "arch.h"
@@ -70,6 +67,10 @@ john_register_one(&fmt_odf);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // Tuned w/ MKPC for core i7
+#endif
+
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
@@ -77,9 +78,8 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -110,26 +110,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char key[MAX_KEYS_PER_CRYPT][32];
-		unsigned char hash[MAX_KEYS_PER_CRYPT][32];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		unsigned char key[MIN_KEYS_PER_CRYPT][32];
+		unsigned char hash[MIN_KEYS_PER_CRYPT][32];
 		BF_KEY bf_key;
 		int bf_ivec_pos, i;
 		unsigned char ivec[8];
 		unsigned char output[1024];
 		SHA_CTX ctx;
 #ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		int lens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
 #endif
 		if (cur_salt->checksum_type == 0 && cur_salt->cipher_type == 0) {
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				SHA1_Init(&ctx);
 				SHA1_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
 				SHA1_Final((unsigned char *)(hash[i]), &ctx);
 			}
 #ifdef SIMD_COEF_32
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 20;
 				pin[i] = hash[i];
 				pout[i] = key[i];
@@ -145,7 +145,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			       cur_salt->key_size, 0);
 #endif
 
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				unsigned int crypt[5];
 				bf_ivec_pos = 0;
 				memcpy(ivec, cur_salt->iv, 8);
@@ -164,13 +164,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_CTX ctx;
 			AES_KEY akey;
 			unsigned char iv[16];
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				SHA256_Init(&ctx);
 				SHA256_Update(&ctx, (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]));
 				SHA256_Final((unsigned char *)hash[i], &ctx);
 			}
 #ifdef SIMD_COEF_32
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 32;
 				pin[i] = hash[i];
 				pout[i] = key[i];
@@ -185,7 +185,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			       cur_salt->iterations, key[0],
 			       cur_salt->key_size, 0);
 #endif
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				unsigned int crypt[8];
 				memcpy(iv, cur_salt->iv, 16);
 				memset(&akey, 0, sizeof(AES_KEY));
