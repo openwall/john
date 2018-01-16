@@ -17,9 +17,6 @@ john_register_one(&fmt_padlock);
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4
-#endif
 #endif
 
 #include "arch.h"
@@ -54,15 +51,20 @@ john_register_one(&fmt_padlock);
 #define BINARY_ALIGN            1
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
-#else
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
-#endif
 #define FORMAT_TAG              "$padlock$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
+
+#ifdef SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA256 * 4)
+#else
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      4
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
 	// empty database
@@ -94,9 +96,8 @@ static int *cracked, cracked_count;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
@@ -245,26 +246,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char master[MAX_KEYS_PER_CRYPT][32];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		unsigned char master[MIN_KEYS_PER_CRYPT][32];
 		unsigned char output[4096] = {0};
 		int i;
 		unsigned char *tag = cur_salt->ct + cur_salt->ctlen - cur_salt->tag_len; // last "tag_len" bytes
 #ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		int lens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = master[i];
 		}
 		pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->salt, cur_salt->saltlen, cur_salt->iterations, pout, 32, 0);
 #else
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 			pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, cur_salt->saltlen, cur_salt->iterations, master[i], 32, 0);
 
 #endif
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			memset(output, 0, 4096); // avoid possible false positives that can be caused by older "valid" decrypted data
 			aes_ccm_auth_decrypt(master[i], 256,
 					cur_salt->ctlen - cur_salt->tag_len,
