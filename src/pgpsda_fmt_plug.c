@@ -17,18 +17,16 @@ john_register_one(&fmt_pgpsda);
 #include <string.h>
 #include <openssl/cast.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // this is a slow format
-#endif
-#endif
 #include "sha.h"
 #include "loader.h"
 #include "pgpsda_common.h"
@@ -44,10 +42,14 @@ john_register_one(&fmt_pgpsda);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
 #define FORMAT_TAG              "$pgpsda$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#endif
 
 static struct custom_salt *cur_salt;
 
@@ -56,9 +58,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
@@ -125,7 +126,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		int i;
 
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
