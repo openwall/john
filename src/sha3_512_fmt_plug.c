@@ -17,19 +17,16 @@ john_register_one(&fmt_rawSHA3);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
 #include "KeccakHash.h"
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE			2048
-#endif
-#include <omp.h>
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA3"
@@ -49,7 +46,11 @@ john_register_one(&fmt_rawSHA3);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		512
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			32 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
 	{"a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26", ""},
@@ -67,9 +68,8 @@ static uint32_t (*crypt_out)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
@@ -143,6 +143,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
