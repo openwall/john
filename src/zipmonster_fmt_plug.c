@@ -17,9 +17,6 @@ john_register_one(&fmt_zipmonster);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
 #endif
 
 #include "arch.h"
@@ -43,12 +40,18 @@ john_register_one(&fmt_zipmonster);
 #define SALT_SIZE               0
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
-#define MIN_KEYS_PER_CRYPT      1
 #ifdef SIMD_COEF_32
+#define MIN_KEYS_PER_CRYPT      (SIMD_PARA_MD5*SIMD_COEF_32)
 #define MAX_KEYS_PER_CRYPT      (SIMD_PARA_MD5*SIMD_COEF_32)
 #else
-#define MAX_KEYS_PER_CRYPT      1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      2
 #endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
+
 #define FORMAT_TAG              "$zipmonster$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
@@ -75,11 +78,9 @@ static void init(struct fmt_main *self)
 {
 	int i;
 	char buf[3];
-#ifdef _OPENMP
-	/* Workaround until this format can handle MKPC tuning, see #3091 */
-	if (omp_get_max_threads() > 1)
-		omp_autotune(self, OMP_SCALE);
-#endif
+
+	omp_autotune(self, OMP_SCALE);
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
@@ -174,15 +175,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
-	int inc = 1;
-#ifdef SIMD_COEF_32
-	inc = SIMD_COEF_32*SIMD_PARA_MD5;
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += inc) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		unsigned char buffer[BINARY_SIZE];
 		MD5_CTX ctx;
 		int n = 49999;
