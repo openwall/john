@@ -27,9 +27,6 @@ john_register_one(&fmt_cloud_keychain);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
 #endif
 
 #include "arch.h"
@@ -68,6 +65,10 @@ john_register_one(&fmt_cloud_keychain);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // Tuned w/ MKPC for core i7
+#endif
+
 #define SALTLEN                 32
 #define IVLEN                   16
 #define CTLEN                   2048
@@ -103,9 +104,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	cracked   = mem_calloc(self->params.max_keys_per_crypt,
@@ -317,7 +317,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SSE_GROUP_SZ_SHA512
 		int lens[SSE_GROUP_SZ_SHA512], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA512];
