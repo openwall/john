@@ -12,6 +12,11 @@ john_register_one(&fmt_bks);
 #else
 
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -19,12 +24,6 @@ john_register_one(&fmt_bks);
 #include "formats.h"
 #include "johnswap.h"
 #include "hmac_sha.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
-#endif
 #include "twofish.h"
 #include "sha.h"
 #include "loader.h"
@@ -44,11 +43,16 @@ john_register_one(&fmt_bks);
 #define BENCHMARK_LENGTH	-1
 #if !defined(SIMD_COEF_32)
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	4
 #else
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT	(SSE_GROUP_SZ_SHA1 * 4)
 #endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               16 // Tuned w/ MKPC for core i7
+#endif
+
 #define FORMAT_TAG		"$bks$"
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 
@@ -88,9 +92,8 @@ static int *cracked, any_cracked;  // "cracked array" approach is required for U
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
@@ -241,7 +244,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #if !defined(SIMD_COEF_32)
 		if (cur_salt->format == 0) {
 			unsigned char mackey[20];
