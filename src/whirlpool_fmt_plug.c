@@ -23,9 +23,6 @@ john_register_one(&fmt_whirlpool);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               256
-#endif
 #endif
 
 #include "arch.h"
@@ -53,11 +50,17 @@ john_register_one(&fmt_whirlpool);
 #define PLAINTEXT_LENGTH        125
 #define CIPHERTEXT_LENGTH       128
 #define BINARY_SIZE             64
-#define SALT_SIZE               0
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
 #define BINARY_ALIGN            4
+#define SALT_SIZE               0
 #define SALT_ALIGN              1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT_W    512 // Whirlpool
+#define MAX_KEYS_PER_CRYPT_W0   512 // Whirlpool0
+#define MAX_KEYS_PER_CRYPT_W1   64  // Whirlpool1
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests whirlpool_0_tests[] = {
 	{"B3E1AB6EAF640A34F784593F2074416ACCD3B8E62C620175FCA0997B1BA2347339AA0D79E754C308209EA36811DFA40C1C32F1A2B9004725D987D3635165D3C8", ""},
@@ -85,9 +88,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -264,7 +266,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
-		MAX_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT_W0,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
@@ -322,7 +324,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
-		MAX_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT_W1,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
@@ -380,7 +382,7 @@ struct fmt_main fmt_whirlpool = {
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
-		MAX_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT_W,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
 		FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
