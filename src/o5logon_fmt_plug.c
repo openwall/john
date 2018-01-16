@@ -25,9 +25,6 @@ john_register_one(&fmt_o5logon);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // tuned on core i7
-#endif
 #endif
 
 #include "arch.h"
@@ -56,7 +53,11 @@ john_register_one(&fmt_o5logon);
 #define SALT_ALIGN              sizeof(int32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      256
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests o5logon_tests[] = {
 	{"$o5logon$566499330E8896301A1D2711EFB59E756D41AF7A550488D82FE7C8A418E5BE08B4052C0DC404A805C1D7D43FE3350873*4F739806EBC1D7742BC6", "password"},
@@ -93,9 +94,8 @@ static void init(struct fmt_main *self)
 {
 	static char Buf[128];
 
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
