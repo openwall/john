@@ -21,9 +21,6 @@ john_register_one(&fmt_pwsafe);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // tuned on core i7
-#endif
 #endif
 
 #include "arch.h"
@@ -57,10 +54,14 @@ john_register_one(&fmt_pwsafe);
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #endif
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      4
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               32 // Tuned w/ MKPC for core i7
 #endif
 
 static struct fmt_tests pwsafe_tests[] = {
@@ -83,9 +84,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
@@ -525,18 +525,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index+=MIN_KEYS_PER_CRYPT) {
 		SHA256_CTX ctx;
 #ifdef SIMD_COEF_32
 		unsigned int i;
-		unsigned char _IBuf[64*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys, tmpBuf[32];
+		unsigned char _IBuf[64*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys, tmpBuf[32];
 		uint32_t *keys32, j;
 
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys32 = (uint32_t*)keys;
-		memset(keys, 0, 64*MAX_KEYS_PER_CRYPT);
+		memset(keys, 0, 64*MIN_KEYS_PER_CRYPT);
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
 			SHA256_Update(&ctx, cur_salt->salt, 32);
