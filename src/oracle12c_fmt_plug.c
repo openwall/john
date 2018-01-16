@@ -17,12 +17,11 @@ john_register_one(&fmt_oracle12c);
 #include <openssl/sha.h>
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
-
-//#undef SIMD_COEF_64
-//#undef SIMD_PARA_SHA512
-//#undef _OPENMP
-
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
@@ -30,12 +29,6 @@ john_register_one(&fmt_oracle12c);
 #include "johnswap.h"
 #include "sha2.h"
 #include "pbkdf2_hmac_sha512.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Oracle12C"
@@ -53,6 +46,8 @@ john_register_one(&fmt_oracle12c);
 #define BINARY_ALIGN		sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
+#define FORMAT_TAG		"$oracle12c$"
+#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT	(SIMD_COEF_64 * SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT	(SIMD_COEF_64 * SIMD_PARA_SHA512)
@@ -60,8 +55,10 @@ john_register_one(&fmt_oracle12c);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #endif
-#define FORMAT_TAG		"$oracle12c$"
-#define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           4 // Tuned w/ MKPC for OMP
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$oracle12c$e3243b98974159cc24fd2c9a8b30ba62e0e83b6ca2fc7c55177c3a7f82602e3bdd17ceb9b9091cf9dad672b8be961a9eac4d344bdba878edc5dcb5899f689ebd8dd1be3f67bff9813a464382381ab36b", "epsilon"},
@@ -83,9 +80,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -181,7 +177,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		SHA512_CTX ctx;
 		int i = 0;
 #if SIMD_COEF_64
@@ -204,7 +200,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		              cur_salt->saltlen, 4096,
 		              (unsigned char*)crypt_out[index], BINARY_SIZE, 0);
 #endif
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, (unsigned char*)crypt_out[index + i], BINARY_SIZE);
 			SHA512_Update(&ctx, cur_salt->salt, 16); // AUTH_VFR_DATA first 16 bytes
