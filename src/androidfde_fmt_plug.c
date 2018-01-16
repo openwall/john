@@ -34,9 +34,6 @@ john_register_one(&fmt_fde);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           1
-#endif
 #endif
 
 #include "arch.h"
@@ -70,10 +67,14 @@ john_register_one(&fmt_fde);
 #define SALT_SIZE           sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT  (SSE_GROUP_SZ_SHA1 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  4
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           16 // Tuned w/ MKPC for core i7
 #endif
 
 static struct fmt_tests fde_tests[] = {
@@ -100,9 +101,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	max_cracked = self->params.max_keys_per_crypt;
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -300,8 +300,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		hash_plugin_check_hash(index);
 	}
 	return count;
