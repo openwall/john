@@ -19,21 +19,7 @@ john_register_one(&fmt_panama_);
 
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE tuned on core i7 quad core HT
-// 1   -  217k
-// 64  - 1930k
-// 128 - 2099k
-// 256 - 2204k *** set to this level
-// 512 - 2203k
-// 1k  - 2124k
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE  8
-#else
-#define OMP_SCALE  256
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "arch.h"
 #include "sph_panama.h"
@@ -57,7 +43,11 @@ john_register_one(&fmt_panama_);
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	32
+
+#ifndef OMP_SCALE
+#define OMP_SCALE  64 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests panama__tests[] = {
 	{"049d698307d8541f22870dfa0a551099d3d02bc6d57c610a06a4585ed8d35ff8", "T"},
@@ -76,9 +66,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
