@@ -28,9 +28,6 @@ john_register_one(&fmt_sapG);
 #endif
 
 #include "arch.h"
-#ifdef SIMD_COEF_32
-#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1)
-#endif
 #include "simd-intrinsics.h"
 #include "misc.h"
 #include "common.h"
@@ -40,14 +37,6 @@ john_register_one(&fmt_sapG);
 #include "unicode.h"
 #include "johnswap.h"
 #include "memdbg.h"
-
-#ifndef OMP_SCALE
-#if defined (SIMD_COEF_32)
-#define OMP_SCALE               32
-#else
-#define OMP_SCALE               2048
-#endif
-#endif
 
 #define FORMAT_LABEL            "sapg"
 #define FORMAT_NAME             "SAP CODVN F/G (PASSCODE)"
@@ -66,9 +55,7 @@ john_register_one(&fmt_sapG);
 #define CIPHERTEXT_LENGTH       (SALT_LENGTH + 1 + 2*BINARY_SIZE)    /* SALT + $ + 2x20 bytes for SHA1-representation */
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      NBKEYS
-// max keys increased to allow sorting based on limb counts
-#define MAX_KEYS_PER_CRYPT      NBKEYS*64
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #define GETWORDPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
 #define GETSTARTPOS(index)      ( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
 #define GETOUTSTARTPOS(index)   ( (index&(SIMD_COEF_32-1))*4 +                         (unsigned int)index/SIMD_COEF_32*20*SIMD_COEF_32 )
@@ -77,12 +64,21 @@ john_register_one(&fmt_sapG);
 #else
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 +             ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 ) //for endianity conversion
 #endif
+#define MIN_KEYS_PER_CRYPT      NBKEYS
+// max keys increased to allow sorting based on limb counts
+#define MAX_KEYS_PER_CRYPT      (NBKEYS * 64)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      32
 #endif
 
-static unsigned int threads = 1;
+#ifndef OMP_SCALE
+#if defined (SIMD_COEF_32)
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#else
+#define OMP_SCALE               16
+#endif
+#endif
 
 //this array is from disp+work (sap's worker process)
 #define MAGIC_ARRAY_SIZE 160
@@ -167,15 +163,7 @@ static void init(struct fmt_main *self)
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = UTF8_PLAINTEXT_LENGTH;
 
-#if defined (_OPENMP)
-	threads = omp_get_max_threads();
-
-	if (threads > 1) {
-		self->params.min_keys_per_crypt *= threads;
-		threads *= OMP_SCALE;
-		self->params.max_keys_per_crypt *= threads;
-	}
-#endif
+	omp_autotune(self, OMP_SCALE);
 
 	max_keys = self->params.max_keys_per_crypt;
 	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
@@ -287,7 +275,7 @@ static void *get_salt(char *ciphertext)
 
 static void clear_keys(void)
 {
-	memset(keyLen, 0, sizeof(*keyLen) * threads * MAX_KEYS_PER_CRYPT);
+	memset(keyLen, 0, sizeof(*keyLen) * max_keys);
 }
 
 static void set_key(char *key, int index)
@@ -644,14 +632,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #else
 
-#ifdef _OPENMP
 	int index;
+#ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-#define index 0
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		unsigned int offsetMagicArray, lengthIntoMagicArray;
 		unsigned char temp_key[BINARY_SIZE];
 		unsigned char tempVar[UTF8_PLAINTEXT_LENGTH + MAGIC_ARRAY_SIZE + SALT_LENGTH]; //max size...
