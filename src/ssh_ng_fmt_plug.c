@@ -27,9 +27,6 @@ john_register_one(&fmt_sshng);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           16 // adjust this dynamically based on the hash type?
-#endif
 #endif
 
 #include "arch.h"
@@ -57,7 +54,15 @@ john_register_one(&fmt_sshng);
 #define BINARY_ALIGN        1
 #define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  8
+
+/*
+ * For cost 1 using core i7, MKPC=8 and OMP_SCALE 128 works fine but that
+ * is far too slow for cost 2, which needs them at 1/1. Let's always auto-tune.
+ */
+#ifndef OMP_SCALE
+#define OMP_SCALE           0
+#endif
 
 // openssl asn1parse -in test_dsa.key; openssl asn1parse -in test_rsa.key
 #define SAFETY_FACTOR       16  // enough to verify the initial ASN.1 structure (SEQUENCE, INTEGER, Big INTEGER) of RSA, and DSA keys?
@@ -104,9 +109,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	cracked   = mem_calloc(self->params.max_keys_per_crypt,
