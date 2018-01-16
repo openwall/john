@@ -15,17 +15,9 @@ john_register_one(&fmt_tcpmd5);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE 8192
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE 32768  // scaled K8-dual HT
-#endif
-#endif
 #endif
 
 #include "arch.h"
@@ -52,9 +44,13 @@ john_register_one(&fmt_tcpmd5);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
 #define MAX_SALT                1500
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1024
+
+#ifndef OMP_SCALE
+#define OMP_SCALE 4 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
 	/* BGP TCP_MD5SIG hashes */
@@ -74,9 +70,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
