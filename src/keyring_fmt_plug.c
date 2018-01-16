@@ -18,14 +18,7 @@ john_register_one(&fmt_keyring);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE               32
-#else
-#define OMP_SCALE               64
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -53,16 +46,20 @@ john_register_one(&fmt_keyring);
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #else
 #define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
 #endif
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      4
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
 #endif
 
 #define SALTLEN                 8
@@ -92,9 +89,8 @@ static size_t cracked_size;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	any_cracked = 0;
@@ -203,20 +199,20 @@ static void set_salt(void *salt)
 
 #ifdef SIMD_COEF_32
 static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, int iterations,
-	                               unsigned char key[MAX_KEYS_PER_CRYPT][32],
-								   unsigned char iv[MAX_KEYS_PER_CRYPT][32])
+	                               unsigned char key[MIN_KEYS_PER_CRYPT][32],
+								   unsigned char iv[MIN_KEYS_PER_CRYPT][32])
 {
 	SHA256_CTX ctx;
-	unsigned char digest[32], _IBuf[64*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys;
+	unsigned char digest[32], _IBuf[64*MIN_KEYS_PER_CRYPT+MEM_ALIGN_SIMD], *keys;
 	uint32_t *keys32;
 	unsigned int i, j;
 
 	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_SIMD);
-	memset(keys, 0, 64*MAX_KEYS_PER_CRYPT);
+	memset(keys, 0, 64*MIN_KEYS_PER_CRYPT);
 	keys32 = (uint32_t*)keys;
 
 	// use oSSL to do first crypt, and marshal into SIMD buffers.
-	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+	for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
 		SHA256_Update(&ctx, salt, n_salt);
@@ -233,7 +229,7 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 		SIMDSHA256body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 	// marshal data back into flat buffers.
-	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+	for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 		uint32_t *Optr32 = (uint32_t*)(key[i]);
 		uint32_t *Iptr32 = &keys32[(i/SIMD_COEF_32)*SIMD_COEF_32*16 + (i%SIMD_COEF_32)];
 		for (j = 0; j < 4; ++j)
@@ -253,8 +249,8 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 }
 #else
 static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, int iterations,
-	                               unsigned char key[MAX_KEYS_PER_CRYPT][32],
-								   unsigned char iv[MAX_KEYS_PER_CRYPT][32])
+	                               unsigned char key[MIN_KEYS_PER_CRYPT][32],
+								   unsigned char iv[MIN_KEYS_PER_CRYPT][32])
 {
 	SHA256_CTX ctx;
 	unsigned char digest[32];
@@ -274,10 +270,10 @@ static void symkey_generate_simple(int index, unsigned char *salt, int n_salt, i
 	memcpy(iv[0], &digest[16], 16);
 }
 #endif
-static void decrypt_buffer(unsigned char buffers[MAX_KEYS_PER_CRYPT][sizeof(cur_salt->ct)], int index)
+static void decrypt_buffer(unsigned char buffers[MIN_KEYS_PER_CRYPT][sizeof(cur_salt->ct)], int index)
 {
-	unsigned char key[MAX_KEYS_PER_CRYPT][32];
-	unsigned char iv[MAX_KEYS_PER_CRYPT][32];
+	unsigned char key[MIN_KEYS_PER_CRYPT][32];
+	unsigned char iv[MIN_KEYS_PER_CRYPT][32];
 	AES_KEY akey;
 	unsigned int i, len = cur_salt->crypto_size;
 	unsigned char *salt = cur_salt->salt;
@@ -285,7 +281,7 @@ static void decrypt_buffer(unsigned char buffers[MAX_KEYS_PER_CRYPT][sizeof(cur_
 
 	symkey_generate_simple(index, salt, 8, iterations, key, iv);
 
-	for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+	for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 		memset(&akey, 0, sizeof(AES_KEY));
 		if (AES_set_decrypt_key(key[i], 128, &akey) < 0) {
 			fprintf(stderr, "AES_set_decrypt_key failed!\n");
@@ -317,17 +313,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < count; index+=MIN_KEYS_PER_CRYPT)
 	{
 		int i;
 		unsigned char (*buffers)[sizeof(cur_salt->ct)];
 
 		// This is too big to be on stack. See #1292.
-		buffers = mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(*buffers));
+		buffers = mem_alloc(MIN_KEYS_PER_CRYPT * sizeof(*buffers));
 
 		decrypt_buffer(buffers, index);
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			if (verify_decrypted_buffer(buffers[i], cur_salt->crypto_size)) {
 				cracked[index+i] = 1;
 #ifdef _OPENMP
