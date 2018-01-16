@@ -22,9 +22,6 @@ john_register_one(&fmt_kwallet);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               16  // reduced for PBKDF2_SHA512 case
-#endif
 #endif
 
 #include "arch.h"
@@ -43,7 +40,7 @@ john_register_one(&fmt_kwallet);
 #define FORMAT_TAG              "$kwallet$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #ifdef SIMD_COEF_64
-#define ALGORITHM_NAME          "SHA1 / PBKDF2-SHA512 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "SHA1 / PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME          "SHA1 / PBKDF2-SHA512 32/" ARCH_BITS_STR
 #endif
@@ -56,10 +53,14 @@ john_register_one(&fmt_kwallet);
 #define SALT_ALIGN              sizeof(int)
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
+#define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA512 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      16
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4  // Tuned w/ MKPC for core i7
 #endif
 
 // #define BENCH_LARGE_PASSWORDS   1
@@ -90,9 +91,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	cracked = mem_calloc(self->params.max_keys_per_crypt,
@@ -319,36 +319,36 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char key[MAX_KEYS_PER_CRYPT][56]; /* 56 seems to be the max. key size */
-		int key_size[MAX_KEYS_PER_CRYPT];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		unsigned char key[MIN_KEYS_PER_CRYPT][56]; /* 56 seems to be the max. key size */
+		int key_size[MIN_KEYS_PER_CRYPT];
 		int i;
 
 		if (cur_salt->kwallet_minor_version == 0) {
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				password2hash(saved_key[index+i], key[i], &key_size[i]);
 				cracked[index+i] = !verify_key(key[i], key_size[i]);
 			}
 		} else if (cur_salt->kwallet_minor_version == 1) {
 #ifdef SIMD_COEF_64
-			int len[MAX_KEYS_PER_CRYPT];
-			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+			int len[MIN_KEYS_PER_CRYPT];
+			unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
 
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				len[i] = strlen(saved_key[i+index]);
 				pin[i] = (unsigned char*)saved_key[i+index];
 				pout[i] = key[i];
 			}
 			pbkdf2_sha512_sse((const unsigned char **)pin, len, cur_salt->salt, cur_salt->saltlen, cur_salt->iterations, pout, 56, 0);
 #else
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				pbkdf2_sha512((const unsigned char*)(saved_key[index+i]),
 					strlen(saved_key[index+i]), cur_salt->salt,
 					cur_salt->saltlen, cur_salt->iterations,
 					key[i], 56, 0);
 			}
 #endif
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 				cracked[index+i] = !verify_key(key[i], 56);
 		}
 	}
