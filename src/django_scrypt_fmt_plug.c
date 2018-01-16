@@ -19,9 +19,6 @@ john_register_one(&fmt_django_scrypt);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // So slow a format, a multiplier is NOT needed
-#endif
 #endif
 
 #include "arch.h"
@@ -58,6 +55,10 @@ john_register_one(&fmt_django_scrypt);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#ifndef OMP_SCALE
+#define OMP_SCALE           4 // Tuned w/ MKPC for core i7
+#endif
+
 /* notastrongpassword => scrypt$NBGmaGIXijJW$14$8$1$64$achPt01SbytSt+F3CcCFgEPr96+/j9iCTdejFdAARZ8mzfejrP64TJ5XBJa3gYwuCKOEGlw2E/lWCWS7LeS6CA== */
 
 static struct fmt_tests scrypt_tests[] = {
@@ -80,9 +81,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
