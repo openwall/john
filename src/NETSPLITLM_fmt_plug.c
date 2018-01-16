@@ -21,16 +21,9 @@ john_register_one(&fmt_NETHALFLM);
 #else
 
 #include <string.h>
+#include <openssl/des.h>
+
 #ifdef _OPENMP
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE	2048
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE	65536
-#endif
-#endif // __MIC__
 #include <omp.h>
 #endif
 
@@ -38,8 +31,6 @@ john_register_one(&fmt_NETHALFLM);
 #include "common.h"
 #include "formats.h"
 #include "unicode.h"
-
-#include <openssl/des.h>
 #include "memdbg.h"
 
 #ifndef uchar
@@ -60,10 +51,12 @@ john_register_one(&fmt_NETHALFLM);
 #define SALT_ALIGN           4
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         12 + 2 * SALT_SIZE + CIPHERTEXT_LENGTH
-
-// these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	    1
-#define MAX_KEYS_PER_CRYPT	    1
+#define MAX_KEYS_PER_CRYPT	    32
+
+#ifndef OMP_SCALE
+#define OMP_SCALE	64 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
   {"", "G3RG3P00!", {"domain\\username", "", "", "6E1EC36D3417CE9E09A4424309F116C4C991948DAEB4ADAD", "", "1122334455667788"} },
@@ -86,9 +79,8 @@ static uchar *challenge;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
 	                         sizeof(*saved_plain));
 	saved_pre = mem_calloc(self->params.max_keys_per_crypt,
