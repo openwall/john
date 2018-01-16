@@ -25,9 +25,6 @@ john_register_one(&fmt_rar5);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // tuned on core i7
-#endif
 #endif
 
 #include "arch.h"
@@ -67,13 +64,16 @@ john_register_one(&fmt_rar5);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
+
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
@@ -97,7 +97,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SSE_GROUP_SZ_SHA256
 		int lens[SSE_GROUP_SZ_SHA256], i, j;
 		unsigned char PswCheck[SIZE_PSWCHECK],
