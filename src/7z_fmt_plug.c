@@ -27,9 +27,6 @@ john_register_one(&fmt_sevenzip);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // tuned on core i7
-#endif
 #endif
 
 #include "arch.h"
@@ -52,6 +49,8 @@ john_register_one(&fmt_sevenzip);
 #include "dyna_salt.h"
 #include "lzma/LzmaDec.h"
 #include "lzma/Lzma2Dec.h"
+#include "simd-intrinsics.h"
+#include "memdbg.h"
 
 #define FORMAT_LABEL            "7z"
 #define FORMAT_NAME             "7-Zip"
@@ -65,7 +64,6 @@ john_register_one(&fmt_sevenzip);
 #define SALT_ALIGN              sizeof(struct custom_salt*)
 
 #ifdef SIMD_COEF_32
-#include "simd-intrinsics.h"
 
 #define NBKEYS     (SIMD_COEF_32*SIMD_PARA_SHA256)
 #define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 )
@@ -82,7 +80,10 @@ john_register_one(&fmt_sevenzip);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #endif
-#include "memdbg.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           1 // tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests sevenzip_tests[] = {
 	/* CRC checks passes for this hash (4 bytes of padding) */
@@ -162,9 +163,7 @@ static void init(struct fmt_main *self)
 {
 	CRC32_t crc;
 
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
 
 	// allocate 1 more slot to handle the tail of vector buffer
 	max_kpc = self->params.max_keys_per_crypt + 1;
@@ -649,8 +648,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < tot_todo; index += NBKEYS)
-	{
+	for (index = 0; index < tot_todo; index += NBKEYS) {
 		int j;
 
 		if (new_keys)
@@ -665,8 +663,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT)
-	{
+	for (index = 0; index < count; index++) {
 		/* derive key */
 		if (new_keys)
 			sevenzip_kdf(index, master[index]);
