@@ -35,14 +35,7 @@ john_register_one(&fmt_vnc);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE               32
-#else
-#define OMP_SCALE               1024 // tuned on core i7
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -65,7 +58,11 @@ john_register_one(&fmt_vnc);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               64 // Tuned w/ MKPC for core i7
+#endif
 
 /* DES_set_odd_parity() already applied */
 static const unsigned char bit_flip[256] = {
@@ -135,9 +132,8 @@ static unsigned char (*des_key)[PLAINTEXT_LENGTH];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	des_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*des_key));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
