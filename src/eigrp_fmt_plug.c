@@ -21,24 +21,6 @@ john_register_one(&fmt_eigrp);
 
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE on Intel core i7
-// 2048 - 12030k/11596k
-// 4096 - 12575k/13114k
-// 8192 - 13316k/13921k
-// 16k  - 13547k/14458k
-// 32k  - 16106k/14700k
-// 64k  - 16106k/14700k
-// 64k  - 16674k/14674k
-// 128k - 17795k/14663k  --test=0 has a tiny delay, but not bad.
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE               8192
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               131072
-#endif
-#endif
 #endif
 
 #include "arch.h"
@@ -64,9 +46,19 @@ john_register_one(&fmt_eigrp);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define MAX_SALT_SIZE           1024
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifdef __MIC__
+#ifndef OMP_SCALE
+#define OMP_SCALE               128
+#endif
+#else
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
+#endif
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$eigrp$2$020500000000000000000000000000000000002a000200280002001000000001000000000000000000000000$0$x$1a42aaf8ebe2f766100ea1fa05a5fa55", "password12345"},
@@ -96,9 +88,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
@@ -268,6 +259,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
