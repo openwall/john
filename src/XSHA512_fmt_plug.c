@@ -9,29 +9,18 @@ extern struct fmt_main fmt_XSHA512;
 john_register_one(&fmt_XSHA512);
 #else
 
-#include "sha2.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "arch.h"
+#include "sha2.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "rawSHA512_common.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifdef SIMD_COEF_64
-#ifndef OMP_SCALE
-#define OMP_SCALE               4096
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               8192
-#endif
-#endif
-#endif
-
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"xsha512"
@@ -45,10 +34,14 @@ john_register_one(&fmt_XSHA512);
 
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512 * 512)
 #else
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		512
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
 #endif
 
 #if ARCH_BITS >= 64 || defined(__SSE2__)
@@ -64,7 +57,7 @@ john_register_one(&fmt_XSHA512);
 #define FMT_IS_64BIT
 #define FMT_IS_BE
 #include "common-simd-getpos.h"
-static uint64_t (*saved_key)[SHA_BUF_SIZ*MAX_KEYS_PER_CRYPT];
+static uint64_t (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64*SIMD_PARA_SHA512];
 static uint64_t (*crypt_out);
 static int max_keys;
 #else
@@ -81,9 +74,8 @@ static uint32_t saved_salt;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifdef SIMD_COEF_64
 	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
 	                             sizeof(*saved_key), MEM_ALIGN_SIMD);
@@ -191,6 +183,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #ifndef SIMD_COEF_64
 #ifdef PRECOMPUTE_CTX_FOR_SALT
@@ -202,9 +195,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_64
-		SIMDSHA512body(&saved_key[index/MAX_KEYS_PER_CRYPT], &crypt_out[HASH_IDX], NULL, SSEi_MIXED_IN);
+		SIMDSHA512body(&saved_key[index/MIN_KEYS_PER_CRYPT], &crypt_out[HASH_IDX], NULL, SSEi_MIXED_IN);
 #else
 		SHA512_CTX ctx;
 #ifdef PRECOMPUTE_CTX_FOR_SALT
