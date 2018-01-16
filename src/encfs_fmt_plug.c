@@ -19,9 +19,6 @@ john_register_one(&fmt_encfs);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           1
-#endif
 #endif
 
 #include "arch.h"
@@ -57,6 +54,10 @@ john_register_one(&fmt_encfs);
 #define MAX_KEYS_PER_CRYPT  1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE           1 // tuned w/ MKPC on core i7
+#endif
+
 #define KEY_CHECKSUM_BYTES  4
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -78,9 +79,8 @@ static struct fmt_tests encfs_tests[] = {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
     omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
@@ -121,30 +121,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		int i, j;
-		unsigned char master[MAX_KEYS_PER_CRYPT][MAX_KEYLENGTH + MAX_IVLENGTH];
+		unsigned char master[MIN_KEYS_PER_CRYPT][MAX_KEYLENGTH + MAX_IVLENGTH];
 		unsigned char tmpBuf[sizeof(cur_salt->data)];
 		unsigned int checksum = 0;
 		unsigned int checksum2 = 0;
-		unsigned char out[MAX_KEYS_PER_CRYPT][MAX_KEYLENGTH + MAX_IVLENGTH];
+		unsigned char out[MIN_KEYS_PER_CRYPT][MAX_KEYLENGTH + MAX_IVLENGTH];
 
 #ifdef SIMD_COEF_32
-		int len[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		int len[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			len[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = out[i];
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, len, cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, pout, cur_salt->keySize + cur_salt->ivLength, 0);
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 			memcpy(master[i], out[i], cur_salt->keySize + cur_salt->ivLength);
 #else
 		pbkdf2_sha1((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out[0], cur_salt->keySize + cur_salt->ivLength, 0);
 		memcpy(master[0], out[0], cur_salt->keySize + cur_salt->ivLength);
 #endif
-		for (j = 0; j < MAX_KEYS_PER_CRYPT; ++j) {
+		for (j = 0; j < MIN_KEYS_PER_CRYPT; ++j) {
 			// First N bytes are checksum bytes.
 			for (i=0; i<KEY_CHECKSUM_BYTES; ++i)
 				checksum = (checksum << 8) | (unsigned int)cur_salt->data[i];
