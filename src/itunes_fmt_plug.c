@@ -22,9 +22,6 @@ john_register_one(&fmt_itunes);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
 #endif
 
 #include "arch.h"
@@ -61,6 +58,10 @@ john_register_one(&fmt_itunes);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // Tuned w/ MKPC for core i7
+#endif
+
 static struct fmt_tests itunes_tests[] = {
 	// real iTunes 9.x hash
 	{"$itunes_backup$*9*bc707ac0151660426c8114d04caad9d9ee2678a7b7ab05c18ee50cafb2613c31c8978e8b1e9cad2a*10000*266343aaf99102ba7f6af64a3a2d62637793f753**", "123456"},
@@ -79,9 +80,8 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;
@@ -118,16 +118,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char master[MAX_KEYS_PER_CRYPT][32];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		unsigned char master[MIN_KEYS_PER_CRYPT][32];
 		int i;
 
 		if (cur_salt->version == 9) { // iTunes Backup < 10
 #ifdef SIMD_COEF_32
-			int lens[MAX_KEYS_PER_CRYPT];
-			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-			int loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			int lens[MIN_KEYS_PER_CRYPT];
+			unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+			int loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				lens[i] = strlen(saved_key[index+i]);
 				pin[i] = (unsigned char*)saved_key[index+i];
 				pout[i] = master[i];
@@ -135,39 +135,39 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < loops; i++)
 				pbkdf2_sha1_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA1), &lens[i * SSE_GROUP_SZ_SHA1], cur_salt->salt, SALTLEN, cur_salt->iterations, pout + (i * SSE_GROUP_SZ_SHA1), 32, 0);
 #else
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 				pbkdf2_sha1((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, SALTLEN, cur_salt->iterations, master[i], 32, 0);
 #endif
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				cracked[index+i] = itunes_common_decrypt(cur_salt, master[i]);
 			}
 		} else { // iTunes Backup 10.x
 #if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
-			int lens[MAX_KEYS_PER_CRYPT];
-			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-			int loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA256;
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			int lens[MIN_KEYS_PER_CRYPT];
+			unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+			int loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA256;
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				lens[i] = strlen(saved_key[index+i]);
 				pin[i] = (unsigned char*)saved_key[index+i];
 				pout[i] = master[i];
 			}
 			for (i = 0; i < loops; i++)
 				pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], cur_salt->dpsl, SALTLEN, cur_salt->dpic, pout + (i * SSE_GROUP_SZ_SHA256), 32, 0);
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 32;
 				pin[i] = (unsigned char*)master[i];
 				pout[i] = master[i];
 			}
-			loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
+			loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
 			for (i = 0; i < loops; i++)
 				pbkdf2_sha1_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA1), &lens[i * SSE_GROUP_SZ_SHA1], cur_salt->salt, SALTLEN, cur_salt->iterations, pout + (i * SSE_GROUP_SZ_SHA1), 32, 0);
 #else
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->dpsl, SALTLEN, cur_salt->dpic, master[i], 32, 0);
 				pbkdf2_sha1(master[i], 32, cur_salt->salt, SALTLEN, cur_salt->iterations, master[i], 32, 0);
 			}
 #endif
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				cracked[index+i] = itunes_common_decrypt(cur_salt, master[i]);
 			}
 		}
