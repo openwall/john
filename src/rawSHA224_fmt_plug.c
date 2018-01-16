@@ -22,35 +22,18 @@ john_register_one(&fmt_rawSHA224);
 
 #include <stdint.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "sha2.h"
 #include "params.h"
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"
-#include "simd-intrinsics.h"
-
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_SHA256
-
-/*
- * Only effective for SIMD.
- * Undef to disable reversing steps for benchmarking.
- */
 #define REVERSE_STEPS
-
-#ifdef _OPENMP
-#ifdef SIMD_COEF_32
-#ifndef OMP_SCALE
-#define OMP_SCALE			1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE			2048
-#endif
-#endif
-#include <omp.h>
-#endif
+#include "simd-intrinsics.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "Raw-SHA224"
@@ -82,11 +65,15 @@ john_register_one(&fmt_rawSHA224);
 #define SALT_ALIGN				1
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_32*SIMD_PARA_SHA256)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_32*SIMD_PARA_SHA256*128)
 #else
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
 #endif
 
 static struct fmt_tests tests[] = {
@@ -112,9 +99,8 @@ static uint32_t (*crypt_out)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifndef SIMD_COEF_32
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
@@ -242,7 +228,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
 		SIMDSHA256body(&saved_key[(unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32],
 		              &crypt_out[(unsigned int)index/SIMD_COEF_32*8*SIMD_COEF_32],
