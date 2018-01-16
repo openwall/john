@@ -26,13 +26,10 @@ john_register_one(&fmt_postgres);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048 // scaled on K8-dual HT
-#endif
 #endif
 
-#include "md5.h"
 #include "arch.h"
+#include "md5.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -56,7 +53,11 @@ john_register_one(&fmt_postgres);
 #define SALT_ALIGN              MEM_ALIGN_NONE
 #define MAX_USERNAME_LEN        64
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests postgres_tests[] = {
 	{"$postgres$postgres*f063f05d*1d586cc8d137e5f1733f234d224393e8",
@@ -90,9 +91,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
