@@ -21,21 +21,7 @@ john_register_one(&fmt_vtp);
 
 #ifdef _OPENMP
 #include <omp.h>
-// Tuned on core i7 4-core HT
-// 64  - 19k
-// 128 - 27k
-// 256 - 30.5k  ** chosen **
-// 512 - 30.5k
-// 1k  - 28.5k
-// 2k  - 28.5k  (times wobble)
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE 4096
-#else
-#define OMP_SCALE 256
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "arch.h"
 #include "md5.h"
@@ -59,9 +45,17 @@ john_register_one(&fmt_vtp);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
 #define HEXCHARS                "0123456789abcdef"
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
+
+#ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE 512
+#else
+#define OMP_SCALE 128 // Tuned w/ MKPC for core i7
+#endif
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$vtp$2$196$14000107000105dc000186a164656661756c740014000105000505dc000186a56368656e6100000010000103000605dc000186a6666666001800020c03ea05dc00018a8a666464692d64656661756c743000030d03eb117800018a8b74726372662d64656661756c7400000001010ccc040103ed0701000208010007090100072000040f03ec05dc00018a8c666464696e65742d64656661756c7400030100012400050d03ed117800018a8d74726272662d64656661756c740000000201000f03010002$80$0201010c646f6d61696e313233343536000000000000000000000000000000000000000000000015000000003134313030393134333631376010913064949d6f47a53b2ad68ef06b0000000106010002$6010913064949d6f47a53b2ad68ef06b", "123"},
@@ -101,9 +95,8 @@ static  struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
