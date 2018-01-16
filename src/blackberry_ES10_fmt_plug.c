@@ -24,15 +24,6 @@ john_register_one(&fmt_blackberry1);
 
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE tests (intel core i7)
-// 8   - 77766
-// 64  - 80075
-// 128 - 82016  -test=0 is still almost instant.
-// 256 - 81753
-// 512 - 80537
-#ifndef OMP_SCALE
-#define OMP_SCALE               128
-#endif
 #endif
 
 #include "arch.h"
@@ -62,10 +53,14 @@ john_register_one(&fmt_blackberry1);
 #define SALT_ALIGN              4
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512 * 2)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      2
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               16 // Tuned w/ MKPC for core i7
 #endif
 
 static struct fmt_tests blackberry_tests[] = {
@@ -86,9 +81,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -185,19 +179,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		int j;
 		SHA512_CTX ctx;
 #ifdef SIMD_COEF_64
 		unsigned int i;
-		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE],
+		unsigned char _IBuf[128*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE],
 		              *keys, tmpBuf[128];
 		uint64_t *keys64, *tmpBuf64=(uint64_t*)tmpBuf, *p64;
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys64 = (uint64_t*)keys;
-		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
+		memset(keys, 0, 128*MIN_KEYS_PER_CRYPT);
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
 			SHA512_Update(&ctx, cur_salt->salt, strlen((char*)cur_salt->salt));
