@@ -20,9 +20,6 @@ john_register_one(&fmt_oldoffice);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               256
-#endif
 #endif
 
 #include "md5.h"
@@ -49,7 +46,11 @@ john_register_one(&fmt_oldoffice);
 #define SALT_SIZE               sizeof(dyna_salt*)
 #define SALT_ALIGN              MEM_ALIGN_WORD
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
+#endif
 
 #define CIPHERTEXT_LENGTH       (TAG_LEN + 120)
 #define FORMAT_TAG              "$oldoffice$"
@@ -111,9 +112,8 @@ static custom_salt *cur_salt = &cs;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ?
 			125 : 3 * PLAINTEXT_LENGTH;
@@ -341,8 +341,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		int i;
 		RC4_KEY key;
 
