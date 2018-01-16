@@ -27,9 +27,6 @@ john_register_one(&fmt_dashlane);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4
-#endif
 #endif
 
 #include "misc.h"
@@ -64,10 +61,14 @@ john_register_one(&fmt_dashlane);
 #define PLAINTEXT_LENGTH        125
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA1 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      4
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -77,9 +78,8 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;
@@ -116,20 +116,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char pkey[MAX_KEYS_PER_CRYPT][32];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		unsigned char pkey[MIN_KEYS_PER_CRYPT][32];
 		int i;
 #ifdef SIMD_COEF_32
-		int len[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		int len[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			len[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = pkey[i];
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, len, cur_salt->salt, 32, 10204, pout, 32, 0);
 #else
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 			pbkdf2_sha1((unsigned char *)saved_key[index+i],
 					strlen(saved_key[index+i]),
 					cur_salt->salt, 32, 10204,
@@ -137,7 +137,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #endif
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 			if (dashlane_verify(cur_salt, pkey[i]))
 				cracked[index+i] = 1;
 			else
