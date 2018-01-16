@@ -18,10 +18,8 @@ john_register_one(&fmt_cryptsha1);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE                   32 // tuned on core i7 w/ HT
-#endif
 #include <omp.h>
 #endif
 
@@ -56,12 +54,15 @@ john_register_one(&fmt_cryptsha1);
 
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA1 * 2)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      2
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
 
 /* An example hash (of password) is $sha1$40000$jtNX3nZ2$hBNaIXkt4wBI2o5rsi8KejSjNqIq.
  * An sha1-crypt hash string has the format $sha1$rounds$salt$checksum, where:
@@ -85,9 +86,8 @@ static struct saltstruct {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -122,7 +122,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SSE_GROUP_SZ_SHA1
 		int lens[SSE_GROUP_SZ_SHA1], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];
