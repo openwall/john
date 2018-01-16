@@ -18,32 +18,17 @@ extern struct fmt_main fmt_sl3;
 john_register_one(&fmt_sl3);
 #else
 
-#include "arch.h"
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_SHA1
-//#undef _OPENMP
-
 #include <string.h>
+
 #ifdef _OPENMP
-#ifdef SIMD_COEF_64
-#ifndef OMP_SCALE
-#define OMP_SCALE           1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE           2048
-#endif
-#endif
 #include <omp.h>
 #endif
 
+#include "arch.h"
 #include "misc.h"
 #include "formats.h"
 #include "options.h"
 #include "johnswap.h"
-#ifdef SIMD_COEF_32
-#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
-#endif
 #include "simd-intrinsics.h"
 #include "common.h"
 #include "sha.h"
@@ -55,16 +40,21 @@ john_register_one(&fmt_sl3);
 #define ALGORITHM_NAME      "SHA1 " SHA1_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT  NBKEYS
-#define MAX_KEYS_PER_CRYPT  NBKEYS
+#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
 #else
 #define GETPOS(i, index)    ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 ) //for endianity conversion
 #endif
+#define MIN_KEYS_PER_CRYPT  NBKEYS
+#define MAX_KEYS_PER_CRYPT  (NBKEYS * 256)
 #else
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  256
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           8 // Tuned w/ MKPC for core i7
 #endif
 
 static unsigned char *saved_salt;
@@ -80,9 +70,8 @@ static uint32_t (*crypt_key)[BINARY_SIZE / 4];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifndef SIMD_COEF_32
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -250,16 +239,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
-	int inc = 1;
-
-#ifdef SIMD_COEF_32
-	inc = NBKEYS;
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += inc) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
 		unsigned int i;
 
