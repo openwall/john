@@ -43,9 +43,6 @@ john_register_one(&fmt_zip);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1	// Tuned on core i7
-#endif
 #endif
 
 #include "arch.h"
@@ -91,10 +88,14 @@ typedef struct my_salt_t {
 #define SALT_ALIGN          sizeof(my_salt*)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT  (SSE_GROUP_SZ_SHA1 * 8)
 #else
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  8
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           32	// Tuned w/ MKPC for core i7
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -124,9 +125,8 @@ static my_salt *saved_salt;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -268,14 +268,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(index) shared(count, saved_key, saved_salt, crypt_key)
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
-		unsigned char pwd_ver[64*MAX_KEYS_PER_CRYPT];
-		int lens[MAX_KEYS_PER_CRYPT], i;
-		int something_hit = 0, hits[MAX_KEYS_PER_CRYPT] = {0};
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		unsigned char pwd_ver[64*MIN_KEYS_PER_CRYPT];
+		int lens[MIN_KEYS_PER_CRYPT], i;
+		int something_hit = 0, hits[MIN_KEYS_PER_CRYPT] = {0};
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = &pwd_ver[i*(2+2*KEY_LENGTH(saved_salt->v.mode))];
@@ -283,7 +283,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens, saved_salt->salt,
 		                SALT_LENGTH(saved_salt->v.mode), KEYING_ITERATIONS,
 		                pout, 2, 2*KEY_LENGTH(saved_salt->v.mode));
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 			if (!memcmp(pout[i], saved_salt->passverify, 2))
 				something_hit = hits[i] = 1;
 		if (something_hit) {
@@ -293,7 +293,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				                KEYING_ITERATIONS, pout,
 				                KEY_LENGTH(saved_salt->v.mode),
 				                KEY_LENGTH(saved_salt->v.mode));
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				if (hits[i]) {
 					hmac_sha1(pout[i], KEY_LENGTH(saved_salt->v.mode),
 				                  (const unsigned char*)saved_salt->datablob,
@@ -304,7 +304,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					memset(crypt_key[index+i], 0, WINZIP_BINARY_SIZE);
 			}
 		} else {
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 				memset(crypt_key[index+i], 0, WINZIP_BINARY_SIZE);
 		}
 #else
