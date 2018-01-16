@@ -19,25 +19,7 @@ john_register_one(&fmt_md2_);
 
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE tuned on core i7 quad core HT
-// 1   - 153k
-// 64  - 433k
-// 128 - 572k
-// 256 - 612k
-// 512 - 543k
-// 1k  - 680k  ** chosen
-// 2k  - 660k
-// 4k  - 670k
-// 8k  - 680k
-// 16k - 650k
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE  32
-#else
-#define OMP_SCALE  (1024)
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
+#endif
 
 #include "arch.h"
 #include "sph_md2.h"
@@ -61,7 +43,11 @@ john_register_one(&fmt_md2_);
 #define BINARY_ALIGN		4
 #define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	16
+
+#ifndef OMP_SCALE
+#define OMP_SCALE  4 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests md2__tests[] = {
 	{"$md2$ab4f496bfb2a530b219ff33031fe06b0", "message digest"},
@@ -75,9 +61,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
