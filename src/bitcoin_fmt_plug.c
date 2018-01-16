@@ -29,9 +29,6 @@ john_register_one(&fmt_bitcoin);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
 #endif
 
 #include "arch.h"
@@ -81,6 +78,10 @@ john_register_one(&fmt_bitcoin);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // Tuned w/ MKPC for core i7
+#endif
+
 #define SZ                      128
 
 static struct fmt_tests bitcoin_tests[] = {
@@ -121,9 +122,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
@@ -279,18 +279,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		unsigned char output[SZ];
 		SHA512_CTX sha_ctx;
 		int i;
 
 #ifdef SIMD_COEF_64
-		char unaligned_buf[MAX_KEYS_PER_CRYPT*SHA_BUF_SIZ*sizeof(uint64_t)+MEM_ALIGN_SIMD];
+		char unaligned_buf[MIN_KEYS_PER_CRYPT*SHA_BUF_SIZ*sizeof(uint64_t)+MEM_ALIGN_SIMD];
 		uint64_t *key_iv = (uint64_t*)mem_align(unaligned_buf, MEM_ALIGN_SIMD);
 		JTR_ALIGN(8)  unsigned char hash1[SHA512_DIGEST_LENGTH];            // 512 bits
 		int index2;
 
-		for (index2 = 0; index2 < MAX_KEYS_PER_CRYPT; index2++) {
+		for (index2 = 0; index2 < MIN_KEYS_PER_CRYPT; index2++) {
 			// The first hash for this password
 			SHA512_Init(&sha_ctx);
 			SHA512_Update(&sha_ctx, saved_key[index+index2], strlen(saved_key[index+index2]));
@@ -307,7 +307,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 
 			// We need to set ONE time, the upper half of the data buffer.  We put the 0x80 byte (in BE format), at offset
-			// 512-bits (SHA512_DIGEST_LENGTH) multiplied by the SIMD_COEF_64 (same as MAX_KEYS_PER_CRYPT), then zero
+			// 512-bits (SHA512_DIGEST_LENGTH) multiplied by the SIMD_COEF_64 (same as MIN_KEYS_PER_CRYPT), then zero
 			// out the rest of the buffer, putting 512 (#bits) at the end.  Once this part of the buffer is set up, we never
 			// touch it again, for the rest of the crypt.  We simply overwrite the first half of this buffer, over and over
 			// again, with BE results of the prior hash.
@@ -320,7 +320,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 1; i < cur_salt->cry_rounds; i++)  // start at 1; the first iteration is already done
 			SIMDSHA512body(key_iv, key_iv, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 
-		for (index2 = 0; index2 < MAX_KEYS_PER_CRYPT; index2++) {
+		for (index2 = 0; index2 < MIN_KEYS_PER_CRYPT; index2++) {
 			AES_KEY aes_key;
 			unsigned char key[32];
 			unsigned char iv[16];
