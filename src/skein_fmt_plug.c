@@ -19,6 +19,10 @@ john_register_one(&fmt_skein_512);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -26,26 +30,6 @@ john_register_one(&fmt_skein_512);
 #include "params.h"
 #include "options.h"
 #include "sph_skein.h"
-#ifdef _OPENMP
-#include <omp.h>
-// OMP_SCALE tuned on core i7 quad core HT
-//        256bt  512bt
-// 1   -  233k   232k
-// 64  - 5406k  5377k
-// 128 - 6730k  6568k
-// 256 - 7618k  7405k
-// 512 - 8243k  8000k
-// 1k  - 8610k  8408k  ** this level chosen
-// 2k  - 8804k  8610k
-// 4k  - 8688k  8648k
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE               64
-#else
-#define OMP_SCALE               1024
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
 #include "memdbg.h"
 
 // Skein-256 or Skein-512 are the real format labels.
@@ -59,12 +43,16 @@ john_register_one(&fmt_skein_512);
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE256          32
 #define BINARY_SIZE512          64
+#define BINARY_ALIGN            4
 #define CMP_SIZE                28 // skein224
 #define SALT_SIZE               0
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
-#define BINARY_ALIGN            4
 #define SALT_ALIGN              1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests skein_256_tests[] = {
 	{"39CCC4554A8B31853B9DE7A1FE638A24CCE6B35A55F2431009E18780335D2621", ""},
@@ -93,9 +81,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE512 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
