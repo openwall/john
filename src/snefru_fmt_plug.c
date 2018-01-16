@@ -20,16 +20,6 @@ john_register_one(&fmt_snefru_128);
 
 #ifdef _OPENMP
 #include <omp.h>
-// OMP_SCALE tuned on core i7 quad core HT
-//        128kb   256kb
-// 1   -  214k    215k
-// 64  - 1435k   1411k
-// 128 - 1474k   1902k *** this was chosen
-// 256 - 1508k   1511k
-// 512 - 1649k   1564k
-#ifndef OMP_SCALE
-#define OMP_SCALE  128
-#endif
 #endif
 
 #include "arch.h"
@@ -51,12 +41,16 @@ john_register_one(&fmt_snefru_128);
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE128		16
 #define BINARY_SIZE256		32
+#define BINARY_ALIGN		4
 #define CMP_SIZE		16
 #define SALT_SIZE		0
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BINARY_ALIGN		4
 #define SALT_ALIGN		1
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	32
+
+#ifndef OMP_SCALE
+#define OMP_SCALE  16 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests snefru_128_tests[] = {
 	{"53b8a9b1c9ed00174d88d705fb7bae30", "mystrongpassword"},
@@ -75,9 +69,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE256 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	if (!saved_key) {
 		saved_key = mem_calloc(self->params.max_keys_per_crypt,
 		                       sizeof(*saved_key));
