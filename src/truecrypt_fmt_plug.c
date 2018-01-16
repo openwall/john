@@ -30,6 +30,10 @@
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 
 #if FMT_EXTERNS_H
@@ -57,16 +61,6 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_ripemd160.h"
 #include "pbkdf2_hmac_whirlpool.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE               4
-#else
-#define OMP_SCALE               1
-#endif // __MIC__
-#endif // OMP_SCALE
-#endif // _OPENMP
 #include "memdbg.h"
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
@@ -77,7 +71,11 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8 // Tuned w/ MKPC for core i7
+#endif
 
 static unsigned char (*key_buffer)[PLAINTEXT_LENGTH + 1];
 static unsigned char (*first_block_dec)[16];
@@ -167,9 +165,8 @@ static struct fmt_tests tests_all[] = {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	key_buffer = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*key_buffer));
 	first_block_dec = mem_calloc(self->params.max_keys_per_crypt,
@@ -465,8 +462,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (i = 0; i < count; i+=psalt->loop_inc)
-	{
+	for (i = 0; i < count; i+=psalt->loop_inc) {
 		unsigned char key[64];
 #if SSE_GROUP_SZ_SHA512
 		unsigned char Keys[SSE_GROUP_SZ_SHA512][64];
@@ -611,7 +607,7 @@ struct fmt_main fmt_truecrypt = {
 		SALT_ALIGN,
 #if SSE_GROUP_SZ_SHA512
 		SSE_GROUP_SZ_SHA512,
-		SSE_GROUP_SZ_SHA512,
+		(SSE_GROUP_SZ_SHA512 * 4),
 #else
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
@@ -779,7 +775,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		SALT_ALIGN,
 #if SSE_GROUP_SZ_SHA512
 		SSE_GROUP_SZ_SHA512,
-		SSE_GROUP_SZ_SHA512,
+		(SSE_GROUP_SZ_SHA512 * 8),
 #else
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
