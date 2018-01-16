@@ -23,9 +23,6 @@ john_register_one(&fmt_lotus_85);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64  // XXX tune me!
-#endif
 #endif
 
 #include "formats.h"
@@ -46,8 +43,11 @@ john_register_one(&fmt_lotus_85);
 #define SALT_SIZE             sizeof(struct custom_salt)
 #define SALT_ALIGN            4
 #define MIN_KEYS_PER_CRYPT    1
-// #define MAX_KEYS_PER_CRYPT    0x900 // WTF?
-#define MAX_KEYS_PER_CRYPT    1
+#define MAX_KEYS_PER_CRYPT    4
+
+#ifndef OMP_SCALE
+#define OMP_SCALE             16  // Tuned w/ MKPC for core i7
+#endif
 
 #define LOTUS85_MAX_BLOB_SIZE 0x64
 #define LOTUS85_MIN_BLOB_SIZE 40 // XXX fictional value, but isn't this length fixed?
@@ -292,9 +292,8 @@ static void get_user_id_secret_key(const char *password, uint8_t *secret_key)
 /* Plugin initialization */
 static void lotus85_init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	lotus85_saved_passwords = mem_calloc(self->params.max_keys_per_crypt,
 	                                     PLAINTEXT_LENGTH + 1);
 	lotus85_last_binary_hash1 = mem_calloc(self->params.max_keys_per_crypt,
