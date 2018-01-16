@@ -15,36 +15,20 @@ john_register_one(&fmt_saltedsha);
 
 #include <string.h>
 
-#include "misc.h"
-#include "formats.h"
-#include "arch.h"
-#include "options.h"
-#include "johnswap.h"
-#include "salted_sha1_common.h"
-
-#ifdef SIMD_COEF_32
-#define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
-#endif
-#include "simd-intrinsics.h"
-
-#include "common.h"
-
-#include "sha.h"
-#include "base64_convert.h"
-
 #ifdef _OPENMP
-#ifdef SIMD_COEF_64
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE				2048
-#endif
-#endif
 #include <omp.h>
 #endif
 
+#include "arch.h"
+#include "misc.h"
+#include "formats.h"
+#include "options.h"
+#include "johnswap.h"
+#include "salted_sha1_common.h"
+#include "simd-intrinsics.h"
+#include "common.h"
+#include "sha.h"
+#include "base64_convert.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"Salted-SHA1"
@@ -62,13 +46,18 @@ john_register_one(&fmt_saltedsha);
 #define SALT_ALIGN			4
 
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define NBKEYS  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #define FMT_IS_BE
 #include "common-simd-getpos.h"
+#define MIN_KEYS_PER_CRYPT      NBKEYS
+#define MAX_KEYS_PER_CRYPT      (NBKEYS * 512)
 #else
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      512
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
 #endif
 
 struct s_salt
@@ -96,9 +85,8 @@ static unsigned int *saved_len;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifndef SIMD_COEF_32
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
