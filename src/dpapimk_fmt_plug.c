@@ -25,9 +25,6 @@ john_register_one(&fmt_DPAPImk);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4
-#endif
 #endif
 
 #include "arch.h"
@@ -88,6 +85,10 @@ john_register_one(&fmt_DPAPImk);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // Tuned w/ MKPC for core i7
+#endif
+
 static struct fmt_tests dpapimk_tests[] = {
 	/* new samples, including other Windows versions and both local and domain credentials */
 	{"$DPAPImk$1*1*S-15-21-447321867-460417387-480872410-1240*des3*sha1*24000*9b49e2d3b25103d03e936fdf66b94d26*208*ec96025ed4b023ebfa52bdfd91dfeb64edf3f3970b347ee8bb8adfb2a686a0a34792d40074edd372f346da8fcd02cc5d4182c2fd09f4549ec106273926edd05c42e4b5fc8b8758a7c48f6ddae273f357bcb645c8ad16e3161e8a9dbb5002454f4db5ef0d5d7a93ac", "bouledepetanque"},
@@ -117,9 +118,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	cracked   = mem_calloc(self->params.max_keys_per_crypt,
@@ -309,30 +309,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		unsigned char *passwordBuf;
 		int passwordBufSize, digestlen = 20;
-		unsigned char out[MAX_KEYS_PER_CRYPT][KEY_LEN2 + IV_LEN2];
-		unsigned char out2[MAX_KEYS_PER_CRYPT][KEY_LEN2 + IV_LEN2];
+		unsigned char out[MIN_KEYS_PER_CRYPT][KEY_LEN2 + IV_LEN2];
+		unsigned char out2[MIN_KEYS_PER_CRYPT][KEY_LEN2 + IV_LEN2];
 		SHA_CTX ctx;
 		MD4_CTX ctx2;
 		int i;
 
 #if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
-		int lens[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT];
+		int lens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT];
 		union {
-			unsigned char *pout[MAX_KEYS_PER_CRYPT];
+			unsigned char *pout[MIN_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
-		int loops = MAX_KEYS_PER_CRYPT;
+		int loops = MIN_KEYS_PER_CRYPT;
 
 		if (cur_salt->version == 1)
-			loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
+			loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
 		else if (cur_salt->version == 2)
-			loops = MAX_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA512;
+			loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA512;
 #endif
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			passwordBuf = (unsigned char*)saved_key[index+i];
 			passwordBufSize = strlen16((UTF16*)passwordBuf) * 2;
 
@@ -374,7 +374,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		if (cur_salt->version == 1) {
 			/* decrypt will use 32 bytes, we only initialized 20 so far */
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				memset(out2[i] + 20, 0, 32 - 20);
 
 				if (decrypt_v1(out[i], out[i] + KEY_LEN1, out2[i], cur_salt->encrypted) == 0)
@@ -384,7 +384,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 		else if (cur_salt->version == 2) {
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				if (decrypt_v2(out[i], out[i] + KEY_LEN2, out2[i], cur_salt->encrypted) == 0)
 					cracked[index+i] = 1;
 				else
