@@ -14,19 +14,16 @@ john_register_one(&fmt_rawKeccak);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
 #include "KeccakHash.h"
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE			2048
-#endif
-#include <omp.h>
-#endif
 #include "memdbg.h"
 
 #define FORMAT_LABEL		"Raw-Keccak"
@@ -49,7 +46,11 @@ john_register_one(&fmt_rawKeccak);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		256
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			64 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
 	{"0eab42de4c3ceb9235fc91acffe746b29c29a8c366b7c60e4e67c466f36a4304c00fa9caf9d87976ba469bcbe06713b435f091ef2769fb160cdab33d3670680e", ""},
@@ -69,9 +70,8 @@ static uint32_t (*crypt_out)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
