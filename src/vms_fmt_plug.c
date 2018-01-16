@@ -29,17 +29,16 @@ john_register_one(&fmt_VMS);
 
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "vms_std.h"
 #include "common.h"
 #include "formats.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024 // Tuned on K8-Dual HT
-#endif
-#endif
 #ifdef VMS
 #include <ssdef.h>
 #define UAIsM_PWDMIX UAI$M_PWDMIX
@@ -67,7 +66,11 @@ john_register_one(&fmt_VMS);
 #define SALT_ALIGN			sizeof(uaf_qword)
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		8
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               32 // Tuned w/ MKPC for core i7
+#endif
 
 static struct fmt_tests tests[] = {
 /*
@@ -122,9 +125,8 @@ static int valid(char *ciphertext, struct fmt_main *self )
 
 static void fmt_vms_init ( struct fmt_main *self )
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	/* Init bin 2 hex table for faster conversions later */
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
