@@ -12,6 +12,12 @@ extern struct fmt_main fmt_saltedsha2;
 john_register_one(&fmt_saltedsha2);
 #else
 
+#include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "formats.h"
@@ -21,22 +27,7 @@ john_register_one(&fmt_saltedsha2);
 #include "sha2.h"
 #include "base64_convert.h"
 #include "simd-intrinsics.h"
-#include <string.h>
 #include "rawSHA512_common.h"
-
-#ifdef _OPENMP
-#ifdef SIMD_COEF_64
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE				2048
-#endif
-#endif
-#include <omp.h>
-#endif
-
 #include "memdbg.h"
 
 #define FORMAT_LABEL                    "SSHA512"
@@ -56,11 +47,15 @@ john_register_one(&fmt_saltedsha2);
 #define SALT_ALIGN                      4
 
 #ifdef SIMD_COEF_64
-#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT              (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512 * 128)
 #else
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      128
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               16 // Tuned w/ MKPC for core i7
 #endif
 
 struct s_salt
@@ -94,9 +89,8 @@ static void init(struct fmt_main *self)
 	unsigned int i, j;
 #endif
 
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
 #ifndef SIMD_COEF_64
@@ -203,7 +197,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index+=MIN_KEYS_PER_CRYPT) {
 #ifndef SIMD_COEF_64
 		SHA512_CTX ctx;
 		SHA512_Init(&ctx);
@@ -215,7 +209,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// then append final length of password.salt
 		int i, j;
 		unsigned char *sk = (unsigned char*)saved_key;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			int idx = i+index;
 			int x = saved_len[idx];
 			for (j = 0; j < saved_salt->len; ++j)
