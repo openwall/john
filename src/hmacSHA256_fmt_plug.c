@@ -9,11 +9,11 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_hmacSHA224;
-extern struct fmt_main fmt_hmacSHA256;
+extern struct fmt_main fmt__hmacSHA224;
+extern struct fmt_main fmt__hmacSHA256;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_hmacSHA224);
-john_register_one(&fmt_hmacSHA256);
+john_register_one(&fmt__hmacSHA224);
+john_register_one(&fmt__hmacSHA256);
 #else
 
 #ifdef _OPENMP
@@ -612,7 +612,7 @@ static void *get_salt(char *ciphertext)
 #endif
 }
 
-struct fmt_main fmt_hmacSHA256 = {
+struct fmt_main fmt__hmacSHA256 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -665,7 +665,7 @@ struct fmt_main fmt_hmacSHA256 = {
 	}
 };
 
-struct fmt_main fmt_hmacSHA224 = {
+struct fmt_main fmt__hmacSHA224 = {
 	{
 		FORMAT_LABEL_224,
 		FORMAT_NAME,

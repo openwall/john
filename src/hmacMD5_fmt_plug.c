@@ -7,9 +7,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_hmacMD5;
+extern struct fmt_main fmt__hmacMD5;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_hmacMD5);
+john_register_one(&fmt__hmacMD5);
 #else
 
 #include <string.h>
@@ -546,7 +546,7 @@ static void *get_salt(char *ciphertext)
 #endif
 }
 
-struct fmt_main fmt_hmacMD5 = {
+struct fmt_main fmt__hmacMD5 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
