@@ -104,7 +104,7 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 
 		if (!ldr_in_pot)
 		if (!warned++)
-			fprintf(stderr, "mscash1: One or more hashes rejected due to salt length limitation\n");
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", self->params.label);
 		return 0;
 	}
 	return 1;
