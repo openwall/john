@@ -346,7 +346,7 @@ int enc_to_utf16(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc != UTF_8) {
+	if ((options.target_enc ? options.target_enc : options.input_enc) != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -404,7 +404,7 @@ int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
                     unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc != UTF_8) {
+	if ((options.target_enc ? options.target_enc : options.input_enc) != UTF_8) {
 		int i, trunclen = (int)srclen;
 		if (trunclen > maxdstlen)
 			trunclen = maxdstlen;
@@ -715,7 +715,7 @@ UTF8 *utf16_to_enc(const UTF16 *source)
 UTF8 *utf16_to_enc_r(UTF8 *dst, int dst_len, const UTF16 *source)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc == UTF_8)
+	if ((options.target_enc ? options.target_enc : options.input_enc) == UTF_8)
 #endif
 		return utf16_to_utf8_r(dst, dst_len, source);
 #ifndef UNICODE_NO_OPTIONS
@@ -860,7 +860,7 @@ int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
                  unsigned int srclen)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc != UTF_8)
+	if ((options.target_enc ? options.target_enc : options.input_enc) != UTF_8)
 		return cp_to_utf32(dst, maxdstlen, src, srclen);
 	else
 #endif
@@ -870,7 +870,7 @@ int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
 UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source)
 {
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc == UTF_8)
+	if ((options.target_enc ? options.target_enc : options.input_enc) == UTF_8)
 #endif
 		return utf32_to_utf8(dst, dst_len, source);
 #ifndef UNICODE_NO_OPTIONS
@@ -1670,7 +1670,7 @@ int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 	int utf16len, i;
 
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc != UTF_8) {
+	if ((options.target_enc ? options.target_enc : options.input_enc) != UTF_8) {
 		if (dst_bufsize <= src_len)
 			src_len = dst_bufsize - 1;
 		for (i = 0; i < src_len; ++i) {
@@ -1709,7 +1709,7 @@ int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 	int utf16len, i;
 
 #ifndef UNICODE_NO_OPTIONS
-	if (options.target_enc != UTF_8) {
+	if ((options.target_enc ? options.target_enc : options.input_enc) != UTF_8) {
 		int len;
 		if (dst_bufsize <= src_len)
 			src_len = dst_bufsize - 1;
