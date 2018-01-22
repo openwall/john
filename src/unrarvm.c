@@ -229,16 +229,16 @@ unsigned int rarvm_getbits(rarvm_input_t *rarvm_input)
 
 	if (rarvm_input->in_addr < rarvm_input->buf_size) {
 		bit_field = (unsigned int) rarvm_input->in_buf[rarvm_input->in_addr] << 16;
-            if (rarvm_input->in_addr+1 < rarvm_input->buf_size) {
-                bit_field |= (unsigned int) rarvm_input->in_buf[rarvm_input->in_addr+1] << 8;
-                if (rarvm_input->in_addr+2 < rarvm_input->buf_size) {
-                    bit_field |= (unsigned int) rarvm_input->in_buf[rarvm_input->in_addr+2];
-                }
-            }
+		if (rarvm_input->in_addr+1 < rarvm_input->buf_size) {
+			bit_field |= (unsigned int) rarvm_input->in_buf[rarvm_input->in_addr+1] << 8;
+			if (rarvm_input->in_addr+2 < rarvm_input->buf_size) {
+				bit_field |= (unsigned int) rarvm_input->in_buf[rarvm_input->in_addr+2];
+			}
+		}
 	}
-        bit_field >>= (8-rarvm_input->in_bit);
+	bit_field >>= (8-rarvm_input->in_bit);
 
-        return (bit_field & 0xffff);
+	return (bit_field & 0xffff);
 }
 
 unsigned int rarvm_read_data(rarvm_input_t *rarvm_input)
@@ -606,8 +606,8 @@ static int rarvm_execute_code(rarvm_data_t *rarvm_data,
 		}
 		if (cmd < prepared_code) {
 			//rar_dbgmsg("RAR: code underrun detected\n");
-                        return 0;
-                }
+			return 0;
+		}
 		op1 = rarvm_get_operand(rarvm_data, &cmd->op1);
 		op2 = rarvm_get_operand(rarvm_data, &cmd->op2);
 		//rar_dbgmsg("op(%d) op_code: %d, op1=%u, op2=%u\n", 25000000-max_ops,
