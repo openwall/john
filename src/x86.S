@@ -1423,12 +1423,12 @@ CPU_detect_XOP:
 #if DES_BS_VECTOR >= 4
 	xchgl %edx,%eax
 #if CPU_REQ_SSE4_1
-	andl CF_SSE4_1,%ecx
-	cmpl CF_SSE4_1,%ecx
+	andl CF_SSE4_1,%eax
+	cmpl CF_SSE4_1,%eax
 	jne CPU_detect_ret
 #elif CPU_REQ_SSSE3
-	andl CF_SSSE3,%ecx
-	cmpl CF_SSSE3,%ecx
+	andl CF_SSSE3,%eax
+	cmpl CF_SSSE3,%eax
 	jne CPU_detect_ret
 #else
 	andl CF_SSE2,%eax
