@@ -99,12 +99,8 @@ unsigned int rar_getbits(unpack_data_t *unpack_data)
 
 	//rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d read_top=%d\n", unpack_data->in_addr, unpack_data->in_bit, unpack_data->read_top);
 	bit_field = (unsigned int) unpack_data->in_buf[unpack_data->in_addr] << 16;
-	if (unpack_data->in_addr + 1 <= unpack_data->read_top) {
-		bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+1] << 8;
-		if (unpack_data->in_addr + 2 <= unpack_data->read_top) {
-			bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+2];
-		}
-	}
+	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+1] << 8;
+	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+2];
 	bit_field >>= (8-unpack_data->in_bit);
 	//rar_dbgmsg("rar_getbits return(0x%04x)\n", bit_field & 0xffff);
 	return(bit_field & 0xffff);
@@ -156,7 +152,7 @@ int rar_unp_read_buf(const unsigned char **fd, unpack_data_t *unpack_data)
 #ifdef RAR_HIGH_DEBUG
 	dump_stuff_msg("read_buf", unpack_data->in_buf + data_size, read_size > 32 ? 32 : read_size);
 #endif
-	return (read_size!=-1);
+	return 1;
 }
 
 unsigned int rar_get_char(const unsigned char **fd, unpack_data_t *unpack_data)
