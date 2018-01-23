@@ -97,8 +97,10 @@
  * except in OpenMP-enabled builds, where it's aligned by different means.
  */
 #define CPU_REQ_AVX			1
+#ifndef CPU_REQ_XOP
 #undef CPU_NAME
 #define CPU_NAME			"AVX"
+#endif
 #ifdef CPU_FALLBACK_BINARY_DEFAULT
 #undef CPU_FALLBACK_BINARY
 #define CPU_FALLBACK_BINARY		"john-non-avx"
