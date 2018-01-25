@@ -1,7 +1,9 @@
 /*
  * OpenCL format for cracking NetIQ SSPR hashes.
  *
- * This software is Copyright (c) 2018 Dhiru Kholia <dhiru at openwall.com>,
+ * This software is
+ * Copyright (c) 2018 Dhiru Kholia <dhiru at openwall.com>
+ * Copyright (c) 2018 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,9 +26,6 @@ john_register_one(&fmt_opencl_sspr);
 
 #include <stdint.h>
 #include <string.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
 #include "params.h"
@@ -36,7 +35,6 @@ john_register_one(&fmt_opencl_sspr);
 #include "options.h"
 #include "common-opencl.h"
 #include "sspr_common.h"
-#include "sspr_variable_code.h"
 
 #define FORMAT_LABEL            "sspr-opencl"
 #define ALGORITHM_NAME          "SHA1/SHA2 OpenCL"
@@ -50,13 +48,23 @@ john_register_one(&fmt_opencl_sspr);
 #define MAX_KEYS_PER_CRYPT      1
 #define SALT_LENGTH             32
 
+#ifndef SHA512_DIGEST_LENGTH
+#define SHA512_DIGEST_LENGTH 64
+#endif
+
+typedef union {
+	uint8_t  b[SHA512_DIGEST_LENGTH];
+	uint32_t w[SHA512_DIGEST_LENGTH / sizeof(uint)];
+	uint64_t W[SHA512_DIGEST_LENGTH / sizeof(uint64_t)];
+} hash512_t;
+
 typedef struct {
 	uint32_t length;
 	uint8_t v[PLAINTEXT_LENGTH];
 } sspr_password;
 
 typedef struct {
-	uint8_t v[20];
+	uint8_t v[BINARY_SIZE_MIN];
 } sspr_hash;
 
 typedef struct {
@@ -65,7 +73,10 @@ typedef struct {
 	uint8_t salt[SALT_LENGTH];
 } sspr_salt;
 
-static uint32_t (*crypt_out)[32 / sizeof(uint32_t)];
+typedef struct {
+	hash512_t hash;
+	uint32_t  count;
+} sspr_state;
 
 static struct custom_salt *cur_salt;
 
@@ -73,9 +84,9 @@ static cl_int cl_error;
 static sspr_password *inbuffer;
 static sspr_hash *outbuffer;
 static sspr_salt currentsalt;
-static cl_mem mem_in, mem_out, mem_setting;
+static cl_mem mem_in, mem_out, mem_setting, mem_state;
 static struct fmt_main *self;
-static cl_kernel crypt_kernel_sha1, crypt_kernel_sha256, crypt_kernel_sha512;
+static cl_kernel sspr_kernel[5], loop_kernel[5];
 
 size_t insize, outsize, settingsize;
 
@@ -86,25 +97,49 @@ size_t insize, outsize, settingsize;
 #include "opencl_autotune.h"
 #include "memdbg.h"
 
+/*
+ * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
+ * be chosen for a kernel duration of not more than 200 ms
+ */
+#define HASH_LOOPS		(3*271) // 3 3 41 271
+
+#define LOOP_COUNT		(((cur_salt->iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
+
+static int split_events[] = { 2, -1, -1 };
+
 static const char *warn[] = {
-	"xfer: ",  ", crypt: ",  ", xfer: "
+	"xfer: ",  ", init: ",  ", loop: ", ", xfer: "
 };
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	int i;
+	size_t max =
+		autotune_get_task_max_work_group_size(FALSE, 0, sspr_kernel[0]);
+
+	max = MIN(max,
+		autotune_get_task_max_work_group_size(FALSE, 0, loop_kernel[0]));
+	for (i = 1; i < 5; i++) {
+		max = MIN(max,
+			autotune_get_task_max_work_group_size(FALSE, 0, sspr_kernel[i]));
+		max = MIN(max,
+			autotune_get_task_max_work_group_size(FALSE, 0, loop_kernel[i]));
+	}
+	return max;
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	int i;
+	size_t statesize = sizeof(sspr_state) * gws;
+
 	insize = sizeof(sspr_password) * gws;
 	outsize = sizeof(sspr_hash) * gws;
 	settingsize = sizeof(sspr_salt);
 
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	crypt_out = mem_calloc(gws, sizeof(*crypt_out));
 
 	// Allocate memory
 	mem_in =
@@ -115,54 +150,42 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
 	    NULL, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
+	mem_state =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, statesize,
+	    NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem state");
 	mem_out =
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	// Salted SHA-1
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
+	for (i = 0; i < 5; i++) {
+		HANDLE_CLERROR(clSetKernelArg(sspr_kernel[i], 0, sizeof(mem_in),
+			&mem_in), "Error while setting mem_in kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(sspr_kernel[i], 1, sizeof(mem_out),
+			&mem_out), "Error while setting mem_out kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(sspr_kernel[i], 2, sizeof(mem_setting),
+			&mem_setting), "Error while setting mem_salt kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(sspr_kernel[i], 3, sizeof(mem_state),
+			&mem_state), "Error while setting mem_state kernel argument");
 
-	// Unsalted SHA-1
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha1, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha1, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha1, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
-
-	// Salted SHA-256
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha256, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha256, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha256, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
-
-	// Salted SHA-512
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha512, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha512, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel_sha512, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(loop_kernel[i], 0, sizeof(mem_out),
+			&mem_out), "Error while setting mem_out kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(loop_kernel[i], 1, sizeof(mem_state),
+			&mem_state), "Error while setting mem_state kernel argument");
+	}
 }
 
 static void release_clobj(void)
 {
-	if (crypt_out) {
+	if (outbuffer) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 		MEM_FREE(inbuffer);
 		MEM_FREE(outbuffer);
-		MEM_FREE(crypt_out);
 	}
 }
 
@@ -178,48 +201,63 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DPLAINTEXT_LENGTH=%d -DSALT_LENGTH=%d",
-		         PLAINTEXT_LENGTH, SALT_LENGTH);
+		         "-DPLAINTEXT_LENGTH=%d -DSALT_LENGTH=%d -DHASH_LOOPS=%d",
+		         PLAINTEXT_LENGTH, SALT_LENGTH, HASH_LOOPS);
 		opencl_init("$JOHN/kernels/sspr_kernel.cl",
 		            gpu_id, build_opts);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "sspr_salted_sha1", &cl_error);
+		crypt_kernel =
+			sspr_kernel[0] = clCreateKernel(program[gpu_id], "sspr_md5", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		loop_kernel[0] = clCreateKernel(program[gpu_id], "loop_md5", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
-		crypt_kernel_sha1 = clCreateKernel(program[gpu_id], "sspr_sha1", &cl_error);
+		sspr_kernel[1] = clCreateKernel(program[gpu_id], "sspr_sha1", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		loop_kernel[1] = clCreateKernel(program[gpu_id], "loop_sha1", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
-		crypt_kernel_sha256 = clCreateKernel(program[gpu_id], "sspr_salted_sha256", &cl_error);
+		sspr_kernel[2] = clCreateKernel(program[gpu_id], "sspr_salted_sha1", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		loop_kernel[2] = clCreateKernel(program[gpu_id], "loop_sha1", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
-		crypt_kernel_sha512 = clCreateKernel(program[gpu_id], "sspr_salted_sha512", &cl_error);
+		sspr_kernel[3] = clCreateKernel(program[gpu_id], "sspr_salted_sha256", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		loop_kernel[3] = clCreateKernel(program[gpu_id], "loop_sha256", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+
+		sspr_kernel[4] = clCreateKernel(program[gpu_id], "sspr_salted_sha512", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		loop_kernel[4] = clCreateKernel(program[gpu_id], "loop_sha512", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
 		                       create_clobj, release_clobj,
-		                       sizeof(sspr_password), 0, db);
+		                       sizeof(sspr_state), 0, db);
 
-		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 300);
+		// Auto tune execution from shared/included code, 10s crypt_all() max.
+		autotune_run(self, 100000, 0, (cpu(device_info[gpu_id]) ?
+		              1000000000 : 10000000000ULL));
 	}
 }
 
 static void done(void)
 {
 	if (autotuned) {
+		int i;
+
 		release_clobj();
 
-		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		for (i = 0; i < 5; i++) {
+			HANDLE_CLERROR(clReleaseKernel(sspr_kernel[i]), "Release kernel");
+			HANDLE_CLERROR(clReleaseKernel(loop_kernel[i]), "Release kernel");
+		}
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
 	}
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	return sspr_valid(ciphertext, self, 0);
 }
 
 static void set_salt(void *salt)
@@ -258,8 +296,9 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int i;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	int krnl = cur_salt->fmt;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
@@ -268,43 +307,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
 		"Copy data to gpu");
 
-	// Run kernel
-	if (cur_salt->fmt == 2) {
+	// Run 1st kernel
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+		sspr_kernel[krnl], 1, NULL,
+		&global_work_size, lws, 0, NULL,
+		multi_profilingEvent[1]), "Run init kernel");
+
+	// Run loop kernel
+	for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
-					crypt_kernel, 1, NULL,
-					&global_work_size, lws, 0, NULL,
-					multi_profilingEvent[1]), "Run kernel");
-	} else if (cur_salt->fmt == 1) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
-					crypt_kernel_sha1, 1, NULL,
-					&global_work_size, lws, 0, NULL,
-					multi_profilingEvent[1]), "Run kernel");
-	} else if (cur_salt->fmt == 3) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
-					crypt_kernel_sha256, 1, NULL,
-					&global_work_size, lws, 0, NULL,
-					multi_profilingEvent[1]), "Run kernel");
-	} else if (cur_salt->fmt == 4) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
-					crypt_kernel_sha512, 1, NULL,
-					&global_work_size, lws, 0, NULL,
-					multi_profilingEvent[1]), "Run kernel");
+			loop_kernel[krnl], 1, NULL,
+			&global_work_size, lws, 0, NULL,
+			multi_profilingEvent[2]), "Run loop kernel");
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		opencl_process_event();
 	}
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[3]),
 		"Copy result back");
-
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		memcpy((unsigned char*)crypt_out[index], outbuffer[index].v, BINARY_SIZE_MIN);
-	}
 
 	return count;
 }
@@ -314,14 +336,14 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+		if (!memcmp(binary, outbuffer[index].v, ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE_MIN);
+	return !memcmp(binary, outbuffer[index].v, BINARY_SIZE_MIN);
 }
 
 static int cmp_exact(char *source, int index)
@@ -346,7 +368,7 @@ struct fmt_main fmt_opencl_sspr = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		{
-			"KDF [1:SHA1 2:SHA1_SALT 3:SHA256_SALT 4:SHA512_SALT]",
+			"KDF [0:MD5 1:SHA1 2:SHA1_SALT 3:SHA256_SALT 4:SHA512_SALT]",
 		},
 		{ FORMAT_TAG },
 		sspr_tests
@@ -356,7 +378,7 @@ struct fmt_main fmt_opencl_sspr = {
 		done,
 		reset,
 		fmt_default_prepare,
-		valid,
+		sspr_valid,
 		fmt_default_split,
 		sspr_get_binary,
 		sspr_get_salt,

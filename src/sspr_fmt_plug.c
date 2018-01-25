@@ -32,8 +32,6 @@ john_register_one(&fmt_sspr);
 #include "params.h"
 #include "options.h"
 #include "sspr_common.h"
-#define CPU_FORMAT              1
-#include "sspr_variable_code.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "sspr"
@@ -68,11 +66,6 @@ static void done(void)
 {
 	MEM_FREE(saved_key);
 	MEM_FREE(crypt_out);
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	return sspr_valid(ciphertext, self, 1);
 }
 
 static void set_salt(void *salt)
@@ -207,7 +200,7 @@ struct fmt_main fmt_sspr = {
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		sspr_valid,
 		fmt_default_split,
 		sspr_get_binary,
 		sspr_get_salt,

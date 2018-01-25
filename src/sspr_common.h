@@ -20,7 +20,8 @@ struct custom_salt {
 	char salt[MAX_SALT_LEN];
 };
 
-int sspr_valid(char *ciphertext, struct fmt_main *self, int is_cpu_format);
-void *sspr_get_salt(char *ciphertext);
-void *sspr_get_binary(char *ciphertext);
-unsigned int sspr_get_kdf_type(void *salt);
+extern struct fmt_tests sspr_tests[];
+extern int sspr_valid(char *ciphertext, struct fmt_main *self);
+extern void *sspr_get_salt(char *ciphertext);
+extern void *sspr_get_binary(char *ciphertext);
+extern unsigned int sspr_get_kdf_type(void *salt);
