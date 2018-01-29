@@ -820,6 +820,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 					printf("\"disabled\":true,");
 				if (is_dynamic)
 					printf("\"dynamic\":true,");
+				if (huge_line)
+					printf("\"truncated\":true,");
 				if (prepared_eq_ciphertext)
 					printf("\"prepareEqCiphertext\":true,");
 				printf("\"canonHash\":[");
@@ -832,7 +834,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 			check_field_separator(alt->params.label);
 			/* Canonical hash or hashes (like halves of LM) */
 			for (part = 0; part < valid; part++) {
-				char *split = alt->methods.split(prepared, part, alt);
+				char *split = alt->methods.split(prepared,
+				                                 part, alt);
 
 				if (db_opts->showtypes_json)
 					printf("%s\"%s\"",
@@ -842,8 +845,23 @@ static int ldr_split_line(char **login, char **ciphertext,
 					printf("%c%s", fs, split);
 				check_field_separator(split);
 			}
-			if (db_opts->showtypes_json)
-				printf("]}");
+			if (db_opts->showtypes_json) {
+				printf("]");
+				if (huge_line) {
+					printf(",\"truncHash\":[");
+					for (part = 0; part < valid; part++) {
+						char *split = alt->methods.split(prepared, part, alt);
+						char tr[LINE_BUFFER_SIZE + 1];
+
+						ldr_pot_source(split, tr);
+						printf("%s\"%s\"",
+						       part ? "," : "",
+						       escape_json(tr));
+					}
+					printf("]");
+				}
+				printf("}");
+			}
 		} while ((alt = alt->next));
 		if (db_opts->showtypes_json) {
 			if (bad_char)
