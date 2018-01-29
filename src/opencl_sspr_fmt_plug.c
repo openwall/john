@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_sspr);
 #include "sspr_common.h"
 
 #define FORMAT_LABEL            "sspr-opencl"
-#define ALGORITHM_NAME          "SHA1/SHA2 OpenCL"
+#define ALGORITHM_NAME          "MD5/SHA1/SHA2 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        64
