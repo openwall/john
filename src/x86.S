@@ -1306,6 +1306,7 @@ BF_body:
 #define CF_SSE2				$0x04000000 /* SSE2 (edx) */
 #define CF_SSSE3			$0x00000200 /* SSSE3 (ecx) */
 #define CF_SSE4_1			$0x00080200 /* + SSE4.1 (ecx) */
+#define CF_SSE4_2			$0x00180200 /* + SSE4.2 (ecx) */
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
 
 #define CF_XOP				$0x00000800
@@ -1419,10 +1420,13 @@ CPU_detect_XOP:
 	popl %edx
 	popl %eax
 #endif
-#if CPU_REQ_SSE4_1 || CPU_REQ_SSSE3
+#if CPU_REQ_SSE4_2 || CPU_REQ_SSE4_1 || CPU_REQ_SSSE3
 	movl $1,%eax
 	cpuid
-#if CPU_REQ_SSE4_1
+#if CPU_REQ_SSE4_2
+	andl CF_SSE4_2,%ecx
+	cmpl CF_SSE4_2,%ecx
+#elif CPU_REQ_SSE4_1
 	andl CF_SSE4_1,%ecx
 	cmpl CF_SSE4_1,%ecx
 #elif CPU_REQ_SSSE3

@@ -10612,6 +10612,45 @@ fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
+  CFLAGS="$CFLAGS_BACKUP -msse4.2 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.2" >&5
+$as_echo_n "checking for SSE4.2... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-msse4.2"
+     SIMD_NAME="SSE4.2"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND="1"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+
+fi
+
+  if test "x$CPU_NOTFOUND" = x0; then :
+
   CFLAGS="$CFLAGS_BACKUP -mavx -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5
@@ -10932,7 +10971,37 @@ rm -f core conftest.err conftest.$ac_objext \
 
 
 fi
+  if test "x$CPU_NOTFOUND" = x0; then :
 
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSE4.2" >&5
+$as_echo_n "checking for SSE4.2... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <nmmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){unsigned int t=_mm_crc32_u8(0xffffffff,(unsigned char)'a');if(t==0x3e2fbccf)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  CPU_BEST_FLAGS="-msse4.2"
+     SIMD_NAME="SSE4.2"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND=1
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+
+fi
   if test "x$CPU_NOTFOUND" = x0; then :
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX" >&5

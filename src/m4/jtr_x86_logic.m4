@@ -207,6 +207,25 @@ if test "x$simd" = xyes; then
 
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
+  CFLAGS="$CFLAGS_BACKUP -msse4.2 -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+
+  AC_MSG_CHECKING([for SSE4.2])
+  AC_RUN_IFELSE([AC_LANG_SOURCE(
+    [[extern int CPU_detect(void); extern char CPU_req_name[];
+      unsigned int nt_buffer8x[4], output8x[4];
+      int main(int argc, char **argv) { return !CPU_detect(); }
+    ]])],
+     [CPU_BEST_FLAGS="-msse4.2"]
+     [SIMD_NAME="SSE4.2"]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND="1"]
+     [AC_MSG_RESULT([no])]
+  )
+  ]
+  )
+
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
   CFLAGS="$CFLAGS_BACKUP -mavx -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
 
   AC_MSG_CHECKING([for AVX])
@@ -379,7 +398,25 @@ dnl ======================================================================
     )
   ]
   )
-
+  AS_IF([test "x$CPU_NOTFOUND" = x0],
+  [
+  AC_MSG_CHECKING([for SSE4.2])
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+      [[#include <nmmintrin.h>
+        #include <stdio.h>
+        extern void exit(int);
+        int main(){unsigned int t=_mm_crc32_u8(0xffffffff,(unsigned char)'a');if(t==0x3e2fbccf)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-msse4.2"]
+     [SIMD_NAME="SSE4.2"]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND=1]
+     [AC_MSG_RESULT([no])]
+    )
+  ]
+  )
   AS_IF([test "x$CPU_NOTFOUND" = x0],
   [
   AC_MSG_CHECKING([for AVX])
