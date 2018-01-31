@@ -60,7 +60,7 @@ def process_file(filename):
 
     data = f.read().decode("utf-8")
 
-    sys.stderr.write("WARNING: Upon successful password recovery, this hash format may expose your PRIVATE KEY. Do not share extracted hashes with any untrusted parties!")
+    sys.stderr.write("WARNING: Upon successful password recovery, this hash format may expose your PRIVATE KEY. Do not share extracted hashes with any untrusted parties!\n")
 
     try:
         data = json.loads(data)
