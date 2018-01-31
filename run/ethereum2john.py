@@ -59,6 +59,12 @@ def process_file(filename):
         return
 
     data = f.read().decode("utf-8")
+    
+    sys.stdout.write("WARNING: Upon successful password recovery, this hash format may expose your PRIVATE KEY. Do not share extracted hashes with any untrusted parties!")
+    reply = str(raw_input('\nDo you wish to continue? (y/n): ')).lower().strip()
+    if reply[0] != 'y':
+        return
+    
     try:
         data = json.loads(data)
         try:
@@ -113,3 +119,5 @@ if __name__ == "__main__":
 
     for j in range(1, len(sys.argv)):
         process_file(sys.argv[j])
+        
+    
