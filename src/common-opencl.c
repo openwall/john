@@ -2722,6 +2722,13 @@ void opencl_list_devices(void)
 			       human_format((unsigned long long)long_entries),
 			       memtype == CL_LOCAL ? "Local" : "Global");
 			clGetDeviceInfo(devices[sequence_nr],
+			                CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE,
+			                sizeof(cl_ulong), &long_entries, NULL);
+			if (long_entries)
+				printf("    Constant Buffer size:   %s\n",
+				       human_format((unsigned long long)long_entries)
+				      );
+			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_MEM_ALLOC_SIZE,
 			                sizeof(long_entries), &long_entries, NULL);
 			printf("    Max memory alloc. size: %s\n",
