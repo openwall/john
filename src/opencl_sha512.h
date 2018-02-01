@@ -48,7 +48,7 @@
 #define H7      0x5be0cd19137e2179UL
 
 #ifdef _OPENCL_COMPILER
-__constant uint64_t k[] = {
+__const_a8 uint64_t k[] = {
     0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL,
     0xe9b5dba58189dbbcUL, 0x3956c25bf348b538UL, 0x59f111f1b605d019UL,
     0x923f82a4af194f9bUL, 0xab1c5ed5da6d8118UL, 0xd807aa98a3030242UL,
@@ -78,7 +78,7 @@ __constant uint64_t k[] = {
     0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL
 };
 
-__constant uint64_t clear_mask[] = {
+__const_a8 uint64_t clear_mask[] = {
 	0xffffffffffffffffUL, 0x00000000000000ffUL, //0,   8bits
 	0x000000000000ffffUL, 0x0000000000ffffffUL, //16, 24bits
 	0x00000000ffffffffUL, 0x000000ffffffffffUL, //32, 40bits

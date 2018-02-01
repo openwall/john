@@ -103,7 +103,7 @@ typedef Twofish_UInt32 UInt32;
     (p)[3] = (Byte)(((v) >> 24) & 0xff)
 #endif
 
-__constant Byte t_table[2][4][16] =
+__const_a8 Byte t_table[2][4][16] =
 {
 	{
 		{0x8,0x1,0x7,0xD,0x6,0xF,0x3,0x2,0x0,0xB,0x5,0x9,0xE,0xC,0xA,0x4},
@@ -127,7 +127,7 @@ typedef UInt32 Qtype;
 typedef Byte Qtype;
 #endif
 
-__constant Qtype q_table[2][256] =
+__const_a8 Qtype q_table[2][256] =
 {
 	{
 		0xA9, 0x67, 0xB3, 0xE8, 0x04, 0xFD, 0xA3, 0x76, 0x9A, 0x92, 0x80, 0x78,
@@ -179,7 +179,7 @@ __constant Qtype q_table[2][256] =
 	}
 };
 
-__constant UInt32 MDS_table[4][256] =
+__const_a8 UInt32 MDS_table[4][256] =
 {
 	{ 0xBCBC3275, 0xECEC21F3, 0x202043C6, 0xB3B3C9F4, 0xDADA03DB, 0x02028B7B,
 	  0xE2E22BFB, 0x9E9EFAC8, 0xC9C9EC4A, 0xD4D409D3, 0x18186BE6, 0x1E1E9F6B,
@@ -358,7 +358,7 @@ __constant UInt32 MDS_table[4][256] =
 	  0xECC94AEC, 0xFDD25EFD, 0xAB7FC1AB, 0xD8A8E0D8 }
 };
 
-__constant UInt32 mds_poly_divx_const[] = { 0, 0xb4 };
+__const_a8 UInt32 mds_poly_divx_const[] = { 0, 0xb4 };
 
 #define q0  q_table[0]
 #define q1  q_table[1]
@@ -424,8 +424,8 @@ void fill_keyed_sboxes(Byte S[], int kCycles, Twofish_key *xkey)
 	}
 }
 
-__constant uint rs_poly_const[] = { 0, 0x14d };
-__constant uint rs_poly_div_const[] = { 0, 0xa6 };
+__const_a8 uint rs_poly_const[] = { 0, 0x14d };
+__const_a8 uint rs_poly_div_const[] = { 0, 0xa6 };
 
 inline
 void Twofish_prepare_key(__private Byte key[], int key_len, Twofish_key *xkey)
