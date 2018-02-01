@@ -5,12 +5,7 @@
  * modification, are permitted.
  */
 #include "opencl_misc.h"
-#define AES_KEY_TYPE __private
-#define AES_SRC_TYPE __private
-#define AES_DST_TYPE __private
-#define OCL_AES_ENCRYPT 1
-#define OCL_AES_CBC_DECRYPT 1
-#include "opencl_aes.h"
+#include "opencl_aes_ctx.h"
 #include "opencl_sha2_ctx.h"
 #include "opencl_chacha.h"
 #include "opencl_twofish.h"
@@ -45,7 +40,7 @@ typedef struct {
 typedef struct {
 	uint iterations;
 	uchar hash[32];
-	AES_KEY akey;
+	AES_CTX akey;
 } keepass_state;
 
 __kernel void keepass_init(__global const keepass_password *masterkey,
@@ -57,7 +52,7 @@ __kernel void keepass_init(__global const keepass_password *masterkey,
 	uint pwlen = masterkey[gid].length;
 	uchar pbuf[PLAINTEXT_LENGTH];
 	SHA256_CTX ctx;
-	AES_KEY akey;
+	AES_CTX akey;
 
 	// We can afford some safety because only the loop kernel is significant
 	if (pwlen > PLAINTEXT_LENGTH)
@@ -84,30 +79,31 @@ __kernel void keepass_init(__global const keepass_password *masterkey,
 
 	// Next, encrypt the hash using the random seed as key
 	memcpy_macro(pbuf, salt->transf_randomseed, 32);
-	AES_set_encrypt_key(pbuf, 256, &akey);
+	//AES_set_encrypt_key(pbuf, 256, &akey);
+	AES_Setkey(&akey, pbuf, 32);
 
 	// Save state for loop kernel.
 	state[gid].iterations = salt->key_transf_rounds;
 	memcpy_macro(state[gid].hash, hash, 32);
-	memcpy_pg(&state[gid].akey, &akey, sizeof(AES_KEY));
+	memcpy_pg(&state[gid].akey, &akey, sizeof(AES_CTX));
 }
 
 // Here's the heavy part. NOTHING else is significant for performance!
 __kernel void keepass_loop(__global keepass_state *state)
 {
 	uint gid = get_global_id(0);
-	AES_KEY akey;
+	AES_CTX akey;
 	uint i;
 	uchar hash[32];
 
 	i = MIN(state[gid].iterations, HASH_LOOPS);
 	state[gid].iterations -= i;
 	memcpy_macro(hash, state[gid].hash, 32);
-	memcpy_gp(&akey, &state[gid].akey, sizeof(AES_KEY));
+	memcpy_gp(&akey, &state[gid].akey, sizeof(AES_CTX));
 
 	while (i--) {
-		AES_encrypt(hash, hash, &akey);
-		AES_encrypt(hash + 16, hash + 16, &akey);
+		AES_Encrypt(&akey, hash, hash);
+		AES_Encrypt(&akey, hash + 16, hash + 16);
 	}
 
 	memcpy_macro(state[gid].hash, hash, 32);
@@ -119,7 +115,7 @@ __kernel void keepass_final(__global keepass_state *state,
 {
 	uint gid = get_global_id(0);
 	SHA256_CTX ctx;
-	AES_KEY akey;
+	AES_CTX akey;
 	uchar pbuf[32];
 	uchar hash[32];
 	uchar iv[16];
@@ -158,7 +154,8 @@ __kernel void keepass_final(__global keepass_state *state,
 		if (salt->algorithm == 0) {
 			uint pad_byte;
 
-			AES_set_decrypt_key(hash, 256, &akey);
+			//AES_set_decrypt_key(hash, 256, &akey);
+			AES_Setkey(&akey, hash, 32);
 			AES_cbc_decrypt(content, content, contentsize, &akey, iv);
 			pad_byte = content[contentsize - 1];
 			datasize = contentsize - pad_byte;
@@ -183,7 +180,8 @@ __kernel void keepass_final(__global keepass_state *state,
 		memcpy_macro(content, salt->contents, 32);
 
 		if (salt->algorithm == 0) {
-			AES_set_decrypt_key(hash, 256, &akey);
+			//AES_set_decrypt_key(hash, 256, &akey);
+			AES_Setkey(&akey, hash, 32);
 			AES_cbc_decrypt(content, hash, 32, &akey, iv);
 		} else /* if (salt->algorithm == 2) */ {
 			chacha_ctx ckey;

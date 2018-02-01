@@ -24,8 +24,10 @@
  * SOFTWARE.
  */
 
-#ifndef _OPENCL_AES_H_
-#define _OPENCL_AES_H_
+#ifndef _OPENCL_AES_CTX_H_
+#define _OPENCL_AES_CTX_H_
+
+#include "opencl_misc.h"
 
 #ifndef AES_MAXROUNDS
 #define AES_MAXROUNDS	(14)
@@ -465,11 +467,7 @@ shift_rows(uint32_t *q)
 	}
 }
 
-inline uint32_t
-rotr16(uint32_t x)
-{
-	return (x << 16) | (x >> 16);
-}
+#define rotr16(x) rotate((uint32_t)x, 16U)
 
 inline void
 mix_columns(uint32_t *q)
@@ -884,4 +882,67 @@ AES_KeySetup_Decrypt(uint32_t *skey, const uint8_t *key, int len)
 	return r;
 }
 
-#endif	/* _OPENCL_AES_H_ */
+static void
+AES_cbc_encrypt(uchar *in, uchar *out,
+                uint len, AES_CTX *key,
+                __private uchar ivec[16])
+{
+	__private const uchar *iv = ivec;
+	uint i;
+
+	while (len) {
+		uint n;
+		union {
+			uint t[16 / sizeof(uint)];
+			uchar c[16];
+		} tmp;
+
+		for (n = 0; n < 16 && n < len; ++n)
+			out[n] = in[n] ^ iv[n];
+		for (; n < 16; ++n)
+			out[n] = iv[n];
+		AES_Encrypt(key, tmp.c, out);
+		iv = tmp.c;
+		if (len <= 16)
+			break;
+		len -= 16;
+		in  += 16;
+		out += 16;
+	}
+
+	for (i = 0; i < 16; i++)
+		ivec[i] = iv[i];
+}
+
+static void
+AES_cbc_decrypt(uchar *in, uchar *out,
+                uint len, AES_CTX *key,
+                __private uchar ivec[16])
+{
+	while (len) {
+		uint n;
+		union {
+			uint t[16 / sizeof(uint)];
+			uchar c[16];
+		} tmp;
+
+		AES_Decrypt(key, in, tmp.c);
+		for (n = 0; n < 16 && n < len; ++n) {
+			uchar c;
+
+			c = in[n];
+			out[n] = tmp.c[n] ^ ivec[n];
+			ivec[n] = c;
+		}
+		if (len <= 16) {
+			for (; n < 16; ++n)
+				ivec[n] = in[n];
+			break;
+		}
+		len -= 16;
+		in  += 16;
+		out += 16;
+	}
+}
+
+#endif	/* _OPENCL_AES_CTX_H_ */

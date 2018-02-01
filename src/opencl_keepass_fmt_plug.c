@@ -47,7 +47,7 @@ typedef struct {
 typedef struct {
 	uint32_t iterations;
 	uint8_t  hash[32];
-	uint8_t  akey[244]; /* sizeof(AES_KEY) on GPU side */
+	uint8_t  akey[724]; /* sizeof(AES_CTX) on GPU side */
 } keepass_state;
 
 static cl_int cl_error;
