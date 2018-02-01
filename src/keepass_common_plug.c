@@ -49,12 +49,14 @@ struct fmt_tests keepass_tests[] = {
 };
 
 char (*keepass_key)[PLAINTEXT_LENGTH + 1];
+keepass_salt_t *keepass_salt;
 
 int keepass_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+	long long algo;
 	int version, res, contentsize, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
@@ -74,6 +76,13 @@ int keepass_valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* offset */
 		goto err;
 	if (!isdec(p))  /* this field contained file offsets in the past, this is hard to validate */
+		goto err;
+	algo = atoll(p);
+	if (algo < 0 || algo > 2)
+		algo = 0;
+	if (version == 1 && algo > 1) /* Unsupported combo */
+		goto err;
+	if (version == 2 && algo == 1) /* TODO, v2 w/ Twofish */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* final random seed */
 		goto err;
@@ -102,6 +111,18 @@ int keepass_valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtokm(NULL, "*")) == NULL)	/* content size */
 			goto err;
 		contentsize = atoi(p);
+		if (contentsize > MAX_CONT_SIZE) {
+			static int warned;
+
+			if (!ldr_in_pot && warned < contentsize) {
+				fprintf(stderr,
+				        "%s: Input rejected due to larger size than compile-time limit.\n"
+				        "Bump MAX_CONT_SIZE in keepass_common.h to >= 0x%x, and rebuild\n",
+				        self->params.label, contentsize);
+				warned = contentsize;
+			}
+			goto err;
+		}
 		if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 			goto err;
 		if (!contentsize || hexlenl(p, &extra) / 2 != contentsize || extra)
