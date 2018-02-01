@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_ethereum);
 #define FORMAT_LABEL            "ethereum-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 OpenCL AES"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1001
+#define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_ALIGN            sizeof(uint32_t)

@@ -127,7 +127,7 @@ extern volatile int bench_running;
 
 #define ALGORITHM_NAME          "MD4 DES (ESS MD5) " MD4_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1000
+#define BENCHMARK_LENGTH        0
 #define FULL_BINARY_SIZE        (2 + 8 * 3)
 #define BINARY_SIZE             (2 + 8)
 #define BINARY_ALIGN            2

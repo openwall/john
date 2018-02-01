@@ -239,6 +239,9 @@ static void bench_set_keys(struct fmt_main *format,
 
 	length = format->params.benchmark_length;
 	for (index = 0; index < format->params.max_keys_per_crypt; index++) {
+		char random_pass[PLAINTEXT_BUFFER_SIZE];
+		int i;
+
 		do {
 			if (!current->ciphertext)
 				current = format->params.tests;
@@ -254,14 +257,17 @@ static void bench_set_keys(struct fmt_main *format,
 				break;
 		} while (1);
 
+		strnzcpy(random_pass, plaintext, sizeof(random_pass));
+		for (i = 0; i < strlen(plaintext); i++)
+			random_pass[i] ^= (index & 127);
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK) {
-			plaintext[len] = 0;
-			if (do_mask_crack(len ? plaintext : NULL))
+			random_pass[len] = 0;
+			if (do_mask_crack(len ? random_pass : NULL))
 				return;
 		} else
 #endif
-			format->methods.set_key(plaintext, index);
+			format->methods.set_key(random_pass, index);
 	}
 }
 
@@ -292,8 +298,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	static int binary_size = 0;
 	static char s_error[128];
 	static int wait_salts = 0;
-	char *TmpPW[1024];
-	int pw_mangled = 0;
 	char *where;
 	struct fmt_tests *current;
 	int cond;
@@ -434,30 +438,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	}
 #endif
 
-/* Smashed passwords: -1001 turns into -1 and -1000 turns into 0, and
-   -999 turns into 1 for benchmark length. */
-	if (format->params.benchmark_length < -950) {
-		pw_mangled = 1;
-		format->params.benchmark_length += 1000;
-	}
-
-/* Ensure we use a buffer that can be read past end of word
-   (eg. SIMD optimizations). */
-	i = 0;
-	current = format->params.tests;
-	while (current->ciphertext && i < 1024) {
-		TmpPW[i] = current->plaintext;
-		current->plaintext =
-			strnzcpy(mem_alloc(PLAINTEXT_BUFFER_SIZE),
-			         TmpPW[i++], PLAINTEXT_BUFFER_SIZE);
-
-		/* Smash passwords! */
-		if (current->plaintext[0] && pw_mangled == 1)
-			current->plaintext[0] ^= 5;
-
-		++current;
-	}
-
 	if (format->params.benchmark_length > 0) {
 		cond = (salts == 1) ? 1 : -1;
 		salts = 1;
@@ -568,18 +548,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			dyna_salt_remove(two_salts[index]);
 		MEM_FREE(two_salts[index]);
 	}
-
-	/* Unsmash/unbuffer the passwords. */
-	i = 0;
-	current = format->params.tests;
-	while (current->ciphertext && i < 1024) {
-		MEM_FREE(current->plaintext);
-		current->plaintext = TmpPW[i++];
-		++current;
-	}
-
-	if (pw_mangled)
-		format->params.benchmark_length -= 1000;
 
 	return event_abort ? "" : NULL;
 }
@@ -781,7 +749,6 @@ AGAIN:
 
 		switch (format->params.benchmark_length) {
 		case 0:
-		case -1000:
 			if (format->params.tests[1].ciphertext) {
 				msg_m = "Many salts";
 				msg_1 = "Only one salt";
@@ -790,7 +757,6 @@ AGAIN:
 			/* fall through */
 
 		case -1:
-		case -1001:
 			msg_m = "Raw";
 			msg_1 = NULL;
 			break;

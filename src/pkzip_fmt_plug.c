@@ -53,7 +53,7 @@ john_register_one(&fmt_pkzip);
 #define FORMAT_TAG2_LEN     (sizeof(FORMAT_TAG2)-1)
 
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1000
+#define BENCHMARK_LENGTH    0
 
 #define PLAINTEXT_LENGTH    31
 

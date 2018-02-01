@@ -45,7 +45,7 @@ john_register_one(&fmt_opencl_pgpdisk);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1001
+#define BENCHMARK_LENGTH        -1
 
 typedef struct {
 	uint32_t length;

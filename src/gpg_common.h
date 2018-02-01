@@ -14,7 +14,7 @@
 #include "dyna_salt.h"
 
 #define BENCHMARK_COMMENT    ""
-#define BENCHMARK_LENGTH     -1000
+#define BENCHMARK_LENGTH     0
 #define FORMAT_TAG           "$gpg$*"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define BINARY_SIZE          0

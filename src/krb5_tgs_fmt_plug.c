@@ -46,7 +46,7 @@ john_register_one(&fmt_krb5tgs);
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME       "MD4 HMAC-MD5 RC4"
 #define BENCHMARK_COMMENT    ""
-#define BENCHMARK_LENGTH     -1000
+#define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     125
 #define BINARY_SIZE          0
 #define BINARY_ALIGN         MEM_ALIGN_NONE

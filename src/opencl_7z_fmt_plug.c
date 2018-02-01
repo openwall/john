@@ -46,7 +46,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA256 AES OPENCL"
 #define BENCHMARK_COMMENT	" (512K iterations)"
-#define BENCHMARK_LENGTH	-1000
+#define BENCHMARK_LENGTH	0
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #define PLAINTEXT_LENGTH	((55-8)/2) // 23, rar3 uses 22

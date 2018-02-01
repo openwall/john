@@ -63,7 +63,7 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1001
+#define BENCHMARK_LENGTH        -1
 #define BINARY_SIZE             12
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)

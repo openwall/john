@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_pem);
 #define CPU_ALGORITHM_NAME      " 3DES"
 #define ALGORITHM_NAME          OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1000
+#define BENCHMARK_LENGTH        0
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
