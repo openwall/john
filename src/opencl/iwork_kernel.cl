@@ -11,7 +11,6 @@
 #include "opencl_sha2.h"
 #include "pbkdf2_hmac_sha1_kernel.cl"
 #define AES_KEY_TYPE __private
-#define OCL_AES_CBC_DECRYPT 1
 #define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 

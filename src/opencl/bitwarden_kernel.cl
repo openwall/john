@@ -8,8 +8,6 @@
  */
 
 #include "pbkdf2_hmac_sha256_kernel.cl"
-#define AES_KEY_TYPE __global
-#define OCL_AES_CBC_DECRYPT 1
 #define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
@@ -39,10 +37,12 @@ __kernel void bitwarden_decrypt(__constant bitwarden_salt_t *salt,
 		uchar c[32];
 		uint  w[32 / 4];
 	} plaintext;
+	uchar key[32];
 	uint8_t iv[16] = { 0 }; // does not matter
 	int success = 1; // hash was cracked
 
-	AES_set_decrypt_key((__global uchar*)out[gid].hash, 256, &akey);
+	memcpy_macro(key, (__global uchar*)out[gid].hash, 32);
+	AES_set_decrypt_key(key, 256, &akey);
 	AES_cbc_decrypt(salt->blob.chr, plaintext.c, 32, &akey, iv);
 
 	// Check padding

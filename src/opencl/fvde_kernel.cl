@@ -9,8 +9,6 @@
  */
 
 #include "pbkdf2_hmac_sha256_kernel.cl"
-#define OCL_AES_ECB_DECRYPT 1
-#define AES_KEY_TYPE __global
 #include "opencl_aes.h"
 
 #define BLOBLEN                 24
@@ -44,8 +42,10 @@ __kernel void fvde_decrypt(__constant fvde_salt_t *salt,
 	int32_t i, j;
 	AES_KEY akey;
 	uint64_t A = C[0];
+	uchar key[16];
 
-	AES_set_decrypt_key((__global uchar*)out[gid].hash, 128, &akey);
+	memcpy_macro(key, (__global uchar*)out[gid].hash, 16);
+	AES_set_decrypt_key(key, 128, &akey);
 
 	for (i = 0; i < n + 1; i++)
 		R[i] = C[i];

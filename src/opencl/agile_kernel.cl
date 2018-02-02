@@ -7,8 +7,6 @@
  * modification, are permitted.
  */
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
-#define AES_KEY_TYPE __global
-#define OCL_AES_CBC_DECRYPT 1
 #define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
@@ -56,6 +54,7 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 {
 	uint idx = get_global_id(0);
 	AES_KEY akey;
+	uchar key[16];
 	uchar iv[16];
 	uchar plaintext[16];
 	uint i;
@@ -69,7 +68,8 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
 	for (i = 0; i < 16; i++)
 		iv[i] = salt->iv[i];
 
-	AES_set_decrypt_key((__global uchar*)agile_out[idx].key, 128, &akey);
+	memcpy_macro(key, (__global uchar*)agile_out[idx].key, 16);
+	AES_set_decrypt_key(key, 128, &akey);
 	AES_cbc_decrypt(salt->aes_ct, plaintext, 16, &akey, iv);
 
 	n = check_pkcs_pad(plaintext, 16, 16);
