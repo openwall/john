@@ -13,7 +13,7 @@
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH	124
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
 #define SALT_SIZE		sizeof(keepass_salt_t)
@@ -29,6 +29,9 @@
 
 extern struct fmt_tests keepass_tests[];
 
+/* This format should be dyna salt instead! */
+#define MAX_CONT_SIZE 0x1000
+
 typedef struct {
 	long long offset;
 	int version;
@@ -36,16 +39,15 @@ typedef struct {
 	int keyfilesize;
 	int have_keyfile;
 	int contentsize;
-//	unsigned char contents[LINE_BUFFER_SIZE];
-	unsigned char contents[0x30000];	// We need to fix this in some other way, now that LINE_BUFFER_SIZE has been dropped so heavily!
+	uint32_t key_transf_rounds;
+	int algorithm; // 1 for Twofish
 	unsigned char final_randomseed[32];
 	unsigned char enc_iv[16];
 	unsigned char keyfile[32];
 	unsigned char contents_hash[32];
 	unsigned char transf_randomseed[32];
 	unsigned char expected_bytes[32];
-	uint32_t key_transf_rounds;
-	int algorithm; // 1 for Twofish
+	unsigned char contents[MAX_CONT_SIZE];
 } keepass_salt_t;
 
 extern char (*keepass_key)[PLAINTEXT_LENGTH + 1];
