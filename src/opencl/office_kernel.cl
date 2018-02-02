@@ -203,7 +203,7 @@ void Final2007(__global ms_office_state *state,
 }
 
 inline void Decrypt(__constant ms_office_salt *salt,
-                    AES_KEY_TYPE uchar *verifierInputKey,
+                    uchar *verifierInputKey,
                     __constant uchar *encryptedVerifier,
                     uchar *decryptedVerifier,
                     const int length)

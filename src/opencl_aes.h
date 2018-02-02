@@ -345,7 +345,7 @@ sub_word(uint32_t x)
  * bitsliced). Key length is expressed in bytes.
  */
 inline uint
-aes_keysched_base(uint32_t *skey, void *key, size_t key_len)
+aes_keysched_base(uint32_t *skey, const void *key, size_t key_len)
 {
 	uint num_rounds;
 	int i, j, k, nk, nkf;
@@ -398,7 +398,7 @@ aes_keysched_base(uint32_t *skey, void *key, size_t key_len)
  * invalid (not 16, 24 or 32), then 0 is returned.
  */
 inline uint
-aes_ct_keysched(uint32_t *comp_skey, void *key, size_t key_len)
+aes_ct_keysched(uint32_t *comp_skey, const void *key, size_t key_len)
 {
 	uint32_t skey[60];
 	uint u, num_rounds;
@@ -670,7 +670,7 @@ aes_ct_bitslice_decrypt(uint num_rounds,
 }
 
 inline int
-AES_Setkey(AES_CTX *ctx, uint8_t *key, int len)
+AES_Setkey(AES_CTX *ctx, const uint8_t *key, int len)
 {
 	ctx->num_rounds = aes_ct_keysched(ctx->sk, key, len);
 	if (ctx->num_rounds == 0)
@@ -902,7 +902,6 @@ inline void
 AES_ecb_decrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                 AES_KEY *key)
 {
-	uint n;
 	uchar tmp[16];
 
 	memcpy_macro(tmp, in, 16);
@@ -916,7 +915,6 @@ inline void
 AES_ecb_encrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
                 AES_KEY *key)
 {
-	uint n;
 	uchar tmp[16];
 
 	memcpy_macro(tmp, in, 16);

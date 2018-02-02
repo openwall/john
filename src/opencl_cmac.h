@@ -21,7 +21,7 @@
 #ifndef _OPENCL_CMAC_H_
 #define _OPENCL_CMAC_H_
 
-#include "opencl_aes_ctx.h"
+#include "opencl_aes.h"
 
 #define AES_CMAC_KEY_LENGTH	16
 #define AES_CMAC_DIGEST_LENGTH	16

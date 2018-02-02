@@ -10,10 +10,10 @@
 #include "opencl_misc.h"
 
 #if cpu(DEVICE_INFO)
-#define MAYBE_CONSTANT __constant
+#define MAYBE_LOCAL __constant
 #else
 #define USE_LOCAL      1
-#define MAYBE_CONSTANT __local const
+#define MAYBE_LOCAL __local const
 #endif
 
 __const_a8 uint magic_table[256] = {
@@ -53,7 +53,7 @@ __const_a8 uint magic_table[256] = {
 
 inline void
 lotus_transform_password (unsigned int *i1, unsigned int *o1,
-                          MAYBE_CONSTANT unsigned int *lotus_magic_table)
+                          MAYBE_LOCAL unsigned int *lotus_magic_table)
 {
 	unsigned int p1;
 	int i;
@@ -72,7 +72,7 @@ lotus_transform_password (unsigned int *i1, unsigned int *o1,
 
 /* The mixing function: perturbs the first three rows of the matrix */
 inline void
-lotus_mix (unsigned int *m1, MAYBE_CONSTANT unsigned int *lotus_magic_table)
+lotus_mix (unsigned int *m1, MAYBE_LOCAL unsigned int *lotus_magic_table)
 {
 	int i, j, k;
 	unsigned int p1;
