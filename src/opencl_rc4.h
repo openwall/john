@@ -29,7 +29,7 @@
 #endif
 
 #ifdef RC4_IV32
-__constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
+__const_a8 uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
                                0x23222120, 0x27262524, 0x2b2a2928, 0x2f2e2d2c,
                                0x33323130, 0x37363534, 0x3b3a3938, 0x3f3e3d3c,

@@ -28,6 +28,9 @@ typedef int int32_t;
 typedef ulong uint64_t;
 typedef long int64_t;
 
+/* Nvidia bug workaround nicked from hashcat. These are for __constant arrays */
+#define __const_a8	__constant __attribute__ ((aligned (8)))
+
 #if SIZEOF_SIZE_T == 8
 typedef uint64_t host_size_t;
 #else
