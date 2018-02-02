@@ -7,7 +7,7 @@
  */
 
 #include "opencl_lotus5_fmt.h"
-#include "opencl_device_info.h"
+#include "opencl_misc.h"
 
 #if cpu(DEVICE_INFO)
 #define MAYBE_CONSTANT __constant
