@@ -43,6 +43,10 @@ if not PY3:
     reload(sys)
     sys.setdefaultencoding('utf8')
 
+def process_backup_file(filename):
+    data = binascii.hexlify(open(filename, "rb").read())
+    sys.stdout.write("%s:$BitShares$1*%s\n" % (os.path.basename(filename), data))
+
 
 def process_file(filename):
     try:
@@ -50,7 +54,7 @@ def process_file(filename):
         cursor = db.cursor()
         rows = cursor.execute("SELECT key, value from wallet")
     except:
-        traceback.print_exc()
+        process_backup_file(filename)
         return
     for row in rows:
         name, value = row
@@ -63,7 +67,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [BitShares SQLite file(s)]\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [BitShares SQLite file(s) / Backup Wallet .bin file(s)]\n" % sys.argv[0])
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
