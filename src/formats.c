@@ -546,8 +546,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	index = 0; max = format->params.max_keys_per_crypt;
 
 	do {
-		if (strnlen(current->ciphertext, LINE_BUFFER_SIZE + 1) >
-		    LINE_BUFFER_SIZE &&
+		if (strnlen(current->ciphertext, LINE_BUFFER_SIZE) >
+		    MAX_CIPHERTEXT_SIZE &&
 		    !(format->params.flags & FMT_HUGE_INPUT))
 			return "Long test vector but not FMT_HUGE_INPUT";
 
