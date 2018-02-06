@@ -21,10 +21,9 @@ john_register_one(&fmt_tacacsplus);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
+#endif
+
 #define OMP_SCALE               8  // tuned on i5-6500 CPU
-#endif
-#endif
 
 #include "formats.h"
 #include "misc.h"
@@ -83,9 +82,7 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
@@ -131,7 +128,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlenl(p, &extra) != 2 * 2 || extra)
 		goto err;
-
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -210,7 +206,7 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -219,8 +215,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		if (check_password(index, cur_salt)) {
 			cracked[index] = 1;
 #ifdef _OPENMP
@@ -245,7 +240,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return cracked[index];
+	return 1;
 }
 
 static void set_key(char *key, int index)
