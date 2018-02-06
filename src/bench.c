@@ -514,7 +514,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		    format->methods.crypt_all(&count, 0));
 #endif
 
-		crypts += count;
+		crypts += (uint32_t)count;
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
