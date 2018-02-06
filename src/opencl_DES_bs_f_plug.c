@@ -11,6 +11,10 @@
 #include <string.h>
 #include <sys/time.h>
 
+#if _OPENMP
+#include <omp.h>
+#endif
+
 #include "options.h"
 #include "opencl_DES_bs.h"
 #include "opencl_DES_hst_dev_shared.h"
