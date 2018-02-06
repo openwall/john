@@ -379,10 +379,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		memcpy(iv, p, 16);
 		memcpy(buffer, cur_salt->ct, cur_salt->crypto_size);
-		memset(&akey, 0, sizeof(AES_KEY));
-		if (AES_set_decrypt_key(outbuffer[index].key, 128, &akey) < 0) {
-			fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		}
+		AES_set_decrypt_key(outbuffer[index].key, 128, &akey);
 
 		AES_cbc_encrypt(buffer, buffer, cur_salt->crypto_size, &akey, iv, AES_DECRYPT);
 		if (verify_decrypted_buffer(buffer, cur_salt->crypto_size))

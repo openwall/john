@@ -616,7 +616,6 @@ static void DecryptUsingSymmetricKeyAlgorithm(ms_office_custom_salt *cur_salt, u
 
 	memcpy(iv, cur_salt->osalt, 16);
 	memset(&iv[16], 0, 16);
-	memset(&akey, 0, sizeof(AES_KEY));
 	AES_set_decrypt_key(verifierInputKey, cur_salt->keySize, &akey);
 	AES_cbc_encrypt(encryptedVerifier, (unsigned char*)decryptedVerifier, length, &akey, iv, AES_DECRYPT);
 }
@@ -641,7 +640,6 @@ static void PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key
 	unsigned char checkHash[32];
 	unsigned char checkHashed[32];
 
-	memset(&akey, 0, sizeof(AES_KEY));
 	AES_set_decrypt_key(key, 128, &akey);
 	AES_ecb_encrypt(cur_salt->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
 
@@ -649,7 +647,6 @@ static void PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, decryptedVerifier, 16);
 	SHA1_Final(checkHash, &ctx);
-	memset(&akey, 0, sizeof(AES_KEY));
 	AES_set_encrypt_key(key, 128, &akey);
 	AES_ecb_encrypt(checkHash, checkHashed, &akey, AES_ENCRYPT);
 	memcpy(out, checkHashed, 16);

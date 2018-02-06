@@ -276,9 +276,7 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 {
 	AES_KEY akey;
 	unsigned char out[1024];
-	if (AES_set_decrypt_key(key, 256, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
-	}
+	AES_set_decrypt_key(key, 256, &akey);
 	if (inlined) {
 		AES_cbc_encrypt(cur_salt->last_chunks, out, 16, &akey, iv, AES_DECRYPT);
 		if (memmem(out, 16, cur_salt->kpt, strlen((char*)cur_salt->kpt)))

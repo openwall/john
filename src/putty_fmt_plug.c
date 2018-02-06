@@ -298,10 +298,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 		SHA1_Update(&s, passphrase, passlen);
 		SHA1_Final(key + 20, &s);
 		memset(iv, 0, 32);
-		memset(&akey, 0, sizeof(AES_KEY));
-		if (AES_set_decrypt_key(key, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		}
+		AES_set_decrypt_key(key, 256, &akey);
 		AES_cbc_encrypt(cur_salt->private_blob, out , cur_salt->private_blob_len, &akey, iv, AES_DECRYPT);
 	}
 	/* Verify the MAC. */

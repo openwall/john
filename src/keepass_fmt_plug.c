@@ -174,7 +174,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (cur_salt->algorithm == 0) {
 			/* AES decrypt cur_salt->contents with final_key */
 			memcpy(iv, cur_salt->enc_iv, 16);
-			memset(&akey, 0, sizeof(AES_KEY));
 			AES_set_decrypt_key(final_key, 256, &akey);
 		} else if (cur_salt->algorithm == 1) {
 			memcpy(iv, cur_salt->enc_iv, 16);

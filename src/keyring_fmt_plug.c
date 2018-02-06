@@ -282,10 +282,7 @@ static void decrypt_buffer(unsigned char buffers[MIN_KEYS_PER_CRYPT][sizeof(cur_
 	symkey_generate_simple(index, salt, 8, iterations, key, iv);
 
 	for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-		memset(&akey, 0, sizeof(AES_KEY));
-		if (AES_set_decrypt_key(key[i], 128, &akey) < 0) {
-			fprintf(stderr, "AES_set_decrypt_key failed!\n");
-		}
+		AES_set_decrypt_key(key[i], 128, &akey);
 		AES_cbc_encrypt(cur_salt->ct, buffers[i], len, &akey, iv[i], AES_DECRYPT);
 	}
 }

@@ -97,9 +97,7 @@ int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	unsigned char iv[16];
 	memcpy(iv, data, 16);
 
-	if (AES_set_decrypt_key(derived_key, 256, &akey) < 0) {
-		fprintf(stderr, "AES_set_decrypt_key failed in crypt!\n");
-	}
+	AES_set_decrypt_key(derived_key, 256, &akey);
 	AES_cbc_encrypt(data + 16, out, 16, &akey, iv, AES_DECRYPT);
 	/* various tests */
 	if (out[0] != '{') // fast test
@@ -119,4 +117,3 @@ int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	}
 	return -1;
 }
-

@@ -206,9 +206,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			AES_KEY akey;
 			unsigned char iv[16];
 			unsigned char out[32];
-			if (AES_set_encrypt_key(Key, 256, &akey) < 0) {
-				fprintf(stderr, "AES_set_encrypt_key failed in crypt!\n");
-			}
+			AES_set_encrypt_key(Key, 256, &akey);
 			memset(iv, 0, sizeof(iv));
 			AES_cbc_encrypt((const unsigned char*)cur_salt->username, out, 32, &akey, iv, AES_ENCRYPT);
 			memcpy(crypt_key[index+i], out, 16);

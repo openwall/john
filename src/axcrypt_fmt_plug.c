@@ -239,7 +239,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		memcpy(lsb, cur_salt->wrappedkey + 8, 16);
 
-		memset(&akey, 0, sizeof(AES_KEY));
 		AES_set_decrypt_key(KEK, 128, &akey);
 
 		/* set msb */

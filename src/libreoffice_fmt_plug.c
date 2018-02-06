@@ -188,10 +188,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				unsigned int crypt[8];
 				memcpy(iv, cur_salt->iv, 16);
-				memset(&akey, 0, sizeof(AES_KEY));
-				if (AES_set_decrypt_key(key[i], 256, &akey) < 0) {
-					fprintf(stderr, "AES_set_decrypt_key failed!\n");
-				}
+				AES_set_decrypt_key(key[i], 256, &akey);
 				AES_cbc_encrypt(cur_salt->content, output, cur_salt->content_length, &akey, iv, AES_DECRYPT);
 				SHA256_Init(&ctx);
 				SHA256_Update(&ctx, output, cur_salt->content_length);
