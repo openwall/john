@@ -182,7 +182,6 @@ void Final2007(__global ms_office_state *state,
 
 	AES_set_decrypt_key(output.c, 128, &akey);
 	AES_ecb_decrypt(salt->encryptedVerifier, decryptedVerifier.c, &akey);
-	AES_set_decrypt_key(output.c, 128, &akey);
 	AES_ecb_decrypt(salt->encryptedVerifierHash, decryptedVerifierHash.c, &akey);
 
 	for (i = 0; i < 4; i++)
