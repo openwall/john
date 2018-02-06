@@ -164,7 +164,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return cracked[index];
+	return 1;
 }
 
 struct fmt_main fmt_bitwarden = {
