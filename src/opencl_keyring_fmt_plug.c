@@ -16,9 +16,6 @@ john_register_one(&fmt_opencl_keyring);
 
 #include <stdint.h>
 #include <string.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
 #include "formats.h"
@@ -34,7 +31,7 @@ john_register_one(&fmt_opencl_keyring);
 #define FORMAT_NAME		"GNOME Keyring"
 #define FORMAT_TAG			"$keyring$"
 #define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA256 OpenCL AES"
+#define ALGORITHM_NAME		"SHA256 AES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define MIN_KEYS_PER_CRYPT	1
@@ -57,14 +54,15 @@ typedef struct {
 } keyring_password;
 
 typedef struct {
-	uint8_t key[16];
-	uint8_t iv[16];
+	uint32_t cracked;
 } keyring_hash;
 
 typedef struct {
 	uint32_t length;
 	uint32_t iterations;
 	uint8_t salt[SALTLEN];
+	uint32_t crypto_size;
+	uint8_t ct[LINE_BUFFER_SIZE / 2]; /* after hex conversion */
 } keyring_salt;
 
 static int *cracked;
@@ -176,12 +174,18 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
-		char build_opts[64];
+		char build_opts[128];
 		cl_int cl_error;
+		int iter;
+
+		if (db->real)
+			db = db->real;
+
+		iter = MIN(db->max_cost[0], options.loader.max_cost[0]);
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DPLAINTEXT_LENGTH=%d -DSALTLEN=%d",
-		         PLAINTEXT_LENGTH, SALTLEN);
+		         "-DPLAINTEXT_LENGTH=%d -DSALTLEN=%d -DLINE_BUFFER_SIZE=%d",
+		         PLAINTEXT_LENGTH, SALTLEN, LINE_BUFFER_SIZE);
 		opencl_init("$JOHN/kernels/keyring_kernel.cl",
 		            gpu_id, build_opts);
 
@@ -194,7 +198,7 @@ static void reset(struct db_main *db)
 		                       sizeof(keyring_password), 0, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, cpu(device_info[gpu_id]) ?
+		autotune_run(self, iter, 0, cpu(device_info[gpu_id]) ?
 		             500000000ULL : 1000000000ULL);
 	}
 }
@@ -298,9 +302,11 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
-	memcpy((char*)currentsalt.salt, cur_salt->salt, SALTLEN);
+	memcpy(currentsalt.salt, cur_salt->salt, SALTLEN);
 	currentsalt.length = SALTLEN;
 	currentsalt.iterations = cur_salt->iterations;
+	currentsalt.crypto_size = cur_salt->crypto_size;
+	memcpy(currentsalt.ct, cur_salt->ct, cur_salt->crypto_size);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 	                                    CL_FALSE, 0, settingsize,
 	                                    &currentsalt, 0, NULL, NULL),
@@ -325,20 +331,9 @@ static char *get_key(int index)
 	return ret;
 }
 
-static int verify_decrypted_buffer(unsigned char *buffer, int len)
-{
-	guchar digest[16];
-	MD5_CTX ctx;
-	MD5_Init(&ctx);
-	MD5_Update(&ctx, buffer + 16, len - 16);
-	MD5_Final(digest, &ctx);
-	return memcmp(buffer, digest, 16) == 0;
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -365,43 +360,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	/// Await completion of all the above
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		unsigned char buffer[LINE_BUFFER_SIZE / 2];
-		unsigned char iv[16];
-		AES_KEY akey;
-		unsigned char *p = outbuffer[index].iv;
-
-		memcpy(iv, p, 16);
-		memcpy(buffer, cur_salt->ct, cur_salt->crypto_size);
-		AES_set_decrypt_key(outbuffer[index].key, 128, &akey);
-
-		AES_cbc_encrypt(buffer, buffer, cur_salt->crypto_size, &akey, iv, AES_DECRYPT);
-		if (verify_decrypted_buffer(buffer, cur_salt->crypto_size))
-		{
-			cracked[index] = 1;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			any_cracked |= 1;
-		}
-	}
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (outbuffer[index].cracked)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return outbuffer[index].cracked;
 }
 
 static int cmp_exact(char *source, int index)
@@ -432,7 +406,7 @@ struct fmt_main fmt_opencl_keyring = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
 		},
