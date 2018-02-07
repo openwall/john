@@ -50,7 +50,7 @@ typedef unsigned WORD vtype;
 	vshl((dst), (src), 1)
 
 #if HAVE_LUT3
-#define vsel(dst, a, b, c)	lut3(a, b, c, 0xd8)
+#define vsel(dst, a, b, c)	(dst) = lut3(a, b, c, 0xd8)
 #elif defined(_NV) || __CPU__
 #define vsel(dst, a, b, c) 				\
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
