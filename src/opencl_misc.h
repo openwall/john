@@ -566,6 +566,29 @@ inline void memset_p(void *p, uint val, uint count)
 		*d.c++ = val;
 }
 
+/* dst is global mem */
+inline void memset_g(__global void *p, uint val, uint count)
+{
+	const uint val4 = val | (val << 8) | (val << 16) | (val << 24);
+	union {
+		__global uint *w;
+		__global uchar *c;
+	} d;
+
+	d.c = p;
+
+	while (((size_t)d.c) & 0x03 && count--)
+		*d.c++ = val;
+
+	while (count >= 4) {
+		*d.w++ = val4;
+		count -= 4;
+	}
+
+	while (count--)
+		*d.c++ = val;
+}
+
 /* s1 and s2 are private mem */
 inline int memcmp_pp(const void *s1, const void *s2, uint size)
 {

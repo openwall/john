@@ -20,9 +20,6 @@ john_register_one(&fmt_opencl_zip);
 #include <string.h>
 #include <stdint.h>
 #include <openssl/des.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
 #include "formats.h"
@@ -31,10 +28,7 @@ john_register_one(&fmt_opencl_zip);
 #include "common-opencl.h"
 #include "pkzip.h"
 #include "dyna_salt.h"
-#include "hmac_sha.h"
 #include "options.h"
-#define OPENCL_FORMAT 1
-#include "pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL		"zip-opencl"
 #define FORMAT_NAME		"ZIP"
@@ -60,10 +54,11 @@ typedef struct {
 
 typedef struct {
 	uint32_t iterations;
-	uint32_t outlen;
-	uint32_t skip_bytes;
-	uint8_t  length;
+	uint32_t key_len;
+	uint32_t length;
 	uint8_t  salt[64];
+	uint32_t comp_len;
+	uint8_t  passverify[2];
 } zip_salt;
 
 typedef struct my_salt_t {
@@ -81,16 +76,14 @@ typedef struct my_salt_t {
 
 static my_salt *saved_salt;
 
-static unsigned char (*crypt_key)[((WINZIP_BINARY_SIZE + 4)/4)*4]; // ensure 32-bit alignment
-
 static cl_int cl_error;
 static zip_password *inbuffer;
 static zip_hash *outbuffer;
 static zip_salt currentsalt;
-static cl_mem mem_in, mem_out, mem_setting;
+static cl_mem mem_in, mem_out, mem_setting, mem_data;
 static struct fmt_main *self;
 
-static size_t insize, outsize, settingsize;
+static size_t insize, outsize, settingsize, datasize;
 
 #define STEP			0
 #define SEED			256
@@ -114,10 +107,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	insize = sizeof(zip_password) * gws;
 	outsize = sizeof(zip_hash) * gws;
 	settingsize = sizeof(zip_salt);
+	datasize = MAX(datasize, 1024);
 
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	crypt_key = mem_calloc(gws, sizeof(*crypt_key));
 
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -128,9 +121,12 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    NULL, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
 	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
+	mem_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+	                          datasize, NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem data");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -138,16 +134,18 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_data),
+		&mem_data), "Error while setting mem_salt kernel argument");
 }
 
 static void release_clobj(void)
 {
-	if (crypt_key) {
+	if (outbuffer) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_data), "Release mem data");
 
-		MEM_FREE(crypt_key);
 		MEM_FREE(inbuffer);
 		MEM_FREE(outbuffer);
 	}
@@ -181,10 +179,10 @@ static void reset(struct db_main *db)
 		         PLAINTEXT_LENGTH,
 		         (int)sizeof(currentsalt.salt),
 		         (int)sizeof(outbuffer->v));
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+		opencl_init("$JOHN/kernels/zip_kernel.cl",
 		            gpu_id, build_opts);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "derive_key", &cl_error);
+		crypt_kernel = clCreateKernel(program[gpu_id], "zip", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -300,13 +298,27 @@ static void set_salt(void *salt)
 	saved_salt = *((my_salt**)salt);
 
 	memcpy((char*)currentsalt.salt, saved_salt->salt, SALT_LENGTH(saved_salt->v.mode));
+	memcpy((char*)currentsalt.passverify, saved_salt->passverify, PWD_VER_LENGTH);
 	currentsalt.length = SALT_LENGTH(saved_salt->v.mode);
 	currentsalt.iterations = KEYING_ITERATIONS;
-	currentsalt.outlen = PWD_VER_LENGTH;
-	currentsalt.skip_bytes = 2 * KEY_LENGTH(saved_salt->v.mode);
+	currentsalt.key_len = KEY_LENGTH(saved_salt->v.mode);
+	currentsalt.comp_len = saved_salt->comp_len;
 
+	if (saved_salt->comp_len > datasize) {
+		datasize = saved_salt->comp_len;
+		HANDLE_CLERROR(clReleaseMemObject(mem_data), "Release mem data");
+		mem_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+		                          datasize, NULL, &cl_error);
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_data),
+			&mem_data), "Error while setting mem_salt kernel argument");
+	}
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 	               CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
+	               "Copy setting to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_data, CL_FALSE, 0,
+	                                    saved_salt->comp_len,
+	                                    saved_salt->datablob,
+	                                    0, NULL, NULL),
 	               "Copy setting to gpu");
 }
 
@@ -332,7 +344,6 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -340,7 +351,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (saved_salt->v.type) {
 		// This salt passed valid() but failed get_salt().
 		// Should never happen.
-		memset(crypt_key, 0, count * WINZIP_BINARY_SIZE);
+		memset(outbuffer, 0, count * WINZIP_BINARY_SIZE);
 		return count;
 	}
 
@@ -360,32 +371,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
 
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		if (!memcmp((unsigned char*)outbuffer[index].v,
-		            saved_salt->passverify, 2)) {
-			unsigned char pwd_ver[4+64];
-
-			pbkdf2_sha1(inbuffer[index].v,
-			            inbuffer[index].length, saved_salt->salt,
-			            SALT_LENGTH(saved_salt->v.mode), KEYING_ITERATIONS,
-			            pwd_ver, KEY_LENGTH(saved_salt->v.mode),
-			            KEY_LENGTH(saved_salt->v.mode));
-			hmac_sha1(pwd_ver,
-			          KEY_LENGTH(saved_salt->v.mode),
-			          (const unsigned char*)saved_salt->datablob,
-			          saved_salt->comp_len,
-			          crypt_key[index], WINZIP_BINARY_SIZE);
-		}
-		else
-			memset(crypt_key[index], 0, WINZIP_BINARY_SIZE);
-	}
-
 	return count;
 }
 
@@ -394,20 +379,21 @@ static int cmp_all(void *binary, int count)
 	int i;
 
 	for (i = 0; i < count; i++)
-		if (((uint32_t*)&(crypt_key[i]))[0] == ((uint32_t*)binary)[0])
+		if (((uint32_t*)&(outbuffer[i].v))[0] == ((uint32_t*)binary)[0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (((uint32_t*)&(crypt_key[index]))[0] == ((uint32_t*)binary)[0]);
+	return (((uint32_t*)&(outbuffer[index].v))[0] == ((uint32_t*)binary)[0]);
 }
 
 static int cmp_exact(char *source, int index)
 {
 	void *b = winzip_common_binary(source);
-	return !memcmp(b, crypt_key[index], sizeof(crypt_key[index]));
+
+	return !memcmp(b, outbuffer[index].v, WINZIP_BINARY_SIZE);
 }
 
 struct fmt_main fmt_opencl_zip = {

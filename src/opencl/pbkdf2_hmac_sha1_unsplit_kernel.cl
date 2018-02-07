@@ -16,6 +16,11 @@
 #include "opencl_misc.h"
 #include "opencl_sha1.h"
 
+/* avoid name clashes */
+#define preproc   u_preproc
+#define hmac_sha1 u_hmac_sha1
+#define big_hmac_sha1 u_big_hmac_sha1
+
 #define SHA1_DIGEST_LENGTH 20
 
 typedef struct {
@@ -230,6 +235,10 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 		skip_bytes = 0;
 	}
 }
+
+#undef preproc
+#undef hmac_sha1
+#undef big_hmac_sha1
 
 __kernel void derive_key(__global const pbkdf2_password *inbuffer,
                          __global pbkdf2_hash *outbuffer,
