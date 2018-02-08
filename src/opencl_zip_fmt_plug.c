@@ -411,7 +411,7 @@ struct fmt_main fmt_opencl_zip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ WINZIP_FORMAT_TAG },
 		winzip_common_tests
