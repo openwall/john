@@ -692,6 +692,14 @@ static unsigned int iteration_count(void *salt)
 	return (unsigned int) my_salt->iterations;
 }
 
+static unsigned int headerver(void *salt)
+{
+	struct custom_salt *my_salt;
+
+	my_salt = salt;
+	return (unsigned int) my_salt->headerver;
+}
+
 struct fmt_main fmt_dmg = {
 	{
 		FORMAT_LABEL,
@@ -713,6 +721,7 @@ struct fmt_main fmt_dmg = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"iteration count",
+			"version",
 		},
 		{ FORMAT_TAG },
 		dmg_tests
@@ -727,6 +736,7 @@ struct fmt_main fmt_dmg = {
 		get_salt,
 		{
 			iteration_count,
+			headerver,
 		},
 		fmt_default_source,
 		{
