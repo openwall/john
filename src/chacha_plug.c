@@ -89,7 +89,7 @@ chacha_ivsetup(struct chacha_ctx *x, const u8 *iv, const u8 *counter, u_int leng
 }
 
 void
-chacha_encrypt_bytes(struct chacha_ctx *x,const u8 *m,u8 *c,u32 bytes)
+chacha_encrypt_bytes(struct chacha_ctx *x,const u8 *m,u8 *c,u32 bytes,int rounds)
 {
   u32 x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
   u32 j0, j1, j2, j3, j4, j5, j6, j7, j8, j9, j10, j11, j12, j13, j14, j15;
@@ -139,7 +139,8 @@ chacha_encrypt_bytes(struct chacha_ctx *x,const u8 *m,u8 *c,u32 bytes)
     x13 = j13;
     x14 = j14;
     x15 = j15;
-    for (i = 20;i > 0;i -= 2) {
+    // for (i = 20;i > 0;i -= 2) { // ChaCha20
+    for (i = rounds;i > 0;i -= 2) {
       QUARTERROUND( x0, x4, x8,x12)
       QUARTERROUND( x1, x5, x9,x13)
       QUARTERROUND( x2, x6,x10,x14)
@@ -220,7 +221,7 @@ chacha_encrypt_bytes(struct chacha_ctx *x,const u8 *m,u8 *c,u32 bytes)
   }
 }
 
-void chacha_decrypt_bytes(struct chacha_ctx *x, const u_char *c, u_char *m, u_int bytes)
+void chacha_decrypt_bytes(struct chacha_ctx *x, const u_char *c, u_char *m, u_int bytes,int rounds)
 {
-  chacha_encrypt_bytes(x,c,m,bytes);
+  chacha_encrypt_bytes(x, c, m, bytes, rounds);
 }
