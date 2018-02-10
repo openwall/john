@@ -29,7 +29,7 @@ struct chacha_ctx {
 
 void chacha_keysetup(struct chacha_ctx *x, const u_char *k, u_int kbits);
 void chacha_ivsetup(struct chacha_ctx *x, const u_char *iv, const u_char *ctr, u_int length);
-void chacha_encrypt_bytes(struct chacha_ctx *x, const u_char *m, u_char *c, u_int bytes);
-void chacha_decrypt_bytes(struct chacha_ctx *x, const u_char *c, u_char *m, u_int bytes);
+void chacha_encrypt_bytes(struct chacha_ctx *x, const u_char *m, u_char *c, u_int bytes, int rounds);
+void chacha_decrypt_bytes(struct chacha_ctx *x, const u_char *c, u_char *m, u_int bytes, int rounds);
 
 #endif	/* CHACHA_H */

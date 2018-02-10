@@ -219,7 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		else if (cur_salt->version == 2 && cur_salt->algorithm == 2) {
 			unsigned char dec_buf[32];
 
-			chacha_decrypt_bytes(&ckey, cur_salt->contents, dec_buf, 32);
+			chacha_decrypt_bytes(&ckey, cur_salt->contents, dec_buf, 32, 20);
 			if (!memcmp(dec_buf, cur_salt->expected_bytes, 32)) {
 				cracked[index] = 1;
 #ifdef _OPENMP
