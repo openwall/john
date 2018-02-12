@@ -282,8 +282,7 @@ __const_a8 uint32_t RHs[16] = {
             SB1[ (T >> 24) & 0x3F ]; \
     } while (0)
 
-//#define SWAP(a,b) do { uint32_t t = a; a = b; b = t; } while (0)
-#define SWAP(a, b) do { a ^= b; b ^= a; a ^= b; } while (0)
+#define SWAP(a,b) do { uint32_t t = a; a = b; b = t; } while (0)
 
 #if 0
 __const_a8 uchar odd_parity_table[128] = { 1,  2,  4,  7,  8,

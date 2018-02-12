@@ -59,10 +59,10 @@
 /* MAYBE_VECTOR_UINT need to be defined before this header */
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
-                      __global MAYBE_VECTOR_UINT *ipad,
-                      __global MAYBE_VECTOR_UINT *opad,
-                      MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
+inline void _phsk_hmac_sha1(__global MAYBE_VECTOR_UINT *state,
+                            __global MAYBE_VECTOR_UINT *ipad,
+                            __global MAYBE_VECTOR_UINT *opad,
+                            MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i, j, last;
 	MAYBE_VECTOR_UINT W[16];
@@ -129,8 +129,8 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 		state[i] = output[i];
 }
 
-inline void preproc(__global const MAYBE_VECTOR_UINT *key,
-                    __global MAYBE_VECTOR_UINT *state, uint padding)
+inline void _phsk_preproc(__global const MAYBE_VECTOR_UINT *key,
+                          __global MAYBE_VECTOR_UINT *state, uint padding)
 {
 	uint i;
 	MAYBE_VECTOR_UINT W[16];
@@ -154,11 +154,11 @@ void pbkdf2_init(__global const MAYBE_VECTOR_UINT *inbuffer,
 	uint gid = get_global_id(0);
 	uint i;
 
-	preproc(&inbuffer[gid * 16], state[gid].ipad, 0x36363636);
-	preproc(&inbuffer[gid * 16], state[gid].opad, 0x5c5c5c5c);
+	_phsk_preproc(&inbuffer[gid * 16], state[gid].ipad, 0x36363636);
+	_phsk_preproc(&inbuffer[gid * 16], state[gid].opad, 0x5c5c5c5c);
 
-	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
-	          salt->salt, salt->length, 0x01);
+	_phsk_hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
+	                salt->salt, salt->length, 0x01);
 
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = state[gid].out[i];
@@ -186,8 +186,7 @@ void pbkdf2_loop(__global pbkdf2_state *state)
 #ifdef ITERATIONS
 #define iterations HASH_LOOPS
 #else
-	uint iterations = state[gid].iter_cnt > HASH_LOOPS ?
-		HASH_LOOPS : state[gid].iter_cnt;
+	uint iterations = MIN(HASH_LOOPS, state[gid].iter_cnt);
 #endif
 	for (i = 0; i < 5; i++)
 		W[i] = state[gid].W[i];
@@ -291,8 +290,8 @@ void pbkdf2_final(MAYBE_CONSTANT pbkdf2_salt *salt,
 #endif
 	/* Was this the last pass? If not, prepare for next one */
 	if (4 * base + 20 < OUTLEN) {
-		hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
-		          salt->salt, salt->length, 1 + pass);
+		_phsk_hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
+		                salt->salt, salt->length, 1 + pass);
 
 		for (i = 0; i < 5; i++)
 			state[gid].W[i] = state[gid].out[i];

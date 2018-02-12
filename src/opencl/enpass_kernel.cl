@@ -54,8 +54,8 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 
 	/* Was this the last pass? If not, prepare for next one */
 	if (4 * base + 20 < OUTLEN) {
-		hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
-		          salt->salt, salt->length, 1 + pass);
+		_phsk_hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
+		                salt->salt, salt->length, 1 + pass);
 
 		for (i = 0; i < 5; i++)
 			state[gid].W[i] = state[gid].out[i];
