@@ -161,10 +161,11 @@ __kernel void keepass_final(__global keepass_state *state,
 			Twofish_prepare_key(hash, 32, &tkey);
 			datasize = Twofish_Decrypt(&tkey, content, content,
 			                           contentsize, iv);
-
-			if (datasize < 0 || datasize > contentsize)
-				datasize = 0;
 		}
+
+		if (datasize < 0 || datasize > contentsize)
+			datasize = 0;
+
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, content, datasize);
 		SHA256_Final(hash, &ctx);
