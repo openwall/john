@@ -18,9 +18,6 @@ john_register_one(&fmt_opencl_pgpwde);
 
 #include <stdint.h>
 #include <string.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
 #include "params.h"
@@ -34,7 +31,7 @@ john_register_one(&fmt_opencl_pgpwde);
 #include "pgpwde_common.h"
 
 #define FORMAT_LABEL            "pgpwde-opencl"
-#define ALGORITHM_NAME          "SHA1 OpenCL"
+#define ALGORITHM_NAME          "SHA1 AES OpenCL"
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -51,7 +48,7 @@ typedef struct {
 } pgpwde_password;
 
 typedef struct {
-	uint8_t v[32];
+	uint32_t cracked;
 } pgpwde_hash;
 
 typedef struct {
@@ -59,10 +56,9 @@ typedef struct {
 	uint32_t bytes;
 	uint32_t key_len;
 	uint8_t salt[16];
+	uint8_t esk[128];
 } pgpwde_salt;
 
-static int *cracked;
-static int any_cracked;
 static struct custom_salt *cur_salt;
 
 static cl_int cl_error;
@@ -92,11 +88,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	insize = sizeof(pgpwde_password) * gws;
 	outsize = sizeof(pgpwde_hash) * gws;
 	settingsize = sizeof(pgpwde_salt);
-	cracked_size = sizeof(*cracked) * gws;
 
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	cracked = mem_calloc(1, cracked_size);
 
 	// Allocate memory
 	mem_in =
@@ -122,14 +116,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	if (cracked) {
+	if (outbuffer) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 		MEM_FREE(inbuffer);
 		MEM_FREE(outbuffer);
-		MEM_FREE(cracked);
 	}
 }
 
@@ -183,7 +176,8 @@ static void set_salt(void *salt)
 	/* NOTE saltlen and key_len are currently hard-coded in kernel, for speed */
 	currentsalt.saltlen = 16;
 	currentsalt.key_len = 32;
-	memcpy((char*)currentsalt.salt, cur_salt->salt, currentsalt.saltlen);
+	memcpy(currentsalt.salt, cur_salt->salt, currentsalt.saltlen);
+	memcpy(currentsalt.esk, cur_salt->esk, sizeof(currentsalt.esk));
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
@@ -195,8 +189,6 @@ static void set_key(char *key, int index)
 {
 	uint32_t length = strlen(key);
 
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
 }
@@ -205,6 +197,7 @@ static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
 	uint32_t length = inbuffer[index].length;
+
 	memcpy(ret, inbuffer[index].v, length);
 	ret[length] = '\0';
 	return ret;
@@ -213,13 +206,7 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
@@ -239,39 +226,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
 
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		unsigned char key[40];
-		int ret = -1;
-
-		memcpy(key, outbuffer[index].v, 32);
-		ret = pgpwde_decrypt_and_verify(key, cur_salt->esk, 128);
-		cracked[index] = (0 == ret);
-
-		if (ret == 0) {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			any_cracked |= 1;
-		}
-	}
-
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (outbuffer[index].cracked)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return outbuffer[index].cracked;
 }
 
 static int cmp_exact(char *source, int index)
@@ -294,7 +264,7 @@ struct fmt_main fmt_opencl_pgpwde = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT,
 		{ NULL },
 		{ FORMAT_TAG },
 		pgpwde_tests,
