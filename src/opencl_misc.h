@@ -543,6 +543,36 @@ inline void memcpy_cp(void *dst, __constant void *src, uint count)
 	}
 }
 
+/* src is MAYBE_CONSTANT mem, dst is private mem */
+inline void memcpy_mcp(void *dst, MAYBE_CONSTANT void *src, uint count)
+{
+	union {
+		MAYBE_CONSTANT uint *w;
+		MAYBE_CONSTANT uchar *c;
+	} s;
+	union {
+		uint *w;
+		uchar *c;
+	} d;
+
+	s.c = src;
+	d.c = dst;
+
+	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
+		while (((size_t)s.c) & 0x03 && count--)
+			*d.c++ = *s.c++;
+
+		while (count >= 4) {
+			*d.w++ = *s.w++;
+			count -= 4;
+		}
+	}
+
+	while (count--) {
+		*d.c++ = *s.c++;
+	}
+}
+
 /* dst is private mem */
 inline void memset_p(void *p, uint val, uint count)
 {
