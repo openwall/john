@@ -11,6 +11,7 @@
 
 #include "opencl_misc.h"
 #include "opencl_ripemd.h"
+#include "opencl_aes.h"
 
 #define ITERATIONS 2000
 
@@ -20,12 +21,13 @@ typedef struct {
 } pbkdf2_password;
 
 typedef struct {
-	uint v[(OUTLEN+3)/4];
-} pbkdf2_hash;
+	uint v[16 / 4];
+} tc_hash;
 
 typedef struct {
 	uint salt[SALTLEN / 4];
-} pbkdf2_salt;
+	uint bin[(512 - 64) / 4];
+} tc_salt;
 
 #define RIPEMD160_DIGEST_LENGTH 20
 
@@ -117,7 +119,7 @@ inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_state,
 }
 
 inline void pbkdf2(__global const uchar *pass, uint passlen,
-                   __constant uint *salt, __global uint *out)
+                   __constant uint *salt, uint *out)
 {
 	uint ipad_state[5];
 	uint opad_state[5];
@@ -137,16 +139,41 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 		                   tmp_out);
 
 		for (i = 0; i < 20 && t < (OUTLEN + 3) / 4 * 4; i++, t++)
-			PUTCHAR_G(out, t, ((uchar*)tmp_out)[i]);
+			PUTCHAR(out, t, ((uchar*)tmp_out)[i]);
 	}
 }
 
-__kernel void pbkdf2_ripemd160(__global const pbkdf2_password *inbuffer,
-                               __global pbkdf2_hash *outbuffer,
-                               __constant pbkdf2_salt *salt)
+inline void AES_256_XTS_first_sector(const uchar *double_key,
+                                     __global uint *out,
+                                     __constant uint *in)
+{
+	uint tweak[4] = { 0 };
+	uint buf[4];
+	int i;
+	AES_KEY key1, key2;
+
+	AES_set_decrypt_key(double_key, 256, &key1);
+	AES_set_encrypt_key(double_key + 32, 256, &key2);
+
+	AES_encrypt((uchar*)tweak, (uchar*)tweak, &key2);
+
+	for (i = 0; i < 4; i++)
+		buf[i] = in[i] ^ tweak[i];
+
+	AES_decrypt((uchar*)buf, (uchar*)buf, &key1);
+
+	for (i = 0; i < 4; i++)
+		out[i] = buf[i] ^ tweak[i];
+}
+
+__kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
+                               __global tc_hash *outbuffer,
+                               __constant tc_salt *salt)
 {
 	uint idx = get_global_id(0);
+	uint key[64 / 4];
 
-	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt,
-	       outbuffer[idx].v);
+	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, key);
+
+	AES_256_XTS_first_sector((uchar*)key, outbuffer[idx].v, salt->bin);
 }

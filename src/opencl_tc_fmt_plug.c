@@ -32,9 +32,9 @@ john_register_one(&FMT_STRUCT);
 #include "loader.h"
 #include "common-opencl.h"
 
-#define FORMAT_LABEL            "truecrypt-opencl"
-#define FORMAT_NAME             "TrueCrypt AES256_XTS"
-#define ALGORITHM_NAME          "RIPEMD160 OpenCL"
+#define FORMAT_LABEL            "TrueCrypt-opencl"
+#define FORMAT_NAME             ""
+#define ALGORITHM_NAME          "RIPEMD160 AES256_XTS OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 
@@ -59,7 +59,6 @@ john_register_one(&FMT_STRUCT);
 #define MAX_KFILE_SZ            1048576 /* 1 MB */
 #define MAX_KEYFILES            256
 
-static unsigned char (*first_block_dec)[16];
 unsigned char (*keyfiles_data)[MAX_KFILE_SZ];
 int (*keyfiles_length);
 
@@ -73,16 +72,17 @@ typedef struct {
 } pbkdf2_password;
 
 typedef struct {
-	unsigned int v[(OUTLEN+3)/4];
-} pbkdf2_hash;
+	unsigned int v[16 / 4];
+} tc_hash;
 
 typedef struct {
-	unsigned char salt[SALTLEN];
-} pbkdf2_salt;
+	unsigned int salt[SALTLEN / 4];
+	unsigned int bin[(512 - 64) / 4];
+} tc_salt;
 
 struct cust_salt {
 	unsigned char salt[64];
-	unsigned char bin[512-64];
+	unsigned char bin[512 - 64];
 	int loop_inc;
 	int num_iterations;
 	int hash_type;
@@ -97,8 +97,8 @@ static struct fmt_tests tests_ripemd160[] = {
 
 static cl_int cl_error;
 static pbkdf2_password *inbuffer;
-static pbkdf2_hash *outbuffer;
-static pbkdf2_salt currentsalt;
+static tc_hash *outbuffer;
+static tc_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
 
@@ -124,8 +124,8 @@ static size_t get_task_max_work_group_size()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	insize = sizeof(pbkdf2_password) * gws;
-	outsize = sizeof(pbkdf2_hash) * gws;
-	settingsize = sizeof(pbkdf2_salt);
+	outsize = sizeof(tc_hash) * gws;
+	settingsize = sizeof(tc_salt);
 
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
@@ -151,7 +151,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
 
-	first_block_dec = mem_calloc(gws, sizeof(*first_block_dec));
 	keyfiles_data = mem_calloc(MAX_KEYFILES, sizeof(*keyfiles_data));
 	keyfiles_length = mem_calloc(MAX_KEYFILES, sizeof(int));
 }
@@ -164,7 +163,6 @@ static void release_clobj(void)
 
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
-	MEM_FREE(first_block_dec);
 	MEM_FREE(keyfiles_data);
 	MEM_FREE(keyfiles_length);
 }
@@ -196,11 +194,11 @@ static void reset(struct db_main *db)
 		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
 		         (int)sizeof(inbuffer->v),
 		         (int)sizeof(currentsalt.salt),
-		         (int)sizeof(outbuffer->v));
+		         OUTLEN);
 		opencl_init("$JOHN/kernels/pbkdf2_ripemd160_kernel.cl",
 		            gpu_id, build_opts);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "pbkdf2_ripemd160",
+		crypt_kernel = clCreateKernel(program[gpu_id], "tc_ripemd_aesxts",
 		                              &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
@@ -253,6 +251,7 @@ static void set_salt(void *salt)
 	psalt = salt;
 
 	memcpy((char*)currentsalt.salt, psalt->salt, SALTLEN);
+	memcpy((char*)currentsalt.bin, psalt->bin, sizeof(psalt->bin));
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
@@ -422,9 +421,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	if (psalt->nkeyfiles) {
-#if _OPENMP
-#pragma omp parallel for
-#endif
 		for (i = 0; i < count; i++) {
 			apply_keyfiles(inbuffer[i].v, 64, psalt->nkeyfiles);
 			inbuffer[i].length = 64;
@@ -445,15 +441,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
 
-	if (ocl_autotune_running)
-		return count;
-
-#if _OPENMP
-#pragma omp parallel for
-#endif
-	for (i = 0; i < count; i++) {
-		AES_256_XTS_first_sector((unsigned char*)outbuffer[i].v, first_block_dec[i], psalt->bin, 16);
-	}
 	return count;
 }
 
@@ -461,7 +448,7 @@ static int cmp_all(void* binary, int count)
 {
 	int i;
 	for (i = 0; i < count; ++i) {
-		if (!memcmp(first_block_dec[i], "TRUE", 4))
+		if (!memcmp(outbuffer[i].v, "TRUE", 4))
 			return 1;
 	}
 	return 0;
@@ -469,7 +456,7 @@ static int cmp_all(void* binary, int count)
 
 static int cmp_one(void* binary, int index)
 {
-	if (!memcmp(first_block_dec[index], "TRUE", 4))
+	if (!memcmp(outbuffer[index].v, "TRUE", 4))
 		return 1;
 	return 0;
 }
@@ -484,7 +471,7 @@ static int cmp_crc32s(unsigned char *given_crc32, CRC32_t comp_crc32) {
 static int cmp_exact(char *source, int idx)
 {
 	unsigned char key[64];
-	unsigned char decr_header[512-64];
+	unsigned char decr_header[512 - 64];
 	CRC32_t check_sum;
 	int ksz = inbuffer[idx].length;
 
@@ -496,21 +483,22 @@ static int cmp_exact(char *source, int idx)
 		ksz = 64;
 	}
 
-	pbkdf2_ripemd160(key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+	pbkdf2_ripemd160(key, ksz, psalt->salt, 64, psalt->num_iterations,
+	                 key, sizeof(key), 0);
 
-	AES_256_XTS_first_sector(key, decr_header, psalt->bin, 512-64);
+	AES_256_XTS_first_sector(key, decr_header, psalt->bin, 512 - 64);
 
 	if (memcmp(decr_header, "TRUE", 4))
 		return 0;
 
 	CRC32_Init(&check_sum);
-	CRC32_Update(&check_sum, &decr_header[256-64], 256);
+	CRC32_Update(&check_sum, &decr_header[256 - 64], 256);
 	if (!cmp_crc32s(&decr_header[8], ~check_sum))
 		return 0;
 
 	CRC32_Init(&check_sum);
-	CRC32_Update(&check_sum, decr_header, 256-64-4);
-	if (!cmp_crc32s(&decr_header[256-64-4], ~check_sum))
+	CRC32_Update(&check_sum, decr_header, 256 - 64 - 4);
+	if (!cmp_crc32s(&decr_header[256 - 64 - 4], ~check_sum))
 		return 0;
 
 	return 1;
@@ -561,7 +549,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ TAG_RIPEMD160 },
 		tests_ripemd160
