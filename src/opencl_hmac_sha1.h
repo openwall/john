@@ -1,133 +1,95 @@
 /*
- * This software is Copyright (c) 2017 magnum
+ * This software is Copyright (c) 2018 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
 
-#include "opencl_sha1.h"
+#include "opencl_sha1_ctx.h"
 
-inline void preproc(const uchar *key, uint keylen,
-                    __private uint *state, uint padding)
-{
-	uint i;
-	uint W[16];
-	uint A, B, C, D, E, temp, r[16];
-
-	for (i = 0; i < 16; i++)
-		W[i] = padding;
-
-	for (i = 0; i < keylen; i++)
-		XORCHAR_BE(W, i, key[i]);
-
-	A = INIT_A;
-	B = INIT_B;
-	C = INIT_C;
-	D = INIT_D;
-	E = INIT_E;
-
-	SHA1(A, B, C, D, E, W);
-
-	state[0] = A + INIT_A;
-	state[1] = B + INIT_B;
-	state[2] = C + INIT_C;
-	state[3] = D + INIT_D;
-	state[4] = E + INIT_E;
-
-#if __OS_X__ && gpu_intel(DEVICE_INFO)
-/*
- * Ridiculous workaround for Apple w/ Intel HD Graphics. I tried to
- * replace this with a barrier but that did not do the trick.
- *
- * Yosemite, HD Graphics 4000, 1.2(Jul 29 2015 02:40:37)
- */
-	if (get_global_id(0) == 0x7fffffff) printf(".");
+#ifdef HMAC_KEY_TYPE
+#define USE_KEY_BUF
+#else
+#define HMAC_KEY_TYPE
 #endif
-}
 
-#define ANOTHER_SHA1(A, B, C, D, E, W) {	\
-	uint a, b, c, d, e; \
-	a = A; \
-	b = B; \
-	c = C; \
-	d = D; \
-	e = E; \
-	SHA1(A, B, C, D, E, W); \
-	A += a; \
-	B += b; \
-	C += c; \
-	D += d; \
-	E += e; \
-	}
+#ifdef HMAC_MSG_TYPE
+#define USE_DATA_BUF
+#else
+#define HMAC_MSG_TYPE
+#endif
 
-inline void hmac_sha1(__global uint *output,
-                      __constant uint *message, int messagelen,
-                      const uint *key, uint keylen)
+#ifndef HMAC_OUT_TYPE
+#define HMAC_OUT_TYPE
+#endif
+
+inline void hmac_sha1(HMAC_KEY_TYPE const void *_key, uint key_len,
+                      HMAC_MSG_TYPE const void *_data, uint data_len,
+                      HMAC_OUT_TYPE void *_digest, uint digest_len)
 {
-	int i;
-	uint W[16];
-	uchar *w = (uchar*)W;
-	uint A, B, C, D, E, temp, r[16];
-	uint ipad_state[5];
-	uint opad_state[5];
+	HMAC_KEY_TYPE const uchar *key = _key;
+	HMAC_MSG_TYPE const uchar *data = _data;
+	HMAC_OUT_TYPE uchar *digest = _digest;
+	uint pW[16];
+	uchar *buf = (uchar*)pW;
+	uchar local_digest[20];
+	SHA_CTX ctx;
+	uint i;
 
-	preproc((uchar*)key, keylen, ipad_state, 0x36363636);
-	preproc((uchar*)key, keylen, opad_state, 0x5c5c5c5c);
+#if HMAC_KEY_GT_64
+	if (key_len > 64) {
+		SHA1_Init(&ctx);
+#ifdef USE_KEY_BUF
+		while (key_len) {
+			uchar pbuf[64];
+			uint len = MIN(key_len, (uint)sizeof(pbuf));
 
-	A = ipad_state[0];
-	B = ipad_state[1];
-	C = ipad_state[2];
-	D = ipad_state[3];
-	E = ipad_state[4];
-
-	for (i = 0; i < messagelen / 4; i++) {
-		W[(i & 15)] = SWAP32(message[i]);
-		if ((i & 15) == 15)
-			ANOTHER_SHA1(A, B, C, D, E, W);
+			memcpy_macro(pbuf, key, len);
+			SHA1_Update(&ctx, pbuf, len);
+			data_len -= len;
+			key += len;
+		}
+#else
+		SHA1_Update(&ctx, key, key_len);
+#endif
+		SHA1_Final(buf, &ctx);
+		pW[0] ^= 0x36363636;
+		pW[1] ^= 0x36363636;
+		pW[2] ^= 0x36363636;
+		pW[3] ^= 0x36363636;
+		pW[4] ^= 0x36363636;
+		memset_p(&buf[20], 0x36, 44);
+	} else
+#endif
+	{
+		memcpy_macro(buf, key, key_len);
+		memset_p(&buf[key_len], 0, 64 - key_len);
+		for (i = 0; i < 16; i++)
+			pW[i] ^= 0x36363636;
 	}
-	for (i *= 4; i < messagelen; i++) {
-		w[(i & 63) ^ 3] = ((__constant uchar*)message)[i];
-		if ((i & 63) == 63)
-			ANOTHER_SHA1(A, B, C, D, E, W);
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, buf, 64);
+#ifdef USE_DATA_BUF
+	while (data_len) {
+		uchar pbuf[64];
+		uint len = MIN(data_len, (uint)sizeof(pbuf));
+
+		memcpy_macro(pbuf, data, len);
+		SHA1_Update(&ctx, pbuf, len);
+		data_len -= len;
+		data += len;
 	}
+#else
+	SHA1_Update(&ctx, data, data_len);
+#endif
+	SHA1_Final(local_digest, &ctx);
+	for (i = 0; i < 16; i++)
+		pW[i] ^= (0x36363636 ^ 0x5c5c5c5c);
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, buf, 64);
+	SHA1_Update(&ctx, local_digest, 20);
+	SHA1_Final(local_digest, &ctx);
 
-	for (i = messagelen & 63; i < 64; i++)
-		w[i ^ 3] = 0;
-	w[(messagelen & 63) ^ 3] = 0x80;
-	if ((messagelen & 63) > 55) {
-		ANOTHER_SHA1(A, B, C, D, E, W);
-		for (i = 0; i < 15; i++)
-			W[i] = 0;
-	}
-	W[15] = (64 + messagelen) << 3;
-	ANOTHER_SHA1(A, B, C, D, E, W);
-
-	W[0] = A;
-	W[1] = B;
-	W[2] = C;
-	W[3] = D;
-	W[4] = E;
-	W[5] = 0x80000000;
-	W[15] = 0x2A0;
-
-	A = opad_state[0];
-	B = opad_state[1];
-	C = opad_state[2];
-	D = opad_state[3];
-	E = opad_state[4];
-
-	SHA1_160Z(A, B, C, D, E, W);
-
-	A += opad_state[0];
-	B += opad_state[1];
-	C += opad_state[2];
-	D += opad_state[3];
-	E += opad_state[4];
-
-	output[0] = SWAP32(A);
-	output[1] = SWAP32(B);
-	output[2] = SWAP32(C);
-	output[3] = SWAP32(D);
-	output[4] = SWAP32(E);
+	memcpy_macro(digest, local_digest, digest_len);
 }

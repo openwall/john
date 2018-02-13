@@ -14,6 +14,7 @@ typedef struct {
 #include "pbkdf2_hmac_sha1_kernel.cl"
 #define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
+#include "opencl_hmac_sha1.h"
 #include "opencl_des.h"
 #include "opencl_sha1_ctx.h"
 
@@ -34,59 +35,6 @@ typedef struct {
 	uint scp; /* start chunk present */
 	uchar zchunk[4096]; /* chunk #0 */
 } dmg_salt;
-
-inline void hmac_sha1(const uchar *_key, uint key_len,
-                      const uchar *data, uint data_len,
-                      uchar *digest, uint digest_len)
-{
-	uint pW[16];
-	uchar *buf = (uchar*)pW;
-	uchar local_digest[20];
-	SHA_CTX ctx;
-	uint i;
-
-#if HMAC_KEY_GT_64
-	if (key_len > 64) {
-		SHA1_Init(&ctx);
-		while (key_len) {
-			uchar pbuf[64];
-			uint len = MIN(data_len, (uint)sizeof(pbuf));
-
-			memcpy_macro(pbuf, _key, len);
-			SHA1_Update(&ctx, pbuf, len);
-			data_len -= len;
-			_key += len;
-		}
-		SHA1_Final(buf, &ctx);
-		pW[0] ^= 0x36363636;
-		pW[1] ^= 0x36363636;
-		pW[2] ^= 0x36363636;
-		pW[3] ^= 0x36363636;
-		pW[4] ^= 0x36363636;
-		memset_p(&buf[20], 0x36, 44);
-	} else
-#endif
-	{
-		memcpy_macro(buf, _key, key_len);
-		memset_p(&buf[key_len], 0, 64 - key_len);
-		for (i = 0; i < 16; i++)
-			pW[i] ^= 0x36363636;
-	}
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, buf, 64);
-	SHA1_Update(&ctx, data, data_len);
-	SHA1_Final(local_digest, &ctx);
-	for (i = 0; i < 16; i++)
-		pW[i] ^= (0x36363636 ^ 0x5c5c5c5c);
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, buf, 64);
-	SHA1_Update(&ctx, local_digest, 20);
-	if (digest_len < 20) {
-		SHA1_Final(local_digest, &ctx);
-		memcpy_pp(digest, local_digest, digest_len);
-	} else
-		SHA1_Final(digest, &ctx);
-}
 
 inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
 {
