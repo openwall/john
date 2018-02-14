@@ -617,7 +617,7 @@ static int cmp_exact(char *source, int index)
 static void set_key(char *key, int index)
 {
 	int j=0, k=0, size=0, count=0;
-	char tmp[BITLOCKER_PSW_CHAR_MAX_SIZE], tmp2[BITLOCKER_PSW_CHAR_MAX_SIZE], *p;
+	char tmp[BITLOCKER_PSW_CHAR_MAX_SIZE + 1], tmp2[BITLOCKER_PSW_CHAR_MAX_SIZE], *p;
 	int8_t check_digit;
 	memset(tmp, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
 
