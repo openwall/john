@@ -98,7 +98,7 @@ static size_t get_task_max_work_group_size()
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= ocl_v_width;
-	key_buf_size = 64 * gws;
+	key_buf_size = PLAINTEXT_LENGTH * gws;
 
 	// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
@@ -212,12 +212,13 @@ static void reset(struct db_main *db)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt*)salt;
-	memcpy(currentsalt.pbkdf2.salt, cur_salt->salt, sizeof(cur_salt->salt));
+	memcpy(currentsalt.pbkdf2.salt, cur_salt->salt,
+	       sizeof(currentsalt.pbkdf2.salt));
 	currentsalt.pbkdf2.length = OPENBSD_SOFTRAID_SALTLENGTH;
 	currentsalt.pbkdf2.iterations = cur_salt->num_iterations;
 	currentsalt.pbkdf2.outlen = 32;
 	memcpy(currentsalt.masked_keys, cur_salt->masked_keys,
-	       sizeof(cur_salt->masked_keys));
+	       sizeof(currentsalt.masked_keys));
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(softraid_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
 }
 
@@ -267,7 +268,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Copy data to gpu
 	if (ocl_autotune_running || new_keys) {
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, PLAINTEXT_LENGTH * scalar_gws, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}
 

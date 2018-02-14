@@ -16,11 +16,14 @@
 #define OPENBSD_SOFTRAID_KEYS       32
 #define OPENBSD_SOFTRAID_KEYLENGTH  64
 #define OPENBSD_SOFTRAID_MACLENGTH  20
+#define SHA1_DIGEST_LENGTH          20
+
+#define MASKED_KEY_SIZE OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS
 
 typedef struct {
 	pbkdf2_salt pbkdf2;
 	int kdf_type;
-	uchar masked_keys[OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS];
+	uchar masked_keys[MASKED_KEY_SIZE];
 } softraid_salt;
 
 __kernel
@@ -29,8 +32,8 @@ void softraid_final(MAYBE_CONSTANT softraid_salt *salt,
 {
 	uint gid = get_global_id(0);
 	uint dk[OUTLEN / 4];
-	uchar unmasked_keys[64 * 32];
-	uchar hashed_mask_key[20];
+	uchar unmasked_keys[MASKED_KEY_SIZE];
+	uchar hashed_mask_key[SHA1_DIGEST_LENGTH];
 	AES_KEY akey;
 	SHA_CTX ctx;
 
@@ -38,16 +41,17 @@ void softraid_final(MAYBE_CONSTANT softraid_salt *salt,
 
 	AES_set_decrypt_key((uchar*)dk, 256, &akey);
 
-	memcpy_mcp(unmasked_keys, salt->masked_keys, 64 * 32);
-	AES_Decrypt_ECB(&akey, unmasked_keys, unmasked_keys, 64 * 32 / 16);
-
 	/* get SHA1 of mask_key */
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, (uchar*)dk, 32);
+	SHA1_Update(&ctx, (uchar*)dk, OUTLEN);
 	SHA1_Final(hashed_mask_key, &ctx);
+
+	memcpy_mcp(unmasked_keys, salt->masked_keys, MASKED_KEY_SIZE);
+	AES_Decrypt_ECB(&akey, unmasked_keys, unmasked_keys,
+	                MASKED_KEY_SIZE / AES_BLOCK_SIZE);
 
 	/* We reuse out.dk as final output hash */
 	hmac_sha1(hashed_mask_key, OPENBSD_SOFTRAID_MACLENGTH,
-	          unmasked_keys, OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS,
-	          out[gid].dk, 20);
+	          unmasked_keys, MASKED_KEY_SIZE,
+	          out[gid].dk, OPENBSD_SOFTRAID_MACLENGTH);
 }

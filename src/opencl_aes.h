@@ -42,6 +42,8 @@
 #define AES_IV_TYPE __private
 #endif
 
+#define AES_BLOCK_SIZE 16
+
 typedef struct aes_ctx {
 	uint32_t sk[60];
 	uint32_t sk_exp[120];
