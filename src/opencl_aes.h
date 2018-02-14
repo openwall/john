@@ -705,9 +705,9 @@ aes_ct_bitslice_decrypt(uint num_rounds,
 }
 
 inline int
-AES_Setkey(AES_CTX *ctx, AES_KEY_TYPE uint8_t *key, int len)
+AES_Setkey(AES_CTX *ctx, AES_KEY_TYPE void *key, int len)
 {
-	ctx->num_rounds = aes_ct_keysched(ctx->sk, key, len);
+	ctx->num_rounds = aes_ct_keysched(ctx->sk, (AES_KEY_TYPE char*)key, len);
 	if (ctx->num_rounds == 0)
 		return -1;
 	aes_ct_skey_expand(ctx->sk_exp, ctx->num_rounds, ctx->sk);
