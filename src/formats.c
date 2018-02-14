@@ -852,8 +852,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return ret;
 #endif
 /* Remove some old keys to better test cmp_all() */
-		if (index & 1)
-			fmt_set_key(longcand(format, index, sl), index);
+		if (index & 1) {
+			format->methods.clear_keys();
+			for (i = 0; i <= index; i++)
+				fmt_set_key(fmt_null_key, i);
+		}
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests) {
