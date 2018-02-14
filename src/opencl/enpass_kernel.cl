@@ -4,8 +4,6 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
-#include "opencl_misc.h"
-#undef MAYBE_CONSTANT
 #define MAYBE_CONSTANT __global
 #include "pbkdf2_hmac_sha1_kernel.cl"
 #define AES_SRC_TYPE MAYBE_CONSTANT

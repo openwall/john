@@ -30,16 +30,16 @@
 #include "opencl_misc.h"
 
 /* These default to __private but can be e.g. __global or __constant */
+#ifndef AES_KEY_TYPE
+#define AES_KEY_TYPE __private const
+#endif
+
 #ifndef AES_SRC_TYPE
 #define AES_SRC_TYPE __private const
 #endif
 
 #ifndef AES_DST_TYPE
 #define AES_DST_TYPE __private
-#endif
-
-#ifndef AES_IV_TYPE
-#define AES_IV_TYPE __private
 #endif
 
 #define AES_BLOCK_SIZE 16
@@ -52,7 +52,18 @@ typedef struct aes_ctx {
 } AES_CTX;
 
 inline void
-enc32le(AES_DST_TYPE void *dst, uint32_t x)
+enc32le(void *dst, uint32_t x)
+{
+	uchar *buf = dst;
+
+	buf[0] = (uchar)x;
+	buf[1] = (uchar)(x >> 8);
+	buf[2] = (uchar)(x >> 16);
+	buf[3] = (uchar)(x >> 24);
+}
+
+inline void
+enc32le_dst(AES_DST_TYPE void *dst, uint32_t x)
 {
 	AES_DST_TYPE uchar *buf = dst;
 
@@ -66,6 +77,28 @@ inline uint32_t
 dec32le(void *src)
 {
 	uchar *buf = src;
+
+	return (uint32_t)buf[0]
+		| ((uint32_t)buf[1] << 8)
+		| ((uint32_t)buf[2] << 16)
+		| ((uint32_t)buf[3] << 24);
+}
+
+inline uint32_t
+dec32le_src(AES_SRC_TYPE void *src)
+{
+	AES_SRC_TYPE uchar *buf = src;
+
+	return (uint32_t)buf[0]
+		| ((uint32_t)buf[1] << 8)
+		| ((uint32_t)buf[2] << 16)
+		| ((uint32_t)buf[3] << 24);
+}
+
+inline uint32_t
+dec32le_key(AES_KEY_TYPE void *src)
+{
+	AES_KEY_TYPE uchar *buf = src;
 
 	return (uint32_t)buf[0]
 		| ((uint32_t)buf[1] << 8)
@@ -347,7 +380,7 @@ sub_word(uint32_t x)
  * bitsliced). Key length is expressed in bytes.
  */
 inline uint
-aes_keysched_base(uint32_t *skey, const void *key, size_t key_len)
+aes_keysched_base(uint32_t *skey, AES_KEY_TYPE void *key, size_t key_len)
 {
 	uint num_rounds;
 	int i, j, k, nk, nkf;
@@ -372,7 +405,7 @@ aes_keysched_base(uint32_t *skey, const void *key, size_t key_len)
 	nk = (int)(key_len >> 2);
 	nkf = (int)((num_rounds + 1) << 2);
 	for (i = 0; i < nk; i++) {
-		tmp = dec32le((uchar *)key + (i << 2));
+		tmp = dec32le_key((AES_KEY_TYPE uchar *)key + (i << 2));
 		skey[i] = tmp;
 	}
 	tmp = skey[(key_len >> 2) - 1];
@@ -400,7 +433,7 @@ aes_keysched_base(uint32_t *skey, const void *key, size_t key_len)
  * invalid (not 16, 24 or 32), then 0 is returned.
  */
 inline uint
-aes_ct_keysched(uint32_t *comp_skey, const void *key, size_t key_len)
+aes_ct_keysched(uint32_t *comp_skey, AES_KEY_TYPE void *key, size_t key_len)
 {
 	uint32_t skey[60];
 	uint u, num_rounds;
@@ -672,7 +705,7 @@ aes_ct_bitslice_decrypt(uint num_rounds,
 }
 
 inline int
-AES_Setkey(AES_CTX *ctx, const uint8_t *key, int len)
+AES_Setkey(AES_CTX *ctx, AES_KEY_TYPE uint8_t *key, int len)
 {
 	ctx->num_rounds = aes_ct_keysched(ctx->sk, key, len);
 	if (ctx->num_rounds == 0)
@@ -682,8 +715,8 @@ AES_Setkey(AES_CTX *ctx, const uint8_t *key, int len)
 }
 
 inline void
-AES_Encrypt_ECB(AES_CTX *ctx, uint8_t *src,
-                uint8_t *dst, size_t num_blocks)
+AES_Encrypt_ECB_pp(AES_CTX *ctx, uint8_t *src,
+                   uint8_t *dst, size_t num_blocks)
 {
 	while (num_blocks > 0) {
 		uint32_t q[8];
@@ -725,8 +758,51 @@ AES_Encrypt_ECB(AES_CTX *ctx, uint8_t *src,
 }
 
 inline void
-AES_Decrypt_ECB(AES_CTX *ctx, uint8_t *src,
-                uint8_t *dst, size_t num_blocks)
+AES_Encrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src,
+                AES_DST_TYPE uint8_t *dst, size_t num_blocks)
+{
+	while (num_blocks > 0) {
+		uint32_t q[8];
+
+		q[0] = dec32le_src(src);
+		q[2] = dec32le_src(src + 4);
+		q[4] = dec32le_src(src + 8);
+		q[6] = dec32le_src(src + 12);
+		if (num_blocks > 1) {
+			q[1] = dec32le_src(src + 16);
+			q[3] = dec32le_src(src + 20);
+			q[5] = dec32le_src(src + 24);
+			q[7] = dec32le_src(src + 28);
+		} else {
+			q[1] = 0;
+			q[3] = 0;
+			q[5] = 0;
+			q[7] = 0;
+		}
+		aes_ct_ortho(q);
+		aes_ct_bitslice_encrypt(ctx->num_rounds, ctx->sk_exp, q);
+		aes_ct_ortho(q);
+		enc32le_dst(dst, q[0]);
+		enc32le_dst(dst + 4, q[2]);
+		enc32le_dst(dst + 8, q[4]);
+		enc32le_dst(dst + 12, q[6]);
+		if (num_blocks > 1) {
+			enc32le_dst(dst + 16, q[1]);
+			enc32le_dst(dst + 20, q[3]);
+			enc32le_dst(dst + 24, q[5]);
+			enc32le_dst(dst + 28, q[7]);
+			src += 32;
+			dst += 32;
+			num_blocks -= 2;
+		} else {
+			break;
+		}
+	}
+}
+
+inline void
+AES_Decrypt_ECB_pp(AES_CTX *ctx, uint8_t *src,
+                   uint8_t *dst, size_t num_blocks)
 {
 	while (num_blocks > 0) {
 		uint32_t q[8];
@@ -768,19 +844,62 @@ AES_Decrypt_ECB(AES_CTX *ctx, uint8_t *src,
 }
 
 inline void
-AES_Encrypt(AES_CTX *ctx, uint8_t *src, uint8_t *dst)
+AES_Decrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src,
+                AES_DST_TYPE uint8_t *dst, size_t num_blocks)
+{
+	while (num_blocks > 0) {
+		uint32_t q[8];
+
+		q[0] = dec32le_src(src);
+		q[2] = dec32le_src(src + 4);
+		q[4] = dec32le_src(src + 8);
+		q[6] = dec32le_src(src + 12);
+		if (num_blocks > 1) {
+			q[1] = dec32le_src(src + 16);
+			q[3] = dec32le_src(src + 20);
+			q[5] = dec32le_src(src + 24);
+			q[7] = dec32le_src(src + 28);
+		} else {
+			q[1] = 0;
+			q[3] = 0;
+			q[5] = 0;
+			q[7] = 0;
+		}
+		aes_ct_ortho(q);
+		aes_ct_bitslice_decrypt(ctx->num_rounds, ctx->sk_exp, q);
+		aes_ct_ortho(q);
+		enc32le_dst(dst, q[0]);
+		enc32le_dst(dst + 4, q[2]);
+		enc32le_dst(dst + 8, q[4]);
+		enc32le_dst(dst + 12, q[6]);
+		if (num_blocks > 1) {
+			enc32le_dst(dst + 16, q[1]);
+			enc32le_dst(dst + 20, q[3]);
+			enc32le_dst(dst + 24, q[5]);
+			enc32le_dst(dst + 28, q[7]);
+			src += 32;
+			dst += 32;
+			num_blocks -= 2;
+		} else {
+			break;
+		}
+	}
+}
+
+inline void
+AES_Encrypt(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src, uint8_t *dst)
 {
 	AES_Encrypt_ECB(ctx, src, dst, 1);
 }
 
 inline void
-AES_Decrypt(AES_CTX *ctx, uint8_t *src, uint8_t *dst)
+AES_Decrypt(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src, uint8_t *dst)
 {
 	AES_Decrypt_ECB(ctx, src, dst, 1);
 }
 
 inline int
-AES_KeySetup_Encrypt(uint32_t *skey, uint8_t *key, int len)
+AES_KeySetup_Encrypt(uint32_t *skey, AES_KEY_TYPE uint8_t *key, int len)
 {
 	uint r, u;
 	uint32_t tkey[60];
@@ -851,7 +970,7 @@ mule(uint32_t x)
 }
 
 inline int
-AES_KeySetup_Decrypt(uint32_t *skey, uint8_t *key, int len)
+AES_KeySetup_Decrypt(uint32_t *skey, AES_KEY_TYPE uint8_t *key, int len)
 {
 	uint i, r, u;
 	uint32_t tkey[60];
@@ -897,86 +1016,57 @@ AES_KeySetup_Decrypt(uint32_t *skey, uint8_t *key, int len)
 typedef AES_CTX AES_KEY;
 #define AES_set_encrypt_key(key, bits, ctx)	AES_Setkey(ctx, key, (bits/8))
 #define AES_set_decrypt_key(key, bits, ctx)	AES_Setkey(ctx, key, (bits/8))
-#define AES_encrypt(in, out, key)	AES_ecb_encrypt(in, out, key)
-#define AES_decrypt(in, out, key)	AES_ecb_decrypt(in, out, key)
+#define AES_encrypt(in, out, key)	AES_Encrypt(key, in, out)
+#define AES_decrypt(in, out, key)	AES_Decrypt(key, in, out)
+#define AES_ecb_decrypt(in, out, key)	AES_Decrypt(key, in, out)
+#define AES_ecb_encrypt(in, out, key)	AES_Encrypt(key, in, out)
 
 inline void
-AES_ecb_decrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
-                AES_KEY *key)
+AES_cbc_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
+                uint len, AES_CTX *key, void *iv)
 {
-	uchar tmp[16];
-
-	memcpy_macro(tmp, in, 16);
-
-	AES_Decrypt(key, tmp, tmp);
-
-	memcpy_macro(out, tmp, 16);
-}
-
-inline void
-AES_ecb_encrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
-                AES_KEY *key)
-{
-	uchar tmp[16];
-
-	memcpy_macro(tmp, in, 16);
-
-	AES_Encrypt(key, tmp, tmp);
-
-	memcpy_macro(out, tmp, 16);
-}
-
-inline void
-AES_cbc_encrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
-                uint len, AES_CTX *key,
-                AES_IV_TYPE uchar ivec[16])
-{
-	AES_IV_TYPE const uchar *iv = ivec;
-	uint i;
+	AES_SRC_TYPE uchar *in = _in;
+	AES_DST_TYPE uchar *out = _out;
+	uchar *vec = iv;
 
 	while (len) {
 		uint n;
-		uchar tmp[16];
 
 		for (n = 0; n < 16 && n < len; ++n)
-			out[n] = in[n] ^ iv[n];
-		for (; n < 16; ++n)
-			out[n] = iv[n];
-		AES_ecb_encrypt(in, tmp, key);
-		for (n = 0; n < 16; ++n)
-			out[n] = tmp[n];
-		iv = tmp;
+			vec[n] ^= in[n];
+		AES_Encrypt_ECB_pp(key, vec, vec, 1);
+		memcpy_macro(out, vec, MIN(len, 16));
 		if (len <= 16)
 			break;
 		len -= 16;
 		in  += 16;
 		out += 16;
 	}
-
-	for (i = 0; i < 16; i++)
-		ivec[i] = iv[i];
 }
 
 inline void
-AES_cbc_decrypt(AES_SRC_TYPE uchar *in, AES_DST_TYPE uchar *out,
+AES_cbc_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
                 uint len, AES_CTX *key,
-                AES_IV_TYPE uchar ivec[16])
+                void *_iv)
 {
+	AES_SRC_TYPE uchar *in = _in;
+	AES_DST_TYPE uchar *out = _out;
+	uchar *iv = _iv;
+
 	while (len) {
 		uint n;
 		uchar tmp[16];
 
-		AES_ecb_decrypt(in, tmp, key);
+		memcpy_macro(tmp, in, 16);
+		AES_Decrypt_ECB_pp(key, tmp, tmp, 1);
 		for (n = 0; n < 16 && n < len; ++n) {
-			uchar c;
-
-			c = in[n];
-			out[n] = tmp[n] ^ ivec[n];
-			ivec[n] = c;
+			uchar c = in[n];
+			out[n] = tmp[n] ^ iv[n];
+			iv[n] = c;
 		}
 		if (len <= 16) {
 			for (; n < 16; ++n)
-				ivec[n] = in[n];
+				iv[n] = in[n];
 			break;
 		}
 		len -= 16;

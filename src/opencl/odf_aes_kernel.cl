@@ -14,6 +14,7 @@
  */
 #include "opencl_sha2.h"
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
+#define AES_KEY_TYPE __global const
 #define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
@@ -48,7 +49,6 @@ __kernel void dk_decrypt(__global odf_password *password,
 	uint idx = get_global_id(0);
 	AES_KEY akey;
 	uchar iv[16];
-	uchar key[32];
 	uint i, j;
 	uint hash[256 / 8 / 4];
 	uchar plaintext[AES_LEN];
@@ -78,8 +78,7 @@ __kernel void dk_decrypt(__global odf_password *password,
 	       salt->iterations, odf_out[idx].v, salt->outlen,
 	       salt->skip_bytes);
 
-	memcpy_macro(key, (__global uchar*)odf_out[idx].v, 32);
-	AES_set_decrypt_key(key, 256, &akey);
+	AES_set_decrypt_key(odf_out[idx].v, 256, &akey);
 	AES_cbc_decrypt(salt->aes_ct, plaintext, salt->aes_len, &akey, iv);
 
 	sha256_init(hash);

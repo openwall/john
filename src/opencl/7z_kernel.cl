@@ -9,6 +9,7 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
+#define AES_KEY_TYPE __global const
 #define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
@@ -162,14 +163,11 @@ __kernel void sevenzip_aes(__constant sevenzip_salt *salt,
 	if (pad > 0 && salt->length >= 32) {
 		uint8_t buf[16];
 		AES_KEY akey;
-		uint aes_key[8];
 		unsigned char iv[16];
 
-		for (i = 0; i < 8; i++)
-			aes_key[i] = outbuffer[gid].key[i];
 		for (i = 0; i < 16; i++)
 			iv[i] = salt->data[i];
-		AES_set_decrypt_key((uchar*)aes_key, 256, &akey);
+		AES_set_decrypt_key(outbuffer[gid].key, 256, &akey);
 		AES_cbc_decrypt(&salt->data[16], buf, 16, &akey, iv);
 
 		i = 15;

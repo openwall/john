@@ -10,6 +10,7 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
+#define AES_KEY_TYPE __global const
 #define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 #include "opencl_keccak.h"
@@ -307,7 +308,6 @@ __kernel void ethereum_presale_process(__constant salt_t *salt,
 	uchar iv[16];
 	int i;
 	uchar seed[1024 + 1];
-	uchar key[16];
 	uint hash[8];
 	int padbyte;
 	int seed_length;
@@ -316,8 +316,7 @@ __kernel void ethereum_presale_process(__constant salt_t *salt,
 		iv[i] = salt->encseed[i];
 	}
 
-	memcpy_macro(key, (__global uchar*)out[gid].hash, 16);
-	AES_set_decrypt_key(key, 128, &akey);
+	AES_set_decrypt_key(out[gid].hash, 128, &akey);
 	AES_cbc_decrypt(salt->encseed + 16, seed, salt->eslen - 16, &akey, iv);
 	padbyte = seed[salt->eslen - 16 - 1];
 	seed_length = salt->eslen - 16 - padbyte;
