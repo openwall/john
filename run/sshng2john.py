@@ -162,6 +162,9 @@ def read_private_key(filename):
     if keysize == 24 and encryption_type == "AES-192-CBC" and (ktype == 0 or ktype == 1):  # RSA, DSA keys using AES-192
         hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 4, len(saltstr) // 2,
             saltstr, len(data) // 2, data)
+    elif keysize == 32 and encryption_type == "AES-256-CBC" and (ktype == 0 or ktype == 1):  # RSA, DSA keys using AES-256
+        hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 5, len(saltstr) // 2,
+            saltstr, len(data) // 2, data)
     elif keysize == 24:
         hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 0,  # 0 -> 3DES
             len(salt), saltstr, len(data) // 2, data)
