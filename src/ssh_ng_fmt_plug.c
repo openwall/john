@@ -93,6 +93,8 @@ static struct fmt_tests sshng_tests[] = {
 	{"$sshng$2$16$a439509f8aefc40a17a504ac81c46601$290$6f70656e7373682d6b65792d7631000000000a6165733235362d636263000000066263727970740000001800000010a439509f8aefc40a17a504ac81c466010000001000000001000000330000000b7373682d65643235353139000000200b31c6439dc6b42c9de146c70c752e33877baa7a5875c37ce092e5689dadadee000000a013bbe4b8cd8e0880a7c5dba953fdc5b0e4380b1904c631cb10c9f19ddadd52341160120f459ea1325681bc8f5c40f45a5ef055bc79ea9a05bc94bf668e2808ea6cf88a5ff3f418c4b13664c02456086671776969ce9cb21699818d16b4deae2dd30f03f0f85fc8dd54901a7ad884c35a2b28bd08b418d15ee7d8ec0332649eeff4fab6299eca59f096c2b56f753de0dcc226c0d8404bf44a73a608de2589545c$16$130", "test12345"},
 	// RSA/DSA key with AES-192-CBC
 	{"$sshng$4$16$04D2D7882E0C474E07E542FE997D2A49$608$bdf0791ad9b7e27dd2788e8910b8d6886c3a3be8feb4647a59b8b748d7806647d203c3d38de8ba3d51ebf9d18ae7331d9d3724774129c48b6ac4476d2cae86b4121af4a45dddc11b6b21e6cb2c9b1f6142e124d724250505ed9e6fb64a9a70a5441e4572602a13189ff90389c079d9c3a0d3ceafa8192c22f5c4a8cb6a84eb61605e48fcb8a0187012ce366b0fd58400e3322e6f86e711b22084bfecc0407f1d54bce85c8c0ac317ac710e9d2b945017ff51f645372a48ea4554357948b67375d7879e46c043dfb5642fb74040f331f83c26ec36d4d3b416ad5bf38265a5bb72aa474b51340f5ee1ae5fd785ce6318121d9f975592bc88077eefa3a7a6b945b460e8c035c6334c145cf62ae63f16a4ac4db15b36455f92e94d2040ba12a8dc6d59eed43d666e7f311d8d350ef2af4a85d1aa166279dd72180a565fd1ba75e3c6fe064dcff9d3794db98a4047ee952727ad32d3468df87dd4c8009af904987439718db3dac594c27d373e05c154c40750cc7ab5edb7d202761b9df4192d461bea6b1828cfe5c0dcbac1ae53cf72b4826722188d91727464a4ce0e37f4ec83119ebeb9199cd2a8560388fa0205f1ea019136fbf2a681552af5ea12aff617e495cb2306ae6e313e6b2bfc7501784f529ae4f33730df54033fc5eaea228476b334743b4870b4e8f87e4efffdc7750a317377426217f4aa3241f191d6e6202f6a961b219169506efbe16de7e87583ee1b19a32f54da3e05f7e8e72b412a1dcf2581379b529a65f53667ed733ee2c1ce002abaa4767337b0f4b749ccec023316ae346bee262174f41266dc550938c0094de1eec70d020f4053a978619ae8c11fff27a5", "password"},
+	// RSA/DSA key with AES-256-CBC
+	{"$sshng$5$16$7A6A055AD675947A657041422F06D439$1184$1d0763cc0294baaa8a8591e6a73cd8fe6a277ea1618879d9e5cdb88ed47d7cce1a4095dffded5fcfa304872233e9738db1be029d766cb67c54b9558390712ee8a590fdd2802e088352e4fe51d31ac15a153c6760c96669df9a503d68b77d3d955d99f9f18906f1b3b7638d377993f285a74e79f0f556db85b8aebf7fdd238f3c7a6439f0bde5e9620155ec9cb5fe915d70b2cc7f4ec2fa16e4e35ea75fa5158a959ee061fe0031689b96427c0694a2d33b9fc8b5e3d7542cd1786188b6c0fdf5d586831f9bdfd42aa26a278363bc4bce9122c70273e99120de02d7694bf3d8ca45f28c22188dde3f483bbe85a9df1b784d0c7fa8351195a5e2691ae259d5ada4ac96d4c16e279f8a74db51d7f917af604b3c1fd92f0caab729d4cbc658a5be3e588458a5419e6fffd91c6865087ec244c74006c6a5e304f09f38bd7d6e00c7de9e709d929700ae2b1c12ee212adb2d7f1407c6c2c13e5ee7c78667b9a7a5e329f887c7ecc930807634c92b9bec26e0f6cc4eb1959f0e7fe35febe97c4e07c7de88a8b5d89b61e1dbac735bd81987f32a8a7db8433a099ebe0a1ab36fe67287fc54899565097fc1627c6bef25d49bd6913c7420c649f601cb7c160401dca82cde30a2091209ae5b27c9b796cd0dd83bd4e30b8331ca09a6c0e0c3069b0e2a71229175d2e78f9c6458dcb2f6b8b89570840cb044f55490bce64e41f4b468b00878de40d1029be4cb6a19241085eb5536fd73d72b78d5cc804ea3555cfe478dc75ec1af4dc80c7012f21514097b69d56a3fdd43925b178baa36743346301b0f7e0ab93a45689fe49a581c99e49c44b9f06a86301659a1482f9b2b475f63526be8041103a2033fb9c88ea58d0c21cd041f2b423d6fd8a5a85507b7c4d1da5e191b24f6c0d832a5508a9f7e4055b4c2adb7d2ae1b745c71fddb558016ea889def7fc3cfb0cc005e46fcea5547c55b1a1d56c57b91ef31150d4c29c2ca7d7a4e5da8df019c1cf5a697593482aacecce779c914b3697fea66419a057535fcbf71053a539b374b55dcef95034152e6b370883a9153448a5e70d4dd7dadf57d8cbfb2fcb43369564db0af6b474ecaebcc5214e004be08ed06b675430f5c73196ad579a281d8abf059240d6bf380b970ce6bfae984d8b2effc1954afb45a40785a2869f8421a73a39c910c4f6612a0e92d591b83c4b132c75ffe9105e7f57253003db7c4537ca56c22745ddfcead0ea2520db485a8a4ef2f3b6bff9602cb3673bc2d98075be8928fdc68e19dd9dfc6e75223f9b5d4c4437c5387c70c1b07c0f5066f7d6e6548535e92f7eca88ea999971681f6bac9aebf1f3cd97bf219c574178b6cb4c69128b2b39763f0ab30181857b12e460a333d1360878dea1ddbf3a1136b33cf538f6791a114db70f1db527645bdd4947f88943405df0b87d509588939e57156bf66ee10420d3f88ff002e4674ea6be7f5ef663ad9c0f20b21e01da82ea735f552d46dca6fe34755d47dd6f4b731f41f09614a7473f3b29e8d43ed88f7b6319cc0c2840a65291e2e2492c7a1568d3f3fddf7c661660ba7b259855d3bdba9bd8fef29207b6f574cb7ce625abde09ccb127d161cea3b1b4b176338f493e3a52c2338f1c1ad434baf81bf9b62682e2e0ba5fed2d080668f9439031851b4c6451ffb83f7", "password"},
 	{NULL}
 };
 
@@ -185,7 +187,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		       goto err;
 	}
 
-	if (cipher != 0 && cipher != 1 && cipher != 2 && cipher != 3 && cipher != 4) {
+	if (cipher != 0 && cipher != 1 && cipher != 2 && cipher != 3 && cipher != 4 && cipher != 5) {
 		fprintf(stderr, "[ssh-ng] cipher value of %d is not supported!\n", cipher);
 		goto err;
 	}
@@ -239,7 +241,6 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-#if 0
 static void generate_key_bytes(int nbytes, unsigned char *password, unsigned char *key)
 {
 	unsigned char digest[16] = {0};
@@ -269,7 +270,6 @@ static void generate_key_bytes(int nbytes, unsigned char *password, unsigned cha
 		nbytes -= size;
 	}
 }
-#endif
 
 inline static void generate16key_bytes(unsigned char *password,
                                        unsigned char *key)
@@ -515,6 +515,23 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		}
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
+	} else if (cur_salt->cipher == 5) { // RSA/DSA keys with AES-256
+		unsigned char key[32] = {0};
+		AES_KEY akey;
+		unsigned char iv[16];
+		memcpy(iv, cur_salt->salt, 16);
+		memset(out, 0, SAFETY_FACTOR);
+		memset(out + cur_salt->ctl - 32, 0, 32);
+		generate_key_bytes(32, (unsigned char*)password, key);
+		AES_set_decrypt_key(key, 256, &akey);
+		if (full_decrypt) {
+			AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
+		} else {
+			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT); // are starting SAFETY_FACTOR bytes enough?
+			// decrypting 1 blocks (16 bytes) is enough for correct padding check
+		}
+		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 	}
 }
 
@@ -558,7 +575,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
+		} else if (cur_salt->cipher == 5) {  // AES-256
+			if (check_padding_and_structure(out, cur_salt->ctl, 0, 16) == 0)
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
 		}
+
 	}
 
 	return count;
@@ -596,6 +619,9 @@ static int cmp_exact(char *source, int index)
 	} else if (cur_salt->cipher == 3) { // EC keys
 		return 1;
 	} else if (cur_salt->cipher == 4) {
+		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
+			return 1;
+	} else if (cur_salt->cipher == 5) {
 		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
 			return 1;
 	}
