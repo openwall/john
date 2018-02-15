@@ -91,6 +91,8 @@ static struct fmt_tests sshng_tests[] = {
 	{"$sshng$2$16$6931efeeafd9d3fefc5d3f220d6e32f3$375$6f70656e7373682d6b65792d7631000000000a6165733235362d6362630000000662637279707400000018000000106931efeeafd9d3fefc5d3f220d6e32f30000001000000001000000680000001365636473612d736861322d6e69737470323536000000086e6973747032353600000041043da6ae45fd7e65967e3434e5af68d1f92c08b2dbc837ba50f14f58c3fe9f715062f61d3485d0426dec2b021b69f4a8272bdeaf90d9be5b3bd101f2381e9a1758000000c0d876c4b88fc4b76a43b95813d68e37000e6bea260da8cde01144a8ea052e66e5e42bb488b1c39822541147bc21a16cc6be613fa76d6e524073a68e94d944723abb34cec635dc4e3ffa0411695452467c294b95c78f34466c2154bb97f54d5712b7cc08d2902a0f874543eb6660c4c4adccbf1528cfb5348451d93a70d8318a3716819a624299aa5e9c21ec6526377c7bbc3f30173dd9a9b3bc0ef0193a9a21210db076c93c228fd23eaa83796d4f6a4848760db010054f1b9aed7445061a3512$16$183", "test12345"},
 	// /ssh-keygen -o -N test12345 -t ed25519 -f test
 	{"$sshng$2$16$a439509f8aefc40a17a504ac81c46601$290$6f70656e7373682d6b65792d7631000000000a6165733235362d636263000000066263727970740000001800000010a439509f8aefc40a17a504ac81c466010000001000000001000000330000000b7373682d65643235353139000000200b31c6439dc6b42c9de146c70c752e33877baa7a5875c37ce092e5689dadadee000000a013bbe4b8cd8e0880a7c5dba953fdc5b0e4380b1904c631cb10c9f19ddadd52341160120f459ea1325681bc8f5c40f45a5ef055bc79ea9a05bc94bf668e2808ea6cf88a5ff3f418c4b13664c02456086671776969ce9cb21699818d16b4deae2dd30f03f0f85fc8dd54901a7ad884c35a2b28bd08b418d15ee7d8ec0332649eeff4fab6299eca59f096c2b56f753de0dcc226c0d8404bf44a73a608de2589545c$16$130", "test12345"},
+	// RSA/DSA key with AES-192-CBC
+	{"$sshng$4$16$04D2D7882E0C474E07E542FE997D2A49$608$bdf0791ad9b7e27dd2788e8910b8d6886c3a3be8feb4647a59b8b748d7806647d203c3d38de8ba3d51ebf9d18ae7331d9d3724774129c48b6ac4476d2cae86b4121af4a45dddc11b6b21e6cb2c9b1f6142e124d724250505ed9e6fb64a9a70a5441e4572602a13189ff90389c079d9c3a0d3ceafa8192c22f5c4a8cb6a84eb61605e48fcb8a0187012ce366b0fd58400e3322e6f86e711b22084bfecc0407f1d54bce85c8c0ac317ac710e9d2b945017ff51f645372a48ea4554357948b67375d7879e46c043dfb5642fb74040f331f83c26ec36d4d3b416ad5bf38265a5bb72aa474b51340f5ee1ae5fd785ce6318121d9f975592bc88077eefa3a7a6b945b460e8c035c6334c145cf62ae63f16a4ac4db15b36455f92e94d2040ba12a8dc6d59eed43d666e7f311d8d350ef2af4a85d1aa166279dd72180a565fd1ba75e3c6fe064dcff9d3794db98a4047ee952727ad32d3468df87dd4c8009af904987439718db3dac594c27d373e05c154c40750cc7ab5edb7d202761b9df4192d461bea6b1828cfe5c0dcbac1ae53cf72b4826722188d91727464a4ce0e37f4ec83119ebeb9199cd2a8560388fa0205f1ea019136fbf2a681552af5ea12aff617e495cb2306ae6e313e6b2bfc7501784f529ae4f33730df54033fc5eaea228476b334743b4870b4e8f87e4efffdc7750a317377426217f4aa3241f191d6e6202f6a961b219169506efbe16de7e87583ee1b19a32f54da3e05f7e8e72b412a1dcf2581379b529a65f53667ed733ee2c1ce002abaa4767337b0f4b749ccec023316ae346bee262174f41266dc550938c0094de1eec70d020f4053a978619ae8c11fff27a5", "password"},
 	{NULL}
 };
 
@@ -183,7 +185,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		       goto err;
 	}
 
-	if (cipher != 0 && cipher != 1 && cipher != 2 && cipher != 3) {
+	if (cipher != 0 && cipher != 1 && cipher != 2 && cipher != 3 && cipher != 4) {
 		fprintf(stderr, "[ssh-ng] cipher value of %d is not supported!\n", cipher);
 		goto err;
 	}
@@ -496,6 +498,23 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		generate16key_bytes((unsigned char*)password, key);
 		AES_set_decrypt_key(key, 128, &akey);
 		AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT); // full decrypt
+	} else if (cur_salt->cipher == 4) { // RSA/DSA keys with AES-192
+		unsigned char key[24] = {0};
+		AES_KEY akey;
+		unsigned char iv[16];
+		memcpy(iv, cur_salt->salt, 16);
+		memset(out, 0, SAFETY_FACTOR);
+		memset(out + cur_salt->ctl - 32, 0, 32);
+		generate24key_bytes((unsigned char*)password, key);
+		AES_set_decrypt_key(key, 192, &akey);
+		if (full_decrypt) {
+			AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
+		} else {
+			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT); // are starting SAFETY_FACTOR bytes enough?
+			// decrypting 1 blocks (16 bytes) is enough for correct padding check
+		}
+		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 	}
 }
 
@@ -531,6 +550,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				cracked[index] = 0;
 		} else if (cur_salt->cipher == 3) { // EC keys
 			if (check_padding_and_structure_EC(out, cur_salt->ctl, 0) == 0)
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		} else if (cur_salt->cipher == 4) {  // AES-192
+			if (check_padding_and_structure(out, cur_salt->ctl, 0, 16) == 0)
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
@@ -571,6 +595,9 @@ static int cmp_exact(char *source, int index)
 		return 1; // XXX add more checks!
 	} else if (cur_salt->cipher == 3) { // EC keys
 		return 1;
+	} else if (cur_salt->cipher == 4) {
+		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
+			return 1;
 	}
 
 	return 0;
