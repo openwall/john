@@ -827,6 +827,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	 */
 	options.force_maxlength = options.req_maxlength;
 
+	/*
+	 * Defaults until limited by format or other options
+	 */
+	options.eff_minlength = MAX(options.req_minlength, 0);
+	options.eff_maxlength =
+		options.req_maxlength ? options.req_maxlength : 125;
+
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
 #if OS_FORK

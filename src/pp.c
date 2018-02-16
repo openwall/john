@@ -1196,12 +1196,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
             loopback ? " in loopback mode" : "");
 
   /* This mode defaults to length 16 (unless lowered by format)... */
-  pw_min = MAX(PW_MIN, options.req_minlength);
+  pw_min = MAX(PW_MIN, options.eff_minlength);
   pw_max = MIN(PW_MAX, our_fmt_len);
 
   /* ...but can be bumped or decreased using -max-len */
-  if (options.req_maxlength && !mask_maxlength_computed)
-    pw_max = options.req_maxlength;
+  if (options.req_maxlength)
+    pw_max = options.eff_maxlength;
 
 #if HAVE_REXGEN
   /* Hybrid regex */

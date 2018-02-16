@@ -43,12 +43,12 @@ static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
-static int max_keylen, fmt_maxlen, rec_len, restored_len, restored;
+static int max_keylen, rec_len, restored_len, restored;
 static uint64_t rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 static int mask_bench_index;
-static int parent_fix_state_pending;
-int mask_add_len, mask_num_qw, mask_cur_len, mask_maxlength_computed = 0;
+static int parent_fix_state_pending, iterate_lengths;
+int mask_add_len, mask_num_qw, mask_cur_len;
 
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
@@ -1494,7 +1494,7 @@ static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
 
 	if (mask_has_8bit &&
 	    (options.internal_cp != UTF_8 && options.target_enc == UTF_8))
-		return cp_to_utf8_r(in, out, fmt_maxlen);
+		return cp_to_utf8_r(in, out, options.eff_maxlength);
 
 	return in;
 }
@@ -1770,10 +1770,10 @@ static uint64_t divide_work(mask_cpu_context *cpu_mask_ctx)
 	if (options.node_max == options.node_count)
 		my_candidates = total_candidates - offset;
 
-	if (!my_candidates) {
+	if (!my_candidates && !iterate_lengths) {
 		if (john_main_process)
-			fprintf(stderr, "Insufficient work. Cannot distribute "
-			        "work among nodes!\n");
+			fprintf(stderr, "%u: Insufficient work. Cannot distribute "
+			        "work among nodes!\n", options.node_min);
 		error();
 	}
 
@@ -1804,7 +1804,7 @@ static double get_progress(void)
 		return -1;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s() try %.0f candlen %llu tot %llu\n", __FUNCTION__,
+	fprintf(stderr, "%s() try %"PRIu64" candlen %"PRIu64" tot %"PRIu64"\n", __FUNCTION__,
 	        status.cands, cand_length, total);
 #endif
 
@@ -1821,7 +1821,7 @@ void mask_save_state(FILE *file)
 	fprintf(file, "%"PRIu64"\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
-	if (!(options.flags & FLG_MASK_STACKED) && options.req_minlength >= 0) {
+	if (iterate_lengths) {
 		fprintf(file, "%d\n", rec_len);
 		fprintf(file, "%"PRIu64"\n", cand_length + 1);
 	}
@@ -1851,7 +1851,7 @@ int mask_restore_state(FILE *file)
 	else
 		return fail;
 
-	if (!(options.flags & FLG_MASK_STACKED) && options.req_minlength >= 0) {
+	if (iterate_lengths) {
 		if (fscanf(file, "%d\n", &d) == 1)
 			restored_len = d;
 		else
@@ -1913,13 +1913,14 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 #endif
 
 	j = strlen(mask);
-	stretched_mask = (char*)mem_alloc((options.req_maxlength + 2) * j);
+	stretched_mask = (char*)mem_alloc((options.eff_maxlength + 2) * j);
 
 	strcpy(stretched_mask, mask);
 	k = mask_len(mask);
-	while (k < options.req_maxlength) {
+	while (k && k <
+	       (iterate_lengths ? options.eff_maxlength : options.eff_minlength)) {
 #ifdef MASK_DEBUG
-		fprintf(stderr, "%s(): %d/%d %s\n", __FUNCTION__, k, options.req_maxlength, stretched_mask);
+		fprintf(stderr, "%s(): %d/%d %s\n", __FUNCTION__, k, options.eff_maxlength, stretched_mask);
 #endif
 		i = strlen(mask) - 1;
 		if (mask[i] == '\\' && i - 1 >= 0) {
@@ -2003,18 +2004,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	mask_fmt = db->format;
 
-	fmt_maxlen = mask_fmt->params.plaintext_length;
+	if ((options.req_minlength >= 0 || options.req_maxlength) &&
+	    (options.req_minlength || options.req_maxlength) &&
+	    !(options.flags & FLG_MASK_STACKED))
+		iterate_lengths = 1;
 
-	// Track to know whether max-length is specified or computed
-	mask_maxlength_computed = (options.req_maxlength == 0);
-
-	if (options.req_minlength >= 0 && !options.req_maxlength)
-		options.req_maxlength = fmt_maxlen;
-	else if (options.req_maxlength > 0 && options.req_minlength == -1)
-		options.req_minlength = mask_fmt->params.plaintext_min_length;
-
-	max_keylen = options.req_maxlength ?
-		options.req_maxlength : fmt_maxlen;
+	max_keylen = options.eff_maxlength;
 
 	if (options.flags & FLG_TEST_CHK && !(options.flags & FLG_MASK_STACKED))
 		max_keylen = strlen(mask_fmt->params.tests[0].plaintext);
@@ -2114,8 +2109,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	parse_braces(mask, &parsed_mask);
 
 	if (parsed_mask.parse_ok) {
-		if (!(options.flags & FLG_MASK_STACKED) &&
-		      options.req_maxlength > 0) {
+		if (iterate_lengths || options.eff_minlength) {
 			mask = stretch_mask(mask, &parsed_mask);
 			parse_braces(mask, &parsed_mask);
 			if (!parsed_mask.parse_ok) {
@@ -2190,22 +2184,22 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	}
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d eff len %d\n", mask_num_qw, options.req_minlength, options.req_maxlength, fmt_maxlen, mask_add_len, mask_len(mask));
+	fprintf(stderr, "qw %d minlen %d maxlen %d fmt_len %d mask_add_len %d mask len %d\n", mask_num_qw, options.eff_minlength, options.eff_maxlength, max_keylen, mask_add_len, mask_len(mask));
 #endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.flags & FLG_MASK_STACKED) {
-		if (options.req_minlength - mask_add_len >= 0)
-			options.req_minlength -= mask_add_len;
+		if (options.eff_minlength - mask_add_len >= 0)
+			options.eff_minlength -= mask_add_len;
 		if (options.req_maxlength)
-			options.req_maxlength -= mask_add_len;
+			options.eff_maxlength -= mask_add_len;
 		if (mask_num_qw) {
-			options.req_minlength /= mask_num_qw;
-			options.req_maxlength /= mask_num_qw;
+			options.eff_minlength /= mask_num_qw;
+			options.eff_maxlength /= mask_num_qw;
 		}
 #ifdef MASK_DEBUG
 		fprintf(stderr, "effective minlen %d maxlen %d fmt_len %d\n",
-		        options.req_minlength, options.req_maxlength,
-		        fmt_maxlen - mask_add_len);
+		        options.eff_minlength, options.eff_maxlength,
+		        options.eff_maxlength - mask_add_len);
 #endif
 	}
 
@@ -2297,12 +2291,12 @@ int do_mask_crack(const char *extern_key)
 	mask_parent_keys++;
 
 	/* If --min-len is used, we iterate max_keylen */
-	if (!(options.flags & FLG_MASK_STACKED) && options.req_minlength >= 0) {
+	if (!(options.flags & FLG_MASK_STACKED) && iterate_lengths) {
 		int template_key_len = -1;
 		int max_len = max_keylen;
 
 		mask_cur_len = restored_len ?
-			restored_len : options.req_minlength;
+			restored_len : options.eff_minlength;
 
 		restored_len = 0;
 

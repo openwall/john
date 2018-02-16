@@ -609,9 +609,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int do_lmloop = loopBack && db->plaintexts->head;
 	long my_size = 0;
 	unsigned int myWordFileLines = 0;
-	int maxlength = options.force_maxlength;
-	int minlength = (options.req_minlength >= 0) ?
-		options.req_minlength : 0;
+	int maxlength = options.eff_maxlength;
+	int minlength = options.eff_minlength;
 	int rules_length;
 #if HAVE_REXGEN
 	char *regex_alpha = 0;

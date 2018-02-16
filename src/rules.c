@@ -1156,8 +1156,7 @@ void rules_init(int max_length)
 	if (max_length > RULE_WORD_SIZE - 1)
 		max_length = RULE_WORD_SIZE - 1;
 
-	minlength = (options.req_minlength >= 0) ?
-		options.req_minlength : 0;
+	minlength = options.eff_minlength;
 	maxlength = options.force_maxlength;
 
 	if (max_length == rules_max_length) return;

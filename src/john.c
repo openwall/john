@@ -1683,7 +1683,7 @@ static void john_run(void)
 				fprintf(stderr, "Note: This format may emit false positives, so it will keep trying even after\nfinding a possible candidate.\n");
 		}
 
-		/* Some formats truncate at (our) max. length */
+		/* Some formats truncate at max. length */
 		if (!(database.format->params.flags & FMT_TRUNC) &&
 		    !options.force_maxlength)
 			options.force_maxlength =
@@ -1704,24 +1704,29 @@ static void john_run(void)
 				        "minimum length for format\n");
 			error();
 		}
-		if (database.format->params.plaintext_min_length &&
-		    options.req_minlength == -1) {
-			options.req_minlength =
-				database.format->params.plaintext_min_length;
-			if (john_main_process)
-				fprintf(stderr,
-				        "Note: minimum length forced to %d\n",
-				        options.req_minlength);
 
-			/* Now we need to re-check this */
-			if (options.req_maxlength &&
-			    options.req_maxlength < options.req_minlength) {
+		options.eff_minlength =
+			MAX(options.req_minlength,
+			    database.format->params.plaintext_min_length);
+		options.eff_maxlength = options.req_maxlength ?
+			MIN(options.req_maxlength,
+			    database.format->params.plaintext_length) :
+			database.format->params.plaintext_length;
+
+		if (options.req_minlength >= 0 &&
+		    database.format->params.plaintext_min_length >
+		    options.req_minlength) {
+			if (options.req_maxlength) {
 				if (john_main_process)
 					fprintf(stderr, "Invalid option: "
 					        "--max-length smaller than "
 					        "minimum length for format\n");
 				error();
 			}
+			else if (john_main_process)
+				fprintf(stderr,
+				        "Note: minimum length forced to %d\n",
+				        options.eff_minlength);
 		}
 
 		if (options.flags & FLG_MASK_CHK)

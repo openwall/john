@@ -198,7 +198,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 
 	cur_regex = regex;
 	if (options.req_maxlength)
-		max_len = options.req_maxlength;
+		max_len = options.eff_maxlength;
 
 	if (bFirst)
 		rexgen_setlocale();
@@ -324,7 +324,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 	int max_len = db->format->params.plaintext_length;
 
 	if (options.req_maxlength)
-		max_len = options.req_maxlength;
+		max_len = options.eff_maxlength;
 
 	cur_regex = regex;
 	rexgen_setlocale();

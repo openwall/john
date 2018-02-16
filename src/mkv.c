@@ -334,7 +334,7 @@ static double get_progress(void)
 		return 0;
 
 	/* Less accurate because we don't know all details needed */
-	if (!f_filter || f_new || options.req_minlength || gmin_level)
+	if (!f_filter || f_new || options.eff_minlength || gmin_level)
 		return 100.0 * (gidx - gstart) / (gend - gstart);
 
 	/* Accurate even with small markov space and huge hybrid mask */
@@ -480,10 +480,10 @@ void get_markov_options(struct db_main *db,
 	/* Command-line --min-length and --max-length can over-ride lengths
 	   from config file. This may clash with the len_token stuff, or rather
 	   it will over-ride that too. */
-	if (options.req_minlength >= 0)
-		minlen = options.req_minlength;
+	if (options.req_minlength > 0)
+		minlen = options.eff_minlength;
 	if (options.req_maxlength)
-		maxlen = options.req_maxlength;
+		maxlen = options.eff_maxlength;
 
 	if (maxlen <= 0) {
 		if ((maxlen = cfg_get_int(SECTION_MARKOV, mode, "MkvMaxLen")) == -1) {

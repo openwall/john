@@ -121,7 +121,4 @@ extern uint64_t mask_parent_keys;
 /* Current length when pure mask mode iterates over lengths */
 extern int mask_cur_len;
 
-/* Set if max-length is computed (as opposed to specified by the user) */
-extern int mask_maxlength_computed;
-
 #endif

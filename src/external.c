@@ -197,27 +197,17 @@ int ext_has_function(char *mode, char *function)
 
 void ext_init(char *mode, struct db_main *db)
 {
-	if (db && db->format) {
-		/* This is second time we are called, just update max length */
-		ext_cipher_limit = maxlen =
-			db->format->params.plaintext_length - mask_add_len;
-		if (mask_num_qw > 1) {
-			ext_cipher_limit /= mask_num_qw;
-			maxlen /= mask_num_qw;
-		}
+	ext_minlen = options.eff_minlength;
+	ext_cipher_limit = maxlen = options.eff_maxlength;
+	ext_target_utf8 = (options.target_enc == UTF_8);
+
+	/* This is second time we are called, just update the above */
+	if (db && db->format)
 		return;
-	} else
-		ext_cipher_limit = maxlen = options.length;
 
 	ext_time = (int) time(NULL);
 
-	ext_target_utf8 = (options.target_enc == UTF_8);
-
 	ext_maxlen = options.req_maxlength;
-	if (options.req_minlength > 0)
-		ext_minlen = options.req_minlength;
-	else
-		ext_minlen = 0;
 
 #if HAVE_REXGEN
 	/* Hybrid regex */

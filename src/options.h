@@ -328,13 +328,13 @@ struct options_main {
 /* Requested max_keys_per_crypt (for testing purposes) */
 	int force_maxkeys;
 
-/* Requested MinLen (min plaintext_length) */
-	int req_minlength;
+/* Requested min/max plaintext_length */
+	int req_minlength, req_maxlength;
 
-/* Requested MaxLen (max plaintext_length) */
-	int req_maxlength;
+/* Effective min/max plaintext_length */
+	int eff_minlength, eff_maxlength;
 
-/* Forced MaxLen (we will reject candidates longer than this) */
+/* Forced MaxLen (if set, we will reject longer candidates unless FMT_TRUNC) */
 	int force_maxlength;
 
 /*
