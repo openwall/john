@@ -48,7 +48,8 @@ john_register_one(&fmt_tacacsplus);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      64  // tuned on i5-6500 CPU
 
-#define MAX_CIPHERTEXT_LENGTH   1024
+#define MIN_CIPHERTEXT_LENGTH   6
+#define MAX_CIPHERTEXT_LENGTH   8 /* It can be longer but we use only 8 */
 #ifndef MD5_DIGEST_LENGTH
 #define MD5_DIGEST_LENGTH       16
 #endif
@@ -73,7 +74,7 @@ static struct custom_salt {
 	uint32_t pre_hash_data_len;
 	unsigned char pre_hash_data[8];
 	uint32_t hash_data_len;
-	unsigned char hash_data[8];
+	unsigned char hash_data[2];
 	union {
 		uint64_t chunk0;
 		unsigned char buf[MAX_CIPHERTEXT_LENGTH];
@@ -122,7 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // ciphertext
 		goto err;
-	if (hexlenl(p, &extra) > MAX_CIPHERTEXT_LENGTH * 2 || extra)
+	if (hexlenl(p, &extra) < MIN_CIPHERTEXT_LENGTH * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // hash_data
 		goto err;
@@ -154,7 +155,7 @@ static void *get_salt(char *ciphertext)
 		cs.pre_hash_data[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 	p = strtokm(NULL, "$");
 	cs.ctlen = strlen(p) / 2;
-	for (i = 0; i < cs.ctlen; i++)
+	for (i = 0; i < MIN(MAX_CIPHERTEXT_LENGTH, cs.ctlen); i++)
 		cs.ciphertext.buf[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 	p = strtokm(NULL, "$");
 	cs.hash_data_len = 2;
