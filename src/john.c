@@ -1695,16 +1695,6 @@ static void john_run(void)
 				  (options.target_enc == UTF_8) ?
 				  "bytes" : "characters");
 
-		/* Some formats have a minimum plaintext length */
-		if (options.req_minlength >= 0 && options.req_minlength <
-		    database.format->params.plaintext_min_length) {
-			if (john_main_process)
-				fprintf(stderr, "Invalid option: "
-				        "--min-length smaller than "
-				        "minimum length for format\n");
-			error();
-		}
-
 		options.eff_minlength =
 			MAX(options.req_minlength,
 			    database.format->params.plaintext_min_length);
@@ -1713,21 +1703,29 @@ static void john_run(void)
 			    database.format->params.plaintext_length) :
 			database.format->params.plaintext_length;
 
-		if (options.req_minlength >= 0 &&
-		    database.format->params.plaintext_min_length >
-		    options.req_minlength) {
-			if (options.req_maxlength) {
+		/* Some formats have a minimum plaintext length */
+		if (options.eff_maxlength <
+		    database.format->params.plaintext_min_length) {
+			if (john_main_process)
+				fprintf(stderr, "Invalid option: "
+				        "--max-length smaller than "
+				        "minimum length for format\n");
+			error();
+		}
+		if (options.req_minlength >= 0) {
+			if (options.req_minlength <
+			    database.format->params.plaintext_min_length) {
 				if (john_main_process)
 					fprintf(stderr, "Invalid option: "
-					        "--max-length smaller than "
+					        "--min-length smaller than "
 					        "minimum length for format\n");
 				error();
 			}
-			else if (john_main_process)
+		} else if (database.format->params.plaintext_min_length)
+			if (john_main_process)
 				fprintf(stderr,
 				        "Note: minimum length forced to %d\n",
 				        options.eff_minlength);
-		}
 
 		if (options.flags & FLG_MASK_CHK)
 			mask_init(&database, options.mask);

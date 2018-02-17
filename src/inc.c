@@ -532,7 +532,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 #endif
 
 	/* Format's min length or -min-len option can override config */
-	if (options.eff_minlength > 0) {
+	if (options.req_minlength >= 0 ||
+	    options.eff_minlength > min_length) {
 		min_length = options.eff_minlength;
 
 #if HAVE_REXGEN
