@@ -16,8 +16,10 @@
 
 #include "opencl_misc.h"
 
+#define MD4_LUT3 HAVE_LUT3
+
 /* The basic MD4 functions */
-#if HAVE_LUT3
+#if MD4_LUT3
 #define MD4_F(x, y, z)  lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define MD4_F(x, y, z)  bitselect((z), (y), (x))
@@ -27,7 +29,7 @@
 #define MD4_F(x, y, z)  ((z) ^ ((x) & ((y) ^ (z))))
 #endif
 
-#if HAVE_LUT3
+#if MD4_LUT3
 #define MD4_G(x, y, z)  lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define MD4_G(x, y, z)  bitselect((x), (y), (z) ^ (x))
@@ -35,7 +37,7 @@
 #define MD4_G(x, y, z)  (((x) & ((y) | (z))) | ((y) & (z)))
 #endif
 
-#if HAVE_LUT3
+#if MD4_LUT3
 #define MD4_H(x, y, z)  lut3(x, y, z, 0x96)
 #define MD4_H2 MD4_H
 #else

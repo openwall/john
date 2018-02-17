@@ -79,7 +79,12 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
 }
 #endif
 
-#if !gpu_nvidia(DEVICE_INFO) || SM_MAJOR >= 5
+/*
+ * Apparently nvidias can optimize stuff better (ending up in *better* LUT
+ * use) with the basic formulas instead of bitselect ones. Most formats
+ * show no difference but pwsafe does.
+ */
+#if !gpu_nvidia(DEVICE_INFO)
 #define USE_BITSELECT 1
 #endif
 

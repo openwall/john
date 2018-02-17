@@ -16,8 +16,10 @@
 
 #include "opencl_misc.h"
 
+#define MD5_LUT3 HAVE_LUT3
+
 /* The basic MD5 functions */
-#if HAVE_LUT3
+#if MD5_LUT3
 #define MD5_F(x, y, z)  lut3(x, y, z, 0xca)
 #define MD5_G(x, y, z)  lut3(x, y, z, 0xe4)
 #elif USE_BITSELECT
@@ -32,7 +34,7 @@
 #define MD5_G(x, y, z)  (y ^ (z & (x ^ y)))
 #endif
 
-#if HAVE_LUT3
+#if MD5_LUT3
 #define MD5_H(x, y, z)  lut3(x, y, z, 0x96)
 #define MD5_H2 MD5_H
 #else
@@ -40,7 +42,7 @@
 #define MD5_H2(x, y, z) (x ^ (y ^ z))
 #endif
 
-#if HAVE_LUT3
+#if MD5_LUT3
 #define MD5_I(x, y, z)  lut3(x, y, z, 0x39)
 #elif USE_BITSELECT
 #define MD5_I(x, y, z)  (y ^ bitselect(0xffffffffU, x, z))

@@ -20,13 +20,12 @@
 #define BUF_UPDATE_SWITCH
 #endif
 
-/* LOP3.LUT does no good for this format */
-#undef HAVE_LUT3
+#undef MD5_LUT3 /* No good for this format, just here for reference */
 
 #define ROTATE_LEFT(x, s) rotate(x, (uint)s)
 
 /* The basic MD5 functions */
-#if HAVE_LUT3
+#if MD5_LUT3
 #define F(x, y, z)	lut3(x, y, z, 0xca)
 #define G(x, y, z)	lut3(x, y, z, 0xe4)
 #elif USE_BITSELECT
@@ -41,7 +40,7 @@
 #define G(x, y, z)	(y ^ (z & (x ^ y)))
 #endif
 
-#if HAVE_LUT3
+#if MD5_LUT3
 #define H(x, y, z)	lut3(x, y, z, 0x96)
 #define H2 H
 #else
@@ -49,7 +48,7 @@
 #define H2(x, y, z)	(x ^ (y ^ z))
 #endif
 
-#if HAVE_LUT3
+#if MD5_LUT3
 #define I(x, y, z)	lut3(x, y, z, 0x39)
 #elif USE_BITSELECT
 #define I(x, y, z)	(y ^ bitselect(0xffffffffU, x, z))

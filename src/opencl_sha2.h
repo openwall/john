@@ -12,7 +12,10 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
-#if HAVE_LUT3
+#define SHA256_LUT3 HAVE_LUT3
+#define SHA512_LUT3 HAVE_LUT3_64
+
+#if SHA256_LUT3
 #define Ch(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define Ch(x, y, z) bitselect(z, y, x)
@@ -22,7 +25,7 @@
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 
-#if HAVE_LUT3
+#if SHA256_LUT3
 #define Maj(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
@@ -309,7 +312,7 @@ __const_a8 uint k[] = {
 #undef Maj
 #undef Ch
 
-#if HAVE_LUT3_64
+#if SHA512_LUT3
 #define Ch(x, y, z) lut3_64(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define Ch(x, y, z) bitselect(z, y, x)
@@ -319,7 +322,7 @@ __const_a8 uint k[] = {
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 
-#if HAVE_LUT3_64
+#if SHA512_LUT3
 #define Maj(x, y, z) lut3_64(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)

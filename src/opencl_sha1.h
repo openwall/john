@@ -16,6 +16,8 @@
 
 #include "opencl_misc.h"
 
+#define SHA1_LUT3 HAVE_LUT3
+
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
 #define INIT_C			0x98badcfe
@@ -30,7 +32,7 @@
 #define K3			0x8f1bbcdc
 #define K4			0xca62c1d6
 
-#if HAVE_LUT3
+#if SHA1_LUT3
 #define F1(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
 #define F1(x, y, z) bitselect(z, y, x)
@@ -40,13 +42,13 @@
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
 #endif
 
-#if HAVE_LUT3
+#if SHA1_LUT3
 #define F2(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F2(x, y, z) (x ^ y ^ z)
 #endif
 
-#if HAVE_LUT3
+#if SHA1_LUT3
 #define F3(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F3(x, y, z) bitselect(x, y, (z) ^ (x))
@@ -54,7 +56,7 @@
 #define F3(x, y, z) ((x & y) | (z & (x | y)))
 #endif
 
-#if HAVE_LUT3
+#if SHA1_LUT3
 #define F4(x, y, z) lut3(x, y, z, 0x96)
 #else
 #define F4(x, y, z) (x ^ y ^ z)
