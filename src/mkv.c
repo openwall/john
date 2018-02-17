@@ -477,10 +477,13 @@ void get_markov_options(struct db_main *db,
 		minlevel = level;
 	}
 
-	/* Command-line --min-length and --max-length can over-ride lengths
-	   from config file. This may clash with the len_token stuff, or rather
-	   it will over-ride that too. */
-	if (options.req_minlength > 0)
+	/*
+	 * Command-line --min-length and --max-length, or a format's min length,
+	 * can over-ride lengths from config file. This may clash with the
+	 * len_token stuff, or rather it will over-ride that too.
+	 */
+	if (options.req_minlength >= 0 ||
+	    options.eff_minlength > minlen)
 		minlen = options.eff_minlength;
 	if (options.req_maxlength)
 		maxlen = options.eff_maxlength;
