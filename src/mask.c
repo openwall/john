@@ -2005,7 +2005,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask_fmt = db->format;
 
 	if ((options.req_minlength >= 0 || options.req_maxlength) &&
-	    (options.req_minlength || options.req_maxlength) &&
+	    (options.eff_minlength != options.eff_maxlength) &&
 	    !(options.flags & FLG_MASK_STACKED))
 		iterate_lengths = 1;
 
