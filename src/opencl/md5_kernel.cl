@@ -21,22 +21,37 @@
 #include "opencl_misc.h"
 #include "opencl_mask.h"
 
+#undef HAVE_LUT3 /* No good for this format, just here for reference */
 
 /* The basic MD5 functions */
-#ifdef USE_BITSELECT
+#if HAVE_LUT3
+#define F(x, y, z)	lut3(x, y, z, 0xca)
+#define G(x, y, z)	lut3(x, y, z, 0xe4)
+#elif USE_BITSELECT
 #define F(x, y, z)	bitselect((z), (y), (x))
 #define G(x, y, z)	bitselect((y), (x), (z))
 #else
 #if HAVE_ANDNOT
-#define F(x, y, z) ((x & y) ^ ((~x) & z))
+#define F(x, y, z)	((x & y) ^ ((~x) & z))
 #else
-#define F(x, y, z) (z ^ (x & (y ^ z)))
+#define F(x, y, z)	(z ^ (x & (y ^ z)))
 #endif
 #define G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
 #endif
+
+#if HAVE_LUT3
+#define H(x, y, z)	lut3(x, y, z, 0x96)
+#define H2 H
+#else
 #define H(x, y, z)	(((x) ^ (y)) ^ (z))
 #define H2(x, y, z)	((x) ^ ((y) ^ (z)))
+#endif
+
+#if HAVE_LUT3
+#define I(x, y, z)	lut3(x, y, z, 0x39)
+#else
 #define I(x, y, z)	((y) ^ ((x) | ~(z)))
+#endif
 
 /* The MD5 transformation for all four rounds. */
 #define STEP(f, a, b, c, d, x, t, s)	  \
