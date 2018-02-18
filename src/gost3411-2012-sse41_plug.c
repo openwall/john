@@ -369,7 +369,9 @@ void GOST34112012Final(void* ctx, unsigned char* digest)
 		memcpy(digest, &(CTX->hash.QWORD[0]), 64);
 	}
 
+#if 0
 	memset(CTX, 0, sizeof(GOST34112012Context));
+#endif
 	_mm_empty();
 }
 

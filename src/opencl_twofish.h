@@ -435,7 +435,6 @@ void Twofish_prepare_key(__private Byte key[], int key_len, Twofish_key *xkey)
 	int kCycles;
 
 	int i;
-	UInt32 A, B;
 
 	Byte *kptr;
 	Byte *sptr;
@@ -451,6 +450,8 @@ void Twofish_prepare_key(__private Byte key[], int key_len, Twofish_key *xkey)
 	}
 
 	for (i = 0; i < 40; i += 2) {
+		UInt32 A, B;
+
 		A = two_h(i, K, kCycles);
 		B = two_h(i + 1, K + 4, kCycles);
 		B = ROL32(B, 8);
@@ -460,8 +461,6 @@ void Twofish_prepare_key(__private Byte key[], int key_len, Twofish_key *xkey)
 		xkey->K[i] = A;
 		xkey->K[i + 1] = ROL32(B, 9);
 	}
-
-	A = B = 0;
 
 	kptr = K + 8 * kCycles;
 	sptr = K + 32;
@@ -490,8 +489,6 @@ void Twofish_prepare_key(__private Byte key[], int key_len, Twofish_key *xkey)
 
 		sptr += 8;
 	}
-
-	b = bx = bxx = 0;
 
 	fill_keyed_sboxes(&K[32], kCycles, xkey);
 }
