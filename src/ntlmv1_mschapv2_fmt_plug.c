@@ -1172,6 +1172,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				value = *(uint32_t*)
 					&nthash[GETOUTPOS_W32(3, i)] >> 16;
 				crypt_key[i] = value;
+#if defined(_OPENMP) && defined(SSE_OMP)
+#pragma omp atomic
+#endif
 				bitmap[value >> 5] |= 1U << (value & 0x1f);
 			}
 		else
@@ -1193,6 +1196,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			crypt_key[i] = ((unsigned short*)&nthash[i * 16])[7];
 			if (use_bitmap) {
 				unsigned int value = crypt_key[i];
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
 				bitmap[value >> 5] |= 1U << (value & 0x1f);
 			}
 		}
