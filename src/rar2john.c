@@ -1,4 +1,5 @@
-/* rar2john utility for RAR 3.x files, written in 2011 by Dhiru Kholia for GSoC.
+/*
+ * rar2john utility for RAR 3.x files, written in 2011 by Dhiru Kholia for GSoC.
  * rar2john processes input RAR files into a format suitable for use with JtR.
  *
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
@@ -92,7 +93,10 @@ static void DecodeFileName(unsigned char *Name, unsigned char *EncName,
 	unsigned int FlagBits = 0;
 	size_t EncPos = 0, DecPos = 0;
 	unsigned char HighByte = EncName[EncPos++];
-	while (EncPos < EncSize && DecPos < MaxDecSize)
+
+	MaxDecSize /= sizeof(UTF16);
+
+	while (EncPos < EncSize - 1 && DecPos < MaxDecSize - 1)
 	{
 		if (FlagBits == 0)
 		{
@@ -421,6 +425,7 @@ next_file_header:
 			goto err;
 		}
 
+		file_name[sizeof(file_name) - 1] = 0;
 		ext_time_size -= file_name_size;
 
 		/* If this flag is set, file_name contains some weird
@@ -434,7 +439,8 @@ next_file_header:
 				dump_stuff_msg("! Encoded filenames", file_name, file_name_size);
 			}
 			DecodeFileName(file_name, file_name + Length + 1,
-			               file_name_size, FileNameW, 256);
+			                sizeof(file_name) - Length - 1,
+			               FileNameW, sizeof(FileNameW));
 
 			if (*FileNameW) {
 				if (verbose) {
