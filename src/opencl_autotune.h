@@ -100,7 +100,7 @@ static void autotune_run(struct fmt_main *self, unsigned int rounds,
 static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	size_t gws_limit, unsigned long long int max_run_time, cl_uint lws_is_power_of_two)
 {
-	int need_best_lws, need_best_gws;
+	int need_best_lws, need_best_gws, needed_best_gws;
 
 	ocl_autotune_running = 1;
 
@@ -177,7 +177,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	}
 
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
-	need_best_gws = !global_work_size;
+	needed_best_gws = need_best_gws = !global_work_size;
 	if (need_best_gws) {
 		unsigned long long int max_run_time1 = max_run_time;
 		int have_lws = !(!local_work_size || need_best_lws);
@@ -218,9 +218,13 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		fprintf(stderr, "{"Zu"/"Zu"} ", global_work_size, local_work_size);
 #endif
 
-	log_event("- OpenCL %sLWS: "Zu", GWS: "Zu" ("Zu" blocks)",
-	    (need_best_lws | need_best_gws) ? "(auto-tuned) " : "",
-		local_work_size, global_work_size, global_work_size / local_work_size);
+	log_event("- OpenCL LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
+	          local_work_size,
+	          (need_best_lws && !needed_best_gws) ? " (auto-tuned)" : "",
+	          global_work_size,
+	          (need_best_lws && needed_best_gws) ? "(both auto-tuned) " :
+	          (needed_best_gws) ? "(auto-tuned) " : "",
+	          global_work_size / local_work_size);
 
 	self->params.min_keys_per_crypt = local_work_size * ocl_v_width;
 	self->params.max_keys_per_crypt = global_work_size * ocl_v_width;

@@ -368,6 +368,9 @@ struct options_main {
 #ifdef HAVE_OPENCL
 /* Vector width of OpenCL kernel */
 	unsigned int v_width;
+
+/* GPU Worksizes */
+	size_t lws, gws;
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 /* Allow to set and select OpenCL device(s) or ztex boards */

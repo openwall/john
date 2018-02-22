@@ -249,6 +249,8 @@ static struct opt_entry opt_list[] = {
 	{"force-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTOR},
 	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0,
 		(FLG_SCALAR | OPT_REQ_PARAM), "%u", &options.v_width},
+	{"lws", FLG_ZERO, 0, 0, OPT_REQ_PARAM, Zu, &options.lws},
+	{"gws", FLG_ZERO, 0, 0, OPT_REQ_PARAM, Zu, &options.gws},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 	{"devices", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
@@ -426,8 +428,11 @@ void opt_print_hidden_usage(void)
 	puts("--target-encoding=NAME     output encoding (used by format, see doc/ENCODING)");
 	puts("--tune=HOW                 tuning options (auto/report/N)");
 #ifdef HAVE_OPENCL
-	puts("--force-scalar             (OpenCL) force scalar mode");
-	puts("--force-vector-width=N     (OpenCL) force vector width N");
+	puts("\nOpenCL options:");
+	puts("--force-scalar             force scalar mode");
+	puts("--force-vector-width=N     force vector width N");
+	puts("--lws=N                    force local worksize N");
+	puts("--gws=N                    force global worksize N");
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	puts("\nPRINCE mode options:");

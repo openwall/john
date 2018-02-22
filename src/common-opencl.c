@@ -885,7 +885,9 @@ void opencl_get_user_preferences(char *format)
 	                                   opencl_get_config_name(fmt_base_name, LWS_CONFIG_NAME))))
 		local_work_size = atoi(tmp_value);
 
-	if ((tmp_value = getenv("LWS")))
+	if (options.lws)
+		local_work_size = options.lws;
+	else if ((tmp_value = getenv("LWS")))
 		local_work_size = atoi(tmp_value);
 
 	if (format &&
@@ -893,7 +895,9 @@ void opencl_get_user_preferences(char *format)
 	                                   opencl_get_config_name(fmt_base_name, GWS_CONFIG_NAME))))
 		global_work_size = atoi(tmp_value);
 
-	if ((tmp_value = getenv("GWS")))
+	if (options.gws)
+		global_work_size = options.gws;
+	else if ((tmp_value = getenv("GWS")))
 		global_work_size = atoi(tmp_value);
 
 	if (local_work_size)
