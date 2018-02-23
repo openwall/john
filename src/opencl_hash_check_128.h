@@ -1,5 +1,5 @@
 #include "bt_interface.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 extern cl_uint num_loaded_hashes;
 extern cl_uint *hash_ids;

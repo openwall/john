@@ -21,7 +21,7 @@ john_register_one(&fmt_opencl_1otus5);
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "opencl_lotus5_fmt.h"
 #include "options.h"
 

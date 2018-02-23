@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_zip);
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "pkzip.h"
 #include "dyna_salt.h"
 #include "options.h"

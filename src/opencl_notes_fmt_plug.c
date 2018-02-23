@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_notes);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL            "notes-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"

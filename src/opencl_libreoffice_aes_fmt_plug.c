@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_odf_aes);
 #include "libreoffice_common.h"
 #define INCLUDE_AES_HASHES      1
 #include "libreoffice_variable_code.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL            "ODF-AES-opencl"
 #define ALGORITHM_NAME          "SHA256 PBKDF2-SHA1 AES OpenCL"

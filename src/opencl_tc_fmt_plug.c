@@ -30,7 +30,7 @@ john_register_one(&FMT_STRUCT);
 #include "aes.h"
 #include "pbkdf2_hmac_ripemd160.h"
 #include "loader.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL            "TrueCrypt-opencl"
 #define FORMAT_NAME             ""

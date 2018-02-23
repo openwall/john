@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_lastpass_cli);
 #include "options.h"
 #include "aes.h"
 #include "lastpass_cli_common.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL            "lpcli-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 OpenCL AES"

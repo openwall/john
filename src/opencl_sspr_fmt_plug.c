@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_sspr);
 #include "formats.h"
 #include "misc.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "sspr_common.h"
 
 #define FORMAT_LABEL            "sspr-opencl"

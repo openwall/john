@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_pgpwde);
 #include "misc.h"
 #include "aes.h"
 #include "sha.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "pgpwde_common.h"
 

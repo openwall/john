@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "pbkdf2_hmac_common.h"
 
 #define FORMAT_LABEL		"PBKDF2-HMAC-SHA256-opencl"

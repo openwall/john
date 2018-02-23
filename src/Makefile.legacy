@@ -157,7 +157,7 @@ JOHN_OBJS = \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o \
 	unique.o gpg2john.o memdbg.o
 
-OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
+OCL_OBJS = opencl_common.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o

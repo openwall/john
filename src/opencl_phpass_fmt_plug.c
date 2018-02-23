@@ -20,7 +20,7 @@ john_register_one(&fmt_opencl_phpass);
 #include "common.h"
 #include "misc.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "phpass_common.h"
 
 #define FORMAT_LABEL            "phpass-opencl"

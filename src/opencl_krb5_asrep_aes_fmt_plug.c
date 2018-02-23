@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #include "aes.h"
 #include "krb5_common.h"
 #include "krb5_asrep_common.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #define OUTLEN 32
 #include "opencl_pbkdf2_hmac_sha1.h"
 #include "hmac_sha.h"

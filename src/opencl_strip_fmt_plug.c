@@ -28,7 +28,7 @@ john_register_one(&fmt_opencl_strip);
 #include "options.h"
 #include "common.h"
 #include "misc.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL		"strip-opencl"
 #define FORMAT_NAME		"STRIP Password Manager"

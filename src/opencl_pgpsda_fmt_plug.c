@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_pgpsda);
 #include "formats.h"
 #include "misc.h"
 #include "sha.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "pgpsda_common.h"
 

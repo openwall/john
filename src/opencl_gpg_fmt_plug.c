@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_gpg);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "gpg_common.h"
 #include "twofish.h"

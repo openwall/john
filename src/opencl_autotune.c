@@ -11,7 +11,7 @@
 
 #ifdef HAVE_OPENCL
 
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "memdbg.h"
 
 /* Allow the developer to select configurable step size for gws. */

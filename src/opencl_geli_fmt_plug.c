@@ -28,7 +28,7 @@ john_register_one(&fmt_opencl_geli);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "sha2.h"
 #include "geli_common.h"
 #include "johnswap.h"

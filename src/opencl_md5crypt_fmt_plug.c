@@ -20,7 +20,7 @@ john_register_one(&fmt_opencl_cryptMD5);
 #include "misc.h"
 #include "path.h"
 #include "config.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "md5crypt_common.h"
 

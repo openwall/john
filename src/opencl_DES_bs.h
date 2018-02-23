@@ -10,7 +10,7 @@
 #define _JOHN_DES_BS_H
 
 #include "arch.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "opencl_DES_hst_dev_shared.h"
 #include "loader.h"
 

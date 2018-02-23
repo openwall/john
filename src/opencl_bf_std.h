@@ -8,7 +8,7 @@
 
 #include "arch.h"
 #include "common.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "BF_common.h"
 
 /*

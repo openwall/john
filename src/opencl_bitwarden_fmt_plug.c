@@ -24,7 +24,7 @@ john_register_one(&fmt_opencl_bitwarden);
 #include "formats.h"
 #include "options.h"
 #include "bitwarden_common.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL            "bitwarden-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"

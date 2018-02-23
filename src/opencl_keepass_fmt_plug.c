@@ -28,7 +28,7 @@ john_register_one(&fmt_ocl_KeePass);
 #include "params.h"
 #include "options.h"
 #include "keepass_common.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "KeePass-opencl"

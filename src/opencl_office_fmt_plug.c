@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_office);
 #include "params.h"
 #include "options.h"
 #include "unicode.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "office_common.h"
 #include "config.h"
 

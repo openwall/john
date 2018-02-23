@@ -21,7 +21,7 @@
 
 /* this is just for advance_cursor() */
 #ifdef HAVE_OPENCL
-#include "common-opencl.h"
+#include "opencl_common.h"
 #endif
 #include "jumbo.h"
 #include "bench.h"

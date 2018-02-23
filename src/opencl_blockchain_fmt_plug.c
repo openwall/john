@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_blockchain);
 #include "formats.h"
 #include "common.h"
 #include "jumbo.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "blockchain_common.h"
 

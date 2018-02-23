@@ -20,7 +20,7 @@ john_register_one(&FORMAT_STRUCT);
 #include <stdint.h>
 #include <string.h>
 
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"

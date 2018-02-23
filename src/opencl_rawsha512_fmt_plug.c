@@ -23,7 +23,7 @@ john_register_one(&fmt_opencl_rawsha512);
 #include <string.h>
 
 #include "arch.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "params.h"
 #include "options.h"
 #include "common.h"

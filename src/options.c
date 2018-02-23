@@ -46,7 +46,7 @@
 #define _PER_NODE ""
 #endif
 #ifdef HAVE_OPENCL
-#include "common-opencl.h"
+#include "opencl_common.h"
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "prince.h"

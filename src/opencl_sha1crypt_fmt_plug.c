@@ -23,7 +23,7 @@ john_register_one(&fmt_ocl_cryptsha1);
 #include "formats.h"
 #include "options.h"
 #include "base64_convert.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "sha1crypt_common.h"
 #define OUTLEN 20
 #include "opencl_pbkdf1_hmac_sha1.h"

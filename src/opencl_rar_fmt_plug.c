@@ -79,7 +79,7 @@ john_register_one(&fmt_ocl_rar);
 #include "unicode.h"
 #include "johnswap.h"
 #include "unrar.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "config.h"
 #include "jumbo.h"
 

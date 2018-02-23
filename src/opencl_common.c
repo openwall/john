@@ -47,7 +47,7 @@
 #include "config.h"
 #include "common.h"
 #include "logger.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "mask_ext.h"
 #include "dyna_salt.h"
 #include "signals.h"

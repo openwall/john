@@ -24,7 +24,7 @@ john_register_one(&fmt_opencl_pfx);
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "hmac_sha.h"
 #include "pfx_common.h"

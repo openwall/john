@@ -118,7 +118,7 @@ JOHN_OBJS = \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o \
 	unique.o gpg2john.o memdbg.o
 
-OCL_OBJS = common-opencl.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
+OCL_OBJS = opencl_common.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
 OPENCL_PLUGFORMATS_OBJS = @OPENCL_PLUGFORMATS_OBJS@
 
@@ -151,7 +151,7 @@ JOHN_OBJS += $(OCL_OBJS) $(OPENCL_PLUGFORMATS_OBJS)
 
 # core OpenCL dependencies
 CL_DEVICE_HEADER = opencl_device_info.h
-CL_COMMON_HEADER = common-opencl.h common-gpu.h gpu_sensors.h
+CL_COMMON_HEADER = opencl_common.h common-gpu.h gpu_sensors.h
 endif
 
 WITH_ZTEX=@ZTEX_LIBS@
@@ -282,7 +282,7 @@ opencl_autotune.o:	opencl_autotune.c $(CL_COMMON_HEADER) arch.h misc.h jumbo.h a
 
 common-gpu.o:	common-gpu.c autoconfig.h Win32-dlfcn-port.h common-gpu.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h params.h logger.h config.h signals.h memdbg.h
 
-common-opencl.o:	common-opencl.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h john.h md5.h john-mpi.h memdbg.h
+opencl_common.o:	opencl_common.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h john.h md5.h john-mpi.h memdbg.h
 endif
 
 compiler.o:	compiler.c arch.h params.h memory.h compiler.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h

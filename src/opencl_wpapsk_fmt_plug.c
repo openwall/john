@@ -22,7 +22,7 @@ john_register_one(&fmt_opencl_wpapsk);
 #include "misc.h"
 #include "config.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
 static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1, wpapsk_final_sha256;

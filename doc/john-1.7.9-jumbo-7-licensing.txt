@@ -156,8 +156,8 @@ c3_fmt.c                        GPLv2; Solar, magnum; code; magnum added ability
 calc_stat.c                     GPLv2; bartavelle; code; GPLv2 is implied since the author contributed this for 1.7+, but ideally we need explicit copyright and license statement, and one using cut-down BSD
 charset.c                       GPLv2; Solar; code; the changes in jumbo by other authors are very minor (support for building with MSVC, anything else?), so not subject to copyright
 charset.h                       GPLv2; Solar; code
-common-opencl.c                 GPLv2; unclear; code; was contributed by authors for 1.7+, hence GPLv2 is implied
-common-opencl.h                 GPLv2; unclear; code; was contributed by authors for 1.7+, hence GPLv2 is implied
+opencl_common.c                 GPLv2; unclear; code; was contributed by authors for 1.7+, hence GPLv2 is implied
+opencl_common.h                 GPLv2; unclear; code; was contributed by authors for 1.7+, hence GPLv2 is implied
 common.c                        GPLv2; Solar; code
 common.h                        GPLv2; Solar; code; the only change in jumbo is addition of is_aligned() macro, which is too minor for copyright
 common_opencl_pbkdf2.c          cut-down BSD; Sayantan; code

@@ -31,7 +31,7 @@ john_register_one(&fmt_opencl_pwsafe);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "memory.h"
 
 #define FORMAT_LABEL            "pwsafe-opencl"

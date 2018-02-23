@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_odf);
 #include "libreoffice_common.h"
 #define INCLUDE_BF_HASHES       1
 #include "libreoffice_variable_code.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL            "ODF-opencl"
 #define ALGORITHM_NAME          "SHA1 OpenCL Blowfish"

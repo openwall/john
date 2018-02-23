@@ -38,7 +38,7 @@ john_register_one(&fmt_opencl_keystore);
 #include "arch.h"
 #include "sha.h"
 #include "misc.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"

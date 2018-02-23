@@ -68,7 +68,7 @@
 #endif
 
 #if HAVE_OPENCL
-#include "common-opencl.h"
+#include "opencl_common.h"
 #endif
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */

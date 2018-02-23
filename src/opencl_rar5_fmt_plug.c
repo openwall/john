@@ -30,7 +30,7 @@ john_register_one(&fmt_ocl_rar5);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "rar5_common.h"
 
 #define SIZE_SALT50             16

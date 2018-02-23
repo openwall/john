@@ -23,7 +23,7 @@ john_register_one(&fmt_opencl_dmg);
 #include "jumbo.h"
 #include "loader.h"
 #include "dmg_common.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #define OUTLEN 32
 #include "opencl_pbkdf2_hmac_sha1.h"
 

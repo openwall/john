@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_rakp);
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 
 #define FORMAT_LABEL            "RAKP-opencl"

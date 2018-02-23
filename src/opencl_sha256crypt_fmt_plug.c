@@ -22,7 +22,7 @@ john_register_one(&fmt_opencl_cryptsha256);
 
 #include <string.h>
 
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "config.h"
 #include "options.h"
 #include "opencl_sha256crypt.h"

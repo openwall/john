@@ -31,7 +31,7 @@ john_register_one(&fmt_opencl_agilekeychain);
 #include "common.h"
 #include "misc.h"
 #include "aes.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "jumbo.h"
 

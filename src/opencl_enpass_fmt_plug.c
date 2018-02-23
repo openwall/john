@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_enpass);
 #include "enpass_common.h"
 #include "options.h"
 #include "jumbo.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "misc.h"
 #define OUTLEN                  32
 #define PLAINTEXT_LENGTH        28

@@ -38,7 +38,7 @@ john_register_one(&FMT_STRUCT);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "config.h"
 #include "unicode.h"
 #include "loader.h"

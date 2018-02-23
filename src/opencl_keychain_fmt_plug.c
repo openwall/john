@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_keychain);
 #include "misc.h"
 #include "options.h"
 #include "jumbo.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL		"keychain-opencl"
 #define FORMAT_NAME		"Mac OS X Keychain"

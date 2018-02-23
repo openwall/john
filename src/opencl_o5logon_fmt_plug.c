@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_o5logon);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL            "o5logon-opencl"
 #define FORMAT_NAME             "Oracle O5LOGON protocol"

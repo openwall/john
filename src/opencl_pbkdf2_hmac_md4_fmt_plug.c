@@ -17,7 +17,7 @@ john_register_one(&fmt_ocl_pbkdf2_md4);
 #include <ctype.h>
 #include <string.h>
 
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"

@@ -6,7 +6,7 @@
  */
 #ifdef HAVE_OPENCL
 
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_LABEL	           "mscash2-opencl"
 

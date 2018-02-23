@@ -21,7 +21,7 @@ john_register_one(&fmt_opencl_encfs);
 #include <omp.h>
 #endif
 
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "arch.h"
 #include "formats.h"
 #include "common.h"

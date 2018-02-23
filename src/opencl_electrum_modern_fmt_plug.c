@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_electrum_modern);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "johnswap.h"
 #include "secp256k1.h"
 #include "aes.h"

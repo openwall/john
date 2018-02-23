@@ -22,7 +22,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 
 #define FORMAT_NAME             "Ethereum Presale Wallet"
 #define FORMAT_LABEL            "ethereum-presale-opencl"

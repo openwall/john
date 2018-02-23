@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "bitlocker_common.h"
 #include "bitlocker_variable_code.h"
 

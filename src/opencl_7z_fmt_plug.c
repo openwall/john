@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
-#include "common-opencl.h"
+#include "opencl_common.h"
 #include "options.h"
 #include "aes.h"
 #include "crc32.h"
