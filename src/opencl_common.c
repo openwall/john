@@ -2503,17 +2503,27 @@ char *get_error_name(cl_int cl_error)
 	return out;
 }
 
-static char *human_format(size_t size)
+static char *human_format(unsigned long long size)
 {
-	char pref[] = { ' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' };
+	char *pref[] = { "K", "M", "G", "T", "P", "E", "Z", "Y" };
 	int prefid = 0;
 	static char ret[32];
 
-	while (size > 1024) {
+	if (size < 1024) {
+		sprintf(ret, "%llu B", size);
+		return ret;
+	}
+
+	while (size > 1024 * 1024) {
 		size /= 1024;
 		prefid++;
 	}
-	sprintf(ret, ""Zu"."Zu" %cB", size, (size % 1024) / 100, pref[prefid]);
+
+	if (size % 1024 > 950 || size % 1024 < 100)
+		sprintf(ret, "%llu %sB", (size + 1023) / 1024, pref[prefid]);
+	else
+		sprintf(ret, "%llu.%llu %sB",
+		        size / 1024, (size % 1024) / 100, pref[prefid]);
 	return ret;
 }
 
@@ -2701,9 +2711,8 @@ void opencl_list_devices(void)
 			                CL_DEVICE_ERROR_CORRECTION_SUPPORT,
 			                sizeof(cl_bool), &boolean, NULL);
 			printf("    Global Memory:          %s%s\n",
-			       human_format((unsigned long long)long_entries),
+			       human_format(long_entries),
 			       boolean == CL_TRUE ? " (ECC)" : "");
-
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_EXTENSIONS, sizeof(dname), dname, NULL);
 			if (options.verbosity > VERB_LEGACY)
@@ -2714,7 +2723,7 @@ void opencl_list_devices(void)
 			                sizeof(cl_ulong), &long_entries, NULL);
 			if (long_entries)
 				printf("    Global Memory Cache:    %s\n",
-				       human_format((unsigned long long)long_entries)
+				       human_format(long_entries)
 				      );
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_LOCAL_MEM_SIZE,
@@ -2723,14 +2732,14 @@ void opencl_list_devices(void)
 			                CL_DEVICE_LOCAL_MEM_TYPE,
 			                sizeof(cl_device_local_mem_type), &memtype, NULL);
 			printf("    Local Memory:           %s (%s)\n",
-			       human_format((unsigned long long)long_entries),
+			       human_format(long_entries),
 			       memtype == CL_LOCAL ? "Local" : "Global");
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE,
 			                sizeof(cl_ulong), &long_entries, NULL);
 			if (long_entries)
 				printf("    Constant Buffer size:   %s\n",
-				       human_format((unsigned long long)long_entries)
+				       human_format(long_entries)
 				      );
 			clGetDeviceInfo(devices[sequence_nr],
 			                CL_DEVICE_MAX_MEM_ALLOC_SIZE,
