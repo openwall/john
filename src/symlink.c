@@ -17,6 +17,7 @@
 #include <string.h>
 #include <process.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #if !defined (_MSC_VER)
 #include <unistd.h>
@@ -24,21 +25,19 @@
 
 #define MAIN_NAME			"john.exe"
 
-int main(int argc, char * const *argv)
+int main(int argc, char *argv[])
 {
-#if !defined (_MSC_VER)
-	char path[strlen(argv[0] ? argv[0] : "") + sizeof(MAIN_NAME)];
-#else
-#pragma warning ( disable : 4996 )
-    char path[4096];
-#endif
+	char *name, *path;
 
-	char *name;
+	path = malloc((argv[0] ? strlen(argv[0]) : 0) + sizeof(MAIN_NAME));
+	if (!path) {
+		perror("malloc");
+		exit(1);
+	}
 
 	if (!argv[0])
 		name = path;
-	else
-	if ((name = strrchr(strcpy(path, argv[0]), '/')))
+	else if ((name = strrchr(strcpy(path, argv[0]), '/')) || (name = strrchr(path, '\\')))
 		name++;
 	else
 		name = path;
