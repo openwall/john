@@ -18,10 +18,9 @@ john_register_one(&fmt_netah);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
 #endif
-#endif
+
+#define OMP_SCALE               128  // MKPC and OMP_SCALE tuned on Core i5-6500
 
 #include "formats.h"
 #include "hmacmd5.h"
@@ -45,7 +44,7 @@ john_register_one(&fmt_netah);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
 #define MAX_SALT_LEN            1500
 
 static struct fmt_tests tests[] = {
@@ -66,9 +65,7 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
