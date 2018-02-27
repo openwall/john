@@ -21,6 +21,8 @@ john_register_one(&fmt_pgpsda);
 #include <omp.h>
 #endif
 
+#define OMP_SCALE               16  // MKPC and OMP_SCALE tuned on Core i7-6600U
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -45,11 +47,7 @@ john_register_one(&fmt_pgpsda);
 #define FORMAT_TAG              "$pgpsda$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
-
-#ifndef OMP_SCALE
-#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
-#endif
+#define MAX_KEYS_PER_CRYPT      8
 
 static struct custom_salt *cur_salt;
 
@@ -126,19 +124,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
-		int i;
+	for (index = 0; index < count; index++) {
+		unsigned char key[SHA1_DIGEST_LENGTH];
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
-			unsigned char key[SHA1_DIGEST_LENGTH];
+		CAST_KEY ck;
 
-			CAST_KEY ck;
-
-			pgpsda_kdf(saved_key[i+index], cur_salt->salt, key);
-			CAST_set_key(&ck, 16, key);
-			memset((unsigned char*)crypt_out[index+i], 0, BINARY_SIZE);
-			CAST_ecb_encrypt(key, (unsigned char*)crypt_out[index+i], &ck, CAST_ENCRYPT);
-		}
+		pgpsda_kdf(saved_key[index], cur_salt->salt, key);
+		CAST_set_key(&ck, 16, key);
+		memset((unsigned char*)crypt_out[index], 0, BINARY_SIZE);
+		CAST_ecb_encrypt(key, (unsigned char*)crypt_out[index], &ck, CAST_ENCRYPT);
 	}
 
 	return count;
