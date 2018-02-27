@@ -20,6 +20,8 @@ john_register_one(&fmt_tcpmd5);
 #include <omp.h>
 #endif
 
+#define OMP_SCALE               16  // MKPC and OMP_SCALE tuned on Core i5-6500
+
 #include "arch.h"
 #include "md5.h"
 #include "misc.h"
@@ -39,18 +41,13 @@ john_register_one(&fmt_tcpmd5);
 
 // Linux Kernel says "#define TCP_MD5SIG_MAXKEYLEN 80"
 #define PLAINTEXT_LENGTH        80
-
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define MAX_SALT                1500
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1024
-
-#ifndef OMP_SCALE
-#define OMP_SCALE 4 // Tuned w/ MKPC for core i7
-#endif
+#define MAX_KEYS_PER_CRYPT      128
 
 static struct fmt_tests tests[] = {
 	/* BGP TCP_MD5SIG hashes */
@@ -162,6 +159,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
