@@ -23,6 +23,13 @@ john_register_one(&fmt_vtp);
 #include <omp.h>
 #endif
 
+#ifdef __MIC__
+#define OMP_SCALE               512
+#else
+#define OMP_SCALE               128  // Tuned w/ MKPC for Core i7
+#endif
+
+
 #include "arch.h"
 #include "md5.h"
 #include "misc.h"
@@ -48,14 +55,6 @@ john_register_one(&fmt_vtp);
 #define HEXCHARS                "0123456789abcdef"
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      8
-
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE 512
-#else
-#define OMP_SCALE 128 // Tuned w/ MKPC for core i7
-#endif
-#endif
 
 static struct fmt_tests tests[] = {
 	{"$vtp$2$196$14000107000105dc000186a164656661756c740014000105000505dc000186a56368656e6100000010000103000605dc000186a6666666001800020c03ea05dc00018a8a666464692d64656661756c743000030d03eb117800018a8b74726372662d64656661756c7400000001010ccc040103ed0701000208010007090100072000040f03ec05dc00018a8c666464696e65742d64656661756c7400030100012400050d03ed117800018a8d74726272662d64656661756c740000000201000f03010002$80$0201010c646f6d61696e313233343536000000000000000000000000000000000000000000000015000000003134313030393134333631376010913064949d6f47a53b2ad68ef06b0000000106010002$6010913064949d6f47a53b2ad68ef06b", "123"},
@@ -129,7 +128,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	res = atoi(p);
 	if (res != 1  && res != 2)  // VTP version 3 support is pending
 		goto err; // FIXME: fprintf(stderr, ... for version 3?
-
 	if ((p = strtokm(NULL, "$")) == NULL)  /* vlans len */
 		goto err;
 	if (!isdec(p))
@@ -153,11 +151,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-
 	if (((atoi16[ARCH_INDEX(p[6])]<<4)|atoi16[ARCH_INDEX(p[7])]) >
 		sizeof(cur_salt->vsp.domain_name))
 		goto err;
-
 	if ((p = strtokm(NULL, "$")) == NULL)  /* hash */
 		goto err;
 	if (strlen(p) != BINARY_SIZE * 2)
