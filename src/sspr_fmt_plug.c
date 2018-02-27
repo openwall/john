@@ -23,6 +23,8 @@ john_register_one(&fmt_sspr);
 #include <omp.h>
 #endif
 
+#define OMP_SCALE               1  // MKPC and OMP_SCALE tuned on Core i7-6600U
+
 #include "formats.h"
 #include "md5.h"
 #include "sha.h"
@@ -43,11 +45,7 @@ john_register_one(&fmt_sspr);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
-
-#ifndef OMP_SCALE
-#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
-#endif
+#define MAX_KEYS_PER_CRYPT      4
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
