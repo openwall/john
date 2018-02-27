@@ -314,7 +314,7 @@ static struct opt_entry opt_list[] = {
 "--dupe-suppression         suppress all dupes in wordlist (and force preload)\n" \
 PRINCE_USAGE \
 "--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
-"                           doc/ENCODING and --list=hidden-options.\n" \
+"                           doc/ENCODINGS and --list=hidden-options.\n" \
 "--rules[=(SECTION[,S2,..,Sn]|:rule)]  enable word mangling rules for\n" \
 "                           wordlist or PRINCE modes\n" \
 "--incremental[=MODE]       \"incremental\" mode [using section MODE]\n" \
@@ -424,8 +424,8 @@ void opt_print_hidden_usage(void)
 	puts("--fuzz-dump[=FROM,TO]      dump the fuzzed hashes between FROM and TO to file pwfile.format");
 #endif
 	puts("--input-encoding=NAME      input encoding (alias for --encoding)");
-	puts("--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODING)");
-	puts("--target-encoding=NAME     output encoding (used by format, see doc/ENCODING)");
+	puts("--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)");
+	puts("--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)");
 	puts("--tune=HOW                 tuning options (auto/report/N)");
 #ifdef HAVE_OPENCL
 	puts("\nOpenCL options:");
