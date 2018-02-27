@@ -27,10 +27,9 @@ john_register_one(&fmt_wbb3);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               8 // tuned on core i7
 #endif
-#endif
+
+#define OMP_SCALE               8  // MKPC and OMP_SCALE tuned on Core i5-6500
 
 #include "arch.h"
 #include "sha.h"
@@ -91,9 +90,7 @@ inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
