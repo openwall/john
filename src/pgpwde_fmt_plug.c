@@ -16,18 +16,18 @@ john_register_one(&fmt_pgpwde);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#define OMP_SCALE               16  // MKPC and OMP_SCALE tuned on Core i7-6600U
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // this is a slow format
-#endif
-#endif
 #include "loader.h"
 #include "pgpwde_common.h"
 #include "memdbg.h"
@@ -43,7 +43,7 @@ john_register_one(&fmt_pgpwde);
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
 #define FORMAT_TAG              "$pgpwde$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 
@@ -92,9 +92,7 @@ static void S2KPGPWDE(char *password, unsigned char *salt, unsigned char *key, i
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 }
@@ -120,17 +118,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		int i;
+	for (index = 0; index < count; index++) {
+		unsigned char key[40];
+		int ret;
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
-			unsigned char key[40];
-			int ret;
-
-			S2KPGPWDE(saved_key[i+index], cur_salt->salt, key, 32);
-			ret = pgpwde_decrypt_and_verify(key, cur_salt->esk, 128);
-			cracked[i+index] = (0 == ret);
-		}
+		S2KPGPWDE(saved_key[index], cur_salt->salt, key, 32);
+		ret = pgpwde_decrypt_and_verify(key, cur_salt->esk, 128);
+		cracked[index] = (0 == ret);
 	}
 
 	return count;
