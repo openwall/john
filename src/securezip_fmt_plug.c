@@ -21,12 +21,12 @@ john_register_one(&fmt_securezip);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
 #endif
-#endif
+
+#define OMP_SCALE               32  // MKPC and OMP_SCALE tuned on Core i7-6600U
 
 #include "arch.h"
 #include "misc.h"
@@ -52,7 +52,7 @@ john_register_one(&fmt_securezip);
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      32
 
 #ifndef SHA1_SIZE
 #define SHA1_SIZE               20
@@ -65,9 +65,7 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
 	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
@@ -140,7 +138,7 @@ static int securezip_decrypt(struct custom_salt *cur_salt, char *password)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -150,8 +148,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
+	for (index = 0; index < count; index++) {
 		if (securezip_decrypt(cur_salt, saved_key[index])) {
 			cracked[index] = 1;
 #ifdef _OPENMP
