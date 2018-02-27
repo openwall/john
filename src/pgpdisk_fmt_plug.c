@@ -17,18 +17,18 @@ john_register_one(&fmt_pgpdisk);
 #include <string.h>
 #include <openssl/cast.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#define OMP_SCALE               8  // MKPC and OMP_SCALE tuned on Core i7-6600U
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // this is a slow format
-#endif
-#endif
 #include "sha.h"
 #include "loader.h"
 #include "aes.h"
@@ -47,7 +47,7 @@ john_register_one(&fmt_pgpdisk);
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      4
 #define FORMAT_TAG              "$pgpdisk$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 
@@ -58,9 +58,7 @@ static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 
@@ -150,33 +148,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		int i;
+	for (index = 0; index < count; index++) {
+		unsigned char key[40];
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
-			unsigned char key[40];
+		if (cur_salt->algorithm == 5 || cur_salt->algorithm == 6 || cur_salt->algorithm == 7) {
+			AES_KEY aes_key;
 
-			if (cur_salt->algorithm == 5 || cur_salt->algorithm == 6 || cur_salt->algorithm == 7) {
-				AES_KEY aes_key;
+			pgpdisk_kdf(saved_key[index], cur_salt->salt, key, 32);
+			// DecryptPassphraseKey in original source code, compute CheckBytes
+			AES_set_encrypt_key(key, 256, &aes_key);
+			AES_ecb_encrypt(key, (unsigned char*)crypt_out[index], &aes_key, AES_ENCRYPT);
+		} else if (cur_salt->algorithm == 4) {
+			Twofish_key tkey;
 
-				pgpdisk_kdf(saved_key[i+index], cur_salt->salt, key, 32);
-				// DecryptPassphraseKey in original source code, compute CheckBytes
-				AES_set_encrypt_key(key, 256, &aes_key);
-				AES_ecb_encrypt(key, (unsigned char*)crypt_out[index+i], &aes_key, AES_ENCRYPT);
-			} else if (cur_salt->algorithm == 4) {
-				Twofish_key tkey;
+			pgpdisk_kdf(saved_key[index], cur_salt->salt, key, 32);
+			Twofish_prepare_key(key, 32, &tkey);
+			Twofish_encrypt(&tkey, key, (unsigned char*)crypt_out[index]);
+		} else if (cur_salt->algorithm == 3) {
+			CAST_KEY ck;
 
-				pgpdisk_kdf(saved_key[i+index], cur_salt->salt, key, 32);
-				Twofish_prepare_key(key, 32, &tkey);
-				Twofish_encrypt(&tkey, key, (unsigned char*)crypt_out[index+i]);
-			} else if (cur_salt->algorithm == 3) {
-				CAST_KEY ck;
-
-				pgpdisk_kdf(saved_key[i+index], cur_salt->salt, key, 16);
-				CAST_set_key(&ck, 16, key);
-				memset((unsigned char*)crypt_out[index+i], 0, BINARY_SIZE);
-				CAST_ecb_encrypt(key, (unsigned char*)crypt_out[index+i], &ck, CAST_ENCRYPT);
-			}
+			pgpdisk_kdf(saved_key[index], cur_salt->salt, key, 16);
+			CAST_set_key(&ck, 16, key);
+			memset((unsigned char*)crypt_out[index], 0, BINARY_SIZE);
+			CAST_ecb_encrypt(key, (unsigned char*)crypt_out[index], &ck, CAST_ENCRYPT);
 		}
 	}
 
