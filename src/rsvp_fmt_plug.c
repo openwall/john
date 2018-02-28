@@ -15,17 +15,16 @@ john_register_one(&fmt_rsvp);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
+#endif
+
 #ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE 4096
+#define OMP_SCALE               4096
 #endif
-#else
 #ifndef OMP_SCALE
-#define OMP_SCALE 8192
-#endif
-#endif // __MIC__
+#define OMP_SCALE               32  // MKPC and OMP_SCALE hand-tuned on Core i5-6500
 #endif
 
 #include "arch.h"
@@ -52,7 +51,7 @@ john_register_one(&fmt_rsvp);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      32
 #define HEXCHARS                "0123456789abcdef"
 #define MAX_SALT_SIZE           8192
 // Currently only 6 types are supported (1 for md5, 2 for SHA1, 3 for SHA224,
@@ -123,9 +122,7 @@ static  struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
