@@ -174,7 +174,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++) {
 		unsigned char km[64];
-		unsigned char out[MAX_CIPHERTEXT_LENGTH];
+		unsigned char out[32];
 		unsigned char iv[IVLEN];
 		struct chacha_ctx ckey;
 
@@ -190,6 +190,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp atomic
 #endif
 			any_cracked |= 1;
+			continue;
 		}
 
 		// 2
