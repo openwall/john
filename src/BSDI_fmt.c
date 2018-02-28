@@ -107,9 +107,7 @@ static void init(struct fmt_main *self)
 	current_salt = -1;
 #endif
 
-	buffer = mem_alloc_tiny(
-	    sizeof(*buffer) * fmt_BSDI.params.max_keys_per_crypt,
-	    MEM_ALIGN_CACHE);
+	buffer = NULL;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
