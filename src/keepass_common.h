@@ -30,7 +30,7 @@
 extern struct fmt_tests keepass_tests[];
 
 /* This format should be dyna salt instead! */
-#define MAX_CONT_SIZE 0x1000
+#define MAX_CONT_SIZE 0x1000000
 
 typedef struct {
 	long long offset;

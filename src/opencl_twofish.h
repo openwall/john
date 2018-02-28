@@ -628,7 +628,7 @@ void Twofish_decrypt(Twofish_key *xkey, Byte c[16], Byte p[16])
 
 inline
 int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer,
-                    int nInputOctets, Byte *m_pInitVector)
+                    int nInputOctets, Byte *m_pInitVector, int check_pad)
 {
 	int i, numBlocks, padLen;
 	UInt32 iv[4];
@@ -670,13 +670,20 @@ int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer,
 	p[1] ^= iv[1];
 	p[2] ^= iv[2];
 	p[3] ^= iv[3];
-	padLen = block[15];
-	if (padLen <= 0 || padLen > 16)
-		return -1;
-	for (i = 16 - padLen; i < 16; i++) {
-		if (block[i] != padLen)
+
+	if (check_pad) {
+		padLen = block[15];
+		if (padLen <= 0 || padLen > 16)
 			return -1;
+		for (i = 16 - padLen; i < 16; i++) {
+			if (block[i] != padLen)
+				return -1;
+		}
+	} else {
+		padLen = 0;
+		memcpy_pp(m_pInitVector, pInput, 16);
 	}
+
 	memcpy_pp(pOutBuffer, block, 16 - padLen);
 
 	return 16 * numBlocks - padLen;

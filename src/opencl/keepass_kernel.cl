@@ -43,8 +43,46 @@ typedef struct {
 	AES_CTX akey;
 } keepass_state;
 
+#if MAX_CONT_SIZE >= 0xff00
+#undef MAYBE_CONSTANT
+#define MAYBE_CONSTANT __global const
+#endif
+
+inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
+{
+	union {
+		const uint *w;
+		const uchar *c;
+	} a;
+	union {
+		MAYBE_CONSTANT uint *w;
+		MAYBE_CONSTANT uchar *c;
+	} b;
+
+	a.c = s1;
+	b.c = s2;
+
+	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
+		while (((size_t)a.c) & 0x03 && size--)
+			if (*b.c++ != *a.c++)
+				return 1;
+
+		while (size >= 4) {
+			if (*b.w++ != *a.w++)
+				return 1;
+			size -= 4;
+		}
+	}
+
+	while (size--)
+		if (*b.c++ != *a.c++)
+			return 1;
+
+	return 0;
+}
+
 __kernel void keepass_init(__global const keepass_password *masterkey,
-                           __constant keepass_salt_t *salt,
+                           MAYBE_CONSTANT keepass_salt_t *salt,
                            __global keepass_state *state)
 {
 	uint gid = get_global_id(0);
@@ -107,7 +145,7 @@ __kernel void keepass_loop(__global keepass_state *state)
 }
 
 __kernel void keepass_final(__global keepass_state *state,
-                            __constant keepass_salt_t *salt,
+                            MAYBE_CONSTANT keepass_salt_t *salt,
                             __global keepass_result *result)
 {
 	uint gid = get_global_id(0);
@@ -139,37 +177,56 @@ __kernel void keepass_final(__global keepass_state *state,
 	memcpy_macro(iv, salt->enc_iv, 16);
 
 	if (salt->version == 1) {
-		uchar content[MAX_CONT_SIZE];
-		int contentsize = salt->contentsize;
+		uchar content[256];
+		int bufsize = (int)sizeof(content);
+		MAYBE_CONSTANT uchar *saltp = salt->contents;
+		int contentsize = (uint)salt->contentsize;
 		int datasize;
 
 		if (contentsize < 16 || contentsize > MAX_CONT_SIZE)
 			contentsize = 16;
 
-		memcpy_macro(content, salt->contents, contentsize);
+		SHA256_Init(&ctx);
 
 		if (salt->algorithm == 0) {
 			uint pad_byte;
 
 			AES_Setkey(&akey, hash, 32);
+			while (contentsize > bufsize) {
+				memcpy_macro(content, saltp, bufsize);
+				AES_cbc_decrypt(content, content, bufsize, &akey, iv);
+				SHA256_Update(&ctx, content, bufsize);
+				contentsize -= bufsize;
+				saltp += bufsize;
+			}
+			memcpy_macro(content, saltp, contentsize);
 			AES_cbc_decrypt(content, content, contentsize, &akey, iv);
 			pad_byte = content[contentsize - 1];
 			datasize = contentsize - pad_byte;
+			if (pad_byte > 16 || datasize < 0 || datasize > contentsize)
+				datasize = 0;
+			SHA256_Update(&ctx, content, datasize);
 		} else /* if (salt->algorithm == 1) */ {
 			Twofish_key tkey;
 
 			Twofish_prepare_key(hash, 32, &tkey);
+			while (contentsize > bufsize) {
+				memcpy_macro(content, saltp, bufsize);
+				Twofish_Decrypt(&tkey, content, content, bufsize, iv, 0);
+				SHA256_Update(&ctx, content, bufsize);
+				contentsize -= bufsize;
+				saltp += bufsize;
+			}
+			memcpy_macro(content, saltp, contentsize);
 			datasize = Twofish_Decrypt(&tkey, content, content,
-			                           contentsize, iv);
+			                           contentsize, iv, 1);
+			if (datasize < 0 || datasize > contentsize)
+				datasize = 0;
+			SHA256_Update(&ctx, content, datasize);
 		}
 
-		if (datasize < 0 || datasize > contentsize)
-			datasize = 0;
-
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, content, datasize);
 		SHA256_Final(hash, &ctx);
-		result[gid].cracked = !memcmp_pc(hash, salt->contents_hash, 32);
+		result[gid].cracked = !memcmp_pmc(hash, salt->contents_hash, 32);
 	}
 	else if (salt->version == 2) {
 		uchar content[32];
@@ -186,7 +243,7 @@ __kernel void keepass_final(__global keepass_state *state,
 			chacha_ivsetup(&ckey, iv, 0, 12);
 			chacha_decrypt_bytes(&ckey, content, hash, 32);
 		}
-		result[gid].cracked = !memcmp_pc(hash, salt->expected_bytes, 32);
+		result[gid].cracked = !memcmp_pmc(hash, salt->expected_bytes, 32);
 	}
 	else
 		result[gid].cracked = 0; // We should never end up here
