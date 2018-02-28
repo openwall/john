@@ -99,12 +99,12 @@ static char *get_key(int index)
 static MAYBE_INLINE int bitwarden_decrypt(struct custom_salt *cur_salt, unsigned char *key)
 {
 	unsigned char ivec[IVLEN];
-	unsigned char out[BLOBLEN];
+	unsigned char out[32];
 	AES_KEY aes_decrypt_key;
 
 	AES_set_decrypt_key(key, 256, &aes_decrypt_key);
 	// memcpy(ivec, cur_salt->iv, 16);
-	AES_cbc_encrypt(cur_salt->blob + BLOBLEN - 32, out, BLOBLEN, &aes_decrypt_key, ivec, AES_DECRYPT);
+	AES_cbc_encrypt(cur_salt->blob + BLOBLEN - 32, out, 32, &aes_decrypt_key, ivec, AES_DECRYPT);
 
 	return memcmp(out + 16, "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10", 16) == 0;
 }
