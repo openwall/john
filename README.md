@@ -228,7 +228,7 @@ The rest of documents in alphabetical:
 * README.MinGW - Fedora >= 22 cross-compiling instructions
 * README.mozilla - cracking Mozilla Firefox, Thunderbird and SeaMonkey master passwords
 * README.mpi - using MPI in JtR
-* README-OPENCL - how to use opencl in JtR
+* README-OPENCL - how to use OpenCL in JtR
 * README-PDF - PDF cracking in JtR
 * README-PST - PST cracking in JtR
 * README.pwsafe - cracking Password Safe 3.x and Password Gorilla databases with john
