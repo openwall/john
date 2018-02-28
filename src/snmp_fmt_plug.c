@@ -1,4 +1,5 @@
-/* Cracker for SNMPv3 USM hashes, https://tools.ietf.org/html/rfc3414.
+/*
+ * Cracker for SNMPv3 USM hashes, https://tools.ietf.org/html/rfc3414.
  *
  * This software is Copyright (c) 2017, Dhiru Kholia <dhiru [at] openwall.com>,
  * and it is hereby released to the general public under the following terms:
@@ -18,9 +19,12 @@ john_register_one(&fmt_snmp);
 
 #include <string.h>
 #include <stdint.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+#define OMP_SCALE               2  // Tuned w/ MKPC for core i7
 
 #include "formats.h"
 #include "md5.h"
@@ -48,10 +52,6 @@ john_register_one(&fmt_snmp);
 #define MAX_SALT_LEN            1500
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      4
-
-#ifndef OMP_SCALE
-#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
-#endif
 
 static struct fmt_tests tests[] = {
 	// https://wiki.wireshark.org/SampleCaptures, snmp_usm.pcap, pippo, md5
@@ -271,7 +271,7 @@ static void snmp_usm_password_to_key_sha(const uint8_t *password, uint32_t
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 	memset(cracked, 0, sizeof(cracked[0])*cracked_count);
 
