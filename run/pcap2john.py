@@ -1299,6 +1299,60 @@ def pcap_parser_rndc(fname):
     f.close()
 
 
+def pcap_parser_tsig(fname):
+    """
+    Extract BIND TSIG hashes from .pcap files.
+    """
+    import dns
+    import dns.message
+    import dns.tsigkeyring
+
+    mapping = {}
+
+    keyring = dns.tsigkeyring.from_text({
+        'update-key' : 'MTIzNDU2Nzg='
+    })
+
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+    index = 0
+
+    for _, buf in pcap:
+        index = index + 1
+        eth = dpkt.ethernet.Ethernet(buf)
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP or eth.type == dpkt.ethernet.ETH_TYPE_IP6:
+            ip = eth.data
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP and ip.p != dpkt.ip.IP_PROTO_UDP:
+                continue
+            if eth.type == dpkt.ethernet.ETH_TYPE_IP6 and ip.nxt != dpkt.ip.IP_PROTO_UDP:
+                continue
+
+            udp = ip.data
+            data = udp.data
+
+            if udp.dport != 53 and udp.sport != 53:  # is this DNS traffic?
+                continue
+
+            is_response = True
+            if udp.dport == 53:
+                is_response = False
+
+            if len(data) < 48:
+                continue
+
+            p = dns.message.from_wire(data, keyring=keyring, pout=False)
+            if not is_response and hasattr(p, "mac"):
+                mapping[p.id] = p.mac
+            if is_response and hasattr(p, "mac"):
+                request_mac = mapping.get(p.id, None)
+                if request_mac:
+                    p = dns.message.from_wire(data, keyring=keyring, request_mac=request_mac, pout=True)
+            else:
+                p = dns.message.from_wire(data, keyring=keyring, pout=True)
+
+    f.close()
+
+
 def note():
     sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john.\n")
 
@@ -1342,6 +1396,7 @@ if __name__ == "__main__":
         pcap_parser_tacacs_plus(sys.argv[i])
         pcap_parser_wlccp(sys.argv[i])
         pcap_parser_rndc(sys.argv[i])
+        pcap_parser_tsig(sys.argv[i])
         try:
             pcap_parser_s7(sys.argv[i])
         except:
