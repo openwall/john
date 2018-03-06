@@ -2109,7 +2109,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	parse_braces(mask, &parsed_mask);
 
 	if (parsed_mask.parse_ok) {
-		if (iterate_lengths || options.eff_minlength) {
+		if (!(options.flags & FLG_MASK_STACKED) &&
+		    (iterate_lengths || options.eff_minlength)) {
 			mask = stretch_mask(mask, &parsed_mask);
 			parse_braces(mask, &parsed_mask);
 			if (!parsed_mask.parse_ok) {
