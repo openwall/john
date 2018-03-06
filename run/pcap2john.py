@@ -1353,6 +1353,51 @@ def pcap_parser_tsig(fname):
     f.close()
 
 
+# http://dpkt.readthedocs.io/en/latest/print_http_requests.html
+def pcap_parser_htdigest(fname):
+    f = open(fname, "rb")
+    pcap = dpkt.pcap.Reader(f)
+
+    # For each packet in the pcap process the contents
+    for timestamp, buf in pcap:
+        # Unpack the Ethernet frame (mac src/dst, ethertype)
+        try:
+           eth = dpkt.ethernet.Ethernet(buf)
+        except:
+            continue
+
+        # Make sure the Ethernet data contains an IP packet
+        if eth.type == dpkt.ethernet.ETH_TYPE_IP or eth.type == dpkt.ethernet.ETH_TYPE_IP6:
+            # Now grab the data within the Ethernet frame (the IP packet)
+            ip = eth.data
+
+            # Check for TCP in the transport layer
+            if isinstance(ip.data, dpkt.tcp.TCP):
+
+                # Set the TCP data
+                tcp = ip.data
+
+                # Now see if we can parse the contents as a HTTP request
+                try:
+                    request = dpkt.http.Request(tcp.data)
+                except (dpkt.dpkt.NeedData, dpkt.dpkt.UnpackError):
+                    continue
+
+                if "authorization" in request.headers:
+                    value = request.headers["authorization"]
+                    if "qop" in value and "response" in value:
+                        import urllib2
+                        items = urllib2.parse_http_list(value)
+                        opts = urllib2.parse_keqv_list(items)
+                        user = opts['Digest username']
+                        print("%s:$response$%s$%s$%s$%s$%s$%s$%s$%s$%s" %
+                                (user, opts["response"], user, opts["realm"],
+                                    request.method, opts["uri"], opts["nonce"],
+                                    opts["nc"], opts["cnonce"], opts["qop"]))
+
+    f.close()
+
+
 def note():
     sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john.\n")
 
@@ -1376,27 +1421,70 @@ if __name__ == "__main__":
             pcap_parser_ah(sys.argv[i])
         except:
             pass
-        pcap_parser_bfd(sys.argv[i])
+        try:
+            pcap_parser_bfd(sys.argv[i])
+        except:
+            pass
         try:
             pcap_parser_vtp(sys.argv[i])
         except:
             # sys.stderr.write("vtp could not handle input\n")
             pass
-        pcap_parser_vrrp(sys.argv[i])
-        pcap_parser_tcpmd5(sys.argv[i])
-        pcap_parser_rsvp(sys.argv[i])
-        pcap_parser_ntp(sys.argv[i])
-        pcap_parser_isis(sys.argv[i])
-        pcap_parser_hsrp(sys.argv[i])
-        pcap_parser_hsrp_v2(sys.argv[i])
-        pcap_parser_glbp(sys.argv[i])
+        try:
+            pcap_parser_vrrp(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_tcpmd5(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_rsvp(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_ntp(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_isis(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_hsrp(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_hsrp_v2(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_glbp(sys.argv[i])
+        except:
+            pass
         pcap_parser_gadu(sys.argv[i])
-        pcap_parser_eigrp(sys.argv[i])
+        try:
+            pcap_parser_eigrp(sys.argv[i])
+        except:
+            pass
         pcap_parser_tgsrep(sys.argv[i])
-        pcap_parser_tacacs_plus(sys.argv[i])
-        pcap_parser_wlccp(sys.argv[i])
-        pcap_parser_rndc(sys.argv[i])
-        pcap_parser_tsig(sys.argv[i])
+        try:
+            pcap_parser_tacacs_plus(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_wlccp(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_rndc(sys.argv[i])
+        except:
+            pass
+        try:
+            pcap_parser_tsig(sys.argv[i])
+        except:
+            pass
+        pcap_parser_htdigest(sys.argv[i])
         try:
             pcap_parser_s7(sys.argv[i])
         except:
