@@ -98,10 +98,12 @@ struct db_salt;
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */
 #define FMT_SPLIT_UNIFIES_CASE		0x00020000
-/* Is this format a dynamic_x format (or a 'thin' format using dynamic code)? */
+/* A dynamic_x format (or a 'thin' format using dynamic code) */
 #define FMT_DYNAMIC			0x00100000
-/* Is this a format which originally truncates at our max. length? */
+/* This format originally truncates at our max. length (eg. descrypt) */
 #define FMT_TRUNC			0x00200000
+/* Format can do "internal mask" (eg. GPU-side mask)? */
+#define FMT_MASK			0x00400000
 #ifdef _OPENMP
 /* Parallelized with OpenMP */
 #define FMT_OMP				0x01000000

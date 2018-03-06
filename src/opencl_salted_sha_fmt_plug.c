@@ -1049,7 +1049,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_REMOVE,
+		FMT_CASE | FMT_8_BIT | FMT_REMOVE | FMT_MASK,
 		{ NULL },
 		{ NSLDAP_MAGIC },
 		salted_sha1_common_tests

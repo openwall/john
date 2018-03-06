@@ -377,7 +377,7 @@ struct fmt_main fmt_ztex_descrypt = {
 		1, //MIN_KEYS_PER_CRYPT,
 		1, //MAX_KEYS_PER_CRYPT,
 		//FMT_DEVICE_CMP |
-		FMT_CASE | FMT_TRUNC, // | FMT_REMOVE,
+		FMT_CASE | FMT_TRUNC | FMT_MASK, // | FMT_REMOVE,
 		{ NULL },
 		{ NULL },
 		tests

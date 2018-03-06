@@ -684,7 +684,7 @@ AGAIN:
 		    !strcmp(format->params.label, "crypt"))
 			fmt_init(format);
 
-		/* GPU-side mask mode benchmark */
+		/* [GPU-side] mask mode benchmark */
 		if (options.flags & FLG_MASK_CHK) {
 			static struct db_main fakedb;
 
@@ -842,6 +842,11 @@ AGAIN:
 			printf("Warning: \"Many salts\" test limited: %d/%d\n",
 			       results_m.salts_done, BENCHMARK_MANY);
 		}
+
+		/* Format supports internal (eg. GPU-side) mask */
+		if (benchmark_time && format->params.flags & FMT_MASK &&
+		    !(options.flags & FLG_MASK_CHK) && john_main_process)
+			fprintf(stderr, "Note: This format may also be benchmarked using --mask (see doc/MASK).\n");
 
 		benchmark_cps(results_m.crypts, results_m.real, s_real);
 		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);

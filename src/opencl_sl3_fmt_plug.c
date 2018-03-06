@@ -1003,7 +1003,7 @@ struct fmt_main FMT_STRUCT = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_REMOVE,
+		FMT_REMOVE | FMT_MASK,
 		{ NULL },
 		{ SL3_MAGIC },
 		sl3_tests
