@@ -1,6 +1,7 @@
-/*  HTTP Digest access authentication patch for john
+/*
+ * HTTP Digest access authentication patch for John the Ripper.
  *
- * Written by Romain Raboin. OMP and intrinsics support by magnum
+ * Written by Romain Raboin. OMP and intrinsics support by magnum.
  *
  * This software is Copyright (c) 2008 Romain Raboin - romain.raboin at
  * gmail.com, and Copyright (c) 2012 magnum and it is hereby released to
@@ -23,7 +24,6 @@ john_register_one(&fmt_HDAA);
 #endif
 
 #include "arch.h"
-
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -31,7 +31,7 @@ john_register_one(&fmt_HDAA);
 #include "johnswap.h"
 
 #include "simd-intrinsics.h"
-#define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME          "MD5 " MD5_ALGORITHM_NAME
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -43,64 +43,60 @@ john_register_one(&fmt_HDAA);
 
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"hdaa"
-#define FORMAT_NAME			"HTTP Digest access authentication"
-
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
-
-#define PLAINTEXT_LENGTH		32
-#define CIPHERTEXT_LENGTH		32
-
-#define BINARY_SIZE			16
-#define BINARY_ALIGN			4
-#define SALT_SIZE			sizeof(reqinfo_t)
-#define SALT_ALIGN			sizeof(size_t)
+#define FORMAT_LABEL            "hdaa"
+#define FORMAT_NAME             "HTTP Digest access authentication"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        32
+#define CIPHERTEXT_LENGTH       32
+#define BINARY_SIZE             16
+#define BINARY_ALIGN            4
+#define SALT_SIZE               sizeof(reqinfo_t)
+#define SALT_ALIGN              sizeof(size_t)
 
 #if defined(_OPENMP)
 static unsigned int sc_threads = 1;
 #ifdef SIMD_COEF_32
 #ifndef OMP_SCALE
-#define OMP_SCALE			256
+#define OMP_SCALE               256
 #endif
 #else
 #ifndef OMP_SCALE
-#define OMP_SCALE			64
+#define OMP_SCALE               64
 #endif
 #endif
 #endif
 
 #ifdef SIMD_COEF_32
-#define NBKEYS					(SIMD_COEF_32 * SIMD_PARA_MD5)
-#define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD5)
+#define MIN_KEYS_PER_CRYPT      NBKEYS
+#define MAX_KEYS_PER_CRYPT      NBKEYS
 #if ARCH_LITTLE_ENDIAN
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)     ( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
 #else
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
-#define GETOUTPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&60)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32 )
+#define GETOUTPOS(i, index)     ( (index&(SIMD_COEF_32-1))*4 + ((i)&0x1c)*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*16*SIMD_COEF_32 )
 #endif
 #else
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 #endif
 
-#define SEPARATOR			'$'
-
-#define FORMAT_TAG				"$response$"
-#define TAG_LENGTH			(sizeof(FORMAT_TAG)-1)
-#define SIZE_TAB			12
+#define SEPARATOR               '$'
+#define FORMAT_TAG              "$response$"
+#define TAG_LENGTH              (sizeof(FORMAT_TAG)-1)
+#define SIZE_TAB                12
 
 // This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
-#define HTMP				512
+#define HTMP                    512
 
 typedef struct
 {
-	size_t	h1tmplen;
-	size_t	h3tmplen;
-	char	h1tmp[HTMP];
-	char	h3tmp[HTMP];
+	size_t h1tmplen;
+	size_t h3tmplen;
+	char h1tmp[HTMP];
+	char h3tmp[HTMP];
 } reqinfo_t;
 
 /*
@@ -130,6 +126,9 @@ static struct fmt_tests tests[] = {
 	{"$response$56940f87f1f53ade8b7d3c5a102c2bf3$usrx$teN__chars$GET$/4TLHS1TMN9cfsbqSUAdTG3CRq7qtXMptnYfn7mIIi3HRKOMhOks56e$2c0366dcbc$00000001$0153$auth", "passWOrd"},
 	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$", "pass"},
 	{"$response$8663faf2337dbcb2c52882807592ec2c$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a", "pass"},
+	/* Apache httpd-2.4.29-1.fc27.x86_64 + Firefox 58.x */
+	{"$response$b9b9cb1fcce017ec497b31cc33a572b0$lulu$hyperion$GET$/$IERozb5mBQA=de6a5916efca4c24959b5be7e4ed3fc0c7f1f765$00000006$1bd5678ca084bc0d$auth", "openwall"},
+	{"$response$abe32fa35969fd6d77bad0ce3dbfdd3a$lulu$hyperion$GET$/icons/poweredby.png$XkZ1Dr9mBQA=6258d402c7c95b352bab0ba774d6974506e3318b$00000003$bd29e3b874427c73$auth", "openwall"},
 	{NULL}
 };
 
