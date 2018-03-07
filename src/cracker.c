@@ -81,7 +81,7 @@ static clock_t salt_time = 0;
 
 static fix_state_fp fp_fix_state;
 static struct db_main *crk_db;
-static struct fmt_params crk_params;
+static struct fmt_params *crk_params;
 static struct fmt_methods crk_methods;
 #if CRK_PREFETCH
 #if 1
@@ -100,7 +100,7 @@ int64_t crk_pot_pos;
 
 /* expose max_keys_per_crypt to the world (needed in recovery.c) */
 int cracker_max_keys_per_crypt() {
-	return  crk_params.max_keys_per_crypt;
+	return  crk_params->max_keys_per_crypt;
 }
 
 static void crk_dummy_set_salt(void *salt)
@@ -175,12 +175,12 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 #endif
 
 	crk_db = db;
-	memcpy(&crk_params, &db->format->params, sizeof(struct fmt_params));
+	crk_params = &db->format->params;
 	memcpy(&crk_methods, &db->format->methods, sizeof(struct fmt_methods));
 
 #if CRK_PREFETCH && !defined(crk_prefetch)
 	{
-		unsigned int m = crk_params.max_keys_per_crypt;
+		unsigned int m = crk_params->max_keys_per_crypt;
 		if (m > CRK_PREFETCH) {
 			unsigned int n = (m + CRK_PREFETCH - 1) / CRK_PREFETCH;
 			crk_prefetch = (m + n - 1) / n;
@@ -209,7 +209,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_guesses = guesses;
 
 	if (db->loaded) {
-		size = crk_params.max_keys_per_crypt * sizeof(uint64_t);
+		size = crk_params->max_keys_per_crypt * sizeof(uint64_t);
 		memset(crk_timestamps = mem_alloc(size), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
@@ -249,7 +249,7 @@ static void crk_remove_salt(struct db_salt *salt)
 		}
 	}
 #ifdef POTSYNC_DEBUG
-	if (options.verbosity > 1 && crk_params.binary_size &&
+	if (options.verbosity > 1 && crk_params->binary_size &&
 	    crk_db->salt_count < crk_db->password_count)
 		log_event("- got rid of a salt, %d left", crk_db->salt_count);
 #endif
@@ -325,7 +325,7 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
  * Or, if FMT_REMOVE, the format explicitly intends to traverse the list
  * during cracking, and will remove entries at that point.
  */
-	if (crk_guesses || (crk_params.flags & FMT_REMOVE))
+	if (crk_guesses || (crk_params->flags & FMT_REMOVE))
 		pw->binary = NULL;
 }
 
@@ -339,7 +339,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int dupe;
 	char *key, *utf8key, *repkey, *replogin, *repuid;
 
-	if (index >= 0 && index < crk_params.max_keys_per_crypt) {
+	if (index >= 0 && index < crk_params->max_keys_per_crypt) {
 		dupe = crk_timestamps[index] == status.crypts;
 		crk_timestamps[index] = status.crypts;
 	} else
@@ -406,7 +406,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 		if (options.max_cands < 0)
 			john_max_cands = status.cands - options.max_cands +
-				crk_params.max_keys_per_crypt;
+				crk_params->max_keys_per_crypt;
 
 		if (dupe)
 			ct = NULL;
@@ -427,13 +427,13 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 		if (crk_guesses && !dupe) {
 			strnfcpy(crk_guesses->ptr, key,
-			         crk_params.plaintext_length);
-			crk_guesses->ptr += crk_params.plaintext_length;
+			         crk_params->plaintext_length);
+			crk_guesses->ptr += crk_params->plaintext_length;
 			crk_guesses->count++;
 		}
 	}
 
-	if (!(crk_params.flags & FMT_NOT_EXACT))
+	if (!(crk_params->flags & FMT_NOT_EXACT))
 		crk_remove_hash(salt, pw);
 
 	if (!crk_db->salts)
@@ -526,7 +526,7 @@ static int crk_remove_pot_entry(char *ciphertext)
 		salt = crk_db->salts;
 
 	do {
-		if (!dyna_salt_cmp(pot_salt, salt->salt, crk_params.salt_size))
+		if (!dyna_salt_cmp(pot_salt, salt->salt, crk_params->salt_size))
 			break;
 	}  while ((salt = salt->next));
 
@@ -599,7 +599,7 @@ int crk_reload_pot(void)
 	if (event_abort)
 		return 0;
 
-	if (crk_params.flags & FMT_NOT_EXACT)
+	if (crk_params->flags & FMT_NOT_EXACT)
 		return 0;
 
 	if (!(pot_file = fopen(path_expand(options.activepot), "rb")))
@@ -839,7 +839,7 @@ static int crk_password_loop(struct db_salt *salt)
 				if (crk_process_guess(salt, pw, index))
 					return 1;
 				else {
-					if (!(crk_params.flags & FMT_NOT_EXACT))
+					if (!(crk_params->flags & FMT_NOT_EXACT))
 						break;
 				}
 			}
@@ -1031,7 +1031,7 @@ int crk_process_key(char *key)
 {
 	if (crk_db->loaded) {
 		if (!cracker_max_keys_to_use) {
-			cracker_max_keys_to_use = crk_params.max_keys_per_crypt;
+			cracker_max_keys_to_use = crk_params->max_keys_per_crypt;
 			if (status.resume_salt) {
 				if (status.resume_salt_crypts_per <= 0)
 					/* No longer resume v1 salt, we do not know the restore KPC */
@@ -1040,7 +1040,10 @@ int crk_process_key(char *key)
 					/* NOTE this reduction can only happen the FIRST time */
 					cracker_max_keys_to_use = status.resume_salt_crypts_per;
 			}
-		}
+		} else if (cracker_max_keys_to_use >
+		           crk_params->max_keys_per_crypt)
+			cracker_max_keys_to_use =
+				crk_params->max_keys_per_crypt;
 
 		if (crk_key_index == 0)
 			crk_methods.clear_keys();
@@ -1052,7 +1055,7 @@ int crk_process_key(char *key)
 		     crk_key_index >= options.force_maxkeys)) {
 			int ret = crk_salt_loop();
 			/* From here on cracker_max_keys_to_use is set to max KPC */
-			cracker_max_keys_to_use = crk_params.max_keys_per_crypt;
+			cracker_max_keys_to_use = crk_params->max_keys_per_crypt;
 			return ret;
 		}
 
@@ -1066,7 +1069,7 @@ int crk_process_key(char *key)
 	if (event_pending)
 	if (crk_process_event()) return 1;
 
-	strnzcpy(crk_stdout_key, key, crk_params.plaintext_length + 1);
+	strnzcpy(crk_stdout_key, key, crk_params->plaintext_length + 1);
 	if (options.verbosity > 1)
 		puts(crk_stdout_key);
 
@@ -1117,11 +1120,11 @@ int crk_process_salt(struct db_salt *salt)
 	crk_methods.clear_keys();
 
 	while (count--) {
-		strnzcpy(key, ptr, crk_params.plaintext_length + 1);
-		ptr += crk_params.plaintext_length;
+		strnzcpy(key, ptr, crk_params->plaintext_length + 1);
+		ptr += crk_params->plaintext_length;
 
 		crk_methods.set_key(key, index++);
-		if (index >= crk_params.max_keys_per_crypt || !count ||
+		if (index >= crk_params->max_keys_per_crypt || !count ||
 		    (options.force_maxkeys && index >= options.force_maxkeys)) {
 			int done;
 			crk_key_index = index;
