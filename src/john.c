@@ -1385,6 +1385,43 @@ static void john_load(void)
 			john_set_mpi();
 #endif
 	}
+#if HAVE_OPENCL
+	/*
+	 * Check if the --devices list contains more OpenCL devices than the
+	 * number of forks or MPI processes.
+	 * Exception: mscash2-OpenCL has built-in multi-device support.
+	 */
+#if OS_FORK
+	if (database.format &&
+	    strstr(database.format->params.label, "-opencl") &&
+	    !strstr(database.format->params.label, "mscash2-opencl") &&
+	    (options.fork ? options.fork : 1) < get_number_of_devices_in_use())
+	{
+		if (john_main_process)
+		fprintf(stderr, "Error: To fully use the %d devices requested, "
+		        "you must specify --fork=%d\n"
+#if HAVE_MPI
+		        "or run %d MPI processes per node "
+#endif
+		        "(see doc/README-OPENCL)\n",
+		        get_number_of_requested_devices(),
+#if HAVE_MPI
+		        get_number_of_devices_in_use(),
+#endif
+		        get_number_of_devices_in_use());
+		error();
+	}
+#else
+	if (database.format &&
+	    strstr(database.format->params.label, "-opencl") &&
+	    !strstr(database.format->params.label, "mscash2-opencl") &&
+	    get_number_of_devices_in_use() > 1) {
+		fprintf(stderr, "The usage of multiple OpenCL devices at once "
+		      "is unsupported in this build for the selected format\n");
+		error();
+	}
+#endif /* OS_FORK */
+#endif /* HAVE_OPENCL */
 }
 
 #if CPU_DETECT
