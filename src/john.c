@@ -1395,7 +1395,10 @@ static void john_load(void)
 	if (database.format &&
 	    strstr(database.format->params.label, "-opencl") &&
 	    !strstr(database.format->params.label, "mscash2-opencl") &&
-	    (options.fork ? options.fork : 1) < get_number_of_devices_in_use())
+#if HAVE_MPI
+	    (mpi_p_local ? mpi_p_local : mpi_p) *
+#endif
+	    (options.fork ? options.fork : 1) < get_number_of_requested_devices())
 	{
 		if (john_main_process)
 		fprintf(stderr, "Error: To fully use the %d devices requested, "
@@ -1406,9 +1409,9 @@ static void john_load(void)
 		        "(see doc/README-OPENCL)\n",
 		        get_number_of_requested_devices(),
 #if HAVE_MPI
-		        get_number_of_devices_in_use(),
+		        get_number_of_requested_devices(),
 #endif
-		        get_number_of_devices_in_use());
+		        get_number_of_requested_devices());
 		error();
 	}
 #else
