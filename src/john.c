@@ -1217,6 +1217,9 @@ static void john_load(void)
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
 
+#if HAVE_MPI
+	if (mpi_p == 1) {
+#endif
 #if HAVE_OPENCL
 	/*
 	 * Check if the --devices list contains more OpenCL devices than the
@@ -1243,6 +1246,9 @@ static void john_load(void)
 		error();
 	}
 #endif
+#endif
+#if HAVE_MPI
+	}
 #endif
 
 #if HAVE_OPENCL
