@@ -1216,35 +1216,6 @@ static void john_load(void)
 				log_event("Starting a new session");
 			log_event("Loaded a total of %s", john_loaded_counts());
 			/* make sure the format is properly initialized */
-
-#if HAVE_OPENCL
-	/*
-	 * Check if the --devices list contains more OpenCL devices than the
-	 * number in -fork.
-	 * Exceptions: at least mscash2-OpenCL has built-in multi-device
-	 * support.
-	 */
-#if OS_FORK
-	if (strstr(database.format->params.label, "-opencl") &&
-	    !strstr(database.format->params.label, "mscash2-opencl") &&
-	    options.fork < get_number_of_devices_in_use()) {
-		fprintf(stderr, "To fully use the %d devices requested, "
-		    "you must specify --fork=%d\n",
-		    get_number_of_requested_devices(),
-		    get_number_of_devices_in_use());
-		error();
-	}
-#else
-	if (strstr(database.format->params.label, "-opencl") &&
-	    !strstr(database.format->params.label, "mscash2-opencl") &&
-	    get_number_of_devices_in_use() > 1) {
-		fprintf(stderr, "The usage of multiple OpenCL devices at once "
-		    "is unsupported in this build for the selected format\n"
-		error();
-	}
-#endif
-#endif
-
 #if HAVE_OPENCL
 			if (!(options.acc_devices->count && options.fork &&
 			      strstr(database.format->params.label, "-opencl")))
