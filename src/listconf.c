@@ -643,6 +643,7 @@ void listconf_parse_late(void)
 			printf(" Uses a bitslice implementation      %s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 			printf(" Supports very long hashes           %s\n", (format->params.flags & FMT_HUGE_INPUT) ? "yes" : "no");
+			printf(" Internal mask generation            %s\n", (format->params.flags & FMT_MASK) ? "yes" : "no");
 
 #ifndef DYNAMIC_DISABLED
 			if (format->params.flags & FMT_DYNAMIC) {

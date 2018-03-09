@@ -281,19 +281,23 @@ static void john_register_one(struct fmt_main *format)
 			if (!strstr(format->params.label, "-opencl"))
 				return;
 		}
+		else if (!strcasecmp(options.format, "mask")) {
+			if (!(format->params.flags & FMT_MASK))
+				return;
+		}
 #ifdef _OPENMP
 		else if (!strcasecmp(options.format, "omp")) {
-			if ((format->params.flags & FMT_OMP) != FMT_OMP)
+			if (!(format->params.flags & FMT_OMP))
 				return;
 		}
 		else if (!strcasecmp(options.format, "cpu+omp")) {
-			if ((format->params.flags & FMT_OMP) != FMT_OMP)
+			if (!(format->params.flags & FMT_OMP))
 				return;
 			if (strstr(format->params.label, "-opencl"))
 				return;
 		}
 		else if (!strcasecmp(options.format, "cpu+omp-dynamic")) {
-			if ((format->params.flags & FMT_OMP) != FMT_OMP)
+			if (!(format->params.flags & FMT_OMP))
 				return;
 			if (strstr(format->params.label, "-opencl"))
 				return;
