@@ -861,7 +861,7 @@ struct fmt_main fmt_opencl_rawsha512_gpl = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_MASK,
 		{NULL},
 		{FORMAT_TAG},
 		sha512_common_tests_rawsha512_20
