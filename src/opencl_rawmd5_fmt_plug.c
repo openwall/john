@@ -499,6 +499,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (tune_gws) {
 		create_clobj_kpc(pcount);
 		set_kernel_args_kpc();
+		clear_keys();
 		for (i = 0; i < pcount; i++)
 			set_key(key, i);
 		gettimeofday(&startc, NULL);
@@ -617,10 +618,10 @@ static void reset(struct db_main *db)
 		create_clobj();
 		set_kernel_args();
 
-		auto_tune(db, 300);
+		auto_tune(db, 100);
 	}
 	else {
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
+		int tune_time = (options.flags & FLG_MASK_CHK) ? 100 : 50;
 
 		ocl_hc_128_prepare_table_test();
 

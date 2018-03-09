@@ -48,20 +48,20 @@ static void (*allocate_ht)(unsigned int, unsigned int);
 static int (*test_tables)(unsigned int, OFFSET_TABLE_WORD *, unsigned int, unsigned int, unsigned int, unsigned int);
 static unsigned int (*remove_duplicates)(unsigned int, unsigned int, unsigned int);
 static void *loaded_hashes;
-static unsigned int hash_type = 0;
-static unsigned int binary_size_actual = 0;
+static unsigned int hash_type;
+static unsigned int binary_size_actual;
 
-static unsigned int num_loaded_hashes = 0;
+static unsigned int num_loaded_hashes;
 
-unsigned int hash_table_size = 0, shift64_ht_sz = 0, shift128_ht_sz = 0;
+unsigned int hash_table_size, shift64_ht_sz, shift128_ht_sz;
 
-static OFFSET_TABLE_WORD *offset_table = NULL;
-static unsigned int offset_table_size = 0, shift64_ot_sz = 0, shift128_ot_sz = 0;
-static auxilliary_offset_data *offset_data = NULL;
+static OFFSET_TABLE_WORD *offset_table;
+static unsigned int offset_table_size, shift64_ot_sz, shift128_ot_sz;
+static auxilliary_offset_data *offset_data;
 
-unsigned long long total_memory_in_bytes = 0;
+unsigned long long total_memory_in_bytes;
 
-static volatile sig_atomic_t signal_stop = 0;
+static volatile sig_atomic_t signal_stop;
 
 static unsigned int verbosity;
 

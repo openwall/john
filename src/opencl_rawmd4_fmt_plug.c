@@ -383,7 +383,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
 	if (key_idx)
@@ -474,6 +474,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (tune_gws) {
 		create_clobj_kpc(pcount);
 		set_kernel_args_kpc();
+		clear_keys();
 		for (i = 0; i < pcount; i++)
 			set_key(key, i);
 		gettimeofday(&startc, NULL);
@@ -593,10 +594,10 @@ static void reset(struct db_main *db)
 		create_clobj();
 		set_kernel_args();
 
-		auto_tune(db, 300);
+		auto_tune(db, 100);
 	}
 	else {
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
+		int tune_time = (options.flags & FLG_MASK_CHK) ? 100 : 50;
 
 		ocl_hc_128_prepare_table_test();
 

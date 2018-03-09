@@ -172,7 +172,7 @@ void opencl_lm_set_key_mm(char *key, int index)
 	if (!mask_gpu_is_static) {
 		opencl_lm_int_key_loc[index] = 0;
 		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
-			if (mask_skip_ranges[i] != -1)  {
+			if (mask_skip_ranges && mask_skip_ranges[i] != -1)  {
 				opencl_lm_int_key_loc[index] |= ((mask_int_cand.
 				int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
 				mask_int_cand.int_cpu_mask_ctx->

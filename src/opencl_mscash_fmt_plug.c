@@ -51,12 +51,12 @@ static cl_mem buffer_offset_table_test, buffer_hash_table_test, buffer_bitmaps_t
 static cl_mem *buffer_offset_tables = NULL, *buffer_hash_tables = NULL, *buffer_bitmaps = NULL, *buffer_salts = NULL;
 static OFFSET_TABLE_WORD *offset_table = NULL;
 static unsigned int **hash_tables = NULL;
-static unsigned int current_salt = 0;
-static cl_uint *loaded_hashes = NULL, max_num_loaded_hashes, *hash_ids = NULL, *bitmaps = NULL, max_hash_table_size = 0;
-static cl_ulong bitmap_size_bits = 0;
+static unsigned int current_salt;
+static cl_uint *loaded_hashes = NULL, max_num_loaded_hashes, *hash_ids = NULL, *bitmaps = NULL, max_hash_table_size;
+static cl_ulong bitmap_size_bits;
 
-static unsigned int key_idx = 0;
-static unsigned int set_new_keys = 1;
+static unsigned int key_idx;
+static unsigned int set_new_keys;
 static struct fmt_main *self;
 static cl_uint *zero_buffer;
 
@@ -388,7 +388,7 @@ static int get_hash_6(int index) { return hash_tables[current_salt][hash_ids[3 +
 static void clear_keys(void)
 {
 	key_idx = 0;
-	set_new_keys = 1;
+	set_new_keys = 0;
 }
 
 static void set_key(char *_key, int index)
@@ -564,7 +564,7 @@ static void prepare_table(struct db_main *db)
 	do {
 		if (salt->count > max_num_loaded_hashes)
 			max_num_loaded_hashes = salt->count;
-	} while((salt = salt->next));
+	} while ((salt = salt->next));
 
 	MEM_FREE(loaded_hashes);
 	MEM_FREE(hash_ids);
@@ -661,7 +661,7 @@ static void prepare_table(struct db_main *db)
 		MEM_FREE(bitmaps);
 		MEM_FREE(offset_table);
 
-	} while((salt = salt->next));
+	} while ((salt = salt->next));
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

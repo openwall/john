@@ -857,6 +857,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (tune_gws) {
 		create_clobj_kpc(pcount);
 		set_kernel_args_kpc();
+		clear_keys();
 		for (i = 0; i < pcount; i++)
 			set_key(key, i);
 		gettimeofday(&startc, NULL);
@@ -979,12 +980,12 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 
-		auto_tune(db, 300);
+		auto_tune(db, 100);
 	}
 	else {
 		unsigned int *binary, i = 0;
 		char *ciphertext;
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
+		int tune_time = (options.flags & FLG_MASK_CHK) ? 100 : 50;
 
 		while (salted_sha1_common_tests[num_loaded_hashes].ciphertext != NULL)
 			num_loaded_hashes++;

@@ -64,9 +64,9 @@ static cl_mem buffer_offset_table, buffer_hash_table, buffer_return_hashes, buff
 static OFFSET_TABLE_WORD *offset_table = NULL;
 static cl_uint *loaded_hashes = NULL, num_loaded_hashes, *hash_ids = NULL, *bitmaps = NULL;
 static unsigned int hash_table_size, offset_table_size, shift64_ht_sz, shift64_ot_sz, shift128_ht_sz, shift128_ot_sz;
-static cl_ulong bitmap_size_bits = 0;
+static cl_ulong bitmap_size_bits;
 
-static unsigned int key_idx = 0;
+static unsigned int key_idx;
 static struct fmt_main *self;
 static cl_uint *zero_buffer;
 
@@ -881,6 +881,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (tune_gws) {
 		create_clobj_kpc(pcount);
 		set_kernel_args_kpc();
+		clear_keys();
 		for (i = 0; i < pcount; i++)
 			set_key(key, i);
 		gettimeofday(&startc, NULL);
@@ -1004,12 +1005,12 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 
-		auto_tune(db, 300);
+		auto_tune(db, 100);
 	}
 	else {
 		unsigned int *binary, i = 0;
 		char *ciphertext;
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 300 : 50;
+		int tune_time = (options.flags & FLG_MASK_CHK) ? 100 : 50;
 
 		while (tests[num_loaded_hashes].ciphertext != NULL)
 			num_loaded_hashes++;

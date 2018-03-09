@@ -310,7 +310,7 @@ static size_t find_smem_lws_limit(unsigned int force_global_keys)
 			(long double)(end.tv_usec - start.tv_usec) / 1000.000)
 
 /* Sets global_work_size and max_keys_per_crypt. */
-static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_flag, void (*set_key)(char *, int), WORD test_salt, int mask_mode)
+static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_flag, struct fmt_main *format, WORD test_salt, int mask_mode)
 {
 	unsigned int i;
 	char key[PLAINTEXT_LENGTH + 1] = "alterit";
@@ -350,10 +350,11 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		create_clobj_kpc(global_work_size);
 		set_kernel_args_kpc();
 
+		format->methods.clear_keys();
 		for (i = 0; i < (global_work_size << des_log_depth); i++) {
 			key[i & 3] = i & 255;
 			key[(i & 3) + 3] = i ^ 0x3E;
-			set_key(key, i);
+			format->methods.set_key(key, i);
 		}
 		set_salt(&test_salt);
 
@@ -396,7 +397,7 @@ static void release_kernels()
 		}
 }
 
-static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int), WORD test_salt, int mask_mode, size_t extern_lws_limit, unsigned int *forced_global_keys)
+static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WORD test_salt, int mask_mode, size_t extern_lws_limit, unsigned int *forced_global_keys)
 {
 	unsigned int force_global_keys = 1;
 	unsigned int gws_tune_flag = 1;
@@ -461,8 +462,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 		release_kernels();
 		init_kernel(test_salt, gpu_id, 0, 1, 0);
 
-		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
-		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
+		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, format, test_salt, mask_mode);
+		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, format, test_salt, mask_mode);
 
 		lws_limit = get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]);
 
@@ -489,10 +490,12 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 			while (local_work_size <= lws_limit &&
 				local_work_size <= PADDING) {
 				int pcount, i;
+
+				format->methods.clear_keys();
 				for (i = 0; i < (global_work_size << des_log_depth); i++) {
 					key[i & 3] = i & 255;
 					key[(i & 3) + 3] = i ^ 0x3F;
-					set_key(key, i);
+					format->methods.set_key(key, i);
 				}
 				set_salt(&test_salt);
 
@@ -517,7 +520,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 				local_work_size *= 2;
 			}
 			local_work_size = best_lws;
-			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
+			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, format, test_salt, mask_mode);
 		}
 	}
 
@@ -558,8 +561,8 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 			init_kernel(test_salt, gpu_id, 0, 1, local_work_size);
 		}
 
-		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
-		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
+		gws_tune(1024, 2 * kernel_run_ms, gws_tune_flag, format, test_salt, mask_mode);
+		gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, format, test_salt, mask_mode);
 
 		if (global_work_size < s_mem_limited_lws) {
 			s_mem_limited_lws = global_work_size;
@@ -573,14 +576,16 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 			while (local_work_size <= s_mem_limited_lws &&
 				local_work_size <= PADDING) {
 				int pcount, i;
+
 				release_kernels();
 				init_kernel(test_salt, gpu_id, 0, 1, local_work_size);
 				set_kernel_args_kpc();
 
+				format->methods.clear_keys();
 				for (i = 0; i < (global_work_size << des_log_depth); i++) {
 					key[i & 3] = i & 255;
 					key[(i & 3) + 3] = i ^ 0x3E;
-					set_key(key, i);
+					format->methods.set_key(key, i);
 				}
 				set_salt(&test_salt);
 
@@ -624,7 +629,7 @@ static void auto_tune_all(long double kernel_run_ms, void (*set_key)(char *, int
 			release_kernels();
 			init_kernel(test_salt, gpu_id, 0, 1, local_work_size);
 			set_kernel_args_kpc();
-			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, set_key, test_salt, mask_mode);
+			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, format, test_salt, mask_mode);
 		}
 	}
 	release_kernels();
@@ -677,7 +682,7 @@ static void reset(struct db_main *db)
 
 			} while ((salt = salt -> next));
 			forced_global_keys = 0;
-			auto_tune_all(300, fmt_opencl_DES.methods.set_key, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
+			auto_tune_all(100, &fmt_opencl_DES, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
 		}
 
 		salt = db -> salts;
@@ -724,7 +729,7 @@ static void reset(struct db_main *db)
 		salt_val = *(WORD *)fmt_opencl_DES.methods.salt(fmt_opencl_DES.methods.split(
 			fmt_opencl_DES.params.tests[0].ciphertext, 0, &fmt_opencl_DES));
 
-		auto_tune_all(300, fmt_opencl_DES.methods.set_key, salt_val, 0, extern_lws_limit, &forced_global_keys);
+		auto_tune_all(300, &fmt_opencl_DES, salt_val, 0, extern_lws_limit, &forced_global_keys);
 
 		i = 0;
 		while (fmt_opencl_DES.params.tests[i].ciphertext) {
