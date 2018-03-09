@@ -47,12 +47,11 @@ static cl_uint *saved_plain, *saved_idx, *saved_int_key_loc;
 static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 
 static cl_mem buffer_return_hashes, buffer_hash_ids, buffer_bitmap_dupe;
-static cl_mem buffer_offset_table_test, buffer_hash_table_test, buffer_bitmaps_test, buffer_salt_test;
-static cl_mem *buffer_offset_tables = NULL, *buffer_hash_tables = NULL, *buffer_bitmaps = NULL, *buffer_salts = NULL;
-static OFFSET_TABLE_WORD *offset_table = NULL;
-static unsigned int **hash_tables = NULL;
+static cl_mem *buffer_offset_tables, *buffer_hash_tables, *buffer_bitmaps, *buffer_salts;
+static OFFSET_TABLE_WORD *offset_table;
+static unsigned int **hash_tables;
 static unsigned int current_salt;
-static cl_uint *loaded_hashes = NULL, max_num_loaded_hashes, *hash_ids = NULL, *bitmaps = NULL, max_hash_table_size;
+static cl_uint *loaded_hashes, max_num_loaded_hashes, *hash_ids, *bitmaps, max_hash_table_size;
 static cl_ulong bitmap_size_bits;
 
 static unsigned int key_idx;
@@ -179,17 +178,6 @@ static void release_clobj(void)
 	}
 }
 
-static void release_clobj_test(void)
-{
-	if (buffer_salt_test) {
-		HANDLE_CLERROR(clReleaseMemObject(buffer_salt_test), "Error Releasing buffer_salt_test.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_offset_table_test), "Error Releasing buffer_offset_table_test.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_table_test), "Error Releasing buffer_hash_table_test.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps_test), "Error Releasing buffer_bitmap_test.");
-		buffer_salt_test = 0;
-	}
-}
-
 static void release_base_clobj(void)
 {
 	if (buffer_int_keys) {
@@ -209,11 +197,9 @@ static void release_salt_buffers()
 		k = 0;
 		while (hash_tables[k]) {
 			MEM_FREE(hash_tables[k]);
-			hash_tables[k] = 0;
 			k++;
 		}
 		MEM_FREE(hash_tables);
-		hash_tables = NULL;
 	}
 	if (buffer_offset_tables) {
 		k = 0;
@@ -223,7 +209,6 @@ static void release_salt_buffers()
 			k++;
 		}
 		MEM_FREE(buffer_offset_tables);
-		buffer_offset_tables = NULL;
 	}
 	if (buffer_hash_tables) {
 		k = 0;
@@ -233,7 +218,6 @@ static void release_salt_buffers()
 			k++;
 		}
 		MEM_FREE(buffer_hash_tables);
-		buffer_hash_tables = NULL;
 	}
 	if (buffer_bitmaps) {
 		k = 0;
@@ -243,7 +227,6 @@ static void release_salt_buffers()
 			k++;
 		}
 		MEM_FREE(buffer_bitmaps);
-		buffer_bitmaps = NULL;
 	}
 	if (buffer_salts) {
 		k = 0;
@@ -253,13 +236,11 @@ static void release_salt_buffers()
 			k++;
 		}
 		MEM_FREE(buffer_salts);
-		buffer_salts = NULL;
 	}
 }
 
 static void done(void)
 {
-	release_clobj_test();
 	release_clobj();
 	release_base_clobj();
 
@@ -573,11 +554,11 @@ static void prepare_table(struct db_main *db)
 	loaded_hashes = (cl_uint*) mem_alloc(4 * max_num_loaded_hashes * sizeof(cl_uint));
 	hash_ids = (cl_uint*) mem_alloc((3 * max_num_loaded_hashes + 1) * sizeof(cl_uint));
 
-	hash_tables = (unsigned int **)mem_alloc(sizeof(unsigned int*) * (db->salt_count + 1));
-	buffer_offset_tables = (cl_mem *)mem_alloc(sizeof(cl_mem) * (db->salt_count + 1));
-	buffer_hash_tables = (cl_mem *)mem_alloc(sizeof(cl_mem) * (db->salt_count + 1));
-	buffer_bitmaps = (cl_mem *)mem_alloc(sizeof(cl_mem) * (db->salt_count + 1));
-	buffer_salts = (cl_mem *)mem_alloc(sizeof(cl_mem) * (db->salt_count + 1));
+	hash_tables = (unsigned int **)mem_calloc(sizeof(unsigned int*), db->salt_count + 1);
+	buffer_offset_tables = (cl_mem *)mem_calloc(sizeof(cl_mem), db->salt_count + 1);
+	buffer_hash_tables = (cl_mem *)mem_calloc(sizeof(cl_mem), db->salt_count + 1);
+	buffer_bitmaps = (cl_mem *)mem_calloc(sizeof(cl_mem), db->salt_count + 1);
+	buffer_salts = (cl_mem *)mem_calloc(sizeof(cl_mem), db->salt_count + 1);
 
 	hash_tables[db->salt_count] = NULL;
 	buffer_offset_tables[db->salt_count] = NULL;

@@ -74,6 +74,7 @@ static void alarm_handler(int sig)
 static unsigned int coprime_check(unsigned int m,unsigned int n)
 {
 	unsigned int rem;
+
 	while (n != 0) {
 		rem = m % n;
 		m = n;
@@ -85,6 +86,7 @@ static unsigned int coprime_check(unsigned int m,unsigned int n)
 static void release_all_lists()
 {
 	unsigned int i;
+
 	for (i = 0; i < offset_table_size; i++)
 		bt_free((void **)&(offset_data[i].hash_location_list));
 }
@@ -115,8 +117,7 @@ int bt_memalign_alloc(void **ptr, size_t alignment, size_t size)
 
 void bt_free(void **ptr)
 {
-	MEM_FREE((*ptr));
-	*ptr = NULL;
+	MEM_FREE(*ptr);
 }
 
 void bt_error_fn(const char *str, char *file, int line)
@@ -318,7 +319,7 @@ static unsigned int check_n_insert_into_hash_table(unsigned int offset, auxillia
 	unsigned int i;
 
 	i = 0;
-	while (i < ptr -> collisions) {
+	while (i < ptr->collisions) {
 		hash_table_idxs[i] = store_hash_modulo_table_sz[i] + offset;
 		if (hash_table_idxs[i] >= hash_table_size)
 			hash_table_idxs[i] -= hash_table_size;
@@ -327,14 +328,14 @@ static unsigned int check_n_insert_into_hash_table(unsigned int offset, auxillia
 	}
 
 	i = 0;
-	while (i < ptr -> collisions) {
+	while (i < ptr->collisions) {
 		if (zero_check_ht(hash_table_idxs[i])) {
 			unsigned int j = 0;
 			while (j < i)
 				assign0_ht(hash_table_idxs[j++]);
 			return 0;
 		}
-		assign_ht(hash_table_idxs[i], ptr -> hash_location_list[i]);
+		assign_ht(hash_table_idxs[i], ptr->hash_location_list[i]);
 		i++;
 	}
 	return 1;
@@ -342,8 +343,9 @@ static unsigned int check_n_insert_into_hash_table(unsigned int offset, auxillia
 
 static void calc_hash_mdoulo_table_size(unsigned int *store, auxilliary_offset_data * ptr) {
 	unsigned int i = 0;
-	while (i < ptr -> collisions) {
-		store[i] =  modulo_op(loaded_hashes + (ptr -> hash_location_list[i]) * binary_size_actual, hash_table_size, shift64_ht_sz, shift128_ht_sz);
+
+	while (i < ptr->collisions) {
+		store[i] =  modulo_op(loaded_hashes + (ptr->hash_location_list[i]) * binary_size_actual, hash_table_size, shift64_ht_sz, shift128_ht_sz);
 		i++;
 	}
 }
@@ -351,14 +353,11 @@ static void calc_hash_mdoulo_table_size(unsigned int *store, auxilliary_offset_d
 static unsigned int create_tables()
 {
 	unsigned int i;
-
 	unsigned int bitmap = ((1ULL << (sizeof(OFFSET_TABLE_WORD) * 8)) - 1) & 0xFFFFFFFF;
 	unsigned int limit = bitmap % hash_table_size + 1;
-
 	unsigned int hash_table_idx;
 	unsigned int *store_hash_modulo_table_sz;
 	unsigned int *hash_table_idxs;
-
 #ifdef ENABLE_BACKTRACKING
 	OFFSET_TABLE_WORD last_offset;
 	unsigned int backtracking = 0;
