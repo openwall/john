@@ -48,7 +48,10 @@ after hybrid regex, eg "prince -> regex -> mask".
 For most fast GPU formats, mask mode (including hybrid) is several orders of
 magnitude faster than any other cracking mode, as the mask (or part of it) is
 applied on GPU side.  Hybrid mask can thus be used as a GPU accelerator for
-any mode except single.
+any mode except single.  To benchmark the speed of such format using a mask,
+use "--test --mask" (using some default mask) or optionally with a specific
+mask, eg. "--test --mask=?a?a".  You can list all formats featuring internal
+mask using "--list=formats -format=mask".
 
 External filters can be applied too, and will be applied last of all.  The
 "longest" chain is thus "wordlist -> rules -> regex -> mask -> filter".  Using
