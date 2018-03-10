@@ -28,9 +28,9 @@
 
 static cl_kernel **kernels;
 static cl_mem buffer_map, buffer_bs_keys, buffer_unchecked_hashes;
-static WORD *marked_salts = NULL, current_salt = 0;
-static unsigned int *processed_salts = NULL;
-static int mask_mode = 0;
+static WORD *marked_salts, current_salt;
+static unsigned int *processed_salts;
+static int mask_mode;
 
 static int des_crypt_25(int *pcount, struct db_salt *salt);
 
@@ -621,22 +621,6 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 		get_kernel_max_lws(gpu_id, kernels[gpu_id][test_salt]), time_ms,
 		best_time_ms);
 #endif
-				if (gpu_amd(device_info[gpu_id]) || gpu_nvidia(device_info[gpu_id])) {
-					if (local_work_size < 16)
-						local_work_size = 16;
-					else if (local_work_size < 32)
-						local_work_size = 32;
-					else if (local_work_size < 64)
-						local_work_size = 64;
-					else if (local_work_size < 96)
-						local_work_size = 96;
-					else if (local_work_size < 128)
-						local_work_size = 128;
-					else
-						local_work_size += warp_size;
-				}
-				else
-					local_work_size *= 2;
 			}
 			local_work_size = best_lws;
 			release_kernels();

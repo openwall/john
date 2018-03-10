@@ -23,23 +23,23 @@ typedef struct {
 	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
 } des_combined;
 
-static cl_kernel **cmp_kernel = NULL;
-static cl_kernel kernel_high = 0, kernel_low = 0;
-static cl_mem buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes = NULL, *buffer_hash_tables = NULL, *buffer_offset_tables = NULL, *buffer_bitmaps = NULL;
-static unsigned int *zero_buffer = NULL, **hash_tables = NULL;
-static unsigned int *hash_ids = NULL;
-static unsigned int max_uncracked_hashes = 0, max_hash_table_size = 0;
-DES_hash_check_params *hash_chk_params = NULL;
-static WORD current_salt = 0;
+static cl_kernel **cmp_kernel;
+static cl_kernel kernel_high, kernel_low;
+static cl_mem buffer_hash_ids, buffer_bitmap_dupe, *buffer_uncracked_hashes, *buffer_hash_tables, *buffer_offset_tables, *buffer_bitmaps;
+static unsigned int *zero_buffer, **hash_tables;
+static unsigned int *hash_ids;
+static unsigned int max_uncracked_hashes, max_hash_table_size;
+DES_hash_check_params *hash_chk_params;
+static WORD current_salt;
 
-static cl_kernel keys_kernel = 0;
-static cl_mem buffer_raw_keys = 0, buffer_int_des_keys = 0, buffer_int_key_loc = 0;
+static cl_kernel keys_kernel;
+static cl_mem buffer_raw_keys, buffer_int_des_keys, buffer_int_key_loc;
 static int keys_changed = 1;
 static des_combined *des_all;
 static opencl_DES_bs_transfer *des_raw_keys;
-static unsigned int *des_int_key_loc = NULL;
+static unsigned int *des_int_key_loc;
 static unsigned int static_gpu_locations[MASK_FMT_INT_PLHDR];
-static size_t process_key_gws = 0;
+static size_t process_key_gws;
 
 unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,

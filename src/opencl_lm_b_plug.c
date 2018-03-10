@@ -30,8 +30,8 @@
 
 static cl_mem buffer_lm_key_idx, buffer_raw_keys, buffer_lm_keys, buffer_int_lm_keys, buffer_int_key_loc, buffer_hash_ids, buffer_bitmap_dupe, buffer_offset_table, buffer_hash_table, buffer_bitmaps;
 static unsigned int num_loaded_hashes, *hash_ids = NULL, *zero_buffer = NULL;
-static size_t current_gws = 0;
-static unsigned int mask_mode = 0;
+static size_t current_gws;
+static unsigned int mask_mode;
 static unsigned int static_gpu_locations[MASK_FMT_INT_PLHDR];
 
 static unsigned int hash_table_size, offset_table_size;
@@ -338,7 +338,6 @@ static void release_buffer_gws()
 		HANDLE_CLERROR(clReleaseMemObject(buffer_raw_keys), "Error releasing buffer_raw_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_lm_keys), "Error releasing buffer_lm_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error releasing buffer_int_key_loc.");
-		opencl_lm_all = 0;
 	}
 }
 
@@ -890,22 +889,6 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
 		best_time_ms);
 #endif
-				if (gpu(device_info[gpu_id])) {
-					if (local_work_size < 16)
-						local_work_size = 16;
-					else if (local_work_size < 32)
-						local_work_size = 32;
-					else if (local_work_size < 64)
-						local_work_size = 64;
-					else if (local_work_size < 96)
-						local_work_size = 96;
-					else if (local_work_size < 128)
-						local_work_size = 128;
-					else
-						local_work_size += warp_size;
-				}
-				else
-					local_work_size *= 2;
 			}
 			local_work_size = best_lws;
 			release_kernels();
