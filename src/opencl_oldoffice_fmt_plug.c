@@ -20,8 +20,8 @@ john_register_one(&FORMAT_STRUCT);
 #include <stdint.h>
 #include <string.h>
 
-#include "opencl_common.h"
 #include "arch.h"
+#include "opencl_common.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -306,7 +306,7 @@ static void reset(struct db_main *db)
 	                       2 * PLAINTEXT_LENGTH, gws_limit, db);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit, 300);
+	autotune_run(self, 1, gws_limit, 100);
 }
 
 /* Based on ldr_cracked_hash from loader.c */
@@ -557,7 +557,7 @@ static int cmp_exact(char *source, int index)
 			cp++;
 		}
 		out[10] = 0;
-		fprintf(stderr, "MITM key: %s\n", out);
+		log_event("MITM key: %s for %s", out, source);
 	}
 	return 1;
 }
