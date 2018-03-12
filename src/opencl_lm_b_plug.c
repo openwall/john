@@ -889,6 +889,22 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		get_kernel_max_lws(gpu_id, crypt_kernel), time_ms,
 		best_time_ms);
 #endif
+				if (gpu(device_info[gpu_id])) {
+					if (local_work_size < 16)
+						local_work_size = 16;
+					else if (local_work_size < 32)
+						local_work_size = 32;
+					else if (local_work_size < 64)
+						local_work_size = 64;
+					else if (local_work_size < 96)
+						local_work_size = 96;
+					else if (local_work_size < 128)
+						local_work_size = 128;
+					else
+						local_work_size += warp_size;
+				}
+				else
+					local_work_size *= 2;
 			}
 			local_work_size = best_lws;
 			release_kernels();
