@@ -323,14 +323,9 @@ def DPAPIHmac(hashAlgo, pwdhash, hmacSalt, value):
     return rv.digest()
 
 
-def display_masterkey(Preferred):
-    GUID1 = Preferred.read(8)
-    GUID2 = Preferred.read(8)
-
-    GUID = struct.unpack("<LHH", GUID1)
-    GUID2 = struct.unpack(">HLH", GUID2)
-
-    print "%s-%s-%s-%s-%s%s" % (format(GUID[0], 'x'), format(GUID[1], 'x'), format(GUID[2], 'x'), format(GUID2[0], 'x'), format(GUID2[1], 'x'), format(GUID2[2], 'x'))
+def display_masterkey(preferred):
+    GUID = struct.unpack("<LHHBBBBBBBB", preferred.read(16))
+    print '{0:x}-{1:x}-{2:x}-{3:x}{4:x}-{5:x}{6:x}{7:x}{8:x}{9:x}{10:x}'.format(GUID[0], GUID[1], GUID[2], GUID[3], GUID[4], GUID[5], GUID[6], GUID[7], GUID[8], GUID[9], GUID[10])
 
 
 class MasterKey(DataStruct):
