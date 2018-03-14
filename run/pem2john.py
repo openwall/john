@@ -78,11 +78,19 @@ def unwrap_pkcs8(blob):
     cipher = cipher_params["algorithm"]
     iv = cipher_params["parameters"]
 
-    if cipher != "tripledes_3key":
+    if cipher == "tripledes_3key":
+        cid = 1
+    elif cipher == "aes128_cbc":
+        cid = 2
+    elif cipher == "aes192_cbc":
+        cid = 3
+    elif cipher == "aes256_cbc":
+        cid = 4
+    else:
         sys.stderr.write("[%s] cipher <%s> is not supported currently!\n" % (sys.argv[0], cipher))
         return
 
-    sys.stdout.write("$PEM$1$1$%s$%s$%s$%d$%s\n" % (salt.encode("hex"), iterations, iv.encode("hex"), len(encrypted_data), encrypted_data.encode("hex")))
+    sys.stdout.write("$PEM$1$%d$%s$%s$%s$%d$%s\n" % (cid, salt.encode("hex"), iterations, iv.encode("hex"), len(encrypted_data), encrypted_data.encode("hex")))
 
 
 if __name__ == "__main__":

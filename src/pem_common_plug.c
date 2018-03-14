@@ -10,6 +10,7 @@
 #include "arch.h"
 #include "pem_common.h"
 #include "jumbo.h"
+#include "aes.h"
 #include "asn1.h"
 #include "memdbg.h"
 
@@ -23,6 +24,9 @@ struct fmt_tests pem_tests[] = {
 	{"$PEM$1$1$029375ebb44d8c3f$2047$3c7dbbee4df5863e$1224$b97ff356c7687abcd4ea17527b45eaf84d69ac127ddc4b05383331a56e9a0c26661735f9fc5298fcef7fe4280ccafed909ef8494e8dcdc75ebf23daeb3eb28ce5e1e6181c050e6c9416b41176eb87a12ec6898b90a75b0deece18eb7d4c13372eedf1060ceac9230d77843a21dbfa24edd1e41d6aada961f205295198bec11e2d87ae5d2d07daf1b5f5a21455d68003ba40291c20b91114d9339b69a4564c749b64668b209f8a7cef029c8d7f6369c17ddc6bee527576c3da794aeb6125ce9f7d41fc8d5690fc2447a594721390d7803bc600e2c67801636072047f51ca1a9fff2d629e987aa18aa4b08d0f7dce547132d8073718ab2b1fb9ce7ce46551e82749f72ef228b6e8e4420395efb3e90ebe9cc15719f3a0afd71f387a2d432783804efdccf2b554fa4d60c1a5ff385ed784f1cb4b8fe013a08c08e1f9457897457f7e342a5071e471ad261708fd0cb9c75040a85ed27ac1079379557c4dcb74384701f6e30514e80788a543adb036135d94cbdf1feef5c0d287cc081fe75eddb29e37b462c4077bf07da74bb16ee96df3d7f1bcf616198e11d4c489eb33712b29e26c0d32df878074d7e145684cfec9d4f26e53d1cb10d45b13b55195ae9f6afa5c93b67e423558aa73cc4c6d83bb6ff80559076201b352e60f3bc0f018f79e6282fa6ce322f51703860f2da59606d8ab3433ced6359f3dee0d5b046929f1068903460cb84c5c2b2e2c478cc8547d88227aec9b2cf099d3a897778410a0e43138dc30f30768d3e90b675265f725e6b9cd7ca4a7db912c3e67ab2d680e8bf7e3f1ef9b9815b15873ee6a739972117dc4736cfe256be12b70ca1661cb9d32d69a396de5a0ceb81de37c1c395146f479b6e2b24017ee487b68e0b77bb4890533a50275caa68ffdc54cff2652fe94956d0b2c0463104a1b8e04f01f0c125e1125ce598a75d61152eabf97a58e6e789f60e240958b7e75ac208e48465150f389b9a5ff7ae5636cc29e72a573e8faf0ee80bd1a2a2e846a897019d75cad79b16a59be3da46a823baf9a04104d2d009e2780d21c3439c7e791f3ec63a296fbf4dc15e955e00e1be652cc70e930a08db2797694aeec3c20722b65e0cbaa8e3b753b3a51f3b16f32fbe55876f48615937e4ce9da7d985c8772923fce3cd6c463b422ce61fdfff8ba28df7a3cdc7253ad4ce0a35218962a45edc5dd3e24a2248e407d6106dab81cea41b453ac509c4f0ec03d220ff84c842755f4f8673c0975cac13f84f7176cc9c4cd27eb74b42065ea9a4853ef0d2940596f112f3c766db0b6c7e5d5d91bb0aad5e44e34abbc871dbfdb7824e014fa7d2ae62bd253f422482538c4c35dcb7f4a20c915b698262737df04bf7e6806d5bbfff7c54d6ba4c5892dcd122bc0fe80c7399228029cc4c29f388d9787c46d609abb2554a010984db73e8605272a1bd7570aca1ccc04edee3d704b7387bd9866423a015a88e4efced478c00210e213c3d2b2bebdf1584d9a8fb2a31397a12a2d07ecf6247c70d2950f0db3f64aad13647e7db47ca51d7c95f50fc016d9731c992f2463f794ea915b7b5307db6de25fbd3ba7a7b4b15f7a011ab399a2b8c73cd5a7a1b00743928499effb5ab1a402e8600c52f8d1204d8923c2d8e41cdd941d591b554f79dfee3c3eb33a427ab360f90a8820c2957e2b5afd06ea3f02df3563eec9a06f64a6e019e33ed0a112d53382d071cbf835907094158", "alonglongpassword"},
 	{"$PEM$1$1$74ae53fd1cf3e5e8$2048$33c1919f1cd1e8b8$336$6e59f6d3fbb084e224da89d23bfe0aec18f1491f58e334119ad83edd10d81b636622736e8a712a34959d78da79af603ec33d1a57bfaef2081e0ff8eccab31a0ad9cc18a60c20c1a2e15790c89972c5abb642a76ddeadf6fe8423c1b1737286a177b931352c5c78d105f828e9dc30fba659147f920aeaabb006988a020845faa985b948de42cc46b23406fffd2f05756c9e13e2fbc049c4be4736f9ec770c8da288a908e8abbbe1fe5c75cc65b7721d4eb338e67fe1bba937830cb9e857f3236a2894059bead0266e6ff78c7a52cab687b5e256bf1393674cdd857062d860434c530647d21edaa7f79b0e134de5cd536117ee5cbc49065c6142b30c1d3e5b0de8c55dd2748ba8bb5915498d5ed3c4abaedba13f4b10a8ff10d3383bce98dd3d52a6393ff1e791d9410bc90b34e115ed7ce10cdc75e6df29c31714983af39f1513395ef89cf2d57f68fc134996ef1afa0b", "dsa"},
 	{"$PEM$1$1$cbb6cdcfc1b27cc8$2048$9b9e633ba83d48c2$144$54f2ab743656618ae51062fd6f2ff07a5078dcf3a1fa52075f50f4508e0c342b1f3e29703f4932c689e29f385f7ad73bf96ec7bb536ea8dafd40b9e5aee6f3e27dc21ee538d9e146a9361fc34ae5dd818b23c106688a451a5e180362954698a35111cef9315ffcd6cb4d440a6899177ff0384a9533923c05f97a5bbd3f94415688ca5c3af97f9edab771dc84807a6bcc", "ecdsa"},
+	// AES test vectors
+	{"$PEM$1$2$c5a93f2b9c89f049$2048$eb981bb835ce523e611ceea4e30e02f6$1232$99f07cc77bf8d11562e3d74fa6adb2527fcbc3ab5c7ea53dae7e744ec5d4f5542bdbc78869ab94e2d51e39b6d664ac7d9d532e302ad981ef59e350752e247b78e0576b8c174d94ffb6e608bfd6bc312e17ca2f4ad9845c4adf9e9fe7f09f9b4a3425263db4b7320a819de50e5b422c6f92d2b03057f092a7240a3120190e5c58e20f86cb66ee5402a5afd2ca42781517106896bb5e33d9714db53d803de44ca08231fd0e3c7415d4bf9ee9d92d7fdc381e62ed51fb233ac1d69b65e493c929eb00816b23f42289776b5db77165ec5bcd6b3c28cc4155a44920ee0db9b41adb4939ea7d3661253a89a3df9d88eb88c76aab7958ccf532c60df42e372fc80b97ec1d22ee40c85db1a7bdd9a827153b88f4b4f24985fbd1a513fe0ed7d6cda0744262c1ba9ce21605704d82164a1544d449fb71192969e063c7b5911cf811689b97f5b6339d6d53a54ea6236d925f531879687ac426a838017f932b51fb9d33560adb1aa80dd5c077dd87a79ea57ab18fc72e72d34b7ea662142f39297b9a9ab01f8c0c029358c16463b2648603bf7e1fec925257c8d2dd1eb14b76e27087d5f8aca35f556d36fd9f41cef114dc68da3d286fc12e260a79465367353680a1413d70ab2d49d1d20e2c7e6e436a34dab518dc0a925c0f9c9513740ee3c1c4f34cfa95972569fc04c4b3daaca1fca113f0328e893b5d38435274e0d954d51bc68d31dbd2088c3077e78fa7062ddaf2b14c6f0ec7dd7d68f9e34e1724fd806fae1e76ed5ef9fb3c498a891e43ebbe9520de7288ee5f66c5be076b7f399e93a4df6fad68bcb784a1346b1035b67949791e2e79845a3e0af41bb2c8acbba548c6b8043f0c444bd32f3d49f0b5aeff651142bf05edfbf438cc50b42f9ee1548cc223bf8cdd80bf2afd57dceb8a377df349fa72cbf3be96a60ef5678b1836544da54ef61b90b0efc87138520c777ae7707dd73a7ae9be8504de68fbe154722dd6cef25c3242641941bd022c409ca7ff9d7f4ac58c8907e350863ba121d39eb77d04b53f839d05da6437cf80888ac506a985e601852b6b18bddff0e4aeaab2fae5caa8f750b84af1e7975945137c45f459bd32ab80f0be8267644c3c89b1fa70f06e8f1086bae9830fa124048dcbdce5a8edde8ec547592a8560e00c6a97cff49bb7041feb03bbb83f1f39442fe4091692ecc0e227506ac18bbb22b5ac851c9a52cbf0c2a741655863980ab95e77d6f70abb0c06000d955d0ee932d256adde74282e04dd88cf6c931417ed3ea0d0e4542e1618ed9ebd35d348c2c358ca33a6ce7db3444dd474bd7769c5bc12b211ab59537a8ef4b33a2ec918a9cdd490459c747d8ffae35f1b1f99bac614d4b0eb0ffda3d76df606a466fea5e3e5f35ce2acfb38ec041ade97941dd90993491f4ca3092d58321d6e6cb4c814a41e306894f972710627eed4f91519efa0dbcbd18cf84d3b6fe9152355bbd0d0a44d6b701628598984dab1f99f4fa185fdc3393d5db768a61a68925a3f337fa95bbdf7ce211b6fc7525180264885641b6a935bed11fee043b5686a3334594829ba5effe66404bb0608dd8edd108634f877676dc8fb3fa845b425c8446941d0da600b1578dfb20a2c401d4f6d634de28a54208e64b2fb3ec520906ddf45b2c34e67db8270d301e90e67382082b2739339a4373a3ec2720ee38d5490a7694ebe55a1d99bb4a4a1ccfca0ab544c6be54498697582dbe9a9bbc4438ffd8030", "test"},
+	{"$PEM$1$4$f9485289c3439d60$2048$abb7527cb22b08dea6312d85e29c0015$1232$aea7e5373582b08247a4347f1d96352bc76a91ee54aff310776b788ada4307a13e257bc3332a76ecfbbf578f76b512531183cf37a190ef214f7e9c5a3f9914f288f150ea84959e2dd242c4c4a9803602054238987bcf6aeb9290d95fcaafa099a8258329a1fd5d20d7ac9e0ceaf64a27b89696afa98636da278ec71dae5316fe53fa2ab1f3a7bd4a343507f260bab03aa2bf7d8f2e78ed8b2a0039c08fd0c1c38a9f65085e925ae2c89fc47b6bea5fb64a6108252982aa847bf4d6243158488f2db1bdf2e2daceaca7045ea3dce1749fe80af00dd37ecd5b8b0a2ed56a3f0ec2987dcaf50ce0c15f0fd1454deae708b5cfc3676307d99fb4dd29cd512f6b6789d969a4ce72e126aa6af7213304b6dbe16e7397e7a7f15eab2b4b89caaa15ffb0ce14244e721d90616c8376dca5b8601aa624f980ce6ebcb0800fed04ff568d423061c6f41a78ddced0b26222c7ec472f463c151dfeb9510e3ce3e6119571a1181f9aa1401c18c294fe611addb26f056e39c23d320a882c6155dc04b7cbf531c49b8cc0dd3744dfa6a246d1ed3bf7fe985f5aa0713f143947a42993804f33a58df50a3abf0d2037107224b02d4e77feb8fdecc49d9cc875d352209b6d0a05d3c7aaf44a6557ca80a75960b1f199966b73f162ca795bc31da991e287b7f38b6ddf4ef15e4231d870bb3f4cadb5a6c6e7dc79a93969ef17f7743c8d75426802ed78fc8976d4b388d4ba4026184166c59e5c978ac1654231c43a490aba5e629caec3502593e05227688a81cce102f6131b1825e2ec374fa852554e08a80feaa8f60383013c9f2f5a9a3439b29c6ddb19ad423143a30fb5a8eddafec76d4611a80788ccc48269f0c3a3d2540dee710d1d173ab208ccbd11c880102cca3fb41444eed4bbcd9ce8fb31071f5a4007c0326eb5b30e19e40605e62459b49745a7a08ac8b81c60ecda39be4e1b66975085ca73b0d785de99bcbd5dc3a30a58de547387bce058eedf864b04ffeb1aeb5447a5584dbb2a04e177effe30982403a9d73bb0ebee504f074fb946fdce4f4a1c45873db9751dcd98cc7290098afbbcfc6c368f85db7c65d0c9292ca05f8f40a15811519b66379cd92a2cba0d1cea9d36cb8de5078a1fbd2cf38be6fb4ece7997886f9a5ff4258984e68026984f802a8e6b0a09d93940fc09214436b83e2bc0222d7999df1a5f896d89341eb029629b40e70e1543a207c9c44658865773544ac3f8fb6506f9fb90ecb1131a2d62952801fe5a9d4980d8149353d9c9679bf3a1e6bccfb2ca24f0e019bccd13c991678c12de59e3693bc08c94ff376d7bb00829ead3f4757096c13fa0207be2e676dc28ee7812b067851c8030a695e77c1a6f72ee8fb5e5060b15057c6d38a2ed85a8a9c4a37f17b27d590c0a83b8010c2419bd46090713d18b10191f88769665e27a62858bdb52da0d21b7803417243a6a52b30ab15893fd65e0ba06b73567064d242d1e0230056d18b266a4f4e17c831539905eee1a3f4ae6a0a8f1a2881f9b50a1d89e43ba8707731c3b93c211af2c4ad4981b053b8c8f629207de4828442cd5e56e291c3a740a3b1ffa3d956075142ad80f393f2a7e478171bde2743fdc0eb9edfd52aa1f4633c0aacbe11b541efe4b4980dcf6d66b0180fc1d9f3ef43bf0a30a3690e1d4dcf41c9e5a8f3cd49a872e275170c8ce0e352f7d6731e36895529907199e419820078d9aabe30f0bf5bfd3979f8c5a0dcd6940", "test"},
 	{NULL}
 };
 
@@ -50,7 +54,7 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 1)
+	if (value != 1 && value != 2 && value != 3 && value != 4)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // salt
 		goto err;
@@ -62,7 +66,8 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iv
 		goto err;
-	if (hexlenl(p, &extra) != 16 || extra)
+	len = hexlenl(p, &extra);
+	if ((len != 16 && len != 32) || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // ciphertext length
 		goto err;
@@ -88,6 +93,7 @@ void *pem_get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
+	int len;
 	static struct custom_salt *cur_salt;
 
 	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
@@ -95,6 +101,7 @@ void *pem_get_salt(char *ciphertext)
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$"); // type
 	p = strtokm(NULL, "$");
+	cur_salt->cid = atoi(p);
 	p = strtokm(NULL, "$");   // salt
 
 	for (i = 0; i < SALTLEN; i++)
@@ -103,7 +110,11 @@ void *pem_get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 	cur_salt->iterations = atoi(p);
 	p = strtokm(NULL, "$");
-	for (i = 0; i < IVLEN; i++)
+	if (cur_salt->cid == 1)
+		len = 8;
+	else
+		len = 16;
+	for (i = 0; i < len; i++)
 		cur_salt->iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtokm(NULL, "$");
@@ -145,19 +156,37 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
 	int length = cur_salt->ciphertext_length;
+	int block_size = 16;  // AES
+	AES_KEY akey;
+	unsigned char aiv[16];
 
 	memset(out, 0, sizeof(out));
-	memcpy(key1, key, 8);
-	memcpy(key2, key + 8, 8);
-	memcpy(key3, key + 16, 8);
-	DES_set_key((DES_cblock *) key1, &ks1);
-	DES_set_key((DES_cblock *) key2, &ks2);
-	DES_set_key((DES_cblock *) key3, &ks3);
-	memcpy(ivec, iv, 8);
-	DES_ede3_cbc_encrypt(data, out, cur_salt->ciphertext_length, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
+	if (cur_salt->cid == 1) {  // 3DES
+		block_size = 8;
+		memcpy(key1, key, 8);
+		memcpy(key2, key + 8, 8);
+		memcpy(key3, key + 16, 8);
+		DES_set_key((DES_cblock *) key1, &ks1);
+		DES_set_key((DES_cblock *) key2, &ks2);
+		DES_set_key((DES_cblock *) key3, &ks3);
+		memcpy(ivec, iv, 8);
+		DES_ede3_cbc_encrypt(data, out, cur_salt->ciphertext_length, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
+	} else if (cur_salt->cid == 2) {  // AES-128
+		AES_set_decrypt_key(key, 128, &akey);
+		memcpy(aiv, iv, 16);
+		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, DES_DECRYPT);
+	} else if (cur_salt->cid == 3) {  // AES-192
+		AES_set_decrypt_key(key, 192, &akey);
+		memcpy(aiv, iv, 16);
+		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, DES_DECRYPT);
+	} else if (cur_salt->cid == 4) {  // AES-256
+		AES_set_decrypt_key(key, 256, &akey);
+		memcpy(aiv, iv, 16);
+		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, DES_DECRYPT);
+	}
 
 	// padding byte can be 4 / 6 or so on!
-	if (check_pkcs_pad(out, cur_salt->ciphertext_length, 8) < 0)
+	if (check_pkcs_pad(out, cur_salt->ciphertext_length, block_size) < 0)
 		return -1;
 
 	/* check message structure, http://lapo.it/asn1js/ is the best tool for learning this stuff */

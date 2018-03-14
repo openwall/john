@@ -23,10 +23,11 @@ struct custom_salt {
 	int salt_length;
 	unsigned char salt[SALTLEN];
 	int iv_length;
-	unsigned char iv[IVLEN];
+	unsigned char iv[16];
 	int iterations;
 	int ciphertext_length;
 	unsigned char ciphertext[CTLEN];
+	int cid;  // cipher id
 };
 
 
