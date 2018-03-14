@@ -1,5 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
+ * Copyright (c) 2013-2018 by magnum
  * Copyright (c) 2014 by Sayantan Datta
  *
  * Redistribution and use in source and binary forms, with or without
@@ -14,11 +15,13 @@
 #include "memory.h"
 #include "memdbg.h"
 
+//#define MASK_DEBUG
+
 int *mask_skip_ranges = NULL;
 int mask_max_skip_loc = -1;
 int mask_int_cand_target = 0;
 int mask_gpu_is_static = 0;
-mask_int_cand_ctx mask_int_cand = {NULL, NULL, 1};
+mask_int_cand_ctx mask_int_cand = { NULL, NULL, 1 };
 
 static void combination_util(int *data, int start, int end, int index,
                              int r, mask_cpu_context *ptr, int *delta)
@@ -63,7 +66,8 @@ static void generate_int_keys(mask_cpu_context *ptr)
 	for (i = 0; i < mask_int_cand.num_int_cand; i++) \
 		mask_int_cand.int_cand[i].x[t] =	 \
 			ptr->ranges[mask_skip_ranges[t]].chars \
-			[(i/repeat) % modulo];
+			[(i/repeat) % modulo]
+
 #define cond(t) t < MASK_FMT_INT_PLHDR && mask_skip_ranges[t] != -1
 
 	for (i = 1; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
@@ -95,12 +99,9 @@ static void generate_int_keys(mask_cpu_context *ptr)
 }
 
 static void check_static_gpu_mask(int max_static_range)
-{	unsigned int i;
+{
+	unsigned int i;
 	mask_gpu_is_static = 1;
-
-#ifdef MASK_DEBUG
-	fprintf(stderr, "%s()\n", __FUNCTION__);
-#endif
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (max_static_range <= mask_skip_ranges[i]) {
@@ -109,9 +110,14 @@ static void check_static_gpu_mask(int max_static_range)
 		}
 
 	mask_gpu_is_static |= !(options.flags & FLG_MASK_STACKED);
+
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s() return: mask is%s static\n", __FUNCTION__, mask_gpu_is_static ? "" : "n't");
+#endif
 }
 
-void mask_calc_combination(mask_cpu_context *ptr, int max_static_range) {
+void mask_ext_calc_combination(mask_cpu_context *ptr, int max_static_range)
+{
 	int *data, i, n;
 	int delta_to_target = 0x7fffffff;
 
@@ -123,7 +129,9 @@ void mask_calc_combination(mask_cpu_context *ptr, int max_static_range) {
 	mask_int_cand.int_cpu_mask_ctx = NULL;
 	mask_int_cand.int_cand = NULL;
 
-	if (!mask_int_cand_target) return;
+	if (!mask_int_cand_target)
+		return;
+
 	if (MASK_FMT_INT_PLHDR > 4) {
 		fprintf(stderr, "MASK_FMT_INT_PLHDR value must not exceed 4.\n");
 		error();
@@ -158,7 +166,9 @@ void mask_calc_combination(mask_cpu_context *ptr, int max_static_range) {
 
 	check_static_gpu_mask(max_static_range);
 
-	/*for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++)
-		fprintf(stderr, "%c%c%c%c\n", mask_int_cand.int_cand[i].x[0], mask_int_cand.int_cand[i].x[1], mask_int_cand.int_cand[i].x[2], mask_int_cand.int_cand[i].x[3]);*/
+#if 0
+	for (i = 0; i < mask_int_cand.num_int_cand && mask_int_cand.int_cand; i++)
+		fprintf(stderr, "%c%c%c%c\n", mask_int_cand.int_cand[i].x[0], mask_int_cand.int_cand[i].x[1], mask_int_cand.int_cand[i].x[2], mask_int_cand.int_cand[i].x[3]);
+#endif
 	MEM_FREE(data);
 }

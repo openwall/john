@@ -99,7 +99,8 @@ static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 int64_t crk_pot_pos;
 
 /* expose max_keys_per_crypt to the world (needed in recovery.c) */
-int cracker_max_keys_per_crypt() {
+int crk_max_keys_per_crypt(void)
+{
 	return  crk_params->max_keys_per_crypt;
 }
 
@@ -965,13 +966,13 @@ static int crk_salt_loop(void)
 	/* on first run, right after restore, this can be non-zero */
 	if (status.resume_salt) {
 		struct db_salt *s = salt;
+
 		/* clear resume so it only works the first time */
 		status.resume_salt = 0;
 		while (s)
 		{
 			if (s->salt_md5[0] == status.resume_salt_md5[0] &&
-				!memcmp(s->salt_md5, status.resume_salt_md5, 16))
-			{
+			    !memcmp(s->salt_md5, status.resume_salt_md5, 16)) {
 				/* found it!! */
 				salt = s;
 				break;
@@ -1020,44 +1021,45 @@ static int crk_salt_loop(void)
 	return ext_abort;
 }
 
-/* this variable is used in salt-resume logic  */
-/* if the KPC is now larger than it was when   */
-/* the .rec file was made, then the first loop */
-/* must limit its KPC to what was saved in the */
-/* .rec file.                                  */
-static int cracker_max_keys_to_use = 0;
+int crk_process_buffer(void)
+{
+	if (crk_db->loaded && crk_key_index)
+		return crk_salt_loop();
+
+	if (event_pending && crk_process_event())
+		return 1;
+
+	if (ext_abort)
+		event_abort = 1;
+
+	if (ext_status && !event_abort) {
+		ext_status = 0;
+		event_status = 0;
+		status_print();
+	}
+
+	return ext_abort;
+}
 
 int crk_process_key(char *key)
 {
 	if (crk_db->loaded) {
-		if (!cracker_max_keys_to_use) {
-			cracker_max_keys_to_use = crk_params->max_keys_per_crypt;
-			if (status.resume_salt) {
-				if (status.resume_salt_crypts_per <= 0)
-					/* No longer resume v1 salt, we do not know the restore KPC */
-					status.resume_salt = 0;
-				else if (status.resume_salt_crypts_per < cracker_max_keys_to_use)
-					/* NOTE this reduction can only happen the FIRST time */
-					cracker_max_keys_to_use = status.resume_salt_crypts_per;
-			}
-		} else if (cracker_max_keys_to_use >
-		           crk_params->max_keys_per_crypt)
-			cracker_max_keys_to_use =
-				crk_params->max_keys_per_crypt;
+		int max_keys = crk_params->max_keys_per_crypt;
+
+		if (max_keys > 1) {
+			if (options.force_maxkeys)
+				max_keys = MIN(max_keys, options.force_maxkeys);
+			if (status.resume_salt)
+				max_keys = MIN(max_keys, status.resume_salt);
+		}
 
 		if (crk_key_index == 0)
 			crk_methods.clear_keys();
 
 		crk_methods.set_key(key, crk_key_index++);
 
-		if (crk_key_index >= cracker_max_keys_to_use ||
-		    (options.force_maxkeys &&
-		     crk_key_index >= options.force_maxkeys)) {
-			int ret = crk_salt_loop();
-			/* From here on cracker_max_keys_to_use is set to max KPC */
-			cracker_max_keys_to_use = crk_params->max_keys_per_crypt;
-			return ret;
-		}
+		if (crk_key_index >= max_keys)
+			return crk_salt_loop();
 
 		return 0;
 	}

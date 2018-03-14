@@ -1130,6 +1130,7 @@ static void john_load(void)
 		if (options.report_utf8 || options.target_enc == UTF_8)
 			dummy_format.params.flags |= FMT_UTF8;
 		dummy_format.params.label = "stdout";
+		dummy_format.methods.reset = &fmt_default_reset;
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
 
 		if (!options.target_enc || options.input_enc != UTF_8)
@@ -1873,6 +1874,15 @@ static void john_done(void)
 {
 	if ((options.flags & (FLG_CRACKING_CHK | FLG_STDOUT)) ==
 	    FLG_CRACKING_CHK) {
+		if (!event_abort && mask_iter_warn) {
+			log_event("Warning: Incremental mask started at length %d",
+			          mask_iter_warn);
+			if (john_main_process)
+				fprintf(stderr,
+				        "Warning: incremental mask started at length %d"
+				        " - try the CPU format for shorter lengths.\n",
+				        mask_iter_warn);
+		}
 		if (event_abort) {
 			char *abort_msg = (aborted_by_timer) ?
 			          "Session stopped (max run-time reached)" :

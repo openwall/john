@@ -81,7 +81,7 @@ static void (*rec_save_mode)(FILE *file);
 static void (*rec_save_mode2)(FILE *file);
 static void (*rec_save_mode3)(FILE *file);
 
-extern int cracker_max_keys_per_crypt();
+extern int crk_max_keys_per_crypt();
 
 static void rec_name_complete(void)
 {
@@ -282,7 +282,7 @@ static void save_salt_state()
 	// then we end up skipping processing some data. So we save this value, and then
 	// when we resume IF this value is not the same, we ignore the salt resume, and just
 	// start from salt zero.
-	fprintf(rec_file, "%d\n", cracker_max_keys_per_crypt());
+	fprintf(rec_file, "%d\n", crk_max_keys_per_crypt());
 }
 
 void rec_save(void)
@@ -634,18 +634,17 @@ static void restore_salt_state(int type)
 		// still have exactly same count of max_crypts_per  If the max
 		// changes, then we simply start over at salt#1 to avoid any
 		// salt records NOT being processed. properly.
-		status.resume_salt_crypts_per = strtoul(buf2, NULL, 10);
+		status.resume_salt = strtoul(buf2, NULL, 10);
 	} else if (type == 1) {
 		// tells cracker to ignore the check, since this information was not
 		// available in v1 slt records. v1 salt will NOT resume in cracker.c
-		status.resume_salt_crypts_per = -1;
+		status.resume_salt = 0;
 	}
 	for (i = 0; i < 16; ++i) {
 		h[i] = atoi16[ARCH_INDEX(buf[i*2])] << 4;
 		h[i] += atoi16[ARCH_INDEX(buf[i*2+1])];
 	}
 	status.resume_salt_md5 = hash;
-	status.resume_salt = 1;
 }
 
 void rec_restore_mode(int (*restore_mode)(FILE *file))

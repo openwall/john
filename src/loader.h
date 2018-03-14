@@ -139,8 +139,11 @@ struct db_salt {
 /* Number of passwords with this salt */
 	int count;
 
-/* Sequential id for a given salt. Sequential id does not change even if some
- * salts are removed during cracking */
+/*
+ * Sequential id for a given salt. Sequential id does not change even if some
+ * salts are removed during cracking (except possibly if a FMT_REMOVE format
+ * renumbers the salts while re-iterating them).
+ */
 	int sequential_id;
 
 #ifndef BENCH_BUILD
