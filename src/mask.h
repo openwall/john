@@ -1,7 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2013 by Solar Designer
- * Copyright (c) 2013-2015 by magnum
+ * Copyright (c) 2013-2018 by magnum
  * Copyright (c) 2014 by Sayantan Datta
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,7 +22,7 @@
 #define MASK_FMT_INT_PLHDR 4
 
 // Maximum number of placeholders in a mask.
-#define MAX_NUM_MASK_PLHDR 127
+#define MAX_NUM_MASK_PLHDR 125
 
 //#define MASK_DEBUG
 
@@ -34,8 +33,6 @@ typedef struct {
 	int stack_cl_br[MAX_NUM_MASK_PLHDR + 1];
 	/* store locations of valid ? in mask */
 	int stack_qtn[MAX_NUM_MASK_PLHDR + 1];
-	/* 1 if parse is successful, otherwise 0 */
-	int parse_ok;
 } mask_parsed_ctx;
 
  /* Range of characters for a placeholder in the mask */
@@ -120,5 +117,8 @@ extern uint64_t mask_parent_keys;
 
 /* Current length when pure mask mode iterates over lengths */
 extern int mask_cur_len;
+
+/* Incremental mask iteration started at this length (contrary to options) */
+extern int mask_iter_warn;
 
 #endif

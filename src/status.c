@@ -65,7 +65,6 @@ static clock_t get_time(void)
 void status_init(double (*get_progress)(void), int start)
 {
 	if (start) {
-		status.resume_salt = 0;
 		if (!status_restored_time)
 			memset(&status, 0, sizeof(status));
 		status.start_time = get_time();

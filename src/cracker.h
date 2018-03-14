@@ -34,6 +34,14 @@ extern void crk_init(struct db_main *db, void (*fix_state)(void),
 extern int crk_process_key(char *key);
 
 /*
+ * Process all/any keys already loaded with crk_process_key, regardless of
+ * max_keys_per_crypt.  After this, it's safe to call reset() mid-run.
+ * The return value is non-zero if aborted or everything got cracked (the
+ * event_abort flag can be used to find out which of these has happened).
+ */
+extern int crk_process_buffer(void);
+
+/*
  * Resets the guessed keys buffer and processes all the buffered keys for
  * this salt. The return value is the same as for crk_process_key().
  */
