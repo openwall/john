@@ -222,7 +222,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, SALTLEN);
 	currentsalt.length = SALTLEN;
 	currentsalt.iterations = cur_salt->iterations;
-	currentsalt.outlen = 24;
+	currentsalt.outlen = 32;  // this should be 16 for cid == 2 (aes-128)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
 }
 
