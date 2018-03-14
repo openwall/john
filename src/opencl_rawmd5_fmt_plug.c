@@ -19,7 +19,6 @@ john_register_one(&FMT_STRUCT);
 #else
 
 #include <string.h>
-#include <assert.h>
 #include <sys/time.h>
 
 #include "arch.h"
@@ -590,11 +589,6 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	}
 
 	clear_keys();
-
-	assert(!(local_work_size & (local_work_size -1)));
-	assert(!(global_work_size % local_work_size));
-	assert(local_work_size <= lws_limit);
-	assert(global_work_size <= gws_limit);
 
 	self->params.max_keys_per_crypt = global_work_size;
 	if (options.verbosity > VERB_LEGACY)

@@ -7,7 +7,6 @@
 
 #ifdef HAVE_OPENCL
 
-#include <assert.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -45,8 +44,6 @@ static void create_clobj_kpc(size_t gws)
 
 	buffer_unchecked_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, (gws * iter_count + PADDING) * sizeof(DES_bs_vector) * 64, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_unchecked_hashes failed.\n");
-
-	assert(gws * iter_count <= ((0x1 << 27) - 1));
 }
 
 static void release_clobj_kpc()
@@ -349,9 +346,6 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		gws_limit >>= 1;
 #endif
 
-	assert(gws_limit > PADDING);
-	assert(!(gws_limit & (gws_limit - 1)));
-
 	if (gws_tune_flag)
 		global_work_size = gws_init;
 
@@ -393,7 +387,7 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 	set_kernel_args_kpc();
 
 	/* for hash_ids[2*x + 1], 27 bits for storing gid and 5 bits for bs depth. */
-	assert(global_work_size <= ((1U << 28) - 1));
+	//assert(global_work_size <= ((1U << 28) - 1));
 	fmt_opencl_DES.params.max_keys_per_crypt = global_work_size << des_log_depth;
 	fmt_opencl_DES.params.min_keys_per_crypt = 1U << des_log_depth;
 }
@@ -493,8 +487,6 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 		}
 		if (local_work_size > lws_limit)
 			local_work_size = lws_limit;
-
-		assert(local_work_size <= lws_limit);
 
 		if (lws_tune_flag) {
 			time_ms = 0;

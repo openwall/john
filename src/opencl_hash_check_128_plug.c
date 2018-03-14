@@ -1,7 +1,5 @@
 #if HAVE_OPENCL
 
-#include <assert.h>
-
 #include "options.h"
 #include "opencl_hash_check_128.h"
 #include "mask_ext.h"
@@ -306,10 +304,8 @@ char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 		}
 		if (buf_sz >= 536870912)
 			buf_sz = 536870912;
-		assert(!(buf_sz & (buf_sz - 1)));
 		if ((bitmap_size_bits >> 3) > buf_sz)
 			bitmap_size_bits = buf_sz << 3;
-		assert(!(bitmap_size_bits & (bitmap_size_bits - 1)));
 		cmp_steps = 1;
 	}
 
@@ -352,7 +348,6 @@ void ocl_hc_128_crobj(cl_kernel kernel)
 		max_alloc_size_bytes >>= 1;
 	}
 	if (max_alloc_size_bytes >= 536870912) max_alloc_size_bytes = 536870912;
-	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
 
 	if (!cache_size_bytes) cache_size_bytes = 1024;
 

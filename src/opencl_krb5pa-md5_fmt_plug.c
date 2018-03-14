@@ -32,7 +32,6 @@ john_register_one(&FMT_STRUCT);
 #else
 
 #include <string.h>
-#include <assert.h>
 
 #include "misc.h"
 #include "common.h"
@@ -708,7 +707,11 @@ static void select_bitmap(unsigned int num_loaded_hashes)
 		else
 			bitmap_size_bits = 2048 * 1024;
 	}
-	assert(num_loaded_hashes <= 1100100);
+	else {
+		fprintf(stderr, "Too many hashes (%d), max is 1100100\n",
+		        num_loaded_hashes);
+		error();
+	}
 
 	prepare_bitmap_4(bitmap_size_bits, &bitmaps, num_loaded_hashes);
 }

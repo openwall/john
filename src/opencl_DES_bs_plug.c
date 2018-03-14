@@ -8,7 +8,6 @@
 #ifdef HAVE_OPENCL
 
 #include <string.h>
-#include <assert.h>
 
 #include "arch.h"
 #include "common.h"
@@ -166,16 +165,12 @@ static void select_bitmap(unsigned int num_ld_hashes, WORD *uncracked_hashes_t, 
 		}
 		if (buf_sz >= 536870912)
 			buf_sz = 536870912;
-		assert(!(buf_sz & (buf_sz - 1)));
 		if (((*bitmap_size_bits) >> 3) > buf_sz)
 			*bitmap_size_bits = buf_sz << 3;
-		assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
 	}
 
 	prepare_bitmap_1(*bitmap_size_bits, bitmaps_ptr, (unsigned WORD *)uncracked_hashes_t, num_ld_hashes);
 
-	assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
-	assert(*bitmap_size_bits <= 0xffffffff);
 	get_num_bits(bits_req, (*bitmap_size_bits));
 
 	hash_chk_params->bitmap_size_bits = (unsigned int)(*bitmap_size_bits);
