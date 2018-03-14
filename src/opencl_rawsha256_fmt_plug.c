@@ -466,8 +466,8 @@ static char *get_key(int index)
 	memcpy(ret, ((char *)&plaintext[saved_idx[t] >> 6]), PLAINTEXT_LENGTH);
 	ret[saved_idx[t] & 63] = '\0';
 
-	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
-
+	if (saved_idx[t] & 63 &&
+	    mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 			ret[(saved_int_key_loc[t] & (0xff << (i * 8))) >> (i * 8)] =
 			    mask_int_cand.int_cand[int_index].x[i];

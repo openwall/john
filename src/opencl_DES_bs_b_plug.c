@@ -606,11 +606,11 @@ static void reset(struct db_main *db)
 
 		build_salt(0);
 
-		salt = db -> salts;
+		salt = db->salts;
 		do {
-			salt_val = *(WORD *)(salt -> salt);
+			salt_val = *(WORD *)(salt->salt);
 			build_salt(salt_val);
-		} while((salt = salt -> next));
+		} while((salt = salt->next));
 
 		if (mask_mode) {
 			release_kernel();
@@ -669,10 +669,10 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 	process_keys(current_gws, lws);
 
-	if (salt && num_uncracked_hashes(current_salt) != salt -> count &&
+	if (salt && num_uncracked_hashes(current_salt) != salt->count &&
 	/* In case there are duplicate hashes, num_uncracked_hashes is always less than salt->count, as
 	 * num_uncracked_hashes tracks only unique hashes. */
-		num_uncracked_hashes(current_salt) > salt -> count)
+		num_uncracked_hashes(current_salt) > salt->count)
 		update_buffer(salt);
 
 	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 1, sizeof(cl_mem), &buffer_processed_salts[current_salt]), "Failed setting kernel argument buffer_processed_salts, kernel DES_bs_25.\n");
@@ -688,10 +688,10 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 void opencl_DES_bs_b_register_functions(struct fmt_main *fmt)
 {
-	fmt -> methods.done = &clean_all_buffers;
-	fmt -> methods.reset = &reset;
-	fmt -> methods.set_salt = &set_salt;
-	fmt -> methods.crypt_all = &des_crypt_25;
+	fmt->methods.done = &clean_all_buffers;
+	fmt->methods.reset = &reset;
+	fmt->methods.set_salt = &set_salt;
+	fmt->methods.crypt_all = &des_crypt_25;
 
 	opencl_DES_bs_init_global_variables = &init_global_variables;
 }

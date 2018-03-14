@@ -335,13 +335,13 @@ void opencl_BF_std_crypt(BF_salt *salt, int n)
 {
 	int 			index=0,j ;
 	static unsigned int 	salt_api[4] ;
-	unsigned int 		rounds = salt -> rounds ;
+	unsigned int 		rounds = salt->rounds ;
 	static unsigned int 	BF_out[2*BF_N] ;
 
-	salt_api[0] = salt -> salt[0] ;
-	salt_api[1] = salt -> salt[1] ;
-	salt_api[2] = salt -> salt[2] ;
-	salt_api[3] = salt -> salt[3] ;
+	salt_api[0] = salt->salt[0] ;
+	salt_api[1] = salt->salt[1] ;
+	salt_api[2] = salt->salt[2] ;
+	salt_api[3] = salt->salt[3] ;
 
 	exec_bf(salt_api, BF_out, rounds, n) ;
 

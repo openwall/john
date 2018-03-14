@@ -178,9 +178,9 @@ static void select_bitmap(unsigned int num_ld_hashes, WORD *uncracked_hashes_t, 
 	assert(*bitmap_size_bits <= 0xffffffff);
 	get_num_bits(bits_req, (*bitmap_size_bits));
 
-	hash_chk_params -> bitmap_size_bits = (unsigned int)(*bitmap_size_bits);
-	hash_chk_params -> cmp_steps = cmp_steps;
-	hash_chk_params -> cmp_bits = bits_req;
+	hash_chk_params->bitmap_size_bits = (unsigned int)(*bitmap_size_bits);
+	hash_chk_params->cmp_steps = cmp_steps;
+	hash_chk_params->cmp_bits = bits_req;
 
 	*bitmap_size_bits *= cmp_steps;
 }
@@ -195,8 +195,8 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	OFFSET_TABLE_WORD *offset_table;
 	unsigned int hash_table_size, offset_table_size;
 
-	salt_val = *(WORD *)salt -> salt;
-	num_uncracked_hashes(salt_val) = salt -> count;
+	salt_val = *(WORD *)salt->salt;
+	num_uncracked_hashes(salt_val) = salt->count;
 
 	uncracked_hashes = (WORD *) mem_calloc(2 * num_uncracked_hashes(salt_val), sizeof(WORD));
 	uncracked_hashes_t = (WORD *) mem_calloc(2 * num_uncracked_hashes(salt_val), sizeof(WORD));
@@ -218,8 +218,8 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 		}
 	} while ((pw = pw->next));
 
-	if (salt -> count > *max_uncracked_hashes)
-		*max_uncracked_hashes = salt -> count;
+	if (salt->count > *max_uncracked_hashes)
+		*max_uncracked_hashes = salt->count;
 
 	num_uncracked_hashes(salt_val) = create_perfect_hash_table(64, (void *)uncracked_hashes_t,
 				num_uncracked_hashes(salt_val),
@@ -418,10 +418,10 @@ void build_tables(struct db_main *db)
 	memset(hash_chk_params, 0, 4096 * sizeof(DES_hash_check_params));
 
 	if (db) {
-	struct db_salt *salt = db -> salts;
+	struct db_salt *salt = db->salts;
 	do {
 		fill_buffer(salt, &max_uncracked_hashes, &max_hash_table_size);
-	} while((salt = salt -> next));
+	} while((salt = salt->next));
 	}
 	else {
 		fill_buffer_self_test(&max_uncracked_hashes, &max_hash_table_size);
@@ -504,11 +504,11 @@ void set_common_kernel_args_kpc(cl_mem buffer_unchecked_hashes, cl_mem buffer_bs
 void update_buffer(struct db_salt *salt)
 {
 	unsigned int _max_uncracked_hashes = 0, _max_hash_table_size = 0;
-	WORD salt_val = *(WORD *)salt -> salt;
+	WORD salt_val = *(WORD *)salt->salt;
 	release_fill_buffer(salt_val);
 
-	if (salt -> count > LOW_THRESHOLD &&
-		(num_uncracked_hashes(salt_val) - num_uncracked_hashes(salt_val) / 10) < salt -> count)
+	if (salt->count > LOW_THRESHOLD &&
+		(num_uncracked_hashes(salt_val) - num_uncracked_hashes(salt_val) / 10) < salt->count)
 		return;
 
 	fill_buffer(salt, &_max_uncracked_hashes, &_max_hash_table_size);
@@ -1156,7 +1156,7 @@ size_t create_keys_kernel_set_args(int mask_mode)
 	des_finalize_int_keys();
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
-		if (mask_skip_ranges!= NULL && mask_skip_ranges[i] != -1)
+		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
 			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
 				ranges[mask_skip_ranges[i]].pos;
 		else

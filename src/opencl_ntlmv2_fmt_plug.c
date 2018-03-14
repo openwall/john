@@ -233,13 +233,12 @@ static void release_clobj(void)
 
 static void release_base_clobj(void)
 {
-	if (buffer_int_keys) {
+	if (zero_buffer) {
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_return_hashes), "Error Releasing buffer_return_hashes.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error Releasing buffer_bitmap_dupe.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Error Releasing buffer_hash_ids.");
 		MEM_FREE(zero_buffer);
-		buffer_int_keys = 0;
 	}
 }
 
@@ -303,10 +302,8 @@ static void done(void)
 		crypt_kernel = NULL;
 	}
 
-	if (loaded_hashes)
-		MEM_FREE(loaded_hashes);
-	if (hash_ids)
-		MEM_FREE(hash_ids);
+	MEM_FREE(loaded_hashes);
+	MEM_FREE(hash_ids);
 	release_salt_buffers();
 }
 
@@ -319,7 +316,7 @@ static void init_kernel(void)
 	clReleaseKernel(crypt_kernel);
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
-		if (mask_skip_ranges!= NULL && mask_skip_ranges[i] != -1)
+		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
 			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
 				ranges[mask_skip_ranges[i]].pos;
 		else
@@ -383,8 +380,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char utf8temp[3 * SALT_MAX_LENGTH + 1];
 	int saltlen;
 
-	if (ciphertext == NULL) return 0;
-	else if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
+	if (ciphertext == NULL)
+		return 0;
+	else
+		if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)!=0) return 0;
 
 	if (strlen(ciphertext) > TOTAL_LENGTH)
 		return 0;
@@ -516,7 +515,8 @@ static void *get_binary(char *ciphertext)
 	char *pos = NULL;
 	int i, identity_length;
 
-	if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!binary)
+		binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	for (pos = ciphertext + FORMAT_TAG_LEN; *pos != '$'; pos++);
 	identity_length = pos - (ciphertext + FORMAT_TAG_LEN);
@@ -652,7 +652,7 @@ static char *get_key(int index)
 		out[i] = *key++;
 	out[i] = 0;
 
-	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
+	if (len && mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 			if (mask_gpu_is_static)
 				out[static_gpu_locations[i]] =
@@ -757,6 +757,7 @@ static void select_bitmap(unsigned int num_loaded_hashes)
 static void prepare_table(struct db_main *db)
 {
 	struct db_salt *salt;
+	int seq_ids = 0;
 
 	max_num_loaded_hashes = 0;
 	max_hash_table_size = 1;
@@ -765,7 +766,7 @@ static void prepare_table(struct db_main *db)
 	do {
 		if (salt->count > max_num_loaded_hashes)
 			max_num_loaded_hashes = salt->count;
-	} while((salt = salt->next));
+	} while ((salt = salt->next));
 
 	MEM_FREE(loaded_hashes);
 	MEM_FREE(hash_ids);
@@ -817,6 +818,7 @@ static void prepare_table(struct db_main *db)
 			error();
 		}
 		num_loaded_hashes = salt->count;
+		salt->sequential_id = seq_ids++;
 
 		num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
 				num_loaded_hashes,
@@ -912,7 +914,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	if (count) return 1;
+	if (count)
+		return 1;
 	return 0;
 }
 
@@ -979,7 +982,7 @@ static void reset(struct db_main *db)
 	                       2 * BUFSIZE, gws_limit, db);
 
 	// Auto tune execution from shared/included code.
-	autotune_run_extra(self, 11, gws_limit, 300, CL_TRUE);
+	autotune_run_extra(self, 11, gws_limit, 100, CL_TRUE);
 }
 
 struct fmt_main FMT_STRUCT = {

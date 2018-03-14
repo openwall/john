@@ -330,7 +330,7 @@ static void init_kernel(void)
 	clReleaseKernel(crypt_kernel);
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
-		if (mask_skip_ranges!= NULL && mask_skip_ranges[i] != -1)
+		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
 			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
 				ranges[mask_skip_ranges[i]].pos;
 		else
@@ -549,7 +549,6 @@ static int get_hash_6(int index) { return hash_tables[current_salt][hash_ids[3 +
 static void clear_keys(void)
 {
 	key_idx = 0;
-	set_new_keys = 1;
 }
 
 static void set_key(char *_key, int index)
@@ -601,8 +600,8 @@ static char *get_key(int index)
 	}
 
 	if (t >= global_work_size) {
-		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
+		int_index = 0;
 	}
 
 	len = saved_idx[t] & 127;
@@ -612,7 +611,7 @@ static char *get_key(int index)
 		out[i] = *key++;
 	out[i] = 0;
 
-	if (mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
+	if (len && mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
 		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
 			if (mask_gpu_is_static)
 				out[static_gpu_locations[i]] =
@@ -717,6 +716,7 @@ static void select_bitmap(unsigned int num_loaded_hashes)
 static void prepare_table(struct db_main *db)
 {
 	struct db_salt *salt;
+	int seq_ids = 0;
 
 	max_num_loaded_hashes = 0;
 	max_hash_table_size = 1;
@@ -725,7 +725,7 @@ static void prepare_table(struct db_main *db)
 	do {
 		if (salt->count > max_num_loaded_hashes)
 			max_num_loaded_hashes = salt->count;
-	} while((salt = salt->next));
+	} while ((salt = salt->next));
 
 	MEM_FREE(loaded_hashes);
 	MEM_FREE(hash_ids);
@@ -777,12 +777,13 @@ static void prepare_table(struct db_main *db)
 			error();
 		}
 		num_loaded_hashes = salt->count;
+		salt->sequential_id = seq_ids++;
 
-		num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
-				num_loaded_hashes,
-			        &offset_table,
-			        &offset_table_size,
-			        &hash_table_size, 0);
+		num_loaded_hashes = create_perfect_hash_table(128, (void*)loaded_hashes,
+		                                              num_loaded_hashes,
+		                                              &offset_table,
+		                                              &offset_table_size,
+		                                              &hash_table_size, 0);
 
 		if (!num_loaded_hashes) {
 			MEM_FREE(hash_table_128);
@@ -822,7 +823,7 @@ static void prepare_table(struct db_main *db)
 		MEM_FREE(bitmaps);
 		MEM_FREE(offset_table);
 
-	} while((salt = salt->next));
+	} while ((salt = salt->next));
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
