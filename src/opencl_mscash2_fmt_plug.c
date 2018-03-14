@@ -95,13 +95,13 @@ static void reset(struct db_main *db)
 			self->params.max_keys_per_crypt += selectDevice(gpu_device_list[i], self);
 
 		///Allocate memory
-		key_host = mem_calloc(self -> params.max_keys_per_crypt, sizeof(*key_host));
-		dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
-		dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
-		hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
+		key_host = mem_calloc(self->params.max_keys_per_crypt, sizeof(*key_host));
+		dcc_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self->params.max_keys_per_crypt);
+		dcc2_hash_host = (cl_uint*)mem_alloc(4 * sizeof(cl_uint) * self->params.max_keys_per_crypt);
+		hmac_sha1_out  = (cl_uint*)mem_alloc(5 * sizeof(cl_uint) * self->params.max_keys_per_crypt);
 
-		memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
-		memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * self -> params.max_keys_per_crypt);
+		memset(dcc_hash_host, 0, 4 * sizeof(cl_uint) * self->params.max_keys_per_crypt);
+		memset(dcc2_hash_host, 0, 4 * sizeof(cl_uint) * self->params.max_keys_per_crypt);
 
 		initialized++;
 	}

@@ -35,7 +35,6 @@ typedef struct {
 	unsigned short collisions;
 	unsigned short iter;
 	unsigned int offset_table_idx;
-
 } auxilliary_offset_data;
 
 /* Interface pointers */
@@ -465,7 +464,7 @@ static unsigned int create_tables()
 	alarm(0);
 
 	hash_table_idx = 0;
-	while (offset_data[i].collisions > 0) {
+	while (i < offset_table_size && offset_data[i].collisions > 0) {
 		done++;
 
 		while (hash_table_idx < hash_table_size) {

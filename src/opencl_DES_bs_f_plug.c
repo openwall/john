@@ -672,24 +672,24 @@ static void reset(struct db_main *db)
 			unsigned int max_uncracked_hashes = 0;
 			WORD test_salt = 0;
 
-			salt = db -> salts;
+			salt = db->salts;
 			max_uncracked_hashes = 0;
 			do {
-				if (salt -> count > max_uncracked_hashes) {
-					max_uncracked_hashes = salt -> count;
-					test_salt = *(WORD *)salt -> salt;
+				if (salt->count > max_uncracked_hashes) {
+					max_uncracked_hashes = salt->count;
+					test_salt = *(WORD *)salt->salt;
 				}
 
-			} while ((salt = salt -> next));
+			} while ((salt = salt->next));
 			forced_global_keys = 0;
 			auto_tune_all(100, &fmt_opencl_DES, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
 		}
 
-		salt = db -> salts;
+		salt = db->salts;
 		num_salts = 0;
 		do {
-			salt_list[num_salts++] = (*(WORD *)salt -> salt);
-		} while ((salt = salt -> next));
+			salt_list[num_salts++] = (*(WORD *)salt->salt);
+		} while ((salt = salt->next));
 
 		if (num_salts > 1 && john_main_process)
 			fprintf(stderr, "Note: building per-salt kernels. "
@@ -754,10 +754,10 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 	process_keys(current_gws, lws);
 
-	if (salt && num_uncracked_hashes(current_salt) != salt -> count &&
+	if (salt && num_uncracked_hashes(current_salt) != salt->count &&
 	/* In case there are duplicate hashes, num_uncracked_hashes is always less than salt->count, as
 	 * num_uncracked_hashes tracks only unique hashes. */
-		num_uncracked_hashes(current_salt) > salt -> count)
+		num_uncracked_hashes(current_salt) > salt->count)
 		update_buffer(salt);
 
 	current_gws *= iter_count;
@@ -771,10 +771,10 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 void opencl_DES_bs_f_register_functions(struct fmt_main *fmt)
 {
-	fmt -> methods.done = &clean_all_buffers;
-	fmt -> methods.reset = &reset;
-	fmt -> methods.set_salt = &set_salt;
-	fmt -> methods.crypt_all = &des_crypt_25;
+	fmt->methods.done = &clean_all_buffers;
+	fmt->methods.reset = &reset;
+	fmt->methods.set_salt = &set_salt;
+	fmt->methods.crypt_all = &des_crypt_25;
 
 	opencl_DES_bs_init_global_variables = &init_global_variables;
 }
