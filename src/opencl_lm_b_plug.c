@@ -7,7 +7,6 @@
 
 #if HAVE_OPENCL
 
-#include <assert.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -629,9 +628,6 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 		gws_limit >>= 1;
 #endif
 
-	assert(gws_limit > PADDING);
-	assert(!(gws_limit & (gws_limit - 1)));
-
 	if (gws_tune_flag)
 		global_work_size = gws_init;
 
@@ -672,7 +668,7 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 	set_kernel_args_gws();
 
 	/* for hash_ids[3*x + 1], 27 bits for storing gid and 5 bits for bs depth. */
-	assert(global_work_size <= ((1U << 28) - 1));
+	//assert(global_work_size <= ((1U << 28) - 1));
 	fmt_opencl_lm.params.max_keys_per_crypt = global_work_size << lm_log_depth;
 	fmt_opencl_lm.params.min_keys_per_crypt = 1U << lm_log_depth;
 }
@@ -770,8 +766,6 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		}
 		if (local_work_size > lws_limit)
 			local_work_size = lws_limit;
-
-		assert(local_work_size <= lws_limit);
 
 		if (lws_tune_flag) {
 			time_ms = 0;
@@ -1016,10 +1010,8 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 		}
 		if (buf_sz >= 536870912)
 			buf_sz = 536870912;
-		assert(!(buf_sz & (buf_sz - 1)));
 		if (((*bitmap_size_bits) >> 3) > buf_sz)
 			*bitmap_size_bits = buf_sz << 3;
-		assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
 		cmp_steps = 1;
 	}
 
@@ -1029,7 +1021,6 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 	else
 		prepare_bitmap_2(*bitmap_size_bits, bitmaps_ptr, loaded_hashes);
 
-	assert(!((*bitmap_size_bits) & ((*bitmap_size_bits) - 1)));
 	get_num_bits(bits_req, (*bitmap_size_bits));
 
 	sprintf(kernel_params,
@@ -1259,7 +1250,6 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 		MEM_FREE(bitmaps);
 	}
 
-	assert(current_gws <= global_work_size + PADDING);
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_FALSE, 0, current_gws * sizeof(opencl_lm_transfer), opencl_lm_keys, 0, NULL, NULL ), "Failed Copy data to gpu");
 
 	if (!mask_gpu_is_static)

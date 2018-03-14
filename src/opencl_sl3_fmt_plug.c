@@ -22,7 +22,6 @@ john_register_one(&FMT_STRUCT);
 #else
 
 #include <string.h>
-#include <assert.h>
 #include <sys/time.h>
 
 #include "arch.h"
@@ -134,8 +133,6 @@ static void create_clobj(void)
 		max_alloc_size_bytes >>= 1;
 	}
 	if (max_alloc_size_bytes >= 536870912) max_alloc_size_bytes = 536870912;
-	assert(!(max_alloc_size_bytes & (max_alloc_size_bytes - 1)));
-
 	if (!cache_size_bytes) cache_size_bytes = 1024;
 
 	zero_buffer = (cl_uint*)mem_calloc(hash_table_size/32 + 1, sizeof(cl_uint));
@@ -641,10 +638,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		}
 		if (buf_sz >= 536870912)
 			buf_sz = 536870912;
-		assert(!(buf_sz & (buf_sz - 1)));
 		if ((bitmap_size_bits >> 3) > buf_sz)
 			bitmap_size_bits = buf_sz << 3;
-		assert(!(bitmap_size_bits & (bitmap_size_bits - 1)));
 		cmp_steps = 1;
 	}
 
@@ -898,11 +893,6 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	}
 
 	clear_keys();
-
-	assert(!(local_work_size & (local_work_size -1)));
-	assert(!(global_work_size % local_work_size));
-	assert(local_work_size <= lws_limit);
-	assert(global_work_size <= gws_limit);
 
 	self->params.max_keys_per_crypt = global_work_size;
 	if (options.verbosity > VERB_LEGACY)

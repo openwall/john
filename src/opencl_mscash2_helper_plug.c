@@ -7,7 +7,6 @@
 #ifdef HAVE_OPENCL
 
 #include <sys/time.h>
-#include <assert.h>
 
 #include "opencl_mscash2_helper_plug.h"
 #include "options.h"
@@ -239,7 +238,6 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 			lwsLimit = 8;
 		if (lwsInit > 8)
 			lwsInit = 8;
-		assert(lwsInit <= lwsLimit);
 	}
 
 	if (gwsInit > gwsLimit)
@@ -433,13 +431,6 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		createDevObjGws(devParam[jtrUniqDevId].devGws, jtrUniqDevId);
 	}
 
-	assert(!(devParam[jtrUniqDevId].devLws & (devParam[jtrUniqDevId].devLws -1)));
-	assert(!(gwsRound & (devParam[jtrUniqDevId].devLws - 1)));
-	assert(!(devParam[jtrUniqDevId].devGws % gwsRound));
-	assert(devParam[jtrUniqDevId].devLws <= lwsLimit);
-	assert(devParam[jtrUniqDevId].devGws <= gwsLimit);
-	assert(devParam[jtrUniqDevId].devLws <= PADDING);
-
 	if (options.verbosity > VERB_LEGACY)
 	fprintf(stdout, "Device %d  GWS: "Zu", LWS: "Zu"\n", jtrUniqDevId,
 			devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
@@ -451,8 +442,6 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
 {
 	char buildOpts[300];
-
-	assert(jtrUniqDevId < MAX_GPU_DEVICES);
 
 	sprintf(buildOpts, "-D SALT_BUFFER_SIZE=" Zu, SALT_BUFFER_SIZE);
 	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevId, buildOpts);
