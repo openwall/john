@@ -40,7 +40,7 @@ extern void pp_hybrid_fix_state(void);
 extern void ext_hybrid_fix_state(void);
 
 static mask_parsed_ctx parsed_mask;
-static mask_cpu_context cpu_mask_ctx, rec_ctx;
+static mask_cpu_context cpu_mask_ctx, rec_ctx, restored_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
 static int max_keylen, rec_len, restored_len, restored;
@@ -1361,6 +1361,13 @@ static void init_cpu_mask(const char *mask, mask_parsed_ctx *parsed_mask,
 	}
 	cpu_mask_ctx->ranges[i].next = MAX_NUM_MASK_PLHDR;
 	cpu_mask_ctx->active_positions[i] = 1;
+
+	if (restored) {
+		cpu_mask_ctx->count = restored_ctx.count;
+		cpu_mask_ctx->offset = restored_ctx.offset;
+		for (i = 0; i < cpu_mask_ctx->count; i++)
+			cpu_mask_ctx->ranges[i].iter = restored_ctx.ranges[i].iter;
+	}
 }
 
 #undef check_n_insert
@@ -1872,12 +1879,12 @@ int mask_restore_state(FILE *file)
 		return fail;
 
 	if (fscanf(file, "%d\n", &d) == 1)
-		cpu_mask_ctx.count = d;
+		restored_ctx.count = cpu_mask_ctx.count = d;
 	else
 		return fail;
 
 	if (fscanf(file, "%d\n", &d) == 1)
-		cpu_mask_ctx.offset = d;
+		restored_ctx.offset = cpu_mask_ctx.offset = d;
 	else
 		return fail;
 
@@ -1895,7 +1902,7 @@ int mask_restore_state(FILE *file)
 	/* vc and mingw can not handle %hhu */
 	for (i = 0; i < cpu_mask_ctx.count; i++)
 	if (fscanf(file, "%u\n", &cu) == 1)
-		cpu_mask_ctx.ranges[i].iter = cu;
+		restored_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter = cu;
 	else
 		return fail;
 	restored = 1;
@@ -2319,18 +2326,17 @@ static void finalize_mask(int len)
 	skip_position(&cpu_mask_ctx, mask_skip_ranges);
 
 	/* If running hybrid (stacked), we let the parent mode distribute */
-	if (options.node_count && !(options.flags & FLG_MASK_STACKED)) {
-		if (restored)
-			restored = 0;
-		else
+	if (!restored) {
+		if (options.node_count && !(options.flags & FLG_MASK_STACKED)) {
 			cand = divide_work(&cpu_mask_ctx);
-	} else {
-		cand = 1;
-		for (i = 0; i < cpu_mask_ctx.count; i++)
-			if ((int)(cpu_mask_ctx.active_positions[i]))
-			if ((options.flags & FLG_MASK_STACKED) ||
-			    cpu_mask_ctx.ranges[i].pos < len)
-				cand *= cpu_mask_ctx.ranges[i].count;
+		} else {
+			cand = 1;
+			for (i = 0; i < cpu_mask_ctx.count; i++)
+				if ((int)(cpu_mask_ctx.active_positions[i]))
+				if ((options.flags & FLG_MASK_STACKED) ||
+				    cpu_mask_ctx.ranges[i].pos < len)
+					cand *= cpu_mask_ctx.ranges[i].count;
+		}
 	}
 	mask_tot_cand = cand * mask_int_cand.num_int_cand;
 
@@ -2425,7 +2431,6 @@ int do_mask_crack(const char *extern_key)
 		}
 
 		for (i = mask_cur_len; i <= options.eff_maxlength; i++) {
-			mask_cur_len = i;
 			cand_length = rec_cl ? rec_cl - 1 : status.cands;
 			rec_cl = 0;
 
@@ -2438,6 +2443,8 @@ int do_mask_crack(const char *extern_key)
 					return 1;
 			}
 
+			mask_cur_len = i;
+
 			if (format_cannot_reset)
 				save_restore(&cpu_mask_ctx, 0, 1); // restore
 			else
@@ -2445,6 +2452,13 @@ int do_mask_crack(const char *extern_key)
 
 			generate_template_key(mask, extern_key, key_len, &parsed_mask,
 			                      &cpu_mask_ctx, mask_cur_len);
+
+			if (restored)
+				restored = 0;
+			else if (options.node_count) {
+				cand = divide_work(&cpu_mask_ctx);
+			}
+			mask_tot_cand = cand * mask_int_cand.num_int_cand;
 
 			/* Update internal masks if needed. */
 			if (!format_cannot_reset && mask_fmt->params.flags & FMT_MASK &&
