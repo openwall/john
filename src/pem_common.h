@@ -28,6 +28,7 @@ struct custom_salt {
 	int ciphertext_length;
 	unsigned char ciphertext[CTLEN];
 	int cid;  // cipher id
+	int key_length;
 };
 
 
