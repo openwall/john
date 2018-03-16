@@ -95,13 +95,14 @@ void *pem_get_salt(char *ciphertext)
 	char *p;
 	int len;
 	static struct custom_salt *cur_salt;
+	int cid;
 
 	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$"); // type
 	p = strtokm(NULL, "$");
-	cur_salt->cid = atoi(p);
+	cid = cur_salt->cid = atoi(p);
 	p = strtokm(NULL, "$");   // salt
 
 	for (i = 0; i < SALTLEN; i++)
@@ -123,6 +124,12 @@ void *pem_get_salt(char *ciphertext)
 	for (i = 0; i < cur_salt->ciphertext_length; i++)
 		cur_salt->ciphertext[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	if (cid == 1 || cid == 3)
+		cur_salt->key_length = 24;
+	else if (cid == 2)
+		cur_salt->key_length = 16;
+	else if (cid == 4)
+		cur_salt->key_length = 32;
 
 	MEM_FREE(keeptr);
 	return (void *)cur_salt;

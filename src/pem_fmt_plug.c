@@ -94,18 +94,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
-	int cid;
-	int key_length = 24;
 
 	memset(cracked, 0, sizeof(cracked[0])*cracked_count);
-	cid = cur_salt->cid;
-
-	if (cid == 1 || cid == 3)
-		key_length = 24;
-	else if (cid == 2)
-		key_length = 16;
-	else if (cid == 4)
-		key_length = 32;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -121,9 +111,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = master[i];
 		}
-		pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt, SALTLEN, cur_salt->iterations, pout, key_length, 0);
+		pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt, SALTLEN, cur_salt->iterations, pout, cur_salt->key_length, 0);
 #else
-		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), cur_salt->salt, SALTLEN, cur_salt->iterations, master[0], key_length, 0);
+		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), cur_salt->salt, SALTLEN, cur_salt->iterations, master[0], cur_salt->key_length, 0);
 #endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			if (pem_decrypt(master[i], cur_salt->iv, cur_salt->ciphertext, cur_salt) == 0)
