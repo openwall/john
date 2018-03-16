@@ -24,9 +24,13 @@
 #define PLAINTEXT_LENGTH	64
 #endif
 
+#ifndef MAX_OUTLEN
+#define MAX_OUTLEN OUTLEN
+#endif
+
 #ifndef pbkdf2_out
 typedef struct {
-	unsigned int dk[((OUTLEN + 19) / 20) * 20 / sizeof(unsigned int)];
+	unsigned int dk[((MAX_OUTLEN + 19) / 20) * 20 / sizeof(unsigned int)];
 } pbkdf2_out;
 #endif
 

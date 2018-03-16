@@ -19,7 +19,7 @@
  * will be used (slower).
  *
  * For a fixed output length, define OUTLEN. Otherwise salt->outlen will be
- * used.
+ * used and MAX_OUTLEN has to be defined to the max. outlen used.
  *
  * Example for 4096 iterations and output length 20:
  * -DITERATIONS=4095
