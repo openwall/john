@@ -242,3 +242,10 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 bad:
 	return -1;
 }
+
+unsigned int pem_iteration_count(void *salt)
+{
+	struct custom_salt *cs = salt;
+
+	return cs->iterations * (cs->key_length > 20 ? 2 : 1);
+}

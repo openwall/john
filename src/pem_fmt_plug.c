@@ -146,13 +146,6 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static unsigned int iteration_count(void *salt)
-{
-	struct custom_salt *cs = salt;
-
-	return (unsigned int) cs->iterations;
-}
-
 struct fmt_main fmt_pem = {
 	{
 		FORMAT_LABEL,
@@ -184,7 +177,7 @@ struct fmt_main fmt_pem = {
 		fmt_default_binary,
 		pem_get_salt,
 		{
-			iteration_count,
+			pem_iteration_count,
 		},
 		fmt_default_source,
 		{
