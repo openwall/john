@@ -1009,6 +1009,56 @@ static char *quote_str(char *orig)
 	return new;
 }
 
+#if defined(__CYGWIN__)
+static char *mingw_try_relative_path(char *self_path)
+{
+	int len;
+	struct stat file_stat;
+	struct path {
+		char *prefix1, *prefix2;
+	};
+
+	if (!stat(self_path, &file_stat) && S_ISDIR(file_stat.st_mode))
+		return self_path;
+
+	len = strlen(self_path);
+	if (len > PATH_BUFFER_SIZE - 4)
+		return self_path;
+
+	{
+		int i = 0;
+		char *origin = (char *) mem_calloc(len + 1, sizeof(char));
+		char *fixed_path = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
+		struct path prefixes[] = {
+			{".",  "./"   /* Child */ },
+			{"..", "../"  /* Root */ },
+			{NULL, NULL}
+		};
+		strncpy(origin, self_path, len);
+		MEM_FREE(self_path);
+
+		while (prefixes[i].prefix1) {
+			if (origin[0] == '/')
+				strcpy(fixed_path, prefixes[i].prefix1);
+			else
+				strcpy(fixed_path, prefixes[i].prefix2);
+			strncat(fixed_path, origin, len);
+
+			if (!stat(fixed_path, &file_stat) && S_ISDIR(file_stat.st_mode))
+				goto found;
+			i++;
+		}
+		/* Give up */
+		MEM_FREE(fixed_path);
+		return origin;
+
+	found:
+		MEM_FREE(origin);
+		return fixed_path;
+	}
+}
+#endif
+
 static char *include_source(char *pathname, int sequential_id, char *opts)
 {
 	char *include, *full_path;
@@ -1023,6 +1073,9 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	MEM_FREE(pex);
 #else
 	full_path = path_expand_safe(pathname);
+#if defined(__CYGWIN__)
+	full_path = mingw_try_relative_path(full_path);
+#endif
 #endif
 
 	include = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
