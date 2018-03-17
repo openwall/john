@@ -72,6 +72,7 @@ AC_ARG_ENABLE([simd], [AS_HELP_STRING([--disable-simd, --enable-simd=foo], [* Bu
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
+AC_ARG_ENABLE([patch], [AS_HELP_STRING([--enable-patch], [Diagnostic writes out a patch])], [patch=$enableval], [patch=no])
 
 dnl Define Features. OpenMP and OpenCL are defined in their respective macros.
 dnl We define "--disable-FEATURE" when default is "auto".
@@ -238,6 +239,11 @@ fi
       JTR_FLAG_CHECK([-Wno-error=cpp], 1)
       JTR_FLAG_CHECK([[-Wno-error=#warnings]], 1)
    )
+
+   AS_IF([test "x$patch" = xyes],
+      JTR_FLAG_CHECK([-fdiagnostics-generate-patch], 1)
+   )
+
    if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
       JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
    else
