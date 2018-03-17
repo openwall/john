@@ -341,7 +341,9 @@ struct fmt_main fmt_opencl_pem = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
-		{ NULL },
+		{
+			"iteration count",
+		},
 		{ FORMAT_TAG },
 		pem_tests
 	}, {
@@ -353,7 +355,9 @@ struct fmt_main fmt_opencl_pem = {
 		fmt_default_split,
 		fmt_default_binary,
 		pem_get_salt,
-		{ NULL },
+		{
+			pem_iteration_count,
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
