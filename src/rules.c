@@ -54,6 +54,11 @@ static const char * const rules_errors[] = {
 static int rules_errno;
 
 /*
+ * Last error code refer to this rule.
+ */
+static const char *rules_err_rule;
+
+/*
  * Configuration file line number, only set after a rules_check() call if
  * rules_errno indicates an error.
  */
@@ -1172,8 +1177,13 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 {
 	static char out_rule[RULE_BUFFER_SIZE];
 
-	if (hc_logic && !strncmp(rule, "!! hashcat logic", 16))
+	if (!strcmp(rule, "!! hashcat logic ON")) {
+		hc_logic = 1;
 		return NULL;
+	} else if (!strcmp(rule, "!! hashcat logic OFF")) {
+		hc_logic = 0;
+		return NULL;
+	}
 
 	while (RULE)
 	switch (LAST) {
@@ -1988,7 +1998,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 		/*
 		 * these are hashcat specific rules added to jumbo JtR
 		 */
-
 		case '-': /* HC rule: decrement character */
 			{
 				unsigned char x;
@@ -2286,6 +2295,9 @@ static int rules_check(struct rpp_context *start, int split)
 	}
 	rules_pass = 0;
 
+	if (rules_errno)
+		rules_err_rule = rule;
+
 	return rules_errno ? 0 : count;
 }
 
@@ -2458,16 +2470,18 @@ int rules_count(struct rpp_context *start, int split)
 
 	if (!strcmp(start->input->data, "!! hashcat logic ON"))
 		hc_logic = 1;
-	if (!strcmp(start->input->data, "!! hashcat logic OFF"))
+	else if (!strcmp(start->input->data, "!! hashcat logic OFF"))
 		hc_logic = 0;
 
 	if (!(count1 = rules_check(start, split))) {
-		log_event("! Invalid rule at line %d: %.100s",
-			rules_line, rules_errors[rules_errno]);
+		log_event("! Invalid rule at line %d: %.100s %.100s",
+		          rules_line, rules_errors[rules_errno],
+		          rules_err_rule);
 		if (john_main_process)
-			fprintf(stderr, "Invalid rule in %s at line %d: %s\n",
+			fprintf(stderr,
+			        "Invalid rule in %s at line %d: %s %s\n",
 			        start->input->cfg_name, rules_line,
-			        rules_errors[rules_errno]);
+			        rules_errors[rules_errno], rules_err_rule);
 		error();
 	}
 
