@@ -33,12 +33,8 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
 #define FORMAT_NAME		""
 #define ALGORITHM_NAME		"PBKDF2-SHA256 OpenCL"
 
-#define SALT_ALIGN		1
-
 #define SALT_SIZE		sizeof(salt_t)
-
-#define KERNEL_NAME		"pbkdf2_sha256_kernel"
-#define SPLIT_KERNEL_NAME	"pbkdf2_sha256_loop"
+#define SALT_ALIGN		1
 
 #define HASH_LOOPS		(13*71) // factors 13, 13, 71
 #define ITERATIONS		12000
@@ -51,14 +47,14 @@ static salt_t *host_salt;			      /** salt **/
 static crack_t *host_crack;			      /** hash**/
 static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
-static cl_kernel split_kernel;
+static cl_kernel split_kernel, final_kernel;
 static struct fmt_main *self;
 
 #define STEP			0
 #define SEED			1024
 
 static const char * warn[] = {
-        "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
+        "xfer: ",  ", init: ", ", crypt: ", ", final: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -98,7 +94,10 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	CLKERNELARG(crypt_kernel, 2, mem_state, "Error while setting mem_state");
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
-	CLKERNELARG(split_kernel, 1 ,mem_out, "Error while setting mem_out");
+
+	CLKERNELARG(final_kernel, 0 ,mem_out, "Error while setting mem_out");
+	CLKERNELARG(final_kernel, 1, mem_salt, "Error while setting mem_salt");
+	CLKERNELARG(final_kernel, 2, mem_state, "Error while setting mem_state");
 }
 
 /* ------- Helper functions ------- */
@@ -108,6 +107,7 @@ static size_t get_task_max_work_group_size()
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, split_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
 	return s;
 }
 
@@ -143,12 +143,16 @@ static void reset(struct db_main *db)
 		            gpu_id, build_opts);
 
 		crypt_kernel =
-			clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
+			clCreateKernel(program[gpu_id], "pbkdf2_sha256_init", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
 
 		split_kernel =
-			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
+			clCreateKernel(program[gpu_id], "pbkdf2_sha256_loop", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
+
+		final_kernel =
+			clCreateKernel(program[gpu_id], "pbkdf2_sha256_final", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating final kernel");
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
@@ -168,6 +172,7 @@ static void done(void)
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
 		HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel 3");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
 
@@ -235,11 +240,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 		opencl_process_event();
 	}
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
+		1, NULL, &global_work_size, lws, 0, NULL,
+		multi_profilingEvent[3]), "Run final kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
 		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
-		NULL, multi_profilingEvent[3]), "Copy result back");
+		NULL, multi_profilingEvent[4]), "Copy result back");
 
 	return count;
 }

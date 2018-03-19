@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
- * and Copyright 2014 magnum
+ * and Copyright 2014, 2018 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -12,19 +12,32 @@
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
 
+#ifndef MAX_OUTLEN
+#if OUTLEN
+#define MAX_OUTLEN OUTLEN
+#else
+#define MAX_OUTLEN 32
+#endif
+#endif
+
+#ifndef OUTLEN
+#define OUTLEN salt->outlen
+#endif
+
 typedef struct {
 	uchar length;
 	uchar v[PLAINTEXT_LENGTH];
 } pass_t;
 
 typedef struct {
-	uint hash[8]; /** 256 bits **/
+	uint hash[((MAX_OUTLEN + 31) / 32) * 32 / sizeof(uint)];
 } crack_t;
 
 typedef struct {
 	uint rounds;
 	uchar salt[179];
 	uint length;
+	uint outlen;
 } salt_t;
 
 typedef struct {
@@ -33,10 +46,11 @@ typedef struct {
 	uint hash[8];
 	uint W[8];
 	uint rounds;
+	uint pass;
 } state_t;
 
 inline void preproc(__global const uchar *key, uint keylen,
-                    uint *state, uint padding)
+                    __global uint *state, uint padding)
 {
 	uint j, t;
 	uint W[16];
@@ -68,9 +82,9 @@ inline void preproc(__global const uchar *key, uint keylen,
 }
 
 
-inline void hmac_sha256(uint *output, uint *ipad_state,
-                        uint *opad_state, __constant uchar *salt,
-                        uint saltlen)
+inline void hmac_sha256(__global uint *output, __global uint *ipad_state,
+                        __global uint *opad_state, __constant uchar *salt,
+                        uint saltlen, uchar add)
 {
 	uint i, j, last;
 	uint W[16], ctx[8];
@@ -102,7 +116,7 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
 
 	if (last <= 51) {
 		// this is last limb, everything fits
-		PUTCHAR_BE(W, last + 3, 1);		// should be add to allow more than 32 bytes to be returned!
+		PUTCHAR_BE(W, last + 3, add);
 		PUTCHAR_BE(W, last + 4, 0x80);
 		W[15] = (64 + saltlen + 4) << 3;
 	} else {
@@ -137,8 +151,7 @@ inline void hmac_sha256(uint *output, uint *ipad_state,
 		output[j] = ctx[j];
 }
 
-__kernel void pbkdf2_sha256_loop(__global state_t *state,
-                                 __global crack_t *out)
+__kernel void pbkdf2_sha256_loop(__global state_t *state)
 {
 	uint idx = get_global_id(0);
 	uint i, round, rounds = state[idx].rounds;
@@ -212,45 +225,62 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state,
 		tmp_out[7] ^= H;
 	}
 
-	if (rounds >= HASH_LOOPS) { // there is still work to do
-		state[idx].rounds = rounds - HASH_LOOPS;
-		for (i = 0; i < 8; i++) {
-			state[idx].hash[i] = tmp_out[i];
-			state[idx].W[i] = W[i];
-		}
-	}
-	else { // rounds == 0 - we're done
-		for (i = 0; i < 8; i++)
-			out[idx].hash[i] = SWAP32(tmp_out[i]);
+	state[idx].rounds = rounds - HASH_LOOPS;
+	for (i = 0; i < 8; i++) {
+		state[idx].hash[i] = tmp_out[i];
+		state[idx].W[i] = W[i];
 	}
 }
 
-__kernel void pbkdf2_sha256_kernel(__global const pass_t *inbuffer,
-                                   __constant salt_t *gsalt,
-                                   __global state_t *state)
+__kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
+                                 __constant salt_t *salt,
+                                 __global state_t *state)
 {
-
-	uint ipad_state[8];
-	uint opad_state[8];
-	uint tmp_out[8];
 	uint i, idx = get_global_id(0);
 
-	__global const uchar *pass = inbuffer[idx].v;
-	__constant uchar *salt = gsalt->salt;
-	uint passlen = inbuffer[idx].length;
-	uint saltlen = gsalt->length;
+	state[idx].rounds = salt->rounds - 1;
 
-	state[idx].rounds = gsalt->rounds - 1;
+	preproc(inbuffer[idx].v, inbuffer[idx].length, state[idx].ipad, 0x36363636);
+	preproc(inbuffer[idx].v, inbuffer[idx].length, state[idx].opad, 0x5c5c5c5c);
 
-	preproc(pass, passlen, ipad_state, 0x36363636);
-	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
+	hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
+	            salt->salt, salt->length, 0x01);
 
-	hmac_sha256(tmp_out, ipad_state, opad_state, salt, saltlen);
+	for (i = 0; i < 8; i++)
+		state[idx].W[i] = state[idx].hash[i];
 
-	for (i = 0; i < 8; i++) {
-		state[idx].ipad[i] = ipad_state[i];
-		state[idx].opad[i] = opad_state[i];
-		state[idx].hash[i] = tmp_out[i];
-		state[idx].W[i] = tmp_out[i];
+#if MAX_OUTLEN > 32
+	state[idx].pass = 0;
+#endif
+}
+
+__kernel void pbkdf2_sha256_final(__global crack_t *out,
+                                  __constant salt_t *salt,
+                                  __global state_t *state)
+{
+	uint idx = get_global_id(0);
+	uint i;
+
+#if MAX_OUTLEN > 32
+	uint base = state[idx].pass++ * 8;
+	uint pass = state[idx].pass;
+#else
+#define base 0
+#define pass 1
+#endif
+
+	// First/next 32 bytes of output
+	for (i = 0; i < 8; i++)
+		out[idx].hash[base + i] = SWAP32(state[idx].hash[i]);
+
+	/* Was this the last pass? If not, prepare for next one */
+	if (4 * base + 32 < OUTLEN) {
+		hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
+		            salt->salt, salt->length, pass + 1);
+
+		for (i = 0; i < 8; i++)
+			state[idx].W[i] = state[idx].hash[i];
+
+		state[idx].rounds = salt->rounds - 1;
 	}
 }

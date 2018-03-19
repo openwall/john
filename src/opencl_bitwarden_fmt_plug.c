@@ -36,9 +36,6 @@ john_register_one(&fmt_opencl_bitwarden);
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint64_t)
-#define KERNEL_NAME             "pbkdf2_sha256_kernel"
-#define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
-#define AES_KERNEL_NAME         "bitwarden_decrypt"
 
 #define HASH_LOOPS              (7*113) // factors 7 89 113 (for 70400)
 #define ITERATIONS              70400
@@ -59,7 +56,7 @@ static pass_t *host_pass;
 static salt_t2 *host_salt;
 static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_cracked;
-static cl_kernel split_kernel, decrypt_kernel;
+static cl_kernel split_kernel, final_kernel, decrypt_kernel;
 static struct fmt_main *self;
 
 static unsigned int *cracked, cracked_size;
@@ -69,7 +66,7 @@ static struct custom_salt *cur_salt;
 #define SEED			1024
 
 static const char * warn[] = {
-        "xfer: ",  ", init: " , ", crypt: ", ", decrypt: ", ", res xfer: "
+	"xfer: ",  ", init: " , ", crypt: ", ", final", ", decrypt: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -112,7 +109,10 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	CLKERNELARG(crypt_kernel, 2, mem_state, "Error while setting mem_state");
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
-	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
+
+	CLKERNELARG(final_kernel, 0, mem_out, "Error while setting mem_out");
+	CLKERNELARG(final_kernel, 1, mem_salt, "Error while setting mem_salt");
+	CLKERNELARG(final_kernel, 2, mem_state, "Error while setting mem_state");
 
 	CLKERNELARG(decrypt_kernel, 0, mem_salt, "Error while setting mem_salt");
 	CLKERNELARG(decrypt_kernel, 1, mem_out, "Error while setting mem_out");
@@ -126,6 +126,7 @@ static size_t get_task_max_work_group_size()
 
 	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, split_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, decrypt_kernel));
 	return s;
 }
@@ -163,15 +164,19 @@ static void reset(struct db_main *db)
 		            gpu_id, build_opts);
 
 		crypt_kernel =
-			clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
+			clCreateKernel(program[gpu_id], "pbkdf2_sha256_init", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
 
 		split_kernel =
-			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
+			clCreateKernel(program[gpu_id], "pbkdf2_sha256_loop", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
+		final_kernel =
+			clCreateKernel(program[gpu_id], "pbkdf2_sha256_final", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating final kernel");
+
 		decrypt_kernel =
-			clCreateKernel(program[gpu_id], AES_KERNEL_NAME, &cl_error);
+			clCreateKernel(program[gpu_id], "bitwarden_decrypt", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating decrypt kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -188,6 +193,7 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel 3");
 	if (autotuned) {
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
@@ -238,15 +244,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 		opencl_process_event();
 	}
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
+		1, NULL, &global_work_size, lws, 0, NULL,
+		multi_profilingEvent[3]), "Run final kernel");
 
 	// Run Bitwarden decrypt/compare kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], decrypt_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run kernel");
+		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cracked,
 		CL_TRUE, 0, cracked_size, cracked, 0,
-		NULL, multi_profilingEvent[4]), "Copy result back");
+		NULL, multi_profilingEvent[5]), "Copy result back");
 
 	return count;
 }

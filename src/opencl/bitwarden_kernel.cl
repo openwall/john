@@ -17,7 +17,7 @@
  * but some added stuff can be appended to the original salt structure.
  */
 typedef struct {
-        // PBKDF2 salt
+	// PBKDF2 salt
 	salt_t pbkdf2_salt;
 
 	// bitwarden extension
@@ -28,8 +28,8 @@ typedef struct {
 } bitwarden_salt_t;
 
 __kernel void bitwarden_decrypt(__constant bitwarden_salt_t *salt,
-                           __global crack_t *out,
-                           __global uint32_t *cracked)
+                                __global crack_t *out,
+                                __global uint32_t *cracked)
 {
 	uint32_t gid = get_global_id(0);
 	int32_t i;
