@@ -656,12 +656,17 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
 		name = options.wordlist = WORDLIST_NAME;
 
-	if (rec_restored && john_main_process)
-		fprintf(stderr,
-		        "Proceeding with wordlist:%s and rules:%s\n",
-		        loopBack ? "loopback" : name ? path_expand(name) : "stdin",
-		        options.activewordlistrules ?
-		        options.activewordlistrules : "none");
+	if (rec_restored && john_main_process) {
+		fprintf(stderr, "Proceeding with wordlist:%s",
+		        loopBack ? "loopback" :
+		        name ? path_expand(name) : "stdin");
+		if (options.activewordlistrules)
+			fprintf(stderr, ", rules:%s",
+			        options.activewordlistrules);
+		if (options.mask)
+			fprintf(stderr, ", mask:%s", options.mask);
+		fprintf(stderr, "\n");
+	}
 
 	if (options.flags & FLG_STACKED)
 		options.max_fix_state_delay = 0;

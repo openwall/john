@@ -725,15 +725,20 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	gstart = mkv_start;
 	gend = mkv_end + 10;        /* omg !! */
 
-	if (param)
-		log_event("Proceeding with Markov mode %s", param);
-	else
-		log_event("Proceeding with Markov mode");
-
+	log_event("Proceeding with Markov mode%s%s",
+	          param ? " " : "", param ? param : "");
 	log_event("- Statsfile: %s", statfile);
 	log_event("- Markov level: %d - %d", mkv_minlevel, mkv_level);
 	log_event("- Length: %d - %d", mkv_minlen, mkv_maxlen);
 	log_event("- Start-End: %" PRIu64 " - %" PRIu64, mkv_start, mkv_end);
+
+	if (rec_restored && john_main_process) {
+		fprintf(stderr, "Proceeding with Markov%s%s",
+		        param ? " " : "", param ? param : "");
+		if (options.mask)
+			fprintf(stderr, ", mask:%s", options.mask);
+		fprintf(stderr, "\n");
+	}
 
 	show_pwd(db, mkv_start);
 

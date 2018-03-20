@@ -341,8 +341,12 @@ void do_regex_crack(struct db_main *db, const char *regex)
 		error();
 	}
 
-	if (rec_restored && john_main_process)
-		fprintf(stderr, "Proceeding with regex:%s\n", regex);
+	if (rec_restored && john_main_process) {
+		fprintf(stderr, "Proceeding with regex:%s", regex);
+		if (options.mask)
+			fprintf(stderr, ", mask:%s", options.mask);
+		fprintf(stderr, "\n");
+	}
 
 	iter = c_regex_iterator(regex_ptr);
 	if (restore_str) {
