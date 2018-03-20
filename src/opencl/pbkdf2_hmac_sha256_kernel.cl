@@ -1,53 +1,23 @@
 /*
  * This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
- * and Copyright 2014, 2018 magnum
+ * and Copyright 2014 - 2018 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- *  increased salt.  Now unlimited salt length. (Dec 2017, JimF)
+ * Now unlimited salt length. (Dec 2017, JimF)
+ *
+ * skip_bytes means "skip leading output bytes" and can be given in
+ * multiples of underlying hash size (in this case 32). So to calculate only
+ * byte 33-64 (second chunk) you can say "outlen=32 skip_bytes=32"
+ * for a 2x boost. The 1st byte of output array will then be 1st byte of second
+ * chunk so its actual size can be 32 as opposed to 64.
  */
 
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
-
-#ifndef MAX_OUTLEN
-#if OUTLEN
-#define MAX_OUTLEN OUTLEN
-#else
-#define MAX_OUTLEN 32
-#endif
-#endif
-
-#ifndef OUTLEN
-#define OUTLEN salt->outlen
-#endif
-
-typedef struct {
-	uchar length;
-	uchar v[PLAINTEXT_LENGTH];
-} pass_t;
-
-typedef struct {
-	uint hash[((MAX_OUTLEN + 31) / 32) * 32 / sizeof(uint)];
-} crack_t;
-
-typedef struct {
-	uint rounds;
-	uchar salt[179];
-	uint length;
-	uint outlen;
-} salt_t;
-
-typedef struct {
-	uint ipad[8];
-	uint opad[8];
-	uint hash[8];
-	uint W[8];
-	uint rounds;
-	uint pass;
-} state_t;
+#include "opencl_pbkdf2_hmac_sha256.h"
 
 inline void preproc(__global const uchar *key, uint keylen,
                     __global uint *state, uint padding)
@@ -237,6 +207,7 @@ __kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
                                  __global state_t *state)
 {
 	uint i, idx = get_global_id(0);
+	uint pass = salt->skip_bytes / 32;
 
 	state[idx].rounds = salt->rounds - 1;
 
@@ -244,14 +215,12 @@ __kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
 	preproc(inbuffer[idx].v, inbuffer[idx].length, state[idx].opad, 0x5c5c5c5c);
 
 	hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
-	            salt->salt, salt->length, 0x01);
+	            salt->salt, salt->length, pass + 1);
 
 	for (i = 0; i < 8; i++)
 		state[idx].W[i] = state[idx].hash[i];
 
-#if MAX_OUTLEN > 32
-	state[idx].pass = 0;
-#endif
+	state[idx].pass = pass;
 }
 
 __kernel void pbkdf2_sha256_final(__global crack_t *out,
@@ -261,13 +230,8 @@ __kernel void pbkdf2_sha256_final(__global crack_t *out,
 	uint idx = get_global_id(0);
 	uint i;
 
-#if MAX_OUTLEN > 32
-	uint base = state[idx].pass++ * 8;
-	uint pass = state[idx].pass;
-#else
-#define base 0
-#define pass 1
-#endif
+	uint base = (state[idx].pass - salt->skip_bytes / 32) * 8;
+	uint pass = ++state[idx].pass;
 
 	// First/next 32 bytes of output
 	for (i = 0; i < 8; i++)

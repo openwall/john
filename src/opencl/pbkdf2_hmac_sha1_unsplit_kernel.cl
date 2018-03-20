@@ -10,6 +10,12 @@
  * KEYLEN  should be PLAINTEXT_LENGTH for passwords or 20 for hash
  * OUTLEN  should be sizeof(outbuffer->v)
  * SALTLEN should be sizeof(currentsalt.salt)
+ *
+ * salt->skip_bytes means "skip leading output bytes" and can be given in
+ * multiples of underlying hash size (in this case 20). So to calculate only
+ * byte 21-40 (second chunk) you can say "salt->outlen=20 salt->skip_bytes=20"
+ * for a 2x boost. The 1st byte of output array will then be 1st byte of second
+ * chunk so its actual size can be 20 as opposed to 40.
  */
 
 #include "opencl_device_info.h"

@@ -11,6 +11,12 @@
  * only using oSSL functions.  A lot of the high level stuff in oSSL sux for speed.
  *
  * SSE2 intrinsic code, May, 2013, Jim Fougeron.
+ *
+ * skip_bytes means "skip leading output bytes" and can be given in
+ * multiples of underlying hash size (in this case 64). So to calculate only
+ * byte 65-127 (second chunk) you can say "outlen=64 skip_bytes=64"
+ * for a 2x boost. The 1st byte of output array will then be 1st byte of second
+ * chunk so its actual size can be 64 as opposed to 128.
  */
 
 

@@ -41,7 +41,7 @@ john_register_one(&fmt_opencl_ansible);
 #define HASH_LOOPS              (7*113) // factors 7 89 113 (for 70400)
 #define ITERATIONS              70400
 
-#define MAX_OUTLEN              64
+#define MAX_OUTLEN              32
 #include "opencl_pbkdf2_hmac_sha256.h"
 
 static pass_t *host_pass;
@@ -194,7 +194,8 @@ static void set_salt(void *salt)
 	memcpy(host_salt->salt, cur_salt->salt, cur_salt->salt_length);
 	host_salt->length = cur_salt->salt_length;
 	host_salt->rounds = cur_salt->iterations;
-	host_salt->outlen = 64;
+	host_salt->outlen = 32;
+	host_salt->skip_bytes = 32;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
@@ -240,7 +241,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (!ocl_autotune_running) {
 		for (index = 0; index < count; index++) {
-			JTR_hmac_sha256(((unsigned char*)host_crack[index].hash) + 32, 32, cur_salt->blob, cur_salt->bloblen, (unsigned char*)crypt_out[index], 16);
+			JTR_hmac_sha256((unsigned char*)host_crack[index].hash, 32, cur_salt->blob, cur_salt->bloblen, (unsigned char*)crypt_out[index], 16);
 		}
 	}
 

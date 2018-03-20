@@ -15,6 +15,12 @@
  * and it is hereby released to the general public under the following
  * terms: This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
+ *
+ * skip_bytes means "skip leading output bytes" and can be given in
+ * multiples of underlying hash size (in this case 32). So to calculate only
+ * byte 33-64 (second chunk) you can say "outlen=32 skip_bytes=32"
+ * for a 2x boost. The 1st byte of output array will then be 1st byte of second
+ * chunk so its actual size can be 32 as opposed to 64.
  */
 
 

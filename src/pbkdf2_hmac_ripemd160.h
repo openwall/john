@@ -11,6 +11,12 @@
  * simply include this header file, and then call the pbkdf2_ripemd160()
  * function, filling in all params.  This format is same as the EVPdigest
  * ripemd160 algorithm within OpenSSL.
+ *
+ * skip_bytes means "skip leading output bytes" and can be given in
+ * multiples of underlying hash size (in this case 20). So to calculate only
+ * byte 21-40 (second chunk) you can say "outlen=20 skip_bytes=20"
+ * for a 2x boost. The 1st byte of output array will then be 1st byte of second
+ * chunk so its actual size can be 20 as opposed to 40.
  */
 
 #ifndef JOHN_PBKDF2_HMAC_RIPEMD160_H

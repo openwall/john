@@ -23,6 +23,12 @@
  * of bits (at the end of the buffer). Yes it is known, but there is only a
  * little speed up due to this knowledge (the known ZEROS algorithm), but
  * we do not use this
+ *
+ * skip_bytes means "skip leading output bytes" and can be given in
+ * multiples of underlying hash size (in this case 64). So to calculate only
+ * byte 65-127 (second chunk) you can say "outlen=64 skip_bytes=64"
+ * for a 2x boost. The 1st byte of output array will then be 1st byte of second
+ * chunk so its actual size can be 64 as opposed to 128.
  */
 
 #ifndef JOHN_PBKDF2_HMAC_WHIRLPOOL_H

@@ -3,6 +3,12 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * salt->skip_bytes means "skip leading output bytes" and can be given in
+ * multiples of underlying hash size (in this case 16). So to calculate only
+ * byte 17-32 (second chunk) you can say "salt->outlen=16 salt->skip_bytes=16"
+ * for a 2x boost. The 1st byte of output array will then be 1st byte of second
+ * chunk so its actual size can be 16 as opposed to 32.
  */
 #ifndef JOHN_PBKDF2_HMAC_MD4_H
 #define JOHN_PBKDF2_HMAC_MD4_H

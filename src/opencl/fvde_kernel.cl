@@ -15,13 +15,11 @@
 #define BLOBLEN                 24
 
 /*
- * Note that this struct must match the one in pbkdf2_hmac_sha256_kernel.cl
- * but with some added stuff appended
+ * Note that this struct includes the one in opencl_pbkdf2_hmac_sha256.h
+ * and custom stuff appended.
  */
 typedef struct {
-	uint32_t rounds;
-	uint8_t salt[179];
-	uint32_t length;
+	salt_t pbkdf2;
 	union blob {  // wrapped kek
 		uint64_t qword[BLOBLEN/8];
 		uint8_t chr[BLOBLEN];

@@ -13,12 +13,12 @@
 #include "opencl_aes.h"
 
 /*
- * Note that this struct must match the one in pbkdf2_hmac_sha256_kernel.cl
- * but some added stuff can be appended to the original salt structure.
+ * Note that this struct includes the one in opencl_pbkdf2_hmac_sha256.h
+ * and custom stuff appended.
  */
 typedef struct {
 	// PBKDF2 salt
-	salt_t pbkdf2_salt;
+	salt_t pbkdf2;
 
 	// bitwarden extension
 	union {
