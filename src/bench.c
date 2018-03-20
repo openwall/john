@@ -651,9 +651,6 @@ AGAIN:
 #endif
 	if ((format = fmt_list))
 	do {
-#if defined(HAVE_OPENCL)
-		int n = 0;
-#endif
 		memHand = MEMDBG_getSnapshot(0);
 #ifndef BENCH_BUILD
 /* Silently skip formats for which we have no tests, unless forced */
@@ -795,33 +792,6 @@ AGAIN:
 			goto next;
 		}
 
-#if defined(HAVE_OPENCL)
-		if (benchmark_time > 0)
-		for (i = 0; i < MAX_GPU_DEVICES &&
-			     gpu_device_list[i] != -1; i++) {
-			int dev = gpu_device_list[i];
-			int fan, temp, util, cl, ml;
-
-			fan = temp = util = cl = ml = -1;
-
-			if (dev_get_temp[dev])
-				dev_get_temp[dev](temp_dev_id[dev],
-				                  &temp, &fan, &util, &cl, &ml);
-#if 1
-			if (util <= 0)
-				continue;
-#endif
-			if (i == 0)
-				n += sprintf(s_gpu + n, ", GPU util:");
-			else
-				n += sprintf(s_gpu + n, ", GPU%d:", i);
-
-			if (util > 0)
-				n += sprintf(s_gpu + n, "%u%%", util);
-			else
-				n += sprintf(s_gpu + n, "n/a");
-		}
-#endif
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
@@ -861,8 +831,38 @@ AGAIN:
 		if (john_main_process)
 #endif
 		if (benchmark_time)
-		printf("%s:\t%s c/s real, %s c/s virtual\n",
-			msg_m, s_real, s_virtual);
+#if HAVE_OPENCL
+		{
+			int n = 0;
+
+			for (i = 0; i < MAX_GPU_DEVICES &&
+				     gpu_device_list[i] != -1; i++) {
+				int dev = gpu_device_list[i];
+				int fan, temp, util, cl, ml;
+
+				fan = temp = util = cl = ml = -1;
+
+				if (dev_get_temp[dev])
+					dev_get_temp[dev](temp_dev_id[dev],
+						&temp, &fan, &util, &cl, &ml);
+				if (util <= 0)
+					continue;
+				if (i == 0)
+					n += sprintf(s_gpu + n, ", GPU util: ");
+				else
+					n += sprintf(s_gpu + n, ", GPU%d: ", i);
+
+				if (util > 0)
+					n += sprintf(s_gpu + n, "%u%%", util);
+				else
+					n += sprintf(s_gpu + n, "n/a");
+			}
+#endif
+			printf("%s:\t%s c/s real, %s c/s virtual%s\n",
+				msg_m, s_real, s_virtual, s_gpu);
+#if HAVE_OPENCL
+		}
+#endif
 #else
 #ifdef HAVE_MPI
 		if (john_main_process)
