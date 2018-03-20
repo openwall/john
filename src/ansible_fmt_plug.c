@@ -101,7 +101,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
-		unsigned char master[MIN_KEYS_PER_CRYPT][64];
+		unsigned char master[MIN_KEYS_PER_CRYPT][32];
 		int i;
 #ifdef SIMD_COEF_32
 		int lens[MIN_KEYS_PER_CRYPT];
@@ -112,10 +112,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = master[i];
 		}
-		pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, pout, 64, 32);
+		pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, pout, 32, 32);
 #else
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
-			pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, master[i], 64, 32);
+			pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, master[i], 32, 32);
 #endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			JTR_hmac_sha256(master[i], 32, cur_salt->blob, cur_salt->bloblen, (unsigned char*)crypt_out[index+i], 16);
