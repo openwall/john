@@ -698,7 +698,9 @@ AGAIN:
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-		printf("%s: %s%s%s%s [%s%s%s]... ",
+#define ENC_SET (!options.default_enc && options.target_enc != ASCII && \
+			options.target_enc != ISO_8859_1)
+		printf("%s: %s%s%s%s [%s%s%s%s]... ",
 		    benchmark_time ? "Benchmarking" : "Testing",
 		    format->params.label,
 		    format->params.format_name[0] ? ", " : "",
@@ -706,17 +708,12 @@ AGAIN:
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef BENCH_BUILD
-		       (benchmark_time && format->params.flags & FMT_MASK &&
-		        (options.flags & FLG_MASK_CHK)) ?
-		       "/mask accel" : "",
-			(options.target_enc == UTF_8 &&
-			 format->params.flags & FMT_UNICODE) ?
-		        ", UTF-8" : (options.target_enc > 1 &&
-		                    options.target_enc != 17 &&
-		                    format->params.flags & FMT_UNICODE) ?
-		        ", CP" : "");
+		    (benchmark_time && format->params.flags & FMT_MASK &&
+		     (options.flags & FLG_MASK_CHK)) ? "/mask accel" : "",
+		    ENC_SET ? ", " : "",
+		    ENC_SET ? cp_id2name(options.target_enc) : "");
 #else
-			"");
+		    "", "", "");
 #endif
 		fflush(stdout);
 
