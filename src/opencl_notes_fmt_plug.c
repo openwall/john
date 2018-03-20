@@ -110,13 +110,13 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
 
-	CLKERNELARG(final_kernel, 0 ,mem_out, "Error while setting mem_out");
+	CLKERNELARG(final_kernel, 0, mem_out, "Error while setting mem_out");
 	CLKERNELARG(final_kernel, 1, mem_salt, "Error while setting mem_salt");
 	CLKERNELARG(final_kernel, 2, mem_state, "Error while setting mem_state");
 
 	CLKERNELARG(decrypt_kernel, 0, mem_salt, "Error while setting mem_salt");
-	CLKERNELARG(decrypt_kernel, 1 ,mem_out, "Error while setting mem_out");
-	CLKERNELARG(decrypt_kernel, 2 ,mem_cracked, "Error setting mem_cracked");
+	CLKERNELARG(decrypt_kernel, 1, mem_out, "Error while setting mem_out");
+	CLKERNELARG(decrypt_kernel, 2, mem_cracked, "Error setting mem_cracked");
 }
 
 /* ------- Helper functions ------- */

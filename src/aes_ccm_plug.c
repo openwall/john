@@ -303,7 +303,7 @@ int libcaes_crypt_ccm(unsigned char *key, int bits, int mode, const uint8_t
 	 * a maximum of 14 bytes containing nonce bytes
 	 * 1 byte counter
 	 */
-	memset(iiv, 0 , 16);
+	memset(iiv, 0, 16);
 	memcpy(&(iiv[1]), nonce, nonce_size);
 	iiv[0] = 15 - (uint8_t)nonce_size - 1;
 

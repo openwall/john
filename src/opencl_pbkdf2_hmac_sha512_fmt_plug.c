@@ -134,7 +134,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	CLKERNELARG(crypt_kernel, 2, mem_state, "Error while setting mem_state");
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
-	CLKERNELARG(split_kernel, 1 ,mem_out, "Error while setting mem_out");
+	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
 }
 
 static void init(struct fmt_main *_self)
