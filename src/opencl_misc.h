@@ -694,6 +694,40 @@ inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
 	return 0;
 }
 
+/* s1 is private mem, s2 is MAYBE_CONSTANT mem */
+inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
+{
+	union {
+		const uint *w;
+		const uchar *c;
+	} a;
+	union {
+		MAYBE_CONSTANT uint *w;
+		MAYBE_CONSTANT uchar *c;
+	} b;
+
+	a.c = s1;
+	b.c = s2;
+
+	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
+		while (((size_t)a.c) & 0x03 && size--)
+			if (*b.c++ != *a.c++)
+				return 1;
+
+		while (size >= 4) {
+			if (*b.w++ != *a.w++)
+				return 1;
+			size -= 4;
+		}
+	}
+
+	while (size--)
+		if (*b.c++ != *a.c++)
+			return 1;
+
+	return 0;
+}
+
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
