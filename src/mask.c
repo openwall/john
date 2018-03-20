@@ -1944,17 +1944,46 @@ void remove_slash(char *mask)
  * Stretch mask to mask_cur_len. If iterating over lengths, that means
  * current length - otherwise it's our minimum length (eg. 8 for WPAPSK).
  * Called by finalize_mask() but never for a hybrid mask.
+ *
+ *  1. If last mask position is a range, we repeat that.
+ *     word?d --> word?d?d
+ *
+ *  2. Otherwise if there is any range, we repeat the *first* one.
+ *     ?dword --> ?d?dword
+ *     pass?dword --> pass?d?dword
+ *
+ *  3. Last resort, we just repeat the last character.
+ *     pass --> passs
  */
 char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 {
 	char *stretched_mask;
 	int i, j, k;
+	int first_pl = -1, last_cl = -1;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(%s) to len %d\n", __FUNCTION__, mask, mask_cur_len);
 #endif
 
 	j = strlen(mask);
+
+	// Find last closing range bracket
+	while (parsed_mask->stack_cl_br[last_cl + 1] != -1)
+		last_cl++;
+
+	// Find first valid placeholder (ignoring ?w)
+	for (i = 0; i < j; i++) {
+		if (mask[i] == '\\') {
+			i++;
+			continue;
+		}
+		if (mask[i] == '?' &&
+		    strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[i + 1])))
+			break;
+	}
+	if (i < j)
+		first_pl = i;
+
 	stretched_mask =
 		mem_alloc_tiny((mask_cur_len + 2) * j, MEM_ALIGN_NONE);
 
@@ -1972,21 +2001,11 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 			strnzcpy(stretched_mask + j, mask + i, 3);
 			j += 2;
 		}
-		else if (mask[i] == ']') {
+		else if (last_cl >= 0 && i == parsed_mask->stack_cl_br[last_cl]) {
 			/* Repeat a trailing range word[abc] -> word[abc][abc] */
-			int l = 0;
-
-			while (parsed_mask->stack_op_br[l] != -1)
-				l++;
-			if (parsed_mask->stack_cl_br[l - 1] == i) {
-				i = parsed_mask->stack_op_br[l - 1];
-				strcpy(stretched_mask + j, mask + i);
-				j += strlen(mask + i);
-			}
-			else {
-				stretched_mask[j] = mask[i];
-				j++;
-			}
+			i = parsed_mask->stack_op_br[last_cl];
+			strcpy(stretched_mask + j, mask + i);
+			j += strlen(mask + i);
 		}
 		else if (strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[i])) &&
 		         i - 1 >= 0 && mask[i - 1] == '?') {
@@ -1994,39 +2013,31 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 			strnzcpy(stretched_mask + j, mask + i - 1, 3);
 			j += 2;
 		}
-		else if (!format_cannot_reset && strlen(mask) > 1 && mask[0] == '?' &&
-		         strchr(BUILT_IN_CHARSET, ARCH_INDEX(mask[1]))) {
-			/* Repeat a leading placeholder ?dword -> ?d?dword */
-			memmove(stretched_mask + 2, stretched_mask, j + 1);
-			memcpy(stretched_mask, mask, 2);
-			j += 2;
-		} else if (!format_cannot_reset && strlen(mask) > 3 && mask[0] == '[') {
+		else if (!format_cannot_reset && parsed_mask->stack_op_br[0] >= 0 &&
+		         parsed_mask->stack_op_br[0] < first_pl) {
 			/* Repeat a leading range [abc]word -> [abc][abc]word */
-			int e;
+			/* Or repeat first range wor[range]d -> wor[range][range]d */
+			int beg = parsed_mask->stack_op_br[0];
+			int end = parsed_mask->stack_cl_br[0] + 1;
 
-			for (e = 1; e < strlen(mask); e++) {
-				if (mask[e] == ']' && (mask[e - 1] != '\\' ||
-				     (e > 2 && mask[e - 1] == '\\' && mask[e - 2] == '\\'))) {
-					e++;
-					memmove(stretched_mask + e, stretched_mask, j + 1);
-					memcpy(stretched_mask, mask, e);
-					j += e;
-					break;
-				}
-			}
-		} else if (0) {
-			/* Repeat last range WOR[range]D -> WOR[range][range]D */
-		} else if (0) {
-			/* Repeat last placeholder WOR?dD -> WOR?d?dD */
-		} else {
+			memmove(stretched_mask + end, stretched_mask + beg, j - beg + 1);
+			j += end - beg;
+		}
+		else if (!format_cannot_reset && first_pl >= 0) {
+			/* Repeat a leading placeholder ?dword -> ?d?dword */
+			/* Or repeat first placeholder w?dord -> w?d?dord */
+			memmove(stretched_mask + first_pl + 2,
+			        stretched_mask + first_pl, j + 3);
+			j += 2;
+		}
+		else if (j) {
 			/*
-			 * Last resort, just add trailing spaces. This is
+			 * Last resort, just repeat last character. This is
 			 * likely useless but OTOH it will finish very fast.
 			 */
-			stretched_mask[j] = ' ';
+			stretched_mask[j] = stretched_mask[j - 1];
 			j++;
 		}
-
 		k++;
 	}
 	stretched_mask[j] = '\0';
