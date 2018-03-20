@@ -701,7 +701,7 @@ AGAIN:
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-		printf("%s: %s%s%s%s [%s]%s... ",
+		printf("%s: %s%s%s%s [%s%s%s]... ",
 		    benchmark_time ? "Benchmarking" : "Testing",
 		    format->params.label,
 		    format->params.format_name[0] ? ", " : "",
@@ -709,9 +709,15 @@ AGAIN:
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef BENCH_BUILD
+		       (benchmark_time && format->params.flags & FMT_MASK &&
+		        (options.flags & FLG_MASK_CHK)) ?
+		       "/mask accel" : "",
 			(options.target_enc == UTF_8 &&
 			 format->params.flags & FMT_UNICODE) ?
-		        " in UTF-8 mode" : "");
+		        ", UTF-8" : (options.target_enc > 1 &&
+		                    options.target_enc != 17 &&
+		                    format->params.flags & FMT_UNICODE) ?
+		        ", CP" : "");
 #else
 			"");
 #endif
@@ -790,7 +796,7 @@ AGAIN:
 		}
 
 #if defined(HAVE_OPENCL)
-		if (benchmark_time > 1)
+		if (benchmark_time > 0)
 		for (i = 0; i < MAX_GPU_DEVICES &&
 			     gpu_device_list[i] != -1; i++) {
 			int dev = gpu_device_list[i];
