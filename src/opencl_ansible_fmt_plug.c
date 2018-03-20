@@ -27,6 +27,7 @@ john_register_one(&fmt_opencl_ansible);
 #include "hmac_sha.h"
 #include "ansible_common.h"
 #include "opencl_common.h"
+#include "opencl_pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "ansible-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 HMAC-SHA256 OpenCL"
@@ -41,11 +42,14 @@ john_register_one(&fmt_opencl_ansible);
 #define HASH_LOOPS              (7*113) // factors 7 89 113 (for 70400)
 #define ITERATIONS              70400
 
-#define MAX_OUTLEN              32
-#include "opencl_pbkdf2_hmac_sha256.h"
+typedef struct {
+	salt_t salt;
+	int bloblen;
+	unsigned char blob[BLOBLEN];
+} ansible_salt_t;
 
 static pass_t *host_pass;
-static salt_t *host_salt;
+static ansible_salt_t *host_salt;
 static crack_t *host_crack;
 static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
@@ -53,7 +57,6 @@ static cl_kernel split_kernel, final_kernel;
 static struct fmt_main *self;
 
 static struct custom_salt *cur_salt;
-static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 #define STEP			0
 #define SEED			1024
@@ -83,12 +86,11 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
 	host_crack = mem_calloc(kpc, sizeof(crack_t));
-	crypt_out = mem_calloc(kpc, sizeof(*crypt_out));
-	host_salt = mem_calloc(1, sizeof(salt_t));
+	host_salt = mem_calloc(1, sizeof(ansible_salt_t));
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
 	                        "Cannot allocate mem in");
-	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(salt_t),
+	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(ansible_salt_t),
 	                          "Cannot allocate mem salt");
 	mem_out = CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t),
 	                         "Cannot allocate mem out");
@@ -128,7 +130,6 @@ static void release_clobj(void)
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
 		MEM_FREE(host_crack);
-		MEM_FREE(crypt_out);
 	}
 }
 
@@ -144,10 +145,9 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DHASH_LOOPS=%u -DMAX_OUTLEN=%u -DPLAINTEXT_LENGTH=%u",
-		         HASH_LOOPS, MAX_OUTLEN, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
-		            gpu_id, build_opts);
+		         "-DHASH_LOOPS=%u -DBLOBLEN=%u -DPLAINTEXT_LENGTH=%u",
+		         HASH_LOOPS, BLOBLEN, PLAINTEXT_LENGTH);
+		opencl_init("$JOHN/kernels/ansible_kernel.cl", gpu_id, build_opts);
 
 		crypt_kernel =
 			clCreateKernel(program[gpu_id], "pbkdf2_sha256_init", &cl_error);
@@ -158,7 +158,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
 		final_kernel =
-			clCreateKernel(program[gpu_id], "pbkdf2_sha256_final", &cl_error);
+			clCreateKernel(program[gpu_id], "ansible_final", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating final kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -191,14 +191,16 @@ static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt*)salt;
 
-	memcpy(host_salt->salt, cur_salt->salt, cur_salt->salt_length);
-	host_salt->length = cur_salt->salt_length;
-	host_salt->rounds = cur_salt->iterations;
-	host_salt->outlen = 32;
-	host_salt->skip_bytes = 32;
+	memcpy(host_salt->salt.salt, cur_salt->salt, cur_salt->salt_length);
+	memcpy(host_salt->blob, cur_salt->blob, cur_salt->bloblen);
+	host_salt->bloblen = cur_salt->bloblen;
+	host_salt->salt.length = cur_salt->salt_length;
+	host_salt->salt.rounds = cur_salt->iterations;
+	host_salt->salt.outlen = 32;
+	host_salt->salt.skip_bytes = 32;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
+		CL_FALSE, 0, sizeof(ansible_salt_t), host_salt, 0, NULL, NULL),
 	    "Copy salt to gpu");
 }
 
@@ -206,8 +208,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i = 0, j = 0;
 	const int count = *pcount;
-	int index;
-	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
+	int loops = (host_salt->salt.rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -220,7 +221,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run kernel");
-	for (j = 0; j < (ocl_autotune_running ? 1 : (host_salt->outlen + 31) / 32); j++) {
+	for (j = 0; j < (ocl_autotune_running ? 1 : (host_salt->salt.outlen + 31) / 32); j++) {
 		for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 				1, NULL, &global_work_size, lws, 0, NULL,
@@ -239,12 +240,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
 
-	if (!ocl_autotune_running) {
-		for (index = 0; index < count; index++) {
-			JTR_hmac_sha256((unsigned char*)host_crack[index].hash, 32, cur_salt->blob, cur_salt->bloblen, (unsigned char*)crypt_out[index], 16);
-		}
-	}
-
 	return count;
 }
 
@@ -253,14 +248,14 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+		if (!memcmp(binary, host_crack[index].hash, ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE_CMP);
+	return !memcmp(binary, host_crack[index].hash, BINARY_SIZE_CMP);
 }
 
 static int cmp_exact(char *source, int index)

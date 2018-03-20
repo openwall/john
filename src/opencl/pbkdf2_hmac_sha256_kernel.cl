@@ -19,8 +19,8 @@
 #include "opencl_sha2.h"
 #include "opencl_pbkdf2_hmac_sha256.h"
 
-inline void preproc(__global const uchar *key, uint keylen,
-                    __global uint *state, uint padding)
+inline void _phsk_preproc(__global const uchar *key, uint keylen,
+                          __global uint *state, uint padding)
 {
 	uint j, t;
 	uint W[16];
@@ -52,9 +52,9 @@ inline void preproc(__global const uchar *key, uint keylen,
 }
 
 
-inline void hmac_sha256(__global uint *output, __global uint *ipad_state,
-                        __global uint *opad_state, __constant uchar *salt,
-                        uint saltlen, uchar add)
+inline void _phsk_hmac_sha256(__global uint *output, __global uint *ipad_state,
+                              __global uint *opad_state, __constant uchar *salt,
+                              uint saltlen, uchar add)
 {
 	uint i, j, last;
 	uint W[16], ctx[8];
@@ -211,11 +211,13 @@ __kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
 
 	state[idx].rounds = salt->rounds - 1;
 
-	preproc(inbuffer[idx].v, inbuffer[idx].length, state[idx].ipad, 0x36363636);
-	preproc(inbuffer[idx].v, inbuffer[idx].length, state[idx].opad, 0x5c5c5c5c);
+	_phsk_preproc(inbuffer[idx].v, inbuffer[idx].length,
+	              state[idx].ipad, 0x36363636);
+	_phsk_preproc(inbuffer[idx].v, inbuffer[idx].length,
+	              state[idx].opad, 0x5c5c5c5c);
 
-	hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
-	            salt->salt, salt->length, pass + 1);
+	_phsk_hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
+	                  salt->salt, salt->length, pass + 1);
 
 	for (i = 0; i < 8; i++)
 		state[idx].W[i] = state[idx].hash[i];
@@ -239,8 +241,8 @@ __kernel void pbkdf2_sha256_final(__global crack_t *out,
 
 	/* Was this the last pass? If not, prepare for next one */
 	if (4 * base + 32 < OUTLEN) {
-		hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
-		            salt->salt, salt->length, pass + 1);
+		_phsk_hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
+		                  salt->salt, salt->length, pass + 1);
 
 		for (i = 0; i < 8; i++)
 			state[idx].W[i] = state[idx].hash[i];
