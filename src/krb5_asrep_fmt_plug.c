@@ -1,7 +1,7 @@
 /*
  * This software is
  * Copyright (c) 2015 Michael Kramer <michael.kramer@uni-konstanz.de>,
- * Copyright (c) 2015 magnum,
+ * Copyright (c) 2015-2018 magnum,
  * Copyright (c) 2016 Fist0urs <eddy.maaalou@gmail.com>,
  * Copyright (c) 2017 @harmj0y,
  * Copyright (c) 2017 Dhiru Kholia <dhiru [at] openwall.com>
@@ -283,7 +283,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// from krb5 software package.
 			// https://www.ietf.org/rfc/rfc3962.txt document, https://www.ietf.org/rfc/rfc3961.txt, and
 			// http://www.zeroshell.org/kerberos/Kerberos-operation/
-			int key_size;
+			const int key_size = (cur_salt->etype == 17) ? 16 : 32;
+
 #ifdef SIMD_COEF_32
 			unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
 
@@ -292,13 +293,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				pin[i] = (unsigned char*)saved_key[i+index];
 				pout[i] = tkey[i];
 			}
-			pbkdf2_sha1_sse((const unsigned char **)pin, len, (unsigned char*)cur_salt->salt, strlen(cur_salt->salt), 4096, pout, 32, 0);
+			pbkdf2_sha1_sse((const unsigned char **)pin, len, (unsigned char*)cur_salt->salt, strlen(cur_salt->salt), 4096, pout, key_size, 0);
 #else
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				len[i] = strlen(saved_key[index+i]);
 				pbkdf2_sha1((const unsigned char*)saved_key[index], len[i],
 						(unsigned char*)cur_salt->salt, strlen(cur_salt->salt),
-						4096, tkey[i], 32, 0);
+						4096, tkey[i], key_size, 0);
 			}
 #endif
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
@@ -312,15 +313,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unsigned char base_key[32];
 				unsigned char Ke[32];
 
-				if (cur_salt->etype == 17)
-					key_size = 16;
-				else
-					key_size = 32;
 				dk(base_key, tkey[i], key_size, constant, 16);
 				dk(Ke, base_key, key_size, ke_input, 16);
 				krb_decrypt(cur_salt->edata2, cur_salt->edata2len, plaintext, Ke, key_size);
 				// derive checksum of plaintext
-				dk(Ki, base_key, key_size, ki_input, 32);
+				dk(Ki, base_key, key_size, ki_input, 16);
 				hmac_sha1(Ki, key_size, plaintext, cur_salt->edata2len, checksum, 20);
 				if (!memcmp(checksum, cur_salt->edata1, 12)) {
 					cracked[index+i] = 1;
