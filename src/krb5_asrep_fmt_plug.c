@@ -228,12 +228,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char tkey[MIN_KEYS_PER_CRYPT][32];
 		int len[MIN_KEYS_PER_CRYPT];
 		int i;
-
 		unsigned char K3[16];
 #ifdef _MSC_VER
 		unsigned char ddata[65536];
 #else
-		unsigned char ddata[cur_salt->edata2len + 1];
+		unsigned char ddata[cur_salt->edata2len];
 #endif
 		unsigned char checksum[16];
 		RC4_KEY rckey;
@@ -304,7 +303,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				unsigned char Ki[32];
-				unsigned char plaintext[4096] = { 0 }; // XXX
+#ifdef _MSC_VER
+				unsigned char plaintext[65536];
+#else
+				unsigned char plaintext[cur_salt->edata2len];
+#endif
 				unsigned char checksum[20];
 				unsigned char base_key[32];
 				unsigned char Ke[32];
