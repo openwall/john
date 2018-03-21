@@ -42,6 +42,14 @@
 #define AES_DST_TYPE __private
 #endif
 
+#ifndef AES_CTS_SRC_TYPE
+#define AES_CTS_SRC_TYPE __private const
+#endif
+
+#ifndef AES_CTS_DST_TYPE
+#define AES_CTS_DST_TYPE __private
+#endif
+
 #define AES_BLOCK_SIZE 16
 
 typedef struct aes_ctx {
@@ -887,13 +895,13 @@ AES_Decrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src,
 }
 
 inline void
-AES_Encrypt(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src, uint8_t *dst)
+AES_Encrypt(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src, AES_DST_TYPE uint8_t *dst)
 {
 	AES_Encrypt_ECB(ctx, src, dst, 1);
 }
 
 inline void
-AES_Decrypt(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src, uint8_t *dst)
+AES_Decrypt(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src, AES_DST_TYPE uint8_t *dst)
 {
 	AES_Decrypt_ECB(ctx, src, dst, 1);
 }
@@ -1023,25 +1031,30 @@ typedef AES_CTX AES_KEY;
 
 inline void
 AES_cbc_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
-                uint len, AES_CTX *key, void *iv)
+                uint len, AES_CTX *key, void *_iv)
 {
 	AES_SRC_TYPE uchar *in = _in;
 	AES_DST_TYPE uchar *out = _out;
-	uchar *vec = iv;
+	uchar *iv = _iv;
+	uint n;
+	const uchar *ivec = iv;
+	uchar tmp[16];
 
 	while (len) {
-		uint n;
-
-		for (n = 0; n < 16 && n < len; ++n)
-			vec[n] ^= in[n];
-		AES_Encrypt_ECB_pp(key, vec, vec, 1);
-		memcpy_macro(out, vec, MIN(len, 16));
+		for (n = 0; n < 16 && n < len; n++)
+			tmp[n] = in[n] ^ ivec[n];
+		for (; n<16; n++)
+			tmp[n] = ivec[n];
+		AES_Encrypt_ECB_pp(key, tmp, tmp, 1);
+		memcpy_macro(out, tmp, 16);
+		ivec = tmp;
 		if (len <= 16)
 			break;
 		len -= 16;
 		in  += 16;
 		out += 16;
 	}
+	memcpy_macro(iv, ivec, 16);
 }
 
 inline void
@@ -1073,6 +1086,76 @@ AES_cbc_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
 		in  += 16;
 		out += 16;
 	}
+}
+
+inline void
+AES_cts_encrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
+                uint len, AES_KEY *key, uchar *_iv)
+{
+	AES_CTS_SRC_TYPE uchar *in = _in;
+	AES_CTS_DST_TYPE uchar *out = _out;
+	uchar *iv = _iv;
+	uint i;
+	uchar tmp[AES_BLOCK_SIZE];
+
+	while(len > AES_BLOCK_SIZE) {
+		for (i = 0; i < AES_BLOCK_SIZE; i++)
+			tmp[i] = in[i] ^ iv[i];
+		AES_Encrypt_ECB_pp(key, tmp, tmp, 1);
+		memcpy_macro(out, tmp, AES_BLOCK_SIZE);
+		memcpy_macro(iv, tmp, AES_BLOCK_SIZE);
+		len -= AES_BLOCK_SIZE;
+		in += AES_BLOCK_SIZE;
+		out += AES_BLOCK_SIZE;
+	}
+	for (i = 0; i < len; i++)
+		tmp[i] = in[i] ^ iv[i];
+
+	for (; i < AES_BLOCK_SIZE; i++)
+		tmp[i] = 0 ^ iv[i];
+
+	AES_Encrypt_ECB_pp(key, tmp, tmp, 1);
+	memcpy_macro(out - AES_BLOCK_SIZE, tmp, AES_BLOCK_SIZE);
+	memcpy_macro(out, iv, len);
+	memcpy_macro(iv, out - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+}
+
+inline void
+AES_cts_decrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
+                uint len, AES_KEY *key, uchar *_iv)
+{
+	AES_CTS_SRC_TYPE uchar *in = _in;
+	AES_CTS_DST_TYPE uchar *out = _out;
+	uchar *iv = _iv;
+	uint i;
+	uchar tmp[AES_BLOCK_SIZE];
+	uchar tmp2[AES_BLOCK_SIZE];
+	uchar tmp3[AES_BLOCK_SIZE];
+
+	while(len > AES_BLOCK_SIZE * 2) {
+		memcpy_macro(tmp, in, AES_BLOCK_SIZE);
+		AES_Decrypt_ECB_pp(key, tmp, tmp2, 1);
+		for (i = 0; i < AES_BLOCK_SIZE; i++)
+			out[i] = tmp2[i] ^ iv[i];
+		memcpy_macro(iv, tmp, AES_BLOCK_SIZE);
+		len -= AES_BLOCK_SIZE;
+		in += AES_BLOCK_SIZE;
+		out += AES_BLOCK_SIZE;
+	}
+
+	len -= AES_BLOCK_SIZE;
+	memcpy_macro(tmp, in, AES_BLOCK_SIZE); /* save last iv */
+	AES_Decrypt_ECB_pp(key, tmp, tmp2, 1);
+	memcpy_macro(tmp3, in + AES_BLOCK_SIZE, len);
+	memcpy_macro(tmp3 + len, tmp2 + len, AES_BLOCK_SIZE - len); /* xor 0 */
+
+	for (i = 0; i < len; i++)
+		out[i + AES_BLOCK_SIZE] = tmp2[i] ^ tmp3[i];
+
+	AES_Decrypt_ECB_pp(key, tmp3, tmp3, 1);
+	for (i = 0; i < AES_BLOCK_SIZE; i++)
+		out[i] = tmp3[i] ^ iv[i];
+	memcpy_macro(iv, tmp, AES_BLOCK_SIZE);
 }
 
 #endif	/* _OPENCL_AES_H_ */
