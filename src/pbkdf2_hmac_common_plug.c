@@ -12,8 +12,8 @@
  */
 
 #include <stdio.h>
+
 #include "formats.h"
-#include "memory.h"
 #include "common.h"
 #include "base64_convert.h"
 #include "pbkdf2_hmac_common.h"
@@ -28,6 +28,20 @@
 #include "pbkdf2_hmac_sha512.h"
 
 #include "memdbg.h"
+
+static void dump_hex(const void *msg, void *x, unsigned int size)
+{
+	unsigned int i;
+
+	printf("%s : ", (char *)msg);
+	for (i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)x)[i]);
+		if ( (i%4)==3 )
+		printf(" ");
+	}
+	printf("\n");
+}
 
 /**************************************
  * Common stuff for pbkdf2-md4 hashes
@@ -131,7 +145,7 @@ void *pbkdf2_hmac_md4_binary(char *ciphertext)
 		p += 2;
 	}
 #if 0
-	dump_stuff_msg(__FUNCTION__, out, PBKDF2_MDx_BINARY_SIZE);
+	dump_hex(__FUNCTION__, out, PBKDF2_MDx_BINARY_SIZE);
 #endif
 	return out;
 }
@@ -163,8 +177,8 @@ int pbkdf2_hmac_md4_cmp_exact(char *key, char *source, unsigned char *salt, int 
 	            iterations, crypt, len, 0);
 	result = !memcmp(binary, crypt, len);
 #if 0
-	dump_stuff_msg("hash binary", binary, len);
-	dump_stuff_msg("calc binary", crypt, len);
+	dump_hex("hash binary", binary, len);
+	dump_hex("calc binary", crypt, len);
 #endif
 	MEM_FREE(binary);
 	MEM_FREE(crypt);
@@ -275,7 +289,7 @@ void *pbkdf2_hmac_md5_binary(char *ciphertext)
 		p += 2;
 	}
 #if 0
-	dump_stuff_msg(__FUNCTION__, out, PBKDF2_MDx_BINARY_SIZE);
+	dump_hex(__FUNCTION__, out, PBKDF2_MDx_BINARY_SIZE);
 #endif
 	return out;
 }
@@ -306,8 +320,8 @@ int pbkdf2_hmac_md5_cmp_exact(char *key, char *source, unsigned char *salt, int 
 	            iterations, crypt, len, 0);
 	result = !memcmp(binary, crypt, len);
 #if 0
-	dump_stuff_msg("hash binary", binary, len);
-	dump_stuff_msg("calc binary", crypt, len);
+	dump_hex("hash binary", binary, len);
+	dump_hex("calc binary", crypt, len);
 #endif
 	MEM_FREE(binary);
 	MEM_FREE(crypt);
@@ -509,8 +523,8 @@ int pbkdf2_hmac_sha1_cmp_exact(char *key, char *source, unsigned char *salt, int
 	            iterations, crypt, len, 0);
 	result = !memcmp(binary, crypt, len);
 #if 0
-	dump_stuff_msg("hash binary", binary, len);
-	dump_stuff_msg("calc binary", crypt, len);
+	dump_hex("hash binary", binary, len);
+	dump_hex("calc binary", crypt, len);
 #endif
 	MEM_FREE(binary);
 	MEM_FREE(crypt);
@@ -818,8 +832,8 @@ int pbkdf2_hmac_sha512_cmp_exact(char *key, char *source, unsigned char *salt, i
 		fprintf(stderr, "\npbkdf2-hmac-sha512: Warning: Partial match for '%s'   salt_len=%d rounds=%d bin_len=%d.\n"
 		        "This is a bug or a malformed input line of:\n%s\n",
 		        key, length, rounds, len, source);
-		dump_stuff_msg("crypt results", crypt, len);
-		dump_stuff_msg("salt hex     ", salt, length);
+		dump_hex("crypt results", crypt, len);
+		dump_hex("salt hex     ", salt, length);
 	}
 	MEM_FREE(binary);
 	MEM_FREE(crypt);

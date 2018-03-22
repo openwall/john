@@ -63,7 +63,6 @@
 #include "base64_convert.h"
 #include "sha2.h"
 #include "rar2john.h"
-#include "memory.h"
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
@@ -72,6 +71,20 @@
 #define CHUNK_SIZE 4096
 
 static int verbose;
+
+static void hexdump(const void *msg, void *x, unsigned int size)
+{
+	unsigned int i;
+
+	printf("%s : ", (char *)msg);
+	for (i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)x)[i]);
+		if ( (i%4)==3 )
+		printf(" ");
+	}
+	printf("\n");
+}
 
 static int process_file5(const char *archive_name);
 
@@ -437,7 +450,7 @@ next_file_header:
 			int Length = strlen((char*)file_name);
 
 			if (verbose) {
-				dump_stuff_msg("! Encoded filenames", file_name, file_name_size);
+				hexdump("! Encoded filenames", file_name, file_name_size);
 			}
 			DecodeFileName(file_name, file_name + Length + 1,
 			                sizeof(file_name) - Length - 1,
@@ -445,7 +458,7 @@ next_file_header:
 
 			if (*FileNameW) {
 				if (verbose) {
-					dump_stuff_msg("! UTF16 filename", FileNameW,
+					hexdump("! UTF16 filename", FileNameW,
 					               strlen16(FileNameW) << 1);
 					fprintf(stderr, "OEM name:  %s\n", file_name);
 				}
