@@ -63,6 +63,7 @@
 #include "base64_convert.h"
 #include "sha2.h"
 #include "rar2john.h"
+#include "memory.h"
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
