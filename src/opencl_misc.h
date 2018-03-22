@@ -694,6 +694,26 @@ inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
 	return 0;
 }
 
+#define STRINGIZE2(s) #s
+#define STRINGIZE(s) STRINGIZE2(s)
+
+/*
+ * The reason the functions below are macros is it's the only way we can use
+ * them regardless of memory type (eg. __local or __global). The downside is
+ * we can't cast them so you *need* to use eg. dump8_le for a char array, or
+ * output will not be correct.
+ */
+
+/* Dump an array (or variable) as hex */
+#define dump_le(d)   dump_stuff_msg(STRINGIZE(d), d, sizeof(d))
+#define dump8_le(d)  dump_stuff8_msg(STRINGIZE(d), d, sizeof(d))
+#define dump16_le(d) dump_stuff16_msg(STRINGIZE(d), d, sizeof(d))
+#define dump_be(d)   dump_stuff_be_msg(STRINGIZE(d), d, sizeof(d))
+#define dump_stuff(d, sz) dump_stuff_msg(STRINGIZE(d), d, sz)
+#define dump_stuff8(d, sz) dump_stuff8_msg(STRINGIZE(d), d, sz)
+#define dump_stuff16(d, sz) dump_stuff16_msg(STRINGIZE(d), d, sz)
+#define dump_stuff_be(d, sz) dump_stuff_be_msg(STRINGIZE(d), d, sz)
+
 /* requires char/uchar */
 #define dump_stuff8_msg(msg, x, size) do {	  \
 		uint ii; \

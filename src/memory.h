@@ -252,45 +252,53 @@ extern char *str_alloc_copy_func(char *src
  */
 extern void cleanup_tiny_memory();
 
+#define STRINGIZE2(s) #s
+#define STRINGIZE(s) STRINGIZE2(s)
 
-void dump_text(void *in, int len);
-void dump_stuff(void *x, unsigned int size);
+#define dump_stuff(d, sz) dump_stuff_msg(STRINGIZE(d), d, sz)
+#define dump_stuff_be(d, sz) dump_stuff_be_msg(STRINGIZE(d), d, sz)
+#define dump_stuff_mmx(d, sz, idx) dump_stuff_mmx_msg(STRINGIZE(d), d, sz, idx)
+#define dump_stuff_mmx64(d, sz, idx)	  \
+	dump_stuff_mmx64_msg(STRINGIZE(d), d, sz, idx)
+#define dump_out_mmx(d, sz, idx)	  \
+	dump_out_mmx_msg(STRINGIZE(d), d, sz, idx)
+#define dump_stuff_shammx(d, sz, idx)	  \
+	dump_stuff_shammx_msg(STRINGIZE(d), d, sz, idx)
+#define dump_out_shammx(d, sz, idx)	  \
+	dump_out_shammx_msg(STRINGIZE(d), d, sz, idx)
+#define dump_stuff_shammx64(d, sz, idx)	  \
+	dump_stuff_shammx64_msg(STRINGIZE(d), d, sz, idx)
+#define dump_out_shammx64(d, sz, idx)	  \
+	dump_out_shammx64_msg(STRINGIZE(d), d, sz, idx)
+#define dump_stuff_mpara_mmx(d, sz, idx)	  \
+	dump_stuff_mpara_mmx_msg(STRINGIZE(d), d, sz, idx)
+
+/* Dump an array (or variable) as hex */
+#define dump_le(d) dump_stuff_msg(STRINGIZE(d), d, sizeof(d))
+#define dump_be(d) dump_stuff_be_msg(STRINGIZE(d), d, sizeof(d))
+
+/* Dump memory as text (non-printables as dots) */
+#define dump_text(d, sz) dump_text_msg(STRINGIZE(d), d, sz)
+
+void dump_text_msg(const void *msg, void *in, int len);
+
 void dump_stuff_msg(const void *msg, void *x, unsigned int size);
-void dump_stuff_noeol(void *x, unsigned int size);
-void dump_stuff_msg_sepline(const void *msg, void *x, unsigned int size);
-void dump_stuff_be(void *x, unsigned int size);
 void dump_stuff_be_msg(const void *msg, void *x, unsigned int size);
-void dump_stuff_be_noeol(void *x, unsigned int size);
-void dump_stuff_be_msg_sepline(const void *msg, void *x, unsigned int size);
 
 #if defined (SIMD_COEF_32) || defined(NT_X86_64) || defined (SIMD_PARA_MD5) || defined (SIMD_PARA_MD4) || defined (SIMD_PARA_SHA1)
-void dump_stuff_mmx(void *x, unsigned int size, unsigned int index);
-void dump_stuff_mmx_noeol(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_stuff_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index);
 // for flat input, we do want to see SHA512 without byte swapping.
-void dump_stuff_mmx64(void *buf, unsigned int size, unsigned int index);
 void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_out_mmx(void *x, unsigned int size, unsigned int index);
-void dump_out_mmx_noeol(void *x, unsigned int size, unsigned int index);
 void dump_out_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_out_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_stuff_shammx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_out_shammx(void *x, unsigned int size, unsigned int index);
 void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_stuff_shammx64(void *x, unsigned int size, unsigned int index);
 void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_out_shammx64(void *x, unsigned int size, unsigned int index);
 void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
 #endif
 
 #if defined (SIMD_PARA_MD5)
 // these functions help debug arrays of contigious MD5 prepared PARA buffers. Seen in sunmd5 at the current time.
-void dump_stuff_mpara_mmx(void *x, unsigned int size, unsigned int index);
-void dump_stuff_mpara_mmx_noeol(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_stuff_mpara_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index);
 // a 'getter' to help debugging.  Returns a flat buffer, vs printing it out.
 void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index);
 #endif

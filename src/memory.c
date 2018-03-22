@@ -355,64 +355,6 @@ char *str_alloc_copy_func(char *src
 #endif
 }
 
-void dump_text(void *in, int len)
-{
-	unsigned char *p = (unsigned char*)in;
-
-	while (len--) {
-		fputc(isprint(*p) ? *p : '.', stdout);
-		p++;
-	}
-	fputc('\n', stdout);
-}
-
-void dump_stuff_noeol(void *x, unsigned int size)
-{
-	unsigned int i;
-	for (i=0;i<size;i++)
-	{
-		printf("%.2x", ((unsigned char*)x)[i]);
-		if ( (i%4)==3 )
-		printf(" ");
-	}
-}
-void dump_stuff(void* x, unsigned int size)
-{
-	dump_stuff_noeol(x,size);
-	printf("\n");
-}
-void dump_stuff_msg(const void *msg, void *x, unsigned int size) {
-	printf("%s : ", (char *)msg);
-	dump_stuff(x, size);
-}
-void dump_stuff_msg_sepline(const void *msg, void *x, unsigned int size) {
-	printf("%s :\n", (char *)msg);
-	dump_stuff(x, size);
-}
-
-void dump_stuff_be_noeol(void *x, unsigned int size) {
-	unsigned int i;
-	for (i=0;i<size;i++)
-	{
-		printf("%.2x", ((unsigned char*)x)[i^3]);
-		if ( (i%4)==3 )
-		printf(" ");
-	}
-}
-void dump_stuff_be(void* x, unsigned int size)
-{
-	dump_stuff_be_noeol(x,size);
-	printf("\n");
-}
-void dump_stuff_be_msg(const void *msg, void *x, unsigned int size) {
-	printf("%s : ", (char *)msg);
-	dump_stuff_be(x, size);
-}
-void dump_stuff_be_msg_sepline(const void *msg, void *x, unsigned int size) {
-	printf("%s :\n", (char *)msg);
-	dump_stuff_be(x, size);
-}
-
 void alter_endianity_w16(void * _x, unsigned int size) {
 	unsigned char c, *x = (unsigned char*)_x;
 
@@ -481,152 +423,170 @@ void alter_endianity(void *_x, unsigned int size) {
 // for SHA384/SHA512 128 byte FLAT interleaved hash (arrays of 16 8 byte ints), but we do not BE interleave.
 #define SHA64GETPOSne(i,index)      ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*8*SIMD_COEF_64 )
 
-void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
+void dump_text_msg(const void *msg, void *in, int len)
+{
+	unsigned char *p = (unsigned char*)in;
+
+	printf("%s : ", (char *)msg);
+	while (len--) {
+		fputc(isprint(*p) ? *p : '.', stdout);
+		p++;
+	}
+	fputc('\n', stdout);
+}
+
+void dump_stuff_msg(const void *msg, void *x, unsigned int size)
+{
 	unsigned int i;
+
+	printf("%s : ", (char *)msg);
+	for (i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)x)[i]);
+		if ( (i%4)==3 )
+		printf(" ");
+	}
+	fputc('\n', stdout);
+}
+
+void dump_stuff_be_msg(const void *msg, void *x, unsigned int size)
+{
+	unsigned int i;
+
+	printf("%s : ", (char *)msg);
+	for (i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)x)[i^3]);
+		if ( (i%4)==3 )
+		printf(" ");
+	}
+	fputc('\n', stdout);
+}
+
+void dump_stuff_mmx_msg(const void *msg, void *buf, unsigned int size,
+                        unsigned int index)
+{
+	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETPOS(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
+	fputc('\n', stdout);
 }
-void dump_stuff_mmx(void *buf, unsigned int size, unsigned int index) {
-	dump_stuff_mmx_noeol(buf, size, index);
-	printf("\n");
-}
-void dump_stuff_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_stuff_mmx(buf, size, index);
-}
-void dump_stuff_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s :\n", (char*)msg);
-	dump_stuff_mmx(buf, size, index);
-}
-void dump_out_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
+
+void dump_out_mmx_msg(const void *msg, void *buf, unsigned int size,
+                      unsigned int index)
+{
 	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETOUTPOS(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
-}
-void dump_out_mmx(void *buf, unsigned int size, unsigned int index) {
-	dump_out_mmx_noeol(buf,size,index);
-	printf("\n");
-}
-void dump_out_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_out_mmx(buf, size, index);
-}
-void dump_out_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s :\n", (char*)msg);
-	dump_out_mmx(buf, size, index);
+	fputc('\n', stdout);
 }
 
 #if defined (SIMD_PARA_MD5)
 #define GETPOSMPARA(i, index)	( (index&(SIMD_COEF_32-1))*4 + (((i)&(0xffffffff-3))%64)*SIMD_COEF_32 + (i/64)*SIMD_COEF_32*SIMD_PARA_MD5*64 +    ((i)&3)  + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32  )
 // multiple para blocks
-void dump_stuff_mpara_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size,
+                              unsigned int index)
+{
 	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[GETPOSMPARA(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
+	fputc('\n', stdout);
 }
-void dump_stuff_mpara_mmx(void *buf, unsigned int size, unsigned int index) {
-	dump_stuff_mpara_mmx_noeol(buf, size, index);
-	printf("\n");
-}
+
 // obuf has to be at lease size long.  This function will unwind the SSE-para buffers into a flat.
 void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
+
 	for (i=0;i<size;i++)
 		*oBuf++ = ((unsigned char*)buf)[GETPOSMPARA(i, index)];
 }
-void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_stuff_mpara_mmx(buf, size, index);
-}
-void dump_stuff_mpara_mmx_msg_sepline(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s :\n", (char*)msg);
-	dump_stuff_mpara_mmx(buf, size, index);
-}
 #endif
 
-void dump_stuff_shammx(void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size,
+                           unsigned int index)
+{
 	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHAGETPOS(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
-	printf("\n");
+	fputc('\n', stdout);
 }
-void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_stuff_shammx(buf, size, index);
-}
-void dump_out_shammx(void *buf, unsigned int size, unsigned int index) {
+
+void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size,
+                         unsigned int index)
+{
 	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHAGETOUTPOS(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
-	printf("\n");
-}
-void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_out_shammx(buf, size, index);
+	fputc('\n', stdout);
 }
 
-void dump_stuff_shammx64(void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOS(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
-	printf("\n");
+	fputc('\n', stdout);
 }
-void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_stuff_shammx64(buf, size, index);
-}
-void dump_stuff_mmx64(void *buf, unsigned int size, unsigned int index) {
+
+void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
-	printf("\n");
-}
-void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_stuff_mmx64(buf, size, index);
+	fputc('\n', stdout);
 }
 
-void dump_out_shammx64(void *buf, unsigned int size, unsigned int index) {
+void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
+
+	printf("%s : ", (char*)msg);
 	for (i=0;i<size;i++)
 	{
 		printf("%.2x", ((unsigned char*)buf)[SHA64GETOUTPOS(i, index)]);
 		if ( (i%4)==3 )
 			printf(" ");
 	}
-	printf("\n");
-}
-void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_out_shammx64(buf, size, index);
+	fputc('\n', stdout);
 }
 #endif
 
