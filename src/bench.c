@@ -780,6 +780,34 @@ AGAIN:
 			failed++;
 			goto next;
 		}
+#if HAVE_OPENCL
+		{
+			int n = 0;
+
+			s_gpu[0] = 0;
+			for (i = 0; i < MAX_GPU_DEVICES &&
+				     gpu_device_list[i] != -1; i++) {
+				int dev = gpu_device_list[i];
+				int fan, temp, util, cl, ml;
+
+				fan = temp = util = cl = ml = -1;
+
+				if (dev_get_temp[dev])
+					dev_get_temp[dev](temp_dev_id[dev],
+						&temp, &fan, &util, &cl, &ml);
+				if (util <= 0)
+					continue;
+				if (i == 0)
+					n += sprintf(s_gpu + n, ", GPU util: ");
+				else
+					n += sprintf(s_gpu + n, ", GPU%d: ", i);
+
+				if (util > 0)
+					n += sprintf(s_gpu + n, "%u%%", util);
+				else
+					n += sprintf(s_gpu + n, "n/a");
+			}
+#endif
 
 		if (msg_1)
 		if ((result = benchmark_format(format, 1, &results_1,
@@ -792,7 +820,7 @@ AGAIN:
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-			printf(benchmark_time ? "DONE%s\n" : "PASS%s\n", s_gpu);
+			printf(benchmark_time ? "DONE\n" : "PASS\n");
 #ifdef _OPENMP
 		// reset this in case format capped it (we may be testing more formats)
 		omp_set_num_threads(ompt_start);
@@ -828,35 +856,8 @@ AGAIN:
 		if (john_main_process)
 #endif
 		if (benchmark_time)
-#if HAVE_OPENCL
-		{
-			int n = 0;
-
-			for (i = 0; i < MAX_GPU_DEVICES &&
-				     gpu_device_list[i] != -1; i++) {
-				int dev = gpu_device_list[i];
-				int fan, temp, util, cl, ml;
-
-				fan = temp = util = cl = ml = -1;
-
-				if (dev_get_temp[dev])
-					dev_get_temp[dev](temp_dev_id[dev],
-						&temp, &fan, &util, &cl, &ml);
-				if (util <= 0)
-					continue;
-				if (i == 0)
-					n += sprintf(s_gpu + n, ", GPU util: ");
-				else
-					n += sprintf(s_gpu + n, ", GPU%d: ", i);
-
-				if (util > 0)
-					n += sprintf(s_gpu + n, "%u%%", util);
-				else
-					n += sprintf(s_gpu + n, "n/a");
-			}
-#endif
 			printf("%s:\t%s c/s real, %s c/s virtual%s\n",
-				msg_m, s_real, s_virtual, s_gpu);
+			       msg_m, s_real, s_virtual, s_gpu);
 #if HAVE_OPENCL
 		}
 #endif
@@ -865,8 +866,8 @@ AGAIN:
 		if (john_main_process)
 #endif
 		if (benchmark_time)
-		printf("%s:\t%s c/s\n",
-			msg_m, s_real);
+		printf("%s:\t%s c/s%s\n",
+		       msg_m, s_real, s_gpu);
 #endif
 
 		if (!msg_1) {
