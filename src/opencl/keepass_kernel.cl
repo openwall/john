@@ -48,7 +48,7 @@ typedef struct {
 #define MAYBE_CONSTANT __global const
 #endif
 
-inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
+inline int _memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 {
 	union {
 		const uint *w;
@@ -226,7 +226,7 @@ __kernel void keepass_final(__global keepass_state *state,
 		}
 
 		SHA256_Final(hash, &ctx);
-		result[gid].cracked = !memcmp_pmc(hash, salt->contents_hash, 32);
+		result[gid].cracked = !_memcmp_pmc(hash, salt->contents_hash, 32);
 	}
 	else if (salt->version == 2) {
 		uchar content[32];
@@ -243,7 +243,7 @@ __kernel void keepass_final(__global keepass_state *state,
 			chacha_ivsetup(&ckey, iv, 0, 12);
 			chacha_decrypt_bytes(&ckey, content, hash, 32);
 		}
-		result[gid].cracked = !memcmp_pmc(hash, salt->expected_bytes, 32);
+		result[gid].cracked = !_memcmp_pmc(hash, salt->expected_bytes, 32);
 	}
 	else
 		result[gid].cracked = 0; // We should never end up here
