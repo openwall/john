@@ -63,6 +63,13 @@ __kernel void asrep_final(MAYBE_CONSTANT asrep_salt *salt,
 {
 	uint gid = get_global_id(0);
 	const int key_size = (salt->etype == 17) ? 16 : 32;
+#if HAVE_LUT3
+	/*
+	 * Bug workaround for some nvidias. An alternative workaround is
+	 * forcing vector width 2 but that's slower.
+	 */
+	volatile
+#endif
 	uchar base_key[32];
 	uchar Ke[32];
 	uchar Ki[32];
