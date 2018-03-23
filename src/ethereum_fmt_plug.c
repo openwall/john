@@ -63,7 +63,7 @@ john_register_one(&fmt_ethereum);
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
-static char (*saved_presale)[32];
+static unsigned char (*saved_presale)[32];
 static int new_keys;
 
 static custom_salt *cur_salt;
@@ -148,16 +148,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		} else if (cur_salt->type == 2) {
 			if (new_keys) {
 				/* Presale. No salt! */
-				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
+				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 					pbkdf2_sha256((unsigned char *)saved_key[index+i],
 					              strlen(saved_key[index+i]),
 					              (unsigned char *)saved_key[index+i],
 					              strlen(saved_key[index+i]),
 					              2000, master[i], 16, 0);
-				memcpy(saved_presale[index+i], master[i], 32);
+					memcpy(saved_presale[index + i], master[i], 32);
+				}
 				new_keys = 0;
 			} else {
-				memcpy(master[i], saved_presale[index+i], 32);
+				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
+					memcpy(master[i], saved_presale[index + i], 32);
 			}
 		}
 
