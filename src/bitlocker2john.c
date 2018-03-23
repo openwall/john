@@ -48,6 +48,7 @@
 
 static unsigned char p_salt[SALT_SIZE], p_nonce[NONCE_SIZE], p_mac[MAC_SIZE], p_vmk[VMK_SIZE];
 static unsigned char r_salt[SALT_SIZE], r_nonce[NONCE_SIZE], r_mac[MAC_SIZE], r_vmk[VMK_SIZE];
+FILE *fp;
 
 static void fill_buffer(FILE *fp, unsigned char *buffer, int size)
 {
@@ -65,9 +66,28 @@ static void print_hex(unsigned char *str, int len, FILE *out)
 		fprintf(out, "%02x", str[i]);
 }
 
+#define TEST_AES_CCM(slen) {								 \
+	fprintf(stderr, "Searching AES-CCM from 0x%08lx\n", ftell(fp));	 \
+	fseek(fp, slen, SEEK_CUR);						\
+	fill_buffer(fp, r_salt, SALT_SIZE);					 \
+	fseek(fp, 147, SEEK_CUR);						 \
+	a=(unsigned char)fgetc(fp);					 \
+	b=(unsigned char)fgetc(fp);					 \
+	if (( a != value_type[0]) || (b != value_type[1])) {				 \
+		fprintf(stderr, "Error: VMK not encrypted with AES-CCM (%x,%x)\n",a ,b); \
+		found_ccm=0;								 \
+	}										 \
+	else 									 	 \
+	{									 	 \
+		fprintf(stderr, "VMK encrypted with AES-CCM (%lx)\n", (ftell(fp)-2));		 \
+		found_ccm=1;								 \
+		fseek(fp, 3, SEEK_CUR);					 \
+	}										 \
+}
+
 int process_encrypted_image(char *image_path)
 {
-	int version = 0, i = 0, match = 0, vmk_found = 0, recovery_found = 0;
+	int version = 0, i = 0, match = 0, vmk_found = 0, recovery_found = 0, found_ccm=0;
 	long int file_length = 0, j = 0;
 	const char signature[SIGNATURE_LEN] = "-FVE-FS-";
 	unsigned char vmk_entry[4] = { 0x02, 0x00, 0x08, 0x00 };
@@ -78,7 +98,7 @@ int process_encrypted_image(char *image_path)
 	unsigned char key_protection_password[2] = { 0x00, 0x20 };
 	unsigned char value_type[2] = { 0x00, 0x05 };
 	char a, b, c, d;
-	FILE *fp;
+	long int curr_fp=0;
 
 	fprintf(stderr, "Opening file %s\n", image_path);
 	fp = fopen(image_path, "r");
@@ -133,22 +153,24 @@ int process_encrypted_image(char *image_path)
 				fprintf(stderr, "VMK encrypted with TPM...not supported!\n");
 			else if ((c == key_protection_start_key[0]) && (d == key_protection_start_key[1]))
 				fprintf(stderr, "VMK encrypted with Startup Key...not supported!\n");
-			else if ((c == key_protection_recovery[0]) && (d == key_protection_recovery[1])) {
+			//Only first recovery password found
+			else if ((c == key_protection_recovery[0]) && (d == key_protection_recovery[1]) && recovery_found == 0) {
 				fprintf(stderr, "VMK encrypted with Recovery key found!\n");
-				fseek(fp, 12, SEEK_CUR);
-				fill_buffer(fp, r_salt, SALT_SIZE);
-				fseek(fp, 147, SEEK_CUR);
-				a = (unsigned char)fgetc(fp);
-				b = (unsigned char)fgetc(fp);
-				if ((a != value_type[0]) || (b != value_type[1])) {
-					fprintf(stderr, "Error: VMK not encrypted with AES-CCM, a: %02x, b: %02x\n",a ,b);
-					match = 0;
-					i = 0;
+				curr_fp = ftell(fp);
+				
+				TEST_AES_CCM(12)
+				if (found_ccm == 0)
+				{
+					fseek(fp, curr_fp, SEEK_SET);
+					TEST_AES_CCM(12+20)
+				}
+				if (found_ccm == 0)
+				{
+					match=0;
+					i=0;
 					continue;
-				} else
-					fprintf(stderr, "VMK encrypted with AES-CCM\n");
+				}
 
-				fseek(fp, 3, SEEK_CUR);
 				fill_buffer(fp, r_nonce, NONCE_SIZE);
 				fill_buffer(fp, r_mac, MAC_SIZE);
 				fill_buffer(fp, r_vmk, VMK_SIZE);
@@ -176,8 +198,7 @@ int process_encrypted_image(char *image_path)
 		}
 
 		i = 0;
-		if (vmk_found == 1 && recovery_found == 1)
-			break;
+		//if (vmk_found == 1 && recovery_found == 1) break;
 	}
 
 	fclose(fp);
