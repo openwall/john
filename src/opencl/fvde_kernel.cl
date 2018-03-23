@@ -26,12 +26,12 @@ typedef struct {
 	} blob;
 } fvde_salt_t;
 
-__kernel void fvde_decrypt(__constant fvde_salt_t *salt,
+__kernel void fvde_decrypt(MAYBE_CONSTANT fvde_salt_t *salt,
                            __global crack_t *out,
                            __global uint32_t *cracked)
 {
 	uint32_t gid = get_global_id(0);
-	__constant uint64_t *C = salt->blob.qword; // len(C) == 3
+	MAYBE_CONSTANT uint64_t *C = salt->blob.qword; // len(C) == 3
 	int32_t n = 2;  // len(C) - 1
 	uint64_t R[3]; // n + 1 = 3
 	union {

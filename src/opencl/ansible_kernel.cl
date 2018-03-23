@@ -7,7 +7,7 @@
 
 #include "pbkdf2_hmac_sha256_kernel.cl"
 #define HMAC_KEY_TYPE __global
-#define HMAC_MSG_TYPE __constant
+#define HMAC_MSG_TYPE MAYBE_CONSTANT
 #define HMAC_OUT_TYPE __global
 #include "opencl_hmac_sha256.h"
 
@@ -22,7 +22,7 @@ typedef struct {
 } ansible_salt_t;
 
 __kernel void ansible_final(__global crack_t *out,
-                            __constant ansible_salt_t *salt,
+                            MAYBE_CONSTANT ansible_salt_t *salt,
                             __global state_t *state)
 {
 	uint ix = get_global_id(0);

@@ -9,7 +9,7 @@
 
 #include "pbkdf2_hmac_sha256_kernel.cl"
 #define AES_KEY_TYPE __global const
-#define AES_SRC_TYPE __constant
+#define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 
 /*
@@ -27,7 +27,7 @@ typedef struct {
 	} blob;
 } bitwarden_salt_t;
 
-__kernel void bitwarden_decrypt(__constant bitwarden_salt_t *salt,
+__kernel void bitwarden_decrypt(MAYBE_CONSTANT bitwarden_salt_t *salt,
                                 __global crack_t *out,
                                 __global uint32_t *cracked)
 {
