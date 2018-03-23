@@ -18,10 +18,11 @@ john_register_one(&fmt_opencl_ethereum_presale);
 
 #include "misc.h"
 #include "arch.h"
-#include "ethereum_common.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
+#include "opencl_pbkdf2_hmac_sha256.h"
+#include "ethereum_common.h"
 #include "opencl_common.h"
 
 #define FORMAT_NAME             "Ethereum Presale Wallet"
@@ -35,7 +36,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              sizeof(int)
 #define PLAINTEXT_LENGTH        55
-#define KERNEL_NAME             "pbkdf2_sha256_kernel"
+#define KERNEL_NAME             "ethereum_init"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
 #define PRESALE_KERNEL_NAME     "ethereum_presale_process"
 
@@ -53,40 +54,17 @@ struct fmt_tests opencl_ethereum_presale_tests[] = {
 
 // input
 typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
-} pass_t;
-
-// input
-typedef struct {
+	salt_t pbkdf2;
 	uint8_t encseed[1024];
 	uint32_t eslen;
-} salt_t;
-
-// internal
-typedef struct {
-	uint32_t hash[8];
-} crack_t;
-
-// output
-typedef struct {
-    uint8_t hash[16];
-} hash_t;
-
-typedef struct {
-	uint32_t ipad[8];
-	uint32_t opad[8];
-	uint32_t hash[8];
-	uint32_t W[8];
-	uint32_t rounds;
-} state_t;
+} ethereum_salt_t;
 
 static pass_t *host_pass;
-static salt_t *host_salt;
-static hash_t *hash_out;
+static ethereum_salt_t *host_salt;
+static crack_t *hash_out;
 static unsigned hash_size;
 static cl_int cl_error;
-static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_hash;
+static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel, decrypt_kernel;
 static struct fmt_main *self;
 
@@ -119,30 +97,28 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
-	host_salt = mem_calloc(1, sizeof(salt_t));
-	hash_size = kpc * sizeof(hash_t);
+	host_salt = mem_calloc(1, sizeof(ethereum_salt_t));
+	hash_size = kpc * sizeof(crack_t);
 	hash_out = mem_calloc(hash_size, 1);
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
 	                        "Cannot allocate mem in");
-	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(salt_t),
+	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(ethereum_salt_t),
 	                          "Cannot allocate mem salt");
-	mem_out = CLCREATEBUFFER(CL_WO, kpc * sizeof(crack_t),
+	mem_out = CLCREATEBUFFER(CL_RW, hash_size,
 	                         "Cannot allocate mem out");
 	mem_state = CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
 	                           "Cannot allocate mem state");
-	mem_hash = CLCREATEBUFFER(CL_RW, hash_size,
-	                           "Cannot allocate mem hash");
 
 	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
-	CLKERNELARG(crypt_kernel, 1, mem_state, "Error while setting mem_state");
+	CLKERNELARG(crypt_kernel, 1, mem_salt, "Error while setting mem_salt");
+	CLKERNELARG(crypt_kernel, 2, mem_state, "Error while setting mem_state");
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
-	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
 
-	CLKERNELARG(decrypt_kernel, 0, mem_salt, "Error while setting mem_salt");
-	CLKERNELARG(decrypt_kernel, 1, mem_out, "Error while setting mem_out");
-	CLKERNELARG(decrypt_kernel, 2, mem_hash, "Error setting mem_hash");
+	CLKERNELARG(decrypt_kernel, 0, mem_out, "Error while setting mem_out");
+	CLKERNELARG(decrypt_kernel, 1, mem_salt, "Error while setting mem_salt");
+	CLKERNELARG(decrypt_kernel, 2, mem_state, "Error while setting mem_state");
 }
 
 /* ------- Helper functions ------- */
@@ -158,7 +134,6 @@ static size_t get_task_max_work_group_size()
 static void release_clobj(void)
 {
 	if (host_salt) {
-		HANDLE_CLERROR(clReleaseMemObject(mem_hash), "Release mem hash");
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
@@ -271,7 +246,7 @@ static void set_salt(void *salt)
 	host_salt->eslen = cur_salt->eslen;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
+		CL_FALSE, 0, sizeof(ethereum_salt_t), host_salt, 0, NULL, NULL),
 	    "Copy salt to gpu");
 }
 
@@ -305,7 +280,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run kernel");
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_hash,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
 		CL_TRUE, 0, hash_size, hash_out, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
 

@@ -53,7 +53,7 @@ inline void _phsk_preproc(__global const uchar *key, uint keylen,
 
 
 inline void _phsk_hmac_sha256(__global uint *output, __global uint *ipad_state,
-                              __global uint *opad_state, __constant uchar *salt,
+                              __global uint *opad_state, MAYBE_CONSTANT uchar *salt,
                               uint saltlen, uchar add)
 {
 	uint i, j, last;
@@ -203,7 +203,7 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state)
 }
 
 __kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
-                                 __constant salt_t *salt,
+                                 MAYBE_CONSTANT salt_t *salt,
                                  __global state_t *state)
 {
 	uint i, idx = get_global_id(0);
@@ -226,7 +226,7 @@ __kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
 }
 
 __kernel void pbkdf2_sha256_final(__global crack_t *out,
-                                  __constant salt_t *salt,
+                                  MAYBE_CONSTANT salt_t *salt,
                                   __global state_t *state)
 {
 	uint idx = get_global_id(0);
