@@ -19,6 +19,12 @@
 #include "opencl_sha2.h"
 #include "opencl_pbkdf2_hmac_sha256.h"
 
+#ifdef GLOBAL_SALT_NO_INIT
+#define SALT_TYPE __global const
+#else
+#define SALT_TYPE MAYBE_CONSTANT
+#endif
+
 inline void _phsk_preproc(__global const uchar *key, uint keylen,
                           __global uint *state, uint padding)
 {
@@ -53,7 +59,7 @@ inline void _phsk_preproc(__global const uchar *key, uint keylen,
 
 
 inline void _phsk_hmac_sha256(__global uint *output, __global uint *ipad_state,
-                              __global uint *opad_state, MAYBE_CONSTANT uchar *salt,
+                              __global uint *opad_state, SALT_TYPE uchar *salt,
                               uint saltlen, uchar add)
 {
 	uint i, j, last;
@@ -202,6 +208,7 @@ __kernel void pbkdf2_sha256_loop(__global state_t *state)
 	}
 }
 
+#ifndef GLOBAL_SALT_NO_INIT
 __kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
                                  MAYBE_CONSTANT salt_t *salt,
                                  __global state_t *state)
@@ -224,6 +231,7 @@ __kernel void pbkdf2_sha256_init(__global const pass_t *inbuffer,
 
 	state[idx].pass = pass;
 }
+#endif
 
 __kernel void pbkdf2_sha256_final(__global crack_t *out,
                                   MAYBE_CONSTANT salt_t *salt,
@@ -231,13 +239,14 @@ __kernel void pbkdf2_sha256_final(__global crack_t *out,
 {
 	uint idx = get_global_id(0);
 	uint i;
-
 	uint base = (state[idx].pass - salt->skip_bytes / 32) * 8;
-	uint pass = ++state[idx].pass;
 
 	// First/next 32 bytes of output
 	for (i = 0; i < 8; i++)
 		out[idx].hash[base + i] = SWAP32(state[idx].hash[i]);
+
+#ifndef GLOBAL_SALT_NO_INIT
+	uint pass = ++state[idx].pass;
 
 	/* Was this the last pass? If not, prepare for next one */
 	if (4 * base + 32 < OUTLEN) {
@@ -249,4 +258,5 @@ __kernel void pbkdf2_sha256_final(__global crack_t *out,
 
 		state[idx].rounds = salt->rounds - 1;
 	}
+#endif
 }

@@ -7,7 +7,7 @@
  * modification, are permitted.
  */
 
-#define MAYBE_CONSTANT __global const
+#define GLOBAL_SALT_NO_INIT
 #include "pbkdf2_hmac_sha256_kernel.cl"
 #define AES_KEY_TYPE __global const
 #define AES_SRC_TYPE MAYBE_CONSTANT
@@ -20,6 +20,11 @@ typedef struct {
 	uint8_t encseed[1024];
 	uint32_t eslen;
 } ethereum_salt_t;
+
+// output
+typedef struct {
+	uint32_t hash[4];
+} hash_t;
 
 __kernel void ethereum_init(__global const pass_t *inbuffer,
                             MAYBE_CONSTANT salt_t *salt,
@@ -35,7 +40,7 @@ __kernel void ethereum_init(__global const pass_t *inbuffer,
 	_phsk_preproc(inbuffer[idx].v, inbuffer[idx].length,
 	              state[idx].opad, 0x5c5c5c5c);
 
-	/* Password is used as salt too! Wierd. */
+	/* Password is used as salt too! Wierd, and stupid - we exploit it! */
 	_phsk_hmac_sha256(state[idx].hash, state[idx].ipad, state[idx].opad,
 	                  inbuffer[idx].v, inbuffer[idx].length, pass + 1);
 
@@ -45,9 +50,10 @@ __kernel void ethereum_init(__global const pass_t *inbuffer,
 	state[idx].pass = pass;
 }
 
-__kernel void ethereum_presale_process(__global crack_t *out,
+__kernel void ethereum_presale_process(__global crack_t *pbkdf2_out,
                                        MAYBE_CONSTANT ethereum_salt_t *salt,
-                                       __global state_t *state)
+                                       __global state_t *state,
+                                       __global hash_t *out)
 {
 	uint32_t gid = get_global_id(0);
 	AES_KEY akey;
@@ -62,12 +68,12 @@ __kernel void ethereum_presale_process(__global crack_t *out,
 	 * We call the PBKDF2 final kernel as a function from here,
 	 * instead of another short call from host side
 	 */
-	pbkdf2_sha256_final(out, &salt->pbkdf2, state);
+	pbkdf2_sha256_final(pbkdf2_out, &salt->pbkdf2, state);
 
 	for (i = 0; i < 16; i++)
 		iv[i] = salt->encseed[i];
 
-	AES_set_decrypt_key(out[gid].hash, 128, &akey);
+	AES_set_decrypt_key(pbkdf2_out[gid].hash, 128, &akey);
 	AES_cbc_decrypt(salt->encseed + 16, seed, salt->eslen - 16, &akey, iv);
 	padbyte = seed[salt->eslen - 16 - 1];
 	seed_length = salt->eslen - 16 - padbyte;
@@ -76,7 +82,6 @@ __kernel void ethereum_presale_process(__global crack_t *out,
 	seed[seed_length] = 0x02; // add 0x02 to the buffer
 	keccak_256((uint8_t*)hash, 16, seed, seed_length + 1);
 
-	/* Re-use PBKDF2 output buffer for our final output */
 	for (i = 0; i < 4; i++)
 		out[gid].hash[i] = hash[i];
 }

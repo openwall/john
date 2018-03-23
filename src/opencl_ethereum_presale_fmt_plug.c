@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #define FORMAT_LABEL            "ethereum-presale-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_ALIGN            sizeof(uint32_t)
@@ -59,12 +59,19 @@ typedef struct {
 	uint32_t eslen;
 } ethereum_salt_t;
 
+// output
+typedef struct {
+	uint8_t hash[16];
+} hash_t;
+
+static int new_keys;
+
 static pass_t *host_pass;
 static ethereum_salt_t *host_salt;
-static crack_t *hash_out;
+static hash_t *hash_out;
 static unsigned hash_size;
 static cl_int cl_error;
-static cl_mem mem_in, mem_out, mem_salt, mem_state;
+static cl_mem mem_in, mem_pbkdf2_out, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel, decrypt_kernel;
 static struct fmt_main *self;
 
@@ -90,35 +97,39 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 #define CL_RW CL_MEM_READ_WRITE
 
 #define CLCREATEBUFFER(_flags, _size, _string)\
-	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error);\
+	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error); \
 	HANDLE_CLERROR(cl_error, _string);
 
-#define CLKERNELARG(kernel, id, arg, msg)\
-	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
+#define CLKERNELARG(kernel, id, arg)\
+	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), \
+	               "Error setting kernel arg");
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
 	host_salt = mem_calloc(1, sizeof(ethereum_salt_t));
-	hash_size = kpc * sizeof(crack_t);
+	hash_size = kpc * sizeof(hash_t);
 	hash_out = mem_calloc(hash_size, 1);
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
 	                        "Cannot allocate mem in");
 	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(ethereum_salt_t),
 	                          "Cannot allocate mem salt");
-	mem_out = CLCREATEBUFFER(CL_RW, hash_size,
+	mem_pbkdf2_out = CLCREATEBUFFER(CL_RW, kpc * sizeof(crack_t),
+	                                "Cannot allocate mem pbkdf2_out");
+	mem_out = CLCREATEBUFFER(CL_WO, hash_size,
 	                         "Cannot allocate mem out");
 	mem_state = CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
 	                           "Cannot allocate mem state");
 
-	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
-	CLKERNELARG(crypt_kernel, 1, mem_salt, "Error while setting mem_salt");
-	CLKERNELARG(crypt_kernel, 2, mem_state, "Error while setting mem_state");
+	CLKERNELARG(crypt_kernel, 0, mem_in);
+	CLKERNELARG(crypt_kernel, 1, mem_salt);
+	CLKERNELARG(crypt_kernel, 2, mem_state);
 
-	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
+	CLKERNELARG(split_kernel, 0, mem_state);
 
-	CLKERNELARG(decrypt_kernel, 0, mem_out, "Error while setting mem_out");
-	CLKERNELARG(decrypt_kernel, 1, mem_salt, "Error while setting mem_salt");
-	CLKERNELARG(decrypt_kernel, 2, mem_state, "Error while setting mem_state");
+	CLKERNELARG(decrypt_kernel, 0, mem_pbkdf2_out);
+	CLKERNELARG(decrypt_kernel, 1, mem_salt);
+	CLKERNELARG(decrypt_kernel, 2, mem_state);
+	CLKERNELARG(decrypt_kernel, 3, mem_out);
 }
 
 /* ------- Helper functions ------- */
@@ -136,6 +147,7 @@ static void release_clobj(void)
 	if (host_salt) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_pbkdf2_out), "Release pbkdf2out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 
@@ -259,20 +271,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
-		CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
-		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys || ocl_autotune_running) {
+		// Copy data to gpu
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
+			CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
+			NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
-	// Run kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
-		1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run kernel");
+		// Run kernel
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
+			1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run kernel");
 
-	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
-			1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run split kernel");
-		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-		opencl_process_event();
+		for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
+			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
+				1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run split kernel");
+			BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+			opencl_process_event();
+		}
+		new_keys = 0;
 	}
 
 	// Run decrypt kernel
@@ -313,6 +328,7 @@ static void set_key(char *key, int index)
 
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
+	new_keys = 1;
 }
 
 static char *get_key(int index)

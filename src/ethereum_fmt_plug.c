@@ -37,19 +37,19 @@ john_register_one(&fmt_ethereum);
 
 #define FORMAT_NAME             "Ethereum Wallet"
 #define FORMAT_LABEL            "ethereum"
-#ifdef SIMD_COEF_64
+#ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA256/scrypt Keccak " SHA256_ALGORITHM_NAME
 #else
 #define ALGORITHM_NAME          "PBKDF2-SHA256/scrypt Keccak 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0
 #define BINARY_SIZE             16
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(uint64_t)
-#ifdef SIMD_COEF_64
+#ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #else
@@ -63,6 +63,8 @@ john_register_one(&fmt_ethereum);
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
+static char (*saved_presale)[32];
+static int new_keys;
 
 static custom_salt *cur_salt;
 
@@ -76,6 +78,8 @@ static void init(struct fmt_main *self)
 	omp_autotune(self, OMP_SCALE);
 
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
+	saved_presale =
+		mem_calloc(sizeof(*saved_presale), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 
 	memcpy(dpad.data, "\x02\x00\x00\x00\x00\x00\x00\x00", 8);
@@ -83,6 +87,7 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	MEM_FREE(saved_presale);
 	MEM_FREE(saved_key);
 	MEM_FREE(crypt_out);
 }
@@ -95,6 +100,7 @@ static void set_salt(void *salt)
 static void ethereum_set_key(char *key, int index)
 {
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -114,7 +120,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char master[MIN_KEYS_PER_CRYPT][32];
 		int i;
 		if (cur_salt->type == 0) {
-#ifdef SIMD_COEF_64
+#ifdef SIMD_COEF_32
 			int lens[MIN_KEYS_PER_CRYPT];
 			unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
@@ -140,12 +146,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						cur_salt->r, cur_salt->p,
 						master[i], 32);
 		} else if (cur_salt->type == 2) {
-			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
-				pbkdf2_sha256((unsigned char *)saved_key[index+i],
-						strlen(saved_key[index+i]),
-						(unsigned char *)saved_key[index+i],
-						strlen(saved_key[index+i]),
-						2000, master[i], 16, 0);
+			if (new_keys) {
+				/* Presale. No salt! */
+				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
+					pbkdf2_sha256((unsigned char *)saved_key[index+i],
+					              strlen(saved_key[index+i]),
+					              (unsigned char *)saved_key[index+i],
+					              strlen(saved_key[index+i]),
+					              2000, master[i], 16, 0);
+				memcpy(saved_presale[index+i], master[i], 32);
+				new_keys = 0;
+			} else {
+				memcpy(master[i], saved_presale[index+i], 32);
+			}
 		}
 
 		if (cur_salt->type == 0 || cur_salt->type == 1) {
