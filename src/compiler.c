@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2011-2013,2015 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2011-2013,2015,2018 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -911,6 +911,7 @@ void c_execute_fast(void *addr)
 	union c_insn *sp = &c_stack[2];
 	c_int imm = 0;
 
+/* Must be in the same order as c_ops[] */
 	static void *ops[] = {
 		&&op_index,
 		&&op_assign,
@@ -926,16 +927,15 @@ void c_execute_fast(void *addr)
 		&&op_shr_a,
 		&&op_or_i,
 		&&op_and_b,
-		&&op_not_b,
+		&&op_or_i,
+		&&op_xor_i,
+		&&op_and_i,
 		&&op_eq,
 		&&op_sub,
 		&&op_gt,
 		&&op_lt,
 		&&op_ge,
 		&&op_le,
-		&&op_or_i,
-		&&op_xor_i,
-		&&op_and_i,
 		&&op_shl,
 		&&op_shr,
 		&&op_add,
@@ -943,6 +943,7 @@ void c_execute_fast(void *addr)
 		&&op_mul,
 		&&op_div,
 		&&op_mod,
+		&&op_not_b,
 		&&op_not_i,
 		&&op_neg,
 		&&op_inc_l,
@@ -1590,6 +1591,7 @@ static void (*c_op_push_mem_mem_mem_mem)(void) = c_f_op_push_mem_mem_mem_mem;
 static void (*c_op_assign)(void) = c_f_op_assign;
 static void (*c_op_assign_pop)(void) = c_f_op_assign_pop;
 
+/* Must be in the same order as ops[] in c_execute_fast() */
 static struct c_op c_ops[] = {
 	{1, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "[", c_op_index},
 	{2, C_RIGHT_TO_LEFT, C_CLASS_BINARY, "=", c_f_op_assign},
@@ -1605,29 +1607,29 @@ static struct c_op c_ops[] = {
 	{2, C_RIGHT_TO_LEFT, C_CLASS_BINARY, ">>=", c_op_shr_a},
 	{3, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "||", c_op_or_i},
 	{4, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "&&", c_op_and_b},
-	{5, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "!", c_op_not_b},
-	{6, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "==", c_op_eq},
-	{6, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "!=", c_op_sub},
-	{6, C_LEFT_TO_RIGHT, C_CLASS_BINARY, ">", c_op_gt},
-	{6, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "<", c_op_lt},
-	{6, C_LEFT_TO_RIGHT, C_CLASS_BINARY, ">=", c_op_ge},
-	{6, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "<=", c_op_le},
-	{7, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "|", c_op_or_i},
-	{7, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "^", c_op_xor_i},
-	{8, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "&", c_op_and_i},
-	{9, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "<<", c_op_shl},
-	{9, C_LEFT_TO_RIGHT, C_CLASS_BINARY, ">>", c_op_shr},
-	{10, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "+", c_op_add},
-	{10, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "-", c_op_sub},
-	{11, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "*", c_op_mul},
-	{11, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "/", c_op_div},
-	{11, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "%", c_op_mod},
-	{12, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "~", c_op_not_i},
-	{12, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "-", c_op_neg},
-	{12, C_LEFT_TO_RIGHT, C_CLASS_LEFT, "++", c_op_inc_l},
-	{12, C_LEFT_TO_RIGHT, C_CLASS_LEFT, "--", c_op_dec_l},
-	{12, C_LEFT_TO_RIGHT, C_CLASS_RIGHT, "++", c_op_inc_r},
-	{12, C_LEFT_TO_RIGHT, C_CLASS_RIGHT, "--", c_op_dec_r},
+	{5, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "|", c_op_or_i},
+	{6, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "^", c_op_xor_i},
+	{7, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "&", c_op_and_i},
+	{8, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "==", c_op_eq},
+	{8, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "!=", c_op_sub},
+	{9, C_LEFT_TO_RIGHT, C_CLASS_BINARY, ">", c_op_gt},
+	{9, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "<", c_op_lt},
+	{9, C_LEFT_TO_RIGHT, C_CLASS_BINARY, ">=", c_op_ge},
+	{9, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "<=", c_op_le},
+	{10, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "<<", c_op_shl},
+	{10, C_LEFT_TO_RIGHT, C_CLASS_BINARY, ">>", c_op_shr},
+	{11, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "+", c_op_add},
+	{11, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "-", c_op_sub},
+	{12, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "*", c_op_mul},
+	{12, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "/", c_op_div},
+	{12, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "%", c_op_mod},
+	{13, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "!", c_op_not_b},
+	{13, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "~", c_op_not_i},
+	{13, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "-", c_op_neg},
+	{13, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "++", c_op_inc_l},
+	{13, C_RIGHT_TO_LEFT, C_CLASS_LEFT, "--", c_op_dec_l},
+	{14, C_LEFT_TO_RIGHT, C_CLASS_RIGHT, "++", c_op_inc_r},
+	{14, C_LEFT_TO_RIGHT, C_CLASS_RIGHT, "--", c_op_dec_r},
 #ifdef PRINT_INSNS
 	{0, 0, 0, "return", c_f_op_return},
 	{0, 0, 0, "bz", c_f_op_bz},
