@@ -193,12 +193,12 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
-		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel 3");
 	if (autotuned) {
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel 1");
 		HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel 2");
-		HANDLE_CLERROR(clReleaseKernel(decrypt_kernel), "Release kernel 3");
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel 3");
+		HANDLE_CLERROR(clReleaseKernel(decrypt_kernel), "Release kernel 4");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
 
