@@ -36,6 +36,7 @@ john_register_one(&fmt_sapG);
 #include "options.h"
 #include "unicode.h"
 #include "johnswap.h"
+#include "config.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "sapg"
@@ -121,6 +122,12 @@ static UTF8 (*saved_plain)[UTF8_PLAINTEXT_LENGTH + 1];
 static int *keyLen;
 static int max_keys;
 
+/*
+ * If john.conf option 'SAPhalfHash' is true, we support 'half hashes' from
+ * the RFC_READ table. This means second half of the hash are zeros.
+ */
+static int half_hashes;
+
 #ifdef SIMD_COEF_32
 
 // max intermediate crypt size is 256 bytes
@@ -149,6 +156,9 @@ static void init(struct fmt_main *self)
 #ifdef SIMD_COEF_32
 	int i;
 #endif
+
+	half_hashes = cfg_get_bool(SECTION_OPTIONS, NULL, "SAPhalfHashes", 0);
+
 	// This is needed in order NOT to upper-case german double-s
 	// in UTF-8 mode.
 	initUnicode(UNICODE_MS_NEW);
@@ -302,17 +312,16 @@ static int cmp_all(void *binary, int count) {
 #else
 	unsigned int index;
 	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
+		if (!memcmp(binary, crypt_key[index], BINARY_SIZE / 2))
 			return 1;
 	return 0;
 #endif
 }
 
-static int cmp_exact(char *source, int index)
-{
-	return 1;
-}
-
+/*
+ * We support 'half hashes' from the RFC_READ table. This means second half
+ * of the hash are zeros.
+ */
 static int cmp_one(void *binary, int index)
 {
 #ifdef SIMD_COEF_32
@@ -321,15 +330,33 @@ static int cmp_one(void *binary, int index)
 	y = (unsigned int)index/SIMD_COEF_32;
 
 	if ( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5])   |
-	    (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]) |
-	    (((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32]) |
-	    (((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32])|
-	    (((unsigned int*)binary)[4] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32]) )
+	     (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+SIMD_COEF_32]))
 		return 0;
-	return 1;
+	if ((((unsigned int*)binary)[2] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32]) &&
+	    (((unsigned int*)binary)[3] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+3*SIMD_COEF_32]) &&
+		 (((unsigned int*)binary)[4] == ((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+4*SIMD_COEF_32]) )
+		return 1;
+	if (half_hashes &&
+	    ((((unsigned int*)binary)[2] >> 16) == (((unsigned int*)crypt_key)[x+y*SIMD_COEF_32*5+2*SIMD_COEF_32] >> 16)) &&
+	    ((((unsigned int*)binary)[2] & 0xffff) == 0) &&
+	    (((unsigned int*)binary)[3] == 0) && (((unsigned int*)binary)[4] == 0))
+		return 1;
+	return 0;
 #else
-	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
+	const char zeros[BINARY_SIZE / 2] = { 0 };
+
+	if (half_hashes)
+		return (!memcmp(binary, crypt_key[index], BINARY_SIZE) ||
+		        (!memcmp(binary, crypt_key[index], BINARY_SIZE / 2) &&
+		         !memcmp(binary + BINARY_SIZE / 2, zeros, BINARY_SIZE / 2)));
+	else
+		return (!memcmp(binary, crypt_key[index], BINARY_SIZE));
 #endif
+}
+
+static int cmp_exact(char *source, int index)
+{
+	return 1;
 }
 
 /*

@@ -31,6 +31,7 @@ john_register_one(&fmt_sapB);
 #include "options.h"
 #include "unicode.h"
 #include "md5.h"
+#include "config.h"
 
 #define FORMAT_LABEL			"sapb"
 #define FORMAT_NAME			"SAP CODVN B (BCODE)"
@@ -171,6 +172,12 @@ static struct fmt_tests tests[] = {
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static int (*keyLen);
 
+/*
+ * If john.conf option 'SAPhalfHash' is true, we support 'half hashes' from
+ * the RFC_READ table. This means second half of the hash are zeros.
+ */
+static int half_hashes;
+
 #ifdef SIMD_COEF_32
 
 static unsigned char (*saved_key);
@@ -196,6 +203,11 @@ static void init(struct fmt_main *self)
 
 	if (options.target_enc == UTF_8 && !options.listconf && warned++ == 0)
 		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nUse --target-encoding=iso-8859-1 or whatever is applicable.\n");
+
+	half_hashes = cfg_get_bool(SECTION_OPTIONS, NULL, "SAPhalfHashes", 0);
+
+	if (half_hashes)
+		self->params.flags |= FMT_NOT_EXACT;
 
 #if defined (_OPENMP)
 	threads = omp_get_max_threads();
@@ -325,30 +337,41 @@ static int cmp_all(void *binary, int count) {
 #else
 	int index;
 	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
+		if (!memcmp(binary, crypt_key[index], BINARY_SIZE / 2))
 			return 1;
 	return 0;
+#endif
+}
+
+static int cmp_one(void *binary, int index)
+{
+#ifdef SIMD_COEF_32
+	unsigned int x,y;
+
+	x = index&(SIMD_COEF_32-1);
+	y = (unsigned int)index/SIMD_COEF_32;
+	if ( ((uint32_t*)binary)[0] != ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+0*SIMD_COEF_32+x])
+		return 0;
+	if ( ((uint32_t*)binary)[1] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+1*SIMD_COEF_32+x])
+		return 1;
+	if (half_hashes && ((uint32_t*)binary)[1] == 0)
+		return 1;
+	return 0;
+#else
+	const char zeros[BINARY_SIZE / 2] = { 0 };
+
+	if (half_hashes)
+		return (!memcmp(binary, crypt_key[index], BINARY_SIZE) ||
+		        (!memcmp(binary, crypt_key[index], BINARY_SIZE / 2) &&
+		         !memcmp(binary + BINARY_SIZE / 2, zeros, BINARY_SIZE / 2)));
+	else
+		return (!memcmp(binary, crypt_key[index], BINARY_SIZE));
 #endif
 }
 
 static int cmp_exact(char *source, int index)
 {
 	return 1;
-}
-
-static int cmp_one(void * binary, int index)
-{
-#ifdef SIMD_COEF_32
-	unsigned int i,x,y;
-	x = index&(SIMD_COEF_32-1);
-	y = (unsigned int)index/SIMD_COEF_32;
-	for (i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((uint32_t*)binary)[i] != ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+i*SIMD_COEF_32+x] )
-			return 0;
-	return 1;
-#else
-	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
-#endif
 }
 
 static unsigned int walld0rf_magic(const int index, const unsigned char *temp_key, unsigned char *destArray)
