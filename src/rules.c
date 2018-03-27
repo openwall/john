@@ -1302,7 +1302,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	if (!NEXT)
 		goto out_OK;
 
-	if (!length) REJECT
+	if (!length && !hc_logic)
+		REJECT
 
 	alt = buffer[1];
 	if (alt == last)
@@ -2189,7 +2190,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			goto out_ERROR_UNKNOWN;
 		}
 
-		if (!length) REJECT
+		if (!length && !hc_logic)
+			REJECT
 	}
 
 	if (which)
