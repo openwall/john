@@ -680,7 +680,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		return 1;
 	}
 
-	if (p->cmp_len == 0 && p->decomp_len == 0)
+	if (p->cmp_len == 0 && p->decomp_len == 0 && flags & (1 << 3))
 		scan_for_eod(&fp, p, version >= 45);
 
 	fprintf(stderr, "%s->%s is not encrypted, or stored with non-handled compression type\n", zip_fname, filename);
