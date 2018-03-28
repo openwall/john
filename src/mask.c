@@ -2187,6 +2187,13 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	/* Drop braces around a single-character [z] -> z */
 	mask = drop1range(mask);
 
+	if (increment_lengths) {
+		int orig_len = mask_len(mask);
+
+		if (options.req_minlength < 0 && orig_len > options.eff_minlength)
+			options.eff_minlength = orig_len;
+	}
+
 	if (format_cannot_reset) {
 		if (options.flags & FLG_MASK_STACKED)
 			mask_cur_len = 0;
@@ -2332,7 +2339,8 @@ static void finalize_mask(int len)
 #endif
 	int_mask_sum = 0;
 	for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges; i++)
-		int_mask_sum |= mask_skip_ranges[i] << (8 * i);
+		int_mask_sum |=
+			cpu_mask_ctx.ranges[mask_skip_ranges[i]].count << (8 * i);
 
 	skip_position(&cpu_mask_ctx, mask_skip_ranges);
 
