@@ -70,6 +70,7 @@
 #if HAVE_OPENCL
 #include "opencl_common.h"
 #endif
+#include "mask_ext.h"
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */
 #include "memdbg.h"
@@ -643,7 +644,10 @@ void listconf_parse_late(void)
 			printf(" Uses a bitslice implementation      %s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case     %s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 			printf(" Supports very long hashes           %s\n", (format->params.flags & FMT_HUGE_INPUT) ? "yes" : "no");
-			printf(" Internal mask generation            %s\n", (format->params.flags & FMT_MASK) ? "yes" : "no");
+			if (format->params.flags & FMT_MASK)
+				printf(" Internal mask generation            yes (device target: %dx)\n", mask_int_cand_target);
+			else
+				printf(" Internal mask generation            no\n");
 
 #ifndef DYNAMIC_DISABLED
 			if (format->params.flags & FMT_DYNAMIC) {
