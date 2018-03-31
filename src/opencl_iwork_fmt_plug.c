@@ -36,7 +36,6 @@ john_register_one(&fmt_opencl_iwork);
 #include "opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "iwork-opencl"
-#define FORMAT_NAME             "Apple iWork '09 / '13 / '14"
 #define OCL_ALGORITHM_NAME      "PBKDF2-SHA1 AES OpenCL"
 #define ALGORITHM_NAME          OCL_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""

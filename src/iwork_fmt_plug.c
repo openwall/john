@@ -42,8 +42,6 @@ john_register_one(&fmt_iwork);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "iwork"
-#define FORMAT_NAME             "Apple iWork '09 / '13 / '14"
-
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES " SHA1_ALGORITHM_NAME
 #else

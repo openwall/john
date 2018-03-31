@@ -12,7 +12,7 @@
 #define SALTLEN                 16
 #define IVLEN                   16
 #define BLOBLEN                 64
-#define FORMAT_NAME             "Apple iWork '09 / '13 / '14"
+#define FORMAT_NAME             "Apple iWork '09 or newer"
 #define FORMAT_TAG              "$iwork$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 
