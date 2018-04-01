@@ -103,7 +103,7 @@ int test_tables_64(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_tab
 			if (error && (hash_table_64[hash_table_idx] != (unsigned int)(hash & 0xffffffff)  ||
 			    hash_table_64[hash_table_idx + hash_table_size] != (unsigned int)(hash >> 32) ||
 			    hash_table_collisions[hash_table_idx] > 1)) {
-				fprintf(stderr, "Error building tables: Loaded hash Idx:%u, No. of Collosions:%u\n", i, hash_table_collisions[hash_table_idx]);
+				fprintf(stderr, "Error building tables: Loaded hash idx:%u, No. of collisions:%u\n", i, hash_table_collisions[hash_table_idx]);
 				error = 0;
 			}
 
