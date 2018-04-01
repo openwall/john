@@ -78,6 +78,7 @@ static int abort_grace_time = 30;
 #include <sys/times.h>
 #endif
 
+static int timer_emu_running;
 static clock_t timer_emu_interval = 0;
 static unsigned int timer_emu_count = 0, timer_emu_max = 0;
 
@@ -85,6 +86,7 @@ void sig_timer_emu_init(clock_t interval)
 {
 	timer_emu_interval = interval;
 	timer_emu_count = 0; timer_emu_max = 0;
+	timer_emu_running = 1;
 }
 
 void sig_timer_emu_tick(void)
@@ -95,7 +97,10 @@ void sig_timer_emu_tick(void)
 	struct tms buf;
 #endif
 
-	if (++timer_emu_count < timer_emu_max) return;
+	if (!timer_emu_running)
+		return;
+	if (++timer_emu_count < timer_emu_max)
+		return;
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	current = clock();
