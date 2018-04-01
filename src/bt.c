@@ -12,9 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
-#include <signal.h>
-#include <unistd.h>
 
+#include "status.h"
 #include "misc.h" // error()
 #include "bt_twister.h"
 #include "bt_hash_types.h"
@@ -60,15 +59,7 @@ static auxilliary_offset_data *offset_data;
 
 unsigned long long total_memory_in_bytes;
 
-static volatile sig_atomic_t signal_stop;
-
 static unsigned int verbosity;
-
-static void alarm_handler(int sig)
-{
-	if (sig == SIGALRM)
-		signal_stop = 1;
-}
 
 static unsigned int coprime_check(unsigned int m,unsigned int n)
 {
@@ -380,6 +371,7 @@ static unsigned int create_tables()
 	while (offset_data[i].collisions > 1) {
 		OFFSET_TABLE_WORD offset;
 		unsigned int num_iter;
+		unsigned int start_time;
 
 		done += offset_data[i].collisions;
 
@@ -393,7 +385,7 @@ static unsigned int create_tables()
 			backtracking = 0;
 		}
 #endif
-		alarm(3);
+		start_time = status_get_time();
 
 		num_iter = 0;
 		while (!check_n_insert_into_hash_table((unsigned int)offset, &offset_data[i], hash_table_idxs, store_hash_modulo_table_sz) && num_iter < limit) {
@@ -410,12 +402,9 @@ static unsigned int create_tables()
 				fprintf(stdout, "\rProgress:%Lf %%, Number of collisions:%u", done / (long double)num_loaded_hashes * 100.00, offset_data[i].collisions);
 				fflush(stdout);
 			}
-			alarm(0);
 		}
 
-		if (signal_stop) {
-			alarm(0);
-			signal_stop = 0;
+		if (status_get_time() >= start_time + 3) {
 			fprintf(stderr, "\nProgress is too slow!! trying next table size.\n");
 			bt_free((void **)&hash_table_idxs);
 			bt_free((void **)&store_hash_modulo_table_sz);
@@ -460,8 +449,6 @@ static unsigned int create_tables()
 
 		i++;
 	}
-
-	alarm(0);
 
 	hash_table_idx = 0;
 	while (i < offset_table_size && offset_data[i].collisions > 0) {
@@ -558,8 +545,6 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 {
 	long double multiplier_ht, multiplier_ot, inc_ht, inc_ot;
 	unsigned int approx_hash_table_sz, approx_offset_table_sz, i, dupe_remove_ht_sz;
-	struct sigaction new_action, old_action;
-	struct itimerval old_it;
 
 	total_memory_in_bytes = 0;
 
@@ -612,19 +597,6 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 			fprintf(stdout, "Using Hash type 192.\n");
 	}
 
-	new_action.sa_handler = alarm_handler;
-	sigemptyset(&new_action.sa_mask);
-	new_action.sa_flags = 0;
-
-	if (sigaction(SIGALRM, NULL, &old_action) < 0)
-		bt_error("Error retriving signal info.");
-
-	if (sigaction(SIGALRM, &new_action, NULL) < 0)
-		bt_error("Error setting new signal handler.");
-
-	if (getitimer(ITIMER_REAL, &old_it) < 0)
-		bt_error("Error retriving timer info.");
-
 	inc_ht = 0.005;
 	inc_ot = 0.05;
 
@@ -671,10 +643,11 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 		dupe_remove_ht_sz = 134217728 * 2;
 	}
 	else {
-		fprintf(stderr, "This many number of hashes have never been tested before and might not succeed!!\n");
 		multiplier_ot = 3.01375173;
 		dupe_remove_ht_sz = 134217728 * 4;
 	}
+	if (num_ld_hashes > 320294464)
+		fprintf(stderr, "This many number of hashes have never been tested before and might not succeed!!\n");
 
 	num_loaded_hashes = remove_duplicates(num_ld_hashes, dupe_remove_ht_sz, verbosity);
 	if (!num_loaded_hashes)
@@ -730,12 +703,6 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 	*offset_table_ptr = offset_table;
 	*hash_table_sz_ptr = hash_table_size;
 	*offset_table_sz_ptr = offset_table_size;
-
-	if (sigaction(SIGALRM, &old_action, NULL) < 0)
-		bt_error("Error restoring previous signal handler.");
-
-	if (setitimer(ITIMER_REAL, &old_it, NULL) < 0)
-		bt_error("Error restoring previous timer.");
 
 	if (!test_tables(num_loaded_hashes, offset_table, offset_table_size, shift64_ot_sz, shift128_ot_sz, verbosity))
 		return 0;
