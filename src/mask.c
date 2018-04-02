@@ -2078,6 +2078,7 @@ static void finalize_mask(int len);
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
 	static char test_mask[] = "?a?a?l?u?d?d?s?s";
+	int using_default_mask = 0;
 	int i;
 
 	mask_db = db;
@@ -2123,6 +2124,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 		if (2 * options.eff_maxlength < strlen(options.mask))
 			options.mask[2 * options.eff_maxlength] = 0;
+
+		using_default_mask = 1;
 	}
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
@@ -2187,7 +2190,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	/* Drop braces around a single-character [z] -> z */
 	mask = drop1range(mask);
 
-	if (increment_lengths) {
+	if (increment_lengths && !using_default_mask) {
 		int orig_len = mask_len(mask);
 
 		if (options.req_minlength < 0 && orig_len > options.eff_minlength)
