@@ -48,9 +48,9 @@ static uint64_t rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
 struct db_main *mask_db;
 static int mask_bench_index;
-static int parent_fix_state_pending, increment_lengths;
+static int parent_fix_state_pending;
 static unsigned int int_mask_sum, format_cannot_reset;
-int mask_add_len, mask_num_qw, mask_cur_len, mask_iter_warn;
+int mask_add_len, mask_num_qw, mask_cur_len, mask_iter_warn, mask_increments_len;
 
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
@@ -1812,7 +1812,7 @@ static uint64_t divide_work(mask_cpu_context *cpu_mask_ctx)
 	if (options.node_max == options.node_count)
 		my_candidates = total_candidates - offset;
 
-	if (!my_candidates && !increment_lengths) {
+	if (!my_candidates && !mask_increments_len) {
 		if (john_main_process)
 			fprintf(stderr, "%u: Insufficient work. Cannot distribute "
 			        "work among nodes!\n", options.node_min);
@@ -1858,7 +1858,7 @@ void mask_save_state(FILE *file)
 	fprintf(file, "%"PRIu64"\n", rec_cand + 1);
 	fprintf(file, "%d\n", rec_ctx.count);
 	fprintf(file, "%d\n", rec_ctx.offset);
-	if (increment_lengths) {
+	if (mask_increments_len) {
 		fprintf(file, "%d\n", rec_len);
 		fprintf(file, "%"PRIu64"\n", cand_length + 1);
 	}
@@ -1888,7 +1888,7 @@ int mask_restore_state(FILE *file)
 	else
 		return fail;
 
-	if (increment_lengths) {
+	if (mask_increments_len) {
 		if (fscanf(file, "%d\n", &d) == 1)
 			restored_len = d;
 		else
@@ -2092,7 +2092,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if ((options.req_minlength >= 0 || options.req_maxlength) &&
 	    (options.eff_minlength != options.eff_maxlength) &&
 	    !(options.flags & FLG_MASK_STACKED))
-		increment_lengths = 1;
+		mask_increments_len = 1;
 
 	max_keylen = options.eff_maxlength;
 
@@ -2190,7 +2190,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	/* Drop braces around a single-character [z] -> z */
 	mask = drop1range(mask);
 
-	if (increment_lengths && !using_default_mask) {
+	if (mask_increments_len && !using_default_mask) {
 		int orig_len = mask_len(mask);
 
 		if (options.req_minlength < 0 && orig_len > options.eff_minlength)
@@ -2201,15 +2201,15 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (options.flags & FLG_MASK_STACKED)
 			mask_cur_len = 0;
 		else
-			mask_cur_len = increment_lengths ?
+			mask_cur_len = mask_increments_len ?
 				options.eff_maxlength : options.eff_minlength;
 		finalize_mask(max_keylen);
-	} else if (!((mask_fmt->params.flags & FMT_MASK) && increment_lengths)) {
+	} else if (!((mask_fmt->params.flags & FMT_MASK) && mask_increments_len)) {
 		mask_cur_len = options.eff_minlength;
 		finalize_mask(max_keylen);
 	}
 
-	if (format_cannot_reset && increment_lengths && mask_skip_ranges[0] != -1) {
+	if (format_cannot_reset && mask_increments_len && mask_skip_ranges[0] != -1) {
 		int inc_min =
 			mask_int_cand.int_cpu_mask_ctx->ranges[mask_max_skip_loc].pos + 1;
 		if (options.eff_minlength < inc_min) {
@@ -2423,7 +2423,7 @@ int do_mask_crack(const char *extern_key)
 	 * different), we iterate over lengths, stretching/truncating mask per
 	 * length.
 	 */
-	if (increment_lengths) {
+	if (mask_increments_len) {
 		int i;
 		unsigned int last_mask_sum = int_mask_sum;
 

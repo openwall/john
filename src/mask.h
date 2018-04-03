@@ -121,4 +121,7 @@ extern int mask_cur_len;
 /* Incremental mask iteration started at this length (contrary to options) */
 extern int mask_iter_warn;
 
+/* Mask mode is incrementing mask length */
+int mask_increments_len;
+
 #endif

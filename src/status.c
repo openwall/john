@@ -202,7 +202,7 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	if (status.pass)
 		sprintf(s_ETA, " %d/3", status.pass);
 	else
-	if (mask_cur_len)
+	if (mask_increments_len)
 		sprintf(s_ETA, " (%d)", mask_cur_len);
 	else
 		s_ETA[0] = 0;
