@@ -144,7 +144,7 @@ void AES_cts_encrypt(const unsigned char *in, unsigned char *out, size_t len,
 void dk(unsigned char key_out[], unsigned char key_in[], size_t key_size,
 		unsigned char ptext[], size_t ptext_size)
 {
-	unsigned char iv[32];
+	unsigned char iv[16];
 	unsigned char plaintext[32];
 	AES_KEY ekey;
 

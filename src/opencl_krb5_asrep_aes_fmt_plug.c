@@ -233,7 +233,7 @@ static void reset(struct db_main *db)
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, ITERATIONS, MAX_OUTLEN,
 		         PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/krb5_asrep_kernel.cl", gpu_id,
+		opencl_init("$JOHN/kernels/krb5_kernel.cl", gpu_id,
 		            build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
