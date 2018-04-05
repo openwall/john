@@ -88,8 +88,8 @@ __kernel void asrep_final(MAYBE_CONSTANT asrep_salt *salt,
 	volatile
 #endif
 	uchar base_key[32];
-	uchar Ke[16];
-	uchar Ki[16];
+	uchar Ke[32];
+	uchar Ki[32];
 	uchar checksum[20];
 
 	plaintext += (salt->edata2len + 31) / 32 * 32 * gid;
@@ -126,8 +126,8 @@ __kernel void pa_sha1_final(MAYBE_CONSTANT pa_sha1_salt *salt,
 	volatile
 #endif
 	uchar base_key[32];
-	uchar Ke[16];
-	uchar Ki[16];
+	uchar Ke[32];
+	uchar Ki[32];
 	uchar checksum[20];
 
 	plaintext += (TIMESTAMP_SIZE + 63) / 64 * 64 * gid;

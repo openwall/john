@@ -331,8 +331,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		unsigned char tkey[MIN_KEYS_PER_CRYPT][32];
-		unsigned char base_key[16];
-		unsigned char Ke[16];
+		unsigned char base_key[32];
+		unsigned char Ke[32];
 		unsigned char plaintext[TIMESTAMP_SIZE];
 		int i;
 		int len[MIN_KEYS_PER_CRYPT];
@@ -382,7 +382,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// Check a couple bytes from known plain (YYYYMMDDHHMMSSZ) and
 			// bail out if we are out of luck.
 			if (plaintext[22] == '2' && plaintext[23] == '0' && plaintext[36] == 'Z') {
-				unsigned char Ki[16];
+				unsigned char Ki[32];
 				unsigned char checksum[20];
 				// derive Ki used in HMAC-SHA-1 checksum
 				// This is precomputed in init()
