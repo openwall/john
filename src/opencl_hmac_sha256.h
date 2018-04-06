@@ -59,7 +59,7 @@ inline void hmac_sha256(HMAC_KEY_TYPE const void *_key, uint key_len,
 		pW[2] ^= 0x36363636;
 		pW[3] ^= 0x36363636;
 		pW[4] ^= 0x36363636;
-		memset_p(&buf[32], 0x36, 44);
+		memset_p(&buf[32], 0x36, 32);
 	} else
 #endif
 	{
