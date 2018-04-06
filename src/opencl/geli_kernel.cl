@@ -1,8 +1,5 @@
 /*
- * This software is
- * Copyright (c) 2012, 2013 Lukas Odzioba <ukasz at openwall dot net>
- * copyright 2014, JimF
- * and Copyright 2014 magnum
+ * This software is Copyright (c) 2018 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -43,8 +40,8 @@ __kernel void geli_final(__global crack_t *pbkdf2,
 {
 	uint gid = get_global_id(0);
 	__constant uchar *mmkey;
-	const uchar nullstring[1] = "\0";
-	const uchar onestring[1] = "\x01";
+	const uchar nullstring[1] = { 0 };
+	const uchar onestring[1] = { 1 };
 	uchar enckey[SHA512_MDLEN];
 	union {
 		ulong u[8];
