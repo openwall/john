@@ -39,7 +39,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #include "pbkdf2_hmac_sha512.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA512"
-#undef FORMAT_NAME
 #define FORMAT_NAME             "GRUB2 / OS X 10.8+"
 
 #ifdef SIMD_COEF_64

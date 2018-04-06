@@ -41,7 +41,6 @@ john_register_one(&fmt_opencl_electrum_modern);
 #include "hmac_sha.h"
 #include "pbkdf2_hmac_common.h"
 
-#undef FORMAT_NAME
 #define FORMAT_NAME             "Electrum Wallet 2.8+"
 #define FORMAT_LABEL            "electrum-modern-opencl"
 #define FORMAT_TAG              "$electrum$"
@@ -56,7 +55,6 @@ john_register_one(&fmt_opencl_electrum_modern);
 #define MAX_KEYS_PER_CRYPT      1
 #define KERNEL_NAME             "pbkdf2_sha512_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha512_loop"
-#define CONFIG_NAME             "pbkdf2_sha512"
 
 #define HASH_LOOPS              250
 #define ITERATIONS              10000

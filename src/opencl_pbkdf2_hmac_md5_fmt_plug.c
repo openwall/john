@@ -32,6 +32,7 @@ john_register_one(&fmt_ocl_pbkdf2_md5);
 #define dump_stuff_msg(a, b, c)	dump_stuff_msg((void*)a, b, c)
 
 #define FORMAT_LABEL		"PBKDF2-HMAC-MD5-opencl"
+#define FORMAT_NAME			""
 #define ALGORITHM_NAME		"PBKDF2-MD5 OpenCL"
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1

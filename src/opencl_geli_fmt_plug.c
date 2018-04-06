@@ -33,10 +33,8 @@ john_register_one(&fmt_opencl_geli);
 #include "geli_common.h"
 #include "johnswap.h"
 #include "hmac_sha.h"
-#undef FORMAT_NAME
 #include "pbkdf2_hmac_common.h"
 
-#undef FORMAT_NAME
 #define FORMAT_NAME             "FreeBSD GELI"
 #define FORMAT_LABEL            "geli-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA512 OpenCL AES"
@@ -49,7 +47,6 @@ john_register_one(&fmt_opencl_geli);
 #define MAX_KEYS_PER_CRYPT      1
 #define KERNEL_NAME             "pbkdf2_sha512_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha512_loop"
-#define CONFIG_NAME             "pbkdf2_sha512"
 
 #define HASH_LOOPS              250
 #define ITERATIONS              10000

@@ -28,6 +28,7 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-MD5"
+#define FORMAT_NAME             ""
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-MD5 " MD5_ALGORITHM_NAME
 #else

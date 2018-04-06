@@ -31,7 +31,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 
 #define NUUL NULL
 #define FORMAT_LABEL		"PBKDF2-HMAC-SHA512-opencl"
-#undef FORMAT_NAME
 #define FORMAT_NAME		    "GRUB2 / OS X 10.8+"
 #define ALGORITHM_NAME		"PBKDF2-SHA512 OpenCL"
 
@@ -43,7 +42,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 
 #define KERNEL_NAME             "pbkdf2_sha512_kernel"
 #define SPLIT_KERNEL_NAME	"pbkdf2_sha512_loop"
-#define CONFIG_NAME             "pbkdf2_sha512"
 
 #define HASH_LOOPS		250
 #define ITERATIONS		10000

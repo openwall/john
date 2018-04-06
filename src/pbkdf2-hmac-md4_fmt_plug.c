@@ -30,6 +30,7 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-MD4"
+#define FORMAT_NAME             ""
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-MD4 " MD4_ALGORITHM_NAME
 #else

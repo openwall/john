@@ -32,6 +32,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA1"
+#define FORMAT_NAME             ""
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
