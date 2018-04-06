@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_geli);
 
 #define FORMAT_NAME             "FreeBSD GELI"
 #define FORMAT_LABEL            "geli-opencl"
-#define ALGORITHM_NAME          "PBKDF2-SHA512 OpenCL AES"
+#define ALGORITHM_NAME          "PBKDF2-SHA512 AES OpenCL"
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(custom_salt)
