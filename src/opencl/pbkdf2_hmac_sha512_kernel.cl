@@ -35,8 +35,8 @@ typedef struct {
 	uint rounds;
 } state_t;
 
-inline void preproc(__global const ulong *key, uint keylen,
-                    ulong *state, ulong mask)
+inline void _phs512_preproc(__global const ulong *key, uint keylen,
+                            ulong *state, ulong mask)
 {
 	uint i, j;
 	ulong W[16];
@@ -70,8 +70,8 @@ inline void preproc(__global const ulong *key, uint keylen,
 	state[7] = H + SHA2_INIT_H;
 }
 
-inline void hmac_sha512(ulong *output, ulong *ipad_state, ulong *opad_state,
-                        __constant ulong *salt, uint saltlen)
+inline void _phs512_hmac(ulong *output, ulong *ipad_state, ulong *opad_state,
+                         __constant ulong *salt, uint saltlen)
 {
 	uint i, j;
 	ulong W[16] = { 0 };
@@ -243,10 +243,10 @@ __kernel void pbkdf2_sha512_kernel(__global const pass_t *inbuffer,
 
 	state[idx].rounds = gsalt->rounds - 1;
 
-	preproc(pass, passlen, ipad_state, 0x3636363636363636UL);
-	preproc(pass, passlen, opad_state, 0x5c5c5c5c5c5c5c5cUL);
+	_phs512_preproc(pass, passlen, ipad_state, 0x3636363636363636UL);
+	_phs512_preproc(pass, passlen, opad_state, 0x5c5c5c5c5c5c5c5cUL);
 
-	hmac_sha512(tmp_out, ipad_state, opad_state, salt, saltlen);
+	_phs512_hmac(tmp_out, ipad_state, opad_state, salt, saltlen);
 
 	for (i = 0; i < 8; i++) {
 		state[idx].ipad[i] = ipad_state[i];
