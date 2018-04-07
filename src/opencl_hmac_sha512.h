@@ -59,6 +59,9 @@ inline void hmac_sha512(HMAC_KEY_TYPE const void *_key, uint key_len,
 		pW[2] ^= 0x3636363636363636;
 		pW[3] ^= 0x3636363636363636;
 		pW[4] ^= 0x3636363636363636;
+		pW[5] ^= 0x3636363636363636;
+		pW[6] ^= 0x3636363636363636;
+		pW[7] ^= 0x3636363636363636;
 		memset_p(&buf[64], 0x36, 64);
 	} else
 #endif
