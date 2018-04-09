@@ -181,15 +181,15 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 	} else if (cur_salt->cid == 2) {  // AES-128
 		AES_set_decrypt_key(key, 128, &akey);
 		memcpy(aiv, iv, 16);
-		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, DES_DECRYPT);
+		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, AES_DECRYPT);
 	} else if (cur_salt->cid == 3) {  // AES-192
 		AES_set_decrypt_key(key, 192, &akey);
 		memcpy(aiv, iv, 16);
-		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, DES_DECRYPT);
+		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, AES_DECRYPT);
 	} else if (cur_salt->cid == 4) {  // AES-256
 		AES_set_decrypt_key(key, 256, &akey);
 		memcpy(aiv, iv, 16);
-		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, DES_DECRYPT);
+		AES_cbc_encrypt(data, out, cur_salt->ciphertext_length, &akey, aiv, AES_DECRYPT);
 	}
 
 	// padding byte can be 4 / 6 or so on!
