@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_pem);
 #include "opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "pem-opencl"
-#define ALGORITHM_NAME          "PBKDF2-SHA1 3DES OpenCL"
+#define ALGORITHM_NAME          "PBKDF2-SHA1 3DES/AES OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1

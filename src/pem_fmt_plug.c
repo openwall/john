@@ -37,9 +37,9 @@ john_register_one(&fmt_pem);
 
 #define FORMAT_LABEL            "PEM"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME          "PBKDF2-SHA1 3DES " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " 3DES/AES"
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA1 3DES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA1 32/" ARCH_BITS_STR " 3DES/AES"
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
