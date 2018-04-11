@@ -4,6 +4,8 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
+ *  This file is BASED on code from mbed TLS (https://tls.mbed.org):
+ *
  *  FIPS-46-3 compliant Triple-DES implementation
  *
  *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
@@ -20,8 +22,6 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #ifndef OPENCL_DES_H
