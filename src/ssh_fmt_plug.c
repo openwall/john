@@ -16,9 +16,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_sshng;
+extern struct fmt_main fmt_ssh;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_sshng);
+john_register_one(&fmt_ssh);
 #else
 
 #include <string.h>
@@ -41,7 +41,7 @@ john_register_one(&fmt_sshng);
 #include "asn1.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL        "SSH-ng"
+#define FORMAT_LABEL        "SSH"
 #define FORMAT_NAME         ""
 #define FORMAT_TAG          "$sshng$"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
@@ -68,7 +68,7 @@ john_register_one(&fmt_sshng);
 #define SAFETY_FACTOR       16  // enough to verify the initial ASN.1 structure (SEQUENCE, INTEGER, Big INTEGER) of RSA, and DSA keys?
 #define N                   8192
 
-static struct fmt_tests sshng_tests[] = {
+static struct fmt_tests tests[] = {
 	{"$sshng$1$16$570F498F6FF732775EE38648130F600D$1200$1777f12047d4ebab06d052d52946e5e0e73b41d5077b20e1ffe1c97ef9459b8c6844fecc24fdf63314c8889398fa140026339c85336278600e299c0f4c236648ca684f0c122e66d3e860e19eab8b46a564eb101def1c6a38f2f1800040c6b59a66e7b86e145e180f8a126e46544be1e17dd32e4e72f735c9e6b0ca4bbbb32ccf34ba0a7827858b0be32f9e53f13466e2ac78c3fecdf2a51cd7871286a3a91f9c71ae9e857a74bcc06071af6f60d827f7e13ccf6c1be722246c0796f509744c2b1b1452315ea6f86a1c8765d1f0c1d795349b4ea1ba229318b392fe505292cd0c6b4e3e9b2acc13b96943d92fa5635e05b7795989906274b0fb1894102d07facdd8f2122299960e1490823d62bbd5bf6d6c92ed26e68cc2edc93fbffec557a5d187fffe085ded9408ac63293851a684ca10d6e9a4ee9b5c552c827caee1f1c41870fe2d0e79bc4a0b85478fa82a58f947d345122c8ac7c80ba2ae8452b093dda70e2a4329fce70af9cf98e19477a622083664d1e62393a01b20371fc5be9390059f1c4af75d5448a2fbe1aaa46701c696afec927c67d15c046036531d9252faa08bbf9ea0e019ea574e6af94edd7ec17c83c0f87e34c7456e19bc53b2de04dafa83267694c1f61d038e0fc5f8f1b8ce573da470e6db6d38c0e8f7141ad9e9609ea408e3823271e987766039d484bc88f23f2f2a1175636ece950c7d82f43726287fef37da945ec6ad6adc04cb59f66087f68a3e84e8cc39c578bcbce3aaf67f1325d3d20dbd5872cc88ab72fc0bda05bf969eca08f8cafb306424a1597ba5d612e155b4723c2c1bee9a8e3d195be3b798ea417008a2340a919e23ac899ea4dbc4ef05af2cf6b12293eeb293584b37d3f8465e36a62d65b21f68725603e11dc14acf4e3855e25980387a34a34919fdd49844ed888e37199bb26df1bbbc303e895615fcbb0aa9ddc8a2aa685da942a1e68dc3a355d27236f74220d404d25e0ac64ae9203bb04296b4d67481a4f516fd22e47092073c9c44fa098670d736c5c509e55d6b40d3bf346ea5bb0007e32e9d8290c2633621fd84c2f5f428a5649ff3a16d00fec21381543202f2ee12078ddea8a371935f2ffa15aafa644e111a29c1c4703bf8e9cf1397356e296c5484558b96639b9cf3703aabff0cf42864dab91b1e09c6439159bc95374da7a5d416402286390e76cb766cd94e7a002596e8862b8d7e46c1fc6f7bdd0b93c73d2dc3cf58ea31bc549086209f450bb7460d5e9ba0d0f7b80337651f45bf83bef1783c3a15631c82428bfe167dc0692402d7f15144fff01ad8596970439ce8a2df0107c85a23ef93edd19f62de499ab58ada581886494c3e52dd5ec53c191f6d62729729a252c2c0d8024950d1637cfd7c61a4fe64ce41cde76fe00fa2607af66a44d3b4b8836820f40c03669f08b4e986f4d03c09e3c026a910f83be623d7f68ff80d81662f020f433f7a896e10134a278cd9a8517d3bcd77c5287f7d41bc52d2f8db79b5f8f9ed6d6f45a482b13cb91ecdef43ebe38f5ad71836185ae6faf1dd11c50cc1759e4834fcab2b3523d4224a32d2eaba224a2c950dac7524afc74f02f17b511f3b22d577a6928d40909bed64f6ed27096dff591a8fbee3f32733fd2b36c0c4708a5224f165af000d93832e211ae52465f680e7a4fd66bb5eb210c4402eb58f6ebfde", "strongpassword"},
 	{"$sshng$0$8$DAA422E8A5A8EFB7$608$fa7b2c1c699697dd487261a213a0dd088a86bc03f4e2db8b87ad302e3581bdd8ed17d0a3ced3e7179ef17beea9064ee862017f472de293d655f6b1cd7115e27c328cf5caf1b5896952590cd82d123fcf6c5da3b43f5435c829ebb595300c828e04d57c7ade57efe006305b32fe79afd0d14cadba681b4dc3a69b25a1e71ddbd353465217c311d11721f1cba05d1226ff0e7d261156f0837753bcaaddfec383591f61470a4318cf679046d43490a1eef33014a90865917ccaa16f986724b8ee421d990327a46410362b4992406af41a88e3c5e5bbb7707ba08517e7ac8295ad0b934c38968f05fd372f1ee29e24eddcbbacba5b3e1b7150e51ba4e17b4f54319630e2d5372adc46e4de437f64b3d11670eb25fc94c7e9bd0579806bbf16c6cfe529a4bc0d3918ca4777f8418e789163660d9bbe0aa297857ee4922dffe310e6967fba2ee2e06707d9bbd9c8601bad7ccfdcb8a948074de511be7d588b7b71d4b5f0b1e19020b54efc4d626b2e4d85c0a40682517128b9ecc29f882996f4f6b655bb1986e293cb5271fe98c61d8b2e6e8338fee42f22674fc8b2da475663ba19644e7de76927cd9e333b533ad7617cc7a9f19dc7c00c240ed92c2fb1aaf6495bd16ab9fae4650567ad8b175d02f9e6a9737362168035670017fd9ad87cf4e916f47baa5efe0d04939295fba608f83fa811b946d12afe77836dc6d0d398824a355926ce5848dace776c7a7ab7109be495894bc98a2cf04107368d5d8777a1d0ef19782ebb1527b564ac0f5d4ac91e81f435cc21f5905b9753ee1a79913306957589943da161a6f5dc3082b80930553769ce11d82d9cb12d8a12bb4e56eb3f1200eb", "television"},
 	{"$sshng$1$16$A0B8FCAB2B655BA3D04B2020B89A142E$1200$a4dbb4c526a6bea3aeca26e6d89f0c19ebdfb9154ce4cdb4bbfc3420ffce58dd6ae1077dba9753a001b22b07e4248bb2d4a3c4bf2cbae43f8c29f55c3c36c656aa7262fd2f429a8f7fbc443c175687b20c78ed3e409a03fb7b0afa22ef2fad63d580ce00e31948171787a8861e34d4c966d0c54d299585df757a76a278c28e899b7b16fe74d38ad9f6220a2ebbd2b427a3f29436feb2e000a3f1b26a3906eb84314a8f8dc211aeab0e5d5c776b54a59c3630a96de506fdfcf7a6991bae4e90ef2f6f99d5a92c78eddc1f7bd75a94bc472c32ef82b56261889a60fbaeee0b145c4aa785bff8b854b8c61fde3f018e10e9b4de6fbf5aa7ff30d985a8b8da1e55459855cd96076d0de5ff31a593ca7ff4badb07886808c624ceaf955569138c57fd9006877d8a174bce3347b72490d5181d83a20500dc49e8160d075659b568820ac2788a50aba0488a598c6d90821026c9a6213f279b8773eb3c5b60a73e48199ed7cba66595e7f219c4d0f5e231219619ffbd3d7bd1dad4ada8bf8d9ddbd5319ff47922e6858946778daf0e6b47973db77f56dcc356691ccc652ccd53d9f9895c896d99cf0c498e5a8d712f2e8a159a80e8a3e68b812650f0ddb0e1300438b914f4c28d232c443768bccaeb204212494782003343a5cf6d455b95efc94c8d95544db32c0539d0e1fc0288b5ecfcbc4bb7b6278a54093a56ec0ad5928c113aa96a114d7fd3aec173759f5c081f1d0a2f0922433ff17911901c0f0f940b1f345d161d91ecd4456e9b8458a14e0fcbaf2b750201c10cff3c8f387004b99be515f45c00200efea4e36d83524a760c20518d902e38d6121bef29b479edbf44be4c51730c3bbc86dd6abc40b67470e12b8235cb1317b6dae34d99248f3a8f98a77d848360c01a645f76c3abc3f66af0d1f0f7bbb77930b3f85430062fb1a82c5aff1350bdba049a8bc7bcc33e61fd3e8484b9e6d51ea121337b7553284cd1222a2469e1c7158f13ff63307530243af25b4b36d19ba0604212ebcb42b450c475e238c2b9f021088b16aacfb6e564eef86860fd077f90de471fc26621360609e526444e7556bb8d6de703271a4ba8dec254305cd1163f90a32d8966f599903de0e4b62e3a8db15753fb099d164d9bd44c05f163fd96ef73382c779214c8ec93498f2f5fa31a74ad6ac3136a37c6f6c27b1dd7b93c1e292f2ef0d569581f45cb0747ee5a2fcba5781cdc96b9b2f07bdbaf7ff4e0432873072112fd17792c91548393cd58a7eb8b126f17ee107f9670567c0ab6e6b9a2997054d968feb29f479fb8b7888138971a14228bad1854d9804f1bea77014b7f0d1037444178d66d2db19b660cf5e84726b2f730662a1df93abc54ae521d3d1691fb4fa48b087ead9dfccf4e6367d9a25f48a019a6affbec84c20ae7b10c2a169cfa07a4d26c5035c02d3b7d01681bf56bf568ab1f740c86ee6f43b8b440eea1f1139a89fa5bc653164426856e3a5e22ff5fed05ba7a054f6d4609eb142ef113a24f05b92ba72c40cd9bde09d8125d462fd30bab15cb47130fa30730b26c0d399d14b9cb42ec56df024bb9bbcd18ab4d279ccf82b2c1fee8fdbade8bd506791a6fd51349b24cdc36ec4d88e6dd43a85b92a71458908271d298681f54aa567262fc70260cc15d7f5559abd7e7ee4d2c7c727bf5036c469b690ece969480240c", "Olympics"},
@@ -187,8 +187,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		       goto err;
 	}
 
-	if (cipher != 0 && cipher != 1 && cipher != 2 && cipher != 3 && cipher != 4 && cipher != 5) {
-		fprintf(stderr, "[ssh-ng] cipher value of %d is not supported!\n", cipher);
+	if (cipher < 0 || cipher > 5) {
+		fprintf(stderr, "[%s] cipher value of %d is not supported!\n",
+		        self->params.label, cipher);
 		goto err;
 	}
 
@@ -409,7 +410,8 @@ inline static int check_padding_and_structure(unsigned char *out, int length, in
 	}
 	pos = hdr.payload + hdr.length;
 	/* NOTE: now this integer has to be big, is this always true?
-	 * RSA (as used in ssh) uses big prime numbers, so this check should be OK */
+	 * RSA (as used in ssh) uses big prime numbers, so this check should be OK
+	 */
 	if (hdr.length < 64) {
 		goto bad;
 	}
@@ -629,7 +631,8 @@ static int cmp_exact(char *source, int index)
 	return 0;
 }
 
-static void sshng_set_key(char *key, int index)
+#undef set_key /* OpenSSL DES clash */
+static void set_key(char *key, int index)
 {
 	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
@@ -639,7 +642,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static unsigned int sshng_kdf(void *salt)
+static unsigned int kdf(void *salt)
 {
 	struct custom_salt *cur_salt = salt;
 
@@ -649,14 +652,14 @@ static unsigned int sshng_kdf(void *salt)
 		return 1; // regular "ssh kdf"
 }
 
-static unsigned int sshng_iteration_count(void *salt)
+static unsigned int iteration_count(void *salt)
 {
 	struct custom_salt *cur_salt = salt;
 
 	return cur_salt->rounds;
 }
 
-struct fmt_main fmt_sshng = {
+struct fmt_main fmt_ssh = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -677,7 +680,7 @@ struct fmt_main fmt_sshng = {
 			"iteration count",
 		},
 		{ FORMAT_TAG },
-		sshng_tests
+		tests
 	}, {
 		init,
 		done,
@@ -688,8 +691,8 @@ struct fmt_main fmt_sshng = {
 		fmt_default_binary,
 		get_salt,
 		{
-			sshng_kdf,
-			sshng_iteration_count,
+			kdf,
+			iteration_count,
 		},
 		fmt_default_source,
 		{
@@ -698,7 +701,7 @@ struct fmt_main fmt_sshng = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		sshng_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
