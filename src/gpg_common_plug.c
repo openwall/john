@@ -34,6 +34,10 @@
 #include "loader.h"
 #include "memdbg.h"
 
+#if !AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10100000
+#define HAVE_DSA_GET0_PQG 1
+#endif
+
 extern volatile int bench_running;
 
 struct gpg_common_custom_salt *gpg_common_cur_salt;
@@ -1062,7 +1066,7 @@ static int check_dsa_secret_key(DSA *dsa)
 {
 	int error;
 	int rc = -1;
-#if OPENSSL_VERSION_NUMBER >= 0x10100000
+#if HAVE_DSA_GET0_PQG
 	const BIGNUM *p, *q, *g, *pub_key, *priv_key;
 #endif
 	BIGNUM *res = BN_new();
@@ -1077,7 +1081,7 @@ static int check_dsa_secret_key(DSA *dsa)
 		error();
 	}
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000
+#if HAVE_DSA_GET0_PQG
 	DSA_get0_pqg(dsa, &p, &q, &g);
 	DSA_get0_key(dsa, &pub_key, &priv_key);
 	error = BN_mod_exp(res, g, priv_key, p, ctx);
@@ -1089,7 +1093,7 @@ static int check_dsa_secret_key(DSA *dsa)
 		goto freestuff;
 	}
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100000
+#if HAVE_DSA_GET0_PQG
 	rc = BN_cmp(res, pub_key);
 #else
 	rc = BN_cmp(res, dsa->pub_key);
@@ -1099,7 +1103,7 @@ freestuff:
 
 	BN_CTX_free(ctx);
 	BN_free(res);
-#if OPENSSL_VERSION_NUMBER < 0x10100000
+#if !HAVE_DSA_GET0_PQG
 	BN_free(dsa->g);
 	BN_free(dsa->q);
 	BN_free(dsa->p);
@@ -1571,7 +1575,7 @@ bad:
 			OPENSSL_free(str);
 
 			if (gpg_common_cur_salt->pk_algorithm == PKA_DSA) { /* DSA check */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000
+#if HAVE_DSA_GET0_PQG
 				DSA *dsa = DSA_new();
 				BIGNUM *p, *q, *g, *pub_key, *priv_key;
 
