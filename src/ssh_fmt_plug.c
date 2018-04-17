@@ -646,17 +646,33 @@ static unsigned int kdf(void *salt)
 {
 	struct custom_salt *cur_salt = salt;
 
-	if (cur_salt->cipher == 2)
+	switch (cur_salt->cipher) {
+	case 0:
+		return 1; // MD5 KDF + 3DES
+	case 2:
 		return 2; // bcrypt-pbkdf
-	else
-		return 1; // regular "ssh kdf"
+	default:
+		return 0; // MD5 KDF + AES
+	}
 }
 
 static unsigned int iteration_count(void *salt)
 {
 	struct custom_salt *cur_salt = salt;
 
-	return cur_salt->rounds;
+	switch (cur_salt->cipher) {
+	case 1:
+	case 3:
+		return 1; // generate 16 bytes of key + AES-128
+	case 4:
+		return 2; // generate 24 bytes of key + AES-192
+	case 5:
+		return 2; // generate 32 bytes of key + AES-256
+	case 0:
+		return 2; // generate 24 bytes of key + 3DES
+	default:
+		return cur_salt->rounds; // bcrypt KDF + AES-256 (ed25519)
+	}
 }
 
 struct fmt_main fmt_ssh = {
@@ -676,7 +692,7 @@ struct fmt_main fmt_ssh = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_SPLIT_UNIFIES_CASE | FMT_HUGE_INPUT,
 		{
-			"kdf",
+			"KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]",
 			"iteration count",
 		},
 		{ FORMAT_TAG },
