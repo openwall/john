@@ -144,7 +144,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy, *keeptr, *p;
 	int len, cipher, extra;
 
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
@@ -242,21 +242,22 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static void generate_key_bytes(int nbytes, unsigned char *password, unsigned char *key)
+inline static void generate_key_bytes(int nbytes, unsigned char *password, unsigned char *key)
 {
-	unsigned char digest[16] = {0};
+	unsigned char digest[16];
+	int len = strlen((const char*)password);
 	int keyidx = 0;
 	int digest_inited = 0;
-	int size = 0;
-	int i = 0;
 
 	while (nbytes > 0) {
 		MD5_CTX ctx;
+		int i, size;
+
 		MD5_Init(&ctx);
 		if (digest_inited) {
 			MD5_Update(&ctx, digest, 16);
 		}
-		MD5_Update(&ctx, password, strlen((const char*)password));
+		MD5_Update(&ctx, password, len);
 		/* use first 8 bytes of salt */
 		MD5_Update(&ctx, cur_salt->salt, 8);
 		MD5_Final(digest, &ctx);
@@ -272,47 +273,9 @@ static void generate_key_bytes(int nbytes, unsigned char *password, unsigned cha
 	}
 }
 
-inline static void generate16key_bytes(unsigned char *password,
-                                       unsigned char *key)
+inline static int check_structure_bcrypt(unsigned char *out, int length)
 {
-	MD5_CTX ctx;
-
-	MD5_Init(&ctx);
-	MD5_Update(&ctx, password, strlen((const char*)password));
-
-	/* use first 8 bytes of salt */
-	MD5_Update(&ctx, cur_salt->salt, 8);
-
-	/* digest is keydata */
-	MD5_Final(key, &ctx);
-}
-
-inline static void generate24key_bytes(unsigned char *password,
-                                       unsigned char *key)
-{
-	unsigned char digest[16];
-	int len = strlen((const char*)password);
-	MD5_CTX ctx;
-
-	MD5_Init(&ctx);
-	MD5_Update(&ctx, password, len);
-
-	/* use first 8 bytes of salt */
-	MD5_Update(&ctx, cur_salt->salt, 8);
-
-	/* digest is keydata */
-	MD5_Final(key, &ctx);
-
-	MD5_Init(&ctx);
-	MD5_Update(&ctx, key, 16);
-	MD5_Update(&ctx, password, len);
-
-	/* use first 8 bytes of salt */
-	MD5_Update(&ctx, cur_salt->salt, 8);
-	MD5_Final(digest, &ctx);
-
-	/* 8 more bytes of keydata */
-	memcpy(&key[16], digest, 8);
+	return memcmp(out, out + 4, 4);
 }
 
 inline static int check_padding_and_structure_EC(unsigned char *out, int length, int strict_mode)
@@ -445,95 +408,98 @@ bad:
 static void common_crypt_code(char *password, unsigned char *out, int full_decrypt)
 {
 	if (cur_salt->cipher == 0) {
-		unsigned char key[24] = {0};
+		unsigned char key[24];
 		DES_cblock key1, key2, key3;
-		DES_cblock ivec;
+		DES_cblock iv;
 		DES_key_schedule ks1, ks2, ks3;
-		generate24key_bytes((unsigned char*)password, key);
-		memset(out, 0, SAFETY_FACTOR);
+
+		memcpy(iv, cur_salt->salt, 8);
+		generate_key_bytes(24, (unsigned char*)password, key);
 		memcpy(key1, key, 8);
 		memcpy(key2, key + 8, 8);
 		memcpy(key3, key + 16, 8);
 		DES_set_key((DES_cblock *) key1, &ks1);
 		DES_set_key((DES_cblock *) key2, &ks2);
 		DES_set_key((DES_cblock *) key3, &ks3);
-		memcpy(ivec, cur_salt->salt, 8);
 		if (full_decrypt) {
-			DES_ede3_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
+			DES_ede3_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
 		} else {
-			DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
-			DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 32, out + cur_salt->ctl - 32, 32, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
+			DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
+			memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
+			DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
 		}
 	} else if (cur_salt->cipher == 1) {
-		unsigned char key[16] = {0};
+		unsigned char key[16];
 		AES_KEY akey;
 		unsigned char iv[16];
+
 		memcpy(iv, cur_salt->salt, 16);
-		memset(out, 0, SAFETY_FACTOR);
-		memset(out + cur_salt->ctl - 32, 0, 32);
-		generate16key_bytes((unsigned char*)password, key);
+		generate_key_bytes(16, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 128, &akey);
 		if (full_decrypt) {
 			AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
 		} else {
-			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT); // are starting SAFETY_FACTOR bytes enough?
-			// decrypting 1 blocks (16 bytes) is enough for correct padding check
+			// are starting SAFETY_FACTOR bytes enough?
+			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling */
-		unsigned char key[32+16] = {0};
+		unsigned char key[32 + 16];
 		AES_KEY akey;
 		unsigned char iv[16];
+
 		// derive (key length + iv length) bytes
 		bcrypt_pbkdf(password, strlen((const char*)password), cur_salt->salt, 16, key, 32 + 16, cur_salt->rounds);
 		AES_set_decrypt_key(key, 256, &akey);
 		memcpy(iv, key + 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, out, 16, &akey, iv, AES_DECRYPT); // decrypt 1 block for "check bytes" check
-		// AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 32, out, 32, &akey, iv, AES_DECRYPT); // decrypt 2 blocks for padding check, iv doesn't matter
+		// decrypt one block for "check bytes" check
+		AES_cbc_encrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, out, 16, &akey, iv, AES_DECRYPT);
+		// Padding check is unreliable for this type
+		// memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+		// AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 	} else if (cur_salt->cipher == 3) { // EC keys with AES-128
-		unsigned char key[16] = {0};
+		unsigned char key[16];
 		AES_KEY akey;
 		unsigned char iv[16];
+
 		memcpy(iv, cur_salt->salt, 16);
-		memset(out, 0, N);
-		generate16key_bytes((unsigned char*)password, key);
+		generate_key_bytes(16, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 128, &akey);
-		AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT); // full decrypt
+		// full decrypt
+		AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
 	} else if (cur_salt->cipher == 4) { // RSA/DSA keys with AES-192
-		unsigned char key[24] = {0};
+		unsigned char key[24];
 		AES_KEY akey;
 		unsigned char iv[16];
+
 		memcpy(iv, cur_salt->salt, 16);
-		memset(out, 0, SAFETY_FACTOR);
-		memset(out + cur_salt->ctl - 32, 0, 32);
-		generate24key_bytes((unsigned char*)password, key);
+		generate_key_bytes(24, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 192, &akey);
 		if (full_decrypt) {
 			AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
 		} else {
-			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT); // are starting SAFETY_FACTOR bytes enough?
-			// decrypting 1 blocks (16 bytes) is enough for correct padding check
+			// are starting SAFETY_FACTOR bytes enough?
+			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 	} else if (cur_salt->cipher == 5) { // RSA/DSA keys with AES-256
-		unsigned char key[32] = {0};
+		unsigned char key[32];
 		AES_KEY akey;
 		unsigned char iv[16];
+
 		memcpy(iv, cur_salt->salt, 16);
-		memset(out, 0, SAFETY_FACTOR);
-		memset(out + cur_salt->ctl - 32, 0, 32);
 		generate_key_bytes(32, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 256, &akey);
 		if (full_decrypt) {
 			AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
 		} else {
-			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT); // are starting SAFETY_FACTOR bytes enough?
-			// decrypting 1 blocks (16 bytes) is enough for correct padding check
+			// are starting SAFETY_FACTOR bytes enough?
+			AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 	}
 }
 
@@ -547,41 +513,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++) {
 		unsigned char out[N];
-		common_crypt_code(saved_key[index], out, 0); // don't do full decryption (except for EC keys)
+
+		// don't do full decryption (except for EC keys)
+		common_crypt_code(saved_key[index], out, 0);
 
 		if (cur_salt->cipher == 0) { // 3DES
-			if (check_padding_and_structure(out, cur_salt->ctl, 0, 8) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] =
+				!check_padding_and_structure(out, cur_salt->ctl, 0, 8);
 		} else if (cur_salt->cipher == 1) {
-			if (check_padding_and_structure(out, cur_salt->ctl, 0, 16) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] =
+				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
 		} else if (cur_salt->cipher == 2) {  // new ssh key format handling
-			// if (check_padding_only(out + 16, 16) == 0 && out[31] >= 8)  // this padding check is quite unreliable in practice!
-
-			// all keys don't have a non-zero length padding, so we use the "check bytes" check instead
-			if (memcmp(out, out + 4, 4) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] =
+				!check_structure_bcrypt(out, cur_salt->ctl);
 		} else if (cur_salt->cipher == 3) { // EC keys
-			if (check_padding_and_structure_EC(out, cur_salt->ctl, 0) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] =
+				!check_padding_and_structure_EC(out, cur_salt->ctl, 0);
 		} else if (cur_salt->cipher == 4) {  // AES-192
-			if (check_padding_and_structure(out, cur_salt->ctl, 0, 16) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] =
+				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
 		} else if (cur_salt->cipher == 5) {  // AES-256
-			if (check_padding_and_structure(out, cur_salt->ctl, 0, 16) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] =
+				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
 		}
 
 	}
@@ -611,21 +564,17 @@ static int cmp_exact(char *source, int index)
 	common_crypt_code(saved_key[index], out, 1); // do full decryption!
 
 	if (cur_salt->cipher == 0) { // 3DES
-		if (check_padding_and_structure(out, cur_salt->ctl, 1, 8) == 0)
-			return 1;
+		return !check_padding_and_structure(out, cur_salt->ctl, 1, 8);
 	} else if (cur_salt->cipher == 1) {
-		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
-			return 1;
+		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
 	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling */
 		return 1; // XXX add more checks!
 	} else if (cur_salt->cipher == 3) { // EC keys
 		return 1;
 	} else if (cur_salt->cipher == 4) {
-		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
-			return 1;
+		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
 	} else if (cur_salt->cipher == 5) {
-		if (check_padding_and_structure(out, cur_salt->ctl, 1, 16) == 0)
-			return 1;
+		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
 	}
 
 	return 0;
