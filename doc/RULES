@@ -150,7 +150,7 @@ or within preprocessor $[c...] or ^[c...] settings. The method used
 within john, is similar to emitting an arbitrary character within
 the C language.  This syntax is \xhh where hh is 2 hex characters.
 So, Az"\x1b[2J" would append then ansi escape sequence to clear the
-screen to the end of the current password.  Or something like $\x10
+screen to the end of the current password.  Or something like $\x0a
 would append a new line character to the end of the word. These
 escaped characters also work properly in all character class commands
 (listed later).
