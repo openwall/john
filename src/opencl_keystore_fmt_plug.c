@@ -43,27 +43,18 @@ john_register_one(&fmt_opencl_keystore);
 #include "params.h"
 #include "options.h"
 #include "keystore_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "keystore-opencl"
 #define FORMAT_NAME             "Java KeyStore"
 #define ALGORITHM_NAME          "SHA1 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
-// reduced PLAIN_LEN from 125 bytes, and speed went from 12.2k to 16.4k
-#define PLAINTEXT_LENGTH        32
-// reduced BIN_SIZE from 20 bytes to 4 for the GPU, and speed went from
-// 16.4k to 17.8k.  cmp_exact does a CPU hash check on possible matches.
+#define PLAINTEXT_LENGTH        125
+#define BUFSIZE                 ((PLAINTEXT_LENGTH + 3) / 4 * 4)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              4
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-
-// these to pass to kernel
-typedef struct {
-	uint32_t length;
-	uint8_t  pass[PLAINTEXT_LENGTH];
-} keystore_password;
 
 typedef struct {
 	uint32_t gpu_out; // GPU only returns first 4 bytes.
@@ -80,22 +71,29 @@ static struct custom_salt {
 	unsigned char salt[SALT_LENGTH_GPU];
 } *cur_salt;
 
-static struct fmt_main   *self;
+static keystore_hash *outbuffer;
+static keystore_salt saltbuffer;
 
-static size_t insize, outsize, saltsize;
+static int new_keys;
+static struct fmt_main *self;
 
-static keystore_password *inbuffer;
-static keystore_hash     *outbuffer;
-static keystore_salt      saltbuffer;
-static cl_mem mem_in, mem_out, mem_salt;
+static size_t outsize, saltsize;
+static unsigned int key_idx;
+
+static cl_uint *saved_plain, *saved_idx;
+static cl_mem pinned_saved_keys, pinned_saved_idx;
+
+static cl_mem buffer_keys, buffer_idx;
+static cl_mem mem_out, mem_salt;
 
 static cl_int cl_err;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
+#include "memdbg.h"
 
-static const char * warn[] = {
-	"xfer: ",  ", crypt: ",  ", xfer: "
+static const char *warn[] = {
+	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", xfer: "
 };
 
 /* ------- Helper functions ------- */
@@ -106,18 +104,34 @@ static size_t get_task_max_work_group_size()
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	insize = sizeof(keystore_password) * gws;
 	outsize = sizeof(keystore_hash) * gws;
 	saltsize = sizeof(keystore_salt);
 
-	inbuffer  = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
 
-	/// Allocate memory
-	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize,
-	    NULL, &cl_err);
-	HANDLE_CLERROR(cl_err, "Error allocating mem_in");
+	// Allocate memory
+	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
+	if (ret_code != CL_SUCCESS) {
+		saved_plain = mem_alloc(BUFSIZE * gws);
+		if (saved_plain == NULL)
+			HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys.");
+	}
+	else {
+		saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain.");
+	}
+
+	pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx.");
+	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx.");
+
+	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys.");
+
+	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx.");
+
 	mem_salt =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize,
 	    NULL, &cl_err);
@@ -127,26 +141,40 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    NULL, &cl_err);
 	HANDLE_CLERROR(cl_err, "Error allocating mem_out");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt),
-		&mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys),
+		&buffer_keys), "Error setting kernel arg");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_idx),
+		&buffer_idx), "Error setting kernel arg");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_out),
+		&mem_out), "Error setting kernel arg");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_salt),
+		&mem_salt), "Error setting kernel arg");
 }
 
 static void release_clobj(void)
 {
-	if (mem_in) {
-		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem_in");
+	if (outbuffer) {
+		if (pinned_saved_keys) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id],
+				pinned_saved_keys, saved_plain, 0, NULL, NULL),
+			               "Unmap saved_plain.");
+			HANDLE_CLERROR(clFinish(queue[gpu_id]),
+			               "Release mappings.");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys),
+			               "Release pinned_saved_keys.");
+		}
+		else
+			MEM_FREE(saved_plain);
+
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx,
+			saved_idx, 0, NULL, NULL), "Unmap saved_idx.");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Release mappings.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Release buffer_keys.");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Release buffer_idx.");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
 
-		MEM_FREE(inbuffer);
 		MEM_FREE(outbuffer);
-		mem_in   = NULL;
-		mem_salt = NULL;
-		mem_out  = NULL;
 	}
 }
 
@@ -159,28 +187,32 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	// TODO
 	if (!autotuned) {
-
 		char build_opts[64];
+		size_t gws_limit;
+
 		snprintf(build_opts, sizeof(build_opts),
 				"-DPASSLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
-				PLAINTEXT_LENGTH,
-				SALT_LENGTH_GPU,
-				4);
-		opencl_init("$JOHN/kernels/keystore_kernel.cl",
-				    gpu_id, build_opts);
+				PLAINTEXT_LENGTH, SALT_LENGTH_GPU, 4);
+
+		opencl_init("$JOHN/kernels/keystore_kernel.cl", gpu_id, build_opts);
+
 		crypt_kernel = clCreateKernel(program[gpu_id], "keystore", &cl_err);
 		HANDLE_CLERROR(cl_err, "Error creating keystore kernel");
 
+		// Current key_idx can only hold 25 bits of offset so
+		// we can't reliably use a GWS higher than 1M or so.
+		gws_limit = MIN((1 << 25) / (BUFSIZE / 4),
+		                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+
 		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(0, 0, NULL, warn, 1, self,
+		opencl_init_auto_setup(0, 0, NULL, warn, 2, self,
 				               create_clobj, release_clobj,
-							   sizeof(keystore_password), 0, db);
+		                       BUFSIZE, gws_limit, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 2, (cpu(device_info[gpu_id]) ?
-	              1000000000 : 10000000000ULL));//2000);
+		autotune_run(self, 1, 0, (cpu(device_info[gpu_id]) ?
+	              1000000000 : 5000000000ULL));
 
 	}
 }
@@ -201,11 +233,12 @@ static void *get_salt(char *ciphertext)
 {
 	/* NOTE: do we need dynamic allocation because of underlying large object size? */
 	static struct custom_salt *cs;
-
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
+	const char *magic  = "Mighty Aphrodite";
+	int         maglen = 16;
 
 	if (!cs) cs = mem_alloc_tiny(sizeof(struct custom_salt),16);
 	memset(cs, 0, sizeof(struct custom_salt));
@@ -215,86 +248,93 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 	cs->length = atoi(p);
 	p = strtokm(NULL, "$");
+	// Before each salt from the ciphertext, prepend "Mighty Aphrodite":
+	memcpy(cs->salt, magic, maglen);
 	for (i = 0; i < cs->length; ++i)
-		cs->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+		cs->salt[maglen + i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			        + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	/* we've got the salt, we can skip all the rest
-	p = strtokm(NULL, "$"); // skip hash
-	p = strtokm(NULL, "$");
-	cs->count = atoi(p);
-	p = strtokm(NULL, "$");
-	cs->keysize = atoi(p);
-	for (i = 0; i < cs->keysize; i++)
-		cs->keydata[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			           + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	*/
+	cs->length += maglen;
 	MEM_FREE(keeptr);
-	return (void *)cs;
+	return (void*)cs;
 }
 
 static void set_salt(void *salt)
 {
-	// Before the salt from the ciphertext, prepend
-	// "Mighty Aphrodite":
-	const char *magic  = "Mighty Aphrodite";
-	int         maglen = 16;
-	int			i, j;
-
 	cur_salt = (struct custom_salt*)salt;
-	saltbuffer.length = maglen + cur_salt->length;
-	for (i = 0; i < maglen; ++i) {
-		saltbuffer.salt[i] = (uint8_t)magic[i];
-	}
-	for (j = 0; j < cur_salt->length; ++i, ++j) {
-		saltbuffer.salt[i] = cur_salt->salt[j];
-	}
-
+	saltbuffer.length = cur_salt->length;
+	memcpy(saltbuffer.salt, cur_salt->salt, cur_salt->length);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-			                            CL_FALSE, 0, saltsize,
-										&saltbuffer, 0, NULL, NULL),
-										"Copy salt to gpu");
+	                                    CL_FALSE, 0, cur_salt->length + 4,
+	                                    &saltbuffer, 0, NULL, NULL),
+	               "Copy salt to gpu");
 }
 
-static void keystore_set_key(char *key, int index)
+static void clear_keys(void)
 {
-	uint32_t len = strlen(key);
+	key_idx = 0;
+}
 
-	memcpy(inbuffer[index].pass, key, len);
-	inbuffer[index].length = len;
+static void set_key(char *_key, int index)
+{
+	const uint32_t *key = (uint32_t*)_key;
+	int len = strlen(_key);
+
+	saved_idx[index] = (key_idx << 7) | len;
+
+	while (len > 4) {
+		saved_plain[key_idx++] = *key++;
+		len -= 4;
+	}
+	if (len)
+		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+	new_keys = 1;
 }
 
 static char *get_key(int index)
 {
-	static char key[PLAINTEXT_LENGTH + 1];
+	static char out[PLAINTEXT_LENGTH + 1];
+	int i, len;
+	char *key;
 
-	memcpy(key, inbuffer[index].pass, inbuffer[index].length);
-	key[inbuffer[index].length] = 0;
+	len = saved_idx[index] & 127;
+	key = (char*)&saved_plain[saved_idx[index] >> 7];
 
-	return key;
+	for (i = 0; i < len; i++)
+		out[i] = *key++;
+	out[i] = 0;
+
+	return out;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	if (new_keys || ocl_autotune_running) {
+		if (key_idx)
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys,
+				CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL,
+				multi_profilingEvent[0]),
+				"failed in clEnqueueWriteBuffer buffer_keys.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE,
+			0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
+			"failed in clEnqueueWriteBuffer buffer_idx.");
+		new_keys = 0;
+	}
 
-	/// Copy password buffer to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-	        "Copy data to gpu");
-
-	/// Run kernel
+	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws, 0, NULL,
-	        multi_profilingEvent[1]), "Run kernel");
+		NULL, &gws, lws, 0, NULL,
+	        multi_profilingEvent[2]), "Run kernel");
 
-	/// Read the result back
+	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[3]),
+	              "Copy result back");
 
-	///Await completion of all the above
+	// Await completion of all the above
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	return count;
@@ -302,22 +342,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	uint32_t i, b = ((uint32_t *)binary)[0];
+	uint32_t i, b = ((uint32_t*)binary)[0];
 
-	for (i = 0; i < count; ++i) {
-		if (b == outbuffer[i].gpu_out) {
+	for (i = 0; i < count; ++i)
+		if (b == outbuffer[i].gpu_out)
 			return 1;
-		}
-	}
 
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	if (((uint32_t*)binary)[0] != outbuffer[index].gpu_out) {
+	if (((uint32_t*)binary)[0] != outbuffer[index].gpu_out)
 		return 0;
-	}
 
 	return 1;
 }
@@ -325,19 +362,21 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	// we do a CPU check here.
-	unsigned char *binary = (unsigned char *)keystore_common_get_binary(source);
+	unsigned char *binary = (unsigned char*)keystore_common_get_binary(source);
 	unsigned char out[20];
 	SHA_CTX ctx;
-	unsigned char Pass[PLAINTEXT_LENGTH*2];
+	unsigned char Pass[PLAINTEXT_LENGTH * 2];
 	int i;
+	int len = saved_idx[index] & 127;
+	char *key = (char*)&saved_plain[saved_idx[index] >> 7];
 
-	for (i = 0; i < inbuffer[index].length; ++i) {
-		Pass[i<<1] = 0;
-		Pass[(i<<1)+1] = inbuffer[index].pass[i];
+	// This is NOT a crappy UTF-16 conversion although it look like it
+	for (i = 0; i < len; ++i) {
+		Pass[i << 1] = 0;
+		Pass[(i << 1) + 1] = key[i];
 	}
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, Pass, inbuffer[index].length<<1);
-	SHA1_Update(&ctx, "Mighty Aphrodite", 16);
+	SHA1_Update(&ctx, Pass, len << 1);
 	SHA1_Update(&ctx, cur_salt->salt, cur_salt->length);
 	SHA1_Final(out, &ctx);
 	return !memcmp(binary, out, 20);
@@ -380,9 +419,9 @@ struct fmt_main fmt_opencl_keystore = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		keystore_set_key,
+		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash

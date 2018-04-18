@@ -39,29 +39,32 @@ typedef struct {
 	uchar salt[SALTLEN];
 } keystore_salt;
 
-__kernel void keystore(__global const keystore_password *inbuffer,
+__kernel void keystore(const __global uint *keys,
+                       __global const uint *index,
                        __global keystore_hash *outbuffer,
                        __constant keystore_salt *salt)
 {
 	uint gid = get_global_id(0);
+	uint base = index[gid];
+	uint pwd_len = base & 127;
 	uint W[16], o[5];
 	uint block;		// block index
 	uint nblocks;	// total number of blocks we need to hash.
 	uint pbi = 0;	// password index
 	uint sbi = 0;	// salt index
-	uint pwd_len = inbuffer[gid].length;
 	uint salt_len = salt->length;
-	// message length is password length*2 + salt length
-	uint msg_len = (pwd_len<<1) + salt_len;
+	// message length is password length * 2 + salt length
+	uint msg_len = (pwd_len << 1) + salt_len;
+	__global uchar *inbuffer =
+		(__global uchar*)(keys + (base >> 7)); // Packed key xfer
 
 	// But the bytes we actually need to accommodate in
 	// each exactly 64-byte block must also include:
 	// 	- sizeof(uchar) for salt-terminating bit 1, set as uchar 0x80
 	//	- 0 or more '\0' byte padding, so that bit length is at proper location.
 	// 	- sizeof(ulong) for final 64-bit message length (at very end of last block)
-
-	nblocks = msg_len/nblockbytes+1;
-	if ((msg_len&63)>55)
+	nblocks = msg_len / nblockbytes + 1;
+	if ((msg_len & 63) > 55)
 		++nblocks; // the 0x80 and 8 bytes of bit_length do NOT fit into last buffer.
 
 	sha1_init(o);
@@ -76,7 +79,7 @@ __kernel void keystore(__global const keystore_password *inbuffer,
 			// password is used as BE uint16 upcast. NOTE, not UTF16 encoded!
 			PUTCHAR_BE(W, wbi, 0);
 			++wbi;
-			PUTCHAR_BE(W, wbi, inbuffer[gid].pass[pbi]);
+			PUTCHAR_BE(W, wbi, inbuffer[pbi]);
 		}
 		// if we're done with the password and this block's not yet full ...
 		if (pbi == pwd_len && wbi < nblockbytes) {

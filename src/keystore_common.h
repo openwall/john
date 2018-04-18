@@ -4,9 +4,8 @@
  * and the GPU formats, and places it into one common location
  */
 
-// Note, salt length on GPU greatly reduced. We may need to adjust this
-// larger if we hear of ITW hashes with salts larger than this.
-#define SALT_LENGTH_GPU			4096
+// Note, salt length on GPU reduced. Current size just fits constant memory
+#define SALT_LENGTH_GPU			(64 * 1024 - (int)sizeof(int))
 #define SALT_LENGTH_CPU			819200
 #define BINARY_SIZE				20
 #define BINARY_ALIGN			4
