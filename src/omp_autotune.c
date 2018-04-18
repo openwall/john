@@ -114,7 +114,7 @@ void omp_autotune_run(struct db_main *db)
 	sTimer timer;
 	double duration;
 
-	if (!fmt || omp_scale == 1)
+	if (!fmt || omp_scale == 1 || tune_preset)
 		goto cleanup;
 
 	if (john_main_process && (options.flags & FLG_TEST_CHK) &&
