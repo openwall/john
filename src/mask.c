@@ -169,7 +169,8 @@ static char* expand_cplhdr(char *string)
 					++in_brackets;
 					if (s[1] == ']') {
 						// empty brace. Abort with error.
-						fprintf(stderr,"Mask error: "
+						if (john_main_process)
+							fprintf(stderr,"Mask error: "
 							"empty group [] not valid\n");
 						error();
 					}
@@ -908,8 +909,7 @@ static char* plhdr2string(char p, int fmt_case)
  */
 	default:
 		if (john_main_process)
-			fprintf(stderr, "Can't nest custom placeholder ?%c.\n",
-			        p);
+			fprintf(stderr, "Can't nest custom placeholder ?%c.\n", p);
 		error();
 	}
 
@@ -1413,9 +1413,11 @@ static void truncate_mask(mask_cpu_context *cpu_mask_ctx, int range_idx)
 #endif
 
 	if (range_idx < mask_max_skip_loc && mask_max_skip_loc != -1) {
-		fprintf(stderr, "Format internal ranges (first %d range positions)"
-		        " cannot be truncated!\n", mask_max_skip_loc + 1);
-		fprintf(stderr, "Use a larger min-length, or non-gpu format.\n");
+		if (john_main_process)
+			fprintf(stderr, "Format internal ranges (first %d range positions)"
+			        " cannot be truncated!\n"
+			        "Use a larger min-length, or non-gpu format.\n",
+			        mask_max_skip_loc + 1);
 		error();
 	}
 
@@ -2214,7 +2216,8 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			mask_int_cand.int_cpu_mask_ctx->ranges[mask_max_skip_loc].pos + 1;
 		if (options.eff_minlength < inc_min) {
 			mask_iter_warn = inc_min;
-			fprintf(stderr, "Note: %s format can't currently increment length from %d, using %d instead\n",
+			if (john_main_process)
+				fprintf(stderr, "Note: %s format can't currently increment length from %d, using %d instead\n",
 			        mask_fmt->params.label, options.eff_minlength, inc_min);
 			options.eff_minlength = inc_min;
 		}
