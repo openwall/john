@@ -126,6 +126,21 @@
  * Raw'n'lean MD5 with context in output buffer
  * NOTE: This version thrashes the input block!
  */
+#if __OS_X__
+#define md5_block(itype, W, ctx)	  \
+	{ \
+		volatile itype a, b, c, d; \
+		a = ctx[0]; \
+		b = ctx[1]; \
+		c = ctx[2]; \
+		d = ctx[3]; \
+		MD5(a, b, c, d, W); \
+		ctx[0] += a; \
+		ctx[1] += b; \
+		ctx[2] += c; \
+		ctx[3] += d; \
+	}
+#else
 #define md5_block(itype, W, ctx)	  \
 	{ \
 		itype a, b, c, d; \
@@ -139,7 +154,7 @@
 		ctx[2] += c; \
 		ctx[3] += d; \
 	}
-
+#endif
 
 #define md5_init(ctx) {	  \
 		ctx[0] = 0x67452301; \

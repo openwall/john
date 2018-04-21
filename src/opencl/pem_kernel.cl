@@ -57,6 +57,9 @@ inline int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt)
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
 	const int length = salt->ciphertext_length;
+#ifdef __OS_X__
+	volatile
+#endif
 	int block_size;
 
 	if (salt->cid == 1) {
