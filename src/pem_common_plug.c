@@ -249,3 +249,10 @@ unsigned int pem_iteration_count(void *salt)
 
 	return cs->iterations * (cs->key_length > 20 ? 2 : 1);
 }
+
+unsigned int pem_cipher(void *salt)
+{
+	struct custom_salt *cs = salt;
+
+	return cs->cid;
+}

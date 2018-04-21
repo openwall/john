@@ -41,3 +41,4 @@ void *pem_get_salt(char *ciphertext);
 int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, struct custom_salt *cur_salt);
 
 unsigned int pem_iteration_count(void *salt);
+unsigned int pem_cipher(void *salt);

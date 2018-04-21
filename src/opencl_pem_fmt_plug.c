@@ -345,6 +345,7 @@ struct fmt_main fmt_opencl_pem = {
 		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
+			"cipher [0=AES, 1=3DES]",
 		},
 		{ FORMAT_TAG },
 		pem_tests
@@ -359,6 +360,7 @@ struct fmt_main fmt_opencl_pem = {
 		pem_get_salt,
 		{
 			pem_iteration_count,
+			pem_cipher,
 		},
 		fmt_default_source,
 		{
