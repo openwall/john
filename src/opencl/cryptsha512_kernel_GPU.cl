@@ -13,7 +13,7 @@
 
 #include "opencl_sha512crypt.h"
 
-#if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729)
+#if (gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 1729 && !defined(__OS_X__))
     #define VECTOR_USAGE    1
 #endif
 
@@ -159,7 +159,7 @@ inline void sha512_block(sha512_ctx * ctx) {
 #ifdef VECTOR_USAGE
     ulong16  w_vector;
     w_vector = vload16(0, ctx->buffer->mem_64);
-    w_vector = SWAP64_V(w_vector);
+    w_vector = SWAP64_V((ulong16)w_vector);
     vstore16(w_vector, 0, w);
 #else
     #pragma unroll
