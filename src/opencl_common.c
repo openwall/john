@@ -2397,7 +2397,9 @@ cl_uint get_processor_family(int sequential_id)
 			 * Graphics IP v8:
 			 *   - Iceland
 			 */
-			return DEV_UNKNOWN;
+			/* All current GPUs are GCN so let's default to that */
+			//return DEV_UNKNOWN;
+			return DEV_AMD_GCN_12;
 		}
 	}
 	return DEV_UNKNOWN;
