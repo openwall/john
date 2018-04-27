@@ -81,7 +81,7 @@ void *blockchain_common_get_salt(char *ciphertext)
 		p = strtokm(NULL, "$");
 	} else
 		cs->iter = 10;
-	cs->length = atoi(p);
+	cs->length = MIN(SAFETY_FACTOR, atoi(p));
 	p = strtokm(NULL, "$");
 	for (i = 0; i < cs->length; i++)
 		cs->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -105,8 +105,8 @@ int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 
 	// "guid" will be found in the first block
 	if (memmem(out, 16, "\"guid\"", 6)) {
-		memcpy(iv, data, 16); // IV has to be reset.
-		AES_cbc_encrypt(data + 16, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+		AES_cbc_encrypt(data + 32, out + 16, SAFETY_FACTOR - 16, &akey, iv,
+		                AES_DECRYPT);
 		if (memmem(out, SAFETY_FACTOR, "\"sharedKey\"", 11))
 			// Do not check for "options" string. It is too further
 			// down in the byte stream for v3 wallets.  Note, we

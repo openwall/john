@@ -9,7 +9,7 @@
 #define SAFETY_FACTOR 		160
 
 struct custom_salt {
-	unsigned char data[BIG_ENOUGH];
+	unsigned char data[SAFETY_FACTOR];
 	int length;
 	int iter;
 };
