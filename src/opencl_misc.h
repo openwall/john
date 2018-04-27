@@ -732,6 +732,44 @@ inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 	return 0;
 }
 
+/* haystack is private mem, needle is constant mem */
+inline int memmem_pc(const void *haystack, size_t haystack_len,
+                     __constant void *needle, size_t needle_len)
+{
+	char* haystack_ = (char*)haystack;
+	__constant char* needle_ = (__constant char*)needle;
+	int hash = 0;
+	int hay_hash = 0;
+	char* last;
+	size_t i;
+
+	if (haystack_len < needle_len)
+		return 0;
+
+	if (!needle_len)
+		return 1;
+
+	for (i = needle_len; i; --i) {
+		hash += *needle_++;
+		hay_hash += *haystack_++;
+	}
+
+	haystack_ = (char*)haystack;
+	needle_ = (__constant char*)needle;
+	last = haystack_+(haystack_len - needle_len + 1);
+	for (; haystack_ < last; ++haystack_) {
+		if (hash == hay_hash &&
+		    *haystack_ == *needle_ &&
+		    !memcmp_pc (haystack_, needle_, needle_len))
+			return 1;
+
+		hay_hash -= *haystack_;
+		hay_hash += *(haystack_+needle_len);
+	}
+
+	return 0;
+}
+
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
 
