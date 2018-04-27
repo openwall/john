@@ -181,8 +181,8 @@ void Final2007(__global ms_office_state *state,
 		output.w[i] = SWAP32(output.w[i]);
 
 	AES_set_decrypt_key(output.c, 128, &akey);
-	AES_ecb_decrypt(salt->encryptedVerifier, decryptedVerifier.c, &akey);
-	AES_ecb_decrypt(salt->encryptedVerifierHash, decryptedVerifierHash.c, &akey);
+	AES_ecb_decrypt(salt->encryptedVerifier, decryptedVerifier.c, 16, &akey);
+	AES_ecb_decrypt(salt->encryptedVerifierHash, decryptedVerifierHash.c, 16, &akey);
 
 	for (i = 0; i < 4; i++)
 		W[i] = SWAP32(decryptedVerifier.w[i]);

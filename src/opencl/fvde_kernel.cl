@@ -51,7 +51,7 @@ __kernel void fvde_decrypt(MAYBE_CONSTANT fvde_salt_t *salt,
 		for (i = 2; i >= 1; i--) { // i = n
 			todecrypt.qword[0] = SWAP64(A ^ (n * j + i));
 			todecrypt.qword[1] = SWAP64(R[i]);
-			AES_ecb_decrypt(todecrypt.stream, todecrypt.stream, &akey);
+			AES_decrypt(todecrypt.stream, todecrypt.stream, &akey);
 			A = SWAP64(todecrypt.qword[0]);
 			R[i] = SWAP64(todecrypt.qword[1]);
 		}

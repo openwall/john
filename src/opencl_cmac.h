@@ -27,7 +27,7 @@
 #define AES_CMAC_DIGEST_LENGTH	16
 
 typedef struct _AES_CMAC_CTX {
-	AES_CTX	 aesctx;
+	AES_KEY aesctx;
 	uint8_t X[16];
 	uint8_t M_last[16];
 	uint    M_n;
@@ -59,7 +59,7 @@ AES_CMAC_Init(AES_CMAC_CTX *ctx)
 inline void
 AES_CMAC_SetKey(AES_CMAC_CTX *ctx, const uint8_t *key)
 {
-	AES_Setkey(&ctx->aesctx, key, 16);
+	AES_set_encrypt_key(key, 128, &ctx->aesctx);
 }
 
 inline void
@@ -77,14 +77,14 @@ AES_CMAC_Update(AES_CMAC_CTX *ctx, MAYBE_CONSTANT uint8_t *data, uint len)
 		if (ctx->M_n < 16 || len == mlen)
 			return;
 		XOR(ctx->M_last, ctx->X);
-		AES_Encrypt(&ctx->aesctx, ctx->X, ctx->X);
+		AES_encrypt(ctx->X, ctx->X, &ctx->aesctx);
 		data += mlen;
 		len -= mlen;
 	}
 #endif
 	while (len > 16) {	/* not last block */
 		XOR(data, ctx->X);
-		AES_Encrypt(&ctx->aesctx, ctx->X, ctx->X);
+		AES_encrypt(ctx->X, ctx->X, &ctx->aesctx);
 		data += 16;
 		len -= 16;
 	}
@@ -100,7 +100,7 @@ AES_CMAC_Final(uint8_t *digest, AES_CMAC_CTX *ctx)
 	uint8_t K[16] = { 0 };
 
 	/* generate subkey K1 */
-	AES_Encrypt(&ctx->aesctx, K, K);
+	AES_encrypt(K, K, &ctx->aesctx);
 
 	if (K[0] & 0x80) {
 		LSHIFT(K, K);
@@ -127,7 +127,7 @@ AES_CMAC_Final(uint8_t *digest, AES_CMAC_CTX *ctx)
 		XOR(K, ctx->M_last);
 	}
 	XOR(ctx->M_last, ctx->X);
-	AES_Encrypt(&ctx->aesctx, ctx->X, digest);
+	AES_encrypt(ctx->X, digest, &ctx->aesctx);
 }
 
 #endif /* _OPENCL_CMAC_H_ */

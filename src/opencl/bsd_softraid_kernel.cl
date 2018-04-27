@@ -46,8 +46,8 @@ void softraid_final(MAYBE_CONSTANT softraid_salt *salt,
 	SHA1_Update(&ctx, (uchar*)dk, OUTLEN);
 	SHA1_Final(hashed_mask_key, &ctx);
 
-	AES_Decrypt_ECB(&akey, salt->masked_keys, unmasked_keys,
-	                MASKED_KEY_SIZE / AES_BLOCK_SIZE);
+	AES_ecb_decrypt(salt->masked_keys, unmasked_keys,
+	                MASKED_KEY_SIZE, &akey);
 
 	/* We reuse out.dk as final output hash */
 	hmac_sha1(hashed_mask_key, OPENBSD_SOFTRAID_MACLENGTH,
