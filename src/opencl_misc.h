@@ -781,7 +781,7 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
  */
 
 /* Dump an array (or variable) as hex */
-#define dump(x)   dump_stuff_msg(STRINGIZE(x), x, sizeof(d))
+#define dump(x)   dump_stuff_msg(STRINGIZE(x), x, sizeof(x))
 #define dump_stuff(x, size) dump_stuff_msg(STRINGIZE(x), x, size)
 
 /*

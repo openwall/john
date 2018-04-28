@@ -34,6 +34,9 @@ void SHA256_Init(SHA256_CTX *ctx) {
 
 inline
 void _sha256_process(SHA256_CTX *ctx, const uchar data[64]) {
+#if __OS_X__ && gpu_amd(DEVICE_INFO)
+	volatile
+#endif
 	uint t, W[16], A, B, C, D, E, F, G, H;
 
 #if gpu_nvidia(DEVICE_INFO)
