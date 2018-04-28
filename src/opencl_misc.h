@@ -88,7 +88,7 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
  * use) with the basic formulas instead of bitselect ones. Most formats
  * show no difference but pwsafe does.
  */
-#if !gpu_nvidia(DEVICE_INFO)
+#if !gpu_nvidia(DEVICE_INFO) && !__OS_X__
 #define USE_BITSELECT 1
 #endif
 
@@ -776,25 +776,39 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 /*
  * The reason the functions below are macros is it's the only way we can use
  * them regardless of memory type (eg. __local or __global). The downside is
- * we can't cast them so you *need* to use eg. dump8_le for a char array, or
- * output will not be correct.
+ * we can't cast them so we need eg. dump8_le for a char array, or output will
+ * not be correct.
  */
 
 /* Dump an array (or variable) as hex */
-#define dump_le(d)   dump_stuff_msg(STRINGIZE(d), d, sizeof(d))
-#define dump8_le(d)  dump_stuff8_msg(STRINGIZE(d), d, sizeof(d))
-#define dump16_le(d) dump_stuff16_msg(STRINGIZE(d), d, sizeof(d))
-#define dump_be(d)   dump_stuff_be_msg(STRINGIZE(d), d, sizeof(d))
-#define dump_stuff(d, sz) dump_stuff_msg(STRINGIZE(d), d, sz)
-#define dump_stuff8(d, sz) dump_stuff8_msg(STRINGIZE(d), d, sz)
-#define dump_stuff16(d, sz) dump_stuff16_msg(STRINGIZE(d), d, sz)
-#define dump_stuff_be(d, sz) dump_stuff_be_msg(STRINGIZE(d), d, sz)
+#define dump(x)   dump_stuff_msg(STRINGIZE(x), x, sizeof(d))
+#define dump_stuff(x, size) dump_stuff_msg(STRINGIZE(x), x, size)
+
+/*
+ * This clumsy beast finally hides the problem from user.
+ */
+#define dump_stuff_msg(msg, x, size) do {	  \
+		switch (sizeof((x)[0])) { \
+		case 8: \
+			dump_stuff64_msg(msg, x, size); \
+			break; \
+		case 4: \
+			dump_stuff32_msg(msg, x, size); \
+			break; \
+		case 2: \
+			dump_stuff16_msg(msg, x, size); \
+			break; \
+		case 1: \
+			dump_stuff8_msg(msg, x, size); \
+			break; \
+		} \
+	} while (0)
 
 /* requires char/uchar */
 #define dump_stuff8_msg(msg, x, size) do {	  \
 		uint ii; \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < size; ii++) { \
+		for (ii = 0; ii < (uint)size; ii++) { \
 			printf("%02x", (x)[ii]); \
 			if (ii % 4 == 3) \
 				printf(" "); \
@@ -806,7 +820,7 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 #define dump_stuff16_msg(msg, x, size) do {	  \
 		uint ii; \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/2; ii++) { \
+		for (ii = 0; ii < (uint)(size)/2; ii++) { \
 			printf("%04x", (x)[ii]); \
 			if (ii % 2 == 1) \
 				printf(" "); \
@@ -815,20 +829,20 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 	} while (0)
 
 /* requires int/uint */
-#define dump_stuff_msg(msg, x, size) do {	  \
+#define dump_stuff32_msg(msg, x, size) do {	  \
 		uint ii; \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/4; ii++) \
+		for (ii = 0; ii < (uint)(size)/4; ii++) \
 			printf("%08x ", SWAP32((x)[ii])); \
 		printf("\n"); \
 	} while (0)
 
-/* requires int/uint */
-#define dump_stuff_be_msg(msg, x, size) do {	  \
+/* requires long/ulong */
+#define dump_stuff64_msg(msg, x, size) do {	  \
 		uint ii; \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", (x)[ii]); \
+		for (ii = 0; ii < (uint)(size)/8; ii++) \
+			printf("%16x ", SWAP64((x)[ii])); \
 		printf("\n"); \
 	} while (0)
 
