@@ -68,8 +68,8 @@ typedef struct {
 } crypt_md5_salt;
 
 typedef struct {
-	unsigned int length;
 	unsigned char v[PLAINTEXT_LENGTH];
+	unsigned char length;
 } crypt_md5_password;
 
 typedef struct {
