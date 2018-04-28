@@ -51,7 +51,11 @@ typedef struct {
 #define ROL32( x, n )  rotate((x), (uint)(n))
 #define ROR32( x, n )  rotate((x), (32U - (n)))
 
+#if __OS_X__
+#define LARGE_Q_TABLE   0
+#else
 #define LARGE_Q_TABLE   1
+#endif
 #define SELECT_BYTE_FROM_UINT32_IN_MEMORY    0
 #define CONVERT_USING_CASTS    0
 
