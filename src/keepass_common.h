@@ -58,3 +58,4 @@ extern void keepass_set_key(char *key, int index);
 extern char *keepass_get_key(int index);
 extern unsigned int keepass_iteration_count(void *salt);
 extern unsigned int keepass_version(void *salt);
+extern unsigned int keepass_algorithm(void *salt);

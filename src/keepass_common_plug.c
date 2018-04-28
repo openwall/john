@@ -304,3 +304,10 @@ unsigned int keepass_version(void *salt)
 
 	return (unsigned int)my_salt->version;
 }
+
+unsigned int keepass_algorithm(void *salt)
+{
+	keepass_salt_t *my_salt = salt;
+
+	return (unsigned int)my_salt->algorithm;
+}
