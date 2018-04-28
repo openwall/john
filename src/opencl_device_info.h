@@ -32,9 +32,10 @@
 #define DEV_NV_C35                  (1 << 17)   //131072
 #define DEV_NV_MAXWELL              (1 << 18)   //262144
 #define DEV_NV_PASCAL               (1 << 19)   //524288
-#define DEV_USE_LOCAL               (1 << 20)   //1048576
-#define DEV_NO_BYTE_ADDRESSABLE     (1 << 21)   //2097152
-#define DEV_MESA                    (1 << 22)   //4M
+#define DEV_NV_VOLTA                (1 << 20)   //1M
+#define DEV_USE_LOCAL               (1 << 21)   //2M
+#define DEV_NO_BYTE_ADDRESSABLE     (1 << 22)   //4M
+#define DEV_MESA                    (1 << 23)   //8M
 
 #define cpu(n)                      ((n & DEV_CPU) == (DEV_CPU))
 #define gpu(n)                      ((n & DEV_GPU) == (DEV_GPU))

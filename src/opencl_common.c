@@ -1930,6 +1930,7 @@ static char* opencl_get_dev_info(int sequential_id)
 		    (major == 3 && minor == 5 ? DEV_NV_C35 : 0);
 		device_info[sequential_id] += (major == 5 ? DEV_NV_MAXWELL : 0);
 		device_info[sequential_id] += (major == 6 ? DEV_NV_PASCAL : 0);
+		device_info[sequential_id] += (major == 7 ? DEV_NV_VOLTA : 0);
 	}
 
 	return ret;
@@ -2284,6 +2285,8 @@ cl_uint get_processors_count(int sequential_id)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		else if (major == 6)    // 6.x Pascal
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
+		else if (major == 7)    // 7.x Volta
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
 /*
  * Apple, VCL and some other environments don't expose get_compute_capability()
  * so we need this crap - which is incomplete.
@@ -2292,6 +2295,9 @@ cl_uint get_processors_count(int sequential_id)
  * This will produce a *guessed* figure
  */
 
+		// Volta (GTX 11**?)
+		else if (strstr(dname, "TITAN V"))
+			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
 		// Pascal
 		else if (strstr(dname, "GTX 10"))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
