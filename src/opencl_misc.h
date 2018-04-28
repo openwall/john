@@ -88,7 +88,7 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
  * use) with the basic formulas instead of bitselect ones. Most formats
  * show no difference but pwsafe does.
  */
-#if !gpu_nvidia(DEVICE_INFO) && !__OS_X__
+#if !gpu_nvidia(DEVICE_INFO)
 #define USE_BITSELECT 1
 #endif
 
