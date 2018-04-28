@@ -20,7 +20,7 @@
 #endif
 
 #if defined(AES_SRC_TYPE) || defined(AES_DST_TYPE)
-#define DO_MEMCPY
+#define DO_MEMCPY 1
 #endif
 
 #ifndef AES_SRC_TYPE
@@ -255,9 +255,9 @@ AES_cts_decrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
 	memcpy_macro(iv, tmp, AES_BLOCK_SIZE);
 }
 
-inline void AES_256_XTS_first_sector(__constant uint *in,
-                                     __global uint *out,
-                                     const uchar *double_key)
+inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
+                                     AES_DST_TYPE uint *out,
+                                     AES_KEY_TYPE uchar *double_key)
 {
 	uint tweak[4] = { 0 };
 	uint buf[4];
