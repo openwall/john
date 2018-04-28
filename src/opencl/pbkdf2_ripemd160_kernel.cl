@@ -143,29 +143,6 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 	}
 }
 
-inline void AES_256_XTS_first_sector(const uchar *double_key,
-                                     __global uint *out,
-                                     __constant uint *in)
-{
-	uint tweak[4] = { 0 };
-	uint buf[4];
-	int i;
-	AES_KEY key1, key2;
-
-	AES_set_decrypt_key(double_key, 256, &key1);
-	AES_set_encrypt_key(double_key + 32, 256, &key2);
-
-	AES_encrypt((uchar*)tweak, (uchar*)tweak, &key2);
-
-	for (i = 0; i < 4; i++)
-		buf[i] = in[i] ^ tweak[i];
-
-	AES_decrypt((uchar*)buf, (uchar*)buf, &key1);
-
-	for (i = 0; i < 4; i++)
-		out[i] = buf[i] ^ tweak[i];
-}
-
 __kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
                                __global tc_hash *outbuffer,
                                __constant tc_salt *salt)
@@ -175,5 +152,5 @@ __kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, key);
 
-	AES_256_XTS_first_sector((uchar*)key, outbuffer[idx].v, salt->bin);
+	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, (uchar*)key);
 }

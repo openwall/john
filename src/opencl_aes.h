@@ -255,4 +255,27 @@ AES_cts_decrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
 	memcpy_macro(iv, tmp, AES_BLOCK_SIZE);
 }
 
+inline void AES_256_XTS_first_sector(__constant uint *in,
+                                     __global uint *out,
+                                     const uchar *double_key)
+{
+	uint tweak[4] = { 0 };
+	uint buf[4];
+	int i;
+	AES_KEY key1, key2;
+
+	AES_set_decrypt_key(double_key, 256, &key1);
+	AES_set_encrypt_key(double_key + 32, 256, &key2);
+
+	AES_encrypt((uchar*)tweak, (uchar*)tweak, &key2);
+
+	for (i = 0; i < 4; i++)
+		buf[i] = in[i] ^ tweak[i];
+
+	AES_decrypt((uchar*)buf, (uchar*)buf, &key1);
+
+	for (i = 0; i < 4; i++)
+		out[i] = buf[i] ^ tweak[i];
+}
+
 #endif	/* _OPENCL_AES_H_ */
