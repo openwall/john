@@ -11,6 +11,8 @@
 
 #include "opencl_misc.h"
 #include "opencl_ripemd.h"
+#define AES_SRC_TYPE __constant
+#define AES_DST_TYPE __global
 #include "opencl_aes.h"
 
 #define ITERATIONS 2000
