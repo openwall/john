@@ -11,29 +11,6 @@
 #define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 
-inline int check_pkcs_pad(const uchar *data, size_t len, uint blocksize)
-{
-	uint pad_len = data[len - 1];
-	uint padding = pad_len;
-	size_t real_len = len - pad_len;
-	const uchar *p = data + real_len;
-
-	if (len & (blocksize - 1))
-		return -1;
-
-	if (pad_len > blocksize || pad_len < 1)
-		return -1;
-
-	if (len < blocksize)
-		return -1;
-
-	while (pad_len--)
-		if (*p++ != padding)
-			return -1;
-
-	return real_len;
-}
-
 typedef struct {
 	uint  iterations;
 	uint  outlen;

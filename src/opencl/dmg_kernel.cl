@@ -36,33 +36,6 @@ typedef struct {
 	uchar zchunk[4096]; /* chunk #0 */
 } dmg_salt;
 
-inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
-{
-	int pad_len, padding, real_len;
-
-	if (len & (blocksize - 1))
-		return -1;
-
-	if (len < blocksize)
-		return -1;
-
-	pad_len = data[len - 1];
-
-	if (pad_len > blocksize)
-		return -1;
-
-	real_len = len - pad_len;
-	data += real_len;
-
-	padding = pad_len;
-
-	while (pad_len--)
-		if (*data++ != padding)
-			return -1;
-
-	return real_len;
-}
-
 inline int apple_des3_ede_unwrap_key1(MAYBE_CONSTANT uchar *wrapped_key,
                                       const int wrapped_key_len,
                                       const uchar *decryptKey)

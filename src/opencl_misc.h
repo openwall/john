@@ -410,6 +410,33 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
 #endif
 
+inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
+{
+	int pad_len, padding, real_len;
+
+	if (len & (blocksize - 1))
+		return -1;
+
+	if (len < blocksize)
+		return -1;
+
+	pad_len = data[len - 1];
+
+	if (pad_len > blocksize)
+		return -1;
+
+	real_len = len - pad_len;
+	data += real_len;
+
+	padding = pad_len;
+
+	while (pad_len--)
+		if (*data++ != padding)
+			return -1;
+
+	return real_len;
+}
+
 /*
  * Use with some caution. Memory type agnostic and if both src and dst are
  * 8-bit types, this works like a normal memcpy.
