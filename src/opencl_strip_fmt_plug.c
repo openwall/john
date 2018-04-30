@@ -18,38 +18,34 @@ john_register_one(&fmt_opencl_strip);
 
 #include <string.h>
 #include <stdint.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
-#include "aes.h"
 #include "formats.h"
 #include "options.h"
 #include "common.h"
 #include "misc.h"
 #include "opencl_common.h"
 
-#define FORMAT_LABEL		"strip-opencl"
-#define FORMAT_NAME		"STRIP Password Manager"
+#define FORMAT_LABEL         "strip-opencl"
+#define FORMAT_NAME          "STRIP Password Manager"
 #define FORMAT_TAG           "$strip$*"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BINARY_SIZE		0
-#define PLAINTEXT_LENGTH	64
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define BINARY_ALIGN		1
-#define SALT_ALIGN			4
+#define ALGORITHM_NAME       "PBKDF2-SHA1 AES OpenCL"
+#define BENCHMARK_COMMENT    ""
+#define BENCHMARK_LENGTH     -1
+#define MIN_KEYS_PER_CRYPT   1
+#define MAX_KEYS_PER_CRYPT   1
+#define BINARY_SIZE          0
+#define PLAINTEXT_LENGTH     64
+#define SALT_SIZE            sizeof(struct custom_salt)
+#define BINARY_ALIGN         1
+#define SALT_ALIGN           4
 
-#define ITERATIONS		4000
-#define FILE_HEADER_SZ 16
-#define SQLITE_FILE_HEADER "SQLite format 3"
-#define HMAC_SALT_MASK 0x3a
-#define FAST_PBKDF2_ITER 2
+#define ITERATIONS           4000
+#define FILE_HEADER_SZ       16
+#define SQLITE_FILE_HEADER   "SQLite format 3"
+#define HMAC_SALT_MASK       0x3a
+#define FAST_PBKDF2_ITER     2
 #define SQLITE_MAX_PAGE_SIZE 65536
 
 static struct fmt_tests strip_tests[] = {
@@ -60,39 +56,50 @@ static struct fmt_tests strip_tests[] = {
 	{NULL}
 };
 
-typedef struct {
-	uint32_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
-} strip_password;
+#define KEYLEN  PLAINTEXT_LENGTH
+#define SALTLEN 16
+#define OUTLEN  32
 
 typedef struct {
-	uint32_t v[32/4];
-} strip_hash;
+	uint32_t length;
+	uint8_t v[KEYLEN];
+} pbkdf2_password;
+
+typedef struct {
+	uint32_t v[(OUTLEN+3)/4];
+} pbkdf2_hash;
 
 typedef struct {
 	uint32_t iterations;
 	uint32_t outlen;
 	uint32_t skip_bytes;
 	uint8_t  length;
-	uint8_t  salt[64];
+	uint8_t  salt[SALTLEN];
+	uint8_t  pad[3];
+} pbkdf2_salt;
+
+typedef struct {
+	pbkdf2_salt pbkdf2;
+	unsigned char data[1024];
 } strip_salt;
 
-static int *cracked;
-static int any_cracked;
+typedef struct {
+	uint32_t cracked;
+} strip_out;
 
 static struct custom_salt {
-	unsigned char salt[16];
+	unsigned char salt[SALTLEN];
 	unsigned char data[1024];
 } *cur_salt;
 
 static cl_int cl_error;
-static strip_password *inbuffer;
-static strip_hash *outbuffer;
+static pbkdf2_password *inbuffer;
+static strip_out *outbuffer;
 static strip_salt currentsalt;
-static cl_mem mem_in, mem_out, mem_setting;
+static cl_mem mem_in, mem_dk, mem_salt, mem_out;
 static struct fmt_main *self;
 
-static size_t insize, outsize, settingsize, cracked_size;
+static size_t insize, dksize, saltsize, outsize;
 
 #define STEP			0
 #define SEED			256
@@ -113,24 +120,27 @@ static size_t get_task_max_work_group_size()
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	insize = sizeof(strip_password) * gws;
-	outsize = sizeof(strip_hash) * gws;
-	settingsize = sizeof(strip_salt);
-	cracked_size = sizeof(*cracked) * gws;
+	insize = sizeof(pbkdf2_password) * gws;
+	dksize = sizeof(pbkdf2_hash) * gws;
+	saltsize = sizeof(strip_salt);
+	outsize = sizeof(strip_out) * gws;
 
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
-	cracked = mem_calloc(1, cracked_size);
 
 	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem in");
-	mem_setting =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
+	mem_dk =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, dksize, NULL,
+	    &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem dk");
+	mem_salt =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize,
 	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
+	HANDLE_CLERROR(cl_error, "Error allocating mem salt");
 	mem_out =
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
@@ -138,22 +148,24 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_dk),
+		&mem_dk), "Error while setting mem_dk kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_out),
 		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
 }
 
 static void release_clobj(void)
 {
-	if (inbuffer) {
+	if (outbuffer) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_dk), "Release mem dk");
 
 		MEM_FREE(inbuffer);
 		MEM_FREE(outbuffer);
-		MEM_FREE(cracked);
 	}
 }
 
@@ -182,19 +194,16 @@ static void reset(struct db_main *db)
 
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
-		         PLAINTEXT_LENGTH,
-		         (int)sizeof(currentsalt.salt),
-		         (int)sizeof(outbuffer->v));
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
-		            gpu_id, build_opts);
+		         KEYLEN, SALTLEN, OUTLEN);
+		opencl_init("$JOHN/kernels/strip_kernel.cl", gpu_id, build_opts);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "derive_key", &cl_error);
+		crypt_kernel = clCreateKernel(program[gpu_id], "strip", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
 		                       create_clobj, release_clobj,
-		                       sizeof(strip_password), 0, db);
+		                       sizeof(pbkdf2_password), 0, db);
 
 		// Auto tune execution from shared/included code.
 		autotune_run(self, 1, 0, 1000);
@@ -253,23 +262,22 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
-	memcpy((char*)currentsalt.salt, cur_salt->salt, 16);
-	currentsalt.length = 16;
-	currentsalt.iterations = ITERATIONS;
-	currentsalt.outlen = 32;
-	currentsalt.skip_bytes = 0;
+	memcpy((char*)currentsalt.pbkdf2.salt, cur_salt->salt, 16);
+	currentsalt.pbkdf2.length = 16;
+	currentsalt.pbkdf2.iterations = ITERATIONS;
+	currentsalt.pbkdf2.outlen = 32;
+	currentsalt.pbkdf2.skip_bytes = 0;
+	memcpy(currentsalt.data, cur_salt->data, sizeof(currentsalt.data));
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
+		CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
 	    "Copy salt to gpu");
 }
 
-#undef set_key
 static void set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
+
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
 }
@@ -278,55 +286,18 @@ static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
 	uint8_t length = inbuffer[index].length;
+
 	memcpy(ret, inbuffer[index].v, length);
 	ret[length] = '\0';
 	return ret;
 }
 
-/* verify validity of page */
-static int verify_page(unsigned char *page1)
-{
-	uint32_t pageSize;
-	uint32_t usableSize;
-
-	//if (memcmp(page1, SQLITE_FILE_HEADER, 16) != 0) {
-	//	return -1;
-	//}
-
-	if (page1[19] > 2) {
-		return -1;
-	}
-	if (memcmp(&page1[21], "\100\040\040", 3) != 0) {
-		return -1;
-	}
-	pageSize = (page1[16] << 8) | (page1[17] << 16);
-	if (((pageSize - 1) & pageSize) != 0 || pageSize > SQLITE_MAX_PAGE_SIZE || pageSize <= 256) {
-		return -1;
-	}
-
-	if ((pageSize & 7) != 0) {
-		return -1;
-	}
-	usableSize = pageSize - page1[20];
-
-	if (usableSize < 480) {
-		return -1;
-	}
-	return 0;
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 
 	/// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -342,55 +313,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
 
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++)
-	{
-		unsigned char master[32];
-		unsigned char output[24];
-		unsigned char *iv_in;
-		unsigned char iv_out[16];
-		int size;
-		int page_sz = 1008; /* 1024 - strlen(SQLITE_FILE_HEADER) */
-		int reserve_sz = 16; /* for HMAC off case */
-		AES_KEY akey;
-
-		memcpy(master, outbuffer[index].v, 32);
-		//memcpy(output, SQLITE_FILE_HEADER, FILE_HEADER_SZ);
-		size = page_sz - reserve_sz;
-		iv_in = cur_salt->data + size + 16;
-		memcpy(iv_out, iv_in, 16);
-
-		AES_set_decrypt_key(master, 256, &akey);
-		/*
-		 * decrypting 8 bytes from offset 16 is enough since the
-		 * verify_page function looks at output[16..23] only.
-		 */
-		AES_cbc_encrypt(cur_salt->data + 16, output + 16, 8, &akey, iv_out, AES_DECRYPT);
-		if (verify_page(output) == 0)
-		{
-			cracked[index] = 1;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			any_cracked |= 1;
-		}
-	}
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (outbuffer[index].cracked)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return outbuffer[index].cracked;
 }
 
 static int cmp_exact(char *source, int index)
@@ -413,7 +351,7 @@ struct fmt_main fmt_opencl_strip = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_NOT_EXACT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		strip_tests
