@@ -761,10 +761,10 @@ inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 
 /* haystack is private mem, needle is constant mem */
 inline int memmem_pc(const void *haystack, size_t haystack_len,
-                     __constant void *needle, size_t needle_len)
+                     __constant const void *needle, size_t needle_len)
 {
 	char* haystack_ = (char*)haystack;
-	__constant char* needle_ = (__constant char*)needle;
+	__constant const char* needle_ = (__constant const char*)needle;
 	int hash = 0;
 	int hay_hash = 0;
 	char* last;
