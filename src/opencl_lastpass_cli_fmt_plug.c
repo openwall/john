@@ -54,6 +54,7 @@ static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel, final_kernel;
 static struct fmt_main *self;
 
+static int new_keys;
 static struct custom_salt *cur_salt;
 static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
 
@@ -210,10 +211,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
-		CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
-		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys || ocl_autotune_running) {
+		// Copy data to gpu
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
+			CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
+			NULL, multi_profilingEvent[0]), "Copy data to gpu");
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
@@ -263,6 +267,7 @@ static void set_key(char *key, int index)
 
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
+	new_keys = 1;
 }
 
 static char *get_key(int index)

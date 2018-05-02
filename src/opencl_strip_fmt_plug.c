@@ -92,6 +92,7 @@ static struct custom_salt {
 	unsigned char data[1024];
 } *cur_salt;
 
+static int new_keys;
 static cl_int cl_error;
 static pbkdf2_password *inbuffer;
 static strip_out *outbuffer;
@@ -280,6 +281,7 @@ static void set_key(char *key, int index)
 
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -299,10 +301,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
-	/// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-	        "Copy data to gpu");
+	if (new_keys || ocl_autotune_running) {
+		/// Copy data to gpu
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+		        "Copy data to gpu");
+		new_keys = 0;
+	}
 
 	/// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
