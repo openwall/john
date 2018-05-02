@@ -28,7 +28,7 @@ john_register_one(&fmt_opencl_lastpass);
 #include "opencl_common.h"
 
 #define FORMAT_LABEL            "lp-opencl"
-#define ALGORITHM_NAME          "PBKDF2-SHA256 OpenCL AES"
+#define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define MIN_KEYS_PER_CRYPT      1
@@ -44,7 +44,6 @@ john_register_one(&fmt_opencl_lastpass);
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/
-static crack_t *host_crack;			      /** hash**/
 static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel, final_kernel;
@@ -80,7 +79,6 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
-	host_crack = mem_calloc(kpc, sizeof(crack_t));
 	crypt_out = mem_calloc(kpc, sizeof(*crypt_out));
 	host_salt = mem_calloc(1, sizeof(salt_t));
 
@@ -117,7 +115,7 @@ static size_t get_task_max_work_group_size()
 
 static void release_clobj(void)
 {
-	if (host_crack) {
+	if (crypt_out) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
@@ -125,7 +123,6 @@ static void release_clobj(void)
 
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
-		MEM_FREE(host_crack);
 		MEM_FREE(crypt_out);
 	}
 }
@@ -144,7 +141,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
 		         HASH_LOOPS, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
+		opencl_init("$JOHN/kernels/lastpass_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =
@@ -156,7 +153,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
 		final_kernel =
-			clCreateKernel(program[gpu_id], "pbkdf2_sha256_final", &cl_error);
+			clCreateKernel(program[gpu_id], "lastpass_final", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating final kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -202,7 +199,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
 	const int count = *pcount;
-	int index;
 	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
@@ -229,17 +225,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
-		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
+		CL_TRUE, 0, global_work_size * sizeof(*crypt_out), crypt_out, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
-
-	if (!ocl_autotune_running) {
-		for (index = 0; index < count; index++) {
-			AES_KEY akey;
-
-			AES_set_encrypt_key((unsigned char*)host_crack[index].hash, 256, &akey);
-			AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[index], &akey, AES_ENCRYPT);
-		}
-	}
 
 	return count;
 }

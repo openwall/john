@@ -697,9 +697,12 @@ AES_Setkey(AES_CTX *ctx, AES_KEY_TYPE void *key, int len)
 }
 
 inline void
-AES_Encrypt_ECB_pp(AES_CTX *ctx, const uint8_t *src,
-                   uint8_t *dst, size_t num_blocks)
+AES_Encrypt_ECB_pp(AES_CTX *ctx, const void *_src,
+                   void *_dst, size_t num_blocks)
 {
+	const uchar *src = _src;
+	uchar *dst = _dst;
+
 	while (num_blocks > 0) {
 		uint32_t q[8];
 
@@ -740,9 +743,12 @@ AES_Encrypt_ECB_pp(AES_CTX *ctx, const uint8_t *src,
 }
 
 inline void
-AES_Encrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src,
-                AES_DST_TYPE uint8_t *dst, size_t num_blocks)
+AES_Encrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE void *_src,
+                AES_DST_TYPE void *_dst, size_t num_blocks)
 {
+	AES_SRC_TYPE uchar *src = _src;
+	AES_DST_TYPE uchar *dst = _dst;
+
 	while (num_blocks > 0) {
 		uint32_t q[8];
 
@@ -783,9 +789,12 @@ AES_Encrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src,
 }
 
 inline void
-AES_Decrypt_ECB_pp(AES_CTX *ctx, const uint8_t *src,
-                   uint8_t *dst, size_t num_blocks)
+AES_Decrypt_ECB_pp(AES_CTX *ctx, const void *_src,
+                   void *_dst, size_t num_blocks)
 {
+	const uchar *src = _src;
+	uchar *dst = _dst;
+
 	while (num_blocks > 0) {
 		uint32_t q[8];
 
@@ -826,9 +835,12 @@ AES_Decrypt_ECB_pp(AES_CTX *ctx, const uint8_t *src,
 }
 
 inline void
-AES_Decrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE uint8_t *src,
-                AES_DST_TYPE uint8_t *dst, size_t num_blocks)
+AES_Decrypt_ECB(AES_CTX *ctx, AES_SRC_TYPE void *_src,
+                AES_DST_TYPE void *_dst, size_t num_blocks)
 {
+	AES_SRC_TYPE uchar *src = _src;
+	AES_DST_TYPE uchar *dst = _dst;
+
 	while (num_blocks > 0) {
 		uint32_t q[8];
 
