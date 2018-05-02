@@ -6,7 +6,7 @@
 
 #include "formats.h"
 
-#define FORMAT_NAME             "NetIQ SSPR"
+#define FORMAT_NAME             "NetIQ SSPR / Adobe AEM"
 #define FORMAT_TAG              "$sspr$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define BINARY_SIZE             64
@@ -25,3 +25,4 @@ extern int sspr_valid(char *ciphertext, struct fmt_main *self);
 extern void *sspr_get_salt(char *ciphertext);
 extern void *sspr_get_binary(char *ciphertext);
 extern unsigned int sspr_get_kdf_type(void *salt);
+extern unsigned int sspr_get_iteration_count(void *salt);

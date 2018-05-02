@@ -190,6 +190,7 @@ struct fmt_main fmt_sspr = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"KDF [0:MD5 1:SHA1 2:SHA1_SALT 3:SHA256_SALT 4:SHA512_SALT]",
+			"iteration count",
 		},
 		{ FORMAT_TAG },
 		sspr_tests
@@ -204,6 +205,7 @@ struct fmt_main fmt_sspr = {
 		sspr_get_salt,
 		{
 			sspr_get_kdf_type,
+			sspr_get_iteration_count,
 		},
 		fmt_default_source,
 		{

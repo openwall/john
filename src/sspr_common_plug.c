@@ -9,6 +9,7 @@
 #include "memdbg.h"
 
 struct fmt_tests sspr_tests[] = {
+	// NetIQ SSPR hashes
 	{"$sspr$1$100000$NONE$64840051a425cbc0b4e2d3750d9e0de3e800de18", "password@12345"},
 	{"$sspr$1$100000$NONE$5cd2aeb3adf2baeca485672f01486775a208a40e", "openwall@12345"},
 	{"$sspr$2$100000$tMR6sNepv6M6nOqOy3SWnAUWo22p0GI7$f0ae3140ce2cf46c13d0b6c4bd4fab65b45b27c0", "openwall@123"},
@@ -20,6 +21,9 @@ struct fmt_tests sspr_tests[] = {
 	{"$sspr$0$100000$NONE$1e6172e71e6af1c15f4c5ca658815835", "abc@12345"},
 	{"$sspr$0$100000$NONE$1117af8ec9f70e8eed192c6c01776b6b", "abc@123"},
 	{"$sspr$2$100000$4YtbuUHaTSHBuE1licTV16KjSZuMMMCn$23b3cf4e1a951b2ed9d5df43632f77092fa93128", "\xe4""bc@123"},  // original password was "äbc@123", application uses a code page
+	// Adobe AEM hashes
+	{"$sspr$3$1000$a9d4b340cb43807b$33b8875ff3f9619e6ae984add262fb6b6f043e8ff9b065f4fb0863021aada275", "admin"},
+	{"$sspr$3$1000$fe90d85cdcd7e79c$ef182cdc47e60b472784e42a6e167d26242648c6b2e063dfd9e27eec9aa38912", "Aa12345678!@"},
 	{NULL}
 };
 
@@ -109,4 +113,11 @@ void *sspr_get_binary(char *ciphertext)
 unsigned int sspr_get_kdf_type(void *salt)
 {
 	return ((struct custom_salt *)salt)->fmt;
+}
+
+unsigned int sspr_get_iteration_count(void *salt)
+{
+	struct custom_salt *ctx = salt;
+
+	return (unsigned int) ctx->iterations;
 }
