@@ -27,7 +27,7 @@ jobs:
     # To see the list of pre-built images that CircleCI provides for most common languages see
     # https://circleci.com/docs/2.0/circleci-images/
     docker:
-    - image: dhiru/fedora:27
+    - image: dhiru/fedora:rawhide
       command: /sbin/init
     steps:
     # Machine Setup
