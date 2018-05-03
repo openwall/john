@@ -945,13 +945,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 #ifdef HAVE_OPENCL
-	if (options.v_width) {
-		if (options.v_width > 1 && options.flags & FLG_SCALAR) {
-			if (john_main_process)
-				fprintf(stderr, "Scalar or Vector modes are "
-				        "mutually exclusive\n");
-			error();
-		}
+	if (options.flags & FLG_SCALAR)
+		options.v_width = 1;
+	else if (options.v_width) {
 		if (options.v_width != 1 && options.v_width != 2 &&
 		    options.v_width != 3 && options.v_width != 4 &&
 		    options.v_width != 8 && options.v_width != 16) {
