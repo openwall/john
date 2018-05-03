@@ -66,7 +66,6 @@ typedef struct {
 } keyring_salt;
 
 static int *cracked;
-static int any_cracked;
 
 static struct custom_salt {
 	unsigned int iterations;
@@ -337,11 +336,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 
 	/// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,

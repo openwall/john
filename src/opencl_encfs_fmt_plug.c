@@ -31,10 +31,10 @@ john_register_one(&fmt_opencl_encfs);
 #define OUTLEN (32 + 16)
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-#define FORMAT_LABEL            "encfs-opencl"
-#define FORMAT_NAME             "EncFS"
+#define FORMAT_LABEL            "EncFS-opencl"
+#define FORMAT_NAME             ""
 #define OCL_ALGORITHM_NAME      "PBKDF2-SHA1 OpenCL"
-#define CPU_ALGORITHM_NAME      " AES/Blowfish"
+#define CPU_ALGORITHM_NAME      " AES"
 #define ALGORITHM_NAME          OCL_ALGORITHM_NAME CPU_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
