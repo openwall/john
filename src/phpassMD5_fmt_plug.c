@@ -50,39 +50,41 @@ john_register_one(&fmt_phpassmd5);
 #include "simd-intrinsics.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"phpass"
-#define FORMAT_NAME				""
-#define ALGORITHM_NAME			"phpass ($P$ or $H$) "  MD5_ALGORITHM_NAME
+#define FORMAT_LABEL            "phpass"
+#define FORMAT_NAME             ""
+#define ALGORITHM_NAME          "phpass ($P$ or $H$) "  MD5_ALGORITHM_NAME
 
 #ifdef SIMD_COEF_32
-#define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
+#define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
 
-#define BENCHMARK_COMMENT		" ($P$9)"
+#define BENCHMARK_COMMENT       " ($P$9)"
 
 #ifndef MD5_BUF_SIZ
-#define MD5_BUF_SIZ				16
+#define MD5_BUF_SIZ             16
 #endif
 
-#define DIGEST_SIZE				16
-#define SALT_SIZE				8
+#define DIGEST_SIZE             16
+#define SALT_SIZE               8
 // NOTE salts are only 8 bytes, but we tell john they are 9.
 // We then take the 8 bytes of salt, and append the 1 byte of
 // loop count data, making it 9.
+#define SALT_ALIGN              sizeof(uint32_t)
+
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	NBKEYS
-#define MAX_KEYS_PER_CRYPT	(NBKEYS * 2)
-#if ARCH_LITTLE_ENDIAN==1
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
+#define MIN_KEYS_PER_CRYPT      NBKEYS
+#define MAX_KEYS_PER_CRYPT      (NBKEYS * 2)
+#if ARCH_LITTLE_ENDIAN
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
 #else
-#define GETPOS(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
+#define GETPOS(i, index)        ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*MD5_BUF_SIZ*4*SIMD_COEF_32 )
 #endif
 #else
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	2
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      2
 #endif
 
-#define OMP_SCALE           2 // Tuned w/ MKPC for core i7, including SIMD
+#define OMP_SCALE               2 // Tuned w/ MKPC for core i7, including SIMD
 
 #ifdef SIMD_COEF_32
 // hash with key appended (used on all steps other than first)
@@ -92,8 +94,8 @@ static uint32_t (*cursalt)[MD5_BUF_SIZ*NBKEYS];
 static uint32_t (*crypt_key)[DIGEST_SIZE/4*NBKEYS];
 static unsigned max_keys;
 #else
-static char (*crypt_key)[PHPASS_CPU_PLAINTEXT_LENGTH+1+PHPASS_BINARY_SIZE];
-static char (*saved_key)[PHPASS_CPU_PLAINTEXT_LENGTH + 1];
+static char (*crypt_key)[PLAINTEXT_LENGTH+1+BINARY_SIZE];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static unsigned (*saved_len);
 static unsigned char cursalt[SALT_SIZE];
 #endif
@@ -196,7 +198,7 @@ static void set_key(char *key, int index) {
 static char *get_key(int index) {
 #ifdef SIMD_COEF_32
 	unsigned char *saltb8 = (unsigned char*)cursalt;
-	static char out[PHPASS_CPU_PLAINTEXT_LENGTH+1];
+	static char out[PLAINTEXT_LENGTH+1];
 	int len, i;
 
 	// get salt length (in bits)
@@ -234,7 +236,7 @@ static int cmp_all(void *binary, int count) {
 	return 0;
 #else
 	for (i = 0; i < count; i++)
-		if (!memcmp(binary, crypt_key[i], PHPASS_BINARY_SIZE))
+		if (!memcmp(binary, crypt_key[i], BINARY_SIZE))
 			return 1;
 	return 0;
 #endif
@@ -255,7 +257,7 @@ static int cmp_one(void * binary, int index)
 	       (((uint32_t *)binary)[2] == ((uint32_t *)crypt_key)[off+2*SIMD_COEF_32+idx]) &&
 	       (((uint32_t *)binary)[3] == ((uint32_t *)crypt_key)[off+3*SIMD_COEF_32+idx]));
 #else
-	return !memcmp(binary, crypt_key[index], PHPASS_BINARY_SIZE);
+	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 #endif
 }
 
@@ -286,12 +288,12 @@ static int crypt_all(int *pcount, struct db_salt *salt) {
 		MD5_Update( &ctx, saved_key[index], saved_len[index] );
 		MD5_Final( (unsigned char *) crypt_key[index], &ctx);
 
-		strcpy(((char*)&(crypt_key[index]))+PHPASS_BINARY_SIZE, saved_key[index]);
+		strcpy(((char*)&(crypt_key[index]))+BINARY_SIZE, saved_key[index]);
 		Lcount = loopCnt;
 
 		do {
 			MD5_Init( &ctx );
-			MD5_Update( &ctx, crypt_key[index],  PHPASS_BINARY_SIZE+saved_len[index]);
+			MD5_Update( &ctx, crypt_key[index],  BINARY_SIZE+saved_len[index]);
 			MD5_Final( (unsigned char *)&(crypt_key[index]), &ctx);
 		} while (--Lcount);
 #endif
@@ -332,11 +334,11 @@ struct fmt_main fmt_phpassmd5 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
-		PHPASS_CPU_PLAINTEXT_LENGTH,
-		PHPASS_BINARY_SIZE,
-		PHPASS_BINARY_ALIGN,
-		SALT_SIZE+1,
-		PHPASS_SALT_ALIGN,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE + 1,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #ifdef _OPENMP
@@ -347,7 +349,7 @@ struct fmt_main fmt_phpassmd5 = {
 			"iteration count",
 		},
 		{ FORMAT_TAG, FORMAT_TAG2, FORMAT_TAG3 },
-		phpass_common_tests_39
+		phpass_common_tests
 	}, {
 		init,
 		done,
