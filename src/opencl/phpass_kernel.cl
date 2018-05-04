@@ -176,39 +176,35 @@ inline void md5(MAYBE_VECTOR_UINT len,
 	internal_ret[3] = d + 0x10325476;
 }
 
-#define key_index(n) (key_idx[gid * V_WIDTH + n] >> 6)
-#define key_len(n)   (key_idx[gid * V_WIDTH + n] & 63)
-
-__kernel void phpass(__global const uint *key_buf,
-                     __global const uint *key_idx,
-                     __global phpass_hash *data_out,
-                     __global const uint *salt)
+__kernel void phpass (__global const phpass_password *data,
+                      __global phpass_hash *data_out,
+                      __global const uint *salt)
 {
 	MAYBE_VECTOR_UINT x[14], length;
-	uint i, gid = get_global_id(0);
+	uint i, idx = get_global_id(0);
 	uint count = salt[2];
 
-	__global const uint *password0 = &key_buf[key_index(0)];
+	__global const uint *password0 = data[idx * V_WIDTH +  0].v;
 #if V_WIDTH > 1
-	__global const uint *password1 = &key_buf[key_index(1)];
+	__global const uint *password1 = data[idx * V_WIDTH +  1].v;
 #if V_WIDTH > 2
-	__global const uint *password2 = &key_buf[key_index(2)];
+	__global const uint *password2 = data[idx * V_WIDTH +  2].v;
 #if V_WIDTH > 3
-	__global const uint *password3 = &key_buf[key_index(3)];
+	__global const uint *password3 = data[idx * V_WIDTH +  3].v;
 #if V_WIDTH > 4
-	__global const uint *password4 = &key_buf[key_index(4)];
-	__global const uint *password5 = &key_buf[key_index(5)];
-	__global const uint *password6 = &key_buf[key_index(6)];
-	__global const uint *password7 = &key_buf[key_index(7)];
+	__global const uint *password4 = data[idx * V_WIDTH +  4].v;
+	__global const uint *password5 = data[idx * V_WIDTH +  5].v;
+	__global const uint *password6 = data[idx * V_WIDTH +  6].v;
+	__global const uint *password7 = data[idx * V_WIDTH +  7].v;
 #if V_WIDTH > 8
-	__global const uint *password8 = &key_buf[key_index(8)];
-	__global const uint *password9 = &key_buf[key_index(9)];
-	__global const uint *passworda = &key_buf[key_index(10)];
-	__global const uint *passwordb = &key_buf[key_index(11)];
-	__global const uint *passwordc = &key_buf[key_index(12)];
-	__global const uint *passwordd = &key_buf[key_index(13)];
-	__global const uint *passworde = &key_buf[key_index(14)];
-	__global const uint *passwordf = &key_buf[key_index(15)];
+	__global const uint *password8 = data[idx * V_WIDTH +  8].v;
+	__global const uint *password9 = data[idx * V_WIDTH +  9].v;
+	__global const uint *passworda = data[idx * V_WIDTH + 10].v;
+	__global const uint *passwordb = data[idx * V_WIDTH + 11].v;
+	__global const uint *passwordc = data[idx * V_WIDTH + 12].v;
+	__global const uint *passwordd = data[idx * V_WIDTH + 13].v;
+	__global const uint *passworde = data[idx * V_WIDTH + 14].v;
+	__global const uint *passwordf = data[idx * V_WIDTH + 15].v;
 #endif
 #endif
 #endif
@@ -216,28 +212,28 @@ __kernel void phpass(__global const uint *key_buf,
 #endif
 
 #ifdef SCALAR
-	length = key_len(0);
+	length = (uint)data[idx].length;
 #else
-	length.s0 = key_len(0);
-	length.s1 = key_len(1);
+	length.s0 = (uint)data[idx * V_WIDTH +  0].length;
+	length.s1 = (uint)data[idx * V_WIDTH +  1].length;
 #if V_WIDTH > 2
-	length.s2 = key_len(2);
+	length.s2 = (uint)data[idx * V_WIDTH +  2].length;
 #if V_WIDTH > 3
-	length.s3 = key_len(3);
+	length.s3 = (uint)data[idx * V_WIDTH +  3].length;
 #if V_WIDTH > 4
-	length.s4 = key_len(4);
-	length.s5 = key_len(5);
-	length.s6 = key_len(6);
-	length.s7 = key_len(7);
+	length.s4 = (uint)data[idx * V_WIDTH +  4].length;
+	length.s5 = (uint)data[idx * V_WIDTH +  5].length;
+	length.s6 = (uint)data[idx * V_WIDTH +  6].length;
+	length.s7 = (uint)data[idx * V_WIDTH +  7].length;
 #if V_WIDTH > 8
-	length.s8 = key_len(8);
-	length.s9 = key_len(9);
-	length.sa = key_len(10);
-	length.sb = key_len(11);
-	length.sc = key_len(12);
-	length.sd = key_len(13);
-	length.se = key_len(14);
-	length.sf = key_len(15);
+	length.s8 = (uint)data[idx * V_WIDTH +  8].length;
+	length.s9 = (uint)data[idx * V_WIDTH +  9].length;
+	length.sa = (uint)data[idx * V_WIDTH + 10].length;
+	length.sb = (uint)data[idx * V_WIDTH + 11].length;
+	length.sc = (uint)data[idx * V_WIDTH + 12].length;
+	length.sd = (uint)data[idx * V_WIDTH + 13].length;
+	length.se = (uint)data[idx * V_WIDTH + 14].length;
+	length.sf = (uint)data[idx * V_WIDTH + 15].length;
 #endif
 #endif
 #endif
@@ -247,18 +243,15 @@ __kernel void phpass(__global const uint *key_buf,
 #ifdef SCALAR
 	for (i = 0; i < 2; i++)
 		x[i] = salt[i];
-	for (i = 0; i < (length + 3) / 4; i++)
+	for (i = 0; i < 10; i++)
 		x[2 + i] = password0[i];
-	for (i += 2; i < 14; i++)
-		x[i] = 0;
+	x[12] = x[13] = 0;
 #else
 #define K1(q)	  \
 	for (i = 0; i < 2; i++) \
 		x[i] = salt[i]; \
-	for (i = 0; i < (length.s##q + 3) / 4; i++) \
-		x[2 + i].s##q = password##q[i]; \
-	for (i += 2; i < 12; i++) \
-		x[i].s##q = 0;
+	for (i = 0; i < 10; i++) \
+		x[2 + i].s##q = password##q[i];
 
 	K1(0);
 	K1(1);
@@ -322,16 +315,12 @@ __kernel void phpass(__global const uint *key_buf,
 	md5(len, x, x);
 
 #ifdef SCALAR
-	for (i = 0; i < (length + 3) / 4; i++)
+	for (i = 0; i < 10; i++)
 		x[4 + i] = password0[i];
-	for (i += 4; i < 14; i++)
-		x[i] = 0;
 #else
 #define K2(q)	  \
-	for (i = 0; i < (length.s##q + 3) / 4; i++) \
-		x[4 + i].s##q = password##q[i]; \
-	for (i += 4; i < 14; i++) \
-		x[i].s##q = 0;
+	for (i = 0; i < 10; i++) \
+		x[4 + i].s##q = password##q[i];
 
 	K2(0);
 	K2(1);
@@ -497,16 +486,16 @@ __kernel void phpass(__global const uint *key_buf,
 	} while (--count);
 
 #ifdef SCALAR
-	data_out[gid].v[0] = x0;
-	data_out[gid].v[1] = x1;
-	data_out[gid].v[2] = x2;
-	data_out[gid].v[3] = x3;
+	data_out[idx].v[0] = x0;
+	data_out[idx].v[1] = x1;
+	data_out[idx].v[2] = x2;
+	data_out[idx].v[3] = x3;
 #else
 #define K3(q)	\
-	data_out[gid * V_WIDTH + 0x##q].v[0] = x0.s##q; \
-	data_out[gid * V_WIDTH + 0x##q].v[1] = x1.s##q; \
-	data_out[gid * V_WIDTH + 0x##q].v[2] = x2.s##q; \
-	data_out[gid * V_WIDTH + 0x##q].v[3] = x3.s##q;
+	data_out[idx * V_WIDTH + 0x##q].v[0] = x0.s##q; \
+	data_out[idx * V_WIDTH + 0x##q].v[1] = x1.s##q; \
+	data_out[idx * V_WIDTH + 0x##q].v[2] = x2.s##q; \
+	data_out[idx * V_WIDTH + 0x##q].v[3] = x3.s##q;
 
 	K3(0)
 	K3(1)
