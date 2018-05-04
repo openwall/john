@@ -40,20 +40,15 @@ john_register_one(&fmt_opencl_phpass);
 #define MAX_KEYS_PER_CRYPT      1
 
 typedef struct {
-	unsigned char v[(PLAINTEXT_LENGTH + 3) / 4 * 4];
-	unsigned int length;
-} phpass_password;
-
-typedef struct {
 	uint32_t v[4];		// 128bits for hash
 } phpass_hash;
 
-static phpass_password *inbuffer;		/** plaintext ciphertexts **/
-static phpass_hash *outbuffer;			/** calculated hashes **/
+static uint *key_buf, *key_idx, idx;    /** plaintext ciphertexts **/
+static phpass_hash *outbuffer;          /** calculated hashes **/
 
 // OpenCL variables:
 static cl_int cl_error;
-static cl_mem mem_in, mem_out, mem_salt;
+static cl_mem mem_in, mem_idx, mem_out, mem_salt;
 static size_t insize, outsize, saltsize;
 static struct fmt_main *self;
 
@@ -65,7 +60,7 @@ static struct fmt_main *self;
 #include "memdbg.h"
 
 static const char * warn[] = {
-	"xfer: ",  ", crypt: ",  ", xfer: "
+	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", res xfer: "
 };
 
 /* ------- Helper functions ------- */
@@ -78,11 +73,12 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 {
 	kpc *= ocl_v_width;
 
-	insize = sizeof(phpass_password) * kpc;
+	insize = (PLAINTEXT_LENGTH + 3) / 4 * 4 * kpc;
 	outsize = sizeof(phpass_hash) * kpc;
 	saltsize = sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4;
 
-	inbuffer = mem_calloc(1, insize);
+	key_buf = mem_calloc(1, insize);
+	key_idx = mem_calloc(sizeof(int), kpc);
 	outbuffer = mem_alloc(outsize);
 
 	// Allocate memory
@@ -90,6 +86,10 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem in");
+	mem_idx =
+		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(int) * kpc,
+			NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem idx");
 	mem_salt =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize,
 	    NULL, &cl_error);
@@ -101,9 +101,11 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_idx),
+		&mem_idx), "Error while setting mem_idx kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_out),
 		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt),
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_salt),
 		&mem_salt), "Error while setting mem_salt kernel argument");
 }
 
@@ -111,10 +113,12 @@ static void release_clobj(void)
 {
 	if (outbuffer) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_idx), "Release mem idx");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-		MEM_FREE(inbuffer);
+		MEM_FREE(key_buf);
+		MEM_FREE(key_idx);
 		MEM_FREE(outbuffer);
 	}
 }
@@ -131,19 +135,38 @@ static void done(void)
 	}
 }
 
+static void clear_keys(void)
+{
+	idx = 0;
+}
+
 static void set_key(char *key, int index)
 {
-	inbuffer[index].length = strlen(key);
-	strncpy((char*)inbuffer[index].v, key, sizeof(inbuffer[index].v));
+	const unsigned int *key32 = (unsigned int*)key;
+	int len = strlen(key);
+
+	key_idx[index] = (idx << 6) | len;
+
+	while (len > 4) {
+		key_buf[idx++] = *key32++;
+		len -= 4;
+	}
+	if (len)
+		key_buf[idx++] = *key32 & (0xffffffffU >> (32 - (len << 3)));
 }
 
 static char *get_key(int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
+	static char out[PLAINTEXT_LENGTH + 1];
+	int i, len = key_idx[index] & 63;
+	char *key = (char*)&key_buf[key_idx[index] >> 6];
 
-	memcpy(ret, inbuffer[index].v, inbuffer[index].length);
-	ret[inbuffer[index].length] = 0;
-	return ret;
+	for (i = 0; i < len; i++)
+		out[i] = key[i];
+
+	out[i] = 0;
+
+	return out;
 }
 
 static void init(struct fmt_main *_self)
@@ -178,10 +201,10 @@ static void reset(struct db_main *db)
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 0, NULL, warn, 1,
 		                       self, create_clobj, release_clobj,
-		                       sizeof(phpass_password) * ocl_v_width, 0, db);
+		                       PLAINTEXT_LENGTH * ocl_v_width, 0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 200);
+		autotune_run(self, 2, 0, 200);
 	}
 }
 
@@ -216,19 +239,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
 
+	//fprintf(stderr, "%s(%d) gws %zu idx %u\n", __FUNCTION__, count, global_work_size, idx);
+
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-		"Copy data to gpu");
+	if (idx) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			4 * idx, key_buf, 0, NULL, multi_profilingEvent[0]),
+			"Copy keys to gpu");
+	}
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_idx, CL_FALSE, 0,
+		4 * count, key_idx, 0, NULL, multi_profilingEvent[1]),
+		"Copy index to gpu");
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, lws, 0, NULL,
-		multi_profilingEvent[1]), "Run kernel");
+		multi_profilingEvent[2]), "Run kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
+		16 * count, outbuffer, 0, NULL, multi_profilingEvent[3]),
 		"Copy result back");
 
 	return count;
@@ -351,7 +381,7 @@ struct fmt_main fmt_opencl_phpass = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
