@@ -1303,7 +1303,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	self->methods.clear_keys();
 	{
 		union {
-			char c[9];
+			char c[PLAINTEXT_BUFFER_SIZE];
 			uint64_t w;
 		} key;
 		int len = MAX(MIN(self->params.plaintext_length, 8),
@@ -1530,7 +1530,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	self->methods.clear_keys();
 	{
 		union {
-			char c[9];
+			char c[PLAINTEXT_BUFFER_SIZE];
 			uint64_t w;
 		} key;
 		int len = MAX(MIN(self->params.plaintext_length, 8),
