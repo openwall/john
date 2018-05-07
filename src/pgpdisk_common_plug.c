@@ -105,3 +105,17 @@ void *pgpdisk_common_get_salt(char *ciphertext)
 
 	return (void *)&cs;
 }
+
+unsigned int pgpdisk_common_iteration_count(void *salt)
+{
+	struct custom_salt *cs = salt;
+
+	return (unsigned int)cs->iterations;
+}
+
+unsigned int pgpdisk_common_algorithm(void *salt)
+{
+	struct custom_salt *my_salt = salt;
+
+	return (unsigned int)my_salt->algorithm;
+}

@@ -149,7 +149,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		unsigned char key[40];
+		unsigned char key[32];
 
 		if (cur_salt->algorithm == 5 || cur_salt->algorithm == 6 || cur_salt->algorithm == 7) {
 			AES_KEY aes_key;
@@ -207,13 +207,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static unsigned int pgpdisk_iteration_count(void *salt)
-{
-	struct custom_salt *cs = salt;
-
-	return (unsigned int)cs->iterations;
-}
-
 struct fmt_main fmt_pgpdisk = {
 	{
 		FORMAT_LABEL,
@@ -232,6 +225,7 @@ struct fmt_main fmt_pgpdisk = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"iteration count",
+			"algorithm [3=CAST, 4=TwoFish, 5/6/7=AES]",
 		},
 		{ FORMAT_TAG },
 		pgpdisk_tests
@@ -245,7 +239,8 @@ struct fmt_main fmt_pgpdisk = {
 		get_binary,
 		pgpdisk_common_get_salt,
 		{
-			pgpdisk_iteration_count,
+			pgpdisk_common_iteration_count,
+			pgpdisk_common_algorithm,
 		},
 		fmt_default_source,
 		{

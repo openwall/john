@@ -324,7 +324,10 @@ struct fmt_main fmt_opencl_pgpdisk = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{
+			"iteration count",
+			"algorithm [3=CAST, 4=TwoFish, 5/6/7=AES]",
+		},
 		{ FORMAT_TAG },
 		pgpdisk_tests,
 	},
@@ -338,7 +341,8 @@ struct fmt_main fmt_opencl_pgpdisk = {
 		get_binary,
 		pgpdisk_common_get_salt,
 		{
-			0
+			pgpdisk_common_iteration_count,
+			pgpdisk_common_algorithm,
 		},
 		fmt_default_source,
 		{

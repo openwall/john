@@ -27,3 +27,5 @@ extern struct fmt_tests pgpdisk_tests[];
 // exported 'common' functions
 int pgpdisk_common_valid(char *ciphertext, struct fmt_main *self);
 void *pgpdisk_common_get_salt(char *ciphertext);
+unsigned int pgpdisk_common_iteration_count(void *salt);
+unsigned int pgpdisk_common_algorithm(void *salt);
