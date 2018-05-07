@@ -67,6 +67,9 @@ void SHA1_Init(SHA_CTX *ctx) {
 inline
 #endif
 void _sha1_process(SHA_CTX *ctx, const uchar data[64]) {
+#if __OS_X__ && gpu_amd(DEVICE_INFO)
+	volatile
+#endif
 	uint temp, W[16], A, B, C, D, E, r[16];
 
 #if gpu_nvidia(DEVICE_INFO)
