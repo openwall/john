@@ -149,7 +149,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		unsigned char key[32];
+		unsigned char key[40]; // multiple of 20 needed for pgpdisk_kdf()
 
 		if (cur_salt->algorithm == 5 || cur_salt->algorithm == 6 || cur_salt->algorithm == 7) {
 			AES_KEY aes_key;
