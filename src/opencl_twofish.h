@@ -552,7 +552,6 @@ void Twofish_prepare_key(__private Byte key[], int key_len, Twofish_key *xkey)
     PUT32( A, dst   ); PUT32( B, dst+ 4 ); \
     PUT32( C, dst+8 ); PUT32( D, dst+12 )
 
-#if 0
 inline
 void Twofish_encrypt(Twofish_key *xkey, Byte p[16], Byte c[16])
 {
@@ -616,7 +615,6 @@ int Twofish_Encrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer,
 
 	return 16 * (numBlocks + 1);
 }
-#endif
 
 inline
 void Twofish_decrypt(Twofish_key *xkey, Byte c[16], Byte p[16])

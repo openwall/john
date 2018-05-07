@@ -18,25 +18,18 @@ john_register_one(&fmt_opencl_pgpdisk);
 
 #include <stdint.h>
 #include <string.h>
-#include <openssl/cast.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
-#include "aes.h"
-#include "twofish.h"
-#include "sha.h"
 #include "opencl_common.h"
 #include "options.h"
 #include "pgpdisk_common.h"
 
 #define FORMAT_LABEL            "pgpdisk-opencl"
-#define ALGORITHM_NAME          "SHA1 OpenCL"
+#define ALGORITHM_NAME          "SHA1 AES/TwoFish/CAST OpenCL"
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -53,27 +46,27 @@ typedef struct {
 } pgpdisk_password;
 
 typedef struct {
-	uint8_t v[32];
+	uint8_t v[BINARY_SIZE];
 } pgpdisk_hash;
 
 typedef struct {
 	uint32_t saltlen;
 	uint32_t iterations;
 	uint32_t key_len;
+	uint32_t algorithm;
 	uint8_t salt[16];
 } pgpdisk_salt;
 
-static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
 static struct custom_salt *cur_salt;
 
 static cl_int cl_error;
 static pgpdisk_password *inbuffer;
 static pgpdisk_hash *outbuffer;
 static pgpdisk_salt currentsalt;
-static cl_mem mem_in, mem_out, mem_setting;
+static cl_mem mem_in, mem_out, mem_salt;
 static struct fmt_main *self;
 
-size_t insize, outsize, settingsize;
+size_t insize, outsize, saltsize;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
@@ -92,8 +85,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	insize = sizeof(pgpdisk_password) * gws;
 	outsize = sizeof(pgpdisk_hash) * gws;
-	settingsize = sizeof(pgpdisk_salt);
-	crypt_out = mem_calloc(gws, sizeof(*crypt_out));
+	saltsize = sizeof(pgpdisk_salt);
 
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
@@ -103,10 +95,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem in");
-	mem_setting =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
+	mem_salt =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize,
 	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
+	HANDLE_CLERROR(cl_error, "Error allocating mem salt");
 	mem_out =
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
@@ -116,15 +108,15 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		&mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
 		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
 }
 
 static void release_clobj(void)
 {
 	if (inbuffer) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 		MEM_FREE(inbuffer);
@@ -145,8 +137,8 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DPLAINTEXT_LENGTH=%d",
-		         PLAINTEXT_LENGTH);
+		         "-DPLAINTEXT_LENGTH=%d -DBINARY_SIZE=%d",
+		         PLAINTEXT_LENGTH, BINARY_SIZE);
 		opencl_init("$JOHN/kernels/pgpdisk_kernel.cl",
 		            gpu_id, build_opts);
 
@@ -198,6 +190,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 
 	currentsalt.iterations = cur_salt->iterations;
+	currentsalt.algorithm = cur_salt->algorithm;
 	if (cur_salt->algorithm == 3) {
 		currentsalt.key_len = 16;
 		currentsalt.saltlen= 8;
@@ -207,12 +200,11 @@ static void set_salt(void *salt)
 	}
 	memcpy((char*)currentsalt.salt, cur_salt->salt, currentsalt.saltlen);
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-	    "Copy setting to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
+		CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
+	    "Copy salt to gpu");
 }
 
-#undef set_key
 static void set_key(char *key, int index)
 {
 	uint32_t length = strlen(key);
@@ -235,7 +227,6 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
@@ -256,35 +247,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
 
-	if (ocl_autotune_running)
-		return count;
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		unsigned char key[40];
-		memcpy(key, outbuffer[index].v, 32);
-
-		if (cur_salt->algorithm == 5 || cur_salt->algorithm == 6 || cur_salt->algorithm == 7) {
-			AES_KEY aes_key;
-
-			AES_set_encrypt_key(key, 256, &aes_key);
-			AES_ecb_encrypt(key, (unsigned char*)crypt_out[index], &aes_key, AES_ENCRYPT);
-		} else if (cur_salt->algorithm == 4) {
-			Twofish_key tkey;
-
-			Twofish_prepare_key(key, 32, &tkey);
-			Twofish_encrypt(&tkey, key, (unsigned char*)crypt_out[index]);
-		} else if (cur_salt->algorithm == 3) {
-			CAST_KEY ck;
-
-			CAST_set_key(&ck, 16, key);
-			memset((unsigned char*)crypt_out[index], 0, BINARY_SIZE);
-			CAST_ecb_encrypt(key, (unsigned char*)crypt_out[index], &ck, CAST_ENCRYPT);
-		}
-	}
-
 	return count;
 }
 
@@ -293,14 +255,14 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	for (index = 0; index < count; index++)
-		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+		if (!memcmp(binary, outbuffer[index].v, ARCH_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, outbuffer[index].v, BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -323,7 +285,7 @@ struct fmt_main fmt_opencl_pgpdisk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
 			"algorithm [3=CAST, 4=TwoFish, 5/6/7=AES]",
