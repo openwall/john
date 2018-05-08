@@ -13,7 +13,7 @@
 #include "pbkdf2_hmac_sha256_kernel.cl"
 #ifdef PRESALE
 #define AES_KEY_TYPE __global const
-#define AES_SRC_TYPE __global const
+#define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 #endif
 #include "opencl_keccak.h"
@@ -32,7 +32,7 @@ typedef struct {
 
 #ifdef PRESALE
 __kernel void ethereum_presale_init(__global const pass_t *inbuffer,
-                                    __global const salt_t *salt,
+                                    MAYBE_CONSTANT salt_t *salt,
                                     __global state_t *state)
 {
 	uint i, idx = get_global_id(0);
@@ -56,7 +56,7 @@ __kernel void ethereum_presale_init(__global const pass_t *inbuffer,
 }
 
 __kernel void ethereum_presale_process(__global crack_t *pbkdf2_out,
-                                       __global ethereum_salt_t *salt,
+                                       MAYBE_CONSTANT ethereum_salt_t *salt,
                                        __global state_t *state,
                                        __global hash_t *out)
 {
