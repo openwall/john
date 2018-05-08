@@ -47,7 +47,7 @@
  * buggy to use it, or actually perform slower with it.
  * CPU's seem to generally perform worse with it. Nvidia GPU's love it.
  */
-#if cpu(DEVICE_INFO) || (__OS_X__ && gpu_amd(DEVICE_INFO))
+#if defined(AES_NO_BITSLICE) || cpu(DEVICE_INFO) || (__OS_X__ && gpu_amd(DEVICE_INFO))
 #include "opencl_aes_plain.h"
 #else
 #include "opencl_aes_bitslice.h"

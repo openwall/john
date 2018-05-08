@@ -9,6 +9,7 @@
 
 #include "opencl_misc.h"
 #include "opencl_sha1_ctx.h"
+#define AES_NO_BITSLICE
 #include "opencl_aes.h"
 #include "opencl_twofish.h"
 #include "opencl_cast.h"
@@ -84,34 +85,57 @@ void pgpdisk_kdf(__global const uchar *ipassword, const uint plen,
 	}
 }
 
-__kernel void pgpdisk(__global const pgpdisk_password *inbuffer,
-                      __global pgpdisk_hash *outbuffer,
-                      __constant pgpdisk_salt *salt)
+__kernel void pgpdisk_aes(__global const pgpdisk_password *inbuffer,
+                          __global pgpdisk_hash *outbuffer,
+                          __constant pgpdisk_salt *salt)
 {
 	uint idx = get_global_id(0);
 	uchar key[32];
+	AES_KEY aes_key;
 
 	pgpdisk_kdf(inbuffer[idx].v, inbuffer[idx].length,
 	            salt->salt, salt->saltlen, salt->iterations,
 	            key, salt->key_len);
 
-	if (salt->algorithm == 5 || salt->algorithm == 6 || salt->algorithm == 7) {
-		AES_KEY aes_key;
+	AES_set_encrypt_key(key, 256, &aes_key);
+	AES_encrypt(key, key, &aes_key);
 
-		AES_set_encrypt_key(key, 256, &aes_key);
-		AES_encrypt(key, key, &aes_key);
-	} else if (salt->algorithm == 4) {
-		Twofish_key tkey;
+	memcpy_pg(outbuffer[idx].v, key, BINARY_SIZE);
+}
 
-		Twofish_prepare_key(key, salt->key_len, &tkey);
-		Twofish_encrypt(&tkey, key, key);
-	} else if (salt->algorithm == 3) {
-		CAST_KEY ck;
+__kernel void pgpdisk_twofish(__global const pgpdisk_password *inbuffer,
+                              __global pgpdisk_hash *outbuffer,
+                              __constant pgpdisk_salt *salt)
+{
+	uint idx = get_global_id(0);
+	uchar key[32];
+	Twofish_key tkey;
 
-		CAST_set_key(&ck, 16, key);
-		CAST_ecb_encrypt(key, key, &ck);
-		memset_p(key + 8, 0, 8);
-	}
+	pgpdisk_kdf(inbuffer[idx].v, inbuffer[idx].length,
+	            salt->salt, salt->saltlen, salt->iterations,
+	            key, salt->key_len);
+
+	Twofish_prepare_key(key, salt->key_len, &tkey);
+	Twofish_encrypt(&tkey, key, key);
+
+	memcpy_pg(outbuffer[idx].v, key, BINARY_SIZE);
+}
+
+__kernel void pgpdisk_cast(__global const pgpdisk_password *inbuffer,
+                           __global pgpdisk_hash *outbuffer,
+                           __constant pgpdisk_salt *salt)
+{
+	uint idx = get_global_id(0);
+	uchar key[32];
+	CAST_KEY ck;
+
+	pgpdisk_kdf(inbuffer[idx].v, inbuffer[idx].length,
+	            salt->salt, salt->saltlen, salt->iterations,
+	            key, salt->key_len);
+
+	CAST_set_key(&ck, 16, key);
+	CAST_ecb_encrypt(key, key, &ck);
+	memset_p(key + 8, 0, 8);
 
 	memcpy_pg(outbuffer[idx].v, key, BINARY_SIZE);
 }

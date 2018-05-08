@@ -63,6 +63,7 @@ static cl_int cl_error;
 static pgpdisk_password *inbuffer;
 static pgpdisk_hash *outbuffer;
 static pgpdisk_salt currentsalt;
+static cl_kernel aes_kernel, twofish_kernel, cast_kernel;
 static cl_mem mem_in, mem_out, mem_salt;
 static struct fmt_main *self;
 
@@ -78,7 +79,12 @@ static const char *warn[] = {
 
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	size_t s = autotune_get_task_max_work_group_size(FALSE, 0, aes_kernel);
+
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, twofish_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, cast_kernel));
+
+	return s;
 }
 
 static void create_clobj(size_t gws, struct fmt_main *self)
@@ -104,11 +110,25 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
+	HANDLE_CLERROR(clSetKernelArg(aes_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+	HANDLE_CLERROR(clSetKernelArg(aes_kernel, 1, sizeof(mem_out),
 		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt),
+	HANDLE_CLERROR(clSetKernelArg(aes_kernel, 2, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(twofish_kernel, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(twofish_kernel, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(twofish_kernel, 2, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(cast_kernel, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(cast_kernel, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(cast_kernel, 2, sizeof(mem_salt),
 		&mem_salt), "Error while setting mem_salt kernel argument");
 }
 
@@ -142,7 +162,11 @@ static void reset(struct db_main *db)
 		opencl_init("$JOHN/kernels/pgpdisk_kernel.cl",
 		            gpu_id, build_opts);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "pgpdisk", &cl_error);
+		crypt_kernel = aes_kernel = clCreateKernel(program[gpu_id], "pgpdisk_aes", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		twofish_kernel = clCreateKernel(program[gpu_id], "pgpdisk_twofish", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		cast_kernel = clCreateKernel(program[gpu_id], "pgpdisk_cast", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
@@ -160,7 +184,9 @@ static void done(void)
 	if (autotuned) {
 		release_clobj();
 
-		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(aes_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(twofish_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(cast_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
@@ -237,10 +263,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		"Copy data to gpu");
 
 	// Run kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws, 0, NULL,
-		multi_profilingEvent[1]),
-		"Run kernel");
+	if (cur_salt->algorithm == 3) {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], cast_kernel, 1,
+			NULL, &global_work_size, lws, 0, NULL,
+			multi_profilingEvent[1]),
+			"Run kernel");
+	} else if (cur_salt->algorithm == 4) {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], twofish_kernel, 1,
+			NULL, &global_work_size, lws, 0, NULL,
+			multi_profilingEvent[1]),
+			"Run kernel");
+	} else /* if (cur_salt->algorithm >= 5) */ {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], aes_kernel, 1,
+			NULL, &global_work_size, lws, 0, NULL,
+			multi_profilingEvent[1]),
+			"Run kernel");
+	}
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
