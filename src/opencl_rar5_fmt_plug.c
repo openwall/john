@@ -105,8 +105,6 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 		CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
 		"Cannot allocate mem state");
 
-	crypt_out = mem_alloc(sizeof(*crypt_out) * kpc);
-
 	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
 	CLKERNELARG(crypt_kernel, 1, mem_salt, "Error while setting mem_salt");
 	CLKERNELARG(crypt_kernel, 2, mem_state, "Error while setting mem_state");
@@ -131,9 +129,7 @@ static size_t get_task_max_work_group_size()
 
 static void release_clobj(void)
 {
-	if (crypt_out) {
-		MEM_FREE(crypt_out);
-
+	if (host_crack) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
@@ -157,7 +153,7 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
+		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u -DRAR5",
 		         HASH_LOOPS, PLAINTEXT_LENGTH);
 
 		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
@@ -259,18 +255,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		CL_TRUE, 0, global_work_size * sizeof(crack_t), host_crack, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
 
-	// special wtf processing [SIC]
-	for (i = 0; i < count; i++) {
-		crypt_out[i][0] = host_crack[i].hash[0];
-		crypt_out[i][1] = host_crack[i].hash[1];
-		crypt_out[i][0] ^= host_crack[i].hash[2];
-		crypt_out[i][1] ^= host_crack[i].hash[3];
-		crypt_out[i][0] ^= host_crack[i].hash[4];
-		crypt_out[i][1] ^= host_crack[i].hash[5];
-		crypt_out[i][0] ^= host_crack[i].hash[6];
-		crypt_out[i][1] ^= host_crack[i].hash[7];
-	}
-
 	return count;
 }
 
@@ -292,6 +276,40 @@ static char *get_key(int index)
 	ret[MIN(host_pass[index].length, PLAINTEXT_LENGTH)] = 0;
 	return ret;
 }
+
+static int cmp_all(void *binary, int count)
+{
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (!memcmp(binary, host_crack[index].hash, ARCH_SIZE))
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, host_crack[index].hash, BINARY_SIZE);
+}
+
+static int cmp_exact(char *source, int index)
+{
+	return 1;
+}
+
+static int get_hash_0(int index)
+{
+#ifdef RARDEBUG
+	dump_stuff_msg("get_hash", host_crack[index].hash, BINARY_SIZE);
+#endif
+	return host_crack[index].hash[0] & PH_MASK_0;
+}
+static int get_hash_1(int index) { return host_crack[index].hash[0] & PH_MASK_1; }
+static int get_hash_2(int index) { return host_crack[index].hash[0] & PH_MASK_2; }
+static int get_hash_3(int index) { return host_crack[index].hash[0] & PH_MASK_3; }
+static int get_hash_4(int index) { return host_crack[index].hash[0] & PH_MASK_4; }
+static int get_hash_5(int index) { return host_crack[index].hash[0] & PH_MASK_5; }
+static int get_hash_6(int index) { return host_crack[index].hash[0] & PH_MASK_6; }
 
 struct fmt_main fmt_ocl_rar5 = {
 {

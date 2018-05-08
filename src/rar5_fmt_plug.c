@@ -69,6 +69,7 @@ john_register_one(&fmt_rar5);
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -144,6 +145,40 @@ static char *get_key(int index)
 {
 	return saved_key[index];
 }
+
+static int cmp_all(void *binary, int count)
+{
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (!memcmp(binary, crypt_out[index], ARCH_SIZE))
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+}
+
+static int cmp_exact(char *source, int index)
+{
+	return 1;
+}
+
+static int get_hash_0(int index)
+{
+#ifdef RARDEBUG
+	dump_stuff_msg("get_hash", crypt_out[index], BINARY_SIZE);
+#endif
+	return crypt_out[index][0] & PH_MASK_0;
+}
+static int get_hash_1(int index) { return crypt_out[index][0] & PH_MASK_1; }
+static int get_hash_2(int index) { return crypt_out[index][0] & PH_MASK_2; }
+static int get_hash_3(int index) { return crypt_out[index][0] & PH_MASK_3; }
+static int get_hash_4(int index) { return crypt_out[index][0] & PH_MASK_4; }
+static int get_hash_5(int index) { return crypt_out[index][0] & PH_MASK_5; }
+static int get_hash_6(int index) { return crypt_out[index][0] & PH_MASK_6; }
 
 struct fmt_main fmt_rar5 = {
 	{

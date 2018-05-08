@@ -238,6 +238,17 @@ __kernel void pbkdf2_sha256_final(__global crack_t *out,
                                   __global state_t *state)
 {
 	uint idx = get_global_id(0);
+
+#ifdef RAR5
+	out[idx].hash[0] = SWAP32(state[idx].hash[0]);
+	out[idx].hash[1] = SWAP32(state[idx].hash[1]);
+	out[idx].hash[0] ^= SWAP32(state[idx].hash[2]);
+	out[idx].hash[1] ^= SWAP32(state[idx].hash[3]);
+	out[idx].hash[0] ^= SWAP32(state[idx].hash[4]);
+	out[idx].hash[1] ^= SWAP32(state[idx].hash[5]);
+	out[idx].hash[0] ^= SWAP32(state[idx].hash[6]);
+	out[idx].hash[1] ^= SWAP32(state[idx].hash[7]);
+#else
 	uint i;
 	uint base = (state[idx].pass - salt->skip_bytes / 32) * 8;
 
@@ -258,5 +269,6 @@ __kernel void pbkdf2_sha256_final(__global crack_t *out,
 
 		state[idx].rounds = salt->rounds - 1;
 	}
-#endif
+#endif /* GLOBAL_SALT_NO_INIT */
+#endif /* RAR5 */
 }
