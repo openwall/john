@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 
 #define FORMAT_NAME             "Ethereum Presale Wallet"
 #define FORMAT_LABEL            "ethereum-presale-opencl"
-#define ALGORITHM_NAME          "PBKDF2-SHA256 AES OpenCL"
+#define ALGORITHM_NAME          "PBKDF2-SHA256 AES Keccak OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
 #define MIN_KEYS_PER_CRYPT      1
@@ -36,7 +36,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              sizeof(int)
 #define PLAINTEXT_LENGTH        55
-#define KERNEL_NAME             "ethereum_init"
+#define KERNEL_NAME             "ethereum_presale_init"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha256_loop"
 #define PRESALE_KERNEL_NAME     "ethereum_presale_process"
 
@@ -165,12 +165,12 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
-		char build_opts[64];
+		char build_opts[128];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
+		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u -DPRESALE",
 		         HASH_LOOPS, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/ethereum_presale_kernel.cl",
+		opencl_init("$JOHN/kernels/ethereum_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =
