@@ -126,7 +126,7 @@
  * Raw'n'lean MD5 with context in output buffer
  * NOTE: This version thrashes the input block!
  */
-#if __OS_X__
+#if __OS_X__ && gpu_amd(DEVICE_INFO)
 #define md5_block(itype, W, ctx)	  \
 	{ \
 		volatile itype a, b, c, d; \
