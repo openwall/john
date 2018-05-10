@@ -1,15 +1,12 @@
-### IMPORTANT
-- If you have questions, please ask them first in the mailing list john-users at lists.openwall.com;
-- Use issues to keep track of ideas, enhancements, tasks, and bugs. NEVER as a support forum;
-- Please, DO NOT create a new issue if your bug is already known:
-  - OpenCL known issues #2331.
-  - CUDA support is dropped from tree now. Do not post issues about that.
+### IMPORTANT ###
+This is not a support forum, it's a bug tracker. If you don't understand the difference, please do NOT open an issue. For questions and support, join john-users at http://lists.openwall.com
 
-### Steps to reproduce
-Try to be clear about your environment and what you are doing. If possible, share with us the file or hash you are auditing.
+We are not interested in bugs in your distro-supplied and/or several years old Jumbo. Please do not open an issue unless you tried the latest version from HERE first.
 
-### System configuration
-Attach details about your OS and about JtR, including (please, adjust the path to the john binary accordingly):
-- are you using bleeding-jumbo? Updated?
-- `$ ../run/john --list=build-info`.
-- `$ ../run/john --list=opencl-devices` (if applicable).
+### Steps to reproduce ###
+Try to be clear about your environment and what you are doing. If possible, share a sample hash or file that can be used to reproduce.
+
+### System configuration ###
+Attach details about your OS and about JtR, including:
+- `$ ./john --list=build-info`.
+- `$ ./john --list=opencl-devices` (if applicable).
