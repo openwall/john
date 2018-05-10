@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #define FORMAT_NAME		"7-Zip"
 #define FORMAT_TAG		"$7z$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"SHA256 AES OPENCL"
+#define ALGORITHM_NAME		"SHA256 AES OpenCL"
 #define BENCHMARK_COMMENT	" (512K iterations)"
 #define BENCHMARK_LENGTH	0
 #define MIN_KEYS_PER_CRYPT	1
