@@ -1,6 +1,7 @@
 ### IMPORTANT
 - If you have questions, please ask them first in the mailing list john-users at lists.openwall.com;
 - Use issues to keep track of ideas, enhancements, tasks, and bugs. NEVER as a support forum;
+- Usually, it is a bad idea to use the version of John the Ripper packaged by your distro;
 - Please, DO NOT create a new issue if your bug is already known:
   - OpenCL known issues #2331.
   - CUDA support is dropped from tree now. Do not post issues about that.
