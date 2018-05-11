@@ -869,7 +869,7 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (uint)(size)/8; ii++) \
-			printf("%16x ", SWAP64((x)[ii])); \
+			printf("%016lx ", SWAP64((x)[ii])); \
 		printf("\n"); \
 	} while (0)
 

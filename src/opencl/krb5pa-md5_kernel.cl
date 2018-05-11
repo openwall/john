@@ -18,15 +18,23 @@
 #include "opencl_md5.h"
 #include "opencl_mask.h"
 
+#if __OS_X__ && (cpu(DEVICE_INFO) || gpu_nvidia(DEVICE_INFO))
+/* This is a workaround for driver/runtime bugs */
+#define MAYBE_VOLATILE volatile
+#else
+#define MAYBE_VOLATILE
+#endif
+
 #ifdef UTF_8
 
 inline
-void prepare(const __global uint *key, uint length, uint *nt_buffer)
+void prepare(const __global uint *key, uint length,
+             MAYBE_VOLATILE uint *nt_buffer)
 {
 	const __global UTF8 *source = (const __global uchar*)key;
 	const __global UTF8 *sourceEnd = &source[length];
-	UTF16 *target = (UTF16*)nt_buffer;
-	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
+	MAYBE_VOLATILE UTF16 *target = (UTF16*)nt_buffer;
+	MAYBE_VOLATILE const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
 
@@ -87,16 +95,6 @@ void prepare(const __global uint *key, uint length, uint *nt_buffer)
 	*target = 0x80;	// Terminate
 
 	nt_buffer[14] = (uint)(target - (UTF16*)nt_buffer) << 4;
-
-#if __OS_X__
-	// Stupid driver/runtime bug workarounds.
-#if cpu(DEVICE_INFO)
-	// This acts like some kind of barrier but a normal barrier doesn't help.
-	printf("");
-#elif gpu_nvidia(DEVICE_INFO)
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
-#endif
 }
 
 #else
@@ -138,12 +136,11 @@ void krb5pa_md5_final(const uint *K,
 	 * K = MD4(UTF-16LE(password)), ordinary 16-byte NTLM hash
 	 * 1st HMAC K1 = HMAC-MD5(K, 1LE)
 	 */
-	md5_init(ihash);
 	for (i = 0; i < 4; i++)
 		block[i] = 0x36363636 ^ K[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(uint, block, ihash); /* md5_update(ipad, 64) */
+	md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
 
 	block[0] = 0x01;    /* little endian "one", 4 bytes */
 	block[1] = 0x80;
@@ -153,12 +150,11 @@ void krb5pa_md5_final(const uint *K,
 	block[15] = 0;
 	md5_block(uint, block, ihash); /* md5_update(one, 4), md5_final() */
 
-	md5_init(K1);
 	for (i = 0; i < 4; i++)
 		block[i] = 0x5c5c5c5c ^ K[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
-	md5_block(uint, block, K1); /* md5_update(opad, 64) */
+	md5_single(uint, block, K1); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
 		block[i] = ihash[i];
@@ -173,12 +169,11 @@ void krb5pa_md5_final(const uint *K,
 	/*
 	 * 2nd HMAC K3 = HMAC-MD5(K1, CHECKSUM)
 	 */
-	md5_init(ihash);
 	for (i = 0; i < 4; i++)
 		block[i] = 0x36363636 ^ K1[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(uint, block, ihash); /* md5_update(ipad, 64) */
+	md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
 
 	for (i = 0; i < 4; i++)
 		block[i] = *salts++; /* checksum, 16 bytes */
@@ -189,12 +184,11 @@ void krb5pa_md5_final(const uint *K,
 	block[15] = 0;
 	md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
 
-	md5_init(K3);
 	for (i = 0; i < 4; i++)
 		block[i] = 0x5c5c5c5c ^ K1[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
-	md5_block(uint, block, K3); /* md5_update(opad, 64) */
+	md5_single(uint, block, K3); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
 		block[i] = ihash[i];
@@ -230,12 +224,11 @@ void krb5pa_md5_final(const uint *K,
 			/*
 			 * 3rd HMAC K2 = HMAC-MD5(K1, plaintext)
 			 */
-			md5_init(ihash);
 			for (i = 0; i < 4; i++)
 				block[i] = 0x36363636 ^ K1[i];
 			for (i = 4; i < 16; i++)
 				block[i] = 0x36363636;
-			md5_block(uint, block, ihash); /* md5_update(ipad, 64) */
+			md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
 
 			for (i = 0; i < 9; i++)
 				block[i] = plain[i]; /* plaintext, 36 bytes */
@@ -246,12 +239,11 @@ void krb5pa_md5_final(const uint *K,
 			block[15] = 0;
 			md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
 
-			md5_init(K2);
 			for (i = 0; i < 4; i++)
 				block[i] = 0x5c5c5c5c ^ K1[i];
 			for (i = 4; i < 16; i++)
 				block[i] = 0x5c5c5c5c;
-			md5_block(uint, block, K2); /* md5_update(opad, 64) */
+			md5_single(uint, block, K2); /* md5_update(opad, 64) */
 
 			for (i = 0; i < 4; i++)
 				block[i] = ihash[i];
@@ -440,8 +432,7 @@ void krb5pa_md5(__global const uint *keys,
 #endif
 #endif
 		/* Initial hash of password */
-		md4_init(nt_hash);
-		md4_block(uint, nt_buffer, nt_hash);
+		md4_single(uint, nt_buffer, nt_hash);
 
 		/* Final krb5pa-md5 hash */
 		krb5pa_md5_final(nt_hash, salts,

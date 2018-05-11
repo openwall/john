@@ -72,16 +72,6 @@ inline void preproc(__global const uchar *key, uint keylen,
 	state[2] = C + INIT_C;
 	state[3] = D + INIT_D;
 	state[4] = E + INIT_E;
-
-#if __OS_X__ && gpu_intel(DEVICE_INFO)
-/*
- * Ridiculous workaround for Apple w/ Intel HD Graphics. I tried to
- * replace this with a barrier but that did not do the trick.
- *
- * Yosemite, HD Graphics 4000, 1.2(Jul 29 2015 02:40:37)
- */
-	if (get_global_id(0) == 0x7fffffff) printf(".");
-#endif
 }
 
 inline void hmac_sha1(__private uint *output,

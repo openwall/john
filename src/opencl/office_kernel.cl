@@ -44,6 +44,13 @@ typedef struct {
 	uint cracked;
 } ms_office_out;
 
+#if __OS_X__ && gpu_amd(DEVICE_INFO)
+/* This is a workaround for driver/runtime bugs */
+#define MAYBE_VOLATILE volatile
+#else
+#define MAYBE_VOLATILE
+#endif
+
 __kernel void GenerateSHA1pwhash(__global const uint *unicode_pw,
                                  __global const uint *pw_len,
                                  __constant ms_office_salt *salt,
@@ -202,19 +209,17 @@ void Final2007(__global ms_office_state *state,
 }
 
 inline void Decrypt(__constant ms_office_salt *salt,
-                    uchar *verifierInputKey,
+                    const uchar *verifierInputKey,
                     __constant uchar *encryptedVerifier,
                     uchar *decryptedVerifier,
                     const int length)
 {
 	uint i;
-	uchar iv[32];
+	uchar iv[16];
 	AES_KEY akey;
 
 	for (i = 0; i < 16; i++)
 		iv[i] = salt->osalt.c[i];
-	for (; i < 32; i++)
-		iv[i] = 0;
 
 	AES_set_decrypt_key(verifierInputKey, salt->keySize, &akey);
 	AES_cbc_decrypt(encryptedVerifier, decryptedVerifier, length, &akey, iv);
@@ -248,6 +253,7 @@ void Generate2010key(__global ms_office_state *state,
 
 	for (i = 0; i < 5; i++)
 		output[1].w[i] = state[gid].ctx.w[i];
+
 	/* Remainder of sha1(serial.last hash)
 	 * We avoid byte-swapping back and forth */
 	for (j = 0; j < iterations; j++)
@@ -286,7 +292,7 @@ void Generate2010key(__global ms_office_state *state,
 	for (i = 8; i < 15; i++)
 		W[i] = 0;
 	W[15] = 28 << 3;
-	sha1_single(uint, W, output[1].w);
+	sha1_single(MAYBE_VOLATILE uint, W, output[1].w);
 
 	/* Endian-swap to 2nd hash (we only use 16 bytes) */
 	for (i = 0; i < 4; i++)
@@ -434,7 +440,7 @@ void Generate2013key(__global ms_office_state *state,
 	for (i = 10; i < 15; i++)
 		W[i] = 0;
 	W[15] = 72 << 3;
-#if gpu_amd(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO) && !__OS_X__
 	/* Workaround for Catalyst 14.4-14.6 driver bug */
 	barrier(CLK_GLOBAL_MEM_FENCE);
 #endif

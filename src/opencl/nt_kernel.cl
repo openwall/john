@@ -19,7 +19,6 @@
  * (This is a heavily cut-down "BSD license".)
  */
 
-#include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
 #include "opencl_md4.h"
@@ -111,14 +110,22 @@ inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_s
 	hash[2] += MD4_H(tmp, hash[0], hash[3]) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 }
 
+#if __OS_X__ && (cpu(DEVICE_INFO) || gpu_nvidia(DEVICE_INFO))
+/* This is a workaround for driver/runtime bugs */
+#define MAYBE_VOLATILE volatile
+#else
+#define MAYBE_VOLATILE
+#endif
+
 #if UTF_8
 
-inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
+inline uint prepare_key(__global uint *key, uint length,
+                        MAYBE_VOLATILE uint *nt_buffer)
 {
 	const __global UTF8 *source = (const __global UTF8*)key;
 	const __global UTF8 *sourceEnd = &source[length];
-	UTF16 *target = (UTF16*)nt_buffer;
-	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
+	MAYBE_VOLATILE UTF16 *target = (UTF16*)nt_buffer;
+	MAYBE_VOLATILE const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
 
@@ -176,16 +183,6 @@ inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 			break;
 	}
 	*target = 0x80;	// Terminate
-
-#if __OS_X__
-	// Stupid driver/runtime bug workarounds.
-#if cpu(DEVICE_INFO)
-	// This acts like some kind of barrier but a normal barrier doesn't help.
-	printf("");
-#elif gpu_nvidia(DEVICE_INFO)
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
-#endif
 
 	return (uint)(target - (UTF16*)nt_buffer);
 }

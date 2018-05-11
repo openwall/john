@@ -121,14 +121,6 @@ __kernel void keystore(const __global uint *keys,
 					//W[14] = msg_len >> 29;	// big-endian low-order word
 					W[14] = 0;				// our hash will NEVER be this large!
 					W[15] = msg_len << 3;	// big-endian high-order word
-/* won't work in GPU, but keep for reference:
-					printf("kernel - pwd_len: %i, block: %i, msg_bits: %016x W: ", pwd_len, block, msg_len<<3);
-					for (wbi = 0; wbi < 16; ++wbi) {
-						printf("%x ",W[wbi]);
-					}
-					printf("\n");
-*/
-
 				}
 			}
 		}

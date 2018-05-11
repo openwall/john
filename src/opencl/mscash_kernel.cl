@@ -6,7 +6,6 @@
  * are permitted.
  */
 
-#include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
 #include "opencl_md4.h"
@@ -269,14 +268,22 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 	hash[3] = d + INIT_D;
 }
 
+#if __OS_X__ && (cpu(DEVICE_INFO) || gpu_nvidia(DEVICE_INFO))
+/* This is a workaround for driver/runtime bugs */
+#define MAYBE_VOLATILE volatile
+#else
+#define MAYBE_VOLATILE
+#endif
+
 #if UTF_8
 
-inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
+inline void prepare_key(__global uint *key, uint length,
+                        MAYBE_VOLATILE uint *nt_buffer)
 {
 	const __global UTF8 *source = (const __global uchar*)key;
 	const __global UTF8 *sourceEnd = &source[length];
-	UTF16 *target = (UTF16*)nt_buffer;
-	const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
+	MAYBE_VOLATILE UTF16 *target = (UTF16*)nt_buffer;
+	MAYBE_VOLATILE const UTF16 *targetEnd = &target[PLAINTEXT_LENGTH];
 	UTF32 ch;
 	uint extraBytesToRead;
 
@@ -337,16 +344,6 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 	*target = 0x80;	// Terminate
 
 	nt_buffer[14] = (uint)(target - (UTF16*)nt_buffer) << 4;
-
-#if __OS_X__
-	// Stupid driver/runtime bug workarounds.
-#if cpu(DEVICE_INFO)
-	// This acts like some kind of barrier but a normal barrier doesn't help.
-	printf("");
-#elif gpu_nvidia(DEVICE_INFO)
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
-#endif
 }
 
 #else
