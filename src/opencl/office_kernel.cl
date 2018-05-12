@@ -385,87 +385,76 @@ void Generate2013key(__global ms_office_state *state,
                      __constant ms_office_salt *salt)
 {
 	uint i, j, result = 1;
-	ulong W[16];
-	union {
-		uchar c[64];
-		ulong l [64/8];
-	} output[2];
+	ulong W[4][16];
+	ulong output[4][64/8];
 	const uint gid = get_global_id(0);
 	const uint base = state[gid].pass;
 	const uint iterations = salt->spinCount % HASH_LOOPS13;
-	union {
-		unsigned char c[16];
-		ulong l[16/8];
-	} decryptedVerifierHashInputBytes;
-	union {
-		unsigned char c[32];
-		ulong l[32/8];
-	} decryptedVerifierHashBytes;
+	ulong decryptedVerifierHashInputBytes[16/8];
+	ulong decryptedVerifierHashBytes[32/8];
 
 	for (i = 0; i < 8; i++)
-		output[1].l[i] = state[gid].ctx.l[i];
+		output[0][i] = state[gid].ctx.l[i];
 
 	/* Remainder of iterations */
 	for (j = 0; j < iterations; j++)
 	{
-		W[0] = ((ulong)SWAP32(base + j) << 32) | (output[1].l[0] >> 32);
+		W[0][0] = ((ulong)SWAP32(base + j) << 32) | (output[0][0] >> 32);
 		for (i = 1; i < 8; i++)
-			W[i] = (output[1].l[i - 1] << 32) | (output[1].l[i] >> 32);
-		W[8] = (output[1].l[7] << 32) | 0x80000000UL;
-		W[15] = 68 << 3;
-		sha512_single_zeros(W, output[1].l);
+			W[0][i] = (output[0][i - 1] << 32) | (output[0][i] >> 32);
+		W[0][8] = (output[0][7] << 32) | 0x80000000UL;
+		W[0][15] = 68 << 3;
+		sha512_single_zeros(W[0], output[0]);
 	}
 
-	/* We'll continue with output[1] later */
+	/* We'll continue with output[0] later */
 	for (i = 0; i < 8; i++)
-		W[i] = output[1].l[i];
+		W[1][i] = output[0][i];
 
 	/* Final hash 1 */
-	W[8] = InputBlockKeyLong;
-	W[9] = 0x8000000000000000UL;
+	W[1][8] = InputBlockKeyLong;
+	W[1][9] = 0x8000000000000000UL;
 	for (i = 10; i < 15; i++)
-		W[i] = 0;
-	W[15] = 72 << 3;
-	sha512_single(W, output[0].l);
+		W[1][i] = 0;
+	W[1][15] = 72 << 3;
+	sha512_single(W[1], output[1]);
 
 	/* Endian-swap to 1st hash output */
 	for (i = 0; i < 8; i++)
-		output[0].l[i] = SWAP64(output[0].l[i]);
+		output[1][i] = SWAP64(output[1][i]);
 
 	/* Final hash 2 */
 	for (i = 0; i < 8; i++)
-		W[i] = output[1].l[i];
-	W[8] = ValueBlockKeyLong;
-	W[9] = 0x8000000000000000UL;
+		W[2][i] = output[0][i];
+	W[2][8] = ValueBlockKeyLong;
+	W[2][9] = 0x8000000000000000UL;
 	for (i = 10; i < 15; i++)
-		W[i] = 0;
-	W[15] = 72 << 3;
-#if gpu_amd(DEVICE_INFO) && !__OS_X__
-	/* Workaround for Catalyst 14.4-14.6 driver bug */
-	barrier(CLK_GLOBAL_MEM_FENCE);
-#endif
-	sha512_single(W, output[1].l);
+		W[2][i] = 0;
+	W[2][15] = 72 << 3;
+	sha512_single(W[2], output[2]);
 
 	/* Endian-swap to 2nd hash output */
 	for (i = 0; i < 8; i++)
-		output[1].l[i] = SWAP64(output[1].l[i]);
+		output[2][i] = SWAP64(output[2][i]);
 
-	Decrypt(salt, output[0].c, salt->encryptedVerifier,
-	        decryptedVerifierHashInputBytes.c, 16);
+	Decrypt(salt, (uchar*)output[1], salt->encryptedVerifier,
+	        (uchar*)decryptedVerifierHashInputBytes, 16);
 
-	Decrypt(salt, output[1].c, salt->encryptedVerifierHash,
-	        decryptedVerifierHashBytes.c, 32);
+	Decrypt(salt, (uchar*)output[2], salt->encryptedVerifierHash,
+	        (uchar*)decryptedVerifierHashBytes, 32);
 
 	for (i = 0; i < 2; i++)
-		W[i] = SWAP64(decryptedVerifierHashInputBytes.l[i]);
-	W[2] = 0x8000000000000000UL;
+		W[3][i] = SWAP64(decryptedVerifierHashInputBytes[i]);
+	W[3][2] = 0x8000000000000000UL;
 	for (i = 3; i < 15; i++)
-		W[i] = 0;
-	W[15] = 16 << 3;
-	sha512_single(W, output[1].l);
+		W[3][i] = 0;
+	W[3][15] = 16 << 3;
+	sha512_single(W[3], output[3]);
+	for (i = 0; i < 8; i++)
+		output[3][i] = SWAP64(output[3][i]);
 
 	for (i = 0; i < 32/8; i++) {
-		if (decryptedVerifierHashBytes.l[i] != SWAP64(output[1].l[i])) {
+		if (decryptedVerifierHashBytes[i] != output[3][i]) {
 			result = 0;
 			break;
 		}
