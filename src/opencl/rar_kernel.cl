@@ -114,18 +114,8 @@ __kernel void RarHashLoop(
 		PUTCHAR_BE(W, pwlen + 8, round & 255);
 		PUTCHAR_BE(W, pwlen + 9, (round >> 8) & 255);
 
-#ifdef __OS_X__
-		/* This is the weirdest workaround. Using sha1_empty_final()
-		   works perfectly fine in the RarFinal() subkernel below. */
-		PUTCHAR_BE(W, pwlen + 11, 0x80);
-		for (i = pwlen + 12; i < 56; i++)
-			PUTCHAR_BE(W, i, 0);
-		W[14] = 0;
-		W[15] = (blocklen * (round + 1)) << 3;
-		sha1_block(uint, W, tempout);
-#else
 		sha1_empty_final(W, tempout, blocklen * (round + 1));
-#endif
+
 		PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
 	}
 

@@ -12,6 +12,10 @@
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
 
+#ifndef MAYBE_VOLATILE
+#define MAYBE_VOLATILE
+#endif
+
 /*
  * SHA-256 context setup
  */
@@ -34,10 +38,7 @@ void SHA256_Init(SHA256_CTX *ctx) {
 
 inline
 void _sha256_process(SHA256_CTX *ctx, const uchar data[64]) {
-#if __OS_X__ && gpu_amd(DEVICE_INFO)
-	volatile
-#endif
-	uint t, W[16], A, B, C, D, E, F, G, H;
+	MAYBE_VOLATILE uint t, W[16], A, B, C, D, E, F, G, H;
 
 #if gpu_nvidia(DEVICE_INFO)
 	if ((ulong)data & 0x03) {
@@ -149,8 +150,7 @@ void SHA256_Final(uchar output[32], SHA256_CTX *ctx) {
 
 	bits = ctx->total << 3;
 
-	PUT_UINT32BE(0, msglen, 0);
-	PUT_UINT32BE(bits, msglen, 4);
+	PUT_UINT64BE(bits, msglen, 0);
 
 	last = ctx->total & 0x3F;
 	padn = (last < 56) ? (56 - last) : (120 - last);

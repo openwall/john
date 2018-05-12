@@ -6,7 +6,6 @@
  * modification, are permitted.
  */
 
-#include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_md5.h"
 #include "opencl_sha1.h"
@@ -466,8 +465,8 @@ hmac_sha256_vector(const uchar *key, uint key_len, uint num_elem,
                    const uchar *addr[], const uint *len, uchar *mac)
 {
 	uchar k_pad[64]; /* padding - key XORd with ipad/opad */
-	const uchar *_addr[6];
-	uint _len[6], i;
+	const uchar *_addr[5];
+	uint _len[5], i;
 
 	/* the HMAC_SHA256 transform looks like:
 	 *
@@ -527,7 +526,7 @@ sha256_prf_bits(const uchar *key, uint key_len, MAYBE_CONSTANT uchar *data,
 	addr[0] = counter_le;
 	len[0] = 2;
 	addr[1] = label;
-	len[1] = 22;     /* strlen(label) */
+	len[1] = (sizeof(label) - 1);     /* strlen(label) */
 	addr[2] = pdata;
 	len[2] = data_len;
 	addr[3] = length_le;

@@ -9,6 +9,12 @@
 #define HMAC_KEY_TYPE __global
 #define HMAC_MSG_TYPE MAYBE_CONSTANT
 #define HMAC_OUT_TYPE __global
+#if __OS_X__ && gpu_amd(DEVICE_INFO)
+/* This is a workaround for driver/runtime bugs */
+#define MAYBE_VOLATILE volatile
+#else
+#define MAYBE_VOLATILE
+#endif
 #include "opencl_hmac_sha256.h"
 
 /*
@@ -28,5 +34,6 @@ __kernel void ansible_final(__global crack_t *out,
 	uint ix = get_global_id(0);
 
 	pbkdf2_sha256_final(out, &salt->pbkdf2, state);
+
 	hmac_sha256(out[ix].hash, 32, salt->blob, salt->bloblen, out[ix].hash, 16);
 }
