@@ -214,100 +214,9 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 }
 #endif
 
-#if gpu_nvidia(DEVICE_INFO)
-
-#define GET_UINT32_UNALIGNED(n, b, i)	  \
-	{ \
-		(n) = ((uint) (b)[(i)]      ) \
-			| ((uint) (b)[(i) + 1] <<  8) \
-			| ((uint) (b)[(i) + 2] << 16) \
-			| ((uint) (b)[(i) + 3] << 24); \
-	}
-
-#define PUT_UINT32_UNALIGNED(n, b, i)	  \
-	{ \
-		(b)[(i)    ] = (uchar) ((n)      ); \
-		(b)[(i) + 1] = (uchar) ((n) >>  8); \
-		(b)[(i) + 2] = (uchar) ((n) >> 16); \
-		(b)[(i) + 3] = (uchar) ((n) >> 24); \
-	}
-
-#define PUT_UINT64_UNALIGNED(n, b, i)	  \
-	{ \
-		(b)[(i)    ] = (uchar) ((n)      ); \
-		(b)[(i) + 1] = (uchar) ((ulong)(n) >>  8); \
-		(b)[(i) + 2] = (uchar) ((ulong)(n) >> 16); \
-		(b)[(i) + 3] = (uchar) ((ulong)(n) >> 24); \
-		(b)[(i) + 4] = (uchar) ((ulong)(n) >> 32); \
-		(b)[(i) + 5] = (uchar) ((ulong)(n) >> 40); \
-		(b)[(i) + 6] = (uchar) ((ulong)(n) >> 48); \
-		(b)[(i) + 7] = (uchar) ((ulong)(n) >> 56); \
-	}
-
-#define GET_UINT32BE_UNALIGNED(n, b, i)	  \
-	{ \
-		(n) = ((uint) (b)[(i)] << 24) \
-			| ((uint) (b)[(i) + 1] << 16) \
-			| ((uint) (b)[(i) + 2] <<  8) \
-			| ((uint) (b)[(i) + 3]      ); \
-	}
-
-#define PUT_UINT32BE_UNALIGNED(n, b, i)	  \
-	{ \
-		(b)[(i)    ] = (uchar) ((n) >> 24); \
-		(b)[(i) + 1] = (uchar) ((n) >> 16); \
-		(b)[(i) + 2] = (uchar) ((n) >>  8); \
-		(b)[(i) + 3] = (uchar) ((n)      ); \
-	}
-
-#define GET_UINT64BE_UNALIGNED(n, b, i)	  \
-	{ \
-		(n) = ((ulong) (b)[(i)] << 56) \
-			| ((ulong) (b)[(i) + 1] << 48) \
-			| ((ulong) (b)[(i) + 2] << 40) \
-			| ((ulong) (b)[(i) + 3] << 32) \
-			| ((ulong) (b)[(i) + 4] << 24) \
-			| ((ulong) (b)[(i) + 5] << 16) \
-			| ((ulong) (b)[(i) + 6] <<  8) \
-			| ((ulong) (b)[(i) + 7]      ); \
-	}
-
-#define PUT_UINT64BE_UNALIGNED(n, b, i)	  \
-	{ \
-		(b)[(i)    ] = (uchar) ((ulong)(n) >> 56); \
-		(b)[(i) + 1] = (uchar) ((ulong)(n) >> 48); \
-		(b)[(i) + 2] = (uchar) ((ulong)(n) >> 40); \
-		(b)[(i) + 3] = (uchar) ((ulong)(n) >> 32); \
-		(b)[(i) + 4] = (uchar) ((ulong)(n) >> 24); \
-		(b)[(i) + 5] = (uchar) ((ulong)(n) >> 16); \
-		(b)[(i) + 6] = (uchar) ((ulong)(n) >>  8); \
-		(b)[(i) + 7] = (uchar) ((n)      ); \
-	}
-
 /*
- * Faster on nvidia, no difference on AMD
- * NOTE: This version needs b to be aligned as int!
+ * These macros must not require alignment of (b).
  */
-#if __ENDIAN_LITTLE__
-#define GET_UINT32(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
-#define PUT_UINT32(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
-#define PUT_UINT64(n, b, i)	((ulong*)(b))[(i) >> 3] = (n)
-#define GET_UINT32BE(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
-#define PUT_UINT32BE(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
-#define GET_UINT64BE(n, b, i)	(n) = SWAP64(((ulong*)(b))[(i) >> 3])
-#define PUT_UINT64BE(n, b, i)	((ulong*)(b))[(i) >> 3] = SWAP64(n)
-#else
-#define GET_UINT32(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
-#define PUT_UINT32(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
-#define PUT_UINT64(n, b, i)	((ulong*)(b))[(i) >> 3] = SWAP64(n)
-#define GET_UINT32BE(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
-#define PUT_UINT32BE(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
-#define GET_UINT64BE(n, b, i)	(n) = ((ulong*)(b))[(i) >> 3]
-#define PUT_UINT64BE(n, b, i)	((ulong*)(b))[(i) >> 3] = (n)
-#endif
-
-#else /* Safe code for any arch */
-
 #define GET_UINT32(n, b, i)	  \
 	{ \
 		(n) = ((uint) (b)[(i)]      ) \
@@ -324,18 +233,6 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		(b)[(i) + 3] = (uchar) ((n) >> 24); \
 	}
 
-#define PUT_UINT64(n, b, i)	  \
-	{ \
-		(b)[(i)    ] = (uchar) ((n)      ); \
-		(b)[(i) + 1] = (uchar) ((ulong)(n) >>  8); \
-		(b)[(i) + 2] = (uchar) ((ulong)(n) >> 16); \
-		(b)[(i) + 3] = (uchar) ((ulong)(n) >> 24); \
-		(b)[(i) + 4] = (uchar) ((ulong)(n) >> 32); \
-		(b)[(i) + 5] = (uchar) ((ulong)(n) >> 40); \
-		(b)[(i) + 6] = (uchar) ((ulong)(n) >> 48); \
-		(b)[(i) + 7] = (uchar) ((ulong)(n) >> 56); \
-	}
-
 #define GET_UINT32BE(n, b, i)	  \
 	{ \
 		(n) = ((uint) (b)[(i)] << 24) \
@@ -350,6 +247,18 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		(b)[(i) + 1] = (uchar) ((n) >> 16); \
 		(b)[(i) + 2] = (uchar) ((n) >>  8); \
 		(b)[(i) + 3] = (uchar) ((n)      ); \
+	}
+
+#define PUT_UINT64(n, b, i)	  \
+	{ \
+		(b)[(i)    ] = (uchar) ((n)      ); \
+		(b)[(i) + 1] = (uchar) ((ulong)(n) >>  8); \
+		(b)[(i) + 2] = (uchar) ((ulong)(n) >> 16); \
+		(b)[(i) + 3] = (uchar) ((ulong)(n) >> 24); \
+		(b)[(i) + 4] = (uchar) ((ulong)(n) >> 32); \
+		(b)[(i) + 5] = (uchar) ((ulong)(n) >> 40); \
+		(b)[(i) + 6] = (uchar) ((ulong)(n) >> 48); \
+		(b)[(i) + 7] = (uchar) ((ulong)(n) >> 56); \
 	}
 
 #define GET_UINT64BE(n, b, i)	  \
@@ -375,6 +284,26 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 		(b)[(i) + 6] = (uchar) ((ulong)(n) >>  8); \
 		(b)[(i) + 7] = (uchar) ((n)      ); \
 	}
+
+/*
+ * These require (b) to be aligned!
+ */
+#if __ENDIAN_LITTLE__
+#define GET_UINT32_ALIGNED(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
+#define PUT_UINT32_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
+#define GET_UINT32BE_ALIGNED(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
+#define PUT_UINT32BE_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
+#define PUT_UINT64_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = (n)
+#define GET_UINT64BE_ALIGNED(n, b, i)	(n) = SWAP64(((ulong*)(b))[(i) >> 3])
+#define PUT_UINT64BE_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = SWAP64(n)
+#else
+#define GET_UINT32_ALIGNED(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
+#define PUT_UINT32_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
+#define GET_UINT32BE_ALIGNED(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
+#define PUT_UINT32BE_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
+#define PUT_UINT64_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = SWAP64(n)
+#define GET_UINT64BE_ALIGNED(n, b, i)	(n) = ((ulong*)(b))[(i) >> 3]
+#define PUT_UINT64BE_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = (n)
 #endif
 
 /* Any device can do 8-bit reads BUT these macros are scalar only! */

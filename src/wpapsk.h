@@ -516,7 +516,7 @@ static void wpapsk_postprocess(int keys)
 #endif /* HAVE_OPENSSL_CMAC_H */
 	}
 }
-#endif /* #ifndef JOHN_OCL_WPAPSK */
+#endif /* JOHN_OCL_WPAPSK */
 
 static int binary_hash_0(void *binary)
 {

@@ -7,22 +7,22 @@
  * modification, are permitted.
  */
 
-#ifndef _OPENCL_MD5_CTX_H
-#define _OPENCL_MD5_CTX_H
+#ifndef _OPENCL_MD4_CTX_H
+#define _OPENCL_MD4_CTX_H
 
 #include "opencl_misc.h"
-#include "opencl_md5.h"
+#include "opencl_md4.h"
 
 typedef struct {
 	uint total;        /* number of bytes processed  */
 	uint state[4];     /* intermediate digest state  */
 	uchar buffer[64];  /* data block being processed */
-} MD5_CTX;
+} MD4_CTX;
 
 #ifndef __MESA__
 inline
 #endif
-void _md5_process(MD5_CTX *ctx, const uchar data[64]) {
+void _md4_process(MD4_CTX *ctx, const uchar data[64]) {
 	uint W[16], A, B, C, D;
 
 #if gpu_nvidia(DEVICE_INFO)
@@ -69,7 +69,7 @@ void _md5_process(MD5_CTX *ctx, const uchar data[64]) {
 	C = ctx->state[2];
 	D = ctx->state[3];
 
-	MD5(A, B, C, D, W);
+	MD4(A, B, C, D, W);
 
 	ctx->state[0] += A;
 	ctx->state[1] += B;
@@ -78,12 +78,12 @@ void _md5_process(MD5_CTX *ctx, const uchar data[64]) {
 }
 
 /*
- * MD5 context setup
+ * MD4 context setup
  */
 #ifndef __MESA__
 inline
 #endif
-void MD5_Init(MD5_CTX *ctx) {
+void MD4_Init(MD4_CTX *ctx) {
 	ctx->total = 0;
 
 	ctx->state[0] = 0x67452301;
@@ -93,12 +93,12 @@ void MD5_Init(MD5_CTX *ctx) {
 }
 
 /*
- * MD5 process buffer
+ * MD4 process buffer
  */
 #ifndef __MESA__
 inline
 #endif
-void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen) {
+void MD4_Update(MD4_CTX *ctx, const uchar *input, uint ilen) {
 	uint fill;
 	uint left;
 
@@ -113,7 +113,7 @@ void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen) {
 	if (left && ilen >= fill)
 	{
 		memcpy_pp(ctx->buffer + left, input, fill);
-		_md5_process(ctx, ctx->buffer);
+		_md4_process(ctx, ctx->buffer);
 		input += fill;
 		ilen  -= fill;
 		left = 0;
@@ -121,7 +121,7 @@ void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen) {
 
 	while(ilen >= 64)
 	{
-		_md5_process(ctx, input);
+		_md4_process(ctx, input);
 		input += 64;
 		ilen  -= 64;
 	}
@@ -133,16 +133,16 @@ void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen) {
 }
 
 /*
- * MD5 final digest
+ * MD4 final digest
  */
 #ifndef __MESA__
 inline
 #endif
-void MD5_Final(uchar output[20], MD5_CTX *ctx) {
+void MD4_Final(uchar output[20], MD4_CTX *ctx) {
 	uint last, padn;
 	ulong bits;
 	uchar msglen[8];
-	uchar md5_padding[64] = { 0x80 /* , 0, 0 ... */ };
+	uchar md4_padding[64] = { 0x80 /* , 0, 0 ... */ };
 
 	bits = ctx->total <<  3;
 
@@ -151,8 +151,8 @@ void MD5_Final(uchar output[20], MD5_CTX *ctx) {
 	last = ctx->total & 0x3F;
 	padn = (last < 56) ? (56 - last) : (120 - last);
 
-	MD5_Update(ctx, md5_padding, padn);
-	MD5_Update(ctx, msglen, 8);
+	MD4_Update(ctx, md4_padding, padn);
+	MD4_Update(ctx, msglen, 8);
 
 	PUT_UINT32(ctx->state[0], output,  0);
 	PUT_UINT32(ctx->state[1], output,  4);
@@ -160,4 +160,4 @@ void MD5_Final(uchar output[20], MD5_CTX *ctx) {
 	PUT_UINT32(ctx->state[3], output, 12);
 }
 
-#endif /* _OPENCL_MD5_CTX_H */
+#endif /* _OPENCL_MD4_CTX_H */

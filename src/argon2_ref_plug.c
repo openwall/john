@@ -245,4 +245,4 @@ void argon2_fill_segment(const argon2_instance_t *instance,
     }
 }
 
-#endif /* #ifndef __SSE2__ */
+#endif /* __SSE2__ */

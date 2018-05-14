@@ -20,4 +20,4 @@
 
 #endif /* ARGON2_REF_H */
 
-#endif /* #ifndef __SSE2__ */
+#endif /* __SSE2__ */

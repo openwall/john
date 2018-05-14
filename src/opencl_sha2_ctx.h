@@ -41,23 +41,23 @@ void _sha256_process(SHA256_CTX *ctx, const uchar data[64]) {
 	MAYBE_VOLATILE uint t, W[16], A, B, C, D, E, F, G, H;
 
 #if gpu_nvidia(DEVICE_INFO)
-	if ((ulong)data & 0x03) {
-		GET_UINT32BE_UNALIGNED(W[ 0], data,  0);
-		GET_UINT32BE_UNALIGNED(W[ 1], data,  4);
-		GET_UINT32BE_UNALIGNED(W[ 2], data,  8);
-		GET_UINT32BE_UNALIGNED(W[ 3], data, 12);
-		GET_UINT32BE_UNALIGNED(W[ 4], data, 16);
-		GET_UINT32BE_UNALIGNED(W[ 5], data, 20);
-		GET_UINT32BE_UNALIGNED(W[ 6], data, 24);
-		GET_UINT32BE_UNALIGNED(W[ 7], data, 28);
-		GET_UINT32BE_UNALIGNED(W[ 8], data, 32);
-		GET_UINT32BE_UNALIGNED(W[ 9], data, 36);
-		GET_UINT32BE_UNALIGNED(W[10], data, 40);
-		GET_UINT32BE_UNALIGNED(W[11], data, 44);
-		GET_UINT32BE_UNALIGNED(W[12], data, 48);
-		GET_UINT32BE_UNALIGNED(W[13], data, 52);
-		GET_UINT32BE_UNALIGNED(W[14], data, 56);
-		GET_UINT32BE_UNALIGNED(W[15], data, 60);
+	if (!((size_t)data && 0x03)) {
+		GET_UINT32BE_ALIGNED(W[ 0], data,  0);
+		GET_UINT32BE_ALIGNED(W[ 1], data,  4);
+		GET_UINT32BE_ALIGNED(W[ 2], data,  8);
+		GET_UINT32BE_ALIGNED(W[ 3], data, 12);
+		GET_UINT32BE_ALIGNED(W[ 4], data, 16);
+		GET_UINT32BE_ALIGNED(W[ 5], data, 20);
+		GET_UINT32BE_ALIGNED(W[ 6], data, 24);
+		GET_UINT32BE_ALIGNED(W[ 7], data, 28);
+		GET_UINT32BE_ALIGNED(W[ 8], data, 32);
+		GET_UINT32BE_ALIGNED(W[ 9], data, 36);
+		GET_UINT32BE_ALIGNED(W[10], data, 40);
+		GET_UINT32BE_ALIGNED(W[11], data, 44);
+		GET_UINT32BE_ALIGNED(W[12], data, 48);
+		GET_UINT32BE_ALIGNED(W[13], data, 52);
+		GET_UINT32BE_ALIGNED(W[14], data, 56);
+		GET_UINT32BE_ALIGNED(W[15], data, 60);
 	} else
 #endif
 	{
@@ -144,7 +144,7 @@ void SHA256_Update(SHA256_CTX *ctx, const uchar *input, uint ilen) {
 inline
 void SHA256_Final(uchar output[32], SHA256_CTX *ctx) {
 	uint last, padn;
-	uint bits;
+	ulong bits;
 	uchar msglen[8];
 	uchar sha256_padding[64] = { 0x80 /* , 0, 0 ... */ };
 
@@ -158,28 +158,14 @@ void SHA256_Final(uchar output[32], SHA256_CTX *ctx) {
 	SHA256_Update(ctx, sha256_padding, padn);
 	SHA256_Update(ctx, msglen, 8);
 
-#if gpu_nvidia(DEVICE_INFO)
-	if ((ulong)output & 0x03) {
-		PUT_UINT32BE_UNALIGNED(ctx->state[0], output,  0);
-		PUT_UINT32BE_UNALIGNED(ctx->state[1], output,  4);
-		PUT_UINT32BE_UNALIGNED(ctx->state[2], output,  8);
-		PUT_UINT32BE_UNALIGNED(ctx->state[3], output, 12);
-		PUT_UINT32BE_UNALIGNED(ctx->state[4], output, 16);
-		PUT_UINT32BE_UNALIGNED(ctx->state[5], output, 20);
-		PUT_UINT32BE_UNALIGNED(ctx->state[6], output, 24);
-		PUT_UINT32BE_UNALIGNED(ctx->state[7], output, 28);
-	} else
-#endif
-	{
-		PUT_UINT32BE(ctx->state[0], output,  0);
-		PUT_UINT32BE(ctx->state[1], output,  4);
-		PUT_UINT32BE(ctx->state[2], output,  8);
-		PUT_UINT32BE(ctx->state[3], output, 12);
-		PUT_UINT32BE(ctx->state[4], output, 16);
-		PUT_UINT32BE(ctx->state[5], output, 20);
-		PUT_UINT32BE(ctx->state[6], output, 24);
-		PUT_UINT32BE(ctx->state[7], output, 28);
-	}
+	PUT_UINT32BE(ctx->state[0], output,  0);
+	PUT_UINT32BE(ctx->state[1], output,  4);
+	PUT_UINT32BE(ctx->state[2], output,  8);
+	PUT_UINT32BE(ctx->state[3], output, 12);
+	PUT_UINT32BE(ctx->state[4], output, 16);
+	PUT_UINT32BE(ctx->state[5], output, 20);
+	PUT_UINT32BE(ctx->state[6], output, 24);
+	PUT_UINT32BE(ctx->state[7], output, 28);
 }
 
 /*
@@ -210,23 +196,23 @@ void _sha512_process(SHA512_CTX *ctx, const uchar data[128]) {
 	ulong t, W[16], A, B, C, D, E, F, G, H;
 
 #if gpu_nvidia(DEVICE_INFO)
-	if ((ulong)data & 0x07) {
-		GET_UINT64BE_UNALIGNED(W[ 0], data,   0);
-		GET_UINT64BE_UNALIGNED(W[ 1], data,   8);
-		GET_UINT64BE_UNALIGNED(W[ 2], data,  16);
-		GET_UINT64BE_UNALIGNED(W[ 3], data,  24);
-		GET_UINT64BE_UNALIGNED(W[ 4], data,  32);
-		GET_UINT64BE_UNALIGNED(W[ 5], data,  40);
-		GET_UINT64BE_UNALIGNED(W[ 6], data,  48);
-		GET_UINT64BE_UNALIGNED(W[ 7], data,  56);
-		GET_UINT64BE_UNALIGNED(W[ 8], data,  64);
-		GET_UINT64BE_UNALIGNED(W[ 9], data,  72);
-		GET_UINT64BE_UNALIGNED(W[10], data,  80);
-		GET_UINT64BE_UNALIGNED(W[11], data,  88);
-		GET_UINT64BE_UNALIGNED(W[12], data,  96);
-		GET_UINT64BE_UNALIGNED(W[13], data, 104);
-		GET_UINT64BE_UNALIGNED(W[14], data, 112);
-		GET_UINT64BE_UNALIGNED(W[15], data, 120);
+	if (!((size_t)data && 0x07)) {
+		GET_UINT64BE_ALIGNED(W[ 0], data,   0);
+		GET_UINT64BE_ALIGNED(W[ 1], data,   8);
+		GET_UINT64BE_ALIGNED(W[ 2], data,  16);
+		GET_UINT64BE_ALIGNED(W[ 3], data,  24);
+		GET_UINT64BE_ALIGNED(W[ 4], data,  32);
+		GET_UINT64BE_ALIGNED(W[ 5], data,  40);
+		GET_UINT64BE_ALIGNED(W[ 6], data,  48);
+		GET_UINT64BE_ALIGNED(W[ 7], data,  56);
+		GET_UINT64BE_ALIGNED(W[ 8], data,  64);
+		GET_UINT64BE_ALIGNED(W[ 9], data,  72);
+		GET_UINT64BE_ALIGNED(W[10], data,  80);
+		GET_UINT64BE_ALIGNED(W[11], data,  88);
+		GET_UINT64BE_ALIGNED(W[12], data,  96);
+		GET_UINT64BE_ALIGNED(W[13], data, 104);
+		GET_UINT64BE_ALIGNED(W[14], data, 112);
+		GET_UINT64BE_ALIGNED(W[15], data, 120);
 	} else
 #endif
 	{
@@ -328,28 +314,14 @@ void SHA512_Final(uchar output[64], SHA512_CTX *ctx) {
 	SHA512_Update(ctx, sha512_padding, padn);
 	SHA512_Update(ctx, msglen, 16);
 
-#if gpu_nvidia(DEVICE_INFO)
-	if ((ulong)output & 0x07) {
-		PUT_UINT64BE_UNALIGNED(ctx->state[0], output,  0);
-		PUT_UINT64BE_UNALIGNED(ctx->state[1], output,  8);
-		PUT_UINT64BE_UNALIGNED(ctx->state[2], output, 16);
-		PUT_UINT64BE_UNALIGNED(ctx->state[3], output, 24);
-		PUT_UINT64BE_UNALIGNED(ctx->state[4], output, 32);
-		PUT_UINT64BE_UNALIGNED(ctx->state[5], output, 40);
-		PUT_UINT64BE_UNALIGNED(ctx->state[6], output, 48);
-		PUT_UINT64BE_UNALIGNED(ctx->state[7], output, 56);
-	} else
-#endif
-	{
-		PUT_UINT64BE(ctx->state[0], output,  0);
-		PUT_UINT64BE(ctx->state[1], output,  8);
-		PUT_UINT64BE(ctx->state[2], output, 16);
-		PUT_UINT64BE(ctx->state[3], output, 24);
-		PUT_UINT64BE(ctx->state[4], output, 32);
-		PUT_UINT64BE(ctx->state[5], output, 40);
-		PUT_UINT64BE(ctx->state[6], output, 48);
-		PUT_UINT64BE(ctx->state[7], output, 56);
-	}
+	PUT_UINT64BE(ctx->state[0], output,  0);
+	PUT_UINT64BE(ctx->state[1], output,  8);
+	PUT_UINT64BE(ctx->state[2], output, 16);
+	PUT_UINT64BE(ctx->state[3], output, 24);
+	PUT_UINT64BE(ctx->state[4], output, 32);
+	PUT_UINT64BE(ctx->state[5], output, 40);
+	PUT_UINT64BE(ctx->state[6], output, 48);
+	PUT_UINT64BE(ctx->state[7], output, 56);
 }
 
-#endif // #ifndef _OPENCL_SHA2_CTX_H
+#endif /* _OPENCL_SHA2_CTX_H */
