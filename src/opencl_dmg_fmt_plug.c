@@ -47,7 +47,7 @@ john_register_one(&fmt_opencl_dmg);
 
 typedef struct {
 	pbkdf2_salt pbkdf2;
-	uint headerver;
+	uint32_t headerver;
 	unsigned int ivlen;
 	unsigned char iv[32];
 	uint32_t encrypted_keyblob_size;
@@ -59,7 +59,7 @@ typedef struct {
 	int cno;
 	int data_size;
 	unsigned char chunk[8192];
-	uint scp; /* start chunk present */
+	uint32_t scp; /* start chunk present */
 	unsigned char zchunk[4096]; /* chunk #0 */
 } dmg_salt;
 

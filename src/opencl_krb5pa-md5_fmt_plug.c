@@ -624,7 +624,7 @@ static char *get_key(int index)
 }
 
 /* Use only for smaller bitmaps < 16MB */
-static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint num_loaded_hashes)
+static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint32_t num_loaded_hashes)
 {
 	unsigned int i;
 	MEM_FREE(*bitmap_ptr);
@@ -648,7 +648,7 @@ static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint num_loa
 	}
 }
 /*
-static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint num_loaded_hashes)
+static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint32_t num_loaded_hashes)
 {
 	unsigned int i;
 	MEM_FREE(*bitmap_ptr);

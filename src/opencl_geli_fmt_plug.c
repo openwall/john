@@ -81,7 +81,7 @@ typedef struct {
 } geli_salt_t;
 
 typedef struct {
-	uint cracked;
+	uint32_t cracked;
 } out_t;
 
 static custom_salt *cur_salt;

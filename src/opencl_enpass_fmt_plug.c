@@ -57,7 +57,7 @@ static struct fmt_tests enpass_tests[] = {
 
 typedef struct {
 	unsigned int cracked;
-	unsigned int key[((OUTLEN + 19) / 20) * 20 / sizeof(uint)];
+	unsigned int key[((OUTLEN + 19) / 20) * 20 / sizeof(uint32_t)];
 } enpass_out;
 
 typedef struct {

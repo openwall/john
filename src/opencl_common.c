@@ -1746,7 +1746,7 @@ uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
 
 	}
 	if (!size || size > INT_MAX)
-		size = (uint)INT_MAX + 1U;
+		size = (uint32_t)INT_MAX + 1U;
 
 	return size;
 }

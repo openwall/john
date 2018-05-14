@@ -58,7 +58,7 @@ typedef struct {
 } odf_salt;
 
 typedef struct {
-	uint v[BINARY_SIZE / sizeof(uint)]; /* output from final SHA-256 */
+	uint32_t v[BINARY_SIZE / sizeof(uint32_t)]; /* output from final SHA-256 */
 } odf_out;
 
 static cl_int cl_error;

@@ -54,7 +54,7 @@ john_register_one(&fmt_opencl_sspr);
 
 typedef union {
 	uint8_t  b[SHA512_DIGEST_LENGTH];
-	uint32_t w[SHA512_DIGEST_LENGTH / sizeof(uint)];
+	uint32_t w[SHA512_DIGEST_LENGTH / sizeof(uint32_t)];
 	uint64_t W[SHA512_DIGEST_LENGTH / sizeof(uint64_t)];
 } hash512_t;
 
