@@ -1078,7 +1078,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 #endif
 #endif
 
-	include = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
+	include = (char *) mem_calloc(LINE_BUFFER_SIZE, sizeof(char));
 
 	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
@@ -1089,7 +1089,8 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 		full_path = quote_str(full_path);
 	}
 
-	sprintf(include, "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
+	snprintf(include, LINE_BUFFER_SIZE,
+	         "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        full_path,
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
