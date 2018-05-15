@@ -858,9 +858,6 @@ AGAIN:
 		if (benchmark_time)
 			printf("%s:\t%s c/s real, %s c/s virtual%s\n",
 			       msg_m, s_real, s_virtual, s_gpu);
-#if HAVE_OPENCL
-		}
-#endif
 #else
 #ifdef HAVE_MPI
 		if (john_main_process)
@@ -868,6 +865,9 @@ AGAIN:
 		if (benchmark_time)
 		printf("%s:\t%s c/s%s\n",
 		       msg_m, s_real, s_gpu);
+#endif
+#if HAVE_OPENCL
+		}
 #endif
 
 		if (!msg_1) {

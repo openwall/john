@@ -62,7 +62,7 @@
 
 #define LOG_SIZE 1024*16
 
-#if !defined(__CYGWIN__)
+#if !defined(__CYGWIN__) && !defined(__MINGW32__)
 // If true, use realpath(3) for translating eg. "-I./kernels" into an absolute
 // path before submitting as JIT compile option to OpenCL.
 #define I_REALPATH 1
