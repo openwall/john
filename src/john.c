@@ -604,9 +604,16 @@ static void john_omp_show_info(void)
 
 	if (john_omp_threads_orig == 1)
 	if (options.verbosity >= VERB_DEFAULT)
-	if (john_main_process)
-		fputs("Warning: OpenMP is disabled; "
-		    "a non-OpenMP build may be faster\n", stderr);
+	if (john_main_process) {
+		char *format = database.format ?
+			database.format->params.label : options.format;
+		if (format && strstr(format, "-opencl"))
+			fputs("Warning: OpenMP is disabled; "
+			      "GPU may be under-utilized\n", stderr);
+		else
+			fputs("Warning: OpenMP is disabled; "
+			      "a non-OpenMP build may be faster\n", stderr);
+	}
 }
 #endif
 
