@@ -73,7 +73,7 @@ void _sha1_process(SHA_CTX *ctx, const uchar data[64]) {
 	uint temp, W[16], A, B, C, D, E, r[16];
 
 #if gpu_nvidia(DEVICE_INFO)
-	if (!((size_t)data && 0x03)) {
+	if (!((size_t)data & 0x03)) {
 		GET_UINT32BE_ALIGNED(W[ 0], data,  0);
 		GET_UINT32BE_ALIGNED(W[ 1], data,  4);
 		GET_UINT32BE_ALIGNED(W[ 2], data,  8);
@@ -188,11 +188,22 @@ void SHA1_Final(uchar output[20], SHA_CTX *ctx) {
 	SHA1_Update(ctx, sha1_padding, padn);
 	SHA1_Update(ctx, msglen, 8);
 
-	PUT_UINT32BE(ctx->state[0], output,  0);
-	PUT_UINT32BE(ctx->state[1], output,  4);
-	PUT_UINT32BE(ctx->state[2], output,  8);
-	PUT_UINT32BE(ctx->state[3], output, 12);
-	PUT_UINT32BE(ctx->state[4], output, 16);
+#if gpu_nvidia(DEVICE_INFO)
+	if (!((size_t)output & 0x03)) {
+		PUT_UINT32BE_ALIGNED(ctx->state[0], output,  0);
+		PUT_UINT32BE_ALIGNED(ctx->state[1], output,  4);
+		PUT_UINT32BE_ALIGNED(ctx->state[2], output,  8);
+		PUT_UINT32BE_ALIGNED(ctx->state[3], output, 12);
+		PUT_UINT32BE_ALIGNED(ctx->state[4], output, 16);
+	} else
+#endif
+	{
+		PUT_UINT32BE(ctx->state[0], output,  0);
+		PUT_UINT32BE(ctx->state[1], output,  4);
+		PUT_UINT32BE(ctx->state[2], output,  8);
+		PUT_UINT32BE(ctx->state[3], output, 12);
+		PUT_UINT32BE(ctx->state[4], output, 16);
+	}
 }
 
 #endif /* _OPENCL_SHA1_CTX_H */
