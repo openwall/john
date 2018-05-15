@@ -17,8 +17,8 @@
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
-//Macros.
-//OSX drivers has problems digesting this SWAP64 macro.
+// Macros.
+// macOS AMD drivers do not support amd_bitalign
 #if defined(USE_BITSELECT) && !__OS_X__
 #define ror64(x, n)      ((n) < 32 ?                                            \
         (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) |                \

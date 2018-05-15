@@ -129,13 +129,10 @@ inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 #endif
 #endif
 
-#if gpu_amd(DEVICE_INFO)
-#ifdef cl_amd_media_ops
+#if defined cl_amd_media_ops
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
-#endif
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
-#else
-#if SCALAR && SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
+#elif SCALAR && SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
 inline uint funnel_shift_right(uint hi, uint lo, uint s)
 {
 	uint r;
@@ -157,7 +154,6 @@ inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #define BITALIGN_IMM(hi, lo, s) funnel_shift_right_imm(hi, lo, s)
 #else
 #define BITALIGN(hi, lo, s) (((hi) << (32 - (s))) | ((lo) >> (s)))
-#endif
 #endif
 
 #ifndef BITALIGN_IMM
