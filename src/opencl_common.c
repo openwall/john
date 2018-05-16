@@ -1009,7 +1009,7 @@ static char *quote_str(char *orig)
 	return new;
 }
 
-#if defined(__CYGWIN__)
+#if defined(__CYGWIN__) || defined(__MINGW32__)
 static char *mingw_try_relative_path(char *self_path)
 {
 	int len;
@@ -1073,7 +1073,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	MEM_FREE(pex);
 #else
 	full_path = path_expand_safe(pathname);
-#if defined(__CYGWIN__)
+#if defined(__CYGWIN__) || defined(__MINGW32__)
 	full_path = mingw_try_relative_path(full_path);
 #endif
 #endif
