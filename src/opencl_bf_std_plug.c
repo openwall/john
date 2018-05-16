@@ -179,7 +179,8 @@ void BF_select_device(struct fmt_main *fmt) {
 
 	if ((get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) ||
 	    amd_vliw5(device_info[gpu_id]) ||
-	    (get_local_memory_size(gpu_id) < local_work_size * lmem_per_th))
+	    (get_local_memory_size(gpu_id) < local_work_size * lmem_per_th) ||
+	    (gpu_intel(device_info[gpu_id]) && platform_apple(platform_id)))
 	{
 	        if (CHANNEL_INTERLEAVE == 1)
 		        opencl_init("$JOHN/kernels/bf_cpu_kernel.cl",
