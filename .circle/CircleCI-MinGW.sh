@@ -66,13 +66,13 @@ echo ""
 # Build with AVX
 mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mavx -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2.exe\""' --host=i686-w64-mingw32
 mingw32 make -sj4
-mv -v ../run/john ../run/john-avx.exe
+mv -v ../run/john.exe ../run/john-avx.exe
 make clean; make distclean
 
 # Build with AVX2 (32-bit, see https://github.com/magnumripper/JohnTheRipper/issues/2543 for details)
 mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mavx2 -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx.exe\""' --host=i686-w64-mingw32
 mingw32 make -sj4
-mv -v ../run/john ../run/john-avx2.exe
+mv -v ../run/john.exe ../run/john-avx2.exe
 make clean; make distclean
 
 # Build with SSE2 only
@@ -80,15 +80,12 @@ make clean; make distclean
 mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mno-ssse3' --host=i686-w64-mingw32
 # mingw64 ./configure --host=x86_64-w64-mingw32
 mingw64 make -sj4
-mv -v ../run/john ../run/john-sse2.exe
+mv -v ../run/john.exe ../run/john-sse2.exe
 
 # AVX2 is default, but with CPU fallback
 mv -v ../run/john-avx2.exe ../run/john.exe
 
 cd ../run
-# the mingw build does not name many exe files correctly, fix that.
-for f in genmkvpwd mkvcalcproba calc_stat tgtsnarf raw2dyna uaf2john wpapcap2john cprepair putty2john racf2john keepass2john hccap2john dmg2john bitlocker2john; do mv $f $f.exe; done
-# for f in *.exe ; do x86_64-w64-mingw32-strip $f ; done
 # remove opencl kernels and ztex stuff for mingw builds
 rm -rf kernels ztex
 cd ../src
