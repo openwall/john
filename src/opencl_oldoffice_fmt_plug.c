@@ -494,18 +494,18 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	size_t lws, gws;
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
 
 	*pcount *= mask_int_cand.num_int_cand;
 
 	/* kernel is made for lws 64, using local memory */
-	lws = local_work_size ? local_work_size : 64;
+	if (local_work_size > 64)
+		local_work_size = 64;
 
-	/* Don't do more than requested */
-	global_work_size = //count;
-	gws = (count + lws - 1) / lws * lws;
-
-	//printf("%s(%d) lws "Zu" gws "Zu" kidx %u k %d mult %u\n", __FUNCTION__, count, lws, gws, key_idx, new_keys, mask_int_cand.num_int_cand);
+	/* Needs to be updated for kludge in get_key() */
+	global_work_size = gws;
 
 	if (new_keys || ocl_autotune_running) {
 		/* Self-test kludge */
@@ -520,13 +520,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		new_keys = 0;
 	}
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[3]), "Failed transferring salt");
 
 	if ((any_cracked = cur_salt->cracked)) {
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * *pcount, cracked, 0, NULL, NULL), "failed reading results back");
-		return *pcount;
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * gws, cracked, 0, NULL, NULL), "failed reading results back");
+		return gws;
 	}
 
 	return 0;

@@ -233,8 +233,10 @@ static int cmp_exact (char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
 	size_t mem_cpy_sz;
-	size_t N, *M;
 
 	mem_cpy_sz = count * KEY_SIZE_IN_BYTES;
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],
@@ -243,12 +245,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					    0, NULL, multi_profilingEvent[0]),
 					    "Failed to write buffer cl_tx_keys.");
 
-	M = local_work_size ? &local_work_size : NULL;
-	N = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
-					      NULL, &N, M, 0, NULL, multi_profilingEvent[1]),
+					      NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]),
 					      "Failed to enqueue kernel lotus5.");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Shit hit fan");
 
