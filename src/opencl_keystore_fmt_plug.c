@@ -335,9 +335,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		sizeof(keystore_hash) * gws, outbuffer, 0, NULL,
 		multi_profilingEvent[3]), "Copy result back");
 
-	// Await completion of all the above
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
 	return count;
 }
 
