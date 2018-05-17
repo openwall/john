@@ -310,7 +310,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ? &local_work_size : NULL;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
 
 	if (new_keys || ocl_autotune_running) {
 		if (key_idx)

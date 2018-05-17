@@ -269,12 +269,9 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu"\n", __FUNCTION__, count, local_work_size, global_work_size);
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
 
 	if (key_idx)
 		BENCH_CLERROR(
