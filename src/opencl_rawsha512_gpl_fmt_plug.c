@@ -694,10 +694,9 @@ static void load_hash()
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	const int count = *pcount;
-	size_t gws, initial = 128;
-	size_t *lws = local_work_size ? &local_work_size : &initial;
-
-	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
 
 	//Check if any password was cracked and reload (if necessary)
 	if (num_loaded_hashes != get_num_loaded_hashes())
