@@ -526,7 +526,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pa_sha1_final, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA1)");
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running final kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(krb5pa_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");

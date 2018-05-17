@@ -249,7 +249,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					      crypt_kernel, 1,
 					      NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]),
 					      "Failed to enqueue kernel lotus5.");
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Shit hit fan");
 
 	mem_cpy_sz = count * BINARY_SIZE;
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id],
