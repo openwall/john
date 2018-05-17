@@ -309,8 +309,8 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-	size_t gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ? &local_work_size : NULL;
 
 	if (new_keys || ocl_autotune_running) {
 		if (key_idx)
@@ -331,8 +331,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[3]),
-	              "Copy result back");
+		sizeof(keystore_hash) * gws, outbuffer, 0, NULL,
+		multi_profilingEvent[3]), "Copy result back");
 
 	// Await completion of all the above
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
