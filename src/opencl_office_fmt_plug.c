@@ -105,7 +105,6 @@ static int *saved_len;	/* UCS-2 password length, in octets */
 static ms_office_custom_salt *saved_salt;
 static ms_office_out *out;	/* Output from kernel */
 static int new_keys;
-static size_t outsize;
 
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_state, cl_out;
 static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_out;
@@ -149,8 +148,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	int i;
 	int bench_len = strlen(tests[0].plaintext) * 2;
-
-	outsize = sizeof(ms_office_out) * gws;
+	size_t outsize = sizeof(ms_office_out) * gws;
 
 	pinned_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
@@ -255,7 +253,6 @@ static void done(void)
 static void clear_keys(void)
 {
 	memset(saved_key, 0, UNICODE_LENGTH * global_work_size);
-	memset(saved_len, 0, sizeof(*saved_len) * global_work_size);
 }
 
 static void set_key(char *key, int index)
@@ -340,11 +337,10 @@ static void reset(struct db_main *db)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index;
-	size_t gws;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
+	int i;
 
 	if (ocl_autotune_running || new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
@@ -356,7 +352,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA512pwhash, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
-		for (index = 0; index < (ocl_autotune_running ? 1 : cur_salt->spinCount / HASH_LOOPS13); index++) {
+		for (i = 0; i < (ocl_autotune_running ? 1 : cur_salt->spinCount / HASH_LOOPS13); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Loop13, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
 			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 			opencl_process_event();
@@ -368,7 +364,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
-		for (index = 0; index < (ocl_autotune_running ? 1 : cur_salt->spinCount / HASH_LOOPS0710); index++) {
+		for (i = 0; i < (ocl_autotune_running ? 1 : cur_salt->spinCount / HASH_LOOPS0710); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Loop0710, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
 			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 			opencl_process_event();
@@ -382,7 +378,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// Get results
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_out, CL_TRUE, 0, outsize, out, 0, NULL, multi_profilingEvent[5]), "failed in reading results");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_out, CL_TRUE, 0, sizeof(ms_office_out) * gws, out, 0, NULL, multi_profilingEvent[5]), "failed in reading results");
 
 	return count;
 }
