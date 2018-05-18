@@ -339,15 +339,12 @@ inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
 {
 	int pad_len, padding, real_len;
 
-	if (len & (blocksize - 1))
-		return -1;
-
-	if (len < blocksize)
+	if (len & (blocksize - 1) || len < blocksize)
 		return -1;
 
 	pad_len = data[len - 1];
 
-	if (pad_len > blocksize)
+	if (pad_len < 1 || pad_len > blocksize)
 		return -1;
 
 	real_len = len - pad_len;
