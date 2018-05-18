@@ -34,7 +34,7 @@ john_register_one(&FMT_STRUCT);
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
-#define FORMAT_LABEL        "Raw-MD5-opencl"
+#define FORMAT_LABEL        "raw-MD5-opencl"
 #define FORMAT_NAME         ""
 #define ALGORITHM_NAME      "MD5 OpenCL"
 #define BENCHMARK_COMMENT   ""

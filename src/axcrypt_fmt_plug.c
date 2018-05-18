@@ -33,8 +33,8 @@ john_register_one(&fmt_axcrypt);
 #include "aes.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL            "axcrypt"
-#define FORMAT_NAME             "AxCrypt"
+#define FORMAT_LABEL            "AxCrypt"
+#define FORMAT_NAME             ""
 #define FORMAT_TAG              "$axcrypt$*"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "SHA1 AES 32/" ARCH_BITS_STR

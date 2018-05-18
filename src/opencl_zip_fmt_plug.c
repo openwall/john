@@ -30,8 +30,8 @@ john_register_one(&fmt_opencl_zip);
 #include "dyna_salt.h"
 #include "options.h"
 
-#define FORMAT_LABEL		"zip-opencl"
-#define FORMAT_NAME		"ZIP"
+#define FORMAT_LABEL		"ZIP-opencl"
+#define FORMAT_NAME		"WinZip"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1

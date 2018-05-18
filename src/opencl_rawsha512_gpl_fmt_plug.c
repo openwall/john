@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_xsha512_gpl);
 #include "mask_ext.h"
 #include "opencl_mask_extras.h"
 
-#define FORMAT_LABEL            "Raw-SHA512-opencl"
+#define FORMAT_LABEL            "raw-SHA512-opencl"
 #define FORMAT_NAME         ""
 
 #define X_FORMAT_LABEL          "XSHA512-opencl"

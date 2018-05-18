@@ -43,8 +43,8 @@ john_register_one(&fmt_opencl_NT);
 #include "mask_ext.h"
 #include "opencl_hash_check_128.h"
 
-#define FORMAT_LABEL        "nt-opencl"
-#define FORMAT_NAME         "NT"
+#define FORMAT_LABEL        "NT-opencl"
+#define FORMAT_NAME         ""
 #define FORMAT_TAG          "$NT$"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "MD4 OpenCL"

@@ -31,7 +31,7 @@ john_register_one(&FMT_STRUCT);
 #include "base64_convert.h"
 #include "bt_interface.h"
 
-#define FORMAT_LABEL			"salted-sha1-opencl"
+#define FORMAT_LABEL			"salted-SHA1-opencl"
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"SHA1 OpenCL"
 

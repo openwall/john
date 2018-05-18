@@ -31,7 +31,7 @@ john_register_one(&FMT_STRUCT);
 #include "mask_ext.h"
 #include "bt_interface.h"
 
-#define FORMAT_LABEL			"Raw-SHA1-opencl"
+#define FORMAT_LABEL			"raw-SHA1-opencl"
 #define FORMAT_NAME			""
 #define ALGORITHM_NAME			"SHA1 OpenCL"
 
