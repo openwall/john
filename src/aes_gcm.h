@@ -26,7 +26,8 @@ int aes_gcm_ae(const uint8_t *key, size_t key_len, const uint8_t *iv, size_t iv_
  */
 int aes_gcm_ad(const uint8_t *key, size_t key_len, const uint8_t *iv, size_t iv_len,
 	       const uint8_t *crypt, size_t crypt_len,
-	       const uint8_t *aad, size_t aad_len, const uint8_t *tag, uint8_t *plain);
+	       const uint8_t *aad, size_t aad_len, const uint8_t *tag, uint8_t *plain,
+	       int skip_output);
 
 int aes_gmac(const uint8_t *key, size_t key_len, const uint8_t *iv, size_t iv_len,
 	     const uint8_t *aad, size_t aad_len, uint8_t *tag);

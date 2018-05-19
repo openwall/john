@@ -160,7 +160,6 @@ static void *get_salt(char *ciphertext)
 static int check_password(int index, struct custom_salt *cs)
 {
 	unsigned char key[32];
-	unsigned char plain[MAX_CIPHERTEXT_LENGTH];
 	int ret;
 	SHA256_CTX ctx;
 
@@ -168,7 +167,7 @@ static int check_password(int index, struct custom_salt *cs)
 	SHA256_Update(&ctx, saved_key[index], saved_len[index]);
 	SHA256_Final(key, &ctx);
 
-	ret = aes_gcm_ad(key, 32, cs->iv, IVLEN, cs->ciphertext, cs->ctlen, NULL, 0, cur_salt->tag, plain);
+	ret = aes_gcm_ad(key, 32, cs->iv, IVLEN, cs->ciphertext, cs->ctlen, NULL, 0, cur_salt->tag, NULL, 1);
 
 	if (!ret)
 		return 1;
