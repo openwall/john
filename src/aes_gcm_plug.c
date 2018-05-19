@@ -331,7 +331,8 @@ int aes_gcm_ae(const uint8_t *key, size_t key_len, const uint8_t *iv, size_t iv_
  */
 int aes_gcm_ad(const uint8_t *key, size_t key_len, const uint8_t *iv, size_t iv_len,
 	       const uint8_t *crypt, size_t crypt_len,
-	       const uint8_t *aad, size_t aad_len, const uint8_t *tag, uint8_t *plain)
+	       const uint8_t *aad, size_t aad_len, const uint8_t *tag, uint8_t *plain,
+	       int skip_output)
 {
 	uint8_t H[AES_BLOCK_SIZE];
 	uint8_t J0[AES_BLOCK_SIZE];
@@ -343,7 +344,8 @@ int aes_gcm_ad(const uint8_t *key, size_t key_len, const uint8_t *iv, size_t iv_
 	aes_gcm_prepare_j0(iv, iv_len, H, J0);
 
 	/* P = GCTR_K(inc_32(J_0), C) */
-	aes_gcm_gctr(&ctx, J0, crypt, crypt_len, plain);
+	if (!skip_output)
+		aes_gcm_gctr(&ctx, J0, crypt, crypt_len, plain);
 
 	aes_gcm_ghash(H, aad, aad_len, crypt, crypt_len, S);
 
