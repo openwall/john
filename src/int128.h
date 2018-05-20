@@ -15,7 +15,6 @@
 #define int128_t our_int128_t
 #undef uint128_t
 #define uint128_t our_uint128_t
-#endif
 
 #if HAVE___INT128
 typedef __int128                int128_t;
@@ -28,8 +27,6 @@ typedef __int128_t              int128_t;
 typedef __uint128_t             uint128_t;
 #endif
 
-#if HAVE___INT128 || HAVE_INT128 || HAVE___INT128_T
-
 #ifndef UINT128_MAX
 #define UINT128_MAX             ((uint128_t)-1)
 #endif
@@ -37,6 +34,11 @@ typedef __uint128_t             uint128_t;
 #ifndef INT128_MAX
 #define INT128_MAX              ((int128_t)(UINT128_MAX >> 1))
 #endif
+
+#define JTR_HAVE_INT128         1
+
+#else
+#undef JTR_HAVE_INT128
 
 #endif /* HAVE___INT128 || HAVE_INT128 || HAVE___INT128_T */
 

@@ -423,7 +423,7 @@ void alter_endianity(void *_x, unsigned int size) {
 // for SHA384/SHA512 128 byte FLAT interleaved hash (arrays of 16 8 byte ints), but we do not BE interleave.
 #define SHA64GETPOSne(i,index)      ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7) )*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*8*SIMD_COEF_64 )
 
-void dump_text_msg(const void *msg, void *in, int len)
+void dump_text_msg(const void *msg, const void *in, int len)
 {
 	unsigned char *p = (unsigned char*)in;
 
@@ -435,7 +435,7 @@ void dump_text_msg(const void *msg, void *in, int len)
 	fputc('\n', stdout);
 }
 
-void dump_stuff_msg(const void *msg, void *x, unsigned int size)
+void dump_stuff_msg(const void *msg, const void *x, unsigned int size)
 {
 	unsigned int i;
 
@@ -449,7 +449,7 @@ void dump_stuff_msg(const void *msg, void *x, unsigned int size)
 	fputc('\n', stdout);
 }
 
-void dump_stuff_be_msg(const void *msg, void *x, unsigned int size)
+void dump_stuff_be_msg(const void *msg, const void *x, unsigned int size)
 {
 	unsigned int i;
 
@@ -463,7 +463,7 @@ void dump_stuff_be_msg(const void *msg, void *x, unsigned int size)
 	fputc('\n', stdout);
 }
 
-void dump_stuff_mmx_msg(const void *msg, void *buf, unsigned int size,
+void dump_stuff_mmx_msg(const void *msg, const void *buf, unsigned int size,
                         unsigned int index)
 {
 	unsigned int i;
@@ -478,7 +478,7 @@ void dump_stuff_mmx_msg(const void *msg, void *buf, unsigned int size,
 	fputc('\n', stdout);
 }
 
-void dump_out_mmx_msg(const void *msg, void *buf, unsigned int size,
+void dump_out_mmx_msg(const void *msg, const void *buf, unsigned int size,
                       unsigned int index)
 {
 	unsigned int i;
@@ -496,7 +496,7 @@ void dump_out_mmx_msg(const void *msg, void *buf, unsigned int size,
 #if defined (SIMD_PARA_MD5)
 #define GETPOSMPARA(i, index)	( (index&(SIMD_COEF_32-1))*4 + (((i)&(0xffffffff-3))%64)*SIMD_COEF_32 + (i/64)*SIMD_COEF_32*SIMD_PARA_MD5*64 +    ((i)&3)  + (unsigned int)index/SIMD_COEF_32*64*SIMD_COEF_32  )
 // multiple para blocks
-void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size,
+void dump_stuff_mpara_mmx_msg(const void *msg, const void *buf, unsigned int size,
                               unsigned int index)
 {
 	unsigned int i;
@@ -512,7 +512,7 @@ void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size,
 }
 
 // obuf has to be at lease size long.  This function will unwind the SSE-para buffers into a flat.
-void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index) {
+void getbuf_stuff_mpara_mmx(unsigned char *oBuf, const void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 
 	for (i=0;i<size;i++)
@@ -520,7 +520,7 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, u
 }
 #endif
 
-void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size,
+void dump_stuff_shammx_msg(const void *msg, const void *buf, unsigned int size,
                            unsigned int index)
 {
 	unsigned int i;
@@ -535,7 +535,7 @@ void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size,
 	fputc('\n', stdout);
 }
 
-void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size,
+void dump_out_shammx_msg(const void *msg, const void *buf, unsigned int size,
                          unsigned int index)
 {
 	unsigned int i;
@@ -550,7 +550,7 @@ void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size,
 	fputc('\n', stdout);
 }
 
-void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 
 	printf("%s : ", (char*)msg);
@@ -563,7 +563,7 @@ void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsi
 	fputc('\n', stdout);
 }
 
-void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_stuff_mmx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 
 	printf("%s : ", (char*)msg);
@@ -576,7 +576,7 @@ void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigne
 	fputc('\n', stdout);
 }
 
-void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index) {
+void dump_out_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 
 	printf("%s : ", (char*)msg);

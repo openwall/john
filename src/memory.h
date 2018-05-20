@@ -280,27 +280,27 @@ extern void cleanup_tiny_memory();
 /* Dump memory as text (non-printables as dots) */
 #define dump_text(d, sz) dump_text_msg(STRINGIZE(d), d, sz)
 
-void dump_text_msg(const void *msg, void *in, int len);
+void dump_text_msg(const void *msg, const void *in, int len);
 
-void dump_stuff_msg(const void *msg, void *x, unsigned int size);
-void dump_stuff_be_msg(const void *msg, void *x, unsigned int size);
+void dump_stuff_msg(const void *msg, const void *x, unsigned int size);
+void dump_stuff_be_msg(const void *msg, const void *x, unsigned int size);
 
 #if defined (SIMD_COEF_32) || defined(NT_X86_64) || defined (SIMD_PARA_MD5) || defined (SIMD_PARA_MD4) || defined (SIMD_PARA_SHA1)
-void dump_stuff_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_stuff_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
 // for flat input, we do want to see SHA512 without byte swapping.
-void dump_stuff_mmx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_out_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_stuff_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_out_shammx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_stuff_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
-void dump_out_shammx64_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_stuff_mmx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+void dump_out_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+void dump_stuff_shammx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+void dump_out_shammx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+void dump_stuff_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+void dump_out_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
 #endif
 
 #if defined (SIMD_PARA_MD5)
 // these functions help debug arrays of contigious MD5 prepared PARA buffers. Seen in sunmd5 at the current time.
-void dump_stuff_mpara_mmx_msg(const void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_stuff_mpara_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
 // a 'getter' to help debugging.  Returns a flat buffer, vs printing it out.
-void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index);
+void getbuf_stuff_mpara_mmx(unsigned char *oBuf, const void *buf, unsigned int size, unsigned int index);
 #endif
 
 /*
