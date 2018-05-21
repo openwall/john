@@ -414,11 +414,11 @@ static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i;
 	const int count = *pcount;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
+	int i;
 
 	if (psalt->nkeyfiles) {
 		for (i = 0; i < count; i++) {
@@ -434,7 +434,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	/// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws, 0, NULL,
+		NULL, &gws, lws, 0, NULL,
 	        multi_profilingEvent[1]), "Run kernel");
 
 	/// Read the result back

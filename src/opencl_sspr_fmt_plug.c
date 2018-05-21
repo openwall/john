@@ -296,11 +296,11 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
+	size_t gws = count;
+	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
+		&local_work_size : NULL;
 	int i;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
 	int krnl = cur_salt->fmt;
-
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -310,14 +310,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// Run 1st kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 		sspr_kernel[krnl], 1, NULL,
-		&global_work_size, lws, 0, NULL,
+		&gws, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run init kernel");
 
 	// Run loop kernel
 	for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 			loop_kernel[krnl], 1, NULL,
-			&global_work_size, lws, 0, NULL,
+			&gws, lws, 0, NULL,
 			multi_profilingEvent[2]), "Run loop kernel");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
