@@ -580,7 +580,8 @@ static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 }
 
 static char* select_bitmap(unsigned int num_ld_hashes)
-{	static char kernel_params[200];
+{
+	static char kernel_params[200];
 	cl_ulong max_local_mem_sz_bytes = 0;
 	unsigned int cmp_steps = 2, use_local = 0;
 
@@ -594,12 +595,11 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			bitmap_size_bits = 512 * 1024;
 
 		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 16384 ||
+			max_local_mem_sz_bytes < 32768 ||
 			cpu(device_info[gpu_id]))
 			bitmap_size_bits = 256 * 1024;
 
 		else {
-			bitmap_size_bits = 32 * 1024;
 			cmp_steps = 4;
 			use_local = 1;
 		}
@@ -611,12 +611,12 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			bitmap_size_bits = 512 * 1024;
 
 		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 32768 ||
+			(platform_apple(platform_id) && gpu_nvidia(device_info[gpu_id])) ||
+			max_local_mem_sz_bytes < 65536 ||
 			cpu(device_info[gpu_id]))
 			bitmap_size_bits = 256 * 1024;
 
 		else {
-			bitmap_size_bits = 64 * 1024;
 			cmp_steps = 4;
 			use_local = 1;
 		}
@@ -627,7 +627,7 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 			bitmap_size_bits = 1024 * 1024;
 
 		else if (amd_gcn_11(device_info[gpu_id]) ||
-			max_local_mem_sz_bytes < 32768)
+			max_local_mem_sz_bytes < 128 * 1024)
 			bitmap_size_bits = 512 * 1024;
 
 		else if (amd_vliw4(device_info[gpu_id]) ||
@@ -637,7 +637,6 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		}
 
 		else {
-			bitmap_size_bits = 32 * 1024;
 			cmp_steps = 8;
 			use_local = 1;
 		}
@@ -682,6 +681,22 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		cmp_steps = 1;
 	}
 
+	if (use_local) {
+		/*
+		 * bitmap_size_bits must be even log2.  We can't count on allocating
+		 * ALL local memory so need to settle for, worst case, half of it.
+		 */
+		bitmap_size_bits = 1;
+		while ((bitmap_size_bits << 1) < max_local_mem_sz_bytes)
+			bitmap_size_bits <<= 1;
+
+		/* Limit to usable local mem size */
+		while ((bitmap_size_bits >> 1) * cmp_steps > bitmap_size_bits)
+			cmp_steps--;
+
+		//fprintf(stderr, "\nPicked bitmap size %u steps %u max mem usage %zu of %zu\n", (uint32_t)bitmap_size_bits, (uint32_t)cmp_steps, (bitmap_size_bits >> 3) * cmp_steps * sizeof(int), get_local_memory_size(gpu_id));
+	}
+
 	if (cmp_steps == 1)
 		prepare_bitmap_1(bitmap_size_bits, &bitmaps);
 
@@ -692,8 +707,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		prepare_bitmap_8(bitmap_size_bits, &bitmaps);
 
 	sprintf(kernel_params,
-		"-DSELECT_CMP_STEPS=%u"
-		" -DBITMAP_SIZE_BITS_LESS_ONE="LLu" -DUSE_LOCAL_BITMAPS=%u",
+		"-D SELECT_CMP_STEPS=%u"
+		" -D BITMAP_SIZE_BITS_LESS_ONE="LLu" -D USE_LOCAL_BITMAPS=%u",
 		cmp_steps, (unsigned long long)bitmap_size_bits - 1, use_local);
 
 	bitmap_size_bits *= cmp_steps;
@@ -704,12 +719,10 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
+	size_t *lws = (local_work_size && !(count % local_work_size)) ?
+		&local_work_size : NULL;
 
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
-
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
+	global_work_size = count;
 
 	// copy keys to the device
 	if (key_idx)

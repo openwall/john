@@ -647,10 +647,11 @@ exit_good:
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
+	size_t *lws = (local_work_size && !(count % local_work_size)) ?
+		&local_work_size : NULL;
 	int index;
-	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	//fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
+	global_work_size = count;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
