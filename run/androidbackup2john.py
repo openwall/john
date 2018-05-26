@@ -8,6 +8,12 @@
 #
 # All credit goes to "Android backup extractor" project by Nikolay Elenkov for
 # making this work possible.
+#
+# Tested with Android 4.4.4, Android 6.0 and Android 8.0 running on Genymotion.
+#
+# Android backups can be created with the following command,
+#
+# adb backup -f freeotp-backup.ab -apk org.fedorahosted.freeotp  # valid for freeotp app
 
 import os
 import sys
@@ -17,7 +23,6 @@ PY3 = sys.version_info[0] == 3
 if not PY3:
     reload(sys)
     sys.setdefaultencoding('utf8')
-
 
 # https://github.com/nelenkov/android-backup-extractor
 BACKUP_MANIFEST_VERSION = 1
@@ -32,18 +37,19 @@ PBKDF2_HASH_ROUNDS = 10000
 PBKDF2_KEY_SIZE = 256  # bits
 MASTER_KEY_SIZE = 256  # bits
 PBKDF2_SALT_SIZE = 512  # bits
-ENCRYPTION_ALGORITHM_NAME = b"AES-256";
+ENCRYPTION_ALGORITHM_NAME = b"AES-256"
 
 
 def process_file(filename):
     """
     Parser for Android Backup .ab files
     """
-    bfilename = os.path.basename(filename)
-
-
     with open(filename, "rb") as f:
         magic = f.readline()
+
+        # Untested hack for "Xiaomi-MIUI backup"
+        while magic != BACKUP_FILE_HEADER_MAGIC and magic:
+            magic = f.readline()
         if magic != BACKUP_FILE_HEADER_MAGIC:
             sys.stderr.write("[!] Magic missing from file, is this an Android Backup?\n")
             return
@@ -65,7 +71,8 @@ def process_file(filename):
         encryption_algorithm = f.readline().strip()
 
         if encryption_algorithm != ENCRYPTION_ALGORITHM_NAME:
-            sys.stderr.write("[!] Unsupported encryption algorithm (%s) found, is this an Android Backup?\n" % encryption_algorithm)
+            sys.stderr.write(
+                "[!] Unsupported encryption algorithm (%s) found, is this an Android Backup?\n" % encryption_algorithm)
             return
 
         user_salt = f.readline().strip().lower()
@@ -89,7 +96,8 @@ def process_file(filename):
 
         cipher = 0  # AES-256
         sys.stdout.write("%s:$ab$%d*%d*%d*%s*%s*%s*%s\n" %
-                     (os.path.basename(filename), version, cipher, rounds, user_salt, ck_salt, user_iv, masterkey_blob))
+                         (os.path.basename(filename), version, cipher, rounds, user_salt, ck_salt, user_iv,
+                          masterkey_blob))
 
 
 if __name__ == "__main__":
