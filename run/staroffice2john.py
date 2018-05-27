@@ -41,6 +41,7 @@ def process_file(filename):
     except:
         elements = list(r.getiterator())
 
+
     target = "content.xml"
     is_encrypted = False
     key_size = 16
@@ -78,8 +79,7 @@ def process_file(filename):
     try:
         content = zf.open(target).read()
     except KeyError:
-        sys.stderr.write("%s is not an encrypted StarOffice file, " \
-                         "%s missing!\n" % (filename, target))
+        sys.stderr.write("%s is not an encrypted StarOffice file, '%s' missing!\n" % (filename, target))
         return 5
 
     algorithm_type = 0
@@ -103,6 +103,7 @@ def process_file(filename):
             checksum_type, iteration_count, key_size, checksum, len(iv) / 2,
             iv, len(salt) / 2, salt, original_length, length,
             binascii.hexlify(content[:length]).decode("ascii")))
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

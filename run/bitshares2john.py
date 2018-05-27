@@ -35,13 +35,13 @@ import sys
 import json
 import sqlite3
 import binascii
-import traceback
 
 PY3 = sys.version_info[0] == 3
 
 if not PY3:
     reload(sys)
     sys.setdefaultencoding('utf8')
+
 
 def process_backup_file(filename):
     data = binascii.hexlify(open(filename, "rb").read())

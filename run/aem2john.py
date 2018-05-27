@@ -40,7 +40,6 @@ def process_file(filename):
     with open(filename, "r") as f:
         for line in f.readlines():
             line = line.rstrip()
-            algo = -1
             if tag in line:
                 algo = 3  # SHA-256
             elif "{SHA-512}" in line:
@@ -52,7 +51,7 @@ def process_file(filename):
             data = line.split('-')
             try:
                 salt, iterations, h = data
-            except:
+            except ValueError:
                 import traceback
                 traceback.print_exc()
                 continue

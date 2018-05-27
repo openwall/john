@@ -21,6 +21,7 @@ def process_file(filename):
 
     sys.stderr.write("%s:$strip$*%s\n" % (filename, binascii.hexlify(data)))
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <STRIP files>\n" % sys.argv[0])

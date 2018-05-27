@@ -24,8 +24,6 @@ def process_file(filename):
     """
     Parser for andOTP backup files
     """
-
-    bfilename = os.path.basename(filename)
     data = open(filename, "rb").read()
 
     # weak sanity check

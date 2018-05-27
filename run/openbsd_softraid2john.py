@@ -79,6 +79,7 @@ def process_file(filename):
 
     sys.stdout.write("$%s\n" % sr_crypto_genkdf_type)
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stdout.write("Usage: openbsd_softraid2john [disk image]\n")
