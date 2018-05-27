@@ -93,4 +93,4 @@ if __name__ == '__main__':
     options, remainder = parser.parse_args()
 
     for j in range(0, len(remainder)):
-        data = process(remainder[j], options.plaintext, options.cipher, options.md)
+        process(remainder[j], options.plaintext, options.cipher, options.md)

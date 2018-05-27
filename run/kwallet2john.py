@@ -124,6 +124,7 @@ def process_file(filename):
 
     fd.close()
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <.kwl file(s)>\n" % sys.argv[0])

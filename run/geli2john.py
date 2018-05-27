@@ -82,6 +82,7 @@ def process_file(filename):
                                                                md_iterations,
                                                                salt, mkeys))
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stdout.write("Usage: %s [disk image]\n" % sys.argv[0])

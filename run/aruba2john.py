@@ -38,7 +38,7 @@ def process_file(filename):
             if username:
                 sys.stdout.write("%s:%s\n" % (username, output))
             else:
-                sys.stdout.write("%s\n" % (output))
+                sys.stdout.write("%s\n" % output)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

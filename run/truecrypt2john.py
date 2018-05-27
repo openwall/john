@@ -74,6 +74,7 @@ def process_file(filename, keyfiles, options):
 
     f.close()
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Utility to import TrueCrypt volume to a format crackeable by John The Ripper\n")

@@ -11,8 +11,7 @@
 
 import sys
 import os
-import struct
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 
 PY3 = sys.version_info[0] == 3
 
@@ -37,7 +36,7 @@ def process_file(filename):
     tmpdata = data.splitlines()
     tmpheader = tmpdata[0].strip().split(b';')
 
-    version = tmpheader[1].strip()
+    _ = tmpheader[1].strip()  # version
     cipher_name = tmpheader[2].strip()
     ciphertext = b''.join(tmpdata[1:])
     salt, checksum, ct = unhexlify(ciphertext).split(b"\n")

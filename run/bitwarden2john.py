@@ -87,7 +87,7 @@ def process_file(filename):
         try:
             email, enc_key = process_leveldb(filename)
             if not email or not enc_key:
-                sys.stderr.write("[ERROR] %s could not be parsed properly!\n" % (filename))
+                sys.stderr.write("[ERROR] %s could not be parsed properly!\n" % filename)
                 return
         except:
             traceback.print_exc()
@@ -99,7 +99,7 @@ def process_file(filename):
             try:
                 email, enc_key = process_xml_file(filename)
                 if not email or not enc_key:
-                    sys.stderr.write("[ERROR] %s could not be parsed properly!\n" % (filename))
+                    sys.stderr.write("[ERROR] %s could not be parsed properly!\n" % filename)
                     return
             except:
                 traceback.print_exc()
