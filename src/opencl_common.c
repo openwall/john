@@ -1654,6 +1654,11 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 			clear_profiling_events();
 		}
+
+		/* Erase the 'spinning wheel' cursor */
+		if (john_main_process)
+			fprintf(stderr, " \b");
+
 		if (!endTime)
 			break;
 		if (options.verbosity > VERB_LEGACY)
@@ -1886,6 +1891,11 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, "\n");
 	}
+
+	/* Erase the 'spinning wheel' cursor */
+	if (options.verbosity <= VERB_LEGACY && john_main_process)
+		fprintf(stderr, " \b");
+
 	// Release profiling queue and create new with profiling disabled
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[sequential_id]),
 	               "Failed in clReleaseCommandQueue");
