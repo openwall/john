@@ -22,12 +22,13 @@ john_register_one(&fmt_bestcrypt);
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
+#endif
+
 #define OMP_SCALE               1 // this is a slow format
-#endif
-#endif
+
 #include "sha.h"
 #include "loader.h"
 #include "pkcs12.h"
@@ -130,9 +131,8 @@ static int *cracked, cracked_count;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
@@ -279,7 +279,7 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
+	int index;
 
 	memset(cracked, 0, sizeof(cracked[0])*cracked_count);
 
