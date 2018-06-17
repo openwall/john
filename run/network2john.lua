@@ -48,6 +48,51 @@ end
 function tap_radius.draw()
 end
 
+-- Extract RADIUS authentication hashes from .pcap files.
+-- http://www.untruth.org/~josh/security/radius/radius-auth.html
+-- (An Analysis of the RADIUS Authentication Protocol)
+local f_code = Field.new("radius.code")
+local f_authenticator = Field.new("radius.authenticator")
+local f_username = Field.new("radius.User_Name")
+local f_upe = Field.new("radius.User_Password_encrypted")
+
+-- put the passed-in args into a table
+local args = {...}
+count = 0
+for i,v in ipairs(args) do
+	count = count + 1
+end
+
+function tap_radius.packet(pinfo,tvb,tapdata)
+	local code = f_code()
+
+	if count < 2 then
+		print("Usage: tshark -q -Xlua_script:network2john.lua -X lua_script1:<secret-or-password-value-here> -X lua_script1:0 -r target.pcap\n")
+		print("Note: -X lua_script1:<secret-or-password-value-here> -> this is used as either the user password or the shared secrert\n")
+		print("Note: Use -X lua_script1:0 to attack RADIUS shared secret\n")
+		print("Note: Use -X lua_script1:1 to attack user password")
+		os.exit(0)
+	end
+
+	-- print them out
+	if code.value == 1 then  -- Access-Request
+		local canary = f_upe()
+		if canary then
+			local challenge = tostring(f_authenticator().value):lower()
+			local upe =  tostring(f_upe().value):lower()
+			local username = tostring(f_username().value)
+			local secret = args[1]
+			local mode = args[2]
+			local hash = string.format("%s:$radius$1*%s*%s*%s*%s", username, mode, secret, challenge, upe)
+			print(hash)
+			canary = nil
+		end
+	end
+end
+
+function tap_radius.draw()
+end
+
 
 -- Extract EAP-MD5 hashes from .pcap files.
 tap_eap = Listener.new(nil, "eap")
