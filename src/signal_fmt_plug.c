@@ -178,8 +178,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index;
 
-	memset(cracked, 0, sizeof(cracked[0]) * cracked_count);
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -194,7 +192,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				saved_len[index], cur_salt->mac_salt,
 				cur_salt->mac_salt_size, key, keylen);
 		hmac_sha1(key, keylen, cur_salt->master_secret, cur_salt->master_secret_size - 20, hash, 20);
-		cracked[index] = (0 == memcmp(hash, cur_salt->master_secret + cur_salt->master_secret_size - 20, 20));
+		cracked[index] = !memcmp(hash, cur_salt->master_secret + cur_salt->master_secret_size - 20, 20);
 	}
 
 	return count;
@@ -253,7 +251,7 @@ struct fmt_main fmt_signal = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"iteration count",
 		},
