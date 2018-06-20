@@ -345,9 +345,8 @@ static void reset(struct db_main *db)
 		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
 		                       0, db);
 
-		autotune_run(self, ITERATIONS, 0,
-		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 10000000000ULL));
+		/* Autotune for max. 20ms single-call duration (5 for CPU device) */
+		autotune_run(self, ITERATIONS, 0, (cpu(device_info[gpu_id]) ? 5 : 20));
 	}
 }
 
