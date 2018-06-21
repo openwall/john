@@ -427,7 +427,7 @@ static int calibrate()
 		//Build the tuned kernel
 		build_kernel(task, opt);
 		autotuned = 0; local_work_size = 0; global_work_size = 0;
-		autotune_run(self, ROUNDS_DEFAULT, 0, 300ULL);
+		autotune_run(self, ROUNDS_DEFAULT, 0, 200);
 		release_clobj();
 		release_kernel();
 
@@ -484,7 +484,6 @@ static void reset(struct db_main *db)
 		char opt[24] = "";
 
 		int major, minor;
-		unsigned long long int max_run_time;
 
 		source_in_use = device_info[gpu_id];
 
@@ -494,11 +493,6 @@ static void reset(struct db_main *db)
 		                        split_events : NULL),
 		                       warn, 1, self, create_clobj,
 		                       release_clobj, sizeof(uint64_t) * 9 * 8, 0, db);
-
-		if (cpu(device_info[gpu_id]))
-			max_run_time = 1000ULL;
-		else
-			max_run_time = 200ULL;
 
 		//Calibrate or a regular run.
 		if ((tmp_value = getenv("_CALIBRATE"))) {
@@ -523,7 +517,7 @@ static void reset(struct db_main *db)
 		build_kernel(task, opt);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, ROUNDS_DEFAULT, 0, max_run_time);
+		autotune_run(self, ROUNDS_DEFAULT, 0, 200);
 
 		//Clear work buffers.
 		memset(plaintext, '\0', sizeof(sha512_password) * global_work_size);

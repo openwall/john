@@ -237,9 +237,8 @@ static void reset(struct db_main *db)
 		                       create_clobj, release_clobj,
 		                       sizeof(sspr_state), 0, db);
 
-		// Auto tune execution from shared/included code, 10s crypt_all() max.
-		autotune_run(self, 100000, 0, (cpu(device_info[gpu_id]) ?
-		              1000000000 : 10000000000ULL));
+		// Auto tune execution from shared/included code, 200ms crypt_all() max.
+		autotune_run(self, 100000, 0, 200);
 	}
 }
 

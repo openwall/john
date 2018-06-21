@@ -377,10 +377,10 @@ static void tune(struct db_main *db)
 {
 	char *tmp_value;
 	size_t gws_limit;
-	unsigned long long autotune_limit = 100ULL;
+	int autotune_limit = 100;
 
 	if ((tmp_value = getenv("_GPU_AUTOTUNE_LIMIT")))
-		autotune_limit = (unsigned long long)atoll(tmp_value);
+		autotune_limit = atoi(tmp_value);
 
 	// Auto-tune / Benckmark / Self-test.
 	gws_limit = MIN((0xf << 22) * 4 / BUFFER_SIZE,

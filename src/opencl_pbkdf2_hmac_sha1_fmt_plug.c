@@ -187,9 +187,7 @@ static void reset(struct db_main *db)
 		                       ocl_v_width * sizeof(pbkdf2_state), 0, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, 2*999+4, 0,
-		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 5000000000ULL));
+		autotune_run(self, 2*999+4, 0, 200);
 	}
 }
 

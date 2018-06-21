@@ -299,12 +299,12 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
  *   Zero: starting from 512 multiply it by 2 (512, 1024, 2048, 4096, ...).
  *   N > 0: starting from N, use N as step (N, 2N, 3N, 4N...).
  *   E.g. step=1024 (1024, 2048, 3072, 4096, ...).
- * - max_run_time: maximum kernel runtime allowed (in ms).
+ * - max_duration: maximum kernel runtime allowed (in ms).
  * - sequential_id: the sequential number of the device in use.
  * - rounds: the number of rounds used by the algorithm.
  *   For raw formats it should be 1. For sha512crypt it is 5000.
  */
-void opencl_find_best_gws(int step, unsigned long long int max_run_time,
+void opencl_find_best_gws(int step, int max_duration,
                           int sequential_id, unsigned int rounds, int have_lws);
 
 /*

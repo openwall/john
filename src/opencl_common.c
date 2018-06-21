@@ -97,7 +97,7 @@ extern int autotune_get_next_gws_size(size_t num, int step, int startup,
 static int buffer_size;
 static int default_value;
 static int hash_loops;
-static unsigned long long int duration_time = 0;
+static int duration_time = 0;
 static const char **warnings;
 static int *split_events;
 static int main_opencl_event;
@@ -407,6 +407,11 @@ static char *ns2string(cl_ulong nanosec)
 	} else
 		snprintf(buf, 16, "%dns", ns);
 	return buf;
+}
+
+static char *ms2string(int millisec)
+{
+	return ns2string(millisec * 1000000ULL);
 }
 
 static int get_if_device_is_in_use(int sequential_id)
@@ -908,10 +913,10 @@ void opencl_get_user_preferences(char *format)
 	if (format &&
 	        (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 	                                   opencl_get_config_name(fmt_base_name, DUR_CONFIG_NAME))))
-		duration_time = atoi(tmp_value) * 1000000ULL;
+		duration_time = atoi(tmp_value);
 	else if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 	                                    "Global" DUR_CONFIG_NAME)))
-		duration_time = atoi(tmp_value) * 1000000ULL;
+		duration_time = atoi(tmp_value);
 }
 
 void opencl_get_sane_lws_gws_values()
@@ -1098,7 +1103,9 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
-	        (options.verbosity >= VERB_LEGACY && gpu_nvidia(device_info[sequential_id])) ? "-cl-nv-verbose " : "",
+	        (options.verbosity == VERB_MAX &&
+	         gpu_nvidia(device_info[sequential_id])) ?
+	         "-cl-nv-verbose " : "",
 #endif
 	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
 	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
@@ -1416,11 +1423,12 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			        ns2string(endTime - startTime), (amd_bug) ? "*" : "");
 
 		/* Single-invocation duration limit */
-		if (duration_time && (endTime - startTime) > duration_time) {
+		if (duration_time &&
+		    (endTime - startTime) > 1000000ULL * duration_time) {
 			runtime = looptime = 0;
 
 			if (options.verbosity == VERB_MAX)
-				fprintf(stderr, " (exceeds %s)", ns2string(duration_time));
+				fprintf(stderr, " (exceeds %s)", ms2string(duration_time));
 			break;
 		}
 	}
@@ -1772,14 +1780,14 @@ unsigned int lcm(unsigned int x, unsigned int y)
 	return x / a * y;
 }
 
-void opencl_find_best_gws(int step, unsigned long long int max_run_time,
+void opencl_find_best_gws(int step, int max_duration,
                           int sequential_id, unsigned int rounds, int have_lws)
 {
 	size_t num = 0;
 	size_t optimal_gws = local_work_size, soft_limit = 0;
 	unsigned long long speed, best_speed = 0, raw_speed;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	unsigned long long int save_duration_time = duration_time;
+	int save_duration_time = duration_time;
 	cl_uint core_count = get_processors_count(sequential_id);
 
 	if (have_lws) {
@@ -1790,19 +1798,9 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 		soft_limit = local_work_size * core_count * 128;
 	}
 
-	/*
-	 * max_run_time is either:
-	 *   - total running time for crypt_all(), in ns
-	 *   - single duration of a kernel run, is ms (max. 1000)
-	 */
-
-	/* Does format specify max. single duration? */
-	if (max_run_time <= 1000) {
-		max_run_time *= 1000000;
-		if (!duration_time || duration_time > max_run_time)
-			duration_time = max_run_time;
-		max_run_time = 0;
-	}
+	/* conf setting may override (decrease) code's max duration */
+	if (!duration_time || max_duration < duration_time)
+		duration_time = max_duration;
 
 	if (options.verbosity > VERB_DEFAULT) {
 		if (mask_int_cand.num_int_cand > 1 && !printed_mask++)
@@ -1813,16 +1811,9 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			        mask_int_cand_target);
 	}
 	if (options.verbosity > VERB_LEGACY) {
-		if (!max_run_time)
-			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
-			        "max. %s single kernel invocation.\n",
-			        local_work_size,
-			        ns2string(duration_time));
-		else
-			fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
-			        "max. %s total for crypt_all()\n",
-			        local_work_size,
-			        ns2string(max_run_time));
+		fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
+		        "max. %s single kernel invocation.\n",
+		        local_work_size, ms2string(duration_time));
 	}
 
 	if (options.verbosity == VERB_MAX)
@@ -1870,16 +1861,6 @@ void opencl_find_best_gws(int step, unsigned long long int max_run_time,
 			fprintf(stderr, "gws: %9zu\t%10s%12llu "
 			        "rounds/s%10s per crypt_all()",
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
-
-		if (best_speed && speed < 1.8 * best_speed &&
-		        max_run_time && run_time > max_run_time) {
-			if (!optimal_gws)
-				optimal_gws = num;
-
-			if (options.verbosity > VERB_LEGACY)
-				fprintf(stderr, " - too slow\n");
-			break;
-		}
 
 		if (speed > (1.01 * best_speed)) {
 			if (options.verbosity > VERB_LEGACY)

@@ -211,9 +211,7 @@ static void reset(struct db_main *db)
 		                       BUFSIZE, gws_limit, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, (cpu(device_info[gpu_id]) ?
-	              1000000000 : 5000000000ULL));
-
+		autotune_run(self, 1, 0, 200);
 	}
 }
 

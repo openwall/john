@@ -175,7 +175,7 @@ static void reset(struct db_main *db)
 		                       sizeof(pgpdisk_password), 0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 300);
+		autotune_run(self, 1, 0, 200);
 	}
 }
 

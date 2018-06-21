@@ -50,7 +50,7 @@ size_t autotune_get_task_max_work_group_size(int use_local_memory,
   of keys per crypt for the given format
 -- */
 void autotune_find_best_gws(int sequential_id, unsigned int rounds, int step,
-	unsigned long long int max_run_time, int have_lws);
+	int max_duration, int have_lws);
 
 /* --
   This function could be used to calculated the best local
@@ -78,19 +78,17 @@ static void find_best_lws(struct fmt_main *self, int sequential_id)
   This function could be used to calculated the best num
   of keys per crypt for the given format
 -- */
-static void find_best_gws(struct fmt_main *self, int sequential_id, unsigned int rounds,
-	unsigned long long int max_run_time, int have_lws)
+static void find_best_gws(struct fmt_main *self, int sequential_id,
+	unsigned int rounds, int max_duration, int have_lws)
 {
 	//Call the common function.
-	autotune_find_best_gws(
-		sequential_id, rounds, STEP, max_run_time, have_lws
-	);
+	autotune_find_best_gws(sequential_id, rounds, STEP, max_duration, have_lws);
 
 	create_clobj(global_work_size, self);
 }
 
 static void autotune_run(struct fmt_main *self, unsigned int rounds,
-			 size_t gws_limit, unsigned long long int max_run_time);
+	size_t gws_limit, int max_duration);
 
 /* --
   This function does the common part of auto-tune adjustments,
@@ -98,7 +96,7 @@ static void autotune_run(struct fmt_main *self, unsigned int rounds,
   in each format file.
 -- */
 static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
-	size_t gws_limit, unsigned long long int max_run_time, cl_uint lws_is_power_of_two)
+	size_t gws_limit, int max_duration, cl_uint lws_is_power_of_two)
 {
 	int need_best_lws, need_best_gws, needed_best_gws;
 
@@ -179,14 +177,14 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	/* Enumerate GWS using *LWS=NULL (unless it was set explicitly) */
 	needed_best_gws = need_best_gws = !global_work_size;
 	if (need_best_gws) {
-		unsigned long long int max_run_time1 = max_run_time;
+		int max_duration1 = max_duration;
 		int have_lws = !(!local_work_size || need_best_lws);
 		if (have_lws) {
 			need_best_gws = 0;
 		} else if (mask_int_cand.num_int_cand < 2) {
-			max_run_time1 = (max_run_time + 1) / 2;
+			max_duration1 = (max_duration + 1) / 2;
 		}
-		find_best_gws(self, gpu_id, rounds, max_run_time1, have_lws);
+		find_best_gws(self, gpu_id, rounds, max_duration1, have_lws);
 	} else {
 		create_clobj(global_work_size, self);
 	}
@@ -201,7 +199,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 
 	if (need_best_gws) {
 		release_clobj();
-		find_best_gws(self, gpu_id, rounds, max_run_time, 1);
+		find_best_gws(self, gpu_id, rounds, max_duration, 1);
 	}
 
 	/* Adjust to the final configuration */
@@ -209,9 +207,10 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
 	create_clobj(global_work_size, self);
 
-	if (options.verbosity > VERB_LEGACY && !(options.flags & FLG_SHOW_CHK))
+	if (options.verbosity > VERB_DEFAULT && !(options.flags & FLG_SHOW_CHK))
 		fprintf(stderr,
-		        "Local worksize (LWS) "Zu", global worksize (GWS) "Zu"\n",
+		        "%sLocal worksize (LWS) "Zu", global worksize (GWS) "Zu"\n",
+		        options.flags & FLG_TEST_CHK ? "\n" : "",
 		        local_work_size, global_work_size);
 #ifdef DEBUG
 	else if (!(options.flags & FLG_SHOW_CHK))
@@ -237,9 +236,9 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 }
 
 static void autotune_run(struct fmt_main *self, unsigned int rounds,
-	size_t gws_limit, unsigned long long int max_run_time)
+	size_t gws_limit, int max_duration)
 {
-	return autotune_run_extra(self, rounds, gws_limit, max_run_time, CL_FALSE);
+	return autotune_run_extra(self, rounds, gws_limit, max_duration, CL_FALSE);
 }
 
 #endif  /* _COMMON_TUNE_H */

@@ -242,9 +242,7 @@ static void reset(struct db_main *db)
 		                       2 * ocl_v_width * sizeof(wpapsk_state), 0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0,
-		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 10000000000ULL));
+		autotune_run(self, 1, 0, 200);
 	}
 }
 

@@ -173,7 +173,7 @@ static void reset(struct db_main *db)
 		                       sizeof(sha512_key), 0, db);
 
 		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 500);
+		autotune_run(self, 1, 0, 200);
 	}
 }
 

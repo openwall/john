@@ -197,8 +197,7 @@ static void reset(struct db_main *db)
 		                       sizeof(keyring_password), 0, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, iter, 0, cpu(device_info[gpu_id]) ?
-		             500000000ULL : 1000000000ULL);
+		autotune_run(self, iter, 0, 200);
 	}
 }
 

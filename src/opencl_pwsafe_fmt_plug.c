@@ -210,9 +210,7 @@ static void reset(struct db_main *db)
 		                       release_clobj, sizeof(pwsafe_pass), 0, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, ROUNDS_DEFAULT, 0,
-		             (cpu(device_info[gpu_id]) ?
-		              500000000ULL : 1000000000ULL));
+		autotune_run(self, ROUNDS_DEFAULT, 0, 200);
 	}
 }
 

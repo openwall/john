@@ -586,7 +586,7 @@ static void reset(struct db_main *db)
 	                       2 * BUFSIZE, gws_limit, db);
 
 	// Auto tune execution from shared/included code.
-	autotune_run_extra(self, 1, gws_limit, 300, CL_TRUE);
+	autotune_run_extra(self, 1, gws_limit, 200, CL_TRUE);
 }
 
 struct fmt_main fmt_opencl_NT = {

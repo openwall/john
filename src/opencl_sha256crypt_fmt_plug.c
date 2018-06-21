@@ -402,7 +402,7 @@ static int calibrate()
 		//Build the tuned kernel
 		build_kernel(task, opt);
 		autotuned = 0; local_work_size = 0; global_work_size = 0;
-		autotune_run(self, ROUNDS_DEFAULT, 0, 200ULL);
+		autotune_run(self, ROUNDS_DEFAULT, 0, 200);
 		release_clobj();
 		release_kernel();
 

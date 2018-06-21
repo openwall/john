@@ -311,9 +311,7 @@ static void reset(struct db_main *db)
 		                       UNICODE_LENGTH + sizeof(cl_int) * 14, 0, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, ITERATIONS, 0,
-		             (cpu(device_info[gpu_id]) ?
-		              1000000000 : 10000000000ULL));
+		autotune_run(self, ITERATIONS, 0, 200);
 	}
 }
 

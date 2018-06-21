@@ -189,9 +189,8 @@ static void reset(struct db_main *db)
 		                       create_clobj, release_clobj,
 		                       sizeof(keepass_state), 0, db);
 
-		// Auto tune execution from shared/included code, max. 10s total.
-		autotune_run(self, iter, 0, (cpu(device_info[gpu_id]) ?
-		                             1000000000 : 10000000000ULL));
+		// Auto tune execution from shared/included code, max. 200ms total.
+		autotune_run(self, iter, 0, 200);
 	}
 }
 

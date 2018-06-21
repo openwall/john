@@ -315,7 +315,7 @@ static void reset(struct db_main *db)
 		                       sizeof(sevenzip_state), 0, db);
 
 		//  Auto tune execution from shared/included code.
-		autotune_run(self, 1 << 19, 0, 15000000000ULL);
+		autotune_run(self, 1 << 19, 0, 200);
 	}
 }
 

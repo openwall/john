@@ -341,7 +341,7 @@ static void reset(struct db_main *db)
 		                       sizeof(crypt_md5_password), 0, db);
 
 		//Auto tune execution from shared/included code.
-		autotune_run(self, 1000, 0, 500);
+		autotune_run(self, 1000, 0, 200);
 	}
 }
 
