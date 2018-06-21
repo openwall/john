@@ -271,7 +271,7 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format)
 		goto err;
 	usage = atoi(p);
 	if (!symmetric_mode) {
-		if (usage != 0 && usage != 254 && usage != 255 && usage != 1)
+		if (usage != 0 && usage != 254 && usage != 255) // && usage != 1)
 			goto err;
 	} else {
 		if (usage != 9 && usage != 18) // https://tools.ietf.org/html/rfc4880
