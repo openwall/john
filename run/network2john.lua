@@ -257,6 +257,41 @@ end
 
 
 
+-- Extract DHCPv4 authentication hashes from .pcap files.
+-- NOTE: This requires Wireshark 2.9.0 (from git master) as of June, 2018.
+
+tap_dhcpv4 = Listener.new(nil, "bootp")
+
+local f_algorithm = Field.new("bootp.option.dhcp_authentication.alg_delay")
+local f_hash= Field.new("bootp.option.dhcp_authentication.hmac_md5_hash")
+local f_dhcpv4 = Field.new("bootp")
+
+function tap_dhcpv4.packet(pinfo,tvb,tapdata)
+	local canary = f_hash()
+	if not canary then
+		return
+	end
+
+	local algorithm = f_algorithm()
+	if algorithm.value ~= 1 then
+		return
+	end
+
+	local hash = tostring(canary.value):lower()
+	local dhcpv4_field = f_dhcpv4()
+	local dhcpv4_payload= dhcpv4_field.range()
+	local wholeMsg = dhcpv4_payload:bytes():tohex():lower()
+	wholeMsg = string.sub(wholeMsg, 1, 6) .. "00" .. string.sub(wholeMsg, 9, 48) .. "00000000" .. string.sub(wholeMsg, 57)  -- zero'ize hops and giaddr
+	local wholeMsgProper = wholeMsg:gsub(hash, "00000000000000000000000000000000")  -- zero'ize the mac
+	local hash = string.format("%s:$rsvp$1$%s$%s", pinfo.number, wholeMsgProper, hash)
+	print(hash)
+end
+
+function tap_dhcpv4.draw()
+end
+
+
+
 -- Extract iSCSI CHAP hashes from .pcap files.
 --
 -- WARNING: This code is unlikely to handle parallel login sessions well!
