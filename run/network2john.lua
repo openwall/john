@@ -219,6 +219,44 @@ end
 
 
 
+-- Extract DHCPv6 authentication hashes from .pcap files.
+-- NOTE: This requires Wireshark 2.9.0 (from git master) as of June, 2018.
+
+tap_dhcpv6 = Listener.new(nil, "dhcpv6")
+
+local f_algorithm = Field.new("dhcpv6.auth.algorithm")
+local f_hash= Field.new("dhcpv6.auth.md5_data")
+local f_dhcpv6 = Field.new("dhcpv6")
+
+function tap_dhcpv6.packet(pinfo,tvb,tapdata)
+	local canary = f_hash()
+	if not canary then
+		return
+	end
+
+	local algorithm = f_algorithm()
+	if algorithm.value ~= 1 then
+		return
+	end
+
+	local hash = f_hash()
+	if hash == nil then
+		return
+	end
+	local hash = tostring(hash.value):lower()
+	local dhcpv6_field = f_dhcpv6()
+	local dhcpv6_payload= dhcpv6_field.range()
+	local wholeMsg = dhcpv6_payload:bytes():tohex():lower()
+	local wholeMsgProper = wholeMsg:gsub(hash, "00000000000000000000000000000000")
+	local hash = string.format("%s:$rsvp$1$%s$%s", pinfo.number, wholeMsgProper, hash)
+	print(hash)
+end
+
+function tap_dhcpv6.draw()
+end
+
+
+
 -- Extract iSCSI CHAP hashes from .pcap files.
 --
 -- WARNING: This code is unlikely to handle parallel login sessions well!
