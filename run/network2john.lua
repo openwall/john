@@ -239,11 +239,7 @@ function tap_dhcpv6.packet(pinfo,tvb,tapdata)
 		return
 	end
 
-	local hash = f_hash()
-	if hash == nil then
-		return
-	end
-	local hash = tostring(hash.value):lower()
+	local hash = tostring(canary.value):lower()
 	local dhcpv6_field = f_dhcpv6()
 	local dhcpv6_payload= dhcpv6_field.range()
 	local wholeMsg = dhcpv6_payload:bytes():tohex():lower()
