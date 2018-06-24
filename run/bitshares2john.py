@@ -43,12 +43,25 @@ if not PY3:
     sys.setdefaultencoding('utf8')
 
 
+def process_leveldb(path):
+    # Standard LevelDB (via plyvel library) doesn't work for BitShares .ldb files due to usage of custom "key_compare" comparator.
+    data = open(path, "rb").read()
+    idx = data.index(b'checksum')
+    if idx < 0:
+        return False
+    start = idx + len("checksum") + 3
+    print("%s:$dynamic_84$%s" % (os.path.basename(path), data[start:start+64*2]))
+    return True
+
+
 def process_backup_file(filename):
     data = binascii.hexlify(open(filename, "rb").read())
     sys.stdout.write("%s:$BitShares$1*%s\n" % (os.path.basename(filename), data))
 
 
 def process_file(filename):
+    if process_leveldb(filename):
+        return
     try:
         db = sqlite3.connect(filename)
         cursor = db.cursor()
@@ -67,7 +80,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [BitShares SQLite file(s) / Backup Wallet .bin file(s)]\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [BitShares SQLite file(s) / Backup Wallet .bin file(s) / ~/BitShares/wallets/<wallet-name>/*.ldb file(s)]\n" % sys.argv[0])
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
