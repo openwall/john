@@ -820,7 +820,7 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s [bitcon wallet files]" % sys.argv[0]
+        print >> sys.stderr, "Usage: %s [Bitcoin/Litecoin/PRiVCY wallet (.dat) files]" % sys.argv[0]
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
