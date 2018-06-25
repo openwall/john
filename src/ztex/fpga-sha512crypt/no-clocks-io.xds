@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<DesignStrategy goal="Balanced" strategy="no-clocks-io" version="12.1">
+
+  <Description>This Strategy is used for creation of ngc files for "blackbox" modules.</Description>
+
+  <DeviceList devices="spartan6"/>
+
+  <Properties>
+    <property name="Synthesize - XST:Optimization Goal" value="Area"/>
+    <property name="Synthesize - XST:Add I/O Buffers" value="false"/>
+    <property name="Synthesize - XST:Number of Clock Buffers" value="0"/>
+    <property name="Synthesize - XST:LUT Combining" value="Auto"/>
+  </Properties>
+
+</DesignStrategy>

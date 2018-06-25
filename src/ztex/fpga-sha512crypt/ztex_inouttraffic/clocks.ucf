@@ -1,0 +1,73 @@
+#
+# This software is Copyright (c) 2016-2018 Denis Burykin
+# [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+# and it is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# ****************************
+#
+# cmt2 - driven by IFCLK_IN
+# cmt_special.v
+#
+# ****************************
+#
+INST "clocks/cmt2/DCM_0" LOC=DCM_X0Y4;
+#INST "clocks/cmt2/DCM_CLKGEN_0" LOC=DCM_X0Y5;
+#INST "clocks/cmt2/PLL_0" LOC=PLL_ADV_X0Y2;
+
+NET "IFCLK" TNM_NET = "IFCLK";
+TIMESPEC "TS_IFCLK" = PERIOD "IFCLK" 20.833 ns HIGH 50%;
+
+# CLK2
+#NET "clocks/cmt2/dcm0_clk90" TNM_NET = "cmt2_dcm0_clk90";
+#TIMESPEC "TS_cmt2_dcm0_clk90" = PERIOD "cmt2_dcm0_clk90" 20.833 ns HIGH 50%;
+# PLL_CLK
+#NET "clocks/cmt2/dcm0_clkdv" TNM_NET = "PKT_COMM_CLK";
+#TIMESPEC "TS_PKT_COMM_CLK" = PERIOD "PKT_COMM_CLK" 41.666 ns HIGH 50%;
+
+# ****************************
+#
+# Programmable clock #0
+# cmt_prog.v
+#
+# ****************************
+#
+INST "clocks/cmt3/DCM_CLKGEN_0" LOC=DCM_X0Y7;
+INST "clocks/cmt3/PLL_0" LOC=PLL_ADV_X0Y3;
+
+NET "clocks/cmt3/pll0_clkout0" TNM_NET = "CORE_CLK";
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.166 ns HIGH 50%; // 240
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.255 ns HIGH 50%; // 235
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.347 ns HIGH 50%; // 230
+TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.444 ns HIGH 50%; // 225
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.494 ns HIGH 50%; // 222.5
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.545 ns HIGH 50%; // 220
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.761 ns HIGH 50%; // 210
+
+
+# ****************************
+#
+# Not-Programmable clock
+# cmt_prog.v
+#
+# ****************************
+#
+INST "clocks/cmt5/DCM_CLKGEN_0" LOC=DCM_X0Y10;
+INST "clocks/cmt5/PLL_0" LOC=PLL_ADV_X0Y5;
+
+NET "clocks/cmt5/pll0_clkout0" TNM_NET = "PKT_COMM_CLK";
+TIMESPEC "TS_PKT_COMM_CLK" = PERIOD "PKT_COMM_CLK" 7.407 ns HIGH 50%; // 135
+
+
+# ****************************
+#
+# cmt_common.v
+#
+# ****************************
+#
+#INST "clocks/cmt4/DCM_0" LOC=DCM_X0Y8;
+#INST "clocks/cmt4/PLL_0" LOC=PLL_ADV_X0Y4;
+# PLL_CLK
+#NET "clocks/cmt4/dcm0_clkdv" TNM_NET = "PKT_COMM_CLK";
+#TIMESPEC "TS_PKT_COMM_CLK" = PERIOD "PKT_COMM_CLK" 41.666 ns HIGH 50%;
