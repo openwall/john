@@ -1536,14 +1536,16 @@ static int process_packet(void)
 	if (ctl->type == 2) { /* type 2 is data */
 		uint8_t *p = packet;
 		int has_qos = (ctl->subtype & 8) != 0;
+		int has_addr4 = ctl->toDS & ctl->fromDS;
 
-		if ((ctl->toDS ^ ctl->fromDS) != 1) {
+		if (!has_addr4 && ((ctl->toDS ^ ctl->fromDS) != 1)) {
 			/* eapol will ONLY be direct toDS or direct fromDS. */
 			if (verbosity >= 2)
 				fprintf(stderr, "Invalid EAPOL src/dst\n");
 			return 1;
 		}
-		if (sizeof(ieee802_1x_frame_hdr_t)+6+2+(has_qos?2:0)+(has_ht?4:0) >=
+		if (sizeof(ieee802_1x_frame_hdr_t)+6+2+
+		    (has_qos?2:0)+(has_ht?4:0)+(has_addr4?6:0) >=
 		    pkt_hdr.incl_len) {
 			if (verbosity >= 2)
 				fprintf(stderr, "QoS Null or malformed EAPOL\n");
@@ -1554,6 +1556,8 @@ static int process_packet(void)
 		p += sizeof(ieee802_1x_frame_hdr_t);
 		if (has_qos)
 			p += 2;
+		if (has_addr4)
+			p += 6;
 /*
  * p now points to the start of the LLC
  * this is 8 bytes long, and the last 2 bytes are the 'type' field.  What
