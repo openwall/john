@@ -101,23 +101,23 @@ static int check_password(unsigned char *user_key, struct custom_salt *cs)
 	// int offset = 0;
 	int len;
 
-	// decrypt masteykey_blob
+	// decrypt masterkey_blob
 	memcpy(iv, cs->iv, cs->iv_length);
 	AES_set_decrypt_key(user_key, 256, &aeskey);
-	AES_cbc_encrypt(cs->masteykey_blob, out, cs->masteykey_blob_length, &aeskey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(cs->masterkey_blob, out, cs->masterkey_blob_length, &aeskey, iv, AES_DECRYPT);
 
 	len = out[0];
 	if (len != IVLEN)  // quick reject
 		return 0;
 
-	// The structure of masteykey_blob is fixed:
-	//   + masteykey_blob -> length_1 (byte) + IV (16 bytes) + length_2 + masteykey (32 bytes) + length_3 + checksum (32 bytes) => total of 83 bytes
-	//   + padding -> this data blob of 83 bytes gets 13 bytes of padding making the masteykey_blob_length = 96 bytes always
-	if (check_pkcs_pad(out, cs->masteykey_blob_length, 16) < 0)
+	// The structure of masterkey_blob is fixed:
+	//   + masterkey_blob -> length_1 (byte) + IV (16 bytes) + length_2 + masterkey (32 bytes) + length_3 + checksum (32 bytes) => total of 83 bytes
+	//   + padding -> this data blob of 83 bytes gets 13 bytes of padding making the masterkey_blob_length = 96 bytes always
+	if (check_pkcs_pad(out, cs->masterkey_blob_length, 16) < 0)
 		return 0;
 
 	// padding check
-	pad_byte = out[cs->masteykey_blob_length - 1];
+	pad_byte = out[cs->masterkey_blob_length - 1];
 	if (pad_byte > 8)
 		return 1;
 
@@ -125,7 +125,7 @@ static int check_password(unsigned char *user_key, struct custom_salt *cs)
 
 	/* master key iv
 	len = out[offset++];
-	if (offset + len > cs->masteykey_blob_length)
+	if (offset + len > cs->masterkey_blob_length)
 		return 0;
 	memcpy(iv, out + offset, len);
 	offset += len;
@@ -133,14 +133,14 @@ static int check_password(unsigned char *user_key, struct custom_salt *cs)
 	len = out[offset++];
 	if (len != 32)  // quick reject
 		return 0;
-	if (offset + len > cs->masteykey_blob_length)
+	if (offset + len > cs->masterkey_blob_length)
 		return 0;
 	memcpy(masterkey, out + offset, len);
 	print_hex(masterkey, 32);
 	offset += len;
 	// master key checksum hash
 	len = out[offset++];
-	if (offset + len > cs->masteykey_blob_length)
+	if (offset + len > cs->masterkey_blob_length)
 		return 0;
 	memcpy(checksum, out + offset, len);
 

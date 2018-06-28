@@ -65,7 +65,7 @@ int ab_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlenl(p, &extra) > IVLEN * 2 || extra)
 		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)  // masteykey_blob
+	if ((p = strtokm(NULL, "*")) == NULL)  // masterkey_blob
 		goto err;
 	if (hexlenl(p, &extra) > MAX_MASTERKEYBLOB_LEN * 2 || extra)
 		goto err;
@@ -105,9 +105,9 @@ void *ab_get_salt(char *ciphertext)
 	for (i = 0; i < cs.iv_length; i++)
 		cs.iv[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 	p = strtokm(NULL, "*");
-	cs.masteykey_blob_length = strlen(p) / 2;
-	for (i = 0; i < cs.masteykey_blob_length; i++)
-		cs.masteykey_blob[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
+	cs.masterkey_blob_length = strlen(p) / 2;
+	for (i = 0; i < cs.masterkey_blob_length; i++)
+		cs.masterkey_blob[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 
 	MEM_FREE(keeptr);
 

@@ -27,8 +27,8 @@ struct custom_salt {
 	uint32_t user_salt_length;
 	unsigned char ck_salt[SALTLEN];
 	uint32_t ck_salt_length;
-	unsigned char masteykey_blob[MAX_MASTERKEYBLOB_LEN];
-	uint32_t masteykey_blob_length;
+	unsigned char masterkey_blob[MAX_MASTERKEYBLOB_LEN];
+	uint32_t masterkey_blob_length;
 };
 
 extern struct fmt_tests ab_tests[];

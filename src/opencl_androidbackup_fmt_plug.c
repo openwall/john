@@ -51,9 +51,9 @@ typedef struct {
 
 typedef struct {
 	pbkdf2_salt pbkdf2;
-	uint32_t masteykey_blob_length;
+	uint32_t masterkey_blob_length;
 	unsigned char iv[IVLEN];
-	unsigned char masteykey_blob[MAX_MASTERKEYBLOB_LEN];
+	unsigned char masterkey_blob[MAX_MASTERKEYBLOB_LEN];
 } ab_salt;
 
 /* This handles all widths */
@@ -227,13 +227,13 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt*)salt;
 	memcpy(currentsalt.pbkdf2.salt, cur_salt->user_salt, cur_salt->user_salt_length);
 	memcpy(currentsalt.iv, cur_salt->iv, IVLEN);
-	memcpy(currentsalt.masteykey_blob, cur_salt->masteykey_blob,
-	       cur_salt->masteykey_blob_length);
+	memcpy(currentsalt.masterkey_blob, cur_salt->masterkey_blob,
+	       cur_salt->masterkey_blob_length);
 	currentsalt.pbkdf2.length = cur_salt->user_salt_length;
 	currentsalt.pbkdf2.iterations = cur_salt->iterations;
 	currentsalt.pbkdf2.outlen = 32;
-	currentsalt.masteykey_blob_length = cur_salt->masteykey_blob_length;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(ab_salt) - (MAX_MASTERKEYBLOB_LEN - cur_salt->masteykey_blob_length), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+	currentsalt.masterkey_blob_length = cur_salt->masterkey_blob_length;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(ab_salt) - (MAX_MASTERKEYBLOB_LEN - cur_salt->masterkey_blob_length), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
 }
 
 static void clear_keys(void)
