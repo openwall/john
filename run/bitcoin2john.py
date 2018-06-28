@@ -851,7 +851,7 @@ if __name__ == '__main__':
 
         ckey = k['encrypted_privkey']
         public_key = k['pubkey']
-        cry_master = json_db['mkey']['encrypted_key']
+        cry_master = json_db['mkey']['encrypted_key'][-64:]  # last two aes blocks should be enough
         cry_salt = json_db['mkey']['salt']
 
         sys.stdout.write("$bitcoin$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" %

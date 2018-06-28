@@ -103,6 +103,8 @@ static struct fmt_tests bitcoin_tests[] = {
 	{"$bitcoin$96$a8d2a30b9a5419934cbb7cb0727ddc16c4bebdbf30d7e099ca35f2b1b7ba04cc42eb5b865bff8f65fc6ba9e15428d84f$16$872581181d72f577$128205$96$0a8d43558ed2b55f4a53491df66e6a71003db4588d11dc0a88b976122c2849a74c2bfaace36424cf029795db6fd2c78f$130$04ff53a6f68eab1c52e5b561b4616edb5bed4d7510cdb4931c8da68732a86d86f3a3f7de266f17c8d03e02ebe8e2c86e2f5de0007217fd4aaf5742ca7373113060", "openwall"},
 	/* PRiVCY-qt.exe <- privcy-1.1.1.0.tar.gz */
 	{"$bitcoin$96$d98326490616ef9f59767c5bf148061565fe1b21078445725ef31629e8ee430bf4d04896d5064b6651ab4c19021e2d7c$16$51ee8c9ab318da9e$46008$96$819f6c8e618869c7933b85f6c59d15ca6786876edc435ba3f400e272c2999b43e0e3cda27acd928d1adbccd01b613e66$66$03feefa49b8cbbdbb327b7c477586e4a3275132cf6778f05bc11c517dc2e9107cb", "openwall"},
+	// Truncated PRiVCY hash
+	{"$bitcoin$64$65fe1b21078445725ef31629e8ee430bf4d04896d5064b6651ab4c19021e2d7c$16$51ee8c9ab318da9e$46008$96$819f6c8e618869c7933b85f6c59d15ca6786876edc435ba3f400e272c2999b43e0e3cda27acd928d1adbccd01b613e66$66$03feefa49b8cbbdbb327b7c477586e4a3275132cf6778f05bc11c517dc2e9107cb", "openwall"},
 	{NULL}
 };
 
@@ -139,16 +141,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 // #define  BTC_DEBUG
-
-#ifdef BTC_DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -331,19 +323,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if ARCH_LITTLE_ENDIAN==1
 			for (i = 0; i < sizeof(key)/sizeof(uint64_t); i++)  // the derived key
 				((uint64_t *)key)[i] = JOHNSWAP64(key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
-			for (i = 0; i < sizeof(iv)/sizeof(uint64_t); i++)   // the derived iv
-				((uint64_t *)iv)[i]  = JOHNSWAP64(key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(uint64_t) + i) + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
 #else
 			for (i = 0; i < sizeof(key)/sizeof(uint64_t); i++)  // the derived key
 				((uint64_t *)key)[i] = key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
-			for (i = 0; i < sizeof(iv)/sizeof(uint64_t); i++)   // the derived iv
-				((uint64_t *)iv)[i]  = key_iv[SIMD_COEF_64*(sizeof(key)/sizeof(uint64_t) + i) + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 #endif
 
 			AES_set_decrypt_key(key, 256, &aes_key);
-			AES_cbc_encrypt(cur_salt->cry_master, output, cur_salt->cry_master_length, &aes_key, iv, AES_DECRYPT);
+			AES_cbc_encrypt(cur_salt->cry_master + cur_salt->cry_master_length - 32, output, 32, &aes_key, iv, AES_DECRYPT);
 
-			if (check_pkcs_pad(output, cur_salt->cry_master_length, 16) == 32) {
+			if (check_pkcs_pad(output, 32, 16) == 16) {
 				cracked[index + index2] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -366,9 +354,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		AES_set_decrypt_key(key_iv, 256, &aes_key);
-		AES_cbc_encrypt(cur_salt->cry_master, output, cur_salt->cry_master_length, &aes_key, key_iv + 32, AES_DECRYPT);
+		AES_cbc_encrypt(cur_salt->cry_master + cur_salt->cry_master_length - 32, output, 32, &aes_key, key_iv + 32, AES_DECRYPT);
 
-		if (check_pkcs_pad(output, cur_salt->cry_master_length, 16) == 32) {
+		if (check_pkcs_pad(output, 32, 16) == 16) {
 			cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
