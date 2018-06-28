@@ -52,6 +52,7 @@
 #include "config.h"
 #include "common-gpu.h"
 #include "mask.h"
+#include "aligned.h"
 
 #ifndef BENCH_BUILD
 #include "options.h"
@@ -223,6 +224,18 @@ static void bench_install_handler(void)
 #endif
 }
 
+static char *strnzcpy_mangle(char *dst, const char *src, int size, int mangle)
+{
+	char *dptr = dst;
+
+	if (size)
+		while (--size && *src)
+			*dptr++ = *src++ ^ mangle;
+	*dptr = 0;
+
+	return dst;
+}
+
 static void bench_set_keys(struct fmt_main *format,
 	struct fmt_tests *current, int cond)
 {
@@ -239,8 +252,8 @@ static void bench_set_keys(struct fmt_main *format,
 
 	length = format->params.benchmark_length;
 	for (index = 0; index < format->params.max_keys_per_crypt; index++) {
-		char random_pass[PLAINTEXT_BUFFER_SIZE];
-		int i;
+		JTR_ALIGN(MEM_ALIGN_WORD)
+			char random_pass[PLAINTEXT_BUFFER_SIZE];
 
 		do {
 			if (!current->ciphertext)
@@ -257,9 +270,8 @@ static void bench_set_keys(struct fmt_main *format,
 				break;
 		} while (1);
 
-		strnzcpy(random_pass, plaintext, sizeof(random_pass));
-		for (i = 0; i < strlen(plaintext); i++)
-			random_pass[i] ^= (index & 127);
+		strnzcpy_mangle(random_pass, plaintext,
+		                sizeof(random_pass), index & 127);
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK) {
 			random_pass[len] = 0;
