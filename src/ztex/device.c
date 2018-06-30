@@ -45,6 +45,8 @@ int device_init_fpgas(struct device *device, struct device_bitstream *bitstream)
 				if (result < 0)
 					return result;
 			}
+		for ( ; clk_num < NUM_PROGCLK_MAX; clk_num++)
+			fpga->freq[clk_num] = 0;
 
 		// Resets FPGA application with Global Set Reset (GSR)
 		result = fpga_reset(device->handle);
