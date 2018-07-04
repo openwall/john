@@ -91,10 +91,10 @@ static int check_password(unsigned char *authkey, struct custom_salt *cs)
 	unsigned char data_b[48];
 	unsigned char data_c[48];
 	unsigned char data_d[48];
-	unsigned char sha1_a[48];
-	unsigned char sha1_b[48];
-	unsigned char sha1_c[48];
-	unsigned char sha1_d[48];
+	unsigned char sha1_a[20];
+	unsigned char sha1_b[20];
+	unsigned char sha1_c[20];
+	unsigned char sha1_d[20];
 	unsigned char message_key[16];
 	unsigned char aes_key[32];
 	unsigned char aes_iv[32];
