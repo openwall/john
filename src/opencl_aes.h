@@ -301,4 +301,48 @@ inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
 		out[i] = buf[i] ^ tweak[i];
 }
 
+#define N_WORDS (AES_BLOCK_SIZE / sizeof(unsigned long))
+
+inline void
+AES_ige_decrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
+                uint length, AES_KEY *akey, uchar *_iv)
+{
+	AES_CTS_SRC_TYPE uchar *in = _in;
+	AES_CTS_DST_TYPE uchar *out = _out;
+
+	typedef union {
+		ulong data[N_WORDS];
+		uchar bytes[AES_BLOCK_SIZE];
+	} aes_block_t;
+
+	aes_block_t tmp, tmp2;
+	aes_block_t iv;
+	aes_block_t iv2;
+
+	uint n;
+	uint len = length / AES_BLOCK_SIZE;
+
+	memcpy_macro(iv.bytes, _iv, AES_BLOCK_SIZE);
+	memcpy_macro(iv2.bytes, _iv + AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+
+	while (len) {
+		memcpy_macro(tmp.bytes, in, AES_BLOCK_SIZE);
+		tmp2 = tmp;
+		for (n = 0; n < N_WORDS; ++n)
+			tmp.data[n] ^= iv2.data[n];
+		AES_decrypt((uchar*)tmp.data, (uchar*)tmp.data, akey);
+		for (n = 0; n < N_WORDS; ++n)
+			tmp.data[n] ^= iv.data[n];
+		memcpy_macro(out, tmp.bytes, AES_BLOCK_SIZE);
+		iv = tmp2;
+		iv2 = tmp;
+		--len;
+		in += AES_BLOCK_SIZE;
+		out += AES_BLOCK_SIZE;
+	}
+
+	// memcpy_macro(_iv, iv.bytes, AES_BLOCK_SIZE);
+	// memcpy_macro(_iv + AES_BLOCK_SIZE, iv2.bytes, AES_BLOCK_SIZE);
+}
+
 #endif	/* _OPENCL_AES_H_ */
