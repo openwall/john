@@ -304,11 +304,11 @@ inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
 #define N_WORDS (AES_BLOCK_SIZE / sizeof(unsigned long))
 
 inline void
-AES_ige_decrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
+AES_ige_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
                 uint length, AES_KEY *akey, uchar *_iv)
 {
-	AES_CTS_SRC_TYPE uchar *in = _in;
-	AES_CTS_DST_TYPE uchar *out = _out;
+	AES_SRC_TYPE uchar *in = _in;
+	AES_DST_TYPE uchar *out = _out;
 
 	typedef union {
 		ulong data[N_WORDS];

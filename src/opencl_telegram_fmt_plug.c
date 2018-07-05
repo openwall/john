@@ -30,7 +30,6 @@ john_register_one(&fmt_opencl_telegram);
 #include "opencl_common.h"
 #include "misc.h"
 #define MAX_OUTLEN (136)
-#define OUTLEN (136)
 #include "opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "telegram-opencl"
@@ -200,8 +199,8 @@ static void reset(struct db_main *db)
 
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DMAX_OUTLEN=%u "
-		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u -DENCRYPTED_BLOB_LEN=%d -DOUTLEN=%d",
-		         HASH_LOOPS, MAX_OUTLEN, PLAINTEXT_LENGTH, ocl_v_width, ENCRYPTED_BLOB_LEN, OUTLEN);
+		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u -DENCRYPTED_BLOB_LEN=%d",
+		         HASH_LOOPS, MAX_OUTLEN, PLAINTEXT_LENGTH, ocl_v_width, ENCRYPTED_BLOB_LEN);
 		opencl_init("$JOHN/kernels/telegram_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);

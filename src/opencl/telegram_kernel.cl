@@ -6,7 +6,6 @@
  */
 
 #include "pbkdf2_hmac_sha1_kernel.cl"
-#define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 #include "opencl_sha1_ctx.h"
 
