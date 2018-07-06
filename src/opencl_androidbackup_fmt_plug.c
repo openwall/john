@@ -293,7 +293,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 	}
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ab_final, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run PEM kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ab_final, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run AndroidBackup kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(ab_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");
