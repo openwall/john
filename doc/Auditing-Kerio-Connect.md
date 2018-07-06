@@ -37,7 +37,7 @@ These are the hashed passwords. Hashing is done using PKBDF2-HMAC-SHA1 with
 
 The following script can be used to reverse these "D3S" scrambled password strings.
 
-```
+```python
 #!/usr/bin/env python
 
 import sys
@@ -172,6 +172,44 @@ for line in sys.stdin.readlines():
         print(out)
 ```
 
+Since the last two DES keys are the same, this 3DES EDE operation is equivalent
+to a single DES encryption operation. We can simplify the decryption script as
+follows,
+
+```python
+#!/usr/bin/env python
+
+import sys
+from Crypto.Cipher import DES  # pip install --user pycrypto
+
+# Password unscrambler for Kerio Connect.
+
+key = "\x61\xd0\xe5\x49\x54\x73\x3b\x80"
+
+des = DES.new(key, DES.MODE_ECB)
+
+# Expected input line format -> D3S:d1ca0cee090ba26a64869078fcc95e46a74b66447f662068
+for line in sys.stdin.readlines():
+    out = ""
+    line = line.rstrip()
+    tag, data = line.split(":")
+    if tag != "D3S":
+        continue
+    data = data.decode("hex")
+    for i in range(1, len(data) // 8):
+        chunk = data[8*i:8*(i+1)]
+        output = des.decrypt(chunk)
+        if i == 1:
+            out = out + output[2:]
+        else:
+            out = out + output
+    if out:
+        padding_length = ord(out[-1])
+        if padding_length > 8:
+            padding_length = 0
+        print(out[:-padding_length])
+```
+
 
 #### Format the hashes
 
@@ -185,7 +223,7 @@ SHA:e2e9aa4757186ed5e8fdce538ce77b759298e2224f07c43f1d499533
 
 These can be converted into JtR format using the following script,
 
-```
+```python
 #!/usr/bin/env python
 
 import sys
