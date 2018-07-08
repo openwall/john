@@ -3,23 +3,27 @@
  *
  * This software is Copyright (c) 2018 Nicolas B. <mrtchuss at gmail.com>,
  * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  *
- * Based on work on Fortigate AK1 format by  Mat G. <mat.jtr at gmail.com>, (Copyright (c) 2012)
+ * Based on work on Fortigate AK1 format by Mat G. <mat.jtr at gmail.com>.
  *
- * Passwords are located in "config system admin" part of the configuration file :
+ * Passwords are located in "config system admin" part of the configuration
+ * file:
  *
  * config system admin
  *     edit "<username>"
  *        set password ENC SH2+n+OiTlautpJQF1NBcMU2H1otOvlAz9g5wzxwHw+4il3Aiixv9oPtKnRgCc=
  *
- * Password is : SH2|base64encode(salt|hashed_password)
+ * Password is: SH2|base64encode(salt|hashed_password)
  * where hashed_password is SHA256(salt|password|fortinet_magic)
  *
- * salt is 12 bytes long
- * hashed_password is 32 bytes long (SHA256)
- * encoded password is 63 bytes long (3 bytes for SH2 and 60 bytes of base64encode(salt|hashed_password))
+ * Salt is 12 bytes long
  *
+ * Hashed_password is 32 bytes long (SHA256)
+ *
+ * Encoded password is 63 bytes long (3 bytes for SH2 and 60 bytes of
+ * base64encode(salt|hashed_password))
  */
 
 #if FMT_EXTERNS_H
@@ -34,6 +38,8 @@ john_register_one(&fmt_FG2);
 #include <omp.h>
 #endif
 
+#define OMP_SCALE               256 // tuned on E5-2670 (varies widely)
+
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
@@ -41,37 +47,23 @@ john_register_one(&fmt_FG2);
 #include "base64_convert.h"
 #include "memdbg.h"
 
-#define FORMAT_LABEL		"Fortigate256"
+#define FORMAT_LABEL            "Fortigate256"
 #define FORMAT_NAME             "FortiOS256"
-#define ALGORITHM_NAME		"SHA256 32/" ARCH_BITS_STR
-
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-
-#define PLAINTEXT_LENGTH	44
-#define CIPHERTEXT_LENGTH	60
+#define ALGORITHM_NAME          "SHA256 32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0
+#define PLAINTEXT_LENGTH        44
+#define CIPHERTEXT_LENGTH       60
 #define HASH_LENGTH             CIPHERTEXT_LENGTH + 3
-
 #define BINARY_SIZE             32
-#define BINARY_ALIGN		4
+#define BINARY_ALIGN            4
 #define SALT_SIZE               12
-#define SALT_ALIGN		4
+#define SALT_ALIGN              4
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
 
 #define FORTINET_MAGIC          "\xa3\x88\xba\x2e\x42\x4c\xb0\x4a\x53\x79\x30\xc1\x31\x07\xcc\x3f\xa1\x32\x90\x29\xa9\x81\x5b\x70"
 #define FORTINET_MAGIC_LENGTH   24
-
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		512
-
-#ifdef __MIC__
-#ifndef OMP_SCALE
-#define OMP_SCALE               16
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
-#endif
-#endif // __MIC__
 
 static struct fmt_tests fgt_tests[] =
 {
@@ -91,11 +83,11 @@ static void init(struct fmt_main *self)
 	omp_autotune(self, OMP_SCALE);
 
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key));
+			sizeof(*saved_key));
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*crypt_key));
+			sizeof(*crypt_key));
 	saved_key_len = mem_calloc(self->params.max_keys_per_crypt,
-	                           sizeof(*saved_key_len));
+			sizeof(*saved_key_len));
 }
 
 static void done(void)
@@ -115,7 +107,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static void * get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	static union {
 		char b[SALT_SIZE];
@@ -141,12 +133,12 @@ static void set_key(char *key, int index)
 	saved_key_len[index] = strnzcpyn(saved_key[index], key, sizeof(*saved_key));
 }
 
-static char * get_key(int index)
+static char *get_key(int index)
 {
 	return saved_key[index];
 }
 
-static void * get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static union {
 		char b[BINARY_SIZE];
@@ -163,7 +155,6 @@ static void * get_binary(char *ciphertext)
 	return bin.b;
 }
 
-
 static int cmp_all(void *binary, int count)
 {
 	uint32_t b0 = *(uint32_t *)binary;
@@ -176,8 +167,6 @@ static int cmp_all(void *binary, int count)
 			return 1;
 	}
 	return 0;
-
-
 }
 
 static int cmp_one(void *binary, int index)
@@ -194,8 +183,8 @@ static int cmp_exact(char *source, int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i=0;
-	char *cp=FORTINET_MAGIC;
+	int i = 0;
+	char *cp = FORTINET_MAGIC;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_len, crypt_key, cp)
@@ -209,9 +198,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA256_Update(&ctx, cp, FORTINET_MAGIC_LENGTH);
 		SHA256_Final((unsigned char*)crypt_key[i], &ctx);
 	}
+
 	return count;
 }
-
 
 #define COMMON_GET_HASH_VAR crypt_key
 #include "common-get-hash.h"
@@ -219,11 +208,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int salt_hash(void *salt)
 {
 	uint32_t mysalt = *(uint32_t *)salt;
+
 	return mysalt & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_FG2 = {
-    {
+	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
 		ALGORITHM_NAME,
