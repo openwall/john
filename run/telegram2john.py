@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 """Utility to extract "hashes" from Telegram Android app's userconfing.xml file(s)"""
+"""Utility to extract "hashes" from Telegram Desktop's local storage (map) file"""
 
+# Android:
 # Tested with Telegram for Android v4.8.4 in February, 2018.
 #
 # Special thanks goes to https://github.com/Banaanhangwagen for documenting
@@ -12,6 +14,17 @@
 #
 # Written by Dhiru Kholia <dhiru at openwall.com> in February, 2018 for JtR
 # project.
+#
+#
+# Telegram Desktop:
+# Tested with multiple Telegram Desktop versions in July, 2018
+#
+# Special thanks goes to https://github.com/MihaZupan for documenting
+# this hashing scheme.
+#
+# Written by Dhiru Kholia <dhiru at openwall.com> in July, 2018 for JtR
+# project.
+#
 #
 # This software is Copyright (c) 2018, Dhiru Kholia <dhiru at openwall.com> and
 # it is hereby released to the general public under the following terms:
@@ -42,6 +55,7 @@ AuthKeySize = 256
 LocalEncryptIterCount = 4000
 LocalEncryptNoPwdIterCount = 4
 LocalEncryptSaltSize = 32
+LocalEncryptKeySize = 288 # 16 for the Message key, 16 for length and alignment and 256 bytes for the key
 
 
 def tdfs_parser(filename):
@@ -73,44 +87,41 @@ def tdfs_parser(filename):
 
 # Derived partly from localstorage.cpp -> readFile()
 def process_tdfs_file(base):
-    """
-    # read settings
-    directory = os.path.join(base, "tdata")
-    f = os.path.join(directory, "settings0")
-    if os.path.exists(f):
-        settings = os.path.join(directory, "settings0")
+    # detect the path - allows directories and actual map file
+    if os.path.isfile(base) or "map" in base:
+        map_path = base
     else:
-        settings = os.path.join(directory, "settings1")
-    f = BytesIO(tdfs_parser(settings))
+        if base.endswith('"'): # to deal with the trailing quote ex. "...\Telegram Desktop\"
+            base = base[:-1]
+        user_path = "D877F783D5D3EF8C"
+        if "tdata" in base:
+            if user_path in base:
+                directory = base
+            else:
+                directory = os.path.join(base, user_path)
+        else:
+            directory = os.path.join(base, "tdata", user_path)
+        map_path = os.path.join(directory, "map0")
+        if not os.path.exists(map_path):
+            map_path = os.path.join(directory, "map1")
+            if not os.path.exists(map_path):
+                return False
+
+    # read the encrypted data
+    f = BytesIO(tdfs_parser(map_path))
+
+    # read the salt
     length = f.read(4)
     length = struct.unpack(">I", length)[0]
     if length != LocalEncryptSaltSize:
         return False
     salt = f.read(length)
+
+    # read the encrypted key
     length = f.read(4)
     length = struct.unpack(">I", length)[0]
-    encrypted_settings = f.read(length)
-    """
-
-    # derive filename
-    s = hashlib.md5(b"data").hexdigest().upper()[:16]
-    user_path = ''.join([s[x:x+2][::-1] for x in range(0, len(s), 2)])  # swap character pairs
-
-    # read encrypted data
-    directory = os.path.join(base, "tdata", user_path)
-    f = os.path.join(directory, "map0")
-    if os.path.exists(f):
-        full_path = os.path.join(directory, "map0")
-    else:
-        full_path = os.path.join(directory, "map1")
-    f = BytesIO(tdfs_parser(full_path))
-    length = f.read(4)
-    length = struct.unpack(">I", length)[0]
-    if length != LocalEncryptSaltSize:
+    if length != LocalEncryptKeySize:
         return False
-    salt = f.read(length)
-    length = f.read(4)
-    length = struct.unpack(">I", length)[0]
     encrypted_key = f.read(length)
 
     salt = binascii.hexlify(salt)
@@ -119,7 +130,7 @@ def process_tdfs_file(base):
         salt = salt.decode("ascii")
         encrypted_key = encrypted_key.decode("ascii")
 
-    print("%s:$telegram$1*%s*%s*%s" % (full_path, LocalEncryptIterCount, salt, encrypted_key))
+    print("%s:$telegram$1*%s*%s*%s" % (map_path, LocalEncryptIterCount, salt, encrypted_key))
 
     return True
 
@@ -153,7 +164,9 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <userconfing.xml file(s) / <path to Telegram data directory>\n" %
                          sys.argv[0])
-        sys.stderr.write("\nExample: %s ~/.local/share/TelegramDesktop\n" %
+        sys.stderr.write("\nExample (Linux):   %s ~/.local/share/TelegramDesktop\n" %
+                         sys.argv[0])
+        sys.stderr.write("Example (Windows): %s \"C:/Users/Name/AppData/Roaming/Telegram Desktop\"\n" %
                          sys.argv[0])
         sys.exit(-1)
 
