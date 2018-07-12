@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-"""Utility to extract "hashes" from Telegram Android app's userconfing.xml file(s)"""
-"""Utility to extract "hashes" from Telegram Desktop's local storage (map) file"""
+"""Utility to extract "hashes" from Telegram Android app's userconfing.xml
+file(s) and from Telegram Desktop's local storage (map) file"""
 
-# Android:
+# Android App:
 # Tested with Telegram for Android v4.8.4 in February, 2018.
 #
 # Special thanks goes to https://github.com/Banaanhangwagen for documenting
@@ -68,7 +68,7 @@ def tdfs_parser(filename):
 
     magic = f.read(4)
     if magic != b'TDF$':
-        return False
+        return None
 
     version = f.read(4)  # AppVersion = 1003008 for Telegram Desktop 1.3.8
 
@@ -79,7 +79,7 @@ def tdfs_parser(filename):
     calculated_checksum = hashlib.md5(actual_data + len(actual_data).to_bytes(4, byteorder='little') + version + magic).digest()
     if calculated_checksum != checksum:
         f.close()
-        return False
+        return None
 
     f.close()
     return actual_data
@@ -108,7 +108,10 @@ def process_tdfs_file(base):
                 return False
 
     # read the encrypted data
-    f = BytesIO(tdfs_parser(map_path))
+    data = tdfs_parser(map_path)
+    if not data:
+        return False
+    f = BytesIO(data)
 
     # read the salt
     length = f.read(4)
@@ -164,7 +167,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <userconfing.xml file(s) / <path to Telegram data directory>\n" %
                          sys.argv[0])
-        sys.stderr.write("\nExample (Linux):   %s ~/.local/share/TelegramDesktop\n" %
+        sys.stderr.write("\nExample (Linux): %s ~/.local/share/TelegramDesktop\n" %
                          sys.argv[0])
         sys.stderr.write("Example (Windows): %s \"C:/Users/Name/AppData/Roaming/Telegram Desktop\"\n" %
                          sys.argv[0])
