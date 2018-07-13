@@ -1,5 +1,5 @@
 /*
- * JtR OpenCL format to crack Android Backup files.
+ * JtR OpenCL format to crack Telegram Desktop passcodes.
  *
  * This software is Copyright (c) 2018 Dhiru Kholia, Copyright (c) 2018 magnum
  * and it is hereby released to the general public under the following terms:
@@ -14,9 +14,9 @@
 #include "arch.h"
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_ab;
+extern struct fmt_main fmt_opencl_telegram;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_ab);
+john_register_one(&fmt_opencl_telegram);
 #else
 
 #include <string.h>
@@ -24,15 +24,15 @@ john_register_one(&fmt_opencl_ab);
 
 #include "formats.h"
 #include "common.h"
-#include "androidbackup_common.h"
+#include "telegram_common.h"
 #include "options.h"
 #include "jumbo.h"
 #include "opencl_common.h"
 #include "misc.h"
-#define MAX_OUTLEN 32
+#define MAX_OUTLEN (136)
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-#define FORMAT_LABEL            "AndroidBackup-opencl"
+#define FORMAT_LABEL            "telegram-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
@@ -47,14 +47,14 @@ john_register_one(&fmt_opencl_ab);
 
 typedef struct {
 	unsigned int cracked;
-} ab_out;
+} telegram_out;
 
 typedef struct {
 	pbkdf2_salt pbkdf2;
-	uint32_t masterkey_blob_length;
-	unsigned char iv[IVLEN];
-	unsigned char masterkey_blob[MAX_MASTERKEYBLOB_LEN];
-} ab_salt;
+	uint32_t encrypted_blob_length;
+	unsigned char encrypted_blob[ENCRYPTED_BLOB_LEN];
+} telegram_salt;
+
 
 /* This handles all widths */
 #define GETPOS(i, index)        (((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
@@ -62,27 +62,27 @@ typedef struct {
 static struct custom_salt *cur_salt;
 static size_t key_buf_size;
 static unsigned int *inbuffer;
-static ab_out *output;
-static ab_salt currentsalt;
+static telegram_out *output;
+static telegram_salt currentsalt;
 static cl_mem mem_in, mem_dk, mem_salt, mem_state, mem_out;
 static size_t key_buf_size;
 static int new_keys;
 static struct fmt_main *self;
 
-static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, ab_final;
+static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, telegram_final;
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
  * be chosen for a kernel duration of not more than 200 ms
  */
-#define HASH_LOOPS              1024
+#define HASH_LOOPS              4000
 #define ITERATIONS              10000 /* Just for auto tune */
 #define LOOP_COUNT              (((currentsalt.pbkdf2.iterations - 1 + HASH_LOOPS - 1)) / HASH_LOOPS)
 #define STEP                    0
 #define SEED                    128
 
 static const char * warn[] = {
-	"P xfer: ",  ", init: ", ", loop: ", ", pbkdf2: ", ", ab: ", ", res xfer: "
+	"P xfer: ",  ", init: ", ", loop: ", ", pbkdf2: ", ", telegram: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -99,7 +99,8 @@ static size_t get_task_max_work_group_size()
 	s = autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_init);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_loop));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, ab_final));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, telegram_final));
+
 	return s;
 }
 
@@ -111,11 +112,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
-	output = mem_alloc(sizeof(ab_out) * gws);
+	output = mem_alloc(sizeof(telegram_out) * gws);
 
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
-	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(ab_salt), NULL, &ret_code);
+	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(telegram_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
 	mem_dk = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem dk");
@@ -123,7 +124,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
-	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(ab_out) * gws, NULL, &ret_code);
+	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(telegram_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
 
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_init, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
@@ -136,9 +137,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 1, sizeof(mem_dk), &mem_dk), "Error while setting mem_dk kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 2, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
-	HANDLE_CLERROR(clSetKernelArg(ab_final, 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(ab_final, 1, sizeof(mem_dk), &mem_dk), "Error while setting mem_dk kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(ab_final, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(telegram_final, 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(telegram_final, 1, sizeof(mem_dk), &mem_dk), "Error while setting mem_dk kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(telegram_final, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
 static void release_clobj(void)
@@ -163,7 +164,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_loop), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(ab_final), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(telegram_final), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		autotuned--;
@@ -198,9 +199,9 @@ static void reset(struct db_main *db)
 
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DMAX_OUTLEN=%u "
-		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u -DMAX_MASTERKEYBLOB_LEN=%d",
-		         HASH_LOOPS, MAX_OUTLEN, PLAINTEXT_LENGTH, ocl_v_width, MAX_MASTERKEYBLOB_LEN);
-		opencl_init("$JOHN/kernels/androidbackup_kernel.cl", gpu_id, build_opts);
+		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u -DENCRYPTED_BLOB_LEN=%d",
+		         HASH_LOOPS, MAX_OUTLEN, PLAINTEXT_LENGTH, ocl_v_width, ENCRYPTED_BLOB_LEN);
+		opencl_init("$JOHN/kernels/telegram_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
@@ -208,10 +209,10 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
-		ab_final = clCreateKernel(program[gpu_id], "ab_final", &ret_code);
+		telegram_final = clCreateKernel(program[gpu_id], "telegram_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 
-		// Initialize openCL tuning (library) for this format.
+		// Initialize OpenCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 		                       warn, 2, self, create_clobj,
 		                       release_clobj,
@@ -225,15 +226,14 @@ static void reset(struct db_main *db)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt*)salt;
-	memcpy(currentsalt.pbkdf2.salt, cur_salt->user_salt, cur_salt->user_salt_length);
-	memcpy(currentsalt.iv, cur_salt->iv, IVLEN);
-	memcpy(currentsalt.masterkey_blob, cur_salt->masterkey_blob,
-	       cur_salt->masterkey_blob_length);
-	currentsalt.pbkdf2.length = cur_salt->user_salt_length;
+	memcpy(currentsalt.pbkdf2.salt, cur_salt->salt, cur_salt->salt_length);
+	memcpy(currentsalt.encrypted_blob, cur_salt->encrypted_blob,
+	       cur_salt->encrypted_blob_length);
+	currentsalt.pbkdf2.length = cur_salt->salt_length;
 	currentsalt.pbkdf2.iterations = cur_salt->iterations;
-	currentsalt.pbkdf2.outlen = 32;
-	currentsalt.masterkey_blob_length = cur_salt->masterkey_blob_length;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(ab_salt) - (MAX_MASTERKEYBLOB_LEN - cur_salt->masterkey_blob_length), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+	currentsalt.pbkdf2.outlen = MAX_OUTLEN;
+	currentsalt.encrypted_blob_length = cur_salt->encrypted_blob_length;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(telegram_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
 }
 
 static void clear_keys(void)
@@ -241,7 +241,7 @@ static void clear_keys(void)
 	memset(inbuffer, 0, key_buf_size);
 }
 
-static void ab_set_key(char *key, int index)
+static void telegram_set_key(char *key, int index)
 {
 	int i;
 	int length = strlen(key);
@@ -293,10 +293,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 	}
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], ab_final, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run AndroidBackup kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], telegram_final, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run Telegram kernel");
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(ab_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(telegram_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");
 
 	return count;
 }
@@ -305,9 +305,11 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
-	for (index = 0; index < count; index++)
+	for (index = 0; index < count; index++) {
 		if (output[index].cracked)
 			return 1;
+	}
+
 	return 0;
 }
 
@@ -321,7 +323,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_opencl_ab = {
+struct fmt_main fmt_opencl_telegram = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -341,18 +343,18 @@ struct fmt_main fmt_opencl_ab = {
 			"iteration count",
 		},
 		{ FORMAT_TAG },
-		ab_tests
+		telegram_tests
 	}, {
 		init,
 		done,
 		reset,
 		fmt_default_prepare,
-		ab_valid,
+		telegram_valid,
 		fmt_default_split,
 		fmt_default_binary,
-		ab_get_salt,
+		telegram_get_salt,
 		{
-			ab_iteration_count,
+			telegram_iteration_count,
 		},
 		fmt_default_source,
 		{
@@ -361,7 +363,7 @@ struct fmt_main fmt_opencl_ab = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		ab_set_key,
+		telegram_set_key,
 		get_key,
 		clear_keys,
 		crypt_all,
