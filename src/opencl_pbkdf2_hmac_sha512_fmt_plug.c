@@ -7,6 +7,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
+
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
@@ -18,7 +19,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include <stdint.h>
 #include <ctype.h>
 #include <string.h>
-#include <assert.h>
 
 #include "misc.h"
 #include "arch.h"
@@ -29,25 +29,22 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include "johnswap.h"
 #include "pbkdf2_hmac_common.h"
 
-#define NUUL NULL
-#define FORMAT_LABEL		"PBKDF2-HMAC-SHA512-opencl"
-#define FORMAT_NAME		    "GRUB2 / OS X 10.8+"
-#define ALGORITHM_NAME		"PBKDF2-SHA512 OpenCL"
+#define NUUL                     NULL
+#define FORMAT_LABEL             "PBKDF2-HMAC-SHA512-opencl"
+#define FORMAT_NAME              "GRUB2 / OS X 10.8+"
+#define ALGORITHM_NAME           "PBKDF2-SHA512 OpenCL"
+#define BINARY_ALIGN             8
+#define SALT_ALIGN               8
+#define PLAINTEXT_LENGTH         110
+#define SALT_SIZE                sizeof(salt_t)
+#define KERNEL_NAME              "pbkdf2_sha512_kernel"
+#define SPLIT_KERNEL_NAME        "pbkdf2_sha512_loop"
 
-#define BINARY_ALIGN		8
-#define SALT_ALIGN		8
-
-#define PLAINTEXT_LENGTH	110
-#define	SALT_SIZE		sizeof(salt_t)
-
-#define KERNEL_NAME             "pbkdf2_sha512_kernel"
-#define SPLIT_KERNEL_NAME	"pbkdf2_sha512_loop"
-
-#define HASH_LOOPS		250
-#define ITERATIONS		10000
+#define HASH_LOOPS               250
+#define ITERATIONS               10000
 
 typedef struct {
-    // for plaintext, we must make sure it is a full uint64 width.
+	// for plaintext, we must make sure it is a full uint64 width.
 	uint64_t v[(PLAINTEXT_LENGTH+7)/8]; // v must be kept aligned(8)
 	uint64_t length; // keep 64 bit aligned. length is overkill, but easiest way to stay aligned.
 } pass_t;
@@ -72,24 +69,24 @@ typedef struct {
 } state_t;
 
 // #define DEBUG
-static pass_t *host_pass;			      /** plain ciphertexts **/
-static salt_t *host_salt;			      /** salt **/
-static crack_t *host_crack;			      /** cracked or no **/
+static pass_t *host_pass; // plain ciphertexts
+static salt_t *host_salt;  // salt
+static crack_t *host_crack;  // cracked or not
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel;
 static cl_int cl_error;
 static struct fmt_main *self;
 
-#define STEP			0
-#define SEED			256
+#define STEP                     0
+#define SEED                     256
 
 static const char * warn[] = {
-        "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
+	"xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
 
-//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 #include "memdbg.h"
 
@@ -111,11 +108,11 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 #define CL_WO CL_MEM_WRITE_ONLY
 #define CL_RW CL_MEM_READ_WRITE
 
-#define CLCREATEBUFFER(_flags, _size, _string)	  \
+#define CLCREATEBUFFER(_flags, _size, _string)  \
 	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error); \
 	HANDLE_CLERROR(cl_error, _string);
 
-#define CLKERNELARG(kernel, id, arg, msg)	  \
+#define CLKERNELARG(kernel, id, arg, msg)  \
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	mem_in = CLCREATEBUFFER(CL_RO, kpc * sizeof(pass_t),
@@ -160,12 +157,12 @@ static void reset(struct db_main *db)
 			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
 
-		//Initialize openCL tuning (library) for this format.
+		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
 		                       2, self, create_clobj, release_clobj,
 		                       sizeof(state_t), 0, db);
 
-		//Auto tune execution from shared/included code.
+		// Auto tune execution from shared/included code.
 		autotune_run(self, ITERATIONS, 0, 200);
 	}
 }
@@ -221,7 +218,7 @@ static void *get_salt(char *ciphertext)
 	ciphertext = strchr(ciphertext, delim) + 1;
 	p = strchr(ciphertext, delim);
 	saltlen = 0;
-	while (ciphertext < p) {        /** extract salt **/
+	while (ciphertext < p) {  // extract salt
 		salt[saltlen++] =
 			atoi16[ARCH_INDEX(ciphertext[0])] * 16 +
 			atoi16[ARCH_INDEX(ciphertext[1])];
@@ -234,7 +231,6 @@ static void *get_salt(char *ciphertext)
 
 	return (void *)&cs;
 }
-
 
 static void set_salt(void *salt)
 {
@@ -252,12 +248,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		&local_work_size : NULL;
 	int i, loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 		gws * sizeof(pass_t), host_pass, 0, NUUL,
 		multi_profilingEvent[0]), "Copy data to gpu");
 
-	/// Run kernel
+	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NUUL, &gws, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
@@ -270,7 +266,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 		opencl_process_event();
 	}
-	/// Read the result back
+	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		gws * sizeof(crack_t), host_crack, 0, NUUL,
 		 multi_profilingEvent[3]), "Copy result back");
@@ -318,15 +314,9 @@ static int cmp_exact(char *source, int index)
 
 static int binary_hash_0(void *binary)
 {
-#if 0
-	uint32_t i, *b = binary;
-	puts("binary");
-	for (i = 0; i < 16; i++)
-		printf("%08x ", b[i]);
-	puts("");
-#endif
 	return (((uint32_t *) binary)[0] & PH_MASK_0);
 }
+
 static int binary_hash_1(void *binary) { return (((uint32_t *) binary)[0] & PH_MASK_1); }
 static int binary_hash_2(void *binary) { return (((uint32_t *) binary)[0] & PH_MASK_2); }
 static int binary_hash_3(void *binary) { return (((uint32_t *) binary)[0] & PH_MASK_3); }
@@ -336,13 +326,6 @@ static int binary_hash_6(void *binary) { return (((uint32_t *) binary)[0] & PH_M
 
 static int get_hash_0(int index)
 {
-#if 0
-	uint32_t i;
-	puts("get_hash");
-	for (i = 0; i < 16; i++)
-		printf("%08x ", ((uint32_t*)host_crack[index].hash)[i]);
-	puts("");
-#endif
 	return host_crack[index].hash[0] & PH_MASK_0;
 }
 
@@ -355,78 +338,78 @@ static int get_hash_6(int index) { return host_crack[index].hash[0] & PH_MASK_6;
 
 static unsigned int iteration_count(void *salt)
 {
-	salt_t *my_salt;
+	salt_t *my_salt = salt;
 
-	my_salt = salt;
 	return (unsigned int) my_salt->rounds;
 }
 
 struct fmt_main fmt_opencl_pbkdf2_hmac_sha512 = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    0,
-		    PLAINTEXT_LENGTH,
-		    PBKDF2_SHA512_BINARY_SIZE,
-		    BINARY_ALIGN,
-		    SALT_SIZE,
-		    SALT_ALIGN,
-		    1,
-		    1,
-		    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-			{
-				"iteration count",
-			},
-			{
-				PBKDF2_SHA512_FORMAT_TAG,
-				FORMAT_TAG_ML,
-				FORMAT_TAG_GRUB
-			},
-	        pbkdf2_hmac_sha512_common_tests
-		}, {
-		    init,
-		    done,
-		    reset,
-		    pbkdf2_hmac_sha512_prepare,
-		    pbkdf2_hmac_sha512_valid,
-		    pbkdf2_hmac_sha512_split,
-		    get_binary,
-		    get_salt,
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LENGTH,
+		PBKDF2_SHA512_BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		1,
+		1,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		{
+			"iteration count",
+		},
+		{
+			PBKDF2_SHA512_FORMAT_TAG,
+			FORMAT_TAG_ML,
+			FORMAT_TAG_GRUB
+		},
+		pbkdf2_hmac_sha512_common_tests
+	}, {
+		init,
+		done,
+		reset,
+		pbkdf2_hmac_sha512_prepare,
+		pbkdf2_hmac_sha512_valid,
+		pbkdf2_hmac_sha512_split,
+		get_binary,
+		get_salt,
 		{
 			iteration_count,
 		},
-		    fmt_default_source,
-		    {
-				binary_hash_0,
-				binary_hash_1,
-				binary_hash_2,
-				binary_hash_3,
-				binary_hash_4,
-				binary_hash_5,
-				binary_hash_6
-		    },
-		    fmt_default_salt_hash,
-		    NULL,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-				get_hash_0,
-				get_hash_1,
-				get_hash_2,
-				get_hash_3,
-				get_hash_4,
-				get_hash_5,
-				get_hash_6
-		    },
-		    cmp_all,
-		    cmp_one,
-	    cmp_exact}
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		NULL,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
 
 #endif /* plugin stanza */

@@ -77,7 +77,7 @@ typedef struct {
 	uint16_t md_keylen;
 	uint16_t md_aalgo;
 	uint8_t md_keys;
-	uint8_t	md_mkeys[G_ELI_MAXMKEYS * G_ELI_MKEYLEN];
+	uint8_t md_mkeys[G_ELI_MAXMKEYS * G_ELI_MKEYLEN];
 } geli_salt_t;
 
 typedef struct {
@@ -94,8 +94,8 @@ static cl_kernel split_kernel, final_kernel;
 static cl_int cl_error;
 static struct fmt_main *self;
 
-#define STEP			0
-#define SEED			256
+#define STEP                    0
+#define SEED                    256
 
 static const char *warn[] = {
 	"xfer: ",  ", init: " , ", crypt: ", ", final: ", ", res xfer: "
@@ -127,11 +127,11 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 #define CL_WO CL_MEM_WRITE_ONLY
 #define CL_RW CL_MEM_READ_WRITE
 
-#define CLCREATEBUFFER(_flags, _size, _string)	  \
-	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error); \
+#define CLCREATEBUFFER(_flags, _size, _string)  \
+	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error);  \
 	HANDLE_CLERROR(cl_error, _string);
 
-#define CLKERNELARG(kernel, id, arg, msg)	  \
+#define CLKERNELARG(kernel, id, arg, msg)  \
 	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), msg);
 
 	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(geli_salt_t),
@@ -276,8 +276,7 @@ static void set_salt(void *salt)
 	host_salt->md_keylen = cur_salt->md_keylen;
 	host_salt->md_aalgo = cur_salt->md_aalgo;
 	host_salt->md_keys = cur_salt->md_keys;
-	memcpy(host_salt->md_mkeys, cur_salt->md_mkeys,
-	       G_ELI_MAXMKEYS * G_ELI_MKEYLEN);
+	memcpy(host_salt->md_mkeys, cur_salt->md_mkeys, G_ELI_MAXMKEYS * G_ELI_MKEYLEN);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE,
 				0, sizeof(geli_salt_t), host_salt, 0, NULL, NULL),
 				"Copy salt to gpu");
@@ -355,8 +354,10 @@ static void set_key(char *key, int index)
 static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
+
 	memcpy(ret, host_pass[index].v, PLAINTEXT_LENGTH);
 	ret[host_pass[index].length] = 0;
+
 	return ret;
 }
 

@@ -6,6 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
+
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_pkcs12.h"
@@ -36,9 +37,9 @@ typedef struct {
 	uint32_t iterations;
 	uint32_t keylen;
 	uint32_t saltlen;
-	uint32_t  salt[20 / 4];
+	uint32_t salt[20 / 4];
 	uint32_t datalen;
-	uint32_t  data[MAX_DATA_LENGTH / 4];
+	uint32_t data[MAX_DATA_LENGTH / 4];
 } pfx_salt;
 
 inline void pfx_crypt(__global const uint *password, uint32_t password_length,
