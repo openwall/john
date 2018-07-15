@@ -32,7 +32,6 @@ john_register_one(&fmt_ab);
 #include "options.h"
 #include "sha2.h"
 #include "aes.h"
-// #define PBKDF2_HMAC_SHA1_ALSO_INCLUDE_CTX 1
 #include "pbkdf2_hmac_sha1.h"
 #include "androidbackup_common.h"
 #include "memdbg.h"
