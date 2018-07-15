@@ -32,6 +32,7 @@ john_register_one(&fmt_sappse);
 #include "common.h"
 #include "formats.h"
 #include "loader.h"
+#include "sap_pse_common.h"
 #include "simd-intrinsics.h"
 #include "pkcs12.h"
 #include "memdbg.h"
@@ -43,7 +44,6 @@ john_register_one(&fmt_sappse);
 #define PLAINTEXT_LENGTH        48
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
-#define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
@@ -58,24 +58,7 @@ john_register_one(&fmt_sappse);
 #define MAX_KEYS_PER_CRYPT      16
 #endif
 
-static struct fmt_tests tests[] =
-{
-	{"$pse$1$2048$8$0000000000000000$0$$8$826a5c4189e18b67", "1234"},
-	{"$pse$1$2048$8$0000000000000000$0$$16$4e25e64000fa09dc32b2310a215d246e", "12345678"},
-	{"$pse$1$2048$8$0000000000000000$0$$16$70172e6c0eb85edc6344852fb5fd24f3", "1234567890"},
-	{"$pse$1$10000$8$0000000000000000$0$$16$4b23ac258610078d0ca66620010850b8", "password"},
-	{"$pse$1$10000$8$77cb6908be860865$0$$16$24ee62740976ada0e7a41ade3552ee42", "1234567980"},
-	{NULL}
-};
-
-static struct custom_salt {
-	int iterations;
-	int salt_size;
-	int encrypted_pin_size;
-	unsigned char salt[32];
-	unsigned char encrypted_pin[128];
-} *cur_salt;
-
+struct custom_salt *cur_salt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static int *cracked;
@@ -94,96 +77,6 @@ static void done(void)
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *p = ciphertext, *ctcopy, *keeptr;
-	int extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
-		return 0;
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LENGTH;
-	if ((p = strtokm(ctcopy, "$")) == NULL) // version
-		goto bail;
-	if (!isdec(p))
-		goto bail;
-	if (atoi(p) != 1)
-		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // iterations
-		goto bail;
-	if (!isdec(p))
-		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // salt size
-		goto bail;
-	if (!isdec(p))
-		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // salt
-		goto bail;
-	if (hexlenl(p, &extra) > 32 * 2 || extra)
-		goto bail;
-	if (!ishexlc(p))
-		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // iv size
-		goto bail;
-	if (!isdec(p))
-		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // iv
-		goto bail;
-	if (hexlenl(p, &extra) > 32 * 2 || extra)
-		goto bail;
-	if (!ishexlc(p))
-		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // encrypted_pin_length
-		goto bail;
-	if (!isdec(p))
-		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) // encrypted_pin
-		goto bail;
-	if (hexlenl(p, &extra) > 128 * 2 || extra)
-		goto bail;
-	if (!ishexlc(p))
-		goto bail;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-bail:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	static struct custom_salt cs;
-	int i;
-	char *p = ciphertext, *ctcopy, *keeptr;
-
-	memset(&cs, 0, sizeof(cs));
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LENGTH;
-	p = strtokm(ctcopy, "$");
-	p = strtokm(NULL, "$");
-	cs.iterations = atoi(p);
-	p = strtokm(NULL, "$");
-	cs.salt_size = atoi(p);
-	p = strtokm(NULL, "$");
-	for (i = 0; i < cs.salt_size; i++)
-		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
-	p = strtokm(NULL, "$");
-	p = strtokm(NULL, "$");
-	p = strtokm(NULL, "$");
-	cs.encrypted_pin_size = atoi(p);
-	p = strtokm(NULL, "$");
-	for (i = 0; i < cs.encrypted_pin_size; i++)
-		cs.encrypted_pin[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
-
-	MEM_FREE(keeptr);
-
-	return (void *)&cs;
 }
 
 static void set_salt(void *salt)
@@ -297,13 +190,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static unsigned int sappse_iteration_count(void *salt)
-{
-	struct custom_salt *cs = salt;
-
-	return (unsigned int) cs->iterations;
-}
-
 struct fmt_main fmt_sappse = {
 	{
 		FORMAT_LABEL,
@@ -324,16 +210,16 @@ struct fmt_main fmt_sappse = {
 			"iteration count",
 		},
 		{ FORMAT_TAG },
-		tests
+		sappse_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		sappse_common_valid,
 		fmt_default_split,
 		fmt_default_binary,
-		get_salt,
+		sappse_common_get_salt,
 		{
 			sappse_iteration_count,
 		},
