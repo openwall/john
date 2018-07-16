@@ -24,7 +24,7 @@ john_register_one(&fmt_sappse);
 #include <omp.h>
 #endif
 
-#define OMP_SCALE               1  // this is a slow format
+#define OMP_SCALE               2  // tuned on i7-7820HQ
 
 #include "arch.h"
 #include "misc.h"
@@ -38,7 +38,7 @@ john_register_one(&fmt_sappse);
 
 #define FORMAT_LABEL            "sappse"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "PKCS12 PBE SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PKCS12 PBE SHA1 " SHA1_ALGORITHM_NAME " 3DES"
 // I could not get openssl to use passwords > 48 bytes, so we will cut support at this length.
 #define PLAINTEXT_LENGTH        48
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -55,7 +55,7 @@ john_register_one(&fmt_sappse);
 #define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA1 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      4
+#define MAX_KEYS_PER_CRYPT      16
 #endif
 
 static struct fmt_tests tests[] =
