@@ -1685,7 +1685,7 @@ find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
-SUBDIRS = aes secp256k1
+SUBDIRS = aes secp256k1 ed25519-donna
 
 .PHONY: subdirs $(SUBDIRS) find_version
 
@@ -1695,7 +1695,7 @@ $(SUBDIRS):
 	$(MAKE_ORIG) -C $@ all CC=$(CC)
 
 ../run/john: $(JOHN_OBJS) $(SUBDIRS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a secp256k1/secp256k1.a -o ../run/john
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.o -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -1768,7 +1768,7 @@ john.com: john.asm
 #	$(LD) $(JOHN_OBJS) -lkernel32 -lcrypto -o ../run/john.exe
 
 ../run/john.exe: $(JOHN_OBJS) $(SUBDIRS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a secp256k1/secp256k1.a -lkernel32 -o ../run/john.exe
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a -lkernel32 -o ../run/john.exe
 	$(STRIP) ../run/john.exe
 
 # this LD line removed from the ../run/john-mingw.exe rule (MinGW32 builds)
@@ -1777,7 +1777,7 @@ john.com: john.asm
 #	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john-mingw.exe
 
 ../run/john-mingw.exe: $(JOHN_OBJS)
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a secp256k1/secp256k1.a -lkernel32 -o ../run/john-mingw.exe
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a -lkernel32 -o ../run/john-mingw.exe
 	$(STRIP) ../run/john-mingw.exe
 	cp ../run/john-mingw.exe ../run/john.exe
 
@@ -1982,6 +1982,7 @@ clean:
 	+$(MAKE_ORIG) -C aes clean
 	+$(MAKE_ORIG) -C escrypt clean
 	+$(MAKE_ORIG) -C secp256k1 clean
+	+$(MAKE_ORIG) -C ed25519-donna clean
 
 
 # These are mostly for internal use.

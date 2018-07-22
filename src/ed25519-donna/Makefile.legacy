@@ -1,0 +1,34 @@
+
+CC = gcc
+CXX = @CXX@
+AS = gcc
+LD = gcc
+CPP = gcc
+YASM =
+AR = ar
+FIND = find
+
+IN = ed25519-donna.o
+
+all: ed25519-donna.a
+default: ed25519-donna.a
+
+ed25519-donna.o: ed25519-donna.c
+	$(CC) -DHAVE_CONFIG_H $(CFLAGS) -c ed25519-donna.c -o ed25519-donna.o
+
+.PHONY: subdirs $(SUBDIRS)
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ all
+
+ed25519-donna.a: $(SUBDIRS) ed25519-donna.o
+	$(AR) -rs $@ $(IN)
+
+clean:
+	$(FIND) . -name \*.a -exec $(RM) {} \;
+	$(FIND) . -name \*.o -exec $(RM) {} \;
+
+distclean: clean
+	$(RM) Makefile
