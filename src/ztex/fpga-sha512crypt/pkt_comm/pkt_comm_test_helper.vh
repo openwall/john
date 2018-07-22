@@ -21,6 +21,61 @@
 
 // ***************************************************************
 //
+// Packet type PKT_TYPE_CONFIG (0x06)
+//
+// ***************************************************************
+task send_config_packet;
+	input [7:0] subtype;
+	input [7:0] len; // data length (excl. subtype & reserved)
+	input [511:0] data; // 64 max.
+	begin: doit
+		integer i;
+		wr_en <= 1;
+		din <= 2; #20; din <= 6; #20; // ver, type
+		din <= 0; #40; // reserved0
+		din <= len+2; #20; din <= 0; #20;
+		din <= 0; #20;
+		din <= 0; #20; // reserved1
+		din <= 8'h00; #40; // IDs in PKT_TYPE_CONFIG not used
+		din <= 0; #80; // checksum
+		// body
+		din <= subtype; #20;
+		for (i = 0; i < len; i=i+1) begin
+			din <= data[i*8 +:8]; #20;
+		end
+		din <= 0; #20; // reserved
+		din <= 0; #80; // checksum
+		wr_en <= 0;
+	end
+endtask
+
+
+// ***************************************************************
+//
+// Packet type PKT_TYPE_INIT (0x05)
+//
+// ***************************************************************
+task send_init_packet;
+	input [7:0] data;
+	begin
+		wr_en <= 1;
+		din <= 2; #20; din <= 5; #20; // ver, type
+		din <= 0; #40; // reserved0
+		din <= 1; #20; din <= 0; #20; // len=1
+		din <= 0; #20;
+		din <= 0; #20; // reserved1
+		din <= 8'h00; #40; // IDs in PKT_TYPE_INIT not used
+		din <= 0; #80; // checksum
+		// body
+		din <= data; #20;
+		din <= 0; #80; // checksum
+		wr_en <= 0;
+	end
+endtask
+
+
+// ***************************************************************
+//
 // Packet type CMP_CONFIG (0x03)
 //
 // ***************************************************************

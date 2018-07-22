@@ -13,7 +13,6 @@
 #include <libusb-1.0/libusb.h>
 
 #include "../memory.h"
-#include "../config.h"
 
 #include "ztex.h"
 #include "inouttraffic.h"
@@ -103,76 +102,6 @@ int PKT_DEBUG = 1;
 
 //////////////////////////////////////////////////////////////////////////////
 
-
-// Set frequency for every device, every FPGA from config
-static void set_frequency(struct device_list *device_list)
-{
-	char *CFG_SECTION = "ZTEX:";
-	char conf_name_default[256], conf_name_board[256], conf_name[256];
-	struct device *dev;
-	int fpga_num, clk_num;
-	int default_freq[NUM_PROGCLK_MAX], board_freq[NUM_PROGCLK_MAX],
-		chip_freq[NUM_PROGCLK_MAX];
-	int freq;
-
-	if (!jtr_bitstream->num_progclk)
-		return;
-
-	if (jtr_bitstream->num_progclk > NUM_PROGCLK_MAX) {
-		fprintf(stderr, "Invalid num_progclk=%d in struct device_bitstream,"
-			" label %s\n", jtr_bitstream->num_progclk, jtr_bitstream->label);
-		error();
-	}
-
-	for (clk_num = 0; clk_num < jtr_bitstream->num_progclk; clk_num++)
-		if (jtr_bitstream->freq[clk_num] <= 0) {
-			fprintf(stderr, "Invalid frequency for clock %d in struct"
-				" device_bitstream, label %s\n", clk_num, jtr_bitstream->label);
-			error();
-		}
-
-	// Default frequency (for every device)
-	strcpy(conf_name_default, "Frequency");
-	cfg_get_int_array(CFG_SECTION, jtr_bitstream->label, conf_name_default,
-			default_freq, NUM_PROGCLK_MAX);
-
-	for (dev = device_list->device; dev; dev = dev->next) {
-
-		// Frequency specific to given board
-		sprintf(conf_name_board, "%s_%s", conf_name_default,
-				dev->ztex_device->snString);
-		cfg_get_int_array(CFG_SECTION, jtr_bitstream->label, conf_name_board,
-				board_freq, NUM_PROGCLK_MAX);
-
-		for (fpga_num = 0; fpga_num < dev->num_of_fpgas; fpga_num++) {
-
-			// Frequency for given chip
-			sprintf(conf_name, "%s_%d", conf_name_board, fpga_num + 1);
-			cfg_get_int_array(CFG_SECTION, jtr_bitstream->label, conf_name,
-					chip_freq, NUM_PROGCLK_MAX);
-
-			for (clk_num = 0; clk_num < jtr_bitstream->num_progclk; clk_num++) {
-				freq =
-					chip_freq[clk_num] != -1 ? chip_freq[clk_num] :
-					board_freq[clk_num] != -1 ? board_freq[clk_num] :
-					default_freq[clk_num] != -1 ? default_freq[clk_num] :
-					-1;
-				if (freq == -1)
-					continue;
-
-				// It sets default frequency before GSR. Skip setting
-				// frequency if it's equal to the default one.
-				if (freq == jtr_bitstream->freq[clk_num])
-					continue;
-
-				fpga_progclk(&dev->fpga[fpga_num], clk_num, freq);
-			} // for (clk_num)
-
-		} // for (fpga)
-	} // for (device)
-}
-
-
 struct jtr_device_list *jtr_device_list_init()
 {
 	int result;
@@ -201,7 +130,7 @@ PKT_DEBUG = 1; // print erroneous packets recieved from devices
 		if (device_count) {
 			//fprintf(stderr, "%d device(s) ZTEX 1.15y ready\n", device_count);
 			//ztex_dev_list_print(device_list->ztex_dev_list);
-			set_frequency(device_list);
+
 			device_list_print(device_list);
 		} else {
 			fprintf(stderr, "no valid ZTEX devices found\n");
@@ -213,7 +142,7 @@ PKT_DEBUG = 1; // print erroneous packets recieved from devices
 	// - soft reset, initialize fpgas
 	} else {
 		device_list_init(device_list, jtr_bitstream);
-		set_frequency(device_list);
+
 		device_list_print(device_list);
 		int device_count = device_list_count(device_list);
 		if (!device_count) {

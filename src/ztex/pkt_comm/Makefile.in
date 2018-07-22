@@ -1,4 +1,4 @@
-# This software is Copyright (c) 2016 Denis Burykin
+# This software is Copyright (c) 2016,2018 Denis Burykin
 # [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
 # and it is hereby released to the general public under the following terms:
 # Redistribution and use in source and binary forms, with or without
@@ -7,7 +7,7 @@
 CC = gcc
 CFLAGS = -c -Wall -O2
 
-OBJS = pkt_comm.o word_gen.o word_list.o cmp_config.o inpkt.o
+OBJS = pkt_comm.o word_gen.o word_list.o cmp_config.o inpkt.o init_data.o
 
 default: $(OBJS)
 all: $(OBJS)
@@ -15,20 +15,21 @@ all: $(OBJS)
 
 pkt_comm.o: pkt_comm.c pkt_comm.h
 	$(CC) $(CFLAGS) pkt_comm.c
-	
+
 word_gen.o: word_gen.c word_gen.h pkt_comm.h
-	$(CC) $(CFLAGS) word_gen.c 
+	$(CC) $(CFLAGS) word_gen.c
 
 word_list.o: word_list.c word_list.h pkt_comm.h
-	$(CC) $(CFLAGS) word_list.c 
+	$(CC) $(CFLAGS) word_list.c
 
 cmp_config.o: cmp_config.c cmp_config.h
 	$(CC) $(CFLAGS) cmp_config.c
-	
+
 inpkt.o: inpkt.c inpkt.h
 	$(CC) $(CFLAGS) inpkt.c
 
+init_data.o: init_data.c init_data.h
+	$(CC) $(CFLAGS) init_data.c
 
 clean:
 	rm -f $(OBJS)
-	

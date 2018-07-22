@@ -46,7 +46,8 @@ module arbiter_rx #(
 	input rd_en,
 	output reg empty = 1,
 	
-	output reg err = 0
+	output reg [1:0] err = 0,
+	output reg [15:0] debug = 0
 	);
 
 	reg [`MSB(N_UNITS-1):0] unit_num = 0;
@@ -70,7 +71,7 @@ module arbiter_rx #(
 	reg [15:0] rd_tmp = 0;
 	reg [5:0] result_word_count = 0;
 
-	reg [7:0] delay_cnt = 0;
+	reg [5:0] delay_cnt = 0;
 
 
 	localparam STATE_IDLE = 0,
@@ -100,7 +101,7 @@ module arbiter_rx #(
 		case (state)
 		STATE_IDLE: begin
 			delay_cnt <= delay_cnt + 1'b1;
-			if (delay_cnt == 255)
+			if (delay_cnt == 63)
 				state <= STATE_WAIT;
 		end
 		
@@ -120,8 +121,10 @@ module arbiter_rx #(
 			unit_rd_en <= 0;
 			result_word_count <= 0;
 			if (din != 0) begin
-				if (din != {UNIT_OUTPUT_WIDTH{1'b1}})
-					err <= 1;
+				if (din != {UNIT_OUTPUT_WIDTH{1'b1}}) begin
+					err[0] <= 1;
+					debug [unit_num] <= 1;
+				end
 				else
 					state <= STATE_RX_DATA;
 			end
@@ -156,8 +159,10 @@ module arbiter_rx #(
 		
 		STATE_RX_END: begin
 			outpkt_type <= `OUTPKT_TYPE_RESULT;
-			if (din != 0)
-				err <= 1;
+			if (din != 0) begin
+				err[1] <= 1;
+				debug [unit_num] <= 1;
+			end
 			else if (mode_cmp)
 				state <= STATE_CMP;
 			else begin

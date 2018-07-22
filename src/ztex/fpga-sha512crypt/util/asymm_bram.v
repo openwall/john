@@ -50,8 +50,13 @@ module asymm_bram_min_wr #(
 
 	localparam log2RATIO = `MSB(RATIO);
 
+	integer k;
+
 	(* RAM_STYLE="BLOCK" *)
 	reg [minWIDTH-1:0] mem [0:RATIO*maxDEPTH-1];
+	initial
+		for (k=0; k < RATIO*maxDEPTH; k=k+1)
+			mem[k] = 0;
 
 	genvar i;
 
@@ -98,8 +103,13 @@ module asymm_bram_min_rd #(
 
 	localparam log2RATIO = `MSB(RATIO);
 
+	integer k;
+	
 	(* RAM_STYLE="BLOCK" *)
 	reg [minWIDTH-1:0] mem [0:RATIO*maxDEPTH-1];
+	initial
+		for (k=0; k < RATIO*maxDEPTH; k=k+1)
+			mem[k] = 0;
 
 	genvar i;
 
