@@ -78,7 +78,8 @@ static struct device_bitstream bitstream = {
 	512,		// Max. number of entries in onboard comparator.
 	160,		// Min. number of keys for effective device utilization
 	1, { 135 },	// Programmable clocks
-	"sha512crypt"	// label for configuration file
+	"sha512crypt",	// label for configuration file
+	"\x00", 1		// Initialization data
 };
 
 

@@ -48,7 +48,9 @@ module unit_input #(
 	output reg [N_THREADS_MSB :0] ts_num = 0, // Thread #
 	output reg ts_wr_en = 0,
 	output [`THREAD_STATE_MSB :0] ts_wr,
-	input [`THREAD_STATE_MSB :0] ts_rd
+	input [`THREAD_STATE_MSB :0] ts_rd,
+	
+	output reg [`ENTRY_PT_MSB:0] entry_pt_curr = 0
 	);
 	
 	reg ts_wr_en_r = 0;
@@ -85,10 +87,11 @@ module unit_input #(
 				STATE_IN_SEARCH2 = 4,
 				STATE_IN_SEARCH3 = 5,
 				STATE_IN_SEARCH4 = 6,
-				STATE_IN_SEARCH5 = 7;
+				STATE_IN_SEARCH5 = 7,
+				STATE_IN_WAIT_PKT_END = 8;
 				
 	(* FSM_EXTRACT="true", FSM_ENCODING="auto" *)
-	reg [2:0] state_in = STATE_IN_NONE;
+	reg [3:0] state_in = STATE_IN_NONE;
 
 	always @(posedge CLK) begin
 		if (ts_wr_en_r)
@@ -98,9 +101,16 @@ module unit_input #(
 		// Wait for the start of input packet.
 		STATE_IN_NONE: begin
 			afull <= 0;
-			if (wr_en & ctrl)
+			if (wr_en & ctrl & in[2:0] == 0)
 				state_in <= STATE_IN_GOING;
+			else if (wr_en & ctrl & in[2:0] == 1) begin
+				entry_pt_curr <= in [`ENTRY_PT_MSB+3 :3];
+				state_in <= STATE_IN_WAIT_PKT_END;			
+			end
 		end
+		
+		STATE_IN_WAIT_PKT_END: if (wr_en & ctrl)
+			state_in <= STATE_IN_NONE;
 		
 		STATE_IN_GOING: begin
 			ready <= 0;

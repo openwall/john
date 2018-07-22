@@ -23,7 +23,7 @@
 
 module clocks #(
 	parameter PKT_COMM_FREQ = 135, // adjust UCF
-	parameter CORE_FREQ = 225 // cmt3 - programmable (adjust UCF)
+	parameter CORE_FREQ = 135//225 // cmt3 - programmable (adjust UCF)
 	)(
 	input IFCLK_IN,
 	input FXCLK_IN,

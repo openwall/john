@@ -120,10 +120,11 @@ module sha512crypt #(
 	// app_status error codes:
 	//
 	// 0x01 - candidates received, comparator is unconfigured (arbiter_tx)
-	// 0x02 - bad output from a computing unit (arbiter_rx)
+	// 0x02, 0x04 - bad output from a computing unit (arbiter_rx)
+	// 0x08 - error in PKT_TYPE_CONFIG
 	//
 	// ************************************************************
-	assign app_status[7:2] = 0;
+	assign app_status[7:4] = 0;
 
 
 	(* KEEP="true" *) wire mode_cmp = ~app_mode[6]; // Use comparator
@@ -145,8 +146,10 @@ module sha512crypt #(
 	localparam PKT_TYPE_WORD_GEN = 2;
 	localparam PKT_TYPE_CMP_CONFIG = 3;
 	localparam PKT_TYPE_TEMPLATE_LIST = 4;
+	localparam PKT_TYPE_INIT = 5;
+	localparam PKT_TYPE_CONFIG = 6;
 
-	localparam PKT_MAX_TYPE = 4;
+	localparam PKT_MAX_TYPE = 6;
 
 
 	wire [`MSB(PKT_MAX_TYPE):0] inpkt_type;
@@ -169,7 +172,43 @@ module sha512crypt #(
 
 	// input packet processing: read enable
 	assign rd_en = ~empty & ~error_r & (~inpkt_data 
-		| word_gen_conf_en | word_list_wr_en | cmp_config_wr_en);
+		| word_gen_conf_en | word_list_wr_en | cmp_config_wr_en
+		| inpkt_init_rd_en | inpkt_config_rd_en
+	);
+
+
+	// **************************************************
+	//
+	// input packet type PKT_TYPE_CONFIG (0x06)
+	//
+	// **************************************************
+	wire inpkt_config_rd_en = ~empty & ~error_r
+		& inpkt_type == PKT_TYPE_CONFIG & inpkt_data & ~inpkt_config_full;
+
+	wire [15:0] config_data1; // used to mask units in arbiter_tx
+	
+	inpkt_config inpkt_config(
+		.CLK(PKT_COMM_CLK),
+		.din(din), .wr_en(inpkt_config_rd_en), .full(inpkt_config_full),
+		.dout1(config_data1), .err(app_status[3])
+	);
+
+
+	// **************************************************
+	//
+	// input packet type PKT_TYPE_INIT (0x05)
+	//
+	// **************************************************
+	wire inpkt_init_rd_en = ~empty & ~error_r
+		& inpkt_type == PKT_TYPE_INIT & inpkt_data & ~inpkt_init_full;
+	
+	wire [7:0] init_data;
+	
+	inpkt_type_init_1b inpkt_init(
+		.CLK(PKT_COMM_CLK),
+		.din(din), .wr_en(inpkt_init_rd_en), .full(inpkt_init_full),
+		.dout(init_data), .rd_en(init_rd_en), .empty(init_empty)
+	);
 
 
 	// **************************************************
@@ -251,8 +290,8 @@ module sha512crypt #(
 	//wire [31:0] gen_id;
 	//wire gen_end;
 
-	assign debug2 = 8'hd2;
-	assign debug3 = 8'hd3;
+	//assign debug2 = 8'hd2;
+	//assign debug3 = 8'hd3;
 
 	// *************************************************************
 
@@ -316,6 +355,10 @@ module sha512crypt #(
 		.new_cmp_config(new_cmp_config),
 		.cmp_config_applied(cmp_config_applied),
 		.cmp_config_addr(cmp_config_addr), .cmp_config_data(cmp_config_data),
+
+		.init_din(init_data), .init_rd_en(init_rd_en),
+		.init_empty(init_empty),
+		.unit_tx_mask(config_data1[N_UNITS-1:0]),
 
 		.unit_in(unit_in), .unit_in_ctrl(unit_in_ctrl),
 		.unit_in_wr_en(unit_in_wr_en),
@@ -434,7 +477,7 @@ module sha512crypt #(
 		.outpkt_type(outpkt_type), .pkt_id(arbiter_pkt_id),
 		.num_processed(arbiter_num_processed), .hash_num(hash_num),
 		.empty(arbiter_empty), .rd_en(arbiter_rd_en),
-		.err(app_status[1])
+		.err(app_status[2:1]), .debug({debug3, debug2})
 	);
 
 

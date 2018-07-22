@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2017 Denis Burykin
+ * This software is Copyright (c) 2017-2018 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -196,6 +196,8 @@ module sha512engine #(
 	// thread's memory, sets THREAD_STATE_WR_RDY
 	//
 	// **********************************************************
+	wire [`ENTRY_PT_MSB:0] entry_pt_curr;
+
 	unit_input #( .N_CORES(N_CORES)
 	) unit_input(
 		.CLK(CLK),
@@ -206,7 +208,9 @@ module sha512engine #(
 		.rd_en(ext_wr_en), .empty(unit_input_empty),
 
 		.ts_num(ts_num4), .ts_wr_en(ts_wr_en4),
-		.ts_wr(ts_wr4), .ts_rd(ts_rd4)
+		.ts_wr(ts_wr4), .ts_rd(ts_rd4),
+		
+		.entry_pt_curr(entry_pt_curr)
 	);
 	
 	assign ext_wr_en = ~unit_input_empty & ~ext_full;
@@ -371,6 +375,7 @@ module sha512engine #(
 	cpu #( .N_CORES(N_CORES)
 	) cpu(
 		.CLK(CLK),
+		.entry_pt_curr(entry_pt_curr),
 		// thread_state (ts) - using channel 1
 		.ts_wr_num(ts_wr_num1), .ts_rd_num(ts_rd_num1), .ts_wr_en(ts_wr_en1),
 		.ts_wr(ts_wr1), .ts_rd(ts_rd1),
@@ -429,3 +434,4 @@ module sha512engine #(
 endmodule
 
 `endif
+

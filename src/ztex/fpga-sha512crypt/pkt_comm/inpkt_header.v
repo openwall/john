@@ -134,7 +134,7 @@ module inpkt_header #(
 				pkt_header <= 1;
 				pkt_byte_count <= 0;
 				
-				if (din == 0 || din[PKT_TYPE_MSB:0] > PKT_MAX_TYPE || din[7:PKT_TYPE_MSB+1]) begin
+				if (din == 0 || din > PKT_MAX_TYPE) begin//din[PKT_TYPE_MSB:0] > PKT_MAX_TYPE || din[7:PKT_TYPE_MSB+1]) begin
 					// wrong packet type
 					err_pkt_type <= 1;
 					pkt_state <= PKT_STATE_ERROR;

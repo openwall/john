@@ -36,7 +36,7 @@ module sha512crypt_cmp_config(
 	// until cmp_config_applied asserts (requires mode_cmp=1).
 	input cmp_config_applied,
 
-	// Comparator
+	// Output into comparator
 	output reg [`HASH_COUNT_MSB:0] hash_count,
 	output reg [`HASH_NUM_MSB+2:0] cmp_wr_addr = {`HASH_NUM_MSB+3{1'b1}},
 	output reg cmp_wr_en = 0,

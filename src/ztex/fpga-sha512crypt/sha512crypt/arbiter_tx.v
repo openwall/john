@@ -53,6 +53,11 @@ module arbiter_tx #(
 	output cmp_config_applied,
 	output reg [4:0] cmp_config_addr = 0,
 	input [7:0] cmp_config_data,
+	// From initialization packet (PKT_TYPE_INIT)
+	input [7:0] init_din,
+	input init_empty,
+	output init_rd_en,
+	input [N_UNITS-1:0] unit_tx_mask,
 
 	// Units (CORE_CLK)
 	output reg [7:0] unit_in = 0, // broadcast
@@ -80,10 +85,11 @@ module arbiter_tx #(
 				STATE_IN_WAIT_RX_DONE = 4,
 				STATE_IN_CMP_CONFIG = 5,
 				STATE_IN_DELAY1 = 6,
-				STATE_IN_DELAY2 = 7;
+				STATE_IN_DELAY2 = 7,
+				STATE_IN_PKT_INIT = 8;
 
 	(* FSM_EXTRACT="true" *)
-	reg [2:0] state_in = STATE_IN_IDLE;
+	reg [3:0] state_in = STATE_IN_IDLE;
 
 	always @(posedge CLK) begin
 		case (state_in)
@@ -91,12 +97,20 @@ module arbiter_tx #(
 			if (~word_empty)
 				state_in <= STATE_IN_PROCESS_WORDS;
 			
+			// loose checks; expecting init packet after
+			// fpga startup; transmitter must be idle
+			if (~init_empty & src_totally_empty)
+				state_in <= STATE_IN_PKT_INIT;
+
 			// New "comparator configuration" (incl. salt data).
 			// It has to wait until it finishes processing of words
 			// associated with the previous comparator configuration.
 			if (new_cmp_config & src_totally_empty)
 				state_in <= STATE_IN_CMP_CONFIG;
 		end
+
+		STATE_IN_PKT_INIT:
+			state_in <= STATE_IN_IDLE;
 
 		STATE_IN_PROCESS_WORDS: if (~word_empty) begin
 			if (~cmp_configured)
@@ -154,13 +168,21 @@ module arbiter_tx #(
 
 	assign cmp_config_applied = state_in == STATE_IN_CMP_CONFIG;
 
+	assign init_rd_en = state_in == STATE_IN_PKT_INIT;
+
+	sync_pulse sync_pkt_init( .wr_clk(CLK),
+		.sig(state_in == STATE_IN_PKT_INIT),
+		.busy(), .rd_clk(CORE_CLK), .out(pkt_init_sync) );
+
 
 	// ***************************************************
 	reg [`MSB(N_UNITS-1):0] unit_num = 0;
 	reg afull = 1, ready = 0;
+	reg unit_tx_mask_r = 0;
 	always @(posedge CORE_CLK) begin
 		afull <= unit_in_afull [unit_num];
 		ready <= unit_in_ready [unit_num];
+		unit_tx_mask_r <= unit_tx_mask [unit_num];
 	end
 	
 	reg [2:0] cnt = 0;
@@ -180,30 +202,36 @@ module arbiter_tx #(
 				STATE_TX4 = 7,
 				STATE_TX5 = 8,
 				STATE_TX6 = 9,
-				STATE_TX_END = 10;
+				STATE_TX_END = 10,
+				STATE_TX_PKT_INIT1 = 11,
+				STATE_TX_PKT_INIT2 = 12,
+				STATE_TX_PKT_INIT3 = 13;
 
 	(* FSM_EXTRACT="true" *)
 	reg [3:0] state = STATE_IDLE;
 
 	always @(posedge CORE_CLK) begin
 		case (state)
-		STATE_IDLE: if (tx_ready_sync) // ready for transmit
-			state <= STATE_SEARCH1;
-			
+		STATE_IDLE:
+			if (pkt_init_sync)
+				state <= STATE_TX_PKT_INIT1;
+			else if (tx_ready_sync) // ready for transmit
+				state <= STATE_SEARCH1;
+
 		STATE_SEARCH1:
-			if (ready)
-				state <= STATE_TX1;
-			else begin
+			if (~ready | unit_tx_mask_r) begin
 				unit_num <= unit_num == N_UNITS-1
 					? {`MSB(N_UNITS-1)+1{1'b0}} : unit_num + 1'b1;
 				state <= STATE_SEARCH2;
 			end
+			else
+				state <= STATE_TX1;
 		
 		STATE_SEARCH2:
 			state <= STATE_SEARCH1;
 		
 		STATE_TX1: begin // Start transmission
-			unit_in <= 1; // packet header (1 byte).
+			unit_in <= 0; // packet header (1 byte).
 			unit_in_wr_en [unit_num] <= 1;
 			unit_in_ctrl <= 1;
 			cmp_config_addr <= 0;
@@ -281,6 +309,24 @@ module arbiter_tx #(
 			unit_in_ctrl <= 0;
 			unit_num <= unit_num == N_UNITS-1
 				? {`MSB(N_UNITS-1)+1{1'b0}} : unit_num + 1'b1;
+			state <= STATE_IDLE;
+		end
+		
+		// Broadcast transmission of initialization packet
+		STATE_TX_PKT_INIT1: begin
+			unit_in <= { init_din[4:0], 3'b001 };
+			unit_in_wr_en <= {N_UNITS{1'b1}};
+			unit_in_ctrl <= 1;
+			state <= STATE_TX_PKT_INIT2;
+		end
+
+		STATE_TX_PKT_INIT2: begin
+			state <= STATE_TX_PKT_INIT3;
+		end
+
+		STATE_TX_PKT_INIT3: begin
+			unit_in_wr_en <= {N_UNITS{1'b0}};
+			unit_in_ctrl <= 0;
 			state <= STATE_IDLE;
 		end
 		endcase

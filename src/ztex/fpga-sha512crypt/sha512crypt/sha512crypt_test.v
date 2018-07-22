@@ -33,7 +33,7 @@ module sha512crypt_test();
 		// It has no internal check for the count of rounds.
 		//
 		// *****************************************************************
-		#1000;
+		#500;
 
 
 		// *****************************************************************
@@ -52,6 +52,9 @@ module sha512crypt_test();
 		//
 		// *****************************************************************
 
+		// Usage: send_config_packet(subtype,data_len,data);
+		send_config_packet(1,2,16'b_0000_0001_0000_1100);
+		
 		// Usage: cmp_config_create(cnt,salt_len,"salt");
 		cmp_config_create(10,8,"ssssssss");
 		cmp_config_add_hash(32'h93c527d7);
@@ -65,6 +68,7 @@ module sha512crypt_test();
 		word_list_add("pass_len_is15..");
 
 		for (k=0; k < 500; k=k+1)
+		//for (k=0; k < 20; k=k+1)
 			word_list_add("11111110");
 		
 		word_list_add("11111111");
@@ -302,6 +306,30 @@ module sha512crypt_test();
 		send_word_list();
 */
 
+		// *****************************************************************
+		//
+		// Test #6.
+		//
+		// Drupal7 hashes.
+		//
+		// *****************************************************************
+/*
+		// Set Drupal7 program
+		#2000;
+		send_init_packet(1);
+		
+		// {"$S$CFURCPa.k6FAEbJPgejaW4nijv7rYgGc4dUJtChQtV4KLJTPTC/u", "password"}
+		cmp_config_create(16384,8,"FURCPa.k");
+		cmp_config_add_hash(32'h6740c448);
+		send_cmp_config();
+		
+		send_empty_word_gen(6);
+		
+		word_list_add("passwor-");
+		word_list_add("password");
+		word_list_add("passwor");
+		send_word_list();
+*/
 	end
 
 

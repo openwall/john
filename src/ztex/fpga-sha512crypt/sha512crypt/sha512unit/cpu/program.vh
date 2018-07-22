@@ -43,6 +43,7 @@ initial begin
 	//
 	// Algorithm notes:
 	// - key_len=0 is supported
+	// - max. key_len is 64
 	// - salt_len=0, cnt=0 NOT supported
 	//
 	// ************************************************************
@@ -354,6 +355,70 @@ initial begin
 	// ************************************************************
 	instr_mem[136] = `SET_OUTPUT_COMPLETE;
 	instr_mem[137] = `JMP(01);
+
+
+	// ************************************************************
+	//
+	// Drupal7 program
+	//
+	// max. key_len = 144
+	//
+	// ************************************************************
+
+	instr_mem[150] = `MV_R_MEM_L(`R_cnt,`ADDR_cnt);
+	instr_mem[151] = `MV_R_MEM_U(`R_salt_len,`ADDR_salt_len);
+	instr_mem[152] = `MV_R_MEM_L(`R_key_len,`ADDR_key_len);
+	instr_mem[153] = `NEW_CTX(`ADDR_alt_result,8);
+	instr_mem[154] = `MV_R_R(`R0,`R_cnt);
+	instr_mem[155] = `PROCESS_BYTES_R(`ADDR_salt,`R_salt_len);
+	instr_mem[156] = `PROCESS_BYTES_R_FINISH_CTX(`ADDR_key,`R_key_len);
+	instr_mem[157] = `NOP;
+	instr_mem[158] = `NOP;
+	instr_mem[159] = `NOP;
+
+// 164 ->
+	instr_mem[160] = `NEW_CTX(`ADDR_alt_result,8);
+	instr_mem[161] = `PROCESS_BYTES_C(`ADDR_alt_result,64);
+	instr_mem[162] = `PROCESS_BYTES_R_FINISH_CTX(`ADDR_key,`R_key_len);
+	instr_mem[163] = `SUB_R_C(`R0,`R0,1);
+	`IF(`IF_NOT_ZERO)
+	instr_mem[164] = `JMP(160); `IF(`IF_NONE)
+	instr_mem[165] = `NOP;
+	instr_mem[166] = `NOP;
+	instr_mem[167] = `NOP;
+	instr_mem[168] = `NOP;
+	// Successful JMP ensures - computation is complete and written
+	instr_mem[169] = `JMP(170);
+
+	// Output are IDs and 288 bits of hash (352 total),
+	// the rest in the packet is trash.
+	instr_mem[170] = `MV_R_MEM_L(`R0,`ADDR_ids);
+	instr_mem[171] = `MV_R_MEM_U(`R1,`ADDR_ids);
+	instr_mem[172] = `MV_R_MEM_L(`R2,`ADDR_alt_result + 5'd0);
+	instr_mem[173] = `MV_R_MEM_U(`R3,`ADDR_alt_result + 5'd0);
+	instr_mem[174] = `MV_R_MEM_L(`R4,`ADDR_alt_result + 5'd1);
+	instr_mem[175] = `MV_R_MEM_U(`R5,`ADDR_alt_result + 5'd1);
+	instr_mem[176] = `MV_R_MEM_L(`R6,`ADDR_alt_result + 5'd2);
+	instr_mem[177] = `MV_R_MEM_U(`R7,`ADDR_alt_result + 5'd2);
+	instr_mem[178] = `MV_R_MEM_L(`R8,`ADDR_alt_result + 5'd3);
+	instr_mem[179] = `MV_R_MEM_U(`R9,`ADDR_alt_result + 5'd3);
+	instr_mem[180] = `MV_R_MEM_L(`R10,`ADDR_alt_result + 5'd4);
+
+	instr_mem[181] = `MV_UOB_R(0,`R0);
+	instr_mem[182] = `MV_UOB_R(1,`R1);
+	instr_mem[183] = `MV_UOB_R(2,`R2);
+	instr_mem[184] = `MV_UOB_R(3,`R3);
+	instr_mem[185] = `MV_UOB_R(4,`R4);
+	instr_mem[186] = `MV_UOB_R(5,`R5);
+	instr_mem[187] = `MV_UOB_R(6,`R6);
+	instr_mem[188] = `MV_UOB_R(7,`R7);
+	instr_mem[189] = `MV_UOB_R(8,`R8);
+	instr_mem[190] = `MV_UOB_R(9,`R9);
+	instr_mem[191] = `MV_UOB_R(10,`R10);
+
+	instr_mem[192] = `SET_OUTPUT_COMPLETE;
+	instr_mem[193] = `JMP(150);
+
 
 /*
 	instr_mem[] = `JMP();
