@@ -15972,7 +15972,7 @@ echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} $
 
 HOST_OS="$host_os"
 
-ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile escrypt/Makefile"
+ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile ed25519-donna/Makefile escrypt/Makefile"
 
 
 CFLAGS_EXTRA_BACKUP=$CFLAGS_EXTRA
@@ -16688,6 +16688,7 @@ do
     "aes/aesni/Makefile") CONFIG_FILES="$CONFIG_FILES aes/aesni/Makefile" ;;
     "aes/openssl/Makefile") CONFIG_FILES="$CONFIG_FILES aes/openssl/Makefile" ;;
     "secp256k1/Makefile") CONFIG_FILES="$CONFIG_FILES secp256k1/Makefile" ;;
+    "ed25519-donna/Makefile") CONFIG_FILES="$CONFIG_FILES ed25519-donna/Makefile" ;;
     "escrypt/Makefile") CONFIG_FILES="$CONFIG_FILES escrypt/Makefile" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
