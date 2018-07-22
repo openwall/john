@@ -25,3 +25,4 @@ struct custom_salt {
 void *pfx_common_get_salt(char *ciphertext);
 void *pfx_common_get_binary(char *ciphertext);
 unsigned int pfx_get_mac_type(void *salt);
+unsigned int pfx_iteration_count(void *salt);

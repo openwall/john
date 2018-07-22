@@ -57,8 +57,14 @@ void *pfx_common_get_binary(char *ciphertext)
 
 unsigned int pfx_get_mac_type(void *salt)
 {
-	struct custom_salt *my_salt;
+	struct custom_salt *my_salt = salt;
 
-	my_salt = salt;
 	return (unsigned int) my_salt->mac_algo;
+}
+
+unsigned int pfx_iteration_count(void *salt)
+{
+	struct custom_salt *cs = (struct custom_salt*)salt;
+
+	return cs->iteration_count;
 }
