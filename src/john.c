@@ -162,6 +162,7 @@ extern struct fmt_main fmt_NT;
 extern struct fmt_main fmt_ztex_descrypt;
 extern struct fmt_main fmt_ztex_bcrypt;
 extern struct fmt_main fmt_ztex_sha512crypt;
+extern struct fmt_main fmt_ztex_drupal7;
 #endif
 
 #include "fmt_externs.h"
@@ -366,6 +367,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_ztex_descrypt);
 	john_register_one(&fmt_ztex_bcrypt);
 	john_register_one(&fmt_ztex_sha512crypt);
+	john_register_one(&fmt_ztex_drupal7);
 #endif
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);

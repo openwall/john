@@ -16,7 +16,7 @@ module cpu #(
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
-	
+	input [`ENTRY_PT_MSB:0] entry_pt_curr,	
 	// thread_state (ts)
 	output [N_THREADS_MSB :0] ts_rd_num, ts_wr_num, // Thread #
 	output reg ts_wr_en = 0,
@@ -89,6 +89,7 @@ module cpu #(
 	instruction #( .N_CORES(N_CORES)
 	) instruction(
 		.CLK(CLK),
+		.entry_pt_curr(entry_pt_curr),
 		.ts_rd_num(ts_rd_num), .ts_rd(ts_rd),
 		.thread_num(thread_num),
 		// Asserts for 1 cycle at STAGE_RD1

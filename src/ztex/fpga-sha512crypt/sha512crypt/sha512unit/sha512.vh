@@ -99,6 +99,8 @@
 `define	N_STAGES			4
 // 16 registers
 `define	REG_ADDR_MSB	3
+// Program entry points
+`define	ENTRY_PT_MSB	0
 //
 // Each instruction consists of:
 `define	OP_CODE_LEN		5

@@ -3,6 +3,7 @@
 - sha512crypt for ZTEX 1.15y board allows candidate passwords up to
 64 bytes, equipped with on-board mask generator and comparator.
 The board computes 640 keys in parallel.
+- It's also able to compute Drupal7 CMS hashes.
 
 
 ## Computing units
@@ -96,6 +97,9 @@ fetches input data from the memory, creates 16 x 64-bit data blocks
 for cores, adds padding and total where necessary. It saves
 the state of an unfinished computation, switches to the next core
 after each block.
+- It allows several programs hardcoded in CPU's instruction memory.
+Required program is selected at runtime. Currently there're 2 programs:
+sha512crypt and Drupal7 CMS hashes.
 - The program for the CPU is available <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/sha512unit/cpu/program.vh'>here</a>.
 
 
@@ -146,7 +150,7 @@ after each block.
 fig.2. Overview, FPGA application
 
 - Each FPGA has 10 computing units, that's 40 cores, 160 keys are
-computed in parallel. 
+computed in parallel.
 - On some hashes, dependent on key length and salt length,
 performance degradation up to 10% is observed. The cause is
 not-so-effective iteraction between CPU and process_bytes unit.

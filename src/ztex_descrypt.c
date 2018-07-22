@@ -59,7 +59,8 @@ struct device_bitstream bitstream = {
 	2047,
 	0,	// Min. number of keys (doesn't matter for fast "formats")
 	2, { 220, 160 },	// Programmable clocks
-	"descrypt"	// label for configuration file
+	"descrypt",	// label for configuration file
+	NULL, 0		// Initialization data
 };
 
 

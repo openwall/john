@@ -38,26 +38,17 @@ john_register_one(&fmt_drupal7);
 #endif
 #include "memdbg.h"
 
-#define FORMAT_LABEL			"Drupal7"
-#define FORMAT_NAME			"$S$"
-#define FORMAT_TAG			"$S$"
-#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
+#include "drupal7_common.h"
 
+#define FORMAT_LABEL			"Drupal7"
 #define ALGORITHM_NAME			"SHA512 " SHA512_ALGORITHM_NAME
 
-
-#define BENCHMARK_COMMENT		" (x16385)"
-#define BENCHMARK_LENGTH		-1
-
 #define PLAINTEXT_LENGTH		47
-#define CIPHERTEXT_LENGTH		55
 
 #define DIGEST_SIZE			(512/8)
 
 #define BINARY_SIZE			(258/8) // ((258+7)/8)
 #define BINARY_ALIGN			4
-#define SALT_SIZE			8
-#define SALT_ALIGN			4
 
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
@@ -71,13 +62,6 @@ john_register_one(&fmt_drupal7);
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 #endif
-
-static struct fmt_tests tests[] = {
-	{"$S$CwkjgAKeSx2imSiN3SyBEg8e0sgE2QOx4a/VIfCHN0BZUNAWCr1X", "virtualabc"},
-	{"$S$CFURCPa.k6FAEbJPgejaW4nijv7rYgGc4dUJtChQtV4KLJTPTC/u", "password"},
-	{"$S$C6x2r.aW5Nkg7st6/u.IKWjTerHXscjPtu4spwhCVZlP89UKcbb/", "NEW_TEMP_PASSWORD"},
-	{NULL}
-};
 
 /*
  * NOTE, due to the 0x4000 iteration count, I am not wasting time pre-loading
@@ -111,26 +95,6 @@ static void done(void)
 	MEM_FREE(crypt_key);
 	MEM_FREE(EncKeyLen);
 	MEM_FREE(EncKey);
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	int i;
-	unsigned count_log2;
-
-	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
-		return 0;
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
-		return 0;
-	for (i = FORMAT_TAG_LEN; i < CIPHERTEXT_LENGTH; ++i)
-		if (atoi64[ARCH_INDEX(ciphertext[i])] == 0x7F)
-			return 0;
-
-	count_log2 = atoi64[ARCH_INDEX(ciphertext[3])];
-	if (count_log2 < 7 || count_log2 > 31)
-		return 0;
-
-	return 1;
 }
 
 static void set_salt(void *salt)
@@ -233,68 +197,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void * get_binary(char *ciphertext)
-{
-	int i;
-	unsigned sixbits;
-	static union {
-		unsigned char u8[BINARY_SIZE + 1];
-		uint32_t u32;
-	} out;
-	int bidx=0;
-	char *pos;
-
-	pos = &ciphertext[FORMAT_TAG_LEN + 1 + 8];
-	for (i = 0; i < 10; ++i) {
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		out.u8[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		out.u8[bidx++] |= (sixbits<<6);
-		sixbits >>= 2;
-		out.u8[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		out.u8[bidx++] |= (sixbits<<4);
-		sixbits >>= 4;
-		out.u8[bidx] = sixbits;
-		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		out.u8[bidx++] |= (sixbits<<2);
-	}
-	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	out.u8[bidx] = sixbits;
-	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	out.u8[bidx++] |= (sixbits<<6);
-	sixbits >>= 2;
-	out.u8[bidx] = sixbits;
-	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	out.u8[bidx++] |= (sixbits<<4);
-	return out.u8;
-}
-
-static void * get_salt(char *ciphertext)
-{
-	static union {
-		unsigned char u8[SALT_SIZE + 1];
-		uint32_t u32;
-	} salt;
-	// store off the 'real' 8 bytes of salt
-	memcpy(salt.u8, &ciphertext[FORMAT_TAG_LEN+1], 8);
-	// append the 1 byte of loop count information.
-	salt.u8[8] = ciphertext[FORMAT_TAG_LEN];
-	return salt.u8;
-}
-
 #define COMMON_GET_HASH_VAR crypt_key
 #include "common-get-hash.h"
 
-static int salt_hash(void *salt)
-{
-	return *((uint32_t *)salt) & 0x3FF;
-}
-
-static unsigned int iteration_count(void *salt)
-{
-	return (unsigned int) 1 << (atoi64[ARCH_INDEX(((char*)salt)[8])]);
-}
 struct fmt_main fmt_drupal7 = {
 	{
 		FORMAT_LABEL,
