@@ -34,7 +34,7 @@ john_register_one(&fmt_tezos);
 #include "jumbo.h"
 #include "ed25519.h"
 #include "blake2.h"
-#undef SIMD_COEF_64
+#define PBKDF2_HMAC_SHA512_VARYING_SALT 1
 #include "pbkdf2_hmac_sha512.h"
 #include "memdbg.h"
 
@@ -208,7 +208,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char seed[MIN_KEYS_PER_CRYPT][64];
 		char salt[MIN_KEYS_PER_CRYPT][16 + 256 + PLAINTEXT_LENGTH];
 		int i;
-
+#ifdef SIMD_COEF_64
+		int lens[MIN_KEYS_PER_CRYPT];
+		int slens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+		unsigned char *sin[MIN_KEYS_PER_CRYPT];
+#endif
 		// create varying salt(s)
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			memcpy(salt[i], "mnemonic", 8);
@@ -217,11 +222,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		// kdf
+#ifdef SIMD_COEF_64
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+			lens[i] = cur_salt->mnemonic_length;
+			pin[i] = (unsigned char*)cur_salt->mnemonic;
+			sin[i] = (unsigned char*)salt[i];
+			pout[i] = seed[i];
+			slens[i] = strlen(salt[i]);
+		}
+		pbkdf2_sha512_sse_varying_salt((const unsigned char**)pin, lens, sin, slens, 2048, pout, 64, 0);
+#else
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 			pbkdf2_sha512((unsigned char*)cur_salt->mnemonic,
 					cur_salt->mnemonic_length, (unsigned char*)salt[i], strlen(salt[i]), 2048,
 					seed[i], 64, 0);
-
+#endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			unsigned char buffer[20];
 			ed25519_public_key pk;
