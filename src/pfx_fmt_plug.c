@@ -460,6 +460,7 @@ struct fmt_main fmt_pfx = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
+			"iteration count",
 			"mac-type [1:SHA1 224:SHA224 256:SHA256 384:SHA384 512:SHA512]",
 		},
 		{ FORMAT_TAG },
@@ -474,6 +475,7 @@ struct fmt_main fmt_pfx = {
 		pfx_common_get_binary,
 		pfx_common_get_salt,
 		{
+			pfx_iteration_count,
 			pfx_get_mac_type,
 		},
 		fmt_default_source,
