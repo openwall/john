@@ -33,7 +33,7 @@ module sha512unit_test();
 		// sha512unit has no internal check for the count of rounds.
 		//
 		// *****************************************************************
-		
+/*
 		send_data_packet(1,16,48,"salt_length_is16", // 835c56d2..5f5718a3
 			"sha512crypt-ztex test #1 (salt=16,key_len=48) ..");
 
@@ -59,20 +59,46 @@ module sha512unit_test();
 		end
 		#20;
 
-		//send_data_packet(3,13,0,"salt_length13","");
+		//for (i=0; i < 16; i=i+1)
+		//	send_data_packet(10,16,64,"saltSALTsaltSALT",
+		//		{ "salt_len=16, key_len=64, contains 8-bit chars (",
+		//		8'd192,8'd193,8'd194,8'd195,8'd196,") .........z" });
 
-/*
-		for (i=0; i < 16; i=i+1) begin
-			send_data_packet(10,16,64,"saltSALTsaltSALT",
-				{ "salt_len=16, key_len=64, contains 8-bit chars (",
-				8'd192,8'd193,8'd194,8'd195,8'd196,") .........z" });
-		end
+		//for (i=4; i < 16; i=i+1)
+		//	send_data_packet(5000,10,14,"saltstring","Hello.........");
 */
-/*
-		for (i=4; i < 16; i=i+1) begin
-			send_data_packet(5000,10,14,"saltstring","Hello.........");
-		end
-*/
+
+
+		// *****************************************************************
+		//
+		// Send internal initialization packet.
+		// Restrictions:
+		// - must wait ~16 cycles after startup (wouldn't happen
+		//   on a real device)
+		// - units must be idle (typically init packet is sent after GSR)
+		//
+		// Arguments:
+		// 0 - default sha512crypt program (entry pt.0)
+		// 1 - Drupal7 program
+		//
+		// *****************************************************************
+		#2000;
+		
+		send_int_init_packet(1);
+		//#1000;
+		
+		// *****************************************************************
+		//
+		// Usage: send_data_packet(cnt,salt_len,key_len,"salt","key");
+		//
+		// Send Drupal7 packet for the following:
+		//
+		//	{"$S$CFURCPa.k6FAEbJPgejaW4nijv7rYgGc4dUJtChQtV4KLJTPTC/u", "password"}
+		//
+		// *****************************************************************
+
+		send_data_packet(16384,8,8,"FURCPa.k","password");
+		
 	end
 	
 
@@ -133,7 +159,7 @@ module sha512unit_test();
 			while (~ready) #20;
 			check_afull();
 
-			// word #0: reserved
+			// word #0: packet type (0 - data packet)
 			ctrl <= 1; in <= 0; #20;
 			ctrl <= 0;
 			
@@ -189,6 +215,24 @@ module sha512unit_test();
 			ctrl <= 1; #20;
 			ctrl <= 0; wr_en <= 0; #20;
 			#(4*20);
+		end
+	endtask
+
+
+	// *************************************************************
+	//
+	// Initialization packet.
+	// Contains only header (1 word).
+	// 3 lowest bits are 3'b001, bits 7-4 contain init data.
+	//
+	// *************************************************************
+	task send_int_init_packet;
+		input [7:0] din;
+		begin
+			ctrl <= 1; wr_en <= 1;
+			in <= { din[4:0], 3'b001 }; #20;
+			#20;
+			ctrl <= 0; wr_en <= 0;
 		end
 	endtask
 

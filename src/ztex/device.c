@@ -2,7 +2,7 @@
  *
  * Top Level Hardware Operating Functions for Ztex Multi-FPGA board.
  *
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2018 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -14,18 +14,134 @@
 #include <string.h>
 #include <libusb-1.0/libusb.h>
 
+#include "../config.h"
+#include "../misc.h"
+
 #include "ztex.h"
 #include "inouttraffic.h"
 #include "ztex_scan.h"
 #include "pkt_comm/pkt_comm.h"
+#include "pkt_comm/init_data.h"
 #include "device.h"
 
 
-int device_init_fpgas(struct device *device, struct device_bitstream *bitstream)
+#define CONFIG_MAX_LEN	256
+
+
+static int hex_digit2bin(char digit)
 {
+	if (digit >= '0' && digit <= '9')
+		return digit - '0';
+	if (digit >= 'a' && digit <= 'f')
+		return digit - 'a' + 10;
+	if (digit >= 'A' && digit <= 'F')
+		return digit - 'A' + 10;
+	return -1;
+}
+
+// Convert hexadecimal ascii string e.g. \x0c\x00 into binary string
+// TODO: consider moving into src/config.c
+static char *hex_string2bin(char *src, int *len)
+{
+	static char dst[CONFIG_MAX_LEN];
+
+	if (!src) {
+		fprintf(stderr, "NULL pointer in device.c:hex_string2bin()\n");
+		error();
+	}
+	*len = 0;
+
 	int i;
-	for (i = 0; i < device->num_of_fpgas; i++) {
-		struct fpga *fpga = &device->fpga[i];
+	for (i = 0; ; i = i + 4) {
+		if (!src[i])
+			break;
+		if (src[i] != '\\' || !src[i+1] || src[i+1] != 'x'
+				|| !src[i+2] || !src[i+3]) {
+			fprintf(stderr, "Invalid hex string in john.conf: %s\n", src);
+			error();
+		}
+
+		int upper = hex_digit2bin(src[i+2]);
+		int lower = hex_digit2bin(src[i+3]);
+		if (upper == -1 || lower == -1) {
+			fprintf(stderr, "Invalid hex digit in john.conf: %s\n", src);
+			error();
+		}
+
+		dst[(*len)++] = upper << 4 | lower;
+		if (*len == CONFIG_MAX_LEN) {
+			fprintf(stderr, "Hex string in john.conf of exceeds %d hex "
+				"chars: %s\n", CONFIG_MAX_LEN, src);
+			error();
+		}
+	}
+
+	if (!*len) {
+		fprintf(stderr, "Empty hex string in john.conf\n");
+		error();
+	}
+	return dst;
+}
+
+
+static int device_init_fpgas(struct device *device,
+		struct device_bitstream *bitstream)
+{
+	// Read config for given bitstream, device
+	char *CFG_SECTION = "ZTEX:";
+	char conf_name_board_freq[256], conf_name_freq[256];
+	int default_freq[NUM_PROGCLK_MAX], board_freq[NUM_PROGCLK_MAX],
+		fpga_freq[NUM_PROGCLK_MAX];
+
+	// Frequency
+	if (bitstream->num_progclk) {
+		// Default frequency (for every device)
+		cfg_get_int_array(CFG_SECTION, bitstream->label, "Frequency",
+				default_freq, NUM_PROGCLK_MAX);
+
+		// Frequency specific to given board
+		sprintf(conf_name_board_freq, "Frequency_%s",
+				device->ztex_device->snString);
+		cfg_get_int_array(CFG_SECTION, bitstream->label,
+				conf_name_board_freq, board_freq, NUM_PROGCLK_MAX);
+
+		if (board_freq[0] == -1 && default_freq[0] != -1)
+			memcpy(board_freq, default_freq, sizeof(board_freq));
+	}
+
+	// TODO: rewrite
+	//  (if more subtypes of a configuration packet appear).
+	//
+	// Runtime configuration packet.
+	// Only subtype 1 is currently supported.
+	// Length is specific to bitstream.
+	char conf_name_board_config1[256], conf_name_config1[256];
+	char default_config1[CONFIG_MAX_LEN], board_config1[CONFIG_MAX_LEN];
+	int len_default, len_board, len;
+
+	char *ptr;
+	ptr = cfg_get_param(CFG_SECTION, bitstream->label, "Config1");
+	if (ptr) {
+		char *hex_str = hex_string2bin(ptr, &len_default);
+		strncpy(default_config1, hex_str, len_default);
+	} else
+		len_default = 0;
+
+	sprintf(conf_name_board_config1, "Config1_%s",
+			device->ztex_device->snString);
+	ptr = cfg_get_param(CFG_SECTION, bitstream->label,
+			conf_name_board_config1);
+	if (ptr) {
+		char *hex_str = hex_string2bin(ptr, &len_board);
+		strncpy(board_config1, hex_str, len_board);
+	} else {
+		len_board = len_default;
+		strncpy(board_config1, default_config1, len_default);
+	}
+
+	int fpga_num;
+	for (fpga_num = 0; fpga_num < device->num_of_fpgas; fpga_num++) {
+		struct fpga *fpga = &device->fpga[fpga_num];
 
 		int result = fpga_select(fpga);
 		if (result < 0) {
@@ -33,38 +149,82 @@ int device_init_fpgas(struct device *device, struct device_bitstream *bitstream)
 			return result;
 		}
 
-		//
 		// Attn: on GSR, clocks remain at programmed frequency
-		// Set FPGAs to default frequency before GSR
-		//
-		int clk_num;
-		for (clk_num = 0; clk_num < bitstream->num_progclk; clk_num++)
-			if (bitstream->freq[clk_num] > 0) {
-				result = fpga_progclk(fpga, clk_num,
-						bitstream->freq[clk_num]);
+		// Set FPGAs to given frequency before GSR
+		if (bitstream->num_progclk) {
+
+			// Check for frequency for given fpga in the config
+			sprintf(conf_name_freq, "%s_%d", conf_name_board_freq, fpga_num);
+			cfg_get_int_array(CFG_SECTION, bitstream->label, conf_name_freq,
+					fpga_freq, NUM_PROGCLK_MAX);
+
+			int clk_num;
+			for (clk_num = 0; clk_num < bitstream->num_progclk; clk_num++) {
+				int freq =
+					fpga_freq[clk_num] != -1 ? fpga_freq[clk_num] :
+					board_freq[clk_num] != -1 ? board_freq[clk_num] :
+					bitstream->freq[clk_num];
+
+				int result = fpga_progclk(fpga, clk_num, freq);
 				if (result < 0)
 					return result;
 			}
-		for ( ; clk_num < NUM_PROGCLK_MAX; clk_num++)
-			fpga->freq[clk_num] = 0;
 
-		// Resets FPGA application with Global Set Reset (GSR)
+			for ( ; clk_num < NUM_PROGCLK_MAX; clk_num++)
+				fpga->freq[clk_num] = 0;
+		}
+
+
+		// Reset FPGA application with Global Set Reset (GSR)
+		// Affected is FPGA previously selected with fpga_select()
 		result = fpga_reset(device->handle);
 		if (result < 0) {
 			printf("SN %s #%d: device_fpga_reset: %d (%s)\n",
 				device->ztex_device->snString,
-				i, result, libusb_error_name(result));
+				fpga_num, result, libusb_error_name(result));
 			device_invalidate(device);
 			return result;
 		}
 
+
 		fpga->comm = pkt_comm_new(&bitstream->pkt_comm_params);
 
-	} // for
+		// Initialization packet (must be the 1st packet after GSR)
+		if (bitstream->init_len > 1 || bitstream->init_len < 0) {
+			fprintf(stderr, "Bad or unsupported bitstream->"
+				"init_len=%d\n", bitstream->init_len);
+			error();
+		}
+		else if (bitstream->init_len == 1) {
+			struct pkt *pkt_init
+				= pkt_init_data_1b_new(bitstream->init_data[0]);
+			pkt_queue_push(fpga->comm->output_queue, pkt_init);
+		}
+
+		// Runtime configuration packet
+		struct pkt *pkt_config1 = NULL;
+
+		sprintf(conf_name_config1, "%s_%d", conf_name_board_config1,
+				fpga_num);
+		ptr = cfg_get_param(CFG_SECTION, bitstream->label,
+				conf_name_config1);
+		if (ptr) {
+			char *hex_str = hex_string2bin(ptr, &len);
+			pkt_config1 = pkt_config_new(1, hex_str, len);
+		} else if (len_board)
+			pkt_config1 = pkt_config_new(1, board_config1, len_board);
+
+		if (pkt_config1)
+			pkt_queue_push(fpga->comm->output_queue, pkt_config1);
+
+
+	} // for fpga
 	return 0;
 }
 
-int device_list_init_fpgas(struct device_list *device_list, struct device_bitstream *bitstream)
+
+static int device_list_init_fpgas(struct device_list *device_list,
+		struct device_bitstream *bitstream)
 {
 	int ok_count = 0;
 	struct device *device;
@@ -95,7 +255,8 @@ int device_list_init_fpgas(struct device_list *device_list, struct device_bitstr
 //
 ///////////////////////////////////////////////////////////////////
 
-void device_list_init(struct device_list *device_list, struct device_bitstream *bitstream)
+void device_list_init(struct device_list *device_list,
+		struct device_bitstream *bitstream)
 {
 	// bitstream->type is hardcoded into bitstream (vcr.v/BITSTREAM_TYPE)
 	if (!bitstream || !bitstream->type || !bitstream->path) {
@@ -106,13 +267,13 @@ void device_list_init(struct device_list *device_list, struct device_bitstream *
 	int result = device_list_check_bitstreams(device_list, bitstream->type, bitstream->path);
 	if (result < 0) {
 		// fatal error
-		exit(-1);
+		error();
 	}
 	if (result > 0) {
 		//usleep(3000);
 		result = device_list_check_bitstreams(device_list, bitstream->type, NULL);
 		if (result < 0) {
-			exit(-1);
+			error();
 		}
 	}
 
@@ -229,14 +390,18 @@ int device_pkt_rw(struct device *device)
 
 		// TODO: human readable error description
 		if (fpga->wr.io_state.pkt_comm_status) {
-			fprintf(stderr, "SN %s FPGA #%d error: pkt_comm_status=0x%02x\n",
-				device->ztex_device->snString, num, fpga->wr.io_state.pkt_comm_status);
+			fprintf(stderr, "SN %s FPGA #%d error: pkt_comm_status=0x%02x,"
+				" debug=0x%04x\n", device->ztex_device->snString, num,
+				fpga->wr.io_state.pkt_comm_status,
+				fpga->wr.io_state.debug3 << 8 | fpga->wr.io_state.debug2);
 			return -1;
 		}
 
 		if (fpga->wr.io_state.app_status) {
-			fprintf(stderr, "SN %s FPGA #%d error: app_status=0x%02x\n",
-				device->ztex_device->snString, num, fpga->wr.io_state.app_status);
+			fprintf(stderr, "SN %s FPGA #%d error: app_status=0x%02x,"
+				" debug=0x%04x\n", device->ztex_device->snString, num,
+				fpga->wr.io_state.app_status,
+				fpga->wr.io_state.debug3 << 8 | fpga->wr.io_state.debug2);
 			return -1;
 		}
 

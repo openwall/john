@@ -16,6 +16,7 @@ module thread_number #(
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
+	input entry_pt_switch,
 	
 	output [N_THREADS_MSB :0] ts_rd_num,
 	input [`THREAD_STATE_MSB :0] ts_rd,
@@ -66,6 +67,9 @@ module thread_number #(
 	
 
 	always @(posedge CLK) begin
+		if (entry_pt_switch)
+			thread_init <= 1;
+		
 		if (thread_init) begin // traverse all threads on init
 			thread_num <= thread_num_next;
 			if (thread_num == N_THREADS-1)

@@ -17,6 +17,8 @@ module instruction #(
 	)(
 	input CLK,
 
+	// Program entry point
+	input [`ENTRY_PT_MSB:0] entry_pt_curr,
 	output [N_THREADS_MSB :0] ts_rd_num,
 	input [`THREAD_STATE_MSB :0] ts_rd,
 
@@ -49,8 +51,24 @@ module instruction #(
 	(* KEEP="true" *) input wr_addr_dummy
 	);
 
-	localparam IP_RESET_VALUE = 0; // set for every thread on startup
 
+	// **********************************************************
+	//
+	// Program entry points
+	//
+	// **********************************************************
+	reg [`IADDR_LEN-1 :0] entry_pts [2**(`ENTRY_PT_MSB+1)-1 :0];
+	initial begin
+		entry_pts[0] = 0;
+		entry_pts[1] = 150;
+	end
+
+	reg [`ENTRY_PT_MSB:0] entry_pt_last = 0;
+	always @(posedge CLK)
+		entry_pt_last <= entry_pt_curr;
+	
+	wire entry_pt_switch = entry_pt_last != entry_pt_curr;
+	
 
 	// **********************************************************
 	//
@@ -66,6 +84,7 @@ module instruction #(
 	thread_number #( .N_CORES(N_CORES)
 	) thread_number(
 		.CLK(CLK),
+		.entry_pt_switch(entry_pt_switch),
 		.ts_rd_num(ts_rd_num), .ts_rd(ts_rd),
 		.NEXT_THREAD(NEXT_THREAD),
 		.RELOAD(RELOAD), // start loading the instruction
@@ -95,8 +114,8 @@ module instruction #(
 	// Instruction pointer
 	//
 	// **********************************************************
-	reg [`IADDR_LEN-1 :0] IP_curr = IP_RESET_VALUE;
-	reg [`IADDR_LEN-1 :0] IP_effective = IP_RESET_VALUE;
+	reg [`IADDR_LEN-1 :0] IP_curr;
+	reg [`IADDR_LEN-1 :0] IP_effective;
 	reg [`IADDR_LEN-1 :0] IP_mem [0: N_THREADS-1];
 	wire [`IADDR_LEN-1 :0] IP_mem_dout = IP_mem [thread_num_ahead];
 
@@ -107,7 +126,8 @@ module instruction #(
 			IP_mem [thread_num] <=
 				JUMP ? jump_addr :
 				EXECUTED ? IP_effective + 1'b1 :
-				IP_effective;
+				~init ? IP_effective :
+				entry_pts [entry_pt_curr];
 
 	always @(posedge CLK)
 		if (RELOAD) begin
