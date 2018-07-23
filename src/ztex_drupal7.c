@@ -162,7 +162,7 @@ struct fmt_main fmt_ztex_drupal7 = {
 		SALT_ALIGN,
 		1, // set by device_format_reset()
 		1,
-		FMT_CASE | FMT_8_BIT | FMT_TRUNC | FMT_MASK,
+		FMT_CASE | FMT_8_BIT | FMT_MASK,
 		{
 			"iteration count",
 		},

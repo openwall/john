@@ -296,9 +296,9 @@ struct fmt_main fmt_ztex_sha512crypt = {
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
-		1, //MIN_KEYS_PER_CRYPT,
-		1, //MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_TRUNC | FMT_MASK,
+		1, // set by device_format_reset()
+		1,
+		FMT_CASE | FMT_8_BIT | FMT_MASK,
 		{
 			"iteration count",
 		},
