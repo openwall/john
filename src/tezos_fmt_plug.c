@@ -41,10 +41,14 @@ john_register_one(&fmt_tezos);
 
 #define FORMAT_NAME             "Tezos Key"
 #define FORMAT_LABEL            "tezos"
+#ifdef SIMD_COEF_64
+#define ALGORITHM_NAME          "PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
+#else
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME          "PBKDF2-SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME          "PBKDF2-HMAC-SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA512 32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
