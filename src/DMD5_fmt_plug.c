@@ -97,13 +97,13 @@ static const char itoa16_and_0f[] =
 	"0123456789abcdef";
 
 static struct custom_salt {
-	unsigned char login_id[DSIZE];   // username:realm
+	unsigned char login_id[DSIZE + 64 /* sizeof(realm) */];   // username:realm
 	unsigned int  login_id_len;
 
 	unsigned char nonces[DSIZE];     // :nonce:cnonce[:authzid]
 	unsigned int  nonces_len;
 
-	unsigned char prehash_KD[DSIZE]; // :nonce:nc:cnonce:qop:hex_A2_hash
+	unsigned char prehash_KD[DSIZE + 2 * MD5_HEX_SIZE]; // :nonce:nc:cnonce:qop:hex_A2_hash
 	unsigned int  prehash_KD_len;
 } *cur_salt;
 
@@ -225,7 +225,7 @@ static void *get_salt(char *ciphertext)
 	char *ccopy = strdup(ciphertext);
 	char *p, *data = ccopy + FORMAT_TAG_LEN;
 	MD5_CTX ctx;
-	char A2[DSIZE];
+	char A2[DSIZE + sizeof(digest_uri)];
 	unsigned char hash[BINARY_SIZE];
 	unsigned char hex_hash[2*MD5_HEX_SIZE];
 	static struct custom_salt cs;

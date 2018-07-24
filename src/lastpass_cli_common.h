@@ -21,7 +21,7 @@ struct custom_salt {
 	int salt_length;
 	int type;
 	unsigned char iv[32];
-	unsigned char salt[32];
+	unsigned char salt[32+1];
 };
 
 // exported 'common' functions

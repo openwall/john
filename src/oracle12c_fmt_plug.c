@@ -134,7 +134,7 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < 16; i++)
 		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 
-	strncpy((char*)cs.salt + 16, "AUTH_PBKDF2_SPEEDY_KEY", 22);  // add constant string to the salt
+	strncpy((char*)cs.salt + 16, "AUTH_PBKDF2_SPEEDY_KEY", 22+1);  // add constant string (including NUL) to the salt
 	cs.saltlen = 16 + 22;
 
 	return (void *)&cs;

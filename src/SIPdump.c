@@ -75,7 +75,7 @@ typedef struct {
 	uint32_t server_ip;
 	uint16_t server_port;
 	char method[SIP_METHOD_LEN];
-	char buffer[SIP_LINE_LEN];
+	char buffer[SIP_LINE_LEN+1];
 } sip_conn_t;
 
 /* Basic connection table */
@@ -448,9 +448,10 @@ static void parse_payload(const conn_t * connection,
 
 			/* Keep non-line-terminated buffer, new data will be appended */
 			else if (!ret) {
-				if (buffer[0] != 0x00)
-					strncpy(conn_table[i].buffer, buffer,
-					    sizeof(conn_table[i].buffer) - 1);
+				if (buffer[0] != 0x00) {
+					strncpy(conn_table[i].buffer, buffer, SIP_LINE_LEN);
+					conn_table[i].buffer[SIP_LINE_LEN] = 0;
+				}
 			}
 
 			/* Break lookup in connection table */

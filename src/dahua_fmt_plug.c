@@ -119,7 +119,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		char c[BINARY_SIZE];
+		char c[BINARY_SIZE+1];
 		ARCH_WORD dummy;
 	} buf;
 	char *p;

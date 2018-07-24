@@ -189,7 +189,7 @@ static char *status_get_cps(char *buffer, uint64_t c, unsigned int c_ehi)
 
 static char *status_get_ETA(double percent, unsigned int secs_done)
 {
-	static char s_ETA[128];
+	static char s_ETA[128+1];
 	char ETA[128];
 	double sec_left;
 	time_t t_ETA;

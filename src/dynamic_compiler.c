@@ -564,9 +564,9 @@ SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein
 
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static int encode_be()         { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
-static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); return gen_conv; }
-static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); return gen_conv; }
-static char *pad100()          { memset(gen_conv, 0, 100); strncpy(gen_conv, gen_pw, 100); return gen_conv; }
+static char *pad16()           { memset(gen_conv, 0, 16); strncpy(gen_conv, gen_pw, 16); gen_conv[16] = 0; return gen_conv; }
+static char *pad20()           { memset(gen_conv, 0, 20); strncpy(gen_conv, gen_pw, 20); gen_conv[20] = 0; return gen_conv; }
+static char *pad100()          { memset(gen_conv, 0, 100); strncpy(gen_conv, gen_pw, 100); gen_conv[100] =0; return gen_conv; }
 
 /*
  * helper functions, to reduce the size of our dynamic_*() functions
@@ -723,7 +723,7 @@ static const char *get_param(const char *p, const char *what) {
 static int handle_extra_params(DC_struct *ptr) {
 	// c1=boobies,c2=bootie
 	int i;
-	char cx[4];
+	char cx[13];
 	const char *cp;
 
 	nConst = 0;

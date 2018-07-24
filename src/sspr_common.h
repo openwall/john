@@ -17,7 +17,7 @@ struct custom_salt {
 	uint32_t iterations;
 	uint32_t saltlen;
 	uint32_t fmt;
-	char salt[MAX_SALT_LEN];
+	char salt[MAX_SALT_LEN+1];
 };
 
 extern struct fmt_tests sspr_tests[];
