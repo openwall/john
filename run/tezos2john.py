@@ -141,6 +141,8 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     mnemonic, email, address = sys.argv[1:4]
+    if len(email) > 51:
+        sys.stderr.write("[WARNING] Very large salt (email address) found, which is unsupported by tezos-opencl format!\n")
 
     raw_address = binascii.hexlify(b58check_to_bin(address)).decode("ascii")
 
