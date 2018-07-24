@@ -706,7 +706,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i= 0; i < 3; i++) {
 			// domino 8(.5.x) hash - SEC_pwddigest_V3 - -m 9100
 			unsigned char buffer[22 + 1] = {0};
-			unsigned char tmp_hash[22 + 1] = {0};
+			unsigned char tmp_hash[22 + 1 + 3 /* "(G)" */] = {0};
 			memcpy(tmp_hash, cur_salt->salt, 5);
 			memcpy(tmp_hash + 5, crypt_out[index + i], 16);
 			domino_encode(tmp_hash, buffer);

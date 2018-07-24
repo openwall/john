@@ -173,7 +173,7 @@ static void done(void)
 
 static void init(struct fmt_main *_self)
 {
-	static char valgo[sizeof(ALGORITHM_NAME) + 8] = "";
+	static char valgo[sizeof(ALGORITHM_NAME) + 12] = "";
 
 	self = _self;
 

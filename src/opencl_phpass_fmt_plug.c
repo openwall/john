@@ -153,7 +153,7 @@ static void init(struct fmt_main *_self)
 
 	opencl_get_vector_width(gpu_id, sizeof(cl_int));
 	if (ocl_v_width > 1) {
-		static char valgo[sizeof(ALGORITHM_NAME) + 4] = "";
+		static char valgo[sizeof(ALGORITHM_NAME) + 12] = "";
 
 		/* Run vectorized kernel */
 		snprintf(valgo, sizeof(valgo),

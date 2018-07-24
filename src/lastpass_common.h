@@ -18,7 +18,7 @@ extern struct fmt_tests lastpass_tests[];
 struct custom_salt {
 	int iterations;
 	int salt_length;
-	unsigned char salt[32];
+	unsigned char salt[32+1];
 };
 
 // exported 'common' functions

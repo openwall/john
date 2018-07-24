@@ -358,7 +358,7 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 	char idir_b_hex[MAXLEN];
 	char ni_b_hex[MAXLEN];
 	char nr_b_hex[MAXLEN];
-	char hash_r_hex[MAXLEN];
+	char hash_r_hex[44];
 	unsigned char *g_xr;	/* Individual PSK params as binary */
 	unsigned char *g_xi;
 	unsigned char *cky_r;
@@ -375,7 +375,6 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 	size_t idir_b_len;
 	size_t ni_b_len;
 	size_t nr_b_len;
-	size_t hash_r_hex_len;
 	n = sscanf(ciphertext,
 	    "%[^*]*%[^*]*%[^*]*%[^*]*%[^*]*%[^*]*%[^*]*%[^*]*%[^*\r\n]",
 	    g_xr_hex, g_xi_hex, cky_r_hex, cky_i_hex, sai_b_hex,
@@ -451,8 +450,7 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 		memcpy(pe->hash_r, c, pe->hash_r_len);
 		MEM_FREE(c);
 	}
-	hash_r_hex_len = strlen(hash_r_hex) + 1;	/* includes terminating null */
-	strncpy(pe->hash_r_hex, hash_r_hex, hash_r_hex_len);
+	strncpy(pe->hash_r_hex, hash_r_hex, sizeof(pe->hash_r_hex));
 	if (nortel_user)
 		strcpy(pe->nortel_user, nortel_user);
 /*

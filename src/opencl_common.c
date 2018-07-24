@@ -291,8 +291,9 @@ static char *remove_spaces(char *str) {
 
 static char *opencl_driver_info(int sequential_id)
 {
-	static char ret[64];
-	char dname[MAX_OCLINFO_STRING_LEN], tmp[64], set[64];
+	static char buf[64 + MAX_OCLINFO_STRING_LEN];
+	char dname[MAX_OCLINFO_STRING_LEN], tmp[sizeof(buf)], set[64];
+	static char output[sizeof(tmp) + sizeof(dname)];
 	char *name, *recommendation = NULL;
 	int major = 0, minor = 0, conf_major = 0, conf_minor = 0, found;
 	struct cfg_list *list;
@@ -301,7 +302,7 @@ static char *opencl_driver_info(int sequential_id)
 	clGetDeviceInfo(devices[sequential_id], CL_DRIVER_VERSION,
 	                sizeof(dname), dname, NULL);
 	opencl_driver_value(sequential_id, &major, &minor);
-	name = ret;
+	name = buf;
 
 	if ((list = cfg_get_list("List.OpenCL:", "Drivers")))
 	if ((line = list->head))
@@ -339,10 +340,10 @@ static char *opencl_driver_info(int sequential_id)
 	if (gpu_amd(device_info[sequential_id])) {
 
 		if (major < 1912)
-			snprintf(ret, sizeof(ret), "%s - Catalyst %s", dname, name);
+			snprintf(buf, sizeof(buf), "%s - Catalyst %s", dname, name);
 		else
-			snprintf(ret, sizeof(ret), "%s - Crimson %s", dname, name);
-		snprintf(tmp, sizeof(tmp), "%s", ret);
+			snprintf(buf, sizeof(buf), "%s - Crimson %s", dname, name);
+		snprintf(tmp, sizeof(tmp), "%s", buf);
 	} else
 		snprintf(tmp, sizeof(tmp), "%s", dname);
 
@@ -372,9 +373,9 @@ static char *opencl_driver_info(int sequential_id)
 				snprintf(dname, sizeof(dname), " [supported]");
 		}
 	}
-	snprintf(ret, sizeof(ret), "%s%s", tmp, dname);
+	snprintf(output, sizeof(output), "%s%s", tmp, dname);
 
-	return ret;
+	return output;
 }
 
 static char *ns2string(cl_ulong nanosec)
@@ -867,7 +868,7 @@ void opencl_done()
 
 static char *opencl_get_config_name(char *format, char *config_name)
 {
-	static char config_item[128];
+	static char config_item[256];
 
 	snprintf(config_item, sizeof(config_item), "%s%s", format, config_name);
 	return config_item;

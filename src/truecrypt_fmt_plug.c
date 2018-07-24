@@ -319,8 +319,8 @@ static void* get_salt(char *ciphertext)
 		q = strchr(p, '$');
 
 		if (!q) { // last file
-			memset(tpath, 0, sizeof(tpath) - 1);
-			strncpy(tpath, p, sizeof(tpath));
+			memset(tpath, 0, sizeof(tpath));
+			strncpy(tpath, p, sizeof(tpath)-1);
 		} else {
 			memset(tpath, 0, sizeof(tpath) - 1);
 			strncpy(tpath, p, q-p);

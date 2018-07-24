@@ -195,7 +195,7 @@ static void done(void)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self, const int B_LEN, const int CT_LEN)
 {
-	static char out[CIPHERTEXT_LENGTH + 1];
+	static char out[(BINARY_SIZE * 2 + 1) + (CIPHERTEXT_LENGTH + 1)];
 
 	if (strstr(ciphertext, "$SOURCE_HASH$"))
 		return ciphertext;

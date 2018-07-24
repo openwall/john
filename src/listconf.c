@@ -789,7 +789,7 @@ void listconf_parse_late(void)
 					ShowIt = 1;
 
 				for (i = 0; i < FMT_TUNABLE_COSTS; ++i) {
-					char Buf[30];
+					char Buf[32];
 					sprintf(Buf, "tunable_cost_value[%d]", i);
 					if (format->methods.tunable_cost_value[i] && !strcasecmp(&options.listconf[15], Buf))
 						ShowIt = 1;
@@ -802,7 +802,7 @@ void listconf_parse_late(void)
 				if (format->methods.clear_keys != fmt_default_clear_keys && !strcasecmp(&options.listconf[15], "clear_keys"))
 					ShowIt = 1;
 				for (i = 0; i < PASSWORD_HASH_SIZES; ++i) {
-					char Buf[20];
+					char Buf[25];
 					sprintf(Buf, "get_hash[%d]", i);
 					if (format->methods.get_hash[i] && format->methods.get_hash[i] != fmt_default_get_hash && !strcasecmp(&options.listconf[15], Buf))
 						ShowIt = 1;
@@ -811,7 +811,7 @@ void listconf_parse_late(void)
 					ShowIt = 1;
 
 				for (i = 0; i < PASSWORD_HASH_SIZES; ++i) {
-					char Buf[20];
+					char Buf[25];
 					sprintf(Buf, "binary_hash[%d]", i);
 					if (format->methods.binary_hash[i] && format->methods.binary_hash[i] != fmt_default_binary_hash && !strcasecmp(&options.listconf[15], Buf))
 						ShowIt = 1;
