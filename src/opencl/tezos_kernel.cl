@@ -128,8 +128,8 @@ __kernel void pbkdf2_sha512_kernel_varying_salt(__global const pass_t *inbuffer,
 	uint rounds = gsalt->pbkdf2.rounds;
 	int saltlen;
 	union {
-		uchar bytes[8 + 51 /* max. email length */ + 48 /* REAL_PLAINTEXT_LENGTH */];
-		ulong data[(8 + 51 + 48) / 8];
+		uchar bytes[8 + sizeof(gsalt->pbkdf2.salt) + 48 /* REAL_PLAINTEXT_LENGTH */];
+		ulong data[(8 + sizeof(gsalt->pbkdf2.salt) + 48 + 7) / 8];
 	} salt;
 
 	union {
