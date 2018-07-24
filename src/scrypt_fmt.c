@@ -121,8 +121,8 @@ static char N_to_c(int N) {
 
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	static char Buf[256];
 	char tmp[512], tmp2[512], tmp4[256], tmp5[6], tmp6[6], *cp, *cp2;
+	static char Buf[sizeof(tmp2) + sizeof(tmp4) + sizeof(tmp5) + sizeof(tmp6) + 4];
 	int N, r, p;
 
 	if (!strncmp(fields[1], FMT_CISCO9, FMT_CISCO9_LEN)) {
