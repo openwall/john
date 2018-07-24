@@ -43,10 +43,11 @@ john_register_one(&fmt_opencl_tezos);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define PLAINTEXT_LENGTH        110
+#define REAL_PLAINTEXT_LENGTH   48
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define KERNEL_NAME             "pbkdf2_sha512_kernel_varying_salt"
-#define SPLIT_KERNEL_NAME       "pbkdf2_sha512_loop_"
+#define SPLIT_KERNEL_NAME       "pbkdf2_sha512_loop"
 
 #define HASH_LOOPS              250
 #define ITERATIONS              2048
@@ -439,7 +440,7 @@ struct fmt_main fmt_opencl_tezos = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
-		PLAINTEXT_LENGTH,
+		REAL_PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,

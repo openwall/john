@@ -115,96 +115,6 @@ inline void _phs512_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, u
 	output[7] = H;
 }
 
-
-__kernel void pbkdf2_sha512_loop_(__global state_t *state,
-                                 __global crack_t *out)
-{
-	uint idx = get_global_id(0);
-	uint i, rounds = state[idx].rounds;
-	uint r = MIN(rounds, HASH_LOOPS);
-	ulong W[16];
-	ulong ipad_state[8];
-	ulong opad_state[8];
-	ulong tmp_out[8];
-
-	for (i = 0; i < 8; i++) {
-		W[i] = state[idx].W[i];
-		ipad_state[i] = state[idx].ipad[i];
-		opad_state[i] = state[idx].opad[i];
-		tmp_out[i] = state[idx].hash[i];
-	}
-
-	for (i = 0; i < r; i++) {
-		ulong A, B, C, D, E, F, G, H, t;
-
-		A = ipad_state[0];
-		B = ipad_state[1];
-		C = ipad_state[2];
-		D = ipad_state[3];
-		E = ipad_state[4];
-		F = ipad_state[5];
-		G = ipad_state[6];
-		H = ipad_state[7];
-
-		W[8] = 0x8000000000000000UL;
-		W[15] = 0x600;
-
-		SHA512_ZEROS(A, B, C, D, E, F, G, H, W);
-
-		W[0] = A + ipad_state[0];
-		W[1] = B + ipad_state[1];
-		W[2] = C + ipad_state[2];
-		W[3] = D + ipad_state[3];
-		W[4] = E + ipad_state[4];
-		W[5] = F + ipad_state[5];
-		W[6] = G + ipad_state[6];
-		W[7] = H + ipad_state[7];
-		W[8] = 0x8000000000000000UL;
-		W[15] = 0x600;
-
-		A = opad_state[0];
-		B = opad_state[1];
-		C = opad_state[2];
-		D = opad_state[3];
-		E = opad_state[4];
-		F = opad_state[5];
-		G = opad_state[6];
-		H = opad_state[7];
-
-		SHA512_ZEROS(A, B, C, D, E, F, G, H, W);
-
-		W[0] = A += opad_state[0];
-		W[1] = B += opad_state[1];
-		W[2] = C += opad_state[2];
-		W[3] = D += opad_state[3];
-		W[4] = E += opad_state[4];
-		W[5] = F += opad_state[5];
-		W[6] = G += opad_state[6];
-		W[7] = H += opad_state[7];
-
-		tmp_out[0] ^= A;
-		tmp_out[1] ^= B;
-		tmp_out[2] ^= C;
-		tmp_out[3] ^= D;
-		tmp_out[4] ^= E;
-		tmp_out[5] ^= F;
-		tmp_out[6] ^= G;
-		tmp_out[7] ^= H;
-	}
-
-	if (rounds >= HASH_LOOPS) { // there is still work to do
-		state[idx].rounds = rounds - HASH_LOOPS;
-		for (i = 0; i < 8; i++) {
-			state[idx].hash[i] = tmp_out[i];
-			state[idx].W[i] = W[i];
-		}
-	}
-	else { // rounds == 0 - we're done
-		for (i = 0; i < 8; i++)
-			out[idx].hash[i] = tmp_out[i];
-	}
-}
-
 __kernel void pbkdf2_sha512_kernel_varying_salt(__global const pass_t *inbuffer,
                                    __constant tezos_salt_t *gsalt,
                                    __global state_t *state)
@@ -218,8 +128,8 @@ __kernel void pbkdf2_sha512_kernel_varying_salt(__global const pass_t *inbuffer,
 	uint rounds = gsalt->pbkdf2.rounds;
 	int saltlen;
 	union {
-		uchar bytes[16 + 256 + PLAINTEXT_LENGTH];
-		ulong data[(16 + 256 + PLAINTEXT_LENGTH + 8) / 8];
+		uchar bytes[8 + 51 /* max. email length */ + 48 /* REAL_PLAINTEXT_LENGTH */];
+		ulong data[(8 + 51 + 48) / 8];
 	} salt;
 
 	union {
