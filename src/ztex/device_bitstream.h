@@ -21,7 +21,10 @@ struct device_bitstream {
 	struct pkt_comm_params pkt_comm_params;
 	// device computing performance (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
+	// For hashes with variable computing difficulty, this is set at runtime.
 	unsigned int candidates_per_crypt;
+	// keys_per_crypt setting for self-test
+	unsigned int test_keys_per_crypt;
 	// keys/crypt_all_interval for all devices - link layer performance issue.
 	// As keys are of variable size, this is a rough upper limit.
 	unsigned int abs_max_keys_per_crypt;

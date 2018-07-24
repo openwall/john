@@ -74,7 +74,8 @@ static struct device_bitstream bitstream = {
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	1,			// set by init()
-	128*1024,	// Absolute max. keys/crypt_all_interval for all devices.
+	4096,		// 4K keys/fpga for self-test
+	512 * 1024,	// Would be 32 MB of USB traffic on 64-byte keys
 	512,		// Max. number of entries in onboard comparator.
 	160,		// Min. number of keys for effective device utilization
 	1, { 135 },	// Programmable clocks
