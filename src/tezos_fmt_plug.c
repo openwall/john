@@ -34,14 +34,13 @@ john_register_one(&fmt_tezos);
 #include "jumbo.h"
 #include "ed25519.h"
 #include "blake2.h"
+#include "tezos_common.h"
 #define PBKDF2_HMAC_SHA512_VARYING_SALT 1
 #include "pbkdf2_hmac_sha512.h"
 #include "memdbg.h"
 
 #define FORMAT_NAME             "Tezos Key"
 #define FORMAT_LABEL            "tezos"
-#define FORMAT_TAG              "$tezos$"
-#define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME          "PBKDF2-SHA512 64/" ARCH_BITS_STR " " SHA2_LIB
 #else
@@ -62,28 +61,11 @@ john_register_one(&fmt_tezos);
 #define MAX_KEYS_PER_CRYPT      4
 #endif
 
-static struct fmt_tests tezos_tests[] = {
-	// http://doc.tzalpha.net/introduction/zeronet.html, https://faucet.tzalpha.net/
-	{"$tezos$1*2048*put guide flat machine express cave hello connect stay local spike ski romance express brass*jbzbdybr.vpbdbxnn@tezos.example.org*tz1eTjPtwYjdcBMStwVdEcwY2YE3th1bXyMR*a19fce77caa0729c68072dc3eb274c7626a71880d926", "4FGU8MpuCo"},
-	{"$tezos$1*2048*shove average clap front casino lawn segment dinosaur early solve hole dinner copy journey alley*kqdbxkwa.xvlnjlhg@tezos.example.org*tz1ZRcC58RDjA17Jmp2zDds6Hnk8UAjU8sxh*a19f97385132d6051136ef34d6a62a0bf5af9fecbe26", "XRknDmWXTm"},
-	{NULL}
-};
-
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
-static struct custom_salt {
-	uint32_t type;
-	uint32_t iterations;
-	uint32_t email_length;
-	uint32_t mnemonic_length;
-	uint32_t raw_address_length;
-	char mnemonic[512];
-	char email[256];
-	char address[64];
-	char raw_address[64];
-} *cur_salt;
+static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
@@ -99,82 +81,6 @@ static void done(void)
 {
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ctcopy, *keeptr, *p;
-	int extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
-		return 0;
-
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-
-	ctcopy += TAG_LENGTH;
-	if ((p = strtokm(ctcopy, "*")) == NULL) // type
-		goto err;
-	if (strcmp(p, "1"))
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL) // iterations
-		goto err;
-	if (!isdec(p))
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL) // mnemonic
-		goto err;
-	if (strlen(p) > 512)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL) // email
-		goto err;
-	if (strlen(p) > 256)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL) // address
-		goto err;
-	if (strlen(p) > 64)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL) // raw address
-		goto err;
-	if (hexlenl(p, &extra) > 64 * 2 || extra)
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
-	int i;
-
-	memset(&cs, 0, SALT_SIZE);
-	ctcopy += TAG_LENGTH;
-	p = strtokm(ctcopy, "*");
-	cs.type = atoi(p);
-	p = strtokm(NULL, "*");
-	cs.iterations = atoi(p);
-	p = strtokm(NULL, "*");
-	strcpy(cs.mnemonic, p);
-	cs.mnemonic_length = strlen(p);
-	p = strtokm(NULL, "*");
-	strcpy(cs.email, p);
-	cs.email_length = strlen(p);
-	p = strtokm(NULL, "*");
-	strcpy(cs.address, p);
-	p = strtokm(NULL, "*");
-	cs.raw_address_length = strlen(p) / 2;
-	for (i = 0; i < cs.raw_address_length; i++)
-		cs.raw_address[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
-
-	MEM_FREE(keeptr);
-	return &cs;
 }
 
 static void set_salt(void *salt)
@@ -276,13 +182,6 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static unsigned int iteration_count(void *salt)
-{
-	struct custom_salt *cs = (struct custom_salt*)salt;
-
-	return cs->iterations;
-}
-
 struct fmt_main fmt_tezos = {
 	{
 		FORMAT_LABEL,
@@ -309,12 +208,12 @@ struct fmt_main fmt_tezos = {
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		tezos_valid,
 		fmt_default_split,
 		fmt_default_binary,
-		get_salt,
+		tezos_get_salt,
 		{
-			iteration_count,
+			tezos_iteration_count,
 		},
 		fmt_default_source,
 		{
