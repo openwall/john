@@ -2,7 +2,8 @@
 Overview
 ---------
 If you have ZTEX boards USB-FPGA 1.15y, you can use them with JtR.
-Available "formats" are descrypt-ztex and bcrypt-ztex, more are planned.
+Available "formats" are descrypt-ztex, bcrypt-ztex, sha512crypt-ztex,
+Drupal7-ztex, more are planned.
 
 -------------
 How to build
@@ -48,6 +49,11 @@ bcrypt-ztex. You have to adjust TargetSetting in john.conf,
 section [ZTEX:bcrypt] to reflect settings of your hashes.
 Big difference between TargetSetting and setting of your hashes
 would result in performance degradation or timeout.
+
+sha512crypt-ztex, Drupal7-ztex. These 2 formats use same bitstream.
+You'll have to adjust TargetRounds in john.conf in sections
+[ZTEX:sha512crypt], [ZTEX:Drupal7] to reflect approximate rounds
+setting of your hashes.
 
 -----------------------------
 Runtime Frequency Adjustment
