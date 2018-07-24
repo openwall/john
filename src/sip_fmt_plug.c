@@ -68,6 +68,8 @@ static sip_salt *pSalt;
 static struct fmt_tests sip_tests[] = {
 	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104**46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
 	{"$sip$*10.0.1.20*10.0.1.10*1001*asterisk*REGISTER*sips*10.0.1.20*5061*0ef95b07****MD5*576e39e9de6a9ed053eb218f65fe470e", "q1XCLF0KaBObo797"},
+	// https://sites.google.com/site/httpbrute/tutorial
+	{"$sip$*192.168.1.110*192.168.1.110*user151*Apple*REGISTER*sip*192.168.1.110*5060*b57aa7088ae5cac88d298d66f2c809cd****MD5*77795e92300dcc3c2fd974b2b47e5f0c", "pass151"},
 	// generated with pass_gen.pl
 	{"$sip$*192.168.163.238*192.168.163.239*50894*asterisk*REGISTER*sip*192.168.163.239**303535c9****MD5*e32c95d6ad0fecbc3967b7534d7b5b3b", "123456"},
 	{"$sip$*192.168.196.105*192.168.196.192*81670*asterisk*REGISTER*sip*192.168.196.192**747f072a****MD5*d15c84b1bdc2155db12b721d7fb9445b", "password"},
