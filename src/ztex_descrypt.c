@@ -53,8 +53,9 @@ struct device_bitstream bitstream = {
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	35 * 1024*1024,
+	64 * 1024,		// 64K keys for each FPGA for self-test
 	// Absolute max. keys/crypt_all_interval for all devices.
-	2 * 1024*1024,
+	3 * 1024*1024,	// ~24 MB of USB traffic
 	// Max. number of entries in onboard comparator.
 	2047,
 	0,	// Min. number of keys (doesn't matter for fast "formats")
@@ -69,7 +70,7 @@ static struct fmt_tests tests[] = {
 	{"CCX.K.MFy4Ois", "U*U***U"},
 	{"CC4rMpbg9AMZ.", "U*U***U*"},
 	{"XXxzOu6maQKqQ", "*U*U*U*U"},
-	{"SDbsugeBiC58A", ""},
+	//{"SDbsugeBiC58A", ""},
 	{"bbc1MMnm9AB52", "########"},
 	{"zzfERZdZxZJeg", "11111111"},
 	{"..4Xmrg11Z3jU", "00000000"},

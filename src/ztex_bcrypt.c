@@ -56,7 +56,9 @@ static struct device_bitstream bitstream = {
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	1,	// set by init()
-	1 * 1024*1024,	// Absolute max. keys/crypt_all_interval for all devices.
+	4096,	// 4K keys per FPGA for self-test.
+	// Absolute max. keys/crypt_all_interval for all devices.
+	512 * 1024,	// Would be 36MB of USB traffic on 72-byte keys
 	3,		// Max. number of entries in onboard comparator.
 	124,	// Min. number of keys for effective device utilization
 	1, { 141 },	// Programmable clocks
@@ -76,8 +78,8 @@ static struct fmt_tests tests[] = {
 	// 32 lower bits of hash are equal to the above hash - self-test fails
 	//{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzAxtE4OUcU.5p75hOF2yn2i1ocvO",
 	//	"1E!dpr"},
-	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
-		""},
+	//{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
+	//	""},
 	{"$2a$08$CCCCCCCCCCCCCCCCCCCCC.LuntE/dBezheibpSOXBeR3W7q5mt2NW",
 		">RQ7la"},
 	{"$2b$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a",
