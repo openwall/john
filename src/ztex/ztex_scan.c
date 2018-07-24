@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2018 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,11 @@
 
 extern struct list_main *jtr_devices_allow;
 
+static int firmware_is_ok(struct ztex_device *dev)
+{
+	return !strncmp("inouttraffic", dev->product_string, 12);
+}
+
 // Find Ztex USB devices (of supported type)
 // Check "--devices" command-line option
 // Upload firmware (device resets) if necessary
@@ -52,7 +57,9 @@ static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 
 		// If john is invoked with "--devices" command-line option,
 		// use only listed boards.
-		if (jtr_devices_allow->count) {
+		// If the board has SN of unsupported format - upload firmware.
+		if (jtr_devices_allow->count && (ztex_sn_is_valid(dev->snString)
+					|| !firmware_is_ok(dev)) ) {
 			if (!list_check(jtr_devices_allow, dev->snString)) {
 				ztex_dev_list_remove(new_dev_list, dev);
 				continue;
@@ -71,7 +78,7 @@ static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 		}
 
 		// Check firmware
-		if (!strncmp("inouttraffic", dev->product_string, 12)) {
+		if (firmware_is_ok(dev)) {
 			count++;
 			continue;
 		}

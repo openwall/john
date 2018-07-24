@@ -142,11 +142,13 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 		return result;
 	}
 
-	if (!ztex_sn_is_valid(dev->snString)) {
-		ztex_error("ztex_device_new: bad Serial Number (%s)\n", dev->snString);
-		ztex_device_delete(dev);
-		return -1;
-	}
+	// Before firmware upload, board may have SN of different format
+	//
+	//if (!ztex_sn_is_valid(dev->snString)) {
+	//	ztex_error("ztex_device_new: bad Serial Number (%s)\n", dev->snString);
+	//	ztex_device_delete(dev);
+	//	return -1;
+	//}
 
 	result = libusb_get_string_descriptor_ascii(dev->handle, desc.iProduct,
 			(unsigned char *)dev->product_string, ZTEX_PRODUCT_STRING_LEN);
