@@ -159,13 +159,6 @@ and bcrypt-ztex projects. The only difference is variable-length
 candidate generator (bcrypt and descrypt have fixed-length inputs).
 
 
-## Design Placement and Routing
-
-- Attention was paid for optimal placement of individual components.
-Available area was manually divided into 51 equal rectangles. Each unit
-occupies 5 rectangles: 4 for cores and one for the CPU and the rest.
-
-
 ## How to run simulation using ISIM from ISE Design Suite
 
 - Make sure you have ```define SIMULATION``` in sha512.vh uncommented.
@@ -178,3 +171,34 @@ use <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/s
 Output packets (defineed in <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/pkt_comm/inpkt.h'>inpkt.h</a>) appear in
 output_fifo.fifo_output0.ram exactly as before they leave FPGA.
 
+
+## Design Placement and Routing
+
+- Attention was paid for optimal placement of individual components.
+Available area was manually divided into 51 equal rectangles. Each unit
+occupies 5 rectangles: 4 for cores and one for the CPU and the rest.
+- Multi-Pass Place & Route approach was used to build the bitstream.
+
+```
+  +--------+        +--------+
+  |        +--------+        |
+  |        |        |        |
+  |  unit1 |  unit2 | unit3  |
+  |        |        |        |
+  +--------+----+---+--------+
+  |             |            |
+  |    unit4    |    unit8   |
+  |             |            |
+  +-------------+------------+
+  |             |            |
+  |    unit5    |    unit6   |
+  |             |            |
+  +--------+----+------------+
+  |        |        |        |
+  |        | unit9  |        |
+  | unit0  |        |  unit7 |
+  |        +--------+        |
+  |        |comm.f/w|        |
+  +--------+        +--------+
+```
+fig.3. Area allocation in the FPGA
