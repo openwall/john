@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# This software is Copyright (c) 2018, Dhiru Kholia <dhiru at openwall.com> and
+# it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# Special thanks goes to https://github.com/NODESPLIT/tz-brute and Michael Senn
+# (@MikeSenn on Telegram) for helping me bootstrap this project.
+
 import re
 import os
 import sys

@@ -7,8 +7,8 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * Special thanks goes to https://github.com/NODESPLIT/tz-brute for making this
- * work possible.
+ * Special thanks goes to https://github.com/NODESPLIT/tz-brute and Michael
+ * Senn (@MikeSenn on Telegram) for helping me bootstrap this project.
  */
 
 #if FMT_EXTERNS_H
