@@ -3814,6 +3814,7 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 {
 	unsigned int j;
 	unsigned int til;
+	char *p = NULL;
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3848,7 +3849,9 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 			strncpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), saved_key[j], 17);
 		else
 #endif
-		strncpy(&(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]), saved_key[j], 17);
+		p = &(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]);
+		strncpy(p, saved_key[j], 17);
+		p[17] = 0;  // ugly hack
 		total_len_X86[j] += 16;
 	}
 }
@@ -3857,6 +3860,7 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 {
 	unsigned int j;
 	unsigned int til;
+	char *p = NULL;
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3891,7 +3895,9 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 			strncpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), saved_key[j], 21);
 		else
 #endif
-		strncpy(&(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]), saved_key[j], 21);
+		p = &(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]);
+		strncpy(p, saved_key[j], 21);
+		p[21] = 0;
 		total_len_X86[j] += 20;
 	}
 }
