@@ -330,7 +330,7 @@ def display_masterkey(Preferred):
     GUID = struct.unpack("<LHH", GUID1)
     GUID2 = struct.unpack(">HLH", GUID2)
 
-    print "%s-%s-%s-%s-%s%s" % (format(GUID[0], 'x'), format(GUID[1], 'x'), format(GUID[2], 'x'), format(GUID2[0], 'x'), format(GUID2[1], 'x'), format(GUID2[2], 'x'))
+    print "%s-%s-%s-%s-%s%s" % (format(GUID[0], '08x'), format(GUID[1], '04x'), format(GUID[2], '04x'), format(GUID2[0], '04x'), format(GUID2[1], '08x'), format(GUID2[2], '04x'))
 
 
 class MasterKey(DataStruct):
