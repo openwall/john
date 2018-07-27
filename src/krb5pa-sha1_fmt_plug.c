@@ -238,8 +238,10 @@ static void *get_salt(char *ciphertext)
 		p = strtokm(NULL, "$");
 	}
 	if (p[-1] == '$') {
-		strcpy((char*)cs.salt, (char*)cs.realm);
-		strcat((char*)cs.salt, (char*)cs.user);
+		strncpy((char*)cs.salt, (char*)cs.realm, sizeof(cs.realm)-1);
+		cs.salt[sizeof(cs.realm)-1] = 0;
+		strncat((char*)cs.salt, (char*)cs.user, sizeof(cs.salt) - sizeof(cs.realm));
+		cs.salt[sizeof(cs.salt)-1] = 0;
 	} else {
 		strcpy((char*)cs.salt, p);
 		p = strtokm(NULL, "$");
