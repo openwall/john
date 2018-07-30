@@ -325,4 +325,128 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int K
 	}
 }
 
+#if defined (PBKDF2_HMAC_SHA256_VARYING_SALT)
+static void pbkdf2_sha256_sse_varying_salt(const unsigned char *K[SSE_GROUP_SZ_SHA256], int KL[SSE_GROUP_SZ_SHA256], unsigned char *S[SSE_GROUP_SZ_SHA256], int SL[SSE_GROUP_SZ_SHA256], int R, unsigned char *out[SSE_GROUP_SZ_SHA256], int outlen, int skip_bytes)
+{
+	unsigned char tmp_hash[SHA256_DIGEST_LENGTH];
+	uint32_t *i1, *i2, *o1, *ptmp;
+	unsigned int i, j;
+	uint32_t dgst[SSE_GROUP_SZ_SHA256][SHA256_DIGEST_LENGTH/sizeof(uint32_t)];
+	int loops, accum=0;
+	unsigned char loop;
+	SHA256_CTX ipad[SSE_GROUP_SZ_SHA256], opad[SSE_GROUP_SZ_SHA256], ctx;
+
+	// sse_hash1 would need to be 'adjusted' for SHA256_PARA
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_hash1[SHA_BUF_SIZ*sizeof(uint32_t)*SSE_GROUP_SZ_SHA256];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt1[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
+	JTR_ALIGN(MEM_ALIGN_SIMD) unsigned char sse_crypt2[SHA256_DIGEST_LENGTH*SSE_GROUP_SZ_SHA256];
+	i1 = (uint32_t*)sse_crypt1;
+	i2 = (uint32_t*)sse_crypt2;
+	o1 = (uint32_t*)sse_hash1;
+
+	// we need to set ONE time, the upper half of the data buffer.  We put the 0x80 byte (in BE format), at offset 32,
+	// then zero out the rest of the buffer, putting 0x300 (#bits), into the proper location in the buffer.  Once this
+	// part of the buffer is setup, we never touch it again, for the rest of the crypt.  We simply overwrite the first
+	// half of this buffer, over and over again, with BE results of the prior hash.
+	for (j = 0; j < SSE_GROUP_SZ_SHA256/SIMD_COEF_32; ++j) {
+		ptmp = &o1[j*SIMD_COEF_32*SHA_BUF_SIZ];
+		for (i = 0; i < SIMD_COEF_32; ++i)
+			ptmp[ (SHA256_DIGEST_LENGTH/sizeof(uint32_t))*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = 0x80000000;
+		for (i = (SHA256_DIGEST_LENGTH/sizeof(uint32_t)+1)*SIMD_COEF_32; i < 15*SIMD_COEF_32; ++i)
+			ptmp[i] = 0;
+		for (i = 0; i < SIMD_COEF_32; ++i)
+			ptmp[15*SIMD_COEF_32 + (i&(SIMD_COEF_32-1))] = ((64+SHA256_DIGEST_LENGTH)<<3); // all encrypts are 64+32 bytes.
+	}
+
+	// Load up the IPAD and OPAD values, saving off the first half of the crypt.  We then push the ipad/opad all
+	// the way to the end, and that ends up being the first iteration of the pbkdf2.  From that point on, we use
+	// the 2 first halves, to load the sha256 2nd part of each crypt, in each loop.
+	_pbkdf2_sha256_sse_load_hmac(K, KL, ipad, opad);
+	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
+		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
+		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
+#if COMMON_DIGEST_FOR_OPENSSL
+			*ptmp = ipad[j].hash[i];
+#else
+			*ptmp = ipad[j].h[i];
+#endif
+			ptmp += SIMD_COEF_32;
+		}
+		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
+		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
+#if COMMON_DIGEST_FOR_OPENSSL
+			*ptmp = opad[j].hash[i];
+#else
+			*ptmp = opad[j].h[i];
+#endif
+			ptmp += SIMD_COEF_32;
+		}
+	}
+
+	loops = (skip_bytes + outlen + (SHA256_DIGEST_LENGTH-1)) / SHA256_DIGEST_LENGTH;
+	loop = skip_bytes / SHA256_DIGEST_LENGTH + 1;
+	while (loop <= loops) {
+		for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
+			memcpy(&ctx, &ipad[j], sizeof(ctx));
+			SHA256_Update(&ctx, S[j], SL[j]);
+			// this BE 1 appended to the salt, allows us to do passwords up
+			// to and including 64 bytes long.  If we wanted longer passwords,
+			// then we would have to call the HMAC multiple times (with the
+			// rounds between, but each chunk of password we would use a larger
+			// BE number appended to the salt. The first roung (64 byte pw), and
+			// we simply append the first number (0001 in BE)
+			SHA256_Update(&ctx, "\x0\x0\x0", 3);
+			SHA256_Update(&ctx, &loop, 1);
+			SHA256_Final(tmp_hash, &ctx);
+
+			memcpy(&ctx, &opad[j], sizeof(ctx));
+			SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
+			SHA256_Final(tmp_hash, &ctx);
+
+			// now convert this from flat into SIMD_COEF_32 buffers.
+			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
+			// so we will need to 'undo' that in the end.
+			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))];
+			for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
+#if COMMON_DIGEST_FOR_OPENSSL
+				*ptmp = dgst[j][i] = ctx.hash[i];
+#else
+				*ptmp = dgst[j][i] = ctx.h[i];
+#endif
+				ptmp += SIMD_COEF_32;
+			}
+		}
+
+		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.
+		for (i = 1; i < (unsigned)R; i++) {
+			unsigned int k;
+			SIMDSHA256body(o1,o1,i1, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA256body(o1,o1,i2, SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT);
+			// only xor first 16 words
+			for (k = 0; k < SSE_GROUP_SZ_SHA256; k++) {
+				uint32_t *p = &o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ + (k&(SIMD_COEF_32-1))];
+				for (j = 0; j < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); j++)
+					dgst[k][j] ^= p[(j*SIMD_COEF_32)];
+			}
+		}
+
+		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
+		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
+		alter_endianity(dgst, sizeof(dgst));
+		for (i = skip_bytes%SHA256_DIGEST_LENGTH; i < SHA256_DIGEST_LENGTH && accum < outlen; ++i) {
+			for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
+#if ARCH_LITTLE_ENDIAN
+				out[j][accum] = ((unsigned char*)(dgst[j]))[i];
+#else
+				out[j][accum] = ((unsigned char*)(dgst[j]))[i^3];
+#endif
+			}
+			++accum;
+		}
+		++loop;
+		skip_bytes = 0;
+	}
+}
+#endif
+
 #endif
