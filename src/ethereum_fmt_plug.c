@@ -26,7 +26,7 @@ john_register_one(&fmt_ethereum);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#define PBKDF2_HMAC_SHA256_ALSO_INCLUDE_CTX 1 // hack, we can't use our simd pbkdf2 code for presale wallets because of varying salt
+#define PBKDF2_HMAC_SHA256_VARYING_SALT 1
 #include "pbkdf2_hmac_sha256.h"
 #include "ethereum_common.h"
 #include "escrypt/crypto_scrypt.h"
@@ -148,14 +148,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		} else if (cur_salt->type == 2) {
 			if (new_keys) {
 				/* Presale. No salt! */
+#ifdef SIMD_COEF_32
+				int lens[MIN_KEYS_PER_CRYPT];
+				int slens[MIN_KEYS_PER_CRYPT];
+				unsigned char *sin[MIN_KEYS_PER_CRYPT];
+				unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
 				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-					pbkdf2_sha256((unsigned char *)saved_key[index+i],
-					              strlen(saved_key[index+i]),
-					              (unsigned char *)saved_key[index+i],
-					              strlen(saved_key[index+i]),
-					              2000, master[i], 16, 0);
+					lens[i] = strlen(saved_key[index+i]);
+					pin[i] = (unsigned char*)saved_key[index+i];
+					pout[i] = master[i];
+					sin[i] = pin[i];
+					slens[i] = lens[i];
+				}
+				pbkdf2_sha256_sse_varying_salt((const unsigned char**)pin, lens, sin, slens, 2000, pout, 16, 0);
+				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+					memcpy(saved_presale[index + i], pout[i], 32);
+				}
+#else
+
+				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+					pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), (unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), 2000, master[i], 16, 0);
+				}
+				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 					memcpy(saved_presale[index + i], master[i], 32);
 				}
+#endif
 				new_keys = 0;
 			} else {
 				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
