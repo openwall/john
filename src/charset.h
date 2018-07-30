@@ -33,7 +33,7 @@
  */
 struct charset_header {
 /* CHARSET_V* */
-	char version[5];
+	char version[4];
 
 /* A checksum of the file or equivalent plus some space for future extensions
  * (only 4 bytes are used currently) */
