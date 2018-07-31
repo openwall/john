@@ -319,8 +319,8 @@ static void* get_salt(char *ciphertext)
 		q = strchr(p, '$');
 
 		if (!q) { // last file
-			memset(tpath, 0, sizeof(tpath));
-			strncpy(tpath, p, sizeof(tpath)-1);
+			memset(tpath, 0, sizeof(tpath) - 1);
+			strncpy(tpath, p, sizeof(tpath));
 		} else {
 			memset(tpath, 0, sizeof(tpath) - 1);
 			strncpy(tpath, p, q-p);
@@ -494,8 +494,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 				lens[j] = strlen((char*)(key_buffer[i+j]));
 
-				strncpy((char*)Keys[j], (char*)key_buffer[i+j], sizeof(Keys[j])-1);
-				Keys[j][sizeof(Keys[j])-1] = 0;
+				strncpy((char*)Keys[j], (char*)key_buffer[i+j], 64);
 
 				/* process keyfile(s) */
 				if (psalt->nkeyfiles) {

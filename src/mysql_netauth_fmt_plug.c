@@ -108,8 +108,7 @@ static char* split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
-	strncpy(out, ciphertext, CIPHERTEXT_LENGTH);
-	out[CIPHERTEXT_LENGTH] = 0;
+	strncpy(out, ciphertext, sizeof(out));
 	strlwr(out);
 
 	return out;

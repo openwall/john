@@ -146,8 +146,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt *cs = &(un._cs);
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
-	strncpy((char*)cs->salt, p, sizeof(cs->salt) - 1);
-	cs->salt[sizeof(cs->salt) - 1] = 0;
+	strncpy((char*)cs->salt, p, 32);
 	p = strtokm(NULL, "$");
 	cs->N = atoi(p);
 	p = strtokm(NULL, "$");
