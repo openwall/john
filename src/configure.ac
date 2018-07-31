@@ -233,12 +233,12 @@ fi
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
 
-   JTR_FLAG_CHECK([[-Wno-stringop-truncation]], 1)
+   JTR_NOWARN_CHECK([stringop-truncation], 1)
 
    AS_IF([test "x$werror" = xyes],
       JTR_FLAG_CHECK([-Werror], 1)
-      JTR_FLAG_CHECK([-Wno-error=cpp], 1)
-      JTR_FLAG_CHECK([[-Wno-error=#warnings]], 1)
+      JTR_NOWARN_CHECK([error=cpp], 1)
+      JTR_NOWARN_CHECK([[error=#warnings]], 1)
    )
    if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
       JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
@@ -249,11 +249,11 @@ fi
    dnl gcc bug workaround, see issue 632
    JTR_FLAG_CHECK([--param allow-store-data-races=0], 1)
    dnl Silly OSX warnings
-   JTR_FLAG_CHECK([-Wno-deprecated-declarations], 1)
+   JTR_NOWARN_CHECK([deprecated-declarations], 1)
    dnl clang warnings
    JTR_FLAG_CHECK([-Wformat-extra-args], 1)
    JTR_FLAG_CHECK([-Wunused-but-set-variable], 1)
-   dnl JTR_FLAG_CHECK([-Wno-unneeded-internal-declaration], 1)
+   dnl JTR_NOWARN_CHECK([unneeded-internal-declaration], 1)
    AS_IF([test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes], [JTR_FLAG_CHECK([-Qunused-arguments],1)])
    dnl Justified and Ancient (see issue 1093)
    JTR_FLAG_CHECK([-std=gnu89], 1)

@@ -3397,6 +3397,8 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 
 
 
+
+
 #
 # AX_ZTEX
 #
@@ -6138,9 +6140,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-   if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-stringop-truncation" >&5
-$as_echo_n "checking if $CC supports -Wno-stringop-truncation... " >&6; }
+   warn="-Wstringop-truncation"
+ nowarn="-Wno-stringop-truncation"
+ if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $nowarn" >&5
+$as_echo_n "checking if $CC supports $nowarn... " >&6; }
 fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -6149,7 +6153,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wno-stringop-truncation"
+  CFLAGS="-Werror $warn"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -6166,7 +6170,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -Wno-stringop-truncation"
+      CFLAGS_EX="$CFLAGS_EX $nowarn"
 
 else
   if test 1 -gt 0; then :
@@ -6238,9 +6242,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-      if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-error=cpp" >&5
-$as_echo_n "checking if $CC supports -Wno-error=cpp... " >&6; }
+      warn="-Werror=cpp"
+ nowarn="-Wno-error=cpp"
+ if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $nowarn" >&5
+$as_echo_n "checking if $CC supports $nowarn... " >&6; }
 fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -6249,7 +6255,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wno-error=cpp"
+  CFLAGS="-Werror $warn"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -6266,7 +6272,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -Wno-error=cpp"
+      CFLAGS_EX="$CFLAGS_EX $nowarn"
 
 else
   if test 1 -gt 0; then :
@@ -6287,9 +6293,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-      if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-error=#warnings" >&5
-$as_echo_n "checking if $CC supports -Wno-error=#warnings... " >&6; }
+      warn="-Werror=#warnings"
+ nowarn="-Wno-error=#warnings"
+ if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $nowarn" >&5
+$as_echo_n "checking if $CC supports $nowarn... " >&6; }
 fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -6298,7 +6306,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wno-error=#warnings"
+  CFLAGS="-Werror $warn"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -6315,7 +6323,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -Wno-error=#warnings"
+      CFLAGS_EX="$CFLAGS_EX $nowarn"
 
 else
   if test 1 -gt 0; then :
@@ -6489,9 +6497,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-      if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-deprecated-declarations" >&5
-$as_echo_n "checking if $CC supports -Wno-deprecated-declarations... " >&6; }
+      warn="-Wdeprecated-declarations"
+ nowarn="-Wno-deprecated-declarations"
+ if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $nowarn" >&5
+$as_echo_n "checking if $CC supports $nowarn... " >&6; }
 fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -6500,7 +6510,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wno-deprecated-declarations"
+  CFLAGS="-Werror $warn"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -6517,7 +6527,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -Wno-deprecated-declarations"
+      CFLAGS_EX="$CFLAGS_EX $nowarn"
 
 else
   if test 1 -gt 0; then :
