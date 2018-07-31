@@ -24,7 +24,9 @@ john_register_one(&fmt_opencl_dmg);
 #include "loader.h"
 #include "dmg_common.h"
 #include "opencl_common.h"
+#include "sha.h"
 #define OUTLEN 32
+#define PLAINTEXT_LENGTH	125
 #include "opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL		"dmg-opencl"
@@ -38,7 +40,6 @@ john_register_one(&fmt_opencl_dmg);
 #define MAX_KEYS_PER_CRYPT	1
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		1
-#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(dmg_salt)
 #define SALT_ALIGN		sizeof(uint32_t)
 
@@ -70,6 +71,7 @@ typedef struct {
 
 static size_t key_buf_size;
 static unsigned int *inbuffer;
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static dmg_out *output;
 static dmg_salt *cur_salt;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
@@ -114,11 +116,12 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= ocl_v_width;
 
-	key_buf_size = PLAINTEXT_LENGTH * gws;
+	key_buf_size = 64 * gws;
 
 	// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
 	output = mem_calloc(gws, sizeof(dmg_out));
+	saved_key = mem_calloc(gws, PLAINTEXT_LENGTH + 1);
 
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
@@ -157,6 +160,7 @@ static void release_clobj(void)
 
 		MEM_FREE(inbuffer);
 		MEM_FREE(output);
+		MEM_FREE(saved_key);
 	}
 }
 
@@ -213,9 +217,8 @@ static void reset(struct db_main *db)
 		}
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
-		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
+		         "-DHASH_LOOPS=%u -DOUTLEN=%u -DV_WIDTH=%u",
+		         HASH_LOOPS, OUTLEN, ocl_v_width);
 		opencl_init("$JOHN/kernels/dmg_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
@@ -457,10 +460,25 @@ static void clear_keys(void) {
 }
 
 #undef set_key
-static void set_key(char *key, int index)
+static void set_key(char *cand, int index)
 {
 	int i;
-	int length = strlen(key);
+	char *key = cand;
+	int length = strlen(cand);
+	unsigned char hash[20];
+
+	strcpy(saved_key[index], key);
+
+	if (length > 64) {
+		SHA_CTX ctx;
+
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, cand, length);
+		SHA1_Final(hash, &ctx);
+
+		key = (char*)hash;
+		length = 20;
+	}
 
 	for (i = 0; i < length; i++)
 		((char*)inbuffer)[GETPOS(i, index)] = key[i];
@@ -470,15 +488,7 @@ static void set_key(char *key, int index)
 
 static char* get_key(int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
-	int i = 0;
-
-	while (i < PLAINTEXT_LENGTH &&
-	       (ret[i] = ((char*)inbuffer)[GETPOS(i, index)]))
-		i++;
-	ret[i] = 0;
-
-	return ret;
+	return saved_key[index];
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
