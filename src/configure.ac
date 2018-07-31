@@ -233,11 +233,12 @@ fi
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
 
+   JTR_FLAG_CHECK([[-Wno-stringop-truncation]], 1)
+
    AS_IF([test "x$werror" = xyes],
       JTR_FLAG_CHECK([-Werror], 1)
       JTR_FLAG_CHECK([-Wno-error=cpp], 1)
       JTR_FLAG_CHECK([[-Wno-error=#warnings]], 1)
-      JTR_FLAG_CHECK([[-Wno-stringop-truncation]], 1)
    )
    if test "x$asan" = xyes || test "x$ubsan" = xyes || test "x$ubsantrap" ; then
       JTR_FLAG_CHECK([-fno-omit-frame-pointer], 1)
