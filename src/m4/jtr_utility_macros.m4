@@ -50,6 +50,32 @@ AC_DEFUN([JTR_FLAG_CHECK],
   AC_LANG_POP([C])
 ])
 
+dnl @synopsis JTR_NOWARN_CHECK([specific-warning], flags)
+dnl @summary check whether compiler supports -Wspecific-warning and if
+dnl it does, CFLAGS_EX is appended with -Wno-specific-warning
+dnl
+dnl The reason is we can test for -Wfoo but not -Wno-foo (soft fail by design)
+dnl
+dnl If a second argument is 0, don't show progress
+dnl If a second argument is 1, show progress
+dnl If a second argument is 2, bails if not supported
+AC_DEFUN([JTR_NOWARN_CHECK],
+ warn="-W$1"
+ nowarn="-Wno-$1"
+ [AS_IF([test $2 -gt 0], [AC_MSG_CHECKING([if $CC supports $nowarn])])
+  AC_LANG_PUSH([C])
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror $warn"
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AS_IF([test "$2" -gt 0], [AC_MSG_RESULT([yes])])]
+      [CFLAGS_EX="$CFLAGS_EX $nowarn"]
+    ,[AS_IF([test $2 -gt 0], [AC_MSG_RESULT([no])])]
+    [AS_IF([test "$2" = 2], [AC_MSG_ERROR([Not supported by compiler])])]
+  )
+  CFLAGS="$ac_saved_cflags"
+  AC_LANG_POP([C])
+])
+
 dnl @synopsis JTR_FLAG_CHECK_LINK(compiler flags[, flags])
 dnl @summary check whether compiler and linker supports given options or not.
 dnl CFLAGS_EX is appended with each 'valid' command.
