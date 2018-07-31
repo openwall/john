@@ -341,6 +341,8 @@ struct fmt_tests pbkdf2_hmac_sha1_common_tests[] = {
 	{"$pbkdf2-hmac-sha1$1000.fd11cde0.27de197171e6d49fc5f55c9ef06c0d8751cd7250", "3956"},
 	{"$pbkdf2-hmac-sha1$1000$6926d45e$231c561018a4cee662df7cd4a8206701c5806af9", "1234"},
 	{"$pbkdf2-hmac-sha1$1000.98fcb0db.37082711ff503c2d2dea9a5cf7853437c274d32e", "5490"},
+	// Long password
+	{"$pbkdf2-hmac-sha1$1000.6834476f733353333654315a5a31494f.1932a843a69dc1e38a29d2691a7abf27ecaa6d55", "Very long string to test larger than sixty-four characters candidate"},
 	// WPA-PSK DK (raw key as stored by some routers):
 	// iterations is always 4096.
 	// ESSID was "Harkonen" - converted to hex 4861726b6f6e656e.

@@ -25,7 +25,9 @@ john_register_one(&fmt_ocl_pbkdf2_sha1);
 #include "johnswap.h"
 #include "base64_convert.h"
 #include "options.h"
+#include "sha.h"
 #define OUTLEN 20
+#define PLAINTEXT_LENGTH	125
 #include "opencl_pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_common.h"
 
@@ -38,12 +40,11 @@ john_register_one(&fmt_ocl_pbkdf2_sha1);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(pbkdf2_salt)
 #define SALT_ALIGN		sizeof(int)
 
 /* This handles all widths */
-#define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * PLAINTEXT_LENGTH * ocl_v_width)
+#define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
@@ -80,6 +81,7 @@ static size_t get_task_max_work_group_size()
 
 static size_t key_buf_size;
 static unsigned int *inbuffer;
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static pbkdf2_out *output;
 static pbkdf2_salt *cur_salt;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
@@ -89,10 +91,11 @@ static struct fmt_main *self;
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= ocl_v_width;
-	key_buf_size = PLAINTEXT_LENGTH * gws;
+	key_buf_size = 64 * gws;
 
 	/// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);
+	saved_key = mem_calloc(gws, PLAINTEXT_LENGTH + 1);
 	output = mem_alloc(sizeof(pbkdf2_out) * gws);
 
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
@@ -124,6 +127,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 
 		MEM_FREE(output);
+		MEM_FREE(saved_key);
 		MEM_FREE(inbuffer);
 	}
 }
@@ -169,9 +173,8 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
-		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
-		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
+		         "-DHASH_LOOPS=%u -DOUTLEN=%u -DV_WIDTH=%u",
+		         HASH_LOOPS, OUTLEN, ocl_v_width);
 		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
@@ -246,10 +249,25 @@ static void clear_keys(void)
 	memset(inbuffer, 0, key_buf_size);
 }
 
-static void set_key(char *key, int index)
+static void set_key(char *cand, int index)
 {
 	int i;
-	int length = strlen(key);
+	char *key = cand;
+	int length = strlen(cand);
+	unsigned char hash[20];
+
+	strcpy(saved_key[index], key);
+
+	if (length > 64) {
+		SHA_CTX ctx;
+
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, cand, length);
+		SHA1_Final(hash, &ctx);
+
+		key = (char*)hash;
+		length = 20;
+	}
 
 	for (i = 0; i < length; i++)
 		((char*)inbuffer)[GETPOS(i, index)] = key[i];
@@ -259,15 +277,7 @@ static void set_key(char *key, int index)
 
 static char* get_key(int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
-	int i = 0;
-
-	while (i < PLAINTEXT_LENGTH &&
-	       (ret[i] = ((char*)inbuffer)[GETPOS(i, index)]))
-		i++;
-	ret[i] = 0;
-
-	return ret;
+	return saved_key[index];
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
