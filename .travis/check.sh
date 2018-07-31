@@ -45,7 +45,8 @@ elif [[ "$TEST" == "fresh test" ]]; then
     docker run -v $HOME:/root -v $(pwd):/cwd ubuntu:rolling sh -c " \
       cd /cwd/src; \
       apt-get update -qq; \
-      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev libomp-dev; \
+      apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev zlib1g-dev libomp-dev; \
+      gcc --version; \
       ./configure --enable-werror --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
