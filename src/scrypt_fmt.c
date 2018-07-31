@@ -243,8 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void *get_binary(char *ciphertext)
 {
 	static char out[BINARY_SIZE];
-	strncpy(out, ciphertext, sizeof(out)-1);
-	out[sizeof(out)-1] = 0;
+	strncpy(out, ciphertext, sizeof(out)); /* NUL padding is required */
 	return out;
 }
 

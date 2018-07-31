@@ -3814,7 +3814,6 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 {
 	unsigned int j;
 	unsigned int til;
-	char *p = NULL;
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3849,9 +3848,7 @@ void DynamicFunc__append_keys_pad16(DYNA_OMP_PARAMS)
 			strncpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), saved_key[j], 17);
 		else
 #endif
-		p = &(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]);
-		strncpy(p, saved_key[j], 17);
-		p[17] = 0;  // ugly hack
+		strncpy(&(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]), saved_key[j], 17);
 		total_len_X86[j] += 16;
 	}
 }
@@ -3860,7 +3857,6 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 {
 	unsigned int j;
 	unsigned int til;
-	char *p = NULL;
 #ifdef _OPENMP
 	til = last;
 	j = first;
@@ -3895,9 +3891,7 @@ void DynamicFunc__append_keys_pad20(DYNA_OMP_PARAMS)
 			strncpy(&(input_buf_X86[j>>MD5_X2].x2.b2[total_len_X86[j]]), saved_key[j], 21);
 		else
 #endif
-		p = &(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]);
-		strncpy(p, saved_key[j], 21);
-		p[21] = 0;
+		strncpy(&(input_buf_X86[j>>MD5_X2].x1.b[total_len_X86[j]]), saved_key[j], 21);
 		total_len_X86[j] += 20;
 	}
 }
@@ -8264,7 +8258,7 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 			int i;
 			for (i = 0; i < 10; ++i) {
 				if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
-					char Fld[15];
+					char Fld[8];
 					sprintf(Fld, "$$F%d", i);
 					if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 						return ciphertext;

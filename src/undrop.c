@@ -25,9 +25,9 @@
 int undrop(int argc, char *argv[]) {
 
     FILE *userfile;
-    char username[USERNAME_LENGTH+1];
+    char username[USERNAME_LENGTH];
     char password[PASSWORD_LENGTH];
-    char flags[MAX_FLAGS_LENGTH+1];
+    char flags[MAX_FLAGS_LENGTH];
     char t_username[BUFSIZE];
     char t_flags[BUFSIZE];
     char t_line[BUFSIZE];
@@ -63,9 +63,7 @@ int undrop(int argc, char *argv[]) {
 		strncmp(t_username, "$$", 2) != 0
 	    ) {
 		strncpy(username, t_username, USERNAME_LENGTH);
-		username[USERNAME_LENGTH] = 0;
 	        strncpy(flags, t_flags, MAX_FLAGS_LENGTH);
-		flags[MAX_FLAGS_LENGTH] = 0;
 	    }
 	}
 
