@@ -2840,13 +2840,23 @@ def process_new_office(filename):
             assert(saltValue)
             encryptedVerifierHashInput = node.attrib.get("encryptedVerifierHashInput")
             encryptedVerifierHashValue = node.attrib.get("encryptedVerifierHashValue")
-            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
+            if PY3:
+                encryptedVerifierHashValue = binascii.hexlify(base64.decodebytes(encryptedVerifierHashValue.encode()))
+            else:
+                encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
+
+            if PY3:
+                saltAscii = binascii.hexlify(base64.decodebytes(saltValue.encode())).decode("ascii")
+                encryptedVerifierHashAscii = binascii.hexlify(base64.decodebytes(encryptedVerifierHashInput.encode())).decode("ascii")
+            else:
+                saltAscii = binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii")
+                encryptedVerifierHashAscii = binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii")
 
             sys.stdout.write("%s:$office$*%d*%d*%d*%d*%s*%s*%s\n" % \
                 (os.path.basename(filename), version,
                 int(spinCount), int(keyBits), int(saltSize),
-                binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii"),
-                binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii"),
+                saltAscii,
+                encryptedVerifierHashAscii,
                 encryptedVerifierHashValue[0:64].decode("ascii")))
             return 0
     else:
@@ -2919,13 +2929,23 @@ def xml_metadata_parser(data, filename):
         assert(saltValue)
         encryptedVerifierHashInput = node.attrib.get("encryptedVerifierHashInput")
         encryptedVerifierHashValue = node.attrib.get("encryptedVerifierHashValue")
-        encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
+        if PY3:
+            encryptedVerifierHashValue = binascii.hexlify(base64.decodebytes(encryptedVerifierHashValue.encode()))
+        else:
+            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
+
+        if PY3:
+            saltAscii = binascii.hexlify(base64.decodebytes(saltValue.encode())).decode("ascii")
+            encryptedVerifierHashAscii = binascii.hexlify(base64.decodebytes(encryptedVerifierHashInput.encode())).decode("ascii")
+        else:
+            saltAscii = binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii")
+            encryptedVerifierHashAscii = binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii")
 
         sys.stdout.write("%s:$office$*%d*%d*%d*%d*%s*%s*%s\n" % \
             (os.path.basename(filename), version,
             int(spinCount), int(keyBits), int(saltSize),
-            binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii"),
-            binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii"),
+            saltAscii,
+            encryptedVerifierHashAscii,
             encryptedVerifierHashValue[0:64].decode("ascii")))
         return 0
 
