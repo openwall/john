@@ -2809,46 +2809,8 @@ def process_new_office(filename):
             return -2
 
         # rest of the data is in XML format
-        data = StringIO(stream.read())
-        tree = ElementTree()
-        tree.parse(data)
-
-        for node in tree.getiterator('{http://schemas.microsoft.com/office/2006/keyEncryptor/password}encryptedKey'):
-            spinCount = node.attrib.get("spinCount")
-            assert(spinCount)
-            saltSize = node.attrib.get("saltSize")
-            assert(saltSize)
-            blockSize = node.attrib.get("blockSize")
-            assert(blockSize)
-            keyBits = node.attrib.get("keyBits")
-            hashAlgorithm = node.attrib.get("hashAlgorithm")
-            if hashAlgorithm == "SHA1":
-                version = 2010
-            elif hashAlgorithm == "SHA512":
-                version = 2013
-            else:
-                sys.stderr.write("%s uses un-supported hashing algorithm %s, please file a bug! \n" \
-                        % (filename, hashAlgorithm))
-                return -3
-            cipherAlgorithm = node.attrib.get("cipherAlgorithm")
-            if not cipherAlgorithm.find("AES") > -1:
-                sys.stderr.write("%s uses un-supported cipher algorithm %s, please file a bug! \n" \
-                    % (filename, cipherAlgorithm))
-                return -4
-
-            saltValue = node.attrib.get("saltValue")
-            assert(saltValue)
-            encryptedVerifierHashInput = node.attrib.get("encryptedVerifierHashInput")
-            encryptedVerifierHashValue = node.attrib.get("encryptedVerifierHashValue")
-            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
-
-            sys.stdout.write("%s:$office$*%d*%d*%d*%d*%s*%s*%s\n" % \
-                (os.path.basename(filename), version,
-                int(spinCount), int(keyBits), int(saltSize),
-                binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii"),
-                binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii"),
-                encryptedVerifierHashValue[0:64].decode("ascii")))
-            return 0
+        data = stream.read()
+        xml_metadata_parser(data, filename)
     else:
         # Office 2007 file detected, process CryptoAPI Encryption Header
         stm = stream
@@ -2919,13 +2881,23 @@ def xml_metadata_parser(data, filename):
         assert(saltValue)
         encryptedVerifierHashInput = node.attrib.get("encryptedVerifierHashInput")
         encryptedVerifierHashValue = node.attrib.get("encryptedVerifierHashValue")
-        encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
+        if PY3:
+            encryptedVerifierHashValue = binascii.hexlify(base64.decodebytes(encryptedVerifierHashValue.encode()))
+        else:
+            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
+
+        if PY3:
+            saltAscii = binascii.hexlify(base64.decodebytes(saltValue.encode())).decode("ascii")
+            encryptedVerifierHashAscii = binascii.hexlify(base64.decodebytes(encryptedVerifierHashInput.encode())).decode("ascii")
+        else:
+            saltAscii = binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii")
+            encryptedVerifierHashAscii = binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii")
 
         sys.stdout.write("%s:$office$*%d*%d*%d*%d*%s*%s*%s\n" % \
             (os.path.basename(filename), version,
             int(spinCount), int(keyBits), int(saltSize),
-            binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii"),
-            binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii"),
+            saltAscii,
+            encryptedVerifierHashAscii,
             encryptedVerifierHashValue[0:64].decode("ascii")))
         return 0
 
