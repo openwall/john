@@ -105,6 +105,9 @@ This information is contributed by Davy Douhine (@ddouhine).
 JBoss uses the `md5($u:<realm>:$p)` hashing scheme, and 'ManagementRealm' is
 the default realm for new AS 7.1 installations.
 
+Specifying the username in the input hashes is required as it is used as a salt
+by the JBoss AS/EAP hashing scheme.
+
 
 ```
 $ cat hashes
@@ -193,3 +196,23 @@ Session completed
 See `Sha256.java` from `https://github.com/AuthMe/AuthMeReloaded` for addtional details.
 
 NOTE: The inbuilt `dynamic_65` format is a bit faster at cracking such hashes.
+
+## Cracking ZooKeeper hashes
+
+Specifying the username in the input ZooKeeper hashes is required as it is used
+as a salt by the ZooKeeper hashing scheme.
+
+```
+$ cat hashes
+super:UdxDQl4f9v5oITwcAsO9bmWgHSI=
+```
+
+```
+$ ../run/john -form:dynamic='sha1_64($u.$c1.$p),c1=:' hashes
+Loaded 1 password hash (dynamic=sha1_64($u.$c1.$p) [256/256 AVX2 8x1])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+super123         (super)
+1g 0:00:00:00 DONE 1/3 (2018-08-02 10:47) 100.0g/s 66300p/s 66300c/s 66300C/s Super69..super6666
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed
+```
