@@ -198,7 +198,7 @@ inline int check_padding_and_structure(uchar *out, uint length, uint block_size)
 inline int ssh_decrypt(__global const ssh_password *inbuffer, uint gid, __constant ssh_salt *osalt, __global ssh_out *output)
 {
 	uchar out[CTLEN];
-		int block_size = 8;
+	int block_size = 8;
 	uchar password[PLAINTEXT_LENGTH];
 	uchar salt[16];
 
