@@ -173,7 +173,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					memcpy(saved_presale[index + i], master[i], 32);
 				}
 #endif
-				new_keys = 0;
 			} else {
 				for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 					memcpy(master[i], saved_presale[index + i], 32);
@@ -217,6 +216,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 	}
+	new_keys = 0;
 
 	return count;
 }
