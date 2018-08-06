@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall dot net>
+ * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall dot net>,
+ * Copyright (c) 2012-2018 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -40,9 +41,9 @@ john_register_one(&fmt_wpapsk);
 #else
 #warning Notice: WPAPSK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.
 #endif
-#define FORMAT_NAME		"WPA/WPA2 PSK"
+#define FORMAT_NAME		"WPA/WPA2/PMKID PSK"
 #else
-#define FORMAT_NAME		"WPA/WPA2/PMF PSK"
+#define FORMAT_NAME		"WPA/WPA2/PMF/PMKID PSK"
 #endif
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
@@ -184,12 +185,14 @@ struct fmt_main fmt_wpapsk = {
 		FMT_CASE | FMT_OMP,
 		{
 #if !AC_BUILT || HAVE_OPENSSL_CMAC_H
-			"key version [1:WPA 2:WPA2 3:802.11w]"
+			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 #else
-			"key version [1:WPA 2:WPA2]"
+			"key version [0:PMKID 1:WPA 2:WPA2]"
 #endif
 		},
-		{ FORMAT_TAG },
+		{
+			FORMAT_TAG, ""
+		},
 		tests
 	},
 	{

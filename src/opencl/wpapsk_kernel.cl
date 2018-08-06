@@ -437,6 +437,92 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 #endif
 }
 
+__kernel
+__attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
+void wpapsk_final_pmkid(__global wpapsk_state *state,
+                        MAYBE_CONSTANT wpapsk_salt *salt,
+                        __global mic_t *mic)
+{
+	MAYBE_VECTOR_UINT outbuffer[8];
+	uint gid = get_global_id(0);
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT ipad[5];
+	MAYBE_VECTOR_UINT opad[5];
+	uint i;
+	MAYBE_CONSTANT uint *cp = salt->data;
+
+	for (i = 0; i < 5; i++)
+		outbuffer[i] = state[gid].partial[i];
+
+	for (i = 0; i < 3; i++)
+		outbuffer[5 + i] = state[gid].out[i];
+
+	// HMAC(sha1(), PMK, 32, "PMK Name" . MAC_AP . MAC_STA)
+	// PMK is the key (32 bytes)
+	for (i = 0; i < 8; i++)
+		W[i] = 0x36363636 ^ outbuffer[i];
+	for (; i < 16; i++)
+		W[i] = 0x36363636;
+	sha1_single(MAYBE_VECTOR_UINT, W, ipad);
+
+	// rest is the message (20 bytes)
+	for (i = 0; i < 5; i++)
+		W[i] = *cp++;
+	W[5] = 0x80000000;
+	W[15] = (64 + 20) << 3;
+	sha1_block_160Z(MAYBE_VECTOR_UINT, W, ipad);
+
+	for (i = 0; i < 8; i++)
+		W[i] = 0x5c5c5c5c ^ outbuffer[i];
+	for (; i < 16; i++)
+		W[i] = 0x5c5c5c5c;
+	sha1_single(MAYBE_VECTOR_UINT, W, opad);
+
+	for (i = 0; i < 5; i++)
+		W[i] = ipad[i];
+	W[5] = 0x80000000;
+	W[15] = (64 + 20) << 3;
+	sha1_block_160Z(MAYBE_VECTOR_UINT, W, opad);
+
+	/* We only use 16 bytes */
+	for (i = 0; i < 4; i++)
+#ifdef SCALAR
+		mic[gid].keymic[i] = SWAP32(opad[i]);
+#else
+
+#undef VEC_OUT
+#define VEC_OUT(NUM)	  \
+	mic[gid * V_WIDTH + 0x##NUM].keymic[i] = SWAP32(opad[i].s##NUM)
+
+	{
+		VEC_OUT(0);
+		VEC_OUT(1);
+#if V_WIDTH > 2
+		VEC_OUT(2);
+#if V_WIDTH > 3
+		VEC_OUT(3);
+#if V_WIDTH > 4
+		VEC_OUT(4);
+		VEC_OUT(5);
+		VEC_OUT(6);
+		VEC_OUT(7);
+#if V_WIDTH > 8
+		VEC_OUT(8);
+		VEC_OUT(9);
+		VEC_OUT(a);
+		VEC_OUT(b);
+		VEC_OUT(c);
+		VEC_OUT(d);
+		VEC_OUT(e);
+		VEC_OUT(f);
+#endif
+#endif
+#endif
+#endif
+	}
+#endif
+}
+
 #define SHA256_MAC_LEN 32
 
 inline void
