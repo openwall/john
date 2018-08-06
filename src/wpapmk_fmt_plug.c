@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2017 magnum,
+ * This software is Copyright (c) 2018 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -34,9 +34,9 @@ john_register_one(&fmt_wpapsk_pmk);
 #else
 #warning Notice: WPAPMK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.
 #endif
-#define FORMAT_NAME		"WPA/WPA2 master key"
+#define FORMAT_NAME		"WPA/WPA2/PMKID master key"
 #else
-#define FORMAT_NAME		"WPA/WPA2/PMF master key"
+#define FORMAT_NAME		"WPA/WPA2/PMF/PMKID master key"
 #endif
 
 #define ALGORITHM_NAME		"MD5/SHA-1/SHA-2"
@@ -122,12 +122,14 @@ struct fmt_main fmt_wpapsk_pmk = {
 		FMT_OMP,
 		{
 #if !AC_BUILT || HAVE_OPENSSL_CMAC_H
-			"key version [1:WPA 2:WPA2 3:802.11w]"
+			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 #else
-			"key version [1:WPA 2:WPA2]"
+			"key version [0:PMKID 1:WPA 2:WPA2]"
 #endif
 		},
-		{ FORMAT_TAG },
+		{
+			FORMAT_TAG, ""
+		},
 		tests
 	},
 	{

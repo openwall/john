@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>
- * and Copyright (c) 2012-2014 magnum, and it is hereby released to the general
+ * and Copyright (c) 2012-2018 magnum, and it is hereby released to the general
  * public under the following terms: Redistribution and use in source and
  * binary forms, with or without modification, are permitted.
  *
@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_wpapsk);
 #include "opencl_common.h"
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
-static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1, wpapsk_final_sha256;
+static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1, wpapsk_final_sha256, wpapsk_final_pmkid;
 static size_t key_buf_size;
 static unsigned int *inbuffer;
 static struct fmt_main *self;
@@ -34,7 +34,7 @@ static struct fmt_main *self;
 #include "wpapsk.h"
 
 #define FORMAT_LABEL		"wpapsk-opencl"
-#define FORMAT_NAME		"WPA/WPA2/PMF PSK"
+#define FORMAT_NAME		"WPA/WPA2/PMF/PMKID PSK"
 #define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
 
 #define ITERATIONS		4095
@@ -84,6 +84,7 @@ static size_t get_task_max_work_group_size()
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_md5));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_sha1));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_sha256));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_pmkid));
 	return s;
 }
 
@@ -134,6 +135,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
 static void release_clobj(void)
@@ -164,6 +169,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
 		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
 		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha256), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(wpapsk_final_pmkid), "Release Kernel");
 
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
@@ -254,6 +260,8 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		wpapsk_final_sha256 = clCreateKernel(program[gpu_id], "wpapsk_final_sha256", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		wpapsk_final_pmkid = clCreateKernel(program[gpu_id], "wpapsk_final_pmkid", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
@@ -303,7 +311,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		strcpy(last_ssid, hccap.essid);
 	}
 
-	if (hccap.keyver == 1)
+	if (hccap.keyver == 0)
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_pmkid, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (PMKID)");
+	else if (hccap.keyver == 1)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_md5, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (MD5)");
 	else if (hccap.keyver == 2)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA1)");
@@ -334,9 +344,11 @@ struct fmt_main fmt_opencl_wpapsk = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE,
 		{
-			"key version [1:WPA 2:WPA2 3:802.11w]"
+			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 		},
-		{ FORMAT_TAG},
+		{
+			FORMAT_TAG, ""
+		},
 		tests
 	}, {
 		init,
