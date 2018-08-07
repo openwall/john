@@ -30,6 +30,7 @@ john_register_one(&fmt_opencl_axcrypt);
 #include "opencl_common.h"
 #include "options.h"
 #include "axcrypt_common.h"
+#include "axcrypt_variable_code.h"
 
 #define FORMAT_LABEL            "axcrypt-opencl"
 #define FORMAT_NAME             ""
@@ -175,6 +176,11 @@ static void done(void)
 	}
 }
 
+static int axcrypt_valid(char *ciphertext, struct fmt_main *self)
+{
+	return axcrypt_common_valid(ciphertext, self, 0);
+}
+
 static void set_salt(void *salt)
 {
 	cur_salt = *(struct custom_salt **) salt;
@@ -186,7 +192,7 @@ static void set_salt(void *salt)
 		currentsalt.keyfile_length = strlen(cur_salt->keyfile);
 		memcpy((char*)currentsalt.keyfile, cur_salt->keyfile, currentsalt.keyfile_length);
 	}
-	memcpy((char*)currentsalt.salt, cur_salt->salt, sizeof(cur_salt->salt));
+	memcpy((char*)currentsalt.salt, cur_salt->salt, 16);
 	memcpy((char*)currentsalt.wrappedkey, cur_salt->wrappedkey, 24);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,

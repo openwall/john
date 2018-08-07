@@ -8,30 +8,10 @@
 #include "axcrypt_common.h"
 #include "memdbg.h"
 
-struct fmt_tests axcrypt_tests[] = {
-	/*
-	 * Formats can be,
-	 *   $axcrypt$*version*iterations*salt*wrappedkey
-	 *   $axcrypt$*version*iterations*salt*wrappedkey*key-file
-	*/
-	{"$axcrypt$*1*1337*0fd9e7e2f907f480f8af162564f8f94b*af10c88878ba4e2c89b12586f93b7802453121ee702bc362", "Bab00nmoNCo|\\|2$inge"},
-	{"$axcrypt$*1*60000*7522aa07694d441e47f8faad8a8cb984*95e02b7ccbdc27c227a80d1307505d8b769e87b32f312aa1", "nuNuche<3rewshauv"},
-	{"$axcrypt$*1*31014*3408ae91dddc0b1750ed4223fd843364*1cc0f8fa8d89f44d284d0562ac7e93848c86ce9605907129", "tr0pO$phere5apointzero"},
-	// AxCrypt 1.7.3156.0 (AxCrypt2Go.exe)
-	{"$axcrypt$*1*20000*f00875d0a137f83f2100fc8c9687ab25*2f73f1211af567b3fc2a6aebae7e1a508a34a31e6cca2ab0", "openwall"},
-	{"$axcrypt$*1*20000*efd759ae68ae7edd709b9e1c2166d0f7*dcf4c1279b8e4d39475925b17f698c3ce39e9e7d82917272*68656c6c6f0a", "openwall123"},
-	/* axcrypt created key-file */
-	{"$axcrypt$*1*38574*ce4f58c1e85df1ea921df6d6c05439b4*3278c3c730f7887b1008e852e59997e2196710a5c6bc1813*66664a6b2074434a4520374d73592055626979204a6b755520736d6b4b20394e694a205548444320524578562065674b33202f42593d", "0v3rgo2|<fc!"},
-	/* custom key-file */
-	{"$axcrypt$*1*130885*8eb4d745f7ac3f7505bcf14e8ce7e3b4*5221a6e8277e90b0b4f16f7871fca02986fca55c0dec5e59*22486520646f65736e2774206c696b652047656f726765204d69636861656c3a20426f6f6f6f6f6f220d0a0d0a49206665656c20736f20756e737572650d0a417320492074616b6520796f75722068616e6420616e64206c65616420796f7520746f207468652062616e6365666c6f6f720d0a417320746865206d75736963207374617274732c20736f6d657468696e6720696e20796f757220657965730d0a43616c6c7320746f206d696e642074686520676f6c64656e2073637265656e0d0a416e6420616c6c206974277320736169642069732068690d0a0d0a49276d206e6576657220676f6e6e612064616e636520616761696e0d0a4775696c74792066656574206861766520676f74206e6f2072687974686d0d0a54686f7567682069742773206561737920746f2070726574656e640d0a49206b6e6f7720796f277265206e6f74206120666f6f6c0d0a0d0a53686f756c64277665206b6e6f776e20626574746572207468616e20746f206368656174206120667269656e640d0a416e6420776173746520746865206368616e636520746861742049277665206265656e20676976656e0d0a536f2049276d206e6576657220676f6e6e612064616e636520616761696e0d0a5468652077617920492064616e636564207769746820796f750d0a0d0a54696d652063616e206e65766572206d656e640d0a54686520636172656c657373207768697370657273206f66206120676f6f6420667269656e640d0a546f2074686520686561727420616e64206d696e640d0a49676e6f72616e6365206973206b696e640d0a54686572652773206e6f20636f6d666f727420696e207468652074727574680d0a5061696e20697320616c6c20796f75276c6c2066696e640d0a0d0a49276d206e6576657220676f6e6e612064616e636520616761696e0d0a4775696c74792066656574206861766520676f74206e6f2072687974686d0d0a54686f7567682069742773206561737920746f2070726574656e640d0a49206b6e6f7720796f75277265206e6f74206120666f6f6c0d0a0d0a492073686f756c64277665206b6e6f776e20626574746572207468616e20746f206368656174206120667269656e640d0a416e6420776173746520746865206368616e636520746861742049277665206265656e20676976656e0d0a536f2049276d206e6576657220676f6e6e612064616e636520616761696e0d0a5468652077617920492064616e636564207769746820796f750d0a0d0a4e6576657220776974686f757420796f7572206c6f76650d0a0d0a546f6e6967687420746865206d75736963207365656d7320736f206c6f75640d0a492077697368207468617420776520636f756c64206c6f736520746869732063726f77640d0a4d617962652069742773206265747465722074686973207761790d0a5765276420687572742065616368206f74686572207769746820746865207468696e677320776527642077616e7420746f207361790d0a0d0a576520636f756c642068617665206265656e20736f20676f6f6420746f6765746865720d0a576520636f756c642068617665206c6976656420746869732064616e636520666f72657665720d0a427574206e6f772077686f277320676f6e6e612064616e63652077697468206d650d0a506c6561736520737461790d0a0d0a416e642049276d206e6576657220676f6e6e612064616e636520616761696e0d0a4775696c74792066656574206861766520676f74206e6f2072687974686d0d0a54686f7567682069742773206561737920746f2070726574656e640d0a49206b6e6f7720796f75277265206e6f74206120666f6f6c0d0a0d0a53686f756c64277665206b6e6f776e20626574746572207468616e20746f206368656174206120667269656e640d0a416e6420776173746520746865206368616e636520746861742049277665206265656e20676976656e0d0a536f2049276d206e6576657220676f6e6e612064616e636520616761696e0d0a5468652077617920492064616e636564207769746820796f750d0a0d0a284e6f77207468617420796f7527726520676f6e6529204e6f77207468617420796f7527726520676f6e650d0a284e6f77207468617420796f7527726520676f6e65292057686174204920646964277320736f2077726f6e672c20736f2077726f6e670d0a5468617420796f752068616420746f206c65617665206d6520616c6f6e65", "careless whisper"},
-	{NULL}
-};
-
-int axcrypt_valid(char *ciphertext, struct fmt_main *self)
+int axcrypt_common_valid(char *ciphertext, struct fmt_main *self, int is_cpu_format)
 {
-	char *p;
-	char *ctcopy;
-	char *keeptr;
+	char *ctcopy, *keeptr, *p;
+	int version, saltlen, wrappedkeylen;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
@@ -43,8 +23,16 @@ int axcrypt_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdec(p))
 		goto err;
-	if (!atoi(p))
-		goto err;
+	version = atoi(p);
+	if (version == 1) {
+		saltlen = 16;
+		wrappedkeylen = 24;
+	} else {
+		if (!is_cpu_format)
+			goto err;
+		saltlen = 64;  // WrapSalt
+		wrappedkeylen = 144;
+	}
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
 	if (!isdec(p))
@@ -53,13 +41,25 @@ int axcrypt_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p) != 32 || !ishexlc(p))
+	if (strlen(p) != saltlen * 2 || !ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* wrappedkey */
 		goto err;
-	if (strlen(p) != 48 || !ishexlc(p))
+	if (strlen(p) != wrappedkeylen * 2 || !ishexlc(p))
 		goto err;
 	/* optional key-file following */
+
+	/* AxCrypt 2.x handling */
+	if (version == 2) {
+		if ((p = strtokm(NULL, "*")) == NULL)
+			goto err;
+		if (!isdec(p))
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL)
+			goto err;
+		if (strlen(p) != 32 * 2 || !ishexlc(p))
+			goto err;
+	}
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -76,6 +76,8 @@ void *axcrypt_get_salt(char *ciphertext)
 	int i;
 	static struct custom_salt cs;
 	static void *ptr;
+	int saltlen = 0;
+	int wrappedkeylen;
 
 	memset(&cs, 0, sizeof(cs));
 	cs.keyfile = NULL;
@@ -83,26 +85,46 @@ void *axcrypt_get_salt(char *ciphertext)
 	p = strtokm(ctcopy, "*");
 	cs.version = atoi(p);
 
+	if (cs.version == 1) {
+		saltlen = 16;
+		wrappedkeylen = 24;
+	} else {
+		saltlen = 64;  // WrapSalt
+		wrappedkeylen = 144;
+	}
+
 	p = strtokm(NULL, "*");
 	cs.key_wrapping_rounds = (uint32_t) atoi(p);
 
 	p = strtokm(NULL, "*");
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < saltlen; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	p = strtokm(NULL, "*");
-	for (i = 0; i < 24; i++)
+	for (i = 0; i < wrappedkeylen; i++)
 		cs.wrappedkey[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
-	/* if key-file present */
-	if ((p = strtokm(NULL, "*")) != NULL){
-		cs.keyfile = (char*) mem_calloc_tiny(strlen(p)/2 + 1, sizeof(char));
-		for (i = 0; i < strlen(p)/2; i++)
-			cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	if (cs.version == 1) {
+		/* if key-file present */
+		if ((p = strtokm(NULL, "*")) != NULL) {
+			cs.keyfile = (char*) mem_calloc_tiny(strlen(p)/2 + 1, sizeof(char));
+			for (i = 0; i < strlen(p) / 2; i++)
+				cs.keyfile[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		}
 	}
+
+	if (cs.version == 2) {
+		p = strtokm(NULL, "*");
+		cs.deriv_iterations = atoi(p);
+		p = strtokm(NULL, "*");
+
+		for (i = 0; i < 32; i++)
+			cs.deriv_salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
+
 	MEM_FREE(keeptr);
 
 	cs.dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt, salt);
