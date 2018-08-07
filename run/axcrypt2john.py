@@ -1,18 +1,24 @@
 #!/usr/bin/python
 
-# AxCrypt 1.x encrypted file parser for JtR.
+# AxCrypt 1.x and 2.x encrypted file parser for JtR.
+#
 # Written in 2016 by Fist0urs <eddy.maaalou at gmail.com>.
 #
 # This software is Copyright (c) 2016, Fist0urs <eddy.maaalou at gmail.com>,
-# and it is hereby released to the general public under the following terms:
+# Copyright (c) 2018, Dhiru Kholia, and it is hereby released to the general
+# public under the following terms:
 #
 # Redistribution and use in source and binary forms, with or without modification,
 # are permitted.
 #
-# PEP 8 fixes + Python 3.x support: Dhiru Kholia (August, 2018)
+# PEP 8 fixes, Python 3.x, and AxCrypt 2 support: Dhiru Kholia (August, 2018)
 #
-# See AxCryptVersion1AlgorithmsandFileFormat.pdf for details on the .axx file
-# format and the algorithms involved.
+# See AxCryptVersion1AlgorithmsandFileFormat.pdf and AxCryptVersion2AlgorithmsandFileFormat.pdf
+# for details on the .axx file format and the algorithms involved.
+#
+# TODO:
+#   - Detect usage of ciphers other than AES-256 in AxCrypt 2.x files (not an
+#     issue in practice currently).
 
 import sys
 import struct
@@ -54,6 +60,29 @@ def parse_PE(axxdata):
     return axxdata[i:]
 
 
+def parse_axxfile2(axxdata, header_datalen, header_datalen_offset, headertype):
+    version = 2
+    SIZE_KEYDATA = 144
+    SIZE_WRAP_SALT = 64
+    SIZE_DERIV_SALT = 32
+
+    offset_to_keydata = header_datalen_offset + OFFSET_TYPE + 1
+    offset_to_wrap_iteration = offset_to_keydata + SIZE_KEYDATA + SIZE_WRAP_SALT
+    offset_to_wrap_salt = offset_to_keydata + SIZE_KEYDATA
+    dword_str = axxdata[offset_to_wrap_iteration:offset_to_wrap_iteration + SIZE_ITERATION]
+    wrap_salt = axxdata[offset_to_wrap_salt:offset_to_wrap_salt+SIZE_WRAP_SALT]
+    wrap_iterations = DWORD_to_int(dword_str)
+    wrappedkey = axxdata[offset_to_keydata:offset_to_keydata + SIZE_KEYDATA]
+
+    offset_to_deriv_salt = offset_to_keydata + SIZE_KEYDATA + SIZE_WRAP_SALT + 4
+    deriv_salt = axxdata[offset_to_deriv_salt:offset_to_deriv_salt+SIZE_DERIV_SALT]
+    offset_to_deriv_iteration = offset_to_deriv_salt + SIZE_DERIV_SALT
+    dword_str = axxdata[offset_to_deriv_iteration:offset_to_deriv_iteration + SIZE_ITERATION]
+    deriv_iterations = DWORD_to_int(dword_str)
+
+    return version, wrappedkey, wrap_salt, wrap_iterations, deriv_iterations, deriv_salt
+
+
 def parse_axxfile(axxfile):
     stream = open(axxfile, 'rb')
     axxdata = stream.read()
@@ -74,6 +103,8 @@ def parse_axxfile(axxfile):
     header_datalen_offset = 16
     headertype = b'\x02' # first type encountered
 
+    version = 1
+
     # headertype of dataencrypted section is 0x3f
     while headertype != 63:
         if not PY3:
@@ -82,6 +113,10 @@ def parse_axxfile(axxfile):
         else:
             header_datalen = axxdata[header_datalen_offset]
             headertype = axxdata[header_datalen_offset + OFFSET_TYPE]
+
+        if header_datalen in (252, 253) and headertype == 13:  # Header/Trailer. Symmetric Key Wrap -> AxCrypt 2.x
+            version = 2
+            return parse_axxfile2(axxdata, header_datalen, header_datalen_offset, headertype)
 
         # probably a StructKey
         if (header_datalen == 49 and headertype == 4):
@@ -101,7 +136,7 @@ def parse_axxfile(axxfile):
             print("Could not parse file, exiting...")
             sys.exit(0)
 
-    return StructKeys[0]['KeyData'], StructKeys[0]['salt'], StructKeys[0]['Iteration']
+    return version, StructKeys[0]['KeyData'], StructKeys[0]['salt'], StructKeys[0]['Iteration'], None, None
 
 
 if __name__ == "__main__":
@@ -109,9 +144,7 @@ if __name__ == "__main__":
         usage()
 
     # A_DEK == wrapped_key
-    wrapped_key, salt, nb_iteration = parse_axxfile(sys.argv[1])
-
-    version = 1
+    version, wrapped_key, salt, nb_iteration, deriv_iterations, deriv_salt = parse_axxfile(sys.argv[1])
 
     keyfile_content = ''
     key_file_name = ''
@@ -134,4 +167,10 @@ if __name__ == "__main__":
         salt = salt.decode("ascii")
         wrapped_key = wrapped_key.decode("ascii")
 
-    print(axxfile + key_file_name + ":$axcrypt$" + "*" + str(version) + "*" + str(nb_iteration) + "*" + salt + "*" + wrapped_key + keyfile_content)
+    if version == 1:
+        print(axxfile + key_file_name + ":$axcrypt$" + "*" + str(version) + "*" + str(nb_iteration) + "*" + salt + "*" + wrapped_key + keyfile_content)
+    elif version == 2:
+        deriv_salt = binascii.hexlify(deriv_salt)
+        if PY3:
+            deriv_salt = deriv_salt.decode("ascii")
+        print(axxfile + key_file_name + ":$axcrypt$" + "*" + str(version) + "*" + str(nb_iteration) + "*" + salt + "*" + wrapped_key + keyfile_content + "*" + str(deriv_iterations) + "*" +  deriv_salt)
