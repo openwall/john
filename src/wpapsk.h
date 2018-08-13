@@ -29,7 +29,12 @@
 
 #define BINARY_SIZE		sizeof(mic_t)
 #define BINARY_ALIGN		4
+#ifdef WPAPMK
+#define PLAINTEXT_MIN_LEN   64
+#define PLAINTEXT_LENGTH    64
+#else
 #define PLAINTEXT_LENGTH	63 /* We can do 64 but spec. says 63 */
+#endif
 #define SALT_SIZE		(sizeof(hccap_t) - sizeof(mic_t))
 #define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
@@ -61,6 +66,15 @@ typedef struct {
 } wpapsk_salt;
 
 static struct fmt_tests tests[] = {
+#ifdef WPAPMK
+	{"$WPAPSK$test#..qHuv0A..ZPYJBRzZwAKpEXUJwpza/b69itFaq4.OWoGHfonpc13zCAUsRIfQN2Zar6EXp2BYcRuSkWEJIWjEJJvb4DWZCspbZ51.21.3zy.EY.6........../zZwAKpEXUJwpza/b69itFaq4.OWoGHfonpc13zCAUsQ..................................................................BoK.31m.E2..31m.U2..31m.U2..31m.U................................................................................................................................................................................/X.....E...AkkDQmDg9837LBHG.dGlKA", "cdd79a5acfb070c7e9d1023b870285d639e430b32f31aa37ac825a55b55524ee"},
+	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "a288fcf0caaacda9a9f58633ff35e8992a01d9c10ba5e02efdf8cb5d730ce7bc"},
+#if (!AC_BUILT || HAVE_OPENSSL_CMAC_H) || defined(JOHN_OCL_WPAPMK)
+	{"$WPAPSK$Neheb#g9a8Jcre9D0WrPnEN4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw04ASqHgvo12wJYJywulb6pWM6C5uqiMPNKNe9pkr6LE61.5I0.Eg.2..........1N4QXDbA5NwAy5TVpkuoChMdFfL/8Dus4i/X.lTnfwuw.................................................................3X.I.E..1uk2.E..1uk2.E..1uk4X...................................................................................................................................................................................../t.....k...0sHl.mVkiHW.ryNchcMd4g", "fb57668cd338374412c26208d79aa5c30ce40a110224f3cfb592a8f2e8bf53e8"},
+#endif
+	/* WPAPSK PMKID */
+	{"2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a", "5b13d4babb3714ccc62c9f71864bc984efd6a55f237c7a87fc2151e1ca658a9d"},
+#else
 	/* WPA2 testcase from http://wiki.wireshark.org/SampleCaptures */
 	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "Induction"},
 	{"$WPAPSK$Harkonen#./FgTY0../B4zX6AKFO9kuLT4BQSyqEXwo.6XOiS4u8vlMNNs5grN91SVL.WK3GkF2rXfkPFGGi38MHkHDMbH.sm49Vc3pO4HPSUJE21.5I0.Ec.2........../KFO9kuLT4BQSyqEXwo.6XOiS4u8vlMNNs5grN91SVL..................................................................3X.I.E..1uk2.E..1uk2.E..1uk0.E..................................................................................................................................................................................../t.....U...BIpIs8sePU4r8yNnOxKHfM", "12345678"},
@@ -77,6 +91,7 @@ static struct fmt_tests tests[] = {
 #endif
 	/* WPAPSK PMKID */
 	{"2582a8281bf9d4308d6f5731d0e61c61*4604ba734d4e*89acf0e761f4*ed487162465a774bfba60eb603a39f3a", "hashcat!"},
+#endif /* WPAPMK */
 	{NULL}
 };
 
@@ -86,12 +101,16 @@ static hccap_t hccap;			///structure with hccap data
 static wpapsk_salt currentsalt;		///structure for essid
 static mic_t *mic;			///table for MIC keys
 #ifndef JOHN_OCL_WPAPSK
+#ifndef WPAPMK
 static wpapsk_password *inbuffer;	///table for candidate passwords
+#endif
 static wpapsk_hash *outbuffer;		///table for PMK calculated by GPU
 #endif
 
+#ifndef WPAPMK
 static int new_keys = 1;
 static char last_ssid[sizeof(hccap.essid)];
+#endif
 
 /** Below are common functions used by wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
 
@@ -360,6 +379,7 @@ static void set_salt(void *salt)
 }
 
 #ifndef JOHN_OCL_WPAPSK
+#ifndef WPAPMK
 static void clear_keys(void) {
 	new_keys = 1;
 }
@@ -383,6 +403,7 @@ static char *get_key(int index)
 	ret[length] = '\0';
 	return ret;
 }
+#endif /* WPAPMK */
 
 #if !AC_BUILT || HAVE_OPENSSL_CMAC_H
 
@@ -585,29 +606,8 @@ static void wpapsk_postprocess(int keys)
 }
 #endif /* JOHN_OCL_WPAPSK */
 
-static int binary_hash_0(void *binary)
-{
-#ifdef WPAPSK_DEBUG
-	puts("binary");
-	uint32_t i, *b = binary;
-
-	for (i = 0; i < 4; i++)
-		printf("%08x ", b[i]);
-	puts("");
-#endif
-	return ((uint32_t *) binary)[0] & PH_MASK_0;
-}
-
 static int get_hash_0(int index)
 {
-#ifdef WPAPSK_DEBUG
-	int i;
-	puts("get_hash");
-	uint32_t *b = (uint32_t *)mic[index].keymic;
-	for (i = 0; i < 4; i++)
-		printf("%08x ", b[i]);
-	puts("");
-#endif
 	uint32_t *h = (uint32_t *) mic[index].keymic;
 	return h[0] & PH_MASK_0;
 }

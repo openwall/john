@@ -22,7 +22,8 @@ john_register_one(&fmt_wpapsk_pmk);
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
-#include "wpapmk.h"
+#define WPAPMK
+#include "wpapsk.h"
 #include "sha.h"
 #include "base64_convert.h"
 #include "memdbg.h"
@@ -30,9 +31,9 @@ john_register_one(&fmt_wpapsk_pmk);
 #define FORMAT_LABEL		"wpapsk-pmk"
 #if AC_BUILT && !HAVE_OPENSSL_CMAC_H
 #ifdef _MSC_VER
-#pragma message ("Notice: WPAPMK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.")
+#pragma message ("Notice: WPAPSK-PMK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.")
 #else
-#warning Notice: WPAPMK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.
+#warning Notice: WPAPSK-PMK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.
 #endif
 #define FORMAT_NAME		"WPA/WPA2/PMKID master key"
 #else

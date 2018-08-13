@@ -209,7 +209,7 @@ struct fmt_main fmt_wpapsk = {
 		},
 		fmt_default_source,
 		{
-			binary_hash_0,
+			fmt_default_binary_hash_0,
 			fmt_default_binary_hash_1,
 			fmt_default_binary_hash_2,
 			fmt_default_binary_hash_3,

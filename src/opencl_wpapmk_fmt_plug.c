@@ -29,8 +29,9 @@ static unsigned int *inbuffer;
 static struct fmt_main *self;
 static int new_keys;
 
-#define JOHN_OCL_WPAPMK
-#include "wpapmk.h"
+#define JOHN_OCL_WPAPSK
+#define WPAPMK
+#include "wpapsk.h"
 
 #define FORMAT_LABEL        "wpapsk-pmk-opencl"
 #define FORMAT_NAME         "WPA/WPA2/PMF/PMKID master key"
