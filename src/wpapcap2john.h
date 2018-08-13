@@ -112,6 +112,19 @@ typedef struct ieee802_1x_eapol_s {
 	uint16_t wpa_keydatlen;
 } ieee802_1x_eapol_t;
 
+typedef struct keydata_s {
+	uint8_t tagtype;
+	uint8_t taglen;
+	uint8_t oui[3];
+	uint8_t oui_type;
+	uint8_t data[1];
+} keydata_t;
+
+typedef struct eapol_keydata_s {
+	ieee802_1x_eapol_t auth;
+	keydata_t tag[1];
+} eapol_keydata_t;
+
 typedef struct ieee802_1x_auth_s {
 	uint16_t algo;
 	uint16_t seq;
@@ -223,10 +236,12 @@ typedef struct WPA4way_s {
 	uint32_t anonce_lsb;
 	int8_t fuzz;
 	uint8_t endian; /* 0 == unknown, 1 == BE, 2 == LE */
-	int fully_cracked;
+	int handshake_done;
+	int pmkid_done;
 	handshake_t M[5];
 	uint8_t bssid[6];
 	uint8_t staid[6];
+	uint8_t pmkid[16];
 } WPA4way_t;
 
 /* Support for loading airodump-ng ivs2 files. */
