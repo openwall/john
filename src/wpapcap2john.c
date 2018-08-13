@@ -57,7 +57,7 @@ static essid_t *essid_db;   /* alloced/realloced to max_essid */
 static int n_essid;
 static WPA4way_t *apsta_db; /* alloced/realloced to max_state */
 static int n_apsta;
-static int n_hashes;
+static int n_handshakes, n_pmkids;
 static int rctime = 2 * 1000000; /* 2 seconds (bumped with -r) */
 static const char *filename;
 static unsigned int link_type, show_unverified = 1, ignore_rc, force_fuzz;
@@ -138,15 +138,23 @@ static char *to_mac_str(void *ptr)
 	return out[rr++ & 3];
 }
 
-static char *to_compact(void *ptr)
+static char *to_hex(void *ptr, int len)
 {
 	static int rr;
-	static char out[4][18];
+	static char out[8][64];
 	uint8_t *p = ptr;
+	char *o = out[rr & 7];
 
-	sprintf(out[rr & 3], "%02x%02x%02x%02x%02x%02x",
-	        p[0],p[1],p[2],p[3],p[4],p[5]);
-	return out[rr++ & 3];
+	while (len--) {
+		int ret = sprintf(o, "%02x", *p++);
+
+		if (ret < 0)
+			fprintf(stderr, "Error!");
+		else
+			o += ret;
+	}
+
+	return out[rr++ & 7];
 }
 
 static int get_essid_num(uint8_t *bssid)
@@ -428,10 +436,10 @@ static int convert_ivs2(FILE *f_in)
 				        anonce, snonce, wivs2->state, wivs2->keyver,
 				        wivs2->eapol_size, hccap.keyver == 3 ?
 				        " [AES-128-CMAC]" : "",
-				        (apsta_db[ess].fully_cracked) ?
+				        (apsta_db[ess].handshake_done) ?
 				        " (4-way already seen)" : "");
 			}
-			if (output_dupes || !apsta_db[ess].fully_cracked) {
+			if (output_dupes || !apsta_db[ess].handshake_done) {
 				cp = NewKey;
 				cp += sprintf(cp, "%s:$WPAPSK$%s#", essid, essid);
 
@@ -443,9 +451,9 @@ static int convert_ivs2(FILE *f_in)
 				}
 				code_block(&w[i], 0, buf);
 				cp += sprintf(cp, "%s", buf);
-				cp += sprintf(cp, ":%s:%s:%s::WPA", to_compact(hccap.mac2),
-				       to_compact(hccap.mac1),
-				       to_compact(hccap.mac1));
+				cp += sprintf(cp, ":%s:%s:%s::WPA", to_hex(hccap.mac2, 6),
+				              to_hex(hccap.mac1, 6),
+				              to_hex(hccap.mac1, 6));
 				if (hccap.keyver > 1)
 					cp += sprintf(cp, "2");
 				if (hccap.keyver > 2)
@@ -457,11 +465,11 @@ static int convert_ivs2(FILE *f_in)
 					puts(NewKey);
 					fflush(stdout);
 					strcpy(LastKey, NewKey);
-					n_hashes++;
+					n_handshakes++;
 				}
 				/* State seems unreliable
 				if (wivs2->state == 7)
-					apsta_db[ess].fully_cracked = 1;
+					apsta_db[ess].handshake_done = 1;
 				*/
 			}
 
@@ -517,8 +525,8 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
 		cp += code_block(&w[i], 1, cp);
 	cp += code_block(&w[i], 0, cp);
 
-	cp += sprintf(cp, ":%s:%s:%s::WPA", to_compact(hccap.mac2),
-	              to_compact(hccap.mac1), to_compact(hccap.mac1));
+	cp += sprintf(cp, ":%s:%s:%s::WPA", to_hex(hccap.mac2, 6),
+	              to_hex(hccap.mac1, 6), to_hex(hccap.mac1, 6));
 	if (hccap.keyver > 1)
 		cp += sprintf(cp, "2");
 	if (hccap.keyver > 2)
@@ -544,7 +552,7 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
 		        to_mac_str(apsta_db[apsta].staid));
 	printf("%s\n", TmpKey);
 	fflush(stdout);
-	n_hashes++;
+	n_handshakes++;
 }
 
 /*
@@ -576,13 +584,15 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 	int this_fuzz = 0;
 	int endian = apsta_db[apsta].endian;
 	int fuzz = apsta_db[apsta].fuzz;
+	int have_pmkid = !(ap_msg || sta_msg || force);
 
 	if (essid_db[get_essid_num(apsta_db[apsta].bssid)].essid_len == 0) {
 		if (essid_db[get_essid_num(apsta_db[apsta].bssid)].prio == 6) {
 			fprintf(stderr,
-		        "%s: WPA handshake for %s but we don't have ESSID%s\n",
-		        filename, to_mac_str(apsta_db[apsta].bssid),
-		        opt_e_used ? "" : " (perhaps -e option needed?)");
+			        "%s: %s for %s but we don't have ESSID%s\n",
+			        filename, have_pmkid ? "PMKID" : "WPA handshake",
+			        to_mac_str(apsta_db[apsta].bssid),
+			        opt_e_used ? "" : " (perhaps -e option needed?)");
 			essid_db[get_essid_num(apsta_db[apsta].bssid)].prio = 10;
 		}
 		if (!force)
@@ -604,6 +614,28 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 		fprintf(stderr, "Outputting with fuzz: %d (%d seen) %s\n",
 		        this_fuzz, fuzz,
 		        endian ? (endian == 1 ? "BE" : "LE") : "LE/BE");
+
+	if (have_pmkid) {
+		char *essid = get_essid(apsta_db[apsta].bssid);
+
+		printf("%s:%s*%s*%s*%s:%s:%s:%s::PMKID\n",
+		       essid,
+		       to_hex(apsta_db[apsta].pmkid, 16),
+		       to_hex(apsta_db[apsta].bssid, 6),
+		       to_hex(apsta_db[apsta].staid, 6),
+		       to_hex(essid, strlen(essid)),
+		       to_hex(apsta_db[apsta].staid, 6),  // uid
+		       to_hex(apsta_db[apsta].bssid, 6),  // gid
+		       to_hex(apsta_db[apsta].bssid, 6)); // gecos
+
+		n_pmkids++;
+		apsta_db[apsta].pmkid_done = 1;
+		remove_handshake(apsta, 1);
+		remove_handshake(apsta, 2);
+		remove_handshake(apsta, 3);
+		remove_handshake(apsta, 4);
+		return;
+	}
 
 	if (!auth24) {
 		fprintf(stderr, "ERROR, M%u null\n", sta_msg);
@@ -661,7 +693,7 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 	}
 
 	if (MAX(ap_msg, sta_msg) > 2) {
-		apsta_db[apsta].fully_cracked = 1;
+		apsta_db[apsta].handshake_done = 1;
 		remove_handshake(apsta, 1);
 		remove_handshake(apsta, 2);
 		remove_handshake(apsta, 3);
@@ -866,7 +898,7 @@ static int is_zero(void *ptr, size_t len)
 	return 1;
 }
 
-static void handle4way(ieee802_1x_eapol_t *auth)
+static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 {
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	uint8_t *end = packet + pkt_hdr.incl_len;
@@ -950,7 +982,10 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 		}
 	}
 
-	bssid = pkt->addr3;
+	if (addr4)
+		bssid = addr4;
+	else
+		bssid = pkt->addr3;
 
 	/* Find the ESSID in our db. */
 	ess = get_essid_num(bssid);
@@ -982,6 +1017,31 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 			allocate_more_state();
 	}
 	apsta_db[apsta].rc = rc;
+
+	if (auth->wpa_keydatlen == 22) {
+		keydata_t *keydata = ((eapol_keydata_t*)auth)->tag;
+
+		if ((keydata->tagtype == 0xdd || keydata->tagtype == 0x14) &&
+		    !memcmp(keydata->oui, "\x00\x0f\xac", 3) &&
+		    keydata->oui_type == 0x04) {
+			if (is_zero(keydata->data, 16)) {
+				if (verbosity >= 2)
+					fprintf(stderr, "All-zero RSN PMKID\n");
+			} else {
+				if (verbosity >= 3)
+					dump_hex("RSN PMKID", keydata->data, 16);
+				/* PMKID is better than a handshake! */
+				memcpy(apsta_db[apsta].pmkid, keydata->data, 16);
+				if (verbosity >= 2)
+					fprintf(stderr, "RSN PMKID%s\n",
+					        apsta_db[apsta].pmkid_done ?
+					        " (already seen)" : "");
+				if (!apsta_db[apsta].pmkid_done)
+					dump_auth(apsta, 0, 0, 0);
+				return;
+			}
+		}
+	}
 
 	if (msg == 1 || msg == 3) {
 		if (nonce_msb == apsta_db[apsta].anonce_msb &&
@@ -1038,7 +1098,7 @@ static void handle4way(ieee802_1x_eapol_t *auth)
 		}
 	}
 
-	if (!output_dupes && apsta_db[apsta].fully_cracked) {
+	if (!output_dupes && apsta_db[apsta].handshake_done) {
 		if (verbosity >= 2)
 			fprintf(stderr,
 			        "EAPOL M%u, %cnonce %08x...%08x rc %"PRIu64"%s (4-way already seen)\n",
@@ -1362,6 +1422,7 @@ static int process_packet(void)
 	unsigned int frame_skip = 0;
 	int has_ht;
 	unsigned int tzsp_link = 0;
+	unsigned char *addr4 = NULL;
 
 	packet = full_packet;
 	pkt_num++;
@@ -1571,6 +1632,11 @@ static int process_packet(void)
 		int has_qos = (ctl->subtype & 8) != 0;
 		int has_addr4 = ctl->toDS & ctl->fromDS;
 
+		if (has_qos && verbosity >= 2)
+			fprintf(stderr, "[QoS] ");
+		if (has_addr4 && verbosity >= 2)
+			fprintf(stderr, "[a4] ");
+
 		if (!has_addr4 && ((ctl->toDS ^ ctl->fromDS) != 1)) {
 			/* eapol will ONLY be direct toDS or direct fromDS. */
 			if (verbosity >= 2)
@@ -1587,10 +1653,12 @@ static int process_packet(void)
 		/* Ok, find out if this is an EAPOL packet or not. */
 
 		p += sizeof(ieee802_1x_frame_hdr_t);
+		if (has_addr4) {
+			addr4 = p;
+			p += 6;
+		}
 		if (has_qos)
 			p += 2;
-		if (has_addr4)
-			p += 6;
 /*
  * p now points to the start of the LLC
  * this is 8 bytes long, and the last 2 bytes are the 'type' field.  What
@@ -1636,7 +1704,7 @@ static int process_packet(void)
 				    (has_qos ? 10 : 8)) {
 					fprintf(stderr, "%s: truncated packet\n", filename);
 				} else
-					handle4way((ieee802_1x_eapol_t*)p);
+					handle4way((ieee802_1x_eapol_t*)p, addr4);
 				return 1;
 			} else {
 				if (verbosity >= 2)
@@ -2069,7 +2137,8 @@ int main(int argc, char **argv)
 	}
 	fprintf(stderr, "\n%d ESSIDS processed and %d AP/STA pairs processed\n",
 	        n_essid, n_apsta);
-	fprintf(stderr, "%d handshakes written\n", n_hashes);
+	fprintf(stderr, "%d handshakes written, %d PMKIDs\n",
+	        n_handshakes, n_pmkids);
 
 	MEM_FREE(new_p);
 
