@@ -217,7 +217,7 @@ struct fmt_main fmt_wpapsk = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		salt_compare,
 		set_salt,
 		set_key,

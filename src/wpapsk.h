@@ -675,6 +675,18 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static int salt_hash(void *salt)
+{
+	hccap_t *s = salt;
+	unsigned int mac1;
+	unsigned int mac2;
+
+	memcpy(&mac1, s->mac1, 4);
+	memcpy(&mac2, s->mac2, 4);
+
+	return (mac1 ^ mac2) & (SALT_HASH_SIZE - 1);
+}
+
 static int salt_compare(const void *x, const void *y)
 {
 	int c = strncmp((const char*)x, (const char*)y, 36);
