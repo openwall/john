@@ -322,6 +322,7 @@ static int get_hash_6(int index) { return hash_table_192[hash_ids[3 + 3 * index]
 
 static void clear_keys(void)
 {
+	memset(saved_idx, 0, sizeof(cl_uint) * global_work_size);
 	key_idx = 0;
 }
 
