@@ -1361,12 +1361,45 @@ static int process_packet(void)
 	ieee802_1x_frame_ctl_t *ctl;
 	unsigned int frame_skip = 0;
 	int has_ht;
+	unsigned int tzsp_link = 0;
 
 	packet = full_packet;
 	pkt_num++;
 
+	/*
+	 * Handle TZSP over UDP. This is just a hack[tm].
+	 */
+	if (pkt_hdr.incl_len > 47 && link_type == LINKTYPE_ETHERNET &&
+	    packet[12] == 0x08 && packet[13] == 0x00 && // IPv4
+	    packet[23] == 17 && // UDP
+	    packet[42] == 0x01 && packet[44] == 0) { // TZSP
+
+		if (packet[45] == 18)
+			tzsp_link = LINKTYPE_IEEE802_11;
+		else if (packet[45] == 119)
+			tzsp_link = LINKTYPE_PRISM_HEADER;
+		else
+			return 1;
+
+		packet += 46;
+		pkt_hdr.incl_len -= 46;
+		pkt_hdr.orig_len -= 46;
+
+		while (packet[0] != 0x01) {
+			int len = packet[1] + 2;
+
+			packet += len;
+			pkt_hdr.incl_len -= len;
+			pkt_hdr.orig_len -= len;
+		}
+		packet += 1;
+		pkt_hdr.incl_len -= 1;
+		pkt_hdr.orig_len -= 1;
+	}
+
 	/* Skip Prism frame if present */
-	if (link_type == LINKTYPE_PRISM_HEADER) {
+	if (link_type == LINKTYPE_PRISM_HEADER ||
+	    tzsp_link == LINKTYPE_PRISM_HEADER) {
 		if (pkt_hdr.incl_len < 8)
 			return 0;
 		if (packet[7] == 0x40)
@@ -1541,7 +1574,7 @@ static int process_packet(void)
 		if (!has_addr4 && ((ctl->toDS ^ ctl->fromDS) != 1)) {
 			/* eapol will ONLY be direct toDS or direct fromDS. */
 			if (verbosity >= 2)
-				fprintf(stderr, "Invalid EAPOL src/dst\n");
+				fprintf(stderr, "Data\n");
 			return 1;
 		}
 		if (sizeof(ieee802_1x_frame_hdr_t)+6+2+
@@ -1717,32 +1750,50 @@ static int process(FILE *in)
 		main_hdr.network = swap32u(main_hdr.network);
 	}
 	link_type = main_hdr.network;
+
+	/* Read 1st packet */
+	get_next_packet(in);
+
 	if (verbosity)
 		fprintf(stderr, "\n");
 	if (link_type == LINKTYPE_IEEE802_11)
 		fprintf(stderr, "File %s: raw 802.11\n", filename);
 	else if (link_type == LINKTYPE_PRISM_HEADER)
-		fprintf(stderr, "File %s: Prism headers stripped\n", filename);
+		fprintf(stderr, "File %s: Prism encapsulation\n", filename);
 	else if (link_type == LINKTYPE_RADIOTAP_HDR)
-		fprintf(stderr, "File %s: Radiotap headers stripped\n", filename);
+		fprintf(stderr, "File %s: Radiotap encapsulation\n", filename);
 	else if (link_type == LINKTYPE_PPI_HDR)
-		fprintf(stderr, "File %s: PPI headers stripped\n", filename);
-	else if (link_type == LINKTYPE_ETHERNET)
-		fprintf(stderr, "File %s: Ethernet headers, non-monitor mode.%s\n",
-		        filename,
-		        opt_e_used ? "" : " Use of -e option likely required.");
-	else {
+		fprintf(stderr, "File %s: PPI encapsulation\n", filename);
+	else if (link_type == LINKTYPE_ETHERNET) {
+		unsigned char *packet = full_packet;
+
+		if (pkt_hdr.incl_len > 47 &&
+		    packet[12] == 0x08 && packet[13] == 0x00 && // IPv4
+		    packet[23] == 17 && // UDP
+		    packet[42] == 0x01 && packet[44] == 0) // TZSP
+		{
+			if (packet[45] == 18)
+				fprintf(stderr, "File %s: 802.11 over TZSP\n", filename);
+			else if (packet[45] == 119)
+				fprintf(stderr, "File %s: Prism over TZSP\n", filename);
+			else
+				fprintf(stderr, "File %s: TZSP unknown encapsulation %02x\n",
+				        filename, packet[45]);
+		} else
+			fprintf(stderr, "File %s: Ethernet encapsulation\n", filename);
+	} else {
 		fprintf(stderr,
 		        "File %s: No 802.11 wireless traffic data (network %d)\n",
 		        filename, link_type);
 		return 0;
 	}
 
-	while (get_next_packet(in)) {
+	do {
 		if (!process_packet()) {
 			break;
 		}
-	}
+	} while (get_next_packet(in));
+
 	if (verbosity >= 2)
 		fprintf(stderr, "File %s: End of data\n", filename);
 	if (show_unverified)
