@@ -460,7 +460,7 @@ static int convert_ivs2(FILE *f_in)
 					cp += sprintf(cp, " CMAC");
 				if (hccap.keyver > 3)
 					cp += sprintf(cp, ", ver %d", hccap.keyver);
-				cp += sprintf(cp, "::%s", filename);
+				cp += sprintf(cp, ":%s", filename);
 				if (strcmp(LastKey, NewKey)) {
 					puts(NewKey);
 					fflush(stdout);
@@ -533,7 +533,7 @@ static void print_auth(int apsta, int ap_msg, int sta_msg,
 		cp += sprintf(cp, " CMAC");
 	if (hccap.keyver > 3)
 		cp += sprintf(cp, ", ver %d", hccap.keyver);
-	cp += sprintf(cp, ":%sverified",
+	cp += sprintf(cp, ", %sverified",
 	              (ap_msg == 1 && sta_msg == 2) ? "not " : "");
 	if (fuzz)
 		cp += sprintf(cp, ", fuzz %d %s", fuzz, (be == 1) ? "BE" : "LE");
@@ -618,15 +618,16 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 	if (have_pmkid) {
 		char *essid = get_essid(apsta_db[apsta].bssid);
 
-		printf("%s:%s*%s*%s*%s:%s:%s:%s::PMKID\n",
+		printf("%s:%s*%s*%s*%s:%s:%s:%s::PMKID:%s\n",
 		       essid,
 		       to_hex(apsta_db[apsta].pmkid, 16),
 		       to_hex(apsta_db[apsta].bssid, 6),
 		       to_hex(apsta_db[apsta].staid, 6),
 		       to_hex(essid, strlen(essid)),
-		       to_hex(apsta_db[apsta].staid, 6),  // uid
-		       to_hex(apsta_db[apsta].bssid, 6),  // gid
-		       to_hex(apsta_db[apsta].bssid, 6)); // gecos
+		       to_hex(apsta_db[apsta].staid, 6), // uid
+		       to_hex(apsta_db[apsta].bssid, 6), // gid
+		       to_hex(apsta_db[apsta].bssid, 6), // gecos
+		       filename);
 
 		n_pmkids++;
 		apsta_db[apsta].pmkid_done = 1;
