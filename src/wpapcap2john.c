@@ -1998,17 +1998,17 @@ void usage(char *name, int ret)
 {
 	fprintf(stderr,
 	"Converts PCAP or IVS2 files to JtR format.\n"
-	"Supported encapsulations: 802.11, Prism, Radiotap and PPI.\n"
+	"Supported encapsulations: 802.11, Prism, Radiotap, PPI and TZSP over UDP.\n"
 	"Usage: %s [options] <file[s]>\n"
-	"\n-c\tShow only complete auths (incomplete ones might be wrong passwords\n"
-	"\tbut we can crack what passwords were tried).\n"
-	"-v\tBump verbosity (can be used several times, try -vv)\n"
-	"-d\tDo not suppress dupe hashes (per AP/STA pair)\n"
-	"-r\tIgnore replay-count (may output fuzzed-anonce handshakes)\n"
-	"-f <n>\tForce anonce fuzzing with +/- <n>\n"
-	"-e\tManually add Name:MAC pair(s) in case the file lacks beacons.\n"
-	"\teg. -e \"Magnum WIFI:6d:61:67:6e:75:6d\"\n"
-	"-m\tIgnore any packets not involving this mac adress\n\n",
+	"\n-c\t\tShow only complete auths (incomplete ones might be wrong passwords\n"
+	"\t\tbut we can crack what passwords were tried).\n"
+	"-v\t\tBump verbosity (can be used several times, try -vv)\n"
+	"-d\t\tDo not suppress dupe hashes (per AP/STA pair)\n"
+	"-r\t\tIgnore replay-count (may output fuzzed-anonce handshakes)\n"
+	"-f <n>\t\tForce anonce fuzzing with +/- <n>\n"
+	"-e <essid:mac>\tManually add Name:MAC pair(s) in case the file lacks beacons.\n"
+	"\t\teg. -e \"Magnum WIFI:6d:61:67:6e:75:6d\"\n"
+	"-m <mac>\tIgnore any packets not involving this mac adress\n\n",
 	        name);
 	exit(ret);
 }
