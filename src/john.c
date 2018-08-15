@@ -1231,6 +1231,17 @@ static void john_load(void)
 			else
 				log_event("Starting a new session");
 			log_event("Loaded a total of %s", john_loaded_counts());
+			/* only allow --device for OpenCL or ZTEX formats */
+#if HAVE_OPENCL || HAVE_ZTEX
+			if (options.acc_devices->count &&
+			  !(strstr(database.format->params.label, "-opencl") ||
+			    strstr(database.format->params.label, "-ztex"))) {
+				fprintf(stderr,
+				    "The \"--devices\" option is valid only for OpenCL or ZTEX formats\n");
+				error();
+			}
+#endif
+
 			/* make sure the format is properly initialized */
 #if HAVE_OPENCL
 			if (!(options.acc_devices->count && options.fork &&
