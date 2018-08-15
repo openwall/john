@@ -241,7 +241,6 @@ typedef struct WPA4way_s {
 	handshake_t M[5];
 	uint8_t bssid[6];
 	uint8_t staid[6];
-	uint8_t pmkid[16];
 } WPA4way_t;
 
 /* Support for loading airodump-ng ivs2 files. */

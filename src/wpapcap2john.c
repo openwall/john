@@ -584,19 +584,21 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 	int this_fuzz = 0;
 	int endian = apsta_db[apsta].endian;
 	int fuzz = apsta_db[apsta].fuzz;
-	int have_pmkid = !(ap_msg || sta_msg || force);
+	int have_pmkid = !(ap_msg || sta_msg);
+
+	if (have_pmkid)
+		apsta_db[apsta].pmkid_done = 1;
 
 	if (essid_db[get_essid_num(apsta_db[apsta].bssid)].essid_len == 0) {
 		if (essid_db[get_essid_num(apsta_db[apsta].bssid)].prio == 6) {
 			fprintf(stderr,
-			        "%s: %s for %s but we don't have ESSID%s\n",
-			        filename, have_pmkid ? "PMKID" : "WPA handshake",
+			        "%s: %s for %s but we don't have ESSID yet%s\n",
+			        filename, have_pmkid ? "RSN IE PMKID" : "WPA handshake",
 			        to_mac_str(apsta_db[apsta].bssid),
 			        opt_e_used ? "" : " (perhaps -e option needed?)");
 			essid_db[get_essid_num(apsta_db[apsta].bssid)].prio = 10;
 		}
-		if (!force)
-			return;
+		return;
 	}
 	if (ignore_rc && fuzz) {
 		if ((ap_msg == 1 && sta_msg == 2) || (ap_msg == 3 && sta_msg == 4))
@@ -618,9 +620,16 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 	if (have_pmkid) {
 		char *essid = get_essid(apsta_db[apsta].bssid);
 
+		fprintf(stderr,
+		        "Dumping RSN IE PMKID at %u.%06u BSSID %s ESSID '%s' STA %s\n",
+		        (uint32_t)(apsta_db[apsta].M[0].ts64 / 1000000),
+		        (uint32_t)(apsta_db[apsta].M[0].ts64 % 1000000),
+		        to_mac_str(apsta_db[apsta].bssid),
+		        get_essid(apsta_db[apsta].bssid),
+		        to_mac_str(apsta_db[apsta].staid));
 		printf("%s:%s*%s*%s*%s:%s:%s:%s::PMKID:%s\n",
 		       essid,
-		       to_hex(apsta_db[apsta].pmkid, 16),
+		       to_hex(apsta_db[apsta].M[0].eapol, 16),
 		       to_hex(apsta_db[apsta].bssid, 6),
 		       to_hex(apsta_db[apsta].staid, 6),
 		       to_hex(essid, strlen(essid)),
@@ -628,13 +637,10 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 		       to_hex(apsta_db[apsta].bssid, 6), // gid
 		       to_hex(apsta_db[apsta].bssid, 6), // gecos
 		       filename);
+		fflush(stdout);
 
 		n_pmkids++;
-		apsta_db[apsta].pmkid_done = 1;
-		remove_handshake(apsta, 1);
-		remove_handshake(apsta, 2);
-		remove_handshake(apsta, 3);
-		remove_handshake(apsta, 4);
+		remove_handshake(apsta, 0);
 		return;
 	}
 
@@ -693,7 +699,7 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 				print_auth(apsta, ap_msg, sta_msg, hccap, i, j);
 	}
 
-	if (MAX(ap_msg, sta_msg) > 2) {
+	if (MAX(ap_msg, sta_msg) > 2 || force) {
 		apsta_db[apsta].handshake_done = 1;
 		remove_handshake(apsta, 1);
 		remove_handshake(apsta, 2);
@@ -705,6 +711,10 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 static void dump_any_unver() {
 	int printed = 0;
 	int i;
+
+	for (i = 0; i < n_apsta; i++)
+		if (apsta_db[i].M[0].eapol)
+			dump_auth(i, 0, 0, 1);
 
 	for (i = 0; i < n_apsta; i++) {
 		int ap_msg = 0, sta_msg = 0;
@@ -722,10 +732,6 @@ static void dump_any_unver() {
 			if (verbosity && !printed++)
 				fprintf(stderr, "Dumping unverified auths\n");
 			dump_auth(i, ap_msg, sta_msg, 1);
-			remove_handshake(i, 1);
-			remove_handshake(i, 2);
-			remove_handshake(i, 3);
-			remove_handshake(i, 4);
 		}
 	}
 }
@@ -1027,20 +1033,25 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 		    keydata->oui_type == 0x04) {
 			if (is_zero(keydata->data, 16)) {
 				if (verbosity >= 2)
-					fprintf(stderr, "All-zero RSN PMKID\n");
+					fprintf(stderr, "RSN IE w/ all-zero PMKID\n");
 			} else {
 				if (verbosity >= 3)
-					dump_hex("RSN PMKID", keydata->data, 16);
-				/* PMKID is better than a handshake! */
-				memcpy(apsta_db[apsta].pmkid, keydata->data, 16);
-				if (verbosity >= 2)
-					fprintf(stderr, "RSN PMKID%s\n",
-					        apsta_db[apsta].pmkid_done ?
-					        " (already seen)" : "");
-				if (!apsta_db[apsta].pmkid_done)
+					dump_hex("RSN IE PMKID", keydata->data, 16);
+				if (apsta_db[apsta].pmkid_done) {
+					if (verbosity >= 2)
+						fprintf(stderr, "RSN IE PMKID (already seen)\n");
+				} else if (!apsta_db[apsta].M[0].eapol) {
+					/* PMKID is better than a handshake! */
+					apsta_db[apsta].M[0].eapol_size = 16;
+					apsta_db[apsta].M[0].ts64 = cur_ts64;
+					safe_malloc(apsta_db[apsta].M[0].eapol, 16);
+					memcpy(apsta_db[apsta].M[0].eapol, keydata->data, 16);
+					if (verbosity >= 2)
+						fprintf(stderr, "RSN IE PMKID\n");
 					dump_auth(apsta, 0, 0, 0);
-				return;
+				}
 			}
+			return;
 		}
 	}
 
@@ -2138,7 +2149,7 @@ int main(int argc, char **argv)
 	}
 	fprintf(stderr, "\n%d ESSIDS processed and %d AP/STA pairs processed\n",
 	        n_essid, n_apsta);
-	fprintf(stderr, "%d handshakes written, %d PMKIDs\n",
+	fprintf(stderr, "%d handshakes written, %d RSN IE PMKIDs\n",
 	        n_handshakes, n_pmkids);
 
 	MEM_FREE(new_p);
