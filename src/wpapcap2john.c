@@ -1,9 +1,11 @@
 /*
  * This software is Copyright (c) 2013 Jim Fougeron jfoug AT cox dot net,
  * Copyright (c) 2013 Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2014-2017 magnum, and it is hereby released
+ * and Copyright (c) 2014-2018 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
+ *
+ * Kudos to ZeroBeat for misc. help, and code snippets derived from hcxtools!
  *
  * MIC is 32-bit Message Integrity Code of DA, SA and payload.
  * PTK is Pairwise Temporal Key, GTK is Group Temporal Key.
@@ -43,10 +45,8 @@
 static size_t max_essid = 1024; /* Will grow automagically */
 static size_t max_state = 1024; /* This too */
 
-static uint64_t cur_ts64;
-static uint32_t start_t, start_u, cur_t, cur_u;
+static uint64_t cur_ts64, abs_ts64, start_ts64;
 static uint32_t pkt_num;
-static pcaprec_hdr_t pkt_hdr;
 static uint8_t *full_packet;
 static uint8_t *packet;
 static uint8_t *packet_src, *packet_dst;
@@ -60,7 +60,7 @@ static int n_apsta;
 static int n_handshakes, n_pmkids;
 static int rctime = 2 * 1000000; /* 2 seconds (bumped with -r) */
 static const char *filename;
-static unsigned int link_type, show_unverified = 1, ignore_rc, force_fuzz;
+static unsigned int show_unverified = 1, ignore_rc, force_fuzz;
 static int warn_wpaclean;
 static int warn_snaplen;
 static int verbosity;
@@ -68,6 +68,7 @@ static char filter_mac[18];
 static int filter_hit;
 static int output_dupes;
 static int opt_e_used;
+static uint32_t orig_len, snap_len;
 
 static const char cpItoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -244,7 +245,6 @@ static int convert_ivs2(FILE *f_in)
 	}
 
 	if (memcmp(ivs_buf, IVS2_MAGIC, 4) != 0) {
-		fprintf(stderr, "%s: not an .%s file\n", filename, IVS2_EXTENSION);
 		MEM_FREE(ivs_buf);
 		return 1;
 	}
@@ -708,7 +708,7 @@ static void dump_auth(int apsta, int ap_msg, int sta_msg, int force)
 	}
 }
 
-static void dump_any_unver() {
+static void dump_late() {
 	int printed = 0;
 	int i;
 
@@ -730,8 +730,8 @@ static void dump_any_unver() {
 
 		if (ap_msg && sta_msg) {
 			if (verbosity && !printed++)
-				fprintf(stderr, "Dumping unverified auths\n");
-			dump_auth(i, ap_msg, sta_msg, 1);
+				fprintf(stderr, "Dumping unverified and/or post-poned data\n");
+			dump_auth(i, ap_msg, sta_msg, show_unverified);
 		}
 	}
 }
@@ -740,7 +740,7 @@ static void learn_essid(uint16_t subtype, int has_ht)
 {
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	ieee802_1x_beacon_tag_t *tag;
-	uint8_t *pFinal = &packet[pkt_hdr.incl_len];
+	uint8_t *pFinal = &packet[snap_len];
 	char essid[32 + 1];
 	int essid_len = 0;
 	uint8_t *bssid = pkt->addr3;
@@ -908,7 +908,7 @@ static int is_zero(void *ptr, size_t len)
 static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 {
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
-	uint8_t *end = packet + pkt_hdr.incl_len;
+	uint8_t *end = packet + snap_len;
 	int i;
 	int apsta = -1, ess = -1;
 	int msg = 0;
@@ -1427,8 +1427,10 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
  * the program will exit gracefully.  It is not an error, it is just an
  * indication we have completed (or that the data we want is not here).
  */
-static int process_packet(void)
+static int process_packet(uint32_t link_type)
 {
+	static const char *last_f;
+	static uint32_t last_l;
 	ieee802_1x_frame_hdr_t *pkt;
 	ieee802_1x_frame_ctl_t *ctl;
 	unsigned int frame_skip = 0;
@@ -1436,13 +1438,52 @@ static int process_packet(void)
 	unsigned int tzsp_link = 0;
 	unsigned char *addr4 = NULL;
 
+	if (filename != last_f || link_type != last_l) {
+		last_f = filename;
+		last_l = link_type;
+
+		if (verbosity)
+			fprintf(stderr, "\n");
+		if (link_type == LINKTYPE_IEEE802_11)
+			fprintf(stderr, "File %s: raw 802.11\n", filename);
+		else if (link_type == LINKTYPE_PRISM_HEADER)
+			fprintf(stderr, "File %s: Prism encapsulation\n", filename);
+		else if (link_type == LINKTYPE_RADIOTAP_HDR)
+			fprintf(stderr, "File %s: Radiotap encapsulation\n", filename);
+		else if (link_type == LINKTYPE_PPI_HDR)
+			fprintf(stderr, "File %s: PPI encapsulation\n", filename);
+		else if (link_type == LINKTYPE_ETHERNET) {
+			unsigned char *packet = full_packet;
+
+			if (snap_len > 47 &&
+			    packet[12] == 0x08 && packet[13] == 0x00 && // IPv4
+			    packet[23] == 17 && // UDP
+			    packet[42] == 0x01 && packet[44] == 0) // TZSP
+			{
+				if (packet[45] == 18)
+					fprintf(stderr, "File %s: 802.11 over TZSP\n", filename);
+				else if (packet[45] == 119)
+					fprintf(stderr, "File %s: Prism over TZSP\n", filename);
+				else
+					fprintf(stderr, "File %s: TZSP unknown encapsulation %02x\n",
+					        filename, packet[45]);
+			} else
+				fprintf(stderr, "File %s: Ethernet encapsulation\n", filename);
+		} else {
+			fprintf(stderr,
+			        "File %s: No 802.11 wireless traffic data (network %d)\n",
+			        filename, link_type);
+			return 0;
+		}
+	}
+
 	packet = full_packet;
 	pkt_num++;
 
 	/*
 	 * Handle TZSP over UDP. This is just a hack[tm].
 	 */
-	if (pkt_hdr.incl_len > 47 && link_type == LINKTYPE_ETHERNET &&
+	if (snap_len > 47 && link_type == LINKTYPE_ETHERNET &&
 	    packet[12] == 0x08 && packet[13] == 0x00 && // IPv4
 	    packet[23] == 17 && // UDP
 	    packet[42] == 0x01 && packet[44] == 0) { // TZSP
@@ -1452,28 +1493,28 @@ static int process_packet(void)
 		else if (packet[45] == 119)
 			tzsp_link = LINKTYPE_PRISM_HEADER;
 		else
-			return 1;
+			return 0;
 
 		packet += 46;
-		pkt_hdr.incl_len -= 46;
-		pkt_hdr.orig_len -= 46;
+		snap_len -= 46;
+		orig_len -= 46;
 
 		while (packet[0] != 0x01) {
 			int len = packet[1] + 2;
 
 			packet += len;
-			pkt_hdr.incl_len -= len;
-			pkt_hdr.orig_len -= len;
+			snap_len -= len;
+			orig_len -= len;
 		}
 		packet += 1;
-		pkt_hdr.incl_len -= 1;
-		pkt_hdr.orig_len -= 1;
+		snap_len -= 1;
+		orig_len -= 1;
 	}
 
 	/* Skip Prism frame if present */
 	if (link_type == LINKTYPE_PRISM_HEADER ||
 	    tzsp_link == LINKTYPE_PRISM_HEADER) {
-		if (pkt_hdr.incl_len < 8)
+		if (snap_len < 8)
 			return 0;
 		if (packet[7] == 0x40)
 			frame_skip = 64;
@@ -1483,48 +1524,48 @@ static int process_packet(void)
 			frame_skip = swap32u(frame_skip);
 #endif
 		}
-		if (frame_skip < 8 || frame_skip >= pkt_hdr.incl_len)
+		if (frame_skip < 8 || frame_skip >= snap_len)
 			return 0;
 		packet += frame_skip;
-		pkt_hdr.incl_len -= frame_skip;
-		pkt_hdr.orig_len -= frame_skip;
+		snap_len -= frame_skip;
+		orig_len -= frame_skip;
 	}
 
 	/* Skip Radiotap frame if present */
 	if (link_type == LINKTYPE_RADIOTAP_HDR) {
-		if (pkt_hdr.incl_len < 4)
+		if (snap_len < 4)
 			return 0;
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = swap32u(frame_skip);
 #endif
-		if (frame_skip == 0 || frame_skip >= pkt_hdr.incl_len)
+		if (frame_skip == 0 || frame_skip >= snap_len)
 			return 0;
 		packet += frame_skip;
-		pkt_hdr.incl_len -= frame_skip;
-		pkt_hdr.orig_len -= frame_skip;
+		snap_len -= frame_skip;
+		orig_len -= frame_skip;
 	}
 
 	/* Skip PPI frame if present */
 	if (link_type == LINKTYPE_PPI_HDR) {
-		if (pkt_hdr.incl_len < 4)
+		if (snap_len < 4)
 			return 0;
 		frame_skip = *(unsigned short*)&packet[2];
 #if !ARCH_LITTLE_ENDIAN
 		frame_skip = swap32u(frame_skip);
 #endif
-		if (frame_skip <= 0 || frame_skip >= pkt_hdr.incl_len)
+		if (frame_skip <= 0 || frame_skip >= snap_len)
 			return 0;
 
 		/* Kismet logged broken PPI frames for a period */
 		if (frame_skip == 24 && *(unsigned short*)&packet[8] == 2)
 			frame_skip = 32;
 
-		if (frame_skip == 0 || frame_skip >= pkt_hdr.incl_len)
+		if (frame_skip == 0 || frame_skip >= snap_len)
 			return 0;
 		packet += frame_skip;
-		pkt_hdr.incl_len -= frame_skip;
-		pkt_hdr.orig_len -= frame_skip;
+		snap_len -= frame_skip;
+		orig_len -= frame_skip;
 	}
 
 	/*
@@ -1534,10 +1575,10 @@ static int process_packet(void)
 	 */
 	if (link_type == LINKTYPE_ETHERNET &&
 	    packet[12] == 0x88 && packet[13] == 0x8e) {
-		int new_len = pkt_hdr.incl_len - 12 + sizeof(fake802_11);
+		int new_len = snap_len - 12 + sizeof(fake802_11);
 		ieee802_1x_eapol_t *auth;
 
-		//dump_hex("Orig packet", packet, pkt_hdr.incl_len);
+		//dump_hex("Orig packet", packet, snap_len);
 
 		if (new_len > new_p_sz) {
 			safe_realloc(new_p, new_len);
@@ -1548,7 +1589,7 @@ static int process_packet(void)
 		/* Put original src and dest in the fake 802.11 header */
 		memcpy(new_p + 4, packet, 12);
 		/* Add original EAPOL data */
-		memcpy(new_p + sizeof(fake802_11), packet + 12, pkt_hdr.incl_len - 12);
+		memcpy(new_p + sizeof(fake802_11), packet + 12, snap_len - 12);
 
 		auth = (ieee802_1x_eapol_t*)&packet[14];
 		auth->key_info_u16 = swap16u(auth->key_info_u16);
@@ -1558,23 +1599,23 @@ static int process_packet(void)
 		else
 			memcpy(new_p + 16, packet, 6);
 
-		pkt_hdr.incl_len += sizeof(fake802_11) - 12;
-		pkt_hdr.orig_len += sizeof(fake802_11) - 12;
+		snap_len += sizeof(fake802_11) - 12;
+		orig_len += sizeof(fake802_11) - 12;
 		packet = new_p;
-		//dump_hex("Fake packet", packet, pkt_hdr.incl_len);
+		//dump_hex("Fake packet", packet, snap_len);
 	}
 
-/* our data is in *packet with pkt_hdr being the pcap packet header for it */
+	/* our data is in *packet  */
 	pkt = (ieee802_1x_frame_hdr_t*)packet;
 
-	if (pkt_hdr.incl_len < 10) {
+	if (snap_len < 10) {
 		if (verbosity >= 2)
 			fprintf(stderr, "Truncated data\n");
 		return 0;
 	}
 
 	packet_dst = &packet[4];
-	if (pkt_hdr.incl_len >= 16)
+	if (snap_len >= 16)
 		packet_src = &packet[10];
 	else
 		packet_src = NULL;
@@ -1585,16 +1626,20 @@ static int process_packet(void)
 
 	if (verbosity >= 2 && filter_hit) {
 		if (verbosity >= 4)
-			dump_hex("802.11 packet", pkt, pkt_hdr.incl_len);
+			dump_hex("802.11 packet", pkt, snap_len);
 
 		if (verbosity >= 4)
-			fprintf(stderr, "%4d %2d.%06u  %s -> %s %-4d ", pkt_num,
-			        pkt_hdr.ts_sec, pkt_hdr.ts_usec, to_mac_str(packet_src),
-			        to_mac_str(packet_dst), pkt_hdr.incl_len);
+			fprintf(stderr, "%4d %2u.%06u  %s -> %s %-4d ", pkt_num,
+			        (uint32_t)(abs_ts64 / 1000000),
+			        (uint32_t)(abs_ts64 % 1000000),
+			        to_mac_str(packet_src),
+			        to_mac_str(packet_dst), snap_len);
 		else
-			fprintf(stderr, "%4d %2d.%06u  %s -> %s %-4d ", pkt_num,
-			        cur_t, cur_u, to_mac_str(packet_src),
-			        to_mac_str(packet_dst), pkt_hdr.incl_len);
+			fprintf(stderr, "%4d %2u.%06u  %s -> %s %-4d ", pkt_num,
+			        (uint32_t)(cur_ts64 / 1000000),
+			        (uint32_t)(cur_ts64 % 1000000),
+			        to_mac_str(packet_src),
+			        to_mac_str(packet_dst), snap_len);
 
 		if (verbosity >= 2 && filter_hit && packet_src) {
 			if (!memcmp(l3mcast, packet_src, 3))
@@ -1657,7 +1702,7 @@ static int process_packet(void)
 		}
 		if (sizeof(ieee802_1x_frame_hdr_t)+6+2+
 		    (has_qos?2:0)+(has_ht?4:0)+(has_addr4?6:0) >=
-		    pkt_hdr.incl_len) {
+		    snap_len) {
 			if (verbosity >= 2)
 				fprintf(stderr, "QoS Null or malformed EAPOL\n");
 			return 1;
@@ -1687,7 +1732,7 @@ static int process_packet(void)
 			eap = (eapext_t*)p;
 
 			if (eap->type == 0) {
-				if (pkt_hdr.incl_len < sizeof(eapext_t) + (has_qos ? 10 : 8)) {
+				if (snap_len < sizeof(eapext_t) + (has_qos ? 10 : 8)) {
 					fprintf(stderr, "%s: truncated packet\n", filename);
 					return 1;
 				}
@@ -1712,7 +1757,7 @@ static int process_packet(void)
 				return 1;
 			} else if (eap->type == 3) {
 				/* EAP key */
-				if (pkt_hdr.incl_len < sizeof(ieee802_1x_frame_hdr_t) +
+				if (snap_len < sizeof(ieee802_1x_frame_hdr_t) +
 				    (has_qos ? 10 : 8)) {
 					fprintf(stderr, "%s: truncated packet\n", filename);
 				} else
@@ -1754,9 +1799,276 @@ static int process_packet(void)
 	return 1;
 }
 
+void pcapng_option_walk(FILE *in, uint32_t tl)
+{
+	uint16_t res;
+	uint16_t padding;
+	uint16_t olpad;
+	option_header_t opthdr;
+
+	while (1) {
+		res = fread(&opthdr, 1, OH_SIZE, in);
+		if (res != OH_SIZE) {
+			fprintf(stderr, "Malformed data in %s\n", filename);
+			return;
+		}
+		if (opthdr.option_code == 0) {
+			return;
+		}
+		padding = 0;
+		if ((opthdr.option_length % 4)) {
+			padding = 4 -(opthdr.option_length % 4);
+		}
+
+		olpad = opthdr.option_length + padding;
+
+		if ((olpad > tl) || (olpad >= 0xff)) {
+			fprintf(stderr, "Malformed data in %s\n", filename);
+			return;
+		}
+		tl -= olpad;
+		if (opthdr.option_code == 1) {
+			char comment[256];
+
+			memset(&comment, 0, olpad);
+			res = fread(&comment, 1, olpad, in);
+			if (res != olpad) {
+				fprintf(stderr, "Malformed data in %s\n", filename);
+				return;
+			}
+			fprintf(stderr, "File %s comment: %.256s\n", filename, comment);
+		} else if (opthdr.option_code == 2) {
+			char hwinfo[256];
+
+			memset(&hwinfo, 0, 256);
+			res = fread(&hwinfo, 1, olpad, in);
+			if (res != olpad) {
+				fprintf(stderr, "Malformed data in %s\n", filename);
+				return;
+			}
+			if (verbosity)
+				fprintf(stderr, "File %s hwinfo: %.256s\n", filename, hwinfo);
+		} else if (opthdr.option_code == 3) {
+			char osinfo[256];
+
+			memset(&osinfo, 0, 256);
+			res = fread(&osinfo, 1, olpad, in);
+			if (res != olpad) {
+				fprintf(stderr, "Malformed data in %s\n", filename);
+				return;
+			}
+			if (verbosity)
+				fprintf(stderr, "File %s osinfo: %s.256\n", filename, osinfo);
+		} else if (opthdr.option_code == 4) {
+			char appinfo[256];
+
+			memset(&appinfo, 0, 256);
+			res = fread(&appinfo, 1, olpad, in);
+			if (res != olpad) {
+				fprintf(stderr, "Malformed data in %s\n", filename);
+				return;
+			}
+			if (verbosity)
+				fprintf(stderr, "File %s appinfo: %.256s\n", filename, appinfo);
+		} else {
+			// Just skip unknown options
+			fseek(in, olpad, SEEK_CUR);
+		}
+	}
+	return;
+}
+
+static int process_ng(FILE *in)
+{
+	unsigned int res;
+	int aktseek;
+
+	block_header_t pcapngbh;
+	section_header_block_t pcapngshb;
+	interface_description_block_t pcapngidb;
+	packet_block_t pcapngpb;
+	enhanced_packet_block_t pcapngepb;
+
+	while (1) {
+		res = fread(&pcapngbh, 1, BH_SIZE, in);
+		if (res == 0) {
+			break;
+		}
+		if (res != BH_SIZE) {
+			printf("failed to read pcapng header block\n");
+			break;
+		}
+		if (pcapngbh.block_type == PCAPNGBLOCKTYPE) {
+			res = fread(&pcapngshb, 1, SHB_SIZE, in);
+			if (res != SHB_SIZE) {
+				printf("failed to read pcapng section header block\n");
+				break;
+			}
+#if !ARCH_LITTLE_ENDIAN
+			pcapngbh.total_length = swap32u(pcapngbh.total_length);
+			pcapngshb.byte_order_magic	= swap32u(pcapngshb.byte_order_magic);
+			pcapngshb.major_version		= swap16u(pcapngshb.major_version);
+			pcapngshb.minor_version		= swap16u(pcapngshb.minor_version);
+			pcapngshb.section_length	= swap64u(pcapngshb.section_length);
+#endif
+			if (pcapngshb.byte_order_magic == PCAPNGMAGICNUMBERBE) {
+				swap_needed = 1;
+				pcapngbh.total_length = swap32u(pcapngbh.total_length);
+				pcapngshb.byte_order_magic	= swap32u(pcapngshb.byte_order_magic);
+				pcapngshb.major_version		= swap16u(pcapngshb.major_version);
+				pcapngshb.minor_version		= swap16u(pcapngshb.minor_version);
+				pcapngshb.section_length	= swap64u(pcapngshb.section_length);
+			}
+			aktseek = ftell(in);
+			if (pcapngbh.total_length > (SHB_SIZE + BH_SIZE + 4)) {
+				pcapng_option_walk(in, pcapngbh.total_length);
+			}
+			fseek(in, aktseek + pcapngbh.total_length - BH_SIZE - SHB_SIZE, SEEK_SET);
+			continue;
+		}
+#if !ARCH_LITTLE_ENDIAN
+		pcapngbh.block_type = swap32u(pcapngbh.block_type);
+		pcapngbh.total_length = swap32u(pcapngbh.total_length);
+#endif
+		if (swap_needed == 1) {
+			pcapngbh.block_type = swap32u(pcapngbh.block_type);
+			pcapngbh.total_length = swap32u(pcapngbh.total_length);
+		}
+
+		if (pcapngbh.block_type == 1) {
+			res = fread(&pcapngidb, 1, IDB_SIZE, in);
+			if (res != IDB_SIZE) {
+				printf("failed to get pcapng interface description block\n");
+				break;
+			}
+#if !ARCH_LITTLE_ENDIAN
+			pcapngidb.linktype	= swap16u(pcapngidb.linktype);
+			pcapngidb.snaplen	= swap32u(pcapngidb.snaplen);
+#endif
+			if (swap_needed == 1) {
+				pcapngidb.linktype	= swap16u(pcapngidb.linktype);
+				pcapngidb.snaplen	= swap32u(pcapngidb.snaplen);
+			}
+
+			fseek(in, pcapngbh.total_length - BH_SIZE - IDB_SIZE, SEEK_CUR);
+		}
+
+		else if (pcapngbh.block_type == 2) {
+			res = fread(&pcapngpb, 1, PB_SIZE, in);
+			if (res != PB_SIZE) {
+				printf("failed to get pcapng packet block (obsolete)\n");
+				break;
+			}
+#if !ARCH_LITTLE_ENDIAN
+			pcapngpb.interface_id	= swap16u(pcapngpb.interface_id);
+			pcapngpb.drops_count	= swap16u(pcapngpb.drops_count);
+			pcapngpb.timestamp_high	= swap32u(pcapngpb.timestamp_high);
+			pcapngpb.timestamp_low	= swap32u(pcapngpb.timestamp_low);
+			pcapngpb.caplen		= swap32u(pcapngpb.caplen);
+			pcapngpb.len		= swap32u(pcapngpb.len);
+#endif
+			if (swap_needed == 1) {
+				pcapngpb.interface_id	= swap16u(pcapngpb.interface_id);
+				pcapngpb.drops_count	= swap16u(pcapngpb.drops_count);
+				pcapngpb.timestamp_high	= swap32u(pcapngpb.timestamp_high);
+				pcapngpb.timestamp_low	= swap32u(pcapngpb.timestamp_low);
+				pcapngpb.caplen		= swap32u(pcapngpb.caplen);
+				pcapngpb.len		= swap32u(pcapngpb.len);
+			}
+
+			if ((pcapngepb.timestamp_high == 0) &&
+			    (pcapngepb.timestamp_low == 0) && !warn_wpaclean++)
+				fprintf(stderr,
+"**\n** Warning: %s seems to be processed with some dubious tool like\n"
+"** 'wpaclean'. Important information may be lost.\n**\n", filename);
+
+			MEM_FREE(full_packet);
+			safe_malloc(full_packet, pcapngepb.caplen);
+			res = fread(full_packet, 1, pcapngpb.caplen, in);
+			if (res != pcapngpb.caplen) {
+				printf("failed to read packet: %s truncated?\n", filename);
+				break;
+			}
+			fseek(in, pcapngbh.total_length - BH_SIZE - PB_SIZE - pcapngepb.caplen, SEEK_CUR);
+
+			MEM_FREE(full_packet);
+			safe_malloc(full_packet, pcapngepb.caplen);
+			res = fread(full_packet, 1, pcapngpb.caplen, in);
+			if (res != pcapngpb.caplen) {
+				printf("failed to read packet: %s truncated?\n", filename);
+				break;
+			}
+
+			fseek(in, pcapngbh.total_length - BH_SIZE - PB_SIZE - pcapngpb.caplen, SEEK_CUR);
+		}
+
+		else if (pcapngbh.block_type == 3) {
+			fseek(in, pcapngbh.total_length - BH_SIZE, SEEK_CUR);
+		}
+
+		else if (pcapngbh.block_type == 4) {
+			fseek(in, pcapngbh.total_length - BH_SIZE, SEEK_CUR);
+		}
+
+		else if (pcapngbh.block_type == 5) {
+			fseek(in, pcapngbh.total_length - BH_SIZE, SEEK_CUR);
+		}
+
+		else if (pcapngbh.block_type == 6) {
+			res = fread(&pcapngepb, 1, EPB_SIZE, in);
+			if (res != EPB_SIZE) {
+				printf("failed to get pcapng enhanced packet block\n");
+				break;
+			}
+#if !ARCH_LITTLE_ENDIAN
+			pcapngepb.interface_id		= swap32u(pcapngepb.interface_id);
+			pcapngepb.timestamp_high	= swap32u(pcapngepb.timestamp_high);
+			pcapngepb.timestamp_low		= swap32u(pcapngepb.timestamp_low);
+			pcapngepb.caplen		= swap32u(pcapngepb.caplen);
+			pcapngepb.len			= swap32u(pcapngepb.len);
+#endif
+			if (swap_needed == 1) {
+				pcapngepb.interface_id		= swap32u(pcapngepb.interface_id);
+				pcapngepb.timestamp_high	= swap32u(pcapngepb.timestamp_high);
+				pcapngepb.timestamp_low		= swap32u(pcapngepb.timestamp_low);
+				pcapngepb.caplen		= swap32u(pcapngepb.caplen);
+				pcapngepb.len			= swap32u(pcapngepb.len);
+			}
+
+			MEM_FREE(full_packet);
+			safe_malloc(full_packet, pcapngepb.caplen);
+			res = fread(full_packet, 1, pcapngepb.caplen, in);
+			if (res != pcapngepb.caplen) {
+				printf("failed to read packet: %s truncated?\n", filename);
+				break;
+			}
+			fseek(in, pcapngbh.total_length - BH_SIZE - EPB_SIZE - pcapngepb.caplen, SEEK_CUR);
+		} else {
+			fseek(in, pcapngbh.total_length - BH_SIZE, SEEK_CUR);
+		}
+		if (pcapngepb.caplen > 0) {
+			snap_len = pcapngepb.caplen;
+			orig_len = pcapngepb.len;
+			// FIXME: Honor if_tsresol from Interface Description Block
+			abs_ts64 = (((uint64_t)pcapngepb.timestamp_high << 32) +
+			              pcapngepb.timestamp_low);
+			if (!start_ts64)
+				start_ts64 = abs_ts64;
+			cur_ts64 = abs_ts64 - start_ts64;
+			if (!process_packet(pcapngidb.linktype))
+				break;
+		}
+	}
+	if (verbosity >= 2)
+		fprintf(stderr, "File %s: End of data\n", filename);
+	dump_late(show_unverified);
+	return 1;
+}
+
 static int get_next_packet(FILE *in)
 {
 	size_t read_size;
+	pcaprec_hdr_t pkt_hdr;
 
 	if (fread(&pkt_hdr, 1, sizeof(pkt_hdr), in) != sizeof(pkt_hdr))
 		return 0;
@@ -1764,40 +2076,37 @@ static int get_next_packet(FILE *in)
 	if (swap_needed) {
 		pkt_hdr.ts_sec = swap32u(pkt_hdr.ts_sec);
 		pkt_hdr.ts_usec = swap32u(pkt_hdr.ts_usec);
-		pkt_hdr.incl_len = swap32u(pkt_hdr.incl_len);
+		pkt_hdr.snap_len = swap32u(pkt_hdr.snap_len);
 		pkt_hdr.orig_len = swap32u(pkt_hdr.orig_len);
 	}
+
+	snap_len = pkt_hdr.snap_len;
+	orig_len = pkt_hdr.orig_len;
 
 	if (pkt_hdr.ts_sec == 0 && pkt_hdr.ts_usec == 0 && !warn_wpaclean++)
 		fprintf(stderr,
 "**\n** Warning: %s seems to be processed with some dubious tool like\n"
 "** 'wpaclean'. Important information may be lost.\n**\n", filename);
 
-	if (pkt_hdr.orig_len > pkt_hdr.incl_len && !warn_snaplen++)
+	if (orig_len > snap_len && !warn_snaplen++)
 		fprintf(stderr,
 		        "**\n** Warning: %s seems to be recorded with insufficient snaplen, packet was %u bytes but only %u bytes were recorded\n**\n",
-		        filename, pkt_hdr.orig_len, pkt_hdr.incl_len);
+		        filename, orig_len, snap_len);
 
-	if (!start_t) {
-		start_t = pkt_hdr.ts_sec;
-		start_u = pkt_hdr.ts_usec;
-	}
-	cur_t = pkt_hdr.ts_sec - start_t;
-	cur_u = pkt_hdr.ts_usec - start_u;
+	abs_ts64 = pkt_hdr.ts_sec * 1000000 + pkt_hdr.ts_usec;
 
-	while (cur_u > 999999) {
-		cur_t--;
-		cur_u += 1000000;
-	}
-	cur_ts64 = cur_t * 1000000 + cur_u;
+	if (!start_ts64)
+		start_ts64 = abs_ts64;
+
+	cur_ts64 = abs_ts64 - start_ts64;
 
 	MEM_FREE(full_packet);
-	safe_malloc(full_packet, pkt_hdr.incl_len);
-	read_size = fread(full_packet, 1, pkt_hdr.incl_len, in);
-	if (verbosity && read_size < pkt_hdr.incl_len)
+	safe_malloc(full_packet, snap_len);
+	read_size = fread(full_packet, 1, snap_len, in);
+	if (verbosity && read_size < snap_len)
 		fprintf(stderr, "%s: truncated last packet\n", filename);
 
-	return (read_size == pkt_hdr.incl_len);
+	return (read_size == snap_len);
 }
 
 static int process(FILE *in)
@@ -1814,8 +2123,12 @@ static int process(FILE *in)
 		swap_needed = 0;
 	else if (main_hdr.magic_number == 0xd4c3b2a1)
 		swap_needed = 1;
-	else {
+	else if (main_hdr.magic_number == PCAPNGBLOCKTYPE) {
+		fseek(in, 0, SEEK_SET);
+		return process_ng(in);
+	} else {
 		if (convert_ivs2(in)) {
+			fprintf(stderr, "%s: unknown file. Supported formats are pcap, pcap-ng and ivs2.\n", filename);
 			return 0;
 		}
 		return 1;
@@ -1829,55 +2142,17 @@ static int process(FILE *in)
 		main_hdr.snaplen = swap32u(main_hdr.snaplen);
 		main_hdr.network = swap32u(main_hdr.network);
 	}
-	link_type = main_hdr.network;
 
-	/* Read 1st packet */
-	get_next_packet(in);
 
-	if (verbosity)
-		fprintf(stderr, "\n");
-	if (link_type == LINKTYPE_IEEE802_11)
-		fprintf(stderr, "File %s: raw 802.11\n", filename);
-	else if (link_type == LINKTYPE_PRISM_HEADER)
-		fprintf(stderr, "File %s: Prism encapsulation\n", filename);
-	else if (link_type == LINKTYPE_RADIOTAP_HDR)
-		fprintf(stderr, "File %s: Radiotap encapsulation\n", filename);
-	else if (link_type == LINKTYPE_PPI_HDR)
-		fprintf(stderr, "File %s: PPI encapsulation\n", filename);
-	else if (link_type == LINKTYPE_ETHERNET) {
-		unsigned char *packet = full_packet;
-
-		if (pkt_hdr.incl_len > 47 &&
-		    packet[12] == 0x08 && packet[13] == 0x00 && // IPv4
-		    packet[23] == 17 && // UDP
-		    packet[42] == 0x01 && packet[44] == 0) // TZSP
-		{
-			if (packet[45] == 18)
-				fprintf(stderr, "File %s: 802.11 over TZSP\n", filename);
-			else if (packet[45] == 119)
-				fprintf(stderr, "File %s: Prism over TZSP\n", filename);
-			else
-				fprintf(stderr, "File %s: TZSP unknown encapsulation %02x\n",
-				        filename, packet[45]);
-		} else
-			fprintf(stderr, "File %s: Ethernet encapsulation\n", filename);
-	} else {
-		fprintf(stderr,
-		        "File %s: No 802.11 wireless traffic data (network %d)\n",
-		        filename, link_type);
-		return 0;
-	}
-
-	do {
-		if (!process_packet()) {
+	while (get_next_packet(in)) {
+		if (!process_packet(main_hdr.network)) {
 			break;
 		}
-	} while (get_next_packet(in));
+	}
 
 	if (verbosity >= 2)
 		fprintf(stderr, "File %s: End of data\n", filename);
-	if (show_unverified)
-		dump_any_unver();
+	dump_late(show_unverified);
 	return 1;
 }
 
@@ -2132,7 +2407,7 @@ int main(int argc, char **argv)
 		/* Re-init between pcap files */
 		warn_snaplen = 0;
 		warn_wpaclean = 0;
-		start_t = start_u = 0;
+		start_ts64 = 0;
 		pkt_num = 0;
 		for (j = 0; j < n_essid; j++)
 			if (essid_db[j].prio < 5)

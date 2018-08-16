@@ -1,11 +1,11 @@
 /*
  * This software is Copyright (c) 2013 Jim Fougeron jfoug AT cox dot net,
  * Copyright (c) 2013 Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2014-2017 magnum, and it is hereby released
+ * and Copyright (c) 2014-2018 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
  *
- * structs and data (from wireshark and airodump-ng, and ethernet structures)
+ * Structs and data (some from wireshark, airodump-ng and hcxtool suite)
  */
 
 #ifdef _MSC_VER
@@ -24,8 +24,12 @@
  */
 #pragma pack(1)
 
-#define TCPDUMP_MAGIC           0xA1B2C3D4
-#define TCPDUMP_CIGAM           0xD4C3B2A1
+#define TCPDUMP_MAGIC           0xa1b2c3d4
+#define TCPDUMP_CIGAM           0xd4c3b2a1
+
+#define PCAPNGBLOCKTYPE         0x0a0d0d0a
+#define PCAPNGMAGICNUMBER       0x1a2b3c4d
+#define PCAPNGMAGICNUMBERBE     0x4d3c2b1a
 
 #define LINKTYPE_ETHERNET       1
 #define LINKTYPE_IEEE802_11     105
@@ -48,9 +52,82 @@ typedef struct pcap_hdr_s {
 typedef struct pcaprec_hdr_s {
 	uint32_t ts_sec;         /* timestamp seconds */
 	uint32_t ts_usec;        /* timestamp microseconds */
-	uint32_t incl_len;       /* number of octets of packet saved in file */
+	uint32_t snap_len;       /* number of octets of packet saved in file */
 	uint32_t orig_len;       /* actual length of packet */
 } pcaprec_hdr_t;
+
+/* Header of all pcapng blocks */
+typedef struct block_header_s {
+	uint32_t	block_type;	/* block type */
+	uint32_t	total_length;	/* block length */
+} block_header_t;
+#define	BH_SIZE (sizeof(block_header_t))
+
+/* Header of all pcapng options */
+typedef struct option_header_s {
+	uint16_t		option_code;	/* option code - depending of block (0 - end of opts, 1 - comment are in common) */
+	uint16_t		option_length;	/* option length - length of option in bytes (will be padded to 32bit) */
+} option_header_t;
+#define	OH_SIZE (sizeof(option_header_t))
+
+/* Section Header Block (SHB) - ID 0x0A0D0D0A */
+typedef struct section_header_block_s {
+	uint32_t	byte_order_magic;	/* byte order magic - indicates swapped data */
+	uint16_t	major_version;		/* major version of pcapng (1 atm) */
+	uint16_t	minor_version;		/* minor version of pcapng (0 atm) */
+	int64_t	section_length;		/* length of section - can be -1 (parsing necessary) */
+} section_header_block_t;
+#define	SHB_SIZE (sizeof(section_header_block_t))
+
+/* Interface Description Block (IDB) - ID 0x00000001 */
+typedef struct interface_description_block_s {
+	uint16_t	linktype;	/* the link layer type (was -network- in classic pcap global header) */
+	uint16_t	reserved;	/* 2 bytes of reserved data */
+	uint32_t	snaplen;	/* maximum number of bytes dumped from each packet (was -snaplen- in classic pcap global header */
+} interface_description_block_t;
+#define	IDB_SIZE (sizeof(interface_description_block_t))
+
+/* Packet Block (PB) - ID 0x00000002 (OBSOLETE - EPB should be used instead) */
+typedef struct packet_block_s {
+	uint16_t	interface_id;	/* the interface the packet was captured from - identified by interface description block in current section */
+	uint16_t	drops_count;	/* packet dropped by IF and OS since prior packet */
+	uint32_t	timestamp_high;	/* high bytes of timestamp */
+	uint32_t	timestamp_low;	/* low bytes of timestamp */
+	uint32_t	caplen;	/* length of packet in the capture file (was -incl_len- in classic pcap packet header) */
+	uint32_t	len;	/* length of packet when transmitted (was -orig_len- in classic pcap packet header) */
+} packet_block_t;
+#define	PB_SIZE (sizeof(packet_block_t))
+
+/* Simple Packet Block (SPB) - ID 0x00000003 */
+typedef struct simple_packet_block_s {
+	uint32_t	len;  /* length of packet when transmitted (was -orig_len- in classic pcap packet header) */
+} simple_packet_block_t;
+#define	SPB_SIZE (sizeof(simple_packet_block_t))
+
+/* Name Resolution Block (NRB) - ID 0x00000004 */
+typedef struct name_resolution_block_s {
+	uint16_t	record_type;    /* type of record (ipv4 / ipv6) */
+	uint16_t	record_length;  /* length of record value */
+} name_resolution_block_t;
+#define	NRB_SIZE (sizeof(name_resolution_block_t))
+
+/* Interface Statistics Block - ID 0x00000005 */
+typedef struct interface_statistics_block_s {
+	uint32_t	interface_id;     /* the interface the stats refer to - identified by interface description block in current section */
+	uint32_t	timestamp_high;   /* high bytes of timestamp */
+	uint32_t	timestamp_low;    /* low bytes of timestamp */
+} interface_statistics_block_t;
+#define	ISB_SIZE (sizeof(interface_statistics_block_t))
+
+/* Enhanced Packet Block (EPB) - ID 0x00000006 */
+typedef struct enhanced_packet_block_s {
+	uint32_t	interface_id;     /* the interface the packet was captured from - identified by interface description block in current section */
+	uint32_t	timestamp_high;   /* high bytes of timestamp */
+	uint32_t	timestamp_low;    /* low bytes of timestamp */
+	uint32_t	caplen;           /* length of packet in the capture file (was -incl_len- in classic pcap packet header) */
+	uint32_t	len;              /* length of packet when transmitted (was -orig_len- in classic pcap packet header) */
+} enhanced_packet_block_t;
+#define	EPB_SIZE (sizeof(enhanced_packet_block_t))
 
 /* Ok, here are the struct we need to decode 802.11 for JtR */
 typedef struct ieee802_1x_frame_hdr_s {
