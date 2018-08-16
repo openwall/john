@@ -2061,7 +2061,7 @@ static int process_ng(FILE *in)
 	}
 	if (verbosity >= 2)
 		fprintf(stderr, "File %s: End of data\n", filename);
-	dump_late(show_unverified);
+	dump_late();
 	return 1;
 }
 
@@ -2152,7 +2152,7 @@ static int process(FILE *in)
 
 	if (verbosity >= 2)
 		fprintf(stderr, "File %s: End of data\n", filename);
-	dump_late(show_unverified);
+	dump_late();
 	return 1;
 }
 
