@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<DesignStrategy goal="Balanced" strategy="no-clocks-io" version="12.1">
+
+  <Description>This Strategy is used for creation of ngc files for "blackbox" modules.</Description>
+
+  <DeviceList devices="spartan6"/>
+
+  <Properties>
+    <property name="Synthesize - XST:Optimization Goal" value="Area"/>
+    <property name="Synthesize - XST:Keep Hierarchy" value="No"/>
+    <property name="Synthesize - XST:Other XST Command Line Options" value="-sd ngc"/>
+    <property name="Synthesize - XST:Add I/O Buffers" value="false"/>
+    <property name="Synthesize - XST:Number of Clock Buffers" value="0"/>
+    <property name="Synthesize - XST:LUT Combining" value="Auto"/>
+    <property name="Translate:Other Ngdbuild Command Line Options" value="-sd ngc"/>
+    <property name="Map:Placer Extra Effort" value="Normal"/>
+    <property name="Map:Starting Placer Cost Table (1-100)" value="33"/>
+    <property name="Map:Register Duplication" value="On"/>
+    <property name="Map:Register Ordering" value="Off"/>
+    <property name="Map:Trim Unconnected Signals" value="false"/>
+    <property name="Map:Allow Logic Optimization Across Hierarchy" value="true"/>
+    <property name="Map:Generate Detailed MAP Report" value="true"/>
+    <property name="Map:LUT Combining" value="Auto"/>
+    <property name="Place &amp; Route:Extra Effort (Highest PAR level only)" value="Normal"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Number of Paths in Error/Verbose Report" value="1"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Perform Advanced Analysis" value="true"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Report Paths by Endpoint" value="50"/>
+  </Properties>
+
+</DesignStrategy>
