@@ -34,7 +34,7 @@ The approximate schematic of a computing unit is shown at fig.1.
   |               |        /             \         /
   | process_bytes |       /    "main"     \ <------
   |               |<--+--|      memory     |
-  +---------------+   |   \    (16x256b)  / <------
+  +---------------+   |   \  (6 x 128 B)  / <------
      |      ^         |    \             /         \
  +-------+  |        /      -------------           |
  | procb |  |       /                           +------------+
@@ -140,4 +140,28 @@ fig.2. Overview, FPGA application
 
 - Each FPGA has 25 computing units, that's 75 cores, 150 keys are
 computed in parallel.
+
+
+## Resource Usage
+
+Each computing unit uses ~2,450 LUT. Other types of hardware resources
+are not limiting. Here's a breakdown of resource usage by individual
+components in a unit:
+
+- 3 SHA256 cores 540 LUT each (total 1620 LUT, 66.1%)
+- 16-bit multi-threaded CPU: 235 LUT (9.6%)
+- "Main" memory I/O: 65 LUT (2.7%)
+- Unit's input and output buffers: 90 LUT (3.7%)
+
+The remaining 440 LUT (17.9%) is used mostly by logic that transforms
+PROCESS_BYTES instructions into SHA256 data blocks. That includes:
+
+- "procb_buf" (intermediate storage of data submitted by PROCESS_BYTES
+instructions): 48 LUT (2.0%)
+- "realign" (fetches data from 32-bit memory and performs proper
+alignment): 92 LUT (3.8%)
+- "process_bytes" (operates the above, creates SHA256 blocks, adds
+padding, counts total bytes etc.): 235 LUT (9.6%)
+- "thread_state" with 3 independent read and 4 write channels (reflects
+state of each thread for CPU and other subsystems): 35 LUT (1.4%)
 
