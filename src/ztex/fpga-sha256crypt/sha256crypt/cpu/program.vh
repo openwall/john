@@ -32,7 +32,7 @@ integer k = 0;
 `define	ADDR_p_bytes	`ADDR_key
 `define	ADDR_alt_result	24
 //
-// 16 (x32-bit) registers per thread.
+// 16 (x16-bit) registers per thread.
 //
 `define	R_salt_len	`R12
 `define	R_key_len	`R13
