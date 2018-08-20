@@ -49,7 +49,7 @@ static uint64_t cur_ts64, abs_ts64, start_ts64;
 static uint32_t pkt_num;
 static uint8_t *full_packet;
 static uint8_t *packet;
-static uint8_t *packet_src, *packet_dst;
+static uint8_t *packet_TA, *packet_RA, *packet_SA, *packet_DA, *bssid;
 static uint8_t *new_p;
 static size_t new_p_sz;
 static int swap_needed;
@@ -736,14 +736,13 @@ static void dump_late() {
 	}
 }
 
-static void learn_essid(uint16_t subtype, int has_ht)
+static void learn_essid(uint16_t subtype, int has_ht, uint8_t *bssid)
 {
 	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	ieee802_1x_beacon_tag_t *tag;
 	uint8_t *pFinal = &packet[snap_len];
 	char essid[32 + 1];
 	int essid_len = 0;
-	uint8_t *bssid = pkt->addr3;
 	int prio = 0;
 	int i;
 
@@ -905,14 +904,12 @@ static int is_zero(void *ptr, size_t len)
 	return 1;
 }
 
-static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
+static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *bssid)
 {
-	ieee802_1x_frame_hdr_t *pkt = (ieee802_1x_frame_hdr_t*)packet;
 	uint8_t *end = packet + snap_len;
 	int i;
 	int apsta = -1, ess = -1;
 	int msg = 0;
-	uint8_t *bssid;
 	uint8_t *staid;
 	uint32_t nonce_msb; /* First 32 bits of nonce */
 	uint32_t nonce_lsb; /* Last 32 bits of nonce */
@@ -974,14 +971,14 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 	}
 
 	if (!auth->key_info.KeyACK) {
-		staid = packet_src;
+		staid = packet_TA;
 		if (auth->key_info.Secure || auth->wpa_keydatlen == 0) {
 			msg = 4;
 		} else {
 			msg = 2;
 		}
 	} else {
-		staid = packet_dst;
+		staid = packet_RA;
 		if (auth->key_info.Install) {
 			msg = 3;
 		} else {
@@ -989,10 +986,6 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 		}
 	}
 
-	if (addr4)
-		bssid = addr4;
-	else
-		bssid = pkt->addr3;
 
 	/* Find the ESSID in our db. */
 	ess = get_essid_num(bssid);
@@ -1179,8 +1172,8 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 		remove_handshake(apsta, 2);
 		remove_handshake(apsta, 3);
 		remove_handshake(apsta, 4);
-		memcpy(apsta_db[apsta].bssid, packet_src, 6);
-		memcpy(apsta_db[apsta].staid, packet_dst, 6);
+		memcpy(apsta_db[apsta].bssid, packet_TA, 6);
+		memcpy(apsta_db[apsta].staid, packet_RA, 6);
 		apsta_db[apsta].M[1].eapol_size = eapol_sz;
 		apsta_db[apsta].M[1].ts64 = cur_ts64;
 		safe_malloc(apsta_db[apsta].M[1].eapol, eapol_sz);
@@ -1219,8 +1212,8 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 		remove_handshake(apsta, 2);
 		remove_handshake(apsta, 3);
 		remove_handshake(apsta, 4);
-		memcpy(apsta_db[apsta].staid, packet_src, 6);
-		memcpy(apsta_db[apsta].bssid, packet_dst, 6);
+		memcpy(apsta_db[apsta].staid, packet_TA, 6);
+		memcpy(apsta_db[apsta].bssid, packet_RA, 6);
 		apsta_db[apsta].M[2].eapol_size = eapol_sz;
 		apsta_db[apsta].M[2].ts64 = cur_ts64;
 		safe_malloc(apsta_db[apsta].M[2].eapol, eapol_sz);
@@ -1286,8 +1279,8 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 		 */
 		remove_handshake(apsta, 3);
 		remove_handshake(apsta, 4);
-		memcpy(apsta_db[apsta].bssid, packet_src, 6);
-		memcpy(apsta_db[apsta].staid, packet_dst, 6);
+		memcpy(apsta_db[apsta].bssid, packet_TA, 6);
+		memcpy(apsta_db[apsta].staid, packet_RA, 6);
 		apsta_db[apsta].M[3].eapol_size = eapol_sz;
 		apsta_db[apsta].M[3].ts64 = cur_ts64;
 		safe_malloc(apsta_db[apsta].M[3].eapol, eapol_sz);
@@ -1355,8 +1348,8 @@ static void handle4way(ieee802_1x_eapol_t *auth, uint8_t *addr4)
 
 		remove_handshake(apsta, 2);
 		remove_handshake(apsta, 4);
-		memcpy(apsta_db[apsta].staid, packet_src, 6);
-		memcpy(apsta_db[apsta].bssid, packet_dst, 6);
+		memcpy(apsta_db[apsta].staid, packet_TA, 6);
+		memcpy(apsta_db[apsta].bssid, packet_RA, 6);
 		apsta_db[apsta].M[4].eapol_size = eapol_sz;
 		apsta_db[apsta].M[4].ts64 = cur_ts64;
 		safe_malloc(apsta_db[apsta].M[4].eapol, eapol_sz);
@@ -1436,7 +1429,6 @@ static int process_packet(uint32_t link_type)
 	unsigned int frame_skip = 0;
 	int has_ht;
 	unsigned int tzsp_link = 0;
-	unsigned char *addr4 = NULL;
 
 	if (filename != last_f || link_type != last_l) {
 		last_f = filename;
@@ -1614,15 +1606,34 @@ static int process_packet(uint32_t link_type)
 		return 0;
 	}
 
-	packet_dst = &packet[4];
-	if (snap_len >= 16)
-		packet_src = &packet[10];
-	else
-		packet_src = NULL;
+	packet_RA = pkt->addr1;
+	packet_TA = (snap_len >= 16) ? pkt->addr2 : NULL;
+
+	ctl = (ieee802_1x_frame_ctl_t *)&pkt->frame_ctl;
+
+	if (ctl->toDS == 0 && ctl->fromDS == 0) {
+		packet_DA = packet_RA;
+		packet_SA = packet_TA;
+		bssid = (snap_len >= 22) ? pkt->addr3 : NULL;
+	} else if (ctl->toDS == 0 && ctl->fromDS == 1) {
+		packet_DA = packet_RA;
+		packet_SA = (snap_len >= 22) ? pkt->addr3 : NULL;
+		bssid = packet_TA;
+	} else if (ctl->toDS == 1 && ctl->fromDS == 0) {
+		bssid = packet_RA;
+		packet_SA = packet_TA;
+		packet_DA = (snap_len >= 22) ? pkt->addr3 : NULL;
+	} else /*if (ctl->toDS == 1 && ctl->fromDS == 1)*/ {
+		packet_DA = (snap_len >= 22) ? pkt->addr3 : NULL;
+		packet_SA = (snap_len >= 30) ? &packet[24] : NULL; // addr4
+		bssid = packet_TA; /* If anything */
+	}
 
 	filter_hit = (!filter_mac[0] ||
-	              !strcmp(filter_mac, to_mac_str(packet_dst)) ||
-	              (packet_src && !strcmp(filter_mac, to_mac_str(packet_src))));
+	              !strcmp(filter_mac, to_mac_str(packet_RA)) ||
+	              (packet_TA && !strcmp(filter_mac, to_mac_str(packet_TA))) ||
+	              (packet_SA && !strcmp(filter_mac, to_mac_str(packet_SA))) ||
+	              (packet_DA && !strcmp(filter_mac, to_mac_str(packet_DA))));
 
 	if (verbosity >= 2 && filter_hit) {
 		if (verbosity >= 4)
@@ -1632,38 +1643,44 @@ static int process_packet(uint32_t link_type)
 			fprintf(stderr, "%4d %2u.%06u  %s -> %s %-4d ", pkt_num,
 			        (uint32_t)(abs_ts64 / 1000000),
 			        (uint32_t)(abs_ts64 % 1000000),
-			        to_mac_str(packet_src),
-			        to_mac_str(packet_dst), snap_len);
+			        to_mac_str(packet_TA),
+			        to_mac_str(packet_RA), snap_len);
 		else
 			fprintf(stderr, "%4d %2u.%06u  %s -> %s %-4d ", pkt_num,
 			        (uint32_t)(cur_ts64 / 1000000),
 			        (uint32_t)(cur_ts64 % 1000000),
-			        to_mac_str(packet_src),
-			        to_mac_str(packet_dst), snap_len);
+			        to_mac_str(packet_TA),
+			        to_mac_str(packet_RA), snap_len);
 
-		if (verbosity >= 2 && filter_hit && packet_src) {
-			if (!memcmp(l3mcast, packet_src, 3))
+		if (verbosity >= 3)
+			fprintf(stderr, "\n\tRA %s TA %s DA %s SA %s BSSID %s",
+			        packet_RA ? to_hex(packet_RA, 6) : "null",
+			        packet_TA ? to_hex(packet_TA, 6) : "null",
+			        packet_DA ? to_hex(packet_DA, 6) : "null",
+			        packet_SA ? to_hex(packet_SA, 6) : "null",
+			        bssid ? to_hex(bssid, 6) : "null");
+
+		if (verbosity >= 2 && filter_hit && packet_TA) {
+			if (!memcmp(l3mcast, packet_TA, 3))
 				fprintf(stderr, "[IPv4 mcast src] ");
-			else if ((packet_src[0] & 0x03) == 0x03)
+			else if ((packet_TA[0] & 0x03) == 0x03)
 				fprintf(stderr, "[LA mcast src] ");
-			else if (packet_src[0] & 0x01)
+			else if (packet_TA[0] & 0x01)
 				fprintf(stderr, "[mcast src] ");
-			else if (packet_src[0] & 0x02)
+			else if (packet_TA[0] & 0x02)
 				fprintf(stderr, "[LA src] ");
 		}
-		if (verbosity >= 2 && filter_hit && memcmp(packet_dst, bcast, 6)) {
-			if (!memcmp(l3mcast, packet_dst, 3))
+		if (verbosity >= 2 && filter_hit && memcmp(packet_RA, bcast, 6)) {
+			if (!memcmp(l3mcast, packet_RA, 3))
 				fprintf(stderr, "[IPv4 mcast] ");
-			else if ((packet_dst[0] & 0x03) == 0x03)
+			else if ((packet_RA[0] & 0x03) == 0x03)
 				fprintf(stderr, "[LA mcast] ");
-			else if (packet_dst[0] & 0x01)
+			else if (packet_RA[0] & 0x01)
 				fprintf(stderr, "[mcast] ");
-			else if (packet_dst[0] & 0x02)
+			else if (packet_RA[0] & 0x02)
 				fprintf(stderr, "[LA dst] ");
 		}
 	}
-
-	ctl = (ieee802_1x_frame_ctl_t *)&pkt->frame_ctl;
 
 	has_ht = (ctl->order == 1); /* 802.11n, 4 extra bytes MAC header */
 
@@ -1675,12 +1692,12 @@ static int process_packet(uint32_t link_type)
 	 * Beacon is subtype 8 and probe response is subtype 5
 	 * probe request is 4, assoc request is 0, reassoc is 2
 	 */
-	if (ctl->type == 0) {
-		learn_essid(ctl->subtype, has_ht);
+	if (ctl->type == 0 && bssid) {
+		learn_essid(ctl->subtype, has_ht, bssid);
 		return 1;
 	}
 
-	if (!filter_hit && (memcmp(bcast, packet_dst, 6) || packet_src != NULL))
+	if (!filter_hit && (memcmp(bcast, packet_RA, 6) || packet_TA != NULL))
 		return 1;
 
 	/* if not beacon or probe response, then look only for EAPOL 'type' */
@@ -1710,10 +1727,8 @@ static int process_packet(uint32_t link_type)
 		/* Ok, find out if this is an EAPOL packet or not. */
 
 		p += sizeof(ieee802_1x_frame_hdr_t);
-		if (has_addr4) {
-			addr4 = p;
+		if (has_addr4)
 			p += 6;
-		}
 		if (has_qos)
 			p += 2;
 /*
@@ -1760,8 +1775,8 @@ static int process_packet(uint32_t link_type)
 				if (snap_len < sizeof(ieee802_1x_frame_hdr_t) +
 				    (has_qos ? 10 : 8)) {
 					fprintf(stderr, "%s: truncated packet\n", filename);
-				} else
-					handle4way((ieee802_1x_eapol_t*)p, addr4);
+				} else if (bssid)
+					handle4way((ieee802_1x_eapol_t*)p, bssid);
 				return 1;
 			} else {
 				if (verbosity >= 2)

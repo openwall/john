@@ -133,11 +133,11 @@ typedef struct enhanced_packet_block_s {
 typedef struct ieee802_1x_frame_hdr_s {
 	uint16_t frame_ctl;
 	uint16_t duration;
-	uint8_t  addr1[6];
-	uint8_t  addr2[6];
-	uint8_t  addr3[6];
+	uint8_t  addr1[6]; // RA (receiver)
+	uint8_t  addr2[6]; // TA (transmitter)
+	uint8_t  addr3[6]; // SA (original sender)
 	uint16_t seq;
-//	int8_t   addr[6]; // optional (if X then it is set)
+//	int8_t   addr4[6]; // optional DA (final destination) (if toDS && fromDS)
 //	uint16_t qos_ctl; // optional (if X then it is set)
 //	uint16_t ht_ctl;  // optional (if X then it is set)
 //	int8_t   body[1];
