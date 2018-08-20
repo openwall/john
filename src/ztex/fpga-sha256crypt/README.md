@@ -165,3 +165,38 @@ padding, counts total bytes etc.): 235 LUT (9.6%)
 - "thread_state" with 3 independent read and 4 write channels (reflects
 state of each thread for CPU and other subsystems): 35 LUT (1.4%)
 
+
+## Design Placement and Routing
+
+- Used to manually allocate areas for every module. Totally allocated
+75 rectangular areas for cores and 25 areas for CPUs and glue logic.
+Communication framework used area that would be enough for 2 cores.
+- Multi-Pass Place & Route approach was used to build the bitstream.
+
+```
+  +--------------+         +--------------+
+  |   unit #0    |         |   unit #11   |
+  +--------------+         |--------------+
+  |   unit #1    |---------+   unit #13   |
+  +--------------+ unit #12|--------------+
+  |   unit #2    |         |   unit #15   |
+  +--------------+---------+--------------+
+  |   unit #3    | unit #14|   unit #17   |
+  +--------------+         |--------------+
+  |   unit #4    |---------+   unit #18   |
+  +--------------+ unit #16|--------------+
+  |   unit #5    |         |   unit #19   |
+  +--------------+---------+--------------+
+  |   unit #6    | unit #20|   unit #21   |
+  +--------------+         |--------------+
+  |   unit #7    |---------+   unit #23   |
+  +--------------+ unit #22|--------------+
+  |   unit #8    |         |   unit #24   |
+  +--------------+---------+--------------+
+  |   unit #9    |--------+ communication |
+  +--------------+         \ framework    |
+  |   unit #10   |          +-------------+
+  +--------------+
+```
+fig.3. Area allocation in the FPGA
+
