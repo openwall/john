@@ -1,15 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# combine of all of Dhiru Kholia pcap convert utilities
+# Combine of all of Dhiru Kholia pcap convert utilities
 # into a single program.  The pcap2john.readme lists
 # all of the original license statements. This merge was
 # done by JimF, Nov 2014, somewhat as a learning experience
-# for python.
+# for Python.
+#
 # The code itself is still a fabrication of Dhiru.
 
-import dpkt
+
 import sys
+
+def note():
+    sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john programs which are included with JtR Jumbo.\n\n")
+
+note()
+
+try:
+    import dpkt
+except ImportError:
+    sys.stderr.write("Please install 'dpkt' package for Python, running 'pip install --user dpkt' should work\n")
+    sys.exit(1)
+
 import dpkt.ethernet as ethernet
 from dpkt import ip as dip
 import dpkt.stp as stp
@@ -26,8 +39,8 @@ l.setLevel(49)
 try:
     from scapy.all import TCP, IP, UDP, rdpcap
 except ImportError:
-    sys.stderr.write("Please install scapy, http://www.secdev.org/projects/scapy/\n")
-    sys.exit(-1)
+    sys.stderr.write("Please install 'scapy' package for Python, running 'pip install --user scapy' should work\n")
+    sys.exit(1)
 
 # VTP_DOMAIN_SIZE = 32
 
@@ -1398,23 +1411,17 @@ def pcap_parser_htdigest(fname):
     f.close()
 
 
-def note():
-    sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john.\n")
-
-
 ############################################################
 # original main, but now calls multiple 2john routines, all
 # cut from the original independent convert programs.
 ############################################################
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [.pcap files]\n\n" % sys.argv[0])
-        note()
-        sys.exit(-1)
+        sys.stderr.write("Usage: %s [.pcap files]\n" % sys.argv[0])
+        sys.exit(1)
 
     # advertise what is not handled
-    note()
-    time.sleep(2)
+    time.sleep(1)
 
     for i in range(1, len(sys.argv)):
         try:
