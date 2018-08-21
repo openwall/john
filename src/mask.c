@@ -988,7 +988,7 @@ static char* drop1range(char *mask)
 				if (*s1++ != '\\')
 					len++;
 			}
-			if (s1[1] == ']') {
+			if (len && s1[1] == ']') {
 				if (len == 1) {
 					len = s1 - s;
 					s++;
