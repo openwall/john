@@ -239,7 +239,8 @@ static int convert_ivs2(FILE *f_in)
 	}
 
 	if (memcmp(ivs_buf, IVSONLY_MAGIC, 4) == 0) {
-		fprintf(stderr, "%s: old version .ivs file, only WEP handshakes.\n", filename);
+		fprintf(stderr, "%s: old version .ivs file, only WEP handshakes.\n",
+		        filename);
 		MEM_FREE(ivs_buf);
 		return 1;
 	}
@@ -1434,8 +1435,6 @@ static int process_packet(uint32_t link_type)
 		last_f = filename;
 		last_l = link_type;
 
-		if (verbosity)
-			fprintf(stderr, "\n");
 		if (link_type == LINKTYPE_IEEE802_11)
 			fprintf(stderr, "File %s: raw 802.11\n", filename);
 		else if (link_type == LINKTYPE_PRISM_HEADER)
@@ -1814,83 +1813,74 @@ static int process_packet(uint32_t link_type)
 	return 1;
 }
 
+int pcapng_option_print(FILE *in, size_t len, size_t pad_len,
+                        char *name, int verb_lvl)
+{
+	char *string;
+
+	safe_malloc(string, pad_len + 1);
+
+	if (fread(string, 1, pad_len, in) != pad_len) {
+		fprintf(stderr, "Malformed %s data in %s\n", name, filename);
+		MEM_FREE(string);
+		return 1;
+	}
+	if (verbosity >= verb_lvl) {
+		// These strings are NOT null-terminated unless they happen to be padded
+		string[len] = 0;
+		fprintf(stderr, "File %s %s: %s\n", filename, name, string);
+	}
+
+	MEM_FREE(string);
+	return 0;
+}
+
 void pcapng_option_walk(FILE *in, uint32_t tl)
 {
 	uint16_t res;
 	uint16_t padding;
-	uint16_t olpad;
 	option_header_t opthdr;
+	uint16_t len, pad_len;
 
 	while (1) {
 		res = fread(&opthdr, 1, OH_SIZE, in);
 		if (res != OH_SIZE) {
 			fprintf(stderr, "Malformed data in %s\n", filename);
-			return;
+			break;
 		}
 		if (opthdr.option_code == 0) {
-			return;
+			break;
 		}
 		padding = 0;
-		if ((opthdr.option_length % 4)) {
-			padding = 4 -(opthdr.option_length % 4);
-		}
+		len = opthdr.option_length;
+		if ((len % 4))
+			padding = 4 - (len % 4);
 
-		olpad = opthdr.option_length + padding;
+		pad_len = len + padding;
 
-		if ((olpad > tl) || (olpad >= 0xff)) {
+		if (pad_len > tl) {
 			fprintf(stderr, "Malformed data in %s\n", filename);
-			return;
+			break;
 		}
-		tl -= olpad;
+		tl -= pad_len;
+
 		if (opthdr.option_code == 1) {
-			char comment[256];
-
-			memset(&comment, 0, olpad);
-			res = fread(&comment, 1, olpad, in);
-			if (res != olpad) {
-				fprintf(stderr, "Malformed data in %s\n", filename);
-				return;
-			}
-			fprintf(stderr, "File %s comment: %.256s\n", filename, comment);
+			if (pcapng_option_print(in, len, pad_len, "comment", 0))
+				break;
 		} else if (opthdr.option_code == 2) {
-			char hwinfo[256];
-
-			memset(&hwinfo, 0, 256);
-			res = fread(&hwinfo, 1, olpad, in);
-			if (res != olpad) {
-				fprintf(stderr, "Malformed data in %s\n", filename);
-				return;
-			}
-			if (verbosity)
-				fprintf(stderr, "File %s hwinfo: %.256s\n", filename, hwinfo);
+			if (pcapng_option_print(in, len, pad_len, "hwinfo", 1))
+				break;
 		} else if (opthdr.option_code == 3) {
-			char osinfo[256];
-
-			memset(&osinfo, 0, 256);
-			res = fread(&osinfo, 1, olpad, in);
-			if (res != olpad) {
-				fprintf(stderr, "Malformed data in %s\n", filename);
-				return;
-			}
-			if (verbosity)
-				fprintf(stderr, "File %s osinfo: %s.256\n", filename, osinfo);
+			if (pcapng_option_print(in, len, pad_len, "osinfo", 1))
+				break;
 		} else if (opthdr.option_code == 4) {
-			char appinfo[256];
-
-			memset(&appinfo, 0, 256);
-			res = fread(&appinfo, 1, olpad, in);
-			if (res != olpad) {
-				fprintf(stderr, "Malformed data in %s\n", filename);
-				return;
-			}
-			if (verbosity)
-				fprintf(stderr, "File %s appinfo: %.256s\n", filename, appinfo);
+			if (pcapng_option_print(in, len, pad_len, "appinfo", 1))
+				break;
 		} else {
 			// Just skip unknown options
-			fseek(in, olpad, SEEK_CUR);
+			fseek(in, pad_len, SEEK_CUR);
 		}
 	}
-	return;
 }
 
 static int process_ng(FILE *in)
@@ -2418,6 +2408,9 @@ int main(int argc, char **argv)
 
 	for (i = 1; i < argc; i++) {
 		int j;
+
+		if (verbosity && i > 1)
+			fprintf(stderr, "\n");
 
 		/* Re-init between pcap files */
 		warn_snaplen = 0;
