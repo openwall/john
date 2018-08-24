@@ -30,7 +30,7 @@
 #define KEYS_PER_CORE_GPU       1
 
 //Data types.
-typedef union {
+typedef union buffer_32_u {
 	uint8_t mem_08[4];
 	uint16_t mem_16[2];
 	uint32_t mem_32[1];
