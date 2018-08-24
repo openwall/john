@@ -44,7 +44,7 @@
 }
 
 //Data types.
-typedef union {
+typedef union buffer_64_u {
 	uint8_t mem_08[8];
 	uint16_t mem_16[4];
 	uint32_t mem_32[2];

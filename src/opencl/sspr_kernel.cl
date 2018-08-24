@@ -41,23 +41,23 @@
 #define SHA512_DIGEST_LENGTH 64
 #endif
 
-typedef union {
+typedef union out_u {
 	uchar b[BINARY_SIZE_MIN];
 	uint w[BINARY_SIZE_MIN / sizeof(uint)];
 	uint64_t W[BINARY_SIZE_MIN / sizeof(uint64_t)];
 } out_t;
 
-typedef union {
+typedef union hash_u {
 	uchar b[SHA_DIGEST_LENGTH];
 	uint w[SHA_DIGEST_LENGTH / sizeof(uint)];
 } hash_t;
 
-typedef union {
+typedef union hash256_u {
 	uchar b[SHA256_DIGEST_LENGTH];
 	uint w[SHA256_DIGEST_LENGTH / sizeof(uint)];
 } hash256_t;
 
-typedef union {
+typedef union hash512_u {
 	uchar b[SHA512_DIGEST_LENGTH];
 	uint w[SHA512_DIGEST_LENGTH / sizeof(uint)];
 	uint64_t W[SHA512_DIGEST_LENGTH / sizeof(uint64_t)];

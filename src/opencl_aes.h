@@ -310,7 +310,7 @@ AES_ige_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
 	AES_SRC_TYPE uchar *in = _in;
 	AES_DST_TYPE uchar *out = _out;
 
-	typedef union {
+	typedef union aes_block_u {
 		ulong data[N_WORDS];
 		uchar bytes[AES_BLOCK_SIZE];
 	} aes_block_t;
