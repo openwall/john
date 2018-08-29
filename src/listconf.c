@@ -521,9 +521,10 @@ void listconf_parse_late(void)
 			int ntests = 0;
 			char buf[LINE_BUFFER_SIZE + 1];
 
-/* Some encodings change max plaintext length when
+/* Some formats change max plaintext length when
    encoding is used, or KPC when under OMP */
-			fmt_init(format);
+			if (!strstr(format->params.label, "-ztex"))
+				fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
@@ -584,9 +585,10 @@ void listconf_parse_late(void)
 			int ntests = 0;
 			int enc_len, utf8_len;
 
-/* Some encodings change max plaintext length when encoding is used,
+/* Some formats change max plaintext length when encoding is used,
    or KPC when under OMP */
-			fmt_init(format);
+			if (!strstr(format->params.label, "-ztex"))
+				fmt_init(format);
 
 			utf8_len = enc_len = format->params.plaintext_length;
 			if (options.target_enc == UTF_8)
@@ -717,7 +719,8 @@ void listconf_parse_late(void)
 		do {
 			int ShowIt = 1, i;
 
-			fmt_init(format);
+			if (!strstr(format->params.label, "-ztex"))
+				fmt_init(format);
 
 			if (options.listconf[14] == '=' || options.listconf[14] == ':') {
 				ShowIt = 0;
@@ -904,11 +907,12 @@ void listconf_parse_late(void)
 			int ntests = 0;
 
 			/*
-			 * fmt_init() and fmt_done() required for --encoding=
+			 * fmt_init() and fmt_done() required for encoding
 			 * support, because some formats (like Raw-MD5u)
 			 * change their tests[] depending on the encoding.
 			 */
-			fmt_init(format);
+			if (!strstr(format->params.label, "-ztex"))
+				fmt_init(format);
 
 			if (format->params.tests) {
 				while (format->params.tests[ntests].ciphertext) {
