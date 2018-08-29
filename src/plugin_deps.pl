@@ -19,6 +19,8 @@ sub find_deps {
 
 	#print "find_deps processing $src_file\n";
 	open my $fh, "<", $src_file or die "$src_file: $!";
+	binmode $fh, ":raw";
+
 	while (<$fh>) {
 		if (/^\s*#\s*include\s+"([^"]+)"/) {
 			my $object = $base_dir . $1;
