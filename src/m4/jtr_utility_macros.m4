@@ -112,6 +112,13 @@ fi
 if test -d /usr/local/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/include"
 fi
+dnl macOS Homebrew paths.
+if test -d /usr/local/opt/openssl/lib; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/opt/openssl/lib"
+fi
+if test -d /usr/local/opt/openssl/include; then
+   ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/opt/openssl/include"
+fi
 JTR_LIST_ADD(CPPFLAGS, [$ADD_CFLAGS]) # no typo here
 jtr_list_add_result=""
 JTR_LIST_ADD(LDFLAGS, [$ADD_LDFLAGS])

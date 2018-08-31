@@ -1418,7 +1418,7 @@ Optional Features:
   --enable-native-march   Use things like -march=native if valid compiler
                           option(s).
   --enable-ln-s           Use ln -s vs symlink.c wrappers (Cygwin only)
-  --disable-pkg-config    do not use pkg-config for any probing tests
+  --enable-pkg-config     use pkg-config for some probing tests
   --enable-nt-full-unicode
                           support 4-byte UTF-8 for MS formats
   --disable-int128        Do not use int128
@@ -3567,7 +3567,7 @@ fi
 if test "${enable_pkg_config+set}" = set; then :
   enableval=$enable_pkg_config; enable_pkg_config=$enableval
 else
-  enable_pkg_config=auto
+  enable_pkg_config=no
 fi
 
 # Check whether --enable-nt-full-unicode was given.
@@ -5247,6 +5247,12 @@ if test -d /usr/local/lib; then
 fi
 if test -d /usr/local/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/include"
+fi
+if test -d /usr/local/opt/openssl/lib; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/opt/openssl/lib"
+fi
+if test -d /usr/local/opt/openssl/include; then
+   ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/opt/openssl/include"
 fi
 
    for i in $ADD_CFLAGS; do
