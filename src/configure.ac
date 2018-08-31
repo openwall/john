@@ -83,7 +83,7 @@ AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers de
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not test build system for target features.])], [enable_native_tests=$enableval], [enable_native_tests=auto])
 AC_ARG_ENABLE([native-march], [AC_HELP_STRING([--enable-native-march], [Use things like -march=native if valid compiler option(s).])], [enable_native_march=$enableval], [enable_native_march=no])
 AC_ARG_ENABLE([ln-s], [AS_HELP_STRING([--enable-ln-s],[Use ln -s vs symlink.c wrappers (Cygwin only)])], [enable_ln_s=$enableval], [enable_ln_s=no])
-AC_ARG_ENABLE([pkg-config], [AS_HELP_STRING([--disable-pkg-config],[do not use pkg-config for any probing tests])], [enable_pkg_config=$enableval], [enable_pkg_config=auto])
+AC_ARG_ENABLE([pkg-config], [AS_HELP_STRING([--enable-pkg-config],[use pkg-config for some probing tests])], [enable_pkg_config=$enableval], [enable_pkg_config=no])
 AC_ARG_ENABLE([nt-full-unicode], [AS_HELP_STRING([--enable-nt-full-unicode],[support 4-byte UTF-8 for MS formats])], [enable_nt_unicode=$enableval], [enable_nt_unicode=no])
 AC_ARG_ENABLE([int128], [AC_HELP_STRING([--disable-int128], [Do not use int128])], [enable_int128=$enableval], [enable_int128=auto])
 AC_ARG_ENABLE([experimental-code], [AC_HELP_STRING([--enable-experimental-code], [Use experimental code])], [experimental=$enableval], [experimental=no])

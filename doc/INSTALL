@@ -155,8 +155,8 @@ that probably work fine but these instructions are for "Homebrew":
   2. Install Homebrew's gcc and openssl:
 	brew install gcc openssl
   3. Make sure /usr/local/bin precedes /usr/bin in your $PATH
-  4. Provide the path to GCC and the OpenSSL libraries to the configure script:
-        ./configure CC="gcc-6" CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
+  4. Configure, possibly adding a CC option for pointing to a specific gcc:
+        ./configure CC="gcc-6"
   5. Clean old files and make:
         make -s clean && make -sj4
 
