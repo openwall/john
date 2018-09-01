@@ -14,6 +14,7 @@ struct custom_salt {
 	int salt_length;
 	unsigned char salt[SALTLEN];
 	unsigned int iterations;
+	unsigned int type;
 	union blob {  // wrapped kek
 		uint64_t qword[BLOBLEN/sizeof(uint64_t)];
 		unsigned char chr[BLOBLEN];
