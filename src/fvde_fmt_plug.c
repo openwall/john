@@ -111,9 +111,9 @@ static char *get_key(int index)
  */
 static int fvde_decrypt(fvde_custom_salt *cur_salt, unsigned char *key)
 {
-	uint64_t *C = cur_salt->blob.qword; // len(C) == 3
-	int n = 2;  // len(C) - 1
-	uint64_t R[3]; // n + 1 = 3
+	uint64_t *C = cur_salt->blob.qword; // len(C) in blocks == 3 or 5
+	int n = BLOBLEN / 8 - 1;  // len(C) - 1
+	uint64_t R[5]; // n + 1 = 5
 	union {
 		uint64_t qword[2];
 		unsigned char stream[16];
@@ -122,13 +122,18 @@ static int fvde_decrypt(fvde_custom_salt *cur_salt, unsigned char *key)
 	AES_KEY akey;
 	uint64_t A = C[0];
 
-	AES_set_decrypt_key(key, 128, &akey);
+	if (cur_salt->type == 1) {
+		AES_set_decrypt_key(key, 128, &akey);
+		n = 2;  // note
+	} else {
+		AES_set_decrypt_key(key, 256, &akey);
+	}
 
 	for (i = 0; i < n + 1; i++)
 		R[i] = C[i];
 
 	for (j = 5; j >= 0; j--) { // 5 is fixed!
-		for (i = 2; i >=1; i--) { // i = n
+		for (i = n; i >=1; i--) { // i = n
 #if ARCH_LITTLE_ENDIAN
 			todecrypt.qword[0] = JOHNSWAP64(A ^ (n*j+i));
 			todecrypt.qword[1] = JOHNSWAP64(R[i]);
@@ -155,6 +160,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index = 0;
+	int outlen  = 16;
+
+	if (cur_salt-> type == 2)
+		outlen = 32;
 
 	memset(cracked, 0, sizeof(cracked[0])*cracked_count);
 
@@ -162,7 +171,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char master[MAX_KEYS_PER_CRYPT][16];
+		unsigned char master[MAX_KEYS_PER_CRYPT][32];
 		int i;
 #ifdef SIMD_COEF_32
 		int lens[MAX_KEYS_PER_CRYPT];
@@ -172,10 +181,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = master[i];
 		}
-		pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, pout, 16, 0);
+		pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, pout, outlen, 0);
 #else
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i)
-			pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, master[i], 16, 0);
+			pbkdf2_sha256((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, master[i], outlen, 0);
 #endif
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
 			cracked[index+i] = fvde_decrypt(cur_salt, master[i]);

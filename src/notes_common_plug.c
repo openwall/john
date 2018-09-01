@@ -67,6 +67,7 @@ void *notes_common_get_salt(char *ciphertext)
 
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "*");
+	cs->type = 1;
 	p = strtokm(NULL, "*");
 	cs->iterations = atoi(p);
 	cs->salt_length = SALTLEN;

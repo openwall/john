@@ -46,6 +46,7 @@ john_register_one(&fmt_opencl_notes);
 
 typedef struct {
 	salt_t salt;
+	int type;
 	union {  // wrapped kek
 		uint64_t qword[BLOBLEN/8];
 		uint8_t chr[BLOBLEN];
@@ -158,8 +159,8 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
-		         HASH_LOOPS, PLAINTEXT_LENGTH);
+		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u -DBLOBLEN=%u",
+		         HASH_LOOPS, PLAINTEXT_LENGTH, BLOBLEN);
 		opencl_init("$JOHN/kernels/fvde_kernel.cl",
 		            gpu_id, build_opts);
 
@@ -212,6 +213,7 @@ static void set_salt(void *salt)
 	memcpy(host_salt->blob.qword, cur_salt->blob.qword, BLOBLEN);
 	host_salt->salt.length = cur_salt->salt_length;
 	host_salt->salt.rounds = cur_salt->iterations;
+	host_salt->type = cur_salt->type;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, sizeof(salt_t2), host_salt, 0, NULL, NULL),
