@@ -358,7 +358,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 		MD5_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*4*VS32];
-#if 0 //__AVX512F__ || __MIC__
+#if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15*4,14*4,13*4,12*4,
 			                        11*4,10*4, 9*4, 8*4,
 			                         7*4, 6*4, 5*4, 4*4,
@@ -1030,7 +1030,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 		MD4_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*4*VS32];
-#if 0 //__AVX512F__ || __MIC__
+#if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15*4,14*4,13*4,12*4,
 			                        11*4,10*4, 9*4, 8*4,
 			                         7*4, 6*4, 5*4, 4*4,
@@ -1539,7 +1539,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 		SHA1_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*5*VS32];
-#if 0 //__AVX512F__ || __MIC__
+#if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15*5,14*5,13*5,12*5,
 			                        11*5,10*5, 9*5, 8*5,
 			                         7*5, 6*5, 5*5, 4*5,
@@ -2106,7 +2106,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 		SHA256_PARA_DO(i)
 		{
 			uint32_t *o = (uint32_t*)&out[i*8*VS32];
-#if 0 //__AVX512F__ || __MIC__
+#if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15<<3,14<<3,13<<3,12<<3,
 			                        11<<3,10<<3, 9<<3, 8<<3,
 			                         7<<3, 6<<3, 5<<3, 4<<3,
@@ -2685,7 +2685,7 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 		SHA512_PARA_DO(i)
 		{
 			uint64_t *o = (uint64_t*)&out[i*8*VS64];
-#if 0 //__AVX512F__ || __MIC__
+#if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3,
 			                        3<<3, 2<<3, 1<<3, 0<<3);
 
