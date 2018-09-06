@@ -62,7 +62,10 @@ static struct fmt_tests multibit_tests[] = {
 	{"$multibit$1*21ecedddebcb4ca8*8777067e8109e71ccdcda54817eed8615d8dea85f363829c0c78d61da9e1268e", "\xe4""b"}, // original password is "äb"
 	// MultiBit Classic 0.5.19 .wallet files
 	{"$multibit$3*16384*8*1*1bf663752dade439*d2a4810673c311f6cdd4cebceadbd564c05d408ba9c74912a187953eabc20bee", "openwall123"},
+#if 0
+	/* Disabled because it can only work with codepages including this letter */
 	{"$multibit$3*16384*8*1*1bf663752dade439*956a6f229c25154832bab8f4ddfe83e985631678fb8df33aad1b5128a55ea0e2", "\xe4""b"}, // original password is "äb"
+#endif
 	// MultiBit HD wallet 0.5.0
 	{"$multibit$2*081e3a1252c26731120d0d63783ae46f*8354d5b454e78fb15f81c9e6289ba9b8*081e3a1252c26731120d0d63783ae46f", "openwall"},
 	{NULL}
@@ -430,7 +433,7 @@ struct fmt_main fmt_multibit = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_UNICODE | FMT_UTF8,
 		{
 			"iteration count",
 			"kdf [1:MD5 2:scrypt hd 3:scrypt classic]",
