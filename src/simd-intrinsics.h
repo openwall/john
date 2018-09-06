@@ -34,6 +34,9 @@
 #elif __MIC__
 #undef SIMD_TYPE
 #define SIMD_TYPE            "MIC"
+#elif __AVX512BW__
+#undef SIMD_TYPE
+#define SIMD_TYPE            "AVX512BW"
 #elif __AVX512F__
 #undef SIMD_TYPE
 #define SIMD_TYPE            "AVX512F"
