@@ -205,14 +205,24 @@ static void listconf_list_build_info(void)
 #endif
 #ifdef OPENSSL_VERSION_NUMBER
 	printf("OpenSSL library version: %09lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+#ifdef SSLEAY_VERSION
 	if (OPENSSL_VERSION_NUMBER != SSLeay())
 		printf("\t(loaded: %09lx)", (unsigned long)SSLeay());
+#elif defined OPENSSL_VERSION_NUMBER
+	if (OPENSSL_VERSION_NUMBER != OpenSSL_version_num())
+		printf("\t(loaded: %09lx)", (unsigned long)OpenSSL_version_num());
+#endif
 	printf("\n");
 #endif
 #ifdef OPENSSL_VERSION_TEXT
 	printf("%s", OPENSSL_VERSION_TEXT);
+#ifdef SSLEAY_VERSION
 	if (strcmp(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)))
 		printf("\t(loaded: %s)", SSLeay_version(SSLEAY_VERSION));
+#elif defined OPENSSL_VERSION
+	if (strcmp(OPENSSL_VERSION_TEXT, OpenSSL_version(OPENSSL_VERSION)))
+		printf("\t(loaded: %s)", OpenSSL_version(OPENSSL_VERSION));
+#endif
 	printf("\n");
 #endif
 #ifdef __GNU_MP_VERSION
