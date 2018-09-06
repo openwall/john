@@ -18,7 +18,7 @@
 #include "argon2.h"
 
 #if defined(_MSC_VER)
-#define ALIGN(n) __declspec(align(16))
+#define ALIGN(n) __declspec(align(n))
 #elif defined(__GNUC__) || defined(__clang)
 #define ALIGN(x) __attribute__((__aligned__(x)))
 #else
