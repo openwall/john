@@ -1483,6 +1483,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   FILE *read_fp;
   uint64_t file_len;
   int warn = cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
+#ifdef HAVE_MMAP
+  int mmap_max = cfg_get_int(SECTION_OPTIONS, NULL, "WordlistMemoryMapMaxSize");
+#endif
 
   if (!john_main_process)
     warn = 0;
@@ -1505,7 +1508,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   }
 
 #ifdef HAVE_MMAP
-  if (options.flags & FLG_PRINCE_MMAP)
+  if (mmap_max == -1)
+  {
+    mmap_max = 1 << 20;
+  }
+  if (options.flags & FLG_PRINCE_MMAP &&
+      mmap_max && mmap_max >= (file_len >> 20))
   {
     log_event("- Memory mapping wordlist ("LLd" bytes)",
               (long long)file_len);

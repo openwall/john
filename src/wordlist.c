@@ -674,7 +674,14 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (name) {
 		char *cp, csearch;
 		int64_t ourshare = 0;
+#ifdef HAVE_MMAP
+		int mmap_max =
+			cfg_get_int(SECTION_OPTIONS, NULL,
+			            "WordlistMemoryMapMaxSize");
 
+		if (mmap_max == -1)
+			mmap_max = 1 << 20;
+#endif
 		if (!(word_file = jtr_fopen(path_expand(name), "rb")))
 			pexit(STR_MACRO(jtr_fopen)": %s", path_expand(name));
 		log_event("- %s file: %.100s",
@@ -693,8 +700,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 #ifdef HAVE_MMAP
-		if (cfg_get_bool(SECTION_OPTIONS, NULL, "WordlistMemoryMap", 1))
-		{
+		if (mmap_max && mmap_max >= (file_len >> 20)) {
 			log_event("- memory mapping wordlist (%"PRId64" bytes)",
 			          (int64_t)file_len);
 #if (SIZEOF_SIZE_T < 8)
