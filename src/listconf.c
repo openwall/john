@@ -33,7 +33,19 @@
   #include <strings.h>
  #endif
 #endif
+
+#include <openssl/opensslv.h>
 #include <openssl/crypto.h>
+
+#if HAVE_LIBDL
+#undef _GNU_SOURCE
+#define _GNU_SOURCE 1 /* Try to elicit RTLD_DEFAULT */
+#include <dlfcn.h>
+#elif HAVE_WINDOWS_H
+#define JTR_DLSYM_ONLY 1
+#include "Win32-dlfcn-port.h"
+#define HAVE_LIBDL 1
+#endif
 
 #include "arch.h"
 #include "simd-intrinsics.h"
@@ -203,28 +215,48 @@ static void listconf_list_build_info(void)
 #if HAVE_COMMONCRYPTO
 	printf("Crypto library: CommonCrypto\n");
 #endif
+
+#if HAVE_LIBDL && defined(RTLD_DEFAULT)
+
+#if defined SSLEAY_VERSION && !defined OPENSSL_VERSION
+#define OPENSSL_VERSION SSLEAY_VERSION
+#elif defined OPENSSL_VERSION && !defined SSLEAY_VERSION
+#define SSLEAY_VERSION OPENSSL_VERSION
+#endif
+
 #ifdef OPENSSL_VERSION_NUMBER
 	printf("OpenSSL library version: %09lx", (unsigned long)OPENSSL_VERSION_NUMBER);
-#ifdef SSLEAY_VERSION
-	if (OPENSSL_VERSION_NUMBER != SSLeay())
-		printf("\t(loaded: %09lx)", (unsigned long)SSLeay());
-#elif defined OPENSSL_VERSION_NUMBER
-	if (OPENSSL_VERSION_NUMBER != OpenSSL_version_num())
-		printf("\t(loaded: %09lx)", (unsigned long)OpenSSL_version_num());
-#endif
+	if (dlsym(RTLD_DEFAULT, "OpenSSL_version_num")) {
+		unsigned long (*OpenSSL_version_num)(void) =
+			dlsym(RTLD_DEFAULT, "OpenSSL_version_num");
+
+		if (OPENSSL_VERSION_NUMBER != OpenSSL_version_num())
+			printf("\t(loaded: %09lx)", OpenSSL_version_num());
+	} else if (dlsym(RTLD_DEFAULT, "SSLeay")) {
+		unsigned long (*SSLeay)(void) = dlsym(RTLD_DEFAULT, "SSLeay");
+
+		if (OPENSSL_VERSION_NUMBER != SSLeay())
+			printf("\t(loaded: %09lx)", SSLeay());
+	}
 	printf("\n");
 #endif
 #ifdef OPENSSL_VERSION_TEXT
 	printf("%s", OPENSSL_VERSION_TEXT);
-#ifdef SSLEAY_VERSION
-	if (strcmp(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)))
-		printf("\t(loaded: %s)", SSLeay_version(SSLEAY_VERSION));
-#elif defined OPENSSL_VERSION
-	if (strcmp(OPENSSL_VERSION_TEXT, OpenSSL_version(OPENSSL_VERSION)))
-		printf("\t(loaded: %s)", OpenSSL_version(OPENSSL_VERSION));
-#endif
+	if (dlsym(RTLD_DEFAULT, "OpenSSL_version")) {
+		const char* (*OpenSSL_version)(int) =
+			dlsym(RTLD_DEFAULT, "OpenSSL_version");
+
+		if (strcmp(OPENSSL_VERSION_TEXT, OpenSSL_version(OPENSSL_VERSION)))
+			printf("\t(loaded: %s)", OpenSSL_version(OPENSSL_VERSION));
+	} else if (dlsym(RTLD_DEFAULT, "SSLeay_version")) {
+		const char* (*SSLeay_version)(int) = dlsym(RTLD_DEFAULT, "SSLeay_version");
+		if (strcmp(OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION)))
+			printf("\t(loaded: %s)", SSLeay_version(SSLEAY_VERSION));
+	}
 	printf("\n");
 #endif
+#endif /* HAVE_LIBDL */
+
 #ifdef __GNU_MP_VERSION
 	printf("GMP library version: %d.%d.%d",
 	       __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
