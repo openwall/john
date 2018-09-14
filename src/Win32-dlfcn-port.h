@@ -17,15 +17,20 @@
 #define RTLD_NODELETE 0
 #define RTLD_NOLOAD   0
 #define RTLD_DEEPBIND 0
+#define RTLD_DEFAULT  0
+
+static void *dlsym(void *handle, const char *symbol) {
+	return GetProcAddress((HANDLE)handle, symbol);
+}
+
+#if !JTR_DLSYM_ONLY
 
 static void *dlopen(const char *filename, int flag) {
 	// Ok, we have to translate this into LoadLibrary
 	return LoadLibrary(filename);
 
 }
-static void *dlsym(void *handle, const char *symbol) {
-	return GetProcAddress((HANDLE)handle, symbol);
-}
+
 static int dlclose(void *handle) {
 	return FreeLibrary((HANDLE)handle);
 }
@@ -37,4 +42,6 @@ static char * dlerror() {
 	return Buf;
 }
 
-#endif
+#endif /* !JTR_DLSYM_ONLY */
+
+#endif /* defined (__MINGW32__) (...) */
