@@ -707,7 +707,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	}
 
 	for (pos = min_length; pos <= max_length; pos++)
-		cand += pow(real_count, pos);
+		cand += pow(MIN(real_count, max_count), pos);
 	if (options.node_count)
 		cand *= (double)(options.node_max - options.node_min + 1) /
 			options.node_count;
