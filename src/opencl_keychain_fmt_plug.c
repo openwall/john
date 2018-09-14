@@ -24,25 +24,22 @@ john_register_one(&fmt_opencl_keychain);
 #include "misc.h"
 #include "options.h"
 #include "jumbo.h"
+#include "keychain_common.h"
 #include "opencl_common.h"
 
-#define FORMAT_LABEL		"keychain-opencl"
-#define FORMAT_NAME			"Mac OS X Keychain"
-#define FORMAT_TAG			"$keychain$*"
-#define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME		"PBKDF2-SHA1 3DES OpenCL"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BINARY_SIZE			0
-#define PLAINTEXT_LENGTH	64
-#define SALT_SIZE			sizeof(*salt_struct)
-#define BINARY_ALIGN		MEM_ALIGN_WORD
-#define SALT_ALIGN			4
-#define SALTLEN				20
-#define IVLEN 				8
-#define CTLEN				48
+#define FORMAT_LABEL            "keychain-opencl"
+#define FORMAT_TAG              "$keychain$*"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
+#define ALGORITHM_NAME          "PBKDF2-SHA1 3DES OpenCL"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+#define BINARY_SIZE             0
+#define PLAINTEXT_LENGTH        64
+#define SALT_SIZE               sizeof(*cur_salt)
+#define BINARY_ALIGN            MEM_ALIGN_WORD
+#define SALT_ALIGN              4
 
 typedef struct {
 	uint32_t length;
@@ -73,21 +70,7 @@ typedef struct {
 
 static struct fmt_main *self;
 
-static struct fmt_tests keychain_tests[] = {
-	{"$keychain$*10f7445c8510fa40d9ef6b4e0f8c772a9d37e449*f3d19b2a45cdcccb*8c3c3b1c7d48a24dad4ccbd4fd794ca9b0b3f1386a0a4527f3548bfe6e2f1001804b082076641bbedbc9f3a7c33c084b", "password"},
-	// these were generated with pass_gen.pl.  NOTE, they ALL have the data (which gets encrypted) which was decrypted from the above hash.
-	{"$keychain$*a88cd6fbaaf40bc5437eee015a0f95ab8ab70545*b12372b1b7cb5c1f*1f5c596bcdd015afc126bc86f42dd092cb9d531d14a0aafaa89283f1bebace60562d497332afbd952fd329cc864144ec", "password"},
-	{"$keychain$*23328e264557b93204dc825c46a25f7fb1e17d4a*19a9efde2ca98d30*6ac89184134758a95c61bd274087ae0cffcf49f433c7f91edea98bd4fd60094e2936d99e4d985dec98284379f23259c0", "hhh"},
-	{"$keychain$*927717d8509db73aa47c5e820e3a381928b5e048*eef33a4a1483ae45*a52691580f17e295b8c2320947968503c605b2784bfe4851077782139f0de46f71889835190c361870baa56e2f4e9e43", "JtR-Jumbo"},
-	{"$keychain$*1fab88d0b8ea1a3d303e0aef519796eb29e46299*3358b0e77d60892f*286f975dcd191024227514ed9939d0fa94034294ba1eca6d5c767559e75e944b5a2fcb54fd696be64c64f9d069ce628a", "really long password -----------------------------"},
-	{NULL}
-};
-
-static struct custom_salt {
-	unsigned char salt[SALTLEN];
-	unsigned char iv[IVLEN];
-	unsigned char ct[CTLEN];
-} *salt_struct;
+static struct custom_salt *cur_salt;
 
 static cl_int cl_error;
 static pbkdf2_password *inbuffer;
@@ -97,8 +80,8 @@ static cl_mem mem_in, mem_dk, mem_salt, mem_out;
 
 size_t insize, dksize, saltsize, outsize;
 
-#define STEP			0
-#define SEED			256
+#define STEP                    0
+#define SEED                    256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
@@ -209,76 +192,16 @@ static void reset(struct db_main *db)
 	}
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *ctcopy, *keeptr, *p;
-	int extra;
-
-	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
-		return 0;
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;
-	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
-		goto err;
-	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
-		goto err;
-	if (hexlenl(p, &extra) != IVLEN * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* ciphertext */
-		goto err;
-	if (hexlenl(p, &extra) != CTLEN * 2 || extra)
-		goto err;
-
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
-static void *get_salt(char *ciphertext)
-{
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	int i;
-	char *p;
-	static struct custom_salt *salt_struct;
-
-	if (!salt_struct)
-		salt_struct = mem_calloc_tiny(sizeof(struct custom_salt),
-	                              MEM_ALIGN_WORD);
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$keychain$*" */
-	p = strtokm(ctcopy, "*");
-	for (i = 0; i < SALTLEN; i++)
-		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtokm(NULL, "*");
-	for (i = 0; i < IVLEN; i++)
-		salt_struct->iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtokm(NULL, "*");
-	for (i = 0; i < CTLEN; i++)
-		salt_struct->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-
-	MEM_FREE(keeptr);
-	return (void *)salt_struct;
-}
-
 static void set_salt(void *salt)
 {
-	salt_struct = (struct custom_salt *)salt;
-	memcpy(currentsalt.pbkdf2.salt, salt_struct->salt, 20);
+	cur_salt = (struct custom_salt *)salt;
+	memcpy(currentsalt.pbkdf2.salt, cur_salt->salt, 20);
 	currentsalt.pbkdf2.length = 20;
 	currentsalt.pbkdf2.iterations = 1000;
 	currentsalt.pbkdf2.outlen = 24;
 	currentsalt.pbkdf2.skip_bytes = 0;
-	memcpy(currentsalt.iv, salt_struct->iv, 8);
-	memcpy(currentsalt.ct, salt_struct->ct, CTLEN);
+	memcpy(currentsalt.iv, cur_salt->iv, 8);
+	memcpy(currentsalt.ct, cur_salt->ct, CTLEN);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
@@ -309,17 +232,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
 		&local_work_size : NULL;
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
 	        "Copy data to gpu");
 
-	/// Run kernel
+	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &gws, lws, 0, NULL,
 	        multi_profilingEvent[1]), "Run kernel");
 
-	/// Read the result back
+	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
@@ -371,10 +294,10 @@ struct fmt_main fmt_opencl_keychain = {
 		done,
 		reset,
 		fmt_default_prepare,
-		valid,
+		keychain_valid,
 		fmt_default_split,
 		fmt_default_binary,
-		get_salt,
+		keychain_get_salt,
 		{ NULL },
 		fmt_default_source,
 		{
