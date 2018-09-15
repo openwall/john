@@ -32,12 +32,10 @@ john_register_one(&fmt_opencl_pwsafe);
 #include "params.h"
 #include "options.h"
 #include "opencl_common.h"
+#include "pwsafe_common.h"
 #include "memory.h"
 
 #define FORMAT_LABEL            "pwsafe-opencl"
-#define FORMAT_NAME             "Password Safe"
-#define FORMAT_TAG              "$pwsafe$*"
-#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "SHA256 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
@@ -80,23 +78,14 @@ static size_t get_task_max_work_group_size()
 
 static int split_events[3] = { 2, -1, -1 };
 
-static struct fmt_tests pwsafe_tests[] = {
-	{"$pwsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},
-	{"$pwsafe$*3*581cd1135b9b993ccb0f6b01c1fcfacd799c69960496c96286f94fe1400c1b25*2048*4ab3c2d3af251e94eb2f753fdf30fb9da074bec6bac0fa9d9d152b95fc5795c6", "openwall"},
-	{"$pwsafe$*3*34ba0066d0fc594c126b60b9db98b6024e1cf585901b81b5b005ce386f173d4c*2048*cc86f1a5d930ff19b3602770a86586b5d9dea7bb657012aca875aa2a7dc71dc0", "12345678901234567890123"},
-	{"$pwsafe$*3*a42431191707895fb8d1121a3a6e255e33892d8eecb50fc616adab6185b5affb*2048*0f71d12df2b7c5394ae90771f6475a7ad0437007a8eeb5d9b58e35d8fd57c827", "123456789012345678901234567"},
-	{"$pwsafe$*3*c380dee0dbb536f5454f78603b020be76b33e294e9c2a0e047f43b9c61669fc8*2048*e88ed54a85e419d555be219d200563ae3ba864e24442826f412867fc0403917d", "this is an 87 character password to test the max bound of pwsafe-opencl................"},
-	{NULL}
-};
-
-//Also acts as the hash state
+// Also acts as the hash state
 typedef struct {
 	uint8_t v[87];
 	uint32_t length;
 } pwsafe_pass;
 
 typedef struct {
-	uint32_t cracked;	///cracked or not
+	uint32_t cracked;
 } pwsafe_hash;
 
 typedef struct {
@@ -105,6 +94,7 @@ typedef struct {
 	uint8_t hash[32];
 	uint8_t salt[32];
 } pwsafe_salt;
+
 #define SALT_SIZE               sizeof(pwsafe_salt)
 
 static cl_mem mem_in, mem_out, mem_salt;
@@ -113,9 +103,9 @@ static cl_mem mem_in, mem_out, mem_salt;
 #define outsize (sizeof(pwsafe_hash) * global_work_size)
 #define saltsize (sizeof(pwsafe_salt))
 
-static pwsafe_pass *host_pass;				/** binary ciphertexts **/
-static pwsafe_salt *host_salt;				/** salt **/
-static pwsafe_hash *host_hash;				/** calculated hashes **/
+static pwsafe_pass *host_pass; /** binary ciphertexts **/
+static pwsafe_salt *host_salt; /** salt **/
+static pwsafe_hash *host_hash; /** calculated hashes **/
 static struct fmt_main *self;
 
 static void release_clobj(void)
@@ -204,56 +194,14 @@ static void reset(struct db_main *db)
 		finish_kernel = clCreateKernel(program[gpu_id], KERNEL_FINISH_NAME, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
 
-		//Initialize openCL tuning (library) for this format.
+		// Initialize openCL tuning (library) for this format.
 		opencl_init_auto_setup(SEED, ROUNDS_DEFAULT/8, split_events,
 		                       warn, 2, self, create_clobj,
 		                       release_clobj, sizeof(pwsafe_pass), 0, db);
 
-		//Auto tune execution from shared/included code.
+		// Auto tune execution from shared/included code.
 		autotune_run(self, ROUNDS_DEFAULT, 0, 200);
 	}
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	// format $pwsafe$version*salt*iterations*hash
-	char *p;
-	char *ctcopy;
-	char *keeptr;
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
-		return 0;
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;		/* skip over "$pwsafe$*" */
-	if ((p = strtokm(ctcopy, "*")) == NULL)	/* version */
-		goto err;
-	if (!isdec(p))
-		goto err;
-	if (!atoi(p))
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-		goto err;
-	if (strlen(p) < 64)
-		goto err;
-	if (strspn(p, HEXCHARS_lc) != 64)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
-		goto err;
-	if (!isdec(p))
-		goto err;
-	if (!atoi(p))
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* hash */
-		goto err;
-	if (strlen(p) != 64)
-		goto err;
-	if (strspn(p, HEXCHARS_lc) != 64)
-		goto err;
-	MEM_FREE(keeptr);
-	return 1;
-err:
-	MEM_FREE(keeptr);
-	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -266,26 +214,25 @@ static void *get_salt(char *ciphertext)
 
 	if (!salt_struct)
 		salt_struct = mem_calloc_tiny(sizeof(pwsafe_salt),
-		                              MEM_ALIGN_WORD);
-	ctcopy += FORMAT_TAG_LEN;		/* skip over "$pwsafe$*" */
+				MEM_ALIGN_WORD);
+	ctcopy += FORMAT_TAG_LEN;               /* skip over "$pwsafe$*" */
 	p = strtokm(ctcopy, "*");
 	salt_struct->version = atoi(p);
 	p = strtokm(NULL, "*");
 	for (i = 0; i < 32; i++)
 		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtokm(NULL, "*");
 	salt_struct->iterations = (unsigned int) atoi(p);
 	p = strtokm(NULL, "*");
 	for (i = 0; i < 32; i++)
 		salt_struct->hash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	MEM_FREE(keeptr);
-        alter_endianity(salt_struct->hash, 32);
+	alter_endianity(salt_struct->hash, 32);
 	return (void *) salt_struct;
 }
-
 
 static void set_salt(void *salt)
 {
@@ -304,18 +251,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = count;
 
-	///Copy data to GPU memory
-		BENCH_CLERROR(clEnqueueWriteBuffer
+	// Copy data to GPU memory
+	BENCH_CLERROR(clEnqueueWriteBuffer
 			(queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
-			multi_profilingEvent[0]), "Copy memin");
+			 multi_profilingEvent[0]), "Copy memin");
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel
-	    (queue[gpu_id], init_kernel, 1, NULL, &global_work_size, lws,
-		0, NULL, multi_profilingEvent[1]), "Set ND range");
+			(queue[gpu_id], init_kernel, 1, NULL, &global_work_size, lws,
+			 0, NULL, multi_profilingEvent[1]), "Set ND range");
 
-	///Run kernel
-	for (i = 0; i < (ocl_autotune_running ? 1 : 8); i++)
-	{
+	// Run kernel
+	for (i = 0; i < (ocl_autotune_running ? 1 : 8); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel
 			(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
 			0, NULL, multi_profilingEvent[2]), "Set ND range");
@@ -358,18 +304,21 @@ static int cmp_exact(char *source, int index)
 static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
+
 	memcpy(ret, host_pass[index].v, PLAINTEXT_LENGTH);
 	ret[MIN(host_pass[index].length, PLAINTEXT_LENGTH)] = 0;
+
 	return ret;
 }
 
-	static unsigned int iteration_count(void *salt)
-	{
-		pwsafe_salt *my_salt;
+static unsigned int iteration_count(void *salt)
+{
+	pwsafe_salt *my_salt;
 
-		my_salt = salt;
-		return (unsigned int) my_salt->iterations;
-	}
+	my_salt = salt;
+
+	return (unsigned int) my_salt->iterations;
+}
 
 struct fmt_main fmt_opencl_pwsafe = {
 	{
@@ -397,7 +346,7 @@ struct fmt_main fmt_opencl_pwsafe = {
 		done,
 		reset,
 		fmt_default_prepare,
-		valid,
+		pwsafe_valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
