@@ -10,9 +10,10 @@
 # modification, are permitted.
 #
 # Password Safe file format is documented at,
-# http://keybox.rubyforge.org/password-safe-db-format.html
 #
-# formatV3.txt at http://passwordsafe.svn.sourceforge.net/viewvc/passwordsafe/trunk/pwsafe/pwsafe/docs/
+# + http://keybox.rubyforge.org/password-safe-db-format.html
+#
+# + https://github.com/pwsafe/pwsafe/blob/master/docs/formatV3.txt
 #
 # Output Format: filename:$passwordsaf$*version*salt*iterations*hash */
 
