@@ -87,12 +87,13 @@ typedef union {
 inline static int vanyeq_epi32(vtype x, vtype y)
 {
 	vtype z = (vtype)vceqq_u32(x.v32, y.v32);
+
 	return vgetq_lane_u32(z.v32, 0) || vgetq_lane_u32(z.v32, 1) ||
 	       vgetq_lane_u32(z.v32, 2) || vgetq_lane_u32(z.v32, 3);
 }
 
-#define vswap32(x)              (x = (vtype)vrev32q_u8(x.v8))
-#define vswap64(x)              (x = (vtype)vrev64q_u8(x.v8))
+#define vswap32(x)              ((vtype)vrev32q_u8(x.v8))
+#define vswap64(x)              ((vtype)vrev64q_u8(x.v8))
 
 #define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
 
@@ -139,12 +140,12 @@ typedef union {
 #define vunpacklo_epi64(x, y)   (vtype)(vtype64)vec_mergeh((vector long)(x).v64, (vector long)(y).v64)
 #define vxor(x, y)              (vtype)vec_xor((x).v32, (y).v32)
 
-#define vanyeq_epi32(x, y)     vec_any_eq((x).v32, (y).v32)
+#define vanyeq_epi32(x, y)      vec_any_eq((x).v32, (y).v32)
 
 #define vswap32                 vswap32_emu
 #define vswap64                 vswap64_emu
 
-#define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
+#define GATHER64(x,y,z)         { x = vset_epi64 (y[1][z], y[0][z]); }
 
 /*************************** AVX512 and MIC ***************************/
 #elif __AVX512F__ || __MIC__
@@ -242,7 +243,7 @@ typedef __m512i vtype;
 #define vsrli_epi16             _mm512_srli_epi16
 
 #define vswap32(n)                                              \
-    n = vshuffle_epi8(n, vset_epi32(0x3c3d3e3f, 0x38393a3b,     \
+        vshuffle_epi8(n, vset_epi32(0x3c3d3e3f, 0x38393a3b,     \
                                     0x34353637, 0x30313233,     \
                                     0x2c2d2e2f, 0x28292a2b,     \
                                     0x24252627, 0x20212223,     \
@@ -251,7 +252,7 @@ typedef __m512i vtype;
                                     0x0c0d0e0f, 0x08090a0b,     \
                                     0x04050607, 0x00010203))
 #define vswap64(n) \
-    n = vshuffle_epi8(n, vset_epi64(0x38393a3b3c3d3e3fULL, \
+        vshuffle_epi8(n, vset_epi64(0x38393a3b3c3d3e3fULL, \
                                     0x3031323334353637ULL, \
                                     0x28292a2b2c2d2e2fULL, \
                                     0x2021222324252627ULL, \
@@ -260,9 +261,8 @@ typedef __m512i vtype;
                                     0x08090a0b0c0d0e0fULL, \
                                     0x0001020304050607ULL))
 #else /* workarounds without AVX512BW */
-#define vswap32 vswap32_emu
-#define vswap64(x) \
-	(x = vshuffle_epi32(x, _MM_SHUFFLE(2, 3, 0, 1)), vswap32(x))
+#define vswap32             vswap32_emu
+#define vswap64(x)          vswap32(vshuffle_epi32(x, _MM_SHUFFLE(2, 3, 0, 1)))
 
 #endif /* __AVX512BW__ */
 
@@ -273,6 +273,7 @@ typedef __m512i vtype;
 inline static __m512i _mm512_loadu_si512(void const *addr)
 {
 	__m512i indices = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
+
 	return is_aligned(addr, 64) ? _mm512_load_si512(addr) :
 	                              _mm512_i64gather_epi64(indices, addr, 8);
 }
@@ -349,11 +350,8 @@ typedef __m256i vtype;
     vset_epi64(0x18191a1b1c1d1e1fULL, 0x1011121314151617ULL, \
                0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
 
-#define vswap32(n)                              \
-    (n = vshuffle_epi8(n, swap_endian_mask))
-
-#define vswap64(n)                              \
-    (n = vshuffle_epi8(n, swap_endian64_mask))
+#define vswap32(n)              vshuffle_epi8(n, swap_endian_mask)
+#define vswap64(n)              vshuffle_epi8(n, swap_endian64_mask)
 
 #define GATHER_4x(x, y, z)                           \
 {                                                    \
@@ -473,26 +471,21 @@ typedef __m128i vtype;
 
 #define swap_endian_mask    \
     vset_epi32(0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
-#define vswap32(n)              (n = vshuffle_epi8(n, swap_endian_mask))
+#define vswap32(n)              vshuffle_epi8(n, swap_endian_mask)
 
 #define swap_endian64_mask  \
     vset_epi64(0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
-#define vswap64(n)              (n = vshuffle_epi8(n, swap_endian64_mask))
+#define vswap64(n)              vshuffle_epi8(n, swap_endian64_mask)
 
 #else /* Just basic SSE2 */
 
 #define vswap32(n)                                  \
-    (n = vxor(                                      \
-        vsrli_epi16(                                \
+	vxor(vsrli_epi16(                               \
             vroti16_epi32(n,16), 8),                \
-            vslli_epi16(vroti16_epi32(n,16), 8)))
+            vslli_epi16(vroti16_epi32(n,16), 8))
 
-#define vswap64(n)                                              \
-    (                                                           \
-        n = vshufflehi_epi16(vshufflelo_epi16(n, 0xb1), 0xb1),  \
-        n = vxor(vslli_epi16(n, 8), vsrli_epi16(n, 8)),         \
-        n = vshuffle_epi32(n, 0xb1)                             \
-    )
+#define vswap64(n)                                  \
+	vshuffle_epi32(vshufflehi_epi16(vshufflelo_epi16(vxor(vslli_epi16(n, 8), vsrli_epi16(n, 8)), 0xb1), 0xb1), 0xb1)
 
 #endif /* __SSSE3__ */
 
@@ -563,7 +556,7 @@ typedef __m64i vtype;
 /************************* COMMON STUFF BELOW *************************/
 
 #ifdef _MSC_VER
-#define MEM_ALIGN_SIMD			16
+#define MEM_ALIGN_SIMD          16
 #define INLINE _inline
 #else
 #define MEM_ALIGN_SIMD          (SIMD_COEF_32 * 4)
@@ -598,12 +591,13 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 #endif
 
 #define vswap32_emu(x) \
-	x = vxor(vsrli_epi32(x, 24),                                            \
+	(vxor(vsrli_epi32(x, 24), \
 	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
 	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
-                       vslli_epi32(x, 24))))
+	                   vslli_epi32(x, 24)))))
+
 #define vswap64_emu(x) \
-	(x = vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32_emu(x))
+	(vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32_emu(x))
 
 #if VCMOV_EMULATED
 #if VANDNOT_EMULATED /* currently never */

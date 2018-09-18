@@ -181,12 +181,12 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 			}
 #if !ARCH_LITTLE_ENDIAN
 			for (i=0; i < 14; i++)
-				vswap32(W[i]);
+				W[i] = vswap32(W[i]);
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
 			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
-				vswap32(W[14]);
-				vswap32(W[15]);
+				W[14] = vswap32(W[14]);
+				W[15] = vswap32(W[15]);
 			}
 #endif
 			W += 16;
@@ -866,12 +866,12 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 			}
 #if !ARCH_LITTLE_ENDIAN
 			for (i=0; i < 14; i++)
-				vswap32(W[i]);
+				W[i] = vswap32(W[i]);
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
 			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
-				vswap32(W[14]);
-				vswap32(W[15]);
+				W[14] = vswap32(W[14]);
+				W[15] = vswap32(W[15]);
 			}
 #endif
 			W += 16;
@@ -1281,7 +1281,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 14; ++i) {
 					GATHER_4x(W[i], saved_key, i);
-					vswap32(W[i]);
+					W[i] = vswap32(W[i]);
 				}
 				GATHER_4x(W[14], saved_key, 14);
 				GATHER_4x(W[15], saved_key, 15);
@@ -1289,7 +1289,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 14; ++i) {
 					GATHER_2x(W[i], saved_key, i);
-					vswap32(W[i]);
+					W[i] = vswap32(W[i]);
 				}
 				GATHER_2x(W[14], saved_key, 14);
 				GATHER_2x(W[15], saved_key, 15);
@@ -1297,7 +1297,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			} else {
 				for (i=0; i < 14; ++i) {
 					GATHER(W[i], saved_key, i);
-					vswap32(W[i]);
+					W[i] = vswap32(W[i]);
 				}
 				GATHER(W[14], saved_key, 14);
 				GATHER(W[15], saved_key, 15);
@@ -1306,8 +1306,8 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
 			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
-				vswap32(W[14]);
-				vswap32(W[15]);
+				W[14] = vswap32(W[14]);
+				W[15] = vswap32(W[15]);
 			}
 			W += 16;
 		}
@@ -1336,12 +1336,12 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			}
 #if ARCH_LITTLE_ENDIAN
 			for (i=0; i < 14; i++)
-				vswap32(W[i]);
+				W[i] = vswap32(W[i]);
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
 			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
-				vswap32(W[14]);
-				vswap32(W[15]);
+				W[14] = vswap32(W[14]);
+				W[15] = vswap32(W[15]);
 			}
 #endif
 			W += 16;
@@ -1826,7 +1826,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
 				for (i=0; i < 14; ++i) {
 					GATHER_4x(w[i], saved_key, i);
-					vswap32(w[i]);
+					w[i] = vswap32(w[i]);
 				}
 				GATHER_4x(w[14], saved_key, 14);
 				GATHER_4x(w[15], saved_key, 15);
@@ -1834,7 +1834,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 			} else if (SSEi_flags & SSEi_2BUF_INPUT) {
 				for (i=0; i < 14; ++i) {
 					GATHER_2x(w[i], saved_key, i);
-					vswap32(w[i]);
+					w[i] = vswap32(w[i]);
 				}
 				GATHER_2x(w[14], saved_key, 14);
 				GATHER_2x(w[15], saved_key, 15);
@@ -1842,7 +1842,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 			} else {
 				for (i=0; i < 14; ++i) {
 					GATHER(w[i], saved_key, i);
-					vswap32(w[i]);
+					w[i] = vswap32(w[i]);
 				}
 				GATHER(w[14], saved_key, 14);
 				GATHER(w[15], saved_key, 15);
@@ -1851,8 +1851,8 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
 			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
-				vswap32(w[14]);
-				vswap32(w[15]);
+				w[14] = vswap32(w[14]);
+				w[15] = vswap32(w[15]);
 			}
 		}
 #else
@@ -1880,12 +1880,12 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 			}
 #if ARCH_LITTLE_ENDIAN
 			for (i=0; i < 14; i++)
-				vswap32(w[i]);
+				w[i] = vswap32(w[i]);
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
 			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
-				vswap32(w[14]);
-				vswap32(w[15]);
+				w[14] = vswap32(w[14]);
+				w[15] = vswap32(w[15]);
 			}
 #endif
 		}
@@ -2418,11 +2418,12 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);
 #if ARCH_LITTLE_ENDIAN
-					vswap64(tmp1[k]);
-					vswap64(tmp2[k]);
-#endif
+					w[k][i] = vswap64(tmp1[k]);
+					w[k][i + 1] = vswap64(tmp2[k]);
+#else
 					w[k][i] = tmp1[k];
 					w[k][i + 1] = tmp2[k];
+#endif
 				}
 				GATHER64(tmp1[k], saved_key, 14);
 				GATHER64(tmp2[k], saved_key, 15);
@@ -2433,11 +2434,12 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 					GATHER64(tmp1[k], saved_key, i);
 					GATHER64(tmp2[k], saved_key, i + 1);
 #if ARCH_LITTLE_ENDIAN
-					vswap64(tmp1[k]);
-					vswap64(tmp2[k]);
-#endif
+					w[k][i] = vswap64(tmp1[k]);
+					w[k][i + 1] = vswap64(tmp2[k]);
+#else
 					w[k][i] = tmp1[k];
 					w[k][i + 1] = tmp2[k];
+#endif
 				}
 				GATHER64(tmp1[k], saved_key, 14);
 				GATHER64(tmp2[k], saved_key, 15);
@@ -2446,8 +2448,8 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 #if ARCH_LITTLE_ENDIAN
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
 			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
-				vswap64(tmp1[k]);
-				vswap64(tmp2[k]);
+				tmp1[k] = vswap64(tmp1[k]);
+				tmp2[k] = vswap64(tmp2[k]);
 			}
 #endif
 			w[k][14] = tmp1[k];

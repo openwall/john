@@ -250,7 +250,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #if __SSE4_1__ && !__AVX2__
         for (i=0; i < 16; i++) GATHER(w[i], saved_key, i);
-        for (i=0; i < 15; i++) vswap32(w[i]);
+        for (i=0; i < 15; i++) w[i] = vswap32(w[i]);
 #else
         JTR_ALIGN(VWIDTH * 4) uint32_t __w[16][VWIDTH];
         int j;
@@ -260,10 +260,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		        __w[j][i] = saved_key[index + i][j];
 
         for (i=0; i < 15; i++)
-        {
-	        w[i] = vload((vtype*) __w[i]);
-	        vswap32(w[i]);
-        }
+	        w[i] = vswap32(vload((vtype*) __w[i]));
 
         w[15] = vload((vtype*) __w[15]);
 #endif
