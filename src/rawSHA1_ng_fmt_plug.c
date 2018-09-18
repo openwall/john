@@ -457,10 +457,8 @@ static void sha1_fmt_set_key(char *key, int index)
 	// we do here.
 	//  X = 40 41 42 44 45 80 00 00 00 00 00 00 00 00 00    // What we have.
 	//  X = 44 42 41 40 00 00 80 45 00 00 00 00 00 00 00    // What we want.
-	vswap32(X);
-
 	// Store the result into the message buffer.
-	vstore(&M[index], X);
+	vstore(&M[index], vswap32(X));
 
 	return;
 }
