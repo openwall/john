@@ -117,6 +117,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
+	{"incremental-charcount", FLG_ZERO, 0, FLG_INC_CHK, OPT_REQ_PARAM,
+		"%u", &options.charcount},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_CHK, OPT_REQ_PARAM,
@@ -427,6 +429,7 @@ void opt_print_hidden_usage(void)
 	puts("--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)");
 	puts("--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)");
 	puts("--tune=HOW                 tuning options (auto/report/N)");
+	puts("--incremental-charcount=N  override CharCount for incremental mode");
 #ifdef HAVE_OPENCL
 	puts("\nOpenCL options:");
 	puts("--force-scalar             force scalar mode");

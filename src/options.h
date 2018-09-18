@@ -390,6 +390,8 @@ struct options_main {
 	char *custom_mask[MAX_NUM_CUST_PLHDR];
 /* Tune options */
 	char *tune;
+/* Incremental CharCount override */
+	int charcount;
 };
 
 extern struct options_main options;

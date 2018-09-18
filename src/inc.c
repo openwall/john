@@ -520,7 +520,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		min_length = 0;
 	if ((max_length = cfg_get_int(SECTION_INC, mode, "MaxLen")) < 0)
 		max_length = CHARSET_LENGTH;
-	max_count = cfg_get_int(SECTION_INC, mode, "CharCount");
+	max_count = options.charcount ?
+		options.charcount : cfg_get_int(SECTION_INC, mode, "CharCount");
 
 	/* Hybrid mask */
 	our_fmt_len -= mask_add_len;
