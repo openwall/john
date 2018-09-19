@@ -157,8 +157,26 @@ typedef __m512i vtype;
 #define vadd_epi64              _mm512_add_epi64
 #define vand                    _mm512_and_si512
 #define vandnot                 _mm512_andnot_si512
-#define vcmov                   vcmov_emu
+
+#if __AVX512F__
+#define vternarylogic           _mm512_ternarylogic_epi32
+#define vcmov(x, y, z)          vternarylogic(x, y, z, 0xE4)
+/*
+ * vroti must handle both ROTL and ROTR. If s < 0, then ROTR. Note that
+ * the ternary will normally be optimized away!
+ */
+#define vroti_epi32(a, s)       (s < 0 ? _mm512_ror_epi32(a, -(s)) : _mm512_rol_epi32(a, s))
+#define vroti_epi64(a, s)       (s < 0 ? _mm512_ror_epi64(a, -(s)) : _mm512_rol_epi64(a, s))
+
+#else /* __MIC__ */
+
 #define VCMOV_EMULATED          1
+#define vcmov                   vcmov_emu
+#define vroti_epi32             vroti_epi32_emu
+#define vroti_epi64             vroti_epi64_emu
+
+#endif
+#define vroti16_epi32           vroti_epi32
 /*
  * NOTE: AVX2 has it as (base, index, scale) while MIC and AVX512 are
  * different.
@@ -168,9 +186,6 @@ typedef __m512i vtype;
 #define vload(x)                _mm512_load_si512((void*)(x))
 #define vloadu(x)               _mm512_loadu_si512((void*)(x))
 #define vor                     _mm512_or_si512
-#define vroti_epi32             vroti_epi32_emu
-#define vroti_epi64             vroti_epi64_emu
-#define vroti16_epi32           vroti_epi32
 #define vscatter_epi32(b,i,v,s) _mm512_i32scatter_epi32((void*)(b), i, v, s)
 #define vscatter_epi64(b,i,v,s) _mm512_i64scatter_epi64((void*)(b), i, v, s)
 #define vset1_epi8              _mm512_set1_epi8
@@ -226,13 +241,6 @@ typedef __m512i vtype;
                                3*stride, 2*stride, 1*stride, 0);        \
     x = vgather_epi64(&y[0][z], indices, 1);                            \
 }
-
-#if __AVX512F__
-#undef vcmov
-#undef VCMOV_EMULATED
-#define vcmov(x, y, z)          vternarylogic(x, y, z, 0xE4)
-#define vternarylogic           _mm512_ternarylogic_epi32
-#endif
 
 #if __AVX512BW__
 #define vcmpeq_epi8_mask        (uint64_t)_mm512_cmpeq_epi8_mask
