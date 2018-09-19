@@ -86,14 +86,14 @@ typedef union {
 
 inline static int vanyeq_epi32(vtype x, vtype y)
 {
-	vtype z = (vtype)vceqq_u32(x.v32, y.v32);
+	vtype z = (vtype)vceqq_u32((x).v32, (y).v32);
 
-	return vgetq_lane_u32(z.v32, 0) || vgetq_lane_u32(z.v32, 1) ||
-	       vgetq_lane_u32(z.v32, 2) || vgetq_lane_u32(z.v32, 3);
+	return vgetq_lane_u32((z).v32, 0) || vgetq_lane_u32((z).v32, 1) ||
+	       vgetq_lane_u32((z).v32, 2) || vgetq_lane_u32((z).v32, 3);
 }
 
-#define vswap32(x)              ((vtype)vrev32q_u8(x.v8))
-#define vswap64(x)              ((vtype)vrev64q_u8(x.v8))
+#define vswap32(x)              ((vtype)vrev32q_u8((x).v8))
+#define vswap64(x)              ((vtype)vrev64q_u8((x).v8))
 
 #define GATHER64(x,y,z)         { x = vset_epi64(y[1][z], y[0][z]); }
 
