@@ -20,7 +20,7 @@
  * AVX512:   __m512i a = _mm512_load_si512(p);
  * -> Pseudo:  vtype a = vload(p);
  *
- * intrinsics are emulated where the target does not support them.
+ * intrinsics may be emulated where the target does not support them.
  */
 
 #ifndef _SSE_PSEUDO_H
@@ -95,7 +95,7 @@ inline static int vanyeq_epi32(vtype x, vtype y)
 #define vswap32(x)              ((vtype)vrev32q_u8(x.v8))
 #define vswap64(x)              ((vtype)vrev64q_u8(x.v8))
 
-#define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
+#define GATHER64(x,y,z)         { x = vset_epi64(y[1][z], y[0][z]); }
 
 /*************************** AltiVec (Power) **************************/
 #elif __ALTIVEC__
@@ -145,7 +145,7 @@ typedef union {
 #define vswap32                 vswap32_emu
 #define vswap64                 vswap64_emu
 
-#define GATHER64(x,y,z)         { x = vset_epi64 (y[1][z], y[0][z]); }
+#define GATHER64(x,y,z)         { x = vset_epi64(y[1][z], y[0][z]); }
 
 /*************************** AVX512 and MIC ***************************/
 #elif __AVX512F__ || __MIC__
@@ -192,7 +192,7 @@ typedef __m512i vtype;
 #define vunpacklo_epi64         _mm512_unpacklo_epi64
 #define vxor                    _mm512_xor_si512
 
-#define vanyeq_epi32(x, y)     _mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ)
+#define vanyeq_epi32(x, y)      _mm512_cmp_epi32_mask(x, y, _MM_CMPINT_EQ)
 
 #define GATHER_4x(x, y, z)                               \
 {                                                        \
@@ -340,7 +340,7 @@ typedef __m256i vtype;
 #define vunpacklo_epi64         _mm256_unpacklo_epi64
 #define vxor                    _mm256_xor_si256
 
-#define vanyeq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
+#define vanyeq_epi32(x, y)      vmovemask_epi8(vcmpeq_epi32(x, y))
 
 #define swap_endian_mask                                                \
     _mm256_set_epi32(0x1c1d1e1f, 0x18191a1b, 0x14151617, 0x10111213,    \
@@ -465,7 +465,7 @@ typedef __m128i vtype;
 #define vunpacklo_epi64         _mm_unpacklo_epi64
 #define vxor                    _mm_xor_si128
 
-#define vanyeq_epi32(x, y)     vmovemask_epi8(vcmpeq_epi32(x, y))
+#define vanyeq_epi32(x, y)      vmovemask_epi8(vcmpeq_epi32(x, y))
 
 #if __SSSE3__
 
@@ -513,7 +513,7 @@ typedef __m128i vtype;
 }
 #endif /* __SSE4_1__ */
 
-#define GATHER64(x,y,z)     { x = vset_epi64 (y[1][z], y[0][z]); }
+#define GATHER64(x,y,z)         { x = vset_epi64(y[1][z], y[0][z]); }
 
 #if _MSC_VER && !_M_X64
 /*
