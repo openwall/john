@@ -326,7 +326,7 @@ typedef struct {
 	(dst).f = vec_sel((a).f, (b).f, (vector bool int)(c).f); \
 	(dst).g = vec_sel((a).g, (b).g, (vector bool int)(c).g)
 
-#elif defined(__MIC__) && DES_BS_DEPTH == 512
+#elif (defined(__MIC__) || defined(__AVX512F__)) && DES_BS_DEPTH == 512
 #include <immintrin.h>
 
 typedef __m512i vtype;

@@ -233,6 +233,10 @@
 #endif
 
 #if !defined(JOHN_NO_SIMD) && (__AVX512F__ || JOHN_AVX512F)
+#undef DES_BS_VECTOR
+#define DES_BS_VECTOR			8
+#undef DES_BS_ALGORITHM_NAME
+#define DES_BS_ALGORITHM_NAME		"DES 512/512 AVX-512"
 #undef CPU_DETECT
 #define CPU_DETECT			1
 #define CPU_REQ				1
