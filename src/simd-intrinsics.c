@@ -2229,9 +2229,10 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
  * These optimized sigma alternatives are from "Fast SHA-512 Implementations
  * on Intel Architecture Processors" whitepaper by Intel. They result in less
  * register copy operations so is faster despite using more ops. Slight boost
- * indeed seen on intel core i7.
+ * indeed seen on intel core i7 but a regression for eg. AVX-512 which has
+ * rotate instructions.
  */
-#if 1
+#if VROTI_EMULATED
 #undef s0
 #define s0(x)  (vxor(vsrli_epi64(vxor(vsrli_epi64(vxor(             \
                      vsrli_epi64(x, 1), x), 6), x), 1),             \
