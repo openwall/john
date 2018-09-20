@@ -21,6 +21,13 @@
  * -> Pseudo:  vtype a = vload(p);
  *
  * intrinsics may be emulated where the target does not support them.
+ *
+ * Note to self; These are the same:
+ *   bitselect(x, y, z)
+ *   LOP3.LUT(x, y, z, 0xd8)
+ *   vcmov(x, y, ~(z))
+ *   vcmov(y, x, z)
+ *   vternarylogic(x, y, z, 0xd8)
  */
 
 #ifndef _SSE_PSEUDO_H
@@ -170,10 +177,11 @@ typedef __m512i vtype;
 
 #else /* __MIC__ */
 
-#define VCMOV_EMULATED          1
 #define vcmov                   vcmov_emu
+#define VCMOV_EMULATED          1
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
+#define VROTI_EMULATED          1
 
 #endif
 #define vroti16_epi32           vroti_epi32
@@ -268,7 +276,9 @@ typedef __m512i vtype;
                                     0x1011121314151617ULL, \
                                     0x08090a0b0c0d0e0fULL, \
                                     0x0001020304050607ULL))
+
 #else /* workarounds without AVX512BW */
+
 #define vswap32             vswap32_emu
 #define vswap64(x)          vswap32(vshuffle_epi32(x, _MM_SHUFFLE(2, 3, 0, 1)))
 
@@ -323,6 +333,7 @@ typedef __m256i vtype;
 #define vpermute4x64_epi64      _mm256_permute4x64_epi64
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
+#define VROTI_EMULATED          1
 #define vroti16_epi32           vroti_epi32
 #define vset1_epi8              _mm256_set1_epi8
 #define vset1_epi32             _mm256_set1_epi32
@@ -433,6 +444,7 @@ typedef __m128i vtype;
 #else
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
+#define VROTI_EMULATED          1
 /* Specialized ROTL16 for SSE4.1 and lower (eg. MD5) */
 #if __SSSE3__
 #define vroti16_epi32(a, s)     vshuffle_epi8((a), vset_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302))
@@ -598,11 +610,16 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 }
 #endif
 
+#if !VCMOV_EMULATED && !VROTI_EMULATED
+#define vswap32_emu(x) \
+	(vcmov(vroti_epi32((x), 24), vroti_epi32((x), 8), vset1_epi32(0xff00ff00)))
+#else
 #define vswap32_emu(x) \
 	(vxor(vsrli_epi32(x, 24), \
 	         vxor(vslli_epi32(vsrli_epi32(vslli_epi32(x, 8), 24), 8),       \
 	              vxor(vsrli_epi32(vslli_epi32(vsrli_epi32(x, 8), 24), 8),  \
 	                   vslli_epi32(x, 24)))))
+#endif
 
 #define vswap64_emu(x) \
 	(vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32_emu(x))
@@ -629,6 +646,7 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
  * vroti must handle both ROTL and ROTR. If s < 0, then ROTR. Note that
  * the ternary will normally be optimized away!
  */
+#if VROTI_EMULATED
 #define vroti_epi32_emu(a, s)  ((s) < 0 ?                               \
      vxor(vsrli_epi32((a), ~(s) + 1), vslli_epi32((a), 32 + (s))) :     \
      vxor(vslli_epi32((a), (s)), vsrli_epi32((a), 32 - (s))))
@@ -636,6 +654,7 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 #define vroti_epi64_emu(a, s)  ((s) < 0 ?                               \
      vxor(vsrli_epi64((a), ~(s) + 1), vslli_epi64a((a), 64 + (s))) :    \
      vxor(vslli_epi64a((a), (s)), vsrli_epi64((a), 64 - (s))))
+#endif
 
 #endif /* SIMD_COEF_32 */
 
