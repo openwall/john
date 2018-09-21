@@ -41,7 +41,7 @@
 #define MD5_G(x,y,z)                            \
     tmp[i] = vcmov((x[i]),(y[i]),(z[i]));
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define MD5_H(x,y,z)                            \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
 
@@ -64,7 +64,7 @@
     tmp[i] = vxor((tmp[i]),(x[i]));
 #endif
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define MD5_I(x,y,z)                            \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0x39);
 #elif __ARM_NEON
@@ -125,13 +125,13 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	vtype c[SIMD_PARA_MD5];
 	vtype d[SIMD_PARA_MD5];
 	vtype tmp[SIMD_PARA_MD5];
-#if !__AVX512F__
+#ifndef vternarylogic
 	vtype tmp2[SIMD_PARA_MD5];
 #endif
 	unsigned int i;
 	vtype *data;
 
-#if !__AVX512F__ && !__ARM_NEON
+#if !defined(vternarylogic) && !__ARM_NEON
 	vtype mask;
 	mask = vset1_epi32(0xffffffff);
 #endif
@@ -715,7 +715,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 #define MD4_F(x,y,z)                            \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define MD4_G(x,y,z)                            \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
 #elif !VCMOV_EMULATED
@@ -730,7 +730,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
     tmp[i] = vor((tmp[i]), (tmp2[i]) );
 #endif
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define MD4_H(x,y,z)                            \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
 
@@ -814,7 +814,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	vtype c[SIMD_PARA_MD4];
 	vtype d[SIMD_PARA_MD4];
 	vtype tmp[SIMD_PARA_MD4];
-#if (SIMD_PARA_MD4 < 3 || VCMOV_EMULATED) && !__AVX512F__
+#if (SIMD_PARA_MD4 < 3 || VCMOV_EMULATED) && !defined(vternarylogic)
 	vtype tmp2[SIMD_PARA_MD4];
 #endif
 	vtype cst;
@@ -1102,7 +1102,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 #define SHA1_F(x,y,z)                           \
     tmp[i] = vcmov((y[i]),(z[i]),(x[i]));
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define SHA1_G(x,y,z)                           \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0x96);
 #else
@@ -1111,7 +1111,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
     tmp[i] = vxor((tmp[i]),(x[i]));
 #endif
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define SHA1_H(x,y,z)                           \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0xE8);
 #elif !VCMOV_EMULATED
@@ -1617,10 +1617,8 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 #if SIMD_PARA_SHA256
 
 /*
- * These optimized Sigma alternatives are from "Fast SHA-256 Implementations
- * on Intel Architecture Processors" whitepaper by Intel. They should result
- * in less register copy operations but in our case they definitely cause a
- * regression. Not sure why.
+ * These Sigma alternatives are from "Fast SHA-256 Implementations on Intel
+ * Architecture Processors" whitepaper by Intel.
  */
 #if 0
 #define S0(x) vroti_epi32(vxor(vroti_epi32(vxor(vroti_epi32(x, -9), x), -11), x), -2)
@@ -1671,7 +1669,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
     )                                           \
 )
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
 #elif !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
@@ -2226,11 +2224,9 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 )
 
 /*
- * These optimized sigma alternatives are from "Fast SHA-512 Implementations
- * on Intel Architecture Processors" whitepaper by Intel. They result in less
- * register copy operations so is faster despite using more ops. Slight boost
- * indeed seen on intel core i7 but a regression for eg. AVX-512 which has
- * rotate instructions.
+ * These sigma alternatives are from "Fast SHA-512 Implementations on Intel
+ * Architecture Processors" whitepaper by Intel. Slight boost seen on core i7
+ * but a regression for eg. AVX-512 which has rotate instructions.
  */
 #if VROTI_EMULATED
 #undef s0
@@ -2267,7 +2263,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 )
 #endif
 
-#if __AVX512F__
+#ifdef vternarylogic
 #define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
 #elif !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
