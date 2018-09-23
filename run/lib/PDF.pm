@@ -1178,7 +1178,9 @@ sub DecryptInit($$$)
     } else {
         return "Encryption version $ver not currently supported";
     }
-    $id or return "Can't decrypt (no document ID)";
+
+    # $id or return "Can't decrypt (no document ID)";  # hacked
+
     # make sure we have the necessary libraries available
     if ($ver < 5) {
         unless (eval 'require Digest::MD5') {
