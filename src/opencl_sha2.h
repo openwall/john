@@ -54,8 +54,18 @@ __const_a8 uint k[] = {
 	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
+/*
+ * These Sigma alternatives are from "Fast SHA-256 Implementations on Intel
+ * Architecture Processors" whitepaper by Intel.
+ */
+#if 1
+#define Sigma0(x) (ror(ror(ror(x, 9) ^ x, 11) ^ x, 2))
+#define Sigma1(x) (ror(ror(ror(x, 14) ^ x, 5) ^ x, 6))
+#else
 #define Sigma0(x) ((ror(x, 2)) ^ (ror(x, 13)) ^ (ror(x, 22)))
 #define Sigma1(x) ((ror(x, 6)) ^ (ror(x, 11)) ^ (ror(x, 25)))
+#endif
+
 #define sigma0(x) ((ror(x, 7)) ^ (ror(x, 18)) ^ (x >> 3))
 #define sigma1(x) ((ror(x, 17)) ^ (ror(x, 19)) ^ (x >> 10))
 
@@ -374,10 +384,20 @@ __const_a8 ulong K[] = {
 #define ror64(x, n)       rotate(x, (ulong)(64 - n))
 #endif
 
-#define Sigma0_64(x) ((ror64(x,28))  ^ (ror64(x,34)) ^ (ror64(x,39)))
-#define Sigma1_64(x) ((ror64(x,14))  ^ (ror64(x,18)) ^ (ror64(x,41)))
-#define sigma0_64(x) ((ror64(x,1))  ^ (ror64(x,8)) ^ (x >> 7))
-#define sigma1_64(x) ((ror64(x,19)) ^ (ror64(x,61)) ^ (x >> 6))
+#define Sigma0_64(x) ((ror64(x, 28))  ^ (ror64(x, 34)) ^ (ror64(x, 39)))
+#define Sigma1_64(x) ((ror64(x, 14))  ^ (ror64(x, 18)) ^ (ror64(x, 41)))
+/*
+ * These sigma alternatives are from "Fast SHA-512 Implementations on Intel
+ * Architecture Processors" whitepaper by Intel. They'll be a regression for
+ * hardware having rotate instructions.
+ */
+#if 0
+#define sigma0_64(x) ((((((x >> 1) ^ x) >> 6) ^ x) >> 1) ^ (((x << 7) ^ x) << 56))
+#define sigma1_64(x) ((((((x >> 42) ^ x) >> 13) ^ x) >> 6) ^ (((x << 42) ^ x) << 3))
+#else
+#define sigma0_64(x) ((ror64(x, 1))  ^ (ror64(x, 8)) ^ (x >> 7))
+#define sigma1_64(x) ((ror64(x, 19)) ^ (ror64(x, 61)) ^ (x >> 6))
+#endif
 
 #define SHA2_INIT_A	0x6a09e667f3bcc908UL
 #define SHA2_INIT_B	0xbb67ae8584caa73bUL
