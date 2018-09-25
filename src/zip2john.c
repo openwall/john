@@ -395,7 +395,8 @@ bail:
 				fseek(fp, filename_length, SEEK_CUR);
 				fseek(fp, extrafield_length, SEEK_CUR);
 				fseek(fp, compressed_size, SEEK_CUR);
-			} else if (flags & 1) {	/* old encryption */
+			}
+			if (flags & 1) {	/* old encryption */
 				fclose(fp);
 				fp = 0;
 				process_old_zip(fname);
