@@ -334,7 +334,6 @@ typedef __m256i vtype;
 #define vroti_epi32             vroti_epi32_emu
 #define vroti_epi64             vroti_epi64_emu
 #define VROTI_EMULATED          1
-#define vroti16_epi32           vroti_epi32
 #define vset1_epi8              _mm256_set1_epi8
 #define vset1_epi32             _mm256_set1_epi32
 #define vset1_epi64             _mm256_set1_epi64x
@@ -361,16 +360,21 @@ typedef __m256i vtype;
 
 #define vanyeq_epi32(x, y)      vmovemask_epi8(vcmpeq_epi32(x, y))
 
-#define swap_endian_mask                                                \
-    _mm256_set_epi32(0x1c1d1e1f, 0x18191a1b, 0x14151617, 0x10111213,    \
-                     0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
+#define swap_endian_mask                                          \
+    vset_epi32(0x1c1d1e1f, 0x18191a1b, 0x14151617, 0x10111213,    \
+               0x0c0d0e0f, 0x08090a0b, 0x04050607, 0x00010203)
 
-#define swap_endian64_mask                                    \
-    vset_epi64(0x18191a1b1c1d1e1fULL, 0x1011121314151617ULL, \
+#define swap_endian64_mask                                        \
+    vset_epi64(0x18191a1b1c1d1e1fULL, 0x1011121314151617ULL,      \
                0x08090a0b0c0d0e0fULL, 0x0001020304050607ULL)
+
+#define rot16_mask                                                \
+    vset_epi32(0x1d1c1f1e, 0x19181b1a, 0x15141716, 0x11101312,    \
+               0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
 
 #define vswap32(n)              vshuffle_epi8(n, swap_endian_mask)
 #define vswap64(n)              vshuffle_epi8(n, swap_endian64_mask)
+#define vroti16_epi32(n, s)     vshuffle_epi8(n, rot16_mask)
 
 #define GATHER_4x(x, y, z)                           \
 {                                                    \
