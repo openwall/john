@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
- * and Copyright (c) 2014 magnum
+ * and Copyright (c) 2014-2018 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -56,18 +56,33 @@ __const_a8 uint k[] = {
 
 /*
  * These Sigma alternatives are from "Fast SHA-256 Implementations on Intel
- * Architecture Processors" whitepaper by Intel.
+ * Architecture Processors" whitepaper by Intel. They were intended for use
+ * with destructive rotate (minimizing register copies) but might be better
+ * or worse on different hardware for other reasons.
  */
-#if 1
+#if gpu_nvidia(DEVICE_INFO)
 #define Sigma0(x) (ror(ror(ror(x, 9) ^ x, 11) ^ x, 2))
 #define Sigma1(x) (ror(ror(ror(x, 14) ^ x, 5) ^ x, 6))
 #else
-#define Sigma0(x) ((ror(x, 2)) ^ (ror(x, 13)) ^ (ror(x, 22)))
-#define Sigma1(x) ((ror(x, 6)) ^ (ror(x, 11)) ^ (ror(x, 25)))
+#define Sigma0(x) (ror(x, 2) ^ ror(x, 13) ^ ror(x, 22))
+#define Sigma1(x) (ror(x, 6) ^ ror(x, 11) ^ ror(x, 25))
 #endif
 
-#define sigma0(x) ((ror(x, 7)) ^ (ror(x, 18)) ^ (x >> 3))
-#define sigma1(x) ((ror(x, 17)) ^ (ror(x, 19)) ^ (x >> 10))
+/*
+ * These sigma alternatives are derived from "Fast SHA-512 Implementations
+ * on Intel Architecture Processors" whitepaper by Intel (rewritten here
+ * for SHA-256 by magnum). They were intended for use with destructive shifts
+ * (minimizing register copies) but might be better or worse on different
+ * hardware for other reasons. They will likely always be a regression when
+ * we have hardware rotate instructions.
+ */
+#if 0
+#define sigma0(x) ((((((x >> 11) ^ x) >> 4) ^ x) >> 3) ^ (((x << 11) ^ x) << 14))
+#define sigma1(x) ((((((x >> 2) ^ x) >> 7) ^ x) >> 10) ^ (((x << 2) ^ x) << 13))
+#else
+#define sigma0(x) (ror(x, 7) ^ ror(x, 18) ^ (x >> 3))
+#define sigma1(x) (ror(x, 17) ^ ror(x, 19) ^ (x >> 10))
+#endif
 
 #define ROUND_A(a,b,c,d,e,f,g,h,ki,wi)	  \
 	{ \
@@ -384,19 +399,36 @@ __const_a8 ulong K[] = {
 #define ror64(x, n)       rotate(x, (ulong)(64 - n))
 #endif
 
-#define Sigma0_64(x) ((ror64(x, 28))  ^ (ror64(x, 34)) ^ (ror64(x, 39)))
-#define Sigma1_64(x) ((ror64(x, 14))  ^ (ror64(x, 18)) ^ (ror64(x, 41)))
+/*
+ * These Sigma alternatives are derived from "Fast SHA-256 Implementations
+ * on Intel Architecture Processors" whitepaper by Intel (rewritten here
+ * for SHA-512 by magnum). They were intended for use with destructive rotate
+ * (minimizing register copies) but might be better or worse on different
+ * hardware for other reasons.
+ */
+#if 0
+#define Sigma0_64(x) (ror64(ror64(ror64(x, 5) ^ x, 6) ^ x, 28))
+#define Sigma1_64(x) (ror64(ror64(ror64(x, 23) ^ x, 4) ^ x, 14))
+#else
+#define Sigma0_64(x) (ror64(x, 28) ^ ror64(x, 34) ^ ror64(x, 39))
+#define Sigma1_64(x) (ror64(x, 14) ^ ror64(x, 18) ^ ror64(x, 41))
+#endif
+
 /*
  * These sigma alternatives are from "Fast SHA-512 Implementations on Intel
- * Architecture Processors" whitepaper by Intel. They'll be a regression for
- * hardware having rotate instructions.
+ * Architecture Processors" whitepaper by Intel. They were intended for use
+ * with destructive shifts (minimizing register copies) but might be better
+ * or worse on different hardware for other reasons. They will likely always
+ * be a regression when we have 64-bit hardware rotate instructions - but
+ * that probably doesn't exist for current GPU's as of now since they're all
+ * 32-bit (and may not even have 32-bit rotate for that matter).
  */
 #if 0
 #define sigma0_64(x) ((((((x >> 1) ^ x) >> 6) ^ x) >> 1) ^ (((x << 7) ^ x) << 56))
 #define sigma1_64(x) ((((((x >> 42) ^ x) >> 13) ^ x) >> 6) ^ (((x << 42) ^ x) << 3))
 #else
-#define sigma0_64(x) ((ror64(x, 1))  ^ (ror64(x, 8)) ^ (x >> 7))
-#define sigma1_64(x) ((ror64(x, 19)) ^ (ror64(x, 61)) ^ (x >> 6))
+#define sigma0_64(x) (ror64(x, 1)  ^ ror64(x, 8) ^ (x >> 7))
+#define sigma1_64(x) (ror64(x, 19) ^ ror64(x, 61) ^ (x >> 6))
 #endif
 
 #define SHA2_INIT_A	0x6a09e667f3bcc908UL

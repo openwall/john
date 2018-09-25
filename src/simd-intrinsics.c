@@ -3,7 +3,7 @@
  * Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
  * Copyright (c) 2012 Solar Designer,
  * Copyright (c) 2011-2015 JimF,
- * Copyright (c) 2011-2015 magnum,
+ * Copyright (c) 2011-2018 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -1618,7 +1618,9 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 
 /*
  * These Sigma alternatives are from "Fast SHA-256 Implementations on Intel
- * Architecture Processors" whitepaper by Intel.
+ * Architecture Processors" whitepaper by Intel. They were intended for use
+ * with destructive rotate (minimizing register copies) but might be better
+ * or worse on different hardware for other reasons.
  */
 #if 0
 #define S0(x) vroti_epi32(vxor(vroti_epi32(vxor(vroti_epi32(x, -9), x), -11), x), -2)
@@ -1647,6 +1649,23 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 )
 #endif
 
+/*
+ * These sigma alternatives are derived from "Fast SHA-512 Implementations
+ * on Intel Architecture Processors" whitepaper by Intel (rewritten here
+ * for SHA-256 by magnum). They were intended for use with destructive shifts
+ * (minimizing register copies) but might be better or worse on different
+ * hardware for other reasons. They will likely always be a regression when
+ * we have hardware rotate instructions.
+ */
+#if VROTI_EMULATED
+#define s0(x)  (vxor(vsrli_epi32(vxor(vsrli_epi32(vxor(             \
+                     vsrli_epi32(x, 11), x), 4), x), 3),             \
+                     vslli_epi32(vxor(vslli_epi32(x, 11), x), 14)))
+#define s1(x)  (vxor(vsrli_epi32(vxor(vsrli_epi32(vxor(             \
+                     vsrli_epi32(x, 2), x), 7), x), 10),           \
+                     vslli_epi32(vxor(vslli_epi32(x, 2), x), 13)))
+#else
+
 #define s0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -1668,6 +1687,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
         )                                       \
     )                                           \
 )
+#endif
 
 #ifdef vternarylogic
 #define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
@@ -2196,10 +2216,22 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 }
 #endif /* SIMD_PARA_SHA256 */
 
-
 #if SIMD_PARA_SHA512
 
 #undef S0
+#undef S1
+
+/*
+ * These Sigma alternatives are derived from "Fast SHA-256 Implementations
+ * on Intel Architecture Processors" whitepaper by Intel (rewritten here
+ * for SHA-512 by magnum). They were intended for use with destructive rotate
+ * (minimizing register copies) but might be better or worse on different
+ * hardware for other reasons.
+ */
+#if 0
+#define S0(x) vroti_epi64(vxor(vroti_epi64(vxor(vroti_epi64(x, -5), x), -6), x), -28)
+#define S1(x) vroti_epi64(vxor(vroti_epi64(vxor(vroti_epi64(x, -23), x), -4), x), -14)
+#else
 #define S0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -2211,7 +2243,6 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
     )                                           \
 )
 
-#undef S1
 #define S1(x)                                   \
 (                                               \
     vxor(                                       \
@@ -2222,11 +2253,14 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
         )                                       \
     )                                           \
 )
+#endif
 
 /*
  * These sigma alternatives are from "Fast SHA-512 Implementations on Intel
- * Architecture Processors" whitepaper by Intel. Slight boost seen on core i7
- * but a regression for eg. AVX-512 which has rotate instructions.
+ * Architecture Processors" whitepaper by Intel. They were intended for use
+ * with destructive shifts (minimizing register copies) but might be better
+ * or worse on different hardware for other reasons. They will likely always
+ * be a regression when we have 64-bit hardware rotate instructions.
  */
 #if VROTI_EMULATED
 #undef s0
