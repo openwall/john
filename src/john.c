@@ -1888,8 +1888,17 @@ static void john_run(void)
 				fprintf(stderr, "%s%s and%s\n",
 				    might, partial, not_all);
 			}
-			fputs("Use the \"--show\" option to display all of "
-			    "the cracked passwords reliably\n", stderr);
+			if (database.format->methods.prepare !=
+			    fmt_default_prepare)
+				fprintf(stderr,
+				        "Use the \"--show --format=%s\" options"
+				        " to display all of the cracked "
+				        "passwords reliably\n",
+				        database.format->params.label);
+			else
+				fputs("Use the \"--show\" option to display all"
+				      " of the cracked passwords reliably\n",
+				      stderr);
 		}
 	}
 }
