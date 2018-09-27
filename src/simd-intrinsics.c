@@ -1126,6 +1126,46 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 
 #define SHA1_I(x,y,z) SHA1_G(x,y,z)
 
+/*
+ * non-ternary: load, load, xor, load, xor, load, xor, rotate, store
+ * ternary:     load, load, load, xor3, load, xor, rotate, store
+ *
+ * 5% boost seen w/ Xeon Silver 4110 and gcc 5.4.0
+ */
+#ifdef vternarylogic
+
+#define SHA1_EXPAND2a(t)                                    \
+    tmp[i] = vternarylogic(data[i*16+t-3], data[i*16+t-8],  \
+                           data[i*16+t-14], 0x96);          \
+    tmp[i] = vxor( tmp[i], data[i*16+t-16] );               \
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp[i], 1);
+
+#define SHA1_EXPAND2b(t)                                        \
+    tmp[i] = vternarylogic(w[i*16+((t-3)&0xF)], data[i*16+t-8], \
+                           data[i*16+t-14], 0x96);              \
+    tmp[i] = vxor( tmp[i], data[i*16+t-16] );                   \
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp[i], 1);
+
+#define SHA1_EXPAND2c(t)                                                \
+    tmp[i] = vternarylogic(w[i*16+((t-3)&0xF)], w[i*16+((t-8)&0xF)],    \
+                           data[i*16+t-14], 0x96);                      \
+    tmp[i] = vxor( tmp[i], data[i*16+t-16] );                           \
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp[i], 1);
+
+#define SHA1_EXPAND2d(t)                                                \
+    tmp[i] = vternarylogic(w[i*16+((t-3)&0xF)], w[i*16+((t-8)&0xF)],    \
+                           w[i*16+((t-14)&0xF)], 0x96);                 \
+    tmp[i] = vxor( tmp[i], data[i*16+t-16] );                           \
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp[i], 1);
+
+#define SHA1_EXPAND2(t)                                                 \
+    tmp[i] = vternarylogic(w[i*16+((t-3)&0xF)], w[i*16+((t-8)&0xF)],    \
+                           w[i*16+((t-14)&0xF)], 0x96);                 \
+    tmp[i] = vxor( tmp[i], w[i*16+((t-16)&0xF)] );                      \
+    w[i*16+((t)&0xF)] = vroti_epi32(tmp[i], 1);
+
+#else
+
 #define SHA1_EXPAND2a(t)                                \
     tmp[i] = vxor( data[i*16+t-3], data[i*16+t-8] );    \
     tmp[i] = vxor( tmp[i], data[i*16+t-14] );           \
@@ -1155,6 +1195,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
     tmp[i] = vxor( tmp[i], w[i*16+((t-14)&0xF)] );              \
     tmp[i] = vxor( tmp[i], w[i*16+((t-16)&0xF)] );              \
     w[i*16+((t)&0xF)] = vroti_epi32(tmp[i], 1);
+#endif
 
 #define SHA1_ROUND2a(a,b,c,d,e,F,t)                 \
     SHA1_PARA_DO(i) {                               \
