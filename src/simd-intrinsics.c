@@ -1131,6 +1131,10 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
  * ternary:     load, load, load, xor3, load, xor, rotate, store
  *
  * 5% boost seen w/ Xeon Silver 4110 and gcc 5.4.0
+ *
+ * Also tried changing order to:
+ *              load, load, xor, load, load, xor3, rotate, store
+ * but that was slightly slower.
  */
 #ifdef vternarylogic
 
@@ -1657,16 +1661,33 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 
 #if SIMD_PARA_SHA256
 
+#ifdef vternarylogic
+/*
+ * Two xor's in one shot. 10% boost for AVX-512
+ */
+#define S0(x) vternarylogic(vroti_epi32(x, -22),    \
+                            vroti_epi32(x,  -2),    \
+                            vroti_epi32(x, -13),    \
+                            0x96)
+
+#define S1(x) vternarylogic(vroti_epi32(x, -25),    \
+                            vroti_epi32(x,  -6),    \
+                            vroti_epi32(x, -11),    \
+                            0x96)
+
+#elif 0
 /*
  * These Sigma alternatives are from "Fast SHA-256 Implementations on Intel
  * Architecture Processors" whitepaper by Intel. They were intended for use
  * with destructive rotate (minimizing register copies) but might be better
  * or worse on different hardware for other reasons.
  */
-#if 0
 #define S0(x) vroti_epi32(vxor(vroti_epi32(vxor(vroti_epi32(x, -9), x), -11), x), -2)
 #define S1(x) vroti_epi32(vxor(vroti_epi32(vxor(vroti_epi32(x, -14), x), -5), x), -6)
+
 #else
+
+/* Original SHA-2 function */
 #define S0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -1690,6 +1711,21 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 )
 #endif
 
+#ifdef vternarylogic
+/*
+ * Two xor's in one shot. 10% boost for AVX-512
+ */
+#define s0(x) vternarylogic(vsrli_epi32(x, 3),      \
+                            vroti_epi32(x, -7),     \
+                            vroti_epi32(x, -18),    \
+                            0x96)
+
+#define s1(x) vternarylogic(vsrli_epi32(x, 10),     \
+                            vroti_epi32(x, -17),    \
+                            vroti_epi32(x, -19),    \
+                            0x96)
+
+#elif VROTI_EMULATED
 /*
  * These sigma alternatives are derived from "Fast SHA-512 Implementations
  * on Intel Architecture Processors" whitepaper by Intel (rewritten here
@@ -1698,15 +1734,16 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
  * hardware for other reasons. They will likely always be a regression when
  * we have hardware rotate instructions.
  */
-#if VROTI_EMULATED
-#define s0(x)  (vxor(vsrli_epi32(vxor(vsrli_epi32(vxor(             \
+#define s0(x)  (vxor(vsrli_epi32(vxor(vsrli_epi32(vxor(              \
                      vsrli_epi32(x, 11), x), 4), x), 3),             \
                      vslli_epi32(vxor(vslli_epi32(x, 11), x), 14)))
-#define s1(x)  (vxor(vsrli_epi32(vxor(vsrli_epi32(vxor(             \
-                     vsrli_epi32(x, 2), x), 7), x), 10),           \
+
+#define s1(x)  (vxor(vsrli_epi32(vxor(vsrli_epi32(vxor(              \
+                     vsrli_epi32(x, 2), x), 7), x), 10),             \
                      vslli_epi32(vxor(vslli_epi32(x, 2), x), 13)))
 #else
 
+/* Original SHA-2 function */
 #define s0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -2261,7 +2298,24 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 
 #undef S0
 #undef S1
+#undef s0
+#undef s1
 
+#ifdef vternarylogic
+/*
+ * Two xor's in one shot. 10% boost for AVX-512
+ */
+#define S0(x) vternarylogic(vroti_epi64(x, -39),    \
+                            vroti_epi64(x, -28),    \
+                            vroti_epi64(x, -34),    \
+                            0x96)
+
+#define S1(x) vternarylogic(vroti_epi64(x, -41),    \
+                            vroti_epi64(x, -14),    \
+                            vroti_epi64(x, -18),    \
+                            0x96)
+
+#elif 0
 /*
  * These Sigma alternatives are derived from "Fast SHA-256 Implementations
  * on Intel Architecture Processors" whitepaper by Intel (rewritten here
@@ -2269,10 +2323,12 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
  * (minimizing register copies) but might be better or worse on different
  * hardware for other reasons.
  */
-#if 0
 #define S0(x) vroti_epi64(vxor(vroti_epi64(vxor(vroti_epi64(x, -5), x), -6), x), -28)
 #define S1(x) vroti_epi64(vxor(vroti_epi64(vxor(vroti_epi64(x, -23), x), -4), x), -14)
+
 #else
+
+/* Original SHA-2 function */
 #define S0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -2296,6 +2352,21 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 )
 #endif
 
+#ifdef vternarylogic
+/*
+ * Two xor's in one shot. 10% boost for AVX-512
+ */
+#define s0(x) vternarylogic(vsrli_epi64(x, 7),  \
+                            vroti_epi64(x, -1), \
+                            vroti_epi64(x, -8), \
+                            0x96)
+
+#define s1(x) vternarylogic(vsrli_epi64(x, 6),      \
+                            vroti_epi64(x, -19),    \
+                            vroti_epi64(x, -61),    \
+                            0x96)
+
+#elif VROTI_EMULATED
 /*
  * These sigma alternatives are from "Fast SHA-512 Implementations on Intel
  * Architecture Processors" whitepaper by Intel. They were intended for use
@@ -2303,17 +2374,16 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
  * or worse on different hardware for other reasons. They will likely always
  * be a regression when we have 64-bit hardware rotate instructions.
  */
-#if VROTI_EMULATED
-#undef s0
 #define s0(x)  (vxor(vsrli_epi64(vxor(vsrli_epi64(vxor(             \
                      vsrli_epi64(x, 1), x), 6), x), 1),             \
                      vslli_epi64(vxor(vslli_epi64(x, 7), x), 56)))
-#undef s1
+
 #define s1(x)  (vxor(vsrli_epi64(vxor(vsrli_epi64(vxor(             \
                      vsrli_epi64(x, 42), x), 13), x), 6),           \
                      vslli_epi64(vxor(vslli_epi64(x, 42), x), 3)))
 #else
-#undef s0
+
+/* Original SHA-2 function */
 #define s0(x)                                   \
 (                                               \
     vxor(                                       \
@@ -2325,7 +2395,6 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
     )                                           \
 )
 
-#undef s1
 #define s1(x)                                   \
 (                                               \
     vxor(                                       \

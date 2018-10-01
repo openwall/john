@@ -54,20 +54,30 @@ __const_a8 uint k[] = {
 	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
+#if 0 && SHA256_LUT3
+/* LOP3.LUT alternative - does no good */
+#define Sigma0(x) lut3(ror(x, 2), ror(x, 13), ror(x, 22), 0x96)
+#define Sigma1(x) lut3(ror(x, 6), ror(x, 11), ror(x, 25), 0x96)
+#elif gpu_nvidia(DEVICE_INFO)
 /*
  * These Sigma alternatives are from "Fast SHA-256 Implementations on Intel
  * Architecture Processors" whitepaper by Intel. They were intended for use
  * with destructive rotate (minimizing register copies) but might be better
  * or worse on different hardware for other reasons.
  */
-#if gpu_nvidia(DEVICE_INFO)
 #define Sigma0(x) (ror(ror(ror(x, 9) ^ x, 11) ^ x, 2))
 #define Sigma1(x) (ror(ror(ror(x, 14) ^ x, 5) ^ x, 6))
 #else
+/* Original SHA-2 function */
 #define Sigma0(x) (ror(x, 2) ^ ror(x, 13) ^ ror(x, 22))
 #define Sigma1(x) (ror(x, 6) ^ ror(x, 11) ^ ror(x, 25))
 #endif
 
+#if 0 && SHA256_LUT3
+/* LOP3.LUT alternative - does no good */
+#define sigma0(x) lut3(ror(x, 7), ror(x, 18), (x >> 3), 0x96)
+#define sigma1(x) lut3(ror(x, 17), ror(x, 19), (x >> 10), 0x96)
+#elif 0
 /*
  * These sigma alternatives are derived from "Fast SHA-512 Implementations
  * on Intel Architecture Processors" whitepaper by Intel (rewritten here
@@ -76,10 +86,10 @@ __const_a8 uint k[] = {
  * hardware for other reasons. They will likely always be a regression when
  * we have hardware rotate instructions.
  */
-#if 0
 #define sigma0(x) ((((((x >> 11) ^ x) >> 4) ^ x) >> 3) ^ (((x << 11) ^ x) << 14))
 #define sigma1(x) ((((((x >> 2) ^ x) >> 7) ^ x) >> 10) ^ (((x << 2) ^ x) << 13))
 #else
+/* Original SHA-2 function */
 #define sigma0(x) (ror(x, 7) ^ ror(x, 18) ^ (x >> 3))
 #define sigma1(x) (ror(x, 17) ^ ror(x, 19) ^ (x >> 10))
 #endif
@@ -399,6 +409,11 @@ __const_a8 ulong K[] = {
 #define ror64(x, n)       rotate(x, (ulong)(64 - n))
 #endif
 
+#if 0 && SHA512_LUT3
+/* LOP3.LUT alternative - does no good */
+#define Sigma0_64(x) lut3_64(ror64(x, 28), ror64(x, 34), ror64(x, 39), 0x96)
+#define Sigma1_64(x) lut3_64(ror64(x, 14), ror64(x, 18), ror64(x, 41), 0x96)
+#elif 0
 /*
  * These Sigma alternatives are derived from "Fast SHA-256 Implementations
  * on Intel Architecture Processors" whitepaper by Intel (rewritten here
@@ -406,14 +421,19 @@ __const_a8 ulong K[] = {
  * (minimizing register copies) but might be better or worse on different
  * hardware for other reasons.
  */
-#if 0
 #define Sigma0_64(x) (ror64(ror64(ror64(x, 5) ^ x, 6) ^ x, 28))
 #define Sigma1_64(x) (ror64(ror64(ror64(x, 23) ^ x, 4) ^ x, 14))
 #else
+/* Original SHA-2 function */
 #define Sigma0_64(x) (ror64(x, 28) ^ ror64(x, 34) ^ ror64(x, 39))
 #define Sigma1_64(x) (ror64(x, 14) ^ ror64(x, 18) ^ ror64(x, 41))
 #endif
 
+#if 0 && SHA512_LUT3
+/* LOP3.LUT alternative - does no good */
+#define sigma0_64(x) lut3_64(ror64(x, 1), ror64(x, 8), (x >> 7), 0x96)
+#define sigma1_64(x) lut3_64(ror64(x, 19), ror64(x, 61), (x >> 6), 0x96)
+#elif 0
 /*
  * These sigma alternatives are from "Fast SHA-512 Implementations on Intel
  * Architecture Processors" whitepaper by Intel. They were intended for use
@@ -423,10 +443,10 @@ __const_a8 ulong K[] = {
  * that probably doesn't exist for current GPU's as of now since they're all
  * 32-bit (and may not even have 32-bit rotate for that matter).
  */
-#if 0
 #define sigma0_64(x) ((((((x >> 1) ^ x) >> 6) ^ x) >> 1) ^ (((x << 7) ^ x) << 56))
 #define sigma1_64(x) ((((((x >> 42) ^ x) >> 13) ^ x) >> 6) ^ (((x << 42) ^ x) << 3))
 #else
+/* Original SHA-2 function */
 #define sigma0_64(x) (ror64(x, 1)  ^ ror64(x, 8) ^ (x >> 7))
 #define sigma1_64(x) (ror64(x, 19) ^ ror64(x, 61) ^ (x >> 6))
 #endif
