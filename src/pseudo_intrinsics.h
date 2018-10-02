@@ -402,6 +402,26 @@ typedef __m256i vtype;
     x = vgather_epi64(&y[0][z], indices, 1);                      \
 }
 
+#if 0
+/*
+ * Very slow vternarylogic emulator for debugging. Only works with AVX2.
+ * vternarylogic is #ifdef'ed in other files so we need the macro as below.
+ */
+#define vternarylogic           vlut3
+#define vsrlv_epi32             _mm256_srlv_epi32 /* Only AVX2 has this */
+inline static vtype vlut3(vtype x, vtype y, vtype z, uint8_t imm)
+{
+	uint32_t i;
+	vtype r = vsetzero();
+	const vtype one = vset1_epi32(1);
+	const vtype m = vset1_epi32(imm);
+
+	for (i = 0; i < sizeof(uint32_t) * 8; i++)
+		r = vxor(r, vslli_epi32(vand(vsrlv_epi32(m, (vor(vor(vslli_epi32(vand(vsrli_epi32(x, i), one), 2), vslli_epi32(vand(vsrli_epi32(y, i), one), 1)), vand(vsrli_epi32(z, i), one)))), one), i));
+	return r;
+}
+#endif
+
 /************************* SSE2/3/4/AVX/XOP ***************************/
 #elif __SSE2__
 
