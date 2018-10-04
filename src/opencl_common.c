@@ -2280,7 +2280,7 @@ cl_uint get_processors_count(int sequential_id)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		else if (major == 6)    // 6.x Pascal
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		else if (major == 7)    // 7.x Volta
+		else if (major >= 7)    // 7.x Volta, 8.x Turing?
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
 /*
  * Apple, VCL and some other environments don't expose get_compute_capability()
@@ -2290,8 +2290,8 @@ cl_uint get_processors_count(int sequential_id)
  * This will produce a *guessed* figure
  */
 
-		// Volta (GTX 11**?)
-		else if (strstr(dname, "TITAN V"))
+		// Volta or Turing
+		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX 2"))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
 		// Pascal
 		else if (strstr(dname, "GTX 10"))
