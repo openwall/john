@@ -1,0 +1,28 @@
+#
+# This software is Copyright (c) 2018 Denis Burykin
+# [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+# and it is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+
+NET "CLK" TNM_NET = "CLK";
+#TIMESPEC "TS_CLK" = PERIOD "CLK" 4.444 ns HIGH 50%; # 225
+#TIMESPEC "TS_CLK" = PERIOD "CLK" 4.545 ns HIGH 50%; # 220
+TIMESPEC "TS_CLK" = PERIOD "CLK" 4.651 ns HIGH 50%; # 215
+#TIMESPEC "TS_CLK" = PERIOD "CLK" 5.000 ns HIGH 50%; # 200
+#TIMESPEC "TS_CLK" = PERIOD "CLK" 5.263 ns HIGH 50%; # 190
+#TIMESPEC "TS_CLK" = PERIOD "CLK" 5.555 ns HIGH 50%; # 180
+#TIMESPEC "TS_CLK" = PERIOD "CLK" 5.714 ns HIGH 50%; # 175
+#TIMESPEC "TS_CLK" = PERIOD "CLK" 6.250 ns HIGH 50%; # 160
+
+#AREA_GROUP "area1" RANGE=SLICE_X14Y16:SLICE_X41Y23; # (*ctrl) 28x8=896
+#AREA_GROUP "area1" RANGE=SLICE_X14Y16:SLICE_X41Y24; # (*ctrl) 28x9=1008
+
+#AREA_GROUP "area1" RANGE=SLICE_X0Y16:SLICE_X13Y23; # (*core) 14x8=448
+AREA_GROUP "area1" RANGE=SLICE_X0Y16:SLICE_X13Y24,SLICE_X0Y25:SLICE_X7Y25; # (*core) 14x9+1/2
+#AREA_GROUP "area1" RANGE=SLICE_X0Y16:SLICE_X13Y25; # (*core) 14x10=560
+
+#AREA_GROUP "area1" RANGE=RAMB8_X0Y8:RAMB8_X0Y11;
+
+INST "*" AREA_GROUP="area1";

@@ -211,12 +211,23 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 	// * global jtr_device_list used
 	//
 	task_list_delete(task_list);
-	task_list = task_list_create(*pcount, keys_buffer,
-			mask_is_inactive() ? NULL : range_info_buffer);
+	for (;;) {
+		task_list = task_list_create(*pcount, keys_buffer,
+				mask_is_inactive() ? NULL : range_info_buffer);
+		if (task_list)
+			break;
+
+		// No devices.
+		if (!jtr_device_list_check())
+			usleep(50000);
+	}
 
 	// Send data to devices, continue communication until result is received
 	int rw_result;
 	for (;;) {
+
+		// Check if a new device is up(connected)
+		jtr_device_list_check();
 
 		// If some devices were stopped then some tasks are unassigned.
 		tasks_assign(task_list, jtr_device_list);

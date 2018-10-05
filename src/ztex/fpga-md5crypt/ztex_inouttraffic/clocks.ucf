@@ -1,0 +1,51 @@
+#
+# This software is Copyright (c) 2016-2018 Denis Burykin
+# [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
+# and it is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# ****************************
+#
+# cmt2 - driven by IFCLK_IN
+# cmt_special.v
+#
+# ****************************
+#
+INST "clocks/cmt2/DCM_0" LOC=DCM_X0Y4;
+#INST "clocks/cmt2/DCM_CLKGEN_0" LOC=DCM_X0Y5;
+#INST "clocks/cmt2/PLL_0" LOC=PLL_ADV_X0Y2;
+
+NET "IFCLK" TNM_NET = "IFCLK";
+TIMESPEC "TS_IFCLK" = PERIOD "IFCLK" 20.5 ns HIGH 50%;
+
+# CLK2X for PKT_COMM_CLK
+//NET "clocks/cmt2/dcm0_clk2x" TNM_NET = "PKT_COMM_CLK";
+#TIMESPEC "TS_PKT_COMM_CLK" = PERIOD "PKT_COMM_CLK" 10.2 ns HIGH 50%;
+//TIMESPEC "TS_PKT_COMM_CLK" = PERIOD "PKT_COMM_CLK" 4.878 ns HIGH 50%;
+
+# ****************************
+#
+# Programmable clock #0
+# cmt_prog.v
+#
+# ****************************
+#
+INST "clocks/cmt3/DCM_CLKGEN_0" LOC=DCM_X0Y7;
+INST "clocks/cmt3/PLL_0" LOC=PLL_ADV_X0Y3;
+
+NET "clocks/cmt3/pll0_clkout0" TNM_NET = "CORE_CLK";
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.444 ns HIGH 50%; # 225
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.545 ns HIGH 50%; # 220
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.651 ns HIGH 50%; # 215
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.761 ns HIGH 50%; # 210
+TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 4.878 ns HIGH 50%; # 205
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 5.000 ns HIGH 50%; # 200
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 5.263 ns HIGH 50%; # 190
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 5.405 ns HIGH 50%; # 185
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 5.555 ns HIGH 50%; # 180
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 5.714 ns HIGH 50%; # 175
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 5.882 ns HIGH 50%; # 170
+#TIMESPEC "TS_CORE_CLK" = PERIOD "CORE_CLK" 6.250 ns HIGH 50%; # 160
+
+

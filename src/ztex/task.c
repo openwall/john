@@ -120,6 +120,10 @@ void task_delete(struct task *task)
 struct task_list *task_list_create(int num_keys,
 		char *keys, unsigned char *range_info)
 {
+	// distribute keys equally among devices
+	int num_devices = jtr_device_list_count();
+	if (!num_devices)
+		return NULL;
 
 	struct task_list *task_list = mem_alloc(sizeof(struct task_list));
 	task_list->task = NULL;
@@ -129,8 +133,6 @@ struct task_list *task_list_create(int num_keys,
 		error();
 	}
 
-	// distribute keys equally among devices
-	int num_devices = jtr_device_list_count();
 	int keys_per_device = num_keys / num_devices;
 	int num_extra_keys = num_keys % num_devices;
 
