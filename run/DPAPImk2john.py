@@ -398,13 +398,24 @@ class MasterKey(DataStruct):
         else:
             return "Unsupported combination of cipher '%s' and hash algorithm '%s' found!" % (self.cipherAlgo, self.hashAlgo)
         context = 0
+
         if self.context == "domain":
             context = 2
-        elif self.context == "local":
-            context = 1
-
-        s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
+	    s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
                                      len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
+            context = 3
+            s += "\n$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds,
+                                     self.iv.encode("hex"), len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
+        else:
+            if self.context == "local":
+                context = 1
+            elif self.context == "domain1607-":
+                context = 2
+            elif self.context == "domain1607+":
+                context = 3
+
+            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
+                                         len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
         return s
 
     def setKeyHash(self, h):
@@ -605,7 +616,7 @@ if __name__ == "__main__":
     parser.add_argument('-S', '--sid', required=False, help="SID of account owning the masterkey file.")
     parser.add_argument('-mk', '--masterkey', required=False, help="masterkey file (usually in %%APPDATA%%\\Protect\\<SID>).")
     parser.add_argument('-d', '--debug', default=False, action='store_true', dest="debug")
-    parser.add_argument('-c', '--context', required=False, help="context of user account. Only 'domain' and 'local' are possible.")
+    parser.add_argument('-c', '--context', required=False, help="context of user account. 1607 refers to Windows 10 1607 update.", choices=['domain', 'domain1607+', 'domain1607-', 'local'])
     parser.add_argument('-P', '--preferred', required=False, help="'Preferred' file containing GUID of masterkey file in use (usually in %%APPDATA%%\\Protect\\<SID>). Cannot be used with any other command.")
     parser.add_argument("--password", metavar="PASSWORD", dest="password", help="password to decrypt masterkey file.")
 
@@ -624,9 +635,6 @@ if __name__ == "__main__":
         Preferred.close()
         sys.exit(1)
     else:
-        if options.context != "local" and options.context != "domain":
-            "context must be whether 'local' or 'domain', exiting."
-            sys.exit(1)
         mkp = MasterKeyPool()
         masterkeyfile = open(options.masterkey,'rb')
         mkdata = masterkeyfile.read()
