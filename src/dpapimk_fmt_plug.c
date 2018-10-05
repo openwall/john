@@ -339,6 +339,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA512;
 #endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+			digestlens[i] = 16;
 			passwordBuf = (unsigned char*)saved_key[index+i];
 			passwordBufSize = strlen16((UTF16*)passwordBuf) * 2;
 
