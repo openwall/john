@@ -35,6 +35,7 @@ struct jtr_device {
 	struct jtr_device *next;
 	// physical device
 	struct device *device;
+	int fpga_num;
 	// channel for high-speed packet communication (pkt_comm)
 	struct pkt_comm *comm;
 
@@ -57,7 +58,7 @@ struct jtr_device_list {
 // create JtR device, add to the list
 struct jtr_device *jtr_device_new(
 		struct jtr_device_list *jtr_device_list,
-		struct device *device,
+		struct device *device, int fpga_num,
 		struct pkt_comm *comm);
 
 // Remove device from the list, delete the device
@@ -67,6 +68,9 @@ void jtr_device_delete(
 
 // create list of JtR devices out of inouttraffic devices
 struct jtr_device_list *jtr_device_list_new(struct device_list *device_list);
+
+// return human-readable identifier
+char *jtr_device_id(struct jtr_device *dev);
 
 // Returns number of devices in global jtr_device_list
 int jtr_device_list_count();
@@ -85,6 +89,10 @@ struct jtr_device_list *jtr_device_list_init();
 void jtr_device_list_merge(
 		struct jtr_device_list *jtr_device_list,
 		struct jtr_device_list *jtr_device_list_1);
+
+// Performs timely scan for new devices, merges into global device list
+// Returns number of devices found
+int jtr_device_list_check();
 
 // Perform I/O operations on underlying physical devices
 // Uses global jtr_device_list

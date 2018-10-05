@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<DesignStrategy goal="Balanced" strategy="md5crypt" version="12.1">
+
+  <Description>The Default strategy provides a balanced optimization of performance results vs. runtime. The default property values correspond to the default values of each of the underlying implementation tools. This strategy keeps all properties in an unlocked state so that you can modify the values as you wish.</Description>
+
+  <DeviceList devices="spartan6"/>
+
+  <Properties>
+    <property name="Synthesize - XST:Optimization Goal" value="Area"/>
+    <property name="Synthesize - XST:Optimization Effort" value="Normal"/>
+    <property name="Synthesize - XST:Power Reduction" value="false"/>
+    <property name="Synthesize - XST:Keep Hierarchy" value="No"/>
+    <property name="Synthesize - XST:Other XST Command Line Options" value="-sd ngc"/>
+    <property name="Translate:Other Ngdbuild Command Line Options" value="-sd ngc"/>
+    <property name="Map:Placer Extra Effort" value="Continue on Impossible"/>
+    <property name="Map:Starting Placer Cost Table (1-100)" value="31"/>
+    <property name="Map:Extra Cost Tables" value="0"/>
+    <property name="Map:Register Duplication" value="Off"/>
+    <property name="Map:Register Ordering" value="4"/>
+    <property name="Map:Allow Logic Optimization Across Hierarchy" value="true"/>
+    <property name="Map:Generate Detailed MAP Report" value="true"/>
+    <property name="Map:LUT Combining" value="Auto"/>
+    <property name="Map:Power Reduction" value="Off"/>
+    <property name="Map:Enable Multi-Threading" value="2"/>
+    <property name="Place &amp; Route:Place And Route Mode" value="Reentrant Route"/>
+    <property name="Place &amp; Route:Extra Effort (Highest PAR level only)" value="Continue on Impossible"/>
+    <property name="Place &amp; Route:Power Reduction" value="true"/>
+    <property name="Place &amp; Route:Enable Multi-Threading" value="2"/>
+    <property name="Generate Programming File:Enable BitStream Compression" value="true"/>
+    <property name="Generate Programming File:Unused IOB Pins" value="Float"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Report Type" value="Verbose Report"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Number of Paths in Error/Verbose Report" value="1"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Perform Advanced Analysis" value="false"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Report Paths by Endpoint" value="100"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Report Fastest Path(s) in Each Constraint" value="false"/>
+  </Properties>
+
+</DesignStrategy>

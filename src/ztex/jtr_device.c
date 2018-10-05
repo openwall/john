@@ -38,7 +38,7 @@ void jtr_device_error(const char *s, ...) {
 
 struct jtr_device *jtr_device_new(
 		struct jtr_device_list *jtr_device_list,
-		struct device *device,
+		struct device *device, int fpga_num,
 		struct pkt_comm *comm)
 {
 	struct jtr_device *self = mem_alloc(sizeof(struct jtr_device));
@@ -46,6 +46,7 @@ struct jtr_device *jtr_device_new(
 	self->next = jtr_device_list->device;
 	jtr_device_list->device = self;
 	self->device = device;
+	self->fpga_num = fpga_num;
 	self->comm = comm;
 
 	self->cmp_config_id = -1;
@@ -69,8 +70,8 @@ struct jtr_device_list *jtr_device_list_new(struct device_list *device_list)
 		int i;
 		for (i = 0; i < device->num_of_fpgas; i++) {
 			struct fpga *fpga = &device->fpga[i];
-			jtr_device_new(self, device, fpga->comm);
-			//printf("jtr_device_new(%d,%d,%d)\n",self, device, fpga->comm);
+			jtr_device_new(self, device, i, fpga->comm);
+			//printf("jtr_device_new(%d,%d,%d,%d)\n",self, device, i, fpga->comm);
 		}
 	}
 
@@ -83,7 +84,8 @@ char *jtr_device_id(struct jtr_device *dev)
 	static char device_id[32];
 	if (!dev)
 		return "";
-	sprintf(device_id, "%s", dev->device->ztex_device->snString);
+	sprintf(device_id, "%s #%d", dev->device->ztex_device->snString,
+		dev->fpga_num);
 	return device_id;
 }
 
@@ -228,7 +230,7 @@ struct jtr_device *jtr_device_by_device(
 }
 
 
-int jtr_device_list_rw(struct task_list *task_list)
+int jtr_device_list_check()
 {
 	// timely scan for new devices
 	struct device_list *device_list_1
@@ -248,7 +250,12 @@ int jtr_device_list_rw(struct task_list *task_list)
 		free(device_list_1->ztex_dev_list);
 		free(device_list_1);
 	}
+	return found_devices_num;
+}
 
+
+int jtr_device_list_rw(struct task_list *task_list)
+{
 	int data_transfer = 0;
 	int device_count = 0;
 	struct device *device;
@@ -331,7 +338,13 @@ static struct task *inpkt_check_task(struct pkt *inpkt,
 				jtr_device_id(dev), inpkt_type_name(inpkt->type), pkt_id);
 		return NULL;
 	}
-	if (task->status != TASK_ASSIGNED) {
+
+	if (task->status == TASK_COMPLETE) {
+		if (PKT_DEBUG >= 1)
+			fprintf(stderr, "%s %s id=%d: task already completed\n",
+				jtr_device_id(dev), inpkt_type_name(inpkt->type), pkt_id);
+
+	} else if (task->status != TASK_ASSIGNED) {
 		if (PKT_DEBUG >= 1)
 			fprintf(stderr, "%s %s id=%d: task not assigned\n",
 				jtr_device_id(dev), inpkt_type_name(inpkt->type), pkt_id);
