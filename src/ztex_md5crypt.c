@@ -71,7 +71,7 @@ static struct device_bitstream bitstream = {
 	1536 * 1024,	// Would be 48 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
 	384,		// Min. number of keys for effective device utilization
-	1, { 135 },	// Programmable clocks
+	1, { 180 },	// Programmable clocks
 	"md5crypt",	// label for configuration file
 	"\x00", 1	// Initialization data
 };
@@ -131,7 +131,7 @@ static void init(struct fmt_main *fmt_main)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int result;
-	unsigned char salt_buf[18]; // salt to send to device
+	unsigned char salt_buf[22]; // salt to send to device
 
 	int salt_len = strnlen(salt->salt, 8);
 
@@ -139,8 +139,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	salt_buf[0] = 0;
 	salt_buf[1] = salt_len;
 	memcpy(salt_buf + 2, salt->salt, salt_len);
+	// The device expects salt (18 bytes) then 4 bytes for each
+	// "tunable cost", for those found in struct fmt_main.
+	// We add-up "tunable cost" of 1,000 like if it was in "struct fmt_main".
+	salt_buf[18] = 1000 % 256;
+	salt_buf[19] = 1000 / 256;
+	*((uint16_t *)(salt_buf + 20)) = 0;
 
-	cmp_config_new(salt, salt_buf, 18);
+	cmp_config_new(salt, salt_buf, 22);
 
 	result = device_format_crypt_all(pcount, salt);
 	return result;
@@ -175,12 +181,6 @@ static int cmp_exact(char *source, int index)
 }
 
 
-static unsigned int iteration_count(void *salt)
-{
-	return 1000;
-}
-
-
 struct fmt_main fmt_ztex_md5crypt = {
 	{
 		FORMAT_LABEL,
@@ -197,9 +197,7 @@ struct fmt_main fmt_ztex_md5crypt = {
 		1, // set by device_format_reset()
 		1,
 		FMT_CASE | FMT_8_BIT | FMT_MASK,
-		{
-			"iteration count",
-		},
+		{NULL},
 		{
 			FORMAT_TAG
 		},
@@ -213,9 +211,7 @@ struct fmt_main fmt_ztex_md5crypt = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{
-			iteration_count,
-		},
+		{NULL},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

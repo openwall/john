@@ -41,6 +41,9 @@
 
 #define BENCHMARK_COMMENT	""
 
+#undef PLAINTEXT_LENGTH
+#define PLAINTEXT_LENGTH	64
+
 // Partial hash in the database - differs from CPU/GPU implementations
 #undef	BINARY_SIZE
 #define	BINARY_SIZE		4
@@ -63,7 +66,7 @@ static struct device_bitstream bitstream = {
 	1536 * 1024,	// Would be 48 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
 	384,		// Min. number of keys for effective device utilization
-	1, { 135 },	// Programmable clocks
+	1, { 180 },	// Programmable clocks
 	"phpass",	// label for configuration file
 	"\x01", 1	// Initialization data
 };
@@ -90,7 +93,8 @@ static void init(struct fmt_main *fmt_main)
 
 	if (target_rounds < 512) {
 		fprintf(stderr, "Warning: invalid TargetRounds=%d in john.conf."
-			" Valid values are 1000-999999999\n", target_rounds);
+			" Valid values are 512-1048576, must be power of 2\n",
+			target_rounds);
 		target_rounds = 512;
 	}
 

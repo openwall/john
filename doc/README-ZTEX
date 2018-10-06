@@ -3,7 +3,7 @@ Overview
 ---------
 If you have ZTEX boards USB-FPGA 1.15y, you can use them with JtR.
 Available "formats" are descrypt-ztex, bcrypt-ztex, sha512crypt-ztex,
-Drupal7-ztex, sha256crypt-ztex, more are planned.
+Drupal7-ztex, sha256crypt-ztex, md5crypt-ztex, phpass-ztex.
 
 -------------
 How to build

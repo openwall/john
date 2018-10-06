@@ -95,7 +95,7 @@ static int device_init_fpgas(struct device *device,
 
 	// Frequency
 	if (bitstream->num_progclk) {
-		// Default frequency (for every device)
+		// Default frequency (for every device for given bitstream)
 		cfg_get_int_array(CFG_SECTION, bitstream->label, "Frequency",
 				default_freq, NUM_PROGCLK_MAX);
 
@@ -115,6 +115,8 @@ static int device_init_fpgas(struct device *device,
 	// Runtime configuration packet.
 	// Only subtype 1 is currently supported.
 	// Length is specific to bitstream.
+	// If configuration packet is of incorrect length then
+	// the FPGA would raise an error (app_status=0x08)
 	char conf_name_board_config1[256], conf_name_config1[256];
 	char default_config1[CONFIG_MAX_LEN], board_config1[CONFIG_MAX_LEN];
 	int len_default, len_board, len;
