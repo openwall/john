@@ -111,7 +111,7 @@ if test "x$simd" = xyes; then
             exit(!(regs[3] & (1 << 28)));}]]
     )]
     ,[HT="-DHAVE_HT"]
-     [AC_MSG_RESULT([yes])]
+     [AC_MSG_RESULT([maybe])]
     ,[HT="-UHAVE_HT"]
      [AC_MSG_RESULT([no])]
   )
