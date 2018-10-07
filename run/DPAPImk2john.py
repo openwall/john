@@ -401,7 +401,7 @@ class MasterKey(DataStruct):
 
         if self.context == "domain":
             context = 2
-	    s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
+            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
                                      len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
             context = 3
             s += "\n$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds,
