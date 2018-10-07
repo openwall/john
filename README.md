@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/magnumripper/JohnTheRipper.svg?branch=bleeding-jumbo)](https://travis-ci.org/magnumripper/JohnTheRipper)
+[![Build Status](https://travis-ci.com/magnumripper/JohnTheRipper.svg?branch=bleeding-jumbo)](https://travis-ci.com/magnumripper/JohnTheRipper)
 [![Circle CI](https://circleci.com/gh/magnumripper/JohnTheRipper/tree/bleeding-jumbo.svg?style=shield)](https://circleci.com/gh/magnumripper/JohnTheRipper/tree/bleeding-jumbo)
 [![Downloads](https://img.shields.io/badge/Download-Windows%20Build-green.svg)](http://daily-builds.appspot.com/latest)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/doc/LICENSE)
