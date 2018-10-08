@@ -152,11 +152,16 @@ struct task_list *task_list_create(int num_keys,
 			break;
 
 		// Number of keys in word_list/template_list is 16 bit value.
+		// There's also a limit on packet's data length.
 		// Create several tasks if necessary.
 		while (device_num_keys) {
 			// TODO: maybe create tasks of equal size
-			int task_num_keys = device_num_keys > 65535 ? 65535
-				: device_num_keys;
+			int task_num_keys = device_num_keys;
+			if (task_num_keys * jtr_fmt_params->plaintext_length
+					> PKT_MAX_LEN)
+				task_num_keys = PKT_MAX_LEN / jtr_fmt_params->plaintext_length;
+			if (task_num_keys > 65535)
+				task_num_keys = 65535;
 			device_num_keys -= task_num_keys;
 
 			struct task *task = task_new(task_list, task_num_keys,
