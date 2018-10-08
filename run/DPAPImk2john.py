@@ -276,11 +276,13 @@ CryptoAlgo.add_algo(0x800c, name="sha256", digestLength=256, blockLength=512)
 CryptoAlgo.add_algo(0x800d, name="sha384", digestLength=384, blockLength=1024)
 CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
-
-def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
+def pbkdf2_ms(passphrase, salt, keylen, iterations, digest='sha1'):
     """Implementation of PBKDF2 that allows specifying digest algorithm.
 
     Returns the corresponding expanded key which is keylen long.
+
+    Note: This is not real pbkdf2, but instead a slight modification of it.
+    Seems like Microsoft tried to implement pbkdf2 but got the xoring wrong.
     """
     buff = ""
     i = 1
@@ -294,6 +296,23 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
         buff += derived
     return buff[:keylen]
 
+def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
+    """Implementation of PBKDF2 that allows specifying digest algorithm.
+
+    Returns the corresponding expanded key which is keylen long.
+    """
+    buff = ""
+    i = 1
+    while len(buff) < keylen:
+        U = salt + struct.pack("!L", i)
+        i += 1
+        derived = hmac.new(passphrase, U, digestmod=lambda: hashlib.new(digest)).digest()
+        actual = derived
+        for r in xrange(iterations - 1):
+            actual = hmac.new(passphrase, actual, digestmod=lambda: hashlib.new(digest)).digest()
+            derived = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(derived, actual)])
+        buff += derived
+    return buff[:keylen]
 
 def derivePwdHash(pwdhash, userSID, digest='sha1'):
     """Internal use. Computes the encryption key from a user's password hash"""
@@ -303,7 +322,7 @@ def derivePwdHash(pwdhash, userSID, digest='sha1'):
 def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
     """Internal use. Decrypts data stored in DPAPI structures."""
     hname = {"HMAC": "sha1"}.get(hashAlgo.name, hashAlgo.name)
-    derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
+    derived = pbkdf2_ms(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
     key, iv = derived[:cipherAlgo.keyLength], derived[cipherAlgo.keyLength:]
     key = key[:cipherAlgo.keyLength]
     iv = iv[:cipherAlgo.ivLength]
@@ -524,11 +543,22 @@ class MasterKeyFile(DataStruct):
     def decryptWithPassword(self, userSID, pwd, context):
         """See MasterKey.decryptWithPassword()"""
         algo = None
-        if context == "domain":
-            algo = "md4"
-        elif context == "local":
-            algo = "sha1"
-        self.decryptWithHash(userSID, hashlib.new(algo, pwd.encode('UTF-16LE')).digest())
+        if context == "domain1607-" or context == "domain":
+            self.decryptWithHash(userSID, hashlib.new("md4", pwd.encode('UTF-16LE')).digest())
+            if self.decrypted:
+                print "Decrypted succesfully as domain1607-"
+                return
+        if context == "domain1607+" or context == "domain":
+            SIDenc = userSID.encode("UTF-16LE")
+            NTLMhash = hashlib.new("md4", pwd.encode('UTF-16LE')).digest()
+            derived = pbkdf2(NTLMhash, SIDenc, 32, 10000, digest='sha256')
+            derived = pbkdf2(derived, SIDenc, 16, 1, digest='sha256')
+            self.decryptWithHash(userSID, derived)
+            if self.decrypted:
+                print "Decrypted succesfully as domain1607+"
+                return
+        if context == "local":
+            self.decryptWithHash(userSID, hashlib.new("sha1", pwd.encode('UTF-16LE')).digest())
 
     def __repr__(self):
         s = ["\n#### MasterKeyFile %s ####" % self.guid]
