@@ -144,7 +144,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// We add-up "tunable cost" of 1,000 like if it was in "struct fmt_main".
 	salt_buf[18] = 1000 % 256;
 	salt_buf[19] = 1000 / 256;
-	*((uint16_t *)(salt_buf + 20)) = 0;
+	salt_buf[20] = 0;
+	salt_buf[21] = 0;
 
 	cmp_config_new(salt, salt_buf, 22);
 
