@@ -382,7 +382,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 			
 			for (i = 0; i < sha256loops; i++) {
-			pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], sidBuf, sidBufSize, 1, x.pout + (i * SSE_GROUP_SZ_SHA256), 16, 0);
+				pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], sidBuf, sidBufSize, 1, x.pout + (i * SSE_GROUP_SZ_SHA256), 16, 0);
 			}
 #else
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
