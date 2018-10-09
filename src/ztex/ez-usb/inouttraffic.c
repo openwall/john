@@ -38,7 +38,7 @@ EP_CONFIG(6,0,BULK,OUT,512,4);
 IDENTITY_UFM_1_15Y(10.15.0.0,0);
 
 // this product string is also used for identification by the host software
-#define[PRODUCT_STRING]["inouttraffic UFM 1.15y"]
+#define[PRODUCT_STRING]["inouttraffic JtR 1.8.x"]
 
 // enables high speed FPGA configuration via EP6
 ENABLE_HS_FPGA_CONF(6);

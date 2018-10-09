@@ -33,7 +33,7 @@
 #define FORMAT_LABEL			"Drupal7-ztex"
 #define ALGORITHM_NAME		"SHA512 ZTEX"
 
-#define PLAINTEXT_LENGTH	47
+#define PLAINTEXT_LENGTH	64
 #define BINARY_SIZE			4
 #define BINARY_ALIGN		4
 

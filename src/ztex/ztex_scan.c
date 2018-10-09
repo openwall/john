@@ -32,7 +32,7 @@ extern struct list_main *jtr_devices_allow;
 
 static int firmware_is_ok(struct ztex_device *dev)
 {
-	return !strncmp("inouttraffic", dev->product_string, 12);
+	return !strncmp("inouttraffic JtR 1.8.x", dev->product_string, 22);
 }
 
 // Find Ztex USB devices (of supported type)
@@ -82,9 +82,12 @@ static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 			count++;
 			continue;
 		}
-		// 3rd party firmware or dummy firmware, do upload/override
+		// 3rd party firmware
 		else if (ZTEX_FW_3RD_PARTY_OVERWRITE
-			|| !strncmp("USB-FPGA Module 1.15y (default)", dev->product_string, 31)) {
+			// dummy firmware, do upload/override
+			|| !strncmp("USB-FPGA Module 1.15y (default)", dev->product_string, 31)
+			// inouttraffic firmware of other version
+			|| !strncmp("inouttraffic", dev->product_string, 12) ) {
 			// upload firmware
 			result = ztex_firmware_upload(dev, ZTEX_FW_IHX_PATH);
 			if (result >= 0) {
