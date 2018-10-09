@@ -763,9 +763,10 @@ int ihx_load_data(struct ihx_data *ihx_data, FILE *fp)
 			cs += buf[j];
 		}
 
-		cs += hex_byte(file_data + i + j*2 + 8); // checksum
-		if ( (cs & 0xff) != 0 ) {
-			ztex_error("ihx_load_data: line %d: wrong checksum %d\n", line, cs);
+		int cs_byte = hex_byte(file_data + i + j*2 + 8); // checksum byte
+		if ( ((cs + cs_byte) & 0xff) != 0 ) {
+			ztex_error("ihx_load_data: line %d: wrong checksum byte 0x%02X"
+				" (must be 0x%02X)\n", line, cs_byte, 0x100 - (cs & 0xff) );
 			return -1;
 		}
 		i += j*2 + 10;
