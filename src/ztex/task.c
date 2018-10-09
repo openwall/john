@@ -158,8 +158,8 @@ struct task_list *task_list_create(int num_keys,
 			// TODO: maybe create tasks of equal size
 			int task_num_keys = device_num_keys;
 			if (task_num_keys * jtr_fmt_params->plaintext_length
-					> PKT_MAX_LEN)
-				task_num_keys = PKT_MAX_LEN / jtr_fmt_params->plaintext_length;
+					> PKT_MAX_DATA_LEN)
+				task_num_keys = PKT_MAX_DATA_LEN / jtr_fmt_params->plaintext_length;
 			if (task_num_keys > 65535)
 				task_num_keys = 65535;
 			device_num_keys -= task_num_keys;

@@ -34,33 +34,31 @@ int get_pkt_count(void)
 
 struct pkt *pkt_new(int type, char *data, int data_len)
 {
-	const int max_len = PKT_MAX_LEN - PKT_HEADER_LEN - 2 * PKT_CHECKSUM_LEN;
-	
-	if (data_len > max_len) {
+	if (data_len > PKT_MAX_DATA_LEN) {
 		pkt_error("pkt_new(type %d): data_len(%d) exceeds %d bytes\n",
-				type, data_len, max_len);
+				type, data_len, PKT_MAX_DATA_LEN);
 		exit(-1);
 		return NULL;
 	}
-	
+
 	struct pkt *pkt = malloc(sizeof(struct pkt));
 	if (!pkt) {
 		pkt_error("pkt_new(type %d): unable to allocate %d bytes\n",
 				type, sizeof(struct pkt));
 		return NULL;
 	}
-	
+
 	pkt->version = PKT_COMM_VERSION;
 	pkt->type = type;
 	pkt->data_len = data_len;
 	pkt->id = 0;
-	
+
 	pkt->data = data;
 	pkt->header_ok = 0;
 	pkt->partial_header_len = 0;
 	pkt->partial_data_len = 0;
 	pkt->header = NULL;
-	
+
 	total_pkt_count++;
 	return pkt;
 }
@@ -86,7 +84,7 @@ void pkt_delete(struct pkt *pkt)
 void pkt_create_header(struct pkt *pkt, unsigned char *header)
 {
 	pkt->header = header;
-	
+
 	pkt->header[0] = pkt->version;
 	pkt->header[1] = pkt->type;
 	//pkt->header[2] = 0;
@@ -113,7 +111,7 @@ PKT_CHECKSUM_TYPE pkt_checksum_read(unsigned char *src)
 PKT_CHECKSUM_TYPE pkt_checksum(unsigned char *dst, unsigned char *data, int len)
 {
 	PKT_CHECKSUM_TYPE checksum = 0;
-	
+
 	PKT_CHECKSUM_TYPE checksum_tmp = 0;
 	int checksum_byte_count = 0;
 
@@ -127,9 +125,9 @@ PKT_CHECKSUM_TYPE pkt_checksum(unsigned char *dst, unsigned char *data, int len)
 		}
 	}
 	checksum += checksum_tmp;
-	
+
 	checksum = ~checksum;
-	
+
 	for (i = 0; i < PKT_CHECKSUM_LEN; i++) {
 		if (dst)
 			dst[i] = checksum >> 8 * i;
@@ -163,15 +161,15 @@ void pkt_header2str(struct pkt *pkt, unsigned char *header, char *str)
 int pkt_process_header(struct pkt *pkt, unsigned char *header)
 {
 	char str[256];
-	
+
 	PKT_CHECKSUM_TYPE checksum = pkt_checksum(NULL, header, PKT_HEADER_LEN);
 	PKT_CHECKSUM_TYPE checksum_got = pkt_checksum_read(header + PKT_HEADER_LEN);
 	if (checksum_got != checksum) {
 		pkt_error("pkt_process_header: bad checksum: got 0x%x, must be 0x%x\n",
 			checksum_got, checksum);
 		return -1;
-	} 
-	
+	}
+
 	pkt->version = header[0];
 	if (pkt->version != PKT_COMM_VERSION) {
 		pkt_header2str(pkt, header, str);
@@ -187,14 +185,14 @@ int pkt_process_header(struct pkt *pkt, unsigned char *header)
 	}
 
 	pkt->data_len = (unsigned)(header[4] | (header[5] << 8) | (header[6] << 16));
-	if (!pkt->data_len || pkt->data_len > PKT_MAX_LEN - PKT_HEADER_LEN - PKT_CHECKSUM_LEN) {
+	if (!pkt->data_len || pkt->data_len > PKT_MAX_DATA_LEN) {
 		pkt_header2str(pkt, header, str);
 		pkt_error("pkt_process_header: bad data_len %d, header: %s\n",
 				pkt->data_len, str);
 		return -1;
 	}
 	pkt->id = header[8] | (header[9] << 8);
-	
+
 	pkt->partial_header_len = 0;
 	pkt->header_ok = 1;
 	return 0;
@@ -213,11 +211,11 @@ struct pkt_queue *pkt_queue_new()
 	queue->count = 0;
 	queue->empty_slot_idx = 0;
 	queue->first_pkt_idx = 0;
-	
+
 	int i;
 	for (i = 0; i < PKT_QUEUE_MAX; i++)
 		queue->pkt[i] = NULL;
-		
+
 	return queue;
 }
 
@@ -227,7 +225,7 @@ void pkt_queue_delete(struct pkt_queue *queue)
 		pkt_error("pkt_queue_delete(): NULL argument\n");
 		return;
 	}
-	
+
 	int i;
 	for (i = 0; i < PKT_QUEUE_MAX; i++) {
 		if (queue->pkt[i])
@@ -240,7 +238,7 @@ int pkt_queue_push(struct pkt_queue *queue, struct pkt *pkt)
 {
 	if (queue->count == PKT_QUEUE_MAX)
 		return -1;
-	
+
 	queue->pkt[queue->empty_slot_idx] = pkt;
 	if (++queue->empty_slot_idx == PKT_QUEUE_MAX)
 		queue->empty_slot_idx = 0;
@@ -258,7 +256,7 @@ struct pkt *pkt_queue_fetch(struct pkt_queue *queue)
 {
 	if (!queue->count)
 		return NULL;
-	
+
 	struct pkt *pkt = queue->pkt[queue->first_pkt_idx];
 	queue->pkt[queue->first_pkt_idx] = NULL;
 	queue->count--;
@@ -293,7 +291,7 @@ struct pkt_comm *pkt_comm_new(struct pkt_comm_params *params)
 		pkt_error("pkt_comm_new(): wrong pkt_comm_params\n");
 		return NULL;
 	}
-	
+
 	struct pkt_comm *comm = malloc(sizeof(struct pkt_comm));
 	if (!comm) {
 		pkt_error("pkt_comm_new(): unable to allocate %d bytes\n",
@@ -334,7 +332,7 @@ void pkt_comm_delete(struct pkt_comm *comm)
 		pkt_error("pkt_comm_delete(): NULL argument\n");
 		return;
 	}
-	
+
 	pkt_queue_delete(comm->input_queue);
 	pkt_queue_delete(comm->output_queue);
 	free(comm->input_buf);
@@ -363,7 +361,7 @@ int pkt_comm_create_output_buf(struct pkt_comm *comm)
 		pkt_error("pkt_comm_create_output_buf(): buffer already created\n");
 		return -1;
 	}
-	
+
 	// output queue empty, output buffer not created
 	if (!comm->output_queue->count)
 		return 0;
@@ -384,7 +382,7 @@ int pkt_comm_create_output_buf(struct pkt_comm *comm)
 	}
 	comm->output_buf_size = size;
 	comm->output_buf_offset = 0;
-	
+
 	int i;
 	for (i = 0; i < extra_zeroes; i++)
 		comm->output_buf[size - i - 1] = 0;
@@ -398,7 +396,7 @@ int pkt_comm_create_output_buf(struct pkt_comm *comm)
 		pkt_checksum(comm->output_buf + offset + PKT_HEADER_LEN,
 				comm->output_buf + offset, PKT_HEADER_LEN);
 		offset += PKT_HEADER_LEN + PKT_CHECKSUM_LEN;
-		
+
 		memcpy(comm->output_buf + offset, pkt->data, pkt->data_len);
 		pkt_checksum(comm->output_buf + offset + pkt->data_len,
 				comm->output_buf + offset, pkt->data_len);
@@ -425,11 +423,11 @@ int pkt_comm_has_output_data(struct pkt_comm *comm)
 		}
 		return 1;
 	}
-	
+
 	// There's data in output queue
 	if (!comm->output_queue->count)
 		return 1;
-	
+
 	return 0;
 }
 */
@@ -464,7 +462,7 @@ void pkt_comm_output_completed(struct pkt_comm *comm, int len, int error)
 	comm->error = error;
 	if (error)
 		return;
-	
+
 	comm->output_buf_offset += len;
 	if (comm->output_buf_offset >= comm->output_buf_size) {
 		free(comm->output_buf);
@@ -511,7 +509,7 @@ int pkt_comm_process_input_header(struct pkt_comm *comm)
 	// There's already input packet with partial header
 	if (pkt && pkt->partial_header_len) {
 		//printf("process input header: partial header len %d\n",pkt->partial_header_len);
-		
+
 		// packet header is split over 3+ link layer transfers - should not happen
 		if (offset + PKT_HEADER_LEN + PKT_CHECKSUM_LEN - pkt->partial_header_len
 				> comm->input_buf_len) {
@@ -530,7 +528,7 @@ int pkt_comm_process_input_header(struct pkt_comm *comm)
 		pkt->header = NULL;
 		return 0;
 	}
-	
+
 	// Partial header of a new input packet
 	if (offset + PKT_HEADER_LEN + PKT_CHECKSUM_LEN > comm->input_buf_len) {
 		pkt->header = malloc(PKT_HEADER_LEN + PKT_CHECKSUM_LEN);
@@ -607,7 +605,7 @@ int pkt_comm_process_input_packet_data(struct pkt_comm *comm)
 				checksum_got, checksum);
 			return -1;
 		}
-		
+
 		// input buffer is empty
 		if (remains == comm->input_buf_len - offset) {
 			comm->input_buf_len = 0;
@@ -624,7 +622,7 @@ int pkt_comm_process_input_packet_data(struct pkt_comm *comm)
 		pkt->partial_data_len += comm->input_buf_len - offset;
 		comm->input_buf_len = 0;
 	}
-	
+
 	return 0;
 }
 
@@ -690,7 +688,7 @@ unsigned char *pkt_comm_input_get_buf(struct pkt_comm *comm)
 	// input queue full
 	if (pkt_queue_full(comm->input_queue, 1))
 		return NULL;
-		
+
 	// input buffer not empty
 	// that's probably because input queue was full
 	// at time of processing
@@ -725,7 +723,7 @@ int pkt_comm_input_completed(struct pkt_comm *comm, int len, int error)
 		return -1;
 	}
 	comm->input_buf_len = len;
-		
+
 	if (pkt_comm_process_input_buf(comm) < 0) {
 		comm->error = 1;
 		return -1;
