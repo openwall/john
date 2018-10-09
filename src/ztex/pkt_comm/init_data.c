@@ -16,7 +16,7 @@
 /*
 struct pkt *pkt_init_data_new(char *data, int len)
 {
-	if (len <= 0 || len > PKT_MAX_LEN - PKT_HEADER_LEN) {
+	if (len <= 0) {
 		pkt_error("pkt_init_data_new(): bad len=%d\n", len);
 		return NULL;
 	}
