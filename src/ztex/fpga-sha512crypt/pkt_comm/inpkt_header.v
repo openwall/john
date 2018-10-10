@@ -46,6 +46,7 @@ module inpkt_header #(
 	input CLK,
 	input [7:0] din,
 	input wr_en,
+	output err,
 
 	output reg [PKT_TYPE_MSB:0] pkt_type = 0,
 	output reg [15:0] pkt_id,
@@ -57,6 +58,8 @@ module inpkt_header #(
 	
 	localparam PKT_LEN_MSB = `MSB(PKT_MAX_LEN);
 
+	reg pkt_type_u = 0;
+	
 	reg [31:0] checksum = 0;
 	reg [31:0] checksum_tmp = 0;
 	reg [1:0] checksum_byte_count = 0;
@@ -66,8 +69,9 @@ module inpkt_header #(
 	// flag is set when header is processed, cleared when data starts
 	reg pkt_header = 1;
 
-	reg [PKT_LEN_MSB:0] pkt_byte_count_max, pkt_byte_count_max_tmp;
-	reg [PKT_LEN_MSB:0] pkt_byte_count;
+	reg [PKT_LEN_MSB:0] pkt_byte_count_max;
+	reg [23:0] pkt_byte_count_max_tmp;
+	reg [PKT_LEN_MSB:0] pkt_byte_count = 0;
 	
 	localparam PKT_STATE_VERSION = 1,
 					PKT_STATE_TYPE = 2,
@@ -83,7 +87,7 @@ module inpkt_header #(
 					PKT_STATE_ERROR = 12,
 					PKT_STATE_CHECKSUM = 13;
 	
-	(* FSM_EXTRACT = "true", FSM_ENCODING = "auto" *)
+	(* FSM_EXTRACT = "true", FSM_ENCODING = "one-hot" *)
 	reg [3:0] pkt_state = PKT_STATE_VERSION;
 
 	// Verify checksum regardless of wr_en
@@ -133,20 +137,18 @@ module inpkt_header #(
 			PKT_STATE_TYPE: begin
 				pkt_header <= 1;
 				pkt_byte_count <= 0;
-				
-				if (din == 0 || din > PKT_MAX_TYPE) begin//din[PKT_TYPE_MSB:0] > PKT_MAX_TYPE || din[7:PKT_TYPE_MSB+1]) begin
-					// wrong packet type
-					err_pkt_type <= 1;
-					pkt_state <= PKT_STATE_ERROR;
-				end
-				else begin
-					pkt_type <= din[PKT_TYPE_MSB:0];
-					pkt_state <= PKT_STATE_RESERVED0_0;
-				end
+				pkt_type <= din[PKT_TYPE_MSB:0];
+				pkt_type_u <= |din[7:PKT_TYPE_MSB+1];
+				pkt_state <= PKT_STATE_RESERVED0_0;
 			end
 			
 			PKT_STATE_RESERVED0_0: begin
-				pkt_state <= PKT_STATE_RESERVED0_1;
+				if (pkt_type == 0 | pkt_type > PKT_MAX_TYPE | pkt_type_u) begin
+					err_pkt_type <= 1;
+					pkt_state <= PKT_STATE_ERROR;
+				end
+				else
+					pkt_state <= PKT_STATE_RESERVED0_1;
 			end
 			
 			PKT_STATE_RESERVED0_1: begin
@@ -154,34 +156,29 @@ module inpkt_header #(
 			end
 
 			PKT_STATE_LEN0: begin
-				//pkt_byte_count_max[7:0] <= din;
 				pkt_byte_count_max_tmp[7:0] <= din;
 				pkt_state <= PKT_STATE_LEN1;
 			end
 			
 			PKT_STATE_LEN1: begin
-				//pkt_byte_count_max[15:8] <= din;
 				pkt_byte_count_max_tmp[15:8] <= din;
 				pkt_state <= PKT_STATE_LEN2;
 			end
 
 			PKT_STATE_LEN2: begin
-				//pkt_byte_count_max <= { din[PKT_LEN_MSB-16:0], pkt_byte_count_max[15:0] } - 1'b1;
-				pkt_byte_count_max <= { din[PKT_LEN_MSB-16:0], pkt_byte_count_max_tmp[15:0] } - 1'b1;
-				
-				//if ( din[7:PKT_LEN_MSB-16+1] || !(din[PKT_LEN_MSB-16:0] || pkt_byte_count_max[15:0]) ) begin
-				if ( din[7:PKT_LEN_MSB-16+1] || !(din[PKT_LEN_MSB-16:0] || pkt_byte_count_max_tmp[15:0]) ) begin
-					// wrong packet length
-					err_pkt_len <= 1;
-					pkt_state <= PKT_STATE_ERROR;
-				end
-				else begin
-					pkt_state <= PKT_STATE_RESERVED1;
-				end
+				pkt_byte_count_max_tmp[23:16] <= din;
+				pkt_state <= PKT_STATE_RESERVED1;
 			end
 
 			PKT_STATE_RESERVED1: begin
-				pkt_state <= PKT_STATE_ID0;
+				pkt_byte_count_max <= pkt_byte_count_max_tmp[PKT_LEN_MSB:0] - 1'b1;
+				if (pkt_byte_count_max_tmp == 0
+						| |pkt_byte_count_max_tmp[23:PKT_LEN_MSB+1]) begin
+					err_pkt_len <= 1;
+					pkt_state <= PKT_STATE_ERROR;
+				end
+				else
+					pkt_state <= PKT_STATE_ID0;
 			end
 
 			PKT_STATE_ID0: begin
@@ -197,12 +194,11 @@ module inpkt_header #(
 
 			PKT_STATE_DATA: begin
 				pkt_header <= 0;
+				pkt_byte_count <= pkt_byte_count + 1'b1;
 				if (pkt_byte_count == pkt_byte_count_max) begin
 					checksum_byte_count <= 0;
 					pkt_state <= PKT_STATE_CHECKSUM;
 				end
-				else
-					pkt_byte_count <= pkt_byte_count + 1'b1;
 			end
 			
 			PKT_STATE_CHECKSUM: begin
@@ -234,5 +230,6 @@ module inpkt_header #(
 
 	assign pkt_end = pkt_data && pkt_byte_count == pkt_byte_count_max;
 
+	assign err = pkt_state == PKT_STATE_ERROR;
 	
 endmodule

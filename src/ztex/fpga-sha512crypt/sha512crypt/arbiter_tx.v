@@ -164,7 +164,8 @@ module arbiter_tx #(
 	
 	sync_pulse sync_tx_ready( .wr_clk(CLK),
 		.sig(state_in == STATE_IN_WAIT_TX_IDLE & tx_idle_sync),
-		.busy(), .rd_clk(CORE_CLK), .out(tx_ready_sync) );
+		//.busy(), .rd_clk(CORE_CLK), .out(tx_ready_sync) );
+		.busy(), .rd_clk(CLK), .out(tx_ready_sync) );
 
 	assign cmp_config_applied = state_in == STATE_IN_CMP_CONFIG;
 
@@ -172,14 +173,16 @@ module arbiter_tx #(
 
 	sync_pulse sync_pkt_init( .wr_clk(CLK),
 		.sig(state_in == STATE_IN_PKT_INIT),
-		.busy(), .rd_clk(CORE_CLK), .out(pkt_init_sync) );
+		//.busy(), .rd_clk(CORE_CLK), .out(pkt_init_sync) );
+		.busy(), .rd_clk(CLK), .out(pkt_init_sync) );
 
 
 	// ***************************************************
 	reg [`MSB(N_UNITS-1):0] unit_num = 0;
 	reg afull = 1, ready = 0;
 	reg unit_tx_mask_r = 0;
-	always @(posedge CORE_CLK) begin
+	//always @(posedge CORE_CLK) begin
+	always @(posedge CLK) begin
 		afull <= unit_in_afull [unit_num];
 		ready <= unit_in_ready [unit_num];
 		unit_tx_mask_r <= unit_tx_mask [unit_num];
@@ -210,7 +213,8 @@ module arbiter_tx #(
 	(* FSM_EXTRACT="true" *)
 	reg [3:0] state = STATE_IDLE;
 
-	always @(posedge CORE_CLK) begin
+	//always @(posedge CORE_CLK) begin
+	always @(posedge CLK) begin
 		case (state)
 		STATE_IDLE:
 			if (pkt_init_sync)
@@ -335,7 +339,8 @@ module arbiter_tx #(
 	sync_sig sync_tx_idle(.sig(state == STATE_IDLE), .clk(CLK),
 		.out(tx_idle_sync) );
 	
-	sync_pulse sync_tx_completed( .wr_clk(CORE_CLK),
+	//sync_pulse sync_tx_completed( .wr_clk(CORE_CLK),
+	sync_pulse sync_tx_completed( .wr_clk(CLK),
 		.sig(state == STATE_TX_END), .busy(),
 		.rd_clk(CLK), .out(tx_completed_sync) );
 

@@ -153,9 +153,6 @@ fig.2. Overview, FPGA application
 
 - Each FPGA has 10 computing units, that's 40 cores, 160 keys are
 computed in parallel.
-- On some hashes, dependent on key length and salt length,
-performance degradation up to 10% is observed. The cause is
-not-so-effective iteraction between CPU and process_bytes unit.
 - Communication framework was mostly taken from previous descrypt-ztex
 and bcrypt-ztex projects. The only difference is variable-length
 candidate generator (bcrypt and descrypt have fixed-length inputs).

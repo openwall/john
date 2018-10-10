@@ -81,7 +81,7 @@ module create_blk #(
 				STATE_TOTAL1 = 5,
 				STATE_TOTAL2 = 6;
 	
-	(* FSM_EXTRACT="true", FSM_ENCODING="speed1" *)
+	(* FSM_EXTRACT="true" *)//, FSM_ENCODING="speed1" *)
 	reg [3:0] state = STATE_INIT;
 
 	wire wr_en_effective = wr_en & ~full & ~blk_end;
@@ -99,6 +99,7 @@ module create_blk #(
 			save_padded0x80 <= 1'b0;
 			thread_num <= in_thread_num;
 			blk_op <= in_blk_op;
+			save_thread_num <= in_thread_num;
 		end
 		
 		case(state)
@@ -106,7 +107,7 @@ module create_blk #(
 			save_thread_num <= save_thread_num == N_THREADS-1
 				? {N_THREADS_MSB+1{1'b0}} : save_thread_num + 1'b1;
 			if (save_thread_num == N_THREADS-1) begin
-				save_wr_en <= 0;
+				//save_wr_en <= 0;
 				state <= STATE_PROCB;
 			end
 		end
@@ -124,8 +125,7 @@ module create_blk #(
 			save_bytes_left <= in_bytes_left_prev - blk_left[3:0];
 			save_fin <= in_fin;
 			save_stop <= in_stop;
-			save_thread_num <= in_thread_num;
-			
+		
 			if (blk_start & ~new_comp & in_len == 0) begin
 				if (in_padded0x80)
 					add0x80pad <= 0;

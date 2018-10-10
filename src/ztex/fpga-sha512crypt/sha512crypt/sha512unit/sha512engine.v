@@ -22,7 +22,7 @@ module sha512engine #(
 	input [`UNIT_INPUT_WIDTH-1 :0] unit_in,
 	input unit_in_ctrl, unit_in_wr_en,
 	output unit_in_afull, unit_in_ready,
-	
+
 	// Unit Output
 	input PKT_COMM_CLK,
 	output [`UNIT_OUTPUT_WIDTH-1 :0] dout,
@@ -106,7 +106,7 @@ module sha512engine #(
 		else if (mem_rd_cpu_request & ~mem_rd_en_procb)
 			mem_rd_cpu_valid <= 1;
 	end
-	
+
 
 	// **********************************************************
 	//
@@ -119,7 +119,7 @@ module sha512engine #(
 		ts_wr_num2, ts_rd_num2, ts_num3, ts_num4;
 	wire [`THREAD_STATE_MSB :0] ts_wr1, ts_wr2, ts_wr3, ts_wr4,
 		ts_rd1, ts_rd2, ts_rd3, ts_rd4;
-	
+
 	thread_state #( .N_THREADS(N_THREADS)
 	) thread_state(
 		.CLK(CLK),
@@ -133,7 +133,7 @@ module sha512engine #(
 		.wr_state4(ts_wr4), .rd_num4(ts_num4), .rd_state4(ts_rd4),
 		.err()
 	);
-	
+
 
 	// **********************************************************
 	//
@@ -151,7 +151,7 @@ module sha512engine #(
 		.CLK(CLK),
 		.wr_thread_num(comp_procb_wr_thread_num), .wr_en(comp_wr_en),
 		.wr_data1(comp_wr_data1), .wr_data2(comp_wr_data2),
-		
+
 		.rd_thread_num1(comp_rd_thread_num1), .dout1(comp_dout1),
 		.rd_thread_num2(comp_rd_thread_num2), .dout2(comp_dout2)
 	);
@@ -164,7 +164,7 @@ module sha512engine #(
 	// **********************************************************
 	wire [31:0] ext_din;
 	wire [`MEM_TOTAL_MSB+1 :0] ext_wr_addr; //+1 bit for 32-bit input
-	
+
 	memory_input_mgr #( .N_CORES(N_CORES)
 	) memory_input_mgr(
 		.CLK(CLK),
@@ -198,24 +198,25 @@ module sha512engine #(
 	// **********************************************************
 	wire [`ENTRY_PT_MSB:0] entry_pt_curr;
 
-	unit_input #( .N_CORES(N_CORES)
+	unit_input_async #( .N_CORES(N_CORES)
 	) unit_input(
-		.CLK(CLK),
+		.WR_CLK(PKT_COMM_CLK),
 		.in(unit_in), .ctrl(unit_in_ctrl), .wr_en(unit_in_wr_en),
 		.afull(unit_in_afull), .ready(unit_in_ready),
-		
+
+		.RD_CLK(CLK),
 		.out(ext_din), .mem_addr(ext_wr_addr),
 		.rd_en(ext_wr_en), .empty(unit_input_empty),
 
 		.ts_num(ts_num4), .ts_wr_en(ts_wr_en4),
 		.ts_wr(ts_wr4), .ts_rd(ts_rd4),
-		
+
 		.entry_pt_curr(entry_pt_curr)
 	);
-	
+
 	assign ext_wr_en = ~unit_input_empty & ~ext_full;
-	
-	
+
+
 	// **********************************************************
 	//
 	// realign & core_input
@@ -226,7 +227,7 @@ module sha512engine #(
 	wire [`PROCB_TOTAL_MSB :0] bytes_total;
 	wire [N_THREADS_MSB :0] core_thread_num;
 	wire [`BLK_OP_MSB:0] blk_op;
-		
+
 	reg [3:0] len_r = 8;
 	reg [2:0] off_r = 0;
 	reg add0x80pad_r = 0, add0pad_r = 0, add_total_r = 0;
@@ -249,11 +250,11 @@ module sha512engine #(
 		.CLK(CLK),
 		.wr_en(realign_wr_en),
 		.din(mem_doutb),
-		
+
 		.len(len_r), .off(off_r),
 		.add0x80pad(add0x80pad_r), .add0pad(add0pad_r),
 		.add_total(add_total_r), .total_bytes(bytes_total_r),
-		
+
 		.valid_eqn(realign_valid_eqn), .valid(realign_valid),
 		.wr_en_r(realign_wr_en_r),
 		.err(realign_err), .out(core_in)
@@ -285,7 +286,7 @@ module sha512engine #(
 	wire [N_THREADS_MSB :0] procb_rd_thread_num;
 	wire [`PROCB_D_WIDTH-1 :0] procb_wr_data, procb_dout;
 	wire [`PROCB_A_WIDTH-1 :0] procb_wr_cnt;
-	
+
 	procb_buf #( .N_THREADS(N_THREADS)
 	) procb_buf(
 		.CLK(CLK),
@@ -299,8 +300,8 @@ module sha512engine #(
 		.lookup_en(procb_lookup_en), .lookup_empty(procb_lookup_empty),
 		.dout(procb_dout)
 	);
-	
-	
+
+
 	// **********************************************************
 	//
 	// process_bytes.
@@ -320,7 +321,7 @@ module sha512engine #(
 		// comp_buf
 		.comp_data1_thread_num(comp_rd_thread_num1),
 		.comp_data1(comp_dout1),
-		
+
 		// procb_buf
 		.procb_rd_thread_num(procb_rd_thread_num),
 		.procb_rd_en(procb_rd_en), .procb_rd_rst(procb_rd_rst),
@@ -328,7 +329,7 @@ module sha512engine #(
 		.procb_dout(procb_dout),
 		.procb_lookup_en(procb_lookup_en),
 		.procb_lookup_empty(procb_lookup_empty),
-		
+
 		// Memory read, supplementary data for realign8_pad, core_input
 		.mem_rd_addr(mem_rd_addr_procb), .mem_rd_en(mem_rd_en_procb),
 
@@ -336,8 +337,8 @@ module sha512engine #(
 		.add0x80pad(add0x80pad), .add0pad(add0pad),
 		.add_total(add_total), .total(bytes_total),
 
-		.thread_num(core_thread_num), .blk_op(blk_op),
-		
+		.core_thread_num(core_thread_num), .blk_op(blk_op),
+
 		// Connections from cores
 		.ready0(ready0), .ready1(ready1),
 		.err()
@@ -351,13 +352,13 @@ module sha512engine #(
 	// **********************************************************
 	wire [31:0] uob_data;
 	wire [`UOB_ADDR_MSB :0] uob_wr_addr;
-	
+
 	unit_output_buf unit_output_buf(
 		.clk_wr(CLK),
 		.din(uob_data), .wr_en(uob_wr_en), .wr_addr(uob_wr_addr),
 		.full(uob_full), .ready(uob_ready),
 		.set_input_complete(uob_set_input_complete),
-		
+
 		.clk_rd(PKT_COMM_CLK),
 		.dout(dout), .rd_en(rd_en), .empty(empty)
 	);
@@ -409,7 +410,7 @@ module sha512engine #(
 	input [`UNIT_INPUT_WIDTH-1 :0] unit_in,
 	input unit_in_ctrl, unit_in_wr_en,
 	output unit_in_afull, unit_in_ready,
-	
+
 	// Unit Output
 	input PKT_COMM_CLK,
 	output [`UNIT_OUTPUT_WIDTH-1 :0] dout,
@@ -434,4 +435,5 @@ module sha512engine #(
 endmodule
 
 `endif
+
 

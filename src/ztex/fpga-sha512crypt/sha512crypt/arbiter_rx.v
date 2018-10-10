@@ -12,13 +12,12 @@
 // Unit output packet format:
 // - header (1 word)
 // - IDs (64 bits)
-// - SHA512 hash (512 bits)
-//
-// Total: 64+8 = 72 bytes
+// - hash (`RESULT_LEN/2 words x16-bit)
 //
 module arbiter_rx #(
 	parameter N_UNITS = -1,
-	parameter UNIT_OUTPUT_WIDTH = -1
+	parameter UNIT_OUTPUT_WIDTH = -1,
+	parameter PKT_NUM_WORDS = `RESULT_LEN/2 + 4
 	)(
 	input CLK,
 	input mode_cmp,
@@ -31,6 +30,7 @@ module arbiter_rx #(
 	input [15:0] pkt_id_tx,
 	input pkt_tx_done,
 	output reg pkt_rx_done = 0,
+	output reg recv_item = 0, // asserts for 1 for every RX item
 	// Comparator
 	output reg [31:0] cmp_data,
 	output reg cmp_start = 0,
@@ -39,7 +39,7 @@ module arbiter_rx #(
 	// Output
 	output reg [`OUTPKT_TYPE_MSB:0] outpkt_type,
 	output [15:0] dout,
-	input [5:0] rd_addr,
+	input [`MSB(PKT_NUM_WORDS-1):0] rd_addr,
 	output reg [15:0] pkt_id,
 	output reg [31:0] num_processed = 0,
 	output reg [`HASH_NUM_MSB:0] hash_num,
@@ -52,16 +52,18 @@ module arbiter_rx #(
 
 	reg [`MSB(N_UNITS-1):0] unit_num = 0;
 	reg [UNIT_OUTPUT_WIDTH-1 :0] din = 0;
-	always @(posedge CLK)
+	reg unit_empty_r = 1;
+	always @(posedge CLK) begin
 		din <= unit_dout [unit_num * UNIT_OUTPUT_WIDTH +:UNIT_OUTPUT_WIDTH];
-
+		unit_empty_r <= unit_empty [unit_num];
+	end
 
 	(* RAM_STYLE="DISTRIBUTED" *)
-	reg [15:0] output_r [0:63];
+	reg [15:0] output_r [0:PKT_NUM_WORDS-1];
 	assign dout = output_r [rd_addr];
 
 	reg rd_tmp_wr_en = 0;
-	reg [5:0] rd_tmp_wr_addr = 0;
+	reg [`MSB(PKT_NUM_WORDS-1):0] rd_tmp_wr_addr = 0;
 	always @(posedge CLK)
 		if (rd_tmp_wr_en)
 			output_r [rd_tmp_wr_addr] <= rd_tmp;
@@ -69,21 +71,23 @@ module arbiter_rx #(
 
 	reg [2:0] rd_count = 0;
 	reg [15:0] rd_tmp = 0;
-	reg [5:0] result_word_count = 0;
+	reg [`MSB(PKT_NUM_WORDS-1):0] result_word_count = 0;
 
-	reg [5:0] delay_cnt = 0;
-
+	reg [31:0] delay_shr = 0;
 
 	localparam STATE_IDLE = 0,
 				STATE_WAIT = 1,
-				STATE_READ = 2,
-				STATE_RX_HEADER = 3,
-				STATE_RX_DATA = 4,
-				STATE_RX_END = 5,
-				STATE_CMP = 6,
-				STATE_OUTPKT_RESULT = 7,
-				STATE_PKT_ACCOUNT = 8,
-				STATE_OUTPKT_PROCESSING_DONE = 9;
+				STATE_WAIT2 = 2,
+				STATE_READ = 3,
+				STATE_RX_HEADER = 4,
+				STATE_RX_DATA = 5,
+				STATE_RX_END = 6,
+				STATE_CMP = 7,
+				STATE_OUTPKT_RESULT = 8,
+				STATE_PKT_ACCOUNT = 9,
+				STATE_PKT_ACCOUNT2 = 10,
+				STATE_PKT_ACCOUNT3 = 11,
+				STATE_OUTPKT_PROCESSING_DONE = 12;
 
 	(* FSM_EXTRACT="true" *)
 	reg [3:0] state = STATE_IDLE;
@@ -98,21 +102,30 @@ module arbiter_rx #(
 		if (pkt_rx_done)
 			pkt_rx_done <= 0;
 
+		if (recv_item)
+			recv_item <= 0;
+
+		if (state == STATE_IDLE | delay_shr[31])
+			delay_shr <= { delay_shr[30:0], state == STATE_IDLE };
+
 		case (state)
-		STATE_IDLE: begin
-			delay_cnt <= delay_cnt + 1'b1;
-			if (delay_cnt == 63)
-				state <= STATE_WAIT;
-		end
+		STATE_IDLE: if (delay_shr[31])
+			state <= STATE_WAIT;
 		
 		STATE_WAIT:
-			if (~unit_empty [unit_num])
+			if (~unit_empty_r)// [unit_num])
 				state <= STATE_READ;
-			else
+			else begin
 				unit_num <= unit_num == N_UNITS-1
 					? {`MSB(N_UNITS-1)+1{1'b0}} : unit_num + 1'b1;
+				state <= STATE_WAIT2;
+			end
 		
+		STATE_WAIT2:
+			state <= STATE_WAIT;
+
 		STATE_READ: begin
+			recv_item <= 1;
 			unit_rd_en [unit_num] <= 1;
 			state <= STATE_RX_HEADER;
 		end
@@ -130,7 +143,7 @@ module arbiter_rx #(
 			end
 		end
 		
-		// Collect 36 words X 16 bit in output_r
+		// Collect PKT_NUM_WORDS words X 16 bit in output_r
 		STATE_RX_DATA: begin
 			rd_tmp [rd_count * UNIT_OUTPUT_WIDTH +:UNIT_OUTPUT_WIDTH]
 				<= din;
@@ -139,7 +152,7 @@ module arbiter_rx #(
 				rd_tmp_wr_en <= 1;
 				rd_tmp_wr_addr <= result_word_count;
 				result_word_count <= result_word_count + 1'b1;
-				if (result_word_count == 35)
+				if (result_word_count == PKT_NUM_WORDS-1)
 					state <= STATE_RX_END;
 			end
 			
@@ -192,19 +205,27 @@ module arbiter_rx #(
 		end
 		
 		STATE_PKT_ACCOUNT: begin
-			outpkt_type <= `OUTPKT_TYPE_PACKET_DONE;
 			num_processed <= num_processed + 1'b1;
-			pkt_id <= pkt_id_tx;
-			if (num_processed_tx == num_processed + 1'b1
-					& pkt_tx_done) begin
-				empty <= 0;
-				pkt_rx_done <= 1;
-				state <= STATE_OUTPKT_PROCESSING_DONE;
-			end
+			if (pkt_tx_done)
+				state <= STATE_PKT_ACCOUNT2;
 			else
 				state <= STATE_WAIT;
 		end
 
+		STATE_PKT_ACCOUNT2:
+			if (num_processed_tx == num_processed)
+				state <= STATE_PKT_ACCOUNT3;
+			else
+				state <= STATE_WAIT;
+		
+		STATE_PKT_ACCOUNT3: begin
+			outpkt_type <= `OUTPKT_TYPE_PACKET_DONE;
+			pkt_id <= pkt_id_tx;
+			empty <= 0;
+			pkt_rx_done <= 1;
+			state <= STATE_OUTPKT_PROCESSING_DONE;
+		end
+		
 		// output PKT_PROCESSING_DONE
 		STATE_OUTPKT_PROCESSING_DONE: if (rd_en) begin
 			empty <= 1;

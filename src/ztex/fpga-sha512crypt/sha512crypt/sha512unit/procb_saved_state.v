@@ -27,8 +27,9 @@ module procb_saved_state #(
 	input [`PROCB_SAVE_MSB :0] din,
 
 	input [N_THREADS_MSB :0] rd_thread_num,
-	input rd_en,
-	output reg [`PROCB_SAVE_MSB :0] dout = 0
+	//input rd_en,
+	//output reg [`PROCB_SAVE_MSB :0] dout = 0
+	output [`PROCB_SAVE_MSB :0] dout
 	);
 
 	
@@ -39,8 +40,9 @@ module procb_saved_state #(
 		if (wr_en)
 			mem [wr_thread_num] <= din;
 
-	always @(posedge CLK)
-		if (rd_en)
-			dout <= mem [rd_thread_num];
+	//always @(posedge CLK)
+	//	if (rd_en)
+	//		dout <= mem [rd_thread_num];
+	assign dout = mem [rd_thread_num];
 
 endmodule

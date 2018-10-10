@@ -50,7 +50,7 @@ initial begin
 
 	// ************************************************************
 	//
-	// - Execution of a thread starts when it receives 
+	// - Execution of a thread starts when it receives
 	// an input data packet, that sets thread_state to WR_RDY
 	//
 	// ************************************************************
@@ -132,7 +132,7 @@ initial begin
 	// (if condition is not met then the instruction is skipped).
 	`IF(`IF_ZERO)
 	instr_mem[21] = `JMP(25); `IF(`IF_NONE)
-	
+
 	`IF(`IF_ONE)
 	instr_mem[22] = `PROCESS_BYTES_C(`ADDR_alt_result,64); `IF(`IF_NONE)
 	`IF(`IF_NOT_ONE)
@@ -179,7 +179,7 @@ initial begin
 	//    sha512_process_bytes (salt, salt_len, &alt_ctx);"
 	//
 	// ************************************************************
-	
+
 	// - Only 2 words (x64 bit) are saved into memory (save_len=2)
 	instr_mem[39] = `NEW_CTX(`ADDR_s_bytes,2);
 	//
@@ -202,7 +202,7 @@ initial begin
 	instr_mem[49] = `NOP;
 	instr_mem[50] = `NOP;
 	instr_mem[51] = `NOP;
-	
+
 // 59 ->
 	instr_mem[52] = `SUB_R_C(`R1,`R0,4);
 	`IF(`IF_CARRY)
@@ -227,7 +227,7 @@ initial begin
 	instr_mem[64] = `JMP(62); `IF(`IF_NONE)
 // 61 ->
 	instr_mem[65] = `FINISH_CTX;
-	
+
 	instr_mem[66] = `JMP(80);
 
 
@@ -243,17 +243,17 @@ initial begin
 	instr_mem[81] = `MV_R_C(`R1,2);
 	instr_mem[82] = `MV_R_C(`R2,6);
 	instr_mem[83] = `RST_UF;
-	
-// 95 ->
+
 	// "New context."
 	instr_mem[84] = `NEW_CTX(`ADDR_alt_result,8);
-	
+
+// 95 ->
 	// "Add key or last result."
 	`IF(`IF_UF)
 	instr_mem[85] = `PROCESS_BYTES_R(`ADDR_p_bytes,`R_key_len); `IF(`IF_NONE)
 	`IF(`IF_NOT_UF)
 	instr_mem[86] = `PROCESS_BYTES_C(`ADDR_alt_result,64); `IF(`IF_NONE)
-	
+
 	// "Add salt for numbers not divisible by 3."
 	//
 	// - INC_RST instruction:
@@ -263,7 +263,7 @@ initial begin
 	instr_mem[87] = `INC_RST(`R1,2);
 	`IF(`IF_NOT_ZERO)
 	instr_mem[88] = `PROCESS_BYTES_R(`ADDR_s_bytes,`R_salt_len); `IF(`IF_NONE)
-	
+
 	// "Add key for numbers not divisible by 7."
 	instr_mem[89] = `INC_RST(`R2,6);
 	`IF(`IF_NOT_ZERO)
@@ -278,8 +278,8 @@ initial begin
 	instr_mem[93] = `INV_UF;
 	instr_mem[94] = `SUB_R_C(`R0,`R0,1);
 	`IF(`IF_NOT_ZERO)
-	instr_mem[95] = `JMP(84); `IF(`IF_NONE)
-	
+	instr_mem[95] = `JMP(85); `IF(`IF_NONE)
+
 	// - On FINISH_CTX, it sets thread_state to BUSY and it continues
 	// running until JMP or EXEC_OPT_TS_WR_RDY-flagged instruction.
 	// On such instruction, thread switches. It restores back

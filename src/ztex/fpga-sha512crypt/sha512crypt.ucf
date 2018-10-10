@@ -8,11 +8,14 @@
 #
 ##########################################################################
 #
-AREA_GROUP "pkt_comm" RANGE=SLICE_X44Y16:SLICE_X83Y19,SLICE_X68Y20:SLICE_X83Y34,SLICE_X52Y0:SLICE_X81Y15;
-AREA_GROUP "pkt_comm" RANGE=RAMB8_X2Y8:RAMB8_X2Y11;
-AREA_GROUP "pkt_comm" RANGE=RAMB16_X2Y8:RAMB16_X2Y10;
+AREA_GROUP "pkt_comm" RANGE=SLICE_X52Y2:SLICE_X81Y17,SLICE_X62Y18:SLICE_X85Y33;
+AREA_GROUP "pkt_comm" RANGE=RAMB8_X3Y8:RAMB8_X3Y15;
+AREA_GROUP "pkt_comm" RANGE=RAMB16_X3Y8:RAMB16_X3Y14;
 
+INST "input_fifo/fifo_input1*" AREA_GROUP="pkt_comm";
 INST "pkt_comm/inpkt_header*" AREA_GROUP="pkt_comm";
+INST "pkt_comm/inpkt_init*" AREA_GROUP="pkt_comm";
+INST "pkt_comm/inpkt_config*" AREA_GROUP="pkt_comm";
 INST "pkt_comm/word_list*" AREA_GROUP="pkt_comm";
 INST "pkt_comm/word_gen*" AREA_GROUP="pkt_comm";
 INST "pkt_comm/cmp_config*" AREA_GROUP="pkt_comm";
@@ -27,80 +30,56 @@ INST "output_fifo*" AREA_GROUP="pkt_comm";
 INST "hs_io_inst*" AREA_GROUP="pkt_comm";
 INST "vcr_inst*" AREA_GROUP="pkt_comm";
 
+
 AREA_GROUP "area_output" RANGE=SLICE_X28Y2:SLICE_X33Y14;
 AREA_GROUP "area_output" RANGE=RAMB16_X1Y0:RAMB16_X1Y6;
 INST "output_fifo/fifo_output0*" AREA_GROUP="area_output";
 
-# 16-kb input fifo
-#AREA_GROUP "area_input0" RANGE=SLICE_X98Y0:SLICE_X99Y14,SLICE_X74Y16:SLICE_X83Y27;
-#AREA_GROUP "area_input0" RANGE=RAMB16_X4Y0:RAMB16_X4Y6,RAMB16_X3Y8:RAMB16_X3Y14;
-# 8-kb input fifo
-AREA_GROUP "area_input0" RANGE=SLICE_X74Y16:SLICE_X83Y25;
-AREA_GROUP "area_input0" RANGE=RAMB16_X3Y8:RAMB16_X3Y14;
+AREA_GROUP "area_input0" RANGE=SLICE_X98Y0:SLICE_X99Y15,SLICE_X82Y16:SLICE_X85Y19;
+AREA_GROUP "area_input0" RANGE=RAMB16_X4Y0:RAMB16_X4Y6;
 INST "input_fifo/fifo_input0*" AREA_GROUP="area_input0";
-
-AREA_GROUP "area_input1" RANGE=SLICE_X74Y26:SLICE_X83Y33;
-AREA_GROUP "area_input1" RANGE=RAMB16_X3Y16:RAMB16_X3Y16;
-INST "input_fifo/fifo_input1*" AREA_GROUP="area_input1";
 
 
 // ========================================================
 // Nodes - left branch
-AREA_GROUP "node1" RANGE=SLICE_X44Y16:SLICE_X47Y19;
+AREA_GROUP "node1" RANGE=SLICE_X43Y16:SLICE_X49Y17;
 INST "pkt_comm/bcast_net/node[1].r*" AREA_GROUP="node1";
-INST "pkt_comm/units[1].unit_in_regs/stage[0].r*" AREA_GROUP="node1";
-INST "pkt_comm/units[1].unit_in_regs/stage<0>.r*" AREA_GROUP="node1";
-INST "pkt_comm/units[4].unit_in_regs/stage[0].r*" AREA_GROUP="node1";
-INST "pkt_comm/units[4].unit_in_regs/stage<0>.r*" AREA_GROUP="node1";
-INST "pkt_comm/units[5].unit_in_regs/stage[0].r*" AREA_GROUP="node1";
-INST "pkt_comm/units[5].unit_in_regs/stage<0>.r*" AREA_GROUP="node1";
+INST "pkt_comm/units[1].unit_*_regs/stage[1].r*" AREA_GROUP="node1";
+INST "pkt_comm/units[4].unit_*_regs/stage[1].r*" AREA_GROUP="node1";
+INST "pkt_comm/units[5].unit_*_regs/stage[1].r*" AREA_GROUP="node1";
 
 AREA_GROUP "node2" RANGE=SLICE_X18Y53:SLICE_X43Y58;
 INST "pkt_comm/bcast_net/node[2].r*" AREA_GROUP="node2";
-INST "pkt_comm/units[1].unit_in_regs/stage[1].r*" AREA_GROUP="node2";
-INST "pkt_comm/units[1].unit_in_regs/stage<1>.r*" AREA_GROUP="node2";
-INST "pkt_comm/units[4].unit_in_regs/stage[1].r*" AREA_GROUP="node2";
-INST "pkt_comm/units[4].unit_in_regs/stage<1>.r*" AREA_GROUP="node2";
-INST "pkt_comm/units[5].unit_in_regs/stage[1].r*" AREA_GROUP="node2";
-INST "pkt_comm/units[5].unit_in_regs/stage<1>.r*" AREA_GROUP="node2";
+INST "pkt_comm/units[1].unit_*_regs/stage[2].r*" AREA_GROUP="node2";
+INST "pkt_comm/units[4].unit_*_regs/stage[2].r*" AREA_GROUP="node2";
+INST "pkt_comm/units[5].unit_*_regs/stage[2].r*" AREA_GROUP="node2";
 
 AREA_GROUP "node3" RANGE=SLICE_X18Y93:SLICE_X43Y98;
 INST "pkt_comm/bcast_net/node[3].r*" AREA_GROUP="node3";
-INST "pkt_comm/units[1].unit_in_regs/stage[2].r*" AREA_GROUP="node3";
-INST "pkt_comm/units[1].unit_in_regs/stage<2>.r*" AREA_GROUP="node3";
-INST "pkt_comm/units[4].unit_in_regs/stage[2].r*" AREA_GROUP="node3";
-INST "pkt_comm/units[4].unit_in_regs/stage<2>.r*" AREA_GROUP="node3";
+INST "pkt_comm/units[1].unit_*_regs/stage[3].r*" AREA_GROUP="node3";
+INST "pkt_comm/units[4].unit_*_regs/stage[3].r*" AREA_GROUP="node3";
 
 AREA_GROUP "node4" RANGE=SLICE_X18Y133:SLICE_X43Y137;
 INST "pkt_comm/bcast_net/node[4].r*" AREA_GROUP="node4";
-INST "pkt_comm/units[1].unit_in_regs/stage[3].r*" AREA_GROUP="node4";
-INST "pkt_comm/units[1].unit_in_regs/stage<3>.r*" AREA_GROUP="node4";
+INST "pkt_comm/units[1].unit_*_regs/stage[4].r*" AREA_GROUP="node4";
 
 // Nodes - right branch
 AREA_GROUP "node8" RANGE=SLICE_X72Y75:SLICE_X87Y79;
 INST "pkt_comm/bcast_net/node[8].r*" AREA_GROUP="node8";
-INST "pkt_comm/units[2].unit_in_regs/stage[1].r*" AREA_GROUP="node8";
-INST "pkt_comm/units[2].unit_in_regs/stage<1>.r*" AREA_GROUP="node8";
-INST "pkt_comm/units[3].unit_in_regs/stage[1].r*" AREA_GROUP="node8";
-INST "pkt_comm/units[3].unit_in_regs/stage<1>.r*" AREA_GROUP="node8";
-INST "pkt_comm/units[8].unit_in_regs/stage[1].r*" AREA_GROUP="node8";
-INST "pkt_comm/units[8].unit_in_regs/stage<1>.r*" AREA_GROUP="node8";
-INST "pkt_comm/units[6].unit_in_regs/stage[1].r*" AREA_GROUP="node8";
-INST "pkt_comm/units[6].unit_in_regs/stage<1>.r*" AREA_GROUP="node8";
+INST "pkt_comm/units[2].unit_*_regs/stage[2].r*" AREA_GROUP="node8";
+INST "pkt_comm/units[3].unit_*_regs/stage[2].r*" AREA_GROUP="node8";
+INST "pkt_comm/units[6].unit_*_regs/stage[2].r*" AREA_GROUP="node8";
+INST "pkt_comm/units[8].unit_*_regs/stage[2].r*" AREA_GROUP="node8";
 
 AREA_GROUP "node9" RANGE=SLICE_X72Y113:SLICE_X91Y121;
 INST "pkt_comm/bcast_net/node[9].r*" AREA_GROUP="node9";
-INST "pkt_comm/units[2].unit_in_regs/stage[2].r*" AREA_GROUP="node9";
-INST "pkt_comm/units[2].unit_in_regs/stage<2>.r*" AREA_GROUP="node9";
-INST "pkt_comm/units[3].unit_in_regs/stage[2].r*" AREA_GROUP="node9";
-INST "pkt_comm/units[3].unit_in_regs/stage<2>.r*" AREA_GROUP="node9";
+INST "pkt_comm/units[2].unit_*_regs/stage[3].r*" AREA_GROUP="node9";
+INST "pkt_comm/units[3].unit_*_regs/stage[3].r*" AREA_GROUP="node9";
 
 AREA_GROUP "node10" RANGE=SLICE_X85Y134:SLICE_X91Y138;
 INST "pkt_comm/bcast_net/node[10].r*" AREA_GROUP="node10";
-INST "pkt_comm/units[2].unit_in_regs/stage[3].r*" AREA_GROUP="node10";
-INST "pkt_comm/units[2].unit_in_regs/stage<3>.r*" AREA_GROUP="node10";
-INST "pkt_comm/units[3].unit_in_regs/stage[3].r*" AREA_GROUP="node10";
-INST "pkt_comm/units[3].unit_in_regs/stage<3>.r*" AREA_GROUP="node10";
+INST "pkt_comm/units[2].unit_*_regs/stage[4].r*" AREA_GROUP="node10";
+INST "pkt_comm/units[3].unit_*_regs/stage[4].r*" AREA_GROUP="node10";
 
 
 // ========================================================
@@ -295,8 +274,7 @@ AREA_GROUP "u7_c2" RANGE=RAMB8_X5Y18:RAMB8_X5Y27;
 INST "pkt_comm/units[7].unit/cores[2].core" AREA_GROUP="u7_c2";
 
 // col.4
-#AREA_GROUP "u7_engine" RANGE=SLICE_X85Y16:SLICE_X105Y35,SLICE_X84Y17:SLICE_X84Y34;
-AREA_GROUP "u7_engine" RANGE=SLICE_X85Y16:SLICE_X104Y35,SLICE_X84Y17:SLICE_X84Y34,SLICE_X105Y16:SLICE_X105Y25;
+AREA_GROUP "u7_engine" RANGE=SLICE_X86Y16:SLICE_X105Y35;
 AREA_GROUP "u7_engine" RANGE=RAMB8_X4Y8:RAMB8_X4Y17;
 AREA_GROUP "u7_engine" RANGE=RAMB16_X4Y8:RAMB16_X4Y16;
 INST "pkt_comm/units[7].unit/engine" AREA_GROUP="u7_engine";
@@ -322,7 +300,7 @@ AREA_GROUP "u8_c2" RANGE=SLICE_X85Y116:SLICE_X106Y135; # 22x20
 AREA_GROUP "u8_c2" RANGE=RAMB8_X4Y58:RAMB8_X4Y67;
 INST "pkt_comm/units[8].unit/cores[2].core" AREA_GROUP="u8_c2";
 
-AREA_GROUP "u8_engine" RANGE=SLICE_X85Y96:SLICE_X106Y115; # 22x20
+AREA_GROUP "u8_engine" RANGE=SLICE_X86Y96:SLICE_X106Y115; # 22x20
 AREA_GROUP "u8_engine" RANGE=RAMB8_X4Y48:RAMB8_X4Y57;
 AREA_GROUP "u8_engine" RANGE=RAMB16_X4Y48:RAMB16_X4Y56;
 INST "pkt_comm/units[8].unit/engine" AREA_GROUP="u8_engine";
@@ -344,7 +322,8 @@ AREA_GROUP "u9_engine" RANGE=RAMB8_X2Y20:RAMB8_X2Y31;
 AREA_GROUP "u9_engine" RANGE=RAMB16_X2Y20:RAMB16_X2Y30;
 INST "pkt_comm/units[9].unit/engine" AREA_GROUP="u9_engine";
 
-AREA_GROUP "u9_c1" RANGE=SLICE_X43Y20:SLICE_X63Y40; # 21x21
+#AREA_GROUP "u9_c1" RANGE=SLICE_X43Y20:SLICE_X63Y40; # 21x21
+AREA_GROUP "u9_c1" RANGE=SLICE_X44Y18:SLICE_X61Y40;
 AREA_GROUP "u9_c1" RANGE=RAMB8_X2Y12:RAMB8_X2Y19;
 INST "pkt_comm/units[9].unit/cores[1].core" AREA_GROUP="u9_c1";
 // col.3
@@ -364,6 +343,8 @@ NET "pkt_comm/units[*].unit/engine/process_bytes/saved_total_t*" TIG;
 NET "pkt_comm/units[*].unit/engine/process_bytes/saved_padded0x80_t" TIG;
 NET "pkt_comm/units[*].unit/engine/process_bytes/saved_comp_active_t" TIG;
 NET "pkt_comm/units[*].unit/engine/process_bytes/saved_procb_active_t" TIG;
+NET "pkt_comm/units[*].unit/engine/process_bytes/saved_finish_ctx_t" TIG;
+NET "pkt_comm/units[*].unit/engine/process_bytes/saved_stop_ctx_t" TIG;
 // cpu
 NET "pkt_comm/units[*].unit/engine/cpu/uob_thread_num*" TIG;
 

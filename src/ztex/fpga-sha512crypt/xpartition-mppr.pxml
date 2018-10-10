@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- Begin Editing Here -->
+<Project FileVersion="1.2" Name="Example" ProjectVersion="2.0">
+
+  <Partition Name="/ztex_inouttraffic" State="implement" ImportLocation="NONE" Preserve="placement" BoundaryOpt="all">
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[0].unit/engine" State="implement" ImportLocation="" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[0].unit/cores[0].core" State="implement" ImportLocation="u0_c0" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[0].unit/cores[1].core" State="implement" ImportLocation="u0_c1" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[0].unit/cores[2].core" State="implement" ImportLocation="u0_c2" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[0].unit/cores[3].core" State="implement" ImportLocation="u0_c13" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[1].unit/engine" State="implement" ImportLocation="e_124679" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[1].unit/cores[0].core" State="implement" ImportLocation="u1_c023" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[1].unit/cores[1].core" State="implement" ImportLocation="u1_c1a" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[1].unit/cores[2].core" State="implement" ImportLocation="u1_c2" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[1].unit/cores[3].core" State="implement" ImportLocation="u1_c023" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[2].unit/engine" State="implement" ImportLocation="e_124679" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[2].unit/cores[0].core" State="implement" ImportLocation="u2_c01" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[2].unit/cores[1].core" State="implement" ImportLocation="u2_c01" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[2].unit/cores[2].core" State="implement" ImportLocation="u2_c2" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[2].unit/cores[3].core" State="implement" ImportLocation="u2_c3" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[3].unit/engine" State="implement" ImportLocation="" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[3].unit/cores[0].core" State="implement" ImportLocation="u3_c0a" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[3].unit/cores[1].core" State="implement" ImportLocation="u3_c1" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[3].unit/cores[2].core" State="implement" ImportLocation="u3_c023" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[3].unit/cores[3].core" State="implement" ImportLocation="u3_c023" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[4].unit/engine" State="implement" ImportLocation="e_124679" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[4].unit/cores[0].core" State="implement" ImportLocation="u4_c0" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[4].unit/cores[1].core" State="implement" ImportLocation="u4_c1" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[4].unit/cores[2].core" State="implement" ImportLocation="u4_c23" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[4].unit/cores[3].core" State="implement" ImportLocation="u4_c23" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[5].unit/engine" State="implement" ImportLocation="" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[5].unit/cores[0].core" State="implement" ImportLocation="u5_c0" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[5].unit/cores[1].core" State="implement" ImportLocation="u5_c1" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[5].unit/cores[2].core" State="implement" ImportLocation="u5_c2" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[5].unit/cores[3].core" State="implement" ImportLocation="u5_c3" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[6].unit/engine" State="implement" ImportLocation="e_124679" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[6].unit/cores[0].core" State="import" ImportLocation="u6b_c0" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[6].unit/cores[1].core" State="import" ImportLocation="u6b_c0123" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[6].unit/cores[2].core" State="import" ImportLocation="u6b_c0123" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[6].unit/cores[3].core" State="import" ImportLocation="u6b_c3" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[7].unit/engine" State="implement" ImportLocation="e_124679" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[7].unit/cores[0].core" State="implement" ImportLocation="u7_c0" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[7].unit/cores[1].core" State="implement" ImportLocation="u7_c123" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[7].unit/cores[2].core" State="implement" ImportLocation="u7_c2" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[7].unit/cores[3].core" State="implement" ImportLocation="u7_c123" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[8].unit/engine" State="implement" ImportLocation="e_8" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[8].unit/cores[0].core" State="implement" ImportLocation="u8_c0a" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[8].unit/cores[1].core" State="implement" ImportLocation="u8_c1" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[8].unit/cores[2].core" State="implement" ImportLocation="u8_c2" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[8].unit/cores[3].core" State="implement" ImportLocation="u8_c3" Preserve="placement">
+	</Partition>
+
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[9].unit/engine" State="implement" ImportLocation="e_124679" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[9].unit/cores[0].core" State="implement" ImportLocation="u9_c0" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[9].unit/cores[1].core" State="implement" ImportLocation="u9_c1" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[9].unit/cores[2].core" State="implement" ImportLocation="u9_c2" Preserve="placement">
+	</Partition>
+	<Partition Name="/ztex_inouttraffic/pkt_comm/units[9].unit/cores[3].core" State="implement" ImportLocation="u9_c3" Preserve="placement">
+	</Partition>
+
+  </Partition>
+
+</Project>

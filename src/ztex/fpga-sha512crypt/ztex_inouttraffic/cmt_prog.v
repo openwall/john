@@ -7,6 +7,7 @@
 // * Everything calculated for FREQ_IN=48
 //
 module cmt_prog #(
+	parameter PHASE_SHIFT = 0,
 	parameter FREQ_IN = 48,
 	parameter F = 225, // 1. Set startup frequency
 	// 2. Adjust timing constraint in UCF file!
@@ -100,6 +101,13 @@ module cmt_prog #(
 		.CLKOUT0_DIVIDE( PLL_DIVIDE ),
 		.CLKOUT0_DUTY_CYCLE(0.5),
 		.CLKIN_PERIOD( PLL_CLKIN_PERIOD ),
+		// CLKOUT0_PHASE - CLKOUT5_PHASE: Output phase relationship for CLKOUT# clock output (-360.0-360.0).
+		.CLKOUT0_PHASE( PHASE_SHIFT ),
+		.CLKOUT1_PHASE(0.0),
+		.CLKOUT2_PHASE(0.0),
+		.CLKOUT3_PHASE(0.0),
+		.CLKOUT4_PHASE(0.0),
+		.CLKOUT5_PHASE(0.0),
 		.CLK_FEEDBACK("CLKFBOUT"),
 		.COMPENSATION("DCM2PLL"),
 		.DIVCLK_DIVIDE(1),

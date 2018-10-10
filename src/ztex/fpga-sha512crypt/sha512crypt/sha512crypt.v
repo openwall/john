@@ -53,28 +53,30 @@ module sha512crypt #(
 	localparam [64*N_UNITS-1 :0] UNITS_CONF = {
 	// unit_dummy| reserved| core_dummy| n_cores| in_r| out_r| node#
 	// warning: in_r must match the count of pass-by nodes
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd1, 4'd1,		8'd5,		// unit #9
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd2, 4'd2,		8'd8,		// unit #8
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd1, 4'd1,		8'd6,		// unit #7
-
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd2, 4'd2,		8'd8,		// unit #6
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd2, 4'd2,		8'd2,		// unit #5
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd3, 4'd2,		8'd3,		// unit #4
-
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd4, 4'd2,		8'd10,	// unit #3
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd4, 4'd2,		8'd10,	// unit #2
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd4, 4'd2,		8'd4,		// unit #1
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd1, 4'd1,		8'd1		// unit #0
-	};
-
-
 /*
-	localparam N_UNITS = 2;
-	localparam [64*N_UNITS-1 :0] UNITS_CONF = {
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd4, 4'd2,		8'd4,
-		1'b0, 39'd0, 4'b0000, 4'd4,	4'd4, 4'd2,		8'd4
-	};
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd1, 4'd1, 8'd5,		// unit #9
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd2, 4'd2, 8'd8,		// unit #8
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd1, 4'd1, 8'd6,		// unit #7
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd2, 4'd2, 8'd8,		// unit #6
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd2, 4'd2, 8'd2,		// unit #5
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd3, 4'd3, 8'd3,		// unit #4
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd4, 4'd4, 8'd10,	// unit #3
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd4, 4'd4, 8'd10,	// unit #2
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd4, 4'd4, 8'd4,		// unit #1
+		1'b1, 39'd0,	4'b1111, 4'd4,		4'd1, 4'd1, 8'd1		// unit #0
 */
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd1, 4'd1, 8'd5,		// unit #9
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd2, 4'd2, 8'd8,		// unit #8
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd1, 4'd1, 8'd6,		// unit #7
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd2, 4'd2, 8'd8,		// unit #6
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd2, 4'd2, 8'd2,		// unit #5
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd3, 4'd3, 8'd3,		// unit #4
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd4, 4'd4, 8'd10,	// unit #3
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd4, 4'd4, 8'd10,	// unit #2
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd4, 4'd4, 8'd4,		// unit #1
+		1'b0, 39'd0,	4'b0000, 4'd4,		4'd1, 4'd1, 8'd1		// unit #0
+
+	};
 
 	// There's a network for broadcast signals to units.
 	// The network consists of nodes. The configuration for each node
@@ -129,11 +131,11 @@ module sha512crypt #(
 
 	(* KEEP="true" *) wire mode_cmp = ~app_mode[6]; // Use comparator
 	
-	reg error_r = 0;
+	//reg error_r = 0;
 	// Application error or pkt_comm error - disable further processing
-	always @(posedge PKT_COMM_CLK)
-		if (|app_status | |pkt_comm_status)
-			error_r <= 1;
+	//always @(posedge PKT_COMM_CLK)
+	//	if (|app_status | |pkt_comm_status)
+	//		error_r <= 1;
 
 
 	// **************************************************
@@ -163,7 +165,7 @@ module sha512crypt #(
 	) inpkt_header(
 		.CLK(PKT_COMM_CLK),
 		.din(din),
-		.wr_en(rd_en),
+		.wr_en(rd_en), .err(inpkt_error),
 		.pkt_type(inpkt_type), .pkt_id(inpkt_id), .pkt_data(inpkt_data),
 		.pkt_end(inpkt_end),
 		.err_pkt_version(err_pkt_version), .err_pkt_type(err_inpkt_type),
@@ -171,9 +173,9 @@ module sha512crypt #(
 	);
 
 	// input packet processing: read enable
-	assign rd_en = ~empty & ~error_r & (~inpkt_data 
-		| word_gen_conf_en | word_list_wr_en | cmp_config_wr_en
-		| inpkt_init_rd_en | inpkt_config_rd_en
+	assign rd_en = ~empty & (~inpkt_data
+		| inpkt_config_wr_rdy | inpkt_init_wr_rdy
+		| word_list_wr_rdy | word_gen_conf_rdy | cmp_config_wr_rdy
 	);
 
 
@@ -182,14 +184,16 @@ module sha512crypt #(
 	// input packet type PKT_TYPE_CONFIG (0x06)
 	//
 	// **************************************************
-	wire inpkt_config_rd_en = ~empty & ~error_r
-		& inpkt_type == PKT_TYPE_CONFIG & inpkt_data & ~inpkt_config_full;
+	wire inpkt_config_wr_rdy = inpkt_type == PKT_TYPE_CONFIG
+		& inpkt_data & ~inpkt_config_full;
 
-	wire [15:0] config_data1; // used to mask units in arbiter_tx
+	wire [N_UNITS-1:0] config_data1; // used to mask units in arbiter_tx
 	
-	inpkt_config inpkt_config(
+	inpkt_config #( .SUBTYPE1_WIDTH(N_UNITS)
+	) inpkt_config(
 		.CLK(PKT_COMM_CLK),
-		.din(din), .wr_en(inpkt_config_rd_en), .full(inpkt_config_full),
+		.din(din), .wr_en(inpkt_config_wr_rdy & ~empty),
+		.pkt_end(inpkt_end), .full(inpkt_config_full),
 		.dout1(config_data1), .err(app_status[3])
 	);
 
@@ -199,14 +203,14 @@ module sha512crypt #(
 	// input packet type PKT_TYPE_INIT (0x05)
 	//
 	// **************************************************
-	wire inpkt_init_rd_en = ~empty & ~error_r
-		& inpkt_type == PKT_TYPE_INIT & inpkt_data & ~inpkt_init_full;
+	wire inpkt_init_wr_rdy = inpkt_type == PKT_TYPE_INIT
+		& inpkt_data & ~inpkt_init_full;
 	
 	wire [7:0] init_data;
 	
 	inpkt_type_init_1b inpkt_init(
 		.CLK(PKT_COMM_CLK),
-		.din(din), .wr_en(inpkt_init_rd_en), .full(inpkt_init_full),
+		.din(din), .wr_en(inpkt_init_wr_rdy & ~empty), .full(inpkt_init_full),
 		.dout(init_data), .rd_en(init_rd_en), .empty(init_empty)
 	);
 
@@ -217,11 +221,9 @@ module sha512crypt #(
 	// PKT_TYPE_TEMPLATE_LIST (0x04)
 	//
 	// **************************************************
-	wire word_list_wr_en = ~empty & ~error_r
-		& (inpkt_type == PKT_TYPE_WORD_LIST
+	wire word_list_wr_rdy = (inpkt_type == PKT_TYPE_WORD_LIST
 			| inpkt_type == PKT_TYPE_TEMPLATE_LIST)
 		& inpkt_data & ~word_list_full;
-
 
 	wire [7:0] word_list_dout;
 	wire [`MSB(WORD_MAX_LEN-1):0] word_rd_addr;
@@ -235,7 +237,8 @@ module sha512crypt #(
 		.WORD_MAX_LEN(WORD_MAX_LEN), .RANGES_MAX(RANGES_MAX)
 	) word_list(
 		.CLK(PKT_COMM_CLK), .din(din),
-		.wr_en(word_list_wr_en), .full(word_list_full), .inpkt_end(inpkt_end),
+		.wr_en(word_list_wr_rdy & ~empty), .full(word_list_full),
+		.inpkt_end(inpkt_end),
 		.is_template_list(inpkt_type == PKT_TYPE_TEMPLATE_LIST),
 
 		.dout(word_list_dout), .rd_addr(word_rd_addr),
@@ -252,8 +255,8 @@ module sha512crypt #(
 	// input packet type PKT_TYPE_WORD_GEN (0x02)
 	//
 	// **************************************************
-	wire word_gen_conf_en = ~empty & ~error_r
-		& inpkt_type == PKT_TYPE_WORD_GEN & inpkt_data & ~word_gen_conf_full;
+	wire word_gen_conf_rdy = inpkt_type == PKT_TYPE_WORD_GEN
+		& inpkt_data & ~word_gen_conf_full;
 
 	wire [7:0] word_gen_dout;
 	wire [`MSB(WORD_MAX_LEN-1):0] word_gen_rd_addr;
@@ -265,7 +268,7 @@ module sha512crypt #(
 		.RANGES_MAX(RANGES_MAX), .WORD_MAX_LEN(WORD_MAX_LEN)
 	) word_gen(
 		.CLK(PKT_COMM_CLK), .din(din),
-		.inpkt_id(inpkt_id), .conf_wr_en(word_gen_conf_en),
+		.inpkt_id(inpkt_id), .conf_wr_en(word_gen_conf_rdy & ~empty),
 		.conf_full(word_gen_conf_full),
 
 		.word_in(word_list_dout), .word_rd_addr(word_rd_addr),
@@ -279,7 +282,7 @@ module sha512crypt #(
 		.word_len_out(word_len_out), .gen_id(gen_id), .gen_end(gen_end),
 		.totally_empty(word_gen_totally_empty),
 
-		.err_word_gen_conf(err_word_gen_conf)
+		.err(err_word_gen_conf)
 	);
 
 
@@ -301,8 +304,8 @@ module sha512crypt #(
 	// input packet type CMP_CONFIG (0x03)
 	//
 	// **************************************************
-	wire cmp_config_wr_en = ~empty & ~error_r
-			& inpkt_type == PKT_TYPE_CMP_CONFIG & inpkt_data & ~cmp_config_full;
+	wire cmp_config_wr_rdy = inpkt_type == PKT_TYPE_CMP_CONFIG
+		& inpkt_data & ~cmp_config_full;
 
 	wire [`HASH_COUNT_MSB:0] hash_count;
 	wire [`HASH_NUM_MSB+2:0] cmp_wr_addr;
@@ -313,12 +316,12 @@ module sha512crypt #(
 	
 	sha512crypt_cmp_config cmp_config(
 		.CLK(PKT_COMM_CLK), .mode_cmp(mode_cmp),
-		.din(din), .wr_en(cmp_config_wr_en),
-		.full(cmp_config_full), .error(err_cmp_config),
+		.din(din), .wr_en(cmp_config_wr_rdy & ~empty),
+		.full(cmp_config_full), .err(err_cmp_config),
 
 		.hash_count(hash_count), .cmp_wr_addr(cmp_wr_addr),
 		.cmp_wr_en(cmp_wr_en), .cmp_din(cmp_din),
-		
+
 		.new_cmp_config(new_cmp_config),
 		.cmp_config_applied(cmp_config_applied),
 		.addr(cmp_config_addr), .dout(cmp_config_data)
@@ -344,7 +347,8 @@ module sha512crypt #(
 	arbiter_tx #(
 		.N_UNITS(N_UNITS), .WORD_MAX_LEN(WORD_MAX_LEN)
 	) arbiter_tx(
-		.CLK(PKT_COMM_CLK), .CORE_CLK(CORE_CLK), .mode_cmp(mode_cmp),
+		//.CLK(PKT_COMM_CLK), .CORE_CLK(CORE_CLK), .mode_cmp(mode_cmp),
+		.CLK(PKT_COMM_CLK), .CORE_CLK(PKT_COMM_CLK), .mode_cmp(mode_cmp),
 		.pkt_id(pkt_id), .word_id(word_id_out), .gen_id(gen_id),
 		.gen_end(gen_end), .word_len(word_len_out),
 		
@@ -382,7 +386,8 @@ module sha512crypt #(
 	bcast_net #( .BCAST_WIDTH(8+1),
 		.N_NODES(N_NODES), .NODES_CONF(NODES_CONF)
 	) bcast_net(
-		.CLK(CORE_CLK), .in({ unit_in, unit_in_ctrl }), .out(bcast)
+		//.CLK(CORE_CLK), .in({ unit_in, unit_in_ctrl }), .out(bcast)
+		.CLK(PKT_COMM_CLK), .in({ unit_in, unit_in_ctrl }), .out(bcast)
 	);
 
 
@@ -402,13 +407,15 @@ module sha512crypt #(
 		// registers in each direction
 		wire unit_in_wr_en_in, unit_in_afull_in, unit_in_ready_in;
 		regs2d #( .IN_WIDTH(1), .OUT_WIDTH(2), .STAGES(UNIT_CONF[12 +:4])
-		) unit_in_regs( .CLK(CORE_CLK),
+		//) unit_in_regs( .CLK(CORE_CLK),
+		) unit_in_regs( .CLK(PKT_COMM_CLK),
 			.enter_in(unit_in_wr_en[i]),
 			.enter_out({ unit_in_afull[i], unit_in_ready[i] }),
 			.exit_in(unit_in_wr_en_in),
 			.exit_out({ unit_in_afull_in, unit_in_ready_in })
 		);
-
+		
+		/*
 		wire [UNIT_OUTPUT_WIDTH-1 :0] dout_in;
 		wire rd_en_in, empty_in;
 		regs #( .N(UNIT_OUTPUT_WIDTH+2), .STAGES(UNIT_CONF[8 +:4])
@@ -417,6 +424,19 @@ module sha512crypt #(
 			.out({ unit_dout[UNIT_OUTPUT_WIDTH*i +:UNIT_OUTPUT_WIDTH],
 				rd_en_in, unit_empty[i] })
 		);
+		*/
+		// output registers in both directions
+		wire [UNIT_OUTPUT_WIDTH-1 :0] dout_u;
+		wire rd_en_u, empty_u;
+		regs2d #( .IN_WIDTH(1), .OUT_WIDTH(UNIT_OUTPUT_WIDTH+1),
+			.STAGES(UNIT_CONF[8 +:4])
+		) unit_out_regs( .CLK(PKT_COMM_CLK),
+			.enter_in(unit_rd_en[i]),
+			.enter_out({ unit_empty[i],
+				unit_dout[UNIT_OUTPUT_WIDTH*i +:UNIT_OUTPUT_WIDTH] }),
+			.exit_in(rd_en_u),
+			.exit_out({ empty_u, dout_u })
+		);
 
 
 		localparam [63:0] UNIT_CONF = UNITS_CONF [64*i +:64];
@@ -424,20 +444,16 @@ module sha512crypt #(
 		localparam N_CORES = UNIT_CONF [16 +:4];
 		
 		(* KEEP_HIERARCHY="true" *)
-		sha512unit #( .UNIT_CONF(UNIT_CONF), .N_CORES(N_CORES)
+		sha512unit #( .UNIT_CONF(UNIT_CONF)
 		) unit(
 			.CLK(CORE_CLK),
 			.unit_in(bcast[NODE_NUM*BCAST_WIDTH+1 +:BCAST_WIDTH-1]),
 			.unit_in_ctrl(bcast[NODE_NUM*BCAST_WIDTH]),
-			//.unit_in_wr_en(unit_in_wr_en[i]),
-			//.unit_in_afull(unit_in_afull[i]), .unit_in_ready(unit_in_ready[i]),
 			.unit_in_wr_en(unit_in_wr_en_in),
 			.unit_in_afull(unit_in_afull_in), .unit_in_ready(unit_in_ready_in),
 			
 			.PKT_COMM_CLK(PKT_COMM_CLK),
-			//.dout(unit_dout[UNIT_OUTPUT_WIDTH*i +:UNIT_OUTPUT_WIDTH]),
-			//.rd_en(unit_rd_en[i]), .empty(unit_empty[i])
-			.dout(dout_in), .rd_en(rd_en_in), .empty(empty_in)
+			.dout(dout_u), .rd_en(rd_en_u), .empty(empty_u)
 		);
 
 	end
@@ -460,7 +476,8 @@ module sha512crypt #(
 	wire [5:0] arbiter_rd_addr;
 
 	arbiter_rx #(
-		.N_UNITS(N_UNITS), .UNIT_OUTPUT_WIDTH(UNIT_OUTPUT_WIDTH)
+		.N_UNITS(N_UNITS), .UNIT_OUTPUT_WIDTH(UNIT_OUTPUT_WIDTH),
+		.PKT_NUM_WORDS(4 +`RESULT_LEN/2)
 	) arbiter_rx(
 		.CLK(PKT_COMM_CLK), .mode_cmp(mode_cmp),
 		.unit_dout(unit_dout),
@@ -468,11 +485,12 @@ module sha512crypt #(
 		// Iteraction with arbiter_tx
 		.num_processed_tx(num_processed_tx), .pkt_id_tx(pkt_id_tx),
 		.pkt_tx_done(pkt_tx_done), .pkt_rx_done(pkt_rx_done),
+		.recv_item(recv_item),
 		// Comparator
 		.cmp_data(cmp_data), .cmp_start(cmp_start),
 		.cmp_found(cmp_found), .cmp_finished(cmp_finished),
 		.cmp_hash_num(cmp_hash_num),
-		// Output (outpkt_sha512crypt)
+		// Output
 		.dout(arbiter_dout), .rd_addr(arbiter_rd_addr),
 		.outpkt_type(outpkt_type), .pkt_id(arbiter_pkt_id),
 		.num_processed(arbiter_num_processed), .hash_num(hash_num),
@@ -507,7 +525,7 @@ module sha512crypt #(
 	assign arbiter_rd_en = ~arbiter_empty & ~outpkt_full;
 	assign outpkt_wr_en = arbiter_rd_en;
 
-	outpkt_sha512crypt #(
+	outpkt #(
 		.HASH_NUM_MSB(`HASH_NUM_MSB), .SIMULATION(DISABLE_CHECKSUM)
 	) outpkt(
 		.CLK(PKT_COMM_CLK),
