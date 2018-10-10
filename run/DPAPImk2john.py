@@ -276,11 +276,13 @@ CryptoAlgo.add_algo(0x800c, name="sha256", digestLength=256, blockLength=512)
 CryptoAlgo.add_algo(0x800d, name="sha384", digestLength=384, blockLength=1024)
 CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
-
-def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
+def pbkdf2_ms(passphrase, salt, keylen, iterations, digest='sha1'):
     """Implementation of PBKDF2 that allows specifying digest algorithm.
 
     Returns the corresponding expanded key which is keylen long.
+
+    Note: This is not real pbkdf2, but instead a slight modification of it.
+    Seems like Microsoft tried to implement pbkdf2 but got the xoring wrong.
     """
     buff = ""
     i = 1
@@ -294,6 +296,23 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
         buff += derived
     return buff[:keylen]
 
+def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
+    """Implementation of PBKDF2 that allows specifying digest algorithm.
+
+    Returns the corresponding expanded key which is keylen long.
+    """
+    buff = ""
+    i = 1
+    while len(buff) < keylen:
+        U = salt + struct.pack("!L", i)
+        i += 1
+        derived = hmac.new(passphrase, U, digestmod=lambda: hashlib.new(digest)).digest()
+        actual = derived
+        for r in xrange(iterations - 1):
+            actual = hmac.new(passphrase, actual, digestmod=lambda: hashlib.new(digest)).digest()
+            derived = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(derived, actual)])
+        buff += derived
+    return buff[:keylen]
 
 def derivePwdHash(pwdhash, userSID, digest='sha1'):
     """Internal use. Computes the encryption key from a user's password hash"""
@@ -303,7 +322,7 @@ def derivePwdHash(pwdhash, userSID, digest='sha1'):
 def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
     """Internal use. Decrypts data stored in DPAPI structures."""
     hname = {"HMAC": "sha1"}.get(hashAlgo.name, hashAlgo.name)
-    derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
+    derived = pbkdf2_ms(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
     key, iv = derived[:cipherAlgo.keyLength], derived[cipherAlgo.keyLength:]
     key = key[:cipherAlgo.keyLength]
     iv = iv[:cipherAlgo.ivLength]
@@ -398,13 +417,24 @@ class MasterKey(DataStruct):
         else:
             return "Unsupported combination of cipher '%s' and hash algorithm '%s' found!" % (self.cipherAlgo, self.hashAlgo)
         context = 0
+
         if self.context == "domain":
             context = 2
-        elif self.context == "local":
-            context = 1
-
-        s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
+            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
                                      len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
+            context = 3
+            s += "\n$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds,
+                                     self.iv.encode("hex"), len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
+        else:
+            if self.context == "local":
+                context = 1
+            elif self.context == "domain1607-":
+                context = 2
+            elif self.context == "domain1607+":
+                context = 3
+
+            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
+                                         len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
         return s
 
     def setKeyHash(self, h):
@@ -513,11 +543,22 @@ class MasterKeyFile(DataStruct):
     def decryptWithPassword(self, userSID, pwd, context):
         """See MasterKey.decryptWithPassword()"""
         algo = None
-        if context == "domain":
-            algo = "md4"
-        elif context == "local":
-            algo = "sha1"
-        self.decryptWithHash(userSID, hashlib.new(algo, pwd.encode('UTF-16LE')).digest())
+        if context == "domain1607-" or context == "domain":
+            self.decryptWithHash(userSID, hashlib.new("md4", pwd.encode('UTF-16LE')).digest())
+            if self.decrypted:
+                print "Decrypted succesfully as domain1607-"
+                return
+        if context == "domain1607+" or context == "domain":
+            SIDenc = userSID.encode("UTF-16LE")
+            NTLMhash = hashlib.new("md4", pwd.encode('UTF-16LE')).digest()
+            derived = pbkdf2(NTLMhash, SIDenc, 32, 10000, digest='sha256')
+            derived = pbkdf2(derived, SIDenc, 16, 1, digest='sha256')
+            self.decryptWithHash(userSID, derived)
+            if self.decrypted:
+                print "Decrypted succesfully as domain1607+"
+                return
+        if context == "local":
+            self.decryptWithHash(userSID, hashlib.new("sha1", pwd.encode('UTF-16LE')).digest())
 
     def __repr__(self):
         s = ["\n#### MasterKeyFile %s ####" % self.guid]
@@ -605,7 +646,7 @@ if __name__ == "__main__":
     parser.add_argument('-S', '--sid', required=False, help="SID of account owning the masterkey file.")
     parser.add_argument('-mk', '--masterkey', required=False, help="masterkey file (usually in %%APPDATA%%\\Protect\\<SID>).")
     parser.add_argument('-d', '--debug', default=False, action='store_true', dest="debug")
-    parser.add_argument('-c', '--context', required=False, help="context of user account. Only 'domain' and 'local' are possible.")
+    parser.add_argument('-c', '--context', required=False, help="context of user account. 1607 refers to Windows 10 1607 update.", choices=['domain', 'domain1607+', 'domain1607-', 'local'])
     parser.add_argument('-P', '--preferred', required=False, help="'Preferred' file containing GUID of masterkey file in use (usually in %%APPDATA%%\\Protect\\<SID>). Cannot be used with any other command.")
     parser.add_argument("--password", metavar="PASSWORD", dest="password", help="password to decrypt masterkey file.")
 
@@ -624,9 +665,6 @@ if __name__ == "__main__":
         Preferred.close()
         sys.exit(1)
     else:
-        if options.context != "local" and options.context != "domain":
-            "context must be whether 'local' or 'domain', exiting."
-            sys.exit(1)
         mkp = MasterKeyPool()
         masterkeyfile = open(options.masterkey,'rb')
         mkdata = masterkeyfile.read()

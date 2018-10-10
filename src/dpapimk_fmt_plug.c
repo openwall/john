@@ -45,6 +45,7 @@ john_register_one(&fmt_DPAPImk);
 
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_sha1.h"
+#include "pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "DPAPImk"
 #define FORMAT_TAG              "$DPAPImk$"
@@ -95,6 +96,7 @@ static struct fmt_tests dpapimk_tests[] = {
 	{"$DPAPImk$1*2*S-15-21-458698633-447735394-485599537-1788*des3*sha1*24000*96b957d9bf0f8846399e70a84431b595*208*0ee9fa2baf2cf0efda81514376aef853c6c93a5776fa6af66a869f44c50ac80148b7488f52b4c52c305e89a497a583e17cca4a9bab580668a8a5ce2eee083382c98049e481e47629b5815fb16247e3bbfa62c454585aaaf51ef15555a355fcf925cff16c0bb006f8", "jordifirstcredit"},
 	{"$DPAPImk$2*1*S-15-21-417226446-481759312-475941522-1494*aes256*sha512*8000*1e6b7a71a079bc12e71c75a6bcfd865c*288*5b5d651e538e5185f7d6939ba235ca2d8a2b9726a6e95b59844320ba1d1f22282527210bc784d22075e596d113927761a644ad4057cb4dbb497bd64ee6c630930a4ba388eadb59484ec2be7fb4cc79299a87f341d002d25b5b187c71fa19417ec9d1b65568a79c962cb3b5bcb1b8df5f968669af35eec5a24ed5dcee46deef42bfee5ad665dd4de56ccd9c6ba26b2acd", "PaulSmiteSuper160"},
 	{"$DPAPImk$2*2*S-15-21-402916398-457068774-444912990-1699*aes256*sha512*17000*4c51109a901e4be7f1e208f82a56e690*288*bb80d538ac4185eb0382080fda0d405bb74da3a6b98e96f222292b819fa9168cf1571e9bc9c698ad10daf850ab34de1a1765cfd5c0fb8a63a413a767d241dfe6355804af259d24f6be7282daac0a9e02d7fbe20675afb3733141995990a6d11012edfb7e81b49c0e1132dbc4503dd2206489e4f512e4fe9d573566c9d8973188b8d1a87610b8bef09e971270a376a52b", "Juan-Carlos"},
+	{"$DPAPImk$1*3*S-1-5-21-1857904334-2267218879-1458651445-1123*des3*sha1*18000*e4c529ba8975e4ed56f5fb8b1e85be43*208*af96b391f1d6e2d37a4de3b4c412ce78f032d446d77ea1fb6a0782f47c390c844349c2bcaeba9fd570b39def6f67a369aa2e266e8d017689d8a09667fdfb640feb3e19ca22067cc5704644c1dcc43d4cccac667391f4918d0de77f36569fd2e104ef0619a46edcfc", "LaKuckaracha42"},
 	/* old samples, with less iterations, preserved for backward compatibiliy */
 	{"$DPAPImk$1*1*S-1-5-21-1482476501-1659004503-725345543-1003*des3*sha1*4000*b3d62a0b06cecc236fe3200460426a13*208*d3841257348221cd92caf4427a59d785ed1474cab3d0101fc8d37137dbb598ff1fd2455826128b2594b846934c073528f8648d750d3c8e6621e6f706d79b18c22f172c0930d9a934de73ea2eb63b7b44810d332f7d03f14d1c153de16070a5cab9324da87405c1c0", "openwall"},
 	{"$DPAPImk$1*1*S-1-5-21-1482476501-1659004503-725345543-1005*des3*sha1*4000*c9cbd491f78ea6d512276b33f025bce8*208*091a13443cfc2ddb16dcf256ab2a6707a27aa22b49a9a9011ebf3bb778d0088c2896de31de67241d91df75306e56f835337c89cfb2f9afa940b4e7e019ead2737145032fac0bb34587a707d42da7e00b72601a730f5c848094d54c47c622e2f8c8d204c80ad061be", "JtRisthebest"},
@@ -311,12 +313,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		unsigned char *passwordBuf;
-		int passwordBufSize, digestlen = 20;
+		int passwordBufSize;
+		unsigned char *sidBuf;
+		int sidBufSize;
 		unsigned char out[MIN_KEYS_PER_CRYPT][KEY_LEN2 + IV_LEN2];
 		unsigned char out2[MIN_KEYS_PER_CRYPT][KEY_LEN2 + IV_LEN2];
 		SHA_CTX ctx;
 		MD4_CTX ctx2;
 		int i;
+		
+		int digestlens[MIN_KEYS_PER_CRYPT];
 
 #if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
 		int lens[MIN_KEYS_PER_CRYPT];
@@ -325,7 +331,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char *pout[MIN_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
-		int loops = MIN_KEYS_PER_CRYPT;
+		int sha256loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA256, loops = MIN_KEYS_PER_CRYPT;
 
 		if (cur_salt->version == 1)
 			loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA1;
@@ -333,6 +339,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			loops = MIN_KEYS_PER_CRYPT / SSE_GROUP_SZ_SHA512;
 #endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+			digestlens[i] = 16;
 			passwordBuf = (unsigned char*)saved_key[index+i];
 			passwordBufSize = strlen16((UTF16*)passwordBuf) * 2;
 
@@ -341,24 +348,62 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA1_Init(&ctx);
 				SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 				SHA1_Final(out[i], &ctx);
-				digestlen = 20;
+				digestlens[i] = 20;
 			}
 			/* domain credentials */
-			else if (cur_salt->cred_type == 2) {
+			else if (cur_salt->cred_type == 2 || cur_salt->cred_type == 3) {
 				MD4_Init(&ctx2);
 				MD4_Update(&ctx2, passwordBuf, passwordBufSize);
 				MD4_Final(out[i], &ctx2);
-				digestlen = 16;
+				digestlens[i] = 16;
 			}
+		}
+		
+		/* 1607+ domain credentials */
+		/* The key derivation algorithm is hardcoded in NtlmShared.dll!MsvpDeriveSecureCredKey */
+		if(cur_salt->cred_type == 3) {
+			sidBuf = (unsigned char*)cur_salt->SID;
+			sidBufSize = (strlen16(cur_salt->SID) * 2);
+#if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+				lens[i] = 16;
+				pin[i] = (unsigned char*)out[i];
+				x.pout[i] = out2[i];
+			}
+			
+			for (i = 0; i < sha256loops; i++) {
+				pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], sidBuf, sidBufSize, 10000, x.pout + (i * SSE_GROUP_SZ_SHA256), 32, 0);
+			}
+			
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+				lens[i] = 32;
+				pin[i] = (unsigned char*)out2[i];
+				x.pout[i] = out[i];
+			}
+			
+			for (i = 0; i < sha256loops; i++) {
+				pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], sidBuf, sidBufSize, 1, x.pout + (i * SSE_GROUP_SZ_SHA256), 16, 0);
+			}
+#else
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+				pbkdf2_sha256(out[i], 16, sidBuf, sidBufSize, 10000, out2[i], 32, 0);
+				pbkdf2_sha256(out2[i], 32, sidBuf, sidBufSize, 1, out[i], 16, 0);
+			}
+#endif
+		}
+
+		
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			passwordBuf = (unsigned char*)cur_salt->SID;
 			passwordBufSize = (strlen16(cur_salt->SID) + 1) * 2;
-			hmac_sha1(out[i], digestlen, passwordBuf, passwordBufSize, out2[i], 20);
+			hmac_sha1(out[i], digestlens[i], passwordBuf, passwordBufSize, out2[i], 20);
 #if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
 			lens[i] = 20;
 			pin[i] = (unsigned char*)out2[i];
 			x.pout[i] = out[i];
 #endif
 		}
+
 #if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
 		if (cur_salt->version == 1)
 			for (i = 0; i < loops; i++)
