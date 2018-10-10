@@ -61,9 +61,11 @@ module ztex_inouttraffic(
 		.progdone_inv(progdone_inv),
 		// Produced clocks
 		.IFCLK(IFCLK), 	// for operating I/O pins
-		.PKT_COMM_CLK(PKT_COMM_CLK), // for I/O packet processing
+		.PKT_COMM_CLK(),//PKT_COMM_CLK), // for I/O packet processing
 		.CORE_CLK(CORE_CLK) // for operating computing units
 	);
+
+	assign PKT_COMM_CLK = CORE_CLK;
 
 	chip_select chip_select(
 		.CS_IN(CS_IN), .CLK(IFCLK), .CS(CS), .out_z_wait1(out_z_wait1)

@@ -52,7 +52,7 @@ module process_bytes #(
 	output add0x80pad, add0pad, add_total,
 	output [`PROCB_TOTAL_MSB :0] total,
 	// "core_input"
-	output [N_THREADS_MSB :0] thread_num,
+	output [N_THREADS_MSB :0] core_thread_num,
 	output [`BLK_OP_MSB:0] blk_op,
 	
 	// Ready flags from cores
@@ -65,29 +65,20 @@ module process_bytes #(
 	genvar i;
 	integer k;
 
-	reg set_next_core_ctx_num = 1;
-	reg set_next_seq_num = 1;
-	wire [N_THREADS_MSB :0] core_thread_num;
-	wire [N_THREADS_MSB :0] procb_rd_thread_num2;
+	reg [N_THREADS_MSB :0] thread_num = 0;
+	wire [N_THREADS_MSB :0] thread_num_next;
+	next_thread_num #( .N_CORES(N_CORES)
+	) next_thread_num( .in(thread_num), .out(thread_num_next) );
 
-	procb_thread_addr #( .N_CORES(N_CORES)
-	) procb_thread_addr(
-		.CLK(CLK),
-		.set_next_core_ctx_num(set_next_core_ctx_num),
-		.set_next_seq_num(set_next_seq_num),
-		.core_thread_num(core_thread_num),
-		
-		.set_next_procb_rd_thread_num(set_next_procb_rd_thread_num),
-		// procb_buf exclusively
-		.procb_rd_thread_num(procb_rd_thread_num),
-		// thread_state, core.ready, procb_saved_state
-		.procb_rd_thread_num2(procb_rd_thread_num2)
-	);
+	always @(posedge CLK)
+		if (set_next_thread_num)
+			thread_num <= thread_num_next;
 
-	// Thread Status - using procb_rd_thread_num for read
-	assign ts_rd_num = procb_rd_thread_num2;
-	
-	assign ts_wr_num = core_thread_num;
+	assign procb_rd_thread_num = thread_num;
+
+	// Thread Status
+	assign ts_rd_num = thread_num;
+	assign ts_wr_num = thread_num;
 
 
 	// =================================================================
@@ -109,13 +100,13 @@ module process_bytes #(
 
 	reg core_ready_r = 0; // Next core/context is ready for input
 	always @(posedge CLK)
-		core_ready_r <= core_ready [ procb_rd_thread_num2[N_THREADS_MSB:1] ];
+		core_ready_r <= core_ready [ procb_rd_thread_num[N_THREADS_MSB:1] ];
 
 	
 	// =================================================================
 	// *** Computation data (set #1) ***
 	//
-	assign comp_data1_thread_num = core_thread_num;
+	assign comp_data1_thread_num = thread_num;
 	
 	wire [1:0] comp_load_ctx_num, comp_save_ctx_num;
 	assign { comp_if_new_ctx, comp_load_ctx_num, comp_save_ctx_num }
@@ -138,10 +129,6 @@ module process_bytes #(
 	// total length in process_bytes (if flag finish_ctx is set).
 	// These are saved in saved_procb_state when block is finished
 	// and current thread changes.
-	//
-	// Thread changes after each data block.
-	// (we can optimize for 1/2X memory usage and save only
-	// for each core,ctx - nothing persists after change in seq_num).
 	//
 	reg [`MEM_ADDR_MSB+3 :0] cur_addr;
 	reg [3:0] cur_len = 8;
@@ -175,18 +162,20 @@ module process_bytes #(
 	// required on the next cycle (KEEP,TIG)
 	//
 	(* KEEP="true" *) wire [`MEM_ADDR_MSB+3 :0] saved_addr_t = saved_addr;
+	(* KEEP="true" *) wire [`PROCB_CNT_MSB :0] saved_bytes_left_t = saved_bytes_left;
 	(* KEEP="true" *) wire [`PROCB_TOTAL_MSB :0] saved_total_t = saved_total;
 	(* KEEP="true" *) wire saved_padded0x80_t = saved_padded0x80;
 	(* KEEP="true" *) wire saved_comp_active_t = saved_comp_active;
 	(* KEEP="true" *) wire saved_procb_active_t = saved_procb_active;
+	(* KEEP="true" *) wire saved_finish_ctx_t = saved_finish_ctx;
+	(* KEEP="true" *) wire saved_stop_ctx_t = saved_stop_ctx;
 
 	procb_saved_state #( .N_THREADS(N_THREADS)
 	) procb_saved_state(
 		.CLK(CLK),
 		.wr_thread_num(save_thread_num), .wr_en(save_wr_en),
 		.din(save_data),
-		.rd_thread_num(procb_rd_thread_num2),
-		.rd_en(en_load_saved_state1),
+		.rd_thread_num(procb_rd_thread_num),
 		.dout({ saved_addr, saved_bytes_left, saved_total,
 			saved_finish_ctx, saved_stop_ctx, saved_padded0x80,
 			saved_comp_active, saved_procb_active })
@@ -197,7 +186,7 @@ module process_bytes #(
 	// *** Create 1024-bit blocks out of procb data ***
 	//
 	reg blk_wr_en = 0;
-	
+
 	create_blk #( .N_THREADS(N_THREADS)
 	) create_blk(
 		.CLK(CLK),
@@ -208,7 +197,7 @@ module process_bytes #(
 		.in_padded0x80(saved_padded0x80_t), .in_total(saved_total_t),
 		.blk_start(blk_start), .new_comp(~saved_comp_active_t),
 		.bytes_end(bytes_end),
-		.in_thread_num(core_thread_num), .in_blk_op(cur_blk_op),
+		.in_thread_num(thread_num), .in_blk_op(cur_blk_op),
 		// save state when block is done
 		.blk_end(blk_end), .save_thread_num(save_thread_num),
 		.save_data(save_data), .save_wr_en(save_wr_en),
@@ -216,18 +205,17 @@ module process_bytes #(
 		.mem_rd_en(mem_rd_en), .mem_rd_addr(mem_rd_addr[`MEM_ADDR_MSB:0]),
 		.len(len), .off(off), .total(total),
 		.add0x80pad(add0x80pad), .add0pad(add0pad), .add_total(add_total),
-		.thread_num(), .blk_op(blk_op)
+		.thread_num(core_thread_num), .blk_op(blk_op)
 	);
 
-	assign thread_num = core_thread_num;
-	assign mem_rd_addr[`MEM_TOTAL_MSB:`MEM_ADDR_MSB+1] = thread_num;
+	assign mem_rd_addr[`MEM_TOTAL_MSB:`MEM_ADDR_MSB+1] = core_thread_num;
 
 
 	// =================================================================
 	// *** Load data from procb_saved_state ***
 	//
 	// Pre-loaded data remain on the following registers:
-	//reg [`MEM_ADDR_MSB+3 :0] loaded_addr;
+
 	reg [`PROCB_CNT_MSB :0] loaded_bytes_left;
 	reg loaded_finish_ctx = 0, loaded_stop_ctx = 0;
 	reg [3:0] loaded_bytes_limit = 8;
@@ -239,9 +227,7 @@ module process_bytes #(
 	wire [3:0] bytes_limit = align_limit_effective ? align_limit :
 		saved_bytes_left < 8 ? saved_bytes_left[2:0] : 4'd8;
 	
-	always @(posedge CLK) if (en_load_saved_state2) begin
-		//loaded_addr <= saved_addr;
-		
+	always @(posedge CLK) if (en_load_saved_state) begin
 		//loaded_bytes_left <= saved_bytes_left;
 		loaded_bytes_left <= saved_bytes_left - bytes_limit;
 		loaded_bytes_limit <= bytes_limit;
@@ -249,19 +235,15 @@ module process_bytes #(
 		loaded_finish_ctx <= saved_finish_ctx;
 		loaded_stop_ctx <= saved_stop_ctx;
 	end
-	/*
-	else begin // not implemented
-		loaded_addr <= { procb_addr, 3'b000 };
 
-		loaded_bytes_left <= procb_bytes_left;
-		loaded_bytes_limit <= procb_bytes_left < 8
-				? procb_bytes_left[2:0] : 4'd8;
-		loaded_bytes_end <= procb_bytes_left <= 8;
-		
-		loaded_finish_ctx <= procb_finish_ctx;
-		loaded_stop_ctx <= procb_stop_ctx;
-	end
-	*/
+/*
+	// join align_limit and bytes_limit
+	wire [3:0] align_limit = 4'd8 - saved_addr_t[2:0];
+	wire align_limit_effective = align_limit < saved_bytes_left_t;
+
+	wire [3:0] bytes_limit = align_limit_effective ? align_limit :
+		saved_bytes_left_t < 8 ? saved_bytes_left_t[2:0] : 4'd8;
+*/
 
 	// =================================================================
 	// Load data for the next internal state
@@ -289,24 +271,28 @@ module process_bytes #(
 			cur_bytes_left <= load_from_saved
 				//? (loaded_bytes_left - loaded_bytes_limit)
 				? loaded_bytes_left
+				//? (saved_bytes_left_t - bytes_limit)
 				: procb_bytes_left < 8
 					? {`PROCB_CNT_MSB+1{1'b0}} : procb_bytes_left - 4'd8;
 			cur_len <= load_from_saved
-				? loaded_bytes_limit
+				? bytes_limit//loaded_bytes_limit
 				: procb_bytes_left < 8
 					? procb_bytes_left[2:0] : 4'd8;
 			
 			bytes_end <= load_from_saved
 				//? (loaded_bytes_left - loaded_bytes_limit) == 0
 				? loaded_bytes_left == 0
+				//? (saved_bytes_left_t - bytes_limit) == 0
 				: procb_bytes_left <= 8;
 			
 			// prev_bytes_left is meaningful only at the end of the block
 			prev_bytes_left <= procb_bytes_left;
 			
-			finish_ctx <= load_from_saved ? loaded_finish_ctx
+			finish_ctx <= load_from_saved
+				? saved_finish_ctx_t//loaded_finish_ctx
 				: procb_finish_ctx;
-			stop_ctx <= load_from_saved ? loaded_stop_ctx
+			stop_ctx <= load_from_saved
+				? saved_stop_ctx_t//loaded_stop_ctx
 				: procb_stop_ctx;
 
 			blk_wr_en <= 1;
@@ -347,14 +333,12 @@ module process_bytes #(
 	reg [7:0] procb_empty_wait = 0;
 	reg procb_loaded = 0;
 
-	assign en_load_saved_state1 = state == STATE_NEXT_THREAD1;
-	assign en_load_saved_state2 = state == STATE_NEXT_THREAD2;
+	assign en_load_saved_state = state == STATE_NEXT_THREAD1;
 
 `ifdef SIMULATION
-	reg [23:0] X_THREAD_SWITCH_OK = 0;
-	reg [23:0] X_THREAD_NOT_RDY = 0;
+	reg [31:0] X_THREAD_SWITCH_OK = 0, X_THREAD_SWITCH_NONE = 0;
+	reg [31:0] X_THREAD_NOT_RDY = 0, X_CORE_NOT_RDY = 0;
 	reg [31:0] X_CYCLES = 0;
-	reg [31:0] X_CYCLES_WAIT = 0;
 `endif
 
 	always @(posedge CLK) begin
@@ -363,10 +347,6 @@ module process_bytes #(
 `endif
 		init_cnt <= { init_cnt[N_THREADS-2 :0], init_going };
 		
-		if (set_next_core_ctx_num & ~init_going)
-			set_next_core_ctx_num <= 0;
-		if (set_next_seq_num & ~init_going)
-			set_next_seq_num <= 0;
 		if (ts_wr_en & ~init_going)
 			ts_wr_en <= 0;
 		
@@ -392,62 +372,51 @@ module process_bytes #(
 		end
 
 		STATE_NEXT_THREAD2: begin
-			if (~core_ready_r) begin // core,context not ready for data.
-				// Constant-time for each block suggests to wait.
+			if (ts_rd == `THREAD_STATE_NONE) begin
 `ifdef SIMULATION
-	X_CYCLES_WAIT <= X_CYCLES_WAIT + 1'b1;
+	X_THREAD_SWITCH_NONE <= X_THREAD_SWITCH_NONE + 1'b1;
 `endif
-			end
-			
-			else if (ts_rd == `THREAD_STATE_RD_RDY
-					| saved_comp_active & saved_procb_active) begin
-				state <= STATE_NEXT_THREAD3;
-`ifdef SIMULATION
-	X_THREAD_SWITCH_OK <= X_THREAD_SWITCH_OK + 1'b1;
-`endif
-			end
-			
-			else begin
-				//if (~saved_comp_active)
-				//if (ts_rd != `THREAD_STATE_BUSY)
-					set_next_seq_num <= 1;
-				set_next_core_ctx_num <= 1;
 				state <= STATE_NEXT_THREAD1;
+			end
+			
+			else if (~core_ready_r) begin // wait until core's ready
+`ifdef SIMULATION
+	X_CORE_NOT_RDY <= X_CORE_NOT_RDY + 1'b1;
+`endif
+			end
+			else if ( ~(saved_comp_active_t & saved_procb_active_t)
+					& ts_rd != `THREAD_STATE_RD_RDY) begin // wait for core/CPU
 `ifdef SIMULATION
 	X_THREAD_NOT_RDY <= X_THREAD_NOT_RDY + 1'b1;
 `endif
-			end		
-		end
-
-		STATE_NEXT_THREAD3: begin
-			// load saved state or next procb record
-			// if saved state is inactive - procb records can't be empty
-			do_load_state;
-			procb_loaded <= ~(saved_comp_active_t & saved_procb_active_t);
-			blk_start <= 1;
-
-			`BLK_OP_LOAD_CTX_NUM(cur_blk_op) <= comp_load_ctx_num;
-			`BLK_OP_SAVE_CTX_NUM(cur_blk_op) <= comp_save_ctx_num;
-			
-			if (saved_comp_active_t) begin
-				`BLK_OP_IF_CONTINUE_CTX(cur_blk_op) <= 0;//1; // doesn't work for now
-				`BLK_OP_IF_NEW_CTX(cur_blk_op) <= 0;
-			end
-			else begin // New computation
-				`BLK_OP_IF_CONTINUE_CTX(cur_blk_op) <= 0;
-				`BLK_OP_IF_NEW_CTX(cur_blk_op) <= comp_if_new_ctx;
 			end
 
-			state <= STATE_PROCESS_BYTES;
+			else begin
+`ifdef SIMULATION
+	X_THREAD_SWITCH_OK <= X_THREAD_SWITCH_OK + 1'b1;
+`endif
+				// load saved state or next procb record
+				// if saved state is inactive - procb records can't be empty
+				do_load_state;
+				procb_loaded <= ~(saved_comp_active_t & saved_procb_active_t);
+				blk_start <= 1;
+
+				`BLK_OP_LOAD_CTX_NUM(cur_blk_op) <= comp_load_ctx_num;
+				`BLK_OP_SAVE_CTX_NUM(cur_blk_op) <= comp_save_ctx_num;
+				
+				if (saved_comp_active_t)
+					`BLK_OP_IF_NEW_CTX(cur_blk_op) <= 0;
+				else // New computation
+					`BLK_OP_IF_NEW_CTX(cur_blk_op) <= comp_if_new_ctx;
+
+				state <= STATE_PROCESS_BYTES;
+			end
 		end
-		
+
 		STATE_PROCESS_BYTES: begin
 			if (blk_end) begin // data from the previous cycle didn't go
 				procb_loaded <= 0;
 				blk_wr_en <= 0;
-				set_next_core_ctx_num <= 1;
-				if (finish_ctx | stop_ctx)
-					set_next_seq_num <= 1;
 				state <= STATE_NEXT_THREAD1;
 			end
 			else if (blk_full) begin // create_blk is busy with padding
@@ -485,10 +454,6 @@ module process_bytes #(
 		
 		STATE_CHECK_BLK_END: begin
 			if (blk_end) begin
-				// no fin/stop here
-				//if (finish_ctx | stop_ctx)
-				//	set_next_seq_num <= 1;
-				set_next_core_ctx_num <= 1;
 				state <= STATE_NEXT_THREAD1;
 			end
 			else
@@ -504,15 +469,14 @@ module process_bytes #(
 	end
 
 
-	assign load_from_saved = state == STATE_NEXT_THREAD3
+	assign load_from_saved =
+		state == STATE_NEXT_THREAD2
 		& saved_comp_active_t & saved_procb_active_t;
 
 
-	assign set_next_procb_rd_thread_num = (1'b0
+	assign set_next_thread_num = (1'b0
 		| state == STATE_INIT
-		| state == STATE_NEXT_THREAD2 & core_ready_r
-			& ~(ts_rd == `THREAD_STATE_RD_RDY
-				| saved_comp_active & saved_procb_active)
+		| state == STATE_NEXT_THREAD2 & ts_rd == `THREAD_STATE_NONE
 		| blk_end
 	);
 	
@@ -520,8 +484,9 @@ module process_bytes #(
 	wire load_next_procb_record = (1'b0
 		| state == STATE_PROCESS_BYTES & ~procb_lookup_empty
 			& bytes_end & ~(finish_ctx | stop_ctx)
-		| state == STATE_NEXT_THREAD3 & ~procb_lookup_empty
+		| state == STATE_NEXT_THREAD2 & core_ready_r
 			& ~(saved_comp_active_t & saved_procb_active_t)
+			& (ts_rd == `THREAD_STATE_RD_RDY)
 	);
 
 	assign procb_lookup_en =

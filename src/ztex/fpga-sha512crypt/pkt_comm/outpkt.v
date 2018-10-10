@@ -9,9 +9,9 @@
  */
 
 //
-// Slightly modified outpkt_bcrypt
+// Based on outpkt_bcrypt
 //
-module outpkt_sha512crypt #(
+module outpkt #(
 	parameter [7:0] VERSION = `PKT_COMM_VERSION,
 	parameter PKT_TYPE_MSB = `OUTPKT_TYPE_MSB,
 	parameter HASH_NUM_MSB = 15,
@@ -23,7 +23,7 @@ module outpkt_sha512crypt #(
 	input source_not_empty,
 	// Read from 16-bit wide memory
 	input [15:0] din,
-	output reg [5:0] rd_addr = 0,
+	output reg [`MSB(4 +`RESULT_LEN/2 -1):0] rd_addr = 0,
 
 	input wr_en,
 	input [PKT_TYPE_MSB:0] pkt_type,
@@ -121,7 +121,7 @@ module outpkt_sha512crypt #(
 			// 0 - word_id
 			// 1 - pkt_id
 			// 2-3 - gen_id
-			// 4-35 - result
+			// 4-(4+RESULT_LEN/2) - result
 			rd_addr <= 0;
 		end
 
@@ -170,7 +170,7 @@ module outpkt_sha512crypt #(
 			pkt_dout <= din;
 			pkt_empty <= 0;
 			rd_addr <= rd_addr + 1'b1;
-			if (rd_addr == 35) begin
+			if (rd_addr == 4 +`RESULT_LEN/2 -1) begin
 				pkt_end <= 1;
 				state <= STATE_RD_PREPARE;
 			end

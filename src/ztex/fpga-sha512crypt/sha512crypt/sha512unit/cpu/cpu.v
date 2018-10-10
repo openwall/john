@@ -107,11 +107,13 @@ module cpu #(
 	assign ts_wr_num = thread_num;
 
 	// input from the memory
-	reg [63:0] mem_r;
+	//reg [63:0] mem_r;
+	reg [31:0] mem_r;
 	reg mem_rd_valid_r = 0;
 	always @(posedge CLK) begin
 		if (mem_rd_valid)
-			mem_r <= mem_din;
+			mem_r <= mem_wr_lower ? mem_din[31:0] : mem_din[63:32];
+			//mem_r <= mem_din;
 		mem_rd_valid_r <= mem_rd_valid;
 	end
 
@@ -154,7 +156,8 @@ module cpu #(
 	registers_bram #( .N_THREADS(N_THREADS)
 	) registers(
 		.CLK(CLK),
-		.mem_din(mem_wr_lower ? mem_r[31:0] : mem_r[63:32]),
+		//.mem_din(mem_wr_lower ? mem_r[31:0] : mem_r[63:32]),
+		.mem_din(mem_r),
 		.din1(reg_din1), .din2(reg_din2), .din3(reg_din3),
 		
 		.mem_wr_en(mem_rd_valid_r), .wr_en(reg_wr_en4),

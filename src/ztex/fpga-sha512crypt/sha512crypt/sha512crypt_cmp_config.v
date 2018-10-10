@@ -27,7 +27,7 @@ module sha512crypt_cmp_config(
 	input [7:0] din,
 	input wr_en,
 	output reg full = 0,
-	output reg error = 0,
+	output reg err = 0,
 
 	// Iteraction with other subsystems.
 	output reg new_cmp_config = 0, // asserted on a new cmp_config packet.
@@ -89,7 +89,7 @@ module sha512crypt_cmp_config(
 	reg [3:0] state = STATE_NONE;
 
 	always @(posedge CLK) begin
-		if (error) begin
+		if (err) begin
 		end
 
 		else if (state == STATE_WAIT_CMP_CONFIG_APPLIED) begin
@@ -107,7 +107,7 @@ module sha512crypt_cmp_config(
 		case (state)
 		STATE_NONE:
 			if (din != 0)
-				error <= 1;
+				err <= 1;
 			else begin
 				new_cmp_config <= 1;
 				full <= 1;
@@ -116,7 +116,7 @@ module sha512crypt_cmp_config(
 			
 		STATE_SALT_LEN: begin
 			if (din > 16 | din == 0)
-				error <= 1;
+				err <= 1;
 			else
 				state <= STATE_SALT;
 			salt_addr <= 8;
@@ -138,7 +138,7 @@ module sha512crypt_cmp_config(
 		STATE_HASH_COUNT0: begin
 			hash_count[7:0] <= din;
 			if (~mode_cmp & din != 0)
-				error <= 1;
+				err <= 1;
 			else
 				state <= STATE_HASH_COUNT1;
 		end
@@ -148,7 +148,7 @@ module sha512crypt_cmp_config(
 			cmp_wr_addr <= {`HASH_NUM_MSB+3{1'b1}};
 			
 			if (~mode_cmp & din != 0)
-				error <= 1;
+				err <= 1;
 			else if (mode_cmp)
 				state <= STATE_CMP_DATA;
 			else
@@ -175,7 +175,7 @@ module sha512crypt_cmp_config(
 			if (din == 8'hCC)
 				state <= STATE_NONE;
 			else
-				error <= 1;
+				err <= 1;
 		end
 		endcase
 	end

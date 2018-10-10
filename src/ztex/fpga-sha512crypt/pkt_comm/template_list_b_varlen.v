@@ -44,7 +44,8 @@ module template_list_b_varlen #(
 	input inpkt_end,
 	input is_template_list,
 
-	output reg [RANGES_MAX * (RANGE_INFO_MSB+1) - 1 :0] range_info = 0,
+	//output reg [RANGES_MAX * (RANGE_INFO_MSB+1) - 1 :0] range_info = 0,
+	output [RANGES_MAX * (RANGE_INFO_MSB+1) - 1 :0] range_info,
 	output reg [15:0] word_id = 0,
 	// It produces a dummy word after the end of the list,
 	// with word_list_end set
@@ -68,22 +69,22 @@ module template_list_b_varlen #(
 	reg [`MSB(RANGES_MAX-1):0] range_info_count = 0;
 	reg word_list_end_r = 0;
 
-	localparam [2:0] STATE_INIT = 0,
+	localparam STATE_INIT = 0,
 					STATE_WR_WORD = 1,
 					//STATE_PAD_ZEROES = 2,
 					STATE_WR_RANGE_INFO = 3,
 					STATE_RD_START = 4,
 					STATE_RD_WAIT = 5,
 					STATE_RD_LIST_END_START = 6,
-					STATE_RD_LIST_END_WAIT = 7;
+					STATE_RD_LIST_END_WAIT = 7,
+					STATE_ERROR = 8;
 
-	(* FSM_EXTRACT="true" *)
-	reg [2:0] state = STATE_INIT;
+	(* FSM_EXTRACT="true", FSM_ENCODING="speed1" *)//one-hot" *)
+	reg [3:0] state = STATE_INIT;
 
 	always @(posedge CLK) begin
 		case (state)
 		STATE_INIT: begin
-			range_info <= 0;
 			range_info_count <= 0;
 			word_list_end_r <= 0;
 			storage_wr_addr <= 0;
@@ -114,9 +115,11 @@ module template_list_b_varlen #(
 			if (inpkt_end) begin
 				word_list_end_r <= 1;
 				if ((din != 0 & storage_wr_addr != WORD_MAX_LEN - 1)
-						| is_template_list)
+						| is_template_list) begin
 					// inexpected pkt_end
 					err_template <= 1;
+					state <= STATE_ERROR;
+				end
 			end
 		end
 
@@ -129,29 +132,32 @@ module template_list_b_varlen #(
 				storage_set_full <= 1;
 				state <= STATE_RD_START;
 			end
-			else begin
+			//else begin
 				// next item of range_info going
-				range_info[(range_info_count + 1'b1)*(RANGE_INFO_MSB+1)-1
-						-:RANGE_INFO_MSB+1]
-					<= { din[7], din[RANGE_INFO_MSB-1:0] };
+				//range_info[(range_info_count + 1'b1)*(RANGE_INFO_MSB+1)-1
+				//		-:RANGE_INFO_MSB+1] <= { din[7], din[RANGE_INFO_MSB-1:0] };
 
 				if (WORD_MAX_LEN < 64
-						&& din[6 : RANGE_INFO_MSB >= 6 ? 6 : RANGE_INFO_MSB+1] != 0)
+						&& din[6 : RANGE_INFO_MSB >= 6 ? 6 : RANGE_INFO_MSB+1] != 0) begin
 					// unexpected content in range_info
 					err_template <= 1;
+					state <= STATE_ERROR;
+				end
 
 				if (range_info_count == RANGES_MAX - 1) begin
 					full <= 1;
 					storage_set_full <= 1;
 					state <= STATE_RD_START;
 				end
-			end
+			//end
 
 			if (inpkt_end) begin
 				word_list_end_r <= 1;
-				if (din != 0 && range_info_count != RANGES_MAX - 1)
+				if (din != 0 && range_info_count != RANGES_MAX - 1) begin
 					// inexpected pkt_end
 					err_template <= 1;
+					state <= STATE_ERROR;
+				end
 			end
 		end
 
@@ -169,12 +175,15 @@ module template_list_b_varlen #(
 			end
 			else begin
 				word_id <= word_id + 1'b1;
-				state <= STATE_INIT;
+				//if ( ~|(word_id + 1'b1) ) begin
+				if (&word_id) begin
+					// word_id_r overflows
+					err_word_list_count <= 1;
+					state <= STATE_ERROR;
+				end
+				else
+					state <= STATE_INIT;
 			end
-
-			if ( ~|(word_id + 1'b1) )
-				// word_id_r overflows
-				err_word_list_count <= 1;
 		end
 
 		// Write dummy word after the end of the list,
@@ -187,6 +196,8 @@ module template_list_b_varlen #(
 		STATE_RD_LIST_END_WAIT: if (~storage_full)
 			state <= STATE_INIT;
 
+		STATE_ERROR:
+			full <= 1;
 		endcase
 	end
 
@@ -204,5 +215,45 @@ module template_list_b_varlen #(
 		.empty(empty)
 	);
 
+	(* KEEP_HIERARCHY="true" *)
+	range_info_r #( .RANGES_MAX(RANGES_MAX), .WORD_MAX_LEN(WORD_MAX_LEN)
+	) range_info_r(
+		.CLK(CLK),
+		.wr_en(wr_en), .wr_en2(state == STATE_WR_RANGE_INFO),
+		.rst(state == STATE_INIT), .wr_range_num(range_info_count),
+		.din({ din[7], din[RANGE_INFO_MSB-1:0] }),
+		.dout(range_info)
+	);
+	
+endmodule
+
+
+module range_info_r #(
+	parameter WORD_MAX_LEN = -1,
+	parameter RANGES_MAX = -1,
+	parameter RANGE_INFO_MSB = 1 + `MSB(WORD_MAX_LEN-1)
+	)(
+	input CLK,
+	input wr_en, wr_en2, rst,
+	input [`MSB(RANGES_MAX-1):0] wr_range_num,
+	input [RANGE_INFO_MSB :0] din,
+	output reg [RANGES_MAX * (RANGE_INFO_MSB+1) - 1 :0] dout = 0
+	);
+
+	genvar i;
+	generate
+	for (i=0; i < RANGES_MAX; i=i+1) begin:wr_range_info
+	
+		always @(posedge CLK)
+			if (rst)
+				dout[(i + 1'b1)*(RANGE_INFO_MSB+1)-1
+						-:RANGE_INFO_MSB+1] <= 0;
+			else if (wr_en & wr_en2 & wr_range_num == i)
+				dout[(i + 1'b1)*(RANGE_INFO_MSB+1)-1
+						-:RANGE_INFO_MSB+1] <= din;
+	
+	end
+	endgenerate
 
 endmodule
+
