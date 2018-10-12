@@ -621,8 +621,12 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	log_event("Proceeding with %s mode",
 	          loopBack ? "loopback" : "wordlist");
 
-	if (options.activewordlistrules)
+	if (options.activewordlistrules) {
+		if (loopBack && john_main_process)
+			fprintf(stderr, "Permutation rules: %s\n",
+			        options.activewordlistrules);
 		log_event("- Rules: %.100s", options.activewordlistrules);
+	}
 
 #if HAVE_REXGEN
 	regex = prepare_regex(options.regex, &regex_case, &regex_alpha);
