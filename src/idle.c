@@ -66,6 +66,8 @@ int idle_requested(struct fmt_main *format)
 	if (strstr(format->params.label, "-opencl"))
 		return 0;
 #endif
+	if (strstr(format->params.label, "-ztex"))
+		return 0;
 
 	return 1;
 }

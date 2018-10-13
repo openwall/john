@@ -189,6 +189,8 @@ char *john_terminal_locale ="C";
 
 unsigned long long john_max_cands;
 
+int self_test_running = 0;
+
 static int children_ok = 1;
 
 static struct db_main database;
@@ -412,7 +414,6 @@ static void john_register_all(void)
 
 static void john_log_format(void)
 {
-	int min_chunk, chunk;
 	int enc_len, utf8_len;
 	char max_len_s[128];
 
@@ -457,7 +458,14 @@ static void john_log_format(void)
 
 	log_event("- Algorithm: %.100s",
 	    database.format->params.algorithm_name);
+}
 
+static void john_log_format2(void)
+{
+	int min_chunk, chunk;
+
+	/* Messages require extra info not available in john_log_format().
+		These are delayed until mask_init(), fmt_reset() */
 	chunk = min_chunk = database.format->params.max_keys_per_crypt;
 	if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK) &&
 	    chunk < SINGLE_HASH_MIN)
@@ -1721,7 +1729,9 @@ static void john_run(void)
 				                           &database);
 			else
 				test_db = &database;
+			self_test_running = 1;
 			where = fmt_self_test(database.format, test_db);
+			self_test_running = 0;
 			if (!(options.flags & FLG_NOTESTS))
 				ldr_free_test_db(test_db);
 			if (where) {
@@ -1812,6 +1822,11 @@ static void john_run(void)
 
 		if (trigger_reset)
 			database.format->methods.reset(&database);
+
+		if (!(options.flags & FLG_STDOUT) && john_main_process) {
+			john_log_format2();
+			log_flush();
+		}
 
 		if (options.flags & FLG_MASK_CHK)
 			mask_crk_init(&database);

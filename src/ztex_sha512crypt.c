@@ -104,7 +104,9 @@ static struct fmt_tests tests[] = {
 		"QJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1", "Hello world!"},
 	{"$6$saltstring$thYL/sWXcrctga2PlQjFsvA3l.lG3RPHgk7ADjxkgKZoo0UsYV"
 		"X9gsxryuhCl6RTDsE.0F8aDMaHBkUzUGqd11", "Hello........."},
-
+	{"$6$mwt2GD73BqSk4$ol0oMY1zzm59tnAFnH0OM9R/7SL4gi3VJ42AIVQNcGrYx5S"
+		"1rlZggq5TBqvOGNiNQ0AmjmUMPc.70kL8Lqost.", "password"},
+/*
 	{"$6$rounds=2000$saltSALTsaltSALT$TQ.57CbfxQTWKO8b1rkPVic99auVj.Je"
 		"fhUjAB9YtTXRGiZH.NmgSS04t1WaSLhkTrGxt.Aj61KS0oq46Jpal1",
 		"salt_len=16, key_len=64, contains 8-bit chars ("
@@ -134,6 +136,7 @@ static struct fmt_tests tests[] = {
 	{"$6$rounds=1021$1234567890aBcde$QxJixRbv7Pg4Wdgz7HNwjnGR/QYwMoRe"
 		"d3lHeq8lJKH6UShkNcSmbXwoqYKQkWvdhp9xcikUXD5AKxNwHgZHE.",
 		"sha512crypt-ztex test #5 (salt_len=15, key_len=56) ....."},
+*/
 	{NULL}
 };
 
