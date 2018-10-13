@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "../john.h"
 #include "../loader.h"
 #include "../formats.h"
 #include "../memory.h"
@@ -135,11 +136,12 @@ void device_format_reset()
 	// Mask data is ready, calculate and set keys_per_crypt
 	unsigned int keys_per_crypt;
 
-	if (!bench_running)
+	if (self_test_running)
+		// Self-test runs too long, using different keys_per_crypt
+		keys_per_crypt = jtr_bitstream->test_keys_per_crypt;
+	else
 		keys_per_crypt = jtr_bitstream->candidates_per_crypt
 			 / mask_num_cand();
-	else
-		keys_per_crypt = jtr_bitstream->test_keys_per_crypt;
 
 	if (!keys_per_crypt)
 		keys_per_crypt = 1;
@@ -156,10 +158,12 @@ void device_format_reset()
 
 	jtr_fmt_params->max_keys_per_crypt = keys_per_crypt;
 	jtr_fmt_params->min_keys_per_crypt = keys_per_crypt;
-
-	//fprintf(stderr, "RESET: mask_num_cand():%d keys_per_crypt:%d devs:%d\n",
-	//		mask_num_cand(), jtr_fmt_params->max_keys_per_crypt,jtr_device_list_count());
-
+/*
+	fprintf(stderr, "RESET: mask_num_cand():%d keys_per_crypt:%d devs:%d"
+			" bench:%d self-test:%d\n",
+		mask_num_cand(), jtr_fmt_params->max_keys_per_crypt,
+		jtr_device_list_count(), bench_running, self_test_running);
+*/
 
 	// (re-)allocate keys_buffer, output_key
 	int plaintext_len = jtr_fmt_params->plaintext_length;

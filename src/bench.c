@@ -690,6 +690,7 @@ AGAIN:
 		/* format and needs init called to change the name     */
 		if ((format->params.flags & FMT_DYNAMIC) ||
 		    strstr(format->params.label, "-opencl") ||
+		    strstr(format->params.label, "-ztex") ||
 		    !strcmp(format->params.label, "crypt"))
 			fmt_init(format);
 
