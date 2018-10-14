@@ -646,7 +646,7 @@ static INLINE void vstoreu_emu(void *addr, vtype v)
 #endif
 
 #define vswap64_emu(x) \
-	(vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)), vswap32_emu(x))
+	vswap32_emu(vxor(vsrli_epi64(x, 32), vslli_epi64(x, 32)))
 
 #if VCMOV_EMULATED
 #if VANDNOT_EMULATED /* currently never */
