@@ -61,7 +61,6 @@ static int target_rounds;
 
 static void init(struct fmt_main *fmt_main)
 {
-//printf("verbosity (init):%d\n", options.verbosity);
 	// It uses performance estimation (bitstream.candidates_per_crypt)
 	// to calculate keys_per_crypt. Performance depends on count of rounds.
 	// Count is not available in init() and can change at runtime.
@@ -96,8 +95,8 @@ static void init(struct fmt_main *fmt_main)
 	//fprintf(stderr, "bitstream.candidates_per_crypt=%d\n",
 	//		bitstream.candidates_per_crypt);
 
-	device_format_init(fmt_main, &bitstream, options.acc_devices);//,
-		//options.verbosity);
+	device_format_init(fmt_main, &bitstream, options.acc_devices,
+		options.verbosity);
 }
 
 

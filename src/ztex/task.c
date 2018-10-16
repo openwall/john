@@ -23,13 +23,50 @@
 
 
 
+static void task_result_list_init(struct task_result_list *list)
+{
+	list->count = 0;
+	list->result_list = NULL;
+	list->index = NULL;
+}
+
+
+static void task_result_list_add(struct task_result_list *list,
+		struct task_result *task_result)
+{
+	task_result->next = list->result_list;
+	list->result_list = task_result;
+	list->count++;
+	if (list->index) {
+		MEM_FREE(list->index);
+		list->index = NULL;
+	}
+}
+
+
+static void task_result_list_create_index(struct task_result_list *list)
+{
+	if (list->index) {
+		MEM_FREE(list->index);
+		list->index = NULL;
+	}
+	if (!list->count)
+		return;
+
+	list->index = mem_alloc(list->count * sizeof(struct task_result *));
+
+	struct task_result *result;
+	int i = 0;
+	for (result = list->result_list; result; result = result->next)
+		list->index[i++] = result;
+}
+
+
 struct task_result *task_result_new(struct task *task,
 		char *key, unsigned char *range_info,
 		unsigned int gen_id, struct db_password *pw)
 {
 	struct task_result *result = mem_alloc(sizeof(struct task_result));
-	result->next = task->result_list;
-	task->result_list = result;
 
 	int plaintext_len = jtr_fmt_params->plaintext_length;
 	result->key = mem_alloc(plaintext_len + 1);
@@ -41,26 +78,32 @@ struct task_result *task_result_new(struct task *task,
 
 	result->pw = pw;
 	result->binary = NULL;
+
+	task_result_list_add(&task->result_list, result);
 	return result;
 }
 
 
-int task_result_count(struct task *task)
+static int task_result_count(struct task *task)
 {
-	int count = 0;
-	struct task_result *result;
-	for (result = task->result_list; result; result = result->next)
-		count++;
-	return count;
+	return task->result_list.count;
 }
 
 
-void task_result_list_delete(struct task *task)
+static void task_result_list_clear(struct task_result_list *list)
 {
-	if (!task->result_list)
+	if (!list) {
+		fprintf(stderr,"task_result_list_clear: NULL\n");
 		return;
+	}
+	if (!list->result_list) {
+		if (list->count)
+			fprintf(stderr,"task_result_list_clear: result=NULL,"
+				" count=%d\n", list->count);
+		return;
+	}
 
-	struct task_result *result = task->result_list;
+	struct task_result *result = list->result_list;
 	while (1) {
 		struct task_result *next = result->next;
 		MEM_FREE(result->key);
@@ -70,7 +113,8 @@ void task_result_list_delete(struct task *task)
 			break;
 		result = next;
 	}
-	task->result_list = NULL;
+	list->count = 0;
+	list->result_list = NULL;
 }
 
 
@@ -87,7 +131,7 @@ struct task *task_new(struct task_list *task_list,
 	task->num_keys = num_keys;
 	task->keys = keys;
 	task->range_info = range_info;
-	task->result_list = NULL;
+	task_result_list_init(&task->result_list);
 	task->jtr_device = NULL;
 	task->id = 0;
 
@@ -112,7 +156,7 @@ void task_assign(struct task *task, struct jtr_device *jtr_device)
 
 void task_delete(struct task *task)
 {
-	task_result_list_delete(task);
+	task_result_list_clear(&task->result_list);
 	MEM_FREE(task);
 }
 
@@ -159,7 +203,8 @@ struct task_list *task_list_create(int num_keys,
 			int task_num_keys = device_num_keys;
 			if (task_num_keys * jtr_fmt_params->plaintext_length
 					> PKT_MAX_DATA_LEN)
-				task_num_keys = PKT_MAX_DATA_LEN / jtr_fmt_params->plaintext_length;
+				task_num_keys = PKT_MAX_DATA_LEN
+					/ jtr_fmt_params->plaintext_length;
 			if (task_num_keys > 65535)
 				task_num_keys = 65535;
 			device_num_keys -= task_num_keys;
@@ -220,7 +265,7 @@ void tasks_assign(struct task_list *task_list,
 
 void task_deassign(struct task *task)
 {
-	task_result_list_delete(task);
+	task_result_list_clear(&task->result_list);
 	task->status = TASK_UNASSIGNED;
 	task_update_mtime(task);
 	task->jtr_device = NULL;
@@ -373,9 +418,18 @@ void task_result_execute(struct task_list *task_list,
 	struct task *task;
 	for (task = task_list->task; task; task = task->next) {
 		struct task_result *result;
-		for (result = task->result_list; result; result = result->next)
+		for (result = task->result_list.result_list; result;
+				result = result->next)
 			func(result);
 	}
+}
+
+
+void task_list_create_index(struct task_list *task_list)
+{
+	struct task *task;
+	for (task = task_list->task; task; task = task->next)
+		task_result_list_create_index(&task->result_list);
 }
 
 
@@ -384,12 +438,29 @@ struct task_result *task_result_by_index(struct task_list *task_list, int index)
 	int count = 0;
 	struct task *task;
 	for (task = task_list->task; task; task = task->next) {
+		int cur_task_count = task_result_count(task);
+		if (!cur_task_count)
+			continue;
+		if (count + cur_task_count <= index) {
+			count += cur_task_count;
+			continue;
+		}
+/*
 		struct task_result *result;
-		for (result = task->result_list; result; result = result->next) {
+		for (result = task->result_list.result_list; result;
+				result = result->next) {
 			if (count == index)
 				return result;
 			count++;
 		}
+*/
+
+		if (!task->result_list.index) {
+			fprintf(stderr,"task_result_by_index: index not created\n");
+			return NULL;
+		}
+		//fprintf(stderr,"task_result_by_index: i:%d c:%d\n",index, count);
+		return task->result_list.index[index - count];
 	}
 	return NULL;
 }

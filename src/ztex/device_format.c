@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2018 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -16,11 +16,13 @@
 #include "../memory.h"
 #include "../misc.h"
 #include "../options.h"
+#include "../params.h"
 
 #include "jtr_device.h"
 #include "task.h"
 #include "jtr_mask.h"
 #include "device_bitstream.h"
+#include "device_format.h"
 
 // Problem: Inclusion of ztex.h results in inclusion of libusb-1.0.h
 // which includes more stuff, on Cygwin that results in redefinition
@@ -67,13 +69,16 @@ struct task_list *task_list;
 struct fmt_params *jtr_fmt_params;
 struct device_bitstream *jtr_bitstream;
 struct list_main *jtr_devices_allow;
+int jtr_verbosity;
 
 void device_format_init(struct fmt_main *fmt_main,
-		struct device_bitstream *bitstream, struct list_main *devices_allow)
+		struct device_bitstream *bitstream, struct list_main *devices_allow,
+		int verbosity)
 {
 	jtr_fmt_params = &fmt_main->params;
 	jtr_bitstream = bitstream;
 	jtr_devices_allow = devices_allow;
+	jtr_verbosity = verbosity;
 
 	struct list_entry *entry;
 	int found_bad_sn = 0;
@@ -150,7 +155,8 @@ void device_format_reset()
 	if (keys_per_crypt > jtr_bitstream->abs_max_keys_per_crypt) {
 		keys_per_crypt = jtr_bitstream->abs_max_keys_per_crypt;
 
-		if (!bench_running) // self-test or benchmark
+		// Don't print on self-test, print on benchmark.
+		if (!self_test_running)
 			fprintf(stderr, "Warning: Slow communication channel "\
 				"to the device. "\
 				"Increase mask or expect performance degradation.\n");
@@ -158,12 +164,15 @@ void device_format_reset()
 
 	jtr_fmt_params->max_keys_per_crypt = keys_per_crypt;
 	jtr_fmt_params->min_keys_per_crypt = keys_per_crypt;
-/*
-	fprintf(stderr, "RESET: mask_num_cand():%d keys_per_crypt:%d devs:%d"
-			" bench:%d self-test:%d\n",
-		mask_num_cand(), jtr_fmt_params->max_keys_per_crypt,
-		jtr_device_list_count(), bench_running, self_test_running);
-*/
+
+	if (jtr_verbosity >= VERB_LEGACY) {
+		fprintf(stderr, "RESET: mask:%d keys:%d", mask_num_cand(),
+			jtr_fmt_params->max_keys_per_crypt);
+		if (mask_num_cand() > 1)
+			fprintf(stderr, " (%d)", mask_num_cand()
+				* jtr_fmt_params->max_keys_per_crypt);
+		fprintf(stderr, " devs:%d\n", jtr_device_list_count());
+	}
 
 	// (re-)allocate keys_buffer, output_key
 	int plaintext_len = jtr_fmt_params->plaintext_length;
@@ -209,6 +218,9 @@ void device_format_set_key(char *key, int index)
 
 int device_format_crypt_all(int *pcount, struct db_salt *salt)
 {
+	if (jtr_verbosity > VERB_LEGACY)
+		fprintf(stderr,"crypt_all:%d ",*pcount);
+
 	// * create tasks from keys_buffer, 1 task for each jtr_device
 	// * equally distribute load among tasks assuming all devices are equal
 	// * assign tasks to jtr_devices
@@ -284,8 +296,14 @@ int device_format_crypt_all(int *pcount, struct db_salt *salt)
 	// Dynamic adjustment of max_keys_per_crypt could be a good idea.
 
 	*pcount *= mask_num_cand();
+	int result_count = task_list_result_count(task_list);
 
-	return task_list_result_count(task_list);
+	if (jtr_verbosity > VERB_LEGACY)
+		fprintf(stderr,"result_count:%d\n", result_count);
+
+	task_list_create_index(task_list);
+
+	return result_count;
 }
 
 

@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016-2017 Denis Burykin
+ * This software is Copyright (c) 2016-2018 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
