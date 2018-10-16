@@ -75,8 +75,8 @@ static struct device_bitstream bitstream = {
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	1,			// set by init() base on john.conf setting
-	2048,		// 2K keys/fpga for self-test
-	1536 * 1024,	// Would be 48 MB of USB traffic on 32-byte keys
+	4096,		// keys/fpga for self-test
+	600 * 1024,	// Would be ~20 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
 	150,		// Min. number of keys for effective device utilization
 	1, { 135 },	// Programmable clocks
@@ -257,7 +257,6 @@ static int target_rounds;
 
 static void init(struct fmt_main *fmt_main)
 {
-//printf("verbosity (init):%d\n", options.verbosity);
 	// It uses performance estimation (bitstream.candidates_per_crypt)
 	// to calculate keys_per_crypt. Performance depends on count of rounds.
 	// Count is not available in init() and can change at runtime.
@@ -292,8 +291,8 @@ static void init(struct fmt_main *fmt_main)
 	//fprintf(stderr, "bitstream.candidates_per_crypt=%d\n",
 	//		bitstream.candidates_per_crypt);
 
-	device_format_init(fmt_main, &bitstream, options.acc_devices);//,
-		//options.verbosity);
+	device_format_init(fmt_main, &bitstream, options.acc_devices,
+		options.verbosity);
 }
 
 

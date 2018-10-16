@@ -55,7 +55,7 @@ struct device_bitstream bitstream = {
 	35 * 1024*1024,
 	64 * 1024,		// 64K keys for each FPGA for self-test
 	// Absolute max. keys/crypt_all_interval for all devices.
-	3 * 1024*1024,	// ~24 MB of USB traffic
+	1024*1024,	// ~8 MB of USB traffic
 	// Max. number of entries in onboard comparator.
 	2047,
 	0,	// Min. number of keys (doesn't matter for fast "formats")
@@ -113,7 +113,8 @@ static unsigned char DES_atoi64_bitswapped[128] = {
 static void init(struct fmt_main *fmt_main)
 {
 	DES_std_init(); // Used DES_std.c to perform des_crypt() on CPU
-	device_format_init(fmt_main, &bitstream, options.acc_devices);
+	device_format_init(fmt_main, &bitstream, options.acc_devices,
+		options.verbosity);
 }
 
 

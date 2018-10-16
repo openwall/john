@@ -106,7 +106,17 @@ static struct fmt_tests tests[] = {
 		"X9gsxryuhCl6RTDsE.0F8aDMaHBkUzUGqd11", "Hello........."},
 	{"$6$mwt2GD73BqSk4$ol0oMY1zzm59tnAFnH0OM9R/7SL4gi3VJ42AIVQNcGrYx5S"
 		"1rlZggq5TBqvOGNiNQ0AmjmUMPc.70kL8Lqost.", "password"},
+	{"$6$gcN9vA21h3pQXatk$Mwe3tKbnAiL1AwaaER1.kPRsEIZx0SZNoPnqgbnsu"
+		"FG9TOXq6SHhfTvTnok32fqJn9pl6KHKz8gFn2uDshVia1", "key_len8"},
+	{"$6$PryKgHgxITDskF2A$V0pUS/Sr5E3zSwFNJyQoGRNcJXTXfR5zm31ga1aji"
+		"P.gsNG9dvImnqjtyh5Ph/h6DfnyrUi5ZdFDFMpAC2Dep.", "123"},
+	{"$6$ZD5KgeC9I.JGkMLw$wsw5ii8e5TtuVZIrD6i9nglLkya33DbXYLHGeLYuL"
+		"3Tp/pMpQAN6wq6utTlRYdnZPtVmU6VEsrvF/mtvYPpQL.", "ab"},
 /*
+	{"$6$EG5klJHV.nDaIb8U$UOJg2Fr3xQh6h8o8eoDMHUPRV65PPCo0ObRNzLKR4u61"
+		"ey1hHvFeowIm6oxdlLj4LxH6CN.DPXW4NHh0hYUwP1", "key_length=13"},
+	{"$6$4r7KJHHVwndsyF0m$OX4XwClhVI8TiHf02Olhh37/XFD03mQ0lU1rsfUJhG/Y"
+		"Xtf418M59Cmy3NhSUAUzfU3Z0QSuWtdoqh0VrNpJk.", "key_length=15//"},
 	{"$6$rounds=2000$saltSALTsaltSALT$TQ.57CbfxQTWKO8b1rkPVic99auVj.Je"
 		"fhUjAB9YtTXRGiZH.NmgSS04t1WaSLhkTrGxt.Aj61KS0oq46Jpal1",
 		"salt_len=16, key_len=64, contains 8-bit chars ("
@@ -184,7 +194,6 @@ int target_rounds;
 
 static void init(struct fmt_main *fmt_main)
 {
-//printf("verbosity (init):%d\n", options.verbosity);
 	// It uses performance estimation (bitstream.candidates_per_crypt)
 	// to calculate keys_per_crypt. Performance depends on count of rounds.
 	// Count is not available in init() and can change at runtime.
@@ -219,8 +228,8 @@ static void init(struct fmt_main *fmt_main)
 	//fprintf(stderr, "bitstream.candidates_per_crypt=%d\n",
 	//		bitstream.candidates_per_crypt);
 
-	device_format_init(fmt_main, &bitstream, options.acc_devices);//,
-		//options.verbosity);
+	device_format_init(fmt_main, &bitstream, options.acc_devices,
+		options.verbosity);
 }
 
 

@@ -66,9 +66,9 @@ static struct device_bitstream bitstream = {
 	{ 2, 14336, 4094 },
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
-	230400,		// keys/fpga for crypt_all()
+	147456,		// keys/fpga for crypt_all()
 	16384,		// keys/fpga for self-test
-	1536 * 1024,	// Would be 48 MB of USB traffic on 32-byte keys
+	460800,		// Would be ~15 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
 	384,		// Min. number of keys for effective device utilization
 	1, { 180 },	// Programmable clocks
@@ -106,10 +106,8 @@ static struct fmt_tests tests[] = {
 
 static void init(struct fmt_main *fmt_main)
 {
-//printf("verbosity (init):%d\n", options.verbosity);
-
-	device_format_init(fmt_main, &bitstream, options.acc_devices);//,
-		//options.verbosity);
+	device_format_init(fmt_main, &bitstream, options.acc_devices,
+		options.verbosity);
 }
 
 

@@ -326,6 +326,9 @@ void device_list_print(struct device_list *device_list)
 {
 	struct device *dev;
 	for (dev = device_list->device; dev; dev = dev->next) {
+		if (!device_valid(dev))
+			continue;
+
 		int num, j;
 		int has_progclk = 0;
 
