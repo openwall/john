@@ -739,6 +739,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		    format->methods.source(ciphertext, binary)))
 			return "source";
 
+		if (format->params.salt_size == 0 &&
+		    format->methods.salt_hash(salt))
+			return "salt_hash non-zero with salt_size of 0";
+
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
 			return "salt_hash";
