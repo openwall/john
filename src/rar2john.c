@@ -530,7 +530,8 @@ next_file_header:
 		}
 
 		/* Prefer shorter files, except zero-byte ones */
-		if (bestsize && (bestsize < file_header_unp_size)) {
+		if (!file_header_unp_size ||
+		    (bestsize && (bestsize < file_header_unp_size))) {
 			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
