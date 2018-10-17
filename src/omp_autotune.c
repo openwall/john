@@ -164,6 +164,9 @@ void omp_autotune_run(struct db_main *db)
 		// Set up buffers for this test
 		fmt->methods.init(fmt);
 
+		// Format may have bumped kpc in init()
+		this_kpc = fmt->params.max_keys_per_crypt;
+
 		// Load keys
 		fmt->methods.clear_keys();
 		for (i = 0; i < this_kpc; i++) {
