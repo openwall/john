@@ -34,7 +34,7 @@ __kernel void cloudkeychain_final(__global crack_t *pbkdf2,
 		ulong u[8];
 		uchar c[64];
 	} key;
-	int i, nkey;
+	int i;
 
 	uchar hmacdata[CTLEN];
 	uchar expectedhmac[16];
