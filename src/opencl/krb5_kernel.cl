@@ -6,6 +6,9 @@
  */
 
 #include "pbkdf2_hmac_sha1_kernel.cl"
+#if __OS_X__
+#define AES_NO_BITSLICE
+#endif
 #define AES_CTS_SRC_TYPE MAYBE_CONSTANT
 #define AES_CTS_DST_TYPE __global
 #include "opencl_aes.h"

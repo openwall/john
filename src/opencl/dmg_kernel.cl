@@ -12,6 +12,9 @@ typedef struct {
 
 #define pbkdf2_out dmg_out
 #include "pbkdf2_hmac_sha1_kernel.cl"
+#if __OS_X__
+#define AES_NO_BITSLICE
+#endif
 #define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 #include "opencl_hmac_sha1.h"

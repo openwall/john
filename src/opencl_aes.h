@@ -46,6 +46,7 @@
  * do two blocks in parallel except with some devices that are either too
  * buggy to use it, or actually perform slower with it.
  * CPU's seem to generally perform worse with it. Nvidia GPU's love it.
+ * macOS may crash just trying to build it.
  */
 #if defined(AES_NO_BITSLICE) || cpu(DEVICE_INFO) || (__OS_X__ && gpu_amd(DEVICE_INFO))
 #include "opencl_aes_plain.h"
