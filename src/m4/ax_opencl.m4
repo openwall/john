@@ -45,6 +45,8 @@ AC_ARG_ENABLE([opencl],
     [disable_opencl=$enableval],
     [disable_opencl='yes'])
 
+CPPFLAGS="$CPPFLAGS -DCL_SILENCE_DEPRECATION"
+
 if test "$disable_opencl" = 'yes'; then
   AC_LANG_PUSH([$1])
   AX_LANG_COMPILER_MS
