@@ -2045,8 +2045,8 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 	char hash_str[33];
 	uint64_t startTime, runtime;
 
-	if ((!gpu_amd(device_info[sequential_id]) &&
-	        !platform_apple(platform_id)) ||
+	if (!gpu_amd(device_info[sequential_id]) ||
+	        platform_apple(platform_id) ||
 	        stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
 	else {
