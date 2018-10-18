@@ -54,8 +54,6 @@ typedef union {
     vtype8 v8;
     vtype32 v32;
     vtype64 v64;
-    uint32_t s32[SIMD_COEF_32];
-    uint64_t s64[SIMD_COEF_64];
 } vtype;
 
 #define vadd_epi32(x, y)        (vtype)vaddq_u32((x).v32, (y).v32)
@@ -113,8 +111,6 @@ typedef vector unsigned long long vtype64;
 typedef union {
 	vtype32 v32;
 	vtype64 v64;
-	uint32_t s32[SIMD_COEF_32];
-	uint64_t s64[SIMD_COEF_64];
 } vtype;
 
 #define vadd_epi32(x, y)        (vtype)vec_add((x).v32, (y).v32)
