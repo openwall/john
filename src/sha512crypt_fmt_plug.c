@@ -82,7 +82,7 @@ john_register_one(&fmt_cryptsha512);
 #include "memdbg.h"
 
 #ifndef OMP_SCALE
-#define OMP_SCALE			2 // This and MKPC tuned for core i7
+#define OMP_SCALE			1 // This and MKPC tuned for core i7
 #endif
 
 // NOTE, in SSE mode, even if NOT in OMP, we may need to scale, quite a bit, due to needing
@@ -104,11 +104,7 @@ john_register_one(&fmt_cryptsha512);
 // then let the threads go on ALL data, without caring about the length, since each thread will only
 // be working on passwords in a single MMX buffer that all match, at any given moment.
 #ifdef SIMD_COEF_64
-#ifdef _OPENMP
-#define SIMD_COEF_SCALE     (32/SIMD_COEF_64)
-#else
-#define SIMD_COEF_SCALE     (64/SIMD_COEF_64)
-#endif
+#define SIMD_COEF_SCALE     32
 #else
 #define SIMD_COEF_SCALE     1
 #endif
@@ -152,7 +148,7 @@ john_register_one(&fmt_cryptsha512);
 #define __CRYPTSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "sha512crypt_common.h"
 
-#define BLKS MAX_KEYS_PER_CRYPT
+#define BLKS MIN_KEYS_PER_CRYPT
 
 /* This structure is 'pre-loaded' with the keyspace of all possible crypts which  */
 /* will be performed WITHIN the inner loop.  There are 8 possible buffers that    */
@@ -567,7 +563,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef SIMD_COEF_64
 	// group based upon size splits.
-	MixOrder = mem_calloc((count+6*MAX_KEYS_PER_CRYPT), sizeof(int));
+	MixOrder = mem_calloc((count+6*MIN_KEYS_PER_CRYPT), sizeof(int));
 	{
 		static const int lens[17][6] = {
 			{0,24,48,88,89,90},  //  0 byte salt
@@ -595,7 +591,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (saved_len[index] >= lens[cur_salt->len][j] && saved_len[index] < lens[cur_salt->len][j+1])
 					MixOrder[tot_todo++] = index;
 			}
-			while (tot_todo % MAX_KEYS_PER_CRYPT)
+			while (tot_todo % MIN_KEYS_PER_CRYPT)
 				MixOrder[tot_todo++] = count;
 		}
 	}
@@ -610,7 +606,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < tot_todo; index += MAX_KEYS_PER_CRYPT)
+	for (index = 0; index < tot_todo; index += MIN_KEYS_PER_CRYPT)
 	{
 		// portably align temp_result char * pointer machine word size.
 		union xx {
@@ -628,13 +624,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		char tmp_cls[sizeof(cryptloopstruct)+MEM_ALIGN_SIMD];
 		cryptloopstruct *crypt_struct;
 #ifdef SIMD_COEF_64
-		char tmp_sse_out[8*MAX_KEYS_PER_CRYPT*8+MEM_ALIGN_SIMD];
+		char tmp_sse_out[8*MIN_KEYS_PER_CRYPT*8+MEM_ALIGN_SIMD];
 		uint64_t *sse_out;
 		sse_out = (uint64_t *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #endif
 		crypt_struct = (cryptloopstruct *)mem_align(tmp_cls,MEM_ALIGN_SIMD);
 
-		for (idx = 0; idx < MAX_KEYS_PER_CRYPT; ++idx)
+		for (idx = 0; idx < MIN_KEYS_PER_CRYPT; ++idx)
 		{
 			/* Prepare for the real work.  */
 			SHA512_Init(&ctx);
@@ -733,7 +729,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				break;
 			{
 				int j, k;
-				for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
+				for (k = 0; k < MIN_KEYS_PER_CRYPT; ++k) {
 					uint64_t *o = (uint64_t *)crypt_struct->cptr[k][idx];
 #if !ARCH_ALLOWS_UNALIGNED
 					if (!is_aligned(o, 8)) {
@@ -755,7 +751,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		{
 			int j, k;
-			for (k = 0; k < MAX_KEYS_PER_CRYPT; ++k) {
+			for (k = 0; k < MIN_KEYS_PER_CRYPT; ++k) {
 				uint64_t *o = (uint64_t *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
 #if ARCH_LITTLE_ENDIAN==1
