@@ -97,6 +97,12 @@ extern const UTF32 offsetsFromUTF8[];
 extern const char opt_trailingBytesUTF8[64];
 
 /*
+ * Convert to UTF-32 from UTF-8.
+ */
+extern int utf8_to_utf32(UTF32 *target, unsigned int len,
+                         const UTF8 *source, unsigned int sourceLen);
+
+/*
  * Convert to UTF-16LE from UTF-8.
  * 'maxtargetlen' is max. number of characters (as opposed to bytes) in output,
  * e.g. PLAINTEXT_LENGTH.

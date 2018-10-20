@@ -186,6 +186,10 @@
 #define FLG_PRINCE_MMAP			0x0100000000000000ULL
 #define FLG_RULES_ALLOW			0x0200000000000000ULL
 #define FLG_REGEX_STACKED		0x0400000000000000ULL
+/* Subsets cracking mode */
+#define FLG_SUBSETS_CHK			0x0800000000000000ULL
+#define FLG_SUBSETS_SET \
+	(FLG_SUBSETS_CHK | FLG_CRACKING_SET)
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
@@ -402,6 +406,14 @@ struct options_main {
 	char *tune;
 /* Incremental CharCount override */
 	int charcount;
+/* Subsets full charset */
+	char *subset_full;
+/* Subsets, required first partition */
+	int subset_must;
+/* Subsets, min. diff */
+	int subset_min_diff;
+/* Subsets, max. diff */
+	int subset_max_diff;
 };
 
 extern struct options_main options;

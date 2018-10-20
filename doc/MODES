@@ -141,6 +141,16 @@ specific positions when building a candidate to test.  There is a full
 description of this mode, and the masks available, in the ./doc/MASK
 document.
 
+	SUBSETS mode.
+
+This mode exploits the weakness of low entropy passwords and was inspired
+by 'subsets' external mode, but has many advantages.  Basically, it will
+try subsets of a given charset with increasing lengths. It divides the
+keyspace in many sets of (subset size, password length) and will always
+try a smaller sub-keyspace before a larger one. For example, it will try
+very long passwords consisting of few unique characters before it tries a
+short one with more unique ones.  See ./doc/SUBSETS for more details.
+
 	REGEX mode.
 
 You can think of this as "reverse regexp".  Regex is similar to mask mode but

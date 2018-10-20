@@ -1,0 +1,108 @@
+SUBSETS mode
+
+Subsets mode was inspired by the external mode "subsets" and it also renders
+the external mode "repeats" obsolete. Actually it also replaces the dumb16,
+dumb32, repeats16 and repeats32 external modes (except for the fact they can
+easily be modified to use a smaller subset of the Unicode space). Compared to
+the external variant, it's much faster, picks candidate order differently and
+never ever produces a duplicate. It also scales very well with node/fork/MPI.
+Furthermore, it does support full Unicode without resorting to a legacy code
+page. Obviously it does support session resume (the external variant doesn't).
+
+Subsets is a quick brute-force variant that tries to produce candidates in
+order of complexity, that is, it will try a long poor password such as
+"gggggggggggggggggg#" earlier than a short one with unique characters like
+"yok3" and in between them it will probably try "bubba".
+
+With no further options, "--subsets" will start at length 1 and a subset
+size of 1 (mimicing the "repeats" external mode) and then increment both of
+them in subset keysize order, ending at the format's max. length. It will
+use the full charset of printable ASCII (95 characters) but start with
+tiny subsets and increase from there.
+
+Obviously normal options like --min-len, --max-len and --target-encoding
+also applies.
+
+
+CHARSET
+
+You can specify your own charset, eg. --subsets=STRING where STRING is any
+charset you want. You can also use pre-defined charsets 0..9 in john.conf
+using --subsets=N - see the [subsets] section of john.conf. There is also
+a conf setting "DefaultCharset = N" (setting default to one of the presets)
+or even "DefaultCharset = STRING" for some other default. Finally there's
+an eastern egg in "--subset=full-unicode". That is a truly huge charset,
+do not count on it getting very far in subset and output lengths. Unless
+you let it run for ages, it will produce long candidates with very short
+subsets or vice versa.
+
+The only "magic" allowed in a charset (regardless of where it's defined)
+is you can use \U+HHHH or \U+HHHHH notation for any Unicode character
+except the very highest private area that has six hex digits. For example,
+to include the "Grinning Face" smiley, you'd use \U+1F600. Take care not
+to use a legacy target codepage that can't hold the characters you define,
+there will be no warnings. Using UTF-8, anything is obviously allowed.
+
+PROGRESS
+
+The progress/ETA counting is peculiar, in the same way as when mask mode
+iterates over lengths: A figure (n) will be shown, indicating the smallest
+length not yet exhausted. Example:
+
+ 0:00:00:52 10.14% (5) (ETA: 16:25:30) 41161Kp/s _0v_0X..227//t
+
+This means we have exhausted length 4 and 10.14% of length 5. The estimated
+time when length 5 will be exhausted is 16:25:30, best case. Sometimes you
+will see no progress in those figures (the ETA will be pushed forward) -
+that is normal and just means we're currently producing candidates of bigger
+candidate lengths (but smaller subset sizes). If you look carefully you
+will realize this is exactly what was going on at the time it was printed:
+The candidates shown in the end is length 6 with a subset size of 4.
+
+
+REQUIRED PART OF CHARSET
+
+For advanced usage, there's another option "--subsets-required=N" where N
+is the number of characters in the charset (counting from left) that are
+required in every candidate. For example:
+
+--subsets=0123456789abcdef --min-len=4 --max-len=4
+
+This will produce all 65536 candidates possible at that length using hex
+digits. Now let's say you exhausted that one and want to try uppercase hex
+as well. Here's the clever way:
+
+--subsets=ABCDEF0123456789 --subsets-required=6 --min-len=4 --max-len=4
+
+So this means that the full charset is uppercase hex, but at least one of
+the first 6 of them (ie. one of ABCDEF) is required in every candidate. This
+means we will not produce a single dupe of the ones produced in the lower-
+case step, namely the 10,000 ones that only had decimal digits. So the total
+number output this time is only 55536. After these two sessions you have
+exhausted all lower OR upper case hexadecimal keyspace of length 4. A naive
+way of doing this could be a single session using:
+
+--subsets=0123456789abcdefABCDEF -min-len=4 -max-len=4
+
+- or -
+
+--mask=[0123456789abcdefABCDEF] -min-len=4 -max-len=4
+
+Both of these however would produce many candidates with mixed case like
+"dA56" which was not what we wanted, given that it would produce 234,256
+candidates instead of just 121072.
+
+Note that the above was just an illustrating example use of this option. A
+more realistic use could be full alphanumeric charsets where at least one
+digit is required, eg:
+
+-subsets=0123456789abcdefghijklmnopqrstuvwxyz --subsets-required=10
+
+
+SUBSET SIZES
+
+The options --subsets-min-diff=N and --subsets-max-diff=N (or the similar
+variants in john.conf) let you put a limit on complexity. Normally it's not
+needed unless you want a session that actually runs to finish before you
+die of age. For the --subsets-max-diff=N option, a negative N is parsed
+as "max. length - N".

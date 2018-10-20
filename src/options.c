@@ -119,6 +119,14 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"incremental-charcount", FLG_ZERO, 0, FLG_INC_CHK, OPT_REQ_PARAM,
 		"%u", &options.charcount},
+	{"subsets", FLG_SUBSETS_SET, FLG_SUBSETS_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.subset_full},
+	{"subsets-required", FLG_ZERO, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM,
+		"%u", &options.subset_must},
+	{"subsets-min-diff", FLG_ZERO, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM,
+		"%u", &options.subset_min_diff},
+	{"subsets-max-diff", FLG_ZERO, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM,
+		"%u", &options.subset_max_diff},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_CHK, OPT_REQ_PARAM,
@@ -324,6 +332,7 @@ PRINCE_USAGE \
 "--markov[=OPTIONS]         \"Markov\" mode (see doc/MARKOV)\n" \
 "--external=MODE            external mode or word filter\n" \
 JOHN_USAGE_REGEX \
+"--subsets[=CHARSET]        \"subsets\" mode (see doc/SUBSETS)\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
@@ -430,6 +439,11 @@ void opt_print_hidden_usage(void)
 	puts("--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)");
 	puts("--tune=HOW                 tuning options (auto/report/N)");
 	puts("--incremental-charcount=N  override CharCount for incremental mode");
+	puts("--subsets-required[=N]     The N first characters of \"subsets\" charset are");
+	puts("                           the \"required set\" (see doc/SUBSETS)");
+	puts("--subsets-min-diff=N       Minimum unique characters in subset");
+	puts("--subsets-max-diff=N       Maximum unique characters in subset (negative N is");
+	puts("                           relative to word length)");
 #ifdef HAVE_OPENCL
 	puts("\nOpenCL options:");
 	puts("--force-scalar             force scalar mode");

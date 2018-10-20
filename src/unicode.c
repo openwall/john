@@ -774,8 +774,8 @@ inline static UTF8 *utf32_to_utf8(UTF8 *dst, int dst_len, const UTF32 *source)
 	return dst;
 }
 
-inline static int utf8_to_utf32(UTF32 *target, unsigned int len,
-                                const UTF8 *source, unsigned int sourceLen)
+inline int utf8_to_utf32(UTF32 *target, unsigned int len,
+                         const UTF8 *source, unsigned int sourceLen)
 {
 	const UTF32 *targetStart = target;
 	const UTF32 *targetEnd = target + len;
