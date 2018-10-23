@@ -18,7 +18,7 @@ Please, read INSTALL for general information about installing John on your syste
 === Preconditions and Required stuff
 
     mkdir -p ~/src
-    sudo apt-get install build-essential libssl-dev git
+    sudo apt-get install build-essential libssl-dev git zlib1g-dev
 
 ==== Recommended (extra formats and performance)
 
