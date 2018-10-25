@@ -51,7 +51,7 @@ john_register_one(&fmt__hmacSHA256);
 #define SALT_LENGTH			1023
 #define SALT_ALIGN			1
 #else
-#define SALT_LIMBS			5  /* 5 limbs, 311 bytes */
+#define SALT_LIMBS			5  /* 11 limbs, 759 bytes */
 #define SALT_LENGTH			(SALT_LIMBS * PAD_SIZE - 9)
 #define SALT_ALIGN			MEM_ALIGN_SIMD
 #endif
