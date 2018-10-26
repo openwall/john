@@ -1351,7 +1351,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
         else
           log_event("- Rule #%d: '%.100s' accepted",
                     rule_number + 1, prerule);
-      } else
+      } else if (strncmp(prerule, "!!", 2))
         log_event("- Rule #%d: '%.100s' rejected",
                   rule_number + 1, prerule);
 

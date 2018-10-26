@@ -2440,6 +2440,8 @@ int rules_remove_dups(struct cfg_line *pLines, int log)
 			// then we do NOT add this line.
 			struct HashPtr *p = pHashTbl[hashId].pNext;
 			int bGood = 1;
+
+			if (strncmp(p1->data, "!!", 2))
 			for (;;) {
 				if (!strcmp(p1->data, p->pLine->data)) {
 					bGood = 0;

@@ -247,7 +247,7 @@ indent_size = 8
 [vax.[ch]]
 indent_size = 8
 
-[wordlist.[ch]]
+[wordlist.h]
 indent_size = 8
 
 [x86-64.[ch]]

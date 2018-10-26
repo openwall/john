@@ -1226,9 +1226,9 @@ REDO_AFTER_LMLOOP:
 						rule_number + 1, prerule);
 				}
 			} else {
-				if (!rules_mute)
-				log_event("- Rule #%d: '%.100s' rejected",
-					rule_number + 1, prerule);
+				if (!rules_mute && strncmp(prerule, "!!", 2))
+					log_event("- Rule #%d: '%.100s' rejected",
+					          rule_number + 1, prerule);
 				goto next_rule;
 			}
 		}
