@@ -2489,7 +2489,7 @@ int rules_count(struct rpp_context *start, int split)
 		error();
 	}
 
-	count2 = rules_remove_dups(start->input, 1);
+	count2 = rules_remove_dups(start->input, options.verbosity == VERB_MAX);
 	if (count2) {
 		count2 = rules_check(start, split);
 		log_event("- %d preprocessed word mangling rules were reduced "
