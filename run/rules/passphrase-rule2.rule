@@ -1,0 +1,98 @@
+# Do Nothing
+:
+
+# Add years to end - both with spaces and without
+$2$0$1$5
+$2$0$1$6
+$2$0$1$7
+$2$0$1$8
+$2$0$1$9
+$2$0$2$0
+$2$0$1$5$!
+$2$0$1$6$!
+$2$0$1$7$!
+$2$0$1$8$!
+$2$0$1$9$!
+$2$0$2$0$!
+$ $2$0$1$5
+$ $2$0$1$6
+$ $2$0$1$7
+$ $2$0$1$8
+$ $2$0$1$9
+$ $2$0$2$0
+$ $2$0$1$5$!
+$ $2$0$1$6$!
+$ $2$0$1$7$!
+$ $2$0$1$8$!
+$ $2$0$1$9$!
+$ $2$0$2$0$!
+
+# Add common numbers to the end - both with spaces and without
+$1
+$1$!
+$1$2$3
+$1$2$3$!
+$ $1
+$ $1$!
+$ $1$2$3
+$ $1$2$3$!
+
+# Add commong numbers to the beginning - both with spaces and without (have to do them backwards with a prepend)
+^1
+^3^2^1
+^ ^1
+^ ^3^2^1
+
+# Add common punctuation to end
+$!
+$?
+
+# G3t 133t (just the common ones) across whole phrase
+sa@sA@
+se3sE3
+sl1sL1
+so0sO0
+ss5sS5
+sa@sA@se3sE3so0sO0ss5sS5
+sa@sA@$!
+se3sE3$!
+sl1sL1$!
+so0sO0$!
+ss5sS5$!
+sa@sA@se3sE3so0sO0ss5sS5$!
+
+# Hashcat doesn't support 'nth place'positional replace in rule sets yet.
+# So we can say 'replace only the first A with @'
+# See: https://hashcat.net/wiki/doku.php?id=rule_based_attack#using_p_nth_instance_of_a_character_with_positional_rules
+# So, we are going to make some guesses here.... Sub in l33t characters at positions 1,2,3 and also end with !
+# Not a great way to do it, but oh well. Will update in future if feature becomes available.
+o1@
+o2@
+o3@
+o13
+o23
+o33
+o11
+o21
+o31
+o10
+o20
+o30
+o15
+o25
+o35
+o1@$!
+o2@$!
+o3@$!
+o13$!
+o23$!
+o33$!
+o11$!
+o21$!
+o31$!
+o10$!
+o20$!
+o30$!
+o15$!
+o25$!
+o35$!
