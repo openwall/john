@@ -431,6 +431,17 @@ int enc_to_utf16_be(UTF16 *dst, unsigned int maxdstlen, const UTF8 *src,
 }
 
 /*
+ * Strlen of UTF-32 (in 32-bit words, not octets).
+ */
+inline unsigned int strlen32(const UTF32 *str)
+{
+	unsigned int len = 0;
+	while (*str++ != 0)
+		len++;
+	return len;
+}
+
+/*
  * Strlen of UTF-16 (in 16-bit words, not octets).
  * Characters > U+FFFF are two 16-bit words (surrogates).
  */

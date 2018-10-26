@@ -172,6 +172,12 @@ extern char *utf8_to_cp_r(char *src, char *dst, int dstlen);
 extern char *cp_to_utf8_r(char *src, char *dst, int dstlen);
 
 /*
+ * Return length (in characters) of a UTF-32 string
+ * Number of octets is the result * sizeof(UTF32)
+ */
+extern unsigned int strlen32(const UTF32* str);
+
+/*
  * Return length (in characters) of a UTF-16 string
  * Number of octets is the result * sizeof(UTF16)
  */
