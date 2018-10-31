@@ -34,6 +34,7 @@ john_register_one(&fmt_adxcrypt);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "johnswap.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL            "adxcrypt"
@@ -130,6 +131,7 @@ static void *get_binary(char *ciphertext)
 static void adxcrypt(char *input, unsigned char *output, int16_t length)
 {
 	char *in;
+	int count;
 	int32_t idx;
 	uint32_t a, b;
 
@@ -137,7 +139,6 @@ static void adxcrypt(char *input, unsigned char *output, int16_t length)
 		char b[8];
 		int32_t w[2];
 	} buffer;
-	int count;
 
 	// setup work buffer
 	if (length > 0)
@@ -161,7 +162,11 @@ static void adxcrypt(char *input, unsigned char *output, int16_t length)
 
 	// loop
 	idx = 0;
+#if ARCH_LITTLE_ENDIAN==1
 	a = (buffer.w[0] + buffer.w[1]) ^ 0xBEEFFACE;
+#else
+	a = JOHNSWAP((buffer.w[0] + buffer.w[1]) ^ 0xCEFAEFBE);
+#endif
 	do {
 		if ( (a & 0xF) <= 9 )
 			b = a & 0xF;
