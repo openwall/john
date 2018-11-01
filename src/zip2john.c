@@ -206,9 +206,16 @@ static void process_file(const char *fname)
 				int found = 0;
 				int magic_enum = 0;  // reserved at 0 for now, we are not computing this (yet).
 
-				while (!ferror(fp)) {
+				// There could be multiple extra fields, so need to process them all.
+				while (!ferror(fp)  && extrafield_length > 0) {
 					efh_id = fget16LE(fp);
 					efh_datasize = fget16LE(fp);
+
+					// Adjust the bytes processed for id, size and acutal data so the
+					// file pointer is moved on correctly,
+					// - 2 bytes for the efh_id
+					// - 2 bytes for the efh_datasize
+					extrafield_length = extrafield_length - 2 - 2 - efh_datasize;
 					if (efh_id != 0x9901) {
 #if DEBUG
 						fprintf(stderr, "[DEBUG] Skipping over efh_id (%x) with size %d.\n", efh_id, efh_datasize);
@@ -216,26 +223,22 @@ static void process_file(const char *fname)
 						fseek(fp, efh_datasize, SEEK_CUR);
 					} else {
 						found = 1;
-						break;
+						// Data size: this value is currently 7, but because it is possible that this
+						// specification will be modified in the future to store additional data in
+						// this extra field, vendors should not assume that it will always remain 7.
+						if (efh_datasize != 7) {
+							fprintf(stderr, "AES_EXTRA_DATA_LENGTH is not 11 for %s, please report this to us!\n", fname);
+							goto cleanup;
+						}
+						efh_vendor_version = fget16LE(fp);
+						efh_vendor_id = fget16LE(fp);
+						efh_aes_strength = fgetc(fp);
+						actual_compression_method = fget16LE(fp);
 					}
 				}
 				if (!found)
 					goto cleanup;
-				efh_vendor_version = fget16LE(fp);
-				efh_vendor_id = fget16LE(fp);
-				efh_aes_strength = fgetc(fp);
-				actual_compression_method = fget16LE(fp);
-				if (efh_id != 0x9901) {
-					fprintf(stderr, "Unable to parse %s which is using WinZip AES encryption!\n", fname);
-					goto cleanup;
-				}
-				// Data size: this value is currently 7, but because it is possible that this
-				// specification will be modified in the future to store additional data in
-				// this extra field, vendors should not assume that it will always remain 7.
-				if (efh_datasize != 7) {
-					fprintf(stderr, "AES_EXTRA_DATA_LENGTH is not 11 for %s, please report this to us!\n", fname);
-					goto cleanup;
-				}
+
 				strnzcpy(path, fname, sizeof(path));
 				bname = basename(path);
 				cp = cur;
