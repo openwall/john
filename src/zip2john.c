@@ -197,10 +197,10 @@ static void process_file(const char *fname)
 				uint64_t real_cmpr_len;
 				uint16_t efh_id;
 				uint16_t efh_datasize;
-				uint16_t efh_vendor_version;
-				uint16_t efh_vendor_id;
-				char efh_aes_strength;
-				uint16_t actual_compression_method;
+				uint16_t efh_vendor_version = 0;
+				uint16_t efh_vendor_id = 0;
+				char efh_aes_strength = 0;
+				uint16_t actual_compression_method = 0;
 				unsigned char salt[16], d;
 				char *bname;
 				int found = 0;
