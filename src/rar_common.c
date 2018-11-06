@@ -564,7 +564,7 @@ inline static void check_rar(int count)
 				while (size) {
 					unsigned int inlen = (size > 0x8000) ? 0x8000 : size;
 
-					AES_cbc_encrypt(cipher, plain, inlen,
+					AES_cbc_encrypt(cipher, plain, MAX(inlen, 16),
 					                &aes_ctx, iv, AES_DECRYPT);
 
 					CRC32_Update(&crc, plain, inlen);
@@ -574,7 +574,17 @@ inline static void check_rar(int count)
 				CRC32_Final(crc_out, crc);
 
 				/* Compare computed CRC with stored CRC */
-				cracked[index] = !memcmp(crc_out, &cur_file->crc.c, 4);
+				if ((cracked[index] = !memcmp(crc_out, &cur_file->crc.c, 4))) {
+					if (cur_file->unp_size < 8) {
+						const char zeros[16] = { 0 };
+						const int pad_start = cur_file->unp_size % 16;
+						const int pad_size = 16 - pad_start;
+
+						/* Check padding as well for small files, see #3451 */
+						cracked[index] = !memcmp(&plain[pad_start],
+						                         zeros, pad_size);
+					}
+				}
 			} else {
 				const int solid = 0;
 				unpack_data_t *unpack_t;
