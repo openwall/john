@@ -70,6 +70,9 @@
 
 #define CHUNK_SIZE 4096
 
+/* Max file (path) name length, in characters */
+#define PATH_BUF_SIZE 256
+
 static int verbose;
 
 static void hexdump(const void *msg, void *x, unsigned int size)
@@ -339,7 +342,7 @@ next_file_header:
 		int ext_time_size;
 		uint64_t bytes_left;
 		uint16_t file_header_head_size, file_name_size;
-		unsigned char file_name[256], file_crc[4];
+		unsigned char file_name[4 * PATH_BUF_SIZE], file_crc[4];
 		unsigned char salt[8] = { 0 };
 		unsigned char rejbuf[32];
 		char *p;
@@ -446,7 +449,7 @@ next_file_header:
 		   wide char encoding that need to be decoded to UTF16
 		   and then to UTF-8 (we don't support codepages here) */
 		if (file_header_head_flags & 0x200) {
-			UTF16 FileNameW[256];
+			UTF16 FileNameW[PATH_BUF_SIZE];
 			int Length = strlen((char*)file_name);
 
 			if (verbose) {
@@ -462,7 +465,7 @@ next_file_header:
 					               strlen16(FileNameW) << 1);
 					fprintf(stderr, "OEM name:  %s\n", file_name);
 				}
-				utf16_to_utf8_r(file_name, 256, FileNameW);
+				utf16_to_utf8_r(file_name, PATH_BUF_SIZE, FileNameW);
 				fprintf(stderr, "! Unicode:   %s\n", file_name);
 			} else
 				fprintf(stderr, "! UTF8 name: %s\n", file_name);
