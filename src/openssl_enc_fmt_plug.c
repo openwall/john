@@ -285,11 +285,11 @@ static void *get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
-static int countascii(unsigned char *data, int len) {
+static int count_ascii(unsigned char *data, int len) {
 	int nascii = 0;
 	int c;
-	for(c=0; c<len; c++) {
-		if (data[c]==0x0a || (data[c]>=32 && data[c]<127))
+	for( c = 0 ; c < len ; c++) {
+		if (data[c] == 0x0a || data[c] == 0x0d || (data[c] >= 32 && data[c] < 127))
 			nascii++;
 	}
 	return nascii;
@@ -307,7 +307,7 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 				return 0;
 		} else if (cur_salt->kpa==2) {
 			int len = check_pkcs_pad(out, 16, 16);
-			int nascii = countascii(out, len);
+			int nascii = count_ascii(out, len);
 			if ( (nascii * 100) / len >= cur_salt->asciipct )
 				return 0;
 		}
@@ -319,7 +319,7 @@ static int kpa(unsigned char *key, unsigned char *iv, int inlined)
 				return 0;
 		} else if (cur_salt->kpa==2) {
 			int len = check_pkcs_pad(out, cur_salt->datalen, 16);
-			int nascii = countascii(out, len);
+			int nascii = count_ascii(out, len);
 			if ( (nascii * 100) / len >= cur_salt->asciipct )
 				return 0;
 		}
