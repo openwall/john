@@ -355,19 +355,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		return count;
 	}
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	insize = sizeof(zip_password) * gws;
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
 		"Copy data to gpu");
 
-	/// Run kernel
+	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &gws, lws, 0, NULL,
 		multi_profilingEvent[1]),
 		"Run kernel");
 
-	/// Read the result back
+	// Read the result back
 	outsize = sizeof(zip_hash) * gws;
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),

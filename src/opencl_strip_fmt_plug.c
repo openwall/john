@@ -113,7 +113,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
 
-	/// Allocate memory
+	// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -237,7 +237,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		&local_work_size : NULL;
 
 	if (new_keys || ocl_autotune_running) {
-		/// Copy data to gpu
+		// Copy data to gpu
 		insize = sizeof(pbkdf2_password) * gws;
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 			insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
@@ -245,12 +245,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		new_keys = 0;
 	}
 
-	/// Run kernel
+	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		NULL, &gws, lws, 0, NULL,
 	        multi_profilingEvent[1]), "Run kernel");
 
-	/// Read the result back
+	// Read the result back
 	outsize = sizeof(strip_out) * gws;
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]), "Copy result back");
