@@ -9,9 +9,11 @@
  *
  * Input Format : CHAP_N(username):$chap$id*challenge*response
  *
+ * CHAP_I => id.
+ *
  * References:
  *
- * ftp://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
+ * https://download.samba.org/pub/pub/unpacked/ppp/pppd/chap-md5.c
  * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf
  * http://www.willhackforsushi.com/presentations/PEAP_Shmoocon2008_Wright_Antoniewicz.pdf
  *
@@ -77,6 +79,8 @@ static struct fmt_tests chap_tests[] = {
 	{"$chap$1*266b0e9a58322f4d01ab25b35f879464*c9f9769597e320843f5f2af7b8f1c9bd", "S0cc3r"},
 	// RADIUS CHAP authentication is supported too
 	{"$chap$238*98437c9fd4cb5f446202c0b1ffab2592*050d578a292a4bfd9f030d2797919687", "hello"},
+	// Wild hash cracked by JtR
+	{"$chap$2*b73158a35a255d051758e95ed4abb2cdc69bb454110e827441213ddc8770e93ea141e1fc673e017e97eadc6b*7f3d71b4c0c6569d2fa26f4c14ac3cf0", "U$er1"},
 	{NULL}
 };
 
@@ -85,7 +89,7 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
 	unsigned char id; /* CHAP_I */
-	unsigned char challenge[32]; /* CHAP_C */
+	unsigned char challenge[128]; /* CHAP_C */
 	int challenge_length;
 } *cur_salt;
 
@@ -121,7 +125,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)	/* challenge */
 		goto err;
 	len = strlen(p);
-	if (len > 64 || (len&1))
+	if (len > 256 || (len&1))
 		goto err;
 	if (hexlenl(p, &extra) != len || extra)
 		goto err;
