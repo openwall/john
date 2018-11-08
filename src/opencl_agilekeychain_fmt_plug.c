@@ -105,7 +105,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
 
-	/// Allocate memory
+	// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);

@@ -67,7 +67,7 @@ static const char * warn[] = {
 
 static int split_events[] = { -1, -1, -1 };
 
-//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 #include "memdbg.h"
 
@@ -90,7 +90,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	key_buf_size = 32 * gws;
 
-	/// Allocate memory
+	// Allocate memory
 	pinned_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, key_buf_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating pinned in");
 	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, key_buf_size, NULL, &ret_code);
@@ -265,11 +265,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 32, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
-		/// Call init kernel
+		// Call init kernel
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapmk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run final kernel (MD5)");
 
 		new_keys = 0;
@@ -285,7 +285,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha256, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run final kernel (SHA256)");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running final kernel");
 
-	/// Read the result back
+	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, multi_profilingEvent[3]), "Copy result back");
 
 	return count;

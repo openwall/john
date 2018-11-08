@@ -9,8 +9,9 @@
  *
  * $rar5$<salt_len>$<salt>$<iter_log2>$<iv>$<pswcheck_len>$<pswcheck>
  *
- * salt length increase. HAS to match pbkdf2_hmac_sha256_kernel.cl code
- *  Now uses a common header file.  Dec 2017, JimF.
+ * Salt length increase. HAS to match pbkdf2_hmac_sha256_kernel.cl code.
+ *
+ * Now uses a common header file. Dec, 2017, JimF.
  */
 #ifdef HAVE_OPENCL
 
@@ -22,8 +23,6 @@ john_register_one(&fmt_ocl_rar5);
 
 #include <string.h>
 #include <stdint.h>
-
-//#define DEBUG
 
 #include "misc.h"
 #include "arch.h"
@@ -72,7 +71,7 @@ static const char * warn[] = {
 
 static int split_events[] = { 2, -1, -1 };
 
-//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 #include "memdbg.h"
 
@@ -202,10 +201,7 @@ static void set_salt(void *salt)
 	host_salt->rounds = cur_salt->iterations + 32; // We only need PswCheck
 	host_salt->length = cur_salt->saltlen;
 	memcpy(host_salt->salt, cur_salt->salt, cur_salt->saltlen);
-#if 0
-	fprintf(stderr, "Setting salt iter %d len %d ", host_salt->rounds, host_salt->length);
-	dump_stuff(host_salt->salt, SIZE_SALT50);
-#endif
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
 	    "Copy salt to gpu");
@@ -221,12 +217,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	loops += host_salt->rounds % HASH_LOOPS > 0;
 
-	/// Copy data to gpu
+	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
 		CL_FALSE, 0, gws * sizeof(pass_t), host_pass, 0,
 		NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
-	/// Run kernel
+	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &gws, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
@@ -242,7 +238,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		1, NULL, &gws, lws, 0, NULL,
 		multi_profilingEvent[3]), "Run final kernel");
 
-	/// Read the result back
+	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out,
 		CL_TRUE, 0, gws * sizeof(crack_t), host_crack, 0,
 		NULL, multi_profilingEvent[4]), "Copy result back");
@@ -256,9 +252,6 @@ static void set_key(char *key, int index)
 
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
-#if 0
-	fprintf(stderr, "%s(%s)\n", __FUNCTION__, key);
-#endif
 }
 
 static char *get_key(int index)

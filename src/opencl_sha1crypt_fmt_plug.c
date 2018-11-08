@@ -83,7 +83,7 @@ static const char * warn[] = {
 
 static int split_events[] = { 2, -1, -1 };
 
-//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 #include "memdbg.h"
 
@@ -263,13 +263,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu"\n", __FUNCTION__,
 	        count, local_work_size, global_work_size, scalar_gws);
 #endif
-	/// Copy data to gpu
+	// Copy data to gpu
 	if (ocl_autotune_running || new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}
 
-	/// Run kernels
+	// Run kernels
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
 	for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
@@ -280,7 +280,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 
-	/// Read the result back
+	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(pbkdf1_out) * scalar_gws, host_crack, 0, NULL, multi_profilingEvent[4]), "Copy result back");
 
 	return count;
