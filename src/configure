@@ -17616,7 +17616,7 @@ OpenCL support ............................. ${using_cl}
 Generic crypt(3) format .................... ${using_crypt}
 libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
-libz (pkzip format, gpg2john) .............. ${using_zlib}
+libz (pkzip and some other formats) ........ ${using_zlib}
 libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
 librexgen (regex cracking mode) ............ ${using_rexgen}

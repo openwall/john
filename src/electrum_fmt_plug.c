@@ -489,4 +489,13 @@ struct fmt_main fmt_electrum = {
 
 #endif /* plugin stanza */
 
+#else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning "zlib missing, Electrum formats not built"
+#elif _MSC_VER
+#pragma message("zlib missing, Electrum formats not built")
+#endif
+#endif
+
 #endif /* HAVE_LIBZ */
