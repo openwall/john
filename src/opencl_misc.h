@@ -129,7 +129,7 @@ inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 #endif
 #endif
 
-#if defined cl_amd_media_ops
+#if defined cl_amd_media_ops && !__MESA__
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #elif SCALAR && SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)

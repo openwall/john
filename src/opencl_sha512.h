@@ -19,7 +19,8 @@
 
 // Macros.
 // macOS AMD drivers do not support amd_bitalign
-#if defined(USE_BITSELECT) && !__OS_X__
+#if defined(USE_BITSELECT) && defined(cl_amd_media_ops) && !__MESA__
+#pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define ror64(x, n)      ((n) < 32 ?                                            \
         (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) |                \
         ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : \
