@@ -337,7 +337,8 @@ static char *opencl_driver_info(int sequential_id)
 #endif
 	} while ((line = line->next));
 
-	if (gpu_amd(device_info[sequential_id])) {
+	if (gpu_amd(device_info[sequential_id]) &&
+	    get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_AMD) {
 
 		if (major < 1912)
 			snprintf(buf, sizeof(buf), "%s - Catalyst %s", dname, name);
