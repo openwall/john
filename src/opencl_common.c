@@ -114,10 +114,10 @@ typedef struct {
 	cl_platform_id platform;
 	int num_devices;
 } cl_platform;
-static cl_platform platforms[MAX_PLATFORMS];
+static cl_platform platforms[MAX_PLATFORMS + 1];
 
 
-cl_device_id devices[MAX_GPU_DEVICES];
+cl_device_id devices[MAX_GPU_DEVICES + 1];
 cl_context context[MAX_GPU_DEVICES];
 cl_program program[MAX_GPU_DEVICES];
 cl_command_queue queue[MAX_GPU_DEVICES];
@@ -434,42 +434,54 @@ static int get_if_device_is_in_use(int sequential_id)
 	return found;
 }
 
-static void start_opencl_environment()
+static void get_opencl_environment()
 {
 	cl_platform_id platform_list[MAX_PLATFORMS];
-	char opencl_data[LOG_SIZE];
-	cl_uint num_platforms, device_num, device_pos = 0;
-	int i, ret;
+	cl_uint num_platforms, device_pos = 0;
+	int ret, i;
 
 	/* Find OpenCL enabled devices. We ignore error here, in case
 	 * there is no platform and we'd like to run a non-OpenCL format. */
-	clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
+	ret = clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
+
+	if (ret != CL_SUCCESS)
+		num_platforms = 0;
+
+	if (num_platforms < 1 && options.verbosity > VERB_LEGACY)
+		fprintf(stderr, "No OpenCL devices were found (%d)\n", ret);
 
 	for (i = 0; i < num_platforms; i++) {
-		platforms[i].platform = platform_list[i];
+		cl_uint num_devices;
 
-		HANDLE_CLERROR(clGetPlatformInfo(platforms[i].platform,
+		// It is possible to have a platform without any devices
+		// Ignore error here too on purpose.
+		ret = clGetDeviceIDs(platform_list[i], CL_DEVICE_TYPE_ALL,
+		                   MAX_GPU_DEVICES - device_pos, /* avoid buffer overrun */
+		                   &devices[device_pos], &num_devices);
+		if (ret != CL_SUCCESS)
+			num_devices = 0;
+
+		if (num_devices < 1 && options.verbosity > VERB_LEGACY)
+			fprintf(stderr, "No OpenCL devices were found on platform #%d (%d)\n", i, ret);
+
+		// Save platform and devices information
+		platforms[i].platform = platform_list[i];
+		platforms[i].num_devices = num_devices;
+
+		// Point to the end of the list
+		device_pos += num_devices;
+
+#ifdef OCL_DEBUG
+	{
+		char opencl_data[LOG_SIZE];
+
+		SOFT_CLERROR(clGetPlatformInfo(platform_list[i],
 		                                 CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
 		               "Error querying PLATFORM_NAME");
 
-		// It is possible to have a platform without any devices
-		ret = clGetDeviceIDs(platforms[i].platform, CL_DEVICE_TYPE_ALL,
-		                     MAX_GPU_DEVICES, &devices[device_pos],
-		                     &device_num);
-
-		if ((ret != CL_SUCCESS || device_num < 1) &&
-		        options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "No OpenCL devices was found on platform #%d\n", i);
-
-		// Save platform and devices information
-		platforms[i].num_devices = device_num;
-
-		// Point to the end of the list
-		device_pos += device_num;
-
-#ifdef OCL_DEBUG
 		fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n",
-		        i, opencl_data, device_num);
+		        i, opencl_data, num_devices);
+	}
 #endif
 	}
 	// Set NULL to the final buffer position.
@@ -721,7 +733,7 @@ void opencl_preinit(void)
 			context[i] = NULL;
 			queue[i] = NULL;
 		}
-		start_opencl_environment();
+		get_opencl_environment();
 		{
 			struct list_entry *current;
 
