@@ -648,6 +648,8 @@ inline static void check_rar(int count)
 				if (rar_unpack29(cur_file->blob, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc,
 					                         &cur_file->crc.c, 4);
+				else
+					cracked[index] = 0;
 			}
 		}
 	}
