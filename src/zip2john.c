@@ -605,9 +605,11 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 
 	p->offex = 30 + filename_length + extrafield_length;
 
+	if (!only_fname || !strcmp(only_fname, (char*)filename))
+		fprintf(stderr, "ver %d.%d ", version / 10, version % 10);
+
 	// we only handle implode or store.
 	// 0x314 (788) was seen at 2012 CMIYC ?? I have to look into that one.
-	fprintf(stderr, "ver %d.%d ", version / 10, version % 10);
 	if ( (flags & 1) &&
 	     (version == 10 || version == 20 || version == 45 || version == 788)) {
 		uint16_t extra_len_used = 0;
@@ -617,7 +619,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 				uint16_t efh_id = fget16LE(fp);
 				uint16_t efh_datasize = fget16LE(fp);
 
-				fprintf(stderr, "efh %04x ", efh_id);
+				if (!only_fname || !strcmp(only_fname, (char*)filename))
+					fprintf(stderr, "efh %04x ", efh_id);
 
 				if (efh_id == 0x0001) {
 					size64 = 1;
@@ -807,6 +810,8 @@ print_and_cleanup:;
 	if (count_of_hashes) {
 		int i = 1;
 		char *bname;
+		static int once;
+
 		strnzcpy(path, fname, sizeof(path));
 		bname = basename(path);
 
@@ -829,6 +834,12 @@ print_and_cleanup:;
 			print_hex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len);
 		}
 		printf("$/pkzip2$:::::%s\n", fname);
+
+		if (count_of_hashes > 1 && !once++)
+			fprintf(stderr,
+"NOTE: It is assumed that all files in each archive have the same password.\n"
+"If that is not the case, the hash may be uncrackable. To avoid this, use\n"
+"option -o to pick a file at a time.\n");
 
 		for (i = 0; i < count_of_hashes; ++i)
 			MEM_FREE(hashes[i].hash_data);
@@ -853,7 +864,8 @@ static int usage(char *name) {
 	fprintf(stderr, "    not 100%% safe in all situations.\n");
 	fprintf(stderr, " -2 Force 2 byte checksum computation.\n");
 	fprintf(stderr, "\nNOTE: By default it is assumed that all files in each archive have the same\n");
-	fprintf(stderr, "password. To work around that, use -o option to pick a file at a time.\n");
+	fprintf(stderr, "password. If that's not the case, the produced hash may be uncrackable.\n");
+	fprintf(stderr, "To avoid this, use -o option to pick a file at a time.\n");
 
 	return EXIT_FAILURE;
 }
