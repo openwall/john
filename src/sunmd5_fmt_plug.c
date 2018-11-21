@@ -532,9 +532,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif // SIMD_COEF_32
 #else
 #ifdef SIMD_COEF_32
-#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf)
+#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf, constant_phrase)
 #else
-#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data)
+#pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, constant_phrase)
 #endif // SIMD_COEF_32
 #endif // __INTEL_COMPILER
 #endif // _OPENMP
