@@ -836,8 +836,9 @@ print_and_cleanup:;
 			uint64_t len = 12+24;
 
 			if (i) {
-				filenames =
-					mem_realloc(filenames, strlen(hashes[0].file_name + 3));
+				filenames = mem_realloc(filenames,
+				                        strlen(filenames) +
+				                        strlen(hashes[0].file_name) + 3);
 				strcat(filenames, ", ");
 				strcat(filenames, hashes[i].file_name);
 			}
@@ -869,6 +870,7 @@ print_and_cleanup:;
 			MEM_FREE(hashes[i].hash_data);
 			MEM_FREE(hashes[i].file_name);
 		}
+		MEM_FREE(filenames);
 	}
 	fclose(fp);
 }
