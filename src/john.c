@@ -110,9 +110,7 @@ static int john_omp_threads_new;
 #include "fake_salts.h"
 #include "listconf.h"
 #include "crc32.h"
-#if HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "regex.h"
 
 #include "unicode.h"

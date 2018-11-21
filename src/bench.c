@@ -167,9 +167,7 @@ void ldr_free_test_db(struct db_main *db)
 }
 #endif
 
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif /* HAVE_MPI */
+#include "john_mpi.h"
 
 #ifdef _OPENMP
 #include <omp.h>

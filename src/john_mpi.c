@@ -11,7 +11,7 @@
 #include <unistd.h>
 #endif
 
-#include "john-mpi.h"
+#include "john_mpi.h"
 #include "john.h"
 #include "memory.h"
 #include "memdbg.h"

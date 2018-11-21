@@ -32,9 +32,7 @@
 #include "misc.h"
 #include "options.h"
 
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "memdbg.h"
 
 void real_error(char *file, int line)

@@ -59,10 +59,8 @@
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
+#include "john_mpi.h"
 #include "signals.h"
-#endif
 #include "memdbg.h"
 
 char *rec_name = RECOVERY_NAME;

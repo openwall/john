@@ -79,9 +79,7 @@
 #include "formats.h"
 #include "loader.h"
 #include "john.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "memdbg.h"
 
 #define FORMAT_LABEL			"crypt"

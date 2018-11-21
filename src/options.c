@@ -39,8 +39,8 @@
 #include "fake_salts.h"
 #include "path.h"
 #include "regex.h"
+#include "john_mpi.h"
 #ifdef HAVE_MPI
-#include "john-mpi.h"
 #define _PER_NODE "per node "
 #else
 #define _PER_NODE ""

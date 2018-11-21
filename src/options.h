@@ -24,9 +24,7 @@
 #include "list.h"
 #include "loader.h"
 #include "getopt.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif /* HAVE_MPI */
+#include "john_mpi.h"
 
 /*
  * Core Option flags bitmasks (low 32 bits):

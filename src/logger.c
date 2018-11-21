@@ -52,9 +52,7 @@
 #include "recovery.h"
 #include "unicode.h"
 #include "dynamic.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "cracker.h"
 #include "signals.h"
 #include "memdbg.h"

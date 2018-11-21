@@ -55,9 +55,7 @@
 #include "status.h"
 #include "john.h"
 #include "md5.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "memdbg.h"
 
 #define KLUDGE_LOCK_FILE "/tmp/.JtR_kernel_build_lock"

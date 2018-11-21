@@ -57,9 +57,7 @@
 #include "john.h"
 #include "fake_salts.h"
 #include "sha.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "path.h"
 #include "jumbo.h"
 #if HAVE_LIBDL && defined(HAVE_OPENCL)

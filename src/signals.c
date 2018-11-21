@@ -52,9 +52,7 @@
 #include "john.h"
 #include "status.h"
 #include "signals.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "memdbg.h"
 
 volatile int event_pending = 0, event_reload = 0;

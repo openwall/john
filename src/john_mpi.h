@@ -1,6 +1,8 @@
 #ifndef JOHN_MPI_INCLUDE
 #define JOHN_MPI_INCLUDE
 
+#if HAVE_MPI
+
 #include <mpi.h>
 
 #define JOHN_MPI_RELOAD	1
@@ -15,4 +17,5 @@ extern void mpi_teardown(void);
 /* MPI initialization stuff, registers atexit() as well */
 extern void mpi_setup(int argc, char **argv);
 
-#endif
+#endif /* HAVE_MPI */
+#endif /* JOHN_MPI_INCLUDE */

@@ -38,9 +38,7 @@
 #include "unicode.h"
 #include "signals.h"
 #include "mask.h"
-#ifdef HAVE_MPI
-#include "john-mpi.h"
-#endif
+#include "john_mpi.h"
 #include "common-gpu.h"
 #include "memdbg.h"
 
