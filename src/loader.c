@@ -1048,6 +1048,22 @@ static void ldr_split_string(struct list_main *dst, char *src)
 		list_add_global_unique(dst, single_seed, word);
 		*pos++ = c;
 	} while (c && dst->count < LDR_WORDS_MAX);
+	if (*src) {
+		/* Second pass, JEdgarHoover -> J Edgar Hoover */
+		pos = src;
+		do {
+			word = pos;
+			while (*pos && !enc_isupper(pos[1]))
+				pos++;
+			if (!*pos)
+				break;
+
+			c = *++pos;
+			*pos = 0;
+			list_add_global_unique(dst, single_seed, word);
+			*pos = c;
+		} while (c && dst->count < LDR_WORDS_MAX);
+	}
 }
 
 static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
