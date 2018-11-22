@@ -534,6 +534,9 @@ zip2john.o:	zip2john.c arch.h common.h memory.h jumbo.h formats.h params.h misc.
 
 ######## End auto-generated
 
+princeprocessor:
+	$(CC) @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @MEMDBG_CFLAGS@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ @HT@ $(RELEASE_BLD) $(CPPFLAGS) $(OPT_NORMAL) -Wno-declaration-after-statement -std=c99 -DLINUX pp.c $(LDFLAGS) -o ../run/pp
+
 pp.o:	pp.c autoconfig.h arch.h win32_memmap.h os.h os-autoconf.h jumbo.h mmap-windows.c memdbg.h memory.h mpz_int128.h int128.h misc.h config.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h external.h compiler.h cracker.h john.h unicode.h prince.h rpp.h rules.h mask.h
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -Wno-declaration-after-statement -std=c99 -c pp.c
 

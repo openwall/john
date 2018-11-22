@@ -30,7 +30,7 @@
 #include "autoconfig.h"
 #else
 #include <sys/mman.h>
-#define _GNU_SOURCE
+#define _GNU_SOURCE 1
 #define _FILE_OFFSET_BITS 64
 #define __USE_MINGW_ANSI_STDIO 1
 #ifdef __SIZEOF_INT128__
@@ -157,9 +157,7 @@ static char *regex;
 #else
 
 #undef MIN
-#define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #undef MAX
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 #endif
 
@@ -184,6 +182,11 @@ static char *regex;
 #define ALLOC_NEW_DUPES  0x100000
 
 #define ENTRY_END_HASH   0xFFFFFFFF
+
+#ifndef JTR_MODE
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#endif
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -462,7 +465,11 @@ static void check_realloc_elems (db_entry_t *db_entry)
 
     if (db_entry->elems_buf == NULL)
     {
+#ifdef JTR_MODE
       fprintf (stderr, "Out of memory trying to allocate "Zu" bytes\n", (size_t) elems_alloc_new * sizeof (elem_t));
+#else
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) elems_alloc_new * sizeof (elem_t));
+#endif
 
 #ifndef JTR_MODE
       exit (-1);
@@ -489,7 +496,11 @@ static void check_realloc_chains (db_entry_t *db_entry)
 
     if (db_entry->chains_buf == NULL)
     {
+#ifdef JTR_MODE
       fprintf (stderr, "Out of memory trying to allocate "Zu" bytes\n", (size_t) chains_alloc_new * sizeof (chain_t));
+#else
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) chains_alloc_new * sizeof (chain_t));
+#endif
 
 #ifndef JTR_MODE
       exit (-1);
@@ -827,7 +838,7 @@ static void add_uniq (db_entry_t *db_entry, char *input_buf, int input_len)
 mpz_t save;
 
 #ifndef JTR_MODE
-static void catch_int ()
+static void catch_int (int signum)
 {
   FILE *fp = fopen (SAVE_FILE, "w");
 
@@ -839,7 +850,7 @@ static void catch_int ()
 
   fclose (fp);
 
-  exit (0);
+  exit (signum==0?0:signum);
 }
 
 int main (int argc, char *argv[])
@@ -1072,8 +1083,8 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       case IDX_CASE_PERMUTE:          case_permute      = 1;              break;
       case IDX_DUPE_CHECK_DISABLE:    dupe_check        = 0;              break;
       case IDX_SAVE_POS_DISABLE:      save_pos          = 0;              break;
-      case IDX_SKIP:                  mpz_set_str (skip,  optarg, 0);     break;
-      case IDX_LIMIT:                 mpz_set_str (limit, optarg, 0);     break;
+      case IDX_SKIP:                  mpz_set_str (skip,  optarg, 10);    break;
+      case IDX_LIMIT:                 mpz_set_str (limit, optarg, 10);    break;
       case IDX_OUTPUT_FILE:           output_file       = optarg;         break;
 
       default: return (-1);
@@ -1674,8 +1685,13 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     {
       const char old_c = input_buf[0];
 
+#ifdef JTR_MODE
       const char new_cu = toupper (ARCH_INDEX(old_c));
       const char new_cl = tolower (ARCH_INDEX(old_c));
+#else
+      const char new_cu = toupper (old_c);
+      const char new_cl = tolower (old_c);
+#endif
 
       if (old_c != new_cu)
       {
@@ -2382,7 +2398,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
 
   if (save_pos)
   {
-    catch_int ();
+    catch_int (0);
   }
 #endif
 
