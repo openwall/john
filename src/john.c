@@ -1159,7 +1159,8 @@ static void john_load(void)
 		if (!options.target_enc || options.input_enc != UTF_8)
 			options.target_enc = options.input_enc;
 
-		if (options.req_maxlength > options.length) {
+		if (!(options.flags & FLG_LOOPBACK_CHK) &&
+		    options.req_maxlength > options.length) {
 			fprintf(stderr, "Can't set max length larger than %u "
 			        "for stdout format\n", options.length);
 			error();
