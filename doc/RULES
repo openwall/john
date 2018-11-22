@@ -39,7 +39,7 @@ that RULES-hashcat file.
 -U	reject this rule if --encoding=utf-8 or config variable
 	DefaultEncoding = UTF-8 is used
 ->N	reject this rule unless length N or longer is supported
--<N     reject this rule unless length N or shorter is supported (--min-length)
+-<N	reject this rule unless length N or shorter is supported (--min-length)
 
 
 	Numeric constants and variables.
@@ -110,6 +110,7 @@ c	capitalize
 C	lowercase the first character, and uppercase the rest
 t	toggle case of all characters in the word
 TN	toggle case of the character in position N
+WN	toggle shift of the character in position N
 r	reverse: "Fred" -> "derF"
 d	duplicate: "Fred" -> "FredFred"
 f	reflect: "Fred" -> "FredderF"
@@ -117,6 +118,10 @@ f	reflect: "Fred" -> "FredderF"
 }	rotate the word right: "smithj" -> "jsmith"
 $X	append character X to the word
 ^X	prefix the word with character X
+
+WN is a superset of TN.  While TN only case-toggles alphabet letters, eg.
+"a" <-> "A", the WN command will shift-toggle as well.  This is akin to
+using shift or not on a US keyboard, eg. "1" <-> "!".
 
 NOTE, all of these are encoding-aware. Eg. if you do not specify an encoding,
 the l command will lowercase A-Z only. If you use --encoding=iso-8859-1 it will
@@ -271,7 +276,7 @@ s?CY	replace all characters of class C in the word with Y
 )?C	reject the word unless its last character is in class C
 %NX	reject the word unless it contains at least N instances of X
 %N?C	reject the word unless it contains at least N characters of class C
-U       reject the word unless it is valid UTF-8 (use with -u rule reject)
+U	reject the word unless it is valid UTF-8 (use with -u rule reject)
 eC	title case, where C is the separation character
 e?C	title case, with chars from class C as separation characters.
 	NOTE, see hashcat specific 'E' rule which is generic title case for space

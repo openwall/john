@@ -1794,6 +1794,14 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			in[0] = 0;
 			break;
 
+		case 'W':
+			{
+				int pos;
+				POSITION(pos)
+				in[pos] = conv_shift[ARCH_INDEX(in[pos])];
+			}
+			break;
+
 		case 'S':
 			CONV(conv_shift);
 			break;
