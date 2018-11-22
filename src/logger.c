@@ -108,7 +108,8 @@ struct log_file {
 static struct log_file log = {NULL, NULL, NULL, 0, -1};
 static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
-static int in_logger = 0;
+static char *admin_start, *admin_end, *admin_string;
+static int in_logger, show_admins;
 
 static void log_file_init(struct log_file *f, char *name, char *perms, int size)
 {
@@ -334,9 +335,42 @@ static int log_time(void)
 	return count1 + count2;
 }
 
+/*
+ * In-place change of "^" in passed string to ANSI Escape.
+ * If input is a NULL pointer or feature is disabled, return a null string.
+ */
+static char* parse_esc(char *string)
+{
+	char *s = string;
+
+	if (!show_admins || !s)
+		return "";
+
+	while (*s) {
+		if (*s == '^')
+			*s = 0x1b;
+		s++;
+	}
+
+	return string;
+}
+
 void log_init(char *log_name, char *pot_name, char *session)
 {
 	in_logger = 1;
+
+	show_admins = cfg_get_bool(SECTION_OPTIONS, NULL, "MarkAdminCracks", 0);
+
+	if (isatty(fileno(stdout))) {
+		admin_start = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		                                      "MarkAdminStart"));
+		admin_end = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		                                    "MarkAdminEnd"));
+	} else
+		admin_start = admin_end = "";
+
+	admin_string = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+	                                       "MarkAdminString"));
 
 	if (log_name && log.fd < 0) {
 		if (session)
@@ -416,15 +450,60 @@ static char *components(char *string, int len)
 	return out;
 }
 
+/* Quick'n'dirty guess of whether user is an administrator or not */
+static int is_admin(char *login, char *uid)
+{
+	if (login) {
+		char *s;
+
+		if (strcasestr(login, "admin") || strcasestr(login, "root") ||
+		    strcasestr(login, "super") || strcasestr(login, "sysadm"))
+			return 1;
+
+		/* Avoid false positives for this short substring */
+		if ((s = strcasestr(login, "adm"))) {
+			char c;
+
+			if (s > login) {
+				c = s[-1];
+
+				if (c < 'A' || c > 'z' ||
+				    (c > 'Z' && c < 'a'))
+					return 1;
+			}
+
+			c = s[3];
+			if (c < 'A' || c > 'z' || (c > 'Z' && c < 'a'))
+				return 1;
+		}
+	}
+
+	if (!uid)
+		return 0;
+
+	if (!strcmp(uid, "0"))
+		return 1;
+
+	if (!options.format || !strncasecmp(options.format, "nt", 2) ||
+	    !strncasecmp(options.format, "lm", 2))
+		if (!strcmp(uid, "500"))
+			return 1;
+
+	return 0;
+}
+
+#define ADM_START admin ? admin_start : ""
+#define ADM_END   admin ? admin_end : ""
+
 void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
                char *store_plain, char field_sep, int index)
 {
 	int count1, count2;
 	int len;
-	char spacer[] = "                ";
 	char *secret = "";
 	char uid_sep[2] = { 0 };
 	char *uid_out = "";
+	int admin = is_admin(login, uid);
 
 /* This is because printf("%-16s") does not line up multibyte UTF-8.
    We need to count characters, not octets. */
@@ -441,13 +520,16 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 	if (options.verbosity > 1) {
 		if (options.secure) {
 			secret = components(rep_plain, len);
-			printf("%-16s (%s%s%s)\n",
-			       secret, login, uid_sep, uid_out);
+			printf("%-16s (%s%s%s%s%s)\n", secret,
+			       ADM_START, login, uid_sep, uid_out, ADM_END);
 		} else {
+			char spacer[] = "                ";
+
 			spacer[len > 16 ? 0 : 16 - len] = 0;
 
-			printf("%s%s (%s%s%s)\n",
-			       rep_plain, spacer, login, uid_sep, uid_out);
+			printf("%s%s (%s%s%s%s%s)\n",
+			       rep_plain, spacer,
+			       ADM_START, login, uid_sep, uid_out, ADM_END);
 
 			if (options.fork)
 				fflush(stdout);
@@ -490,6 +572,9 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 			if (cfg_log_passwords)
 				count2 += (int)sprintf(log.ptr + count2,
 				                       ": %s", rep_plain);
+			if (admin && *admin_string)
+				count2 += (int)sprintf(log.ptr + count2,
+				                       " %s", admin_string);
 			if (cfg_showcand)
 				count2 += (int)sprintf(log.ptr + count2,
 				                       " as candidate #%"PRIu64,
