@@ -145,6 +145,7 @@ JOHN_OBJS = \
 	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o wordlist.o \
 	mkv.o mkvlib.o \
+	subsets.o \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o \
