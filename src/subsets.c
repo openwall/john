@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <ctype.h>
 
-#include "autoconfig.h"
+#include "arch.h"
 #include "int128.h"
 #include "john.h"
 #include "loader.h"
