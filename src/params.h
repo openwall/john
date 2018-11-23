@@ -425,6 +425,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define MAX_NUM_CUST_PLHDR		9
 
 /* Verbosity level. Higher is more chatty. */
+#define VERB_DEBUG			6
 #define VERB_MAX			5
 #define VERB_LEGACY			4
 #define VERB_DEFAULT			3

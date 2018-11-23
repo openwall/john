@@ -865,10 +865,12 @@ static void john_load_conf(void)
 		if (options.verbosity == -1)
 			options.verbosity = VERB_DEFAULT;
 
-		if (options.verbosity < 1 || options.verbosity > VERB_MAX) {
+		if (options.verbosity < 1 || options.verbosity > VERB_DEBUG) {
 			if (john_main_process)
 				fprintf(stderr, "Invalid verbosity level in "
-				        "config file, use 1-%u\n", VERB_MAX);
+				        "config file, use 1-%u (default %u)"
+				        " or %u for debug\n",
+				        VERB_MAX, VERB_DEFAULT, VERB_DEBUG);
 			error();
 		}
 	}
