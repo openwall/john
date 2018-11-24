@@ -145,7 +145,7 @@ static void single_init(void)
 		error();
 	}
 
-	rules_init(length);
+	rules_init(single_db, length);
 	rec_rule = rule_number = 0;
 	rule_count = rules_count(rule_ctx, 0);
 

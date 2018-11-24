@@ -1110,7 +1110,7 @@ REDO_AFTER_LMLOOP:
 			error();
 		}
 
-		rules_init(rules_length);
+		rules_init(db, rules_length);
 		rule_count = rules_count(&ctx, -1);
 
 		if (do_lmloop || !db->plaintexts->head)

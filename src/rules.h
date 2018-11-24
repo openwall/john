@@ -24,7 +24,7 @@ extern int rules_mute;
 /*
  * Initializes the rules support.
  */
-extern void rules_init(int max_length);
+extern void rules_init(struct db_main *db, int max_length);
 
 /*
  * Processes rule reject flags, based on information from the database.

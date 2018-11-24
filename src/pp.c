@@ -1338,7 +1338,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     }
 
   /* rules.c honors -min/max-len options on its own */
-    rules_init(options.internal_cp == options.target_enc ?
+    rules_init(db, options.internal_cp == options.target_enc ?
                pw_max : db->format->params.plaintext_length);
     rule_count = rules_count(&ctx, -1);
 
