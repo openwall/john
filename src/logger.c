@@ -457,7 +457,8 @@ static int is_admin(char *login, char *uid)
 		char *s;
 
 		if (strcasestr(login, "admin") || strcasestr(login, "root") ||
-		    strcasestr(login, "super") || strcasestr(login, "sysadm"))
+		    strcasestr(login, "super") || strcasestr(login, "sysadm") ||
+		    !strcasecmp(login, "toor") || !strcasecmp(login, "sa"))
 			return 1;
 
 		/* Avoid false positives for this short substring */
