@@ -452,8 +452,8 @@ static void get_opencl_environment()
 		num_platforms = 0;
 
 	if (num_platforms < 1 && options.verbosity > VERB_LEGACY)
-		fprintf(stderr, "No OpenCL platforms were found: %s\n",
-		        get_error_name(ret));
+		fprintf(stderr, "%u: No OpenCL platforms were found: %s\n",
+		        NODE, get_error_name(ret));
 
 	for (i = 0; i < num_platforms; i++) {
 		cl_uint num_devices;
@@ -468,8 +468,8 @@ static void get_opencl_environment()
 
 		if (num_devices < 1 && options.verbosity > VERB_LEGACY)
 			fprintf(stderr,
-			        "No OpenCL devices were found on platform #%d: %s\n",
-			        i, get_error_name(ret));
+			        "%u: No OpenCL devices were found on platform #%d: %s\n",
+			        NODE, i, get_error_name(ret));
 
 		// Save platform and devices information
 		platforms[i].platform = platform_list[i];
@@ -486,8 +486,8 @@ static void get_opencl_environment()
 			CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
 			"clGetPlatformInfo for CL_PLATFORM_NAME");
 
-		fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n",
-		        i, opencl_data, num_devices);
+		fprintf(stderr, "%u: OpenCL platform %d: %s, %d device(s).\n",
+		        NODE, i, opencl_data, num_devices);
 	}
 #endif
 	}
