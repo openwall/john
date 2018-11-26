@@ -452,8 +452,8 @@ static void get_opencl_environment()
 		num_platforms = 0;
 
 	if (num_platforms < 1 && options.verbosity > VERB_LEGACY)
-		fprintf(stderr, "No OpenCL platforms were found: %s (%d)\n",
-		        get_error_name(ret), ret);
+		fprintf(stderr, "No OpenCL platforms were found: %s\n",
+		        get_error_name(ret));
 
 	for (i = 0; i < num_platforms; i++) {
 		cl_uint num_devices;
@@ -468,8 +468,8 @@ static void get_opencl_environment()
 
 		if (num_devices < 1 && options.verbosity > VERB_LEGACY)
 			fprintf(stderr,
-			        "No OpenCL devices were found on platform #%d: %s (%d)\n",
-			        i, get_error_name(ret), ret);
+			        "No OpenCL devices were found on platform #%d: %s\n",
+			        i, get_error_name(ret));
 
 		// Save platform and devices information
 		platforms[i].platform = platform_list[i];
@@ -601,11 +601,10 @@ static int start_opencl_device(int sequential_id, int *err_type)
 
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating context for device %d "
-			        "(%d:%d): %s (%d), %s\n",
+			        "(%d:%d): %s, %s\n",
 			        NODE, sequential_id,
 			        get_platform_id(sequential_id),
 			        get_device_id(sequential_id), get_error_name(ret_code),
-			        ret_code,
 			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
 			if (++retry > RACE_CONDITION_DEBUG)
 				error();
@@ -620,10 +619,9 @@ static int start_opencl_device(int sequential_id, int *err_type)
 
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating command queue for "
-			        "device %d (%d:%d): %s (%d), %s\n", NODE,
+			        "device %d (%d:%d): %s, %s\n", NODE,
 			        sequential_id, get_platform_id(sequential_id),
 			        get_device_id(sequential_id), get_error_name(ret_code),
-			        ret_code,
 			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
 			if (++retry > RACE_CONDITION_DEBUG)
 				error();
@@ -2750,8 +2748,8 @@ void opencl_list_devices(void)
 		        " by the installed OpenCL driver.\n");
 
 	if (ret != CL_SUCCESS && options.verbosity > VERB_LEGACY)
-		fprintf(stderr, "Throw clError: clGetPlatformIDs() = %s (%d)\n",
-		        get_error_name(ret), ret);
+		fprintf(stderr, "Throw clError: clGetPlatformIDs() = %s\n",
+		        get_error_name(ret));
 
 	for (i = 0; i < num_platforms; i++) {
 		platforms[i].platform = platform_list[i];
@@ -2762,8 +2760,8 @@ void opencl_list_devices(void)
 		if ((ret != CL_SUCCESS || num_devices < 1) &&
 		     options.verbosity > VERB_LEGACY)
 			fprintf(stderr, "No OpenCL devices was found on platform #%d"
-			                 ", clGetDeviceIDs() = %s (%d)\n",
-			        i, get_error_name(ret), ret);
+			                 ", clGetDeviceIDs() = %s\n",
+			        i, get_error_name(ret));
 
 		available_devices += num_devices;
 		platforms[i].num_devices = num_devices;
