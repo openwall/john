@@ -121,9 +121,7 @@ static void single_init(void)
 
 	progress = 0;
 
-	length = single_db->format->params.plaintext_length;
-	if (options.force_maxlength && options.force_maxlength < length)
-		length = options.force_maxlength;
+	length = options.eff_maxlength;
 	key_count = single_db->format->params.min_keys_per_crypt;
 	if (key_count < SINGLE_HASH_MIN)
 		key_count = SINGLE_HASH_MIN;

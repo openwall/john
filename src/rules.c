@@ -64,7 +64,7 @@ static const char *rules_err_rule;
  */
 static int rules_line;
 
-static int rules_max_length = 0, minlength, maxlength;
+static int rules_max_length = 0, min_length, skip_length;
 int hc_logic; /* can not be static. rpp.c needs to see it */
 
 /* data structures used in 'dupe' removal code */
@@ -1169,8 +1169,8 @@ void rules_init(struct db_main *db, int max_length)
 	if (max_length > RULE_WORD_SIZE - 1)
 		max_length = RULE_WORD_SIZE - 1;
 
-	minlength = options.eff_minlength;
-	maxlength = options.force_maxlength;
+	min_length = options.eff_minlength;
+	skip_length = options.force_maxlength;
 
 	if (max_length == rules_max_length)
 		return;
@@ -1244,7 +1244,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
-			if (rules_vars[ARCH_INDEX(RULE)] >= minlength)
+			if (rules_vars[ARCH_INDEX(RULE)] >= min_length)
 				continue;
 			return NULL;
 
@@ -2218,13 +2218,14 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 
 out_OK:
 	in[rules_max_length] = 0;
-	if (minlength)
-		if (length < minlength)
-			return NULL;
-	/* --maxlength will skip, not truncate */
-	if (maxlength)
-		if (length > maxlength)
-			return NULL;
+	if (min_length && length < min_length)
+		return NULL;
+	/*
+	 * Over --max-length are always skipped, while over
+	 * format's length are truncated if FMT_TRUNC.
+	 */
+	if (skip_length && length > skip_length)
+		return NULL;
 	if (!(options.flags & FLG_MASK_STACKED) &&
 	    options.internal_cp != UTF_8 && options.target_enc == UTF_8) {
 		char out[PLAINTEXT_BUFFER_SIZE + 1];

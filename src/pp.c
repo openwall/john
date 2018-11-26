@@ -1337,9 +1337,7 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
       error();
     }
 
-  /* rules.c honors -min/max-len options on its own */
-    rules_init(db, options.internal_cp == options.target_enc ?
-               pw_max : db->format->params.plaintext_length);
+    rules_init(db, pw_max);
     rule_count = rules_count(&ctx, -1);
 
     log_event("- %d preprocessed word mangling rules", rule_count);

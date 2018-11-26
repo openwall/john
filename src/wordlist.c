@@ -609,9 +609,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int do_lmloop = loopBack && db->plaintexts->head;
 	long my_size = 0;
 	unsigned int myWordFileLines = 0;
-	int maxlength = options.force_maxlength;
-	int minlength = options.eff_minlength;
-	int rules_length;
+	int skip_length = options.force_maxlength;
+	int min_length = options.eff_minlength;
 #if HAVE_REXGEN
 	char *regex_alpha = 0;
 	int regex_case = 0;
@@ -632,15 +631,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	regex = prepare_regex(options.regex, &regex_case, &regex_alpha);
 #endif
 
-	length = db->format->params.plaintext_length - mask_add_len;
+	length = options.eff_maxlength - mask_add_len;
 	if (mask_num_qw > 1)
 		length /= mask_num_qw;
-
-	/* rules.c honors -min/max-len options on its own */
-	rules_length = length;
-
-	if (maxlength && maxlength < length)
-		length = maxlength;
 
 	/* If we did not give a name for loopback mode,
 	   we use the active pot file */
@@ -928,11 +921,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				*ep = 0;
 				if (strncmp(cp, "#!comment", 9)) {
 					if (!rules) {
-						if (minlength && ep - cp < minlength)
+						if (min_length && ep - cp < min_length)
 							goto skip;
-						/* Over --max-length are skipped,
-						   while over format's length are truncated. */
-						if (maxlength && ep - cp > maxlength)
+						/*
+						 * Over --max-length are always skipped, while over
+						 * format's length are truncated if FMT_TRUNC.
+						 */
+						if (skip_length && ep - cp > skip_length)
 							goto skip;
 						if (ep - cp >= length)
 							cp[length] = 0;
@@ -1033,15 +1028,17 @@ GRAB_NEXT_PIPE_LOAD:
 					if (strncmp(cpi, "#!comment", 9)) {
 						int len = strlen(cpi);
 						if (!rules) {
-							if (minlength && len < minlength) {
+							if (min_length && len < min_length) {
 								cpi += (len + 1);
 								if (cpi > cpe)
 									break;
 								continue;
 							}
-							/* Over --max-length are skipped,
-							   while over format's length are truncated. */
-							if (maxlength && len > maxlength) {
+							/*
+							 * Over --max-length are always skipped, while over
+							 * format's length are truncated if FMT_TRUNC.
+							 */
+							if (skip_length && len > skip_length) {
 								cpi += (len + 1);
 								if (cpi > cpe)
 									break;
@@ -1110,7 +1107,7 @@ REDO_AFTER_LMLOOP:
 			error();
 		}
 
-		rules_init(db, rules_length);
+		rules_init(db, length);
 		rule_count = rules_count(&ctx, -1);
 
 		if (do_lmloop || !db->plaintexts->head)
@@ -1377,12 +1374,15 @@ process_word:
 					memmove(line, conv, len + 1);
 				}
 				if (!rules) {
-					if (minlength || maxlength) {
+					if (min_length || skip_length) {
 						int len = strlen(line);
-						if (minlength && len < minlength)
+						if (min_length && len < min_length)
 							goto next_word;
-						/* --max-length skips */
-						if (maxlength && len > maxlength)
+						/*
+						 * Over --max-length are always skipped, while over
+						 * format's length are truncated if FMT_TRUNC.
+						 */
+						if (skip_length && len > skip_length)
 							goto next_word;
 					}
 					line[length] = 0;
