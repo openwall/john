@@ -60,7 +60,7 @@ p	position of the character last found with the "/" or "%" commands
 z	"infinite" position or length (beyond end of word)
 
 Here min/max_length is the minimum/maximum plaintext length supported for
-the current hash type (possible overriden by --min/max-len options).
+the current hash type (possibly overriden by --min/max-len options).
 
 These may be used to specify character positions, substring lengths, and
 other numeric parameters to rule commands as appropriate for a given
