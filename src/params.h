@@ -331,6 +331,11 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define SINGLE_WORDS_PAIR_MAX		6
 
 /*
+ * Maximum buffer size used for words, in GB. This can be bumped in john.conf.
+ */
+#define SINGLE_MAX_WORD_BUFFER		4
+
+/*
  * Charset parameters.
  *
  * Please note that changes to these parameters make your build of John

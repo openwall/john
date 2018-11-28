@@ -26,6 +26,7 @@
 #include "john.h"
 #include "unicode.h"
 #include "config.h"
+#include "opencl_common.h"
 #include "memdbg.h"
 
 struct list_main *single_seed;
@@ -74,14 +75,14 @@ static double get_progress(void)
 		(double)rule_number / (rule_count + 1) * 100.0;
 }
 
-static size_t single_buf_size(int salt_count, int min_kpc)
+static uint64_t calc_buf_size(int min_kpc)
 {
-	size_t res = sizeof(struct db_keys_hash) +
+	uint64_t res = sizeof(struct db_keys_hash) +
 		sizeof(struct db_keys_hash_entry) * (min_kpc - 1);
 
 	res += (sizeof(struct db_keys) - 1 + length * min_kpc);
 
-	return res * salt_count;
+	return res * single_db->salt_count;
 }
 
 static void single_alloc_keys(struct db_keys **keys)
@@ -107,6 +108,11 @@ static void single_alloc_keys(struct db_keys **keys)
 static void single_init(void)
 {
 	struct db_salt *salt;
+	int max_buffer_GB;
+#if HAVE_OPENCL
+	int ocl_fmt =
+		strcasestr(single_db->format->params.label, "-opencl") > 0;
+#endif
 
 	log_event("Proceeding with \"single crack\" mode");
 
@@ -120,6 +126,10 @@ static void single_init(void)
 	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;
+
+	if ((max_buffer_GB = cfg_get_int(SECTION_OPTIONS, NULL,
+	                                  "SingleMaxBufferSize")) < 0)
+		max_buffer_GB = SINGLE_MAX_WORD_BUFFER;
 
 	if (single_seed->count) {
 		log_event("- SingleWordsPairMax bumped for %d seed words",
@@ -143,6 +153,36 @@ static void single_init(void)
 		key_count = 0x8000;
 	while (key_count > 0xffff / length + 1)
 		key_count >>= 1;
+
+/*
+ * For large salt counts, we need to limit total memory use as well.
+ */
+	while (calc_buf_size(key_count) > ((uint64_t)max_buffer_GB << 30)) {
+		static int once;
+
+		if (!once++) {
+			if (john_main_process) {
+				fprintf(stderr,
+"NOTE: Performance for this many salts may be lower due to single mode\n"
+"buffer size limit of %sB. To work around this, ",
+				   human_prefix((uint64_t)max_buffer_GB << 30));
+				if (!options.req_maxlength &&
+				    options.eff_maxlength > 8)
+					fprintf(stderr,
+					        "use --max-length option or\n");
+				fprintf(stderr,
+				        "bump SingleMaxBufferSize in config.\n");
+			}
+			log_event("- Min KPC decreased due to buffer size limit of %sB",
+			          human_prefix((uint64_t)max_buffer_GB << 30));
+		}
+#if HAVE_OPENCL
+		if (ocl_fmt && key_count > 2 * local_work_size * ocl_v_width)
+			key_count -= local_work_size * ocl_v_width;
+		else
+#endif
+			key_count >>= 1;
+	}
 
 	if (rpp_init(rule_ctx, options.activesinglerules)) {
 		log_event("! No \"%s\" mode rules found",
@@ -171,12 +211,12 @@ static void single_init(void)
 
 	if (key_count > 1)
 		log_event("- Allocated %d buffer%s of %d candidate passwords"
-		          "%s ("Zu" bytes)",
+		          "%s (total %sB)",
 		          single_db->salt_count,
 		          single_db->salt_count != 1 ? "s" : "",
 		          key_count,
 		          single_db->salt_count != 1 ? " each" : "",
-		          single_buf_size(single_db->salt_count, key_count));
+		          human_prefix(calc_buf_size(key_count)));
 
 	guessed_keys = NULL;
 	single_alloc_keys(&guessed_keys);
