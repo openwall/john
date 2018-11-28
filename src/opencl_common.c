@@ -2731,8 +2731,12 @@ int opencl_calc_min_kpc(size_t lws, size_t gws, int v_width)
 	if (min_kpc > 0x8000)
 		min_kpc = 0x8000;
 
-	while (min_kpc > 0xffff / options.eff_maxlength + 1)
-		min_kpc -= lws * v_width;
+	while (min_kpc > 0xffff / options.eff_maxlength + 1) {
+		if (min_kpc > 2 * lws * v_width)
+			min_kpc -= lws * v_width;
+		else
+			min_kpc >>= 2;
+	}
 
 	return (int)min_kpc;
 }
