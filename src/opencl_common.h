@@ -15,6 +15,8 @@
 #ifndef _COMMON_OPENCL_H
 #define _COMMON_OPENCL_H
 
+#if HAVE_OPENCL
+
 #include <stdint.h>
 
 #ifdef __APPLE__
@@ -372,5 +374,7 @@ uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id);
  * Calculate optimal min. kpc for single mode for a given LWS and GWS.
  */
 int opencl_calc_min_kpc(size_t lws, size_t gws, int v_width);
+
+#endif /* HAVE_OPENCL */
 
 #endif /* _COMMON_OPENCL_H */
