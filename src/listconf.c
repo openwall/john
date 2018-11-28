@@ -79,9 +79,7 @@
 #include "john_build_rule.h"
 #endif
 
-#if HAVE_OPENCL
 #include "opencl_common.h"
-#endif
 #include "mask_ext.h"
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */
