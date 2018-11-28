@@ -1157,6 +1157,8 @@ static void rules_init_length(int max_length)
 	rules_vars['-'] = max_length - 1;
 	rules_vars['+'] = max_length + 1;
 
+	rules_vars['#'] = min_length;
+
 	rules_vars['z'] = INFINITE_LENGTH;
 }
 
