@@ -2718,6 +2718,25 @@ static char *human_format(unsigned long long size)
 	return ret;
 }
 
+int opencl_calc_min_kpc(size_t lws, size_t gws, int v_width)
+{
+	size_t min_kpc;
+
+	lws = MAX(lws, 1);
+	v_width = MAX(v_width, 1);
+	min_kpc = gws * v_width;
+
+	if (min_kpc < SINGLE_HASH_MIN)
+		min_kpc = SINGLE_HASH_MIN;
+	if (min_kpc > 0x8000)
+		min_kpc = 0x8000;
+
+	while (min_kpc > 0xffff / options.eff_maxlength + 1)
+		min_kpc -= lws * v_width;
+
+	return (int)min_kpc;
+}
+
 /***
  * Despite of whatever the user uses as -dev=N, I will always list devices in
  * their natural order as defined by the OpenCL libraries.

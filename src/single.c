@@ -74,6 +74,16 @@ static double get_progress(void)
 		(double)rule_number / (rule_count + 1) * 100.0;
 }
 
+static size_t single_buf_size(int salt_count, int min_kpc)
+{
+	size_t res = sizeof(struct db_keys_hash) +
+		sizeof(struct db_keys_hash_entry) * (min_kpc - 1);
+
+	res += (sizeof(struct db_keys) - 1 + length * min_kpc);
+
+	return res * salt_count;
+}
+
 static void single_alloc_keys(struct db_keys **keys)
 {
 	int hash_size = sizeof(struct db_keys_hash) +
@@ -160,11 +170,13 @@ static void single_init(void)
 	} while ((salt = salt->next));
 
 	if (key_count > 1)
-	log_event("- Allocated %d buffer%s of %d candidate passwords%s",
-		single_db->salt_count,
-		single_db->salt_count != 1 ? "s" : "",
-		key_count,
-		single_db->salt_count != 1 ? " each" : "");
+		log_event("- Allocated %d buffer%s of %d candidate passwords"
+		          "%s ("Zu" bytes)",
+		          single_db->salt_count,
+		          single_db->salt_count != 1 ? "s" : "",
+		          key_count,
+		          single_db->salt_count != 1 ? " each" : "",
+		          single_buf_size(single_db->salt_count, key_count));
 
 	guessed_keys = NULL;
 	single_alloc_keys(&guessed_keys);

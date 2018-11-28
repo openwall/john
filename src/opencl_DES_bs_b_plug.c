@@ -313,8 +313,12 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 
 	/* for hash_ids[2*x + 1], 27 bits for storing gid and 5 bits for bs depth. */
 	//assert(global_work_size <= ((1U << 28) - 1));
-	fmt_opencl_DES.params.max_keys_per_crypt = global_work_size << des_log_depth;
-	fmt_opencl_DES.params.min_keys_per_crypt = 1U << des_log_depth;
+	fmt_opencl_DES.params.max_keys_per_crypt =
+		global_work_size << des_log_depth;
+
+	fmt_opencl_DES.params.min_keys_per_crypt =
+		opencl_calc_min_kpc(local_work_size, global_work_size,
+		                    1 << des_log_depth);
 }
 
 static void release_kernel()

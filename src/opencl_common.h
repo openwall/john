@@ -367,4 +367,10 @@ unsigned int opencl_speed_index(int sequential_id);
  * Calculates the size of the bitmap used by the Bloom Filter buffer.
  */
 uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id);
-#endif
+
+/*
+ * Calculate optimal min. kpc for single mode for a given LWS and GWS.
+ */
+int opencl_calc_min_kpc(size_t lws, size_t gws, int v_width);
+
+#endif /* _COMMON_OPENCL_H */

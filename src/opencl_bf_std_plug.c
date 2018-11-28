@@ -242,8 +242,6 @@ void BF_select_device(struct fmt_main *fmt) {
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 4, sizeof(cl_mem), &buffers[gpu_id].BF_current_P_gpu), "Set Kernel Arg FAILED arg4");
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 6, sizeof(cl_mem), &buffers[gpu_id].S_box_gpu), "Set Kernel Arg FAILED arg6") ;
 
-	fmt->params.min_keys_per_crypt = local_work_size;
-
 	if (global_work_size) {
 		global_work_size =
 			global_work_size / local_work_size * local_work_size;
@@ -252,6 +250,9 @@ void BF_select_device(struct fmt_main *fmt) {
 		fmt->params.max_keys_per_crypt = global_work_size;
 	} else
 		find_best_gws(fmt);
+
+	fmt->params.min_keys_per_crypt = opencl_calc_min_kpc(local_work_size,
+	                                                     global_work_size, 1);
 
 	if (options.verbosity > VERB_LEGACY)
 		fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);

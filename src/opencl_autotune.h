@@ -225,7 +225,9 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	          (needed_best_gws) ? "(auto-tuned) " : "",
 	          global_work_size / local_work_size);
 
-	self->params.min_keys_per_crypt = local_work_size * ocl_v_width;
+	self->params.min_keys_per_crypt = opencl_calc_min_kpc(local_work_size,
+	                                                      global_work_size,
+	                                                      ocl_v_width);
 	self->params.max_keys_per_crypt = global_work_size * ocl_v_width;
 
 	autotuned++;

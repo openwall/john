@@ -670,7 +670,10 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 	/* for hash_ids[3*x + 1], 27 bits for storing gid and 5 bits for bs depth. */
 	//assert(global_work_size <= ((1U << 28) - 1));
 	fmt_opencl_lm.params.max_keys_per_crypt = global_work_size << lm_log_depth;
-	fmt_opencl_lm.params.min_keys_per_crypt = 1U << lm_log_depth;
+
+	fmt_opencl_lm.params.min_keys_per_crypt =
+		opencl_calc_min_kpc(local_work_size, global_work_size,
+		                    1 << lm_log_depth);
 }
 
 static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, long double kernel_run_ms, struct fmt_main *format, int mask_mode)
