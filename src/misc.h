@@ -179,4 +179,10 @@ const char *jtr_utoa(unsigned int num, char *result, int result_len, int base);
 const char *jtr_lltoa(long long num, char *result, int result_len, int base);
 const char *jtr_ulltoa(unsigned long long num, char *result, int result_len, int base);
 
+/*
+ * Change some large number to a string possibly using SI prefix
+ * eg. 437281954 -> "417 M"
+ */
+extern char *human_prefix(uint64_t num);
+
 #endif
