@@ -444,22 +444,3 @@ int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize)
 
 	return real_len;
 }
-
-char *human_prefix(uint64_t num)
-{
-	static char out[8];
-	char prefixes[] = "\0KMGTPEZY";
-	char *p = prefixes;
-
-	while (num > (1 << 10) && p[1]) {
-		num >>= 10;
-		p++;
-	}
-
-	if (p)
-		snprintf(out, sizeof(out), "%u %c", (uint32_t)num, *p);
-	else
-		snprintf(out, sizeof(out), "%u ", (uint32_t)num);
-
-	return out;
-}

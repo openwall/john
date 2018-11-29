@@ -1853,7 +1853,7 @@ john.com: john.asm
 ../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
 	memdbg.h memdbg.c
 	$(CC) -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
-	misc.c memdbg.c -o ../run/cprepair
+	misc.c memory.c memdbg.c -o ../run/cprepair
 
 ../run/tgtsnarf: tgtsnarf.o memdbg.o
 	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/tgtsnarf

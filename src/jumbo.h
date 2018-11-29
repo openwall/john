@@ -429,10 +429,4 @@ char *strcasestr(const char *haystack, const char *needle);
  */
 extern int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize);
 
-/*
- * Change some large number to a string possibly using SI prefix
- * eg. 437281954 -> "417 M"
- */
-extern char *human_prefix(uint64_t num);
-
 #endif /* _JTR_JUMBO_H */

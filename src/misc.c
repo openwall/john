@@ -366,7 +366,8 @@ char *strtokm(char *s1, const char *delims)
 	return s1;
 }
 
-unsigned atou(const char *src) {
+unsigned atou(const char *src)
+{
 	unsigned val;
 	sscanf(src, "%u", &val);
 	return val;
@@ -449,19 +450,46 @@ MAYBE_INLINE const char *_ulltoa(unsigned long long num, char *ret, int ret_sz, 
 	}
 	return ret;
 }
+
 /*
  * these are the functions 'external' that other code in JtR can use. These
  * just call the 'common' code in the 2 inline functions.
  */
-const char *jtr_itoa(int val, char *result, int rlen, int base) {
+const char *jtr_itoa(int val, char *result, int rlen, int base)
+{
 	return _lltoa((long long)val, result, rlen, base);
 }
-const char *jtr_utoa(unsigned int val, char *result, int rlen, int base) {
+
+const char *jtr_utoa(unsigned int val, char *result, int rlen, int base)
+{
 	return _ulltoa((long long)val, result, rlen, base);
 }
-const char *jtr_lltoa(long long val, char *result, int rlen, int base) {
+
+const char *jtr_lltoa(long long val, char *result, int rlen, int base)
+{
 	return _lltoa((long long)val, result, rlen, base);
 }
-const char *jtr_ulltoa(unsigned long long val, char *result, int rlen, int base) {
+
+const char *jtr_ulltoa(unsigned long long val, char *result, int rlen, int base)
+{
 	return _ulltoa((long long)val, result, rlen, base);
+}
+
+char *human_prefix(uint64_t num)
+{
+	char *out = mem_alloc_tiny(16, MEM_ALIGN_NONE);
+	char prefixes[] = "\0KMGTPEZY";
+	char *p = prefixes;
+
+	while (p[1] && num >= (1 << 10)) {
+		num = (num >> 10) + ((num & 1023) ? 1 : 0);
+		p++;
+	}
+
+	if (*p)
+		snprintf(out, 16, "%u %c", (uint32_t)num, *p);
+	else
+		snprintf(out, 16, "%u ", (uint32_t)num);
+
+	return out;
 }
