@@ -55,10 +55,10 @@ struct db_password {
  */
 struct db_keys_hash_entry {
 /* Index of next key with the same hash, or -1 if none */
-	short next;
+	SINGLE_KEYS_TYPE next;
 
 /* Byte offset of this key in the buffer */
-	unsigned short offset;
+	SINGLE_KEYS_UTYPE offset;
 };
 
 /*
@@ -66,7 +66,7 @@ struct db_keys_hash_entry {
  */
 struct db_keys_hash {
 /* The hash table, maps to indices for the list below; -1 means empty bucket */
-	short hash[SINGLE_HASH_SIZE];
+	SINGLE_KEYS_TYPE hash[SINGLE_HASH_SIZE];
 
 /* List of keys with the same hash, allocated as min_keys_per_crypt entries */
 	struct db_keys_hash_entry list[1];

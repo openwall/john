@@ -1812,7 +1812,8 @@ static void john_run(void)
 		} else if (database.format->params.plaintext_min_length)
 			if (john_main_process)
 				fprintf(stderr,
-				        "Note: minimum length forced to %d\n",
+				        "Note: Minimum length forced to %d "
+				        "by format\n",
 				        options.eff_minlength);
 
 		if (options.flags & FLG_MASK_CHK)

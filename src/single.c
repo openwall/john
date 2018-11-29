@@ -75,7 +75,7 @@ static double get_progress(void)
 		(double)rule_number / (rule_count + 1) * 100.0;
 }
 
-static uint64_t calc_buf_size(int min_kpc)
+static uint64_t calc_buf_size(int length, int min_kpc)
 {
 	uint64_t res = sizeof(struct db_keys_hash) +
 		sizeof(struct db_keys_hash_entry) * (min_kpc - 1);
@@ -138,7 +138,8 @@ static void single_init(void)
 	}
 	log_event("- SingleWordsPairMax used is %d", words_pair_max);
 	log_event("- SingleRetestGuessed = %s",retest_guessed?"true":"false");
-	log_event("- SingleMaxBufferSize = %s", human_prefix(((uint64_t)max_buffer_GB << 30)));
+	log_event("- SingleMaxBufferSize = %sB",
+	          human_prefix(((uint64_t)max_buffer_GB << 30)));
 
 	progress = 0;
 
@@ -149,16 +150,19 @@ static void single_init(void)
 /*
  * We use "short" for buffered key indices and "unsigned short" for buffered
  * key offsets - make sure these don't overflow.
+ *
+ * Jumbo now uses SINGLE_KEYS_TYPE and SINGLE_KEYS_UTYPE for this, and they
+ * are 32-bit for OpenCL and ZTEX builds.
  */
-	if (key_count > 0x8000)
-		key_count = 0x8000;
-	while (key_count > 0xffff / length + 1)
+	if (key_count > SINGLE_IDX_MAX)
+		key_count = SINGLE_IDX_MAX;
+	while (key_count > SINGLE_BUF_MAX / length + 1)
 #if HAVE_OPENCL
-	if (ocl_fmt)
-		key_count -= MIN(key_count >> 1, local_work_size * ocl_v_width);
-	else
+		if (ocl_fmt)
+			key_count -= MIN(key_count >> 1, local_work_size * ocl_v_width);
+		else
 #endif
-		key_count >>= 1;
+			key_count >>= 1;
 
 	if (key_count < single_db->format->params.min_keys_per_crypt) {
 		if (john_main_process) {
@@ -179,29 +183,83 @@ static void single_init(void)
  */
 	lim_kpc = key_count;
 
-	while (key_count > 2 * SINGLE_HASH_MIN &&
-	       calc_buf_size(key_count) > ((uint64_t)max_buffer_GB << 30))
+	while (key_count >= 2 * SINGLE_HASH_MIN &&
+	       calc_buf_size(length, key_count) > ((uint64_t)max_buffer_GB << 30)) {
+		if (!options.req_maxlength && length >= 32 &&
+		    (length >> 1) >= options.eff_minlength)
+			length >>= 1;
+		else if (!options.req_maxlength && length > 16 &&
+		         (length - 1) >= options.eff_minlength)
+			length--;
 #if HAVE_OPENCL
-	if (ocl_fmt)
-		key_count -= MIN(key_count >> 1, local_work_size * ocl_v_width);
-	else
+		else if (ocl_fmt)
+			key_count -= MIN(key_count >> 1,
+			                 local_work_size * ocl_v_width);
 #endif
-		key_count >>= 1;
+		else
+			key_count >>= 1;
+	}
+
+	if (length < options.eff_maxlength) {
+		if (john_main_process)
+			fprintf(stderr,
+"Note: Max. length decreased from %d to %d due to single mode buffer size\n"
+"      limit of %sB. Use --max-length=N option to override, or increase\n"
+"      SingleMaxBufferSize in config (%sB needed).\n",
+			        options.eff_maxlength,
+			        length,
+			        human_prefix((uint64_t)max_buffer_GB << 30),
+			        human_prefix(calc_buf_size(options.eff_maxlength,
+			                                   key_count)));
+		log_event(
+"- Max. length decreased from %d to %d due to buffer size limit of %sB.",
+			options.eff_maxlength,
+			length,
+			human_prefix((uint64_t)max_buffer_GB << 30));
+	}
+
+	if (calc_buf_size(length, key_count) > ((uint64_t)max_buffer_GB << 30)) {
+		if (john_main_process) {
+			fprintf(stderr,
+"Note: Can't run single mode with this many salts due to single mode buffer\n"
+"      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
+"      %d for %sB). To work around this, bump SingleMaxBufferSize in\n"
+"      john.conf (if you have enough RAM) or loader fewer salts at a time.\n",
+			        human_prefix((uint64_t)max_buffer_GB << 30),
+			        lim_kpc,
+			        human_prefix(calc_buf_size(length, lim_kpc)),
+			        key_count,
+			        human_prefix(calc_buf_size(length, key_count)));
+		}
+		if (lim_kpc < single_db->format->params.min_keys_per_crypt)
+			log_event(
+"- Min KPC decreased further to %d (%sB), can't meet buffer size limit of %sB.",
+			key_count,
+			human_prefix(calc_buf_size(length, key_count)),
+			human_prefix((uint64_t)max_buffer_GB << 30));
+		else
+			log_event(
+"- Min KPC decreased from %d to %d (%sB), can't meet buffer size limit of %sB.",
+			lim_kpc,
+			key_count,
+			human_prefix(calc_buf_size(length, key_count)),
+			human_prefix((uint64_t)max_buffer_GB << 30));
+		error();
+	}
 
 	if (key_count < lim_kpc) {
 		if (john_main_process) {
 			fprintf(stderr,
 "Note: Performance for this many salts may be lower due to single mode buffer\n"
-"      size limit of %sB (%d keys per batch would use %sB, decreased to %d\n"
-"      for %sB). To work around this, ",
+"      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
+"      %d for %sB). To work around this, ",
 			        human_prefix((uint64_t)max_buffer_GB << 30),
 			        lim_kpc,
-			        human_prefix(calc_buf_size(lim_kpc)),
+			        human_prefix(calc_buf_size(length, lim_kpc)),
 			        key_count,
-				human_prefix(calc_buf_size(key_count)));
+			        human_prefix(calc_buf_size(length, key_count)));
 			if (options.eff_maxlength > 8)
-				fprintf(stderr,
-				        "%s --max-length and/or ",
+				fprintf(stderr, "%s --max-length and/or ",
 				        options.req_maxlength ?
 				        "decrease" : "use");
 			fprintf(stderr,
@@ -253,7 +311,7 @@ static void single_init(void)
 		          single_db->salt_count != 1 ? "s" : "",
 		          key_count,
 		          single_db->salt_count != 1 ? " each" : "",
-		          human_prefix(calc_buf_size(key_count)));
+		          human_prefix(calc_buf_size(length, key_count)));
 
 	guessed_keys = NULL;
 	single_alloc_keys(&guessed_keys);

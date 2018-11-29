@@ -477,19 +477,19 @@ const char *jtr_ulltoa(unsigned long long val, char *result, int rlen, int base)
 
 char *human_prefix(uint64_t num)
 {
-	char *out = mem_alloc_tiny(8, MEM_ALIGN_NONE);
+	char *out = mem_alloc_tiny(16, MEM_ALIGN_NONE);
 	char prefixes[] = "\0KMGTPEZY";
 	char *p = prefixes;
 
-	while (num > (1 << 10) && p[1]) {
-		num >>= 10;
+	while (p[1] && num >= (1 << 10)) {
+		num = (num >> 10) + ((num & 1023) ? 1 : 0);
 		p++;
 	}
 
-	if (p)
-		snprintf(out, 8, "%u %c", (uint32_t)num, *p);
+	if (*p)
+		snprintf(out, 16, "%u %c", (uint32_t)num, *p);
 	else
-		snprintf(out, 8, "%u ", (uint32_t)num);
+		snprintf(out, 16, "%u ", (uint32_t)num);
 
 	return out;
 }
