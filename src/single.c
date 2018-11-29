@@ -108,7 +108,7 @@ static void single_alloc_keys(struct db_keys **keys)
 static void single_init(void)
 {
 	struct db_salt *salt;
-	int max_buffer_GB;
+	int lim_kpc, max_buffer_GB;
 #if HAVE_OPENCL
 	int ocl_fmt =
 		strcasestr(single_db->format->params.label, "-opencl") > 0;
@@ -138,6 +138,7 @@ static void single_init(void)
 	}
 	log_event("- SingleWordsPairMax used is %d", words_pair_max);
 	log_event("- SingleRetestGuessed = %s",retest_guessed?"true":"false");
+	log_event("- SingleMaxBufferSize = %s", human_prefix(((uint64_t)max_buffer_GB << 30)));
 
 	progress = 0;
 
@@ -152,36 +153,72 @@ static void single_init(void)
 	if (key_count > 0x8000)
 		key_count = 0x8000;
 	while (key_count > 0xffff / length + 1)
+#if HAVE_OPENCL
+	if (ocl_fmt)
+		key_count -= MIN(key_count >> 1, local_work_size * ocl_v_width);
+	else
+#endif
 		key_count >>= 1;
+
+	if (key_count < single_db->format->params.min_keys_per_crypt) {
+		if (john_main_process) {
+			fprintf(stderr,
+"Note: Performance for this format/device may be lower due to single mode\n"
+"      constraints. Format wanted %d keys per crypt but was limited to %d.\n",
+			        single_db->format->params.min_keys_per_crypt,
+			        key_count);
+		}
+		log_event(
+"- Min KPC decreased from %d to %d due to single mode constraints.",
+			single_db->format->params.min_keys_per_crypt,
+			key_count);
+	}
 
 /*
  * For large salt counts, we need to limit total memory use as well.
  */
-	while (calc_buf_size(key_count) > ((uint64_t)max_buffer_GB << 30)) {
-		static int once;
+	lim_kpc = key_count;
 
-		if (!once++) {
-			if (john_main_process) {
-				fprintf(stderr,
-"NOTE: Performance for this many salts may be lower due to single mode\n"
-"buffer size limit of %sB. To work around this, ",
-				   human_prefix((uint64_t)max_buffer_GB << 30));
-				if (!options.req_maxlength &&
-				    options.eff_maxlength > 8)
-					fprintf(stderr,
-					        "use --max-length option or\n");
-				fprintf(stderr,
-				        "bump SingleMaxBufferSize in config.\n");
-			}
-			log_event("- Min KPC decreased due to buffer size limit of %sB",
-			          human_prefix((uint64_t)max_buffer_GB << 30));
-		}
+	while (key_count > 2 * SINGLE_HASH_MIN &&
+	       calc_buf_size(key_count) > ((uint64_t)max_buffer_GB << 30))
 #if HAVE_OPENCL
-		if (ocl_fmt && key_count > 2 * local_work_size * ocl_v_width)
-			key_count -= local_work_size * ocl_v_width;
-		else
+	if (ocl_fmt)
+		key_count -= MIN(key_count >> 1, local_work_size * ocl_v_width);
+	else
 #endif
-			key_count >>= 1;
+		key_count >>= 1;
+
+	if (key_count < lim_kpc) {
+		if (john_main_process) {
+			fprintf(stderr,
+"Note: Performance for this many salts may be lower due to single mode buffer\n"
+"      size limit of %sB (%d keys per batch would use %sB, decreased to %d\n"
+"      for %sB). To work around this, ",
+			        human_prefix((uint64_t)max_buffer_GB << 30),
+			        lim_kpc,
+			        human_prefix(calc_buf_size(lim_kpc)),
+			        key_count,
+				human_prefix(calc_buf_size(key_count)));
+			if (options.eff_maxlength > 8)
+				fprintf(stderr,
+				        "%s --max-length and/or ",
+				        options.req_maxlength ?
+				        "decrease" : "use");
+			fprintf(stderr,
+			        "bump%sSingleMaxBufferSize in config.\n",
+			        options.eff_maxlength > 8 ? "\n      " : " ");
+		}
+		if (lim_kpc < single_db->format->params.min_keys_per_crypt)
+			log_event(
+"- Min KPC decreased further to %d due to buffer size limit of %sB.",
+			key_count,
+			human_prefix((uint64_t)max_buffer_GB << 30));
+		else
+			log_event(
+"- Min KPC decreased from %d to %d due to buffer size limit of %sB.",
+			lim_kpc,
+			key_count,
+			human_prefix((uint64_t)max_buffer_GB << 30));
 	}
 
 	if (rpp_init(rule_ctx, options.activesinglerules)) {

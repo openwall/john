@@ -1966,7 +1966,8 @@ void opencl_find_best_gws(int step, int max_duration,
 			        "rounds/s%10s per crypt_all()",
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
 
-		if (speed > (1.01 * best_speed)) {
+		if (speed >
+		    ((options.flags & FLG_SINGLE_CHK ? 1.10 : 1.01) * best_speed)) {
 			if (options.verbosity > VERB_LEGACY)
 				fprintf(stderr, (speed > 2 * best_speed) ? "!" : "+");
 			best_speed = speed;
@@ -2720,25 +2721,14 @@ static char *human_format(unsigned long long size)
 
 int opencl_calc_min_kpc(size_t lws, size_t gws, int v_width)
 {
-	size_t min_kpc;
+	int blocks = gws / lws;
 
-	lws = MAX(lws, 1);
-	v_width = MAX(v_width, 1);
-	min_kpc = gws * v_width;
+	/*
+	 * We currently leave this to single.c instead
+	 */
+	//blocks /= 2;
 
-	if (min_kpc < SINGLE_HASH_MIN)
-		min_kpc = SINGLE_HASH_MIN;
-	if (min_kpc > 0x8000)
-		min_kpc = 0x8000;
-
-	while (min_kpc > 0xffff / options.eff_maxlength + 1) {
-		if (min_kpc > 2 * lws * v_width)
-			min_kpc -= lws * v_width;
-		else
-			min_kpc >>= 2;
-	}
-
-	return (int)min_kpc;
+	return blocks * lws * v_width;
 }
 
 /***
