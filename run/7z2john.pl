@@ -11,13 +11,13 @@ use File::Basename;
 # magnum (adapt to JtR use)
 
 # version:
-# 1.2
+# 1.3
 
 # date released:
 # April 2015
 
 # date last updated:
-# 16th Nov 2017
+# 28th Nov 2018
 
 # dependencies:
 # Compress::Raw::Lzma
@@ -61,7 +61,7 @@ use File::Basename;
 # "$"
 # [length of decrypted data]      # the decrypted data length in bytes
 # "$"
-# [encrypted data]                # the encrypted (and possibly also compressed data)
+# [encrypted data]                # the encrypted (and possibly also compressed) data
 
 # in case the data was not truncated and a decompression step is needed to verify the CRC32, these fields are appended:
 # "$"
@@ -98,7 +98,20 @@ use File::Basename;
 
 # cracker specific stuff
 
+my $ANALYZE_ALL_STREAMS_TO_FIND_SHORTEST_DATA_BUF = 1;
+
+my $SHOW_LIST_OF_ALL_STREAMS = 0; # $ANALYZE_ALL_STREAMS_TO_FIND_SHORTEST_DATA_BUF must be set to 1 to list/debug all streams
 my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
+
+my $SHORTEN_HASH_LENGTH_TO_CRC_LENGTH = 1; # only output the bytes needed for the checksum of the first file (plus a fixed length
+                                           # header at the very beginning of the stream; plus additional +5% to cover the exception
+                                           # that the compressed file is slightly longer than the raw file)
+
+my $SHORTEN_HASH_FIXED_HEADER  = 32.5;  # at the beginning of the compressed stream we have some header info
+                                        # (shortened hash can't really be shorter than the metadata needed for decompression)
+                                        # the extra +0.5 is used to round up (we use integer numbers)
+my $SHORTEN_HASH_EXTRA_PERCENT = 5;     # the compressed stream could be slightly longer than the underlying data (special cases)
+                                        # in percent: i.e. x % == (x / 100)
 
 my $PASSWORD_RECOVERY_TOOL_NAME = "john";
 my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;          # hexadecimal output value. This value should always be >= 64
@@ -1195,26 +1208,6 @@ sub extract_hash_from_archive
     }
   }
 
-  if (! defined ($data))
-  {
-    $data = my_read ($fp, $data_len);
-  }
-
-  return undef unless (length ($data) == $data_len);
-
-  if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
-  {
-    print STDERR "WARNING: the file '". $file_path . "' unfortunately can't be used with $PASSWORD_RECOVERY_TOOL_NAME since the data length\n";
-    print STDERR "in this particular case is too long ($data_len of the maximum allowed " .($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2). " bytes).\n";
-
-    if ($PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK == 1)
-    {
-      print STDERR "Furthermore, it could not be truncated. This should only happen in very rare cases.\n";
-    }
-
-    return "";
-  }
-
   my $type_of_compression    = $SEVEN_ZIP_UNCOMPRESSED;
   my $compression_attributes = "";
 
@@ -1315,6 +1308,173 @@ sub extract_hash_from_archive
     $type_of_data = $type_of_compression;
   }
 
+  my $crc_len = 0;
+
+  if (($type_of_data != $SEVEN_ZIP_UNCOMPRESSED) && ($type_of_data != $SEVEN_ZIP_TRUNCATED))
+  {
+    if (scalar ($substreams_info->{'unpack_sizes'}) > 0)
+    {
+      $crc_len = $substreams_info->{'unpack_sizes'}[0]; # default: use the first file of the first stream
+    }
+  }
+
+  if (! defined ($data))
+  {
+    if (($type_of_data != $SEVEN_ZIP_UNCOMPRESSED) && ($type_of_data != $SEVEN_ZIP_TRUNCATED))
+    {
+      if ($ANALYZE_ALL_STREAMS_TO_FIND_SHORTEST_DATA_BUF == 1)
+      {
+        my $number_file_indices = scalar (@{$substreams_info->{'unpack_sizes'}});
+        my $number_streams      = scalar (@{$substreams_info->{'unpack_stream_numbers'}});
+        my $number_pack_info    = scalar (@{$pack_info->{'pack_sizes'}}); # same as $pack_info->{'number_pack_streams'}
+        my $number_folders      = scalar (@{$folders}); # same as $unpack_info->{'number_folders'}
+
+        # check if there is a stream with a smaller first file than the first file of the first stream
+        # (this is just a clever approach to produce shorter hashes)
+
+        my $file_idx    = 0;
+        my $data_offset = 0;
+
+        my $data_offset_tmp = 0;
+
+        # sanity checks (otherwise we might overflow):
+
+        if ($number_pack_info < $number_streams) # should never happen (they should be equal)
+        {
+          $number_streams = $number_pack_info;
+        }
+
+        if ($number_folders < $number_streams) # should never happen (they should be equal)
+        {
+          $number_streams = $number_folders;
+        }
+
+        for (my $stream_idx = 0; $stream_idx < $number_streams; $stream_idx++)
+        {
+          my $next_file_idx = $substreams_info->{'unpack_stream_numbers'}[$stream_idx];
+
+          my $length_first_file = $substreams_info->{'unpack_sizes'}[$file_idx];
+
+          my $length_compressed = $pack_info->{'pack_sizes'}[$stream_idx];
+
+          if ($SHOW_LIST_OF_ALL_STREAMS == 1)
+          {
+            print STDERR sprintf ("DEBUG: new stream found with first file consisting of %9d bytes of %10d bytes total stream length\n", $length_first_file, $length_compressed);
+          }
+
+          if ($length_first_file < $crc_len)
+          {
+            my $digest = get_digest ($file_idx, $unpack_info, $substreams_info);
+
+            next unless ((defined ($digest)) && ($digest->{'defined'} == 1));
+
+            # get new AES settings (salt, iv, costs):
+
+            my $coders = @$folders[$stream_idx]->{'coders'};
+
+            my $aes_coder_idx   = 0;
+            my $aes_coder_found = 0;
+
+            for (my $coders_idx = 0; $coders_idx < $number_coders; $coders_idx++)
+            {
+              my $codec_id = @$coders[$coders_idx]->{'codec_id'};
+
+              if ($codec_id eq $SEVEN_ZIP_AES)
+              {
+                $aes_coder_idx = $coders_idx;
+
+                $aes_coder_found = 1;
+              }
+              elsif (defined (@$coders[$coders_idx]->{'attributes'}))
+              {
+                $compression_attributes = unpack ("H*", @$coders[$coders_idx]->{'attributes'});
+              }
+            }
+
+            next unless ($aes_coder_found == 1);
+
+            $attributes = @$coders[$aes_coder_idx]->{'attributes'};
+
+            #
+            # set the "new" hash properties (for this specific/better stream with smaller first file):
+            #
+
+            ($salt_len, $salt_buf, $iv_len, $iv_buf, $number_cycles_power) = get_decoder_properties ($attributes);
+
+            $crc = $digest->{'crc'};
+
+            $crc_len  = $length_first_file;
+
+            $data_len = $length_compressed;
+
+            $unpack_size = $length_first_file;
+
+            $data_offset = $data_offset_tmp;
+
+            # we assume that $type_of_data and $type_of_compression didn't change between the streams
+            # (this should/could be checked too to avoid any strange problems)
+          }
+
+          $file_idx += $next_file_idx;
+
+          if ($file_idx >= $number_file_indices) # should never happen
+          {
+            last;
+          }
+
+          $data_offset_tmp += $length_compressed;
+        }
+
+        if ($SHOW_LIST_OF_ALL_STREAMS == 1)
+        {
+          print STDERR sprintf ("DEBUG: shortest file at the beginning of a stream consists of %d bytes (offset: %d bytes)\n", $crc_len, $data_offset);
+        }
+
+        if ($data_offset > 0)
+        {
+          my_seek ($fp, $data_offset, 1);
+        }
+      }
+
+      if ($SHORTEN_HASH_LENGTH_TO_CRC_LENGTH == 1)
+      {
+        my $aes_len = int ($SHORTEN_HASH_FIXED_HEADER + $crc_len + $SHORTEN_HASH_EXTRA_PERCENT / 100 * $crc_len);
+
+        my $AES_BLOCK_SIZE = 16;
+
+        $aes_len += $AES_BLOCK_SIZE - 1; # add these bytes to be sure to always include the last "block" too (round up and cast)
+
+        $aes_len = int ($aes_len / $AES_BLOCK_SIZE) * $AES_BLOCK_SIZE;
+
+        if ($aes_len < $data_len)
+        {
+          $data_len    = $aes_len;
+          $unpack_size = $aes_len;
+        }
+      }
+    }
+
+    $data = my_read ($fp, $data_len); # NOTE: we shouldn't read a very huge data buffer directly into memory
+                                      # improvement: read the data in chunks of several MBs and keep printing it
+                                      # directly to stdout (by also not returning a string from this function)
+                                      # that would help to achieve minimal RAM consumption (even for very large hashes)
+  }
+
+  return undef unless (length ($data) == $data_len);
+
+  if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
+  {
+    print STDERR "WARNING: the file '". $file_path . "' unfortunately can't be used with $PASSWORD_RECOVERY_TOOL_NAME since the data length\n";
+    print STDERR "in this particular case is too long ($data_len of the maximum allowed " .($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2). " bytes).\n";
+
+    if ($PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK == 1)
+    {
+      print STDERR "Furthermore, it could not be truncated. This should only happen in very rare cases.\n";
+    }
+
+    return "";
+  }
+
   $hash_buf = sprintf ("%s:%s%u\$%u\$%u\$%s\$%u\$%s\$%u\$%u\$%u\$%s",
     basename($file_path),
     $SEVEN_ZIP_HASH_SIGNATURE,
@@ -1327,13 +1487,11 @@ sub extract_hash_from_archive
     $crc,
     $data_len,
     $unpack_size,
-    unpack ("H*", $data)
+    unpack ("H*", $data) # could be very large. We could/should avoid loading/copying this data into memory
   );
 
   return $hash_buf if ($type_of_data == $SEVEN_ZIP_UNCOMPRESSED);
   return $hash_buf if ($type_of_data == $SEVEN_ZIP_TRUNCATED);
-
-  my $crc_len = $substreams_info->{'unpack_sizes'}[0]; # we always stick to the first file here
 
   $hash_buf .= sprintf ("\$%u\$%s",
     $crc_len,
