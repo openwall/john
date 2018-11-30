@@ -614,9 +614,10 @@ static void single_run(void)
 		}
 
 		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
-			if (strncmp(prerule, "!!", 2))
+			rule_number++;
+			if (options.verbosity >= VERB_DEFAULT && strncmp(prerule, "!!", 2))
 				log_event("- Rule #%d: '%.100s' rejected",
-				          ++rule_number, prerule);
+				          rule_number, prerule);
 			continue;
 		}
 

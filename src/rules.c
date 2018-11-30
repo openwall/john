@@ -2513,7 +2513,8 @@ int rules_count(struct rpp_context *start, int split)
 		error();
 	}
 
-	count2 = rules_remove_dups(start->input, options.verbosity == VERB_MAX);
+	count2 = rules_remove_dups(start->input,
+	                           options.verbosity == VERB_DEBUG);
 	if (count2) {
 		count2 = rules_check(start, split);
 		log_event("- %d preprocessed word mangling rules were reduced "
@@ -2522,11 +2523,12 @@ int rules_count(struct rpp_context *start, int split)
 	}
 
 	if (((options.flags & FLG_PIPE_CHK) && count1 >= RULES_MUTE_THR) &&
-	    options.verbosity <= VERB_LEGACY) {
+	    options.verbosity < VERB_LEGACY) {
 		rules_mute = 1;
 		if (john_main_process) {
-			log_event("- NOTE: Some rule logging suppressed. Re-enable with --verbosity=%d or greater",
-				VERB_LEGACY + 1);
+			log_event(
+"- Some rule logging suppressed. Re-enable with --verbosity=%d or greater",
+			          VERB_LEGACY);
 		}
 	}
 	return count1;
