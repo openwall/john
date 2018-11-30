@@ -273,7 +273,9 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffered keys hash size, used for "single crack" mode.
  */
-#if defined(_OPENMP) && DES_BS && !DES_BS_ASM
+#if HAVE_OPENCL
+#define SINGLE_HASH_LOG			10
+#elif _OPENMP && DES_BS && !DES_BS_ASM
 #define SINGLE_HASH_LOG			10
 #else
 #define SINGLE_HASH_LOG			7
@@ -284,6 +286,22 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * Minimum buffered keys hash size, used if min_keys_per_crypt is even less.
  */
 #define SINGLE_HASH_MIN			8
+
+/*
+ * Type to use for single keys buffer. CPU formats should do fine with 16-bit
+ * but OpenCL and the like will need 32-bit.
+ */
+#if HAVE_OPENCL || HAVE_ZTEX
+#define SINGLE_KEYS_TYPE		int32_t
+#define SINGLE_KEYS_UTYPE		uint32_t
+#define SINGLE_IDX_MAX			0x1000000
+#define SINGLE_BUF_MAX			0x7f000000
+#else
+#define SINGLE_KEYS_TYPE		int16_t
+#define SINGLE_KEYS_UTYPE		uint16_t
+#define SINGLE_IDX_MAX			0x8000
+#define SINGLE_BUF_MAX			0xffff
+#endif
 
 /*
  * Shadow file entry hash table size, used by unshadow.
