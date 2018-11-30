@@ -677,6 +677,7 @@ static void reset(struct db_main *db)
 				}
 
 			} while ((salt = salt->next));
+
 			forced_global_keys = 0;
 			auto_tune_all(100, &fmt_opencl_DES, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
 		}
@@ -688,7 +689,7 @@ static void reset(struct db_main *db)
 		} while ((salt = salt->next));
 
 		if (num_salts > 1 && john_main_process)
-			fprintf(stderr, "Note: building per-salt kernels. "
+			fprintf(stderr, "Note: Building per-salt kernels. "
 				"This takes e.g. 2 hours for 4096 salts.\n");
 #if _OPENMP && PARALLEL_BUILD
 #pragma omp parallel for
