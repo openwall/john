@@ -224,7 +224,7 @@ static void single_init(void)
 "Note: Can't run single mode with this many salts due to single mode buffer\n"
 "      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
 "      %d for %sB). To work around this, bump SingleMaxBufferSize in\n"
-"      john.conf (if you have enough RAM) or loader fewer salts at a time.\n",
+"      john.conf (if you have enough RAM) or load fewer salts at a time.\n",
 			        human_prefix((uint64_t)max_buffer_GB << 30),
 			        lim_kpc,
 			        human_prefix(calc_buf_size(length, lim_kpc)),

@@ -271,10 +271,32 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define CRACKED_HASH_SIZE		(1 << CRACKED_HASH_LOG)
 
 /*
+ * Type to use for single keys buffer. This and max_length affect how large
+ * a single mode batch can be; namely (SINGLE_BUF_MAX / max_length + 1).
+ * So using 16-bit integer and length 16, we can't use a larger KPC than
+ * 4096. This is typically too small for OpenCL formats and even some multi-
+ * core CPU platforms.
+ *
+ * Using 32-bit types, the real limit will be amount of available RAM and
+ * the setting of SingleMaxBufferSize in john.conf (default 4 GB).
+ */
+#if HAVE_OPENCL || HAVE_ZTEX || HAVE_OPENMP
+#define SINGLE_KEYS_TYPE		int32_t
+#define SINGLE_KEYS_UTYPE		uint32_t
+#define SINGLE_IDX_MAX			(INT32_MAX + 1U)
+#define SINGLE_BUF_MAX			UINT32_MAX
+#else
+#define SINGLE_KEYS_TYPE		int16_t
+#define SINGLE_KEYS_UTYPE		uint16_t
+#define SINGLE_IDX_MAX			0x8000
+#define SINGLE_BUF_MAX			0xffff
+#endif
+
+/*
  * Buffered keys hash size, used for "single crack" mode.
  */
 #if HAVE_OPENCL
-#define SINGLE_HASH_LOG			10
+#define SINGLE_HASH_LOG			15
 #elif _OPENMP && DES_BS && !DES_BS_ASM
 #define SINGLE_HASH_LOG			10
 #else
@@ -286,22 +308,6 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * Minimum buffered keys hash size, used if min_keys_per_crypt is even less.
  */
 #define SINGLE_HASH_MIN			8
-
-/*
- * Type to use for single keys buffer. CPU formats should do fine with 16-bit
- * but OpenCL and the like will need 32-bit.
- */
-#if HAVE_OPENCL || HAVE_ZTEX
-#define SINGLE_KEYS_TYPE		int32_t
-#define SINGLE_KEYS_UTYPE		uint32_t
-#define SINGLE_IDX_MAX			0x1000000
-#define SINGLE_BUF_MAX			0x7f000000
-#else
-#define SINGLE_KEYS_TYPE		int16_t
-#define SINGLE_KEYS_UTYPE		uint16_t
-#define SINGLE_IDX_MAX			0x8000
-#define SINGLE_BUF_MAX			0xffff
-#endif
 
 /*
  * Shadow file entry hash table size, used by unshadow.
