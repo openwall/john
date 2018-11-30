@@ -1158,6 +1158,8 @@ static void rules_init_length(int max_length)
 	rules_vars['+'] = max_length + 1;
 
 	rules_vars['#'] = min_length;
+	rules_vars['@'] = min_length ? min_length - 1 : 0;
+	rules_vars['$'] = min_length + 1;
 
 	rules_vars['z'] = INFINITE_LENGTH;
 }

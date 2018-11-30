@@ -50,6 +50,8 @@ following characters:
 0...9	for 0...9
 A...Z	for 10...35
 #	for min_length
+@	for (min_length - 1)
+$	for (min_length + 1)
 *	for max_length
 -	for (max_length - 1)
 +	for (max_length + 1)
