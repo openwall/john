@@ -536,9 +536,8 @@ next_file_header:
 		method = file_header_block[25];
 
 		/* Prefer shorter files, except zero-byte ones */
-		if (!file_header_unp_size ||
-		    (bestsize > (method >= 0x33 ? 4 : 0) &&
-		     (bestsize < file_header_unp_size))) {
+		if (file_header_unp_size < (method > 0x30 ? 5 : 1) ||
+		    (bestsize && bestsize < file_header_unp_size)) {
 			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
