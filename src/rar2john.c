@@ -340,6 +340,7 @@ next_file_header:
 	} else {
 		size_t file_header_pack_size = 0, file_header_unp_size = 0;
 		int ext_time_size;
+		uint8_t method;
 		uint64_t bytes_left;
 		uint16_t file_header_head_size, file_name_size;
 		unsigned char file_name[4 * PATH_BUF_SIZE], file_crc[4];
@@ -532,9 +533,12 @@ next_file_header:
 			goto next_file_header;
 		}
 
+		method = file_header_block[25];
+
 		/* Prefer shorter files, except zero-byte ones */
 		if (!file_header_unp_size ||
-		    (bestsize && (bestsize < file_header_unp_size))) {
+		    (bestsize > (method >= 0x33 ? 4 : 0) &&
+		     (bestsize < file_header_unp_size))) {
 			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
@@ -572,7 +576,7 @@ next_file_header:
 		 * m3b means 0x33 and a dictionary size of 128KB (a == 64KB .. g == 4096KB)
 		 */
 		if (verbose) {
-			fprintf(stderr, "! METHOD is m%x%c\n", file_header_block[25]-0x30, 'a'+((file_header_head_flags&0xe0)>>5));
+			fprintf(stderr, "! METHOD is m%x%c\n", method - 0x30, 'a'+((file_header_head_flags&0xe0)>>5));
 			//fprintf(stderr, "! file_header_flags is 0x%04x\n", file_header_head_flags);
 		}
 
@@ -600,7 +604,7 @@ next_file_header:
 			}
 		}
 		best_len += file_header_pack_size;
-		best_len += sprintf(p, "*%c%c:%d::", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type);
+		best_len += sprintf(p, "*%02x:%d::", method, type);
 
 		/* Keep looking for better candidates */
 		goto next_file_header;
