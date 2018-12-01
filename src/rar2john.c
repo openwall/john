@@ -188,7 +188,7 @@ static void process_file(const char *archive_name)
 	unsigned char archive_header_block[13];
 	unsigned char file_header_block[40];
 	int i, count, type;
-	size_t bestsize = 0;
+	size_t bestsize[2] = { SIZE_MAX, SIZE_MAX };
 	char *base_aname;
 	unsigned char buf[CHUNK_SIZE];
 	uint16_t archive_header_head_flags, file_header_head_flags, head_size;
@@ -535,14 +535,17 @@ next_file_header:
 
 		method = file_header_block[25];
 
-		/* Prefer shorter files, except zero-byte ones */
+		/* Prefer shortest files, unless too short */
 		if (file_header_unp_size < (method > 0x30 ? 5 : 1) ||
-		    (bestsize && bestsize < file_header_unp_size)) {
+		    (bestsize[0] < file_header_pack_size) ||
+			(bestsize[0] == file_header_pack_size &&
+			 bestsize[1] < file_header_unp_size)) {
 			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
-		bestsize = file_header_unp_size;
+		bestsize[0] = file_header_pack_size;
+		bestsize[1] = file_header_unp_size;
 
 		MEM_FREE(best);
 		best = mem_calloc(1, 2 * LINE_BUFFER_SIZE + 2 * file_header_pack_size);
