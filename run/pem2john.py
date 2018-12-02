@@ -40,13 +40,38 @@ $ openssl asn1parse -in test.pem
    70:d=1  hl=4 l= 640 prim: OCTET STRING      [HEX DUMP]:C4BC6BC5447BED58...
 """
 
+def is_binary(filename):
+    """Return true if the given filename is binary.
+    @raise EnvironmentError: if the file does not exist or cannot be accessed.
+    @attention: found @ http://bytes.com/topic/python/answers/21222-determine-file-type-binary-text on 6/08/2010
+    @author: Trent Mick <TrentM@ActiveState.com>
+    @author: Jorge Orpinel <jorge@orpinel.com>"""
+    fin = open(filename, 'rb')
+    try:
+        CHUNKSIZE = 1024
+        while 1:
+            chunk = fin.read(CHUNKSIZE)
+            if '\0' in chunk: # found null byte
+                return True
+            if len(chunk) < CHUNKSIZE:
+                break # done
+    # without "except:"
+    finally:
+        fin.close()
+
+    return False
 
 def unwrap_pkcs8(blob):
     if not pem.detect(blob):
         return
 
     _, _, der_bytes = pem.unarmor(blob)
-    data = EncryptedPrivateKeyInfo.load(der_bytes).native
+    unwrap_pkcs8_data(der_bytes)
+
+
+def unwrap_pkcs8_data(blob):
+
+    data = EncryptedPrivateKeyInfo.load(blob).native
 
     if "encryption_algorithm" not in data:
         return
@@ -101,12 +126,15 @@ if __name__ == "__main__":
 
     for filename in sys.argv[1:]:
         blob = open(filename, "rb").read()
-        if b'-----BEGIN ENCRYPTED PRIVATE KEY-----' not in blob:
-            if b'PRIVATE KEY-----' in blob:
-                sys.stderr.write("[%s] try using sshng2john.py on this file instead!\n" % sys.argv[0])
-            else:
-                sys.stderr.write("[%s] is this really a private key in PKCS #8 format?\n" % sys.argv[0])
+        if not is_binary(filename):
+           if b'-----BEGIN ENCRYPTED PRIVATE KEY-----' not in blob:
+               if b'PRIVATE KEY-----' in blob:
+                   sys.stderr.write("[%s] try using sshng2john.py on this file instead!\n" % sys.argv[0])
+               else:
+                   sys.stderr.write("[%s] is this really a private key in PKCS #8 format?\n" % sys.argv[0])
 
-            continue
+               continue
 
-        unwrap_pkcs8(blob)
+           unwrap_pkcs8(blob)
+        else:
+           unwrap_pkcs8_data(blob)
