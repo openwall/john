@@ -70,52 +70,55 @@ def unwrap_pkcs8(blob):
 
 
 def unwrap_pkcs8_data(blob):
+    
+    try:    
+        data = EncryptedPrivateKeyInfo.load(blob).native    
 
-    data = EncryptedPrivateKeyInfo.load(blob).native
+        if "encryption_algorithm" not in data:
+            return
+        if "encrypted_data" not in data:
+            return
+        if "algorithm" not in data["encryption_algorithm"]:
+            return
+        if data["encryption_algorithm"]["algorithm"] != "pbes2":
+            sys.stderr.write("[%s] encryption_algorithm <%s> is not supported currently!\n" %
+                             (sys.argv[0], data["encryption_algorithm"]["algorithm"]))
+            return
 
-    if "encryption_algorithm" not in data:
-        return
-    if "encrypted_data" not in data:
-        return
-    if "algorithm" not in data["encryption_algorithm"]:
-        return
-    if data["encryption_algorithm"]["algorithm"] != "pbes2":
-        sys.stderr.write("[%s] encryption_algorithm <%s> is not supported currently!\n" %
-                         (sys.argv[0], data["encryption_algorithm"]["algorithm"]))
-        return
+        # encryption data
+        encrypted_data = data["encrypted_data"]
 
-    # encryption data
-    encrypted_data = data["encrypted_data"]
+        # KDF
+        params = data["encryption_algorithm"]["parameters"]
+        kdf = params["key_derivation_func"]
+        if kdf["algorithm"] != "pbkdf2":
+            sys.stderr.write("[%s] kdf algorithm <%s> is not supported currently!\n" %
+                             (sys.argv[0], kdf["algorithm"]))
+            return
+        kdf_params = kdf["parameters"]
+        salt = kdf_params["salt"]
+        iterations = kdf_params["iteration_count"]
 
-    # KDF
-    params = data["encryption_algorithm"]["parameters"]
-    kdf = params["key_derivation_func"]
-    if kdf["algorithm"] != "pbkdf2":
-        sys.stderr.write("[%s] kdf algorithm <%s> is not supported currently!\n" %
-                         (sys.argv[0], kdf["algorithm"]))
-        return
-    kdf_params = kdf["parameters"]
-    salt = kdf_params["salt"]
-    iterations = kdf_params["iteration_count"]
+        # Cipher
+        cipher_params = params["encryption_scheme"]
+        cipher = cipher_params["algorithm"]
+        iv = cipher_params["parameters"]
 
-    # Cipher
-    cipher_params = params["encryption_scheme"]
-    cipher = cipher_params["algorithm"]
-    iv = cipher_params["parameters"]
+        if cipher == "tripledes_3key":
+            cid = 1
+        elif cipher == "aes128_cbc":
+            cid = 2
+        elif cipher == "aes192_cbc":
+            cid = 3
+        elif cipher == "aes256_cbc":
+            cid = 4
+        else:
+            sys.stderr.write("[%s] cipher <%s> is not supported currently!\n" % (sys.argv[0], cipher))
+            return
 
-    if cipher == "tripledes_3key":
-        cid = 1
-    elif cipher == "aes128_cbc":
-        cid = 2
-    elif cipher == "aes192_cbc":
-        cid = 3
-    elif cipher == "aes256_cbc":
-        cid = 4
-    else:
-        sys.stderr.write("[%s] cipher <%s> is not supported currently!\n" % (sys.argv[0], cipher))
-        return
-
-    sys.stdout.write("$PEM$1$%d$%s$%s$%s$%d$%s\n" % (cid, salt.encode("hex"), iterations, iv.encode("hex"), len(encrypted_data), encrypted_data.encode("hex")))
+        sys.stdout.write("$PEM$1$%d$%s$%s$%s$%d$%s\n" % (cid, salt.encode("hex"), iterations, iv.encode("hex"), len(encrypted_data), encrypted_data.encode("hex")))
+    except ValueError:
+       print "Input is not a cert"
 
 
 if __name__ == "__main__":
