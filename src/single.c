@@ -288,6 +288,13 @@ static void single_init(void)
 		error();
 	}
 
+	/*
+	 * Now set our possibly capped figures as global in order to get
+	 * proper function and less warnings.
+	 */
+	options.eff_maxlength = length;
+	single_db->format->params.min_keys_per_crypt = key_count;
+
 	rules_init(single_db, length);
 	rec_rule = rule_number = 0;
 	rule_count = rules_count(rule_ctx, 0);
