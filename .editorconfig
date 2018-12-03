@@ -33,13 +33,19 @@ indent_style = space
 indent_size = 2
 
 # Core files where we gave up and use a tab size of 4
-[single.[ch]]
+[inc.c]
 indent_size = 4
 
-[wordlist.[ch]]
+[single.c]
 indent_size = 4
 
-# Core files do use a tab size of 8
+[wordlist.c]
+indent_size = 4
+
+[cracker.c]
+indent_size = 4
+
+# Core files otherwise use a tab size of 8
 [*.{S,sh}]
 indent_size = 8
 
@@ -106,7 +112,7 @@ indent_size = 8
 [config.[ch]]
 indent_size = 8
 
-[cracker.[ch]]
+[cracker.h]
 indent_size = 8
 
 [crc32.[ch]]
@@ -133,7 +139,7 @@ indent_size = 8
 [idle.[ch]]
 indent_size = 8
 
-[inc.[ch]]
+[inc.h]
 indent_size = 8
 
 [john.asm]
@@ -218,6 +224,9 @@ indent_size = 8
 [signals.[ch]]
 indent_size = 8
 
+[single.h]
+indent_size = 8
+
 [sparc32.[ch]]
 indent_size = 8
 
@@ -249,6 +258,9 @@ indent_size = 8
 indent_size = 8
 
 [vax.[ch]]
+indent_size = 8
+
+[wordlist.h]
 indent_size = 8
 
 [x86-64.[ch]]
