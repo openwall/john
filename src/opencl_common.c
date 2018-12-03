@@ -1613,7 +1613,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		wg_multiple = get_kernel_preferred_multiple(sequential_id,
 		              crypt_kernel);
 
-	if (platform_apple(platform_id) && cpu(device_info[sequential_id]))
+	if (platform_apple(get_platform_id(sequential_id)) &&
+	    cpu(device_info[sequential_id]))
 		max_group_size = 1;
 	else
 		max_group_size = ocl_max_lws ?
@@ -2147,17 +2148,21 @@ void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
 void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
                          int warn)
 {
-	struct stat source_stat, bin_stat;
-	char dev_name[512], bin_name[512], *tmp_name;
-	unsigned char hash[16];
-	char hash_str[33];
-	uint64_t startTime, runtime;
-
-	if (!gpu_amd(device_info[sequential_id]) ||
-	        platform_apple(platform_id) ||
-	        stat(path_expand(kernel_filename), &source_stat))
+	/*
+	 * Disable binary caching for:
+	 * - nvidia unless on macOS
+	 * - CPU if on macOS
+	 */
+	if ((gpu_nvidia(device_info[sequential_id]) && !platform_apple(get_platform_id(sequential_id))) ||
+	    (cpu(device_info[sequential_id]) && platform_apple(get_platform_id(sequential_id)))) {
+		log_event("- Kernel binary caching disabled for this platform/device");
 		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
-	else {
+	} else {
+		struct stat source_stat, bin_stat;
+		char dev_name[512], bin_name[512], *tmp_name;
+		unsigned char hash[16];
+		char hash_str[33];
+		uint64_t startTime, runtime;
 		int i;
 		MD5_CTX ctx;
 		char *kernel_source = NULL;
@@ -2206,11 +2211,15 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		         tmp_name, hash_str);
 
 		// Select the kernel to run.
-		if (!getenv("DUMP_BINARY") && !stat(path_expand(bin_name), &bin_stat) &&
+		if (!getenv("DUMP_BINARY") &&
+		    !stat(path_expand(kernel_filename), &source_stat) &&
+		    !stat(path_expand(bin_name), &bin_stat) &&
 			(source_stat.st_mtime < bin_stat.st_mtime)) {
 			size_t program_size = opencl_read_source(bin_name, &kernel_source);
+			log_event("- Building kernel from cached binary");
 			opencl_build_from_binary(sequential_id, &program[sequential_id], kernel_source, program_size);
 		} else {
+			log_event("- Building kernel and caching binary");
 			if (warn && options.verbosity > VERB_DEFAULT) {
 				fprintf(stderr, "Building the kernel, this "
 				        "could take a while\n");
