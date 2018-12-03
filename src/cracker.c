@@ -1142,6 +1142,9 @@ int crk_process_salt(struct db_salt *salt)
 				if (not_from_guesses > 0) {
 					status.cands += not_from_guesses;
 					count_from_guesses = 0;
+					if (john_max_cands && !event_abort &&
+					    status.cands >= john_max_cands)
+						event_abort = event_pending = 1;
 				} else {
 					count_from_guesses -= index;
 				}
