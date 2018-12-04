@@ -26,6 +26,9 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <sys/ioctl.h>
+#include <unistd.h>
+
 #include "memory.h"
 #include "logger.h"
 #include "params.h"
@@ -34,6 +37,8 @@
 
 #include "john_mpi.h"
 #include "memdbg.h"
+
+char gap[999];
 
 void real_error(char *file, int line)
 {
@@ -492,4 +497,16 @@ char *human_prefix(uint64_t num)
 		snprintf(out, 16, "%u ", (uint32_t)num);
 
 	return out;
+}
+
+char *status_gap()
+{
+    int gap_c;
+
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    memset(gap, '\0', sizeof(gap));
+    for (gap_c=0;gap_c<w.ws_col && gap_c<sizeof(gap);gap_c++) gap[gap_c]='-';
+
+	return gap;
 }
