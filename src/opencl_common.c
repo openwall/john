@@ -1310,7 +1310,8 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	if (options.verbosity == VERB_MAX)
 		fprintf(stderr, "Node %d releasing lock\n", NODE);
 #endif
-	fclose(kludge_file);
+	if (kludge_file)
+		fclose(kludge_file);
 #endif /* (HAVE_MPI || OS_FORK) && (OS_FLOCK || FCNTL_LOCKS) */
 
 #if HAVE_MPI
