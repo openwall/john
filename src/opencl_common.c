@@ -58,7 +58,7 @@
 #include "john_mpi.h"
 #include "memdbg.h"
 
-#define KLUDGE_LOCK_FILE "/tmp/.JtR_kernel_build_lock"
+#define KLUDGE_LOCK_FILE "$JOHN/.JtR_kernel_build_lock"
 
 /* Set this to eg. 3 for some added debug and retry stuff */
 #define RACE_CONDITION_DEBUG 0
@@ -1162,7 +1162,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	size_t log_size;
 	const char *srcptr[] = { kernel_source };
 #if (HAVE_MPI || OS_FORK) && (OS_FLOCK || FCNTL_LOCKS)
-	FILE *kludge_file = fopen(KLUDGE_LOCK_FILE, "w");
+	FILE *kludge_file = fopen(path_expand(KLUDGE_LOCK_FILE), "w");
 #endif
 #if HAVE_MPI
 	static int once;
