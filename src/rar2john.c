@@ -74,6 +74,7 @@
 #define PATH_BUF_SIZE 256
 
 static int verbose;
+static char *self_name;
 
 static void hexdump(const void *msg, void *x, unsigned int size)
 {
@@ -91,12 +92,13 @@ static void hexdump(const void *msg, void *x, unsigned int size)
 
 static int process_file5(const char *archive_name);
 
-static int check_fread(const size_t buf_size, const size_t size, const size_t nmemb)
+static int check_fread(const size_t buf_size, const size_t size,
+                       const size_t nmemb)
 {
 	if (buf_size < size * nmemb) {
-		fprintf(stderr, "Error: check_fread(buf_size="Zu", size="Zu", nmemb="Zu") failed, "
-			"buf_size is smaller than size * nmemb.\n",
-			buf_size, size, nmemb);
+		fprintf(stderr, "Error: check_fread(buf_size="Zu", size="Zu", nmemb="Zu
+		        ") failed, buf_size is smaller than size * nmemb.\n",
+		        buf_size, size, nmemb);
 		return 0;
 	}
 	return 1;
@@ -185,19 +187,24 @@ static void process_file(const char *archive_name)
 {
 	FILE *fp;
 	unsigned char marker_block[7];
-	unsigned char archive_header_block[13];
-	unsigned char file_header_block[40];
+	unsigned char archive_hdr_block[13];
+	unsigned char file_hdr_block[40];
 	int i, count, type;
-	size_t bestsize[2] = { SIZE_MAX, SIZE_MAX };
+	struct {
+		size_t pack;
+		size_t unp;
+		uint8_t method;
+	} bestsize = { SIZE_MAX, SIZE_MAX };
 	char *base_aname;
 	unsigned char buf[CHUNK_SIZE];
-	uint16_t archive_header_head_flags, file_header_head_flags, head_size;
+	uint16_t archive_hdr_head_flags, file_hdr_head_flags, head_size;
 	unsigned char *pos;
 	int diff;
 	int found = 0;
 	char path[PATH_BUFFER_SIZE];
 	char *gecos, *best = NULL;
-	int best_len = 0, gecos_len = 0;
+	size_t best_len = 0;
+	int gecos_len = 0;
 
 	gecos = mem_calloc(1, LINE_BUFFER_SIZE);
 
@@ -217,12 +224,14 @@ static void process_file(const char *archive_name)
 		goto err;
 	}
 
-	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) { /* handle SFX archives */
+	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) {
+		/* handle SFX archives */
 		if (memcmp(marker_block, "MZ", 2) == 0) {
 			/* jump to "Rar!" signature */
 			while (!feof(fp)) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
-				if ( (pos = memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x00", 7))) {
+				if ((pos =
+				     memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x00",7))) {
 					diff = count - (pos - buf);
 					jtr_fseek64(fp, - diff, SEEK_CUR);
 					jtr_fseek64(fp, 7, SEEK_CUR);
@@ -254,35 +263,39 @@ static void process_file(const char *archive_name)
 	}
 
 	/* archive header block */
-	if (fread(archive_header_block, 13, 1, fp) != 1) {
+	if (fread(archive_hdr_block, 13, 1, fp) != 1) {
 		fprintf(stderr, "%s: Error: read failed: %s.\n",
 			archive_name, strerror(errno));
 		goto err;
 	}
-	if (archive_header_block[2] != 0x73) {
-		fprintf(stderr, "%s: Error: archive_header_block[2] must be 0x73.\n",
+	if (archive_hdr_block[2] != 0x73) {
+		fprintf(stderr, "%s: Error: archive_hdr_block[2] must be 0x73.\n",
 			archive_name);
 		goto err;
 	}
 
 	/* find encryption mode used (called type in output line format) */
-	archive_header_head_flags =
-	    archive_header_block[4] << 8 | archive_header_block[3];
-	if (archive_header_head_flags & 0x0080) {	/* file header block is encrypted */
+	archive_hdr_head_flags =
+	    archive_hdr_block[4] << 8 | archive_hdr_block[3];
+	if (archive_hdr_head_flags & 0x0080) {	/* file header block is encrypted */
 		type = 0;	/* RAR file was created using -hp flag */
 	} else
 		type = 1;
 
-	/* we need to skip ahead, if there is a comment block in the main header. It causes that
-	 * header tp be larger that a simple 13 byte block.
+	/*
+	 * We need to skip ahead, if there is a comment block in the main header.
+	 * It causes that header tp be larger that a simple 13 byte block.
 	 */
-	head_size = archive_header_block[6] << 8 | archive_header_block[5];
+	head_size = archive_hdr_block[6] << 8 | archive_hdr_block[5];
 	if (head_size > 13)
 		fseek(fp, head_size-13, SEEK_CUR);
 
 next_file_header:
+	if (verbose)
+		fprintf(stderr, "\n");
+
 	/* file header block */
-	count = fread(file_header_block, 32, 1, fp);
+	count = fread(file_hdr_block, 32, 1, fp);
 
 	if (feof(fp))  {
 		if (verbose) {
@@ -297,18 +310,19 @@ next_file_header:
 		goto err;
 	}
 
-	if (type == 1 && file_header_block[2] == 0x7a) {
+	if (type == 1 && file_hdr_block[2] == 0x7a) {
 		if (verbose) {
 			fprintf(stderr, "! %s: Comment block present?\n", archive_name);
 		}
 	}
-	else if (type == 1 && file_header_block[2] != 0x74) {
-		fprintf(stderr, "! %s: Not recognising any more headers.\n", archive_name);
+	else if (type == 1 && file_hdr_block[2] != 0x74) {
+		fprintf(stderr, "! %s: Not recognising any more headers.\n",
+		        archive_name);
 		goto BailOut;
 	}
 
-	file_header_head_flags =
-	    file_header_block[4] << 8 | file_header_block[3];
+	file_hdr_head_flags =
+	    file_hdr_block[4] << 8 | file_hdr_block[3];
 
 	/* process -hp mode files
 	   use Marc's end-of-archive block decrypt trick */
@@ -338,52 +352,54 @@ next_file_header:
 		}
 		printf(":%d::::%s\n", type, archive_name);
 	} else {
-		size_t file_header_pack_size = 0, file_header_unp_size = 0;
+		size_t file_hdr_pack_size = 0, file_hdr_unp_size = 0;
 		int ext_time_size;
 		uint8_t method;
 		uint64_t bytes_left;
-		uint16_t file_header_head_size, file_name_size;
+		uint16_t file_hdr_head_size, file_name_size;
 		unsigned char file_name[4 * PATH_BUF_SIZE], file_crc[4];
 		unsigned char salt[8] = { 0 };
 		unsigned char rejbuf[32];
 		char *p;
 		unsigned char s;
 
-		if (!(file_header_head_flags & 0x8000)) {
+		if (!(file_hdr_head_flags & 0x8000)) {
 			fprintf(stderr, "File header flag 0x8000 unset, bailing out.\n");
 			goto BailOut;
 		}
 
-		file_header_head_size =
-		    file_header_block[6] << 8 | file_header_block[5];
+		file_hdr_head_size =
+		    file_hdr_block[6] << 8 | file_hdr_block[5];
 
-		/* low 32 bits.  If header_flags & 0x100 set, then there are additional
-		   32 bits of length data later in the header. FIXME! */
-		file_header_pack_size = file_header_block[10];
-		file_header_pack_size <<= 8; file_header_pack_size += file_header_block[9];
-		file_header_pack_size <<= 8; file_header_pack_size += file_header_block[8];
-		file_header_pack_size <<= 8; file_header_pack_size += file_header_block[7];
+		/*
+		 * Low 32 bits.  If header_flags & 0x100 set, then there are additional
+		 * 32 bits of length data later in the header. FIXME!
+		 */
+		file_hdr_pack_size = file_hdr_block[10];
+		file_hdr_pack_size <<= 8; file_hdr_pack_size += file_hdr_block[9];
+		file_hdr_pack_size <<= 8; file_hdr_pack_size += file_hdr_block[8];
+		file_hdr_pack_size <<= 8; file_hdr_pack_size += file_hdr_block[7];
 
-		file_header_unp_size = file_header_block[14];
-		file_header_unp_size <<= 8; file_header_unp_size += file_header_block[13];
-		file_header_unp_size <<= 8; file_header_unp_size += file_header_block[12];
-		file_header_unp_size <<= 8; file_header_unp_size += file_header_block[11];
+		file_hdr_unp_size = file_hdr_block[14];
+		file_hdr_unp_size <<= 8; file_hdr_unp_size += file_hdr_block[13];
+		file_hdr_unp_size <<= 8; file_hdr_unp_size += file_hdr_block[12];
+		file_hdr_unp_size <<= 8; file_hdr_unp_size += file_hdr_block[11];
 
 		if (verbose) {
-			fprintf(stderr,
-			        "! HEAD_SIZE: %d, PACK_SIZE: %"PRIu64", UNP_SIZE: %"PRIu64"\n",
-			        file_header_head_size,
-			        (uint64_t)file_header_pack_size,
-			        (uint64_t)file_header_unp_size);
-			fprintf(stderr, "! file_header_block:\n!  ");
+			fprintf(stderr, "! HEAD_SIZE: %d, PACK_SIZE: %"PRIu64
+			        ", UNP_SIZE: %"PRIu64"\n",
+			        file_hdr_head_size,
+			        (uint64_t)file_hdr_pack_size,
+			        (uint64_t)file_hdr_unp_size);
+			fprintf(stderr, "! file_hdr_block:\n!  ");
 			for (i = 0; i < 32; ++i)
-				fprintf(stderr, " %02x", file_header_block[i]);
+				fprintf(stderr, " %02x", file_hdr_block[i]);
 			fprintf(stderr, "\n");
 		}
 		/* calculate EXT_TIME size */
-		ext_time_size = file_header_head_size - 32;
+		ext_time_size = file_hdr_head_size - 32;
 
-		if (file_header_head_flags & 0x100) {
+		if (file_hdr_head_flags & 0x100) {
 			uint64_t ex;
 			if (fread(rejbuf, 4, 1, fp) != 1) {
 				fprintf(stderr, "\n! %s: Error: read failed: %s.\n",
@@ -400,7 +416,7 @@ next_file_header:
 			ex <<= 8; ex += rejbuf[1];
 			ex <<= 8; ex += rejbuf[0];
 			ex <<= 32;
-			file_header_pack_size += ex;
+			file_hdr_pack_size += ex;
 			ext_time_size -= 4;
 
 			if (fread(rejbuf, 4, 1, fp) != 1) {
@@ -418,18 +434,23 @@ next_file_header:
 			ex <<= 8; ex += rejbuf[1];
 			ex <<= 8; ex += rejbuf[0];
 			ex <<= 32;
-			file_header_unp_size += ex;
+			file_hdr_unp_size += ex;
 			ext_time_size -= 4;
 			if (verbose) {
-				/* note, we should warn (or bail) if sizeof(size_t) < 8) FIXME! */
 				fprintf(stderr, "! HIGH_PACK_SIZE present\n");
 				fprintf(stderr, "! HIGH_UNP_SIZE present\n");
+				if (sizeof(size_t) < 8) {
+					fprintf(stderr, "! %s: Error: File contains 64-bit sizes "
+					        "but this build of %s doesn't support it.\n",
+					        archive_name, self_name);
+					goto err;
+				}
 			}
-		} else
-			fprintf(stderr, "\n");
+		}
+
 		/* file name processing */
 		file_name_size =
-		    file_header_block[27] << 8 | file_header_block[26];
+		    file_hdr_block[27] << 8 | file_hdr_block[26];
 		if (verbose) {
 			fprintf(stderr, "! file name size: %d bytes\n", file_name_size);
 		}
@@ -449,7 +470,7 @@ next_file_header:
 		/* If this flag is set, file_name contains some weird
 		   wide char encoding that need to be decoded to UTF16
 		   and then to UTF-8 (we don't support codepages here) */
-		if (file_header_head_flags & 0x200) {
+		if (file_hdr_head_flags & 0x200) {
 			UTF16 FileNameW[PATH_BUF_SIZE];
 			int Length = strlen((char*)file_name);
 
@@ -479,7 +500,7 @@ next_file_header:
 			gecos_len += snprintf(&gecos[gecos_len], LINE_BUFFER_SIZE - gecos_len - 1, "%s ", (char*)file_name);
 
 		/* salt processing */
-		if (file_header_head_flags & 0x400) {
+		if (file_hdr_head_flags & 0x400) {
 			ext_time_size -= 8;
 			if (fread(salt, 8, 1, fp) != 1) {
 				fprintf(stderr, "! %s: Error: read failed: %s.\n",
@@ -490,7 +511,7 @@ next_file_header:
 		}
 
 		/* EXT_TIME processing */
-		if (file_header_head_flags & 0x1000) {
+		if (file_hdr_head_flags & 0x1000) {
 			if (verbose) {
 				fprintf(stderr, "! EXT_TIME present with size %d\n",
 				        ext_time_size);
@@ -509,48 +530,62 @@ next_file_header:
 		/* Skip solid files (first file is never solid)
 		 * We could probably add support for this
 		 */
-		if (file_header_head_flags & 0x10) {
+		if (file_hdr_head_flags & 0x10) {
 			fprintf(stderr, "! Solid, can't handle (currently)\n");
-			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_hdr_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
-		if ((file_header_head_flags & 0xe0)>>5 == 7) {
+		if ((file_hdr_head_flags & 0xe0)>>5 == 7) {
 			if (verbose) {
 				fprintf(stderr, "! Is a directory, skipping\n");
 			}
-			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_hdr_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 		else if (verbose) {
-			fprintf(stderr, "! Dictionary size: %u KB\n", 64<<((file_header_head_flags & 0xe0)>>5));
+			fprintf(stderr, "! Dictionary size: %u KB\n", 64<<((file_hdr_head_flags & 0xe0)>>5));
 		}
 
 		/* Check if encryption is being used */
-		if (!(file_header_head_flags & 0x04)) {
+		if (!(file_hdr_head_flags & 0x04)) {
 			fprintf(stderr, "! not encrypted, skipping\n");
-			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
+			jtr_fseek64(fp, file_hdr_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
-		method = file_header_block[25];
+		method = file_hdr_block[25];
 
-		/* Prefer shortest files, unless too short */
-		if (file_header_unp_size < (method > 0x30 ? 5 : 1) ||
-		    (bestsize[0] < file_header_pack_size) ||
-			(bestsize[0] == file_header_pack_size &&
-			 bestsize[1] < file_header_unp_size)) {
-			jtr_fseek64(fp, file_header_pack_size, SEEK_CUR);
+		/*
+		 * Prefer shortest pack size, but given two files with single-block
+		 * pack size, prefer unpack size >= 8. This gives us better immunity
+		 * against false positives.
+		 */
+		if (bestsize.pack < SIZE_MAX &&
+		    (((bestsize.pack < file_hdr_pack_size &&
+		       bestsize.unp >= (bestsize.method > 0x30 ? 4 : 1)) ||
+		      (bestsize.unp > file_hdr_unp_size &&
+		       file_hdr_unp_size < (method > 0x30 ? 4 : 1))) ||
+		     (bestsize.pack == file_hdr_pack_size &&
+		      ((bestsize.unp > file_hdr_unp_size && file_hdr_unp_size < 8) ||
+		       (bestsize.unp <= file_hdr_unp_size && bestsize.unp >= 8))))) {
+			if (verbose)
+				fprintf(stderr,
+				        "! We got a better candidate already, skipping\n");
+			jtr_fseek64(fp, file_hdr_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
-		bestsize[0] = file_header_pack_size;
-		bestsize[1] = file_header_unp_size;
+		if (verbose)
+			fprintf(stderr, "! This is best candidate so far\n");
+		bestsize.pack = file_hdr_pack_size;
+		bestsize.unp = file_hdr_unp_size;
+		bestsize.method = method;
 
 		MEM_FREE(best);
-		best = mem_calloc(1, 2 * LINE_BUFFER_SIZE + 2 * file_header_pack_size);
+		best = mem_calloc(1, 2 * LINE_BUFFER_SIZE + 2 * file_hdr_pack_size);
 
-		/* process encrypted data of size "file_header_pack_size" */
+		/* process encrypted data of size "file_hdr_pack_size" */
 		best_len = sprintf(best, "%s:$RAR3$*%d*", base_aname, type);
 		for (i = 0; i < 8; i++) { /* encode salt */
 			best_len += sprintf(&best[best_len], "%c%c", itoa16[ARCH_INDEX(salt[i] >> 4)], itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
@@ -559,13 +594,13 @@ next_file_header:
 			fprintf(stderr, "! salt: '%s'\n", best);
 		}
 		best_len += sprintf(&best[best_len], "*");
-		memcpy(file_crc, file_header_block + 16, 4);
+		memcpy(file_crc, file_hdr_block + 16, 4);
 		for (i = 0; i < 4; i++) { /* encode file_crc */
 			best_len += sprintf(&best[best_len], "%c%c", itoa16[ARCH_INDEX(file_crc[i] >> 4)], itoa16[ARCH_INDEX(file_crc[i] & 0x0f)]);
 		}
 		if (verbose) {
 			/* Minimal version needed to unpack this file */
-			fprintf(stderr, "! UNP_VER is %0.1f\n", (float)file_header_block[24] / 10.);
+			fprintf(stderr, "! UNP_VER is %0.1f\n", (float)file_hdr_block[24] / 10.);
 		}
 		/*
 		 * 0x30 - storing
@@ -578,20 +613,20 @@ next_file_header:
 		 * m3b means 0x33 and a dictionary size of 128KB (a == 64KB .. g == 4096KB)
 		 */
 		if (verbose) {
-			fprintf(stderr, "! METHOD is m%x%c\n", method - 0x30, 'a'+((file_header_head_flags&0xe0)>>5));
-			//fprintf(stderr, "! file_header_flags is 0x%04x\n", file_header_head_flags);
+			fprintf(stderr, "! METHOD is m%x%c\n", method - 0x30, 'a'+((file_hdr_head_flags&0xe0)>>5));
+			//fprintf(stderr, "! file_hdr_flags is 0x%04x\n", file_hdr_head_flags);
 		}
 
 		best_len += sprintf(&best[best_len], "*%"PRIu64"*%"PRIu64"*",
-		        (uint64_t)file_header_pack_size,
-		        (uint64_t)file_header_unp_size);
+		        (uint64_t)file_hdr_pack_size,
+		        (uint64_t)file_hdr_unp_size);
 
 		/* We always store it inline */
 
 		best_len += sprintf(&best[best_len], "1*");
 		p = &best[best_len];
-		bytes_left = file_header_pack_size;
-		for (i = 0; i < file_header_pack_size; i++) {
+		bytes_left = file_hdr_pack_size;
+		for (i = 0; i < file_hdr_pack_size; i++) {
 			unsigned char bytes[64*1024];
 			unsigned x, to_read = 64*1024;
 			if (bytes_left < 64*1024)
@@ -605,7 +640,7 @@ next_file_header:
 				*p++ = itoa16[s & 0xf];
 			}
 		}
-		best_len += file_header_pack_size;
+		best_len += file_hdr_pack_size;
 		best_len += sprintf(p, "*%02x:%d::", method, type);
 
 		/* Keep looking for better candidates */
@@ -616,6 +651,8 @@ BailOut:
 			if (verbose) {
 				fprintf(stderr, "! Found a valid -p mode candidate in %s\n", base_aname);
 			}
+			if (bestsize.unp < (bestsize.method > 0x30 ? 5 : 1))
+				fprintf(stderr, "! WARNING best candidate found is too small, you may see false positives.\n");
 			strncat(best, gecos, LINE_BUFFER_SIZE - best_len - 1);
 			puts(best);
 		} else
@@ -904,6 +941,8 @@ static int usage(char *name)
 int rar2john(int argc, char **argv)
 {
 	int c;
+
+	self_name = argv[0];
 
 	/* Parse command line */
 	while ((c = getopt(argc, argv, "v")) != -1) {
