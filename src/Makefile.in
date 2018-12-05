@@ -99,7 +99,7 @@ JOHN_OBJS = \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
 	gost.o \
-	common-gpu.o \
+	gpu_common.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o crc32.o external.o \
 	formats.o getopt.o idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
@@ -281,7 +281,7 @@ common.o:	common.c arch.h common.h memory.h memdbg.h os.h os-autoconf.h autoconf
 ifdef WITH_OPENCL
 opencl_autotune.o:	opencl_autotune.c $(CL_COMMON_HEADER) arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h path.h $(CL_DEVICE_HEADER) memdbg.h os.h os-autoconf.h
 
-common-gpu.o:	gpu_common.c autoconfig.h Win32-dlfcn-port.h gpu_common.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h params.h logger.h config.h signals.h memdbg.h
+gpu_common.o:	gpu_common.c autoconfig.h Win32-dlfcn-port.h gpu_common.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h params.h logger.h config.h signals.h memdbg.h
 
 opencl_common.o:	opencl_common.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h john.h md5.h john_mpi.h memdbg.h
 endif

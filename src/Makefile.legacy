@@ -138,7 +138,7 @@ JOHN_OBJS = \
 	$(PLUGFORMATS_OBJS) \
 	dyna_salt.o dummy.o \
 	gost.o \
-	common-gpu.o \
+	gpu_common.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
 	loader.o logger.o mask.o mask_ext.o memory.o misc.o options.o \

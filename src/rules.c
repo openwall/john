@@ -356,21 +356,22 @@ char *userclass_expand(const char *src)
 
 static void rules_init_classes(void)
 {
-	static unsigned char eightbitchars[129];
+	unsigned char eightbitchars[129];
 	int i;
+
 	memset(rules_classes, 0, sizeof(rules_classes));
 
-	// this is an ugly hack but it works fine, used for 'b' below
-	for (i=0;i<128;i++)
-		eightbitchars[i] = i+128;
+	// This is for 'b' below
+	for (i = 0; i < 128; i++)
+		eightbitchars[i] = i + 128;
 	eightbitchars[128] = 0;
 
 	rules_init_class('?', "?");
-	rules_init_class('b', (char *)&eightbitchars);
+	rules_init_class('b', (char*)&eightbitchars);
 	rules_init_class('Z', "");
 
 	// Load user-defined character classes ?0 .. ?9 from john.conf
-	for (i='0'; i <= '9'; i++) {
+	for (i = '0'; i <= '9'; i++) {
 		char user_class_num[] = "0";
 		char *user_class;
 		user_class_num[0] = i;
@@ -416,6 +417,7 @@ static void rules_init_classes(void)
  * Other codepages moved to header
  */
 #include "rules_init_classes.h"
+
 	default:
 		rules_init_class('v', CHARS_VOWELS);
 		rules_init_class('c', CHARS_CONSONANTS);
@@ -492,6 +494,7 @@ static void rules_init_convs(void)
  * Other codepages moved to header
  */
 #include "rules_init_convs.h"
+
 	default:
 		conv_tolower = rules_init_conv(CHARS_UPPER, CHARS_LOWER);
 		conv_toupper = rules_init_conv(CHARS_LOWER, CHARS_UPPER);
@@ -1356,6 +1359,24 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 /* Rules added in Jumbo */
+		case 'a':
+			{
+				int pos;
+				POSITION(pos)
+				if (length + pos > rules_max_length) REJECT
+				if (length + pos < min_length) REJECT
+			}
+			break;
+
+		case 'b':
+			{
+				int pos;
+				POSITION(pos)
+				if (length - pos > rules_max_length) REJECT
+				if (length - pos < min_length) REJECT
+			}
+			break;
+
 		case 'W':
 			{
 				int pos;

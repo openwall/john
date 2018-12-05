@@ -164,6 +164,10 @@ escaped characters also work properly in all character class commands
 >N	reject the word unless it is greater than N characters long
 _N	reject the word unless it is N characters long
 'N	truncate the word at length N
+aN	reject the word unless it will pass min/max lengths after
+	adding N characters. Used for early rejection
+bN	reject the word unless it will pass min/max lengths after
+	removing N characters
 
 
 	English grammar commands.
