@@ -265,12 +265,7 @@ static void rules_init_class(char name, char *valid)
 	}
 }
 
-/* function used in fake_salts.c, to load user class data from john.conf   */
-/* note there 'used' to be a very nasty thing in this function, where we   */
-/* modified the data contents of our const src input param. This has been  */
-/* changed, so we have a separate buffer to memcpy to, instead of blasting */
-/* a buffer that we had assured would not be destroyed.  Also unneeded     */
-/* allocation was removed  (JimF, 2013)                                    */
+/* Function exported becuase it's also used in fake_salts.c */
 char *userclass_expand(const char *src)
 {
 	unsigned char _src2[0x100], *src2=_src2, dst_seen[0x100];
@@ -1232,6 +1227,11 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			if (split >= 0) continue;
 			return NULL;
 
+		case '\0':
+			rules_errno = RULES_ERROR_END;
+			return NULL;
+
+/* Flags added in Jumbo */
 		case '>':
 			if (!db && RULE) continue;
 			if (!NEXT) {
@@ -1250,10 +1250,6 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			}
 			if (rules_vars[ARCH_INDEX(RULE)] >= min_length)
 				continue;
-			return NULL;
-
-		case '\0':
-			rules_errno = RULES_ERROR_END;
 			return NULL;
 
 		case 'u':
@@ -1345,14 +1341,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			if (rules_pass == -1) {
 				memmove(rule - 1, rule, strlen(rule) + 1);
 				rule--;
-			}
-			break;
-
-		case '_':
-			{
-				int pos;
-				POSITION(pos)
-				if (length != pos) REJECT
 			}
 			break;
 
@@ -1809,14 +1797,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			in[0] = 0;
 			break;
 
-		case 'W':
-			{
-				int pos;
-				POSITION(pos)
-				in[pos] = conv_shift[ARCH_INDEX(in[pos])];
-			}
-			break;
-
 		case 'S':
 			CONV(conv_shift);
 			break;
@@ -1900,11 +1880,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			memory = memory_buffer;
 			strnfcpy(memory_buffer, in, rules_max_length);
 			rules_vars['m'] = (unsigned char)length - 1;
-			break;
-
-		case 'U':
-			if (!valid_utf8((UTF8*)in))
-				REJECT
 			break;
 
 		case 'Q':
@@ -2014,15 +1989,35 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			default:
 				goto out_ERROR_UNALLOWED;
 			}
-			which = 0;
 			length = strlen(in);
+			which = 0;
 			}
 			break;
 
-		/*
-		 * these are hashcat specific rules added to jumbo JtR
-		 */
-		case '-': /* HC rule: decrement character */
+/* Rules added in Jumbo */
+		case 'W':
+			{
+				int pos;
+				POSITION(pos)
+				in[pos] = conv_shift[ARCH_INDEX(in[pos])];
+			}
+			break;
+
+		case 'U':
+			if (!valid_utf8((UTF8*)in))
+				REJECT
+			break;
+
+/* Hashcat rules added to Jumbo */
+		case '_': /* reject unless length equals to N */
+			{
+				int pos;
+				POSITION(pos)
+				if (length != pos) REJECT
+			}
+			break;
+
+		case '-': /* decrement character */
 			{
 				unsigned char x;
 				POSITION(x)
@@ -2031,17 +2026,17 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'k': /* HC rule: swap leading 2 characters */
+		case 'k': /* swap leading two characters */
 			if (length > 1)
 				SWAP2(0,1)
 			break;
 
-		case 'K': /* HC rule: swap last 2 characters */
+		case 'K': /* swap last two characters */
 			if (length > 1)
 				SWAP2((unsigned)length-1,(unsigned)length-2)
 			break;
 
-		case '*': /* HC rule: 2 characters */
+		case '*': /* swap any two characters */
 			{
 				unsigned char x, y;
 				POSITION(x)
@@ -2051,7 +2046,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'z': /* HC rule: duplicate first char N times */
+		case 'z': /* duplicate first char N times */
 			{
 				unsigned char x;
 				int y;
@@ -2070,7 +2065,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'Z': /* HC rule: duplicate char char N times */
+		case 'Z': /* duplicate char char N times */
 			{
 				unsigned char x;
 				POSITION(x)
@@ -2083,7 +2078,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'q': /* HC rule: duplicate every character */
+		case 'q': /* duplicate every character */
 			{
 				int x = length<<1;
 				in[x--] = 0;
@@ -2095,7 +2090,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case '.': /* HC rule: replace character with next */
+		case '.': /* replace character with next */
 			{
 				unsigned char n;
 				POSITION(n)
@@ -2104,7 +2099,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case ',': /* HC rule: replace character with prior */
+		case ',': /* replace character with prior */
 			{
 				unsigned char n;
 				POSITION(n)
@@ -2113,7 +2108,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'y': /* HC rule: duplicate first n characters */
+		case 'y': /* duplicate first n characters */
 			{
 				unsigned char n;
 				POSITION(n)
@@ -2125,7 +2120,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'Y': /* HC rule: duplicate last n characters */
+		case 'Y': /* duplicate last n characters */
 			{
 				unsigned char n;
 				POSITION(n)
@@ -2137,7 +2132,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case '4': /*  HC rule: append memory */
+		case '4': /*  append memory */
 			{
 				int m = rules_vars['m']+1;
 				memcpy(&in[length], memory, m);
@@ -2146,7 +2141,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case '6': /*  HC rule: prepend memory */
+		case '6': /*  prepend memory */
 			{
 				int m = rules_vars['m']+1;
 				memmove(&in[m], in, length);
@@ -2156,7 +2151,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'O': /*  HC rule: Omit */
+		case 'O': /*  Omit */
 			{
 				int pos, pos2;
 				POSITION(pos)
@@ -2174,7 +2169,7 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			break;
 
-		case 'E': /*  HC rule: Title Case */
+		case 'E': /*  Title Case */
 			{
 				int up=1, idx=0;
 				while (in[idx]) {

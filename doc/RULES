@@ -7,24 +7,18 @@ multiple rules for a single source line.  Below you will find
 descriptions of the rule reject flags, the rule commands (many of them
 are compatible with those of Crack 5.0a), and the preprocessor syntax.
 
-    Note about .include [section] syntax.
+	Note about .include [section] syntax.
 
-A rule section, can include another section of rules, or in more general,
-terms, any section can include another section, within the john.conf
-file format (new in 1.7.8-jumbo-6).  This sectional include is done
-using a 'period' directive.  So within a rule set, a line like:
-.include [list.rules.someother] will be replaced by all of the rules
-from the 'someother' ruleset.  One side effect of being able to include
-rules, is that any rule which would need to start with a period character,
-will have to escape that character (or the config file loader will bail
-out, listing a bugus . directive). At this time, it is not valid for a
-john rule to start with a period, so at this time, this is not a problem.
+A rule section can include another section of rules, or in more general
+terms, any section can include another section within the john.conf
+file format.  This sectional include is done using a 'period' directive.
+So within a rule set, a line like:  .include [list.rules.someother]
+will be replaced by all of the rules from the 'someother' ruleset.
 
-See RULES-hashcat for information about additional rules added to
-1.8-jumbo-2 to allow john to utilize hashcat/InsidePro rules files
-natively. NOTE, there are additional rules commands added to allow
-hashcat rules to be utilized. These additional rules are documented in
-that RULES-hashcat file.
+See doc/RULES-hashcat for information about additional rules added to
+Jumbo to allow john to utilize hashcat/InsidePro rules files natively.
+NOTE, there are additional rules commands added to allow some of the
+hashcat rules to be utilized. These are also documented in RULES-hashcat.
 
 
 	Rule reject flags.
