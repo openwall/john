@@ -32,7 +32,7 @@
 
 #include <string.h>
 
-#include "common-gpu.h"
+#include "gpu_common.h"
 #include "john.h"
 #include "memory.h"
 #include "params.h"

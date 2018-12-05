@@ -40,7 +40,7 @@
 #include "mask.h"
 #include "subsets.h"
 #include "john_mpi.h"
-#include "common-gpu.h"
+#include "gpu_common.h"
 #include "memdbg.h"
 
 struct status_main status;

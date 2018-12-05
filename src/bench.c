@@ -50,7 +50,7 @@
 #include "john.h"
 #include "unicode.h"
 #include "config.h"
-#include "common-gpu.h"
+#include "gpu_common.h"
 #include "mask.h"
 #include "aligned.h"
 

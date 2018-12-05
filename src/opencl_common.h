@@ -27,7 +27,7 @@
 #include <CL/cl_ext.h>
 #endif
 
-#include "common-gpu.h"
+#include "gpu_common.h"
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"

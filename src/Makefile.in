@@ -152,7 +152,7 @@ JOHN_OBJS += $(OCL_OBJS) $(OPENCL_PLUGFORMATS_OBJS)
 
 # core OpenCL dependencies
 CL_DEVICE_HEADER = opencl_device_info.h
-CL_COMMON_HEADER = opencl_common.h common-gpu.h gpu_sensors.h
+CL_COMMON_HEADER = opencl_common.h gpu_common.h gpu_sensors.h
 endif
 
 WITH_ZTEX=@ZTEX_LIBS@
@@ -246,7 +246,7 @@ base64_convert.o:	base64_convert.c missing_getopt.h memory.h arch.h misc.h jumbo
 
 batch.o:	batch.c params.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h signals.h loader.h list.h formats.h misc.h status.h config.h single.h wordlist.h inc.h memdbg.h memory.h
 
-bench.o:	bench.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h times.h misc.h params.h memory.h signals.h formats.h dyna_salt.h bench.h john.h unicode.h options.h list.h loader.h getopt.h common.h config.h common-gpu.h gpu_sensors.h john_mpi.h memdbg.h
+bench.o:	bench.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h times.h misc.h params.h memory.h signals.h formats.h dyna_salt.h bench.h john.h unicode.h options.h list.h loader.h getopt.h common.h config.h gpu_common.h gpu_sensors.h john_mpi.h memdbg.h
 
 best.o:	best.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h params.h common.h memory.h formats.h misc.h bench.h memdbg.h
 
@@ -281,7 +281,7 @@ common.o:	common.c arch.h common.h memory.h memdbg.h os.h os-autoconf.h autoconf
 ifdef WITH_OPENCL
 opencl_autotune.o:	opencl_autotune.c $(CL_COMMON_HEADER) arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h path.h $(CL_DEVICE_HEADER) memdbg.h os.h os-autoconf.h
 
-common-gpu.o:	common-gpu.c autoconfig.h Win32-dlfcn-port.h common-gpu.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h params.h logger.h config.h signals.h memdbg.h
+common-gpu.o:	gpu_common.c autoconfig.h Win32-dlfcn-port.h gpu_common.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h params.h logger.h config.h signals.h memdbg.h
 
 opencl_common.o:	opencl_common.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h john.h md5.h john_mpi.h memdbg.h
 endif
@@ -292,7 +292,7 @@ config.o:	config.c misc.h jumbo.h arch.h autoconfig.h params.h path.h memory.h c
 
 cprepair.o:	cprepair.c autoconfig.h unicode.h options.h list.h loader.h params.h arch.h formats.h misc.h jumbo.h getopt.h common.h memory.h memdbg.h os.h os-autoconf.h
 
-cracker.o:	cracker.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h memory.h signals.h idle.h formats.h dyna_salt.h loader.h list.h logger.h status.h recovery.h external.h compiler.h options.h getopt.h common.h mask_ext.h mask.h unicode.h john.h fake_salts.h john_mpi.h path.h common-gpu.h gpu_sensors.h memdbg.h
+cracker.o:	cracker.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h memory.h signals.h idle.h formats.h dyna_salt.h loader.h list.h logger.h status.h recovery.h external.h compiler.h options.h getopt.h common.h mask_ext.h mask.h unicode.h john.h fake_salts.h john_mpi.h path.h gpu_common.h gpu_sensors.h memdbg.h
 
 crc32.o:	crc32.c memory.h arch.h crc32.h memdbg.h os.h os-autoconf.h autoconfig.h jumbo.h
 
@@ -472,7 +472,7 @@ SIPdump.o:	SIPdump.c autoconfig.h tcphdr.h arch.h SIPdump.h memdbg.h os.h os-aut
 
 skein.o:	skein.c sph_skein.h sph_types.h autoconfig.h arch.h memdbg.h os.h os-autoconf.h jumbo.h memory.h
 
-status.o:	status.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h times.h misc.h params.h cracker.h loader.h list.h formats.h options.h getopt.h common.h memory.h status.h bench.h config.h unicode.h signals.h mask.h john_mpi.h common-gpu.h gpu_sensors.h memdbg.h
+status.o:	status.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h times.h misc.h params.h cracker.h loader.h list.h formats.h options.h getopt.h common.h memory.h status.h bench.h config.h unicode.h signals.h mask.h john_mpi.h gpu_common.h gpu_sensors.h memdbg.h
 
 symlink.o:	symlink.c
 

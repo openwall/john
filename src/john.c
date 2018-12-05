@@ -115,9 +115,7 @@ static int john_omp_threads_new;
 #include "regex.h"
 
 #include "unicode.h"
-#if HAVE_OPENCL
-#include "common-gpu.h"
-#endif
+#include "gpu_common.h"
 #include "opencl_common.h"
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"

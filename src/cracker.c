@@ -61,7 +61,7 @@
 #include "path.h"
 #include "jumbo.h"
 #if HAVE_LIBDL && defined(HAVE_OPENCL)
-#include "common-gpu.h"
+#include "gpu_common.h"
 #endif
 #include "memdbg.h"
 
