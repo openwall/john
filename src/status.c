@@ -298,6 +298,9 @@ static void status_print_cracking(double percent)
 		if (n > 0)
 			p += n;
 	}
+		
+	if (options.node_min == 1)
+		fprintf(stderr, "%s\n", status_gap());
 
 	if (showcand)
 		sprintf(sc, " %"PRIu64"p", status.cands);
