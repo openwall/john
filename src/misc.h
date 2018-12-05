@@ -186,3 +186,8 @@ const char *jtr_ulltoa(unsigned long long num, char *result, int result_len, int
 extern char *human_prefix(uint64_t num);
 
 #endif
+
+/*
+ * Returns line(gap) with width of terminal
+*/
+extern char *status_gap();
