@@ -5,6 +5,9 @@
  * ...with changes in the jumbo patch, by magnum & JimF.
  */
 
+#define NEED_OS_FORK
+#include "os.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -12,7 +15,6 @@
 #include "params.h"
 #include "common.h"
 #include "memory.h"
-#include "os.h" /* Needed for signals.h */
 #include "signals.h"
 #include "loader.h"
 #include "logger.h"
@@ -45,6 +47,9 @@ static int retest_guessed;
 static int orig_max_len, orig_min_kpc;
 #if HAVE_OPENCL
 static int ocl_fmt;
+#endif
+#if HAVE_OPENCL || HAVE_ZTEX
+static int acc_fmt;
 #endif
 
 extern int rpp_real_run; /* set to 1 when we really get into single mode */
@@ -113,9 +118,14 @@ static void single_init(void)
 {
 	struct db_salt *salt;
 	int lim_kpc, max_buffer_GB;
+	uint64_t my_buf_share;
 
 #if HAVE_OPENCL
 	ocl_fmt = !!strcasestr(single_db->format->params.label, "-opencl");
+#endif
+#if HAVE_OPENCL || HAVE_ZTEX
+	acc_fmt = strcasestr(single_db->format->params.label, "-opencl") ||
+		strcasestr(single_db->format->params.label, "-ztex");
 #endif
 
 	log_event("Proceeding with \"single crack\" mode");
@@ -135,6 +145,18 @@ static void single_init(void)
 	                                  "SingleMaxBufferSize")) < 0)
 		max_buffer_GB = SINGLE_MAX_WORD_BUFFER;
 
+	my_buf_share = (uint64_t)max_buffer_GB << 30;
+
+#if HAVE_MPI
+	if (mpi_p_local > 1)
+		my_buf_share /= mpi_p_local;
+	else
+#endif
+#if OS_FORK
+	if (options.fork)
+		my_buf_share /= options.fork;
+#endif
+
 	if (single_seed->count) {
 		log_event("- SingleWordsPairMax bumped for %d seed words",
 		          single_seed->count);
@@ -142,8 +164,14 @@ static void single_init(void)
 	}
 	log_event("- SingleWordsPairMax used is %d", words_pair_max);
 	log_event("- SingleRetestGuessed = %s",retest_guessed?"true":"false");
-	log_event("- SingleMaxBufferSize = %sB",
-	          human_prefix(((uint64_t)max_buffer_GB << 30)));
+	log_event("- SingleMaxBufferSize = %sB%s",
+	          human_prefix(my_buf_share),
+#if HAVE_MPI
+	          (mpi_p_local > 1 | options.fork)
+#elif OS_FORK
+	          options.fork
+#endif
+	          ? " (per local process)" : "");
 
 	progress = 0;
 
@@ -188,7 +216,7 @@ static void single_init(void)
 	lim_kpc = key_count;
 
 	while (key_count >= 2 * SINGLE_HASH_MIN &&
-	       calc_buf_size(length, key_count) > ((uint64_t)max_buffer_GB << 30)) {
+	       calc_buf_size(length, key_count) > my_buf_share) {
 		if (!options.req_maxlength && length >= 32 &&
 		    (length >> 1) >= options.eff_minlength)
 			length >>= 1;
@@ -211,24 +239,24 @@ static void single_init(void)
 "      SingleMaxBufferSize in config (%sB needed).\n",
 			        options.eff_maxlength,
 			        length,
-			        human_prefix((uint64_t)max_buffer_GB << 30),
+			        human_prefix(my_buf_share),
 			        human_prefix(calc_buf_size(options.eff_maxlength,
 			                                   key_count)));
 		log_event(
 "- Max. length decreased from %d to %d due to buffer size limit of %sB.",
 			options.eff_maxlength,
 			length,
-			human_prefix((uint64_t)max_buffer_GB << 30));
+			human_prefix(my_buf_share));
 	}
 
-	if (calc_buf_size(length, key_count) > ((uint64_t)max_buffer_GB << 30)) {
+	if (calc_buf_size(length, key_count) > my_buf_share) {
 		if (john_main_process) {
 			fprintf(stderr,
 "Note: Can't run single mode with this many salts due to single mode buffer\n"
 "      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
 "      %d for %sB). To work around this, bump SingleMaxBufferSize in\n"
 "      john.conf (if you have enough RAM) or load fewer salts at a time.\n",
-			        human_prefix((uint64_t)max_buffer_GB << 30),
+			        human_prefix(my_buf_share),
 			        lim_kpc,
 			        human_prefix(calc_buf_size(length, lim_kpc)),
 			        key_count,
@@ -239,14 +267,14 @@ static void single_init(void)
 "- Min KPC decreased further to %d (%sB), can't meet buffer size limit of %sB.",
 			key_count,
 			human_prefix(calc_buf_size(length, key_count)),
-			human_prefix((uint64_t)max_buffer_GB << 30));
+			human_prefix(my_buf_share));
 		else
 			log_event(
 "- Min KPC decreased from %d to %d (%sB), can't meet buffer size limit of %sB.",
 			lim_kpc,
 			key_count,
 			human_prefix(calc_buf_size(length, key_count)),
-			human_prefix((uint64_t)max_buffer_GB << 30));
+			human_prefix(my_buf_share));
 		error();
 	}
 
@@ -256,7 +284,7 @@ static void single_init(void)
 "Note: Performance for this many salts may be lower due to single mode buffer\n"
 "      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
 "      %d for %sB). To work around this, ",
-			        human_prefix((uint64_t)max_buffer_GB << 30),
+			        human_prefix(my_buf_share),
 			        lim_kpc,
 			        human_prefix(calc_buf_size(length, lim_kpc)),
 			        key_count,
@@ -273,13 +301,13 @@ static void single_init(void)
 			log_event(
 "- Min KPC decreased further to %d due to buffer size limit of %sB.",
 			key_count,
-			human_prefix((uint64_t)max_buffer_GB << 30));
+			human_prefix(my_buf_share));
 		else
 			log_event(
 "- Min KPC decreased from %d to %d due to buffer size limit of %sB.",
 			lim_kpc,
 			key_count,
-			human_prefix((uint64_t)max_buffer_GB << 30));
+			human_prefix(my_buf_share));
 	}
 
 	if (rpp_init(rule_ctx, options.activesinglerules)) {
@@ -590,10 +618,10 @@ next:
 		last = &pw->next;
 	} while ((pw = pw->next));
 
-	if (keys->count && rule_number - keys->rule > (key_count << 1))
-#if HAVE_OPENCL
-	if (ocl_fmt && keys->count % (local_work_size * ocl_v_width) == 0)
+#if HAVE_OPENCL || HAVE_ZTEX
+	if (!acc_fmt)
 #endif
+	if (keys->count && rule_number - keys->rule > (key_count << 1))
 		if (single_process_buffer(salt))
 			return 1;
 
