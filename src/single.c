@@ -42,6 +42,7 @@ static struct rpp_context *rule_ctx;
 
 static int words_pair_max;
 static int retest_guessed;
+static int orig_max_len, orig_min_kpc;
 
 extern int rpp_real_run; /* set to 1 when we really get into single mode */
 
@@ -290,9 +291,12 @@ static void single_init(void)
 
 	/*
 	 * Now set our possibly capped figures as global in order to get
-	 * proper function and less warnings.
+	 * proper function and less warnings. We reset them in single_done
+	 * for in case we run batch mode
 	 */
+	orig_max_len = options.eff_maxlength;
 	options.eff_maxlength = length;
+	orig_min_kpc = single_db->format->params.min_keys_per_crypt;
 	single_db->format->params.min_keys_per_crypt = key_count;
 
 	rules_init(single_db, length);
@@ -696,6 +700,9 @@ static void single_done(void)
 
 		progress = 100;
 	}
+
+	options.eff_maxlength = orig_max_len;
+	single_db->format->params.min_keys_per_crypt = orig_min_kpc;
 
 	rec_done(event_abort || (status.pass && single_db->salts));
 	c_cleanup();
