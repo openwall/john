@@ -170,6 +170,8 @@ static void single_init(void)
 	          (mpi_p_local > 1 | options.fork)
 #elif OS_FORK
 	          options.fork
+#else
+	          0
 #endif
 	          ? " (per local process)" : "");
 
