@@ -2132,8 +2132,14 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		log_event("Proceeding with mask mode");
-		if (rec_restored && john_main_process)
-			fprintf(stderr, "Proceeding with mask:%s\n", options.mask);
+
+		if (rec_restored && john_main_process) {
+			fprintf(stderr, "Proceeding with mask mode:%s", options.mask);
+			if (options.req_minlength >= 0 || options.req_maxlength)
+				fprintf(stderr, ", lengths %d-%d",
+				        options.eff_minlength, options.eff_maxlength);
+			fprintf(stderr, "\n");
+		}
 	}
 
 	/* Load defaults for custom placeholders ?1..?9 from john.conf */

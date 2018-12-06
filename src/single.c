@@ -130,9 +130,14 @@ static void single_init(void)
 
 	log_event("Proceeding with \"single crack\" mode");
 
-	if (rec_restored && john_main_process)
-		fprintf(stderr, "Proceeding with single, rules:%s\n",
+	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
+		fprintf(stderr, "Proceeding with single, rules:%s",
 		        options.activesinglerules);
+		if (options.req_minlength >= 0 || options.req_maxlength)
+			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			        options.eff_maxlength);
+		fprintf(stderr, "\n");
+	}
 
 	retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                              "SingleRetestGuessed", 1);

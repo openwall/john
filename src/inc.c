@@ -490,10 +490,13 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	log_event("Proceeding with \"incremental\" mode: %.100s", mode);
 
-	if (rec_restored && john_main_process) {
+	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
 		fprintf(stderr, "Proceeding with incremental:%s", mode);
 		if (options.mask)
 			fprintf(stderr, ", mask:%s", options.mask);
+		if (options.req_minlength >= 0 || options.req_maxlength)
+			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}
 

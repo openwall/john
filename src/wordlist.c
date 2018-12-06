@@ -653,7 +653,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
 		name = options.wordlist = WORDLIST_NAME;
 
-	if (rec_restored && john_main_process) {
+	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
 		fprintf(stderr, "Proceeding with wordlist:%s",
 		        loopBack ? "loopback" :
 		        name ? path_expand(name) : "stdin");
@@ -662,6 +662,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			        options.activewordlistrules);
 		if (options.mask)
 			fprintf(stderr, ", mask:%s", options.mask);
+		if (options.req_minlength >= 0 || options.req_maxlength)
+			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}
 

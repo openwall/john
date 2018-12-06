@@ -737,6 +737,9 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 		        param ? " " : "", param ? param : "");
 		if (options.mask)
 			fprintf(stderr, ", mask:%s", options.mask);
+		if (options.req_minlength >= 0 || options.req_maxlength)
+			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}
 
