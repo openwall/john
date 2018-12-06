@@ -43,6 +43,9 @@ static struct rpp_context *rule_ctx;
 static int words_pair_max;
 static int retest_guessed;
 static int orig_max_len, orig_min_kpc;
+#if HAVE_OPENCL
+static int ocl_fmt;
+#endif
 
 extern int rpp_real_run; /* set to 1 when we really get into single mode */
 
@@ -110,9 +113,9 @@ static void single_init(void)
 {
 	struct db_salt *salt;
 	int lim_kpc, max_buffer_GB;
+
 #if HAVE_OPENCL
-	int ocl_fmt =
-		strcasestr(single_db->format->params.label, "-opencl") > 0;
+	ocl_fmt = !!strcasestr(single_db->format->params.label, "-opencl");
 #endif
 
 	log_event("Proceeding with \"single crack\" mode");
@@ -194,8 +197,7 @@ static void single_init(void)
 			length--;
 #if HAVE_OPENCL
 		else if (ocl_fmt)
-			key_count -= MIN(key_count >> 1,
-			                 local_work_size * ocl_v_width);
+			key_count -= MIN(key_count >> 1, local_work_size * ocl_v_width);
 #endif
 		else
 			key_count >>= 1;
@@ -589,6 +591,9 @@ next:
 	} while ((pw = pw->next));
 
 	if (keys->count && rule_number - keys->rule > (key_count << 1))
+#if HAVE_OPENCL
+	if (ocl_fmt && keys->count % (local_work_size * ocl_v_width) == 0)
+#endif
 		if (single_process_buffer(salt))
 			return 1;
 
@@ -688,6 +693,10 @@ static void single_done(void)
 		if ((salt = single_db->salts)) {
 			log_event("- Processing the remaining buffered "
 				"candidate passwords, if any");
+
+			if (options.verbosity >= VERB_DEFAULT)
+				fprintf(stderr, "Almost done: Processing the remaining "
+				        "buffered candidate passwords, if any\n");
 
 			do {
 				if (!salt->list)
