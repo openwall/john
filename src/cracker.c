@@ -50,6 +50,7 @@
 #include "recovery.h"
 #include "external.h"
 #include "options.h"
+#include "config.h"
 #include "mask_ext.h"
 #include "mask.h"
 #include "unicode.h"
@@ -60,6 +61,7 @@
 #include "john_mpi.h"
 #include "path.h"
 #include "jumbo.h"
+#include "opencl_common.h"
 #if HAVE_LIBDL && defined(HAVE_OPENCL)
 #include "gpu_common.h"
 #endif
@@ -95,6 +97,7 @@ static struct db_keys *crk_guesses;
 static uint64_t *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 int64_t crk_pot_pos;
+static int kpc_warn, single_running;
 
 /* expose max_keys_per_crypt to the world (needed in recovery.c) */
 int crk_max_keys_per_crypt(void)
@@ -167,7 +170,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		error();
 	}
 
-#if defined(HAVE_OPENCL)
+#if HAVE_OPENCL
 	/* This erases the 'spinning wheel' cursor from self-test */
 	if (john_main_process)
 		fprintf(stderr, " \b");
@@ -218,6 +221,12 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	crk_help();
 
 	idle_init(db->format);
+
+	if (options.verbosity < VERB_DEFAULT)
+		kpc_warn = 0;
+	else
+	if ((kpc_warn = cfg_get_int(SECTION_OPTIONS, NULL, "MaxKPCWarnings")) == -1)
+		kpc_warn = CRK_KPC_WARN;
 }
 
 /*
@@ -818,6 +827,34 @@ static int crk_password_loop(struct db_salt *salt)
 	if (fp_fix_state)
 		fp_fix_state();
 
+	if (kpc_warn && crk_key_index < crk_params->min_keys_per_crypt) {
+		static int last_warn_kpc, initial_value;
+
+		if (!initial_value)
+			initial_value = kpc_warn;
+
+		if (!mask_increments_len && last_warn_kpc != crk_key_index) {
+			last_warn_kpc = crk_key_index;
+			if (options.node_count)
+				fprintf(stderr, "%u: ", NODE);
+			fprintf(stderr, "Warning: Only %d candidates %s, "
+			        "minimum %d%cneeded for performance.\n",
+			        crk_key_index,
+			        single_running ? "buffered for the current salt" : "left",
+			        crk_params->min_keys_per_crypt,
+			        single_running ? '\n' : ' ');
+
+			if (!--kpc_warn) {
+				if (options.node_count)
+					fprintf(stderr, "%u: ", NODE);
+				fprintf(stderr,
+				        "Further messages of this type will be suppressed.\n");
+				log_event("- Saw %d calls to crypt_all() with sub obtimal "
+				          "batch size (stopped counting)", initial_value);
+			}
+		}
+	}
+
 	count = crk_key_index;
 	match = crk_methods.crypt_all(&count, salt);
 	crk_last_key = count;
@@ -955,6 +992,8 @@ static int crk_salt_loop(void)
 {
 	int done;
 	struct db_salt *salt;
+
+	single_running = 0;
 
 	if (event_reload && crk_reload_pot())
 		return 1;
@@ -1103,6 +1142,8 @@ int crk_process_salt(struct db_salt *salt)
 	char *ptr;
 	char key[PLAINTEXT_BUFFER_SIZE];
 	int count, count_from_guesses, index;
+
+	single_running = 1;
 
 	if (crk_guesses) {
 		crk_guesses->count = 0;

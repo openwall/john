@@ -272,7 +272,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /*
  * Type to use for single keys buffer. This and max_length affect how large
- * a single mode batch can be; namely (SINGLE_BUF_MAX / max_length + 1).
+ * a single mode batch can be, i.e. (SINGLE_BUF_MAX / max_length + 1).
  * So using 16-bit integer and length 16, we can't use a larger KPC than
  * 4096. This is typically too small for OpenCL formats and even some multi-
  * core CPU platforms.
@@ -348,6 +348,13 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #else
 #define CRK_PREFETCH			0
 #endif
+
+/*
+ * How many warnings about suboptimal batch size to emit before suppressing
+ * further ones. (You can override this figure with MaxKPCWarnings in
+ * john.conf, or use -v to decrease verbosity)
+ */
+#define CRK_KPC_WARN			10
 
 /*
  * Maximum number of GECOS words to try in pairs.
