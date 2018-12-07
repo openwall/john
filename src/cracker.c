@@ -89,7 +89,7 @@ static struct db_keys *crk_guesses;
 static uint64_t *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 int64_t crk_pot_pos;
-static int kpc_warn, single_running;
+static int kpc_warn, kpc_warn_limit, single_running;
 
 /* expose max_keys_per_crypt to the world (needed in recovery.c) */
 int crk_max_keys_per_crypt(void)
@@ -202,11 +202,16 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	crk_guesses = guesses;
 
+	kpc_warn = crk_params->min_keys_per_crypt;
+
 	if (db->loaded) {
 		size = crk_params->max_keys_per_crypt * sizeof(uint64_t);
 		memset(crk_timestamps = mem_alloc(size), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
+
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "RelaxKPCWarningCheck", 1))
+		kpc_warn -= kpc_warn / (db->loaded ? db->salt_count : 1);
 
 	rec_save();
 
@@ -215,10 +220,11 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	idle_init(db->format);
 
 	if (options.verbosity < VERB_DEFAULT)
-		kpc_warn = 0;
+		kpc_warn_limit = 0;
 	else
-	if ((kpc_warn = cfg_get_int(SECTION_OPTIONS, NULL, "MaxKPCWarnings")) == -1)
-		kpc_warn = CRK_KPC_WARN;
+	if ((kpc_warn_limit =
+	     cfg_get_int(SECTION_OPTIONS, NULL, "MaxKPCWarnings")) == -1)
+		kpc_warn_limit = CRK_KPC_WARN;
 }
 
 /*
@@ -789,11 +795,11 @@ static int crk_password_loop(struct db_salt *salt)
 	if (fp_fix_state)
 		fp_fix_state();
 
-	if (kpc_warn && crk_key_index < crk_params->min_keys_per_crypt) {
+	if (kpc_warn_limit && crk_key_index < kpc_warn) {
 		static int last_warn_kpc, initial_value;
 
 		if (!initial_value)
-			initial_value = kpc_warn;
+			initial_value = kpc_warn_limit;
 
 		if (last_warn_kpc != crk_key_index) {
 			last_warn_kpc = crk_key_index;
@@ -802,11 +808,12 @@ static int crk_password_loop(struct db_salt *salt)
 			fprintf(stderr, "Warning: Only %d candidates %s, "
 			        "minimum %d%cneeded for performance.\n",
 			        crk_key_index,
-			        single_running ? "buffered for the current salt" : "left",
+			        single_running ? "buffered for the current salt" :
+			        mask_increments_len ? "buffered" : "left",
 			        crk_params->min_keys_per_crypt,
 			        single_running ? '\n' : ' ');
 
-			if (!--kpc_warn) {
+			if (!--kpc_warn_limit) {
 				if (options.node_count)
 					fprintf(stderr, "%u: ", NODE);
 				fprintf(stderr,
