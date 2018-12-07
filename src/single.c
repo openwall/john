@@ -172,7 +172,7 @@ static void single_init(void)
 	log_event("- SingleMaxBufferSize = %sB%s",
 	          human_prefix(my_buf_share),
 #if HAVE_MPI
-	          (mpi_p_local > 1 | options.fork)
+	          (mpi_p_local > 1 || options.fork)
 #elif OS_FORK
 	          options.fork
 #else

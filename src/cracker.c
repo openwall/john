@@ -833,7 +833,7 @@ static int crk_password_loop(struct db_salt *salt)
 		if (!initial_value)
 			initial_value = kpc_warn;
 
-		if (!mask_increments_len && last_warn_kpc != crk_key_index) {
+		if (last_warn_kpc != crk_key_index) {
 			last_warn_kpc = crk_key_index;
 			if (options.node_count)
 				fprintf(stderr, "%u: ", NODE);
