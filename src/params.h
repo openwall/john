@@ -352,17 +352,23 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * How many warnings about suboptimal batch size to emit before suppressing
  * further ones. (You can override this figure with MaxKPCWarnings in
- * john.conf, or use -v to decrease verbosity)
+ * john.conf, or use -v to decrease verbosity).
  */
 #define CRK_KPC_WARN			10
 
 /*
- * Maximum number of GECOS words to try in pairs.
+ * Maximum number of GECOS words to try in pairs. This is automagically
+ * increased when using global seed words, and/or when running accelerated
+ * formats (OpenCL, ZTEX) or OpenMP with many threads.
  */
 #define SINGLE_WORDS_PAIR_MAX		6
 
 /*
- * Maximum buffer size used for words, in GB. This can be bumped in john.conf.
+ * Maximum buffer size used for words, in GB. This can be increased in
+ * john.conf.
+ * If running fork this is the total used by this session (size is divided by
+ * number of forks). If running MPI, we try to determine the number of
+ * local processes on each node and divide it accordingly.
  */
 #define SINGLE_MAX_WORD_BUFFER		4
 

@@ -115,6 +115,19 @@ static void single_alloc_keys(struct db_keys **keys)
 	memset((*keys)->hash, -1, hash_size);
 }
 
+#undef log2
+#define log2 jtr_log2
+
+static uint32_t log2(uint32_t val)
+{
+	uint32_t res = 0;
+
+	while (val >>= 1)
+		res++;
+
+	return res;
+}
+
 static void single_init(void)
 {
 	struct db_salt *salt;
@@ -162,24 +175,6 @@ static void single_init(void)
 	if (options.fork)
 		my_buf_share /= options.fork;
 #endif
-
-	if (single_seed->count) {
-		log_event("- SingleWordsPairMax bumped for %d seed words",
-		          single_seed->count);
-		words_pair_max += single_seed->count;
-	}
-	log_event("- SingleWordsPairMax used is %d", words_pair_max);
-	log_event("- SingleRetestGuessed = %s",retest_guessed?"true":"false");
-	log_event("- SingleMaxBufferSize = %sB%s",
-	          human_prefix(my_buf_share),
-#if HAVE_MPI
-	          (mpi_p_local > 1 || options.fork)
-#elif OS_FORK
-	          options.fork
-#else
-	          0
-#endif
-	          ? " (per local process)" : "");
 
 	progress = 0;
 
@@ -336,6 +331,29 @@ static void single_init(void)
 	options.eff_maxlength = length;
 	orig_min_kpc = single_db->format->params.min_keys_per_crypt;
 	single_db->format->params.min_keys_per_crypt = key_count;
+
+	if (log2(key_count) > words_pair_max) {
+		words_pair_max = log2(key_count);
+		log_event("- SingleWordsPairMax increased to %d for high KPC (%d)",
+		          log2(key_count), key_count);
+	}
+
+	if (single_seed->count) {
+		words_pair_max += single_seed->count;
+		log_event("- SingleWordsPairMax increased for %d global seed words",
+		          single_seed->count);
+	}
+	log_event("- SingleWordsPairMax used is %d", words_pair_max);
+	log_event("- SingleRetestGuessed = %s",retest_guessed ? "true" : "false");
+	log_event("- SingleMaxBufferSize = %sB%s", human_prefix(my_buf_share),
+#if HAVE_MPI
+	          (mpi_p_local > 1 || options.fork)
+#elif OS_FORK
+	          options.fork
+#else
+	          0
+#endif
+	          ? " (per local process)" : "");
 
 	rules_init(single_db, length);
 	rec_rule = rule_number = 0;
