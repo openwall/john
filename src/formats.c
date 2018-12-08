@@ -254,6 +254,8 @@ static char* is_key_right(struct fmt_main *format, int index,
 
 	for (size = 0; size < PASSWORD_HASH_SIZES; size++)
 	if (format->methods.binary_hash[size] &&
+	    format->methods.get_hash[size] &&
+	    format->methods.get_hash[size] != fmt_default_get_hash &&
 	    format->methods.get_hash[size](i) !=
 	    format->methods.binary_hash[size](binary)) {
 		if (options.verbosity > VERB_LEGACY) {
@@ -341,6 +343,23 @@ static char* is_key_right(struct fmt_main *format, int index,
 	return NULL;
 }
 #endif
+
+int fmt_bincmp(void *b1, void *b2, struct fmt_main *format)
+{
+	if (!(format->params.flags & FMT_BLOB))
+		return memcmp(b1, b2, format->params.binary_size);
+
+	size_t s1 = ((fmt_data*)b1)->size;
+	size_t s2 = ((fmt_data*)b2)->size;
+
+	if (s1 != s2)
+		return 1;
+
+	b1 = ((fmt_data*)b1)->blob;
+	b2 = ((fmt_data*)b2)->blob;
+
+	return memcmp(b1, b2, s1);
+}
 
 static char *fmt_self_test_body(struct fmt_main *format,
     void *binary_copy, void *salt_copy, struct db_main *db, int full_lvl)
@@ -488,6 +507,13 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	if (format->params.flags & FMT_HUGE_INPUT) {
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++) {
+			/*
+			 * We could allow this, but they would need to calculate the
+			 * same MD5 as the $SOURCE_HASH$ of a truncated pot entry and
+			 * return a portion of that.  This test could instead confirm
+			 * that's the case.  Given common properties of these formats,
+			 * it not likely worth bothering with.
+			 */
 			if (format->methods.binary_hash[size] &&
 			    format->methods.binary_hash[size] !=
 			    fmt_default_binary_hash)
@@ -537,6 +563,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if ((format->params.flags & FMT_UNICODE) &&
 	    !(format->params.flags & FMT_8_BIT))
 		return "FMT_UNICODE without FMT_8_BIT";
+
+	if ((format->params.flags & FMT_BLOB) &&
+	    (format->params.binary_size != sizeof(fmt_data)))
+		return "FMT_BLOB with incorrect binary size";
 
 	if ((format->methods.binary == fmt_default_binary) &&
 	    (format->params.binary_size > 0))
@@ -662,10 +692,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		/* validate that binary() returns cleaned buffer */
 		if (extra_tests && !binary_cleaned_warned && format->params.binary_size) {
+			BLOB_FREE(format, binary);
 			memset(binary, 0xAF, format->params.binary_size);
 			binary = format->methods.binary(ciphertext);
 			if (((unsigned char*)binary)[format->params.binary_size-1] == 0xAF)
 			{
+				BLOB_FREE(format, binary);
 				memset(binary, 0xCC, format->params.binary_size);
 				binary = format->methods.binary(ciphertext);
 				if (((unsigned char*)binary)[format->params.binary_size-1] == 0xCC)
@@ -676,6 +708,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				}
 			}
 			/* Clean up the mess we might have caused */
+			BLOB_FREE(format, binary);
 			memset(binary, 0, format->params.binary_size);
 			binary = format->methods.binary(ciphertext);
 		}
@@ -869,6 +902,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (full_lvl >= 0) {
 #ifndef BENCH_BUILD
 			ret = is_key_right(format, max - 1, binary, ciphertext, plaintext, 0, dbsalt);
+			BLOB_FREE(format, binary);
 			if (ret)
 				return ret;
 #endif
@@ -878,49 +912,50 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		} else {
 #ifndef BENCH_BUILD
 			ret = is_key_right(format, index, binary, ciphertext, plaintext, 0, dbsalt);
-		if (ret)
-			return ret;
+			BLOB_FREE(format, binary);
+			if (ret)
+				return ret;
 #endif
 /* Remove some old keys to better test cmp_all() */
-		if (index & 1) {
-			format->methods.clear_keys();
-			for (i = 0; i <= index; i++)
-				fmt_set_key(fmt_null_key, i);
-		}
+			if (index & 1) {
+				format->methods.clear_keys();
+				for (i = 0; i <= index; i++)
+					fmt_set_key(fmt_null_key, i);
+			}
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
-		if (index >= 2 && max > ntests) {
+			if (index >= 2 && max > ntests) {
 /* Always call set_key() even if skipping. Some formats depend on it. */
-			for (i = index + 1;
-			     i < max && i < (index + (index >> 1)); i++)
-				fmt_set_key(longcand(format, i, sl), i);
-			index = i;
-		} else
-			index++;
+				for (i = index + 1;
+				     i < max && i < (index + (index >> 1)); i++)
+					fmt_set_key(longcand(format, i, sl), i);
+				index = i;
+			} else
+				index++;
 
-		if (index >= max) {
-			format->methods.clear_keys();
-			index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
+			if (index >= max) {
+				format->methods.clear_keys();
+				index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
 /* Always call set_key() even if skipping. Some formats depend on it. */
-			for (i = 0; i < index; i++)
-				fmt_set_key(longcand(format, i, sl), i);
-			done |= 1;
-		}
+				for (i = 0; i < index; i++)
+					fmt_set_key(longcand(format, i, sl), i);
+				done |= 1;
+			}
 
-		if (!(++current)->ciphertext) {
+			if (!(++current)->ciphertext) {
 #if defined(HAVE_OPENCL)
 /* Jump straight to last index for GPU formats but always call set_key() */
-			if (strstr(format->params.label, "-opencl")) {
-				for (i = index + 1; i < max - 1; i++)
-				    fmt_set_key(longcand(format, i, sl), i);
-				index = max - 1;
-			}
+				if (strstr(format->params.label, "-opencl")) {
+					for (i = index + 1; i < max - 1; i++)
+						fmt_set_key(longcand(format, i, sl), i);
+					index = max - 1;
+				}
 #endif
-			current = format->params.tests;
-			done |= 2;
-		}
-		dyna_salt_remove(salt);
-		while_condition = done != 3;
+				current = format->params.tests;
+				done |= 2;
+			}
+			dyna_salt_remove(salt);
+			while_condition = done != 3;
 		}
 	} while (while_condition);
 
@@ -1210,9 +1245,11 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 		ret = format->methods.split(ret, 0, format);
 		ret_copy = strdup(ret);
 		bin = format->methods.binary(ret_copy);
-		if (format->params.binary_size>4) {
-			bin_hex = mem_alloc(format->params.binary_size*2+1);
-			base64_convert(bin, e_b64_raw, format->params.binary_size, bin_hex, e_b64_hex, format->params.binary_size*2+1, 0, 0);
+		if (BLOB_SIZE(format, bin) > 4) {
+			bin_hex = mem_alloc(BLOB_SIZE(format, bin) * 2 + 1);
+			base64_convert(BLOB_BINARY(format, bin), e_b64_raw,
+			               BLOB_SIZE(format, bin), bin_hex, e_b64_hex,
+			               BLOB_SIZE(format, bin) * 2 + 1, 0, 0);
 			cp = strstr(ret_copy, bin_hex);
 			strupr(bin_hex);
 			if (cp) {
@@ -1234,6 +1271,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 			}
 			MEM_FREE(bin_hex);
 		}
+		BLOB_FREE(format, bin);
 		if (format->params.salt_size>4 && format->params.salt_size < strlen(ret_copy)-10) {
 			bin_hex = mem_alloc(format->params.salt_size*2+1);
 			bin = format->methods.salt(ret_copy);
@@ -1372,18 +1410,19 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 	orig_salt = NULL;
 
 	binary = format->methods.binary(split_ret);
-	if (binary != NULL) {
-
-		orig_binary = mem_alloc(format->params.binary_size);
-		memcpy(orig_binary, binary, format->params.binary_size);
+	if (binary) {
+		orig_binary = mem_alloc(BLOB_SIZE(format, binary));
+		memcpy(orig_binary, BLOB_BINARY(format, binary),
+		       BLOB_SIZE(format, binary));
 
 		salt = format->methods.salt(split_ret);
 		dyna_salt_create(salt);
-		if (salt != NULL && format->params.salt_size) {
+		if (salt && format->params.salt_size) {
 			orig_salt = mem_alloc(format->params.salt_size);
 			memcpy(orig_salt, salt, format->params.salt_size);
 		}
 		dyna_salt_remove(salt);
+		BLOB_FREE(format, binary);
 	}
 
 /*
@@ -1415,12 +1454,12 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 				*is_need_unify_case = 0;
 			binary = format->methods.binary(split_ret);
 
-			if (binary != NULL)
-			if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
+			if (binary && fmt_bincmp(orig_binary, binary, format)) {
 				// Do not need to unify cases in split() and add
 				// FMT_SPLIT_UNIFIES_CASE
 				*is_need_unify_case = 0;
 			}
+			BLOB_FREE(format, binary);
 		} else
 			*is_need_unify_case = 0;
 	}
@@ -1437,12 +1476,12 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 				*is_need_unify_case = 0;
 			binary = format->methods.binary(split_ret);
 
-			if (binary != NULL)
-			if (memcmp(orig_binary, binary, format->params.binary_size) != 0) {
+			if (binary && fmt_bincmp(orig_binary, binary, format)) {
 				// Do not need to unify cases in split() and add
 				// FMT_SPLIT_UNIFIES_CASE
 				*is_need_unify_case = 0;
 			}
+			BLOB_FREE(format, binary);
 		} else
 			*is_need_unify_case = 0;
 	}

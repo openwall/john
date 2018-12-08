@@ -433,6 +433,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		binary = mem_alloc_tiny(binary_size, MEM_ALIGN_SIMD);
 		memset(binary, 0x55, binary_size);
 	}
+	if (format->params.flags & FMT_BLOB)
+		memcpy(binary,
+		       format->methods.binary(format->params.tests[0].ciphertext),
+		       binary_size);
 
 	for (index = 0; index < 2; index++) {
 		two_salts[index] = mem_alloc_align(format->params.salt_size,
@@ -606,6 +610,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	         (bench_running ||
 	          (salts_done < (wait ? salts : MIN(salts, 2))) ||
 	          (10 * salts_done > 9 * salts && salts_done < salts)));
+
+	BLOB_FREE(format, binary);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();

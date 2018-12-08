@@ -1171,10 +1171,21 @@ static void load_extra_pots(struct db_main *db, void (*process_file)(struct db_m
 static void db_main_free(struct db_main *db)
 {
 	if (db->format &&
-		(db->format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
+	    (db->format->params.flags & (FMT_DYNA_SALT | FMT_BLOB))) {
 		struct db_salt *psalt = db->salts;
 		while (psalt) {
-			dyna_salt_remove(psalt->salt);
+			struct db_password *pw = psalt->list;
+
+			if ((db->format->params.flags & FMT_BLOB) && pw &&
+			    pw->binary &&
+			    ((fmt_data*)pw->binary)->flags == FMT_DATA_ALLOC) {
+				do {
+					fmt_data *bin = pw->binary;
+					BLOB_FREE(db->format, bin);
+				} while ((pw = pw->next));
+			}
+			if (db->format->params.flags & FMT_DYNA_SALT)
+				dyna_salt_remove(psalt->salt);
 			psalt = psalt->next;
 		}
 	}

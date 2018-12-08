@@ -986,16 +986,17 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		if (options.flags & FLG_REJECT_PRINTABLE) {
 			int i = 0;
 
-			while (isprint((int)((unsigned char*)binary)[i]) &&
-			       i < format->params.binary_size)
+			while (isprint((int)((uint8_t*)BLOB_BINARY(format, binary))[i]) &&
+			       i < BLOB_SIZE(format, binary))
 				i++;
 
-			if (i == format->params.binary_size) {
+			if (i == BLOB_SIZE(format, binary)) {
 				if (john_main_process)
 				fprintf(stderr, "rejecting printable binary"
 				        " \"%.*s\" (%s)\n",
-				        format->params.binary_size,
-				        (char*)binary, piece);
+				        (int)BLOB_SIZE(format, binary),
+				        (char*)BLOB_BINARY(format, binary), piece);
+				BLOB_FREE(format, binary);
 				continue;
 			}
 		}
@@ -1004,8 +1005,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			int collisions = 0;
 			if ((current_pw = db->password_hash[pw_hash]))
 			do {
-				if (!memcmp(binary, current_pw->binary,
-				    format->params.binary_size) &&
+				if (!fmt_bincmp(binary, current_pw->binary, format) &&
 				    !strcmp(piece, format->methods.source(
 				    current_pw->source, current_pw->binary))) {
 					db->options->flags |= DB_NODUP;
@@ -1034,7 +1034,10 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				break;
 			} while ((current_pw = current_pw->next_hash));
 
-			if (current_pw) continue;
+			if (current_pw) {
+				BLOB_FREE(format, binary);
+				continue;
+			}
 		}
 
 		salt = format->methods.salt(piece);
@@ -1218,7 +1221,8 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
-	if (ldr_trunc_valid(ciphertext, format) != 1) return;
+	if (ldr_trunc_valid(ciphertext, format) != 1)
+		return;
 	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
@@ -1236,17 +1240,19 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 		 * can't treat with memcmp().
 		 */
 		if (hash || !ldr_isa_pot_source(ciphertext))
-		if (memcmp(binary, current->binary, format->params.binary_size))
+		if (fmt_bincmp(binary, current->binary, format))
 			continue;
 		if (ldr_pot_source_cmp(ciphertext,
 		    format->methods.source(current->source, current->binary)))
 			continue;
+		BLOB_FREE(format, current->binary);
 		current->binary = NULL; /* mark for removal */
 		need_removal = 1;
 	} while ((current = current->next_hash));
 
 	if (need_removal)
 		db->options->flags |= DB_NEED_REMOVAL;
+	BLOB_FREE(format, binary);
 }
 
 struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
@@ -1322,11 +1328,21 @@ void ldr_free_test_db(struct db_main *db)
 {
 	if (db) {
 		if (db->format &&
-		    (db->format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT)
-		{
+		    (db->format->params.flags & (FMT_DYNA_SALT | FMT_BLOB))) {
 			struct db_salt *psalt = db->salts;
 			while (psalt) {
-				dyna_salt_remove(psalt->salt);
+				struct db_password *pw = psalt->list;
+
+				if ((db->format->params.flags & FMT_BLOB) &&
+				    pw && pw->binary &&
+				    ((fmt_data*)pw->binary)->flags == FMT_DATA_ALLOC) {
+					do {
+						fmt_data *bin = pw->binary;
+						BLOB_FREE(db->format, bin);
+					} while ((pw = pw->next));
+				}
+				if (db->format->params.flags & FMT_DYNA_SALT)
+					dyna_salt_remove(psalt->salt);
 				psalt = psalt->next;
 			}
 		}
@@ -1511,7 +1527,7 @@ static void ldr_sort_salts(struct db_main *db)
 	dyna_salt_init(db->format);
 	if (fmt_salt_compare)
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
-	else /* Most used salt first */
+	else /* Default sort function, ensuring salt resume works if possible */
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_num);
 
 	/* Reset salt hash table, if we still have one */
@@ -1725,6 +1741,15 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 		return;
 	}
 
+	do {
+		int (*get_func)(int index);
+
+		get_func = db->format->methods.get_hash[salt->hash_size];
+		if (get_func && get_func != fmt_default_get_hash)
+			break;
+		salt->hash_size--;
+	} while (salt->hash_size > 0);
+
 	bitmap_size = password_hash_sizes[salt->hash_size];
 	{
 		size_t size = (bitmap_size +
@@ -1790,7 +1815,10 @@ static void ldr_init_hash(struct db_main *db)
 				    password_hash_thresholds[size] &&
 				    db->format->methods.binary_hash[size] &&
 				    db->format->methods.binary_hash[size] !=
-				    fmt_default_binary_hash)
+				    fmt_default_binary_hash &&
+				    db->format->methods.get_hash[size] &&
+				    db->format->methods.get_hash[size] !=
+					fmt_default_get_hash)
 					break;
 
 		if (mem_saving_level >= 2)

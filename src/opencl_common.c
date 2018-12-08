@@ -6,7 +6,7 @@
  * This software is
  * Copyright (c) 2010-2012 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2010-2013 Lukas Odzioba <ukasz@openwall.net>
- * Copyright (c) 2010-2015 magnum
+ * Copyright (c) 2010-2019 magnum
  * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
  *
  * and is hereby released to the general public under the following terms:
@@ -1606,7 +1606,19 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			dyna_salt_remove(salt);
 		return 0;
 	}
-	self->methods.cmp_all(binary, result);
+	result = self->methods.cmp_all(binary, result);
+	BLOB_FREE(self, binary);
+	if (result < 0) {
+		runtime = looptime = 0;
+
+		if (options.verbosity > VERB_LEGACY)
+			fprintf(stderr, " (error occurred)");
+		clear_profiling_events();
+		release_clobj();
+		if (!self->methods.tunable_cost_value[0] || !ocl_autotune_db->real)
+			dyna_salt_remove(salt);
+		return 0;
+	}
 
 	for (i = 0; (*multi_profilingEvent[i]); i++)
 		number_of_events++;
@@ -1850,7 +1862,11 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 				startTime = endTime = 0;
 				break;
 			}
-			self->methods.cmp_all(binary, result);
+			result = self->methods.cmp_all(binary, result);
+			if (result < 0) {
+				startTime = endTime = 0;
+				break;
+			}
 
 			HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
 			               "clWaitForEvents");
@@ -1899,6 +1915,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			}
 		}
 	}
+	BLOB_FREE(self, binary);
 	// Release profiling queue and create new with profiling disabled
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[sequential_id]),
 	               "clReleaseCommandQueue");
