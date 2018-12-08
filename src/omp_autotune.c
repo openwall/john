@@ -19,8 +19,6 @@
 
 #define CONF_SECTION SECTION_OPTIONS, ":CPUtune"
 
-extern volatile int bench_running;
-
 static int use_preset, max_no_progress;
 static double sample_time, req_gain, max_tune_time;
 
@@ -180,7 +178,8 @@ void omp_autotune_run(struct db_main *db)
 		// Set the salt we picked earlier
 		fmt->methods.set_salt(salt);
 
-		bench_running++;
+		// Tell format this is a speed test
+		benchmark_running++;
 
 		sTimer_Start(&timer, 1);
 		do {
@@ -191,7 +190,7 @@ void omp_autotune_run(struct db_main *db)
 		} while (crypts < min_crypts || sTimer_GetSecs(&timer) < sample_time);
 		sTimer_Stop(&timer);
 
-		bench_running--;
+		benchmark_running--;
 
 		duration = sTimer_GetSecs(&timer);
 		cps = crypts / duration;

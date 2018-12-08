@@ -192,8 +192,6 @@ static int get_setting_by_cost(int cost)
 }
 
 
-extern volatile int bench_running;
-
 // TODO: handle BE systems
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -221,7 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		warning_curr_setting16 = 1;
 	}
 
-	if (!warning_target_setting && !bench_running
+	if (!warning_target_setting && !bench_or_test_running
 			&& (curr_setting > target_setting + 2
 			|| curr_setting < target_setting - 2)
 	) {

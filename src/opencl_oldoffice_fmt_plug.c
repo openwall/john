@@ -74,8 +74,6 @@ static struct fmt_tests oo_tests[] = {
 	{NULL}
 };
 
-extern volatile int bench_running;
-
 typedef struct {
 	dyna_salt dsalt;
 	int type;
@@ -131,6 +129,7 @@ static size_t get_task_max_work_group_size()
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	int test_running = bench_or_test_running;
 	unsigned int dummy = 0;
 
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, max_len * gws, NULL, &ret_code);
@@ -154,7 +153,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	cracked = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping cracked");
 
-	cl_benchmark = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(bench_running), NULL, &ret_code);
+	cl_benchmark = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(test_running), NULL, &ret_code);
 
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cs), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
@@ -483,9 +482,11 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
+	int test_running = bench_or_test_running;
+
 	cur_salt = *(custom_salt**)salt;
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_benchmark, CL_FALSE, 0, sizeof(bench_running), (void*)&bench_running, 0, NULL, NULL), "Failed transferring salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_benchmark, CL_FALSE, 0, sizeof(test_running), (void*)&test_running, 0, NULL, NULL), "Failed transferring salt");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, sizeof(cs), cur_salt, 0, NULL, NULL), "Failed transferring salt");
 }
 
@@ -544,9 +545,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	extern volatile int bench_running;
-
-	if (cur_salt->type < 4 && !bench_running) {
+	if (cur_salt->type < 4 && !bench_or_test_running) {
 		unsigned char *cp, out[11];
 		int i;
 

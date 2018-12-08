@@ -281,7 +281,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i;
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
-	extern volatile int bench_running;
 
 	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
@@ -291,7 +290,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Run kernel
 	if (new_keys || strcmp(last_ssid, hccap.essid) ||
-	    ocl_autotune_running || bench_running) {
+	    ocl_autotune_running || bench_or_test_running) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
 		for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {

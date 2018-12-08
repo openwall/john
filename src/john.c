@@ -184,8 +184,6 @@ char *john_terminal_locale ="C";
 
 unsigned long long john_max_cands;
 
-int self_test_running = 0;
-
 static int children_ok = 1;
 
 static struct db_main database;
@@ -1727,9 +1725,7 @@ static void john_run(void)
 				                           &database);
 			else
 				test_db = &database;
-			self_test_running = 1;
 			where = fmt_self_test(database.format, test_db);
-			self_test_running = 0;
 			if (!(options.flags & FLG_NOTESTS))
 				ldr_free_test_db(test_db);
 			if (where) {

@@ -150,9 +150,8 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	extern volatile int bench_running;
 
-	if (new_keys || strcmp(last_ssid, hccap.essid) || bench_running) {
+	if (new_keys || strcmp(last_ssid, hccap.essid) || bench_or_test_running) {
 #ifndef SIMD_COEF_32
 		wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
 #else

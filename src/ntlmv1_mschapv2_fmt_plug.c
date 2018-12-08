@@ -105,8 +105,6 @@ john_register_one(&fmt_NETNTLM_new);
 #include "john.h"
 #include "memdbg.h"
 
-extern volatile int bench_running;
-
 #ifndef uchar
 #define uchar unsigned char
 #endif
@@ -459,7 +457,7 @@ static int chap_valid(char *ciphertext, struct fmt_main *pFmt)
 			}
 		}
 #ifdef DEBUG
-		if (!bench_running)
+		if (!bench_or_test_running)
 			fprintf(stderr, "Rejected MSCHAPv2 hash with "
 			        "invalid 3rd block\n");
 #endif
@@ -652,7 +650,7 @@ static int ntlm_valid(char *ciphertext, struct fmt_main *self)
 			}
 		}
 #ifdef DEBUG
-		if (!bench_running)
+		if (!bench_or_test_running)
 			fprintf(stderr, "Rejected NetNTLM hash with invalid "
 			        "3rd block\n");
 #endif
@@ -1075,7 +1073,7 @@ static void *get_binary(char *ciphertext)
 	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
 
 	if (john_main_process)
-	if (!warned && !ldr_in_pot && !bench_running && ++loaded > 100) {
+	if (!warned && !ldr_in_pot && !bench_or_test_running && ++loaded > 100) {
 		warned = 1;
 		fprintf(stderr, "%s: Note: slow loading. For short runs, try "
 		        "--format=%s-naive\ninstead. That version loads "

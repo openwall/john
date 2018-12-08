@@ -123,8 +123,6 @@ static void init(struct fmt_main *fmt_main)
  * (It accepts up to 512 32-bit hashes, order doesn't matter).
  */
 
-extern volatile int bench_running;
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int result;
@@ -134,7 +132,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	int curr_rounds = phpass_common_iteration_count(salt->salt);
 
-	if (!warning_target_rounds && !bench_running
+	if (!warning_target_rounds && !bench_or_test_running
 			&& (curr_rounds > target_rounds * 2
 			|| curr_rounds < target_rounds / 2)
 	) {

@@ -462,9 +462,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	extern volatile int bench_running;
-
-	if (cur_salt->type < 4 && !bench_running) {
+	if (cur_salt->type < 4 && !bench_or_test_running) {
 		unsigned char *cp, out[11];
 		int i;
 

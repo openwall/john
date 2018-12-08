@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "../john.h"
 #include "../loader.h"
 #include "../formats.h"
 #include "../memory.h"
@@ -133,8 +132,6 @@ void device_format_done()
 	MEM_FREE(range_info_buffer);
 }
 
-
-extern volatile int bench_running;
 
 void device_format_reset()
 {
@@ -419,4 +416,3 @@ char *device_format_get_key(int index)
 
 	return output_key;
 }
-

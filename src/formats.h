@@ -360,6 +360,15 @@ struct fmt_main {
  */
 extern char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
 
+/* Self-test is running */
+extern int self_test_running;
+
+/* Benchmark is running */
+extern int benchmark_running;
+
+/* Self-test or benchmark is running */
+#define bench_or_test_running	(self_test_running || benchmark_running)
+
 /*
  * Linked list of registered formats.
  */

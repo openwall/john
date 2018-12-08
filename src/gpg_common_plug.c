@@ -38,8 +38,6 @@
 #define HAVE_DSA_GET0_PQG 1
 #endif
 
-extern volatile int bench_running;
-
 struct gpg_common_custom_salt *gpg_common_cur_salt;
 
 struct fmt_tests gpg_common_gpg_tests[] = {
@@ -276,7 +274,7 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format)
 	} else {
 		if (usage != 9 && usage != 18) // https://tools.ietf.org/html/rfc4880
 			goto err;
-		if (!bench_running && usage == 9) {
+		if (!bench_or_test_running && usage == 9) {
 			self->params.flags |= FMT_NOT_EXACT;
 		}
 	}

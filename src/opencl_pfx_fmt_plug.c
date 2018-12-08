@@ -51,8 +51,6 @@ static struct fmt_tests pfx_tests[] = {
 	{NULL},
 };
 
-extern volatile int bench_running;
-
 // input
 typedef struct {
 	uint32_t length;

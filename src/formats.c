@@ -32,9 +32,10 @@ struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
 static char *buf_key;
 
-extern volatile int bench_running;
-
 int fmt_raw_len;
+
+int self_test_running;
+int benchmark_running;
 
 #ifndef BENCH_BUILD
 static int orig_min, orig_max, orig_len;
@@ -1578,13 +1579,11 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	salt_copy = alloc_binary(&salt_alloc,
 	    format->params.salt_size?format->params.salt_size:1, format->params.salt_align);
 
-	/* We use this to keep opencl_process_event() from doing stuff
-	 * while self-test is running. */
-	bench_running = 1;
+	self_test_running = 1;
 
 	retval = fmt_self_test_body(format, binary_copy, salt_copy, db, benchmark_level);
 
-	bench_running = 0;
+	self_test_running = 0;
 
 	MEM_FREE(salt_alloc);
 	MEM_FREE(binary_alloc);

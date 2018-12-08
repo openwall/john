@@ -196,7 +196,7 @@ void clk_tck_init(void)
 int benchmark_time = BENCHMARK_TIME;
 int benchmark_level = -1;
 
-volatile int bench_running;
+static volatile int bench_running;
 
 static void bench_install_handler(void);
 
@@ -638,6 +638,8 @@ int benchmark_all(void)
 	int ompt_start = omp_get_max_threads();
 #endif
 
+	benchmark_running = 1;
+
 #if defined(HAVE_OPENCL)
 	if (!benchmark_time) {
 		/* This will make the majority of OpenCL formats
@@ -779,10 +781,7 @@ AGAIN:
 
 		total++;
 
-		/* (Ab)used to mute some messages from source() */
-		bench_running = 1;
 		test_db = ldr_init_test_db(format, NULL);
-		bench_running = 0;
 
 		if ((result = benchmark_format(format,
 		    format->params.salt_size ? BENCHMARK_MANY : 1,
@@ -931,6 +930,8 @@ next:
 	if (options.flags & FLG_LOOPTEST && !event_abort)
 		goto AGAIN;
 #endif
+
+	benchmark_running = 0;
 
 	return failed || event_abort;
 }

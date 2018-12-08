@@ -312,8 +312,6 @@ static void init(struct fmt_main *fmt_main)
  */
 
 
-extern volatile int bench_running;
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	static int warning_target_rounds = 0;
@@ -323,7 +321,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	sha256crypt_salt_t *sha256crypt_salt = salt->salt;
 	unsigned char salt_buf[18]; // salt to send to device
 
-	if (!warning_target_rounds && !bench_running
+	if (!warning_target_rounds && !bench_or_test_running
 			&& (curr_rounds >= target_rounds * 4
 			|| curr_rounds <= target_rounds / 4)
 	) {

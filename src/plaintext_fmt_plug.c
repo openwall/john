@@ -219,10 +219,8 @@ static int get_hash_6(int index)
 static void set_key(char *key, int index)
 {
 	char *p = saved_key[index];
-	extern volatile int bench_running;
-	extern int self_test_running;
 
-	if (options.verbosity >= VERB_DEBUG && !self_test_running && !bench_running)
+	if (options.verbosity >= VERB_DEBUG && !bench_or_test_running)
 		fprintf(stderr, "%s(%s, %d)\n", __FUNCTION__, key, index);
 
 	while (*key)
