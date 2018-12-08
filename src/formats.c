@@ -1646,6 +1646,11 @@ void *fmt_default_salt(char *ciphertext)
 	return ciphertext;
 }
 
+fmt_data *fmt_default_data(char *ciphertext)
+{
+	return NULL;
+}
+
 char *fmt_default_source(char *source, void *binary)
 {
 	return source;
@@ -1730,6 +1735,16 @@ void fmt_default_clear_keys(void)
 }
 
 int fmt_default_get_hash(int index)
+{
+	return 0;
+}
+
+int fmt_default_cmp_all_data(fmt_data *data, int count)
+{
+	return 0;
+}
+
+int fmt_default_cmp_one_data(fmt_data *data, int index)
 {
 	return 0;
 }

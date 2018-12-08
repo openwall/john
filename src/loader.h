@@ -26,7 +26,9 @@ struct db_password {
 /* Pointer to next password hash with the same salt */
 	struct db_password *next;
 
-/* Hot portion of or full binary ciphertext for fast comparison (aligned) */
+/* Hot portion of or full binary ciphertext for fast comparison (aligned).
+ * Alternatively, for non-hash formats: Non-salt data (that we used to
+ * incorrectly store in a "salt"). */
 	void *binary;
 
 /* After loading is completed: pointer to next password hash with the same salt

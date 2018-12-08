@@ -21,7 +21,7 @@
  * (tunable cost parameters)
  * (format signatures, #14)
  */
-#define FMT_MAIN_VERSION 14	/* change if structure fmt_main changes */
+#define FMT_MAIN_VERSION 15	/* change if structure fmt_main changes */
 
 /*
  * fmt_main is declared for real further down this file, but we refer to it in
@@ -118,6 +118,8 @@ struct db_salt;
 #define FMT_OMP				0
 #define FMT_OMP_BAD			0
 #endif
+/* Non-hash format. If used, binary_size must be 0 */
+#define FMT_BLOB			0x04000000
 /* We've already warned the user about hashes of this type being present */
 #define FMT_WARNED			0x80000000
 
@@ -131,6 +133,28 @@ struct fmt_tests {
 	char *ciphertext, *plaintext;
 	char *fields[10];
 };
+
+/*
+ * Flags for fmt_data.
+ */
+/* Blob portion is tiny-alloc. */
+#define FMT_DATA_TINY			0x00000001
+/* Blob portion is malloc, so needs to be freed when done with it. */
+#define FMT_DATA_ALLOC			0x00000002
+
+/*
+ * Variable size data for non-hashes (formerly stored in "salt").
+ * "size" is the size of blob only. Size of data returned is always
+ * just sizeof(fmt_data). The blob is either mem_alloc_tiny and flag
+ * is FMT_DATA_TINY, or alloced and flag is FMT_DATA_ALLOC.
+ * The latter needs free when we're done with it. Regardless, the
+ * loader never copies it.
+ */
+typedef struct {
+	unsigned int flags;
+	size_t size;
+	void *blob;
+} fmt_data;
 
 /*
  * Parameters of a hash function and its cracking algorithm.
@@ -251,6 +275,8 @@ struct fmt_methods {
 /* Converts an ASCII salt to its internal representation */
 	void *(*salt)(char *ciphertext);
 
+/* Converts an ASCII non-hash data blob to a fmt_data struct */
+	fmt_data *(*data)(char *ciphertext);
 /*
  * These functions return the value of a tunable cost parameter
  * for a given salt.
@@ -342,6 +368,18 @@ struct fmt_methods {
 
 /* Compares an ASCII ciphertext against a particular crypt_all() output */
 	int (*cmp_exact)(char *source, int index);
+
+/* Compares a non-hash blob against the crypt_all() output.  This typically
+ * involves decrypting some part of the blob (using the crypt output as a
+ * key and/or iv) and verifying the resulting plaintext with some known
+ * plaintext, or sometimes merely detecting the output is non-random.
+ * The return is zero for "no match".  A non-zero return of n means the
+ * password in index (n - 1) was correct for this non-hash. */
+	int (*cmp_all_data)(fmt_data *data, int count);
+
+/* Same as the above, except the comparison is done against only one of the
+ * crypt_all() method outputs. */
+	int (*cmp_one_data)(fmt_data *data, int index);
 };
 
 /*
@@ -419,12 +457,16 @@ extern char *fmt_default_split(char *ciphertext, int index,
     struct fmt_main *self);
 extern void *fmt_default_binary(char *ciphertext);
 extern void *fmt_default_salt(char *ciphertext);
+extern fmt_data *fmt_default_data(char *ciphertext);
 extern char *fmt_default_source(char *source, void *binary);
 extern int fmt_default_binary_hash(void *binary);
 extern int fmt_default_salt_hash(void *salt);
 extern void fmt_default_set_salt(void *salt);
 extern void fmt_default_clear_keys(void);
 extern int fmt_default_get_hash(int index);
+extern int fmt_default_cmp_all_data(fmt_data *data, int count);
+extern int fmt_default_cmp_one_data(fmt_data *data, int index);
+
 /* this is a salt_hash default specifically for dyna_salt type formats */
 extern int fmt_default_dyna_salt_hash(void *salt);
 
