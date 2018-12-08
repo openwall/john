@@ -67,17 +67,15 @@ extern void list_add_unique(struct list_main *list, char *data);
 
 /*
  * Adds an entry to the list checking for dupes.  This version checks for
- * entry in list2 as well.
+ * dupes against a 'global' list as well.
  */
 extern void list_add_global_unique(struct list_main *list,
-                                   struct list_main *list2, char *data);
+                                   struct list_main *global, char *data);
 
-#if DEBUG
 /*
  * print list to stderr preceded by message.
  */
 extern void list_dump(char *message, struct list_main *list);
-#endif
 
 #if 0
 /*

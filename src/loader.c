@@ -1038,32 +1038,36 @@ static void ldr_split_string(struct list_main *dst, char *src)
 	pos = src;
 	do {
 		word = pos;
-		while (*word && CP_isSeparator[ARCH_INDEX(*word)]) word++;
-		if (!*word) break;
-
+		while (*word && CP_isSeparator[ARCH_INDEX(*word)])
+			word++;
+		if (!*word)
+			break;
 		pos = word;
-		while (!CP_isSeparator[ARCH_INDEX(*pos)]) pos++;
+		while (!CP_isSeparator[ARCH_INDEX(*pos)])
+			pos++;
 		c = *pos;
 		*pos = 0;
 		list_add_global_unique(dst, single_seed, word);
+		/* Jumbo-specific inner pass, JEdgarHoover -> J Edgar Hoover */
+		{
+			char *word2, *pos2;
+			char c2;
+
+			pos2 = word;
+			do {
+				word2 = pos2;
+				while (*pos2 && !enc_isupper(pos2[1]))
+					pos2++;
+				if (!*pos2)
+					break;
+				c2 = *++pos2;
+				*pos2 = 0;
+				list_add_global_unique(dst, single_seed, word2);
+				*pos2 = c2;
+			} while (c2 && dst->count < LDR_WORDS_MAX);
+		}
 		*pos++ = c;
 	} while (c && dst->count < LDR_WORDS_MAX);
-	if (*src) {
-		/* Second pass, JEdgarHoover -> J Edgar Hoover */
-		pos = src;
-		do {
-			word = pos;
-			while (*pos && !enc_isupper(pos[1]))
-				pos++;
-			if (!*pos)
-				break;
-
-			c = *++pos;
-			*pos = 0;
-			list_add_global_unique(dst, single_seed, word);
-			*pos = c;
-		} while (c && dst->count < LDR_WORDS_MAX);
-	}
 }
 
 static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
@@ -1074,15 +1078,18 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	list_init(&words);
 
 	if (*login && login != no_username && !single_skip_login)
+		/* Never mind global dupes, this must be first in list */
 		list_add(words, ldr_conv(login));
-	ldr_split_string(words, ldr_conv(gecos));
-	if (login != no_username && !single_skip_login)
+	if (*gecos)
+		ldr_split_string(words, ldr_conv(gecos));
+	if ((pos = strrchr(home, '/')) && pos[1])
+		list_add_global_unique(words, single_seed, ldr_conv(&pos[1]));
+	if (*login && login != no_username && !single_skip_login)
 		ldr_split_string(words, ldr_conv(login));
 	if (pristine_gecos && *gecos)
 		list_add_global_unique(words, single_seed, ldr_conv(gecos));
-	if ((pos = strrchr(home, '/')) && pos[1])
-		list_add_global_unique(words, single_seed, ldr_conv(&pos[1]));
 
+	/* Add the global seeds onto this list (just a link added!) */
 	list_add_list(words, single_seed);
 
 	return words;

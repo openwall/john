@@ -31,6 +31,7 @@
 #include "opencl_common.h"
 #include "memdbg.h"
 
+/* List with optional global words to add for every salt */
 struct list_main *single_seed;
 
 static double progress = 0;
