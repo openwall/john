@@ -59,11 +59,11 @@ static int UnicodeType = -1;
 static int UnicodeInited = 0;
 #endif
 
-/*
- * This is used by single.c for determining that a character is a letter
- */
 UTF8 CP_isLetter[0x100];
 UTF8 CP_isSeparator[0x100];
+UTF8 CP_isUpper[0x100];
+UTF8 CP_isLower[0x100];
+UTF8 CP_isDigit[0x100];
 
 #if ARCH_LITTLE_ENDIAN
 #define BE_FIX(a) a
@@ -1081,7 +1081,7 @@ void initUnicode(int type)
 {
 	unsigned i, j;
 #ifndef UNICODE_NO_OPTIONS
-	unsigned char *cpU, *cpL, *Sep, *Letter;
+	unsigned char *cpU, *cpL, *Sep, *Letter, *Digit;
 	unsigned char *pos;
 	int encoding;
 
@@ -1388,6 +1388,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_ISO_8859_1 CHARS_WHITESPACE_ISO_8859_1
 			CHARS_CONTROL_ISO_8859_1 CHARS_INVALID_ISO_8859_1;
 		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_1;
+		Digit = (unsigned char*)CHARS_DIGITS_ISO_8859_1;
 		break;
 	case ISO_8859_2:
 		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_2;
@@ -1396,6 +1397,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_ISO_8859_2 CHARS_WHITESPACE_ISO_8859_2
 			CHARS_CONTROL_ISO_8859_2 CHARS_INVALID_ISO_8859_2;
 		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_2;
+		Digit = (unsigned char*)CHARS_DIGITS_ISO_8859_2;
 		break;
 	case ISO_8859_7:
 		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_7;
@@ -1404,6 +1406,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_ISO_8859_7 CHARS_WHITESPACE_ISO_8859_7
 			CHARS_CONTROL_ISO_8859_7 CHARS_INVALID_ISO_8859_7;
 		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_7;
+		Digit = (unsigned char*)CHARS_DIGITS_ISO_8859_7;
 		break;
 	case ISO_8859_15:
 		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_15;
@@ -1412,6 +1415,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_ISO_8859_15 CHARS_WHITESPACE_ISO_8859_15
 			CHARS_CONTROL_ISO_8859_15 CHARS_INVALID_ISO_8859_15;
 		Letter = (unsigned char*)CHARS_ALPHA_ISO_8859_15;
+		Digit = (unsigned char*)CHARS_DIGITS_ISO_8859_15;
 		break;
 	case KOI8_R:
 		cpU = (unsigned char*)CHARS_UPPER_KOI8_R;
@@ -1420,6 +1424,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_KOI8_R CHARS_WHITESPACE_KOI8_R
 			CHARS_CONTROL_KOI8_R CHARS_INVALID_KOI8_R;
 		Letter = (unsigned char*)CHARS_ALPHA_KOI8_R;
+		Digit = (unsigned char*)CHARS_DIGITS_KOI8_R;
 		break;
 	case CP437:
 		cpU = (unsigned char*)CHARS_UPPER_CP437;
@@ -1428,6 +1433,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP437 CHARS_WHITESPACE_CP437
 			CHARS_CONTROL_CP437 CHARS_INVALID_CP437;
 		Letter = (unsigned char*)CHARS_ALPHA_CP437;
+		Digit = (unsigned char*)CHARS_DIGITS_CP437;
 		break;
 	case CP720:
 		cpU = (unsigned char*)CHARS_UPPER_CP720;
@@ -1436,6 +1442,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP720 CHARS_WHITESPACE_CP720
 			CHARS_CONTROL_CP720 CHARS_INVALID_CP720;
 		Letter = (unsigned char*)CHARS_ALPHA_CP720;
+		Digit = (unsigned char*)CHARS_DIGITS_CP720;
 		break;
 	case CP737:
 		cpU = (unsigned char*)CHARS_UPPER_CP737;
@@ -1444,6 +1451,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP737 CHARS_WHITESPACE_CP737
 			CHARS_CONTROL_CP737 CHARS_INVALID_CP737;
 		Letter = (unsigned char*)CHARS_ALPHA_CP737;
+		Digit = (unsigned char*)CHARS_DIGITS_CP737;
 		break;
 	case CP850:
 		cpU = (unsigned char*)CHARS_UPPER_CP850;
@@ -1452,6 +1460,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP850 CHARS_WHITESPACE_CP850
 			CHARS_CONTROL_CP850 CHARS_INVALID_CP850;
 		Letter = (unsigned char*)CHARS_ALPHA_CP850;
+		Digit = (unsigned char*)CHARS_DIGITS_CP850;
 		break;
 	case CP852:
 		cpU = (unsigned char*)CHARS_UPPER_CP852;
@@ -1460,6 +1469,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP852 CHARS_WHITESPACE_CP852
 			CHARS_CONTROL_CP852 CHARS_INVALID_CP852;
 		Letter = (unsigned char*)CHARS_ALPHA_CP852;
+		Digit = (unsigned char*)CHARS_DIGITS_CP852;
 		break;
 	case CP858:
 		cpU = (unsigned char*)CHARS_UPPER_CP858;
@@ -1468,6 +1478,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP858 CHARS_WHITESPACE_CP858
 			CHARS_CONTROL_CP858 CHARS_INVALID_CP858;
 		Letter = (unsigned char*)CHARS_ALPHA_CP858;
+		Digit = (unsigned char*)CHARS_DIGITS_CP858;
 		break;
 	case CP866:
 		cpU = (unsigned char*)CHARS_UPPER_CP866;
@@ -1476,6 +1487,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP866 CHARS_WHITESPACE_CP866
 			CHARS_CONTROL_CP866 CHARS_INVALID_CP866;
 		Letter = (unsigned char*)CHARS_ALPHA_CP866;
+		Digit = (unsigned char*)CHARS_DIGITS_CP866;
 		break;
 	case CP868:
 		cpU = (unsigned char*)CHARS_UPPER_CP868;
@@ -1484,6 +1496,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP868 CHARS_WHITESPACE_CP868
 			CHARS_CONTROL_CP868 CHARS_INVALID_CP868;
 		Letter = (unsigned char*)CHARS_ALPHA_CP868;
+		Digit = (unsigned char*)CHARS_DIGITS_CP868;
 		break;
 	case CP1250:
 		cpU = (unsigned char*)CHARS_UPPER_CP1250;
@@ -1492,6 +1505,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP1250 CHARS_WHITESPACE_CP1250
 			CHARS_CONTROL_CP1250 CHARS_INVALID_CP1250;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1250;
+		Digit = (unsigned char*)CHARS_DIGITS_CP1250;
 		break;
 	case CP1251:
 		cpU = (unsigned char*)CHARS_UPPER_CP1251;
@@ -1500,6 +1514,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP1251 CHARS_WHITESPACE_CP1251
 			CHARS_CONTROL_CP1251 CHARS_INVALID_CP1251;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1251;
+		Digit = (unsigned char*)CHARS_DIGITS_CP1251;
 		break;
 	case CP1252:
 		cpU = (unsigned char*)CHARS_UPPER_CP1252;
@@ -1508,6 +1523,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP1252 CHARS_WHITESPACE_CP1252
 			CHARS_CONTROL_CP1252 CHARS_INVALID_CP1252;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1252;
+		Digit = (unsigned char*)CHARS_DIGITS_CP1252;
 		break;
 	case CP1253:
 		cpU = (unsigned char*)CHARS_UPPER_CP1253;
@@ -1516,6 +1532,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP1253 CHARS_WHITESPACE_CP1253
 			CHARS_CONTROL_CP1253 CHARS_INVALID_CP1253;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1253;
+		Digit = (unsigned char*)CHARS_DIGITS_CP1253;
 		break;
 	case CP1254:
 		cpU = (unsigned char*)CHARS_UPPER_CP1254;
@@ -1524,6 +1541,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP1254 CHARS_WHITESPACE_CP1254
 			CHARS_CONTROL_CP1254 CHARS_INVALID_CP1254;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1254;
+		Digit = (unsigned char*)CHARS_DIGITS_CP1254;
 		break;
 	case CP1255:
 		cpU = (unsigned char*)CHARS_UPPER_CP1255;
@@ -1532,6 +1550,7 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP1255 CHARS_WHITESPACE_CP1255
 			CHARS_CONTROL_CP1255 CHARS_INVALID_CP1255;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1255;
+		Digit = (unsigned char*)CHARS_DIGITS_CP1255;
 		break;
 	case CP1256:
 		cpU = (unsigned char*)CHARS_UPPER_CP1256;
@@ -1540,12 +1559,14 @@ void initUnicode(int type)
 			CHARS_SPECIALS_CP1256 CHARS_WHITESPACE_CP1256
 			CHARS_CONTROL_CP1256 CHARS_INVALID_CP1256;
 		Letter = (unsigned char*)CHARS_ALPHA_CP1256;
+		Digit = (unsigned char*)CHARS_DIGITS_CP1256;
 		break;
 	default:
 		cpU = (unsigned char*)"";
 		cpL = (unsigned char*)"";
 		Sep = (unsigned char*)CP_issep;
 		Letter = (unsigned char*)"";
+		Digit = (unsigned char*)"";
 	}
 
 	for (i = 0; cpU[i]; ++i) {
@@ -1559,14 +1580,31 @@ void initUnicode(int type)
 	for (pos = Sep; *pos; pos++)
 		CP_isSeparator[ARCH_INDEX(*pos)] = 1;
 
+	/* CP_isDigit[c] will return true if c is a digit */
+	memset(CP_isDigit, 0, sizeof(CP_isDigit));
+	for (i = '0'; i <= '9'; i++)
+		CP_isDigit[i] = 1;
+	for (pos = Digit; *pos; pos++)
+		CP_isDigit[ARCH_INDEX(*pos)] = 1;
+
 	/* CP_isLetter[c] will return true if c is a letter */
 	memset(CP_isLetter, 0, sizeof(CP_isLetter));
-	for (i = 'a'; i <= 'z'; i++)
+	memset(CP_isLower, 0, sizeof(CP_isLower));
+	memset(CP_isUpper, 0, sizeof(CP_isUpper));
+	for (i = 'a'; i <= 'z'; i++) {
 		CP_isLetter[i] = 1;
-	for (i = 'A'; i <= 'Z'; i++)
+		CP_isLower[i] = 1;
+	}
+	for (i = 'A'; i <= 'Z'; i++) {
 		CP_isLetter[i] = 1;
+		CP_isUpper[i] = 1;
+	}
 	for (pos = Letter; *pos; pos++)
 		CP_isLetter[ARCH_INDEX(*pos)] = 1;
+	for (pos = cpL; *pos; pos++)
+		CP_isLower[ARCH_INDEX(*pos)] = 1;
+	for (pos = cpU; *pos; pos++)
+		CP_isUpper[ARCH_INDEX(*pos)] = 1;
 
 	if (type == UNICODE_MS_OLD && encoding == CP850) {
 /*
@@ -1790,4 +1828,34 @@ char *enc_strupper(char *s)
 	int srclen = strlen(s);
 	enc_uc(ptr, srclen + 1, ptr, srclen);
 	return s;
+}
+
+int enc_hasupper(char *s)
+{
+	while (*s)
+		if (enc_isupper(*s))
+			return 1;
+		else
+			s++;
+	return 0;
+}
+
+int enc_haslower(char *s)
+{
+	while (*s)
+		if (enc_islower(*s))
+			return 1;
+		else
+			s++;
+	return 0;
+}
+
+int enc_hasdigit(char *s)
+{
+	while (*s)
+		if (enc_isdigit(*s))
+			return 1;
+		else
+			s++;
+	return 0;
 }

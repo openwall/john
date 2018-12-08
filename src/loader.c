@@ -88,6 +88,8 @@ static int pristine_gecos;
 static int single_skip_login;
 #endif
 
+static int jumbo_split_string;
+
 /*
  * There should be legislation against adding a BOM to UTF-8, not to
  * mention calling UTF-16 a "text file".
@@ -304,6 +306,9 @@ void ldr_init_database(struct db_main *db, struct db_options *db_options)
 	db->salt_count = db->password_count = db->guess_count = 0;
 
 	db->format = NULL;
+
+	jumbo_split_string =
+		cfg_get_bool(SECTION_OPTIONS, NULL, "JumboSingleWords", 1);
 }
 
 /*
@@ -1030,6 +1035,59 @@ static char* ldr_conv(char *word)
 	return word;
 }
 
+/*
+ * Optional Jumbo-specific inner pass for ldr_split_string,
+ * JEdgarHoover -> J Edgar Hoover and other stuff.
+ */
+static void ldr_split_more(struct list_main *dst, char *src)
+{
+	int l, u, d = 0;
+
+	l = enc_haslower(src);
+	u = enc_hasupper(src);
+	if (l + u == 1)
+		d = enc_hasdigit(src);
+
+	if (l + u + d >= 2) {
+		char *word, *pos;
+		char c;
+
+		pos = src;
+		do {
+			word = pos;
+			if (enc_isdigit(*word))
+				while (*pos && enc_isdigit(pos[1]))
+					pos++;
+			else if (enc_isupper(*word) && !l)
+				while (*pos && enc_isupper(pos[1]))
+					pos++;
+			else if (enc_islower(*word) && !u)
+				while (*pos && enc_islower(pos[1]))
+					pos++;
+			else if (enc_hasupper(&pos[1]))
+				while (*pos && !enc_isupper(pos[1]))
+					pos++;
+			else
+				while (*pos && !enc_isdigit(pos[1]))
+					pos++;
+
+			if (!*pos) {
+				if (word > src)
+				{
+					list_add_global_unique(dst, single_seed, word);
+				}
+				break;
+			}
+
+			c = *++pos;
+			*pos = 0;
+			list_add_global_unique(dst, single_seed, word);
+			*pos = c;
+
+		} while (c && dst->count < LDR_WORDS_MAX);
+	}
+}
+
 static void ldr_split_string(struct list_main *dst, char *src)
 {
 	char *word, *pos;
@@ -1040,33 +1098,23 @@ static void ldr_split_string(struct list_main *dst, char *src)
 		word = pos;
 		while (*word && CP_isSeparator[ARCH_INDEX(*word)])
 			word++;
+
 		if (!*word)
 			break;
+
 		pos = word;
 		while (!CP_isSeparator[ARCH_INDEX(*pos)])
 			pos++;
+
 		c = *pos;
 		*pos = 0;
 		list_add_global_unique(dst, single_seed, word);
-		/* Jumbo-specific inner pass, JEdgarHoover -> J Edgar Hoover */
-		{
-			char *word2, *pos2;
-			char c2;
 
-			pos2 = word;
-			do {
-				word2 = pos2;
-				while (*pos2 && !enc_isupper(pos2[1]))
-					pos2++;
-				if (!*pos2)
-					break;
-				c2 = *++pos2;
-				*pos2 = 0;
-				list_add_global_unique(dst, single_seed, word2);
-				*pos2 = c2;
-			} while (c2 && dst->count < LDR_WORDS_MAX);
-		}
+		if (jumbo_split_string)
+			ldr_split_more(dst, word);
+
 		*pos++ = c;
+
 	} while (c && dst->count < LDR_WORDS_MAX);
 }
 

@@ -295,11 +295,15 @@ extern UTF8 CP_lows[0x100]; /* all lower-case letters */
 
 /* Used by single.c and loader.c */
 extern UTF8 CP_isLetter[0x100];
+extern UTF8 CP_isLower[0x100];
+extern UTF8 CP_isUpper[0x100];
 extern UTF8 CP_isSeparator[0x100];
+extern UTF8 CP_isDigit[0x100];
 
 /* These are encoding-aware but not LC_CTYPE */
-#define enc_islower(c) (options.internal_cp == ASCII ? (c > 'a' && c < 'z') : (strchr((char*)CP_lows, ARCH_INDEX(c)) != NULL))
-#define enc_isupper(c) (options.internal_cp == ASCII ? (c > 'A' && c < 'Z') : (strchr((char*)CP_ups, ARCH_INDEX(c)) != NULL))
+#define enc_islower(c) (options.internal_cp == ASCII ? (c >= 'a' && c <= 'z') : CP_isLower[ARCH_INDEX(c)])
+#define enc_isupper(c) (options.internal_cp == ASCII ? (c >= 'A' && c <= 'Z') : CP_isUpper[ARCH_INDEX(c)])
+#define enc_isdigit(c) (options.internal_cp == ASCII ? (c >= '0' && c <= '9') : CP_isDigit[ARCH_INDEX(c)])
 #define enc_tolower(c) (char)CP_down[ARCH_INDEX(c)]
 #define enc_toupper(c) (char)CP_up[ARCH_INDEX(c)]
 
@@ -307,6 +311,15 @@ extern UTF8 CP_isSeparator[0x100];
 extern int cp_name2id(char *encoding);
 extern char *cp_id2name(int encoding);
 extern char *cp_id2macro(int encoding);
+
+/* Return true if string has any uppercase character */
+extern int enc_hasupper(char *s);
+
+/* Return true if string has any lowercase character */
+extern int enc_haslower(char *s);
+
+/* Return true if string has any digits */
+extern int enc_hasdigit(char *s);
 
 /*
  * NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_UTF8

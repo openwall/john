@@ -33,16 +33,19 @@ indent_style = space
 indent_size = 2
 
 # Core files where we gave up and use a tab size of 4
+[cracker.c]
+indent_size = 4
+
 [inc.c]
+indent_size = 4
+
+[loader.c]
 indent_size = 4
 
 [single.c]
 indent_size = 4
 
 [wordlist.c]
-indent_size = 4
-
-[cracker.c]
 indent_size = 4
 
 # Core files otherwise use a tab size of 8
@@ -152,7 +155,7 @@ indent_size = 8
 [list.[ch]]
 indent_size = 8
 
-[loader.[ch]]
+[loader.h]
 indent_size = 8
 
 [logger.[ch]]
