@@ -127,6 +127,7 @@ extern int default_gpu_selected;
 extern int default_device_selected;
 extern int ocl_autotune_running;
 extern size_t ocl_max_lws;
+extern int autotune_real_db;
 
 extern cl_device_id devices[MAX_GPU_DEVICES + 1];
 extern cl_context context[MAX_GPU_DEVICES];

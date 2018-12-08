@@ -16,6 +16,8 @@
 #include "config.h"
 #include "logger.h"
 #include "mask_ext.h"
+#include "john.h"
+#include "recovery.h"
 #include "opencl_common.h"
 
 /* Step size for work size enumeration. Zero will double. */
@@ -202,21 +204,57 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		find_best_gws(self, gpu_id, rounds, max_duration, 1);
 	}
 
-	/* Adjust to the final configuration */
-	release_clobj();
-	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
-	create_clobj(global_work_size, self);
+#if HAVE_MPI
+	if (autotune_real_db && mpi_p > 1 &&
+	    !(options.lws && options.gws) && !rec_restored &&
+	    cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0)) {
+		uint32_t lws, gws, mpi_lws, mpi_gws;
 
-	if (options.verbosity > VERB_DEFAULT && !(options.flags & FLG_SHOW_CHK))
+		if (john_main_process)
+			log_event("- Enforcing same work sizes on all MPI nodes");
+		lws = local_work_size;
+		gws = global_work_size;
+		MPI_Allreduce(&lws, &mpi_lws, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
+		MPI_Allreduce(&gws, &mpi_gws, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
+		local_work_size = mpi_lws;
+		global_work_size = mpi_gws;
+
+		if (john_main_process && !(options.flags & FLG_SHOW_CHK) &&
+		    ((autotune_real_db && !mask_increments_len) ||
+		     options.verbosity > VERB_DEFAULT)) {
+			fprintf(stderr,
+"All nodes: Local worksize (LWS) "Zu", global worksize (GWS) "Zu" ("Zu" blocks)\n",
+			        local_work_size, global_work_size,
+			        global_work_size / local_work_size);
+		}
+	} else
+#endif
+	if (!(options.flags & FLG_SHOW_CHK) && !(options.lws && options.gws) &&
+	    ((autotune_real_db && !mask_increments_len) ||
+	     options.verbosity > VERB_DEFAULT)) {
+		if (benchmark_running)
+			fprintf(stderr, "\n");
+		if (options.node_count)
+			fprintf(stderr, "%u: ", NODE);
 		fprintf(stderr,
-		        "%sLocal worksize (LWS) "Zu", global worksize (GWS) "Zu"\n",
-		        options.flags & FLG_TEST_CHK ? "\n" : "",
-		        local_work_size, global_work_size);
+"Local worksize (LWS) "Zu", global worksize (GWS) "Zu" ("Zu" blocks)\n",
+		        local_work_size, global_work_size,
+		        global_work_size / local_work_size);
+	}
 #ifdef DEBUG
 	else if (!(options.flags & FLG_SHOW_CHK))
 		fprintf(stderr, "{"Zu"/"Zu"} ", global_work_size, local_work_size);
 #endif
 
+	/* Adjust to the final configuration */
+	release_clobj();
+	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
+	create_clobj(global_work_size, self);
+
+#if HAVE_MPI
+	if (!cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0) ||
+	    john_main_process)
+#endif
 	log_event("- OpenCL LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
 	          local_work_size,
 	          (need_best_lws && !needed_best_gws) ? " (auto-tuned)" : "",

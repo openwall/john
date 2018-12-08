@@ -110,6 +110,7 @@ static size_t gws_limit;
 static int printed_mask;
 static struct db_main *autotune_db;
 static struct db_salt *autotune_salts;
+int autotune_real_db;
 
 typedef struct {
 	cl_platform_id platform;
@@ -1584,6 +1585,7 @@ void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
 	release_clobj = p_release_clobj;
 	gws_limit = p_gws_limit;
 	autotune_db = db;
+	autotune_real_db = db && db->real && db->real == db;
 	autotune_salts = db ? db->salts : NULL;
 }
 
