@@ -28,15 +28,22 @@ Please, read INSTALL for general information about installing John on your syste
 
     sudo apt-get install nvidia-opencl-dev
 
-==== If you have an AMD GPU (or want to use CPU as OpenCL device)
+==== If you have an AMD GPU (OpenCL support)
 
-    - Up to Ubuntu 15.10 (<= 15.10). This will work on Intel hardware but warnings will be seen.
-    sudo apt-get install ocl-icd-opencl-dev opencl-headers fglrx-dev
+    - If you have a recent GPU card (see [1]), the amdgpu-pro graphics stack should be used.
+      [1] https://www.amd.com/en/support/kb/release-notes/rn-radpro-lin-16-40#faq-AMD-Product-Compatibility
 
-    - Ubuntu Xenial 16.04 LTS and above (>= 16.04)
-    The fglrx driver would not be supported in 16.04 (XServer 1.18 is not supported).
-    Canonical and AMD decided to use the new hybrid driver stack for 16.04. JtR OpenCL
-    users should stay on a supported release until the hybrid stack is available.
+      - Ubuntu Xenial 16.04 LTS and above (>= 16.04)
+        - To install it, follow the instructions at https://www.amd.com/en/support/kb/release-notes/AMDGPU-INSTALLATION
+
+    - Otherwise:
+      - Up to Ubuntu 15.10 (<= 15.10).
+      sudo apt-get install ocl-icd-opencl-dev opencl-headers fglrx-dev
+
+      - Ubuntu Xenial 16.04 LTS and above (>= 16.04)
+      The fglrx driver is not supported in 16.04 (XServer 1.18 is not supported).
+      Canonical and AMD decided to use the new hybrid driver stack for 16.04. OpenCL
+      users should stay on a supported release until the hybrid stack is available.
 
 ==== Optional MPI support
 
