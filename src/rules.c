@@ -265,7 +265,7 @@ static void rules_init_class(char name, char *valid)
 	}
 }
 
-/* Function exported becuase it's also used in fake_salts.c */
+/* Function exported because it's also used in fake_salts.c */
 char *userclass_expand(const char *src)
 {
 	unsigned char _src2[0x100], *src2=_src2, dst_seen[0x100];
