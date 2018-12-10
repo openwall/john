@@ -71,14 +71,6 @@
 #undef index
 #endif
 
-#if defined(LOCK_DEBUG) && !defined(POTSYNC_DEBUG)
-#define POTSYNC_DEBUG 1
-#endif
-
-#ifdef POTSYNC_DEBUG
-static clock_t salt_time = 0;
-#endif
-
 static fix_state_fp fp_fix_state;
 static struct db_main *crk_db;
 static struct fmt_params *crk_params;
@@ -256,11 +248,7 @@ static void crk_remove_salt(struct db_salt *salt)
 				crk_db->salt_hash[hash] = NULL;
 		}
 	}
-#ifdef POTSYNC_DEBUG
-	if (options.verbosity > 1 && crk_params->binary_size &&
-	    crk_db->salt_count < crk_db->password_count)
-		log_event("- got rid of a salt, %d left", crk_db->salt_count);
-#endif
+
 	dyna_salt_remove(salt->salt);
 }
 
@@ -479,10 +467,6 @@ static int crk_remove_pot_entry(char *ciphertext)
 	char argcopy[LINE_BUFFER_SIZE];
 	void *pot_salt;
 	char *binary = crk_methods.binary(ciphertext);
-#ifdef POTSYNC_DEBUG
-	struct tms buffer;
-	clock_t start = times(&buffer), end;
-#endif
 
 	/*
 	 * If the pot entry is truncated from a huge ciphertext, we have
@@ -508,10 +492,6 @@ static int crk_remove_pot_entry(char *ciphertext)
 			} while ((pw = pw->next));
 		}  while ((salt = salt->next));
 
-#ifdef POTSYNC_DEBUG
-		end = times(&buffer);
-		salt_time += (end - start);
-#endif
 		return 0;
 	}
 
@@ -538,10 +518,6 @@ static int crk_remove_pot_entry(char *ciphertext)
 			break;
 	}  while ((salt = salt->next));
 
-#ifdef POTSYNC_DEBUG
-	end = times(&buffer);
-	salt_time += (end - start);
-#endif
 	dyna_salt_remove(pot_salt);
 	if (!salt)
 		return 0;
@@ -596,12 +572,7 @@ int crk_reload_pot(void)
 	char line[LINE_BUFFER_SIZE];
 	FILE *pot_file;
 	int total = crk_db->password_count, others;
-#ifdef POTSYNC_DEBUG
-	struct tms buffer;
-	clock_t start = times(&buffer), end;
 
-	salt_time = 0;
-#endif
 	event_reload = 0;
 
 	if (event_abort)
@@ -671,25 +642,16 @@ int crk_reload_pot(void)
 
 	others = total - crk_db->password_count;
 
-	if (others)
+#if !DEBUG
+	if (john_main_process)
+#endif
+	if (others) {
 		log_event("+ pot sync removed %d hashes; %s",
 		          others, crk_loaded_counts());
 
-	if (others && options.verbosity > VERB_LEGACY) {
-		if (options.node_count)
-			fprintf(stderr, "%u: %s\n",
-			        options.node_min, crk_loaded_counts());
-		else
+		if (options.verbosity > VERB_DEFAULT)
 			fprintf(stderr, "%s\n", crk_loaded_counts());
 	}
-
-#ifdef POTSYNC_DEBUG
-	end = times(&buffer);
-#if defined(_SC_CLK_TCK) && !defined(CLK_TCK)
-#define CLK_TCK	sysconf(_SC_CLK_TCK)
-#endif
-	fprintf(stderr, "%s(%u): potsync removed %d hashes in %lu ms (%lu ms finding salts); %s\n", __FUNCTION__, options.node_min, others, 1000UL*(end - start)/CLK_TCK, 1000UL * salt_time / CLK_TCK, crk_loaded_counts());
-#endif
 
 	return (!crk_db->salts);
 }
