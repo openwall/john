@@ -10,7 +10,7 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifndef __FreeBSD__
+#if !(__FreeBSD__ || __APPLE__)
 /* On FreeBSD, defining this precludes the declaration of u_int, which
  * FreeBSD's own <sys/file.h> needs. */
 #if _XOPEN_SOURCE < 500
@@ -61,6 +61,8 @@
 #include "unicode.h"
 #include "john_mpi.h"
 #include "signals.h"
+#include "jumbo.h"
+#include "opencl_common.h"
 #include "memdbg.h"
 
 char *rec_name = RECOVERY_NAME;
@@ -293,7 +295,14 @@ void rec_save(void)
 	int add_mkv_stats = (options.mkv_stats ? 1 : 0);
 	long size;
 	char **opt;
+#if HAVE_OPENCL
+	int add_lws, add_gws;
 
+	add_gws = add_lws =
+		(options.format && strcasestr(options.format, "-opencl") &&
+		 cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		              "ResumeWS", 0));
+#endif
 	log_flush();
 
 	if (!rec_file) return;
@@ -310,17 +319,27 @@ void rec_save(void)
 		if (!strncmp(*opt, "--internal-encoding", 19))
 			memcpy(*opt, "--internal-codepage", 19);
 #ifdef HAVE_MPI
-		if (!strncmp(*opt, "--fork", 6))
+		if (fake_fork && !strncmp(*opt, "--fork", 6))
 			fake_fork = 0;
 		else
 #endif
-		if (!strncmp(*opt, "--encoding", 10) ||
-			!strncmp(*opt, "--input-encoding", 16))
+#if HAVE_OPENCL
+		if (add_lws && !strncmp(*opt, "--lws", 5))
+			add_lws = 0;
+		else
+		if (add_gws && !strncmp(*opt, "--gws", 5))
+			add_gws = 0;
+		else
+#endif
+		if (add_enc &&
+		    (!strncmp(*opt, "--encoding", 10) ||
+		     !strncmp(*opt, "--input-encoding", 16)))
 			add_enc = 0;
-		else if (!strncmp(*opt, "--internal-codepage", 19) ||
-		         !strncmp(*opt, "--target-encoding", 17))
+		else if (add_2nd_enc &&
+		         (!strncmp(*opt, "--internal-codepage", 19) ||
+		          !strncmp(*opt, "--target-encoding", 17)))
 			add_2nd_enc = 0;
-		else if (!strncmp(*opt, "--mkv-stats", 11))
+		else if (add_mkv_stats && !strncmp(*opt, "--mkv-stats", 11))
 			add_mkv_stats = 0;
 	}
 
@@ -331,6 +350,9 @@ void rec_save(void)
 	add_argc = add_enc + add_2nd_enc + add_mkv_stats;
 #ifdef HAVE_MPI
 	add_argc += fake_fork;
+#endif
+#if HAVE_OPENCL
+	add_argc += add_lws + add_gws;
 #endif
 	fprintf(rec_file, RECOVERY_V "\n%d\n",
 		rec_argc + (save_format ? 1 : 0) + add_argc);
@@ -379,6 +401,12 @@ void rec_save(void)
 #ifdef HAVE_MPI
 	if (fake_fork)
 		fprintf(rec_file, "--fork=%d\n", mpi_p);
+#endif
+#if HAVE_OPENCL
+	if (add_lws)
+		fprintf(rec_file, "--lws="Zu"\n", local_work_size);
+	if (add_gws)
+		fprintf(rec_file, "--gws="Zu"\n", global_work_size);
 #endif
 
 	fprintf(rec_file, "%u\n%u\n%x\n%x\n%x\n%x\n%x\n%x\n%x\n"
