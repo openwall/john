@@ -661,7 +661,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (ocl_autotune_running || new_keys) {
 		int i;
 
-		global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+		global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 		// Copy data to gpu
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,

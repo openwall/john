@@ -296,7 +296,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 		timeMs = calcMs(startc, endc);
 		count = (size_t)((kernelRunMs / timeMs) * (long double)gwsInit);
-		count = GET_MULTIPLE_OR_BIGGER(count, gwsRound);
+		count = GET_NEXT_MULTIPLE(count, gwsRound);
 
 		MEM_FREE(hostDccHashes);
 		MEM_FREE(hostDcc2Hashes);
@@ -324,7 +324,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 		timeMs = calcMs(startc, endc);
 		count = (size_t)((kernelRunMs / timeMs) * (long double)count);
-		count = GET_MULTIPLE_OR_BIGGER(count, gwsRound);
+		count = GET_NEXT_MULTIPLE(count, gwsRound);
 
 		MEM_FREE(hostDccHashes);
 		MEM_FREE(hostDcc2Hashes);
@@ -402,7 +402,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 
 	if (tuneGws && tuneLws) {
 		count = (size_t)((kernelRunMs / minTimeMs) * (long double)count);
-		count = GET_MULTIPLE_OR_BIGGER(count, gwsRound);
+		count = GET_NEXT_MULTIPLE(count, gwsRound);
 	}
 
 	if (tuneGws) {
@@ -418,7 +418,7 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 	/* Auto tune finish.*/
 
 	if (devParam[jtrUniqDevId].devGws % gwsRound) {
-		devParam[jtrUniqDevId].devGws = GET_MULTIPLE_OR_BIGGER(devParam[jtrUniqDevId].devGws, gwsRound);
+		devParam[jtrUniqDevId].devGws = GET_NEXT_MULTIPLE(devParam[jtrUniqDevId].devGws, gwsRound);
 		releaseDevObjGws(jtrUniqDevId);
 		if (devParam[jtrUniqDevId].devGws > gwsLimit)
 			devParam[jtrUniqDevId].devGws = gwsLimit;

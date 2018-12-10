@@ -554,7 +554,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	if (new_keys) {
 		// sort passwords by length

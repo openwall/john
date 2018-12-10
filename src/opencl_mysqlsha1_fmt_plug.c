@@ -966,7 +966,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	/* Auto tune finish.*/
 
 	if (global_work_size % local_work_size) {
-		global_work_size = GET_MULTIPLE_OR_BIGGER(global_work_size, local_work_size);
+		global_work_size = GET_NEXT_MULTIPLE(global_work_size, local_work_size);
 		get_power_of_two(global_work_size);
 		release_clobj_kpc();
 		if (global_work_size > gws_limit)
