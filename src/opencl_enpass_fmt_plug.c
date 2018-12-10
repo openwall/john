@@ -263,7 +263,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i, j;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER_VW(count, local_work_size);
+	global_work_size = GET_NEXT_MULTIPLE_VW(count, local_work_size);
 
 	// Copy data to gpu
 	if (ocl_autotune_running || new_keys) {

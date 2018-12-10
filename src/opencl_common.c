@@ -1791,7 +1791,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 					x = y;
 				x *= 2;
 				my_work_group =
-				    GET_MULTIPLE_OR_BIGGER(x, wg_multiple);
+				    GET_NEXT_MULTIPLE(x, wg_multiple);
 				/* The loop logic will re-add wg_multiple */
 				my_work_group -= wg_multiple;
 			}

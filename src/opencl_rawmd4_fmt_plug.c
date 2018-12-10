@@ -381,7 +381,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
 
@@ -549,7 +549,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	/* Auto tune finish.*/
 
 	if (global_work_size % local_work_size) {
-		global_work_size = GET_MULTIPLE_OR_BIGGER(global_work_size, local_work_size);
+		global_work_size = GET_NEXT_MULTIPLE(global_work_size, local_work_size);
 		get_power_of_two(global_work_size);
 		release_clobj_kpc();
 		if (global_work_size > gws_limit)

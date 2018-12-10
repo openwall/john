@@ -610,7 +610,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	size_t gws, initial = 128;
 	size_t *lws = local_work_size ? &local_work_size : &initial;
 
-	gws = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	//Check if any password was cracked and reload (if necessary)
 	if (num_loaded_hashes != salt->count)

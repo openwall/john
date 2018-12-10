@@ -372,7 +372,7 @@ static int w_block_precomputed(unsigned char *salt)
 	if (salt == NULL)
 		return 0;
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(1, local_work_size); //count
+	global_work_size = GET_NEXT_MULTIPLE(1, local_work_size); //count
 
 	padding =
 	    (unsigned char *)calloc(BITLOCKER_PADDING_SIZE, sizeof(unsigned char));
@@ -444,7 +444,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i, startIndex=0, h_loopHash=0;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_MULTIPLE_OR_BIGGER(count, local_work_size);
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 	h_found[0] = -1;
 	h_loopIter=cur_salt->iterations/HASH_LOOPS;
 	if(cur_salt->iterations%HASH_LOOPS != 0) h_loopIter++;
