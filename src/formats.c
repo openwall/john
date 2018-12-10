@@ -383,6 +383,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
+		self_test_running = 0;
 		fmt_init(format);
 		dyna_salt_init(format);
 		if (db->real) {
