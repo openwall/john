@@ -356,6 +356,11 @@ static void single_init(void)
 	          0
 #endif
 	          ? " (per local process)" : "");
+#if HAVE_OPENCL || HAVE_ZTEX
+	log_event("- SinglePrioResume = %s", prio_resume ?
+	          "Y (prioritize resumability over speed)" :
+	          "N (prioritize speed over resumability)");
+#endif
 
 	rules_init(single_db, length);
 	rec_rule = rule_number = 0;
