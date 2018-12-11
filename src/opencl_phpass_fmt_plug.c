@@ -214,7 +214,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_NEXT_MULTIPLE_VW(count, local_work_size);
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,

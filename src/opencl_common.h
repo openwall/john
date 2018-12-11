@@ -270,10 +270,6 @@ void opencl_process_event(void);
 
 /* Macro for get a multiple of a given value */
 #define GET_NEXT_MULTIPLE(dividend, divisor)	  \
-    (divisor) ? (((dividend + divisor - 1) / divisor) * divisor) : (dividend)
-
-/* Vector-aware version */
-#define GET_NEXT_MULTIPLE_VW(dividend, divisor)	  \
 	(divisor) ? ((dividend + (ocl_v_width * divisor - 1)) / (ocl_v_width * divisor)) * divisor : (dividend) / ocl_v_width;
 
 #define GET_MULTIPLE_OR_ZERO(dividend, divisor)	  \
