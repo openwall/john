@@ -1,4 +1,13 @@
 ====================
+CAUTION:
+====================
+    Please note that MPI is only for multi-machine clusters with shared
+    network storage.  Merely having it compiled in (even if unused) may have
+    security and reliability drawbacks.  Most users should read up on the
+    --fork options instead, which gets compiled in automagically if your
+    system supports it.
+
+====================
 PRELUDE:
 ====================
     The original implementation was ca. 2004 by Ryan Lim as an academic
@@ -39,7 +48,7 @@ COMPILING:
     made using the version of OpenMPI included with latest LTE Ubuntu.
 
     Debian/Ubuntu/Mint Linux example for installing OpenMPI:
-    sudo apt-get install libopenmpi-dev openmpi-bin
+    sudo apt-get -y install libopenmpi-dev openmpi-bin
 
     The new autconf (./configure) system does not build MPI unless told so.
     It should detect and enable MPI if it's installed properly and you supply
@@ -48,7 +57,7 @@ COMPILING:
 
     Note that MPI works just fine together with OpenMP (a.k.a OMP) enabled
     as well.  When MPI is in use (with more than one process), OMP is
-    automatically disabled. Advanced users may want to change this setting
+    automagically disabled. Advanced users may want to change this setting
     (change MPIOMPmutex to N in john.conf) and start one MPI node per
     multi-core host, letting OMP do the rest. Warnings are printed; these
     can be muted in john.conf too.
@@ -110,11 +119,11 @@ USAGE:
         mpirun -host hostname -np 4 ./john ...
 
 
-    In INCREMENTAL mode, the job is automatically split as evenly as possible
+    In INCREMENTAL mode, the job is automagically split as evenly as possible
     without performance loss. This is not perfect so in some cases, some nodes
     will complete earlier than others.
 
-    In MARKOV mode, the range is automatically split evenly across the nodes,
+    In MARKOV mode, the range is automagically split evenly across the nodes,
     just like you could do manually. This does not introduce any overhead,
     assuming job runs to completion.
 

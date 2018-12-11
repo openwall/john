@@ -1,4 +1,5 @@
-Please, read INSTALL for general information about installing John on your system.
+Please, read INSTALL for general information about installing John on your
+system.
 
 == Preamble
 
@@ -13,45 +14,55 @@ Please, read INSTALL for general information about installing John on your syste
 
 == How to install on Ubuntu (also works on Ubuntu for Windows)
 
-    The steps listed below might work unchanged on Debian and derivatives (untested).
+    The steps listed below might work unchanged on Debian and derivatives
+    (untested).
 
 === Preconditions and Required stuff
 
     mkdir -p ~/src
-    sudo apt-get install build-essential libssl-dev git zlib1g-dev
+    sudo apt-get -y install build-essential libssl-dev git zlib1g-dev
 
 ==== Recommended (extra formats and performance)
 
-    sudo apt-get install yasm libgmp-dev libpcap-dev pkg-config libbz2-dev
+    sudo apt-get -y install yasm libgmp-dev libpcap-dev pkg-config libbz2-dev
 
 ==== If you have an NVIDIA GPU (OpenCL support)
 
-    sudo apt-get install nvidia-opencl-dev
+    sudo apt-get -y install nvidia-opencl-dev
 
 ==== If you have an AMD GPU (OpenCL support)
 
-    - If you have a recent GPU card (see [1]), the amdgpu-pro graphics stack should be used.
-      [1] https://www.amd.com/en/support/kb/release-notes/rn-radpro-lin-16-40#faq-AMD-Product-Compatibility
+    - If you have a recent GPU card (see [1]), the amdgpu-pro graphics stack
+      should be used.
 
-      - Ubuntu Xenial 16.04 LTS and above (>= 16.04)
-        - To install it, follow the instructions at https://www.amd.com/en/support/kb/release-notes/AMDGPU-INSTALLATION
+      - Ubuntu Xenial 16.04 LTS and above:
+        To install it, follow the instructions at [2]. The fglrx driver is not
+        supported in 16.04 (XServer 1.18 is not supported). Canonical and AMD
+        decided to use the new hybrid driver stack for 16.04. OpenCL users
+        should stay on a supported release until the hybrid stack is available.
 
-    - Otherwise:
-      - Up to Ubuntu 15.10 (<= 15.10).
-      sudo apt-get install ocl-icd-opencl-dev opencl-headers fglrx-dev
+      - Ubuntu up to and including 15.10:
+        sudo apt-get -y install ocl-icd-opencl-dev opencl-headers fglrx-dev
 
-      - Ubuntu Xenial 16.04 LTS and above (>= 16.04)
-      The fglrx driver is not supported in 16.04 (XServer 1.18 is not supported).
-      Canonical and AMD decided to use the new hybrid driver stack for 16.04. OpenCL
-      users should stay on a supported release until the hybrid stack is available.
+==== If you want a CPU device for OpenCL (OpenCL support)
+    sudo apt-get -y ocl-icd-opencl-dev opencl-headers pocl-opencl-icd
 
 ==== Optional MPI support
 
-    sudo apt-get install libopenmpi-dev openmpi-bin
+    You probably do not need MPI, it's only for multi-machine clusters with
+    shared network storage.  Merely having it compiled in (even if unused)
+    may have security and reliability drawbacks.  Most users should read up
+    on the --fork options instead, which gets compiled in automagically if
+    your system supports it.  Having said all this, if you're sure you do
+    need MPI support: Read README.mpi for instructions.
+
+    Please also note that OpenMP (Open Multi-Processing) is not the same
+    as Open MPI (Message Passing Interface).  You do get OpenMP if your
+    system supports it.
 
 ==== Optional REXGEN support (additional cracking modes)
 
-    sudo apt-get install cmake bison flex libicu-dev
+    sudo apt-get -y install cmake bison flex libicu-dev
     cd ~/src
     git clone --recursive https://github.com/teeshop/rexgen.git
     cd rexgen
@@ -77,3 +88,10 @@ Please, read INSTALL for general information about installing John on your syste
 === Benchmark your build
 
     $ ../run/john --test
+
+
+
+Foot notes:
+
+[1] https://www.amd.com/en/support/kb/release-notes/rn-radpro-lin-16-40#faq-AMD-Product-Compatibility
+[2] https://www.amd.com/en/support/kb/release-notes/AMDGPU-INSTALLATION
