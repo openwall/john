@@ -50,7 +50,7 @@ static int orig_max_len, orig_min_kpc;
 static int ocl_fmt;
 #endif
 #if HAVE_OPENCL || HAVE_ZTEX
-static int acc_fmt;
+static int acc_fmt, prio_resume;
 #endif
 
 extern int rpp_real_run; /* set to 1 when we really get into single mode */
@@ -134,12 +134,14 @@ static void single_init(void)
 	int lim_kpc, max_buffer_GB;
 	uint64_t my_buf_share;
 
-#if HAVE_OPENCL
-	ocl_fmt = !!strcasestr(single_db->format->params.label, "-opencl");
-#endif
 #if HAVE_OPENCL || HAVE_ZTEX
+	prio_resume = cfg_get_bool(SECTION_OPTIONS, NULL, "SinglePrioResume", 0);
+
 	acc_fmt = strcasestr(single_db->format->params.label, "-opencl") ||
 		strcasestr(single_db->format->params.label, "-ztex");
+#endif
+#if HAVE_OPENCL
+	ocl_fmt = acc_fmt && strcasestr(single_db->format->params.label, "-opencl");
 #endif
 
 	log_event("Proceeding with \"single crack\" mode");
@@ -645,7 +647,7 @@ next:
 	} while ((pw = pw->next));
 
 #if HAVE_OPENCL || HAVE_ZTEX
-	if (!acc_fmt)
+	if (!acc_fmt || prio_resume)
 #endif
 	if (keys->count && rule_number - keys->rule > (key_count << 1))
 		if (single_process_buffer(salt))
