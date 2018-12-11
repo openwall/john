@@ -58,8 +58,6 @@
 #include "john_mpi.h"
 #include "memdbg.h"
 
-#define KLUDGE_LOCK_FILE "$JOHN/.JtR_kernel_build_lock"
-
 /* Set this to eg. 3 for some added debug and retry stuff */
 #define RACE_CONDITION_DEBUG 0
 
@@ -711,7 +709,7 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 		else if (!isdigit(ARCH_INDEX(device_list[n][0]))) {
 			fprintf(stderr, "Error: --device must be numerical, "
 			        "or one of \"all\", \"cpu\", \"gpu\" and\n"
-			        "\"accelerator\".\n");
+			        "\"acc[elerator]\".\n");
 			error();
 		} else
 			add_device_to_list(atoi(device_list[n]));
@@ -1160,11 +1158,8 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	char *build_log, *build_opts;
 	size_t log_size;
 	const char *srcptr[] = { kernel_source };
-#if (HAVE_MPI || OS_FORK) && (OS_FLOCK || FCNTL_LOCKS)
-	FILE *kludge_file = fopen(path_expand(KLUDGE_LOCK_FILE), "w");
-#endif
-#if HAVE_MPI
-	static int once;
+#if HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS)
+	int kludge_file = 0;
 #endif
 
 	/* This over-rides binary caching */
@@ -1187,34 +1182,43 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 	build_opts = include_source("$JOHN/kernels", sequential_id, opts);
 
 	if (options.verbosity > VERB_LEGACY)
-		fprintf(stderr, "Options used: %s %s\n", build_opts, kernel_source_file);
+		fprintf(stderr, "Options used: %s %s\n", build_opts,
+		        kernel_source_file);
 
-#if (HAVE_MPI || OS_FORK) && (OS_FLOCK || FCNTL_LOCKS)
-	if (kludge_file == NULL)
-		fprintf(stderr, "%u: Error setting build lock: %s\n",
-		        NODE, strerror(errno));
-	else {
+	kernel_source_file = path_expand(kernel_source_file);
+
+#if HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS)
+	if (mpi_p > 1) {
+#if RACE_CONDITION_DEBUG
+		if (options.verbosity == VERB_DEBUG)
+			fprintf(stderr, "Node %d %s kludge locking %s...\n",
+			        NODE, __FUNCTION__, kernel_source_file);
+#endif
+		if ((kludge_file = open(kernel_source_file, O_RDWR | O_APPEND)) < 0) {
+			pexit("Error opening kernel file");
+		} else {
 #if FCNTL_LOCKS
-		struct flock lock;
+			struct flock lock;
 
-		memset(&lock, 0, sizeof(lock));
-		lock.l_type = F_WRLCK;
-		while (fcntl(fileno(kludge_file), F_SETLKW, &lock)) {
-			if (errno != EINTR)
-				pexit("fcntl(F_WRLCK)");
-		}
+			memset(&lock, 0, sizeof(lock));
+			lock.l_type = F_WRLCK;
+			while (fcntl(kludge_file, F_SETLKW, &lock)) {
+				if (errno != EINTR)
+					pexit("fcntl(F_WRLCK)");
+			}
 #else
-		while (flock(fileno(kludge_file), LOCK_EX)) {
-			if (errno != EINTR)
-				pexit("flock(LOCK_EX)");
+			while (flock(kludge_file, LOCK_EX)) {
+				if (errno != EINTR)
+					pexit("flock(LOCK_EX)");
+			}
+#endif /* FCNTL_LOCKS */
 		}
+#if RACE_CONDITION_DEBUG
+		if (options.verbosity == VERB_DEBUG)
+			fprintf(stderr, "Node %d got a kludge lock\n", NODE);
 #endif
 	}
-#if RACE_CONDITION_DEBUG
-	if (options.verbosity == VERB_MAX)
-		fprintf(stderr, "Node %d got a lock\n", NODE);
-#endif
-#endif /* (HAVE_MPI || OS_FORK) && (OS_FLOCK || FCNTL_LOCKS) */
+#endif /* HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS) */
 
 	build_code = clBuildProgram(*program, 0, NULL,
 	                            build_opts, NULL, NULL);
@@ -1234,7 +1238,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 
 	// Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
-		// Give us much info about error and exit
+		// Give us info about error and exit (through HANDLE_CLERROR)
 		if (options.verbosity <= VERB_LEGACY)
 			fprintf(stderr, "Options used: %s %s\n",
 			        build_opts, kernel_source_file);
@@ -1275,10 +1279,13 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 		MEM_FREE(full_path);
 
 		if (file == NULL)
-			fprintf(stderr, "Error creating binary file %s: %s\n",
-			        file_name, strerror(errno));
+			perror("Error creating binary cache file");
 		else {
 #if OS_FLOCK || FCNTL_LOCKS
+#if RACE_CONDITION_DEBUG
+			if (options.verbosity == VERB_DEBUG)
+				fprintf(stderr, "Node %d %s locking %s...\n", NODE, __FUNCTION__, file_name);
+#endif
 			{
 #if FCNTL_LOCKS
 				struct flock lock;
@@ -1296,39 +1303,30 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 				}
 #endif
 			}
+#if RACE_CONDITION_DEBUG
+			if (options.verbosity == VERB_DEBUG)
+				fprintf(stderr, "Node %d got a lock on %s\n", NODE, file_name);
 #endif
+#endif /* OS_FLOCK || FCNTL_LOCKS */
 			if (fwrite(source, source_size, 1, file) != 1)
-				fprintf(stderr, "error writing binary\n");
+				perror("Error caching kernel binary");
+#if RACE_CONDITION_DEBUG
+			if (options.verbosity == VERB_DEBUG)
+				fprintf(stderr, "Node %d closing %s\n", NODE, file_name);
+#endif
 			fclose(file);
 		}
 		MEM_FREE(source);
 	}
 
-#if (HAVE_MPI || OS_FORK) && (OS_FLOCK || FCNTL_LOCKS)
+#if HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS)
 #if RACE_CONDITION_DEBUG
-	if (options.verbosity == VERB_MAX)
-		fprintf(stderr, "Node %d releasing lock\n", NODE);
+	if (mpi_p > 1 && options.verbosity == VERB_DEBUG)
+		fprintf(stderr, "Node %d releasing kludge lock\n", NODE);
 #endif
-	if (kludge_file)
-		fclose(kludge_file);
-#endif /* (HAVE_MPI || OS_FORK) && (OS_FLOCK || FCNTL_LOCKS) */
-
-#if HAVE_MPI
-	if (mpi_p > 1 && !once++) {
-		// Avoid silly race conditions seen with nvidia
-#if RACE_CONDITION_DEBUG
-		if (options.verbosity == VERB_MAX)
-			fprintf(stderr, "Node %d reached MPI build barrier\n", NODE);
-#endif
-		MPI_Barrier(MPI_COMM_WORLD);
-#if RACE_CONDITION_DEBUG
-		if (options.verbosity == VERB_MAX)
-			fprintf(stderr, "Node %d passed MPI build barrier\n", NODE);
-#endif
-		if (mpi_id == 0 && options.verbosity >= VERB_DEFAULT)
-			fprintf(stderr, "All nodes done OpenCL build\n");
-	}
-#endif
+	if (mpi_p > 1)
+		close(kludge_file);
+#endif /* HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS) */
 }
 
 void opencl_build_from_binary(int sequential_id, cl_program *program, char *kernel_source, size_t program_size)
@@ -1358,8 +1356,9 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, char *kern
 
 	// Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
-		// Give us much info about error and exit
-		fprintf(stderr, "Binary build log: %s\n", build_log);
+		// Give us info about error and exit (through HANDLE_CLERROR)
+		if (strlen(build_log) > 1)
+			fprintf(stderr, "Binary build log: %s\n", build_log);
 		fprintf(stderr, "Error %d building kernel using cached binary."
 		        " DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
 		HANDLE_CLERROR(build_code, "clBuildProgram");
@@ -2081,6 +2080,10 @@ size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 		pexit("Can't read source kernel");
 
 #if OS_FLOCK || FCNTL_LOCKS
+#if RACE_CONDITION_DEBUG
+	if (options.verbosity == VERB_DEBUG)
+		fprintf(stderr, "Node %d %s locking (shared) %s...\n", NODE, __FUNCTION__, kernel_filename);
+#endif
 	{
 #if FCNTL_LOCKS
 		struct flock lock;
@@ -2098,7 +2101,11 @@ size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 		}
 #endif
 	}
+#if RACE_CONDITION_DEBUG
+	if (options.verbosity == VERB_DEBUG)
+		fprintf(stderr, "Node %d got a shared lock on %s\n", NODE, kernel_filename);
 #endif
+#endif /* OS_FLOCK || FCNTL_LOCKS */
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
@@ -2107,8 +2114,13 @@ size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 	read_size = fread(*kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
-		        "Error reading source: expected "Zu", got "Zu" bytes.\n",
-		        source_size, read_size);
+		        "Error reading source: expected "Zu", got "Zu" bytes (%s).\n",
+		        source_size, read_size,
+		        feof(fp) ? "EOF" : strerror(errno));
+#if RACE_CONDITION_DEBUG
+	if (options.verbosity == VERB_DEBUG)
+		fprintf(stderr, "Node %d closing %s\n", NODE, kernel_filename);
+#endif
 	fclose(fp);
 	return source_size;
 }
@@ -2148,6 +2160,10 @@ void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
 void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
                          int warn)
 {
+#if HAVE_MPI
+	static int once;
+#endif
+
 	/*
 	 * Disable binary caching for:
 	 * - nvidia unless on macOS
@@ -2238,6 +2254,18 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 
 		MEM_FREE(kernel_source);
 	}
+#if HAVE_MPI
+	if (mpi_p > 1 && !once++) {
+#if RACE_CONDITION_DEBUG
+		if (options.verbosity == VERB_DEBUG)
+			fprintf(stderr, "Node %d reached %s() MPI build barrier\n",
+			        NODE, __FUNCTION__);
+#endif
+		MPI_Barrier(MPI_COMM_WORLD);
+		if (mpi_id == 0 && options.verbosity >= VERB_DEFAULT)
+			fprintf(stderr, "All nodes done OpenCL build\n");
+	}
+#endif /* HAVE_MPI */
 }
 
 int opencl_prepare_dev(int sequential_id)
@@ -2261,15 +2289,11 @@ int opencl_prepare_dev(int sequential_id)
 	if (mpi_p > 1 && !once++) {
 		// Avoid silly race conditions seen with nvidia
 #if RACE_CONDITION_DEBUG
-		if (options.verbosity == VERB_MAX)
+		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Node %d reached MPI prep barrier\n", NODE);
 #endif
 		MPI_Barrier(MPI_COMM_WORLD);
-#if RACE_CONDITION_DEBUG
-		if (options.verbosity == VERB_MAX)
-			fprintf(stderr, "Node %d passed MPI prep barrier\n", NODE);
-#endif
-		if (mpi_id == 0 && options.verbosity > VERB_DEFAULT)
+		if (mpi_id == 0 && options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "All nodes done OpenCL prepare\n");
 	}
 #endif
