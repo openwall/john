@@ -27,9 +27,13 @@ This code has been tested on Linux, macOS and Windows, see doc/BUGS for
 known issues.
 
 GPU formats won't improve your speed on very short runs due to longer
-startup.  It also doesn't work well in single mode due to needing very
-large sets of passwords.  Most formats now handle this by adopting work
-sizes but that usually means it ends up less effecient than a CPU format.
+startup.  It also can't use GPU-side mask generation with "single mode"
+so can't be significantly faster than on CPU for the few fastest of
+formats in that mode.  For most formats though, "single mode" works fine
+nowadays with the only caveats that you might need a whole lot of memory
+(you'll get helpful messages if you need to adjust buffer size) and it
+might resume pretty poorly (meaning if you stop it and then resume, a
+good deal of work will be repeated before actually catching up).
 
 
 ====================
