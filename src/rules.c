@@ -567,7 +567,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 		break;
 
 	case '-':
-		if (!hc_logic)
+		if (!hc_logic && (NEXT < '0' || NEXT > '9')) // HC hack
 		switch (RULE) {
 		case ':':
 			continue;
