@@ -1195,8 +1195,11 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  char last_buf[PLAINTEXT_BUFFER_SIZE] = "\r";
-  char *last = last_buf;
+  union {
+    char buffer[LINE_BUFFER_SIZE];
+    ARCH_WORD dummy;
+  } aligned;
+  char *last = aligned.buffer;
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
   int mask_mult = MAX(1, mask_num_qw);
   int our_fmt_len = (db->format->params.plaintext_length + ((mask_mult - 1) * mask_add_len)) / mask_mult - mask_add_len;
