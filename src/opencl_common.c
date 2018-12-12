@@ -2459,13 +2459,13 @@ cl_uint get_processors_count(int sequential_id)
 		               ((amd_gcn(device_info[sequential_id]) ||
 		                 amd_vliw4(device_info[sequential_id])) ? 4 : 5)));
 	} else {
-		// Nothing else known, we use the native vector width for integer
+		// Nothing else known, we use half native vector width for long
 		cl_uint v_width;
 
 		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
-		                               CL_DEVICE_NATIVE_VECTOR_WIDTH_INT,
+		                               CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG,
 		                               sizeof(v_width), &v_width, NULL),
-		               "clGetDeviceInfo for CL_DEVICE_NATIVE_VECTOR_WIDTH_INT");
+		              "clGetDeviceInfo for CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG");
 		core_count *= (ocl_device_list[sequential_id].cores_per_MP = v_width);
 	}
 
