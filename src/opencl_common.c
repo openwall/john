@@ -80,6 +80,7 @@
 /* Common OpenCL variables */
 int platform_id;
 int default_gpu_selected;
+int default_device_selected;
 int ocl_autotune_running;
 size_t ocl_max_lws;
 

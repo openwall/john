@@ -124,6 +124,7 @@ typedef struct {
 /* Common OpenCL variables */
 extern int platform_id;
 extern int default_gpu_selected;
+extern int default_device_selected;
 extern int ocl_autotune_running;
 extern size_t ocl_max_lws;
 

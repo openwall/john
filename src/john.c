@@ -1432,6 +1432,7 @@ static void john_load(void)
 	if (database.format &&
 	    strstr(database.format->params.label, "-opencl") &&
 	    !strstr(database.format->params.label, "mscash2-opencl") &&
+	    !default_device_selected &&
 #if HAVE_MPI
 	    (mpi_p_local ? mpi_p_local : mpi_p) *
 #endif
