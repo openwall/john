@@ -402,7 +402,7 @@ static void tune(struct db_main *db)
 
 static void reset(struct db_main *db)
 {
-	static size_t saved_lws, saved_gws;
+	static size_t saved_lws, saved_gws, should_tune;
 
 	offset = 0;
 	offset_idx = 0;
@@ -417,24 +417,38 @@ static void reset(struct db_main *db)
 	//Adjust kernel parameters and rebuild (if necessary).
 	build_kernel();
 
-	if (!autotuned) {
+	if (!should_tune) {
 		/* Read LWS/GWS prefs from config or environment */
 		opencl_get_user_preferences(FORMAT_LABEL);
 
 		//Save the local and global work sizes.
 		saved_lws = local_work_size;
 		saved_gws = global_work_size;
+	}
 
-		//GPU mask mode in use, do not auto tune for self test.
-		//Instead, use sane defauts. Real tune is going to be made below.
-		if ((options.flags & FLG_MASK_CHK) &&
-		   !((options.flags & FLG_TEST_CHK) || (options.flags & FLG_NOTESTS)))
-			opencl_get_sane_lws_gws_values();
-
+	/*
+	 * First reset() call. Don't run autotune.
+	 *    -> If self test is running.
+	 *    -> If --skip-self-test is running.
+	 *    -> And if benchmark is NOT running.
+	 *   Instead, use sane defauts. Tune is going to run later/below.
+	 */
+	if (!should_tune && (self_test_running || options.flags & FLG_NOTESTS) &&
+	    !benchmark_running) {
+		opencl_get_sane_lws_gws_values();
 		tune(db);
 
+		//Tune later.
+		autotuned = 0;
+	} else if (!autotuned) {
+		//Retrieve LWS/GWS prefs saved on first round
+		local_work_size = saved_lws;
+		global_work_size = saved_gws;
+
+		tune(db);
 	} else if ((options.flags & FLG_MASK_CHK)) {
-		//Tune for mask mode.
+		//Tune for mask mode (for each mask change).
+		// auto-tune for eg. ?a and then a reset for re-tuning for ?a?a
 		local_work_size = saved_lws;
 		global_work_size = saved_gws;
 
@@ -446,6 +460,7 @@ static void reset(struct db_main *db)
 
 		create_clobj(global_work_size, self);
 	}
+	should_tune++;
 	hash_ids[0] = 0;
 	load_hash();
 }
