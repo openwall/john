@@ -707,6 +707,20 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 			add_device_type(CL_DEVICE_TYPE_GPU);
 		else if (!strncmp(device_list[n], "accelerator", len))
 			add_device_type(CL_DEVICE_TYPE_ACCELERATOR);
+		else if (!strncmp(device_list[n], "best", len)) {
+			int i = 0;
+			cl_device_type trial_list[] = {
+				CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR,
+				CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_DEFAULT
+			};
+
+			do {
+				/* Add devices in the preferable order: gpu,
+				 * accelerator, and cpu. */
+				add_device_type(trial_list[i++]);
+			} while (get_number_of_devices_in_use() == 0 &&
+			         trial_list[i] != CL_DEVICE_TYPE_DEFAULT);
+		}
 		else if (!isdigit(ARCH_INDEX(device_list[n][0]))) {
 			fprintf(stderr, "Error: --device must be numerical, "
 			        "or one of \"all\", \"cpu\", \"gpu\" and\n"

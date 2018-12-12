@@ -585,7 +585,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 #if HAVE_OPENCL
 	if (options.format && strcasestr(options.format, "opencl") &&
 	    (options.flags & FLG_FORK) && options.acc_devices->count == 0) {
-		list_add(options.acc_devices, "all");
+		list_add(options.acc_devices, "best");
 		/* Set a flag that JtR has changed the value of --devices. */
 		default_device_selected = 1;
 	}
