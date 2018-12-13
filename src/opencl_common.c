@@ -683,11 +683,30 @@ static void add_device_to_list(int sequential_id)
 	requested_devices[get_number_of_requested_devices()] = sequential_id;
 }
 
+/* Used below (inside add_device_type routine) to sort devices */
+typedef struct {
+	int index;
+	cl_device_id ID;
+	unsigned int value;
+} speed_sort_t;
+
+/* Used below (inside add_device_type routine) to sort devices */
+static int comparator(const void *p1, const void *p2)
+{
+	const speed_sort_t *c1 = (const speed_sort_t *)p1;
+	const speed_sort_t *c2 = (const speed_sort_t *)p2;
+	int diff = (int)c2->value - (int)c1->value;
+	if (diff)
+		return diff;
+	return c1->index - c2->index;
+}
+
 /* Add groups of devices to requested OpenCL devices list */
 static void add_device_type(cl_ulong device_type)
 {
 	int i, j, sequence_nr = 0;
 	int found = 0;
+	speed_sort_t dev[MAX_GPU_DEVICES];
 
 	// Get all devices of requested type.
 	for (i = 0; platforms[i].platform; i++) {
@@ -696,19 +715,33 @@ static void add_device_type(cl_ulong device_type)
 
 		if (clGetDeviceIDs(platforms[i].platform, CL_DEVICE_TYPE_ALL,
 				MAX_GPU_DEVICES, devices, &device_num) == CL_SUCCESS) {
+			// Sort devices by speed
 			for (j = 0; j < device_num; j++, sequence_nr++) {
-				cl_ulong long_entries = 0;
-
-				if (clGetDeviceInfo(devices[j], CL_DEVICE_TYPE,
-						sizeof(cl_ulong), &long_entries, NULL) == CL_SUCCESS) {
-					if (long_entries & device_type) {
-						found++;
-						add_device_to_list(sequence_nr);
-					}
-				}
+				load_device_info(sequence_nr);
+				dev[sequence_nr].index = sequence_nr;
+				dev[sequence_nr].ID = devices[j];
+				dev[sequence_nr].value = opencl_speed_index(sequence_nr);
 			}
 		}
 	}
+
+	// If there is something to sort, do it.
+	if (sequence_nr > 1)
+		qsort(dev, sequence_nr, sizeof(dev[0]), comparator);
+
+	// Add the devices sorted by speed devices
+	for (j = 0; j < sequence_nr; j++) {
+		cl_ulong long_entries = 0;
+
+		if (clGetDeviceInfo(dev[j].ID, CL_DEVICE_TYPE,
+			sizeof(cl_ulong), &long_entries, NULL) == CL_SUCCESS) {
+			if (long_entries & device_type) {
+				found++;
+				add_device_to_list(dev[j].index);
+			}
+		}
+	}
+
 	if (!found)
 		error_msg("No OpenCL device of that type found\n");
 }
