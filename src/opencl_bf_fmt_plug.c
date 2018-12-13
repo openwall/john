@@ -61,7 +61,7 @@ static void init(struct fmt_main *self) {
 	global_work_size = 0 ;
 
 	//Prepare OpenCL environment.
-	opencl_preinit();
+	opencl_load_environment();
 
 	// Check if specific LWS/GWS was requested
 	opencl_get_user_preferences(FORMAT_LABEL);

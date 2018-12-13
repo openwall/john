@@ -66,7 +66,7 @@ static void set_key(char*, int) ;
 static void init(struct fmt_main *__self)
 {
 	//Prepare OpenCL environment.
-	opencl_preinit();
+	opencl_load_environment();
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);

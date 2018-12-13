@@ -154,7 +154,7 @@ extern int device_info[MAX_GPU_DEVICES];
 size_t opencl_read_source(char *kernel_filename, char **kernel_source);
 
 /* Passive init: enumerate platforms and devices and parse options */
-void opencl_preinit(void);
+void opencl_load_environment(void);
 
 /* Tear-down. Safe to call even if no device was used */
 void opencl_done(void);

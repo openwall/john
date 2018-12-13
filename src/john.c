@@ -670,7 +670,7 @@ static void john_fork(void)
 			if (options.acc_devices->count &&
 			    strstr(database.format->params.label, "-opencl")) {
 				/* Pick device to use for this child */
-				opencl_preinit();
+				opencl_load_environment();
 				gpu_id =
 				    requested_devices[i % get_number_of_requested_devices()];
 				platform_id = get_platform_id(gpu_id);
@@ -706,7 +706,7 @@ static void john_fork(void)
 	if (options.acc_devices->count &&
 	    strstr(database.format->params.label, "-opencl")) {
 		/* Pick device to use for mother process */
-		opencl_preinit();
+		opencl_load_environment();
 		gpu_id = gpu_device_list[0];
 		platform_id = get_platform_id(gpu_id);
 
