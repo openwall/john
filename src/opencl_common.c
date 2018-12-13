@@ -741,8 +741,8 @@ static void add_device_type(cl_ulong device_type)
 			}
 		}
 	}
-
-	if (!found)
+	// If testing preferred devices, do not warn or fail
+	if (!found && !default_device_selected)
 		error_msg("No OpenCL device of that type found\n");
 }
 
