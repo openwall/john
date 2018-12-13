@@ -89,7 +89,6 @@ static int opencl_initialized;
 
 static void load_device_info(int sequential_id);
 static char* get_device_capability(int sequential_id);
-static int find_valid_opencl_device();
 
 // Used by auto-tuning to decide how GWS should changed between trials.
 extern int autotune_get_next_gws_size(size_t num, int step, int startup,
@@ -449,7 +448,8 @@ static int get_if_device_is_in_use(int sequential_id)
 	return found;
 }
 
-/* Load information about all platforms and devices available in the
+/*
+ * Load information about all platforms and devices available in the
  * running system
  */
 static void load_opencl_environment()
@@ -561,6 +561,11 @@ static cl_int get_pci_info(int sequential_id, hw_bus *hardware_info)
 	return CL_SUCCESS;
 }
 
+/*
+ * Initialize an OpenCL device:
+ * - create context and queue;
+ * - get bus and map to monitoring stuff;
+ */
 static int start_opencl_device(int sequential_id, int *err_type)
 {
 	cl_context_properties properties[3];
@@ -702,7 +707,7 @@ static int comparator(const void *p1, const void *p2)
 }
 
 /* Add groups of devices to requested OpenCL devices list */
-static void add_device_type(cl_ulong device_type)
+static void add_device_type(cl_ulong device_type, int top)
 {
 	int i, j, sequence_nr = 0;
 	int found = 0;
@@ -738,6 +743,10 @@ static void add_device_type(cl_ulong device_type)
 			if (long_entries & device_type) {
 				found++;
 				add_device_to_list(dev[j].index);
+
+				// Only the best should be added
+				if (top)
+					break;
 			}
 		}
 	}
@@ -753,27 +762,32 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 
 	while (device_list[n] && n < MAX_GPU_DEVICES) {
 		int len = MAX(strlen(device_list[n]), 3);
+		/* Add devices in the preferable order: gpu,
+		 * accelerator, and cpu. */
+		cl_device_type trial_list[] = {
+			CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR,
+			CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_DEFAULT
+		};
 
 		if (!strcmp(device_list[n], "all"))
-			add_device_type(CL_DEVICE_TYPE_ALL);
+			add_device_type(CL_DEVICE_TYPE_ALL, 0);
 		else if (!strcmp(device_list[n], "cpu"))
-			add_device_type(CL_DEVICE_TYPE_CPU);
+			add_device_type(CL_DEVICE_TYPE_CPU, 0);
 		else if (!strcmp(device_list[n], "gpu"))
-			add_device_type(CL_DEVICE_TYPE_GPU);
+			add_device_type(CL_DEVICE_TYPE_GPU, 0);
 		else if (!strncmp(device_list[n], "accelerator", len))
-			add_device_type(CL_DEVICE_TYPE_ACCELERATOR);
+			add_device_type(CL_DEVICE_TYPE_ACCELERATOR, 0);
 		else if (!strncmp(device_list[n], "best", len)) {
-			int i = 0;
-			cl_device_type trial_list[] = {
-				CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR,
-				CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_DEFAULT
-			};
+			int i = 0, top = (options.fork ? 0 : 1);
 
-			do {
-				/* Add devices in the preferable order: gpu,
-				 * accelerator, and cpu. */
-				add_device_type(trial_list[i++]);
-			} while (get_number_of_devices_in_use() == 0 &&
+			/* Set a flag that JtR has changed the value of --devices. */
+			default_device_selected = 1;
+			if (top)
+				default_gpu_selected = 1;
+
+			do
+				add_device_type(trial_list[i++], top);
+			while (get_number_of_devices_in_use() == 0 &&
 			         trial_list[i] != CL_DEVICE_TYPE_DEFAULT);
 		}
 		else if (!isdigit(ARCH_INDEX(device_list[n][0]))) {
@@ -787,7 +801,8 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 	}
 }
 
-/* Load the OpenCL environment
+/*
+ * Load the OpenCL environment
  * - fill in the "existing" devices list (devices[] variable) and;
  * - fill in the "in use" devices list (gpu_device_list[] variable);
  *   - device was initialized;
@@ -803,7 +818,7 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
  */
 void opencl_load_environment(void)
 {
-	char *device_list[MAX_GPU_DEVICES], string[10];
+	char *device_list[MAX_GPU_DEVICES];
 	int n = 0, i;
 	char *env;
 
@@ -864,12 +879,8 @@ void opencl_load_environment(void)
 		}
 
 		if (!device_list[0]) {
-			gpu_id = find_valid_opencl_device();
-
-			sprintf(string, "%d", gpu_id);
-			device_list[0] = string;
+			device_list[0] = "best";
 			device_list[1] = NULL;
-			default_gpu_selected = 1;
 		}
 
 		if (get_number_of_available_devices() == 0) {
@@ -1064,7 +1075,8 @@ char* get_device_name_(int sequential_id)
 	return device_name;
 }
 
-static void dev_init(int sequential_id)
+/* Print and log information about an OpenCL devide in use */
+static void print_device_info(int sequential_id)
 {
 	static int printed[MAX_GPU_DEVICES];
 	char device_name[MAX_OCLINFO_STRING_LEN];
@@ -2143,35 +2155,6 @@ static void load_device_info(int sequential_id)
 	}
 }
 
-static int find_valid_opencl_device()
-{
-	int d, ret = 0, acc = 0, gpu_found = 0;
-	unsigned int speed, best_1 = 0, best_2 = 0;
-	int num_devices = get_number_of_available_devices();
-
-	for (d = 0; d < num_devices; d++) {
-		// Get the detailed information about the device
-		// (populate device_info[d] bitfield).
-		load_device_info(d);
-
-		if (device_info[d] &
-		    (DEV_GPU | DEV_ACCELERATOR)) {
-			speed = opencl_speed_index(d);
-
-			if ((device_info[d] & DEV_GPU) && (speed > best_1)) {
-				gpu_found = 1;
-				best_1 = speed;
-				ret = d;
-			} else if ((device_info[d] & DEV_ACCELERATOR) && (speed > best_2)) {
-				best_2 = speed;
-				acc = d;
-			}
-		}
-	}
-
-	return gpu_found ? ret : acc;
-}
-
 size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 {
 	FILE *fp;
@@ -2389,7 +2372,7 @@ int opencl_prepare_dev(int sequential_id)
 	profilingEvent = firstEvent = lastEvent = NULL;
 	if (!context[sequential_id])
 		start_opencl_device(sequential_id, &err_type);
-	dev_init(sequential_id);
+	print_device_info(sequential_id);
 
 #if HAVE_MPI
 	if (mpi_p > 1 && !once++) {
