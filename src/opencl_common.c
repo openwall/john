@@ -895,6 +895,19 @@ void opencl_load_environment(void)
 			fprintf(stderr, "No OpenCL devices found\n");
 			error();
 		}
+#if OS_FORK
+		// Poor man's multi-device support.
+		if ((options.fork ? options.fork : 1) > 1 && options.acc_devices->count) {
+			// Pick device to use for this node
+			gpu_id = requested_devices[(options.node_min - 1) %
+			    get_number_of_requested_devices()];
+
+			// Hide any other devices from list
+			gpu_device_list[0] = gpu_id;
+			gpu_device_list[1] = -1;
+		} else
+#endif
+
 #ifdef HAVE_MPI
 		// Poor man's multi-device support.
 		if (mpi_p > 1 && mpi_p_local > 1) {

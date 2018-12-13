@@ -669,16 +669,6 @@ static void john_fork(void)
 			/* Poor man's multi-device support */
 			if (options.acc_devices->count &&
 			    strstr(database.format->params.label, "-opencl")) {
-				/* Pick device to use for this child */
-				opencl_load_environment();
-				gpu_id =
-				    requested_devices[i % get_number_of_requested_devices()];
-				platform_id = get_platform_id(gpu_id);
-
-				/* Hide any other devices from list */
-				gpu_device_list[0] = gpu_id;
-				gpu_device_list[1] = -1;
-
 				/* Postponed format init in forked process */
 				fmt_init(database.format);
 			}
@@ -705,14 +695,6 @@ static void john_fork(void)
 	/* Poor man's multi-device support */
 	if (options.acc_devices->count &&
 	    strstr(database.format->params.label, "-opencl")) {
-		/* Pick device to use for mother process */
-		opencl_load_environment();
-		gpu_id = gpu_device_list[0];
-		platform_id = get_platform_id(gpu_id);
-
-		/* Hide any other devices from list */
-		gpu_device_list[1] = -1;
-
 		/* Postponed format init in mother process */
 		fmt_init(database.format);
 	}
