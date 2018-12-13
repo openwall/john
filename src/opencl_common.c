@@ -913,8 +913,10 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 	} else {
 		cl_uint v_width = 0;
 
+		// If OpenCL has not yet been loaded, load it now
+		opencl_load_environment();
+
 		/* OK, we supply the real figure */
-		opencl_load_environment(); ///TODO: remove me
 		switch (size) {
 		case sizeof(cl_char):
 			HANDLE_CLERROR(clGetDeviceInfo(devices[gpu_id],
@@ -2378,7 +2380,8 @@ int opencl_prepare_dev(int sequential_id)
 	static int once;
 #endif
 
-	opencl_load_environment(); ///TODO: remove me
+	// If OpenCL has not yet been loaded, load it now
+	opencl_load_environment();
 
 	if (sequential_id < 0)
 		sequential_id = gpu_id;
