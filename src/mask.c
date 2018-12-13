@@ -2096,7 +2096,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	    !(options.flags & FLG_MASK_STACKED))
 		mask_increments_len = 1;
 
-	max_keylen = options.eff_maxlength;
+	max_keylen = options.rule_stack ? 125 : options.eff_maxlength;
 
 	if (options.flags & FLG_TEST_CHK && !(options.flags & FLG_MASK_STACKED))
 		max_keylen = strlen(mask_fmt->params.tests[0].plaintext);
@@ -2135,8 +2135,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 		if (rec_restored && john_main_process) {
 			fprintf(stderr, "Proceeding with mask mode:%s", options.mask);
+			if (options.rule_stack)
+				fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 			if (options.req_minlength >= 0 || options.req_maxlength)
-				fprintf(stderr, ", lengths %d-%d",
+				fprintf(stderr, ", lengths:%d-%d",
 				        options.eff_minlength, options.eff_maxlength);
 			fprintf(stderr, "\n");
 		}
@@ -2306,6 +2308,14 @@ static void finalize_mask(int len)
 			        "Warning: ?w has no special meaning in pure mask mode\n");
 		if (mask_add_len > len)
 			mask_add_len = len;
+	}
+
+	if (options.rule_stack && (mask_fmt->params.flags & FMT_MASK)) {
+		mask_int_cand_target = 0;
+		if (john_main_process) {
+			fprintf(stderr, "Note: Disabling internal mask due to stacked rules\n");
+			log_event("- Disabling internal mask due to stacked rules");
+		}
 	}
 
 #ifdef MASK_DEBUG

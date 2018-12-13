@@ -46,15 +46,15 @@ static struct rpp_context *rule_ctx;
 static int words_pair_max;
 static int retest_guessed;
 static int orig_max_len, orig_min_kpc;
-#if HAVE_OPENCL
-static int ocl_fmt;
-#endif
+static int stacked_rule_count = 1;
+static rule_stack single_rule_stack;
+
 #if HAVE_OPENCL || HAVE_ZTEX
 static int acc_fmt, prio_resume;
-#endif
-
-extern int rpp_real_run; /* set to 1 when we really get into single mode */
-
+#if HAVE_OPENCL
+static int ocl_fmt;
+#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL || HAVE_ZTEX */
 
 static void save_state(FILE *file)
 {
@@ -79,10 +79,14 @@ static int restore_state(FILE *file)
 
 static double get_progress(void)
 {
+	uint64_t tot_rules = rule_count * stacked_rule_count;
+	uint64_t tot_rule_number =
+		(rules_stacked_number - 1) * rule_count + rule_number;
+
 	emms();
 
 	return progress ? progress :
-		(double)rule_number / (rule_count + 1) * 100.0;
+		(double)tot_rule_number / (tot_rules + 1) * 100.0;
 }
 
 static uint64_t calc_buf_size(int length, int min_kpc)
@@ -111,6 +115,8 @@ static void single_alloc_keys(struct db_keys **keys)
 	(*keys)->ptr = (*keys)->buffer;
 	(*keys)->have_words = 1; /* assume yes; we'll see for real later */
 	(*keys)->rule = rule_number;
+	//if (rules_stacked_after)
+	//	(*keys)->rule2 = rules_stacked_number;
 	(*keys)->lock = 0;
 	memset((*keys)->hash, -1, hash_size);
 }
@@ -147,10 +153,14 @@ static void single_init(void)
 	log_event("Proceeding with \"single crack\" mode");
 
 	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
-		fprintf(stderr, "Proceeding with single, rules:%s",
-		        options.activesinglerules);
+		fprintf(stderr, "Proceeding with single, rules:");
+		if (options.rule_stack)
+			fprintf(stderr, "(%s x %s)",
+			        options.activewordlistrules, options.rule_stack);
+		else
+			fprintf(stderr, "%s", options.activewordlistrules);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
 			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}
@@ -366,7 +376,12 @@ static void single_init(void)
 	rec_rule = rule_number = 0;
 	rule_count = rules_count(rule_ctx, 0);
 
-	log_event("- %d preprocessed word mangling rules", rule_count);
+	if (rules_stacked_after)
+		log_event("- Total %u (%d x %u) preprocessed word mangling rules",
+		          rule_count * stacked_rule_count,
+		          rule_count, stacked_rule_count);
+	else
+		log_event("- %d preprocessed word mangling rules", rule_count);
 
 	status_init(get_progress, 0);
 
@@ -391,6 +406,14 @@ static void single_init(void)
 	single_alloc_keys(&guessed_keys);
 
 	crk_init(single_db, NULL, guessed_keys);
+
+	stacked_rule_count = rules_init_stack(options.rule_stack,
+	                                      &single_rule_stack, single_db);
+
+	rules_stacked_after = (stacked_rule_count > 0);
+
+	if (!stacked_rule_count)
+		stacked_rule_count = 1;
 }
 
 static MAYBE_INLINE int single_key_hash(char *key)
@@ -441,6 +464,10 @@ static int single_add_key(struct db_salt *salt, char *key, int is_from_guesses)
 	struct db_keys *keys = salt->keys;
 	int index, new_hash, reuse_hash;
 	struct db_keys_hash_entry *entry;
+
+	if (rules_stacked_after)
+		if (!(key = rules_process_stack(key, &single_rule_stack)))
+			return 0;
 
 /* Check if this is a known duplicate, and reject it if so */
 	if ((index = keys->hash->hash[new_hash = single_key_hash(key)]) >= 0)
@@ -534,8 +561,10 @@ static int single_process_buffer(struct db_salt *salt)
 
 	keys = salt->keys;
 	keys->lock--;
-	if (!keys->count && !keys->lock)
+	if (!keys->count && !keys->lock) {
 		keys->rule = rule_number;
+		//keys->rule2 = rules_stacked_number;
+	}
 
 	return 0;
 }
@@ -658,8 +687,10 @@ next:
 		if (single_process_buffer(salt))
 			return 1;
 
-	if (!keys->count)
+	if (!keys->count) {
 		keys->rule = rule_number;
+		//keys->rule2 = rules_stacked_number;
+	}
 
 	if (!have_words) {
 		keys->have_words = 0;
@@ -680,70 +711,92 @@ static void single_run(void)
 
 	saved_min = rec_rule;
 	rpp_real_run = 1;
-	while ((prerule = rpp_next(rule_ctx))) {
-		if (options.node_count) {
-			int for_node = rule_number % options.node_count + 1;
-			if (for_node < options.node_min ||
-			    for_node > options.node_max) {
+
+	do {
+		while ((prerule = rpp_next(rule_ctx))) {
+			if (options.node_count) {
+				int for_node = rule_number % options.node_count + 1;
+				if (for_node < options.node_min ||
+				    for_node > options.node_max) {
+					rule_number++;
+					continue;
+				}
+			}
+
+			if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
 				rule_number++;
+				if (options.verbosity >= VERB_DEFAULT &&
+				    !rules_mute &&
+				    strncmp(prerule, "!!", 2))
+					log_event("- Rule #%d: '%.100s' rejected",
+					          rule_number, prerule);
 				continue;
+			}
+
+			if (!rules_mute) {
+				if (strcmp(prerule, rule)) {
+					log_event("- Rule #%d: '%.100s' accepted as '%.100s')",
+					          rule_number + 1, prerule, rule);
+				} else {
+					log_event("- Rule #%d: '%.100s' accepted",
+					          rule_number + 1, prerule);
+				}
+			}
+
+			if (saved_min != rec_rule) {
+				if (!rules_mute)
+					log_event("- Oldest still in use is now rule #%d",
+					          rec_rule + 1);
+				saved_min = rec_rule;
+			}
+
+			have_words = 0;
+
+			min = rule_number;
+
+			/* pot reload might have removed the salt */
+			if (!(salt = single_db->salts))
+				return;
+			do {
+				if (!salt->list)
+					continue;
+				if (single_process_salt(salt, rule))
+					return;
+				if (!salt->keys->have_words)
+					continue;
+				have_words = 1;
+				if (salt->keys->rule < min)
+					min = salt->keys->rule;
+			} while ((salt = salt->next));
+
+			if (event_reload && single_db->salts)
+				crk_reload_pot();
+
+			rec_rule = min;
+			rule_number++;
+
+			if (have_words)
+				continue;
+
+			log_event("- No information to base%s candidate passwords on",
+			          rule_number > 1 ? " further" : "");
+			return;
+		}
+
+		if (rules_stacked_after) {
+			rule_number = 0;
+			rpp_init(rule_ctx, options.activesinglerules);
+			if (!rules_mute && options.verbosity <= VERB_DEFAULT) {
+				rules_mute = 1;
+				if (john_main_process) {
+					log_event(
+"- Some rule logging suppressed. Re-enable with --verbosity=%d or greater",
+					          VERB_LEGACY);
+				}
 			}
 		}
 
-		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
-			rule_number++;
-			if (options.verbosity >= VERB_DEFAULT && strncmp(prerule, "!!", 2))
-				log_event("- Rule #%d: '%.100s' rejected",
-				          rule_number, prerule);
-			continue;
-		}
-
-		if (strcmp(prerule, rule)) {
-			log_event("- Rule #%d: '%.100s' accepted as '%.100s'",
-				rule_number + 1, prerule, rule);
-		} else {
-			log_event("- Rule #%d: '%.100s' accepted",
-				rule_number + 1, prerule);
-		}
-
-		if (saved_min != rec_rule) {
-			log_event("- Oldest still in use is now rule #%d",
-				rec_rule + 1);
-			saved_min = rec_rule;
-		}
-
-		have_words = 0;
-
-		min = rule_number;
-
-		/* pot reload might have removed the salt */
-		if (!(salt = single_db->salts))
-			return;
-		do {
-			if (!salt->list)
-				continue;
-			if (single_process_salt(salt, rule))
-				return;
-			if (!salt->keys->have_words)
-				continue;
-			have_words = 1;
-			if (salt->keys->rule < min)
-				min = salt->keys->rule;
-		} while ((salt = salt->next));
-
-		if (event_reload && single_db->salts)
-			crk_reload_pot();
-
-		rec_rule = min;
-		rule_number++;
-
-		if (have_words)
-			continue;
-
-		log_event("- No information to base%s candidate passwords on",
-			rule_number > 1 ? " further" : "");
-		return;
-	}
+	} while (rules_stacked_after && rules_advance_stack(&single_rule_stack));
 }
 
 static void single_done(void)

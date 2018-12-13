@@ -97,6 +97,9 @@ struct db_keys {
 /* Number of last processed rule */
 	int rule;
 
+/* Number of last processed stacked rule */
+	//int rule2;
+
 /* Number of recursive calls for this salt */
 	int lock;
 

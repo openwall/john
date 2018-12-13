@@ -38,14 +38,17 @@ static double cand;
 
 static double get_progress(void)
 {
-	unsigned long long mask_mult = mask_tot_cand ? mask_tot_cand : 1;
+	uint64_t mask_mult = mask_tot_cand ? mask_tot_cand : 1;
+	uint64_t factors = crk_stacked_rule_count * mask_mult;
+	uint64_t keyspace = cand * factors;
+	uint64_t pos = status.cands;
 
 	emms();
 
 	if (!cand)
 		return -1;
 
-	return 100.0 * status.cands / (cand * mask_mult);
+	return 100.0 * pos / keyspace;
 }
 
 typedef char (*char2_table)
@@ -493,9 +496,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
 		fprintf(stderr, "Proceeding with incremental:%s", mode);
 		if (options.mask)
-			fprintf(stderr, ", mask:%s", options.mask);
+			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.rule_stack)
+			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
 			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}

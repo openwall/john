@@ -42,6 +42,9 @@ indent_size = 4
 [loader.c]
 indent_size = 4
 
+[rules.c]
+indent_size = 4
+
 [single.c]
 indent_size = 4
 
@@ -215,7 +218,7 @@ indent_size = 8
 [rpp.[ch]]
 indent_size = 8
 
-[rules.[ch]]
+[rules.h]
 indent_size = 8
 
 [sboxes-s.[ch]]

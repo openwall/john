@@ -344,9 +344,11 @@ void do_regex_crack(struct db_main *db, const char *regex)
 	if (rec_restored && john_main_process) {
 		fprintf(stderr, "Proceeding with regex:%s", regex);
 		if (options.mask)
-			fprintf(stderr, ", mask:%s", options.mask);
+			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.rule_stack)
+			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths %d-%d",
+			fprintf(stderr, ", lengths:%d-%d",
 			        options.eff_minlength, options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}

@@ -72,8 +72,7 @@ attacked.  Note that by default, some rules are applied too (see john.conf
 Input data in a character encoding other than the default.  See also
 doc/ENCODINGS.  --list=encodings gives a list of supported encodings.
 
---rules[=(SECTION[,SECTION2,....,SECTIONn]|:rule)]  enable word mangling rules
-   (available in wordlist and prince modes)
+--rules[=(SECTION[,..]|:rule[;..])]
 
 Enables word mangling rules that are read from the specified section, which
 defaults to [List.Rules:Wordlist] if not given.
@@ -90,6 +89,28 @@ a rule, then it must be preceded by a \ character, to escape it.
 So --rules::'$\;$[0-9]' is just one rule, while --rules=:'$\;$[0-9];Az"tst"'
 is two rules, and --rules=:'$;$[0-9]' would 'try' to generate 2 rules, BUT
 the first will be invalid since it is just the $ character.
+
+--rules-stack=(SECTION[,..]|:rule[;..])
+
+Stacked rules. Adds a second pass of rules, applied after normal processing.
+Example: "--single --rules-stack=ShiftToggle" will run single mode's normal
+rules fully through the first (no-op) rule in the toggle ruleset.  Only then
+will the latter set move on to its second rule, the main rules are rewinded,
+and so on.  In other modes, eg. "--wordlist --rules --rules-stack=best64",
+the stacked rules (best64 in this case) will do a full pass before the
+base rule moves to its second rule.  This option also works fine with ALL
+modes that normally don't support rules at all, eg. "--mask=password?d?d?d
+--rules-stack=KoreLogic" (although that will disable any GPU-side mask
+accleration).  You can even use --wordlist --rules-stack=SomeRule without
+using any base rule.  The difference is in how it iterates: Normal --rules
+will run all words through the first rule before moving the second rule,
+while --rules-stack will apply all rules to the first word before moving on
+to the second word from the list.  Please note that when using (rule x rule)
+you very quickly end up with huge numbers of rules:  Running the "all"
+ruleset twice as "--rules=all --rules-stack=all" will produce a whopping
+53 trillion rules.  This feature is best used with very carefully picked
+rulesets that are made to work together.
+
 
 --incremental[=MODE]		"incremental" mode [using section MODE]
 

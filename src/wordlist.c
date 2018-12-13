@@ -116,8 +116,6 @@ static char *mem_map, *map_pos, *map_end, *map_scan_end;
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
 
-extern int rpp_real_run; /* set to 1 when we really get into wordlist mode */
-
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n%" PRId64 "\n%" PRId64 "\n",
@@ -391,6 +389,9 @@ static double get_progress(void)
 	int64_t pos;
 	uint64_t size;
 	uint64_t mask_mult = mask_tot_cand ? mask_tot_cand : 1;
+	uint64_t tot_rules = rule_count * crk_stacked_rule_count;
+	uint64_t tot_rule_number =
+		rule_number * crk_stacked_rule_count + rules_stacked_number;
 
 	emms();
 
@@ -413,9 +414,7 @@ static double get_progress(void)
 		jtr_fseek64(word_file, 0, SEEK_END);
 		size = jtr_ftell64(word_file);
 		jtr_fseek64(word_file, pos, SEEK_SET);
-#if 0
-		fprintf(stderr, "pos=%"PRId64"  size=%"PRIu64"  percent=%0.4f\n", pos, size, (100.0 * ((rule_number * (double)size) + pos) /(rule_count * (double)size)));
-#endif
+
 		if (pos < 0) {
 #ifdef __DJGPP__
 			if (pos != -1)
@@ -425,12 +424,9 @@ static double get_progress(void)
 				pexit(STR_MACRO(jtr_ftell64));
 		}
 	}
-#if 0
-	fprintf(stderr, "rule %d/%d mask %"PRIu64" pos %"PRId64"/%"PRIu64"\n",
-	        rule_number, rule_count, mask_mult, pos, size);
-#endif
-	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /
-	        (rule_count * size * mask_mult));
+
+	return (100.0 * ((tot_rule_number * size * mask_mult) + pos * mask_mult) /
+	        (tot_rules * size * mask_mult));
 }
 
 static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
@@ -657,13 +653,19 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		fprintf(stderr, "Proceeding with wordlist:%s",
 		        loopBack ? "loopback" :
 		        name ? path_expand(name) : "stdin");
-		if (options.activewordlistrules)
-			fprintf(stderr, ", rules:%s",
-			        options.activewordlistrules);
+		if (options.activewordlistrules) {
+			if (options.rule_stack)
+				fprintf(stderr, ", rules:(%s x %s)",
+				        options.activewordlistrules, options.rule_stack);
+			else
+				fprintf(stderr, ", rules:%s", options.activewordlistrules);
+		}
 		if (options.mask)
-			fprintf(stderr, ", mask:%s", options.mask);
+			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (!options.activewordlistrules && options.rule_stack)
+			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			fprintf(stderr, ", lengths: %d-%d", options.eff_minlength,
 			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}
@@ -1113,8 +1115,15 @@ REDO_AFTER_LMLOOP:
 		rules_init(db, length);
 		rule_count = rules_count(&ctx, -1);
 
-		if (do_lmloop || !db->plaintexts->head)
-		log_event("- %d preprocessed word mangling rules", rule_count);
+		if (do_lmloop || !db->plaintexts->head) {
+			if (rules_stacked_after)
+				log_event("- Total %u (%d x %u) preprocessed word mangling rules",
+				          rule_count * crk_stacked_rule_count,
+				          rule_count, crk_stacked_rule_count);
+			else
+				log_event("- %d preprocessed word mangling rules", rule_count);
+		}
+
 
 		apply = rules_apply;
 	} else {

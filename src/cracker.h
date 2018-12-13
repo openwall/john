@@ -11,7 +11,9 @@
 #define _JOHN_CRACKER_H
 
 #include <stdint.h>
+
 #include "loader.h"
+#include "rules.h"
 
 /* Our last read position in pot file (during crack) */
 extern int64_t crk_pot_pos;
@@ -27,11 +29,18 @@ extern void crk_init(struct db_main *db, void (*fix_state)(void),
 	struct db_keys *guesses);
 
 /*
+ * How many stacked rules will be run, or 1 for none.
+ *
+ * Note: To tell IF stack rules will be run, use rules_stacked_after flag.
+ */
+extern int crk_stacked_rule_count;
+
+/*
  * Tries the key against all passwords in the database (should not be empty).
  * The return value is non-zero if aborted or everything got cracked (the
  * event_abort flag can be used to find out which of these has happened).
  */
-extern int crk_process_key(char *key);
+extern int (*crk_process_key)(char *key);
 
 /*
  * Process all/any keys already loaded with crk_process_key, regardless of

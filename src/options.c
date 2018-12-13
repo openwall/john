@@ -113,6 +113,8 @@ static struct opt_entry opt_list[] = {
 #endif
 	{"rules", FLG_RULES, FLG_RULES, FLG_RULES_ALLOW, FLG_STDIN_CHK,
 		OPT_FMT_STR_ALLOC, &options.activewordlistrules},
+	{"rules-stack", FLG_ZERO, FLG_ZERO, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.rule_stack},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"incremental-charcount", FLG_ZERO, 0, FLG_INC_CHK, OPT_REQ_PARAM,
@@ -315,7 +317,8 @@ static struct opt_entry opt_list[] = {
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n" \
-"--single[=(SECTION[,S2,..,Sn]|:rule)] \"single crack\" mode\n" \
+"--single[=SECTION[,..]]    \"single crack\" mode, using default or named rules\n" \
+"--single=:rule[,..]        same, using \"immediate\" rule(s)\n" \
 "--wordlist[=FILE] --stdin  wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe   like --stdin, but bulk reads, and allows rules\n" \
 "--loopback[=FILE]          like --wordlist, but extract words from a .pot file\n" \
@@ -323,8 +326,12 @@ static struct opt_entry opt_list[] = {
 PRINCE_USAGE \
 "--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                           doc/ENCODINGS and --list=hidden-options.\n" \
-"--rules[=(SECTION[,S2,..,Sn]|:rule)]  enable word mangling rules for\n" \
-"                           wordlist or PRINCE modes\n" \
+"--rules[=SECTION[,..]]     enable word mangling rules (for wordlist or PRINCE\n" \
+"                           modes), using default or named rules\n" \
+"--rules=:rule[;..]]        same, using \"immediate\" rule(s)\n" \
+"--rules-stack=SECTION[,..] stacked rules, applied after regular rules or to\n" \
+"                           modes that otherwise don't support rules\n" \
+"--rules-stack=:rule[;..]   same, using \"immediate\" rule(s)\n" \
 "--incremental[=MODE]       \"incremental\" mode [using section MODE]\n" \
 "--mask[=MASK]              mask mode using MASK (or default from john.conf)\n" \
 "--markov[=OPTIONS]         \"Markov\" mode (see doc/MARKOV)\n" \

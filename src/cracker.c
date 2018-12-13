@@ -65,6 +65,7 @@
 #if HAVE_LIBDL && defined(HAVE_OPENCL)
 #include "gpu_common.h"
 #endif
+#include "rules.h"
 #include "memdbg.h"
 
 #ifdef index
@@ -84,14 +85,23 @@ static unsigned int crk_prefetch;
 #endif
 static int crk_key_index, crk_last_key;
 static void *crk_last_salt;
-void (*crk_fix_state)(void);
 static struct db_keys *crk_guesses;
 static uint64_t *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
-int64_t crk_pot_pos;
 static int kpc_warn, kpc_warn_limit, single_running;
 
-/* expose max_keys_per_crypt to the world (needed in recovery.c) */
+int crk_stacked_rule_count = 1;
+rule_stack crk_rule_stack;
+
+int64_t crk_pot_pos;
+
+void (*crk_fix_state)(void);
+int (*crk_process_key)(char *key);
+
+static int process_key(char *key);
+static int process_key_stack_rules(char *key);
+
+/* Expose max_keys_per_crypt to the world (needed in recovery.c) */
 int crk_max_keys_per_crypt(void)
 {
 	return  crk_params->max_keys_per_crypt;
@@ -225,6 +235,20 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	if ((kpc_warn_limit =
 	     cfg_get_int(SECTION_OPTIONS, NULL, "MaxKPCWarnings")) == -1)
 		kpc_warn_limit = CRK_KPC_WARN;
+
+	if (!(options.flags & FLG_SINGLE_CHK))
+		crk_stacked_rule_count =
+			rules_init_stack(options.rule_stack, &crk_rule_stack, db);
+	else
+		crk_stacked_rule_count = 0;
+
+	if (!(rules_stacked_after = (crk_stacked_rule_count > 0)))
+		crk_stacked_rule_count = 1;
+
+	if (rules_stacked_after)
+		crk_process_key = process_key_stack_rules;
+	else
+		crk_process_key = process_key;
 }
 
 /*
@@ -1051,7 +1075,7 @@ int crk_process_buffer(void)
 	return ext_abort;
 }
 
-int crk_process_key(char *key)
+static int process_key(char *key)
 {
 	if (crk_db->loaded) {
 		int max_keys = crk_params->max_keys_per_crypt;
@@ -1107,6 +1131,18 @@ int crk_process_key(char *key)
 	}
 
 	return ext_abort;
+}
+
+static int process_key_stack_rules(char *key)
+{
+	int ret = 0;
+	char *word;
+
+	while ((word = rules_process_stack_all(key, &crk_rule_stack)))
+		if ((ret = process_key(word)))
+			break;
+
+	return ret;
 }
 
 /* This function is used by single.c only */

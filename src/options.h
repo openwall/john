@@ -329,6 +329,9 @@ struct options_main {
 /* the 'single' rules section (default if none entered is Single) */
 	char *activesinglerules;
 
+/* Stacked rules applied within cracker.c for any mode */
+	char *rule_stack;
+
 /* This is a 'special' flag.  It causes john to add 'extra' code to search for
  * some salted types, when we have only the hashes.  The only type supported is
  * PHPS (at this time.).  So PHPS will set this to a 1. OTherwise it will

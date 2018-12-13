@@ -87,10 +87,8 @@ static double get_progress(void)
 	if (!keyspace)
 		return -1;
 
-	if (subsets_cur_len > maxlength) {
-		subsets_cur_len = maxlength;
+	if (subsets_cur_len > maxlength)
 		return 100;
-	}
 
 	return 100.0 * num_done[subsets_cur_len] / keyspace;
 }
@@ -600,8 +598,10 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		        req_charset ? req_charset : "");
 		if (options.mask)
 			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.rule_stack)
+			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
 			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}

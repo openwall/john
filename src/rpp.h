@@ -14,6 +14,8 @@
 #include "params.h"
 #include "config.h"
 
+extern int rpp_real_run;
+
 /*
  * Character range.
  */

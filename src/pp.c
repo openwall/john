@@ -144,8 +144,6 @@ int prince_wl_max;
 char *prince_skip_str;
 char *prince_limit_str;
 
-extern int rpp_real_run; /* set to 1 when we really get into prince mode */
-
 static double progress;
 static char *mem_map, *map_pos, *map_end;
 #if HAVE_REXGEN
@@ -1312,10 +1310,19 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     fprintf(stderr, "Proceeding with prince%c%s",
             loopback ? '-' : ':',
             loopback ? "loopback" : path_expand(wordlist));
+    if (options.activewordlistrules) {
+      if (options.rule_stack)
+        fprintf(stderr, ", rules:(%s x %s)",
+                options.activewordlistrules, options.rule_stack);
+      else
+        fprintf(stderr, ", rules:%s", options.activewordlistrules);
+    }
     if (options.mask)
-      fprintf(stderr, ", mask:%s", options.mask);
+      fprintf(stderr, ", hybrid mask:%s", options.mask);
+    if (!options.activewordlistrules && options.rule_stack)
+      fprintf(stderr, ", rules-stack:%s", options.rule_stack);
     if (options.req_minlength >= 0 || options.req_maxlength)
-      fprintf(stderr, ", lengths %d-%d", options.eff_minlength, options.eff_maxlength);
+      fprintf(stderr, ", lengths:%d-%d", options.eff_minlength, options.eff_maxlength);
     fprintf(stderr, "\n");
   }
 
@@ -1345,7 +1352,12 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     rules_init(db, pw_max);
     rule_count = rules_count(&ctx, -1);
 
-    log_event("- %d preprocessed word mangling rules", rule_count);
+    if (rules_stacked_after)
+      log_event("- Total %u (%d x %u) preprocessed word mangling rules",
+                rule_count * crk_stacked_rule_count,
+                rule_count, crk_stacked_rule_count);
+    else
+      log_event("- %d preprocessed word mangling rules", rule_count);
 
     list_init(&rule_list);
 

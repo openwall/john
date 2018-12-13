@@ -327,18 +327,21 @@ static int show_pwd(struct db_main *db, uint64_t start)
 static double get_progress(void)
 {
 	uint64_t mask_mult = mask_tot_cand ? mask_tot_cand : 1;
+	uint64_t factors = crk_stacked_rule_count * mask_mult;
+	uint64_t keyspace = (gend - gstart) * factors;
+	uint64_t pos = status.cands;
 
 	emms();
 
-	if (gend == 0)
+	if (keyspace == 0)
 		return 0;
 
 	/* Less accurate because we don't know all details needed */
-	if (!f_filter || f_new || options.eff_minlength || gmin_level)
-		return 100.0 * (gidx - gstart) / (gend - gstart);
+	if (f_filter || f_new || options.eff_minlength || gmin_level)
+		pos = ((rules_stacked_number - 1) * keyspace) +
+			(gidx - gstart) * factors;
 
-	/* Accurate even with small markov space and huge hybrid mask */
-	return 100.0 * status.cands / ((gend - gstart) * mask_mult);
+	return 100.0 * pos / keyspace;
 }
 
 void get_markov_options(struct db_main *db,
@@ -736,9 +739,11 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 		fprintf(stderr, "Proceeding with Markov%s%s",
 		        param ? " " : "", param ? param : "");
 		if (options.mask)
-			fprintf(stderr, ", mask:%s", options.mask);
+			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.rule_stack)
+			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths %d-%d", options.eff_minlength,
+			fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
 			        options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}

@@ -11,15 +11,39 @@
 #define _JOHN_RULES_H
 
 #include "loader.h"
+#include "list.h"
 #include "rpp.h"
 
 /*
  * If rules are used with "-pipe" and there's a large number of them,
  * some rules logging will be muted unless verbosity is bumped.
- * This is for not creating gigabytes of logs since pipe mode will go
- * through all rules over and over again.
+ * Similar will happen when running stacked rules, after rewinding
+ * either ruleset.
+ * This is for not creating gigabytes of logs since we'll go through
+ * all rules over and over again.
  */
-extern int rules_mute;
+extern int rules_mute, stack_rules_mute;
+
+/*
+ * If this is set, our result will be passed to later rules. This means
+ * we should consider max_length as PLAINTEXT_BUFFER_SIZE so we don't
+ * truncate or reject a word that will later become valid.
+ */
+extern unsigned int rules_stacked_after;
+
+/*
+ * Line number of stacked rule in use.
+ */
+int rules_stacked_number;
+
+/*
+ * Stacked rules context.
+ */
+typedef struct {
+	struct list_main *stack_rule;
+	struct list_entry *rule;
+	int done;
+} rule_stack;
 
 /*
  * Initializes the rules support.
@@ -72,5 +96,30 @@ extern int rules_count(struct rpp_context *start, int split);
  * function, simply by manipulating the linked list pointers.
  */
 extern int rules_remove_dups(struct cfg_line *pLines, int log);
+
+/*
+ * Initialize a stacked rule contect using the named ruleset.
+ */
+extern int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
+                            struct db_main *db);
+
+/*
+ * Advance stacked rules. We iterate main rules first and only then we
+ * advance the stacked rules (and rewind the main rules). Repeat until
+ * main rules are done with the last stacked rule.
+ */
+extern int rules_advance_stack(rule_stack *ctx);
+
+/*
+ * Return next word from stacked rules, or NULL if it was rejected. The
+ * next rule will not be loaded unless caller calls rules_advance_stack().
+ */
+extern char *rules_process_stack(char *key, rule_stack *ctx);
+
+/*
+ * Return next word from stacked rules, calling rules_advance_stack() as
+ * necessary. Once there's no rules left in stack, return NULL-
+ */
+extern char *rules_process_stack_all(char *key, rule_stack *ctx);
 
 #endif

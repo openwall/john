@@ -474,8 +474,10 @@ void do_external_crack(struct db_main *db)
 
 	if (rec_restored && john_main_process) {
 		fprintf(stderr, "Proceeding with external:%s", ext_mode);
+		if (options.rule_stack)
+			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths %d-%d",
+			fprintf(stderr, ", lengths:%d-%d",
 			        options.eff_minlength, options.eff_maxlength);
 		fprintf(stderr, "\n");
 	}
