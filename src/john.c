@@ -1438,19 +1438,34 @@ static void john_load(void)
 #endif
 	    (options.fork ? options.fork : 1) < get_number_of_requested_devices())
 	{
+		int dev_as_number = 1;
+		struct list_entry *current;
+
+		if ((current = options.acc_devices->head)) {
+			do {
+				if (current->data[0] < '0' ||
+				    current->data[0] > '9')
+					dev_as_number = 0;
+			} while ((current = current->next));
+		}
+
 		if (john_main_process)
-		fprintf(stderr, "Error: To fully use the %d devices requested, "
+		fprintf(stderr, "%s: To fully use the %d devices %s, "
 		        "you must specify --fork=%d\n"
 #if HAVE_MPI
 		        "or run %d MPI processes per node "
 #endif
 		        "(see doc/README-OPENCL)\n",
+		        dev_as_number ? "Error" : "Warning",
 		        get_number_of_requested_devices(),
+		        dev_as_number ? "requested" : "available",
 #if HAVE_MPI
 		        get_number_of_requested_devices(),
 #endif
 		        get_number_of_requested_devices());
-		error();
+
+		if (dev_as_number)
+			error();
 	}
 #else
 	if (database.format &&
