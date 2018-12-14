@@ -854,6 +854,12 @@ void opencl_load_environment(void)
 
 		// Load information about available platforms and devices
 		load_opencl_environment();
+
+		// Ensure that there is at least one OpenCL device available
+		if (get_number_of_available_devices() == 0) {
+			fprintf(stderr, "No OpenCL devices found\n");
+			error();
+		}
 		{
 			struct list_entry *current;
 
@@ -883,10 +889,6 @@ void opencl_load_environment(void)
 			device_list[1] = NULL;
 		}
 
-		if (get_number_of_available_devices() == 0) {
-			fprintf(stderr, "No OpenCL devices found\n");
-			error();
-		}
 		build_device_list(device_list);
 
 		if (get_number_of_devices_in_use() == 0) {
