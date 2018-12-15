@@ -1859,3 +1859,72 @@ int enc_hasdigit(char *s)
 			s++;
 	return 0;
 }
+
+/*
+ * The concept of UTF-8-32 and associated code was first mentioned at
+ * https://github.com/magnumripper/JohnTheRipper/issues/3510
+ *
+ * Char| Unicode |    UTF-8    |   UTF-32   | UTF-8-32
+ * ----|---------|-------------|------------|-----------
+ *  A  |  U+0041 |          41 | 0x00000041 | 0x00000041
+ *  £  |  U+00A3 |       c2 a3 | 0x000000a3 | 0x0000a3c2
+ *  €  |  U+20AC |    e2 82 ac | 0x000020ac | 0x00ac82e2
+ * :-) | U+1F600 | f0 9f 98 80 | 0x0001f600 | 0x80989ff0
+ *
+ * The UTF-8-32 concept and code is Copyright (c) magnum 2018 and is
+ * hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
+
+/*
+ * Source is a UTF-8-32 string, destination is a normal UTF-8 string.
+ */
+UTF8 *utf8_32_to_utf8(UTF8 *dst, UTF32 *src)
+{
+	UTF8 *ret = dst;
+	UTF32 c;
+
+	while ((c = *src++))
+	do
+		*dst++ = c & 0xff;
+	while ((c >>= 8));
+
+	*dst = 0;
+
+	return ret;
+}
+
+/* Convert UTF-32 to UTF-8-32, in place */
+void utf32_to_utf8_32(UTF32 *in_place_string)
+{
+	UTF32 *src = in_place_string;
+	UTF32 *dst = in_place_string;
+
+	while (*src) {
+		UTF32 ch, u8_32 = 0;
+		unsigned short bytesToWrite = 0;
+		const UTF32 byteMask = 0xBF;
+		const UTF32 byteMark = 0x80;
+
+		ch = *src++;
+
+		/* Figure out how many bytes the result will require */
+		if (ch < (UTF32)0x80) {	     bytesToWrite = 1;
+		} else if (ch < (UTF32)0x800) {     bytesToWrite = 2;
+		} else if (ch < (UTF32)0x10000) {   bytesToWrite = 3;
+		} else if (ch < (UTF32)0x110000) {  bytesToWrite = 4;
+		} else {			    bytesToWrite = 3;
+			ch = UNI_REPLACEMENT_CHAR;
+		}
+
+		switch (bytesToWrite) { /* note: everything falls through. */
+		case 4: u8_32 |= ((ch | byteMark) & byteMask) << 24; ch >>= 6;
+		case 3: u8_32 |= ((ch | byteMark) & byteMask) << 16; ch >>= 6;
+		case 2: u8_32 |= ((ch | byteMark) & byteMask) << 8; ch >>= 6;
+		case 1: u8_32 |= (ch | firstByteMark[bytesToWrite]);
+		}
+		*dst++ = u8_32;
+	}
+	*dst = 0;
+}

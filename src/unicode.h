@@ -321,6 +321,12 @@ extern int enc_haslower(char *s);
 /* Return true if string has any digits */
 extern int enc_hasdigit(char *s);
 
+/* Convert UTF-8-32 to UTF-8 */
+extern UTF8 *utf8_32_to_utf8(UTF8 *dst, UTF32 *src);
+
+/* Convert UTF-32 to UTF-8-32, in place */
+extern void utf32_to_utf8_32(UTF32 *in_place_string);
+
 /*
  * NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_ENC
  */

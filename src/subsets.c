@@ -381,12 +381,16 @@ static int submit(UTF32 *subset)
 
 	/* Set current word */
 	if (quick_conversion) {
-		/* Quick conversion when possible... */
+		/* Quick conversion (only ASCII or ISO-8859-1) */
 		for (i = 0; i < word_len; i++)
 			out[i] = subset[i];
 		out[i] = 0;
+	} else if (options.target_enc == UTF_8) {
+		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
+		subset[word_len] = 0;
+		utf8_32_to_utf8(out, subset);
 	} else {
-		/* ...or proper conversion when needed */
+		/* Slowest conversion, from real UTF-32 to sone legacy codepage */
 		subset[word_len] = 0;
 		utf32_to_enc(out, sizeof(out), subset);
 	}
@@ -553,6 +557,10 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		enc_to_utf32(charset_utf32, (charcount + 1) * sizeof(UTF32),
 		             (UTF8*)charset, charcount);
 	}
+
+	/* Performance step: Use UTF-32-8 when applicable */
+	if (options.target_enc == UTF_8)
+		utf32_to_utf8_32(charset_utf32);
 
 	/* Silently drop dupes */
 	remove_dupes(charset_utf32);
