@@ -5,8 +5,14 @@
 *.pot
 *.rec
 *.rej
+
 *.tmp
 *~
+*.bak
+*.in
+*.dlst
+*.lst
+*.sam
 
 *.o
 *.exe
@@ -63,7 +69,6 @@ src/.gdbinit
 src/Unicode
 src/aes/aes.a
 src/arch.h
-src/all_tests.in
 src/all_tests.lst
 src/autoconfig-stamp-h
 src/autoconfig-stamp-h-in
@@ -73,7 +78,6 @@ src/config*.cache
 src/config.status
 src/configure.scan
 src/dyna-comp.dic
-src/dyna-comp.in
 src/dyna-comp.pot
 src/dyna-comp.rec
 src/dynamic_big_crypt.c
@@ -90,4 +94,8 @@ src/version.h
 src/version.h.new
 src/restore_tester_fmt_plug.c
 
+test
 test/
+
+dict
+dict/
