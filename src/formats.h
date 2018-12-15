@@ -69,13 +69,18 @@ struct db_salt;
  * Honors the --encoding=NAME option. This means it can handle codepages (like
  * cp1251) as well as UTF-8.
  */
-#define FMT_ENC			0x00000008
+#define FMT_ENC				0x00000008
+/*
+ * This hash type is known to actually use UTF-8 encoding of password, so
+ * trying legacy encodings should be pointless.
+ */
+#define FMT_UTF8			0x00000010
 /*
  * Mark password->binary = NULL immediately after a hash is cracked. Must be
  * set for formats that read salt->list in crypt_all for the purpose of
  * identification of uncracked hashes for this salt.
  */
-#define FMT_REMOVE			0x00000010
+#define FMT_REMOVE			0x00000020
 /*
  * Format has false positive matches. Thus, do not remove hashes when
  * a likely PW is found.  This should only be set for formats where a

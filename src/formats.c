@@ -18,6 +18,7 @@
 #include "options.h"
 #include "loader.h"
 #endif
+#include "john.h"
 
 /* this is just for advance_cursor() */
 #include "opencl_common.h"
@@ -87,6 +88,13 @@ void fmt_init(struct fmt_main *format)
 			orig_len = format->params.plaintext_length;
 		}
 #endif
+		if (john_main_process && !options.listconf &&
+		    !bench_or_test_running && options.target_enc != UTF_8 &&
+		    format->params.flags & FMT_UTF8)
+			fprintf(stderr, "Warning: %s format should always be "
+			        "UTF-8. Use --target-encoding=utf8\n",
+				format->params.label);
+
 		format->private.initialized = 1;
 	}
 #ifndef BENCH_BUILD

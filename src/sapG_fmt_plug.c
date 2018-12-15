@@ -152,7 +152,6 @@ static struct saltstruct {
 
 static void init(struct fmt_main *self)
 {
-	static int warned = 0;
 #ifdef SIMD_COEF_32
 	int i;
 #endif
@@ -162,11 +161,6 @@ static void init(struct fmt_main *self)
 	// This is needed in order NOT to upper-case german double-s
 	// in UTF-8 mode.
 	initUnicode(UNICODE_MS_NEW);
-
-	if (!options.listconf && options.target_enc != UTF_8 &&
-	    !(options.flags & FLG_TEST_CHK) && warned++ == 0)
-		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\n"
-		        "Use --target-encoding=utf8\n");
 
 	// Max 40 characters or 125 bytes of UTF-8, We actually do not truncate
 	// multibyte input at 40 characters later because it's too expensive.
@@ -808,7 +802,7 @@ struct fmt_main fmt_sapG = {
 #if !defined(SIMD_COEF_32) || defined(SIMD_PARA_SHA1)
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_ENC,
+		FMT_CASE | FMT_8_BIT | FMT_UTF8,
 		{ NULL },
 		{ NULL },
 		tests
