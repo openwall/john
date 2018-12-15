@@ -130,7 +130,8 @@ output the candidate passwords it generates to stdout instead of
 actually trying them against password hashes; no password files may
 be specified when this option is used.  If a LENGTH is given, John
 assumes that to be the significant password length and truncates
-longer words.
+longer words (like a few formats, eg. DEScrypt, do). If you instead
+say --max-length=LENGTH, longer candidates will instead be rejected.
 
 --restore[=NAME]		restore an interrupted session
 
