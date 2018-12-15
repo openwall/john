@@ -1574,7 +1574,7 @@ win32-cygwin-x86-any:
 	$(MAKE_ORIG) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
-		CFLAGS_MAIN="$(CFLAGS) -O0" \
+		CFLAGS_MAIN="$(CFLAGS) -O1" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -1586,7 +1586,7 @@ win32-cygwin-x86-anyomp:
 	$(MAKE_ORIG) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2 -fopenmp" \
-		CFLAGS_MAIN="$(CFLAGS) -O0 -fopenmp" \
+		CFLAGS_MAIN="$(CFLAGS) -O1 -fopenmp" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -fopenmp" \
 		LDFLAGS="$(LDFLAGS) -fopenmp"
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -1904,7 +1904,7 @@ fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile.legacy *_fmt_plug.c
 	$(CC) -E -P $(CFLAGS) -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $(GREP) "john_register_one" | LC_ALL=C $(SORT) -f > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h
-	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
+	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O1 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
 unrarppm.o: unrarppm.c
