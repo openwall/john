@@ -672,7 +672,7 @@ AGAIN:
 /* Just test the encoding-aware formats if --encoding was used explicitly */
 		if (!options.default_enc && options.target_enc != ASCII &&
 		    options.target_enc != ISO_8859_1 &&
-		    !(format->params.flags & FMT_UTF8)) {
+		    !(format->params.flags & FMT_ENC)) {
 			if (options.format == NULL ||
 			    strcasecmp(format->params.label, options.format))
 				continue;

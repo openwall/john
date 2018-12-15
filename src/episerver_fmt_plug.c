@@ -639,7 +639,7 @@ struct fmt_main fmt_episerver = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP | FMT_OMP_BAD | FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
+		FMT_OMP | FMT_OMP_BAD | FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC,
 		{
 			"hash type [1:SHA1 2:SHA256]",
 		},

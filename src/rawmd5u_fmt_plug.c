@@ -563,7 +563,7 @@ struct fmt_main fmt_rawmd5uthick = {
 #if (BLOCK_LOOPS > 1) && defined(SSE_MD5_PARA)
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		{ NULL },
 		tests

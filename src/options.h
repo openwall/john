@@ -302,8 +302,8 @@ struct options_main {
 	int default_target_enc;
 
 /* Output encoding. This must match what the hash origin used. An exception
-   is UTF-16 formats like NT, which can use any codepage (or UTF-8) if FMT_UTF8
-   is set, or ISO-8859-1 only if FMT_UTF8 is false. */
+   is UTF-16 formats like NT, which can use any codepage (or UTF-8) if FMT_ENC
+   is set, or ISO-8859-1 only if FMT_ENC is false. */
 	int target_enc;
 
 /* If different from target_enc, this is an intermediate encoding only

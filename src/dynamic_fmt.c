@@ -7533,7 +7533,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	}
 //	else printf("  split set to split()\n");
 	if (Setup->flags & MGF_UTF8)
-		pFmt->params.flags |= FMT_UTF8;
+		pFmt->params.flags |= FMT_ENC;
 	if (Setup->flags & MGF_INPBASE64a) {
 		curdat.dynamic_base64_inout = 1;
 		pFmt->methods.binary = binary_b64a;

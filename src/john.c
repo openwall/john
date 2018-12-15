@@ -968,7 +968,7 @@ static void john_load_conf_db(void)
 	if (database.format && options.target_enc != ASCII &&
 	    options.target_enc != ISO_8859_1 &&
 	    database.format->params.flags & FMT_UNICODE &&
-	    !(database.format->params.flags & FMT_UTF8)) {
+	    !(database.format->params.flags & FMT_ENC)) {
 		if (john_main_process)
 			fprintf(stderr, "This format does not yet support"
 			        " other encodings than ISO-8859-1\n");
@@ -1130,7 +1130,7 @@ static void john_load(void)
 		dummy_format.params.plaintext_length = options.length;
 		dummy_format.params.flags = FMT_CASE | FMT_8_BIT | FMT_TRUNC;
 		if (options.report_utf8 || options.target_enc == UTF_8)
-			dummy_format.params.flags |= FMT_UTF8;
+			dummy_format.params.flags |= FMT_ENC;
 		dummy_format.params.label = "stdout";
 		dummy_format.methods.reset = &fmt_default_reset;
 		dummy_format.methods.clear_keys = &fmt_default_clear_keys;

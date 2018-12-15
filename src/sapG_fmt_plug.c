@@ -808,7 +808,7 @@ struct fmt_main fmt_sapG = {
 #if !defined(SIMD_COEF_32) || defined(SIMD_PARA_SHA1)
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_ENC,
 		{ NULL },
 		{ NULL },
 		tests

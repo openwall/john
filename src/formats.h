@@ -61,7 +61,7 @@ struct db_salt;
  * with formats not fully Unicode-aware is when a format like this is hard-coded
  * to convert from ISO-8859-1 (ie. by just inserting 0x00, effectively just
  * casting every char to a short). Such formats MUST set FMT_UNICODE and MUST
- * NOT set FMT_UTF8, or users will get false negatives when using UTF-8 or
+ * NOT set FMT_ENC, or users will get false negatives when using UTF-8 or
  * codepages.
  */
 #define FMT_UNICODE			0x00000004
@@ -69,7 +69,7 @@ struct db_salt;
  * Honors the --encoding=NAME option. This means it can handle codepages (like
  * cp1251) as well as UTF-8.
  */
-#define FMT_UTF8			0x00000008
+#define FMT_ENC			0x00000008
 /*
  * Mark password->binary = NULL immediately after a hash is cracked. Must be
  * set for formats that read salt->list in crypt_all for the purpose of

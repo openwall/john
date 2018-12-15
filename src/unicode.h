@@ -322,7 +322,7 @@ extern int enc_haslower(char *s);
 extern int enc_hasdigit(char *s);
 
 /*
- * NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_UTF8
+ * NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_ENC
  */
 
 #endif				/* _CONVERTUTF_H */

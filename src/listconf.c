@@ -679,7 +679,7 @@ void listconf_parse_late(void)
 			printf(" Supports 8-bit characters           %s\n", (format->params.flags & FMT_8_BIT) ? "yes" : "no");
 			printf(" Converts internally to UTF-16/UCS-2 %s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
 			printf(" Honours --encoding=NAME             %s\n",
-			       (format->params.flags & FMT_UTF8) ? "yes" :
+			       (format->params.flags & FMT_ENC) ? "yes" :
 			       (format->params.flags & FMT_UNICODE) ? "no" : "n/a");
 			printf(" Collisions possible (as in likely)  %s\n",
 			       (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");

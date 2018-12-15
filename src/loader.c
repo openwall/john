@@ -419,7 +419,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 				options.target_enc = options.input_enc;
 		} else if (options.internal_cp &&
 		           (format->params.flags & FMT_UNICODE) &&
-		           (format->params.flags & FMT_UTF8)) {
+		           (format->params.flags & FMT_ENC)) {
 			options.target_enc = options.internal_cp;
 		}
 	}
@@ -451,7 +451,7 @@ static void ldr_set_encoding(struct fmt_main *format)
 	if (options.internal_cp && options.internal_cp != UTF_8 &&
 	    (!options.target_enc || options.target_enc == UTF_8)) {
 		if ((format->params.flags & FMT_UNICODE) &&
-		    (format->params.flags & FMT_UTF8))
+		    (format->params.flags & FMT_ENC))
 			options.target_enc = options.internal_cp;
 	}
 
