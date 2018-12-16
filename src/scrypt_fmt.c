@@ -243,7 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void *get_binary(char *ciphertext)
 {
 	static char out[BINARY_SIZE];
-	strncpy(out, ciphertext, sizeof(out)); /* NUL padding is required */
+	strncpy_pad(out, ciphertext, sizeof(out), 0);
 	return out;
 }
 
@@ -251,12 +251,8 @@ static void *get_salt(char *ciphertext)
 {
 	static char out[SALT_SIZE];
 	char *cp;
-	/* NUL padding is required */
-	memset(out, 0, sizeof(out));
-	if (strlen(ciphertext) > SALT_SIZE-1)
-		memcpy(out, ciphertext, SALT_SIZE-1);
-	else
-		strcpy(out, ciphertext);
+
+	strncpy_pad(out, ciphertext, sizeof(out), 0);
 	cp = strchr(&out[8], '$');
 	while (cp && *cp) {
 		*cp++ = 0;

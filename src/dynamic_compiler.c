@@ -564,9 +564,9 @@ SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein
 
 static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static int encode_be()         { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
-static char *pad16()           { strncpy(gen_conv, gen_pw, 16); return gen_conv; } /* NUL padding is required */
-static char *pad20()           { strncpy(gen_conv, gen_pw, 20); return gen_conv; } /* NUL padding is required */
-static char *pad100()          { strncpy(gen_conv, gen_pw, 100); return gen_conv; } /* NUL padding is required */
+static char *pad16()           { strncpy_pad(gen_conv, gen_pw, 16, 0); return gen_conv; }
+static char *pad20()           { strncpy_pad(gen_conv, gen_pw, 20, 0); return gen_conv; }
+static char *pad100()          { strncpy_pad(gen_conv, gen_pw, 100, 0); return gen_conv; }
 
 /*
  * helper functions, to reduce the size of our dynamic_*() functions

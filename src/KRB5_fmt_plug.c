@@ -137,10 +137,9 @@ static int decrypt_compare() {
     memset(krb5key->key, 0x00, DES3_KEY_SIZE);
     memset(krb5key->schedule, 0x00, DES3_KEY_SCHED_SIZE);
 
-/* NUL padding is intentional */
-    strncpy(username, psalt->user, MAX_USER_LEN);
-    strncpy(realm, psalt->realm, MAX_REALM_LEN);
-    strncpy(password, skey.passwd, MAX_PASS_LEN);
+    strncpy_pad(username, psalt->user, MAX_USER_LEN, 0);
+    strncpy_pad(realm, psalt->realm, MAX_REALM_LEN, 0);
+    strncpy_pad(password, skey.passwd, MAX_PASS_LEN, 0);
 
     // do str2key
     str2key(username, realm, password, krb5key);
@@ -151,8 +150,7 @@ static int decrypt_compare() {
     for (i=0;i<TGT_SIZE;++i)
         if (plain[i] == 'k')
             if (strncmp(plain + i, KRBTGT, strlen(KRBTGT)) == 0) {
-/* NUL padding is intentional */
-                strncpy(psalt->passwd, skey.passwd, MAX_PASS_LEN);
+	            strncpy_pad(psalt->passwd, skey.passwd, MAX_PASS_LEN, 0);
                 return 1;
             }
     return 0;

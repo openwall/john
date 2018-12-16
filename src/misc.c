@@ -234,6 +234,19 @@ char *fgetll(char *s, size_t size, FILE *stream)
 }
 #endif
 
+void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
+{
+	uint8_t *d = dst;
+	const uint8_t *s = src;
+
+	while (*s && size--)
+		*d++ = *s++;
+	while (size--)
+		*d++ = pad;
+
+	return dst;
+}
+
 char *strnfcpy(char *dst, const char *src, int size)
 {
 	char *dptr = dst;

@@ -8,6 +8,7 @@
 
 *.tmp
 *~
+*.old
 *.bak
 *.in
 *.dlst

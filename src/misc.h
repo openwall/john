@@ -102,6 +102,12 @@ extern char *fgetll(char *s, size_t size, FILE *stream);
 #endif
 
 /*
+ * Similar to strncpy(), but with arbitrary padding. We deliberate do
+ * not guarantee a NUL termination, only padding if applicable.
+ */
+extern void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad);
+
+/*
  * Similar to strncpy(), but terminates with only one NUL if there's room
  * instead of padding to the supplied size like strncpy() does.
  */
