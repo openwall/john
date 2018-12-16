@@ -199,7 +199,7 @@ static void single_init(void)
  * key offsets - make sure these don't overflow.
  *
  * Jumbo now uses SINGLE_KEYS_TYPE and SINGLE_KEYS_UTYPE for this,
- * from params.h, and they are 32-bit for OpenCL and ZTEX builds.
+ * from params.h and they may (individually) be 32-bit, eg. for OpenCL
  */
 	if (key_count > SINGLE_IDX_MAX)
 		key_count = SINGLE_IDX_MAX;
