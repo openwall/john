@@ -233,6 +233,12 @@ fi
    JTR_FLAG_CHECK([-Wall], 1)
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
 
+   dnl False positives from gcc 8
+   if (test "x$asan" != xyes && test "x$memdbg" != xyes); then
+      JTR_NOWARN_CHECK([stringop-truncation], 1)
+      JTR_NOWARN_CHECK([format-overflow], 1)
+   fi
+
    AS_IF([test "x$werror" = xyes],
       JTR_FLAG_CHECK([-Werror], 1)
       JTR_NOWARN_CHECK([error=cpp], 1)
