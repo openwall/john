@@ -280,10 +280,15 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * Using 32-bit types, the real limit will be amount of available RAM and
  * the setting of SingleMaxBufferSize in john.conf (default 4 GB).
  */
-#if HAVE_OPENCL || HAVE_ZTEX || HAVE_OPENMP
+#if HAVE_OPENCL || HAVE_ZTEX
 #define SINGLE_KEYS_TYPE		int32_t
 #define SINGLE_KEYS_UTYPE		uint32_t
 #define SINGLE_IDX_MAX			(INT32_MAX + 1U)
+#define SINGLE_BUF_MAX			UINT32_MAX
+#elif HAVE_OPENMP
+#define SINGLE_KEYS_TYPE		int16_t
+#define SINGLE_KEYS_UTYPE		uint32_t
+#define SINGLE_IDX_MAX			0x8000
 #define SINGLE_BUF_MAX			UINT32_MAX
 #else
 #define SINGLE_KEYS_TYPE		int16_t
