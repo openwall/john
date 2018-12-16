@@ -694,8 +694,8 @@ static void load_hash()
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	const int count = *pcount;
-	size_t gws, initial = 128;
-	size_t *lws = local_work_size ? &local_work_size : &initial;
+	size_t gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
