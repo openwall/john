@@ -89,6 +89,8 @@
 extern char CPU_req_name[];
 #endif
 
+#define SINGLE_MAX_WORDS(len) MIN(SINGLE_IDX_MAX, SINGLE_BUF_MAX / len + 1)
+
 /*
  * FIXME: Should all the listconf_list_*() functions get an additional stream
  * parameter, so that they can write to stderr instead of stdout in case fo an
@@ -164,6 +166,17 @@ static void listconf_list_build_info(void)
 	printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX, CHARSET_MAX);
 	printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
 	printf("SALT_HASH_SIZE: %u\n", SALT_HASH_SIZE);
+	printf("SINGLE_IDX_MAX: %u\n", SINGLE_IDX_MAX);
+	printf("SINGLE_BUF_MAX: %u\n", SINGLE_BUF_MAX);
+	printf("Single words effective limit: ");
+	if (sizeof(SINGLE_KEYS_TYPE) < 4 || sizeof(SINGLE_KEYS_UTYPE) < 4) {
+		if (SINGLE_MAX_WORDS(125) < SINGLE_MAX_WORDS(16))
+			printf("Max. KPC %d at length 16... %d at length 125)\n",
+			       SINGLE_MAX_WORDS(16), SINGLE_MAX_WORDS(125));
+		else
+			printf("Max. KPC %d\n", SINGLE_MAX_WORDS(125));
+	} else
+		printf("Number of salts vs. SingleMaxBufferSize in john.conf\n");
 	printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
 	printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
 
