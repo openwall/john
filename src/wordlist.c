@@ -605,7 +605,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	int do_lmloop = loopBack && db->plaintexts->head;
 	long my_size = 0;
 	unsigned int myWordFileLines = 0;
-	int skip_length = options.force_maxlength;
+	int reject_length = options.force_maxlength;
 	int min_length = options.eff_minlength;
 #if HAVE_REXGEN
 	char *regex_alpha = 0;
@@ -932,7 +932,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 						 * Over --max-length are always skipped, while over
 						 * format's length are truncated if FMT_TRUNC.
 						 */
-						if (skip_length && ep - cp > skip_length)
+						if (reject_length && ep - cp > reject_length)
 							goto skip;
 						if (ep - cp >= length)
 							cp[length] = 0;
@@ -1043,7 +1043,7 @@ GRAB_NEXT_PIPE_LOAD:
 							 * Over --max-length are always skipped, while over
 							 * format's length are truncated if FMT_TRUNC.
 							 */
-							if (skip_length && len > skip_length) {
+							if (reject_length && len > reject_length) {
 								cpi += (len + 1);
 								if (cpi > cpe)
 									break;
@@ -1386,7 +1386,7 @@ process_word:
 					memmove(line, conv, len + 1);
 				}
 				if (!rules) {
-					if (min_length || skip_length) {
+					if (min_length || reject_length) {
 						int len = strlen(line);
 						if (min_length && len < min_length)
 							goto next_word;
@@ -1394,7 +1394,7 @@ process_word:
 						 * Over --max-length are always skipped, while over
 						 * format's length are truncated if FMT_TRUNC.
 						 */
-						if (skip_length && len > skip_length)
+						if (reject_length && len > reject_length)
 							goto next_word;
 					}
 					line[length] = 0;

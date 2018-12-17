@@ -81,8 +81,11 @@ int rules_stacked_number;
  */
 static int rules_line;
 
-static int rules_max_length = 0, min_length, skip_length;
-int hc_logic; /* can not be static. rpp.c needs to see it */
+static int rules_max_length, min_length, reject_length;
+static int rules_trunc_len;
+
+/* can not be static. rpp.c needs to see it */
+int hc_logic;
 
 /* data structures used in 'dupe' removal code */
 unsigned HASH_LOG, HASH_SIZE, HASH_LOG_HALF, HASH_MASK;
@@ -618,7 +621,11 @@ void rules_init(struct db_main *db, int max_length)
 		max_length = RULE_WORD_SIZE - 1;
 
 	min_length = options.eff_minlength;
-	skip_length = options.force_maxlength;
+	reject_length = options.force_maxlength;
+	rules_trunc_len = max_length;
+
+	if ((db->format->params.flags & FMT_TRUNC) && !reject_length)
+		max_length = RULE_WORD_SIZE - 1;
 
 	if (max_length == rules_max_length)
 		return;
@@ -732,6 +739,7 @@ accept:
 }
 
 #define STACK_MAXLEN (rules_stacked_after ? RULE_WORD_SIZE : rules_max_length)
+#define STACK_TRUNCLEN (rules_stacked_after ? RULE_WORD_SIZE : rules_trunc_len)
 
 char *rules_apply(char *word_in, char *rule, int split, char *last)
 {
@@ -1725,15 +1733,16 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 		goto out_which;
 
 out_OK:
-	in[STACK_MAXLEN] = 0;
+	in[STACK_TRUNCLEN] = 0;
 	if (!rules_stacked_after) {
 		if (min_length && length < min_length)
 			return NULL;
 		/*
-		 * Over --max-length are always skipped, while over
-		 * format's length are truncated if FMT_TRUNC.
+		 * Words longer than --max-length are always skipped.
+		 * Words longer than format's max. length are truncated
+		 * if FMT_TRUNC, and skipped otherwise.
 		 */
-		if (skip_length && length > skip_length)
+		if (reject_length && length > reject_length)
 			return NULL;
 	}
 	if (!(options.flags & FLG_MASK_STACKED) &&
