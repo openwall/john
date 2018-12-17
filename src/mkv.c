@@ -743,8 +743,9 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 		if (options.rule_stack)
 			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
-			        options.eff_maxlength);
+			fprintf(stderr, ", lengths: %d-%d",
+			        options.eff_minlength + mask_add_len,
+			        options.eff_maxlength + mask_add_len);
 		fprintf(stderr, "\n");
 	}
 

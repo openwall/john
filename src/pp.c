@@ -1322,7 +1322,9 @@ void do_prince_crack(struct db_main *db, char *wordlist, int rules)
     if (!options.activewordlistrules && options.rule_stack)
       fprintf(stderr, ", rules-stack:%s", options.rule_stack);
     if (options.req_minlength >= 0 || options.req_maxlength)
-      fprintf(stderr, ", lengths:%d-%d", options.eff_minlength, options.eff_maxlength);
+      fprintf(stderr, ", lengths: %d-%d",
+              options.eff_minlength + mask_add_len,
+              pw_max + mask_add_len);
     fprintf(stderr, "\n");
   }
 
