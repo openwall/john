@@ -125,7 +125,7 @@ typedef struct {
 
 __constant uchar cl_md5_salt_prefix[] = "$1$";
 __constant uchar cl_apr1_salt_prefix[] = "$apr1$";
-__const_a8 uchar g[] =
+__constant uchar g[] =
     { 0, 7, 3, 5, 3, 7, 1, 6, 3, 5, 3, 7, 1, 7, 2, 5, 3, 7, 1, 7, 3, 4, 3, 7,
 	    1, 7, 3, 5, 2, 7, 1, 7, 3, 5, 3, 6, 1, 7, 3, 5, 3, 7 };
 

@@ -225,8 +225,8 @@ inline void Decrypt(__constant ms_office_salt *salt,
 	AES_cbc_decrypt(encryptedVerifier, decryptedVerifier, length, &akey, iv);
 }
 
-__const_a8 uint InputBlockKeyInt[] = { 0xfea7d276, 0x3b4b9e79 };
-__const_a8 uint ValueBlockKeyInt[] = { 0xd7aa0f6d, 0x3061344e };
+__constant uint InputBlockKeyInt[] = { 0xfea7d276, 0x3b4b9e79 };
+__constant uint ValueBlockKeyInt[] = { 0xd7aa0f6d, 0x3061344e };
 
 __kernel
 void Generate2010key(__global ms_office_state *state,

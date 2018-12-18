@@ -55,8 +55,8 @@ typedef struct chacha_ctx_s {
   a = PLUS(a,b); d = ROTATE(XOR(d,a), 8); \
   c = PLUS(c,d); b = ROTATE(XOR(b,c), 7);
 
-__const_a8 char sigma[16] = "expand 32-byte k";
-__const_a8 char tau[16] = "expand 16-byte k";
+__constant char sigma[16] = "expand 32-byte k";
+__constant char tau[16] = "expand 16-byte k";
 
 inline
 void chacha_keysetup(chacha_ctx *x, const uchar *k, uint kbits)

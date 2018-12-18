@@ -187,7 +187,7 @@ void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
 
 //__constant uchar *text = "Pairwise key expansion\0";
 //__constant uint text[6] = { 0x72696150, 0x65736977, 0x79656b20, 0x70786520, 0x69736e61, 0x00006e6f };
-__const_a8 uint text[6] = { 0x50616972, 0x77697365, 0x206b6579, 0x20657870, 0x616e7369, 0x6f6e0000 };
+__constant uint text[6] = { 0x50616972, 0x77697365, 0x206b6579, 0x20657870, 0x616e7369, 0x6f6e0000 };
 
 inline void prf_512(const MAYBE_VECTOR_UINT *key,
                     MAYBE_CONSTANT uint *data,

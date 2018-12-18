@@ -35,12 +35,12 @@
 
 #define ror(x, n)	rotate(x, 32U-(n))
 
-__const_a8 uint h[] = {
+__constant uint h[] = {
 	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 	0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
 
-__const_a8 uint k[] = {
+__constant uint k[] = {
 	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
 	0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
 	0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
@@ -365,7 +365,7 @@ __const_a8 uint k[] = {
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #endif
 
-__const_a8 ulong K[] = {
+__constant ulong K[] = {
 	0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL,
 	0xe9b5dba58189dbbcUL, 0x3956c25bf348b538UL, 0x59f111f1b605d019UL,
 	0x923f82a4af194f9bUL, 0xab1c5ed5da6d8118UL, 0xd807aa98a3030242UL,
@@ -397,11 +397,12 @@ __const_a8 ulong K[] = {
 
 #if gpu_amd(DEVICE_INFO) && SCALAR && defined(cl_amd_media_ops) && !__MESA__
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
-/* Bug seen with multiples of 8 */
-#define ror64(x, n)	(n % 8 ? \
-	 ((n) < 32 ? (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) | ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) | ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32))) : \
-	 rotate(x, (ulong)(64 - n)) \
-		)
+#define ror64(x, n)	((n) < 32 ? \
+	 (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) | \
+	  ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) \
+	 : \
+	 (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) | \
+	  ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
 #elif __OS_X__ && gpu_nvidia(DEVICE_INFO)
 /* Bug workaround for OSX nvidia 10.2.7 310.41.25f01 */
 #define ror64(x, n)       ((x >> n) | (x << (64 - n)))

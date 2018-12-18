@@ -30,7 +30,7 @@ typedef struct {
 #define U8d(x) GETBYTE(x,0)
 
 /* CAST S-boxes */
-__const_a8 uint S[8][256] = {
+__constant uint S[8][256] = {
 	{
 		0x30FB40D4UL, 0x9FA0FF0BUL, 0x6BECCD2FUL, 0x3F258C7AUL,
 		0x1E213F2FUL, 0x9C004DD3UL, 0x6003E540UL, 0xCF9FC949UL,
