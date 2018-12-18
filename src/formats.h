@@ -72,7 +72,7 @@ struct db_salt;
 #define FMT_ENC				0x00000008
 /*
  * This hash type is known to actually use UTF-8 encoding of password, so
- * trying legacy encodings should be pointless.
+ * trying legacy target encodings should be pointless.
  */
 #define FMT_UTF8			0x00000010
 /*

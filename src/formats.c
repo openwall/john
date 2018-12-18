@@ -512,6 +512,22 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	    !(format->params.flags & FMT_OMP))
 		return "FMT_OMP_BAD";
 
+	if ((format->params.flags & FMT_ENC) &&
+	    !(format->params.flags & FMT_UNICODE))
+		return "FMT_ENC without FMT_UNICODE";
+
+	if ((format->params.flags & FMT_ENC) &&
+	    !(format->params.flags & FMT_8_BIT))
+		return "FMT_ENC without FMT_8_BIT";
+
+	if ((format->params.flags & FMT_UTF8) &&
+	    !(format->params.flags & FMT_8_BIT))
+		return "FMT_UTF8 without FMT_8_BIT";
+
+	if ((format->params.flags & FMT_UNICODE) &&
+	    !(format->params.flags & FMT_8_BIT))
+		return "FMT_UNICODE without FMT_8_BIT";
+
 	if ((format->methods.binary == fmt_default_binary) &&
 	    (format->params.binary_size > 0))
 		puts("Warning: Using default binary() with a "
