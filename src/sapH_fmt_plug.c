@@ -697,12 +697,6 @@ static void *get_salt(char *ciphertext)
 	return &s;
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	/* we 'could' cash switch the SHA/sha and unify case. If they an vary, we will have to. */
-	return ciphertext;
-}
-
 #define COMMON_GET_HASH_VAR crypt_key
 #include "common-get-hash.h"
 
@@ -747,7 +741,7 @@ struct fmt_main fmt_sapH = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP | FMT_CASE | FMT_8_BIT | FMT_ENC,
+		FMT_OMP | FMT_CASE | FMT_8_BIT,
 		{
 			"hash type [1:SHA1 2:SHA256 3:SHA384 4:SHA512]",
 			"iteration count",
@@ -760,7 +754,7 @@ struct fmt_main fmt_sapH = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		split,
+		fmt_default_split,
 		get_binary,
 		get_salt,
 		{
