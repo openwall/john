@@ -8,10 +8,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+
+#if !AC_BUILT || HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 
 #if defined(_MSC_VER)
 #include <stdlib.h>
+// VC has no sys/parm.h   These defines were taken from defines found on cygwin
+#define LITTLE_ENDIAN 4321
+#define BIG_ENDIAN 1234
+#define BYTE_ORDER LITTLE_ENDIAN
 
 static inline uint32_t rol32(uint32_t x, int r) {
   static_assert(sizeof(uint32_t) == sizeof(unsigned int), "this code assumes 32-bit integers");
