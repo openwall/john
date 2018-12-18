@@ -8260,7 +8260,15 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 			for (i = 0; i < 10; ++i) {
 				if ((pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i)) {
 					char Fld[8];
+#if __GNUC__ == 8
+/* suppress false positive GCC 8 warning */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-overflow="
+#endif
 					sprintf(Fld, "$$F%d", i);
+#if __GNUC__ == 8
+#pragma GCC diagnostic pop
+#endif
 					if (!strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 						return ciphertext;
 				}

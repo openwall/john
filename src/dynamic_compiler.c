@@ -733,7 +733,15 @@ static int handle_extra_params(DC_struct *ptr) {
 	// Find any 'const' values that have been provided.
 	for (i = 1; i < 9; ++i) {
 		char *cp2;
+#if __GNUC__ == 8
+/* suppress false positive GCC 8 warning */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-overflow="
+#endif
 		sprintf(cx, "c%d", i);
+#if __GNUC__ == 8
+#pragma GCC diagnostic pop
+#endif
 		cp = get_param(ptr->pExtraParams, cx);
 		if (!cp || !cp[0])
 			break;
