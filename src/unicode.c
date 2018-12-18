@@ -1895,6 +1895,31 @@ UTF8 *utf8_32_to_utf8(UTF8 *dst, UTF32 *src)
 	return ret;
 }
 
+/*
+ * Convert a UTF-8 string to UTF-8-32. Not much error checking.
+ */
+void utf8_to_utf8_32(UTF32 *dst, UTF8 *src)
+{
+	UTF32 c;
+
+	while ((c = *src++)) {
+		if (c >= 0xC0) {
+			unsigned int eb;
+			eb = opt_trailingBytesUTF8[c & 0x3f];
+
+			if (eb > 3) /* invalid */
+				continue;
+			c += *src++ << 8;
+			if (eb > 1)
+				c += *src++ << 16;
+			if (eb > 2)
+				c += *src++ << 24;
+		}
+		*dst++ = c;
+	}
+	*dst = 0;
+}
+
 /* Convert UTF-32 to UTF-8-32, in place */
 void utf32_to_utf8_32(UTF32 *in_place_string)
 {
@@ -1926,5 +1951,4 @@ void utf32_to_utf8_32(UTF32 *in_place_string)
 		}
 		*dst++ = u8_32;
 	}
-	*dst = 0;
 }

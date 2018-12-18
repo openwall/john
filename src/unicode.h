@@ -324,6 +324,9 @@ extern int enc_hasdigit(char *s);
 /* Convert UTF-8-32 to UTF-8 */
 extern UTF8 *utf8_32_to_utf8(UTF8 *dst, UTF32 *src);
 
+/* Convert UTF-8 to UTF-8-32 */
+extern void utf8_to_utf8_32(UTF32 *dst, UTF8 *src);
+
 /* Convert UTF-32 to UTF-8-32, in place */
 extern void utf32_to_utf8_32(UTF32 *in_place_string);
 
