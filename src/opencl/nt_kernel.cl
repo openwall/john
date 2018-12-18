@@ -133,9 +133,8 @@ inline uint prepare_key(__global uint *key, uint length,
 	while (source < sourceEnd) {
 		if (*source < 0xC0) {
 			*target++ = (UTF16)*source++;
-			if (source >= sourceEnd || target >= targetEnd) {
+			if (target >= targetEnd)
 				break;
-			}
 			continue;
 		}
 		ch = *source;
@@ -179,7 +178,7 @@ inline uint prepare_key(__global uint *key, uint length,
 			*target++ = (UTF16)((ch & halfMask) + UNI_SUR_LOW_START);
 		}
 #endif
-		if (source >= sourceEnd || target >= targetEnd)
+		if (target >= targetEnd)
 			break;
 	}
 	*target = 0x80;	// Terminate
