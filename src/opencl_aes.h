@@ -302,6 +302,50 @@ inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
 		out[i] = buf[i] ^ tweak[i];
 }
 
+inline void AES_256_XTS_DiskCryptor(AES_SRC_TYPE uchar *data, AES_DST_TYPE uchar *output,
+		AES_KEY_TYPE uchar *double_key, int len)
+{
+	uchar buf[16];
+	int i, j, cnt;
+	AES_KEY key1, key2;
+	int bits = 256;
+	uchar buffer[96];
+	uchar *out = buffer;
+	unsigned char tweak[16] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	AES_set_decrypt_key(double_key, bits, &key1);
+	AES_set_encrypt_key(&double_key[bits / 8], bits, &key2);
+
+	// first aes tweak, we do it right over tweak
+	AES_encrypt(tweak, tweak, &key2);
+
+	cnt = len / 16;
+	for (j = 0;;) {
+		for (i = 0; i < 16; ++i) buf[i] = data[i]^tweak[i];
+		AES_decrypt(buf, out, &key1);
+		for (i = 0; i < 16; ++i) out[i] ^= tweak[i];
+		++j;
+		if (j == cnt)
+			break;
+		else {
+			unsigned char Cin, Cout;
+			unsigned x;
+			Cin = 0;
+			for (x = 0; x < 16; ++x) {
+				Cout = (tweak[x] >> 7) & 1;
+				tweak[x] = ((tweak[x] << 1) + Cin) & 0xFF;
+				Cin = Cout;
+			}
+			if (Cout)
+				tweak[0] ^= 135; // GF_128_FDBK;
+		}
+		data += 16;
+		out += 16;
+	}
+
+	memcpy_macro(output, buffer, 96);
+}
+
 #define N_WORDS (AES_BLOCK_SIZE / sizeof(unsigned long))
 
 inline void
