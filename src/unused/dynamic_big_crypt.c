@@ -1,6 +1,6 @@
 /*
  * The source for this file AUTO-GENERATED on:
- * Mon Dec 19 21:40:02 CET 2016
+ * Wed, Dec 19, 2018 12:01:50 PM
  *
  * NOTE.  This file IS 100% auto-generated code.
  *
@@ -65,6 +65,17 @@
 #include "openssl_local_overrides.h"
 
 #include "arch.h"
+
+#if defined(SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
+	#undef SIMD_COEF_32
+	#undef SIMD_COEF_64
+	#undef SIMD_PARA_MD5
+	#undef SIMD_PARA_MD4
+	#undef SIMD_PARA_SHA1
+	#undef SIMD_PARA_SHA256
+	#undef SIMD_PARA_SHA512
+	#define BITS ARCH_BITS_STR
+#endif
 
 #if !FAST_FORMATS_OMP
 #ifdef _OPENMP
