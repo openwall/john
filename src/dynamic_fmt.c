@@ -141,7 +141,6 @@ static unsigned int m_ompt;
 
 #include "dynamic_types.h"
 
-#include "memdbg.h"
 
 #if (defined (_OPENMP)||defined(FORCE_THREAD_MD5_body)) && defined (_MSC_VER)
 unsigned DES_bs_max_kpc, DES_bs_min_kpc, DES_bs_all_p;

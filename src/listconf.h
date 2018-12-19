@@ -41,14 +41,6 @@
 #define UBSAN_STRING ""
 #endif
 
-#if defined(MEMDBG_ON) && defined(MEMDBG_EXTRA_CHECKS)
-#define MEMDBG_STRING " memdbg-ex"
-#elif defined(MEMDBG_ON)
-#define MEMDBG_STRING " memdbg"
-#else
-#define MEMDBG_STRING ""
-#endif
-
 #define _STR_VALUE(arg)			#arg
 #define STR_MACRO(n)			_STR_VALUE(n)
 

@@ -36,7 +36,6 @@ john_register_one(&fmt_drupal7);
 #define OMP_SCALE			8
 #endif
 #endif
-#include "memdbg.h"
 
 #include "drupal7_common.h"
 

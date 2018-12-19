@@ -33,7 +33,6 @@ john_register_one(&fmt_pwsafe);
 #include "johnswap.h"
 #include "pwsafe_common.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "pwsafe"
 #define FORMAT_NAME             "Password Safe"

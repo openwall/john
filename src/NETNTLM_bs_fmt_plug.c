@@ -62,7 +62,6 @@ john_register_one(&fmt_NETNTLM_old);
 #include "options.h"
 #include "md5.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char

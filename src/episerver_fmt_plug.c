@@ -56,7 +56,6 @@ john_register_one(&fmt_episerver);
 #include "options.h"
 #include "base64_convert.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "EPiServer"
 #define FORMAT_NAME             ""

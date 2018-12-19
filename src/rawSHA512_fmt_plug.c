@@ -52,7 +52,6 @@ john_register_one(&fmt_raw0_SHA512);
 #include <omp.h>
 #endif
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"Raw-SHA512"
 #define FORMAT_NAME		""

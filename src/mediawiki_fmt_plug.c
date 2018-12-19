@@ -56,7 +56,6 @@ john_register_one(&fmt_mediawiki);
 #include "formats.h"
 #include "dynamic.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"MediaWiki"
 #define FORMAT_NAME		"" /* md5($s.'-'.md5($p)) */

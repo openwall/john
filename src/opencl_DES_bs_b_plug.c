@@ -24,7 +24,6 @@ static WORD current_salt;
 
 static int mask_mode;
 
-#include "memdbg.h"
 
 static int des_crypt_25(int *pcount, struct db_salt *salt);
 

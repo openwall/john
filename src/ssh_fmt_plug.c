@@ -42,7 +42,6 @@ john_register_one(&fmt_ssh);
 #define CPU_FORMAT          1
 #include "ssh_common.h"
 #include "ssh_variable_code.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "SSH"
 #define FORMAT_NAME         ""

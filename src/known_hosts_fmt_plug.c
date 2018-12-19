@@ -33,7 +33,6 @@ john_register_one(&fmt_known_hosts);
 #include "base64_convert.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "known_hosts"
 #define FORMAT_TAG              "$known_hosts$"

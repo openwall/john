@@ -33,7 +33,6 @@
 #include "options.h"
 
 #include "john_mpi.h"
-#include "memdbg.h"
 
 void real_error(char *file, int line)
 {

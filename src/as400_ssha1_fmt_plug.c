@@ -46,7 +46,6 @@ john_register_one(&fmt_AS400_ssha1);
 #include "options.h"
 #include "unicode.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "as400-ssha1"
 #define FORMAT_NAME             "AS400-SaltedSHA1"

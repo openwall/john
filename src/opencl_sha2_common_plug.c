@@ -11,7 +11,6 @@
 
 #ifdef HAVE_OPENCL
 
-#include "memdbg.h"
 
 /*
  * Public domain hash function by DJ Bernstein

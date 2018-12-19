@@ -60,7 +60,6 @@ john_register_one(&fmt_NETLMv2);
 #include "md5.h"
 #include "hmacmd5.h"
 #include "byteorder.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL         "netlmv2"
 #define FORMAT_NAME          "LMv2 C/R"

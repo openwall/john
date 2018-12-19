@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "enpass_common.h"
-#include "memdbg.h"
 
 int enpass_common_valid(char *ciphertext, struct fmt_main *self)
 {

@@ -37,7 +37,6 @@
 #include "unrarppm.h"
 #include "unrarvm.h"
 #include "unrarfilter.h"
-#include "memdbg.h"
 
 #define int64to32(x) ((unsigned int)(x))
 

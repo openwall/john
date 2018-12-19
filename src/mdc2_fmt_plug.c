@@ -28,7 +28,6 @@ john_register_one(&fmt_mdc2);
 #include "params.h"
 #include "options.h"
 #include "mdc2-JtR.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "mdc2"
 #define FORMAT_NAME             "MDC-2"

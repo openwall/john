@@ -172,7 +172,6 @@ void ldr_free_test_db(struct db_main *db)
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
-#include "memdbg.h"
 
 #define MAX_COST_MSG_LEN 256
 #ifndef BENCH_BUILD
@@ -631,7 +630,6 @@ int benchmark_all(void)
 	const char *s_gpu = "";
 #endif
 	unsigned int total, failed;
-	MEMDBG_HANDLE memHand;
 	struct db_main *test_db;
 #ifdef _OPENMP
 	int ompt;
@@ -663,7 +661,6 @@ AGAIN:
 #endif
 	if ((format = fmt_list))
 	do {
-		memHand = MEMDBG_getSnapshot(0);
 #ifndef BENCH_BUILD
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
@@ -912,7 +909,6 @@ next:
 		if (options.flags & FLG_MASK_CHK)
 			mask_done();
 #endif
-		MEMDBG_checkSnapshot_possible_exit_on_error(memHand, 0);
 
 #ifndef BENCH_BUILD
 		/* In case format changed it */

@@ -21,7 +21,6 @@ john_register_one(&fmt_XSHA512);
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "rawSHA512_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"xsha512"
 #define FORMAT_NAME			"Mac OS X 10.7"

@@ -28,7 +28,6 @@ john_register_one(&fmt_zipmonster);
 #include "params.h"
 #include "options.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "ZipMonster"
 #define FORMAT_NAME             "MD5(ZipMonster)"

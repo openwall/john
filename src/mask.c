@@ -28,7 +28,6 @@
 #include "mask.h"
 #include "unicode.h"
 #include "encoding_data.h"
-#include "memdbg.h"
 #include "mask_ext.h"
 
 //#define MASK_DEBUG

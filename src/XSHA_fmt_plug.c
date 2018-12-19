@@ -33,7 +33,6 @@ static unsigned int threads = 1;
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"xsha"
 #define FORMAT_NAME			"Mac OS X 10.4 - 10.6"

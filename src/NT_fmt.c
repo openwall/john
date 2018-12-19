@@ -28,7 +28,6 @@
 #include "unicode.h"
 #include "aligned.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 //Init values
 #define INIT_A 0x67452301

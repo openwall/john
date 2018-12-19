@@ -81,7 +81,6 @@
 #include "regex.h"
 #include "mask.h"
 #include "pseudo_intrinsics.h"
-#include "memdbg.h"
 
 #define _STR_VALUE(arg)         #arg
 #define STR_MACRO(n)            _STR_VALUE(n)

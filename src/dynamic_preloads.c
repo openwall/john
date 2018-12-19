@@ -56,7 +56,6 @@
 #include "dynamic.h"
 #include "options.h"
 #include "config.h"
-#include "memdbg.h"
 
 #ifndef DYNAMIC_DISABLED
 

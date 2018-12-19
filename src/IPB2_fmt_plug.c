@@ -43,7 +43,6 @@ static unsigned int threads = 1;
 #define threads				1
 #endif
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"ipb2"
 #define FORMAT_NAME			"Invision Power Board 2.x"

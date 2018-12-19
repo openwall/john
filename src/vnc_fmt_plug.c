@@ -43,7 +43,6 @@ john_register_one(&fmt_vnc);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "VNC"
 #define FORMAT_NAME             ""

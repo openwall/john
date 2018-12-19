@@ -34,7 +34,6 @@ john_register_one(&fmt_diskcryptor);
 #include "twofish.h"
 #include "diskcryptor_common.h"
 #include "pbkdf2_hmac_sha512.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "DiskCryptor"
 #define FORMAT_LABEL            "diskcryptor"

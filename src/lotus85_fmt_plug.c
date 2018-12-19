@@ -27,7 +27,6 @@ john_register_one(&fmt_lotus_85);
 
 #include "formats.h"
 #include "common.h"
-#include "memdbg.h"
 
 /* Plugin definition */
 #define FORMAT_LABEL          "lotus85"

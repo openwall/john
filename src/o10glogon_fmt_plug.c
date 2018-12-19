@@ -37,7 +37,6 @@ john_register_one(&fmt_o10glogon);
 #include "md5.h"
 #include "unicode.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL                    "o10glogon"
 #define FORMAT_NAME                     "Oracle 10g-logon protocol"

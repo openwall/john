@@ -33,7 +33,6 @@ john_register_one(&fmt_hsrp);
 #include "johnswap.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "hsrp"
 #define FORMAT_NAME             "\"MD5 authentication\" HSRP, HSRPv2, VRRP, GLBP"

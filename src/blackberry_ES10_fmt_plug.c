@@ -35,7 +35,6 @@ john_register_one(&fmt_blackberry1);
 #include "sha2.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_TAG              "$bbes10$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG)-1)

@@ -32,7 +32,6 @@
 #include "common.h"
 #include "gpg_common.h"
 #include "loader.h"
-#include "memdbg.h"
 
 #if !AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10100000
 #define HAVE_DSA_GET0_PQG 1

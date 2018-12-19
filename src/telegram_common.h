@@ -8,7 +8,6 @@
 #include "common.h"
 #include "formats.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             ""
 #define FORMAT_TAG              "$telegram$"

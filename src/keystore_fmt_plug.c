@@ -34,7 +34,6 @@ john_register_one(&fmt_keystore);
 #include "dyna_salt.h"
 #include "johnswap.h"
 #include "keystore_common.h"
-#include "memdbg.h"
 
 #ifdef _OPENMP
 #include <omp.h>

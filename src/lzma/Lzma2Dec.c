@@ -13,8 +13,6 @@
 
 #include "Lzma2Dec.h"
 
-#include "../memdbg.h"
-
 /*
 00000000  -  EOS
 00000001 U U  -  Uncompressed Reset Dic

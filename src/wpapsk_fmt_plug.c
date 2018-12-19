@@ -32,7 +32,6 @@ john_register_one(&fmt_wpapsk);
 #include "pbkdf2_hmac_sha1.h"
 #include "wpapsk.h"
 #include "sha.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk"
 #if AC_BUILT && !HAVE_OPENSSL_CMAC_H

@@ -37,7 +37,6 @@ john_register_one(&fmt_fvde);
 #include "pbkdf2_hmac_sha256.h"
 #include "jumbo.h"
 #include "fvde_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "FVDE"
 #define FORMAT_NAME             "FileVault 2"

@@ -15,7 +15,6 @@
 #include "opencl_lm_hst_dev_shared.h"
 #include "unicode.h"
 #include "mask_ext.h"
-#include "memdbg.h"
 
 opencl_lm_combined *opencl_lm_all;
 opencl_lm_transfer *opencl_lm_keys;

@@ -29,7 +29,6 @@ john_register_one(&fmt_django_scrypt);
 #include "options.h"
 #include "base64_convert.h"
 #include "escrypt/crypto_scrypt.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"django-scrypt"
 #define FORMAT_NAME		""

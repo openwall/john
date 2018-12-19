@@ -47,7 +47,6 @@ john_register_one(&fmt_CompiledDynamic);
 #include "dynamic_compiler.h"
 #include "dynamic_types.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"dynamic="
 #define FORMAT_NAME			""

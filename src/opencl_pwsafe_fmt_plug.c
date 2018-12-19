@@ -59,7 +59,6 @@ static const char * warn[] = {
 };
 
 #include "opencl_autotune.h"
-#include "memdbg.h"
 
 cl_kernel init_kernel;
 cl_kernel finish_kernel;

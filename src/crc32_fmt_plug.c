@@ -44,7 +44,6 @@ john_register_one(&fmt_crc32);
 #include "formats.h"
 #include "crc32.h"
 #include "loader.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"CRC32"
 #define FORMAT_NAME			""

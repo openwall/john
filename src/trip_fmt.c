@@ -20,7 +20,6 @@
 #include "DES_bs.h"
 #endif
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"tripcode"
 #define FORMAT_NAME			""

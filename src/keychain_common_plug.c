@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "keychain_common.h"
-#include "memdbg.h"
 
 struct fmt_tests keychain_tests[] = {
 	{"$keychain$*10f7445c8510fa40d9ef6b4e0f8c772a9d37e449*f3d19b2a45cdcccb*8c3c3b1c7d48a24dad4ccbd4fd794ca9b0b3f1386a0a4527f3548bfe6e2f1001804b082076641bbedbc9f3a7c33c084b", "password"},

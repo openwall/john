@@ -12,7 +12,6 @@
 #ifdef HAVE_OPENCL
 
 #include "opencl_common.h"
-#include "memdbg.h"
 
 /* Allow the developer to select configurable step size for gws. */
 int autotune_get_next_gws_size(size_t num, int step, int startup,

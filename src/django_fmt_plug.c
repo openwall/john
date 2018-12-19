@@ -49,7 +49,6 @@ john_register_one(&fmt_django);
 #include "johnswap.h"
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha256.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Django"
 #define FORMAT_NAME             ""

@@ -45,7 +45,6 @@
 #endif
 #include <stdint.h>
 #include "memory.h"
-#include "memdbg.h"
 
 #define T_EMPTY 0
 #define T_DES 1

@@ -35,7 +35,6 @@
 #ifdef _MSC_VER
 #define inline _inline
 #endif
-#include "memdbg.h"
 
 /***********************************************************************
  the rfc 2104 version of hmac_md5 initialisation.

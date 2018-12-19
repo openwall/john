@@ -29,7 +29,6 @@ john_register_one(&fmt_snefru_128);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 // Snefru-128 and Snefru-256 are the real format labels
 #define FORMAT_LABEL		"Snefru"

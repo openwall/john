@@ -53,7 +53,6 @@ john_register_one(&fmt_rawSHA256);
 #include <omp.h>
 #endif
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Raw-SHA256"
 #define FORMAT_NAME             ""

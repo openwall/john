@@ -29,7 +29,6 @@ john_register_one(&fmt_ocl_KeePass);
 #include "options.h"
 #include "keepass_common.h"
 #include "opencl_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "KeePass-opencl"
 #define FORMAT_NAME             ""
@@ -75,7 +74,6 @@ static const char *warn[] = {
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
-#include "memdbg.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

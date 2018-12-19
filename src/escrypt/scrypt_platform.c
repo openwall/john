@@ -26,14 +26,13 @@
 
 #include "scrypt_platform.h"
 
-#include "../memdbg.h"
 #include "../memory.h"
 
 static void *
 alloc_region(escrypt_region_t * region, size_t size)
 {
 	uint8_t * base, * aligned;
-#if defined(MAP_ANON) && !defined (MEMDBG_ON)
+#if defined(MAP_ANON)
 	if ((base = mmap(NULL, size, PROT_READ | PROT_WRITE,
 #ifdef MAP_NOCORE
 	    MAP_ANON | MAP_PRIVATE | MAP_NOCORE,
@@ -43,7 +42,7 @@ alloc_region(escrypt_region_t * region, size_t size)
 	    -1, 0)) == MAP_FAILED)
 		base = NULL;
 	aligned = base;
-#elif defined(HAVE_POSIX_MEMALIGN) && !defined (MEMDBG_ON)
+#elif defined(HAVE_POSIX_MEMALIGN)
 	if ((errno = posix_memalign(&base, 64, size)) != 0)
 		base = NULL;
 	aligned = base;
@@ -73,11 +72,11 @@ static int
 free_region(escrypt_region_t * region)
 {
 	if (region->base) {
-#if defined(MAP_ANON) && !defined (MEMDBG_ON)
+#if defined(MAP_ANON)
 		if (munmap(region->base, region->size))
 			return -1;
-#elif defined(HAVE_POSIX_MEMALIGN) && !defined (MEMDBG_ON)
-		libc_free(region->base);
+#elif defined(HAVE_POSIX_MEMALIGN)
+		free(region->base);
 #else
 		MEM_FREE(region->base);
 #endif

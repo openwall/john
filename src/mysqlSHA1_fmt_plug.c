@@ -46,7 +46,6 @@ john_register_one(&fmt_mysqlSHA1);
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"mysql-sha1"
 #define FORMAT_NAME			"MySQL 4.1+"

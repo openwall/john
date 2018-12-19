@@ -8,7 +8,6 @@
 #include "formats.h"
 #include "pkzip.h"
 #include "loader.h"
-#include "memdbg.h"
 
 /* helper functions for reading binary data of known little endian */
 /* format from a file. Works whether BE or LE system.              */

@@ -11,7 +11,6 @@
 
 #include "common.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 static MAYBE_INLINE ByteType Rot2(ByteType X)
 /*

@@ -25,7 +25,6 @@
 #include "dynamic.h"
 #include "dynamic_compiler.h"
 
-#include "memdbg.h"
 
 typedef struct LIB_struct {
 	int nlegacy_types;

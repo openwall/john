@@ -42,7 +42,6 @@ john_register_one(&fmt_bitcoin);
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Bitcoin"
 #define FORMAT_NAME             "Bitcoin Core"

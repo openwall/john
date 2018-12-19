@@ -53,7 +53,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "missing_getopt.h"
-#include "memdbg.h"
 
 /*
  *

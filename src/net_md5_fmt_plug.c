@@ -41,7 +41,6 @@ john_register_one(&fmt_netmd5);
 #include "params.h"
 #include "options.h"
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "net-md5"
 #define FORMAT_NAME             "\"Keyed MD5\" RIPv2, OSPF, BGP, SNMPv2"

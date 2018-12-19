@@ -26,7 +26,6 @@ john_register_one(&fmt_wpapsk_pmk);
 #include "wpapsk.h"
 #include "sha.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"wpapsk-pmk"
 #if AC_BUILT && !HAVE_OPENSSL_CMAC_H

@@ -12,7 +12,6 @@
 #include "misc.h"
 #include "common.h"
 #include "krb5_asrep_common.h"
-#include "memdbg.h"
 
 char *krb5_asrep_split(char *ciphertext, int index, struct fmt_main *self)
 {

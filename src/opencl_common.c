@@ -56,7 +56,6 @@
 #include "john.h"
 #include "md5.h"
 #include "john_mpi.h"
-#include "memdbg.h"
 
 /* Set this to eg. 3 for some added debug and retry stuff */
 #define RACE_CONDITION_DEBUG 0
@@ -1259,11 +1258,8 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	        "-DSIZEOF_SIZE_T=", (int)sizeof(size_t),
 	        opencl_driver_ver(sequential_id),
 	        opts ? opts : "");
-#if I_REALPATH
-	libc_free(full_path);
-#else
+
 	MEM_FREE(full_path);
-#endif
 
 	return include;
 }

@@ -9,7 +9,6 @@
 #include "diskcryptor_common.h"
 #include "jumbo.h"
 #include "xts.h"
-#include "memdbg.h"
 
 // #define DEBUG 1
 

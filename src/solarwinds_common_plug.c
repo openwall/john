@@ -7,7 +7,6 @@
 #include "common.h"
 #include "base64_convert.h"
 #include "solarwinds_common.h"
-#include "memdbg.h"
 
 #define HASH_LENGTH 88
 

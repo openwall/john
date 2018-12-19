@@ -39,7 +39,6 @@ john_register_one(&fmt_BFEgg);
 #include "formats.h"
 #include "common.h"
 #include "blowfish.c"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "bfegg"
 #define FORMAT_NAME             "Eggdrop"

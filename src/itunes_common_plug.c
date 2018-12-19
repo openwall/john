@@ -8,7 +8,6 @@
 #include "itunes_common.h"
 #include "johnswap.h"
 #include "aes.h"
-#include "memdbg.h"
 
 int itunes_common_valid(char *ciphertext, struct fmt_main *self)
 {

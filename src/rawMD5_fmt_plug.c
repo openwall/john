@@ -32,7 +32,6 @@ john_register_one(&fmt_rawMD5);
 #include "base64_convert.h"
 #define REVERSE_STEPS
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE				16 // Tuned after MKPC for core i7 incl non-SIMD

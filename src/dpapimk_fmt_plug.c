@@ -39,7 +39,6 @@ john_register_one(&fmt_DPAPImk);
 #include "sha.h"
 #include "md4.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 #define DPAPI_CRAP_LOGIC
 

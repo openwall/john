@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include "gost.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 extern unsigned rhash_gost_sbox[4][256];
 extern unsigned rhash_gost_sbox_cryptpro[4][256];

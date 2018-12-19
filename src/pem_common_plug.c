@@ -12,7 +12,6 @@
 #include "jumbo.h"
 #include "aes.h"
 #include "asn1.h"
-#include "memdbg.h"
 
 // $PEM$type$cipher$$salt$iterations$iv$blob_length$blob  // type, and cipher should be enough for all possible combinations
 struct fmt_tests pem_tests[] = {

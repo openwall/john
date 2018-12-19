@@ -33,7 +33,6 @@ john_register_one(&fmt_cryptsha1);
 #include "pbkdf2_hmac_sha1.h"
 #include "base64_convert.h"
 #include "sha1crypt_common.h"
-#include "memdbg.h"
 
 #define SHA1_SIZE 20
 

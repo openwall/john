@@ -23,7 +23,6 @@ john_register_one(&fmt_cq);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "cq"
 #define FORMAT_NAME         "ClearQuest"

@@ -38,7 +38,6 @@ john_register_one(&fmt_opencl_sevenzip);
 #include "dyna_salt.h"
 #include "lzma/LzmaDec.h"
 #include "lzma/Lzma2Dec.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"7z-opencl"
 #define FORMAT_NAME		"7-Zip"

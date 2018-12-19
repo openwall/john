@@ -39,7 +39,6 @@ john_register_one(&fmt_agile_keychain);
 #include "johnswap.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "agilekeychain_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "agilekeychain"
 #ifdef SIMD_COEF_32

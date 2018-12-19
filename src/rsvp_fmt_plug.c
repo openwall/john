@@ -36,7 +36,6 @@ john_register_one(&fmt_rsvp);
 #include "johnswap.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "rsvp"
 #define FORMAT_NAME             "HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS, OMAPI, RNDC, TSIG"

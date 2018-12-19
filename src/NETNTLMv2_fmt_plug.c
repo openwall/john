@@ -59,7 +59,6 @@ john_register_one(&fmt_NETNTLMv2);
 #include "hmacmd5.h"
 #include "unicode.h"
 #include "byteorder.h"
-#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char

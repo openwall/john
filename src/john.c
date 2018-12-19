@@ -137,7 +137,6 @@ static int john_omp_threads_new;
 #endif
 #endif
 #include "omp_autotune.h"
-#include "memdbg.h"
 
 #if CPU_DETECT
 extern int CPU_detect(void);
@@ -1984,8 +1983,6 @@ static void john_done(void)
 	check_abort(0);
 }
 
-//#define TEST_MEMDBG_LOGIC
-
 #ifdef HAVE_LIBFUZZER
 int main_dummy(int argc, char **argv)
 #else
@@ -1993,21 +1990,6 @@ int main(int argc, char **argv)
 #endif
 {
 	char *name;
-
-#ifdef TEST_MEMDBG_LOGIC
-	int i,j;
-	char *cp[260];
-	for (i = 1; i < 257; ++i) {
-		cp[i] = mem_alloc_align(43,i);
-		for (j = 0; j < 43; ++j)
-			cp[i][j] = 'x';
-		printf("%03d offset %x  %x %x\n", i, cp[i], (unsigned)(cp[i])%i, (((unsigned)(cp[i]))/i)%i);
-	}
-	for (i = 1; i < 257; ++i)
-		MEM_FREE(cp[i]);
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
-	exit(0);
-#endif
 
 	sig_preinit(); /* Mitigate race conditions */
 #ifdef __DJGPP__
@@ -2119,8 +2101,6 @@ int main(int argc, char **argv)
 
 	john_run();
 	john_done();
-
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return exit_status;
 }

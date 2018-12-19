@@ -31,7 +31,6 @@ john_register_one(&fmt_stribog_512);
 #include "params.h"
 #include "options.h"
 #include "gost3411-2012-sse41.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "stribog"
 #define FORMAT_NAME             ""

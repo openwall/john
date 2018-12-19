@@ -33,7 +33,6 @@ john_register_one(&fmt_racf_kdfaes);
 #include "aes.h"
 #include "sha2.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "RACF-KDFAES"
 #define FORMAT_NAME             ""

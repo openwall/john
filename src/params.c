@@ -9,7 +9,6 @@
  */
 
 #include "params.h"
-#include "memdbg.h"
 
 unsigned int password_hash_sizes[PASSWORD_HASH_SIZES] = {
 	PASSWORD_HASH_SIZE_0,

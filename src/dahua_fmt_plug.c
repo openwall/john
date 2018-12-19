@@ -43,7 +43,6 @@ john_register_one(&fmt_dahua);
 #include "johnswap.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "dahua"
 #define FORMAT_NAME             "\"MD5 based authentication\" Dahua"

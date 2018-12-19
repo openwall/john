@@ -36,7 +36,6 @@ john_register_one(&fmt_o5logon);
 #include "options.h"
 #include "aes.h"
 #include "md5.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "o5logon"
 #define FORMAT_NAME             "Oracle O5LOGON protocol"

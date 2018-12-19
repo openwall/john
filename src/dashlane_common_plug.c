@@ -11,7 +11,6 @@
 #include "aes.h"
 #include "openssl_code.h"
 #include "dashlane_common.h"
-#include "memdbg.h"
 
 struct fmt_tests dashlane_tests[] = {
 	// Dashlane v4.8.3 running on Windows 10 -> personaldataDatabase.aes

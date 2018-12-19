@@ -16,7 +16,6 @@
  */
 
 #include "rc4.h"
-#include "memdbg.h"
 
 #define swap_byte(a, b) { RC4_INT tmp = (*a); (*a) = (*b); (*b) = tmp; }
 

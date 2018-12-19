@@ -30,7 +30,6 @@ john_register_one(&fmt_skein_512);
 #include "params.h"
 #include "options.h"
 #include "sph_skein.h"
-#include "memdbg.h"
 
 // Skein-256 or Skein-512 are the real format labels.
 #define FORMAT_LABEL            "Skein"

@@ -48,7 +48,6 @@ john_register_one(&fmt_rawSHA256_ng);
 #include "common.h"
 #include "formats.h"
 #include "aligned.h"
-#include "memdbg.h"
 
 #if __MIC__
 #define SIMD_TYPE                 "512/512 MIC 16x"

@@ -35,7 +35,6 @@ john_register_one(&fmt_radius);
 #include "params.h"
 #include "options.h"
 #include "md5.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "radius"
 #define FORMAT_NAME             "RADIUS authentication"

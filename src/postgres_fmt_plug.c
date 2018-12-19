@@ -35,7 +35,6 @@ john_register_one(&fmt_postgres);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "postgres"
 #define FORMAT_NAME             "PostgreSQL C/R"

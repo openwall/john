@@ -25,7 +25,6 @@ john_register_one(&fmt_pomelo);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "pomelo"
 #define FORMAT_NAME             ""

@@ -42,7 +42,6 @@ john_register_one(&fmt_odf);
 #include "aes.h"
 #include "odf_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "ODF"
 #ifdef SIMD_COEF_32

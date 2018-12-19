@@ -21,7 +21,6 @@
 #include "argon2_opt.h"
 #include "blake2.h"
 #include "blamka-round-opt.h"
-#include "memdbg.h"
 
 /* LEGACY CODE: version 1.2.1 and earlier
 * Function fills a new memory block by overwriting @next_block.

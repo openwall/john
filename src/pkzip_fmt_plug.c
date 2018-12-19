@@ -42,7 +42,6 @@ john_register_one(&fmt_pkzip);
 #include "pkzip.h"
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
 #include "loader.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "PKZIP"
 #define FORMAT_NAME         ""

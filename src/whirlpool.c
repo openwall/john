@@ -50,7 +50,6 @@
 #include <string.h>
 
 #include "sph_whirlpool.h"
-#include "memdbg.h"
 
 #if SPH_64
 

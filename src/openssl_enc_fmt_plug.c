@@ -59,7 +59,6 @@ john_register_one(&fmt_openssl);
 #include "common.h"
 #include "formats.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "openssl-enc"
 #define FORMAT_NAME         "OpenSSL \"enc\" encryption"

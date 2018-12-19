@@ -30,7 +30,6 @@
 #include "unicode.h"
 #include "mask.h"
 #include "regex.h"
-#include "memdbg.h"
 
 extern struct fmt_main fmt_LM;
 

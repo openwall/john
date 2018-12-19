@@ -43,7 +43,6 @@ john_register_one(&fmt_DOMINOSEC);
 #define OMP_SCALE               128
 #endif
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"dominosec"
 #define FORMAT_NAME		"Lotus Notes/Domino 6 More Secure Internet Password"

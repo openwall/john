@@ -9,7 +9,6 @@
 #include "misc.h"
 #include "common.h"
 #include "office_common.h"
-#include "memdbg.h"
 
 void *ms_office_common_get_salt(char *ciphertext)
 {

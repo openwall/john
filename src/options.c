@@ -52,7 +52,6 @@
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */
 #include "jumbo.h"
-#include "memdbg.h"
 
 struct options_main options;
 static char *field_sep_char_str, *show_uncracked_str, *salts_str;
@@ -312,7 +311,7 @@ static struct opt_entry opt_list[] = {
 #endif
 
 #define JOHN_USAGE	  \
-"John the Ripper " JTR_GIT_VERSION _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING UBSAN_STRING " [" JOHN_BLD "]\n" \
+"John the Ripper " JTR_GIT_VERSION _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING " [" JOHN_BLD "]\n" \
 "Copyright (c) 1996-2018 by " JOHN_COPYRIGHT "\n" \
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \
@@ -691,7 +690,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 #endif
 		path_done();
 		cleanup_tiny_memory();
-		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		exit(0);
 	}
 	if (costs_str) {

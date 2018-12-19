@@ -25,7 +25,6 @@
 #include "jumbo.h"
 #include "bench.h"
 #include "omp_autotune.h"
-#include "memdbg.h"
 
 char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
 
@@ -406,9 +405,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		return NULL;
 	}
 #endif
-
-	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST,
-	                    "\nAt start of self-test:");
 
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
@@ -1040,8 +1036,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;
-
-	MemDbg_Validate_msg(MEMDBG_VALIDATE_DEEPEST, "At end of self-test:");
 
 	return NULL;
 }

@@ -7,7 +7,6 @@
 #include "common.h"
 #include "pgpsda_common.h"
 #include "sha.h"
-#include "memdbg.h"
 
 struct fmt_tests pgpsda_tests[] = {
 	// Windows XP SP3 + PGP 8.0 generated SDAs

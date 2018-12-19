@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "ansible_common.h"
-#include "memdbg.h"
 
 struct fmt_tests ansible_tests[] = {
 	{"$ansible$0*0*f623a48ba49f7abf7c1920bc1e2ab2607cda2b5786da2560b8178a6095e5dfd2*ab55de42e4f131f109f1a086f2e8e22f*6767c60857ce1d7aa20226d76ec1abf77837c623bb7e879147ab888ef15a0dbb", "openwall"},

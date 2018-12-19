@@ -7,7 +7,6 @@
 #include "common.h"
 #include "iwork_common.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 struct fmt_tests iwork_tests[] = {
 	{"$iwork$1$2$1$100000$d77ce46a68697e08b76ac91de9117541$e7b72b2848dc27efed883963b00b1ac7$e794144cd2f04bd50e23957b30affb2898554a99a3accb7506c17132654e09c04bbeff45dc4f8a8a1db5fd1592f699eeff2f9a8c31b503e9631a25a344b517f7" ,"12345678"},

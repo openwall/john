@@ -48,7 +48,6 @@ john_register_one(&fmt_VMS);
  */
 #define UAIsM_PWDMIX 0x2000000
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"OpenVMS"
 #define FORMAT_NAME			"Purdy"

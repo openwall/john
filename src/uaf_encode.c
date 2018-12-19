@@ -81,7 +81,6 @@ struct dsc_descriptor_s {
 
 #include "uaf_raw.h"
 #include "uaf_encode.h"
-#include "memdbg.h"
 
 /*
  * Declare static globals that don't change once initialized as well as

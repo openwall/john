@@ -27,7 +27,6 @@ john_register_one(&fmt_argon2);
 #include "argon2.h"
 #include "argon2_core.h"
 #include "argon2_encoding.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "argon2"
 #define FORMAT_NAME             ""

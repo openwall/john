@@ -8,7 +8,6 @@
 #include "arch.h"
 #include "telegram_common.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 struct fmt_tests telegram_tests[] = {
 	// Telegram Desktop 1.3.9 on Ubuntu 18.04 LTS

@@ -44,7 +44,6 @@
 #include "mask.h"
 #include "unicode.h"
 #include "unicode_range.c"
-#include "memdbg.h"
 
 #define SUBSET_DEBUG 1
 

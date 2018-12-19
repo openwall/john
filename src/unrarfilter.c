@@ -24,7 +24,6 @@
 
 #include "unrar.h"
 #include "unrarfilter.h"
-#include "memdbg.h"
 
 void rar_filter_array_init(rar_filter_array_t *filter_a)
 {

@@ -46,7 +46,6 @@
 #include "base64_convert.h"
 #include "md5.h"
 #include "single.h"
-#include "memdbg.h"
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
@@ -2079,7 +2078,6 @@ void ldr_fix_database(struct db_main *db)
 			fprintf(stderr, "%s%d password hash%s cracked,"
 			        " %d left\n", total ? "\n" : "", total,
 			        total != 1 ? "es" : "", db->password_count);
-		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		exit(0);
 	}
 }

@@ -51,7 +51,6 @@ john_register_one(&fmt_haval_128_4);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_TAG		"$haval$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)

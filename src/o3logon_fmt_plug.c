@@ -36,7 +36,6 @@ john_register_one(&fmt_o3logon);
 #endif
 #endif
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL                    "o3logon"
 #define FORMAT_NAME                     "Oracle O3LOGON protocol"

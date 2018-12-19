@@ -37,7 +37,6 @@ john_register_one(&fmt_nsec3);
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL                    "nsec3"
 #define FORMAT_NAME                     "DNSSEC NSEC3"

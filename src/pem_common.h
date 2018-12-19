@@ -9,7 +9,6 @@
 #include "formats.h"
 #include "jumbo.h"
 #include "asn1.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "PKCS#8 private key (RSA/DSA/ECDSA)"
 #define FORMAT_TAG              "$PEM$"

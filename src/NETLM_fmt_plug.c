@@ -50,7 +50,6 @@ john_register_one(&fmt_NETLM);
 #include "formats.h"
 #include "memory.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE            128 // core i7

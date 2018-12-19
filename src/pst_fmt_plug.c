@@ -32,7 +32,6 @@ john_register_one(&fmt_pst);
 #include "common.h"
 #include "formats.h"
 #include "crc32.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "PST"
 #define FORMAT_NAME             "custom CRC-32"

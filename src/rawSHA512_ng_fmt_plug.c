@@ -45,7 +45,6 @@ john_register_one(&fmt_rawSHA512_ng);
 #include "formats.h"
 #include "johnswap.h"
 #include "rawSHA512_common.h"
-#include "memdbg.h"
 
 #if __MIC__
 #define SIMD_TYPE                 "512/512 MIC 8x"

@@ -129,7 +129,6 @@ john_register_one(&fmt_rar);
 #endif
 
 #include "rar_common.c"
-#include "memdbg.h"
 
 // these are supposed to be stack arrays; however gcc cannot correctly align
 // stack arrays so we have to use global arrays; we may switch back to stack

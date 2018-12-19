@@ -43,7 +43,6 @@ john_register_one(&fmt_electrum);
 #include "secp256k1.h"
 #include "pbkdf2_hmac_sha512.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "Electrum Wallet"
 #define FORMAT_LABEL            "electrum"

@@ -88,7 +88,6 @@ john_register_one(&fmt_dmg);
 #endif
 #endif
 #include "loader.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG"

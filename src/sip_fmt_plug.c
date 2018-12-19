@@ -40,7 +40,6 @@ john_register_one(&fmt_sip);
 #include "params.h"
 #include "options.h"
 #include "sip_fmt_plug.h"
-#include "memdbg.h"
 
 typedef struct sip_salt_t {
 	int static_hash_data_len;

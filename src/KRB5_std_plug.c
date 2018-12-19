@@ -28,7 +28,6 @@
 #include "KRB5_std.h"
 #include "memory.h"
 #include "misc.h"
-#include "memdbg.h"
 
 #ifdef _MSC_VER
 #define inline _inline

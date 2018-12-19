@@ -38,7 +38,6 @@ john_register_one(&fmt_radmin);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "RAdmin"
 #define FORMAT_NAME             "v2.x"

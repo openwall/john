@@ -34,7 +34,6 @@ john_register_one(&fmt_AzureAD);
 #include "unicode.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #if SIMD_COEF_32

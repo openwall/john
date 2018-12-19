@@ -80,7 +80,6 @@ struct s_salt
 
 static struct s_salt saved_salt[1];
 
-#include "memdbg.h"
 
 struct fmt_main FMT_STRUCT;
 

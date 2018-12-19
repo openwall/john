@@ -38,7 +38,6 @@ john_register_one(&fmt_securezip);
 #include "params.h"
 #include "options.h"
 #include "securezip_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "securezip"
 #define FORMAT_NAME             "PKWARE SecureZIP"

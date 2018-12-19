@@ -29,7 +29,6 @@ john_register_one(&fmt_bks);
 #include "loader.h"
 #include "simd-intrinsics.h"
 #include "pkcs12.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"BKS"
 #define FORMAT_NAME		""

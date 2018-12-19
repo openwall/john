@@ -35,7 +35,6 @@ john_register_one(&fmt_sappse);
 #include "sap_pse_common.h"
 #include "simd-intrinsics.h"
 #include "pkcs12.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "sappse"
 #define FORMAT_NAME             ""

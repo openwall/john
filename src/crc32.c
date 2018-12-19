@@ -21,7 +21,6 @@
 
 #include "memory.h"
 #include "crc32.h"
-#include "memdbg.h"
 
 #define POLY  0xEDB88320
 #define POLYC 0x82F63B78 // CRC-32C

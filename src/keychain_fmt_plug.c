@@ -40,7 +40,6 @@ john_register_one(&fmt_keychain);
 #include "keychain_common.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "keychain"
 

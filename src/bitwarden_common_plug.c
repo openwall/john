@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "bitwarden_common.h"
-#include "memdbg.h"
 
 struct fmt_tests bitwarden_tests[] = {
 	// Extracted from Firefox 57.x running on Fedora 27

@@ -37,7 +37,6 @@ john_register_one(&fmt_rawSHA1_LI);
 #include "loader.h"
 #include "rawSHA1_common.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA1-Linkedin"
 #define FORMAT_NAME			""

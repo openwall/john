@@ -47,7 +47,6 @@
 #endif
 #include "params.h"
 #include "memory.h"
-#include "memdbg.h"
 
 #include "sha2.h"
 #include "base64_convert.h"
@@ -604,7 +603,6 @@ int main(int argc, char **argv)
 	while(argc--)
 		process_database(*argv++);
 
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }
 #endif

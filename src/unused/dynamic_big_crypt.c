@@ -161,7 +161,6 @@
 #include <omp.h>
 #endif
 
-#include "memdbg.h"
 
 #if !defined (_DEBUG)
 #define m_count m_Dynamic_Count

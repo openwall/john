@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "ssh_common.h"
-#include "memdbg.h"
 
 int ssh_valid(char *ciphertext, struct fmt_main *self)
 {

@@ -8,7 +8,6 @@
 #include "misc.h"
 #include "common.h"
 #include "openbsdsoftraid_common.h"
-#include "memdbg.h"
 
 int openbsdsoftraid_valid(char* ciphertext, struct fmt_main *self, int is_cpu)
 {

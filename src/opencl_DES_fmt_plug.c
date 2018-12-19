@@ -21,7 +21,6 @@ john_register_one(&fmt_opencl_DES);
 #include "config.h"
 #include "opencl_DES_bs.h"
 #include "opencl_DES_hst_dev_shared.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME			"traditional crypt(3)"
 

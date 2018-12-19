@@ -38,7 +38,6 @@
 #include "params.h"
 #include "logger.h"
 #include "signals.h"
-#include "memdbg.h"
 
 int gpu_id;
 int gpu_device_list[MAX_GPU_DEVICES];

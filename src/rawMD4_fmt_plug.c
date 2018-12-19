@@ -51,7 +51,6 @@ john_register_one(&fmt_rawMD4);
 #include <omp.h>
 #endif
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-MD4"
 #define FORMAT_NAME			""

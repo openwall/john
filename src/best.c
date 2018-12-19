@@ -23,7 +23,6 @@
 #include "common.h"
 #include "formats.h"
 #include "bench.h"
-#include "memdbg.h"
 
 extern struct fmt_main fmt_DES, fmt_MD5, fmt_BF;
 

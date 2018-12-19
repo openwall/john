@@ -46,7 +46,6 @@ john_register_one(&fmt_bitlocker);
 #include "bitlocker_common.h"
 #define CPU_FORMAT              1
 #include "bitlocker_variable_code.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "BitLocker"
 #if ARCH_BITS >= 64

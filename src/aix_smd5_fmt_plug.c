@@ -28,7 +28,6 @@ john_register_one(&fmt_smd5);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "aix-smd5"
 #define FORMAT_NAME             "AIX LPA {smd5} (modified crypt-md5)"

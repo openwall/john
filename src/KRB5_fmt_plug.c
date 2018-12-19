@@ -31,7 +31,6 @@ john_register_one(&fmt_KRB5);
 #include "formats.h"
 #include "memory.h"
 #include "KRB5_std.h"
-#include "memdbg.h"
 
 #define MAGIC_PREFIX        "$krb5$"
 #define MAGIC_PREFIX_LEN    (sizeof(MAGIC_PREFIX)-1)

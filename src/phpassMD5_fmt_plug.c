@@ -48,7 +48,6 @@ john_register_one(&fmt_phpassmd5);
 #include "md5.h"
 #include "phpass_common.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "phpass"
 #define FORMAT_NAME             ""

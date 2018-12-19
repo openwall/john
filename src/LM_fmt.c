@@ -17,7 +17,6 @@
 #include "DES_bs.h"
 #include "common.h"
 #include "formats.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"LM"
 #define FORMAT_NAME			""

@@ -35,7 +35,6 @@ john_register_one(&fmt_itunes);
 #include "pbkdf2_hmac_sha256.h"
 #include "jumbo.h"
 #include "itunes_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "itunes-backup"
 #ifdef SIMD_COEF_32

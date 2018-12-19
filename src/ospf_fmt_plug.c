@@ -35,7 +35,6 @@ john_register_one(&fmt_ospf);
 #include "common.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "ospf"
 #define FORMAT_NAME             "OSPF / IS-IS"

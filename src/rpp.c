@@ -12,7 +12,6 @@
 #include "logger.h"
 #include "common.h" /* for atoi16 */
 #include "misc.h"   /* for strtokm */
-#include "memdbg.h"
 
 int rpp_real_run = 0;
 

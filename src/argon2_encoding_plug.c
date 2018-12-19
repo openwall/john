@@ -5,7 +5,6 @@
 
 #include "argon2_encoding.h"
 #include "argon2_core.h"
-#include "memdbg.h"
 
 /*
  * Example code for a decoder and encoder of "hash strings", with Argon2

@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include "SKEY_jtr.h"
 #include "misc.h"
-#include "memdbg.h"
 #include "md4.h"
 #include "md5.h"
 #include "sha.h"

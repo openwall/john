@@ -30,7 +30,6 @@
 #include "mask.h"
 #include "regex.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 /*
  * int_hybrid_base_word is set to the original word before call to new().

@@ -8,7 +8,6 @@
 #include "common.h"
 #include "formats.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_TAG              "$diskcryptor$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)

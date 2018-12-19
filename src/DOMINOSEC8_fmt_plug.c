@@ -54,7 +54,6 @@ john_register_one(&fmt_DOMINOSEC8);
 #define OMP_SCALE               128
 #endif
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"dominosec8"
 #define FORMAT_NAME		"Lotus Notes/Domino 8"

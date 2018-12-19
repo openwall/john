@@ -29,7 +29,6 @@ john_register_one(&fmt_monero);
 #include "options.h"
 #include "chacha.h"
 #include "slow_hash.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "monero"
 #define FORMAT_NAME             "monero Wallet"

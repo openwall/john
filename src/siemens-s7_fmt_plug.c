@@ -31,7 +31,6 @@ john_register_one(&fmt_s7);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Siemens-S7"
 #define FORMAT_NAME             ""

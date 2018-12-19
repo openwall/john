@@ -15,7 +15,6 @@
 #define MaxSalt			64
 
 #include "formats.h"
-#include "memdbg.h"
 
 #define  Min(x,y) (((x)<(y)) ? (x):(y))
 

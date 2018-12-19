@@ -37,7 +37,6 @@ john_register_one(&fmt_FGT);
 #include "misc.h"
 #include "sha.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"Fortigate"
 #define FORMAT_NAME             "FortiOS"

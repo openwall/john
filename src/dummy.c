@@ -14,7 +14,6 @@
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"dummy"
 #define FORMAT_TAG			"$dummy$"

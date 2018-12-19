@@ -36,7 +36,6 @@ john_register_one(&fmt_NT2);
 #include "memory.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD4)

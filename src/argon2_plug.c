@@ -19,7 +19,6 @@
 #include "argon2.h"
 #include "argon2_encoding.h"
 #include "argon2_core.h"
-#include "memdbg.h"
 
 int argon2_ctx(argon2_context *context, argon2_type type) {
     /* 1. Validate all inputs */

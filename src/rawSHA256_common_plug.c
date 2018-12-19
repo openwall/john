@@ -12,7 +12,6 @@
 #include "johnswap.h"
 #include "rawSHA256_common.h"
 #include "misc.h"
-#include "memdbg.h"
 
 /* ------- Check if the ciphertext if a valid SHA2 hash ------- */
 static int valid_cisco(char *ciphertext)

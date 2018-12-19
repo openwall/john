@@ -14,8 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "memory.h"
 #include "arch.h"
-#include "memdbg.h"
 
 #if !defined(JOHN_NO_SIMD) && defined(__AVX2__)
 

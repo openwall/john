@@ -39,7 +39,6 @@ john_register_one(&fmt_ecryptfs1);
 #include "base64_convert.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_TAG              "$ecryptfs$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)

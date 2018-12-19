@@ -31,7 +31,6 @@ john_register_one(&fmt_notes);
 #include "johnswap.h"
 #include "notes_common.h"
 #include "pbkdf2_hmac_sha256.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "notes"
 #ifdef SIMD_COEF_32

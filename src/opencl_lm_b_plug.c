@@ -226,7 +226,6 @@ typedef union {
 	kp += 1;					\
 }
 
-#include "memdbg.h"
 
 static void lm_finalize_int_keys()
 {

@@ -1,7 +1,7 @@
 #include <openssl/des.h>
 
 #include "krb5_common.h"
-#include "memdbg.h"
+#include "memory.h"
 
 /* n-fold(k-bits):
  * l = lcm(n,k)

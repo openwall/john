@@ -52,7 +52,6 @@ john_register_one(&fmt_rawSHA1_axcrypt);
 #include <omp.h>
 #endif
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define AX_FORMAT			1
 #define RAW_FORMAT			2

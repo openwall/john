@@ -100,7 +100,6 @@ john_register_one(&fmt_sapH);
 
 #define ALGORITHM_NAME          "SHA-1/SHA-2 " SHA1_ALGORITHM_NAME
 
-#include "memdbg.h"
 
 #define BENCHMARK_COMMENT		" (SHA1x1024)"
 #define BENCHMARK_LENGTH		0

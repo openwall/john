@@ -34,7 +34,6 @@ john_register_one(&FMT_STRUCT);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"plaintext"
 #define FORMAT_TAG			"$0$"

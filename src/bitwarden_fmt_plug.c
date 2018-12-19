@@ -34,7 +34,6 @@ john_register_one(&fmt_bitwarden);
 #include "aes.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "bitwarden_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Bitwarden"
 #ifdef SIMD_COEF_32

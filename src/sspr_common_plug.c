@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "sspr_common.h"
-#include "memdbg.h"
 
 struct fmt_tests sspr_tests[] = {
 	// NetIQ SSPR hashes

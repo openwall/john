@@ -33,7 +33,6 @@ john_register_one(&fmt_office);
 #include "johnswap.h"
 #include "office_common.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL             "Office"
 #define FORMAT_NAME              "2007/2010/2013"

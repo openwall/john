@@ -66,7 +66,6 @@
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
-#include "memdbg.h"
 
 #define CHUNK_SIZE 4096
 

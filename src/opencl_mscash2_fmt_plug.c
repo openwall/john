@@ -29,7 +29,6 @@ john_register_one(&fmt_opencl_mscash2);
 #include "config.h"
 #include "mscash_common.h"
 
-#include "memdbg.h"
 
 #define SQRT_2                      0x5a827999
 #define SQRT_3                      0x6ed9eba1

@@ -52,7 +52,6 @@ john_register_one(&fmt_gpg);
 #include "sha.h"
 #include "sha2.h"
 #include "gpg_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "gpg"
 #define FORMAT_NAME         "OpenPGP / GnuPG Secret Key"

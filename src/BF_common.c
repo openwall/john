@@ -8,7 +8,6 @@
 #include "common.h"
 #include "formats.h"
 #include "BF_common.h"
-#include "memdbg.h"
 
 struct fmt_tests BF_common_tests[] = {
 

@@ -47,7 +47,6 @@ john_register_one(&fmt_PHPS);
 #include "formats.h"
 #include "dynamic.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"PHPS"
 #define FORMAT_NAME		"" /* md5(md5($pass).$salt) */

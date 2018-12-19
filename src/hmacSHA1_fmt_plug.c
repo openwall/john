@@ -25,7 +25,6 @@ john_register_one(&fmt__hmacSHA1);
 #include "sha.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "HMAC-SHA1"
 #define FORMAT_NAME             ""

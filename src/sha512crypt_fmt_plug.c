@@ -79,7 +79,6 @@ john_register_one(&fmt_cryptsha512);
 #include "formats.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE			1 // This and MKPC tuned for core i7

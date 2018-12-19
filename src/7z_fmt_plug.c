@@ -50,7 +50,6 @@ john_register_one(&fmt_sevenzip);
 #include "lzma/LzmaDec.h"
 #include "lzma/Lzma2Dec.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "7z"
 #define FORMAT_NAME             "7-Zip"

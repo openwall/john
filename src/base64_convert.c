@@ -34,7 +34,6 @@
 #include "common.h"
 #include "jumbo.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 /*
  * once we switched to size_t, we can no longer use - values to return an error.
@@ -1293,6 +1292,5 @@ int base64conv(int argc, char **argv) {
 	} else
 	while(argc--)
 		do_convert(*argv++, in_t, out_t, quiet, err_chk, flags);
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

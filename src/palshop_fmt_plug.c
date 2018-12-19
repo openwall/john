@@ -30,7 +30,6 @@ john_register_one(&fmt_palshop);
 #define OMP_SCALE               1024
 #endif
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Palshop"
 #define FORMAT_NAME             "MD5(Palshop)"

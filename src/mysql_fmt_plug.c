@@ -39,7 +39,6 @@ john_register_one(&fmt_MYSQL_fast);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "memdbg.h"
 
 #ifdef __MIC__
 #ifndef OMP_SCALE

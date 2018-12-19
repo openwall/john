@@ -32,7 +32,6 @@
 #include "mask.h"
 #include "external.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #define UNICODE
 #define _UNICODE

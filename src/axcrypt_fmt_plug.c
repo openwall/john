@@ -36,7 +36,6 @@ john_register_one(&fmt_axcrypt);
 #include "pbkdf2_hmac_sha512.h"
 #define CPU_FORMAT 1
 #include "axcrypt_variable_code.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "AxCrypt"
 #define FORMAT_NAME             ""

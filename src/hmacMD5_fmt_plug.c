@@ -27,7 +27,6 @@ john_register_one(&fmt__hmacMD5);
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "HMAC-MD5"
 #define FORMAT_NAME             ""
