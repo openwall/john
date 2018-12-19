@@ -21,7 +21,7 @@ Heres are steps to crack DiskCryptor encrypted partitions with JtR Jumbo.
 
    - Boot a machine from this USB stick.
 
-   - Some useful debugging commands -> `fdisk -l`, `dmesg`.
+   - Some useful debugging commands -> `fdisk -l`, `dmesg`, `lspci`.
 
 3. Run `john` on the extracted hashes.
 
