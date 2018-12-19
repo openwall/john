@@ -108,7 +108,7 @@ extern int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
  * advance the stacked rules (and rewind the main rules). Repeat until
  * main rules are done with the last stacked rule.
  */
-extern int rules_advance_stack(rule_stack *ctx);
+extern int rules_advance_stack(rule_stack *ctx, int quiet);
 
 /*
  * Return next word from stacked rules, or NULL if it was rejected. The

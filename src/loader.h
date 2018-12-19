@@ -94,11 +94,8 @@ struct db_keys {
  * guesses for testing against this salt's hashes. */
 	int have_words;
 
-/* Number of last processed rule */
-	int rule;
-
-/* Number of last processed stacked rule */
-	//int rule2;
+/* Number of last processed rule ([0]) and stacked rule ([1]) */
+	int rule[2];
 
 /* Number of recursive calls for this salt */
 	int lock;

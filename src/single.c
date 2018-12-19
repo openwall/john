@@ -34,7 +34,7 @@
 struct list_main *single_seed;
 
 static double progress = 0;
-static int rec_rule;
+static int rec_rule[2];
 
 static struct db_main *single_db;
 static int rule_number, rule_count;
@@ -57,22 +57,37 @@ static int ocl_fmt;
 
 static void save_state(FILE *file)
 {
-	fprintf(file, "%d\n", rec_rule);
+	fprintf(file, "%d\n", rec_rule[0]);
+	if (options.rule_stack)
+		fprintf(file, "%d\n", rec_rule[1]);
 }
 
 static int restore_rule_number(void)
 {
 	if (rule_ctx)
-	for (rule_number = 0; rule_number < rec_rule; rule_number++)
-	if (!rpp_next(rule_ctx)) return 1;
+		for (rule_number = 0; rule_number < rec_rule[0]; rule_number++)
+			if (!rpp_next(rule_ctx))
+				return 1;
+
+	if (options.rule_stack) {
+		single_rule_stack.rule = single_rule_stack.stack_rule->head;
+		rules_stacked_number = 1;
+		while (rules_stacked_number < rec_rule[1])
+			if (!rules_advance_stack(&single_rule_stack, 1))
+				return 1;
+		log_event("+ Stacked Rule #%u: '%.100s' accepted",
+		          rules_stacked_number, single_rule_stack.rule->data);
+	}
 
 	return 0;
 }
 
 static int restore_state(FILE *file)
 {
-	if (fscanf(file, "%d\n", &rec_rule) != 1) return 1;
-
+	if (fscanf(file, "%d\n", &rec_rule[0]) != 1)
+		return 1;
+	if (options.rule_stack && fscanf(file, "%d\n", &rec_rule[1]) != 1)
+		return 1;
 	return restore_rule_number();
 }
 
@@ -114,9 +129,8 @@ static void single_alloc_keys(struct db_keys **keys)
 	(*keys)->count = (*keys)->count_from_guesses = 0;
 	(*keys)->ptr = (*keys)->buffer;
 	(*keys)->have_words = 1; /* assume yes; we'll see for real later */
-	(*keys)->rule = rule_number;
-	//if (rules_stacked_after)
-	//	(*keys)->rule2 = rules_stacked_number;
+	(*keys)->rule[0] = rule_number;
+	(*keys)->rule[1] = rules_stacked_number;
 	(*keys)->lock = 0;
 	memset((*keys)->hash, -1, hash_size);
 }
@@ -373,15 +387,24 @@ static void single_init(void)
 #endif
 
 	rules_init(single_db, length);
-	rec_rule = rule_number = 0;
+	rec_rule[0] = rule_number = 0;
+	rec_rule[1] = rules_stacked_number = 1;
 	rule_count = rules_count(rule_ctx, 0);
 
-	if (rules_stacked_after)
+	stacked_rule_count = rules_init_stack(options.rule_stack,
+	                                      &single_rule_stack, single_db);
+
+	if (options.rule_stack)
 		log_event("- Total %u (%d x %u) preprocessed word mangling rules",
 		          rule_count * stacked_rule_count,
 		          rule_count, stacked_rule_count);
 	else
 		log_event("- %d preprocessed word mangling rules", rule_count);
+
+	rules_stacked_after = (stacked_rule_count > 0);
+
+	if (!stacked_rule_count)
+		stacked_rule_count = 1;
 
 	status_init(get_progress, 0);
 
@@ -406,14 +429,6 @@ static void single_init(void)
 	single_alloc_keys(&guessed_keys);
 
 	crk_init(single_db, NULL, guessed_keys);
-
-	stacked_rule_count = rules_init_stack(options.rule_stack,
-	                                      &single_rule_stack, single_db);
-
-	rules_stacked_after = (stacked_rule_count > 0);
-
-	if (!stacked_rule_count)
-		stacked_rule_count = 1;
 }
 
 static MAYBE_INLINE int single_key_hash(char *key)
@@ -465,7 +480,7 @@ static int single_add_key(struct db_salt *salt, char *key, int is_from_guesses)
 	int index, new_hash, reuse_hash;
 	struct db_keys_hash_entry *entry;
 
-	if (rules_stacked_after)
+	if (options.rule_stack)
 		if (!(key = rules_process_stack(key, &single_rule_stack)))
 			return 0;
 
@@ -562,8 +577,8 @@ static int single_process_buffer(struct db_salt *salt)
 	keys = salt->keys;
 	keys->lock--;
 	if (!keys->count && !keys->lock) {
-		keys->rule = rule_number;
-		//keys->rule2 = rules_stacked_number;
+		keys->rule[0] = rule_number;
+		keys->rule[1] = rules_stacked_number;
 	}
 
 	return 0;
@@ -645,6 +660,9 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	return 0;
 }
 
+#define tot_rule_no ((rules_stacked_number - 1) * rule_count + rule_number)
+#define tot_rule_now ((keys->rule[1] - 1) * rule_count + keys->rule[0])
+
 static int single_process_salt(struct db_salt *salt, char *rule)
 {
 	struct db_keys *keys;
@@ -683,13 +701,13 @@ next:
 #if HAVE_OPENCL || HAVE_ZTEX
 	if (!acc_fmt || prio_resume)
 #endif
-	if (keys->count && rule_number - keys->rule > (key_count << 1))
+	if (keys->count && tot_rule_no - tot_rule_now > (key_count << 1))
 		if (single_process_buffer(salt))
 			return 1;
 
 	if (!keys->count) {
-		keys->rule = rule_number;
-		//keys->rule2 = rules_stacked_number;
+		keys->rule[0] = rule_number;
+		keys->rule[1] = rules_stacked_number;
 	}
 
 	if (!have_words) {
@@ -706,13 +724,15 @@ static void single_run(void)
 {
 	char *prerule, *rule;
 	struct db_salt *salt;
-	int min, saved_min;
+	int min[2], saved_min[2];
 	int have_words;
 
-	saved_min = rec_rule;
+	saved_min[0] = rec_rule[0];
+	saved_min[1] = rec_rule[1];
 	rpp_real_run = 1;
 
 	do {
+		rec_rule[1] = min[1] = rules_stacked_number;
 		while ((prerule = rpp_next(rule_ctx))) {
 			if (options.node_count) {
 				int for_node = rule_number % options.node_count + 1;
@@ -743,16 +763,23 @@ static void single_run(void)
 				}
 			}
 
-			if (saved_min != rec_rule) {
-				if (!rules_mute)
-					log_event("- Oldest still in use is now rule #%d",
-					          rec_rule + 1);
-				saved_min = rec_rule;
+			if (saved_min[0] != rec_rule[0] || saved_min[1] != rec_rule[1]) {
+				if (!rules_mute) {
+					if (options.rule_stack)
+						log_event("- Oldest still in use rules are now "
+						          "base #%d, stacked #%d",
+						          rec_rule[0] + 1, rec_rule[1]);
+					else
+						log_event("- Oldest still in use is now rule #%d",
+						          rec_rule[0] + 1);
+				}
+				saved_min[0] = rec_rule[0];
+				saved_min[1] = rec_rule[1];
 			}
 
 			have_words = 0;
 
-			min = rule_number;
+			min[0] = rule_number;
 
 			/* pot reload might have removed the salt */
 			if (!(salt = single_db->salts))
@@ -765,14 +792,16 @@ static void single_run(void)
 				if (!salt->keys->have_words)
 					continue;
 				have_words = 1;
-				if (salt->keys->rule < min)
-					min = salt->keys->rule;
+				if (salt->keys->rule[0] < min[0])
+					min[0] = salt->keys->rule[0];
+				if (salt->keys->rule[1] < min[1])
+					min[1] = salt->keys->rule[1];
 			} while ((salt = salt->next));
 
 			if (event_reload && single_db->salts)
 				crk_reload_pot();
 
-			rec_rule = min;
+			rec_rule[0] = min[0];
 			rule_number++;
 
 			if (have_words)
@@ -784,7 +813,7 @@ static void single_run(void)
 		}
 
 		if (rules_stacked_after) {
-			rule_number = 0;
+			saved_min[0] = rule_number = 0;
 			rpp_init(rule_ctx, options.activesinglerules);
 			if (!rules_mute && options.verbosity <= VERB_DEFAULT) {
 				rules_mute = 1;
@@ -796,7 +825,7 @@ static void single_run(void)
 			}
 		}
 
-	} while (rules_stacked_after && rules_advance_stack(&single_rule_stack));
+	} while (rules_stacked_after && rules_advance_stack(&single_rule_stack, 0));
 }
 
 static void single_done(void)

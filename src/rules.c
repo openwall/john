@@ -1800,14 +1800,15 @@ out_ERROR_UNALLOWED:
  * advance the stacked rules (and rewind the main rules). Repeat until
  * main rules are done with the last stacked rule.
  */
-int rules_advance_stack(rule_stack *ctx)
+int rules_advance_stack(rule_stack *ctx, int quiet)
 {
 	if (!(ctx->rule = ctx->rule->next))
 		ctx->done = 1;
 	else {
 		rules_stacked_number++;
-		log_event("+ Stacked Rule #%u: '%.100s' accepted",
-		          rules_stacked_number, ctx->rule->data);
+		if (!quiet)
+			log_event("+ Stacked Rule #%u: '%.100s' accepted",
+			          rules_stacked_number, ctx->rule->data);
 	}
 
 	return !ctx->done;
