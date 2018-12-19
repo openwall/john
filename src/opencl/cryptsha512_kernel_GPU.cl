@@ -29,6 +29,8 @@
         #define UNROLL_LOOP    132098
     #elif nvidia_sm_5x(DEVICE_INFO)
         #define UNROLL_LOOP    33686536
+    #elif gpu_intel(DEVICE_INFO)
+        #define UNROLL_LOOP    262658
     #else
         #define UNROLL_LOOP    0
     #endif
