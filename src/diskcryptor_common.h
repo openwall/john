@@ -27,6 +27,9 @@ struct custom_salt {
 #define PKCS_DERIVE_MAX         (MAX_KEY_SIZE*2)
 #define CF_CIPHERS_NUM          7  // 7 types of ciphers possible
 
+#pragma pack(push)  /* push current alignment to stack */
+#pragma pack(1)     /* set alignment to 1 byte boundary */
+
 struct dc_header {
 	uint8_t  salt[PKCS5_SALT_SIZE]; /* pkcs5.2 salt */
 	uint32_t sign;                  /* signature 'DCRP' */
@@ -45,7 +48,9 @@ struct dc_header {
 	uint8_t  tmp_wp_mode;           /* data wipe mode */
 
 	uint8_t  reserved[1422 - 1];
-} __attribute__((packed));
+};
+
+#pragma pack(pop)
 
 extern struct fmt_tests diskcryptor_tests[];
 
