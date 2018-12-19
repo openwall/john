@@ -22,7 +22,6 @@ john_register_one(&fmt_lotus5);
 #define OMP_SCALE 2 // core i7
 #endif
 
-#include "memdbg.h"
 
 #ifdef __x86_64__
 #define LOTUS_N 3

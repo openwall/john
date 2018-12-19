@@ -5,7 +5,6 @@
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
-#include "memdbg.h"
 
 static struct fmt_tests axcrypt_tests[] = {
 	/*

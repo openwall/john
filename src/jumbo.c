@@ -24,7 +24,6 @@
 #endif
 
 #include "params.h"
-#include "memdbg.h"
 
 /*
  * For used in jtr_basename_r function.  We need to handle separator chars

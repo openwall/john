@@ -35,7 +35,6 @@ john_register_one(&fmt_adxcrypt);
 #include "params.h"
 #include "options.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "adxcrypt"
 #define FORMAT_NAME             ""

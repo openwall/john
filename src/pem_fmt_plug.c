@@ -33,7 +33,6 @@ john_register_one(&fmt_pem);
 #include "pem_common.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "PEM"
 #ifdef SIMD_COEF_32

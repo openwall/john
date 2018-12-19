@@ -34,7 +34,6 @@ john_register_one(&fmt_ab);
 #include "aes.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "androidbackup_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "AndroidBackup"
 #define FORMAT_NAME             ""

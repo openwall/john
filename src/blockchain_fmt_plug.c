@@ -40,7 +40,6 @@ john_register_one(&fmt_blockchain);
 #include "johnswap.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "blockchain_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Blockchain"
 #define FORMAT_NAME             "My Wallet"

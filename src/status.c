@@ -41,7 +41,6 @@
 #include "subsets.h"
 #include "john_mpi.h"
 #include "gpu_common.h"
-#include "memdbg.h"
 
 struct status_main status;
 unsigned int status_restored_time = 0;

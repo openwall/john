@@ -35,7 +35,6 @@ john_register_one(&fmt_money);
 #include "rc4.h"
 #include "jumbo.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "Microsoft Money (2002 to Money Plus)"
 #define FORMAT_LABEL            "money"

@@ -45,7 +45,6 @@ john_register_one(&fmt_FG2);
 #include "misc.h"
 #include "sha.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Fortigate256"
 #define FORMAT_NAME             "FortiOS256"

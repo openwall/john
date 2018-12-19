@@ -33,7 +33,6 @@ john_register_one(&fmt_as400des);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "as400-des"
 #define FORMAT_NAME             "AS/400 DES"

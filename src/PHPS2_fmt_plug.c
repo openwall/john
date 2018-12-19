@@ -23,7 +23,6 @@ john_register_one(&fmt_PHPS2);
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"PHPS2"
 #define FORMAT_NAME			"" /* md5(md5($pass).$salt) */

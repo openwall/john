@@ -31,7 +31,6 @@ john_register_one(&fmt_EPI);
 #include "common.h"
 #include "formats.h"
 #include "sha.h"
-#include "memdbg.h"
 
 #define CIPHERTEXT_LENGTH  105
 #define PLAINTEXT_LENGTH   125

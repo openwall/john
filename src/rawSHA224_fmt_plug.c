@@ -34,7 +34,6 @@ john_register_one(&fmt_rawSHA224);
 #include "formats.h"
 #define REVERSE_STEPS
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Raw-SHA224"
 #define FORMAT_NAME             ""

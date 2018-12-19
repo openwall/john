@@ -37,7 +37,6 @@ john_register_one(&fmt_tezos);
 #include "tezos_common.h"
 #define PBKDF2_HMAC_SHA512_VARYING_SALT 1
 #include "pbkdf2_hmac_sha512.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "Tezos Key"
 #define FORMAT_LABEL            "tezos"

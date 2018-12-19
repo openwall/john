@@ -122,7 +122,6 @@ private bz_stream bz;
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
-#include "memdbg.h"	// Must be last included header
 
 #define YES 1
 #define NO  0

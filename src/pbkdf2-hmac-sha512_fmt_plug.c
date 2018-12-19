@@ -64,7 +64,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #define OMP_SCALE               1 // Use --tune=auto for tuning to your job
 #endif
 
-#include "memdbg.h"
 
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125

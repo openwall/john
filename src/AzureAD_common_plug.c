@@ -16,7 +16,6 @@
 #include "base64_convert.h"
 #include "johnswap.h"
 #include "AzureAD_common.h"
-#include "memdbg.h"
 
 struct AzureAD_custom_salt *AzureAD_cur_salt;
 

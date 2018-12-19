@@ -11,7 +11,6 @@
 #include "base64_convert.h"
 #include "johnswap.h"
 #include "sha1crypt_common.h"
-#include "memdbg.h"
 
 
 struct fmt_tests sha1crypt_common_tests[] = {

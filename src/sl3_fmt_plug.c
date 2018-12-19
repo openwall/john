@@ -34,7 +34,6 @@ john_register_one(&fmt_sl3);
 #include "sha.h"
 #include "sl3_common.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "SL3"
 #define ALGORITHM_NAME      "SHA1 " SHA1_ALGORITHM_NAME

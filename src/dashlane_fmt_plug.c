@@ -41,7 +41,6 @@ john_register_one(&fmt_dashlane);
 #include "dashlane_common.h"
 #include "openssl_code.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "Dashlane Password Manager"
 #define FORMAT_LABEL            "dashlane"

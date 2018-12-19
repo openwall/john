@@ -32,7 +32,6 @@ john_register_one(&fmt_signal);
 #include "loader.h"
 #include "pkcs12.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Signal"
 #define FORMAT_NAME             ""

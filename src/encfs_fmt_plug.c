@@ -30,7 +30,6 @@ john_register_one(&fmt_encfs);
 #include "johnswap.h"
 #include "encfs_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "EncFS"
 #define FORMAT_NAME         ""

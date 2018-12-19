@@ -16,7 +16,6 @@
 #include "list.h"
 #include "getopt.h"
 #include "john.h"
-#include "memdbg.h"
 
 #define FLG_ZERO			0x0
 

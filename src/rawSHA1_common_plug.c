@@ -11,7 +11,6 @@
 #include "base64_convert.h"
 #include "johnswap.h"
 #include "rawSHA1_common.h"
-#include "memdbg.h"
 
 struct fmt_tests rawsha1_common_tests[] = {
 	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},

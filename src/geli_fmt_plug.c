@@ -31,7 +31,6 @@ john_register_one(&fmt_geli);
 #include "pbkdf2_hmac_sha512.h"
 #include "jumbo.h"
 #include "geli_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "geli"
 #define FORMAT_NAME             "FreeBSD GELI"

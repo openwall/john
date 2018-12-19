@@ -31,7 +31,6 @@ john_register_one(&fmt_rawKeccak_256);
 #include <omp.h>
 #endif
 
-#include "memdbg.h"
 
 #define FORMAT_TAG		"$keccak256$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)

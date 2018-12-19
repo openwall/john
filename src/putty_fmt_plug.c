@@ -35,7 +35,6 @@ john_register_one(&fmt_putty);
 #include "sha.h"
 #include "hmac_sha.h"
 #include "loader.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "PuTTY"
 #define FORMAT_NAME         "Private Key (RSA/DSA/ECDSA/ED25519)"

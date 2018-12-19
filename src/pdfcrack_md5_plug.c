@@ -19,7 +19,6 @@
  */
 
 #include "pdfcrack_md5.h"
-#include "memdbg.h"
 
 #define ROTATE_LEFT(x, r) ((x << r) | (x >> (32 - r)))
 

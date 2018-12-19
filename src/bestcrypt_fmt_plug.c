@@ -35,7 +35,6 @@ john_register_one(&fmt_bestcrypt);
 #include "aes.h"
 #include "xts.h"
 #include "sph_whirlpool.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "BestCrypt"
 #define FORMAT_NAME             ""

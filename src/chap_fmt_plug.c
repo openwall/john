@@ -41,7 +41,6 @@ john_register_one(&fmt_chap);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "chap"
 #define FORMAT_NAME             "iSCSI CHAP authentication / EAP-MD5"

@@ -9,7 +9,6 @@
 #include "bt_interface.h"
 
 #include "memory.h" // Jtr mem_alloc(), mem_calloc(), MEM_FREE() and mem_alloc_align().
-#include "memdbg.h" // Debug memory leaks.
 #include "misc.h" // error()
 
 #define bt_error(a) bt_error_fn(a, __FILE__, __LINE__)

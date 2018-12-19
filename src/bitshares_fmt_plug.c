@@ -30,7 +30,6 @@ john_register_one(&fmt_bitshares);
 #include "sha2.h"
 #include "aes.h"
 #include "secp256k1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "bitshares"
 #define FORMAT_NAME             "BitShares Wallet"

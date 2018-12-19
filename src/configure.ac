@@ -64,7 +64,6 @@ dnl -DJOHN_SYSTEMWIDE
 AC_ARG_WITH(systemwide, [AS_HELP_STRING([--with-systemwide],[install for all users])],,[with_systemwide=no])
 AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking instead of fcntl()])],,[with_flock=no])
 
-AC_ARG_ENABLE([memdbg], [AC_HELP_STRING([--enable-memdbg], [Enable memdbg memory debugging (safe level)])], [memdbg=$enableval], [memdbg=no])
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([ubsantrap], [AS_HELP_STRING([--enable-ubsantrap], [* Build with UndefinedBehaviorSanitizer, crashes on failure])], [ubsantrap=$enableval], [ubsantrap=no])
@@ -234,7 +233,7 @@ fi
    JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
 
    dnl False positives from gcc 8
-   if (test "x$asan" != xyes && test "x$memdbg" != xyes); then
+   if (test "x$asan" != xyes); then
       JTR_NOWARN_CHECK([stringop-truncation], 1)
       JTR_NOWARN_CHECK([format-overflow], 1)
    fi
@@ -663,12 +662,6 @@ fi
 if test "x$ompfast" = xyes ; then
    AC_DEFINE([FAST_FORMATS_OMP], 1, ["Enable if you want OpenMP for fast formats"])
 fi
-
-if test "x$memdbg" = xyes ; then
-   MEMDBG_CFLAGS="-DMEMDBG_ON"
-fi
-AC_SUBST([MEMDBG_CFLAGS],["${MEMDBG_CFLAGS}"])
-
 
 LIBS="$BACKUP_LIBS"
 dnl in makefile, we need to know if building extra pcap items.
@@ -1232,12 +1225,6 @@ else
    use_make=$_cv_gnu_make_command
 fi
 
-if test "x$MEMDBG_CFLAGS" = "x"; then
-   memdbg_settings="disabled"
-else
-   memdbg_settings=${MEMDBG_CFLAGS}
-fi
-
 if test "x$asan" = xyes ; then
    asan="enabled"
 else
@@ -1283,10 +1270,9 @@ ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 EOF
 
 dnl === this section is NOT output, unless there is some debugging flag enabled.
-if test "$ubsan" != "disabled" || test "$asan" != "disabled" || test "$memdbg_settings" != "disabled" || test "$fuzz" != "no" || test "$experimental" != "no" ; then
+if test "$ubsan" != "disabled" || test "$asan" != "disabled" || test "$fuzz" != "no" || test "$experimental" != "no" ; then
 cat <<EOF
 Development options (these may hurt performance when enabled):
-Memdbg memory debugging settings ........... ${memdbg_settings}
 AddressSanitizer ("ASan") .................. ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
 Fuzzing test ............................... ${fuzz}

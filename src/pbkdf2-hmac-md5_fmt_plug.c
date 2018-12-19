@@ -25,7 +25,6 @@ john_register_one(&fmt_pbkdf2_hmac_md5);
 #include "formats.h"
 #include "pbkdf2_hmac_md5.h"
 #include "pbkdf2_hmac_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-MD5"
 #define FORMAT_NAME             ""

@@ -41,7 +41,6 @@ john_register_one(&fmt_netsha1);
 #include "params.h"
 #include "options.h"
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "net-sha1"
 #define FORMAT_NAME             "\"Keyed SHA1\" BFD"

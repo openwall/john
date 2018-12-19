@@ -30,7 +30,6 @@ john_register_one(&fmt_rawmd5uthick);
 #include "unicode.h"
 #include "memory.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-MD5u"
 #define FORMAT_NAME			""

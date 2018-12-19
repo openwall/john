@@ -34,7 +34,6 @@ john_register_one(&fmt_FORMSPRING);
 #include "formats.h"
 #include "dynamic.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"FormSpring"
 #define FORMAT_NAME		"" /* sha256($salt.$pass) */

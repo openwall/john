@@ -46,7 +46,6 @@ john_register_one(&fmt_nk);
 #endif
 #endif
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"nk"
 #define FORMAT_NAME		"Nuked-Klan CMS"

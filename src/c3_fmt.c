@@ -80,7 +80,6 @@
 #include "loader.h"
 #include "john.h"
 #include "john_mpi.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"crypt"
 #define FORMAT_NAME			"generic crypt(3)"

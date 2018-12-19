@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "strip_common.h"
-#include "memdbg.h"
 
 struct fmt_tests strip_tests[] = {
 	/* test vector created by STRIP for Windows */

@@ -156,7 +156,7 @@ JOHN_OBJS = \
 	undrop.o \
 	regex.o pp.o \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o \
-	unique.o gpg2john.o memdbg.o
+	unique.o gpg2john.o
 
 OCL_OBJS = opencl_common.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
@@ -182,10 +182,10 @@ BENCH_OBJS = \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
 	bench-t.o best.o common_g.o config_g.o formats_g.o jumbo.o dyna_salt.o \
-	memory.o miscnl.o params.o path.o signals_g.o tty.o memdbg.o
+	memory.o miscnl.o params.o path.o signals_g.o tty.o
 
 GENMKVPWD_OBJS = \
-	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o memdbg.o jumbo.o
+	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o jumbo.o
 
 PROJ = find_version ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/rar2john ../run/zip2john \
@@ -1675,7 +1675,7 @@ dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dyn
 	$(shell ./dynamic_big_crypt_generator.sh)
 	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
 
-dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h simd-intrinsics.h dynamic_types.h memdbg.h
+dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h simd-intrinsics.h dynamic_types.h
 
 
 options.o: version.h options.c
@@ -1820,49 +1820,49 @@ john.com: john.asm
 ../run/genmkvpwd.exe: $(GENMKVPWD_OBJS)
 	$(LD) $(GENMKVPWD_OBJS) $(LDFLAGS_MKV) -o ../run/genmkvpwd.exe
 
-../run/mkvcalcproba: mkvcalcproba.o memdbg.o
-	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/mkvcalcproba
+../run/mkvcalcproba: mkvcalcproba.o
+	$(LD) mkvcalcproba.o $(LDFLAGS) $(OMPFLAGS) -o ../run/mkvcalcproba
 
-../run/mkvcalcproba.exe: mkvcalcproba.o memdbg.o
-	$(LD) mkvcalcproba.o memdbg.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/mkvcalcproba.exe
+../run/mkvcalcproba.exe: mkvcalcproba.o
+	$(LD) mkvcalcproba.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/mkvcalcproba.exe
 
-../run/calc_stat: calc_stat.o memdbg.o
-	$(LD) calc_stat.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/calc_stat
+../run/calc_stat: calc_stat.o
+	$(LD) calc_stat.o $(LDFLAGS) $(OMPFLAGS) -o ../run/calc_stat
 
-../run/calc_stat.exe: calc_stat.o memdbg.o
-	$(LD) calc_stat.o memdbg.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/calc_stat.exe
+../run/calc_stat.exe: calc_stat.o
+	$(LD) calc_stat.o $(LDFLAGS_MKV) $(OMPFLAGS) -o ../run/calc_stat.exe
 
-../run/raw2dyna: raw2dyna.o memdbg.o
-	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna
+../run/raw2dyna: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna
 
-../run/raw2dyna.exe: raw2dyna.o memdbg.o
-	$(LD) raw2dyna.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna.exe
+../run/raw2dyna.exe: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) $(OMPFLAGS) -o ../run/raw2dyna.exe
 
-../run/SIPdump: SIPdump.o memdbg.o
-	$(LD) SIPdump.o memdbg.o $(LDFLAGS) -lpcap $(OMPFLAGS) -o ../run/SIPdump
+../run/SIPdump: SIPdump.o
+	$(LD) SIPdump.o $(LDFLAGS) -lpcap $(OMPFLAGS) -o ../run/SIPdump
 
-../run/vncpcap2john: vncpcap2john.o memdbg.o
-	$(CC) $(JOHN_CFLAGS) -Wall vncpcap2john.o memdbg.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
+../run/vncpcap2john: vncpcap2john.o
+	$(CC) $(JOHN_CFLAGS) -Wall vncpcap2john.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
 
-../run/uaf2john: uaf2john.o uaf_encode.o memdbg.o
-	$(LD) $(LDFLAGS) uaf2john.o uaf_encode.o memdbg.o $(OMPFLAGS) -o ../run/uaf2john
+../run/uaf2john: uaf2john.o uaf_encode.o
+	$(LD) $(LDFLAGS) uaf2john.o uaf_encode.o $(OMPFLAGS) -o ../run/uaf2john
 
-../run/wpapcap2john: wpapcap2john.o jumbo.o memdbg.o
-	$(LD) $(LDFLAGS) wpapcap2john.o jumbo.o memdbg.o $(OMPFLAGS) -o ../run/wpapcap2john
+../run/wpapcap2john: wpapcap2john.o jumbo.o
+	$(LD) $(LDFLAGS) wpapcap2john.o jumbo.o $(OMPFLAGS) -o ../run/wpapcap2john
 
 ../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c \
-	memdbg.h memdbg.c
+
 	$(CC) -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c \
-	misc.c memory.c memdbg.c -o ../run/cprepair
+	misc.c memory.c -o ../run/cprepair
 
-../run/tgtsnarf: tgtsnarf.o memdbg.o
-	$(LD) tgtsnarf.o memdbg.o $(LDFLAGS) $(OMPFLAGS) -o ../run/tgtsnarf
+../run/tgtsnarf: tgtsnarf.o
+	$(LD) tgtsnarf.o $(LDFLAGS) $(OMPFLAGS) -o ../run/tgtsnarf
 
-../run/racf2john: racf2john.o jumbo.o memdbg.o
-	$(LD) $(LDFLAGS) racf2john.o jumbo.o memdbg.o -o ../run/racf2john
+../run/racf2john: racf2john.o jumbo.o
+	$(LD) $(LDFLAGS) racf2john.o jumbo.o -o ../run/racf2john
 
-../run/hccap2john: common.o hccap2john.o jumbo.o memdbg.o
-	$(LD) $(LDFLAGS) common.o hccap2john.o jumbo.o memdbg.o -o ../run/hccap2john
+../run/hccap2john: common.o hccap2john.o jumbo.o
+	$(LD) $(LDFLAGS) common.o hccap2john.o jumbo.o -o ../run/hccap2john
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
 DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c

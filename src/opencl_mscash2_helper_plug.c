@@ -10,7 +10,6 @@
 
 #include "opencl_mscash2_helper_plug.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define PADDING				1024
 

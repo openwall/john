@@ -24,7 +24,6 @@
 #include <omp.h>
 #include <assert.h>
 #endif
-#include "memdbg.h"
 
 #if DES_BS_VECTOR
 #define DEPTH				[depth]

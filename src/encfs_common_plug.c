@@ -10,7 +10,6 @@
 #include "common.h"
 #include "encfs_common.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 int encfs_common_valid(char *ciphertext, struct fmt_main *self)
 {

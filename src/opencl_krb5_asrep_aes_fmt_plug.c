@@ -34,7 +34,6 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #define MAX_OUTLEN 32
 #include "opencl_pbkdf2_hmac_sha1.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "krb5asrep-aes-opencl"
 #define FORMAT_NAME             "Kerberos 5 AS-REP etype 17/18"

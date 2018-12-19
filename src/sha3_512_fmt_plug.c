@@ -27,7 +27,6 @@ john_register_one(&fmt_rawSHA3);
 #include "formats.h"
 #include "options.h"
 #include "KeccakHash.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Raw-SHA3"
 #define FORMAT_NAME			""

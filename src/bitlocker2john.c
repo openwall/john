@@ -31,7 +31,6 @@
 #endif
 #include "params.h"
 #include "memory.h"
-#include "memdbg.h"
 
 #define HASH_UP                  0
 #define HASH_UP_MAC              1
@@ -406,8 +405,6 @@ int main(int argc, char **argv)
 	process_encrypted_image(image_path);
 
 	MEM_FREE(image_path);
-
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;
 }

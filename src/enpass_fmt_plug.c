@@ -34,7 +34,6 @@ john_register_one(&fmt_enpass);
 #include "johnswap.h"
 #include "enpass_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL         "enpass"
 #define FORMAT_NAME          "Enpass Password Manager"

@@ -27,7 +27,6 @@
 #ifndef BENCH_BUILD
 #include "options.h"
 #endif
-#include "memdbg.h"
 
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;

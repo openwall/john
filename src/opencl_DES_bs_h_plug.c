@@ -19,7 +19,6 @@
 #include "opencl_DES_hst_dev_shared.h"
 #include "mask_ext.h"
 #include "john.h"
-#include "memdbg.h"
 
 #define PADDING 	2048
 #define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_h_%s.config"

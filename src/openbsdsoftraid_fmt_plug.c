@@ -43,7 +43,6 @@ john_register_one(&fmt_openbsd_softraid);
 #include "openbsdsoftraid_common.h"
 #define CPU_FORMAT                  1
 #include "openbsdsoftraid_variable_code.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL                "OpenBSD-SoftRAID"
 #ifdef SIMD_COEF_32

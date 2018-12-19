@@ -74,7 +74,6 @@ john_register_one(&fmt_mscash2);
 #include "simd-intrinsics.h"
 #include "loader.h"
 #include "mscash_common.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE			2 // Tuned on core i7 w/ MKPC

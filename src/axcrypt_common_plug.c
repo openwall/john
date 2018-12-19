@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "axcrypt_common.h"
-#include "memdbg.h"
 
 int axcrypt_common_valid(char *ciphertext, struct fmt_main *self, int is_cpu_format)
 {

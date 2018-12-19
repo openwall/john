@@ -24,7 +24,6 @@ john_register_one(&fmt_rawKeccak);
 #include "formats.h"
 #include "options.h"
 #include "KeccakHash.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"Raw-Keccak"
 #define FORMAT_NAME		""

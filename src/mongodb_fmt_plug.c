@@ -32,7 +32,6 @@ john_register_one(&fmt_mongodb);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "MongoDB"
 #define FORMAT_NAME             "system / network"

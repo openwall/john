@@ -15,7 +15,6 @@
 #include "formats.h"
 #include "timer.h"
 #include "config.h"
-#include "memdbg.h"
 
 #define CONF_SECTION SECTION_OPTIONS, ":CPUtune"
 

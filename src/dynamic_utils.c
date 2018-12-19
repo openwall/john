@@ -58,7 +58,6 @@
 #ifndef UNICODE_NO_OPTIONS
 #include "options.h"
 #endif
-#include "memdbg.h"
 
 #ifndef DYNAMIC_DISABLED
 

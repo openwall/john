@@ -55,7 +55,6 @@ john_register_one(&fmt_krb5_3);
 #include "pbkdf2_hmac_sha1.h"
 #include "aes.h"
 #include "krb5_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "krb5-18"
 #define FORMAT_LABEL_17         "krb5-17"

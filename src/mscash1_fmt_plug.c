@@ -39,7 +39,6 @@ john_register_one(&fmt_mscash);
 #include "loader.h"
 #include "johnswap.h"
 #include "mscash_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"mscash"
 #define FORMAT_NAME			"MS Cache Hash (DCC)"

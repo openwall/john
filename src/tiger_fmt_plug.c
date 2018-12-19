@@ -28,7 +28,6 @@ john_register_one(&fmt_tiger);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"Tiger"
 #define FORMAT_NAME		""

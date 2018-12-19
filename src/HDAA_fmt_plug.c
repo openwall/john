@@ -41,7 +41,6 @@ john_register_one(&fmt_HDAA);
 #include <omp.h>
 #endif
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "hdaa"
 #define FORMAT_NAME             "HTTP Digest access authentication"

@@ -27,7 +27,6 @@
 #define PBKDF2_HMAC_SHA512_ALSO_INCLUDE_CTX 1
 #include "pbkdf2_hmac_sha512.h"
 
-#include "memdbg.h"
 
 static void dump_hex(const void *msg, void *x, unsigned int size)
 {

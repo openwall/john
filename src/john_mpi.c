@@ -14,7 +14,6 @@
 #include "john_mpi.h"
 #include "john.h"
 #include "memory.h"
-#include "memdbg.h"
 
 int mpi_p_local, mpi_p, mpi_id;
 char mpi_name[MPI_MAX_PROCESSOR_NAME + 1];

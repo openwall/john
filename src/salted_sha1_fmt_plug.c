@@ -29,7 +29,6 @@ john_register_one(&fmt_saltedsha);
 #include "common.h"
 #include "sha.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"Salted-SHA1"
 #define FORMAT_NAME			""

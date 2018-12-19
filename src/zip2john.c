@@ -126,7 +126,6 @@
 #include "missing_getopt.h"
 #endif
 #include "johnswap.h"
-#include "memdbg.h"
 
 static int checksum_only = 0, use_magic = 0;
 static int force_2_byte_checksum = 0;
@@ -940,7 +939,6 @@ int zip2john(int argc, char **argv)
 		process_file(*argv++);
 
 	cleanup_tiny_memory();
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return EXIT_SUCCESS;
 }

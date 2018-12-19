@@ -7,7 +7,6 @@
 #include "common.h"
 #include "pgpdisk_common.h"
 #include "sha.h"
-#include "memdbg.h"
 
 struct fmt_tests pgpdisk_tests[] = {
 	// Windows 7 + Symantec Encryption Desktop 10.4.1 MP1

@@ -37,7 +37,6 @@ john_register_one(&fmt_sapG);
 #include "unicode.h"
 #include "johnswap.h"
 #include "config.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "sapg"
 #define FORMAT_NAME             "SAP CODVN F/G (PASSCODE)"

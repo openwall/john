@@ -36,7 +36,6 @@ john_register_one(&fmt_racf);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "RACF"
 #define FORMAT_NAME             ""

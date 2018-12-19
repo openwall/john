@@ -36,7 +36,6 @@ john_register_one(&fmt_PO);
 #include "common.h"
 #include "formats.h"
 #include "md5.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"po"
 #define FORMAT_NAME			"Post.Office"

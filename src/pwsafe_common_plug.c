@@ -7,7 +7,6 @@
 #include "common.h"
 #include "pwsafe_common.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 struct fmt_tests pwsafe_tests[] = {
 	{"$pwsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},

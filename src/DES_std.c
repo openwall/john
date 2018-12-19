@@ -13,7 +13,6 @@
 #include "arch.h"
 #include "common.h"
 #include "DES_std.h"
-#include "memdbg.h"
 #include "misc.h"
 
 #if ARCH_BITS >= 64

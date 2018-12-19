@@ -31,7 +31,6 @@ john_register_one(&fmt_pdf);
 #include "rc4.h"
 #include "pdfcrack_md5.h"
 #include "loader.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "PDF"
 #define FORMAT_NAME         ""
@@ -603,9 +602,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-#if !defined(_OPENMP) && defined (__CYGWIN32__) && defined (MEMDBG_ON)
-		static  /* work around for some 'unknown' bug in cygwin gcc when using memdbg.h code. I have NO explanation, JimF. */
-#endif
 		unsigned char output[32];
 		pdf_compute_user_password((unsigned char*)saved_key[index], output);
 		if (crypt_out->R == 2 || crypt_out->R == 5 || crypt_out->R == 6)

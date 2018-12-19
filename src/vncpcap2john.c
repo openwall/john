@@ -103,7 +103,6 @@
 
 #define u_char unsigned char
 
-#include "memdbg.h"
 
 struct Packet_Reader {
 	char pcap_errbuf[PCAP_ERRBUF_SIZE];
@@ -365,6 +364,5 @@ int main(int argc, char *argv[])
 		}
 		Packet_Reader_close(&reader);
 	}
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

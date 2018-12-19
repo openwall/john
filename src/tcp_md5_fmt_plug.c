@@ -29,7 +29,6 @@ john_register_one(&fmt_tcpmd5);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "tcp-md5"
 #define FORMAT_NAME             "TCP MD5 Signatures, BGP, MSDP"

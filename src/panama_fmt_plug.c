@@ -28,7 +28,6 @@ john_register_one(&fmt_panama_);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"Panama"
 #define FORMAT_NAME		""

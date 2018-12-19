@@ -7,7 +7,6 @@
 #include "common.h"
 #include "pgpwde_common.h"
 #include "sha.h"
-#include "memdbg.h"
 
 struct fmt_tests pgpwde_tests[] = {
 	// The following "hashes" are from Symantec Encryption Desktop 10.4.1 MP1 (released in July, 2016) running on Ubuntu 12.04.5 LTS and Ubuntu 14.04 LTS (32-bit + 64-bit)

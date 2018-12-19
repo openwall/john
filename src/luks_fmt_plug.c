@@ -59,7 +59,6 @@ john_register_one(&fmt_luks);
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "dyna_salt.h"
-#include "memdbg.h"
 
 #define LUKS_MAGIC_L        6
 #define LUKS_CIPHERNAME_L   32

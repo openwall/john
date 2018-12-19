@@ -53,7 +53,6 @@
 #include "status.h"
 #include "signals.h"
 #include "john_mpi.h"
-#include "memdbg.h"
 
 volatile int event_pending = 0, event_reload = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
@@ -179,8 +178,6 @@ void check_abort(int be_async_signal_safe)
 	if (!event_abort) return;
 
 	tty_done();
-
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 #ifndef BENCH_BUILD
 	if (john_max_cands && status.cands >= john_max_cands)

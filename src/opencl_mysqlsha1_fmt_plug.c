@@ -72,7 +72,6 @@ static cl_uint *zero_buffer;
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
-#include "memdbg.h"
 
 static struct fmt_tests tests[] = {
 	{"*5AD8F88516BD021DD43F171E2C785C69F8E54ADB", "tere"},

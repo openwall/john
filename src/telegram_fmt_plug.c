@@ -34,7 +34,6 @@ john_register_one(&fmt_telegram);
 #include "aes_ige.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "telegram_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "telegram"
 #define FORMAT_NAME             ""

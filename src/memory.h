@@ -76,22 +76,14 @@ extern unsigned int mem_saving_level;
  * if size is 0.
  * If an error occurs, the function does not return.
  */
-extern void *mem_alloc_func(size_t size
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+extern void *mem_alloc(size_t size);
 
 /*
  * Allocates nmemb*size bytes using calloc(3) and returns a pointer to the
  * allocated memory, or NULL if nmemb or/and size are 0.
  * If an error occurs, the function does not return.
  */
-extern void *mem_calloc_func(size_t nmemb, size_t size
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+extern void *mem_calloc(size_t nmemb, size_t size);
 
 /*
  * Change an existing allocated block to size bytes and return a pointer to
@@ -99,46 +91,12 @@ extern void *mem_calloc_func(size_t nmemb, size_t size
  * possible.
  * If an error occurs, the function does not return.
  */
-extern void *mem_realloc_func(void *old_ptr, size_t size
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
-
-#if defined (MEMDBG_ON)
-#define mem_alloc(a) mem_alloc_func(a,__FILE__,__LINE__)
-#define mem_calloc(a,b) mem_calloc_func(a,b,__FILE__,__LINE__)
-#define mem_realloc(a,b) mem_realloc_func(a,b,__FILE__,__LINE__)
-#define mem_alloc_tiny(a,b) mem_alloc_tiny_func(a,b,__FILE__,__LINE__)
-#define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b,__FILE__,__LINE__)
-#define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c,__FILE__,__LINE__)
-#define str_alloc_copy(a) str_alloc_copy_func(a,__FILE__,__LINE__)
-#define mem_alloc_align(a,b) mem_alloc_align_func(a,b,__FILE__,__LINE__)
-#define mem_calloc_align(a,b,c) mem_calloc_align_func(a,b,c,__FILE__,__LINE__)
-#else
-#define mem_alloc(a) mem_alloc_func(a)
-#define mem_calloc(a,b) mem_calloc_func(a,b)
-#define mem_realloc(a,b) mem_realloc_func(a,b)
-#define mem_alloc_tiny(a,b) mem_alloc_tiny_func(a,b)
-#define mem_calloc_tiny(a,b) mem_calloc_tiny_func(a,b)
-#define mem_alloc_copy(a,b,c) mem_alloc_copy_func(a,b,c)
-#define str_alloc_copy(a) str_alloc_copy_func(a)
-#define mem_alloc_align(a,b) mem_alloc_align_func(a,b)
-#define mem_calloc_align(a,b,c) mem_calloc_align_func(a,b,c)
-#endif
+extern void *mem_realloc(void *old_ptr, size_t size);
 
 /* These allow alignment and are wrappers to system-specific functions */
-void *mem_alloc_align_func(size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+void *mem_alloc_align(size_t size, size_t align);
 
-void *mem_calloc_align_func(size_t count, size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+void *mem_calloc_align(size_t count, size_t size, size_t align);
 
 /*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
@@ -147,7 +105,6 @@ void *mem_calloc_align_func(size_t count, size_t size, size_t align
 #undef MEM_FREE
 
 #ifdef _MSC_VER
-#if !defined (MEMDBG_ON)
 #define malloc(a) _aligned_malloc(a,16)
 #define realloc(a,b) _aligned_realloc(a,b,16)
 #define calloc(a,b) memset(_aligned_malloc(a*b,16),0,a*b)
@@ -161,18 +118,8 @@ char *strdup_MSVC(const char *str);
 		(ptr) = NULL; \
 	} \
 }
-#else
-#define MEM_FREE(ptr) \
-{ \
-	if ((ptr)) { \
-		MEMDBG_free(((const void*)ptr),__FILE__,__LINE__); \
-		(ptr) = NULL; \
-	} \
-}
-#endif
 
 #elif HAVE___MINGW_ALIGNED_MALLOC
-#if !defined (MEMDBG_ON)
 #define malloc(a) __mingw_aligned_malloc(a,(sizeof(long long)))
 #define realloc(a,b) __mingw_aligned_realloc(a,b,(sizeof(long long)))
 #define calloc(a,b) memset(__mingw_aligned_malloc(a*b,(sizeof(long long))),0,a*b)
@@ -187,15 +134,6 @@ char *strdup_MSVC(const char *str);
 		(ptr) = NULL; \
 	} \
 }
-#else
-#define MEM_FREE(ptr) \
-{ \
-	if ((ptr)) { \
-		MEMDBG_free(((const void*)ptr),__FILE__,__LINE__); \
-		(ptr) = NULL; \
-	} \
-}
-#endif
 
 #else
 #define MEM_FREE(ptr) \
@@ -211,39 +149,23 @@ char *strdup_MSVC(const char *str);
  * Similar to the above function, except the memory can't be freed.
  * This one is used to reduce the overhead.
  */
-extern void *mem_alloc_tiny_func(size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+extern void *mem_alloc_tiny(size_t size, size_t align);
 
 /*
  * this version same as mem_alloc_tiny, but initialized the memory
  * to NULL bytes, like CALLOC(3) function does
  */
-extern void *mem_calloc_tiny_func(size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+extern void *mem_calloc_tiny(size_t size, size_t align);
 
 /*
  * Uses mem_alloc_tiny() to allocate the memory, and copies src in there.
  */
-extern void *mem_alloc_copy_func(void *src, size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+extern void *mem_alloc_copy(void *src, size_t size, size_t align);
 
 /*
  * Similar to the above function, but for ASCIIZ strings.
  */
-extern char *str_alloc_copy_func(char *src
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	);
+extern char *str_alloc_copy(char *src);
 
 /*
  * This will 'cleanup' the memory allocated by mem_alloc_tiny().  All

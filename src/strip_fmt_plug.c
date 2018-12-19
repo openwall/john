@@ -31,7 +31,6 @@ john_register_one(&fmt_strip);
 #include "johnswap.h"
 #include "strip_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "STRIP"
 #ifdef SIMD_COEF_32

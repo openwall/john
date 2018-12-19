@@ -67,7 +67,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #endif
 #endif
 
-#include "memdbg.h"
 
 #define PAD_SIZE                128
 #define PLAINTEXT_LENGTH        125

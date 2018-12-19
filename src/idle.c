@@ -51,7 +51,6 @@ extern int nice(int);
 #include "signals.h"
 #include "bench.h"
 #include "formats.h"
-#include "memdbg.h"
 
 int idle_requested(struct fmt_main *format)
 {

@@ -27,7 +27,6 @@ john_register_one(&fmt_mysqlna);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "mysqlna"
 #define FORMAT_NAME             "MySQL Network Authentication"

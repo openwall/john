@@ -31,7 +31,6 @@ john_register_one(&fmt_padlock);
 #include "aes_ccm.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Padlock"
 #define FORMAT_NAME             ""

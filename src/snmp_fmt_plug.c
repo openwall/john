@@ -35,7 +35,6 @@ john_register_one(&fmt_snmp);
 #include "common.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "SNMP"
 #define FORMAT_NAME             "SNMPv3 USM"

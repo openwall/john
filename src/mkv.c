@@ -29,7 +29,6 @@
 #include "mkv.h"
 #include "mask.h"
 #include "regex.h"
-#include "memdbg.h"
 
 #define SUBSECTION_DEFAULT  "Default"
 

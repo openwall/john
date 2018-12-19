@@ -39,7 +39,6 @@ john_register_one(&fmt_vdi);
 #include "johnswap.h"
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha256.h"
-#include "memdbg.h"
 
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct vdi_salt)

@@ -28,7 +28,6 @@ john_register_one(&fmt_md2_);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"MD2"
 #define FORMAT_NAME		""

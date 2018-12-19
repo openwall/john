@@ -33,7 +33,6 @@
 #include "arch.h"
 #include "common.h"
 #include "BF_std.h"
-#include "memdbg.h"
 
 BF_binary BF_out[BF_N];
 

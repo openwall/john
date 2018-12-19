@@ -23,13 +23,12 @@
 #include "memory.h"
 #include "common.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
-#if (defined (_MSC_VER) || HAVE___MINGW_ALIGNED_MALLOC) && !defined (MEMDBG_ON)
+#if (defined (_MSC_VER) || HAVE___MINGW_ALIGNED_MALLOC)
 char *strdup_MSVC(const char *str)
 {
 	char * s;
-	s = (char*)mem_alloc_func(strlen(str)+1);
+	s = (char*)mem_alloc(strlen(str)+1);
 	if (s != NULL)
 		strcpy(s, str);
 	return s;
@@ -52,11 +51,6 @@ static void add_memory_link(void *v) {
 	p->next = mem_alloc_tiny_memory;
 	p->mem = v;
 	mem_alloc_tiny_memory = p;
-	// mark these as 'tiny' memory, so that memory snapshot checking does not
-	// flag these as leaks.  At program exit, this memory will still get checked,
-	// but it should be freed, so will still be globally checked for leaks.
-	MEMDBG_tag_mem_from_alloc_tiny(v);
-	MEMDBG_tag_mem_from_alloc_tiny((void*)p);
 }
 // call at program exit.
 void cleanup_tiny_memory()
@@ -72,74 +66,45 @@ void cleanup_tiny_memory()
 	}
 }
 
-void *mem_alloc_func(size_t size
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	)
+void *mem_alloc(size_t size)
 {
 	void *res;
 
 	if (!size)
 		return NULL;
-#if defined (MEMDBG_ON)
-	res = (char*) MEMDBG_alloc(size, file, line);
-#else
-	res = malloc(size);
-#endif
-	if (!res) {
+
+	if (!(res = malloc(size))) {
 		fprintf(stderr, "mem_alloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), size);
-		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		error();
 	}
 
 	return res;
 }
 
-void *mem_calloc_func(size_t nmemb, size_t size
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	)
+void *mem_calloc(size_t nmemb, size_t size)
 {
 	void *res;
 
 	if (!nmemb || !size)
 		return NULL;
-#if defined (MEMDBG_ON)
-	size *= nmemb;
-	res = (char*) MEMDBG_alloc(size, file, line);
-	memset(res, 0, size);
-#else
-	res = calloc(nmemb, size);
-#endif
-	if (!res) {
+
+	if (!(res = calloc(nmemb, size))) {
 		fprintf(stderr, "mem_calloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), nmemb * size);
-		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		error();
 	}
 
 	return res;
 }
 
-void *mem_realloc_func(void *old_ptr, size_t size
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	)
+void *mem_realloc(void *old_ptr, size_t size)
 {
 	void *res;
 
 	if (!size)
 		return NULL;
-#if defined (MEMDBG_ON)
-	res = (char*) MEMDBG_realloc(old_ptr, size, file, line);
-#else
-	res = realloc(old_ptr, size);
-#endif
-	if (!res) {
+
+	if (!(res = realloc(old_ptr, size))) {
 		fprintf(stderr, "mem_realloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), size);
-		MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 		error();
 	}
 
@@ -150,25 +115,21 @@ void *mem_realloc_func(void *old_ptr, size_t size
  * if -DDEBUG we turn mem_alloc_tiny() to essentially be just a malloc()
  * with additional alignment. The reason for this is it's way easier to
  * trace bugs that way.
- * Also, with -DDEBUG or -DMEMDBG we always return exactly the requested
+ * Also, with -DDEBUG we always return exactly the requested
  * alignment, in order to trigger bugs!
  */
 #ifdef DEBUG
 #undef  MEM_ALLOC_SIZE
 #define MEM_ALLOC_SIZE 0
 #endif
-void *mem_alloc_tiny_func(size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-)
+void *mem_alloc_tiny(size_t size, size_t align)
 {
 	static char *buffer = NULL;
 	static size_t bufree = 0;
 	size_t mask;
 	char *p;
 
-#if defined(DEBUG) || defined(MEMDBG)
+#if defined(DEBUG)
 	size += align;
 #endif
 #ifdef DEBUG
@@ -202,7 +163,7 @@ void *mem_alloc_tiny_func(size_t size, size_t align
 				p -= (size_t)p & mask;
 				bufree -= need;
 				buffer = p + size;
-#if defined(DEBUG) || defined(MEMDBG)
+#if defined(DEBUG)
 				/* Ensure alignment is no better than requested */
 				if (((size_t)p & ((mask << 1) + 1)) == 0)
 					p += align;
@@ -214,24 +175,16 @@ void *mem_alloc_tiny_func(size_t size, size_t align
 		if (size + mask > MEM_ALLOC_SIZE ||
 		    bufree > MEM_ALLOC_MAX_WASTE)
 			break;
-#if defined (MEMDBG_ON)
-		buffer = (char*)mem_alloc_func(MEM_ALLOC_SIZE, file, line);
-#else
 		buffer = (char*)mem_alloc(MEM_ALLOC_SIZE);
-#endif
 		add_memory_link((void*)buffer);
 		bufree = MEM_ALLOC_SIZE;
 	} while (1);
 
-#if defined (MEMDBG_ON)
-	p = (char*)mem_alloc_func(size + mask, file, line);
-#else
 	p = (char*)mem_alloc(size + mask);
-#endif
 	add_memory_link((void*)p);
 	p += mask;
 	p -= (size_t)p & mask;
-#if defined(DEBUG) || defined(MEMDBG)
+#if defined(DEBUG)
 	/* Ensure alignment is no better than requested */
 	if (((size_t)p & ((mask << 1) + 1)) == 0)
 		p += align;
@@ -239,37 +192,20 @@ void *mem_alloc_tiny_func(size_t size, size_t align
 	return p;
 }
 
-void *mem_calloc_tiny_func(size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	) {
-#if defined (MEMDBG_ON)
-	char *cp = (char*)mem_alloc_tiny_func(size, align, file, line);
-#else
+void *mem_calloc_tiny(size_t size, size_t align)
+{
 	char *cp = (char*) mem_alloc_tiny(size, align);
-#endif
+
 	memset(cp, 0, size);
 	return cp;
 }
 
-void *mem_alloc_copy_func(void *src, size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	) {
-#if defined (MEMDBG_ON)
-	return memcpy(mem_alloc_tiny_func(size, align, file, line), src, size);
-#else
+void *mem_alloc_copy(void *src, size_t size, size_t align)
+{
 	return memcpy(mem_alloc_tiny(size, align), src, size);
-#endif
 }
 
-void *mem_alloc_align_func(size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	)
+void *mem_alloc_align(size_t size, size_t align)
 {
 	void *ptr = NULL;
 	if (align < sizeof(void*))
@@ -279,9 +215,7 @@ void *mem_alloc_align_func(size_t size, size_t align
 #ifdef DEBUG
     assert(!(align & (align - 1)));
 #endif
-#if defined (MEMDBG_ON)
-	ptr = (char*) MEMDBG_alloc_align(size, align, file, line);
-#elif HAVE_POSIX_MEMALIGN
+#if HAVE_POSIX_MEMALIGN
 	if (posix_memalign(&ptr, align, size))
 		pexit("posix_memalign ("Zu" bytes)", size);
 #elif HAVE_ALIGNED_ALLOC
@@ -321,38 +255,23 @@ void *mem_alloc_align_func(size_t size, size_t align
 	return ptr;
 }
 
-void *mem_calloc_align_func(size_t count, size_t size, size_t align
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	)
+void *mem_calloc_align(size_t count, size_t size, size_t align)
 {
-#if defined (MEMDBG_ON)
-	void *ptr = mem_alloc_align_func(size * count, align, file, line);
-#else
-	void *ptr = mem_alloc_align_func(size * count, align);
-#endif
+	void *ptr = mem_alloc_align(size * count, align);
 
 	memset(ptr, 0, size * count);
 	return ptr;
 }
 
-char *str_alloc_copy_func(char *src
-#if defined (MEMDBG_ON)
-	, char *file, int line
-#endif
-	) {
+char *str_alloc_copy(char *src)
+{
 	size_t size;
 
 	if (!src) return "";
 	if (!*src) return "";
 
 	size = strlen(src) + 1;
-#if defined (MEMDBG_ON)
-	return (char *)memcpy(mem_alloc_tiny_func(size, MEM_ALIGN_NONE, file, line), src, size);
-#else
 	return (char *)memcpy(mem_alloc_tiny(size, MEM_ALIGN_NONE), src, size);
-#endif
 }
 
 void alter_endianity_w16(void * _x, unsigned int size) {
@@ -710,7 +629,7 @@ alloc_region_t(region_t * region, size_t size)
 	base = aligned = NULL;
 	if (size + 63 < size) {
 		errno = ENOMEM;
-	} else if ((base = libc_malloc(size + 63)) != NULL) {
+	} else if ((base = malloc(size + 63)) != NULL) {
 		aligned = base + 63;
 		aligned -= (uintptr_t)aligned & 63;
 	}
@@ -735,7 +654,7 @@ int free_region_t(region_t * region)
 		if (munmap(region->base, region->base_size))
 			return -1;
 #else
-		libc_free(region->base);
+		free(region->base);
 #endif
 	}
 	init_region_t(region);

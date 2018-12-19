@@ -63,7 +63,6 @@
 #include "signals.h"
 #include "jumbo.h"
 #include "opencl_common.h"
-#include "memdbg.h"
 
 char *rec_name = RECOVERY_NAME;
 int rec_name_completed = 0;
@@ -506,17 +505,6 @@ static void rec_format_error(char *fn)
 {
 	path_done();
 	cleanup_tiny_memory();
-
-	/*
-	 * MEMDBG_PROGRAM_EXIT_CHECKS() would cause the output
-	 *     At Program Exit
-	 *     MemDbg_Validate level 0 checking Passed
-	 * to be writen prior to the
-	 *     Incorrect crash recovery file: ...
-	 * output.
-	 * Not sure if we want this.
-	 */
-	// MEMDBG_PROGRAM_EXIT_CHECKS(stderr); // FIXME
 
 	if (fn && errno && ferror(rec_file))
 		pexit("%s", fn);

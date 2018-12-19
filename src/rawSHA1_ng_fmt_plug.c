@@ -65,7 +65,6 @@ john_register_one(&fmt_sha1_ng);
 #include "johnswap.h"
 #include "aligned.h"
 #include "rawSHA1_common.h"
-#include "memdbg.h"
 
 #define VWIDTH SIMD_COEF_32
 

@@ -29,7 +29,6 @@ john_register_one(&fmt__hmacSHA384);
 #include "aligned.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"HMAC-SHA512"
 #define FORMAT_LABEL_384		"HMAC-SHA384"

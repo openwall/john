@@ -38,7 +38,6 @@ john_register_one(&fmt_krb5tgs);
 #include "hmacmd5.h"
 #include "rc4.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL         "krb5tgs"
 #define FORMAT_NAME          "Kerberos 5 TGS etype 23"

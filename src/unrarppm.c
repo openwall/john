@@ -28,7 +28,6 @@
 #include "unrar.h"
 #include "unrarppm.h"
 #include "common.h"
-#include "memdbg.h"
 
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf

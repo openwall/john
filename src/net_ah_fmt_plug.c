@@ -28,7 +28,6 @@ john_register_one(&fmt_netah);
 #include "common.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "net-ah"
 #define FORMAT_NAME             "IPsec AH HMAC-MD5-96"

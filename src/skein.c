@@ -35,7 +35,6 @@
 
 #include "sph_skein.h"
 
-#include "memdbg.h"
 
 #if SPH_SMALL_FOOTPRINT && !defined SPH_SMALL_FOOTPRINT_SKEIN
 #define SPH_SMALL_FOOTPRINT_SKEIN   1

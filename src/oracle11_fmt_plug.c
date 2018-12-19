@@ -70,7 +70,6 @@ john_register_one(&fmt_oracle11);
 #include "sha.h"
 #include "johnswap.h"
 #include <ctype.h>
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"oracle11"
 #define FORMAT_NAME			"Oracle 11g"

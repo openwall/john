@@ -71,7 +71,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "memdbg.h"
 
 /* crypto/idea/idea_lcl.h */
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)

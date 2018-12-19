@@ -32,7 +32,6 @@ john_register_one(&fmt_ripemd_128);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #ifdef __MIC__

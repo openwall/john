@@ -32,7 +32,6 @@
 #include "blake2.h"
 #include "blake2-impl.h"
 
-#include "memdbg.h"
 
 #if defined(__clang__)
 #if __has_attribute(optnone)

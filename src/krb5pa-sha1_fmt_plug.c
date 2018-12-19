@@ -56,7 +56,6 @@ john_register_one(&fmt_krb5pa);
 #include "hmac_sha.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "krb5_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */

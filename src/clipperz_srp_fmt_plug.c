@@ -84,7 +84,6 @@ john_register_one(&fmt_clipperz);
 #define OMP_SCALE               64
 #endif
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"Clipperz"
 #define FORMAT_NAME		"SRP"

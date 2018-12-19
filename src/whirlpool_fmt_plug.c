@@ -38,7 +38,6 @@ john_register_one(&fmt_whirlpool);
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 #include <openssl/whrlpool.h>
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Whirpool"
 #define FORMAT_NAME             ""

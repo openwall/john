@@ -30,7 +30,6 @@ john_register_one(&fmt_dragonfly3_64);
 #include "common.h"
 #include "formats.h"
 #include "sha2.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL_32			"dragonfly3-32"
 #define FORMAT_LABEL_64			"dragonfly3-64"

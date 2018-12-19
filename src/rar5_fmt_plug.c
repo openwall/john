@@ -37,7 +37,6 @@ john_register_one(&fmt_rar5);
 #include "options.h"
 #include "rar5_common.h"
 #include "pbkdf2_hmac_sha256.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "RAR5"
 #define FORMAT_NAME             ""

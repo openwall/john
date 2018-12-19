@@ -31,7 +31,6 @@ john_register_one(&fmt_eigrp);
 #include "params.h"
 #include "options.h"
 #include "escrypt/sha256.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "eigrp"
 #define FORMAT_NAME             "EIGRP MD5 / HMAC-SHA-256 authentication"

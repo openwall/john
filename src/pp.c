@@ -133,7 +133,6 @@
 #include "rules.h"
 #include "mask.h"
 #include "regex.h"
-#include "memdbg.h"
 
 #define _STR_VALUE(arg) #arg
 #define STR_MACRO(n)    _STR_VALUE(n)

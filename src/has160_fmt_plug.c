@@ -27,7 +27,6 @@ john_register_one(&fmt__HAS160);
 #include "formats.h"
 #include "options.h"
 #include "has160.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL                    "has-160"
 #define FORMAT_NAME                     ""

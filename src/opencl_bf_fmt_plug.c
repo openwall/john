@@ -23,7 +23,6 @@ john_register_one(&fmt_opencl_bf);
 #include "formats.h"
 #include "config.h"
 #include "BF_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"bcrypt-opencl"
 #define FORMAT_NAME			""

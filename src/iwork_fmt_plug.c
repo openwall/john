@@ -39,7 +39,6 @@ john_register_one(&fmt_iwork);
 #include "johnswap.h"
 #include "iwork_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "iwork"
 #ifdef SIMD_COEF_32

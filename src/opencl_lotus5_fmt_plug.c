@@ -60,7 +60,6 @@ static cl_mem cl_tx_keys, cl_tx_binary;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
-#include "memdbg.h"
 
 static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "

@@ -33,7 +33,6 @@ john_register_one(&fmt_oldoffice);
 #include "options.h"
 #include "unicode.h"
 #include "dyna_salt.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "oldoffice"
 #define FORMAT_NAME             "MS Office <= 2003"

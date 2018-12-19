@@ -7,7 +7,6 @@
 #include "common.h"
 #include "notes_common.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 struct fmt_tests notes_tests[] = {
 	// macOS 10.13.2 with cloud syncing turned off

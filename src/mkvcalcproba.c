@@ -22,7 +22,6 @@
 #include "mkvlib.h"
 #include "memory.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define C2I(c) ((unsigned int)(unsigned char)(c))
 
@@ -199,8 +198,6 @@ int main(int argc, char **argv)
 	MEM_FREE(ligne);
 
 	fprintf(stderr, "charsetsize = %d\n", charset);
-
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 
 	return 0;
 }

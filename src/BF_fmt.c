@@ -19,7 +19,6 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"bcrypt"
 #define FORMAT_NAME			""

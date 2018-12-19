@@ -12,7 +12,6 @@
 #include "johnswap.h"
 #include "base64_convert.h"
 #include "rawSHA512_common.h"
-#include "memdbg.h"
 
 struct fmt_tests sha512_common_tests_rawsha512_111[] = {
 	{"f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},

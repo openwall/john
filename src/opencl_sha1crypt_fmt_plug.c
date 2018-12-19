@@ -85,7 +85,6 @@ static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
-#include "memdbg.h"
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {

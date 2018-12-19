@@ -17,7 +17,6 @@
 #include "memory.h"
 #include "common.h"
 #include "phpass_common.h"
-#include "memdbg.h"
 
 struct fmt_tests phpass_common_tests[] = {
 	{"$P$900000000m6YEJzWtTmNBBL4jypbHv1", "openwall"},

@@ -41,7 +41,6 @@
 #include "config.h"
 #include "md4.h"
 #include "john.h"
-#include "memdbg.h"
 
 UTF16 ucs2_upcase[0x10000];
 UTF16 ucs2_downcase[0x10000];

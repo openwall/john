@@ -34,7 +34,6 @@ john_register_one(&fmt_sspr);
 #include "params.h"
 #include "options.h"
 #include "sspr_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "sspr"
 #define ALGORITHM_NAME          "MD5/SHA1/SHA256/SHA512 32/" ARCH_BITS_STR

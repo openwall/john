@@ -8,7 +8,6 @@
 #include "arch.h"
 #include "androidbackup_common.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 struct fmt_tests ab_tests[] = {
 	// Android 6.0 device

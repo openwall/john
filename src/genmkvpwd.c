@@ -18,7 +18,6 @@
 #include "params.h"
 #include "memory.h"
 #include "mkvlib.h"
-#include "memdbg.h"
 
 static void show_pwd_rnbs(struct s_pwd * pwd)
 {
@@ -306,6 +305,5 @@ fin:
 	MEM_FREE(proba1);
 	MEM_FREE(proba2);
 	MEM_FREE(first);
-	MEMDBG_PROGRAM_EXIT_CHECKS(stderr);
 	return 0;
 }

@@ -42,7 +42,6 @@ john_register_one(&fmt_solarwinds);
 #include "johnswap.h"
 #include "solarwinds_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL         "solarwinds"
 #ifdef SIMD_COEF_32

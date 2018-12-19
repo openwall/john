@@ -37,7 +37,6 @@ john_register_one(&fmt_mozilla);
 #include "params.h"
 #include "options.h"
 #include "sha.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Mozilla"
 #define FORMAT_NAME             "Mozilla key3.db"

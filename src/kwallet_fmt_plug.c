@@ -33,7 +33,6 @@ john_register_one(&fmt_kwallet);
 #include "options.h"
 #include "sha.h"
 #include "pbkdf2_hmac_sha512.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "kwallet"
 #define FORMAT_NAME             "KDE KWallet"

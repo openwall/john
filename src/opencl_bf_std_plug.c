@@ -16,7 +16,6 @@
 #include "common.h"
 #include "options.h"
 #include "opencl_bf_std.h"
-#include "memdbg.h"
 
 #define INDEX				[index]
 #define pos_S(row,col)			\

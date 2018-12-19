@@ -8,7 +8,6 @@
 #include "arch.h"
 #include "tezos_common.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 struct fmt_tests tezos_tests[] = {
 	// http://doc.tzalpha.net/introduction/zeronet.html, https://faucet.tzalpha.net/

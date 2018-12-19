@@ -38,7 +38,6 @@ john_register_one(&fmt_wbb3);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "wbb3"
 #define FORMAT_NAME             "WoltLab BB3"

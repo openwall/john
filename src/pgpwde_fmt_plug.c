@@ -30,7 +30,6 @@ john_register_one(&fmt_pgpwde);
 #include "johnswap.h"
 #include "loader.h"
 #include "pgpwde_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "pgpwde"
 #define FORMAT_NAME             ""

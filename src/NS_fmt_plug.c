@@ -51,7 +51,6 @@ john_register_one(&fmt_NS);
 #include "dynamic.h"
 #include "base64_convert.h"
 #include "johnswap.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"md5ns"
 #define FORMAT_NAME			"Netscreen"

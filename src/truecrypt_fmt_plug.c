@@ -61,7 +61,6 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_ripemd160.h"
 #include "pbkdf2_hmac_whirlpool.h"
-#include "memdbg.h"
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
 #define PLAINTEXT_LENGTH        64

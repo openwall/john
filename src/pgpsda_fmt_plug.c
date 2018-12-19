@@ -32,7 +32,6 @@ john_register_one(&fmt_pgpsda);
 #include "sha.h"
 #include "loader.h"
 #include "pgpsda_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "pgpsda"
 #define FORMAT_NAME             ""

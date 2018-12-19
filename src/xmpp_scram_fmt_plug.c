@@ -36,7 +36,6 @@ john_register_one(&fmt_xmpp_scram);
 #include "hmac_sha.h"
 #include "simd-intrinsics.h"
 #include "pbkdf2_hmac_sha1.h"
-#include "memdbg.h"
 
 #if defined SIMD_COEF_32
 #define SIMD_KEYS               (SIMD_COEF_32 * SIMD_PARA_SHA1)

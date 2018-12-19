@@ -54,7 +54,6 @@ john_register_one(&fmt_MSCHAPv2_old);
 #include "memory.h"
 #include "sha.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char

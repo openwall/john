@@ -39,7 +39,6 @@ john_register_one(&fmt_qnx);
 #include <omp.h>
 #endif
 
-#include "memdbg.h"
 
 // NOTE, in SSE mode, even if NOT in OMP, we may need to scale, quite a bit, due to needing
 // to 'group' passwords based upon length of password.

@@ -30,7 +30,6 @@ john_register_one(&fmt_pfx);
 #include "simd-intrinsics.h"
 #include "pkcs12.h"
 #include "pfx_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "pfx"
 #define FORMAT_NAME             ""

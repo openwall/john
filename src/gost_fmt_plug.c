@@ -33,7 +33,6 @@ john_register_one(&fmt_gost);
 #include "params.h"
 #include "options.h"
 #include "gost.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "gost"
 #define FORMAT_NAME             "GOST R 34.11-94"

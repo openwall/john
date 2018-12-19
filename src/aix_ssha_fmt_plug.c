@@ -41,7 +41,6 @@ john_register_one(&fmt_aixssha512);
 #include "pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "pbkdf2_hmac_sha512.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL_SHA1       "aix-ssha1"
 #define FORMAT_LABEL_SHA256     "aix-ssha256"

@@ -110,7 +110,6 @@ static unsigned char *h_pswC, *h_vmkIV, *h_mac, *h_macIV, *h_cMacIV;
 static int w_block_precomputed(unsigned char *salt);
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
-#include "memdbg.h"
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {

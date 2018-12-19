@@ -25,7 +25,6 @@
 #include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
 #include "misc.h"
-#include "memdbg.h"
 
 /* Shorter names for use in index calculations */
 #define VS32 SIMD_COEF_32

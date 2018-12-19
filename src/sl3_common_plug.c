@@ -8,7 +8,6 @@
 #include "memory.h"
 #include "base64_convert.h"
 #include "sl3_common.h"
-#include "memdbg.h"
 
 struct fmt_tests sl3_tests[] = {
 	{"$sl3$35831503698405$d8f6b336a4df3336bf7de58a38b1189f6c5ce1e8", "621888462499899"},

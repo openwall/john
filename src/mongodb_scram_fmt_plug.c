@@ -33,7 +33,6 @@ john_register_one(&fmt_mongodb_scram);
 #define OMP_SCALE               1
 #endif
 #endif
-#include "memdbg.h"
 
 #if defined SIMD_COEF_32
 #define SIMD_KEYS		(SIMD_COEF_32 * SIMD_PARA_SHA1)

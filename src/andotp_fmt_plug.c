@@ -29,7 +29,6 @@ john_register_one(&fmt_andotp);
 #include "options.h"
 #include "sha2.h"
 #include "aes_gcm.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "andOTP"
 #define FORMAT_NAME             ""

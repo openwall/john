@@ -30,7 +30,6 @@ john_register_one(&fmt_rawBLAKE2);
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "Raw-Blake2"
 #define FORMAT_NAME             ""

@@ -31,7 +31,6 @@ john_register_one(&fmt_tacacsplus);
 #include "params.h"
 #include "options.h"
 #include "md5.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "tacacs-plus"
 #define FORMAT_NAME             "TACACS+"

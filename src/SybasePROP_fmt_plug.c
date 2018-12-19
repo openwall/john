@@ -37,7 +37,6 @@ john_register_one(&fmt_sybaseprop);
 #endif
 #endif
 
-#include "memdbg.h"
 
 #define BLOCK_SIZE 8
 

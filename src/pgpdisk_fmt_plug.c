@@ -34,7 +34,6 @@ john_register_one(&fmt_pgpdisk);
 #include "aes.h"
 #include "twofish.h"
 #include "pgpdisk_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "pgpdisk"
 #define FORMAT_NAME             ""

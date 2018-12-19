@@ -6,7 +6,6 @@
 #include "misc.h"
 #include "common.h"
 #include "securezip_common.h"
-#include "memdbg.h"
 
 struct fmt_tests securezip_tests[] = {
 	{"$zip3$*0*1*256*0*edb47a990800000000000000*32f884f9fbb54360920a50ec37cc0651fe7b0d9892de44eed17696186139a09c1530e0522abfd9777d18441739cdc7107fdfd252ecd0c8dbbba8181bd09436e9a6a918e385cbab26bee49cd0e3182e67df3fe8c3cdc9e58d6166a0f550969cc456b4a881524e6e66a14e30196b972e260c509fce918736465aea1d00bd5871876e263635be4700ef081117ed896e1504*0*0*0*secret.txt", "openwall"},

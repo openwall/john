@@ -7,8 +7,6 @@
 
 #include <string.h>
 
-#include "../memdbg.h"
-
 #define kNumTopBits 24
 #define kTopValue ((UInt32)1 << kNumTopBits)
 

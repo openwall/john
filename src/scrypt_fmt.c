@@ -22,7 +22,6 @@
 #include "common.h"
 #include "formats.h"
 #include "base64_convert.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"scrypt"
 #define FORMAT_NAME			""

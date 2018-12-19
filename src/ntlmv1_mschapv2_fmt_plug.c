@@ -103,7 +103,6 @@ john_register_one(&fmt_NETNTLM_new);
 #include "md5.h"
 #include "unicode.h"
 #include "john.h"
-#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char

@@ -42,7 +42,6 @@ john_register_one(&fmt_KeePass);
 #include "aes.h"
 #include "twofish.h"
 #include "chacha.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               4 // This and MKPC tuned for core i7

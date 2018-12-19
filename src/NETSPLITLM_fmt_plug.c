@@ -31,7 +31,6 @@ john_register_one(&fmt_NETHALFLM);
 #include "common.h"
 #include "formats.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #ifndef uchar
 #define uchar unsigned char

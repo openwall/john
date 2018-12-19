@@ -79,7 +79,6 @@ john_register_one(&fmt_blizzard);
 #define OMP_SCALE               64
 #endif
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL		"WoWSRP"
 #define FORMAT_NAME		"Battlenet"

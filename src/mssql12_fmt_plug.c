@@ -47,7 +47,6 @@ john_register_one(&fmt_mssql12);
 #include "sha2.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "mssql12"
 #define FORMAT_NAME             "MS SQL 2012/2014"

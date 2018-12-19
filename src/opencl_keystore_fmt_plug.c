@@ -90,7 +90,6 @@ static cl_int cl_err;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
-#include "memdbg.h"
 
 static const char *warn[] = {
 	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", xfer: "

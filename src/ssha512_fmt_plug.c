@@ -28,7 +28,6 @@ john_register_one(&fmt_saltedsha2);
 #include "base64_convert.h"
 #include "simd-intrinsics.h"
 #include "rawSHA512_common.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL                    "SSHA512"
 #define FORMAT_NAME                     "LDAP"

@@ -32,7 +32,6 @@ john_register_one(&fmt_lastpass);
 #include "aes.h"
 #include "lastpass_common.h"
 #include "pbkdf2_hmac_sha256.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "lp"
 #define FORMAT_TAG              "$lp$"

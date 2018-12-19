@@ -54,7 +54,6 @@ john_register_one(&fmt_ctrxns);
 #include "simd-intrinsics.h"
 #include "common.h"
 #include "sha.h"
-#include "memdbg.h"	// Must be last included header
 
 #define FORMAT_LABEL                    "Citrix_NS10"
 #define FORMAT_NAME                     "Netscaler 10"

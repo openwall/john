@@ -16,7 +16,6 @@
 #include "unicode.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
-#include "memdbg.h"
 
 typedef struct {
 	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */

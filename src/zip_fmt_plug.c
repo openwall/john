@@ -57,7 +57,6 @@ john_register_one(&fmt_zip);
 #include "pbkdf2_hmac_sha1.h"
 #include "dyna_salt.h"
 #include "hmac_sha.h"
-#include "memdbg.h"
 
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)

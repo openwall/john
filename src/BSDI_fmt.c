@@ -20,7 +20,6 @@
 #include "DES_bs.h"
 #endif
 
-#include "memdbg.h"
 
 #define FORMAT_LABEL			"bsdicrypt"
 #define FORMAT_NAME			"BSDI crypt(3)"

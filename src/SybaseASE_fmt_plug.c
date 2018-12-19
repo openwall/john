@@ -51,7 +51,6 @@ john_register_one(&fmt_SybaseASE);
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "SybaseASE"
 #define FORMAT_NAME         "Sybase ASE"

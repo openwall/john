@@ -47,7 +47,6 @@ john_register_one(&fmt_fde);
 #include "pbkdf2_hmac_sha1.h"
 #include "aes.h"
 #include "sha2.h"
-#include "memdbg.h"
 
 #define FORMAT_TAG          "$fde$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG)-1)

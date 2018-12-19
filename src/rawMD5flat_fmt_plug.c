@@ -30,7 +30,6 @@ john_register_one(&fmt_rawMD5f);
 #include "common.h"
 #include "formats.h"
 #include "simd-intrinsics.h"
-#include "memdbg.h"
 
 #ifndef OMP_SCALE
 #ifdef SIMD_COEF_32

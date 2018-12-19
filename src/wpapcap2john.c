@@ -35,7 +35,6 @@
 
 #include "wpapcap2john.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 //#define WPADEBUG 1
 #define IGNORE_MSG1 0
@@ -95,7 +94,7 @@ static const char* const ctl_subtype[16] = {
 	"Subtype 15"
 };
 
-#if HAVE___MINGW_ALIGNED_MALLOC && !defined (MEMDBG_ON)
+#if HAVE___MINGW_ALIGNED_MALLOC
 char *strdup_MSVC(const char *str)
 {
 	char * s;

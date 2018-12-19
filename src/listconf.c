@@ -83,7 +83,6 @@
 #include "mask_ext.h"
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */
-#include "memdbg.h"
 
 #if CPU_DETECT
 extern char CPU_req_name[];
@@ -136,7 +135,7 @@ static void listconf_list_build_info(void)
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
 	puts("Version: " JTR_GIT_VERSION);
-	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING MEMDBG_STRING ASAN_STRING UBSAN_STRING);
+	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING);
 #ifdef SIMD_COEF_32
 	printf("SIMD: %s, interleaving: MD4:%d MD5:%d SHA1:%d SHA256:%d SHA512:%d\n",
 	       SIMD_TYPE,
@@ -309,14 +308,6 @@ static void listconf_list_build_info(void)
 
 // OK, now append debugging options, BUT only output  something if
 // one or more of them is set. IF none set, be silent.
-#if defined (MEMDBG_ON)
-	cpdbg += sprintf(cpdbg, "\tmemdbg=");
-	#ifdef MEMDBG_EXTRA_CHECKS
-		cpdbg += sprintf(cpdbg, "extra_memory_checks\n");
-	#else
-		cpdbg += sprintf(cpdbg, "on\n");
-	#endif
-#endif
 #if defined (DEBUG)
 	cpdbg += sprintf(cpdbg, "\t'#define DEBUG' set\n");
 #endif

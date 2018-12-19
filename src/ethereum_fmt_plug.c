@@ -33,7 +33,6 @@ john_register_one(&fmt_ethereum);
 #include "KeccakHash.h"
 #include "aes.h"
 #include "jumbo.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "Ethereum Wallet"
 #define FORMAT_LABEL            "ethereum"

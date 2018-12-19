@@ -27,7 +27,6 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #define OMP_SCALE               256
 #endif
 #endif
-#include "memdbg.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-MD4"
 #define FORMAT_NAME             ""

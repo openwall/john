@@ -42,7 +42,6 @@ john_register_one(&fmt_hmailserver);
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
-#include "memdbg.h"
 
 #define FORMAT_LABEL        "hMailServer"
 #define FORMAT_NAME         ""

@@ -36,7 +36,6 @@ john_register_one(&fmt_multibit);
 #include "escrypt/crypto_scrypt.h"
 #include "jumbo.h"
 #include "unicode.h"
-#include "memdbg.h"
 
 #define FORMAT_NAME             "MultiBit Wallet"
 #define FORMAT_LABEL            "multibit"
