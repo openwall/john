@@ -776,7 +776,7 @@ if __name__ == "__main__":
                     etype = str(decoder.decode(credential.ticket.data)[0][3][0])
                     data = str(decoder.decode(credential.ticket.data)[0][3][2])
                     if etype != "23":
-                        sys.stderr.write("Unsupported etype %s found. Please report this to us!\n" % etype)
+                        sys.stderr.write("Unsupported etype %s found. Such hashes can't be cracked it seems.\n" % etype)
                         continue
                 except:
                     continue
