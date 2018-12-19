@@ -127,6 +127,72 @@ void XTS_decrypt(unsigned char *double_key, unsigned char *out,
 	}
 }
 
+void XTS_decrypt_custom_tweak(unsigned char *double_key, unsigned char *tweak,
+		unsigned char *out, unsigned char *data, unsigned len, int
+		bits, int algorithm)
+{
+	unsigned char buf[16];
+	int i, j, cnt;
+	AES_KEY akey1, akey2;
+	Twofish_key tkey1, tkey2;
+	uint8_t skey1[SERPENT_KS];
+	uint8_t skey2[SERPENT_KS];
+
+	switch (algorithm) {
+		case 0:
+			AES_set_decrypt_key(double_key, bits, &akey1);
+			AES_set_encrypt_key(&double_key[bits / 8], bits, &akey2);
+			AES_encrypt(tweak, tweak, &akey2);
+			break;
+		case 1:
+			Twofish_prepare_key(double_key, 32, &tkey1);
+			Twofish_prepare_key(&double_key[bits / 8], 32, &tkey2);
+			Twofish_encrypt(&tkey2, tweak, tweak);
+			break;
+		case 2:
+			serpent_set_key(double_key, skey1);
+			serpent_set_key(&double_key[bits / 8], skey2);
+			serpent_encrypt(tweak, tweak, skey2);
+			break;
+	}
+
+	cnt = len / 16;
+	for (j = 0;;) {
+		for (i = 0; i < 16; ++i)
+			buf[i] = data[i] ^ tweak[i];
+		switch (algorithm) {
+			case 0:
+				AES_decrypt(buf, out, &akey1);
+				break;
+			case 1:
+				Twofish_decrypt(&tkey1, buf, out);
+				break;
+			case 2:
+				serpent_decrypt(buf, out, skey1);
+				break;
+		}
+		for (i = 0; i < 16; ++i)
+			out[i] ^= tweak[i];
+		++j;
+		if (j == cnt)
+			break;
+		else {
+			unsigned char Cin, Cout;
+			unsigned x;
+			Cin = 0;
+			for (x = 0; x < 16; ++x) {
+				Cout = (tweak[x] >> 7) & 1;
+				tweak[x] = ((tweak[x] << 1) + Cin) & 0xFF;
+				Cin = Cout;
+			}
+			if (Cout)
+				tweak[0] ^= 135; // GF_128_FDBK;
+		}
+		data += 16;
+		out += 16;
+	}
+}
+
 void AES_XTS_decrypt_custom_tweak(const unsigned char *double_key, unsigned
 		char *tweak, unsigned char *out, const unsigned char *data,
 		unsigned len, int bits)
