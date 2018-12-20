@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 use strict;
 
 #############################################################################
@@ -1981,7 +1981,7 @@ sub money_md5 {
 	for ($i = 0; $i < length $pw; ++$i) {
 		my $c = substr($pw, $i, 1);
 		if ( ord($c) >= ord('a') && ord($c) <= ord('z')) {
-			 $c = chr(ord($c)-0x20); 
+			 $c = chr(ord($c)-0x20);
 		}
 		$c = chr(ord($c) % 0x80);
 		substr($pw, $i, 1) = $c;
@@ -2001,7 +2001,7 @@ sub money_sha1 {
 	for ($i = 0; $i < length $pw; ++$i) {
 		my $c = substr($pw, $i, 1);
 		if ( ord($c) >= ord('a') && ord($c) <= ord('z')) {
-			 $c = chr(ord($c)-0x20); 
+			 $c = chr(ord($c)-0x20);
 		}
 		$c = chr(ord($c) % 0x80);
 		substr($pw, $i, 1) = $c;

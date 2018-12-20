@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # Extract basewords from list of plains. Based on an embryo from epixoip.
 # Feel free to enhance this script!

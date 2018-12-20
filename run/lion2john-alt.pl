@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 ####
 # This script converts an Apple OS X Lion plist file

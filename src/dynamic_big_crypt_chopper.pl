@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 use strict;
 #
 # This software was written by Jim Fougeron jfoug AT cox dot net

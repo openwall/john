@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # Copyright (c) 2011 Solar Designer
 # Copyright (c) 2011 Jim Fougeron

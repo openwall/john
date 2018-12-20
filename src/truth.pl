@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # Evaluate truth table for _mm512_ternarylogic_epi32 or LOP3.LUT
 #

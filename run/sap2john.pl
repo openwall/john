@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # Original code believed to be "(c) x7d8 sap loverz, public domain" (as noted in
 # sapB_fmt_plug.c). Also Copyright (c) 2011, 2012 magnum, and hereby released to

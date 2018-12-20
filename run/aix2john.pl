@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #/
 #  This software is Copyright (c) 2013 Konrads Smelkovs <konrads.smelkovs@kpmg.co.uk>,
 #  and it is hereby released to the general public under the following terms:
