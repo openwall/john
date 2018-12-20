@@ -26,10 +26,10 @@ u64 fget64LE(FILE *fp)
 
 u32 fget32LE(FILE *fp)
 {
-	u32 v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	v |= fgetc(fp) << 16;
-	v |= fgetc(fp) << 24;
+	u32 v = (u32)fgetc(fp);
+	v |= (u32)fgetc(fp) << 8;
+	v |= (u32)fgetc(fp) << 16;
+	v |= (u32)fgetc(fp) << 24;
 	return v;
 }
 

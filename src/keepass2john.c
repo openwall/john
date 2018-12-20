@@ -125,10 +125,10 @@ static uint64_t BytesToUInt64(unsigned char * s, const int s_size)
 
 static uint32_t fget32(FILE * fp)
 {
-	uint32_t v = fgetc(fp);
-	v |= fgetc(fp) << 8;
-	v |= fgetc(fp) << 16;
-	v |= fgetc(fp) << 24;
+	uint32_t v = (uint32_t)fgetc(fp);
+	v |= (uint32_t)fgetc(fp) << 8;
+	v |= (uint32_t)fgetc(fp) << 16;
+	v |= (uint32_t)fgetc(fp) << 24;
 	return v;
 }
 
