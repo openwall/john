@@ -250,7 +250,7 @@ static void single_init(void)
 			fprintf(stderr,
 "Note: Max. length decreased from %d to %d due to single mode buffer size\n"
 "      limit of %sB. Use --max-length=N option to override, or increase\n"
-"      SingleMaxBufferSize in config (%sB needed).\n",
+"      SingleMaxBufferSize in john.conf (%sB needed).\n",
 			        options.eff_maxlength,
 			        length,
 			        human_prefix(my_buf_share),
@@ -268,7 +268,7 @@ static void single_init(void)
 			fprintf(stderr,
 "Note: Can't run single mode with this many salts due to single mode buffer\n"
 "      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
-"      %d for %sB). To work around this, bump SingleMaxBufferSize in\n"
+"      %d for %sB). To work around this, increase SingleMaxBufferSize in\n"
 "      john.conf (if you have enough RAM) or load fewer salts at a time.\n",
 			        human_prefix(my_buf_share),
 			        lim_kpc,
@@ -308,7 +308,7 @@ static void single_init(void)
 				        options.req_maxlength ?
 				        "decrease" : "use");
 			fprintf(stderr,
-			        "bump%sSingleMaxBufferSize in config.\n",
+			        "increase%sSingleMaxBufferSize in john.conf.\n",
 			        options.eff_maxlength > 8 ? "\n      " : " ");
 		}
 		if (lim_kpc < single_db->format->params.min_keys_per_crypt)
