@@ -1908,11 +1908,11 @@ void utf8_to_utf8_32(UTF32 *dst, UTF8 *src)
 
 			if (eb > 3) /* invalid */
 				continue;
-			c += *src++ << 8;
+			c += (UTF32)*src++ << 8;
 			if (eb > 1)
-				c += *src++ << 16;
+				c += (UTF32)*src++ << 16;
 			if (eb > 2)
-				c += *src++ << 24;
+				c += (UTF32)*src++ << 24;
 		}
 		*dst++ = c;
 	}
