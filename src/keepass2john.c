@@ -364,7 +364,7 @@ static void process_database(char* encryptedDatabase)
 	}
 	endReached = 0;
 	while (!endReached) {
-		int32_t uSize;
+		uint32_t uSize;
 		unsigned char btFieldID = fgetc(fp);
 		enum Kdb4HeaderFieldID kdbID = btFieldID;
 		unsigned char *pbData = NULL;
@@ -374,10 +374,6 @@ static void process_database(char* encryptedDatabase)
 		else
 			uSize = fget32(fp);
 
-		if (uSize < 0) {
-			fprintf(stderr, "error validating uSize, is the database corrupt?\n");
-			goto bailout;
-		}
 		if (fsize * 64 < uSize) {
 			fprintf(stderr, "uSize too large, is the database corrupt?\n");
 			goto bailout;
