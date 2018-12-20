@@ -73,7 +73,9 @@ int idle_requested(struct fmt_main *format)
 
 void idle_init(struct fmt_main *format)
 {
+#if !(defined(__MINGW32__) || defined (_MSC_VER) || defined(__BEOS__) || defined(__HAIKU__))
 	static int once;
+#endif
 #if defined(_POSIX_PRIORITY_SCHEDULING) && defined(SCHED_IDLE)
 	struct sched_param param = {0};
 #endif
