@@ -167,15 +167,15 @@ static void listconf_list_build_info(void)
 	printf("SALT_HASH_SIZE: %u\n", SALT_HASH_SIZE);
 	printf("SINGLE_IDX_MAX: %u\n", SINGLE_IDX_MAX);
 	printf("SINGLE_BUF_MAX: %u\n", SINGLE_BUF_MAX);
-	printf("Single words effective limit: ");
+	printf("Effective limit: ");
 	if (sizeof(SINGLE_KEYS_TYPE) < 4 || sizeof(SINGLE_KEYS_UTYPE) < 4) {
 		if (SINGLE_MAX_WORDS(125) < SINGLE_MAX_WORDS(16))
-			printf("Max. KPC %d at length 16... %d at length 125)\n",
+			printf("Max. KPC %d at length 16, down to %d at length 125\n",
 			       SINGLE_MAX_WORDS(16), SINGLE_MAX_WORDS(125));
 		else
 			printf("Max. KPC %d\n", SINGLE_MAX_WORDS(125));
 	} else
-		printf("Number of salts vs. SingleMaxBufferSize in john.conf\n");
+		printf("Number of salts vs. SingleMaxBufferSize\n");
 	printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
 	printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
 
