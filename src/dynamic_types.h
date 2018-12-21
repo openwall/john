@@ -173,7 +173,7 @@ typedef struct private_subformat_data
 #define OMP_MAX       (NON_OMP_MAX*OMP_SCALE)
 
 #ifdef SIMD_COEF_32
- #define MIN_KEYS_PER_CRYPT	SIMD_COEF_32
+ #define MIN_KEYS_PER_CRYPT	(SIMD_COEF_32*SIMD_PARA_MD5*SIMD_PARA_SHA1*(MD5_X2+1))
  #ifdef _OPENMP
   #if SIMD_COEF_32 >= 4
    #define BLOCK_LOOPS		((OMP_MAX/SIMD_COEF_32)*OMP_SCALE)
@@ -296,7 +296,7 @@ typedef struct private_subformat_data
 #ifndef SIMD_COEF_32
 //static MD5_OUT tmpOut;
 #endif
-#define MIN_KEYS_PER_CRYPT_X86	1
+#define MIN_KEYS_PER_CRYPT_X86	(MD5_X2+1)
 #define MAX_KEYS_PER_CRYPT_X86	X86_BLOCK_LOOPS
 #if MD5_X2 && (!MD5_ASM)
 #if defined(_OPENMP) || defined (FORCE_THREAD_MD5_body)
