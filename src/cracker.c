@@ -1240,7 +1240,8 @@ void crk_done(void)
 	if (crk_db->loaded) {
 		if (crk_key_index && crk_db->salts && !event_abort)
 			crk_salt_loop();
+
+		MEM_FREE(crk_timestamps);
 	}
 	c_cleanup();
-	MEM_FREE(crk_timestamps);
 }
