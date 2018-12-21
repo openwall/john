@@ -27,6 +27,17 @@ struct custom_salt {
 #define PKCS_DERIVE_MAX         (MAX_KEY_SIZE*2)
 #define CF_CIPHERS_NUM          7  // 7 types of ciphers possible
 
+#ifdef __GNUC__
+#define PACKED __attribute__ ((__packed__))
+#else
+#define PACKED
+#endif
+
+#ifndef __GNUC__
+#define PACKED
+#pragma pack(push,1)
+#endif
+
 struct dc_header {
 	uint8_t  salt[PKCS5_SALT_SIZE]; /* pkcs5.2 salt */
 	uint32_t sign;                  /* signature 'DCRP' */
@@ -45,7 +56,11 @@ struct dc_header {
 	uint8_t  tmp_wp_mode;           /* data wipe mode */
 
 	uint8_t  reserved[1422 - 1];
-} __attribute__((packed));
+} PACKED;
+
+#ifndef __GNUC__
+#pragma pack(pop)
+#endif
 
 extern struct fmt_tests diskcryptor_tests[];
 
