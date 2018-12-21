@@ -82,7 +82,6 @@ static double get_progress(void)
 
 	emms();
 
-	fprintf(stderr, "c %d n %d\n", stacked_rule_count, rules_stacked_number);
 	tot_rules = rule_count * stacked_rule_count;
 	tot_rule_number = (rules_stacked_number - 1) * rule_count + rule_number;
 
