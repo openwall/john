@@ -1242,4 +1242,5 @@ void crk_done(void)
 			crk_salt_loop();
 	}
 	c_cleanup();
+	MEM_FREE(crk_timestamps);
 }
