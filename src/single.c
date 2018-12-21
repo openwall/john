@@ -78,14 +78,16 @@ static int restore_state(FILE *file)
 
 static double get_progress(void)
 {
-	uint64_t tot_rules = rule_count * stacked_rule_count;
-	uint64_t tot_rule_number =
-		(rules_stacked_number - 1) * rule_count + rule_number;
+	double tot_rules, tot_rule_number;
 
 	emms();
 
+	fprintf(stderr, "c %d n %d\n", stacked_rule_count, rules_stacked_number);
+	tot_rules = rule_count * stacked_rule_count;
+	tot_rule_number = (rules_stacked_number - 1) * rule_count + rule_number;
+
 	return progress ? progress :
-		(double)tot_rule_number / (tot_rules + 1) * 100.0;
+		100.0 * tot_rule_number / (tot_rules + 1);
 }
 
 static uint64_t calc_buf_size(int length, int min_kpc)

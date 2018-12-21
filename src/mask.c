@@ -1839,12 +1839,14 @@ static uint64_t divide_work(mask_cpu_context *cpu_mask_ctx)
  */
 static double get_progress(void)
 {
-	uint64_t total = mask_tot_cand;
+	double total;
 
 	emms();
 
 	if (!mask_tot_cand)
 		return -1;
+
+	total = crk_stacked_rule_count * mask_tot_cand;
 
 	if (cand_length)
 		total += cand_length;

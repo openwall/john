@@ -39,12 +39,14 @@ static double get_progress(void)
 {
 	uint64_t mask_mult = mask_tot_cand ? mask_tot_cand : 1;
 	uint64_t factors = crk_stacked_rule_count * mask_mult;
-	uint64_t keyspace = cand * factors;
 	uint64_t pos = status.cands;
+	double keyspace;
 
 	emms();
 
-	if (!cand)
+	keyspace = cand * factors;
+
+	if (!keyspace)
 		return -1;
 
 	return 100.0 * pos / keyspace;
@@ -720,7 +722,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (options.node_count)
 		cand *= (double)(options.node_max - options.node_min + 1) /
 			options.node_count;
-
 	if (!(db->format->params.flags & FMT_CASE) && is_mixedcase(allchars)) {
 		log_event("! Mixed-case charset, "
 		    "but the hash type is case-insensitive");

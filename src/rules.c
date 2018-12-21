@@ -72,7 +72,7 @@ unsigned int rules_stacked_after;
 /*
  * Line number of stacked rule in use.
  */
-int rules_stacked_number;
+int rules_stacked_number = 1;
 
 /*
  * Configuration file line number, only set after a rules_check() call if
