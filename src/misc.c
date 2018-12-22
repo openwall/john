@@ -493,8 +493,9 @@ char *human_prefix(uint64_t num)
 	char prefixes[] = "\0KMGTPEZY";
 	char *p = prefixes;
 
-	while (p[1] && num >= (1 << 10)) {
-		num = (num >> 10) + ((num & 1023) ? 1 : 0);
+	while (p[1] && (num >= (100 << 10) ||
+	                (!(num & 1023) && num >= (1 << 10)))) {
+		num = (num >> 10);
 		p++;
 	}
 
