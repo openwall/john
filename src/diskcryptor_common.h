@@ -27,13 +27,9 @@ struct custom_salt {
 #define PKCS_DERIVE_MAX         (MAX_KEY_SIZE*2)
 #define CF_CIPHERS_NUM          7  // 7 types of ciphers possible
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__MINGW32__)
 #define PACKED __attribute__ ((__packed__))
 #else
-#define PACKED
-#endif
-
-#ifndef __GNUC__
 #define PACKED
 #pragma pack(push,1)
 #endif
@@ -58,7 +54,7 @@ struct dc_header {
 	uint8_t  reserved[1422 - 1];
 } PACKED;
 
-#ifndef __GNUC__
+#if !defined(__GNUC__) || defined(__MINGW32__)
 #pragma pack(pop)
 #endif
 
