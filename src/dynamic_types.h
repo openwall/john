@@ -228,6 +228,7 @@ typedef struct private_subformat_data
  #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
  #define ALGORITHM_NAME_S		"32/" ARCH_BITS_STR
  #define ALGORITHM_NAME_4		"32/" ARCH_BITS_STR
+ #define MIN_KEYS_PER_CRYPT		(MD5_X2+1)
 #endif
 
 #ifdef _OPENMP
