@@ -215,6 +215,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	if (db->loaded) {
 		size = crk_params->max_keys_per_crypt * sizeof(uint64_t);
+		MEM_FREE(crk_timestamps);
 		memset(crk_timestamps = mem_alloc(size), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
