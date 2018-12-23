@@ -1624,7 +1624,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (keys_dirty)
 	{
 		int did_key_clean = 0;
-		if (m_count < MAX_KEYS_PER_CRYPT) {
+		// NOTE, once we KNOW the proper MIN_KEYS_PER_CRYPT for each format, then we can change this to:
+		//    if (m_count % curdat.min_keys_per_crypt)
+		// That will only clean if they 'last' crypt block is not fully filled in. But for now, any
+		// short block (that is NOT the global MIN_KEYS_PER_CRYPT), will be fully cleaned, even if it
+		// does not need to be.
+		if (m_count < MAX_KEYS_PER_CRYPT && m_count != MIN_KEYS_PER_CRYPT) {
 			did_key_clean = 1;
 			__nonMP_DynamicFunc__clean_input2_full();
 			__nonMP_DynamicFunc__clean_input_full();
