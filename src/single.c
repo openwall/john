@@ -829,6 +829,7 @@ static void single_done(void)
 
 	rec_done(event_abort || (status.pass && single_db->salts));
 	c_cleanup();
+	crk_done();
 }
 
 void do_single_crack(struct db_main *db)
