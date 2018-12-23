@@ -1,20 +1,26 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# Copyright (C) 2015, Dhiru Kholia <dhiru [at] kth.se>
+# This software is Copyright (c) 2015, Dhiru Kholia <dhiru.kholia at gmail.com>
+# and it is hereby released to the general public under the following terms:
 #
-# Shouldn't this be called pkcs8tojohn.py instead?
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
+# pylint: disable=invalid-name,line-too-long,missing-docstring,pointless-string-statement
 
 import sys
-import traceback
+from binascii import hexlify
 
 try:
     from asn1crypto import pem
     from asn1crypto.keys import EncryptedPrivateKeyInfo
 except ImportError:
-    sys.stderr.write("asn1crypto python package is missing, please install it using 'pip install asn1crypto' command.\n")
+    sys.stderr.write("asn1crypto python package is missing, please install it using 'pip install --user asn1crypto' command.\n")
     # traceback.print_exc()
     sys.exit(-1)
+
+PY3 = sys.version_info[0] == 3
 
 """
 
@@ -40,50 +46,28 @@ $ openssl asn1parse -in test.pem
    70:d=1  hl=4 l= 640 prim: OCTET STRING      [HEX DUMP]:C4BC6BC5447BED58...
 """
 
-def is_binary(filename):
-    """Return true if the given filename is binary.
-    @raise EnvironmentError: if the file does not exist or cannot be accessed.
-    @attention: found @ http://bytes.com/topic/python/answers/21222-determine-file-type-binary-text on 6/08/2010
-    @author: Trent Mick <TrentM@ActiveState.com>
-    @author: Jorge Orpinel <jorge@orpinel.com>"""
-    fin = open(filename, 'rb')
-    try:
-        CHUNKSIZE = 1024
-        while 1:
-            chunk = fin.read(CHUNKSIZE)
-            if '\0' in chunk: # found null byte
-                return True
-            if len(chunk) < CHUNKSIZE:
-                break # done
-    # without "except:"
-    finally:
-        fin.close()
-
-    return False
-
 def unwrap_pkcs8(blob):
     if not pem.detect(blob):
-        return
+        return False
 
     _, _, der_bytes = pem.unarmor(blob)
-    unwrap_pkcs8_data(der_bytes)
+    return unwrap_pkcs8_data(der_bytes)
 
 
 def unwrap_pkcs8_data(blob):
-    
-    try:    
-        data = EncryptedPrivateKeyInfo.load(blob).native    
+    try:
+        data = EncryptedPrivateKeyInfo.load(blob).native
 
         if "encryption_algorithm" not in data:
-            return
+            return False
         if "encrypted_data" not in data:
-            return
+            return False
         if "algorithm" not in data["encryption_algorithm"]:
-            return
+            return False
         if data["encryption_algorithm"]["algorithm"] != "pbes2":
             sys.stderr.write("[%s] encryption_algorithm <%s> is not supported currently!\n" %
                              (sys.argv[0], data["encryption_algorithm"]["algorithm"]))
-            return
+            return False
 
         # encryption data
         encrypted_data = data["encrypted_data"]
@@ -94,7 +78,7 @@ def unwrap_pkcs8_data(blob):
         if kdf["algorithm"] != "pbkdf2":
             sys.stderr.write("[%s] kdf algorithm <%s> is not supported currently!\n" %
                              (sys.argv[0], kdf["algorithm"]))
-            return
+            return False
         kdf_params = kdf["parameters"]
         salt = kdf_params["salt"]
         iterations = kdf_params["iteration_count"]
@@ -114,11 +98,21 @@ def unwrap_pkcs8_data(blob):
             cid = 4
         else:
             sys.stderr.write("[%s] cipher <%s> is not supported currently!\n" % (sys.argv[0], cipher))
-            return
+            return False
 
-        sys.stdout.write("$PEM$1$%d$%s$%s$%s$%d$%s\n" % (cid, salt.encode("hex"), iterations, iv.encode("hex"), len(encrypted_data), encrypted_data.encode("hex")))
+        salth = hexlify(salt)
+        encrypted_datah = hexlify(encrypted_data)
+        ivh = hexlify(iv)
+
+        if PY3:
+            salth = salth.decode("ascii")
+            encrypted_datah = encrypted_datah.decode("ascii")
+            ivh = ivh.decode("ascii")
+
+        sys.stdout.write("$PEM$1$%d$%s$%s$%s$%d$%s\n" % (cid, salth, iterations, ivh, len(encrypted_data), encrypted_datah))
+        return True
     except ValueError:
-       print "Input is not a cert"
+        return False
 
 
 if __name__ == "__main__":
@@ -129,15 +123,16 @@ if __name__ == "__main__":
 
     for filename in sys.argv[1:]:
         blob = open(filename, "rb").read()
-        if not is_binary(filename):
-           if b'-----BEGIN ENCRYPTED PRIVATE KEY-----' not in blob:
-               if b'PRIVATE KEY-----' in blob:
-                   sys.stderr.write("[%s] try using sshng2john.py on this file instead!\n" % sys.argv[0])
-               else:
-                   sys.stderr.write("[%s] is this really a private key in PKCS #8 format?\n" % sys.argv[0])
+        if b'-----BEGIN ENCRYPTED PRIVATE KEY-----' not in blob:
+            if b'PRIVATE KEY-----' in blob:
+                sys.stderr.write("[%s] try using sshng2john.py on this file instead!\n" % sys.argv[0])
+            else:
+                # try as DER payload
+                ret = unwrap_pkcs8_data(blob)
+                if not ret:
+                    sys.stderr.write("[%s] is this really a private key in PKCS #8 format?\n" % sys.argv[0])
 
-               continue
-
-           unwrap_pkcs8(blob)
         else:
-           unwrap_pkcs8_data(blob)
+            ret = unwrap_pkcs8(blob)
+            if not ret:
+                sys.stderr.write("[%s] is this really a private key in PKCS #8 format?\n" % sys.argv[0])
