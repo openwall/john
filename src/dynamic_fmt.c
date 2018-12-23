@@ -1623,13 +1623,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// single crypt.  That eliminates almost 1/2 of the calls to md5_crypt() for the format show in this example.
 	if (keys_dirty)
 	{
+		int did_key_clean = 0;
+		if (m_count < MAX_KEYS_PER_CRYPT) {
+			did_key_clean = 1;
+			__nonMP_DynamicFunc__clean_input2_full();
+			__nonMP_DynamicFunc__clean_input_full();
+		}
 		if (curdat.store_keys_normal_but_precompute_hash_to_output2)
 		{
 			keys_dirty = 0;
-			if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED2)
-				__nonMP_DynamicFunc__clean_input2_full();
-			else
-				__nonMP_DynamicFunc__clean_input2();
+			if (!did_key_clean) {
+				if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED2)
+					__nonMP_DynamicFunc__clean_input2_full();
+				else
+					__nonMP_DynamicFunc__clean_input2();
+			}
 			if (curdat.store_keys_in_input_unicode_convert)
 				__nonMP_md5_unicode_convert(1);
 			__nonMP_DynamicFunc__append_keys2();
