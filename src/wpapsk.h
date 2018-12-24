@@ -681,8 +681,8 @@ static int salt_hash(void *salt)
 	unsigned int mac1;
 	unsigned int mac2;
 
-	memcpy(&mac1, s->mac1, 4);
-	memcpy(&mac2, s->mac2, 4);
+	memcpy(&mac1, &s->mac1[2], 4);
+	memcpy(&mac2, &s->mac2[2], 4);
 
 	return (mac1 ^ mac2) & (SALT_HASH_SIZE - 1);
 }
