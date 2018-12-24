@@ -7,7 +7,7 @@
 #include "common.h"
 #include "axcrypt_common.h"
 
-int axcrypt_common_valid(char *ciphertext, struct fmt_main *self, int is_cpu_format)
+int axcrypt_common_valid(char *ciphertext, struct fmt_main *self, int versions_supported)
 {
 	char *ctcopy, *keeptr, *p;
 	int version, saltlen, wrappedkeylen;
@@ -26,8 +26,10 @@ int axcrypt_common_valid(char *ciphertext, struct fmt_main *self, int is_cpu_for
 	if (version == 1) {
 		saltlen = 16;
 		wrappedkeylen = 24;
+		if (versions_supported == 2)
+			goto err;
 	} else {
-		if (!is_cpu_format)
+		if (versions_supported == 1)
 			goto err;
 		saltlen = 64;  // WrapSalt
 		wrappedkeylen = 144;

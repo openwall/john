@@ -34,7 +34,8 @@ john_register_one(&fmt_axcrypt);
 #include "aes.h"
 #include "axcrypt_common.h"
 #include "pbkdf2_hmac_sha512.h"
-#define CPU_FORMAT 1
+#define VERSION_1_SUPPORT 1
+#define VERSION_2_SUPPORT 1
 #include "axcrypt_variable_code.h"
 
 #define FORMAT_LABEL            "AxCrypt"
@@ -99,7 +100,7 @@ static void done(void)
 
 static int axcrypt_valid(char *ciphertext, struct fmt_main *self)
 {
-	return axcrypt_common_valid(ciphertext, self, 1);
+	return axcrypt_common_valid(ciphertext, self, 3);
 }
 
 static void set_salt(void *salt)
