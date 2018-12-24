@@ -30,6 +30,7 @@ john_register_one(&fmt_opencl_axcrypt);
 #include "opencl_common.h"
 #include "options.h"
 #include "axcrypt_common.h"
+#define VERSION_1_SUPPORT 1
 #include "axcrypt_variable_code.h"
 
 #define FORMAT_LABEL            "axcrypt-opencl"
@@ -177,7 +178,7 @@ static void done(void)
 
 static int axcrypt_valid(char *ciphertext, struct fmt_main *self)
 {
-	return axcrypt_common_valid(ciphertext, self, 0);
+	return axcrypt_common_valid(ciphertext, self, 1);
 }
 
 static void set_salt(void *salt)
