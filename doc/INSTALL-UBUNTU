@@ -45,7 +45,7 @@ system.
         sudo apt-get -y install ocl-icd-opencl-dev opencl-headers fglrx-dev
 
 ==== If you want a CPU device for OpenCL (OpenCL support)
-    sudo apt-get -y ocl-icd-opencl-dev opencl-headers pocl-opencl-icd
+    sudo apt-get -y install ocl-icd-opencl-dev opencl-headers pocl-opencl-icd
 
 ==== Optional MPI support
 
