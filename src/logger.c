@@ -13,6 +13,9 @@
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
 #endif
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* for strcasestr */
+#endif
 
 #define NEED_OS_FLOCK
 #include "os.h"
