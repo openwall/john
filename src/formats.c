@@ -87,8 +87,10 @@ void fmt_init(struct fmt_main *format)
 			orig_len = format->params.plaintext_length;
 		}
 #endif
-		if (john_main_process && !options.listconf &&
-		    !bench_or_test_running && options.target_enc != UTF_8 &&
+		if (john_main_process && !bench_or_test_running &&
+#ifndef BENCH_BUILD
+		    !options.listconf && options.target_enc != UTF_8 &&
+#endif
 		    format->params.flags & FMT_UTF8)
 			fprintf(stderr, "Warning: %s format should always be "
 			        "UTF-8. Use --target-encoding=utf8\n",

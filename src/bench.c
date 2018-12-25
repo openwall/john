@@ -321,10 +321,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	uint64_t crypts;
 	char *ciphertext;
 	void *salt, *two_salts[2];
-	int index, max, i;
+	int index, max;
 #ifndef BENCH_BUILD
 	unsigned int t_cost[2][FMT_TUNABLE_COSTS];
-	int ntests, pruned;
+	int ntests, pruned, i;
 #endif
 	int salts_done = 0;
 	int wait = 0;
@@ -708,8 +708,6 @@ AGAIN:
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
-#define ENC_SET (!options.default_enc && options.target_enc != ASCII && \
-			options.target_enc != ISO_8859_1)
 		printf("%s: %s%s%s%s [%s%s%s%s]... ",
 		    benchmark_time ? "Benchmarking" : "Testing",
 		    format->params.label,
@@ -718,6 +716,9 @@ AGAIN:
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef BENCH_BUILD
+#define ENC_SET (!options.default_enc && options.target_enc != ASCII && \
+                                         options.target_enc != ISO_8859_1)
+
 		    (benchmark_time && format->params.flags & FMT_MASK &&
 		     (options.flags & FLG_MASK_CHK)) ? "/mask accel" : "",
 		    ENC_SET ? ", " : "",
@@ -853,7 +854,10 @@ AGAIN:
 
 		/* Format supports internal (eg. GPU-side) mask */
 		if (benchmark_time && format->params.flags & FMT_MASK &&
-		    !(options.flags & FLG_MASK_CHK) && john_main_process)
+#ifndef BENCH_BUILD
+		    !(options.flags & FLG_MASK_CHK) &&
+#endif
+		    john_main_process)
 			fprintf(stderr, "Note: This format may also be benchmarked using --mask (see doc/MASK).\n");
 
 		benchmark_cps(results_m.crypts, results_m.real, s_real);
