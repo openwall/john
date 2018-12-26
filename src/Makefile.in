@@ -729,6 +729,9 @@ unrarppm.o:	unrarppm.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp
 .S.o:
 	$(AS) $(ASFLAGS) $*.S
 
+../run/oui.txt:
+	cd ../run && wget http://standards-oui.ieee.org/oui.txt
+
 # For jumbo, --make_check fails for the first thin format that is linked
 # to a dynamic format in a config file, so we deviate from core here.
 check: default

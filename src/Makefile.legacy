@@ -1762,6 +1762,9 @@ $(SUBDIRS):
 john.com: john.asm
 	@echo Use Borland TASM/TLINK to make JOHN.COM
 
+../run/oui.txt:
+	cd ../run && wget http://standards-oui.ieee.org/oui.txt
+
 # this LD line removed from the ../run/john.exe rule (Cygwin builds)
 # this change needed for full openssl linking, in 1.7.7-jumbo-6
 # this comment should stay for a jumbo or 2, to make sure this does not break
