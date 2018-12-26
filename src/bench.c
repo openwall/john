@@ -649,16 +649,16 @@ int benchmark_all(void)
 #endif
 
 #ifndef BENCH_BUILD
-AGAIN:
-#endif
-	total = failed = 0;
 #if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
 	if (benchmark_time)
 		puts("NOTE: This is a debug build, speed will be lower than normal");
 #endif
-#ifndef BENCH_BUILD
+
+AGAIN:
 	options.loader.field_sep_char = 31;
 #endif
+	total = failed = 0;
+
 	if ((format = fmt_list))
 	do {
 #ifndef BENCH_BUILD
