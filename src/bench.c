@@ -629,6 +629,9 @@ int benchmark_all(void)
 #else
 	const char *s_gpu = "";
 #endif
+#ifndef BENCH_BUILD
+	unsigned int loop_fail = 0, loop_total = 0;
+#endif
 	unsigned int total, failed;
 	struct db_main *test_db;
 #ifdef _OPENMP
@@ -705,6 +708,10 @@ AGAIN:
 		ompt = omp_get_max_threads();
 #endif /* _OPENMP */
 
+#ifndef BENCH_BUILD
+		if ((options.flags & FLG_LOOPTEST) && john_main_process)
+			printf("#%u ", ++loop_total);
+#endif
 #ifdef HAVE_MPI
 		if (john_main_process)
 #endif
@@ -927,8 +934,19 @@ next:
 			printf("All %u formats passed self-tests!\n", total);
 
 #ifndef BENCH_BUILD
-	if (options.flags & FLG_LOOPTEST && !event_abort)
-		goto AGAIN;
+	if (options.flags & FLG_LOOPTEST) {
+		if (event_abort) {
+			uint32_t p = 100 * loop_fail / loop_total;
+			uint32_t pp = 10000 * loop_fail / loop_total - p * 100;
+
+			printf("Tested %u times, %u failed (%u.%02u%%)\n",
+			       loop_total, loop_fail, p, pp);
+		} else {
+			if (failed)
+				loop_fail++;
+			goto AGAIN;
+		}
+	}
 #endif
 
 	benchmark_running = 0;
