@@ -2553,11 +2553,12 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 					failed = 1;
 				}
 			}
-		}
-		if (!failed) {
-			fprintf(stderr, "This expression will use the RDP dynamic compiler format.\n");
-		} else {
-			/* not sure what to do :( */
+			if (!failed) {
+				fprintf(stderr, "This expression will use the RDP dynamic compiler format.\n");
+			}
+			else {
+				/* not sure what to do :( */
+			}
 		}
 		//pFmt->methods.done();
 		//pFmt->private.initialized = 0;
