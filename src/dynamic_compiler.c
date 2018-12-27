@@ -1446,7 +1446,7 @@ void run_one_RDP_test(DC_ProcData *p) {
 		strlwr(gen_plc);
 	}
 	if (bNeedU) {
-		strnzcpy(gen_u, p->iUsr, p->nUsr+1);
+		strnzcpy(gen_u, (char*)(p->iUsr), p->nUsr+1);
 		if (bNeedUuc) {
 			strcpy(gen_uuc, gen_u);
 			strupr(gen_uuc);
@@ -1459,14 +1459,14 @@ void run_one_RDP_test(DC_ProcData *p) {
 	*gen_s = 0;
 	if (bNeedS) {
 		nSaltLen = p->nSlt;
-		strnzcpy(gen_s, p->iSlt, p->nSlt+1);
+		strnzcpy(gen_s, (char*)(p->iSlt), p->nSlt+1);
 	}
 	if (bNeedS2) {
-		strnzcpy(gen_s2, p->iSlt2, p->nSlt2+1);
+		strnzcpy(gen_s2, (char*)(p->iSlt2), p->nSlt2+1);
 	}
 	for (nCurCode = 0; nCurCode < nCode; ++nCurCode)
 		fpCode[nCurCode]();
-	in = gen_Stack[0];
+	in = (unsigned char*)(gen_Stack[0]);
 	for (n = 0; n < 16; ++n) {
 		p->oBin[n] = (atoi16[in[0]] << 4) + atoi16[in[1]];
 		in += 2;
@@ -2496,7 +2496,7 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 		unsigned char *binary;
 		int ret, j;
 		void *slt;
-		extern Dynamic_Load_itoa16_w2();
+		extern void Dynamic_Load_itoa16_w2();
 		// perform a quick and quiet 'self' test to make sure generated format is valid.
 		// if it is NOT valid, we fall back and use a slow (but safe) oSSL version of the
 		// parser format, and emit a warning message to user that this expression is not

@@ -51,7 +51,7 @@ extern int dynamic_compiler_failed;
    i.e. when expression fails to compile to a correct script */
 typedef struct DC_ProcData {
 	unsigned char *oBin;	// out what the hash generates with below data
-	unsigned char *iPw;	// in  the password to test
+	         char *iPw;	// in  the password to test
 	unsigned      nPw;	//     length of PW
 	unsigned char *iSlt;	// in  the salt data  (can be NULL)
 	unsigned      nSlt;	//     length of salt data

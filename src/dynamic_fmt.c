@@ -1805,7 +1805,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < m_count; ++i) {
 			dc.iPw = saved_key[i];
 			dc.nPw = saved_key_len[i];
-			dc.oBin = crypt_key_X86[i >> MD5_X2].x1.b;
+			dc.oBin = crypt_key_X86[i >> MD5_X2].x1.B;
 			run_one_RDP_test(&dc);
 		}
 		return m_count;
