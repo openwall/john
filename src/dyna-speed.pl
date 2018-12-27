@@ -1,7 +1,9 @@
 #!/usr/bin/env perl
-
+#
 # this script will compare speed between a dynamic format using
 # the dynamic_x and (same) format using the dynamic=expr(xxx)
+
+use warnings;
 
 if (scalar @ARGV != 2) { die( "error, usage: dyna-speed.pl dynamic_# dynamic=expr\n" ); }
 
@@ -31,4 +33,3 @@ if ($percent2 > 0) { $percent2=substr($percent2, 0, 5); print "$ARGV[0] vs $ARGV
 else { print "$ARGV[0] vs $ARGV[1] was $percent"." x\n"; }
 
 #print "$first\n$second\n";
-

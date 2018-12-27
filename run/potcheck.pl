@@ -1,5 +1,4 @@
-#!/usr/bin/env perl -w
-
+#!/usr/bin/env perl
 #
 # potcheck.pl   This script is used to upgrade john's .pot file, to find
 #               problems, and 'fix' them, and other things.
@@ -12,6 +11,7 @@
 # There's ABSOLUTELY NO WARRANTY, express or implied.
 #
 
+use warnings;
 use strict;
 use Getopt::Long;
 use Digest::MD5 qw(md5_hex);

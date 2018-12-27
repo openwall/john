@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # John the Ripper benchmark output conversion tool, revision 1
 # Copyrigth (c) 2012, Frank Dittrich
@@ -41,7 +41,8 @@
 # relbench, usually resulting in a higher number of matching
 # format names which allow to compare the benchmark results
 # of different benchmark runs.
-#
+
+use warnings;
 
 sub parse
 {

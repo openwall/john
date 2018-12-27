@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-
+#
 # Basic Cisco type 4 - password decoder by Kost, Dhiru
 # and magnum
 #
@@ -38,6 +38,7 @@
 # it under the same terms as Perl itself, either Perl version 5.8.3 or,
 # at your option, any later version of Perl 5 you may have available.
 
+use warnings;
 use strict;
 use File::Basename;
 

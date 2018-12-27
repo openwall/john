@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+use warnings;
+
 $i=1;
 
 while(<>) {

@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # This file is part of John the Ripper password cracker,
 # Copyright (c) 2015 by Solar Designer
@@ -17,6 +17,7 @@
 # ./fuzz_option.pl /path/to/john format-name &> fuzz.log
 #
 
+use warnings;
 use Errno;
 use File::Copy;
 

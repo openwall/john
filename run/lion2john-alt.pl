@@ -10,6 +10,7 @@
 # modification, are permitted. (This is a heavily cut-down "BSD licence".)
 ####
 
+use warnings;
 use strict;
 use Data::Plist;
 use Data::Plist::BinaryReader;

@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # Extract basewords from list of plains. Based on an embryo from epixoip.
 # Feel free to enhance this script!
@@ -10,6 +10,8 @@
 # The "leetspeak substitution" will currently replace '1' with 'i' but never
 # with 'l', and so on. It should be improved somehow.
 #
+
+use warnings;
 use strict;
 
 my %line;

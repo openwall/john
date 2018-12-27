@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+use warnings;
 use Net::LDAP;
 
 $server = $ARGV[0];

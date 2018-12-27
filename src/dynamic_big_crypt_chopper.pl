@@ -1,5 +1,4 @@
-#!/usr/bin/env perl -w
-use strict;
+#!/usr/bin/env perl
 #
 # This software was written by Jim Fougeron jfoug AT cox dot net
 # in 2015. No copyright is claimed, and the software is hereby
@@ -23,6 +22,9 @@ use strict;
 #
 # Ported to Perl at request of Magnum. We were seeing build/run issues
 # on cross complier environments.
+
+use warnings;
+use strict;
 
 if (@ARGV == 1 && $ARGV[0] eq "TEST" ) { exit 0; }
 

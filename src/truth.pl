@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # Evaluate truth table for _mm512_ternarylogic_epi32 or LOP3.LUT
 #
@@ -10,7 +10,8 @@
 # Example:
 # $ ./truth.pl '((x | ~y) ^ z)'
 # lut3(x, y, z, 0x59)  ==  ((x | ~y) ^ z)
-#
+
+use warnings;
 use strict;
 
 my $f;

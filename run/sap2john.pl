@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # Original code believed to be "(c) x7d8 sap loverz, public domain" (as noted in
 # sapB_fmt_plug.c). Also Copyright (c) 2011, 2012 magnum, and hereby released to
@@ -79,7 +79,9 @@
 #        and for older passwords (ocod1-ocod5, or USH02
 #        (column MODDA or MODTI exists) or USRPWDHISTORY
 #        (column TIMESTAMP exists)
-#
+
+use warnings;
+
 sub fill_field
 {
 	if ($_[0] == -1 || $_[0] > $#tmp) {

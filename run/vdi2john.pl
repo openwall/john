@@ -1,6 +1,4 @@
-#!/usr/bin/env perl -w
-use strict;
-use MIME::Base64;
+#!/usr/bin/env perl
 #############################################################################
 # vdi2john.   This will convert *.vbox files (which list the encryption
 # information about the associated *.vdi file) into the proper format for
@@ -8,6 +6,10 @@ use MIME::Base64;
 #
 # Placed in public domain.  JimF.  2015.
 #############################################################################
+
+use warnings;
+use strict;
+use MIME::Base64;
 
 my $line;
 while ($line = <STDIN>) {

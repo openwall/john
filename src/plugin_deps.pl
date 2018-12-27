@@ -1,7 +1,8 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # Warning: Trying to understand this script will make your brain bleed.
-#
+
+use warnings;
 use strict;
 
 sub find_deps {

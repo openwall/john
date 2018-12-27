@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #/
 #  This software is Copyright (c) 2013 Konrads Smelkovs <konrads.smelkovs@kpmg.co.uk>,
 #  and it is hereby released to the general public under the following terms:
@@ -19,6 +19,8 @@
 # ...
 # Usage: aixpasswd2john.pl <inputfile>
 # If no input files are given, aixpasswd2john.pl will read from stdin
+
+use warnings;
 
 $currentuser="";
 while(<>){

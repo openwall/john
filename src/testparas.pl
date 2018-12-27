@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # Final output is a table in GitHub Markdown format
 #
@@ -6,7 +6,8 @@
 #
 # ../run/john will run with -test=seconds or just -test depending
 # upon whether the seconds parameter is provided or not.
-#
+
+use warnings;
 use strict;
 
 my $compiler = `gcc -v 2>&1 | tail -1` or die;

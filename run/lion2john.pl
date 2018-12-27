@@ -1,10 +1,11 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # Copyright (c) 2011 Solar Designer
 # Copyright (c) 2011 Jim Fougeron
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.  (This is a heavily cut-down "BSD license".)
 
+use warnings;
 use strict;
 
 die "Usage: $0 PLIST-FILES > PASSWORD-FILE\n" if ($#ARGV lt 0);

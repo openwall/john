@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #------------------------------------------------------------------------------
 # File:         exiftool
 #
@@ -17,6 +17,7 @@
 #
 # "pdf2john.pl" was glued together by Dhiru Kholia.
 
+use warnings;
 use strict;
 require 5.004;
 
@@ -1622,4 +1623,3 @@ sub ProcessFiles($;$)
         }
     }
 }
-
