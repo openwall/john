@@ -2530,6 +2530,7 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 		if (failed) {
 			// Now replay, and make sure it does not fail again.
 			dynamic_compiler_failed = 1;
+			dynamic_switch_compiled_format_to_RDP(pFmt);
 			failed = 0;
 			for (j = 0; j < 5; ++j) {
 				pFmt->methods.clear_keys();

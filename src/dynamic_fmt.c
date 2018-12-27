@@ -1805,6 +1805,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < m_count; ++i) {
 			dc.iPw = saved_key[i];
 			dc.nPw = saved_key_len[i];
+#if MD5_X2
+			if (i & 1) {
+				dc.oBin = crypt_key_X86[i >> MD5_X2].x2.B2;
+			}
+			else
+#endif
 			dc.oBin = crypt_key_X86[i >> MD5_X2].x1.B;
 			run_one_RDP_test(&dc);
 		}
@@ -8360,6 +8366,19 @@ int dynamic_real_salt_length(struct fmt_main *pFmt)
 	return -1;
 }
 
+void dynamic_switch_compiled_format_to_RDP(struct fmt_main *pFmt)
+{
+	if (pFmt->params.flags & FMT_DYNAMIC) {
+		private_subformat_data *pPriv = pFmt->private.data;
+		if (pPriv == NULL || pPriv->pSetup == NULL)
+			return;
+		pPriv->dynamic_use_sse = 0;
+		dynamic_use_sse = 0;
+		curdat.dynamic_use_sse = 0;
+		pFmt->params.algorithm_name = "Dynamic RDP";
+
+	}
+}
 #else
 #warning Notice: Dynamic format disabled from build.
 #endif /* DYNAMIC_DISABLED */
