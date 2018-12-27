@@ -91,6 +91,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "md5.h"
 #include "md4.h"
 #include "dynamic.h"
+#include "dynamic_compiler.h"
 #include "options.h"
 #include "config.h"
 #include "sha.h"
@@ -1790,6 +1791,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Since this array is in a structure, we assign a simple pointer to it
 	// before walking.  Trivial improvement, but every cycle counts :)
+
+	if (dynamic_compiler_failed) {
+		unsigned int i;
+		DC_ProcData dc;
+		dc.iSlt = cursalt;
+		dc.nSlt = saltlen;
+		dc.iSlt2 = cursalt2;
+		dc.nSlt2 = saltlen2;
+		dc.iUsr = username;
+		dc.nUsr = usernamelen;
+		dynamic_use_sse = 0;
+		for (i = 0; i < m_count; ++i) {
+			dc.iPw = saved_key[i];
+			dc.nPw = saved_key_len[i];
+			dc.oBin = crypt_key_X86[i >> MD5_X2].x1.b;
+			run_one_RDP_test(&dc);
+		}
+		return m_count;
+	}
 	{
 #ifdef _OPENMP
 	if ((curdat.pFmtMain->params.flags & FMT_OMP) == FMT_OMP) {
@@ -2931,7 +2951,7 @@ static struct fmt_main fmt_Dynamic =
  **************************************************************
  *************************************************************/
 
-static void Dynamic_Load_itoa16_w2()
+void Dynamic_Load_itoa16_w2()
 {
 	char buf[3];
 	unsigned int i;

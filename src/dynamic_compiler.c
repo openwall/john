@@ -219,6 +219,7 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 #define SHA3_384_Init(hash)         Keccak_HashInitialize(hash,  832,  768, 384, 0x06)
 #define SHA3_512_Init(hash)         Keccak_HashInitialize(hash,  576, 1024, 512, 0x06)
 
+int dynamic_compiler_failed = 0;
 
 typedef struct DC_list {
 	struct DC_list *next;
@@ -1425,6 +1426,52 @@ static char *rand_str(int len) {
 	*cp = 0;
 	return tmp;
 }
+
+// This is the 'crypt-all' for the RecursiveDecentParser code
+// This will be called from within dynamic_fmt crypt_all, IF
+// the compiler does not generate a valid script. john will
+// still process the data properly, but it does so much slower.
+void run_one_RDP_test(DC_ProcData *p) {
+	int n;
+	unsigned char *in;
+	strnzcpy(gen_pw, p->iPw, p->nPw+1);
+	ngen_Stack = 0;
+	dynamic_push();
+	if (bNeedPuc) {
+		strcpy(gen_puc, gen_pw);
+		strupr(gen_puc);
+	}
+	else if (bNeedPlc) {
+		strcpy(gen_plc, gen_pw);
+		strlwr(gen_plc);
+	}
+	if (bNeedU) {
+		strnzcpy(gen_u, p->iUsr, p->nUsr+1);
+		if (bNeedUuc) {
+			strcpy(gen_uuc, gen_u);
+			strupr(gen_uuc);
+		}
+		else if (bNeedUlc) {
+			strcpy(gen_ulc, gen_u);
+			strlwr(gen_ulc);
+		}
+	}
+	*gen_s = 0;
+	if (bNeedS) {
+		nSaltLen = p->nSlt;
+		strnzcpy(gen_s, p->iSlt, p->nSlt+1);
+	}
+	if (bNeedS2) {
+		strnzcpy(gen_s2, p->iSlt2, p->nSlt2+1);
+	}
+	for (nCurCode = 0; nCurCode < nCode; ++nCurCode)
+		fpCode[nCurCode]();
+	in = gen_Stack[0];
+	for (n = 0; n < 16; ++n) {
+		p->oBin[n] = (atoi16[in[0]] << 4) + atoi16[in[1]];
+		in += 2;
+	}
+}
 // Ported from pass_gen.pl dynamic_run_compiled_pcode() function.
 static void build_test_string(DC_struct *p, char **pLine) {
 	int i;
@@ -2432,6 +2479,9 @@ char *dynamic_compile_split(char *ct) {
 int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 	int i;
 
+	/* assume comipler success. */
+	dynamic_compiler_failed = 0;
+
 	if (!((DC_struct*)H) || ((DC_struct*)H)->magic != DC_MAGIC)
 		return -1;
 	dyna_script = ((DC_struct*)H)->pScript;
@@ -2440,6 +2490,77 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 		dyna_line[i] = ((DC_struct*)H)->pLine[i];
 	dyna_sig_len = strlen(dyna_signature);
 	((DC_struct*)H)->pFmt = pFmt;
+
+	if (1) {
+		int failed = 0;
+		unsigned char *binary;
+		int ret, j;
+		void *slt;
+		extern Dynamic_Load_itoa16_w2();
+		// perform a quick and quiet 'self' test to make sure generated format is valid.
+		// if it is NOT valid, we fall back and use a slow (but safe) oSSL version of the
+		// parser format, and emit a warning message to user that this expression is not
+		// natively handled by the compiler, BUT that we will run it, using sub-optimal
+		// oSSL single step engine
+		pFmt->methods.init(pFmt);
+		Dynamic_Load_itoa16_w2();
+		for (j = 0; j < 5; ++j) {
+			pFmt->methods.clear_keys();
+			pFmt->methods.set_key(pFmt->params.tests[j].plaintext, 0);
+			binary = (unsigned char*)pFmt->methods.binary(pFmt->params.tests[j].ciphertext);
+			slt = pFmt->methods.salt(pFmt->params.tests[j].ciphertext);
+			pFmt->methods.set_salt(slt);
+			ret = 1;
+			pFmt->methods.crypt_all(&ret, 0);
+			ret = pFmt->methods.cmp_one(binary, 0);
+			if (ret) {
+				ret = pFmt->methods.cmp_exact(pFmt->params.tests[j].ciphertext, 0);
+				if (!ret && !failed) {
+					if (options.verbosity > VERB_DEFAULT)
+						fprintf(stderr, "cmp_exact() failed. This format will FAIL and needs the Slower dyna-compiler format\n");
+					failed = 1;
+				}
+			}
+			else if (!failed) {
+				if (options.verbosity >= VERB_DEFAULT)
+					fprintf(stderr, "cmp_one() failed. This format will FAIL and needs the Slower dyna-compiler format\n");
+				failed = 1;
+			}
+		}
+		if (failed) {
+			// Now replay, and make sure it does not fail again.
+			dynamic_compiler_failed = 1;
+			failed = 0;
+			for (j = 0; j < 5; ++j) {
+				pFmt->methods.clear_keys();
+				pFmt->methods.set_key(pFmt->params.tests[j].plaintext, 0);
+				binary = (unsigned char*)pFmt->methods.binary(pFmt->params.tests[j].ciphertext);
+				slt = pFmt->methods.salt(pFmt->params.tests[j].ciphertext);
+				pFmt->methods.set_salt(slt);
+				ret = 1;
+				pFmt->methods.crypt_all(&ret, 0);
+				ret = pFmt->methods.cmp_one(binary, 0);
+				if (ret) {
+					ret = pFmt->methods.cmp_exact(pFmt->params.tests[j].ciphertext, 0);
+					if (!ret && !failed) {
+						fprintf(stderr, "cmp_exact() failed. This format will FAILS TOTALLY!\n");
+						failed = 1;
+					}
+				}
+				else if (!failed) {
+					fprintf(stderr, "cmp_exact() failed. This format will FAILS TOTALLY!\n");
+					failed = 1;
+				}
+			}
+		}
+		if (!failed) {
+			fprintf(stderr, "This expression will use the RDP dynamic compiler format.\n");
+		} else {
+			/* not sure what to do :( */
+		}
+		//pFmt->methods.done();
+		//pFmt->private.initialized = 0;
+	}
 	return 0;
 }
 
