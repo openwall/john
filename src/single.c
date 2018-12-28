@@ -156,9 +156,9 @@ static void single_init(void)
 		fprintf(stderr, "Proceeding with single, rules:");
 		if (options.rule_stack)
 			fprintf(stderr, "(%s x %s)",
-			        options.activewordlistrules, options.rule_stack);
+			        options.activesinglerules, options.rule_stack);
 		else
-			fprintf(stderr, "%s", options.activewordlistrules);
+			fprintf(stderr, "%s", options.activesinglerules);
 		if (options.req_minlength >= 0 || options.req_maxlength)
 			fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
 			        options.eff_maxlength);
