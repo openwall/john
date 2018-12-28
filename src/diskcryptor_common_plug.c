@@ -8,6 +8,7 @@
 #include "arch.h"
 #include "diskcryptor_common.h"
 #include "jumbo.h"
+#include "johnswap.h"
 #include "xts.h"
 
 // #define DEBUG 1
@@ -88,23 +89,27 @@ unsigned int diskcryptor_iteration_count(void *salt)
 
 int diskcryptor_decrypt_data(unsigned char *key, struct custom_salt *cur_salt)
 {
-        int success = 0;
+	int success = 0;
 
-        unsigned char out[2048];
-        struct dc_header header;
-        int algorithm;
+	unsigned char out[2048];
+	struct dc_header header;
+	int algorithm;
 
-        for (algorithm = 0; algorithm < 3; algorithm++) {
-                unsigned char tweak[16] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	for (algorithm = 0; algorithm < 3; algorithm++) {
+		unsigned char tweak[16] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-                // Note: header.reserved is actually all zeroes but isn't for us because our XTS code is wonky?
-                XTS_decrypt_custom_tweak(key, tweak, out, cur_salt->header, /* 2048 */ 96, 256, algorithm);
-                memcpy(&header, out, 128);
-                if (memmem(out + 64, 4, "DCRP", 4) && (header.version == 2 || header.version == 1) && (header.alg_1 >= 0 && header.alg_1 <= 7)) {
-                        success = 1;
-                        break;
-                }
-        }
+		// Note: header.reserved is actually all zeroes but isn't for us because our XTS code is wonky?
+		XTS_decrypt_custom_tweak(key, tweak, out, cur_salt->header, /* 2048 */ 96, 256, algorithm);
+		memcpy(&header, out, 128);
+#if ARCH_LITTLE_ENDIAN==0
+		header.alg_1 = JOHNSWAP(header.alg_1);
+		header.version = (header.version >> 8) | (header.version << 8);
+#endif
+		if (memmem(out + 64, 4, "DCRP", 4) && (header.version == 2 || header.version == 1) && (header.alg_1 >= 0 && header.alg_1 <= 7)) {
+			success = 1;
+			break;
+		}
+	}
 
-        return success;
+	return success;
 }
