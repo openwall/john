@@ -223,6 +223,7 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 
 int dynamic_compiler_failed = 0;
 
+static char *find_the_extra_params(const char *expr);
 
 /*
  * use this size for all buffers inside of the format. This is WAY too large
@@ -315,11 +316,13 @@ static char *dynamic_expr_normalize(const char *ct) {
 	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
 		static char Buf[INTERNAL_TMP_BUFSIZE];
 		char *cp = Buf;
+
 		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
 		cp = Buf;
 		while (*cp) {
 			int cnt=0;
+
 			while (*cp && *cp != '$' && *cp != 'u')
 				++cp;
 			if (*cp) {
@@ -354,11 +357,13 @@ static char *dynamic_expr_normalize(const char *ct) {
 		// this need greatly improved. Only handling ':' char right now.
 		static char Buf[INTERNAL_TMP_BUFSIZE];
 		char *cp = Buf;
+
 		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
 		cp = strstr(ct, ",c");
 		while (cp) {
 			char *ctp = strchr(&cp[1], ',');
+
 			if (ctp) *ctp = 0;
 			if (strchr(cp, ':')) {
 				char *cp2 = &cp[strlen(cp)-1];
@@ -390,6 +395,7 @@ static char *dynamic_expr_normalize(const char *ct) {
 
 static void DumpParts(char *part, char *cp) {
 	int len = strlen(part);
+
 	cp = strtok(cp, "\n");
 	while (cp) {
 		if (!strncmp(cp, part, len))
@@ -400,6 +406,7 @@ static void DumpParts(char *part, char *cp) {
 
 static void DumpParts2(char *part, char *cp, char *comment) {
 	int len = strlen(part), first = 1;
+
 	cp = strtok(cp, "\n");
 	while (cp) {
 		if (!strncmp(cp, part, len)) {
@@ -473,6 +480,27 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 	}
 	if (!strstr(expr, ",nolib") && !strstr(expr, ",rdp") && (OLvL || strstr(expr, ",O"))) {
 		pHand = dynamic_compile_library(expr, crc32, &outer_hash_len);
+		// Note, we are returned a constant data. If we want to assign
+		// the extra params into the pExtraParams field, we will have
+		// to create a non-const object, copy all needed data, and
+		// then add the extra params to that field.
+		if (pHand) {
+			DC_struct *p;
+			const DC_struct *cp = (const DC_struct *)pHand;
+			int n;
+
+			p = mem_calloc_tiny(sizeof(DC_struct), sizeof(void*));
+			p->magic = DC_MAGIC;
+			p->crc32 = cp->crc32;
+			p->pFmt = cp->pFmt;
+			p->pExpr = cp->pExpr;
+			p->pExtraParams = str_alloc_copy(find_the_extra_params(expr));
+			p->pScript = cp->pScript;
+			p->pSignature = cp->pSignature;
+			for (n = 0; n < DC_NUM_VECTORS; ++n)
+				p->pLine[n] = cp->pLine[n];
+			pHand = p;
+		}
 		if (pHand && strstr(expr, ",debug")) {
 			printf("Code from dynamic_compiler_lib.c\n");
 			dump_HANDLE(pHand);
@@ -515,6 +543,7 @@ static char *find_the_expression(const char *expr) {
 	cp = dynamic_expr_normalize(buf);
 	return cp;
 }
+
 static char *find_the_extra_params(const char *expr) {
 	static char buf[512];
 	char *cp;
@@ -667,6 +696,7 @@ static void dynamic_futf16()    { dyna_helper_pre();                            
 static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
 static void dynamic_exp() {
 	int i, j;
+
 	j = atoi(&pCode[nCurCode][1]);
 	for (i = 1; i < j; ++i) {
 		gen_Stack_len[ngen_Stack] = gen_Stack_len[ngen_Stack-1];
@@ -916,6 +946,7 @@ static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 		fprintf(stderr, "%s\n", msg);
 	error_msg("exiting now");
 }
+
 static char *comp_optimize_script(char *pScr) {
 	/*
 	 * in this function, we optimize out certain key issues.  We add the MGF_KEYS_IN1 if we can, and remove
@@ -947,6 +978,7 @@ static char *comp_optimize_script(char *pScr) {
 	}
 	return pScr;
 }
+
 static char *comp_optimize_script_mixed(char *pScr, char *pParams) {
 	/*
 	 * in this function, we optimize out certain key issues.  We add the MGF_KEYS_IN1 if we can, and remove
@@ -1093,6 +1125,7 @@ static char *comp_optimize_script_mixed(char *pScr, char *pParams) {
 SkipFlat:;
 	return pScr;
 }
+
 static char *comp_optimize_expression(const char *pExpr) {
 	char *pBuf = (char*)mem_alloc(strlen(pExpr)+1), *p, *p2;
 	int n1, n2;
@@ -1240,6 +1273,7 @@ SkipPassCheck:;
 	 */
 	return pBuf;
 }
+
 static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	int paren = 0;
 
@@ -1314,6 +1348,7 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	}
 	return 0;
 }
+
 static void push_pcode(const char *v, fpSYM _fpSym, int len) {
 	pCode[nCode] = mem_alloc(strlen(v)+1);
 	fpCode[nCode] = _fpSym;
@@ -1512,6 +1547,7 @@ void run_one_RDP_test(DC_ProcData *p) {
 		in += 2;
 	}
 }
+
 // Ported from pass_gen.pl dynamic_run_compiled_pcode() function.
 static void build_test_string(DC_struct *p, char **pLine) {
 	int i;
@@ -2256,6 +2292,10 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 				cp2 += 6;
 			else if (cp2[1] == 'O')
 				cp2 += 3;
+			else if (!strncmp(cp2, ",debug", 6))
+				cp2 += 6;
+			else
+				*cp++ = *cp2++;
 		} else
 			*cp++ = *cp2++;
 	}
@@ -2271,6 +2311,7 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 
 static uint32_t compute_checksum(const char *expr) {
 	uint32_t crc32 = 0xffffffff;
+
 	/* we should 'normalize' the expression 'first' */
 	while (*expr) {
 		if (*expr == ',' && expr[1] != 'c')
@@ -2296,6 +2337,7 @@ static DC_HANDLE find_checksum(uint32_t crc32) {
 
 static void add_checksum_list(DC_HANDLE pHand) {
 	DC_list *p;
+
 	p = mem_calloc_tiny(sizeof(DC_list), sizeof(void*));
 	p->next = pList->next;
 	pList->next = p;
@@ -2303,6 +2345,7 @@ static void add_checksum_list(DC_HANDLE pHand) {
 
 static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsize, char *expr) {
 	char *cp = strchr(&in[1], '$');
+
 	if (!cp)
 		return in;
 	++cp;
@@ -2318,6 +2361,7 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 int looks_like_bare_hash(const char *fld1) {
 	// look for hex string with 'optional' '$' for salt.
 	int len = base64_valid_length(fld1, e_b64_hex, 0, 0);
+
 	if (len == (outer_hash_len<<1)) {
 		// check salt flag
 		return 1;
@@ -2496,6 +2540,7 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 }
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
+
 	if (strncmp(ct, "dynamic_", 8)) {
 		return dynamic_compile_prepare("", ct);
 	} else if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
@@ -2523,7 +2568,7 @@ char *dynamic_compile_split(char *ct) {
 int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 	int i;
 
-	/* assume comipler success. */
+	/* assume compiler success. */
 	dynamic_compiler_failed = 0;
 
 	if (!((DC_struct*)H) || ((DC_struct*)H)->magic != DC_MAGIC)
