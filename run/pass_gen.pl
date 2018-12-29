@@ -1368,8 +1368,8 @@ sub krb5_18 {
 	# dump_stuff_msg() calls, and appears to be the end result that is used.
 	$salt = get_salt(12,-64);
 	my $pbk = pp_pbkdf2($_[0], $salt, 4096, "sha1",32,64);
-	require Crypt::OpenSSL::AES;
-	my $crypt = Crypt::OpenSSL::AES->new($pbk);
+	require Crypt::Cipher::AES;
+	my $crypt = Crypt::Cipher::AES->new($pbk);
 	# 6b65726265726f737b9b5b2b93132b93 == 'kerberos' and 8 other bytes
 	my $output1 = $crypt->encrypt(pack("H*","6b65726265726f737b9b5b2b93132b93"));
 	my $output2 = $crypt->encrypt($output1);
@@ -1378,8 +1378,8 @@ sub krb5_18 {
 sub lp {
 	$salt = get_salt(32, -32, \@userNames);
 	my $pbk = pp_pbkdf2($_[0], $salt, 500, "sha256", 32, 64);
-	require Crypt::OpenSSL::AES;
-	my $crypt = Crypt::OpenSSL::AES->new($pbk);
+	require Crypt::Cipher::AES;
+	my $crypt = Crypt::Cipher::AES->new($pbk);
 	$h = unpack("H*", $crypt->encrypt("lastpass rocks\x02\x02"));
 	return "\$lp\$$salt\$$h";
 }
@@ -1387,11 +1387,11 @@ sub lastpass {
 	my $iter = get_loops(500);
 	$salt = get_salt(32, -32, \@userNames);
 	my $pbk = pp_pbkdf2($_[0], $salt, $iter, "sha256", 32, 64);
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
 	my $dat = $salt;
 	my $iv = "\0"x16;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $pbk, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'null');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $pbk, -iv => $iv, -cipher => "Crypt::Cipher::AES", -header => 'none', -padding => 'null');
 	$h = base64($crypt->encrypt($dat));
 	return "\$lastpass\$$salt\$$iter\$$h";
 }
@@ -1404,9 +1404,10 @@ sub odf {
 	$content = get_content(-1024, -4095);
 	my $s = sha1($_[0]);
 	my $key = pp_pbkdf2($s, $salt, $itr, "sha1", 16,64);
-	require Crypt::OpenSSL::Blowfish::CFB64;
-	my $crypt = Crypt::OpenSSL::Blowfish::CFB64->new($key, $iv);
-	my $output = $crypt->decrypt($content);
+	require Crypt::Cipher::Blowfish;
+	require Crypt::Mode::CFB;
+	my $crypt = Crypt::Mode::CFB->new('Blowfish');
+	my $output = $crypt->decrypt($content, $key, $iv);
 	$s = sha1($output);
 	return "\$odf\$*0*0*$itr*16*".unpack("H*",$s)."*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content);
 }
@@ -1420,10 +1421,10 @@ sub odf_1 {
 	while (length($content)%16 != 0) { $content .= "\x0" } # must be even 16 byte padded.
 	my $s = sha256($_[0]);
 	my $key = pp_pbkdf2($s, $salt, $itr, "sha1", 32,64);
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
 	# set -padding to 'none'. Otherwise a Crypt::CBC->decrypt() padding removal will bite us, and possibly strip off bytes.
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -iv => $iv, -cipher => "Crypt::Cipher::AES", -header => 'none', -padding => 'none');
 	my $output = $crypt->decrypt($content);
 	$s = sha256($output);
 	return "\$odf\$*1*1*$itr*32*".unpack("H*",$s)."*16*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*0*".unpack("H*",$content);
@@ -1434,9 +1435,9 @@ sub _office_2k10_EncryptUsingSymmetricKeyAlgorithm {
 	# we handle ALL padding.
 	while (length($data)<$len) {$data.="\0";} $data = substr($data,0,$len);
 	while (length($key)<$keysz) {$key.="\0";} $key = substr($key,0,$keysz);
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -keysize => $keysz, -key => $key, -iv => $salt, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -keysize => $keysz, -key => $key, -iv => $salt, -cipher => "Crypt::Cipher::AES", -header => 'none', -padding => 'none');
 	return $crypt->encrypt($data);
 }
 # same function as the GenerateAgileEncryptionKey[512]() in the JtR office format
@@ -1484,8 +1485,8 @@ sub office_2007 {
 	}
 	$h = sha1($h."\0\0\0\0");
 	$h = substr(sha1($h^"6666666666666666666666666666666666666666666666666666666666666666"),0,16);
-	require Crypt::OpenSSL::AES;
-	my $crypt = Crypt::OpenSSL::AES->new($h);
+	require Crypt::Cipher::AES;
+	my $crypt = Crypt::Cipher::AES->new($h);
 	my $hash = $crypt->encrypt(substr(sha1(substr($crypt->decrypt($randdata),0,16)),0,16));
 	return "\$office\$*2007*20*128*16*".unpack("H*",$salt)."*".unpack("H*",$randdata)."*".unpack("H*",$hash)."00000000";
 }
@@ -1517,10 +1518,10 @@ sub o5logon {
 	my $crpt = get_content(32);
 	my $plain = get_iv(8) .  "\x08\x08\x08\x08\x08\x08\x08\x08";
 	my $key = sha1($_[1].$salt) . "\0\0\0\0";
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
 	my $iv = substr($crpt, 16, 16);
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 24, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 24, -iv => $iv, -cipher => 'Crypt::Cipher::AES', -header => 'none');
 	$crpt .= $crypt->encrypt($plain);
 	$crpt = substr($crpt, 0, 48);
 	$crpt = uc unpack("H*",$crpt);
@@ -1617,9 +1618,9 @@ sub strip {
 	my $dat = "\x04\0\x01\x01\x10\x40\x20\x20\x1a\x4f\xed\x2b\0\0\0\x2d\0\0\0\0\0\0\0\0\0\0\0\x25\0\0\0\x04\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\x07\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x1a\x4f\xed\x2b\x00\x2d\xe2\x24\x05\x00\x00\x00\x0a\x03\xbe\x00\x00\x00\x00\x2c\x03\xeb\x03\xe6\x03\xe1\x03\xdc\x03\xd7\x03\xd2\x03\xcd\x03\xc8\x03\xc3\x03\xbe";
 	$dat .= "\0"x828;
 	$dat .= "\x00\x2b\x29\x00\x00\x00\x29\x27\x00\x00\x00\x27\x25\x00\x00\x00\x26\x23\x00\x00\x00\x24\x21\x00\x00\x00\x22\x1f\x00\x00\x00\x21\x1d\x00\x00\x00\x18\x1a\x00\x00\x00\x0d\x12\x00\x00\x00\x0a\x08";
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 32, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 32, -iv => $iv, -cipher => 'Crypt::Cipher::AES', -header => 'none');
 	$h = substr($crypt->encrypt($dat), 0, 32+960);
 	$salt = unpack("H*",$salt);
 	$h = unpack("H*",$h);
@@ -1650,9 +1651,9 @@ sub _aes_xts {
 	my $t = $_[2];	# tweak (must be provided)
 	my $decr = $_[4];
 	if (!defined($decr)) { $decr = 0; }
-	require Crypt::OpenSSL::AES;
-	my $cipher1 = new Crypt::OpenSSL::AES($key1);
-	my $cipher2 = new Crypt::OpenSSL::AES($key2);
+	require Crypt::Cipher::AES;
+	my $cipher1 = new Crypt::Cipher::AES($key1);
+	my $cipher2 = new Crypt::Cipher::AES($key2);
 	$t = $cipher2->encrypt($t);
 	for (my $cnt = 0; ; ) {
 		my $tmp = substr($c, 16*$cnt, 16);
@@ -1687,9 +1688,9 @@ sub _tc_aes_128_xts {
 	my $t = $_[2];	# tweak (must be provided)
 	my $decr = $_[3];
 	if (!defined($decr)) { $decr = 0; }
-	require Crypt::OpenSSL::AES;
-	my $cipher1 = new Crypt::OpenSSL::AES($key1);
-	my $cipher2 = new Crypt::OpenSSL::AES($key2);
+	require Crypt::Cipher::AES;
+	my $cipher1 = new Crypt::Cipher::AES($key1);
+	my $cipher2 = new Crypt::Cipher::AES($key2);
 	$t = $cipher2->encrypt($t);
 	for (my $cnt = 0; ; ) {
 		my $tmp = substr($c, 16*$cnt, 16);
@@ -1859,9 +1860,9 @@ sub _gen_key_rar4 {
 	my $key = substr($ctx->digest, 0, 16); # key is first 16 bytes (swapped)
 	$key = pack("V*", unpack("N*",$key));  # swap the 4 uint32_t values.
 
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => 'Crypt::Cipher::AES', -header => 'none');
 	while (length($raw_input) % 16 != 0) { $raw_input .= "\x00"; }
 	return $crypt->encrypt($raw_input);
 }
@@ -2070,14 +2071,12 @@ sub encfs {
 	}
 	$iv = substr(Digest::SHA::hmac_sha1(substr($iv,0,24), substr($h,0,$key_sz/8)), 0, 16);
 
-	require Crypt::OpenSSL::AES;
-	require Crypt::CFB;
-	#my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => $key_sz, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
-	#my $crypt = Crypt::CFB->new(-literal_key => 1, -key => $h, -keysize => $key_sz, -iv => $iv, -algo => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'zero');
+	require Crypt::Cipher::AES;
+	require Crypt::Mode::CFB; # Should be CFB64, not sure how to set?
 	$h = substr($h, 0, 24);
 	print "key=".unpack("H*",$h)."\n";
 	print "iv=".unpack("H*",$iv)."\n";
-	my $crypt = Crypt::CFB->new($h, "Crypt::OpenSSL::AES", $iv);
+	my $crypt = Crypt::Mode::CFB->new('AES');
 	my $h2 = $crypt->decrypt(substr($data,4), $h, $iv);
 	print unpack("H*", substr($data,4))."  ".unpack("H*", $h2)."\n";
 
@@ -2357,9 +2356,9 @@ sub keyring {
 	}
 	my $key = substr($h, 0, 16);
 	my $iv = substr($h, 16, 16);
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => "Crypt::Cipher::AES", -header => 'none', -padding => 'none');
 	$h = $crypt->encrypt($data);
 	$h = unpack("H*", $h);
 	$s = unpack("H*", $s);
@@ -2394,9 +2393,9 @@ sub iwork {
 	#$blob_dat = pack("H*", "c6ef9b77af9e4d356e3dc977910b8cb3c3c1f2db89430ec36232078c2cefdec7");
 	$blob_dat .= sha256($blob_dat);
 	$h = pp_pbkdf2($_[0], $s, $iter, "sha1", 16, 64);
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $h, -keysize => 16, -iv => $iv, -cipher => "Crypt::OpenSSL::AES", -header => 'none', -padding => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $h, -keysize => 16, -iv => $iv, -cipher => "Crypt::Cipher::AES", -header => 'none', -padding => 'none');
 	my $output = $crypt->encrypt($blob_dat);
 	return "\$iwork\$1\$2\$1\$$iter\$".unpack("H*",$s)."\$".unpack("H*",$iv)."\$".unpack("H*",$output);
 }
@@ -2452,9 +2451,9 @@ sub agilekeychain {
 	my $dat=randstr(1040-32); # not sure what would be here, but JtR does not do anything with it.
 	$dat .= $iv;
 	my $key = pp_pbkdf2($_[1], $salt, $iterations,"sha1",16, 64);
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 16, -iv => $iv, -cipher => 'Crypt::Cipher::AES', -header => 'none');
 	my $h = $crypt->encrypt("\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10");
 	$dat .= substr($h,0,16);
 
@@ -2469,9 +2468,9 @@ sub bitcoin {
 	for (my $i = 1; $i < $rounds; $i++) {
 		$h = sha512($h);
 	}
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => substr($h,0,32), -keysize => 32, -iv => substr($h,32,16), -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => substr($h,0,32), -keysize => 32, -iv => substr($h,32,16), -cipher => 'Crypt::Cipher::AES', -header => 'none');
 	return '$bitcoin$96$'.substr(unpack("H*", $crypt->encrypt($master)),0,96).'$16$'.unpack("H*", $salt).'$'.$rounds.'$2$00$2$00';
 }
 sub azuread {
@@ -2546,9 +2545,9 @@ sub blockchain {
 	my $data;
 	my $iv = get_salt(16);
 	my $key = pp_pbkdf2($_[1], $iv, 10,"sha1",32, 64);
-	require Crypt::OpenSSL::AES;
+	require Crypt::Cipher::AES;
 	require Crypt::CBC;
-	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 32, -iv => $iv, -cipher => 'Crypt::OpenSSL::AES', -header => 'none');
+	my $crypt = Crypt::CBC->new(-literal_key => 1, -key => $key, -keysize => 32, -iv => $iv, -cipher => 'Crypt::Cipher::AES', -header => 'none');
 	my $h = $crypt->encrypt($unenc);
 	$data = $iv.substr($h,0,$len);
 	return '$blockchain$'.length($data).'$'.unpack("H*", $data);
@@ -2589,9 +2588,10 @@ sub sxc {
 	my $len2 = floor(length($content)/20) * 20;
 	$h = sha1($_[0]);
 	my $key = pp_pbkdf2($h, $salt, $r, "sha1", 16 , 64);
-	require Crypt::OpenSSL::Blowfish::CFB64;
-	my $crypt = Crypt::OpenSSL::Blowfish::CFB64->new($key, $iv);
-	my $output = $crypt->decrypt($content);
+	require Crypt::Cipher::Blowfish;
+	require Crypt::Mode::CFB;
+	my $crypt = Crypt::Mode::CFB->new('Blowfish');
+	my $output = $crypt->decrypt($content, $key, $iv);
 	my $res = sha1_hex(substr($output, 0, $len2));
 	return "\$sxc\$*0*0*$r*16*$res*8*".unpack("H*",$iv)."*16*".unpack("H*",$salt)."*$len2*$len*".unpack("H*",$content);
 }
