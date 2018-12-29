@@ -1803,7 +1803,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		dc.nUsr = usernamelen;
 		dynamic_use_sse = 0;
 		for (i = 0; i < m_count; ++i) {
-			dc.iPw = saved_key[i];
+			if (curdat.store_keys_in_input) {
+#if MD5_X2
+				if (i & 1)
+					dc.iPw = input_buf_X86[i >> MD5_X2].x2.b2;
+				else
+#endif
+					dc.iPw = input_buf_X86[i >> MD5_X2].x1.b;
+			} else
+				dc.iPw = saved_key[i];
 			dc.nPw = saved_key_len[i];
 #if MD5_X2
 			if (i & 1) {

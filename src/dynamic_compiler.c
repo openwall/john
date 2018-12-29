@@ -1460,18 +1460,22 @@ static void comp_add_script_line(const char *fmt, ...) {
 	pScriptLines[nScriptLines] = mem_alloc(len+1);
 	va_start(va, fmt);
 	len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
-#ifdef _MSC_VER  // we should find out about MinGW here!!
-	pScriptLines[nScriptLines][len] = 0;
-	while (len2 == -1) {
-		MEM_FREE(pScriptLines[nScriptLines]);
-		len *= 2;
-		pScriptLines[nScriptLines] = mem_alloc(len+1);
-		va_end(va);
-		va_start(va, fmt);
-		len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
-		pScriptLines[nScriptLines][len] = 0;
-	}
-#else
+
+	// NOTE, VC (2015 under Win10), vsnprintf() if fully C99
+	// compliant.  _vsnprintf() is kept the broken MSVC for
+	// backward compliance
+//#ifdef _MSC_VER  // we should find out about MinGW here!!
+//	pScriptLines[nScriptLines][len] = 0;
+//	while (len2 == -1) {
+//		MEM_FREE(pScriptLines[nScriptLines]);
+//		len *= 2;
+//		pScriptLines[nScriptLines] = mem_alloc(len+1);
+//		va_end(va);
+//		va_start(va, fmt);
+//		len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
+//		pScriptLines[nScriptLines][len] = 0;
+//	}
+//#else
 	if (len2 >= len) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len = len2+1;
@@ -1480,7 +1484,7 @@ static void comp_add_script_line(const char *fmt, ...) {
 		va_start(va, fmt);
 		vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 	}
-#endif
+//#endif
 	va_end(va);
 	++nScriptLines;
 }
