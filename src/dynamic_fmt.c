@@ -8370,13 +8370,17 @@ void dynamic_switch_compiled_format_to_RDP(struct fmt_main *pFmt)
 {
 	if (pFmt->params.flags & FMT_DYNAMIC) {
 		private_subformat_data *pPriv = pFmt->private.data;
+
+		// in case there was any
+		__nonMP_DynamicFunc__clean_input_full();
+		__nonMP_DynamicFunc__clean_input2_full();
+
 		if (pPriv == NULL || pPriv->pSetup == NULL)
 			return;
 		pPriv->dynamic_use_sse = 0;
 		dynamic_use_sse = 0;
 		curdat.dynamic_use_sse = 0;
 		pFmt->params.algorithm_name = "Dynamic RDP";
-
 	}
 }
 #else
