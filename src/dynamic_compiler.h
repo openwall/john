@@ -24,7 +24,7 @@ extern int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt);
 extern char *dynamic_compile_split(char *inp);
 extern char *dynamic_compile_prepare(char *fld0, char *fld1);
 extern void dynamic_compile_done();
-extern DC_HANDLE dynamic_compile_library(const char *expr, uint32_t crc32);
+extern DC_HANDLE dynamic_compile_library(const char *expr, uint32_t crc32, int *outer_hash_len);
 
 #define DC_MAGIC 0x654d7baf
 #define DC_NUM_VECTORS 5

@@ -223,6 +223,7 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 
 int dynamic_compiler_failed = 0;
 
+
 /*
  * use this size for all buffers inside of the format. This is WAY too large
  * for dynamic, but since we now have the RDP format to handle any expresions
@@ -265,6 +266,37 @@ int GEN_BIG=0;
 
 static DC_list *pList;
 static DC_struct *pLastFind;
+
+#define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
+typedef void(*fpSYM)();
+static int nConst;
+static const char *Const[9];
+static int compile_debug;
+static int force_rdp;
+static char *SymTab[INTERNAL_TMP_BUFSIZE];
+static fpSYM fpSymTab[INTERNAL_TMP_BUFSIZE];
+static int nSymTabLen[INTERNAL_TMP_BUFSIZE];
+static char *pCode[INTERNAL_TMP_BUFSIZE];
+static fpSYM fpCode[INTERNAL_TMP_BUFSIZE];
+static int nLenCode[INTERNAL_TMP_BUFSIZE];
+static int nCode, nCurCode;
+static char *pScriptLines[INTERNAL_TMP_BUFSIZE];
+static int nScriptLines;
+static int outer_hash_len;
+static int nSyms;
+static int LastTokIsFunc;
+static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
+static char *salt_as_hex_type, *keys_base16_in1_type;
+static int bOffsetHashIn1; // for hash(hash(p).....) type hashes.
+static int keys_as_input;
+static char *gen_Stack[INTERNAL_TMP_BUFSIZE];
+static int gen_Stack_len[INTERNAL_TMP_BUFSIZE];
+static int ngen_Stack, ngen_Stack_max;
+static char *h;
+static int h_len;
+static int nSaltLen = -32;
+static char gen_s[INTERNAL_TMP_BUFSIZE], gen_conv[INTERNAL_TMP_BUFSIZE];
+static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc[PLAINTEXT_BUFFER_SIZE], gen_ulc[PLAINTEXT_BUFFER_SIZE], gen_pw[PLAINTEXT_BUFFER_SIZE], gen_puc[PLAINTEXT_BUFFER_SIZE], gen_plc[PLAINTEXT_BUFFER_SIZE];
 
 static uint32_t compute_checksum(const char *expr);
 static DC_HANDLE find_checksum(uint32_t crc32);
@@ -440,7 +472,7 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 		return 0;
 	}
 	if (!strstr(expr, ",nolib") && !strstr(expr, ",rdp") && (OLvL || strstr(expr, ",O"))) {
-		pHand = dynamic_compile_library(expr, crc32);
+		pHand = dynamic_compile_library(expr, crc32, &outer_hash_len);
 		if (pHand && strstr(expr, ",debug")) {
 			printf("Code from dynamic_compiler_lib.c\n");
 			dump_HANDLE(pHand);
@@ -498,36 +530,6 @@ static char *find_the_extra_params(const char *expr) {
 	return buf;
 }
 
-#define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
-typedef void (*fpSYM)();
-static int nConst;
-static const char *Const[9];
-static int compile_debug;
-static int force_rdp;
-static char *SymTab[INTERNAL_TMP_BUFSIZE];
-static fpSYM fpSymTab[INTERNAL_TMP_BUFSIZE];
-static int nSymTabLen[INTERNAL_TMP_BUFSIZE];
-static char *pCode[INTERNAL_TMP_BUFSIZE];
-static fpSYM fpCode[INTERNAL_TMP_BUFSIZE];
-static int nLenCode[INTERNAL_TMP_BUFSIZE];
-static int nCode, nCurCode;
-static char *pScriptLines[INTERNAL_TMP_BUFSIZE];
-static int nScriptLines;
-static int outer_hash_len;
-static int nSyms;
-static int LastTokIsFunc;
-static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
-static char *salt_as_hex_type, *keys_base16_in1_type;
-static int bOffsetHashIn1; // for hash(hash(p).....) type hashes.
-static int keys_as_input;
-static char *gen_Stack[INTERNAL_TMP_BUFSIZE];
-static int gen_Stack_len[INTERNAL_TMP_BUFSIZE];
-static int ngen_Stack, ngen_Stack_max;
-static char *h;
-static int h_len;
-static int nSaltLen = -32;
-static char gen_s[INTERNAL_TMP_BUFSIZE], gen_conv[INTERNAL_TMP_BUFSIZE];
-static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc[PLAINTEXT_BUFFER_SIZE], gen_ulc[PLAINTEXT_BUFFER_SIZE], gen_pw[PLAINTEXT_BUFFER_SIZE], gen_puc[PLAINTEXT_BUFFER_SIZE], gen_plc[PLAINTEXT_BUFFER_SIZE];
 
 /*
  * These are the 'low level' primative functions ported from pass_gen.pl.
