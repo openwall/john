@@ -68,6 +68,8 @@
  *                       'really' 32 bytes, no matter what length the salt is, so we know the
  *                       max to be 55-32 or only maxinplen=23 is the right value.
  *     debug             If this is set, then JtR will output the script and other data and exit.
+ *     rdp               Force the RDP format to be used, even if the compiler can generate
+ *                       a valid dynamic script for this expression.
  *     O=n               Optimize. Can be levels are 0, 1, 2 and 3
  *
  *****************************************************************
@@ -219,6 +221,19 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 #define SHA3_384_Init(hash)         Keccak_HashInitialize(hash,  832,  768, 384, 0x06)
 #define SHA3_512_Init(hash)         Keccak_HashInitialize(hash,  576, 1024, 512, 0x06)
 
+int dynamic_compiler_failed = 0;
+
+static char *find_the_extra_params(const char *expr);
+
+/*
+ * use this size for all buffers inside of the format. This is WAY too large
+ * for dynamic, but since we now have the RDP format to handle any expresions
+ * which do not function in dynamic. Thus, we can have a much larger workspace
+ * and the RDP format will be able to handle this.  NOTE, we still do use
+ * static sized buffers, so overly complex expressions will still overflow
+ */
+#define INTERNAL_TMP_BUFSIZE		4096
+
 
 typedef struct DC_list {
 	struct DC_list *next;
@@ -253,6 +268,37 @@ int GEN_BIG=0;
 static DC_list *pList;
 static DC_struct *pLastFind;
 
+#define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
+typedef void(*fpSYM)();
+static int nConst;
+static const char *Const[9];
+static int compile_debug;
+static int force_rdp;
+static char *SymTab[INTERNAL_TMP_BUFSIZE];
+static fpSYM fpSymTab[INTERNAL_TMP_BUFSIZE];
+static int nSymTabLen[INTERNAL_TMP_BUFSIZE];
+static char *pCode[INTERNAL_TMP_BUFSIZE];
+static fpSYM fpCode[INTERNAL_TMP_BUFSIZE];
+static int nLenCode[INTERNAL_TMP_BUFSIZE];
+static int nCode, nCurCode;
+static char *pScriptLines[INTERNAL_TMP_BUFSIZE];
+static int nScriptLines;
+static int outer_hash_len;
+static int nSyms;
+static int LastTokIsFunc;
+static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
+static char *salt_as_hex_type, *keys_base16_in1_type;
+static int bOffsetHashIn1; // for hash(hash(p).....) type hashes.
+static int keys_as_input;
+static char *gen_Stack[INTERNAL_TMP_BUFSIZE];
+static int gen_Stack_len[INTERNAL_TMP_BUFSIZE];
+static int ngen_Stack, ngen_Stack_max;
+static char *h;
+static int h_len;
+static int nSaltLen = -32;
+static char gen_s[INTERNAL_TMP_BUFSIZE], gen_conv[INTERNAL_TMP_BUFSIZE];
+static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc[PLAINTEXT_BUFFER_SIZE], gen_ulc[PLAINTEXT_BUFFER_SIZE], gen_pw[PLAINTEXT_BUFFER_SIZE], gen_puc[PLAINTEXT_BUFFER_SIZE], gen_plc[PLAINTEXT_BUFFER_SIZE];
+
 static uint32_t compute_checksum(const char *expr);
 static DC_HANDLE find_checksum(uint32_t crc32);
 static DC_HANDLE do_compile(const char *expr, uint32_t crc32);
@@ -268,13 +314,15 @@ static char *dynamic_expr_normalize(const char *ct) {
 	//           unicode( -> utf16(
 	//           -c=: into c1=\x3a  (colon ANYWHERE in the constant)
 	if (/*!strncmp(ct, "@dynamic=", 9) &&*/ (strstr(ct, "$pass") || strstr(ct, "$salt") || strstr(ct, "$user"))) {
-		static char Buf[1024];
+		static char Buf[INTERNAL_TMP_BUFSIZE];
 		char *cp = Buf;
+
 		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
 		cp = Buf;
 		while (*cp) {
 			int cnt=0;
+
 			while (*cp && *cp != '$' && *cp != 'u')
 				++cp;
 			if (*cp) {
@@ -307,13 +355,15 @@ static char *dynamic_expr_normalize(const char *ct) {
 	}
 	if (strstr(ct, ",c")) {
 		// this need greatly improved. Only handling ':' char right now.
-		static char Buf[1024];
+		static char Buf[INTERNAL_TMP_BUFSIZE];
 		char *cp = Buf;
+
 		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
 		cp = strstr(ct, ",c");
 		while (cp) {
 			char *ctp = strchr(&cp[1], ',');
+
 			if (ctp) *ctp = 0;
 			if (strchr(cp, ':')) {
 				char *cp2 = &cp[strlen(cp)-1];
@@ -345,6 +395,7 @@ static char *dynamic_expr_normalize(const char *ct) {
 
 static void DumpParts(char *part, char *cp) {
 	int len = strlen(part);
+
 	cp = strtok(cp, "\n");
 	while (cp) {
 		if (!strncmp(cp, part, len))
@@ -355,6 +406,7 @@ static void DumpParts(char *part, char *cp) {
 
 static void DumpParts2(char *part, char *cp, char *comment) {
 	int len = strlen(part), first = 1;
+
 	cp = strtok(cp, "\n");
 	while (cp) {
 		if (!strncmp(cp, part, len)) {
@@ -412,12 +464,43 @@ static void dump_HANDLE(void *_p) {
 int dynamic_compile(const char *expr, DC_HANDLE *p) {
 	uint32_t crc32 = compute_checksum(dynamic_expr_normalize(expr));
 	DC_HANDLE pHand=0;
+
+	// This work, moved from do_compile, AND from dynamic_assign_script_to_format
+	if (!gost_init) {
+		extern void Dynamic_Load_itoa16_w2();
+		gost_init_table();
+		gost_init = 1;
+		common_init();
+		Dynamic_Load_itoa16_w2();
+	}
+
 	if (pLastFind && pLastFind->crc32 == crc32) {
 		*p = (DC_HANDLE)pLastFind;
 		return 0;
 	}
-	if (!strstr(expr, ",nolib") && (OLvL || strstr(expr, ",O"))) {
-		pHand = dynamic_compile_library(expr, crc32);
+	if (!strstr(expr, ",nolib") && !strstr(expr, ",rdp") && (OLvL || strstr(expr, ",O"))) {
+		pHand = dynamic_compile_library(expr, crc32, &outer_hash_len);
+		// Note, we are returned a constant data. If we want to assign
+		// the extra params into the pExtraParams field, we will have
+		// to create a non-const object, copy all needed data, and
+		// then add the extra params to that field.
+		if (pHand) {
+			DC_struct *p;
+			const DC_struct *cp = (const DC_struct *)pHand;
+			int n;
+
+			p = mem_calloc_tiny(sizeof(DC_struct), sizeof(void*));
+			p->magic = DC_MAGIC;
+			p->crc32 = cp->crc32;
+			p->pFmt = cp->pFmt;
+			p->pExpr = cp->pExpr;
+			p->pExtraParams = str_alloc_copy(find_the_extra_params(expr));
+			p->pScript = cp->pScript;
+			p->pSignature = cp->pSignature;
+			for (n = 0; n < DC_NUM_VECTORS; ++n)
+				p->pLine[n] = cp->pLine[n];
+			pHand = p;
+		}
 		if (pHand && strstr(expr, ",debug")) {
 			printf("Code from dynamic_compiler_lib.c\n");
 			dump_HANDLE(pHand);
@@ -442,6 +525,7 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 static char *find_the_expression(const char *expr) {
 	static char buf[512];
 	char *cp;
+
 	if (strncmp(expr, "dynamic=", 8))
 		return "";
 	strnzcpy(buf, &expr[8], sizeof(buf));
@@ -459,9 +543,11 @@ static char *find_the_expression(const char *expr) {
 	cp = dynamic_expr_normalize(buf);
 	return cp;
 }
+
 static char *find_the_extra_params(const char *expr) {
 	static char buf[512];
 	char *cp;
+
 	if (strncmp(expr, "dynamic=", 8))
 		return "";
 	cp = strchr(expr, ',');
@@ -473,35 +559,6 @@ static char *find_the_extra_params(const char *expr) {
 	return buf;
 }
 
-#define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
-typedef void (*fpSYM)();
-static int nConst;
-static const char *Const[9];
-static int compile_debug;
-static char *SymTab[1024];
-static fpSYM fpSymTab[1024];
-static int nSymTabLen[1024];
-static char *pCode[1024];
-static fpSYM fpCode[1024];
-static int nLenCode[1024];
-static int nCode, nCurCode;
-static char *pScriptLines[1024];
-static int nScriptLines;
-static int outer_hash_len;
-static int nSyms;
-static int LastTokIsFunc;
-static int bNeedS, bNeedS2, bNeedU, bNeedUlc, bNeedUuc, bNeedPlc, bNeedPuc, bNeedUC, bNeedPC;
-static char *salt_as_hex_type, *keys_base16_in1_type;
-static int bOffsetHashIn1; // for hash(hash(p).....) type hashes.
-static int keys_as_input;
-static char *gen_Stack[1024];
-static int gen_Stack_len[1024];
-static int ngen_Stack, ngen_Stack_max;
-static char *h;
-static int h_len;
-static int nSaltLen = -32;
-static char gen_s[260], gen_conv[260];
-static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc[PLAINTEXT_BUFFER_SIZE], gen_ulc[PLAINTEXT_BUFFER_SIZE], gen_pw[PLAINTEXT_BUFFER_SIZE], gen_puc[PLAINTEXT_BUFFER_SIZE], gen_plc[PLAINTEXT_BUFFER_SIZE];
 
 /*
  * These are the 'low level' primative functions ported from pass_gen.pl.
@@ -513,9 +570,9 @@ static char gen_s2[PLAINTEXT_BUFFER_SIZE], gen_u[PLAINTEXT_BUFFER_SIZE], gen_uuc
  * set of properly working functions.
  */
 #define OSSL_FUNC(N,TT,T,L) \
-static void N##_hex()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
-static void N##_base64() {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
-static void N##_base64c(){TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_hex()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64() {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64c(){TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
 static void N##_raw()    {TT##_CTX c; T##_Init(&c); T##_Update(&c,h,h_len); T##_Final((unsigned char*)h,&c); }
 OSSL_FUNC(md5,MD5,MD5,16)
 OSSL_FUNC(md4,MD4,MD4,16)
@@ -529,9 +586,9 @@ OSSL_FUNC(whirlpool,WHIRLPOOL,WHIRLPOOL,64)
 
 
 #define KECCAK_FUNC(N,T,L) \
-static void N##_hex()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
-static void N##_base64() {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
-static void N##_base64c(){KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
+static void N##_hex()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64() {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
+static void N##_base64c(){KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
 static void N##_raw()    {KECCAK_CTX c; T##_Init(&c); KECCAK_Update(&c,(BitSequence*)h,h_len); KECCAK_Final((BitSequence*)h,&c); }
 KECCAK_FUNC(sha3_224,SHA3_224,28)
 KECCAK_FUNC(sha3_256,SHA3_256,32)
@@ -541,14 +598,14 @@ KECCAK_FUNC(keccak_256,KECCAK_256,32)
 KECCAK_FUNC(keccak_512,KECCAK_512,64)
 // LARGE_HASH_EDIT_POINT
 
-static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); }
-static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); }
-static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); }
+static void gost_hex()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_hex,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); }
+static void gost_base64()      { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_mime,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); }
+static void gost_base64c()     { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,32,gen_conv,e_b64_crypt,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); }
 static void gost_raw()         { gost_ctx c; john_gost_init(&c); john_gost_update(&c, (unsigned char*)h, h_len); john_gost_final(&c, (unsigned char*)h); }
 #define SPH_FUNC(T,L) \
-static void T##_hex()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,260,0, 0); strcpy(h, gen_conv); } \
-static void T##_base64() { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,260,0, 0); strcpy(h, gen_conv); } \
-static void T##_base64c(){ sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,260,0, 0); strcpy(h, gen_conv); } \
+static void T##_hex()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_hex,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
+static void T##_base64() { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_mime,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
+static void T##_base64c(){ sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); base64_convert(h,e_b64_raw,L,gen_conv,e_b64_crypt,INTERNAL_TMP_BUFSIZE,0, 0); strcpy(h, gen_conv); } \
 static void T##_raw()    { sph_##T##_context c; sph_##T##_init(&c); sph_##T(&c, (unsigned char*)h, h_len); sph_##T##_close(&c, (unsigned char*)h); }
 SPH_FUNC(tiger,24)
 SPH_FUNC(ripemd128,16)  SPH_FUNC(ripemd160,20)  SPH_FUNC(ripemd256,32) SPH_FUNC(ripemd320,40)
@@ -561,8 +618,8 @@ SPH_FUNC(md2,16) SPH_FUNC(panama,32)
 SPH_FUNC(skein224,28) SPH_FUNC(skein256,32) SPH_FUNC(skein384,48) SPH_FUNC(skein512,64)
 // LARGE_HASH_EDIT_POINT
 
-static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
-static int encode_be()         { int len = enc_to_utf16_be((UTF16*)gen_conv, 260, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
+static int encode_le()         { int len = enc_to_utf16((UTF16*)gen_conv, INTERNAL_TMP_BUFSIZE, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
+static int encode_be()         { int len = enc_to_utf16_be((UTF16*)gen_conv, INTERNAL_TMP_BUFSIZE, (UTF8*)h, h_len); memcpy(h, gen_conv, len*2); return len*2; }
 static char *pad16()           { strncpy_pad(gen_conv, gen_pw, 16, 0); return gen_conv; }
 static char *pad20()           { strncpy_pad(gen_conv, gen_pw, 20, 0); return gen_conv; }
 static char *pad100()          { strncpy_pad(gen_conv, gen_pw, 100, 0); return gen_conv; }
@@ -600,7 +657,7 @@ static void dyna_helper_poststr() {
  * themselves, or may also use the low level primatives for hashing.
  */
 static void fpNull(){}
-static void dynamic_push()   { char *p = mem_calloc(260, 1); MEM_FREE(gen_Stack[ngen_Stack]); gen_Stack_len[ngen_Stack] = 0; gen_Stack[ngen_Stack++] = p; ngen_Stack_max++; }
+static void dynamic_push()   { char *p = mem_calloc(INTERNAL_TMP_BUFSIZE, 1); MEM_FREE(gen_Stack[ngen_Stack]); gen_Stack_len[ngen_Stack] = 0; gen_Stack[ngen_Stack++] = p; ngen_Stack_max++; }
 static void dynamic_pad16()  { dyna_helper_appendn(pad16(), 16);  }
 static void dynamic_pad20()  { dyna_helper_appendn(pad20(), 20);  }
 static void dynamic_pad100() { dyna_helper_appendn(pad100(), 100); }
@@ -639,6 +696,7 @@ static void dynamic_futf16()    { dyna_helper_pre();                            
 static void dynamic_futf16be()  { dyna_helper_pre();                             dyna_helper_post(encode_be()); }
 static void dynamic_exp() {
 	int i, j;
+
 	j = atoi(&pCode[nCurCode][1]);
 	for (i = 1; i < j; ++i) {
 		gen_Stack_len[ngen_Stack] = gen_Stack_len[ngen_Stack-1];
@@ -650,6 +708,7 @@ static void dynamic_exp() {
 
 static void init_static_data() {
 	int i;
+
 	nConst = 0;
 	for (i = 0; i < nSyms; ++i) {
 		MEM_FREE(SymTab[i]);
@@ -683,6 +742,7 @@ static void init_static_data() {
 	outer_hash_len = 0;
 	bNeedS = bNeedS2 = bNeedU = bNeedUlc = bNeedUuc = bNeedPlc = bNeedPuc = bNeedUC = bNeedPC = 0;
 	compile_debug = 0;
+	force_rdp = 0;
 	MEM_FREE(salt_as_hex_type);
 	MEM_FREE(keys_base16_in1_type);
 	bOffsetHashIn1=0;
@@ -702,6 +762,7 @@ static void init_static_data() {
 static const char *get_param(const char *p, const char *what) {
 	const char *cp;
 	char *cpRet;
+
 	p = strstr(p, what);
 	if (!p)
 		return NULL;
@@ -754,6 +815,8 @@ static int handle_extra_params(DC_struct *ptr) {
 	// Find any other values here.
 	if (strstr(ptr->pExtraParams, ",debug"))
 		compile_debug = 1;
+	if (strstr(ptr->pExtraParams, ",rdp"))
+		force_rdp = 1;
 
 	if ( (cp = get_param(ptr->pExtraParams, "saltlen")) != NULL) {
 		nSaltLen = atoi(cp);
@@ -785,6 +848,7 @@ static const char *comp_get_symbol(const char *pInput) {
 	// This function will grab the next valid symbol, and returns
 	// the location just past this symbol.
 	char TmpBuf[64];
+
 	LastTokIsFunc = 0;
 	if (!pInput || *pInput == 0) return comp_push_sym("X", fpNull, pInput, 0);
 	if (*pInput == '.') return comp_push_sym(".", fpNull, pInput+1, 0);
@@ -867,6 +931,7 @@ static const char *comp_get_symbol(const char *pInput) {
 
 static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 	int n;
+
 	fprintf(stderr, "Dyna expression syntax error around this part of expression\n");
 	fprintf(stderr, "%s\n", p->pExpr);
 	n = strlen(p->pExpr)-strlen(pInput);
@@ -881,6 +946,7 @@ static void comp_lexi_error(DC_struct *p, const char *pInput, char *msg) {
 		fprintf(stderr, "%s\n", msg);
 	error_msg("exiting now");
 }
+
 static char *comp_optimize_script(char *pScr) {
 	/*
 	 * in this function, we optimize out certain key issues.  We add the MGF_KEYS_IN1 if we can, and remove
@@ -888,6 +954,7 @@ static char *comp_optimize_script(char *pScr) {
 	 * then we fix that.
 	 */
 	char *cp = strstr(pScr, "Func=");
+
 	if (!cp)
 		return pScr;
 
@@ -911,6 +978,7 @@ static char *comp_optimize_script(char *pScr) {
 	}
 	return pScr;
 }
+
 static char *comp_optimize_script_mixed(char *pScr, char *pParams) {
 	/*
 	 * in this function, we optimize out certain key issues.  We add the MGF_KEYS_IN1 if we can, and remove
@@ -1057,9 +1125,11 @@ static char *comp_optimize_script_mixed(char *pScr, char *pParams) {
 SkipFlat:;
 	return pScr;
 }
+
 static char *comp_optimize_expression(const char *pExpr) {
 	char *pBuf = (char*)mem_alloc(strlen(pExpr)+1), *p, *p2;
 	int n1, n2;
+
 	strcpy(pBuf, pExpr);
 
 	/*
@@ -1203,8 +1273,10 @@ SkipPassCheck:;
 	 */
 	return pBuf;
 }
+
 static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	int paren = 0;
+
 	pInput = comp_get_symbol(pInput);
 	if (LastTokIsFunc != 1)
 		error_msg("Error: dynamic hash must start with md4/md5/sha1 and NOT a *_raw version. This expression one does not\n");
@@ -1276,6 +1348,7 @@ static int comp_do_lexi(DC_struct *p, const char *pInput) {
 	}
 	return 0;
 }
+
 static void push_pcode(const char *v, fpSYM _fpSym, int len) {
 	pCode[nCode] = mem_alloc(strlen(v)+1);
 	fpCode[nCode] = _fpSym;
@@ -1287,6 +1360,7 @@ static void comp_do_parse(int cur, int curend) {
 	char *curTok;
 	fpSYM fpcurTok;
 	int curTokLen;
+
 	if (SymTab[cur][0] == '(' && SymTab[curend][0] == ')') {++cur; --curend; }
 	while (cur <= curend) {
 		curTok = SymTab[cur];
@@ -1386,18 +1460,22 @@ static void comp_add_script_line(const char *fmt, ...) {
 	pScriptLines[nScriptLines] = mem_alloc(len+1);
 	va_start(va, fmt);
 	len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
-#ifdef _MSC_VER  // we should find out about MinGW here!!
-	pScriptLines[nScriptLines][len] = 0;
-	while (len2 == -1) {
-		MEM_FREE(pScriptLines[nScriptLines]);
-		len *= 2;
-		pScriptLines[nScriptLines] = mem_alloc(len+1);
-		va_end(va);
-		va_start(va, fmt);
-		len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
-		pScriptLines[nScriptLines][len] = 0;
-	}
-#else
+
+	// NOTE, VC (2015 under Win10), vsnprintf() if fully C99
+	// compliant.  _vsnprintf() is kept the broken MSVC for
+	// backward compliance
+//#ifdef _MSC_VER  // we should find out about MinGW here!!
+//	pScriptLines[nScriptLines][len] = 0;
+//	while (len2 == -1) {
+//		MEM_FREE(pScriptLines[nScriptLines]);
+//		len *= 2;
+//		pScriptLines[nScriptLines] = mem_alloc(len+1);
+//		va_end(va);
+//		va_start(va, fmt);
+//		len2 = vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
+//		pScriptLines[nScriptLines][len] = 0;
+//	}
+//#else
 	if (len2 >= len) {
 		MEM_FREE(pScriptLines[nScriptLines]);
 		len = len2+1;
@@ -1406,7 +1484,7 @@ static void comp_add_script_line(const char *fmt, ...) {
 		va_start(va, fmt);
 		vsnprintf(pScriptLines[nScriptLines], len, fmt, va);
 	}
-#endif
+//#endif
 	va_end(va);
 	++nScriptLines;
 }
@@ -1416,6 +1494,7 @@ static char *rand_str(int len) {
 	const char *alpha = "0123456789abcdef";
 	char *cp = tmp;
 	int i;
+
 	if (len > 255)
 		len = 255;
 	for (i = 0; i < len; ++i) {
@@ -1425,10 +1504,58 @@ static char *rand_str(int len) {
 	*cp = 0;
 	return tmp;
 }
+
+// This is the 'crypt-all' for the RecursiveDecentParser code
+// This will be called from within dynamic_fmt crypt_all, IF
+// the compiler does not generate a valid script. john will
+// still process the data properly, but it does so much slower.
+void run_one_RDP_test(DC_ProcData *p) {
+	int n;
+	unsigned char *in;
+
+	strnzcpy(gen_pw, p->iPw, p->nPw+1);
+	ngen_Stack = 0;
+	dynamic_push();
+	if (bNeedPuc) {
+		strcpy(gen_puc, gen_pw);
+		strupr(gen_puc);
+	}
+	else if (bNeedPlc) {
+		strcpy(gen_plc, gen_pw);
+		strlwr(gen_plc);
+	}
+	if (bNeedU) {
+		strnzcpy(gen_u, (char*)(p->iUsr), p->nUsr+1);
+		if (bNeedUuc) {
+			strcpy(gen_uuc, gen_u);
+			strupr(gen_uuc);
+		}
+		else if (bNeedUlc) {
+			strcpy(gen_ulc, gen_u);
+			strlwr(gen_ulc);
+		}
+	}
+	*gen_s = 0;
+	if (bNeedS) {
+		nSaltLen = p->nSlt;
+		strnzcpy(gen_s, (char*)(p->iSlt), p->nSlt+1);
+	}
+	if (bNeedS2) {
+		strnzcpy(gen_s2, (char*)(p->iSlt2), p->nSlt2+1);
+	}
+	for (nCurCode = 0; nCurCode < nCode; ++nCurCode)
+		fpCode[nCurCode]();
+	in = (unsigned char*)(gen_Stack[0]);
+	for (n = 0; n < 16; ++n) {
+		p->oBin[n] = (atoi16[in[0]] << 4) + atoi16[in[1]];
+		in += 2;
+	}
+}
+
 // Ported from pass_gen.pl dynamic_run_compiled_pcode() function.
 static void build_test_string(DC_struct *p, char **pLine) {
 	int i;
-	char salt[260];
+	char salt[INTERNAL_TMP_BUFSIZE];
 	dynamic_push();
 	*gen_s = 0;
 	strcpy(gen_plc, gen_pw);
@@ -2134,11 +2261,6 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 	const char *cp2;
 	int len;
 
-	if (!gost_init) {
-		gost_init_table();
-		gost_init = 1;
-	}
-
 	if (strncmp(expr, "dynamic=", 8))
 		return &INVALID_STRUCT;
 	p = mem_calloc_tiny(sizeof(DC_struct), sizeof(void*));
@@ -2165,6 +2287,19 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 			strcpy(cp, "\\x3a"); // copy the literal string \x3a to the output
 			++cp2;
 			cp += 4;
+		} else if (*cp2 == ',') {
+			// Any extra params here, which we should filter OUT of the expression
+			// stored in the .pot file.
+			if (!strncmp(cp2, ",rdp", 4))
+				cp2 += 4;
+			else if (!strncmp(cp2, ",nolib", 6))
+				cp2 += 6;
+			else if (cp2[1] == 'O')
+				cp2 += 3;
+			else if (!strncmp(cp2, ",debug", 6))
+				cp2 += 6;
+			else
+				*cp++ = *cp2++;
 		} else
 			*cp++ = *cp2++;
 	}
@@ -2180,6 +2315,7 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 
 static uint32_t compute_checksum(const char *expr) {
 	uint32_t crc32 = 0xffffffff;
+
 	/* we should 'normalize' the expression 'first' */
 	while (*expr) {
 		if (*expr == ',' && expr[1] != 'c')
@@ -2205,6 +2341,7 @@ static DC_HANDLE find_checksum(uint32_t crc32) {
 
 static void add_checksum_list(DC_HANDLE pHand) {
 	DC_list *p;
+
 	p = mem_calloc_tiny(sizeof(DC_list), sizeof(void*));
 	p->next = pList->next;
 	pList->next = p;
@@ -2212,6 +2349,7 @@ static void add_checksum_list(DC_HANDLE pHand) {
 
 static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsize, char *expr) {
 	char *cp = strchr(&in[1], '$');
+
 	if (!cp)
 		return in;
 	++cp;
@@ -2227,6 +2365,7 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 int looks_like_bare_hash(const char *fld1) {
 	// look for hex string with 'optional' '$' for salt.
 	int len = base64_valid_length(fld1, e_b64_hex, 0, 0);
+
 	if (len == (outer_hash_len<<1)) {
 		// check salt flag
 		return 1;
@@ -2235,7 +2374,7 @@ int looks_like_bare_hash(const char *fld1) {
 }
 
 char *dynamic_compile_prepare(char *fld0, char *fld1) {
-	static char Buf[1024], tmp1[64];
+	static char Buf[INTERNAL_TMP_BUFSIZE], tmp1[64];
 	char *cpExpr=0;
 
 	/* Quick cancel of huge lines (eg. zip archives) */
@@ -2250,7 +2389,7 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 			char *cpBuilding=fld1;
 			char *cp, *cpo;
 			int bGood=1;
-			static char ct[1024];
+			static char ct[INTERNAL_TMP_BUFSIZE];
 
 			strnzcpy(ct, cpBuilding, sizeof(ct));
 			cp = strstr(ct, "$HEX$");
@@ -2405,6 +2544,7 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 }
 char *dynamic_compile_split(char *ct) {
 	extern int ldr_in_pot;
+
 	if (strncmp(ct, "dynamic_", 8)) {
 		return dynamic_compile_prepare("", ct);
 	} else if (strncmp(ct, "@dynamic=", 9) && strncmp(ct, dyna_signature, dyna_sig_len)) {
@@ -2432,6 +2572,9 @@ char *dynamic_compile_split(char *ct) {
 int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 	int i;
 
+	/* assume compiler success. */
+	dynamic_compiler_failed = 0;
+
 	if (!((DC_struct*)H) || ((DC_struct*)H)->magic != DC_MAGIC)
 		return -1;
 	dyna_script = ((DC_struct*)H)->pScript;
@@ -2440,6 +2583,78 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 		dyna_line[i] = ((DC_struct*)H)->pLine[i];
 	dyna_sig_len = strlen(dyna_signature);
 	((DC_struct*)H)->pFmt = pFmt;
+
+	if (1) {
+		int failed = force_rdp;
+		unsigned char *binary;
+		int ret, ret2, j;
+		void *slt;
+		// perform a quick and quiet 'self' test to make sure generated format is valid.
+		// if it is NOT valid, we fall back and use a slow (but safe) oSSL version of the
+		// parser format, and emit a warning message to user that this expression is not
+		// natively handled by the compiler, BUT that we will run it, using sub-optimal
+		// oSSL single step engine
+		pFmt->methods.init(pFmt);
+		for (j = 0; j < 5 && !failed; ++j) {
+			pFmt->methods.clear_keys();
+			pFmt->methods.set_key(pFmt->params.tests[j].plaintext, 0);
+			binary = (unsigned char*)pFmt->methods.binary(pFmt->params.tests[j].ciphertext);
+			slt = pFmt->methods.salt(pFmt->params.tests[j].ciphertext);
+			pFmt->methods.set_salt(slt);
+			ret = 1;
+			pFmt->methods.crypt_all(&ret, 0);
+			ret = pFmt->methods.cmp_one(binary, 0);
+			ret2 = pFmt->methods.cmp_all(binary, 1);
+			if (ret && ret2) {
+				ret = pFmt->methods.cmp_exact(pFmt->params.tests[j].ciphertext, 0);
+				if (!ret && !failed) {
+					if (options.verbosity > VERB_DEFAULT)
+						fprintf(stderr, "%s() the dynamic.cmp_exact() failed. This expression can not use the dynamic format\n", __FUNCTION__);
+					failed = 1;
+				}
+			}
+			else if (!failed) {
+				if (options.verbosity > VERB_DEFAULT)
+					fprintf(stderr, "%s() the dynamic.cmp_all/cmp_one() failed. This expression can not use the dynamic format\n", __FUNCTION__);
+				failed = 1;
+			}
+		}
+		if (failed) {
+			// Now replay, and make sure it does not fail again.
+			dynamic_compiler_failed = 1;
+			dynamic_switch_compiled_format_to_RDP(pFmt);
+			failed = 0;
+			for (j = 0; j < 5 && !failed; ++j) {
+				pFmt->methods.clear_keys();
+				pFmt->methods.set_key(pFmt->params.tests[j].plaintext, 0);
+				binary = (unsigned char*)pFmt->methods.binary(pFmt->params.tests[j].ciphertext);
+				slt = pFmt->methods.salt(pFmt->params.tests[j].ciphertext);
+				pFmt->methods.set_salt(slt);
+				ret = 1;
+				pFmt->methods.crypt_all(&ret, 0);
+				ret = pFmt->methods.cmp_one(binary, 0);
+				if (ret) {
+					ret = pFmt->methods.cmp_exact(pFmt->params.tests[j].ciphertext, 0);
+					if (!ret && !failed) {
+						fprintf(stderr, "%s() the dynamic.cmp_exact() failed. This expression can not be handled by john!\n", __FUNCTION__);
+						failed = 1;
+					}
+				}
+				else if (!failed) {
+					fprintf(stderr, "%s() the dynamic.cmp_all/cmp_one() failed. This expression can not be handled by john!\n", __FUNCTION__);
+					failed = 1;
+				}
+			}
+			if (!failed) {
+				fprintf(stderr, "This expression will use the RDP dynamic compiler format.\n");
+			}
+			else {
+				/* not sure what to do :( */
+			}
+		}
+		//pFmt->methods.done();
+		//pFmt->private.initialized = 0;
+	}
 	return 0;
 }
 

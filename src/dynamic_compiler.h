@@ -24,7 +24,7 @@ extern int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt);
 extern char *dynamic_compile_split(char *inp);
 extern char *dynamic_compile_prepare(char *fld0, char *fld1);
 extern void dynamic_compile_done();
-extern DC_HANDLE dynamic_compile_library(const char *expr, uint32_t crc32);
+extern DC_HANDLE dynamic_compile_library(const char *expr, uint32_t crc32, int *outer_hash_len);
 
 #define DC_MAGIC 0x654d7baf
 #define DC_NUM_VECTORS 5
@@ -42,5 +42,27 @@ typedef struct DC_struct {
 	char *pSignature;
 	char *pLine[DC_NUM_VECTORS];
 } DC_struct;
+
+/* if the dynamic compiler fails to build working script, this flag
+   tells dynamic_fmt to instead use the slow RDP format */
+extern int dynamic_compiler_failed;
+
+/* this structure is used by dynamic, to call a 'non-dynamic' format
+   i.e. when expression fails to compile to a correct script */
+typedef struct DC_ProcData {
+	unsigned char *oBin;	// out what the hash generates with below data
+	         char *iPw;	// in  the password to test
+	unsigned      nPw;	//     length of PW
+	unsigned char *iSlt;	// in  the salt data  (can be NULL)
+	unsigned      nSlt;	//     length of salt data
+	unsigned char *iSlt2;	// in  the salt2 data  (can be NULL)
+	unsigned      nSlt2;	//     length of salt2 data
+	unsigned char *iUsr;	// in user ID (can be null)
+	unsigned      nUsr;	//     length of username data
+} DC_ProcData;
+
+/* this is the actual function dynamic_fmt calls which does the
+   single hash Recursive Decent Parser format for the expression */
+extern void run_one_RDP_test(DC_ProcData *p);
 
 #endif // __DYNAMIC_COMPILER_H__

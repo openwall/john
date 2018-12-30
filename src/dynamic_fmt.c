@@ -91,6 +91,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #include "md5.h"
 #include "md4.h"
 #include "dynamic.h"
+#include "dynamic_compiler.h"
 #include "options.h"
 #include "config.h"
 #include "sha.h"
@@ -1790,6 +1791,39 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Since this array is in a structure, we assign a simple pointer to it
 	// before walking.  Trivial improvement, but every cycle counts :)
+
+	if (dynamic_compiler_failed) {
+		unsigned int i;
+		DC_ProcData dc;
+		dc.iSlt = cursalt;
+		dc.nSlt = saltlen;
+		dc.iSlt2 = cursalt2;
+		dc.nSlt2 = saltlen2;
+		dc.iUsr = username;
+		dc.nUsr = usernamelen;
+		dynamic_use_sse = 0;
+		for (i = 0; i < m_count; ++i) {
+			if (curdat.store_keys_in_input) {
+#if MD5_X2
+				if (i & 1)
+					dc.iPw = input_buf_X86[i >> MD5_X2].x2.b2;
+				else
+#endif
+					dc.iPw = input_buf_X86[i >> MD5_X2].x1.b;
+			} else
+				dc.iPw = saved_key[i];
+			dc.nPw = saved_key_len[i];
+#if MD5_X2
+			if (i & 1) {
+				dc.oBin = crypt_key_X86[i >> MD5_X2].x2.B2;
+			}
+			else
+#endif
+			dc.oBin = crypt_key_X86[i >> MD5_X2].x1.B;
+			run_one_RDP_test(&dc);
+		}
+		return m_count;
+	}
 	{
 #ifdef _OPENMP
 	if ((curdat.pFmtMain->params.flags & FMT_OMP) == FMT_OMP) {
@@ -2931,7 +2965,7 @@ static struct fmt_main fmt_Dynamic =
  **************************************************************
  *************************************************************/
 
-static void Dynamic_Load_itoa16_w2()
+void Dynamic_Load_itoa16_w2()
 {
 	char buf[3];
 	unsigned int i;
@@ -8340,6 +8374,23 @@ int dynamic_real_salt_length(struct fmt_main *pFmt)
 	return -1;
 }
 
+void dynamic_switch_compiled_format_to_RDP(struct fmt_main *pFmt)
+{
+	if (pFmt->params.flags & FMT_DYNAMIC) {
+		private_subformat_data *pPriv = pFmt->private.data;
+
+		// in case there was any
+		__nonMP_DynamicFunc__clean_input_full();
+		__nonMP_DynamicFunc__clean_input2_full();
+
+		if (pPriv == NULL || pPriv->pSetup == NULL)
+			return;
+		pPriv->dynamic_use_sse = 0;
+		dynamic_use_sse = 0;
+		curdat.dynamic_use_sse = 0;
+		pFmt->params.algorithm_name = "Dynamic RDP";
+	}
+}
 #else
 #warning Notice: Dynamic format disabled from build.
 #endif /* DYNAMIC_DISABLED */

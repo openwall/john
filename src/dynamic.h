@@ -361,6 +361,9 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
 char *dynamic_PRELOAD_SIGNATURE(int cnt);
 int dynamic_IS_PARSER_VALID(int which, int single_lookup_only);
 
+// when switching to the RDP format, there are a few things we need to correct in the format.
+void dynamic_switch_compiled_format_to_RDP(struct fmt_main *pFmt);
+
 // This one is called in the .pot writing.  We 'fixup' salts which contain ':' chars, or other
 // chars which cause problems (like the $ char).
 char *dynamic_FIX_SALT_TO_HEX(char *ciphertext);
