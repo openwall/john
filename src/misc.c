@@ -126,11 +126,20 @@ char *fgetl(char *s, int size, FILE *stream)
 			*pos = 0;
 			if (pos > res)
 			if (*--pos == '\r') *pos = 0;
-		} else
+			return res;
+		}
+		if ((pos-res) + 1 < size) {
+			/* There was a NULL byte in this line.
+			   Look for \n past the 'read' null byte */
+			while ((++pos - res) + 1 < size)
+				if (*pos == '\n')
+					return res; /* found it read no more */
+		}
 		if ((c = getc(stream)) == '\n') {
 			if (*pos == '\r') *pos = 0;
 		} else
 		while (c != EOF && c != '\n')
+			/* Line was longer than our buffer. discard extra */
 			c = getc(stream);
 	}
 
@@ -174,6 +183,11 @@ char *fgetll(char *s, size_t size, FILE *stream)
 		return s;
 	}
 	else if ((len + 1) < size) { /* We read a null byte */
+		/* first check past the null byte, looking for the \n */
+		while (++len < size)
+			if (s[len] == '\n')
+				return s; /* found it. Read no more. */
+		/* did not find the \n, so read and discard rest of line */
 		do {
 			c = getc(stream);
 		} while (c != EOF && c != '\n');
@@ -224,10 +238,15 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			return cp;
 		}
 		else if ((chunk_len + 1) < increase) { /* We read a null byte */
+			/* first check past the null byte, looking for the \n */
+			while (++chunk_len < increase)
+				if (cp[++len] == '\n')
+					return cp; /* found it. read no more*/
+			/* did not find the \n, so read and discard rest of line */
 			do {
 				c = getc(stream);
 			} while (c != EOF && c != '\n');
-			return s;
+			return cp;
 		}
 	}
 }
