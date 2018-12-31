@@ -25,16 +25,17 @@
 extern int rules_mute, stack_rules_mute;
 
 /*
- * If this is set, our result will be passed to later rules. This means
- * we should consider max_length as PLAINTEXT_BUFFER_SIZE so we don't
- * truncate or reject a word that will later become valid.
+ * If this is set, our result will be passed to later rules. This may
+ * mean, for example, that we could want to consider max_length as
+ * PLAINTEXT_BUFFER_SIZE so we don't truncate or reject a word that will
+ * later become valid. It's not fully settled though.
  */
 extern unsigned int rules_stacked_after;
 
 /*
  * Line number of stacked rule in use.
  */
-int rules_stacked_number;
+extern int rules_stacked_number;
 
 /*
  * Stacked rules context.
