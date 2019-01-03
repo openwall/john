@@ -5227,6 +5227,12 @@ fi
 if test -d /usr/local/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/include"
 fi
+if test -d /opt/local/lib; then
+   ADD_LDFLAGS="$ADD_LDFLAGS -L/opt/local/lib"
+fi
+if test -d /opt/local/include; then
+   ADD_CFLAGS="$ADD_CFLAGS -I/opt/local/include"
+fi
 if test -d /usr/local/opt/openssl/lib; then
    ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/opt/openssl/lib"
 fi
