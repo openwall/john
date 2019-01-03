@@ -221,8 +221,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto end_hdaa_legacy;
 	if ((p = strtokm(NULL, "$")) == NULL) /* clientnonce */
 		goto err;
-	if (!ishexlc(p) )
-		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* qop */
 		goto err;
 	if ((p = strtokm(NULL, "$")) != NULL)
