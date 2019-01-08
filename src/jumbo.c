@@ -36,7 +36,7 @@
 #endif
 
 
-#ifdef _MSC_VER
+#if  (_MSC_VER) && (_MSC_VER < 1900)
 // we will simply fix the broken _snprintf.  In VC, it will not null terminate buffers that get
 // truncated, AND the return is - if we truncate.  We fix both of these issues, and bring snprintf
 // for VC up to C99 standard.

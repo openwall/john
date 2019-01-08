@@ -350,8 +350,14 @@ extern int fileno(FILE *);
 // blindly use these for VC.  For VC, they are used to work around many
 // red-herring compiler warnings
 #undef snprintf
+#if _MSC_VER < 1900
+// note, in VC 2015, snprintf was fixed to be POSIX compliant. The legacy _snprintf function
+// starting at at VC 2015 is no longer the same as snprintf (as it was prior).  The _snprintf
+// was kept at the legacy problematic manner, while snprintf now 'works' properly.
+// _MSC_VER == 1900 is the key for VC 2015
 #define snprintf(str, size, ...) vc_fixed_snprintf((str), (size), __VA_ARGS__)
 extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
+#endif
 #undef alloca
 #define alloca _alloca
 #undef unlink
