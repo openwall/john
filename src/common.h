@@ -125,7 +125,10 @@ int ishexn(const char *q, int n);
 int ishexucn(const char *q, int n);
 int ishexlcn(const char *q, int n);
 /* length of hex. if extra_chars not null, it will be 1 if there are more
- * non-hex characters after the length of valid hex chars returned. */
+ * non-hex characters after the length of valid hex chars returned.
+ * NOTE, the return will always be an even number (rounded down). so if we
+ * want the length of "ABCDE", it will be 4 not 5.
+ */
 size_t hexlen(const char *q, int *extra_chars);
 size_t hexlenl(const char *q, int *extra_chars); /* lower cased only */
 size_t hexlenu(const char *q, int *extra_chars); /* upper cased only */

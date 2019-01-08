@@ -59,6 +59,9 @@ void common_init(void)
 int ishex(const char *q)
 {
 	const char *p=q;
+
+	if (!q || !*q)
+		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q && !(((q-p))&1);
@@ -67,6 +70,8 @@ int ishex_oddOK(const char *q)
 {
 	// Sometimes it is 'ok' to have odd length hex.  Usually not.  If odd is
 	// allowed, then the format will have to properly handle odd length.
+	if (!q || !*q)
+		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q;
@@ -75,6 +80,9 @@ int ishex_oddOK(const char *q)
 int ishexuc(const char *q)
 {
 	const char *p=q;
+
+	if (!q || !*q)
+		return 0;
 	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q && !(((p-q))&1);
@@ -83,6 +91,9 @@ int ishexuc(const char *q)
 int ishexlc(const char *q)
 {
 	const char *p=q;
+
+	if (!q || !*q)
+		return 0;
 	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return !*q && !(((p-q))&1);
@@ -91,6 +102,9 @@ int ishexlc(const char *q)
 int ishexn(const char *q, int n)
 {
 	const char *p=q;
+
+	if (!q || !*q)
+		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return (q-p) >= n;
@@ -99,6 +113,9 @@ int ishexn(const char *q, int n)
 int ishexucn(const char *q, int n)
 {
 	const char *p=q;
+
+	if (!q || !*q)
+		return 0;
 	while (atoi16u[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return (q-p) >= n;
@@ -107,22 +124,33 @@ int ishexucn(const char *q, int n)
 int ishexlcn(const char *q, int n)
 {
 	const char *p=q;
+
+	if (!q || !*q)
+		return 0;
 	while (atoi16l[ARCH_INDEX(*q)] != 0x7F)
 		++q;
 	return (q-p) >= n;
 }
 
-int ishexuc_oddOK(const char *q) {
+int ishexuc_oddOK(const char *q)
+{
+	if (!q || !*q)
+		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'a' && *q <= 'f') return 0;
+		if (*q >= 'a' && *q <= 'f')
+			return 0;
 		++q;
 	}
 	return !*q ;
 }
 
-int ishexlc_oddOK(const char *q) {
+int ishexlc_oddOK(const char *q)
+{
+	if (!q || !*q)
+		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'A' && *q <= 'F') return 0;
+		if (*q >= 'A' && *q <= 'F')
+			return 0;
 		++q;
 	}
 	return !*q ;
@@ -132,6 +160,7 @@ static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100], int 
 {
 	const char *s = q;
 	size_t len = strlen(q);
+
 	if (len&1) --len;
 
 	while (dic[ARCH_INDEX(*q)] != 0x7F)
@@ -144,22 +173,31 @@ static MAYBE_INLINE size_t _hexlen(const char *q, unsigned char dic[0x100], int 
 
 size_t hexlen(const char *q, int *extra_chars)
 {
+	if (!q || !*q)
+		return 0;
 	return _hexlen(q, atoi16, extra_chars);
 }
 
 size_t hexlenu(const char *q, int *extra_chars)
 {
+	if (!q || !*q)
+		return 0;
 	return _hexlen(q, atoi16u, extra_chars);
 }
 
 size_t hexlenl(const char *q, int *extra_chars)
 {
+	if (!q || !*q)
+		return 0;
 	return _hexlen(q, atoi16l, extra_chars);
 }
 
 static int isdec_len(const char *q, const char *mxv)
 {
 	const char *p = q;
+
+	if (!q || !*q)
+		return 0;
 	do {
 		if (*p < '0' || *p > '9' || p - q >= 10)
 			return 0;
@@ -169,15 +207,21 @@ static int isdec_len(const char *q, const char *mxv)
 
 int isdec(const char *q)
 {
+	if (!q || !*q)
+		return 0;
 	return isdec_len(q, "2147483647");
 }
 
 int isdec_negok(const char *q)
 {
+	if (!q || !*q)
+		return 0;
 	return *q == '-' ? isdec_len(q + 1, "2147483648") : isdec(q);
 }
 
 int isdecu(const char *q)
 {
+	if (!q || !*q)
+		return 0;
 	return isdec_len(q, "4294967295");
 }
