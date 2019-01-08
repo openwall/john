@@ -1764,10 +1764,12 @@ out_OK:
 out_which:
 	if (which == 1) {
 		strcat(in, buffer[2][STAGE]);
+		length = strlen(in);
 		goto out_OK;
 	}
 	strcat(buffer[2][STAGE], in);
 	in = buffer[2][STAGE];
+	length = strlen(in);
 	goto out_OK;
 
 out_ERROR_POSITION:
