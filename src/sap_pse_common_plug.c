@@ -48,7 +48,7 @@ int sappse_common_valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if (hexlenl(p, &extra) > 32 * 2 || extra)
 		goto bail;
-	if (!ishexlc(p))
+	if (*p && !ishexlc(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // encrypted_pin_length
 		goto bail;
