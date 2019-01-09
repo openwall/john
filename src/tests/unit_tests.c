@@ -34,42 +34,14 @@
 #include <time.h>
 #include <stdarg.h>
 #include <inttypes.h>
+#include <limits.h>
 #include "../misc.h"
 #include "../memory.h"
 #include "../common.h"
 
 #include "../sha2.h"
 
-
-// TOFIX after misc.[ch] and common.[ch] are fixed
-#ifdef _MSC_VER
-// code copied from jumbo.c for now, since it is not easy to 'use' jumbo.c by a
-// small external project.  I will 'patch' misc.c later and fix the problem,
-// but for now, this code is put into the unit_tests.c file.
-int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...) {
-	va_list varg;
-	int len;
-
-	va_start(varg, Fmt);
-	len = _vsnprintf(Dest, max_cnt, Fmt, varg);
-	if (len < 0) {
-		int len_now = max_cnt;
-		Dest[max_cnt - 1] = 0;
-		// len = -1 right now.  We want to figure out exactly WHAT len should be, to stay C99 compliant.
-		while (len < 0) {
-			char *cp;
-			len_now *= 2;
-			cp = (char*)malloc(len_now);
-			len = _vsnprintf(cp, len_now, Fmt, varg);
-			free(cp);
-		}
-	}
-	va_end(varg);
-	return len;
-}
-#endif
-
-char *_fgetl_pad;
+char *_fgetl_pad = NULL;
 #define _FGETL_PAD_SIZE 19000
 #define _ISHEX_CNT 260
 int _fgetl_fudge = 0; // if we miss a line, only show 1 error, we will have to add or skip a line (or more).
@@ -254,7 +226,6 @@ int64_t toDeci_ll(char *s, int base)
 *  End of Misc utility functions
 */
 
-/*    // TOFIX after misc.[ch] and common.[ch] are fixed
 char *_tst_1_strnzcatn(char *head, char *tail, int cnt) {
 	static char dest[13 + 6];  // the 13 is the size of the buffer. The '+6 is to later validate we have not blown buffer.
 	char dest_orig[17];
@@ -369,7 +340,7 @@ int _tst_strnzcatn() {
 
 	return 0;
 }
-*/
+
 /*
   test_cpy_func handles 3 'types' of functions.
     The first 3 params are function pointers. Only 1 should be set (the other 2 should be NULL)
@@ -389,9 +360,7 @@ void _test_cpy_func(char *(cfn)(char *, const char *, int), int (nfn)(char *, co
 	// build 'padded' buffer, it is "012345ABCd99900AbC0xxxxxx...xxx\0" if padding char is 'x'
 	if (pfn)
 		sprintf(pad_chk, "%s%s", "012345ABCd99900AbC0", (char*)memset(memset(alloca(sizeof(pad_chk)-19), '\0', sizeof(pad_chk) - 19), pad, sizeof(pad_chk) - 20));
-	// TOFIX after misc.[ch] and common.[ch] are fixed
-	//for (i = -3; i < 24; ++i) {
-	for (i = 1; i < 24; ++i) {
+	for (i = -3; i < 24; ++i) {
 		inc_test();
 		if (i < 1) {
 			if (cfn)
@@ -493,6 +462,12 @@ void _nontest_gen_fgetl_files(int generate) {
 		unlink("/tmp/jnkfu.txt");
 		return;
 	}
+	/* first, setup the fgetl 'pad' data (moved from main() function. */
+	_fgetl_pad = (char*)malloc(_FGETL_PAD_SIZE + 1);
+	for (i = 0; i <= _FGETL_PAD_SIZE; ++i)
+		_fgetl_pad[i] = (i % 95) + ' ';
+	_fgetl_pad[_FGETL_PAD_SIZE] = 0;
+
 	start_test(__FUNCTION__); inc_test(); inc_test(); inc_test();
 	fp = fopen("/tmp/jnk.txt", "wb");
 	fp1 = fopen("/tmp/jnkd.txt", "wb");
@@ -589,7 +564,7 @@ void _tst_fgetl(const char *fname) {
 	if (cp)
 		inc_failed_test();
 }
-/*
+
 void _tst_fgetll(const char *fname) {
 	int i;
 	char Buf[256], Bufs[18], Bufh[16384], *cp; // bufs only large enough to handle the 'null' line.
@@ -621,7 +596,7 @@ void _tst_fgetll(const char *fname) {
 	if (cp)
 		inc_failed_test();
 }
-*/
+
 // char *fgetl(char *s, int size, FILE *stream)
 void test_fgetl() {
 	start_test(__FUNCTION__);
@@ -633,13 +608,13 @@ void test_fgetl() {
 	end_test();
 }
 // char *fgetll(char *s, size_t size, FILE *stream)
-//void test_fgetll() {
-//	start_test(__FUNCTION__);
-//	_tst_fgetll("/tmp/jnk.txt");
-//	_tst_fgetll("/tmp/jnkd.txt");
-//	_tst_fgetll("/tmp/jnkfu.txt");
-//	end_test();
-//}
+void test_fgetll() {
+	start_test(__FUNCTION__);
+	_tst_fgetll("/tmp/jnk.txt");
+	_tst_fgetll("/tmp/jnkd.txt");
+	_tst_fgetll("/tmp/jnkfu.txt");
+	end_test();
+}
 // void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
 void test_strncpy_pad() {
 	start_test(__FUNCTION__);
@@ -687,7 +662,10 @@ void _fill_str(char *p, int len) {
 }
 // char *strnzcat(char *dst, const char *src, int size)
 void test_strnzcat() {
-	char *buf[512*2], *buf1[512], *buf2[512]; // we do strcpy(buf, buf1) then strnzcat(buf, buf2, sizeof(buf))
+	// we do strcpy(buf[i], buf1) then strnzcat(buf[i], buf2, i+1)
+	// buf[i] is allocated to be EXACTLY (and only) i+1 bytes long
+	// so that any ASAN overflow (r/w) will be caught.
+	char *buf[512*2], *buf1[512], *buf2[512];
 	int i, j;
 
 	start_test(__FUNCTION__);
@@ -696,8 +674,8 @@ void test_strnzcat() {
 	for (i = 0; i < 512; ++i) {
 		buf1[i] = malloc(i + 1);
 		buf2[i] = malloc(i + 1);
-		_fill_str(buf1[i], i);
-		_fill_str(buf2[i], i);
+		_fill_str(buf1[i], i); // fill random string data here.
+		_fill_str(buf2[i], i); // the fill is exactly i bytes long.
 	}
 	// now perform the actual tests
 	for (i = 0; i < 512; ++i) {
@@ -711,6 +689,22 @@ void test_strnzcat() {
 				inc_failed_test();
 			if (strncmp(&((buf[i + j])[i]), buf2[j], j))
 				inc_failed_test();
+			// perform a SHORT strnzcat
+			if (j && j < 511) {
+				inc_test(); failed = 0;
+				strcpy(buf[i + j], buf1[i]);
+				// the [j+1] buffer will be 1 byte too long
+				// and SHOULD handle this with no overflow
+				// and the first j bytes written should match.
+				// we DO provide proper size of buffer i+j+1
+				strnzcat(buf[i + j], buf2[j+1], i + j + 1);
+				if (strlen(buf[i + j]) != i + j)
+					inc_failed_test();
+				if (strncmp(buf[i + j], buf1[i], i))
+					inc_failed_test();
+				if (strncmp(&((buf[i + j])[i]), buf2[j+1], j))
+					inc_failed_test();
+			}
 		}
 	}
 
@@ -724,11 +718,11 @@ void test_strnzcat() {
 	end_test();
 }
 // char *strnzcatn(char *dst, int size, const char *src, int src_max)
-//void test_strnzcatn() {
-//	start_test(__FUNCTION__);
-//	_tst_strnzcatn();
-//	end_test();
-//}
+void test_strnzcatn() {
+	start_test(__FUNCTION__);
+	_tst_strnzcatn();
+	end_test();
+}
 void _test_strtokm(char *delims, int cnt, ...) {
 	int n, i;
 	char *buf, *items[24], big[4096], *cp = big;
@@ -1114,11 +1108,9 @@ void _test_one_ishex(int (fn)(const char *), int uc, int lc, int odd) {
 	// to 512 are tested, in all 3 casing flavors.
 
 	Line = malloc(_ISHEX_CNT * 2 + 1);
-	// TOFIX after misc.[ch] and common.[ch] are fixed
-	//inc_test(); failed = 0; v = fn(NULL); if (v) inc_failed_test();
+	inc_test(); failed = 0; v = fn(NULL); if (v) inc_failed_test();
 	// this tests all the 3 even[0] strings, they are all ""
-	// TOFIX after misc.[ch] and common.[ch] are fixed
-	//inc_test(); failed = 0; v = fn(""); if (v) inc_failed_test();
+	inc_test(); failed = 0; v = fn(""); if (v) inc_failed_test();
 
 	// this tests all the 3 odd[0] strings, they are all 1 byte long. We simply
 	// test all digits, then all lower, then all upper independently.
@@ -2025,34 +2017,11 @@ void test_sha2_c() {
 }
 
 int main() {
-	int i;
-
 	start_of_run = clock();
-	//extern const char *_ltoa_vc(int num, char *ret, int ret_sz, int base);
-	//for (i = 2; i < 37; ++i) {
-	//	char buf[66];
-	//	printf("%s is  vc _itoa(%lld) base %d\n", _itoa(-9666666666, buf, i),                  -9666666666, i);
-	//	printf("%s is  vc _ltoa(%lld) base %d\n", _ltoa(-9666666666, buf, i),                  -9666666666, i);
-	//	printf("%s is  _ltoa_vc(%lld) base %d\n", _ltoa_vc(-9666666666, buf, sizeof(buf), i),  -9666666666, i);
-	//	printf("%s is   _i64toa(%lld) base %d\n", _i64toa(-9666666666, buf, i),                -9666666666, i);
-	//	printf("%s is  jtr_itoa(%lld) base %d\n", jtr_itoa(-9666666666, buf, sizeof(buf), i),  -9666666666, i);
-	//	printf("%s is jtr_lltoa(%lld) base %d\n", jtr_lltoa(-9666666666, buf, sizeof(buf), i), -9666666666, i);
-	//}
-	//exit(0);
 
 	common_init();
-	_fgetl_pad = (char*)malloc(_FGETL_PAD_SIZE + 1);
-	for (i = 0; i <= _FGETL_PAD_SIZE; ++i)
-		_fgetl_pad[i] = (i % 95) + ' ';
-	_fgetl_pad[_FGETL_PAD_SIZE] = 0;
-
-	set_unit_test_source("sha2.c");
-	test_sha2_c();
-
 
 	set_unit_test_source("misc.c");
-
-#if 1
 	// when the function gets 'done' tab it out.
 	/* not testing */ //test_real_error();	// void real_error(char *file, int line)
 	/* not testing */ //test_real_error_msg();	// void real_error_msg(char *file, int line, char *format, ...)
@@ -2060,32 +2029,27 @@ int main() {
 	/* not testing */ //test_write_loop();	// int write_loop(int fd, const char *buffer, int count)
 	_nontest_gen_fgetl_files(1);	// creates the 3 files
 	test_fgetl();		// char *fgetl(char *s, int size, FILE *stream)
-//	test_fgetll();		// char *fgetll(char *s, size_t size, FILE *stream)
+	test_fgetll();		// char *fgetll(char *s, size_t size, FILE *stream)
 	_nontest_gen_fgetl_files(0);	// deletes the 3 files
-	// TOFIX after misc.[ch] and common.[ch] are fixed strncpy_pad() is busted for strings we do not hit the \0 byte!!
-	//test_strncpy_pad();	// void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
+	test_strncpy_pad();	// void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
 	test_strnfcpy();	// char *strnfcpy(char *dst, const char *src, int size)
 	test_strnzcpy();	// char *strnzcpy(char *dst, const char *src, int size)
 	test_strnzcpylwr();	// char *strnzcpylwr(char *dst, const char *src, int size)
 	test_strnzcpyn();	// int strnzcpyn(char *dst, const char *src, int size)
 	test_strnzcpylwrn();	// int strnzcpylwrn(char *dst, const char *src, int size)
 	test_strnzcat();	// char *strnzcat(char *dst, const char *src, int size)
-	// TOFIX after misc.[ch] and common.[ch] are fixed
-//	test_strnzcatn();	// char *strnzcatn(char *dst, int size, const char *src, int src_max)
+	test_strnzcatn();	// char *strnzcatn(char *dst, int size, const char *src, int src_max)
 	test_strtokm();		// char *strtokm(char *s1, const char *delims)
 	test_atou();		// unsigned atou(const char *src)
 	test_jtr_itoa();	// const char *jtr_itoa(int val, char *result, int rlen, int base)
-	// TOFIX after misc.[ch] and common.[ch] are fixed
-	//test_jtr_utoa();	// const char *jtr_utoa(unsigned int val, char *result, int rlen, int base)
+	test_jtr_utoa();	// const char *jtr_utoa(unsigned int val, char *result, int rlen, int base)
 	test_jtr_lltoa();	// const char *jtr_lltoa(int64_t val, char *result, int rlen, int base)
-	// TOFIX after misc.[ch] and common.[ch] are fixed
-	//test_jtr_ulltoa();	// const char *jtr_ulltoa(uint64_t val, char *result, int rlen, int base)
+	test_jtr_ulltoa();	// const char *jtr_ulltoa(uint64_t val, char *result, int rlen, int base)
 test_human_prefix();	// char *human_prefix(uint64_t num)
-#endif
+
 
 	set_unit_test_source("common.c");
 	_gen_hex_len_data();
-
 	test_ishex();		// int ishex(const char *q);
 	test_ishex_oddOK();	// int ishex_oddOK(const char *q);
 	test_ishexuc();		// int ishexuc(const char *q);
@@ -2095,13 +2059,16 @@ test_human_prefix();	// char *human_prefix(uint64_t num)
 	test_ishexn();		// int ishexn(const char *q, int n);
 	test_ishexucn();	// int ishexucn(const char *q, int n);
 	test_ishexlcn();	// int ishexlcn(const char *q, int n);
-	test_hexlen();	// size_t hexlen(const char *q, int *extra_chars);
-	test_hexlenl();	// size_t hexlenl(const char *q, int *extra_chars);
-	test_hexlenu();	// size_t hexlenu(const char *q, int *extra_chars);
-	test_isdec(); // int isdec(const char *q);
-	test_isdec_negok(); // int isdec_negok(const char *q);
-	test_isdecu(); // int isdecu(const char *q);
+	test_hexlen();		// size_t hexlen(const char *q, int *extra_chars);
+	test_hexlenl();		// size_t hexlenl(const char *q, int *extra_chars);
+	test_hexlenu();		// size_t hexlenu(const char *q, int *extra_chars);
+	test_isdec();		// int isdec(const char *q);
+	test_isdec_negok();	// int isdec_negok(const char *q);
+	test_isdecu();		// int isdecu(const char *q);
 
+
+	set_unit_test_source("sha2.c");
+	test_sha2_c();
 
 	// perform dump listing of all processed functions.
 	dump_stats();
