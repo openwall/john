@@ -358,17 +358,17 @@ static void single_init(void)
 	orig_min_kpc = single_db->format->params.min_keys_per_crypt;
 	single_db->format->params.min_keys_per_crypt = key_count;
 
+	if (single_seed->count) {
+		words_pair_max += single_seed->count;
+		log_event("- SingleWordsPairMax increased for %d global seed words",
+		          single_seed->count);
+	}
 	if (log2(key_count) > words_pair_max) {
 		words_pair_max = log2(key_count);
 		log_event("- SingleWordsPairMax increased to %d for high KPC (%d)",
 		          log2(key_count), key_count);
 	}
 
-	if (single_seed->count) {
-		words_pair_max += single_seed->count;
-		log_event("- SingleWordsPairMax increased for %d global seed words",
-		          single_seed->count);
-	}
 	log_event("- SingleWordsPairMax used is %d", words_pair_max);
 	log_event("- SingleRetestGuessed = %s",retest_guessed ? "true" : "false");
 	log_event("- SingleMaxBufferSize = %sB%s", human_prefix(my_buf_share),
