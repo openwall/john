@@ -257,7 +257,7 @@ void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
 	uint8_t *d = dst;
 	const uint8_t *s = src;
 
-	if ( ((long long)size) < 1)
+	if ((int64_t)size < 1)
 		return dst;
 
 	while (*s && size) {
