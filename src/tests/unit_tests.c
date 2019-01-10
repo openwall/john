@@ -124,7 +124,7 @@ void dump_stats() {
  */
 // gets hex string of some bytes
 char *hex(const void *_p, int n) {
-	static char Buf[4096];
+	static char Buf[1000*1000];
 	char *op = Buf;
 	const unsigned char *p = (const unsigned char *)_p;
 	int i;
@@ -1883,7 +1883,7 @@ unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
  *     http://csrc.nist.gov/groups/STM/cavp/documents/aes/AESAVS.pdf
  *     https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/
  */
-void _Load_test_hash_data(const char *fname) {
+void _Load_NESSIE_hash_file(const char *fname) {
 	// currently only handles NESSIE files.
 	FILE *in = fopen(fname, "r");
 	char LineBuf[4096], *cp;
@@ -2008,7 +2008,108 @@ void _Load_test_hash_data(const char *fname) {
 	fclose(in);
 }
 
+void ParseHex(unsigned char *po, const char *_pi, int b) {
+	int i;
+	const unsigned char *pi = (const unsigned char*)_pi;
 
+	for (i = 0; i < b && *pi; ++i) {
+		*po++ = (atoi16[pi[0]] << 4) | atoi16[pi[1]];
+		pi += 2;
+	}
+}
+/*
+ * This file format is MUCH easier to parse than NESSIE.  In this format there
+ * are no parsing of the message.  The message is simply a hex string (simple
+ * to parse). Also, the MD is all on 1 line, which also makes it trivial to
+ * parse.  The biggest thing is to have large enough line buffers to properly
+ * read the file.  There are multiple file types, however, making it more
+ * of a process to parse.
+ *
+ *   type:  1 == XX[Short][Long]Msg.rsp  (simple strings, simply hashed)
+ *   type:  2 == XXMonte.rsp             This contains the 100 values for the
+ *                                       monte-carlo tests. There is ONLY 1
+ *                                       input data (the seed).  All result
+ *                                       values are from re-running using the
+ *                                       last 'runs' output.
+ */
+void _Load_CAVS_hash_file(const char *fname, int type) {
+	// this format is MUCH easier to parse than NESSIE.  In this format
+	// there are no parsing of the message.  The message is simply a
+	// hex string (simple to parse). Also, the MD is all on 1 line,
+	// which also makes it trivial to parse.  The biggest thing is to
+	// have large enough line buffers to properly read the file.
+	char Line[64 * 1024];
+	FILE *in;
+	int n;
+
+	in = fopen(fname, "r");
+	if (!in) {
+		fprintf(stderr, "Unable to open testing file %s\n", fname);
+		return;
+	}
+	_Reset_test_hash_data();
+	if (type == 2) {
+		int len=64;
+		// handle monte-carlo
+		// here, we simply read the seed, and the expected hash values.
+		nHTst = 100;
+		HTst = calloc(nHTst, sizeof(HTst[0]));
+
+		// handle getting the seed, AND hashes from the file
+		// we put the seed into HTst[0].test_data
+		// We only put the expected hashes into HTst[n].hash
+		fgets(Line, sizeof(Line), in);
+		n = 0;
+		while (!feof(in)) {
+			strtok(Line, "\r\n");
+			if (!strncmp(Line, "[L = ", 5)) {
+				sscanf(Line, "[L = %d]", &len);
+			} else if (!strncmp(Line, "Seed = ", 7)) {
+				HTst[0].test_bits = len * 8;
+				HTst[0].test_data = calloc(1, HTst[0].test_bits / 8);
+				ParseHex(HTst[0].test_data, &Line[7], HTst[0].test_bits / 8);
+			} else if (!strncmp(Line, "MD = ", 5)) {
+				strcpy(HTst[n].hash, &Line[5]);
+				strupr(HTst[n].hash);
+				++n;
+			}
+			fgets(Line, sizeof(Line), in);
+		}
+		fclose(in);
+		return;
+	}
+	// handle a short/long 'flat' file
+	fgets(Line, sizeof(Line), in);
+	while (!feof(in)) {
+		if (!strncmp(Line, "Len = ", 6))
+			++nHTst;
+		fgets(Line, sizeof(Line), in);
+	}
+	// Ok, now we know how many variables we have
+	HTst = calloc(nHTst, sizeof(HTst[0]));
+
+	// start over in the file.
+	fseek(in, 0, SEEK_SET);
+	fgets(Line, sizeof(Line), in);
+	n = -1;	// note set to -1, since the first thing Len= read does is do ++n;
+	while (!feof(in)) {
+		strtok(Line, "\r\n");
+		if (!strncmp(Line, "Len = ", 6)) {
+			++n;
+			sscanf(Line, "Len = %"PRIu64, &HTst[n].test_bits);
+			if (HTst[n].test_bits)
+				HTst[n].test_data = calloc(1, HTst[n].test_bits / 8);
+		} else if (!strncmp(Line, "Msg = ", 6)) {
+			HTst[n].message = strdup(Line);
+			ParseHex(HTst[n].test_data, &Line[6], HTst[n].test_bits / 8);
+		} else if (!strncmp(Line, "MD = ", 5)) {
+			strcpy(HTst[n].hash, &Line[5]);
+			strupr(HTst[n].hash);
+		}
+		fgets(Line, sizeof(Line), in);
+	}
+	fclose(in);
+}
 void _hash_error(const char *T, int n, unsigned char *buf, int len) {
 	char *m = HTst[n].message;
 	unsigned mlen = HTst[n].test_bits / 8;
@@ -2017,12 +2118,14 @@ void _hash_error(const char *T, int n, unsigned char *buf, int len) {
 	printf("   Expected : %s\n", HTst[n].hash);
 	printf("   Computed : %s\n", packedhex(buf, len));
 }
-// this macro will handle all oSSL CTX model hashes.
-// usage:  ossl_CTX_HASH(hash_type, hash_bytes, buffer_width)
-// note, some hashes like SHA224/SHA384 may have different hash_bytes
-// vs buffer_width.
-#define ossl_CTX_HASH(T,t,B,b)						\
-void _Perform_tests_##T ()	{					\
+/*
+ * this macro will handle all oSSL CTX model hashes.
+ * usage:  ossl_CTX_FLAT_HASH(hash_type, hash_bytes, buffer_width)
+ * note, some hashes like SHA224/SHA384 may have different hash_bytes
+ * vs buffer_width.
+*/
+#define ossl_CTX_FLAT_HASH(T,t,B,b)					\
+void _Perform_FLAT_tests_##T ()	{					\
 	int n, j;							\
 	for (n = 0; n < nHTst; ++n) {					\
 		t##_CTX c;						\
@@ -2049,25 +2152,127 @@ void _Perform_tests_##T ()	{					\
 	}								\
 }
 
-ossl_CTX_HASH(SHA256, SHA256, 32, 32)
-ossl_CTX_HASH(SHA384, SHA512, 48, 64)
-ossl_CTX_HASH(SHA512, SHA512, 64, 64)
+/*
+ * this macro will handles the FIPS CAVS 'Monte-Carlo' algorithm.
+ * That algorithm starts with a 'seed'. It builds a buffer with
+ * that seed replicated 3 times.  It then repeatedly drops off the
+ * first part of that input stream, and appends the results of the
+ * last hash.  1000 iterations are performed, resulting in a value.
+ * that value is checked against provided data.  THEN that value is
+ * used as the starting seed to the next round (again 1000 iterations)
+ * This is done in total of 100 times. At the end of each inner loop
+ * there is a value (should be 100 of them).  ANY failure will cascade
+ * and all of the data following will be smashed and not match.
+ * this implementation is not super well written, BUT it does fully
+ * implement the algorithm, and the results can be trusted. NOTE, the
+ * 'b' variable is only used in the s[] array, since that is where the
+ * hash will write to. All other lengths used are the 'B' variable,
+ * which is the actual usable bytes of the hash, which can be shorter
+ * than 'b' (hashes such as SHA224 or SHA384)
+ */
+#define ossl_CTX_CAVS_MONTE_HASH(T,t,B,b)				\
+void _Perform_CAVS_MONTE_tests_##T() {					\
+	int i, j;							\
+	/* the 'only' thing needing to be 'b' bytes is the s array */	\
+	unsigned char S[3][B], seed[B], t[B * 3], s[b];			\
+	memcpy(seed, HTst[0].test_data, B);				\
+	for (j = 0; j < 100; ++j) {					\
+		memcpy(S[0], seed, B);					\
+		memcpy(S[1], seed, B);					\
+		memcpy(S[2], seed, B);					\
+		for (i = 0; i < 1000; ++i) {				\
+			t##_CTX c;					\
+			memcpy(t, S[0], B);				\
+			memcpy(&t[B], S[1], B);				\
+			memcpy(&t[B * 2], S[2], B);			\
+			T##_Init(&c);					\
+			T##_Update(&c, t, B * 3);			\
+			T##_Final(s, &c);				\
+			memcpy(S[0], S[1], B);				\
+			memcpy(S[1], S[2], B);				\
+			memcpy(S[2], s, B);				\
+		}							\
+		if (strcmp(packedhex(s, B), HTst[j].hash)) {		\
+			failed = 0;					\
+			inc_failed_test();				\
+			_hash_error(#T"-NIST_Monte", j, s, B);		\
+		}							\
+		memcpy(seed, s, B);					\
+	}								\
+}
 
+ossl_CTX_FLAT_HASH(SHA224, SHA256, 28, 32)
+ossl_CTX_FLAT_HASH(SHA256, SHA256, 32, 32)
+ossl_CTX_FLAT_HASH(SHA384, SHA512, 48, 64)
+ossl_CTX_FLAT_HASH(SHA512, SHA512, 64, 64)
+
+ossl_CTX_CAVS_MONTE_HASH(SHA224, SHA256, 28, 32)
+ossl_CTX_CAVS_MONTE_HASH(SHA256, SHA256, 32, 32)
+ossl_CTX_CAVS_MONTE_HASH(SHA384, SHA512, 48, 64)
+ossl_CTX_CAVS_MONTE_HASH(SHA512, SHA512, 64, 64)
+
+void _perform_hash_test(const char *fname, int type, void(fn)()) {
+	if (type == 0)
+		_Load_NESSIE_hash_file(fname);
+	else
+		_Load_CAVS_hash_file(fname, type);
+	fn();
+}
+
+/*
+* Here is the perl code to handle the monte carlo tests for sha256.  Very
+* simple stuff, once we understand it ;)
+
+#!/usr/bin/perl
+use Digest::SHA qw{sha256};
+# seed read from the SHA256Monte.rsp file.  It is the ONLY input data.
+$seed=pack("H*", "6d1e72ad03ddeb5de891e572e2396f8da015d899ef0e79503152d6010a3fe691");
+# there are 100 'tests', which use their starting input from seed OR prior test
+for($j = 0; $j < 100; ++$j) {
+	my @S = ();
+	push(@S, $seed); push(@S, $seed); push(@S, $seed);
+	for($i=0;$i<1000;++$i){
+		$t = $S[0].$S[1].$S[2];
+		#printx($t);  # 1st 5 loops seen in SHA256Monte.txt
+		$s=sha256($t);
+		#printx($s);  # 1st 5 loops seen in SHA256Monte.txt
+		shift(@S);
+		push(@S, $s);
+	}
+	$shex=unpack("H*",$s);
+	print "$j - $shex\n";
+	$seed = $s;	# use this test result as seed for next run.
+}
+*/
 void test_sha2_c() {
-	start_test(__FUNCTION__);
-	// test using NESSIE input data files
+	// test using NESSIE and NIST/CAVS input data files
+
+	start_test("test_sha224");
+	// no NESSIE data for sha224 :(
+	_perform_hash_test("tests/NIST_CAVS/SHA224ShortMsg.rsp", 1, _Perform_FLAT_tests_SHA224);
+	_perform_hash_test("tests/NIST_CAVS/SHA224LongMsg.rsp", 1, _Perform_FLAT_tests_SHA224);
+	_perform_hash_test("tests/NIST_CAVS/SHA224Monte.rsp", 2, _Perform_CAVS_MONTE_tests_SHA224);
+	end_test();
 
 	start_test("test_sha256");
-	_Load_test_hash_data("tests/Sha-2-256.unverified.test-vectors.txt");
-	_Perform_tests_SHA256();
+	_perform_hash_test("tests/NESSIE/Sha-2-256.unverified.test-vectors.txt", 0, _Perform_FLAT_tests_SHA256);
+	_perform_hash_test("tests/NIST_CAVS/SHA256ShortMsg.rsp", 1, _Perform_FLAT_tests_SHA256);
+	_perform_hash_test("tests/NIST_CAVS/SHA256LongMsg.rsp", 1, _Perform_FLAT_tests_SHA256);
+	_perform_hash_test("tests/NIST_CAVS/SHA256Monte.rsp", 2, _Perform_CAVS_MONTE_tests_SHA256);
 	end_test();
+
 	start_test("test_sha384");
-	_Load_test_hash_data("tests/Sha-2-384.unverified.test-vectors.txt");
-	_Perform_tests_SHA384();
+	_perform_hash_test("tests/NESSIE/Sha-2-384.unverified.test-vectors.txt", 0, _Perform_FLAT_tests_SHA384);
+	_perform_hash_test("tests/NIST_CAVS/SHA384ShortMsg.rsp", 1, _Perform_FLAT_tests_SHA384);
+	_perform_hash_test("tests/NIST_CAVS/SHA384LongMsg.rsp", 1, _Perform_FLAT_tests_SHA384);
+	_perform_hash_test("tests/NIST_CAVS/SHA384Monte.rsp", 2, _Perform_CAVS_MONTE_tests_SHA384);
 	end_test();
+
 	start_test("test_sha512");
-	_Load_test_hash_data("tests/Sha-2-512.unverified.test-vectors.txt");
-	_Perform_tests_SHA512();
+	_perform_hash_test("tests/NESSIE/Sha-2-512.unverified.test-vectors.txt", 0, _Perform_FLAT_tests_SHA512);
+	_perform_hash_test("tests/NIST_CAVS/SHA512ShortMsg.rsp", 1, _Perform_FLAT_tests_SHA512);
+	_perform_hash_test("tests/NIST_CAVS/SHA512LongMsg.rsp", 1, _Perform_FLAT_tests_SHA512);
+	_perform_hash_test("tests/NIST_CAVS/SHA512Monte.rsp", 2, _Perform_CAVS_MONTE_tests_SHA512);
 	end_test();
 }
 
@@ -2100,7 +2305,7 @@ int main() {
 	test_jtr_utoa();	// const char *jtr_utoa(unsigned int val, char *result, int rlen, int base)
 	test_jtr_lltoa();	// const char *jtr_lltoa(int64_t val, char *result, int rlen, int base)
 	test_jtr_ulltoa();	// const char *jtr_ulltoa(uint64_t val, char *result, int rlen, int base)
-test_human_prefix();	// char *human_prefix(uint64_t num)
+//test_human_prefix();	// char *human_prefix(uint64_t num)
 
 	set_unit_test_source("common.c");
 	_gen_hex_len_data();
