@@ -1,6 +1,3 @@
-// compiling for ASAN checking:
-//   gcc -o ../run/unit_tests -Wl,--no-undefined -O -g -fsanitize=address -fno-omit-frame-pointer -lasan -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG tests/unit_tests.c misc.c common.c
-
 // common type source to test functions:
 //	misc.c		(mostly done)
 //	common.c	(done)
@@ -13,13 +10,19 @@
 //	unicode_range.c (??)
 //	simd-intrinsics.c (??)
 //
-//  Likely could add tests for all hash types (or many).  Things like md2/4/5 sha/1/224/..512  sha3, etc, etc.
-//		These would be very fast set of known test vectors.  Make sure the functions return proper results, and
-//		simply list pass/fail.
+//  Likely could add tests for all hash types (or many).  Things like md2/4/5
+//	sha/1/224/..512  sha3, etc, etc. These would be very fast set of known
+//	test vectors.  Make sure the functions return proper results, and
+//	simply list pass/fail. NOTE< sha-2 added, with input files from the
+//	NESSIE project. There are more which we can use from NESSIE, and
+//	easily add things like some of the sph* hashes to the TS, or some
+//	other internal hash functions.
 //
 //	base64_convert.c(may have it's own ST code already)
-//	compiler.c	(Possible unit test by building test suite of config files, then spawning john to test them)
-//	external.c	(Possible unit test by building test suite of config files, then spawning john to test them)
+//	compiler.c	(Possible unit test by building test suite of config
+//		files, then spawning john to test them)
+//	external.c	(Possible unit test by building test suite of config
+//		files, then spawning john to test them)
 //
 //	loader.c	(Not unit testable)
 //	logger.c	(Not unit testable)
@@ -44,7 +47,11 @@
 char *_fgetl_pad = NULL;
 #define _FGETL_PAD_SIZE 19000
 #define _ISHEX_CNT 260
-int _fgetl_fudge = 0; // if we miss a line, only show 1 error, we will have to add or skip a line (or more).
+// if we miss a line(s), only show 1 error. This variable is used to adjust
+// the linecount since we don't have the expected line count (we missed
+// a line or lines). Without this 'fudge' variable, every line after a
+// missed line would be an error.  NOT what we want at all.
+int _fgetl_fudge = 0;
 char *_hex_even_lower[_ISHEX_CNT];
 char *_hex_even_upper[_ISHEX_CNT];
 char *_hex_even_mixed[_ISHEX_CNT];
@@ -79,7 +86,8 @@ inline void inc_test() {
 	Results.tests++;
 }
 void inc_failed_test() {
-	if (failed) return;  // failed already logged for this test.
+	if (failed)
+		return;  // failed already logged for this test.
 	Results.fails++;
 	any_failure = failed = 1;
 }
@@ -93,17 +101,19 @@ void end_test() {
 	if (!Results.tests)
 		printf("-  Unit tests not yet written for this function\n");
 	else {
-		seconds = ((double)(Results.tStop - Results.tStart)) / CLOCKS_PER_SEC;
+		seconds = Results.tStop - Results.tStart;
+		seconds /= CLOCKS_PER_SEC;
+		printf("-  Performed %8d tests", Results.tests);
 		if (Results.fails)
-			printf("-  Performed %8d tests WITH %d FAILURES!!! %.2f seconds used\n", Results.tests, Results.fails, seconds);
-		else
-			printf("-  Performed %8d tests %.2f seconds used\n", Results.tests, seconds);
+			printf(" WITH %d FAILURES!!!", Results.fails);
+		printf(" %.2f seconds used\n", seconds);
 	}
 }
 void dump_stats() {
 	double secs = clock() - start_of_run;
 	secs /= CLOCKS_PER_SEC;
-	printf("Performed testing on %d total functions.   Total time taken: %.02f\n\n", nFuncs, secs);
+	printf("Performed testing on %d total functions.\n", nFuncs);
+	printf("Total time taken : %.02f\n\n", secs);
 }
 /*
  * end of code for statistics
@@ -143,24 +153,25 @@ int Random(int m) {
 }
 // base-36 atoi for a single digit
 #if !_MSC_VER
-char *strupr(char *p) {
-	char *ret = p;
-	if (!p) return p;
-	while (*p) {
-		if (*p >= 'a' && *p <= 'z') *p -= 0x20;
-		++p;
-	}
-	return ret;
-}
-char *strlwr(char *p) {
-	char *ret = p;
-	if (!p) return p;
-	while (*p) {
-		if (*p >= 'A' && *p <= 'Z') *p += 0x20;
-		++p;
-	}
-	return ret;
+char *strupr(char *_p) {
+	unsigned char *p = (unsigned char*)_p;
 
+	while (*p) {
+		if (*p >= 'a' && *p <= 'z')
+			*p ^= 0x20;
+		++p;
+	}
+	return _p;
+}
+char *strlwr(char *_p) {
+	unsigned char *p = (unsigned char*)_p;
+
+	while (*p) {
+		if (*p >= 'A' && *p <= 'Z')
+			*p ^= 0x20;
+		++p;
+	}
+	return _p;
 }
 #endif
 int digit_val(char c)
@@ -172,7 +183,8 @@ int digit_val(char c)
 	// force failure in the calling function, because 666 is > 36 which is the max base.
 	return 666;
 }
-// Here is our atoi-with base conversion, and error checking functions (one function for unsigned, one for signed)
+// Here is our atoi-with base conversion, and error checking functions
+// (one function for unsigned, one for signed)
 uint64_t toDeci_ull(char *s, int base)
 {
 	// unsigned atoi with base handling from 2 to 26
@@ -343,7 +355,8 @@ int _tst_strnzcatn() {
 
 /*
   test_cpy_func handles 3 'types' of functions.
-    The first 3 params are function pointers. Only 1 should be set (the other 2 should be NULL)
+    The first 3 params are function pointers. Only 1 should be set and the
+    other 2 should be NULL.  NOTE, the first non-null pointer is used.
     cfn tests    copy functions returning char*
     nfn tests    copy functions returning length (int)
     pfn tests    copy functions that 'pad'
@@ -352,14 +365,21 @@ int _tst_strnzcatn() {
     append_null  0 always append       1 append if fits  2 never null terminate
     pad          the byte to pad with (only used for pfn function calls
 */
-void _test_cpy_func(char *(cfn)(char *, const char *, int), int (nfn)(char *, const char *, int), void *(pfn)(void *, const void *, size_t, uint8_t), int case_type, int append_null, uint8_t pad) {
+#define CPI "012345ABCd99900AbC0"
+void _test_cpy_func(char *(cfn)(char *, const char *, int),
+                    int   (nfn)(char *, const char *, int),
+                    void *(pfn)(void *, const void *, size_t, uint8_t),
+                    int case_type, int append_null, uint8_t pad) {
 	int i;
 	char pad_chk[50];
-	int input_len = strlen("012345ABCd99900AbC0");
+	int input_len = strlen(CPI);
 
-	// build 'padded' buffer, it is "012345ABCd99900AbC0xxxxxx...xxx\0" if padding char is 'x'
-	if (pfn)
-		sprintf(pad_chk, "%s%s", "012345ABCd99900AbC0", (char*)memset(memset(alloca(sizeof(pad_chk)-19), '\0', sizeof(pad_chk) - 19), pad, sizeof(pad_chk) - 20));
+	// build 'padded' buffer, it is "012345ABCd99900AbC0xxxx...x\0" (pad of 'x')
+	if (pfn) {
+		memset(pad_chk, 'x', sizeof(pad_chk));
+		pad_chk[sizeof(pad_chk) - 1] = 0;
+		memcpy(pad_chk, CPI, input_len); // NOT the null byte!
+	}
 	for (i = -3; i < 24; ++i) {
 		inc_test();
 		if (i < 1) {
@@ -372,53 +392,55 @@ void _test_cpy_func(char *(cfn)(char *, const char *, int), int (nfn)(char *, co
 					inc_failed_test();
 		}
 		else {
-			// use allocation for the buffer. Allocate EXACTLY the right size,
-			// so that ASAN will catch any over/under reads or writes.
+			// Allocate EXACTLY the right size, so that ASAN will
+			// catch any over/under reads or writes.
 			char *buf = malloc(i);
-			int check_len = i - 1, null_check = i - 1 > input_len ? input_len : i - 1;
+			int check_len = i - 1;
+			int null_check = i - 1 > input_len ? input_len : i - 1;
 
 			failed = 0;
 			if (append_null == 2) {
 				++check_len;
 				null_check = 0;
 			} else if (append_null == 1) {
-				if (i <= strlen("012345ABCd99900AbC0")) {
+				if (i <= input_len) {
 					null_check = 0;
 					++check_len;
 				}
 			}
 			if (cfn) {
-				char *cp = cfn(buf, "012345ABCd99900AbC0", i);
+				char *cp = cfn(buf, CPI, i);
 				if (cp != buf)
 					inc_failed_test();
 			} else if (pfn) {
-				char *cp = (char*) pfn(buf, "012345ABCd99900AbC0", i, pad);
+				char *cp = (char*) pfn(buf, CPI, i, pad);
 				if (cp != buf)
 					inc_failed_test();
 			} else {
-				int n = nfn(buf, "012345ABCd99900AbC0", i);
+				int n = nfn(buf, CPI, i);
 				if (n != strlen(buf))
 					inc_failed_test();
 			}
 			if (!case_type) {
-				if (strncmp(buf, "012345ABCd99900AbC0", check_len)) {
+				if (strncmp(buf, CPI, check_len)) {
 					if (pfn && !strncmp(buf, pad_chk, check_len))
-						; // OK, pad check. The buffer 'filled', and emitted padding characters.
+						; // OK
 					else
 						inc_failed_test();
 				}
 			} else {
-				if (strncasecmp(buf, "012345ABCd99900AbC0", check_len))
+				if (strncasecmp(buf, CPI, check_len))
 					inc_failed_test();
-				if (case_type == 1 && i > 7 && !strncmp(buf, "012345ABCd99900AbC0", check_len))
+				if (case_type == 1 && i > 7 && !strncmp(buf, CPI, check_len))
 					inc_failed_test();
-				if (case_type == 2 && i > 10 && !strncmp(buf, "012345ABCd99900AbC0", check_len))
+				if (case_type == 2 && i > 10 && !strncmp(buf, CPI, check_len))
 					inc_failed_test();
 			}
 			if (null_check &&  buf[null_check])
 				inc_failed_test();
 			if (failed)
-				printf("Failed! Function: %s(buf,\"012345ABCd99900AbC0\", %d); data: %s\n", Results.test_name, i, hex(buf, i));
+				printf("Failed! Function: %s(buf,\"%s\", %d); data: %s\n",
+					Results.test_name, CPI, i, hex(buf, i));
 			free(buf);
 		}
 	}
@@ -452,7 +474,7 @@ void _test_cpy_func(char *(cfn)(char *, const char *, int), int (nfn)(char *, co
  *  is not part of fgetl or fgetll.
  */
 void _nontest_gen_fgetl_files(int generate) {
-	int i, x, randlen;
+	int i, x, rlen;
 	FILE *fp, *fp1, *fp2;
 
 	if (!generate) {
@@ -473,30 +495,45 @@ void _nontest_gen_fgetl_files(int generate) {
 	fp1 = fopen("/tmp/jnkd.txt", "wb");
 	fp2 = fopen("/tmp/jnkfu.txt", "wb");
 	for (i = 0; i < 5999; ++i) {
-		randlen = Random(_FGETL_PAD_SIZE-24)+24;
+		char *is_null = "";
+		char null_or_space = ' ';
+		char *cr = "";
+
+		if (i % 13 == 12) {
+			// this line will contain a NULL byte
+			is_null = "[NULL]";
+			null_or_space = 0;
+		}
+		if (i % 32 > 15 && i % 32 < 20)
+			// add a bogus \r on these lines, to file 3
+			cr = "\r";
+		rlen = Random(_FGETL_PAD_SIZE-24)+24;
 		// place a couple blocks in the file with specific lengths
 		if (i > 50 && i < 150)
-			randlen = 24; // block of very short lines.
+			// block of very short lines.
+			rlen = 24;
 		else if (i > 250 && i < 450)
-			randlen = (i & 1) ? 24 : _FGETL_PAD_SIZE;  // alternate short / very long lines
+			// block of alternate short / very long lines
+			rlen = (i & 1) ? 24 : _FGETL_PAD_SIZE;
 		else if (i > 650 && i < 750)
-			randlen = _FGETL_PAD_SIZE;  // very long lines.
+			// block of very long lines.
+			rlen = _FGETL_PAD_SIZE;
 		x =
-		fprintf(fp,  "line %04d  %s%c:", i, i % 13 == 12 ? "[NULL]" : "", i % 13 == 12 ? 0 : 32);
-		fprintf(fp1, "line %04d  %s%c:", i, i % 13 == 12 ? "[NULL]" : "", i % 13 == 12 ? 0 : 32);
-		fprintf(fp2, "line %04d  %s%c:", i, i % 13 == 12 ? "[NULL]" : "", i % 13 == 12 ? 0 : 32);
-		fprintf(fp,  "%*.*s\n",   randlen - x, randlen - x, &_fgetl_pad[x]);
-		fprintf(fp1, "%*.*s\r\n", randlen - x, randlen - x, &_fgetl_pad[x]);
-		fprintf(fp2, "%*.*s%s\n", randlen - x, randlen - x, &_fgetl_pad[x], i%32 > 15 && i%32 < 20 ? "\r":"");
+		fprintf(fp,  "line %04d  %s%c:", i, is_null, null_or_space);
+		fprintf(fp1, "line %04d  %s%c:", i, is_null, null_or_space);
+		fprintf(fp2, "line %04d  %s%c:", i, is_null, null_or_space);
+		fprintf(fp,  "%*.*s\n", rlen - x, rlen - x, &_fgetl_pad[x]);
+		fprintf(fp1, "%*.*s\r\n", rlen - x, rlen - x, &_fgetl_pad[x]);
+		fprintf(fp2, "%*.*s%s\n", rlen - x, rlen - x, &_fgetl_pad[x], cr);
 	}
 	// make sure LAST line contains no \r or \r\n.
-	randlen = 888;
+	rlen = 888;
 	x = fprintf(fp, "line 5999  [NULL]%c:", 0);
 	fprintf(fp1, "line 5999  [NULL]%c:", 0);
 	fprintf(fp2, "line 5999  [NULL]%c:", 0);
-	fprintf(fp,  "%*.*s", randlen - x, randlen - x, &_fgetl_pad[x]);
-	fprintf(fp1, "%*.*s", randlen - x, randlen - x, &_fgetl_pad[x]);
-	fprintf(fp2, "%*.*s", randlen - x, randlen - x, &_fgetl_pad[x]);
+	fprintf(fp,  "%*.*s", rlen - x, rlen - x, &_fgetl_pad[x]);
+	fprintf(fp1, "%*.*s", rlen - x, rlen - x, &_fgetl_pad[x]);
+	fprintf(fp2, "%*.*s", rlen - x, rlen - x, &_fgetl_pad[x]);
 
 	fclose(fp2);
 	fclose(fp1);
@@ -512,8 +549,15 @@ void _validate_line(const char *line, int n, int len) {
 		sprintf(line_head, "line %04d  [NULL]", n + _fgetl_fudge);
 		if (strcmp(line_head, line)) {
 			inc_failed_test();
-			// we have to 'fix' the _fgetl_fudge variable, so that only this line
-			// is an error, and not the entire rest of the file!
+			// we have to 'fix' the _fgetl_fudge variable, so this
+			// line and not EVERY line to end of file gets counted
+			// as an error. Each line 'documents' it's own line
+			// number. SO we simply read that number, and then
+			// make an 'adjustment' so the next line read should
+			// be read without an error.  n is what we 'thought'
+			// the line was, we compute j from the line (which
+			// is what the line REALLY is), then figure how far
+			// off we are.
 			sscanf(line, "line %04d  ", &j);
 			_fgetl_fudge = j - n;
 		}
@@ -525,100 +569,97 @@ void _validate_line(const char *line, int n, int len) {
 
 	if (strncmp(line_head, line, i)) {
 		inc_failed_test();
-		// we have to 'fix' the _fgetl_fudge variable, so that only this line
-		// is an error, and not the entire rest of the file!
+		// adjust _fgetl_fudge var (as documented above)
 		sscanf(line, "line %04d  ", &j);
 		_fgetl_fudge = j - n;
 	}
 	if (memcmp(&_fgetl_pad[i], &line[i], len_seen-i))
 		inc_failed_test();
 }
-void _tst_fgetl(const char *fname) {
+void _tst_fget_l_ll(const char *fname, int tst_l)
+{
 	int i;
-	char Buf[256], Bufs[18], Bufh[16384], *cp; // bufs only large enough to handle the 'null' line.
+	char Buf[256], Bufs[18], Bufh[16384], *cp;
 	FILE *in = fopen(fname, "r");
 
+	/* tests fgetl AND fgetll.  Which function is called set by tst_l */
 	_fgetl_fudge = 0;
 	for (i = 0; i < 2000; ++i) {
+		/* read this line using 'normal' sized buffer */
 		inc_test(); failed = 0;
-		cp = fgetl(Buf, sizeof(Buf), in);
-		if (cp != Buf)
-			inc_failed_test();
-		_validate_line(Buf, i * 3, sizeof(Buf) - 1);
+		if (tst_l) {
+			cp = fgetl(Buf, sizeof(Buf), in);
+			_validate_line(Buf, i * 3, sizeof(Buf) - 1);
+			if (cp != Buf)
+				inc_failed_test();
+		} else {
+			cp = fgetll(Buf, sizeof(Buf), in);
+			_validate_line(cp, i * 3, strlen(cp));
+			if (cp && cp != Buf)
+				MEM_FREE(cp);
+		}
 
+		/* read this line using 'tiny' sized buffer */
 		inc_test(); failed = 0;
-		cp = fgetl(Bufs, sizeof(Bufs), in);
-		if (cp != Bufs)
-			inc_failed_test();
-		_validate_line(Bufs, i * 3 + 1, sizeof(Bufs) - 1);
+		if (tst_l) {
+			cp = fgetl(Bufs, sizeof(Bufs), in);
+			_validate_line(Bufs, i * 3 + 1, sizeof(Bufs) - 1);
+			if (cp != Bufs)
+				inc_failed_test();
+		} else {
+			cp = fgetll(Bufs, sizeof(Bufs), in);
+			_validate_line(cp, i * 3 + 1, strlen(cp));
+			if (cp && cp != Bufs)
+				MEM_FREE(cp);
+		}
 
+		/* read this line using 'huge' sized buffer */
+		/* but buffer not ALWAYS large enough       */
 		inc_test(); failed = 0;
+		if (tst_l) {
+			cp = fgetl(Bufh, sizeof(Bufh), in);
+			_validate_line(Bufh, i * 3 + 2, sizeof(Bufh) - 1);
+			if (cp != Bufh)
+				inc_failed_test();
+		}
+		else {
+			cp = fgetll(Bufh, sizeof(Bufh), in);
+			_validate_line(cp, i * 3 + 2, strlen(cp));
+			if (cp && cp != Bufh)
+				MEM_FREE(cp);
+		}
+	}
+
+	inc_test(); failed = 0;
+	if (tst_l)
 		cp = fgetl(Bufh, sizeof(Bufh), in);
-		if (cp != Bufh)
-			inc_failed_test();
-		_validate_line(Bufh, i * 3 + 2, sizeof(Bufh) - 1);
-	}
-
-	inc_test(); failed = 0;
-	cp = fgetl(Bufh, sizeof(Bufh), in);
-	if (cp)
-		inc_failed_test();
-}
-
-void _tst_fgetll(const char *fname) {
-	int i;
-	char Buf[256], Bufs[18], Bufh[16384], *cp; // bufs only large enough to handle the 'null' line.
-	FILE *in = fopen(fname, "r");
-
-	_fgetl_fudge = 0;
-	for (i = 0; i < 2000; ++i) {
-		inc_test(); failed = 0;
-		cp = fgetll(Buf, sizeof(Buf), in);
-		if (cp) _validate_line(cp, i * 3, strlen(cp));
-		if (cp && cp != Buf)
-			free(cp);
-
-		inc_test(); failed = 0;
-		cp = fgetll(Bufs, sizeof(Bufs), in);
-		if (cp) _validate_line(cp, i * 3 + 1, strlen(cp));
-		if (cp && cp != Bufs)
-			free(cp);
-
-		inc_test(); failed = 0;
+	else
 		cp = fgetll(Bufh, sizeof(Bufh), in);
-		if (cp) _validate_line(cp, i * 3 + 2, strlen(cp));
-		if (cp && cp != Bufh)
-			free(cp);
-	}
-
-	inc_test(); failed = 0;
-	cp = fgetll(Bufh, sizeof(Bufh), in);
 	if (cp)
 		inc_failed_test();
 }
-
 // char *fgetl(char *s, int size, FILE *stream)
 void test_fgetl() {
 	start_test(__FUNCTION__);
 
 	_fgetl_fudge = 0;
-	_tst_fgetl("/tmp/jnk.txt");
-	_tst_fgetl("/tmp/jnkd.txt");
-	_tst_fgetl("/tmp/jnkfu.txt");
+	_tst_fget_l_ll("/tmp/jnk.txt", 1);
+	_tst_fget_l_ll("/tmp/jnkd.txt", 1);
+	_tst_fget_l_ll("/tmp/jnkfu.txt", 1);
 	end_test();
 }
 // char *fgetll(char *s, size_t size, FILE *stream)
 void test_fgetll() {
 	start_test(__FUNCTION__);
-	_tst_fgetll("/tmp/jnk.txt");
-	_tst_fgetll("/tmp/jnkd.txt");
-	_tst_fgetll("/tmp/jnkfu.txt");
+	_tst_fget_l_ll("/tmp/jnk.txt", 0);
+	_tst_fget_l_ll("/tmp/jnkd.txt", 0);
+	_tst_fget_l_ll("/tmp/jnkfu.txt", 0);
 	end_test();
 }
 // void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
 void test_strncpy_pad() {
 	start_test(__FUNCTION__);
-	_test_cpy_func(NULL, NULL, strncpy_pad, 0, 2, 'X');
+	_test_cpy_func(NULL, NULL, strncpy_pad, 0, 2, 'x');
 	end_test();
 }
 // char *strnfcpy(char *dst, const char *src, int size)
@@ -761,13 +802,15 @@ void _test_strtokm(char *delims, int cnt, ...) {
 // char *strtokm(char *s1, const char *delims)
 void test_strtokm() {
 	start_test(__FUNCTION__);
-	// Not quite sure how to comprehensively test this beast.  I guess I will
-	// build strings, and also build the 'expected' data for each one, then
-	// see that they properly match, and that there are no ASAN's
+	// Not quite sure how to comprehensively test this beast.  I guess I
+	// will build strings, and also build the 'expected' data for each one
+	// then see that they properly match, and that there are no ASAN's
 
 	_test_strtokm(" ", 10, "", "", "test", "8", "halloc", "", "boom", "8", "9", "10");
 	_test_strtokm(" 67kB", 10, "", "", "test", "8", "halloc", "", "boom", "8", "9", "10");
-
+	_test_strtokm(" \t\r\n", 5, "1", "2", "3", "4", "5");
+	_test_strtokm(" \t\r\n", 9, "1", "2", "", "", "", "", "3", "4", "5");
+	_test_strtokm("  *", 9, "11", "22", "3", "", "6", "", "33", "44", "55");
 	end_test();
 }
 // unsigned atou(const char *src)
@@ -797,7 +840,7 @@ void test_jtr_ulltoa() {
 
 	start_test(__FUNCTION__);
 	memset(buf, 1, sizeof(buf)); // for overflow checking
-	for (u = (uint64_t) -100005; u < 100005 || u >= (uint64_t)-100005; ++u) {
+	for (u = (uint64_t)-100005; u < 100005 || u >= (uint64_t)-100005; ++u) {
 		failed = 0;
 		for (base = -2; base < 2; ++base) {
 			inc_test();
@@ -806,7 +849,7 @@ void test_jtr_ulltoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__ulltoa failed for _ulltoa(%"PRIu64", buf, %d)\n", u, base);
+				printf("jtr_ulltoa fail %"PRIu64"/%d\n", u, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -816,7 +859,7 @@ void test_jtr_ulltoa() {
 			if (cp != buf || toDeci_ull(buf, base) != u) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__ulltoa failed for _ulltoa(%"PRIu64", buf, %d)\n", u, base);
+				printf("jtr_ulltoa fail %"PRIu64"/%d\n", u, base);
 				memset(buf, 1, sizeof(buf));
 			}
 			x = strlen(buf);
@@ -824,7 +867,7 @@ void test_jtr_ulltoa() {
 				if (buf[x + y] != 1) {
 					failed = 0;
 					inc_failed_test();
-					printf("test__ulltoa failed BUFFER OVERFLOW for _ulltoa(%"PRIu64", buf, %d)  %s\n", u, base, hex(buf, x+8));
+					printf("jtr_ulltoa failed BUFFER OVERFLOW %"PRIu64"/%d - %s\n", u, base, hex(buf, x+8));
 					memset(buf, 1, sizeof(buf));
 				}
 			}
@@ -837,7 +880,7 @@ void test_jtr_ulltoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__ulltoa failed for _ulltoa(%"PRIu64", buf, %d)\n", u, base);
+				printf("jtr_ulltoa failed %"PRIu64"/%d)\n", u, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -862,7 +905,7 @@ void test_jtr_itoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__itoa failed for _itoa(%d, buf, %d)\n", d, base);
+				printf("jtr_itoa failed %d/%d)\n", d, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -872,7 +915,7 @@ void test_jtr_itoa() {
 			if (cp != buf || toDeci_ll(buf, base) != d) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__itoa failed for _itoa(%d, buf, %d)\n", d, base);
+				printf("jtr_itoa failed %d/%d\n", d, base);
 				memset(buf, 1, sizeof(buf));
 			}
 			x = strlen(buf);
@@ -880,7 +923,7 @@ void test_jtr_itoa() {
 				if (buf[x + y] != 1) {
 					failed = 0;
 					inc_failed_test();
-					printf("test__itoa failed BUFFER OVERFLOW for _itoa(%d, buf, %d)  %s\n", d, base, hex(buf, x + 8));
+					printf("jtr_itoa failed BUFFER OVERFLOW %d/%d - %s\n", d, base, hex(buf, x + 8));
 					memset(buf, 1, sizeof(buf));
 				}
 			}
@@ -893,7 +936,7 @@ void test_jtr_itoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__itoa failed for _itoa(%d, buf, %d)\n", d, base);
+				printf("jtr_itoa failed %d/%d)\n", d, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -918,7 +961,7 @@ void test_jtr_utoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__utoa failed for _utoa(%u, buf, %d)\n", u, base);
+				printf("jtr_utoa failed %u/%d)\n", u, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -928,7 +971,7 @@ void test_jtr_utoa() {
 			if (cp != buf || toDeci_ull(buf, base) != u) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__utoa failed for _utoa(%u, buf, %d)\n", u, base);
+				printf("jtr_utoa failed %u/%d)\n", u, base);
 				memset(buf, 1, sizeof(buf));
 			}
 			x = strlen(buf);
@@ -936,7 +979,7 @@ void test_jtr_utoa() {
 				if (buf[x + y] != 1) {
 					failed = 0;
 					inc_failed_test();
-					printf("test__utoa failed BUFFER OVERFLOW for _utoa(%u, buf, %d)  %s\n", u, base, hex(buf, x + 8));
+					printf("test__utoa failed BUFFER OVERFLOW %u/%d  %s\n", u, base, hex(buf, x + 8));
 					memset(buf, 1, sizeof(buf));
 				}
 			}
@@ -949,7 +992,7 @@ void test_jtr_utoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__utoa failed for _utoa(%u, buf, %d)\n", u, base);
+				printf("jtr_utoa failed %u/%d)\n", u, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -974,7 +1017,7 @@ void test_jtr_lltoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__lltoa failed for _lltoa(%"PRId64", buf, %d)\n", ll, base);
+				printf("jtr_lltoa failed %"PRId64"/%d\n", ll, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -984,7 +1027,7 @@ void test_jtr_lltoa() {
 			if (cp != buf || toDeci_ll(buf, base) != ll) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__lltoa failed for _lltoa(%"PRId64", buf, %d)\n", ll, base);
+				printf("jtr_lltoa failed %"PRId64"/%d\n", ll, base);
 				memset(buf, 1, sizeof(buf));
 			}
 			x = strlen(buf);
@@ -992,7 +1035,7 @@ void test_jtr_lltoa() {
 				if (buf[x + y] != 1) {
 					failed = 0;
 					inc_failed_test();
-					printf("test__lltoa failed BUFFER OVERFLOW for _lltoa(%"PRId64", buf, %d)  %s\n", ll, base, hex(buf, x + 8));
+					printf("jtr_lltoa failed BUFFER OVERFLOW %"PRId64"%d - %s\n", ll, base, hex(buf, x + 8));
 					memset(buf, 1, sizeof(buf));
 				}
 			}
@@ -1005,7 +1048,7 @@ void test_jtr_lltoa() {
 			if (cp != jnk || memcmp(jnk, "\0nk", 4)) {
 				failed = 0;
 				inc_failed_test();
-				printf("test__lltoa failed for _lltoa(%"PRId64", buf, %d)\n", ll, base);
+				printf("jtr_lltoa failed %"PRId64"/%d\n", ll, base);
 				memset(buf, 1, sizeof(buf));
 			}
 		}
@@ -1263,7 +1306,8 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 	// First, we use the pure digit string
 	// which we 'known' should pass all tests
 	strcpy(Line, _hex_even_digits[_ISHEX_CNT - 1]);
-	strcat(Line, "55555");	// since we pass > than length _ISHEX_CNT*2 at times.
+	// since we pass > than length _ISHEX_CNT*2 at times.
+	strcat(Line, "55555");
 
 	for (i = 0; i < (_ISHEX_CNT - 1) * 2; ++i) {
 
@@ -1293,7 +1337,8 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 	// Next, we use the uc case string
 	// all lc only tests should fail every time
 	strcpy(Line, _hex_even_upper[_ISHEX_CNT - 1]);
-	strcat(Line, "55555");	// since we pass > than length _ISHEX_CNT*2 at times.
+	// since we pass > than length _ISHEX_CNT*2 at times.
+	strcat(Line, "55555");
 
 	for (i = 4; i < (_ISHEX_CNT - 1) * 2; ++i) {
 
@@ -1305,7 +1350,7 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 			Line[i] = j;
 			inc_test(); failed = 0;
 			v = fn(Line, i);
-			// note, this should ALWAYS succeed
+			// succeed only for uc version, or all case version
 			if ((!v && uc) || (v && lc && !(uc&&lc)))
 				inc_failed_test();
 			v = fn(Line, i + 1);
@@ -1323,7 +1368,8 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 	// Next, we use the lc case string
 	// all uc only tests should fail every time
 	strcpy(Line, _hex_even_lower[_ISHEX_CNT - 1]);
-	strcat(Line, "55555");	// since we pass > than length _ISHEX_CNT*2 at times.
+	// since we pass > than length _ISHEX_CNT*2 at times.
+	strcat(Line, "55555");
 
 	for (i = 4; i < (_ISHEX_CNT - 1) * 2; ++i) {
 
@@ -1335,8 +1381,8 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 			Line[i] = j;
 			inc_test(); failed = 0;
 			v = fn(Line, i);
-			// note, this should ALWAYS succeed
-			if ((!v && lc) || (v && uc && !(uc&&lc)))
+			// succeed only for lc version, or all case version
+			if ((!v && lc) || (v && uc && !(uc && lc)))
 				inc_failed_test();
 			v = fn(Line, i + 1);
 			// note, this should ALWAYS fail!
@@ -1353,7 +1399,8 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 	// finally, we use the mixed case string
 	// all lc/uc only tests should fail every time
 	strcpy(Line, _hex_even_mixed[_ISHEX_CNT - 1]);
-	strcat(Line, "55555");	// since we pass > than length _ISHEX_CNT*2 at times.
+	// since we pass > than length _ISHEX_CNT*2 at times.
+	strcat(Line, "55555");
 
 	for (i = 4; i < (_ISHEX_CNT - 1) * 2; ++i) {
 
@@ -1365,8 +1412,8 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 			Line[i] = j;
 			inc_test(); failed = 0;
 			v = fn(Line, i);
-			// note, this should ALWAYS succeed, but only only for non lc/uc versions
-			if ((!v && lc && uc) || (v && !(uc&&lc)))
+			// succeed, only for all-case version
+			if ((!v && lc && uc) || (v && !(uc && lc)))
 				inc_failed_test();
 			v = fn(Line, i + 1);
 			// note, this should ALWAYS fail!
@@ -1429,8 +1476,9 @@ void _test_one_hexlen(size_t (fn)(const char *, int *), int uc, int lc) {
 		}
 		Line[i] = keep;
 	}
-	// here we test the cases.  If a test has low case letter in it, and lc is not set, we simply
-	// skip that test.  Same for the upper cased letters and uc is not set.
+	// here we test the cases.
+	// If a test has low case letter in it, and lc is not set, we simply
+	// skip that test. Same for the upper cased letters and uc is not set.
 
 	if (uc && lc) {
 		// Next, we use the mixed case string
@@ -1643,33 +1691,40 @@ void test_isdecu() {
 }
 
 
-// Test bed code for internal JTR hash code, i.e. MD2, MD4, MD5, SHA/1/2/224/256... ect
-//
+// Test code for internal JTR hash code, i.e. MD2, MD4, MD5, SHA/1/2... etc
+//   do not worry about testing things like OpenSSL hashes!. Waste of time.
 //  I use a lot of vectors from https://www.cosic.esat.kuleuven.be/nessie/testvectors/
-//    they have a standard file layout, so are easy to get ahold of and auto-test.
+//  they have a standard file layout, so are easy to auto-test.
 
 typedef struct {
 	unsigned char *test_data;
 	char *message;
 	uint64_t test_bits;
-	char hash[129], *cur;	// result hash (UC hex). 512 bit hash is 128 byte hex string.
+	// result hash (UC hex). 512 bit hash fits (128+1 byte hex string)
+	char hash[129], *cur;
 	int iterations;
 } Hash_Tests;
-Hash_Tests *pHashTests;
-int nHash_Tests;
+Hash_Tests *HTst;
+int nHTst;
 
 void _Reset_test_hash_data() {
 	int n;
-	for (n = 0; n < nHash_Tests; ++n) {
-		free(pHashTests[n].test_data);
-		free(pHashTests[n].message);
+	for (n = 0; n < nHTst; ++n) {
+		free(HTst[n].test_data);
+		free(HTst[n].message);
 	}
-	free(pHashTests);
-	nHash_Tests = 0;
-	pHashTests = NULL;
+	free(HTst);
+	nHTst = 0;
+	HTst = NULL;
 }
 
-uint64_t _parse_message_get_bits(const char *cp) {
+/**********************************************************************
+ * parsing the NESSIE files are a bit nasty, but once it is done and
+ * working, we can easily toss more files into the unit-tests easily.
+ **********************************************************************/
+
+/* this function pre-parses, but only to get the bit count for each message */
+uint64_t _parse_NESSIE_bits(const char *cp) {
 	const char *cp2;
 	long long bits, b;
 	unsigned u;
@@ -1681,15 +1736,21 @@ uint64_t _parse_message_get_bits(const char *cp) {
 		cp2 = strchr(cp, '\"');
 		if (strstr(cp, "...") == 0)
 			return (cp2 - cp) * 8;
-		// there are ranges. We have to compute how many 'real' bytes once ranges are handled
+		// there are ranges. Compute how many 'real' byte counts once
+		// ranges are handled.  In the end, the len is bits+8*b
+		// the ranges get put into bits.  The 'literal' data gets
+		// put into b. NOTE, we subtract from bits for each range,
+		// since there is literal 'data', but we do NOT use it for
+		// each range.
 		bits = 0;
 		for (b = 0; &cp[b] < cp2; ++b) {
 			if (cp[b] != '.' && !strncmp(&cp[b + 1], "...", 3)) {
 				char f = cp[b];
 				char t = cp[b + 4];
-				// ok, we move b forward 5, so remove 5*8 from bits
+				// ok, we move b forward 5, so remove 40 bits
 				b += 4;  // Note ++b in the for statement ;)
 				bits -= (5 * 8);
+				// this computes bits properly.
 				for (; f <= t; ++f)
 					bits += 8;
 			}
@@ -1707,6 +1768,8 @@ uint64_t _parse_message_get_bits(const char *cp) {
 
 	}
 	// # zero bits
+	//	NOTE, we only handle, bits==0 mod(8), BUT read all from file
+	//	in case at some later date, we want to test 1 bit, 2 bit, etc.
 	if (sscanf(cp, "%llu zero %c", &bits, &c) == 2 && c == 'b')
 		return bits;
 	// 512-bit string: x*00,hex,y*00
@@ -1720,8 +1783,8 @@ uint64_t _parse_message_get_bits(const char *cp) {
 	printf("Un-handled %s\n", cp);
 	return 0;
 }
-
-unsigned char *_parse_message_getdata(const char *cp, uint64_t bits) {
+/* this function allocates a buffer, and parses the message properly. */
+unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
 	unsigned char *p, *pRet;
 	const char *cp2;
 	long long b;
@@ -1808,9 +1871,22 @@ unsigned char *_parse_message_getdata(const char *cp, uint64_t bits) {
 	return pRet;
 }
 
+/*
+ * this function will load a NESSIE file, containing precomputed hash values
+ * and the message which generated this hash. These are known correct HASH
+ * data, pre-built to test hashing functions (such as MD5/SHA1, etc).
+ * NESSIE files:  https://www.cosic.esat.kuleuven.be/nessie/testvectors/
+ *
+ *  NOTE, here are other sources of pre-built test input data files:
+ *  AESAVS, KAT, MCT tests from the NIST CAVP (Note, NIST shut down
+ *  temporarily due to US govt fake shutdown).
+ *     http://csrc.nist.gov/groups/STM/cavp/documents/aes/AESAVS.pdf
+ *     https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/
+ */
 void _Load_test_hash_data(const char *fname) {
+	// currently only handles NESSIE files.
 	FILE *in = fopen(fname, "r");
-	char LineBuf[4096], *cp;  // note input data will be parsed before writing it to the real destination buffer.
+	char LineBuf[4096], *cp;
 	int n;
 	int in_hash;
 
@@ -1823,19 +1899,19 @@ void _Load_test_hash_data(const char *fname) {
 	fgets(LineBuf, sizeof(LineBuf), in);
 	while (!feof(in)) {
 		if (strstr(LineBuf, "vector#"))
-			++nHash_Tests;
+			++nHTst;
 		else if (strstr(LineBuf, "iterated "))
-			++nHash_Tests;
+			++nHTst;
 		fgets(LineBuf, sizeof(LineBuf), in);
 	}
 	fclose(in);
 
-	if (!nHash_Tests) {
+	if (!nHTst) {
 		fprintf(stderr, "Error, no hash test data found in %s\n", fname);
 		return;
 	}
 	// Now allocate
-	pHashTests = (Hash_Tests*)calloc(nHash_Tests, sizeof(Hash_Tests));
+	HTst = (Hash_Tests*)calloc(nHTst, sizeof(Hash_Tests));
 
 	// Now, re-read the file, and load the hash tests.
 	in = fopen(fname, "r");
@@ -1860,50 +1936,71 @@ void _Load_test_hash_data(const char *fname) {
 			if ((cp = strstr(LineBuf, "message=")) != NULL) {
 				cp += 8;
 				strtok(cp, "\r\n");
-				pHashTests[n].message = strdup(cp);
-				pHashTests[n].test_bits = _parse_message_get_bits(cp);
-				pHashTests[n].test_data = _parse_message_getdata(cp, pHashTests[n].test_bits);
-				pHashTests[n].cur = pHashTests[n].hash;
+				HTst[n].message = strdup(cp);
+				HTst[n].test_bits = _parse_NESSIE_bits(cp);
+				HTst[n].test_data = _parse_NESSIE(cp, HTst[n].test_bits);
+				HTst[n].cur = HTst[n].hash;
 				fgets(LineBuf, sizeof(LineBuf), in);
 				continue;
 			}
 			if ((cp = strstr(LineBuf, "iterated ")) != NULL) {
 				char c;
 				int x;
-				// Ok, here we take the last hash, replicate it X number of times, and then
-				// read in the hash expected.
+				// take the last message, perform hash on its
+				// data, BUT also re-run the hash on the raw
+				// output buffer iterated (-1) times, and
+				// compare to the expected hash.
 				++n;
-				pHashTests[n].message = malloc(strlen(pHashTests[n - 1].message) + strlen(cp) + 4);
-				sprintf(pHashTests[n].message, "%s - %s", pHashTests[n - 1].message, cp);
-				pHashTests[n].test_bits = pHashTests[n - 1].test_bits;
-				pHashTests[n].test_data = calloc(1, (pHashTests[n].test_bits + 7) / 8);
-				pHashTests[n].cur = pHashTests[n].hash;
-				// Ok, for THIS case, we set the pHashTests[n].iterations
+				// replicate last message
+				// but append iterated x times message.
+				HTst[n].message = malloc(strlen(HTst[n - 1].message) + strlen(cp) + 4);
+				sprintf(HTst[n].message, "%s - %s", HTst[n - 1].message, cp);
+				// test bits and data are SAME.
+				HTst[n].test_bits = HTst[n - 1].test_bits;
+				HTst[n].test_data = calloc(1, (HTst[n].test_bits + 7) / 8);
+				// The hash we will read from the file, starting
+				// with THIS line.
+				HTst[n].cur = HTst[n].hash;
 				//   the test data does this (perl code)
-				//     $s = hash($test_data); for ($n = 0; $n < $iterations; ++$n) { $s = hash($s); }  print unpack("H*", $s);
-				x = sscanf(LineBuf, " iterated %u times%c", &pHashTests[n].iterations, &c);
+				//      #!/usr/bin/perl
+				//      using Digest::hash  qw{hash};
+				//      my $s = hash($test_data);
+				//      my $n;
+				//      for ($n = 1; $n < $iterations; ++$n) {
+				//         $s = hash($s);
+			        //      }
+				//      print unpack("H*", $s);
+				x = sscanf(LineBuf, " iterated %u times%c", &HTst[n].iterations, &c);
 				if (x != 2 && c != '=') {
 					fprintf(stderr, "Invalid iteration line  %s\n", LineBuf);
 				}
-				// ok, we 'create' the first hash line (i.e. a fake one)
+				// since this iterations line contains the
+				// 'first' line of hash data, we need to
+				// make a fake message line, and then simply
+				// read the file forward.
 				cp = strchr(LineBuf, '=');
 				sprintf(LineBuf, "    hash");
-				// Note, cp is IN LineBuf, so be careful.  There 'should' be no memory overwrite
-				// issues, but just to be safe, we use memmove.
+				// Note, cp is IN LineBuf, so be careful.
 				memmove(&LineBuf[strlen(LineBuf)], cp, strlen(cp) + 1);
 			}
 			if ((cp=strstr(LineBuf, "hash=")) != NULL) {
+				// ok, this is the start of a hash line.
 				cp += 5;
 				strtok(cp, "\r\n");
-				strcpy(pHashTests[n].cur, cp);
-				pHashTests[n].cur += strlen(cp);
+				strcpy(HTst[n].cur, cp);
+				HTst[n].cur += strlen(cp);
 			}
 			else if (strlen(LineBuf) > 10) {
+				// if we have a line with > 10 bytes (actually
+				// if it is more than 2), and it was not caught
+				// by any of the above IF statements, then it
+				// is simply the continuation of the hash data
+				// so append it to the growing hash.
 				cp = LineBuf;
 				while (*cp == ' ') ++cp;
 				strtok(cp, "\r\n");
-				strcpy(pHashTests[n].cur, cp);
-				pHashTests[n].cur += strlen(cp);
+				strcpy(HTst[n].cur, cp);
+				HTst[n].cur += strlen(cp);
 			}
 		}
 		fgets(LineBuf, sizeof(LineBuf), in);
@@ -1911,92 +2008,50 @@ void _Load_test_hash_data(const char *fname) {
 	fclose(in);
 }
 
-/* NOTE, once these functions are 'set', we can make macros, and the functions become trivial (like in dynamic_compiler.c) */
-void _Perform_tests_SHA256() {
-	int n;
-	for (n = 0; n < nHash_Tests; ++n) {
-		SHA256_CTX c;
-		unsigned char buf[32];
 
-		if (pHashTests[n].test_bits % 8)
-			continue;  // for now, ignore non-full character data.
-		inc_test();
-		SHA256_Init(&c);
-		SHA256_Update(&c, pHashTests[n].test_data, pHashTests[n].test_bits / 8);
-		SHA256_Final(buf, &c);
-		if (pHashTests[n].iterations > 1) {
-			int j;
-			for (j = 1; j < pHashTests[n].iterations; ++j) {
-				SHA256_Init(&c);
-				SHA256_Update(&c, buf, 32);
-				SHA256_Final(buf, &c);
-			}
-		}
-		if (strcmp(packedhex(buf, 32), pHashTests[n].hash)) {
-			failed = 0;
-			inc_failed_test();
-			printf("      SHA256 test %d failed.  input %s\nExpected %s\nComputed %s\n", n + 1, pHashTests[n].message, pHashTests[n].hash, packedhex(buf, 32));
-		}
-	}
+void _hash_error(const char *T, int n, unsigned char *buf, int len) {
+	char *m = HTst[n].message;
+	unsigned mlen = HTst[n].test_bits / 8;
+	printf("%s test %d failed.\n", T, n + 1);
+	printf("   input    : %s [%s]\n", m, hex(m, mlen));
+	printf("   Expected : %s\n", HTst[n].hash);
+	printf("   Computed : %s\n", packedhex(buf, len));
+}
+// this macro will handle all oSSL CTX model hashes.
+// usage:  ossl_CTX_HASH(hash_type, hash_bytes, buffer_width)
+// note, some hashes like SHA224/SHA384 may have different hash_bytes
+// vs buffer_width.
+#define ossl_CTX_HASH(T,t,B,b)						\
+void _Perform_tests_##T ()	{					\
+	int n, j;							\
+	for (n = 0; n < nHTst; ++n) {					\
+		t##_CTX c;						\
+		unsigned char buf[b];					\
+									\
+		if (HTst[n].test_bits % 8)				\
+			continue;  /* only handle full byte data */	\
+		inc_test();						\
+		T##_Init(&c);						\
+		T##_Update(&c, HTst[n].test_data, HTst[n].test_bits/8);	\
+		T##_Final(buf, &c);					\
+		if (HTst[n].iterations > 1) {				\
+			for (j = 1; j < HTst[n].iterations; ++j) {	\
+				T##_Init(&c);				\
+				T##_Update(&c, buf, B);			\
+				T##_Final(buf, &c);			\
+			}						\
+		}							\
+		if (strcmp(packedhex(buf, B), HTst[n].hash)) {		\
+			failed = 0;					\
+			inc_failed_test();				\
+			_hash_error(#T, n, buf, B);			\
+		}							\
+	}								\
 }
 
-
-/* NOTE, once these functions are 'set', we can make macros, and the functions become trivial (like in dynamic_compiler.c) */
-void _Perform_tests_SHA384() {
-	int n;
-	for (n = 0; n < nHash_Tests; ++n) {
-		SHA512_CTX c;
-		unsigned char buf[64];
-
-		if (pHashTests[n].test_bits % 8)
-			continue;  // for now, ignore non-full character data.
-		inc_test();
-		SHA384_Init(&c);
-		SHA384_Update(&c, pHashTests[n].test_data, pHashTests[n].test_bits / 8);
-		SHA384_Final(buf, &c);
-		if (pHashTests[n].iterations > 1) {
-			int j;
-			for (j = 1; j < pHashTests[n].iterations; ++j) {
-				SHA384_Init(&c);
-				SHA384_Update(&c, buf, 48);
-				SHA384_Final(buf, &c);
-			}
-		}
-		if (strcmp(packedhex(buf, 48), pHashTests[n].hash)) {
-			failed = 0;
-			inc_failed_test();
-			printf("      SHA384 test %d failed.  input %s\nExpected %s\nComputed %s\n", n + 1, pHashTests[n].message, pHashTests[n].hash, packedhex(buf, 48));
-		}
-	}
-}
-
-void _Perform_tests_SHA512() {
-	int n;
-	for (n = 0; n < nHash_Tests; ++n) {
-		SHA512_CTX c;
-		unsigned char buf[64];
-
-		if (pHashTests[n].test_bits % 8)
-			continue;  // for now, ignore non-full character data.
-		inc_test();
-		SHA512_Init(&c);
-		SHA512_Update(&c, pHashTests[n].test_data, pHashTests[n].test_bits / 8);
-		SHA512_Final(buf, &c);
-		if (pHashTests[n].iterations > 1) {
-			int j;
-			for (j = 1; j < pHashTests[n].iterations; ++j) {
-				SHA512_Init(&c);
-				SHA512_Update(&c, buf, 64);
-				SHA512_Final(buf, &c);
-			}
-		}
-		if (strcmp(packedhex(buf, 64), pHashTests[n].hash)) {
-			failed = 0;
-			inc_failed_test();
-			printf("      SHA384 test %d failed.  input %s\nExpected %s\nComputed %s\n", n + 1, pHashTests[n].message, pHashTests[n].hash, packedhex(buf, 64));
-		}
-	}
-}
+ossl_CTX_HASH(SHA256, SHA256, 32, 32)
+ossl_CTX_HASH(SHA384, SHA512, 48, 64)
+ossl_CTX_HASH(SHA512, SHA512, 64, 64)
 
 void test_sha2_c() {
 	start_test(__FUNCTION__);
@@ -2046,7 +2101,6 @@ int main() {
 	test_jtr_lltoa();	// const char *jtr_lltoa(int64_t val, char *result, int rlen, int base)
 	test_jtr_ulltoa();	// const char *jtr_ulltoa(uint64_t val, char *result, int rlen, int base)
 test_human_prefix();	// char *human_prefix(uint64_t num)
-
 
 	set_unit_test_source("common.c");
 	_gen_hex_len_data();
