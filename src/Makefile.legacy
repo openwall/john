@@ -323,7 +323,7 @@ default:
 	@echo "beos-x86-any             BeOS, x86"
 	@echo "generic                  Any other Unix-like system with gcc"
 
-unit_tests:
+unit-tests:
 	$(CC) -o ../run/unit_tests -Wall -O -fno-omit-frame-pointer -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG tests/unit_tests.c misc.c common.c memory.c
 	../run/unit_tests
 
