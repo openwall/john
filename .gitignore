@@ -61,7 +61,7 @@ run/uaf2john
 run/unafs
 run/undrop
 run/unique
-run/unit_tests
+run/unit-tests
 run/unshadow
 run/vncpcap2john
 run/wpapcap2john

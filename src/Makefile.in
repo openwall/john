@@ -779,10 +779,10 @@ testfiles:
 ###############################################################################
 
 UNIT_TEST_OBJS = \
-	tests/unit_tests.o tests/misc.o tests/common.o tests/memory.o tests/sha2.o
+	tests/unit-tests.o tests/misc.o tests/common.o tests/memory.o tests/sha2.o
 
-tests/unit_tests.o:	tests/unit_tests.c common.h memory.h misc.h
-	$(CC) -o tests/unit_tests.o $(CFLAGS) -DFORCE_GENERIC_SHA2 -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  tests/unit_tests.c
+tests/unit-tests.o:	tests/unit-tests.c common.h memory.h misc.h
+	$(CC) -o tests/unit-tests.o $(CFLAGS) -DFORCE_GENERIC_SHA2 -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  tests/unit-tests.c
 
 tests/sha2.o:	sha2.c arch.h sha2.h aligned.h openssl_local_overrides.h md4.h md5.h jtr_sha2.h johnswap.h common.h memory.h stdbool.h params.h os.h os-autoconf.h autoconfig.h jumbo.h
 	$(CC) -o tests/sha2.o $(CFLAGS) -DFORCE_GENERIC_SHA2 -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  sha2.c
@@ -798,14 +798,14 @@ tests/memory.o:	 memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h j
 	$(CC) -o tests/memory.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  memory.c
 
 unit-tests: $(UNIT_TEST_OBJS)
-	$(CC) -o ../run/unit_tests $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS)
+	$(CC) -o ../run/unit-tests $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS)
 	@ echo "Now Running the Unit Tests"
-	@ ../run/unit_tests
-	# @ if [ -e ../test/jtrts.pl ] ; then echo "Now Running jtrts.pl -q mode" && cd ../test && perl jtrts.pl -q && cd .. ; fi
-	# @ echo "Now Testing john 'external' mode"
-	# @ ../run/john -conf=tests/john-tc.conf -stdout -extern=double 2> /dev/null > tests/external.tst
-	# @ diff tests/external.expect tests/external.tst
-	# @ rm tests/external.tst
+	@ ../run/unit-tests@EXE_EXT@
+	@ # Extra testing past the unit-tests code commented out for now until I figure out how best to do this.
+	@ # echo "Now Testing john 'external' mode"
+	@ # ../run/john -conf=tests/john-tc.conf -stdout -extern=double 2> /dev/null > tests/external.tst
+	@ # diff tests/external.expect tests/external.tst
+	@ # rm tests/external.tst
 
 ###############################################################################
 
