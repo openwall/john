@@ -184,7 +184,7 @@ endif
 #  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
 #
 #########################################################
-default:
+default: unit-tests
 	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
@@ -767,14 +767,14 @@ testfiles:
 
 
 ###############################################################################
-#  unit_tests target.  Note, this is a stand along target. It builds and tests
+#  unit-tests target.  Note, this is a stand along target. It builds and tests
 #  some unique tests, against john 'common' codebase.  Source files like misc.c
 #  common.c, etc have a test suite file built to test each one.  Code such as
 #  compiler.c/external.c have special test suite john.conf files, where we run
 #  the 'real' john against them, and expect certain results.  Test cases will
 #  be added to the john-tc.conf file as needed when any issue shows up
 #  same type thing for testing base64_convert.c which contains it's own ST
-#  code, and for dynamic, which has the dynamic test suite.  The unit_tests
+#  code, and for dynamic, which has the dynamic test suite.  The unit-tests
 #  are really designed as a
 ###############################################################################
 
@@ -797,7 +797,7 @@ tests/common.o:	common.c arch.h common.h memory.h os.h os-autoconf.h autoconfig.
 tests/memory.o:	 memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h johnswap.h os.h os-autoconf.h
 	$(CC) -o tests/memory.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  memory.c
 
-unit_tests: $(UNIT_TEST_OBJS) default
+unit-tests: $(UNIT_TEST_OBJS)
 	$(CC) -o ../run/unit_tests $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS)
 	@ echo "Now Running the Unit Tests"
 	@ ../run/unit_tests
