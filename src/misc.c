@@ -257,7 +257,8 @@ void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
 	uint8_t *d = dst;
 	const uint8_t *s = src;
 
-	if ((int64_t)size < 1)
+	// logically the same as:  if (size < 1) IF size were signed.
+	if (!size || size > (((size_t)-1) >> 1))
 		return dst;
 
 	while (*s && size) {
