@@ -20,7 +20,7 @@
 // Read-ahead buffer.
 //
 module procb_buf #(
-	parameter N_THREADS = 6,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -34,7 +34,8 @@ module procb_buf #(
 
 	input [N_THREADS_MSB :0] rd_thread_num,
 	input rd_en, rd_rst, lookup_en,
-	output aempty, lookup_empty,
+	output aempty,// lookup_empty,
+	output reg lookup_empty = 1,
 	output [`PROCB_D_WIDTH-1 :0] dout
 	);
 
@@ -90,8 +91,12 @@ module procb_buf #(
 			lookup_addr <= 0;
 		end
 
-		if (lookup_en)
+		if (lookup_en) begin
 			lookup_addr <= lookup_addr + 1'b1;
+			lookup_empty <= lookup_addr + 1'b1 == wr_addr_rd | wr_addr_rd == 0;
+		end
+		else
+			lookup_empty <= lookup_addr == wr_addr_rd | wr_addr_rd == 0;
 
 	end
 
@@ -101,7 +106,7 @@ module procb_buf #(
 
 	//assign lookup_aempty = wr_addr_rd == lookup_addr + 1'b1;
 
-	assign lookup_empty = wr_addr_rd == lookup_addr | wr_addr_rd == 0;
+	//assign lookup_empty = wr_addr_rd == lookup_addr | wr_addr_rd == 0;
 
 
 	// *****************************************************************

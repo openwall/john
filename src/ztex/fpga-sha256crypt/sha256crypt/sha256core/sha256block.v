@@ -17,41 +17,55 @@
 module sha256block(
 	input CLK,
 
-	input external_input_en, // select external input
+	// input buffer
+	input wr_en,
+	input [31:0] din,
+	input [5:0] input_buf_wr_addr,
+	input input_buf_rd_en,
+	input [5:0] input_buf_rd_addr,
+
+	input glbl_en,
+	input input_buf_en, // select input from the input buffer
 	input ctx_save_en, // select save into memory from context
-	//input save_en,
-	input [31:0] in,
+	input save_r_en,
 
 	// memory ops
 	input mem_wr_en,
 	input mem_rd_en0, mem_rd_en1,
 	input [6:0] wr_addr, rd_addr0, rd_addr1,
 
-	//input R0_en, R1_rst, R1_en, W16_rst, W16_en,
-	input R0_en, R1_en, W16_rst, W16_en, Wt_2_en,
+	input R0_en, R1_rst, R1_en, W16_rst, W16_en, R1_2_en,
 
 	// Kt unit
 	input Kt_en,
 	input [6:0] K_round_num,
 
 	// Context unit
-	input S1_CH_I_rst, S1_CH_I_en,
-	input S0_en, MAJ_en, block2ctx_en,
-	input ctx_en,
+	input S1_CH_rst,
+	input S0_rst,
+	input D2E_en,
+	input block2ctx_en, T1_rst,
 
-	input output_en,
 	output [31:0] o
 	);
 
-	//reg [31:0] save_r = 0;
-	wire [31:0] mem_input;
+	(* RAM_STYLE="block" *)
+	reg [31:0] input_buf [0:63];
+	reg [31:0] input_buf_out;
+	always @(posedge CLK) begin
+		if (wr_en)
+			input_buf [input_buf_wr_addr] <= din;
+		if (input_buf_rd_en)
+			input_buf_out <= input_buf [input_buf_rd_addr];
+
+	end
+
+	reg [31:0] save_r = 0;
 
 	wire [31:0] mem0_out, mem1_out;
-
 	w_mem w_mem(
 		.CLK(CLK),
-		//.in(save_r),
-		.in(mem_input),
+		.in(save_r),
 		.wr_en(mem_wr_en), .wr_addr(wr_addr),
 
 		.rd_addr0(rd_addr0), .rd_addr1(rd_addr1),
@@ -59,65 +73,67 @@ module sha256block(
 		.out0(mem0_out), .out1(mem1_out) // right out from BRAM
 	);
 
+	reg [31:0] input_r;
+	always @(posedge CLK)
+		if (glbl_en)
+			input_r <= input_buf_en ? input_buf_out : mem0_out;
+
 	//
 	// Prevent usage of BRAM output registers
 	//
-	reg mem_rd_en0_r = 0, mem_rd_en1_r = 0;
-	always @(posedge CLK) begin
-		mem_rd_en0_r <= mem_rd_en0;
+	reg mem_rd_en1_r = 0;
+	always @(posedge CLK)
 		mem_rd_en1_r <= mem_rd_en1;
-	end
-	
-	wire [31:0] mem0, mem1;
 
-	ff32 ff_reg0(
-		.CLK(CLK), .en(mem_rd_en0_r), .rst(1'b0),
-		.i(mem0_out), .o(mem0)
-	);
-
+	wire [31:0] mem1_r;
 	ff32 ff_reg1(
 		.CLK(CLK), .en(mem_rd_en1_r), .rst(1'b0),
-		.i(mem1_out), .o(mem1)
+		.i(mem1_out), .o(mem1_r)
 	);
 
-
-	wire [31:0] Wtmp =
-		external_input_en ? in :
-		R0_en ? `SHA256_R0(mem1) + mem0 :
-		mem0;
-
-	reg [31:0] W16 = 0;
+	reg [31:0] Wtmp;
 	always @(posedge CLK)
+		if (glbl_en)
+			Wtmp <= (R0_en ? `SHA256_R0(mem1_r) : 0) + input_r;
+
+	reg [31:0] W16 = 0, W16_2 = 0, W16_3 = 0;
+	always @(posedge CLK) begin
 		if (W16_rst)
 			W16 <= 0;
-		else if (W16_en)
-			W16 <= mem1;
-/*	
-	reg [31:0] R1 = 0;
-	always @(posedge CLK)
+		else if (W16_en) begin
+			W16 <= W16_2;
+		end
+		if (W16_en) begin
+			W16_2 <= W16_3;
+			W16_3 <= mem1_r;
+		end
+	end
+
+	reg [31:0] Wt = 0;
+	reg [31:0] R1 = 0, R1_2 = 0;
+	always @(posedge CLK) begin
 		if (R1_rst)
 			R1 <= 0;
 		else if (R1_en)
-			R1 <= `SHA256_R1(Wt);
-*/
-	wire [31:0] R1;
+			R1 <= `SHA256_R1(R1_2);
 
-	wire [31:0] Wt;
+		if (R1_2_en)
+			R1_2 <= Wt;
+	end
+
+	wire [31:0] Wt_r;
 	add3 Wt_inst (.CLK(CLK), .en(1'b1), .rst(1'b0),
-		.a(Wtmp), .b(W16), .c(R1), .o(Wt) );
+		.a(Wtmp), .b(W16), .c(R1), .o(Wt_r) );
 
-	reg [31:0] Wt_2;
 	always @(posedge CLK)
-		if (Wt_2_en)
-			Wt_2 <= Wt;
+		if (glbl_en)
+			Wt <= Wt_r;
 
-	assign R1 = R1_en ? `SHA256_R1(Wt_2) : 0;
 
 	wire [31:0] ctx2block;
-	assign mem_input = ctx_save_en ? ctx2block : Wt_2;//Wt;
-	//always @(posedge CLK)
-	//	if (save_en)
-	//		save_r <= ctx_save_en ? ctx2block : Wt;
+	always @(posedge CLK)
+		if (save_r_en)
+			save_r <= ctx_save_en ? ctx2block : R1_2;
 
 
 	wire [31:0] Kt;
@@ -130,14 +146,18 @@ module sha256block(
 
 	sha256ctx sha256ctx(
 		.CLK(CLK),
-		.S1_CH_I_rst(S1_CH_I_rst), .S1_CH_I_en(S1_CH_I_en),
-		.S0_en(S0_en), .MAJ_en(MAJ_en), .block2ctx_en(block2ctx_en),
-		.en(ctx_en),// .D2E_en(1'b0),
-		.block2ctx(mem1), .Wt(Wt), .Kt(Kt),
-		.output_en(output_en), .o(ctx2block)
+		.S1_CH_rst(S1_CH_rst),
+		.S0_rst(S0_rst),
+		.D2E_en(D2E_en),
+		.block2ctx_en(block2ctx_en), .T1_rst(T1_rst),
+		.glbl_en(glbl_en),
+
+		.block2ctx(mem1_r),
+		.Wt(Wt), .Kt(Kt),
+		.o(ctx2block)
 	);
 
-	assign o = ctx2block;
+	assign o = save_r;
 
 endmodule
 
@@ -152,9 +172,8 @@ endmodule
 //
 // content
 // 0..15 - current block
+// 16..23 - saved context
 // 24..31 - IVs in reverse order (H..A)
-// 32..63 - context save slots (0..3) for seq0
-// 96..127 - context save slots (0..3) for seq1
 //
 module w_mem(
 	input CLK,
@@ -165,7 +184,7 @@ module w_mem(
 
 	input [6:0] rd_addr0, rd_addr1,
 	input rd_en0, rd_en1,
-	output [31:0] out0, out1
+	output reg [31:0] out0 = 0, out1 = 0
 	);
 
 	localparam [255:0] SHA256_IV = `SHA256_IV;
@@ -180,8 +199,6 @@ module w_mem(
 			mem1[k] = SHA256_IV[(31-k)*32 +:32];
 		end
 
-	reg [31:0] mem0_r = 0, mem1_r = 0;
-
 	always @(posedge CLK) begin
 		if (wr_en) begin
 			mem0 [wr_addr] <= in;
@@ -189,12 +206,9 @@ module w_mem(
 		end
 
 		if (rd_en0)
-			mem0_r <= mem0 [rd_addr0];
+			out0 <= mem0 [rd_addr0];
 		if (rd_en1)
-			mem1_r <= mem1 [rd_addr1];
+			out1 <= mem1 [rd_addr1];
 	end
-
-	assign out0 = mem0_r;
-	assign out1 = mem1_r;
 
 endmodule

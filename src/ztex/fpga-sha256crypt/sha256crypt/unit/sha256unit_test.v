@@ -7,15 +7,13 @@
  * modification, are permitted.
  *
  */
-`include "sha256.vh"
+`include "../sha256.vh"
 
 
 module sha256unit_test();
 
 	reg READ_ALL_FROM_UOB = 1;
 	
-	localparam N_CORES = 3;
-
 	integer i;
 	
 	initial begin
@@ -44,13 +42,13 @@ module sha256unit_test();
 		//
 		// Hash (MSB 1st):
 		// df76a4ac 7d2ee53c ... 433ccf79 bfb0ff66
-		//send_data_packet(3,10,12,"saltstring","Hello world!");
+		send_data_packet(3,10,12,"saltstring","Hello world!");
 
 		// { "$5$rounds=10$=", "salt_len1",
 		// "$5$rounds=10$=$6xbUmUoT3ar.pSyHy3wyYp1.PFjzlnvdhokMQn14449" },
 		// b186dc0d ... 4f854882
 		send_data_packet(10,1,9,"=","salt_len1");
-		
+
 		// { "$5$rounds=10$.", "abc",
 		// "$5$rounds=10$.$RqqFgOjl6uw9cciogvv9qYLzWJu5JgBivoh1TDMJTj3" },
 		// 5bdfdfdd ... d288f647
@@ -142,13 +140,11 @@ module sha256unit_test();
 	reg ctrl = 0, wr_en = 0;
 	
 
-	sha256unit #( .N_CORES(N_CORES) ) sha256unit(
+	sha256unit sha256unit(
 		.CLK(CLK),
 		.unit_in(in), .unit_in_ctrl(ctrl),
 		.unit_in_wr_en(wr_en), .unit_in_afull(afull),
 		.unit_in_ready(ready),
-		
-		.PKT_COMM_CLK(CLK),
 		.dout(), .rd_en(READ_ALL_FROM_UOB), .empty()
 	);
 

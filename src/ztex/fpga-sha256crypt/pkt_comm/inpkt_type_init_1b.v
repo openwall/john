@@ -25,7 +25,7 @@ module inpkt_type_init_1b(
 	//output reg err = 0
 	);
 
-	assign full = ~empty;
+	assign full = 0;
 
 	always @(posedge CLK) begin
 		if (wr_en & empty) begin

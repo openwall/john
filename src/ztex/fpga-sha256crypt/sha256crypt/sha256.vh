@@ -25,27 +25,29 @@
 	128'h_a54ff53a_3c6ef372_bb67ae85_6a09e667 }
 
 
-// ===== Block processing options =====
+// =====================================================
 //
-`define	BLK_OP_MSB	5
-// New/load context: 1 - new, 0 - load
+`define	N_CORES		3
+`define	N_THREADS	12
+
+
+// ===== Block processing options (transferred to cores) =====
+//
+`define	BLK_OP_MSB	1
+// 1 - new context, 0 - load context
 `define	BLK_OP_IF_NEW_CTX(r)		r[0]
-// If load context: 0..N - load saved context from slot 0..N
-`define	BLK_OP_LOAD_CTX_NUM(r)	r[2:1]
-// Where to save the context: 0..N - save into slot 0..N
-`define	BLK_OP_SAVE_CTX_NUM(r)	r[4:3]
 // 1) Output computed result;
 // 2) Used to set thread state.
-`define	BLK_OP_END_COMP_OUTPUT(r)	r[5]
+`define	BLK_OP_END_COMP_OUTPUT(r)	r[1]
 
 
-// ===== sha256crypt engine (services several cores) =====
+// ===== engine (services several cores) =====
 //
 // "Main" memory (per thread; in 32-bit words)
 // 2**(4+1) x4 = 32 x4 = 128 bytes
 `define	MEM_ADDR_MSB	4
 // "Main" memory (per engine) [0: 2**(`MEM_TOTAL_MSB+1)-1]
-`define	MEM_TOTAL_MSB	(`MEM_ADDR_MSB + 3)
+`define	MEM_TOTAL_MSB	(`MEM_ADDR_MSB + 4)
 
 // process_bytes (in bytes)
 // max.key_len=32 (comp.len <2k)
@@ -72,17 +74,17 @@
 
 // ===== comp_buf, procb_buf, saved_procb_state =====
 //
-`define	COMP_DATA1_MSB		(1 + 2 + 2)-1
+`define	COMP_DATA1_MSB		0
 `define	COMP_DATA2_MSB		(`MEM_ADDR_MSB+1 + 4)-1
 
 // address width for procb records (per thread)
 `define	PROCB_N_RECORDS	4
 `define	PROCB_A_WIDTH		3
 // width of each procb record
-`define	PROCB_D_WIDTH		(`MEM_ADDR_MSB+1 + `PROCB_CNT_MSB+1 +2)
+`define	PROCB_D_WIDTH		(`MEM_ADDR_MSB+1 + `PROCB_CNT_MSB+1 + 1)
 
-`define	PROCB_SAVE_WIDTH		(`MEM_ADDR_MSB+2+1 + `PROCB_CNT_MSB+1 \
-	+ `PROCB_TOTAL_MSB+1 + 5)
+`define	PROCB_SAVE_WIDTH		(3 + `MEM_ADDR_MSB+2+1 + `PROCB_CNT_MSB+1 \
+	+ `PROCB_TOTAL_MSB+1 + 4)
 
 
 // ===== CPU =====
@@ -91,7 +93,11 @@
 // 16 registers
 `define	REG_ADDR_MSB	3
 // Program entry points
+//`define	ENTRY_PTS_EN
 `define	ENTRY_PT_MSB	0
+//
+// Allow ADDC/SUBB instructions (slow; 210-220 max.)
+//`define	INSTR_SUBB_EN
 //
 // Each instruction consists of:
 `define	OP_CODE_LEN		5
@@ -259,12 +265,8 @@
 // *** Instructions - integer ***
 `define	ADD_R_C(r,const) {`FIELD_A r, `EXEC_OPT_NONE, \
 	`CONDITION, `FIELD_B r, `FIELD_C const, `OP_CODE_ADD_R_C}
-`define	ADDC_R_C(r,const) {`FIELD_A r, `EXEC_OPT_NONE, \
-	`CONDITION, `FIELD_B r, `FIELD_C const, `OP_CODE_ADDC_R_C}
 `define	SUB_R_C(dst,src,const) {`FIELD_A src, `EXEC_OPT_NONE, \
 	`CONDITION, `FIELD_B dst, `FIELD_C const, `OP_CODE_SUB_R_C}
-`define	SUBB_R_C(dst,src,const) {`FIELD_A src, `EXEC_OPT_NONE, \
-	`CONDITION, `FIELD_B dst, `FIELD_C const, `OP_CODE_SUBB_R_C}
 `define	INC_RST(r,const) {`FIELD_A r, `EXEC_OPT_NONE, \
 	`CONDITION, `FIELD_B r, `FIELD_C const, `OP_CODE_INC_RST}
 `define	MV_R_C(r,const) {`FIELD_A r, `EXEC_OPT_NONE, \
@@ -277,6 +279,12 @@
 `define	AND_R_C(dst,src,const) {`FIELD_A src, `EXEC_OPT_NONE, \
 	`CONDITION, `FIELD_B dst, `FIELD_C const, `OP_CODE_AND}
 
+`ifdef	INSTR_SUBB_EN
+`define	ADDC_R_C(r,const) {`FIELD_A r, `EXEC_OPT_NONE, \
+	`CONDITION, `FIELD_B r, `FIELD_C const, `OP_CODE_ADDC_R_C}
+`define	SUBB_R_C(dst,src,const) {`FIELD_A src, `EXEC_OPT_NONE, \
+	`CONDITION, `FIELD_B dst, `FIELD_C const, `OP_CODE_SUBB_R_C}
+`endif
 
 // *** Instructions - I/O ***
 //`define	MV_R_MEM_2X(r,addr) {`FIELD_A 0, `EXEC_OPT_NONE, \

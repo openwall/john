@@ -11,8 +11,8 @@
 
 
 module instruction #(
-	parameter N_CORES = 3,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_CORES = `N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -56,6 +56,7 @@ module instruction #(
 	// Program entry points
 	//
 	// **********************************************************
+`ifdef ENTRY_PTS_EN
 	reg [`IADDR_LEN-1 :0] entry_pts [2**(`ENTRY_PT_MSB+1)-1 :0];
 	initial begin
 		entry_pts[0] = 0;
@@ -67,7 +68,13 @@ module instruction #(
 		entry_pt_last <= entry_pt_curr;
 	
 	wire entry_pt_switch = entry_pt_last != entry_pt_curr;
-	
+	wire [`IADDR_LEN-1 :0] entry_pt = entry_pts [entry_pt_curr];
+
+`else
+	wire entry_pt_switch = 1'b0;
+	wire [`IADDR_LEN-1 :0] entry_pt = 0;
+`endif
+
 
 	// **********************************************************
 	//
@@ -80,7 +87,7 @@ module instruction #(
 	// **********************************************************
 	wire [`MSB(N_THREADS-1) :0] thread_num_ahead;
 	
-	thread_number #( .N_CORES(N_CORES)
+	thread_number #( .N_CORES(N_CORES), .N_THREADS(N_THREADS)
 	) thread_number(
 		.CLK(CLK),
 		.entry_pt_switch(entry_pt_switch),
@@ -126,7 +133,7 @@ module instruction #(
 				JUMP ? jump_addr :
 				EXECUTED ? IP_effective + 1'b1 :
 				~init ? IP_effective :
-				entry_pts [entry_pt_curr];
+				entry_pt;
 
 	always @(posedge CLK)
 		if (RELOAD) begin
@@ -144,7 +151,7 @@ module instruction #(
 	// Simulation / debug
 	reg z;
 	always @(posedge CLK)
-		if (IP_curr == 93)
+		if (IP_curr == 65)
 			z <= 1;
 
 

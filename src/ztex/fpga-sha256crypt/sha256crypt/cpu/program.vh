@@ -93,10 +93,9 @@ initial begin
 	instr_mem[14] = `PROCESS_BYTES_R_FINISH_CTX(`ADDR_key,`R_key_len);
 
 /*
-	// - HALT works as expected only after JMP.
 	instr_mem[15] = `JMP(16);
-	instr_mem[16] = `HALT;
-	instr_mem[17] = `NOP;
+	instr_mem[16] = `SET_OUTPUT_COMPLETE;
+	instr_mem[17] = `HALT;
 	instr_mem[18] = `NOP;
 */
 
@@ -256,7 +255,8 @@ initial begin
 	instr_mem[80] = `RST_UF;
 	instr_mem[81] = `NOP;
 	instr_mem[82] = `SUB_R_C(`R0,`R0,1);
-	instr_mem[83] = `SUBB_R_C(`R1,`R1,0);
+	`IF(`IF_CARRY)
+	instr_mem[83] = `SUB_R_C(`R1,`R1,1); `IF(`IF_NONE)
 	// TODO: some error handling / reporting
 	// - IF_CARRY -> raise error (cnt == 0)
 
@@ -296,9 +296,11 @@ initial begin
 
 	instr_mem[93] = `INV_UF;
 	instr_mem[94] = `SUB_R_C(`R0,`R0,1);
-	instr_mem[95] = `SUBB_R_C(`R1,`R1,0);
 	`IF(`IF_NOT_CARRY)
-	instr_mem[96] = `JMP(85); `IF(`IF_NONE)
+	instr_mem[95] = `JMP(85); `IF(`IF_NONE)
+	instr_mem[96] = `SUB_R_C(`R1,`R1,1);
+	`IF(`IF_NOT_CARRY)
+	instr_mem[97] = `JMP(85); `IF(`IF_NONE)
 
 	// - On FINISH_CTX, it sets thread_state to BUSY and it continues
 	// running until JMP or EXEC_OPT_TS_WR_RDY-flagged instruction.
@@ -359,50 +361,51 @@ initial begin
 	instr_mem[131] = `JMP(01);
 */
 
-	instr_mem[97] = `JMP(98);
-	instr_mem[98] = `MV_R_MEM_L(`R0,`ADDR_ids0);
-	instr_mem[99] = `MV_R_MEM_U(`R1,`ADDR_ids0);
-	instr_mem[100] = `MV_R_MEM_L(`R2,`ADDR_ids1);
-	instr_mem[101] = `MV_R_MEM_U(`R3,`ADDR_ids1);
-	instr_mem[102] = `MV_R_MEM_L(`R4,`ADDR_alt_result + 5'd0);
-	instr_mem[103] = `MV_R_MEM_U(`R5,`ADDR_alt_result + 5'd0);
-	instr_mem[104] = `MV_R_MEM_L(`R6,`ADDR_alt_result + 5'd1);
-	instr_mem[105] = `MV_R_MEM_U(`R7,`ADDR_alt_result + 5'd1);
-	instr_mem[106] = `MV_R_MEM_L(`R8,`ADDR_alt_result + 5'd2);
-	instr_mem[107] = `MV_R_MEM_U(`R9,`ADDR_alt_result + 5'd2);
-	instr_mem[108] = `MV_R_MEM_L(`R10,`ADDR_alt_result + 5'd3);
-	instr_mem[109] = `MV_R_MEM_U(`R11,`ADDR_alt_result + 5'd3);
+	instr_mem[98] = `JMP(100);
+	instr_mem[99] = `NOP;
+	instr_mem[100] = `MV_R_MEM_L(`R0,`ADDR_ids0);
+	instr_mem[101] = `MV_R_MEM_U(`R1,`ADDR_ids0);
+	instr_mem[102] = `MV_R_MEM_L(`R2,`ADDR_ids1);
+	instr_mem[103] = `MV_R_MEM_U(`R3,`ADDR_ids1);
+	instr_mem[104] = `MV_R_MEM_L(`R4,`ADDR_alt_result + 5'd0);
+	instr_mem[105] = `MV_R_MEM_U(`R5,`ADDR_alt_result + 5'd0);
+	instr_mem[106] = `MV_R_MEM_L(`R6,`ADDR_alt_result + 5'd1);
+	instr_mem[107] = `MV_R_MEM_U(`R7,`ADDR_alt_result + 5'd1);
+	instr_mem[108] = `MV_R_MEM_L(`R8,`ADDR_alt_result + 5'd2);
+	instr_mem[109] = `MV_R_MEM_U(`R9,`ADDR_alt_result + 5'd2);
+	instr_mem[110] = `MV_R_MEM_L(`R10,`ADDR_alt_result + 5'd3);
+	instr_mem[111] = `MV_R_MEM_U(`R11,`ADDR_alt_result + 5'd3);
 
-	instr_mem[110] = `MV_UOB_R(0,`R0);
-	instr_mem[111] = `MV_UOB_R(1,`R1);
-	instr_mem[112] = `MV_UOB_R(2,`R2);
-	instr_mem[113] = `MV_UOB_R(3,`R3);
-	instr_mem[114] = `MV_UOB_R(4,`R4);
-	instr_mem[115] = `MV_UOB_R(5,`R5);
-	instr_mem[116] = `MV_UOB_R(6,`R6);
-	instr_mem[117] = `MV_UOB_R(7,`R7);
-	instr_mem[118] = `MV_UOB_R(8,`R8);
-	instr_mem[119] = `MV_UOB_R(9,`R9);
-	instr_mem[120] = `MV_UOB_R(10,`R10);
-	instr_mem[121] = `MV_UOB_R(11,`R11);
+	instr_mem[112] = `MV_UOB_R(0,`R0);
+	instr_mem[113] = `MV_UOB_R(1,`R1);
+	instr_mem[114] = `MV_UOB_R(2,`R2);
+	instr_mem[115] = `MV_UOB_R(3,`R3);
+	instr_mem[116] = `MV_UOB_R(4,`R4);
+	instr_mem[117] = `MV_UOB_R(5,`R5);
+	instr_mem[118] = `MV_UOB_R(6,`R6);
+	instr_mem[119] = `MV_UOB_R(7,`R7);
+	instr_mem[120] = `MV_UOB_R(8,`R8);
+	instr_mem[121] = `MV_UOB_R(9,`R9);
+	instr_mem[122] = `MV_UOB_R(10,`R10);
+	instr_mem[123] = `MV_UOB_R(11,`R11);
 
-	instr_mem[122] = `MV_R_MEM_L(`R0,`ADDR_alt_result + 5'd4);
-	instr_mem[123] = `MV_R_MEM_U(`R1,`ADDR_alt_result + 5'd4);
-	instr_mem[124] = `MV_R_MEM_L(`R2,`ADDR_alt_result + 5'd5);
-	instr_mem[125] = `MV_R_MEM_U(`R3,`ADDR_alt_result + 5'd5);
-	instr_mem[126] = `MV_R_MEM_L(`R4,`ADDR_alt_result + 5'd6);
-	instr_mem[127] = `MV_R_MEM_U(`R5,`ADDR_alt_result + 5'd6);
-	instr_mem[128] = `MV_R_MEM_L(`R6,`ADDR_alt_result + 5'd7);
-	instr_mem[129] = `MV_R_MEM_U(`R7,`ADDR_alt_result + 5'd7);
+	instr_mem[124] = `MV_R_MEM_L(`R0,`ADDR_alt_result + 5'd4);
+	instr_mem[125] = `MV_R_MEM_U(`R1,`ADDR_alt_result + 5'd4);
+	instr_mem[126] = `MV_R_MEM_L(`R2,`ADDR_alt_result + 5'd5);
+	instr_mem[127] = `MV_R_MEM_U(`R3,`ADDR_alt_result + 5'd5);
+	instr_mem[128] = `MV_R_MEM_L(`R4,`ADDR_alt_result + 5'd6);
+	instr_mem[129] = `MV_R_MEM_U(`R5,`ADDR_alt_result + 5'd6);
+	instr_mem[130] = `MV_R_MEM_L(`R6,`ADDR_alt_result + 5'd7);
+	instr_mem[131] = `MV_R_MEM_U(`R7,`ADDR_alt_result + 5'd7);
 
-	instr_mem[130] = `MV_UOB_R(12,`R0);
-	instr_mem[131] = `MV_UOB_R(13,`R1);
-	instr_mem[132] = `MV_UOB_R(14,`R2);
-	instr_mem[133] = `MV_UOB_R(15,`R3);
-	instr_mem[134] = `MV_UOB_R(16,`R4);
-	instr_mem[135] = `MV_UOB_R(17,`R5);
-	instr_mem[136] = `MV_UOB_R(18,`R6);
-	instr_mem[137] = `MV_UOB_R(19,`R7);
+	instr_mem[132] = `MV_UOB_R(12,`R0);
+	instr_mem[133] = `MV_UOB_R(13,`R1);
+	instr_mem[134] = `MV_UOB_R(14,`R2);
+	instr_mem[135] = `MV_UOB_R(15,`R3);
+	instr_mem[136] = `MV_UOB_R(16,`R4);
+	instr_mem[137] = `MV_UOB_R(17,`R5);
+	instr_mem[138] = `MV_UOB_R(18,`R6);
+	instr_mem[139] = `MV_UOB_R(19,`R7);
 
 
 	// ************************************************************
@@ -415,8 +418,8 @@ initial begin
 	// 4) Suggested JMP immediately after the instruction.
 	//
 	// ************************************************************
-	instr_mem[138] = `SET_OUTPUT_COMPLETE;
-	instr_mem[139] = `JMP(01);
+	instr_mem[140] = `SET_OUTPUT_COMPLETE;
+	instr_mem[141] = `JMP(01);
 
 
 	// ************************************************************

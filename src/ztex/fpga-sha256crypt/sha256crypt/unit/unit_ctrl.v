@@ -7,7 +7,7 @@
  * modification, are permitted.
  *
  */
-`include "sha256.vh"
+`include "../sha256.vh"
 
 `ifdef SIMULATION
 //
@@ -17,11 +17,11 @@
 // because of Placement & Routing issues.
 //
 module unit_ctrl #(
-	parameter N_CORES = 3,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_CORES = `N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
-	input CLK, PKT_COMM_CLK,
+	input CLK,
 	// Unit Input
 	input [`UNIT_INPUT_WIDTH-1 :0] unit_in,
 	input unit_in_ctrl, unit_in_wr_en,
@@ -32,15 +32,30 @@ module unit_ctrl #(
 	output empty,
 	// *** Cores ***
 	// (are kept separate because of Placement & Routing issues)
-	output [N_CORES-1:0] core_wr_en, core_start,
-	input [N_CORES-1:0] core_ready, core_dout_en, core_dout_seq,
+	output [N_CORES-1:0] core_wr_en, core_start, core_seq_num,
+	output core_ctx_num,
+	input [4*N_CORES-1:0] core_ready,
 	output [31:0] core_din,
 	output [3:0] core_wr_addr,
 	output [`BLK_OP_MSB:0] core_blk_op,
-	output core_seq, core_set_input_ready,
+	output core_input_ctx, core_input_seq, core_set_input_ready,
+	
+	input [N_CORES-1:0] core_dout_en, core_dout_seq_num,
+	input [N_CORES-1:0] core_dout_ctx_num,
 	input [32*N_CORES-1 :0] core_dout,
 
 	output [5:0] err
+	);
+
+
+	// **********************************************************
+	//
+	//   CORES' CONTROLS
+	//
+	// **********************************************************
+	core_ctrl #( .N_CORES(N_CORES) ) core_ctrl(
+		.CLK(CLK), .core_start(core_start),
+		.ctx_num(core_ctx_num), .seq_num(core_seq_num)
 	);
 
 
@@ -85,14 +100,14 @@ module unit_ctrl #(
 		.mem_rd_cpu_request(mem_rd_cpu_request),
 		.mem_rd_addr_cpu(mem_rd_addr_cpu),
 		.mem_dout(mem_dout), .mem_rd_cpu_valid(mem_rd_cpu_valid),
-		// cores (kept separately because of P & R issues)
-		.core_wr_en(core_wr_en), .core_start(core_start),
-		.core_ready(core_ready),
-		.core_din(core_din), .core_wr_addr(core_wr_addr),
-		.core_blk_op(core_blk_op), .core_seq(core_seq),
+		// cores
+		.core_wr_en(core_wr_en), .core_ready(core_ready), .core_din(core_din),
+		.core_wr_addr(core_wr_addr), .core_blk_op(core_blk_op),
+		.core_input_seq(core_input_seq), .core_input_ctx(core_input_ctx), 
 		.core_set_input_ready(core_set_input_ready),
 		.core_dout(core_dout), .core_dout_en(core_dout_en),
-		.core_dout_seq(core_dout_seq),
+		.core_dout_seq_num(core_dout_seq_num),
+		.core_dout_ctx_num(core_dout_ctx_num),
 		.err(err[4:0])
 	);
 
@@ -135,13 +150,13 @@ module unit_ctrl #(
 	wire [15:0] uob_data;
 	wire [`UOB_ADDR_MSB :0] uob_wr_addr;
 
-	uob16pq unit_output_buf(
+	uob unit_output_buf(
 		.clk_wr(CLK),
 		.din(uob_data), .wr_en(uob_wr_en), .wr_addr(uob_wr_addr),
 		.full(uob_full), .ready(uob_ready),
 		.set_input_complete(uob_set_input_complete),
 
-		.clk_rd(PKT_COMM_CLK),
+		.clk_rd(CLK),
 		.dout(dout), .rd_en(rd_en), .empty(empty)
 	);
 
@@ -180,11 +195,11 @@ endmodule
 `else
 
 module unit_ctrl #(
-	parameter N_CORES = 3,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_CORES = `N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
-	input CLK, PKT_COMM_CLK,
+	input CLK,
 	// Unit Input
 	input [`UNIT_INPUT_WIDTH-1 :0] unit_in,
 	input unit_in_ctrl, unit_in_wr_en,
@@ -195,12 +210,16 @@ module unit_ctrl #(
 	output empty,
 	// *** Cores ***
 	// (are kept separate because of Placement & Routing issues)
-	output [N_CORES-1:0] core_wr_en, core_start,
-	input [N_CORES-1:0] core_ready, core_dout_en, core_dout_seq,
+	output [N_CORES-1:0] core_wr_en, core_start, core_seq_num,
+	output core_ctx_num,
+	input [4*N_CORES-1:0] core_ready,
 	output [31:0] core_din,
 	output [3:0] core_wr_addr,
 	output [`BLK_OP_MSB:0] core_blk_op,
-	output core_seq, core_set_input_ready,
+	output core_input_ctx, core_input_seq, core_set_input_ready,
+	
+	input [N_CORES-1:0] core_dout_en, core_dout_seq_num,
+	input [N_CORES-1:0] core_dout_ctx_num,
 	input [32*N_CORES-1 :0] core_dout,
 
 	output [5:0] err
@@ -212,11 +231,11 @@ endmodule
 
 
 module unit_ctrl_dummy #(
-	parameter N_CORES = 3,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_CORES = `N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
-	input CLK, PKT_COMM_CLK,
+	input CLK,
 	// Unit Input
 	input [`UNIT_INPUT_WIDTH-1 :0] unit_in,
 	input unit_in_ctrl, unit_in_wr_en,
@@ -227,12 +246,16 @@ module unit_ctrl_dummy #(
 	output empty,
 	// *** Cores ***
 	// (are kept separate because of Placement & Routing issues)
-	output [N_CORES-1:0] core_wr_en, core_start,
-	input [N_CORES-1:0] core_ready, core_dout_en, core_dout_seq,
+	output [N_CORES-1:0] core_wr_en, core_start, core_seq_num,
+	output core_ctx_num,
+	input [4*N_CORES-1:0] core_ready,
 	output [31:0] core_din,
 	output [3:0] core_wr_addr,
 	output [`BLK_OP_MSB:0] core_blk_op,
-	output core_seq, core_set_input_ready,
+	output core_input_ctx, core_input_seq, core_set_input_ready,
+	
+	input [N_CORES-1:0] core_dout_en, core_dout_seq_num,
+	input [N_CORES-1:0] core_dout_ctx_num,
 	input [32*N_CORES-1 :0] core_dout,
 
 	output [5:0] err

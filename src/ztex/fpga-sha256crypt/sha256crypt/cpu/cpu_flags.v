@@ -11,7 +11,7 @@
 
 module cpu_flags #(
 	parameter N = `N_FLAGS,
-	parameter N_THREADS = 16,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -23,6 +23,7 @@ module cpu_flags #(
 	output condition_is_true,
 
 	input set_flags,
+	(* KEEP="true" *)
 	input [N-1 :0] iop_flag_mask, flags_in
 	);
 
@@ -33,10 +34,11 @@ module cpu_flags #(
 	//
 	(* RAM_STYLE="DISTRIBUTED" *)
 	reg [N-1 :0] flags_mem [0: N_THREADS-1];
-	//reg [N-1 :0] flags_r;
+	initial
+		for (k=0; k < N; k=k+1)
+			flags_mem [k] = 0;
 
 	always @(posedge CLK) begin
-		//flags_r <= flags_mem [thread_num];
 		if (save_en)
 			flags_mem [thread_num] <= flags;
 	end
@@ -62,7 +64,6 @@ module cpu_flags #(
 	//
 	always @(posedge CLK) begin
 		if (load_en)
-			//flags <= flags_r;
 			flags <= flags_mem [thread_num];
 		else if (set_flags)
 			for (k=0; k < N; k=k+1)

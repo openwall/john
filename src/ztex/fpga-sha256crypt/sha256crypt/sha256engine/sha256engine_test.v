@@ -8,6 +8,9 @@
  *
  */
 
+//
+//  *** OUTDATED ! ***
+//
 
 `include "../sha256.vh"
 

@@ -32,8 +32,8 @@
 // ********************************************************************
 
 module template_list_b_varlen #(
-	parameter WORD_MAX_LEN = -1,
-	parameter RANGES_MAX = -1,
+	parameter WORD_MAX_LEN = `PLAINTEXT_LEN,
+	parameter RANGES_MAX = `RANGES_MAX,
 	parameter RANGE_INFO_MSB = 1 + `MSB(WORD_MAX_LEN-1)
 	)(
 	input CLK,
@@ -68,17 +68,18 @@ module template_list_b_varlen #(
 	reg [`MSB(RANGES_MAX-1):0] range_info_count = 0;
 	reg word_list_end_r = 0;
 
-	localparam [2:0] STATE_INIT = 0,
+	localparam STATE_INIT = 0,
 					STATE_WR_WORD = 1,
 					//STATE_PAD_ZEROES = 2,
 					STATE_WR_RANGE_INFO = 3,
 					STATE_RD_START = 4,
 					STATE_RD_WAIT = 5,
 					STATE_RD_LIST_END_START = 6,
-					STATE_RD_LIST_END_WAIT = 7;
+					STATE_RD_LIST_END_WAIT = 7,
+					STATE_ERROR = 8;
 
-	(* FSM_EXTRACT="true" *)
-	reg [2:0] state = STATE_INIT;
+	(* FSM_EXTRACT="true" *)//, FSM_ENCODING="one-hot" *)
+	reg [3:0] state = STATE_INIT;
 
 	always @(posedge CLK) begin
 		case (state)
@@ -114,9 +115,11 @@ module template_list_b_varlen #(
 			if (inpkt_end) begin
 				word_list_end_r <= 1;
 				if ((din != 0 & storage_wr_addr != WORD_MAX_LEN - 1)
-						| is_template_list)
+						| is_template_list) begin
 					// inexpected pkt_end
 					err_template <= 1;
+					state <= STATE_ERROR;
+				end
 			end
 		end
 
@@ -136,9 +139,11 @@ module template_list_b_varlen #(
 					<= { din[7], din[RANGE_INFO_MSB-1:0] };
 
 				if (WORD_MAX_LEN < 64
-						&& din[6 : RANGE_INFO_MSB >= 6 ? 6 : RANGE_INFO_MSB+1] != 0)
+						&& din[6 : RANGE_INFO_MSB >= 6 ? 6 : RANGE_INFO_MSB+1] != 0) begin
 					// unexpected content in range_info
 					err_template <= 1;
+					state <= STATE_ERROR;
+				end
 
 				if (range_info_count == RANGES_MAX - 1) begin
 					full <= 1;
@@ -149,9 +154,11 @@ module template_list_b_varlen #(
 
 			if (inpkt_end) begin
 				word_list_end_r <= 1;
-				if (din != 0 && range_info_count != RANGES_MAX - 1)
+				if (din != 0 && range_info_count != RANGES_MAX - 1) begin
 					// inexpected pkt_end
 					err_template <= 1;
+					state <= STATE_ERROR;
+				end
 			end
 		end
 
@@ -169,12 +176,15 @@ module template_list_b_varlen #(
 			end
 			else begin
 				word_id <= word_id + 1'b1;
-				state <= STATE_INIT;
+				//if ( ~|(word_id + 1'b1) ) begin
+				if (&word_id) begin
+					// word_id_r overflows
+					err_word_list_count <= 1;
+					state <= STATE_ERROR;
+				end
+				else
+					state <= STATE_INIT;
 			end
-
-			if ( ~|(word_id + 1'b1) )
-				// word_id_r overflows
-				err_word_list_count <= 1;
 		end
 
 		// Write dummy word after the end of the list,
@@ -187,6 +197,8 @@ module template_list_b_varlen #(
 		STATE_RD_LIST_END_WAIT: if (~storage_full)
 			state <= STATE_INIT;
 
+		STATE_ERROR:
+			full <= 1;
 		endcase
 	end
 

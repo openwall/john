@@ -17,18 +17,28 @@ module sha256core_test();
 
 	reg CLK = 0; // Each cycle is 20ns
 
-	reg start = 0;
-	reg [6:0] round_cnt = 0;
+	reg start = 0, ctx_num = 0, seq_num = 0;
+	reg [8:0] round_cnt = 0;
 	always @(posedge CLK) begin
 		if (start)
 			start <= 0;
 
-		if (round_cnt == 71) begin
+		if (round_cnt == 287)
 			round_cnt <= 0;
-			start <= 1;
-		end
 		else
 			round_cnt <= round_cnt + 1'b1;
+
+		if (round_cnt == 0 | round_cnt == 144
+				| round_cnt == 23 | round_cnt == 167)
+			start <= 1;
+
+		ctx_num <= round_cnt[0];
+		
+		seq_num <= ~round_cnt[0]
+			? ~(round_cnt >= 0 & round_cnt <= 142) // ctx0
+			: ~(round_cnt >= 23 & round_cnt <= 165) // ctx1
+		;
+
 	end
 
 
@@ -36,22 +46,28 @@ module sha256core_test();
 	reg [31:0] i;
 	reg [3:0] wr_addr;
 	reg [`BLK_OP_MSB:0] blk_op = 0;
+	reg input_ctx = 0;
+	reg input_seq = 0;
 	reg set_input_ready = 0;
+	wire [3:0] ready;
 
-	wire [15:0] core_dout;
-	reg rd_en = 0;
+	wire [31:0] core_dout;
 
 	sha256core sha256core(
 		.CLK(CLK),
-		
-		.start(start), .input_seq_num(),
+
+		.start(start), .ctx_num(ctx_num), .seq_num(seq_num),
 		.ready(ready),
 
-		.wr_en(wr_en), .in(i), .wr_addr(wr_addr),
+		.wr_en(wr_en),
+		.din(i), .wr_addr(wr_addr),
 		.input_blk_op(blk_op),
-		.input_seq(1'b0), .set_input_ready(set_input_ready),
+		.input_ctx(input_ctx), .input_seq(input_seq),
+		.set_input_ready(set_input_ready),
 
 		.dout(core_dout), .dout_en(core_dout_en),
+		.dout_seq_num(core_dout_seq_num),
+		.dout_ctx_num(core_dout_ctx_num)
 	);
 
 
@@ -72,11 +88,8 @@ module sha256core_test();
 		// Data size is 1 block.
 		//
 		wr_en <= 1;
-		//`BLK_OP_IF_CONTINUE_CTX(blk_op) <= 0; // unused
 		`BLK_OP_IF_NEW_CTX(blk_op) <= 1; // new context
-		//`BLK_OP_LOAD_CTX_NUM(blk_op) <= 0; // default 0
-		`BLK_OP_SAVE_CTX_NUM(blk_op) <= 0; // save to slot 0
-		`BLK_OP_END_COMP_OUTPUT(blk_op) <= 1; // output result
+		`BLK_OP_END_COMP_OUTPUT(blk_op) <= 0; // don't output result
 		i <= 32'h6c6c6548; wr_addr <= 0; #20;
 		i <= 32'h6f77206f; wr_addr <= 1; #20;
 		i <= 32'h21646c72; wr_addr <= 2; #20;
@@ -122,11 +135,10 @@ module sha256core_test();
       //   1 add the alternate sum, for every 0 the key."
 		// Data size is 2 blocks.
 		//
-		wr_en <= 1;
-		//`BLK_OP_IF_CONTINUE_CTX(blk_op) <= 0;
+/*	
+	wr_en <= 1;
 		`BLK_OP_IF_NEW_CTX(blk_op) <= 1; // new context
-		//`BLK_OP_LOAD_CTX_NUM(blk_op) <= 0;
-		`BLK_OP_SAVE_CTX_NUM(blk_op) <= 1; // save into slot 1
+		`BLK_OP_END_COMP_OUTPUT(blk_op) <= 0; // don't output result
 		i <= 32'h6c6c6548; wr_addr <= 0; #20;
 		i <= 32'h6f77206f; wr_addr <= 1; #20;
 		i <= 32'h21646c72; wr_addr <= 2; #20;
@@ -148,15 +160,13 @@ module sha256core_test();
 		wr_en <= 0;
 		// [7] 4d2bbb07
 		// [0] b3c2ba3e
-
+*/
 		while (~ready) #20;
 /*
 		// Sending the 2nd block (final)
 		wr_en <= 1;
-		//`BLK_OP_IF_CONTINUE_CTX(blk_op) <= 1; // the next block, continue context
-		`BLK_OP_IF_NEW_CTX(blk_op) <= 0;
-		`BLK_OP_LOAD_CTX_NUM(blk_op) <= 1; // slot# with values from previous block
-		`BLK_OP_SAVE_CTX_NUM(blk_op) <= 3; // save into slot 3
+		`BLK_OP_IF_NEW_CTX(blk_op) <= 0; // continue context
+		`BLK_OP_END_COMP_OUTPUT(blk_op) <= 1; // output result
 		set_input_ready <= 1;
 		i <= 64'h06ad7ce39ea3893f; wr_addr <= 0; #20;
 		set_input_ready <= 0;

@@ -237,7 +237,7 @@ endtask
 //
 // *****************************************************************
 integer word_list_total_len = 0;
-reg [0:2**16-1] word_list_data; // 8 Kbytes
+reg [0:2**19-1] word_list_data; // 64 Kbytes
 integer is_template_list = 0;
 	
 task word_list_add;

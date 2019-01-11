@@ -60,8 +60,10 @@ module realign4_pad (
 
 		if (add0x80pad)
 			in0 <= 8'h80;
-		else if (add0pad | add_total) // in0
+		else if (add0pad)
 			in0 <= 0;
+		else if (add_total) // in0
+			in0 <= total[7:0];
 		else if (wr_en)
 			in0 <= din[7:0];
 
@@ -92,7 +94,7 @@ module realign4_pad (
 	//
 	reg [7:0] r10 = 0, r11 = 0, r12 = 0, r13 = 0;
 	reg [7:0] r20, r21, r22;
-	
+
 	assign out = { r13, r12, r11, r10 };
 
 	reg [2:0] r1_len = 0; // 0..4
@@ -106,7 +108,7 @@ module realign4_pad (
 	always @(posedge CLK) begin
 		if (wr_en_r & in_len == 0)
 			err <= 1;
-		
+
 		if (r2_len != 0) begin
 			if (~wr_en_r) begin
 				r2_len <= 0;
@@ -131,7 +133,7 @@ module realign4_pad (
 				//r1_len_eq0_or8 <= r2_plus_in_len[3];//r2_len + in_len == 8;
 			end
 		end
-		
+
 		else begin // r2_len == 0
 			if (wr_en_r) begin
 				if (~off_eq0) begin

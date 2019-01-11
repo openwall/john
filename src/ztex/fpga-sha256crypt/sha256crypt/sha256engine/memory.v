@@ -11,8 +11,8 @@
 
 
 module memory #(
-	parameter N_CORES = 3,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_CORES = `N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -25,8 +25,8 @@ module memory #(
 	// Write
 	input [32*N_CORES-1 :0] core_din,
 	input [N_CORES-1 :0] core_dout_en,
-	input [N_CORES-1 :0] core_dout_seq,
-	
+	input [N_CORES-1 :0] core_dout_seq_num, core_dout_ctx_num,
+
 	input [31:0] ext_din,
 	input [`MEM_TOTAL_MSB :0] ext_wr_addr,
 	input ext_wr_en,
@@ -34,8 +34,7 @@ module memory #(
 
 	// Thread State
 	output [N_THREADS_MSB :0] ts_num,
-	//output reg ts_wr_en = 0,
-	output ts_wr_en,
+	output reg ts_wr_en = 0,
 	output [`THREAD_STATE_MSB :0] ts_wr,
 
 	// Read
@@ -43,13 +42,15 @@ module memory #(
 	input [`MEM_TOTAL_MSB :0] rd_addr_procb, rd_addr_cpu,
 	output reg [31:0] dout,
 	output reg rd_cpu_valid = 0,
-	
+
 	output reg err = 0
 	);
 
 
 	// =================================================================
 	//
+	integer k;
+	
 	reg [31:0] mem [0: 2**(`MEM_TOTAL_MSB+1)-1];
 	initial begin
 `ifdef SIMULATION
@@ -65,21 +66,6 @@ module memory #(
 `endif
 	end
 
-	
-	// =================================================================
-	// *** Computation data (set #2) ***
-	//
-	(* RAM_STYLE="DISTRIBUTED" *)
-	reg [`COMP_DATA2_MSB :0] comp_data2 [0: N_THREADS-1];
-	always @(posedge CLK)
-		if (comp_data2_wr_en)
-			comp_data2 [comp_data2_thread_num] <= comp_wr_data2;
-
-	wire [`MEM_ADDR_MSB :0] comp_save_addr;
-	wire [3:0] comp_save_len;
-	assign { comp_save_addr, comp_save_len }
-		= comp_data2 [ {core_num_r, seq_num_r} ];
-
 
 	// =================================================================
 	// *** Input core selection ***
@@ -90,10 +76,11 @@ module memory #(
 
 	reg [2:0] cnt = 0;
 	reg [`MSB(N_CORES-1):0] core_num_r;
-	reg seq_num_r;
+	reg seq_num_r, ctx_num_r;
 
 	localparam STATE_NONE = 0,
-				STATE_WR = 1;
+				STATE_WR1 = 1,
+				STATE_WR2 = 2;
 
 	(* FSM_EXTRACT="true" *)
 	reg [1:0] state = STATE_NONE;
@@ -102,29 +89,56 @@ module memory #(
 		case(state)
 		STATE_NONE: if (|core_dout_en) begin
 			core_num_r <= core_num;
-			seq_num_r <= core_dout_seq [core_num];
-			state <= STATE_WR;
+			seq_num_r <= core_dout_seq_num [core_num];
+			ctx_num_r <= core_dout_ctx_num [core_num];
+			state <= STATE_WR1;
 		end
-		
-		// Actual data is 1 cycle behind 'core_dout_en'
-		STATE_WR: begin
+
+		// Actual data is 1 cycle behind 'core_dout_en';
+		// 'core_dout_en' doesn't assert every cycle
+		STATE_WR1: begin
 			cnt <= cnt - 1'b1;
 			if (cnt == 1)
 				state <= STATE_NONE;
+			else if ( ~(|core_dout_en) )
+				state <= STATE_WR2;
 		end
+		
+		STATE_WR2: if (|core_dout_en)
+			state <= STATE_WR1;
 		endcase
 	end
-	
+
 	// Update thread_state
-	assign ts_num = {core_num_r, seq_num_r};
+	assign ts_num = {core_num_r, ctx_num_r, seq_num_r};
 	assign ts_wr = `THREAD_STATE_WR_RDY;
-	//always @(posedge CLK)
-	//	ts_wr_en <= cnt == 1;
-	assign ts_wr_en = cnt == 1;
+	always @(posedge CLK)
+		if (ts_wr_en)
+			ts_wr_en <= 0;
+		else if (cnt == 1)
+			ts_wr_en <= 1;
 
 	// FULL flag for external input
 	always @(posedge CLK)
 		ext_full <= |core_dout_en;
+
+
+
+	// =================================================================
+	// *** Computation data (set #2) ***
+	//
+	(* RAM_STYLE="DISTRIBUTED" *)
+	reg [`COMP_DATA2_MSB :0] comp_data2 [0: N_THREADS-1];
+	always @(posedge CLK)
+		if (comp_data2_wr_en)
+			comp_data2 [comp_data2_thread_num] <= comp_wr_data2;
+
+	reg [`MEM_ADDR_MSB :0] comp_save_addr;
+	reg [3:0] comp_save_len;
+	always @(posedge CLK)
+		if (state != STATE_NONE)
+			{ comp_save_addr, comp_save_len }
+				<= comp_data2 [ {core_num_r, ctx_num_r, seq_num_r} ];
 
 
 	// =================================================================
@@ -132,7 +146,7 @@ module memory #(
 	//
 	reg [31:0] input_r;
 	reg [`MEM_TOTAL_MSB :0] ext_wr_addr_r;
-	reg wr_en = 0, ext_wr_en_r = 0;
+	reg wr_en_r = 0, ext_wr_en_r = 0;
 
 	if (N_CORES == 3) begin
 
@@ -140,31 +154,29 @@ module memory #(
 		wire [32 + 32*N_CORES-1 :0] input_mux = {ext_din, core_din};
 		(* KEEP="true" *) wire [1:0] input_mux_addr = ext_wr_en
 			? 2'b11 : core_num_r;
-		wire input_r_wr_en = ext_wr_en | state == STATE_WR
-			& ({1'b0, cnt - 1'b1}) < comp_save_len;
+		wire input_r_wr_en = ext_wr_en | state == STATE_WR1;
 
 		always @(posedge CLK)
 			if (input_r_wr_en) begin
 				input_r <= input_mux [32*input_mux_addr +:32];
-				wr_en <= 1;
+				wr_en_r <= 1;
 			end
 			else
-				wr_en <= 0;
+				wr_en_r <= 0;
 
 	end else begin // N_CORES != 3
 
 		always @(posedge CLK)
 			if (ext_wr_en) begin
-				wr_en <= 1;
+				wr_en_r <= 1;
 				input_r <= ext_din;
 			end
-			else if ( ({1'b0, cnt - 1'b1}) < comp_save_len
-					& state == STATE_WR) begin
-				wr_en <= 1;
+			else if (state == STATE_WR1) begin
+				wr_en_r <= 1;
 				input_r <= core_din [32*core_num_r +:32];
 			end
 			else
-				wr_en <= 0;
+				wr_en_r <= 0;
 
 	end // N_CORES
 
@@ -177,10 +189,10 @@ module memory #(
 
 	wire [`MEM_ADDR_MSB :0] wr_addr_local = comp_save_addr + cnt;
 	wire [`MEM_TOTAL_MSB :0] wr_addr
-		= {core_num_r, seq_num_r, wr_addr_local};
+		= {core_num_r, ctx_num_r, seq_num_r, wr_addr_local};
 
 	always @(posedge CLK)
-		if (wr_en)
+		if (ext_wr_en_r | wr_en_r & ({1'b0, cnt}) < comp_save_len)
 			mem [ext_wr_en_r ? ext_wr_addr_r : wr_addr] <= input_r;
 
 
@@ -191,7 +203,7 @@ module memory #(
 
 	wire [`MEM_TOTAL_MSB :0] rd_addr =
 		rd_en_procb ? rd_addr_procb : rd_addr_cpu;
-	
+
 	always @(posedge CLK)
 		if (rd_en)
 			dout <= mem [rd_addr];
@@ -212,7 +224,7 @@ module encoder4 #(
 	input [N_CORES-1 :0] in,
 	output [1:0] out
 	);
-	
+
 	assign out =
 		in[0] ? 2'b00 :
 		//in[1] & N_CORES > 1 ? 2'b01 : // generates out-of-bound warnings

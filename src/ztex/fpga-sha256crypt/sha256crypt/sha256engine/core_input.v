@@ -14,9 +14,9 @@
 // everything dependent on N_CORES
 //
 module core_input #(
-	parameter N_CORES = 3,
+	parameter N_CORES = `N_CORES,
 	parameter N_CORES_MSB = `MSB(N_CORES-1),
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -30,7 +30,7 @@ module core_input #(
 	output reg [N_CORES-1:0] core_wr_en = 0,
 	output reg [3:0] core_wr_addr = 0,
 	output reg [`BLK_OP_MSB:0] core_blk_op,
-	output reg core_seq,
+	output reg core_input_ctx, core_input_seq,
 	output reg set_input_ready = 0
 	);
 
@@ -44,7 +44,7 @@ module core_input #(
 	end
 
 	wire [N_CORES_MSB :0] core_num;
-	assign { core_num, seq_num } = thread_num1;
+	assign { core_num, ctx_num, seq_num } = thread_num1;
 
 	generate
 	for (i=0; i < N_CORES; i=i+1) begin:cores_wr_en
@@ -55,16 +55,17 @@ module core_input #(
 
 
 	always @(posedge CLK) if (realign_wr_en_r) begin
-		core_seq <= seq_num;
+		core_input_seq <= seq_num;
+		core_input_ctx <= ctx_num;
 		core_blk_op <= blk_op1;
 	end
 
 
 	always @(posedge CLK) if (realign_valid) begin
 		core_wr_addr <= core_wr_addr + 1'b1;
-		
+
 		set_input_ready <= core_wr_addr == 14;
 	end
-	
+
 
 endmodule

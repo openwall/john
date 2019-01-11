@@ -9,23 +9,25 @@
  */
 
 module next_thread_num #(
-	parameter N_CORES = 3,
+	parameter N_CORES = -1,
 	parameter N_CORES_MSB = `MSB(N_CORES-1),
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_THREADS = -1,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input [`MSB(N_THREADS-1) :0] in,
 	output [`MSB(N_THREADS-1) :0] out
 	);
 
-	wire [N_CORES_MSB :0] core_num;
+	// bit 0: seq_num
+	// bit 1: ctx_num
+	wire [N_CORES_MSB+1 :0] core_num;
 	assign { core_num, seq_num } = in;
 
-	wire [N_CORES_MSB :0] core_num_next =
-		core_num == N_CORES-1 ? {N_CORES_MSB+1{1'b0}}
+	wire [N_CORES_MSB+1 :0] core_num_next =
+		core_num == 2*N_CORES-1 ? {2*(N_CORES_MSB+1){1'b0}}
 		: core_num + 1'b1;
 
-	wire seq_num_next = core_num == N_CORES-1 ? ~seq_num : seq_num;
+	wire seq_num_next = core_num == 2*N_CORES-1 ? ~seq_num : seq_num;
 
 	assign out = { core_num_next, seq_num_next };
 
