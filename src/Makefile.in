@@ -570,6 +570,7 @@ ed25519-donna/ed25519-donna.a:
 
 kernels: @KERNEL_OBJS@
 
+
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
 #  cygwin.  The only problem with cygwin, is that the ln -s will NOT generate
@@ -764,6 +765,50 @@ testfiles:
 	../run/john --list=format-tests -format=cpu | LC_ALL=C cut -f3 > all_tests.in
 	../run/john --list=format-tests -format=cpu | LC_ALL=C cut -f4 > all_tests.lst
 
+
+###############################################################################
+#  unit_tests target.  Note, this is a stand along target. It builds and tests
+#  some unique tests, against john 'common' codebase.  Source files like misc.c
+#  common.c, etc have a test suite file built to test each one.  Code such as
+#  compiler.c/external.c have special test suite john.conf files, where we run
+#  the 'real' john against them, and expect certain results.  Test cases will
+#  be added to the john-tc.conf file as needed when any issue shows up
+#  same type thing for testing base64_convert.c which contains it's own ST
+#  code, and for dynamic, which has the dynamic test suite.  The unit_tests
+#  are really designed as a
+###############################################################################
+
+UNIT_TEST_OBJS = \
+	tests/unit_tests.o tests/misc.o tests/common.o tests/memory.o tests/sha2.o
+
+tests/unit_tests.o:	tests/unit_tests.c common.h memory.h misc.h
+	$(CC) -o tests/unit_tests.o $(CFLAGS) -DFORCE_GENERIC_SHA2 -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  tests/unit_tests.c
+
+tests/sha2.o:	sha2.c arch.h sha2.h aligned.h openssl_local_overrides.h md4.h md5.h jtr_sha2.h johnswap.h common.h memory.h stdbool.h params.h os.h os-autoconf.h autoconfig.h jumbo.h
+	$(CC) -o tests/sha2.o $(CFLAGS) -DFORCE_GENERIC_SHA2 -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  sha2.c
+
+
+tests/misc.o:	misc.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h logger.h params.h misc.h options.h list.h loader.h formats.h getopt.h common.h memory.h john_mpi.h
+	$(CC) -o tests/misc.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  misc.c
+
+tests/common.o:	common.c arch.h common.h memory.h os.h os-autoconf.h autoconfig.h jumbo.h misc.h base64_convert.h
+	$(CC) -o tests/common.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  common.c
+
+tests/memory.o:	 memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h johnswap.h os.h os-autoconf.h
+	$(CC) -o tests/memory.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  memory.c
+
+unit_tests: $(UNIT_TEST_OBJS) default
+	$(CC) -o ../run/unit_tests $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS)
+	@ echo "Now Running the Unit Tests"
+	@ ../run/unit_tests
+	# @ if [ -e ../test/jtrts.pl ] ; then echo "Now Running jtrts.pl -q mode" && cd ../test && perl jtrts.pl -q && cd .. ; fi
+	# @ echo "Now Testing john 'external' mode"
+	# @ ../run/john -conf=tests/john-tc.conf -stdout -extern=double 2> /dev/null > tests/external.tst
+	# @ diff tests/external.expect tests/external.tst
+	# @ rm tests/external.tst
+
+###############################################################################
+
 bash-completion:
 	[ -d $(DESTDIR)/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/etc/bash_completion.d/ || true
 	[ -d $(DESTDIR)/usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/usr/local/etc/bash_completion.d/ || true
@@ -791,6 +836,7 @@ clean:
 	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*
 	$(RM) lzma/*.o
+	$(RM) tests/*.o
 	$(RM) detect bench generic.h tmp.s
 	$(RM) *~
 	$(CP) $(NULL) Makefile.dep
