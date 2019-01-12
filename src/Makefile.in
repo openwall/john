@@ -184,7 +184,7 @@ endif
 #  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
 #
 #########################################################
-default: unit-tests@EXE_EXT@
+default:	../run/unit-tests@EXE_EXT@
 	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
@@ -787,18 +787,20 @@ tests/unit-tests.o:	tests/unit-tests.c common.h memory.h misc.h
 tests/sha2.o:	sha2.c arch.h sha2.h aligned.h openssl_local_overrides.h md4.h md5.h jtr_sha2.h johnswap.h common.h memory.h stdbool.h params.h os.h os-autoconf.h autoconfig.h jumbo.h
 	$(CC) -o tests/sha2.o $(CFLAGS) -DFORCE_GENERIC_SHA2 -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  sha2.c
 
-
 tests/misc.o:	misc.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h logger.h params.h misc.h options.h list.h loader.h formats.h getopt.h common.h memory.h john_mpi.h
 	$(CC) -o tests/misc.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  misc.c
 
 tests/common.o:	common.c arch.h common.h memory.h os.h os-autoconf.h autoconfig.h jumbo.h misc.h base64_convert.h
 	$(CC) -o tests/common.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  common.c
 
-tests/memory.o:	 memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h johnswap.h os.h os-autoconf.h
+tests/memory.o:	memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h johnswap.h os.h os-autoconf.h
 	$(CC) -o tests/memory.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  memory.c
 
-unit-tests@EXE_EXT@:: $(UNIT_TEST_OBJS)
-	$(CC) -o ../run/unit-tests $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS)
+# keep the 'easy name' build target of unit-tests   The 'real' target is ../run/unit-tests[.exe]
+unit-tests:	../run/unit-tests@EXE_EXT@
+
+../run/unit-tests@EXE_EXT@:	$(UNIT_TEST_OBJS)
+	$(CC) $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS) -o $@
 	@ echo "Now Running the Unit Tests"
 	@ ../run/unit-tests@EXE_EXT@
 	@ # Extra testing past the unit-tests code commented out for now until I figure out how best to do this.
