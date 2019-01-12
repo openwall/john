@@ -184,7 +184,7 @@ endif
 #  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
 #
 #########################################################
-default: unit-tests
+default: unit-tests@EXE_EXT@
 	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
@@ -797,7 +797,7 @@ tests/common.o:	common.c arch.h common.h memory.h os.h os-autoconf.h autoconfig.
 tests/memory.o:	 memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h johnswap.h os.h os-autoconf.h
 	$(CC) -o tests/memory.o $(CFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG  memory.c
 
-unit-tests: $(UNIT_TEST_OBJS)
+unit-tests@EXE_EXT@:: $(UNIT_TEST_OBJS)
 	$(CC) -o ../run/unit-tests $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS)
 	@ echo "Now Running the Unit Tests"
 	@ ../run/unit-tests@EXE_EXT@
