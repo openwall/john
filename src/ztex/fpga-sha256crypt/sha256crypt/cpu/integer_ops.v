@@ -32,9 +32,16 @@ module integer_ops #(
 		iop_grp2, iop_grp3, iop_shr1 } = iops;
 
 
+`ifdef	INSTR_SUBB_EN
 	wire [WIDTH-1+1:0] addsub_result = iop_sub
 		? dina - dinb - (iop_use_cf ? in_cf : 1'b0)
 		: dina + dinb + (iop_use_cf ? in_cf : 1'b0);
+`else
+	wire [WIDTH-1+1:0] addsub_result = iop_sub
+		? dina - dinb
+		: dina + dinb;
+`endif
+
 	assign flag_cf = addsub_result[WIDTH-1+1];
 
 	// grp2 includes INC_RST, MV_R_C, AND_R_C

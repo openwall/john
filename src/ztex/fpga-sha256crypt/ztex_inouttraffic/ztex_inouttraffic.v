@@ -62,7 +62,7 @@ module ztex_inouttraffic(
 		// Produced clocks
 		.IFCLK(IFCLK), 	// for operating I/O pins
 		.PKT_COMM_CLK(PKT_COMM_CLK), // for I/O packet processing
-		.core_clk_glbl_en(1'b1),//~cores_idle),
+		.core_clk_glbl_en(~cores_idle),
 		.CORE_CLK(CORE_CLK) // for operating computing units
 	);
 

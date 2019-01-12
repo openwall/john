@@ -12,7 +12,7 @@
 
 module thread_number #(
 	parameter N_CORES = -1,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_THREADS = -1,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -32,7 +32,7 @@ module thread_number #(
 
 	// Next thread (in sequence)
 	wire [`MSB(N_THREADS-1) :0] thread_num_next;
-	next_thread_num #( .N_CORES(N_CORES)
+	next_thread_num #( .N_CORES(N_CORES), .N_THREADS(N_THREADS)
 	) next_thread_num( .in(thread_num), .out(thread_num_next) );
 
 	
@@ -41,7 +41,7 @@ module thread_number #(
 	wire thread_ahead_not_ready = ts_rd != `THREAD_STATE_WR_RDY;
 	
 	wire [`MSB(N_THREADS-1) :0] thread_num_ahead_next;
-	next_thread_num #( .N_CORES(N_CORES)
+	next_thread_num #( .N_CORES(N_CORES), .N_THREADS(N_THREADS)
 	) next_thread_num_ahead( .in(thread_num_ahead), .out(thread_num_ahead_next) );
 
 

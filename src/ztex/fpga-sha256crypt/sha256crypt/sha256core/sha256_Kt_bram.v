@@ -60,17 +60,13 @@ module sha256_Kt_bram(
 			mem_r <= mem[t];
 
 
-	reg en_r = 0, en_r2 = 0;
-	always @(posedge CLK) begin
+	reg en_r = 0;
+	always @(posedge CLK)
 		en_r <= en;
-		en_r2 <= en_r;
-	end
-
-	wire rst = en_r2 & ~en_r;
 	
 	// Prevent inference of BRAM output regs
 	ff32 ff_reg(
-		.CLK(CLK), .en(en_r), .rst(rst),
+		.CLK(CLK), .en(en_r), .rst(~en_r),
 		.i(mem_r), .o(Kt)
 	);
 

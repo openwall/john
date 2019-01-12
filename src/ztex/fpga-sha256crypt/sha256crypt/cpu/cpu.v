@@ -12,8 +12,8 @@
 
 module cpu #(
 	parameter WIDTH = 16,
-	parameter N_CORES = 3,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_CORES = `N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -208,7 +208,7 @@ module cpu #(
 		.wr_thread_num(reg_wr_thread4),
 		
 		.rd_addr(field_a_in),
-		.rd_en0(STAGE_RD0 & op_type_use_reg0),
+		.rd_en0(STAGE_RD0),// & op_type_use_reg0),
 		.rd_en1(STAGE_RD1 & op_type_use_reg),
 		.rd_thread_num(thread_num), .dout(reg_dout)
 	);
@@ -289,8 +289,10 @@ module cpu #(
 				| op_code == `OP_CODE_ADDC_R_C | op_code == `OP_CODE_SUBB_R_C;
 			iop_sub <= op_code == `OP_CODE_SUB_R_C
 				| op_code == `OP_CODE_SUBB_R_C;
+`ifdef INSTR_SUBB_EN
 			iop_use_cf <= `OP_TYPE_USE_CF(op_code);
-			
+`endif
+
 			iop_grp2 <= op_code == `OP_CODE_INC_RST
 				| op_code == `OP_CODE_MV_R_C | op_code == `OP_CODE_AND;
 			iop_grp2_select <=
@@ -439,21 +441,21 @@ module cpu #(
 
 	// *****************************************************************
 	//
-	// Integrated SHA256 Operations - STAGE_RD1
+	// Integrated (Cryptographic core) Operations - STAGE_RD1
 	//
 	// *****************************************************************
 	(* SHREG_EXTRACT="no" *)
 	reg op_init_ctx = 0, op_init_new = 0, op_procb = 0, op_procb_r = 0;
-	reg [1:0] op_procb_flags = 0;
+	reg op_procb_flags = 0;
 
 	always @(posedge CLK)
 		if (STAGE_RD1) begin
 			op_init_ctx <= `OP_TYPE_INIT_CTX(op_code);
-			op_init_new <= op_code[0];//op_code == `OP_CODE_NEW_CTX;
+			//op_init_new <= op_code[0];//op_code == `OP_CODE_NEW_CTX;
 				
 			op_procb <= `OP_TYPE_PROCB(op_code);
 			op_procb_r <= `OP_TYPE_PROCB_R(op_code);
-			op_procb_flags <= op_code[1:0];
+			op_procb_flags <= op_code[1];
 		end
 
 
@@ -471,7 +473,7 @@ module cpu #(
 
 	// *****************************************************************
 	//
-	// Integrated SHA256 Operations - STAGE_EXEC
+	// Integrated (Cryptographic core) Operations - STAGE_EXEC
 	//
 	// *****************************************************************
 	// thread_state disables execution (applicable at STAGE_EXEC)
@@ -481,11 +483,10 @@ module cpu #(
 	assign procb_eqn = op_procb & condition_is_true & ~ts_disable_exec;// & ~procb_full;
 
 	always @(posedge CLK) begin
-		comp_wr_en <= STAGE_EXEC & op_init_ctx & ~ts_disable_exec;//init_ctx_eqn;
+		comp_wr_en <= STAGE_EXEC & op_init_ctx & ~ts_disable_exec;
 		if (op_init_ctx)
-			comp_dout <= { op_init_new, field_c1[7:6], field_c1[5:4],
-				field_b1, field_c1[3:0] };
-		
+			comp_dout <= { 1'b1, field_b1, field_c1[3:0] };
+
 		procb_wr_en <= STAGE_EXEC & procb_eqn;
 		if (op_procb)
 			//procb_dout <= { field_b1, reg_dout[7:0], op_procb_flags };

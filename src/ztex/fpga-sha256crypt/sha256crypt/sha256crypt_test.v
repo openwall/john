@@ -79,6 +79,18 @@ module sha256crypt_test();
 		// 8 candidates total
 		send_word_list();
 
+
+
+		// *****************************************************************
+		//
+		// Test #6.
+		//
+		// *****************************************************************
+/*
+		#2000;
+		send_init_packet(1);
+
+*/
 	end
 
 
@@ -88,7 +100,9 @@ module sha256crypt_test();
 	//
 	//
 	// ***************************************************************
-	reg CORE_CLK = 0, PKT_COMM_CLK = 0, IFCLK = 0;
+	reg PKT_COMM_CLK = 0, IFCLK = 0, CORE_CLK = 0;
+
+	//wire CORE_CLK = PKT_COMM_CLK;
 
 	reg [7:0] din;
 	reg wr_en = 0;

@@ -15,7 +15,7 @@
 // - data for unfinished process_bytes record (including padding)
 //
 module procb_saved_state #(
-	parameter N_THREADS = 6,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
@@ -25,12 +25,11 @@ module procb_saved_state #(
 	input [`PROCB_SAVE_WIDTH-1 :0] din,
 
 	input [N_THREADS_MSB :0] rd_thread_num,
-	//input rd_en,
-	//output reg [`PROCB_SAVE_WIDTH-1 :0] dout = 0
-	output [`PROCB_SAVE_WIDTH-1 :0] dout
+	input rd_en,
+	output reg [`PROCB_SAVE_WIDTH-1 :0] dout
 	);
 
-	
+
 	(* RAM_STYLE="DISTRIBUTED" *)
 	reg [`PROCB_SAVE_WIDTH-1 :0] mem [0: N_THREADS-1];
 
@@ -38,9 +37,10 @@ module procb_saved_state #(
 		if (wr_en)
 			mem [wr_thread_num] <= din;
 
-	//always @(posedge CLK)
-	//	if (rd_en)
-	//		dout <= mem [rd_thread_num];
-	assign dout = mem [rd_thread_num];
+	//assign dout = mem [rd_thread_num];
+
+	always @(posedge CLK)
+		if (rd_en)
+			dout <= mem [rd_thread_num];
 
 endmodule

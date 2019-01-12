@@ -11,7 +11,7 @@
 
 module registers_bram #(
 	parameter WIDTH = 16,
-	parameter N_THREADS = 6,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,

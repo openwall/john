@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2018 Denis Burykin
+ * This software is Copyright (c) 2018-2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -9,7 +9,9 @@
  */
 
 
-module sha256crypt_cmp_config(
+module xcrypt_cmp_config(
+	//
+	// unified xcrypt_cmp_config for various *crypt functions.
 	//
 	// CMP_CONFIG packet:
 	//
@@ -27,7 +29,7 @@ module sha256crypt_cmp_config(
 	input [7:0] din,
 	input wr_en,
 	output reg full = 0,
-	output reg error = 0,
+	output err,
 
 	// Iteraction with other subsystems.
 	output reg new_cmp_config = 0, // asserted on a new cmp_config packet.
@@ -73,6 +75,7 @@ module sha256crypt_cmp_config(
 
 	reg [4:0] salt_addr = 8;
 	reg [1:0] iter_cnt = 0;
+	reg [`HASH_NUM_MSB+2:0] cmp_wr_addr_max;
 
 
 	localparam STATE_NONE = 0,
@@ -83,16 +86,15 @@ module sha256crypt_cmp_config(
 					STATE_HASH_COUNT1 = 5,
 					STATE_CMP_DATA = 6,
 					STATE_WAIT_CMP_CONFIG_APPLIED = 7,
-					STATE_MAGIC = 8;
+					STATE_MAGIC = 8,
+					STATE_ERROR = 9,
+					STATE_WAIT1 = 10;
 
-	(* FSM_EXTRACT="true" *)
+	(* FSM_EXTRACT="true", FSM_ENCODING="one-hot" *)
 	reg [3:0] state = STATE_NONE;
 
 	always @(posedge CLK) begin
-		if (error) begin
-		end
-
-		else if (state == STATE_WAIT_CMP_CONFIG_APPLIED) begin
+		if (state == STATE_WAIT_CMP_CONFIG_APPLIED) begin
 			if (cmp_config_applied) begin
 				new_cmp_config <= 0;
 				full <= 0;
@@ -107,7 +109,7 @@ module sha256crypt_cmp_config(
 		case (state)
 		STATE_NONE:
 			if (din != 0)
-				error <= 1;
+				state <= STATE_ERROR;
 			else begin
 				new_cmp_config <= 1;
 				full <= 1;
@@ -116,7 +118,7 @@ module sha256crypt_cmp_config(
 
 		STATE_SALT_LEN: begin
 			if (din > 16 | din == 0)
-				error <= 1;
+				state <= STATE_ERROR;
 			else
 				state <= STATE_SALT;
 			salt_addr <= 8;
@@ -138,7 +140,7 @@ module sha256crypt_cmp_config(
 		STATE_HASH_COUNT0: begin
 			hash_count[7:0] <= din;
 			if (~mode_cmp & din != 0)
-				error <= 1;
+				state <= STATE_ERROR;
 			else
 				state <= STATE_HASH_COUNT1;
 		end
@@ -146,27 +148,26 @@ module sha256crypt_cmp_config(
 		STATE_HASH_COUNT1: begin
 			hash_count[`HASH_COUNT_MSB:8] <= din[`HASH_COUNT_MSB-8:0];
 			cmp_wr_addr <= {`HASH_NUM_MSB+3{1'b1}};
+			cmp_wr_addr_max <= { din[`HASH_COUNT_MSB-8:0],
+				hash_count[7:0], 2'b00 } - 2'b10;
 
-			if (~mode_cmp & din != 0)
-				error <= 1;
-			else if (mode_cmp)
+			if (mode_cmp) begin
 				state <= STATE_CMP_DATA;
-			else
-				state <= STATE_MAGIC;
-
-			/*
-			if (hash_count[7:0] == 0 & din == 0)
-				state <= STATE_MAGIC;
-			else
-				state <= STATE_CMP_DATA;
-			*/
+			end
+			else begin
+				if (din != 0)
+					state <= STATE_ERROR;
+				else
+					state <= STATE_MAGIC;
+			end
 		end
 
 		STATE_CMP_DATA: begin
 			cmp_wr_en <= 1;
 			cmp_din <= din;
 			cmp_wr_addr <= cmp_wr_addr + 1'b1;
-			if (cmp_wr_addr + 2'b10 == { hash_count, 2'b00 } )
+			//if (cmp_wr_addr + 2'b10 == { hash_count, 2'b00 } )
+			if (cmp_wr_addr == cmp_wr_addr_max)
 				state <= STATE_MAGIC;
 		end
 
@@ -175,10 +176,15 @@ module sha256crypt_cmp_config(
 			if (din == 8'hCC)
 				state <= STATE_NONE;
 			else
-				error <= 1;
+				state <= STATE_ERROR;
 		end
+
+		STATE_ERROR:
+			full <= 1;
 		endcase
 	end
+
+	assign err = state == STATE_ERROR;
 
 	assign data_wr_en = wr_en & (state == STATE_SALT_LEN
 		| state == STATE_SALT | state == STATE_ITER_COUNT);

@@ -1,4 +1,51 @@
-## Overview
+
+## New version 2019.01
+
+The new version has improved performance and power efficiency.
+
+- SHA256 cores were reworked to compute 2 SHA256 rounds from 2 different computations
+in 2 cycles. The result is each core computes 4 blocks in (64+8)*4 = 288 cycles.
+Such design takes about 10% more area, able for increased frequency. The number of computing
+units in each FPGA were reduced from 25 (75 cores) to 23 (69 cores), number of keys
+computed by each FPGA in parallel increases from 150 to 276 (1104 per board).
+Possible frequency reported by the toolset increases from 166 to 241 MHz.
+Actual frequency (at which tested boards work reliably) increases from 135 to 175 MHz.
+- It was observed sha*crypt designs consume more power than bcrypt, descrypt designs
+using same hardware. Too high power consumption was identified as a likely cause for
+unability to operate at frequency reported by the toolset. Various measures were
+implemented to reduce power consumption while doing same functions, typically at the cost
+of negligible to small amount of additional hardware resources.
+- Power consumption in previous designs did not depend on the load substantially.
+There was identified a big potential in the reduction of idle power consumption.
+Measured current (using 12 V input) with new design running at 175 MHz:
+~3.1 A under full load, ~0.4 A idle.
+
+Performance (at 175 MHz) in different modes, with different key lengths, with a comparison
+to CPUs is shown in table 1.
+```
++--------------+--------+------------+------------+----------------+
+|              |        | ZTEX board | i5-4210M   | Intel Celeron  |
+|              |        | 1.15y      | OMPx4,AVX2 |Stepping 6,SSSE3|
++--------------+--------+------------+------------+----------------+
+| key_len=5    | --mask | 85.3 Kc/s  | 4.22 Kc/s  | 0.58 Kc/s      |
+| rounds=5000  | --inc  | 82.1 Kc/s  | 4.12 Kc/s  | 0.57 Kc/s      |
++--------------+--------+------------+------------+----------------+
+| key_len=10   | --mask | 80.3 Kc/s  | 3.96 Kc/s  | 0.38 Kc/s      |
+| rounds=5000  | --inc  | 77.4 Kc/s  | 3.70 Kc/s  | 0.37 Kc/s      |
++--------------+--------+------------+------------+----------------+
+| key_len=20   | --mask | 68.7 Kc/s  | 3.37 Kc/s  | 0.31 Kc/s      |
+| rounds=5000  | --inc  | 66.0 Kc/s  | 3.16 Kc/s  | 0.31 Kc/s      |
++--------------+--------+------------+------------+----------------+
+| key_len=10   | --mask | 8.05 Kc/s  | 398 c/s    | 38 c/s         |
+| rounds=50000 | --inc  | 8.03 Kc/s  | 390 c/s    | 38 c/s         |
++--------------+--------+------------+------------+----------------+
+| key_len=10   | --mask | 804 c/s    | 39 c/s     | N/A (it does   |
+| rounds=500000| --inc  | 802 c/s    | 39 c/s     | not respond)   |
++--------------+--------+------------+------------+----------------+
+```
+
+
+## Overview - version 2018.08
 
 - sha256crypt for ZTEX 1.15y board allows candidate passwords up to
 32 bytes, equipped with on-board mask generator and comparator.

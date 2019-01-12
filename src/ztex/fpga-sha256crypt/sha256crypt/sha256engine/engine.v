@@ -11,13 +11,13 @@
 
 
 module engine #(
-	parameter N_CORES = 3,
+	parameter N_CORES = `N_CORES,
 	parameter N_CORES_MSB = `MSB(N_CORES-1),
-	parameter N_THREADS = 2 * N_CORES,
-	parameter N_THREADS_MSB = `MSB(2*N_CORES-1)
+	parameter N_THREADS = `N_THREADS,
+	parameter N_THREADS_MSB = `MSB(N_THREADS-1)
 	)(
 	input CLK,
-	
+
 	// *** CPU Interface ***
 	// procb_buf
 	input [N_THREADS_MSB:0] procb_wr_thread_num,
@@ -33,7 +33,7 @@ module engine #(
 	output [`THREAD_STATE_MSB :0] ts_rd1, ts_rd4,
 	// memory
 	input comp_data2_wr_en,
-	input [`COMP_DATA2_MSB :0] comp_wr_data2,	
+	input [`COMP_DATA2_MSB :0] comp_wr_data2,
 	input [31:0] ext_din,
 	input [`MEM_TOTAL_MSB :0] ext_wr_addr,
 	input ext_wr_en,
@@ -45,33 +45,20 @@ module engine #(
 
 	// *** Cores ***
 	// (are kept separate because of Placement & Routing issues)
-	output [N_CORES-1:0] core_wr_en, core_start,
-	input [N_CORES-1:0] core_ready, core_dout_en, core_dout_seq,
+	output [N_CORES-1:0] core_wr_en,
+	input [4*N_CORES-1:0] core_ready,
 	output [31:0] core_din,
 	output [3:0] core_wr_addr,
 	output [`BLK_OP_MSB:0] core_blk_op,
-	output core_seq, core_set_input_ready,
+	output core_input_ctx, core_input_seq, core_set_input_ready,
+
+	input [N_CORES-1:0] core_dout_en, core_dout_seq_num,
+	input [N_CORES-1:0] core_dout_ctx_num,
 	input [32*N_CORES-1 :0] core_dout,
-	
+
 	output [4:0] err
 	);
 
-
-	// **********************************************************
-	//
-	//   ENGINE's CONTROLS
-	//
-	// **********************************************************
-	//wire [N_THREADS_MSB:0] thread_num, core_mem_thread_num;
-
-	engine_ctrl #( .N_CORES(N_CORES)
-	) engine_ctrl(
-		.CLK(CLK),
-		.core_start(core_start)// .mem_thread_num(core_mem_thread_num),
-		
-		//.thread_num(thread_num),
-		//.cpu_start(cpu_start), .procb_start(procb_start)
-	);
 
 
 	// **********************************************************
@@ -84,7 +71,7 @@ module engine #(
 	// **********************************************************
 	wire [N_THREADS_MSB :0] ts_wr_num2, ts_rd_num2, ts_num3;
 	wire [`THREAD_STATE_MSB :0] ts_wr2, ts_wr3, ts_rd2, ts_rd3;
-	
+
 	thread_state #( .N_THREADS(N_THREADS)
 	) thread_state(
 		.CLK(CLK),
@@ -106,7 +93,7 @@ module engine #(
 	//
 	// **********************************************************
 	wire [`MEM_TOTAL_MSB :0] mem_rd_addr_procb;
-	
+
 	memory #( .N_CORES(N_CORES)
 	) memory(
 		.CLK(CLK),
@@ -115,7 +102,8 @@ module engine #(
 		.comp_data2_wr_en(comp_data2_wr_en), .comp_wr_data2(comp_wr_data2),
 		// Write
 		.core_din(core_dout), .core_dout_en(core_dout_en),
-		.core_dout_seq(core_dout_seq),
+		.core_dout_seq_num(core_dout_seq_num),
+		.core_dout_ctx_num(core_dout_ctx_num),
 		.ext_din(ext_din), .ext_wr_addr(ext_wr_addr), .ext_wr_en(ext_wr_en),
 		.ext_full(ext_full),
 		// Thread State
@@ -155,7 +143,7 @@ module engine #(
 			total_r <= total;
 	end
 
- 
+
 	reg realign_wr_en = 0;
 	always @(posedge CLK)
 		realign_wr_en <= mem_rd_en_procb;
@@ -184,7 +172,8 @@ module engine #(
 
 		.core_wr_en(core_wr_en), .core_wr_addr(core_wr_addr),
 		.core_blk_op(core_blk_op),
-		.core_seq(core_seq), .set_input_ready(core_set_input_ready)
+		.core_input_seq(core_input_seq), .core_input_ctx(core_input_ctx), 
+		.set_input_ready(core_set_input_ready)
 	);
 
 
@@ -198,9 +187,7 @@ module engine #(
 	//
 	// **********************************************************
 	wire [N_THREADS_MSB :0] procb_rd_thread_num;
-	//wire [`PROCB_D_WIDTH-1 :0] procb_wr_data, procb_dout;
 	wire [`PROCB_D_WIDTH-1 :0] procb_dout;
-	//wire [`PROCB_A_WIDTH-1 :0] procb_wr_cnt;
 
 	procb_buf #( .N_THREADS(N_THREADS)
 	) procb_buf(

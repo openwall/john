@@ -8,6 +8,8 @@
  *
  */
 
+`include "sha256.vh"
+
 //
 // Tasks for Arbiter, transmit part:
 //
@@ -68,7 +70,6 @@ module arbiter_tx #(
 
 	// Iteraction with arbiter_rx
 	output reg [31:0] num_processed_tx = 0,
-	output reg [15:0] pkt_id_tx,
 	output reg pkt_tx_done = 0,
 	input pkt_rx_done,
 	input recv_item,
@@ -98,30 +99,23 @@ module arbiter_tx #(
 	always @(posedge CLK) begin
 		case (state_in)
 		STATE_IN_IDLE: begin
-			/*
 			if (~word_empty) begin
 				if (~idle)
 					state_in <= STATE_IN_PROCESS_WORDS;
 				else
 					state_in <= STATE_IN_START_CLK_GLBL;
 			end
-			*/
-			if (~word_empty)
-				state_in <= STATE_IN_PROCESS_WORDS;
 
 			// loose checks; expecting init packet after
 			// fpga startup; transmitter must be idle
-			/*
+`ifdef ENTRY_PTS_EN
 			if (~init_empty & src_totally_empty) begin
 				if (~idle)
 					state_in <= STATE_IN_PKT_INIT;
 				else
 					state_in <= STATE_IN_START_CLK_GLBL;
 			end
-			*/
-			if (~init_empty & src_totally_empty)
-				state_in <= STATE_IN_PKT_INIT;
-
+`endif
 			// New "comparator configuration" (incl. salt data).
 			// It has to wait until it finishes processing of words
 			// associated with the previous comparator configuration.
@@ -133,17 +127,22 @@ module arbiter_tx #(
 			state_in <= STATE_IN_IDLE;
 
 		STATE_IN_START_CLK_GLBL: if (start_clk_glbl_delay) begin
+`ifdef ENTRY_PTS_EN
 			if (~word_empty)
 				state_in <= STATE_IN_PROCESS_WORDS;
 			else
 				state_in <= STATE_IN_PKT_INIT;
+`else
+			state_in <= STATE_IN_PROCESS_WORDS;
+`endif
 		end
 
 		STATE_IN_PROCESS_WORDS: if (~word_empty) begin
 			if (~cmp_configured)
 				err <= 1;
 			else if (gen_end) begin
-				pkt_id_tx <= pkt_id;
+				//if (num_processed_tx == 0)
+				//	err[1] <= 1;
 				if (mode_cmp) begin
 					pkt_tx_done <= 1;
 					state_in <= STATE_IN_WAIT_RX_DONE;
@@ -197,12 +196,14 @@ module arbiter_tx #(
 
 	assign init_rd_en = state_in == STATE_IN_PKT_INIT;
 
+`ifdef ENTRY_PTS_EN
 	sync_pulse sync_pkt_init( .wr_clk(CLK),
 		.sig(state_in == STATE_IN_PKT_INIT),
 		.busy(), .rd_clk(CORE_CLK), .out(pkt_init_sync) );
+`endif
 
 
-	localparam TOTAL_IN_PROCESSING = N_UNITS * (6 + 16) + 1;
+	localparam TOTAL_IN_PROCESSING = N_UNITS * (`N_THREADS + 16) + 1;
 	reg [`MSB(TOTAL_IN_PROCESSING-1) :0] total_in_processing = 0;
 	always @(posedge CLK)
 		if (state_in == STATE_IN_PROCESS_WORDS & ~word_empty & ~gen_end) begin
@@ -212,7 +213,7 @@ module arbiter_tx #(
 		else if (recv_item)
 			total_in_processing <= total_in_processing - 1'b1;
 
-	delay #( .NBITS(10) ) delay_start_clk_glbl(
+	delay #( .NBITS(9) ) delay_start_clk_glbl(
 		.CLK(CLK), .in(state_in == STATE_IN_START_CLK_GLBL),
 		.out(start_clk_glbl_delay) );
 
@@ -222,12 +223,26 @@ module arbiter_tx #(
 
 	// ***************************************************
 	reg [`MSB(N_UNITS-1):0] unit_num = 0;
+
+	reg [N_UNITS-1:0] afull_r = 0, ready_r = 0;
+	always @(posedge CORE_CLK) begin
+		if (afull_en)
+			afull_r <= unit_in_afull;
+		if (ready_en)
+			ready_r <= unit_in_ready;
+	end
+	
 	reg afull = 1, ready = 0;
 	reg unit_tx_mask_r = 0;
 	always @(posedge CORE_CLK) begin
-		afull <= unit_in_afull [unit_num];
-		ready <= unit_in_ready [unit_num];
-		unit_tx_mask_r <= unit_tx_mask [unit_num];
+		//afull <= unit_in_afull [unit_num];
+		//ready <= unit_in_ready [unit_num];
+		if (afull_en)
+			afull <= afull_r [unit_num];
+		if (ready_en)
+			ready <= ready_r [unit_num];
+		if (ready_en)
+			unit_tx_mask_r <= unit_tx_mask [unit_num];
 	end
 
 	reg [2:0] cnt = 0;
@@ -255,13 +270,20 @@ module arbiter_tx #(
 	(* FSM_EXTRACT="true" *)
 	reg [3:0] state = STATE_IDLE;
 
+	wire afull_en = ~(state == STATE_IDLE | state == STATE_SEARCH1
+		| state == STATE_SEARCH2);
+	wire ready_en = state != STATE_IDLE;
+
 	always @(posedge CORE_CLK) begin
 		case (state)
 		STATE_IDLE: begin
 			bcast_en <= 0;
+`ifdef ENTRY_PTS_EN
 			if (pkt_init_sync)
 				state <= STATE_TX_PKT_INIT1;
-			else if (tx_ready_sync) // ready for transmit
+			else
+`endif
+			if (tx_ready_sync) // ready for transmit
 				state <= STATE_SEARCH1;
 		end
 
@@ -361,6 +383,7 @@ module arbiter_tx #(
 		end
 
 
+`ifdef ENTRY_PTS_EN
 		// Broadcast transmission of initialization packet
 		STATE_TX_PKT_INIT1: begin
 			bcast_en <= 1;
@@ -379,6 +402,7 @@ module arbiter_tx #(
 			unit_in_ctrl <= 0;
 			state <= STATE_IDLE;
 		end
+`endif
 		endcase
 	end
 

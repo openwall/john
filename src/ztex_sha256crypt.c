@@ -76,9 +76,9 @@ static struct device_bitstream bitstream = {
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	1,			// set by init() base on john.conf setting
 	4096,		// keys/fpga for self-test
-	600 * 1024,	// Would be ~20 MB of USB traffic on 32-byte keys
+	565248,		// Would be ~20 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
-	150,		// Min. number of keys for effective device utilization
+	23 * 12,	// Min. keys for effective device utilization
 	1, { 135 },	// Programmable clocks
 	"sha256crypt",	// label for configuration file
 	NULL, 0		// Initialization data
@@ -107,8 +107,14 @@ static struct fmt_tests tests[] = {
 		"5Kv6Y.Km/Um7jg61", "test #2: salt_len=14,key_len=31"},
 	{"$5$TGf3jSp.tVaZB$WD6RH0Gzk5pb5Vt1Zq8e0hUWoRu3aq5iDPMl9kXdZRA",
 		"s13_k6"},
+	{"$5$CX9jFAaMBveU$vJ93dP0f1AMlr6nOMqQn9.yq9/3Px6QK44XpFXln9I/",
+		"salt=12"},
 	{"$5$rounds=4995$gjBVWL7tGHdK$Iwj/2BP.b1rrg6/B.fC4HIDhmhLZB"
 		"uw8SrCeAXoSpH5", "salt11_key12"},
+	{"$5$XDlt.8rtP$pO.M.p576fEXYR/d6sUlmU1SQm0/r8V1jDBAswp.5n2",
+		"salt9:key_len=16"},
+	{"$5$rounds=4999$bbeWqaag$VcKES/HMbDs9yDiJC2vyS4RuPN83cfkgdMfx"
+		"8V5KdJB", "salt=8"},
 	{"$5$rounds=5022$bQ7rLwn$aUIOwEgSRRrpGlLV5Jt5DtRNzSmyv54dMn"
 		"uCCaD7CtC", "salt7key9"},
 	{"$5$GH0itE$i1kIs5UMcM.Qomz3.2L2INxGYlaKRBDArZ6TNmh9ed7",
@@ -121,16 +127,20 @@ static struct fmt_tests tests[] = {
 	// from the reference implementation
 	{"$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5",
 		"Hello world!"},
-
+/*
 	// slows down --test
-	//{"$5$rounds=66000$FghyT5KLjHQW4sCG$80SFA7YemhfPH0OlnLa5fDjd"
-	//	"T4XXOrW/l3i7O9h5XF4", "testing CPU's SUBB instruction"},
-	//{"$5$rounds=1024000$fg80uTCVDKPeTbnB$N8bF/pNbfCoI1ImDdG8rKV"
-	//	"OBvrbHzXtElv0QivEyvi4", "heavier_thing"},
+	{"$5$rounds=65535$szayT5KLiH2WRs11$VNArvxOyEfO/EQzr0tWkuwuL"
+		"0ZD5frqQ7andlvqZDc3", "test64Krounds-1"},
+	{"$5$rounds=65536$4GFbG5JAjHhgLKnt$5N5qlIa.QZinNR5mZTaJvntL"
+		"g0JMVOvPJG3egctbV96", "test64Krounds-2"},
+	{"$5$rounds=65537$8yfgGFDBht5hbfsf$SmnBXB9a7bfdYej74QtAEgaG"
+		"GEpv7YQx9RP09O/xvQ8", "test64Krounds-3"},
+	{"$5$rounds=1024000$fg80uTCVDKPeTbnB$N8bF/pNbfCoI1ImDdG8rKV"
+		"OBvrbHzXtElv0QivEyvi4", "heavier_thing"},
 	// times out in 5s (increase the default)
-	//{"$5$rounds=4096000$AFhfg9h8z.GEwvcB$tNR5A1CALj4bsC41VTisok"
-	//	"zcn9Cc26Tr.oi2dJ.ZLl2", "device_format.c:TASK_TIMEOUT"},
-
+	{"$5$rounds=4096000$AFhfg9h8z.GEwvcB$tNR5A1CALj4bsC41VTisok"
+		"zcn9Cc26Tr.oi2dJ.ZLl2", "device_format.c:TASK_TIMEOUT"},
+*/
 	{"$5$rounds=4972$0/2345.789//edef$DDPKQRM7xJkpe4pdf13My8qCJ"
 		"PeFmXn6nNiwYk.R.wB", "abc"},
 	{"$5$rounds=4970$0.234.6789.bc/ef$7NDazjArUHJs988r5ovAyd5tI"
@@ -268,7 +278,7 @@ static void init(struct fmt_main *fmt_main)
 	// Starting from TARGET_ROUNDS_1KPC, it sets keys_per_crypt
 	// equal to bitstream.min_keys
 	//
-	const int TARGET_ROUNDS_1KPC = 512*1024;
+	const int TARGET_ROUNDS_1KPC = 320*1024;
 
 	target_rounds = cfg_get_int("ZTEX:", bitstream.label,
 			"TargetRounds");

@@ -7,7 +7,7 @@
  * modification, are permitted.
  *
  */
-`include "sha256.vh"
+`include "../sha256.vh"
 
 // Unit input is designed to minimize unit space,
 // at possible expense in arbiter
@@ -23,8 +23,8 @@
 //
 
 module unit_input #(
-	parameter N_CORES = 3,
-	parameter N_THREADS = 2 * N_CORES,
+	parameter N_CORES = `N_CORES,
+	parameter N_THREADS = `N_THREADS,
 	parameter N_THREADS_MSB = `MSB(N_THREADS-1),
 	parameter INPUT_WIDTH = `UNIT_INPUT_WIDTH,
 	parameter RATIO = 32 / INPUT_WIDTH,
@@ -65,7 +65,7 @@ module unit_input #(
 	assign mem_addr = { thread_num, thread_mem_addr };
 
 	wire [`MSB(N_THREADS-1) :0] thread_num_next;
-	next_thread_num #( .N_CORES(N_CORES)
+	next_thread_num #( .N_CORES(N_CORES), .N_THREADS(N_THREADS)
 	) next_thread_num( .in(thread_num), .out(thread_num_next) );
 
 	wire [4:0] size = input_addr - output_addr;
@@ -79,7 +79,7 @@ module unit_input #(
 				STATE_IN_SEARCH3 = 5,
 				STATE_IN_WAIT_PKT_END = 6;
 
-	(* FSM_EXTRACT="true", FSM_ENCODING="auto" *)
+	(* FSM_EXTRACT="true" *)
 	reg [2:0] state_in = STATE_IN_NONE;
 
 	always @(posedge CLK) begin
@@ -92,14 +92,18 @@ module unit_input #(
 			afull <= 0;
 			if (wr_en & ctrl & in[2:0] == 0)
 				state_in <= STATE_IN_GOING;
+`ifdef ENTRY_PTS_EN
 			else if (wr_en & ctrl & in[2:0] == 1) begin
 				entry_pt_curr <= in [`ENTRY_PT_MSB+3 :3];
 				state_in <= STATE_IN_WAIT_PKT_END;
 			end
+`endif
 		end
 
+`ifdef ENTRY_PTS_EN
 		STATE_IN_WAIT_PKT_END: if (wr_en & ctrl)
 			state_in <= STATE_IN_NONE;
+`endif
 
 		STATE_IN_GOING: begin
 			ready <= 0;
@@ -145,7 +149,7 @@ module unit_input #(
 	localparam STATE_OUT_NONE = 0,
 				STATE_OUT_NEXT_WORD = 1;
 
-	(* FSM_EXTRACT="true", FSM_ENCODING="auto" *)
+	(* FSM_EXTRACT="true" *)
 	reg [1:0] state_out = STATE_OUT_NONE;
 
 	always @(posedge CLK)
