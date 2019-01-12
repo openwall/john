@@ -802,6 +802,8 @@ unit-tests:	../run/unit-tests@EXE_EXT@
 ../run/unit-tests@EXE_EXT@:	$(UNIT_TEST_OBJS)
 	$(CC) $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS) -o $@
 	@ echo "Now Running the Unit Tests"
+	@ ls -l ../run
+	@ ../run/unit-tests
 	@ ../run/unit-tests@EXE_EXT@
 	@ # Extra testing past the unit-tests code commented out for now until I figure out how best to do this.
 	@ # echo "Now Testing john 'external' mode"
