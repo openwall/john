@@ -65,13 +65,13 @@ echo ""
 
 # Build with AVX
 mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mavx -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-sse2.exe\""' --host=i686-w64-mingw32
-mingw32 make -j4
+mingw32 make -sj4
 mv -v ../run/john.exe ../run/john-avx.exe
 make clean; make distclean
 
 # Build with AVX2 (32-bit, see https://github.com/magnumripper/JohnTheRipper/issues/2543 for details)
 mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mavx2 -DCPU_FALLBACK -DCPU_FALLBACK_BINARY="\"john-avx.exe\""' --host=i686-w64-mingw32
-mingw32 make -j4
+mingw32 make -sj4
 mv -v ../run/john.exe ../run/john-avx2.exe
 make clean; make distclean
 
@@ -79,7 +79,7 @@ make clean; make distclean
 # mingw64 ./configure --disable-native-tests CPPFLAGS='-mno-ssse3' --host=x86_64-w64-mingw32
 mingw32 ./configure --enable-werror --disable-native-tests CPPFLAGS='-mno-ssse3' --host=i686-w64-mingw32
 # mingw64 ./configure --host=x86_64-w64-mingw32
-mingw64 make -j4
+mingw64 make -sj4
 mv -v ../run/john.exe ../run/john-sse2.exe
 
 # AVX2 is default, but with CPU fallback

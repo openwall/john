@@ -44,6 +44,23 @@ srcdir = @srcdir@
 prefix = @prefix@
 F = ""
 
+# we have to WORK AROUND a problem on CircleCI, when we build for Windows binaries
+# CircleCI is Linux so we cross compile for windows. (i.e. needs wine to spawn)
+POSSIBLE_WINE :=
+POSSIBLE_WINE_ENV :=
+POSSIBLE_WINE_MSG :=
+ifeq ($(shell [[ $(CIRCLECI)_x == true_x && $(CC) == i686-w64-mingw32-gcc ]] && echo true ),true)
+POSSIBLE_WINE   := /usr/bin/wine
+POSSIBLE_WINE_ENV := export WINEDEBUG=-all
+POSSIBLE_WINE_MSG := echo "Using /usr/bin/wine to execute this process"
+endif
+ifeq ($(shell [[ $(CIRCLECI)_x == true_x && $(CC) == x86_64-w64-mingw32 ]] && echo true ),true)
+POSSIBLE_WINE   := /usr/bin/wine
+POSSIBLE_WINE_ENV := export WINEDEBUG=-all
+POSSIBLE_WINE_MSG := echo "Using /usr/bin/wine to execute this process"
+endif
+
+
 JTR_GIT_COMMIT = \"-$(shell git rev-parse --short HEAD 2>/dev/null)\"
 ifeq ($(JTR_GIT_COMMIT), \"-\")
 # this format string will be replaced by git archive:
@@ -184,7 +201,7 @@ endif
 #  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
 #
 #########################################################
-default:	../run/unit-tests@EXE_EXT@
+default:	unit-tests
 	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
@@ -800,11 +817,11 @@ tests/memory.o:	memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h jo
 unit-tests:	../run/unit-tests@EXE_EXT@
 
 ../run/unit-tests@EXE_EXT@:	$(UNIT_TEST_OBJS)
-	$(CC) $(LDFLAGS) -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG $(UNIT_TEST_OBJS) -o $@
+	$(LD) $(UNIT_TEST_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ -o $@
 	@ echo "Now Running the Unit Tests"
-	@ ls -l ../run
-	@ ../run/unit-tests
-	@ ../run/unit-tests@EXE_EXT@
+	@ ${POSSIBLE_WINE_MSG}
+	@ ${POSSIBLE_WINE_ENV}
+	@ ${POSSIBLE_WINE} ../run/unit-tests@EXE_EXT@
 	@ # Extra testing past the unit-tests code commented out for now until I figure out how best to do this.
 	@ # echo "Now Testing john 'external' mode"
 	@ # ../run/john -conf=tests/john-tc.conf -stdout -extern=double 2> /dev/null > tests/external.tst
