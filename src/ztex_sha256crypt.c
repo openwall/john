@@ -79,7 +79,7 @@ static struct device_bitstream bitstream = {
 	565248,		// Would be ~20 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
 	23 * 12,	// Min. keys for effective device utilization
-	1, { 135 },	// Programmable clocks
+	1, { 175 },	// Programmable clocks
 	"sha256crypt",	// label for configuration file
 	NULL, 0		// Initialization data
 };
