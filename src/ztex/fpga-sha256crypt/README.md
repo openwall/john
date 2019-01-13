@@ -4,7 +4,7 @@
 - sha256crypt for ZTEX 1.15y board allows candidate passwords up to
 32 bytes, equipped with on-board mask generator and comparator.
 The board computes 1104 keys in parallel.
-- Power consumption (running at 175 MHz): ~3.1 A under full load, ~0.4 A idle.
+- Power consumption (running at 175 MHz, 12V input): ~3.1A under full load, ~0.4A idle.
 
 
 ## Performance measurements
@@ -15,6 +15,13 @@ to CPUs is shown in table 1.
 +--------------+--------+------------+------------+----------------+
 |              |        | ZTEX board | i5-4210M   | Intel Celeron  |
 |              |        |4x XC6SLX150| OMP x4,AVX2|Stepping 6,SSSE3|
++--------------+--------+------------+------------+----------------+
+|   salt length = 8
++--------------+--------+------------+------------+----------------+
+| key_len=7    | --mask | 133.2 Kc/s | 6.39 Kc/s  | 0.88 Kc/s      |
+| rounds=5000  | --inc  | 127.2 Kc/s | 6.32 Kc/s  | 0.87 Kc/s      |
++--------------+--------+------------+------------+----------------+
+|   salt length = 16
 +--------------+--------+------------+------------+----------------+
 | key_len=5    | --mask | 85.3 Kc/s  | 4.22 Kc/s  | 0.58 Kc/s      |
 | rounds=5000  | --inc  | 82.1 Kc/s  | 4.12 Kc/s  | 0.57 Kc/s      |
@@ -169,7 +176,7 @@ after each block.
 ```
 fig.2. Overview, FPGA application
 
-- Each FPGA has 23 computing units, that's 69 cores, 1104 keys are
+- Each FPGA has 23 computing units, that's 69 cores, 276 keys are
 computed in parallel.
 
 
