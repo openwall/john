@@ -44,23 +44,6 @@ srcdir = @srcdir@
 prefix = @prefix@
 F = ""
 
-# we have to WORK AROUND a problem on CircleCI, when we build for Windows binaries
-# CircleCI is Linux so we cross compile for windows. (i.e. needs wine to spawn)
-POSSIBLE_WINE :=
-POSSIBLE_WINE_ENV :=
-POSSIBLE_WINE_MSG :=
-ifeq ($(shell [[ $(CIRCLECI)_x == true_x && $(CC) == i686-w64-mingw32-gcc ]] && echo true ),true)
-POSSIBLE_WINE   := /usr/bin/wine
-POSSIBLE_WINE_ENV := export WINEDEBUG=-all
-POSSIBLE_WINE_MSG := echo "Using /usr/bin/wine to execute this process"
-endif
-ifeq ($(shell [[ $(CIRCLECI)_x == true_x && $(CC) == x86_64-w64-mingw32 ]] && echo true ),true)
-POSSIBLE_WINE   := /usr/bin/wine
-POSSIBLE_WINE_ENV := export WINEDEBUG=-all
-POSSIBLE_WINE_MSG := echo "Using /usr/bin/wine to execute this process"
-endif
-
-
 JTR_GIT_COMMIT = \"-$(shell git rev-parse --short HEAD 2>/dev/null)\"
 ifeq ($(JTR_GIT_COMMIT), \"-\")
 # this format string will be replaced by git archive:
@@ -201,7 +184,7 @@ endif
 #  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
 #
 #########################################################
-default:	unit-tests
+default:	@UNIT_TESTS_DEPENDENCY@
 	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \

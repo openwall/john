@@ -686,6 +686,7 @@ LN_S
 O_DEBUG
 OPT_INLINE_FLAGS
 OPT_NORMAL_FLAGS
+UNIT_TESTS_DEPENDENCY
 HAVE_MPI
 OBJEXT
 EXEEXT
@@ -5295,6 +5296,11 @@ $as_echo "$jtr_list_add_result" >&6; }
 fi
    jtr_list_add_result=""
 
+
+fi
+
+if test "x$cross_compiling" = xno; then :
+  UNIT_TESTS_DEPENDENCY=unit-tests
 
 fi
 
