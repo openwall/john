@@ -324,7 +324,7 @@ default:
 	@echo "generic                  Any other Unix-like system with gcc"
 
 unit-tests:
-	$(CC) -o ../run/unit-tests -Wall -O -fno-omit-frame-pointer -D_MISC_C_UNIT_TEST -D_JOHN_MISC_NO_LOG tests/unit-tests.c misc.c common.c memory.c
+	$(CC) -o ../run/unit-tests $(CFLAGS) -DFORCE_GENERIC_SHA2 -D_JOHN_MISC_NO_LOG tests/unit-tests.c misc.c common.c memory.c sha2.c
 	../run/unit-tests
 
 linux-x86-64-avx:
@@ -602,7 +602,7 @@ linux-x86-native:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-x86-sse2:
+linux-x86-sse2: unit-tests
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
@@ -627,7 +627,7 @@ linux-x86-mmx:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-x86-any:
+linux-x86-any: unit-tests
 	$(LN) x86-any.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
