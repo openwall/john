@@ -195,6 +195,22 @@ static void init(struct fmt_main *_self)
 
 	self = _self;
 
+	if (options.flags & (FLG_BATCH_CHK | FLG_INC_CHK | FLG_SINGLE_CHK)) {
+		if (john_main_process) {
+			char *t, *pf = str_alloc_copy(self->params.label);
+
+			if ((t = strrchr(pf, '-')))
+				*t = 0;
+
+			fprintf(stderr,
+"The \"%s\" format takes hex keys of length 64 as input. Most normal\n"
+"cracking approaches does not make sense. You probably wanted to use the\n"
+"\"%s\" format (even for PMKID hashes).\n",
+			        self->params.label, pf);
+		}
+		error();
+	}
+
 	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))

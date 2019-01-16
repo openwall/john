@@ -26,6 +26,8 @@ john_register_one(&fmt_wpapsk_pmk);
 #include "wpapsk.h"
 #include "sha.h"
 #include "base64_convert.h"
+#include "options.h"
+#include "john.h"
 
 #define FORMAT_LABEL		"wpapsk-pmk"
 #if AC_BUILT && !HAVE_OPENSSL_CMAC_H
@@ -63,6 +65,22 @@ static void init(struct fmt_main *self)
 	                      self->params.max_keys_per_crypt);
 	mic = mem_alloc(sizeof(*mic) *
 	                self->params.max_keys_per_crypt);
+
+	if (options.flags & (FLG_BATCH_CHK | FLG_INC_CHK | FLG_SINGLE_CHK)) {
+		if (john_main_process) {
+			char *t, *pf = str_alloc_copy(self->params.label);
+
+			if ((t = strrchr(pf, '-')))
+				*t = 0;
+
+			fprintf(stderr,
+"The \"%s\" format takes hex keys of length 64 as input. Most normal\n"
+"cracking approaches does not make sense. You probably wanted to use the\n"
+"\"%s\" format (even for PMKID hashes).\n",
+			        self->params.label, pf);
+		}
+		error();
+	}
 }
 
 static void done(void)
