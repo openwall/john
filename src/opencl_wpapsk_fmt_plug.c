@@ -22,6 +22,7 @@ john_register_one(&fmt_opencl_wpapsk);
 #include "misc.h"
 #include "config.h"
 #include "options.h"
+#include "unicode.h"
 #include "opencl_common.h"
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
@@ -209,6 +210,13 @@ static void init(struct fmt_main *_self)
 
 	self = _self;
 
+	/*
+	 * Implementations seen IRL that have 8 *bytes* (of eg. UTF-8) passwords
+	 * as opposed to 8 *characters*
+	 */
+	if (options.target_enc == UTF_8)
+		self->params.plaintext_min_length = 2;
+
 	opencl_prepare_dev(gpu_id);
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
@@ -341,7 +349,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE,
+		FMT_8_BIT | FMT_CASE,
 		{
 			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 		},

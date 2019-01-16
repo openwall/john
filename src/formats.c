@@ -948,13 +948,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 						"crypt should set FMT_8_BIT");
 					return s_size;
 				}
-			} else if (!strncasecmp(format->params.label, "wpapsk", 6)) {
-/*
- * WPAPSK technically handles 8-bit, but a WPAPSK passphrase is 8 to 63
- * printable ASCII characters according to the spec. IEEE Std. 802.11i-2004,
- * Annex H.4.1: Each character in the pass-phrase must have an encoding in
- * the range of 32 to 126 (decimal), inclusive.
- */
+			} else if (!strncasecmp(format->params.label, "wpapsk-pmk", 10)) {
+/* WPAPSK-PMK is 64 hex digits */
 				if (format->params.flags & FMT_8_BIT) {
 					snprintf(s_size, sizeof(s_size),
 						"%s should not set FMT_8_BIT",
