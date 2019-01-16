@@ -301,6 +301,8 @@ char *_tst_1_strnzcatn(char *head, char *tail, int cnt) {
 		// return information to the calling program.
 		if (!ex_crap[0])
 			strcpy(ex_crap, "\n");
+		if (cnt > 2000)
+			cnt = 2000;
 		sprintf(tmp, "%s  (something is wrong).  prep=[%s] tail=[%s] cnt=%d %s", ret, head, tail, cnt, ex_crap);
 		return tmp;
 	}
@@ -1886,7 +1888,7 @@ unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
 void _Load_NESSIE_hash_file(const char *fname) {
 	// currently only handles NESSIE files.
 	FILE *in = fopen(fname, "r");
-	char LineBuf[4096], *cp;
+	char LineBuf[512], *cp, *cpLB;
 	int n;
 	int in_hash;
 
@@ -1896,13 +1898,15 @@ void _Load_NESSIE_hash_file(const char *fname) {
 		return;
 	}
 	// first read file, counting # of entries
-	fgets(LineBuf, sizeof(LineBuf), in);
+	cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	while (!feof(in)) {
-		if (strstr(LineBuf, "vector#"))
+		if (strstr(cpLB, "vector#"))
 			++nHTst;
-		else if (strstr(LineBuf, "iterated "))
+		else if (strstr(cpLB, "iterated "))
 			++nHTst;
-		fgets(LineBuf, sizeof(LineBuf), in);
+		if (cpLB != LineBuf)
+			MEM_FREE(cpLB);
+		cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	}
 	fclose(in);
 
@@ -1915,35 +1919,37 @@ void _Load_NESSIE_hash_file(const char *fname) {
 
 	// Now, re-read the file, and load the hash tests.
 	in = fopen(fname, "r");
-	fgets(LineBuf, sizeof(LineBuf), in);
+	cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	n = 0;
 	in_hash = 0;
 	while (!feof(in)) {
-		if (strstr(LineBuf, "Test vectors")) {
+		if (strstr(cpLB, "Test vectors")) {
 			if (in_hash)
 				++n;
 			in_hash = 0;
 		}
-		else if (strstr(LineBuf, "vector#")) {
+		else if (strstr(cpLB, "vector#")) {
 			if (in_hash)
 				++n;
 			in_hash = 1;
 		}
-		else if (strstr(LineBuf, "End of test vectors")) {
+		else if (strstr(cpLB, "End of test vectors")) {
 			in_hash = 0;
 		}
 		else if (in_hash) {
-			if ((cp = strstr(LineBuf, "message=")) != NULL) {
+			if ((cp = strstr(cpLB, "message=")) != NULL) {
 				cp += 8;
 				strtok(cp, "\r\n");
 				HTst[n].message = strdup(cp);
 				HTst[n].test_bits = _parse_NESSIE_bits(cp);
 				HTst[n].test_data = _parse_NESSIE(cp, HTst[n].test_bits);
 				HTst[n].cur = HTst[n].hash;
-				fgets(LineBuf, sizeof(LineBuf), in);
+				if (cpLB != LineBuf)
+					MEM_FREE(cpLB);
+				cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 				continue;
 			}
-			if ((cp = strstr(LineBuf, "iterated ")) != NULL) {
+			if ((cp = strstr(cpLB, "iterated ")) != NULL) {
 				char c;
 				int x;
 				// take the last message, perform hash on its
@@ -1970,40 +1976,42 @@ void _Load_NESSIE_hash_file(const char *fname) {
 				//         $s = hash($s);
 			        //      }
 				//      print unpack("H*", $s);
-				x = sscanf(LineBuf, " iterated %u times%c", &HTst[n].iterations, &c);
+				x = sscanf(cpLB, " iterated %u times%c", &HTst[n].iterations, &c);
 				if (x != 2 && c != '=') {
-					fprintf(stderr, "Invalid iteration line  %s\n", LineBuf);
+					fprintf(stderr, "Invalid iteration line  %s\n", cpLB);
 				}
 				// since this iterations line contains the
 				// 'first' line of hash data, we need to
 				// make a fake message line, and then simply
 				// read the file forward.
-				cp = strchr(LineBuf, '=');
-				sprintf(LineBuf, "    hash");
-				// Note, cp is IN LineBuf, so be careful.
-				memmove(&LineBuf[strlen(LineBuf)], cp, strlen(cp) + 1);
+				cp = strchr(cpLB, '=');
+				sprintf(cpLB, "    hash");
+				// Note, cp is IN LineBuf/cpLB, so be careful.
+				memmove(&cpLB[strlen(cpLB)], cp, strlen(cp) + 1);
 			}
-			if ((cp=strstr(LineBuf, "hash=")) != NULL) {
+			if ((cp=strstr(cpLB, "hash=")) != NULL) {
 				// ok, this is the start of a hash line.
 				cp += 5;
 				strtok(cp, "\r\n");
 				strcpy(HTst[n].cur, cp);
 				HTst[n].cur += strlen(cp);
 			}
-			else if (strlen(LineBuf) > 10) {
+			else if (strlen(cpLB) > 10) {
 				// if we have a line with > 10 bytes (actually
 				// if it is more than 2), and it was not caught
 				// by any of the above IF statements, then it
 				// is simply the continuation of the hash data
 				// so append it to the growing hash.
-				cp = LineBuf;
+				cp = cpLB;
 				while (*cp == ' ') ++cp;
 				strtok(cp, "\r\n");
 				strcpy(HTst[n].cur, cp);
 				HTst[n].cur += strlen(cp);
 			}
 		}
-		fgets(LineBuf, sizeof(LineBuf), in);
+		if (cpLB != LineBuf)
+			MEM_FREE(cpLB);
+		cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	}
 	fclose(in);
 }
@@ -2038,7 +2046,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 	// hex string (simple to parse). Also, the MD is all on 1 line,
 	// which also makes it trivial to parse.  The biggest thing is to
 	// have large enough line buffers to properly read the file.
-	char Line[64 * 1024];
+	char LineBuf[1024], *cpLB;
 	FILE *in;
 	int n;
 
@@ -2058,55 +2066,61 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 		// handle getting the seed, AND hashes from the file
 		// we put the seed into HTst[0].test_data
 		// We only put the expected hashes into HTst[n].hash
-		fgets(Line, sizeof(Line), in);
+		cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 		n = 0;
 		while (!feof(in)) {
-			strtok(Line, "\r\n");
-			if (!strncmp(Line, "[L = ", 5)) {
-				sscanf(Line, "[L = %d]", &len);
-			} else if (!strncmp(Line, "Seed = ", 7)) {
+			strtok(cpLB, "\r\n");
+			if (!strncmp(cpLB, "[L = ", 5)) {
+				sscanf(cpLB, "[L = %d]", &len);
+			} else if (!strncmp(cpLB, "Seed = ", 7)) {
 				HTst[0].test_bits = len * 8;
 				HTst[0].test_data = calloc(1, HTst[0].test_bits / 8);
-				ParseHex(HTst[0].test_data, &Line[7], HTst[0].test_bits / 8);
-			} else if (!strncmp(Line, "MD = ", 5)) {
-				strcpy(HTst[n].hash, &Line[5]);
+				ParseHex(HTst[0].test_data, &cpLB[7], HTst[0].test_bits / 8);
+			} else if (!strncmp(cpLB, "MD = ", 5)) {
+				strcpy(HTst[n].hash, &cpLB[5]);
 				strupr(HTst[n].hash);
 				++n;
 			}
-			fgets(Line, sizeof(Line), in);
+			if (cpLB != LineBuf)
+				MEM_FREE(cpLB);
+			cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 		}
 		fclose(in);
 		return;
 	}
 	// handle a short/long 'flat' file
-	fgets(Line, sizeof(Line), in);
+	cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	while (!feof(in)) {
-		if (!strncmp(Line, "Len = ", 6))
+		if (!strncmp(cpLB, "Len = ", 6))
 			++nHTst;
-		fgets(Line, sizeof(Line), in);
+		if (cpLB != LineBuf)
+			MEM_FREE(cpLB);
+		cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	}
 	// Ok, now we know how many variables we have
 	HTst = calloc(nHTst, sizeof(HTst[0]));
 
 	// start over in the file.
 	fseek(in, 0, SEEK_SET);
-	fgets(Line, sizeof(Line), in);
+	cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	n = -1;	// note set to -1, since the first thing Len= read does is do ++n;
 	while (!feof(in)) {
-		strtok(Line, "\r\n");
-		if (!strncmp(Line, "Len = ", 6)) {
+		strtok(cpLB, "\r\n");
+		if (!strncmp(cpLB, "Len = ", 6)) {
 			++n;
-			sscanf(Line, "Len = %"PRIu64, &HTst[n].test_bits);
+			sscanf(cpLB, "Len = %"PRIu64, &HTst[n].test_bits);
 			if (HTst[n].test_bits)
 				HTst[n].test_data = calloc(1, HTst[n].test_bits / 8);
-		} else if (!strncmp(Line, "Msg = ", 6)) {
-			HTst[n].message = strdup(Line);
-			ParseHex(HTst[n].test_data, &Line[6], HTst[n].test_bits / 8);
-		} else if (!strncmp(Line, "MD = ", 5)) {
-			strcpy(HTst[n].hash, &Line[5]);
+		} else if (!strncmp(cpLB, "Msg = ", 6)) {
+			HTst[n].message = strdup(cpLB);
+			ParseHex(HTst[n].test_data, &cpLB[6], HTst[n].test_bits / 8);
+		} else if (!strncmp(cpLB, "MD = ", 5)) {
+			strcpy(HTst[n].hash, &cpLB[5]);
 			strupr(HTst[n].hash);
 		}
-		fgets(Line, sizeof(Line), in);
+		if (cpLB != LineBuf)
+			MEM_FREE(cpLB);
+		cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	}
 	fclose(in);
 }
