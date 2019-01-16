@@ -44,6 +44,7 @@ static struct rpp_context *rule_ctx;
 
 static int words_pair_max;
 static int retest_guessed;
+static int recurse_depth, max_recursion;
 static int orig_max_len, orig_min_kpc;
 static int stacked_rule_count = 1;
 static rule_stack single_rule_stack;
@@ -191,6 +192,10 @@ static void single_init(void)
 	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;
+
+	if ((max_recursion = cfg_get_int(SECTION_OPTIONS, NULL,
+	                                 "SingleMaxRecursionDepth")) < 0)
+		max_recursion = 10000;
 
 	if ((max_buffer_GB = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleMaxBufferSize")) < 0)
@@ -538,6 +543,16 @@ static int single_process_buffer(struct db_salt *salt)
 	struct db_keys *keys;
 	size_t size;
 
+	if (++recurse_depth > max_recursion && retest_guessed) {
+		log_event("- Disabled SingleRetestGuessed due to deep recursion");
+		if (john_main_process)
+			fprintf(stderr,
+"Warning: Disabled SingleRetestGuessed due to deep recursion. You can run\n"
+"         '--loopback --rules=none' later on instead.\n");
+
+		retest_guessed = 0;
+	}
+
 	if (crk_process_salt(salt))
 		return 1;
 
@@ -589,6 +604,7 @@ static int single_process_buffer(struct db_salt *salt)
 		keys->rule[1] = rules_stacked_number;
 	}
 
+	recurse_depth--;
 	return 0;
 }
 
