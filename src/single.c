@@ -179,8 +179,14 @@ static void single_init(void)
 		fprintf(stderr, "\n");
 	}
 
-	retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
-	                              "SingleRetestGuessed", 1);
+	if (options.single_retest_guess)
+		retest_guessed = parse_bool(options.single_retest_guess);
+	else
+		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
+		                              "SingleRetestGuessed", 1);
+
+	if (retest_guessed == -1)
+		error_msg("Expected boolean value for --single-retest-guess=BOOL\n");
 
 	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleWordsPairMax")) < 0)
