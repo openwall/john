@@ -62,7 +62,9 @@ wordlist mode.  This permits for the use of a much larger set of word
 mangling rules with "single crack", and their use is always enabled
 with this mode.  Successfully guessed passwords are also tried against
 all loaded password hashes just in case more users have the same
-password.
+password.  This can be disabled using SingleRetestGuess config option
+or --single-retest-guess=BOOL command-line option (which overrides
+any john.conf setting).
 
 You can add one or several static words with --single-seed=WORD[,WORD]
 in case some word or name is very common in the passwords (eg. for the

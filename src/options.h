@@ -250,6 +250,9 @@ struct options_main {
 /* Single mode seed wordlist file name (--single-wordlist) */
 	char *seed_file;
 
+/* Override config's SingleRetestGuess */
+	char *single_retest_guess;
+
 /* Configuration file name */
 	char *config;
 
