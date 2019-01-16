@@ -602,7 +602,7 @@ linux-x86-native:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-x86-sse2: unit-tests
+linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
@@ -627,7 +627,7 @@ linux-x86-mmx:
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
 
-linux-x86-any: unit-tests
+linux-x86-any:
 	$(LN) x86-any.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
