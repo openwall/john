@@ -774,8 +774,7 @@ testfiles:
 #  the 'real' john against them, and expect certain results.  Test cases will
 #  be added to the john-tc.conf file as needed when any issue shows up
 #  same type thing for testing base64_convert.c which contains it's own ST
-#  code, and for dynamic, which has the dynamic test suite.  The unit-tests
-#  are really designed as a
+#  code, and for dynamic, which has the dynamic test suite.
 ###############################################################################
 
 UNIT_TEST_OBJS = \

@@ -5299,7 +5299,7 @@ fi
 
 fi
 
-if test "x$cross_compiling" = xno; then :
+if test "x$enable_native_tests" = xyes; then :
   UNIT_TESTS_DEPENDENCY=unit-tests
 
 fi

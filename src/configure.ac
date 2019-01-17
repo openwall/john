@@ -132,7 +132,7 @@ AS_IF([test "x$cross_compiling" = xno], [JTR_SET_NORMAL_INCLUDES])
 dnl ======================================================================
 dnl only do auto unit-tests logic IF we are not cross compiling
 dnl ======================================================================
-AS_IF([test "x$cross_compiling" = xno], [AC_SUBST(UNIT_TESTS_DEPENDENCY,[unit-tests])])
+AS_IF([test "x$enable_native_tests" = xyes], [AC_SUBST(UNIT_TESTS_DEPENDENCY,[unit-tests])])
 
 dnl ======================================================================
 dnl check compiler switches here.  OPT_NORMAL, then
