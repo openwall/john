@@ -56,6 +56,8 @@ static int ocl_fmt;
 #endif /* HAVE_OPENCL */
 #endif /* HAVE_OPENCL || HAVE_ZTEX */
 
+int single_disabled_recursion;
+
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n", rec_rule[0]);
@@ -551,6 +553,7 @@ static int single_process_buffer(struct db_salt *salt)
 "         '--loopback --rules=none' later on instead.\n");
 
 		retest_guessed = 0;
+		single_disabled_recursion = 1;
 	}
 
 	if (crk_process_salt(salt))
