@@ -299,7 +299,7 @@ static int log_time(void)
 
 	Time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
-	if (LogDateFormat) {
+	if (LogDateFormat && *LogDateFormat) {
 		struct tm *t_m;
 		char Buf[128];
 		time_t t;
@@ -613,7 +613,7 @@ void log_event(const char *format, ...)
 	if (options.flags & FLG_LOG_STDERR) {
 		unsigned int Time;
 
-		if (LogDateStderrFormat) {
+		if (LogDateStderrFormat && *LogDateStderrFormat) {
 			struct tm *t_m;
 			char Buf[128];
 			time_t t;

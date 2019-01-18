@@ -971,7 +971,7 @@ int cp_name2id(char *encoding)
 	char enc[16] = "";
 	char *d = enc;
 
-	if (!encoding)
+	if (!encoding || !encoding[0])
 		return CP_UNDEF;
 	if (strlen(encoding) > sizeof(enc))
 		goto err;
