@@ -23,8 +23,10 @@
     ///NVIDIA: GTX 570 don't allow full unroll.
     #if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
         #define UNROLL_LOOP    133128
-    #elif amd_gcn(DEVICE_INFO)
+    #elif amd_gcn(DEVICE_INFO) && DEV_VER_MAJOR < 2500
         #define UNROLL_LOOP    132098
+    #elif amd_gcn(DEVICE_INFO) && DEV_VER_MAJOR >= 2500
+        #define UNROLL_LOOP    34079748
     #elif (nvidia_sm_2x(DEVICE_INFO) || nvidia_sm_3x(DEVICE_INFO))
         #define UNROLL_LOOP    132098
     #elif nvidia_sm_5x(DEVICE_INFO)

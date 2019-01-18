@@ -381,8 +381,8 @@ static int calibrate()
 		{0, 0, 0, 0, 0}
 	};
 
-	fprintf(stderr, "Calibration is trying to figure out the best configuration to "
-		        "use at runtime. Please, wait...\n");
+	fprintf(stderr, "\nCalibration is trying to figure out the best "
+		        "configuration to use at runtime. Please, wait...\n");
 
 	i = j = k = l = 0;
 	while (loop_set[0][i]) {
