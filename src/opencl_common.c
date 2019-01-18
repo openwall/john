@@ -356,8 +356,10 @@ static char *opencl_driver_info(int sequential_id)
 
 		if (major < 1912)
 			snprintf(buf, sizeof(buf), "%s - Catalyst %s", dname, name);
-		else
+		else if (major < 2500)
 			snprintf(buf, sizeof(buf), "%s - Crimson %s", dname, name);
+		else
+			snprintf(buf, sizeof(buf), "%s - AMDGPU-Pro %s", dname, name);
 		snprintf(tmp, sizeof(tmp), "%s", buf);
 	} else
 		snprintf(tmp, sizeof(tmp), "%s", dname);
