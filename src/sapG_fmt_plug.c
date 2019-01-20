@@ -341,7 +341,7 @@ static int cmp_one(void *binary, int index)
 	if (half_hashes)
 		return (!memcmp(binary, crypt_key[index], BINARY_SIZE) ||
 		        (!memcmp(binary, crypt_key[index], BINARY_SIZE / 2) &&
-		         !memcmp(binary + BINARY_SIZE / 2, zeros, BINARY_SIZE / 2)));
+		         !memcmp(((unsigned char*)binary) + BINARY_SIZE / 2, zeros, BINARY_SIZE / 2)));
 	else
 		return (!memcmp(binary, crypt_key[index], BINARY_SIZE));
 #endif
