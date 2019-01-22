@@ -272,7 +272,7 @@ fi
    JTR_FLAG_CHECK([-Wno-missing-format-attribute], 1)
    JTR_FLAG_CHECK([-Wmissing-include-dirs], 1)
    JTR_FLAG_CHECK([-Wmultichar], 1)
-   JTR_FLAG_CHECK([-Wpacked ], 1)
+#   JTR_FLAG_CHECK([-Wpacked ], 1)
    JTR_FLAG_CHECK([-Wreturn-type], 1)
    JTR_FLAG_CHECK([-Wsequence-point], 1)
    JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
