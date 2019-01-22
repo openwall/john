@@ -133,4 +133,10 @@ extern void cfg_get_int_array(char *section, char *subsection, char *param,
  */
 extern int cfg_get_bool(char *section, char *subsection, char *param, int def);
 
+/*
+ *  CONST access to the config table. Used by dynamic_compiler as optimizations.
+ *  any external code using this data MUST not modify anything!
+ */
+extern const struct cfg_section *get_cfg_db();
+
 #endif

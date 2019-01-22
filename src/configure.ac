@@ -281,7 +281,7 @@ fi
 #   JTR_FLAG_CHECK([-Wswitch-default], 1)
    JTR_FLAG_CHECK([-Wno-unused], 1)
    JTR_FLAG_CHECK([-Wvariadic-macros], 1)
-#   JTR_FLAG_CHECK([-Werror=nested-externs], 1)
+   JTR_FLAG_CHECK([-Werror=nested-externs], 1)
    JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin
    JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)		dnl n cygwin
    JTR_FLAG_CHECK([-Wcast-align], 1)

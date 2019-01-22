@@ -7405,7 +7405,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	if (Setup->flags & MGF_ColonNOTValid)
 	{
-		extern struct options_main options;
 		if (options.loader.field_sep_char == ':')
 		{
 			return 0;
@@ -7963,7 +7962,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 {
-	extern struct options_main options;
 	char label[16] = { 0 }, label_id[16] = { 0 }, *cp = NULL;
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
 
@@ -8067,7 +8065,6 @@ struct fmt_main *dynamic_Register_local_format(int *type) {
 int dynamic_Register_formats(struct fmt_main **ptr)
 {
 	int count, i, idx, single=-1, wildcard = 0, pop[5000];
-	extern struct options_main options;
 
 	if (options.format && strstr(options.format, "*"))
 		wildcard = 1;

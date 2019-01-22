@@ -85,6 +85,8 @@ static void our_init(struct fmt_main *self);
 static void get_ptr();
 static char* (*dyna_split)(char *ciphertext, int index, struct fmt_main *self);
 
+extern const char *options_format;
+
 /* this function converts a 'native' @dynamic= signature string into a $dynamic_6xxx$ syntax string */
 static char *Convert(char *Buf, char *ciphertext, int in_load)
 {
@@ -121,7 +123,6 @@ extern char *load_regen_lost_salt_Prepare(char *split_fields1);
 static char *our_prepare(char **fields, struct fmt_main *self)
 {
 	if (options.format && !strncmp(options.format, "dynamic=", 8)) {
-		extern const char *options_format;
 		char *ct;
 		options_format = options.format;
 		if (options.regen_lost_salts && !strchr(fields[1], '$')) {

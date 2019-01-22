@@ -56,6 +56,8 @@ struct fmt_tests axcrypt_common_tests[] = {
 	{NULL}
 };
 
+extern int ldr_in_pot;
+
 char *rawsha1_common_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
@@ -111,7 +113,6 @@ int rawsha1_axcrypt_valid(char *ciphertext, struct fmt_main *self)
 char *rawsha1_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
-	extern int ldr_in_pot;
 
 	if (ldr_in_pot && !strncmp(ciphertext, FORMAT_TAG_OLD, TAG_LENGTH_OLD)) {
 		static char *fields[10];

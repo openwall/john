@@ -304,6 +304,8 @@ static DC_HANDLE find_checksum(uint32_t crc32);
 static DC_HANDLE do_compile(const char *expr, uint32_t crc32);
 static void add_checksum_list(DC_HANDLE pHand);
 
+extern int ldr_in_pot;
+
 // TODO
 static char *dynamic_expr_normalize(const char *ct) {
 	// normalize $pass -> $p
@@ -467,7 +469,6 @@ int dynamic_compile(const char *expr, DC_HANDLE *p) {
 
 	// This work, moved from do_compile, AND from dynamic_assign_script_to_format
 	if (!gost_init) {
-		extern void Dynamic_Load_itoa16_w2();
 		gost_init_table();
 		gost_init = 1;
 		common_init();
@@ -821,7 +822,7 @@ static int handle_extra_params(DC_struct *ptr) {
 	if ( (cp = get_param(ptr->pExtraParams, "saltlen")) != NULL) {
 		nSaltLen = atoi(cp);
 		if (nSaltLen > 200)
-			error("Max salt len allowed is 200 bytes\n");
+			error_msg("Max salt len allowed is 200 bytes\n");
 	}
 	return 0;
 }
@@ -2543,7 +2544,6 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 	return dynamic_expr_normalize(fld1);
 }
 char *dynamic_compile_split(char *ct) {
-	extern int ldr_in_pot;
 
 	if (strncmp(ct, "dynamic_", 8)) {
 		return dynamic_compile_prepare("", ct);

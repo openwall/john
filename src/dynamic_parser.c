@@ -871,7 +871,6 @@ int dynamic_IS_PARSER_VALID(int which, int single_lookup_only)
 		return 1;
 	}
 	if (!init) {
-		extern const struct cfg_section *get_cfg_db();
 		const struct cfg_section *cfg_db;
 
 		cfg_db = get_cfg_db();

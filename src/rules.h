@@ -123,4 +123,10 @@ extern char *rules_process_stack(char *key, rule_stack *ctx);
  */
 extern char *rules_process_stack_all(char *key, rule_stack *ctx);
 
+
+/*
+ * used by 'fake' salts code
+ */
+extern char *userclass_expand(const char *src);
+
 #endif

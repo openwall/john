@@ -378,6 +378,9 @@ struct fmt_main *dynamic_LOCAL_FMT_FROM_PARSER_FUNCTIONS(const char *Script, int
 // functions can not be used, and this demangle MUST be used to set the length.
 char *dynamic_Demangle(char *Line, int *Len);
 
+int get_dynamic_fmt_saltlen();
+void Dynamic_Load_itoa16_w2();
+
 #define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
 
 //

@@ -26,6 +26,7 @@
 #include "memory.h"
 #include "options.h"
 #include "fake_salts.h"
+#include "rules.h"
 
 // global data  (Options loading uses this variable).
 char *regen_salts_options;
@@ -165,7 +166,6 @@ static char *LoadUserClass(char which, int i) {
 	}
 
 	if ((user_class = cfg_get_param("Regen_Salts_UserClasses", NULL, user_class_num))) {
-		extern char *userclass_expand(const char *src); /* found in rules.c */
 		return userclass_expand(user_class);
 	}
 	return NULL;

@@ -14,6 +14,7 @@
 #include "misc.h"   /* for strtokm */
 
 int rpp_real_run = 0;
+extern int hc_logic;
 
 int rpp_init(struct rpp_context *ctx, char *subsection)
 {
@@ -232,7 +233,6 @@ char *rpp_next(struct rpp_context *ctx)
 {
 	struct rpp_range *range;
 	int index, done;
-	extern int hc_logic;
 
 	if (ctx->count < 0) {
 		if (!ctx->input) return NULL;
