@@ -238,7 +238,9 @@ static int hash_password (
 	break;
 
 	default:
-		error_msg("Invalid encrypt value (%d) in UAF hash", encrypt);
+		// note, uaf2john can not use error_msg(), so simply do an fprintf and bail.
+		fprintf(stderr, "Invalid encrypt value (%d) in UAF hash", encrypt);
+		exit(1);
     }
 
 
