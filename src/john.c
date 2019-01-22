@@ -884,7 +884,12 @@ static void john_load_conf(void)
 		if ((options.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "WordlistRules")))
-			options.flags |= FLG_RULES;
+		{
+			if (strlen(options.activewordlistrules) == 0)
+				options.activewordlistrules = NULL;
+			else
+				options.flags |= FLG_RULES;
+		}
 	}
 
 	/* EmulateBrokenEncoding feature */
