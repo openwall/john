@@ -259,9 +259,9 @@ fi
    JTR_FLAG_CHECK([-Wdisabled-optimization], 1)
    JTR_FLAG_CHECK([-Wdiv-by-zero ], 1)
    JTR_FLAG_CHECK([-Wendif-labels], 1)
-   JTR_FLAG_CHECK([-Wformat-nonliteral], 1)		dnl n cygwin
-   JTR_FLAG_CHECK([-Wformat-security], 1)		dnl n cygwin
-   JTR_FLAG_CHECK([-Wformat-y2k], 1)			dnl n cygwin
+#   JTR_FLAG_CHECK([-Wformat-nonliteral], 1)		dnl n cygwin&Fedora29  BUT seen on Travis, and it causes problems
+   JTR_FLAG_CHECK([-Wformat-security], 1)		dnl n cygwin&Fedora29
+   JTR_FLAG_CHECK([-Wformat-y2k], 1)			dnl n cygwin&Fedora29
    JTR_FLAG_CHECK([-Wimplicit ], 1)
    JTR_FLAG_CHECK([-Wimport], 1)
    JTR_FLAG_CHECK([-Winit-self], 1)
@@ -282,8 +282,8 @@ fi
    JTR_FLAG_CHECK([-Wno-unused], 1)
    JTR_FLAG_CHECK([-Wvariadic-macros], 1)
    JTR_FLAG_CHECK([-Werror=nested-externs], 1)
-   JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin
-   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)		dnl n cygwin
+   JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin&Fedora29
+   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin&Fedora29
    JTR_FLAG_CHECK([-Wcast-align], 1)
    dnl ----------------------------------------------------------
    dnl There is -Wmissing-declarations and -Wmissing-prototypes
