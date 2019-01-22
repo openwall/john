@@ -278,7 +278,7 @@ fi
    JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
    JTR_FLAG_CHECK([-Wstrict-aliasing=2], 1)
    JTR_FLAG_CHECK([-Wswitch], 1)
-#   JTR_FLAG_CHECK([-Wswitch-default], 1)
+   JTR_FLAG_CHECK([-Wswitch-default], 1)
    JTR_FLAG_CHECK([-Wno-unused], 1)
    JTR_FLAG_CHECK([-Wvariadic-macros], 1)
    JTR_FLAG_CHECK([-Werror=nested-externs], 1)

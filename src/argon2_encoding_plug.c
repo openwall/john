@@ -112,6 +112,8 @@ static size_t to_base64(char *dst, size_t dst_len, const void *src,
     case 1:
         olen += 2;
         break;
+	default:
+			; /* pacify compiler warning. */
     }
     if (dst_len <= olen) {
         return (size_t)-1;

@@ -175,6 +175,8 @@ static void DecodeFileName(unsigned char *Name, unsigned char *EncName,
 #endif
 		}
 		break;
+		default:
+			; /* pacify compiler warning */
 		}
 		Flags <<= 2;
 		FlagBits -= 2;

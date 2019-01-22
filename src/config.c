@@ -448,6 +448,8 @@ int cfg_get_bool(char *section, char *subsection, char *param, int def)
 	case 'T':
 	case '1':
 		return 1;
+	default:
+		; /* pacify compiler warning */
 	}
 
 	return 0;

@@ -1012,6 +1012,8 @@ Symmetrically_Encrypted_Data_Packet(int len, int first, int partial, char *hash)
 	case SYM_ALG_MODE_PUB_ENC:
 		if (gpg_dbg) fprintf(stderr, "\tEncrypted data [sym alg is specified in pub-key encrypted session key]\n");
 		break;
+	default:
+		;	/* pacify compiler warning */
 	}
 	// https://www.ietf.org/rfc/rfc2440.txt
 	//
@@ -1150,6 +1152,8 @@ Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial, char *ha
 		fprintf(stderr, "\tEncrypted data [sym alg is specified in pub-key encrypted session key]\n");
 		fprintf(stderr, "SYM_ALG_MODE_PUB_ENC is not supported yet!\n");
 		break;
+	default:
+		;	/* pacify compiler warning */
 	}
 	if (give(len - 1, m_data, sizeof(m_data)) != len-1)
 		return;
@@ -1599,6 +1603,8 @@ parse_packet(char *hash)
 				else
 					len = EOF;
 				break;
+			default:
+				; // pacify compiler warning
 			}
 		}
 		if (tag < TAG_NUM)
@@ -2834,6 +2840,8 @@ read_radix64(byte *p, unsigned int max)
 		case ECR:
 			if (++cr >= 2) goto skiptail;
 			continue;
+		default:
+			; // pacify compiler warning
 		}
 		lf = cr = 0;
 		*p++ = d;
@@ -2885,6 +2893,8 @@ decode_radix64(byte *p, unsigned int max)
 					*p++ = ((c2 & 0x0f) << 4) |
 						((c3 & 0x3c) >> 2);
 					return out + 2;
+				default:
+					; // pacify compiler warning
 				}
 			}
 		}

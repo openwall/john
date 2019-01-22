@@ -41,6 +41,7 @@
 #include "arch.h"
 
 #include "sph_haval.h"
+#include "misc.h"
 
 #if SPH_SMALL_FOOTPRINT && !defined SPH_SMALL_FOOTPRINT_HAVAL
 #define SPH_SMALL_FOOTPRINT_HAVAL   1
@@ -853,6 +854,8 @@ haval_out(sph_haval_context *sc, void *dst)
 		sph_enc32le(buf + 24, s6);
 		sph_enc32le(buf + 28, s7);
 		break;
+	default:
+		error_msg("Unknown haval length:  %d", sc->olen);
 	}
 }
 

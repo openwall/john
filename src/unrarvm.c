@@ -560,6 +560,8 @@ static void execute_standard_filter(rarvm_data_t *rarvm_data, rarvm_standard_fil
 					case 4: if (K2 < 16) K2++; break;
 					case 5: if (K3>=-16) K3--; break;
 					case 6: if (K3 < 16) K3++; break;
+					default:
+						; /* pacify compiler warning.  Likely should error here, but I am not sure */
 					}
 				}
 			}
@@ -884,6 +886,8 @@ static int rarvm_execute_code(rarvm_data_t *rarvm_data,
 		case VM_PRINT:
 			/* DEBUG */
 			break;
+		default:
+			; /* pacify compiler warning.  Likely should error here, but I am not sure */
 		}
 		cmd++;
 		--max_ops;

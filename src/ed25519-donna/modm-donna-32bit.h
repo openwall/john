@@ -411,6 +411,7 @@ lt256_modm_batch(const bignum256modm a, const bignum256modm b, size_t limbsize) 
 		case 2: if (a[2] > b[2]) return 0; if (a[2] < b[2]) return 1;
 		case 1: if (a[1] > b[1]) return 0; if (a[1] < b[1]) return 1;
 		case 0: if (a[0] > b[0]) return 0; if (a[0] < b[0]) return 1;
+		default: ;
 	}
 	return 0;
 }
@@ -428,6 +429,7 @@ lte256_modm_batch(const bignum256modm a, const bignum256modm b, size_t limbsize)
 		case 2: if (a[2] > b[2]) return 0; if (a[2] < b[2]) return 1;
 		case 1: if (a[1] > b[1]) return 0; if (a[1] < b[1]) return 1;
 		case 0: if (a[0] > b[0]) return 0; if (a[0] < b[0]) return 1;
+		default: ;
 	}
 	return 1;
 }

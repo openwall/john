@@ -61,5 +61,8 @@ void do_batch_crack(struct db_main *db)
 	case 3:
 		status.pass = 3;
 		do_incremental_pass(db);
+		
+	default:
+		error_msg("Invalid batch type (%d)", status.pass);
 	}
 }

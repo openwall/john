@@ -890,6 +890,7 @@ static int cmp_exact_loadfile(int index)
 				inflateEnd(&strm);
 				fclose(fp);
 				return 0;
+			default: ; /* pacify compiler warning */
 			}
 			have = CHUNK - strm.avail_out;
 			/* now update our crc value */
@@ -1035,6 +1036,7 @@ static int isLegalUTF8_char(const u8 *source, int length)
 		case 0xF0: if (a < 0x90) return -1;
 			break;
 		case 0xF4: if (a > 0x8F) return -1;
+		default: ; /* pacify compiler warning */
 		}
 
 	case 1: if (*source >= 0x80 && *source < 0xC2) return -1;

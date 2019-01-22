@@ -310,6 +310,7 @@ lt256_modm_batch(const bignum256modm a, const bignum256modm b, size_t limbsize) 
 		case 2: t = (a[i] - b[i]) - carry; carry = (t >> 63); i++;
 		case 1: t = (a[i] - b[i]) - carry; carry = (t >> 63); i++;
 		case 0: t = (a[i] - b[i]) - carry; carry = (t >> 63);
+		default: ;
 	}
 	return (int)carry;
 }
@@ -325,6 +326,7 @@ lte256_modm_batch(const bignum256modm a, const bignum256modm b, size_t limbsize)
 		case 2: t = (b[i] - a[i]) - carry; carry = (t >> 63); i++;
 		case 1: t = (b[i] - a[i]) - carry; carry = (t >> 63); i++;
 		case 0: t = (b[i] - a[i]) - carry; carry = (t >> 63);
+		default: ;
 	}
 	return (int)!carry;
 }

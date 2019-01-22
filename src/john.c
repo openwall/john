@@ -1907,6 +1907,8 @@ static void john_run(void)
 			case (DB_SPLIT | DB_NODUP):
 				fprintf(stderr, "%s%s and%s\n",
 				    might, partial, not_all);
+			default:
+				; /* pacify compiler warning */
 			}
 			if (database.format->methods.prepare !=
 			    fmt_default_prepare)

@@ -647,6 +647,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		case 2: crypt_all_256(*pcount); break;
 		case 3: crypt_all_384(*pcount); break;
 		case 4: crypt_all_512(*pcount); break;
+		default:
+				error_msg("Invalid sapH type (%d)", sapH_cur_salt->type);
 	}
 	return *pcount;
 }

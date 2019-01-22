@@ -882,6 +882,9 @@ static const char *comp_get_symbol(const char *pInput) {
 					  TmpBuf[0] = pInput[2];
 					  TmpBuf[1] = 0;
 					  return comp_push_sym(TmpBuf, fpNull, pInput+3, 0);
+			default:  fprintf (stderr, "Error, unknown $ parameter character (%c) seen\n", pInput[1]);
+					  return comp_push_sym("X", fpNull, pInput, 0);
+						
 		}
 	}
 	// these are functions, BUT can not be used for 'outer' function (i.e. not the final hash)
@@ -1447,6 +1450,8 @@ static void comp_do_parse(int cur, int curend) {
 			case '6': push_pcode("app_6", dynamic_app_6, 0); continue;
 			case '7': push_pcode("app_7", dynamic_app_7, 0); continue;
 			case '8': push_pcode("app_8", dynamic_app_8, 0); continue;
+			default:
+				fprintf(stderr, "Error, unknown curTok byte in compiler:  byte(%c)\n", *curTok);
 		}
 	}
 }
@@ -2467,6 +2472,8 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 					case 41: type="keccak_256"; break;
 					case 42: type="keccak_512"; break;
 					// LARGE_HASH_EDIT_POINT
+					default:
+						fprintf(stderr, "Error, unknown/unhandled dynamic type: $dynamic_%d$\n", num);
 				}
 				if (type) {
 					switch(num%10) {
@@ -2479,6 +2486,8 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 						case 6: sprintf(tmp1, "%s($s.%s($p))", type, type); break;
 						case 7: sprintf(tmp1, "%s(%s($s).%s($p))", type, type, type); break;
 						case 8: sprintf(tmp1, "%s(%s($p).%s($p))", type, type, type); break;
+						default:
+							fprintf(stderr, "Error, unknown/unhandled dynamic type: $dynamic_%d$\n", num);
 					}
 					cpExpr = tmp1;
 				}
@@ -2520,6 +2529,8 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 				//case 30: cpExpr = ""; break;
 				//case 30: cpExpr = ""; break;
 				//case 30: cpExpr = ""; break;
+				default:
+						fprintf(stderr, "Error, unknown/unhandled dynamic type: $dynamic_%d$\n", num);
 			}
 			if (cpExpr)
 				fld1 = convert_old_dyna_to_new(fld0, fld1, Buf, sizeof(Buf), cpExpr);

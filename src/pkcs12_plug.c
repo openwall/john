@@ -32,6 +32,7 @@
 #include "simd-intrinsics.h"
 #include "pkcs12.h"
 #include "sph_whirlpool.h"
+#include "misc.h"
 
 #define PKCS12_MAX_PWDLEN 128
 
@@ -247,6 +248,8 @@ static int mbedtls_pkcs12_derivation( unsigned char *data, size_t datalen, const
 			    sph_whirlpool_close(&md_ctx_whrl, hash_output);
 		    }
 		    break;
+		default:
+			error_msg("invalid md_type (%d) in pkcs12", md_type);
 	    }
 
         use_len = ( datalen > hlen ) ? hlen : datalen;

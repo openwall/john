@@ -191,6 +191,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 			p = q+1;
 			break;
+		default:
+			; /* pacify compiler warning */
 		}
 	}
 	/* zone */

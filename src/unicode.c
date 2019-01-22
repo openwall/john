@@ -521,6 +521,8 @@ int valid_utf8(const UTF8 *source)
 			case 0xED: if (a > 0x9F) return 0; break;
 			case 0xF0: if (a < 0x90) return 0; break;
 			case 0xF4: if (a > 0x8F) return 0;
+			default:
+				; /* pacify compiler warning */
 			}
 
 		case 1:
@@ -625,6 +627,8 @@ UTF8 *utf16_to_utf8_r(UTF8 *dst, int dst_len, const UTF16 *source)
 		case 3: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
 		case 2: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
 		case 1: *--tpt =  (UTF8)(ch | firstByteMark[bytesToWrite]);
+		default:
+			; /* pacify compiler warning */
 		}
 		tpt += bytesToWrite;
 	}
@@ -766,6 +770,8 @@ inline static UTF8 *utf32_to_utf8(UTF8 *dst, int dst_len, const UTF32 *source)
 		case 3: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
 		case 2: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
 		case 1: *--tpt =  (UTF8)(ch | firstByteMark[bytesToWrite]);
+		default:
+			; /* pacify compiler warning */
 		}
 		tpt += bytesToWrite;
 	}
@@ -1947,6 +1953,8 @@ void utf32_to_utf8_32(UTF32 *in_place_string)
 		case 3: u8_32 |= ((ch | byteMark) & byteMask) << 16; ch >>= 6;
 		case 2: u8_32 |= ((ch | byteMark) & byteMask) << 8; ch >>= 6;
 		case 1: u8_32 |= (ch | firstByteMark[bytesToWrite]);
+		default:
+			; /* pacify compiler warning */
 		}
 		*dst++ = u8_32;
 	}

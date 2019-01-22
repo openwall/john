@@ -357,6 +357,8 @@ static int decrypt(char *password)
 					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 256, &akey);
 					break;
+				default:
+					error_msg("invalid Openssl-enc md type %d", cur_salt->md);
 			}
 			break;
 		case 1:
@@ -379,8 +381,12 @@ static int decrypt(char *password)
 					           nrounds, key, iv);
 					AES_set_decrypt_key(key, 128, &akey);
 					break;
+				default:
+					error_msg("invalid Openssl-enc md type %d", cur_salt->md);
 			}
 			break;
+		default:
+			error_msg("invalid Openssl-enc cipher type %d", cur_salt->cipher);
 	}
 	memcpy(biv, iv, 16);
 

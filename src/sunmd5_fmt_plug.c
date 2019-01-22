@@ -779,6 +779,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						cpo24[2] = roundascii[5];
 						cpo24[3] = 0x80;
 						break;
+					default:
+						error_msg("Invalid SunMD5 roundasciilen (%d)", roundasciilen);
 				}
 				((uint32_t*)cpo24)[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
 			}

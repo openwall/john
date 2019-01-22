@@ -702,6 +702,8 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 				return 5000;	// default
 			sscanf(c3_salt, "rounds=%d", &rounds);
 			return rounds;
+		default:
+			error_msg("Invalid algorithm (%d) in C3 format", algorithm);
 	}
 	return 1;
 }

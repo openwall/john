@@ -146,6 +146,8 @@ static void base64_encode_iBS(const unsigned char *in, size_t len, char *outy, u
 					enc_base64_1_iBS(outy, u, 2); outy[2] = 0; break;
 				case 2:
 					enc_base64_1_iBS(outy, u, 3); outy[3] = 0; break;
+				default:
+					; // cant happen. However, mutes compiler warning.
 			}
 		}
 		else
@@ -158,6 +160,8 @@ static void base64_encode_iBS(const unsigned char *in, size_t len, char *outy, u
 		{
 			case 1: strcpy(&outy[2], ".."); break;
 			case 2: strcpy(&outy[3], "."); break;
+			default:
+					; // do nothing: mutes compiler warning.
 		}
 	}
 }
@@ -184,6 +188,8 @@ static void base64_encode_i(const unsigned char *in, size_t len, char *outy, uns
 					enc_base64_1_i(outy, u, 2); outy[2] = 0; break;
 				case 2:
 					enc_base64_1_i(outy, u, 3); outy[3] = 0; break;
+				default:
+					; // cant happen. However, mutes compiler warning.
 			}
 		}
 		else
@@ -196,6 +202,8 @@ static void base64_encode_i(const unsigned char *in, size_t len, char *outy, uns
 		{
 			case 1: strcpy(&outy[2], ".."); break;
 			case 2: strcpy(&outy[3], "."); break;
+			default:
+					; // do nothing: mutes compiler warning.
 		}
 	}
 }
@@ -222,6 +230,8 @@ static void base64_encode(const unsigned char *in, size_t len, char *outy, unsig
 					enc_base64_1(outy, u, 2); outy[2] = 0; break;
 				case 2:
 					enc_base64_1(outy, u, 3); outy[3] = 0; break;
+				default:
+					; // cant happen. However, mutes compiler warning.
 			}
 		}
 		else
@@ -234,6 +244,8 @@ static void base64_encode(const unsigned char *in, size_t len, char *outy, unsig
 		{
 			case 1: strcpy(&outy[2], "=="); break;
 			case 2: strcpy(&outy[3], "="); break;
+			default:
+					; // do nothing: mutes compiler warning.
 		}
 	}
 }

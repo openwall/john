@@ -530,6 +530,8 @@ pdf_compute_hardened_hash_r6(unsigned char *password, int pwlen, unsigned char s
                         SHA512_Update(&sha512, data, data_len * 64);
                         SHA512_Final(block, &sha512);
                         break;
+				default:
+					error_msg("Invalid block-size (%d) in pdf format", block_size);
                 }
         }
 

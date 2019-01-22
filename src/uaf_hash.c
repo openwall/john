@@ -17,6 +17,7 @@
 #ifndef _uaf_hash_
 #define _uaf_hash_
 #include "uaf_encode.c"
+#include "misc.h"
 
 #ifdef VMS
 #include <ssdef.h>
@@ -235,6 +236,9 @@ static int hash_password (
 	}
 
 	break;
+
+	default:
+		error_msg("Invalid encrypt value (%d) in UAF hash", encrypt);
     }
 
 

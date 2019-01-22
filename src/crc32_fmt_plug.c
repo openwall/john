@@ -213,7 +213,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			crcs[i] = crc;
 			//printf("%s() In: '%s' Out: %08x\n", __FUNCTION__, saved_key[i], ~crc);
 		}
-
+		break;
+		
+	default:
+		error_msg("Invalid crctype (%d) in crc32 crypt_all", crctype);
 	}
 
 	return count;

@@ -14,6 +14,7 @@
 */
 
 #include "jh.h"
+#include "misc.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -241,6 +242,8 @@ static HashReturn Init(hashState *state, int hashbitlen)
             case 256: memcpy(state->x,JH256_H0,128); break;
             case 384: memcpy(state->x,JH384_H0,128); break;
             case 512: memcpy(state->x,JH512_H0,128); break;
+			default:
+				error_msg("Invalid hashbitlen %d in jh format", hashbitlen);
       }
 
       return(SUCCESS);
@@ -343,6 +346,7 @@ static HashReturn Final(hashState *state, BitSequenceJH *hashval)
             case 256: memcpy(hashval,(unsigned char*)state->x+64+32,32);  break;
             case 384: memcpy(hashval,(unsigned char*)state->x+64+16,48);  break;
             case 512: memcpy(hashval,(unsigned char*)state->x+64,64);     break;
+			default: error_msg("invalid hashbitlen (%d) in jh", state->hashbitlen);
       }
 
       return(SUCCESS);

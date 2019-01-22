@@ -510,6 +510,8 @@ static MAYBE_INLINE void mmxput3(void *buf, unsigned int bid,
 				d[2 * VS32] = BITALIGN(s[2 * VS32], s[1 * VS32], 8);
 				d[3 * VS32] = BITALIGN(s[3 * VS32], s[2 * VS32], 8);
 				d[4 * VS32] = (d[4 * VS32] & 0xff000000U) | (s[3 * VS32] >> 8);
+			default:
+				; /* simply here for compiler pacification */
 #endif
 			}
 		}

@@ -22,6 +22,7 @@
 #include "md5.h"
 #include "sha.h"
 #include "sph_ripemd.h"
+#include "misc.h"
 
 #ifndef HAVE_SKEY
 // If HAVE_SKEY is defined, THEN we will use the native
@@ -83,6 +84,7 @@ void jtr_skey_keycrunch(unsigned char *saved_key, char *saved_salt_seed, char *s
 		case 1: md5_f((unsigned int *)saved_key,    tmp, plen); return;
 		case 2: sha1_f((unsigned int *)saved_key,   tmp, plen); return;
 		case 3: rmd160_f((unsigned int *)saved_key, tmp, plen); return;
+		default: error_msg("Unknown skey keycrunch type(%d)\n", which);
 	}
 }
 void jtr_skey_f(unsigned char *saved_key) {
@@ -91,6 +93,7 @@ void jtr_skey_f(unsigned char *saved_key) {
 		case 1: md5_f((unsigned int *)saved_key, saved_key, 8); return;
 		case 2: sha1_f((unsigned int *)saved_key, saved_key, 8); return;
 		case 3: rmd160_f((unsigned int *)saved_key, saved_key, 8); return;
+		default: error_msg("Unknown skey function type(%d)\n", which);
 	}
 }
 

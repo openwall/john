@@ -125,6 +125,7 @@ else	{ \
 			case 3: l1|=((unsigned long)(*(--(c))))<< 8; \
 			case 2: l1|=((unsigned long)(*(--(c))))<<16; \
 			case 1: l1|=((unsigned long)(*(--(c))))<<24; \
+			default: ; /* pascify warnings */            \
 				} \
 			}
 
@@ -140,6 +141,7 @@ else	{ \
 			case 3: *(--(c))=(unsigned char)(((l1)>> 8)&0xff); \
 			case 2: *(--(c))=(unsigned char)(((l1)>>16)&0xff); \
 			case 1: *(--(c))=(unsigned char)(((l1)>>24)&0xff); \
+			default: ; /* pascify warnings */                  \
 				} \
 			}
 
@@ -177,6 +179,7 @@ else	{ \
 			case 3: l1|=((unsigned long)(*(--(c))))<<16; \
 			case 2: l1|=((unsigned long)(*(--(c))))<< 8; \
 			case 1: l1|=((unsigned long)(*(--(c))));     \
+			default: ; /* pascify warnings */            \
 				} \
 			}
 
@@ -192,6 +195,7 @@ else	{ \
 			case 3: *(--(c))=(unsigned char)(((l1)>>16)&0xff); \
 			case 2: *(--(c))=(unsigned char)(((l1)>> 8)&0xff); \
 			case 1: *(--(c))=(unsigned char)(((l1)    )&0xff); \
+			default: ; /* pascify warnings */                  \
 				} \
 			}
 

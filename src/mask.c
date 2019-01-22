@@ -333,6 +333,17 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_LOW_ONLY_KOI8_R
 			           CHARS_NOCASE_KOI8_R);
 			break;
+		// put cases for these, even though they are no-op. This allows a default
+		// to catch any 'bugs', i.e. invalid runtime data.
+		case AUTO:
+		case CP_UNDEF:
+		case ASCII:
+		case UTF_8:
+		case CP_ARRAY:
+			break;
+		
+		default:
+			error_msg("invalid internal codepage for LC: type %d in mask.c", options.internal_cp);
 		}
 		break;
 
@@ -443,6 +454,17 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_UP_ONLY_KOI8_R
 			           CHARS_NOCASE_KOI8_R);
 			break;
+		// put cases for these, even though they are no-op. This allows a default
+		// to catch any 'bugs', i.e. invalid runtime data.
+		case AUTO:
+		case CP_UNDEF:
+		case ASCII:
+		case UTF_8:
+		case CP_ARRAY:
+			break;
+		
+		default:
+			error_msg("invalid internal codepage for UC: type %d in mask.c", options.internal_cp);
 		}
 		break;
 
@@ -513,6 +535,17 @@ static char* plhdr2string(char p, int fmt_case)
 		case KOI8_R:
 			add_string(CHARS_DIGITS_KOI8_R);
 			break;
+		// put cases for these, even though they are no-op. This allows a default
+		// to catch any 'bugs', i.e. invalid runtime data.
+		case AUTO:
+		case CP_UNDEF:
+		case ASCII:
+		case UTF_8:
+		case CP_ARRAY:
+			break;
+		
+		default:
+			error_msg("invalid internal codepage for is Digit: type %d in mask.c", options.internal_cp);
 		}
 		break;
 
@@ -623,6 +656,17 @@ static char* plhdr2string(char p, int fmt_case)
 			           CHARS_SPECIALS_KOI8_R
 			           CHARS_WHITESPACE_KOI8_R);
 			break;
+		// put cases for these, even though they are no-op. This allows a default
+		// to catch any 'bugs', i.e. invalid runtime data.
+		case AUTO:
+		case CP_UNDEF:
+		case ASCII:
+		case UTF_8:
+		case CP_ARRAY:
+			break;
+		
+		default:
+			error_msg("invalid internal codepage for is Special: type %d in mask.c", options.internal_cp);
 		}
 		break;
 

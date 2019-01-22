@@ -178,6 +178,7 @@ static int gpg_common_valid_cipher_algorithm(int cipher_algorithm)
 		case CIPHER_CAMELLIA128: return 1;
 		case CIPHER_CAMELLIA192: return 1;
 		case CIPHER_CAMELLIA256: return 1;
+		default: break;
 	}
 
 	return 0;
@@ -194,6 +195,7 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec, int isC
 			case HASH_SHA1: return 1;
 			case HASH_MD5: return 1;
 			case 0: return 1; // http://www.ietf.org/rfc/rfc1991.txt
+			default: break;
 		}
 	}
 	if (spec == SPEC_ITERATED_SALTED) {
@@ -210,6 +212,7 @@ static int gpg_common_valid_hash_algorithm(int hash_algorithm, int spec, int isC
 			case HASH_SHA384: return 1;
 			case HASH_SHA512: return 1;
 			case HASH_SHA224: return 1;
+			default: break;
 		}
 	}
 	return 0;
@@ -1030,6 +1033,8 @@ void *gpg_common_get_salt(char *ciphertext)
 				}
 			}
 			break;
+		default:
+			error_msg("Invalid psalt->spec (%d) in gpg_common code", psalt->spec);
 	}
 	assert(psalt->s2kfun != NULL);
 

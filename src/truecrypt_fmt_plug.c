@@ -423,6 +423,8 @@ static int decrypt_and_verify(unsigned char *key, int algorithm)
 			XTS_decrypt(key, decr_header, psalt->bin, 512-64, 256, 2);
 			// Serpent_XTS_decrypt(key, decr_header, psalt->bin, 512-64, 256);
 			break;
+		default:
+				error_msg("Invalid TrueCrypt-XTS algorithm (%d)", algorithm);
 	}
 
 	// First item we look for is a contstant string 'TRUE' in the first 4 bytes.

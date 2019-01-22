@@ -248,6 +248,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA512_Final((unsigned char*)(crypt_out[index]), &ctx);
 				break;
 			}
+			
+			default:
+				error_msg("QNX, invalid type (%d)", cur_salt->type);
 
 			}
 		}

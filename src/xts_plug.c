@@ -1,4 +1,5 @@
 #include "arch.h"
+#include "misc.h"
 #include "xts.h"
 
 #define SERPENT_KS (140 * 4)
@@ -88,6 +89,8 @@ void XTS_decrypt(unsigned char *double_key, unsigned char *out,
 			serpent_set_key(&double_key[bits / 8], skey2);
 			serpent_encrypt(tweak, tweak, skey2);
 			break;
+		default:
+				error_msg("Invalid XTS algorithm (%d)", algorithm);
 	}
 
 	cnt = len / 16;
@@ -104,6 +107,8 @@ void XTS_decrypt(unsigned char *double_key, unsigned char *out,
 			case 2:
 				serpent_decrypt(buf, out, skey1);
 				break;
+			default:
+				error_msg("Invalid XTS algorithm (%d)", algorithm);
 		}
 		for (i = 0; i < 16; ++i)
 			out[i] ^= tweak[i];
@@ -154,6 +159,8 @@ void XTS_decrypt_custom_tweak(unsigned char *double_key, unsigned char *tweak,
 			serpent_set_key(&double_key[bits / 8], skey2);
 			serpent_encrypt(tweak, tweak, skey2);
 			break;
+		default:
+				error_msg("Invalid XTS algorithm (%d)", algorithm);
 	}
 
 	cnt = len / 16;
@@ -170,6 +177,8 @@ void XTS_decrypt_custom_tweak(unsigned char *double_key, unsigned char *tweak,
 			case 2:
 				serpent_decrypt(buf, out, skey1);
 				break;
+			default:
+				error_msg("Invalid XTS algorithm (%d)", algorithm);
 		}
 		for (i = 0; i < 16; ++i)
 			out[i] ^= tweak[i];

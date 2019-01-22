@@ -318,6 +318,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			i += 4;
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
 			break;
+		default: ; /* pacify compiler warning */
 		}
 #endif
 	}

@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "Lzma2Dec.h"
+#include "../misc.h"
 
 /*
 00000000  -  EOS
@@ -154,6 +155,8 @@ static ELzma2State Lzma2Dec_UpdateState(CLzma2Dec *p, Byte b)
       p->needInitProp = False;
       return LZMA2_STATE_DATA;
     }
+	default:
+		error_msg("Invalid p->state (%d) in Lzma2Dec:Lzma2Dec_UpdateState()", p->state);
   }
   return LZMA2_STATE_ERROR;
 }

@@ -1701,6 +1701,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(KECCAK_256);
 						CASE(KECCAK_512);
 						// LARGE_HASH_EDIT_POINT
+						default:
+							error_msg("dynamic_fmt.  Unkwnown curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type value %d", curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type);
 					}
 				} else if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX) {
 					unsigned int i;
@@ -1756,6 +1758,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(KECCAK_256);
 						CASE(KECCAK_512);
 						// LARGE_HASH_EDIT_POINT
+						default:
+							error_msg("dynamic_fmt.  Unkwnown curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type value %d", curdat.store_keys_normal_but_precompute_hash_to_output2_base16_type);
+
 					}
 				} else {
 					// calls 'old' code (ossl, sorry :(   We should FIND and remove any format
@@ -2228,6 +2233,8 @@ static unsigned int salt_external_to_internal_convert(unsigned char *extern_salt
 						break;
 					}
 				}
+				default:
+					;	// mute compiler warning.
 			}
 		}
 	}
