@@ -351,17 +351,20 @@ next_file_header:
 		}
 		printf(":%d::::%s\n", type, archive_name);
 	} else {
-		size_t file_hdr_pack_size = 0, file_hdr_unp_size = 0;
+		size_t file_hdr_pack_size, file_hdr_unp_size;
 		int ext_time_size;
 		uint8_t method;
 		uint64_t bytes_left;
 		uint16_t file_hdr_head_size, file_name_size;
 		unsigned char file_name[4 * PATH_BUF_SIZE], file_crc[4];
-		unsigned char salt[8] = { 0 };
+		unsigned char salt[8];
 		unsigned char rejbuf[32];
 		char *p;
 		unsigned char s;
 
+		file_hdr_pack_size = file_hdr_unp_size = 0;
+		memset(salt, 0, sizeof(salt));
+		
 		if (!(file_hdr_head_flags & 0x8000)) {
 			fprintf(stderr, "File header flag 0x8000 unset, bailing out.\n");
 			goto BailOut;

@@ -266,7 +266,7 @@ fi
    JTR_FLAG_CHECK([-Wimport], 1)
    JTR_FLAG_CHECK([-Winit-self], 1)
    JTR_FLAG_CHECK([-Winvalid-pch], 1)
-#   JTR_FLAG_CHECK([-Wjump-misses-init], 1)
+   JTR_FLAG_CHECK([-Wjump-misses-init], 1)
    JTR_FLAG_CHECK([-Wlogical-op], 1)
    JTR_FLAG_CHECK([-Werror=missing-braces ], 1)
    JTR_FLAG_CHECK([-Wno-missing-format-attribute], 1)
@@ -283,7 +283,7 @@ fi
    JTR_FLAG_CHECK([-Wvariadic-macros], 1)
 #   JTR_FLAG_CHECK([-Werror=nested-externs], 1)
    JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin
-   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin
+   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)		dnl n cygwin
    JTR_FLAG_CHECK([-Wcast-align], 1)
    dnl ----------------------------------------------------------
    dnl There is -Wmissing-declarations and -Wmissing-prototypes
@@ -329,7 +329,7 @@ dnl	JTR_FLAG_CHECK([-Wmissing-prototypes], 1)
    dnl memory.c:491:19: warning: cast discards ‘const’ qualifier from pointer target type [-Wcast-qual]
    dnl printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
    dnl----------------------------------------------------------
-#dnl  JTR_FLAG_CHECK([-Wcast-qual], 1)
+dnl  JTR_FLAG_CHECK([-Wcast-qual], 1)
 
 #   These are still being looked at.
 #   JTR_FLAG_CHECK([-Wwrite-strings], 1)
@@ -342,7 +342,7 @@ dnl	JTR_FLAG_CHECK([-Wmissing-prototypes], 1)
    dnl through some configure switch(s).  one gives a good breakdown
    dnl on if the inline code is helping at all (or even if hindering).
    dnl the other gives insight as to what c++ compatibility issues
-   dnl the code has (it has some).   
+   dnl the code has (it has some).
    dnl----------------------------------------------------------
 dnl JTR_FLAG_CHECK([-Winline], 1)
 dnl JTR_FLAG_CHECK([-Wc++-compat], 1)
