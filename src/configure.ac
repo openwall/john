@@ -276,7 +276,7 @@ fi
    JTR_FLAG_CHECK([-Wreturn-type], 1)
    JTR_FLAG_CHECK([-Wsequence-point], 1)
 #   JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
-#   JTR_FLAG_CHECK([-Wstrict-aliasing=2 ], 1)
+#   JTR_FLAG_CHECK([-Wstrict-aliasing=2], 1)
    JTR_FLAG_CHECK([-Wswitch], 1)
 #   JTR_FLAG_CHECK([-Wswitch-default], 1)
    JTR_FLAG_CHECK([-Wno-unused], 1)
