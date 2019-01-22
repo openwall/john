@@ -243,6 +243,119 @@ fi
       JTR_NOWARN_CHECK([format-overflow], 1)
    fi
 
+   dnl
+   dnl ---------------------------------------
+   dnl Ok, test to add a BUNCH of warnings
+   dnl NOTE, we may want to have a specific
+   dnl ./configure switch (or DEBUG, etc) to
+   dnl turn these ALL on.
+   dnl ---------------------------------------
+   dnl ---------------------------------------
+   dnl  these we want added (for sure)
+   dnl ---------------------------------------
+   JTR_FLAG_CHECK([-Wpointer-arith], 1)
+   dnl ---------------------------------------
+   JTR_FLAG_CHECK([-Waggregate-return], 1)
+   JTR_FLAG_CHECK([-Wdisabled-optimization], 1)
+   JTR_FLAG_CHECK([-Wdiv-by-zero ], 1)
+   JTR_FLAG_CHECK([-Wendif-labels], 1)
+   JTR_FLAG_CHECK([-Wformat-nonliteral], 1)		dnl n cygwin
+   JTR_FLAG_CHECK([-Wformat-security], 1)		dnl n cygwin
+   JTR_FLAG_CHECK([-Wformat-y2k], 1)			dnl n cygwin
+   JTR_FLAG_CHECK([-Wimplicit ], 1)
+   JTR_FLAG_CHECK([-Wimport], 1)
+   JTR_FLAG_CHECK([-Winit-self], 1)
+   JTR_FLAG_CHECK([-Winvalid-pch], 1)
+#   JTR_FLAG_CHECK([-Wjump-misses-init], 1)
+   JTR_FLAG_CHECK([-Wlogical-op], 1)
+   JTR_FLAG_CHECK([-Werror=missing-braces ], 1)
+   JTR_FLAG_CHECK([-Wno-missing-format-attribute], 1)
+   JTR_FLAG_CHECK([-Wmissing-include-dirs], 1)
+   JTR_FLAG_CHECK([-Wmultichar], 1)
+   JTR_FLAG_CHECK([-Wpacked ], 1)
+   JTR_FLAG_CHECK([-Wreturn-type], 1)
+   JTR_FLAG_CHECK([-Wsequence-point], 1)
+#   JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
+#   JTR_FLAG_CHECK([-Wstrict-aliasing=2 ], 1)
+   JTR_FLAG_CHECK([-Wswitch], 1)
+#   JTR_FLAG_CHECK([-Wswitch-default], 1)
+   JTR_FLAG_CHECK([-Wno-unused], 1)
+   JTR_FLAG_CHECK([-Wvariadic-macros], 1)
+#   JTR_FLAG_CHECK([-Werror=nested-externs], 1)
+   JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin
+   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin
+   JTR_FLAG_CHECK([-Wcast-align], 1)
+   dnl ----------------------------------------------------------
+   dnl There is -Wmissing-declarations and -Wmissing-prototypes
+   dnl they work similar, but have a glaring issue. I will be
+   dnl working to get -Wmissing-declarations working, but will not
+   dnl work at -Wmissing-prototypes. On gcc (I have read this is
+   dnl DIFFERENT under clang, so we will have to check), missing-declarations
+   dnl will throw a warning, if it sees a function, and that function
+   dnl has not been pre-declared (i.e. such as in a header). The
+   dnl warning is NOT emitted for object static functions, due
+   dnl to those functions are not visible anywhere OTHER than
+   dnl after they have been declared. So this means that (hopefully)
+   dnl external functions will be declared in a common header, which
+   dnl the caller AND callee's will all include, and that the actual
+   dnl function definition MATCHES the function declaration. When doing
+   dnl the work to get this working, there were several instances found
+   dnl where wha the caller saw, vs the real function differed.
+   dnl the one difference between missing-declarations and missing-prototypes
+   dnl is that missing prototypes will throw warning on 'empty' function
+   dnl parameters.  SO extern void func();  will NOT stop the warning.
+   dnl missing-declarations does honor a function with empty parameter
+   dnl list WITHOUT having to change it to be extern void func(void);
+   dnl due to this finding, the missing-prototypes was NOT included.
+   dnl ----------------------------------------------------------
+#   JTR_FLAG_CHECK([-Wmissing-declarations], 1)
+dnl	JTR_FLAG_CHECK([-Wmissing-prototypes], 1)
+   dnl
+   dnl----------------------------------------------------------
+   dnl -Wcast-qual is a GOOD one, but will take extensive changes
+   dnl to the code to use. Here, any 'loss' of constness in a pointer
+   dnl will trip a warning.  So, int cnt(char*);   cnt("test"); will
+   dnl trigger a warning. We have taken a const char *, and downgraded
+   dnl it to a char star.  This is very dangerous, and SHOULD be avoided
+   dnl if at all possible.  However, we have so much legacy code which
+   dnl is improperly written when it comes to constness. Functions
+   dnl AND major data types would require change, and the const
+   dnl code change cascade would also follow.  Yes, there are a LOT
+   dnl of areas where we lose the help of the compiler, in keeping
+   dnl developers from shooting themselves in the foot.  BUT to get
+   dnl to that level is NOT a trivial undertaking.
+   dnl   (example,   1 of 1000's of examples)
+   dnl memory.c: In function ‘dump_stuff_mmx64_msg’:
+   dnl memory.c:491:19: warning: cast discards ‘const’ qualifier from pointer target type [-Wcast-qual]
+   dnl printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
+   dnl----------------------------------------------------------
+#dnl  JTR_FLAG_CHECK([-Wcast-qual], 1)
+
+#   These are still being looked at.
+#   JTR_FLAG_CHECK([-Wwrite-strings], 1)
+#   JTR_FLAG_CHECK([-Wsign-compare], 1)
+#   JTR_FLAG_CHECK([-Werror=implicit-function-declaration], 1)
+#   JTR_FLAG_CHECK([-Wextra], 1)
+
+   dnl----------------------------------------------------------
+   dnl -Winline and -Wc++-compat might be a smart things to enable
+   dnl through some configure switch(s).  one gives a good breakdown
+   dnl on if the inline code is helping at all (or even if hindering).
+   dnl the other gives insight as to what c++ compatibility issues
+   dnl the code has (it has some).   
+   dnl----------------------------------------------------------
+dnl JTR_FLAG_CHECK([-Winline], 1)
+dnl JTR_FLAG_CHECK([-Wc++-compat], 1)
+
+   dnl ---------------------------------------
+   dnl  These we 100% DO NOT USE
+   dnl ---------------------------------------
+   dnl JTR_FLAG_CHECK([-Werror=undef], 1)
+   dnl ---------------------------------------
+   dnl end of massive gcc warning block
+   dnl ---------------------------------------
+
+
    AS_IF([test "x$werror" = xyes],
       JTR_FLAG_CHECK([-Werror], 1)
       JTR_NOWARN_CHECK([error=cpp], 1)
