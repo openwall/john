@@ -268,8 +268,10 @@ if test "x$exwarn" != xno ; then
    JTR_FLAG_CHECK([-Winvalid-pch], 1)
    JTR_FLAG_CHECK([-Wjump-misses-init], 1)
    JTR_FLAG_CHECK([-Wlogical-op], 1)
-   JTR_FLAG_CHECK([-Werror=missing-braces ], 1)
+   ###JTR_FLAG_CHECK([-Werror=missing-braces ], 1)
+   JTR_FLAG_CHECK([-Wmissing-braces ], 1)
    JTR_FLAG_CHECK([-Wno-missing-format-attribute], 1)
+   JTR_FLAG_CHECK([-Wmissing-format-attribute], 1)
    JTR_FLAG_CHECK([-Wmissing-include-dirs], 1)
    JTR_FLAG_CHECK([-Wmultichar], 1)
    JTR_FLAG_CHECK([-Wreturn-type], 1)
@@ -277,8 +279,10 @@ if test "x$exwarn" != xno ; then
    JTR_FLAG_CHECK([-Wswitch], 1)
    JTR_FLAG_CHECK([-Wswitch-default], 1)
    JTR_FLAG_CHECK([-Wno-unused], 1)
+   JTR_FLAG_CHECK([-Wunused], 1)
    JTR_FLAG_CHECK([-Wcast-align], 1)
-   JTR_FLAG_CHECK([-Werror=nested-externs], 1)
+   #### JTR_FLAG_CHECK([-Werror=nested-externs], 1)
+   JTR_FLAG_CHECK([-Wnested-externs], 1)
 #  These commented out due to CI failures (Note, now that I have
 #  enabled --enable-extreme-warn I can turn these back on.
 #  they should now not 'fail' in the CI's, but warn, so I can work
@@ -291,8 +295,10 @@ if test "x$exwarn" != xno ; then
    JTR_FLAG_CHECK([-Wpacked ], 1)
    JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
    JTR_FLAG_CHECK([-Wstrict-aliasing=2], 1)
-   JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin&Fedora29
-   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin&Fedora29
+   ###JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin&Fedora29
+   JTR_FLAG_CHECK([-Wold-style-definition], 1)
+   ###JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin&Fedora29   Causes Clang to stop build.
+   JTR_FLAG_CHECK([-Wtrict-prototypes ], 1)
    
 # these are also in -enable-werror section
 	JTR_NOWARN_CHECK([error=stringop-truncation], 1)
