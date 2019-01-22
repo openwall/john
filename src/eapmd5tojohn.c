@@ -657,7 +657,6 @@ void assess_packet(char *user, struct pcap_pkthdr *h, u_int8_t *pkt)
 	uint8_t *bssidaddrptr;
 	int plen, poffset;
 	struct eapmd5pass_data *em;
-	extern long pcount;
 
 	em = (struct eapmd5pass_data *)user;
 
@@ -1048,8 +1047,6 @@ int main(int argc, char *argv[])
 {
 	char errbuf[PCAP_ERRBUF_SIZE], iface[17], pcapfile[1024];
 	int opt = 0, datalink = 0, ret = 0;
-	extern struct eapmd5pass_data em;
-	extern int optind;
 
 	memset(&em, 0, sizeof(em));
 	memset(pcapfile, 0, sizeof(pcapfile));
