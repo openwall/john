@@ -4,7 +4,8 @@ if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     # brew install --force openssl
     cd src
 
-    ./configure --enable-werror CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
+    #./configure --enable-werror CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
+	./configure --enable-exwarn CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
     make -sj4
 
     ../.travis/test.sh
@@ -35,7 +36,8 @@ elif [[ -z "$TEST" || "$TEST" == "encoding" ]]; then
     fi
 
     # Configure and build
-    ./configure --enable-werror $ASAN
+    #./configure --enable-werror $ASAN
+	./configure --enable-exwarn $ASAN
     make -sj4
 
     ../.travis/test.sh "$TEST"
@@ -47,7 +49,7 @@ elif [[ "$TEST" == "fresh test" ]]; then
       apt-get update -qq; \
       apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev zlib1g-dev libomp-dev; \
       gcc --version; \
-      ./configure --enable-werror --enable-asan; \
+	  ./configure --enable-exwarn --enable-asan; \
       make -sj4; \
       export OPENCL="""$OPENCL"""; \
       PROBLEM='slow' ../.travis/test.sh
@@ -62,7 +64,8 @@ elif [[ "$TEST" == "TS --restore" ]]; then
     sudo apt-get install libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev
 
     # Configure and build
-    ./configure --enable-werror
+    #./configure --enable-werror
+	./configure --enable-exwarn
     make -sj4
 
     cd ..
@@ -79,7 +82,7 @@ elif [[ "$TEST" == "TS docker" ]]; then
       cd /cwd/src; \
       apt-get update -qq; \
       apt-get install -y build-essential libssl-dev yasm libgmp-dev libpcap-dev pkg-config debhelper libnet1-dev libbz2-dev git; \
-      ./configure --enable-werror; \
+	  ./configure --enable-exwarn; \
       make -sj4; \
       cd ..; \
       git clone --depth 1 https://github.com/magnumripper/jtrTestSuite.git tests; \

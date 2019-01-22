@@ -71,6 +71,7 @@ AC_ARG_ENABLE([simd], [AS_HELP_STRING([--disable-simd, --enable-simd=foo], [* Bu
 AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
+AC_ARG_ENABLE([exwarn], [AS_HELP_STRING([--enable-exwarn], [Enable Extreme warning levels])], [exwarn=$enableval], [exwarn=no])
 
 dnl Define Features. OpenMP and OpenCL are defined in their respective macros.
 dnl We define "--disable-FEATURE" when default is "auto".
@@ -243,6 +244,9 @@ fi
       JTR_NOWARN_CHECK([format-overflow], 1)
    fi
 
+   dnl if user requested  EXTREME warnings, make sure we can properly build with a bunch of
+   dnl extra warnings, BUT turn off the warn=error also.
+if test "x$exwarn" != xno ; then
    dnl
    dnl ---------------------------------------
    dnl Ok, test to add a BUNCH of warnings
@@ -255,13 +259,9 @@ fi
    dnl ---------------------------------------
    JTR_FLAG_CHECK([-Wpointer-arith], 1)
    dnl ---------------------------------------
-   JTR_FLAG_CHECK([-Waggregate-return], 1)
    JTR_FLAG_CHECK([-Wdisabled-optimization], 1)
    JTR_FLAG_CHECK([-Wdiv-by-zero ], 1)
    JTR_FLAG_CHECK([-Wendif-labels], 1)
-#   JTR_FLAG_CHECK([-Wformat-nonliteral], 1)		dnl n cygwin&Fedora29  BUT seen on Travis, and it causes problems
-#   JTR_FLAG_CHECK([-Wformat-security], 1)		dnl n cygwin&Fedora29
-#   JTR_FLAG_CHECK([-Wformat-y2k], 1)			dnl n cygwin&Fedora29
    JTR_FLAG_CHECK([-Wimplicit ], 1)
    JTR_FLAG_CHECK([-Wimport], 1)
    JTR_FLAG_CHECK([-Winit-self], 1)
@@ -272,19 +272,33 @@ fi
    JTR_FLAG_CHECK([-Wno-missing-format-attribute], 1)
    JTR_FLAG_CHECK([-Wmissing-include-dirs], 1)
    JTR_FLAG_CHECK([-Wmultichar], 1)
-#   JTR_FLAG_CHECK([-Wpacked ], 1)
    JTR_FLAG_CHECK([-Wreturn-type], 1)
    JTR_FLAG_CHECK([-Wsequence-point], 1)
-#   JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
-#   JTR_FLAG_CHECK([-Wstrict-aliasing=2], 1)
    JTR_FLAG_CHECK([-Wswitch], 1)
    JTR_FLAG_CHECK([-Wswitch-default], 1)
    JTR_FLAG_CHECK([-Wno-unused], 1)
-#   JTR_FLAG_CHECK([-Wvariadic-macros], 1)
-   JTR_FLAG_CHECK([-Werror=nested-externs], 1)
-#   JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin&Fedora29
-#   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin&Fedora29
    JTR_FLAG_CHECK([-Wcast-align], 1)
+   JTR_FLAG_CHECK([-Werror=nested-externs], 1)
+#  These commented out due to CI failures (Note, now that I have
+#  enabled --enable-extreme-warn I can turn these back on.
+#  they should now not 'fail' in the CI's, but warn, so I can work
+#  through all the CI problems.  Once the CI's are working, I may
+#  enhance --enable-extreme-warn[=error] (add the =error, and
+#  if that is seen, then the error checking is left intact.
+   JTR_FLAG_CHECK([-Wformat-nonliteral], 1)		dnl n cygwin&Fedora29  BUT seen on Travis, and it causes problems
+   JTR_FLAG_CHECK([-Wformat-security], 1)		dnl n cygwin&Fedora29
+   JTR_FLAG_CHECK([-Wformat-y2k], 1)			dnl n cygwin&Fedora29
+   JTR_FLAG_CHECK([-Wpacked ], 1)
+   JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
+   JTR_FLAG_CHECK([-Wstrict-aliasing=2], 1)
+   JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin&Fedora29
+   JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin&Fedora29
+   
+# these are also in -enable-werror section
+	JTR_NOWARN_CHECK([error=stringop-truncation], 1)
+    JTR_NOWARN_CHECK([error=format-overflow], 1)
+	JTR_NOWARN_CHECK([error=cpp], 1)
+
    dnl ----------------------------------------------------------
    dnl There is -Wmissing-declarations and -Wmissing-prototypes
    dnl they work similar, but have a glaring issue. I will be
@@ -330,13 +344,12 @@ dnl	JTR_FLAG_CHECK([-Wmissing-prototypes], 1)
    dnl printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
    dnl----------------------------------------------------------
 dnl  JTR_FLAG_CHECK([-Wcast-qual], 1)
-
+   JTR_FLAG_CHECK([-Waggregate-return], 1)         dnl (fails on older gcc 4.2 in bt returning uint192_t type
 #   These are still being looked at.
 #   JTR_FLAG_CHECK([-Wwrite-strings], 1)
 #   JTR_FLAG_CHECK([-Wsign-compare], 1)
 #   JTR_FLAG_CHECK([-Werror=implicit-function-declaration], 1)
 #   JTR_FLAG_CHECK([-Wextra], 1)
-
    dnl----------------------------------------------------------
    dnl -Winline and -Wc++-compat might be a smart things to enable
    dnl through some configure switch(s).  one gives a good breakdown
@@ -346,15 +359,15 @@ dnl  JTR_FLAG_CHECK([-Wcast-qual], 1)
    dnl----------------------------------------------------------
 dnl JTR_FLAG_CHECK([-Winline], 1)
 dnl JTR_FLAG_CHECK([-Wc++-compat], 1)
-
    dnl ---------------------------------------
    dnl  These we 100% DO NOT USE
    dnl ---------------------------------------
    dnl JTR_FLAG_CHECK([-Werror=undef], 1)
+   dnl JTR_FLAG_CHECK([-Wvariadic-macros], 1)
    dnl ---------------------------------------
    dnl end of massive gcc warning block
    dnl ---------------------------------------
-
+fi
 
    AS_IF([test "x$werror" = xyes],
       JTR_FLAG_CHECK([-Werror], 1)
@@ -1349,6 +1362,12 @@ else
    asan="disabled"
 fi
 
+if test "x$exwarn" = xyes ; then
+   exwarn="Extreme"
+else
+   exwarn="normal"
+fi
+
 if test "x$ubsan" = xyes ; then
    ubsan="enabled"
 else
@@ -1388,12 +1407,13 @@ ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 EOF
 
 dnl === this section is NOT output, unless there is some debugging flag enabled.
-if test "$ubsan" != "disabled" || test "$asan" != "disabled" || test "$fuzz" != "no" || test "$experimental" != "no" ; then
+if test "$ubsan" != "disabled" || test "$asan" != "disabled" || test "$fuzz" != "no" || test "$experimental" != "no"  || test "$exwarn" != "normal" ; then
 cat <<EOF
 Development options (these may hurt performance when enabled):
 AddressSanitizer ("ASan") .................. ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
 Fuzzing test ............................... ${fuzz}
+Compiler Warning levels .................... ${exwarn}
 Experimental code .......................... ${experimental}
 
 EOF
