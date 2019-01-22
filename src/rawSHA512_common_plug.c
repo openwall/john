@@ -12,6 +12,7 @@
 #include "johnswap.h"
 #include "base64_convert.h"
 #include "rawSHA512_common.h"
+#include "sha2.h"
 
 struct fmt_tests sha512_common_tests_rawsha512_111[] = {
 	{"f342aae82952db35b8e02c30115e3deed3d80fdfdadacab336f0ba51ac54e297291fa1d6b201d69a2bd77e2535280f17a54fa1e527abc6e2eddba79ad3be11c0", "epixoip"},
@@ -238,6 +239,31 @@ void *sha512_common_binary_rev(char *ciphertext)
 
 }
 
+#if defined(SIMD_COEF_64) || defined(HAVE_OPENCL)
+void *sha512_common_binary_reverse(char *ciphertext)
+{
+	static unsigned char * out;
+	char *p;
+	int i;
+	uint64_t *b;
+
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, BINARY_ALIGN);
+
+	p = ciphertext + TAG_LENGTH;
+	for (i = 0; i < DIGEST_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	b = (uint64_t*)out;
+	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
+	sha512_reverse(b);
+
+	return out;
+}
+#endif
+
 void * sha512_common_binary_xsha512(char *ciphertext)
 {
 	static union {
@@ -311,6 +337,31 @@ void * sha512_common_binary_xsha512_rev(char *ciphertext)
 	}
 	return out;
 }
+
+#if defined(SIMD_COEF_64) || defined(HAVE_OPENCL)
+void *sha512_common_binary_xsha512_reverse(char *ciphertext)
+{
+	static unsigned char * out;
+	char *p;
+	int i;
+	uint64_t *b;
+
+	if (!out) out = mem_calloc_tiny(DIGEST_SIZE, BINARY_ALIGN);
+
+	p = ciphertext + XSHA512_TAG_LENGTH + 8;
+	for (i = 0; i < DIGEST_SIZE; i++) {
+		out[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				 atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	b = (uint64_t*)out;
+	alter_endianity_to_BE64(out, DIGEST_SIZE/8);
+	sha512_reverse(b);
+
+	return out;
+}
+#endif
 
 void *sha512_common_binary_nsldap(char *ciphertext) {
 	static union {
