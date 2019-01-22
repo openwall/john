@@ -242,7 +242,7 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 #pragma omp for
 #endif
 	for (i = 0; i < num_loaded_hashes; i++) {
-		offset_data_idx = modulo_op(loaded_hashes + i * binary_size_actual, offset_table_size, shift64_ot_sz, shift128_ot_sz);
+		offset_data_idx = modulo_op(((uint8_t*)loaded_hashes) + i * binary_size_actual, offset_table_size, shift64_ot_sz, shift128_ot_sz);
 #if _OPENMP
 #pragma omp atomic
 #endif
@@ -265,7 +265,7 @@ MAYBE_PARALLEL_FOR
 #endif
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int iter;
-		offset_data_idx = modulo_op(loaded_hashes + i * binary_size_actual, offset_table_size, shift64_ot_sz, shift128_ot_sz);
+		offset_data_idx = modulo_op(((uint8_t*)loaded_hashes) + i * binary_size_actual, offset_table_size, shift64_ot_sz, shift128_ot_sz);
 #if _OPENMP
 MAYBE_ATOMIC_WRITE
 #endif
@@ -335,7 +335,7 @@ static void calc_hash_mdoulo_table_size(unsigned int *store, auxilliary_offset_d
 	unsigned int i = 0;
 
 	while (i < ptr->collisions) {
-		store[i] =  modulo_op(loaded_hashes + (ptr->hash_location_list[i]) * binary_size_actual, hash_table_size, shift64_ht_sz, shift128_ht_sz);
+		store[i] =  modulo_op(((uint8_t*)loaded_hashes) + (ptr->hash_location_list[i]) * binary_size_actual, hash_table_size, shift64_ht_sz, shift128_ht_sz);
 		i++;
 	}
 }
