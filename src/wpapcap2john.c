@@ -1425,7 +1425,7 @@ static int process_packet(uint32_t link_type)
 	static const char *last_f;
 	static uint32_t last_l;
 	ieee802_1x_frame_hdr_t *pkt;
-	ieee802_1x_frame_ctl_t *ctl;
+	ieee802_1x_frame_ctl_t ctl;
 	unsigned int frame_skip = 0;
 	int has_ht;
 	unsigned int tzsp_link = 0;
@@ -1607,21 +1607,21 @@ static int process_packet(uint32_t link_type)
 	packet_RA = pkt->addr1;
 	packet_TA = (snap_len >= 16) ? pkt->addr2 : NULL;
 
-	ctl = (ieee802_1x_frame_ctl_t *)&pkt->frame_ctl;
+	ctl.bit_data = pkt->frame_ctl;
 
-	if (ctl->toDS == 0 && ctl->fromDS == 0) {
+	if (ctl.b.toDS == 0 && ctl.b.fromDS == 0) {
 		packet_DA = packet_RA;
 		packet_SA = packet_TA;
 		bssid = (snap_len >= 22) ? pkt->addr3 : NULL;
-	} else if (ctl->toDS == 0 && ctl->fromDS == 1) {
+	} else if (ctl.b.toDS == 0 && ctl.b.fromDS == 1) {
 		packet_DA = packet_RA;
 		packet_SA = (snap_len >= 22) ? pkt->addr3 : NULL;
 		bssid = packet_TA;
-	} else if (ctl->toDS == 1 && ctl->fromDS == 0) {
+	} else if (ctl.b.toDS == 1 && ctl.b.fromDS == 0) {
 		bssid = packet_RA;
 		packet_SA = packet_TA;
 		packet_DA = (snap_len >= 22) ? pkt->addr3 : NULL;
-	} else /*if (ctl->toDS == 1 && ctl->fromDS == 1)*/ {
+	} else /*if (ctl.b.toDS == 1 && ctl.b.fromDS == 1)*/ {
 		packet_DA = (snap_len >= 22) ? pkt->addr3 : NULL;
 		packet_SA = (snap_len >= 30) ? &packet[24] : NULL; // addr4
 		bssid = packet_TA; /* If anything */
@@ -1680,7 +1680,7 @@ static int process_packet(uint32_t link_type)
 		}
 	}
 
-	has_ht = (ctl->order == 1); /* 802.11n, 4 extra bytes MAC header */
+	has_ht = (ctl.b.order == 1); /* 802.11n, 4 extra bytes MAC header */
 
 	if (has_ht && verbosity >= 2 && filter_hit)
 		fprintf(stderr, "[802.11n] ");
@@ -1690,8 +1690,8 @@ static int process_packet(uint32_t link_type)
 	 * Beacon is subtype 8 and probe response is subtype 5
 	 * probe request is 4, assoc request is 0, reassoc is 2
 	 */
-	if (ctl->type == 0 && bssid) {
-		learn_essid(ctl->subtype, has_ht, bssid);
+	if (ctl.b.type == 0 && bssid) {
+		learn_essid(ctl.b.subtype, has_ht, bssid);
 		return 1;
 	}
 
@@ -1699,17 +1699,17 @@ static int process_packet(uint32_t link_type)
 		return 1;
 
 	/* if not beacon or probe response, then look only for EAPOL 'type' */
-	if (ctl->type == 2) { /* type 2 is data */
+	if (ctl.b.type == 2) { /* type 2 is data */
 		uint8_t *p = packet;
-		int has_qos = (ctl->subtype & 8) != 0;
-		int has_addr4 = ctl->toDS & ctl->fromDS;
+		int has_qos = (ctl.b.subtype & 8) != 0;
+		int has_addr4 = ctl.b.toDS & ctl.b.fromDS;
 
 		if (has_qos && verbosity >= 2)
 			fprintf(stderr, "[QoS] ");
 		if (has_addr4 && verbosity >= 2)
 			fprintf(stderr, "[a4] ");
 
-		if (!has_addr4 && ((ctl->toDS ^ ctl->fromDS) != 1)) {
+		if (!has_addr4 && ((ctl.b.toDS ^ ctl.b.fromDS) != 1)) {
 			/* eapol will ONLY be direct toDS or direct fromDS. */
 			if (verbosity >= 2)
 				fprintf(stderr, "Data\n");
@@ -1785,10 +1785,10 @@ static int process_packet(uint32_t link_type)
 	}
 
 	if (verbosity >= 2) {
-		int ts = (ctl->type << 4) | ctl->subtype;
+		int ts = (ctl.b.type << 4) | ctl.b.subtype;
 
-		if (ctl->type == 0)
-			fprintf(stderr, "%s\n", ctl_subtype[ctl->subtype]);
+		if (ctl.b.type == 0)
+			fprintf(stderr, "%s\n", ctl_subtype[ctl.b.subtype]);
 		else if (ts == 0x15)
 			fprintf(stderr, "VHT NDP Announcement\n");
 		else if (ts == 0x18)
@@ -1806,7 +1806,7 @@ static int process_packet(uint32_t link_type)
 		else if (ts > 0x23 && ts < 0x30)
 			fprintf(stderr, "QoS Data\n");
 		else
-			fprintf(stderr, "Type %d subtype %d\n", ctl->type, ctl->subtype);
+			fprintf(stderr, "Type %d subtype %d\n", ctl.b.type, ctl.b.subtype);
 	}
 
 	return 1;

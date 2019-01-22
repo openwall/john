@@ -622,8 +622,11 @@ alloc_region_t(region_t * region, size_t size)
 		base = NULL;
 	aligned = base;
 #elif defined(HAVE_POSIX_MEMALIGN)
-	if ((errno = posix_memalign((void **)&base, 64, size)) != 0)
+	void *vbase;
+	if ((errno = posix_memalign(&vbase, 64, size)) != 0)
 		base = NULL;
+	else
+		base = (uint8_t*)vbase;
 	aligned = base;
 #else
 	base = aligned = NULL;

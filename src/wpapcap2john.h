@@ -145,17 +145,22 @@ typedef struct ieee802_1x_frame_hdr_s {
 
 /* bitmap of the ieee802_1x_frame_hdr_s.frame_ctl */
 typedef struct ieee802_1x_frame_ctl_s {
-	uint16_t version  : 2;
-	uint16_t type     : 2;
-	uint16_t subtype  : 4;
-	uint16_t toDS     : 1;
-	uint16_t fromDS   : 1;
-	uint16_t morefrag : 1;
-	uint16_t retry    : 1;
-	uint16_t powman   : 1;
-	uint16_t moredata : 1;
-	uint16_t protfram : 1;
-	uint16_t order    : 1;
+	union { /* anon union used to be able to assign uint16_t to this object */
+		struct {
+			uint16_t version  : 2;
+			uint16_t type     : 2;
+			uint16_t subtype  : 4;
+			uint16_t toDS     : 1;
+			uint16_t fromDS   : 1;
+			uint16_t morefrag : 1;
+			uint16_t retry    : 1;
+			uint16_t powman   : 1;
+			uint16_t moredata : 1;
+			uint16_t protfram : 1;
+			uint16_t order    : 1;
+		} b;
+		uint16_t bit_data;
+	};
 } ieee802_1x_frame_ctl_t;
 
 /* This is the structure for the EAPOL data within the packet. */

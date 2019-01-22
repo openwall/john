@@ -506,7 +506,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 		}
 		//rar_dbgmsg("Bit Length Table row %02d: length %d\n", i, bit_length[i]);
 	}
-	rar_make_decode_tables(bit_length,(struct Decode *)&unpack_data->BD,BC);
+	rar_make_decode_tables(bit_length,&unpack_data->BD.D,BC);
 
 	memset(table, 0, sizeof(table));
 	for (i=0;i<table_size;) { // 404
@@ -516,7 +516,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 				return 0;
 			}
 		}
-		number = rar_decode_number(unpack_data, (struct Decode *)&unpack_data->BD);
+		number = rar_decode_number(unpack_data, &unpack_data->BD.D);
 
 		if (number < 0) return 0;
 
@@ -1052,7 +1052,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 			unpack_data->window[unpack_data->unp_ptr++] = ch;
 			continue;
 		} else {
-			number = rar_decode_number(unpack_data, (struct Decode *)&unpack_data->LD);
+			number = rar_decode_number(unpack_data, &unpack_data->LD.D);
 			//rar_dbgmsg("number = %d\n", number);
 			if (number < 0) {
 				retval = 0;
@@ -1068,8 +1068,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 					length += rar_getbits(unpack_data) >> (16-bits);
 					rar_addbits(unpack_data, bits);
 				}
-				dist_number = rar_decode_number(unpack_data,
-							(struct Decode *)&unpack_data->DD);
+				dist_number = rar_decode_number(unpack_data, &unpack_data->DD.D);
 				if (dist_number < 0) {
 					retval = 0;
 					break;
@@ -1087,7 +1086,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 							distance += unpack_data->prev_low_dist;
 						} else {
 							low_dist = rar_decode_number(unpack_data,
-								(struct Decode *) &unpack_data->LDD);
+								&unpack_data->LDD.D);
 							if (low_dist < 0) {
 								retval = 0;
 								break;
@@ -1148,7 +1147,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 				unpack_data->old_dist[0] = distance;
 
 				length_number = rar_decode_number(unpack_data,
-							(struct Decode *)&unpack_data->RD);
+							&unpack_data->RD.D);
 				if (length_number < 0) {
 					retval = 0;
 					break;

@@ -175,19 +175,22 @@ find_tkt(KTEXT_ST *ktext, unsigned char *dst, int size)
 int
 fetch_tgt(char *host, char *user, char *realm, unsigned char *dst, int size)
 {
-  struct sockaddr_in from, to;
+  union {
+	  struct sockaddr_in sai;
+	  struct sockaddr    sa;
+  } from, to;
   KTEXT_ST ktext;
   int sock;
   socklen_t alen;
 
   /* Fill in dest addr. */
   memset(&to, 0, sizeof(to));
-  if ((to.sin_addr.s_addr = resolve_host(host)) == -1) {
+  if ((to.sai.sin_addr.s_addr = resolve_host(host)) == -1) {
     fprintf(stderr, "bad host: %s\n", host);
     return (-1);
   }
-  to.sin_family = AF_INET;
-  to.sin_port = htons(750);
+  to.sai.sin_family = AF_INET;
+  to.sai.sin_port = htons(750);
 
   /* Fill in our TGT request. */
   ktext.length = make_req(ktext.dat, user, realm);
@@ -197,8 +200,8 @@ fetch_tgt(char *host, char *user, char *realm, unsigned char *dst, int size)
     perror("socket");
     return (-1);
   }
-  alen = sizeof(to);
-  if (sendto(sock, ktext.dat, ktext.length, 0, (struct sockaddr *)&to, alen)
+  alen = sizeof(to.sai);
+  if (sendto(sock, ktext.dat, ktext.length, 0, &to.sa, alen)
       < 0) {
     perror("send");
     close(sock);
@@ -206,7 +209,7 @@ fetch_tgt(char *host, char *user, char *realm, unsigned char *dst, int size)
   }
   /* Read reply. */
   if ((ktext.length = recvfrom(sock, ktext.dat, sizeof(ktext.dat), 0,
-			       (struct sockaddr *)&from, &alen)) <= 0) {
+			       &from.sa, &alen)) <= 0) {
     perror("recv");
     close(sock);
     return (-1);

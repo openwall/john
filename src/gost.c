@@ -278,39 +278,43 @@ static void rhash_gost_compute_sum_and_hash(gost_ctx * ctx, const unsigned* bloc
  #define LOAD_BLOCK_LE(i)
 #endif
 
+/* since this 'optimization' (which really isn't) throws a compiler warning
+ * warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+ * the entire code section has simply been chopped out.
+ */
 	/* This optimization doesn't improve speed much,
 	* and saves too little memory, but it was fun to write! =)  */
-#ifdef USE_GCC_ASM_IA32
-	__asm __volatile(
-		"addl %0, (%1)\n\t"
-		"movl 4(%2), %0\n\t"
-		"adcl %0, 4(%1)\n\t"
-		"movl 8(%2), %0\n\t"
-		"adcl %0, 8(%1)\n\t"
-		"movl 12(%2), %0\n\t"
-		"adcl %0, 12(%1)\n\t"
-		"movl 16(%2), %0\n\t"
-		"adcl %0, 16(%1)\n\t"
-		"movl 20(%2), %0\n\t"
-		"adcl %0, 20(%1)\n\t"
-		"movl 24(%2), %0\n\t"
-		"adcl %0, 24(%1)\n\t"
-		"movl 28(%2), %0\n\t"
-		"adcl %0, 28(%1)\n\t"
-		: : "r" (block[0]), "r" (ctx->sum), "r" (block)
-		: "0", "memory", "cc" );
-#elif defined(USE_GCC_ASM_X64)
-	const uint64_t* block64 = (const uint64_t*)block;
-	uint64_t* sum64 = (uint64_t*)ctx->sum;
-	__asm __volatile(
-		"addq %4, %0\n\t"
-		"adcq %5, %1\n\t"
-		"adcq %6, %2\n\t"
-		"adcq %7, %3\n\t"
-		: "+m" (sum64[0]), "+m" (sum64[1]), "+m" (sum64[2]), "+m" (sum64[3])
-		: "r" (block64[0]), "r" (block64[1]), "r" (block64[2]), "r" (block64[3])
-		: "cc" );
-#else /* USE_GCC_ASM_IA32 */
+//#ifdef USE_GCC_ASM_IA32
+//	__asm __volatile(
+//		"addl %0, (%1)\n\t"
+//		"movl 4(%2), %0\n\t"
+//		"adcl %0, 4(%1)\n\t"
+//		"movl 8(%2), %0\n\t"
+//		"adcl %0, 8(%1)\n\t"
+//		"movl 12(%2), %0\n\t"
+//		"adcl %0, 12(%1)\n\t"
+//		"movl 16(%2), %0\n\t"
+//		"adcl %0, 16(%1)\n\t"
+//		"movl 20(%2), %0\n\t"
+//		"adcl %0, 20(%1)\n\t"
+//		"movl 24(%2), %0\n\t"
+//		"adcl %0, 24(%1)\n\t"
+//		"movl 28(%2), %0\n\t"
+//		"adcl %0, 28(%1)\n\t"
+//		: : "r" (block[0]), "r" (ctx->sum), "r" (block)
+//		: "0", "memory", "cc" );
+//#elif defined(USE_GCC_ASM_X64)
+//	const uint64_t* block64 = (const uint64_t*)block;
+//	uint64_t* sum64 = (uint64_t*)ctx->sum;
+//	__asm __volatile(
+//		"addq %4, %0\n\t"
+//		"adcq %5, %1\n\t"
+//		"adcq %6, %2\n\t"
+//		"adcq %7, %3\n\t"
+//		: "+m" (sum64[0]), "+m" (sum64[1]), "+m" (sum64[2]), "+m" (sum64[3])
+//		: "r" (block64[0]), "r" (block64[1]), "r" (block64[2]), "r" (block64[3])
+//		: "cc" );
+//#else /* USE_GCC_ASM_IA32 */
 
 	unsigned i, carry = 0;
 
@@ -321,7 +325,7 @@ static void rhash_gost_compute_sum_and_hash(gost_ctx * ctx, const unsigned* bloc
 		ctx->sum[i] += block_le[i] + carry;
 		carry = (ctx->sum[i] < old || ctx->sum[i] < block_le[i] ? 1 : 0);
 	}
-#endif /* USE_GCC_ASM_IA32 */
+//#endif /* USE_GCC_ASM_IA32 */
 
 	/* update message hash */
 	rhash_gost_block_compress(ctx, block_le);

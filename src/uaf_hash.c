@@ -115,13 +115,13 @@ static void COLLAPSE_R2 (string *r3, quad *r4, char r7);
 						   r4 -> output buffer
 						   r7 : Method 3 flag */
 static void Purdy (quad *U);			/* U -> output buffer */
-static void PQEXP_pair (quad *U, int higbits, uaf_lword n0,
+static void PQEXP_pair (const quad *U, int higbits, uaf_lword n0,
 	uaf_lword n1, quad *result0, quad *result1 );
 /* static void PQADD_R0 (quad *U,
 		      quad *Y,
 		      quad *result); */		/* U + Y MOD P   */
-static void PQMUL_ADD (quad *U,
-		      quad *Y, quad *X,
+static void PQMUL_ADD (const quad *U,
+		      const quad *Y, const quad *X,
 		      quad *result);		/* U * Y MOD P   */
 static void EMULQ    (uaf_lword a,
 		      uaf_lword b,
@@ -343,7 +343,7 @@ static void COLLAPSE_R2 (string *r3, quad *r4, char r7)
    PQADD_R0
  ************/
 
-static void PQADD_R0 (quad *U, quad *Y, quad *result)
+static void PQADD_R0 (const quad *U, const quad *Y, quad *result)
 
 /*
  * U, Y : quadwords that we want to add
@@ -534,7 +534,7 @@ static void PQMOD_R0 (quad *U)
 #endif
 
 
-static void PQEXP_pair (quad *U, int highbit, uaf_lword n0,
+static void PQEXP_pair (const quad *U, int highbit, uaf_lword n0,
 	uaf_lword n1, quad *result0, quad *result1 )
 /*
  * U        : pointer to output buffer (quadword)
@@ -602,7 +602,7 @@ static void PQEXP_pair (quad *U, int highbit, uaf_lword n0,
    PQMUL_ADD
  ************/
 
-static void PQMUL_ADD (quad *U, quad *Y, quad *X, quad *result)
+static void PQMUL_ADD (const quad *U, const quad *Y, const quad *X, quad *result)
 
 /*
  * U, Y, A : Input values, A optional.
@@ -736,7 +736,7 @@ static void Purdy (quad *U)
  *                    part1                         part2
  *
  * The number of multiplies needed for an exponentiation is equal to
- * the bit position of the most signficant bit + the number of other set
+ * the bit position of the most significant bit + the number of other set
  * bits in the binary expansion of the exponent.  By treating U^n1 as
  * U*U^(n1-1), we can replace n1-1 with 448*37449 to compute the
  * value in (1+15+5+8+2)=31 multiplies rather than (23+18)=41 multiplies used
@@ -746,7 +746,7 @@ static void Purdy (quad *U)
  */
 
 {
-    quad     *Cptr = (quad *)&C;	/* Address of table (C) */
+	const quad     *Cptr = &C.C1;	/* Address of table (C) */
     static const uaf_lword n0 = 16777213,/* These exponents are prime, but this is  */
 	      n1 = 16777153;	/* not required by the algorithm 	   */
     static const uaf_lword na = 37449,
