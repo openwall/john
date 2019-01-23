@@ -21,6 +21,7 @@
 
 #include "blf.h"
 #include "sha2.h"
+#include "bcrypt_pbkdf.h"
 
 /*
  * pkcs #5 pbkdf2 implementation using the "bcrypt" hash

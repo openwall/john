@@ -268,7 +268,6 @@ if test "x$exwarn" != xno ; then
    JTR_FLAG_CHECK([-Winvalid-pch], 1)
    JTR_FLAG_CHECK([-Wjump-misses-init], 1)
    JTR_FLAG_CHECK([-Wlogical-op], 1)
-   ###JTR_FLAG_CHECK([-Werror=missing-braces ], 1)
    JTR_FLAG_CHECK([-Wmissing-braces ], 1)
    JTR_FLAG_CHECK([-Wno-missing-format-attribute], 1)
    JTR_FLAG_CHECK([-Wmissing-format-attribute], 1)
@@ -281,29 +280,17 @@ if test "x$exwarn" != xno ; then
    JTR_FLAG_CHECK([-Wno-unused], 1)
    JTR_FLAG_CHECK([-Wunused], 1)
    JTR_FLAG_CHECK([-Wcast-align], 1)
-   #### JTR_FLAG_CHECK([-Werror=nested-externs], 1)
    JTR_FLAG_CHECK([-Wnested-externs], 1)
-#  These commented out due to CI failures (Note, now that I have
-#  enabled --enable-extreme-warn I can turn these back on.
-#  they should now not 'fail' in the CI's, but warn, so I can work
-#  through all the CI problems.  Once the CI's are working, I may
-#  enhance --enable-extreme-warn[=error] (add the =error, and
-#  if that is seen, then the error checking is left intact.
-   JTR_FLAG_CHECK([-Wformat-nonliteral], 1)		dnl n cygwin&Fedora29  BUT seen on Travis, and it causes problems
-   JTR_FLAG_CHECK([-Wformat-security], 1)		dnl n cygwin&Fedora29
-   JTR_FLAG_CHECK([-Wformat-y2k], 1)			dnl n cygwin&Fedora29
+#  These cause warnings on the CI's and will be looked into.
+   JTR_FLAG_CHECK([-Wformat-nonliteral], 1)
+   JTR_FLAG_CHECK([-Wformat-security], 1)
+   JTR_FLAG_CHECK([-Wformat-y2k], 1)
    JTR_FLAG_CHECK([-Wpacked ], 1)
    JTR_FLAG_CHECK([-Wstrict-aliasing], 1)
    JTR_FLAG_CHECK([-Wstrict-aliasing=2], 1)
-   ###JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin&Fedora29
    JTR_FLAG_CHECK([-Wold-style-definition], 1)
-   ###JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin&Fedora29   Causes Clang to stop build.
-   JTR_FLAG_CHECK([-Wtrict-prototypes ], 1)
-   
-# these are also in -enable-werror section
-	JTR_NOWARN_CHECK([error=stringop-truncation], 1)
-    JTR_NOWARN_CHECK([error=format-overflow], 1)
-	JTR_NOWARN_CHECK([error=cpp], 1)
+   JTR_FLAG_CHECK([-Wstrict-prototypes], 1)
+   JTR_FLAG_CHECK([-Waggregate-return], 1)
 
    dnl ----------------------------------------------------------
    dnl There is -Wmissing-declarations and -Wmissing-prototypes
@@ -328,7 +315,7 @@ if test "x$exwarn" != xno ; then
    dnl list WITHOUT having to change it to be extern void func(void);
    dnl due to this finding, the missing-prototypes was NOT included.
    dnl ----------------------------------------------------------
-#   JTR_FLAG_CHECK([-Wmissing-declarations], 1)
+   JTR_FLAG_CHECK([-Wmissing-declarations], 1)
 dnl	JTR_FLAG_CHECK([-Wmissing-prototypes], 1)
    dnl
    dnl----------------------------------------------------------
@@ -350,7 +337,6 @@ dnl	JTR_FLAG_CHECK([-Wmissing-prototypes], 1)
    dnl printf("%.2x", ((unsigned char*)buf)[SHA64GETPOSne(i, index)]);
    dnl----------------------------------------------------------
 dnl  JTR_FLAG_CHECK([-Wcast-qual], 1)
-   JTR_FLAG_CHECK([-Waggregate-return], 1)         dnl (fails on older gcc 4.2 in bt returning uint192_t type
 #   These are still being looked at.
 #   JTR_FLAG_CHECK([-Wwrite-strings], 1)
 #   JTR_FLAG_CHECK([-Wsign-compare], 1)

@@ -16,13 +16,14 @@
 #include <string.h>
 #include <stdint.h>
 
+#define WITHIN_SIMD_INTRINSICS_C_ 1
+
 #include "arch.h"
-#include "pseudo_intrinsics.h"
+#include "simd-intrinsics.h"
 #include "memory.h"
 #include "md5.h"
 #include "MD5_std.h"
 #include "johnswap.h"
-#include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
 #include "misc.h"
 
@@ -115,8 +116,7 @@ void md5_unreverse(uint32_t *hash)
 
 #undef INIT_A
 
-void SIMDmd5body(vtype* _data, unsigned int *out,
-                uint32_t *reload_state, unsigned SSEi_flags)
+void SIMDmd5body(vtype* _data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD5];
 	vtype a[SIMD_PARA_MD5];
@@ -806,7 +806,7 @@ void md4_unreverse(uint32_t *hash)
 #undef INIT_B
 #undef INIT_A
 
-void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
+void SIMDmd4body(vtype* _data, uint32_t *out, uint32_t *reload_state,
                 unsigned SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD4];

@@ -34,19 +34,26 @@
 
 #include "john_mpi.h"
 
-void real_error(char *file, int line)
+void real_error(const char *file, int line)
 {
+	/*
+	 * note, always print to stderr, and log. There are times
+	 * when log is not open (such as ./john -test I think)
+	 * We are exiting with a 'known' error. Without printing
+	 * 'SOMETHING' to stderr, we simply exit, leaving the user
+	 * scratching their head wondering "whiskey tango foxtrot"
+	 */
+	fprintf(stderr, "\nTerminating on error, %s:%d\n", file, line);
+	fflush(stderr);
 #ifndef _JOHN_MISC_NO_LOG
 	log_event("Terminating on error, %s:%d", file, line);
 	log_done();
-#else
-	fprintf(stderr, "Terminating on error, %s:%d\n", file, line);
 #endif
 
 	exit(1);
 }
 
-void real_error_msg(char *file, int line,  char *format, ...)
+void real_error_msg(const char *file, int line,  const char *format, ...)
 {
 	va_list args;
 
@@ -65,7 +72,7 @@ void real_error_msg(char *file, int line,  char *format, ...)
 	real_error(file, line);
 }
 
-void real_pexit(char *file, int line, char *format, ...)
+void real_pexit(const char *file, int line, const char *format, ...)
 {
 	va_list args;
 

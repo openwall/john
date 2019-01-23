@@ -24,6 +24,10 @@
 #include "config.h"
 #include "external.h"
 #include "cracker.h"
+#include "inc.h"
+#include "prince.h"
+#include "wordlist.h"
+#include "mkv.h"
 #include "john.h"
 #include "mask.h"
 #include "unicode.h"
@@ -31,12 +35,6 @@
 #include "mask_ext.h"
 
 //#define MASK_DEBUG
-
-extern void wordlist_hybrid_fix_state(void);
-extern void mkv_hybrid_fix_state(void);
-extern void inc_hybrid_fix_state(void);
-extern void pp_hybrid_fix_state(void);
-extern void ext_hybrid_fix_state(void);
 
 static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx, restored_ctx;
@@ -1972,7 +1970,7 @@ void mask_fix_state(void)
 		rec_ctx.ranges[i].iter = cpu_mask_ctx.ranges[i].iter;
 }
 
-void remove_slash(char *mask)
+static void remove_slash(char *mask)
 {
 	int i = 0;
 	while (i < strlen(mask)) {
@@ -2002,7 +2000,7 @@ void remove_slash(char *mask)
  *  3. Last resort, we just repeat the last character.
  *     pass --> passs
  */
-char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
+static char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 {
 	char *stretched_mask;
 	int i, j, k;

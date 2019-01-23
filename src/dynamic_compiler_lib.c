@@ -74,14 +74,6 @@ static LIB_struct lib[] = {
 
 // NOTE, dyna_9 is now a candidate to remove from the lib.  Optimizations have brought it up close to normal speed.
 
-char *copy_str(const char *_p) {
-	char *p;
-	if (!_p)
-		return mem_calloc(1,1);
-	p = mem_alloc(strlen(_p)+1);
-	strcpy(p,_p);
-	return p;
-}
 
 DC_HANDLE dynamic_compile_library(const char *expr, uint32_t crc32, int *outer_hash_len) {
 	int i = 0;

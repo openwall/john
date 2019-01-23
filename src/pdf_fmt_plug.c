@@ -253,7 +253,7 @@ error:
 	return 0;
 }
 
-char * convert_old_to_new(char ciphertext[])
+static char * convert_old_to_new(char ciphertext[])
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;

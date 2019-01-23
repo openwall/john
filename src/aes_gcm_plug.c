@@ -17,6 +17,7 @@
 
 #include "arch.h"
 #include "aes.h"
+#include "aes_gcm.h"
 
 #ifndef BIT
 #define BIT(x) (1U << (x))

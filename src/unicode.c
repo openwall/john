@@ -1069,7 +1069,7 @@ int cp_name2id(char *encoding)
 	error();
 }
 
-int cp_class(int encoding)
+static int cp_class(int encoding)
 {
 	if (encoding >= CP_DOS_LO && encoding <= CP_DOS_HI)
 		return CP_DOS;

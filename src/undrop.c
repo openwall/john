@@ -13,6 +13,7 @@
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
+#include "extern_mains.h"
 
 
 #define USERFILE_HEADER "#4v:"

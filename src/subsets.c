@@ -42,6 +42,7 @@
 #include "signals.h"
 #include "recovery.h"
 #include "mask.h"
+#include "subsets.h"
 #include "unicode.h"
 #include "unicode_range.c"
 

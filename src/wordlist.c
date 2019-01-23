@@ -75,6 +75,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "wordlist.h"
 #include "john.h"
 #include "memory.h"
 #include "unicode.h"

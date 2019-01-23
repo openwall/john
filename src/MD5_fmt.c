@@ -117,7 +117,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static unsigned char (*saved_key)[PLAINTEXT_LENGTH + 1];
 #ifdef SIMD_PARA_MD5
 static unsigned char cursalt[SALT_SIZE];
 static int CryptType;
@@ -273,14 +273,14 @@ static void set_key(char *key, int index)
 	MD5_std_set_key(key, index);
 #endif
 
-	strnfcpy(saved_key[index], key, PLAINTEXT_LENGTH);
+	strnfcpy((char*)saved_key[index], key, PLAINTEXT_LENGTH);
 }
 
 static char *get_key(int index)
 {
 	saved_key[index][PLAINTEXT_LENGTH] = 0;
 
-	return saved_key[index];
+	return (char*)saved_key[index];
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -291,9 +291,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int t;
 #pragma omp parallel for
 	for (t = 0; t < omp_para; t++)
-		md5cryptsse((unsigned char *)(&saved_key[t*MD5_N]), cursalt, (char *)(&sout[t*MD5_N*BINARY_SIZE/sizeof(MD5_word)]), CryptType);
+		md5cryptsse(&saved_key[t*MD5_N], cursalt, (char *)(&sout[t*MD5_N*BINARY_SIZE/sizeof(MD5_word)]), CryptType);
 #else
-	md5cryptsse((unsigned char *)saved_key, cursalt, (char *)sout, CryptType);
+	md5cryptsse(&saved_key, cursalt, (char *)sout, CryptType);
 #endif
 #else
 	MD5_std_crypt(count);

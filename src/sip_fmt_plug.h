@@ -43,7 +43,7 @@ typedef struct {
 	char hash[MD5_LEN_HEX+1];
 } login_t;
 
-int stringtoarray(char **array, char *string, char delimiter)
+static int stringtoarray(char **array, char *string, char delimiter)
 {
 	char *ptr, *oldptr;
 	int flag = 1;
@@ -62,7 +62,7 @@ int stringtoarray(char **array, char *string, char delimiter)
 }
 
 /* init bin 2 hex table */
-void init_bin2hex(char bin2hex_table[256][2])
+static void init_bin2hex(char bin2hex_table[256][2])
 {
 	unsigned i=0;
 	for (i=0;i<256;i++) {
@@ -73,7 +73,7 @@ void init_bin2hex(char bin2hex_table[256][2])
 }
 
 /* convert bin to hex */
-void bin_to_hex(char bin2hex_table[256][2],
+static void bin_to_hex(char bin2hex_table[256][2],
 		const unsigned char *bin_buffer,
 		size_t bin_buffer_size,
 		char * hex_buffer,

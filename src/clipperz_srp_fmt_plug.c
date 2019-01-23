@@ -176,7 +176,7 @@ static void init(struct fmt_main *self)
 	}
 }
 
-void done(void)
+static void done(void)
 {
 	int i;
 	for (i = 0; i < max_keys_per_crypt; ++i) {

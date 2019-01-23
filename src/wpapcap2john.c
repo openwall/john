@@ -1812,7 +1812,7 @@ static int process_packet(uint32_t link_type)
 	return 1;
 }
 
-int pcapng_option_print(FILE *in, size_t len, size_t pad_len,
+static int pcapng_option_print(FILE *in, size_t len, size_t pad_len,
                         char *name, int verb_lvl)
 {
 	char *string;
@@ -1834,7 +1834,7 @@ int pcapng_option_print(FILE *in, size_t len, size_t pad_len,
 	return 0;
 }
 
-void pcapng_option_walk(FILE *in, uint32_t tl)
+static void pcapng_option_walk(FILE *in, uint32_t tl)
 {
 	uint16_t res;
 	uint16_t padding;
@@ -2284,7 +2284,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 }
 #endif
 
-void usage(char *name, int ret)
+static void usage(char *name, int ret)
 {
 	fprintf(stderr,
 	"Converts PCAP or IVS2 files to JtR format.\n"

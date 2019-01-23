@@ -17,4 +17,6 @@
  */
 extern void do_incremental_crack(struct db_main *db, char *mode);
 
+extern void inc_hybrid_fix_state(void);
+
 #endif

@@ -163,16 +163,7 @@ extern struct fmt_main fmt_ztex_phpass;
 #endif
 
 #include "fmt_externs.h"
-
-extern int unshadow(int argc, char **argv);
-extern int unafs(int argc, char **argv);
-extern int unique(int argc, char **argv);
-extern int undrop(int argc, char **argv);
-
-extern int base64conv(int argc, char **argv);
-extern int zip2john(int argc, char **argv);
-extern int gpg2john(int argc, char **argv);
-extern int rar2john(int argc, char **argv);
+#include "extern_mains.h"
 
 int john_main_process = 1;
 #if OS_FORK

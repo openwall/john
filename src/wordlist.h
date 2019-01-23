@@ -23,4 +23,6 @@
  */
 extern void do_wordlist_crack(struct db_main *db, char *name, int rules);
 
+extern void wordlist_hybrid_fix_state(void);
+
 #endif

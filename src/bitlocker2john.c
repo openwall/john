@@ -145,7 +145,7 @@ static int rp_search_salt_aes(void)
 }
 
 
-int process_encrypted_image(char *image_path)
+static int process_encrypted_image(char *image_path)
 {
 	long int fileLen = 0, j = 0;
 	int version = 0, i = 0, match = 0, ret = 0;

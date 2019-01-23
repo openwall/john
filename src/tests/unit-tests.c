@@ -61,10 +61,15 @@ char *_hex_odd_upper[_ISHEX_CNT];
 char *_hex_odd_mixed[_ISHEX_CNT];
 char *_hex_odd_digits[_ISHEX_CNT];
 
+int under_make_s = 0;	// we have special output logic if running under make -s
+
 /*
  * code for statistics
  */
-int nFuncs = 0;
+uint64_t nFuncs = 0;
+uint64_t nFiles = 0;
+uint64_t nFails = 0;
+uint64_t nTests = 0;
 int failed;
 int any_failure = 0;
 clock_t start_of_run;
@@ -74,10 +79,13 @@ struct {
 	unsigned fails;
 	clock_t tStart, tStop;
 } Results;
-void set_unit_test_source(const char *fname) {
+static void set_unit_test_source(const char *fname) {
+	++nFiles;
+	if (under_make_s)
+		return;
 	printf("\n**** Performing unit tests for functions from [%s] ****\n", fname);
 }
-void start_test(const char *fn) {
+static void start_test(const char *fn) {
 	Results.tests = Results.fails = 0;
 	Results.tStart = Results.tStop = clock();
 	strcpy(Results.test_name, fn);
@@ -85,18 +93,23 @@ void start_test(const char *fn) {
 inline void inc_test() {
 	Results.tests++;
 }
-void inc_failed_test() {
+static void inc_failed_test() {
 	if (failed)
 		return;  // failed already logged for this test.
 	Results.fails++;
 	any_failure = failed = 1;
 }
-void end_test() {
+static void end_test() {
 	int n;
 	double seconds;
 
+	++nFuncs;
+	nTests += Results.tests;
+	nFails += Results.fails;
+	if (!Results.fails && under_make_s)
+		return;	// print nothing.
 	Results.tStop = clock();
-	n = printf("  test %01d %s", ++nFuncs, Results.test_name);
+	n = printf("  test %"PRIu64" %s", nFuncs, Results.test_name);
 	while (++n < 35) printf(" ");
 	if (!Results.tests)
 		printf("-  Unit tests not yet written for this function\n");
@@ -109,11 +122,17 @@ void end_test() {
 		printf(" %.2f seconds used\n", seconds);
 	}
 }
-void dump_stats() {
+static void dump_stats() {
 	double secs = clock() - start_of_run;
 	secs /= CLOCKS_PER_SEC;
-	printf("Performed testing on %d total functions.\n", nFuncs);
-	printf("Total time taken : %.02f\n\n", secs);
+	printf("Completed. %"PRIu64" source files, %"PRIu64" functions with %"PRIu64" independent tests", nFiles, nFuncs, nTests);
+	if (nFails)
+		printf(" with %"PRIu64" failures", nFails);
+	if (under_make_s)
+		printf(".  ");
+	else
+		printf(".\n");
+	printf("Total time taken : %.02f\n", secs);
 }
 /*
  * end of code for statistics
@@ -123,7 +142,7 @@ void dump_stats() {
  *  Misc utility functions
  */
 // gets hex string of some bytes
-char *hex(const void *_p, int n) {
+static char *hex(const void *_p, int n) {
 	static char Buf[1000*1000];
 	char *op = Buf;
 	const unsigned char *p = (const unsigned char *)_p;
@@ -136,7 +155,7 @@ char *hex(const void *_p, int n) {
 	return Buf;
 }
 
-char *packedhex(const void *_p, int n) {
+static char *packedhex(const void *_p, int n) {
 	static char Buf[4096];
 	char *op = Buf;
 	const unsigned char *p = (const unsigned char *)_p;
@@ -146,7 +165,7 @@ char *packedhex(const void *_p, int n) {
 		op += sprintf(op, "%02X", p[i]);
 	return Buf;
 }
-int Random(int m) {
+static int Random(int m) {
 	unsigned r = rand();
 	r = (((uint64_t)r) * m) / ((uint64_t)RAND_MAX+1);
 	return r;
@@ -174,7 +193,7 @@ char *strlwr(char *_p) {
 	return _p;
 }
 #endif
-int digit_val(char c)
+static int digit_val(char c)
 {
 	if (c >= '0' && c <= '9')
 		return (int)c - '0';
@@ -185,7 +204,7 @@ int digit_val(char c)
 }
 // Here is our atoi-with base conversion, and error checking functions
 // (one function for unsigned, one for signed)
-uint64_t toDeci_ull(char *s, int base)
+static uint64_t toDeci_ull(char *s, int base)
 {
 	// unsigned atoi with base handling from 2 to 26
 	int i, len = strlen(s);
@@ -206,7 +225,7 @@ uint64_t toDeci_ull(char *s, int base)
 	}
 	return num;
 }
-int64_t toDeci_ll(char *s, int base)
+static int64_t toDeci_ll(char *s, int base)
 {
 	// signed atoi with base handling from 2 to 26
 	int sign = 1;
@@ -238,7 +257,7 @@ int64_t toDeci_ll(char *s, int base)
 *  End of Misc utility functions
 */
 
-char *_tst_1_strnzcatn(char *head, char *tail, int cnt) {
+static char *_tst_1_strnzcatn(char *head, char *tail, int cnt) {
 	static char dest[13 + 6];  // the 13 is the size of the buffer. The '+6 is to later validate we have not blown buffer.
 	char dest_orig[17];
 	static char ex_crap[4096];
@@ -317,7 +336,7 @@ char *_tst_1_strnzcatn(char *head, char *tail, int cnt) {
 // written, you could pass in a string of more than 12+1 bytes (say 64), but list it as being 12 bytes of
 // significant data. The function 'will' work, and will simply put a null byte into offset [12], and never
 // append anything.  The 'test' function does not do this.  We do this as a last step here in main.
-int _tst_strnzcatn() {
+static int _tst_strnzcatn() {
 	// note tail array is allocated to proper size, so that ASAN will catch any
 	// read PAST end of valid buffer
 	char head[48], *tail[14], *data = "1234567890ABCDEFGHIJKLMNOPQRS";
@@ -368,7 +387,7 @@ int _tst_strnzcatn() {
     pad          the byte to pad with (only used for pfn function calls
 */
 #define CPI "012345ABCd99900AbC0"
-void _test_cpy_func(char *(cfn)(char *, const char *, int),
+static void _test_cpy_func(char *(cfn)(char *, const char *, int),
                     int   (nfn)(char *, const char *, int),
                     void *(pfn)(void *, const void *, size_t, uint8_t),
                     int case_type, int append_null, uint8_t pad) {
@@ -475,7 +494,7 @@ void _test_cpy_func(char *(cfn)(char *, const char *, int),
  *  than 64 bit file seeking, and 64 bit file telling.  However, seek/tell
  *  is not part of fgetl or fgetll.
  */
-void _nontest_gen_fgetl_files(int generate) {
+static void _nontest_gen_fgetl_files(int generate) {
 	int i, x, rlen;
 	FILE *fp, *fp1, *fp2;
 
@@ -542,7 +561,7 @@ void _nontest_gen_fgetl_files(int generate) {
 	fclose(fp);
 	end_test();
 }
-void _validate_line(const char *line, int n, int len) {
+static void _validate_line(const char *line, int n, int len) {
 	int i, j;
 	char line_head[48];
 	int len_seen = strlen(line);
@@ -578,7 +597,7 @@ void _validate_line(const char *line, int n, int len) {
 	if (memcmp(&_fgetl_pad[i], &line[i], len_seen-i))
 		inc_failed_test();
 }
-void _tst_fget_l_ll(const char *fname, int tst_l)
+static void _tst_fget_l_ll(const char *fname, int tst_l)
 {
 	int i;
 	char Buf[256], Bufs[18], Bufh[16384], *cp;
@@ -641,7 +660,7 @@ void _tst_fget_l_ll(const char *fname, int tst_l)
 		inc_failed_test();
 }
 // char *fgetl(char *s, int size, FILE *stream)
-void test_fgetl() {
+static void test_fgetl() {
 	start_test(__FUNCTION__);
 
 	_fgetl_fudge = 0;
@@ -651,7 +670,7 @@ void test_fgetl() {
 	end_test();
 }
 // char *fgetll(char *s, size_t size, FILE *stream)
-void test_fgetll() {
+static void test_fgetll() {
 	start_test(__FUNCTION__);
 	_tst_fget_l_ll("/tmp/jnk.txt", 0);
 	_tst_fget_l_ll("/tmp/jnkd.txt", 0);
@@ -659,43 +678,43 @@ void test_fgetll() {
 	end_test();
 }
 // void *strncpy_pad(void *dst, const void *src, size_t size, uint8_t pad)
-void test_strncpy_pad() {
+static void test_strncpy_pad() {
 	start_test(__FUNCTION__);
 	_test_cpy_func(NULL, NULL, strncpy_pad, 0, 2, 'x');
 	end_test();
 }
 // char *strnfcpy(char *dst, const char *src, int size)
-void test_strnfcpy() {
+static void test_strnfcpy() {
 	start_test(__FUNCTION__);
 	_test_cpy_func(strnfcpy, NULL, NULL, 0, 1, 0);
 	end_test();
 }
 // char *strnzcpy(char *dst, const char *src, int size)
-void test_strnzcpy() {
+static void test_strnzcpy() {
 	start_test(__FUNCTION__);
 	_test_cpy_func(strnzcpy, NULL, NULL, 0, 0, 0);
 	end_test();
 }
 // char *strnzcpylwr(char *dst, const char *src, int size)
-void test_strnzcpylwr() {
+static void test_strnzcpylwr() {
 	start_test(__FUNCTION__);
 	_test_cpy_func(strnzcpylwr, NULL, NULL, 1, 0, 0);
 	end_test();
 }
 // int strnzcpyn(char *dst, const char *src, int size)
-void test_strnzcpyn() {
+static void test_strnzcpyn() {
 	start_test(__FUNCTION__);
 	_test_cpy_func(NULL, strnzcpyn, NULL, 0, 0, 0);
 	end_test();
 }
 // int strnzcpylwrn(char *dst, const char *src, int size)
-void test_strnzcpylwrn() {
+static void test_strnzcpylwrn() {
 	start_test(__FUNCTION__);
 	_test_cpy_func(NULL, strnzcpylwrn, NULL, 1, 0, 0);
 	end_test();
 }
 // fills a string with random text, specific length
-void _fill_str(char *p, int len) {
+static void _fill_str(char *p, int len) {
 	int i;
 
 	for (i = 0; i < len; ++i) {
@@ -704,7 +723,7 @@ void _fill_str(char *p, int len) {
 	p[len] = 0;
 }
 // char *strnzcat(char *dst, const char *src, int size)
-void test_strnzcat() {
+static void test_strnzcat() {
 	// we do strcpy(buf[i], buf1) then strnzcat(buf[i], buf2, i+1)
 	// buf[i] is allocated to be EXACTLY (and only) i+1 bytes long
 	// so that any ASAN overflow (r/w) will be caught.
@@ -761,12 +780,12 @@ void test_strnzcat() {
 	end_test();
 }
 // char *strnzcatn(char *dst, int size, const char *src, int src_max)
-void test_strnzcatn() {
+static void test_strnzcatn() {
 	start_test(__FUNCTION__);
 	_tst_strnzcatn();
 	end_test();
 }
-void _test_strtokm(char *delims, int cnt, ...) {
+static void _test_strtokm(char *delims, int cnt, ...) {
 	int n, i;
 	char *buf, *items[24], big[4096], *cp = big;
 	va_list args;
@@ -802,7 +821,7 @@ void _test_strtokm(char *delims, int cnt, ...) {
 
 }
 // char *strtokm(char *s1, const char *delims)
-void test_strtokm() {
+static void test_strtokm() {
 	start_test(__FUNCTION__);
 	// Not quite sure how to comprehensively test this beast.  I guess I
 	// will build strings, and also build the 'expected' data for each one
@@ -816,7 +835,7 @@ void test_strtokm() {
 	end_test();
 }
 // unsigned atou(const char *src)
-void test_atou() {
+static void test_atou() {
 	unsigned u;
 
 	start_test(__FUNCTION__);
@@ -834,7 +853,7 @@ void test_atou() {
 	end_test();
 }
 // const char *jtr_ulltoa(uint64_t val, char *result, int rlen, int base)
-void test_jtr_ulltoa() {
+static void test_jtr_ulltoa() {
 	uint64_t u;
 	int base, x,y;
 	char buf[128], jnk[4];
@@ -890,7 +909,7 @@ void test_jtr_ulltoa() {
 	end_test();
 }
 // const char *jtr_itoa(int val, char *result, int rlen, int base)
-void test_jtr_itoa() {
+static void test_jtr_itoa() {
 	int d;
 	int base, x, y;
 	char buf[128], jnk[4];
@@ -946,7 +965,7 @@ void test_jtr_itoa() {
 	end_test();
 }
 // const char *jtr_utoa(unsigned int val, char *result, int rlen, int base)
-void test_jtr_utoa() {
+static void test_jtr_utoa() {
 	unsigned int u;
 	int base, x, y;
 	char buf[128], jnk[4];
@@ -1002,7 +1021,7 @@ void test_jtr_utoa() {
 	end_test();
 }
 // const char *jtr_lltoa(int64_t val, char *result, int rlen, int base)
-void test_jtr_lltoa() {
+static void test_jtr_lltoa() {
 	int64_t ll;
 	int base, x, y;
 	char buf[128], jnk[4];
@@ -1058,7 +1077,7 @@ void test_jtr_lltoa() {
 	end_test();
 }
 // char *human_prefix(uint64_t num)
-void test_human_prefix() {
+static void test_human_prefix() {
 	start_test(__FUNCTION__);
 	end_test();
 }
@@ -1066,7 +1085,7 @@ void test_human_prefix() {
 //stuff in common.c
 
 // generate a 100% assured mixed case hex string of a specific length
-void _fill_hEx(char *p, int len, int digitsonly) {
+static void _fill_hEx(char *p, int len, int digitsonly) {
 	int i;
 	const char *hEx = "0123456789ABCDEFabcdef";
 	const char *Hex = "ABCDEF";
@@ -1098,7 +1117,7 @@ void _fill_hEx(char *p, int len, int digitsonly) {
 	}
 	p[len] = 0;
 }
-void _gen_hex_len_data() {
+static void _gen_hex_len_data() {
 	int i;
 	for (i = 1; i < _ISHEX_CNT; ++i) {
 		// each line is 2*i or 2*i+1 length.  The "", and 1 byte hex strings
@@ -1127,7 +1146,7 @@ void _gen_hex_len_data() {
 		strupr(_hex_odd_upper[i]);
 	}
 }
-void _free_hex_len_data() {
+static void _free_hex_len_data() {
 	int i;
 	for (i = 1; i < _ISHEX_CNT; ++i) {
 		free(_hex_odd_digits[i]);
@@ -1140,7 +1159,7 @@ void _free_hex_len_data() {
 		free(_hex_even_lower[i]);
 	}
 }
-void _test_one_ishex(int (fn)(const char *), int uc, int lc, int odd) {
+static void _test_one_ishex(int (fn)(const char *), int uc, int lc, int odd) {
 	int v, i;
 	char _1c[2], *Line;
 	// we test one of the ishex*() functions.  We are passed in whether this
@@ -1268,37 +1287,37 @@ void _test_one_ishex(int (fn)(const char *), int uc, int lc, int odd) {
 	}
 	free(Line);
 }
-void test_ishex() {
+static void test_ishex() {
 	start_test(__FUNCTION__);
 	_test_one_ishex(ishex, 1, 1, 0);
 	end_test();
 }
-void test_ishex_oddOK() {
+static void test_ishex_oddOK() {
 	start_test(__FUNCTION__);
 	_test_one_ishex(ishex_oddOK, 1, 1, 1);
 	end_test();
 }
-void test_ishexuc() {
+static void test_ishexuc() {
 	start_test(__FUNCTION__);
 	_test_one_ishex(ishexuc, 1, 0, 0);
 	end_test();
 }
-void test_ishexlc() {
+static void test_ishexlc() {
 	start_test(__FUNCTION__);
 	_test_one_ishex(ishexlc, 0, 1, 0);
 	end_test();
 }
-void test_ishexuc_oddOK() {
+static void test_ishexuc_oddOK() {
 	start_test(__FUNCTION__);
 	_test_one_ishex(ishexuc_oddOK, 1, 0, 1);
 	end_test();
 }
-void test_ishexlc_oddOK() {
+static void test_ishexlc_oddOK() {
 	start_test(__FUNCTION__);
 	_test_one_ishex(ishexlc_oddOK, 0, 1, 1);
 	end_test();
 }
-void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
+static void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 	char Line[_ISHEX_CNT*2 + 5 + 1];
 	int i, j, v;
 	char keep;
@@ -1429,22 +1448,22 @@ void _test_one_ishexn(int (fn)(const char *, int), int uc, int lc) {
 		Line[i] = keep;
 	}
 }
-void test_ishexn() {
+static void test_ishexn() {
 	start_test(__FUNCTION__);
 	_test_one_ishexn(ishexn, 1, 1);
 	end_test();
 }
-void test_ishexucn() {
+static void test_ishexucn() {
 	start_test(__FUNCTION__);
 	_test_one_ishexn(ishexucn, 1, 0);
 	end_test();
 }
-void test_ishexlcn() {
+static void test_ishexlcn() {
 	start_test(__FUNCTION__);
 	_test_one_ishexn(ishexlcn, 0, 1);
 	end_test();
 }
-void _test_one_hexlen(size_t (fn)(const char *, int *), int uc, int lc) {
+static void _test_one_hexlen(size_t (fn)(const char *, int *), int uc, int lc) {
 	char *Line;
 	int j, n;
 	size_t i, v;
@@ -1562,35 +1581,39 @@ void _test_one_hexlen(size_t (fn)(const char *, int *), int uc, int lc) {
 	}
 	free(Line);
 }
-void test_hexlen() {
+static void test_hexlen() {
 	start_test(__FUNCTION__);
 	_test_one_hexlen(hexlen, 1, 1);
 	end_test();
 }
-void test_hexlenl() {
+static void test_hexlenl() {
 	start_test(__FUNCTION__);
 	_test_one_hexlen(hexlenl, 0, 1);
 	end_test();
 }
-void test_hexlenu() {
+static void test_hexlenu() {
 	start_test(__FUNCTION__);
 	_test_one_hexlen(hexlenu, 1, 0);
 	end_test();
 }
-void _is_dec_tester(int (fn)(const char *), int neg, int uns) {
+
+// choose one of these 'constants' within the sprintf's in _is_dec_tester.
+// The one chosen will depend upon a combination of neg and uns wanted.
+#define FMT_nd "%-d"
+#define FMT_u  "%u"
+#define FMT_d  "%d"
+
+static void _is_dec_tester(int (fn)(const char *), int neg, int uns) {
 	unsigned u, i, j;
 	uint64_t U;
-	char Fmt[8], buf[16];
+	char buf[16];
 
-	if (neg)
-		sprintf(Fmt, "%s", "%-d");
-	else if (uns)
-		sprintf(Fmt, "%s", "%u");
-	else
-		sprintf(Fmt, "%s", "%d");
+	// if neg, then we use FMT_nd  which is "-%d"
+	// else if uns  we use FMT_u   which is "%u"
+	// else         we use FMT_d   which is "%d"
 
 	for (u = 0; u < 1000005; ++u) {
-		sprintf(buf, Fmt, u);
+		sprintf(buf, neg?FMT_nd:(uns?FMT_u:FMT_d), u);
 		inc_test();
 		if (fn(buf) == 0) {
 			failed = 0;
@@ -1598,7 +1621,7 @@ void _is_dec_tester(int (fn)(const char *), int neg, int uns) {
 		}
 	}
 	for (u = 0x7FFF0000; u < 0x80000000; ++u) {
-		sprintf(buf, Fmt, u);
+		sprintf(buf, neg?FMT_nd:(uns?FMT_u:FMT_d), u);
 		inc_test();
 		if (fn(buf) == 0) {
 			failed = 0;
@@ -1607,7 +1630,7 @@ void _is_dec_tester(int (fn)(const char *), int neg, int uns) {
 	}
 	if (neg || uns) {
 		for (u = 0x7FFFFFFF; u < 0x80010000; ++u) {
-			sprintf(buf, Fmt, u);
+			sprintf(buf, neg?FMT_nd:(uns?FMT_u:FMT_d), u);
 			inc_test();
 			if (fn(buf) == 0) {
 				failed = 0;
@@ -1615,7 +1638,7 @@ void _is_dec_tester(int (fn)(const char *), int neg, int uns) {
 			}
 		}
 		for (u = 0xFFF0FFFF; u < 0xFFFFFFFF; ++u) {
-			sprintf(buf, Fmt, u);
+			sprintf(buf, neg?FMT_nd:(uns?FMT_u:FMT_d), u);
 			inc_test();
 			if (fn(buf) == 0) {
 				failed = 0;
@@ -1676,17 +1699,17 @@ void _is_dec_tester(int (fn)(const char *), int neg, int uns) {
 	}
 
 }
-void test_isdec() {
+static void test_isdec() {
 	start_test(__FUNCTION__);
 	_is_dec_tester(isdec, 0, 0);
 	end_test();
 }
-void test_isdec_negok() {
+static void test_isdec_negok() {
 	start_test(__FUNCTION__);
 	_is_dec_tester(isdec_negok, 1, 0);
 	end_test();
 }
-void test_isdecu() {
+static void test_isdecu() {
 	start_test(__FUNCTION__);
 	_is_dec_tester(isdecu, 0, 1);
 	end_test();
@@ -1709,7 +1732,7 @@ typedef struct {
 Hash_Tests *HTst;
 int nHTst;
 
-void _Reset_test_hash_data() {
+static void _Reset_test_hash_data() {
 	int n;
 	for (n = 0; n < nHTst; ++n) {
 		free(HTst[n].test_data);
@@ -1726,7 +1749,7 @@ void _Reset_test_hash_data() {
  **********************************************************************/
 
 /* this function pre-parses, but only to get the bit count for each message */
-uint64_t _parse_NESSIE_bits(const char *cp) {
+static uint64_t _parse_NESSIE_bits(const char *cp) {
 	const char *cp2;
 	long long bits, b;
 	unsigned u;
@@ -1786,7 +1809,7 @@ uint64_t _parse_NESSIE_bits(const char *cp) {
 	return 0;
 }
 /* this function allocates a buffer, and parses the message properly. */
-unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
+static unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
 	unsigned char *p, *pRet;
 	const char *cp2;
 	long long b;
@@ -1885,7 +1908,7 @@ unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
  *     http://csrc.nist.gov/groups/STM/cavp/documents/aes/AESAVS.pdf
  *     https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/
  */
-void _Load_NESSIE_hash_file(const char *fname) {
+static void _Load_NESSIE_hash_file(const char *fname) {
 	// currently only handles NESSIE files.
 	FILE *in = fopen(fname, "r");
 	char LineBuf[512], *cp, *cpLB;
@@ -2016,7 +2039,7 @@ void _Load_NESSIE_hash_file(const char *fname) {
 	fclose(in);
 }
 
-void ParseHex(unsigned char *po, const char *_pi, int b) {
+static void ParseHex(unsigned char *po, const char *_pi, int b) {
 	int i;
 	const unsigned char *pi = (const unsigned char*)_pi;
 
@@ -2040,7 +2063,7 @@ void ParseHex(unsigned char *po, const char *_pi, int b) {
  *                                       values are from re-running using the
  *                                       last 'runs' output.
  */
-void _Load_CAVS_hash_file(const char *fname, int type) {
+static void _Load_CAVS_hash_file(const char *fname, int type) {
 	// this format is MUCH easier to parse than NESSIE.  In this format
 	// there are no parsing of the message.  The message is simply a
 	// hex string (simple to parse). Also, the MD is all on 1 line,
@@ -2124,7 +2147,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 	}
 	fclose(in);
 }
-void _hash_error(const char *T, int n, unsigned char *buf, int len) {
+static void _hash_error(const char *T, int n, unsigned char *buf, int len) {
 	char *m = HTst[n].message;
 	unsigned mlen = HTst[n].test_bits / 8;
 	printf("%s test %d failed.\n", T, n + 1);
@@ -2139,7 +2162,7 @@ void _hash_error(const char *T, int n, unsigned char *buf, int len) {
  * vs buffer_width.
 */
 #define ossl_CTX_FLAT_HASH(T,t,B,b)					\
-void _Perform_FLAT_tests_##T ()	{					\
+static void _Perform_FLAT_tests_##T ()	{					\
 	int n, j;							\
 	for (n = 0; n < nHTst; ++n) {					\
 		t##_CTX c;						\
@@ -2185,7 +2208,7 @@ void _Perform_FLAT_tests_##T ()	{					\
  * than 'b' (hashes such as SHA224 or SHA384)
  */
 #define ossl_CTX_CAVS_MONTE_HASH(T,t,B,b)				\
-void _Perform_CAVS_MONTE_tests_##T() {					\
+static void _Perform_CAVS_MONTE_tests_##T() {					\
 	int i, j;							\
 	/* the 'only' thing needing to be 'b' bytes is the s array */	\
 	unsigned char S[3][B], seed[B], t[B * 3], s[b];			\
@@ -2225,7 +2248,7 @@ ossl_CTX_CAVS_MONTE_HASH(SHA256, SHA256, 32, 32)
 ossl_CTX_CAVS_MONTE_HASH(SHA384, SHA512, 48, 64)
 ossl_CTX_CAVS_MONTE_HASH(SHA512, SHA512, 64, 64)
 
-void _perform_hash_test(const char *fname, int type, void(fn)()) {
+static void _perform_hash_test(const char *fname, int type, void(fn)()) {
 	if (type == 0)
 		_Load_NESSIE_hash_file(fname);
 	else
@@ -2258,7 +2281,7 @@ for($j = 0; $j < 100; ++$j) {
 	$seed = $s;	# use this test result as seed for next run.
 }
 */
-void test_sha2_c() {
+static void test_sha2_c() {
 	// test using NESSIE and NIST/CAVS input data files
 
 	start_test("test_sha224");
@@ -2290,9 +2313,23 @@ void test_sha2_c() {
 	end_test();
 }
 
-int main() {
+int main(int argc, char **argv, char **envp) {
+	int i;
 	start_of_run = clock();
 
+	(void)argc;
+	(void)argv;
+	// find out if we are running under MAKE running -s
+	for (i = 0; envp[i]; ++i) {
+		if (!strncmp(envp[i], "MAKEFLAGS=", 10)) {
+			if (!strcmp(envp[i], "MAKEFLAGS=s") ||
+			    strstr(envp[i], "MAKEFLAGS=s ") ||
+				strstr(envp[i], " s "))
+				under_make_s = 1;
+		}
+		//printf ("%s\n", envp[i]);
+	}
+	//exit(0);
 	common_init();
 
 	set_unit_test_source("misc.c");

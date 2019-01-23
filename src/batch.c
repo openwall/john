@@ -18,6 +18,7 @@
 #include "config.h"
 #include "single.h"
 #include "wordlist.h"
+#include "batch.h"
 #include "inc.h"
 
 static void do_single_pass(struct db_main *db)

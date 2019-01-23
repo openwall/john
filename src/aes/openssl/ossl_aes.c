@@ -8,21 +8,9 @@
 #include <openssl/aes.h>
 
 #else
+	
+#include "ossl-aes-externs.h"
 
-/*
- * this code copied from oSSL newer version. This is ALL we do, so it
- * has been pared down here.
- */
-#define AES_ENCRYPT	1
-#define AES_DECRYPT	0
-/* Because array size can't be a const in C, the following two are macros.
-   Both sizes are in bytes. */
-#define AES_MAXNR 14
-#define AES_BLOCK_SIZE 16
-typedef struct aes_key_st {
-    unsigned int rd_key[4 *(AES_MAXNR + 1)];
-    int rounds;
-} AES_KEY;
 typedef void (*block128_f)(const unsigned char in[16], unsigned char out[16], const void *key);
 
 #include "ossl_aes_crypto.c"
@@ -54,6 +42,8 @@ inline static void aes_cbc(unsigned char *in, unsigned char *out, unsigned char 
 	AES_cbc_encrypt(in, out, num_blocks * AES_BLOCK_SIZE, &akey, iv, direction);
 }
 
+#include "ossl_aes.h"
+
 #define OSSL_CBC_FUNC(n) \
 	void openssl_AES_enc##n##_CBC(unsigned char *in, unsigned char *out, unsigned char *key, size_t num_blocks, unsigned char *iv) { aes_cbc(in, out, key, num_blocks, iv, n, AES_ENCRYPT); } \
 	void openssl_AES_dec##n##_CBC(unsigned char *in, unsigned char *out, unsigned char *key, size_t num_blocks, unsigned char *iv) { aes_cbc(in, out, key, num_blocks, iv, n, AES_DECRYPT); }
@@ -61,6 +51,7 @@ inline static void aes_cbc(unsigned char *in, unsigned char *out, unsigned char 
 OSSL_CBC_FUNC(128)
 OSSL_CBC_FUNC(192)
 OSSL_CBC_FUNC(256)
+
 
 #undef OSSL_CBC_FUNC
 
@@ -77,11 +68,11 @@ void JTR_AES_decrypt(const unsigned char *in, unsigned char *out, const AES_KEY 
 }
 
 #undef AES_set_encrypt_key
-void JTR_AES_set_encrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key) {
-	AES_set_encrypt_key(userKey, bits, key);
+int JTR_AES_set_encrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key) {
+	return AES_set_encrypt_key(userKey, bits, key);
 }
 
 #undef AES_set_decrypt_key
-void JTR_AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key) {
-	AES_set_decrypt_key(userKey, bits, key);
+int JTR_AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key) {
+	return AES_set_decrypt_key(userKey, bits, key);
 }

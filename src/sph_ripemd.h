@@ -289,6 +289,7 @@ typedef struct {
 void sph_ripemd256_init(void *cc);
 void sph_ripemd256(void *cc, const void *data, size_t len);
 void sph_ripemd256_close(void *cc, void *dst);
+void sph_ripemd256_comp(const sph_u32 msg[16], sph_u32 val[8]);
 
 typedef struct {
 	unsigned char buf[64];    /* first field, for alignment */
@@ -302,5 +303,6 @@ typedef struct {
 void sph_ripemd320_init(void *cc);
 void sph_ripemd320(void *cc, const void *data, size_t len);
 void sph_ripemd320_close(void *cc, void *dst);
+void sph_ripemd320_comp(const sph_u32 msg[16], sph_u32 val[10]);
 
 #endif

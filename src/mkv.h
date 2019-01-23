@@ -14,4 +14,6 @@
  */
 extern void do_markov_crack(struct db_main *db, char *mkv_param);
 
+extern void mkv_hybrid_fix_state(void);
+
 #endif

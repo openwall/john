@@ -84,4 +84,8 @@ extern void (*crk_fix_state)(void);
  */
 typedef void (*fix_state_fp)();
 extern void crk_set_hybrid_fix_state_func_ptr(fix_state_fp fp);
+
+
+int crk_max_keys_per_crypt(void);
+
 #endif

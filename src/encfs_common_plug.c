@@ -113,7 +113,7 @@ unsigned int encfs_common_iteration_count(void *salt)
 }
 
 // Other 'common' functions for this format:
-void encfs_common_setIVec(encfs_common_custom_salt *cur_salt, unsigned char *ivec, uint64_t seed, unsigned char *key)
+static void encfs_common_setIVec(encfs_common_custom_salt *cur_salt, unsigned char *ivec, uint64_t seed, unsigned char *key)
 {
 	unsigned char iv_and_seed[MAX_IVLENGTH+8];
 	int i;

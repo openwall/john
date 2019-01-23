@@ -49,6 +49,7 @@
 #include "params.h"
 #include "memory.h"
 #include "jumbo.h"
+#include "extern_mains.h"
 
 #define ENTRY_END_HASH			0xFFFFFFFF /* also hard-coded */
 #define ENTRY_END_LIST			0xFFFFFFFE

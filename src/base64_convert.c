@@ -34,6 +34,7 @@
 #include "common.h"
 #include "jumbo.h"
 #include "base64_convert.h"
+#include "extern_mains.h"
 
 /*
  * once we switched to size_t, we can no longer use - values to return an error.
@@ -588,7 +589,7 @@ static void setup_mime() {
 	common_init();
 }
 
-void mime_deplus(char *to) {
+static void mime_deplus(char *to) {
 	char *cp = strchr(to, '+');
 	while (cp) {
 		*cp = '.';
@@ -596,7 +597,7 @@ void mime_deplus(char *to) {
 	}
 }
 
-void mime_dash_under(char *to) {
+static void mime_dash_under(char *to) {
 	char *cp = strchr(to, '+');
 	while (cp) {
 		*cp = '-';
@@ -1182,7 +1183,7 @@ static void do_convert(char *in_str, b64_convert_type in_t,
 	MEM_FREE(po);
 }
 
-void length_test() {
+static void length_test() {
 	/* this test is to see if the length returned is correct, even if we
 	 * list more input data than we have. */
 	char out[256];

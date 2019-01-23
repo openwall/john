@@ -598,7 +598,7 @@ inline static void __nonMP_DynamicFunc__append_from_last_output2_to_input1_as_ba
 #endif
 }
 
-void __nonMP_eLargeOut(eLargeOut_t what)
+static void __nonMP_eLargeOut(eLargeOut_t what)
 {
 #ifdef _OPENMP
 	unsigned int i;
@@ -607,7 +607,7 @@ void __nonMP_eLargeOut(eLargeOut_t what)
 #endif
 	eLargeOut[0] = what;
 }
-void __nonMP_nLargeOff(unsigned val)
+static void __nonMP_nLargeOff(unsigned val)
 {
 #ifdef _OPENMP
 	unsigned int i;
@@ -627,7 +627,7 @@ inline static int md5_unicode_convert_get(int tid)
 	return md5_unicode_convert[tid];
 }
 
-void __nonMP_md5_unicode_convert(int what)
+static void __nonMP_md5_unicode_convert(int what)
 {
 #ifdef _OPENMP
 	unsigned int i;
@@ -3315,7 +3315,7 @@ static void __SSE_append_string_to_input(unsigned char *IPB, unsigned int idx_mo
 #endif  // #ifdef SIMD_COEF_32 from way above.
 
 
-inline static void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
+static void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
 {
 	unsigned int j;
 	unsigned int til;
@@ -3431,7 +3431,7 @@ inline static void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 	}
 }
 
-inline static void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
+static void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned int len)
 {
 	unsigned int j;
 	unsigned int til;

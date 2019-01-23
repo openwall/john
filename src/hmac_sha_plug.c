@@ -21,6 +21,7 @@
 #include "sha.h"
 #include "sha2.h"
 #include "common.h"
+#include "hmac_sha.h"
 
 #if ARCH_BITS==64
 #define HMAC_SHA32_COUNT  8

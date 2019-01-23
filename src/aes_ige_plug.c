@@ -52,6 +52,7 @@
 #include <string.h>
 
 #include <openssl/aes.h>
+#include "aes_ige.h"
 
 #define N_WORDS (AES_BLOCK_SIZE / sizeof(unsigned long))
 typedef struct {

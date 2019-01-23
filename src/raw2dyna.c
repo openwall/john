@@ -35,7 +35,7 @@ void ParseOptions(int argc, char **argv);
 char *GetSalt(char*);
 int simple_convert();
 
-void usage(char *proc_name) {
+static void usage(char *proc_name) {
 	fprintf(stderr, "\
 usage %s [options] < input > output\n\
 \tOptions:\n\
@@ -53,7 +53,7 @@ usage %s [options] < input > output\n\
 
 #define FGETS(s, size, stream)	if (!fgets(s, size, stream)) if (ferror(stream)) { fprintf(stderr, "error\n"); exit(1); }
 
-void Setup() {
+static void Setup() {
 	int i;
 	for (i = 0; i < 256; ++i)
 		atoi16[i] = 0x7F;

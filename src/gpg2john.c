@@ -122,6 +122,7 @@ private bz_stream bz;
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
+#include "extern_mains.h"
 
 #define YES 1
 #define NO  0
@@ -482,7 +483,7 @@ pdump(unsigned len)
 		fprintf(stderr, "%c", Getc());
 }
 
-public void
+static void
 give_pdump(unsigned len)
 {
 	int i;
@@ -871,7 +872,7 @@ multi_precision_integer(string str)
 	// printf("\n");
 } */
 
-public void
+static void
 skip_multi_precision_integer(string str)
 {
 	int bytes;
@@ -882,7 +883,7 @@ skip_multi_precision_integer(string str)
 	skip(bytes);
 }
 
-public unsigned
+static unsigned
 give_multi_precision_integer(unsigned char *buf, const unsigned buf_size, unsigned *key_bits)
 {
 	unsigned bytes;
@@ -1357,7 +1358,7 @@ private void
 	Private_Packet,
 };
 
-char *pkt_type(int tag) {
+static char *pkt_type(int tag) {
 	switch(tag) {
 	case 0: return "Reserved";
 	case 1: return "Public_Key_Encrypted_Session_Key_Packet";

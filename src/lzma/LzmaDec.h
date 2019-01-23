@@ -222,6 +222,8 @@ SRes LzmaDecode(Byte *dest, SizeT *destLen, const Byte *src, SizeT *srcLen,
     const Byte *propData, unsigned propSize, ELzmaFinishMode finishMode,
     ELzmaStatus *status, ISzAlloc *alloc);
 
+extern void LzmaDec_InitDicAndState(CLzmaDec *p, Bool initDic, Bool initState);
+
 EXTERN_C_END
 
 #endif

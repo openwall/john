@@ -383,7 +383,7 @@ void listconf_parse_early(void)
  * Separator differs for --list=format-all-details (", ")
  * and --list=format-details (",")
  */
-void list_tunable_cost_names(struct fmt_main *format, char *separator)
+static void list_tunable_cost_names(struct fmt_main *format, char *separator)
 {
 	int i;
 
@@ -396,7 +396,7 @@ void list_tunable_cost_names(struct fmt_main *format, char *separator)
 	}
 }
 
-char *get_test(struct fmt_main *format, int ntests)
+static char *get_test(struct fmt_main *format, int ntests)
 {
 	int i, new_len = 0;
 

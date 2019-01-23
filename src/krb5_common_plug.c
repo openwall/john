@@ -184,7 +184,7 @@ static void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
 // lib/crypto-des.c and lib/low-crypto.c files in Shishi. Copyrighted by Simon
 // Josefsson and licensed under GPLv3.
 
-void des_set_odd_key_parity_shishi(char key[8])
+static void des_set_odd_key_parity_shishi(char key[8])
 {
 	int i, j;
 
@@ -222,7 +222,7 @@ static char weak_des_keys[16][8] = {
 	"\xFE\xE0\xFE\xE0\xFE\xF1\xFE\xF1"
 };
 
-void des_key_correction_shishi(char key[8])
+static void des_key_correction_shishi(char key[8])
 {
 	size_t i;
 
@@ -239,7 +239,7 @@ void des_key_correction_shishi(char key[8])
 	}
 }
 
-void des_cbc_mac_shishi(char key[8], char iv[8], unsigned char *in, size_t inlen, char *out)
+static void des_cbc_mac_shishi(char key[8], char iv[8], unsigned char *in, size_t inlen, char *out)
 {
 	DES_cblock dkey;
 	DES_cblock ivec;

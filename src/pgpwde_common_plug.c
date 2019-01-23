@@ -30,7 +30,7 @@ struct fmt_tests pgpwde_tests[] = {
 // the structure, and logic of the original code should be remaining.
 //
 // Can we use RSA_padding_check_PKCS1_OAEP from OpenSSL instead?
-int PKCS1oaepMGF1Unpack(uint8_t *in, uint32_t inlen, unsigned char *p, uint32_t plen, unsigned char *msg, uint32_t *msglen)
+static int PKCS1oaepMGF1Unpack(uint8_t *in, uint32_t inlen, unsigned char *p, uint32_t plen, unsigned char *msg, uint32_t *msglen)
 {
 	uint32_t hashlen;
 	uint8_t hash[20];

@@ -50,6 +50,7 @@ extern int nice(int);
 #include "options.h"
 #include "signals.h"
 #include "bench.h"
+#include "idle.h"
 #include "formats.h"
 
 int idle_requested(struct fmt_main *format)

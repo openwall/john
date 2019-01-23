@@ -2368,7 +2368,7 @@ static char *convert_old_dyna_to_new(char *fld0, char *in, char *out, int outsiz
 	return out;
 }
 
-int looks_like_bare_hash(const char *fld1) {
+static int looks_like_bare_hash(const char *fld1) {
 	// look for hex string with 'optional' '$' for salt.
 	int len = base64_valid_length(fld1, e_b64_hex, 0, 0);
 

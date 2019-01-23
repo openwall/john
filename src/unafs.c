@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 #include "misc.h"
+#include "extern_mains.h"
 
 #define DB_ENTRY_SIZE			200
 

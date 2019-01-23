@@ -58,6 +58,7 @@
 #include "john_mpi.h"
 #include "cracker.h"
 #include "signals.h"
+#include "logger.h"
 
 static int cfg_beep;
 static int cfg_log_passwords;

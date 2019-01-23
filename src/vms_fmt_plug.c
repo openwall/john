@@ -196,7 +196,7 @@ void VMS_std_set_salt ( void *salt )
  * Hash the password and salt saved with VMS_std_set_key and VMS_std_set_salt,
  * saving the result in global storage for retrieval by vms_fmt.c module.
  */
-int VMS_std_crypt(int *pcount, struct db_salt *salt)
+static int VMS_std_crypt(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index;

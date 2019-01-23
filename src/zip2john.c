@@ -126,6 +126,7 @@
 #include "missing_getopt.h"
 #endif
 #include "johnswap.h"
+#include "extern_mains.h"
 
 static int checksum_only = 0, use_magic = 0;
 static int force_2_byte_checksum = 0;

@@ -90,7 +90,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
     return 1;
 }
 
-void init(struct fmt_main *self) {
+static void init(struct fmt_main *self) {
 	const char *pos;
 
 #ifdef _OPENMP

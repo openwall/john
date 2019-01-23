@@ -26,6 +26,7 @@
 #include "charset.h"
 #include "external.h"
 #include "cracker.h"
+#include "inc.h"
 #include "john.h"
 #include "unicode.h"
 #include "mask.h"

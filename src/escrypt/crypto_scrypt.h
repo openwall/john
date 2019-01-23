@@ -84,4 +84,12 @@ extern uint8_t * escrypt_gensalt(
     uint32_t __N_log2, uint32_t __r, uint32_t __p,
     const uint8_t * __src, size_t __srclen);
 
+extern uint8_t * encode64_uint32(uint8_t * dst, size_t dstlen,
+    uint32_t src, uint32_t srcbits);
+
+extern int decode64_one(uint32_t * dst, uint8_t src);
+
+extern const uint8_t * decode64_uint32(uint32_t * dst, uint32_t dstbits,
+    const uint8_t * src);
+
 #endif /* !_CRYPTO_SCRYPT_H_ */

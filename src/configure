@@ -6742,7 +6742,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   ###JTR_FLAG_CHECK([-Werror=missing-braces ], 1)
    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wmissing-braces " >&5
 $as_echo_n "checking if $CC supports -Wmissing-braces ... " >&6; }
@@ -7331,7 +7330,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   #### JTR_FLAG_CHECK([-Werror=nested-externs], 1)
    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wnested-externs" >&5
 $as_echo_n "checking if $CC supports -Wnested-externs... " >&6; }
@@ -7381,12 +7379,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-#  These commented out due to CI failures (Note, now that I have
-#  enabled --enable-extreme-warn I can turn these back on.
-#  they should now not 'fail' in the CI's, but warn, so I can work
-#  through all the CI problems.  Once the CI's are working, I may
-#  enhance --enable-extreme-warn[=error] (add the =error, and
-#  if that is seen, then the error checking is left intact.
+#  These cause warnings on the CI's and will be looked into.
    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-nonliteral" >&5
 $as_echo_n "checking if $CC supports -Wformat-nonliteral... " >&6; }
@@ -7435,7 +7428,8 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-		   if test 1 -gt 0; then :
+
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-security" >&5
 $as_echo_n "checking if $CC supports -Wformat-security... " >&6; }
 fi
@@ -7483,7 +7477,8 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-		   if test 1 -gt 0; then :
+
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-y2k" >&5
 $as_echo_n "checking if $CC supports -Wformat-y2k... " >&6; }
 fi
@@ -7531,7 +7526,8 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-			   if test 1 -gt 0; then :
+
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wpacked " >&5
 $as_echo_n "checking if $CC supports -Wpacked ... " >&6; }
 fi
@@ -7678,7 +7674,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   ###JTR_FLAG_CHECK([-Werror=old-style-definition], 1)	dnl n cygwin&Fedora29
    if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wold-style-definition" >&5
 $as_echo_n "checking if $CC supports -Wold-style-definition... " >&6; }
@@ -7728,10 +7723,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   ###JTR_FLAG_CHECK([-Werror=strict-prototypes ], 1)	dnl n cygwin&Fedora29   Causes Clang to stop build.
    if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wtrict-prototypes " >&5
-$as_echo_n "checking if $CC supports -Wtrict-prototypes ... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wstrict-prototypes" >&5
+$as_echo_n "checking if $CC supports -Wstrict-prototypes... " >&6; }
 fi
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -7740,7 +7734,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wtrict-prototypes "
+  CFLAGS="-Werror -Wstrict-prototypes"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7757,7 +7751,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 fi
-      CFLAGS_EX="$CFLAGS_EX -Wtrict-prototypes "
+      CFLAGS_EX="$CFLAGS_EX -Wstrict-prototypes"
 
 else
   if test 1 -gt 0; then :
@@ -7778,164 +7772,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-
-# these are also in -enable-werror section
-	warn="-Werror=stringop-truncation"
- nowarn="-Wno-error=stringop-truncation"
- if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $nowarn" >&5
-$as_echo_n "checking if $CC supports $nowarn... " >&6; }
-fi
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-  ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror $warn"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  if test "1" -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-fi
-      CFLAGS_EX="$CFLAGS_EX $nowarn"
-
-else
-  if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-    if test "1" = 2; then :
-  as_fn_error $? "Not supported by compiler" "$LINENO" 5
-fi
-
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  CFLAGS="$ac_saved_cflags"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-    warn="-Werror=format-overflow"
- nowarn="-Wno-error=format-overflow"
- if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $nowarn" >&5
-$as_echo_n "checking if $CC supports $nowarn... " >&6; }
-fi
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-  ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror $warn"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  if test "1" -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-fi
-      CFLAGS_EX="$CFLAGS_EX $nowarn"
-
-else
-  if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-    if test "1" = 2; then :
-  as_fn_error $? "Not supported by compiler" "$LINENO" 5
-fi
-
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  CFLAGS="$ac_saved_cflags"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-	warn="-Werror=cpp"
- nowarn="-Wno-error=cpp"
- if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $nowarn" >&5
-$as_echo_n "checking if $CC supports $nowarn... " >&6; }
-fi
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-  ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror $warn"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  if test "1" -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-fi
-      CFLAGS_EX="$CFLAGS_EX $nowarn"
-
-else
-  if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-    if test "1" = 2; then :
-  as_fn_error $? "Not supported by compiler" "$LINENO" 5
-fi
-
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  CFLAGS="$ac_saved_cflags"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-
-                                                                     #   JTR_FLAG_CHECK([-Wmissing-declarations], 1)
-                                                            if test 1 -gt 0; then :
+   if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Waggregate-return" >&5
 $as_echo_n "checking if $CC supports -Waggregate-return... " >&6; }
 fi
@@ -7983,7 +7820,58 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-         #   These are still being looked at.
+
+
+                                                                        if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wmissing-declarations" >&5
+$as_echo_n "checking if $CC supports -Wmissing-declarations... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -Wmissing-declarations"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -Wmissing-declarations"
+
+else
+  if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+    if test "1" = 2; then :
+  as_fn_error $? "Not supported by compiler" "$LINENO" 5
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+                                                         #   These are still being looked at.
 #   JTR_FLAG_CHECK([-Wwrite-strings], 1)
 #   JTR_FLAG_CHECK([-Wsign-compare], 1)
 #   JTR_FLAG_CHECK([-Werror=implicit-function-declaration], 1)

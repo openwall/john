@@ -897,7 +897,7 @@ sph_haval ## xxx ## _ ## y ## _close(void *cc, void *dst) \
 	haval ## y ## _close(cc, 0, 0, dst); \
 } \
  \
-void \
+static void \
 sph_haval ## xxx ## _ ## y ## addbits_and_close( \
 	void *cc, unsigned ub, unsigned n, void *dst) \
 { \

@@ -79,4 +79,13 @@ extern int do_external_hybrid_crack(struct db_main *db, const char *base_word);
  */
 extern int ext_restore_state_hybrid(const char *sig, FILE *file);
 
+
+/*
+ * externals for hybrid
+ */
+void ext_hybrid_fix_state(void);
+void save_fix_state(void(*new_crk_fix_state)(void));
+char *external_hybrid_next();
+char *external_hybrid_start(const char *base_word);
+
 #endif

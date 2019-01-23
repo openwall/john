@@ -222,7 +222,7 @@ static void AES_cbc_essiv(unsigned char *src, unsigned char *dst, unsigned char 
 	AES_cbc_encrypt(src, dst, size, &aeskey, essiv, AES_DECRYPT);
 }
 
-void hash_plugin_check_hash(int index)
+static void hash_plugin_check_hash(int index)
 {
 	unsigned char keycandidate2[255];
 	unsigned char decrypted1[512]; // FAT

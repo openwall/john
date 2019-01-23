@@ -231,7 +231,7 @@ static int ccm_auth_crypt(AES_KEY *ctx, int mode, size_t length, const unsigned
 /*
  * Authenticated encryption
  */
-int aes_ccm_encrypt_and_tag(const unsigned char *key, int bits, size_t
+static int aes_ccm_encrypt_and_tag(const unsigned char *key, int bits, size_t
 		length, const unsigned char *iv, size_t iv_len, const unsigned
 		char *add, size_t add_len, const unsigned char *input, unsigned
 		char *output, unsigned char *tag, size_t tag_len)

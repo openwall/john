@@ -343,7 +343,7 @@ static double get_progress(void)
 	return 100.0 * pos / keyspace;
 }
 
-void get_markov_options(struct db_main *db,
+static void get_markov_options(struct db_main *db,
                         char *mkv_param,
                         unsigned int *mkv_minlevel, unsigned int *mkv_level,
                         char **start_token, char **end_token,
@@ -559,7 +559,7 @@ void get_markov_options(struct db_main *db,
 		options.mkv_stats = *statfile;
 }
 
-void get_markov_start_end(char *start_token, char *end_token,
+static void get_markov_start_end(char *start_token, char *end_token,
                           uint64_t mkv_max,
                           uint64_t *mkv_start, uint64_t *mkv_end)
 {

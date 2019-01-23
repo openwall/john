@@ -162,7 +162,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-void *get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static uint64_t *outw;
 	unsigned char *out;

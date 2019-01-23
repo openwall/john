@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
 	pcap_t *handle = NULL;
 	bpf_u_int32 mask, net;
 	struct bpf_program fp;
+	extern int optind;
 
 	memset(&fp, 0, sizeof(struct bpf_program));
 

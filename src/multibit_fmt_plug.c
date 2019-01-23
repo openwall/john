@@ -398,7 +398,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-unsigned int get_iteration_count(void *salt)
+static unsigned int get_iteration_count(void *salt)
 {
 	struct custom_salt *cs = salt;
 
@@ -410,7 +410,7 @@ unsigned int get_iteration_count(void *salt)
 		return (unsigned int)cs->n;
 }
 
-unsigned int get_kdf_type(void *salt)
+static unsigned int get_kdf_type(void *salt)
 {
 	struct custom_salt *cs = salt;
 

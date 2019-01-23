@@ -80,8 +80,6 @@ static void (*rec_save_mode)(FILE *file);
 static void (*rec_save_mode2)(FILE *file);
 static void (*rec_save_mode3)(FILE *file);
 
-extern int crk_max_keys_per_crypt();
-
 static void rec_name_complete(void)
 {
 	if (rec_name_completed)

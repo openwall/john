@@ -81,7 +81,7 @@ static const uint8_t padding[] = {
 };
 
 
-void blake256_compress(state * S, const uint8_t * block)
+static void blake256_compress(state * S, const uint8_t * block)
 {
 	uint32_t v[16], m[16], i;
 
@@ -201,7 +201,7 @@ void blake224_update(state * S, const uint8_t * data, uint64_t datalen)
 	blake256_update(S, data, datalen);
 }
 
-void blake256_final_h(state * S, uint8_t * digest, uint8_t pa, uint8_t pb)
+static void blake256_final_h(state * S, uint8_t * digest, uint8_t pa, uint8_t pb)
 {
 	uint8_t msglen[8];
 	uint32_t lo = S->t[0] + S->buflen, hi = S->t[1];

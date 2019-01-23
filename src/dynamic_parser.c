@@ -584,7 +584,7 @@ static char *convert_old_name_if_needed(char *cpI) {
 	return str_alloc_copy(cpI);
 }
 
-int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
+static int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 {
 	int nConst, j;
 	char *Line = _line->data;

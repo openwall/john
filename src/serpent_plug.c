@@ -14,7 +14,7 @@
 #define rotr64(x,n)     (((x) >> n) | ((x) << (64 - n)))
 #define rotl64(x,n)     (((x) << n) | ((x) >> (64 - n)))
 
-uint32_t MirrorBytes32 (uint32_t x)
+static uint32_t MirrorBytes32 (uint32_t x)
 {
 	uint32_t n = (uint8_t) x;
 

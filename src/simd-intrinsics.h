@@ -20,7 +20,12 @@
 #include "simd-intrinsics-load-flags.h"
 #include "aligned.h"
 
+#if !defined (WITHIN_SIMD_INTRINSICS_C_)
+// when including this header from WITHIN simd-intrinsics.c, we want to leave
+// vtype ALONE. We need the function prototype declarations to properly match
+// the ACTUAL code which will be built within simd-intrinsics.c
 #define vtype void
+#endif // WITHIN_SIMD_INTRINSICS_C_
 
 #define STRINGIZE2(s) #s
 #define STRINGIZE(s) STRINGIZE2(s)
@@ -73,7 +78,7 @@
 #endif
 
 #ifdef SIMD_PARA_MD5
-void md5cryptsse(unsigned char *buf, unsigned char *salt, char *out, unsigned int md5_type);
+void md5cryptsse(unsigned char pwd[][16], unsigned char *salt, char *out, unsigned int md5_type);
 void SIMDmd5body(vtype* data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags);
 void md5_reverse(uint32_t *hash);
 void md5_unreverse(uint32_t *hash);
@@ -135,6 +140,8 @@ void sha512_unreverse(uint64_t *hash);
 
 #endif
 
+#if !defined (WITHIN_SIMD_INTRINSICS_C_)
 #undef vtype /* void */
+#endif
 
 #endif // __JTR_SSE_INTRINSICS_H__

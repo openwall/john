@@ -79,6 +79,8 @@
 #include <sys/mman.h>
 #endif
 
+#include "prince.h"
+
 #if HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "mpz_int128.h"
 #define REALGMP "int128"

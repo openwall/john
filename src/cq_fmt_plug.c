@@ -313,7 +313,7 @@ unsigned int AdRandomNumbers[2048] = {
 	0x056f3a69, 0x40393f83, 0xffc98a61, 0x80daf387, 0xc6a757b1, 0xa95790e2, 0x1c76cf02, 0xa1450bba,
 	0x3a3150e5, 0x378e9844, 0x7c47420d, 0x617d2066, 0x8cbd025e, 0x252260a0, 0xd7ded568, 0x8e5400d7 };
 
-unsigned int AdEncryptPassword(const char* username, const char* password) {
+static unsigned int AdEncryptPassword(const char* username, const char* password) {
 	unsigned int userlength;
 	unsigned int passlength;
 	unsigned int a = 0;

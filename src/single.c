@@ -25,6 +25,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "single.h"
 #include "john.h"
 #include "unicode.h"
 #include "config.h"

@@ -70,14 +70,14 @@ typedef struct ktext_st {
 
 int AFS = 0;
 
-void
+static void
 usage(void)
 {
   fprintf(stderr, "Usage: tgtsnarf [-A] realm host [users...]\n");
   exit(1);
 }
 
-unsigned long
+static unsigned long
 resolve_host(char *host)
 {
   unsigned long addr;
@@ -91,7 +91,7 @@ resolve_host(char *host)
   return (addr);
 }
 
-int
+static int
 krb_put_int(unsigned long from, void *to, int size)
 {
   int i;
@@ -104,14 +104,14 @@ krb_put_int(unsigned long from, void *to, int size)
   return (size);
 }
 
-int
+static int
 krb_put_string(char *from, void *to)
 {
   strcpy((char *)to, from);
   return (strlen(from) + 1);
 }
 
-int
+static int
 make_req(unsigned char *dst, char *user, char *realm)
 {
   char *pname, *pinst;
@@ -143,7 +143,7 @@ make_req(unsigned char *dst, char *user, char *realm)
   return (p - dst);
 }
 
-int
+static int
 find_tkt(KTEXT_ST *ktext, unsigned char *dst, int size)
 {
   unsigned char *p;
@@ -172,7 +172,7 @@ find_tkt(KTEXT_ST *ktext, unsigned char *dst, int size)
   return (len);
 }
 
-int
+static int
 fetch_tgt(char *host, char *user, char *realm, unsigned char *dst, int size)
 {
   union {
@@ -220,7 +220,7 @@ fetch_tgt(char *host, char *user, char *realm, unsigned char *dst, int size)
   return (find_tkt(&ktext, dst, size));
 }
 
-void
+static void
 print_tgt(char *host, char *user, char *realm)
 {
   unsigned char tgt[TGT_LENGTH];
@@ -239,7 +239,7 @@ print_tgt(char *host, char *user, char *realm)
   }
 }
 
-char *
+static char *
 upcase(char *string)
 {
   char *p;

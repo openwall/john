@@ -66,6 +66,7 @@
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
+#include "extern_mains.h"
 
 #define CHUNK_SIZE 4096
 
@@ -688,7 +689,7 @@ static unsigned char rar5_salt[SIZE_SALT50];
  * numbers used in rar5 (LE format, 7 bits used per byte with high bit
  * used to signify if there are more bytes of data or not)
  *************************************************************************/
-int read_uint32 (FILE *fp, uint32_t *n, uint32_t *bytes_read) {
+static int read_uint32 (FILE *fp, uint32_t *n, uint32_t *bytes_read) {
 	unsigned char Buf[4];
 	int i, shift=0;
 	*n = 0;
@@ -701,7 +702,7 @@ int read_uint32 (FILE *fp, uint32_t *n, uint32_t *bytes_read) {
     *bytes_read += 4;
 	return 4;
 }
-int read_uint8 (FILE *fp, uint8_t *n, uint32_t *bytes_read) {
+static int read_uint8 (FILE *fp, uint8_t *n, uint32_t *bytes_read) {
 	unsigned char Buf[1];
 	if (fread(Buf, 1, 1, fp) < 1)
 		return 0;
@@ -709,13 +710,13 @@ int read_uint8 (FILE *fp, uint8_t *n, uint32_t *bytes_read) {
     *bytes_read += 1;
 	return 1;
 }
-int read_buf (FILE *fp, unsigned char *cp, int len, uint32_t *bytes_read) {
+static int read_buf (FILE *fp, unsigned char *cp, int len, uint32_t *bytes_read) {
 	if (fread(cp, 1, len, fp) < 1)
 		return 0;
     *bytes_read += len;
 	return len;
 }
-int read_vuint (FILE *fp, uint64_t *n, uint32_t *bytes_read) {
+static int read_vuint (FILE *fp, uint64_t *n, uint32_t *bytes_read) {
 	unsigned char c;
 	int i, shift=0;
     uint64_t accum;

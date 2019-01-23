@@ -30,4 +30,7 @@ extern char *prince_limit_str;
 /* If non-zero, only load this many words from wordlist */
 extern int prince_wl_max;
 
+
+extern void pp_hybrid_fix_state(void);
+
 #endif /* _JOHN_PRINCE_H */

@@ -589,15 +589,13 @@ void do_external_crack(struct db_main *db)
  * to process ALL candidates that the external script will build
  */
 
-
-extern void(*crk_fix_state)(void);
 void(*saved_crk_fix_state)(void);
 void save_fix_state(void(*new_crk_fix_state)(void))
 {
 	saved_crk_fix_state = crk_fix_state;
 	crk_fix_state = new_crk_fix_state;
 }
-void restore_fix_state(void)
+static void restore_fix_state(void)
 {
 	crk_fix_state = saved_crk_fix_state;
 }
