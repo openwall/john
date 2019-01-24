@@ -302,6 +302,14 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 #undef F1
 #undef R
 
+#define INIT_A 0x6a09e667f3bcc908ULL
+#define INIT_B 0xbb67ae8584caa73bULL
+#define INIT_C 0x3c6ef372fe94f82bULL
+#define INIT_D 0xa54ff53a5f1d36f1ULL
+#define INIT_E 0x510e527fade682d1ULL
+#define INIT_F 0x9b05688c2b3e6c1fULL
+#define INIT_G 0x1f83d9abfb41bd6bULL
+#define INIT_H 0x5be0cd19137e2179ULL
 
 
 #define S0(x) (ROR64(x,28) ^ ROR64(x,34) ^ ROR64(x,39))
@@ -639,3 +647,60 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 	}
 #endif
 }
+
+/*********************************************************************/
+/*********************************************************************/
+/*** Reverse SHA512 rounds. The function can be used on OpenCL.    ***/
+/*** - It must be available for a SIMD or non-SIMD build.          ***/
+/*********************************************************************/
+/*********************************************************************/
+#if defined(SIMD_COEF_64) || defined(HAVE_OPENCL)
+void sha512_reverse(uint64_t *hash)
+{
+	uint64_t a, b, c, d, e, f, g, h, s0, maj, tmp;
+
+	a = hash[0] - INIT_A;
+	b = hash[1] - INIT_B;
+	c = hash[2] - INIT_C;
+	d = hash[3] - INIT_D;
+	e = hash[4] - INIT_E;
+	f = hash[5] - INIT_F;
+	g = hash[6] - INIT_G;
+	h = hash[7] - INIT_H;
+
+	s0 = ROR64(b, 28) ^ ROR64(b, 34) ^ ROR64(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	g = h;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ROR64(b, 28) ^ ROR64(b, 34) ^ ROR64(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ROR64(b, 28) ^ ROR64(b, 34) ^ ROR64(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ROR64(b, 28) ^ ROR64(b, 34) ^ ROR64(b, 39);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+
+	hash[0] = e - (a - (s0 + maj));
+}
+#endif

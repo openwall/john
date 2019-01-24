@@ -31,6 +31,7 @@
 #define _JOHN_SHA2_h
 
 #include <string.h>
+#include <stdint.h>
 #include "arch.h"
 #include "aligned.h"
 #include <openssl/opensslv.h>
@@ -66,6 +67,14 @@
 #define GENERIC_SHA2
 
 
+#endif
+
+#if defined(SIMD_COEF_64) || defined(HAVE_OPENCL)
+/*
+ * Reverse SHA512 rounds. The function can be used on OpenCL.
+ * - It must be available for a SIMD or non-SIMD build.
+ */
+void sha512_reverse(uint64_t *hash);
 #endif
 
 #endif /* _JOHN_SHA2_h */
