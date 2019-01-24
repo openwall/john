@@ -120,8 +120,7 @@ void sha256_unreverse(uint32_t *hash);
 void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags);
 void sha384_reverse(uint64_t *hash);
 void sha384_unreverse(uint64_t *hash);
-void sha512_reverse(uint64_t *hash);
-void sha512_unreverse(uint64_t *hash);
+// sha512_reverse is defined in sha2.h. It can be used for a non-SIMD build.
 #endif
 
 #else
