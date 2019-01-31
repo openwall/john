@@ -12,9 +12,13 @@
 
 //#define USE_BITSELECT 1
 //#define BITALIGN_AGGRESSIVE
-#define BUF_UPDATE_SWITCH
 //#define UNROLL_AGGRESSIVE
 //#define UNROLL_LESS
+
+/* AMDGPU-PRO libamdocl64.so segfaults trying to compile our switch code */
+#if !amd_gcn(DEVICE_INFO) || DEV_VER_MAJOR < 2500
+#define BUF_UPDATE_SWITCH
+#endif
 
 #undef MD5_LUT3 /* No good for this format, just here for reference */
 
