@@ -399,83 +399,76 @@ static void unique_done(void)
 		pexit("fclose");
 }
 
-#if __SIZEOF_SIZE_T__ < 8
-#define MLIMIT "to 25 "
-#else
-#define MLIMIT
-#endif
+static void pop_arg(int arg, int *argc, char **argv)
+{
+	int i;
+
+	--(*argc);
+	for (i = arg; i < *argc; i++)
+		argv[i] = argv[i + 1];
+}
 
 int unique(int argc, char **argv)
 {
+	int i;
 	size_t buf_size = 0;
 
-	while (argc > 2 && (!strcmp(argv[1], "-v") ||
-	                    !strncmp(argv[1], "-inp=", 5) ||
-	                    !strncmp(argv[1], "-i=", 2) ||
-	                    !strncmp(argv[1], "-cut=", 5) ||
-	                    !strncmp(argv[1], "-mem=", 5) ||
-	                    !strncmp(argv[1], "-hash-size=", 11) ||
-	                    !strncmp(argv[1], "-buf=", 5))) {
-
-		if (!strcmp(argv[1], "-v")) {
+	for (i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-v")) {
 			verbose++;
-			argc--;
-			argv++;
+			pop_arg(i, &argc, argv);
 		}
-		if (!strncmp(argv[1], "-inp=", 5) ||
-		    !strncmp(argv[1], "-i=", 3)) {
-			char *fname = strchr(argv[1], '=');
+		if (!strncmp(argv[i], "-inp=", 5) ||
+		    !strncmp(argv[i], "-i=", 3)) {
+			char *fname = strchr(argv[i], '=');
 
 			input = fopen(++fname, "rb");
 			if (!input)
 				error_msg("Error, could not open input file %s\n", fname);
-			argc--;
-			argv++;
+			pop_arg(i, &argc, argv);
 		}
-		if (!strncmp(argv[1], "-cut=", 5)) {
-			if (!strcmp(argv[1], "-cut=LM")) {
+		if (!strncmp(argv[i], "-cut=", 5)) {
+			if (!strcmp(argv[i], "-cut=LM")) {
 				cut_len = 7;
 				lm_split = 1;
 			}
 			else
-				sscanf(argv[1], "-cut=%d", &cut_len);
+				sscanf(argv[i], "-cut=%d", &cut_len);
 			if (cut_len < 0 || cut_len >= LINE_BUFFER_SIZE)
 				error_msg("Error, invalid length in the -cut= param\n");
-			argc--;
-			argv++;
+			pop_arg(i, &argc, argv);
 		}
-		if (!strncmp(argv[1], "-mem=", 5)) {
+		if (!strncmp(argv[i], "-mem=", 5)) {
 			char *new_arg;
 			uint32_t log;
 			size_t buf;
 
-			sscanf(argv[1], "-mem=%d", &log);
+			sscanf(argv[i], "-mem=%d", &log);
 			buf = ((1ULL << log) * UNIQUE_AVG_LEN) >> 30ULL;
 			fprintf(stderr,
 "Warning: The -mem=%u option is deprecated, use -hash-size=%u (log2 of hash\n"
 "         table size) and/or -buf=%u (total buffer size, in GB) instead\n",
 			        log, log, (uint32_t)MAX(1, buf));
-			new_arg = mem_alloc_tiny(strlen(argv[1] + 8),
+			new_arg = mem_alloc_tiny(strlen(argv[i] + 8),
 			                         MEM_ALIGN_NONE);
 			strcpy(new_arg, "-hash-size");
-			strcat(new_arg, &argv[1][4]);
-			argv[1] = new_arg;
+			strcat(new_arg, &argv[i][4]);
+			argv[i] = new_arg;
 		}
-		if (!strncmp(argv[1], "-hash-size=", 11)) {
+		if (!strncmp(argv[i], "-hash-size=", 11)) {
 			int log;
 
-			sscanf(argv[1], "-hash-size=%d", &log);
+			sscanf(argv[i], "-hash-size=%d", &log);
 			if (sizeof(uq_idx) < 8 && log > 25)
 				error_msg("Error: This build of unique can't use a -hash-log larger than 25\n");
 
 			unique_hash_log = log;
-			argc--;
-			argv++;
+			pop_arg(i, &argc, argv);
 		}
-		if (!strncmp(argv[1], "-buf=", 5)) {
+		if (!strncmp(argv[i], "-buf=", 5)) {
 			int p;
 
-			sscanf(argv[1], "-buf=%d", &p);
+			sscanf(argv[i], "-buf=%d", &p);
 #if __SIZEOF_SIZE_T__ < 8
 			if (p > 3)
 				error_msg("Error: Can't use a -buf of more than 3 GB (this is a 32-bit build)\n");
@@ -486,8 +479,24 @@ int unique(int argc, char **argv)
 			if (!unique_hash_log)
 				unique_hash_log =
 					log2(buf_size / UNIQUE_AVG_LEN);
-			argc--;
-			argv++;
+			pop_arg(i, &argc, argv);
+		}
+		if (!ex_file && !strncmp(argv[i], "-ex_file=", 9)) {
+			ex_file = fopen(&argv[i][9], "rb");
+			if (ex_file)
+				fprintf(stderr, "Also suppressing any lines found in '%s'\n", &argv[i][9]);
+			else
+				pexit("fopen: %s", &argv[i][9]);
+			pop_arg(i, &argc, argv);
+		}
+		if (!ex_file && !strncmp(argv[i], "-ex_file_only=", 14)) {
+			ex_file = fopen(&argv[i][14], "rb");
+			if (ex_file)
+				fprintf(stderr, "Expecting input to be unique, but suppressing any lines found in '%s'\n", &argv[i][14]);
+			else
+				pexit("fopen: %s", &argv[i][14]);
+			ex_file_only = 1;
+			pop_arg(i, &argc, argv);
 		}
 	}
 
@@ -502,27 +511,10 @@ int unique(int argc, char **argv)
 	else
 		unique_buffer_size = UNIQUE_AVG_LEN * unique_hash_size;
 
-	/* As implemented, these must come after output file name */
-	if (argc == 3 && !strncmp(argv[2], "-ex_file=", 9)) {
-		ex_file = fopen(&argv[2][9], "rb");
-		if (ex_file)
-			fprintf(stderr, "Not outputting any lines found in '%s'\n", &argv[2][9]);
-		else
-			pexit("fopen: %s", &argv[2][9]);
-		argc = 2;
-	}
-	if (argc == 3 && !strncmp(argv[2], "-ex_file_only=", 14)) {
-		ex_file = fopen(&argv[2][14], "rb");
-		if (ex_file)
-			fprintf(stderr, "Expecting file to be unique, and not outputting any lines found in '%s'\n", &argv[2][14]);
-		else
-			pexit("fopen: %s", &argv[2][14]);
-		argc = 2;
-		ex_file_only = 1;
-	}
 	if (argc != 2) {
 		fprintf(stderr,
-"Usage: unique [-v] [-inp=FILE] [-cut=N] [-log=N] [-[max-]mem=N] OUTPUT-FILE [-ex_file[_only]=FILE\n\n"
+"Usage: unique [option[s]] OUTPUT-FILE\n\n"
+"Options:\n"
 "-v                 verbose mode, output stats before each slow pass (if any)\n"
 "-inp=FILE          read from FILE instead of stdin\n"
 "-cut=N             truncate input lines to N bytes\n"
@@ -533,7 +525,7 @@ int unique(int argc, char **argv)
 "                   given as well, a sensible one will be used\n"
 "-ex_file=FILE      the data from FILE is also used to unique the output, but\n"
 "                   nothing is ever written to FILE\n"
-"-ex_file_only=FILE assumes the input file is already unique, and only checks\n"
+"-ex_file_only=FILE assumes the input is already unique, and only checks\n"
 "                   against FILE (again the latter is not written to)\n"
 "\n"
 "NOTE that if you try to use more memory than actually available physical\n"
