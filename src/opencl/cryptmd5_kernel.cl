@@ -10,7 +10,12 @@
 
 #include "opencl_misc.h"
 
-//#define USE_BITSELECT 1
+#if gpu_amd(DEVICE_INFO)
+#define USE_BITSELECT 1
+#endif
+
+#define MD5_LUT3 HAVE_LUT3
+
 //#define BITALIGN_AGGRESSIVE
 //#define UNROLL_AGGRESSIVE
 //#define UNROLL_LESS
@@ -19,8 +24,6 @@
 #if !amd_gcn(DEVICE_INFO) || DEV_VER_MAJOR < 2500
 #define BUF_UPDATE_SWITCH
 #endif
-
-#undef MD5_LUT3 /* No good for this format, just here for reference */
 
 #define ROTATE_LEFT(x, s) rotate(x, (uint)s)
 
@@ -33,7 +36,7 @@
 #define G(x, y, z)	bitselect(y, x, z)
 #else
 #if HAVE_ANDNOT
-#define F(x, y, z) ((x & y) ^ ((~x) & z))
+#define F(x, y, z)	((x & y) ^ ((~x) & z))
 #else
 #define F(x, y, z)	(z ^ (x & (y ^ z)))
 #endif
