@@ -127,8 +127,8 @@ typedef struct {
 __constant uchar cl_md5_salt_prefix[] = "$1$";
 __constant uchar cl_apr1_salt_prefix[] = "$apr1$";
 __constant uchar g[] =
-    { 0, 7, 3, 5, 3, 7, 1, 6, 3, 5, 3, 7, 1, 7, 2, 5, 3, 7, 1, 7, 3, 4, 3, 7,
-	    1, 7, 3, 5, 2, 7, 1, 7, 3, 5, 3, 6, 1, 7, 3, 5, 3, 7 };
+    { 0, 7*8, 3*8, 5*8, 3*8, 7*8, 1*8, 6*8, 3*8, 5*8, 3*8, 7*8, 1*8, 7*8, 2*8, 5*8, 3*8, 7*8, 1*8, 7*8, 3*8, 4*8, 3*8, 7*8,
+	    1*8, 7*8, 3*8, 5*8, 2*8, 7*8, 1*8, 7*8, 3*8, 5*8, 3*8, 6*8, 1*8, 7*8, 3*8, 5*8, 3*8, 7*8 };
 
 #ifdef BUF_UPDATE_SWITCH
 inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
@@ -527,14 +527,30 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	ctx_buflen[7] += 16;
 	PUTCHAR(ctx[7].buffer, ctx_buflen[7], 0x80);
 
-#define altpos salt.c
-#ifdef UNROLL_LESS
-	salt.w[0] = 0;
+#ifndef UNROLL_LESS
+	uint ctx_buflen1, ctx_buflen2;
+	ctx_buflen1 = ctx_buflen[0] << 2;
+	ctx_buflen1 |= (uint)ctx_buflen[1] << 10;
+	ctx_buflen1 |= (uint)ctx_buflen[2] << 18;
+	ctx_buflen1 |= (uint)ctx_buflen[3] << 26;
+	ctx_buflen2 = ctx_buflen[4] << 2;
+	ctx_buflen2 |= (uint)ctx_buflen[5] << 10;
+	ctx_buflen2 |= (uint)ctx_buflen[6] << 18;
+	ctx_buflen2 |= (uint)ctx_buflen[7] << 26;
 #endif
-	altpos[4] = pass_len;
-	altpos[5] = pass_len * 2;
-	altpos[6] = pass_len + salt_len;
-	altpos[7] = altpos[5] + salt_len;
+
+	uint altpos;
+	altpos = pass_len;
+	altpos |= (pass_len * 2) << 8;
+	altpos |= (pass_len + salt_len) << 16;
+	altpos |= (pass_len * 2 + salt_len) << 24;
+
+/*
+ * In our uses of "altpos >> id2" below, we rely on OpenCL's defined behavior
+ * (unlike C99's undefined behavior) of right shifts by greater than the type's
+ * width.  In OpenCL, they shift by the number of bits encoded in the least
+ * significant bits of the shift count.
+ */
 
 	uint id1 = g[0], id2;
 
@@ -542,8 +558,8 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 #ifdef UNROLL_LESS
 	for (i = 0; i < 1000; i++) {
 		id2 = g[j];
-		md5_digest(ctx[id1].buffer, ctx[id2].buffer, (uint)ctx_buflen[id1] << 3,
-		    altpos[id2]);
+		md5_digest(ctx[id1 / 8].buffer, ctx[id2 / 8].buffer, (uint)ctx_buflen[id1 / 8] << 3,
+		    (j & 1) ? (altpos >> id2) & 0xff : 0);
 		if (j == 41)
 			j = -1;
 		id1 = id2;
@@ -556,22 +572,22 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	for (i = 0; i < 500; i++) {
 #endif
 		id2 = g[j];
-		md5_digest(ctx[id1].buffer, ctx[id2].buffer, (uint)ctx_buflen[id1] << 3,
-		    altpos[id2]);
+		md5_digest(ctx[id1 / 8].buffer, ctx[id2 / 8].buffer, ((ctx_buflen1 >> id1) & 0xff) << 1,
+		    (altpos >> id2) & 0xff);
 		if (j == 41)
 			j = -1;
 		id1 = g[j + 1];
-		md5_digest(ctx[id2].buffer, ctx[id1].buffer, (uint)ctx_buflen[id2] << 3, 0);
+		md5_digest(ctx[id2 / 8].buffer, ctx[id1 / 8].buffer, ((ctx_buflen2 >> id2) & 0xff) << 1, 0);
 
 #ifdef UNROLL_AGGRESSIVE
 		id2 = g[j + 2];
-		md5_digest(ctx[id1].buffer, ctx[id2].buffer, (uint)ctx_buflen[id1] << 3,
-		    altpos[id2]);
+		md5_digest(ctx[id1 / 8].buffer, ctx[id2 / 8].buffer, ((ctx_buflen1 >> id1) & 0xff) << 1,
+		    (altpos >> id2) & 0xff);
 		if (j == 39)
 			j = -3;
 		id1 = g[j + 3];
 		j += 4;
-		md5_digest(ctx[id2].buffer, ctx[id1].buffer, (uint)ctx_buflen[id2] << 3, 0);
+		md5_digest(ctx[id2 / 8].buffer, ctx[id1 / 8].buffer, ((ctx_buflen2 >> id2) & 0xff) << 1, 0);
 #else
 		j += 2;
 #endif
