@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2018 Denis Burykin
+ * This software is Copyright (c) 2018-2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@ module sha512crypt_test();
 		// *****************************************************************
 		#500;
 
-
 		// *****************************************************************
 		//
 		// Test #1.
@@ -53,7 +52,7 @@ module sha512crypt_test();
 		// *****************************************************************
 
 		// Usage: send_config_packet(subtype,data_len,data);
-		send_config_packet(1,2,16'b_0000_0001_0000_1100);
+		//send_config_packet(1,2,16'b_0000_0001_0000_1100);
 		
 		// Usage: cmp_config_create(cnt,salt_len,"salt");
 		cmp_config_create(10,8,"ssssssss");
@@ -62,21 +61,21 @@ module sha512crypt_test();
 		
 		send_empty_word_gen(1);
 
+		word_list_add("keylen7");
 		word_list_add("mypwd123");
 		word_list_add("mypwd1234");
 		word_list_add("mypwd12345");
 		word_list_add("pass_len_is15..");
 
-		for (k=0; k < 500; k=k+1)
-		//for (k=0; k < 20; k=k+1)
-			word_list_add("11111110");
-		
+		//for (k=0; k < 500; k=k+1)
+		for (k=0; k < 30; k=k+1)
+			word_list_add("11111110-b");
+
 		word_list_add("11111111");
 		word_list_add("11111101");
 		word_list_add("11111011");
-		// 8 candidates total
-		send_word_list();
 
+		send_word_list();
 
 		// *****************************************************************
 		//
@@ -339,7 +338,9 @@ module sha512crypt_test();
 	//
 	//
 	// ***************************************************************
-	reg CORE_CLK = 0, PKT_COMM_CLK = 0, IFCLK = 0;
+	reg PKT_COMM_CLK = 0, IFCLK = 0, CORE_CLK = 0;
+
+	//wire CORE_CLK = PKT_COMM_CLK;
 
 	reg [7:0] din;
 	reg wr_en = 0;
@@ -367,7 +368,7 @@ module sha512crypt_test();
 		.rd_en(hs_input_rd_en),
 		.empty(hs_input_empty)
 	);
-	
+
 	sha512crypt #(.DISABLE_CHECKSUM(1)) pkt_comm(
 	//pkt_comm_v2 pkt_comm(
 		.PKT_COMM_CLK(PKT_COMM_CLK),
@@ -383,8 +384,8 @@ module sha512crypt_test();
 		// Application control (via VCR I/O). Set with fpga_set_app_mode()
 		.app_mode(app_mode),
 		// Application status. Available at fpga->wr.io_state.app_status
-		.app_status(app_status),
-		.pkt_comm_status(pkt_comm_status),
+		.cores_idle(cores_idle),
+		.app_status(app_status), .pkt_comm_status(pkt_comm_status),
 		.debug2(debug2), .debug3(debug3)
 	);
 
@@ -413,9 +414,9 @@ module sha512crypt_test();
 
 	// This does not reflect actual timing
 	initial begin
-		#3.1;
+		#3;
 		while (1) begin
-			CORE_CLK <= ~CORE_CLK; #6.1;
+			CORE_CLK <= ~CORE_CLK; #6;
 		end
 	end
 

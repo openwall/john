@@ -61,11 +61,12 @@ module ztex_inouttraffic(
 		.progdone_inv(progdone_inv),
 		// Produced clocks
 		.IFCLK(IFCLK), 	// for operating I/O pins
-		.PKT_COMM_CLK(),//PKT_COMM_CLK), // for I/O packet processing
+		.PKT_COMM_CLK(PKT_COMM_CLK), // for I/O packet processing
+		.core_clk_glbl_en(~cores_idle),
 		.CORE_CLK(CORE_CLK) // for operating computing units
 	);
-
-	assign PKT_COMM_CLK = CORE_CLK;
+	
+	//assign PKT_COMM_CLK = CORE_CLK;
 
 	chip_select chip_select(
 		.CS_IN(CS_IN), .CLK(IFCLK), .CS(CS), .out_z_wait1(out_z_wait1)
@@ -109,7 +110,6 @@ module ztex_inouttraffic(
 	wire [7:0] app_status, pkt_comm_status;
 	
 	sha512crypt pkt_comm(
-	//pkt_comm_v2 pkt_comm(
 		.PKT_COMM_CLK(PKT_COMM_CLK),
 		.CORE_CLK(CORE_CLK),
 		// High-Speed FPGA input
@@ -123,11 +123,10 @@ module ztex_inouttraffic(
 		// Application control (via VCR I/O). Set with fpga_set_app_mode()
 		.app_mode(app_mode),
 		// Application status. Available at fpga->wr.io_state.app_status
-		.app_status(app_status),
-		.pkt_comm_status(pkt_comm_status),
+		.cores_idle(cores_idle),
+		.app_status(app_status), .pkt_comm_status(pkt_comm_status),
 		.debug2(debug2), .debug3(debug3)
 	);
-
 
 	always @(posedge IFCLK)
 		error_r <= |pkt_comm_status | |app_status;

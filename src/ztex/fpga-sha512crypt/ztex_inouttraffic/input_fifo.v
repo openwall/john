@@ -57,7 +57,8 @@ module input_fifo(
 	// * Write width: 16 depth: 1024, Read width: 8
 	// * Almost Empty Flag
 	// * Reset: off
-	fifo_16in_8out_2k fifo_input1(
+	//fifo_16in_8out_2k fifo_input1(
+	fifo_16in_8out_4k fifo_input1(
 		.wr_clk(wr_clk),
 		.din(din_stage2),
 		.wr_en(tx_stage2),
