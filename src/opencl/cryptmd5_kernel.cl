@@ -264,7 +264,7 @@ inline void init_ctx(md5_ctx *ctx, uchar *ctx_buflen)
 	*ctx_buflen = 0;
 }
 
-inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, uint len)
+inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, uint len, uint unify)
 {
 	uint a;
 	uint b = 0xefcdab89;
@@ -296,7 +296,7 @@ inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, 
 	FF(d, a, b, c, x[5], S12, 0x4787c62a);	/* 6 */
 	FF(c, d, a, b, x[6], S13, 0xa8304613);	/* 7 */
 	FF(b, c, d, a, x[7], S14, 0xfd469501);	/* 8 */
-	if (len < 8*4*8) {
+	if (len + unify < 8*4*8) {
 		FF(a, b, c, d, 0, S11, 0x698098d8);	/* 9 */
 		FF(d, a, b, c, 0, S12, 0x8b44f7af);	/* 10 */
 		FF(c, d, a, b, 0, S13, 0xffff5bb1);	/* 11 */
@@ -356,7 +356,7 @@ inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, 
 	} else {
 		FF(a, b, c, d, x[8], S11, 0x698098d8);	/* 9 */
 		FF(d, a, b, c, x[9], S12, 0x8b44f7af);	/* 10 */
-		if (len <= 10*4*8) {
+		if (len + unify <= 10*4*8) {
 			if (len == 10*4*8) {
 /* This code path is frequently reached with pass_len = 8, salt_len = 8 */
 				FF(c, d, a, b, 0x80, S13, 0xffff5bb1);	/* 11 */
@@ -561,6 +561,27 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	} salt;
 	uint i;
 
+/*
+ * Disable specialization to password length if it varies within the group.
+ * We could use tree-like log2(N) reduction here, but we don't bother.
+ */
+	__local uint lengths[0x100];
+	uint lid = get_local_id(0);
+	if (lid < sizeof(lengths) / sizeof(lengths[0]))
+		lengths[lid] = pass_len;
+	uint lws = get_local_size(0);
+	if (lws >= sizeof(lengths) / sizeof(lengths[0]))
+		lws = sizeof(lengths) / sizeof(lengths[0]);
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	uint unify = 0;
+	for (i = 0; i < lws; i++) {
+		if (pass_len != lengths[i]) {
+			unify = 0xff;
+			break;
+		}
+	}
+
 #ifdef UNROLL_AGGRESSIVE
 #pragma unroll 4
 #endif
@@ -575,7 +596,7 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	ctx_update(&ctx[1], salt.c, salt_len, &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
 	PUTCHAR(ctx[1].buffer, ctx_buflen[1], 0x80);
-	md5_digest(ctx[1].buffer, 0, 0, alt_result, 0, ctx_buflen[1] << 3);
+	md5_digest(ctx[1].buffer, 0, 0, alt_result, 0, ctx_buflen[1] << 3, unify);
 
 	init_ctx(&ctx[1], &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
@@ -607,7 +628,7 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	init_ctx(&ctx[0], &ctx_buflen[0]);
 	PUTCHAR(ctx[1].buffer, ctx_buflen[1], 0x80);
 	//alt pass
-	md5_digest(ctx[1].buffer, 0, 0, ctx[0].buffer, 0, ctx_buflen[1] << 3);
+	md5_digest(ctx[1].buffer, 0, 0, ctx[0].buffer, 0, ctx_buflen[1] << 3, unify);
 	ctx_buflen[0] = 16;
 	for (i = 1; i < 8; i++)	//1 not 0
 		init_ctx(&ctx[i], &ctx_buflen[i]);
@@ -685,7 +706,7 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 		id2 = g[j];
 		md5_digest(ctx[id1 / 8].buffer, 0, 0, ctx[id2 / 8].buffer,
 		    (j & 1) ? (altpos >> id2) & 0xff : 0,
-		    (uint)ctx_buflen[id1 / 8] << 3);
+		    (uint)ctx_buflen[id1 / 8] << 3, unify);
 		if (j == 41)
 			j = -1;
 		id1 = id2;
@@ -705,24 +726,24 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 		id2 = g[j];
 		md5_digest(ctx[id1 / 8].buffer, tmp, 0, ctx[id2 / 8].buffer,
 		    (altpos >> id2) & 0xff,
-		    ((ctx_buflen1 >> id1) & 0xff) << 1);
+		    ((ctx_buflen1 >> id1) & 0xff) << 1, unify);
 		if (j == 41)
 			j = -1;
 		id1 = g[j + 1];
 		md5_digest(ctx[id2 / 8].buffer, 0, tmp, 0, 0,
-		    ((ctx_buflen2 >> id2) & 0xff) << 1);
+		    ((ctx_buflen2 >> id2) & 0xff) << 1, unify);
 
 #ifdef UNROLL_AGGRESSIVE
 		id2 = g[j + 2];
 		md5_digest(ctx[id1 / 8].buffer, tmp, 0, ctx[id2 / 8].buffer,
 		    (altpos >> id2) & 0xff,
-		    ((ctx_buflen1 >> id1) & 0xff) << 1);
+		    ((ctx_buflen1 >> id1) & 0xff) << 1, unify);
 		if (j == 39)
 			j = -3;
 		id1 = g[j + 3];
 		j += 4;
 		md5_digest(ctx[id2 / 8].buffer, 0, tmp, 0, 0,
-		    ((ctx_buflen2 >> id2) & 0xff) << 1);
+		    ((ctx_buflen2 >> id2) & 0xff) << 1, unify);
 #else
 		j += 2;
 #endif
