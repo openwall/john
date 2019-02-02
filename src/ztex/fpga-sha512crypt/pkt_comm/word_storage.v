@@ -32,9 +32,15 @@ module word_storage #(
 	);
 
 	assign empty = ~full;
-	
+
+	integer k;
+
 	(* RAM_STYLE="DISTRIBUTED" *)
 	reg [7:0] storage [0: WORD_MAX_LEN-1];
+	initial
+		for (k=0; k < WORD_MAX_LEN; k=k+1)
+			storage[k] = 0;
+
 	assign dout = storage [rd_addr];
 
 	localparam	STATE_WR = 0,

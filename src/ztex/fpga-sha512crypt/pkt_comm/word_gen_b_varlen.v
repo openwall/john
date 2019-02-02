@@ -35,8 +35,8 @@
 //**********************************************************************
 
 module word_gen_b_varlen #(
-	parameter RANGES_MAX = -1,
-	parameter WORD_MAX_LEN = -1,
+	parameter RANGES_MAX = `RANGES_MAX,
+	parameter WORD_MAX_LEN = `PLAINTEXT_LEN,
 	parameter RANGE_INFO_MSB = 1 + `MSB(WORD_MAX_LEN-1)
 	)(
 	input CLK,
@@ -138,7 +138,7 @@ module word_gen_b_varlen #(
 	wire [7:0] din_minus_1 = din - 1'b1;
 
 	reg [`MSB(WORD_MAX_LEN-1):0] word_len_minus_1;
-	
+	wire [`MSB(WORD_MAX_LEN-1)+1:0] word_len_minus_1_eqn = word_len - 1'b1;
 
 	localparam	CONF_NUM_RANGES = 0,
 					CONF_RANGE_NUM_CHARS = 1,
@@ -155,7 +155,7 @@ module word_gen_b_varlen #(
 					OP_NEXT_RANGE_WR = 12,
 					OP_WAIT_READ = 13;
 	
-	(* FSM_EXTRACT = "true", FSM_ENCODING="speed1" *)//one-hot" *)
+	(* FSM_EXTRACT = "true" *)//, FSM_ENCODING="one-hot" *)
 	reg [3:0] state = CONF_NUM_RANGES;
 	
 	always @(posedge CLK) begin
@@ -239,15 +239,16 @@ module word_gen_b_varlen #(
 		OP_RESET: begin // Prepare to process next input word
 			word_rd_addr <= 0;
 			storage_wr_addr <= 0;
-			
+
 			//range_counter[cur_range] <= 0;
 			cur_range <= cur_range + 1'b1;
 			if (cur_range == RANGES_MAX - 1 & ~word_empty) begin
-				word_len_minus_1 <= word_len - 1'b1;
+				word_len_minus_1// <= word_len - 1'b1;
+					<= word_len_minus_1_eqn[`MSB(WORD_MAX_LEN-1):0];
 				state <= OP_COPY_NEXT_WORD;
 			end
 		end
-		
+
 		// Start processing new input word - copy into output word_storage
 		OP_COPY_NEXT_WORD: begin//if (~word_empty) begin
 			word_rd_addr <= word_rd_addr + 1'b1;

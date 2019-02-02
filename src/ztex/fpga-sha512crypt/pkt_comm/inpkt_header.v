@@ -37,9 +37,9 @@
 //
 
 module inpkt_header #(
-	parameter VERSION = -1,
-	parameter PKT_MAX_LEN = 65536,
-	parameter PKT_MAX_TYPE = -1,
+	parameter VERSION = `PKT_COMM_VERSION,
+	parameter PKT_MAX_LEN = `PKT_MAX_LEN,
+	parameter PKT_MAX_TYPE = `PKT_MAX_TYPE,
 	parameter PKT_TYPE_MSB = `MSB(PKT_MAX_TYPE),
 	parameter DISABLE_CHECKSUM = 0
 	)(
@@ -87,7 +87,7 @@ module inpkt_header #(
 					PKT_STATE_ERROR = 12,
 					PKT_STATE_CHECKSUM = 13;
 	
-	(* FSM_EXTRACT = "true", FSM_ENCODING = "one-hot" *)
+	(* FSM_EXTRACT = "true" *)//, FSM_ENCODING = "one-hot" *)
 	reg [3:0] pkt_state = PKT_STATE_VERSION;
 
 	// Verify checksum regardless of wr_en

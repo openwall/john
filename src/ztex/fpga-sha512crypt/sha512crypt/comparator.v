@@ -45,7 +45,7 @@ module comparator(
 
 	// Prevent inference of BRAM output regs
 	wire [31:0] mem_dout_r;
-	ff_reg ff_reg(
+	ff32 ff_reg(
 		.CLK(CLK), .en(rd_en), .rst(1'b0),
 		.i(mem_dout), .o(mem_dout_r)
 	);

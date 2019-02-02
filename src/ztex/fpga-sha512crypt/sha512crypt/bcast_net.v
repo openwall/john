@@ -15,9 +15,9 @@ module bcast_net #(
 	parameter BCAST_WIDTH = -1,
 	parameter N_NODES = -1,
 	parameter [8*N_NODES-1 :0] NODES_CONF = 0
-	//parameter N_UNITS = -1
 	)(
 	input CLK,
+	input en,
 	// entry to the network
 	input [BCAST_WIDTH-1 :0] in,
 	// output from nodes
@@ -27,6 +27,9 @@ module bcast_net #(
 	// Node #0 is the entry to the network (unregistered)
 	assign out[0 +:BCAST_WIDTH] = in;
 
+	wire [N_NODES-1:0] in_en;
+	assign in_en[0] = en;
+
 	genvar i;
 	generate
 	for (i=1; i < N_NODES; i=i+1) begin:node
@@ -34,12 +37,17 @@ module bcast_net #(
 		localparam UPPER_NODE = NODES_CONF[8*i +:8];
 
 		(* SHREG_EXTRACT="no", EQUIVALENT_REGISTER_REMOVAL="no" *)
-		reg [BCAST_WIDTH-1 :0] r;
-		assign out[i*BCAST_WIDTH +:BCAST_WIDTH] = r;
+		reg [1 + BCAST_WIDTH-1 :0] r; // +1 for 'en'
+		assign out [i*BCAST_WIDTH +:BCAST_WIDTH] = r [BCAST_WIDTH-1 :0];
+		assign in_en[i] = r[BCAST_WIDTH];
 		
-		always @(posedge CLK)
-			r <= out[UPPER_NODE*BCAST_WIDTH +:BCAST_WIDTH];
-
+		always @(posedge CLK) begin
+			r[BCAST_WIDTH] <= in_en[UPPER_NODE];
+			if (in_en[UPPER_NODE])
+				r[BCAST_WIDTH-1 :0]
+					<= out [UPPER_NODE*BCAST_WIDTH +:BCAST_WIDTH];
+		end
+		
 	end
 	endgenerate
 

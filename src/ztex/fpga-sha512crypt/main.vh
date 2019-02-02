@@ -25,6 +25,8 @@
 
 // Parameters for pkt_comm
 `define	PKT_COMM_VERSION	2
+`define	PKT_MAX_LEN			(16*65536)
+`define	PKT_MAX_TYPE		6
 `define	RANGES_MAX			4
 `define	CHAR_BITS			8
 `define	PLAINTEXT_LEN		64

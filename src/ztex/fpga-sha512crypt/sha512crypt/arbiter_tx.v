@@ -8,6 +8,8 @@
  *
  */
 
+`include "sha512.vh"
+
 //
 // Tasks for Arbiter, transmit part:
 //
@@ -62,15 +64,17 @@ module arbiter_tx #(
 	// Units (CORE_CLK)
 	output reg [7:0] unit_in = 0, // broadcast
 	output reg unit_in_ctrl = 0, // broadcast
+	output reg bcast_en = 0,
 	output reg [N_UNITS-1:0] unit_in_wr_en = 0,
 	input [N_UNITS-1:0] unit_in_afull, unit_in_ready,
-	
+
 	// Iteraction with arbiter_rx
 	output reg [31:0] num_processed_tx = 0,
-	output reg [15:0] pkt_id_tx,
 	output reg pkt_tx_done = 0,
 	input pkt_rx_done,
-	
+	input recv_item,
+
+	output idle,
 	output reg err = 0
 	);
 
@@ -86,7 +90,8 @@ module arbiter_tx #(
 				STATE_IN_CMP_CONFIG = 5,
 				STATE_IN_DELAY1 = 6,
 				STATE_IN_DELAY2 = 7,
-				STATE_IN_PKT_INIT = 8;
+				STATE_IN_PKT_INIT = 8,
+				STATE_IN_START_CLK_GLBL = 9;
 
 	(* FSM_EXTRACT="true" *)
 	reg [3:0] state_in = STATE_IN_IDLE;
@@ -94,14 +99,23 @@ module arbiter_tx #(
 	always @(posedge CLK) begin
 		case (state_in)
 		STATE_IN_IDLE: begin
-			if (~word_empty)
-				state_in <= STATE_IN_PROCESS_WORDS;
-			
+			if (~word_empty) begin
+				if (~idle)
+					state_in <= STATE_IN_PROCESS_WORDS;
+				else
+					state_in <= STATE_IN_START_CLK_GLBL;
+			end
+
 			// loose checks; expecting init packet after
 			// fpga startup; transmitter must be idle
-			if (~init_empty & src_totally_empty)
-				state_in <= STATE_IN_PKT_INIT;
-
+`ifdef ENTRY_PTS_EN
+			if (~init_empty & src_totally_empty) begin
+				if (~idle)
+					state_in <= STATE_IN_PKT_INIT;
+				else
+					state_in <= STATE_IN_START_CLK_GLBL;
+			end
+`endif
 			// New "comparator configuration" (incl. salt data).
 			// It has to wait until it finishes processing of words
 			// associated with the previous comparator configuration.
@@ -112,11 +126,23 @@ module arbiter_tx #(
 		STATE_IN_PKT_INIT:
 			state_in <= STATE_IN_IDLE;
 
+		STATE_IN_START_CLK_GLBL: if (start_clk_glbl_delay) begin
+`ifdef ENTRY_PTS_EN
+			if (~word_empty)
+				state_in <= STATE_IN_PROCESS_WORDS;
+			else
+				state_in <= STATE_IN_PKT_INIT;
+`else
+			state_in <= STATE_IN_PROCESS_WORDS;
+`endif
+		end
+
 		STATE_IN_PROCESS_WORDS: if (~word_empty) begin
 			if (~cmp_configured)
 				err <= 1;
 			else if (gen_end) begin
-				pkt_id_tx <= pkt_id;
+				//if (num_processed_tx == 0)
+				//	err[1] <= 1;
 				if (mode_cmp) begin
 					pkt_tx_done <= 1;
 					state_in <= STATE_IN_WAIT_RX_DONE;
@@ -129,15 +155,15 @@ module arbiter_tx #(
 				state_in <= STATE_IN_WAIT_TX_IDLE;
 			end
 		end
-		
+
 		// Wait for transmitter part to be idle
 		STATE_IN_WAIT_TX_IDLE: if (tx_idle_sync)
 			state_in <= STATE_IN_DELAY1;
-		
+
 		STATE_IN_DELAY1:
 			state_in <= STATE_IN_TX_COMPLETE_WAIT;
 
-		// Wait until the transmission complete
+		// Wait until the transmission is complete
 		STATE_IN_TX_COMPLETE_WAIT: if (tx_completed_sync)
 			state_in <= STATE_IN_DELAY2;
 
@@ -150,47 +176,78 @@ module arbiter_tx #(
 			num_processed_tx <= 0;
 			state_in <= STATE_IN_IDLE;
 		end
-		
+
 		STATE_IN_CMP_CONFIG: begin
 			cmp_configured <= 1;
 			state_in <= STATE_IN_IDLE;
 		end
 		endcase
 	end
-	
+
 	assign word_set_empty =
 		state_in == STATE_IN_TX_COMPLETE_WAIT & tx_completed_sync
 		| state_in == STATE_IN_PROCESS_WORDS & ~word_empty & gen_end;
-	
+
 	sync_pulse sync_tx_ready( .wr_clk(CLK),
 		.sig(state_in == STATE_IN_WAIT_TX_IDLE & tx_idle_sync),
-		//.busy(), .rd_clk(CORE_CLK), .out(tx_ready_sync) );
-		.busy(), .rd_clk(CLK), .out(tx_ready_sync) );
+		.busy(), .rd_clk(CORE_CLK), .out(tx_ready_sync) );
 
 	assign cmp_config_applied = state_in == STATE_IN_CMP_CONFIG;
 
 	assign init_rd_en = state_in == STATE_IN_PKT_INIT;
 
+`ifdef ENTRY_PTS_EN
 	sync_pulse sync_pkt_init( .wr_clk(CLK),
 		.sig(state_in == STATE_IN_PKT_INIT),
-		//.busy(), .rd_clk(CORE_CLK), .out(pkt_init_sync) );
-		.busy(), .rd_clk(CLK), .out(pkt_init_sync) );
+		.busy(), .rd_clk(CORE_CLK), .out(pkt_init_sync) );
+`endif
+
+
+	localparam TOTAL_IN_PROCESSING = N_UNITS * (`N_THREADS + 16) + 1;
+	reg [`MSB(TOTAL_IN_PROCESSING-1) :0] total_in_processing = 0;
+	always @(posedge CLK)
+		if (state_in == STATE_IN_PROCESS_WORDS & ~word_empty & ~gen_end) begin
+			if (~recv_item)
+				total_in_processing <= total_in_processing + 1'b1;
+		end
+		else if (recv_item)
+			total_in_processing <= total_in_processing - 1'b1;
+
+	delay #( .NBITS(8) ) delay_start_clk_glbl(
+		.CLK(CLK), .in(state_in == STATE_IN_START_CLK_GLBL),
+		.out(start_clk_glbl_delay) );
+
+	assign idle = state_in == STATE_IN_IDLE & total_in_processing == 0
+		| state_in == STATE_IN_CMP_CONFIG;
 
 
 	// ***************************************************
 	reg [`MSB(N_UNITS-1):0] unit_num = 0;
+
+	reg [N_UNITS-1:0] afull_r = 0, ready_r = 0;
+	always @(posedge CORE_CLK) begin
+		if (afull_en)
+			afull_r <= unit_in_afull;
+		if (ready_en)
+			ready_r <= unit_in_ready;
+	end
+
 	reg afull = 1, ready = 0;
 	reg unit_tx_mask_r = 0;
-	//always @(posedge CORE_CLK) begin
-	always @(posedge CLK) begin
-		afull <= unit_in_afull [unit_num];
-		ready <= unit_in_ready [unit_num];
-		unit_tx_mask_r <= unit_tx_mask [unit_num];
+	always @(posedge CORE_CLK) begin
+		//afull <= unit_in_afull [unit_num];
+		//ready <= unit_in_ready [unit_num];
+		if (afull_en)
+			afull <= afull_r [unit_num];
+		if (ready_en)
+			ready <= ready_r [unit_num];
+		if (ready_en)
+			unit_tx_mask_r <= unit_tx_mask [unit_num];
 	end
-	
+
 	reg [2:0] cnt = 0;
 	wire [63:0] ids = { gen_id, pkt_id, word_id };
-	
+
 	wire [`MSB(WORD_MAX_LEN-1):0] word_len_minus1 = word_len - 1'b1;
 	reg [`MSB(WORD_MAX_LEN-1):0] word_gen_last_rd_addr;
 
@@ -213,14 +270,22 @@ module arbiter_tx #(
 	(* FSM_EXTRACT="true" *)
 	reg [3:0] state = STATE_IDLE;
 
-	//always @(posedge CORE_CLK) begin
-	always @(posedge CLK) begin
+	wire afull_en = ~(state == STATE_IDLE | state == STATE_SEARCH1
+		| state == STATE_SEARCH2);
+	wire ready_en = state != STATE_IDLE;
+
+	always @(posedge CORE_CLK) begin
 		case (state)
-		STATE_IDLE:
+		STATE_IDLE: begin
+			bcast_en <= 0;
+`ifdef ENTRY_PTS_EN
 			if (pkt_init_sync)
 				state <= STATE_TX_PKT_INIT1;
-			else if (tx_ready_sync) // ready for transmit
+			else
+`endif
+			if (tx_ready_sync) // ready for transmit
 				state <= STATE_SEARCH1;
+		end
 
 		STATE_SEARCH1:
 			if (~ready | unit_tx_mask_r) begin
@@ -230,18 +295,19 @@ module arbiter_tx #(
 			end
 			else
 				state <= STATE_TX1;
-		
+
 		STATE_SEARCH2:
 			state <= STATE_SEARCH1;
-		
+
 		STATE_TX1: begin // Start transmission
+			bcast_en <= 1;
 			unit_in <= 0; // packet header (1 byte).
 			unit_in_wr_en [unit_num] <= 1;
 			unit_in_ctrl <= 1;
 			cmp_config_addr <= 0;
 			state <= STATE_TX2;
 		end
-		
+
 		STATE_TX2: begin // Send cnt, salt_len, salt (24 bytes)
 			unit_in <= cmp_config_data;
 			unit_in_ctrl <= 0;
@@ -254,7 +320,7 @@ module arbiter_tx #(
 			else
 				unit_in_wr_en [unit_num] <= 0;
 		end
-		
+
 		STATE_TX3: begin // Send IDs (8 bytes)
 			unit_in <= ids [cnt*8 +:8];
 			if (~afull) begin
@@ -266,7 +332,7 @@ module arbiter_tx #(
 			else
 				unit_in_wr_en [unit_num] <= 0;
 		end
-		
+
 		STATE_TX4: begin // Send key_len (1 byte)
 			unit_in <= { {7-`MSB(WORD_MAX_LEN){1'b0}}, word_len };
 			if (~afull) begin
@@ -279,9 +345,9 @@ module arbiter_tx #(
 
 			word_gen_rd_addr <= 0;
 			word_gen_last_rd_addr
-				<= { word_len_minus1 [`MSB(WORD_MAX_LEN-1):2], 2'b11 };
+				<= { word_len_minus1 [`MSB(WORD_MAX_LEN-1):3], 3'b111 };
 		end
-		
+
 		STATE_TX5: begin // 7 bytes - zeroed
 			unit_in <= 0;
 			if (~afull) begin
@@ -293,8 +359,8 @@ module arbiter_tx #(
 			else
 				unit_in_wr_en [unit_num] <= 0;
 		end
-		
-		STATE_TX6: begin // key - rounded up to 32 bits
+
+		STATE_TX6: begin // key - rounded up to 64 bits
 			unit_in <= din;
 			if (~afull) begin
 				unit_in_wr_en [unit_num] <= 1;
@@ -307,7 +373,7 @@ module arbiter_tx #(
 			else
 				unit_in_wr_en [unit_num] <= 0;
 		end
-		
+
 		STATE_TX_END: begin
 			unit_in_wr_en [unit_num] <= 0;
 			unit_in_ctrl <= 0;
@@ -315,9 +381,12 @@ module arbiter_tx #(
 				? {`MSB(N_UNITS-1)+1{1'b0}} : unit_num + 1'b1;
 			state <= STATE_IDLE;
 		end
-		
+
+
+`ifdef ENTRY_PTS_EN
 		// Broadcast transmission of initialization packet
 		STATE_TX_PKT_INIT1: begin
+			bcast_en <= 1;
 			unit_in <= { init_din[4:0], 3'b001 };
 			unit_in_wr_en <= {N_UNITS{1'b1}};
 			unit_in_ctrl <= 1;
@@ -333,14 +402,14 @@ module arbiter_tx #(
 			unit_in_ctrl <= 0;
 			state <= STATE_IDLE;
 		end
+`endif
 		endcase
 	end
 
 	sync_sig sync_tx_idle(.sig(state == STATE_IDLE), .clk(CLK),
 		.out(tx_idle_sync) );
-	
-	//sync_pulse sync_tx_completed( .wr_clk(CORE_CLK),
-	sync_pulse sync_tx_completed( .wr_clk(CLK),
+
+	sync_pulse sync_tx_completed( .wr_clk(CORE_CLK),
 		.sig(state == STATE_TX_END), .busy(),
 		.rd_clk(CLK), .out(tx_completed_sync) );
 

@@ -25,6 +25,7 @@ module cmt2 #(
 	input I,
 	output CLK0, 
 	//output CLK2,
+	output CLK2X,
 	output PLL_CLK
 	);
 
@@ -90,6 +91,7 @@ module cmt2 #(
 	
 	
 	(* BUFFER_TYPE="NONE" *) wire dcm0_clk90, dcm0_clkdv;
+	(* KEEP="true" *) wire dcm0_clk2x;
 
 	DCM_SP #(.CLKDV_DIVIDE    ( DCM0_DIVIDE ),
 		.CLKFX_DIVIDE          (),
@@ -110,7 +112,7 @@ module cmt2 #(
 		.CLK90                 (dcm0_clk90),
 		.CLK180                (),//dcm0_clk180),
 		.CLK270                (),
-		.CLK2X                 (),
+		.CLK2X                 (dcm0_clk2x),
 		.CLK2X180              (),
 		.CLKFX                 (),
 		.CLKFX180              (),
@@ -122,7 +124,9 @@ module cmt2 #(
 
 	assign dcm0_clkfb = dcm0_clk0; // Adds BUFIO2FB
 	assign CLK0 = dcm0_clk0;
-		
+	
+	assign CLK2X = dcm0_clk2x;
+
 /*
 	// *****************************************************
 	//

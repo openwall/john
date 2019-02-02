@@ -2,7 +2,7 @@
 
 - sha512crypt for ZTEX 1.15y board allows candidate passwords up to
 64 bytes, equipped with on-board mask generator and comparator.
-The board computes 640 keys in parallel.
+The board computes 768 keys in parallel.
 - It's also able to compute Drupal7 CMS hashes.
 
 
@@ -31,13 +31,13 @@ The approximate schematic of a computing unit is shown at fig.1.
  . . . . . | . . . . . . . . . . . . . . . . . . . . . . .| .
            |                       sha512_engine          |
            |                                              |
-  +---------------+         ---------                     |
-  |               |        /         \     +--------+    /
-  | process_bytes |       /  "main"   \    | memory |<---
-  |               |<--+--|   memory    |<--| input  |
-  +---------------+   |   \ (16x256B) /    | mgr    |<-
-     |      ^         |    \         /     +--------+  \
- +-------+  |        /      ---------                   |
+  +---------------+            ------------               |
+  |               |           /            \             /
+  | process_bytes |          /    "main"    \ <----------
+  |               |<--+-----|     memory     |
+  +---------------+   |      \  (16 x 256B) / <--------
+     |      ^         |       \            /           \
+ +-------+  |        /         ------------             |
  | procb |  |       /                            +---------------+
  | saved |  |      /    +-------------------+    |  unit_input   |
  | state |  |     /     | thread_state(x16) |    +---------+     |
@@ -49,7 +49,7 @@ The approximate schematic of a computing unit is shown at fig.1.
   | procb_buf |    -->|          C.P.U.              |   |    |
   +-----------+       |  +------------------------+  |   |    |
           ^           |  | integer ops. incl.     |  |   |    |
-           \          |  | 16x16 registers(x32bit)|  |   |    |
+           \          |  | 16x16 registers(x16bit)|  |   |    |
             \         |  +------------------------+  |   |    |
              ---------|                              |   |    |
                       |  +----------------------+    |   |    |
@@ -82,7 +82,7 @@ is able to handle input of any length.
 
 - CPU runs same program in 16 independent hardware threads.
 Each thread has 256 bytes of "main" memory (accessible by SHA512
-subsystem), 16 x 32-bit registers. Data movement, integer,
+subsystem), 16 x 16-bit registers. 16-bit data movement, integer,
 execution flow control operations are available. However there's only
 a subset if operations typically implemented in general-purpose CPUs,
 enough for the task.
@@ -151,7 +151,7 @@ sha512crypt and Drupal7 CMS hashes.
 ```
 fig.2. Overview, FPGA application
 
-- Each FPGA has 10 computing units, that's 40 cores, 160 keys are
+- Each FPGA has 12 computing units, that's 48 cores, 192 keys are
 computed in parallel.
 - Communication framework was mostly taken from previous descrypt-ztex
 and bcrypt-ztex projects. The only difference is variable-length
@@ -161,21 +161,22 @@ candidate generator (bcrypt and descrypt have fixed-length inputs).
 ## How to run simulation using ISIM from ISE Design Suite
 
 - Make sure you have ```define SIMULATION``` in sha512.vh uncommented.
-- For behavioral simulation of 1 of 10 units, run <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/sha512unit/sha512unit_test.v'>sha512unit_test</a>.
+- For behavioral simulation of 1 unit, run <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/sha512unit/sha512unit_test.v'>sha512unit_test</a>.
 Uncomment/add what you're testing. The result of the 1st computation
 appears in the Unit's Output Buffer (unit_output_buf) and in rows 48-63 of
 "main" memory (sha512unit.engine.mem_main.inst.native_mem_module.memory).
 - For simulation of full design with data as arrives from USB controller,
 use <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/sha512crypt_test.v'>sha512crypt_test</a>.
-Output packets (defineed in <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/pkt_comm/inpkt.h'>inpkt.h</a>) appear in
+Output packets (defined in <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/pkt_comm/inpkt.h'>inpkt.h</a>) appear in
 output_fifo.fifo_output0.ram exactly as before they leave FPGA.
 
 
 ## Design Placement and Routing
 
 - Attention was paid for optimal placement of individual components.
-Available area was manually divided into 51 equal rectangles. Each unit
-occupies 5 rectangles: 4 for cores and one for the CPU and the rest.
+Available area was manually divided into 60 equal rectangles and some
+extra space for communication framework and arbiter.
+Each unit occupies 5 rectangles: 4 for cores and one for the CPU and glue logic.
 - Multi-Pass Place & Route approach was used to build the bitstream.
 
 ```
@@ -187,6 +188,10 @@ occupies 5 rectangles: 4 for cores and one for the CPU and the rest.
   +--------+----+---+--------+
   |             |            |
   |    unit4    |    unit8   |
+  |             |            |
+  +-------------+------------+
+  |             |            |
+  |    unit 10  |   unit 11  |
   |             |            |
   +-------------+------------+
   |             |            |
