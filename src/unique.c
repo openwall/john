@@ -2,27 +2,12 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1998,1999,2002,2003,2005,2006,2011 by Solar Designer
  * Copyright (c) 2011 by Jim Fougeron
+ * Copyright (c) 2016-2019 by magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
- *
- * -v  (some debugging output
- * -inp=fname vs using stdin
- * -ex_file=FNAME       also unique's against this external file
- * -ex_file_only=FNAME  uniq against extern file, and assumes current file is
- *                      already unique, so does not unique it.
- * -cut=len  Trims each line to len, prior to unique. Also, any -ex_file=
- *           file has its lines trimmed (to properly compare).
- * -cut=LM   Trim each line to 7 bytes, and grab the next (up to) 7 bytes
- *           and upcase each.  Warning, if using -ex_file= make sure these
- *           files are 'proper' LM format (7 char and upcase).  No auto
- *           trimming/upcasing is done.
- * -mem=num. A number that overrides the UNIQUE_HASH_LOG value from within
- *           params.h.  The default is 24 or 25.  valid range from 13 to 25.
- *           25 will use a 2GB memory buffer, and 33 entry million hash table
- *           Each number doubles size.
  */
 
 #if AC_BUILT
@@ -43,119 +28,137 @@
 #pragma warning ( disable : 4996 )
 #define fdopen _fdopen
 #endif
+#include <stdint.h>
 
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
+#include "common.h"
 #include "jumbo.h"
 
+typedef size_t uq_idx;
+typedef uint32_t uq_hash;
+
+#if __SIZEOF_SIZE_T__ == 4
 #define ENTRY_END_HASH			0xFFFFFFFF /* also hard-coded */
 #define ENTRY_END_LIST			0xFFFFFFFE
 #define ENTRY_DUPE			0xFFFFFFFD
+#define HASH_MAX			0xE0000000
+#else
+#define ENTRY_END_HASH			0xFFFFFFFFFFFFFFFFull
+#define ENTRY_END_LIST			0xFFFFFFFFFFFFFFFEull
+#define ENTRY_DUPE			0xFFFFFFFFFFFFFFFDull
+#define HASH_MAX			0xE000000000000000ull
+#endif
 
 static struct {
-	unsigned int *hash;
+	uq_idx *hash;
 	char *data;
 } buffer;
 
-static FILE *fpInput;
+static FILE *input;
 static FILE *output;
-static FILE *use_to_unique_but_not_add;
-static int do_not_unique_against_self=0;
+static FILE *ex_file;
 
-uint64_t totLines=0, written_lines=0;
-int verbose=0, cut_len=0, LM=0;
-unsigned int vUNIQUE_HASH_LOG=UNIQUE_HASH_LOG, vUNIQUE_HASH_SIZE=UNIQUE_HASH_SIZE, vUNIQUE_BUFFER_SIZE=UNIQUE_BUFFER_SIZE;
-unsigned int vUNIQUE_HASH_MASK = UNIQUE_HASH_SIZE - 1;
-unsigned int vUNIQUE_HASH_LOG_HALF = UNIQUE_HASH_LOG / 2;
+static int ex_file_only;
+static int verbose, cut_len, lm_split, slow;
 
-#if ARCH_ALLOWS_UNALIGNED && !ARCH_INT_GT_32
+static size_t tot_lines, written_lines;
+static size_t unique_hash_size = UNIQUE_HASH_SIZE;
+static size_t unique_buffer_size = UNIQUE_BUFFER_SIZE;
+static size_t unique_hash_mask = UNIQUE_HASH_SIZE - 1;
+static size_t unique_hash_log, unique_hash_log_half;
 
-#define get_int(ptr) \
+#if ARCH_ALLOWS_UNALIGNED
+
+#define get_idx(ptr)	  \
 	(*(ptr))
 
-#define put_int(ptr, value) \
+#define put_idx(ptr, value)	  \
 	*(ptr) = (value);
 
 #else
 
-static unsigned int get_int(unsigned int *ptr)
+static uq_idx get_idx(void *ptr)
 {
-	unsigned char *bytes = (unsigned char *)ptr;
+	uint8_t *bytes = ptr;
+	uq_idx idx;
 
-	return
-		(unsigned int)bytes[0] |
-		((unsigned int)bytes[1] << 8) |
-		((unsigned int)bytes[2] << 16) |
-		((unsigned int)bytes[3] << 24);
+	idx = (uq_idx)bytes[0] | ((uq_idx)bytes[1] << 8) |
+		((uq_idx)bytes[2] << 16) | ((uq_idx)bytes[3] << 24);
+#if __SIZEOF_SIZE_T__ >= 8
+	idx |= (uq_idx)bytes[4] << 32 | ((uq_idx)bytes[5] << 40) |
+		((uq_idx)bytes[6] << 48) | ((uq_idx)bytes[7] << 56);
+#endif
+	return idx;
 }
 
-static void put_int(unsigned int *ptr, unsigned int value)
+static void put_idx(void *ptr, uq_idx value)
 {
-	unsigned char *bytes = (unsigned char *)ptr;
+	uint8_t *bytes = ptr;
 
 	bytes[0] = value;
 	bytes[1] = value >> 8;
 	bytes[2] = value >> 16;
 	bytes[3] = value >> 24;
+#if __SIZEOF_SIZE_T__ >= 8
+	bytes[4] = value >> 32;
+	bytes[5] = value >> 40;
+	bytes[6] = value >> 48;
+	bytes[7] = value >> 56;
+#endif
 }
 
 #endif
 
-#define get_data(ptr) \
-	get_int((unsigned int *)&buffer.data[ptr])
+#define get_data(ptr)	  \
+	get_idx((uq_idx*)&buffer.data[ptr])
 
-#define put_data(ptr, value) \
-	put_int((unsigned int *)&buffer.data[ptr], value)
+#define put_data(ptr, value)	  \
+	put_idx((uq_idx*)&buffer.data[ptr], value)
 
-static unsigned int line_hash(char *line)
+static uq_hash line_hash(char *line)
 {
-	unsigned int hash, extra;
+	uq_hash hash, extra;
 	char *p;
 
 	p = line + 2;
-	hash = (unsigned char)line[0];
+	hash = (uint8_t)line[0];
 	if (!hash)
 		goto out;
-	extra = (unsigned char)line[1];
+	extra = (uint8_t)line[1];
 	if (!extra)
 		goto out;
 
 	while (*p) {
 		hash <<= 3; extra <<= 2;
-		hash += (unsigned char)p[0];
-		if (!p[1]) break;
-		extra += (unsigned char)p[1];
+		hash += (uint8_t)p[0];
+		if (!p[1])
+			break;
+		extra += (uint8_t)p[1];
 		p += 2;
-		if (hash & 0xe0000000) {
-			hash ^= hash >> vUNIQUE_HASH_LOG;
-			extra ^= extra >> vUNIQUE_HASH_LOG;
-			hash &= vUNIQUE_HASH_MASK;
+		if (hash & HASH_MAX) {
+			hash ^= hash >> unique_hash_log;
+			extra ^= extra >> unique_hash_log;
+			hash &= unique_hash_mask;
 		}
 	}
 
 	hash -= extra;
-	hash ^= extra << vUNIQUE_HASH_LOG_HALF;
+	hash ^= extra << unique_hash_log_half;
 
-	hash ^= hash >> vUNIQUE_HASH_LOG;
+	hash ^= hash >> unique_hash_log;
 
-	hash &= vUNIQUE_HASH_MASK;
+	hash &= unique_hash_mask;
 out:
 	return hash;
 }
 
 static void init_hash(void)
 {
-#if 0
-	int index;
-
-	for (index = 0; index < vUNIQUE_HASH_SIZE; index++)
-		buffer.hash[index] = ENTRY_END_HASH;
-#else
-/* ENTRY_END_HASH is 0xFFFFFFFF */
-	memset(buffer.hash, 0xff, vUNIQUE_HASH_SIZE * sizeof(unsigned int));
-#endif
+	/* ENTRY_END_HASH is 0xFFFFFFFF (or 0xFFFFFFFFFFFFFFFF) */
+	memset(buffer.hash, 0xff, unique_hash_size * sizeof(*buffer.hash));
 }
 
 static void upcase(char *cp) {
@@ -169,93 +172,101 @@ static void upcase(char *cp) {
 static void read_buffer(void)
 {
 	char line[LINE_BUFFER_SIZE];
-	unsigned int ptr, current, *last;
+	uq_idx current;
+	uq_idx ptr, *last;
 
 	init_hash();
 
 	ptr = 0;
-	while (fgetl(line, sizeof(line), fpInput)) {
-		char LM_Buf[8];
-		if (LM) {
+	while (fgetl(line, sizeof(line), input)) {
+		char lm_buf[8];
+
+		if (lm_split) {
 			if (strlen(line) > 7) {
-				strncpy(LM_Buf, &line[7], 7);
-				LM_Buf[7] = 0;
-				upcase(LM_Buf);
-				++totLines;
+				strncpy(lm_buf, &line[7], 7);
+				lm_buf[7] = 0;
+				upcase(lm_buf);
+				++tot_lines;
 			}
 			else
-				*LM_Buf = 0;
+				*lm_buf = 0;
 			line[7] = 0;
 			upcase(line);
-		} else if (cut_len) line[cut_len] = 0;
-		++totLines;
+		} else if (cut_len)
+			line[cut_len] = 0;
+		++tot_lines;
+
 		last = &buffer.hash[line_hash(line)];
-#if ARCH_LITTLE_ENDIAN && !ARCH_INT_GT_32
-		current = *last;
-#else
-		current = get_int(last);
-#endif
+		current = get_idx(last);
 		while (current != ENTRY_END_HASH) {
-			if (!strcmp(line, &buffer.data[current + 4])) break;
-			last = (unsigned int *)&buffer.data[current];
-			current = get_int(last);
+			if (!strcmp(line, &buffer.data[current +
+			                               sizeof(uq_idx)]))
+				break;
+			last = (uq_idx*)&buffer.data[current];
+			current = get_idx(last);
 		}
 		if (current != ENTRY_END_HASH) {
-			if (LM && *LM_Buf)
+			if (lm_split && *lm_buf)
 				goto DoExtraLM;
 			continue;
 		}
 
-		put_int(last, ptr);
+		put_idx(last, ptr);
 
 		put_data(ptr, ENTRY_END_HASH);
-		ptr += 4;
+		ptr += sizeof(uq_idx);
 
 		strcpy(&buffer.data[ptr], line);
 		ptr += strlen(line) + 1;
 
-		if (ptr > vUNIQUE_BUFFER_SIZE - sizeof(line) - 8) break;
+		if (ptr > unique_buffer_size - sizeof(line) -
+		    2 * sizeof(uq_idx))
+			break;
 
-DoExtraLM:;
-		if (LM && *LM_Buf) {
-			last = &buffer.hash[line_hash(LM_Buf)];
-#if ARCH_LITTLE_ENDIAN && !ARCH_INT_GT_32
-			current = *last;
-#else
-			current = get_int(last);
-#endif
+	DoExtraLM:;
+		if (lm_split && *lm_buf) {
+			last = &buffer.hash[line_hash(lm_buf)];
+			current = get_idx(last);
 			while (current != ENTRY_END_HASH) {
-				if (!strcmp(LM_Buf, &buffer.data[current + 4])) break;
-				last = (unsigned int *)&buffer.data[current];
-				current = get_int(last);
+				if (!strcmp(lm_buf,
+				            &buffer.data[current +
+				                         sizeof(uq_idx)]))
+					break;
+				last = (uq_idx*)&buffer.data[current];
+				current = get_idx(last);
 			}
-			if (current != ENTRY_END_HASH) continue;
+			if (current != ENTRY_END_HASH)
+				continue;
 
-			put_int(last, ptr);
+			put_idx(last, ptr);
 
 			put_data(ptr, ENTRY_END_HASH);
-			ptr += 4;
+			ptr += sizeof(uq_idx);
 
-			strcpy(&buffer.data[ptr], LM_Buf);
-			ptr += strlen(LM_Buf) + 1;
+			strcpy(&buffer.data[ptr], lm_buf);
+			ptr += strlen(lm_buf) + 1;
 
-			if (ptr > vUNIQUE_BUFFER_SIZE - sizeof(line) - 8) break;
+			if (ptr > unique_buffer_size -
+			    sizeof(line) - 2 * sizeof(uq_idx))
+				break;
 		}
 	}
 
-	if (ferror(fpInput)) pexit("fgets");
+	if (ferror(input))
+		pexit("fgets");
 
 	put_data(ptr, ENTRY_END_LIST);
 }
 
 static void write_buffer(void)
 {
-	unsigned int ptr, hash;
+	uq_idx ptr, hash;
 
 	ptr = 0;
 	while ((hash = get_data(ptr)) != ENTRY_END_LIST) {
-		unsigned int length, size;
-		ptr += 4;
+		uq_idx length, size;
+
+		ptr += sizeof(uq_idx);
 		length = strlen(&buffer.data[ptr]);
 		size = length + 1;
 		if (hash != ENTRY_DUPE) {
@@ -271,66 +282,85 @@ static void write_buffer(void)
 static void clean_buffer(void)
 {
 	char line[LINE_BUFFER_SIZE];
-	unsigned int current, *last;
+	uq_idx current, *last;
 
-	if (use_to_unique_but_not_add) {
-		if (fseek(use_to_unique_but_not_add, 0, SEEK_SET) < 0) pexit("fseek");
-		while (fgetl(line, sizeof(line), use_to_unique_but_not_add)) {
-			if (cut_len) line[cut_len] = 0;
+	if (ex_file) {
+		if (fseek(ex_file, 0, SEEK_SET) < 0)
+			pexit("fseek");
+		while (fgetl(line, sizeof(line), ex_file)) {
+			if (cut_len)
+				line[cut_len] = 0;
 			last = &buffer.hash[line_hash(line)];
-#if ARCH_LITTLE_ENDIAN && !ARCH_INT_GT_32
-			current = *last;
-#else
-			current = get_int(last);
-#endif
+			current = get_idx(last);
 			while (current != ENTRY_END_HASH) {
-				if (current != ENTRY_DUPE && !strcmp(line, &buffer.data[current + 4])) {
-					put_int(last, get_data(current));
+				if (current != ENTRY_DUPE &&
+				    !strcmp(line,
+				            &buffer.data[current +
+				                         sizeof(uq_idx)])) {
+					put_idx(last, get_data(current));
 					put_data(current, ENTRY_DUPE);
 					break;
 				}
-				last = (unsigned int *)&buffer.data[current];
-				current = get_int(last);
+				last = (uq_idx*)&buffer.data[current];
+				current = get_idx(last);
 			}
 		}
+		if (ex_file_only)
+			return;
 	}
 
-	if (do_not_unique_against_self)
-	  return;
-
-	if (fseek(output, 0, SEEK_SET) < 0) pexit("fseek");
+	if (fseek(output, 0, SEEK_SET) < 0)
+		pexit("fseek");
 
 	while (fgetl(line, sizeof(line), output)) {
-		if (cut_len) line[cut_len] = 0;
 		last = &buffer.hash[line_hash(line)];
-#if ARCH_LITTLE_ENDIAN && !ARCH_INT_GT_32
-		current = *last;
-#else
-		current = get_int(last);
-#endif
+		current = get_idx(last);
 		while (current != ENTRY_END_HASH && current != ENTRY_DUPE) {
-			if (!strcmp(line, &buffer.data[current + 4])) {
-				put_int(last, get_data(current));
+			if (!strcmp(line,
+			            &buffer.data[current + sizeof(uq_idx)])) {
+				put_idx(last, get_data(current));
 				put_data(current, ENTRY_DUPE);
 				break;
 			}
-			last = (unsigned int *)&buffer.data[current];
-			current = get_int(last);
+			last = (uq_idx*)&buffer.data[current];
+			current = get_idx(last);
 		}
 	}
 
-	if (ferror(output)) pexit("fgets");
+	if (ferror(output))
+		pexit("fgets");
 
-/* Workaround a Solaris stdio bug */
-	if (fseek(output, 0, SEEK_END) < 0) pexit("fseek");
+/* Work around a Solaris stdio bug */
+	if (fseek(output, 0, SEEK_END) < 0)
+		pexit("fseek");
+}
+
+#undef log2
+#define log2 jtr_log2
+static size_t log2(size_t val)
+{
+	size_t res = 0;
+
+	while (val >>= 1)
+		res++;
+
+	return res;
 }
 
 static void unique_init(char *name)
 {
 	int fd;
 
-	buffer.hash = mem_alloc(vUNIQUE_HASH_SIZE * sizeof(unsigned int));
-	buffer.data = mem_alloc(vUNIQUE_BUFFER_SIZE);
+	fprintf(stderr,
+	        "Hash size %d (%s/%sB), input buffer %sB. Total alloc. %sB\n",
+	        (int)log2(unique_hash_size), human_prefix(unique_hash_size),
+	        human_prefix(unique_hash_size * sizeof(*buffer.hash)),
+	        human_prefix(unique_buffer_size),
+	        human_prefix(unique_hash_size * sizeof(*buffer.hash) +
+	                     unique_buffer_size));
+
+	buffer.hash = mem_alloc(unique_hash_size * sizeof(*buffer.hash));
+	buffer.data = mem_alloc(unique_buffer_size);
 
 #if defined (_MSC_VER) || defined(__MINGW32__)
 	fd = open(name, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
@@ -339,127 +369,170 @@ static void unique_init(char *name)
 #endif
 	if (fd < 0)
 		pexit("open: %s", name);
-	if (!(output = fdopen(fd, "wb+"))) pexit("fdopen");
+	if (!(output = fdopen(fd, "wb+")))
+		pexit("fdopen");
 }
 
 static void unique_run(void)
 {
 	read_buffer();
-	if (use_to_unique_but_not_add)
-	  clean_buffer();
+	if (ex_file)
+		clean_buffer();
 	write_buffer();
 
-	while (!feof(fpInput)) {
+	while (!feof(input)) {
+		++slow;
+		if (verbose)
+			fprintf(stderr,
+			        "Slow pass %d; Total lines read: "Zu", unique lines written: "Zu" (%u%%)\n",
+			        slow, tot_lines, written_lines,
+			        (uint32_t)(100 * written_lines / tot_lines));
 		read_buffer();
 		clean_buffer();
 		write_buffer();
-
-		if (verbose)
-			printf("\rTotal lines read %"PRIu64" Unique lines written %"PRIu64"\r", totLines, written_lines);
 	}
 }
 
 static void unique_done(void)
 {
-	if (fclose(output)) pexit("fclose");
+	if (fclose(output))
+		pexit("fclose");
+}
+
+static void pop_arg(int arg, int *argc, char **argv)
+{
+	int i;
+
+	--(*argc);
+	for (i = arg; i < *argc; i++)
+		argv[i] = argv[i + 1];
 }
 
 int unique(int argc, char **argv)
 {
-	while (argc > 2 && (!strcmp(argv[1], "-v") || !strncmp(argv[1], "-inp=", 5) || !strncmp(argv[1], "-cut=", 5) || !strncmp(argv[1], "-mem=", 5))) {
-		int i;
-		if (!strcmp(argv[1], "-v"))
-		{
-			verbose = 1;
-			--argc;
-			for (i = 1; i < argc; ++i)
-				argv[i] = argv[i+1];
+	int i;
+	size_t buf_size = 0;
+
+	for (i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-v")) {
+			verbose++;
+			pop_arg(i, &argc, argv);
 		}
-		else if (!strncmp(argv[1], "-inp=", 5))
-		{
-			fpInput = fopen(&argv[1][5], "rb");
-			if (!fpInput)
-				exit(fprintf(stderr, "Error, could not open input file %s\n", &argv[1][5]));
-			--argc;
-			for (i = 1; i < argc; ++i)
-				argv[i] = argv[i+1];
+		if (!strncmp(argv[i], "-inp=", 5) ||
+		    !strncmp(argv[i], "-i=", 3)) {
+			char *fname = strchr(argv[i], '=');
+
+			input = fopen(++fname, "rb");
+			if (!input)
+				error_msg("Error, could not open input file %s\n", fname);
+			pop_arg(i, &argc, argv);
 		}
-		else if (!strncmp(argv[1], "-cut=", 5))
-		{
-			if (!strcmp(argv[1], "-cut=LM")) {
+		if (!strncmp(argv[i], "-cut=", 5)) {
+			if (!strcmp(argv[i], "-cut=LM")) {
 				cut_len = 7;
-				LM = 1;
+				lm_split = 1;
 			}
 			else
-				sscanf(argv[1], "-cut=%d", &cut_len);
+				sscanf(argv[i], "-cut=%d", &cut_len);
 			if (cut_len < 0 || cut_len >= LINE_BUFFER_SIZE)
-				exit(fprintf(stderr, "Error, invalid length in the -cut= param\n"));
-			--argc;
-			for (i = 1; i < argc; ++i)
-				argv[i] = argv[i+1];
+				error_msg("Error, invalid length in the -cut= param\n");
+			pop_arg(i, &argc, argv);
 		}
-		else if (!strncmp(argv[1], "-mem=", 5))
-		{
-			int len;
-			sscanf(argv[1], "-mem=%d", &len);
-			if (len > 25) {
-				fprintf(stderr, "Warning, max memory usages reduced to 25\n");
-				len = 25;
-			}
-			if (len < 13) {
-				fprintf(stderr, "Warning the min memory usage allowed is 13\n");
-				len = 13;
-			}
-			--argc;
-			for (i = 1; i < argc; ++i)
-				argv[i] = argv[i+1];
+		if (!strncmp(argv[i], "-mem=", 5)) {
+			char *new_arg;
+			uint32_t log;
+			size_t buf;
 
-// Original from params.h in john-1.7.7
-//#define UNIQUE_HASH_LOG			20
-//#define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
-//#define UNIQUE_BUFFER_SIZE		0x4000000
-
-			vUNIQUE_HASH_LOG = len;
-			vUNIQUE_HASH_SIZE = (1 << vUNIQUE_HASH_LOG);
-			vUNIQUE_BUFFER_SIZE = 64 * vUNIQUE_HASH_SIZE;
-			vUNIQUE_HASH_MASK = vUNIQUE_HASH_SIZE - 1;
-			vUNIQUE_HASH_LOG_HALF = vUNIQUE_HASH_LOG / 2;
+			sscanf(argv[i], "-mem=%d", &log);
+			buf = ((1ULL << log) * UNIQUE_AVG_LEN) >> 30ULL;
+			fprintf(stderr,
+"Warning: The -mem=%u option is deprecated, use -hash-size=%u (log2 of hash\n"
+"         table size) and/or -buf=%u (total buffer size, in GB) instead\n",
+			        log, log, (uint32_t)MAX(1, buf));
+			new_arg = mem_alloc_tiny(strlen(argv[i] + 8),
+			                         MEM_ALIGN_NONE);
+			strcpy(new_arg, "-hash-size");
+			strcat(new_arg, &argv[i][4]);
+			argv[i] = new_arg;
 		}
-	}
-	if (argc == 3 && !strncmp(argv[2], "-ex_file=", 9)) {
-		use_to_unique_but_not_add = fopen(&argv[2][9], "rb");
-		argc = 2;
-		if (use_to_unique_but_not_add)
-		  printf("Not outputting any lines found in file %s\n", &argv[2][9]);
-	}
-	if (argc == 3 && !strncmp(argv[2], "-ex_file_only=", 14)) {
-		use_to_unique_but_not_add = fopen(&argv[2][14], "rb");
-		argc = 2;
-		if (use_to_unique_but_not_add)
-		  printf("Expecting file to be unique, and not outputting any lines found in file %s\n", &argv[2][14]);
-		else
-		  exit(printf("Error, in this mode, we MUST have a file to test against\n"));
-		do_not_unique_against_self = 1;
-	}
-	if (argc != 2) {
-#if defined (__MINGW32__)
-	    puts("");
+		if (!strncmp(argv[i], "-hash-size=", 11)) {
+			int log;
+
+			sscanf(argv[i], "-hash-size=%d", &log);
+			if (sizeof(uq_idx) < 8 && log > 25)
+				error_msg("Error: This build of unique can't use a -hash-log larger than 25\n");
+
+			unique_hash_log = log;
+			pop_arg(i, &argc, argv);
+		}
+		if (!strncmp(argv[i], "-buf=", 5)) {
+			int p;
+
+			sscanf(argv[i], "-buf=%d", &p);
+#if __SIZEOF_SIZE_T__ < 8
+			if (p > 3)
+				error_msg("Error: Can't use a -buf of more than 3 GB (this is a 32-bit build)\n");
 #endif
-		printf("Usage: unique [-v] [-inp=fname] [-cut=len] [-mem=num] OUTPUT-FILE [-ex_file=FNAME2] [-ex_file_only=FNAME2]\n\n"
-			 "       reads from stdin 'normally', but can be overridden by optional -inp=\n"
-			 "       If -ex_file=XX is used, then data from file XX is also used to\n"
-			 "       unique the data, but nothing is ever written to XX. Thus, any data in\n"
-			 "       XX, will NOT output into OUTPUT-FILE (for making iterative dictionaries)\n"
-			 "       -ex_file_only=XX assumes the file is 'unique', and only checks against XX\n"
-			 "       -cut=len  Will trim each input lines to 'len' bytes long, prior to running\n"
-			 "       the unique algorithm. The 'trimming' is done on any -ex_file[_only] file\n"
-			 "       -mem=num.  A number that overrides the UNIQUE_HASH_LOG value from within\n"
-			 "       params.h.  The default is %u.  Valid range is from 13 to 25 (memory usage\n"
-			 "       doubles each number).  If you go TOO large, unique will swap and thrash and\n"
-			 "       work VERY slow\n"
-			 "\n"
-			 "       -v is for 'verbose' mode, outputs line counts during the run\n",
-			UNIQUE_HASH_LOG);
+			if (!(buf_size = (size_t)p << 30))
+				buf_size = 1 << 19;
+
+			if (!unique_hash_log)
+				unique_hash_log =
+					log2(buf_size / UNIQUE_AVG_LEN);
+			pop_arg(i, &argc, argv);
+		}
+		if (!ex_file && !strncmp(argv[i], "-ex_file=", 9)) {
+			ex_file = fopen(&argv[i][9], "rb");
+			if (ex_file)
+				fprintf(stderr, "Also suppressing any lines found in '%s'\n", &argv[i][9]);
+			else
+				pexit("fopen: %s", &argv[i][9]);
+			pop_arg(i, &argc, argv);
+		}
+		if (!ex_file && !strncmp(argv[i], "-ex_file_only=", 14)) {
+			ex_file = fopen(&argv[i][14], "rb");
+			if (ex_file)
+				fprintf(stderr, "Expecting input to be unique, but suppressing any lines found in '%s'\n", &argv[i][14]);
+			else
+				pexit("fopen: %s", &argv[i][14]);
+			ex_file_only = 1;
+			pop_arg(i, &argc, argv);
+		}
+	}
+
+	if (!unique_hash_log)
+		unique_hash_log = UNIQUE_HASH_LOG;
+	unique_hash_log_half = unique_hash_log / 2;
+	unique_hash_size = (1 << unique_hash_log);
+	unique_hash_mask = unique_hash_size - 1;
+	if (buf_size)
+		unique_buffer_size =
+			buf_size - unique_hash_size * sizeof(*buffer.hash);
+	else
+		unique_buffer_size = UNIQUE_AVG_LEN * unique_hash_size;
+
+	if (argc != 2) {
+		fprintf(stderr,
+"Usage: unique [option[s]] OUTPUT-FILE\n\n"
+"Options:\n"
+"-v                 verbose mode, output stats before each slow pass (if any)\n"
+"-inp=FILE          read from FILE instead of stdin\n"
+"-cut=N             truncate input lines to N bytes\n"
+"-cut=LM            for LM: Split lines longer than 7 in two, and uppercase\n"
+"-hash-size=N       override the hash size (given in log2). The default is\n"
+"                   %u for %sB, memory use doubles for each increment\n"
+"-buf=N             Total allowed buffer size, in GB. If -hash-size isn't\n"
+"                   given as well, a sensible one will be used\n"
+"-ex_file=FILE      the data from FILE is also used to unique the output, but\n"
+"                   nothing is ever written to FILE\n"
+"-ex_file_only=FILE assumes the input is already unique, and only checks\n"
+"                   against FILE (again the latter is not written to)\n"
+"\n"
+"NOTE that if you try to use more memory than actually available physical\n"
+"memory, performance will just drop.\n\n",
+		        UNIQUE_HASH_LOG,
+			human_prefix(UNIQUE_HASH_SIZE * sizeof(buffer.hash) +
+			             UNIQUE_BUFFER_SIZE));
 
 		if (argc <= 1)
 			return 0;
@@ -467,12 +540,21 @@ int unique(int argc, char **argv)
 			error();
 	}
 
-	if (!fpInput)
-		fpInput = stdin;
+	if (!input)
+		input = stdin;
+
 	unique_init(argv[1]);
 	unique_run();
 	unique_done();
-    printf("Total lines read %"PRIu64" Unique lines written %"PRIu64"\n", totLines, written_lines);
+
+	fprintf(stderr,
+	        "Total lines read: "Zu", unique lines written: "Zu" (%u%%), ",
+	        tot_lines, written_lines,
+	        (uint32_t)(100 * written_lines / tot_lines));
+	if (slow)
+		fprintf(stderr, "%d slow passes\n", slow);
+	else
+		fprintf(stderr, "no slow passes\n");
 
 	return 0;
 }

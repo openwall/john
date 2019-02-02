@@ -32,6 +32,8 @@ john_register_one(&fmt_wpapsk);
 #include "pbkdf2_hmac_sha1.h"
 #include "wpapsk.h"
 #include "sha.h"
+#include "options.h"
+#include "unicode.h"
 
 #define FORMAT_LABEL		"wpapsk"
 #if AC_BUILT && !HAVE_OPENSSL_CMAC_H
@@ -82,10 +84,17 @@ static void init(struct fmt_main *self)
 	mic = mem_alloc(sizeof(*mic) *
 	                self->params.max_keys_per_crypt);
 
-/*
- * Zeroize the lengths in case crypt_all() is called with some keys still
- * not set.  This may happen during self-tests.
- */
+	/*
+	 * Implementations seen IRL that have 8 *bytes* (of eg. UTF-8) passwords
+	 * as opposed to 8 *characters*
+	 */
+	if (options.target_enc == UTF_8)
+		self->params.plaintext_min_length = 2;
+
+	/*
+	 * Zero the lengths in case crypt_all() is called with some keys
+	 * still not set.  This may happen during self-tests.
+	 */
 	{
 		int i;
 		for (i = 0; i < self->params.max_keys_per_crypt; i++)
@@ -180,7 +189,7 @@ struct fmt_main fmt_wpapsk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 #if !AC_BUILT || HAVE_OPENSSL_CMAC_H
 			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"

@@ -13,6 +13,11 @@
 #include "loader.h"
 
 /*
+ * Tell john.c we had to disable recursion.
+ */
+extern int single_disabled_recursion;
+
+/*
  * Global list of single mode words, from --single-seed or --single-wordlist.
  */
 extern struct list_main *single_seed;

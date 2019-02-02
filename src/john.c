@@ -884,7 +884,12 @@ static void john_load_conf(void)
 		if ((options.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "WordlistRules")))
-			options.flags |= FLG_RULES;
+		{
+			if (strlen(options.activewordlistrules) == 0)
+				options.activewordlistrules = NULL;
+			else
+				options.flags |= FLG_RULES;
+		}
 	}
 
 	/* EmulateBrokenEncoding feature */
@@ -1920,6 +1925,11 @@ static void john_run(void)
 				      " of the cracked passwords reliably\n",
 				      stderr);
 		}
+
+		if (options.verbosity > 1 && single_disabled_recursion)
+			fprintf(stderr,
+"Warning: Disabled SingleRetestGuessed due to deep recursion. You may now run\n"
+"         '--loopback --rules=none' to test all guesses against other salts.\n");
 	}
 }
 

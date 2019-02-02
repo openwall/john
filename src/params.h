@@ -338,6 +338,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define UNIQUE_BUFFER_SIZE		0x40000000
 #endif
 #define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
+#define UNIQUE_AVG_LEN			64
 
 /*
  * Maximum number of GECOS words per password to load.

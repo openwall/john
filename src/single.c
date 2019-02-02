@@ -44,6 +44,7 @@ static struct rpp_context *rule_ctx;
 
 static int words_pair_max;
 static int retest_guessed;
+static int recurse_depth, max_recursion;
 static int orig_max_len, orig_min_kpc;
 static int stacked_rule_count = 1;
 static rule_stack single_rule_stack;
@@ -54,6 +55,8 @@ static int acc_fmt, prio_resume;
 static int ocl_fmt;
 #endif /* HAVE_OPENCL */
 #endif /* HAVE_OPENCL || HAVE_ZTEX */
+
+int single_disabled_recursion;
 
 static void save_state(FILE *file)
 {
@@ -179,12 +182,22 @@ static void single_init(void)
 		fprintf(stderr, "\n");
 	}
 
-	retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
-	                              "SingleRetestGuessed", 1);
+	if (options.single_retest_guess)
+		retest_guessed = parse_bool(options.single_retest_guess);
+	else
+		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
+		                              "SingleRetestGuessed", 1);
+
+	if (retest_guessed == -1)
+		error_msg("Expected boolean value for --single-retest-guess=BOOL\n");
 
 	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;
+
+	if ((max_recursion = cfg_get_int(SECTION_OPTIONS, NULL,
+	                                 "SingleMaxRecursionDepth")) < 0)
+		max_recursion = 10000;
 
 	if ((max_buffer_GB = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleMaxBufferSize")) < 0)
@@ -532,6 +545,17 @@ static int single_process_buffer(struct db_salt *salt)
 	struct db_keys *keys;
 	size_t size;
 
+	if (++recurse_depth > max_recursion && retest_guessed) {
+		log_event("- Disabled SingleRetestGuessed due to deep recursion");
+		if (john_main_process)
+			fprintf(stderr,
+"Warning: Disabled SingleRetestGuessed due to deep recursion. You can run\n"
+"         '--loopback --rules=none' later on instead.\n");
+
+		retest_guessed = 0;
+		single_disabled_recursion = 1;
+	}
+
 	if (crk_process_salt(salt))
 		return 1;
 
@@ -565,8 +589,10 @@ static int single_process_buffer(struct db_salt *salt)
 				if (current == salt || !current->list)
 					continue;
 
-				if (single_add_key(current, keys->ptr, 1))
+				if (single_add_key(current, keys->ptr, 1)) {
+					MEM_FREE(keys);
 					return 1;
+				}
 			} while ((current = current->next));
 			keys->ptr += length;
 		} while (--keys->count);
@@ -581,6 +607,7 @@ static int single_process_buffer(struct db_salt *salt)
 		keys->rule[1] = rules_stacked_number;
 	}
 
+	recurse_depth--;
 	return 0;
 }
 

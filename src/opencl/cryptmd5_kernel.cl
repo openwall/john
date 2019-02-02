@@ -2,6 +2,7 @@
  * This software is
  * Copyright (c) 2011 - 2013 Lukas Odzioba
  * Copyright (c) 2012 - 2013 magnum
+ * Copyright (c) 2015, 2019 Solar Designer
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -9,13 +10,13 @@
 
 #include "opencl_misc.h"
 
-#if nvidia_sm_3x(DEVICE_INFO)
-#define USE_BITSELECT 1
-#endif
+//#define USE_BITSELECT 1
+//#define BITALIGN_AGGRESSIVE
+//#define UNROLL_AGGRESSIVE
+//#define UNROLL_LESS
 
-#if gpu_nvidia(DEVICE_INFO)
-#define BITALIGN_AGGRESSIVE
-#else
+/* AMDGPU-PRO libamdocl64.so segfaults trying to compile our switch code */
+#if !amd_gcn(DEVICE_INFO) || DEV_VER_MAJOR < 2500
 #define BUF_UPDATE_SWITCH
 #endif
 
@@ -120,7 +121,7 @@ typedef struct {
 } crypt_md5_hash;
 
 typedef struct {
-	uint buffer[16];
+	uint buffer[14];
 } md5_ctx;
 
 __constant uchar cl_md5_salt_prefix[] = "$1$";
@@ -219,7 +220,7 @@ inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
 #endif
 
 inline void ctx_update(md5_ctx *ctx, uchar *string, uint len,
-    uint *ctx_buflen)
+    uchar *ctx_buflen)
 {
 	uint i;
 
@@ -229,7 +230,7 @@ inline void ctx_update(md5_ctx *ctx, uchar *string, uint len,
 	*ctx_buflen += len;
 }
 
-inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uint *ctx_buflen)
+inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uchar *ctx_buflen)
 {
 	uint i;
 
@@ -247,12 +248,12 @@ inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uint *ctx_buflen)
 	// else if (prefix == '\0') do nothing. for {smd5}
 }
 
-inline void init_ctx(md5_ctx *ctx, uint *ctx_buflen)
+inline void init_ctx(md5_ctx *ctx, uchar *ctx_buflen)
 {
 	uint i;
 	uint *buf = (uint *) ctx->buffer;
 
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef UNROLL_AGGRESSIVE
 #pragma unroll 4
 #endif
 	for (i = 0; i < sizeof(ctx->buffer) / 4; i++)
@@ -260,10 +261,9 @@ inline void init_ctx(md5_ctx *ctx, uint *ctx_buflen)
 	*ctx_buflen = 0;
 }
 
-inline void md5_digest(md5_ctx *ctx, uint *result, uint len,
+inline void md5_digest(uint *x, uint *result, uint len,
     uint res_offset)
 {
-	uint *x = ctx->buffer;
 	uint a;
 	uint b = 0xefcdab89;
 	uint c = 0x98badcfe;
@@ -283,61 +283,120 @@ inline void md5_digest(md5_ctx *ctx, uint *result, uint len,
 	FF(b, c, d, a, x[7], S14, 0xfd469501);	/* 8 */
 	FF(a, b, c, d, x[8], S11, 0x698098d8);	/* 9 */
 	FF(d, a, b, c, x[9], S12, 0x8b44f7af);	/* 10 */
-	FF(c, d, a, b, x[10], S13, 0xffff5bb1);	/* 11 */
-	FF(b, c, d, a, x[11], S14, 0x895cd7be);	/* 12 */
-	FF(a, b, c, d, x[12], S11, 0x6b901122);	/* 13 */
-	FF(d, a, b, c, x[13], S12, 0xfd987193);	/* 14 */
-	FF(c, d, a, b, len, S13, 0xa679438e);	/* 15 */
-	FF(b, c, d, a, 0, S14, 0x49b40821);	/* 16 */
+	if (len >= 10*4*8) {
+		FF(c, d, a, b, x[10], S13, 0xffff5bb1);	/* 11 */
+		FF(b, c, d, a, x[11], S14, 0x895cd7be);	/* 12 */
+		FF(a, b, c, d, x[12], S11, 0x6b901122);	/* 13 */
+		FF(d, a, b, c, x[13], S12, 0xfd987193);	/* 14 */
+		FF(c, d, a, b, len, S13, 0xa679438e);	/* 15 */
+		FF(b, c, d, a, 0, S14, 0x49b40821);	/* 16 */
 
-	GG(a, b, c, d, x[1], S21, 0xf61e2562);	/* 17 */
-	GG(d, a, b, c, x[6], S22, 0xc040b340);	/* 18 */
-	GG(c, d, a, b, x[11], S23, 0x265e5a51);	/* 19 */
-	GG(b, c, d, a, x[0], S24, 0xe9b6c7aa);	/* 20 */
-	GG(a, b, c, d, x[5], S21, 0xd62f105d);	/* 21 */
-	GG(d, a, b, c, x[10], S22, 0x2441453);	/* 22 */
-	GG(c, d, a, b, 0, S23, 0xd8a1e681);	/* 23 */
-	GG(b, c, d, a, x[4], S24, 0xe7d3fbc8);	/* 24 */
-	GG(a, b, c, d, x[9], S21, 0x21e1cde6);	/* 25 */
-	GG(d, a, b, c, len, S22, 0xc33707d6);	/* 26 */
-	GG(c, d, a, b, x[3], S23, 0xf4d50d87);	/* 27 */
-	GG(b, c, d, a, x[8], S24, 0x455a14ed);	/* 28 */
-	GG(a, b, c, d, x[13], S21, 0xa9e3e905);	/* 29 */
-	GG(d, a, b, c, x[2], S22, 0xfcefa3f8);	/* 30 */
-	GG(c, d, a, b, x[7], S23, 0x676f02d9);	/* 31 */
-	GG(b, c, d, a, x[12], S24, 0x8d2a4c8a);	/* 32 */
+		GG(a, b, c, d, x[1], S21, 0xf61e2562);	/* 17 */
+		GG(d, a, b, c, x[6], S22, 0xc040b340);	/* 18 */
+		GG(c, d, a, b, x[11], S23, 0x265e5a51);	/* 19 */
+		GG(b, c, d, a, x[0], S24, 0xe9b6c7aa);	/* 20 */
+		GG(a, b, c, d, x[5], S21, 0xd62f105d);	/* 21 */
+		GG(d, a, b, c, x[10], S22, 0x2441453);	/* 22 */
+		GG(c, d, a, b, 0, S23, 0xd8a1e681);	/* 23 */
+		GG(b, c, d, a, x[4], S24, 0xe7d3fbc8);	/* 24 */
+		GG(a, b, c, d, x[9], S21, 0x21e1cde6);	/* 25 */
+		GG(d, a, b, c, len, S22, 0xc33707d6);	/* 26 */
+		GG(c, d, a, b, x[3], S23, 0xf4d50d87);	/* 27 */
+		GG(b, c, d, a, x[8], S24, 0x455a14ed);	/* 28 */
+		GG(a, b, c, d, x[13], S21, 0xa9e3e905);	/* 29 */
+		GG(d, a, b, c, x[2], S22, 0xfcefa3f8);	/* 30 */
+		GG(c, d, a, b, x[7], S23, 0x676f02d9);	/* 31 */
+		GG(b, c, d, a, x[12], S24, 0x8d2a4c8a);	/* 32 */
 
-	HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
-	HH2(d, a, b, c, x[8], S32, 0x8771f681);	/* 34 */
-	HH(c, d, a, b, x[11], S33, 0x6d9d6122);	/* 35 */
-	HH2(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
-	HH(a, b, c, d, x[1], S31, 0xa4beea44);	/* 37 */
-	HH2(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
-	HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
-	HH2(b, c, d, a, x[10], S34, 0xbebfbc70);/* 40 */
-	HH(a, b, c, d, x[13], S31, 0x289b7ec6);	/* 41 */
-	HH2(d, a, b, c, x[0], S32, 0xeaa127fa);	/* 42 */
-	HH(c, d, a, b, x[3], S33, 0xd4ef3085);	/* 43 */
-	HH2(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
-	HH(a, b, c, d, x[9], S31, 0xd9d4d039);	/* 45 */
-	HH2(d, a, b, c, x[12], S32, 0xe6db99e5);/* 46 */
-	HH(c, d, a, b, 0, S33, 0x1fa27cf8);	/* 47 */
-	HH2(b, c, d, a, x[2], S34, 0xc4ac5665);	/* 48 */
+		HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
+		HH2(d, a, b, c, x[8], S32, 0x8771f681);	/* 34 */
+		HH(c, d, a, b, x[11], S33, 0x6d9d6122);	/* 35 */
+		HH2(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
+		HH(a, b, c, d, x[1], S31, 0xa4beea44);	/* 37 */
+		HH2(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
+		HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
+		HH2(b, c, d, a, x[10], S34, 0xbebfbc70);/* 40 */
+		HH(a, b, c, d, x[13], S31, 0x289b7ec6);	/* 41 */
+		HH2(d, a, b, c, x[0], S32, 0xeaa127fa);	/* 42 */
+		HH(c, d, a, b, x[3], S33, 0xd4ef3085);	/* 43 */
+		HH2(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
+		HH(a, b, c, d, x[9], S31, 0xd9d4d039);	/* 45 */
+		HH2(d, a, b, c, x[12], S32, 0xe6db99e5);/* 46 */
+		HH(c, d, a, b, 0, S33, 0x1fa27cf8);	/* 47 */
+		HH2(b, c, d, a, x[2], S34, 0xc4ac5665);	/* 48 */
 
-	II(a, b, c, d, x[0], S41, 0xf4292244);	/* 49 */
-	II(d, a, b, c, x[7], S42, 0x432aff97);	/* 50 */
-	II(c, d, a, b, len, S43, 0xab9423a7);	/* 51 */
-	II(b, c, d, a, x[5], S44, 0xfc93a039);	/* 52 */
-	II(a, b, c, d, x[12], S41, 0x655b59c3);	/* 53 */
-	II(d, a, b, c, x[3], S42, 0x8f0ccc92);	/* 54 */
-	II(c, d, a, b, x[10], S43, 0xffeff47d);	/* 55 */
-	II(b, c, d, a, x[1], S44, 0x85845dd1);	/* 56 */
-	II(a, b, c, d, x[8], S41, 0x6fa87e4f);	/* 57 */
-	II(d, a, b, c, 0, S42, 0xfe2ce6e0);	/* 58 */
-	II(c, d, a, b, x[6], S43, 0xa3014314);	/* 59 */
-	II(b, c, d, a, x[13], S44, 0x4e0811a1);	/* 60 */
-	II(a, b, c, d, x[4], S41, 0xf7537e82);	/* 61 */
-	II(d, a, b, c, x[11], S42, 0xbd3af235);	/* 62 */
+		II(a, b, c, d, x[0], S41, 0xf4292244);	/* 49 */
+		II(d, a, b, c, x[7], S42, 0x432aff97);	/* 50 */
+		II(c, d, a, b, len, S43, 0xab9423a7);	/* 51 */
+		II(b, c, d, a, x[5], S44, 0xfc93a039);	/* 52 */
+		II(a, b, c, d, x[12], S41, 0x655b59c3);	/* 53 */
+		II(d, a, b, c, x[3], S42, 0x8f0ccc92);	/* 54 */
+		II(c, d, a, b, x[10], S43, 0xffeff47d);	/* 55 */
+		II(b, c, d, a, x[1], S44, 0x85845dd1);	/* 56 */
+		II(a, b, c, d, x[8], S41, 0x6fa87e4f);	/* 57 */
+		II(d, a, b, c, 0, S42, 0xfe2ce6e0);	/* 58 */
+		II(c, d, a, b, x[6], S43, 0xa3014314);	/* 59 */
+		II(b, c, d, a, x[13], S44, 0x4e0811a1);	/* 60 */
+		II(a, b, c, d, x[4], S41, 0xf7537e82);	/* 61 */
+		II(d, a, b, c, x[11], S42, 0xbd3af235);	/* 62 */
+	} else {
+		FF(c, d, a, b, 0, S13, 0xffff5bb1);	/* 11 */
+		FF(b, c, d, a, 0, S14, 0x895cd7be);	/* 12 */
+		FF(a, b, c, d, 0, S11, 0x6b901122);	/* 13 */
+		FF(d, a, b, c, 0, S12, 0xfd987193);	/* 14 */
+		FF(c, d, a, b, len, S13, 0xa679438e);	/* 15 */
+		FF(b, c, d, a, 0, S14, 0x49b40821);	/* 16 */
+
+		GG(a, b, c, d, x[1], S21, 0xf61e2562);	/* 17 */
+		GG(d, a, b, c, x[6], S22, 0xc040b340);	/* 18 */
+		GG(c, d, a, b, 0, S23, 0x265e5a51);	/* 19 */
+		GG(b, c, d, a, x[0], S24, 0xe9b6c7aa);	/* 20 */
+		GG(a, b, c, d, x[5], S21, 0xd62f105d);	/* 21 */
+		GG(d, a, b, c, 0, S22, 0x2441453);	/* 22 */
+		GG(c, d, a, b, 0, S23, 0xd8a1e681);	/* 23 */
+		GG(b, c, d, a, x[4], S24, 0xe7d3fbc8);	/* 24 */
+		GG(a, b, c, d, x[9], S21, 0x21e1cde6);	/* 25 */
+		GG(d, a, b, c, len, S22, 0xc33707d6);	/* 26 */
+		GG(c, d, a, b, x[3], S23, 0xf4d50d87);	/* 27 */
+		GG(b, c, d, a, x[8], S24, 0x455a14ed);	/* 28 */
+		GG(a, b, c, d, 0, S21, 0xa9e3e905);	/* 29 */
+		GG(d, a, b, c, x[2], S22, 0xfcefa3f8);	/* 30 */
+		GG(c, d, a, b, x[7], S23, 0x676f02d9);	/* 31 */
+		GG(b, c, d, a, 0, S24, 0x8d2a4c8a);	/* 32 */
+
+		HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
+		HH2(d, a, b, c, x[8], S32, 0x8771f681);	/* 34 */
+		HH(c, d, a, b, 0, S33, 0x6d9d6122);	/* 35 */
+		HH2(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
+		HH(a, b, c, d, x[1], S31, 0xa4beea44);	/* 37 */
+		HH2(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
+		HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
+		HH2(b, c, d, a, 0, S34, 0xbebfbc70);/* 40 */
+		HH(a, b, c, d, 0, S31, 0x289b7ec6);	/* 41 */
+		HH2(d, a, b, c, x[0], S32, 0xeaa127fa);	/* 42 */
+		HH(c, d, a, b, x[3], S33, 0xd4ef3085);	/* 43 */
+		HH2(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
+		HH(a, b, c, d, x[9], S31, 0xd9d4d039);	/* 45 */
+		HH2(d, a, b, c, 0, S32, 0xe6db99e5);/* 46 */
+		HH(c, d, a, b, 0, S33, 0x1fa27cf8);	/* 47 */
+		HH2(b, c, d, a, x[2], S34, 0xc4ac5665);	/* 48 */
+
+		II(a, b, c, d, x[0], S41, 0xf4292244);	/* 49 */
+		II(d, a, b, c, x[7], S42, 0x432aff97);	/* 50 */
+		II(c, d, a, b, len, S43, 0xab9423a7);	/* 51 */
+		II(b, c, d, a, x[5], S44, 0xfc93a039);	/* 52 */
+		II(a, b, c, d, 0, S41, 0x655b59c3);	/* 53 */
+		II(d, a, b, c, x[3], S42, 0x8f0ccc92);	/* 54 */
+		II(c, d, a, b, 0, S43, 0xffeff47d);	/* 55 */
+		II(b, c, d, a, x[1], S44, 0x85845dd1);	/* 56 */
+		II(a, b, c, d, x[8], S41, 0x6fa87e4f);	/* 57 */
+		II(d, a, b, c, 0, S42, 0xfe2ce6e0);	/* 58 */
+		II(c, d, a, b, x[6], S43, 0xa3014314);	/* 59 */
+		II(b, c, d, a, 0, S44, 0x4e0811a1);	/* 60 */
+		II(a, b, c, d, x[4], S41, 0xf7537e82);	/* 61 */
+		II(d, a, b, c, 0, S42, 0xbd3af235);	/* 62 */
+	}
+
 	II(c, d, a, b, x[2], S43, 0x2ad7d2bb);	/* 63 */
 	II(b, c, d, a, x[9], S44, 0xeb86d391);	/* 64 */
 
@@ -363,9 +422,10 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	uint idx = get_global_id(0);
 	uint pass_len = inbuffer[idx].length;
 	uint salt_len = hsalt->saltlen;
-	uint alt_result[4];
 	md5_ctx ctx[8];
-	uint ctx_buflen[8];
+	uchar ctx_buflen[8];
+//	uint alt_result[4];
+#define alt_result ctx[0].buffer
 	union {
 		uint w[(PLAINTEXT_LENGTH + 3) / 4];
 		uchar c[PLAINTEXT_LENGTH];
@@ -376,7 +436,7 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	} salt;
 	uint i;
 
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef UNROLL_AGGRESSIVE
 #pragma unroll 4
 #endif
 	for (i = 0; i < (PLAINTEXT_LENGTH + 3) / 4; i++)
@@ -390,7 +450,7 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	ctx_update(&ctx[1], salt.c, salt_len, &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
 	PUTCHAR(ctx[1].buffer, ctx_buflen[1], 0x80);
-	md5_digest(&ctx[1], alt_result, ctx_buflen[1] << 3, 0);
+	md5_digest(ctx[1].buffer, alt_result, ctx_buflen[1] << 3, 0);
 
 	init_ctx(&ctx[1], &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
@@ -418,17 +478,11 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	//pattern[6]=pass salt alt
 	//pattern[7]=pass salt pass alt
 
-	uchar altpos[4];
-	altpos[0] = pass_len;
-	altpos[1] = pass_len * 2;
-	altpos[2] = pass_len + salt_len;
-	altpos[3] = altpos[1] + salt_len;
-
 	//prepare pattern buffers
 	init_ctx(&ctx[0], &ctx_buflen[0]);
 	PUTCHAR(ctx[1].buffer, ctx_buflen[1], 0x80);
 	//alt pass
-	md5_digest(&ctx[1], ctx[0].buffer, ctx_buflen[1] << 3, 0);	//add results from init
+	md5_digest(ctx[1].buffer, ctx[0].buffer, ctx_buflen[1] << 3, 0);	//add results from init
 	ctx_buflen[0] = 16;
 	for (i = 1; i < 8; i++)	//1 not 0
 		init_ctx(&ctx[i], &ctx_buflen[i]);
@@ -473,43 +527,58 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	ctx_buflen[7] += 16;
 	PUTCHAR(ctx[7].buffer, ctx_buflen[7], 0x80);
 
-#if gpu_nvidia(DEVICE_INFO)
-#pragma unroll 8
+#define altpos salt.c
+#ifdef UNROLL_LESS
+	salt.w[0] = 0;
 #endif
-	for (i = 0; i < 8; i++)
-		ctx_buflen[i] <<= 3;
+	altpos[4] = pass_len;
+	altpos[5] = pass_len * 2;
+	altpos[6] = pass_len + salt_len;
+	altpos[7] = altpos[5] + salt_len;
 
 	uint id1 = g[0], id2;
 
 	int j = 1;
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef UNROLL_LESS
+	for (i = 0; i < 1000; i++) {
+		id2 = g[j];
+		md5_digest(ctx[id1].buffer, ctx[id2].buffer, (uint)ctx_buflen[id1] << 3,
+		    altpos[id2]);
+		if (j == 41)
+			j = -1;
+		id1 = id2;
+		id2 = g[++j];
+	}
+#else
+#ifdef UNROLL_AGGRESSIVE
 	for (i = 0; i < 250; i++) {
 #else
 	for (i = 0; i < 500; i++) {
 #endif
 		id2 = g[j];
-		md5_digest(&ctx[id1], ctx[id2].buffer, ctx_buflen[id1],
-		    altpos[id2 - 4]);
+		md5_digest(ctx[id1].buffer, ctx[id2].buffer, (uint)ctx_buflen[id1] << 3,
+		    altpos[id2]);
 		if (j == 41)
 			j = -1;
 		id1 = g[j + 1];
-		md5_digest(&ctx[id2], ctx[id1].buffer, ctx_buflen[id2], 0);
+		md5_digest(ctx[id2].buffer, ctx[id1].buffer, (uint)ctx_buflen[id2] << 3, 0);
 
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef UNROLL_AGGRESSIVE
 		id2 = g[j + 2];
-		md5_digest(&ctx[id1], ctx[id2].buffer, ctx_buflen[id1],
-		    altpos[id2 - 4]);
+		md5_digest(ctx[id1].buffer, ctx[id2].buffer, (uint)ctx_buflen[id1] << 3,
+		    altpos[id2]);
 		if (j == 39)
 			j = -3;
 		id1 = g[j + 3];
 		j += 4;
-		md5_digest(&ctx[id2], ctx[id1].buffer, ctx_buflen[id2], 0);
+		md5_digest(ctx[id2].buffer, ctx[id1].buffer, (uint)ctx_buflen[id2] << 3, 0);
 #else
 		j += 2;
 #endif
 	}
+#endif
 
-#if gpu_nvidia(DEVICE_INFO)
+#ifdef UNROLL_AGGRESSIVE
 #pragma unroll 4
 #endif
 	for (i = 0; i < 4; i++)
