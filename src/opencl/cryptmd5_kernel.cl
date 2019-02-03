@@ -296,56 +296,110 @@ inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, 
 	FF(d, a, b, c, x[5], S12, 0x4787c62a);	/* 6 */
 	FF(c, d, a, b, x[6], S13, 0xa8304613);	/* 7 */
 	FF(b, c, d, a, x[7], S14, 0xfd469501);	/* 8 */
-	if (len + unify < 8*4*8) {
-		FF(a, b, c, d, 0, S11, 0x698098d8);	/* 9 */
-		FF(d, a, b, c, 0, S12, 0x8b44f7af);	/* 10 */
-		FF(c, d, a, b, 0, S13, 0xffff5bb1);	/* 11 */
-		FF(b, c, d, a, 0, S14, 0x895cd7be);	/* 12 */
-		FF(a, b, c, d, 0, S11, 0x6b901122);	/* 13 */
-		FF(d, a, b, c, 0, S12, 0xfd987193);	/* 14 */
-		FF(c, d, a, b, len, S13, 0xa679438e);	/* 15 */
-		FF(b, c, d, a, 0, S14, 0x49b40821);	/* 16 */
-		GG(a, b, c, d, x1, S21, 0xf61e2562);	/* 17 */
-		GG(d, a, b, c, x[6], S22, 0xc040b340);	/* 18 */
-		GG(c, d, a, b, 0, S23, 0x265e5a51);	/* 19 */
-		GG(b, c, d, a, x0, S24, 0xe9b6c7aa);	/* 20 */
-		GG(a, b, c, d, x[5], S21, 0xd62f105d);	/* 21 */
-		GG(d, a, b, c, 0, S22, 0x2441453);	/* 22 */
-		GG(c, d, a, b, 0, S23, 0xd8a1e681);	/* 23 */
-		GG(b, c, d, a, x[4], S24, 0xe7d3fbc8);	/* 24 */
-		GG(a, b, c, d, 0, S21, 0x21e1cde6);	/* 25 */
-		GG(d, a, b, c, len, S22, 0xc33707d6);	/* 26 */
-		GG(c, d, a, b, x3, S23, 0xf4d50d87);	/* 27 */
-		GG(b, c, d, a, 0, S24, 0x455a14ed);	/* 28 */
-		GG(a, b, c, d, 0, S21, 0xa9e3e905);	/* 29 */
-		GG(d, a, b, c, x2, S22, 0xfcefa3f8);	/* 30 */
-		GG(c, d, a, b, x[7], S23, 0x676f02d9);	/* 31 */
-		GG(b, c, d, a, 0, S24, 0x8d2a4c8a);	/* 32 */
-		HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
-		HH2(d, a, b, c, 0, S32, 0x8771f681);	/* 34 */
-		HH(c, d, a, b, 0, S33, 0x6d9d6122);	/* 35 */
-		HH2(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
-		HH(a, b, c, d, x1, S31, 0xa4beea44);	/* 37 */
-		HH2(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
-		HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
-		HH2(b, c, d, a, 0, S34, 0xbebfbc70);	/* 40 */
-		HH(a, b, c, d, 0, S31, 0x289b7ec6);	/* 41 */
-		HH2(d, a, b, c, x0, S32, 0xeaa127fa);	/* 42 */
-		HH(c, d, a, b, x3, S33, 0xd4ef3085);	/* 43 */
-		HH2(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
-		HH(a, b, c, d, 0, S31, 0xd9d4d039);	/* 45 */
-		HH2(d, a, b, c, 0, S32, 0xe6db99e5);	/* 46 */
-		HH(c, d, a, b, 0, S33, 0x1fa27cf8);	/* 47 */
-		HH2(b, c, d, a, x2, S34, 0xc4ac5665);	/* 48 */
-		II(a, b, c, d, x0, S41, 0xf4292244);	/* 49 */
-		II(d, a, b, c, x[7], S42, 0x432aff97);	/* 50 */
-		II(c, d, a, b, len, S43, 0xab9423a7);	/* 51 */
-		II(b, c, d, a, x[5], S44, 0xfc93a039);	/* 52 */
-		II(a, b, c, d, 0, S41, 0x655b59c3);	/* 53 */
-		II(d, a, b, c, x3, S42, 0x8f0ccc92);	/* 54 */
-		II(c, d, a, b, 0, S43, 0xffeff47d);	/* 55 */
-		II(b, c, d, a, x1, S44, 0x85845dd1);	/* 56 */
-		II(a, b, c, d, 0, S41, 0x6fa87e4f);	/* 57 */
+	uint lenu = len + unify;
+	if (lenu <= 8*4*8) {
+		if (lenu == 8*4*8) {
+/* This code path is frequently reached with pass_len = 8 */
+			FF(a, b, c, d, 0x80, S11, 0x698098d8);	/* 9 */
+			FF(d, a, b, c, 0, S12, 0x8b44f7af);	/* 10 */
+			FF(c, d, a, b, 0, S13, 0xffff5bb1);	/* 11 */
+			FF(b, c, d, a, 0, S14, 0x895cd7be);	/* 12 */
+			FF(a, b, c, d, 0, S11, 0x6b901122);	/* 13 */
+			FF(d, a, b, c, 0, S12, 0xfd987193);	/* 14 */
+			FF(c, d, a, b, len, S13, 0xa679438e);	/* 15 */
+			FF(b, c, d, a, 0, S14, 0x49b40821);	/* 16 */
+			GG(a, b, c, d, x1, S21, 0xf61e2562);	/* 17 */
+			GG(d, a, b, c, x[6], S22, 0xc040b340);	/* 18 */
+			GG(c, d, a, b, 0, S23, 0x265e5a51);	/* 19 */
+			GG(b, c, d, a, x0, S24, 0xe9b6c7aa);	/* 20 */
+			GG(a, b, c, d, x[5], S21, 0xd62f105d);	/* 21 */
+			GG(d, a, b, c, 0, S22, 0x2441453);	/* 22 */
+			GG(c, d, a, b, 0, S23, 0xd8a1e681);	/* 23 */
+			GG(b, c, d, a, x[4], S24, 0xe7d3fbc8);	/* 24 */
+			GG(a, b, c, d, 0, S21, 0x21e1cde6);	/* 25 */
+			GG(d, a, b, c, len, S22, 0xc33707d6);	/* 26 */
+			GG(c, d, a, b, x3, S23, 0xf4d50d87);	/* 27 */
+			GG(b, c, d, a, 0x80, S24, 0x455a14ed);	/* 28 */
+			GG(a, b, c, d, 0, S21, 0xa9e3e905);	/* 29 */
+			GG(d, a, b, c, x2, S22, 0xfcefa3f8);	/* 30 */
+			GG(c, d, a, b, x[7], S23, 0x676f02d9);	/* 31 */
+			GG(b, c, d, a, 0, S24, 0x8d2a4c8a);	/* 32 */
+			HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
+			HH2(d, a, b, c, 0x80, S32, 0x8771f681);	/* 34 */
+			HH(c, d, a, b, 0, S33, 0x6d9d6122);	/* 35 */
+			HH2(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
+			HH(a, b, c, d, x1, S31, 0xa4beea44);	/* 37 */
+			HH2(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
+			HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
+			HH2(b, c, d, a, 0, S34, 0xbebfbc70);	/* 40 */
+			HH(a, b, c, d, 0, S31, 0x289b7ec6);	/* 41 */
+			HH2(d, a, b, c, x0, S32, 0xeaa127fa);	/* 42 */
+			HH(c, d, a, b, x3, S33, 0xd4ef3085);	/* 43 */
+			HH2(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
+			HH(a, b, c, d, 0, S31, 0xd9d4d039);	/* 45 */
+			HH2(d, a, b, c, 0, S32, 0xe6db99e5);	/* 46 */
+			HH(c, d, a, b, 0, S33, 0x1fa27cf8);	/* 47 */
+			HH2(b, c, d, a, x2, S34, 0xc4ac5665);	/* 48 */
+			II(a, b, c, d, x0, S41, 0xf4292244);	/* 49 */
+			II(d, a, b, c, x[7], S42, 0x432aff97);	/* 50 */
+			II(c, d, a, b, len, S43, 0xab9423a7);	/* 51 */
+			II(b, c, d, a, x[5], S44, 0xfc93a039);	/* 52 */
+			II(a, b, c, d, 0, S41, 0x655b59c3);	/* 53 */
+			II(d, a, b, c, x3, S42, 0x8f0ccc92);	/* 54 */
+			II(c, d, a, b, 0, S43, 0xffeff47d);	/* 55 */
+			II(b, c, d, a, x1, S44, 0x85845dd1);	/* 56 */
+			II(a, b, c, d, 0x80, S41, 0x6fa87e4f);	/* 57 */
+		} else {
+			FF(a, b, c, d, 0, S11, 0x698098d8);	/* 9 */
+			FF(d, a, b, c, 0, S12, 0x8b44f7af);	/* 10 */
+			FF(c, d, a, b, 0, S13, 0xffff5bb1);	/* 11 */
+			FF(b, c, d, a, 0, S14, 0x895cd7be);	/* 12 */
+			FF(a, b, c, d, 0, S11, 0x6b901122);	/* 13 */
+			FF(d, a, b, c, 0, S12, 0xfd987193);	/* 14 */
+			FF(c, d, a, b, len, S13, 0xa679438e);	/* 15 */
+			FF(b, c, d, a, 0, S14, 0x49b40821);	/* 16 */
+			GG(a, b, c, d, x1, S21, 0xf61e2562);	/* 17 */
+			GG(d, a, b, c, x[6], S22, 0xc040b340);	/* 18 */
+			GG(c, d, a, b, 0, S23, 0x265e5a51);	/* 19 */
+			GG(b, c, d, a, x0, S24, 0xe9b6c7aa);	/* 20 */
+			GG(a, b, c, d, x[5], S21, 0xd62f105d);	/* 21 */
+			GG(d, a, b, c, 0, S22, 0x2441453);	/* 22 */
+			GG(c, d, a, b, 0, S23, 0xd8a1e681);	/* 23 */
+			GG(b, c, d, a, x[4], S24, 0xe7d3fbc8);	/* 24 */
+			GG(a, b, c, d, 0, S21, 0x21e1cde6);	/* 25 */
+			GG(d, a, b, c, len, S22, 0xc33707d6);	/* 26 */
+			GG(c, d, a, b, x3, S23, 0xf4d50d87);	/* 27 */
+			GG(b, c, d, a, 0, S24, 0x455a14ed);	/* 28 */
+			GG(a, b, c, d, 0, S21, 0xa9e3e905);	/* 29 */
+			GG(d, a, b, c, x2, S22, 0xfcefa3f8);	/* 30 */
+			GG(c, d, a, b, x[7], S23, 0x676f02d9);	/* 31 */
+			GG(b, c, d, a, 0, S24, 0x8d2a4c8a);	/* 32 */
+			HH(a, b, c, d, x[5], S31, 0xfffa3942);	/* 33 */
+			HH2(d, a, b, c, 0, S32, 0x8771f681);	/* 34 */
+			HH(c, d, a, b, 0, S33, 0x6d9d6122);	/* 35 */
+			HH2(b, c, d, a, len, S34, 0xfde5380c);	/* 36 */
+			HH(a, b, c, d, x1, S31, 0xa4beea44);	/* 37 */
+			HH2(d, a, b, c, x[4], S32, 0x4bdecfa9);	/* 38 */
+			HH(c, d, a, b, x[7], S33, 0xf6bb4b60);	/* 39 */
+			HH2(b, c, d, a, 0, S34, 0xbebfbc70);	/* 40 */
+			HH(a, b, c, d, 0, S31, 0x289b7ec6);	/* 41 */
+			HH2(d, a, b, c, x0, S32, 0xeaa127fa);	/* 42 */
+			HH(c, d, a, b, x3, S33, 0xd4ef3085);	/* 43 */
+			HH2(b, c, d, a, x[6], S34, 0x4881d05);	/* 44 */
+			HH(a, b, c, d, 0, S31, 0xd9d4d039);	/* 45 */
+			HH2(d, a, b, c, 0, S32, 0xe6db99e5);	/* 46 */
+			HH(c, d, a, b, 0, S33, 0x1fa27cf8);	/* 47 */
+			HH2(b, c, d, a, x2, S34, 0xc4ac5665);	/* 48 */
+			II(a, b, c, d, x0, S41, 0xf4292244);	/* 49 */
+			II(d, a, b, c, x[7], S42, 0x432aff97);	/* 50 */
+			II(c, d, a, b, len, S43, 0xab9423a7);	/* 51 */
+			II(b, c, d, a, x[5], S44, 0xfc93a039);	/* 52 */
+			II(a, b, c, d, 0, S41, 0x655b59c3);	/* 53 */
+			II(d, a, b, c, x3, S42, 0x8f0ccc92);	/* 54 */
+			II(c, d, a, b, 0, S43, 0xffeff47d);	/* 55 */
+			II(b, c, d, a, x1, S44, 0x85845dd1);	/* 56 */
+			II(a, b, c, d, 0, S41, 0x6fa87e4f);	/* 57 */
+		}
 		II(d, a, b, c, 0, S42, 0xfe2ce6e0);	/* 58 */
 		II(c, d, a, b, x[6], S43, 0xa3014314);	/* 59 */
 		II(b, c, d, a, 0, S44, 0x4e0811a1);	/* 60 */
@@ -356,8 +410,8 @@ inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, 
 	} else {
 		FF(a, b, c, d, x[8], S11, 0x698098d8);	/* 9 */
 		FF(d, a, b, c, x[9], S12, 0x8b44f7af);	/* 10 */
-		if (len + unify <= 10*4*8) {
-			if (len == 10*4*8) {
+		if (lenu <= 10*4*8) {
+			if (lenu == 10*4*8) {
 /* This code path is frequently reached with pass_len = 8, salt_len = 8 */
 				FF(c, d, a, b, 0x80, S13, 0xffff5bb1);	/* 11 */
 				FF(b, c, d, a, 0, S14, 0x895cd7be);	/* 12 */
