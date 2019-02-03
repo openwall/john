@@ -645,15 +645,15 @@ inline void sha512_crypt_full(
 	    for (uint32_t j = 8U; j < 16U; j++)
 		w[j] = 0;
 
-            w[0] = work_memory[OFFSET(loop_index[i], 0)];
-            w[1] = work_memory[OFFSET(loop_index[i], 1)];
-            w[2] = work_memory[OFFSET(loop_index[i], 2)];
-            w[3] = work_memory[OFFSET(loop_index[i], 3)];
-            w[4] = work_memory[OFFSET(loop_index[i], 4)];
-            w[5] = work_memory[OFFSET(loop_index[i], 5)];
-            w[6] = work_memory[OFFSET(loop_index[i], 6)];
-            w[7] = work_memory[OFFSET(loop_index[i], 7)];
-            total = work_memory[OFFSET(loop_index[i], 8)];
+            w[0] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 0)];
+            w[1] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 1)];
+            w[2] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 2)];
+            w[3] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 3)];
+            w[4] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 4)];
+            w[5] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 5)];
+            w[6] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 6)];
+            w[7] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 7)];
+            total = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 8)];
 
 	    {
 		uint32_t tmp, pos;
@@ -680,15 +680,15 @@ inline void sha512_crypt_full(
             w[5] = H[5];
             w[6] = H[6];
             w[7] = H[7];
-	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
-	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
-	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
-	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
-	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
-	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
-	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
-	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
+	    w[8] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 7)];
+            total = 64U + work_memory[OFFSET(loop_index[i % TILE_LOOPS], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
@@ -751,15 +751,15 @@ inline void sha512_crypt_fast(
 	    for (uint32_t j = 8U; j < 16U; j++)
 		w[j] = 0;
 
-            w[0] = work_memory[OFFSET(loop_index[i], 0)];
-            w[1] = work_memory[OFFSET(loop_index[i], 1)];
-            w[2] = work_memory[OFFSET(loop_index[i], 2)];
-            w[3] = work_memory[OFFSET(loop_index[i], 3)];
-            w[4] = work_memory[OFFSET(loop_index[i], 4)];
-            w[5] = work_memory[OFFSET(loop_index[i], 5)];
-            w[6] = work_memory[OFFSET(loop_index[i], 6)];
-            w[7] = work_memory[OFFSET(loop_index[i], 7)];
-            total = work_memory[OFFSET(loop_index[i], 8)];
+            w[0] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 0)];
+            w[1] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 1)];
+            w[2] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 2)];
+            w[3] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 3)];
+            w[4] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 4)];
+            w[5] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 5)];
+            w[6] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 6)];
+            w[7] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 7)];
+            total = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 8)];
 
 	    {
 		uint32_t tmp, pos;
@@ -786,15 +786,15 @@ inline void sha512_crypt_fast(
             w[5] = H[5];
             w[6] = H[6];
             w[7] = H[7];
-	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
-	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
-	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
-	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
-	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
-	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
-	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
-	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
+	    w[8] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 7)];
+            total = 64U + work_memory[OFFSET(loop_index[i % TILE_LOOPS], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
@@ -841,15 +841,15 @@ inline void sha512_crypt_f(
 	    for (uint32_t j = 8U; j < 16U; j++)
 		w[j] = 0;
 
-            w[0] = work_memory[OFFSET(loop_index[i], 0)];
-            w[1] = work_memory[OFFSET(loop_index[i], 1)];
-            w[2] = work_memory[OFFSET(loop_index[i], 2)];
-            w[3] = work_memory[OFFSET(loop_index[i], 3)];
-            w[4] = work_memory[OFFSET(loop_index[i], 4)];
-            w[5] = work_memory[OFFSET(loop_index[i], 5)];
-            w[6] = work_memory[OFFSET(loop_index[i], 6)];
-            w[7] = work_memory[OFFSET(loop_index[i], 7)];
-            total = work_memory[OFFSET(loop_index[i], 8)];
+            w[0] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 0)];
+            w[1] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 1)];
+            w[2] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 2)];
+            w[3] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 3)];
+            w[4] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 4)];
+            w[5] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 5)];
+            w[6] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 6)];
+            w[7] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 7)];
+            total = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 8)];
 
 	    {
 		uint32_t tmp, pos;
@@ -876,15 +876,15 @@ inline void sha512_crypt_f(
             w[5] = H[5];
             w[6] = H[6];
             w[7] = H[7];
-	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
-	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
-	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
-	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
-	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
-	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
-	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
-	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
+	    w[8] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[i % TILE_LOOPS], 7)];
+            total = 64U + work_memory[OFFSET(loop_index[i % TILE_LOOPS], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
