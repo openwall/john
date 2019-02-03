@@ -4,7 +4,7 @@
 64 bytes, equipped with on-board mask generator and comparator.
 The board computes 768 keys in parallel.
 - It's also able to compute Drupal7 CMS hashes.
-- Current consumption (12V input): 3.6-3.7À at full load, 0.4A idle.
+- Current consumption (12V input): 3.6-3.7A at full load, 0.4A idle.
 
 
 ## Computing units
