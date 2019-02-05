@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016-2018 Denis Burykin
+ * This software is Copyright (c) 2016-2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <ctype.h>
 
 #include "../loader.h"
 #include "../formats.h"
@@ -22,12 +23,8 @@
 #include "jtr_mask.h"
 #include "device_bitstream.h"
 #include "device_format.h"
+#include "ztex_sn.h"
 
-// Problem: Inclusion of ztex.h results in inclusion of libusb-1.0.h
-// which includes more stuff, on Cygwin that results in redefinition
-// of MEM_FREE macro. Using forward declaration instead.
-//#include "ztex.h"
-extern int ztex_sn_is_valid(char *sn);
 
 // If some task is not completed in this many seconds,
 // then it counts the device as not functioning one.
@@ -79,15 +76,35 @@ void device_format_init(struct fmt_main *fmt_main,
 	jtr_devices_allow = devices_allow;
 	jtr_verbosity = verbosity;
 
-	struct list_entry *entry;
-	int found_bad_sn = 0;
-	for (entry = devices_allow->head; entry; entry = entry->next)
-		if (!ztex_sn_is_valid(entry->data)) {
-			fprintf(stderr, "Error: bad Serial Number '%s'\n", entry->data);
-			found_bad_sn = 1;
+
+	static int init_conf_devices = 0;
+	if (!init_conf_devices) {
+
+		// Initialize [List.ZTEX:Devices] configuration section.
+		ztex_sn_init_conf_devices();
+
+		// Check -dev command-line option.
+		struct list_entry *entry;
+		int found_error = 0;
+		for (entry = devices_allow->head; entry; entry = entry->next) {
+
+			if (isdigit(entry->data[0]) && (entry->data[1] == 0
+					|| (isdigit(entry->data[1]) && entry->data[2] == 0)) ) {
+				if (!ztex_sn_check_alias(entry->data))
+					found_error = 1;
+			}
+
+			else if (!ztex_sn_is_valid(entry->data)) {
+				fprintf(stderr, "Error: bad Serial Number '%s'\n", entry->data);
+				found_error = 1;
+			}
 		}
-	if (found_bad_sn)
-		error();
+		if (found_error)
+			error();
+
+	init_conf_devices = 1;
+	}
+
 
 	// Initialize hardware.
 	// Uses globals: jtr_device_list, device_list, jtr_bitstream.

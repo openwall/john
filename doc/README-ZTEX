@@ -84,3 +84,9 @@ each one with its own set of boards can be invoked. Right now such usage
 is considered experimental - on some USB subsystems several instances
 conflict one with another and errors appear.
 
+Each board has a factory programmed Serial Number (SN). JtR displays
+SNs on startup and in information/error messages. To hide SNs, you can
+list SNs of your boards in [List.ZTEX:Devices] section in john.conf.
+Board numbers (starting from 1) will appear instead of SNs. You can
+specify these numbers in --dev command-line option.
+

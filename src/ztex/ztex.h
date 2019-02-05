@@ -16,12 +16,13 @@
 #ifndef _ZTEX_H_
 #define _ZTEX_H_
 
+#include "ztex_sn.h"
+
 #define USB_CMD_TIMEOUT 150
 #define USB_RW_TIMEOUT 500
 
-#define ZTEX_SNSTRING_LEN 11 // includes '\0' terminator
-#define ZTEX_SNSTRING_MIN_LEN 5
-#define ZTEX_PRODUCT_STRING_LEN 32 // includes '\0' terminator
+// includes '\0' terminator
+#define ZTEX_PRODUCT_STRING_LEN 32
 
 #define ZTEX_IDVENDOR 0x221A
 #define ZTEX_IDPRODUCT 0x0100
@@ -42,6 +43,7 @@
 #define CAPABILITY_MAC_EEPROM 0,6
 // Capability index for multi FPGA support.
 #define CAPABILITY_MULTI_FPGA 0,7
+// Copy-pasted from ZTEX SDK! (java)
 // Capability index for Temperature sensor support
 #define CAPABILITY_TEMP_SENSOR 0,8
 // Capability index for 2nd FLASH memory support
@@ -77,8 +79,9 @@ struct ztex_device {
 	int selected_fpga;
 	int valid;
 	struct ztex_device *next;
-	// ZTEX specific stuff from device
 	char snString[ZTEX_SNSTRING_LEN];
+	// ZTEX specific stuff from device
+	char snString_orig[ZTEX_SNSTRING_LEN];
 	unsigned char productId[4];
 	unsigned char fwVersion;
 	unsigned char interfaceVersion;
@@ -90,9 +93,6 @@ struct ztex_device {
 struct ztex_dev_list {
 	struct ztex_device *dev;
 };
-
-// checks if given string is a valid Serial Number
-int ztex_sn_is_valid(char *sn);
 
 int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev);
 
