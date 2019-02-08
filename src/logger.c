@@ -110,7 +110,7 @@ struct log_file {
 static struct log_file log = {NULL, NULL, NULL, 0, -1};
 static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
-static char *admin_start, *admin_end, *admin_string;
+static char *admin_start, *admin_end, *admin_string, *terminal_reset;
 static int in_logger, show_admins;
 
 static void log_file_init(struct log_file *f, char *name, char *perms, int size)
@@ -368,8 +368,10 @@ void log_init(char *log_name, char *pot_name, char *session)
 		                                      "MarkAdminStart"));
 		admin_end = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
 		                                    "MarkAdminEnd"));
+		terminal_reset = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		                                         "TerminalReset"));
 	} else
-		admin_start = admin_end = "";
+		admin_start = admin_end = terminal_reset = "";
 
 	admin_string = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
 	                                       "MarkAdminString"));
@@ -530,9 +532,10 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 
 			spacer[len > 16 ? 0 : 16 - len] = 0;
 
-			printf("%s%s (%s%s%s%s%s)\n",
+			printf("%s%s (%s%s%s%s%s%s)\n",
 			       rep_plain, spacer,
-			       ADM_START, login, uid_sep, uid_out, ADM_END);
+			       ADM_START, login, uid_sep, uid_out, ADM_END,
+			       terminal_reset);
 
 			if (options.fork)
 				fflush(stdout);
