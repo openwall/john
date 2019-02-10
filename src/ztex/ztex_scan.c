@@ -57,14 +57,28 @@ static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 
 		// If john is invoked with "--devices" command-line option,
 		// use only listed boards.
-		// If the board has SN of unsupported format - upload firmware.
-		if (jtr_devices_allow->count && (ztex_sn_is_valid(dev->snString)
-					|| !firmware_is_ok(dev)) ) {
-			if (!list_check(jtr_devices_allow, dev->snString)) {
+		if (jtr_devices_allow->count) {
+			// The board may have SN of unsupported format if firmware is
+			// not uploaded - skip check, proceed to firmware upload.
+			if (!ztex_sn_is_valid(dev->snString_orig)) {
+				if (firmware_is_ok(dev)) {
+					// This shouldn't happen (maybe hardware problem)
+					fprintf(stderr, "Error: firmware_is_ok, SN is of "
+						"unsupported format (%s)\n", dev->snString_orig);
+				}
+			}
+			else if (!list_check(jtr_devices_allow, dev->snString)) {
 				ztex_dev_list_remove(new_dev_list, dev);
 				continue;
 			}
 		}
+		/*
+		if (jtr_devices_allow->count && firmware_is_ok(dev)) {
+			if (!list_check(jtr_devices_allow, dev->snString)) {
+				ztex_dev_list_remove(new_dev_list, dev);
+				continue;
+			}
+		}*/
 
 		// Check device type
 		// only 1.15y devices supported for now

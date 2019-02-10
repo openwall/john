@@ -15,6 +15,7 @@
 #include <libusb-1.0/libusb.h>
 
 #include "ztex.h"
+#include "ztex_sn.h"
 
 #include "../path.h"
 
@@ -71,23 +72,6 @@ int vendor_request(struct libusb_device_handle *handle, int cmd, int value, int 
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-// checks if given string is a valid Serial Number
-int ztex_sn_is_valid(char *sn)
-{
-	int i;
-	for (i = 0; i < ZTEX_SNSTRING_LEN; i++) {
-		if (!sn[i])
-			return i < ZTEX_SNSTRING_MIN_LEN ? 0 : 1;
-		if ( !( (sn[i] >= '0' && sn[i] <= '9') || (sn[i] >= 'A' && sn[i] <= 'F')
-				|| (sn[i] >= 'a' && sn[i] <= 'f')) )
-			return 0;
-	}
-	if (sn[i])
-		return 0;
-
-	return 1;
-}
-
 // Creates 'struct ztex_device' out of 'libusb_device *'
 // gets data from the device
 int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
@@ -134,7 +118,7 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 	}
 
 	result = libusb_get_string_descriptor_ascii(dev->handle, desc.iSerialNumber,
-			(unsigned char *)dev->snString, ZTEX_SNSTRING_LEN);
+			(unsigned char *)dev->snString_orig, ZTEX_SNSTRING_LEN);
 	if (result < 0) {
 		ztex_error("ztex_device_new: libusb_get_string_descriptor_ascii(iSerialNumber): %s\n",
 				result, libusb_error_name(result));
@@ -142,13 +126,9 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 		return result;
 	}
 
-	// Before firmware upload, board may have SN of different format
-	//
-	//if (!ztex_sn_is_valid(dev->snString)) {
-	//	ztex_error("ztex_device_new: bad Serial Number (%s)\n", dev->snString);
-	//	ztex_device_delete(dev);
-	//	return -1;
-	//}
+	// Original SN remains in dev->snString_orig.
+	char *sn = ztex_sn_get_by_sn_orig(dev->snString_orig);
+	strncpy(dev->snString, sn, ZTEX_SNSTRING_LEN);
 
 	result = libusb_get_string_descriptor_ascii(dev->handle, desc.iProduct,
 			(unsigned char *)dev->product_string, ZTEX_PRODUCT_STRING_LEN);
@@ -319,7 +299,7 @@ void ztex_dev_list_print(struct ztex_dev_list *dev_list)
 	}
 }
 
-
+/*
 // Finds valid device with given Serial Number in ztex_dev_list
 struct ztex_device *ztex_find_by_sn(struct ztex_dev_list *dev_list, char *sn)
 {
@@ -335,6 +315,7 @@ struct ztex_device *ztex_find_by_sn(struct ztex_dev_list *dev_list, char *sn)
 	}
 	return NULL;
 }
+*/
 
 // Finds valid device by libusb_device *
 struct ztex_device *ztex_find_by_usb_dev(struct ztex_dev_list *dev_list, libusb_device *usb_dev)
