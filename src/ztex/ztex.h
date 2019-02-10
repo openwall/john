@@ -43,7 +43,8 @@
 #define CAPABILITY_MAC_EEPROM 0,6
 // Capability index for multi FPGA support.
 #define CAPABILITY_MULTI_FPGA 0,7
-// Copy-pasted from ZTEX SDK! (java)
+// Unsure if this works (not tested), looks like the right version
+// would be CAPABILITY_TEMP_SENSOR 1,0 (bit 0 in byte 1)
 // Capability index for Temperature sensor support
 #define CAPABILITY_TEMP_SENSOR 0,8
 // Capability index for 2nd FLASH memory support
