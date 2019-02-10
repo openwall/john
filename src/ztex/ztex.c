@@ -299,7 +299,7 @@ void ztex_dev_list_print(struct ztex_dev_list *dev_list)
 	}
 }
 
-/*
+#if 0
 // Finds valid device with given Serial Number in ztex_dev_list
 struct ztex_device *ztex_find_by_sn(struct ztex_dev_list *dev_list, char *sn)
 {
@@ -315,7 +315,7 @@ struct ztex_device *ztex_find_by_sn(struct ztex_dev_list *dev_list, char *sn)
 	}
 	return NULL;
 }
-*/
+#endif
 
 // Finds valid device by libusb_device *
 struct ztex_device *ztex_find_by_usb_dev(struct ztex_dev_list *dev_list, libusb_device *usb_dev)

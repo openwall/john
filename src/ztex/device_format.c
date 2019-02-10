@@ -79,7 +79,6 @@ void device_format_init(struct fmt_main *fmt_main,
 
 	static int init_conf_devices = 0;
 	if (!init_conf_devices) {
-
 		// Initialize [List.ZTEX:Devices] configuration section.
 		ztex_sn_init_conf_devices();
 
@@ -87,13 +86,10 @@ void device_format_init(struct fmt_main *fmt_main,
 		struct list_entry *entry;
 		int found_error = 0;
 		for (entry = devices_allow->head; entry; entry = entry->next) {
-
-			if (isdigit(entry->data[0]) && (entry->data[1] == 0
-					|| (isdigit(entry->data[1]) && entry->data[2] == 0)) ) {
+			if (ztex_sn_alias_is_valid(entry->data)) {
 				if (!ztex_sn_check_alias(entry->data))
 					found_error = 1;
 			}
-
 			else if (!ztex_sn_is_valid(entry->data)) {
 				fprintf(stderr, "Error: bad Serial Number '%s'\n", entry->data);
 				found_error = 1;
@@ -102,7 +98,7 @@ void device_format_init(struct fmt_main *fmt_main,
 		if (found_error)
 			error();
 
-	init_conf_devices = 1;
+		init_conf_devices = 1;
 	}
 
 

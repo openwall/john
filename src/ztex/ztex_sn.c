@@ -15,7 +15,7 @@
 #include "../config.h"
 #include "../list.h"
 #include "../misc.h"
-
+#include "../common.h"
 
 int ztex_sn_is_valid(char *sn)
 {
@@ -61,6 +61,12 @@ void ztex_sn_init_conf_devices(void)
 }
 
 
+int ztex_sn_alias_is_valid(char *alias)
+{
+	return isdec(alias);
+}
+
+
 int ztex_sn_check_alias(char *alias)
 {
 	static int ztex_sn_get_by_alias_error = 0;
@@ -73,7 +79,11 @@ int ztex_sn_check_alias(char *alias)
 		return 0;
 	}
 
-	int id = atoi(alias); // alias specified in -dev option
+	if (!ztex_sn_alias_is_valid(alias)) {
+		fprintf(stderr, "Error: invalid device alias '%s'\n", alias);
+		return 0;
+	}
+	int id = atoi(alias);
 	if (!id) {
 		fprintf(stderr, "Error: invalid -dev=0. Devices are numbered "
 			"starting from 1.\n");
@@ -84,7 +94,7 @@ int ztex_sn_check_alias(char *alias)
 	int last_id = 0;
 	for (line = ztex_sn_conf_devices->head; line; line = line->next) {
 		if (id == line->id + 1)
-			return 1;//line->data;
+			return 1;
 		if (!line->next)
 			last_id = line->id + 1;
 	}

@@ -23,8 +23,10 @@ int ztex_sn_is_valid(char *sn);
 // verify syntax correctness
 void ztex_sn_init_conf_devices(void);
 
-// Check if alias specified in --dev command-line option is correct
-// (SN is specified in [List.ZTEX:Devices])
+// Check if given alias string has valid syntax
+int ztex_sn_alias_is_valid(char *alias);
+
+// Check if alias exists (SN is specified in [List.ZTEX:Devices])
 int ztex_sn_check_alias(char *alias);
 
 // Given original SN reported by the board, return SN

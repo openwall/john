@@ -72,13 +72,6 @@ static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 				continue;
 			}
 		}
-		/*
-		if (jtr_devices_allow->count && firmware_is_ok(dev)) {
-			if (!list_check(jtr_devices_allow, dev->snString)) {
-				ztex_dev_list_remove(new_dev_list, dev);
-				continue;
-			}
-		}*/
 
 		// Check device type
 		// only 1.15y devices supported for now
