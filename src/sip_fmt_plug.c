@@ -249,7 +249,7 @@ static void *get_salt(char *ciphertext)
 	//snprintf(salt.dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
 	//salt.dynamic_hash_data_len = strlen(salt.dynamic_hash_data);
 
-	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
+	/* Construct last part of final hash data: ':NONCE(:NONCE_COUNT:CNONCE:QOP):<static_hash>' */
 	/* no qop */
 	if (!strlen(login.qop))
 		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
