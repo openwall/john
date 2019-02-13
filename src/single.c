@@ -74,12 +74,12 @@ static int restore_rule_number(void)
 
 	if (options.rule_stack) {
 		single_rule_stack.rule = single_rule_stack.stack_rule->head;
-		rules_stacked_number = 1;
+		rules_stacked_number = 0;
 		while (rules_stacked_number < rec_rule[1])
 			if (!rules_advance_stack(&single_rule_stack, 1))
 				return 1;
 		log_event("+ Stacked Rule #%u: '%.100s' accepted",
-		          rules_stacked_number, single_rule_stack.rule->data);
+		          rules_stacked_number + 1, single_rule_stack.rule->data);
 	}
 
 	return 0;
@@ -101,7 +101,7 @@ static double get_progress(void)
 	emms();
 
 	tot_rules = rule_count * stacked_rule_count;
-	tot_rule_number = (rules_stacked_number - 1) * rule_count + rule_number;
+	tot_rule_number = rules_stacked_number * rule_count + rule_number;
 
 	return progress ? progress :
 		100.0 * tot_rule_number / (tot_rules + 1);
@@ -401,7 +401,7 @@ static void single_init(void)
 
 	rules_init(single_db, length);
 	rec_rule[0] = rule_number = 0;
-	rec_rule[1] = rules_stacked_number = 1;
+	rec_rule[1] = rules_stacked_number = 0;
 	rule_count = rules_count(rule_ctx, 0);
 
 	stacked_rule_count = rules_init_stack(options.rule_stack,
@@ -687,8 +687,8 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	return 0;
 }
 
-#define tot_rule_no ((rules_stacked_number - 1) * rule_count + rule_number)
-#define tot_rule_now ((keys->rule[1] - 1) * rule_count + keys->rule[0])
+#define tot_rule_no (rules_stacked_number * rule_count + rule_number)
+#define tot_rule_now (keys->rule[1] * rule_count + keys->rule[0])
 
 static int single_process_salt(struct db_salt *salt, char *rule)
 {
@@ -795,7 +795,7 @@ static void single_run(void)
 					if (options.rule_stack)
 						log_event("- Oldest still in use rules are now "
 						          "base #%d, stacked #%d",
-						          rec_rule[0] + 1, rec_rule[1]);
+						          rec_rule[0] + 1, rec_rule[1] + 1);
 					else
 						log_event("- Oldest still in use is now rule #%d",
 						          rec_rule[0] + 1);

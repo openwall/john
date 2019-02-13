@@ -72,7 +72,7 @@ unsigned int rules_stacked_after;
 /*
  * Line number of stacked rule in use.
  */
-int rules_stacked_number = 1;
+int rules_stacked_number;
 
 /*
  * Configuration file line number, only set after a rules_check() call if
@@ -1830,9 +1830,9 @@ char *rules_process_stack(char *key, rule_stack *ctx)
 
 	if (!ctx->rule) {
 		ctx->rule = ctx->stack_rule->head;
-		rules_stacked_number = 1;
+		rules_stacked_number = 0;
 		log_event("+ Stacked Rule #%u: '%.100s' accepted",
-		          rules_stacked_number, ctx->rule->data);
+		          rules_stacked_number + 1, ctx->rule->data);
 	}
 
 	rules_stacked_after = 0;
@@ -1859,12 +1859,11 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 
 	if (!ctx->rule) {
 		ctx->rule = ctx->stack_rule->head;
-		rules_stacked_number = 1;
+		rules_stacked_number = 0;
 		if (!stack_rules_mute)
 			log_event("+ Stacked Rule #%u: '%.100s' accepted",
-			          rules_stacked_number, ctx->rule->data);
-	} else
-		ctx->rule = ctx->rule->next;
+			          rules_stacked_number + 1, ctx->rule->data);
+	}
 
 	rules_stacked_after = 0;
 
@@ -1877,7 +1876,7 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 			rules_stacked_number++;
 			if (!stack_rules_mute)
 			    log_event("+ Stacked Rule #%u: '%.100s' accepted",
-			          rules_stacked_number, ctx->rule->data);
+			          rules_stacked_number + 1, ctx->rule->data);
 		}
 	}
 

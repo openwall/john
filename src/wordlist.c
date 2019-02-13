@@ -388,9 +388,6 @@ static double get_progress(void)
 	int64_t pos;
 	uint64_t size;
 	uint64_t mask_mult = mask_tot_cand ? mask_tot_cand : 1;
-	uint64_t tot_rules = rule_count * crk_stacked_rule_count;
-	uint64_t tot_rule_number =
-		rule_number * crk_stacked_rule_count + rules_stacked_number;
 
 	emms();
 
@@ -424,8 +421,8 @@ static double get_progress(void)
 		}
 	}
 
-	return (100.0 * ((tot_rule_number * size * mask_mult) + pos * mask_mult) /
-	        (tot_rules * size * mask_mult));
+	return (100.0 * ((rule_number * size * mask_mult) + pos * mask_mult) /
+	        (rule_count * size * mask_mult));
 }
 
 static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
