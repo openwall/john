@@ -67,7 +67,11 @@ static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 						"unsupported format (%s)\n", dev->snString_orig);
 				}
 			}
-			else if (!list_check(jtr_devices_allow, dev->snString)) {
+			else if (list_check(jtr_devices_allow, dev->snString)
+				|| (ztex_sn_alias_is_valid(dev->snString)
+					&& list_check(jtr_devices_allow, dev->snString_orig)) ) {
+			}
+			else {
 				ztex_dev_list_remove(new_dev_list, dev);
 				continue;
 			}
