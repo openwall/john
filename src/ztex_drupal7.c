@@ -50,7 +50,7 @@ static struct device_bitstream bitstream = {
 	1024,		// 1K keys/fpga for self-test
 	512 * 1024,	// Absolute max. keys/crypt_all_interval for all devices.
 	512,		// Max. number of entries in onboard comparator.
-	160,		// Min. number of keys for effective device utilization
+	12 * 16,	// Min. number of keys for effective device utilization
 	1, { 160 },	// Programmable clocks
 	"Drupal7",	// label for configuration file
 	"\x01", 1	// Initialization data
