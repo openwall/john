@@ -131,6 +131,7 @@ static void listconf_list_method_names()
 static void listconf_list_build_info(void)
 {
 	char DebuggingOptions[512], *cpdbg=DebuggingOptions;
+	char *fmt_disabled = DebuggingOptions;
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
@@ -305,6 +306,26 @@ static void listconf_list_build_info(void)
 #define memmem_func	"JtR internal"
 #endif
 	printf("memmem(): " memmem_func "\n");
+
+// Disabled formats during build time because of some missing preconditions.
+#if !defined(HAVE_LIBZ)
+	fmt_disabled += sprintf(fmt_disabled, " pkzip");
+#endif
+#if !defined(ARCH_ALLOWS_UNALIGNED)
+	fmt_disabled += sprintf(fmt_disabled, " rar");
+#endif
+#if defined(JOHN_NO_SIMD) || !defined(__SSE4_1__)
+	fmt_disabled += sprintf(fmt_disabled, " stribog");
+#endif
+#if defined(DYNAMIC_DISABLED)
+	fmt_disabled += sprintf(fmt_disabled, " dynamic");
+#endif
+	if (DebuggingOptions != fmt_disabled) {
+		printf("Disabled format(s):%s\n"
+		       "\tDisabled during build because of missing preconditions\n",
+		       DebuggingOptions);
+		DebuggingOptions[0] = '\0';
+	}
 
 // OK, now append debugging options, BUT only output  something if
 // one or more of them is set. IF none set, be silent.
