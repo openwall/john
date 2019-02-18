@@ -200,6 +200,9 @@ static void single_init(void)
 	if (retest_guessed == -1)
 		error_msg("Expected boolean value for --single-retest-guess=BOOL\n");
 
+	if (options.seed_per_user && retest_guessed && !options.single_retest_guess)
+		fprintf(stderr, "Note: You might want --single-retest-guess=n when using --single-user-seed\n");
+
 	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;

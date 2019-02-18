@@ -243,11 +243,14 @@ struct options_main {
 /* Ciphertext subformat name */
 	char *subformat;
 
-/* Single mode seed word (--single-seed) */
+/* Single mode global seed word(s) (--single-seed) */
 	char *seed_word;
 
-/* Single mode seed wordlist file name (--single-wordlist) */
+/* Single mode global seed wordlist file name (--single-wordlist) */
 	char *seed_file;
+
+/* Single mode wordlist per username (--single-user-seed) */
+	char *seed_per_user;
 
 /* Override config's SingleRetestGuess */
 	char *single_retest_guess;

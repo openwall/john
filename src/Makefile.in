@@ -108,7 +108,7 @@ JOHN_OBJS = \
 	subsets.o unicode_range.o \
 	listconf.o \
 	fake_salts.o \
-	win32_memmap.o \
+	win32_memmap.o mmap-windows.o \
 	uaf_encode.o \
 	unicode.o \
 	unshadow.o \
@@ -396,7 +396,7 @@ md5crypt_long_fmt.o:	md5crypt_long_fmt.c md5crypt_common.h md5.h arch.h misc.h j
 
 md_helper.o:	md_helper.c
 
-: common.h arch.h memory.h os.h os-autoconf.h autoconfig.h jumbo.h pseudo_intrinsics.h aligned.h
+mmap-windows.o:	mmap-windows.c mem_map.h
 
 memory.o:	memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h johnswap.h os.h os-autoconf.h
 
@@ -521,7 +521,7 @@ whirlpool.o:	whirlpool.c sph_whirlpool.h sph_types.h autoconfig.h arch.h os.h os
 
 win32_memmap.o:	win32_memmap.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h win32_memmap.h misc.h memory.h
 
-wordlist.o:	wordlist.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h win32_memmap.h mmap-windows.c memory.h misc.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h rpp.h config.h rules.h external.h compiler.h cracker.h john.h unicode.h regex.h mask.h pseudo_intrinsics.h aligned.h
+wordlist.o:	wordlist.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h mem_map.h win32_memmap.h mmap-windows.c memory.h misc.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h rpp.h config.h rules.h external.h compiler.h cracker.h john.h unicode.h regex.h mask.h pseudo_intrinsics.h aligned.h
 
 wpapcap2john.o:	wpapcap2john.c wpapcap2john.h arch.h johnswap.h common.h memory.h jumbo.h os.h os-autoconf.h autoconfig.h
 
@@ -541,7 +541,7 @@ zip2john.o:	zip2john.c arch.h common.h memory.h jumbo.h formats.h params.h misc.
 princeprocessor:
 	$(CC) @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(CPPFLAGS) $(OPT_NORMAL) -std=c99 -DLINUX pp.c $(LDFLAGS) -o ../run/pp
 
-pp.o:	pp.c autoconfig.h arch.h win32_memmap.h os.h os-autoconf.h jumbo.h mmap-windows.c memory.h mpz_int128.h int128.h misc.h config.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h external.h compiler.h cracker.h john.h unicode.h prince.h rpp.h rules.h mask.h
+pp.o:	pp.c autoconfig.h arch.h mem_map.h os.h os-autoconf.h jumbo.h mmap-windows.c memory.h mpz_int128.h int128.h misc.h config.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h external.h compiler.h cracker.h john.h unicode.h prince.h rpp.h rules.h mask.h
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -std=c99 -c pp.c
 
 version.h: find_version

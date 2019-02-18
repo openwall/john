@@ -68,6 +68,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.seed_word},
 	{"single-wordlist", FLG_ZERO, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.seed_file},
+	{"single-user-seed", FLG_ZERO, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.seed_per_user},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
@@ -417,6 +419,7 @@ void opt_print_hidden_usage(void)
 	printf("\n");
 	puts("--single-seed=WORD[,WORD] add static seed word(s) for all salts in single mode");
 	puts("--single-wordlist=FILE    *short* wordlist with static seed words/morphemes");
+	puts("--single-user-seed=FILE   wordlist with seeds per username (user:password[s] format)");
 	puts("--single-retest-guess=B   override config for SingleRetestGuess (bool: Y/N)");
 	puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 	puts("--mkpc=N                  request a lower max. keys per crypt");

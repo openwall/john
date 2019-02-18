@@ -147,7 +147,7 @@ JOHN_OBJS = \
 	subsets.o unicode_range.o \
 	listconf.o \
 	fake_salts.o \
-	win32_memmap.o \
+	win32_memmap.o mmap-windows.o \
 	uaf_encode.o \
 	unicode.o \
 	unshadow.o \

@@ -29,6 +29,7 @@
 #include "misc.h"
 #include "params.h"
 #include "path.h"
+#include "mem_map.h"
 #include "memory.h"
 #include "list.h"
 #include "signals.h"
@@ -47,10 +48,16 @@
 #include "md5.h"
 #include "single.h"
 #include "showformats.h"
+#include "mgetl.h"
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
 #endif
+
+/*
+ * Jumbo may bump this at runtime
+ */
+static int ldr_words_max = LDR_WORDS_MAX;
 
 /*
  * If this is set, we are loading john.pot so we should
@@ -869,7 +876,7 @@ static void ldr_split_more(struct list_main *dst, char *src)
 		list_add_global_unique(dst, single_seed, word);
 		*pos = c;
 
-	} while (c && dst->count < LDR_WORDS_MAX);
+	} while (c && dst->count < ldr_words_max);
 }
 
 static void ldr_split_string(struct list_main *dst, char *src)
@@ -899,7 +906,7 @@ static void ldr_split_string(struct list_main *dst, char *src)
 
 		*pos++ = c;
 
-	} while (c && dst->count < LDR_WORDS_MAX);
+	} while (c && dst->count < ldr_words_max);
 }
 
 static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
@@ -912,6 +919,8 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	if (*login && login != no_username && !single_skip_login)
 		/* Never mind global dupes, this must be first in list */
 		list_add(words, ldr_conv(login));
+	if (options.seed_per_user && ldr_words_max != INT_MAX)
+		return words;
 	if (*gecos)
 		ldr_split_string(words, ldr_conv(gecos));
 	if ((pos = strrchr(home, '/')) && pos[1])
@@ -1152,6 +1161,9 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 		struct cfg_list *conf_seeds;
 
 		list_init(&single_seed);
+
+		if (options.seed_per_user && options.activesinglerules && strcmp(options.activesinglerules, "none"))
+			ldr_words_max = INT_MAX;
 
 		if (options.seed_word)
 			ldr_split_string(single_seed,
@@ -1865,6 +1877,179 @@ static void ldr_cost_ranges(struct db_main *db)
 	} while ((current = current->next));
 }
 
+#define MAYBE		4
+#define SORTED		2
+#define ASCII		1
+#define NO			0
+
+static void ldr_fill_user_words(struct db_main *db)
+{
+	struct db_salt *salt;
+	struct list_main *last_words = NULL;
+	int last_count;
+	FILE *file;
+	const char *name = path_expand(options.seed_per_user);
+	char line[LINE_BUFFER_SIZE];
+	size_t file_len;
+	int tot_num = 0;
+	int seeds_sorted = MAYBE | SORTED;
+
+	if (!(file = fopen(name, "r")))
+		pexit("fopen: %s", name);
+
+	jtr_fseek64(file, 0, SEEK_END);
+	if ((file_len = jtr_ftell64(file)) == -1)
+		pexit(STR_MACRO(jtr_ftell64));
+	jtr_fseek64(file, 0, SEEK_SET);
+	if (file_len < 3) {
+		if (john_main_process)
+			fprintf(stderr, "Error, per-user seed file is empty\n");
+		error();
+	}
+
+#ifdef HAVE_MMAP
+#if (SIZEOF_SIZE_T < 8)
+	mem_map = MAP_FAILED;
+	if (file_len < ((1LL)<<32))
+#endif
+	mem_map = mmap(NULL, file_len, PROT_READ, MAP_SHARED, fileno(file), 0);
+
+	if (mem_map == MAP_FAILED) {
+		mem_map = NULL;
+		log_event("- memory mapping failed (%s) - but we'll do fine without it.", strerror(errno));
+	} else {
+		map_pos = mem_map;
+		map_end = mem_map + file_len;
+		map_scan_end = map_end - VSCANSZ;
+	}
+#endif /* HAVE_MMAP */
+
+	fprintf(stderr, "Loading per-user seeds%s",
+	        options.verbosity > VERB_DEFAULT ? "\n" : "... ");
+
+	if ((salt = db->salts))
+	do {
+		struct db_password *passwd;
+		int num = 0;
+
+		if ((passwd = salt->list))
+		do {
+			struct list_main *words = passwd->words;
+			char *ret, *login;
+#if HAVE_MMAP
+			char *reset_pos = map_pos;
+#else
+			long reset_pos = ftell(file);
+#endif
+
+			if (!words || !words->head || !(login = words->head->data))
+				continue;
+
+			if (login[0] == '?' && !login[1])
+				continue;
+
+			if (last_words && !strcmp(login, last_words->head->data)) {
+				if (last_count)
+					list_add_list(words, last_words);
+				continue;
+			}
+
+			last_words = words;
+			last_count = 0;
+
+			while ((ret = GET_LINE(line, file))) {
+				char *user = line;
+				char *pw;
+
+				if (!*line || !(pw = strchr(line, ':'))) {
+#if HAVE_MMAP
+					reset_pos = map_pos;
+#else
+					reset_pos = ftell(file);
+#endif
+					continue;
+				}
+				*pw++ = 0;
+
+#if HAVE_MMAP
+				if ((seeds_sorted == (MAYBE | SORTED | ASCII)) && *line < 128 && *reset_pos < 128 &&
+				    strncmp(line, reset_pos, strlen(line)) < 0) {
+					fprintf(stderr, "User-seed file isn't sorted, slow load.\n");
+					seeds_sorted = NO;
+				} else if (seeds_sorted == (MAYBE | SORTED) && strncmp(line, reset_pos, strlen(line)) < 0)
+					seeds_sorted |= ASCII;
+#endif
+				if (!*pw) {
+#if HAVE_MMAP
+					reset_pos = map_pos;
+#else
+					reset_pos = ftell(file);
+#endif
+					continue;
+				}
+
+				int s = strcmp(user, login);
+
+				if (s < 0) {
+#if HAVE_MMAP
+					reset_pos = map_pos;
+#else
+					reset_pos = ftell(file);
+#endif
+					continue;
+				} else if (s && (seeds_sorted & ASCII)) {
+#if HAVE_MMAP
+					map_pos = (*user < 128) ? reset_pos : mem_map;
+#else
+					fseek(file, (*user < 128) ? reset_pos : 0, SEEK_SET);
+#endif
+					break;
+				} else if (s) {
+#if HAVE_MMAP
+					map_pos = (seeds_sorted & SORTED) ? reset_pos : mem_map;
+#else
+					fseek(file, (seeds_sorted & SORTED) ? reset_pos : 0, SEEK_SET);
+#endif
+					break;
+				}
+
+				num++;
+				list_add_global_unique(words, single_seed, ldr_conv(pw));
+				ldr_split_string(words, ldr_conv(pw));
+			}
+			if (!ret) {
+#if HAVE_MMAP
+				map_pos = mem_map;
+#else
+				fseek(file, 0, SEEK_SET);
+#endif
+				if (seeds_sorted & MAYBE)
+					seeds_sorted &= ~MAYBE;
+			}
+			last_count = num;
+		} while ((passwd = passwd->next));
+
+		tot_num += num;
+
+		if (num && options.verbosity > VERB_DEFAULT)
+			fprintf(stderr, "'%s' seeded with %d passwords\n", ((struct db_password*)salt->list)->login, num);
+		if (!num && options.verbosity >= VERB_DEBUG)
+			fprintf(stderr, "Found no passwords for '%s'\n", ((struct db_password*)salt->list)->login);
+		if (options.verbosity >= VERB_DEBUG)
+			getchar();
+	} while ((salt = salt->next));
+
+	fprintf(stderr, "Total of %d seeds loaded.\n", tot_num);
+
+#ifdef HAVE_MMAP
+	if (mem_map)
+		munmap(mem_map, file_len);
+	map_pos = map_end = NULL;
+#endif
+	if (fclose(file))
+		pexit("fclose");
+}
+
 void ldr_fix_database(struct db_main *db)
 {
 	int total = db->password_count;
@@ -1898,6 +2083,9 @@ void ldr_fix_database(struct db_main *db)
 			        total != 1 ? "es" : "", db->password_count);
 		exit(0);
 	}
+
+	if (!ldr_loading_testdb && options.seed_per_user)
+		ldr_fill_user_words(db);
 }
 
 static int ldr_cracked_hash(char *ciphertext)

@@ -45,21 +45,11 @@
  #endif
 #endif
 
-#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
-#include "win32_memmap.h"
-#undef MEM_FREE
-#if !defined(__CYGWIN__) && !defined(__MINGW64__) && !defined(__MINGW32__)
-#include "mmap-windows.c"
-#endif /* __CYGWIN */
-#endif /* _MSC_VER ... */
-
-#if defined(HAVE_MMAP)
-#include <sys/mman.h>
-#endif
-
 #include <errno.h>
 
 #include "arch.h"
+#include "mem_map.h"
+#include "memory.h"
 #include "jumbo.h"
 #include "misc.h"
 #include "params.h"
@@ -76,20 +66,11 @@
 #include "external.h"
 #include "cracker.h"
 #include "john.h"
-#include "memory.h"
 #include "unicode.h"
 #include "regex.h"
 #include "mask.h"
 #include "pseudo_intrinsics.h"
-
-#define _STR_VALUE(arg)         #arg
-#define STR_MACRO(n)            _STR_VALUE(n)
-
-#if defined(SIMD_COEF_32)
-#define VSCANSZ                 (SIMD_COEF_32 * 4)
-#else
-#define VSCANSZ                 0
-#endif
+#include "mgetl.h"
 
 static int dist_rules;
 
@@ -107,9 +88,6 @@ static int rule_number, rule_count;
 static int64_t line_number, loop_line_no;
 static int length;
 static struct rpp_context *rule_ctx;
-
-// used for memory map of file
-static char *mem_map, *map_pos, *map_end, *map_scan_end;
 
 // used for file in 'memory buffer' mode (ready to use array)
 static char *word_file_str, **words;
@@ -134,123 +112,6 @@ static int restore_rule_number(void)
 	return 0;
 }
 
-/* Like fgetl() but for the memory-mapped file. */
-static MAYBE_INLINE char *mgetl(char *res)
-{
-	char *pos = res;
-
-#if defined(vcmpeq_epi8_mask) && !defined(_MSC_VER) && \
-	!VLOADU_EMULATED && !VSTOREU_EMULATED
-
-	/* 16/32/64 chars at a time with known remainder. */
-	const vtype vnl = vset1_epi8('\n');
-
-	if (map_pos >= map_end)
-		return NULL;
-
-	while (map_pos < map_scan_end &&
-	       pos < res + LINE_BUFFER_SIZE - (VSCANSZ + 1)) {
-		vtype x = vloadu((vtype const *)map_pos);
-		uint64_t v = vcmpeq_epi8_mask(vnl, x);
-
-		vstoreu((vtype*)pos, x);
-		if (v) {
-#ifdef __GNUC__
-			unsigned int r = __builtin_ctzl(v);
-#else
-			unsigned int r = ffs(v) - 1;
-#endif
-			map_pos += r;
-			pos += r;
-			break;
-		}
-		map_pos += VSCANSZ;
-		pos += VSCANSZ;
-	}
-
-	if (*map_pos != '\n')
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
-
-	map_pos++;
-
-#elif ARCH_SIZE >= 8 && ARCH_ALLOWS_UNALIGNED /* Eight chars at a time */
-
-	uint64_t *ss = (uint64_t*)map_pos;
-	uint64_t *dd = (uint64_t*)pos;
-	unsigned int *s = (unsigned int*)map_pos;
-	unsigned int *d = (unsigned int*)pos;
-
-	if (map_pos >= map_end)
-		return NULL;
-
-	while ((char*)ss < map_scan_end &&
-	       (char*)dd < res + LINE_BUFFER_SIZE - 9 &&
-	       !((((*ss ^ 0x0a0a0a0a0a0a0a0a) - 0x0101010101010101) &
-	          ~(*ss ^ 0x0a0a0a0a0a0a0a0a)) & 0x8080808080808080))
-		*dd++ = *ss++;
-
-	s = (unsigned int*)ss;
-	d = (unsigned int*)dd;
-	if ((char*)s < map_scan_end &&
-	    (char*)d < res + LINE_BUFFER_SIZE - 5 &&
-	    !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
-	       ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
-		*d++ = *s++;
-
-	map_pos = (char*)s;
-	pos = (char*)d;
-
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
-	map_pos++;
-
-#elif ARCH_ALLOWS_UNALIGNED /* Four chars at a time */
-
-	unsigned int *s = (unsigned int*)map_pos;
-	unsigned int *d = (unsigned int*)pos;
-
-	if (map_pos >= map_end)
-		return NULL;
-
-	while ((char*)s < map_scan_end &&
-	       (char*)d < res + LINE_BUFFER_SIZE - 5 &&
-	       !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
-	          ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
-		*d++ = *s++;
-
-	map_pos = (char*)s;
-	pos = (char*)d;
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
-	map_pos++;
-
-#else /* One char at a time */
-
-	if (map_pos >= map_end)
-		return NULL;
-
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
-	map_pos++;
-
-#endif
-
-	/* Replace LF with NULL */
-	*pos = 0;
-
-	/* Handle CRLF too */
-	if (pos > res)
-	if (*--pos == '\r')
-		*pos = 0;
-
-	return res;
-}
-
 static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 {
 	if (n) {
@@ -258,8 +119,7 @@ static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 
 		if (!nWordFileLines)
 		do {
-			if (mem_map ? !mgetl(line) :
-			    !fgetl(line, LINE_BUFFER_SIZE, word_file))
+			if (!GET_LINE(line, word_file))
 				return 1;
 		} while (--n);
 	}
@@ -1016,7 +876,7 @@ GRAB_NEXT_PIPE_LOAD:
 			{
 				char *cpi, *cpe;
 
-				if (options.verbosity >= VERB_MAX)
+				if (options.verbosity >= VERB_DEBUG)
 				log_event("- Reading next block of candidate passwords from stdin pipe");
 
 				rules = rules_keep;
@@ -1064,7 +924,7 @@ GRAB_NEXT_PIPE_LOAD:
 						}
 					}
 				}
-				if (options.verbosity >= VERB_MAX) {
+				if (options.verbosity >= VERB_DEBUG) {
 					sprintf(msg_buf, "- Read block of %"PRId64" "
 					        "candidate passwords from pipe",
 					        (int64_t)nWordFileLines);
@@ -1076,7 +936,7 @@ GRAB_NEXT_PIPE_LOAD:
 MEM_MAP_LOAD:
 			rules = rules_keep;
 			nWordFileLines = 0;
-			if (options.verbosity >= VERB_MAX)
+			if (options.verbosity == VERB_DEBUG)
 				log_event("- Reading next block of candidate from the memory mapped file");
 			release_sharedmem_object(pIPC);
 			pIPC = next_sharedmem_object();
@@ -1373,8 +1233,7 @@ REDO_AFTER_LMLOOP:
 		}
 
 		else if (rule)
-		while (mem_map ? mgetl(line) :
-		       fgetl(line, LINE_BUFFER_SIZE, word_file)) {
+		while (GET_LINE(line, word_file)) {
 
 			line_number++;
 			check_bom(line);

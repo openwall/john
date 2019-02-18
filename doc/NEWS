@@ -101,6 +101,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Keys [<] and [>] can now be used to decrease/increase verbosity level.
   [magnum; 2020]
 
+- Added --single-user-seed=FILE option for single mode. FILE is a wordlist
+  with seeds per username (user:password[s] format)  [magnum; 2020]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

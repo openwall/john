@@ -67,18 +67,6 @@
 #include <ctype.h>
 #include <signal.h>
 
-#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
-#include "win32_memmap.h"
-#undef MEM_FREE
-#if !defined(__CYGWIN__) && !defined(__MINGW64__)
-#include "mmap-windows.c"
-#endif /* __CYGWIN */
-#endif /* _MSC_VER ... */
-
-#if defined(HAVE_MMAP)
-#include <sys/mman.h>
-#endif
-
 #if HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "mpz_int128.h"
 #define REALGMP "int128"
@@ -118,6 +106,8 @@
 #include "common.h"
 #include "path.h"
 #include "signals.h"
+#include "mem_map.h"
+#include "memory.h"
 #include "loader.h"
 #include "logger.h"
 #include "status.h"
@@ -126,7 +116,6 @@
 #include "external.h"
 #include "cracker.h"
 #include "john.h"
-#include "memory.h"
 #include "unicode.h"
 #include "prince.h"
 #include "rpp.h"
