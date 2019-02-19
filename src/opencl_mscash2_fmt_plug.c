@@ -91,7 +91,7 @@ static void reset(struct db_main *db)
 		self->params.max_keys_per_crypt = 0;
 
 		for ( i=0; i < get_number_of_devices_in_use(); i++)
-			self->params.max_keys_per_crypt += selectDevice(gpu_device_list[i], self);
+			self->params.max_keys_per_crypt += selectDevice(engaged_devices[i], self);
 
 		///Allocate memory
 		key_host = mem_calloc(self->params.max_keys_per_crypt, sizeof(*key_host));

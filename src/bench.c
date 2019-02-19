@@ -801,8 +801,8 @@ AGAIN:
 
 			s_gpu[0] = 0;
 			for (i = 0; i < MAX_GPU_DEVICES &&
-				     gpu_device_list[i] != -1; i++) {
-				int dev = gpu_device_list[i];
+				     engaged_devices[i] != -1; i++) {
+				int dev = engaged_devices[i];
 				int fan, temp, util, cl, ml;
 
 				fan = temp = util = cl = ml = -1;
