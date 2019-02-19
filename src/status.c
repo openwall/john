@@ -396,8 +396,8 @@ void status_print(void)
 		int n = 0;
 
 		for (i = 0; i < MAX_GPU_DEVICES &&
-			     gpu_device_list[i] != -1; i++) {
-			int dev = gpu_device_list[i];
+			     engaged_devices[i] != -1; i++) {
+			int dev = engaged_devices[i];
 
 			if (dev_get_temp[dev]) {
 				int fan, temp, util, cl, ml;

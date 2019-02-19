@@ -193,7 +193,7 @@ int get_number_of_devices_in_use()
 {
 	int i = 0;
 
-	while (gpu_device_list[i] != -1)
+	while (engaged_devices[i] != -1)
 		i++;
 
 	return i;
@@ -444,7 +444,7 @@ static int get_if_device_is_in_use(int sequential_id)
 	num_devices = get_number_of_devices_in_use();
 
 	for (i = 0; i < num_devices && !found; i++) {
-		if (sequential_id == gpu_device_list[i])
+		if (sequential_id == engaged_devices[i])
 			found = 1;
 	}
 	return found;
@@ -682,8 +682,8 @@ static void add_device_to_list(int sequential_id)
 				return;
 			}
 		}
-		gpu_device_list[get_number_of_devices_in_use() + 1] = -1;
-		gpu_device_list[get_number_of_devices_in_use()] = sequential_id;
+		engaged_devices[get_number_of_devices_in_use() + 1] = -1;
+		engaged_devices[get_number_of_devices_in_use()] = sequential_id;
 	}
 	// The full list of requested devices.
 	requested_devices[get_number_of_requested_devices() + 1] = -1;
@@ -807,7 +807,7 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 /*
  * Load the OpenCL environment
  * - fill in the "existing" devices list (devices[] variable) and;
- * - fill in the "in use" devices list (gpu_device_list[] variable);
+ * - fill in the "in use" devices list (engaged_devices[] variable);
  *   - device was initialized;
  *   - do not count duplicates;
  *     --device=2,2 result that "one" device is really in use;
@@ -844,8 +844,8 @@ void opencl_load_environment(void)
 
 		// Initialize OpenCL global control variables
 		device_list[0] = NULL;
-		gpu_device_list[0] = -1;
-		gpu_device_list[1] = -1;
+		engaged_devices[0] = -1;
+		engaged_devices[1] = -1;
 		requested_devices[0] = -1;
 		requested_devices[1] = -1;
 
@@ -915,8 +915,8 @@ void opencl_load_environment(void)
 			    get_number_of_requested_devices()];
 
 			// Hide any other devices from list
-			gpu_device_list[0] = gpu_id;
-			gpu_device_list[1] = -1;
+			engaged_devices[0] = gpu_id;
+			engaged_devices[1] = -1;
 		} else
 #endif
 
@@ -924,14 +924,14 @@ void opencl_load_environment(void)
 		// Poor man's multi-device support.
 		if (mpi_p > 1 && mpi_p_local > 1) {
 			// Pick device to use for this node
-			gpu_id = gpu_device_list[mpi_id % get_number_of_devices_in_use()];
+			gpu_id = engaged_devices[mpi_id % get_number_of_devices_in_use()];
 
 			// Hide any other devices from list
-			gpu_device_list[0] = gpu_id;
-			gpu_device_list[1] = -1;
+			engaged_devices[0] = gpu_id;
+			engaged_devices[1] = -1;
 		} else
 #endif
-			gpu_id = gpu_device_list[0];
+			gpu_id = engaged_devices[0];
 		platform_id = get_platform_id(gpu_id);
 
 		opencl_initialized = 1;
@@ -1003,15 +1003,15 @@ void opencl_done()
 	num_devices = get_number_of_devices_in_use();
 
 	for (i = 0; i < num_devices; i++) {
-		if (queue[gpu_device_list[i]])
-			HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_device_list[i]]),
+		if (queue[engaged_devices[i]])
+			HANDLE_CLERROR(clReleaseCommandQueue(queue[engaged_devices[i]]),
 			               "clReleaseCommandQueue");
-		queue[gpu_device_list[i]] = NULL;
-		if (context[gpu_device_list[i]])
-			HANDLE_CLERROR(clReleaseContext(context[gpu_device_list[i]]),
+		queue[engaged_devices[i]] = NULL;
+		if (context[engaged_devices[i]])
+			HANDLE_CLERROR(clReleaseContext(context[engaged_devices[i]]),
 			               "clReleaseContext");
-		context[gpu_device_list[i]] = NULL;
-		program[gpu_device_list[i]] = NULL;
+		context[engaged_devices[i]] = NULL;
+		program[engaged_devices[i]] = NULL;
 	}
 
 	/* Reset in case we load another format after this */
@@ -1022,7 +1022,7 @@ void opencl_done()
 	opencl_initialized = 0;
 	crypt_kernel = NULL;
 
-	gpu_device_list[0] = gpu_device_list[1] = -1;
+	engaged_devices[0] = engaged_devices[1] = -1;
 }
 
 static char *opencl_get_config_name(char *format, char *config_name)

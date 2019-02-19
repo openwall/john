@@ -40,8 +40,8 @@
 #include "signals.h"
 
 int gpu_id;
-int gpu_device_list[MAX_GPU_DEVICES];
-int requested_devices[MAX_GPU_DEVICES];
+int engaged_devices[MAX_GPU_DEVICES + 1];
+int requested_devices[MAX_GPU_DEVICES + 1];
 hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
 int gpu_temp_limit;
@@ -463,10 +463,10 @@ void gpu_check_temp(void)
 	if (gpu_temp_limit < 0)
 		return;
 
-	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++)
-	if (dev_get_temp[gpu_device_list[i]]) {
+	for (i = 0; i < MAX_GPU_DEVICES && engaged_devices[i] != -1; i++)
+	if (dev_get_temp[engaged_devices[i]]) {
 		int fan, temp, util, cl, ml;
-		int dev = gpu_device_list[i];
+		int dev = engaged_devices[i];
 
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util, &cl, &ml);
 
@@ -503,11 +503,11 @@ void gpu_log_temp(void)
 #if HAVE_LIBDL
 	int i;
 
-	for (i = 0; i < MAX_GPU_DEVICES && gpu_device_list[i] != -1; i++)
-	if (dev_get_temp[gpu_device_list[i]]) {
+	for (i = 0; i < MAX_GPU_DEVICES && engaged_devices[i] != -1; i++)
+	if (dev_get_temp[engaged_devices[i]]) {
 		char s_gpu[256] = "";
 		int n, fan, temp, util, cl, ml;
-		int dev = gpu_device_list[i];
+		int dev = engaged_devices[i];
 
 		fan = temp = util = -1;
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util, &cl, &ml);

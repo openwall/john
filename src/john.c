@@ -1585,7 +1585,7 @@ static void john_init(char *name, int argc, char **argv)
 	gpu_id = -1;
 #endif
 #if HAVE_OPENCL
-	gpu_device_list[0] = gpu_device_list[1] = -1;
+	engaged_devices[0] = engaged_devices[1] = -1;
 #endif
 	/* Process configuration options that depend on cfg_init() */
 	john_load_conf();
