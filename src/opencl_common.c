@@ -669,7 +669,9 @@ static void add_device_to_list(int sequential_id)
 	found = get_if_device_is_in_use(sequential_id);
 
 	if (found < 0) {
-		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id + 1);
+		fprintf(stderr, "Error: --device must be between 1 and %d "
+		          "(the number of devices available).\n",
+		          get_number_of_available_devices());
 		error();
 	}
 
@@ -798,8 +800,9 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 			        "\"acc[elerator]\".\n");
 			error();
 		} else if (device_list[n][0] == '0') {
-			fprintf(stderr, "Error: --device must be between 1 and "
-			        "the number of devices available.\n");
+			fprintf(stderr, "Error: --device must be between 1 and %d "
+			          "(the number of devices available).\n",
+			          get_number_of_available_devices());
 			error();
 		} else
 			add_device_to_list(atoi(device_list[n]) - 1);
