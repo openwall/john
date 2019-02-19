@@ -821,7 +821,6 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 void opencl_load_environment(void)
 {
 	char *device_list[MAX_GPU_DEVICES];
-	int n = 0, i;
 	char *env;
 
 	// Prefer COMPUTE over DISPLAY and lacking both, assume :0
@@ -837,22 +836,26 @@ void opencl_load_environment(void)
 	}
 
 	if (!opencl_initialized) {
+		int i;
+
 		nvidia_probe();
 		amd_probe();
-		device_list[0] = NULL;
 
+		// Initialize OpenCL global control variables
+		device_list[0] = NULL;
 		gpu_device_list[0] = -1;
 		gpu_device_list[1] = -1;
 		requested_devices[0] = -1;
 		requested_devices[1] = -1;
 
-		gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
-		                             "AbortTemperature");
-
 		for (i = 0; i < MAX_GPU_DEVICES; i++) {
 			context[i] = NULL;
 			queue[i] = NULL;
 		}
+
+		// Read the GPU temperature setting to abort
+		gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
+		             "AbortTemperature");
 
 		// Load information about available platforms and devices
 		load_opencl_environment();
@@ -862,37 +865,43 @@ void opencl_load_environment(void)
 			fprintf(stderr, "No OpenCL devices found\n");
 			error();
 		}
+
+		// Get the "--device" list requested by the user
 		{
+			int n = 0;
 			struct list_entry *current;
 
-			/* New syntax, sequential --device */
 			if ((current = options.acc_devices->head)) {
 				do {
 					device_list[n++] = current->data;
-				} while ((current = current->next));
+				} while ((current = current->next) && n < MAX_GPU_DEVICES);
 
 				device_list[n] = NULL;
 			} else
 				gpu_id = -1;
 		}
 
+		// If none selected, read the "--device" from the configuration file
 		if (!options.acc_devices->head && gpu_id < 0) {
 			char *devcfg;
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
 			                            SUBSECTION_OPENCL, "Device"))) {
-				gpu_id = atoi(devcfg);
-				gpu_device_list[0] = gpu_id;
+				device_list[0] = devcfg;
+				device_list[1] = NULL;
 			}
 		}
 
+		// No "--device" requested. Pick the most powerful GPU as the default one.
 		if (!device_list[0]) {
 			device_list[0] = "best";
 			device_list[1] = NULL;
 		}
 
+		// Build the list of requested (and working) OpenCL devices
 		build_device_list(device_list);
 
+		// No working OpenCL device was found
 		if (get_number_of_devices_in_use() == 0) {
 			fprintf(stderr, "No OpenCL devices found\n");
 			error();
