@@ -669,7 +669,7 @@ static void add_device_to_list(int sequential_id)
 	found = get_if_device_is_in_use(sequential_id);
 
 	if (found < 0) {
-		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
+		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id + 1);
 		error();
 	}
 
@@ -678,7 +678,7 @@ static void add_device_to_list(int sequential_id)
 		if (john_main_process) {
 			if (! start_opencl_device(sequential_id, &i)) {
 				fprintf(stderr, "Device id %d not working correctly,"
-					" skipping.\n", sequential_id);
+					" skipping.\n", sequential_id + 1);
 				return;
 			}
 		}
@@ -798,8 +798,12 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
 			        "or one of \"all\", \"cpu\", \"gpu\" and\n"
 			        "\"acc[elerator]\".\n");
 			error();
+		} else if (device_list[n][0] == '0') {
+			fprintf(stderr, "Error: --device must be between 1 and "
+			        "the number of devices available.\n");
+			error();
 		} else
-			add_device_to_list(atoi(device_list[n]));
+			add_device_to_list(atoi(device_list[n]) - 1);
 		n++;
 	}
 }
@@ -1122,14 +1126,14 @@ static void print_device_info(int sequential_id)
 
 		if (options.verbosity > 1 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d%s%s: %s [%s]\n",
-			        sequential_id,
+			        sequential_id + 1,
 #if HAVE_MPI
 			        "@", mpi_name,
 #else
 			        "", "",
 #endif
 			        device_name, opencl_log);
-		log_event("Device %d: %s [%s]", sequential_id, device_name, opencl_log);
+		log_event("Device %d: %s [%s]", sequential_id + 1, device_name, opencl_log);
 	} else {
 		char *dname = device_name;
 
@@ -1138,14 +1142,14 @@ static void print_device_info(int sequential_id)
 			dname++;
 
 		if (options.verbosity > 1 && !printed[sequential_id]++)
-			fprintf(stderr, "Device %d%s%s: %s\n", sequential_id,
+			fprintf(stderr, "Device %d%s%s: %s\n", sequential_id + 1,
 #if HAVE_MPI
 			        "@", mpi_name,
 #else
 			        "", "",
 #endif
 			        dname);
-		log_event("Device %d: %s", sequential_id, dname);
+		log_event("Device %d: %s", sequential_id + 1, dname);
 	}
 }
 
@@ -2951,7 +2955,7 @@ void opencl_list_devices(void)
 			p = dname;
 			while (isspace(ARCH_INDEX(*p))) /* Intel quirk */
 				p++;
-			printf("    Device #%d (%d) name:     %s\n", j, sequence_nr, p);
+			printf("    Device #%d (%d) name:     %s\n", j, sequence_nr + 1, p);
 
 			// Check if device seems to be working.
 			if (!start_opencl_device(sequence_nr, &err_type)) {
