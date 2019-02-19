@@ -723,7 +723,8 @@ static void add_device_type(cl_ulong device_type, int top)
 		if (clGetDeviceIDs(platforms[i].platform, CL_DEVICE_TYPE_ALL,
 				MAX_GPU_DEVICES, devices, &device_num) == CL_SUCCESS) {
 			// Sort devices by speed
-			for (j = 0; j < device_num; j++, sequence_nr++) {
+			for (j = 0; j < device_num && sequence_nr < MAX_GPU_DEVICES;
+			     j++, sequence_nr++) {
 				load_device_info(sequence_nr);
 				dev[sequence_nr].index = sequence_nr;
 				dev[sequence_nr].ID = devices[j];
