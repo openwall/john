@@ -396,7 +396,7 @@ void status_print(void)
 		int n = 0;
 
 		for (i = 0; i < MAX_GPU_DEVICES &&
-			     engaged_devices[i] != -1; i++) {
+			     engaged_devices[i] != DEV_LIST_END; i++) {
 			int dev = engaged_devices[i];
 
 			if (dev_get_temp[dev]) {
