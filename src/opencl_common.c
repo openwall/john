@@ -884,11 +884,11 @@ void opencl_load_environment(void)
 
 				cmdline_devices[n] = NULL;
 			} else
-				gpu_id = -1;
+				gpu_id = NO_GPU;
 		}
 
 		// If none selected, read the "--device" from the configuration file
-		if (!options.acc_devices->head && gpu_id < 0) {
+		if (!options.acc_devices->head && gpu_id <= NO_GPU) {
 			char *devcfg;
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
