@@ -821,7 +821,6 @@ static void build_device_list(char *device_list[MAX_GPU_DEVICES])
  */
 void opencl_load_environment(void)
 {
-	char *device_list[MAX_GPU_DEVICES];
 	char *env;
 
 	// Prefer COMPUTE over DISPLAY and lacking both, assume :0
@@ -838,16 +837,15 @@ void opencl_load_environment(void)
 
 	if (!opencl_initialized) {
 		int i;
+		char *cmdline_devices[MAX_GPU_DEVICES];
 
 		nvidia_probe();
 		amd_probe();
 
 		// Initialize OpenCL global control variables
-		device_list[0] = NULL;
+		cmdline_devices[0] = NULL;
 		engaged_devices[0] = -1;
-		engaged_devices[1] = -1;
 		requested_devices[0] = -1;
-		requested_devices[1] = -1;
 
 		for (i = 0; i < MAX_GPU_DEVICES; i++) {
 			context[i] = NULL;
@@ -874,10 +872,10 @@ void opencl_load_environment(void)
 
 			if ((current = options.acc_devices->head)) {
 				do {
-					device_list[n++] = current->data;
+					cmdline_devices[n++] = current->data;
 				} while ((current = current->next) && n < MAX_GPU_DEVICES);
 
-				device_list[n] = NULL;
+				cmdline_devices[n] = NULL;
 			} else
 				gpu_id = -1;
 		}
@@ -888,19 +886,19 @@ void opencl_load_environment(void)
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
 			                            SUBSECTION_OPENCL, "Device"))) {
-				device_list[0] = devcfg;
-				device_list[1] = NULL;
+				cmdline_devices[0] = devcfg;
+				cmdline_devices[1] = NULL;
 			}
 		}
 
 		// No "--device" requested. Pick the most powerful GPU as the default one.
-		if (!device_list[0]) {
-			device_list[0] = "best";
-			device_list[1] = NULL;
+		if (!cmdline_devices[0]) {
+			cmdline_devices[0] = "best";
+			cmdline_devices[1] = NULL;
 		}
 
 		// Build the list of requested (and working) OpenCL devices
-		build_device_list(device_list);
+		build_device_list(cmdline_devices);
 
 		// No working OpenCL device was found
 		if (get_number_of_devices_in_use() == 0) {
