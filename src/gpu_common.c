@@ -463,7 +463,7 @@ void gpu_check_temp(void)
 	if (gpu_temp_limit < 0)
 		return;
 
-	for (i = 0; i < MAX_GPU_DEVICES && engaged_devices[i] != -1; i++)
+	for (i = 0; i < MAX_GPU_DEVICES && engaged_devices[i] != DEV_LIST_END; i++)
 	if (dev_get_temp[engaged_devices[i]]) {
 		int fan, temp, util, cl, ml;
 		int dev = engaged_devices[i];
@@ -503,7 +503,7 @@ void gpu_log_temp(void)
 #if HAVE_LIBDL
 	int i;
 
-	for (i = 0; i < MAX_GPU_DEVICES && engaged_devices[i] != -1; i++)
+	for (i = 0; i < MAX_GPU_DEVICES && engaged_devices[i] != DEV_LIST_END; i++)
 	if (dev_get_temp[engaged_devices[i]]) {
 		char s_gpu[256] = "";
 		int n, fan, temp, util, cl, ml;

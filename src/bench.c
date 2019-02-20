@@ -801,7 +801,7 @@ AGAIN:
 
 			s_gpu[0] = 0;
 			for (i = 0; i < MAX_GPU_DEVICES &&
-				     engaged_devices[i] != -1; i++) {
+				     engaged_devices[i] != DEV_LIST_END; i++) {
 				int dev = engaged_devices[i];
 				int fan, temp, util, cl, ml;
 

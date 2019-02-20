@@ -193,7 +193,7 @@ int get_number_of_devices_in_use()
 {
 	int i = 0;
 
-	while (engaged_devices[i] != -1)
+	while (engaged_devices[i] != DEV_LIST_END)
 		i++;
 
 	return i;
@@ -207,7 +207,7 @@ int get_number_of_requested_devices()
 {
 	int i = 0;
 
-	while (requested_devices[i] != -1)
+	while (requested_devices[i] != DEV_LIST_END)
 		i++;
 
 	return i;
@@ -682,11 +682,11 @@ static void add_device_to_list(int sequential_id)
 				return;
 			}
 		}
-		engaged_devices[get_number_of_devices_in_use() + 1] = -1;
+		engaged_devices[get_number_of_devices_in_use() + 1] = DEV_LIST_END;
 		engaged_devices[get_number_of_devices_in_use()] = sequential_id;
 	}
 	// The full list of requested devices.
-	requested_devices[get_number_of_requested_devices() + 1] = -1;
+	requested_devices[get_number_of_requested_devices() + 1] = DEV_LIST_END;
 	requested_devices[get_number_of_requested_devices()] = sequential_id;
 }
 
@@ -844,8 +844,8 @@ void opencl_load_environment(void)
 
 		// Initialize OpenCL global control variables
 		cmdline_devices[0] = NULL;
-		engaged_devices[0] = -1;
-		requested_devices[0] = -1;
+		engaged_devices[0] = DEV_LIST_END;
+		requested_devices[0] = DEV_LIST_END;
 
 		for (i = 0; i < MAX_GPU_DEVICES; i++) {
 			context[i] = NULL;
@@ -914,7 +914,7 @@ void opencl_load_environment(void)
 
 			// Hide any other devices from list
 			engaged_devices[0] = gpu_id;
-			engaged_devices[1] = -1;
+			engaged_devices[1] = DEV_LIST_END;
 		} else
 #endif
 
@@ -926,7 +926,7 @@ void opencl_load_environment(void)
 
 			// Hide any other devices from list
 			engaged_devices[0] = gpu_id;
-			engaged_devices[1] = -1;
+			engaged_devices[1] = DEV_LIST_END;
 		} else
 #endif
 			gpu_id = engaged_devices[0];
@@ -1020,7 +1020,7 @@ void opencl_done()
 	opencl_initialized = 0;
 	crypt_kernel = NULL;
 
-	engaged_devices[0] = engaged_devices[1] = -1;
+	engaged_devices[0] = engaged_devices[1] = DEV_LIST_END;
 }
 
 static char *opencl_get_config_name(char *format, char *config_name)

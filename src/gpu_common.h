@@ -35,6 +35,8 @@ typedef struct {
 	char busId[100];
 } hw_bus;
 
+#define DEV_LIST_END             -1
+
 #define MAX_GPU_DEVICES         128
 extern int gpu_id;
 extern int engaged_devices[MAX_GPU_DEVICES + 1];
