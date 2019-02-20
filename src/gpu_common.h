@@ -36,6 +36,7 @@ typedef struct {
 } hw_bus;
 
 #define DEV_LIST_END             -1
+#define NO_GPU                   -1
 
 #define MAX_GPU_DEVICES         128
 extern int gpu_id;
