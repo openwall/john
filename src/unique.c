@@ -386,7 +386,7 @@ static void unique_run(void)
 			fprintf(stderr,
 			        "Slow pass %d; Total lines read: "Zu", unique lines written: "Zu" (%u%%)\n",
 			        slow, tot_lines, written_lines,
-			        (uint32_t)(100 * written_lines / tot_lines));
+			        tot_lines ? (uint32_t)(100 * written_lines / tot_lines) : 0);
 		read_buffer();
 		clean_buffer();
 		write_buffer();
@@ -549,8 +549,8 @@ int unique(int argc, char **argv)
 
 	fprintf(stderr,
 	        "Total lines read: "Zu", unique lines written: "Zu" (%u%%), ",
-	        tot_lines, written_lines,
-	        (uint32_t)(100 * written_lines / tot_lines));
+	        tot_lines, written_lines, tot_lines ?
+	        (uint32_t)(100 * written_lines / tot_lines) : 0);
 	if (slow)
 		fprintf(stderr, "%d slow passes\n", slow);
 	else
