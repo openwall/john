@@ -83,11 +83,11 @@ system.
 
 === Test your build
 
-    $ ../run/john --test=0
+    ../run/john --test=0
 
 === Benchmark your build
 
-    $ ../run/john --test
+    ../run/john --test
 
 
 
