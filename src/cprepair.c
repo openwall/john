@@ -20,23 +20,24 @@
 
 // gcc -Wall -O3 -s -DNOT_JOHN -D_JOHN_MISC_NO_LOG cprepair.c unicode.c misc.c -o ../run/cprepair
 
-static int sup, noguess, potfile;
+static int sup, noguess, potfile, printable;
 static int inv_cp, auto_cp;
 struct options_main options;
 
 #undef LINE_BUFFER_SIZE
 #define LINE_BUFFER_SIZE 0x10000
 
+#define TERM_RESET "\x1b[0m"
+
 static void dump_hex(const void *msg, const void *x, unsigned int size)
 {
 	unsigned int i;
 
-	printf("%s : ", (char *)msg);
-	for (i=0;i<size;i++)
-	{
+	printf("%s" TERM_RESET " : ", (char *)msg);
+	for (i = 0; i < size; i++) {
 		printf("%.2x", ((unsigned char*)x)[i]);
-		if ( (i%4)==3 )
-		printf(" ");
+		if ((i % 4) == 3)
+			printf(" ");
 	}
 	printf("\n");
 }
@@ -71,18 +72,24 @@ inline static int contains_ascii_letters(const char *s)
 
 static void usage(char *name, int retcode)
 {
-	printf("Codepage repair (c) magnum 2014\nUsage: %s [options] [file] [...]\n", name);
-	puts("\nOptions:");
-	puts(" -i <cp>   Codepage to use for 8-bit input");
-	puts(" -f <cp>   Alternate codepage when no ASCII letters (a-z, A-Z) seen");
+	puts("Codepage repair (c) magnum 2014-2019");
+	puts("\nInput can be a mix of codepages, UTF-8 and double-encoded UTF-8, and with");
+	puts("a mix of Windows (CRLF) and Unix (LF) line endings, or missing line endings");
+	puts("on last lines.  If no file name is given, STDIN is used.");
+	puts("Output is UTF-8 with LF line endings and no silly BOM.");
+	printf("\nUsage: %s [options] [file(s)]\n", name);
+	puts("Options:");
+	puts(" -i <cp>   Codepage to assume for 8-bit input. Default is CP1252 (MS Latin-1)");
+	puts(" -f <cp>   Alternate codepage when no ASCII letters (a-z, A-Z) seen (default");
+	puts("           is to not treat them differently)");
 	puts(" -n        Do not guess (leave 8-bit as-is)");
 	puts(" -s        Suppress lines that does not need fixing.");
-	puts(" -l        List supported encodings.");
 	puts(" -d        Debug (show conversions).");
+	puts(" -l        List supported encodings.");
 	puts(" -p        Only convert stuff after first ':' (.pot file).");
-	puts("\nCode pages default to CP1252 (MS Latin-1).");
-	puts("Double-conversions are handled automatically.");
-	puts("UTF-8 BOMs are stripped with no mercy. They should never be used, ever.");
+	puts(" -P        Suppress output lines with unprintable ASCII and, when used together");
+	puts("           with -n option, also suppress lines with invalid UTF-8");
+
 	exit(retcode);
 }
 
@@ -123,7 +130,8 @@ static int process_file(char *name)
 					len = 3 * LINE_BUFFER_SIZE;
 					orig[len] = 0;
 				}
-			}
+			} else
+				len = strlen(orig);
 
 			if (options.verbosity == VERB_MAX)
 				dump_hex(orig, orig, len);
@@ -142,7 +150,12 @@ static int process_file(char *name)
 
 			if (!valid) {
 				if (noguess) {
-					out = convin;
+					if (printable) {
+						if (options.verbosity > VERB_DEFAULT)
+							fprintf(stderr, "%s" TERM_RESET " skipped (invalid UTF-8)\n", convin);
+						continue;
+					} else
+						out = convin;
 				} else {
 					if (auto_cp != inv_cp)
 						options.internal_cp =
@@ -159,12 +172,13 @@ static int process_file(char *name)
 					out = (char*)utf16_to_utf8_r(u8buf, sizeof(u8buf), u16);
 					if (options.verbosity > VERB_DEFAULT &&
 					    strcmp(convin, out))
-						printf("%s -> ", orig);
+						fprintf(stderr, "%s" TERM_RESET " -> ", orig);
 				}
 			} else if (valid > 1) {
 				char dd[3 * LINE_BUFFER_SIZE + 1];
+				int level = 0;
 
-				/* Unroll any number of double-conversions */
+				/* Unroll any number of levels of double-conversions */
 				strcpy (dd, convin);
 				while (*convin) {
 					out = dd;
@@ -182,13 +196,33 @@ static int process_file(char *name)
 					    !valid_utf8(u8))
 						break;
 					strcpy(dd, (char*)u8);
-					if (options.verbosity == VERB_MAX)
-						fprintf(stderr, "Double-encoding\n");
+					level++;
 				}
+				if (level && options.verbosity > VERB_DEFAULT)
+					fprintf(stderr, "Double-encoding in %d level%s: ", level,
+					        level > 1 ? "s" : "");
 
 				if (options.verbosity > VERB_DEFAULT &&
 				    strcmp(convin, out))
-					printf("%s => ", convin);
+					fprintf(stderr, "%s" TERM_RESET " => ", convin);
+			}
+
+			if (printable) {
+				unsigned char *p = (unsigned char*)out;
+				int len = strlen(out);
+				int skip = 0;
+
+				while (len--) {
+					if (*p < 0x20 || *p == 0x7f) {
+						if (options.verbosity > VERB_DEFAULT)
+							fprintf(stderr, "%s" TERM_RESET " skipped (unprintables)\n", convin);
+						skip = 1;
+						break;
+					} else
+						p++;
+				}
+				if (skip)
+					continue;
 			}
 
 			if (!sup || (strcmp(convin, out))) {
@@ -211,7 +245,7 @@ int main(int argc, char **argv)
 
 	options.verbosity = VERB_DEFAULT;
 
-	while ((c = getopt(argc, argv, "si:f:hldpn")) != -1) {
+	while ((c = getopt(argc, argv, "si:f:hldpnP")) != -1) {
 		switch (c) {
 		case 's':
 			sup = 1;
@@ -224,6 +258,9 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			noguess = 1;
+			break;
+		case 'P':
+			printable = 1;
 			break;
 		case 'f':
 			auto_cp = cp_name2id(optarg);
@@ -249,11 +286,11 @@ int main(int argc, char **argv)
 
 	options.input_enc = UTF_8;
 
-	if (!auto_cp)
-		auto_cp = CP1252;
-
 	if (!inv_cp)
 		inv_cp = CP1252;
+
+	if (!auto_cp)
+		auto_cp = inv_cp;
 
 	if (argc == 0)
 		return process_file("-");
@@ -262,7 +299,7 @@ int main(int argc, char **argv)
 		int ret;
 
 		if (options.verbosity > VERB_DEFAULT)
-			printf("filename: %s\n", *argv);
+			fprintf(stderr, "filename: %s\n", *argv);
 		ret = process_file(*argv++);
 		if (ret != EXIT_SUCCESS)
 			return ret;
