@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ module P_2x32 #(
 	output [MSB:0] PN_out,
 
 	input ZF_wr_en,
-	output reg ZF, B31
+	output reg ZF = 0
 	);
 
 
@@ -52,7 +52,7 @@ module P_2x32 #(
 		// - iter_count(1) - off+19
 		// - salt(4) - off+20
 		// - IDs(2) - off+24
-		// - cmp_data(5) - off+26
+		// - reserved(5) - off+26
 		// Total words in data for encryption: 31
 		PD[31] = 0;
 	end
@@ -96,22 +96,34 @@ module P_2x32 #(
 	// Input selection.
 	// It's able to perform decrement w/o touching L,R.
 	//
-	assign PN_input =
-		PS_input_select == `INPUT_DIN & ~decr ? din :
-		PS_input_select == `INPUT_X_ & ~decr ? Ltmp_in :
-		{ {31-`SETTING_MAX{1'b0}}, PN_out[`SETTING_MAX:0] - 1'b1 }; // INPUT_DECR
+	//assign PN_input =
+	//	PS_input_select == `INPUT_DIN & ~decr ? din :
+	//	PS_input_select == `INPUT_X_ & ~decr ? Ltmp_in :
+	//	{ {31-`SETTING_MAX{1'b0}}, PN_out[`SETTING_MAX:0] - 1'b1 }; // INPUT_DECR
+	//
+	// Saving 32+6 LUT in contrast with the above
+	// (+6 for allowance to contain trash in upper bits after decrement)
+	//
+	assign PN_input[31:`SETTING_MAX+1] =
+		//decr ? {31-`SETTING_MAX{1'b0}} : // 6 LUT
+		PS_input_select == `INPUT_DIN ? din[31:`SETTING_MAX+1] :
+		Ltmp_in[31:`SETTING_MAX+1];
+
+	assign PN_input[`SETTING_MAX:0] = (
+		decr ? PN_out[`SETTING_MAX:0] :
+		PS_input_select == `INPUT_DIN ? din[`SETTING_MAX:0] :
+		Ltmp_in[`SETTING_MAX:0]
+	) - (decr ? 1'b1 : 1'b0);
 
 	assign S_input = PN_input;
 
 
 	//
-	// Zero flag (ZF), Bit 31
+	// Zero flag (ZF)
 	//
 	always @(posedge CLK)
-		if (ZF_wr_en) begin
-			ZF <= PN_input[30:0] == 0;
-			B31 <= PD_out[31];
-		end
+		if (ZF_wr_en)
+			ZF <= PN_input[`SETTING_MAX:0] == 0;
 
 
 endmodule

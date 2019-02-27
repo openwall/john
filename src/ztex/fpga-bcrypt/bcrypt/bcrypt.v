@@ -1,12 +1,15 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016-2017 Denis Burykin
+ * This software is Copyright (c) 2016-2017,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
  */
+`include "bcrypt.vh"
+
+`ifdef	SIMULATION
 
 module bcrypt #(
 	parameter NUM_CORES = 12, // Actually number of proxies
@@ -37,7 +40,8 @@ module bcrypt #(
 	input reg_output_limit,
 
 	// Status signals for internal usage
-	output reg idle = 0, error_r = 0,
+	output idle,
+	output reg error_r = 0,
 
 	// control input (VCR interface)
 	input [7:0] app_mode,
@@ -95,6 +99,7 @@ module bcrypt #(
 		.din(dout),
 		.wr_en(wr_en),
 		.full(full),
+		.idle(output_fifo_idle),
 
 		.rd_clk(IFCLK),
 		.dout(output_dout), // to Cypress IO,
@@ -114,14 +119,30 @@ module bcrypt #(
 		err_pkt_version, err_inpkt_type, err_inpkt_len, err_inpkt_checksum
 	};
 
-	reg pkt_comm_error = 0;
+	// Application error or pkt_comm error: Stop clock generation.
 	always @(posedge CLK)
-		pkt_comm_error <= |pkt_comm_status;
-
-	// Application error or pkt_comm error to be internally dealt with
-	always @(posedge CLK)
-		if (|app_status | pkt_comm_error)
+		if (|app_status | |pkt_comm_status)
 			error_r <= 1;
+
+	// IDLE status: Turn off clock buffer (clock remains running).
+	delay #(.INIT(1), .NBITS(6)) delay_idle_inst (.CLK(IFCLK),
+		.in(~hs_input_wr_en // no write into input fifo (IFCLK)
+			& output_fifo_idle // output "prepend" fifo is empty (IFCLK)
+			& pkt_comm_idle_sync
+			& arbiter_idle_sync
+		),
+		.out(idle) );
+
+	reg rd_en_r = 0;
+	always @(posedge CLK)
+		rd_en_r <= rd_en;
+
+	sync_sig sync_pkt_comm_idle( .sig(~rd_en_r
+			& word_list_empty & word_gen_empty & ek_empty),
+		.clk(IFCLK), .out(pkt_comm_idle_sync) );
+
+	sync_sig sync_arbiter_idle( .sig(arbiter_idle),
+		.clk(IFCLK), .out(arbiter_idle_sync) );
 
 
 	// **************************************************
@@ -158,7 +179,7 @@ module bcrypt #(
 	);
 
 	// input packet processing: read enable
-	assign rd_en = ~empty & ~error_r
+	assign rd_en = ~empty
 			& (~inpkt_data | word_gen_conf_en | word_list_wr_en | cmp_config_wr_en);
 
 
@@ -168,7 +189,7 @@ module bcrypt #(
 	// PKT_TYPE_TEMPLATE_LIST (0x04)
 	//
 	// **************************************************
-	wire word_list_wr_en = ~empty & ~error_r
+	wire word_list_wr_en = ~empty
 			& (inpkt_type == PKT_TYPE_WORD_LIST || inpkt_type == PKT_TYPE_TEMPLATE_LIST)
 			& inpkt_data & ~word_list_full;
 
@@ -199,7 +220,7 @@ module bcrypt #(
 	// input packet type PKT_TYPE_WORD_GEN (0x02)
 	//
 	// **************************************************
-	wire word_gen_conf_en = ~empty & ~error_r
+	wire word_gen_conf_en = ~empty
 			& inpkt_type == PKT_TYPE_WORD_GEN & inpkt_data & ~word_gen_conf_full;
 
 	wire [7:0] word_gen_dout;
@@ -252,8 +273,12 @@ module bcrypt #(
 	// input packet type CMP_CONFIG (0x03)
 	//
 	// **************************************************
-	wire cmp_config_wr_en = ~empty & ~error_r
+	wire cmp_config_wr_en = ~empty
 			& inpkt_type == PKT_TYPE_CMP_CONFIG & inpkt_data & ~cmp_config_full;
+
+	wire [`HASH_COUNT_MSB:0] hash_count;
+	wire [`HASH_NUM_MSB+2:0] cmp_wr_addr;
+	wire [7:0] cmp_din;
 
 	// Data processed by cmp_config stored in cmp_config's memory
 	// and accessed asynchronously
@@ -262,8 +287,11 @@ module bcrypt #(
 
 	bcrypt_cmp_config cmp_config(
 		.CLK(CLK), .din(din), .wr_en(cmp_config_wr_en), .full(cmp_config_full),
-		.no_cmp_data(~mode_cmp),
+		.mode_cmp(mode_cmp),
 		.error(err_cmp_config),
+
+		.hash_count(hash_count), .cmp_wr_addr(cmp_wr_addr),
+		.cmp_wr_en(cmp_wr_en), .cmp_din(cmp_din),
 
 		.new_cmp_config(new_cmp_config), .cmp_config_applied(cmp_config_applied),
 		.addr(cmp_config_addr), .dout(cmp_config_dout), .sign_extension_bug(sign_extension_bug)
@@ -346,11 +374,13 @@ module bcrypt #(
 	// - summarizes results.
 	//
 	// **********************************************************
+	wire [31:0] cmp_data;
+	wire [`HASH_NUM_MSB:0] cmp_hash_num;
+
 	wire [`OUTPKT_TYPE_MSB:0] outpkt_type;
-	wire [15:0] arbiter_pkt_id, arbiter_word_id;
-	wire [31:0] arbiter_gen_id, num_processed;
+	wire [15:0] arbiter_pkt_id;
+	wire [31:0] num_processed;
 	wire [`HASH_NUM_MSB:0] hash_num;
-	//wire [`RESULT_LEN*8-1:0] result;
 	wire [15:0] arbiter_dout;
 	wire [3:0] arbiter_rd_addr;
 
@@ -367,12 +397,10 @@ module bcrypt #(
 		.start_init_tx(start_init_tx), .start_data_tx(start_data_tx),
 		.bcdata_gen_end(bcdata_gen_end), .bcdata_pkt_id(bcdata_pkt_id),
 
-		// Output (outpkt_v3)
-		//.outpkt_type(outpkt_type),
-		//.pkt_id(arbiter_pkt_id), .word_id(arbiter_word_id), .gen_id(arbiter_gen_id),
-		//.num_processed(num_processed), .hash_num(hash_num),
-		//.result(result),
-		//.empty(arbiter_empty), .rd_en(arbiter_rd_en), .error(arbiter_error),
+		// Comparator
+		.cmp_data(cmp_data), .cmp_start(cmp_start),
+		.cmp_found(cmp_found), .cmp_finished(cmp_finished),
+		.cmp_hash_num(cmp_hash_num),
 
 		// Output (outpkt_bcrypt)
 		.dout(arbiter_dout), .rd_addr(arbiter_rd_addr),
@@ -380,8 +408,7 @@ module bcrypt #(
 		.num_processed(num_processed), .hash_num(hash_num),
 		.empty(arbiter_empty), .rd_en(arbiter_rd_en),
 
-		.error(arbiter_error),
-		//.debug(debug),
+		.error(arbiter_error), .idle(arbiter_idle),
 
 		// Wrappers and cores are moved to top level module
 		// for better usage of Hierarchial Design Methodology
@@ -389,6 +416,24 @@ module bcrypt #(
 		.core_wr_en(core_wr_en),
 		.core_init_ready_in(core_init_ready), .core_crypt_ready_in(core_crypt_ready),
 		.core_rd_en(core_rd_en), .core_empty_in(core_empty), .core_dout_in(core_dout)
+	);
+
+
+	// **************************************************
+	//
+	// Comparator
+	// if mode_cmp=1 (the default) then computed hashes
+	// appear in the comparator.
+	//
+	// **************************************************
+	comparator comparator(
+		.CLK(CLK),
+		// cmp_config
+		.din(cmp_din), .wr_en(cmp_wr_en),
+		.wr_addr(cmp_wr_addr), .hash_count(hash_count),
+		// arbiter (rx part)
+		.cmp_data(cmp_data), .start(cmp_start),
+		.found(cmp_found), .finished(cmp_finished), .hash_num(cmp_hash_num)
 	);
 
 
@@ -415,23 +460,119 @@ module bcrypt #(
 		.dout(dout), .rd_en(wr_en), .empty(outpkt_empty), .pkt_end_out()
 	);
 
-/*
-	outpkt_v3 #(
-		.HASH_NUM_MSB(`HASH_NUM_MSB), .SIMULATION(SIMULATION)
-	) outpkt(
-		.CLK(CLK), .wr_en(outpkt_wr_en), .full(outpkt_full),
-
-		.pkt_type(outpkt_type),
-		.pkt_id(arbiter_pkt_id), .word_id(arbiter_word_id), .gen_id(arbiter_gen_id),
-		.hash_num(hash_num), .num_processed(num_processed),
-		.result(result),
-
-		.dout(dout), .rd_en(wr_en), .empty(outpkt_empty), .pkt_end_out()
-	);
-*/
-
 	// Write data into output FIFO
 	assign wr_en = ~outpkt_empty & ~full;
 
+
+endmodule
+
+`else
+
+module bcrypt #(
+	parameter NUM_CORES = 12,
+	parameter VERSION = `PKT_COMM_VERSION,
+	parameter PKT_MAX_LEN = 16*65536,
+	parameter PKT_LEN_MSB = `MSB(PKT_MAX_LEN),
+	parameter WORD_MAX_LEN = `PLAINTEXT_LEN,
+	parameter CHAR_BITS = `CHAR_BITS,
+	parameter RANGES_MAX = `RANGES_MAX,
+	parameter RANGE_INFO_MSB = 1 + `MSB(WORD_MAX_LEN-1),
+	parameter SIMULATION = 0
+	)(
+	input CORE_CLK,
+
+	// I/O using hs_io_v2
+	input IFCLK,
+	input [15:0] hs_input_din,
+	input hs_input_wr_en,
+	output hs_input_almost_full,
+	output hs_input_prog_full,
+
+	output [15:0] output_dout,
+	input output_rd_en,
+	output output_empty,
+	output [15:0] output_limit,
+	output output_limit_not_done,
+	input output_mode_limit,
+	input reg_output_limit,
+
+	// Status signals for internal usage
+	output reg idle = 0, error_r = 0,
+
+	// control input (VCR interface)
+	input [7:0] app_mode,
+	// status output (VCR interface)
+	output [7:0] app_status,
+	output [7:0] pkt_comm_status,
+	output [7:0] debug2, debug3,
+	//output [255:0] debug,
+
+	input mode_cmp,
+	// Cores are moved to top-level module.
+	output [7:0] core_din,
+	output [1:0] core_ctrl,
+	output [NUM_CORES-1:0] core_wr_en,
+	input [NUM_CORES-1:0] core_init_ready, core_crypt_ready,
+	output [NUM_CORES-1:0] core_rd_en,
+	input [NUM_CORES-1:0] core_empty,
+	input [NUM_CORES-1:0] core_dout
+	);
+
+endmodule
+
+`endif
+
+module bcrypt_dummy #(
+	parameter NUM_CORES = 12,
+	parameter VERSION = `PKT_COMM_VERSION,
+	parameter PKT_MAX_LEN = 16*65536,
+	parameter PKT_LEN_MSB = `MSB(PKT_MAX_LEN),
+	parameter WORD_MAX_LEN = `PLAINTEXT_LEN,
+	parameter CHAR_BITS = `CHAR_BITS,
+	parameter RANGES_MAX = `RANGES_MAX,
+	parameter RANGE_INFO_MSB = 1 + `MSB(WORD_MAX_LEN-1),
+	parameter SIMULATION = 0
+	)(
+	input CORE_CLK,
+
+	// I/O using hs_io_v2
+	input IFCLK,
+	input [15:0] hs_input_din,
+	input hs_input_wr_en,
+	output hs_input_almost_full,
+	output hs_input_prog_full,
+
+	output [15:0] output_dout,
+	input output_rd_en,
+	output output_empty,
+	output [15:0] output_limit,
+	output output_limit_not_done,
+	input output_mode_limit,
+	input reg_output_limit,
+
+	// Status signals for internal usage
+	output reg idle = 0, error_r = 0,
+
+	// control input (VCR interface)
+	input [7:0] app_mode,
+	// status output (VCR interface)
+	output [7:0] app_status,
+	output [7:0] pkt_comm_status,
+	output [7:0] debug2, debug3,
+	//output [255:0] debug,
+
+	input mode_cmp,
+	// Cores are moved to top-level module.
+	output [7:0] core_din,
+	output [1:0] core_ctrl,
+	output [NUM_CORES-1:0] core_wr_en,
+	input [NUM_CORES-1:0] core_init_ready, core_crypt_ready,
+	output [NUM_CORES-1:0] core_rd_en,
+	input [NUM_CORES-1:0] core_empty,
+	input [NUM_CORES-1:0] core_dout
+	);
+
+	always @(posedge CORE_CLK)
+		idle <= ^core_empty;
 
 endmodule

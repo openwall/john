@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -16,10 +16,7 @@
 // * 4 bytes: "tunable cost" (iteration count)
 // * 2 bytes: hash count for comparator (up to `NUM_HASHES)
 // * 4*(hash count) bytes: comparator data (bits 0-30 of hash).
-//	Bit 31 indicates hash is valid, it's set by bcrypt_cmp_config.
 // * ends with 0xCC
-//
-// BUG! Only 3 hashes per salt actually supported
 //
 module bcrypt_cmp_config(
 	input CLK,
@@ -30,13 +27,19 @@ module bcrypt_cmp_config(
 	output error,
 
 	// When asserted, it accepts packets without comparator data.
-	input no_cmp_data,
+	input mode_cmp,
 
 	// Iteraction with other subsystems.
 	output reg new_cmp_config = 0, // asserted when new cmp_config incoming
 	// do not finish processing, block processing next packets by pkt_comm
 	// until cmp_config_applied asserted
 	input cmp_config_applied,
+
+	// Output into comparator
+	output reg [`HASH_COUNT_MSB:0] hash_count,
+	output reg [`HASH_NUM_MSB+2:0] cmp_wr_addr = {`HASH_NUM_MSB+3{1'b1}},
+	output reg cmp_wr_en = 0,
+	output reg [7:0] cmp_din,
 
 	// Output
 	input [3:0] addr,
@@ -52,7 +55,6 @@ module bcrypt_cmp_config(
 	// Data for output is stored in 16 x32-bit distributed RAM.
 	// 0 - iter_count(1)
 	// 1-4 - salt(4)
-	// 5-9 - cmp_data(5)
 	//
 	(* RAM_STYLE="DISTRIBUTED" *)
 	reg [31:0] data [15:0];
@@ -65,7 +67,10 @@ module bcrypt_cmp_config(
 
 	reg [1:0] byte_count = 0;
 	reg [1:0] salt_word_count = 0;
-	reg [`HASH_NUM_MSB:0] hash_count = 0, hash_num = 0;
+
+	reg [`HASH_NUM_MSB+2:0] cmp_wr_addr_max;
+	wire [`HASH_NUM_MSB+3:0] cmp_wr_addr_max_eqn
+		= { din[`HASH_COUNT_MSB-8:0], hash_count[7:0], 2'b00 } - 2'b10;
 
 	localparam STATE_SALT = 0,
 					STATE_SALT_SUBTYPE = 1,
@@ -73,21 +78,20 @@ module bcrypt_cmp_config(
 					STATE_HASH_COUNT0 = 3,
 					STATE_HASH_COUNT1 = 4,
 					STATE_CMP_DATA = 5,
-					STATE_SAVE_CMP_DATA = 6,
-					STATE_EMPTY_CMP_DATA_SET = 7,
-					STATE_EMPTY_CMP_DATA_SAVE = 8,
-					STATE_WAIT_CMP_CONFIG_APPLIED = 9,
-					STATE_MAGIC = 10,
-					STATE_ERROR = 11;
+					STATE_WAIT_CMP_CONFIG_APPLIED = 6,
+					STATE_MAGIC = 7,
+					STATE_ERROR = 8;
 
 	(* FSM_EXTRACT="true" *)
 	reg [3:0] state = STATE_SALT;
 
 	always @(posedge CLK) begin
 		if (state == STATE_ERROR) begin
+			full <= 1;
 		end
 
 		else if (state == STATE_WAIT_CMP_CONFIG_APPLIED) begin
+			cmp_wr_en <= 0;
 			if (cmp_config_applied) begin
 				new_cmp_config <= 0;
 				sign_extension_bug <= sign_extension_bug_tmp;
@@ -96,38 +100,8 @@ module bcrypt_cmp_config(
 			end
 		end
 
-		else if (state == STATE_SAVE_CMP_DATA) begin
-			wr_addr <= wr_addr + 1'b1;
-			hash_num <= hash_num + 1'b1;
-			if (hash_num + 1'b1 == hash_count) begin
-				if (hash_count == `NUM_HASHES) begin
-					new_cmp_config <= 1;
-					state <= STATE_WAIT_CMP_CONFIG_APPLIED;
-				end
-				else
-					state <= STATE_EMPTY_CMP_DATA_SET;
-			end
-			else begin
-				full <= 0;
-				state <= STATE_CMP_DATA;
-			end
-		end
-
-		else if (state == STATE_EMPTY_CMP_DATA_SET) begin
-			tmp <= 0;
-			state <= STATE_EMPTY_CMP_DATA_SAVE;
-		end
-
-		else if (state == STATE_EMPTY_CMP_DATA_SAVE) begin
-			wr_addr <= wr_addr + 1'b1;
-			hash_num <= hash_num + 1'b1;
-			if (hash_num + 1'b1 == `NUM_HASHES) begin
-				new_cmp_config <= 1;
-				state <= STATE_WAIT_CMP_CONFIG_APPLIED;
-			end
-			else
-				state <= STATE_EMPTY_CMP_DATA_SET;
-		end
+		else if (~wr_en)
+			cmp_wr_en <= 0;
 
 		else if (wr_en) begin
 		case (state)
@@ -166,39 +140,41 @@ module bcrypt_cmp_config(
 		end
 
 		STATE_HASH_COUNT0: begin
-			hash_count <= din[`HASH_NUM_MSB:0];
-			if (|tmp[31:`SETTING_MAX+1] || din > `NUM_HASHES)
+			hash_count[7:0] <= din;
+			if (|tmp[31:`SETTING_MAX+1])
 				state <= STATE_ERROR;
 			else
 				state <= STATE_HASH_COUNT1;
 		end
 
 		STATE_HASH_COUNT1: begin
-			if (din != 0 || no_cmp_data && hash_count != 0
-					|| ~no_cmp_data && hash_count == 0)
-				state <= STATE_ERROR;
-			else if (no_cmp_data && hash_count == 0) begin
-				full <= 1;
-				new_cmp_config <= 1;
-				state <= STATE_WAIT_CMP_CONFIG_APPLIED;
+			hash_count[`HASH_COUNT_MSB:8] <= din[`HASH_COUNT_MSB-8:0];
+			cmp_wr_addr <= {`HASH_NUM_MSB+3{1'b1}};
+			cmp_wr_addr_max <= cmp_wr_addr_max_eqn[`HASH_NUM_MSB+2:0];
+
+			if (mode_cmp) begin
+				state <= STATE_CMP_DATA;
 			end
 			else begin
-				wr_addr <= 5;
-				hash_num <= 0;
-				state <= STATE_CMP_DATA;
+				if (din != 0)
+					state <= STATE_ERROR;
+				else begin
+					new_cmp_config <= 1;
+					full <= 1;
+					state <= STATE_WAIT_CMP_CONFIG_APPLIED;
+				end
 			end
 		end
 
 		STATE_CMP_DATA: begin
-			if (byte_count == 3) begin
-				tmp[31] <= 1;
-				tmp[30:24] <= din[6:0];
+			cmp_wr_en <= 1;
+			cmp_din <= din;
+			cmp_wr_addr <= cmp_wr_addr + 1'b1;
+			if (cmp_wr_addr == cmp_wr_addr_max) begin
+				new_cmp_config <= 1;
 				full <= 1;
-				state <= STATE_SAVE_CMP_DATA;
+				state <= STATE_WAIT_CMP_CONFIG_APPLIED;
 			end
-			else
-				tmp[8*(byte_count+1)-1 -:8] <= din;
-			byte_count <= byte_count + 1'b1;
 		end
 
 		STATE_MAGIC: begin
@@ -218,8 +194,7 @@ module bcrypt_cmp_config(
 	always @(posedge CLK)
 		if (state == STATE_SALT & (byte_count == 0 && salt_word_count > 0)
 				| state == STATE_SALT_SUBTYPE // saves last 32-bit of salt
-				| state == STATE_HASH_COUNT0 // saves iter_count
-				| state == STATE_SAVE_CMP_DATA | state == STATE_EMPTY_CMP_DATA_SAVE)
+				| state == STATE_HASH_COUNT0) // saves iter_count
 			data[wr_addr] <= tmp;
 
 endmodule

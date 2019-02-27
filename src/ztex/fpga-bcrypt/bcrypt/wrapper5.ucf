@@ -59,7 +59,7 @@ INST "wrappers[5].wrapper/*_r2*" AREA_GROUP="wrapper5_r2";
 AREA_GROUP "proxy5_1" RANGE=SLICE_X18Y16:SLICE_X23Y51;
 INST "wrappers[5].wrapper/proxies[1].proxy/*" AREA_GROUP="proxy5_1";
 #
-AREA_GROUP "core5_1_0" RANGE=SLICE_X0Y3:SLICE_X16Y11;
+AREA_GROUP "core5_1_0" RANGE=SLICE_X0Y2:SLICE_X16Y11;
 AREA_GROUP "core5_1_0" RANGE=RAMB8_X0Y2:RAMB8_X0Y5;
 INST "wrappers[5].wrapper/proxies[1].proxy/cores[0].core/*" AREA_GROUP="core5_1_0";
 AREA_GROUP "core5_1_1" RANGE=SLICE_X0Y12:SLICE_X16Y19;
@@ -81,8 +81,7 @@ INST "wrappers[5].wrapper/proxies[1].proxy/cores[5].core/*" AREA_GROUP="core5_1_
 #
 # proxy 5_1 - column RAMB X1
 #
-//AREA_GROUP "core5_1_6" RANGE=SLICE_X17Y3:SLICE_X33Y11;
-AREA_GROUP "core5_1_6" RANGE=SLICE_X17Y2:SLICE_X33Y11;
+AREA_GROUP "core5_1_6" RANGE=SLICE_X18Y2:SLICE_X33Y11;
 AREA_GROUP "core5_1_6" RANGE=RAMB8_X1Y2:RAMB8_X1Y5;
 INST "wrappers[5].wrapper/proxies[1].proxy/cores[6].core/*" AREA_GROUP="core5_1_6";
 AREA_GROUP "core5_1_7" RANGE=SLICE_X17Y12:SLICE_X33Y19,SLICE_X34Y16:SLICE_X39Y19;

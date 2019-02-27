@@ -6,20 +6,25 @@
   <DeviceList devices="spartan6"/>
 
   <Properties>
-    <property name="Synthesize - XST:Keep Hierarchy" value="Yes"/>
-    <property name="Synthesize - XST:Other XST Command Line Options" value="-sd bcrypt/bcrypt_core"/>
-    <property name="Translate:Other Ngdbuild Command Line Options" value="-sd bcrypt/bcrypt_core"/>
+    <property name="Synthesize - XST:Optimization Goal" value="Speed"/>
+    <property name="Synthesize - XST:Power Reduction" value="true"/>
+    <property name="Synthesize - XST:Keep Hierarchy" value="No"/>
+    <property name="Synthesize - XST:Other XST Command Line Options" value="-sd ngc"/>
+    <property name="Translate:Other Ngdbuild Command Line Options" value="-sd ngc"/>
     <property name="Map:Placer Extra Effort" value="Continue on Impossible"/>
-    <property name="Map:Starting Placer Cost Table (1-100)" value="1"/>
+    <property name="Map:Starting Placer Cost Table (1-100)" value="9"/>
+    <property name="Map:Allow Logic Optimization Across Hierarchy" value="true"/>
     <property name="Map:Generate Detailed MAP Report" value="true"/>
+    <property name="Map:LUT Combining" value="Auto"/>
     <property name="Place &amp; Route:Place And Route Mode" value="Reentrant Route"/>
     <property name="Place &amp; Route:Place &amp; Route Effort Level (Overall)" value="High"/>
     <property name="Place &amp; Route:Extra Effort (Highest PAR level only)" value="Continue on Impossible"/>
+    <property name="Place &amp; Route:Power Reduction" value="true"/>
     <property name="Generate Programming File:Enable BitStream Compression" value="true"/>
     <property name="Generate Programming File:Unused IOB Pins" value="Float"/>
-    <property name="Generate Post-Place &amp; Route Static Timing:Number of Paths in Error/Verbose Report" value="2"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Number of Paths in Error/Verbose Report" value="1"/>
     <property name="Generate Post-Place &amp; Route Static Timing:Perform Advanced Analysis" value="true"/>
-    <property name="Generate Post-Place &amp; Route Static Timing:Report Paths by Endpoint" value="50"/>
+    <property name="Generate Post-Place &amp; Route Static Timing:Report Paths by Endpoint" value="80"/>
     <property name="Generate Post-Place &amp; Route Static Timing:Report Fastest Path(s) in Each Constraint" value="false"/>
   </Properties>
 

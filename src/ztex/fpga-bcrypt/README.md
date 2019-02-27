@@ -1,9 +1,11 @@
 ## Overview
 
-- Theoretical performance for 4 FPGAs (if its input buffer always has data) at default frequency on hashes with setting 5 is 106 Kc/s, on hashes with setting 12 is 860 c/s (110 Kc/s if recalculated to setting 5).
-- It operates at 140 MHz. Runtime frequency adjustment is available.
-- The design is split into 124 cores. On-chip comparsion against up to 3 hashes is available. There's a runtime option to turn off the comparator, in that case it simply outputs computed hashes.
-- Resource utilization: each core uses 4 BRAMs (x 1 Kbyte), 420 LUTs. Device utilization summary: 96% BRAMs, 59% LUTs, 16% FFs, 1% DSPs.
+- bcrypt for ZTEX 1.15y board computes 496 keys in parallel, equipped with on-board candidate generator and comparator.
+- Measured performance for the board (4 FPGA) at default frequency on hashes with setting 5 is 111.6 Kc/s, on hashes with setting 12 is 908 c/s (116 Kc/s if recalculated to setting 5).
+- It operates at 141 MHz. Runtime frequency adjustment is available.
+- The design contains 124 cores. On-chip comparsion against up to 512 hashes is available. There's a runtime option to turn off the comparator, in that case it outputs all computed hashes.
+- Resource utilization: each core uses 4 BRAMs (x 1 Kbyte), 390 LUTs. Device utilization summary: 96% BRAMs, 55% LUTs, 16% FFs, 1% DSPs.
+- Current consumption (12V input): 2.2A, idle 0.4A.
 
 
 ## Design RTL details
@@ -11,8 +13,8 @@
 - The design was developed with implementation in Spartan-6 hardware in mind. In contrast with other hardware (e.g. Zynq, Virtex-7) it has low memory to logic (BRAM/LUT) ratio. The size of the memory unit (RAMB8BWER) is 1 Kbyte, equal to the size of "S" unit used in the algorithm. It was decided to allocate BRAMs only for "S" units. The rest of the data reside in two 32x32 bit register files that were made of LUTs.
 - Initialization values are over 4 Kbytes. To save memory, IVs are stored in only one location and transmitted to computing units ("cores") when required. To reduce bandwith consumption of internal data bus, save routing resources IVs are transmitted in broadcast mode.
 - Each core gets IVs, gets data for computation, performs computation and output independently from other cores. The approach where several cores share same control logic was not taken - such an approach would save LUTs while there's an excess of LUTs anyway.
-- Each Blowfish round takes 1 cycle. Because BRAM memory allows only synchronous read, the start of the cycle is shifted to the start of such read. Overall, 16 Blowfish rounds take 19 cycles - 2 cycles used for additional XOR's and save into "S" or "P". There's one cycle when it's performing 1 XOR only - the fact suggests an improvement might be possible here.
-- Communication framework including on-chip candidate password generator was initially taken from descrypt-ztex project. The generator is able for 1 candidate password each cycle. It appeared that with key size of 576 bit that consumes space equal to 15 cores. An area-optimized version was created, there's much less generation speed and the occupied area was reduced by a factor of 2.5.
+- Each Blowfish round takes 1 cycle. Because BRAM memory allows only synchronous read, the start of the cycle is shifted to the start of such read. Overall, 16 Blowfish rounds take 18 cycles - 2 cycles used for additional XOR's and save into "S" or "P".
+- Communication framework including on-chip candidate password generator was initially taken from descrypt-ztex project. bcrypt-ztex has an area-optimized version of the generator.
 
 
 ## Design Placement and Routing details

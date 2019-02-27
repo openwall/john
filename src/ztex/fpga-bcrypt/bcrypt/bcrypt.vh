@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -9,11 +9,11 @@
 `ifndef _BCRYPT_VH_
 `define _BCRYPT_VH_
 
-//`define	NUM_CORES	1 <-- defined by a parameter in top-level module
+//`define	SIMULATION
 
-// An attempt to set more will result in cmp_config error (TODO)
-// Min. 6, Max. 30.
-`define	SETTING_MAX	18
+
+// An attempt to set more will result in cmp_config error
+`define	SETTING_MAX	19
 
 // ****************************************
 //
@@ -37,7 +37,6 @@
 `define	PD_ADDR_ITER	5'd19
 `define	PD_ADDR_SALT	5'd20
 `define	PD_ADDR_IDS		5'd24
-`define	PD_ADDR_CMP_DATA	5'd26
 `define	PD_ADDR_ZERO	5'd31
 
 //
@@ -51,22 +50,6 @@
 
 // ****************************************
 // Extra controls
-/*
-`define	MC_NBITS_E	13
-
-`define	E_X_	`MC_NBITS_E'b00000000
-
-`define	E_WR_ZF		`MC_NBITS_E'b0000_1000
-
-`define	E_MW_COUNT_INC		`MC_NBITS_E'b0010_0000
-`define	E_MW_COUNT_RST		`MC_NBITS_E'b0001_0000
-
-`define	E_OUTPUT_DATA		`MC_NBITS_E'b0_1100_0000
-`define	E_OUTPUT_HEADER	`MC_NBITS_E'b0_0100_0000
-
-`define	E_SET_CMP_RESULT	`MC_NBITS_E'b100_0000_0000
-`define	E_HASH_NUM_INC		`MC_NBITS_E'b1000_0000_0000
-*/
 `define	MC_NBITS_E	4
 
 `define	E_X_		`MC_NBITS_E'd0
@@ -81,12 +64,10 @@
 `define	E_MW_COUNT_RST		`MC_NBITS_E'd8
 `define	E_MW_COUNT_INC		`MC_NBITS_E'd9
 
-`define	E_SET_CMP_RESULT	`MC_NBITS_E'd10
-`define	E_HASH_NUM_INC		`MC_NBITS_E'd11
-`define	E_OUTPUT_DATA		`MC_NBITS_E'd12
-`define	E_OUTPUT_HEADER	`MC_NBITS_E'd13
+`define	E_OUTPUT_DATA		`MC_NBITS_E'd10
+`define	E_OUTPUT_HEADER	`MC_NBITS_E'd11
 
-`define	E_WR_ZF		`MC_NBITS_E'd14
+`define	E_WR_ZF		`MC_NBITS_E'd12
 
 
 // PN,S Input
@@ -152,6 +133,7 @@
 `define	LR_Round0	5'b10010
 `define	LR_WR		5'b00011
 `define	LR_WR_Ltmp	5'b01011
+`define	LR_select_L	5'b10000
 
 // ****************************************
 // S Controls
@@ -161,6 +143,7 @@
 `define	S_WR	3'b100
 `define	S_RD	3'b010
 `define	S_RST	3'b011
+`define	S_RW	3'b110
 
 // "S" Write Address Register (SWAR) ops
 `define	SWAR_X_	3'b000
@@ -172,7 +155,7 @@
 // ****************************************
 // Jumps
 //
-`define	MC_NBITS_CONDITION	5
+`define	MC_NBITS_CONDITION	4
 
 // JMP_X_ <- no jump
 `define	JMP_X_	`MC_NBITS_CONDITION'd0
@@ -188,18 +171,18 @@
 `define	JMP_not_end_wr_S	`MC_NBITS_CONDITION'd9
 `define	JMP_not_ZF			`MC_NBITS_CONDITION'd10
 `define	JMP_MW_count_ne2	`MC_NBITS_CONDITION'd11
-`define	JMP_cmp				`MC_NBITS_CONDITION'd12
-`define	JMP_PNAR_ne29		`MC_NBITS_CONDITION'd13
-`define	JMP_output_cnt		`MC_NBITS_CONDITION'd14
-`define	JMP_rd_en			`MC_NBITS_CONDITION'd15
-`define	JMP_PDAR_ne29		`MC_NBITS_CONDITION'd16
-`define	JMP_not_cmp_result	`MC_NBITS_CONDITION'd17
+`define	JMP_PNAR_ne29		`MC_NBITS_CONDITION'd12
+`define	JMP_output_cnt		`MC_NBITS_CONDITION'd13
+`define	JMP_rd_en			`MC_NBITS_CONDITION'd14
 
-//
-//`define	JMP_
 
 // ****************************************
-// what if condition for jump is not met.
+// Evaluation Order:
+// - FLOW_CALL
+// - Exception
+// - FLOW_RETURN
+// - Condition_Signals
+// - FLOW_NEXT or FLOW_X_
 `define	MC_NBITS_FLOW	2
 // FLOW_X_ <-- remain at same step
 `define	FLOW_X_		2'b00
@@ -210,7 +193,7 @@
 // ****************************************
 // Microcode addresses
 
-`define	MC_X_	7'd127
+`define	MC_X_	7'd0
 // Subroutines
 `define	MC_LR_ZERO_P_XOR_EK	7'd60
 `define	MC_BF_ENCRYPT_ROUNDS_1_16	7'd58

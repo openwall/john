@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,8 @@ module unit #(
 	input PS_input_select, decr, // P input mux
 	input PN_wr_en,
 	input ZF_wr_en,
-	output ZF, B31,
+	output ZF,
+	output reg Exception_S_rd = 0,
 
 	input L_input_select,
 	input Ltmp_wr_en,
@@ -56,13 +57,13 @@ module unit #(
 	always @(posedge CLK)
 		if (LR_zero)
 			L <= 0;
-		else if (L_wr_en)
+		else if (L_wr_en & ~Exception_S_rd & ~Exception_S_rd_r)
 			L <= L_in;
 
 	always @(posedge CLK)
 		if (LR_zero)
 			R <= 0;
-		else if (R_wr_en)
+		else if (R_wr_en & ~Exception_S_rd & ~Exception_S_rd_r)
 			R <= L;
 
 
@@ -80,7 +81,7 @@ module unit #(
 		.S_input(S_input),
 		.PN_wr_addr(PN_wr_addr), .PN_wr_en(PN_wr_en),
 		.PN_addr(PN_addr), .PN_out(PN),
-		.ZF_wr_en(ZF_wr_en), .ZF(ZF), .B31(B31)
+		.ZF_wr_en(ZF_wr_en), .ZF(ZF)
 	);
 
 
@@ -93,10 +94,27 @@ module unit #(
 	) S(
 		.CLK(CLK),
 		.din(S_input),
-		//.din(PS_input_select ? din : L_in),
 		.addr_wr(S_wr_addr), .wr_en(S_wr_en),
 		.addr_rd(L_in), .out(S_dout), .rd_en(S_rd_en), .rst_rd(S_rst)
 	);
+
+
+	//
+	// S read/write collision detector.
+	// Produces exception state:
+	// - blocks writes to L,R for 2 cycles
+	// - hardwired to set IP on the next cycle
+	//
+	S_rd_collision_detector S_rd_collision_detector(
+		.din(L ^ PN), .S_wr_addr(S_wr_addr),
+		.en(S_rd_en & S_wr_en), .dout(S_rd_collision)
+	);
+
+	reg Exception_S_rd_r = 0;
+	always @(posedge CLK) begin
+		Exception_S_rd <= S_rd_collision;
+		Exception_S_rd_r <= Exception_S_rd;
+	end
 
 
 	//
@@ -113,3 +131,27 @@ module unit #(
 endmodule
 
 
+module S_rd_collision_detector(
+	input [31:0] din,
+	input [9:0] S_wr_addr,
+	input en,
+	output dout
+	);
+
+	(* KEEP="true" *)
+	wire [7:0] din_sliced =
+		S_wr_addr[9:8] == 2'b00 ? din [31:24] :
+		S_wr_addr[9:8] == 2'b01 ? din [23:16] :
+		S_wr_addr[9:8] == 2'b10 ? din [15:8] :
+		din [7:0];
+
+	assign dout = en & S_wr_addr[7:0] == din_sliced;
+
+	//assign dout = en & (1'b0
+	//	| S_wr_addr[7:0] == din [31:24] & S_wr_addr[9:8] == 2'b00
+	//	| S_wr_addr[7:0] == din [23:16] & S_wr_addr[9:8] == 2'b01
+	//	| S_wr_addr[7:0] == din [15:8] & S_wr_addr[9:8] == 2'b10
+	//	| S_wr_addr[7:0] == din [7:0] & S_wr_addr[9:8] == 2'b11
+	//);
+
+endmodule

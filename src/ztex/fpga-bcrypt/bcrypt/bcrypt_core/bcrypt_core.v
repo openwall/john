@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -21,16 +21,17 @@
 	//    data for 1 encryption. That includes EK (Expanded Key), salt, IDs, iter_count etc.
 	// 3. When encryption is done, it deasserts 'empty' and waits for 'rd_en'.
 	// 4. When 'rd_en' arrives, it starts output N-bit result packet over 1-bit bus.
-	//    The 1st bit of the header is 1'b1.
+	//    The header is 1 bit (1'b1).
 	//    Once output transfer starts, it goes without an interrupt, 'rd_en' no longer
 	//    controls the data flow.
 	//    Transferred are: header, 2 x 32-bit IDs, 6 x 32-bit encryption result.
 	// 5. Go to pt.1.
 	//
 	// Performance.
-	// In most cases, 16 Blowfish rounds are performed in 19 CLK cycles.
-	// That results in ~650K rounds for iter_count=32 (setting 5).
+	// In most cases, 16 Blowfish rounds are performed in 18 CLK cycles.
+	// Hash with setting="$05" is computed in 618K cycles.
 	//
+`ifdef SIMULATION
 
 module bcrypt_core #(
 	// Setting MSB to 3, ADDR_NBITS to 1
@@ -110,45 +111,21 @@ module bcrypt_core #(
 		else if (Extra_Controls == `E_MW_COUNT_INC)
 			MW_count <= MW_count + 1'b1;
 	
-	// comparison result
-	reg cmp_result = 0;
-	reg [1:0] hash_num = 0;
 	reg [4:0] output_cnt = 0;
-		
-	always @(posedge CLK) begin
-		if (Extra_Controls == `E_RST) begin
-			hash_num <= 0;
-			cmp_result <= 0;
+	always @(posedge CLK)
+		if (Extra_Controls == `E_RST)
 			output_cnt <= 0;
-		end
-		else begin
-			if (Extra_Controls == `E_SET_CMP_RESULT)
-				cmp_result <= 1;
-			if (Extra_Controls == `E_HASH_NUM_INC)
-				hash_num <= hash_num + 1'b1;
-			if (Extra_Controls == `E_OUTPUT_DATA | Extra_Controls == `E_OUTPUT_HEADER)
-				output_cnt <= output_cnt + 1'b1;
-		end
-	end
+		else if (Extra_Controls == `E_OUTPUT_DATA)
+			output_cnt <= output_cnt + 1'b1;
 
 	wire ZF_wr_en = Extra_Controls == `E_WR_ZF;
 
-	wire [31:0] output_header = {
-		8'b1111_0000,
-		8'hBC,
-		8'b0000_0000, // reserved
-		hash_num,
-		cmp_result,
-		3'b000, // reserved
-		1'b1, // indicates start
-		1'b0 // before the start of the transfer
-	};
-	
 	always @(posedge CLK)
-		dout <= Extra_Controls == `E_OUTPUT_DATA ? output_data : output_header[output_cnt];
+		dout <=
+			Extra_Controls == `E_OUTPUT_HEADER ? 1'b1 :
+			Extra_Controls == `E_OUTPUT_DATA ? output_data :
+			1'b0;
 
-	
-	
 	//
 	// Main Address & Control.
 	//
@@ -169,7 +146,7 @@ module bcrypt_core #(
 		.CLK(CLK), .op(PDAR_op), .PD_addr(PD_addr),
 		.wr_b3(wr_b3),
 		.P_addr1(PN_wr_addr[1]), .S_addr1(S_wr_addr[1]),
-		.eq29(PDAR_eq29), .eq30(PDAR_eq30) );
+		.eq30(PDAR_eq30) );
 	
 	wire [2:0] SWAR_op;
 	wire [9:0] S_wr_addr;
@@ -192,7 +169,7 @@ module bcrypt_core #(
 		.PN_wr_addr(PN_wr_addr), .PN_wr_en(PN_wr_en),
 		.PN_addr(PN_addr),
 		.PD_addr(PD_addr), .PD_wr_en(PD_wr_en),
-		.ZF_wr_en(ZF_wr_en), .ZF(ZF), .B31(B31),
+		.ZF_wr_en(ZF_wr_en), .ZF(ZF), .Exception_S_rd(Exception_S_rd),
 		
 		.L_input_select(L_input_select), .Ltmp_wr_en(Ltmp_wr_en),
 		.L_wr_en(L_wr_en), .R_wr_en(R_wr_en), .LR_zero(LR_zero),
@@ -208,13 +185,11 @@ module bcrypt_core #(
 	// Condition Signals
 	//
 	wire [2**`MC_NBITS_CONDITION-1:0] Condition_Signals = {
-		~(ZF & B31),// JMP_not_cmp_result
-		~PDAR_eq29,
 		// 16
+		//..
 		rd_en_r,
 		output_cnt == 26,
 		~PNAR_eq29,
-		(MW_count == 0 && mode_cmp), // JMP_cmp
 		~MW_count[1],//MW_count != 2,
 		~ZF,
 		~SWAR_eq1022, // for JMP_not_end_wr_S
@@ -233,6 +208,7 @@ module bcrypt_core #(
 	fsm fsm(
 		.CLK(CLK),
 		.Condition_Signals(Condition_Signals),
+		.Exception_S_rd(Exception_S_rd),
 		
 		.Extra_Controls(Extra_Controls),
 		.PS_input_select(PS_input_select), .decr(decr),
@@ -247,3 +223,23 @@ module bcrypt_core #(
 	
 
 endmodule
+
+`else
+
+module bcrypt_core (
+	input CLK,
+	input mode_cmp,
+	input [3:0] byte_wr_en,
+	input [7:0] din,
+	input start,
+	output reg init_ready = 1, // Ready for initialization with P, MW, S data
+	output reg crypt_ready = 0, // Ready to get EK, salt etc.
+
+	input rd_en,
+	output reg empty = 1,
+	output reg dout = 0
+	);
+
+endmodule
+
+`endif

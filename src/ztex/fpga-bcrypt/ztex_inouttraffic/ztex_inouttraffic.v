@@ -59,6 +59,7 @@ module ztex_inouttraffic(
 		.progdone_inv(progdone_inv),
 		// Produced clocks
 		.IFCLK(IFCLK), 	// for operating I/O pins
+		.clk_glbl_en(~app_idle),
 		.CORE_CLK(CORE_CLK)	// <-- the clock for running bcrypt application
 	);
 
@@ -85,7 +86,7 @@ module ztex_inouttraffic(
 		16'b0, 8'd0, 8'd1 	// wrapper #0: proxies 0-1
 	};
 
-	parameter [32*NUM_PROXIES-1 :0] PROXY_CONF = {
+	localparam [32*NUM_PROXIES-1 :0] PROXY_CONF = {
 	// is_dummy |core_is_not_dummy |regs |num_cores
 		1'b0, 19'b0000000_0000_0000_0000, 4'd2, 8'd12, 	// proxy #11 (5_1)
 		1'b0, 19'b0000000_0000_0000_0000, 4'd1, 8'd11, 	// proxy #10 (5_0)
@@ -122,7 +123,7 @@ module ztex_inouttraffic(
 	wire [NUM_PROXIES-1:0] core_wr_en, core_init_ready, core_crypt_ready;
 	wire [NUM_PROXIES-1:0] core_rd_en, core_empty, core_dout;
 
-	bcrypt #(
+	bcrypt #(//_dummy #(
 		.NUM_CORES(NUM_PROXIES)
 	) bcrypt(
 		.CORE_CLK(CORE_CLK),
@@ -248,59 +249,3 @@ module ztex_inouttraffic(
 	assign INT5 = 1'b1;
 
 endmodule
-
-
-// bcrypt module is built in a separate project,
-// added "blackbox" NGC
-module bcrypt #(
-	parameter NUM_CORES = 12,
-	parameter VERSION = `PKT_COMM_VERSION,
-	parameter PKT_MAX_LEN = 16*65536,
-	parameter PKT_LEN_MSB = `MSB(PKT_MAX_LEN),
-	parameter WORD_MAX_LEN = `PLAINTEXT_LEN,
-	parameter CHAR_BITS = `CHAR_BITS,
-	parameter RANGES_MAX = `RANGES_MAX,
-	parameter RANGE_INFO_MSB = 1 + `MSB(WORD_MAX_LEN-1),
-	parameter SIMULATION = 0
-	)(
-	input CORE_CLK,
-
-	// I/O using hs_io_v2
-	input IFCLK,
-	input [15:0] hs_input_din,
-	input hs_input_wr_en,
-	output hs_input_almost_full,
-	output hs_input_prog_full,
-
-	output [15:0] output_dout,
-	input output_rd_en,
-	output output_empty,
-	output [15:0] output_limit,
-	output output_limit_not_done,
-	input output_mode_limit,
-	input reg_output_limit,
-
-	// Status signals for internal usage
-	output reg idle = 0, error_r = 0,
-
-	// control input (VCR interface)
-	input [7:0] app_mode,
-	// status output (VCR interface)
-	output [7:0] app_status,
-	output [7:0] pkt_comm_status,
-	output [7:0] debug2, debug3,
-	//output [255:0] debug,
-
-	input mode_cmp,
-	// Cores are moved to top-level module.
-	output [7:0] core_din,
-	output [1:0] core_ctrl,
-	output [NUM_CORES-1:0] core_wr_en,
-	input [NUM_CORES-1:0] core_init_ready, core_crypt_ready,
-	output [NUM_CORES-1:0] core_rd_en,
-	input [NUM_CORES-1:0] core_empty,
-	input [NUM_CORES-1:0] core_dout
-	);
-
-endmodule
-

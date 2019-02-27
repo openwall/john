@@ -55,22 +55,18 @@ static struct device_bitstream bitstream = {
 	{ 2, 6144, 8190 },
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
-	1,	// set by init()
-	4096,	// 4K keys per FPGA for self-test.
+	1,			// set by init()
+	2048,		// 2K keys per FPGA for self-test.
 	// Absolute max. keys/crypt_all_interval for all devices.
 	512 * 1024,	// Would be 36MB of USB traffic on 72-byte keys
-	3,		// Max. number of entries in onboard comparator.
-	124,	// Min. number of keys for effective device utilization
+	512,		// Max. number of entries in onboard comparator.
+	124,		// Min. number of keys for effective device utilization
 	1, { 141 },	// Programmable clocks
 	"bcrypt",	// label for configuration file
 	NULL, 0		// Initialization data
 };
 
 
-//
-// ztex-bcrypt has limited number of entries in onboard comparator(3) -
-// tests from BF_common.c have more hashes/salt - they don't pass self-test
-//
 static struct fmt_tests tests[] = {
 
 	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK",
@@ -78,8 +74,8 @@ static struct fmt_tests tests[] = {
 	// 32 lower bits of hash are equal to the above hash - self-test fails
 	//{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzAxtE4OUcU.5p75hOF2yn2i1ocvO",
 	//	"1E!dpr"},
-	//{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
-	//	""},
+	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
+		""},
 	{"$2b$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a",
 		"U*U*U"},
 	{"$2a$08$CCCCCCCCCCCCCCCCCCCCC.LuntE/dBezheibpSOXBeR3W7q5mt2NW",
@@ -110,6 +106,12 @@ static struct fmt_tests tests[] = {
 	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/O9LIGgn8OMzuDoHfof8AQimSGfcSWxnS",
 		"\xd0\xc1\xd2\xcf\xcc\xd8"},
 
+	{"$2a$04$pIqNJ/d3.iUtNb........1ynmOuHkBNwBW8zbBj6wTB8XX4/HPiy",
+		"01234567"},
+	{"$2a$04$pIqNJ/d3.iUtNb........12LxxKuTok3B2V5Qedwkj.KlH.1uvye",
+		"012345678"},
+	{"$2a$04$pIqNJ/d3.iUtNb........UNDUi60rNJGFKeSG7vI091NbSOdQNfa",
+		"0123456789"},
 	{NULL}
 };
 
@@ -133,18 +135,18 @@ static void init(struct fmt_main *fmt_main)
 
 	if (target_setting < 5 || target_setting > 18) {
 		fprintf(stderr, "Warning: invalid TargetSetting=%d in john.conf."
-			" Valid values are 5-18\n", target_setting);
+			" Valid values are 5-19\n", target_setting);
 		if (target_setting < 5)
 			target_setting = 5;
-		else if (target_setting > 18)
-			target_setting = 18;
+		else if (target_setting > 19)
+			target_setting = 19;
 	}
 
 	bitstream.candidates_per_crypt = bitstream.min_keys;
 
-	// It computes a hash with setting 12 in ~0.6s
-	if (target_setting < 12)
-		bitstream.candidates_per_crypt *= (1 << (12 - target_setting));
+	// It computes a hash with setting 13 in ~1s
+	if (target_setting < 13)
+		bitstream.candidates_per_crypt *= (1 << (13 - target_setting));
 
 	//fprintf(stderr, "bitstream.candidates_per_crypt=%d\n",
 	//		bitstream.candidates_per_crypt);
