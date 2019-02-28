@@ -34,6 +34,7 @@ module clocks #(
 	output progdone_inv,
 	
 	output IFCLK,
+	input clk_glbl_en,
 	output CORE_CLK
 	);
 
@@ -118,7 +119,7 @@ module clocks #(
 		.I(FXCLK),
 		.progen(progen[0]), .progdata(progdata), .progclk(progclk),
 		.pll_reset(pll_reset),
-		.CE(CE),
+		.CE(CE & clk_glbl_en),
 		.progdone_inv(progdone_inv0),
 		.O(CORE_CLK)
 	);

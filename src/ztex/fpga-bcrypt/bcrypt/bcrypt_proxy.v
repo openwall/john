@@ -256,24 +256,3 @@ module bcrypt_core_dummy (
 		dout_r <= mode_cmp ^ ^din ^ ^byte_wr_en ^ start ^ rd_en;
 
 endmodule
-
-
-// bcrypt_core is built in a separate project,
-// added "blackbox" NGC
-module bcrypt_core (
-	input CLK,
-	input mode_cmp,
-	input [3:0] byte_wr_en,
-	input [7:0] din,
-	input start,
-	output reg init_ready = 1, // Ready for initialization with P, MW, S data
-	output reg crypt_ready = 0, // Ready to get EK, salt etc.
-
-	input rd_en,
-	output reg empty = 1,
-	output reg dout = 0
-	);
-
-endmodule
-
-

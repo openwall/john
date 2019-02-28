@@ -110,7 +110,7 @@ module PD_addr_reg(
 	input P_addr1, S_addr1,
 
 	output reg [4:0] PD_addr = `PD_ADDR_EK,
-	output eq29, eq30
+	output eq30
 	);
 
 	wire [2:0] PD_addr_salt20 = `PD_ADDR_SALT / 4;
@@ -131,11 +131,8 @@ module PD_addr_reg(
 				op == `PDAR_LD_ADDR_64 ? `PD_ADDR_64 :
 				op == `PDAR_INC ? PD_addr + 1'b1 :
 				op == `PDAR_INC_ADDR_SALT ? { PD_addr_salt20, (PD_addr[1:0] + 1'b1) } :
-				op == `PDAR_LD_ADDR_CMP_DATA ? `PD_ADDR_CMP_DATA :
 				op == `PDAR_INC_B3 ? PD_addr + wr_b3 :
 				`PD_ADDR_IDS; // `PDAR_LD_ADDR_ID0
-
-		assign eq29 = PD_addr == 29;
 
 		assign eq30 = PD_addr == 30;
 

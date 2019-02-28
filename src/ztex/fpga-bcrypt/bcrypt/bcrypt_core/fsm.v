@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -14,9 +14,9 @@
 module fsm(
 	input CLK,
 	input [2**`MC_NBITS_CONDITION-1:0] Condition_Signals,
+	input Exception_S_rd,
 
 	output reg [`MC_NBITS_E-1:0] Extra_Controls = `E_X_,
-	//output reg [1:0] PN_input_select = `INPUT_DIN,
 	output reg PS_input_select = 0, decr = 0,
 
 	output reg PN_wr_en = 0, PD_wr_en = 0,
@@ -32,18 +32,20 @@ module fsm(
 	);
 
 	//
-	// "MC": Microcode (ROM)
-	//
-	(* RAM_STYLE="DISTRIBUTED" *)
-	reg [`MC_NBITS_TOTAL-1:0] MC [95:0];
-
-	//
 	// "IP": Instruction Pointer, 1-deep call stack
 	//
 	reg [`MC_ADDR_MSB:0] IP = 0, IP_saved = 0;
 
 	//
-	// Microcode Content
+	// "MC": Microcode (ROM)
+	//
+	wire [`MC_NBITS_TOTAL-1:0] MC_output;
+	MC MC(
+		.addr(IP), .out(MC_output)
+	);
+
+	//
+	// Microcode Output
 	//
 	wire [`MC_NBITS_E-1:0] MC_E;
 	wire [1:0] MC_PN_input_select;
@@ -59,7 +61,7 @@ module fsm(
 		MC_P,
 		MC_LR, MC_S,
 		MC_jump_addr, MC_condition, MC_flow
-	} = MC [IP];
+	} = MC_output;
 
 	reg x = 0;
 
@@ -106,15 +108,7 @@ module fsm(
 			x<=1;
 		else if (IP==38) // Saved encryption result
 			x<=1;
-		else if (IP==80) // CMP starts
-			x<=1;
-		else if (IP==65) // OUTPUT starts
-			x<=1;
-		else if (IP==71) // OUTPUT: completed header
-			x<=1;
-		else if (IP==73) // OUTPUT: start output MW's
-			x<=1;
-		else if (IP==75) // OUTPUT: completed, E_SET_INIT_READY, goto addr 0
+		else if (IP==80) // S rd/wr exception
 			x<=1;
 
 
@@ -125,6 +119,8 @@ module fsm(
 			IP_saved <= IP;
 			IP <= MC_jump_addr;
 		end
+		else if (Exception_S_rd)
+			IP <= 7'd80;
 		else if (MC_flow == `FLOW_RETURN)
 			IP <= IP_saved + 1'b1;
 		else if (Condition_Signals [MC_condition] == 1'b1)
@@ -132,6 +128,21 @@ module fsm(
 		else if (MC_flow == `FLOW_NEXT)
 			IP <= IP + 1'b1;
 	end
+
+endmodule
+
+
+module MC(
+	input [`MC_ADDR_MSB:0] addr,
+	output [`MC_NBITS_TOTAL-1:0] out
+	);
+
+	//
+	// "MC": Microcode (ROM)
+	//
+	(* RAM_STYLE="DISTRIBUTED" *)
+	reg [`MC_NBITS_TOTAL-1:0] MC [95:0];
+	assign out = MC [addr];
 
 	initial begin
 		MC[0] = { `E_RST, `INPUT_DIN,
@@ -396,62 +407,14 @@ module fsm(
 			`LR_WR_Ltmp, `S_X_, `SWAR_X_,
 			`MC_X_, `JMP_X_, `FLOW_NEXT };
 
-		// 4. Ltmp->PN. L->R. Possibly jump to CMP.
-		MC[37] = { `E_X_, `INPUT_X_,
+		// 4. Ltmp->PN. L->R.
+		// MW_count++. Jump to the next MW
+		MC[37] = { `E_MW_COUNT_INC, `INPUT_X_,
 			`PN_WR, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
 			`LR_WR, `S_X_, `SWAR_X_,
-			7'd80, `JMP_cmp, `FLOW_NEXT };
-
-		// MW_count++. Jump to the next MW
-		MC[38] = { `E_MW_COUNT_INC, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
-			`LR_X_, `S_X_, `SWAR_X_,
 			7'd26, `JMP_MW_count_ne2, `FLOW_NEXT };
 
-		MC[39] = `CMD_JMP(7'd65); // Output
-
-
-		// **************************************************
-		// CMP
-		// 1. set CMP_DATA address
-		MC[80] = { `E_X_, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_LD_ADDR_ZERO, `PDAR_LD_ADDR_CMP_DATA,
-			`LR_X_, `S_X_, `SWAR_X_,
-			`MC_X_, `JMP_X_, `FLOW_NEXT };
-
-		// 2. write Ltmp
-		MC[81] = { `E_X_, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
-			`LR_Ltmp, `S_X_, `SWAR_X_,
-			`MC_X_, `JMP_X_, `FLOW_NEXT };
-
-		// 3. write ZF
-		MC[82] = { `E_WR_ZF, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
-			`LR_X_, `S_X_, `SWAR_X_,
-			`MC_X_, `JMP_X_, `FLOW_NEXT };
-
-		MC[83] = `CMD_NOP; // 1 cycle delay after write ZF
-
-		MC[84] = { `E_X_, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
-			`LR_X_, `S_X_, `SWAR_X_,
-			7'd86, `JMP_not_cmp_result, `FLOW_NEXT };
-
-		// found equality - SET_CMP_RESULT, finish encryption with 3 MW's
-		MC[85] = { `E_SET_CMP_RESULT, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
-			`LR_X_, `S_X_, `SWAR_X_,
-			7'd38, `JMP_UNCONDITIONAL, `FLOW_X_ };
-
-		// Go to the next CMP_DATA
-		MC[86] = { `E_HASH_NUM_INC, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_INC,
-			`LR_X_, `S_X_, `SWAR_X_,
-			7'd81, `JMP_PDAR_ne29, `FLOW_NEXT };
-
-		// End of comparison, no match - proceed to output
-		MC[87] = `CMD_JMP(7'd65);
+		MC[38] = `CMD_JMP(7'd65); // Output
 
 
 		// **************************************************
@@ -469,56 +432,60 @@ module fsm(
 			`LR_X_, `S_X_, `SWAR_X_,
 			`MC_X_, `JMP_X_, `FLOW_NEXT };
 
+		MC[67] = `CMD_NOP;
+
+		// output_data; IDs[0]
 		// Reset magic word count
-		MC[67] = { `E_MW_COUNT_RST, `INPUT_X_,
+		MC[68] = { `E_MW_COUNT_RST, `INPUT_X_,
+			`P_X_, `PNWAR_X_, `PNAR_LD_ADDR_ZERO, `PDAR_LD_ADDR_ID0,
+			`LR_X_, `S_X_, `SWAR_X_,
+			`MC_X_, `JMP_X_, `FLOW_NEXT };
+
+		MC[69] = { `E_OUTPUT_HEADER, `INPUT_X_,
+			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
+			`LR_Ltmp, `S_X_, `SWAR_X_,
+			`MC_X_, `JMP_X_, `FLOW_NEXT };
+
+		MC[70] = { `E_OUTPUT_DATA, `INPUT_X_, //-1!
+			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
+			`LR_X_, `S_X_, `SWAR_X_,
+			7'd71, `JMP_output_cnt, `FLOW_X_ };
+
+		MC[71] = { `E_OUTPUT_DATA, `INPUT_X_,
 			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
 			`LR_X_, `S_X_, `SWAR_X_,
 			`MC_X_, `JMP_X_, `FLOW_NEXT };
 
-		// output header; set 1st word of data
-		MC[68] = { `E_OUTPUT_HEADER, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
-			`LR_X_, `S_X_, `SWAR_X_,
-			7'd69, `JMP_output_cnt, `FLOW_X_ };
-
-		// Several bits at the end of the header will be wrong
-
-		// output_data; IDs[0]
-		MC[69] = { `E_OUTPUT_DATA, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_LD_ADDR_ZERO, `PDAR_LD_ADDR_ID0,
-			`LR_X_, `S_X_, `SWAR_X_,
-			`MC_OUTPUT, `JMP_X_, `FLOW_CALL };
-
 		// It requires 1 cycle after MC_OUTPUT
-		MC[70] = { `E_OUTPUT_DATA, `INPUT_X_,
+		MC[72] = { `E_OUTPUT_DATA, `INPUT_X_,
 			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
 			`LR_X_, `S_X_, `SWAR_X_,
 			`MC_X_, `JMP_X_, `FLOW_NEXT };
 
 		// output_data; IDs[1]
-		MC[71] = { `E_OUTPUT_DATA, `INPUT_X_,
+		MC[73] = { `E_OUTPUT_DATA, `INPUT_X_,
 			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_INC,
 			`LR_X_, `S_X_, `SWAR_X_,
 			`MC_OUTPUT, `JMP_X_, `FLOW_CALL };
 
-		MC[72] = { `E_OUTPUT_DATA, `INPUT_X_,
+		MC[74] = { `E_OUTPUT_DATA, `INPUT_X_,
 			`P_X_, `PNWAR_X_, `PNAR_LD_ADDR_MW, `PDAR_LD_ADDR_ZERO,
 			`LR_X_, `S_X_, `SWAR_X_,
 			`MC_X_, `JMP_X_, `FLOW_NEXT };
 
 		// output magic words (now contain encryption results)
-		MC[73] = { `E_OUTPUT_DATA, `INPUT_X_,
+		MC[75] = { `E_OUTPUT_DATA, `INPUT_X_,
 			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
 			`LR_X_, `S_X_, `SWAR_X_,
 			`MC_OUTPUT, `JMP_X_, `FLOW_CALL };
 
-		MC[74] = { `E_OUTPUT_DATA, `INPUT_X_,
+		MC[76] = { `E_OUTPUT_DATA, `INPUT_X_,
 			`P_X_, `PNWAR_X_, `PNAR_INC, `PDAR_X_,
 			`LR_X_, `S_X_, `SWAR_X_,
-			7'd73, `JMP_PNAR_ne29, `FLOW_NEXT };
+			7'd75, `JMP_PNAR_ne29, `FLOW_NEXT };
 
 		// END. jmp -> 0
-		MC[75] = { `E_SET_INIT_READY, `INPUT_X_,
+		MC[77] = { `E_SET_INIT_READY, `INPUT_X_,
 			`P_X_, `PNWAR_LD_ADDR_P, `PNAR_X_, `PDAR_LD_ADDR_EK,
 			`LR_X_, `S_X_, `SWAR_X_,
 			7'd0, `JMP_UNCONDITIONAL, `FLOW_X_ };
@@ -620,14 +587,46 @@ module fsm(
 
 		// STATE_ROUND_SAVE. End of BF_ROUND. Write S
 		// In most cases go to Round 0.
+		//MC[51] = { `E_X_, `INPUT_X_,
+		//	`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
+		//	`LR_X_, `S_WR, `SWAR_ADD2B1SET,
+		//	7'd47, `JMP_not_end_wr_S, `FLOW_NEXT };
+
+		// STATE_ROUND_SAVE. End of BF_ROUND. Write S
+		// At the same time perform Round 0.
+		// On S_RW, S read/write collision is possible, exception raises.
 		MC[51] = { `E_X_, `INPUT_X_,
-			`P_X_, `PNWAR_X_, `PNAR_X_, `PDAR_X_,
-			`LR_X_, `S_WR, `SWAR_ADD2B1SET,
-			7'd47, `JMP_not_end_wr_S, `FLOW_NEXT };
+			`P_X_, `PNWAR_X_, `PNAR_INC, `PDAR_X_,
+			`LR_Round0, `S_RW, `SWAR_ADD2B1SET,
+			7'd48, `JMP_not_end_wr_S, `FLOW_NEXT };
 
 		// end_wr_S (main).
 
 		MC[52] = `CMD_RETURN;
+
+
+		// S read/write collision. Exception raised.
+		//
+		// * exception at the end of the loop issue.
+		// Exception doesn't affect execution flow on CALL.
+		// If it happens at the end of the loop, it is perfirming
+		// CALL CMD_ITER_CURR_DECR(addr 24) / LR_ZERO_P_XOR_SALT(addr 22),
+		//
+		MC[80] = { `E_X_, `INPUT_X_,
+			`P_X_, `PNWAR_X_, `PNAR_LD_ADDR_ZERO, `PDAR_LD_ADDR_ZERO,
+			`LR_X_, `S_RST, `SWAR_X_,
+			`MC_X_, `JMP_X_, `FLOW_NEXT };
+
+		MC[81] = { `E_X_, `INPUT_X_,
+			`P_X_, `PNWAR_X_, `PNAR_LD_ADDR_P, `PDAR_X_,
+			`LR_select_L, `S_RD, `SWAR_X_,
+			`MC_X_, `JMP_X_, `FLOW_NEXT };
+
+		MC[82] = { `E_X_, `INPUT_X_,
+			`P_X_, `PNWAR_X_, `PNAR_INC, `PDAR_X_,
+			`LR_X_, `S_X_, `SWAR_X_,
+			7'd48, `JMP_UNCONDITIONAL, `FLOW_X_ };
+
 
 		// ***********************************************************************
 		// Subroutine:

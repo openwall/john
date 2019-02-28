@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -9,17 +9,78 @@
  */
 
 
-module pkt_comm_bcrypt_test();
+module bcrypt_test();
 
 	reg READ_ALL_FROM_OUTPUT_FIFO = 0;
 
 	genvar i;
 	integer k, k1, k2;
 
-	reg CORE_CLK = 0, IFCLK = 0;
 
-	reg [7:0] din;
-	reg wr_en = 0;
+	initial begin
+		// *****************************************************************
+		//
+		// Send data packets exactly as they arrive from USB controller.
+		//
+		// Output packets appear in output_fifo.fifo_output0.ram
+		// exactly as before they leave FPGA.
+		// On errors it sets pkt_comm_status and app_status available
+		// via low-speed interface.
+		//
+		// It has no internal check for the count of rounds.
+		//
+		// *****************************************************************
+		#1000;
+		
+		// *****************************************************************
+		//
+		// Test #1.
+		//
+		//	{"$2a$00$////////..............XiwFBK8OLIKiLUZR11iwkDeHZvypH9y",
+		//		"abcde"},
+		//
+		// Hash (network byte order, 0 to 23):
+		// 0c 87 4c 66 a3 34 90 cf d3 66 35 24 98 32 79 df 1d 6f 09 58 ca fd 27 2b
+		//
+		// *****************************************************************
+		
+		// Usage: cmp_config_create(cnt,salt_len,"salt");
+		// Note: in bcrypt, salt is not sent in ASCII but encoded.
+		//
+		bcrypt_cmp_config_create(32,{8'h04, 8'h41, 8'h10, 8'h04,
+			8'h00, 8'h00, 8'h41, 8'h10, {8{8'h00}} });
+		cmp_config_add_hash(32'h_664c_870c);
+		send_bcrypt_cmp_config();
+		
+		send_empty_word_gen(16'h1234);
+/*
+		word_list_add("keylen7");
+		word_list_add("mypwd123");
+		word_list_add("mypwd1234");
+		word_list_add("mypwd12345");
+		word_list_add("pass_len_is15..");
+
+		for (k=0; k < 30; k=k+1)
+			word_list_add("11111110-b");
+
+		word_list_add("11111111");
+		word_list_add("11111101");
+		word_list_add("11111011");
+*/
+		word_list_add("abcde");
+
+		send_word_list();
+
+	end
+
+		// *****************************************************************
+		//
+		// Test #2.
+		//
+		//	{"$2a$01$////////..............fgo7Kiqupvy1qW.K1sadl0ELN2AVYb.",
+		//		"aaa"},
+		//
+		// *****************************************************************
 
 
 	// ******************************************************************
@@ -27,6 +88,13 @@ module pkt_comm_bcrypt_test();
 	// Simulating input from USB controller over high-speed interface
 	//
 	// ******************************************************************
+	reg CORE_CLK = 0, IFCLK = 0;
+
+	reg [7:0] din;
+	reg wr_en = 0;
+
+`include "../pkt_comm/pkt_comm_test_helper.vh"
+
 	wire [7:0] app_mode = 0;
 
 	wire [7:0] input_dout;
@@ -83,7 +151,7 @@ module pkt_comm_bcrypt_test();
 
 	// ********************************************************
 	//
-	// Some example application
+	// bcrypt application
 	// 8-bit input, 16-bit output
 	//
 	// ********************************************************
@@ -166,143 +234,6 @@ module pkt_comm_bcrypt_test();
 	endgenerate
 
 
-
-
-	initial begin
-		#10000;
-		// ****************** TEST 1. ******************
-		wr_en <= 1;
-		// write cmp_config packet
-		// hash: $2x$05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS
-		// password: "\xd1\x91"
-		din <= 2; #20; // ver
-		din <= 3; #20; // type
-		din <= 0; #40; // reserved0
-		din <= 28; #20; // len[7:0]
-		din <= 0; #40; // len[23:0]
-		din <= 0; #20; // reserved1
-		din <= 8'h22; #20; // id0
-		din <= 8'h33; #20; // id1;
-		din <= 0; #80; // checksum - not checked in simulation
-
-		// salt - 16 bytes
-		// 0xe0 0xf2 0xd3 0xf1 0x0b 0x6a 0x52 0x93 0xe1 0x40 0x6b 0x09 0x05 0xb1 0xeb 0x34
-		din <= 8'he0; #20; din <= 8'hf2; #20; din <= 8'hd3; #20;
-		din <= 8'hf1; #20; din <= 8'h0b; #20; din <= 8'h6a; #20;
-		din <= 8'h52; #20; din <= 8'h93; #20; din <= 8'he1; #20;
-		din <= 8'h40; #20; din <= 8'h6b; #20; din <= 8'h09; #20;
-		din <= 8'h05; #20; din <= 8'hb1; #20; din <= 8'heb; #20;
-		din <= 8'h34; #20;
-		din <= "x"; #20; // extension
-		din <= 32; #20; din <= 0; #60; // iteration count (32 for $05$)
-		din <= 8'h01; #20; // 1 hash
-		din <= 8'h00; #20;
-		// hash - first 4 bytes ( 0xd2 0x15 0x2b 0x93 )
-		din <= 8'hd2; #20;
-		din <= 8'h15; #20;
-		din <= 8'h2b; #20;
-		din <= 8'h93; #20;
-		din <= 8'hCC; #20;
-		din <= 0; #80; // checksum
-
-		// empty word_gen packet
-		din <= 2; #20;  din <= 2; #20; din <= 0; #40;
-		din <= 6 + 3*0; #20; // len[7:0]
-		din <= 0; #60; din <= 8'hf0; #20; din <= 8'h0f; #20; din <= 0; #80;
-		// body
-		din <= 0; #20; // num_ranges
-		din <= 0; #80; din <= 8'hbb; #20;
-		din <= 0; #80; // checksum
-
-		// word_list packet
-		din <= 2; #20;  din <= 1; #20; din <= 0; #40;
-		din <= 3; #20; // len[7:0]
-		din <= 0; #60;  din <= 8'h07; #40;  din <= 0; #80;
-
-		// body: 1 word: \xd1\x91
-		din <= 8'hd1; #20; din <= 8'h91; #20; din <= 0; #20;
-		din <= 0; #80; // checksum
-		wr_en <= 0;
-
-
-		#10000;
-		// ****************** TEST 2. ******************
-		wr_en <= 1;
-		// write cmp_config packet
-		din <= 2; #20; // ver
-		din <= 3; #20; // type
-		din <= 0; #40; // reserved0
-		din <= 28; #20; // len[7:0]
-		din <= 0; #40; // len[23:0]
-		din <= 0; #20; // reserved1
-		din <= 8'hAB; #20; // id0
-		din <= 8'hCD; #20; // id1;
-		din <= 0; #80; // checksum
-
-		// salt - 16 bytes
-		din <= 8'h65; #20; din <= 8'h59; #20; din <= 8'h96; #20;
-		din <= 8'h65; #20; din <= 8'h96; #20; din <= 8'h65; #20;
-		din <= 8'h59; #20; din <= 8'h96; #20; din <= 8'h59; #20;
-		din <= 8'h96; #20; din <= 8'h65; #20; din <= 8'h59; #20;
-		din <= 8'h65; #20; din <= 8'h59; #20; din <= 8'h96; #20;
-		din <= 8'h65; #20;
-		din <= "a"; #20; // extension
-		din <= 32; #20; din <= 0; #60; // iteration count (32 for $05$)
-		din <= 8'h01; #20; // 1 hash
-		din <= 8'h00; #20;
-		// hash for "U*U*U"
-		din <= 8'ha3; #20; din <= 8'h73; #20; din <= 8'he6; #20; din <= 8'h09; #20;
-		din <= 8'hCC; #20;
-
-		din <= 0; #80; // checksum
-		wr_en <= 0;
-
-
-		#1000;
-		for (k=0; k < 1; k=k+1) begin
-
-		wr_en <= 1;
-		// word_gen packet
-		din <= 2; #20;  din <= 2; #20; din <= 0; #40;
-		//din <= 6 + 3*0; #20; // len[7:0]
-		din <= 6 + 2*4; #20; // len[7:0]
-		din <= 0; #60;  din <= 8'hb0; #40;  din <= 0; #80;
-		// body. It generates 4 candidates for insertion into template: Zz ZU Uz UU
-		din <= 2; #20; // num_ranges
-		din <= 2; #20; din <= 0; #20; din <= "Z"; #20; din <= "U"; #20;
-		din <= 2; #20; din <= 0; #20; din <= "z"; #20; din <= "U"; #20;
-		din <= 0; #80; din <= 8'hbb; #20;
-		din <= 0; #80; // checksum
-
-		// template_list packet
-		din <= 2; #20;  din <= 4; #20; din <= 0; #40;
-		din <= 9; #20; // len[7:0]
-		din <= 0; #60;  din <= 8'h07; #40;  din <= 0; #80;
-		// body:
-		din <= "#"; #20; din <= "*"; #20; din <= "#"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
-		din <= 8'h80; #20; din <= 8'h82; #20; din <= 0; #20;
-		din <= 0; #80; // checksum
-/*
-		// word_list packet
-		din <= 2; #20;  din <= 1; #20; din <= 0; #40;
-		din <= 4*6; #20; // len[7:0]
-		din <= 0; #60;  din <= 8'h07; #40;  din <= 0; #80;
-
-		// body:
-		din <= "Z"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
-		din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
-		din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
-		din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= "*"; #20; din <= "U"; #20; din <= 0; #20;
-		din <= 0; #80; // checksum
-*/
-		wr_en <= 0;
-		end
-
-
-		// ****************** TEST 3. ******************
-		// TODO
-
-	end
 
 
 	// This does not reflect actual timing

@@ -50,7 +50,6 @@ module bcrypt_data(
 	integer k;
 
 	reg cmp_configured = 0;
-	reg packet_end = 1; // packet from generator ended
 
 	// Initialization (for PN, S memory):
 	//
@@ -159,15 +158,9 @@ module bcrypt_data(
 			else if (new_cmp_config) begin
 				cmp_config_addr <= 0; // comparator data
 				P_count_in <= 32 + 19;
-
-				if (packet_input_timeout) begin
-					state_in <= STATE_IN_ERROR;
-					error[1] <= 1;
-				end
-				else begin
-					cmp_config_applied <= 1;
-					state_in <= STATE_IN_ITER_SALT;
-				end
+				//error[1] <= 1;
+				cmp_config_applied <= 1;
+				state_in <= STATE_IN_ITER_SALT;
 			end
 		end
 
@@ -192,7 +185,6 @@ module bcrypt_data(
 
 		// Read 1st word of EK.
 		STATE_IN_READ_EK0: if (ek_wr_en) begin
-			packet_end <= 0;
 			P_count_in <= 32 + 24;
 			ek_full <= 1;
 			if (~cmp_configured) begin
@@ -260,7 +252,6 @@ module bcrypt_data(
 				end
 				data_ready <= 0;
 				if (bcdata_gen_end) begin
-					packet_end <= 1;
 					// Dummy candidate with gen_end set is the last one in the packet
 					// Don't transmit anything on start_tx
 					state_out <= STATE_OUT_TX_END_DATA;
@@ -355,9 +346,5 @@ module bcrypt_data(
 				| state_in == STATE_IN_READ_ID1)
 			P [P_count_in] <= P_in;
 	end
-
-	// packet didn't end, no input for ~256 cycles
-	delay #( .NBITS(8) ) delay_input_timeout(.CLK(CLK), .in(~packet_end),
-		.out(packet_input_timeout) );
 
 endmodule

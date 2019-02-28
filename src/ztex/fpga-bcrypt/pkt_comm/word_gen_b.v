@@ -112,8 +112,9 @@ module word_gen_b #(
 	reg zero_ranges_active = 1;
 
 	// *******************************************************************
-
+	(* RAM_STYLE="DISTRIBUTED" *)
 	reg [7:0] range_counter [RANGES_MAX-1 :0]; // Points at the next char in the range
+	(* RAM_STYLE="DISTRIBUTED" *)
 	reg [7:0] range_count_max [RANGES_MAX-1 :0]; // Contains max. value for range_counter
 	
 	reg [7:0] cur_range_count = 0;
@@ -126,7 +127,9 @@ module word_gen_b #(
 	wire cur_range_active = range_info [(cur_range+1)*(RANGE_INFO_MSB+1)-1];
 	wire [RANGE_INFO_MSB-1:0] cur_range_pos
 			= range_info [(cur_range+1)*(RANGE_INFO_MSB+1)-2 -:RANGE_INFO_MSB];
-	
+
+	reg [1:0] conf_num_generate = 0;
+
 	wire [7:0] din_minus_1 = din - 1'b1;
 	
 	
@@ -134,10 +137,8 @@ module word_gen_b #(
 					CONF_RANGE_NUM_CHARS = 1,
 					CONF_RANGE_START_IDX = 2,
 					CONF_RANGE_CHARS = 3,
-					CONF_NUM_GENERATE0 = 4,
-					CONF_NUM_GENERATE1 = 5,
-					CONF_NUM_GENERATE2 = 6,
-					CONF_NUM_GENERATE3 = 7,
+					CONF_RANGE_NEXT = 4,
+					CONF_NUM_GENERATE = 5,
 					CONF_MAGIC = 8,
 					CONF_ERROR = 9,
 					OP_RESET = 10,
@@ -169,12 +170,12 @@ module word_gen_b #(
 			else if (din[`MSB(RANGES_MAX):0] != 0)
 				state <= CONF_RANGE_NUM_CHARS;
 			else
-				state <= CONF_NUM_GENERATE0;
+				state <= CONF_NUM_GENERATE;
 		end
 		
 		CONF_RANGE_NUM_CHARS: if (conf_wr_en) begin
 			zero_ranges_active <= 0;
-			range_count_max[cur_range] <= din_minus_1;
+			cur_range_count_max <= din_minus_1;
 			cur_range_count <= 0;
 			// Wrong number of chars in range
 			//if (din == 0)	// <-- allow 256 chars
@@ -183,9 +184,11 @@ module word_gen_b #(
 				state <= CONF_RANGE_START_IDX;
 		end
 
-		CONF_RANGE_START_IDX: if (conf_wr_en)
+		CONF_RANGE_START_IDX: if (conf_wr_en) begin
+			range_count_max[cur_range] <= cur_range_count_max;
 			state <= CONF_RANGE_CHARS;
-			
+		end
+
 		CONF_RANGE_CHARS: if (conf_wr_en) begin
 			//ranges [{cur_range, cur_range_count}] <= din;
 			cur_range_count <= cur_range_count + 1'b1;
@@ -194,30 +197,32 @@ module word_gen_b #(
 				cur_range <= cur_range + 1'b1;
 				
 				if (cur_range == last_range_num)
-					state <= CONF_NUM_GENERATE0;
+					state <= CONF_NUM_GENERATE;
 				else
 					state <= CONF_RANGE_NUM_CHARS;
 			end
 		end
 
-		CONF_NUM_GENERATE0: if (conf_wr_en)
-			state <= CONF_NUM_GENERATE1;
-		
-		CONF_NUM_GENERATE1: if (conf_wr_en)
-			state <= CONF_NUM_GENERATE2;
-		
-		CONF_NUM_GENERATE2: if (conf_wr_en)
-			state <= CONF_NUM_GENERATE3;
-		
-		CONF_NUM_GENERATE3: if (conf_wr_en)
-			state <= CONF_MAGIC;
-			
+		CONF_RANGE_NEXT: begin
+			conf_full <= 0;
+			cur_range <= cur_range + 1'b1;
+			if (cur_range == last_range_num)
+				state <= CONF_NUM_GENERATE;
+			else
+				state <= CONF_RANGE_NUM_CHARS;
+		end
+
+		CONF_NUM_GENERATE: if (conf_wr_en) begin
+			conf_num_generate <= conf_num_generate + 1'b1;
+			if (conf_num_generate == 3)
+				state <= CONF_MAGIC;
+		end
+
 		CONF_MAGIC: if (conf_wr_en) begin
 			conf_full <= 1;
-			if (din == 8'hBB) begin
-				cur_range <= 0;
+			cur_range <= 0;
+			if (din == 8'hBB)
 				state <= OP_RESET;
-			end
 			else
 				state <= CONF_ERROR;
 		end
@@ -228,8 +233,7 @@ module word_gen_b #(
 		OP_RESET: begin // Prepare to process next input word
 			word_rd_addr <= 0;
 			storage_wr_addr <= 0;
-			
-			range_counter[cur_range] <= 0;
+
 			cur_range <= cur_range + 1'b1;
 			if (cur_range == RANGES_MAX - 1)
 				state <= OP_COPY_NEXT_WORD;
@@ -259,17 +263,16 @@ module word_gen_b #(
 
 		OP_NEXT_RANGE_1: begin
 			cur_range_count <= range_counter[cur_range];
+			cur_range_count_max <= range_count_max[cur_range];
 			state <= OP_NEXT_RANGE_2;
 		end
 			
 		OP_NEXT_RANGE_2: begin
 			if (range_carry) begin // Advance to the next char in the range
-				if (cur_range_count == range_count_max[cur_range]) begin
-					range_counter[cur_range] <= 0;
+				if (cur_range_count == cur_range_count_max) begin
 					range_carry <= 1;
 				end
 				else begin
-					range_counter[cur_range] <= cur_range_count + 1'b1;
 					range_carry <= 0;
 				end
 			end
@@ -309,6 +312,12 @@ module word_gen_b #(
 		end
 		endcase
 	end
+
+	always @(posedge CLK)
+		if (state == OP_RESET | state == OP_NEXT_RANGE_2 & range_carry)
+			range_counter[cur_range] <= state == OP_NEXT_RANGE_2
+				& cur_range_count != cur_range_count_max
+					? cur_range_count + 1'b1 : 8'd0;
 
 	assign storage_wr_en = state == OP_COPY_NEXT_WORD || state == OP_NEXT_RANGE_WR;
 	

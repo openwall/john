@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 // prog_full asserts when input fifo has <=6kb free
 
 // must be power of 2; actual size for output fifo is 2 bytes less
-`define	OUTPUT_FIFO_SIZE	8192
+`define	OUTPUT_FIFO_SIZE	4096
 
 // Parameters for pkt_comm
 `define	PKT_COMM_VERSION	2
@@ -37,14 +37,12 @@
 `define	OUTPKT_TYPE_PACKET_DONE	'b10
 `define	OUTPKT_TYPE_RESULT		'b11
 `define	OUTPKT_TYPE_CMP_RESULT	'b100
-`define	USE_OUTPKT_CMP_EQUAL
-`define	USE_OUTPKT_PACKET_DONE
-`define	USE_OUTPKT_RESULT
-`define	USE_OUTPKT_CMP_RESULT
 
 `define	RESULT_LEN			24
 `define	OUTPKT_DATA_MAX_LEN	(8 + `RESULT_LEN)
 
-`define	NUM_HASHES		4
+// comparator
+`define	NUM_HASHES		512
 `define	HASH_NUM_MSB	`MSB(`NUM_HASHES-1)
+`define	HASH_COUNT_MSB	`MSB(`NUM_HASHES)
 

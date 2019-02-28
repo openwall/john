@@ -50,19 +50,12 @@ module input_fifo(
 
 	assign tx_stage2 = ~empty_stage2 & ~full_stage2;
 
-	//
-	// fifo_input0 is large in size and its memory blocks are scattered over large area.
-	// That's unable to operate at high frequency such as 200 MHz because of routing delay.
-	// An additional small FIFO is append.
-	//
-
 	// FIFO Generator v9.3
 	// * Independent Clocks - Block RAM
 	// * 1st word Fall-Through
 	// * Write width: 16 depth: 1024, Read width: 8
-	// * Almost Empty Flag
 	// * Reset: off
-	fifo_16in_8out_2kb fifo_input1(
+	fifo_16in_8out_2k fifo_input1(
 		.wr_clk(wr_clk),
 		.din(din_stage2),
 		.wr_en(tx_stage2),
@@ -71,16 +64,8 @@ module input_fifo(
 		.rd_clk(rd_clk),
 		.dout(dout),
 		.rd_en(rd_en),
-		//.almost_empty(almost_empty),
 		.empty(empty)
 	);
 
-	//
-	// Another problem emerged.
-	// 64-K input FIFO is over large area, its circuitry located
-	// randomly in areas allocated for computing units.
-	// That hinders optimization effort and frequency for
-	// computing units.
-	//
 
 endmodule
