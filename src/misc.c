@@ -593,3 +593,24 @@ unsigned int lcm(unsigned int x, unsigned int y)
 	}
 	return x / a * y;
 }
+
+char *ltrim(char *str)
+{
+	char *out = str;
+
+	while (*out == ' ' || *out == '\t')
+		out++;
+
+	return out;
+}
+
+char *rtrim(char *str)
+{
+	char *out = str + strlen(str) - 1;
+
+	while (out >= str && (*out == ' ' || *out == '\t'))
+		out--;
+
+	*(out+1) = '\0';
+	return str;
+}
