@@ -171,10 +171,10 @@ def process_file(filename):
     assert(len(md) == 20)
 
     sys.stdout.write("%s:$keystore$0$%d$%s" % (os.path.basename(filename), pos,
-                                               hexlify(data[0:pos])))
+                                               hexlify(data[0:pos]).decode('utf-8')))
 
-    sys.stdout.write("$%s" % hexlify(md))
-    sys.stdout.write("$%d$%d$%s" % (count, keysize, hexlify(protectedPrivKey)))
+    sys.stdout.write("$%s" % hexlify(md).decode('utf-8'))
+    sys.stdout.write("$%d$%d$%s" % (count, keysize, hexlify(protectedPrivKey).decode('utf-8')))
     sys.stdout.write(":::::%s\n" % filename)
 
 
