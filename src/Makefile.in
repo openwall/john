@@ -837,6 +837,7 @@ clean:
 	@for exe in ${PROJ}; do \
 	  ($(RM) $$exe.exe) \
 	done
+	$(RM) ../run/unit-test*
 	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
 	$(RM) ../run/kernels/*
 	$(RM) lzma/*.o
