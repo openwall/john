@@ -737,7 +737,7 @@ unrarppm.o:	unrarppm.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp
 # to a dynamic format in a config file, so we deviate from core here.
 check: default
 	../run/john --list=build-info
-	../run/unit-tests@EXE_EXT@
+	$(MAKE) unit-tests
 	../run/john --test=0 --verbosity=2 --format=cpu
 	../run/john --test=0 --verbosity=2 --format=dynamic-all
 
