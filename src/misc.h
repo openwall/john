@@ -202,4 +202,14 @@ extern char *human_prefix(uint64_t num);
  */
 unsigned int lcm(unsigned int x, unsigned int y);
 
+/*
+ * Remove leading spaces from a string.
+ */
+char *ltrim(char *str);
+
+/*
+ * Remove trailing spaces from a string.
+ */
+char *rtrim(char *str);
+
 #endif

@@ -1113,7 +1113,6 @@ static void print_device_info(int sequential_id)
 	static int printed[MAX_GPU_DEVICES];
 	char device_name[MAX_OCLINFO_STRING_LEN];
 	cl_int ret_code;
-	int len;
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 	                               sizeof(device_name), device_name, NULL),
@@ -1122,10 +1121,8 @@ static void print_device_info(int sequential_id)
 	ret_code = clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_BOARD_NAME_AMD, sizeof(opencl_log), opencl_log, NULL);
 
-	if (ret_code == CL_SUCCESS && (len = strlen(opencl_log))) {
-		while (len > 0 && isspace(ARCH_INDEX(opencl_log[len - 1])))
-			len--;
-		opencl_log[len] = '\0';
+	if (ret_code == CL_SUCCESS) {
+		char *p = ltrim(rtrim(opencl_log));
 
 		if (options.verbosity > 1 && !printed[sequential_id]++)
 			fprintf(stderr, "Device %d%s%s: %s [%s]\n",
@@ -1135,24 +1132,8 @@ static void print_device_info(int sequential_id)
 #else
 			        "", "",
 #endif
-			        device_name, opencl_log);
-		log_event("Device %d: %s [%s]", sequential_id + 1, device_name, opencl_log);
-	} else {
-		char *dname = device_name;
-
-		/* Skip leading whitespace seen on Intel */
-		while (*dname == ' ')
-			dname++;
-
-		if (options.verbosity > 1 && !printed[sequential_id]++)
-			fprintf(stderr, "Device %d%s%s: %s\n", sequential_id + 1,
-#if HAVE_MPI
-			        "@", mpi_name,
-#else
-			        "", "",
-#endif
-			        dname);
-		log_event("Device %d: %s", sequential_id + 1, dname);
+			        device_name, p);
+		log_event("Device %d: %s [%s]", sequential_id + 1, device_name, p);
 	}
 }
 
@@ -2940,9 +2921,7 @@ void opencl_list_devices(void)
 			}
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_NAME,
 			                sizeof(dname), dname, NULL);
-			p = dname;
-			while (isspace(ARCH_INDEX(*p))) /* Intel quirk */
-				p++;
+			p = ltrim(dname);
 			printf("    Device #%d (%d) name:     %s\n", j, sequence_nr + 1, p);
 
 			// Check if device seems to be working.
