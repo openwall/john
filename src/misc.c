@@ -578,3 +578,18 @@ char *human_prefix(uint64_t num)
 
 	return out;
 }
+
+unsigned int lcm(unsigned int x, unsigned int y)
+{
+	unsigned int tmp, a, b;
+
+	a = MAX(x, y);
+	b = MIN(x, y);
+
+	while (b) {
+		tmp = b;
+		b = a % b;
+		a = tmp;
+	}
+	return x / a * y;
+}

@@ -2000,21 +2000,6 @@ uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
 	return size;
 }
 
-unsigned int lcm(unsigned int x, unsigned int y)
-{
-	unsigned int tmp, a, b;
-
-	a = MAX(x, y);
-	b = MIN(x, y);
-
-	while (b) {
-		tmp = b;
-		b = a % b;
-		a = tmp;
-	}
-	return x / a * y;
-}
-
 void opencl_find_best_gws(int step, int max_duration,
                           int sequential_id, unsigned int rounds, int have_lws)
 {
