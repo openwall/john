@@ -447,6 +447,143 @@ void _test_cpy_func(char *(cfn)(char *, const char *, int),
 		}
 	}
 }
+
+/*
+ * The trim() functions change the input buffer, so we must have one test for
+ * each funcion call
+ */
+int _tst_trim() {
+	// note tail array is allocated to proper size, so that ASAN will catch any
+	// read PAST end of valid buffer
+	char *data = "1234567890ABCDEFGHIJKLMNOPQRS";
+	char *p, *string, buffer[56], expected[56];
+	int i, j, len;
+
+	string = (char *) malloc(strlen(data) + 1); // allocate for proper sized ASCIIZ string.
+
+	// Test lTrim()
+	for (len = 0; len < strlen(data); ++len) {
+		for (j = 0; j < 14; ++j) {
+			for (i = 0; i < 14; ++i) {
+				// The string I'm going to test
+				strncpy(string, data, len);
+				string[len] = '\0';
+
+				// Add spaces to the string
+				sprintf(buffer, "%*s%s%*s", i, "", string, j, "");
+
+				// Run the test
+				inc_test();
+				p = ltrim(buffer);
+
+				// What data is expected after trim (skip zero length)
+				strncpy(expected, string, sizeof(expected));
+				expected[len + j] = '\0';
+
+				if (len)
+					memset(expected + len, ' ', j);
+
+				// Test
+				if (strcmp(p, expected)) {
+					inc_failed_test();
+					printf("\tltrim() failed for [%d,%d,%d] |%s||%s|\n",
+						len, j, i, expected, p);
+				}
+			}
+		}
+	}
+
+	// Test rTrim()
+	for (len = 0; len < strlen(data); ++len) {
+		for (j = 0; j < 14; ++j) {
+			for (i = 0; i < 14; ++i) {
+				// The string I'm going to test
+				strncpy(string, data, len);
+				string[len] = '\0';
+
+				// Add spaces to the string
+				sprintf(buffer, "%*s%s%*s", i, "", string, j, "");
+
+				// Run the test
+				inc_test();
+				p = rtrim(buffer);
+
+				// What data is expected after trim (skip zero length)
+				strncpy(expected + i, string, sizeof(expected) - i);
+				expected[len + i] = '\0';
+
+				if (len)
+					memset(expected, ' ', i);
+
+				// Test
+				if (strcmp(p, expected)) {
+					inc_failed_test();
+					printf("\trtrim() failed for [%d,%d,%d] |%s||%s|\n",
+						len, j, i, expected, p);
+				}
+			}
+		}
+	}
+
+	// Test both lTrim() and rTrim(), in that order
+	for (len = 0; len < strlen(data); ++len) {
+		for (j = 0; j < 14; ++j) {
+			for (i = 0; i < 14; ++i) {
+				// The string I'm going to test
+				strncpy(string, data, len);
+				string[len] = '\0';
+
+				// Add spaces to the string
+				sprintf(buffer, "%*s%s%*s", i, "", string, j, "");
+
+				// Run the test
+				inc_test();
+				p = ltrim(rtrim(buffer));
+
+				// What data is expected after trim
+				strncpy(expected, string, sizeof(expected));
+
+				// Test
+				if (strcmp(p, expected)) {
+					inc_failed_test();
+					printf("\tltrim(rtrim()) failed for [%d,%d,%d] |%s||%s|\n",
+						len, j, i, expected, p);
+				}
+			}
+		}
+	}
+
+	// Test both rTrim() and lTrim(), in that order
+	for (len = 0; len < strlen(data); ++len) {
+		for (j = 0; j < 14; ++j) {
+			for (i = 0; i < 14; ++i) {
+				// The string I'm going to test
+				strncpy(string, data, len);
+				string[len] = '\0';
+
+				// Add spaces to the string
+				sprintf(buffer, "%*s%s%*s", i, "", string, j, "");
+
+				// Run the test
+				inc_test();
+				p = rtrim(ltrim(buffer));
+
+				// What data is expected after trim
+				strncpy(expected, string, sizeof(expected));
+
+				// Test
+				if (strcmp(p, expected)) {
+					inc_failed_test();
+					printf("\trtrim(ltrim()) failed for [%d,%d,%d] |%s||%s|\n",
+						len, j, i, expected, p);
+				}
+			}
+		}
+	}
+	free(string);
+	return 0;
+}
+
 /*
  * this function writes 'special' files. The files have each line be fully
  * self describing. lines ALL start with  "line %04d  ", where the number is
@@ -1060,6 +1197,13 @@ void test_jtr_lltoa() {
 // char *human_prefix(uint64_t num)
 void test_human_prefix() {
 	start_test(__FUNCTION__);
+	end_test();
+}
+
+// char *[l/r]trim(char *str)
+void test_trim() {
+	start_test(__FUNCTION__);
+	_tst_trim();
 	end_test();
 }
 
@@ -2320,6 +2464,7 @@ int main() {
 	test_jtr_lltoa();	// const char *jtr_lltoa(int64_t val, char *result, int rlen, int base)
 	test_jtr_ulltoa();	// const char *jtr_ulltoa(uint64_t val, char *result, int rlen, int base)
 //test_human_prefix();	// char *human_prefix(uint64_t num)
+	test_trim();            // char *[l/r]trim(char *str)
 
 	set_unit_test_source("common.c");
 	_gen_hex_len_data();
