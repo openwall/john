@@ -150,6 +150,14 @@ static void crk_help(void)
 	printed = 1;
 }
 
+void crk_set_kpc_warn(void)
+{
+	kpc_warn = crk_params->min_keys_per_crypt;
+
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "RelaxKPCWarningCheck", 0))
+		kpc_warn -= kpc_warn / (crk_db->loaded ? crk_db->salt_count : 1);
+}
+
 void crk_init(struct db_main *db, void (*fix_state)(void),
 	struct db_keys *guesses)
 {
@@ -211,16 +219,13 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	crk_guesses = guesses;
 
-	kpc_warn = crk_params->min_keys_per_crypt;
+	crk_set_kpc_warn();
 
 	if (db->loaded) {
 		size = crk_params->max_keys_per_crypt * sizeof(uint64_t);
 		memset(crk_timestamps = mem_alloc(size), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
-
-	if (cfg_get_bool(SECTION_OPTIONS, NULL, "RelaxKPCWarningCheck", 0))
-		kpc_warn -= kpc_warn / (db->loaded ? db->salt_count : 1);
 
 	rec_save();
 
@@ -824,7 +829,10 @@ static int crk_password_loop(struct db_salt *salt)
 		if (!initial_value)
 			initial_value = kpc_warn_limit;
 
-		if (last_warn_kpc != crk_key_index) {
+		if (kpc_warn > crk_params->min_keys_per_crypt)
+			crk_set_kpc_warn();
+
+		if (crk_key_index < kpc_warn && last_warn_kpc != crk_key_index) {
 			last_warn_kpc = crk_key_index;
 			if (options.node_count)
 				fprintf(stderr, "%u: ", NODE);
