@@ -150,7 +150,7 @@ static void crk_help(void)
 	printed = 1;
 }
 
-void crk_set_kpc_warn(void)
+static void crk_set_kpc_warn(void)
 {
 	kpc_warn = crk_params->min_keys_per_crypt;
 
