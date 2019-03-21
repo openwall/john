@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2009,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2009,2011,2019 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -11,6 +11,7 @@
 #define _XOPEN_SOURCE /* for nice(2) */
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
 
 #ifdef _POSIX_PRIORITY_SCHEDULING
 #include <sched.h>
@@ -54,6 +55,9 @@ int idle_requested(struct fmt_main *format)
 
 void idle_init(struct fmt_main *format)
 {
+#ifndef __BEOS__
+	int old_nice;
+#endif
 #if defined(_POSIX_PRIORITY_SCHEDULING) && defined(SCHED_IDLE)
 	struct sched_param param = {0};
 #endif
@@ -64,14 +68,15 @@ void idle_init(struct fmt_main *format)
 	clk_tck_init();
 
 #ifndef __BEOS__
-/*
- * Normally, the range is -20 to 19, but some systems can do 20 as well (at
- * least some versions of Linux on Alpha), so we try 20.  We assume that we're
- * started with a non-negative nice value (so no need to increment it by more
- * than 20).
- */
-	if (nice(20) == -1)
+	errno = 0;
+	old_nice = nice(0);
+	if (old_nice == -1 && errno) {
 		perror("nice");
+	} else {
+		errno = 0;
+		if (nice(19 - old_nice) == -1 && errno)
+			perror("nice");
+	}
 #else
 	set_thread_priority(getpid(), 1);
 #endif
