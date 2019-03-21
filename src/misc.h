@@ -26,7 +26,7 @@ extern void error(void);
 /*
  * Similar to perror(), but supports formatted output, and calls error().
  */
-extern void pexit(char *format, ...)
+extern void pexit(const char *format, ...)
 #ifdef __GNUC__
 	__attribute__ ((format (printf, 1, 2)));
 #else
@@ -37,7 +37,7 @@ extern void pexit(char *format, ...)
  * Attempts to write all the supplied data. Returns the number of bytes
  * written, or -1 on error.
  */
-extern int write_loop(int fd, char *buffer, int count);
+extern int write_loop(int fd, const char *buffer, int count);
 
 /*
  * Similar to fgets(), but doesn't leave the newline character in the buffer,
@@ -50,18 +50,18 @@ extern char *fgetl(char *s, int size, FILE *stream);
  * Similar to strncpy(), but terminates with only one NUL if there's room
  * instead of padding to the supplied size like strncpy() does.
  */
-extern char *strnfcpy(char *dst, char *src, int size);
+extern char *strnfcpy(char *dst, const char *src, int size);
 
 /*
  * Similar to the above, but always NUL terminates the string.
  */
-extern char *strnzcpy(char *dst, char *src, int size);
+extern char *strnzcpy(char *dst, const char *src, int size);
 
 /*
  * Similar to strncat(), but total buffer size is supplied, and always NUL
  * terminates the string.
  */
-extern char *strnzcat(char *dst, char *src, int size);
+extern char *strnzcat(char *dst, const char *src, int size);
 
 /*
  * Converts a string to lowercase.

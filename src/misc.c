@@ -16,6 +16,7 @@
 #include <errno.h>
 
 #include "logger.h"
+#include "misc.h"
 
 void error(void)
 {
@@ -27,7 +28,7 @@ void error(void)
 	exit(1);
 }
 
-void pexit(char *format, ...)
+void pexit(const char *format, ...)
 {
 	va_list args;
 
@@ -40,7 +41,7 @@ void pexit(char *format, ...)
 	error();
 }
 
-int write_loop(int fd, char *buffer, int count)
+int write_loop(int fd, const char *buffer, int count)
 {
 	int offset, block;
 
@@ -87,9 +88,10 @@ char *fgetl(char *s, int size, FILE *stream)
 	return res;
 }
 
-char *strnfcpy(char *dst, char *src, int size)
+char *strnfcpy(char *dst, const char *src, int size)
 {
-	char *dptr = dst, *sptr = src;
+	char *dptr = dst;
+	const char *sptr = src;
 	int count = size;
 
 	while (count--)
@@ -98,9 +100,10 @@ char *strnfcpy(char *dst, char *src, int size)
 	return dst;
 }
 
-char *strnzcpy(char *dst, char *src, int size)
+char *strnzcpy(char *dst, const char *src, int size)
 {
-	char *dptr = dst, *sptr = src;
+	char *dptr = dst;
+	const char *sptr = src;
 	int count = size;
 
 	if (count)
@@ -111,9 +114,10 @@ char *strnzcpy(char *dst, char *src, int size)
 	return dst;
 }
 
-char *strnzcat(char *dst, char *src, int size)
+char *strnzcat(char *dst, const char *src, int size)
 {
-	char *dptr = dst, *sptr = src;
+	char *dptr = dst;
+	const char *sptr = src;
 	int count = size;
 
 	if (count) {
