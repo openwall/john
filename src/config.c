@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2009,2013 by Solar Designer
+ * Copyright (c) 1996-2002,2009,2013,2019 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -28,12 +28,18 @@ static char *trim(char *s)
 {
 	char *e;
 
-	while (*s && (*s == ' ' || *s == '\t')) s++;
-	if (!*s) return s;
+	while (*s == ' ' || *s == '\t')
+		s++;
+	if (!*s)
+		return s;
 
 	e = s + strlen(s) - 1;
-	while (e >= s && (*e == ' ' || *e == '\t')) e--;
-	*++e = 0;
+	while (*e == ' ' || *e == '\t') {
+		*e = 0;
+		if (e == s)
+			break;
+		e--;
+	}
 	return s;
 }
 
