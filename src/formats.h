@@ -56,16 +56,16 @@ struct fmt_tests {
 struct fmt_params {
 /* Label to refer to this format (any alphabetical characters in it must be
  * lowercase). */
-	char *label;
+	const char *label;
 
 /* Ciphertext format name */
-	char *format_name;
+	const char *format_name;
 
 /* Cracking algorithm name */
-	char *algorithm_name;
+	const char *algorithm_name;
 
 /* Comment about the benchmark (can be empty) */
-	char *benchmark_comment;
+	const char *benchmark_comment;
 
 /* Benchmark for short/long passwords instead of for one/many salts */
 	int benchmark_length;

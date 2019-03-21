@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2018 by Solar Designer
+ * Copyright (c) 1996-2019 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -22,7 +22,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.13"
+#define JOHN_VERSION			"1.8.0.14"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -331,7 +331,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Maximum number of character ranges for rules.
  */
-#define RULE_RANGES_MAX			16
+#define RULE_RANGES_MAX			30
 
 /*
  * Buffer size for words while applying rules, should be at least as large

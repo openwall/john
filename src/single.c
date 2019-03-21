@@ -267,8 +267,10 @@ static int single_process_buffer(struct db_salt *salt)
 				if (current == salt || !current->list)
 					continue;
 
-				if (single_add_key(current, keys->ptr, 1))
+				if (single_add_key(current, keys->ptr, 1)) {
+					MEM_FREE(keys);
 					return 1;
+				}
 			} while ((current = current->next));
 			keys->ptr += length;
 		} while (--keys->count);
@@ -494,6 +496,7 @@ static void single_done(void)
 		progress = 100;
 	}
 
+	crk_done();
 	rec_done(event_abort || (status.pass && single_db->salts));
 }
 

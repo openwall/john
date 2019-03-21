@@ -862,12 +862,15 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 			break;
 
 		case 'M':
-			strnfcpy(memory = memory_buffer, in, rules_max_length);
+			memcpy(memory = memory_buffer, in, length + 1);
 			rules_vars['m'] = (unsigned char)length - 1;
 			break;
 
 		case 'Q':
-			if (!strncmp(memory, in, rules_max_length))
+			if (NEXT) {
+				if (!strcmp(memory, in))
+					REJECT
+			} else if (!strncmp(memory, in, rules_max_length))
 				REJECT
 			break;
 
@@ -1002,10 +1005,12 @@ out_OK:
 out_which:
 	if (which == 1) {
 		strcat(in, buffer[2]);
+		length = strlen(in);
 		goto out_OK;
 	}
 	strcat(buffer[2], in);
 	in = buffer[2];
+	length = strlen(in);
 	goto out_OK;
 
 out_ERROR_POSITION:
