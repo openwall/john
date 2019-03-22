@@ -55,13 +55,6 @@ int idle_requested(struct fmt_main *format)
 
 void idle_init(struct fmt_main *format)
 {
-#ifndef __BEOS__
-	int old_nice;
-#endif
-#if defined(_POSIX_PRIORITY_SCHEDULING) && defined(SCHED_IDLE)
-	struct sched_param param = {0};
-#endif
-
 	if (!idle_requested(format) || (options.flags & FLG_STDOUT))
 		return;
 
@@ -69,7 +62,7 @@ void idle_init(struct fmt_main *format)
 
 #ifndef __BEOS__
 	errno = 0;
-	old_nice = nice(0);
+	int old_nice = nice(0);
 	if (old_nice == -1 && errno) {
 		perror("nice");
 	} else {
@@ -82,6 +75,7 @@ void idle_init(struct fmt_main *format)
 #endif
 
 #if defined(_POSIX_PRIORITY_SCHEDULING) && defined(SCHED_IDLE)
+	struct sched_param param = {0};
 	use_yield = sched_setscheduler(getpid(), SCHED_IDLE, &param) != 0;
 #elif defined(_POSIX_PRIORITY_SCHEDULING)
 	use_yield = 1;
