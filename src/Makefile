@@ -30,7 +30,7 @@ OMPFLAGS =
 #OMPFLAGS = -openmp
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
-CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer $(OMPFLAGS)
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS)
@@ -903,7 +903,7 @@ john.com: john.asm
 	strip ../run/unique.exe
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
-DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
+DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c sboxes-t.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) DES_bs_b.c
 
 miscnl.o: misc.c
