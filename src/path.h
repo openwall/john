@@ -24,13 +24,13 @@ extern void path_init(char **argv);
  * Expands "$JOHN/" and "~/" in a path name.
  * The returned buffer might be overwritten with subsequent calls.
  */
-extern char *path_expand(char *name);
+extern const char *path_expand(const char *name);
 
 /*
  * Generates a filename for the given session name and filename suffix.
  * Memory for the resulting filename is allocated with mem_alloc_tiny().
  */
-extern char *path_session(char *session, char *suffix);
+extern char *path_session(const char *session, const char *suffix);
 
 /*
  * Frees the memory allocated in path_init().

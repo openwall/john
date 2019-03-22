@@ -76,7 +76,7 @@ void path_init(char **argv)
 #endif
 }
 
-char *path_expand(char *name)
+const char *path_expand(const char *name)
 {
 	if (!strncmp(name, "$JOHN/", 6)) {
 		if (john_home_path &&
@@ -103,7 +103,7 @@ char *path_expand(char *name)
 	return name;
 }
 
-char *path_session(char *session, char *suffix)
+char *path_session(const char *session, const char *suffix)
 {
 	int keep, add;
 	char *p;
