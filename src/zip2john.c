@@ -837,7 +837,7 @@ print_and_cleanup:;
 			if (i) {
 				filenames = mem_realloc(filenames,
 				                        strlen(filenames) +
-				                        strlen(hashes[0].file_name) + 3);
+				                        strlen(hashes[i].file_name) + 3);
 				strcat(filenames, ", ");
 				strcat(filenames, hashes[i].file_name);
 			}
