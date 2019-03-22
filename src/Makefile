@@ -89,17 +89,19 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
-	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
+	@echo "linux-x86-64-avx512      Linux, x86-64 with AVX-512 (some 2017+ Intel CPUs)"
+	@echo "linux-x86-64-avx2        Linux, x86-64 with AVX2 (some 2013+ Intel CPUs)"
+	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (some 2011+ Intel CPUs)"
+	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (some AMD CPUs)"
 	@echo "linux-x86-64             Linux, x86-64 with SSE2 (most common)"
 #	@echo "linux-x86-64-32-sse2     Linux, x86-64, 32-bit with SSE2"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX"
 	@echo "linux-x86-avx            Linux, x86 32-bit with AVX (2011+ Intel CPUs)"
-	@echo "linux-x86-xop            Linux, x86 32-bit with AVX and XOP (2011+ AMD CPUs)"
+	@echo "linux-x86-xop            Linux, x86 32-bit with AVX and XOP (some AMD CPUs)"
 	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (most common, if 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
-	@echo "linux-mic                Linux, Intel MIC (Xeon Phi)"
+	@echo "linux-mic                Linux, Intel MIC (first generation Xeon Phi)"
 	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best)"
 	@echo "linux-arm32le            Linux, ARM 32-bit little-endian"
 	@echo "linux-alpha              Linux, Alpha"
@@ -163,6 +165,24 @@ default:
 	@echo "beos-x86-mmx             BeOS, x86 with MMX"
 	@echo "beos-x86-any             BeOS, x86"
 	@echo "generic                  Any other Unix-like system with gcc"
+
+linux-x86-64-avx512:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -mavx512f -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -mavx512f" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
+linux-x86-64-avx2:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -mavx2 -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -mavx2" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-64-avx:
 	$(LN) x86-64.h arch.h

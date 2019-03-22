@@ -45,19 +45,11 @@
 #define DES_STD_ALGORITHM_NAME		"DES 48/64 4K MMX"
 #if defined(__MMX__) && defined(_OPENMP)
 #define DES_BS_ASM			0
-#if 1
-#define DES_BS_VECTOR			2
-#define DES_BS_ALGORITHM_NAME		"DES 64/64 MMX"
-#else
-#define DES_BS_VECTOR			3
-#define DES_BS_VECTOR_SIZE		4
-#define DES_BS_ALGORITHM_NAME		"DES 64/64 MMX + 32/32"
-#endif
 #else
 #define DES_BS_ASM			1
+#endif
 #define DES_BS_VECTOR			2
 #define DES_BS_ALGORITHM_NAME		"DES 64/64 MMX"
-#endif
 #define DES_BS				1
 #define DES_BS_EXPAND			1
 

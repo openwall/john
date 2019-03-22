@@ -37,7 +37,7 @@
 #define DES_BS_ASM			0
 #define DES_BS				1
 #define DES_BS_VECTOR			8
-#define DES_BS_ALGORITHM_NAME		"512/512"
+#define DES_BS_ALGORITHM_NAME		"DES 512/512 MIC"
 #define DES_BS_EXPAND			1
 
 #define MD5_ASM				0
