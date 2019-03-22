@@ -34,7 +34,7 @@ void path_init(char **argv)
 #if JOHN_SYSTEMWIDE
 	struct passwd *pw;
 #ifdef JOHN_PRIVATE_HOME
-	char *private;
+	const char *private;
 #endif
 #else
 	char *pos;
