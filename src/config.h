@@ -58,28 +58,28 @@ extern char *cfg_name;
 /*
  * Loads a configuration file, or does nothing if one is already loaded.
  */
-extern void cfg_init(char *name, int allow_missing);
+extern void cfg_init(const char *name, int allow_missing);
 
 /*
  * Searches for a section with the supplied name, and returns its line list
  * structure, or NULL if the search fails.
  */
-extern struct cfg_list *cfg_get_list(char *section, char *subsection);
+extern struct cfg_list *cfg_get_list(const char *section, const char *subsection);
 
 /*
  * Searches for a section with the supplied name and a parameter within the
  * section, and returns the parameter's value, or NULL if not found.
  */
-extern char *cfg_get_param(char *section, char *subsection, char *param);
+extern char *cfg_get_param(const char *section, const char *subsection, const char *param);
 
 /*
  * Similar to the above, but does an atoi(). Returns -1 if not found.
  */
-extern int cfg_get_int(char *section, char *subsection, char *param);
+extern int cfg_get_int(const char *section, const char *subsection, const char *param);
 
 /*
  * Converts the value to boolean. Returns def if not found.
  */
-extern int cfg_get_bool(char *section, char *subsection, char *param, int def);
+extern int cfg_get_bool(const char *section, const char *subsection, const char *param, int def);
 
 #endif

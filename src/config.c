@@ -24,26 +24,28 @@
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
 
-static char *trim(char *s)
+static char *trim(char *s, int right)
 {
-	char *e;
-
 	while (*s == ' ' || *s == '\t')
 		s++;
+
 	if (!*s)
 		return s;
 
-	e = s + strlen(s) - 1;
-	while (*e == ' ' || *e == '\t') {
-		*e = 0;
-		if (e == s)
-			break;
-		e--;
+	if (right) {
+		char *e = s + strlen(s) - 1;
+		while (*e == ' ' || *e == '\t') {
+			*e = 0;
+			if (e == s)
+				break;
+			e--;
+		}
 	}
+
 	return s;
 }
 
-static void cfg_add_section(char *name)
+static void cfg_add_section(const char *name)
 {
 	struct cfg_section *last;
 
@@ -64,7 +66,7 @@ static void cfg_add_section(char *name)
 	}
 }
 
-static void cfg_add_line(char *line, int number)
+static void cfg_add_line(const char *line, int number)
 {
 	struct cfg_list *list;
 	struct cfg_line *entry;
@@ -82,7 +84,7 @@ static void cfg_add_line(char *line, int number)
 		list->tail = list->head = entry;
 }
 
-static void cfg_add_param(char *name, char *value)
+static void cfg_add_param(const char *name, const char *value)
 {
 	struct cfg_param *current, *last;
 
@@ -99,19 +101,22 @@ static int cfg_process_line(char *line, int number)
 {
 	char *p;
 
-	line = trim(line);
-	if (!*line || *line == '#' || *line == ';') return 0;
+	line = trim(line, 0);
+	if (!*line || *line == '#' || *line == ';')
+		return 0;
 
 	if (*line == '[') {
-		if ((p = strchr(line, ']'))) *p = 0; else return 1;
-		cfg_add_section(strlwr(trim(line + 1)));
+		if (!(p = strchr(line, ']')))
+			return 1;
+		*p = 0;
+		cfg_add_section(strlwr(trim(line + 1, 1)));
 	} else
 	if (cfg_database && cfg_database->list) {
 		cfg_add_line(line, number);
 	} else
 	if (cfg_database && (p = strchr(line, '='))) {
 		*p++ = 0;
-		cfg_add_param(strlwr(trim(line)), trim(p));
+		cfg_add_param(strlwr(trim(line, 1)), trim(p, 1));
 	} else {
 		return 1;
 	}
@@ -119,7 +124,7 @@ static int cfg_process_line(char *line, int number)
 	return 0;
 }
 
-static void cfg_error(char *name, int number)
+static void cfg_error(const char *name, int number)
 {
 	if (john_main_process)
 		fprintf(stderr, "Error in %s at line %d\n",
@@ -127,7 +132,7 @@ static void cfg_error(char *name, int number)
 	error();
 }
 
-void cfg_init(char *name, int allow_missing)
+void cfg_init(const char *name, int allow_missing)
 {
 	FILE *file;
 	char line[LINE_BUFFER_SIZE];
@@ -151,10 +156,10 @@ void cfg_init(char *name, int allow_missing)
 	cfg_name = str_alloc_copy(path_expand(name));
 }
 
-static struct cfg_section *cfg_get_section(char *section, char *subsection)
+static struct cfg_section *cfg_get_section(const char *section, const char *subsection)
 {
 	struct cfg_section *current;
-	char *p1, *p2;
+	const char *p1, *p2;
 
 	if ((current = cfg_database))
 	do {
@@ -177,7 +182,7 @@ static struct cfg_section *cfg_get_section(char *section, char *subsection)
 	return NULL;
 }
 
-struct cfg_list *cfg_get_list(char *section, char *subsection)
+struct cfg_list *cfg_get_list(const char *section, const char *subsection)
 {
 	struct cfg_section *current;
 
@@ -187,11 +192,11 @@ struct cfg_list *cfg_get_list(char *section, char *subsection)
 	return NULL;
 }
 
-char *cfg_get_param(char *section, char *subsection, char *param)
+char *cfg_get_param(const char *section, const char *subsection, const char *param)
 {
 	struct cfg_section *current_section;
 	struct cfg_param *current_param;
-	char *p1, *p2;
+	const char *p1, *p2;
 
 	if ((current_section = cfg_get_section(section, subsection)))
 	if ((current_param = current_section->params))
@@ -208,7 +213,7 @@ char *cfg_get_param(char *section, char *subsection, char *param)
 	return NULL;
 }
 
-int cfg_get_int(char *section, char *subsection, char *param)
+int cfg_get_int(const char *section, const char *subsection, const char *param)
 {
 	char *s_value, *error;
 	long l_value;
@@ -223,7 +228,7 @@ int cfg_get_int(char *section, char *subsection, char *param)
 	return -1;
 }
 
-int cfg_get_bool(char *section, char *subsection, char *param, int def)
+int cfg_get_bool(const char *section, const char *subsection, const char *param, int def)
 {
 	char *value;
 
