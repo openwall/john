@@ -1354,13 +1354,15 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case 'M':
-			memory = memory_buffer;
-			strnfcpy(memory_buffer, in, STACK_MAXLEN);
+			memcpy(memory = memory_buffer, in, length + 1);
 			rules_vars['m'] = (unsigned char)length - 1;
 			break;
 
 		case 'Q':
-			if (!strncmp(memory, in, STACK_MAXLEN))
+			if (NEXT) {
+				if (!strcmp(memory, in))
+					REJECT
+			} else if (!strncmp(memory, in, STACK_MAXLEN))
 				REJECT
 			break;
 

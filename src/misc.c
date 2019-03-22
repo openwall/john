@@ -34,7 +34,7 @@
 
 #include "john_mpi.h"
 
-void real_error(char *file, int line)
+void real_error(const char *file, int line)
 {
 #ifndef _JOHN_MISC_NO_LOG
 	log_event("Terminating on error, %s:%d", file, line);
@@ -46,7 +46,7 @@ void real_error(char *file, int line)
 	exit(1);
 }
 
-void real_error_msg(char *file, int line,  char *format, ...)
+void real_error_msg(const char *file, int line,  const char *format, ...)
 {
 	va_list args;
 
@@ -65,7 +65,7 @@ void real_error_msg(char *file, int line,  char *format, ...)
 	real_error(file, line);
 }
 
-void real_pexit(char *file, int line, char *format, ...)
+void real_pexit(const char *file, int line, const char *format, ...)
 {
 	va_list args;
 

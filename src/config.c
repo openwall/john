@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2009,2013 by Solar Designer
+ * Copyright (c) 1996-2002,2009,2013,2019 by Solar Designer
  *
  * ...with changes in the jumbo patch, by magnum and JimF
  *
@@ -48,8 +48,10 @@ static char *trim(char *s, int force)
 {
 	char *e;
 
-	while (*s && (*s == ' ' || *s == '\t')) s++;
-	if (!*s) return s;
+	while (*s == ' ' || *s == '\t')
+		s++;
+	if (!*s)
+		return s;
 
 	e = s + strlen(s) - 1;
 	while (e >= s && (*e == ' ' || *e == '\t')) e--;

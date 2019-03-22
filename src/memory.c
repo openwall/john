@@ -263,7 +263,7 @@ void *mem_calloc_align(size_t count, size_t size, size_t align)
 	return ptr;
 }
 
-char *str_alloc_copy(char *src)
+char *str_alloc_copy(const char *src)
 {
 	size_t size;
 

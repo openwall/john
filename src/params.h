@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2018 by Solar Designer
+ * Copyright (c) 1996-2019 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
  *
@@ -26,7 +26,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.13"
+#define JOHN_VERSION			"1.8.0.14"
 
 /*
  * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD

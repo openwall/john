@@ -324,7 +324,7 @@ static void john_register_one(struct fmt_main *format)
 	/* Format disabled in john.conf */
 	if (!override_disable &&
 	    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-	                 format->params.label, 0)) {
+	                 (char*)format->params.label, 0)) {
 #ifdef DEBUG
 		if (format->params.flags & FMT_DYNAMIC) {
 			/* in debug mode, we 'allow' dyna */
@@ -615,7 +615,7 @@ static void john_omp_show_info(void)
 	if (john_omp_threads_orig == 1)
 	if (options.verbosity >= VERB_DEFAULT)
 	if (john_main_process) {
-		char *format = database.format ?
+		const char *format = database.format ?
 			database.format->params.label : options.format;
 		if (format && strstr(format, "-opencl"))
 			fputs("Warning: OpenMP is disabled; "

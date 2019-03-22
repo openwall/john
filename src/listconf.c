@@ -527,7 +527,7 @@ void listconf_parse_late(void)
 		format = fmt_list;
 		do {
 			int length;
-			char *label = format->params.label;
+			const char *label = format->params.label;
 			if (grp_dyna && !strncmp(label, "dynamic", 7)) {
 				if (dynamics++)
 					continue;
@@ -654,7 +654,7 @@ void listconf_parse_late(void)
 			printf(" Disabled in configuration file      %s\n",
 			       cfg_get_bool(SECTION_DISABLED,
 			                    SUBSECTION_FORMATS,
-			                    format->params.label, 0)
+			                    (char*)format->params.label, 0)
 			       ? "yes" : "no");
 			printf("Min. password length                 %d\n", format->params.plaintext_min_length);
 			if (!(format->params.flags & FMT_8_BIT) ||

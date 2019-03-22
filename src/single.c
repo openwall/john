@@ -884,7 +884,6 @@ static void single_done(void)
 	single_db->format->params.min_keys_per_crypt = orig_min_kpc;
 
 	rec_done(event_abort || (status.pass && single_db->salts));
-	c_cleanup();
 	crk_done();
 }
 

@@ -2,6 +2,7 @@
 #
 # This file is part of John the Ripper password cracker,
 # Copyright (c) 1996-2000,2003,2005,2008,2011 by Solar Designer
+# Copyright (c) 2017 by Frank Dittrich
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
