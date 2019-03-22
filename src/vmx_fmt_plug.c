@@ -127,7 +127,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1_sse((const unsigned char**)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, pout, 32, 0);
 #else
 		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
-			puts(saved_key[index+i]);
 			pbkdf2_sha1((unsigned char *)saved_key[index+i], strlen(saved_key[index+i]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, master[i], 32, 0);
 		}
 #endif
