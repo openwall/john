@@ -136,6 +136,8 @@ typedef __m512i vtype;
 #ifdef __AVX512F__
 #define vsel(dst, a, b, c) \
 	(dst) = _mm512_ternarylogic_epi32((b), (a), (c), 0xE4)
+#define vlut3(a, b, c, d) \
+	_mm512_ternarylogic_epi32((a), (b), (c), (d))
 #endif
 
 #elif defined(__AVX2__) && DES_BS_DEPTH == 256
@@ -604,7 +606,9 @@ void DES_bs_set_salt(ARCH_WORD salt)
 #if !DES_BS_ASM
 
 /* Include the S-boxes here so that the compiler can inline them */
-#if DES_BS == 3
+#if DES_BS == 4
+#include "sboxes-t.c"
+#elif DES_BS == 3
 #include "sboxes-s.c"
 #elif DES_BS == 2
 #include "sboxes.c"

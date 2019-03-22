@@ -74,7 +74,7 @@
 #ifdef __AVX512F__
 #define DES_BS_VECTOR			16
 #undef DES_BS
-#define DES_BS				3
+#define DES_BS				4
 #define DES_BS_ALGORITHM_NAME		"DES 512/512 AVX512F"
 #elif defined(__AVX2__)
 #define DES_BS_VECTOR			8
