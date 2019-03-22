@@ -88,11 +88,11 @@ extern void *mem_alloc_tiny(size_t size, size_t align);
 /*
  * Uses mem_alloc_tiny() to allocate the memory, and copies src in there.
  */
-extern void *mem_alloc_copy(void *src, size_t size, size_t align);
+extern void *mem_alloc_copy(const void *src, size_t size, size_t align);
 
 /*
  * Similar to the above function, but for ASCIIZ strings.
  */
-extern char *str_alloc_copy(char *src);
+extern char *str_alloc_copy(const char *src);
 
 #endif
