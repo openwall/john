@@ -1,4 +1,4 @@
-The following changes have been made between John 1.8.0 and 1.8.0.14:
+The following changes have been made between John 1.8.0 and 1.8.0.15:
 
 * 3x interleaving for bcrypt on x86-64, except in AVX-enabled builds.
 Provides significant speedup on Core 2 and many newer CPUs without SMT.
@@ -23,8 +23,10 @@ suffixes since these clash with those produced by "--fork".
 for "--stdout", "--show", and auxiliary programs such as "unshadow".
 * On Windows, restore normal processing of Ctrl-C in case our parent (such as
 Johnny the GUI) had disabled it.
+* Added linux-x86-64-avx512 and linux-x86-64-avx2 make targets, which use
+respectively AVX-512 and AVX2 for bitslice DES.
 * Added linux-mic make target for Intel MIC (first generation Xeon Phi, aka
-Knights Corner), along with use of 512-bit SIMD intrinsics for bitslice DES.
+Knights Corner), which uses its 512-bit SIMD intrinsics for bitslice DES.
 * Added linux-arm32le and linux-arm32le-neon make targets (the latter makes use
 of NEON for bitslice DES).
 * Made a minor optimization to MMX and SSE2 assembly code for LM hash.

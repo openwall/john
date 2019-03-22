@@ -91,12 +91,12 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	return p;
 }
 
-void *mem_alloc_copy(void *src, size_t size, size_t align)
+void *mem_alloc_copy(const void *src, size_t size, size_t align)
 {
 	return memcpy(mem_alloc_tiny(size, align), src, size);
 }
 
-char *str_alloc_copy(char *src)
+char *str_alloc_copy(const char *src)
 {
 	size_t size;
 
