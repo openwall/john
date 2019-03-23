@@ -241,7 +241,7 @@ void cfg_init(char *name, int allow_missing)
 		file = fopen(cfg_name, "r");
 		if (!file) {
 			if (allow_missing && errno == ENOENT) return;
-			pexit("fopen: %s", cfg_name);
+			pexit("fopen: %s", path_expand(cfg_name));
 		}
 	}
 
