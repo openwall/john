@@ -27,6 +27,9 @@ sboxes-s.c, now replaced with Roman Rusakov's):
 John the Ripper use, as well as for optimization hints during early
 development of John the Ripper.
 
+* DeepLearningJohnDoe - for the DES S-box expressions targeting the LUT3
+operation, which John the Ripper currently uses on AVX-512.
+
 * Eli Biham - for the great "bitslice" paper:
 
 	http://www.cs.technion.ac.il/~biham/Reports/cs0891.ps.gz
