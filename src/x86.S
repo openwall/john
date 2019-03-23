@@ -1288,10 +1288,19 @@ BF_body:
  */
 
 #define EF_ID				$0x00200000
+
+/* Leaf 1 */
 #define CF_MMX				$0x00800000
 #define CF_SSE2				$0x04000000
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
-#define CF_XOP				$0x00000800
+
+/* Extended features */
+#define CX_XOP				$0x00000800
+
+/* Leaf 7 */
+#define C7_AVX2				$0x00000020
+#define C7_AVX512F			$0x00010000
+
 /* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
 /* "AuthenticAMD" */
@@ -1300,12 +1309,6 @@ BF_body:
 #define CV_CENTAUR			$0x736C7561
 
 .text
-
-#if !DES_X2
-#define cpuid \
-	.byte 0x0F; \
-	.byte 0xA2
-#endif
 
 .globl CPU_detect
 CPU_detect:
@@ -1328,6 +1331,24 @@ CPU_detect:
 	testl %eax,%eax
 	jz CPU_detect_ret		/* Newer 486s */
 	pushl %ecx
+/* Leaf 7 checks */
+#if defined(CPU_REQ_AVX2) || defined(CPU_REQ_AVX512F)
+	xorl %eax,%eax
+	cpuid
+	movl $7,%edx
+	cmpl %edx,%eax
+	jl CPU_detect_pop_ecx_fail
+	xchgl %edx,%eax
+	xorl %ecx,%ecx
+	cpuid
+	testl C7_AVX2,%ebx
+	jz CPU_detect_pop_ecx_fail
+#endif
+#ifdef CPU_REQ_AVX512F
+	testl C7_AVX512F,%ebx
+	jz CPU_detect_pop_ecx_fail
+#endif
+/* Leaf 1 checks */
 	movl $1,%eax
 	cpuid
 #if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
@@ -1359,7 +1380,7 @@ CPU_detect_AVX:
 	jl CPU_detect_no_XOP
 	xchgl %edx,%eax
 	cpuid
-	testl CF_XOP,%ecx
+	testl CX_XOP,%ecx
 	jnz CPU_detect_XOP
 CPU_detect_no_XOP:
 	popl %edx
