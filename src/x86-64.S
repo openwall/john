@@ -1,7 +1,7 @@
 /*
  * This file contains the core of a bitslice DES implementation for x86-64/SSE2.
  * It is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015,2019 by Solar Designer
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.  (This is a heavily cut-down "BSD license".)
  *
@@ -1347,13 +1347,20 @@ DES_bs_crypt_LM_loop:
 
 #endif
 
-#if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
+#if CPU_REQ
 /*
  * CPU detection.
  */
 
+/* Leaf 1 */
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
-#define CF_XOP				$0x00000800
+
+/* Extended features */
+#define CX_XOP				$0x00000800
+
+/* Leaf 7 */
+#define C7_AVX2				$0x00000020
+#define C7_AVX512F			$0x00010000
 
 .text
 
@@ -1363,16 +1370,22 @@ DES_bs_crypt_LM_loop:
 .globl CPU_detect
 CPU_detect:
 	pushq %rbx
+
+/* First, leaf 1 checks */
 	movl $1,%eax
 	cpuid
 	andl CF_XSAVE_OSXSAVE_AVX,%ecx
 	cmpl CF_XSAVE_OSXSAVE_AVX,%ecx
 	jne CPU_detect_fail
+
+/* Check that state is preserved on a context switch */
 	xorl %ecx,%ecx
 	xgetbv
 	andb $0x6,%al
 	cmpb $0x6,%al
 	jne CPU_detect_fail
+
+/* Extended feature tests (if required) */
 #ifdef CPU_REQ_XOP
 	movl $0x80000000,%eax
 	cpuid
@@ -1381,12 +1394,34 @@ CPU_detect:
 	jl CPU_detect_fail
 	xchgl %edx,%eax
 	cpuid
-	testl CF_XOP,%ecx
+	testl CX_XOP,%ecx
 	jz CPU_detect_fail
 #endif
+
+/* Finally, leaf 7 tests (if required) */
+#if defined(CPU_REQ_AVX2) || defined(CPU_REQ_AVX512F)
+	xorl %eax,%eax
+	cpuid
+	movl $7,%edx
+	cmpl %edx,%eax
+	jl CPU_detect_fail
+	xchgl %edx,%eax
+	xorl %ecx,%ecx
+	cpuid
+	testl C7_AVX2,%ebx
+	jz CPU_detect_fail
+#endif
+#ifdef CPU_REQ_AVX512F
+	testl C7_AVX512F,%ebx
+	jz CPU_detect_fail
+#endif
+
+/* If we reached here all is fine and we return 1 */
 	movl $1,%eax
 	popq %rbx
 	ret
+
+/* Return 0 */
 CPU_detect_fail:
 	xorl %eax,%eax
 	popq %rbx

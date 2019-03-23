@@ -39,19 +39,18 @@
 
 #define CPU_DETECT			1
 #define CPU_REQ				1
-#define CPU_NAME			"SSE2"
-#ifndef CPU_FALLBACK
-#define CPU_FALLBACK			0
-#endif
-#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
-#define CPU_FALLBACK_BINARY		"john-non-sse"
-#define CPU_FALLBACK_BINARY_DEFAULT
+
+#ifdef __AVX512F__
+#define JOHN_AVX512F
+#elif defined(__AVX2__)
+#define JOHN_AVX2
+#elif defined(__XOP__)
+#define JOHN_XOP
+#elif defined(__AVX__)
+#define JOHN_AVX
 #endif
 
-#ifdef __XOP__
-#define JOHN_XOP
-#endif
-#if defined(__AVX__) || defined(JOHN_XOP)
+#if defined(JOHN_AVX512F) || defined(JOHN_AVX2) || defined(JOHN_XOP)
 #define JOHN_AVX
 #endif
 
@@ -62,38 +61,33 @@
  * assembly file.  In OpenMP builds, it's aligned by our runtime code.)
  */
 #define CPU_REQ_AVX
-#undef CPU_NAME
-#define CPU_NAME			"AVX"
-#ifndef CPU_FALLBACK
-#define CPU_FALLBACK			0
-#endif
-#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
-#define CPU_FALLBACK_BINARY		"john-non-avx"
-#define CPU_FALLBACK_BINARY_DEFAULT
-#endif
-#ifdef __AVX512F__
+#ifdef JOHN_AVX512F
 #define DES_BS_VECTOR			16
 #undef DES_BS
 #define DES_BS				4
 #define DES_BS_ALGORITHM_NAME		"DES 512/512 AVX512F"
-#elif defined(__AVX2__)
+#define CPU_REQ_AVX512F
+#define CPU_NAME			"AVX512F"
+#define CPU_FALLBACK_BINARY_DEFAULT	"john-non-avx512"
+#elif defined(JOHN_AVX2)
 #define DES_BS_VECTOR			8
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2"
+#define CPU_REQ_AVX2
+#define CPU_NAME			"AVX2"
+#define CPU_FALLBACK_BINARY_DEFAULT	"john-non-avx2"
 #else
 #define DES_BS_VECTOR			4
 #ifdef JOHN_XOP
-#define CPU_REQ_XOP
-#undef CPU_NAME
-#define CPU_NAME			"XOP"
-#ifdef CPU_FALLBACK_BINARY_DEFAULT
-#undef CPU_FALLBACK_BINARY
-#define CPU_FALLBACK_BINARY		"john-non-xop"
-#endif
 #undef DES_BS
 #define DES_BS				3
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 XOP"
+#define CPU_REQ_XOP
+#define CPU_NAME			"XOP"
+#define CPU_FALLBACK_BINARY_DEFAULT	"john-non-xop"
 #else
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 AVX"
+#define CPU_NAME			"AVX"
+#define CPU_FALLBACK_BINARY_DEFAULT	"john-non-avx"
 #endif
 #endif
 #else
@@ -104,6 +98,20 @@
 #endif
 #define DES_BS_VECTOR			4
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2"
+#endif
+
+#ifndef CPU_NAME
+#define CPU_NAME			"SSE2"
+#endif
+#ifndef CPU_FALLBACK_BINARY_DEFAULT
+#define CPU_FALLBACK_BINARY_DEFAULT	"john-non-sse"
+#endif
+
+#ifndef CPU_FALLBACK
+#define CPU_FALLBACK			0
+#endif
+#if !defined(CPU_FALLBACK_BINARY) && defined(CPU_FALLBACK_BINARY_DEFAULT)
+#define CPU_FALLBACK_BINARY		CPU_FALLBACK_BINARY_DEFAULT
 #endif
 
 #ifdef _OPENMP

@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2015 by Solar Designer
+# Copyright (c) 1996-2015,2019 by Solar Designer
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
@@ -91,13 +91,16 @@ default:
 	@echo "where SYSTEM can be one of the following:"
 	@echo "linux-x86-64-avx512      Linux, x86-64 with AVX-512 (some 2017+ Intel CPUs)"
 	@echo "linux-x86-64-avx2        Linux, x86-64 with AVX2 (some 2013+ Intel CPUs)"
-	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (some 2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (some AMD CPUs)"
+	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (some 2011+ Intel CPUs)"
 	@echo "linux-x86-64             Linux, x86-64 with SSE2 (most common)"
 #	@echo "linux-x86-64-32-sse2     Linux, x86-64, 32-bit with SSE2"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX"
-	@echo "linux-x86-avx            Linux, x86 32-bit with AVX (2011+ Intel CPUs)"
+#	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit"
+	@echo "linux-x86-avx512         Linux, x86 32-bit with AVX-512 (some 2017+ Intel CPUs)"
+	@echo "linux-x86-avx2           Linux, x86 32-bit with AVX2 (some 2013+ Intel CPUs)"
 	@echo "linux-x86-xop            Linux, x86 32-bit with AVX and XOP (some AMD CPUs)"
+	@echo "linux-x86-avx            Linux, x86 32-bit with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (most common, if 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
@@ -170,7 +173,7 @@ linux-x86-64-avx512:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
-		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX512F -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mavx512f -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -mavx512f" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
@@ -179,18 +182,9 @@ linux-x86-64-avx2:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
-		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX2 -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mavx2 -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -mavx2" \
-		LDFLAGS="$(LDFLAGS) -lcrypt"
-
-linux-x86-64-avx:
-	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
-		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
-		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -mavx" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-64-xop:
@@ -202,6 +196,15 @@ linux-x86-64-xop:
 		ASFLAGS="$(ASFLAGS) -mxop" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
+linux-x86-64-avx:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -mavx" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
 linux-x86-64:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
@@ -209,6 +212,11 @@ linux-x86-64:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
+# The linux-x86-64-32-* targets exist for testing of 32-bit builds on 64-bit
+# systems.  We don't dare to add -m32 to the corresponding pure 32-bit targets
+# in order for those to be usable with old gcc that doesn't recognize -m32.
+# We do include -m32 in linux-x86-avx and higher, which imply recent enough
+# gcc, so there's no need to have linux-x86-64-32-* counterparts to those.
 linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
@@ -225,13 +233,30 @@ linux-x86-64-32-mmx:
 		ASFLAGS="$(ASFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
-linux-x86-avx:
+linux-x86-64-32-any:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+
+linux-x86-avx512:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
-		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX -DHAVE_CRYPT" \
-		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
+		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX512F -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -m32 -mavx512f -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mavx512f" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+
+linux-x86-avx2:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX2 -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -m32 -mavx2 -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mavx2" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-xop:
@@ -241,6 +266,15 @@ linux-x86-xop:
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_XOP -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+
+linux-x86-avx:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-sse2:
