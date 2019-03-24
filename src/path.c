@@ -145,7 +145,9 @@ char *path_expand_ex(char *name)
 {
 	if (john_home_pathex &&
 	    john_home_lengthex + strlen(name) < PATH_BUFFER_SIZE) {
-		strnzcpy(&john_home_pathex[john_home_lengthex], name,
+		char *p = basename(name);
+
+		strnzcpy(&john_home_pathex[john_home_lengthex], p,
 			PATH_BUFFER_SIZE - john_home_lengthex);
 		return john_home_pathex;
 	}
