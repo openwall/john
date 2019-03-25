@@ -4,6 +4,7 @@
 64 bytes, equipped with on-board candidate generator and comparator.
 It's also able to compute phpass-MD5 hashes.
 The board computes 1536 keys in parallel.
+- Current consumption: 2.8A under full load, 0.4A idle.
 
 
 ## Computing units
@@ -62,26 +63,7 @@ The approximate schematic of a computing unit is shown at fig.1.
          \                                              /
           ---> to arbiter_rx             from arbiter_tx
 ```
-
-- MD5 computations are performed using specialized circuits
-("cores"). Each cycle, a core computes one of 64 algorithm rounds.
-Additionally 4 cycles it's busy with additions at the end of the block,
-and 4 more cycles it's loading Initial Values (IVs).
-Each core runs 2 computations at the same time. On some cycle, a round
-from computation #0 is computed and on the next cycle, a round from
-computation #1 is computed.
-Several cycles before 2 computations are finished and output,
-next 2 computations start pre-fetching data from core's input buffer.
-- internally cores store result of MD5, allow to use previously
-stored result as IVs for subsequent block. That way, the core
-is able to handle input of any length.
-- So each core runs 4 independent computations in parallel, performs
-4 blocks in (64+4+4)*4 = 288 cycles.
-- Cores are of 3 types, with same function, timing and interface.
-They differ in used hardware resources and occupied area.
-Type 0 cores use 3 BRAM units. Type 1 cores use 2 BRAM units, placed
-in areas with less BRAM density. Type 2 cores use no BRAM units, placed
-in areas with no BRAM.
+fig.1. CPU based computing unit
 
 - CPU runs same program in 12 independent hardware threads.
 Each thread has 128 bytes of "main" memory (accessible by MD5
@@ -102,6 +84,63 @@ after each block.
 - Several programs are hardcoded in CPU's read-only instruction memory.
 The program is selected at runtime with input initialization packet.
 There're 2 programs: md5crypt and phpass.
+
+
+## Specialized MD5 circuits ("cores")
+
+- MD5 computations are performed using specialized circuits ("cores").
+
+```
+                 md5ctx                   .         md5core
+                                          .
+  +----+     +---+     +----+      +---+       +----------+
+  | C2 |---->| D |---->| D2 |----->| A |  .    |          |
+  +----+     +---+     +----+      +---+       |   K(t)   |
+    ^          |                     |    .    |          |
+    |          |                     |         +----------+
+  +----+        \   +-----+          |    .         |
+  | C  |----     -->|     |   +---+  |              |    +------+
+  +----+    \       |  F  |   | + |<-+    .  +---+  |    |      |
+    ^        ------>|     |-->|   |          | + |<-+    | mem1 |
+    |               |     |   |   |<---------|   |       |      | din
+  +----+     ------>|     |   +---+       .  |   |<------|      |<---
+  | B2 |-   /       +-----+     |            |   |       |      |
+  +----+ \ /                    |         .  |   |<-+    |      |
+    ^     \                      \           +---+  |    |      |
+    |    / \                      \       .         |    +------+
+  +----+/   \                      |                |
+  | B  |     \        +---------+  |      .   +------------+
+  +----+      \       |         |  |          |            |
+    ^          |      |   <<<   |<-+      .   |    mem2    |
+    |   +---+  |      |         |             |            |
+    +---| + |<-+      +---------+         .   +------------+
+        |   |              |                        ^
+        |   |              |              .         |            dout
+        |   |<-------------+------------------------+--------------->
+        +---+                             .
+```
+fig.2. MD5 computing circuit ("core")
+
+- Each cycle, a core computes one of 64 algorithm rounds.
+Additionally 4 cycles it's busy with additions at the end of the block,
+and 4 more cycles it's loading Initial Values (IVs).
+Each core runs 2 computations at the same time. On some cycle, a round
+from computation #0 is computed and on the next cycle, a round from
+computation #1 is computed.
+Several cycles before 2 computations are finished and output,
+next 2 computations start pre-fetching data from core's input buffer ```mem1```.
+- Internally cores store result of MD5 in ```mem2```, allow to use previously
+stored result as IVs for subsequent block. Data in ```mem2``` is stored
+rotated by 16, when loaded as IVs it's rotated by 16 again.
+That helps with optimization of rotator unit, which could take
+substantially more space if it had ability for pass-through without rotation.
+- So each core runs 4 independent computations in parallel, performs
+4 blocks in (64+4+4)*4 = 288 cycles.
+- Cores are of 3 types, with same function, timing and interface.
+They differ in used hardware resources and occupied area.
+Type 0 cores use 3 BRAM units. Type 1 cores use 2 BRAM units, placed
+in areas with less BRAM density. Type 2 cores use no BRAM units, placed
+in areas with no BRAM.
 
 
 ## Design overview
@@ -148,7 +187,7 @@ There're 2 programs: md5crypt and phpass.
   +--------------------------------------------+
 
 ```
-fig.2. Overview, FPGA application
+fig.3. Overview, FPGA application
 
 - Each FPGA has 32 computing units, that's 96 cores, 384 keys are
 computed in parallel.
