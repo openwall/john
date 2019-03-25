@@ -62,13 +62,11 @@ module ztex_inouttraffic(
 		// Produced clocks
 		.IFCLK(IFCLK), 	// for operating I/O pins
 		.PKT_COMM_CLK(),//PKT_COMM_CLK), // for I/O packet processing
-		.core_clk_glbl_en(1'b1),//~cores_idle),
+		.core_clk_glbl_en(~idle),
 		.CORE_CLK(CORE_CLK) // for operating computing units
 	);
 
 	assign PKT_COMM_CLK = CORE_CLK;
-	//assign CORE_CLK = PKT_COMM_CLK;
-	//assign PKT_COMM_CLK = IFCLK;
 
 	chip_select chip_select(
 		.CS_IN(CS_IN), .CLK(IFCLK), .CS(CS), .out_z_wait1(out_z_wait1)
@@ -133,6 +131,17 @@ module ztex_inouttraffic(
 	always @(posedge IFCLK)
 		error_r <= |pkt_comm_status | |app_status;
 
+	// IDLE status: Turn off clock buffer (clock remains running).
+	delay #(.INIT(1), .NBITS(8)) delay_idle_inst (.CLK(IFCLK),
+		.in(~hs_input_wr_en // no write into input fifo (IFCLK)
+			& output_fifo_idle // output "prepend" fifo is empty (IFCLK)
+			& cores_idle_sync
+		),
+		.out(idle) );
+
+	sync_sig sync_cores_idle( .sig(cores_idle),
+		.clk(IFCLK), .out(cores_idle_sync) );
+
 
 	// ********************************************************
 	//
@@ -146,7 +155,7 @@ module ztex_inouttraffic(
 		.wr_clk(PKT_COMM_CLK),
 		.din(app_dout),
 		.wr_en(app_wr_en),
-		.full(app_full),
+		.full(app_full), .idle(output_fifo_idle),
 
 		.rd_clk(IFCLK),
 		.dout(output_dout), // to Cypress IO,

@@ -62,10 +62,10 @@ static struct device_bitstream bitstream = {
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	1,		// keys/fpga for crypt_all(): set by init()
-	8192,	// keys/fpga for self-test
-	460800,	// Would be ~15 MB of USB traffic on 32-byte keys
+	4096,	// keys/fpga for self-test
+	600*1024,	// Would be ~15 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
-	384,		// Min. number of keys for effective device utilization
+	32*12,		// Min. number of keys for effective device utilization
 	1, { 180 },	// Programmable clocks
 	"phpass",	// label for configuration file
 	"\x01", 1	// Initialization data
@@ -83,7 +83,7 @@ static void init(struct fmt_main *fmt_main)
 	// Starting from TARGET_ROUNDS_1KPC, it sets keys_per_crypt
 	// equal to bitstream.min_keys
 	//
-	const int TARGET_ROUNDS_1KPC = 256*1024;
+	const int TARGET_ROUNDS_1KPC = 384*1024;
 
 	target_rounds = cfg_get_int("ZTEX:", bitstream.label,
 			"TargetRounds");

@@ -73,7 +73,7 @@ module arbiter_tx #(
 	input pkt_rx_done,
 	input recv_item,
 	
-	output idle,
+	output reg idle = 1,
 	output reg err = 0
 	);
 
@@ -204,12 +204,13 @@ module arbiter_tx #(
 		else if (recv_item)
 			total_in_processing <= total_in_processing - 1'b1;
 
-	delay #( .NBITS(10) ) delay_start_clk_glbl(
+	delay #( .NBITS(6) ) delay_start_clk_glbl(
 		.CLK(CLK), .in(state_in == STATE_IN_START_CLK_GLBL),
 		.out(start_clk_glbl_delay) );
 
-	assign idle = state_in == STATE_IN_IDLE & total_in_processing == 0
-		| state_in == STATE_IN_CMP_CONFIG;
+	always @(posedge CLK)
+		idle <= state_in == STATE_IN_IDLE & total_in_processing == 0
+			| state_in == STATE_IN_CMP_CONFIG;
 
 
 	// ***************************************************

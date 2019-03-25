@@ -18,7 +18,7 @@ module output_fifo (
 	input wr_clk,
 	input [15:0] din,
 	input wr_en,
-	output full,
+	output full, idle,
 
 	input rd_clk,
 	output [15:0] dout,
@@ -57,6 +57,7 @@ module output_fifo (
 	assign rd_en_stage2 = ~empty_stage2 & ~full_stage2;
 	assign wr_en_stage2 = rd_en_stage2;
 
+	assign idle = empty_stage2;
 
 	output_limit_fifo #(
 		.ADDR_MSB(`MSB(`OUTPUT_FIFO_SIZE) - 2)

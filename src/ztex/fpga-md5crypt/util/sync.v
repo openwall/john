@@ -8,7 +8,7 @@
  *
  */
  
-/*
+
 // 2-stage FF synchronizer
 module sync_sig #(
 	parameter INIT = 0,
@@ -44,7 +44,7 @@ module sync_sig #(
 	end
 
 endmodule
-*/
+
 
 // 3-stage FF synchronizer
 module sync_sig3(
