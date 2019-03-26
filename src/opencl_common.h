@@ -151,7 +151,7 @@ extern int device_info[MAX_GPU_DEVICES];
 #define DUR_CONFIG_NAME         "_MaxDuration"
 #define FALSE               0
 
-size_t opencl_read_source(char *kernel_filename, char **kernel_source);
+size_t opencl_read_source(const char *kernel_filename, char **kernel_source);
 
 /* Passive init: enumerate platforms and devices and parse options */
 void opencl_load_environment(void);
@@ -176,19 +176,19 @@ int get_number_of_requested_devices(void);
  * information about all OpenCL devices. */
 int opencl_prepare_dev(int sequential_id);
 
-/* Initialize a device and build kernel. This invokes opencl_init_dev */
+/* Initialize a device and build kernel. This invokes opencl_prepare_dev */
 /* User can pass build options to the OpenCL compiler */
-void opencl_init(char *kernel_filename, int sequential_id, char *options);
+void opencl_init(const char *kernel_filename, int sequential_id, const char *options);
 
 /* used by opencl_DES_bs_*.c */
-void opencl_build(int sequential_id, char *opts, int save, char *file_name,
-		  cl_program *program, const char *kernel_source_file, char *kernel_source);
-void opencl_build_from_binary(int sequential_id, cl_program *program, char *kernel_source,
+void opencl_build(int sequential_id, const char *opts, int save, const char *file_name,
+		  cl_program *program, const char *kernel_source_file, const char *kernel_source);
+void opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source,
 			      size_t program_size);
 
 /* Build kernel (if not cached), and cache it */
-void opencl_build_kernel(char *kernel_filename, int sequential_id,
-                         char *options, int warn);
+void opencl_build_kernel(const char *kernel_filename, int sequential_id,
+                         const char *options, int warn);
 
 /* --
   This function get valid and sane values for LWS and GWS that can be used,
@@ -220,7 +220,7 @@ size_t get_kernel_preferred_multiple(int sequential_id,
 void get_compute_capability(int sequential_id, unsigned int *major,
                             unsigned int *minor);
 
-void opencl_get_user_preferences(char *format);
+void opencl_get_user_preferences(const char *format);
 
 /* Returns error name based on error codes list defined in cl.h */
 char *get_error_name(cl_int cl_error);
