@@ -508,7 +508,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 	for (i = 1; i <= maxdiff; i++)
 		done_len[i] = MAX(MAX(i, options.eff_minlength), 1) - 1;
 
-	default_set = cfg_get_param("Subsets", NULL, "DefaultCharset");
+	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
 	if (!req_charset)
 		req_charset = default_set;
 
@@ -516,7 +516,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };
-			char *c = cfg_get_param("Subsets", NULL, pl);
+			char *c = (char*)cfg_get_param("Subsets", NULL, pl);
 
 			if (c)
 				req_charset = c;

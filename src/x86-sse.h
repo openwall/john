@@ -154,22 +154,8 @@
 #endif
 #elif defined(__SSE2__) && defined(_OPENMP)
 #define DES_BS_ASM			0
-#if 1
 #define DES_BS_VECTOR			4
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2"
-#elif 0
-#define DES_BS_VECTOR			6
-#define DES_BS_VECTOR_SIZE		8
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2 + 64/64 MMX"
-#elif 0
-#define DES_BS_VECTOR			5
-#define DES_BS_VECTOR_SIZE		8
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2 + 32/32"
-#else
-#define DES_BS_VECTOR			7
-#define DES_BS_VECTOR_SIZE		8
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2 + 64/64 MMX + 32/32"
-#endif
 #else
 #define DES_BS_ASM			1
 #define DES_BS_VECTOR			4

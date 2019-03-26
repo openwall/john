@@ -75,7 +75,7 @@ extern int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 /*
  * Returns the function's address or NULL if not found.
  */
-extern void *c_lookup(char *name);
+extern void *c_lookup(const char *name);
 
 /*
  * Executes a function previously compiled with c_compile().

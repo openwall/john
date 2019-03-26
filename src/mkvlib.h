@@ -35,5 +35,5 @@ void print_pwd(uint64_t index, struct s_pwd *pwd,
                unsigned int max_lvl, unsigned int max_len);
 uint64_t nb_parts(unsigned char lettre, unsigned int len,
                             unsigned int level, unsigned int max_lvl, unsigned int max_len);
-void init_probatables(char *filename);
+void init_probatables(const char *filename);
 #endif

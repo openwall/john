@@ -62,19 +62,18 @@ extern char *cfg_name;
 /*
  * Loads a configuration file, or does nothing if one is already loaded.
  */
-extern void cfg_init(char *name, int allow_missing);
-
+extern void cfg_init(const char *name, int allow_missing);
 
 /*
  * Returns a section list entry, or NULL if not found
  */
-extern struct cfg_section *cfg_get_section(char *section, char *subsection);
+extern const struct cfg_section *cfg_get_section(const char *section, const char *subsection);
 
 /*
  * Searches for a section with the supplied name, and returns its line list
  * structure, or NULL if the search fails.
  */
-extern struct cfg_list *cfg_get_list(char *section, char *subsection);
+extern struct cfg_list *cfg_get_list(const char *section, const char *subsection);
 
 /*
  * Prints a list of all section names, if which == 0.
@@ -93,13 +92,13 @@ void cfg_print_section_names(int which);
  * returns the number of parameter definitions found, or -1
  * if the section doesn't exist.
  */
-int cfg_print_section_params(char *section, char *subsection);
+int cfg_print_section_params(const char *section, const char *subsection);
 
 /*
  * Prints the contents of a section's list, returns the number
  * of lines printed, or -1 if the section doesn't exist.
  */
-int cfg_print_section_list_lines(char *section, char *subsection);
+int cfg_print_section_list_lines(const char *section, const char *subsection);
 
 /*
  * Searches for sections with the supplied name, and prints a list of
@@ -108,29 +107,29 @@ int cfg_print_section_list_lines(char *section, char *subsection);
  * If notfunction is non-null, that function must NOT be present (ie.
  * for listing external modes that has filter() but not generate() )
  */
-int cfg_print_subsections(char *section, char *function, char *notfunction, int print_heading);
+int cfg_print_subsections(const char *section, const char *function, const char *notfunction, int print_heading);
 
 /*
  * Searches for a section with the supplied name and a parameter within the
  * section, and returns the parameter's value, or NULL if not found.
  */
-extern char *cfg_get_param(char *section, char *subsection, char *param);
+extern const char *cfg_get_param(const char *section, const char *subsection, const char *param);
 
 /*
  * Similar to the above, but does an atoi(). Returns -1 if not found.
  */
-extern int cfg_get_int(char *section, char *subsection, char *param);
+extern int cfg_get_int(const char *section, const char *subsection, const char *param);
 
 /*
  * Similar to the above, takes comma-separated list, performs atoi().
  * Fills the array with values. The rest of the array is filled with -1's.
  */
-extern void cfg_get_int_array(char *section, char *subsection, char *param,
+extern void cfg_get_int_array(const char *section, const char *subsection, const char *param,
 		int *array, int array_len);
 
 /*
  * Converts the value to boolean. Returns def if not found.
  */
-extern int cfg_get_bool(char *section, char *subsection, char *param, int def);
+extern int cfg_get_bool(const char *section, const char *subsection, const char *param, int def);
 
 #endif

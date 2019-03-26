@@ -223,7 +223,7 @@ struct options_main {
 	char *wordlist;
 
 /* Incremental mode name or charset file name */
-	char *charset;
+	const char *charset;
 
 /* External mode or word filter name */
 	char *external;
@@ -327,10 +327,10 @@ struct options_main {
 	char *activepot;
 
 /* the wordlist rules section (default if none entered is Wordlist) */
-	char *activewordlistrules;
+	const char *activewordlistrules;
 
 /* the 'single' rules section (default if none entered is Single) */
-	char *activesinglerules;
+	const char *activesinglerules;
 
 /* Stacked rules applied within cracker.c for any mode */
 	char *rule_stack;
@@ -376,8 +376,8 @@ struct options_main {
 	int reload_at_crack;
 
 /* Pause/abort on trigger files */
-	char *pause_file;
-	char *abort_file;
+	const char *pause_file;
+	const char *abort_file;
 
 /* Force dynamic format to always treat bare hashes as valid. If not set
    then dynamic format only uses bare hashes if -form=dynamic_xxx is used.

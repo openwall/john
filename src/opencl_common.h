@@ -182,7 +182,7 @@ void opencl_init(char *kernel_filename, int sequential_id, char *options);
 
 /* used by opencl_DES_bs_*.c */
 void opencl_build(int sequential_id, char *opts, int save, char *file_name,
-		  cl_program *program, char *kernel_source_file, char *kernel_source);
+		  cl_program *program, const char *kernel_source_file, char *kernel_source);
 void opencl_build_from_binary(int sequential_id, cl_program *program, char *kernel_source,
 			      size_t program_size);
 

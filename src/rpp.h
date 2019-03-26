@@ -80,7 +80,7 @@ struct rpp_context {
  * Initializes the preprocessor's context for the supplied configuration file
  * rules subsection. Returns a non-zero value on error (no rules found).
  */
-extern int rpp_init(struct rpp_context *ctx, char *subsection);
+extern int rpp_init(struct rpp_context *ctx, const char *subsection);
 
 /*
  * Returns a preprocessed rule and moves to the next one.

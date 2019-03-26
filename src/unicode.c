@@ -966,7 +966,7 @@ char *cp_id2macro(int encoding)
 }
 
 /* Convert encoding name to numerical ID */
-int cp_name2id(char *encoding)
+int cp_name2id(const char *encoding)
 {
 	char enc[16] = "";
 	char *d = enc;

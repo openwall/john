@@ -984,7 +984,7 @@ static MAYBE_INLINE char *mgets(int *len)
   return pos;
 }
 
-void do_prince_crack(struct db_main *db, char *wordlist, int rules)
+void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
 #endif
 {
   mpz_t pw_ks_pos[OUT_LEN_MAX + 1];

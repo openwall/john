@@ -62,8 +62,8 @@
 static int cfg_beep;
 static int cfg_log_passwords;
 static int cfg_showcand;
-static char *LogDateFormat;
-static char *LogDateStderrFormat;
+static const char *LogDateFormat;
+static const char *LogDateStderrFormat;
 static int LogDateFormatUTC=0;
 static char *log_perms;
 static char *pot_perms;
@@ -338,12 +338,13 @@ static int log_time(void)
 }
 
 /*
- * In-place change of "^" in passed string to ANSI Escape.
+ * Change of "^" in passed string to ANSI Escape.
  * If input is a NULL pointer or feature is disabled, return a null string.
  */
-static char* parse_esc(char *string)
+static char *parse_esc(const char *string)
 {
-	char *s = string;
+	char *out = str_alloc_copy(string);
+	char *s = out;
 
 	if (!show_admins || !s)
 		return "";
@@ -354,7 +355,7 @@ static char* parse_esc(char *string)
 		s++;
 	}
 
-	return string;
+	return out;
 }
 
 void log_init(char *log_name, char *pot_name, char *session)
@@ -396,7 +397,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 				}
 			}
 		}
-		if (!(log_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+		if (!(log_perms = (char*)cfg_get_param(SECTION_OPTIONS, NULL,
 						"LogFilePermissions")))
 			log_perms = "0600";
 
@@ -404,7 +405,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 	}
 
 	if (pot_name && pot.fd < 0) {
-                if (!(pot_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+                if (!(pot_perms = (char*)cfg_get_param(SECTION_OPTIONS, NULL,
 						"PotFilePermissions")))
 			pot_perms = "0600";
 

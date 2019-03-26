@@ -280,7 +280,7 @@ static int c_expect(char expected)
 }
 
 static struct c_ident *c_find_ident(struct c_ident *list,
-	struct c_ident *globals, char *name)
+	struct c_ident *globals, const char *name)
 {
 	struct c_ident *current;
 
@@ -870,7 +870,7 @@ int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 	return c_errno;
 }
 
-void *c_lookup(char *name)
+void *c_lookup(const char *name)
 {
 	struct c_ident *f = c_find_ident(c_funcs, NULL, name);
 	if (f)

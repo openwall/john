@@ -175,7 +175,7 @@ static void ext_rewind(void)
 	ext_pos = 0;
 }
 
-int ext_has_function(char *mode, char *function)
+int ext_has_function(const char *mode, const char *function)
 {
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
 		if (john_main_process)

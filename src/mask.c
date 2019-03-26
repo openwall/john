@@ -2118,9 +2118,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		if (options.flags & FLG_TEST_CHK)
 			options.mask = test_mask;
 		else if (options.flags & FLG_MASK_STACKED)
-			options.mask = cfg_get_param("Mask", NULL, "DefaultHybridMask");
+			options.mask = (char*)cfg_get_param("Mask", NULL, "DefaultHybridMask");
 		else
-			options.mask = cfg_get_param("Mask", NULL, "DefaultMask");
+			options.mask = (char*)cfg_get_param("Mask", NULL, "DefaultMask");
 
 		if (!options.mask)
 			options.mask = "";
@@ -2151,7 +2151,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		char pl[2] = { '1' + i, 0 };
 
 		if (!options.custom_mask[i] &&
-		    !(options.custom_mask[i] = cfg_get_param("Mask", NULL, pl)))
+		    !(options.custom_mask[i] = (char*)cfg_get_param("Mask", NULL, pl)))
 			options.custom_mask[i] = "";
 	}
 

@@ -200,7 +200,7 @@ void *mem_calloc_tiny(size_t size, size_t align)
 	return cp;
 }
 
-void *mem_alloc_copy(void *src, size_t size, size_t align)
+void *mem_alloc_copy(const void *src, size_t size, size_t align)
 {
 	return memcpy(mem_alloc_tiny(size, align), src, size);
 }

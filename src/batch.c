@@ -28,7 +28,7 @@ static void do_single_pass(struct db_main *db)
 
 static void do_wordlist_pass(struct db_main *db)
 {
-	char *name;
+	const char *name;
 
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
