@@ -317,7 +317,7 @@ static char *get_key(int index)
 }
 
 /* ------- Initialization  ------- */
-static void build_kernel(char *task, char *custom_opts)
+static void build_kernel(const char *task, const char *custom_opts)
 {
 	int major, minor;
 
@@ -333,11 +333,11 @@ static void build_kernel(char *task, char *custom_opts)
 				opt[i] = '_';
 
 		if (!(custom_opts = getenv(opt)))
-			custom_opts = (char*)cfg_get_param(SECTION_OPTIONS,
+			custom_opts = cfg_get_param(SECTION_OPTIONS,
 		                                    SUBSECTION_OPENCL, opt);
 
 		if (!(custom_opts) && !(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))
-			custom_opts = (char*)cfg_get_param(SECTION_OPTIONS,
+			custom_opts = cfg_get_param(SECTION_OPTIONS,
 		                                    SUBSECTION_OPENCL, OCL_CONFIG "_BuildOpts");
 	}
 	opencl_build_kernel(task, gpu_id, custom_opts, 1);
