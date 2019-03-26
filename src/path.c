@@ -43,7 +43,7 @@ void path_init(char **argv)
 #if JOHN_SYSTEMWIDE
 	char *home_dir;
 #ifdef JOHN_PRIVATE_HOME
-	char *private;
+	const char *private;
 #endif
 #else
 	char *pos;
@@ -141,7 +141,7 @@ void path_init_ex(const char *path)
 	}
 }
 
-char *path_expand_ex(char *name)
+const char *path_expand_ex(const char *name)
 {
 	if (john_home_pathex &&
 	    john_home_lengthex + strlen(name) < PATH_BUFFER_SIZE) {
@@ -154,7 +154,7 @@ char *path_expand_ex(char *name)
 	return name;
 }
 
-char *path_expand(char *name)
+const char *path_expand(const char *name)
 {
 	if (!strncmp(name, "$JOHN/", 6)) {
 		if (john_home_path &&
@@ -181,7 +181,7 @@ char *path_expand(char *name)
 	return name;
 }
 
-char *path_expand_safe(char *name)
+const char *path_expand_safe(const char *name)
 {
 	char *full_path;
 
@@ -216,7 +216,7 @@ char *path_expand_safe(char *name)
 	return full_path;
 }
 
-char *path_session(char *session, char *suffix)
+char *path_session(const char *session, const char *suffix)
 {
 	int keep, add;
 	char *p;

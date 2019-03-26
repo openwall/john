@@ -26,7 +26,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.14"
+#define JOHN_VERSION			"1.8.0.16"
 
 /*
  * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD

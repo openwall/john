@@ -324,7 +324,7 @@ static void john_register_one(struct fmt_main *format)
 	/* Format disabled in john.conf */
 	if (!override_disable &&
 	    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-	                 (char*)format->params.label, 0)) {
+	                 format->params.label, 0)) {
 #ifdef DEBUG
 		if (format->params.flags & FMT_DYNAMIC) {
 			/* in debug mode, we 'allow' dyna */
@@ -895,7 +895,7 @@ static void john_load_conf(void)
 	/* EmulateBrokenEncoding feature */
 	options.replacement_character = 0;
 	if (cfg_get_bool(SECTION_OPTIONS, NULL, "EmulateBrokenEncoding", 0)) {
-		char *value;
+		const char *value;
 
 		value = cfg_get_param(SECTION_OPTIONS, NULL, "ReplacementCharacter");
 		if (value != NULL)
@@ -1030,7 +1030,7 @@ static void load_extra_pots(struct db_main *db, void (*process_file)(struct db_m
 	if ((line = list->head))
 	do {
 		struct stat s;
-		char *name = path_expand(line->data);
+		char *name = (char*)path_expand(line->data);
 
 		if (!stat(name, &s) && s.st_mode & S_IFREG)
 			process_file(db, name);

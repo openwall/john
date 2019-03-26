@@ -44,24 +44,24 @@ const struct cfg_section *get_cfg_db() {
 	return cfg_database;
 }
 
-static char *trim(char *s, int force)
+static char *trim(char *s, int right)
 {
-	char *e;
-
 	while (*s == ' ' || *s == '\t')
 		s++;
+
 	if (!*s)
 		return s;
 
-	e = s + strlen(s) - 1;
-	while (e >= s && (*e == ' ' || *e == '\t')) e--;
-	/*
-	 * NOTE, if there are trailing spaces, then leave 1 of them. There are
-	 * VALID rules, that need a trailing space like $   i.e. appends space
-	 */
-	if (!force && (*(e+1) == ' ' || *(e+1) =='\t'))
-		++e;
-	*++e = 0;
+	if (right) {
+		char *e = s + strlen(s) - 1;
+		while (*e == ' ' || *e == '\t') {
+			*e = 0;
+			if (e == s)
+				break;
+			e--;
+		}
+	}
+
 	return s;
 }
 
@@ -72,7 +72,7 @@ static int cfg_merge_local_section() {
 	if (!cfg_database) return 0;
 	if (strncmp(cfg_database->name, "local:", 6)) return 0;
 	if (!strncmp(cfg_database->name, "local:list.", 11)) return 0;
-	parent = cfg_get_section(&cfg_database->name[6], NULL);
+	parent = (struct cfg_section*)cfg_get_section(&cfg_database->name[6], NULL);
 	if (!parent) return 0;
 	// now update the params in parent section
 	p1 = cfg_database->params;
@@ -104,7 +104,8 @@ static int cfg_merge_local_section() {
 	}
 	return 1;
 }
-static void cfg_add_section(char *name)
+
+static void cfg_add_section(const char *name)
 {
 	struct cfg_section *last;
 	int merged;
@@ -145,7 +146,7 @@ static void cfg_add_section(char *name)
 	}
 }
 
-static void cfg_add_line(char *line, int number)
+static void cfg_add_line(const char *line, int number)
 {
 	struct cfg_list *list;
 	struct cfg_line *entry;
@@ -168,7 +169,7 @@ static void cfg_add_line(char *line, int number)
 	}
 }
 
-static void cfg_add_param(char *name, char *value)
+static void cfg_add_param(const char *name, const char *value)
 {
 	struct cfg_param *current, *last;
 
@@ -218,7 +219,7 @@ static int cfg_process_line(char *line, int number)
 	return 0;
 }
 
-static void cfg_error(char *name, int number)
+static void cfg_error(const char *name, int number)
 {
 	if (john_main_process)
 		fprintf(stderr, "Error in %s at line %d\n",
@@ -226,7 +227,7 @@ static void cfg_error(char *name, int number)
 	error();
 }
 
-void cfg_init(char *name, int allow_missing)
+void cfg_init(const char *name, int allow_missing)
 {
 	FILE *file;
 	char line[LINE_BUFFER_SIZE];
@@ -257,10 +258,10 @@ void cfg_init(char *name, int allow_missing)
 	cfg_merge_local_section();
 }
 
-struct cfg_section *cfg_get_section(char *section, char *subsection)
+const struct cfg_section *cfg_get_section(const char *section, const char *subsection)
 {
-	struct cfg_section *current;
-	char *p1, *p2;
+	const struct cfg_section *current;
+	const char *p1, *p2;
 
 	if ((current = cfg_database))
 	do {
@@ -283,9 +284,9 @@ struct cfg_section *cfg_get_section(char *section, char *subsection)
 	return NULL;
 }
 
-struct cfg_list *cfg_get_list(char *section, char *subsection)
+struct cfg_list *cfg_get_list(const char *section, const char *subsection)
 {
-	struct cfg_section *current;
+	const struct cfg_section *current;
 
 	if ((current = cfg_get_section(section, subsection)))
 		return current->list;
@@ -307,11 +308,11 @@ void cfg_print_section_names(int which)
 	} while ((current = current->next));
 }
 
-int cfg_print_section_params(char *section, char *subsection)
+int cfg_print_section_params(const char *section, const char *subsection)
 {
-	struct cfg_section *current;
-	struct cfg_param *param;
-	char *value;
+	const struct cfg_section *current;
+	const struct cfg_param *param;
+	const char *value;
 	int param_count = 0;
 
 	if ((current = cfg_get_section(section, subsection))) {
@@ -329,10 +330,10 @@ int cfg_print_section_params(char *section, char *subsection)
 
 }
 
-int cfg_print_section_list_lines(char *section, char *subsection)
+int cfg_print_section_list_lines(const char *section, const char *subsection)
 {
-	struct cfg_section *current;
-	struct cfg_line *line;
+	const struct cfg_section *current;
+	const struct cfg_line *line;
 	int line_count = 0;
 
 	if ((current = cfg_get_section(section, subsection))) {
@@ -348,11 +349,11 @@ int cfg_print_section_list_lines(char *section, char *subsection)
 	else return -1;
 }
 
-int cfg_print_subsections(char *section, char *function, char *notfunction, int print_heading)
+int cfg_print_subsections(const char *section, const char *function, const char *notfunction, int print_heading)
 {
 	int ret = 0;
-	struct cfg_section *current;
-	char *p1, *p2;
+	const struct cfg_section *current;
+	const char *p1, *p2;
 
 	if ((current = cfg_database))
 	do {
@@ -374,11 +375,12 @@ int cfg_print_subsections(char *section, char *function, char *notfunction, int 
 	return ret;
 }
 #endif
-char *cfg_get_param(char *section, char *subsection, char *param)
+
+const char *cfg_get_param(const char *section, const char *subsection, const char *param)
 {
-	struct cfg_section *current_section;
-	struct cfg_param *current_param;
-	char *p1, *p2;
+	const struct cfg_section *current_section;
+	const struct cfg_param *current_param;
+	const char *p1, *p2;
 
 	if ((current_section = cfg_get_section(section, subsection)))
 	if ((current_param = current_section->params))
@@ -395,12 +397,12 @@ char *cfg_get_param(char *section, char *subsection, char *param)
 	return NULL;
 }
 
-int cfg_get_int(char *section, char *subsection, char *param)
+int cfg_get_int(const char *section, const char *subsection, const char *param)
 {
 	char *s_value, *error;
 	long l_value;
 
-	if ((s_value = cfg_get_param(section, subsection, param))) {
+	if ((s_value = (char*)cfg_get_param(section, subsection, param))) {
 		l_value = strtol(s_value, &error, 10);
 		if (!*s_value || *error || (l_value & ~0x3FFFFFFFL))
 			return -1;
@@ -410,14 +412,14 @@ int cfg_get_int(char *section, char *subsection, char *param)
 	return -1;
 }
 
-void cfg_get_int_array(char *section, char *subsection, char *param,
+void cfg_get_int_array(const char *section, const char *subsection, const char *param,
 		int *array, int array_len)
 {
 	char *s_value, *error;
 	long l_value;
 	int i = 0;
 
-	s_value = cfg_get_param(section, subsection, param);
+	s_value = (char*)cfg_get_param(section, subsection, param);
 	if (s_value) {
 		for (;;) {
 			if (!*s_value)
@@ -436,9 +438,9 @@ void cfg_get_int_array(char *section, char *subsection, char *param,
 		array[i] = -1;
 }
 
-int cfg_get_bool(char *section, char *subsection, char *param, int def)
+int cfg_get_bool(const char *section, const char *subsection, const char *param, int def)
 {
-	char *value;
+	const char *value;
 
 	if (!(value = cfg_get_param(section, subsection, param)))
 		return def;
@@ -458,7 +460,7 @@ int cfg_get_bool(char *section, char *subsection, char *param, int def)
 // Handle .include [section]
 static int cfg_process_directive_include_section(char *line, int number)
 {
-	struct cfg_section *newsection;
+	const struct cfg_section *newsection;
 	char *p = &line[10];
 	char *p2 = strchr(&p[1], ']');
 	char Section[256];

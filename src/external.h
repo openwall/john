@@ -46,7 +46,7 @@ extern void *f_new;
  * Returns true if the external mode has function()
  * Used for list=ext-filter and list=ext-mode
  */
-int ext_has_function(char *mode, char *function);
+int ext_has_function(const char *mode, const char *function);
 
 /*
  * Initializes an external mode.

@@ -19,13 +19,14 @@ replaced with code based on Roman Rusakov's S-box expressions).
 * Dumplinger Boy (Dango-Chu) - for producing and letting everyone use
 his optimized DES S-box expressions making use of a vector conditional
 select operation such as on PowerPC with AltiVec (previously found in
-sboxes-s.c, now replaced with Roman Rusakov's):
-
-	http://dango.chu.jp/hiki/?Enhanced+Bitslice+DES
+sboxes-s.c, now replaced with Roman Rusakov's).
 
 * Roman Rusakov - for the DES S-box expressions that current versions of
 John the Ripper use, as well as for optimization hints during early
 development of John the Ripper.
+
+* DeepLearningJohnDoe - for the DES S-box expressions targeting the LUT3
+operation, which John the Ripper currently uses on AVX-512.
 
 * Eli Biham - for the great "bitslice" paper:
 

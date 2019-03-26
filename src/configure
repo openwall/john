@@ -729,6 +729,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -838,6 +839,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1090,6 +1092,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1227,7 +1238,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -6087,55 +6098,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-   if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wdeclaration-after-statement" >&5
-$as_echo_n "checking if $CC supports -Wdeclaration-after-statement... " >&6; }
-fi
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-  ac_saved_cflags="$CFLAGS"
-  CFLAGS="-Werror -Wdeclaration-after-statement"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  if test "1" -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-fi
-      CFLAGS_EX="$CFLAGS_EX -Wdeclaration-after-statement"
-
-else
-  if test 1 -gt 0; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-    if test "1" = 2; then :
-  as_fn_error $? "Not supported by compiler" "$LINENO" 5
-fi
-
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  CFLAGS="$ac_saved_cflags"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
 
       if (test "x$asan" != xyes); then
       warn="-Wstringop-truncation"
@@ -6966,7 +6928,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: Unable to validate $CC command line arguments. Using standard values." >&5
 $as_echo "$as_me: Unable to validate $CC command line arguments. Using standard values." >&6;}
-   CFLAGS_EXTRA="-Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer"
+   CFLAGS_EXTRA="-Wall -O2 -fomit-frame-pointer"
 
 fi
 
@@ -10595,61 +10557,6 @@ if test "x$simd" = xyes; then
  if test "x$enable_native_tests" != xno; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
 $as_echo "$as_me: Testing build host's native CPU features" >&6;}
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Hyperthreading" >&5
-$as_echo_n "checking for Hyperthreading... " >&6; }
-  if test "$cross_compiling" = yes; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "cannot run test program while cross compiling
-See \`config.log' for more details" "$LINENO" 5; }
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-    #include <stdio.h>
-        #if _MSC_VER
-        #include <intrin.h>
-        #endif
-        extern void exit(int);
-        int main(){int regs[4];
-        #if _MSC_VER
-            __cpuid(regs, 1);
-        #else
-            __asm__ __volatile__(
-        #if __x86_64__
-                "pushq %%rbx\n\t"
-        #else
-                "pushl %%ebx\n\t"
-        #endif
-                "cpuid\n\t"
-                "movl %%ebx ,%[ebx]\n\t"
-        #if __x86_64__
-                "popq %%rbx\n\t"
-        #else
-                "popl %%ebx\n\t"
-        #endif
-                : "=a"(regs[0]), [ebx] "=r"(regs[1]), "=c"(regs[2]), "=d"(regs[3]) : "a"(1));
-        #endif
-            exit(!(regs[3] & (1 << 28)));}
-
-
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  HT="-DHAVE_HT"
-     { $as_echo "$as_me:${as_lineno-$LINENO}: result: maybe" >&5
-$as_echo "maybe" >&6; }
-
-else
-  HT="-UHAVE_HT"
-     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-
   CPU_NOTFOUND=0
   CC="$CC_BACKUP -mmmx"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MMX" >&5

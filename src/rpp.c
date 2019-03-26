@@ -15,7 +15,7 @@
 
 int rpp_real_run = 0;
 
-int rpp_init(struct rpp_context *ctx, char *subsection)
+int rpp_init(struct rpp_context *ctx, const char *subsection)
 {
 	struct cfg_list *list;
 

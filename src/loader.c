@@ -1369,7 +1369,7 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 
 		if (options.seed_file) {
 			FILE *file;
-			char *name = path_expand(options.seed_file);
+			const char *name = path_expand(options.seed_file);
 			char line[LINE_BUFFER_SIZE];
 
 			if (!(file = fopen(name, "r")))

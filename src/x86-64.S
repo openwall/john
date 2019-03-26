@@ -1,7 +1,8 @@
 /*
  * This file contains the core of a bitslice DES implementation for x86-64/SSE2.
  * It is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015,2019 by Solar Designer
+ * Copyright (c) 2015,2017 by magnum
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.  (This is a heavily cut-down "BSD license".)
  *
@@ -1641,16 +1642,19 @@ DES_bs_crypt_plain_loop:
  * CPU detection.
  */
 
-#define C7_AVX2                 $0x00000020 /* AVX2 */
-#define C7_AVX512F              $0x00010000
-#define C7_AVX512BW             $0x40010000 /* AVX512BW + AVX512F */
-
-#define CX_XOP                  $0x00000800
-
+/* Leaf 1 */
 #define CF_SSSE3                $0x00000200 /* SSSE3 */
 #define CF_SSE4_1               $0x00080200 /* SSE4.1 + SSSE3 */
 #define CF_SSE4_2               $0x00180200 /* SSE4.2 + SSE4.1 + SSSE3 */
 #define CF_AVX                  $0x1C000000 /* AVX + XSAVE + OSXSAVE */
+
+/* Extended features */
+#define CX_XOP                  $0x00000800
+
+/* Leaf 7 */
+#define C7_AVX2                 $0x00000020 /* AVX2 */
+#define C7_AVX512F              $0x00010000
+#define C7_AVX512BW             $0x40010000 /* AVX512BW + AVX512F */
 
 .text
 

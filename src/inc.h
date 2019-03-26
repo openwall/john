@@ -15,6 +15,6 @@
 /*
  * Runs the incremental mode cracker.
  */
-extern void do_incremental_crack(struct db_main *db, char *mode);
+extern void do_incremental_crack(struct db_main *db, const char *mode);
 
 #endif

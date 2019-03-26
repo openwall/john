@@ -152,7 +152,7 @@ static void stupidsort(unsigned char *result, unsigned char *source,
 	memcpy(result + l + p, more, m);
 }
 
-void init_probatables(char *filename)
+void init_probatables(const char *filename)
 {
 	FILE *fichier;
 	char *ligne;
