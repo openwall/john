@@ -1,9 +1,15 @@
-#ifdef __GNUC__
-#pragma GCC push_options
-#pragma GCC optimize ("O0")
-#endif
+/*
+ * This software is Copyright (c) 2018 magnum
+ * and is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
+#include <stddef.h>
+#include <stdint.h>
 
-static size_t full_unicode_charset(UTF32* charset)
+#include "unicode.h"
+
+size_t full_unicode_charset(UTF32* charset)
 {
 	int i, c;
 
@@ -2281,7 +2287,3 @@ static size_t full_unicode_charset(UTF32* charset)
 
 	return i;
 }
-
-#ifdef __GNUC__
-#pragma GCC pop_options
-#endif

@@ -43,7 +43,7 @@
 #include "recovery.h"
 #include "mask.h"
 #include "unicode.h"
-#include "unicode_range.c"
+#include "unicode_range.h"
 
 #define SUBSET_DEBUG 1
 

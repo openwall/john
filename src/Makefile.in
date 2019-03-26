@@ -105,7 +105,7 @@ JOHN_OBJS = \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o  wordlist.o \
 	mkv.o mkvlib.o \
-	subsets.o \
+	subsets.o unicode_range.o \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o \
@@ -402,7 +402,10 @@ missing_getopt.o:	missing_getopt.c missing_getopt.h os.h os-autoconf.h autoconfi
 
 mkv.o:	mkv.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os-autoconf.h signals.h formats.h loader.h list.h logger.h status.h recovery.h config.h charset.h external.h compiler.h cracker.h options.h getopt.h common.h john.h mkv.h mkvlib.h mask.h
 
-subsets.o: subsets.c subsets.h unicode_range.c loader.h cracker.h options.h logger.h status.h recovery.h
+subsets.o: subsets.c subsets.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
+
+unicode_range.o: unicode_range.c unicode_range.h
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -O0 unicode_range.c
 
 mkvcalcproba.o:	mkvcalcproba.c autoconfig.h params.h arch.h mkvlib.h memory.h jumbo.h os.h os-autoconf.h
 
@@ -532,10 +535,10 @@ zip2john.o:	zip2john.c arch.h common.h memory.h jumbo.h formats.h params.h misc.
 ######## End auto-generated
 
 princeprocessor:
-	$(CC) @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ @HT@ $(RELEASE_BLD) $(CPPFLAGS) $(OPT_NORMAL) -Wno-declaration-after-statement -std=c99 -DLINUX pp.c $(LDFLAGS) -o ../run/pp
+	$(CC) @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ @HT@ $(RELEASE_BLD) $(CPPFLAGS) $(OPT_NORMAL) -std=c99 -DLINUX pp.c $(LDFLAGS) -o ../run/pp
 
 pp.o:	pp.c autoconfig.h arch.h win32_memmap.h os.h os-autoconf.h jumbo.h mmap-windows.c memory.h mpz_int128.h int128.h misc.h config.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h external.h compiler.h cracker.h john.h unicode.h prince.h rpp.h rules.h mask.h
-	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -Wno-declaration-after-statement -std=c99 -c pp.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -std=c99 -c pp.c
 
 version.h: find_version
 
