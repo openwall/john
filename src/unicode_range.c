@@ -1,3 +1,8 @@
+#ifdef __GNUC__
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+#endif
+
 static size_t full_unicode_charset(UTF32* charset)
 {
 	int i, c;
@@ -2276,3 +2281,7 @@ static size_t full_unicode_charset(UTF32* charset)
 
 	return i;
 }
+
+#ifdef __GNUC__
+#pragma GCC pop_options
+#endif

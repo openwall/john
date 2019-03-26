@@ -402,7 +402,7 @@ missing_getopt.o:	missing_getopt.c missing_getopt.h os.h os-autoconf.h autoconfi
 
 mkv.o:	mkv.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os-autoconf.h signals.h formats.h loader.h list.h logger.h status.h recovery.h config.h charset.h external.h compiler.h cracker.h options.h getopt.h common.h john.h mkv.h mkvlib.h mask.h
 
-subsets.o: subsets.c subsets.h loader.h cracker.h options.h logger.h status.h recovery.h
+subsets.o: subsets.c subsets.h unicode_range.c loader.h cracker.h options.h logger.h status.h recovery.h
 
 mkvcalcproba.o:	mkvcalcproba.c autoconfig.h params.h arch.h mkvlib.h memory.h jumbo.h os.h os-autoconf.h
 
