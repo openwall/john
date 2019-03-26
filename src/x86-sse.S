@@ -1,7 +1,7 @@
 /*
  * This file contains the core of a bitslice DES implementation for x86/SSE2.
  * It is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015,2019 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006,2008,2011,2012,2015 by Solar Designer
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.  (This is a heavily cut-down "BSD license".)
  *
