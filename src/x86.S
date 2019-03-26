@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2011 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2011,2019 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
