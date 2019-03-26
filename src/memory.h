@@ -160,7 +160,7 @@ extern void *mem_calloc_tiny(size_t size, size_t align);
 /*
  * Uses mem_alloc_tiny() to allocate the memory, and copies src in there.
  */
-extern void *mem_alloc_copy(void *src, size_t size, size_t align);
+extern void *mem_alloc_copy(const void *src, size_t size, size_t align);
 
 /*
  * Similar to the above function, but for ASCIIZ strings.

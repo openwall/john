@@ -410,7 +410,7 @@ void get_markov_options(struct db_main *db,
 	}
 
 	if (options.mkv_stats == NULL)
-		*statfile = cfg_get_param(SECTION_MARKOV, mode, "Statsfile");
+		*statfile = (char*)cfg_get_param(SECTION_MARKOV, mode, "Statsfile");
 	else
 		*statfile = options.mkv_stats;
 

@@ -149,7 +149,7 @@ void ldr_pot_possible_fixup_salt(char *source, char *ciphertext) {
 static char *LoadUserClass(char which, int i) {
 	// Load user-defined character classes ?0 .. ?9 from john.conf
 	char user_class_num[2];
-	char *user_class;
+	const char *user_class;
 	static int loaded=0;
 	user_class_num[0] = which;
 	user_class_num[1] = 0;

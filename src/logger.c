@@ -62,8 +62,8 @@
 static int cfg_beep;
 static int cfg_log_passwords;
 static int cfg_showcand;
-static char *LogDateFormat;
-static char *LogDateStderrFormat;
+static const char *LogDateFormat;
+static const char *LogDateStderrFormat;
 static int LogDateFormatUTC=0;
 static char *log_perms;
 static char *pot_perms;
@@ -364,16 +364,16 @@ void log_init(char *log_name, char *pot_name, char *session)
 	show_admins = cfg_get_bool(SECTION_OPTIONS, NULL, "MarkAdminCracks", 0);
 
 	if (isatty(fileno(stdout))) {
-		admin_start = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		admin_start = parse_esc((char*)cfg_get_param(SECTION_OPTIONS, NULL,
 		                                      "MarkAdminStart"));
-		admin_end = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		admin_end = parse_esc((char*)cfg_get_param(SECTION_OPTIONS, NULL,
 		                                    "MarkAdminEnd"));
-		terminal_reset = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		terminal_reset = parse_esc((char*)cfg_get_param(SECTION_OPTIONS, NULL,
 		                                         "TerminalReset"));
 	} else
 		admin_start = admin_end = terminal_reset = "";
 
-	admin_string = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+	admin_string = parse_esc((char*)cfg_get_param(SECTION_OPTIONS, NULL,
 	                                       "MarkAdminString"));
 
 	if (log_name && log.fd < 0) {
@@ -396,7 +396,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 				}
 			}
 		}
-		if (!(log_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+		if (!(log_perms = (char*)cfg_get_param(SECTION_OPTIONS, NULL,
 						"LogFilePermissions")))
 			log_perms = "0600";
 
@@ -404,7 +404,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 	}
 
 	if (pot_name && pot.fd < 0) {
-                if (!(pot_perms = cfg_get_param(SECTION_OPTIONS, NULL,
+                if (!(pot_perms = (char*)cfg_get_param(SECTION_OPTIONS, NULL,
 						"PotFilePermissions")))
 			pot_perms = "0600";
 

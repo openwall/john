@@ -761,7 +761,7 @@ static void add_device_type(cl_ulong device_type, int top)
 }
 
 /* Build a list of the requested OpenCL devices */
-static void build_device_list(char *device_list[MAX_GPU_DEVICES])
+static void build_device_list(const char *device_list[MAX_GPU_DEVICES])
 {
 	int n = 0;
 
@@ -844,7 +844,7 @@ void opencl_load_environment(void)
 
 	if (!opencl_initialized) {
 		int i;
-		char *cmdline_devices[MAX_GPU_DEVICES];
+		const char *cmdline_devices[MAX_GPU_DEVICES];
 
 		nvidia_probe();
 		amd_probe();
@@ -889,7 +889,7 @@ void opencl_load_environment(void)
 
 		// If none selected, read the "--device" from the configuration file
 		if (!options.acc_devices->head && gpu_id <= NO_GPU) {
-			char *devcfg;
+			const char *devcfg;
 
 			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
 			                            SUBSECTION_OPENCL, "Device"))) {
@@ -1045,12 +1045,12 @@ void opencl_get_user_preferences(char *format)
 	if (format) {
 		snprintf(fmt_base_name, sizeof(fmt_base_name), "%s", format);
 		if ((tmp_value = strrchr(fmt_base_name, (int)'-')))
-			* tmp_value = 0;
+			*tmp_value = 0;
 		strlwr(fmt_base_name);
 	} else
 		fmt_base_name[0] = 0;
 
-	if (format && (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	if (format && (tmp_value = (char*)cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 			opencl_get_config_name(fmt_base_name, LWS_CONFIG_NAME))))
 		local_work_size = atoi(tmp_value);
 
@@ -1059,7 +1059,7 @@ void opencl_get_user_preferences(char *format)
 	else if ((tmp_value = getenv("LWS")))
 		local_work_size = atoi(tmp_value);
 
-	if (format && (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	if (format && (tmp_value = (char*)cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 			opencl_get_config_name(fmt_base_name, GWS_CONFIG_NAME))))
 		global_work_size = atoi(tmp_value);
 
@@ -1073,10 +1073,10 @@ void opencl_get_user_preferences(char *format)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size,
 		                                        local_work_size);
 
-	if (format && (tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	if (format && (tmp_value = (char*)cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 			opencl_get_config_name(fmt_base_name, DUR_CONFIG_NAME))))
 		duration_time = atoi(tmp_value);
-	else if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	else if ((tmp_value = (char*)cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 	                                    "Global" DUR_CONFIG_NAME)))
 		duration_time = atoi(tmp_value);
 }
@@ -1211,10 +1211,10 @@ static char *mingw_try_relative_path(char *self_path)
 static char *include_source(char *pathname, int sequential_id, char *opts)
 {
 	char *include, *full_path;
-	char *global_opts;
+	const char *global_opts;
 
 #if I_REALPATH
-	char *pex = path_expand_safe(pathname);
+	char *pex = (char*)path_expand_safe(pathname);
 
 	if (!(full_path = realpath(pex, NULL)))
 		pexit("realpath()");
@@ -1263,7 +1263,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	return include;
 }
 
-void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_program *program, char *kernel_source_file, char *kernel_source)
+void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_program *program, const char *kernel_source_file, char *kernel_source)
 {
 	cl_int build_code, err_code;
 	char *build_log, *build_opts;
@@ -1386,7 +1386,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 		                                sizeof(char *), &source, NULL),
 		               "clGetProgramInfo for CL_PROGRAM_BINARIES");
 
-		file = fopen(full_path = path_expand_safe(file_name), "w");
+		file = fopen(full_path = (char*)path_expand_safe(file_name), "w");
 		MEM_FREE(full_path);
 
 		if (file == NULL)
@@ -2156,7 +2156,7 @@ size_t opencl_read_source(char *kernel_filename, char **kernel_source)
 	char *full_path;
 	size_t source_size, read_size;
 
-	fp = fopen(full_path = path_expand_safe(kernel_filename), "rb");
+	fp = fopen(full_path = (char*)path_expand_safe(kernel_filename), "rb");
 	MEM_FREE(full_path);
 
 	if (!fp)
@@ -2265,7 +2265,7 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		int i;
 		MD5_CTX ctx;
 		char *kernel_source = NULL;
-		char *global_opts;
+		const char *global_opts;
 
 		if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
 			if (!(global_opts = cfg_get_param(SECTION_OPTIONS,

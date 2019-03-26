@@ -308,7 +308,7 @@ extern UTF8 CP_isDigit[0x100];
 #define enc_toupper(c) (char)CP_up[ARCH_INDEX(c)]
 
 /* Conversion between encoding names and integer id */
-extern int cp_name2id(char *encoding);
+extern int cp_name2id(const char *encoding);
 extern char *cp_id2name(int encoding);
 extern char *cp_id2macro(int encoding);
 

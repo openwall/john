@@ -74,6 +74,6 @@ extern int charset_read_header(FILE *file, struct charset_header *header);
 /*
  * Generates a charset file, based on plaintexts in the database.
  */
-extern void do_makechars(struct db_main *db, char *charset);
+extern void do_makechars(struct db_main *db, const char *charset);
 
 #endif

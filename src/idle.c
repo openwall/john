@@ -74,14 +74,6 @@ int idle_requested(struct fmt_main *format)
 
 void idle_init(struct fmt_main *format)
 {
-#if !defined(__BEOS__) && !defined(__HAIKU__) &&	  \
-	!defined(__MINGW32__) && !defined (_MSC_VER)
-	int old_nice;
-#endif
-#if defined(_POSIX_PRIORITY_SCHEDULING) && defined(SCHED_IDLE)
-	struct sched_param param = {0};
-#endif
-
 	if (!idle_requested(format) || (options.flags & FLG_STDOUT))
 		return;
 
@@ -92,7 +84,7 @@ void idle_init(struct fmt_main *format)
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
 #elif !defined(__BEOS__) && !defined(__HAIKU__)
 	errno = 0;
-	old_nice = nice(0);
+	int old_nice = nice(0);
 	if (old_nice == -1 && errno) {
 		perror("nice");
 	} else {
@@ -105,6 +97,7 @@ void idle_init(struct fmt_main *format)
 #endif
 
 #if defined(_POSIX_PRIORITY_SCHEDULING) && defined(SCHED_IDLE)
+	struct sched_param param = {0};
 	use_yield = sched_setscheduler(getpid(), SCHED_IDLE, &param) != 0;
 #elif defined(_POSIX_PRIORITY_SCHEDULING)
 	use_yield = 1;

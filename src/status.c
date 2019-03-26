@@ -44,8 +44,8 @@
 
 struct status_main status;
 unsigned int status_restored_time = 0;
-static char* timeFmt = NULL;
-static char* timeFmt24 = NULL;
+static const char* timeFmt = NULL;
+static const char* timeFmt24 = NULL;
 static int showcand;
 double (*status_get_progress)(void) = NULL;
 

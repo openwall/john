@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2003,2006,2008,2010,2011,2015 by Solar Designer
+ * Copyright (c) 2003,2006,2008,2010,2011,2015,2019 by Solar Designer
  *
  * ...with a trivial change in the jumbo patch, by Alain Espinosa.
  *
@@ -99,6 +99,8 @@
 #define DES_EXTB			1
 #define DES_COPY			0
 #define DES_BS				1
+#define DES_BS_EXPAND			1
+
 #if defined(JOHN_NO_SIMD) || !defined(__SSE2__)
 #define DES_BS_VECTOR			0
 #define DES_BS_ALGORITHM_NAME		"DES 64/64"
@@ -118,47 +120,7 @@
 #define CPU_FALLBACK_BINARY_DEFAULT
 #endif
 #define DES_BS_ASM			0
-#if 0
-/* 512-bit as 2x256 */
-#define DES_BS_VECTOR			8
-#if defined(JOHN_XOP) && defined(__GNUC__)
-/* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
-#undef DES_BS
-#define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 X2 XOP"
-#else
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 X2 AVX"
-#endif
-#elif 0
-/* 384-bit as 256+128 */
-#define DES_BS_VECTOR_SIZE		8
-#define DES_BS_VECTOR			6
-#if defined(JOHN_XOP) && defined(__GNUC__)
-/* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
-#undef DES_BS
-#define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 XOP + 128/128 XOP"
-#else
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX + 128/128 AVX"
-#endif
-#elif 0
-/* 384-bit as 256+64+64 */
-#define DES_BS_NO_AVX128
-#define DES_BS_VECTOR_SIZE		8
-#define DES_BS_VECTOR			6
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX + 64/64 MMX + 64/64"
-#elif 0
-/* 320-bit as 256+64 MMX */
-#define DES_BS_VECTOR_SIZE		8
-#define DES_BS_VECTOR			5
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX + 64/64 MMX"
-#elif 0
-/* 320-bit as 256+64 */
-#define DES_BS_NO_MMX
-#define DES_BS_VECTOR_SIZE		8
-#define DES_BS_VECTOR			5
-#define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX + 64/64"
-#elif __AVX2__ || JOHN_AVX2
+#if __AVX2__ || JOHN_AVX2
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
 #undef CPU_NAME
@@ -171,17 +133,6 @@
 #define CPU_FALLBACK_BINARY_DEFAULT
 #endif
 #define DES_BS_ALGORITHM_NAME		"DES 256/256 AVX2"
-#elif 0
-/* 256-bit as 2x128 */
-#define DES_BS_NO_AVX256
-#define DES_BS_VECTOR			4
-#ifdef JOHN_XOP
-#undef DES_BS
-#define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 XOP"
-#else
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 AVX"
-#endif
 #else
 /* 128-bit */
 #define DES_BS_VECTOR			2
@@ -195,26 +146,8 @@
 #endif
 #elif !defined(JOHN_NO_SIMD) && (defined(__SSE2__) && defined(_OPENMP))
 #define DES_BS_ASM			0
-#if 1
 #define DES_BS_VECTOR			2
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2"
-#elif 0
-#define DES_BS_VECTOR			3
-#define DES_BS_VECTOR_SIZE		4
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2 + 64/64 MMX"
-#elif 0
-#define DES_BS_NO_MMX
-#define DES_BS_VECTOR			3
-#define DES_BS_VECTOR_SIZE		4
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2 + 64/64"
-#elif 0
-#define DES_BS_NO_MMX
-#define DES_BS_VECTOR			4
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 X2 SSE2"
-#else
-#define DES_BS_VECTOR			4
-#define DES_BS_ALGORITHM_NAME		"DES 128/128 SSE2 + 64/64 MMX + 64/64"
-#endif
 #else
 #define DES_BS_ASM			1
 #define DES_BS_VECTOR			2
@@ -412,11 +345,9 @@
  * some newer CPUs capable of SSE4.2 but not AVX happen to lack SMT, so will
  * likely benefit from the 3x interleaving with no adverse effects for the
  * multi-threaded case.
- *
- * In Jumbo, we may get BF_X2 from autoconf (after testing ht cpuid flag).
  */
 #ifndef BF_X2
-#if !defined(JOHN_NO_SIMD) && __AVX__ && HAVE_HT && _OPENMP
+#ifdef __AVX__
 #define BF_X2				1
 #else
 #define BF_X2				3

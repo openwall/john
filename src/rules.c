@@ -389,7 +389,7 @@ static void rules_init_classes(void)
 		char user_class_num[] = "0";
 		char *user_class;
 		user_class_num[0] = i;
-		if ((user_class = cfg_get_param("UserClasses", NULL,
+		if ((user_class = (char*)cfg_get_param("UserClasses", NULL,
 		                                user_class_num))) {
 			if ((user_class = userclass_expand(user_class)))
 				rules_init_class(i, user_class);

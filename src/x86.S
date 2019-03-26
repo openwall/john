@@ -1,6 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2011 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2011,2019 by Solar Designer
+ * Copyright (c) 2015,2017 by magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -1296,11 +1297,6 @@ BF_body:
 
 #define EF_ID				$0x00200000
 
-/* Leaf 7 */
-#define C7_AVX2				$0x00000020 /* AVX2 (ebx) */
-#define C7_AVX512F			$0x00010020 /* + AVX512F (ebx) */
-#define C7_AVX512BW			$0x40010020 /* + AVX512BW (ebx) */
-
 /* Leaf 1 */
 #define CF_MMX				$0x00800000
 #define CF_SSE2				$0x04000000 /* SSE2 (edx) */
@@ -1309,7 +1305,14 @@ BF_body:
 #define CF_SSE4_2			$0x00180200 /* + SSE4.2 (ecx) */
 #define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
 
-#define CF_XOP				$0x00000800
+/* Extended features */
+#define CX_XOP				$0x00000800
+
+/* Leaf 7 */
+#define C7_AVX2				$0x00000020 /* AVX2 (ebx) */
+#define C7_AVX512F			$0x00010020 /* + AVX512F (ebx) */
+#define C7_AVX512BW			$0x40010020 /* + AVX512BW (ebx) */
+
 /* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
 /* "AuthenticAMD" */
@@ -1352,8 +1355,8 @@ CPU_detect:
 	testl %eax,%eax
 	jz CPU_detect_ret		/* Newer 486s */
 	pushl %ecx
-#if CPU_REQ_AVX2 || CPU_REQ_AVX512F || CPU_REQ_AVX512BW
 /* Leaf 7 checks */
+#if CPU_REQ_AVX2 || CPU_REQ_AVX512F || CPU_REQ_AVX512BW
 	xorl %eax,%eax
 	cpuid
 	movl $7,%edx
@@ -1379,6 +1382,7 @@ CPU_detect_fail:
 	jmp CPU_detect_ret
 CPU_detect_cont:
 #endif
+/* Leaf 1 checks */
 	movl $1,%eax
 	cpuid
 #if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
@@ -1410,7 +1414,7 @@ CPU_detect_AVX:
 	jl CPU_detect_no_XOP
 	xchgl %edx,%eax
 	cpuid
-	testl CF_XOP,%ecx
+	testl CX_XOP,%ecx
 	jnz CPU_detect_XOP
 CPU_detect_no_XOP:
 	popl %edx

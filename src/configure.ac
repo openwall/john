@@ -235,7 +235,6 @@ fi
    dnl now fill out CFLAGS
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)
-   JTR_FLAG_CHECK([-Wdeclaration-after-statement], 1)
 
    dnl False positives from gcc 8
    if (test "x$asan" != xyes); then
@@ -272,7 +271,7 @@ fi
    JTR_LIST_ADD(CFLAGS_EXTRA, ["$CFLAGS_EX"])
 ],
    AC_MSG_NOTICE([Unable to validate $CC command line arguments. Using standard values.])
-   CFLAGS_EXTRA="-Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer"
+   CFLAGS_EXTRA="-Wall -O2 -fomit-frame-pointer"
 )
 
 dnl early check of 64 bit systems.

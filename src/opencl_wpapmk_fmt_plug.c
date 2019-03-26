@@ -232,7 +232,7 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
-		char *custom_opts;
+		const char *custom_opts;
 		char build_opts[256];
 
 		if (!(custom_opts = getenv(OCL_CONFIG "_BuildOpts")))

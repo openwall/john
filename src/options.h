@@ -223,7 +223,7 @@ struct options_main {
 	char *wordlist;
 
 /* Incremental mode name or charset file name */
-	char *charset;
+	const char *charset;
 
 /* External mode or word filter name */
 	char *external;
@@ -376,8 +376,8 @@ struct options_main {
 	int reload_at_crack;
 
 /* Pause/abort on trigger files */
-	char *pause_file;
-	char *abort_file;
+	const char *pause_file;
+	const char *abort_file;
 
 /* Force dynamic format to always treat bare hashes as valid. If not set
    then dynamic format only uses bare hashes if -form=dynamic_xxx is used.

@@ -193,7 +193,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 	sprintf(kernel_bin_name, BINARY_FILE, lws, d_name = get_device_name(id_gpu), salt_val);
 	MEM_FREE(d_name);
 
-	file = fopen(full_path = path_expand_safe(kernel_bin_name), "r");
+	file = fopen(full_path = (char*)path_expand_safe(kernel_bin_name), "r");
 	MEM_FREE(full_path);
 
 	if (file == NULL || force_build) {

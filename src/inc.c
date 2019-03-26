@@ -130,7 +130,7 @@ void inc_hybrid_fix_state(void)
 	memcpy(hybrid_rec_numbers, numbers, length);
 }
 
-static void inc_format_error(char *charset)
+static void inc_format_error(const char *charset)
 {
 	log_event("! Incorrect charset file format: %.100s", charset);
 	if (john_main_process)
@@ -171,7 +171,7 @@ static int has_8bit(char *chars)
 }
 
 static void inc_new_length(unsigned int length,
-	struct charset_header *header, FILE *file, char *charset,
+	struct charset_header *header, FILE *file, const char *charset,
 	char *char1, char2_table char2, chars_table *chars)
 {
 	long offset;
@@ -281,10 +281,11 @@ static void inc_new_length(unsigned int length,
 	}
 }
 
-static int expand(char *dst, char *src, int size)
+static int expand(char *dst, const char *src, int size)
 {
 	char present[CHARSET_SIZE];
-	char *dptr = dst, *sptr = src;
+	char *dptr = dst;
+	const char *sptr = src;
 	int count = size;
 	unsigned int i;
 
@@ -314,7 +315,7 @@ static int expand(char *dst, char *src, int size)
 	return 0;
 }
 
-static void inc_new_count(unsigned int length, int count, char *charset,
+static void inc_new_count(unsigned int length, int count, const char *charset,
 	char *allchars, char *char1, char2_table char2, chars_table *chars)
 {
 	int pos, ci;
@@ -450,11 +451,11 @@ update_last:
 	return 0;
 }
 
-void do_incremental_crack(struct db_main *db, char *mode)
+void do_incremental_crack(struct db_main *db, const char *mode)
 {
-	char *charset;
+	const char *charset;
 	int min_length, max_length, max_count;
-	char *extra;
+	const char *extra;
 	FILE *file;
 	struct charset_header *header;
 	unsigned int check;
