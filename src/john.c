@@ -1566,7 +1566,6 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (!make_check) {
 		if (options.config) {
-			path_init_ex(options.config);
 			cfg_init(options.config, 0);
 #if JOHN_SYSTEMWIDE
 			cfg_init(CFG_PRIVATE_FULL_NAME, 1);
