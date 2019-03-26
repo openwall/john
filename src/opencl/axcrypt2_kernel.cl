@@ -48,7 +48,6 @@ __kernel void axcrypt2_final(__global crack_t *pbkdf2,
 	for (i = 0; i < 8; i++)
 		key.u[i] = SWAP64(pbkdf2[gid].hash[i]);
 
-	uchar password[PLAINTEXT_LENGTH];
 	unsigned char KEK[32];
 	AES_KEY akey;
 	int halfblocklen = 16 / 2;
