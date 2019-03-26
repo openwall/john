@@ -1030,7 +1030,7 @@ void opencl_done()
 	engaged_devices[0] = engaged_devices[1] = DEV_LIST_END;
 }
 
-static char *opencl_get_config_name(char *format, char *config_name)
+static char *opencl_get_config_name(const char *format, const char *config_name)
 {
 	static char config_item[256];
 
@@ -1038,7 +1038,7 @@ static char *opencl_get_config_name(char *format, char *config_name)
 	return config_item;
 }
 
-void opencl_get_user_preferences(char *format)
+void opencl_get_user_preferences(const char *format)
 {
 	char *tmp_value;
 
@@ -1208,7 +1208,7 @@ static char *mingw_try_relative_path(char *self_path)
 }
 #endif
 
-static char *include_source(char *pathname, int sequential_id, char *opts)
+static char *include_source(const char *pathname, int sequential_id, const char *opts)
 {
 	char *include, *full_path;
 	const char *global_opts;
@@ -1263,7 +1263,7 @@ static char *include_source(char *pathname, int sequential_id, char *opts)
 	return include;
 }
 
-void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_program *program, const char *kernel_source_file, char *kernel_source)
+void opencl_build(int sequential_id, const char *opts, int save, const char *file_name, cl_program *program, const char *kernel_source_file, const char *kernel_source)
 {
 	cl_int build_code, err_code;
 	char *build_log, *build_opts;
@@ -1440,7 +1440,7 @@ void opencl_build(int sequential_id, char *opts, int save, char *file_name, cl_p
 #endif /* HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS) */
 }
 
-void opencl_build_from_binary(int sequential_id, cl_program *program, char *kernel_source, size_t program_size)
+void opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source, size_t program_size)
 {
 	cl_int build_code, err_code;
 	char *build_log;
@@ -2150,7 +2150,7 @@ static void load_device_info(int sequential_id)
 	}
 }
 
-size_t opencl_read_source(char *kernel_filename, char **kernel_source)
+size_t opencl_read_source(const char *kernel_filename, char **kernel_source)
 {
 	FILE *fp;
 	char *full_path;
@@ -2229,8 +2229,8 @@ static char *replace_str(char *string, char *from, char *to)
 #endif
 
 
-void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
-                             char *opts)
+void opencl_build_kernel_opt(const char *kernel_filename, int sequential_id,
+                             const char *opts)
 {
 	char *kernel_source = NULL;
 	opencl_read_source(kernel_filename, &kernel_source);
@@ -2240,7 +2240,7 @@ void opencl_build_kernel_opt(char *kernel_filename, int sequential_id,
 
 #define md5add(string) MD5_Update(&ctx, (string), strlen(string))
 
-void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
+void opencl_build_kernel(const char *kernel_filename, int sequential_id, const char *opts,
                          int warn)
 {
 #if HAVE_MPI
@@ -2258,7 +2258,8 @@ void opencl_build_kernel(char *kernel_filename, int sequential_id, char *opts,
 		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
 	} else {
 		struct stat source_stat, bin_stat;
-		char dev_name[512], bin_name[512], *tmp_name;
+		char dev_name[512], bin_name[512];
+		const char *tmp_name;
 		unsigned char hash[16];
 		char hash_str[33];
 		uint64_t startTime, runtime;
@@ -2385,7 +2386,7 @@ int opencl_prepare_dev(int sequential_id)
 	return sequential_id;
 }
 
-void opencl_init(char *kernel_filename, int sequential_id, char *opts)
+void opencl_init(const char *kernel_filename, int sequential_id, const char *opts)
 {
 	sequential_id = opencl_prepare_dev(sequential_id);
 	opencl_build_kernel(kernel_filename, sequential_id, opts, 0);
