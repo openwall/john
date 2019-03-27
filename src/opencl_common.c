@@ -669,9 +669,10 @@ static void add_device_to_list(int sequential_id)
 	found = get_if_device_is_in_use(sequential_id);
 
 	if (found < 0) {
-		fprintf(stderr, "Error: --device must be between 1 and %d "
-		          "(the number of devices available).\n",
-		          get_number_of_available_devices());
+		if (john_main_process)
+			fprintf(stderr, "Error: --device must be between 1 and %d "
+			        "(the number of devices available).\n",
+			        get_number_of_available_devices());
 		error();
 	}
 
