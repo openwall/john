@@ -93,6 +93,7 @@ static char* get_device_capability(int sequential_id);
 // Used by auto-tuning to decide how GWS should changed between trials.
 extern int autotune_get_next_gws_size(size_t num, int step, int startup,
                                       int default_value);
+extern int autotune_get_prev_gws_size(size_t num, int step);
 
 // Settings to use for auto-tuning.
 static int buffer_size;
@@ -1499,7 +1500,8 @@ static void clear_profiling_events()
 	}
 }
 
-// Do the proper test using different global work sizes.
+// Do a test run with a specific global work size, return total duration
+// (or return zero for error or liomits exceeded)
 static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
@@ -1819,14 +1821,13 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	                                       CL_PROFILING_COMMAND_END,
 	                                       sizeof(cl_ulong), &endTime, NULL),
 	               "clGetEventProfilingInfo end");
-	numloops = (int)(size_t)(200000000ULL / (endTime - startTime));
+	cl_ulong roundup = endTime - startTime - 1;
+	numloops = (int)(size_t)((200000000ULL + roundup) / (endTime - startTime));
 
 	clear_profiling_events();
 
 	if (numloops < 1)
 		numloops = 1;
-	else if (numloops > 5)
-		numloops = 5;
 
 	// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
@@ -1988,7 +1989,7 @@ void opencl_find_best_gws(int step, int max_duration,
 	size_t num = 0;
 	size_t optimal_gws = local_work_size, soft_limit = 0;
 	unsigned long long speed, best_speed = 0, raw_speed;
-	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	cl_ulong run_time;
 	int save_duration_time = duration_time;
 	cl_uint core_count = get_processors_count(sequential_id);
 
@@ -2056,9 +2057,6 @@ void opencl_find_best_gws(int step, int max_duration,
 		raw_speed = (kpc / (run_time / 1E9)) * mask_int_cand.num_int_cand;
 		speed = rounds * raw_speed;
 
-		if (run_time < min_time)
-			min_time = run_time;
-
 		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, "gws: %9zu\t%10s%12llu "
 			        "rounds/s%10s per crypt_all()",
@@ -2078,6 +2076,37 @@ void opencl_find_best_gws(int step, int max_duration,
 		}
 		if (options.verbosity > VERB_LEGACY)
 			fprintf(stderr, "\n");
+	}
+
+	/* Backward run */
+	for (num = autotune_get_prev_gws_size(optimal_gws, step);;
+	     num = autotune_get_prev_gws_size(num, step)) {
+		size_t kpc = num * ocl_v_width;
+
+		if (!(run_time = gws_test(num, rounds, sequential_id)))
+			break;
+
+		if (options.verbosity <= VERB_LEGACY)
+			advance_cursor();
+
+		raw_speed = (kpc / (run_time / 1E9)) * mask_int_cand.num_int_cand;
+		speed = rounds * raw_speed;
+
+		if (options.verbosity > VERB_LEGACY)
+			fprintf(stderr, "gws: %9zu\t%10s%12llu "
+			        "rounds/s%10s per crypt_all()",
+			        num, human_speed(raw_speed), speed, ns2string(run_time));
+
+		if (speed < best_speed) {
+			if (options.verbosity > VERB_LEGACY)
+				fprintf(stderr, "-\n");
+			break;
+		}
+		best_speed = speed;
+		global_speed = raw_speed;
+		optimal_gws = num;
+		if (options.verbosity > VERB_LEGACY)
+			fprintf(stderr, "!!\n");
 	}
 
 	/* Erase the 'spinning wheel' cursor */
