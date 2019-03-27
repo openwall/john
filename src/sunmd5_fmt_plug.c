@@ -530,11 +530,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, constant_phrase)
 #endif // SIMD_COEF_32
 #else
+/* The behavior of gcc changed from gcc 8 to gcc 9.
+ * - gcc 9 refuses to compile the code as it is.
+ * - gcc 6 and 7 (at least) refuse to compile the patched/updated code.
+ */
+#if __GNUC__ < 9
 #ifdef SIMD_COEF_32
 #pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf)
 #else
 #pragma omp parallel for default(none) private(idx) shared(ngroups, group_sz, saved_salt, data)
 #endif // SIMD_COEF_32
+#else
+#ifdef SIMD_COEF_32
+#pragma omp parallel for default(none) private(idx) shared(count, constant_phrase, ngroups, group_sz, saved_salt, data, input_buf, input_buf_big, out_buf)
+#else
+#pragma omp parallel for default(none) private(idx) shared(count, constant_phrase, ngroups, group_sz, saved_salt, data)
+#endif // SIMD_COEF_32 (2nd)
+#endif // gcc OpenMP behavior workaround
 #endif // __INTEL_COMPILER
 #endif // _OPENMP
 	for (group_idx = 0; group_idx < ngroups; ++group_idx) {
