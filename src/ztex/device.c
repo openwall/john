@@ -41,7 +41,7 @@ static int hex_digit2bin(char digit)
 
 // Convert hexadecimal ascii string e.g. \x0c\x00 into binary string
 // TODO: consider moving into src/config.c
-static char *hex_string2bin(char *src, int *len)
+static char *hex_string2bin(const char *src, int *len)
 {
 	static char dst[CONFIG_MAX_LEN];
 
@@ -121,7 +121,7 @@ static int device_init_fpgas(struct device *device,
 	char default_config1[CONFIG_MAX_LEN], board_config1[CONFIG_MAX_LEN];
 	int len_default, len_board, len;
 
-	char *ptr;
+	const char *ptr;
 	ptr = cfg_get_param(CFG_SECTION, bitstream->label, "Config1");
 	if (ptr) {
 		char *hex_str = hex_string2bin(ptr, &len_default);
