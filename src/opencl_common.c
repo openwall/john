@@ -1522,25 +1522,22 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	create_clobj(gws, self);
 
 
-	// Set keys - unique printable length-8 keys
+	// Set keys - unique printable length-7 keys
 	self->methods.clear_keys();
 	{
-		union {
-			char c[PLAINTEXT_BUFFER_SIZE];
-			uint64_t w;
-		} key;
-		int len = MAX(MIN(self->params.plaintext_length, 8),
+		char key[PLAINTEXT_BUFFER_SIZE];
+		int len = MAX(MIN(self->params.plaintext_length, 7),
 		              self->params.plaintext_min_length);
 
-		key.w = 0x6161616161616161ULL;
+		memset(key, 0x61, sizeof(key));
 
 		for (i = 0; i < kpc; i++) {
 			int l = 0;
 
-			key.c[len] = 0;
-			self->methods.set_key(key.c, i);
-			while (++key.c[l] > 0x7a)
-				key.c[l++] = 0x20;
+			key[len] = 0;
+			self->methods.set_key(key, i);
+			while (++key[l] > 0x7a)
+				key[l++] = 0x21;
 		}
 	}
 
@@ -1751,25 +1748,22 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	                         devices[sequential_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "clCreateCommandQueue");
 
-	// Set keys - unique printable length-8 keys
+	// Set keys - unique printable length-7 keys
 	self->methods.clear_keys();
 	{
-		union {
-			char c[PLAINTEXT_BUFFER_SIZE];
-			uint64_t w;
-		} key;
-		int len = MAX(MIN(self->params.plaintext_length, 8),
+		char key[PLAINTEXT_BUFFER_SIZE];
+		int len = MAX(MIN(self->params.plaintext_length, 7),
 		              self->params.plaintext_min_length);
 
-		key.w = 0x6161616161616161ULL;
+		memset(key, 0x61, sizeof(key));
 
 		for (i = 0; i < global_work_size; i++) {
 			int l = 0;
 
-			key.c[len] = 0;
-			self->methods.set_key(key.c, i);
-			while (++key.c[l] > 0x7a)
-				key.c[l++] = 0x20;
+			key[len] = 0;
+			self->methods.set_key(key, i);
+			while (++key[l] > 0x7a)
+				key[l++] = 0x21;
 		}
 	}
 
