@@ -59,7 +59,7 @@ struct device_bitstream bitstream = {
 	// Max. number of entries in onboard comparator.
 	2047,
 	0,	// Min. number of keys (doesn't matter for fast "formats")
-	20,	// Min. template keys (e.g. several generators)
+	32,	// Min. template keys (e.g. several generators)
 	1, { 190 },	// Programmable clocks
 	"descrypt",	// label for configuration file
 	NULL, 0		// Initialization data

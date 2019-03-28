@@ -158,7 +158,7 @@ void device_format_reset()
 		min_template_keys = 1;
 
 	// Mask data is ready, calculate and set keys_per_crypt
-	unsigned int keys_per_crypt;
+	uint64_t keys_per_crypt;
 
 	if (self_test_running) {
 		// Self-test runs too long, using different keys_per_crypt
@@ -172,6 +172,10 @@ void device_format_reset()
 	}
 
 	keys_per_crypt *= jtr_device_list_count();
+	// Ensure updated *pcount < (1ULL << 31)
+	while (keys_per_crypt * mask_num_cand() >= 1ULL << 31)
+		keys_per_crypt /= 2;
+
 	if (keys_per_crypt > jtr_bitstream->abs_max_keys_per_crypt) {
 		keys_per_crypt = jtr_bitstream->abs_max_keys_per_crypt;
 
