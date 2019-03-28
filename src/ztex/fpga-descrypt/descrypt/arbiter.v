@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016-2017 Denis Burykin
+ * This software is Copyright (c) 2016-2017,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -11,23 +11,24 @@
 `include "descrypt_core/descrypt.vh"
 
 module arbiter #(
-	parameter WIDTH = 56
+	parameter NUM_CORES = -1,
+	// This prevents from being built as partition in MPPR
+	//parameter [16*NUM_CORES-1 : 0] CORES_CONF = 0,
+	parameter WORD_GEN_DOUT_WIDTH = -1
 	)(
+	input [NUM_CORES-1:0] DUMMY_CORES,
 	input WORD_GEN_CLK, // input from generator
 	input CORE_CLK, // for most of operations
 	input CMP_CLK, // for core's comparator and output
 
 	// read words from the generator (CLK)
-	input [WIDTH-1:0] word,
-	input [15:0] pkt_id, word_id,
-	input [31:0] gen_id,
-	input gen_end, // asserted on a last generated word in a packet
+	input [WORD_GEN_DOUT_WIDTH-1:0] word_gen_in,
 	input wr_en,
 	output full, almost_full,
 
 	// read comparator config (CORE_CLK)
-	input [`SALT_MSB:0] salt,
-	input [`RAM_ADDR_MSB-1:0] read_addr_start, addr_diff_start,
+	input [`GLOBAL_SALT_LSB-1:0] salt,
+	input [`RAM_ADDR_MSB-1:0] addr_start, addr_diff,
 	input hash_valid, hash_end,
 	input [`HASH_MSB:0] hash,
 	input [`RAM_ADDR_MSB:0] hash_addr,
@@ -45,137 +46,78 @@ module arbiter #(
 
 	input rd_en,
 	output empty,
-	output [6:0] error
+	output [7:0] error,
+	output reg idle = 1,
+	
+	// Cores are moved to upper level module
+	input [NUM_CORES-1:0] crypt_ready_out, core_idle_out, core_err_out,
+	output reg [NUM_CORES-1:0] core_wr_en = 0,
+	// Serial output from cores
+	input [4*NUM_CORES-1:0] core_dout_in,
+	output [NUM_CORES-1 :0] core_dout_ready,
+	// Broadcast
+	output reg [`DIN_MSB:0] core_din = 0,
+	output reg [2:0] core_addr_in = 0
 	);
 
 	// Actually: number of pipeline stages
 	localparam NUM_CRYPT_INSTANCES = 16; // crypt instances per core (unchangeable in this version)
-
-	localparam NUM_CORES = 24;
-
-	localparam NUM_WRAPPERS = 4;
-
-	// Configuration for wrappers.
-	// - number of cores
-	// - starting core number
-	//
-	localparam [NUM_WRAPPERS*16-1:0] WRAPPER_CORES = {
-		8'd5, 8'd19,
-		8'd6, 8'd13,
-		8'd7, 8'd6,	// wrapper #1: 7 cores, starting core number 6
-		8'd6, 8'd0	// wrapper #0: 6 cores, starting core number 0
-	};
-
-	// Configuration for cores
-	// - extra register stages for input
-	// - extra register stages for output
-	//
-	localparam [NUM_CORES*16-1:0] CORES_CONF = {
-	// is_dummy |reserved |input_regs |output_regs
-		// wrapper #3
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd1, 2'd1,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd0, 2'd1,
-		// wrapper #2
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd0, 2'd1,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd1, 2'd1,
-		1'b0, 11'b0, 2'd1, 2'd1,
-		// wrapper #1
-		1'b0, 11'b0, 2'd1, 2'd1,
-		1'b0, 11'b0, 2'd1, 2'd1,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd0, 2'd1,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		1'b0, 11'b0, 2'd2, 2'd2,
-		// wrapper #0
-		1'b0, 11'b0, 2'd0, 2'd1,	// core #5: 0 input register stage, 1 output
-		1'b0, 11'b0, 2'd2, 2'd2,	// core #4: 2 input register stage, 2 output
-		1'b0, 11'b0, 2'd1, 2'd1,	// core #3: 1 input register stage, 1 output
-		1'b0, 11'b0, 2'd1, 2'd1,	// core #2: 1 input register stage, 1 output
-		1'b0, 11'b0, 2'd2, 2'd2,	// core #1: 2 input register stage, 2 output
-		1'b0, 11'b0, 2'd2, 2'd2		// core #0: 2 input register stage, 2 output
-	};
 
 
 	// *************************************************************
 
 	reg err_core = 0, err_cmp = 0; // from cores
 	reg err_core_dout = 0, err_rd_ram = 0, err_core_output = 0, err_cmp_no_conf = 0; // from arbiter itself
+	reg err_watchdog = 0;
 	assign error = {
-		1'b0, err_cmp, err_core,
+		err_watchdog, 1'b0, err_cmp, err_core,
 		err_core_dout, err_rd_ram, err_core_output, err_cmp_no_conf
 	};
-
-	reg error_r = 0;
-	always @(posedge CORE_CLK)
-		if (|error)
-			error_r <= 1;
 
 
 	genvar i;
 	integer k;
 
-	//
-	// 26.06.17: Running word generator on CORE_CLK
-	// allows usage of lightweight synchronous input FIFO
-	//
 	wire gen_end_in;
 	wire [31:0] gen_id_in;
 	wire [15:0] pkt_id_in, word_id_in;
-	wire [WIDTH-1:0] word_in;
+	wire [55:0] word_in;
 
 	fifo_sync_very_fast_af #(
-		.A_WIDTH(5), .D_WIDTH(1+32+16+16+WIDTH)
+		.A_WIDTH(5), .D_WIDTH(WORD_GEN_DOUT_WIDTH)
 	) arbiter_input_fifo (
 		.CLK(CORE_CLK),
-		.din({ gen_end, gen_id, pkt_id, word_id, word }),
+		.din(word_gen_in),
 		.wr_en(wr_en),
 		.full(full),
 		.almost_full(almost_full),
 
-		.dout({ gen_end_in, gen_id_in, pkt_id_in,
+		.dout({ word_end_in, gen_end_in, gen_id_in, pkt_id_in,
 				word_id_in, word_in }),
 		.rd_en(input_rd_en),
 		.empty(input_empty)
 	);
-
 /*
 	// Arbiter's Input FIFO
 	// IP Coregen: FIFO
-	// Block RAM, Independent clocks
+	// Distributed RAM, Independent clocks
 	// First Word Fall-Through
-	// width 144, depth 256 (use 9K BRAMs: 4)
+	// width 122
 	// Almost Full Flag
 	// reset: off
-	wire [143:0] input_dout;
-
-	fifo_144x256 arbiter_input_fifo (
+	fifo_122x32 arbiter_input_fifo (
 		.wr_clk(WORD_GEN_CLK),
-		.din({ {144-1-32-16-16-WIDTH{1'b0}}, gen_end, gen_id, pkt_id, word_id, word }), // input [143 : 0] din
+		.din(word_gen_in),
 		.wr_en(wr_en),
 		.full(full),
 		.almost_full(almost_full),
 
 		.rd_clk(CORE_CLK),
-		.dout(input_dout), // output [143 : 0] dout
+		.dout({ word_end_in, gen_end_in, gen_id_in, pkt_id_in,
+				word_id_in, word_in }),
 		.rd_en(input_rd_en),
 		.empty(input_empty)
 	);
-
-	wire gen_end_in = input_dout[WIDTH-1+16+16+32+1:WIDTH+16+16+32];
-	wire [31:0] gen_id_in = input_dout[WIDTH-1+16+16+32:WIDTH+16+16];
-	wire [15:0] pkt_id_in = input_dout[WIDTH-1+16+16:WIDTH+16];
-	wire [15:0] word_id_in = input_dout[WIDTH-1+16:WIDTH];
-
-	// DES crypt(3): create 64-bit binary key from ASCII
-	wire [63:0] key64;
-	crypt3_ascii2bin crypt3_ascii2bin( .din({ input_dout[55:0] }), .dout(key64) );
 */
 	wire [63:0] key64;
 	crypt3_ascii2bin crypt3_ascii2bin( .din(word_in), .dout(key64) );
@@ -186,29 +128,12 @@ module arbiter #(
 
 
 	// read from input FIFO
-	assign input_rd_en = ~input_empty & ~gen_end_r & wr_state == WR_STATE_WRITE_CORE;
-
-	// Input timeout
-	reg [2:0] input_empty_timeout = 0;
-	always @(posedge CORE_CLK)
-		if (~input_empty)
-			input_empty_timeout <= 0;
-		else if (!(&input_empty_timeout))
-			input_empty_timeout <= input_empty_timeout + 1'b1;
-
+	assign input_rd_en = ~input_empty & ~gen_end_r & wr_state == WR_STATE_WRITE_CORE
+			// Empty packet (1 cand. with gen_end) - skip it
+			| ~input_empty & ~pkt_id_num_ok & gen_end_in & wr_state == WR_STATE_WAIT;
 
 	reg cmp_configured = 0; // Comparator has non-empty configuration
 
-	// Spartan-6 is poor on routing resources compared to other series FPGAs.
-	// Hack.
-	reg [`GLOBAL_SALT_MSB:`GLOBAL_SALT_LSB] global_salt_r = 0;
-	wire [`GLOBAL_SALT_MSB:`GLOBAL_SALT_LSB] global_salt;
-	global_wires #(
-		.N(`GLOBAL_SALT_MSB - `GLOBAL_SALT_LSB +1)
-	) global_wires_salt (
-		.in(global_salt_r),
-		.out(global_salt)
-	);
 
 	// **********************************
 	//
@@ -220,10 +145,20 @@ module arbiter #(
 			? {`MSB(NUM_CORES-1)+1{1'b0}} : wr_core_num + 1'b1;
 
 	reg [`MSB(NUM_CRYPT_INSTANCES-1):0] wr_instance_num = 0;
-	reg [NUM_CORES-1:0] crypt_ready, core_idle, core_err = 0;
-	reg all_cores_idle_r = 0;
+	reg [NUM_CORES-1:0] crypt_ready = 0, core_err = 0;
+	reg [NUM_CORES-1:0] core_idle = {NUM_CORES{1'b1}};
+	reg crypt_ready_r = 0;
+	reg all_cores_idle_r = 1;
+
+	// A glitch: core_idle may assert for few cycles when it's actually busy
+	delay #( .INIT(1), .NBITS(4)
+	) delay_cores_idle(.CLK(CORE_CLK), .in(all_cores_idle_r),
+		.out(all_cores_idle_delayed) );
+
 	always @(posedge CORE_CLK) begin
+		crypt_ready_r <= crypt_ready[wr_core_num];
 		all_cores_idle_r <= &core_idle;
+		idle <= all_cores_idle_delayed & input_empty;
 		err_core <= |core_err;
 	end
 
@@ -255,9 +190,6 @@ module arbiter #(
 	// There's no empty slot for packet accounting
 	wire pkt_full = pkt_done [ pkt_num == `NUM_PKTS-1 ? 0 : pkt_num + 1'b1 ];
 
-	reg crypt_ready_r = 0;
-	always @(posedge CORE_CLK)
-		crypt_ready_r <= crypt_ready[wr_core_num];
 
 	localparam	WR_STATE_INIT = 0,
 					//WR_STATE_INIT2 = 1,
@@ -277,6 +209,7 @@ module arbiter #(
 	reg wr_core_num_wait = 0;
 
 	reg wr_instance_num_eq_minus1 = 0, wr_instance_num_eq_minus2 = 0;
+	reg new_cmp_config_r = 0;
 
 	always @(posedge CORE_CLK) begin
 		if (pkt_done_rd_sync & wr_state_pkt_done_rd)
@@ -285,12 +218,23 @@ module arbiter #(
 		wr_instance_num_eq_minus1 <= wr_instance_num == NUM_CRYPT_INSTANCES - 2;
 		wr_instance_num_eq_minus2 <= wr_instance_num == NUM_CRYPT_INSTANCES - 3;
 
+		new_cmp_config_r <= new_cmp_config & ~pkt_id_num_ok
+			& all_cores_idle_delayed & input_empty;
+
+		// 2 writes into same memory in different FSM states -
+		// it doesn't optimize into DRAM, creates array of FFs
+		if (wr_state == WR_STATE_WRITE_CORE & wr_instance_num_eq_minus2
+				| wr_state == WR_STATE_INIT)
+			batch_num[wr_core_num] <= wr_state == WR_STATE_INIT ? {`NUM_BATCHES_MSB+1{1'b0}}
+				: batch_num_r == `NUM_BATCHES-1
+				? {`NUM_BATCHES_MSB+1{1'b0}} : batch_num_r + 1'b1;
+
 		case (wr_state)
 		WR_STATE_INIT: begin
 			// initialize memory content
-			batch_num[wr_core_num] <= batch_num_r;
+			//batch_num[wr_core_num] <= batch_num_r; <-- creates FFs
 			wr_core_num <= wr_core_num_next;
-			if (wr_core_num == NUM_CORES - 1)
+			if (wr_core_num == NUM_CORES-1)
 				wr_state <= WR_STATE_WAIT;
 		end
 
@@ -302,23 +246,28 @@ module arbiter #(
 			// Finish processing of data from input fifo
 			// and wait for all computations to finish
 			// before loading new comparator configuration.
-			if (new_cmp_config & &input_empty_timeout & all_cores_idle_r) begin
+			if (new_cmp_config_r) begin
 				wr_state <= WR_STATE_CONFIG_SALT;
 				cmp_config_applied <= 1;
 			end
 
-			else if (~input_empty & ~error_r) begin
-				if (wr_core_num_wait & crypt_ready_r) begin
+			else if (~input_empty) begin
+				// Empty packet (1 cand. with gen_end) - skip it
+				if (~pkt_id_num_ok & gen_end_in) begin
+				end
+				// Core is dummy - skip it
+				//else if (CORES_CONF[wr_core_num*16 + 15]) begin
+				else if (DUMMY_CORES[wr_core_num]) begin
+					wr_core_num_wait <= 0;
+					wr_core_num <= wr_core_num_next;
+				end
+				else if (wr_core_num_wait & crypt_ready_r) begin
 					wr_state <= WR_STATE_WRITE_CORE;
 					// Store ID of a packet being accounted
-					if (~pkt_id_num_ok & ~input_empty) begin
+					if (~pkt_id_num_ok) begin
 						pkt_id_num[pkt_num] <= pkt_id_in;
 						pkt_id_num_ok <= 1;
 					end
-				end
-				else if (wr_core_num_wait) begin
-					wr_core_num_wait <= 0; // It takes 1 cycle to update crypt_ready_r
-					wr_core_num <= wr_core_num_next;
 				end
 				else
 					wr_core_num_wait <= 1;
@@ -333,8 +282,8 @@ module arbiter #(
 			// (that's a requirement from the core)
 			if (wr_instance_num_eq_minus2) begin
 				wr_core_num <= wr_core_num_next;
-				batch_num[wr_core_num] <= batch_num_r == `NUM_BATCHES-1
-						? {`NUM_BATCHES_MSB+1{1'b0}} : batch_num_r + 1'b1;
+				//batch_num[wr_core_num] <= batch_num_r == `NUM_BATCHES-1 <-- creates FFs
+				//		? {`NUM_BATCHES_MSB+1{1'b0}} : batch_num_r + 1'b1;
 			end
 
 			if (wr_instance_num_eq_minus1) begin
@@ -362,7 +311,6 @@ module arbiter #(
 			batch_num_r <= batch_num[wr_core_num];
 
 			// packet accounting - count batches
-			//pkt_num_batches[pkt_num] <= pkt_num_batches[pkt_num] + 1'b1; <-- too slow
 			if (gen_end_r) begin
 				pkt_num_batches[pkt_num] <= pkt_num_batches_r;
 				pkt_num_batches_r <= 0;
@@ -378,8 +326,9 @@ module arbiter #(
 					wr_state <= WR_STATE_PKT_ACCOUNT_WAIT;
 			end
 			else begin
-				// 26.06.17: Reduce delay after sending a batch
-				if (~input_empty & crypt_ready_r & ~error_r)
+				if (~input_empty & crypt_ready_r
+						//& ~CORES_CONF[wr_core_num*16 + 15])
+						& ~DUMMY_CORES[wr_core_num])
 					wr_state <= WR_STATE_WRITE_CORE;
 				else
 					wr_state <= WR_STATE_WAIT;
@@ -389,7 +338,6 @@ module arbiter #(
 		WR_STATE_CONFIG_SALT: begin
 			cmp_config_applied <= 0;
 			cmp_config_full <= 0;
-			global_salt_r <= salt[`GLOBAL_SALT_MSB:`GLOBAL_SALT_LSB];
 			wr_state <= WR_STATE_CONFIG_HASH;
 		end
 
@@ -412,7 +360,7 @@ module arbiter #(
 		endcase
 	end
 
-	wire key_valid = ~input_empty & ~gen_end_r;
+	wire key_valid = input_rd_en & ~gen_end_in;
 
 	// Extra register stage before write to cores
 	reg [`MSB(NUM_CORES-1):0] wr_core_num_r1 = 0, wr_core_num_r2 = 0;
@@ -421,15 +369,13 @@ module arbiter #(
 		wr_core_num_r2 <= wr_core_num_r1;
 	end
 
-	reg [`DIN_MSB:0] core_din;
 	always @(posedge CORE_CLK)
 		core_din <=
 			wr_state == WR_STATE_CONFIG_HASH ? { hash_addr, hash_valid, hash } :
-			wr_state == WR_STATE_CONFIG_SALT ? { addr_diff_start, read_addr_start, salt[`GLOBAL_SALT_LSB-1:0] } :
+			wr_state == WR_STATE_CONFIG_SALT ? { addr_diff, addr_start, salt[`GLOBAL_SALT_LSB-1:0] } :
 			wr_state == WR_STATE_START_COMPUTATION ? { pkt_num, batch_num_r } :
 			{ key_valid, key56_pc1 };
 
-	reg [2:0] core_addr_in;
 	always @(posedge CORE_CLK)
 		core_addr_in <=
 			wr_state == WR_STATE_WRITE_CORE ? 3'b100 :
@@ -437,7 +383,6 @@ module arbiter #(
 			wr_state == WR_STATE_CONFIG_SALT ? 3'b010 :
 			3'b001;
 
-	reg [NUM_CORES-1:0] core_wr_en = 0;
 	generate
 	for (i=0; i < NUM_CORES; i=i+1) begin:core_wr_en_gen
 		always @(posedge CORE_CLK)
@@ -479,47 +424,29 @@ module arbiter #(
 	// Each core has NUM_CRYPT_INSTANCES
 	// and processes `NUM_BATCHES at the same time in sequence
 	//
-	// ***************************************
-	wire [NUM_CORES-1:0] crypt_ready_out, core_idle_out, core_err_out; // CORE_CLK
-	wire [NUM_CORES-1:0] err_cmp_out; // CMP_CLK
+	//
+	// Cores (with wrappers) moved to upper-level module
+	//
+	// *************************************************
 
 	// Output from cores [(un?)packed], for usage with multiplexers
 	wire [3:0] core_dout [NUM_CORES-1:0];
-	wire [NUM_CORES-1:0] core_empty, err_core_dout_out;
+	
 	reg [NUM_CORES-1:0] core_rd_en = 0;
-
-	// Flattened output from cores
-	wire [NUM_CORES * 4 - 1 :0] core_dout_f;
+	wire [NUM_CORES-1:0] core_empty, err_core_dout_out;
+	
 	generate
 	for (i=0; i < NUM_CORES; i=i+1) begin:core_dout_gen
-		assign core_dout[i] = core_dout_f [4*(i+1)-1 :4*i];
-	end
-	endgenerate
 
-
-	// Wrappers for cores
-	generate
-	for (i=0; i < NUM_WRAPPERS; i=i+1) begin:wrapper_gen
-
-		localparam START = WRAPPER_CORES [i*16+7 : i*16];
-		localparam N_CORES = WRAPPER_CORES [i*16+15 : i*16+8];
-		localparam END = START + N_CORES - 1;
-
-		wrapper #(
-			.N_CORES(N_CORES), .CORES_CONF(CORES_CONF[END*16+15 : START*16])
-		) wrapper (
-			.CORE_CLK(CORE_CLK), .CMP_CLK(CMP_CLK),
-			.din(core_din), .addr_in(core_addr_in), // broadcast input
-			.global_salt(global_salt),
-
-			.wr_en(core_wr_en[END:START]),
-			.crypt_ready(crypt_ready_out[END:START]), .core_idle(core_idle_out[END:START]),
-			.err_core(core_err_out[END:START]),
-
-			.dout(core_dout_f[4*END+3 : 4*START]),
-			.empty(core_empty[END:START]), .rd_en(core_rd_en[END:START]),
-			.err_core_dout(err_core_dout_out[END:START]),
-			.err_cmp(err_cmp_out[END:START])
+		// Process serialized output from core
+		core_dout_proc core_dout_proc(
+			.CLK(CMP_CLK),
+			.core_dout_in(core_dout_in[4*i+3 : 4*i]),
+			.core_dout_ready(core_dout_ready[i]),
+			
+			.dout(core_dout[i]),
+			.empty(core_empty[i]), .rd_en(core_rd_en[i]),
+			.err_core_dout(err_core_dout_out[i]) 
 		);
 
 	end
@@ -540,7 +467,9 @@ module arbiter #(
 	//
 	// ***************************************
 	reg [`MSB(NUM_CORES-1):0] rd_core_num = 0;
-	wire [3:0] data = core_dout[rd_core_num];
+	reg [3:0] data = 0;
+	always @(posedge CMP_CLK)
+		 data <= core_dout[rd_core_num];
 
 	reg [`NUM_BATCHES_MSB:0] dout_batch_num_r;
 	reg [`NUM_PKTS_MSB:0] dout_pkt_num_r = 0;
@@ -561,6 +490,7 @@ module arbiter #(
 
 	localparam	RD_STATE_INIT = 0,
 					RD_STATE_READ_CORE = 1,
+					RD_STATE_READ_PREPARE = 15,
 					RD_STATE_READ0 = 12,
 					RD_STATE_READ1 = 7,
 					RD_STATE_READ2 = 8,
@@ -570,7 +500,9 @@ module arbiter #(
 					RD_STATE_LOOKUP0 = 2,
 					RD_STATE_LOOKUP1 = 3,
 					RD_STATE_OUTPUT_CMP_EQUAL = 4,
+					RD_STATE_PKT_ACCOUNT0 = 14,
 					RD_STATE_PKT_ACCOUNT = 5,
+					RD_STATE_PKT_ACCOUNT2 = 13,
 					RD_STATE_OUTPUT_PACKET_DONE = 6;
 
 	(* FSM_EXTRACT="true", FSM_ENCODING="one-hot" *)
@@ -583,14 +515,18 @@ module arbiter #(
 
 	wire [RAM_ADDR_MSB:0] ram_read_addr = { rd_core_num, dout_batch_num_r, dout_instance_r };
 	always @(posedge CMP_CLK)
-		if (rd_state == RD_STATE_READ3) // & dout_equal_r)
+		if (rd_state == RD_STATE_READ3)
 			{key_valid_ram, gen_id_ram, word_id_ram} <= ram[ram_read_addr];
 
 
 	always @(posedge CMP_CLK) begin
+		if (rd_state == RD_STATE_INIT | rd_state == RD_STATE_OUTPUT_PACKET_DONE
+				| rd_state == RD_STATE_PKT_ACCOUNT)
+			pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd_r;
+
 		case(rd_state)
 		RD_STATE_INIT: begin
-			pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd_r;
+			//pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd_r; <-- creates FFs
 			if (dout_pkt_num_r == `NUM_PKTS - 1)
 				rd_state <= RD_STATE_READ_CORE;
 			else
@@ -598,9 +534,7 @@ module arbiter #(
 		end
 
 		RD_STATE_READ_CORE: begin
-			if (error_r) begin
-			end
-			else if (core_empty[rd_core_num]) begin
+			if (core_empty[rd_core_num]) begin
 				if (rd_core_num == NUM_CORES-1)
 					rd_core_num <= 0;
 				else
@@ -608,9 +542,12 @@ module arbiter #(
 			end
 			else begin
 				core_rd_en[rd_core_num] <= 1;
-				rd_state <= RD_STATE_READ0;
+				rd_state <= RD_STATE_READ_PREPARE;
 			end
 		end
+
+		RD_STATE_READ_PREPARE:
+			rd_state <= RD_STATE_READ0;
 
 		RD_STATE_READ0: begin
 			if (~data[0])
@@ -626,13 +563,13 @@ module arbiter #(
 				err_core_output <= 1;
 
 			pkt_id_out <= pkt_id_num[dout_pkt_num_r];
-			pkt_num_batches_rd_r <= pkt_num_batches_rd[dout_pkt_num_r] + 1'b1;
+			pkt_num_batches_rd_r <= pkt_num_batches_rd[dout_pkt_num_r];// + 1'b1;
 
 			if (data[1]) // dout_equal_r
 				rd_state <= RD_STATE_READ2;
 			else begin
 				core_rd_en[rd_core_num] <= 0; // 1 excess read - OK
-				rd_state <= RD_STATE_PKT_ACCOUNT;
+				rd_state <= RD_STATE_PKT_ACCOUNT0;
 			end
 		end
 
@@ -662,34 +599,40 @@ module arbiter #(
 		RD_STATE_OUTPUT_CMP_EQUAL: begin
 			if (rd_en & ~empty) begin
 				if (dout_batch_complete_r)
-					rd_state <= RD_STATE_PKT_ACCOUNT;
+					rd_state <= RD_STATE_PKT_ACCOUNT0;
 				else
 					rd_state <= RD_STATE_READ_CORE;
 			end
 		end
 
+		RD_STATE_PKT_ACCOUNT0: begin
+			pkt_num_batches_rd_r <= pkt_num_batches_rd_r + 1'b1;
+			rd_state <= RD_STATE_PKT_ACCOUNT;
+		end
+
 		RD_STATE_PKT_ACCOUNT: begin
-			if (pkt_num_batches[dout_pkt_num_r] == pkt_num_batches_rd_r
-			//if (pkt_num_batches[dout_pkt_num_r] == pkt_num_batches_rd[dout_pkt_num_r] + 1'b1 // slow!
-					& pkt_done[dout_pkt_num_r] ) begin
-				// got last batch of the packet
-				pkt_num_done_rd <= dout_pkt_num_r;
-				pkt_done_rd <= 1;
-				pkt_num_batches_rd_r <= 0;
-				num_processed_out <= pkt_num_processed[dout_pkt_num_r];
-				rd_state <= RD_STATE_OUTPUT_PACKET_DONE;
+			if (pkt_done[dout_pkt_num_r]
+					& pkt_num_batches[dout_pkt_num_r] == pkt_num_batches_rd_r) begin
+				rd_state <= RD_STATE_PKT_ACCOUNT2;
 			end
 			else begin
 				// continue packet accounting
-				//pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd[dout_pkt_num_r] + 1'b1;
-				pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd_r;
+				//pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd_r; <-- creates FFs
 				rd_state <= RD_STATE_READ_CORE;
 			end
 		end
 
+		RD_STATE_PKT_ACCOUNT2: begin
+			pkt_num_done_rd <= dout_pkt_num_r;
+			pkt_done_rd <= 1;
+			pkt_num_batches_rd_r <= 0;
+			num_processed_out <= pkt_num_processed[dout_pkt_num_r];
+			rd_state <= RD_STATE_OUTPUT_PACKET_DONE;
+		end
+
 		RD_STATE_OUTPUT_PACKET_DONE: begin
 			pkt_done_rd <= 0;
-			pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd_r;
+			//pkt_num_batches_rd[dout_pkt_num_r] <= pkt_num_batches_rd_r; <-- creates FFs
 			if (pkt_done_rd_busy) begin // delay until synchronization complete
 			end
 			else if (rd_en & ~empty)
@@ -705,9 +648,10 @@ module arbiter #(
 	//
 	// ***************************************
 
-	assign empty = error_r | ~(
+	assign empty = ~(
 		dout_equal_r & rd_state == RD_STATE_OUTPUT_CMP_EQUAL
-		| dout_batch_complete_r & rd_state == RD_STATE_OUTPUT_PACKET_DONE & ~pkt_done_rd_busy
+		| dout_batch_complete_r & rd_state == RD_STATE_OUTPUT_PACKET_DONE
+			& ~pkt_done_rd_busy
 	);
 
 	assign pkt_type_out =
@@ -719,8 +663,8 @@ module arbiter #(
 
 	always @(posedge CMP_CLK) begin
 		// error signal from comparator
-		if (|err_cmp_out)
-			err_cmp <= 1;
+		//if (|err_cmp_out)
+		//	err_cmp <= 1;
 		// bad output from core (at wrapper)
 		if (|err_core_dout_out)
 			err_core_dout <= 1;
@@ -729,5 +673,15 @@ module arbiter #(
 			err_rd_ram <= 1;
 	end
 
+	// Watchdog: data was sent to cores, no output in 1K cycles,
+	// it doesn't assert on any other error.
+	watchdog #( .NBITS(10) ) watchdog_core_read_timeout(
+		.START_CLK(CORE_CLK), .start(wr_state == WR_STATE_START_COMPUTATION),
+		.RESET_CLK(CMP_CLK), .reset(rd_state != RD_STATE_READ_CORE),
+		.CLK(CMP_CLK), .timeout(watchdog_timeout)
+	);
+	always @(posedge CMP_CLK)
+		if (watchdog_timeout)
+			err_watchdog <= 1;
 
 endmodule

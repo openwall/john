@@ -138,6 +138,7 @@ struct task *task_new(struct task_list *task_list,
 	static struct timeval zero_time = { 0, 0 };
 	task->mtime = zero_time;
 
+	task->num_processed = 0;
 	return task;
 }
 
@@ -266,6 +267,7 @@ void tasks_assign(struct task_list *task_list,
 void task_deassign(struct task *task)
 {
 	task_result_list_clear(&task->result_list);
+	task->num_processed = 0;
 	task->status = TASK_UNASSIGNED;
 	task_update_mtime(task);
 	task->jtr_device = NULL;

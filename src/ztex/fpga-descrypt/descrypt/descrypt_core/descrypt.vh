@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,8 @@
 // Max. number of batches in packet
 `define PKT_BATCHES_MSB 31
 
-// Compare only first 35 bits of hash
+// Compare only first 35 bits of hash (64 is a remnant
+// from earlier versions, may not work)
 `define COMPARE_35_BIT
 `ifdef COMPARE_35_BIT
 	`define DIN_MSB 56

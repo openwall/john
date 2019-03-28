@@ -16,6 +16,7 @@ module outpkt_checksum(
 	input wr_en,
 	output full,
 	output [15:0] dout,
+	output reg pkt_end_out = 0,
 	input rd_en,
 	output empty
 	);
@@ -58,7 +59,6 @@ module outpkt_checksum(
 			empty_r <= 0;
 	
 
-	(* USE_DSP48="true" *)
 	reg [31:0] checksum = 0;
 	reg [15:0] checksum_tmp = 0;
 	reg checksum_counter = 0;
@@ -91,7 +91,8 @@ module outpkt_checksum(
 			if (output_wr_en) begin
 
 				output_r <= input_r;
-			
+				pkt_end_out <= 0;
+
 				if (pkt_new_r | ~checksum_counter) begin
 					checksum_tmp <= input_r;
 					checksum_counter <= 1;
@@ -130,6 +131,8 @@ module outpkt_checksum(
 		else if (state == STATE_CHECKSUM2) begin
 			if (output_wr_en) begin
 				output_r <= ~checksum[31:16];
+				if (pkt_state)
+					pkt_end_out <= 1;
 				checksum_counter <= 0;
 				checksum <= 0;
 				

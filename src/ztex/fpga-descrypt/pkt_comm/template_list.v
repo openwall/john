@@ -24,6 +24,8 @@
 //   If some RANGE_INFO record is zero, then it was the last range_info
 //   for the template key.
 //
+// * Last word is followed by a dummy word with word_list_end asserted
+//
 // ********************************************************************
 
 module template_list #(
@@ -42,6 +44,7 @@ module template_list #(
 	input rd_clk,
 	output [WORD_MAX_LEN * CHAR_BITS - 1 :0] dout,
 	output [RANGES_MAX * (RANGE_INFO_MSB+1) - 1 :0] range_info,
+	(* USE_DSP48="true" *)
 	output [15:0] word_id,
 	output word_list_end,
 	input rd_en,
@@ -64,7 +67,8 @@ module template_list #(
 
 	localparam [1:0] STATE_WR_WORD = 0,
 					STATE_WR_RANGE_INFO = 1,
-					STATE_RD = 2;
+					STATE_RD = 2,
+					STATE_RD_LIST_END = 3;
 
 	(* FSM_EXTRACT="true" *)
 	reg [1:0] state = STATE_WR_WORD;
@@ -111,9 +115,9 @@ module template_list #(
 				range_info_r[(range_info_count + 1'b1)*(RANGE_INFO_MSB+1)-1 -:RANGE_INFO_MSB+1]
 						<= { din[7], din[RANGE_INFO_MSB-1:0] };
 				//if (WORD_MAX_LEN < 64)
-					//if (din[6:RANGE_INFO_MSB] != 0)
-						// unexpected content in range_info
-						//err_template <= 1;
+				if (din[6:RANGE_INFO_MSB] != 0)
+					// unexpected content in range_info
+					err_template <= 1;
 						
 				if (range_info_count == RANGES_MAX - 1) begin
 					full_r <= 1;
@@ -132,35 +136,44 @@ module template_list #(
 		end
 		
 		STATE_RD: if (rd_en_internal) begin
-			full_r <= 0;
 			dout_r <= 0;
 			range_info_r <= 0;
 			char_count <= 0;
 			range_info_count <= 0;
 			
 			word_list_end_r <= 0;
-			if (word_list_end_r)
+			if (word_list_end_r) begin
 				word_id_r <= 0;
-			else
+				state <= STATE_RD_LIST_END;
+			end
+			else begin
+				full_r <= 0;
 				word_id_r <= word_id_r + 1'b1;
+				state <= STATE_WR_WORD;
+			end
 
-			if ( ~|(word_id_r + 1'b1) )
+			if (&word_id_r)
 				// word_id_r overflows
 				err_word_list_count <= 1;
-				
+		end
+		
+		// Write dummy word after the end of the list, with word_list_end set
+		STATE_RD_LIST_END: if (rd_en_internal) begin
+			full_r <= 0;
 			state <= STATE_WR_WORD;
 		end
 		
 		endcase
 	end
 	
-	assign rd_en_internal = state == STATE_RD & ~output_reg_full;
+	assign rd_en_internal = ~output_reg_full
+			& (state == STATE_RD || state == STATE_RD_LIST_END);
 
 	cdc_reg #( 
 		.WIDTH(WORD_MAX_LEN*CHAR_BITS + RANGES_MAX*(RANGE_INFO_MSB+1) + 16 + 1)
 	) output_reg (
 		.wr_clk(wr_clk),
-		.din({ dout_r, range_info_r, word_id_r, word_list_end_r }),
+		.din({ dout_r, range_info_r, word_id_r, state == STATE_RD_LIST_END }),
 		.wr_en(rd_en_internal), .full(output_reg_full),
 		
 		.rd_clk(rd_clk),

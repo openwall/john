@@ -128,10 +128,15 @@ void device_format_init(struct fmt_main *fmt_main,
 	// by setting mask_int_cand_target.
 	// Unroll all ranges on CPU if format is slow enough.
 	//
-	if (jtr_bitstream->candidates_per_crypt > 50 * jtr_bitstream->min_keys
-			|| !jtr_bitstream->min_keys) {
+	int template_keys = jtr_bitstream->min_template_keys;
+	if (template_keys < 1)
+		template_keys = 1;
 
-		mask_int_cand_target = jtr_bitstream->candidates_per_crypt;
+	if (!jtr_bitstream->min_keys || jtr_bitstream->candidates_per_crypt
+			> (50 * jtr_bitstream->min_keys / template_keys) ) {
+
+		mask_int_cand_target = jtr_bitstream->candidates_per_crypt
+			/ template_keys;
 	}
 	// It requires actual mask size (number of candidates in mask)
 	// to calculate max_keys_per_crypt.
@@ -148,18 +153,23 @@ void device_format_done()
 
 void device_format_reset()
 {
+	int min_template_keys = jtr_bitstream->min_template_keys;
+	if (min_template_keys < 1)
+		min_template_keys = 1;
+
 	// Mask data is ready, calculate and set keys_per_crypt
 	unsigned int keys_per_crypt;
 
-	if (self_test_running)
+	if (self_test_running) {
 		// Self-test runs too long, using different keys_per_crypt
 		keys_per_crypt = jtr_bitstream->test_keys_per_crypt;
-	else
+	} else {
 		keys_per_crypt = jtr_bitstream->candidates_per_crypt
-			 / mask_num_cand();
-
-	if (!keys_per_crypt)
-		keys_per_crypt = 1;
+			 / mask_num_cand() / min_template_keys;
+		if (!keys_per_crypt)
+			keys_per_crypt = 1;
+		keys_per_crypt *= min_template_keys;
+	}
 
 	keys_per_crypt *= jtr_device_list_count();
 	if (keys_per_crypt > jtr_bitstream->abs_max_keys_per_crypt) {
@@ -400,6 +410,10 @@ struct db_password *device_format_get_password(int index)
 
 char *device_format_get_key(int index)
 {
+	if (index < 0 || index >= (mask_num_cand() ? mask_num_cand() : 1)
+			* jtr_fmt_params->max_keys_per_crypt)
+		return "-----";
+
 	// It happens status reporting is requested and there's
 	// a task_result at same index.
 	if (task_list) {
@@ -420,11 +434,8 @@ char *device_format_get_key(int index)
 				+ key_num * MASK_FMT_INT_PLHDR, gen_id);
 
 	} else {
-		if (index < jtr_fmt_params->max_keys_per_crypt)
-			memcpy(output_key, keys_buffer
-					+ index * plaintext_len, plaintext_len);
-		else
-			return "-----";
+		memcpy(output_key, keys_buffer + index * plaintext_len,
+				plaintext_len);
 	}
 
 	return output_key;

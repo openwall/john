@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /*
- * This software is Copyright (c) 2016 Denis Burykin
+ * This software is Copyright (c) 2016-2017,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -9,6 +9,11 @@
  */
 
 //**********************************************************************
+//
+// 2017:
+// - removed start_idx,num_generate (accept and ignore)
+// - input word_list ends with a dummy word with word_list_end set
+// - after the last candidate, generates a dummy one with gen_end set
 //
 // Version 2 of word generator.
 //
@@ -58,46 +63,36 @@ module word_gen_v2 #(
 	output reg [15:0] pkt_id,
 	output reg [15:0] word_id_out,
 	// Number of generated word (resets on each inserted word)
-	//(* USE_DSP48="true" *) <-- Saves LUTs but it's too slow for 240 MHz
 	output reg [31:0] gen_id = 0,
 	output gen_end, // asserts on last generated word
-	
+	output word_end,
+
 	output reg err_word_gen_conf = 0
 	);
 
-	
+
 	reg conf_done = 0;
 	assign conf_full = state == CONF_ERROR | state == CONF_DONE;
 
 	// Max. number of chars in range
-	localparam CHARS_NUMBER_MAX = CHAR_BITS == 7 ? 127 : 255;
-	
+	localparam CHARS_NUMBER_MAX = CHAR_BITS == 7 ? 128 : 256;
+
 	localparam NUM_RANGES_MSB = `MSB(RANGES_MAX);
-	localparam NUM_CHARS_MSB = `MSB(CHARS_NUMBER_MAX);
-	
+	localparam NUM_CHARS_MSB = `MSB(CHARS_NUMBER_MAX-1);
+
 	// Number of the last range (num_ranges - 1)
-	reg [NUM_RANGES_MSB:0] last_range_num; 
+	reg [NUM_RANGES_MSB:0] last_range_num;
 	reg [NUM_RANGES_MSB:0] conf_range_count;
 
 	// Number of the last character in the range (num_chars - 1)
 	reg [NUM_CHARS_MSB:0] conf_last_char_num;
 	reg [NUM_CHARS_MSB:0] conf_chars_count;
-	
-	reg used_start_idx = 0;
-	
-	// ID for generated output
-	reg gen_limit = 0;	// there's a limit
-	reg gen_limit1 = 0;	// limit equals to 1
-	reg gen_limit2 = 0;	// limit equals to 2
-	reg gen_limit_reached = 0;
-	reg [31:0] gen_id_max = 0, gen_id_max_tmp = 0;
 
 	assign conf_en_num_chars = state == CONF_RANGE_NUM_CHARS;
-	assign conf_en_start_idx = state == CONF_RANGE_START_IDX;
 	assign conf_en_chars = state == CONF_RANGE_CHARS;
 
 	wire [RANGES_MAX * CHAR_BITS - 1:0] range_dout;
-	
+
 	wire range_rd_en;
 	wire carry_in [RANGES_MAX-1:0];
 	wire carry [RANGES_MAX-1:0];
@@ -111,36 +106,33 @@ module word_gen_v2 #(
 
 	(* FSM_EXTRACT = "true", FSM_ENCODING = "speed1" *)
 	reg [2:0] op_state = OP_STATE_DONE;
-	
+
 	genvar i;
 	generate
 	for (i=0; i < RANGES_MAX; i=i+1)
 	begin:char_ranges
-	
+
 		assign range_conf_en = i == conf_range_count;
-		assign carry_in[i] = i == RANGES_MAX-1 ? 1'b1 : carry_out[i+1];
+		assign carry_in[i] = i == RANGES_MAX-1 ? 1'b1 : carry_out[(i==RANGES_MAX-1) ? 0 : i+1];
 		assign carry_out[i] = carry_in[i] & carry[i];
-		
-		//(* KEEP_HIERARCHY="true" *)
+
 		word_gen_char_range #(
 			.CHAR_BITS(CHAR_BITS), .CHARS_NUMBER_MAX(CHARS_NUMBER_MAX)
 		) word_gen_char_range(
 			.CONF_CLK(CLK),
 			.din(din[CHAR_BITS-1:0]),
 			.conf_en_num_chars(range_conf_en & conf_en_num_chars),
-			.num_chars_eq0(din[NUM_CHARS_MSB:0] == 0), .num_chars_lt2(din[NUM_CHARS_MSB:0] < 2),
-			
-			.conf_en_start_idx(range_conf_en & conf_en_start_idx),
-			.start_idx_is_end(din[CHAR_BITS-1:0] == conf_last_char_num),
+			.num_chars_eq0(1'b0), .num_chars_lt2(din[NUM_CHARS_MSB:0] < 2),
+
 			.conf_en_chars(range_conf_en & conf_en_chars), .conf_char_addr(conf_chars_count),
 			.pre_end_char(conf_chars_count + 1'b1 == conf_last_char_num),
-			
+
 			.OP_CLK(WORD_GEN_CLK),
 			.op_en(range_rd_en), .op_state(op_state), .op_done_sync(op_done_sync),
 			.carry_in(carry_in[i]), .carry(carry[i]),
 			.dout(range_dout[(i+1)*CHAR_BITS-1 -:CHAR_BITS])
 		);
-		
+
 	end
 	endgenerate
 
@@ -171,7 +163,7 @@ module word_gen_v2 #(
 		.if_range(if_range),
 		.range_shift_val(range_shift_val)
 	);
-	
+
 	reg [WORD_MAX_LEN * CHAR_BITS - 1 :0] word_in_r;
 	reg word_list_end_r = 0;
 	reg [WORD_MAX_LEN-1:0] if_range_r;
@@ -187,18 +179,21 @@ module word_gen_v2 #(
 		.range_shift_val(range_shift_val_r),
 		.dout(dout)		// Output from the generator
 	);
-	
+
 	always @(posedge WORD_GEN_CLK) begin
-		
+
 		if (~word_full & word_wr_en) begin
 			word_full <= 1;
-			
+
+			// word_list ends with dummy word with word_list_end set.
+			// generator produces 1 dummy candidate with gen_end set
+			word_list_end_r <= word_list_end;
+
 			word_in_r <= word_in;
 			//range_info_r <= range_info;
 			if_range_r <= if_range;
 			range_shift_val_r <= range_shift_val;
 			word_id_out <= word_id;
-			word_list_end_r <= word_list_end;
 		end
 
 		case (op_state)
@@ -208,20 +203,20 @@ module word_gen_v2 #(
 				op_state <= OP_STATE_START;
 			end
 		end
-		
+
 		OP_STATE_START: begin
 			if (EXTRA_REGISTER_STAGE)
 				op_state <= OP_STATE_EXTRA_STAGE;
 			else
 				op_state <= OP_STATE_NEXT_CHAR;
 		end
-		
+
 		OP_STATE_EXTRA_STAGE: begin
 			op_state <= OP_STATE_NEXT_CHAR;
 		end
-		
-		OP_STATE_NEXT_CHAR: begin // set next output
-			if (range_rd_en & (carry_out[0] | gen_limit_reached)) begin
+
+		OP_STATE_NEXT_CHAR: if (range_rd_en) begin
+			if (carry_out[0] | word_list_end_r) begin
 
 				// Generation for current word ends.
 				word_full <= 0;
@@ -230,19 +225,11 @@ module word_gen_v2 #(
 					op_done <= 1;
 					op_state <= OP_STATE_DONE;
 				end
-				// requires reload of start_idx
-				else if (used_start_idx | gen_limit_reached) begin
-					op_state <= OP_STATE_NEXT_WORD;
-				end
-				// no reload of start_idx - continue with next word
 
-			end // range_rd_en
+				// continue with next word
+			end
 		end
 
-		OP_STATE_NEXT_WORD: begin
-			op_state <= OP_STATE_START;
-		end
-		
 		OP_STATE_DONE: begin // reset configuration
 			op_done <= 0;
 			op_state <= OP_STATE_READY;
@@ -257,30 +244,17 @@ module word_gen_v2 #(
 		op_state == OP_STATE_NEXT_CHAR & word_full
 	);
 
-	assign gen_end =
-		op_state == OP_STATE_NEXT_CHAR
-		& (carry_out[0] | gen_limit_reached)
-		& word_list_end_r;
-	
-	// the result from 32-bit comparator is used by some not-so-easy logic.
-	// speed optimization:
-	// 32-bit comparison computed on previous cycle, stored in 'reg gen_limit_reached'.
-	always @(posedge WORD_GEN_CLK) begin
-		if (op_state == OP_STATE_NEXT_CHAR
-				& range_rd_en & (carry_out[0] | gen_limit_reached)) begin
-		//if (op_state == OP_STATE_READY | op_state == OP_STATE_NEXT_WORD) begin
-			gen_id <= 0;
-			gen_limit_reached <= gen_limit1;
-		end
-		else if (range_rd_en) begin
-			gen_id <= gen_id + 1'b1;
-			if (gen_limit2)
-				gen_limit_reached <= 1;
+	assign gen_end = op_state == OP_STATE_NEXT_CHAR & word_list_end_r;
+
+	assign word_end = op_state == OP_STATE_NEXT_CHAR & carry_out[0];
+
+	always @(posedge WORD_GEN_CLK)
+		if (range_rd_en & op_state == OP_STATE_NEXT_CHAR)
+			if (carry_out[0] | word_list_end_r)
+				gen_id <= 0;
 			else
-				gen_limit_reached <= gen_limit && gen_id == gen_id_max;
-		end
-	end
-	
+				gen_id <= gen_id + 1'b1;
+
 
 	// *******************************************************************
 	//
@@ -288,22 +262,22 @@ module word_gen_v2 #(
 	//
 	// struct word_gen_char_range {
 	//		unsigned char num_chars;		// number of chars in range
-	//		unsigned char start_idx;		// index of char to start iteration
-	//		unsigned char chars[CHAR_BITS==7 ? 96 : 224]; // only chars_number transmitted
+	//		unsigned char start_idx;		// UNUSED
+	//		unsigned char chars[CHAR_BITS==7 ? 128 : 256]; // only chars_number transmitted
 	//	};
 	// range must have at least 1 char
 	//
 	// struct word_gen {
 	//		unsigned char num_ranges;
 	//		struct word_gen_char_range ranges[RANGES_MAX]; // only num_ranges transmitted
-	//		unsigned long num_generate;
+	//		unsigned long num_generate; // UNUSED
 	//		unsigned char magic;	// 0xBB
 	//	};
 	//
 	// example word generator (words pass-by):
 	// {
 	// 0,		// num_ranges
-	// 0,		// no limit
+	// 0,		// UNUSED
 	// 0xBB
 	// };
 	//
@@ -322,19 +296,20 @@ module word_gen_v2 #(
 					CONF_MAGIC = 11,
 					CONF_DONE = 12,
 					CONF_ERROR = 13;
-	
+
 	(* FSM_EXTRACT = "true" *)
 	reg [3:0] state = CONF_NUM_RANGES;
-	
+
 	always @(posedge CLK) begin
 		if (state == CONF_DONE) begin
 			conf_done <= 0;
+
+			// Generation done. Ready for a new configuration.
 			if (op_done_sync) begin
-				used_start_idx <= 0;
 				state <= CONF_NUM_RANGES;
 			end
 		end
-		
+
 		else if (state == CONF_ERROR)
 			err_word_gen_conf <= 1;
 
@@ -352,7 +327,7 @@ module word_gen_v2 #(
 				else
 					state <= CONF_NUM_GENERATE0;
 			end
-			
+
 			CONF_RANGE_NUM_CHARS: begin
 				conf_last_char_num <= din[NUM_CHARS_MSB:0] - 1'b1;
 				conf_chars_count <= 0;
@@ -362,13 +337,14 @@ module word_gen_v2 #(
 				else
 					state <= CONF_RANGE_START_IDX;
 			end
-			
+
 			CONF_RANGE_START_IDX: begin
-				if (din[NUM_CHARS_MSB:0])
-					used_start_idx <= 1;
-				state <= CONF_RANGE_CHARS;
+				if (din != 0)
+					state <= CONF_ERROR;
+				else
+					state <= CONF_RANGE_CHARS;
 			end
-			
+
 			CONF_RANGE_CHARS: begin
 				conf_chars_count <= conf_chars_count + 1'b1;
 				if (conf_chars_count == conf_last_char_num) begin
@@ -381,28 +357,21 @@ module word_gen_v2 #(
 			end
 
 			CONF_NUM_GENERATE0: begin
-				gen_id_max_tmp[7:0] <= din;
 				state <= CONF_NUM_GENERATE1;
 			end
-			
+
 			CONF_NUM_GENERATE1: begin
-				gen_id_max_tmp[15:8] <= din;
 				state <= CONF_NUM_GENERATE2;
 			end
-			
+
 			CONF_NUM_GENERATE2: begin
-				gen_id_max_tmp[23:16] <= din;
 				state <= CONF_NUM_GENERATE3;
 			end
-			
+
 			CONF_NUM_GENERATE3: begin
-				gen_id_max <= { din, gen_id_max_tmp[23:0] } - 2;
-				gen_limit <= { din, gen_id_max_tmp[23:0] } != 0;
-				gen_limit1 <= { din, gen_id_max_tmp[23:0] } == 1;
-				gen_limit2 <= { din, gen_id_max_tmp[23:0] } == 2;
 				state <= CONF_MAGIC;
 			end
-			
+
 			CONF_MAGIC: begin
 				if (din == 8'hBB) begin
 					conf_done <= 1;
@@ -411,10 +380,10 @@ module word_gen_v2 #(
 				else
 					state <= CONF_ERROR;
 			end
-			
+
 			endcase
 		end
-		
+
 	end
 
 	sync_sig sync_conf_done(.sig(conf_done), .clk(WORD_GEN_CLK), .out(conf_done_sync));
