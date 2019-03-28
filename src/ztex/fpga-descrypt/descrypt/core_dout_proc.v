@@ -11,14 +11,18 @@
 module core_dout_proc (
 	input CLK,
 	
-	input [3:0] core_dout,
+	input [3:0] core_dout_in,
 	output reg core_dout_ready = 1,
 	output [3:0] dout,
 	output reg empty = 1,
 	input rd_en,
 	output reg err_core_dout = 0
 	);
-	
+
+	reg [3:0] core_dout = 0;
+	always @(posedge CLK)
+		core_dout <= core_dout_in;
+
 	// Output from the core is stored in 4x6 bit memory
 	reg [2:0] count = 0;
 	reg [3:0] data [5:0];

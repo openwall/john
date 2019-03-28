@@ -32,7 +32,8 @@ module cmp_config #(
 	input [7:0] din,
 	input wr_en,
 	output full,
-	
+	output reg idle = 1,
+
 	// Assumes frequency of rd_clk is greater than or equal to wr_clk
 	input rd_clk,
 	output reg [`SALT_MSB:0] salt_out,
@@ -50,9 +51,6 @@ module cmp_config #(
 	);
 
 	assign full = full_r | state == STATE_ERROR | state == STATE_EMPTY_HASHES;
-	
-	//localparam BYTE_COUNT_INT = ((`HASH_MSB + 1) / 8);
-	//localparam BYTE_COUNT_MAX = BYTE_COUNT_INT + |(`HASH_MSB + 1 - BYTE_COUNT_INT * 8);
 
 	reg full_r = 0;
 	reg [`HASH_MSB:0] hash_r;
@@ -65,22 +63,7 @@ module cmp_config #(
 	reg config_applied_r = 0;
 	
 	reg cmp_configured = 0;
-/*	
-	localparam	STATE_SALT0 = 0,
-					STATE_SALT1 = 1,
-					STATE_SALT2 = 2,
-					STATE_SALT3 = 3,
-					STATE_ITER0 = 4,
-					STATE_ITER1 = 5,
-					STATE_ITER2 = 6,
-					STATE_ITER3 = 7,
-					STATE_NUM_HASHES0 = 8,
-					STATE_NUM_HASHES1 = 9,
-					STATE_HASH = 10,
-					STATE_EMPTY_HASHES = 11,
-					STATE_MAGIC = 12,
-					STATE_ERROR = 13;
-*/
+
 	localparam	STATE_SALT0 = 0,
 					STATE_SALT1 = 1,
 					STATE_NUM_HASHES0 = 2,
@@ -119,7 +102,8 @@ module cmp_config #(
 				hash_addr_r <= hash_count;
 				hash_count <= hash_count + 1'b1;
 			end
-			if (hash_count >= prev_num_hashes || ~cmp_configured & &hash_count) begin
+			if (cmp_configured & hash_count >= prev_num_hashes
+					|| ~cmp_configured & &hash_count) begin
 				hash_end_r <= 1;
 				// if config_applied is not set - wait here
 				if (config_applied_r) begin
@@ -175,6 +159,7 @@ module cmp_config #(
 					hash_addr_r <= hash_count;
 					hash_count <= hash_count + 1'b1;
 					if (hash_count + 1'b1 == num_hashes) begin
+						idle <= 0;
 						state <= STATE_EMPTY_HASHES;
 					end
 				end
@@ -189,6 +174,7 @@ module cmp_config #(
 			// Well, the application might need some common mechanism for
 			// arranging input packet flow.
 			STATE_MAGIC: begin
+				idle <= 1;
 				if (din != 8'hCC)
 					state <= STATE_ERROR;
 				else begin
@@ -245,9 +231,11 @@ module get_read_addr_start #(
 	generate
 	for (i=0; i < MSB; i=i+1)
 	begin: gen_read_addr
-		
-		assign read_addr_start[i] = (i == MSB-1) ? in_shr[i] : in_shr[i] | read_addr_start[i+1];
-		
+
+		assign read_addr_start[i] = (i == MSB-1) ? in_shr[i]
+				// remove out-of-bound warning when i+1==MSB
+				: in_shr[i] | read_addr_start[(i == MSB-1) ? 0 : i+1];
+
 	end
 	endgenerate
 

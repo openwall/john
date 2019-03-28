@@ -59,6 +59,7 @@ struct task {
 	int id; // ID is 16-bit, unique within jtr_device
 
 	struct timeval mtime; // status modification time
+	int num_processed;
 };
 
 struct task_list {

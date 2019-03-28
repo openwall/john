@@ -101,11 +101,17 @@ void pkt_cmp_result_delete(struct pkt_cmp_result *pkt_cmp_result)
 
 char *inpkt_type_name(int pkt_type)
 {
-	return
-		pkt_type == PKT_TYPE_CMP_EQUAL	? "CMP_EQUAL" :
-		pkt_type == PKT_TYPE_PROCESSING_DONE	? "PROCESSING_DONE" :
-		pkt_type == PKT_TYPE_RESULT1	? "RESULT1" :
-		pkt_type == PKT_TYPE_CMP_RESULT	? "CMP_RESULT" :
-		"UNKNOWN";
+	if (pkt_type == PKT_TYPE_CMP_EQUAL)
+		return "CMP_EQUAL";
+	if (pkt_type == PKT_TYPE_PROCESSING_DONE)
+		return "PROCESSING_DONE";
+	if (pkt_type == PKT_TYPE_RESULT1)
+		return "RESULT1";
+	if (pkt_type == PKT_TYPE_CMP_RESULT)
+		return "CMP_RESULT";
+
+	static char ret_buf[32];
+	sprintf(ret_buf, "type=0x%02x", pkt_type);
+	return ret_buf;
 }
 

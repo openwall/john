@@ -14,8 +14,9 @@ module descrypt_test();
 	integer i;
 	integer k;
 
-	reg CLK = 0, CMP_CLK = 0, CORE_CLK = 0, IFCLK = 0;//, WORD_GEN_CLK = 0;
+	reg CLK = 0, CORE_CLK = 0, IFCLK = 0;//, CMP_CLK = 0, WORD_GEN_CLK = 0;
 	assign WORD_GEN_CLK = CORE_CLK;
+	assign CMP_CLK = CORE_CLK;
 
 	reg [7:0] din;
 
@@ -246,14 +247,14 @@ module descrypt_test();
 			CORE_CLK <= ~CORE_CLK; #8;
 		end
 	end
-
+/*
 	initial begin
 		#7;
 		while (1) begin
 			CMP_CLK <= ~CMP_CLK; #14;
 		end
 	end
-
+*/
 	initial begin
 		#35;
 		while (1) begin

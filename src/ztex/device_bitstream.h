@@ -33,6 +33,9 @@ struct device_bitstream {
 	// Min. number of keys for effective device utilization
 	// per jtr_device (affects slow algorithms)
 	int min_keys;
+	// Min. number of template keys for effective utilization
+	// (e.g. several on-device candidate generators)
+	int min_template_keys;
 	// Number of programmable clocks; startup frequencies (in MHz)
 	int num_progclk;
 	int freq[NUM_PROGCLK_MAX];

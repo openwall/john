@@ -63,9 +63,10 @@ static struct device_bitstream bitstream = {
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
 	1,		// keys/fpga for crypt_all(): set by init()
 	4096,	// keys/fpga for self-test
-	600*1024,	// Would be ~15 MB of USB traffic on 32-byte keys
+	600*1024,	// Would be ~20 MB of USB traffic on 32-byte keys
 	512,		// Max. number of entries in onboard comparator.
 	32*12,		// Min. number of keys for effective device utilization
+	0,
 	1, { 180 },	// Programmable clocks
 	"phpass",	// label for configuration file
 	"\x01", 1	// Initialization data

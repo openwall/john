@@ -474,23 +474,33 @@ struct jtr_device *jtr_device_list_process_inpkt(
 
 				struct pkt_done *pkt_done = pkt_done_new(inpkt);
 
+				// In a design with several onboard generators/arbiters,
+				// each one sends PKT_DONE
+				int expected_total = task->num_keys * mask_num_cand();
+
 				if (PKT_DEBUG >= 2)
-					fprintf(stderr, "%s PROCESSING_DONE id=%d: %u/%d of %d\n",
+					fprintf(stderr, "%s PROCESSING_DONE id=%d: %u(+%d) of %d\n",
 						jtr_device_id(dev), pkt_done->id,
-						pkt_done->num_processed, pkt_done->num_processed,//task->num_processed,
-						task->num_keys * mask_num_cand());
+						pkt_done->num_processed, task->num_processed,
+						expected_total);
 
-				if (pkt_done->num_processed
-						!= task->num_keys * mask_num_cand()) {
-					fprintf(stderr, "PROCESSING_DONE: keys=%d, %u/%u\n",
-							task->num_keys, pkt_done->num_processed,
-							task->num_keys * mask_num_cand());
-				}
-				task->status = TASK_COMPLETE;
-				task_update_mtime(task);
-
+				task->num_processed += pkt_done->num_processed;
 				free(pkt_done);
 
+				if (task->num_processed > expected_total) {
+					fprintf(stderr, "%s PROCESSING_DONE: keys=%d, "
+						"mask=%d, processed=%u (must be %u)\n",
+						jtr_device_id(dev), task->num_keys, mask_num_cand(),
+						task->num_processed, expected_total);
+					bad_input = 1;
+					break;
+				}
+				else if (task->num_processed == expected_total) {
+					task->status = TASK_COMPLETE;
+					task_update_mtime(task);
+				}
+
+			// Unknown packet type
 			} else {
 				if (PKT_DEBUG >= 1)
 					fprintf(stderr, "%s %s type=0x%02x id=%d: len=%d\n",

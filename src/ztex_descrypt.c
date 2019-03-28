@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016-2017 Denis Burykin
+ * This software is Copyright (c) 2016-2017,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -52,14 +52,15 @@ struct device_bitstream bitstream = {
 	{ 2, 32768, 2046 },
 	// computing performance estimation (in candidates per interval)
 	// (keys * mask_num_cand)/crypt_all_interval per jtr_device.
-	35 * 1024*1024,
-	64 * 1024,		// 64K keys for each FPGA for self-test
+	200 * 1024*1024,
+	32 * 1024,	// 32K keys for each FPGA for self-test
 	// Absolute max. keys/crypt_all_interval for all devices.
 	1024*1024,	// ~8 MB of USB traffic
 	// Max. number of entries in onboard comparator.
 	2047,
 	0,	// Min. number of keys (doesn't matter for fast "formats")
-	2, { 220, 160 },	// Programmable clocks
+	20,	// Min. template keys (e.g. several generators)
+	1, { 190 },	// Programmable clocks
 	"descrypt",	// label for configuration file
 	NULL, 0		// Initialization data
 };
@@ -70,11 +71,13 @@ static struct fmt_tests tests[] = {
 	{"CCX.K.MFy4Ois", "U*U***U"},
 	{"CC4rMpbg9AMZ.", "U*U***U*"},
 	{"XXxzOu6maQKqQ", "*U*U*U*U"},
-	//{"SDbsugeBiC58A", ""},
+	{"SDbsugeBiC58A", ""},
 	{"bbc1MMnm9AB52", "########"},
 	{"zzfERZdZxZJeg", "11111111"},
 	{"..4Xmrg11Z3jU", "00000000"},
 	{"////////FevBg", "-/<0S]"},
+	{"///.......Lb2", "i*]cYae"},
+	{"//..////..8/c", "#?Ez|?r"},
 	{"35LSBeq/uVetI", "==*d2{^6"},
 
 	// These cause self-test to fail:

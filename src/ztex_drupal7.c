@@ -51,6 +51,7 @@ static struct device_bitstream bitstream = {
 	512 * 1024,	// Absolute max. keys/crypt_all_interval for all devices.
 	512,		// Max. number of entries in onboard comparator.
 	12 * 16,	// Min. number of keys for effective device utilization
+	0,
 	1, { 160 },	// Programmable clocks
 	"Drupal7",	// label for configuration file
 	"\x01", 1	// Initialization data
