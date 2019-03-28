@@ -1223,7 +1223,7 @@ static char *include_source(const char *pathname, int sequential_id, const char 
 
 	MEM_FREE(pex);
 #else
-	full_path = path_expand_safe(pathname);
+	full_path = (char*)path_expand_safe(pathname);
 #if defined(__CYGWIN__) || defined(__MINGW32__)
 	full_path = mingw_try_relative_path(full_path);
 #endif
