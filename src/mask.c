@@ -2080,12 +2080,20 @@ static void finalize_mask(int len);
  */
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
-	static char test_mask[] = "?a?a?l?u?d?d?s?s";
+	static char test_mask[2 * PLAINTEXT_BUFFER_SIZE];
 	int using_default_mask = 0;
 	int i;
 
 	mask_db = db;
 	mask_fmt = db->format;
+
+	strcpy(test_mask, "?a?a?l?u?d?d?s");
+	i = strlen(test_mask);
+	while (i / 2 < mask_fmt->params.plaintext_min_length) {
+		test_mask[i++] = '?';
+		test_mask[i++] = 'd';
+	}
+	test_mask[i] = 0;
 
 	/* These formats are too wierd for magnum to get working */
 	if (!strcasecmp(mask_fmt->params.label, "descrypt-opencl") ||
