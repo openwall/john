@@ -1114,6 +1114,7 @@ static void print_device_info(int sequential_id)
 {
 	static int printed[MAX_GPU_DEVICES];
 	char device_name[MAX_OCLINFO_STRING_LEN];
+	char board_name[LOG_SIZE] = "";
 	cl_int ret_code;
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
@@ -1126,17 +1127,20 @@ static void print_device_info(int sequential_id)
 	if (ret_code == CL_SUCCESS) {
 		char *p = ltrim(rtrim(opencl_log));
 
-		if (options.verbosity > 1 && !printed[sequential_id]++)
-			fprintf(stderr, "Device %d%s%s: %s [%s]\n",
-			        sequential_id + 1,
-#if HAVE_MPI
-			        "@", mpi_name,
-#else
-			        "", "",
-#endif
-			        device_name, p);
-		log_event("Device %d: %s [%s]", sequential_id + 1, device_name, p);
+		if  (strlen(p))
+			sprintf(board_name, " [%s]", p);
 	}
+
+	if (options.verbosity > 1 && !printed[sequential_id]++)
+		fprintf(stderr, "Device %d%s%s: %s%s\n",
+		        sequential_id + 1,
+#if HAVE_MPI
+		        "@", mpi_name,
+#else
+		        "", "",
+#endif
+		        device_name, board_name);
+	log_event("Device %d: %s%s", sequential_id + 1, device_name, board_name);
 }
 
 /*
