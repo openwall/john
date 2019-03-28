@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.8-0-jumbo-2:
 
-magnum (2447):
+magnum (2497):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
 	  buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but in other
 	  places with similar code.
@@ -4014,9 +4014,88 @@ magnum (2447):
 	SAP H format really expects UTF-8 so we set that flag (with it's new
 	  meaning as of recent changes) to get warnings if target encoding is
 	  something else.
-	Update CREDITS-jumbo
+	Update CREDITS-jumbo and CHANGES-jumbo.git
+	Fix undefined behavior, similar to eefe9047
+	Change nice(20) to nice(19), see #3513
+	Portability fix for idle.c
+	All perl scripts: Use perl from PATH instead of hard-coded
+	  /usr/bin/perl
+	Cosmetic fixes to -list=build-info
+	Cosmetic changes to single mode warning texts.
+	Add a free() in cracker.c to aid in finding real leaks. Closes #3543
+	cracker.c: Change last commit so it's like upstream john proper
+	  instead. The free was removed by Jim in de7b7c63 back in 2013 as he
+	  changed the alloc to mem_alloc_tiny for unclear reasons. Then at
+	  some point that was reverted by a core merge without the free
+	  getting its way back.
+	ETA/Progress fixes (some were b0rken after --rules-stack).
+	Drop an accidentally committed debug line.
+	Tweak the human_prefix function for more correct output. Drop a
+	  similar function in opencl_common.c and use shared one.
+	Single mode: Call crk_done() after we're finished. Closes #3554
+	WPAPSK salt_hash() improvement: Use the last four bytes of MAC address
+	  instead of first four. Since the first three are vendor-id, they are
+	  much less unique.
+	Add run/oui.txt as of 2018-12-26 11:04Z and a Makefile target for
+	  manually updating it. See #3567
+	--stress-test option: Avoid printing warning more than once.
+	--stress-test option: Add stats.
+	All perl scripts: Drop '-w' when using 'env perl' and instead ensure
+	  all scripts have 'use warning;'
+	Single mode "proceeding with" message showed wordlist rules intead of
+	  single rules. Closes #3571.
+	pass_gen.pl: Stop using OpenSSL stuff where not needed.
+	Improve Single mode restore w/ --rules-stack. Closes #3541.
+	rules.h: Add missing "external" to a variable declaration.
+	single.c: Fix a hard-to-see typo introduced in 5be3ed4908
+	rules.c bugfix: Word pair rules with implicit '+' would not update
+	  length so could erroneously fail min/max length checks.
+	Update misc.c
+	Slight change of logic for automagically increasing
+	  SingleWordsPairMax.
+	unit-tests target: Fix backwards dependencies. (#3586)
+	AC: Do not enable unit tests when --disable-native-tests is used.
+	  Closes #3601
+	UTF-8 tweaks for WPAPSK formats. Remove a ridiculous hard-coded test
+	  in formats.c that complained about the change. Closes #3593.
+	WPAPSK-PMK formats: Bail out if user clearly has misunderstood the
+	  format. Closes #3585.
+	Add a --single-retest-guess=BOOL option, overriding john.conf
+	  equivalent. See #3594.
+	Fix an academic memory leak (only happens at exit) in single.c. See
+	  #3594
+	Add a limit for recursion depth with SingleRetestGuessed. The default
+	  limit is 10000 but can be overridden in john.conf. Closes #3594.
+	Bugfix in leet format's valid(). Closes #3584
+	Re-print the single mode warning about disabled recursion at session
+	  end. (#3604)
+	unique: Add support for large buffers/hash tables, and other tweaks.
+	unique: Improve options parsing (any option can now come before or
+	  after the output filename).
+	Unify hccap2john output format with wpapcap2john (don't dash the
+	  MACs).
+	Add a safe-guard against logins/plaintexts that are printed to the
+	  screen with some weird encoding upsets your terminal.
+	Fix Progress/ETA bug introduced with stacked rules.
+	Fix a division by zero in unique.c
+	cracker.c: Detect when a reset() call lowered min. kpc, adjust
+	  warnings accordingly (#3674)
+	Fix for "make clean" on eg. OS X w/ proper gcc after unit-tests
+	  changes. Closes #3675.
+	No-op re-order of some john.conf sections before core merge.
+	axcrypt2 OpenCL kernel: Drop unused variable.
+	Decrease compiler optimization level for unicode_range.c and add a
+	  dependency on it for subsets.o. Closes #3636
+	unicode_range.c: Work around brain-dead clang claiming to be
+	  compatible with gcc despite it isn't. Closes #3691
+	Avoid printing device list errors more than once under --fork
+	OpenCL auto-tune tweaks. Add backward GWS runs.
+	Revision of x86-sse.h and x86-64.h after core merge. Also drop some
+	  obsolete stuff from DES_bs_b.c, see #3696
+	Change auto-tune password length, as well as length of default mask
+	  for "-test -mask", to 7.
 
-JimF (1530):
+JimF (1545):
 	configure: removed many function checks (for #910)
 	phpass: non-OMP builds were no SIMD, fix #916
 	configure: Added arm-NEON instruction detection logic, #911
@@ -6103,8 +6182,30 @@ JimF (1530):
 	required changes to get VC to build again
 	logger.c has exe bit set per 679ae3c
 	Removed ALL memdbg code
+	updated the unused pre-built version of this file to its proper state
+	fixed dynamic overflows in single mode
+	dynamic. Perform a full-clean if m_count is less than max keys
+	dam exe bit set
+	do not force require full clean if m_count is MIN_KEYS size. also
+	  added comment for later
+	dynamic_types: fix non-SIMD compile error caused by c31b66d
+	Added dynamic-compiler RDP format when script builds incorrectly
+	  (#3568)
+	fgetl and fgetll both handled lines with NULL incorrectly. fgetll also
+	  memory leak on long lines with NULL
+	Changes to common.[ch] and misc.[ch] Jumbo.[ch] triggered by code from
+	  unit-tests project.
+	sap_pse require small change in valid after changes to misc.c
+	first version of unit testing code. Some changes needed in common.c/…
+	  (#3580)
+	fixed bullet-proof code to not core on 32 bit builds
+	using void* in arithmetic is not valid, even though gcc extension
+	  allows it (#3608)
+	uncommented all john.conf Option section params. There were a couple
+	  source changes required to keep the default behaviors
+	default wordlistrules back to empty rule behavior
 
-Dhiru Kholia (528):
+Dhiru Kholia (532):
 	Add jtrTestSuite as a submodule
 	Update MinGW stuff
 	Drop a couple of old formats from the unused/ folder
@@ -6634,6 +6735,332 @@ Dhiru Kholia (528):
 	[MAINT] Rename ml2john.py to mac2john.py (#3491)
 	Add an alternate implementation of mac2john.py script
 	[MAINT] Fix an informational message regarding KRB stuff
+	Clean-up and enhance pem2john.py
+	OpenCL support for cracking AxCrypt 2.x containers
+	Make DiskCryptor format functional on BE machines
+	Add support for cracking encrypted VMware VMX files
+
+Claudio André (281):
+	OpenCL: AMD devices have some weird bug when using pinned buffers.
+	  Forgotten file: see ec080119f45ffef07f7f1dd36e120ee56d5d6734
+	OpenCL: Updates to get_processor_family().
+	Inform the user if (s)he is using a recommended driver. Also, it is
+	  possible to warn if a crappy driver version is detected.
+	Be more user friendly using a better README file in Github main
+	  project page.
+	Change the comment of sha512crypt-opencl PLAINTEXT_LENGTH.
+	Cosmetical changes to OpenCL SHA256 formats: PLAINTEXT_LENGTH
+	Update copyright and contact information in SHA2 OpenCL.
+	Remove any OpenCL output when running JtR --show.
+	Mute a TestSuite error message caused by an OpenCL message.
+	Mask mode implementation in raw-sha256-opencl.
+	Correct mask mode behavior when GWS is supplied. We'l use the figure
+	  as-is but we still print a message about internal generation. See
+	  5980618088329ea3820c226887e62a4b6c779c5b.
+	Small tweaks (clarify a few comments and remove a TODO).
+	OpenCL share code with CPU formats in RAW-SHA512.
+	Move OpenCL auto tune code to reset() in raw-sha256.
+	Mute auto tune warnings on default verbosity. Closes #1146.
+	Try to make things clear to the OpenCL compiler.
+	Adjust c/s for mask mode benchmark.
+	This changes might produce better binary code for GCN (unfortunately,
+	  the ancient drivers on super cannot produce a final prove).
+	Keep this senseless change in sha256 OpenCL in history, but remove it
+	  from source.
+	Used shared code between CPU and GPU formats for raw-SHA256. (No
+	  static method in header).
+	Use only mem_calloc_tiny inside shared code.
+	Used shared code between CPU and GPU formats for raw-SHA512. (No
+	  static methods in header file).
+	Mask mode implementation in [raw/x]-sha512-opencl.
+	Handle the salted format for the GPU mask mode.
+	SHA512 OpenCL 130% performance gain on Tahiti (I see no reason for it,
+	  but AMD does).
+	SHA256 OpenCL follows the SHA512 recent changes (> 1Gc/s on Tahiti).
+	SHA512 crypt OpenCL follows the recent pattern.
+	Share more code inside OpenCL driver detection.
+	I forgot a define for other platforms.
+	Refuses to run the kernel if the driver is known to be a disaster.
+	Optimize SHA512 crypt OpenCL for Nvidia.
+	Fix a possible bug in xsha512 OpenCL format.
+	Small tweaks.
+	Fix for the intermitent mask error on CPU. - see:
+	  https://github.com/magnumripper/JohnTheRipper/issues/1037#issuecomment-71936052
+	OpenCL raw-SHA256 and raw-SHA512: Do not compile kernel in init(). It
+	  slows things down.
+	OpenCL SHA256crypt and SHA512crypt: Do not compile kernel in init().
+	  It slows things down.
+	Reinitialize formats after any execution.
+	Add new AMD drivers to common-opencl.
+	Initialize OpenCL environment on init(), otherwise john's output
+	  became a mess.
+	Protect macro parameters.
+	Fix to get the Omega driver performance using 6770.
+	Deprecate the 'dual' autotune_run interface.
+	OpenCL sha2crypt: Drop the separate crypt_all_benchmark().
+	Remove a duplicated initialization function call.
+	Improve error output when no OpenCL devices available.
+	Move Claudio's SHA2 file to be a '-ng' format.
+	Use a maskless version for raw-sha512.
+	Small tweaks in SHA2 OpenCL files.
+	Fix for sha256crypt running on AMD 15.5 driver.
+	Previous fix for sha256crypt is necessary for Catalyst 15.7 too.
+	Remove unnecessary code.
+	Send a sorted plaintext list to GPU in sha256crypt.
+	Remove the unnecessary stress applied to OpenCL device in sha256crypt.
+	For recent AMD drivers, select the new OpenCL sha512crypt kernel.
+	Fine tune the OpenCL sha512crypt kernel for GCN on super (15.7
+	  driver). It is 2x-3x faster now.
+	Fine tune the OpenCL sha512crypt kernel for Nvidia sm_5x on super. It
+	  is 50% faster now.
+	Fix: while testing (tuning) LWS values, it is not possible to use a
+	  GWS value bigger than the buffer memory available.
+	Send a sorted plaintext list to the GPU device in OpenCL sha512crypt
+	Further tune the OpenCL sha512crypt kernel for AMD driver >= 15.5.
+	Fix: waste of memory by forked OpenCL runs. Closes #1707.
+	For sm_5x, vector operators does a better job in OpenCL sha512crypt
+	  (on super).
+	OpenCL: Use bitalign for ror_64() in shared code in Claudio's formats.
+	  See #1819.
+	Tune raw SHA2 OpenCL Claudio's formats and follow the new pattern.
+	Bugfix in ldr_sort_salt(). Last salt did not get hash updated.
+	Use lut3 when available.
+	Fix a Ctrl+C - Ctrl+V bug.
+	Seems to be better to revert to previous statemet (AMD driver still
+	  surprises me).
+	Adjust Claudio's raw SHA2 formats to deal with GPU mask tune and
+	  benchmark.
+	Inser a #pragma for old AMD compilers. Closes. #1834.
+	Tune only once in GPU mask mode.
+	Clean the value of a variable to avoid the error below: gws:
+	  3072	  1512Kc/s 1512695 rounds/s 2.030ms per crypt_all()+
+	  gws: 6144	272547Kc/s 272547 rounds/s 22.542ms per
+	  crypt_all() gws: 12288	  1507Kc/s 1507300 rounds/s
+	  8.152ms per crypt_all()
+	Split OpenCL SHA512crypt a little bit more.
+	New OpenCL SHA256crypt kernel.
+	Remove some duplicated code.
+	Tweak OpenCL SHA512crypt a little.
+	A few tweaks.
+	Use MAYBE_CONSTANT for other SHA2 GPU kernels.
+	Remove duplicated code.
+	Run indent and astyle ONLY.
+	Remove unnecessary code in OpenCL sha512crypt.
+	Update driver detection to new Crimson.
+	Include the last [1] WHQL certified driver for the 2nd generation of
+	  legacy hardware [2]. [1] From now on only beta quality software will
+	  be provided (if provided, of course). [2] Radeon™ HD 8000 – HD 8400,
+	  HD 7000 – HD 7600, HD 6000, and HD 5000 Series.
+	Improve recommendations about OpenCL driver versions.
+	Allow to calibrate SHA512crypt kernel to any GPU. Gain seen on super:
+	  > 3k c/s on GCN > 15k c/s on NVIDIA
+	Add some new configuration values to john.conf.
+	If exists, use the configuration saved in john.conf.
+	Get rid of the specific kernel for GCN (no longer recommended).
+	Allow to calibrate SHA256crypt kernel to any GPU. Gain seen on super:
+	  > 10k c/s on GCN
+	Move drivers and definition of "recommended" to john.conf.
+	Fix the misformatted device identification/position message.
+	Remove the platform" notation in JtR.
+	Select the most powerful GPU as the default one.
+	Fix for singularis vs pluralis.
+	Fix a memory leak in sha[256/512]-opencl.
+	Fix raw-sha512 to follow the fakedb patterns.
+	Fix raw-sha256 to follow the fakedb patterns.
+	Merge AxCrypt in-memory secrets with Raw-SHA1.
+	Fix AxCrypt-SHA1 on non-SIMD. Closes #2008
+	Improve find_valid_opencl_device() detection.
+	Improve Raw-SHA2-opencl scalability.
+	Improve auto-tune controls.
+	Prepare MASK_KEYS_GENERATION macro to future improvements.
+	Fix a bug introduced in the scalability improvement.
+	Use shared code for NSLDAP.
+	Tune memory used by raw-SHA2-opencl.
+	Mute a compiler warning.
+	Shrink the hash/spread function. False positives < 0.05% (for 100,000
+	  and 3,000,000 test cases).
+	Tune OpenCL kernel.
+	Re-format a header file.
+	Fix a memory overread. Closes #2049.
+	NVIDIA driver is doing something really strange. This implements a
+	  workaround.
+	Do nothing if db is not set.
+	Tune SHA512crypt-opencl further. Improvement 1-2 kc/s.
+	Improve Raw-SHA256-opencl scalability.
+	Synchronize a debug message in raw-SHA512-opencl.
+	raw-SHA512: - Use the proper GWS size in prepare kernel. - Sync a
+	  comment.
+	Small tweaks for raw-SHA256-opencl.
+	Tune memory usage for non GPU mask mode.
+	Correct a misplaced label in --list:opencl-devices.
+	GWS should be multiple of processors count not multiple of CUs.
+	raw-SHA512 [OpenCL]: - Sync with raw-SHA256. - Use a k=2 Bloom Filter.
+	Do not use a #define as a function. - see #2091.
+	Improve the Ubuntu OpenCL documentation.
+	Always save the commit used to build JtR. - Nothing will change if the
+	  user has a regular git tree.
+	Improve OpenCL error handling.
+	Allow an OpenCL system wide build. - save compiled binary kernels
+	  inside JtR private home folder.
+	Fix XSHA512-ng-opencl (see #2208).
+	Tune gpg-opencl auto-tune max duration.
+	Re-enable mscash2-opencl format on Travis CI.
+	Fix and document sha512crypt-opencl problems with NVIDIA OpenCL driver
+	  361.
+	Rearrange [raw/x] sha512 formats
+	path_init() must be called prior to CPU fallback mechanism
+	Fix some typos
+	Fix an ld warning seen on CI
+	Fix a out-of-range compare bug in gpg2john
+	TravisCI: add ASAN into gcc build step
+	regex: fix for a warning seen when compiling against
+	OpenCL: a platform could have no devices
+	CI: test JtR (also) on a fresh environment
+	github: add guidelines to github users when they create an issue or a
+	  pull request
+	github: improve issue guidelines trying to avoid CUDA and OpenCL known
+	  issues
+	CI: Add a TS check
+	CI: test a non OpenMP build
+	CI: change the recent OS image to be used
+	CUDA: more cosmetic cleanups
+	OpenCL: make errors non-fatal for a "--test" run
+	encfs_common.c: fix a leak
+	axcrypt: fix prepare to keep input fields unchanged
+	loader: fix the --show
+	lotus: fix a macro name
+	fix: add a missing include in common.h
+	fix: change an "#include" in nsec3 format
+	circle: fix the build issue introduced in
+	  a63b819bfc8a1559ace20b2824eb7f2e9014b5ea
+	build: clean up some 7-zip tmp files (see #2383)
+	minGW: always use aligned allocs
+	minGW: workaround for (wpa/pcap)2john tool
+	minGW: fix for a memdbg bug introduced in b701bc0
+	build: add a configure option to treat build warnings as errors
+	OpenCL: be more resilient on --list=opencl-devices
+	OpenCL: fix for a non SIMD build
+	general: mute a warning and a possible truncation (#2486)
+	OpenCL: improve error handling in --list=opencl-devices (#2489)
+	readme: fix markudown (#2487)
+	racf2john: mute a compiler warning (#2519)
+	PO: fix a bad conversion in a signed char buffer (#2520)
+	maint: add a static code analysis tool (#2561)
+	maint: remove one unused function in ssh_ng format
+	descrypt-opencl: warn about the slow startup at many salts
+	OpenCL: mute ptxas info (from build log) in default verbosity
+	OpenCL: add the failure code to the error message
+	CI: update Travis environment
+	maint: fix MAYBE_INLINE macro for GCC 5+
+	maint: mute a compiler warning [-Wmacro-redefined] (#2746)
+	maint: add pocl as a valid OpenCL implementation (#2750)
+	maint: rename 'gpu_devices' to be adequate to any accelerator
+	OpenCL: allow to duplicate a device on --devices list (#2781)
+	maint: tweaks to incremental vs. --min/max-length options (#2796)
+	maint: mute a compiler warning [-Wformat-extra-args]
+	maint: remove a comparison of an unsigned < 0
+	maint: remove a comparison of an unsigned < 0
+	docs: add Debian and derivatives to Ubuntu installation notes
+	docs: specify the path to john binary on issue template
+	2john: fix a tautological compare in wpapcap2john
+	docs: explicitly state it's about user-local build
+	incr: allow -max-len to bump Incremental's maxlen beyond the conf
+	CI: disable AVX2 for all Travis builds
+	OpenCL: rename to follow the file naming conventions
+	maint: remove a duplicate #include
+	mask: a MACRO was defined in the wrong place
+	OpenCL: fix the guard name in opencl_mask_extras
+	core: fix a bug introduced in 38d20bb
+	maint: remove a comparison that is always false
+	Revert "maint: remove a duplicate #include"
+	modes: increase MaxLen if MinLen is specified
+	CI: run the encoding tests on its own job
+	CI: test encoding inside OSX job
+	maint: remove all OpenCL references in a non OpenCL build
+	maint: use runtime CPU detection in ./configure
+	CI: use clang with ASAN
+	CI: let the new SIMD detection do its job
+	maint: autoreconf to update the build process
+	maint: add more checks to ppc_cpuid detection
+	maint: style and unterminated '#if' fixes
+	maint: mute warnings in ppc_cpuid
+	maint: fix for non SIMD builds
+	maint: remove the usage of 2017q3 worker
+	maint: handle a build outside git and archive
+	maint: partial revert of 551e468
+	maint: fix for uninitialized variable
+	maint: fix for uninitialized variable
+	maint: remove any tag from the JtR version
+	maint: remove .gitmodules
+	autotools: add a make target to copy OpenCL code
+	autotools: group optional libs at the end
+	OpenCL: do not use realpath(3) on CygWin
+	CI: link the Travis badge to the default branch
+	maint: enable fallback for CygWin
+	doc: proper case OpenCL acronym
+	OpenCL: warn if --dev lists more OpenCL devices than fork
+	mask: add FMT_MASK flag to raw-SHA512-opencl
+	OpenCL: add workaround for '-I' on CygWin
+	OpenCL: fix for uninitialized pointer in bitwarden
+	sha512crypt-opencl: Disable vectorizing for macOS. See #3234
+	docs: add guidelines for contributing
+	docs: add license and code style to guidelines
+	docs: announce the project relevance
+	OpenCL: rawSHA256 and rawSHA512 new scheme of LWS=NULL
+	OpenCL: SHA256crypt and SHA512crypt new scheme of LWS=NULL
+	maint: refuse --device if the format is not device-aware
+	OpenCL: fix AMD driver info
+	OpenCL: refactor the acquisition of the OpenCL environment
+	OpenCL: JtR should work after a lock fault
+	docs: update AMD OpenCL instructions
+	OpenCL: rawSHA256 and rawSHA512 set GWS to LWS multiple
+	OpenCL: SHA256crypt and SHA512crypt set GWS to LWS multiple
+	OpenCL: rename the get_multiple macro
+	OpenCL: fork was over validating `--dev`
+	OpenCL: add devices in the preferable order
+	Sort OpenCL devices (#3507)
+	OpenCL: warning if there are more devices available
+	OpenCL: check beforehand if there is any OpenCL device
+	OpenCL: postpone OpenCL initialization on fork
+	OpenCL: xSHA512 lacks proper binary_hash()
+	OpenCL: use NULL for lws (raw-SHA256/512)
+	OpenCL: rawSHA256/512 review autotune procedure
+	OpenCL: comment about rawSHA256/512 rounds reversing
+	maint: fix an undefined-behavior
+	maint: fix DiskCryptor packing for MinGW
+	maint: fix an overflow in keepass2john.c
+	OpenCL: tune sha512crypt for Intel
+	OpenCL: fix AMD driver info
+	OpenCL: fix sha512crypt on Radeon RX Vega
+	OpenCL: tune sha512crypt for GTX 1080
+	OpenCL: tune sha256crypt for GTX 1080
+	OpenCL: tune raw-SHA256/512 on super
+	maint: make sha512_reverse() available for non-SIMD
+	OpenCL: refactor opencl_load_environment()
+	OpenCL: fix for a possible buffer overrun
+	OpenCL: refactor the gpu_device_list[] variable
+	OpenCL: refactor the device_list[] variable
+	OpenCL: use a constant as devices list terminator
+	OpenCL: use 1-based OpenCL device numbers
+	OpenCL: improve the --device error message
+	OpenCL: use a constant as "no GPU selected"
+	maint: drop the unit tests for a default make
+	maint: remove unit-tests on `make clean`
+	maint: build unit-tests on `make check`
+	maint: move LCM(a, b) to shared code
+	maint: stop using isspace() in common_opencl
+	tests: add unit-tests for the trim() functions
+	maint: remove debug code in VMware VMX
+	zip2john: it was not using the proper buffer
+	maint: clarify the error `fopen: $JOHN/john.conf`
+	maint: stop duplicating the path in path_expand_ex()
+	OpenCL: add const qualifier
+	maint: modify cfg_name inside cfg_init() cautiously
+	OpenCL: add const qualifier to SHA256crypt/SHA512crypt
+	docs: OpenCL fixes for 1-based OpenCL devices
+	maint: fix a warning in sunmd5 in gcc 9
+	OpenCL: fix the device name not printed
+	OpenCL: mute a warning on Windows
 
 Sayantan Datta (266):
 	DEScrypt OpenCL: Use a "safer" kernel for some devices (drivers) that
@@ -6920,294 +7347,7 @@ Sayantan Datta (266):
 	  checking.
 	bugfix for d2a0668
 
-Claudio André (246):
-	OpenCL: AMD devices have some weird bug when using pinned buffers.
-	  Forgotten file: see ec080119f45ffef07f7f1dd36e120ee56d5d6734
-	OpenCL: Updates to get_processor_family().
-	Inform the user if (s)he is using a recommended driver. Also, it is
-	  possible to warn if a crappy driver version is detected.
-	Be more user friendly using a better README file in Github main
-	  project page.
-	Change the comment of sha512crypt-opencl PLAINTEXT_LENGTH.
-	Cosmetical changes to OpenCL SHA256 formats: PLAINTEXT_LENGTH
-	Update copyright and contact information in SHA2 OpenCL.
-	Remove any OpenCL output when running JtR --show.
-	Mute a TestSuite error message caused by an OpenCL message.
-	Mask mode implementation in raw-sha256-opencl.
-	Correct mask mode behavior when GWS is supplied. We'l use the figure
-	  as-is but we still print a message about internal generation. See
-	  5980618088329ea3820c226887e62a4b6c779c5b.
-	Small tweaks (clarify a few comments and remove a TODO).
-	OpenCL share code with CPU formats in RAW-SHA512.
-	Move OpenCL auto tune code to reset() in raw-sha256.
-	Mute auto tune warnings on default verbosity. Closes #1146.
-	Try to make things clear to the OpenCL compiler.
-	Adjust c/s for mask mode benchmark.
-	This changes might produce better binary code for GCN (unfortunately,
-	  the ancient drivers on super cannot produce a final prove).
-	Keep this senseless change in sha256 OpenCL in history, but remove it
-	  from source.
-	Used shared code between CPU and GPU formats for raw-SHA256. (No
-	  static method in header).
-	Use only mem_calloc_tiny inside shared code.
-	Used shared code between CPU and GPU formats for raw-SHA512. (No
-	  static methods in header file).
-	Mask mode implementation in [raw/x]-sha512-opencl.
-	Handle the salted format for the GPU mask mode.
-	SHA512 OpenCL 130% performance gain on Tahiti (I see no reason for it,
-	  but AMD does).
-	SHA256 OpenCL follows the SHA512 recent changes (> 1Gc/s on Tahiti).
-	SHA512 crypt OpenCL follows the recent pattern.
-	Share more code inside OpenCL driver detection.
-	I forgot a define for other platforms.
-	Refuses to run the kernel if the driver is known to be a disaster.
-	Optimize SHA512 crypt OpenCL for Nvidia.
-	Fix a possible bug in xsha512 OpenCL format.
-	Small tweaks.
-	Fix for the intermitent mask error on CPU. - see:
-	  https://github.com/magnumripper/JohnTheRipper/issues/1037#issuecomment-71936052
-	OpenCL raw-SHA256 and raw-SHA512: Do not compile kernel in init(). It
-	  slows things down.
-	OpenCL SHA256crypt and SHA512crypt: Do not compile kernel in init().
-	  It slows things down.
-	Reinitialize formats after any execution.
-	Add new AMD drivers to common-opencl.
-	Initialize OpenCL environment on init(), otherwise john's output
-	  became a mess.
-	Protect macro parameters.
-	Fix to get the Omega driver performance using 6770.
-	Deprecate the 'dual' autotune_run interface.
-	OpenCL sha2crypt: Drop the separate crypt_all_benchmark().
-	Remove a duplicated initialization function call.
-	Improve error output when no OpenCL devices available.
-	Move Claudio's SHA2 file to be a '-ng' format.
-	Use a maskless version for raw-sha512.
-	Small tweaks in SHA2 OpenCL files.
-	Fix for sha256crypt running on AMD 15.5 driver.
-	Previous fix for sha256crypt is necessary for Catalyst 15.7 too.
-	Remove unnecessary code.
-	Send a sorted plaintext list to GPU in sha256crypt.
-	Remove the unnecessary stress applied to OpenCL device in sha256crypt.
-	For recent AMD drivers, select the new OpenCL sha512crypt kernel.
-	Fine tune the OpenCL sha512crypt kernel for GCN on super (15.7
-	  driver). It is 2x-3x faster now.
-	Fine tune the OpenCL sha512crypt kernel for Nvidia sm_5x on super. It
-	  is 50% faster now.
-	Fix: while testing (tuning) LWS values, it is not possible to use a
-	  GWS value bigger than the buffer memory available.
-	Send a sorted plaintext list to the GPU device in OpenCL sha512crypt
-	Further tune the OpenCL sha512crypt kernel for AMD driver >= 15.5.
-	Fix: waste of memory by forked OpenCL runs. Closes #1707.
-	For sm_5x, vector operators does a better job in OpenCL sha512crypt
-	  (on super).
-	OpenCL: Use bitalign for ror_64() in shared code in Claudio's formats.
-	  See #1819.
-	Tune raw SHA2 OpenCL Claudio's formats and follow the new pattern.
-	Bugfix in ldr_sort_salt(). Last salt did not get hash updated.
-	Use lut3 when available.
-	Fix a Ctrl+C - Ctrl+V bug.
-	Seems to be better to revert to previous statemet (AMD driver still
-	  surprises me).
-	Adjust Claudio's raw SHA2 formats to deal with GPU mask tune and
-	  benchmark.
-	Inser a #pragma for old AMD compilers. Closes. #1834.
-	Tune only once in GPU mask mode.
-	Clean the value of a variable to avoid the error below: gws:
-	  3072	  1512Kc/s 1512695 rounds/s 2.030ms per crypt_all()+
-	  gws: 6144	272547Kc/s 272547 rounds/s 22.542ms per
-	  crypt_all() gws: 12288	  1507Kc/s 1507300 rounds/s
-	  8.152ms per crypt_all()
-	Split OpenCL SHA512crypt a little bit more.
-	New OpenCL SHA256crypt kernel.
-	Remove some duplicated code.
-	Tweak OpenCL SHA512crypt a little.
-	A few tweaks.
-	Use MAYBE_CONSTANT for other SHA2 GPU kernels.
-	Remove duplicated code.
-	Run indent and astyle ONLY.
-	Remove unnecessary code in OpenCL sha512crypt.
-	Update driver detection to new Crimson.
-	Include the last [1] WHQL certified driver for the 2nd generation of
-	  legacy hardware [2]. [1] From now on only beta quality software will
-	  be provided (if provided, of course). [2] Radeon™ HD 8000 – HD 8400,
-	  HD 7000 – HD 7600, HD 6000, and HD 5000 Series.
-	Improve recommendations about OpenCL driver versions.
-	Allow to calibrate SHA512crypt kernel to any GPU. Gain seen on super:
-	  > 3k c/s on GCN > 15k c/s on NVIDIA
-	Add some new configuration values to john.conf.
-	If exists, use the configuration saved in john.conf.
-	Get rid of the specific kernel for GCN (no longer recommended).
-	Allow to calibrate SHA256crypt kernel to any GPU. Gain seen on super:
-	  > 10k c/s on GCN
-	Move drivers and definition of "recommended" to john.conf.
-	Fix the misformatted device identification/position message.
-	Remove the platform" notation in JtR.
-	Select the most powerful GPU as the default one.
-	Fix for singularis vs pluralis.
-	Fix a memory leak in sha[256/512]-opencl.
-	Fix raw-sha512 to follow the fakedb patterns.
-	Fix raw-sha256 to follow the fakedb patterns.
-	Merge AxCrypt in-memory secrets with Raw-SHA1.
-	Fix AxCrypt-SHA1 on non-SIMD. Closes #2008
-	Improve find_valid_opencl_device() detection.
-	Improve Raw-SHA2-opencl scalability.
-	Improve auto-tune controls.
-	Prepare MASK_KEYS_GENERATION macro to future improvements.
-	Fix a bug introduced in the scalability improvement.
-	Use shared code for NSLDAP.
-	Tune memory used by raw-SHA2-opencl.
-	Mute a compiler warning.
-	Shrink the hash/spread function. False positives < 0.05% (for 100,000
-	  and 3,000,000 test cases).
-	Tune OpenCL kernel.
-	Re-format a header file.
-	Fix a memory overread. Closes #2049.
-	NVIDIA driver is doing something really strange. This implements a
-	  workaround.
-	Do nothing if db is not set.
-	Tune SHA512crypt-opencl further. Improvement 1-2 kc/s.
-	Improve Raw-SHA256-opencl scalability.
-	Synchronize a debug message in raw-SHA512-opencl.
-	raw-SHA512: - Use the proper GWS size in prepare kernel. - Sync a
-	  comment.
-	Small tweaks for raw-SHA256-opencl.
-	Tune memory usage for non GPU mask mode.
-	Correct a misplaced label in --list:opencl-devices.
-	GWS should be multiple of processors count not multiple of CUs.
-	raw-SHA512 [OpenCL]: - Sync with raw-SHA256. - Use a k=2 Bloom Filter.
-	Do not use a #define as a function. - see #2091.
-	Improve the Ubuntu OpenCL documentation.
-	Always save the commit used to build JtR. - Nothing will change if the
-	  user has a regular git tree.
-	Improve OpenCL error handling.
-	Allow an OpenCL system wide build. - save compiled binary kernels
-	  inside JtR private home folder.
-	Fix XSHA512-ng-opencl (see #2208).
-	Tune gpg-opencl auto-tune max duration.
-	Re-enable mscash2-opencl format on Travis CI.
-	Fix and document sha512crypt-opencl problems with NVIDIA OpenCL driver
-	  361.
-	Rearrange [raw/x] sha512 formats
-	path_init() must be called prior to CPU fallback mechanism
-	Fix some typos
-	Fix an ld warning seen on CI
-	Fix a out-of-range compare bug in gpg2john
-	TravisCI: add ASAN into gcc build step
-	regex: fix for a warning seen when compiling against
-	OpenCL: a platform could have no devices
-	CI: test JtR (also) on a fresh environment
-	github: add guidelines to github users when they create an issue or a
-	  pull request
-	github: improve issue guidelines trying to avoid CUDA and OpenCL known
-	  issues
-	CI: Add a TS check
-	CI: test a non OpenMP build
-	CI: change the recent OS image to be used
-	CUDA: more cosmetic cleanups
-	OpenCL: make errors non-fatal for a "--test" run
-	encfs_common.c: fix a leak
-	axcrypt: fix prepare to keep input fields unchanged
-	loader: fix the --show
-	lotus: fix a macro name
-	fix: add a missing include in common.h
-	fix: change an "#include" in nsec3 format
-	circle: fix the build issue introduced in
-	  a63b819bfc8a1559ace20b2824eb7f2e9014b5ea
-	build: clean up some 7-zip tmp files (see #2383)
-	minGW: always use aligned allocs
-	minGW: workaround for (wpa/pcap)2john tool
-	minGW: fix for a memdbg bug introduced in b701bc0
-	build: add a configure option to treat build warnings as errors
-	OpenCL: be more resilient on --list=opencl-devices
-	OpenCL: fix for a non SIMD build
-	general: mute a warning and a possible truncation (#2486)
-	OpenCL: improve error handling in --list=opencl-devices (#2489)
-	readme: fix markudown (#2487)
-	racf2john: mute a compiler warning (#2519)
-	PO: fix a bad conversion in a signed char buffer (#2520)
-	maint: add a static code analysis tool (#2561)
-	maint: remove one unused function in ssh_ng format
-	descrypt-opencl: warn about the slow startup at many salts
-	OpenCL: mute ptxas info (from build log) in default verbosity
-	OpenCL: add the failure code to the error message
-	CI: update Travis environment
-	maint: fix MAYBE_INLINE macro for GCC 5+
-	maint: mute a compiler warning [-Wmacro-redefined] (#2746)
-	maint: add pocl as a valid OpenCL implementation (#2750)
-	maint: rename 'gpu_devices' to be adequate to any accelerator
-	OpenCL: allow to duplicate a device on --devices list (#2781)
-	maint: tweaks to incremental vs. --min/max-length options (#2796)
-	maint: mute a compiler warning [-Wformat-extra-args]
-	maint: remove a comparison of an unsigned < 0
-	maint: remove a comparison of an unsigned < 0
-	docs: add Debian and derivatives to Ubuntu installation notes
-	docs: specify the path to john binary on issue template
-	2john: fix a tautological compare in wpapcap2john
-	docs: explicitly state it's about user-local build
-	incr: allow -max-len to bump Incremental's maxlen beyond the conf
-	CI: disable AVX2 for all Travis builds
-	OpenCL: rename to follow the file naming conventions
-	maint: remove a duplicate #include
-	mask: a MACRO was defined in the wrong place
-	OpenCL: fix the guard name in opencl_mask_extras
-	core: fix a bug introduced in 38d20bb
-	maint: remove a comparison that is always false
-	Revert "maint: remove a duplicate #include"
-	modes: increase MaxLen if MinLen is specified
-	CI: run the encoding tests on its own job
-	CI: test encoding inside OSX job
-	maint: remove all OpenCL references in a non OpenCL build
-	maint: use runtime CPU detection in ./configure
-	CI: use clang with ASAN
-	CI: let the new SIMD detection do its job
-	maint: autoreconf to update the build process
-	maint: add more checks to ppc_cpuid detection
-	maint: style and unterminated '#if' fixes
-	maint: mute warnings in ppc_cpuid
-	maint: fix for non SIMD builds
-	maint: remove the usage of 2017q3 worker
-	maint: handle a build outside git and archive
-	maint: partial revert of 551e468
-	maint: fix for uninitialized variable
-	maint: fix for uninitialized variable
-	maint: remove any tag from the JtR version
-	maint: remove .gitmodules
-	autotools: add a make target to copy OpenCL code
-	autotools: group optional libs at the end
-	OpenCL: do not use realpath(3) on CygWin
-	CI: link the Travis badge to the default branch
-	maint: enable fallback for CygWin
-	doc: proper case OpenCL acronym
-	OpenCL: warn if --dev lists more OpenCL devices than fork
-	mask: add FMT_MASK flag to raw-SHA512-opencl
-	OpenCL: add workaround for '-I' on CygWin
-	OpenCL: fix for uninitialized pointer in bitwarden
-	sha512crypt-opencl: Disable vectorizing for macOS. See #3234
-	docs: add guidelines for contributing
-	docs: add license and code style to guidelines
-	docs: announce the project relevance
-	OpenCL: rawSHA256 and rawSHA512 new scheme of LWS=NULL
-	OpenCL: SHA256crypt and SHA512crypt new scheme of LWS=NULL
-	maint: refuse --device if the format is not device-aware
-	OpenCL: fix AMD driver info
-	OpenCL: refactor the acquisition of the OpenCL environment
-	OpenCL: JtR should work after a lock fault
-	docs: update AMD OpenCL instructions
-	OpenCL: rawSHA256 and rawSHA512 set GWS to LWS multiple
-	OpenCL: SHA256crypt and SHA512crypt set GWS to LWS multiple
-	OpenCL: rename the get_multiple macro
-	OpenCL: fork was over validating `--dev`
-	OpenCL: add devices in the preferable order
-	Sort OpenCL devices (#3507)
-	OpenCL: warning if there are more devices available
-	OpenCL: check beforehand if there is any OpenCL device
-	OpenCL: postpone OpenCL initialization on fork
-	OpenCL: xSHA512 lacks proper binary_hash()
-	OpenCL: use NULL for lws (raw-SHA256/512)
-	OpenCL: rawSHA256/512 review autotune procedure
-	OpenCL: comment about rawSHA256/512 rounds reversing
-
-Frank Dittrich (244):
+Frank Dittrich (246):
 	korelogic.conf: fix month name in [List.Rules:MonthsFullPreface]
 	korelogic.conf: split some rule definitions for dupe suppression
 	submodule update
@@ -7518,6 +7658,8 @@ Frank Dittrich (244):
 	  formats
 	Unify version strings for legacy builds
 	Remove duplicate #include preprocessor directives
+	Fix legacy generic build
+	Avoid strcasestr -Wimplicit-function-declaration for legacy builds
 
 Zhang Lei (108):
 	Resolve issues encountered when building for MIC.
@@ -7722,7 +7864,7 @@ Kai Zhao (84):
 	Detect FMT_SPLIT_UNIFIES_CASE error
 	Change to 'FAILED' when there is a FMT_SPLIT warning or error
 
-Apingis (37):
+Apingis (48):
 	descrypt-ztex format; includes library for operating ZTEX hardware and
 	  bitstream (4MB). Requires libusb-1.0. Autoconf support.
 	HDL sources; Copyright and license information; small corrections
@@ -7768,8 +7910,21 @@ Apingis (37):
 	  (#3426)
 	--test works (also with --mask), displays correct numbers (#3427)
 	various ztex improvements (#3432)
+	sha256crypt-ztex new version (#3588)
+	default frequency; documentation (#3589)
+	README update
+	Improved sha512crypt-ztex (#3628)
+	README corrections (#3629)
+	[List.ZTEX:Devices] (#3637)
+	ZTEX device numbering: Minor changes, coding style corrections (#3643)
+	ZTEX: allow to specify SN in cmd-line if board is listed in config;
+	  drupal7 min_keys value to reflect new bitstream (#3646)
+	bcrypt-ztex new bitstream (#3661)
+	new md5crypt-ztex bitstream with clock gating (idle current
+	  consumption 0.4A); README update (#3684)
+	improved descrypt-ztex (#3702)
 
-Solar (33):
+Solar (42):
 	Fix a bug in truecrypt for non-x86 archs. Closes #912.
 	Early (contest) version of AVX2 support for DES.
 	Fix a compile error in dynamic_compiler_plug.c
@@ -7812,6 +7967,16 @@ Solar (33):
 	Fix for argon2. Closes #2650.
 	Fix several issues with OpenMP in multibit format. See #2846.
 	fuzz: suppress collision warnings
+	md5crypt-opencl optimizations favoring same-length passwords
+	md5crypt-opencl: choose slow path on len >= 10*4*8 instead of on x[9]
+	md5crypt-opencl: workaround AMDGPU-PRO libamdocl64.so segfault
+	Pack altpos and ctx_buflen into 3 registers
+	Enable explicit use of bitselect on AMD and of LUT3 on recent NVIDIA
+	Further specialization of the MD5 compression function
+	Keep the MD5 result in registers on every other iteration
+	Disable specialization to password length if it varies within the
+	  group
+	md5crypt-opencl: Further specialization for password length 8
 
 Fist0urs (28):
 	Initial commit.
@@ -7894,6 +8059,18 @@ András Veres-Szentkirályi (5):
 	added strnzcpylwr for strnzcpy + strlwr combos
 	strnzcpylwr: copy zero terminator as well
 
+Ivan Freed (4):
+	Utility to help with cracking DiskCryptor
+	JtR format for cracking DiskCryptor
+	Fix structure packing in DiskCryptor stuff
+	OpenCL support for cracking DiskCryptor
+
+akos.sereg (3):
+	Adding extra config parameter: shell script to be executed on
+	  successful password crack
+	Concat safer with snprintf
+	Adding sample script to configuration file
+
 Stuart Morgan (3):
 	Adapted the regex matching to cover the example /etc/security/passwd
 	  file provided by IBM
@@ -7905,11 +8082,10 @@ Stuart Morgan (3):
 	  .strip())
 	Fixed command line arguments & added more informative help
 
-Aleksey Cherepanov (3):
-	added --show=types option; renamed m_allow_rawhash_fixup into
-	  dynamic_allow_rawhash_fixup and made it global
-	removed unused variable in --show=types code
-	Add support for "lineage" hashes
+Sylvain Pelissier (3):
+	Add new version of eCryptfs file
+	Copyright Date changed
+	New copyright
 
 Christien Rioux (3):
 	Bugfix for path_expand_safe() returning offset from allocated buffer
@@ -7917,21 +8093,54 @@ Christien Rioux (3):
 	OpenCL: The HANDLE_CLERROR macros evaluated its input twice on error
 	fix for unroll bug
 
-Sylvain Pelissier (3):
-	Add new version of eCryptfs file
-	Copyright Date changed
-	New copyright
-
 campeador (3):
 	Change optparse to argparse
 	Change optparse to argparse in efs2john.py and openssl2john.py
 	Delete comments in efs2john.py
 
-akos.sereg (3):
-	Adding extra config parameter: shell script to be executed on
-	  successful password crack
-	Concat safer with snprintf
-	Adding sample script to configuration file
+Aleksey Cherepanov (3):
+	added --show=types option; renamed m_allow_rawhash_fixup into
+	  dynamic_allow_rawhash_fixup and made it global
+	removed unused variable in --show=types code
+	Add support for "lineage" hashes
+
+Louis Granboulan (2):
+	configure: detect openssl installed by MacPorts on macOS (#3577)
+	HDAA: remove check that cnonce is lowercase hex
+
+Shinnok (2):
+	Ignore .DS_Store files on OS X.
+	Properly format the .gitignore file.
+
+Sanju Kholia (2):
+	Port luks2john.c to Python
+	Remove luks2john.c (replaced by luks2john.py)
+
+walkerk1980 (2):
+	Added LogFilePermissions, PotFilePermissions, IgnoreLogChmodErrors
+	Made suggested changes to logger.c, add temporary umask change to
+	  allow log file creation perms, change to bitwise check from strcmp()
+	  on LogFilePerms and PotFilePerms
+
+chipx0r (2):
+	PKCS#8 DER Compatibility
+	try/catch certificate
+
+Rémi Dubois (2):
+	Adding dynamic_1034 for PostgreSQL MD5 support
+	Additional comments for PostgreSQL
+
+Rob Schoemaker (2):
+	Add support for cracking AS/400 DES hashes
+	Update information about AS/400 DES hashes
+
+Catalin Patulea (2):
+	radius2john: support for LINUX_SSL (cooked capture) containing IP
+	radius2john: preserve unknown vendor extensions when constructing salt
+
+Christian Mehlmauer (2):
+	update OSX compile instructions
+	Update .gitignore
 
 philsmd (2):
 	pdf2john.py problem, commit efc315e926f521cc41c002742a994776edbacc1d
@@ -7942,63 +8151,47 @@ Michel Normand (2):
 	set ARCH_LITTLE_ENDIAN for powerpc64 little endian in src/ppc64.h
 	add src/escrypt/tests in .gitignore
 
+Alexander Cherepanov (2):
+	fake_salts.h: change cp1252 dash to '='
+	episerver: remove gratuitous memset in hash_type
+
 smarteam (2):
 	Update INSTALL-UBUNTU (#1)
 	encodings file name
 
-Catalin Patulea (2):
-	radius2john: support for LINUX_SSL (cooked capture) containing IP
-	radius2john: preserve unknown vendor extensions when constructing salt
-
-Christian Mehlmauer (2):
-	update OSX compile instructions
-	Update .gitignore
-
-walkerk1980 (2):
-	Added LogFilePermissions, PotFilePermissions, IgnoreLogChmodErrors
-	Made suggested changes to logger.c, add temporary umask change to
-	  allow log file creation perms, change to bitwise check from strcmp()
-	  on LogFilePerms and PotFilePerms
-
-Shinnok (2):
-	Ignore .DS_Store files on OS X.
-	Properly format the .gitignore file.
-
-Sanju Kholia (2):
-	Port luks2john.c to Python
-	Remove luks2john.c (replaced by luks2john.py)
-
-Rémi Dubois (2):
-	Adding dynamic_1034 for PostgreSQL MD5 support
-	Additional comments for PostgreSQL
+Dennis Addo (2):
+	Rewrite common.c: isdec*() #2951 (#2979)
+	Update README.md #1972 (#3003)
 
 arcctgx (2):
 	Make sure wpapcap2john initialises allocated memory with zeros.
 	  (#2429)
 	add support for more recent Gadu-Gadu login packets
 
-Ivan Freed (2):
-	Utility to help with cracking DiskCryptor
-	JtR format for cracking DiskCryptor
+alexander.elgert@t-systems.com (1):
+	Add support for parsing AIX hashes in unshadow
 
-Dennis Addo (2):
-	Rewrite common.c: isdec*() #2951 (#2979)
-	Update README.md #1972 (#3003)
+antnks (1):
+	Wrong comment statement which may confuse: NONCE_COUNT should go prior
+	  to CNONCE RFC: https://tools.ietf.org/html/rfc2617#section-3.2.2.1
+	  request-digest = <"> < KD ( H(A1), unq(nonce-value)
+	  ":" nc-value
+	  ":" unq(cnonce-value)
+	  ":" unq(qop-value)
+	  ":" H(A2) The code which actually concatenates the values however
+	  is correct: snprintf(salt.static_hash_data, STATIC_HASH_SIZE,
+	  ":%s:%s:%s:%s:%s", 				login.nonce,
+	  login.nonce_count, login.cnonce,
+	  login.qop, static_hash);
 
-Rob Schoemaker (2):
-	Add support for cracking AS/400 DES hashes
-	Update information about AS/400 DES hashes
-
-Alexander Cherepanov (2):
-	fake_salts.h: change cp1252 dash to '='
-	episerver: remove gratuitous memset in hash_type
+bigendiansmalls (1):
+	Add support for RACF KDFAES hashes (v0.16)
 
 c0re (1):
 	pdf2john: Fix AttributeError
 
-Agnieszka Bielec (1):
-	newest argon2 CPU version, no idea why virtual speed is 8 times slower
-	  than real
+clavoillotte (1):
+	Fix preferred master key display in DPAPImk2john.py
 
 cpsw (1):
 	Suggestion for code style (#2985)
@@ -8015,14 +8208,20 @@ rschoem (1):
 terrybwest (1):
 	keystore-opencl format
 
-clavoillotte (1):
-	Fix preferred master key display in DPAPImk2john.py
+Ryan Govostes (1):
+	Add support for hashes hidden by DeepSound
+
+Albert Veli (1):
+	keystore2john.py: Python2/3 compatibility
 
 Alex Stanev (1):
 	Add new tool hccapx2john.py
 
 Alexander Haase (1):
 	Added support for HDAA as defined in RFC 2069.
+
+AlzoxX76 (1):
+	Update INSTALL-UBUNTU
 
 Austin Walker (1):
 	Fix error due to unassigned variable
@@ -8082,6 +8281,10 @@ Mathieu (1):
 Matlink (1):
 	Rename HashCat to hashcat (#2463)
 
+Maxime Goyette (1):
+	added a working python script to convert one or many radius pcap files
+	  into john friendly hashes
+
 Michael Kramer (1):
 	Kerberoast format added
 
@@ -8104,14 +8307,18 @@ Miha Zupan (1):
 MrTchuss (1):
 	Support for FortiGate SHA256 format (#3297)
 
+Noah Luddy (1):
+	Fixes command line prompt ambiguity
+
 R. Brenton Strickler (1):
 	Explain DBError exception.
 
 Ralf Sager (1):
 	Add support for cracking NSEC3 hashes
 
-Ryan Govostes (1):
-	Add support for hashes hidden by DeepSound
+Agnieszka Bielec (1):
+	newest argon2 CPU version, no idea why virtual speed is 8 times slower
+	  than real
 
 Steven Noonan (1):
 	OpenCL: Add a missing space after -D__MESA__
@@ -8124,12 +8331,6 @@ Warren MacEvoy (1):
 
 Will Dormann (1):
 	Make input parsing more robust in sshng2john.py
-
-alexander.elgert@t-systems.com (1):
-	Add support for parsing AIX hashes in unshadow
-
-bigendiansmalls (1):
-	Add support for RACF KDFAES hashes (v0.16)
 
 
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
