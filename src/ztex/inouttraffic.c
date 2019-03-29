@@ -186,7 +186,7 @@ int device_fpga_reset(struct device *device)
 		result = fpga_reset(device->handle);
 		if (result < 0) {
 			printf("SN %s #%d: device_fpga_reset: %d (%s)\n", device->ztex_device->snString,
-					i, result, libusb_error_name(result));
+					i + 1, result, libusb_error_name(result));
 			return result;
 		}
 		fpga->wr.wr_count = 0;
@@ -285,7 +285,7 @@ int fpga_test_get_id(struct fpga *fpga)
 
 	if (DEBUG) {
 		printf("fpga_test_get_id(%d): request 0x%04X 0x%04X, reply 0x%04X 0x%04X",
-			fpga->num, echo.out[0], echo.out[1], echo.reply.data[0], echo.reply.data[1]);
+			fpga->num + 1, echo.out[0], echo.out[1], echo.reply.data[0], echo.reply.data[1]);
 		if (!test_ok) printf(" (must be 0x%04X 0x%04X)", echo.out[0] ^ MAGIC_W, echo.out[1] ^ MAGIC_W);
 		else printf("(ok)");
 		printf(", fpga_id %d, bitstream_type 0x%04X\n",
@@ -401,7 +401,7 @@ int fpga_set_app_mode(struct fpga *fpga, int app_mode)
 {
 	int result = vendor_command(fpga->device->handle, 0x82, app_mode, 0, NULL, 0);
 	fpga->cmd_count++;
-	if (DEBUG) printf("fpga_set_app_mode(%d): %d\n", fpga->num, app_mode);
+	if (DEBUG) printf("fpga_set_app_mode(%d): %d\n", fpga->num + 1, app_mode);
 	return result;
 }
 
@@ -460,9 +460,9 @@ int fpga_select(struct fpga *fpga)
 	int result = vendor_command(fpga->device->handle, 0x8E, fpga->num,
 			0, NULL, 0);
 	fpga->cmd_count++;
-	if (DEBUG) printf("fpga_select(%d): %d\n", fpga->num, result);
+	if (DEBUG) printf("fpga_select(%d): %d\n", fpga->num + 1, result);
 	if (result < 0) {
-		printf("fpga_select(%d): %s\n", fpga->num, libusb_error_name(result));
+		printf("fpga_select(%d): %s\n", fpga->num + 1, libusb_error_name(result));
 	}
 	return result;
 }
@@ -481,7 +481,7 @@ int fpga_select_setup_io(struct fpga *fpga)
 		struct fpga_io_state *io_state = &fpga_status.io_state;
 		printf("fpga_select_setup_io(%d): state 0x%02x 0x%02x 0x%02x "
 				"- 0x%02x 0x%02x 0x%02x, limit %u\n",
-			fpga->num,
+			fpga->num + 1,
 			io_state->io_state, io_state->timeout, io_state->app_status,
 			io_state->pkt_comm_status, io_state->debug2, io_state->debug3,
 			fpga_status.read_limit);
@@ -500,7 +500,7 @@ int fpga_progclk_raw(struct fpga *fpga, int clk_num,
 	int result = vendor_command(fpga->device->handle, 0x93,
 			fpga->num | clk_num << 8, d_value | m_value << 8, NULL, 0);
 	if (result < 0)
-		fprintf(stderr, "fpga_progclk_raw(%d): %s\n", fpga->num,
+		fprintf(stderr, "fpga_progclk_raw(%d): %s\n", fpga->num + 1,
 			libusb_error_name(result));
 	return result;
 }
@@ -509,7 +509,7 @@ int fpga_progclk_raw(struct fpga *fpga, int clk_num,
 int fpga_progclk(struct fpga *fpga, int clk_num, int freq)
 {
 	if (DEBUG)
-		fprintf(stderr, "fpga_progclk(%d,%d,%d)\n", fpga->num,
+		fprintf(stderr, "fpga_progclk(%d,%d,%d)\n", fpga->num + 1,
 				clk_num, freq);
 
 	const struct {
@@ -556,7 +556,7 @@ int fpga_progclk(struct fpga *fpga, int clk_num, int freq)
 
 	if (freq < freq_values[0].freq) {
 		fprintf(stderr, "fpga_progclk(%d, %d, %d): Min. allowed frequency"
-			" is %d MHz\n", fpga->num, clk_num, freq, freq_values[0].freq);
+			" is %d MHz\n", fpga->num + 1, clk_num, freq, freq_values[0].freq);
 		return -1;
 	}
 
@@ -568,7 +568,7 @@ int fpga_progclk(struct fpga *fpga, int clk_num, int freq)
 
 	if (!freq_values[i].freq && freq > 1.5 * freq_values[i-1].freq) {
 		fprintf(stderr, "fpga_progclk(%d, %d, %d): Max. possible frequency"
-			" is %d MHz\n", fpga->num, clk_num, freq, freq_values[i-1].freq);
+			" is %d MHz\n", fpga->num + 1, clk_num, freq, freq_values[i-1].freq);
 		return -1;
 	}
 
@@ -622,7 +622,7 @@ int fpga_write(struct fpga *fpga)
 			else
 				return 0; // write not performed
 			if (DEBUG) printf("#%d io_state.timeout = %d, skipping write\n",
-				fpga->num, io_state->timeout);
+				fpga->num + 1, io_state->timeout);
 		}
 		// fpga_get_io_state() OK
 		wr->io_state_timeout_count = 0;
@@ -643,13 +643,13 @@ int fpga_write(struct fpga *fpga)
 		return -1;
 	}
 	if (io_state->io_state & IO_STATE_INPUT_PROG_FULL) {
-		if (DEBUG) printf("#%d fpga_write_do(): Input full\n", fpga->num);
+		if (DEBUG) printf("#%d fpga_write_do(): Input full\n", fpga->num + 1);
 		return 0; // Input full, no write
 	}
 
 	int transferred = 0;
 	result = libusb_bulk_transfer(fpga->device->handle, 0x06, wr->buf, wr->len, &transferred, USB_RW_TIMEOUT);
-	if (DEBUG) printf("#%d fpga_write(): %d %d\n", fpga->num, result, transferred);
+	if (DEBUG) printf("#%d fpga_write(): %d %d\n", fpga->num + 1, result, transferred);
 	if (result < 0) {
 		return result;
 	}
@@ -677,7 +677,7 @@ int fpga_read(struct fpga *fpga)
 			return result;
 		}
 		else if (result == 0) { // Nothing to read
-			if (DEBUG) printf("#%d read_limit==0\n", fpga->num);
+			if (DEBUG) printf("#%d read_limit==0\n", fpga->num + 1);
 			return 0;
 		}
 		rd->read_limit = result;
@@ -693,7 +693,7 @@ int fpga_read(struct fpga *fpga)
 		result = libusb_bulk_transfer(fpga->device->handle, 0x82, rd->buf + offset,
 				current_read_limit, &transferred, USB_RW_TIMEOUT);
 		if (DEBUG) printf("#%d usb_bulk_read(): result=%d, transferred=%d, current_read_limit=%d\n",
-			fpga->num, result, transferred, current_read_limit);
+			fpga->num + 1, result, transferred, current_read_limit);
 		if (result < 0) {
 			return result;
 		}
@@ -702,7 +702,7 @@ int fpga_read(struct fpga *fpga)
 		}
 		else if (transferred != current_read_limit) { // partial read
 			if (DEBUG) printf("#%d PARTIAL READ: %d of %d\n",
-				fpga->num, transferred, current_read_limit);
+				fpga->num + 1, transferred, current_read_limit);
 			current_read_limit -= transferred;
 			offset += transferred;
 			rd->partial_read_count++;
@@ -739,7 +739,7 @@ int fpga_pkt_write(struct fpga *fpga)
 			else
 				return 0; // write not performed
 			if (DEBUG) printf("#%d io_state.timeout = %d, skipping write\n",
-				fpga->num, io_state->timeout);
+				fpga->num + 1, io_state->timeout);
 		}
 		// fpga_get_io_state() OK
 		wr->io_state_timeout_count = 0;
@@ -760,7 +760,7 @@ int fpga_pkt_write(struct fpga *fpga)
 		return -1;
 	}
 	if (io_state->io_state & IO_STATE_INPUT_PROG_FULL) {
-		if (DEBUG) printf("#%d fpga_write_do(): Input full\n", fpga->num);
+		if (DEBUG) printf("#%d fpga_write_do(): Input full\n", fpga->num + 1);
 		return 0; // Input full, no write
 	}
 
@@ -784,7 +784,7 @@ int fpga_pkt_write(struct fpga *fpga)
 	result = libusb_bulk_transfer(fpga->device->handle, 0x06, data,
 			data_len, &transferred, USB_RW_TIMEOUT);
 	if (DEBUG) printf("#%d fpga_write(): %d %d/%d\n",
-			fpga->num, result, transferred, data_len);
+			fpga->num + 1, result, transferred, data_len);
 	if (result < 0) {
 		return result;
 	}
@@ -815,7 +815,7 @@ int fpga_pkt_read(struct fpga *fpga)
 			return result;
 		}
 		else if (result == 0) { // Nothing to read
-			if (DEBUG) printf("#%d read_limit==0\n", fpga->num);
+			if (DEBUG) printf("#%d read_limit==0\n", fpga->num + 1);
 			return 0;
 		}
 		rd->read_limit = result;
@@ -839,7 +839,7 @@ int fpga_pkt_read(struct fpga *fpga)
 		result = libusb_bulk_transfer(fpga->device->handle, 0x82, input_buf,
 				current_read_limit, &transferred, USB_RW_TIMEOUT);
 		if (DEBUG) printf("#%d usb_bulk_read(): result=%d, transferred=%d, current_read_limit=%d\n",
-			fpga->num, result, transferred, current_read_limit);
+			fpga->num + 1, result, transferred, current_read_limit);
 		if (result < 0) {
 			return result;
 		}
@@ -848,7 +848,7 @@ int fpga_pkt_read(struct fpga *fpga)
 		}
 		else if (transferred != current_read_limit) { // partial read
 			if (DEBUG) printf("#%d PARTIAL READ: %d of %d\n",
-				fpga->num, transferred, current_read_limit);
+				fpga->num + 1, transferred, current_read_limit);
 			current_read_limit -= transferred;
 			rd->partial_read_count++;
 			continue;

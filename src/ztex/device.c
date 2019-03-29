@@ -2,7 +2,7 @@
  *
  * Top Level Hardware Operating Functions for Ztex Multi-FPGA board.
  *
- * This software is Copyright (c) 2016,2018 Denis Burykin
+ * This software is Copyright (c) 2016,2018-2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -156,7 +156,7 @@ static int device_init_fpgas(struct device *device,
 		if (bitstream->num_progclk) {
 
 			// Check for frequency for given fpga in the config
-			sprintf(conf_name_freq, "%s_%d", conf_name_board_freq, fpga_num);
+			sprintf(conf_name_freq, "%s_%d", conf_name_board_freq, fpga_num + 1);
 			cfg_get_int_array(CFG_SECTION, bitstream->label, conf_name_freq,
 					fpga_freq, NUM_PROGCLK_MAX);
 
@@ -181,9 +181,9 @@ static int device_init_fpgas(struct device *device,
 		// Affected is FPGA previously selected with fpga_select()
 		result = fpga_reset(device->handle);
 		if (result < 0) {
-			printf("SN %s #%d: device_fpga_reset: %d (%s)\n",
+			fprintf(stderr, "SN %s #%d: device_fpga_reset: %d (%s)\n",
 				device->ztex_device->snString,
-				fpga_num, result, libusb_error_name(result));
+				fpga_num + 1, result, libusb_error_name(result));
 			device_invalidate(device);
 			return result;
 		}
@@ -207,7 +207,7 @@ static int device_init_fpgas(struct device *device,
 		struct pkt *pkt_config1 = NULL;
 
 		sprintf(conf_name_config1, "%s_%d", conf_name_board_config1,
-				fpga_num);
+				fpga_num + 1);
 		ptr = cfg_get_param(CFG_SECTION, bitstream->label,
 				conf_name_config1);
 		if (ptr) {
@@ -263,7 +263,7 @@ void device_list_init(struct device_list *device_list,
 	// bitstream->type is hardcoded into bitstream (vcr.v/BITSTREAM_TYPE)
 	if (!bitstream || !bitstream->type || !bitstream->path) {
 		fprintf(stderr, "device_list_init(): invalid bitstream information\n");
-		exit(-1);
+		error();
 	}
 
 	int result = device_list_check_bitstreams(device_list, bitstream->type, bitstream->path);
@@ -283,7 +283,8 @@ void device_list_init(struct device_list *device_list,
 
 	// Application mode 2: use high-speed packet communication (pkt_comm)
 	// that's the primary mode of operation as opposed to test modes 0 & 1.
-	device_list_set_app_mode(device_list, 2);
+	// UNUSED
+	//device_list_set_app_mode(device_list, 2);
 }
 
 
@@ -389,14 +390,14 @@ int device_pkt_rw(struct device *device)
 		result = fpga_select_setup_io(fpga);
 		if (result < 0) {
 			fprintf(stderr, "SN %s FPGA #%d fpga_select_setup_io() error: %d\n",
-				device->ztex_device->snString, num, result);
+				device->ztex_device->snString, num + 1, result);
 			return result;
 		}
 
 		// TODO: human readable error description
 		if (fpga->wr.io_state.pkt_comm_status) {
 			fprintf(stderr, "SN %s FPGA #%d error: pkt_comm_status=0x%02x,"
-				" debug=0x%04x\n", device->ztex_device->snString, num,
+				" debug=0x%04x\n", device->ztex_device->snString, num + 1,
 				fpga->wr.io_state.pkt_comm_status,
 				fpga->wr.io_state.debug3 << 8 | fpga->wr.io_state.debug2);
 			return -1;
@@ -404,7 +405,7 @@ int device_pkt_rw(struct device *device)
 
 		if (fpga->wr.io_state.app_status) {
 			fprintf(stderr, "SN %s FPGA #%d error: app_status=0x%02x,"
-				" debug=0x%04x\n", device->ztex_device->snString, num,
+				" debug=0x%04x\n", device->ztex_device->snString, num + 1,
 				fpga->wr.io_state.app_status,
 				fpga->wr.io_state.debug3 << 8 | fpga->wr.io_state.debug2);
 			return -1;
@@ -412,7 +413,8 @@ int device_pkt_rw(struct device *device)
 
 		if (fpga->wr.io_state.io_state & ~IO_STATE_INPUT_PROG_FULL) {
 			fprintf(stderr, "SN %s FPGA #%d error: io_state=0x%02x\n",
-				device->ztex_device->snString, num, fpga->wr.io_state.io_state);
+				device->ztex_device->snString, num + 1,
+				fpga->wr.io_state.io_state);
 			return -1;
 		}
 
@@ -420,7 +422,7 @@ int device_pkt_rw(struct device *device)
 		if (input_full) {
 
 			// FPGA input is full - no write
-			if (DEBUG) printf("#%d write: Input full\n", num);
+			if (DEBUG) printf("#%d write: Input full\n", num + 1);
 
 		} else {
 
@@ -450,7 +452,7 @@ int device_pkt_rw(struct device *device)
 				result = libusb_bulk_transfer(fpga->device->handle, 0x06,
 						output_data, output_data_len, &transferred, USB_RW_TIMEOUT);
 				if (DEBUG) printf("#%d write: result=%d tx=%d/%d\n",
-						fpga->num, result, transferred, output_data_len);
+						fpga->num + 1, result, transferred, output_data_len);
 				if (result < 0) {
 					return result;
 				}
@@ -477,7 +479,7 @@ int device_pkt_rw(struct device *device)
 			result = libusb_bulk_transfer(fpga->device->handle, 0x82, input_buf,
 					current_read_limit, &transferred, USB_RW_TIMEOUT);
 			if (DEBUG) printf("#%d read: result=%d, rx=%d/%d\n",
-					fpga->num, result, transferred, current_read_limit);
+					fpga->num + 1, result, transferred, current_read_limit);
 			if (result < 0) {
 				return result;
 			}
@@ -486,7 +488,7 @@ int device_pkt_rw(struct device *device)
 			}
 			else if (transferred != current_read_limit) { // partial read
 				if (DEBUG) printf("#%d PARTIAL READ: %d of %d\n",
-						fpga->num, transferred, current_read_limit);
+						fpga->num + 1, transferred, current_read_limit);
 				current_read_limit -= transferred;
 				fpga->rd.partial_read_count++;
 				continue;
@@ -548,26 +550,26 @@ int device_fpgas_pkt_rw(struct device *device)
 		result = fpga_select_setup_io(fpga); // combines fpga_select(), fpga_get_io_state() and fpga_setup_output() in 1 USB request
 		if (result < 0) {
 			fprintf(stderr, "SN %s FPGA #%d fpga_select_setup_io() error: %d\n",
-				device->ztex_device->snString, num, result);
+				device->ztex_device->snString, num + 1, result);
 			return result;
 		}
 
 		if (fpga->wr.io_state.pkt_comm_status) {
 			fprintf(stderr, "SN %s FPGA #%d error: pkt_comm_status=0x%02x\n",
-				device->ztex_device->snString, num, fpga->wr.io_state.pkt_comm_status);
+				device->ztex_device->snString, num + 1, fpga->wr.io_state.pkt_comm_status);
 			return -1;
 		}
 
 		if (fpga->wr.io_state.app_status) {
 			fprintf(stderr, "SN %s FPGA #%d error: app_status=0x%02x\n",
-				device->ztex_device->snString, num, fpga->wr.io_state.app_status);
+				device->ztex_device->snString, num + 1, fpga->wr.io_state.app_status);
 			return -1;
 		}
 
 		result = fpga_pkt_write(fpga);
 		if (result < 0) {
 			fprintf(stderr, "SN %s FPGA #%d write error: %d (%s)\n",
-				device->ztex_device->snString, num, result, libusb_error_name(result));
+				device->ztex_device->snString, num + 1, result, libusb_error_name(result));
 			return result; // on such a result, device will be invalidated
 		}
 		//if (result > 0) {
@@ -582,7 +584,7 @@ int device_fpgas_pkt_rw(struct device *device)
 		result = fpga_pkt_read(fpga);
 		if (result < 0) {
 			fprintf(stderr, "SN %s FPGA #%d read error: %d (%s)\n",
-				device->ztex_device->snString, num, result, libusb_error_name(result));
+				device->ztex_device->snString, num + 1, result, libusb_error_name(result));
 			return result; // on such a result, device will be invalidated
 		}
 		//if (result > 0)

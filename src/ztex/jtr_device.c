@@ -85,7 +85,7 @@ char *jtr_device_id(struct jtr_device *dev)
 	if (!dev)
 		return "";
 	sprintf(device_id, "%s #%d", dev->device->ztex_device->snString,
-		dev->fpga_num);
+		dev->fpga_num + 1);
 	return device_id;
 }
 
