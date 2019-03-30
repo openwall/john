@@ -30,10 +30,12 @@ RM = rm -f
 MKDIR = @MKDIR_P@
 TR = tr
 SED = @SED@
+FIND = @FIND@
 NULL = /dev/null
 SORT = @SORT@
 STRIP = @STRIP@
 CPPCHECK=cppcheck
+PEFLAGS=peflags --dynamicbase=true --nxcompat=true
 
 SHELL = /bin/sh
 VPATH = @srcdir@
@@ -971,6 +973,19 @@ distclean: clean
 strip: default
 	@echo Stripping executables.
 	$(STRIP) $(PROJ)
+
+.PHONY: peflags
+peflags:
+	@echo Securing executables.
+	$(PEFLAGS) $(PROJ)
+
+.PHONY: windows
+windows:
+	@echo Deploying for Windows.
+	$(SED) -i -e 's/\r*$$/\r/' ../doc/*
+	$(SED) -i -e 's/\r*$$/\r/' ../run/*.conf
+	$(SED) -i -e 's/\r*$$/\r/' ../run/password.lst
+	$(FIND) ../doc -type f -not -name "*.txt" -exec $(MV) "{}" "{}".txt \;
 
 ### cppcheck static coverage analysis
 #
