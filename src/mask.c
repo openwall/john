@@ -2153,6 +2153,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		}
 	}
 
+	if (using_default_mask && !(options.flags & FLG_TEST_CHK) &&
+	    john_main_process)
+		fprintf(stderr, "Using default mask: %s\n", options.mask);
+
 	/* Load defaults for custom placeholders ?1..?9 from john.conf */
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
 		char pl[2] = { '1' + i, 0 };
