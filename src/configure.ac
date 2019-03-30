@@ -472,6 +472,7 @@ case "$host_cpu" in
     JTR_ARM_SPECIAL_LOGIC
     ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
+  i686) ARCH_LINK=x86-sse.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;
   m68k*) ARCH_LINK=autoconf_arch.h endian=big ;;
   mic) ARCH_LINK=mic.h endian=little
