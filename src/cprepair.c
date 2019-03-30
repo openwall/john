@@ -133,14 +133,14 @@ static int process_file(char *name)
 			} else
 				len = strlen(orig);
 
-			if (options.verbosity == VERB_MAX)
+			if (options.verbosity >= VERB_MAX)
 				dump_hex(orig, orig, len);
 
 			plain = strchr(orig, ':');
 			if (potfile && plain) {
 				len -= (++plain - orig);
 				convin = plain;
-				if (options.verbosity == VERB_MAX)
+				if (options.verbosity >= VERB_MAX)
 					dump_hex(convin, convin, len);
 			} else
 				convin = skip_bom(orig);
