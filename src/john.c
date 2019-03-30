@@ -1150,6 +1150,9 @@ static void john_load(void)
 			        "for stdout format\n", options.length);
 			error();
 		}
+		if (options.verbosity <= 1)
+			if (john_main_process)
+				fprintf(stderr, "Warning: Verbosity decreased to minimum, candidates will not be printed!\n");
 		john_load_conf_db();
 	}
 
