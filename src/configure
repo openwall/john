@@ -10553,8 +10553,8 @@ fi
      ;;
 esac
 
-if test "x$simd" = xyes; then
- if test "x$enable_native_tests" != xno; then
+if test "x$simd" != xno; then
+ if test "x$enable_native_tests" != xno && test "x$simd" = xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
 $as_echo "$as_me: Testing build host's native CPU features" >&6;}
   CPU_NOTFOUND=0

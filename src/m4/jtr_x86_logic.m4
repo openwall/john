@@ -77,8 +77,8 @@ CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
     [CC="$CC_BACKUP"]]
   )
 
-if test "x$simd" = xyes; then
- if test "x$enable_native_tests" != xno; then
+if test "x$simd" != xno; then
+ if test "x$enable_native_tests" != xno && test "x$simd" = xyes; then
   AC_MSG_NOTICE([Testing build host's native CPU features])
   CPU_NOTFOUND=0
   CC="$CC_BACKUP -mmmx"
