@@ -32,10 +32,17 @@ int autotune_get_next_gws_size(size_t num, int step, int startup,
 
 int autotune_get_prev_gws_size(size_t num, int step)
 {
-	if (step < 1)
-		return MAX(1, num >> 1);
+	int value;
 
-	return MAX(1, num - step);
+	if (step < 1)
+		value = MAX(1, num >> 1);
+	else
+		value = MAX(1, num - step);
+
+	if (value < local_work_size)
+		local_work_size = value;
+
+	return value;
 }
 
 /* Can be used to select a 'good' default lws size */

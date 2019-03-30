@@ -1253,7 +1253,7 @@ static char *include_source(const char *pathname, int sequential_id, const char 
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
-	        (options.verbosity == VERB_MAX &&
+	        (options.verbosity >= VERB_MAX &&
 	         gpu_nvidia(device_info[sequential_id])) ?
 	         "-cl-nv-verbose " : "",
 #endif
@@ -1382,7 +1382,7 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		                                sizeof(size_t), &source_size, NULL),
 		               "clGetProgramInfo for CL_PROGRAM_BINARY_SIZES");
 
-		if (options.verbosity == VERB_MAX)
+		if (options.verbosity >= VERB_MAX)
 			fprintf(stderr, "binary size "Zu"\n", source_size);
 
 		source = mem_calloc(1, source_size);
@@ -1633,7 +1633,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		} else
 			runtime += (endTime - startTime);
 
-		if (options.verbosity == VERB_MAX)
+		if (options.verbosity >= VERB_MAX)
 			fprintf(stderr, "%s%s%s%s", warnings[i], mult,
 			        ns2string(endTime - startTime), (amd_bug) ? "*" : "");
 
@@ -1642,12 +1642,12 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		    (endTime - startTime) > 1000000ULL * duration_time) {
 			runtime = looptime = 0;
 
-			if (options.verbosity == VERB_MAX)
+			if (options.verbosity >= VERB_MAX)
 				fprintf(stderr, " (exceeds %s)", ms2string(duration_time));
 			break;
 		}
 	}
-	if (options.verbosity == VERB_MAX)
+	if (options.verbosity >= VERB_MAX)
 		fprintf(stderr, "\n");
 
 	if (total)
@@ -2017,7 +2017,7 @@ void opencl_find_best_gws(int step, int max_duration,
 		        local_work_size, ms2string(duration_time));
 	}
 
-	if (options.verbosity == VERB_MAX)
+	if (options.verbosity >= VERB_MAX)
 		fprintf(stderr, "Raw speed figures including buffer transfers:\n");
 
 	// Change command queue to be used by crypt_all (profile needed)
@@ -2041,7 +2041,7 @@ void opencl_find_best_gws(int step, int max_duration,
 			if (!optimal_gws)
 				optimal_gws = num;
 
-			if (options.verbosity == VERB_MAX)
+			if (options.verbosity >= VERB_MAX)
 				fprintf(stderr, "Hardware resources exhausted\n");
 			break;
 		}

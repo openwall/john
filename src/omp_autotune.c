@@ -133,7 +133,7 @@ void omp_autotune_run(struct db_main *db)
 		salt = s->salt;
 	}
 
-	if (john_main_process && options.verbosity == VERB_MAX) {
+	if (john_main_process && options.verbosity >= VERB_MAX) {
 		fprintf(stderr, "%s %s autotune using %s db",
 		        fmt->params.label, threads > 1 ? "OMP" : "MKPC",
 		        db->real ? "real" : "test");
@@ -194,7 +194,7 @@ void omp_autotune_run(struct db_main *db)
 		duration = sTimer_GetSecs(&timer);
 		cps = crypts / duration;
 
-		if (john_main_process && options.verbosity == VERB_MAX) {
+		if (john_main_process && options.verbosity >= VERB_MAX) {
 			if (threads > 1)
 				fprintf(stderr,
 				        "OMP scale %d: %d crypts (%dx%d) in %f seconds, %d c/s",
@@ -208,14 +208,14 @@ void omp_autotune_run(struct db_main *db)
 		}
 
 		if (cps >= (best_cps * req_gain)) {
-			if (john_main_process && options.verbosity == VERB_MAX)
+			if (john_main_process && options.verbosity >= VERB_MAX)
 				fprintf(stderr, " +\n");
 			best_cps = cps;
 			best_scale = scale;
 			no_progress = 0;
 		}
 		else {
-			if (john_main_process && options.verbosity == VERB_MAX)
+			if (john_main_process && options.verbosity >= VERB_MAX)
 				fprintf(stderr, "\n");
 			no_progress++;
 		}

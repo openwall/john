@@ -1013,7 +1013,7 @@ GRAB_NEXT_PIPE_LOAD:
 			{
 				char *cpi, *cpe;
 
-				if (options.verbosity == VERB_MAX)
+				if (options.verbosity >= VERB_MAX)
 				log_event("- Reading next block of candidate passwords from stdin pipe");
 
 				rules = rules_keep;
@@ -1061,7 +1061,7 @@ GRAB_NEXT_PIPE_LOAD:
 						}
 					}
 				}
-				if (options.verbosity == VERB_MAX) {
+				if (options.verbosity >= VERB_MAX) {
 					sprintf(msg_buf, "- Read block of %"PRId64" "
 					        "candidate passwords from pipe",
 					        (int64_t)nWordFileLines);
@@ -1073,7 +1073,7 @@ GRAB_NEXT_PIPE_LOAD:
 MEM_MAP_LOAD:
 			rules = rules_keep;
 			nWordFileLines = 0;
-			if (options.verbosity == VERB_MAX)
+			if (options.verbosity >= VERB_MAX)
 				log_event("- Reading next block of candidate from the memory mapped file");
 			release_sharedmem_object(pIPC);
 			pIPC = next_sharedmem_object();

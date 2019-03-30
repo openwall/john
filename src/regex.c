@@ -127,7 +127,7 @@ static void rexgen_setlocale()
 
 	ret = setlocale(LC_CTYPE, john_locale);
 
-	if (options.verbosity == VERB_MAX) {
+	if (options.verbosity >= VERB_MAX) {
 		if (ret)
 			fprintf(stderr, "regex: Locale set to %s\n", ret);
 		else
@@ -387,7 +387,7 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha)
 		return NULL;
 
 	if (!regex || !bCase || !regex_alpha) {
-		if (options.verbosity == VERB_MAX)
+		if (options.verbosity >= VERB_MAX)
 			log_event("- No Rexgen used");
 		return 0;
 	}

@@ -1459,7 +1459,7 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 	int i, k, t, j, l, offset;
 
 #ifdef MASK_DEBUG
-	fprintf(stderr, "%s(%s) ext key %s ext key_len %d (max %d)\n", __FUNCTION__, mask, key, key_len, template_len);
+	fprintf(stderr, "%s(%s) ext key \"%s\" ext key_len %d (max %d)\n", __FUNCTION__, mask, key, key_len, template_len);
 #endif
 
 	i = 0, k = 0, j = 0, l = 0, offset = 0;
@@ -2333,19 +2333,16 @@ static void finalize_mask(int len)
 #endif
 	/* We decrease these here instead of changing parent modes. */
 	if (options.flags & FLG_MASK_STACKED) {
-		if (options.eff_minlength - mask_add_len >= 0)
-			options.eff_minlength -= mask_add_len;
-		if (options.req_maxlength)
-			options.eff_maxlength -= mask_add_len;
+		options.eff_minlength = MAX(0, options.eff_minlength - mask_add_len);
+		options.eff_maxlength = MAX(0, options.eff_maxlength - mask_add_len);
 		if (mask_num_qw) {
 			options.eff_minlength /= mask_num_qw;
 			options.eff_maxlength /= mask_num_qw;
 		}
 #ifdef MASK_DEBUG
-		fprintf(stderr, "%s(): effective minlen %d maxlen %d fmt_len %d\n",
+		fprintf(stderr, "%s(): effective minlen %d maxlen %d + masklen %d\n",
 		        __FUNCTION__,
-		        options.eff_minlength, options.eff_maxlength,
-		        options.eff_maxlength - mask_add_len);
+		        options.eff_minlength, options.eff_maxlength, mask_add_len);
 #endif
 	}
 
@@ -2391,8 +2388,9 @@ static void finalize_mask(int len)
 	}
 	mask_tot_cand = cand * mask_int_cand.num_int_cand;
 
-	log_event("- Requested internal mask factor: %d, actual now %d",
-	          mask_int_cand_target, mask_int_cand.num_int_cand);
+	if (mask_int_cand_target)
+		log_event("- Requested internal mask factor: %d, actual now %d",
+		          mask_int_cand_target, mask_int_cand.num_int_cand);
 }
 
 void mask_crk_init(struct db_main *db)
