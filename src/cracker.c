@@ -457,8 +457,8 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 		if (crk_guesses && !dupe) {
 			strnfcpy(crk_guesses->ptr, key,
-			         options.eff_maxlength + mask_add_len);
-			crk_guesses->ptr += options.eff_maxlength + mask_add_len;
+			         crk_params->plaintext_length);
+			crk_guesses->ptr += crk_params->plaintext_length;
 			crk_guesses->count++;
 		}
 	}
@@ -1113,7 +1113,7 @@ static int process_key(char *key)
 	if (event_pending)
 	if (crk_process_event()) return 1;
 
-	strnzcpy(crk_stdout_key, key, options.eff_maxlength + mask_add_len + 1);
+	strnzcpy(crk_stdout_key, key, crk_params->plaintext_length + 1);
 	if (options.verbosity > 1)
 		puts(crk_stdout_key);
 
@@ -1178,8 +1178,8 @@ int crk_process_salt(struct db_salt *salt)
 	crk_methods.clear_keys();
 
 	while (count--) {
-		strnzcpy(key, ptr, options.eff_maxlength + mask_add_len + 1);
-		ptr += options.eff_maxlength + mask_add_len;
+		strnzcpy(key, ptr, crk_params->plaintext_length + 1);
+		ptr += crk_params->plaintext_length;
 
 		crk_methods.set_key(key, index++);
 		if (index >= crk_params->max_keys_per_crypt || !count ||

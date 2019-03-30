@@ -467,7 +467,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	unsigned int fixed, count;
 	int last_length, last_count;
 	int pos;
-	int our_fmt_len = db->format->params.plaintext_length;
+	int our_fmt_len = options.eff_maxlength;
 
 	if (!mode) {
 		if (db->format == &fmt_LM) {
@@ -533,11 +533,6 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 		max_length = CHARSET_LENGTH;
 	max_count = options.charcount ?
 		options.charcount : cfg_get_int(SECTION_INC, mode, "CharCount");
-
-	/* Hybrid mask */
-	our_fmt_len -= mask_add_len;
-	if (mask_num_qw > 1)
-		our_fmt_len /= mask_num_qw;
 
 #if HAVE_REXGEN
 	/* Hybrid regex */

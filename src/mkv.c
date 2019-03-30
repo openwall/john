@@ -355,7 +355,7 @@ void get_markov_options(struct db_main *db,
 	char *dummy_token = NULL;
 
 	int minlevel, level, minlen, maxlen;
-	int our_fmt_len = db->format->params.plaintext_length;
+	int our_fmt_len = options.eff_maxlength;
 
 	*start_token = NULL;
 	*end_token = NULL;
@@ -503,9 +503,6 @@ void get_markov_options(struct db_main *db,
 				maxlen /= mask_num_qw;
 		}
 	}
-
-	if (mask_num_qw > 1)
-		our_fmt_len /= mask_num_qw;
 
 	if (our_fmt_len <= MAX_MKV_LEN && maxlen > our_fmt_len) {
 		log_event("! MaxLen = %d is too large for this hash type", maxlen);
