@@ -866,7 +866,7 @@ static void single_done(void)
 
 			if (options.verbosity >= VERB_DEFAULT)
 				fprintf(stderr, "Almost done: Processing the remaining "
-				        "buffered candidate passwords, if any\n");
+				        "buffered candidate passwords, if any.\n");
 
 			do {
 				if (!salt->list)
