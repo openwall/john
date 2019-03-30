@@ -21,6 +21,7 @@
 #include "options.h"
 #include "john.h"
 #include "unicode.h"
+#include "mask.h"
 #include "encoding_data.h"
 
 /*
@@ -558,7 +559,7 @@ int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
 			error();
 		}
 
-		rules_init(db, options.eff_maxlength);
+		rules_init(db, options.eff_maxlength + mask_add_len);
 		rule_count = rules_count(&ctx, -1);
 
 		log_event("- %d preprocessed stacked rules", rule_count);

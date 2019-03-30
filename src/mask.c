@@ -2148,8 +2148,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 				fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 			if (options.req_minlength >= 0 || options.req_maxlength)
 				fprintf(stderr, ", lengths: %d-%d",
-				        options.eff_minlength + mask_add_len,
-				        options.eff_maxlength + mask_add_len);
+				        options.eff_minlength, options.eff_maxlength);
 			fprintf(stderr, "\n");
 		}
 	}
