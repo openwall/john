@@ -1269,7 +1269,7 @@ static void init_cpu_mask(const char *mask, mask_parsed_ctx *parsed_mask,
 			int j;
 
 			pos = calc_pos_in_key(mask, parsed_mask, load_op(op_ctr));
-			if (pos >= len && !format_cannot_reset)
+			if (pos > len && !format_cannot_reset)
 				break;
 			cpu_mask_ctx->ranges[i].pos = pos;
 
@@ -1339,7 +1339,7 @@ static void init_cpu_mask(const char *mask, mask_parsed_ctx *parsed_mask,
 			int j;
 
 			pos = calc_pos_in_key(mask, parsed_mask, load_qtn(qtn_ctr));
-			if (pos >= len && !format_cannot_reset)
+			if (pos > len && !format_cannot_reset)
 				break;
 			cpu_mask_ctx->ranges[i].pos = pos;
 
