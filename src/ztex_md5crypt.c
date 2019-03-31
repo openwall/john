@@ -105,6 +105,37 @@ static struct fmt_tests tests[] = {
 };
 
 
+static int cryptmd5_common_valid_salt0(char *ciphertext, struct fmt_main *self)
+{
+	char *pos, *start;
+	char *salt_pos, *salt_end_pos;
+
+	if (!strncmp(ciphertext, md5_salt_prefix, md5_salt_prefix_len))
+		ciphertext += md5_salt_prefix_len;
+	else if (!strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len))
+		ciphertext += apr1_salt_prefix_len;
+	else if (!strncmp(ciphertext, smd5_salt_prefix, smd5_salt_prefix_len))
+		ciphertext += smd5_salt_prefix_len;
+	else
+		return 0;
+
+	salt_pos = ciphertext;
+	for (pos = ciphertext; *pos && *pos != '$'; pos++);
+	if (!*pos || pos < ciphertext || pos > &ciphertext[11]) return 0;
+	salt_end_pos = pos;
+
+	start = ++pos;
+	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
+	if (*pos || pos - start != 22) return 0;
+
+	if (atoi64[ARCH_INDEX(*(pos - 1))] & 0x3C) return 0;
+	if (salt_end_pos == salt_pos) {
+		printf("Warning: ZTEX: md5crypt hash with salt_length=0 skipped.\n");
+		return 0;
+	}
+	return 1;
+}
+
 static void init(struct fmt_main *fmt_main)
 {
 	device_format_init(fmt_main, &bitstream, options.acc_devices,
@@ -207,7 +238,7 @@ struct fmt_main fmt_ztex_md5crypt = {
 		device_format_done,
 		device_format_reset,
 		fmt_default_prepare,
-		cryptmd5_common_valid,
+		cryptmd5_common_valid_salt0,
 		fmt_default_split,
 		get_binary,
 		get_salt,
