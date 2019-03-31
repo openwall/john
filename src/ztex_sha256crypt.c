@@ -165,6 +165,7 @@ typedef struct {
 
 static int valid(char * ciphertext, struct fmt_main * self) {
 	char *pos, *start;
+	char *salt_pos, *salt_end_pos;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 			return 0;
@@ -179,13 +180,20 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 					return 0;
 		if (*endp == '$')
 			ciphertext = endp + 1;
-			}
+	}
+	salt_pos = ciphertext;
 	for (pos = ciphertext; *pos && *pos != '$'; pos++);
-	if (!*pos || pos < ciphertext) return 0;
+	if (!*pos || pos > &ciphertext[SALT_LENGTH])
+		return 0;
+	salt_end_pos = pos;
 
 	start = ++pos;
 	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
 	if (*pos || pos - start != CIPHERTEXT_LENGTH) return 0;
+	if (salt_end_pos == salt_pos) {
+		printf("Warning: ZTEX: sha256crypt hash with salt_length=0 skipped.\n");
+		return 0;
+	}
 	return 1;
 }
 
