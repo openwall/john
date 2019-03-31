@@ -998,7 +998,8 @@ static void john_load_conf_db(void)
 
 	if (john_main_process)
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked) {
-		if (options.flags & (FLG_PASSWD | FLG_STDIN_CHK | FLG_PIPE_CHK))
+		if (options.flags & (FLG_PASSWD | FLG_WORDLIST_CHK |
+		                     FLG_STDIN_CHK | FLG_PIPE_CHK))
 		if (options.default_enc && options.input_enc != ASCII)
 			fprintf(stderr, "Using default input encoding: %s\n",
 			        cp_id2name(options.input_enc));
