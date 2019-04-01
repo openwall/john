@@ -34,8 +34,8 @@ FIND = @FIND@
 NULL = /dev/null
 SORT = @SORT@
 STRIP = @STRIP@
-CPPCHECK=cppcheck
-PEFLAGS=peflags --dynamicbase=true --nxcompat=true
+CPPCHECK = cppcheck
+PEFLAGS = peflags --dynamicbase=true --nxcompat=true
 
 SHELL = /bin/sh
 VPATH = @srcdir@
@@ -192,9 +192,8 @@ default:
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
 		AESNI_ARCH=@AESNI_ARCH@
 
-	@if [ "$(OS)" = "Windows_NT" ]; then\
-		$(MAKE) peflags;\
-		$(MAKE) windows;\
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		$(MAKE) peflags; \
 	fi
 	@echo
 	@echo Make process completed.
@@ -984,18 +983,14 @@ peflags:
 	@echo Securing executables.
 	$(PEFLAGS) $(PROJ)
 
-.PHONY: windows
-windows:
+.PHONY: windows-package
+windows-package: default
 	@echo Deploying for Windows.
+	$(MAKE) peflags
 	$(SED) -i -e 's/\r*$$/\r/' ../doc/*
 	$(SED) -i -e 's/\r*$$/\r/' ../run/*.conf
 	$(SED) -i -e 's/\r*$$/\r/' ../run/password.lst
 	$(FIND) ../doc -type f -not -name "*.txt" -exec $(MV) "{}" "{}".txt \;
-
-.PHONY: windows-package
-windows-package: default
-	$(MAKE) peflags
-	$(MAKE) windows
 
 ### cppcheck static coverage analysis
 #
