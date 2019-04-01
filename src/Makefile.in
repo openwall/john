@@ -997,13 +997,6 @@ windows-package: default
 	$(MAKE) peflags
 	$(MAKE) windows
 
-### cppcheck static coverage analysis
-#
-.PHONY: cppcheck
-
-cppcheck:
-	$(CPPCHECK) --enable=all --force -q .
-
 ### Copy OpenCL stuff to run/kernels
 #
 .PHONY: kernel-copy
