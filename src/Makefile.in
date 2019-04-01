@@ -186,11 +186,16 @@ endif
 #  also need to figure out -mpreferred-stack-boundary=4 and add (or whatever the stack size is)
 #
 #########################################################
-default:
+.PHONY: do-build
+do-build:
 	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
 		AESNI_ARCH=@AESNI_ARCH@
+	@echo
+	@echo Binaries were built.
+
+default: do-build
 
 	@if [ "$(OS)" = "Windows_NT" ]; then\
 		$(MAKE) peflags;\
