@@ -26,7 +26,7 @@ system.
 
 === Get latest bleeding-edge Jumbo and build
 
-==== Clone GIT repo
+==== Download latest snapshot of source
 
     Download https://github.com/magnumripper/JohnTheRipper/archive/bleeding-jumbo.zip
     Unzip it to your preferred directory   
@@ -40,7 +40,7 @@ system.
 
     - Build
       ./configure && make -s clean && make -sj4
-      make windows
+      make windows-package
 
 === Test your build
 
