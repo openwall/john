@@ -34,7 +34,6 @@ FIND = @FIND@
 NULL = /dev/null
 SORT = @SORT@
 STRIP = @STRIP@
-CPPCHECK = cppcheck
 PEFLAGS = peflags --dynamicbase=true --nxcompat=true
 
 SHELL = /bin/sh
@@ -991,13 +990,6 @@ windows-package: default
 	$(SED) -i -e 's/\r*$$/\r/' ../run/*.conf
 	$(SED) -i -e 's/\r*$$/\r/' ../run/password.lst
 	$(FIND) ../doc -type f -not -name "*.txt" -exec $(MV) "{}" "{}".txt \;
-
-### cppcheck static coverage analysis
-#
-.PHONY: cppcheck
-
-cppcheck:
-	$(CPPCHECK) --enable=all --force -q .
 
 ### Copy OpenCL stuff to run/kernels
 #
