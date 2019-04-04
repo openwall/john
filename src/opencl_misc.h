@@ -28,7 +28,7 @@ typedef int int32_t;
 typedef ulong uint64_t;
 typedef long int64_t;
 
-#if SIZEOF_SIZE_T == 8
+#if __SIZEOF_HOST_SIZE_T__ == 8 /* This is set by opencl_common.c */
 typedef uint64_t host_size_t;
 #else
 typedef uint32_t host_size_t;

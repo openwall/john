@@ -1260,7 +1260,7 @@ static char *include_source(const char *pathname, int sequential_id, const char 
 	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
 	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
 	        "-DDEVICE_INFO=", device_info[sequential_id],
-	        "-DSIZEOF_SIZE_T=", (int)sizeof(size_t),
+	        "-D__SIZEOF_HOST_SIZE_T__=", (int)sizeof(size_t),
 	        opencl_driver_ver(sequential_id),
 	        opts ? opts : "");
 
