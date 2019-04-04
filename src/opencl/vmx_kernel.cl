@@ -81,10 +81,6 @@ void vmx_final(MAYBE_CONSTANT vmx_salt *salt,
 			uchar c[16];
 			uint  w[16 / 4];
 		} iv;
-		union {
-			uchar c[BLOBLEN];
-			uint  w[BLOBLEN / 4];
-		} plaintext;
 
 		for (i = 0; i < 256/8/4; i++)
 			hash.w[i] = vstate[gid].key[i];
