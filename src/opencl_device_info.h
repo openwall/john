@@ -35,7 +35,9 @@
 #define DEV_NV_VOLTA                (1 << 20)   //1M
 #define DEV_USE_LOCAL               (1 << 21)   //2M
 #define DEV_NO_BYTE_ADDRESSABLE     (1 << 22)   //4M
-#define DEV_MESA                    (1 << 23)   //8M
+#define PLATFORM_MESA               (1 << 23)   //8M
+#define PLATFORM_BEIGNET            (1 << 24)   //16M
+#define PLATFORM_POCL               (1 << 25)   //32M
 
 #define cpu(n)                      ((n & DEV_CPU) == (DEV_CPU))
 #define gpu(n)                      ((n & DEV_GPU) == (DEV_GPU))

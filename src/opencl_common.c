@@ -1248,8 +1248,14 @@ static char *include_source(const char *pathname, int sequential_id, const char 
 	         "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        full_path,
 	        global_opts,
-	        get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_MESA ?
-	            "-D__MESA__ " : get_device_capability(sequential_id),
+	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
+	         PLATFORM_MESA ? "-D__MESA__ " :
+	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
+	         PLATFORM_POCL ? "-D__POCL__ " :
+	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
+	         PLATFORM_BEIGNET ?
+	         "-D__BEIGNET__ " :
+	        get_device_capability(sequential_id),
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
@@ -2750,14 +2756,24 @@ int get_platform_vendor_id(int platform_id)
 		return DEV_AMD;
 
 	if ((strstr(dname, "MESA")) || (strstr(dname, "Mesa")))
-		return DEV_MESA;
+		return PLATFORM_MESA;
 
+	if (strstr(dname, "beignet"))
+		return PLATFORM_BEIGNET;
+
+	if (strstr(dname, "Portable Computing Language") || strstr(dname, "pocl"))
+		return PLATFORM_POCL;
+
+	/*
+	 * If we found nothing recognized in the device name, look at
+	 * device version string as well
+	 */
 	HANDLE_CLERROR(clGetPlatformInfo(platform[platform_id], CL_PLATFORM_VERSION,
 	                                 sizeof(dname), dname, NULL),
 	               "clGetPlatformInfo for CL_PLATFORM_VERSION");
 
 	if ((strstr(dname, "MESA")) || (strstr(dname, "Mesa")))
-		return DEV_MESA;
+		return PLATFORM_MESA;
 
 	return DEV_UNKNOWN;
 }
