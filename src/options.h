@@ -195,6 +195,7 @@
 #define FLG_RULES_IN_USE		0x2000000000000000ULL
 /* Ignore NOP rules */
 #define FLG_RULE_SKIP_NOP		0x4000000000000000ULL
+#define FLG_NO_MASK_BENCH		0x8000000000000000ULL
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
