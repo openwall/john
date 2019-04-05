@@ -381,16 +381,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
-		self_test_running = 0;
 		fmt_init(format);
 		dyna_salt_init(format);
-		if (db->real) {
-			omp_autotune_run(db->real);
-			format->methods.reset(db->real);
-		} else {
-			omp_autotune_run(db);
-			format->methods.reset(db);
-		}
+		omp_autotune_run(db);
+		format->methods.reset(db);
 		format->private.initialized = 2;
 		format->methods.clear_keys();
 		return NULL;
@@ -802,18 +796,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				fmt_set_key(pCand, i);
 			}
 
-#if 0
 #if defined(HAVE_OPENCL)
 			advance_cursor();
 #endif
-			/* 2. Perform a limited crypt (in case it matters) */
-			if (format->methods.crypt_all(&min, db->salts) != min)
-				return "crypt_all";
-#endif
-#if defined(HAVE_OPENCL)
-			advance_cursor();
-#endif
-			/* 3. Now read them back and verify they are intact */
+			/* 2. Now read them back and verify they are intact */
 			for (i = 0; i < max; i++) {
 				char *getkey = format->methods.get_key(i);
 				char *setkey = longcand(format, i, ml);
@@ -1592,16 +1578,6 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	char *retval;
 	void *binary_alloc, *salt_alloc;
 	void *binary_copy, *salt_copy;
-#if HAVE_OPENCL
-	static char *orig_lws, *orig_gws;
-
-	orig_lws = getenv("LWS");
-	orig_gws = getenv("GWS");
-
-	/* Force quick self-test without auto-tune */
-	setenv("LWS", "7", 1);
-	setenv("GWS", "49", 1);
-#endif
 
 	binary_copy = alloc_binary(&binary_alloc,
 	    format->params.binary_size?format->params.binary_size:1, format->params.binary_align);
@@ -1613,18 +1589,6 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	retval = fmt_self_test_body(format, binary_copy, salt_copy, db, benchmark_level);
 
 	self_test_running = 0;
-
-#if HAVE_OPENCL
-	/* Reset original values */
-	if (orig_lws)
-		setenv("LWS", orig_lws, 1);
-	else
-		unsetenv("LWS");
-	if (orig_gws)
-		setenv("GWS", orig_gws, 1);
-	else
-		unsetenv("GWS");
-#endif
 
 	MEM_FREE(salt_alloc);
 	MEM_FREE(binary_alloc);

@@ -875,27 +875,26 @@ AGAIN:
 			goto next;
 		}
 
-		if (john_main_process) {
-			printf("%s%s",
-			       (options.flags & FLG_NOTESTS) ? "SKIP" : "PASS",
-			       benchmark_time ? ", " : "\n");
+		if (john_main_process && !(options.flags & FLG_NOTESTS)) {
+			if (!benchmark_time)
+				printf("PASS\n");
+			else if (options.verbosity >= VERB_MAX)
+				printf("PASS, ");
 			fflush(stdout);
 		}
 
 		if (!benchmark_time)
 			goto next;
 
-		/*
-		 * Re-init for benchmark.  We need to trigger a proper auto-tune
-		 * for benchmark, with mask or not as appropriate
-		 */
-		fmt_done(format);
-
 		/* Re-init with mask mode if applicable */
 		if (options.flags & FLG_MASK_CHK)
 			mask_init(test_db, options.mask);
 
-		fmt_init(format);
+		/*
+		 * Re-init for benchmark.  While the self-tests were done with very
+		 * low work sizes, we now need a proper auto-tune for benchmark, with
+		 * internal mask if applicable.
+		 */
 		format->methods.reset(test_db);
 #endif
 		if ((result = benchmark_format(format, salts,
@@ -991,14 +990,6 @@ AGAIN:
 			printf("Warning: \"Many salts\" test limited: %d/%d\n",
 			       results_m.salts_done, BENCHMARK_MANY);
 		}
-
-		/* Format supports internal (eg. GPU-side) mask */
-		if (benchmark_time && format->params.flags & FMT_MASK &&
-#ifndef BENCH_BUILD
-		    !(options.flags & FLG_MASK_CHK) &&
-#endif
-		    john_main_process)
-			fprintf(stderr, "Note: This format should be used and benchmarked with --mask (see doc/MASK).\n");
 
 		benchmark_cps(results_m.crypts, results_m.real, s_real);
 		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);
