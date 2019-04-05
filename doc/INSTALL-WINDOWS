@@ -29,14 +29,14 @@ system.
 ==== Download latest snapshot of source
 
     Download https://github.com/magnumripper/JohnTheRipper/archive/bleeding-jumbo.zip
-    Unzip it to your preferred directory   
+    Unzip it to your preferred directory
 
 ==== Build
 
     - Inside a CygWin terminal
 
     - Go to the folder you unzipped John the Ripper source code. E.g.:
-      cd c:\Users\YourName\Desktop\john\src
+      cd c:\Users\YourName\Desktop\JohnTheRipper-bleeding-jumbo\src
 
     - Build
       ./configure && make -s clean && make -sj4
