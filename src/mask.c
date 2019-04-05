@@ -49,6 +49,8 @@ struct db_main *mask_db;
 static int mask_bench_index;
 static int parent_fix_state_pending;
 static unsigned int int_mask_sum, format_cannot_reset;
+static int using_default_mask;
+
 
 int mask_add_len, mask_num_qw, mask_cur_len, mask_iter_warn;
 int mask_increments_len;
@@ -2112,7 +2114,6 @@ static void finalize_mask(int len);
  */
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
-	int using_default_mask = 0;
 	int i;
 
 	mask_db = db;
@@ -2475,11 +2476,16 @@ void mask_destroy()
 	fprintf(stderr, "%s()\n", __FUNCTION__);
 #endif
 
+	if (using_default_mask) {
+		options.mask = NULL;
+		using_default_mask = 0;
+	}
+
 	MEM_FREE(template_key);
 	MEM_FREE(template_key_offsets);
 	MEM_FREE(mask_skip_ranges);
 	MEM_FREE(mask_int_cand.int_cand);
-	mask_int_cand.num_int_cand = 0;
+	mask_int_cand.num_int_cand = 1;
 	mask_int_cand_target = 0;
 }
 
