@@ -445,15 +445,12 @@ side effect is that if John is aborted and later restarted it may redo more
 tests.  Thus, the use of this option is only sensible desirable for very fast
 hash types.
 
---nolog				turns off john.log file
+--no-log			disable log file
 
-This will turn off creation, or updating to the john.log file (which may
-have a different name if the --session=NAME flag was used.)  Often the
-logging is not needed, and this log file can often become very large
-(such as working with many 'fast' rules on a fast format).  The log file
-is often used to check what work has been done, but if this will not be
-needed, and the log file is simply going to be deleted when done, then
-running in --nolog mode may be used.
+This will turn off logging to file (default john.log) in case you are sure
+you wont need it.  The log can sometimes become huge (such as when working
+with many 'fast' rules on a fast format).  The older name --nolog is
+deprecated but will continue to work until next release.
 
 --log-stderr
 

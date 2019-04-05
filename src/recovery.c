@@ -315,8 +315,14 @@ void rec_save(void)
 #endif
 	opt = rec_argv;
 	while (*++opt) {
+		/********* Re-write deprecated options *********/
 		if (!strncmp(*opt, "--internal-encoding", 19))
 			memcpy(*opt, "--internal-codepage", 19);
+		else
+		if (!strcmp(*opt, "--nolog"))
+			*opt = "--no-log";
+		/***********************************************/
+		else
 #ifdef HAVE_MPI
 		if (fake_fork && !strncmp(*opt, "--fork", 6))
 			fake_fork = 0;

@@ -234,7 +234,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.config},
-	{"nolog", FLG_NOLOG, FLG_NOLOG},
+	{"nolog", FLG_NOLOG, FLG_NOLOG}, // Deprecated!
+	{"no-log", FLG_NOLOG, FLG_NOLOG},
 	{"log-stderr", FLG_LOG_STDERR, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
@@ -412,7 +413,7 @@ void opt_print_hidden_usage(void)
 	puts("--max-length=N             request a maximum candidate length in bytes");
 	puts("--field-separator-char=C   use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N        performance tweak, see doc/OPTIONS");
-	puts("--nolog                    disables creation and writing to john.log file");
+	puts("--no-log                   disables creation and writing to john.log file");
 	puts("--log-stderr               log to screen instead of file");
 	puts("--bare-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
 	puts("                           always treat bare hashes as valid");
