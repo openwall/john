@@ -50,6 +50,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   or decrease). If that option isn't set but SingleMaxBufferSize is explicitly
   set to zero, no limit will be applied!  [magnum; 2019]
 
+- When running "-test -mask" benchmark, don't disable self-tests.  Instead
+  perform a non-mask self-test before the mask-mode benchmark.  [magnum; 2019]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
