@@ -3,14 +3,17 @@ PRELUDE:
 ====================
 
 You can use OpenCL if your video card - from now GPU - supports it.
-ATI/AMD and Nvidia support it through their SDK available at
-nvidia and ATI/AMD website.
+ATI/AMD, Intel and Nvidia support it through their SDK available at
+nvidia, Intel and ATI/AMD website.
 
 Some recent distros have all (proprietry) stuff available as normal
 packages.  N.B.  DON'T use X11 opensource drivers provided by your
 distribution, only the vendor-supplied drivers support OpenCL.  Either
-install fglrx (for AMD) or nvidia dkms package or go directly with the
-ones provided by nvidia and ATI.
+install fglrx (for old AMD cards) or nvidia dkms package or go directly
+with the ones provided by nvidia and ATI.
+
+Notice: Beignet, Mesa, and POCL are not officially supported, but may
+be usable in some OpenCL formats.
 
 You can also use OpenCL with CPU, mostly useful if you have several
 (or loads of) cores.  This sometimes outperforms the CPU-only formats
