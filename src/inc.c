@@ -530,7 +530,17 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	if ((min_length = cfg_get_int(SECTION_INC, mode, "MinLen")) < 0)
 		min_length = 0;
 	if ((max_length = cfg_get_int(SECTION_INC, mode, "MaxLen")) < 0)
-		max_length = CHARSET_LENGTH;
+		max_length = MIN(CHARSET_LENGTH, options.eff_maxlength);
+	else if (max_length > our_fmt_len) {
+		log_event("! MaxLen = %d is too large for this hash type", max_length);
+		if (john_main_process && !options.force_maxlength)
+			fprintf(stderr, "Warning: MaxLen = %d is too large "
+			    "for the current hash type, reduced to %d\n",
+			    max_length, our_fmt_len);
+		max_length = our_fmt_len;
+	}
+
+
 	max_count = options.charcount ?
 		options.charcount : cfg_get_int(SECTION_INC, mode, "CharCount");
 
@@ -555,13 +565,10 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 			min_length = 0;
 	}
 
-	if (options.req_maxlength) {
-		max_length = options.eff_maxlength;
 #if HAVE_REXGEN
-		if (regex)
-			max_length--;
+	if (regex)
+		max_length--;
 #endif
-	}
 
 	if (options.req_minlength >= 0 && !options.req_maxlength &&
 	    min_length > max_length &&
@@ -588,17 +595,6 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 			    "length for the current hash type (%d)\n",
 			    min_length, db->format->params.plaintext_length);
 		error();
-	}
-
-	if (max_length > our_fmt_len) {
-		log_event("! MaxLen = %d is too large for this hash type",
-		    max_length);
-		if (john_main_process)
-			fprintf(stderr, "Warning: MaxLen = %d is too large "
-			    "for the current hash type, reduced to %d\n",
-			    max_length,
-			    our_fmt_len);
-		max_length = our_fmt_len;
 	}
 
 	if (max_length > CHARSET_LENGTH) {
