@@ -62,6 +62,11 @@ system.
 
 ==== Optional REXGEN support (additional cracking modes)
 
+    NOTE this support is experimental and may not build at all until tweaked.
+    The rexgen library is notorious for changing its API between versions,
+    breaking stuff.  Leave this step out unless you really know that you want
+    it and are capable of fixing issues.
+
     sudo apt-get -y install cmake bison flex libicu-dev
     cd ~/src
     git clone --recursive https://github.com/teeshop/rexgen.git
@@ -80,6 +85,13 @@ system.
     cd ~/src/john/src
     # For MPI, use './configure --enable-mpi' below
     ./configure && make -s clean && make -sj4
+
+    If you installed librexgen and build fails, re-run ./configure with the
+    option "--disable-rexgen" added.
+
+=== Install TAB-completion
+
+    sudo make shell-completion
 
 === Test your build
 
