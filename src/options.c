@@ -236,6 +236,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.config},
 	{"nolog", FLG_NOLOG, FLG_NOLOG}, // Deprecated!
 	{"no-log", FLG_NOLOG, FLG_NOLOG},
+	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK,
+		FLG_MASK_CHK},
 	{"log-stderr", FLG_LOG_STDERR, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
@@ -347,6 +349,7 @@ JOHN_USAGE_REGEX \
 "--make-charset=FILE        make a charset file. It will be overwritten\n" \
 "--show[=left]              show cracked passwords [if =left, then uncracked]\n" \
 "--test[=TIME]              run tests and benchmarks for TIME seconds each\n" \
+"                           (if TIME is explicitly 0, test w/o benchmark)\n" \
 "--users=[-]LOGIN|UID[,..]  [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]       load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]     load users with[out] this (these) shell(s) only\n" \
@@ -438,6 +441,7 @@ void opt_print_hidden_usage(void)
 	puts("--skip-self-tests          skip self tests");
 	puts("--test-full[=LEVEL]        run more thorough self-tests");
 	puts("--stress-test[=TIME]       loop self tests forever");
+	puts("--no-mask                  used with --test for alternate benchmark w/o mask");
 #ifdef HAVE_FUZZ
 	puts("--fuzz[=DICTFILE]          fuzz formats' prepare(), valid() and split()");
 	puts("--fuzz-dump[=FROM,TO]      dump the fuzzed hashes between FROM and TO to file pwfile.format");
@@ -510,6 +514,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.length = -1;
 
 	opt_process(opt_list, &options.flags, argv);
+
+	if ((options.flags & FLG_TEST_CHK) && benchmark_time &&
+	    !(options.flags & FLG_NO_MASK_BENCH))
+		options.flags |= FLG_MASK_SET;
 
 #if HAVE_REXGEN
 	/* We allow regex as parent for hybrid mask, not vice versa */

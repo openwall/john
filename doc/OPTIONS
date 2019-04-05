@@ -194,12 +194,19 @@ file will be used as the format type.
 Tests all of the compiled in hashing algorithms for proper operation and
 benchmarks them.  The "--format" option can be used to restrict this to
 a specific algorithm.  Using --test=0 will do a very quick self-test but
-will not produce any speed figures.
+no benchmark.
 
 --stress-test[=TIME]		continuous self-test
 
 Perform self-tests just like with --test except it loops until failure or
 until aborted by user.  This is mostly for debugging.
+
+--no-mask			benchmark using regular test vectors
+
+This is used together with --test.  By default the benchmark is made using
+mask mode, which with some OpenCL or ZTEX formats is accelerated fully or
+partially on device-side.  Adding this option switches back to the legacy
+style benchmark, using test vectors.
 
 --skip-self-tests		skip self tests
 

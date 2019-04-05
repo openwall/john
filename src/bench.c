@@ -866,14 +866,6 @@ AGAIN:
 			       results_m.salts_done, BENCHMARK_MANY);
 		}
 
-		/* Format supports internal (eg. GPU-side) mask */
-		if (benchmark_time && format->params.flags & FMT_MASK &&
-#ifndef BENCH_BUILD
-		    !(options.flags & FLG_MASK_CHK) &&
-#endif
-		    john_main_process)
-			fprintf(stderr, "Note: This format may also be benchmarked using --mask (see doc/MASK).\n");
-
 		benchmark_cps(results_m.crypts, results_m.real, s_real);
 		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)

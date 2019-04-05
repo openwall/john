@@ -190,6 +190,7 @@
 #define FLG_SUBSETS_CHK			0x0800000000000000ULL
 #define FLG_SUBSETS_SET \
 	(FLG_SUBSETS_CHK | FLG_CRACKING_SET)
+#define FLG_NO_MASK_BENCH		0x1000000000000000ULL
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
