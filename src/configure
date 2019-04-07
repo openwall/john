@@ -1410,7 +1410,7 @@ Optional Features:
                           Enable OpenMP for fast formats (usually a bad idea -
                           use fork instead)
   --enable-mpi            Use OpenMPI
-  --disable-rexgen        Disable use of rexgen library
+  --enable-rexgen         Enable use of rexgen library (experimental)
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not test build system for target features.
   --enable-native-march   Use things like -march=native if valid compiler
@@ -3523,7 +3523,7 @@ fi
 if test "${enable_rexgen+set}" = set; then :
   enableval=$enable_rexgen; enable_rexgen=$enableval
 else
-  enable_rexgen=auto
+  enable_rexgen=no
 fi
 
 # Check whether --enable-pcap was given.
@@ -17620,7 +17620,7 @@ libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
 libz (pkzip and some other formats) ........ ${using_zlib}
 libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
-librexgen (regex cracking mode) ............ ${using_rexgen}
+librexgen (experimental regex mode) ........ ${using_rexgen}
 OpenMPI support (default disabled) ......... ${using_mpi}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 
