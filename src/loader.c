@@ -477,7 +477,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 	    strnlen(*ciphertext, 10) < 10 && strncmp(*ciphertext, "$dummy$", 7) &&
 	    strncmp(*ciphertext, "$0$", 3)) {
 		if (db_opts->showtypes) {
-			showformats_nis(login, ciphertext, db_opts, line_no);
+			showformats_skipped("NIS", login, ciphertext,
+			                    db_opts, line_no);
 		}
 		return 0;
 	}
@@ -506,8 +507,11 @@ static int ldr_split_line(char **login, char **ciphertext,
 				(*ciphertext)--;
 			if (p - *ciphertext < 13) {
 				if (db_opts->showtypes) {
-					showformats_lonely(ciphertext,
-					                   db_opts, line_no);
+/* login is not set at this point, so we pass NULL. */
+					showformats_skipped("lonely",
+					                    NULL,
+					                    ciphertext,
+					                    db_opts, line_no);
 				}
 				return 0;
 			}
