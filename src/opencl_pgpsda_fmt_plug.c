@@ -218,24 +218,24 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		sizeof(pgpsda_password) * gws, inbuffer, 0, NULL,
-	    multi_profilingEvent[0]), "Copy data to gpu");
+		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+		"Copy data to gpu");
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &gws, lws, 0, NULL,
+		NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]),
 		"Run kernel");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		sizeof(pgpsda_hash) * gws, outbuffer, 0, NULL, multi_profilingEvent[2]),
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
 
 	return count;

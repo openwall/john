@@ -272,10 +272,10 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
 	int index = 0;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -291,17 +291,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (gpg_common_cur_salt->hash_algorithm == HASH_SHA1) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					crypt_kernel, 1, NULL,
-					&gws, lws, 0, NULL,
+					&global_work_size, lws, 0, NULL,
 					multi_profilingEvent[1]), "Run kernel");
 	} else if (gpg_common_cur_salt->hash_algorithm == HASH_SHA256) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					crypt_kernel_sha256, 1, NULL,
-					&gws, lws, 0, NULL,
+					&global_work_size, lws, 0, NULL,
 					multi_profilingEvent[1]), "Run kernel");
 	} else if (gpg_common_cur_salt->hash_algorithm == HASH_SHA512) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					crypt_kernel_sha512, 1, NULL,
-					&gws, lws, 0, NULL,
+					&global_work_size, lws, 0, NULL,
 					multi_profilingEvent[1]), "Run kernel");
 	}
 

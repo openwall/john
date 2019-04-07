@@ -107,7 +107,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	gkey = mem_calloc(gws, sizeof(sha512_key));
 	ghash = mem_calloc(gws, sizeof(sha512_hash));
 
-	// Allocate memory on the GPU
+	///Allocate memory on the GPU
 	mem_in =
 		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 		&ret_code);
@@ -125,11 +125,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		&ret_code);
 	HANDLE_CLERROR(ret_code,"Error while allocating memory for cmp_all result");
 
-	// Assign crypt kernel parameters
+	///Assign crypt kernel parameters
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 
-	// Assign cmp kernel parameters
+	///Assign cmp kernel parameters
 	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
@@ -191,7 +191,7 @@ static void done(void)
 inline static void copy_hash_back()
 {
     if (!hash_copy_back) {
-        HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, outsize, ghash, 0, NULL, NULL), "Copy data back");
+        HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");
         hash_copy_back = 1;
     }
 }
@@ -297,24 +297,23 @@ static int get_hash_6(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t *lws = (local_work_size && !(count % local_work_size)) ?
-		&local_work_size : NULL;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = count;
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	// Copy data to GPU memory
+	///Copy data to GPU memory
 	if (sha512_key_changed || ocl_autotune_running) {
 		BENCH_CLERROR(clEnqueueWriteBuffer
 		    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
 			multi_profilingEvent[0]), "Copy memin");
 	}
 
-	// Run kernel
+	///Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
 		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
-	// Reset key to unchanged and hashes uncopy to host
+	/// Reset key to unchanged and hashes uncopy to host
 	sha512_key_changed = 0;
     hash_copy_back = 0;
 
@@ -324,19 +323,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	uint32_t result;
-	size_t *lws = (local_work_size && !(count % local_work_size)) ?
-		&local_work_size : NULL;
-
-	// Copy binary to GPU memory
+	///Copy binary to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary, CL_FALSE,
 		0, sizeof(uint64_t), ((uint64_t*)binary)+3, 0, NULL, NULL), "Copy mem_binary");
 
-	// Run kernel
+	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[gpu_id], cmp_kernel, 1, NULL, &global_work_size, lws,
+	    (queue[gpu_id], cmp_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, NULL), "Set ND range");
 
-	// Copy result out
+	/// Copy result out
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cmp, CL_TRUE, 0,
 		sizeof(uint32_t), &result, 0, NULL, NULL), "Copy data back");
 

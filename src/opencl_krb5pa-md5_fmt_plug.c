@@ -831,9 +831,11 @@ static void prepare_table(struct db_main *db)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
+
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
+
+	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
 	if (set_new_keys || ocl_autotune_running) {
