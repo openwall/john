@@ -779,7 +779,10 @@ AGAIN:
 		}
 
 		if (john_main_process) {
-			printf("PASS ");
+			if (options.flags & FLG_NOTESTS)
+				printf("SKIP ");
+			else
+				printf("PASS ");
 			fflush(stdout);
 		}
 

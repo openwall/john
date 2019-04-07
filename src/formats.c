@@ -69,11 +69,9 @@ void fmt_init(struct fmt_main *format)
 
 	if (!format->private.initialized) {
 #ifndef BENCH_BUILD
-		if (options.flags & (FLG_LOOPTEST | FLG_MASK_CHK)) {
-			orig_min = format->params.min_keys_per_crypt;
-			orig_max = format->params.max_keys_per_crypt;
-			orig_len = format->params.plaintext_length;
-		}
+		orig_min = format->params.min_keys_per_crypt;
+		orig_max = format->params.max_keys_per_crypt;
+		orig_len = format->params.plaintext_length;
 #endif
 		if (!fmt_raw_len)
 			fmt_raw_len = format->params.plaintext_length;
@@ -81,7 +79,7 @@ void fmt_init(struct fmt_main *format)
 #ifndef BENCH_BUILD
 		/* NOTE, we have to grab these values (the first time), from after
 		   the format has been initialized for thin dynamic formats */
-		if (options.flags & FLG_LOOPTEST && orig_len == 0 && format->params.plaintext_length) {
+		if (orig_len == 0 && format->params.plaintext_length) {
 			orig_min = format->params.min_keys_per_crypt;
 			orig_max = format->params.max_keys_per_crypt;
 			orig_len = format->params.plaintext_length;
@@ -134,13 +132,10 @@ void fmt_done(struct fmt_main *format)
 		opencl_done();
 #endif
 #ifndef BENCH_BUILD
-		if (options.flags & (FLG_LOOPTEST | FLG_MASK_CHK)) {
-			format->params.min_keys_per_crypt = orig_min;
-			format->params.max_keys_per_crypt = orig_max;
-			format->params.plaintext_length = orig_len;
-		}
+		format->params.min_keys_per_crypt = orig_min;
+		format->params.max_keys_per_crypt = orig_max;
+		format->params.plaintext_length = orig_len;
 #endif
-
 	}
 	fmt_raw_len = 0;
 }
