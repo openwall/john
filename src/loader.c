@@ -514,8 +514,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 /* Check for NIS stuff */
 	if (((*login)[0] == '+' && (!(*login)[1] || (*login)[1] == '@')) &&
-	    (*ciphertext)[0] != '$' && strnlen(*ciphertext, 10) < 10 &&
-	    strncmp(*ciphertext, "$dummy$", 7)) {
+	    strnlen(*ciphertext, 10) < 10 && strncmp(*ciphertext, "$dummy$", 7) &&
+	    strncmp(*ciphertext, "$0$", 3)) {
 		if (db_opts->showtypes) {
 			int fs = db_opts->field_sep_char;
 
@@ -548,9 +548,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 		p++;
 /* Some valid dummy or plaintext hashes may be shorter than 10 characters,
  * so don't subject them to the length checks. */
-		if (((*ciphertext)[0] != '$' ||
-		    (strncmp(*ciphertext, "$dummy$", 7) &&
-		    strncmp(*ciphertext, "$0$", 3))) &&
+		if (strncmp(*ciphertext, "$dummy$", 7) &&
+		    strncmp(*ciphertext, "$0$", 3) &&
 		    p - *ciphertext != 10 /* not tripcode */) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
