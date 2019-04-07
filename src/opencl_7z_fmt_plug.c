@@ -442,7 +442,10 @@ static void *get_salt(char *ciphertext)
 		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtokm(NULL, "$"); /* crc */
-	cs.crc = atou(p); /* unsigned function */
+	if (p[0] == '-')
+		cs.crc = (unsigned int)atoi(p); /* signed function, cast to unsigned */
+	else
+		cs.crc = atou(p); /* unsigned function */
 	p = strtokm(NULL, "$");
 	cs.length = atoll(p);
 	psalt = malloc(sizeof(struct custom_salt) + cs.length - 1);

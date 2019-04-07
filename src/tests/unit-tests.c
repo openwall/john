@@ -187,7 +187,7 @@ int digit_val(char c)
 // (one function for unsigned, one for signed)
 uint64_t toDeci_ull(char *s, int base)
 {
-	// unsigned atoi with base handling from 2 to 26
+	// unsigned int atoi with base handling from 2 to 26
 	int i, len = strlen(s);
 	uint64_t power = 1, num = 0;
 
@@ -952,7 +952,7 @@ void test_strtokm() {
 	_test_strtokm("  *", 9, "11", "22", "3", "", "6", "", "33", "44", "55");
 	end_test();
 }
-// unsigned atou(const char *src)
+// unsigned int atou(const char *src)
 void test_atou() {
 	unsigned u;
 
@@ -2458,7 +2458,7 @@ int main() {
 	test_strnzcat();	// char *strnzcat(char *dst, const char *src, int size)
 	test_strnzcatn();	// char *strnzcatn(char *dst, int size, const char *src, int src_max)
 	test_strtokm();		// char *strtokm(char *s1, const char *delims)
-	test_atou();		// unsigned atou(const char *src)
+	test_atou();		// unsigned int atou(const char *src)
 	test_jtr_itoa();	// const char *jtr_itoa(int val, char *result, int rlen, int base)
 	test_jtr_utoa();	// const char *jtr_utoa(unsigned int val, char *result, int rlen, int base)
 	test_jtr_lltoa();	// const char *jtr_lltoa(int64_t val, char *result, int rlen, int base)

@@ -445,7 +445,7 @@ char *strtokm(char *s1, const char *delims)
 	return s1;
 }
 
-unsigned atou(const char *src)
+unsigned int atou(const char *src)
 {
 	unsigned val;
 

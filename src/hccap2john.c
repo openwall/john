@@ -36,7 +36,7 @@
 #include "hccap.h"
 
 // Duplicated here to overcome linking problems. This file can't link with misc.o file easily.
-unsigned atou(const char *src) {
+unsigned int atou(const char *src) {
 	unsigned val;
 	sscanf(src, "%u", &val);
 	return val;

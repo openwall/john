@@ -147,7 +147,7 @@ extern char *strnzcatn(char *dst, int size, const char *src, int max_src);
  * Similar to atoi(), but properly handles unsigned int.  Do not use
  * atoi() for unsigned data if the data can EVER be over MAX_INT.
  */
-extern unsigned atou(const char *src);
+extern unsigned int atou(const char *src);
 
 /*
  * Similar to strtok(), but properly handles adjacent delimiters as
