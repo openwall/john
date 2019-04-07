@@ -87,10 +87,10 @@ static keyring_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
 
-#define insize (sizeof(keyring_password) * gws)
-#define outsize (sizeof(keyring_hash) * gws)
+#define insize (sizeof(keyring_password) * global_work_size)
+#define outsize (sizeof(keyring_hash) * global_work_size)
 #define settingsize (sizeof(keyring_salt))
-#define cracked_size (sizeof(*cracked) * gws)
+#define cracked_size (sizeof(*cracked) * global_work_size)
 
 #define STEP                    0
 #define SEED                    256
@@ -108,7 +108,7 @@ static size_t get_task_max_work_group_size()
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
-static void create_clobj(size_t gws, struct fmt_main *self)
+static void create_clobj(size_t global_work_size, struct fmt_main *self)
 {
 	cl_int cl_error;
 	inbuffer = (keyring_password*) mem_calloc(1, insize);
@@ -331,9 +331,9 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -341,8 +341,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]),
+		NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 	    "Run kernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,

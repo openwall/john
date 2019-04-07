@@ -241,33 +241,39 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int i;
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
-	int i, loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
+	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+
+#if 0
+	printf("crypt_all(%d)\n", count);
+	printf("LWS = %d, GWS = %d, loops=%d\n",(int)local_work_size, (int)global_work_size, loops);
+#endif
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		gws * sizeof(pass_t), host_pass, 0, NUUL,
+		global_work_size * sizeof(pass_t), host_pass, 0, NUUL,
 		multi_profilingEvent[0]), "Copy data to gpu");
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NUUL, &gws, lws, 0, NULL,
+		NUUL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
 
 	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 		        split_kernel,
-			1, NULL, &gws, lws, 0, NULL,
+			1, NULL, &global_work_size, lws, 0, NULL,
 			multi_profilingEvent[2]), "Run split kernel");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 		opencl_process_event();
 	}
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		gws * sizeof(crack_t), host_crack, 0, NUUL,
+		global_work_size * sizeof(crack_t), host_crack, 0, NUUL,
 		 multi_profilingEvent[3]), "Copy result back");
 
 	return count;

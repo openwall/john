@@ -111,19 +111,21 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	// Allocate memory
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
 	if (ret_code != CL_SUCCESS) {
-		saved_plain = mem_alloc(BUFSIZE * gws);
+		saved_plain = mem_calloc(gws, BUFSIZE);
 		if (saved_plain == NULL)
 			HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys.");
 	}
 	else {
 		saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain.");
+		memset(saved_plain, 0, BUFSIZE * gws);
 	}
 
 	pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx.");
 	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx.");
+	memset(saved_idx, 0, sizeof(cl_uint) * gws);
 
 	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys.");
@@ -306,9 +308,8 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	if (new_keys || ocl_autotune_running) {
 		if (key_idx)
@@ -329,8 +330,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		sizeof(keystore_hash) * gws, outbuffer, 0, NULL,
-		multi_profilingEvent[3]), "Copy result back");
+		outsize, outbuffer, 0, NULL, multi_profilingEvent[3]),
+	              "Copy result back");
 
 	return count;
 }

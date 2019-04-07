@@ -343,9 +343,9 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	if (saved_salt->v.type) {
 		// This salt passed valid() but failed get_salt().
@@ -355,19 +355,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// Copy data to gpu
-	insize = sizeof(zip_password) * gws;
+	insize = sizeof(zip_password) * global_work_size;
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
 		"Copy data to gpu");
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &gws, lws, 0, NULL,
+		NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]),
 		"Run kernel");
 
 	// Read the result back
-	outsize = sizeof(zip_hash) * gws;
+	outsize = sizeof(zip_hash) * global_work_size;
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
 		"Copy result back");
