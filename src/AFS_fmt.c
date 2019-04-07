@@ -22,7 +22,7 @@
 #define FORMAT_NAME			"Kerberos AFS"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		8
+#define BENCHMARK_LENGTH		0x208
 
 #define PLAINTEXT_LENGTH		63
 #define CIPHERTEXT_LENGTH		20

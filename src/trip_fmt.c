@@ -21,7 +21,7 @@
 #define FORMAT_NAME			""
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		8
 #define CIPHERTEXT_LENGTH		10
