@@ -548,8 +548,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 		p++;
 /* Some valid dummy or plaintext hashes may be shorter than 10 characters,
  * so don't subject them to the length checks. */
-		if (strncmp(*ciphertext, "$dummy$", 7) &&
-		    strncmp(*ciphertext, "$0$", 3) &&
+		if (((*ciphertext)[0] != '$' ||
+		    (strncmp(*ciphertext, "$dummy$", 7) &&
+		    strncmp(*ciphertext, "$0$", 3))) &&
 		    p - *ciphertext != 10 /* not tripcode */) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
