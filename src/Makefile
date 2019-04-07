@@ -108,6 +108,7 @@ default:
 	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best)"
 	@echo "linux-arm32le            Linux, ARM 32-bit little-endian"
 	@echo "linux-alpha              Linux, Alpha"
+	@echo "linux-sparc64            Linux, SPARC 64-bit"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
@@ -340,6 +341,13 @@ linux-alpha-ccc:
 		LDFLAGS="$(LDFLAGS) -lcrypt" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-O2 -arch host"
+
+linux-sparc64:
+	$(LN) sparc64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -m64 -lcrypt"
 
 linux-sparc:
 	$(LN) sparc32.h arch.h
