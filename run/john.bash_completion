@@ -617,7 +617,7 @@ _john()
 			;;
 		--show=?(*))
 			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
-			COMPREPLY=( $(compgen -W "left types types-json invalid" -- ${cur}) )
+			COMPREPLY=( $(compgen -W "left formats types invalid" -- ${cur}) )
 			return 0
 			;;
 		--users=?(-)+(L|U)*|--groups=+(-|G)*|--shells=+(-|S)*|--salts=+(-|C)*)

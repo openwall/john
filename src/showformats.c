@@ -61,7 +61,7 @@ static void showformats_nis(char **login, char **ciphertext,
 {
 	int fs = db_opts->field_sep_char;
 
-	if (db_opts->showtypes_json) {
+	if (!db_opts->showformats_old) {
 		/* NOTE: closing "]" for JSON is in john.c. */
 		printf("%s{\"lineNo\":%d,",
 		       line_no == 1 ? "[" : ",\n",
@@ -83,7 +83,7 @@ static void showformats_lonely(char **ciphertext, struct db_options *db_opts,
 {
 	int fs = db_opts->field_sep_char;
 
-	if (db_opts->showtypes_json) {
+	if (!db_opts->showformats_old) {
 		/* NOTE: closing "]" for JSON is in john.c. */
 		printf("%s{\"lineNo\":%d,",
 		       line_no == 1 ? "[" : ",\n",
@@ -185,7 +185,7 @@ void showformats_regular(char **login, char **ciphertext,
 	 * then a parser have to match input line with output line
 	 * by number of line.
 	 */
-	if (db_opts->showtypes_json) {
+	if (!db_opts->showformats_old) {
 		/* NOTE: closing "]" for JSON is in john.c. */
 		printf("%s{\"lineNo\":%d,",
 		       line_no == 1 ? "[" : ",\n",
@@ -258,14 +258,14 @@ void showformats_regular(char **login, char **ciphertext,
 		ldr_set_encoding(alt);
 		/* Empty field between valid formats */
 		if (not_first_format) {
-			if (db_opts->showtypes_json)
+			if (!db_opts->showformats_old)
 				printf(",{");
 			else
 				printf("%c", fs);
-		} else if (db_opts->showtypes_json)
+		} else if (!db_opts->showformats_old)
 			printf("{");
 		not_first_format = 1;
-		if (db_opts->showtypes_json) {
+		if (!db_opts->showformats_old) {
 			printf("\"label\":\"%s\",",
 			       alt->params.label);
 			if (disabled)
@@ -289,7 +289,7 @@ void showformats_regular(char **login, char **ciphertext,
 			char *split = alt->methods.split(prepared,
 							 part, alt);
 
-			if (db_opts->showtypes_json)
+			if (!db_opts->showformats_old)
 				printf("%s\"%s\"",
 				       part ? "," : "",
 				       escape_json(split));
@@ -297,7 +297,7 @@ void showformats_regular(char **login, char **ciphertext,
 				printf("%c%s", fs, split);
 			check_field_separator(split);
 		}
-		if (db_opts->showtypes_json) {
+		if (!db_opts->showformats_old) {
 			printf("]");
 			if (huge_line) {
 				printf(",\"truncHash\":[");
@@ -315,7 +315,7 @@ void showformats_regular(char **login, char **ciphertext,
 			printf("}");
 		}
 	} while ((alt = alt->next));
-	if (db_opts->showtypes_json) {
+	if (!db_opts->showformats_old) {
 		if (bad_char)
 			printf("],\"consistencyMark\":%d}", bad_char);
 		else
