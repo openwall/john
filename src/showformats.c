@@ -56,7 +56,10 @@ static char *escape_json(char *in)
 	return ret;
 }
 
-static void showformats_nis(char **login, char **ciphertext,
+/* login may be NULL. */
+/* origin is label (informal name of branch) for place in code that
+ * skipped hash. */
+void showformats_skipped(const char *origin, char **login, char **ciphertext,
 	struct db_options *db_opts, int line_no)
 {
 	int fs = db_opts->field_sep_char;
@@ -66,52 +69,20 @@ static void showformats_nis(char **login, char **ciphertext,
 		printf("%s{\"lineNo\":%d,",
 		       line_no == 1 ? "[" : ",\n",
 		       line_no);
-		if (**login)
+		if (login && **login)
 			printf("\"login\":\"%s\",",
 			       escape_json(*login));
 		if (**ciphertext)
 			printf("\"ciphertext\":\"%s\",",
 			       escape_json(*ciphertext));
-		printf("\"consistencyMark\":2}");
+		printf("\"rowFormats\":[],\"skipped\":\"%s\"}", origin);
 	} else
-		printf("%s%c%s%c2%c\n",
-		       *login, fs, *ciphertext, fs,/* 2, */fs);
-}
-
-static void showformats_lonely(char **ciphertext, struct db_options *db_opts,
-	int line_no)
-{
-	int fs = db_opts->field_sep_char;
-
-	if (!db_opts->showformats_old) {
-		/* NOTE: closing "]" for JSON is in john.c. */
-		printf("%s{\"lineNo\":%d,",
-		       line_no == 1 ? "[" : ",\n",
-		       line_no);
-		if (**ciphertext)
-			printf("\"ciphertext\":\"%s\",",
-			       escape_json(*ciphertext));
-		printf("\"consistencyMark\":3}");
-	} else
-		printf("%c%s%c3%c\n",
-		       /* empty, */
+		printf("%s%c%s%c%d%c\n",
+		       login ? *login : "",
 		       fs, *ciphertext,
-		       fs, /* 3, */
+		       /* "NIS" is 2, "lonely" is 3 */
+		       fs, (origin[0] == 'N' ? 2 : 3),
 		       fs);
-}
-
-/* login may be NULL. */
-void showformats_skipped(const char *origin, char **login, char **ciphertext,
-	struct db_options *db_opts, int line_no)
-{
-	/* strcmp(origin, "NIS") */
-	if (origin[0] == 'N') {
-		showformats_nis(login, ciphertext, db_opts, line_no);
-	} else {
-		/* strcmp(origin, "lonely") */
-		/* login is NULL here. */
-		showformats_lonely(ciphertext, db_opts, line_no);
-	}
 }
 
 
@@ -316,10 +287,8 @@ void showformats_regular(char **login, char **ciphertext,
 		}
 	} while ((alt = alt->next));
 	if (!db_opts->showformats_old) {
-		if (bad_char)
-			printf("],\"consistencyMark\":%d}", bad_char);
-		else
-			printf("]}");
+		/* bad_char is not meaningful for JSON. */
+		printf("]}");
 	} else
 		printf("%c%d%c\n", fs, bad_char, fs);
 #undef check_field_separator
