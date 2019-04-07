@@ -523,6 +523,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (options.flags & FLG_MASK_CHK) {
 		if (options.flags & FLG_TEST_CHK) {
 			options.flags &= ~FLG_PWD_SUP;
+			if (john_main_process && !(options.flags & FLG_NOTESTS))
+				fprintf(stderr, "Note: Self-tests currently not performed when using -mask with -test\n");
 			options.flags |= FLG_NOTESTS;
 
 			if (options.mask && strcasestr(options.mask, "?w"))
