@@ -21,7 +21,7 @@
 #define FORMAT_NAME			"BSDI crypt(3)"
 
 #define BENCHMARK_COMMENT		" (\"_J9..\", 725 iterations)"
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		64
 #define CIPHERTEXT_LENGTH		20

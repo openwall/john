@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015,2017 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015,2017,2019 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -54,7 +54,7 @@ static void bench_handle_timer(int signum)
 }
 
 static void bench_set_keys(struct fmt_main *format,
-	struct fmt_tests *current, int cond)
+	struct fmt_tests *current, int pass)
 {
 	char *plaintext;
 	int index, length;
@@ -69,13 +69,18 @@ static void bench_set_keys(struct fmt_main *format,
 			plaintext = current->plaintext;
 			current++;
 
-			if (cond > 0) {
-				if ((int)strlen(plaintext) > length) break;
-			} else
-			if (cond < 0) {
-				if ((int)strlen(plaintext) <= length) break;
-			} else
+			if (length & 0x200) {
+				int current_length = strlen(plaintext);
+				if (pass) {
+					if (current_length > (length & 0xff))
+						break;
+				} else  {
+					if (current_length <= (length & 0xff))
+						break;
+				}
+			} else {
 				break;
+			}
 		} while (1);
 
 		format->methods.set_key(plaintext, index);
@@ -90,7 +95,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	static char s_error[64];
 	char *where;
 	struct fmt_tests *current;
-	int cond;
+	int pass;
 #if OS_TIMER
 	struct itimerval it;
 #endif
@@ -139,13 +144,14 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			    format->params.salt_size);
 	}
 
-	if (format->params.benchmark_length > 0) {
-		cond = (salts == 1) ? 1 : -1;
+	if (salts) {
+		pass = 1;
+	} else {
+		pass = 0;
 		salts = 1;
-	} else
-		cond = 0;
+	}
 
-	bench_set_keys(format, current, cond);
+	bench_set_keys(format, current, pass);
 
 #if OS_TIMER
 	memset(&it, 0, sizeof(it));
@@ -184,7 +190,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			index = salts;
 			if (!(++current)->ciphertext)
 				current = format->params.tests;
-			bench_set_keys(format, current, cond);
+			bench_set_keys(format, current, pass);
 		}
 
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
@@ -230,9 +236,6 @@ void benchmark_cps(uint64_t crypts, clock_t time, char *buffer)
 int benchmark_all(void)
 {
 	struct fmt_main *format;
-	char *result, *msg_1, *msg_m;
-	struct bench_results results_1, results_m;
-	char s_real[64], s_virtual[64];
 	unsigned int total, failed;
 
 	if (!benchmark_time)
@@ -242,6 +245,11 @@ int benchmark_all(void)
 	total = failed = 0;
 	if ((format = fmt_list))
 	do {
+		int salts;
+		char *result, *msg_1, *msg_m;
+		struct bench_results results_1, results_m;
+		char s_real[64], s_virtual[64];
+
 		printf("Benchmarking: %s%s%s%s [%s]... ",
 		    format->params.label,
 		    format->params.format_name[0] ? ", " : "",
@@ -250,27 +258,23 @@ int benchmark_all(void)
 		    format->params.algorithm_name);
 		fflush(stdout);
 
-		switch (format->params.benchmark_length) {
-		case -1:
+		salts = 0;
+		if (!format->params.salt_size ||
+		    (format->params.benchmark_length & 0x100)) {
 			msg_m = "Raw";
 			msg_1 = NULL;
-			break;
-
-		case 0:
-			msg_m = "Many salts";
-			msg_1 = "Only one salt";
-			break;
-
-		default:
+		} else if (format->params.benchmark_length & 0x200) {
 			msg_m = "Short";
 			msg_1 = "Long";
+		} else {
+			salts = BENCHMARK_MANY;
+			msg_m = "Many salts";
+			msg_1 = "Only one salt";
 		}
 
 		total++;
 
-		if ((result = benchmark_format(format,
-		    format->params.salt_size ? BENCHMARK_MANY : 1,
-		    &results_m))) {
+		if ((result = benchmark_format(format, salts, &results_m))) {
 			puts(result);
 			failed++;
 			goto next;

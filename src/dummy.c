@@ -19,7 +19,7 @@
 #define ALGORITHM_NAME			"N/A"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		7
 
 /* Max 125, but 95 typically produces fewer L1 data cache tag collisions */
 #define PLAINTEXT_LENGTH		95
