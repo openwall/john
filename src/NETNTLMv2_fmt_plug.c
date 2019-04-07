@@ -46,6 +46,7 @@ john_register_one(&fmt_NETNTLMv2);
 
 #include <stdint.h>
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -62,6 +63,10 @@ john_register_one(&fmt_NETNTLMv2);
 
 #ifndef uchar
 #define uchar unsigned char
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			16	// MKPC and OMP_SCALE tuned for core i7
 #endif
 
 #define FORMAT_LABEL		"netntlmv2"
@@ -85,10 +90,7 @@ john_register_one(&fmt_NETNTLMv2);
 
 // these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#ifndef OMP_SCALE
-#define OMP_SCALE		3072
-#endif
+#define MAX_KEYS_PER_CRYPT	32
 
 static struct fmt_tests tests[] = {
   {"", "password",                  {"USER1",                 "", "Domain",        "1122334455667788","5E4AB1BF243DCA304A00ADEF78DC38DF","0101000000000000BB50305495AACA01338BC7B090A62856000000000200120057004F0052004B00470052004F00550050000000000000000000"} },
@@ -118,9 +120,8 @@ static int keys_prepared;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
 	                         sizeof(*saved_plain));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,

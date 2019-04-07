@@ -23,12 +23,8 @@ john_register_one(&fmt_bitlocker);
 #else
 
 #include <string.h>
-
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
 #endif
 
 #include "arch.h"
@@ -46,6 +42,10 @@ john_register_one(&fmt_bitlocker);
 #include "bitlocker_common.h"
 #define CPU_FORMAT              1
 #include "bitlocker_variable_code.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               1	// MKPC and OMP_SCALE tuned for core i7
+#endif
 
 #define FORMAT_LABEL            "BitLocker"
 #if ARCH_BITS >= 64
@@ -69,9 +69,8 @@ static bitlocker_custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;

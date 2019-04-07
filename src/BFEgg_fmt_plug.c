@@ -15,30 +15,18 @@ john_register_one(&fmt_BFEgg);
 #else
 
 #include <string.h>
-
 #ifdef _OPENMP
 #include <omp.h>
-// Tuning on AMD A8 4500M laptop, cygwin64 with OMP(4x) -test=5
-// 4   = 44330 (original)
-// 16  = 54760
-// 24  = 56151
-// 32  = 56216
-// 64  = 57770
-// 96  = 57888
-// 128 = 58016  > instant -test=0
-// 256 = 58282  // from here on, not enough gain to matter.
-// 512 = 58573
-// 1024= 59464
-// 4096= 59244  > 1s -test=0
-#ifndef OMP_SCALE
-#define OMP_SCALE               128
-#endif
 #endif
 
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
 #include "blowfish.c"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               256	// MKPC and OMP_SCALE tuned for core i7
+#endif
 
 #define FORMAT_LABEL            "bfegg"
 #define FORMAT_NAME             "Eggdrop"
@@ -53,7 +41,7 @@ john_register_one(&fmt_BFEgg);
 #define SALT_SIZE               0
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      2
 
 static struct fmt_tests tests[] = {
     {"+9F93o1OxwgK1", "123456"},
@@ -93,9 +81,8 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 void init(struct fmt_main *self) {
 	const char *pos;
 
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,

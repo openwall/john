@@ -24,12 +24,8 @@ john_register_one(&fmt_aixssha512);
 #else
 
 #include <string.h>
-
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               8 // Tuned on i7 w/HT for SHA-256
-#endif
 #endif
 
 #include "arch.h"
@@ -41,6 +37,10 @@ john_register_one(&fmt_aixssha512);
 #include "pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "pbkdf2_hmac_sha512.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4	// MKPC and OMP_SCALE tuned for core i7
+#endif
 
 #define FORMAT_LABEL_SHA1       "aix-ssha1"
 #define FORMAT_LABEL_SHA256     "aix-ssha256"
@@ -123,9 +123,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_align(sizeof(*crypt_out),
