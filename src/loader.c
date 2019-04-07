@@ -476,7 +476,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (((*login)[0] == '+' && (!(*login)[1] || (*login)[1] == '@')) &&
 	    strnlen(*ciphertext, 10) < 10 && strncmp(*ciphertext, "$dummy$", 7) &&
 	    strncmp(*ciphertext, "$0$", 3)) {
-		if (db_opts->showtypes) {
+		if (db_opts->showformats) {
 			showformats_skipped("NIS", login, ciphertext,
 			                    db_opts, line_no);
 		}
@@ -506,7 +506,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 			if (p - *ciphertext == 12 && *ciphertext - *login == 1)
 				(*ciphertext)--;
 			if (p - *ciphertext < 13) {
-				if (db_opts->showtypes) {
+				if (db_opts->showformats) {
 /* login is not set at this point, so we pass NULL. */
 					showformats_skipped("lonely",
 					                    NULL,
@@ -556,7 +556,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	*gecos = fields[4];
 	*home = fields[5];
 
-	if (fields[0] == no_username && !db_opts->showtypes)
+	if (fields[0] == no_username && !db_opts->showformats)
 		goto find_format;
 
 	gid = fields[3];
@@ -607,7 +607,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (ldr_check_list(db_opts->groups, gid, gid)) return 0;
 	if (ldr_check_shells(db_opts->shells, shell)) return 0;
 
-	if (db_opts->showtypes) {
+	if (db_opts->showformats) {
 		showformats_regular(login, ciphertext,
 				    gecos, home, uid,
 				    source, db_opts, line_no,

@@ -176,9 +176,10 @@ If --show=left then all uncracked hashes are listed (in a John 'input'
 file format way).  =left is just that literal string "=left".  When
 using --show=left you normally need to supply the --format option too.
 
---show=type			show the types found in the input file
+--show=formats			parse hashes and show meta-information in JSON
+--show=types				or in old custom format
 
-Shows the types of input hashes contained in the input file.
+Shows the formats/types of input hashes contained in the input file.
 
 --show=invalid			show lines in the input file that fail valid()
 

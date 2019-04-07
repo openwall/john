@@ -1165,7 +1165,7 @@ static void john_load(void)
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
 
-			if (!options.loader.showtypes) {
+			if (!options.loader.showformats) {
 				ldr_show_pot_file(&database, options.activepot);
 /*
  * Load optional extra (read-only) pot files. If an entry is a directory,
@@ -1187,7 +1187,7 @@ static void john_load(void)
 			        database.password_count,
 			        database.password_count != 1 ? "es" : "");
 			else
-			if (john_main_process && !options.loader.showtypes)
+			if (john_main_process && !options.loader.showformats)
 			printf("%s%d password hash%s cracked, %d left\n",
 				database.guess_count ? "\n" : "",
 				database.guess_count,
@@ -1195,7 +1195,8 @@ static void john_load(void)
 				database.password_count -
 				database.guess_count);
 
-			if (options.loader.showtypes_json)
+			if (options.loader.showformats &&
+			    !options.loader.showformats_old)
 				puts("]");
 
 			fmt_all_done();

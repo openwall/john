@@ -207,11 +207,11 @@ struct db_options {
 /* if --show=left is used, john dumps the non-cracked hashes */
 	int showuncracked;
 
-/* if --show=types is used, john shows all hashes in machine readable form */
-	int showtypes;
+/* if --show=formats is used, show all hashes in JSON form */
+	int showformats;
 
-/* if --show=types-json is used, show all hashes in JSON form */
-	int showtypes_json;
+/* if --show=types is used, john shows all hashes in machine readable form */
+	int showformats_old;
 
 /* if --show=invalid is used, john shows all hashes which fail valid() */
 	int showinvalid;
