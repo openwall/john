@@ -105,7 +105,8 @@ default:
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
 	@echo "linux-mic                Linux, Intel MIC (first generation Xeon Phi)"
-	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best)"
+	@echo "linux-arm64le            Linux, ARM 64-bit little-endian w/ASIMD (best)"
+	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best 32-bit)"
 	@echo "linux-arm32le            Linux, ARM 32-bit little-endian"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc64            Linux, SPARC 64-bit"
@@ -308,6 +309,13 @@ linux-mic:
 		LDFLAGS="$(LDFLAGS) -mmic -openmp -lcrypt" \
 		OPT_INLINE="$(OPT_NORMAL) -finline-functions"
 	@echo "You'll likely need to scp Intel's OpenMP runtime library such as /opt/intel/*/compiler/lib/mic/libiomp?.so over to the target MIC cards and set LD_LIBRARY_PATH in order to run the produced john binary"
+
+linux-arm64le:
+	$(LN) arm64le.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-arm32le-neon:
 	$(LN) arm32le.h arch.h
