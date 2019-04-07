@@ -75,6 +75,9 @@ static uint32_t *saved_int_key_loc, num_loaded_hashes, *hash_ids, *saved_bitmap;
 //ocl_initialized: a reference counter of the openCL objetcts (expect to be 0 or 1)
 static unsigned ocl_initialized = 0;
 
+// Keeps track of whether we should tune for this reset() call.
+static int should_tune;
+
 //Used to control partial key transfers.
 static uint32_t key_idx = 0;
 static size_t offset = 0, offset_idx = 0;
@@ -330,7 +333,7 @@ static void tune(struct db_main *db)
 
 static void reset(struct db_main *db)
 {
-	static size_t saved_lws, saved_gws, should_tune;
+	static size_t saved_lws, saved_gws;
 
 	offset = 0;
 	offset_idx = 0;
@@ -557,9 +560,10 @@ static void done(void)
 		release_clobj();
 		release_kernel();
 		release_mask_buffers();
-
-		autotuned = 0;
 	}
+	autotuned = 0;
+	should_tune = 0;
+	ocl_initialized = 0;
 }
 
 static void prepare_bit_array()
