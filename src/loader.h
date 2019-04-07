@@ -342,4 +342,9 @@ extern int ldr_isa_pot_source(const char *ciphertext);
 /* Common code for determining valid when loading a chopped .pot line */
 extern int ldr_trunc_valid(char *ciphertext, struct fmt_main *format);
 
+/*
+ * This function is for ldr_split_line(), and shared for showformats_regular()
+ */
+extern void ldr_set_encoding(struct fmt_main *format);
+
 #endif
