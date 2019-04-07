@@ -307,6 +307,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	static int binary_size = 0;
 	static char s_error[128];
 	static int wait_salts = 0;
+	char *where;
 	struct fmt_tests *current;
 	int cond;
 #if OS_TIMER
@@ -376,12 +377,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	if (!(current = format->params.tests) || !current->ciphertext)
 		return "FAILED (no data)";
-#ifdef BENCH_BUILD
 	if ((where = fmt_self_test(format, test_db))) {
 		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
 	}
-#endif
 	if (!current->ciphertext)
 		return "FAILED (no ciphertext in test vector)";
 	if (!current->plaintext)
@@ -642,6 +641,16 @@ int benchmark_all(void)
 
 	benchmark_running = 1;
 
+#if defined(HAVE_OPENCL)
+	if (!benchmark_time) {
+		/* This will make the majority of OpenCL formats
+		   also do "quick" benchmarking. But if LWS or
+		   GWS was already set, we do not overwrite. */
+		setenv("LWS", "7", 0);
+		setenv("GWS", "49", 0);
+	}
+#endif
+
 #ifndef BENCH_BUILD
 #if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
 	if (benchmark_time)
@@ -684,6 +693,14 @@ AGAIN:
 		    strstr(format->params.label, "-ztex") ||
 		    !strcmp(format->params.label, "crypt"))
 			fmt_init(format);
+
+		/* [GPU-side] mask mode benchmark */
+		if (options.flags & FLG_MASK_CHK) {
+			static struct db_main fakedb;
+
+			fakedb.format = format;
+			mask_init(&fakedb, options.mask);
+		}
 #endif
 
 #ifdef _OPENMP
@@ -771,31 +788,6 @@ AGAIN:
 
 		test_db = ldr_init_test_db(format, NULL);
 
-#ifndef BENCH_BUILD
-		if ((result = fmt_self_test(format, test_db))) {
-			printf("FAILED (%s)\n", result);
-			failed++;
-			goto next;
-		}
-
-		if (john_main_process) {
-			if (options.flags & FLG_NOTESTS)
-				printf("SKIP ");
-			else
-				printf("PASS ");
-			fflush(stdout);
-		}
-
-		/* [GPU-side] mask mode benchmark */
-		if (options.flags & FLG_MASK_CHK) {
-			fmt_done(format);
-
-			/* Re-init with mask mode */
-			mask_init(test_db, options.mask);
-			fmt_init(format);
-			format->methods.reset(test_db);
-		}
-#endif
 		if ((result = benchmark_format(format,
 		    format->params.salt_size ? BENCHMARK_MANY : 1,
 		    &results_m, test_db))) {
@@ -840,12 +832,10 @@ AGAIN:
 			goto next;
 		}
 
-		if (john_main_process) {
-			if (benchmark_time)
-				puts("\b\b\b\b\bDONE");
-			else
-				puts("");
-		}
+#ifdef HAVE_MPI
+		if (john_main_process)
+#endif
+			printf(benchmark_time ? "DONE\n" : "PASS\n");
 #ifdef _OPENMP
 		// reset this in case format capped it (we may be testing more formats)
 		omp_set_num_threads(ompt_start);

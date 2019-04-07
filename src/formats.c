@@ -69,9 +69,11 @@ void fmt_init(struct fmt_main *format)
 
 	if (!format->private.initialized) {
 #ifndef BENCH_BUILD
-		orig_min = format->params.min_keys_per_crypt;
-		orig_max = format->params.max_keys_per_crypt;
-		orig_len = format->params.plaintext_length;
+		if (options.flags & FLG_LOOPTEST) {
+			orig_min = format->params.min_keys_per_crypt;
+			orig_max = format->params.max_keys_per_crypt;
+			orig_len = format->params.plaintext_length;
+		}
 #endif
 		if (!fmt_raw_len)
 			fmt_raw_len = format->params.plaintext_length;
@@ -79,7 +81,7 @@ void fmt_init(struct fmt_main *format)
 #ifndef BENCH_BUILD
 		/* NOTE, we have to grab these values (the first time), from after
 		   the format has been initialized for thin dynamic formats */
-		if (orig_len == 0 && format->params.plaintext_length) {
+		if (options.flags & FLG_LOOPTEST && orig_len == 0 && format->params.plaintext_length) {
 			orig_min = format->params.min_keys_per_crypt;
 			orig_max = format->params.max_keys_per_crypt;
 			orig_len = format->params.plaintext_length;
@@ -132,10 +134,13 @@ void fmt_done(struct fmt_main *format)
 		opencl_done();
 #endif
 #ifndef BENCH_BUILD
-		format->params.min_keys_per_crypt = orig_min;
-		format->params.max_keys_per_crypt = orig_max;
-		format->params.plaintext_length = orig_len;
+		if (options.flags & FLG_LOOPTEST) {
+			format->params.min_keys_per_crypt = orig_min;
+			format->params.max_keys_per_crypt = orig_max;
+			format->params.plaintext_length = orig_len;
+		}
 #endif
+
 	}
 	fmt_raw_len = 0;
 }
@@ -379,6 +384,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->private.initialized == 2)
 		return NULL;
 #endif
+#if defined(HAVE_OPENCL)
+	if (strcasestr(format->params.label, "-opencl") &&
+	    !strstr(format->params.label, "-opencl")) {
+		return "-opencl suffix must be lower case";
+	}
+#endif
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_NOTESTS) {
 		self_test_running = 0;
@@ -396,15 +407,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		return NULL;
 	}
 #endif
-#if defined(HAVE_OPENCL)
-	if (strcasestr(format->params.label, "-opencl") &&
-	    !strstr(format->params.label, "-opencl")) {
-		return "-opencl suffix must be lower case";
-	}
-#endif
 
-	if (!(current = format->params.tests))
-		return NULL;
+	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
 	while ((current++)->ciphertext)
 		ntests++;
@@ -1585,16 +1589,6 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	char *retval;
 	void *binary_alloc, *salt_alloc;
 	void *binary_copy, *salt_copy;
-#if HAVE_OPENCL
-	static char *orig_lws, *orig_gws;
-
-	orig_lws = getenv("LWS");
-	orig_gws = getenv("GWS");
-
-	/* Force quick self-test without auto-tune */
-	setenv("LWS", "7", 1);
-	setenv("GWS", "49", 1);
-#endif
 
 	binary_copy = alloc_binary(&binary_alloc,
 	    format->params.binary_size?format->params.binary_size:1, format->params.binary_align);
@@ -1606,18 +1600,6 @@ char *fmt_self_test(struct fmt_main *format, struct db_main *db)
 	retval = fmt_self_test_body(format, binary_copy, salt_copy, db, benchmark_level);
 
 	self_test_running = 0;
-
-#if HAVE_OPENCL
-	/* Reset original values */
-	if (orig_lws)
-		setenv("LWS", orig_lws, 1);
-	else
-		unsetenv("LWS");
-	if (orig_gws)
-		setenv("GWS", orig_gws, 1);
-	else
-		unsetenv("GWS");
-#endif
 
 	MEM_FREE(salt_alloc);
 	MEM_FREE(binary_alloc);
