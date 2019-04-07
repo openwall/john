@@ -35,13 +35,6 @@
 #include "common.h"
 #include "hccap.h"
 
-// Duplicated here to overcome linking problems. This file can't link with misc.o file easily.
-unsigned int atou(const char *src) {
-	unsigned val;
-	sscanf(src, "%u", &val);
-	return val;
-}
-
 static void code_block(unsigned char *in, unsigned char b)
 {
 	putchar(itoa64[in[0] >> 2]);
