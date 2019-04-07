@@ -1,7 +1,8 @@
-The following changes have been made between John 1.8.0 and 1.8.0.16:
+The following changes have been made between John 1.8.0 and 1.8.0.17:
 
-* 3x interleaving for bcrypt on x86-64, except in AVX-enabled builds.
-Provides significant speedup on Core 2 and many newer CPUs without SMT.
+* Increased the interleaving for bcrypt on x86-64 from 2x to 3x for a major
+speedup on CPUs without SMT.  Unfortunately, this sometimes results in a minor
+performance regression when running multiple threads on CPUs with SMT.
 * Recognize the $2b$ bcrypt prefix.
 * In the generic crypt(3) format, detect descrypt with valid vs. invalid salts
 as separate id's for our heuristics on supported hash types.
