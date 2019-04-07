@@ -174,8 +174,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *binary(char *ciphertext)
 {
-	static char out[BINARY_SIZE];
-	strncpy(out, ciphertext, sizeof(out)); /* NUL padding is required */
+	static char out[BINARY_SIZE + 1]; /* extra byte to pacify gcc 8 */
+	strncpy(out, ciphertext, sizeof(out) - 1); /* NUL padding is required */
 	return out;
 }
 
