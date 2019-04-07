@@ -56,7 +56,7 @@ static char *escape_json(char *in)
 	return ret;
 }
 
-void showformats_nis(char **login, char **ciphertext,
+static void showformats_nis(char **login, char **ciphertext,
 	struct db_options *db_opts, int line_no)
 {
 	int fs = db_opts->field_sep_char;
@@ -78,7 +78,7 @@ void showformats_nis(char **login, char **ciphertext,
 		       *login, fs, *ciphertext, fs,/* 2, */fs);
 }
 
-void showformats_lonely(char **ciphertext, struct db_options *db_opts,
+static void showformats_lonely(char **ciphertext, struct db_options *db_opts,
 	int line_no)
 {
 	int fs = db_opts->field_sep_char;
@@ -99,6 +99,21 @@ void showformats_lonely(char **ciphertext, struct db_options *db_opts,
 		       fs, /* 3, */
 		       fs);
 }
+
+/* login may be NULL. */
+void showformats_skipped(const char *origin, char **login, char **ciphertext,
+	struct db_options *db_opts, int line_no)
+{
+	/* strcmp(origin, "NIS") */
+	if (origin[0] == 'N') {
+		showformats_nis(login, ciphertext, db_opts, line_no);
+	} else {
+		/* strcmp(origin, "lonely") */
+		/* login is NULL here. */
+		showformats_lonely(ciphertext, db_opts, line_no);
+	}
+}
+
 
 void showformats_regular(char **login, char **ciphertext,
 	char **gecos, char **home, char **uid, char *source,
