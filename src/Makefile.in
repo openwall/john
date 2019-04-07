@@ -118,7 +118,8 @@ JOHN_OBJS = \
 	regex.o pp.o \
 	c3_fmt.o \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o \
-	unique.o gpg2john.o
+	unique.o gpg2john.o \
+	showformats.o
 
 OCL_OBJS = opencl_common.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
@@ -377,7 +378,7 @@ listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intri
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h DES_bs.h common.h loader.h params.h list.h formats.h os.h os-autoconf.h
 
-loader.o:	loader.c autoconfig.h jumbo.h arch.h os.h os-autoconf.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h getopt.h common.h config.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h fake_salts.h john.h cracker.h logger.h base64_convert.h
+loader.o:	loader.c autoconfig.h jumbo.h arch.h os.h os-autoconf.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h getopt.h common.h config.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h fake_salts.h john.h cracker.h logger.h base64_convert.h showformats.h
 
 logger.o:	logger.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h path.h memory.h status.h options.h list.h loader.h formats.h getopt.h common.h config.h recovery.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h john_mpi.h cracker.h signals.h
 
@@ -461,6 +462,8 @@ sboxes.o:	sboxes.c nonstd.c
 sboxes-s.o:	sboxes-s.c
 
 scrypt_fmt.o:	scrypt_fmt.c escrypt/crypto_scrypt.h arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h base64_convert.h os.h os-autoconf.h
+
+showformats.o:	showformats.c showformats.h loader.h options.h config.h dynamic.h
 
 sha2.o:	sha2.c arch.h sha2.h aligned.h openssl_local_overrides.h md4.h md5.h jtr_sha2.h johnswap.h common.h memory.h stdbool.h params.h os.h os-autoconf.h autoconfig.h jumbo.h
 
