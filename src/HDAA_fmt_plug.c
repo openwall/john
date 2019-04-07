@@ -33,15 +33,6 @@ john_register_one(&fmt_HDAA);
 #include "simd-intrinsics.h"
 #define ALGORITHM_NAME          "MD5 " MD5_ALGORITHM_NAME
 
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
-#if defined(_OPENMP)
-#include <omp.h>
-#endif
-
-
 #define FORMAT_LABEL            "hdaa"
 #define FORMAT_NAME             "HTTP Digest access authentication"
 #define BENCHMARK_COMMENT       ""
@@ -52,19 +43,6 @@ john_register_one(&fmt_HDAA);
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(reqinfo_t)
 #define SALT_ALIGN              sizeof(size_t)
-
-#if defined(_OPENMP)
-static unsigned int sc_threads = 1;
-#ifdef SIMD_COEF_32
-#ifndef OMP_SCALE
-#define OMP_SCALE               256
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
-#endif
-#endif
 
 #ifdef SIMD_COEF_32
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD5)
@@ -155,9 +133,6 @@ static void init(struct fmt_main *self)
 {
 #ifdef SIMD_COEF_32
 	int i;
-#endif
-#if defined (_OPENMP)
-	sc_threads = omp_autotune(self, OMP_SCALE);
 #endif
 #ifdef SIMD_COEF_32
 	for (i = 0; i < LIMBS; i++)
@@ -279,11 +254,7 @@ static int cmp_all(void *binary, int count)
 {
 #ifdef SIMD_COEF_32
 	unsigned int x, y;
-#ifdef _OPENMP
-	for (y = 0; y < SIMD_PARA_MD5 * sc_threads; y++)
-#else
 	for (y = 0; y < SIMD_PARA_MD5; y++)
-#endif
 		for (x = 0; x < SIMD_COEF_32; x++) {
 			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
@@ -459,15 +430,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 #if SIMD_COEF_32
-#if defined(_OPENMP)
-#define ti	(thread*NBKEYS+index)
-	int thread;
-#pragma omp parallel for
-	for (thread = 0; thread < (count+NBKEYS-1)/NBKEYS; thread++)
-#else
 #define thread	0
 #define ti	index
-#endif
 	{
 		static unsigned int crypt_len[NBKEYS];
 		unsigned int index, i, shortest, longest;
@@ -592,19 +556,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #undef ti
 #else
 	int index;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
 	for (index = 0; index < count; index++) {
 		MD5_CTX ctx;
 		int len;
-#ifdef _OPENMP
-		char h3tmp[HTMP];
-		char h1tmp[HTMP];
-#else
 		char *h3tmp;
 		char *h1tmp;
-#endif
 		size_t tmp;
 #ifdef __MMX__
 		__m64 h1[BINARY_SIZE / sizeof(__m64)];
@@ -617,13 +573,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		tmp = rinfo->h1tmplen;
 		if ((len = saved_len[index]) < 0)
 			len = saved_len[index] = strlen(saved_plain[index]);
-#ifdef _OPENMP
-		memcpy(h1tmp, rinfo->h1tmp, tmp);
-		memcpy(h3tmp + CIPHERTEXT_LENGTH, rinfo->h3tmp + CIPHERTEXT_LENGTH, rinfo->h3tmplen - CIPHERTEXT_LENGTH);
-#else
 		h3tmp = rinfo->h3tmp;
 		h1tmp = rinfo->h1tmp;
-#endif
 		memcpy(&h1tmp[tmp], saved_plain[index], len);
 
 		MD5_Init(&ctx);
@@ -766,9 +717,6 @@ struct fmt_main fmt_HDAA = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#ifdef _OPENMP
-		FMT_OMP | FMT_OMP_BAD |
-#endif
 		FMT_CASE | FMT_8_BIT,
 		{ NULL },
 		{ FORMAT_TAG },
