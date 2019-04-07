@@ -15,12 +15,8 @@ john_register_one(&fmt_vmx);
 #else
 
 #include <string.h>
-
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
 #endif
 
 #include "arch.h"
@@ -33,6 +29,10 @@ john_register_one(&fmt_vmx);
 #include "vmx_common.h"
 #include "aes.h"
 #include "pbkdf2_hmac_sha1.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               1	// MKPC and OMP_SCALE tuned for core i7
+#endif
 
 #define FORMAT_LABEL            "vmx"
 #ifdef SIMD_COEF_32
@@ -61,9 +61,8 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;

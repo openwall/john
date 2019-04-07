@@ -22,21 +22,20 @@ extern struct fmt_main fmt_sybaseprop;
 john_register_one(&fmt_sybaseprop);
 #else
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-
 #include "syb-prop_repro.h"
 
-#ifdef _OPENMP
-#include <omp.h>
 #ifndef OMP_SCALE
-#define OMP_SCALE           16
+#define OMP_SCALE           4	// MKPC and OMP_SCALE tuned for core i7
 #endif
-#endif
-
 
 #define BLOCK_SIZE 8
 
@@ -61,7 +60,7 @@ john_register_one(&fmt_sybaseprop);
 #define SALT_ALIGN          1
 
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  128
+#define MAX_KEYS_PER_CRYPT  32
 
 static struct fmt_tests SybasePROP_tests[] = {
 	{"0x2905aeb3d00e3b80fb0695cb34c9fa9080f84ae1824b24cc51a3849dcb06", "test11"},
@@ -75,9 +74,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,

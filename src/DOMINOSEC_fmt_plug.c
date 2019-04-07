@@ -27,21 +27,19 @@ john_register_one(&fmt_DOMINOSEC);
 
 #include <ctype.h>
 #include <string.h>
-
-//#define DOMINOSEC_32BIT
-
 #ifdef DOMINOSEC_32BIT
 #include <stdint.h>
+#endif
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
-#ifdef _OPENMP
-#include <omp.h>
+
 #ifndef OMP_SCALE
-#define OMP_SCALE               128
-#endif
+#define OMP_SCALE           4	// MKPC and OMP_SCALE tuned for core i7
 #endif
 
 #define FORMAT_LABEL		"dominosec"
@@ -62,7 +60,7 @@ john_register_one(&fmt_DOMINOSEC);
 #define BINARY_BUFFER_SIZE	(DIGEST_SIZE-SALT_SIZE)
 #define ASCII_DIGEST_LENGTH	(DIGEST_SIZE*2)
 #define MIN_KEYS_PER_CRYPT	3
-#define MAX_KEYS_PER_CRYPT	6
+#define MAX_KEYS_PER_CRYPT	24
 
 static unsigned char (*digest34)[34];
 static char (*saved_key)[PLAINTEXT_LENGTH+1];
@@ -161,9 +159,8 @@ static struct fmt_tests tests[] = {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,

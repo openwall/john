@@ -53,14 +53,6 @@ john_register_one(&fmt_blizzard);
 #endif
 
 #include <string.h>
-#include "sha.h"
-#include "sha2.h"
-
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "unicode.h" /* For encoding-aware uppercasing */
 #ifdef HAVE_LIBGMP
 #if HAVE_GMP_GMP_H
 #include <gmp/gmp.h>
@@ -72,12 +64,21 @@ john_register_one(&fmt_blizzard);
 #include <openssl/bn.h>
 #define EXP_STR " oSSL-exp"
 #endif
-#include "johnswap.h"
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
 #endif
+
+#include "arch.h"
+#include "sha.h"
+#include "sha2.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
+#include "unicode.h" /* For encoding-aware uppercasing */
+#include "johnswap.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE          256	// MKPC and OMP_SCALE tuned for core i7
 #endif
 
 #define FORMAT_LABEL		"WoWSRP"
@@ -101,7 +102,7 @@ john_register_one(&fmt_blizzard);
 #define USERNAMELEN             32
 
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	4
+#define MAX_KEYS_PER_CRYPT	1
 
 // salt is in hex  (salt and salt2)
 static struct fmt_tests tests[] = {
@@ -137,9 +138,8 @@ static void init(struct fmt_main *self)
 {
 	int i;
 
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
