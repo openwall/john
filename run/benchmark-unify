@@ -101,7 +101,9 @@ while (<>) {
 # (ignoring case, so use sort -f or sort --ignore-case, please)
 __DATA__
 bf-opencl, OpenBSD Blowfish (x32)	bcrypt-opencl ("$2a$05", 32 iterations)
+blackberry-es10	Blackberry-ES10 (101x)
 BSDI DES (x725)	bsdicrypt, BSDI crypt(3) ("_J9..", 725 iterations)
+chap, iSCSI CHAP authentication	chap, iSCSI CHAP authentication / EAP-MD5
 Cisco PIX MD5	pix-md5, Cisco PIX
 CRC-32	CRC32
 crypt-MD5	md5crypt, crypt(3) $1$
@@ -113,8 +115,10 @@ DragonFly BSD $3$ SHA-256 w/ bug, 64-bit	dragonfly3-64, DragonFly BSD $3$ w/ bug
 DragonFly BSD $4$ SHA-512 w/ bugs, 32-bit	dragonfly4-32, DragonFly BSD $4$ w/ bugs, 32-bit
 DragonFly BSD $4$ SHA-512 w/ bugs, 64-bit	dragonfly4-64, DragonFly BSD $4$ w/ bugs, 64-bit
 Drupal 7 $S$ SHA-512 (x16385)	Drupal7, $S$ (x16385)
+eCryptfs	eCryptfs (65536x)
 Eggdrop	bfegg, Eggdrop
 Eggdrop Blowfish	bfegg, Eggdrop
+encfs-opencl, EncFS	EncFS-opencl
 EPiServer salted SHA-1/SHA-256	EPiServer
 EPiServer SID Hashes	EPI, EPiServer SID
 EPiServer SID salted SHA-1	EPI, EPiServer SID
@@ -133,18 +137,21 @@ HMAC SHA-384	HMAC-SHA384
 HMAC SHA-512	HMAC-SHA512
 hmailserver	hMailServer
 hMailServer salted SHA-256	hMailServer
+srp, "MD5 authentication" HSRP, VRRP, GLBP	hsrp, "MD5 authentication" HSRP, HSRPv2, VRRP, GLBP
 HTTP Digest access authentication	hdaa, HTTP Digest access authentication
 HTTP Digest access authentication MD5	hdaa, HTTP Digest access authentication
 Invision Power Board 2.x salted MD5	ipb2, Invision Power Board 2.x
 IPB2 MD5	ipb2, Invision Power Board 2.x
 KeePass SHA-256 AES	KeePass
+Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96	krb5-18, Kerberos 5 DB etype 18
 Kerberos AFS DES	AFS, Kerberos AFS
 Kerberos v4 TGT	krb4, Kerberos v4 TGT
 Kerberos v4 TGT DES	krb4, Kerberos v4 TGT
 Kerberos v5 TGT	krb5, Kerberos v5 TGT
 Kerberos v5 TGT 3DES	krb5, Kerberos v5 TGT
-KRB5 aes256-cts-hmac-sha1-96	Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96
+KRB5 aes256-cts-hmac-sha1-96	krb5-18, Kerberos 5 DB etype 18
 KRB5 arcfour-hmac	Kerberos 5 db etype 23 rc4-hmac
+krb5-18, Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96	krb5-18, Kerberos 5 DB etype 18
 LM C/R DES	netlm, LM C/R
 LM DES	LM
 LMv2 C/R MD4	netlmv2, LMv2 C/R
@@ -185,6 +192,7 @@ Netscreen MD5	md5ns, Netscreen
 NT MD4	NT
 NT v2	NT
 NT-old	NT
+nt-opencl, NT	NT-opencl
 NTLMv1 C/R MD4 DES	netntlm, NTLMv1 C/R
 NTLMv1 C/R MD4 DES (ESS MD5)	netntlm, NTLMv1 C/R
 NTLMv2 C/R MD4 HMAC-MD5	netntlmv2, NTLMv2 C/R
@@ -192,6 +200,7 @@ ODF SHA-1 Blowfish	ODF
 ODF SHA-1 Blowfish / SHA-256 AES	ODF
 Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES	Office, 2007/2010 (SHA-1) / 2013 (SHA-512), with AES
 Office 2007/2010 SHA-1/AES	Office, 2007/2010 (SHA-1) / 2013 (SHA-512), with AES
+Office, 2007/201/2013	Office, 2007/2010 (SHA-1) / 2013 (SHA-512), with AES
 OpenBSD Blowfish (x32)	bcrypt ("$2a$05", 32 iterations)
 Oracle	oracle, Oracle 10
 Oracle 10 DES	oracle, Oracle 10
@@ -199,16 +208,20 @@ Oracle 11g	oracle11, Oracle 11g
 Oracle 11g SHA-1	oracle11, Oracle 11g
 osCommerce md5($salt.$pass)	osc, osCommerce
 Password Safe SHA-256	pwsafe, Password Safe
+pbkdf2-hmac-sha512-opencl, GRUB2 / OS X 10.8+, rounds=10000	PBKDF2-HMAC-SHA512-opencl, GRUB2 / OS X 10.8+
 pdf	PDF
 PDF MD5 RC4	PDF
 PDF MD5 SHA-2 RC4 / AES	PDF
+PFX, PKCS12	pfx
 PHPass MD5	phpass ($P$9)
 phpass MD5 ($P$9)	phpass ($P$9)
+phpass-opencl ($P$9 lengths 0 to 15)	PHPass-opencl ($P$9)
 PHPS -- md5(md5($pass).$salt)	PHPS
 PHPS md5(md5($pass).$salt)	PHPS
 PIX MD5	pix-md5, Cisco PIX
 pkzip	PKZIP
 Post.Office MD5	po, Post.Office
+PuTTY, Private Key	PuTTY, Private Key (RSA/DSA/ECDSA/ED25519)
 RACF DES	RACF
 rar	rar, RAR3 (4 characters)
 RAR3 SHA-1 AES (4 characters)	rar, RAR3 (4 characters)
@@ -224,6 +237,7 @@ Raw SHA-384	Raw-SHA384
 Raw SHA-512	Raw-SHA512
 Raw-SHA256-ng	Raw-SHA256
 Raw-SHA512-ng	Raw-SHA512
+rsvp, HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS	rsvp, HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS, OMAPI, RNDC, TSIG
 Salted SHA-1	Salted-SHA1
 SAP BCODE	sapb, SAP CODVN B (BCODE)
 SAP CODVN B (BCODE)	sapb, SAP CODVN B (BCODE)
@@ -233,13 +247,25 @@ sha256crypt (rounds=5000)	sha256crypt, crypt(3) $5$ (rounds=5000)
 sha512crypt (rounds=5000)	sha512crypt, crypt(3) $6$ (rounds=5000)
 SIP MD5	SIP
 SSH RSA/DSA (one 2048-bit RSA and one 1024-bit DSA key)	SSH (one 2048-bit RSA and one 1024-bit DSA key)
-Sybase ASE salted SHA-256	sybasease, Sybase ASE
+strip-opencl, STRIP Password Manager	strip-opencl, Password Manager
+sxc, StarOffice .sxc	ODF, OpenDocument Star/Libre/OpenOffice
+sxc-opencl, StarOffice .sxc	ODF-opencl, OpenDocument Star/Libre/OpenOffice
+Sybase ASE salted SHA-256	SybaseASE, Sybase ASE
+sybasease, Sybase ASE	SybaseASE, Sybase ASE
 sybasease	sybasease, Sybase ASE
+tc_aes_xts, TrueCrypt (RIPEMD160/SHA512/WHIRLPOOL) AES256_XTS	tc_aes_xts, TrueCrypt AES256_XTS
+tc_ripemd160, TrueCrypt RIPEMD160 AES256_XTS	tc_ripemd160, TrueCrypt AES256_XTS
+tc_sha512, TrueCrypt SHA512 AES256_XTS	tc_sha512, TrueCrypt AES256_XTS
+tc_whirlpool, TrueCrypt WHIRLPOOL AES256_XTS	tc_whirlpool, TrueCrypt AES256_XTS
+tcp-md5, TCP MD5 Signatures, BGP	tcp-md5, TCP MD5 Signatures, BGP, MSDP
 Traditional DES	descrypt, traditional crypt(3)
 Tripcode DES	tripcode
 VNC DES	VNC
 WinZip PBKDF2-HMAC-SHA-1	ZIP, WinZip
 WoltLab BB3 salted SHA-1	wbb3, WoltLab BB3
-WPA-PSK PBKDF2-HMAC-SHA-1	wpapsk, WPA/WPA2 PSK
-WPA/WPA2 PSK PBKDF2-HMAC-SHA-1	wpapsk, WPA/WPA2 PSK
+WPA-PSK PBKDF2-HMAC-SHA-1	wpapsk, WPA/WPA2/PMF/PMKID PSK
+WPA/WPA2 PSK PBKDF2-HMAC-SHA-1	wpapsk, WPA/WPA2/PMF/PMKID PSK
+wpapsk, WPA/WPA2 PSK	wpapsk, WPA/WPA2/PMF/PMKID PSK
+wpapsk-opencl, WPA/WPA2 PSK	wpapsk-opencl, WPA/WPA2/PMF/PMKID PSK
 zip	ZIP, WinZip
+zip-opencl, ZIP	ZIP-opencl, WinZip
