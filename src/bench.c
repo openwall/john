@@ -29,6 +29,7 @@
 #include "memory.h"
 #include "signals.h"
 #include "formats.h"
+#include "config.h"
 #include "bench.h"
 
 long clk_tck = 0;
@@ -56,26 +57,66 @@ static void bench_handle_timer(int signum)
 static void bench_set_keys(struct fmt_main *format,
 	struct fmt_tests *current, int pass)
 {
-	char *plaintext;
-	int index, length;
+	unsigned int flags = format->params.benchmark_length;
+	unsigned int length = flags & 0xff;
+	int max = format->params.max_keys_per_crypt;
+	int index;
 
 	format->methods.clear_keys();
 
-	length = format->params.benchmark_length;
-	for (index = 0; index < format->params.max_keys_per_crypt; index++) {
+	if (!current) {
+		static char plaintext[PLAINTEXT_BUFFER_SIZE];
+		static int warn;
+
+		if ((flags & 0x200) && pass >= 2)
+			length += 1 + (flags >> 16);
+
+		if (!(pass & 1)) {
+			memset(plaintext, 0x41, length);
+			plaintext[length] = 0;
+			warn = 0;
+		}
+
+		index = 0;
+
+		if (length)
+		while (index < max) {
+			int pos = length - 1;
+			while (++plaintext[pos] > 0x60) {
+				plaintext[pos] = 0x21;
+				if (!pos--) {
+					warn |= 1;
+					break;
+				}
+			}
+			format->methods.set_key(plaintext, index++);
+		}
+
+		if (warn == 1) {
+			fprintf(stderr, "Warning: not enough candidates under "
+			    "benchmark length %d\n", length);
+			warn = 2;
+		}
+
+		return;
+	}
+
+	/* Legacy benchmark mode for performance regression testing */
+	for (index = 0; index < max; index++) {
+		char *plaintext;
 		do {
 			if (!current->ciphertext)
 				current = format->params.tests;
 			plaintext = current->plaintext;
 			current++;
 
-			if (length & 0x200) {
+			if (flags & 0x200) {
 				int current_length = strlen(plaintext);
-				if (pass) {
-					if (current_length > (length & 0xff))
+				if (pass >= 2) {
+					if (current_length > length)
 						break;
 				} else  {
-					if (current_length <= (length & 0xff))
+					if (current_length <= length)
 						break;
 				}
 			} else {
@@ -145,13 +186,16 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	}
 
 	if (salts) {
-		pass = 1;
+		pass = 2;
 	} else {
 		pass = 0;
 		salts = 1;
 	}
 
-	bench_set_keys(format, current, pass);
+	if (!cfg_get_bool(SECTION_DEBUG, NULL, "Benchmarks_1_8", 0))
+		current = NULL;
+
+	bench_set_keys(format, current, pass++);
 
 #if OS_TIMER
 	memset(&it, 0, sizeof(it));
@@ -188,8 +232,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 		if (!--index) {
 			index = salts;
-			if (!(++current)->ciphertext)
-				current = format->params.tests;
+			if (current) {
+				if (!(++current)->ciphertext)
+					current = format->params.tests;
+			}
 			bench_set_keys(format, current, pass);
 		}
 

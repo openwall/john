@@ -22,7 +22,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.17"
+#define JOHN_VERSION			"1.8.0.18"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -167,6 +167,7 @@
 #define SUBSECTION_WORDLIST		"Wordlist"
 #define SECTION_INC			"Incremental:"
 #define SECTION_EXT			"List.External:"
+#define SECTION_DEBUG			"Debug"
 
 /*
  * Number of different password hash table sizes.
