@@ -53,7 +53,7 @@ john_register_one(&fmt_nk);
 #define FORMAT_TAG_LEN	(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"SHA1 MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
+#define BENCHMARK_LENGTH	0x107
 #define PLAINTEXT_LENGTH	32
 #define CIPHERTEXT_LENGTH	(4+32+40+3+1)
 #define BINARY_SIZE		16

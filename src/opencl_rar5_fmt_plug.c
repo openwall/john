@@ -42,7 +42,7 @@ john_register_one(&fmt_ocl_rar5);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 OpenCL"
 
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define STEP                    0
 #define SEED                    1024
 

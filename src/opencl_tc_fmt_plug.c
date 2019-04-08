@@ -36,7 +36,7 @@ john_register_one(&FMT_STRUCT);
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "RIPEMD160 AES256_XTS OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
 #define PLAINTEXT_LENGTH        64

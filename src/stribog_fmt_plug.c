@@ -42,7 +42,7 @@ john_register_one(&fmt_stribog_512);
 #define FORMAT_TAG              TAG256
 #define ALGORITHM_NAME          "GOST R 34.11-2012 128/128 SSE4.1 1x"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        64 - 1
 #define CIPHERTEXT256_LENGTH    64
 #define CIPHERTEXT512_LENGTH    128

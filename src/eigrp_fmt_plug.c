@@ -38,7 +38,7 @@ john_register_one(&fmt_eigrp);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        81 // IOU accepts larger strings but doesn't use them fully, passwords are zero padded to a minimum length of 16 (for MD5 hashes only)!
 #define BINARY_SIZE             16 // MD5 hash or first 16 bytes of HMAC-SHA-256
 #define BINARY_ALIGN            sizeof(uint32_t)

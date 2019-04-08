@@ -42,7 +42,7 @@ john_register_one(&fmt_nsec3);
 #define FORMAT_NAME                     "DNSSEC NSEC3"
 #define ALGORITHM_NAME                  "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT               ""
-#define BENCHMARK_LENGTH                0
+#define BENCHMARK_LENGTH                7
 #define PLAINTEXT_LENGTH                125
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT              1

@@ -85,8 +85,8 @@
 #define FORMAT_NAME			"generic crypt(3)"
 #define ALGORITHM_NAME			"?/" ARCH_BITS_STR
 
-#define BENCHMARK_COMMENT		" DES"
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_COMMENT		""
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		72
 
@@ -211,7 +211,7 @@ static void init(struct fmt_main *self)
 			salt = options.subformat;
 			/* turn off many salts test, since we are not updating the */
 			/* params.tests structure data.                            */
-			self->params.benchmark_length = -1;
+			self->params.benchmark_length |= 0x100;
 		}
 		for (i = 0; i < 5; i++)
 		{

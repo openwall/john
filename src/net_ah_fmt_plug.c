@@ -35,7 +35,7 @@ john_register_one(&fmt_netah);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        8  // Keepalived limit is 8
 #define BINARY_SIZE             12
 #define BINARY_SIZE_ALLOC       16

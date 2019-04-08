@@ -39,7 +39,7 @@ john_register_one(&fmt_opencl_sspr);
 #define FORMAT_LABEL            "sspr-opencl"
 #define ALGORITHM_NAME          "MD5/SHA1/SHA2 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        64
 #define BINARY_ALIGN            MEM_ALIGN_WORD
 #define SALT_SIZE               sizeof(struct custom_salt)

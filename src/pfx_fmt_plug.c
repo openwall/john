@@ -40,7 +40,7 @@ john_register_one(&fmt_pfx);
 #define SALT_ALIGN              sizeof(uint32_t)
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #if !defined(SIMD_COEF_32)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	4

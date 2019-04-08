@@ -40,7 +40,7 @@ static unsigned int threads = 1;
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		51
 #define CIPHERTEXT_LENGTH		48

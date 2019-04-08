@@ -12,7 +12,7 @@
 #define FORMAT_TAG           "$keepass$*"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 #define PLAINTEXT_LENGTH	124
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE

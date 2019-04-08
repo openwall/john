@@ -45,7 +45,7 @@ john_register_one(&fmt_wbb3);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        32
 #define BINARY_SIZE             20
 #define MAX_SALT_LEN            40

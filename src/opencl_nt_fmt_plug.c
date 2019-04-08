@@ -49,7 +49,7 @@ john_register_one(&fmt_opencl_NT);
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "MD4 OpenCL"
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0x107
 #define PLAINTEXT_LENGTH    27
 /* At most 3 bytes of UTF-8 needed per character */
 #define UTF8_MAX_LENGTH     (3 * PLAINTEXT_LENGTH)

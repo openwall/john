@@ -36,7 +36,7 @@ john_register_one(&FMT_STRUCT);
 #define ALGORITHM_NAME			"SHA1 OpenCL"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define MAX_SALT_LEN	16
 

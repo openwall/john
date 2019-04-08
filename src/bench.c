@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015,2017 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2012,2015,2017,2019 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum
  *
@@ -46,6 +46,7 @@
 #include "signals.h"
 #include "formats.h"
 #include "dyna_salt.h"
+#include "config.h"
 #include "bench.h"
 #include "john.h"
 #include "unicode.h"
@@ -221,25 +222,16 @@ static void bench_install_handler(void)
 #endif
 }
 
-static char *strnzcpy_mangle(char *dst, const char *src, int size, int mangle)
-{
-	char *dptr = dst;
-
-	if (size)
-		while (--size && *src)
-			*dptr++ = *src++ ^ mangle;
-	*dptr = 0;
-
-	return dst;
-}
-
 static void bench_set_keys(struct fmt_main *format,
-	struct fmt_tests *current, int cond)
+	struct fmt_tests *current, int pass)
 {
-	char *plaintext;
-	int index, length;
+	unsigned int flags = format->params.benchmark_length;
+	unsigned int length = flags & 0xff;
+	int max = format->params.max_keys_per_crypt;
+	int index;
+
 #ifndef BENCH_BUILD
-	int len = format->params.plaintext_length;
+	int len = length;
 
 	if ((len -= mask_add_len) < 0 || !(options.flags & FLG_MASK_STACKED))
 		len = 0;
@@ -247,36 +239,74 @@ static void bench_set_keys(struct fmt_main *format,
 
 	format->methods.clear_keys();
 
-	length = format->params.benchmark_length;
-	for (index = 0; index < format->params.max_keys_per_crypt; index++) {
+	if (!current) {
 		JTR_ALIGN(MEM_ALIGN_WORD)
-			char random_pass[PLAINTEXT_BUFFER_SIZE];
+			static char plaintext[PLAINTEXT_BUFFER_SIZE];
+		static int warn;
 
+		if ((flags & 0x200) && pass >= 2)
+			length += 1 + (flags >> 16);
+
+		if (!(pass & 1)) {
+			memset(plaintext, 0x41, length);
+			plaintext[length] = 0;
+			warn = 0;
+		}
+
+		index = 0;
+
+		if (length)
+		while (index < max) {
+			int pos = length - 1;
+			while (++plaintext[pos] > 0x60) {
+				plaintext[pos] = 0x21;
+				if (!pos--) {
+					warn |= 1;
+					break;
+				}
+			}
+			format->methods.set_key(plaintext, index++);
+		}
+
+		if (warn == 1) {
+			fprintf(stderr, "Warning: not enough candidates under "
+			    "benchmark length %d\n", length);
+			warn = 2;
+		}
+
+		return;
+	}
+
+	/* Legacy benchmark mode for performance regression testing */
+	for (index = 0; index < max; index++) {
+		char *plaintext;
 		do {
 			if (!current->ciphertext)
 				current = format->params.tests;
 			plaintext = current->plaintext;
 			current++;
 
-			if (cond > 0) {
-				if ((int)strlen(plaintext) > length) break;
-			} else
-			if (cond < 0) {
-				if ((int)strlen(plaintext) <= length) break;
-			} else
+			if (flags & 0x200) {
+				int current_length = strlen(plaintext);
+				if (pass >= 2) {
+					if (current_length > length)
+						break;
+				} else  {
+					if (current_length <= length)
+						break;
+				}
+			} else {
 				break;
+			}
 		} while (1);
 
-		strnzcpy_mangle(random_pass, plaintext,
-		                sizeof(random_pass), index & 127);
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK) {
-			random_pass[len] = 0;
-			if (do_mask_crack(len ? random_pass : NULL))
-				return;
+			plaintext[len] = 0;
+			do_mask_crack(len ? plaintext : NULL);
 		} else
 #endif
-			format->methods.set_key(random_pass, index);
+			format->methods.set_key(plaintext, index);
 	}
 }
 
@@ -309,15 +339,14 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	static int wait_salts = 0;
 	char *where;
 	struct fmt_tests *current;
-	int cond;
+	int pass;
 #if OS_TIMER
 	struct itimerval it;
 #endif
-	clock_t start_real, end_real;
-	clock_t start_virtual, end_virtual;
 #if !defined (__MINGW32__) && !defined (_MSC_VER)
 	struct tms buf;
 #endif
+	clock_t start_real, start_virtual, end_real, end_virtual;
 	uint64_t crypts;
 	char *ciphertext;
 	void *salt, *two_salts[2];
@@ -374,9 +403,9 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		        pruned);
 		return s_error;
 	}
+
+	current = format->params.tests;
 #endif
-	if (!(current = format->params.tests) || !current->ciphertext)
-		return "FAILED (no data)";
 	if ((where = fmt_self_test(format, test_db))) {
 		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
@@ -422,6 +451,11 @@ char *benchmark_format(struct fmt_main *format, int salts,
 				format->methods.tunable_cost_value[i](salt);
 #endif
 	}
+	/*
+	 * Core john doesn't have this set_salt at all, only later under
+	 * "if (salts > 1)". I first added it only "if (salts == 1)" but
+	 * for some odd reason that lead to severe problems.
+	 */
 	format->methods.set_salt(two_salts[0]);
 
 #ifndef BENCH_BUILD
@@ -447,14 +481,17 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	}
 #endif
 
-	if (format->params.benchmark_length > 0) {
-		cond = (salts == 1) ? 1 : -1;
+	if (salts) {
+		pass = 2;
+	} else {
+		pass = 0;
 		salts = 1;
-	} else
-		cond = 0;
+	}
 
-	current = format->params.tests;
-	bench_set_keys(format, current, cond);
+	if (!cfg_get_bool(SECTION_DEBUG, NULL, "Benchmarks_1_8", 0))
+		current = NULL;
+
+	bench_set_keys(format, current, pass++);
 
 #if OS_TIMER
 	memset(&it, 0, sizeof(it));
@@ -472,7 +509,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		wait_salts = 1;
 		benchmark_time *= -1;
 	}
-	wait = format->params.benchmark_length ? 0 : wait_salts;
+	wait = (format->params.benchmark_length & 0xe00) ? wait_salts : 0;
 
 /* Cap it at a sane value to hopefully avoid integer overflows below */
 	if (benchmark_time > 3600)
@@ -490,7 +527,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
-	start_virtual = start_real = clock();
+	start_real = start_virtual = clock();
 #else
 	start_real = times(&buf);
 	start_virtual = buf.tms_utime + buf.tms_stime;
@@ -509,9 +546,11 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 		if (!--index) {
 			index = salts;
-			if (!(++current)->ciphertext)
-				current = format->params.tests;
-			bench_set_keys(format, current, cond);
+			if (current) {
+				if (!(++current)->ciphertext)
+					current = format->params.tests;
+			}
+			bench_set_keys(format, current, pass);
 		}
 
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
@@ -520,7 +559,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		    format->methods.crypt_all(&count, test_db->salts));
 #else
 		format->methods.cmp_all(binary,
-		    format->methods.crypt_all(&count, 0));
+		    format->methods.crypt_all(&count, NULL));
 #endif
 
 		crypts += (uint32_t)count;
@@ -620,9 +659,6 @@ void gather_results(struct bench_results *results)
 int benchmark_all(void)
 {
 	struct fmt_main *format;
-	char *result, *msg_1, *msg_m;
-	struct bench_results results_1, results_m;
-	char s_real[64], s_virtual[64];
 #if defined(HAVE_OPENCL)
 	char s_gpu[16 * MAX_GPU_DEVICES] = "";
 	int i;
@@ -664,6 +700,11 @@ AGAIN:
 
 	if ((format = fmt_list))
 	do {
+		int salts;
+		char *result, *msg_1, *msg_m;
+		struct bench_results results_1, results_m;
+		char s_real[64], s_virtual[64];
+
 #ifndef BENCH_BUILD
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
@@ -712,9 +753,7 @@ AGAIN:
 		if ((options.flags & FLG_LOOPTEST) && john_main_process)
 			printf("#%u ", ++loop_total);
 #endif
-#ifdef HAVE_MPI
 		if (john_main_process)
-#endif
 		printf("%s: %s%s%s%s [%s%s%s%s]... ",
 		    benchmark_time ? "Benchmarking" : "Testing",
 		    format->params.label,
@@ -756,41 +795,33 @@ AGAIN:
 		}
 #else /* HAVE_MPI */
 #ifdef _OPENMP
-#ifdef HAVE_MPI
 		if (john_main_process)
-#endif
 		if (format->params.flags & FMT_OMP && ompt > 1)
 			printf("(%dxOMP) ", ompt);
 		fflush(stdout);
 #endif /* _OPENMP */
 #endif /* HAVE_MPI */
 
-		switch (format->params.benchmark_length) {
-		case 0:
-			if (format->params.tests[1].ciphertext) {
-				msg_m = "Many salts";
-				msg_1 = "Only one salt";
-				break;
-			}
-			/* fall through */
-
-		case -1:
+		salts = 0;
+		if (!format->params.salt_size ||
+		    (format->params.benchmark_length & 0x100)) {
 			msg_m = "Raw";
 			msg_1 = NULL;
-			break;
-
-		default:
+		} else if (format->params.benchmark_length & 0x200) {
 			msg_m = "Short";
 			msg_1 = "Long";
+		} else {
+			salts = BENCHMARK_MANY;
+			msg_m = "Many salts";
+			msg_1 = "Only one salt";
 		}
 
 		total++;
 
 		test_db = ldr_init_test_db(format, NULL);
 
-		if ((result = benchmark_format(format,
-		    format->params.salt_size ? BENCHMARK_MANY : 1,
-		    &results_m, test_db))) {
+		if ((result = benchmark_format(format, salts,
+		                               &results_m, test_db))) {
 			puts(result);
 			failed++;
 			goto next;
@@ -832,9 +863,7 @@ AGAIN:
 			goto next;
 		}
 
-#ifdef HAVE_MPI
 		if (john_main_process)
-#endif
 			printf(benchmark_time ? "DONE\n" : "PASS\n");
 #ifdef _OPENMP
 		// reset this in case format capped it (we may be testing more formats)
@@ -869,29 +898,21 @@ AGAIN:
 
 		benchmark_cps(results_m.crypts, results_m.real, s_real);
 		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);
+		if (john_main_process && benchmark_time) {
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
-#ifdef HAVE_MPI
-		if (john_main_process)
-#endif
-		if (benchmark_time)
 			printf("%s:\t%s c/s real, %s c/s virtual%s\n",
 			       msg_m, s_real, s_virtual, s_gpu);
 #else
-#ifdef HAVE_MPI
-		if (john_main_process)
+			printf("%s:\t%s c/s%s\n",
+			       msg_m, s_real, s_gpu);
 #endif
-		if (benchmark_time)
-		printf("%s:\t%s c/s%s\n",
-		       msg_m, s_real, s_gpu);
-#endif
+		}
 #if HAVE_OPENCL
 		}
 #endif
 
 		if (!msg_1) {
-#ifdef HAVE_MPI
 			if (john_main_process)
-#endif
 			if (benchmark_time)
 			putchar('\n');
 			goto next;
@@ -899,18 +920,16 @@ AGAIN:
 
 		benchmark_cps(results_1.crypts, results_1.real, s_real);
 		benchmark_cps(results_1.crypts, results_1.virtual, s_virtual);
-#ifdef HAVE_MPI
-		if (john_main_process)
-#endif
+
+		if (john_main_process && benchmark_time) {
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
-		if (benchmark_time)
-		printf("%s:\t%s c/s real, %s c/s virtual\n\n",
-			msg_1, s_real, s_virtual);
+			printf("%s:\t%s c/s real, %s c/s virtual\n\n",
+			       msg_1, s_real, s_virtual);
 #else
-		if (benchmark_time)
-		printf("%s:\t%s c/s\n\n",
-			msg_1, s_real);
+			printf("%s:\t%s c/s\n\n",
+			       msg_1, s_real);
 #endif
+		}
 
 next:
 		fflush(stdout);

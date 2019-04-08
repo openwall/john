@@ -24,7 +24,7 @@
 
 #define FORMAT_NAME		"crypt(3) $5$"
 #define BENCHMARK_COMMENT	" (rounds=5000)"
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 #define CIPHERTEXT_LENGTH		43
 
 #define BINARY_SIZE				32

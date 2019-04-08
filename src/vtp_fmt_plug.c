@@ -45,7 +45,7 @@ john_register_one(&fmt_vtp);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        55 // keep under 1 MD5 block AND this is now tied into logic in vtp_secret_derive()
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)

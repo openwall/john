@@ -55,7 +55,7 @@ static sip_salt *pSalt;
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        32
 #define BINARY_SIZE             16
 #define SALT_SIZE               sizeof(sip_salt)

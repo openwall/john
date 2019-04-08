@@ -124,7 +124,7 @@ john_register_one(&fmt_NETNTLM_new);
 
 #define ALGORITHM_NAME          "MD4 DES (ESS MD5) " MD4_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define FULL_BINARY_SIZE        (2 + 8 * 3)
 #define BINARY_SIZE             (2 + 8)
 #define BINARY_ALIGN            2

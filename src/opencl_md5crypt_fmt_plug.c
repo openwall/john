@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_cryptMD5);
 #define ALGORITHM_NAME		"MD5 OpenCL"
 
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 
 #define BINARY_SIZE		16
 #define BINARY_ALIGN		4

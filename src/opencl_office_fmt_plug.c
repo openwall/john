@@ -38,7 +38,7 @@ john_register_one(&fmt_opencl_office);
 #define OCL_ALGORITHM_NAME  "SHA1/SHA512 AES OpenCL"
 #define ALGORITHM_NAME      OCL_ALGORITHM_NAME
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0x107
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        1
 #define SALT_SIZE           sizeof(*cur_salt)

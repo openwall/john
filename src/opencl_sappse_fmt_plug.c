@@ -35,7 +35,7 @@ john_register_one(&fmt_opencl_sappse);
 #define FORMAT_NAME             "SAP PSE - PKCS12 PBE"
 #define ALGORITHM_NAME          "SHA1 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              sizeof(int)

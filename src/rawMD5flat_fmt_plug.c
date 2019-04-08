@@ -55,7 +55,7 @@ john_register_one(&fmt_rawMD5f);
 #define ALGORITHM_NAME          "MD5 " MD5_ALGORITHM_NAME " (experimental)"
 
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 
 #define CIPHERTEXT_LENGTH       32
 

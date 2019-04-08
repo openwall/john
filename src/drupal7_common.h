@@ -21,7 +21,7 @@
 #define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		" (x16385)"
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define CIPHERTEXT_LENGTH		55
 
@@ -124,4 +124,3 @@ static unsigned int iteration_count(void *salt)
 {
 	return (unsigned int) 1 << (atoi64[ARCH_INDEX(((char*)salt)[8])]);
 }
-

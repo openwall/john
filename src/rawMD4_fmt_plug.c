@@ -61,7 +61,7 @@ john_register_one(&fmt_rawMD4);
 #endif
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 #ifndef MD4_BUF_SIZ
 #define MD4_BUF_SIZ				16
 #endif

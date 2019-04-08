@@ -40,7 +40,7 @@ john_register_one(&fmt_racf_kdfaes);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "KDFAES (DES + HMAC-SHA256/" ARCH_BITS_STR " + AES-256)"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        8
 #define CIPHERTEXT_LENGTH       96
 #define BINARY_SIZE             16

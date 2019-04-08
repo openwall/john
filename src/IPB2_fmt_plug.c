@@ -52,7 +52,7 @@ static unsigned int threads = 1;
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define BINARY_ALIGN			4
 #define BINARY_SIZE			16

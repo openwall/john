@@ -52,7 +52,7 @@ john_register_one(&fmt_CompiledDynamic);
 #define FORMAT_NAME			""
 
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	7
 
 #define BINARY_ALIGN		MEM_ALIGN_WORD
 
@@ -223,10 +223,10 @@ static void link_funcs() {
 	/* for now, turn off FMT_SPLIT_UNIFIES_CASE until we get the code right */
 	fmt_CompiledDynamic.params.flags &= ~FMT_SPLIT_UNIFIES_CASE;
 
-	if ((pPriv->pSetup->flags&MGF_SALTED)!=MGF_SALTED)
-		fmt_CompiledDynamic.params.benchmark_length = -1;
+	if ((pPriv->pSetup->flags&MGF_SALTED) != MGF_SALTED)
+		fmt_CompiledDynamic.params.benchmark_length |= 0x100;
 	else
-		fmt_CompiledDynamic.params.benchmark_length = 0;
+		fmt_CompiledDynamic.params.benchmark_length = BENCHMARK_LENGTH;
 
 	if (pPriv->pSetup->flags&MGF_PASSWORD_UPCASE) {
 		tests[0].plaintext = "ABC";

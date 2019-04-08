@@ -31,7 +31,7 @@
 #define FORMAT_NAME			"crypt(3) $1$"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define PLAINTEXT_LENGTH		15
 #define CIPHERTEXT_LENGTH		22

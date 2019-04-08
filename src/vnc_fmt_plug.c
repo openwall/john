@@ -50,7 +50,7 @@ john_register_one(&fmt_vnc);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        8
 #define BINARY_SIZE             16
 #define SALT_SIZE               sizeof(struct custom_salt)

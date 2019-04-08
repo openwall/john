@@ -42,7 +42,7 @@
 #endif
 
 #define BENCHMARK_COMMENT		" (16384, 8, 1)"
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define PLAINTEXT_LENGTH		125
 

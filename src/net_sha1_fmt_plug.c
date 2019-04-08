@@ -48,7 +48,7 @@ john_register_one(&fmt_netsha1);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 
 #define PLAINTEXT_LENGTH        20  // get this right ;)
 #define BINARY_SIZE             20

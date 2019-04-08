@@ -43,7 +43,7 @@ john_register_one(&fmt_OSC);
 
 #define ALGORITHM_NAME		"?" /* filled in by md5-gen */
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	7
 
 #define MD5_BINARY_SIZE		16
 #define MD5_HEX_SIZE		(MD5_BINARY_SIZE * 2)

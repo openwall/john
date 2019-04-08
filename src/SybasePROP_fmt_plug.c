@@ -46,7 +46,7 @@ john_register_one(&fmt_sybaseprop);
 #define ALGORITHM_NAME      "salted FEAL-8 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
+#define BENCHMARK_LENGTH    7
 
 #define PLAINTEXT_LENGTH    64
 #define CIPHERTEXT_LENGTH   (6 + 56)

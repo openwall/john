@@ -461,6 +461,13 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "plaintext_length";
 
+	if (format->params.benchmark_length < 0 ||
+	    (format->params.benchmark_length & 0xff) <
+	    format->params.plaintext_min_length ||
+	    (format->params.benchmark_length & 0xff) >
+	    format->params.plaintext_length)
+		return "benchmark_length";
+
 	if (!is_poweroftwo(format->params.binary_align))
 		return "binary_align";
 

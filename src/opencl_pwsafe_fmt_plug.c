@@ -38,7 +38,7 @@ john_register_one(&fmt_opencl_pwsafe);
 #define FORMAT_LABEL            "pwsafe-opencl"
 #define ALGORITHM_NAME          "SHA256 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        87
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1

@@ -49,7 +49,7 @@ john_register_one(&fmt_DOMINOSEC);
 #define ALGORITHM_NAME		"8/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	7
 
 #define PLAINTEXT_LENGTH	64
 #define CIPHERTEXT_LENGTH	22

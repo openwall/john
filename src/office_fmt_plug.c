@@ -38,7 +38,7 @@ john_register_one(&fmt_office);
 #define FORMAT_NAME              "2007/2010/2013"
 #define ALGORITHM_NAME           "SHA1 " SHA1_ALGORITHM_NAME " / SHA512 " SHA512_ALGORITHM_NAME " AES"
 #define BENCHMARK_COMMENT        ""
-#define BENCHMARK_LENGTH         -1
+#define BENCHMARK_LENGTH         0x107
 #define PLAINTEXT_LENGTH         125
 #define BINARY_SIZE              16
 #define SALT_SIZE                sizeof(*cur_salt)

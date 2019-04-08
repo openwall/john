@@ -40,7 +40,7 @@ john_register_one(&fmt_dragonfly3_64);
 #define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		125
 #define CIPHERTEXT_LENGTH		44

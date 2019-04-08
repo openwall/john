@@ -40,7 +40,7 @@ john_register_one(&fmt_known_hosts);
 #define FORMAT_NAME             "HashKnownHosts HMAC-SHA1"
 #define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             20
 #define BINARY_ENCODED_SIZE     28

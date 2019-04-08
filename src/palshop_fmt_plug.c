@@ -35,7 +35,7 @@ john_register_one(&fmt_palshop);
 #define FORMAT_NAME             "MD5(Palshop)"
 #define ALGORITHM_NAME          "MD5 + SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             10  /* 20 characters of "m2", now 10 binary bytes. */
 #define CIPHERTEXT_LENGTH       51

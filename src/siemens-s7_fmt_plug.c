@@ -38,7 +38,7 @@ john_register_one(&fmt_s7);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "HMAC-SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define CIPHERTEXT_LENGTH       (1 + 10 + 1 + 1 + 1 + 40 + 1 + 40)
 #define BINARY_SIZE             20

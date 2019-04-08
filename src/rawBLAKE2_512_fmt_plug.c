@@ -49,7 +49,7 @@ john_register_one(&fmt_rawBLAKE2);
 #define FORMAT_TAG              "$BLAKE2$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define CIPHERTEXT_LENGTH       128
 #define BINARY_SIZE             64

@@ -59,7 +59,7 @@ john_register_one(&fmt_fde);
 #endif
 #define BENCHMARK_COMMENT   ""
 #define PLAINTEXT_LENGTH    64
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0x107
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        1
 #define SALT_ALIGN          8

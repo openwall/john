@@ -81,7 +81,7 @@ john_register_one(&fmt_luks);
 #endif
 #define BENCHMARK_COMMENT   ""
 #define PLAINTEXT_LENGTH    125
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0x107
 #define BINARY_SIZE         LUKS_DIGESTSIZE
 #define BINARY_ALIGN        4
 #define SALT_SIZE           sizeof(struct custom_salt_LUKS*)

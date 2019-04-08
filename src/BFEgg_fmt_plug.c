@@ -44,7 +44,7 @@ john_register_one(&fmt_BFEgg);
 #define FORMAT_NAME             "Eggdrop"
 #define ALGORITHM_NAME          "Blowfish 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_MIN_LENGTH    1
 #define PLAINTEXT_LENGTH        72
 #define CIPHERTEXT_LENGTH       13

@@ -36,7 +36,7 @@ john_register_one(&fmt__hmacSHA256);
 #define ALGORITHM_NAME_224		"password is key, SHA224 " SHA256_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		125
 

@@ -35,7 +35,7 @@ john_register_one(&FORMAT_STRUCT);
 #define FORMAT_NAME		"MS Office <= 2003"
 #define ALGORITHM_NAME		"MD5/SHA1 RC4 OpenCL"
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 #define PLAINTEXT_LENGTH	19 //* 19 is leanest, 24, 28, 31, max. 51 */
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE

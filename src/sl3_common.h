@@ -6,7 +6,7 @@
 
 #define FORMAT_NAME         "Nokia operator unlock"
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
+#define BENCHMARK_LENGTH    15
 
 #define PLAINTEXT_MINLEN    15
 #define PLAINTEXT_LENGTH    15

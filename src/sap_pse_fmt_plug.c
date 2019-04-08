@@ -45,7 +45,7 @@ john_register_one(&fmt_sappse);
 #define SALT_ALIGN              sizeof(int)
 #define BINARY_ALIGN            1
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define FORMAT_TAG              "$pse$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 

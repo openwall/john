@@ -20,7 +20,7 @@
 #define FORMAT_NAME			"traditional crypt(3)"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		8
 #define CIPHERTEXT_LENGTH_1		13

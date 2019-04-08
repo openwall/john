@@ -30,7 +30,7 @@ john_register_one(&fmt_cq);
 #define TAG_LENGTH           (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME      "CQWeb"
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
+#define BENCHMARK_LENGTH    7
 #define PLAINTEXT_LENGTH    32
 #define SALT_SIZE           64  // XXX double check this
 #define SALT_ALIGN          MEM_ALIGN_NONE

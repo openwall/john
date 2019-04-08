@@ -34,7 +34,7 @@ john_register_one(&fmt_rakp);
 #endif
 #define ALGORITHM_NAME          "HMAC-SHA1 " SHA1_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define PAD_SIZE                64
 #define BINARY_SIZE             20

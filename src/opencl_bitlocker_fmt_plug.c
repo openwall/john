@@ -44,7 +44,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x108
 #define SALT_SIZE               sizeof(bitlocker_custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define HASH_LOOPS              256

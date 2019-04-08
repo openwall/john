@@ -59,7 +59,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #endif
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #ifdef _OPENMP
 #include <omp.h>
 #ifndef OMP_SCALE

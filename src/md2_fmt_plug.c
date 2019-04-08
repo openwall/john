@@ -35,7 +35,7 @@ john_register_one(&fmt_md2_);
 #define TAG_LENGTH		5
 #define ALGORITHM_NAME		"MD2 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		16
 #define SALT_SIZE		0

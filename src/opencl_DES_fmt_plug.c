@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_DES);
 #define FORMAT_NAME			"traditional crypt(3)"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define CIPHERTEXT_LENGTH_1		13
 #define CIPHERTEXT_LENGTH_2		24

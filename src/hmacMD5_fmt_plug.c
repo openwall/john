@@ -38,7 +38,7 @@ john_register_one(&fmt__hmacMD5);
 #define ALGORITHM_NAME          "password is key, MD5 " MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 
 #define PLAINTEXT_LENGTH        125
 

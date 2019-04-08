@@ -197,7 +197,7 @@ static void MD5_swap2(uint32_t *x, uint32_t *x2, uint32_t *y, uint32_t *y2, int 
 #endif
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		7
 #define CIPHERTEXT_LENGTH		32
 #define BINARY_SIZE				16
 #define BINARY_SIZE_SHA         20
@@ -7463,7 +7463,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->methods.salt_hash = salt_hash;
 	//pFmt->params.format_name = str_alloc_copy(Setup->szFORMAT_NAME);
 	pFmt->params.format_name = "";
-	pFmt->params.benchmark_length = 0;		// NOTE 0 'assumes' salted. If unsalted, we set back to -1
+	pFmt->params.benchmark_length = BENCHMARK_LENGTH;	// If unsalted, we or with 0x100 later
 	pFmt->params.salt_size = 0;
 	curdat.using_flat_buffers_sse2_ok = 0;	// used to distingish MGF_NOTSSE2Safe from MGF_FLAT_BUFFERS
 	if ((Setup->flags & MGF_FLAT_BUFFERS) == MGF_FLAT_BUFFERS)
@@ -7613,7 +7613,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if ( (Setup->flags & MGF_SALTED) == 0)
 	{
 		curdat.dynamic_FIXED_SALT_SIZE = 0;
-		pFmt->params.benchmark_length = -1;
+		pFmt->params.benchmark_length |= 0x100;
 		pFmt->params.salt_size = 0;
 	}
 	else

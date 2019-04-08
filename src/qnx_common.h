@@ -18,7 +18,7 @@
 
 #define FORMAT_NAME		"qnx hash"
 #define BENCHMARK_COMMENT	" (rounds=1000)"
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 #define CIPHERTEXT_LENGTH	43
 
 // binary size is 'max' which is for sha512

@@ -48,7 +48,7 @@ john_register_one(&fmt_netmd5);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 // RIPv2 truncates (or null pads) passwords to length 16
 #define PLAINTEXT_LENGTH        16
 #define BINARY_SIZE             16

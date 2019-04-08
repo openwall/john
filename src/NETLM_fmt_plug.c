@@ -65,7 +65,7 @@ john_register_one(&fmt_NETLM);
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME       "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
-#define BENCHMARK_LENGTH     0
+#define BENCHMARK_LENGTH     7
 #define PLAINTEXT_LENGTH     14
 #define PARTIAL_BINARY_SIZE  8
 #define BINARY_SIZE          24

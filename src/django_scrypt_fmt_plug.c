@@ -44,7 +44,7 @@ john_register_one(&fmt_django_scrypt);
 #define ALGORITHM_NAME		"Salsa20/8 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		64
 #define SALT_SIZE		sizeof(struct custom_salt)

@@ -32,13 +32,15 @@
 #ifdef WPAPMK
 #define PLAINTEXT_MIN_LEN   64
 #define PLAINTEXT_LENGTH    64
+#define BENCHMARK_LENGTH    64
 #else
-#define PLAINTEXT_LENGTH	63 /* We can do 64 but spec. says 63 */
+#define PLAINTEXT_MIN_LEN   8
+#define PLAINTEXT_LENGTH    63 /* We can do 64 but spec. says 63 */
+#define BENCHMARK_LENGTH    8
 #endif
 #define SALT_SIZE		(sizeof(hccap_t) - sizeof(mic_t))
 #define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
 #define FORMAT_TAG           "$WPAPSK$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 

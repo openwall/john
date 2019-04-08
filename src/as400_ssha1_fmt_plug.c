@@ -52,7 +52,7 @@ john_register_one(&fmt_AS400_ssha1);
 
 #define ALGORITHM_NAME          "?"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 
 #define BINARY_SIZE             20
 #define BINARY_FOR_DYNA         16

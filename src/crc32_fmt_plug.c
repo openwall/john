@@ -53,7 +53,7 @@ john_register_one(&fmt_crc32);
 #define FORMAT_TAGc_LEN		(sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME			"CRC32 32/" ARCH_BITS_STR " CRC-32C " CRC32_C_ALGORITHM_NAME
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		31
 

@@ -70,7 +70,7 @@ john_register_one(&fmt_NETNTLMv2);
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME		"MD4 HMAC-MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	7
 #define PLAINTEXT_LENGTH	125 /* lmcons.h - PWLEN (256) ? 127 ? */
 #define USERNAME_LENGTH		60 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH		45 /* lmcons.h - CNLEN / DNLEN */

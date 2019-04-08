@@ -73,7 +73,7 @@ john_register_one(&fmt_ike);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "HMAC MD5/SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        32
 #define BINARY_SIZE             20 /* SHA1 */
 #define BINARY_SIZE_SMALLER     16 /* MD5 */

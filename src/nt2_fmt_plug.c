@@ -47,7 +47,7 @@ john_register_one(&fmt_NT2);
 #define ALGORITHM_NAME			"MD4 " MD4_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define CIPHERTEXT_LENGTH		32
 #define FORMAT_TAG				"$NT$"

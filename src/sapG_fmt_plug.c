@@ -42,7 +42,7 @@ john_register_one(&fmt_sapG);
 #define FORMAT_NAME             "SAP CODVN F/G (PASSCODE)"
 #define ALGORITHM_NAME          "SHA1 " SHA1_ALGORITHM_NAME
 #define BENCHMARK_COMMENT        ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define SALT_FIELD_LENGTH       40
 #define USER_NAME_LENGTH        12 /* max. length of user name in characters */
 #define SALT_LENGTH             (USER_NAME_LENGTH * 4)    /* bytes of UTF-8 */

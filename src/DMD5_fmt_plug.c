@@ -43,7 +43,7 @@ john_register_one(&fmt_DMD5);
 #define FORMAT_TAG              "$DIGEST-MD5$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define MD5_HEX_SIZE            (2 * BINARY_SIZE)
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            4

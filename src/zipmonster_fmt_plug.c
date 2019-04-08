@@ -33,7 +33,7 @@ john_register_one(&fmt_zipmonster);
 #define FORMAT_NAME             "MD5(ZipMonster)"
 #define ALGORITHM_NAME          "MD5-" MD5_ALGORITHM_NAME " x 50000"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             16
 #define SALT_SIZE               0

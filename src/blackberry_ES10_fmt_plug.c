@@ -43,7 +43,7 @@ john_register_one(&fmt_blackberry1);
 #define ALGORITHM_NAME          "SHA-512 " SHA512_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT       " (101x)"
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             64
 #define BINARY_ALIGN            4
