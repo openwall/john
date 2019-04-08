@@ -21,7 +21,6 @@ static unsigned char *aes_iv;
 #define FORMAT_TAG          "$RAR3$*"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 
-/* cRARk use 4-char passwords for CPU benchmark */
 static struct fmt_tests cpu_tests[] = {
 	{"$RAR3$*0*b109105f5fe0b899*d4f96690b1a8fe1f120b0290a85a2121", "test"},
 	{"$RAR3$*0*42ff7e92f24fb2f8*9d8516c8c847f1b941a0feef064aaf0d", "1234"},
@@ -65,7 +64,6 @@ static struct fmt_tests cpu_tests[] = {
 };
 
 #ifdef RAR_OPENCL_FORMAT
-/* cRARk use 5-char passwords for GPU benchmark */
 static struct fmt_tests gpu_tests[] = {
 	{"$RAR3$*0*c203c4d80a8a09dc*49bbecccc08b5d893f308bce7ad36c0f", "sator"},
 	{"$RAR3$*0*672fca155cb74ac3*8d534cd5f47a58f6493012cf76d2a68b", "arepo"},

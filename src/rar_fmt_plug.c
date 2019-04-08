@@ -84,12 +84,13 @@ john_register_one(&fmt_rar);
 #define FORMAT_LABEL		"rar"
 #define FORMAT_NAME		"RAR3"
 
-#ifdef DEBUG
-#define BENCHMARK_COMMENT	" (1-16 characters)"
-#else
-#define BENCHMARK_COMMENT	" (4 characters)"
-#endif
-#define BENCHMARK_LENGTH	0x107
+/*
+ * This format's speed is *highly* dependant on pw length (longer = slower)
+ *
+ * cRARk use 4-char passwords for CPU benchmark, but we use 5.
+ */
+#define BENCHMARK_COMMENT	" (length 5)"
+#define BENCHMARK_LENGTH	0x105
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0
