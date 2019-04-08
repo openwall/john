@@ -76,7 +76,7 @@ sub parse
 			return;
 		}
 	} else {
-		($name) = /^\t?Benchmarking: ([^\[]+) \[.*\].* (.....\b\b\b\b\b)?(DONE|Warning:.*)$/;
+		($name) = /^\t?Benchmarking: ([^\[]+) \[.*\].* (PASS, |SKIP, |.....\b\b\b\b\b)?(DONE|Warning:.*)$/;
 		$ok = defined($name);
 	}
 	print STDERR "Could not parse: $_\n" if (!$ok);
