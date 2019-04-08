@@ -2108,20 +2108,11 @@ static void finalize_mask(int len);
  */
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
-	static char test_mask[2 * PLAINTEXT_BUFFER_SIZE];
 	int using_default_mask = 0;
 	int i;
 
 	mask_db = db;
 	mask_fmt = db->format;
-
-	strcpy(test_mask, "?a?a?l?u?d?d?s");
-	i = strlen(test_mask);
-	while (i / 2 < mask_fmt->params.plaintext_min_length) {
-		test_mask[i++] = '?';
-		test_mask[i++] = 'd';
-	}
-	test_mask[i] = 0;
 
 	/* These formats are too wierd for magnum to get working */
 	if (!strcasecmp(mask_fmt->params.label, "descrypt-opencl") ||
@@ -2151,8 +2142,28 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 #endif
 	/* Load defaults from john.conf */
 	if (!options.mask) {
-		if (options.flags & FLG_TEST_CHK)
+		if (options.flags & FLG_TEST_CHK) {
+			static char test_mask[PLAINTEXT_BUFFER_SIZE + 8];
+			int bl = mask_fmt->params.benchmark_length & 0xff;
+
+			strcpy(test_mask, "?a?a?l?u?d?d?s?s" "xxxxxxxxxxxxxxxxxxxxx"
+			                  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+			                  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+			                  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"); // l = 125
+
+			if (bl <= 8)
+				test_mask[2 * bl] = 0;
+			else if (bl < (strlen(test_mask) - 8))
+				test_mask[bl + 8] = 0;
+			else
+				fprintf(stderr,
+				        "Warning: Format wanted length %d benchmark", bl);
+
 			options.mask = test_mask;
+
+			if (options.verbosity >= VERB_DEBUG)
+				fprintf(stderr, "\nTest mask: %s\n", options.mask);
+		}
 		else if (options.flags & FLG_MASK_STACKED)
 			options.mask = (char*)cfg_get_param("Mask", NULL, "DefaultHybridMask");
 		else
