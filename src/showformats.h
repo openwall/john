@@ -1,8 +1,9 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2010-2012,2015-2019 by Solar Designer
- *
- * ...with heavy changes in the jumbo patch, by magnum and various authors
+ * This software is Copyright (c) 2015,2019 Aleksey Cherepanov
+ * Copyright (c) 2017 magnum
+ * and is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #ifndef _JOHN_SHOWFORMATS_H
