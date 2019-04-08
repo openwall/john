@@ -29,7 +29,7 @@ john_register_one(&fmt_PHPS2);
 
 #define ALGORITHM_NAME		"?" /* filled in by dynamic */
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	7
 
 #define BINARY_SIZE			16
 #define BINARY_ALIGN		MEM_ALIGN_WORD

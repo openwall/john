@@ -26,7 +26,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.8.0.17"
+#define JOHN_VERSION			"1.8.0.18"
 
 /*
  * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD
@@ -190,6 +190,7 @@
 #define SUBSECTION_WORDLIST		"Wordlist"
 #define SECTION_INC			"Incremental:"
 #define SECTION_EXT			"List.External:"
+#define SECTION_DEBUG			"Debug"
 #define SECTION_MARKOV			"Markov:"
 #define SECTION_PRINCE			"PRINCE"
 #define SECTION_DISABLED		"Disabled:"

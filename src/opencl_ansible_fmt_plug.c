@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_ansible);
 #define FORMAT_LABEL            "ansible-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 HMAC-SHA256 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_ALIGN            MEM_ALIGN_WORD

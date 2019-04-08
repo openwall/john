@@ -90,7 +90,7 @@ john_register_one(&fmt_clipperz);
 #define ALGORITHM_NAME		"SHA256 32/" ARCH_BITS_STR EXP_STR
 
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 
 #define CLIPPERZSIG		"$clipperz$"
 #define CLIPPERZSIGLEN		(sizeof(CLIPPERZSIG)-1)

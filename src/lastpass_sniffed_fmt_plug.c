@@ -49,7 +49,7 @@ john_register_one(&fmt_sniffed_lastpass);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        55
 #define BINARY_SIZE             16
 #define SALT_SIZE               sizeof(struct custom_salt)

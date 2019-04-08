@@ -42,7 +42,7 @@ john_register_one(&fmt_pomelo);
 #endif
 
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define CIPHERTEXT_LENGTH       64
 #define BINARY_SIZE             32

@@ -43,7 +43,7 @@ john_register_one(&fmt_itunes);
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             0
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct custom_salt)

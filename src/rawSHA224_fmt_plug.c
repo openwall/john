@@ -47,7 +47,7 @@ john_register_one(&fmt_rawSHA224);
 #endif
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #ifdef SIMD_COEF_32
 #define PLAINTEXT_LENGTH		55

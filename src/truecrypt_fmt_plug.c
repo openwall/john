@@ -597,7 +597,7 @@ struct fmt_main fmt_truecrypt = {
 #endif
 #endif
 		"",                               // BENCHMARK_COMMENT
-		-1,                               // BENCHMARK_LENGTH
+		0x107,                            // BENCHMARK_LENGTH
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
@@ -659,7 +659,7 @@ struct fmt_main fmt_truecrypt_ripemd160 = {
 		"TrueCrypt AES256_XTS", // FORMAT_NAME
 		"RIPEMD160 32/" ARCH_BITS_STR,    // ALGORITHM_NAME,
 		"",                               // BENCHMARK_COMMENT
-		-1,                               // BENCHMARK_LENGTH
+		0x107,                            // BENCHMARK_LENGTH
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
@@ -708,7 +708,7 @@ struct fmt_main fmt_truecrypt_ripemd160boot = {
 		"TrueCrypt AES/Twofish/Serpent", // FORMAT_NAME
 		"RIPEMD160 32/" ARCH_BITS_STR, // ALGORITHM_NAME,
 		"", // BENCHMARK_COMMENT
-		-1, // BENCHMARK_LENGTH
+		0x107, // BENCHMARK_LENGTH
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
@@ -765,7 +765,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 #endif
 #endif
 		"",                               // BENCHMARK_COMMENT
-		-1,                               // BENCHMARK_LENGTH
+		0x107,                            // BENCHMARK_LENGTH
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
@@ -823,7 +823,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		"WHIRLPOOL 32/" ARCH_BITS_STR,    // ALGORITHM_NAME,
 #endif
 		"",                               // BENCHMARK_COMMENT
-		-1,                               // BENCHMARK_LENGTH
+		0x107,                            // BENCHMARK_LENGTH
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,

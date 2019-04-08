@@ -42,7 +42,7 @@ john_register_one(&fmt_dragonfly4_64);
 #endif
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		125
 #define CIPHERTEXT_LENGTH		84

@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #define FORMAT_LABEL            "ethereum-presale-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES Keccak OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_ALIGN            sizeof(uint32_t)

@@ -76,7 +76,7 @@ typedef union MY_WORD {
 
 /* Here is the 'common' code */
 #define WINZIP_BENCHMARK_COMMENT	""
-#define WINZIP_BENCHMARK_LENGTH	-1
+#define WINZIP_BENCHMARK_LENGTH	0x107
 #define WINZIP_BINARY_SIZE         10
 #define WINZIP_FORMAT_TAG		"$zip2$"
 #define WINZIP_FORMAT_CLOSE_TAG	"$/zip2$"

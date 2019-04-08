@@ -36,7 +36,7 @@ john_register_one(&fmt_saltedsha);
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		(55-MAX_SALT_LEN)
 

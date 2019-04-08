@@ -56,7 +56,7 @@ john_register_one(&fmt_sevenzip);
 #define FORMAT_TAG              "$7z$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT       " (512K iterations)"
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt*)

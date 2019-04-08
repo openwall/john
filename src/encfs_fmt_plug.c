@@ -39,7 +39,7 @@ john_register_one(&fmt_encfs);
 #define ALGORITHM_NAME      "PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
+#define BENCHMARK_LENGTH    7
 #define BINARY_SIZE         0
 #define PLAINTEXT_LENGTH    125
 #define BINARY_ALIGN        MEM_ALIGN_NONE

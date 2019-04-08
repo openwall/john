@@ -45,7 +45,7 @@ john_register_one(&fmt_whirlpool);
 #define TAG_LENGTH              11
 #define ALGORITHM_NAME          "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define CIPHERTEXT_LENGTH       128
 #define BINARY_SIZE             64

@@ -74,7 +74,7 @@ john_register_one(&fmt_krb5_3);
 #define ALGORITHM_NAME          "DES / PBKDF2-SHA1 32/" ARCH_BITS_STR " AES"
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        64
 #define CIPHERTEXT_LENGTH_18    64
 #define CIPHERTEXT_LENGTH_17    32

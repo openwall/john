@@ -45,7 +45,7 @@ john_register_one(&fmt_telegram);
 #define ALGORITHM_NAME          "PBKDF2-SHA1 32/" ARCH_BITS_STR " AES"
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1

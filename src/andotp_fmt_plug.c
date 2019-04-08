@@ -36,7 +36,7 @@ john_register_one(&fmt_andotp);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "SHA256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1

@@ -44,7 +44,7 @@ john_register_one(&fmt_o3logon);
 #define ALGORITHM_NAME                  "SHA1 DES 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT               ""
-#define BENCHMARK_LENGTH                -1
+#define BENCHMARK_LENGTH                0x107
 
 #define PLAINTEXT_LENGTH                32
 

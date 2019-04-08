@@ -44,7 +44,7 @@ john_register_one(&fmt_ansible);
 #endif
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            1

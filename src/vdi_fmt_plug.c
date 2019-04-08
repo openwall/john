@@ -342,7 +342,7 @@ struct fmt_main fmt_vdi = {
 		FORMAT_NAME,
 		ALGORITHM_NAME,
 		"",                               // BENCHMARK_COMMENT
-		-1,                               // BENCHMARK_LENGTH
+		0x107,                            // BENCHMARK_LENGTH
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,

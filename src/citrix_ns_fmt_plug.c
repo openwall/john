@@ -61,7 +61,7 @@ john_register_one(&fmt_ctrxns);
 #define ALGORITHM_NAME                  "SHA1 " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT               ""
-#define BENCHMARK_LENGTH                0
+#define BENCHMARK_LENGTH                7
 
 #define PLAINTEXT_LENGTH                (55 - SALT_SIZE - 1)
 

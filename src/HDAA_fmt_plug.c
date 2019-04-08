@@ -36,7 +36,7 @@ john_register_one(&fmt_HDAA);
 #define FORMAT_LABEL            "hdaa"
 #define FORMAT_NAME             "HTTP Digest access authentication"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        32
 #define CIPHERTEXT_LENGTH       32
 #define BINARY_SIZE             16

@@ -798,7 +798,7 @@ struct fmt_main fmt_sha1_ng = {
 		" 4x",
 #endif
 		.benchmark_comment  = "",
-		.benchmark_length   = -1,
+		.benchmark_length   = 0x107,
 #if VWIDTH * 4 - 1 > 55
 		.plaintext_length   = 55,
 #else

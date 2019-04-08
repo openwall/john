@@ -72,7 +72,7 @@ john_register_one(&fmt_aixssha512);
 #define ALGORITHM_NAME_SHA512   "PBKDF2-SHA512 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125 /* actual max in AIX is 255 */
 #define BINARY_SIZE             20
 #define BINARY_ALIGN            4

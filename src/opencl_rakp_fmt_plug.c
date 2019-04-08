@@ -38,7 +38,7 @@ john_register_one(&fmt_opencl_rakp);
 #define ALGORITHM_NAME          "HMAC-SHA1 OpenCL"
 
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 
 #define BLOCK_SIZE              64
 #define PAD_SIZE                BLOCK_SIZE

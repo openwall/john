@@ -36,7 +36,7 @@ john_register_one(&FMT_STRUCT);
 #define ALGORITHM_NAME			"SHA1 OpenCL"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define PLAINTEXT_LENGTH		55 /* Max. is 55 with current kernel */
 #define BUFSIZE				((PLAINTEXT_LENGTH+3)/4*4)

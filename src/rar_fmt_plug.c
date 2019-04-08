@@ -89,7 +89,7 @@ john_register_one(&fmt_rar);
 #else
 #define BENCHMARK_COMMENT	" (4 characters)"
 #endif
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0

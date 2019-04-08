@@ -40,7 +40,7 @@ john_register_one(&fmt_mongodb);
 
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        32
 #define BINARY_SIZE             16
 #define SALT_SIZE               sizeof(struct custom_salt)

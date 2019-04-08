@@ -43,7 +43,7 @@ john_register_one(&fmt_signal);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define FORMAT_TAG              "$signal$"

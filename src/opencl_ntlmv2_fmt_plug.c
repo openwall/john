@@ -56,7 +56,7 @@ john_register_one(&FMT_STRUCT);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "MD4 HMAC-MD5 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define SALT_MAX_LENGTH         59 /* Username + Domainname len in characters */
 #define BINARY_SIZE             16 /* octets */
 #define BINARY_ALIGN            4

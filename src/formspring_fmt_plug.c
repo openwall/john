@@ -40,7 +40,7 @@ john_register_one(&fmt_FORMSPRING);
 
 #define ALGORITHM_NAME		"?" /* filled in by dynamic */
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	7
 
 #define BINARY_SIZE		    32
 #define DYNA_BINARY_SIZE	16

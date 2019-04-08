@@ -66,7 +66,7 @@ john_register_one(&fmt_rawSHA1_axcrypt);
 #endif
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define BINARY_SIZE				DIGEST_SIZE
 #define BINARY_ALIGN			4

@@ -44,7 +44,7 @@ john_register_one(&fmt_oracle12c);
 #define BINARY_SIZE		64
 #define BINARY_ALIGN		sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define FORMAT_TAG		"$oracle12c$"
 #define FORMAT_TAG_LENGTH	(sizeof(FORMAT_TAG) - 1)
 #ifdef SIMD_COEF_64

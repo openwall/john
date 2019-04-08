@@ -72,7 +72,7 @@ john_register_one(&fmt_mskrb5);
 
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
-#define BENCHMARK_LENGTH   0
+#define BENCHMARK_LENGTH   7
 #define PLAINTEXT_LENGTH   125
 #define MAX_REALMLEN       64
 #define MAX_USERLEN        64

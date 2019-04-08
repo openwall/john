@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_pfx);
 #define FORMAT_NAME             "PKCS12 PBE (.pfx, .p12)"
 #define ALGORITHM_NAME          "SHA1 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              sizeof(int)

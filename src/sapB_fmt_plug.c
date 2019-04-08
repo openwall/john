@@ -58,7 +58,7 @@ static unsigned int threads = 1;
 
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define SALT_FIELD_LENGTH		40	/* the max listed username length */
 #define SALT_LENGTH			12	/* the max used username length */

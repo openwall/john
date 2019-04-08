@@ -42,7 +42,7 @@ john_register_one(&fmt_putty);
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "SHA1/AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0x107
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        1

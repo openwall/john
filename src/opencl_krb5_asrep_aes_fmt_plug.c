@@ -39,7 +39,7 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #define FORMAT_NAME             "Kerberos 5 AS-REP etype 17/18"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt *)

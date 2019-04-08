@@ -42,7 +42,7 @@ john_register_one(&FMT_STRUCT);
 #define ALGORITHM_NAME			"n/a"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define PLAINTEXT_MIN_LENGTH		0
 /* Max 125, but 95 typically produces fewer L1 data cache tag collisions */

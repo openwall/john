@@ -54,7 +54,7 @@ john_register_one(&fmt_AzureAD);
 #endif
 
 #define BENCHMARK_COMMENT        ""
-#define BENCHMARK_LENGTH         0
+#define BENCHMARK_LENGTH         7
 
 #define BINARY_SIZE              DIGEST_SIZE
 #define BINARY_ALIGN             4

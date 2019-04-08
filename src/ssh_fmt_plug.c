@@ -49,7 +49,7 @@ john_register_one(&fmt_ssh);
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME      "RSA/DSA/EC/OPENSSH (SSH private keys) 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0x107
 #define PLAINTEXT_LENGTH    32 // XXX
 #define BINARY_SIZE         0
 #define SALT_SIZE           sizeof(struct custom_salt)

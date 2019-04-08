@@ -58,7 +58,7 @@ john_register_one(&fmt_DPAPImk);
 #endif
 
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             0
 #define PLAINTEXT_LENGTH        125
 #define MAX_CT_LEN              4096
@@ -320,7 +320,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA_CTX ctx;
 		MD4_CTX ctx2;
 		int i;
-		
+
 		int digestlens[MIN_KEYS_PER_CRYPT];
 
 #if defined(SIMD_COEF_64) && defined(SIMD_COEF_32)
@@ -357,7 +357,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				digestlens[i] = 16;
 			}
 		}
-		
+
 		/* 1607+ domain credentials */
 		/* The key derivation algorithm is hardcoded in NtlmShared.dll!MsvpDeriveSecureCredKey */
 		if(cur_salt->cred_type == 3) {
@@ -369,17 +369,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				pin[i] = (unsigned char*)out[i];
 				x.pout[i] = out2[i];
 			}
-			
+
 			for (i = 0; i < sha256loops; i++) {
 				pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], sidBuf, sidBufSize, 10000, x.pout + (i * SSE_GROUP_SZ_SHA256), 32, 0);
 			}
-			
+
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				lens[i] = 32;
 				pin[i] = (unsigned char*)out2[i];
 				x.pout[i] = out[i];
 			}
-			
+
 			for (i = 0; i < sha256loops; i++) {
 				pbkdf2_sha256_sse((const unsigned char**)(pin + i * SSE_GROUP_SZ_SHA256), &lens[i * SSE_GROUP_SZ_SHA256], sidBuf, sidBufSize, 1, x.pout + (i * SSE_GROUP_SZ_SHA256), 16, 0);
 			}
@@ -391,7 +391,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		}
 
-		
+
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			passwordBuf = (unsigned char*)cur_salt->SID;
 			passwordBufSize = (strlen16(cur_salt->SID) + 1) * 2;

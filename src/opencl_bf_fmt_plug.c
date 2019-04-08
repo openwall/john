@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_bf);
 #define ALGORITHM_NAME			"Blowfish OpenCL"
 
 #define BENCHMARK_COMMENT		" (\"$2a$05\", 32 iterations)"
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define PLAINTEXT_LENGTH		72
 //#define CIPHERTEXT_LENGTH		60 // in BF_commmon.h

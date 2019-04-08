@@ -61,7 +61,7 @@ john_register_one(&fmt_NS);
 #endif
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 // set PLAINTEXT_LENGTH to 0, so dyna will set this
 #define PLAINTEXT_LENGTH		0

@@ -213,7 +213,7 @@ struct fmt_main fmt_EPI =
 		"EPiServer SID",
 		"SHA1 32/" ARCH_BITS_STR,
 		"", // benchmark comment
-		0, // benchmark length
+		7, // benchmark length
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_LENGTH,

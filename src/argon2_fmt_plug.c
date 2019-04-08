@@ -51,7 +51,7 @@ john_register_one(&fmt_argon2);
 #endif
 
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        100 //only in john
 #define BINARY_SIZE             256 //only in john
 #define BINARY_ALIGN            sizeof(uint32_t)

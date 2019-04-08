@@ -43,7 +43,7 @@ john_register_one(&fmt_KRB5);
 #define FORMAT_NAME         "Kerberos v5 TGT"
 #define ALGORITHM_NAME      "3DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    0x107
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        MEM_ALIGN_NONE

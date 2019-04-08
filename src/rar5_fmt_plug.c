@@ -50,7 +50,7 @@ john_register_one(&fmt_rar5);
 #endif
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        32
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)

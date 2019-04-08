@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_strip);
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME       "PBKDF2-SHA1 AES OpenCL"
 #define BENCHMARK_COMMENT    ""
-#define BENCHMARK_LENGTH     -1
+#define BENCHMARK_LENGTH     0x107
 #define MIN_KEYS_PER_CRYPT   1
 #define MAX_KEYS_PER_CRYPT   1
 #define BINARY_SIZE          0

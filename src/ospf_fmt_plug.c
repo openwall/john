@@ -42,7 +42,7 @@ john_register_one(&fmt_ospf);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "HMAC-SHA-X 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)

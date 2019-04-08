@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_rawsha512);
 #define ALGORITHM_NAME			"SHA512 OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0x107
 
 #define KERNEL_NAME "kernel_sha512"
 #define CMP_KERNEL_NAME "kernel_cmp"

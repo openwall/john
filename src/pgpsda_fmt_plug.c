@@ -42,7 +42,7 @@ john_register_one(&fmt_pgpsda);
 #define BINARY_SIZE             8
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define FORMAT_TAG              "$pgpsda$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 #define MIN_KEYS_PER_CRYPT      1

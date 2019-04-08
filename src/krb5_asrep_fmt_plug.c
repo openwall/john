@@ -88,7 +88,7 @@ john_register_one(&fmt_krb5asrep);
 #define ALGORITHM_NAME          "MD4 HMAC-MD5 RC4 / PBKDF2 HMAC-SHA1 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define MIN_PLAINTEXT_LENGTH    0
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0

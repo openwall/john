@@ -36,7 +36,7 @@
 #define ALGORITHM_NAME			"Blowfish ZTEX"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH		72
 

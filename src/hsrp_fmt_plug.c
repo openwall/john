@@ -40,7 +40,7 @@ john_register_one(&fmt_hsrp);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        55 // Must fit in a single MD5 block
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)

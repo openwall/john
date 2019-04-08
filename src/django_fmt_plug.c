@@ -60,7 +60,7 @@ john_register_one(&fmt_django);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       " (x10000)"
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define HASH_LENGTH             44
 #define BINARY_SIZE             32

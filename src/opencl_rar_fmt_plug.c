@@ -91,7 +91,7 @@ john_register_one(&fmt_ocl_rar);
 #else
 #define BENCHMARK_COMMENT	" (length 4)"
 #endif
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0x107
 
 #define PLAINTEXT_LENGTH	22 /* Max. currently supported is 22 */
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)

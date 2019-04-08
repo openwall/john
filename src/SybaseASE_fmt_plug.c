@@ -60,7 +60,7 @@ john_register_one(&fmt_SybaseASE);
 #define ALGORITHM_NAME      "SHA256 " SHA256_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0
+#define BENCHMARK_LENGTH    7
 
 #define PLAINTEXT_LENGTH    30
 #define CIPHERTEXT_LENGTH   (6 + 16 + 64)

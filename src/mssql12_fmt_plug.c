@@ -52,7 +52,7 @@ john_register_one(&fmt_mssql12);
 #define FORMAT_NAME             "MS SQL 2012/2014"
 #define ALGORITHM_NAME          "SHA512 " SHA512_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        ((111 - SALT_SIZE) / 2)
 #define CIPHERTEXT_LENGTH       54 + 44 * 2
 #define BINARY_SIZE             8

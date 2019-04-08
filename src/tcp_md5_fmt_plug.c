@@ -36,7 +36,7 @@ john_register_one(&fmt_tcpmd5);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0
+#define BENCHMARK_LENGTH        7
 
 // Linux Kernel says "#define TCP_MD5SIG_MAXKEYLEN 80"
 #define PLAINTEXT_LENGTH        80
