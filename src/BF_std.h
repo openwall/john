@@ -32,7 +32,7 @@
 
 #if defined(_OPENMP) && !BF_ASM
 #define BF_cpt				3
-#define BF_mt				256
+#define BF_mt				1024
 #define BF_N				(BF_Nmin * BF_mt)
 #else
 #define BF_mt				1

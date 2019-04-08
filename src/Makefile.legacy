@@ -250,12 +250,14 @@ default:
 	@echo "linux-x86-native         Linux, x86 32-bit, with all CPU features you've got (not necessarily best)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
-	@echo "linux-mic                Linux, Intel MIC (first generation Xeon Phi)"
 	@echo "linux-x86-clang          Linux, x86 32-bit with SSE2, compiled with clang"
 #	@echo "linux-x86-clang-debug    Linux, x86 32-bit with SSE2, compiled with clang (with debugging options)
-	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best)"
+	@echo "linux-mic                Linux, Intel MIC (first generation Xeon Phi)"
+	@echo "linux-arm64le            Linux, ARM 64-bit little-endian w/ASIMD (best)"
+	@echo "linux-arm32le-neon       Linux, ARM 32-bit little-endian w/NEON (best 32-bit)"
 	@echo "linux-arm32le            Linux, ARM 32-bit little-endian"
 	@echo "linux-alpha              Linux, Alpha"
+	@echo "linux-sparc64            Linux, SPARC 64-bit"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
@@ -721,6 +723,13 @@ linux-mic:
 		OPT_INLINE="$(OPT_NORMAL) -finline-functions"
 	@echo "You'll likely need to scp Intel's OpenMP runtime library such as /opt/intel/*/compiler/lib/mic/libiomp?.so over to the target MIC cards and set LD_LIBRARY_PATH in order to run the produced john binary"
 
+linux-arm64le:
+	$(LN) arm64le.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
 linux-arm32le-neon:
 	$(LN) arm32le.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -763,6 +772,13 @@ linux-alpha-ccc:
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) CC=ccc
 	@echo "All done"
+
+linux-sparc64:
+	$(LN) sparc64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -m64 -lcrypt"
 
 linux-sparc:
 	$(LN) sparc32.h arch.h

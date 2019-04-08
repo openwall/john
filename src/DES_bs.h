@@ -88,7 +88,7 @@ extern DES_bs_vector DES_bs_P[64];
 #else
 #define DES_bs_cpt			32
 #endif
-#define DES_bs_mt_max			(DES_bs_cpt * 576)
+#define DES_bs_mt_max			(DES_bs_cpt * 1024)
 extern int DES_bs_min_kpc, DES_bs_max_kpc;
 extern int DES_bs_nt;
 extern DES_bs_combined *DES_bs_all_p;
