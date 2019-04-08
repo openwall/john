@@ -2160,9 +2160,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 				        "Warning: Format wanted length %d benchmark", bl);
 
 			options.mask = test_mask;
-
-			if (options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, "\nTest mask: %s\n", options.mask);
 		}
 		else if (options.flags & FLG_MASK_STACKED)
 			options.mask = (char*)cfg_get_param("Mask", NULL, "DefaultHybridMask");
@@ -2177,6 +2174,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 		using_default_mask = 1;
 	}
+
+	if ((options.flags & FLG_TEST_CHK) && options.verbosity >= VERB_MAX)
+		fprintf(stderr, "\nTest mask: %s\n", options.mask);
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		log_event("Proceeding with mask mode");

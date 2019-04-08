@@ -265,7 +265,15 @@ static void bench_set_keys(struct fmt_main *format,
 					break;
 				}
 			}
-			format->methods.set_key(plaintext, index++);
+#ifndef BENCH_BUILD
+			if (options.flags & FLG_MASK_CHK) {
+				if (len)
+					plaintext[len] = 0;
+				do_mask_crack(len ? plaintext : NULL);
+				index++;;
+			} else
+#endif
+				format->methods.set_key(plaintext, index++);
 		}
 
 		if (warn == 1) {
@@ -302,8 +310,10 @@ static void bench_set_keys(struct fmt_main *format,
 
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK) {
-			plaintext[len] = 0;
+			if (len)
+				plaintext[len] = 0;
 			do_mask_crack(len ? plaintext : NULL);
+			index++;;
 		} else
 #endif
 			format->methods.set_key(plaintext, index);
