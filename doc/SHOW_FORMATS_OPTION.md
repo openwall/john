@@ -168,7 +168,7 @@ $ john --show=formats ab.pw | python -c '
 >     l = l.strip("[],\r\n")
 >     d = json.loads(l)
 >     fs = [ f["label"] for f in d["rowFormats"] ]
->     print(d["ciphertext"], fs)
+>     print(d.get("ciphertext", None), fs)
 > '
 (u'$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', [u'Raw-MD5', u'dynamic_0'])
 (u'$dynamic_0$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', [u'Raw-MD5', u'dynamic_0'])
