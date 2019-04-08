@@ -406,12 +406,17 @@ case "$simd" in
   neon)
     AS_CASE([$host_cpu],
       [arm*],
-        JTR_FLAG_CHECK_LINK([-mfpu=neon], 2),
+        JTR_FLAG_CHECK_LINK([-mfpu=neon], 2)
+        SIMD_NAME="NEON",
       [aarch64],
-        JTR_FLAG_CHECK_LINK([-march=armv8-a+simd], 2),
-      AC_ERROR([NEON only applicable for ARM CPU's])
+        JTR_FLAG_CHECK_LINK([-march=armv8-a+simd], 2)
+        SIMD_NAME="ASIMD",
+      AC_ERROR([NEON/ASIMD only applicable for ARM CPU's])
     )
-    SIMD_NAME="NEON"
+    ;;
+  asimd)
+    JTR_FLAG_CHECK_LINK([-march=armv8-a+simd], 2)
+    SIMD_NAME="ASIMD"
     ;;
   altivec1)
     JTR_FLAG_CHECK_LINK([-maltivec], 2)
@@ -463,7 +468,7 @@ case "$host_cpu" in
     AS_IF([test $simd != no],
         [AC_MSG_CHECKING([special compiler flags])]
         [AC_MSG_RESULT([aarch64])]
-        [SIMD_NAME="NEON"]
+        [SIMD_NAME="ASIMD"]
       )
     ;;
   arm*) ARCH_LINK=arm32le.h endian=little

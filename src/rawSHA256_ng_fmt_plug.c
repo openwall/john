@@ -57,6 +57,8 @@ john_register_one(&fmt_rawSHA256_ng);
 #define SIMD_TYPE                 "256/256 AVX2 8x"
 #elif __ALTIVEC__
 #define SIMD_TYPE                 "128/128 AltiVec 4x"
+#elif __aarch64__
+#define SIMD_TYPE                 "128/128 ASIMD 4x"
 #elif __ARM_NEON
 #define SIMD_TYPE                 "128/128 NEON 4x"
 #elif __XOP__

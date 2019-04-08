@@ -66,7 +66,7 @@
 #ifdef vternarylogic
 #define MD5_I(x,y,z)                            \
     tmp[i] = vternarylogic(x[i], y[i], z[i], 0x39);
-#elif __ARM_NEON
+#elif __ARM_NEON || __aarch64__
 #define MD5_I(x,y,z)                            \
     tmp[i] = vorn((x[i]), (z[i]));              \
     tmp[i] = vxor((tmp[i]), (y[i]));
@@ -130,7 +130,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	unsigned int i;
 	vtype *data;
 
-#if !defined(vternarylogic) && !__ARM_NEON
+#if !defined(vternarylogic) && !__ARM_NEON && !__aarch64__
 	vtype mask;
 	mask = vset1_epi32(0xffffffff);
 #endif

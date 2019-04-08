@@ -28,6 +28,9 @@
 #if __ALTIVEC__
 #undef SIMD_TYPE
 #define SIMD_TYPE            "AltiVec"
+#elif __aarch64__
+#undef SIMD_TYPE
+#define SIMD_TYPE            "ASIMD"
 #elif __ARM_NEON
 #undef SIMD_TYPE
 #define SIMD_TYPE            "NEON"

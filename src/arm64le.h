@@ -41,7 +41,7 @@
 #define DES_EXTB			0
 #define DES_COPY			0
 #define DES_BS_ASM			0
-#if __ARM_NEON && !JOHN_NO_SIMD
+#if !JOHN_NO_SIMD
 /*
  * Here we assume that we're on AArch64, which implies we have Advanced SIMD.
  *
@@ -71,7 +71,7 @@
 #define BF_SCALE			0
 #define BF_X2				1
 
-#if __ARM_NEON && !JOHN_NO_SIMD
+#if !JOHN_NO_SIMD
 #define SIMD_COEF_32		4
 #define SIMD_COEF_64		2
 #ifndef SIMD_PARA_MD4
