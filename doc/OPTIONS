@@ -180,6 +180,7 @@ using --show=left you normally need to supply the --format option too.
 --show=types				or in old custom format
 
 Shows the formats/types of input hashes contained in the input file.
+See doc/SHOW_FORMATS_OPTION.md
 
 --show=invalid			show lines in the input file that fail valid()
 
