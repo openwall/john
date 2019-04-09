@@ -17,20 +17,16 @@ john_register_one(&fmt_rawKeccak_256);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
 #include "KeccakHash.h"
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE			2048
-#endif
-#include <omp.h>
-#endif
-
 
 #define FORMAT_TAG		"$keccak256$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
@@ -53,7 +49,11 @@ john_register_one(&fmt_rawKeccak_256);
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE			32
+#endif
 
 static struct fmt_tests tests[] = {
 	{"4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45", "abc"},
@@ -73,9 +73,8 @@ static uint32_t (*crypt_out)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -194,13 +193,12 @@ struct fmt_main fmt_rawKeccak_256 = {
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-                BINARY_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-                SALT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD |
-		FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests

@@ -14,6 +14,10 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #include <string.h>
 #include <stdint.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -22,13 +26,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_common.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
-#endif
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA1"
 #define FORMAT_NAME             ""
@@ -43,12 +40,16 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               1
+#endif
+
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
+#define MAX_KEYS_PER_CRYPT      (8 * SSE_GROUP_SZ_SHA1)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      8
 #endif
 
 #define PAD_SIZE                64
@@ -67,9 +68,8 @@ static uint32_t (*crypt_out)[PBKDF2_SHA1_BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -123,7 +123,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SSE_GROUP_SZ_SHA1
 		int lens[SSE_GROUP_SZ_SHA1], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA1];

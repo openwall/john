@@ -19,9 +19,6 @@ john_register_one(&fmt_s7);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
-#endif
 #endif
 
 #include "sha.h"
@@ -46,7 +43,11 @@ john_register_one(&fmt_s7);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      8
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4
+#endif
 
 static struct fmt_tests s7_tests[] = {
 	{"$siemens-s7$1$599fe00cdb61f76cc6e949162f22c95943468acb$002e45951f62602b2f5d15df217f49da2f5379cb", "123"},
@@ -64,9 +65,8 @@ unsigned char *challenge;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,

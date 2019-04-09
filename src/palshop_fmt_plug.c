@@ -14,22 +14,21 @@ extern struct fmt_main fmt_palshop;
 john_register_one(&fmt_palshop);
 #else
 
+#include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "sha.h"
 #include "md5.h"
-#include <string.h>
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
 #include "base64_convert.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
-#endif
 
 #define FORMAT_LABEL            "Palshop"
 #define FORMAT_NAME             "MD5(Palshop)"
@@ -42,11 +41,14 @@ john_register_one(&fmt_palshop);
 #define SALT_SIZE               0
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
 #define FORMAT_TAG              "$palshop$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               256
+#endif
 
 static struct fmt_tests palshop_tests[] = {
 	{"$palshop$68b11ee90ed17ef14aa0f51af494c2c63ad7d281a9888cb593e", "123"},
@@ -62,9 +64,8 @@ static size_t *saved_len;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,

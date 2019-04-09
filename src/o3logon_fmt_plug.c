@@ -21,6 +21,10 @@ john_register_one(&fmt_o3logon);
 #include <string.h>
 #include <openssl/des.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -28,13 +32,6 @@ john_register_one(&fmt_o3logon);
 #include "sha.h"
 #include "unicode.h"
 #include "base64_convert.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               512 // tuned on core i7
-//#define OMP_SCALE                8192 // tuned on K8-Dual HT
-#endif
-#endif
 
 
 #define FORMAT_LABEL                    "o3logon"
@@ -54,10 +51,14 @@ john_register_one(&fmt_o3logon);
 #define SALT_SIZE                       (sizeof(ora9_salt))
 #define SALT_ALIGN                      (sizeof(unsigned int))
 #define CIPHERTEXT_LENGTH               16
+#define MAX_HASH_LEN                    (FORMAT_TAG_LEN+MAX_USERNAME_LEN+1+32+1+80)
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
-#define MAX_HASH_LEN                    (FORMAT_TAG_LEN+MAX_USERNAME_LEN+1+32+1+80)
+#define MAX_KEYS_PER_CRYPT		64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               128 // MKPC and scale tuned for i7
+#endif
 
 
 //#define DEBUG_ORACLE
@@ -90,9 +91,8 @@ static DES_key_schedule desschedule1;	// key 0x0123456789abcdef
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	DES_set_key((DES_cblock *)"\x01\x23\x45\x67\x89\xab\xcd\xef", &desschedule1);
 	cur_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*cur_key));

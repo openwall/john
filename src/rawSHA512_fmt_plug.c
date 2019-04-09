@@ -22,6 +22,10 @@ john_register_one(&fmt_raw0_SHA512);
 
 #include <stdint.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "sha2.h"
 #include "params.h"
@@ -29,28 +33,11 @@ john_register_one(&fmt_raw0_SHA512);
 #include "johnswap.h"
 #include "formats.h"
 #include "rawSHA512_common.h"
-
-//#undef SIMD_COEF_64
-//#undef SIMD_PARA_SHA512
-
 /*
  * Only effective for SIMD.
  * Undef to disable reversing steps for benchmarking.
  */
 #define REVERSE_STEPS
-
-#ifdef _OPENMP
-#ifdef SIMD_COEF_64
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE				2048
-#endif
-#endif
-#include <omp.h>
-#endif
 #include "simd-intrinsics.h"
 
 #define FORMAT_LABEL		"Raw-SHA512"
@@ -75,10 +62,14 @@ john_register_one(&fmt_raw0_SHA512);
 
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64*SIMD_PARA_SHA512)
-#define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT      (64*SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		64
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // MKPC and scale tuned for i7
 #endif
 
 #ifdef SIMD_COEF_64
@@ -95,9 +86,8 @@ static uint64_t (*crypt_out)[DIGEST_SIZE / sizeof(uint64_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 #ifndef SIMD_COEF_64
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
@@ -196,7 +186,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_64
 		SIMDSHA512body(&saved_key[index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64],
 		              &crypt_out[index/SIMD_COEF_64*8*SIMD_COEF_64],

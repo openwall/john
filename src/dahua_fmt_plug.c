@@ -26,13 +26,6 @@ john_register_one(&fmt_dahua);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#ifdef __MIC__
-#define OMP_SCALE 512
-#else
-#define OMP_SCALE 32768		// tuned K8-dual HT
-#endif // __MIC__
-#endif // OMP_SCALE
 #endif // _OPENMP
 
 #include "arch.h"
@@ -57,7 +50,15 @@ john_register_one(&fmt_dahua);
 #define SALT_SIZE               0
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifndef OMP_SCALE
+#ifdef __MIC__
+#define OMP_SCALE 32
+#else
+#define OMP_SCALE 16		// MKPC & scale tuned for i7
+#endif // __MIC__
+#endif // OMP_SCALE
 
 static struct fmt_tests tests[] = {
 	{"$dahua$4WzwxXxM", "888888"},  // from hashcat.net
@@ -75,9 +76,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,

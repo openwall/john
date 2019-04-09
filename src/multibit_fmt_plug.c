@@ -20,9 +20,6 @@ john_register_one(&fmt_multibit);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2
-#endif
 #endif
 
 #include "arch.h"
@@ -50,7 +47,11 @@ john_register_one(&fmt_multibit);
 #define SALT_ALIGN              sizeof(uint32_t)
 #define PLAINTEXT_LENGTH        125
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      4
+#define MAX_KEYS_PER_CRYPT      1
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               4 // MKPC and scale tuned for i7
+#endif
 
 static struct fmt_tests multibit_tests[] = {
 	// Wallets created by MultiBit Classic 0.5.18
@@ -86,9 +87,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;

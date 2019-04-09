@@ -11,17 +11,14 @@ john_register_one(&fmt_lotus5);
 
 #include <stdio.h>
 #include <string.h>
-#include "misc.h"
-#include "formats.h"
-#include "common.h"
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#ifndef OMP_SCALE
-#define OMP_SCALE 2 // core i7
-#endif
-
+#include "misc.h"
+#include "formats.h"
+#include "common.h"
 
 #ifdef __x86_64__
 #define LOTUS_N 3
@@ -45,7 +42,11 @@ john_register_one(&fmt_lotus5);
 #define SALT_ALIGN				1
 #define MIN_KEYS_PER_CRYPT             LOTUS_N
 /* Must be divisible by any LOTUS_N (thus, by 2 and 3) */
-#define MAX_KEYS_PER_CRYPT             0x900
+#define MAX_KEYS_PER_CRYPT             (64 * LOTUS_N)
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               16 // MKPC and scale tuned for i7
+#endif
 
 /*A struct used for JTR's benchmarks*/
 static struct fmt_tests tests[] = {
@@ -104,9 +105,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 
 	crypt_key = mem_calloc_align(sizeof(*crypt_key),
 	    self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);

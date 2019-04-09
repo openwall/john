@@ -15,9 +15,6 @@ john_register_one(&fmt_office);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE                4
-#endif
 #endif
 
 #include "arch.h"
@@ -65,6 +62,10 @@ john_register_one(&fmt_office);
 #define SHA512_LOOP_CNT          1
 #define MIN_KEYS_PER_CRYPT       1
 #define MAX_KEYS_PER_CRYPT       1
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE                1 // MKPC and scale tuned for i7
 #endif
 
 static struct fmt_tests office_tests[] = {
@@ -586,9 +587,8 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
 	crypt_key = mem_calloc(sizeof(*crypt_key), self->params.max_keys_per_crypt);

@@ -61,11 +61,6 @@ john_register_one(&fmt_clipperz);
 #endif
 
 #include <string.h>
-#include "sha2.h"
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
 #ifdef HAVE_LIBGMP
 #if HAVE_GMP_GMP_H
 #include <gmp/gmp.h>
@@ -77,13 +72,17 @@ john_register_one(&fmt_clipperz);
 #include <openssl/bn.h>
 #define EXP_STR " oSSL-exp"
 #endif
-#include "johnswap.h"
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
 #endif
-#endif
+
+#include "sha2.h"
+#include "arch.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
+#include "johnswap.h"
 
 #define FORMAT_LABEL		"Clipperz"
 #define FORMAT_NAME		"SRP"
@@ -104,8 +103,12 @@ john_register_one(&fmt_clipperz);
 #define SALT_ALIGN		1
 #define USERNAMELEN             32
 
+#ifndef OMP_SCALE
+#define OMP_SCALE               256 // MKPC & scale tuned for i7
+#endif
+
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	4
+#define MAX_KEYS_PER_CRYPT	2
 
 #define SZ 				128
 
@@ -145,9 +148,9 @@ static int max_keys_per_crypt;
 static void init(struct fmt_main *self)
 {
 	int i;
-#if defined (_OPENMP)
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_align(sizeof(*crypt_out), self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
