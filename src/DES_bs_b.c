@@ -53,7 +53,7 @@ typedef uint32x4_t vtype;
 #define vshr(dst, src, shift) \
 	(dst) = vshrq_n_u32((src), (shift))
 
-#elif defined(__ARM_NEON) && DES_BS_DEPTH == 64
+#elif defined(__ARM_NEON) && DES_BS_DEPTH == 64 && DES_BS_VECTOR > 0
 #include <arm_neon.h>
 
 typedef uint32x2_t vtype;
