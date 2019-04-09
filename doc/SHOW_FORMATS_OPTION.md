@@ -2,76 +2,77 @@
 
 This file tries to document `--show=formats` option (and a bit of deprecated `--show=types`).
 
-john loads hashes of one format from given hash files. john gives hints about some other formats seen in the file. `--show=formats` will try every line against every format and show formats that can load it independently. It does not mean that load all lines at the same time.
+john loads hashes of one format from given hash files. john gives hints about some other formats seen in the file. `--show=formats` will try every line against every format (with a few exceptions) and show formats that can load line independently for each line. It does not mean that john can load all lines at the same time (in one session).
+
+The exceptions:
+- some dynamic formats are disabled in configuration file, they may be enabled temporarily specifying the format with `--format=` option with exact name,
+- `*-ztex` formats are not tried during `--show=formats`, they cannot be enabled (it may be changed in future versions).
 
 Basic uses include:
-- manual investigation of a file with hashes, hash type identification,
-- easier understanding of cases when john loads only a part of file,
+- manual and automatic investigation of a file with hashes, hash type identification,
+- easier understanding of cases when john loads only a part of file, but `--show=invalid` may be more convenient to use,
 - help in automated matching of canonical hashes in .pot files with hashes in original form.
 
 ## Output and manual investigation
 
 john with `--show=formats` will parse specified hash file and print information about each line in JSON format. JSON format is simple and almost readable.
 
-Example: 2 raw md5 hashes with `$dynamic_0$` format:
+Example: 2 descrypt hashes:
 ```
 $ cat ab.pw
-$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-$dynamic_0$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+AAa6CzJlsalyo
+BBODHXVAdtcmc
 ```
 
-(`--format=raw-md5` is specified to reduce output.)
+(`--format=descrypt` is specified to reduce output.)
 ```
-$ john --show=formats ab.pw --format=raw-md5
-[{"lineNo":1,"ciphertext":"$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","rowFormats":[{"label":"Raw-MD5","prepareEqCiphertext":true,"canonHash":["$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]}]},
-{"lineNo":2,"ciphertext":"$dynamic_0$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","rowFormats":[{"label":"Raw-MD5","prepareEqCiphertext":true,"canonHash":["$dynamic_0$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]}]}]
-```
+$ ./JohnTheRipper/run/john --show=formats ab.pw --format=descrypt
+[{"lineNo":1,"ciphertext":"AAa6CzJlsalyo","rowFormats":[{"label":"descrypt","prepareEqCiphertext":true,"canonHash":["AAa6CzJlsalyo"]}]},
+{"lineNo":2,"ciphertext":"BBODHXVAdtcmc","rowFormats":[{"label":"descrypt","prepareEqCiphertext":true,"canonHash":["BBODHXVAdtcmc"]}]}]```
 
-Example: 1 raw md5 hash and pretty printing:
+Example: 1 descrypt hash and pretty printing:
 ```
 $ cat a.pw
-$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+AAa6CzJlsalyo
 ```
 
-(json_pp is a part of perl package (on Debian))
+With pretty printing by json_pp (it is a part of perl package (on Debian)):
 ```
 $ john --show=formats a.pw | json_pp
 [
    {
+      "ciphertext" : "AAa6CzJlsalyo",
       "lineNo" : 1,
       "rowFormats" : [
          {
-            "label" : "Raw-MD5",
             "canonHash" : [
-               "$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+               "AAa6CzJlsalyo"
             ],
+            "label" : "descrypt",
             "prepareEqCiphertext" : true
          },
          {
-            "dynamic" : true,
-            "label" : "dynamic_0",
+            "label" : "crypt",
+            "prepareEqCiphertext" : true,
             "canonHash" : [
-               "$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            ],
-            "prepareEqCiphertext" : true
+               "AAa6CzJlsalyo"
+            ]
          }
-      ],
-      "ciphertext" : "$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ]
    }
 ]
 ```
 
 Or with one-liner in python:
 ```
-$ john --show=formats a.pw | python -c 'import json, sys, pprint; pprint.pprint(json.loads(sys.stdin.read()))'
-[{u'ciphertext': u'$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+$ john --show=formats a.pw | python -c 'import json, sys, pprint; pprint.pprint(json.load(sys.stdin))'
+[{u'ciphertext': u'AAa6CzJlsalyo',
   u'lineNo': 1,
-  u'rowFormats': [{u'canonHash': [u'$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-                   u'label': u'Raw-MD5',
+  u'rowFormats': [{u'canonHash': [u'AAa6CzJlsalyo'],
+                   u'label': u'descrypt',
                    u'prepareEqCiphertext': True},
-                  {u'canonHash': [u'$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-                   u'dynamic': True,
-                   u'label': u'dynamic_0',
+                  {u'canonHash': [u'AAa6CzJlsalyo'],
+                   u'label': u'crypt',
                    u'prepareEqCiphertext': True}]}]
 ```
 
@@ -93,6 +94,7 @@ A dictionary for line may contain such keys/fields:
   - the value of this field is the origin of decision to skip, that's a label of branch in code that skipped the line (so you may check code in `loader.c`),
 - "uid", "gid", "gecos", "home", "shell" are for additional information about user (provided in some formats of hash files),
   - they may be absent if they are empty,
+  - some fields may be used for different purposes in some formats of hash files, john should handle it well (i.e. "uid" contains LM ciphertext in PWDUMP files),
   - "gecos", "home", "shell" may be absent also if they have dummy value "/".
 
 "rowFormats" field contains a list of dictionaries with results of successful parsing of line by formats.
@@ -105,8 +107,8 @@ Each dictionary in "rowFormats" list may have the following field/keys:
 - "prepareEqCiphertext" is boolean value,
   - it is true if `prepare()` method of formats returned same ciphertext after processing (it may be interesting to developers of formats),
   - it is absent if it is false,
-- "canonHash" is a list containing ciphertext in canonical form,
-  - it may contain multiple values for some formats of hash files (e.g. pwdump),
+- "canonHash" is a list of strings containing ciphertext in canonical form,
+  - it may contain multiple values for some formats (e.g. full LM gives two independent halves),
   - canonical hash is almost unambiguous form of hash that allows john to load this hash with respective format without `--format=` option,
     - there may be a few exceptional formats that have canonical form that cannot be distinguished from other formats,
     - formats that are different implementations of same hash type have same canonical form usually (e.g. raw-md5 and raw-md5-opencl formats),
@@ -117,7 +119,7 @@ Each dictionary in "rowFormats" list may have the following field/keys:
   - it is true when "truncHash" would be used in .pot file,
   - it may be true, while certain hash is short enough to be saved in canonical form, there is no "truncHash" field in this case.
 
-Example of hash transformation into canonical form:
+Example: a hash is transformed into canonical form and saved to .pot file.
 ```
 $ cat 123456.pw
 e10adc3949ba59abbe56e057f20f883e
@@ -125,7 +127,7 @@ e10adc3949ba59abbe56e057f20f883e
 
 ```
 $ john --format=raw-md5 123456.pw --show=formats
-..."rowFormats":[{"label":"Raw-MD5",...,"canonHash":["$dynamic_0$e10adc3949ba59abbe56e057f20f883e"]}]}]
+[{..."rowFormats":[{"label":"Raw-MD5",...,"canonHash":["$dynamic_0$e10adc3949ba59abbe56e057f20f883e"]}]}]
 ```
 
 ```
@@ -133,21 +135,70 @@ $ john --format=raw-md5 123456.pw --pot=123456.pot
 [...]
 123456           (?)
 [...]
-```
-
-```
 $ cat 123456.pot
 $dynamic_0$e10adc3949ba59abbe56e057f20f883e:123456
 ```
 
+Example: PWDUMP format and LM halves.
+```
+$ cat pwdump.pw
+alogin:aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb:ccccccccccccccccdddddddddddddddd
+```
+
+(reformatted output)
+```
+$ john --show=formats pwdump.pw
+[{"lineNo":1,"login":"alogin",
+"ciphertext":"aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb",
+"uid":"ccccccccccccccccdddddddddddddddd",
+"rowFormats":[
+  {"label":"LM","canonHash":["$LM$cccccccccccccccc","$LM$dddddddddddddddd"]},
+  ...
+  {"label":"NT","prepareEqCiphertext":true,"canonHash":["$NT$aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb"]},
+  ...
+  {"label":"Snefru-128","prepareEqCiphertext":true,"canonHash":["$snefru$aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb"]},
+...]}]
+```
+
+When PWDUMP format of file is identified, the third field (aka "uid") is used for full LM hash. With such line, it is not possible to load `aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb` as LM, the hash should be extracted onto a separate line manually.
+
 ## Interaction with other options
+
+`--users=`, `--groups=`, `--shells=` options affect work of `--show=formats` but skipped lines will be reported anyway.
 
 Formats to be tried may be limited with `--format=` option.
 - 1 exact format may be specified (e.g. `--format=raw-md5`),
   - a disabled dynamic format may be enabled this way for temporary use,
-- other formats will not be checked and reported, it may be useful because `--show=formats` may be slow.
+- multiple formats may be specified by mask in `--format=` option (e.g. `--format=*crypt`, `--format=mssql*`),
+  - it does not work for `--format=*-ztex` because these formats are excluded from `--show=formats` totally,
+  - set of formats in john may differ between builds, so `--list=formats` with `--format=` may be used to check that formats are available and it is not specific to `--show=formats` (e.g. `--format=*-opencl` would fail when john is built without OpenCL support),
+- other formats will not be checked and reported, it may be useful because `--show=formats` may be slow or produce too much output.
 
-`--users=`, `--groups=`, `--shells=` options affect work of `--show=formats` but skipped lines will be reported anyway.
+Example: choose a subset of formats (john is built without OpenCL).
+```
+$ john --format=mssql* --list=formats
+mssql, mssql05, mssql12
+$ john --format=*crypt --list=formats
+descrypt, bsdicrypt, md5crypt, bcrypt, scrypt, adxcrypt, AxCrypt, BestCrypt, 
+sha1crypt, sha256crypt, sha512crypt, django-scrypt, Raw-SHA1-AxCrypt, crypt
+```
+
+Example: `--show=formats` fails due to lack of OpenCL formats, so we check `--list=formats`.
+```
+$ john --format=*-opencl --list=formats
+Unknown ciphertext format name requested
+$ john --format=*-opencl --show=formats t.pw
+Unknown ciphertext format name requested
+```
+
+Example: ZTEX support is enabled, but `--show=formats` does not see the formats.
+```
+$ john --format=*-ztex --list=formats
+descrypt-ztex, bcrypt-ztex, sha512crypt-ztex, Drupal7-ztex, sha256crypt-ztex, 
+md5crypt-ztex, phpass-ztex
+$ john --format=*-ztex --show=formats t.pw
+Unknown ciphertext format name requested
+```
 
 ## Automatic parsing of output
 
@@ -155,10 +206,13 @@ The whole output may be read as JSON easily (see example above with a.pw and pyt
 
 It is possible to avoid reading of full output into memory for sequential processing, because output is guaranteed to have one dictionary for one input line on a single separate output line.
 
+"rowFormats" field's value is a list always. Empty list means that line cannot be loaded by any format.
+
+Example: print "ciphertext" field and list of format name that can load it, processing JSON line by line with python.
 ```
 $ cat ab.pw
-$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-$dynamic_0$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+AAa6CzJlsalyo
+BBODHXVAdtcmc
 ```
 
 ```
@@ -168,8 +222,8 @@ $ john --show=formats ab.pw | python -c '
 >     l = l.strip("[],\r\n")
 >     d = json.loads(l)
 >     fs = [ f["label"] for f in d["rowFormats"] ]
->     print(d.get("ciphertext", None), fs)
+>     print(d["ciphertext"], fs)
 > '
-(u'$dynamic_0$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', [u'Raw-MD5', u'dynamic_0'])
-(u'$dynamic_0$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', [u'Raw-MD5', u'dynamic_0'])
+(u'AAa6CzJlsalyo', [u'descrypt', u'crypt'])
+(u'BBODHXVAdtcmc', [u'descrypt', u'crypt'])
 ```
