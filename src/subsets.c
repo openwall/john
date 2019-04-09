@@ -394,7 +394,7 @@ static int submit(UTF32 *subset)
 		utf32_to_enc(out, sizeof(out), subset);
 	}
 
-	if (options.mask)
+	if (options.flags & FLG_MASK_CHK)
 		return do_mask_crack((char*)out);
 	else
 		return crk_process_key((char*)out);
@@ -603,8 +603,8 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		fprintf(stderr, "Proceeding with \"subsets\"%s%s",
 		        req_charset ? ": " : "",
 		        req_charset ? req_charset : "");
-		if (options.mask)
-			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.flags & FLG_MASK_CHK)
+			fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
 		if (options.rule_stack)
 			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)

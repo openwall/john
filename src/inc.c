@@ -419,7 +419,7 @@ update_last:
 			return 1;
 		inc_hybrid_fix_state();
 	} else
-	if (options.mask) {
+	if (options.flags & FLG_MASK_CHK) {
 		if (do_mask_crack(key))
 			return 1;
 	} else
@@ -497,8 +497,8 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 
 	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
 		fprintf(stderr, "Proceeding with incremental:%s", mode);
-		if (options.mask)
-			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.flags & FLG_MASK_CHK)
+			fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
 		if (options.rule_stack)
 			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
@@ -851,7 +851,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 					break;
 				inc_hybrid_fix_state();
 			} else
-			if (options.mask) {
+			if (options.flags & FLG_MASK_CHK) {
 				if (!skip && do_mask_crack(fmt_null_key))
 					break;
 			} else

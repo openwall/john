@@ -704,7 +704,7 @@ int do_external_hybrid_crack(struct db_main *db, const char *base_word) {
 			*internal = 0;
 		}
 
-		if (options.mask) {
+		if (options.flags & FLG_MASK_CHK) {
 			if (do_mask_crack(int_word)) {
 				retval = 1;
 				goto out;

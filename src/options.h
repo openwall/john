@@ -268,8 +268,11 @@ struct options_main {
 	char *fuzz_dump;
 #endif
 
-/* Mask mode's mask */
+/* Mask mode's requested mask (as given) */
 	char *mask;
+
+/* Mask mode's effective mask (as used, may be default from john.conf etc.) */
+	char *eff_mask;
 
 /* Can't use HAVE_WINDOWS_H here so the below need to be maintained */
 #if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)

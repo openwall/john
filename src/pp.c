@@ -1316,8 +1316,8 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
       else
         fprintf(stderr, ", rules:%s", options.activewordlistrules);
     }
-    if (options.mask)
-      fprintf(stderr, ", hybrid mask:%s", options.mask);
+    if (options.flags & FLG_MASK_CHK)
+      fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
     if (!options.activewordlistrules && options.rule_stack)
       fprintf(stderr, ", rules-stack:%s", options.rule_stack);
     if (options.req_minlength >= 0 || options.req_maxlength)
@@ -2308,7 +2308,7 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
                   break;
                 pp_hybrid_fix_state();
               } else
-              if (options.mask) {
+              if (options.flags & FLG_MASK_CHK) {
                 if ((jtr_done = do_mask_crack(pw_buf)))
                   break;
               } else
@@ -2341,7 +2341,7 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
                       break;
                     pp_hybrid_fix_state();
                   } else
-                  if (options.mask) {
+                  if (options.flags & FLG_MASK_CHK) {
                     if ((jtr_done = do_mask_crack(word)))
                       break;
                   } else

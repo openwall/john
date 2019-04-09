@@ -109,7 +109,7 @@ static int show_pwd_rnbs(struct db_main *db, struct s_pwd *pwd)
 					return 1;
 				mkv_hybrid_fix_state();
 			} else
-			if (options.mask) {
+			if (options.flags & FLG_MASK_CHK) {
 				if (do_mask_crack(pass))
 					return 1;
 			} else
@@ -175,7 +175,7 @@ static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 					return 1;
 				mkv_hybrid_fix_state();
 			} else
-			if (options.mask) {
+			if (options.flags & FLG_MASK_CHK) {
 				if (do_mask_crack(pass))
 					return 1;
 			} else
@@ -215,7 +215,7 @@ static int show_pwd_r(struct db_main *db, struct s_pwd *pwd, unsigned int bs)
 					return 1;
 				mkv_hybrid_fix_state();
 			} else
-			if (options.mask) {
+			if (options.flags & FLG_MASK_CHK) {
 				if (do_mask_crack(pass))
 					return 1;
 			} else
@@ -271,7 +271,7 @@ static int show_pwd(struct db_main *db, uint64_t start)
 						return 1;
 					mkv_hybrid_fix_state();
 				} else
-				if (options.mask) {
+				if (options.flags & FLG_MASK_CHK) {
 					if (do_mask_crack(pass))
 						return 1;
 				} else
@@ -308,7 +308,7 @@ static int show_pwd(struct db_main *db, uint64_t start)
 					return 1;
 				mkv_hybrid_fix_state();
 			} else
-			if (options.mask) {
+			if (options.flags & FLG_MASK_CHK) {
 				if (do_mask_crack(pass))
 					return 1;
 			} else
@@ -734,8 +734,8 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	if (rec_restored && john_main_process) {
 		fprintf(stderr, "Proceeding with Markov%s%s",
 		        param ? " " : "", param ? param : "");
-		if (options.mask)
-			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.flags & FLG_MASK_CHK)
+			fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
 		if (options.rule_stack)
 			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
