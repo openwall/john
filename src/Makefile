@@ -37,7 +37,7 @@ ASFLAGS = -c $(OMPFLAGS)
 LDFLAGS = -s $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
-OPT_INLINE = -Os -funroll-loops -finline-functions
+OPT_INLINE = -Os -funroll-loops -finline-functions -fno-strict-aliasing
 
 JOHN_OBJS = \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
