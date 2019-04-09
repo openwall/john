@@ -112,7 +112,7 @@ A dictionary for line may contain such keys/fields:
   - it may contain dummy value `?` that john uses when login is not specified,
 
 - `ciphertext` is for ciphertext as it is extracted from hash file,
-  - it may be absent if ciphertext is empty (or cut by john to be empty),
+  - it may be absent if ciphertext is empty (or was cut by john to be empty),
 
 - `rowFormats` is a list for descriptions of john's formats that can
   load the line for cracking (see below),
@@ -225,6 +225,10 @@ is used for full LM hash. With such line, it is not possible to load
 `aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb` as LM, the hash should be extracted
 onto a separate line manually.
 
+Despite detection of PWDUMP format of file, `ciphertext` field may be
+loaded by other with `--format=` option (except LM). 32 hex may be
+loaded by a lot of formats (e.g. `Snefru-128` in the example).
+
 
 ## Interaction with other options
 
@@ -249,9 +253,9 @@ Formats to be tried may be limited with `--format=` option.
 
   - set of formats in john may differ between builds, so
     `--list=formats` with `--format=` may be used to check that
-    formats are available and it is not specific to `--show=formats`
-    (e.g. `--format=*-opencl` would fail when john is built without
-    OpenCL support),
+    formats are available and the problem is not specific to
+    `--show=formats` (e.g. `--format=*-opencl` would fail when john is
+    built without OpenCL support),
 
 - other formats will not be checked and reported, it may be useful
   because `--show=formats` may be slow or produce too much output.
