@@ -102,23 +102,23 @@ There is a list of dictionaries with information for each line.
 
 A dictionary for line may contain such keys/fields:
 
-- "lineNo" is the number of line in file starting from 1,
+- `lineNo` is the number of line in file starting from 1,
   - numbering is continuous among multiple files with hashes (it may
     be change in future versions),
 
-- "login" is for login,
+- `login` is for login,
   - it may be absent if login is empty,
   - it may be absent if login is not specified and line is skipped,
-  - it may contain dummy value "?" that john uses when login is not specified,
+  - it may contain dummy value `?` that john uses when login is not specified,
 
-- "ciphertext" is for ciphertext as it is extracted from hash file,
+- `ciphertext` is for ciphertext as it is extracted from hash file,
   - it may be absent if ciphertext is empty (or cut by john to be empty),
 
-- "rowFormats" is a list for descriptions of john's formats that can
+- `rowFormats` is a list for descriptions of john's formats that can
   load the line for cracking (see below),
   - it may be empty list if line was skipped or none of formats can parse it,
 
-- "skipped" is to show that line is too short to be loaded by any
+- `skipped` is to show that line is too short to be loaded by any
   format, so it is not passed to formats' checks at all,
   - the value does not represent reason, the reason is always the
     same: the hash is too short and none of formats can load it,
@@ -126,35 +126,35 @@ A dictionary for line may contain such keys/fields:
     a label of branch in code that skipped the line (so you may check
     code in `loader.c`),
 
-- "uid", "gid", "gecos", "home", "shell" are for additional
+- `uid`, `gid`, `gecos`, `home`, `shell` are for additional
   information about user (provided in some formats of hash files),
   - they may be absent if they are empty,
   - some fields may be used for different purposes in some formats of
-    hash files, john should handle it well (i.e. "uid" contains LM
+    hash files, john should handle it well (i.e. `uid` contains LM
     ciphertext in PWDUMP files),
-  - "gecos", "home", "shell" may be absent also if they have dummy value "/".
+  - `gecos`, `home`, `shell` may be absent also if they have dummy value `/`.
 
 
-"rowFormats" field contains a list of dictionaries with results of
+`rowFormats` field contains a list of dictionaries with results of
 successful parsing of line by formats.
 
-Each dictionary in "rowFormats" list may have the following field/keys:
+Each dictionary in `rowFormats` list may have the following field/keys:
 
-- "label" is the name of format that may be used for `--format=` option,
+- `label` is the name of format that may be used for `--format=` option,
 
-- "dynamic" is boolean value,
+- `dynamic` is boolean value,
   - it is true if format uses engine for dynamic formats,
   - it is absent if it is false,
 
-- "prepareEqCiphertext" is boolean value,
+- `prepareEqCiphertext` is boolean value,
   - it is true if `prepare()` method of formats returned same
     ciphertext after processing (it may be interesting to developers
     of formats),
   - it is absent if it is false,
 
-- "canonHash" is a list of strings containing ciphertext in canonical form,
+- `canonHash` is a list of strings containing ciphertext in canonical form,
   - cracked hashes are saved to .pot file in canonical form unless it
-    is too long (see "truncated" field),
+    is too long (see `truncated` field),
   - it may contain multiple values for some formats (e.g. full LM
     gives two independent halves),
   - canonical hash is almost unambiguous form of hash that allows john
@@ -166,16 +166,16 @@ Each dictionary in "rowFormats" list may have the following field/keys:
       have same canonical form usually (e.g. raw-md5 and
       raw-md5-opencl formats),
 
-- "truncHash" is a list like "canonHash" but contains shorter hash
+- `truncHash` is a list like `canonHash` but contains shorter hash
   that would be used instead of canonical hash in .pot file (see
-  "truncated" field),
+  `truncated` field),
 
-- "truncated" is boolean field that shows whether "canonHash" or
-  "truncHash" is used for .pot file,
-  - it is absent when "canonHash" would be used in .pot file,
-  - it is true when "truncHash" would be used in .pot file,
+- `truncated` is boolean field that shows whether `canonHash` or
+  `truncHash` is used for .pot file,
+  - it is absent when `canonHash` would be used in .pot file,
+  - it is true when `truncHash` would be used in .pot file,
   - it may be true, while certain hash is short enough to be saved in
-    canonical form, there is no "truncHash" field in this case.
+    canonical form, there is no `truncHash` field in this case.
 
 
 Example: a hash is transformed into canonical form and saved to .pot file.
@@ -220,7 +220,7 @@ $ john --show=formats pwdump.pw
 ...]}]
 ```
 
-When PWDUMP format of file is identified, the third field (aka "uid")
+When PWDUMP format of file is identified, the third field (aka `uid`)
 is used for full LM hash. With such line, it is not possible to load
 `aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb` as LM, the hash should be extracted
 onto a separate line manually.
@@ -296,10 +296,10 @@ It is possible to avoid reading of full output into memory for
 sequential processing, because output is guaranteed to have one
 dictionary for one input line on a single separate output line.
 
-"rowFormats" field's value is a list always. Empty list means that
+`rowFormats` field's value is a list always. Empty list means that
 line cannot be loaded by any format.
 
-Example: print "ciphertext" field and list of format name that can
+Example: print `ciphertext` field and list of format name that can
 load it, processing JSON line by line with python.
 ```
 $ cat ab.pw
