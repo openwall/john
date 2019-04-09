@@ -1510,47 +1510,34 @@ static void clear_profiling_events()
 	}
 }
 
-// Do a test run with a specific global work size, return total duration
-// (or return zero for error or liomits exceeded)
-static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
+// Fill [set_salt(), set_key()] the OpenCL device with data
+static void* fill_opencl_device(size_t gws)
 {
-	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
-	int i, count, total = 0;
+	int i;
 	size_t kpc = gws * ocl_v_width;
-	cl_event benchEvent[MAX_EVENTS];
-	int number_of_events = 0;
 	void *salt;
-	int amd_bug;
-
-	for (i = 0; i < MAX_EVENTS; i++)
-		benchEvent[i] = NULL;
-
-	// Ensure format knows its GWS
-	global_work_size = gws;
-
-	// Prepare buffers.
-	create_clobj(gws, self);
-
 
 	// Set keys - unique printable length-7 keys
 	self->methods.clear_keys();
 	{
 		char key[PLAINTEXT_BUFFER_SIZE];
-		int len;
+		int len = mask_add_len;
 
-		if (mask_add_len > 0 &&
-		    (options.req_minlength == -1 && options.req_maxlength == 0)) {
-			//-mask and no min/max are set
-			len = mask_add_len;
-		} else {
+		if (mask_add_len == 0 ||
+		    options.req_minlength != -1 || options.req_maxlength != 0) {
 			len = (self->params.benchmark_length & 0x7f);
-			len = (len < options.req_minlength) ? options.req_minlength: len;
-			len = (options.req_maxlength && len > options.req_maxlength) ?
-			          options.req_maxlength: len;
+
+			if (len < options.req_minlength)
+				len = options.req_minlength;
+			if (options.req_maxlength && len > options.req_maxlength)
+				len = options.req_maxlength;
 		}
 		// Obey format's min and max length
 		len = MAX(len, self->params.plaintext_min_length);
 		len = MIN(len, self->params.plaintext_length);
+
+		if (options.verbosity == VERB_DEBUG)
+			fprintf(stderr, "Tuning to length %d\n", len);
 
 		memset(key, 0x61, sizeof(key));
 
@@ -1585,6 +1572,33 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			dyna_salt_create(salt);
 	}
 	self->methods.set_salt(salt);
+
+	return salt;
+}
+
+// Do a test run with a specific global work size, return total duration
+// (or return zero for error or limits exceeded)
+static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
+{
+	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
+	int i, count, total = 0;
+	size_t kpc = gws * ocl_v_width;
+	cl_event benchEvent[MAX_EVENTS];
+	int number_of_events = 0;
+	void *salt;
+	int amd_bug;
+
+	for (i = 0; i < MAX_EVENTS; i++)
+		benchEvent[i] = NULL;
+
+	// Ensure format knows its GWS
+	global_work_size = gws;
+
+	// Prepare buffers.
+	create_clobj(gws, self);
+
+	// Transfer data to the OpenCL device
+        salt = fill_opencl_device(gws);
 
 	// Activate events. Then clear them later.
 	for (i = 0; i < MAX_EVENTS; i++)
@@ -1771,46 +1785,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	                         devices[sequential_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "clCreateCommandQueue");
 
-	// Set keys - unique printable length-7 keys
-	self->methods.clear_keys();
-	{
-		char key[PLAINTEXT_BUFFER_SIZE];
-		int len = MAX(MIN(self->params.plaintext_length, 7),
-		              self->params.plaintext_min_length);
-
-		memset(key, 0x61, sizeof(key));
-
-		for (i = 0; i < global_work_size; i++) {
-			int l = 0;
-
-			key[len] = 0;
-			self->methods.set_key(key, i);
-			while (++key[l] > 0x7a)
-				key[l++] = 0x21;
-		}
-	}
-
-	// Set salt
-	dyna_salt_init(self);
-	if (self->methods.tunable_cost_value[0] && autotune_db->real) {
-		struct db_main *db = autotune_db->real;
-		struct db_salt *s = db->salts;
-
-		while (s->next && s->cost[0] < db->max_cost[0])
-			s = s->next;
-		salt = s->salt;
-	} else {
-		char *ciphertext;
-
-		if (!self->params.tests[0].fields[1])
-			self->params.tests[0].fields[1] = self->params.tests[0].ciphertext;
-		ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
-		ciphertext = self->methods.split(ciphertext, 0, self);
-		salt = self->methods.salt(ciphertext);
-		if (salt)
-			dyna_salt_create(salt);
-	}
-	self->methods.set_salt(salt);
+	// Transfer data to the OpenCL device
+        salt = fill_opencl_device(gws);
 
 	// Warm-up run
 	local_work_size = wg_multiple;
