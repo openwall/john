@@ -1536,8 +1536,21 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	self->methods.clear_keys();
 	{
 		char key[PLAINTEXT_BUFFER_SIZE];
-		int len = MAX(MIN(self->params.plaintext_length, 7),
-		              self->params.plaintext_min_length);
+		int len;
+
+		if (mask_add_len > 0 &&
+		    (options.req_minlength == -1 && options.req_maxlength == 0)) {
+			//-mask and no min/max are set
+			len = mask_add_len;
+		} else {
+			len = (self->params.benchmark_length & 0x7f);
+			len = (len < options.req_minlength) ? options.req_minlength: len;
+			len = (options.req_maxlength && len > options.req_maxlength) ?
+			          options.req_maxlength: len;
+		}
+		// Obey format's min and max length
+		len = MAX(len, self->params.plaintext_min_length);
+		len = MIN(len, self->params.plaintext_length);
 
 		memset(key, 0x61, sizeof(key));
 
