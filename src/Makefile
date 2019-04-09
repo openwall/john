@@ -37,7 +37,7 @@ ASFLAGS = -c $(OMPFLAGS)
 LDFLAGS = -s $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
-OPT_INLINE = -Os -funroll-loops -finline-functions -fno-strict-aliasing
+OPT_INLINE = -Os -funroll-loops -finline-functions
 
 JOHN_OBJS = \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
@@ -315,7 +315,8 @@ linux-arm64le:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -lcrypt"
+		LDFLAGS="$(LDFLAGS) -lcrypt" \
+		OPT_INLINE="$(OPT_INLINE) -fno-strict-aliasing"
 
 linux-arm32le-neon:
 	$(LN) arm32le.h arch.h
