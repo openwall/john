@@ -750,6 +750,20 @@ AGAIN:
 
 			fakedb.format = format;
 			mask_init(&fakedb, options.mask);
+
+			if (options.mask) {
+				static char benchmark_comment[16];
+				int bl = format->params.benchmark_length & 0x7f;
+				int el = mask_add_len;
+
+				if (options.flags & FLG_MASK_STACKED)
+					el = MAX(el, bl);
+
+				sprintf(benchmark_comment, " (length %d)", el);
+				format->params.benchmark_comment =
+					benchmark_comment;
+			}
+
 		}
 #endif
 

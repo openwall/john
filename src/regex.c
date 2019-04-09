@@ -269,7 +269,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 	}
 
 	if (!regex[0]) {
-		if (options.mask) {
+		if (options.flags & FLG_MASK_CHK) {
 			if (do_mask_crack(fmt_null_key)) {
 				retval = 1;
 				goto out;
@@ -294,7 +294,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		  */
 		//if (options.internal_cp != UTF_8)
 		//	utf8_to_cp_r(word, word, sizeof(word));
-		if (options.mask) {
+		if (options.flags & FLG_MASK_CHK) {
 			if (do_mask_crack(word)) {
 				retval = 1;
 				goto out;
@@ -342,8 +342,8 @@ void do_regex_crack(struct db_main *db, const char *regex)
 
 	if (rec_restored && john_main_process) {
 		fprintf(stderr, "Proceeding with regex:%s", regex);
-		if (options.mask)
-			fprintf(stderr, ", hybrid mask:%s", options.mask);
+		if (options.flags & FLG_MASK_CHK)
+			fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
 		if (options.rule_stack)
 			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)
@@ -362,7 +362,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 		c_simplestring_clear(buffer);
 		c_iterator_value(iter, buffer);
 		word = c_simplestring_to_string(buffer);
-		if (options.mask) {
+		if (options.flags & FLG_MASK_CHK) {
 			if (do_mask_crack(word))
 				break;
 		} else

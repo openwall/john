@@ -521,6 +521,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	} else
 #endif
 	if (options.flags & FLG_MASK_CHK) {
+		options.eff_mask = options.mask;
 		if (options.flags & FLG_TEST_CHK) {
 			options.flags &= ~FLG_PWD_SUP;
 			if (john_main_process && !(options.flags & FLG_NOTESTS))

@@ -2137,8 +2137,9 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	fprintf(stderr, "%s(%s) maxlen %d\n", __FUNCTION__, unprocessed_mask,
 	        max_keylen);
 #endif
+
 	/* Load defaults from john.conf */
-	if (!options.mask) {
+	if (!unprocessed_mask) {
 		if (options.flags & FLG_TEST_CHK) {
 			static char test_mask[PLAINTEXT_BUFFER_SIZE + 8];
 			int bl = mask_fmt->params.benchmark_length & 0xff;
@@ -2156,30 +2157,30 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 				fprintf(stderr,
 				        "Warning: Format wanted length %d benchmark", bl);
 
-			options.mask = test_mask;
+			unprocessed_mask = test_mask;
 		}
 		else if (options.flags & FLG_MASK_STACKED)
-			options.mask = (char*)cfg_get_param("Mask", NULL, "DefaultHybridMask");
+			unprocessed_mask = (char*)cfg_get_param("Mask", NULL, "DefaultHybridMask");
 		else
-			options.mask = (char*)cfg_get_param("Mask", NULL, "DefaultMask");
+			unprocessed_mask = (char*)cfg_get_param("Mask", NULL, "DefaultMask");
 
-		if (!options.mask)
-			options.mask = "";
+		if (!unprocessed_mask)
+			unprocessed_mask = "";
 
-		if (2 * options.eff_maxlength < strlen(options.mask))
-			options.mask[2 * options.eff_maxlength] = 0;
+		if (2 * options.eff_maxlength < strlen(unprocessed_mask))
+			unprocessed_mask[2 * options.eff_maxlength] = 0;
 
 		using_default_mask = 1;
 	}
 
 	if ((options.flags & FLG_TEST_CHK) && options.verbosity >= VERB_MAX)
-		fprintf(stderr, "\nTest mask: %s\n", options.mask);
+		fprintf(stderr, "\nTest mask: %s\n", unprocessed_mask);
 
 	if (!(options.flags & FLG_MASK_STACKED)) {
 		log_event("Proceeding with mask mode");
 
 		if (rec_restored && john_main_process) {
-			fprintf(stderr, "Proceeding with mask mode:%s", options.mask);
+			fprintf(stderr, "Proceeding with mask mode:%s", unprocessed_mask);
 			if (options.rule_stack)
 				fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 			if (options.req_minlength >= 0 || options.req_maxlength)
@@ -2191,7 +2192,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	if (using_default_mask && !(options.flags & FLG_TEST_CHK) &&
 	    john_main_process)
-		fprintf(stderr, "Using default mask: %s\n", options.mask);
+		fprintf(stderr, "Using default mask: %s\n", unprocessed_mask);
 
 	/* Load defaults for custom placeholders ?1..?9 from john.conf */
 	for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
@@ -2201,9 +2202,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		    !(options.custom_mask[i] = (char*)cfg_get_param("Mask", NULL, pl)))
 			options.custom_mask[i] = "";
 	}
-
-	if (!unprocessed_mask)
-		unprocessed_mask = options.mask;
 
 	mask = unprocessed_mask;
 	template_key = mem_alloc(0x400);
@@ -2247,7 +2245,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			parse_hex(options.custom_mask[i]);
 
 	/* Drop braces around a single-character [z] -> z */
-	mask = drop1range(mask);
+	options.eff_mask = mask = drop1range(mask);
 
 	if (mask_increments_len && !using_default_mask) {
 		int orig_len = mask_len(mask);
@@ -2500,7 +2498,8 @@ int do_mask_crack(const char *extern_key)
 
 		if (mask_cur_len == 0) {
 			if (john_main_process) {
-				if (!format_cannot_reset && mask_fmt->params.flags & FMT_MASK) {
+				if (!format_cannot_reset &&
+				    (mask_fmt->params.flags & FMT_MASK)) {
 					finalize_mask(0);
 					generate_template_key(mask, NULL, 0, &parsed_mask,
 					                      &cpu_mask_ctx, 0);
@@ -2523,7 +2522,7 @@ int do_mask_crack(const char *extern_key)
 			rec_cl = 0;
 
 			/* Process remaining keys of last length, if needed */
-			if (!format_cannot_reset && mask_fmt->params.flags & FMT_MASK) {
+			if (!format_cannot_reset && (mask_fmt->params.flags & FMT_MASK)) {
 #ifdef MASK_DEBUG
 				fprintf(stderr, "%s() calling crk_process_buffer() for remaining candidates of last length\n", __FUNCTION__);
 #endif
@@ -2549,7 +2548,7 @@ int do_mask_crack(const char *extern_key)
 			mask_tot_cand = cand * mask_int_cand.num_int_cand;
 
 			/* Update internal masks if needed. */
-			if (!format_cannot_reset && mask_fmt->params.flags & FMT_MASK &&
+			if (!format_cannot_reset && (mask_fmt->params.flags & FMT_MASK) &&
 			    last_mask_sum != int_mask_sum) {
 #ifdef MASK_DEBUG
 				fprintf(stderr, "%s() calling format reset()\n", __FUNCTION__);
