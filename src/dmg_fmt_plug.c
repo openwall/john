@@ -60,13 +60,15 @@ john_register_one(&fmt_dmg);
 #include <stdint.h>
 #include <sys/types.h>
 #include <openssl/des.h>
-#include "aes.h"
-#include "hmac_sha.h"
+#ifdef DMG_DEBUG
+#include <sys/file.h>
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#include <unistd.h>
+#endif
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
 #endif
 
 #ifdef DMG_DEBUG
@@ -74,6 +76,8 @@ john_register_one(&fmt_dmg);
 #include "os.h"
 #endif
 #include "arch.h"
+#include "aes.h"
+#include "hmac_sha.h"
 #include "jumbo.h"
 #include "params.h"
 #include "johnswap.h"
@@ -81,12 +85,6 @@ john_register_one(&fmt_dmg);
 #include "formats.h"
 #include "dmg_common.h"
 #include "pbkdf2_hmac_sha1.h"
-#ifdef DMG_DEBUG
-#include <sys/file.h>
-#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
-#include <unistd.h>
-#endif
-#endif
 #include "loader.h"
 
 #define FORMAT_LABEL        "dmg"
@@ -111,6 +109,10 @@ john_register_one(&fmt_dmg);
 #else
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           1 // MKPC and scale tuned for i7
 #endif
 
 #undef HTONL
@@ -144,9 +146,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_align(sizeof(*cracked),

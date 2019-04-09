@@ -24,13 +24,11 @@ john_register_one(&fmt_electrum);
 
 #include <string.h>
 #include <zlib.h>
+#include <openssl/bn.h>
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4
 #endif
-#endif
-#include <openssl/bn.h>
 
 #include "misc.h"
 #include "common.h"
@@ -60,12 +58,17 @@ john_register_one(&fmt_electrum);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define PLAINTEXT_LENGTH        125
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               8
+#endif
+
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      512
 #endif
 
 static struct fmt_tests electrum_tests[] = {
@@ -108,9 +111,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;
@@ -248,17 +250,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		unsigned char iv[16];
 		unsigned char key[32];
 		SHA256_CTX ctx;
 		AES_KEY aes_decrypt_key;
 		int extra;
-		unsigned char static_privkey[MAX_KEYS_PER_CRYPT][64];
+		unsigned char static_privkey[MIN_KEYS_PER_CRYPT][64];
 		int i, j;
 
 		if (cur_salt->type == 1 || cur_salt->type == 2 || cur_salt->type == 3) {
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 				unsigned char outbuf[48] = { 0 };
 
 				SHA256_Init(&ctx);
@@ -318,9 +320,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_CTX md_ctx;
 			int shared_pubkeylen= 33;
 #ifdef SIMD_COEF_64
-			int len[MAX_KEYS_PER_CRYPT];
-			unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			int len[MIN_KEYS_PER_CRYPT];
+			unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				len[i] = strlen(saved_key[i+index]);
 				pin[i] = (unsigned char*)saved_key[i+index];
 				pout[i] = static_privkey[i];
@@ -328,14 +330,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_sha512_sse((const unsigned char **)pin, len, (unsigned char*)"", 0, 1024, pout, 64, 0);
 #else
 
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 				pbkdf2_sha512((unsigned char *)saved_key[index+i],
 						strlen(saved_key[index+i]),
 						(unsigned char*)"", 0, 1024,
 						static_privkey[i], 64, 0);
 			}
 #endif
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
 				// do static_privkey % GROUP_ORDER
 				p = BN_bin2bn(static_privkey[i], 64, NULL);
 				q = BN_new();

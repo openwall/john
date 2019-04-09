@@ -26,16 +26,11 @@ john_register_one(&fmt_sapH);
 #include <string.h>
 #include <ctype.h>
 
-#include "arch.h"
-/* for now, undef this until I get OMP working, then start on SIMD */
-//#undef _OPENMP
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_SHA1
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_SHA256
-//#undef SIMD_COEF_64
-//#undef SIMD_PARA_SHA512
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 
+#include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -43,19 +38,6 @@ john_register_one(&fmt_sapH);
 #include "sha.h"
 #include "sha2.h"
 #include "johnswap.h"
-
-#if defined(_OPENMP)
-#include <omp.h>
-#ifdef SIMD_COEF_32
-#ifndef OMP_SCALE
-#define OMP_SCALE			8
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE			64
-#endif
-#endif
-#endif
 
 /*
  * Assumption is made that SIMD_COEF_32*SIMD_PARA_SHA1 is >= than
@@ -120,12 +102,16 @@ john_register_one(&fmt_sapH);
 /* NOTE, format is slow enough that endianity conversion is pointless. Just use flat buffers. */
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		(8 * NBKEYS)
 #define PLAINTEXT_LENGTH        23 /* Real world max. is 40 */
 #else
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		8
 #define PLAINTEXT_LENGTH        40
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2
 #endif
 
 static struct fmt_tests tests[] = {
@@ -163,9 +149,8 @@ static struct sapH_salt {
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_plain = mem_calloc(self->params.max_keys_per_crypt,
 	                         sizeof(*saved_plain));
 	crypt_key   = mem_calloc(self->params.max_keys_per_crypt,

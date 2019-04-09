@@ -38,9 +38,6 @@ john_register_one(&fmt_luks);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
 #endif
 
 #include "arch.h"
@@ -86,6 +83,11 @@ john_register_one(&fmt_luks);
 #define BINARY_ALIGN        4
 #define SALT_SIZE           sizeof(struct custom_salt_LUKS*)
 #define SALT_ALIGN          sizeof(struct custom_salt_LUKS*)
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // MKPC and scale tuned for i7
+#endif
+
 #if SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
@@ -284,9 +286,8 @@ static void init(struct fmt_main *self)
 {
 	static int warned = 0;
 
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 
@@ -538,21 +539,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		unsigned char *af_decrypted = (unsigned char *)mem_alloc(cur_salt->afsize + 20);
 		int i, iterations = cur_salt->bestiter;
 		int dklen = john_ntohl(cur_salt->myphdr.keyBytes);
-		uint32_t keycandidate[MAX_KEYS_PER_CRYPT][256/4];
-		uint32_t masterkeycandidate[MAX_KEYS_PER_CRYPT][256/4];
+		uint32_t keycandidate[MIN_KEYS_PER_CRYPT][256/4];
+		uint32_t masterkeycandidate[MIN_KEYS_PER_CRYPT][256/4];
 #ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT];
+		int lens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT];
 		union {
-			uint32_t *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MIN_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
 			x.pout[i] = keycandidate[i];
@@ -566,7 +567,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		            (const unsigned char*)(cur_salt->myphdr.keyblock[cur_salt->bestslot].passwordSalt), LUKS_SALTSIZE,
 		            iterations, (unsigned char*)keycandidate[0], dklen, 0);
 #endif
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			// Decrypt the blocksi
 			decrypt_aes_cbc_essiv(cur_salt->cipherbuf, af_decrypted, (unsigned char*)keycandidate[i], cur_salt->afsize, cur_salt);
 			// AFMerge the blocks
@@ -575,7 +576,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		// pbkdf2 again
 #ifdef SIMD_COEF_32
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = john_ntohl(cur_salt->myphdr.keyBytes);
 			pin[i] = (unsigned char*)masterkeycandidate[i];
 			x.pout[i] = crypt_out[index+i];

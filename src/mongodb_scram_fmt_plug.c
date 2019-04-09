@@ -14,6 +14,11 @@ john_register_one(&fmt_mongodb_scram);
 
 #include <openssl/sha.h>
 #include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -24,15 +29,8 @@ john_register_one(&fmt_mongodb_scram);
 #include "base64_convert.h"
 #include "hmac_sha.h"
 #include "simd-intrinsics.h"
-//#undef SIMD_COEF_32
 #include "pbkdf2_hmac_sha1.h"
 #include "md5.h"
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               1
-#endif
-#endif
 
 #if defined SIMD_COEF_32
 #define SIMD_KEYS		(SIMD_COEF_32 * SIMD_PARA_SHA1)
@@ -49,16 +47,21 @@ john_register_one(&fmt_mongodb_scram);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#if !defined(SIMD_COEF_32)
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
-#else
-#define MIN_KEYS_PER_CRYPT	SIMD_KEYS
-#define MAX_KEYS_PER_CRYPT	SIMD_KEYS
-#endif
 #define FORMAT_TAG              "$scram$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 #define MAX_USERNAME_LENGTH     128
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               1 // MKPC and scale tuned for i7
+#endif
+
+#if !defined(SIMD_COEF_32)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+#else
+#define MIN_KEYS_PER_CRYPT      SIMD_KEYS
+#define MAX_KEYS_PER_CRYPT      (64 * SIMD_KEYS)
+#endif
 
 static struct fmt_tests tests[] = {
 	{"$scram$someadmin$10000$wf42AF7JaU1NSeBaSmkKzw==$H6A5RF0qz6DrcWNNX4xe+wIeVEw=", "secret"},
@@ -78,9 +81,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -187,7 +189,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #if !defined (SIMD_COEF_32)
 		SHA_CTX ctx;
 		MD5_CTX mctx;

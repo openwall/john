@@ -21,22 +21,17 @@ extern struct fmt_main fmt_drupal7;
 john_register_one(&fmt_drupal7);
 #else
 
-#include "sha2.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
+#include "sha2.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "johnswap.h"
 #include "simd-intrinsics.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE			8
-#endif
-#endif
-
 #include "drupal7_common.h"
 
 #define FORMAT_LABEL			"Drupal7"
@@ -49,6 +44,10 @@ john_register_one(&fmt_drupal7);
 #define BINARY_SIZE			(258/8) // ((258+7)/8)
 #define BINARY_ALIGN			4
 
+#ifndef OMP_SCALE
+#define OMP_SCALE			1
+#endif
+
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
@@ -59,7 +58,7 @@ john_register_one(&fmt_drupal7);
 #endif
 #else
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		2
 #endif
 
 /*
@@ -78,9 +77,8 @@ static char (*crypt_key)[DIGEST_SIZE];
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	EncKey    = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*EncKey));
 	EncKeyLen = mem_calloc(self->params.max_keys_per_crypt,
@@ -136,19 +134,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index+=MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index+=MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_64
-		unsigned char _IBuf[128*MAX_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
+		unsigned char _IBuf[128*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
 		uint64_t *keys64;
 		unsigned i, j, len, Lcount = loopCnt;
 
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys64 = (uint64_t*)keys;
-		memset(keys, 0, 128*MAX_KEYS_PER_CRYPT);
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		memset(keys, 0, 128*MIN_KEYS_PER_CRYPT);
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			len = EncKeyLen[index+i];
 			for (j = 0; j < 8; ++j)
 				keys[GETPOS(j, i)] = cursalt[j];
@@ -158,7 +157,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			keys64[15*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = (len+8) << 3;
 		}
 		SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			len = EncKeyLen[index+i];
 			for (j = 0; j < len; ++j)
 				keys[GETPOS(j+64, i)] = EncKey[index+i][j];

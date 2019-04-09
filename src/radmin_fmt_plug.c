@@ -20,15 +20,6 @@ john_register_one(&fmt_radmin);
 
 #ifdef _OPENMP
 #include <omp.h>
-// Tuned on core i7 quad HT
-//   1   7445K
-//  16  12155K
-//  32  12470K  ** this was chosen.
-//  64  12608k
-// 128  12508k
-#ifndef OMP_SCALE
-#define OMP_SCALE     32
-#endif
 #endif
 
 #include "md5.h"
@@ -50,11 +41,14 @@ john_register_one(&fmt_radmin);
 #define CIPHERTEXT_LENGTH       32
 #define BINARY_SIZE             16
 #define SALT_SIZE               0
+#define BINARY_ALIGN            4
+#define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      64
 
-#define BINARY_ALIGN            4
-#define SALT_ALIGN              1
+#ifndef OMP_SCALE
+#define OMP_SCALE               8192 // MKPC and scale tuned for i7
+#endif
 
 static struct fmt_tests radmin_tests[] = {
 	{"$radmin2$B137F09CF92F465CABCA06AB1B283C1F", "lastwolf"},
@@ -73,9 +67,8 @@ static uint32_t (*crypt_out)[8];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,

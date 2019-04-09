@@ -16,35 +16,26 @@ extern struct fmt_main fmt_rawSHA512_ng;
 john_register_one(&fmt_rawSHA512_ng);
 #else
 
+#include <stdint.h>
+#include <string.h>
+
 #if _OPENMP
 #include <omp.h>
-#if __XOP__
-#ifndef OMP_SCALE
-#define OMP_SCALE                 768 /* AMD */
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE                 2048 /* Intel */
-#endif
-#endif
 #endif
 
 #include "misc.h"
+#include "pseudo_intrinsics.h"
+#include "common.h"
+#include "formats.h"
+#include "johnswap.h"
+#include "rawSHA512_common.h"
+
 #if !defined(DEBUG) && !defined(WITH_ASAN)
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
 #if __GNUC__ && !__INTEL_COMPILER && !__clang__ && !__llvm__ && !_MSC_VER
 #pragma GCC optimize 3
 #endif
 #endif
-
-#include <stdint.h>
-#include <string.h>
-
-#include "pseudo_intrinsics.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "rawSHA512_common.h"
 
 #if __MIC__
 #define SIMD_TYPE                 "512/512 MIC 8x"
@@ -78,14 +69,17 @@ john_register_one(&fmt_rawSHA512_ng);
 
 //#define MAXLEN                    119
 #define MAXLEN                    111
-#define PLAINTEXT_LENGTH	  MAXLEN
+#define PLAINTEXT_LENGTH	      MAXLEN
 #define CIPHERTEXT_LENGTH         128
 #define BINARY_SIZE               8
 #define SALT_SIZE                 0
 #define SALT_ALIGN                1
 #define MIN_KEYS_PER_CRYPT        VWIDTH
-#define MAX_KEYS_PER_CRYPT        VWIDTH
+#define MAX_KEYS_PER_CRYPT        (64 * VWIDTH)
 
+#ifndef OMP_SCALE
+#define OMP_SCALE                 64
+#endif
 
 #undef GATHER /* This one is not like the shared ones in pseudo_intrinsics.h */
 
@@ -188,9 +182,9 @@ static uint64_t *crypt_key[ 8];
 static void init(struct fmt_main *self)
 {
     int i;
-#ifdef _OPENMP
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
     saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
                            sizeof(*saved_key), MEM_ALIGN_SIMD);
     for (i = 0; i < 8; i++)
@@ -426,11 +420,7 @@ static int cmp_all(void *binary, int count)
 {
     int i;
 
-#ifdef _OPENMP
     for (i=0; i < count; i++)
-#else
-    for (i=0; i < VWIDTH; i++)
-#endif
         if (((uint64_t *) binary)[0] == crypt_key[0][i])
             return 1;
 

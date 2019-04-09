@@ -25,9 +25,6 @@ john_register_one(&fmt_keychain);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
 #endif
 
 #include "arch.h"
@@ -55,6 +52,11 @@ john_register_one(&fmt_keychain);
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              1
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               16
+#endif
+
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
@@ -70,9 +72,9 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
+
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key),  self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 }
@@ -117,17 +119,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		unsigned char master[MAX_KEYS_PER_CRYPT][32];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		unsigned char master[MIN_KEYS_PER_CRYPT][32];
 		int i;
 #ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
+		int lens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[index+i]);
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = master[i];
@@ -136,7 +139,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), cur_salt->salt, SALTLEN, 1000, master[0], 24, 0);
 #endif
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			if (kcdecrypt(master[i], cur_salt->iv, cur_salt->ct) == 0)
 				cracked[index+i] = 1;
 			else

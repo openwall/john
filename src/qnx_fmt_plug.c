@@ -17,13 +17,17 @@ john_register_one(&fmt_qnx);
 
 #include "arch.h"
 
+#define _GNU_SOURCE 1
+#include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #undef SIMD_COEF_32
 #define FORCE_GENERIC_SHA2 1
 #include "sha2.h"
 #include "md5.h"
-
-#define _GNU_SOURCE 1
-#include <string.h>
 
 #include "params.h"
 #include "common.h"
@@ -31,14 +35,6 @@ john_register_one(&fmt_qnx);
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 #include "misc.h"
-
-#ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE			8
-#endif
-#include <omp.h>
-#endif
-
 
 // NOTE, in SSE mode, even if NOT in OMP, we may need to scale, quite a bit, due to needing
 // to 'group' passwords based upon length of password.
@@ -66,10 +62,14 @@ john_register_one(&fmt_qnx);
 
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT		(SIMD_COEF_32*SIMD_PARA_SHA256)
-#define MAX_KEYS_PER_CRYPT		(SIMD_COEF_32*SIMD_PARA_SHA256)
+#define MAX_KEYS_PER_CRYPT		(8 * SIMD_COEF_32*SIMD_PARA_SHA256)
 #else
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		8
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE				128
 #endif
 
 #define __QNX_CREATE_PROPER_TESTS_ARRAY__
@@ -96,9 +96,8 @@ static void init(struct fmt_main *self)
 	int sc_threads = 1;
 	int max_crypts;
 
-#ifdef _OPENMP
 	sc_threads = omp_autotune(self, OMP_SCALE);
-#endif
+
 	max_crypts = SIMD_COEF_SCALE * sc_threads * MAX_KEYS_PER_CRYPT;
 	self->params.max_keys_per_crypt = max_crypts;
 	// we allocate 1 more than needed, and use that 'extra' value as a zero
@@ -163,13 +162,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	if (usesse) {
 		int j, k;
-		MixOrder = (int*)mem_calloc((count+PLAINTEXT_LENGTH*MAX_KEYS_PER_CRYPT), sizeof(int));
+		MixOrder = (int*)mem_calloc((count+PLAINTEXT_LENGTH*MIN_KEYS_PER_CRYPT), sizeof(int));
 		tot_todo = 0;
 		saved_len[count] = 0; // point all 'tail' MMX buffer elements to this location.
 		for (j = 1; j < PLAINTEXT_LENGTH; ++j) {
 			for (k = 0; k < sk_by_lens[j]; ++k)
 				MixOrder[tot_todo++] = sk_by_len[k];
-			while (tot_todo % MAX_KEYS_PER_CRYPT)
+			while (tot_todo % MIN_KEYS_PER_CRYPT)
 				MixOrder[tot_todo++] = count;
 		}
 	}

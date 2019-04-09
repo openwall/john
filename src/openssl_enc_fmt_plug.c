@@ -44,9 +44,6 @@ john_register_one(&fmt_openssl);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               8
-#endif
 #endif
 
 #include "aes.h"
@@ -69,11 +66,15 @@ john_register_one(&fmt_openssl);
 #define SALT_SIZE           sizeof(struct custom_salt)
 #define BINARY_ALIGN        1
 #define SALT_ALIGN          sizeof(int)
-#define MIN_KEYS_PER_CRYPT  8
-#define MAX_KEYS_PER_CRYPT  8
 #define PLAINTEXT_LENGTH    125
 #define FORMAT_TAG          "$openssl$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           2
+#endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
@@ -106,9 +107,8 @@ static struct fmt_tests tests[] = {
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	cracked = mem_calloc(self->params.max_keys_per_crypt,

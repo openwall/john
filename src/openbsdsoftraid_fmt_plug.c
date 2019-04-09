@@ -26,9 +26,6 @@ john_register_one(&fmt_openbsd_softraid);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE                   1
-#endif
 #endif
 
 #include "arch.h"
@@ -63,6 +60,10 @@ john_register_one(&fmt_openbsd_softraid);
 #define MAX_KEYS_PER_CRYPT          1
 #endif
 
+#ifndef OMP_SCALE
+#define OMP_SCALE                   1 // MKPC and scale tuned for i7
+#endif
+
 static char (*key_buffer)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
@@ -70,9 +71,8 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	key_buffer = mem_calloc(sizeof(*key_buffer), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
@@ -100,9 +100,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 		AES_KEY akey;
-		unsigned char mask_key[MAX_KEYS_PER_CRYPT][32];
+		unsigned char mask_key[MIN_KEYS_PER_CRYPT][32];
 		unsigned char unmasked_keys[OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS];
 		unsigned char hashed_mask_key[20];
 		int i, j;
@@ -122,7 +122,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					cur_salt->num_iterations, (unsigned char**)pout,
 					32, 0);
 #else
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				pbkdf2_sha1((const unsigned char*)(key_buffer[index+i]),
 						strlen(key_buffer[index+i]),
 						cur_salt->salt, OPENBSD_SOFTRAID_SALTLENGTH,
@@ -131,7 +131,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 #endif
 		} else if (cur_salt->kdf_type == 3) {
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				bcrypt_pbkdf((const char*)key_buffer[index+i],
 						strlen(key_buffer[index+i]),
 						cur_salt->salt, OPENBSD_SOFTRAID_SALTLENGTH,
@@ -139,7 +139,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			/* decrypt sector keys */
 			AES_set_decrypt_key(mask_key[i], 256, &akey);
 			for (j = 0; j < (OPENBSD_SOFTRAID_KEYLENGTH * OPENBSD_SOFTRAID_KEYS) / 16;  j++) {

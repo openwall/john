@@ -35,9 +35,6 @@ john_register_one(&fmt_gpg);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE           64
-#endif
 #endif
 
 #include "arch.h"
@@ -58,6 +55,10 @@ john_register_one(&fmt_gpg);
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define SALT_SIZE           sizeof(struct gpg_common_custom_salt*)
 
+#ifndef OMP_SCALE
+#define OMP_SCALE           1 // MKPC and scale tuned for i7
+#endif
+
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -68,9 +69,8 @@ static size_t cracked_size;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;

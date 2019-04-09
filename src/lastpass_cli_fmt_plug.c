@@ -15,11 +15,9 @@ john_register_one(&fmt_lastpass_cli);
 #else
 
 #include <string.h>
+
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE              1
-#endif
 #endif
 
 #include "arch.h"
@@ -49,6 +47,11 @@ john_register_one(&fmt_lastpass_cli);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)
+
+#ifndef OMP_SCALE
+#define OMP_SCALE              1 // MKPC and scale tuned for i7
+#endif
+
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
@@ -64,9 +67,8 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }
@@ -91,19 +93,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		uint32_t key[MAX_KEYS_PER_CRYPT][8];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		uint32_t key[MIN_KEYS_PER_CRYPT][8];
 		int i;
 
 		if (cur_salt->iterations != 1) {
 #ifdef SIMD_COEF_32
-			int lens[MAX_KEYS_PER_CRYPT];
-			unsigned char *pin[MAX_KEYS_PER_CRYPT];
+			int lens[MIN_KEYS_PER_CRYPT];
+			unsigned char *pin[MIN_KEYS_PER_CRYPT];
 			union {
-				uint32_t *pout[MAX_KEYS_PER_CRYPT];
+				uint32_t *pout[MIN_KEYS_PER_CRYPT];
 				unsigned char *poutc;
 			} x;
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				lens[i] = strlen(saved_key[i+index]);
 				pin[i] = (unsigned char*)saved_key[i+index];
 				x.pout[i] = key[i];
@@ -111,12 +113,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, &(x.poutc), 32, 0);
 
 #else
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				pbkdf2_sha256((unsigned char*)saved_key[i+index], strlen(saved_key[i+index]), cur_salt->salt, cur_salt->salt_length, cur_salt->iterations, (unsigned char*)key[i], 32, 0);
 			}
 #endif
 		} else {
-			for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 				SHA256_CTX ctx;
 
 				SHA256_Init(&ctx);
@@ -125,7 +127,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA256_Final((unsigned char*)key[i], &ctx);
 			}
 		}
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			unsigned char iv[16];
 			AES_KEY akey;
 

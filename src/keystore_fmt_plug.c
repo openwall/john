@@ -23,6 +23,10 @@ john_register_one(&fmt_keystore);
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "simd-intrinsics.h"
 #include "sha.h"
@@ -34,19 +38,6 @@ john_register_one(&fmt_keystore);
 #include "dyna_salt.h"
 #include "johnswap.h"
 #include "keystore_common.h"
-
-#ifdef _OPENMP
-#include <omp.h>
-#ifndef OMP_SCALE
-#if SIMD_COEF_32
-#define OMP_SCALE               1024
-#else
-#define OMP_SCALE               64
-#endif
-#endif
-#elif SIMD_COEF_32
-#define OMP_SCALE               128
-#endif
 
 #ifdef SIMD_COEF_32
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1)
@@ -65,12 +56,17 @@ john_register_one(&fmt_keystore);
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct keystore_salt *)
 #define SALT_ALIGN              sizeof(struct keystore_salt *)
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               128 // MKPC and i7 tuned for i7
+#endif
+
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      NBKEYS
-#define MAX_KEYS_PER_CRYPT      NBKEYS
+#define MAX_KEYS_PER_CRYPT      (64 * NBKEYS)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -144,16 +140,15 @@ inline static void getPreKeyedHash(int idx)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	// We need 1 more saved_key than is 'used'. This extra key is used
 	// in SIMD code, for all part full grouped blocks.
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt + 1);
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt + 1);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 	saved_ctx = mem_calloc(sizeof(*saved_ctx), self->params.max_keys_per_crypt);
-	MixOrderLen = self->params.max_keys_per_crypt*MAX_KEYS_PER_CRYPT+MAX_KEYS_PER_CRYPT;
+	MixOrderLen = self->params.max_keys_per_crypt*MIN_KEYS_PER_CRYPT+MIN_KEYS_PER_CRYPT;
 	MixOrder = mem_calloc(MixOrderLen, sizeof(int));
 }
 
@@ -343,7 +338,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				++tot;
 			}
 		}
-		while (tot_todo % MAX_KEYS_PER_CRYPT)
+		while (tot_todo % MIN_KEYS_PER_CRYPT)
 			MixOrder[tot_todo++] = count;
 	}
 	if (tot < count) {
@@ -354,7 +349,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				++tot;
 				// we only want to do ONE password CTX mode
 				// per loop through the thread.
-				tot_todo += MAX_KEYS_PER_CRYPT;
+				tot_todo += MIN_KEYS_PER_CRYPT;
 			}
 		}
 	}
@@ -368,11 +363,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < tot_todo; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < tot_todo; index += MIN_KEYS_PER_CRYPT) {
 		SHA_CTX ctx;
 #ifdef SIMD_COEF_32
 		int x, tid=0, len, idx;
-		char tmp_sse_out[20*MAX_KEYS_PER_CRYPT+MEM_ALIGN_SIMD];
+		char tmp_sse_out[20*MIN_KEYS_PER_CRYPT+MEM_ALIGN_SIMD];
 		uint32_t *sse_out;
 		sse_out = (uint32_t *)mem_align(tmp_sse_out, MEM_ALIGN_SIMD);
 #ifdef _OPENMP
@@ -382,7 +377,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (len >= 4 && len <= 24) {
 			unsigned char *po;
 			po = (unsigned char*)cursimd->first_blk[tid][len-4];
-			for (x = 0; x < MAX_KEYS_PER_CRYPT; ++x) {
+			for (x = 0; x < MIN_KEYS_PER_CRYPT; ++x) {
 				int j;
 				unsigned char *p;
 				idx = MixOrder[index+x];
@@ -394,12 +389,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			po = (unsigned char*)cursimd->ex_data[len-4];
 			for (x = 0; x < cursimd->n_ex[len-4]; ++x) {
 				SIMDSHA1body(po, sse_out, sse_out, SSEi_MIXED_IN|SSEi_RELOAD);
-				po += 64*MAX_KEYS_PER_CRYPT;
+				po += 64*MIN_KEYS_PER_CRYPT;
 			}
 #ifdef SIMD_COEF_32
 			// we have to 'marshal' the data back into the SIMD output buf.
 			// but we only marshal the first 4 bytes.
-			for (x = 0; x <  MAX_KEYS_PER_CRYPT; ++x) {
+			for (x = 0; x <  MIN_KEYS_PER_CRYPT; ++x) {
 				idx = MixOrder[index+x];
 				if (idx < count)
 #if ARCH_LITTLE_ENDIAN==1

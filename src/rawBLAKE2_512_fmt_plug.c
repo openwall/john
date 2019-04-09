@@ -14,14 +14,7 @@ john_register_one(&fmt_rawBLAKE2);
 
 #include <string.h>
 
-#if !FAST_FORMATS_OMP
-#undef _OPENMP
-#endif
-
 #ifdef _OPENMP
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
-#endif
 #include <omp.h>
 #endif
 
@@ -57,7 +50,11 @@ john_register_one(&fmt_rawBLAKE2);
 #define BINARY_ALIGN            4
 #define SALT_ALIGN              1
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               512
+#endif
 
 static struct fmt_tests tests[] = {
 	{"4245af08b46fbb290222ab8a68613621d92ce78577152d712467742417ebc1153668f1c9e1ec1e152a32a9c242dc686d175e087906377f0c483c5be2cb68953e", "blake2"},
@@ -79,9 +76,8 @@ static uint32_t (*crypt_out)
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -206,10 +202,7 @@ struct fmt_main fmt_rawBLAKE2 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#ifdef _OPENMP
-		FMT_OMP | FMT_OMP_BAD |
-#endif
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		FMT_OMP | FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests

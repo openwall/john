@@ -23,9 +23,6 @@ john_register_one(&fmt_sniffed_lastpass);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               64
-#endif
 #endif
 
 #include "arch.h"
@@ -55,12 +52,17 @@ john_register_one(&fmt_sniffed_lastpass);
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            4
 #define SALT_ALIGN              sizeof(int)
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               2 // MKPC and scale tuned for i7
+#endif
+
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT      (16 * SSE_GROUP_SZ_SHA256)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      16
 #endif
 
 /* sentms=1352643586902&xml=2&username=hackme%40mailinator.com&method=cr&hash=4c11d8717015d92db74c42bc1a2570abea3fa18ab17e58a51ce885ee217ccc3f&version=2.0.15&encrypted_username=i%2BhJCwPOj5eQN4tvHcMguoejx4VEmiqzOXOdWIsZKlk%3D&uuid=aHnPh8%40NdhSTWZ%40GJ2fEZe%24cF%40kdzdYh&lang=en-US&iterations=500&sessonly=0&otp=&sesameotp=&multifactorresponse=&lostpwotphash=07a286341be484fc3b96c176e611b10f4d74f230c516f944a008f960f4ec8870&requesthash=i%2BhJCwPOj5eQN4tvHcMguoejx4VEmiqzOXOdWIsZKlk%3D&requestsrc=cr&encuser=i%2BhJCwPOj5eQN4tvHcMguoejx4VEmiqzOXOdWIsZKlk%3D&hasplugin=2.0.15
@@ -89,9 +91,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -181,17 +182,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
-		uint32_t key[MAX_KEYS_PER_CRYPT][8];
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
+		uint32_t key[MIN_KEYS_PER_CRYPT][8];
 		unsigned i;
 #ifdef SIMD_COEF_32
-		int lens[MAX_KEYS_PER_CRYPT];
-		unsigned char *pin[MAX_KEYS_PER_CRYPT];
+		int lens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT];
 		union {
-			uint32_t *pout[MAX_KEYS_PER_CRYPT];
+			uint32_t *pout[MIN_KEYS_PER_CRYPT];
 			unsigned char *poutc;
 		} x;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			x.pout[i] = key[i];
@@ -200,7 +201,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen(cur_salt->username), cur_salt->iterations, (unsigned char*)(&key[0]),32,0);
 #endif
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			unsigned char *Key = (unsigned char*)key[i];
 			AES_KEY akey;
 			unsigned char iv[16];

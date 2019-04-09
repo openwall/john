@@ -26,9 +26,6 @@ john_register_one(&fmt_blockchain);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               4  // this is a slow format
-#endif
 #endif
 
 #include "arch.h"
@@ -60,7 +57,11 @@ john_register_one(&fmt_blockchain);
 #define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               32 // MKPC & scale tuned for i7
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -70,9 +71,8 @@ static struct custom_salt *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#if defined (_OPENMP)
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc_align(sizeof(*saved_key),
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_align(sizeof(*cracked),
@@ -94,22 +94,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SIMD_COEF_32
-		unsigned char master[MAX_KEYS_PER_CRYPT][32];
-		int lens[MAX_KEYS_PER_CRYPT], i;
-		unsigned char *pin[MAX_KEYS_PER_CRYPT], *pout[MAX_KEYS_PER_CRYPT];
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		unsigned char master[MIN_KEYS_PER_CRYPT][32];
+		int lens[MIN_KEYS_PER_CRYPT], i;
+		unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
 			pout[i] = master[i];
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
 			cur_salt->data, 16, cur_salt->iter, pout, 32, 0);
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			if (blockchain_decrypt(master[i], cur_salt->data) == 0)
 				cracked[i+index] = 1;
 			else

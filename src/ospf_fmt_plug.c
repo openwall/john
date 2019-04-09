@@ -22,9 +22,6 @@ john_register_one(&fmt_ospf);
 
 #ifdef _OPENMP
 #include <omp.h>
-#ifndef OMP_SCALE
-#define OMP_SCALE               2048
-#endif
 #endif
 
 #include "formats.h"
@@ -48,9 +45,13 @@ john_register_one(&fmt_ospf);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
 #define MAX_SALT_LEN            1500 + 64 // 64 is reserved for appending ospf_apad
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      64
+
+#ifndef OMP_SCALE
+#define OMP_SCALE               128 // MKPC and scale tuned for i7
+#endif
 
 static struct fmt_tests tests[] = {
 	/* ospf*.pcap from https://c0decafe.de/svn/codename_loki/ */
@@ -75,9 +76,8 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
 }

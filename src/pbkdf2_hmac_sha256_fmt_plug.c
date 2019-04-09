@@ -27,6 +27,10 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #include <string.h>
 #include <stdint.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "misc.h"
 #include "arch.h"
 #include "common.h"
@@ -39,6 +43,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA256"
 #define FORMAT_NAME		""
+#define BENCHMARK_LENGTH        0x107
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
@@ -53,18 +58,15 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #define MAX_CIPHERTEXT_LENGTH   1024 /* Bump this and code will adopt */
 #define SALT_SIZE               sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA256
+#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
+#define MAX_KEYS_PER_CRYPT      (4 * SSE_GROUP_SZ_SHA256)
 #else
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      4
 #endif
-#define BENCHMARK_LENGTH        0x107
-#ifdef _OPENMP
-#include <omp.h>
+
 #ifndef OMP_SCALE
-#define OMP_SCALE               4
-#endif
+#define OMP_SCALE               2
 #endif
 
 
@@ -82,9 +84,8 @@ static uint32_t (*crypt_out)[PBKDF2_SHA256_BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
@@ -136,7 +137,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MAX_KEYS_PER_CRYPT) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef SSE_GROUP_SZ_SHA256
 		int lens[SSE_GROUP_SZ_SHA256], i;
 		unsigned char *pin[SSE_GROUP_SZ_SHA256];

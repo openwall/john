@@ -20,15 +20,6 @@ john_register_one(&fmt_sip);
 
 #ifdef _OPENMP
 #include <omp.h>
-// Tuned on core i7 quad HT
-//   1   4963K
-//  16   8486K
-//  32   8730K  ** this was chosen.
-//  64   8791k
-// 128   8908k
-#ifndef OMP_SCALE
-#define OMP_SCALE   32
-#endif
 #endif
 
 #include "arch.h"
@@ -64,6 +55,10 @@ static sip_salt *pSalt;
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      64
 
+#ifndef OMP_SCALE
+#define OMP_SCALE   512 // MKPC & scale tuned for i7
+#endif
+
 static struct fmt_tests sip_tests[] = {
 	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104**46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
 	{"$sip$*10.0.1.20*10.0.1.10*1001*asterisk*REGISTER*sips*10.0.1.20*5061*0ef95b07****MD5*576e39e9de6a9ed053eb218f65fe470e", "q1XCLF0KaBObo797"},
@@ -83,9 +78,8 @@ static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
+
 	/* Init bin 2 hex table for faster conversions later */
 	init_bin2hex(bin2hex_table);
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
