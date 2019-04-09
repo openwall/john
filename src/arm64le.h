@@ -38,12 +38,18 @@
 #if 1
 /*
  * Here we assume that we're on AArch64, which implies we have Advanced SIMD.
- *
- * We do have native vandn() and vsel() for this architecture, but the timings
- * are often such that it might be better to minimize use of vandn() and avoid
- * vsel() altogether.  Otherwise, the best setting would have been DES_BS=3.
+ * Tell our originally 32-bit ARM code that we sort of have NEON.
+ * Newer gcc does the same for us on its own, but older gcc needs help here.
  */
-#define DES_BS				2
+#ifndef __ARM_NEON
+#define __ARM_NEON 1
+#endif
+/*
+ * Give native vsel() a try with DES_BS=3, even though the timings are often
+ * such that it might be better to avoid its use, and DES_BS=1 might be better.
+ * This varies between systems, and we can't detect what's optimal from here.
+ */
+#define DES_BS				3
 #if 1
 #define DES_BS_VECTOR			2
 #define DES_BS_ALGORITHM_NAME		"DES 128/128 ASIMD"
@@ -52,7 +58,7 @@
 #define DES_BS_ALGORITHM_NAME		"DES 64/64 ASIMD"
 #endif
 #else
-#define DES_BS				2
+#define DES_BS				1
 #define DES_BS_VECTOR			0
 #endif
 #define DES_BS_EXPAND			1
