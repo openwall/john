@@ -8,6 +8,7 @@ CC = gcc
 CFLAGS = -c -Wall -O2
 CFLAGS_TEST = -O
 #LD = ld
+RM = /bin/rm -f
 EXTRA_LIBS = -lusb-1.0
 
 SUBDIRS = pkt_comm
@@ -73,3 +74,6 @@ pkt_test: pkt_test.c $(SUBDIRS) $(TEST_OBJS)
 clean:
 	find . -name \*.o -exec rm -f "{}" \;
 	rm -f *.exe simple_test test pkt_test
+
+distclean: clean
+	$(RM) Makefile
