@@ -1272,11 +1272,11 @@ static void init_cpu_mask(const char *mask, mask_parsed_ctx *parsed_mask,
 		    (unsigned int)load_qtn(qtn_ctr)) {
 			int j;
 
+			pos = calc_pos_in_key(mask, parsed_mask, load_op(op_ctr));
 #ifdef MASK_DEBUG
 			fprintf(stderr, "load_op(%d) = %u\n", op_ctr, load_op(op_ctr));
 			fprintf(stderr, "calc_pos_in_key(%s, %d) = %d\n", mask, load_op(op_ctr), pos);
 #endif
-			pos = calc_pos_in_key(mask, parsed_mask, load_op(op_ctr));
 			if (!(options.flags & FLG_MASK_STACKED) &&
 			    pos >= len && !format_cannot_reset)
 				break;
@@ -1348,11 +1348,11 @@ static void init_cpu_mask(const char *mask, mask_parsed_ctx *parsed_mask,
 		         (unsigned int)load_qtn(qtn_ctr))  {
 			int j;
 
+			pos = calc_pos_in_key(mask, parsed_mask, load_qtn(qtn_ctr));
 #ifdef MASK_DEBUG
 			fprintf(stderr, "load_qtn(%d) = %u\n", qtn_ctr, load_qtn(qtn_ctr));
 			fprintf(stderr, "calc_pos_in_key(%s, %d) = %d\n", mask, load_qtn(qtn_ctr), pos);
 #endif
-			pos = calc_pos_in_key(mask, parsed_mask, load_qtn(qtn_ctr));
 			if (!(options.flags & FLG_MASK_STACKED) &&
 			    pos >= len && !format_cannot_reset)
 				break;
@@ -2125,9 +2125,6 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		mask_increments_len = 1;
 
 	max_keylen = options.rule_stack ? 125 : options.eff_maxlength;
-
-	if (options.flags & FLG_TEST_CHK && !(options.flags & FLG_MASK_STACKED))
-		max_keylen = strlen(mask_fmt->params.tests[0].plaintext);
 
 	if ((options.flags & FLG_MASK_STACKED) && max_keylen < 2) {
 		if (john_main_process)

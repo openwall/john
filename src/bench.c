@@ -222,6 +222,8 @@ static void bench_install_handler(void)
 #endif
 }
 
+#define PARENT_KEY ((options.flags & FLG_MASK_STACKED) ? plaintext : NULL)
+
 static void bench_set_keys(struct fmt_main *format,
 	struct fmt_tests *current, int pass)
 {
@@ -229,12 +231,9 @@ static void bench_set_keys(struct fmt_main *format,
 	unsigned int length = flags & 0xff;
 	int max = format->params.max_keys_per_crypt;
 	int index;
-
 #ifndef BENCH_BUILD
-	int len = length;
-
-	if ((len -= mask_add_len) < 0 || !(options.flags & FLG_MASK_STACKED))
-		len = 0;
+	int mask_mult = MAX(1, mask_tot_cand);
+	int mask_key_len = MAX(0, (int)length - mask_add_len);
 #endif
 
 	format->methods.clear_keys();
@@ -267,10 +266,10 @@ static void bench_set_keys(struct fmt_main *format,
 			}
 #ifndef BENCH_BUILD
 			if (options.flags & FLG_MASK_CHK) {
-				if (len)
-					plaintext[len] = 0;
-				do_mask_crack(len ? plaintext : NULL);
-				index++;;
+				plaintext[mask_key_len] = 0;
+				if (do_mask_crack(PARENT_KEY))
+					return;
+				index += mask_mult;
 			} else
 #endif
 				format->methods.set_key(plaintext, index++);
@@ -310,10 +309,10 @@ static void bench_set_keys(struct fmt_main *format,
 
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK) {
-			if (len)
-				plaintext[len] = 0;
-			do_mask_crack(len ? plaintext : NULL);
-			index++;;
+			plaintext[mask_key_len] = 0;
+			if (do_mask_crack(PARENT_KEY))
+				return;
+			index += (mask_mult - 1);
 		} else
 #endif
 			format->methods.set_key(plaintext, index);
