@@ -271,11 +271,10 @@ static void set_salt(void *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	size_t gws = count;
-	size_t *lws = (local_work_size && !(gws % local_work_size)) ?
-		&local_work_size : NULL;
 	int i, index;
 	int loops = (host_salt->rounds + HASH_LOOPS - 1) / HASH_LOOPS;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
