@@ -619,7 +619,7 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
  * Disable specialization to password length if it varies within the group.
  * We could use tree-like log2(N) reduction here, but we don't bother.
  */
-	__local uint lengths[0x100];
+	__local uint lengths[0x400];
 	uint lid = get_local_id(0);
 	if (lid < sizeof(lengths) / sizeof(lengths[0]))
 		lengths[lid] = pass_len;
@@ -629,7 +629,11 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	uint unify = 0;
-	for (i = 0; i < lws; i++) {
+	uint istart = lid & ~0x3fU;
+	uint iend = istart + 0x40;
+	if (iend > lws)
+		iend = lws;
+	for (i = istart; i < iend; i++) {
 		if (pass_len != lengths[i]) {
 			unify = 0xff;
 			break;
