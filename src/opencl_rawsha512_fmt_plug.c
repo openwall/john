@@ -91,8 +91,8 @@ static struct fmt_main *self;
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 
-static const char * warn[] = {
-	"xfer: ",  ", crypt: "
+static const char *warn[] = {
+	"xfer: ",  ", crypt: ", ", vrf_xfer: ", ", verify: ", ", res_xfer: "
 };
 
 /* ------- Helper functions ------- */
@@ -324,17 +324,17 @@ static int cmp_all(void *binary, int count)
 {
 	uint32_t result;
 	///Copy binary to GPU memory
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary, CL_FALSE,
-		0, sizeof(uint64_t), ((uint64_t*)binary)+3, 0, NULL, NULL), "Copy mem_binary");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary, CL_FALSE,
+		0, sizeof(uint64_t), ((uint64_t*)binary)+3, 0, NULL, multi_profilingEvent[2]), "Copy mem_binary");
 
 	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel
+	BENCH_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], cmp_kernel, 1, NULL, &global_work_size, &local_work_size,
-		0, NULL, NULL), "Set ND range");
+		0, NULL, multi_profilingEvent[3]), "Set ND range");
 
 	/// Copy result out
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cmp, CL_TRUE, 0,
-		sizeof(uint32_t), &result, 0, NULL, NULL), "Copy data back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cmp, CL_TRUE, 0,
+		sizeof(uint32_t), &result, 0, NULL, multi_profilingEvent[4]), "Copy data back");
 
 	return result;
 }
