@@ -1539,15 +1539,15 @@ static void* fill_opencl_device(size_t gws)
 		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Tuning to length %d\n", len);
 
-		memset(key, 0x61, sizeof(key));
+		memset(key, 0x41, sizeof(key));
+		key[len] = 0;
 
 		for (i = 0; i < kpc; i++) {
-			int l = 0;
+			int l = len - 1;
 
-			key[len] = 0;
 			self->methods.set_key(key, i);
-			while (++key[l] > 0x7a)
-				key[l++] = 0x21;
+			while (l >= 0 && ++key[l] > 0x60)
+				key[l--] = 0x21;
 		}
 	}
 
