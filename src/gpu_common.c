@@ -472,11 +472,11 @@ void gpu_check_temp(void)
 
 		if (temp > 125 || temp < 10) {
 			if (!warned++) {
-				log_event("GPU %d probably invalid temp reading (%d%sC).",
-				          dev, temp, gpu_degree_sign);
+				log_event("Device %d probably invalid temp reading (%d%sC).",
+				          dev + 1, temp, gpu_degree_sign);
 				fprintf(stderr,
-				        "GPU %d probably invalid temp reading (%d%sC).\n",
-				        dev, temp, gpu_degree_sign);
+				        "Device %d probably invalid temp reading (%d%sC).\n",
+				        dev + 1, temp, gpu_degree_sign);
 			}
 			return;
 		}
@@ -486,11 +486,11 @@ void gpu_check_temp(void)
 			if (fan >= 0)
 				sprintf(s_fan, "%u%%", fan);
 			if (!event_abort) {
-				log_event("GPU %d overheat (%d%sC, fan %s), aborting job.",
-				          dev, temp, gpu_degree_sign, s_fan);
+				log_event("Device %d overheat (%d%sC, fan %s), aborting job.",
+				          dev + 1, temp, gpu_degree_sign, s_fan);
 				fprintf(stderr,
-				        "GPU %d overheat (%d%sC, fan %s), aborting job.\n",
-				        dev, temp, gpu_degree_sign, s_fan);
+				        "Device %d overheat (%d%sC, fan %s), aborting job.\n",
+				        dev + 1, temp, gpu_degree_sign, s_fan);
 			}
 			event_abort++;
 		}
@@ -511,7 +511,7 @@ void gpu_log_temp(void)
 
 		fan = temp = util = -1;
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util, &cl, &ml);
-		n = sprintf(s_gpu, "GPU %d:", dev);
+		n = sprintf(s_gpu, "Device %d:", dev + 1);
 		if (temp >= 0)
 			n += sprintf(s_gpu + n, " temp: %u%sC", temp, gpu_degree_sign);
 		if (util > 0)
