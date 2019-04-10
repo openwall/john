@@ -1510,8 +1510,9 @@ static void clear_profiling_events()
 	}
 }
 
-// Fill [set_salt(), set_key()] the OpenCL device with data
-static void* fill_opencl_device(size_t gws)
+// Fill [set_salt(), set_key()] the OpenCL device with data. Returns
+// salt, and fills binary pointer.
+static void* fill_opencl_device(size_t gws, void **binary)
 {
 	int i;
 	size_t kpc = gws * ocl_v_width;
@@ -1560,6 +1561,7 @@ static void* fill_opencl_device(size_t gws)
 		while (s->next && s->cost[0] < db->max_cost[0])
 			s = s->next;
 		salt = s->salt;
+		*binary = self->methods.binary(s->list->binary);
 	} else {
 		char *ciphertext;
 
@@ -1568,6 +1570,7 @@ static void* fill_opencl_device(size_t gws)
 		ciphertext = self->methods.prepare(self->params.tests[0].fields, self);
 		ciphertext = self->methods.split(ciphertext, 0, self);
 		salt = self->methods.salt(ciphertext);
+		*binary = self->methods.binary(ciphertext);
 		if (salt)
 			dyna_salt_create(salt);
 	}
@@ -1584,8 +1587,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	int i, count, total = 0;
 	size_t kpc = gws * ocl_v_width;
 	cl_event benchEvent[MAX_EVENTS];
-	int number_of_events = 0;
-	void *salt;
+	int result, number_of_events = 0;
+	void *salt, *binary;
 	int amd_bug;
 
 	for (i = 0; i < MAX_EVENTS; i++)
@@ -1598,7 +1601,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	create_clobj(gws, self);
 
 	// Transfer data to the OpenCL device
-        salt = fill_opencl_device(gws);
+	salt = fill_opencl_device(gws, &binary);
 
 	// Activate events. Then clear them later.
 	for (i = 0; i < MAX_EVENTS; i++)
@@ -1606,7 +1609,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 	// Timing run
 	count = kpc;
-	if (self->methods.crypt_all(&count, autotune_salts) < 0) {
+	result = self->methods.crypt_all(&count, autotune_salts);
+	if (result < 0) {
 		runtime = looptime = 0;
 
 		if (options.verbosity > VERB_LEGACY)
@@ -1617,6 +1621,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			dyna_salt_remove(salt);
 		return 0;
 	}
+	self->methods.cmp_all(binary, result);
 
 	for (i = 0; (*multi_profilingEvent[i]); i++)
 		number_of_events++;
@@ -1734,12 +1739,12 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 {
 	size_t gws;
 	cl_int ret_code;
-	int i, j, numloops, count;
+	int i, j, numloops, count, result;
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	cl_event benchEvent[MAX_EVENTS];
-	void *salt;
+	void *salt, *binary;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1786,12 +1791,14 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	HANDLE_CLERROR(ret_code, "clCreateCommandQueue");
 
 	// Transfer data to the OpenCL device
-        salt = fill_opencl_device(gws);
+	salt = fill_opencl_device(gws, &binary);
 
 	// Warm-up run
 	local_work_size = wg_multiple;
 	count = global_work_size * ocl_v_width;
-	self->methods.crypt_all(&count, autotune_salts);
+	result = self->methods.crypt_all(&count, autotune_salts);
+	if (result > 0)
+		self->methods.cmp_all(binary, result);
 
 	// Activate events. Then clear them later.
 	for (i = 0; i < MAX_EVENTS; i++)
@@ -1799,7 +1806,9 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	// Timing run
 	count = global_work_size * ocl_v_width;
-	self->methods.crypt_all(&count, autotune_salts);
+	result = self->methods.crypt_all(&count, autotune_salts);
+	if (result > 0)
+		self->methods.cmp_all(binary, result);
 
 	HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
 	               "clWaitForEvents");
@@ -1851,10 +1860,12 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 				multi_profilingEvent[j] = &benchEvent[j];
 
 			count = global_work_size * ocl_v_width;
-			if (self->methods.crypt_all(&count, autotune_salts) < 0) {
+			result = self->methods.crypt_all(&count, autotune_salts);
+			if (result < 0) {
 				startTime = endTime = 0;
 				break;
 			}
+			self->methods.cmp_all(binary, result);
 
 			HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
 			               "clWaitForEvents");
