@@ -17,14 +17,12 @@
 #define ARCH_LITTLE_ENDIAN 1
 #endif
 #endif
+#include "arch.h"
+#if ARCH_LITTLE_ENDIAN
 #if FMT_EXTERNS_H
-#if ARCH_LITTLE_ENDIAN
 extern struct fmt_main fmt_VMS;
-#endif
 #elif FMT_REGISTERS_H
-#if ARCH_LITTLE_ENDIAN
 john_register_one(&fmt_VMS);
-#endif
 #else
 
 #include <stdio.h>
@@ -307,3 +305,14 @@ struct fmt_main fmt_VMS = {
 };
 
 #endif /* plugin stanza */
+
+#else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning ": OpenVMS format requires little-endian, format disabled."
+#elif _MSC_VER
+#pragma message(": OpenVMS format requires little-endian, format disabled.")
+#endif
+#endif
+
+#endif	/* ARCH_LITTLE_ENDIAN */
