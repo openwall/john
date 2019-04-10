@@ -729,7 +729,8 @@ linux-arm64le:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -lcrypt"
+		LDFLAGS="$(LDFLAGS) -lcrypt" \
+		OPT_INLINE="$(OPT_INLINE) -fno-strict-aliasing"
 
 linux-arm32le-neon:
 	$(LN) arm32le.h arch.h
