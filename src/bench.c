@@ -867,9 +867,9 @@ AGAIN:
 				if (util <= 0)
 					continue;
 				if (i == 0)
-					n += sprintf(s_gpu + n, ", GPU util: ");
+					n += sprintf(s_gpu + n, ", Dev#%d util: ", dev + 1);
 				else
-					n += sprintf(s_gpu + n, ", GPU%d: ", i);
+					n += sprintf(s_gpu + n, ", Dev#%d: ", dev + 1);
 
 				if (util > 0)
 					n += sprintf(s_gpu + n, "%u%%", util);

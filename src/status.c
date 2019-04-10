@@ -410,16 +410,10 @@ void status_print(void)
 				    cfg_get_bool(SECTION_OPTIONS,
 				                 SUBSECTION_GPU,
 				                 "TempStatus", 1))) {
-					if (i == 0)
-						n += sprintf(s_gpu + n,
-						             " GPU:%u%sC",
-						             temp,
-						             gpu_degree_sign);
-					else
-						n += sprintf(s_gpu + n,
-						             " GPU%d:%u%sC",
-						             i, temp,
-						             gpu_degree_sign);
+					n += sprintf(s_gpu + n,
+					             " Dev#%d:%u%sC",
+					             dev + 1, temp,
+					             gpu_degree_sign);
 				}
 				if (util > 0 &&
 				    (options.verbosity > VERB_LEGACY ||
