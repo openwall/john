@@ -49,7 +49,9 @@ struct db_main *mask_db;
 static int mask_bench_index;
 static int parent_fix_state_pending;
 static unsigned int int_mask_sum, format_cannot_reset;
-int mask_add_len, mask_num_qw, mask_cur_len, mask_iter_warn, mask_increments_len;
+
+int mask_add_len, mask_num_qw, mask_cur_len, mask_iter_warn;
+int mask_increments_len;
 
 /*
  * This keeps track of whether we have any 8-bit in our non-hybrid mask.
@@ -90,14 +92,14 @@ uint64_t mask_parent_keys;
  * This function must pass escaped characters on, as-is (still escaped),
  * including "\\" which may escape "\\xHH" from being parsed as \xHH.
  */
-static void parse_hex(char *string)
+static char* parse_hex(char *string)
 {
 	static int warned;
 	unsigned char *s = (unsigned char*)string;
 	unsigned char *d = s;
 
 	if (!string || !*string)
-		return;
+		return string;
 
 	while (*s)
 	if (*s == '\\' && s[1] != 'x') {
@@ -116,6 +118,8 @@ static void parse_hex(char *string)
 		*d++ = *s++;
 
 	*d = 0;
+
+	return string;
 }
 
 /*
@@ -1015,10 +1019,10 @@ static char* drop1range(char *mask)
  * abc?l[0-9abcdef] -> 5
  * abc?w -> 3 (the parent-mode word placeholder does not count)
  */
-static int mask_len(char *mask)
+static int mask_len(const char *mask)
 {
 	int len = 0;
-	char *p = mask;
+	const char *p = mask;
 
 	while (*p) {
 		if (*p == '?') {
@@ -1037,7 +1041,7 @@ static int mask_len(char *mask)
 				p++;
 		} else if (*p == '[') {
 			char *q = strchr(++p, ']');
-			char *m = p;
+			const char *m = p;
 
 			while (q && q > m && q[-1] == '\\') {
 				m = q;
@@ -2628,4 +2632,11 @@ int do_mask_crack(const char *extern_key)
 	}
 
 	return event_abort;
+}
+
+int mask_calc_len(const char *mask_in)
+{
+	char *mask = str_alloc_copy(mask_in);
+
+	return mask_len(parse_hex(mask));
 }
