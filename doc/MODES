@@ -162,7 +162,7 @@ try a smaller sub-keyspace before a larger one. For example, it will try
 very long passwords consisting of few unique characters before it tries a
 short one with more unique ones.  See ./doc/SUBSETS for more details.
 
-	REGEX mode.
+	REGEX mode (experimental, not supported, see README.librexgen).
 
 You can think of this as "reverse regexp".  Regex is similar to mask mode but
 more powerful (and also slower).  Basically, you write a regular expression

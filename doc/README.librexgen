@@ -76,13 +76,14 @@ then all of the regular expressions will be performed on this word.
 ------------------------------------------------
 --- Obtaining, building, installing rexgen.  ---
 ------------------------------------------------
-First off, you must obtain and install rexgen library.
-It can be found here:
+First off, you must obtain and install rexgen library. It can be found here:
 
 https://github.com/teeshop/rexgen
 
 git clone --recursive https://github.com/teeshop/rexgen.git
 
+As of this writing the last known good version is 2.0.8 so you may want
+to check that out.
 
 Once you download it, it requires a cmake environment, along with flex and
 bison to be installed and working.  To build, see instructions on this page:
@@ -110,11 +111,8 @@ rexgen '[0-2]password[A-C]'
 1passwordC
 2passwordC
 
-Once you are at this point, rexgen is installed.  JtR ./configure should
-autodetect the library, and now build in code to use it. NOTE, JtR requires
-at least version 1.4.x to work properly. There were some bug fixes done
-when save/restore was added to rexgen, and versions of rexgen prior to
-this, simply do not work properly.
+Once you are at this point, rexgen is installed.  JtR ./configure now needs
+--enable-rexgen to detect and use the library.
 
 Note, JtR help document is NOT here to troubleshoot installation of this
 library.  A simple how to do it (when thing work right), is what was listed.
