@@ -413,10 +413,12 @@ case "$simd" in
         SIMD_NAME="ASIMD",
       AC_ERROR([NEON/ASIMD only applicable for ARM CPU's])
     )
+    JTR_ARM_SIMD_LOGIC
     ;;
   asimd)
     JTR_FLAG_CHECK_LINK([-march=armv8-a+simd], 2)
     SIMD_NAME="ASIMD"
+    JTR_ARM_SIMD_LOGIC
     ;;
   altivec1)
     JTR_FLAG_CHECK_LINK([-maltivec], 2)
@@ -465,16 +467,18 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   aarch64) ARCH_LINK=arm64le.h endian=little
+    AC_MSG_CHECKING([special compiler flags])
+    AC_MSG_RESULT([ARM64])
     AS_IF([test $simd != no],
-        [AC_MSG_CHECKING([special compiler flags])]
-        [AC_MSG_RESULT([aarch64])]
         [SIMD_NAME="ASIMD"]
+        JTR_ARM_SIMD_LOGIC
       )
     ;;
   arm*) ARCH_LINK=arm32le.h endian=little
     AC_MSG_CHECKING([special compiler flags])
     AC_MSG_RESULT([ARM])
     JTR_ARM_SPECIAL_LOGIC
+    JTR_ARM_SIMD_LOGIC
     ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
   i?86) ARCH_LINK=x86-any.h endian=little cpu_family=intel ;;

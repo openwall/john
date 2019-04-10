@@ -69,3 +69,17 @@ fi
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 ])
+
+
+AC_DEFUN([JTR_ARM_SIMD_LOGIC], [
+  if test "$SIMD_NAME" = "NEON" || test "$SIMD_NAME" = "ASIMD" ; then
+    ac_saved_cflags_ex="$CFLAGS_EX"
+    CFLAGS_EX=""
+    JTR_FLAG_CHECK([-fno-strict-aliasing], 1)
+    if test "x$CFLAGS_EX" != x ; then
+      INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing"
+    fi
+    CFLAGS_EX="$ac_saved_cflags_ex"
+    AC_SUBST([OPT_INLINE_FLAGS],["${INLINE_FLAGS}"])
+  fi
+])

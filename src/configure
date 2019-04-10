@@ -729,7 +729,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -839,7 +838,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1092,15 +1090,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1238,7 +1227,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -3352,6 +3341,9 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 #   warranty.
 
 #serial 7
+
+
+
 
 
 
@@ -8606,6 +8598,67 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     as_fn_error $? "NEON/ASIMD only applicable for ARM CPU's" "$LINENO" 5
      ;;
 esac
+
+  if test "$SIMD_NAME" = "NEON" || test "$SIMD_NAME" = "ASIMD" ; then
+    ac_saved_cflags_ex="$CFLAGS_EX"
+    CFLAGS_EX=""
+    if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
+$as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -fno-strict-aliasing"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -fno-strict-aliasing"
+
+else
+  if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+    if test "1" = 2; then :
+  as_fn_error $? "Not supported by compiler" "$LINENO" 5
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+    if test "x$CFLAGS_EX" != x ; then
+      INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing"
+    fi
+    CFLAGS_EX="$ac_saved_cflags_ex"
+    OPT_INLINE_FLAGS="${INLINE_FLAGS}"
+
+  fi
+
     ;;
   asimd)
     if test 2 -gt 0; then :
@@ -8659,6 +8712,67 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
     SIMD_NAME="ASIMD"
+
+  if test "$SIMD_NAME" = "NEON" || test "$SIMD_NAME" = "ASIMD" ; then
+    ac_saved_cflags_ex="$CFLAGS_EX"
+    CFLAGS_EX=""
+    if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
+$as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -fno-strict-aliasing"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -fno-strict-aliasing"
+
+else
+  if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+    if test "1" = 2; then :
+  as_fn_error $? "Not supported by compiler" "$LINENO" 5
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+    if test "x$CFLAGS_EX" != x ; then
+      INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing"
+    fi
+    CFLAGS_EX="$ac_saved_cflags_ex"
+    OPT_INLINE_FLAGS="${INLINE_FLAGS}"
+
+  fi
+
     ;;
   altivec1)
     if test 2 -gt 0; then :
@@ -8997,12 +9111,73 @@ case "$host_cpu" in
   alpha*) ARCH_LINK=alpha.h endian=little ;;
   armeb) ARCH_LINK=arm32le.h endian=big ;;
   aarch64) ARCH_LINK=arm64le.h endian=little
-    if test $simd != no; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
 $as_echo_n "checking special compiler flags... " >&6; }
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: aarch64" >&5
-$as_echo "aarch64" >&6; }
-        SIMD_NAME="ASIMD"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ARM64" >&5
+$as_echo "ARM64" >&6; }
+    if test $simd != no; then :
+  SIMD_NAME="ASIMD"
+
+  if test "$SIMD_NAME" = "NEON" || test "$SIMD_NAME" = "ASIMD" ; then
+    ac_saved_cflags_ex="$CFLAGS_EX"
+    CFLAGS_EX=""
+    if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
+$as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -fno-strict-aliasing"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -fno-strict-aliasing"
+
+else
+  if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+    if test "1" = 2; then :
+  as_fn_error $? "Not supported by compiler" "$LINENO" 5
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+    if test "x$CFLAGS_EX" != x ; then
+      INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing"
+    fi
+    CFLAGS_EX="$ac_saved_cflags_ex"
+    OPT_INLINE_FLAGS="${INLINE_FLAGS}"
+
+  fi
+
 
 fi
     ;;
@@ -9088,6 +9263,67 @@ fi
 
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
+
+
+  if test "$SIMD_NAME" = "NEON" || test "$SIMD_NAME" = "ASIMD" ; then
+    ac_saved_cflags_ex="$CFLAGS_EX"
+    CFLAGS_EX=""
+    if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -fno-strict-aliasing" >&5
+$as_echo_n "checking if $CC supports -fno-strict-aliasing... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -fno-strict-aliasing"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if test "1" -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -fno-strict-aliasing"
+
+else
+  if test 1 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+    if test "1" = 2; then :
+  as_fn_error $? "Not supported by compiler" "$LINENO" 5
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+    if test "x$CFLAGS_EX" != x ; then
+      INLINE_FLAGS="$INLINE_FLAGS -fno-strict-aliasing"
+    fi
+    CFLAGS_EX="$ac_saved_cflags_ex"
+    OPT_INLINE_FLAGS="${INLINE_FLAGS}"
+
+  fi
 
     ;;
   ia64) ARCH_LINK=ia64.h endian=little cpu_family=intel ;;
