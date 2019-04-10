@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.8-0-jumbo-2:
 
-magnum (2497):
+magnum (2540):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
 	  buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but in other
 	  places with similar code.
@@ -4094,6 +4094,81 @@ magnum (2497):
 	  obsolete stuff from DES_bs_b.c, see #3696
 	Change auto-tune password length, as well as length of default mask
 	  for "-test -mask", to 7.
+	Update CHANGES-jumbo.git and CREDITS-jumbo
+	cprepair: Add -P option, don't output unprintable ASCII (and with -n
+	  also suppress any invalid UTF-8). Also some minor bug fixes.
+	Bugfix after adding VERB_DEBUG. Closes #3730
+	Minor fixes while working with #3712
+	Bugfixes for hybrid mask vs. eff_maxlength. Closes #3712
+	Cosmetic fixes, #3718
+	If default (john.conf) mask is used, print it. Closes #3728.
+	More hybrid mask length fixes. Closes #3731
+	Print a warning when -verb:1 suppresses -stdout candidates. Closes
+	  #3729
+	Print a notice of default input encoding if != ASCII and --pipe.
+	  Closes #3717
+	AC: Fix intel 32-bit issues. Closes, I hope, #3678
+	Mask mode: This change closes #3735, found by lucky hip shot. I hope
+	  it doesn't end up with regression in other cases - testing needed.
+	Show default input encoding for wordlist mode as well, see #3717
+	Make us sending host's sizeof(size_t) to OpenCL less confusing.
+	Work around idiot Beignet driver defining cl_amd_media_ops despite not
+	  supporting it. Closes #3750.
+	Send -D__BEIGNET__ or -D__POCL__ to OpenCL runtime compiler when we
+	  suspect platform is one of those, for easier future bug workarounds
+	  in kernels, just like we do with Mesa. See #3750.
+	Mask mode bug fixes. Reverts previous bugfix, which wasn't complete.
+	  Instead adds a correct fix for hybrid mode, correcting a change I
+	  did in c1d7a2f for incrementing lengths (which we never do in hybrid
+	  mode).
+	Do not disable self-tests when running "-test -mask". Instead do a
+	  normal non-mask self-test, then reset format and benchmark with
+	  mask. Closes #3249
+	AC: Do not auto-enable rexgen if library found. See #3753.
+	Tweaks for mask-benchmark w/ proper self-tests. See #3249
+	Some mask mode fixes for non-mask self-tests followed by mask
+	  benchmarks. Problems seen with raw-md4-opencl followed by
+	  raw-md5-opencl using -test -mask -form:raw*opencl
+	Revert "Some mask mode fixes for non-mask self-tests followed by mask
+	  benchmarks." This reverts commit
+	  b2aba18f4ad7cfb86a9093e14df48527ef97d329.
+	Rename --nolog option to --no-log. The old name will continue to work
+	  for some time but is deprecated.
+	Tweaks to ldr_split_line. See discussion at
+	  https://www.openwall.com/lists/john-dev/2019/04/07/1
+	HDAA: Drop b0rken OpenMP support, since it was poor anyway. Closes
+	  #3107.
+	7z formats: Use atoi() instead of atou() if CRC field is negative,
+	  then cast to unsigned int. Also change atou declaration to
+	  "unsigned int" as opposed to just "unsigned". Closes #2998.
+	hccap2john.c: Drop an unused function
+	Add a warning about self-tests currently being disabled with -test
+	  -mask.
+	Revert part of 4b6929031ad. See discussion at
+	  https://github.com/magnumripper/JohnTheRipper/commit/4b6929031
+	Revert "Many OpenCL formats: Use new scheme of LWS=NULL for
+	  less-than-full batches" This reverts commit
+	  0d3ea928cbdb2c2a861c0ecd3c00fc2113213387.
+	Jumbo changes according to recent core changes ("NEON"->"ASIMD" for
+	  aarch64). Also test for __aarch64__ in case it doesn't already
+	  define __ARM_NEON.
+	OMP tune, a bunch of formats. See #3091
+	Various updates to install instructions. See #3513, #3753
+	Update relbench
+	Fix copyright blurb in showformats.[ch]
+	Fix a type for SHA-512 using 128/128 ASIMD: "4x" should be "2x".
+	Change RAR3 formats to benchmark length 5, just like hashcat. See
+	  #3697
+	Mask mode: For -test -mask, give format a mask corresponding to its
+	  requested benchmark_length. See #3697.
+	Major bugfix for -test -mask. That functionality wasn't added to the
+	  newly merged code path. See #3697.
+	Final (hopefully) fixes to mask-mode benchmark after merge.
+	Mask-mode benchmark: Add/replace benchmark_comment with "(length n)"
+	  if a custom mask is being specified. Also separate used mask from
+	  requested mask (so we can see whether mask is default or not).
+	OMP_SCALE & MKPC tuning, many formats, Closes #3091
+	More doc updates for regex / librexgen.
 
 JimF (1545):
 	configure: removed many function checks (for #910)
@@ -6740,7 +6815,7 @@ Dhiru Kholia (532):
 	Make DiskCryptor format functional on BE machines
 	Add support for cracking encrypted VMware VMX files
 
-Claudio André (281):
+Claudio André (291):
 	OpenCL: AMD devices have some weird bug when using pinned buffers.
 	  Forgotten file: see ec080119f45ffef07f7f1dd36e120ee56d5d6734
 	OpenCL: Updates to get_processor_family().
@@ -7061,6 +7136,16 @@ Claudio André (281):
 	maint: fix a warning in sunmd5 in gcc 9
 	OpenCL: fix the device name not printed
 	OpenCL: mute a warning on Windows
+	OpenCL: autotune must set GWS as multiple of LWS
+	mask: free resources only after use
+	docs: add a recipe on how to build on Windows
+	Make the windows target the default when running on Windows (#3745)
+	docs: minor fixes on how to build on Windows
+	OpenCL: remove unused variable from vmx
+	docs: warn about unsupported OpenCL drivers
+	OpenCL: tune for the length a run will be using
+	OpenCL: tune for the length a run will be using
+	OpenCL: tune using code that matches benchmark more closely
 
 Sayantan Datta (266):
 	DEScrypt OpenCL: Use a "safer" kernel for some devices (drivers) that
@@ -7347,7 +7432,7 @@ Sayantan Datta (266):
 	  checking.
 	bugfix for d2a0668
 
-Frank Dittrich (246):
+Frank Dittrich (248):
 	korelogic.conf: fix month name in [List.Rules:MonthsFullPreface]
 	korelogic.conf: split some rule definitions for dupe suppression
 	submodule update
@@ -7660,6 +7745,9 @@ Frank Dittrich (246):
 	Remove duplicate #include preprocessor directives
 	Fix legacy generic build
 	Avoid strcasestr -Wimplicit-function-declaration for legacy builds
+	relbench: fix benchmark output parsing for changes made in commit
+	  7187208
+	benchmark-unify: adjust mappings to current format names
 
 Zhang Lei (108):
 	Resolve issues encountered when building for MIC.
@@ -7864,7 +7952,7 @@ Kai Zhao (84):
 	Detect FMT_SPLIT_UNIFIES_CASE error
 	Change to 'FAILED' when there is a FMT_SPLIT warning or error
 
-Apingis (48):
+Apingis (53):
 	descrypt-ztex format; includes library for operating ZTEX hardware and
 	  bitstream (4MB). Requires libusb-1.0. Autoconf support.
 	HDL sources; Copyright and license information; small corrections
@@ -7923,8 +8011,15 @@ Apingis (48):
 	new md5crypt-ztex bitstream with clock gating (idle current
 	  consumption 0.4A); README update (#3684)
 	improved descrypt-ztex (#3702)
+	descrypt-ztex: Ensure updated pcount < 2^31; const qualifiers (#3710)
+	Don't register ztex formats, skip boards initialization with --show
+	  (#3713)
+	Numbering of individual FPGA on the board from 1 to 4 (#3716)
+	{sha256|sha512|md5}crypt-ztex: salt_length=0: print warning, don't
+	  process (#3742)
+	src/ztex/Makefile.in: added distclean target (#3774)
 
-Solar (42):
+Solar (43):
 	Fix a bug in truecrypt for non-x86 archs. Closes #912.
 	Early (contest) version of AVX2 support for DES.
 	Fix a compile error in dynamic_compiler_plug.c
@@ -7977,8 +8072,9 @@ Solar (42):
 	Disable specialization to password length if it varies within the
 	  group
 	md5crypt-opencl: Further specialization for password length 8
+	md5crypt-opencl: only detect divergence in 64 lid's near current
 
-Fist0urs (28):
+Fist0urs (30):
 	Initial commit.
 	Fixed bug in self-tests (thanks to @jfoug and @magnumripper)
 	Cosmetic changes
@@ -8021,6 +8117,8 @@ Fist0urs (28):
 	  (#2557)
 	Remove CRLF and trailing whitespaces in run/kerberom. Addresses #2559
 	  (#2562)
+	Remove "kerberom" tool (obsolete)
+	Add documentation on Kerberos 5 TGS attack
 
 Elena Ago (15):
 	BitLocker (OpenCL version): BitLocker password cracking tool (#2427)
@@ -8041,6 +8139,22 @@ Elena Ago (15):
 	bitlocker2john: file_length must be a long int to support large files
 	bitlocker2john can find recovery password even without user password
 	Code reworked - added two different salt and aes offsets
+
+Aleksey Cherepanov (8):
+	added --show=types option; renamed m_allow_rawhash_fixup into
+	  dynamic_allow_rawhash_fixup and made it global
+	removed unused variable in --show=types code
+	Add support for "lineage" hashes
+	move Aleksey's and magnum's code for --show=types[-json] from
+	  ldr_split_line() into showformats.c
+	replace showformats_nis() and showformats_lonely() calls by unified
+	  showformats_skipped()
+	rename --show=types-json into --show=formats; rename fields:
+	  showtypes_json -> showformats, showtypes -> showformats_old,
+	  meanings are changed too
+	replace "consistencyMark" with "skipped" in JSON, add rowFormats:[]
+	  for skipped hashes; combined code into showformats_skipped()
+	document --show=formats option (#3773)
 
 Jan Starke (6):
 	Update regex code for working with latest rexgen library from
@@ -8098,23 +8212,17 @@ campeador (3):
 	Change optparse to argparse in efs2john.py and openssl2john.py
 	Delete comments in efs2john.py
 
-Aleksey Cherepanov (3):
-	added --show=types option; renamed m_allow_rawhash_fixup into
-	  dynamic_allow_rawhash_fixup and made it global
-	removed unused variable in --show=types code
-	Add support for "lineage" hashes
-
 Louis Granboulan (2):
 	configure: detect openssl installed by MacPorts on macOS (#3577)
 	HDAA: remove check that cnonce is lowercase hex
 
+Dennis Addo (2):
+	Rewrite common.c: isdec*() #2951 (#2979)
+	Update README.md #1972 (#3003)
+
 Shinnok (2):
 	Ignore .DS_Store files on OS X.
 	Properly format the .gitignore file.
-
-Sanju Kholia (2):
-	Port luks2john.c to Python
-	Remove luks2john.c (replaced by luks2john.py)
 
 walkerk1980 (2):
 	Added LogFilePermissions, PotFilePermissions, IgnoreLogChmodErrors
@@ -8126,21 +8234,21 @@ chipx0r (2):
 	PKCS#8 DER Compatibility
 	try/catch certificate
 
+Sanju Kholia (2):
+	Port luks2john.c to Python
+	Remove luks2john.c (replaced by luks2john.py)
+
 Rémi Dubois (2):
 	Adding dynamic_1034 for PostgreSQL MD5 support
 	Additional comments for PostgreSQL
-
-Rob Schoemaker (2):
-	Add support for cracking AS/400 DES hashes
-	Update information about AS/400 DES hashes
 
 Catalin Patulea (2):
 	radius2john: support for LINUX_SSL (cooked capture) containing IP
 	radius2john: preserve unknown vendor extensions when constructing salt
 
-Christian Mehlmauer (2):
-	update OSX compile instructions
-	Update .gitignore
+Rob Schoemaker (2):
+	Add support for cracking AS/400 DES hashes
+	Update information about AS/400 DES hashes
 
 philsmd (2):
 	pdf2john.py problem, commit efc315e926f521cc41c002742a994776edbacc1d
@@ -8151,17 +8259,17 @@ Michel Normand (2):
 	set ARCH_LITTLE_ENDIAN for powerpc64 little endian in src/ppc64.h
 	add src/escrypt/tests in .gitignore
 
-Alexander Cherepanov (2):
-	fake_salts.h: change cp1252 dash to '='
-	episerver: remove gratuitous memset in hash_type
+Christian Mehlmauer (2):
+	update OSX compile instructions
+	Update .gitignore
 
 smarteam (2):
 	Update INSTALL-UBUNTU (#1)
 	encodings file name
 
-Dennis Addo (2):
-	Rewrite common.c: isdec*() #2951 (#2979)
-	Update README.md #1972 (#3003)
+Alexander Cherepanov (2):
+	fake_salts.h: change cp1252 dash to '='
+	episerver: remove gratuitous memset in hash_type
 
 arcctgx (2):
 	Make sure wpapcap2john initialises allocated memory with zeros.
@@ -16819,5 +16927,5 @@ Robert Veznaver (1):
 	replaced mempcpy with memcpy for BSD and OS X compatibility
 
 ---
-git shortlog -w78,8,10 -n --no-merges 1.8.0-jumbo-1..HEAD ^master | sed -r 's/^ {8}/\t/; s/([^\t]) {2,}/\1 /g' >> ../doc/CHANGES-jumbo.git
+git shortlog -w78,8,10 -n --no-merges 1.8.0-jumbo-1..HEAD ^origin/master | sed -r 's/^ {8}/\t/; s/([^\t]) {2,}/\1 /g' >> ../doc/CHANGES-jumbo.git
 ---
