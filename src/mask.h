@@ -98,6 +98,9 @@ extern void mask_fix_state(void);
 extern void mask_save_state(FILE *file);
 extern int mask_restore_state(FILE *file);
 
+/* Evaluate mask_add_len from a given mask string without calling mask_init */
+extern int mask_calc_len(const char *mask);
+
 /*
  * Total number of candidates (per node) to begin with. Remains unchanged
  * throughout one call to do_mask_crack but may vary with hybrid parent key
@@ -122,6 +125,6 @@ extern int mask_cur_len;
 extern int mask_iter_warn;
 
 /* Mask mode is incrementing mask length */
-int mask_increments_len;
+extern int mask_increments_len;
 
 #endif

@@ -754,7 +754,7 @@ AGAIN:
 			if (options.mask) {
 				static char benchmark_comment[16];
 				int bl = format->params.benchmark_length & 0x7f;
-				int el = mask_add_len;
+				int el = mask_calc_len(options.mask);
 
 				if (options.flags & FLG_MASK_STACKED)
 					el = MAX(el, bl);
