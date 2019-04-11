@@ -904,8 +904,8 @@ void opencl_load_environment(void)
 		if (!options.acc_devices->head && gpu_id <= NO_GPU) {
 			const char *devcfg;
 
-			if ((devcfg = cfg_get_param(SECTION_OPTIONS,
-			                            SUBSECTION_OPENCL, "Device"))) {
+			if ((devcfg = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+			                            "Device")) && *devcfg) {
 				cmdline_devices[0] = devcfg;
 				cmdline_devices[1] = NULL;
 			}
@@ -1086,11 +1086,12 @@ void opencl_get_user_preferences(const char *format)
 		global_work_size = GET_MULTIPLE_OR_ZERO(global_work_size,
 		                                        local_work_size);
 
-	if (format && (tmp_value = (char*)cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-			opencl_get_config_name(fmt_base_name, DUR_CONFIG_NAME))))
+	if (format && (tmp_value = (char*)cfg_get_param(SECTION_OPTIONS,
+		SUBSECTION_OPENCL, opencl_get_config_name(fmt_base_name,
+		DUR_CONFIG_NAME))) && *tmp_value)
 		duration_time = atoi(tmp_value);
-	else if ((tmp_value = (char*)cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-	                                    "Global" DUR_CONFIG_NAME)))
+	else if ((tmp_value = (char*)cfg_get_param(SECTION_OPTIONS,
+		SUBSECTION_OPENCL, "Global" DUR_CONFIG_NAME)) && *tmp_value)
 		duration_time = atoi(tmp_value);
 }
 
