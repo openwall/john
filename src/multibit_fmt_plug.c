@@ -30,7 +30,7 @@ john_register_one(&fmt_multibit);
 #include "options.h"
 #include "aes.h"
 #include "md5.h"
-#include "escrypt/crypto_scrypt.h"
+#include "yescrypt/yescrypt.h"
 #include "jumbo.h"
 #include "unicode.h"
 

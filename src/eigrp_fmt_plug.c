@@ -30,13 +30,13 @@ john_register_one(&fmt_eigrp);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "escrypt/sha256.h"
+#include "yescrypt/sha256.h"
 
 #define FORMAT_LABEL            "eigrp"
 #define FORMAT_NAME             "EIGRP MD5 / HMAC-SHA-256 authentication"
 #define FORMAT_TAG              "$eigrp$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "MD5/SHA-256 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        81 // IOU accepts larger strings but doesn't use them fully, passwords are zero padded to a minimum length of 16 (for MD5 hashes only)!
@@ -283,9 +283,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			buffer[0] = '\n'; // WTF?
 			memcpy(buffer + 1, saved_key[index], saved_len[index]);
 			memcpy(buffer + 1 + saved_len[index], cur_salt->ip, cur_salt->ip_length);
-			HMAC__SHA256_Init(hctx, buffer, 1 + saved_len[index] + cur_salt->ip_length);
-			HMAC__SHA256_Update(hctx, cur_salt->salt, cur_salt->length);
-			HMAC__SHA256_Final(output, hctx);
+			HMAC_SHA256_Init(hctx, buffer, 1 + saved_len[index] + cur_salt->ip_length);
+			HMAC_SHA256_Update(hctx, cur_salt->salt, cur_salt->length);
+			HMAC_SHA256_Final(output, hctx);
 			memcpy((unsigned char*)crypt_out[index], output, BINARY_SIZE);
 		}
 

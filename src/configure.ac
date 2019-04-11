@@ -1100,8 +1100,7 @@ AC_CONFIG_FILES([Makefile
                  aes/aesni/Makefile
                  aes/openssl/Makefile
                  secp256k1/Makefile
-                 ed25519-donna/Makefile
-                 escrypt/Makefile])
+                 ed25519-donna/Makefile])
 
 dnl Escaping the '#' in things like "-Wno-error=#warnings" is required in
 dnl Makefile but forbidden when *not* in Makefile so we need to back-up
