@@ -685,14 +685,14 @@ static void add_device_to_list(int sequential_id)
 
 	if (found == 0) {
 		// Only requested and working devices should be started.
-#if HAVE_MPI
-		if (mpi_p > 1)
-			fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
-#elif OS_FORK
-		if (options.fork)
-			fprintf(stderr, "%u: ", options.node_min);
-#endif
 		if (! start_opencl_device(sequential_id, &i)) {
+#if HAVE_MPI
+			if (mpi_p > 1)
+				fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+#elif OS_FORK
+			if (options.fork)
+				fprintf(stderr, "%u: ", options.node_min);
+#endif
 			fprintf(stderr, "Device id %d not working correctly,"
 			        " skipping.\n", sequential_id + 1);
 			return;
