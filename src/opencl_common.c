@@ -670,21 +670,32 @@ static void add_device_to_list(int sequential_id)
 	found = get_if_device_is_in_use(sequential_id);
 
 	if (found < 0) {
-		if (john_main_process)
-			fprintf(stderr, "Error: --device must be between 1 and %d "
-			        "(the number of devices available).\n",
-			        get_number_of_available_devices());
+#if HAVE_MPI
+		if (mpi_p > 1)
+			fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+#elif OS_FORK
+		if (options.fork)
+			fprintf(stderr, "%u: ", options.node_min);
+#endif
+		fprintf(stderr, "Error: --device must be between 1 and %d "
+		        "(the number of devices available).\n",
+		        get_number_of_available_devices());
 		error();
 	}
 
 	if (found == 0) {
 		// Only requested and working devices should be started.
-		if (john_main_process) {
-			if (! start_opencl_device(sequential_id, &i)) {
-				fprintf(stderr, "Device id %d not working correctly,"
-					" skipping.\n", sequential_id + 1);
-				return;
-			}
+#if HAVE_MPI
+		if (mpi_p > 1)
+			fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+#elif OS_FORK
+		if (options.fork)
+			fprintf(stderr, "%u: ", options.node_min);
+#endif
+		if (! start_opencl_device(sequential_id, &i)) {
+			fprintf(stderr, "Device id %d not working correctly,"
+			        " skipping.\n", sequential_id + 1);
+			return;
 		}
 		engaged_devices[get_number_of_devices_in_use() + 1] = DEV_LIST_END;
 		engaged_devices[get_number_of_devices_in_use()] = sequential_id;
@@ -1561,7 +1572,7 @@ static void* fill_opencl_device(size_t gws, void **binary)
 		while (s->next && s->cost[0] < db->max_cost[0])
 			s = s->next;
 		salt = s->salt;
-		*binary = self->methods.binary(s->list->binary);
+		*binary = s->list->binary;
 	} else {
 		char *ciphertext;
 
