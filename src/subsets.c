@@ -512,7 +512,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 	if (!req_charset)
 		req_charset = default_set;
 
-	if (req_charset) {
+	if (req_charset && *req_charset) {
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };

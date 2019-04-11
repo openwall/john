@@ -1301,8 +1301,10 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
 
   /* If we did not give a name for wordlist mode, we use one from john.conf */
   if (!wordlist)
-  if (!(wordlist = cfg_get_param(SECTION_PRINCE, NULL, "Wordlist")))
-  if (!(wordlist = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
+  if (!(wordlist =
+        cfg_get_param(SECTION_PRINCE, NULL, "Wordlist")) || !*wordlist)
+  if (!(wordlist =
+        cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")) || !*wordlist)
     wordlist = options.wordlist = WORDLIST_NAME;
 
   if (rec_restored && john_main_process) {
