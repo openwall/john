@@ -34,6 +34,7 @@
  * sub-block), and much less so for YESCRYPT_RW (which uses 2 rounds of Salsa20
  * per block except during pwxform S-box initialization).
  */
+#if 0 /* FIXME */
 #ifdef __XOP__
 #warning "Note: XOP is enabled.  That's great."
 #elif defined(__AVX__)
@@ -45,6 +46,7 @@
 #else
 #warning "Note: building generic code for non-x86.  That's OK."
 #endif
+#endif /* 0 */
 
 /*
  * The SSE4 code version has fewer instructions than the generic SSE2 version,

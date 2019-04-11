@@ -242,6 +242,9 @@ fi
       JTR_NOWARN_CHECK([format-overflow], 1)
    fi
 
+   dnl Really silly clang warnings stopping us from doing sanity checks
+   JTR_NOWARN_CHECK([tautological-constant-out-of-range-compare], 1)
+
    AS_IF([test "x$werror" = xyes],
       JTR_FLAG_CHECK([-Werror], 1)
       JTR_NOWARN_CHECK([error=cpp], 1)
