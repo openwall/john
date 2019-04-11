@@ -60,7 +60,8 @@ remove the john.pot file.
 A: With PWDUMP-format files, John focuses on LM rather than NTLM hashes
 by default, and it might not load any hashes at all if there are no LM
 hashes to crack.  To have JtR Pro or a -jumbo version focus on NTLM
-hashes instead, you need to pass the "--format=nt" option.
+hashes instead, you need to pass the "--format=nt" option.  You'll also
+need to use this option along with "--show".
 A: If you're using the "--format" option, try dropping it.  Except for
 the special case mentioned in the answer above, "--format" is normally a
 way to choose one of multiple hash/cipher types found in the same file
