@@ -39,7 +39,7 @@ PEFLAGS = peflags --dynamicbase=true --nxcompat=true
 SHELL = /bin/sh
 VPATH = @srcdir@
 
-subdirs = aes secp256k1 escrypt ed25519-donna @ZTEX_SUBDIRS@
+subdirs = aes secp256k1 ed25519-donna @ZTEX_SUBDIRS@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
@@ -77,8 +77,8 @@ JOHN_OBJS = \
 	MD5_fmt.o MD5_std.o md5crypt_common.o \
 	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
-	escrypt/crypto_scrypt-best.o escrypt/crypto_scrypt-common.o \
-	escrypt/sha256.o \
+	yescrypt/yescrypt-opt.o yescrypt/yescrypt-common.o \
+	yescrypt/sha256.o \
 	AFS_fmt.o \
 	LM_fmt.o \
 	trip_fmt.o \
@@ -461,7 +461,7 @@ sboxes.o:	sboxes.c nonstd.c
 
 sboxes-s.o:	sboxes-s.c
 
-scrypt_fmt.o:	scrypt_fmt.c escrypt/crypto_scrypt.h arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h base64_convert.h os.h os-autoconf.h
+scrypt_fmt.o:	scrypt_fmt.c yescrypt/yescrypt.h arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h base64_convert.h os.h os-autoconf.h
 
 showformats.o:	showformats.c showformats.h loader.h options.h config.h dynamic.h
 
@@ -849,7 +849,7 @@ clean:
 	  ($(RM) $$exe.exe) \
 	done
 	$(RM) ../run/unit-tests@EXE_EXT@
-	$(RM) john-macosx-* *.o escrypt/*.o *.bak core
+	$(RM) john-macosx-* *.o yescrypt/*.o *.bak core
 	$(RM) ../run/kernels/*
 	$(RM) lzma/*.o
 	$(RM) tests/*.o

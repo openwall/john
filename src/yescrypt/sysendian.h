@@ -1,5 +1,5 @@
 /*-
- * Copyright 2007-2009 Colin Percival
+ * Copyright 2007-2014 Colin Percival
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,41 +22,33 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * This file was originally written by Colin Percival as part of the Tarsnap
- * online backup system.
  */
+
 #ifndef _SYSENDIAN_H_
 #define _SYSENDIAN_H_
 
-#include "scrypt_platform.h"
-
-/* If we don't have be64enc, the <sys/endian.h> we have isn't usable. */
-#if !HAVE_DECL_BE64ENC
-#undef HAVE_SYS_ENDIAN_H
-#endif
-
-#ifdef HAVE_SYS_ENDIAN_H
-
-#include <sys/endian.h>
-
-#else
-
 #include <stdint.h>
-#include "../misc.h"
-#include "../jumbo.h"
 
-inline static uint32_t
-be32dec(const void *pp)
+/* Avoid namespace collisions with BSD <sys/endian.h>. */
+#define be32dec libcperciva_be32dec
+#define be32enc libcperciva_be32enc
+#define be64enc libcperciva_be64enc
+#define le32dec libcperciva_le32dec
+#define le32enc libcperciva_le32enc
+#define le64dec libcperciva_le64dec
+#define le64enc libcperciva_le64enc
+
+static inline uint32_t
+be32dec(const void * pp)
 {
-	const uint8_t *p = (uint8_t const *)pp;
+	const uint8_t * p = (uint8_t const *)pp;
 
 	return ((uint32_t)(p[3]) + ((uint32_t)(p[2]) << 8) +
 	    ((uint32_t)(p[1]) << 16) + ((uint32_t)(p[0]) << 24));
 }
 
-inline static void
-be32enc(void *pp, uint32_t x)
+static inline void
+be32enc(void * pp, uint32_t x)
 {
 	uint8_t * p = (uint8_t *)pp;
 
@@ -66,19 +58,8 @@ be32enc(void *pp, uint32_t x)
 	p[0] = (x >> 24) & 0xff;
 }
 
-inline static uint64_t
-be64dec(const void *pp)
-{
-	const uint8_t *p = (uint8_t const *)pp;
-
-	return ((uint64_t)(p[7]) + ((uint64_t)(p[6]) << 8) +
-	    ((uint64_t)(p[5]) << 16) + ((uint64_t)(p[4]) << 24) +
-	    ((uint64_t)(p[3]) << 32) + ((uint64_t)(p[2]) << 40) +
-	    ((uint64_t)(p[1]) << 48) + ((uint64_t)(p[0]) << 56));
-}
-
-inline static void
-be64enc(void *pp, uint64_t x)
+static inline void
+be64enc(void * pp, uint64_t x)
 {
 	uint8_t * p = (uint8_t *)pp;
 
@@ -92,17 +73,17 @@ be64enc(void *pp, uint64_t x)
 	p[0] = (x >> 56) & 0xff;
 }
 
-inline static uint32_t
-le32dec(const void *pp)
+static inline uint32_t
+le32dec(const void * pp)
 {
-	const uint8_t *p = (uint8_t const *)pp;
+	const uint8_t * p = (uint8_t const *)pp;
 
 	return ((uint32_t)(p[0]) + ((uint32_t)(p[1]) << 8) +
 	    ((uint32_t)(p[2]) << 16) + ((uint32_t)(p[3]) << 24));
 }
 
-inline static void
-le32enc(void *pp, uint32_t x)
+static inline void
+le32enc(void * pp, uint32_t x)
 {
 	uint8_t * p = (uint8_t *)pp;
 
@@ -112,10 +93,10 @@ le32enc(void *pp, uint32_t x)
 	p[3] = (x >> 24) & 0xff;
 }
 
-inline static uint64_t
-le64dec(const void *pp)
+static inline uint64_t
+le64dec(const void * pp)
 {
-	const uint8_t *p = (uint8_t const *)pp;
+	const uint8_t * p = (uint8_t const *)pp;
 
 	return ((uint64_t)(p[0]) + ((uint64_t)(p[1]) << 8) +
 	    ((uint64_t)(p[2]) << 16) + ((uint64_t)(p[3]) << 24) +
@@ -123,8 +104,8 @@ le64dec(const void *pp)
 	    ((uint64_t)(p[6]) << 48) + ((uint64_t)(p[7]) << 56));
 }
 
-inline static void
-le64enc(void *pp, uint64_t x)
+static inline void
+le64enc(void * pp, uint64_t x)
 {
 	uint8_t * p = (uint8_t *)pp;
 
@@ -137,6 +118,5 @@ le64enc(void *pp, uint64_t x)
 	p[6] = (x >> 48) & 0xff;
 	p[7] = (x >> 56) & 0xff;
 }
-#endif /* !HAVE_SYS_ENDIAN_H */
 
 #endif /* !_SYSENDIAN_H_ */

@@ -1,5 +1,5 @@
 /*-
- * Copyright 2005,2007,2009 Colin Percival
+ * Copyright 2014 Colin Percival
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,41 +22,28 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * $FreeBSD: src/lib/libmd/sha256.h,v 1.2 2006/01/17 15:35:56 phk Exp $
  */
 
-#ifndef _SHA256_H_
-#define _SHA256_H_
+#ifndef SKIP_MEMZERO
 
-#include <sys/types.h>
-
+#include <stddef.h>
 #include <stdint.h>
 
-typedef struct SHA256Context {
-	uint32_t state[8];
-	uint32_t count[2];
-	unsigned char buf[64];
-} SHA256_CTX;
+#include "insecure_memzero.h"
 
-typedef struct HMAC_SHA256Context {
-	SHA256_CTX ictx;
-	SHA256_CTX octx;
-} HMAC_SHA256_CTX;
+/* Function which does the zeroing. */
+static void
+insecure_memzero_func(volatile void * buf, size_t len)
+{
+	volatile uint8_t * _buf = buf;
+	size_t i;
 
-void	_SHA256_Init(SHA256_CTX *);
-void	_SHA256_Update(SHA256_CTX *, const void *, size_t);
-void	_SHA256_Final(unsigned char [32], SHA256_CTX *);
-void	HMAC__SHA256_Init(HMAC_SHA256_CTX *, const void *, size_t);
-void	HMAC__SHA256_Update(HMAC_SHA256_CTX *, const void *, size_t);
-void	HMAC__SHA256_Final(unsigned char [32], HMAC_SHA256_CTX *);
+	for (i = 0; i < len; i++)
+		_buf[i] = 0;
+}
 
-/**
- * PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, c, buf, dkLen):
- * Compute PBKDF2(passwd, salt, c, dkLen) using HMAC-SHA256 as the PRF, and
- * write the output to buf.  The value dkLen must be at most 32 * (2^32 - 1).
- */
-void	PBKDF2_SHA256(const uint8_t *, size_t, const uint8_t *, size_t,
-    uint64_t, uint8_t *, size_t);
+/* Pointer to memory-zeroing function. */
+void (* volatile insecure_memzero_ptr)(volatile void *, size_t) =
+    insecure_memzero_func;
 
-#endif /* !_SHA256_H_ */
+#endif

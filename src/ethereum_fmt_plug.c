@@ -29,7 +29,7 @@ john_register_one(&fmt_ethereum);
 #define PBKDF2_HMAC_SHA256_VARYING_SALT 1
 #include "pbkdf2_hmac_sha256.h"
 #include "ethereum_common.h"
-#include "escrypt/crypto_scrypt.h"
+#include "yescrypt/yescrypt.h"
 #include "KeccakHash.h"
 #include "aes.h"
 #include "jumbo.h"

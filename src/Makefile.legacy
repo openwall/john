@@ -115,8 +115,8 @@ JOHN_OBJS = \
 	MD5_fmt.o MD5_std.o md5crypt_common.o \
 	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
-	escrypt/crypto_scrypt-best.o escrypt/crypto_scrypt-common.o \
-	escrypt/sha256.o \
+	yescrypt/yescrypt-opt.o yescrypt/yescrypt-common.o \
+	yescrypt/sha256.o \
 	AFS_fmt.o \
 	LM_fmt.o \
 	trip_fmt.o \
@@ -2044,7 +2044,7 @@ shell-completion: bash-completion zsh-completion
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) $(PROJ_PCAP)
-	$(RM) ../run/john.exe john-macosx-* *.o escrypt/*.o *.bak core
+	$(RM) ../run/john.exe john-macosx-* *.o yescrypt/*.o *.bak core
 	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin
 	$(RM) lzma/*.o
 	$(RM) detect bench generic.h arch.h tmp.s
@@ -2052,7 +2052,6 @@ clean:
 	$(RM) dynamic_big_crypt.c fmt_registers.h fmt_externs.h john_build_rule.h version.h version.h.new
 	$(CP) $(NULL) Makefile.dep
 	+$(MAKE_ORIG) -C aes clean
-	+$(MAKE_ORIG) -C escrypt clean
 	+$(MAKE_ORIG) -C secp256k1 clean
 	+$(MAKE_ORIG) -C ed25519-donna clean
 
