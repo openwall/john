@@ -518,7 +518,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		wait_salts = 1;
 		benchmark_time *= -1;
 	}
-	wait = (format->params.benchmark_length & 0xe00) ? wait_salts : 0;
+	wait = format->params.benchmark_length < 0x100 ? wait_salts : 0;
 
 /* Cap it at a sane value to hopefully avoid integer overflows below */
 	if (benchmark_time > 3600)
