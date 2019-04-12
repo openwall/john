@@ -322,7 +322,7 @@ static void *get_salt(char *ciphertext)
 
 static int salt_hash(void *salt)
 {
-	return *((ARCH_WORD *)salt) & 0x3FF;
+	return *(uint32_t *)salt & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_phpassmd5 = {
