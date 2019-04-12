@@ -574,7 +574,7 @@ void listconf_parse_late(void)
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
 			}
-			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d",
+			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t0x%x\t%d\t%d",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
@@ -723,7 +723,12 @@ void listconf_parse_late(void)
 			printf("Algorithm name                       %s\n", format->params.algorithm_name);
 			printf("Format name                          %s\n", format->params.format_name);
 			printf("Benchmark comment                    %s\n", format->params.benchmark_comment[0] == ' ' ? &format->params.benchmark_comment[1] : format->params.benchmark_comment);
-			printf("Benchmark length                     %d\n", format->params.benchmark_length);
+			printf("Benchmark length                     %d (0x%x, %s)\n",
+			       format->params.benchmark_length & 0x7f,
+			       format->params.benchmark_length,
+			       format->params.benchmark_length & 0x100 ?
+			       "raw" : format->params.benchmark_length & 0x200 ?
+			       "shorter speedup" : "many salts speedup");
 			printf("Binary size                          %d\n", format->params.binary_size);
 			printf("Salt size                            %d\n",
 			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
