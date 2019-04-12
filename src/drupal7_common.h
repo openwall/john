@@ -116,7 +116,7 @@ static void * get_salt(char *ciphertext)
 
 static int salt_hash(void *salt)
 {
-	return *((uint32_t *)salt) & 0x3FF;
+	return *((uint32_t *)salt) & (SALT_HASH_SIZE - 1);
 }
 
 
