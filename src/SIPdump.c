@@ -56,6 +56,8 @@
 #elif HAVE_PCAP_PCAP_H
 #include <pcap/pcap.h>
 #endif
+#include <getopt.h>
+
 #include "SIPdump.h"
 
 #define SIP_LINE_LEN   1024	/* Maximum length of SIP protocol lines */
@@ -141,7 +143,6 @@ int main(int argc, char *argv[])
 	pcap_t *handle = NULL;
 	bpf_u_int32 mask, net;
 	struct bpf_program fp;
-	extern int optind;
 
 	memset(&fp, 0, sizeof(struct bpf_program));
 

@@ -11,6 +11,7 @@
 #include <openssl/md5.h>
 #include <pcap.h>
 #include <errno.h>
+#include <getopt.h>
 
 /* $FreeBSD: src/sys/net80211/ieee80211_radiotap.h,v 1.5 2005/01/22 20:12:05 sam Exp $ */
 /* $NetBSD: ieee80211_radiotap.h,v 1.11 2005/06/22 06:16:02 dyoung Exp $ */
@@ -1049,7 +1050,6 @@ int main(int argc, char *argv[])
 	char errbuf[PCAP_ERRBUF_SIZE], iface[17], pcapfile[1024];
 	int opt = 0, datalink = 0, ret = 0;
 	extern struct eapmd5pass_data em;
-	extern int optind;
 
 	memset(&em, 0, sizeof(em));
 	memset(pcapfile, 0, sizeof(pcapfile));
