@@ -45,19 +45,19 @@ john_register_one(&fmt_opencl_bf);
 
 // static struct fmt_tests BF_common_tests[] = {  // defined in BF_common.c
 
-static char 	(*saved_key)[PLAINTEXT_LENGTH + 1] ;
-static char 	keys_mode ;
-static int 	sign_extension_bug ;
-static BF_salt 	saved_salt ;
+static char 	(*saved_key)[PLAINTEXT_LENGTH + 1];
+static char 	keys_mode;
+static int 	sign_extension_bug;
+static BF_salt 	saved_salt;
 
 static void done(void) {
-	BF_clear_buffer() ;
-	MEM_FREE(saved_key) ;
+	BF_clear_buffer();
+	MEM_FREE(saved_key);
 }
 
 static void init(struct fmt_main *self) {
-	saved_key = mem_calloc(BF_N, sizeof(*saved_key)) ;
-	global_work_size = 0 ;
+	saved_key = mem_calloc(BF_N, sizeof(*saved_key));
+	global_work_size = 0;
 
 	//Prepare OpenCL environment.
 	opencl_load_environment();
@@ -67,88 +67,88 @@ static void init(struct fmt_main *self) {
 
 	// BF_select_device(platform,device);
 	//platform_id = get_platform_id(gpu_id);
-        BF_select_device(self) ;
-	keys_mode = 'a' ;
-	sign_extension_bug = 0 ;
+        BF_select_device(self);
+	keys_mode = 'a';
+	sign_extension_bug = 0;
 	//fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
 }
 
 static int get_hash_0(int index) {
-	return opencl_BF_out[index][0] & PH_MASK_0 ;
+	return opencl_BF_out[index][0] & PH_MASK_0;
 }
 
 static int get_hash_1(int index) {
-	return opencl_BF_out[index][0] & PH_MASK_1 ;
+	return opencl_BF_out[index][0] & PH_MASK_1;
 }
 
 static int get_hash_2(int index) {
-	return opencl_BF_out[index][0] & PH_MASK_2 ;
+	return opencl_BF_out[index][0] & PH_MASK_2;
 }
 
 static int get_hash_3(int index) {
-	return opencl_BF_out[index][0] & PH_MASK_3 ;
+	return opencl_BF_out[index][0] & PH_MASK_3;
 }
 
 static int get_hash_4(int index) {
-	return opencl_BF_out[index][0] & PH_MASK_4 ;
+	return opencl_BF_out[index][0] & PH_MASK_4;
 }
 
 static int get_hash_5(int index) {
-	return opencl_BF_out[index][0] & PH_MASK_5 ;
+	return opencl_BF_out[index][0] & PH_MASK_5;
 }
 
 static int get_hash_6(int index) {
-	return opencl_BF_out[index][0] & PH_MASK_6 ;
+	return opencl_BF_out[index][0] & PH_MASK_6;
 }
 
 static int salt_hash(void *salt) {
-	return ((BF_salt *)salt)->salt[0] & 0x3FF ;
+	return ((BF_salt *)salt)->salt[0] & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt) {
-	memcpy(&saved_salt, salt, sizeof(saved_salt)) ;
+	memcpy(&saved_salt, salt, sizeof(saved_salt));
 }
 
 static void set_key(char *key, int index) {
-	opencl_BF_std_set_key(key, index, sign_extension_bug) ;
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1) ;
+	opencl_BF_std_set_key(key, index, sign_extension_bug);
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index) {
-	return saved_key[index] ;
+	return saved_key[index];
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt) {
-	const int count = *pcount ;
+	const int count = *pcount;
 	if (keys_mode != saved_salt.subtype) {
-		int i ;
+		int i;
 
-		keys_mode = saved_salt.subtype ;
+		keys_mode = saved_salt.subtype;
 		sign_extension_bug = (keys_mode == 'x');
 		for (i = 0; i < count; i++)
-			opencl_BF_std_set_key(saved_key[i], i, sign_extension_bug) ;
+			opencl_BF_std_set_key(saved_key[i], i, sign_extension_bug);
 	}
 
-	opencl_BF_std_crypt(&saved_salt, count) ;
-	return count ;
+	opencl_BF_std_crypt(&saved_salt, count);
+	return count;
 }
 
 static int cmp_all(void *binary, int count) {
-	int i ;
+	int i;
 	for (i = 0; i < count; i++)
 		if (*(BF_word *)binary == opencl_BF_out[i][0])
-			return 1 ;
-	return 0 ;
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return *(BF_word *)binary == opencl_BF_out[index][0] ;
+	return *(BF_word *)binary == opencl_BF_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
 {
-	opencl_BF_std_crypt_exact(index) ;
+	opencl_BF_std_crypt_exact(index);
 
 	return !memcmp(BF_common_get_binary(source), opencl_BF_out[index],
 	    sizeof(BF_binary));
