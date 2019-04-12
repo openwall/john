@@ -258,16 +258,17 @@ static int salt_hash(void *salt)
 {
 	unsigned int hash = 0;
 	int i;
+
 	for (i = 0; i < SALT_SIZE; ++i) {
 		hash <<= 1;
-		hash += (unsigned char)((unsigned char *)salt)[i];
-		if (hash >> 10) {
-			hash ^= hash >> 10;
-			hash &= 0x3FF;
+		hash += ((unsigned char *)salt)[i];
+		if (hash >> SALT_HASH_LOG) {
+			hash ^= hash >> SALT_HASH_LOG;
+			hash &= (SALT_HASH_SIZE - 1);
 		}
 	}
-	hash ^= hash >> 10;
-	hash &= 0x3FF;
+	hash ^= hash >> SALT_HASH_LOG;
+	hash &= (SALT_HASH_SIZE - 1);
 
 	return hash;
 }
