@@ -29,18 +29,24 @@
 #define JOHN_VERSION			"1.9.0"
 
 /*
- * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD
- * below, in any release tar-balls (and only then).
- */
-#define JUMBO_VERSION			JOHN_VERSION "-jumbo-1-bleeding"
-
-/*
- * Define this for release tarballs after updating the string above.
- * It affects the version reporting (will be the string above and never
- * a Git hash) as well as some other details. Eg. it mutes output of
- * OpenCL run-time build log unless the build failed.
+ * Define this for release tarballs. It affects the version reporting (will
+ * be the string above and below and never a Git hash) as well as some other
+ * details. Eg. it mutes output of OpenCL run-time build log unless the build
+ * failed.
  */
 //#define JTR_RELEASE_BUILD 1
+
+/*
+ * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD
+ * above, in any release tar-balls (and only then, never ever in Git).
+ */
+#define JUMBO_POSTFIX			"-jumbo-1"
+
+#if JTR_RELEASE_BUILD
+#define JUMBO_VERSION			JOHN_VERSION JUMBO_POSTFIX
+#else
+#define JUMBO_VERSION			JOHN_VERSION JUMBO_POSTFIX "-bleeding"
+#endif
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
