@@ -2255,7 +2255,7 @@ size_t opencl_read_source(const char *kernel_filename, char **kernel_source)
 }
 
 #if JOHN_SYSTEMWIDE
-static char *replace_str(char *string, char *from, char *to)
+static const char *replace_str(const char *string, char *from, char *to)
 {
 	static char buffer[512];
 	char *p;
