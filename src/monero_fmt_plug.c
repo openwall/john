@@ -8,6 +8,13 @@
  * modification, are permitted.
  */
 
+#if !AC_BUILT
+#if __GNUC__ && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define ARCH_LITTLE_ENDIAN 1
+#endif
+#endif
+#include "arch.h"
+#if ARCH_LITTLE_ENDIAN
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_monero;
 #elif FMT_REGISTERS_H
@@ -274,3 +281,14 @@ struct fmt_main fmt_monero = {
 };
 
 #endif /* plugin stanza */
+
+#else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning ": monero format requires little-endian, format disabled."
+#elif _MSC_VER
+#pragma message(": monero format requires little-endian, format disabled.")
+#endif
+#endif
+
+#endif	/* ARCH_LITTLE_ENDIAN */
