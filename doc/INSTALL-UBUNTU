@@ -103,7 +103,7 @@ build CPU fall-back chains for any x86-64 CPU.
 
 === Test your build
 
-    cd ~/src/john
+    cd ~/src/john/run
     ./john --test=0
 
 === Benchmark your build (this also performs self-tests)
