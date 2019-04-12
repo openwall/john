@@ -47,7 +47,7 @@ john_register_one(&fmt_ansible);
 #define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define BINARY_ALIGN            1
+#define BINARY_ALIGN            sizeof(uint32_t) // see cmp_all() and ansible_common_get_binary()
 #define SALT_ALIGN              sizeof(uint64_t)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256

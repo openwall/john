@@ -46,7 +46,7 @@ john_register_one(&fmt_racf_kdfaes);
 #define BINARY_SIZE             16
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
-#define SALT_ALIGN              1
+#define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
@@ -253,6 +253,21 @@ static void *get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
+static int salt_hash(void *salt)
+{
+	struct custom_salt *cs = (struct custom_salt *)salt;
+	union {
+		uint8_t u8[4];
+		uint32_t u32;
+	} u;
+	u.u8[0] = cs->salt[0];
+	u.u8[1] = cs->salt[1];
+	u.u8[2] = cs->salt[2];
+	u.u8[3] = cs->salt[3];
+	u.u32 += cs->mfact + cs->rfact;
+	return (*(uint32_t *)salt + u.u32) & (SALT_HASH_SIZE - 1);
+}
+
 #define COMMON_GET_HASH_VAR crypt_out
 #include "common-get-hash.h"
 
@@ -445,7 +460,7 @@ struct fmt_main fmt_racf_kdfaes = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		NULL,
 		set_salt,
 		racf_kdfaes_set_key,
