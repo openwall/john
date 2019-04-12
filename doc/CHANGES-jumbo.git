@@ -1,6 +1,6 @@
-The following changes were made between 1.8.0-jumbo-1 and 1.8-0-jumbo-2:
+The following changes were made between 1.8.0-jumbo-1 and 1.9-0-jumbo-1:
 
-magnum (2540):
+magnum (2558):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
 	  buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but in other
 	  places with similar code.
@@ -4169,6 +4169,38 @@ magnum (2540):
 	  requested mask (so we can see whether mask is default or not).
 	OMP_SCALE & MKPC tuning, many formats, Closes #3091
 	More doc updates for regex / librexgen.
+	Update CHANGES-jumbo.git and CREDITS-jumbo
+	Add the john.conf [Debug] section for legacy benchmarks.
+	mask.c: Export a function for evaluating mask_add_len from a mask
+	  without calling mask_init(). Use said function when benchmarking
+	  with mask, for getting a proper (length n) message. See #3780.
+	Add cmp_all() to auto-tune, and have all formats calling OpenCL
+	  functions from cmp_all profile it. See #3779.
+	Autoconf: Add -fno-strict-aliasing to NEON and ASIMD builds. This
+	  pacifies numerous compiler warnings from DES_bs_b.c
+	Fix some GPU device number reporting problems. Closes #3639
+	If building BE, print a notice that OpenVMS format is disabled. Closes
+	  #1474
+	Fix the last few OpenCL formats that didn't set GWS to next LWS
+	  multiple larger than count. Closes #3489.
+	Fix a silly bug in new autotune code. We were trying to call binary
+	  with a "ciphertext" that was already a binary. Closes #3788.
+	Cosmetic bugfix for node/fork OpenCL.
+	Add multi-word rules, and include them in "jumbo" rule-set. Closes
+	  #3789
+	Un-comment a number of config options, so they're seen with eg.
+	  --list=parameters:options:opencl (see #3598)
+	Revert all core parts of 15163f4. We need to regression test the
+	  changes better before releasing it. See #3517, #3468. We'll
+	  revisit this after 1.9.0-Jumbo-1 release.
+	Mute some diagnostics from yescrypt, at least for now. Also pacify a
+	  strange warning from clang stopping us from doing sanity checks,
+	  WTF?
+	Disable monero format for BE builds. See #3513
+	Fix salt hash size in drupal7
+	BF-opencl: Workaround for Sayantan's strange keyboard. Oh, and a
+	  salt_hash() fix that was missed until now for that reason.
+	nsec3 format salt_hash fix (was using ancient fixed salt hash size)
 
 JimF (1545):
 	configure: removed many function checks (for #910)
@@ -8019,7 +8051,7 @@ Apingis (53):
 	  process (#3742)
 	src/ztex/Makefile.in: added distclean target (#3774)
 
-Solar (43):
+Solar (49):
 	Fix a bug in truecrypt for non-x86 archs. Closes #912.
 	Early (contest) version of AVX2 support for DES.
 	Fix a compile error in dynamic_compiler_plug.c
@@ -8073,6 +8105,12 @@ Solar (43):
 	  group
 	md5crypt-opencl: Further specialization for password length 8
 	md5crypt-opencl: only detect divergence in 64 lid's near current
+	Add pristine upstream yescrypt
+	Force SKIP_MEMZERO for use in JtR
+	Upgrade from escrypt to yescrypt
+	Added ULL to the 64-bit YESCRYPT_ROM_TAG* constants
+	Updated copyrights, dropped obsolete comment in scrypt_fmt.c
+	Fix some unaligned accesses, enhance some salt_hash()
 
 Fist0urs (30):
 	Initial commit.
