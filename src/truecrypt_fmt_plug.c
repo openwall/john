@@ -590,11 +590,7 @@ struct fmt_main fmt_truecrypt = {
 #if SSE_GROUP_SZ_SHA512
 		"SHA512/RIPEMD160/WHIRLPOOL " SHA512_ALGORITHM_NAME,
 #else
-#if ARCH_BITS >= 64
-		"SHA512/RIPEMD160/WHIRLPOOL 64/" ARCH_BITS_STR,
-#else
 		"SHA512/RIPEMD160/WHIRLPOOL 32/" ARCH_BITS_STR,
-#endif
 #endif
 		"",                               // BENCHMARK_COMMENT
 		0x107,                            // BENCHMARK_LENGTH
@@ -817,11 +813,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 	{
 		"tc_whirlpool",                   // FORMAT_LABEL
 		"TrueCrypt AES256_XTS", // FORMAT_NAME
-#if ARCH_BITS >= 64
-		"WHIRLPOOL 64/" ARCH_BITS_STR,    // ALGORITHM_NAME,
-#else
 		"WHIRLPOOL 32/" ARCH_BITS_STR,    // ALGORITHM_NAME,
-#endif
 		"",                               // BENCHMARK_COMMENT
 		0x107,                            // BENCHMARK_LENGTH
 		0,

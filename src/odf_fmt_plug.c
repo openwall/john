@@ -47,7 +47,7 @@ john_register_one(&fmt_odf);
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " BF/AES"
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA1 BF/AES 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA1 BF/AES 32/" ARCH_BITS_STR SHA2_LIB
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107

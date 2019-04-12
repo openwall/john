@@ -48,11 +48,11 @@
 #include "md4.h"
 #include "md5.h"
 #define COMMON_DIGEST_FOR_OPENSSL 1
-#define SHA2_LIB "CommonCrypto"
+#define SHA2_LIB " CommonCrypto"
 #include <CommonCrypto/CommonDigest.h>
 #define JTR_INC_COMMON_CRYPTO_SHA2
 #else
-#define SHA2_LIB "OpenSSL"
+#define SHA2_LIB
 #include <openssl/sha.h>
 #endif
 
@@ -63,7 +63,7 @@
 #include <openssl/sha.h>
 #include "jtr_sha2.h"
 
-#define SHA2_LIB "generic"
+#define SHA2_LIB
 #define GENERIC_SHA2
 
 

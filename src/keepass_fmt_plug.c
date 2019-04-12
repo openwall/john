@@ -49,7 +49,7 @@ john_register_one(&fmt_KeePass);
 
 #define FORMAT_LABEL            "KeePass"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "SHA256 AES 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "SHA256 AES 32/" ARCH_BITS_STR SHA2_LIB
 
 static keepass_salt_t *cur_salt;
 static int any_cracked, *cracked;

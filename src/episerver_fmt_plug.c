@@ -97,7 +97,7 @@ john_register_one(&fmt_episerver);
 #define MAX_KEYS_PER_CRYPT      (NBKEYS * 2)
 #endif
 #else
-#define ALGORITHM_NAME          "SHA1/SHA256 32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "SHA1/SHA256 32/" ARCH_BITS_STR SHA2_LIB
 #define PLAINTEXT_LENGTH        32
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1024

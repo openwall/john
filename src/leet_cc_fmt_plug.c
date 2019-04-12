@@ -53,7 +53,7 @@ john_register_one(&fmt_leet);
 #define SHA512_TYPE          SHA512_ALGORITHM_NAME
 #define NBKEYS					(SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
-#define SHA512_TYPE          "32/" ARCH_BITS_STR " " SHA2_LIB
+#define SHA512_TYPE          "32/" ARCH_BITS_STR SHA2_LIB
 #define NBKEYS					1
 #endif
 

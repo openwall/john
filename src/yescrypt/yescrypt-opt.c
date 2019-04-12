@@ -510,7 +510,9 @@ static volatile uint64_t Smask2var = Smask2;
 /* 64-bit without AVX.  This relies on out-of-order execution and register
  * renaming.  It may actually be fastest on CPUs with AVX(2) as well - e.g.,
  * it runs great on Haswell. */
+#if 0 /* FIXME */
 #warning "Note: using x86-64 inline assembly for YESCRYPT_RW.  That's great."
+#endif
 /* We need a compiler memory barrier between sub-blocks to ensure that none of
  * the writes into what was S2 during processing of the previous sub-block are
  * postponed until after a read from S0 or S1 in the inline asm code below. */

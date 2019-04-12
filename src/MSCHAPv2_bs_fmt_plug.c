@@ -63,7 +63,7 @@ john_register_one(&fmt_MSCHAPv2_old);
 #define FORMAT_NAME          "MSCHAPv2 C/R"
 #define FORMAT_TAG           "$MSCHAPv2$"
 #define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME       "MD4 DES " DES_BS_ALGORITHM_NAME " naive"
+#define ALGORITHM_NAME       "MD4 " DES_BS_ALGORITHM_NAME " naive"
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     7
 #define PLAINTEXT_LENGTH     125 /* lmcons.h - PWLEN (256) ? 127 ? */

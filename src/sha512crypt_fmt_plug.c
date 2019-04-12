@@ -114,9 +114,9 @@ john_register_one(&fmt_cryptsha512);
 #define ALGORITHM_NAME          SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME         "64/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME         "64/" ARCH_BITS_STR SHA2_LIB
 #else
-#define ALGORITHM_NAME         "32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME         "32/" ARCH_BITS_STR SHA2_LIB
 #endif
 #endif
 
