@@ -94,6 +94,8 @@ void jtr_device_list_merge(
 // Returns number of devices found
 int jtr_device_list_check();
 
+int jtr_device_list_set_app_mode(unsigned char mode);
+
 // Perform I/O operations on underlying physical devices
 // Uses global jtr_device_list
 // Return values:

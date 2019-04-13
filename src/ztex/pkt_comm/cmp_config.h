@@ -43,6 +43,9 @@ extern struct cmp_config cmp_config;
 
 void cmp_config_new(struct db_salt *salt, void *salt_ptr, int salt_len);
 
+// Same as above, num_hashes=0
+void cmp_config_nocompar_new(struct db_salt *salt, void *salt_ptr, int salt_len);
+
 // Creates CMP_CONFIG packet for on-device comparator
 struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config);
 

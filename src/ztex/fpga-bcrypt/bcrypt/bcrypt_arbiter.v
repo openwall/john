@@ -113,10 +113,11 @@ module bcrypt_arbiter #(
 				STATE_WR_DATA_TX_START = 4,
 				STATE_WR_TX = 5,
 				STATE_WR_TX_END = 6,
-				STATE_WR_WAIT_PKT = 7;
+				STATE_WR_WAIT_PKT = 7,
+				STATE_WR_WAIT1 = 8;
 
 	(* FSM_EXTRACT="true" *)
-	reg [2:0] state_wr = STATE_WR_IDLE;
+	reg [3:0] state_wr = STATE_WR_IDLE;
 
 	always @(posedge CLK) begin
 		if (state_wr == STATE_WR_IDLE | delay_shr[31])
@@ -151,6 +152,8 @@ module bcrypt_arbiter #(
 				// ~mode_cmp: don't do accounting, skip last "dummy" candidate
 				if (mode_cmp)
 					state_wr <= STATE_WR_WAIT_PKT;
+				else
+					state_wr <= STATE_WR_WAIT1;
 			end
 
 			else if (data_ready & core_crypt_ready[wr_core_num]) begin
@@ -199,6 +202,11 @@ module bcrypt_arbiter #(
 				num_processed_in <= 0;
 				state_wr <= STATE_WR_CHECK_CORE_INIT_READY;
 			end
+		end
+
+		STATE_WR_WAIT1: begin
+			start_data_tx <= 0;
+			state_wr <= STATE_WR_CHECK_CORE_DATA_READY;
 		end
 		endcase
 	end

@@ -24,7 +24,7 @@
 // prog_full asserts when input fifo has <=6kb free
 
 // must be power of 2; actual size for output fifo is 2 bytes less
-`define	OUTPUT_FIFO_SIZE	4096
+`define	OUTPUT_FIFO_SIZE	8192
 
 // Parameters for pkt_comm
 `define	PKT_COMM_VERSION	2
