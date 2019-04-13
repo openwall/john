@@ -27,10 +27,11 @@ struct pkt_done {
 	uint32_t num_processed;
 };
 
-struct pkt_result1 {
+struct pkt_result {
 	uint32_t id;
 	uint16_t word_id;
 	uint32_t gen_id;
+	int result_len;
 	unsigned char *result;
 };
 
@@ -50,6 +51,12 @@ struct pkt_equal *pkt_equal_new(struct pkt *pkt);
 // creates 'struct pkt_done', fills-in data from 'pkt'
 // 'pkt' is deleted
 struct pkt_done *pkt_done_new(struct pkt *pkt);
+
+// creates 'struct pkt_result', fills-in data from 'pkt'
+// allocates memory for result
+struct pkt_result *pkt_result_new(struct pkt *pkt);
+
+void pkt_result_delete(struct pkt_result *pkt_result);
 
 // creates 'struct pkt_cmp_result', fills-in data from 'pkt'
 // allocates memory for result

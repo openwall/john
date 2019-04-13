@@ -368,7 +368,8 @@ module word_gen_ram #(
 	output reg [7:0] dout = 0
 	);
 	
-	(* RAM_STYLE="BLOCK" *)
+	//(* RAM_STYLE="BLOCK" *)
+	(* RAM_STYLE="distributed" *)
 	reg [7:0] ranges [256*RANGES_MAX-1 :0];
 
 	always @(posedge CLK) if (en)

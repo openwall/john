@@ -60,6 +60,26 @@ static int compare_binaries(const void *a, const void *b)
 }
 
 
+// Create 'struct cmp_config' w/o comparator data (no hashes sent from host)
+void cmp_config_nocompar_new(struct db_salt *salt, void *salt_ptr, int salt_len)
+{
+	cmp_config.id = salt->sequential_id;
+
+	int cost_num;
+	for (cost_num = 0; cost_num < FMT_TUNABLE_COSTS; cost_num ++) {
+		if (jtr_fmt_params->tunable_cost_name[cost_num])
+			cmp_config.tunable_costs[cost_num] = salt->cost[cost_num];
+		else
+			cmp_config.tunable_costs[cost_num] = 0;
+	}
+
+	cmp_config.salt_ptr = salt_ptr;
+	cmp_config.salt_len = salt_len;
+
+	cmp_config.num_hashes = 0;
+}
+
+
 //struct cmp_config *
 void cmp_config_new(struct db_salt *salt, void *salt_ptr, int salt_len)
 {
@@ -160,14 +180,14 @@ struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config)
 	// PKT_TYPE_CMP_CONFIG. Salt starts at offset 0.
 	memcpy(data + offset, cmp_config->salt_ptr, cmp_config->salt_len);
 	offset += cmp_config->salt_len;
-
+#if 0
 	if (cmp_config->num_hashes > jtr_bitstream->cmp_entries_max
 			|| !cmp_config->num_hashes) {
 		pkt_error("pkt_cmp_config_new(): bad num_hashes=%d\n",
 				cmp_config->num_hashes);
 		return NULL;
 	}
-
+#endif
 	// If format has tunable costs - send after salt
 	// (4 bytes each tunable cost value)
 	int tunable_cost_num;

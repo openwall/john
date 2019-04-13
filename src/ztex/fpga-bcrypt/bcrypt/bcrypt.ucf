@@ -1,7 +1,7 @@
 #
 # pkt_comm
 #
-AREA_GROUP "pkt_comm" RANGE=SLICE_X22Y93:SLICE_X107Y98,SLICE_X48Y99:SLICE_X83Y101;
+AREA_GROUP "pkt_comm" RANGE=SLICE_X22Y92:SLICE_X107Y99,SLICE_X48Y100:SLICE_X83Y101;
 AREA_GROUP "pkt_comm" RANGE=RAMB16_X1Y46:RAMB16_X4Y48;
 AREA_GROUP "pkt_comm" RANGE=RAMB8_X1Y46:RAMB8_X4Y49;
 AREA_GROUP "pkt_comm" RANGE=DSP48_X1Y23:DSP48_X1Y24;
@@ -19,9 +19,5 @@ INST "hs_io_inst/*" AREA_GROUP="pkt_comm2";
 NET "bcrypt/inpkt_header/pkt_id*" TIG;
 NET "bcrypt/word_list/range_info*" TIG;
 NET "bcrypt/word_gen/last_range_num*" TIG;
-
-NET "bcrypt/arbiter/pkt_id_saved*" TIG;
-NET "bcrypt/arbiter/pkt_id*" TIG;
-NET "bcrypt/arbiter/hash_num*" TIG;
 
 NET "mode_cmp" TIG;

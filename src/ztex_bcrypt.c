@@ -29,6 +29,7 @@
 #include "ztex/device_format.h"
 #include "ztex/task.h"
 #include "ztex/pkt_comm/cmp_config.h"
+#include "ztex/jtr_device.h"
 
 
 #define FORMAT_LABEL			"bcrypt-ztex"
@@ -134,7 +135,7 @@ static void init(struct fmt_main *fmt_main)
 	if (!target_setting)
 		target_setting = 8;
 
-	if (target_setting < 5 || target_setting > 18) {
+	if (target_setting < 5 || target_setting > 19) {
 		fprintf(stderr, "Warning: invalid TargetSetting=%d in john.conf."
 			" Valid values are 5-19\n", target_setting);
 		if (target_setting < 5)
@@ -205,12 +206,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	static unsigned char salt_buf[17]; // salt to send to device
 	BF_salt *BF_salt = salt->salt;
 
+	static int cmp_entries_excess = 0;
+	if (salt->count > bitstream.cmp_entries_max && !cmp_entries_excess) {
+		fprintf(stderr, "Warning: salt with %d hashes, onboard comparators "
+			"support up to %d hashes/salt, turned off\n",
+			salt->count, bitstream.cmp_entries_max);
+		jtr_device_list_set_app_mode(0x40);
+		cmp_entries_excess = 1;
+	}
+
 	// It requires 16 bytes salt and 1 char subtype in network byte order
 	for (i = 0; i < 4; i++)
 		((uint32_t *)(salt_buf))[i] = BF_salt->salt[i];
 	salt_buf[16] = BF_salt->subtype;
 
-	cmp_config_new(salt, salt_buf, 17);
+	if (cmp_entries_excess)
+		cmp_config_nocompar_new(salt, salt_buf, 17);
+	else
+		cmp_config_new(salt, salt_buf, 17);
 
 	curr_setting = get_setting_by_cost(salt->cost[0]);
 
@@ -272,8 +285,8 @@ struct fmt_main fmt_ztex_bcrypt = {
 		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
-		1, //MIN_KEYS_PER_CRYPT,
-		1, //MAX_KEYS_PER_CRYPT,
+		1,
+		1,
 		FMT_CASE | FMT_8_BIT | FMT_TRUNC | FMT_MASK,
 		{
 			"iteration count",

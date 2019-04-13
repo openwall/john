@@ -254,6 +254,12 @@ int jtr_device_list_check()
 }
 
 
+int jtr_device_list_set_app_mode(unsigned char mode)
+{
+	return device_list_set_app_mode(device_list, mode);
+}
+
+
 int jtr_device_list_rw(struct task_list *task_list)
 {
 	int data_transfer = 0;
@@ -404,8 +410,54 @@ struct jtr_device *jtr_device_list_process_inpkt(
 				break;
 			}
 
+			// Computed result received
+			if (inpkt->type == PKT_TYPE_RESULT1) {
+
+				struct pkt_result *pkt_result = pkt_result_new(inpkt);
+
+				if (PKT_DEBUG >= 2)
+					fprintf(stderr,"%s RESULT1 id=%d: w:%d g:%u\n",
+						jtr_device_id(dev), pkt_result->id,
+						pkt_result->word_id, pkt_result->gen_id);
+
+				if (!inpkt_check_cmp(dev, inpkt, task, pkt_result->word_id,
+						pkt_result->gen_id, -1)) {
+					pkt_result_delete(pkt_result);
+					bad_input = 1;
+					break;
+				}
+
+				struct task_result *task_result = task_result_new(
+					task, task->keys
+					+ pkt_result->word_id * jtr_fmt_params->plaintext_length,
+					!task->range_info ? NULL :
+					task->range_info + pkt_result->word_id * MASK_FMT_INT_PLHDR,
+					pkt_result->gen_id, NULL
+				);
+
+				task_result->binary = mem_alloc(pkt_result->result_len);
+				memcpy(task_result->binary, pkt_result->result,
+						pkt_result->result_len);
+
+				pkt_result_delete(pkt_result);
+
+				int expected_total = task->num_keys * mask_num_cand();
+				task->num_processed ++;
+				if (task->num_processed > expected_total) {
+					fprintf(stderr, "%s RESULT1: keys=%d, "
+						"mask=%d, processed=%u (must be %u)\n",
+						jtr_device_id(dev), task->num_keys, mask_num_cand(),
+						task->num_processed, expected_total);
+					bad_input = 1;
+					break;
+				}
+				else if (task->num_processed == expected_total) {
+					task->status = TASK_COMPLETE;
+				}
+				task_update_mtime(task);
+
 			// Comparator found equality & it sends computed result
-			if (inpkt->type == PKT_TYPE_CMP_RESULT) {
+			} else if (inpkt->type == PKT_TYPE_CMP_RESULT) {
 
 				struct pkt_cmp_result *pkt_cmp_result
 						= pkt_cmp_result_new(inpkt);
