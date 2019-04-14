@@ -458,7 +458,7 @@ static char * insert_chars(char *origin_ctext, int *is_insertchars_finish)
 	return fuzz_hash;
 }
 
-static char * get_next_fuzz_case(char *label, char *ciphertext)
+static char * get_next_fuzz_case(const char *label, char *ciphertext)
 {
 	static int is_replace_finish = 0; // is_replace_finish = 1 if all the replaced cases have been generated
 	static int is_swap_finish = 0; // is_swap_finish = 1 if all the swaped cases have been generated
@@ -466,7 +466,8 @@ static char * get_next_fuzz_case(char *label, char *ciphertext)
 	static int is_chgcase_finish = 0; // is_chgcase_finish = 1 if all the change cases have been generated
 	static int is_insertdic_finish = 0; // is_insertdic_finish = 1 if all the insert dictionary cases have been generated
 	static int is_insertchars_finish = 0; // is_insertchars_finish = 1 if all the chars from -128 to 127 cases have been generated
-	static char *last_label = NULL, *last_ciphertext = NULL;
+	static const char *last_label = NULL;
+	static char *last_ciphertext = NULL;
 
 	if (strlen(ciphertext) > FUZZ_LINE_BUFFER_SIZE) {
 		fprintf(stderr, "ciphertext='%s' is bigger than the FUZZ_LINE_BUFFER_SIZE=%d\n",
@@ -519,7 +520,7 @@ static char * get_next_fuzz_case(char *label, char *ciphertext)
 	return NULL;
 }
 
-static void init_status(char *format_label)
+static void init_status(const char *format_label)
 {
 	sprintf(status_file_path, "%s", "fuzz_status");
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
