@@ -1,0 +1,72 @@
+version: 2
+jobs:
+  common_linux: &common_linux
+    docker:
+      - image: claudioandre/john:fedora.29
+    steps:
+      - checkout
+      - run:
+          name: Building JtR
+          command: .circleci/circle-ci.sh BUILD
+      - run:
+          name: Testing JtR
+          command: .circleci/circle-ci.sh TEST
+
+  wine-32bits:
+    <<: *common_linux
+    docker:
+      - image: claudioandre/john:fedora.29
+        environment:
+          TARGET_ARCH: "i686"
+          WINE: "wine"
+          OMP_NUM_THREADS: 2
+
+  wine-64bits:
+    <<: *common_linux
+    docker:
+      - image: claudioandre/john:fedora.29
+        environment:
+          TARGET_ARCH: "x86_64"
+          WINE: "wine"
+          OMP_NUM_THREADS: 2
+
+  encoding-cpu:
+    <<: *common_linux
+    docker:
+      - image: claudioandre/john:fedora.29
+        environment:
+          OMP_NUM_THREADS: 2
+          ENCODING_TEST: "cpu"
+
+  encoding-opencl:
+    <<: *common_linux
+    docker:
+      - image: claudioandre/john:opencl
+        environment:
+          OMP_NUM_THREADS: 2
+          ENCODING_TEST: "opencl"
+
+  asan:
+    <<: *common_linux
+    docker:
+      - image: claudioandre/john:fedora.29
+        environment:
+          OMP_NUM_THREADS: 2
+          ASAN_TEST: "yes"
+          BUILD_OPTS: "--enable-asan"
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - wine-32bits
+      - wine-64bits
+      - encoding-cpu
+      - asan
+      - more-tests:
+          type: approval
+          requires:
+            - encoding-cpu
+      - encoding-opencl:
+          requires:
+            - more-tests
