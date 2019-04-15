@@ -703,10 +703,9 @@ static void sevenzip_set_key(char *key, int index)
 	/* Convert key to utf-16-le format (--encoding aware) */
 	int len;
 	len = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
-	if (len <= 0) {
-		key[-len] = 0; // match truncation
+
+	if (len <= 0)
 		len = strlen16(saved_key[index]);
-	}
 	len *= 2;
 	saved_len[index] = len;
 
