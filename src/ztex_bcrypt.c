@@ -182,7 +182,7 @@ static void init(struct fmt_main *fmt_main)
  * - then it sends 4-byte tunable cost(s) if any
  * - then it sends 2 bytes - number of hashes
  * - then partial hashes ("binaries") sorted in ascending order. (bcrypt-ztex
- *   accepts up to 3 32-bit hashes, only 31 bit is used, order doesn't matter).
+ *   accepts up to 'cmp_entries_max' 32-bit hashes, order doesn't matter).
  *
  */
 
@@ -229,9 +229,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (!warning_curr_setting16 && curr_setting >= 16) {
 		fprintf(stderr, "Warning: hash with setting=%d, computation"
-			" is going to be very too slow, timeout is possible,"
+			" is going to be very slow, timeout is possible,"
 			" consider to increase"
 			" device_format.c:DEVICE_TASK_TIMEOUT\n", curr_setting);
+		fprintf(stderr, "Recommended DEVICE_TASK_TIMEOUT value for"
+			" setting %d: %d\n", curr_setting,
+			curr_setting == 16 ? 10 :
+			curr_setting == 17 ? 20 :
+			curr_setting == 18 ? 35 :
+			70);
 		warning_curr_setting16 = 1;
 	}
 
