@@ -3,7 +3,7 @@
 - bcrypt for ZTEX 1.15y board computes 496 keys in parallel, equipped with on-board candidate generator and comparator.
 - Measured performance for the board (4 FPGA) at default frequency on hashes with setting 5 is 111.6 Kc/s, on hashes with setting 12 is 908 c/s (116 Kc/s if recalculated to setting 5).
 - It operates at 141 MHz. Runtime frequency adjustment is available.
-- The design contains 124 cores. On-chip comparsion against up to 512 hashes is available. There's a runtime option to turn off the comparator, in that case it outputs all computed hashes.
+- The design contains 124 cores. On-chip comparsion against up to 512 hashes is available. Salts with more than 512 hashes are processed with onboard comparators turned off, computed hashes are output and compared on host, this leads to some reduction in c/s especially on hashes with lower setting and when multiple boards are in use.
 - Resource utilization: each core uses 4 BRAMs (x 1 Kbyte), 390 LUTs. Device utilization summary: 96% BRAMs, 55% LUTs, 16% FFs, 1% DSPs.
 - Current consumption (12V input): 2.2A, idle 0.4A.
 

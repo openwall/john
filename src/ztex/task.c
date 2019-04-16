@@ -37,19 +37,13 @@ static void task_result_list_add(struct task_result_list *list,
 	task_result->next = list->result_list;
 	list->result_list = task_result;
 	list->count++;
-	if (list->index) {
-		MEM_FREE(list->index);
-		list->index = NULL;
-	}
+	//MEM_FREE(list->index);
 }
 
 
 static void task_result_list_create_index(struct task_result_list *list)
 {
-	if (list->index) {
-		MEM_FREE(list->index);
-		list->index = NULL;
-	}
+	MEM_FREE(list->index);
 	if (!list->count)
 		return;
 
@@ -98,7 +92,7 @@ static void task_result_list_clear(struct task_result_list *list)
 	}
 	if (!list->result_list) {
 		if (list->count)
-			fprintf(stderr,"task_result_list_clear: result=NULL,"
+			fprintf(stderr,"task_result_list_clear: result_list=NULL,"
 				" count=%d\n", list->count);
 		return;
 	}
@@ -114,6 +108,7 @@ static void task_result_list_clear(struct task_result_list *list)
 		result = next;
 	}
 	list->count = 0;
+	MEM_FREE(list->index);
 	list->result_list = NULL;
 }
 
