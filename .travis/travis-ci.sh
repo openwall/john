@@ -1,7 +1,5 @@
 #!/bin/bash
 
-env
-
 # Need a docker image to run the tests
 if [[ "$DOCKER" == "yes" ]]; then
     docker run --cap-add SYS_PTRACE -v "$(pwd)":/cwd claudioandre/john:opencl sh -c \
@@ -16,14 +14,17 @@ if [[ "$DOCKER" == "yes" ]]; then
     exit $?
 fi
 
-# Build and test JtR
+# ---- Build and test JtR ----
 cd src
+
+# The testing binary
+JTR=../run/john
 
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     ./configure --enable-werror CPPFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib"
     make -sj4
 else
-    # Build and run with the address sanitizer instrumented code
+    # Address sanitizer instrumented code
     export ASAN_OPTIONS=symbolize=1
     export ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer)
 
@@ -38,32 +39,19 @@ else
     make -sj4
 fi
 
-# There was (at least) a bug in echo -e in Travis
-# TODO: we know these formats must be fixed (or removed)
-echo '[Local:Disabled:Formats]' > john-local.conf
-echo 'Raw-SHA512-free-opencl = Y' >> john-local.conf
-echo 'XSHA512-free-opencl = Y' >> john-local.conf
-echo 'gpg-opencl = Y' >> john-local.conf
-echo 'KeePass-opencl = Y' >> john-local.conf
-echo 'scrypt = Y' >> john-local.conf
-echo 'django-scrypt = Y' >> john-local.conf
-echo 'multibit = Y' >> john-local.conf
+# Disable problematic formats before testing
+source ../.ci/disable_formats.sh
 
-# These formats fails OpenCL CPU runtime
-echo 'lotus5-opencl = Y' >> john-local.conf
-echo 'pgpdisk-opencl = Y' >> john-local.conf
-
-# Show build info
 echo '---------------------------------- Build Info ----------------------------------'
-../run/john --list=build-info
+$JTR --list=build-info
 echo '--------------------------------------------------------------------------------'
 
 # Except for MacOS, split tests
 if [[ "$OPENCL" == "yes" && "$TRAVIS_OS_NAME" != "osx" ]]; then
-    echo '$ ../run/john -test=0 --format=opencl'
-    ../run/john -test=0 --format=opencl
+    echo '-- Running $JTR -test=0 --format=opencl --'
+    $JTR -test=0 --format=opencl
 else
-    echo '$ ../run/john -test=0'
-    ../run/john -test=0
+    echo '-- Running $JTR -test=0 --'
+    $JTR -test=0
 fi
 
