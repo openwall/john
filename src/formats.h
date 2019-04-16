@@ -149,7 +149,10 @@ struct fmt_params {
 /* Comment about the benchmark (can be empty) */
 	const char *benchmark_comment;
 
-/* Benchmark for short/long passwords instead of for one/many salts */
+/* Benchmark for this password length.  Can also add one of:
+ * + 0x100 Force "Raw" benchmark even for a salted format
+ * + 0x200 Benchmark for short/long passwords instead of for one/many salts
+ * + 0x500 Make "Raw" behave like "Only one salt", not "Many salts" */
 	int benchmark_length;
 
 /* Minimum length of a plaintext password */

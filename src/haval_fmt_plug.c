@@ -19,6 +19,7 @@ john_register_one(&fmt_haval_128_4);
 
 #include <string.h>
 
+#include "arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
