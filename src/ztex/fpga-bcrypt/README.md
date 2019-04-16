@@ -1,8 +1,8 @@
 ## Overview
 
 - bcrypt for ZTEX 1.15y board computes 496 keys in parallel, equipped with on-board candidate generator and comparator.
-- Measured performance for the board (4 FPGA) at default frequency on hashes with setting 5 is 111.6 Kc/s, on hashes with setting 12 is 908 c/s (116 Kc/s if recalculated to setting 5).
-- It operates at 141 MHz. Runtime frequency adjustment is available.
+- Measured performance for the board (4 FPGA) at default frequency on hashes with setting 5 is 118.9 Kc/s, on hashes with setting 12 is 965 c/s (123.5 Kc/s if recalculated to setting 5).
+- It operates at 150 MHz. Runtime frequency adjustment is available.
 - The design contains 124 cores. On-chip comparison against up to 512 hashes is available. Salts with more than 512 hashes are processed with onboard comparators turned off, computed hashes are output and compared on host, this leads to some reduction in c/s especially on hashes with lower setting and when multiple boards are in use.
 - Resource utilization: each core uses 4 BRAMs (x 1 Kbyte), 390 LUTs. Device utilization summary: 96% BRAMs, 55% LUTs, 16% FFs, 1% DSPs.
 - Current consumption (12V input): 2.2A, idle 0.4A.
@@ -15,6 +15,7 @@
 - Each core gets IVs, gets data for computation, performs computation and output independently from other cores. The approach where several cores share same control logic was not taken - such an approach would save LUTs while there's an excess of LUTs anyway.
 - Each Blowfish round takes 1 cycle. Because BRAM memory allows only synchronous read, the start of the cycle is shifted to the start of such read. Overall, 16 Blowfish rounds take 18 cycles - 2 cycles used for additional XOR's and save into "S" or "P".
 - Communication framework including on-chip candidate password generator was initially taken from descrypt-ztex project. bcrypt-ztex has an area-optimized version of the generator.
+- Sizes of I/O buffers from communication framework were reviewed. Input buffer was reduced to 10 KB to allow more BRAMs for cores, asserts 'not full' when it has 6 KB free. Output buffer was increased to 8 KB for better USB performance when comparator is off, hashes output to host.
 
 
 ## Design Placement and Routing details

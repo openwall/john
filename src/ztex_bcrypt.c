@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016-2017 Denis Burykin
+ * This software is Copyright (c) 2016-2017,2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@
 #define BINARY_SIZE				4
 #define BINARY_ALIGN			4
 #define SALT_SIZE				sizeof(BF_salt)
-#define SALT_ALIGN				1
+#define SALT_ALIGN				4
 
 
 static struct device_bitstream bitstream = {
@@ -63,7 +63,7 @@ static struct device_bitstream bitstream = {
 	512,		// Max. number of entries in onboard comparator.
 	124,		// Min. number of keys for effective device utilization
 	0,
-	1, { 141 },	// Programmable clocks
+	1, { 150 },	// Programmable clocks
 	"bcrypt",	// label for configuration file
 	NULL, 0		// Initialization data
 };
@@ -73,7 +73,11 @@ static struct fmt_tests tests[] = {
 
 	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzA784oUp/Z0DY336zx7pLYAy0lwK",
 		"U*U*"},
-	// 32 lower bits of hash are equal to the above hash - self-test fails
+	// 32 lower bits of hash are equal to the above hash - self-test fails.
+	// In formats.c:is_key_right() it takes the first index for which
+	// cmp_one() returns true, and expects cmp_exact() also to return true
+	// for that index which is the case in CPU version.
+	// Here results arrive in the reverse order and it fails.
 	//{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.VGOzAxtE4OUcU.5p75hOF2yn2i1ocvO",
 	//	"1E!dpr"},
 	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",

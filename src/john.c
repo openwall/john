@@ -361,15 +361,13 @@ static void john_register_all(void)
 
 	/* Let ZTEX formats appear before CPU formats */
 #ifdef HAVE_ZTEX
-	if (!(options.flags & FLG_SHOW_CHK)) {
-		john_register_one(&fmt_ztex_descrypt);
-		john_register_one(&fmt_ztex_bcrypt);
-		john_register_one(&fmt_ztex_sha512crypt);
-		john_register_one(&fmt_ztex_drupal7);
-		john_register_one(&fmt_ztex_sha256crypt);
-		john_register_one(&fmt_ztex_md5crypt);
-		john_register_one(&fmt_ztex_phpass);
-	}
+	john_register_one(&fmt_ztex_descrypt);
+	john_register_one(&fmt_ztex_bcrypt);
+	john_register_one(&fmt_ztex_sha512crypt);
+	john_register_one(&fmt_ztex_drupal7);
+	john_register_one(&fmt_ztex_sha256crypt);
+	john_register_one(&fmt_ztex_md5crypt);
+	john_register_one(&fmt_ztex_phpass);
 #endif
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);

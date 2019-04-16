@@ -60,6 +60,11 @@ char *output_key;
 struct task_list *task_list;
 
 /*
+ * State of device initialization and information output.
+ */
+int jtr_device_list_printed = 0;
+
+/*
  * Saved by device_format_init()
  */
 struct fmt_params *jtr_fmt_params;
@@ -102,12 +107,6 @@ void device_format_init(struct fmt_main *fmt_main,
 	}
 
 
-	// Initialize hardware.
-	// Uses globals: jtr_device_list, device_list, jtr_bitstream.
-	if (!jtr_device_list_init())
-		error();
-
-
 	// Mask issues. 1 mask per JtR run can be specified. Global variables.
 
 	// Mask initialization (mask_int_cand_target).
@@ -122,7 +121,7 @@ void device_format_init(struct fmt_main *fmt_main,
 	// Mask can create too many candidates. That would result in problems
 	// with slow response or timeout.
 	// crypt_all() must finish in some reasonable 'response time'
-	// such as 0.1-0.2s.
+	// such as 0.5-1.0s.
 
 	// Reduce mask (request to unroll some ranges on CPU if necessary)
 	// by setting mask_int_cand_target.
@@ -153,12 +152,24 @@ void device_format_done()
 
 void device_format_reset()
 {
-	int min_template_keys = jtr_bitstream->min_template_keys;
-	if (min_template_keys < 1)
-		min_template_keys = 1;
+	// Initialize hardware and libusb
+	// Uses globals: jtr_device_list, device_list, jtr_bitstream.
+	if (!jtr_device_list_init())
+		error();
+
+	if (!jtr_device_list_printed) {
+		if (jtr_verbosity >= VERB_DEFAULT)
+			jtr_device_list_print();
+		jtr_device_list_print_count();
+		jtr_device_list_printed = 1;
+	}
 
 	// Mask data is ready, calculate and set keys_per_crypt
 	uint64_t keys_per_crypt;
+
+	int min_template_keys = jtr_bitstream->min_template_keys;
+	if (min_template_keys < 1)
+		min_template_keys = 1;
 
 	if (self_test_running) {
 		// Self-test runs too long, using different keys_per_crypt
