@@ -828,6 +828,9 @@ AGAIN:
 		salts = 0;
 		if (!format->params.salt_size ||
 		    (format->params.benchmark_length & 0x100)) {
+			if (format->params.salt_size &&
+			    !(format->params.benchmark_length & 0x400))
+				salts = BENCHMARK_MANY;
 			msg_m = "Raw";
 			msg_1 = NULL;
 		} else if (format->params.benchmark_length & 0x200) {
