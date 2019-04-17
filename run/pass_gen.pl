@@ -68,7 +68,7 @@ my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		hmac-sha256 hmac-sha384 hmac-sha512 sha1crypt sha256crypt sha512crypt
 		XSHA512 dynamic_27 dynamic_28 pwsafe django drupal7 epi zip
 		episerver_sha1 episerver_sha256 hmailserver ike keepass
-		keychain nukedclan radmin raw-SHA sip SybaseASE
+		keychain nukedclan radmin raw-SHA sip sip_qop SybaseASE
 		wbb3 wpapsk sunmd5 wowsrp django-scrypt aix-ssha1 aix-ssha256
 		aix-ssha512 pbkdf2-hmac-sha512 pbkdf2-hmac-sha256 scrypt
 		rakp osc formspring skey-md5 pbkdf2-hmac-sha1 odf odf-1 office_2007
@@ -1943,6 +1943,28 @@ sub sip {
 	my $dyna_hash = md5_hex($dynamic_hash_data.$_[0]);
 	my $h = md5_hex($dyna_hash.$static_hash_data);
 	return "\$sip\$*$serverIP*$clientIP*$user*$realm*$method*$URIpart1*$clientIP**$nonce****MD5*$h";
+}
+
+sub sip_qop {
+	my $IPHead = "192.168." . (int(rand(253))+1) . ".";
+	my $serverIP = $IPHead . (int(rand(253))+1);
+	my $clientIP = $IPHead . (int(rand(253))+1);
+	my $user = randstr(5, \@chrAsciiNum);
+	my $realm = "asterisk";
+	my $method = "REGISTER";
+	my $URIpart1 = "sip";
+	my $nonce = randstr(32, \@chrHexLo);
+	my $uri = "$URIpart1:$clientIP";
+	my $qop = "auth";
+	my $nonce_count = "00000001";
+	my $cnonce = randstr(8, \@chrHexLo);
+
+	my $static_hash = md5_hex($method.":".$uri);
+	my $dynamic_hash_data = "$user:$realm:";
+	my $static_hash_data = ":$nonce:$nonce_count:$cnonce:$qop:$static_hash";
+	my $dyna_hash = md5_hex($dynamic_hash_data.$_[0]);
+	my $h = md5_hex($dyna_hash.$static_hash_data);
+	return "\$sip\$*$serverIP*$clientIP*$user*$realm*$method*$URIpart1*$clientIP**$nonce*$cnonce*$nonce_count*$qop*MD5*$h";
 }
 
 sub bitlocker {
