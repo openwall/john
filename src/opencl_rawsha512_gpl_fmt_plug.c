@@ -376,7 +376,7 @@ static void tune(struct db_main *db)
 {
 	char *tmp_value;
 	size_t gws_limit;
-	int autotune_limit = 100;
+	int autotune_limit = 500;
 
 	if ((tmp_value = getenv("_GPU_AUTOTUNE_LIMIT")))
 		autotune_limit = atoi(tmp_value);
