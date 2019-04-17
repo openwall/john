@@ -106,10 +106,8 @@ int PKT_DEBUG = 1;
 
 struct jtr_device_list *jtr_device_list_init()
 {
-	int result;
-
 	if (!libusb_initialized) {
-		result = libusb_init(NULL);
+		int result = libusb_init(NULL);
 		if (result < 0) {
 			fprintf(stderr, "libusb_init() returns %d: %s\n",
 					result, libusb_error_name(result));
@@ -128,13 +126,7 @@ PKT_DEBUG = 1; // print erroneous packets recieved from devices
 		device_list = device_init_scan(jtr_bitstream);
 
 		int device_count = device_list_count(device_list);
-
-		if (device_count) {
-			//fprintf(stderr, "%d device(s) ZTEX 1.15y ready\n", device_count);
-			//ztex_dev_list_print(device_list->ztex_dev_list);
-
-			device_list_print(device_list);
-		} else {
+		if (!device_count) {
 			fprintf(stderr, "no valid ZTEX devices found\n");
 			return NULL;
 		}
@@ -145,7 +137,6 @@ PKT_DEBUG = 1; // print erroneous packets recieved from devices
 	} else {
 		device_list_init(device_list, jtr_bitstream);
 
-		device_list_print(device_list);
 		int device_count = device_list_count(device_list);
 		if (!device_count) {
 			fprintf(stderr, "no valid ZTEX devices found\n");
@@ -157,6 +148,19 @@ PKT_DEBUG = 1; // print erroneous packets recieved from devices
 	// TODO: remove old jtr_device's if any
 	jtr_device_list = jtr_device_list_new(device_list);
 	return jtr_device_list;
+}
+
+
+void jtr_device_list_print()
+{
+	device_list_print(device_list);
+}
+
+
+void jtr_device_list_print_count()
+{
+	int device_count = device_list_count(device_list);
+	fprintf(stderr, "%d device(s) ZTEX 1.15y ready\n", device_count);
 }
 
 
