@@ -174,8 +174,7 @@ void get_string_input(char *outbuf, size_t outbuf_len, const char *fmt, ...)
 	} while (!fgets(outbuf, outbuf_len, stdin));
 
 	/* Remove newline */
-	if (outbuf[strlen(outbuf) - 1] == 0x0d)
-		outbuf[strlen(outbuf) - 1] = 0x00;
+	outbuf[strcspn(outbuf, "\r\n")] = 0x00; // works for LF, CR, CRLF, LFCR, ...
 
 	return;
 }
