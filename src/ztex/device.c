@@ -27,6 +27,8 @@
 
 #define CONFIG_MAX_LEN	256
 
+// boards are in "no comparison" mode
+int device_nocompar_mode = 0;
 
 static int hex_digit2bin(char digit)
 {
@@ -281,10 +283,8 @@ void device_list_init(struct device_list *device_list,
 
 	device_list_init_fpgas(device_list, bitstream);
 
-	// Application mode 2: use high-speed packet communication (pkt_comm)
-	// that's the primary mode of operation as opposed to test modes 0 & 1.
-	// UNUSED
-	//device_list_set_app_mode(device_list, 2);
+	if (device_nocompar_mode)
+		device_list_set_app_mode(device_list, 0x40);
 }
 
 

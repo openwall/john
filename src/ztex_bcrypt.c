@@ -200,6 +200,8 @@ static int get_setting_by_cost(int cost)
 }
 
 
+extern int device_nocompar_mode;
+
 // TODO: handle BE systems
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -210,13 +212,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	static unsigned char salt_buf[17]; // salt to send to device
 	BF_salt *BF_salt = salt->salt;
 
-	static int cmp_entries_excess = 0;
-	if (salt->count > bitstream.cmp_entries_max && !cmp_entries_excess) {
+	if (salt->count > bitstream.cmp_entries_max && !device_nocompar_mode) {
 		fprintf(stderr, "Warning: salt with %d hashes, onboard comparators "
 			"support up to %d hashes/salt, turned off\n",
 			salt->count, bitstream.cmp_entries_max);
 		jtr_device_list_set_app_mode(0x40);
-		cmp_entries_excess = 1;
+		device_nocompar_mode = 1;
 	}
 
 	// It requires 16 bytes salt and 1 char subtype in network byte order
@@ -224,7 +225,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		((uint32_t *)(salt_buf))[i] = BF_salt->salt[i];
 	salt_buf[16] = BF_salt->subtype;
 
-	if (cmp_entries_excess)
+	if (device_nocompar_mode)
 		cmp_config_nocompar_new(salt, salt_buf, 17);
 	else
 		cmp_config_new(salt, salt_buf, 17);
