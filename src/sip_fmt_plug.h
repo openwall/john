@@ -12,7 +12,7 @@
 #define URI_MAXLEN        256    /* Max len of uri            */
 #define NONCE_MAXLEN      128    /* Max len of nonce value    */
 #define CNONCE_MAXLEN     128    /* Max len for cnonce value  */
-#define NONCECOUNT_MAXLEN   8    /* Max len for nonce count   */
+#define NONCECOUNT_MAXLEN   9    /* Max len for nonce count   */
 #define QOP_MAXLEN         12    /* Max len for qop value     */
 #define LOGIN_MAXLEN     1024    /* Max len of login entry    */
 #define ALG_MAXLEN          8    /* Max len of algorithm name */
