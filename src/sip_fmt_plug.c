@@ -69,6 +69,7 @@ static struct fmt_tests sip_tests[] = {
 	{"$sip$*192.168.196.105*192.168.196.192*81670*asterisk*REGISTER*sip*192.168.196.192**747f072a****MD5*d15c84b1bdc2155db12b721d7fb9445b", "password"},
 	{"$sip$*192.168.119.6*192.168.119.154*65790*asterisk*REGISTER*sip*192.168.119.154**8d4e1a4b****MD5*dcc0d8a4c105dbf3ecf5b281f4c57356", "happy123"},
 	{"$sip$*192.168.113.63*192.168.113.78*59810*asterisk*REGISTER*sip*192.168.113.78**b778256e****MD5*cb13933a5986df471265231d08206509", "aobdataeteag"},
+	{"$sip$*192.168.44.162*192.168.44.11*12315*asterisk*REGISTER*sip*192.168.44.11**825f321ad9886ef434788ebfb8dbf150*b78b5a31*00000001*auth*MD5*23802bb930873797f0c7a1f0e595a94e", "abc"},
 	{NULL}
 };
 
