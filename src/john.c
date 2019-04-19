@@ -1881,10 +1881,13 @@ static void john_run(void)
 		if (options.flags & FLG_BATCH_CHK)
 			do_batch_crack(&database);
 
+		if (options.flags & FLG_MASK_CHK)
+			mask_done();
+
 		status_print();
 
 		if (options.flags & FLG_MASK_CHK)
-			mask_done();
+			mask_destroy();
 
 #if OS_FORK
 		if (options.fork && john_main_process)

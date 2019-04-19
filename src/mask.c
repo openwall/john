@@ -2466,6 +2466,14 @@ void mask_done()
 			rec_done(event_abort);
 		}
 	}
+}
+
+// Mask unload objects event. To be call after mask_done()
+void mask_destroy()
+{
+#ifdef MASK_DEBUG
+	fprintf(stderr, "%s()\n", __FUNCTION__);
+#endif
 
 	MEM_FREE(template_key);
 	MEM_FREE(template_key_offsets);

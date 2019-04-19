@@ -962,8 +962,10 @@ next:
 		ldr_free_test_db(test_db);
 		fmt_done(format);
 #ifndef BENCH_BUILD
-		if (options.flags & FLG_MASK_CHK)
+		if (options.flags & FLG_MASK_CHK) {
 			mask_done();
+			mask_destroy();
+		}
 #endif
 
 #ifndef BENCH_BUILD

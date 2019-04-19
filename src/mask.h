@@ -90,6 +90,7 @@ extern void mask_crk_init(struct db_main *db);
 extern int do_mask_crack(const char *key);
 
 extern void mask_done(void);
+extern void mask_destroy(void);
 
 /*
  * These are exported for stacked modes (eg. hybrid mask)
