@@ -67,7 +67,7 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 	out[b3] = value;
 
 static void * get_binary(char * ciphertext) {
-	static uint32_t outbuf[BINARY_SIZE/4];
+	static uint32_t outbuf[64/4];
 	uint32_t value;
 	char *pos = strrchr(ciphertext, '$') + 1;
 	unsigned char *out = (unsigned char*)outbuf;
