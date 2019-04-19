@@ -46,6 +46,7 @@ extern int requested_devices[MAX_GPU_DEVICES + 1];
 extern hw_bus gpu_device_bus[MAX_GPU_DEVICES];
 
 extern int gpu_temp_limit;
+extern int cool_gpu_down;
 #define DEGREE_SIGN L"\xb0" // Degree sign as wchar_t
 
 extern char gpu_degree_sign[8];
