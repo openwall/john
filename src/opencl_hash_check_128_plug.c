@@ -39,7 +39,7 @@ void ocl_hc_128_prepare_table(struct db_salt *salt) {
 		MEM_FREE(hash_table_128);
 
 	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
-	hash_ids = (cl_uint*) mem_alloc((3 * num_loaded_hashes + 1) * sizeof(cl_uint));
+	hash_ids = (cl_uint*) mem_calloc((3 * num_loaded_hashes + 1), sizeof(cl_uint));
 
 	last = pw = salt->list;
 	i = 0;
