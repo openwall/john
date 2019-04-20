@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2019 Claudio André <claudioandre.br at gmail.com> -->
+<component type="console-application">
+  <id>com.openwall.John</id>
+  <metadata_license>GFDL-1.3</metadata_license>
+  <project_license>GPL-2.0</project_license>
+
+  <name>John the Ripper Community Edition</name>
+  <summary>John the Ripper "Jumbo" password cracker</summary>
+  <description>
+    <p>
+       John the Ripper is a fast password cracker. Its primary purpose is to
+       detect weak Unix passwords. Besides several crypt(3) password hash types,
+       supported out of the box are Windows LM hashes, plus lots of other hashes
+       and ciphers.
+
+       Read more at:
+       - github.com/magnumripper/JohnTheRipper
+
+       This version integrates lots of contributed patches, including GPU support,
+       has fallback for CPU SIMD extensions and for OMP, moreover, has regex and
+       prince modes available.
+    </p>
+  </description>
+
+  <icon type="local">/app/share/icons/com.openwall.John.png</icon>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://openwall.info/wiki/_media/john/help.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://openwall.info/wiki/_media/john/build-info.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://www.openwall.com/john/</url>
+  <url type="bugtracker">https://github.com/magnumripper/JohnTheRipper/issues</url>
+  <url type="donation">https://www.zerodayclothing.com/openwall_store.php</url>
+
+  <developer_name>Openwall and others</developer_name>
+  <update_contact>claudioandre.br@gmail.com</update_contact>
+
+  <categories>
+    <category>Security</category>
+  </categories>
+
+  <launchable type="desktop-id">com.openwall.John.desktop</launchable>
+  <provides>
+    <binary>john</binary>
+    <binary>dmg2john</binary>
+    <binary>hccap2john</binary>
+    <binary>racf2john</binary>
+    <binary>vncpcap2john</binary>
+    <binary>zip2john</binary>
+    <binary>gpg2john</binary>
+    <binary>keepass2john</binary>
+    <binary>putty2john</binary>
+    <binary>rar2john</binary>
+    <binary>uaf2john</binary>
+    <binary>wpapcap2john</binary>
+  </provides>
+
+  <releases>
+    <release type="stable" version="1.9.0J1" date="2019-04-19" urgency="high">
+      <description>
+        <p>
+          This is a major release (after almost 6 years since the 1.8.0 core
+          release), the community's progress in development of jumbo has been so
+          much greater that any changes I make to core are relatively small, as is
+          core itself.  Yet they are important.  Besides serving as the core for
+          jumbo, other uses of this tree include cases where core's functionality
+          alone is still sufficient or where (cross-)compiling jumbo for a given
+          target system is too difficult or (as a first step in) porting John the
+          Ripper to an unusual new platform.
+        </p>
+      </description>
+
+      <url>https://www.openwall.com/lists/john-users/2014/12/18/23</url>
+
+      <artifacts>
+        <artifact type="binary" platform="x86_64-linux-gnu">
+          <location>https://openwall.info/wiki/_media/john/1.9.0J1/john.flatpak.zip</location>
+        </artifact>
+        <artifact type="binary" platform="flatpak">
+          <location>https://flathub.org/apps/detais/com.openwall.John</location>
+        </artifact>
+        <artifact type="binary" platform="snap">
+          <location>https://snapcraft.io/john-the-ripper</location>
+        </artifact>
+        <artifact type="binary" platform="win32">
+          <location>https://openwall.info/wiki/_media/john/1.9.0J1/x32_win.zip</location>
+        </artifact>
+        <artifact type="binary" platform="win64">
+          <location>https://openwall.info/wiki/_media/john/1.9.0J1/x64_win.zip</location>
+        </artifact>
+        <artifact type="source">
+          <location>https://github.com/claudioandre-br/JohnTheRipper/archive/1.9.0-jumbo-1.tar.gz</location>
+        </artifact>
+      </artifacts>
+    </release>
+  </releases>
+
+</component>
