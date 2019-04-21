@@ -38,6 +38,9 @@
 #include "params.h"
 #include "logger.h"
 #include "signals.h"
+#ifndef BENCH_BUILD
+#include "options.h"
+#endif
 
 int gpu_id;
 int engaged_devices[MAX_GPU_DEVICES + 1];
@@ -458,7 +461,7 @@ void gpu_check_temp(void)
 {
 #if HAVE_LIBDL
 	static int warned;
-	int i, hot_gpu = 0;
+	int i, hot_gpu = 0, alerts = 0;
 
 	if (gpu_temp_limit < 0)
 		return;
@@ -482,10 +485,13 @@ void gpu_check_temp(void)
 		}
 
 		if (temp >= gpu_temp_limit) {
-			char s_fan[16] = "n/a";
-			if (fan >= 0)
-				sprintf(s_fan, "%u%%", fan);
-			if (!hot_gpu++ && !event_abort) {
+			hot_gpu = 1;
+
+			if (!alerts++ && !event_abort) {
+				char s_fan[16] = "n/a";
+				if (fan >= 0)
+					sprintf(s_fan, "%u%%", fan);
+
 				log_event("Device %d overheat (%d%sC, fan %s), %s.",
 				          dev + 1, temp, gpu_degree_sign, s_fan,
 				          (cool_gpu_down > 0) ? "sleeping" : "aborting job");
@@ -503,8 +509,8 @@ void gpu_check_temp(void)
 				while ((t = sleep(t)) && !event_abort);
 
 				// Warn again in case things don't calm down
-				if (hot_gpu > 5)
-					hot_gpu = 0;
+				if (alerts > 5)
+					alerts = 0;
 
 				/***
 				 * Re-check the temperature of the same GPU.
@@ -515,8 +521,21 @@ void gpu_check_temp(void)
 				continue;
 			} else
 				event_abort++;
-		} else
+		} else {
+
+			if (hot_gpu && options.verbosity > VERB_DEFAULT) {
+				char s_fan[16] = "n/a";
+				if (fan >= 0)
+					sprintf(s_fan, "%u%%", fan);
+
+				log_event("Device %d is waking up (%d%sC, fan %s).",
+				          dev + 1, temp, gpu_degree_sign, s_fan);
+				fprintf(stderr,
+				        "Device %d is waking up (%d%sC, fan %s).\n",
+				        dev + 1, temp, gpu_degree_sign, s_fan);
+			}
 			hot_gpu = 0;
+		}
 	}
 #endif
 }
