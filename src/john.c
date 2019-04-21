@@ -268,8 +268,7 @@ static void john_register_one(struct fmt_main *format)
 		}
 		else if (!strcasecmp(options.format, "cpu")) {
 			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-ztex")
-			)
+			    strstr(format->params.label, "-ztex"))
 				return;
 		}
 		else if (!strcasecmp(options.format, "cpu-dynamic")) {
