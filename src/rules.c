@@ -890,8 +890,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 				/* HC rule: duplicate word N times */
 				unsigned char x, y;
 				POSITION(x)
-				if (x * length > RULE_WORD_SIZE && length)
-					x = RULE_WORD_SIZE / length;
+				if (x * length > RULE_WORD_SIZE - 1)
+					x = (RULE_WORD_SIZE - 1) / length;
 				y = x;
 				in[length*(x + 1)] = 0;
 				while (x) {
