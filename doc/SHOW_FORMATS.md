@@ -16,8 +16,10 @@ The exceptions:
   enabled temporarily specifying the format with `--format=` option
   with exact name,
 
-- `*-ztex` formats are not tried during `--show=formats`, they cannot
-  be enabled (it may be changed in future versions).
+- ad-hoc dynamic formats (except `dynamic=md5($p)`) are not checked
+  even when hashes have respective format tags, ad-hoc format may be
+  forced specifying the format with `--format=` option (e.g.
+  `--format='dynamic=sha1(sha1($p))'`).
 
 
 Basic uses include:
@@ -138,7 +140,7 @@ A dictionary for line may contain such keys/fields:
 `rowFormats` field contains a list of dictionaries with results of
 successful parsing of line by formats.
 
-Each dictionary in `rowFormats` list may have the following field/keys:
+Each dictionary in `rowFormats` list may have the following keys/fields:
 
 - `label` is the name of format that may be used for `--format=` option,
 
@@ -242,14 +244,15 @@ loaded by a lot of formats (e.g. `Snefru-128` in the example).
 Formats to be tried may be limited with `--format=` option.
 
 - 1 exact format may be specified (e.g. `--format=raw-md5`),
+
   - a disabled dynamic format may be enabled this way for temporary
     use,
 
+  - ad-hoc dynamic formats may be specified this way (e.g.
+    `--format='sha512($s.sha512($p.$s).$p)'`, see doc/DYNAMIC ),
+
 - multiple formats may be specified by mask in `--format=` option
   (e.g. `--format=*crypt`, `--format=mssql*`),
-
-  - it does not work for `--format=*-ztex` because these formats are
-    excluded from `--show=formats` totally,
 
   - set of formats in john may differ between builds, so
     `--list=formats` with `--format=` may be used to check that
@@ -280,16 +283,6 @@ $ john --format=*-opencl --show=formats t.pw
 Unknown ciphertext format name requested
 ```
 
-
-Example: ZTEX support is enabled, but `--show=formats` does not see
-the formats.
-```
-$ john --format=*-ztex --list=formats
-descrypt-ztex, bcrypt-ztex, sha512crypt-ztex, Drupal7-ztex, sha256crypt-ztex, 
-md5crypt-ztex, phpass-ztex
-$ john --format=*-ztex --show=formats t.pw
-Unknown ciphertext format name requested
-```
 
 ## Automatic parsing of output
 
