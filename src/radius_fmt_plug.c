@@ -58,10 +58,12 @@ john_register_one(&fmt_radius);
 #endif
 
 static struct fmt_tests tests[] = {
-	// tshark -q -Xlua_script:network2john.lua -X lua_script1:password2 -X lua_script1:1 -r freeradius.pcap
-	{"$radius$1*1*password2*acf627289be7e214c8e328d0d01fcea2*fe18a76eec4abeeea09eb90e99b359f7", "Passw0rd2"},
 	// tshark -q -Xlua_script:network2john.lua -X lua_script1:Passw0rd2 -X lua_script1:0 -r freeradius.pcap
 	{"$radius$1*0*Passw0rd2*acf627289be7e214c8e328d0d01fcea2*fe18a76eec4abeeea09eb90e99b359f7", "password2"},
+	// same test vector again so that we only benchmark this one (our benchmarks use first two salts)
+	{"$radius$1*0*Passw0rd2*acf627289be7e214c8e328d0d01fcea2*fe18a76eec4abeeea09eb90e99b359f7", "password2"},
+	// tshark -q -Xlua_script:network2john.lua -X lua_script1:password2 -X lua_script1:1 -r freeradius.pcap
+	{"$radius$1*1*password2*acf627289be7e214c8e328d0d01fcea2*fe18a76eec4abeeea09eb90e99b359f7", "Passw0rd2"},
 	{NULL}
 };
 
@@ -187,14 +189,36 @@ static int check_password(int index, struct custom_salt *cs)
 	int i;
 
 	if (cs->mode == 1) { // recover user password
-		unsigned char out[16];
+		unsigned char out[16], rec[17];
 
 		memset(out, 0, 16);
 		memcpy(out, saved_key[index], saved_len[index] > 16 ? 16: saved_len[index]);
 		for (i = 0; i < 16; i++)
-			out[i] = out[i] ^ cs->precalculated_digest[i];
-		if (!memcmp(out, cs->ciphertext, 16))
+			rec[i] = cs->ciphertext[i] ^ cs->precalculated_digest[i];
+		if (!memcmp(out, rec, 16))
 			return 1;
+
+/*
+ * This is silly: we could just output all plaintext passwords, but we have no
+ * mechanism to get them into john.pot from here.  Arguably, this isn't a task
+ * for JtR at all.
+ */
+		if (!bench_or_test_running) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+			{
+				static int rec_count = 0;
+				int rec_max = 10;
+				rec_count++;
+				if (rec_count <= rec_max) {
+					rec[16] = 0;
+					printf("%s: Recovered password '%s'\n", FORMAT_LABEL, (char *)rec);
+				} else if (rec_count == rec_max + 1) {
+					printf("%s: Further messages suppressed\n", FORMAT_LABEL);
+				}
+			}
+		}
 	} else if (cs->mode == 0) { // recover shared secret
 		MD5_CTX ctx;
 		unsigned char digest[16];
