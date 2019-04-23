@@ -460,7 +460,7 @@ int id2adl(const hw_bus busInfo) {
 void gpu_check_temp(void)
 {
 #if HAVE_LIBDL
-	static int warned;
+	static int warned, warnedTemperature;
 	int i, hot_gpu = 0, alerts = 0;
 
 	if (gpu_temp_limit < 0)
@@ -485,21 +485,26 @@ void gpu_check_temp(void)
 		}
 
 		if (temp >= gpu_temp_limit) {
-			hot_gpu = 1;
 
-			if (!alerts++ && !event_abort) {
+			if (!alerts++ && !event_abort && !warnedTemperature) {
 				char s_fan[16] = "n/a";
 				if (fan >= 0)
 					sprintf(s_fan, "%u%%", fan);
 
-				log_event("Device %d overheat (%d%sC, fan %s), %s.",
+				if (cool_gpu_down == 1)
+					warnedTemperature++;
+
+				log_event("Device %d overheat (%d%sC, fan %s), %s%s.",
 				          dev + 1, temp, gpu_degree_sign, s_fan,
-				          (cool_gpu_down > 0) ? "sleeping" : "aborting job");
+				          (cool_gpu_down > 0) ? "sleeping" : "aborting job",
+				          (hot_gpu) ? " again" : "");
 				fprintf(stderr,
-				        "Device %d overheat (%d%sC, fan %s), %s.\n",
+				        "Device %d overheat (%d%sC, fan %s), %s%s.\n",
 				        dev + 1, temp, gpu_degree_sign, s_fan,
-				        (cool_gpu_down > 0) ? "sleeping" : "aborting job");
+				        (cool_gpu_down > 0) ? "sleeping" : "aborting job",
+				        (hot_gpu) ? " again" : "");
 			}
+			hot_gpu = 1;
 			/***
 			 * Graceful handling of GPU overheating
 			 * - sleep for a while before re-checking the temperature.
@@ -523,7 +528,8 @@ void gpu_check_temp(void)
 				event_abort++;
 		} else {
 
-			if (hot_gpu && options.verbosity > VERB_DEFAULT) {
+			if (hot_gpu && options.verbosity > VERB_DEFAULT &&
+			    !warnedTemperature) {
 				char s_fan[16] = "n/a";
 				if (fan >= 0)
 					sprintf(s_fan, "%u%%", fan);
