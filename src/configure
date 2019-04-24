@@ -17961,19 +17961,21 @@ libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
 libz (pkzip and some other formats) ........ ${using_zlib}
 libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
-librexgen (experimental regex mode) ........ ${using_rexgen}
 OpenMPI support (default disabled) ......... ${using_mpi}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 
 EOF
 
-if test "$ubsan" != "disabled" || test "$asan" != "disabled" || test "$fuzz" != "no" || test "$experimental" != "no" ; then
+if test "$ubsan" != "disabled" || test "$asan" != "disabled" ||
+   test "$fuzz" != "no" || test "$experimental" != "no" ||
+   test "$using_rexgen" != "no" ; then
 cat <<EOF
 Development options (these may hurt performance when enabled):
 AddressSanitizer ("ASan") .................. ${asan}
 UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
 Fuzzing test ............................... ${fuzz}
 Experimental code .......................... ${experimental}
+ - librexgen (regex mode) .................. ${using_rexgen}
 
 EOF
 fi
