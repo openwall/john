@@ -54,7 +54,7 @@ int geli_common_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
-	if (value != 128)
+	if (value != 128 && value != 256)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // md_aalgo
 		goto err;
