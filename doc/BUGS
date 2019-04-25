@@ -49,3 +49,8 @@ this happens, the following message is printed:
 Known to be affected are: dominosec.
 Also theoretically present, but less likely to be triggered in practice,
 are similar issues in non-hash formats.
+
+GPU-side "Mask Mode" can't use "parts of" a placeholder. So given ?a?a?a?a
+the "multiplier" has to be either 95 or 95*95. This will result in poor
+performance in mid-range GPUs.
+

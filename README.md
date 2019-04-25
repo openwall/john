@@ -23,22 +23,20 @@ join the john-users mailing list and post in there.
 Licensing info:
 http://openwall.info/wiki/john/licensing
 
-How to contribute more code:
-http://openwall.info/wiki/how-to-make-patches
+For contributions to John the Ripper Jumbo, please use a
+[pull requested (PR) on GitHub](https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/CONTRIBUTING.md).
 
 ---
 
 	John the Ripper password cracker.
 
 John the Ripper is a fast password cracker, currently available for
-many flavors of Unix (11 are officially supported, not counting
-different architectures), Windows, DOS, BeOS, and OpenVMS (the latter
+many flavors of Unix, macOS, Windows, DOS, BeOS, and OpenVMS (the latter
 requires a contributed patch).  Its primary purpose is to detect weak
 Unix passwords.  Besides several crypt(3) password hash types most
 commonly found on various Unix flavors, supported out of the box are
 Kerberos/AFS and Windows LM hashes, as well as DES-based tripcodes, plus
-many more hashes and ciphers in "community enhanced" -jumbo versions
-and/or with other contributed patches.
+hundreds of additional hashes and ciphers in "-jumbo" versions.
 
 
 	How to install.
@@ -124,26 +122,20 @@ proper OMPFLAGS line near the beginning of the Makefile and at runtime
 by setting the OMP_NUM_THREADS environment variable to the desired
 number of threads).
 
-John the Ripper Pro adds support for Windows NTLM (MD4-based) and Mac
-OS X 10.4+ salted SHA-1 hashes.
-
-"Community enhanced" -jumbo versions add support for many more password
-hash types, including Windows NTLM (MD4-based), Mac OS X 10.4-10.6
-salted SHA-1 hashes, Mac OS X 10.7 salted SHA-512 hashes, raw MD5 and
-SHA-1, arbitrary MD5-based "web application" password hash types, hashes
-used by SQL database servers (MySQL, MS SQL, Oracle) and by some LDAP
-servers, several hash types used on OpenVMS, password hashes of the
-Eggdrop IRC bot, and lots of other hash types, as well as many
-non-hashes such as OpenSSH private keys, S/Key skeykeys files, Kerberos
-TGTs, PDF files, ZIP (classic PKZIP and WinZip/AES) and RAR archives.
-
-Unlike older crackers, John normally does not use a crypt(3)-style
-routine.  Instead, it has its own highly optimized modules for different
-hash types and processor architectures.  Some of the algorithms used,
-such as bitslice DES, couldn't have been implemented within the crypt(3)
-API; they require a more powerful interface such as the one used in
-John.  Additionally, there are assembly language routines for several
-processor architectures, most importantly for x86-64 and x86 with SSE2.
+"-jumbo" versions add support for hundreds of additional hash and cipher
+types, including fast built-in implementations of SHA-crypt and SunMD5,
+Windows NTLM (MD4-based) password hashes, various macOS and Mac OS X
+user password hashes, fast hashes such as raw MD5, SHA-1, SHA-256, and
+SHA-512 (which many "web applications" historically misuse for
+passwords), various other "web application" password hashes, various SQL
+and LDAP server password hashes, and lots of other hash types, as well
+as many non-hashes such as SSH private keys, S/Key skeykeys files,
+Kerberos TGTs, encrypted filesystems such as macOS .dmg files and
+"sparse bundles", encrypted archives such as ZIP (classic PKZIP and
+WinZip/AES), RAR, and 7z, encrypted document files such as PDF and
+Microsoft Office's - and these are just some examples.  To load some of
+these larger files for cracking, a corresponding bundled *2john program
+should be used first, and then its output fed into JtR -jumbo.
 
 
         Graphical User Interface (GUI).
@@ -170,85 +162,22 @@ the recommended order of reading:
 
 * INSTALL - installation instructions
 * OPTIONS - command line options and additional utilities
-* MODES - cracking modes: what they are
-* CONFIG (*) - how to customize
-* RULES (*) - wordlist rules syntax
-* EXTERNAL (*) - defining an external mode
 * EXAMPLES - usage examples - strongly recommended
-* FAQ - guess
-* CHANGES (*) - history of changes
-* CONTACT (*) - how to contact the author or otherwise obtain support
-* CREDITS (*) - credits
+* MODES - cracking modes: what they are
+* FAQ - frequently asked questions
 * BUGS - list of known bugs
-* README.bash-completion - how to enable bash completion for JtR
 * DYNAMIC - how to use dynamic format in JtR
 * DYNAMIC COMPILER FORMATS - List of known hash formats built using the dynamic compiler
 * DYNAMIC_SCRIPTING - how to build/optimise a format that uses dynamic
-* HACKING - list of all possible hacks in John
+* README.bash-completion - how to enable bash completion for JtR
+* CONTACT (*) - how to contact the author or otherwise obtain support
+* CONFIG (*) - how to customize
+* EXTERNAL (*) - defining an external mode
+* RULES (*) - wordlist rules syntax
+* CHANGES (*) - history of changes
+* CREDITS (*) - credits
 * LICENSE - copyrights and licensing terms
 * COPYING - GNU GPL version 2, as referenced by LICENSE above
-
-The rest of documents in alphabetical:
-
-* AddressSanitizer-HOWTO - Building JtR with AddressSanitizer (or ASan)
-* Auditing-Openfire - Openfire hashes audit process
-* AxCrypt-Auditing-HOWTO - auditing AxCrypt secrets
-* DYNAMIC_EXPRESSIONS - 'self-describing' Dynamic format.
-* dynamic_history - upto date history on dynamic_fmt.c file
-* ENCODINGS - Encoding in the current John
-* EXTERNAL - how to define external mode and available external mode functions
-* HDAA_README - for HTTP Digest access authentication
-* INSTALL-UBUNTU - Only for Ubuntu (Please read INSTALL for general installation information)
-* john-1.7.9-jumbo-7-licensing-stats.txt - license status for john-1.7.9-jumbo-7
-* Kerberos-Auditing-HOWTO - how to audit Kerberos hashes
-* libFuzzer-HOWTO - how to build libfuzzer
-* MARKOV - basic information/usage for the Markov mode
-* MASK - Information on mask mode and examples
-* NETNTLM_README - LM/NTLM Challenge / Response Authentication
-* OFFICE - JtR on Office 2003 / 2007 / 2010 / 2013 files
-* pass_gen.Manifest - pass_gen.pl version history
-* pcap2john.readme - all the prior copyright headers from the independent XXX2john.py PCAP conversion utilities
-* PRINCE - JtR prince mode crash course
-* README.7z2john - 7z2 credit in JtR
-* README.apex - dumping Oracle APEX...
-* README.Apple_DMG - cracking DMG in JtR
-* README.bitcoin - cracking bitcoin wallet files with JtR
-* README.BitLocker - cracking bitlocker in JtR
-* README.coding-style(*) - accepted coding style for contributors
-* README.cprepair - reading broken files
-* README-CUDA - JtR CUDA updates/status
-* README-DISTROS - building a CPU-fallback chain (with OpenMP fallback too) for distros
-* README.Ethereum - cracking etherum wallet in JtR
-* README.FileVault2 - cracking password protected FileVault 2 encrypted volumes in JtR
-* README.format-epi - how to dump EPiServer password hashes
-* README.FreeBSD(*) - building JtR-jumbo on FreeBSD
-* README.gpg - PGP Zip / OpenPGP / GnuPG private cracking in JtR
-* README.IBM_AS400 - How to get & crack AS/400 hashes
-* README.IOS 7 - cracking IOS 7 restrictions PIN code
-* README.keychain - Cracking Apple's Mac OS Keychain files
-* README.keyring - cracking GNOME Keyring files
-* README.keystore - cracking KeyStore files
-* README-krb5-18-23 - kdb5_util in JtR
-* README.kwallet - cracking KWallet files
-* README.librexgen - howto perform regex expression work within JtR
-* README.LotusNotes - IBM Lotus Domino hash extractor
-* README.LUKS - Cracking LUKS passphrases
-* README-MIC - how to build JtR for MIC
-* README.MinGW - Fedora >= 22 cross-compiling instructions
-* README.mozilla - cracking Mozilla Firefox, Thunderbird and SeaMonkey master passwords
-* README.mpi - using MPI in JtR
-* README-OPENCL - how to use OpenCL in JtR
-* README-PDF - PDF cracking in JtR
-* README-PST - PST cracking in JtR
-* README.pwsafe - cracking Password Safe 3.x and Password Gorilla databases with john
-* README.ssh - Cracking password protected ssh private keys
-* README-ZIP - ZIP cracking in JtR
-* README-ZTEX - using ZTEX with JtR
-* Regen-Lost-Salts - regen-lost-salt in JtR
-* RULES-hashcat - wordlist rules with hashcat extension
-* SecureMode-tutorial - using JtR's SecureMode feature
-* SIPcrack-LICENSE - the SIPcrack license
-
 
 (*) most users can safely skip these.
 
