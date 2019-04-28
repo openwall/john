@@ -17,6 +17,7 @@ john_register_one(&fmt_multibit);
 #else
 
 #include <string.h>
+#include <errno.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -49,9 +50,10 @@ john_register_one(&fmt_multibit);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
-#ifndef OMP_SCALE
 #define OMP_SCALE               4 // MKPC and scale tuned for i7
-#endif
+
+static int max_threads;
+static yescrypt_local_t *local;
 
 static struct fmt_tests multibit_tests[] = {
 	// Wallets created by MultiBit Classic 0.5.18
@@ -89,6 +91,17 @@ static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
 
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads();
+#else
+	max_threads = 1;
+#endif
+
+	local = mem_alloc(sizeof(*local) * max_threads);
+	int i;
+	for (i = 0; i < max_threads; i++)
+		yescrypt_init_local(&local[i]);
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
 	cracked_count = self->params.max_keys_per_crypt;
@@ -96,6 +109,11 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	int i;
+	for (i = 0; i < max_threads; i++)
+		yescrypt_free_local(&local[i]);
+	MEM_FREE(local);
+
 	MEM_FREE(cracked);
 	MEM_FREE(saved_key);
 }
@@ -274,6 +292,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+	int failed = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -342,7 +361,27 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (len < 0)
 				len = strlen16(password);
 
-			crypto_scrypt((const unsigned char*)password, (len + 1) * 2, salt_hardcoded, 8, 16384, 8, 1, key, 32);
+#ifdef _OPENMP
+			int t = omp_get_thread_num();
+			if (t >= max_threads) {
+#pragma omp atomic
+				failed |= 2;
+				continue;
+			}
+#else
+			const int t = 0;
+#endif
+			static const yescrypt_params_t params = { .N = 16384, .r = 8, .p = 1 };
+			if (yescrypt_kdf(NULL, &local[t],
+			    (const uint8_t *)password, (len + 1) * 2,
+			    (const uint8_t *)salt_hardcoded, 8,
+			    &params,
+			    key, 32)) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				failed |= 1;
+			}
 
 			// 1
 			AES_set_decrypt_key(key, 128 * 2, &aes_decrypt_key);
@@ -366,7 +405,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (len < 0)
 				len = strlen16(password);
 
-			crypto_scrypt((const unsigned char*)password, (len + 1) * 2, cur_salt->salt, 8, cur_salt->n, cur_salt->r, cur_salt->p, key, 32);
+#ifdef _OPENMP
+			int t = omp_get_thread_num();
+			if (t >= max_threads) {
+#pragma omp atomic
+				failed |= 2;
+				continue;
+			}
+#else
+			const int t = 0;
+#endif
+			yescrypt_params_t params = { .N = cur_salt->n, .r = cur_salt->r, .p = cur_salt->p };
+			if (yescrypt_kdf(NULL, &local[t],
+			    (const uint8_t *)password, (len + 1) * 2,
+			    (const uint8_t *)cur_salt->salt, 8,
+			    &params,
+			    key, 32)) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				failed |= 1;
+			}
+
 			memcpy(iv, cur_salt->block, 16);
 			AES_set_decrypt_key(key, 256, &aes_decrypt_key);
 			AES_cbc_encrypt(cur_salt->block + 16, outbuf, 16, &aes_decrypt_key, iv, AES_DECRYPT);
@@ -374,6 +434,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (!memcmp(outbuf, "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10", 16))
 				cracked[index] = 1;
 		}
+	}
+
+	if (failed) {
+#ifdef _OPENMP
+		if (failed & 2) {
+			fprintf(stderr, "OpenMP thread number out of range\n");
+			error();
+		}
+#endif
+		fprintf(stderr, "scrypt failed: %s\n", strerror(errno));
+		error();
 	}
 
 	return count;

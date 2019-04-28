@@ -15,6 +15,7 @@ john_register_one(&fmt_ethereum);
 #else
 
 #include <string.h>
+#include <errno.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -56,9 +57,10 @@ john_register_one(&fmt_ethereum);
 #define MAX_KEYS_PER_CRYPT      1
 #endif
 
-#ifndef OMP_SCALE
-#define OMP_SCALE               1 // tuned (for slowest salt) w/ MKPC on core i7
-#endif
+#define OMP_SCALE		1
+
+static int max_threads;
+static yescrypt_local_t *local;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE * 2 / sizeof(uint32_t)];
@@ -76,6 +78,17 @@ static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
 
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads();
+#else
+	max_threads = 1;
+#endif
+
+	local = mem_alloc(sizeof(*local) * max_threads);
+	int i;
+	for (i = 0; i < max_threads; i++)
+		yescrypt_init_local(&local[i]);
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_presale =
 		mem_calloc(sizeof(*saved_presale), self->params.max_keys_per_crypt);
@@ -86,6 +99,11 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	int i;
+	for (i = 0; i < max_threads; i++)
+		yescrypt_free_local(&local[i]);
+	MEM_FREE(local);
+
 	MEM_FREE(saved_presale);
 	MEM_FREE(saved_key);
 	MEM_FREE(crypt_out);
@@ -111,6 +129,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+	int failed = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -137,13 +156,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						0);
 #endif
 		} else if (cur_salt->type == 1) {
-			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
-				crypto_scrypt((unsigned char *)saved_key[index+i],
-						strlen(saved_key[index+i]),
-						cur_salt->salt,
-						cur_salt->saltlen, cur_salt->N,
-						cur_salt->r, cur_salt->p,
-						master[i], 32);
+#ifdef _OPENMP
+			int t = omp_get_thread_num();
+			if (t >= max_threads) {
+#pragma omp atomic
+				failed |= 2;
+				continue;
+			}
+#else
+			const int t = 0;
+#endif
+			yescrypt_params_t params = { .N = cur_salt->N, .r = cur_salt->r, .p = cur_salt->p };
+			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+				if (yescrypt_kdf(NULL, &local[t],
+				    (const uint8_t *)saved_key[index + i],
+				    strlen(saved_key[index + i]),
+				    (const uint8_t *)cur_salt->salt,
+				    strlen((const char *)cur_salt->salt),
+				    &params,
+				    master[i], 32)) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+					failed |= 1;
+				}
+			}
 		} else if (cur_salt->type == 2) {
 			if (new_keys) {
 				/* Presale. No salt! */
@@ -216,6 +253,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 	}
 	new_keys = 0;
+
+	if (failed) {
+#ifdef _OPENMP
+		if (failed & 2) {
+			fprintf(stderr, "OpenMP thread number out of range\n");
+			error();
+		}
+#endif
+		fprintf(stderr, "scrypt failed: %s\n", strerror(errno));
+		error();
+	}
 
 	return count;
 }
