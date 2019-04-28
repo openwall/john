@@ -734,7 +734,7 @@ static void prepare_table(struct db_main *db)
 	release_salt_buffers();
 
 	loaded_hashes = (cl_uint*) mem_alloc(4 * max_num_loaded_hashes * sizeof(cl_uint));
-	hash_ids = (cl_uint*) mem_alloc((3 * max_num_loaded_hashes + 1) * sizeof(cl_uint));
+	hash_ids = (cl_uint*) mem_calloc((3 * max_num_loaded_hashes + 1), sizeof(cl_uint));
 
 	hash_tables = (unsigned int **)mem_calloc(sizeof(unsigned int*), db->salt_count + 1);
 	buffer_offset_tables = (cl_mem *)mem_calloc(sizeof(cl_mem), db->salt_count + 1);
