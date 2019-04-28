@@ -28,6 +28,9 @@
  * online backup system.
  */
 
+/* JtR hack: don't use OpenMP inside (ye)scrypt */
+#undef _OPENMP
+
 /*
  * AVX and especially XOP speed up Salsa20 a lot, but this mostly matters for
  * classic scrypt and for YESCRYPT_WORM (which use 8 rounds of Salsa20 per
