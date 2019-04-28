@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -56,6 +57,8 @@
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+
+#define OMP_SCALE			1
 
 static struct fmt_tests tests[] = {
 	{"$7$C6..../....SodiumChloride$kBGj9fHznVYFQMEn/qDCfrDevf9YDtcDdKvEqHJLV8D", "pleaseletmein"},
@@ -132,21 +135,30 @@ static struct {
 
 static void init(struct fmt_main *self)
 {
-	int i;
+	omp_autotune(self, OMP_SCALE);
 
 #ifdef _OPENMP
 	max_threads = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= max_threads;
-	self->params.max_keys_per_crypt *= max_threads;
 #else
 	max_threads = 1;
 #endif
 
 	local = mem_alloc(sizeof(*local) * max_threads);
+	int i;
 	for (i = 0; i < max_threads; i++)
 		yescrypt_init_local(&local[i]);
 
 	buffer = mem_alloc(sizeof(*buffer) * self->params.max_keys_per_crypt);
+}
+
+static void done(void)
+{
+	int i;
+	for (i = 0; i < max_threads; i++)
+		yescrypt_free_local(&local[i]);
+	MEM_FREE(local);
+
+	MEM_FREE(buffer);
 }
 
 static char N_to_c(int N) {
@@ -224,17 +236,6 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 	} else
 		return fields[1];
 	return Buf;
-}
-
-static void done(void)
-{
-	int i;
-
-	for (i = 0; i < max_threads; i++)
-		yescrypt_free_local(&local[i]);
-
-	MEM_FREE(local);
-	MEM_FREE(buffer);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -412,16 +413,26 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
+	const int count = *pcount;
 	int index;
 	int failed = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(index) shared(count, failed, local, saved_salt, buffer)
+#pragma omp parallel for default(none) private(index) shared(failed, max_threads, local, saved_salt, buffer)
 #endif
 	for (index = 0; index < count; index++) {
+#ifdef _OPENMP
+		int t = omp_get_thread_num();
+		if (t >= max_threads) {
+#pragma omp atomic
+			failed |= 2;
+			continue;
+		}
+#else
+		const int t = 0;
+#endif
 		uint8_t *hash;
-		hash = yescrypt_r(NULL, &local[index],
+		hash = yescrypt_r(NULL, &local[t],
 		    (const uint8_t *)buffer[index].key,
 		    strlen(buffer[index].key),
 		    (const uint8_t *)saved_salt,
@@ -429,13 +440,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		    (uint8_t *)buffer[index].out,
 		    sizeof(buffer[index].out));
 		if (!hash) {
+#ifdef _OPENMP
+#pragma omp atomic
+			failed |= 1;
+#else
 			failed = 1;
-			buffer[index].out[0] = 0;
+			break;
+#endif
 		}
 	}
 
 	if (failed) {
-		fprintf(stderr, "scrypt memory allocation failed\n");
+#ifdef _OPENMP
+		if (failed & 2) {
+			fprintf(stderr, "OpenMP thread number out of range\n");
+			error();
+		}
+#endif
+		fprintf(stderr, "scrypt failed: %s\n", strerror(errno));
 		error();
 	}
 
