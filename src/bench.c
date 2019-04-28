@@ -286,11 +286,11 @@ static void bench_set_keys(struct fmt_main *format,
 
 	/* Legacy benchmark mode for performance regression testing */
 	for (index = 0; index < max; index++) {
-		char *plaintext;
+		static char plaintext[PLAINTEXT_BUFFER_SIZE];
 		do {
 			if (!current->ciphertext)
 				current = format->params.tests;
-			plaintext = current->plaintext;
+			strncpy(plaintext, current->plaintext, PLAINTEXT_BUFFER_SIZE);
 			current++;
 
 			if (flags & 0x200) {
