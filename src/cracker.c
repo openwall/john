@@ -850,12 +850,14 @@ static int crk_password_loop(struct db_salt *salt)
 					fprintf(stderr, "%u: ", NODE);
 				fprintf(stderr,
 				        "Further messages of this type will be suppressed.\n");
-				if (john_main_process)
+				if (john_main_process &&
+				    !cfg_get_bool(SECTION_OPTIONS, NULL,
+				                  "RelaxKPCWarningCheck", 0))
 					fprintf(stderr,
-"To see less of these warnings in the future, enable 'RelaxKPCWarningCheck'\n"
-				        "in john.conf\n");
-				log_event("- Saw %d calls to crypt_all() with sub obtimal "
-				          "batch size (stopped counting)", initial_value);
+"To see less of these warnings, enable 'RelaxKPCWarningCheck' in john.conf\n");
+				log_event(
+"- Saw %d calls to crypt_all() with sub-optimal batch size (stopped counting)",
+				          initial_value);
 			}
 		}
 	}
