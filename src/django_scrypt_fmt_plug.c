@@ -16,6 +16,7 @@ john_register_one(&fmt_django_scrypt);
 #else
 
 #include <string.h>
+#include <errno.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -54,9 +55,7 @@ john_register_one(&fmt_django_scrypt);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#ifndef OMP_SCALE
-#define OMP_SCALE           4 // Tuned w/ MKPC for core i7
-#endif
+#define OMP_SCALE		1
 
 /* notastrongpassword => scrypt$NBGmaGIXijJW$14$8$1$64$achPt01SbytSt+F3CcCFgEPr96+/j9iCTdejFdAARZ8mzfejrP64TJ5XBJa3gYwuCKOEGlw2E/lWCWS7LeS6CA== */
 
@@ -67,20 +66,33 @@ static struct fmt_tests scrypt_tests[] = {
 	{NULL}
 };
 
+static int max_threads;
+static yescrypt_local_t *local;
+
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static struct custom_salt {
-	/* int type; */ // not used (another type probably required a new JtR format)
 	int N;
 	int r;
 	int p;
-	unsigned char salt[32];
+	char salt[32];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
+
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads();
+#else
+	max_threads = 1;
+#endif
+
+	local = mem_alloc(sizeof(*local) * max_threads);
+	int i;
+	for (i = 0; i < max_threads; i++)
+		yescrypt_init_local(&local[i]);
 
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
@@ -90,6 +102,11 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	int i;
+	for (i = 0; i < max_threads; i++)
+		yescrypt_free_local(&local[i]);
+	MEM_FREE(local);
+
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
 }
@@ -102,6 +119,7 @@ static int isDigits(char *p) {
 	}
 	return 1;
 }
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *cp, *cp2;
@@ -145,7 +163,7 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt *cs = &(un._cs);
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
-	strncpy((char*)cs->salt, p, 32);
+	strncpy(cs->salt, p, 32);
 	p = strtokm(NULL, "$");
 	cs->N = atoi(p);
 	p = strtokm(NULL, "$");
@@ -182,18 +200,50 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+	int failed = 0;
+	yescrypt_params_t params = { .N = 1ULL << cur_salt->N, .r = cur_salt->r, .p = cur_salt->p };
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for default(none) private(index) shared(failed, params, max_threads, local, saved_key, cur_salt, crypt_out)
 #endif
 	for (index = 0; index < count; index++) {
-		if (crypto_scrypt((unsigned char*)saved_key[index], strlen((char*)saved_key[index]),
-				cur_salt->salt, strlen((char*)cur_salt->salt),
-				(1ULL) << cur_salt->N, cur_salt->r,
-				cur_salt->p, (unsigned char*)crypt_out[index],
-				BINARY_SIZE) == -1) {
-			memset(crypt_out[index], 0, sizeof(crypt_out[index]));
+#ifdef _OPENMP
+		int t = omp_get_thread_num();
+		if (t >= max_threads) {
+#pragma omp atomic
+			failed |= 2;
+			continue;
 		}
+#else
+		const int t = 0;
+#endif
+		if (yescrypt_kdf(NULL, &local[t],
+		    (const uint8_t *)saved_key[index],
+		    strlen(saved_key[index]),
+		    (const uint8_t *)cur_salt->salt,
+		    strlen(cur_salt->salt),
+		    &params,
+		    (uint8_t *)crypt_out[index],
+		    sizeof(crypt_out[index]))) {
+#ifdef _OPENMP
+#pragma omp atomic
+			failed |= 1;
+#else
+			failed = 1;
+			break;
+#endif
+		}
+	}
+
+	if (failed) {
+#ifdef _OPENMP
+		if (failed & 2) {
+			fprintf(stderr, "OpenMP thread number out of range\n");
+			error();
+		}
+#endif
+		fprintf(stderr, "scrypt failed: %s\n", strerror(errno));
+		error();
 	}
 
 	return count;

@@ -22,7 +22,7 @@
 #include <sys/mman.h>
 #endif
 
-#define HUGEPAGE_THRESHOLD		(32 * 1024 * 1024)
+#define HUGEPAGE_THRESHOLD		(12 * 1024 * 1024)
 
 #ifdef __x86_64__
 #define HUGEPAGE_SIZE			(2 * 1024 * 1024)
