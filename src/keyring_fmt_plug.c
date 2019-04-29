@@ -38,7 +38,7 @@ john_register_one(&fmt_keyring);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "SHA256 AES " SHA256_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        0x507
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0
 #define SALT_SIZE               sizeof(*cur_salt)

@@ -75,6 +75,7 @@ john_register_one(&fmt_krb5_3);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH_3      7
 #define PLAINTEXT_LENGTH        64
 #define CIPHERTEXT_LENGTH_18    64
 #define CIPHERTEXT_LENGTH_17    32
@@ -460,7 +461,7 @@ struct fmt_main fmt_krb5_3 = {
 		FORMAT_NAME_3,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
-		BENCHMARK_LENGTH,
+		BENCHMARK_LENGTH_3,
 		0,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE_3,

@@ -43,7 +43,7 @@ john_register_one(&fmt_DMD5);
 #define FORMAT_TAG              "$DIGEST-MD5$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define MD5_HEX_SIZE            (2 * BINARY_SIZE)
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            4
@@ -110,10 +110,11 @@ static uint32_t (*crypt_key)[BINARY_SIZE/4];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static struct fmt_tests tests[] = {
-	{"$DIGEST-MD5$s3443$pjwstk$00$ldap/10.253.34.43$0734d94ad9abd5bd7fc5e7e77bcf49a8$00000001$auth-int$dd98347e6da3efd6c4ff2263a729ef77", "test"},
 	// Two hashes from https://tools.ietf.org/html/rfc2831#section-8
 	{"$DIGEST-MD5$chris$elwood.innosoft.com$OA6MG9tEQGm2hh$imap/elwood.innosoft.com$OA6MHXh6VqTrRk$00000001$auth$d388dad90d4bbd760a152321f2143af7", "secret"},
 	{"$DIGEST-MD5$chris$elwood.innosoft.com$OA9BSXrbuRhWay$acap/elwood.innosoft.com$OA9BSuZWMSpW8m$00000001$auth$6084c6db3fede7352c551284490fd0fc", "secret"},
+	// And one unrelated hash
+	{"$DIGEST-MD5$s3443$pjwstk$00$ldap/10.253.34.43$0734d94ad9abd5bd7fc5e7e77bcf49a8$00000001$auth-int$dd98347e6da3efd6c4ff2263a729ef77", "test"},
 	{NULL}
 };
 

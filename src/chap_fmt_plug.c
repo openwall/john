@@ -48,7 +48,7 @@ john_register_one(&fmt_chap);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        32
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)

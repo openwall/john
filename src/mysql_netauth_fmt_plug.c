@@ -34,7 +34,7 @@ john_register_one(&fmt_mysqlna);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        32
 #define HEX_LENGTH              40
 #define CIPHERTEXT_LENGTH       90

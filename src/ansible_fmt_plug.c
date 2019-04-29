@@ -40,7 +40,7 @@ john_register_one(&fmt_ansible);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 HMAC-256 32/" ARCH_BITS_STR SHA2_LIB
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        7
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t) // see cmp_all() and ansible_common_get_binary()

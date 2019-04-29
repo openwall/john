@@ -36,7 +36,11 @@ john_register_one(&fmt_opencl_blockchain);
 #define FORMAT_LABEL            "blockchain-opencl"
 #define FORMAT_NAME             "blockchain My Wallet"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES OpenCL"
-#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_COMMENT       " (v2 x5000)"
+/*
+ * We'd need to be benchmarking for Many vs. Only one salt if we move the v1
+ * test vectors back to the start of the tests array.
+ */
 #define BENCHMARK_LENGTH        0x107
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -299,6 +303,7 @@ struct fmt_main fmt_opencl_blockchain = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
+/* FIXME: Should report iteration count as a tunable cost */
 		{ NULL },
 		{ FORMAT_TAG },
 		blockchain_tests
