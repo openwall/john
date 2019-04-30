@@ -42,7 +42,7 @@ john_register_one(&fmt_snmp);
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "HMAC-MD5-96/HMAC-SHA1-96 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        7
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
@@ -195,7 +195,9 @@ static void snmp_usm_password_to_key_md5(const uint8_t *password, uint32_t
 				/* Take the next octet of the password, wrapping */
 				/* to the beginning of the password as necessary.*/
 				/*************************************************/
-				*cp++ = password[password_index++ % passwordlen];
+				*cp++ = password[password_index++];
+				if (password_index >= passwordlen)
+					password_index = 0;
 			}
 		} else {
 			*cp = 0;
@@ -242,7 +244,9 @@ static void snmp_usm_password_to_key_sha(const uint8_t *password, uint32_t
 				/* Take the next octet of the password, wrapping */
 				/* to the beginning of the password as necessary.*/
 				/*************************************************/
-				*cp++ = password[password_index++ % passwordlen];
+				*cp++ = password[password_index++];
+				if (password_index >= passwordlen)
+					password_index = 0;
 			}
 		} else {
 			*cp = 0;
@@ -282,6 +286,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char authKey[20];
 		unsigned char out[20];
 
+/*
+ * Missed optimization potential:
+ * This should be re-worked to cache authKey (in global malloc'ed arrays) for
+ * the MD5 and SHA-1 variations of the algorithm if/as they're first computed
+ * and then reuse them for further salts.
+ */
 		if (cur_salt->authProtocol == 1) {
 			snmp_usm_password_to_key_md5((const uint8_t *)saved_key[index],
 					strlen(saved_key[index]),
@@ -375,6 +385,7 @@ struct fmt_main fmt_snmp = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+/* FIXME: Should report authProtocol as a tunable cost */
 		{ NULL },
 		{ FORMAT_TAG },
 		tests

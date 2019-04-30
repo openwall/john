@@ -69,7 +69,7 @@ john_register_one(&fmt_leet);
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "SHA-512(" SHA512_TYPE ") + Whirlpool(" WP_TYPE "/" ARCH_BITS_STR ")"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define BINARY_SIZE             64
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint64_t)

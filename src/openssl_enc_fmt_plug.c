@@ -60,8 +60,8 @@ john_register_one(&fmt_openssl);
 #define FORMAT_LABEL        "openssl-enc"
 #define FORMAT_NAME         "OpenSSL \"enc\" encryption"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    0x107
+#define BENCHMARK_COMMENT   " (AES-128, MD5)"
+#define BENCHMARK_LENGTH    7
 #define BINARY_SIZE         0
 #define SALT_SIZE           sizeof(struct custom_salt)
 #define BINARY_ALIGN        1
@@ -94,6 +94,8 @@ static struct custom_salt {
 } *cur_salt;
 
 static struct fmt_tests tests[] = {
+	// same test vector twice for consistent multi-salt benchmark
+	{"$openssl$1$0$8$a1a5e529c8d92da5$8de763bf61377d365243993137ad9729$1$0", "password"},
 	{"$openssl$1$0$8$a1a5e529c8d92da5$8de763bf61377d365243993137ad9729$1$0", "password"},
 	{"$openssl$1$1$8$844527fb2f5d7ad5$ebccb1fcd2b1b30c5c3624d4016978ea$1$0", "password"},
 	{"$openssl$0$0$8$305cedc2a0521011$bf11609a01e78ec3f50f0cc483e636f9$1$0", "password"},
@@ -471,6 +473,9 @@ struct fmt_main fmt_openssl = {
 /*
  * FIXME: if there wouldn't be so many false positives,
  *        it would be useful to report some tunable costs
+ *
+ * FIXME: explain what false positives have to do with not
+ *        reporting of tunable costs
  */
 		{ NULL },
 		{ FORMAT_TAG },

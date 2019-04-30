@@ -12,7 +12,7 @@
  */
 
 
-#define BENCHMARK_LENGTH		0x107 // only 1 salt is pretty much same speed.
+#define BENCHMARK_LENGTH		7
 
 #define PLAINTEXT_LENGTH               39
 #define CIPHERTEXT_LENGTH              34

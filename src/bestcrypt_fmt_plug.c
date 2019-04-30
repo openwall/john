@@ -45,8 +45,8 @@ john_register_one(&fmt_bestcrypt);
 #define SALT_ALIGN              sizeof(int)
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_COMMENT       " (SHA-256 + AES XTS mode)"
+#define BENCHMARK_LENGTH        0x507
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define FORMAT_TAG              "$BestCrypt$"
@@ -451,6 +451,7 @@ struct fmt_main fmt_bestcrypt = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
+/* FIXME: Should also report hash_id as a tunable cost */
 			"iteration count",
 		},
 		{ FORMAT_TAG },

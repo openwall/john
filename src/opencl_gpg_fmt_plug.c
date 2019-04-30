@@ -38,6 +38,7 @@ john_register_one(&fmt_opencl_gpg);
 #define FORMAT_LABEL		"gpg-opencl"
 #define FORMAT_NAME		"OpenPGP / GnuPG Secret Key"
 #define ALGORITHM_NAME		"SHA1/SHA2 OpenCL"
+#define BENCHMARK_LENGTH	7
 #define SALT_SIZE		sizeof(struct gpg_common_custom_salt*)
 
 #define MIN_KEYS_PER_CRYPT	1

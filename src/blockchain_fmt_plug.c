@@ -45,8 +45,8 @@ john_register_one(&fmt_blockchain);
 #else
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT       " (x10)"
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_COMMENT       " (v2 x5000)"
+#define BENCHMARK_LENGTH        0x507
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define PLAINTEXT_LENGTH        125
@@ -177,6 +177,7 @@ struct fmt_main fmt_blockchain = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+/* FIXME: Should report iteration count as a tunable cost */
 		{ NULL },
 		{ FORMAT_TAG },
 		blockchain_tests

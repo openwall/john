@@ -44,7 +44,7 @@ john_register_one(&fmt_securezip);
 
 #define ALGORITHM_NAME          "SHA1 AES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define BINARY_SIZE             0
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct custom_salt)

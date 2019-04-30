@@ -50,7 +50,7 @@ john_register_one(&fmt_tezos);
 #endif
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        7
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)

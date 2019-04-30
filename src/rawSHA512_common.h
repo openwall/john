@@ -16,9 +16,9 @@
 #define BINARY_ALIGN                    sizeof(uint64_t)
 
 #define BENCHMARK_COMMENT               ""
-#define BENCHMARK_LENGTH            0x107
+#define BENCHMARK_LENGTH            7
 #define XSHA512_BENCHMARK_LENGTH    7
-#define NSLDAP_BENCHMARK_LENGTH     0x107
+#define NSLDAP_BENCHMARK_LENGTH     7
 
 #define FORMAT_TAG			"$SHA512$"
 #define XSHA512_FORMAT_TAG              "$LION$"

@@ -473,7 +473,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		     format->methods.tunable_cost_value[i] != NULL; i++) {
 		char msg[MAX_COST_MSG_LEN];
 
-		if (t_cost[0][i] == t_cost[1][i])
+		if (t_cost[0][i] == t_cost[1][i] ||
+		    (format->params.benchmark_length & 0x400))
 			snprintf(msg, sizeof(msg), "cost %d (%s) of %u", i + 1,
 			        format->params.tunable_cost_name[i],
 			        t_cost[0][i]);

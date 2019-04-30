@@ -53,6 +53,7 @@ john_register_one(&fmt_gpg);
 #define FORMAT_LABEL        "gpg"
 #define FORMAT_NAME         "OpenPGP / GnuPG Secret Key"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define BENCHMARK_LENGTH    0x107
 #define SALT_SIZE           sizeof(struct gpg_common_custom_salt*)
 
 #ifndef OMP_SCALE

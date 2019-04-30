@@ -34,7 +34,7 @@ john_register_one(&fmt_oracle);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        120 // worst case UTF-8 is 40 characters of Unicode, that'll do
 #define BINARY_SIZE             8
 #define BINARY_ALIGN            4
