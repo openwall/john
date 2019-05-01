@@ -16,13 +16,6 @@ extern struct fmt_main fmt_sevenzip;
 john_register_one(&fmt_sevenzip);
 #else
 
-/*
- * We've seen one single sample where we could not trust the padding check
- * (early rejection). To be able to crack such hashes, define this to 0.
- * This hits performance in some cases.
- */
-#define TRUST_PADDING 0
-
 #include <string.h>
 
 #ifdef _OPENMP
@@ -47,6 +40,7 @@ john_register_one(&fmt_sevenzip);
 #include "crc32.h"
 #include "unicode.h"
 #include "dyna_salt.h"
+#include "config.h"
 #include "lzma/LzmaDec.h"
 #include "lzma/Lzma2Dec.h"
 #include "simd-intrinsics.h"
@@ -130,6 +124,7 @@ static struct fmt_tests sevenzip_tests[] = {
 	{NULL}
 };
 
+static int trust_padding;
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static int *cracked;
@@ -180,6 +175,9 @@ static void init(struct fmt_main *self)
 
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
+
+	if (cfg_get_bool(SECTION_FORMATS, "7z", "TrustPadding", 0))
+		trust_padding = 1;
 }
 
 static void done(void)
@@ -405,7 +403,7 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 	 * be able to trust this, see #2532, so we only do it for truncated
 	 * hashes (it's the only thing we can do!).
 	 */
-	if ((cur_salt->type == 0x80 || TRUST_PADDING) &&
+	if ((cur_salt->type == 0x80 || trust_padding) &&
 	    pad_size > 0 && cur_salt->length >= 32) {
 		uint8_t buf[16];
 
@@ -433,7 +431,7 @@ static int sevenzip_decrypt(unsigned char *derived_key)
 	AES_cbc_encrypt(cur_salt->data, out, aes_len, &akey, iv, AES_DECRYPT);
 
 	/* Padding check unless we already did the quick one */
-	if (TRUST_PADDING && nbytes) {
+	if (trust_padding && nbytes) {
 		i = cur_salt->length - 1;
 		while (nbytes > 0) {
 			if (out[i] != 0)

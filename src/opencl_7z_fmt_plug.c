@@ -5,13 +5,6 @@
  * modification, are permitted.
  */
 
-/*
- * We've seen one single sample where we could not trust the padding check
- * (early rejection). To be able to crack such hashes, define this to 0.
- * This hits performance in some cases.
- */
-#define TRUST_PADDING 0
-
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
@@ -36,6 +29,7 @@ john_register_one(&fmt_opencl_sevenzip);
 #include "crc32.h"
 #include "unicode.h"
 #include "dyna_salt.h"
+#include "config.h"
 #include "lzma/LzmaDec.h"
 #include "lzma/Lzma2Dec.h"
 
@@ -88,6 +82,7 @@ typedef struct {
 	cl_ushort buffer[PLAINTEXT_LENGTH];
 } sevenzip_state;
 
+static int trust_padding;
 static int *cracked;
 static int any_cracked;
 static int new_keys;
@@ -277,6 +272,9 @@ static void init(struct fmt_main *_self)
 
 	if (options.target_enc == UTF_8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
+
+	if (cfg_get_bool(SECTION_FORMATS, "7z", "TrustPadding", 0))
+		trust_padding = 1;
 }
 
 static void reset(struct db_main *db)
@@ -567,7 +565,7 @@ static int sevenzip_decrypt(sevenzip_hash *derived)
 	 * be able to trust this, see #2532, so we only do it for truncated
 	 * hashes (it's the only thing we can do!).
 	 */
-	if ((TRUST_PADDING || cur_salt->type == 0x80) && derived->reject)
+	if ((trust_padding || cur_salt->type == 0x80) && derived->reject)
 		return 0;
 
 	if (cur_salt->type == 0x80) /* We only have truncated data */
@@ -693,7 +691,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	new_keys = 0;
 
-	if (TRUST_PADDING || cur_salt->type == 0x80) {
+	if (trust_padding || cur_salt->type == 0x80) {
 		// Run AES kernel (only for truncated hashes)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_aes, 1,
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]),
