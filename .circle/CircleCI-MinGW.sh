@@ -127,7 +127,7 @@ echo ""
 cd /base/JohnTheRipper/run
 export WINEDEBUG=-all  # suppress wine warnings
 /usr/bin/wine john.exe --list=build-info
-echo "[Disabled:Formats]" > john-local.conf
+echo -e "[Disabled:Formats]\ncrypt = Y" > john-local.conf
 /usr/bin/wine john.exe --test-full=0
 
 # now build a non-SIMD 64 bit exe and test it
@@ -145,7 +145,7 @@ make -s distclean
 CFLAGS_EXTRA="-fstack-protector-all" ./configure --enable-werror --disable-simd
 make -sj4
 ../run/john --list=build-info
-echo "[Disabled:Formats]" > john-local.conf
+echo -e "[Disabled:Formats]\ncrypt = Y" > john-local.conf
 ../run/john -test-full=0
 
 # now build a non-SIMD 32 bit exe and test it
@@ -162,7 +162,7 @@ make -s distclean
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-any || true
 ../run/john --list=build-info
-echo "[Disabled:Formats]" > john-local.conf
+echo -e "[Disabled:Formats]\ncrypt = Y" > john-local.conf
 ../run/john -test-full=0
 
 # now build a 32 bit SSE2 exe and test it
@@ -178,5 +178,5 @@ make -f Makefile.legacy -s clean
 # do NOT exit on error from make.  We expect an error in the libpcap stuff
 JOHN_CFLAGS=-m32 JOHN_ASFLAGS=-m32 JOHN_LDFLAGS=-m32 make -f Makefile.legacy -sj4 linux-x86-sse2 || true
 ../run/john --list=build-info
-echo "[Disabled:Formats]" > john-local.conf
+echo -e "[Disabled:Formats]\ncrypt = Y" > john-local.conf
 ../run/john -test-full=0
