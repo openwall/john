@@ -1,5 +1,5 @@
 /*
- * AIX smd5 cracker patch for JtR. Hacked together during April of 2013 by Dhiru
+ * AIX smd5 cracker for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
  * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
@@ -192,7 +192,8 @@ static void set_salt(void *salt)
 }
 
 /*
- * $Id: md5_crypt.c,v 1.1 2002-05-11 14:42:35 cpbotha Exp $
+ * The function below is loosely based on Poul-Henning Kamp's md5_crypt.c from
+ * FreeBSD, which is under the following license:
  *
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
@@ -200,27 +201,23 @@ static void set_salt(void *salt)
  * can do whatever you want with this stuff. If we meet some day, and you think
  * this stuff is worth it, you can buy me a beer in return.   Poul-Henning Kamp
  * ----------------------------------------------------------------------------
- *
- * Origin: Id: crypt.c,v 1.3 1995/05/30 05:42:22 rgrimes Exp
- *
  */
 
 static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 {
-	char *magic = "$1$";
-	/* This string is magic for this algorithm.  Having
-	 * it this way, we can get get better later on */
+#define magic FORMAT_TAG1
+#define magiclen FORMAT_TAG1_LEN
 	char *sp, *ep;
 	unsigned char final[16];
-	int sl, pl, i, j;
+	int sl, pl, i, j, k;
 	MD5_CTX ctx, ctx1;
 
 	/* Refine the Salt first */
 	sp = salt;
 
 	/* If it starts with the magic string, then skip that */
-	if (!strncmp(sp, magic, strlen(magic)))
-		sp += strlen(magic);
+	if (!strncmp(sp, magic, magiclen))
+		sp += magiclen;
 
 	/* It stops at the first '$', max 8 chars */
 	for (ep = sp; *ep && *ep != '$' && ep < (sp + 8); ep++)
@@ -232,50 +229,34 @@ static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 	MD5_Init(&ctx);
 
 	/* The password first, since that is what is most unknown */
-	MD5_Update(&ctx,(unsigned char *)pw,strlen(pw));
+	int pwlen = strlen(pw);
+	MD5_Update(&ctx, pw, pwlen);
 
-	// The following license text applies to the "if" code block
-	// License: belongs to the PUBLIC DOMAIN, donated to hashcat, credits MUST go to atom
-	//          (hashcat) and philsmd for their hard work. Thx
-	// Disclaimer: WE PROVIDE THE PROGRAM “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER
-	//         EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-	//         OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-	//         Furthermore, NO GUARANTEES THAT IT WORKS FOR YOU AND WORKS CORRECTLY
-	if (is_standard) {
-		/* Then our magic string */
-		MD5_Update(&ctx,(unsigned char *)magic,strlen(magic));
+	/* Then our magic string */
+	if (is_standard)
+		MD5_Update(&ctx, magic, magiclen);
 
-		/* Then the raw salt */
-		MD5_Update(&ctx,(unsigned char *)sp,sl);
-	}
-	else {
-		MD5_Update(&ctx,(unsigned char *)sp,sl);
-	}
+	/* Then the raw salt */
+	MD5_Update(&ctx, sp, sl);
 
 	/* Then just as many characters of the MD5_(pw,salt,pw) */
 	MD5_Init(&ctx1);
-	MD5_Update(&ctx1,(unsigned char *)pw,strlen(pw));
-	MD5_Update(&ctx1,(unsigned char *)sp,sl);
-	MD5_Update(&ctx1,(unsigned char *)pw,strlen(pw));
+	MD5_Update(&ctx1, pw, pwlen);
+	MD5_Update(&ctx1, sp, sl);
+	MD5_Update(&ctx1, pw, pwlen);
 
 	MD5_Final(final,&ctx1);
 
-	for (pl = strlen(pw); pl > 0; pl -= 16)
-		MD5_Update(&ctx,(unsigned char *)final,pl>16 ? 16 : pl);
-
-	memset(final, 0, sizeof final);
+	for (pl = pwlen; pl > 0; pl -= 16)
+		MD5_Update(&ctx, final, (pl > 16) ? 16 : pl);
 
 	/* Then something really weird... */
-	for (j = 0, i = strlen(pw); i; i >>= 1)
+	for (i = pwlen; i; i >>= 1)
 		if (i & 1)
-			MD5_Update(&ctx, (unsigned char *)final+j, 1);
+			MD5_Update(&ctx, "", 1);
 		else
-			MD5_Update(&ctx, (unsigned char *)pw+j, 1);
+			MD5_Update(&ctx, pw, 1);
 
-	/* Now make the output string */
-	strcpy(passwd, magic);
-	strncat(passwd, sp, sl);
-	strcat(passwd, "$");
 	MD5_Final(final,&ctx);
 
 	/*
@@ -283,25 +264,35 @@ static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 	 * On a 60 Mhz Pentium this takes 34 msec, so you would
 	 * need 30 seconds to build a 1000 entry dictionary...
 	 */
-	for (i = 0; i < 1000; i++) {
+	i = 500; j = k = 1;
+	do {
 		MD5_Init(&ctx1);
-		if (i & 1)
-			MD5_Update(&ctx1,(unsigned char *)pw,strlen(pw));
+		MD5_Update(&ctx1, final, 16);
+		if (--j)
+			MD5_Update(&ctx1, sp, sl);
 		else
-			MD5_Update(&ctx1,(unsigned char *)final,16);
-
-		if (i % 3)
-			MD5_Update(&ctx1,(unsigned char *)sp,sl);
-
-		if (i % 7)
-			MD5_Update(&ctx1,(unsigned char *)pw,strlen(pw));
-
-		if (i & 1)
-			MD5_Update(&ctx1,(unsigned char *)final,16);
+			j = 3;
+		if (--k)
+			MD5_Update(&ctx1, pw, pwlen);
 		else
-			MD5_Update(&ctx1,(unsigned char *)pw,strlen(pw));
+			k = 7;
+		MD5_Update(&ctx1, pw, pwlen);
 		MD5_Final(final,&ctx1);
-	}
+
+		MD5_Init(&ctx1);
+		MD5_Update(&ctx1, pw, pwlen);
+		if (--j)
+			MD5_Update(&ctx1, sp, sl);
+		else
+			j = 3;
+		if (--k)
+			MD5_Update(&ctx1, pw, pwlen);
+		else
+			k = 7;
+		MD5_Update(&ctx1, final, 16);
+		MD5_Final(final, &ctx1);
+	} while (--i);
+
 	memcpy(passwd, final, 16);
 }
 
