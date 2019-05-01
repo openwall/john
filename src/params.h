@@ -201,6 +201,7 @@
 #define SECTION_PRINCE			"PRINCE"
 #define SECTION_DISABLED		"Disabled:"
 #define SUBSECTION_FORMATS		"Formats"
+#define SECTION_FORMATS			"Formats:"
 
 /*
  * Number of different password hash table sizes.
