@@ -55,7 +55,7 @@ john_register_one(&fmt_racf);
 #define MAX_KEYS_PER_CRYPT      256
 
 #ifndef OMP_SCALE
-#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#define OMP_SCALE               4 // Tuned w/ MKPC for super
 #endif
 
 static const unsigned char a2e[256] = {
