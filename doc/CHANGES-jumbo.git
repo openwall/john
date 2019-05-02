@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.9-0-jumbo-1:
 
-magnum (2558):
+magnum (2576):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
 	  buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but in other
 	  places with similar code.
@@ -4201,6 +4201,31 @@ magnum (2558):
 	BF-opencl: Workaround for Sayantan's strange keyboard. Oh, and a
 	  salt_hash() fix that was missed until now for that reason.
 	nsec3 format salt_hash fix (was using ancient fixed salt hash size)
+	Update CHANGES-jumbo.git and CREDITS-jumbo
+	params.h tweaks for future Jumbo
+	Fix some algorithm names that were incorrect. See #3513
+	Lots of lgorithm_name fixes, and mute another yescrypt build warning
+	  (notice). See €3513
+	A few more algorithm_name fixes. See #3513
+	Work around some weird problem with dynamic cmopiler format, #3796
+	SIPDump and eapmd5tojohn: source <getopt.h> instead of declaring
+	  extern optind. See #3799
+	Fix a -Wdiscarded-qualifiers in opencl_common.c for SYSTEMWIDE
+	Revise INSTALL-UBUNTU. Add OMP fall-back.
+	--show=format[-all]-details fixes for new benchmark_length
+	Minor bugfix for special many-salts benchmark --test=-1
+	Don't suggest setting RelaxKPCWarningCheck when it's already set. Also
+	  make message a little shorter, avoiding a line wrap decision.
+	7z formats: Move the compile-time TRUST_PADDING macro to a john.conf
+	  option, so user can decide. Have it default to true, since we've
+	  only had a single report of false negative and that was an archive
+	  of dubious origin. Closes #3806.
+	Disable the generic crypt(3) format on CircleCI, it seems to always
+	  fail now. Closes #3867
+	Relbench: Avoid division by zero, closes #3878
+	RACF: Adjust OMP scale after testing on super, see #3091
+	Re-tune krb5-db and o5logon for super. See #3091
+	Avoid inconsistent messages from -test -mask, closes #3875
 
 JimF (1545):
 	configure: removed many function checks (for #910)
@@ -6847,7 +6872,7 @@ Dhiru Kholia (532):
 	Make DiskCryptor format functional on BE machines
 	Add support for cracking encrypted VMware VMX files
 
-Claudio André (291):
+Claudio André (310):
 	OpenCL: AMD devices have some weird bug when using pinned buffers.
 	  Forgotten file: see ec080119f45ffef07f7f1dd36e120ee56d5d6734
 	OpenCL: Updates to get_processor_family().
@@ -7178,6 +7203,25 @@ Claudio André (291):
 	OpenCL: tune for the length a run will be using
 	OpenCL: tune for the length a run will be using
 	OpenCL: tune using code that matches benchmark more closely
+	docs: missing full JtR directory
+	fuzz: add const qualifier to fuzzing (#3820)
+	7z: stop to modify the caller's key in set_key()
+	OpenCL: rawSHA512 force auto-tuning
+	SIP: general improvements supplied by nanosonde (#3836)
+	SIP: fix for fails cracking qop=auth (#3840)
+	mask: add event to free (destroy) mask objects (#3843)
+	Handle GPU overheating gracefully (#3838)
+	packaging: upstream package stuff
+	hash_table: ocl_hc_128_prepare_table uninitialized allocation
+	OpenCL: print a message when a GPU wakes up from overheating (#3853)
+	OpenCL: rawSHA256 force auto-tuning (#3855)
+	Filter ztex formats when --format=cpu (#3854)
+	ztex: fix an overflow in sha256crypt (#3857)
+	OpenCL: if SleepOnTemperature = 1, print sleeping message once (#3861)
+	maint: move regex to experimental (#3860)
+	docs: drop non-updated jumbo-specific documentation files (#3865)
+	docs: cosmetic change in badges (#3866)
+	OpenCL: hash_ids uninitialized allocation (#3868)
 
 Sayantan Datta (266):
 	DEScrypt OpenCL: Use a "safer" kernel for some devices (drivers) that
@@ -7984,7 +8028,79 @@ Kai Zhao (84):
 	Detect FMT_SPLIT_UNIFIES_CASE error
 	Change to 'FAILED' when there is a FMT_SPLIT warning or error
 
-Apingis (53):
+Solar (60):
+	Fix a bug in truecrypt for non-x86 archs. Closes #912.
+	Early (contest) version of AVX2 support for DES.
+	Fix a compile error in dynamic_compiler_plug.c
+	Relbench: Fix over/underflow when calculating geometric mean.
+	Fix benchmark_length for cq format
+	Fix OpenMP performance issue in Sybase-PROP. Closes #1673
+	OpenCL md5crypt: Optimizations.
+	OpenCL auto-tune improvement: Re-tune GWS with the tuned LWS and
+	  considering the queried number of compute units.
+	Fix the "max. length in index 1: wrote 55, got 55 back" self-test
+	  error seen for raw SHA2 formats after auto-tuning.
+	Intrinsics: Use vcmov (if not emulated) for MD5_I and MD4_G. Disable
+	  support for SSEi_FLAT_OUT for MD4 & MD5 (currently not used anyway).
+	Optimize OpenCL MD4_G.
+	md5crypt intrinsics: Optimization for mmxput3().
+	md5crypt intrinsics: Use switch in mmxput3 (unless XOP).
+	Some fixes for huge input lists.
+	  http://www.openwall.com/lists/john-dev/2015/09/15/5
+	Avoid ldr_remove_marked() when there's nothing marked for removal.
+	Implemented better prefetching, john-huge-prefetch.diff
+	john-huge-largehash.diff: Prepare us for larger bitmaps and possibly
+	  hash tables and cleaning up our use of integer types a little bit in
+	  general.
+	john-huge-loader-bypass.diff: Loader optimzations.
+	john-huge-loader-mt.diff, splitting initialization of bitmap and hash
+	  table into 3 threads.
+	raw-md5: Optimize valid() and split().
+	Rules: Optimizations for repeated simple commands.
+	Correct an allocation bug for the "ShowUIDinCracks" feature.
+	  john-loader-mem-save.diff
+	john-loader-pw_size.diff: "struct db_password" allocation.
+	john-huge-prefetch2.diff: Prefetch tweaks.
+	Bump unique's default buffer size.
+	Speed up --show.
+	john-huge-show2.diff + errata from
+	  http://www.openwall.com/lists/john-dev/2015/09/20/3
+	john-huge-prefetch3.diff: Fix problems with prefetch. Closes #1771.
+	Spelling fix in a comment: equivelent to equivalent
+	Assorted spelling fixes
+	Fix for argon2. Closes #2650.
+	Fix several issues with OpenMP in multibit format. See #2846.
+	fuzz: suppress collision warnings
+	md5crypt-opencl optimizations favoring same-length passwords
+	md5crypt-opencl: choose slow path on len >= 10*4*8 instead of on x[9]
+	md5crypt-opencl: workaround AMDGPU-PRO libamdocl64.so segfault
+	Pack altpos and ctx_buflen into 3 registers
+	Enable explicit use of bitselect on AMD and of LUT3 on recent NVIDIA
+	Further specialization of the MD5 compression function
+	Keep the MD5 result in registers on every other iteration
+	Disable specialization to password length if it varies within the
+	  group
+	md5crypt-opencl: Further specialization for password length 8
+	md5crypt-opencl: only detect divergence in 64 lid's near current
+	Add pristine upstream yescrypt
+	Force SKIP_MEMZERO for use in JtR
+	Upgrade from escrypt to yescrypt
+	Added ULL to the 64-bit YESCRYPT_ROM_TAG* constants
+	Updated copyrights, dropped obsolete comment in scrypt_fmt.c
+	Fix some unaligned accesses, enhance some salt_hash()
+	Have most "Raw" benchmarks of salted formats behave like "Many salts"
+	Documented the benchmark_length flags
+	Make "gost" format's "Raw" benchmark behave like "Only one salt"
+	Added the missing #include "arch.h" to "haval" to let it use OpenMP
+	radius: just output some recovered passwords when we can (#3862)
+	yescrypt: Explicitly use huge pages starting with 12 MiB, not 32 MiB
+	JtR hack: don't use OpenMP inside (ye)scrypt
+	scrypt: Support *_keys_per_crypt above thread count
+	Use yescrypt_kdf() instead of crypto_scrypt()
+	Fix many format-specific benchmark oddities (issue #3795, PR #3873)
+	aix-smd5: Trivial optimizations (#3876)
+
+Apingis (58):
 	descrypt-ztex format; includes library for operating ZTEX hardware and
 	  bitstream (4MB). Requires libusb-1.0. Autoconf support.
 	HDL sources; Copyright and license information; small corrections
@@ -8050,67 +8166,11 @@ Apingis (53):
 	{sha256|sha512|md5}crypt-ztex: salt_length=0: print warning, don't
 	  process (#3742)
 	src/ztex/Makefile.in: added distclean target (#3774)
-
-Solar (49):
-	Fix a bug in truecrypt for non-x86 archs. Closes #912.
-	Early (contest) version of AVX2 support for DES.
-	Fix a compile error in dynamic_compiler_plug.c
-	Relbench: Fix over/underflow when calculating geometric mean.
-	Fix benchmark_length for cq format
-	Fix OpenMP performance issue in Sybase-PROP. Closes #1673
-	OpenCL md5crypt: Optimizations.
-	OpenCL auto-tune improvement: Re-tune GWS with the tuned LWS and
-	  considering the queried number of compute units.
-	Fix the "max. length in index 1: wrote 55, got 55 back" self-test
-	  error seen for raw SHA2 formats after auto-tuning.
-	Intrinsics: Use vcmov (if not emulated) for MD5_I and MD4_G. Disable
-	  support for SSEi_FLAT_OUT for MD4 & MD5 (currently not used anyway).
-	Optimize OpenCL MD4_G.
-	md5crypt intrinsics: Optimization for mmxput3().
-	md5crypt intrinsics: Use switch in mmxput3 (unless XOP).
-	Some fixes for huge input lists.
-	  http://www.openwall.com/lists/john-dev/2015/09/15/5
-	Avoid ldr_remove_marked() when there's nothing marked for removal.
-	Implemented better prefetching, john-huge-prefetch.diff
-	john-huge-largehash.diff: Prepare us for larger bitmaps and possibly
-	  hash tables and cleaning up our use of integer types a little bit in
-	  general.
-	john-huge-loader-bypass.diff: Loader optimzations.
-	john-huge-loader-mt.diff, splitting initialization of bitmap and hash
-	  table into 3 threads.
-	raw-md5: Optimize valid() and split().
-	Rules: Optimizations for repeated simple commands.
-	Correct an allocation bug for the "ShowUIDinCracks" feature.
-	  john-loader-mem-save.diff
-	john-loader-pw_size.diff: "struct db_password" allocation.
-	john-huge-prefetch2.diff: Prefetch tweaks.
-	Bump unique's default buffer size.
-	Speed up --show.
-	john-huge-show2.diff + errata from
-	  http://www.openwall.com/lists/john-dev/2015/09/20/3
-	john-huge-prefetch3.diff: Fix problems with prefetch. Closes #1771.
-	Spelling fix in a comment: equivelent to equivalent
-	Assorted spelling fixes
-	Fix for argon2. Closes #2650.
-	Fix several issues with OpenMP in multibit format. See #2846.
-	fuzz: suppress collision warnings
-	md5crypt-opencl optimizations favoring same-length passwords
-	md5crypt-opencl: choose slow path on len >= 10*4*8 instead of on x[9]
-	md5crypt-opencl: workaround AMDGPU-PRO libamdocl64.so segfault
-	Pack altpos and ctx_buflen into 3 registers
-	Enable explicit use of bitselect on AMD and of LUT3 on recent NVIDIA
-	Further specialization of the MD5 compression function
-	Keep the MD5 result in registers on every other iteration
-	Disable specialization to password length if it varies within the
-	  group
-	md5crypt-opencl: Further specialization for password length 8
-	md5crypt-opencl: only detect divergence in 64 lid's near current
-	Add pristine upstream yescrypt
-	Force SKIP_MEMZERO for use in JtR
-	Upgrade from escrypt to yescrypt
-	Added ULL to the 64-bit YESCRYPT_ROM_TAG* constants
-	Updated copyrights, dropped obsolete comment in scrypt_fmt.c
-	Fix some unaligned accesses, enhance some salt_hash()
+	bcrypt-ztex handles > 512 hashes/salt (#3807)
+	bcrypt-ztex: fixed memory leak, correction in docs (#3828)
+	ztex improvements (#3833)
+	bcrypt >512 hashes/salt fix (#3839)
+	sha512common.h fix (#3845)
 
 Fist0urs (30):
 	Initial commit.
@@ -8178,7 +8238,7 @@ Elena Ago (15):
 	bitlocker2john can find recovery password even without user password
 	Code reworked - added two different salt and aes offsets
 
-Aleksey Cherepanov (8):
+Aleksey Cherepanov (10):
 	added --show=types option; renamed m_allow_rawhash_fixup into
 	  dynamic_allow_rawhash_fixup and made it global
 	removed unused variable in --show=types code
@@ -8193,6 +8253,10 @@ Aleksey Cherepanov (8):
 	replace "consistencyMark" with "skipped" in JSON, add rowFormats:[]
 	  for skipped hashes; combined code into showformats_skipped()
 	document --show=formats option (#3773)
+	documentation for --show=formats: update after fixes for ztex formats,
+	  added about ad-hoc format, fixed minor typo (#3858)
+	fix buffer overflow in HC rule p (duplicate word N times) cutting
+	  length (#3856)
 
 Jan Starke (6):
 	Update regex code for working with latest rexgen library from
@@ -8217,11 +8281,16 @@ Ivan Freed (4):
 	Fix structure packing in DiskCryptor stuff
 	OpenCL support for cracking DiskCryptor
 
-akos.sereg (3):
-	Adding extra config parameter: shell script to be executed on
-	  successful password crack
-	Concat safer with snprintf
-	Adding sample script to configuration file
+Christien Rioux (3):
+	Bugfix for path_expand_safe() returning offset from allocated buffer
+	  (segfaulting when freed).
+	OpenCL: The HANDLE_CLERROR macros evaluated its input twice on error
+	fix for unroll bug
+
+Sylvain Pelissier (3):
+	Add new version of eCryptfs file
+	Copyright Date changed
+	New copyright
 
 Stuart Morgan (3):
 	Adapted the regex matching to cover the example /etc/security/passwd
@@ -8234,33 +8303,16 @@ Stuart Morgan (3):
 	  .strip())
 	Fixed command line arguments & added more informative help
 
-Sylvain Pelissier (3):
-	Add new version of eCryptfs file
-	Copyright Date changed
-	New copyright
-
-Christien Rioux (3):
-	Bugfix for path_expand_safe() returning offset from allocated buffer
-	  (segfaulting when freed).
-	OpenCL: The HANDLE_CLERROR macros evaluated its input twice on error
-	fix for unroll bug
+akos.sereg (3):
+	Adding extra config parameter: shell script to be executed on
+	  successful password crack
+	Concat safer with snprintf
+	Adding sample script to configuration file
 
 campeador (3):
 	Change optparse to argparse
 	Change optparse to argparse in efs2john.py and openssl2john.py
 	Delete comments in efs2john.py
-
-Louis Granboulan (2):
-	configure: detect openssl installed by MacPorts on macOS (#3577)
-	HDAA: remove check that cnonce is lowercase hex
-
-Dennis Addo (2):
-	Rewrite common.c: isdec*() #2951 (#2979)
-	Update README.md #1972 (#3003)
-
-Shinnok (2):
-	Ignore .DS_Store files on OS X.
-	Properly format the .gitignore file.
 
 walkerk1980 (2):
 	Added LogFilePermissions, PotFilePermissions, IgnoreLogChmodErrors
@@ -8268,38 +8320,55 @@ walkerk1980 (2):
 	  allow log file creation perms, change to bitwise check from strcmp()
 	  on LogFilePerms and PotFilePerms
 
-chipx0r (2):
-	PKCS#8 DER Compatibility
-	try/catch certificate
-
-Sanju Kholia (2):
-	Port luks2john.c to Python
-	Remove luks2john.c (replaced by luks2john.py)
-
-Rémi Dubois (2):
-	Adding dynamic_1034 for PostgreSQL MD5 support
-	Additional comments for PostgreSQL
-
-Catalin Patulea (2):
-	radius2john: support for LINUX_SSL (cooked capture) containing IP
-	radius2john: preserve unknown vendor extensions when constructing salt
+Christian Mehlmauer (2):
+	update OSX compile instructions
+	Update .gitignore
 
 Rob Schoemaker (2):
 	Add support for cracking AS/400 DES hashes
 	Update information about AS/400 DES hashes
 
-philsmd (2):
-	pdf2john.py problem, commit efc315e926f521cc41c002742a994776edbacc1d
-	  broke it
-	pdf2john /Encrypt /Length problem for PDF versions 1.1 - 1.3
+Rémi Dubois (2):
+	Adding dynamic_1034 for PostgreSQL MD5 support
+	Additional comments for PostgreSQL
+
+Sanju Kholia (2):
+	Port luks2john.c to Python
+	Remove luks2john.c (replaced by luks2john.py)
+
+Shinnok (2):
+	Ignore .DS_Store files on OS X.
+	Properly format the .gitignore file.
+
+Dennis Addo (2):
+	Rewrite common.c: isdec*() #2951 (#2979)
+	Update README.md #1972 (#3003)
+
+Louis Granboulan (2):
+	configure: detect openssl installed by MacPorts on macOS (#3577)
+	HDAA: remove check that cnonce is lowercase hex
+
+arcctgx (2):
+	Make sure wpapcap2john initialises allocated memory with zeros.
+	  (#2429)
+	add support for more recent Gadu-Gadu login packets
+
+chipx0r (2):
+	PKCS#8 DER Compatibility
+	try/catch certificate
+
+Catalin Patulea (2):
+	radius2john: support for LINUX_SSL (cooked capture) containing IP
+	radius2john: preserve unknown vendor extensions when constructing salt
 
 Michel Normand (2):
 	set ARCH_LITTLE_ENDIAN for powerpc64 little endian in src/ppc64.h
 	add src/escrypt/tests in .gitignore
 
-Christian Mehlmauer (2):
-	update OSX compile instructions
-	Update .gitignore
+philsmd (2):
+	pdf2john.py problem, commit efc315e926f521cc41c002742a994776edbacc1d
+	  broke it
+	pdf2john /Encrypt /Length problem for PDF versions 1.1 - 1.3
 
 smarteam (2):
 	Update INSTALL-UBUNTU (#1)
@@ -8309,10 +8378,8 @@ Alexander Cherepanov (2):
 	fake_salts.h: change cp1252 dash to '='
 	episerver: remove gratuitous memset in hash_type
 
-arcctgx (2):
-	Make sure wpapcap2john initialises allocated memory with zeros.
-	  (#2429)
-	add support for more recent Gadu-Gadu login packets
+Will Dormann (1):
+	Make input parsing more robust in sshng2john.py
 
 alexander.elgert@t-systems.com (1):
 	Add support for parsing AIX hashes in unshadow
@@ -8469,14 +8536,14 @@ Agnieszka Bielec (1):
 Steven Noonan (1):
 	OpenCL: Add a missing space after -D__MESA__
 
+TROUNCE (1):
+	Update geli_common_plug.c (#3864)
+
 Tonimir Kisasondi (1):
 	Added keyring2john.py
 
 Warren MacEvoy (1):
 	Update INSTALL-UBUNTU (#2625)
-
-Will Dormann (1):
-	Make input parsing more robust in sshng2john.py
 
 
 The following changes were made between 1.7.9-jumbo-8 and 1.8.0-jumbo-1:
