@@ -55,7 +55,7 @@ john_register_one(&fmt_o5logon);
 #define MAX_KEYS_PER_CRYPT      256
 
 #ifndef OMP_SCALE
-#define OMP_SCALE               2 // Tuned w/ MKPC for core i7
+#define OMP_SCALE               8 // Tuned w/ MKPC on super
 #endif
 
 static struct fmt_tests o5logon_tests[] = {

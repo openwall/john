@@ -96,7 +96,7 @@ john_register_one(&fmt_krb5_3);
 #endif
 
 #ifndef OMP_SCALE
-#define OMP_SCALE               4 // Tuned w/ MKPC for core i7
+#define OMP_SCALE               128 // Tuned w/ MKPC for super
 #endif
 
 static struct fmt_tests kinit_tests_18[] = {
