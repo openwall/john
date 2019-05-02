@@ -73,6 +73,7 @@ sub parse
 			$real *= 1000000 if ($reals eq 'M');
 			$virtual *= 1000 if ($virtuals eq 'K');
 			$virtual *= 1000000 if ($virtuals eq 'M');
+			$virtual = 0.001 if $virtual eq "0.0";
 			return;
 		}
 	} else {
