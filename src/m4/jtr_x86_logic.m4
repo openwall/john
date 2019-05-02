@@ -469,7 +469,7 @@ dnl ======================================================================
       [[#include <immintrin.h>
         #include <stdio.h>
         extern void exit(int);
-        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi16(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
+        int main(){__m512i t, t1;*((long long*)&t)=1;t1=t;t=_mm512_slli_epi32(t1,t);if((*(long long*)&t)==88)printf(".");exit(0);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512bw"]
      [SIMD_NAME="AVX512BW"]
