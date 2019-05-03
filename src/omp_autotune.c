@@ -117,7 +117,7 @@ void omp_autotune_run(struct db_main *db)
 	if (john_main_process && (options.flags & FLG_TEST_CHK) &&
 	    ((options.tune && !strcmp(options.tune, "report")) ||
 	     options.verbosity > VERB_DEFAULT))
-		fprintf(stderr, "\n");
+		printf("\n");
 
 	scale = 1;
 	omp_autotune_running = 1;
@@ -134,13 +134,13 @@ void omp_autotune_run(struct db_main *db)
 	}
 
 	if (john_main_process && options.verbosity >= VERB_MAX) {
-		fprintf(stderr, "%s %s autotune using %s db",
-		        fmt->params.label, threads > 1 ? "OMP" : "MKPC",
-		        db->real ? "real" : "test");
+		printf("%s %s autotune using %s db",
+		       fmt->params.label, threads > 1 ? "OMP" : "MKPC",
+		       db->real ? "real" : "test");
 		if (fmt->methods.tunable_cost_value[0])
-			fprintf(stderr, " with %s of %d\n",
-			        fmt->params.tunable_cost_name[0], tune_cost);
-		fprintf(stderr, "\n");
+			printf(" with %s of %d\n",
+			       fmt->params.tunable_cost_name[0], tune_cost);
+		printf("\n");
 	}
 
 	sTimer_Init(&timer);
@@ -196,27 +196,24 @@ void omp_autotune_run(struct db_main *db)
 
 		if (john_main_process && options.verbosity >= VERB_MAX) {
 			if (threads > 1)
-				fprintf(stderr,
-				        "OMP scale %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				        scale, crypts, crypts / this_kpc, this_kpc, duration,
-				        cps);
+				printf("OMP scale %d: %d crypts (%dx%d) in %f seconds, %d c/s",
+				       scale, crypts, crypts / this_kpc, this_kpc, duration, cps);
 			else
-				fprintf(stderr,
-				        "MKPC %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				        this_kpc, crypts, crypts / this_kpc, this_kpc,
-				        duration, cps);
+				printf("MKPC %d: %d crypts (%dx%d) in %f seconds, %d c/s",
+				       this_kpc, crypts, crypts / this_kpc, this_kpc,
+				       duration, cps);
 		}
 
 		if (cps >= (best_cps * req_gain)) {
 			if (john_main_process && options.verbosity >= VERB_MAX)
-				fprintf(stderr, " +\n");
+				printf(" +\n");
 			best_cps = cps;
 			best_scale = scale;
 			no_progress = 0;
 		}
 		else {
 			if (john_main_process && options.verbosity >= VERB_MAX)
-				fprintf(stderr, "\n");
+				printf("\n");
 			no_progress++;
 		}
 
@@ -241,27 +238,26 @@ void omp_autotune_run(struct db_main *db)
 	if (options.tune && !strcmp(options.tune, "report")) {
 		if (threads == 1) {
 			if (best_scale * fmt->params.min_keys_per_crypt != mkpc)
-				fprintf(stderr, "Autotuned MKPC %d, preset is %d\n",
-				        best_scale * fmt->params.min_keys_per_crypt, mkpc);
+				printf("Autotuned MKPC %d, preset is %d\n",
+				       best_scale * fmt->params.min_keys_per_crypt, mkpc);
 		} else {
 			if (best_scale != fmt_preset)
-				fprintf(stderr, "Autotuned OMP scale %d, preset is %d\n",
-				        best_scale, fmt_preset);
+				printf("Autotuned OMP scale %d, preset is %d\n",
+				       best_scale, fmt_preset);
 		}
 	} else {
 		if (threads == 1) {
 			if (john_main_process && options.verbosity > VERB_DEFAULT)
-			fprintf(stderr,
-			        "Autotune found best speed at MKPC of %d (%d * %d)\n",
-			        best_scale * fmt->params.min_keys_per_crypt,
-			        best_scale, fmt->params.min_keys_per_crypt);
+				printf("Autotune found best speed at MKPC of %d (%d * %d)\n",
+				       best_scale * fmt->params.min_keys_per_crypt,
+				       best_scale, fmt->params.min_keys_per_crypt);
 			log_event("Autotune found best speed at MKPC of %d (%d * %d)",
 			          best_scale * fmt->params.min_keys_per_crypt,
 			          best_scale, fmt->params.min_keys_per_crypt);
 		} else {
 			if (john_main_process && options.verbosity > VERB_DEFAULT)
-			fprintf(stderr, "Autotune found best speed at OMP scale of %d\n",
-			        best_scale);
+				printf("Autotune found best speed at OMP scale of %d\n",
+				       best_scale);
 			log_event("Autotune found best speed at OMP scale of %d", best_scale);
 		}
 	}
