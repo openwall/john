@@ -350,7 +350,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int cnt_split_unifies_case = 0;// just in case only the last test case unifies.
 	int dhirutest = 0;
 	int maxlength = 0;
-	int extra_tests = options.flags & FLG_TEST_SET;
+	int extra_tests = options.flags & FLG_TEST_CHK;
 #else
 	int extra_tests = 0;
 #endif
