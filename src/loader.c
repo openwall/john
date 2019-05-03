@@ -1802,7 +1802,8 @@ void ldr_fix_database(struct db_main *db)
 		ldr_remove_marked(db);
 	}
 	ldr_cost_ranges(db);
-	ldr_sort_salts(db);
+	if (db->real && db->real == db)
+		ldr_sort_salts(db);
 	ldr_init_hash(db);
 
 	ldr_init_sqid(db);
