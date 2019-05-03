@@ -292,13 +292,13 @@ static char* is_key_right(struct fmt_main *format, int index,
 	if (len < format->params.plaintext_min_length ||
 		len > format->params.plaintext_length) {
 		if (options.verbosity > VERB_LEGACY)
-		snprintf(err_buf, sizeof(err_buf), "The length of string returned by get_key() is %d"
-			"which should be between plaintext_min_length=%d and plaintext_length=%d %s",
+		snprintf(err_buf, sizeof(err_buf), "The length of string returned by get_key() is %d "
+			"but should be between plaintext_min_length=%d and plaintext_length=%d %s",
 			len, format->params.plaintext_min_length,
 			format->params.plaintext_length, key);
 		else
-		sprintf(err_buf, "The length of string returned by get_key() is %d"
-			"which should be between plaintext_min_length=%d and plaintext_length=%d",
+		sprintf(err_buf, "The length of string returned by get_key() is %d "
+			"but should be between plaintext_min_length=%d and plaintext_length=%d",
 			len, format->params.plaintext_min_length,
 			format->params.plaintext_length);
 		return err_buf;
